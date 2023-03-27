@@ -303,14 +303,14 @@ read_only=true
 EOF
 
     YAML=$PODMAN_TMPDIR/test.yml
-    CONTAINERS_CONF="$containersconf" run_podman create --pod new:pod1 --read-only=false --name test1 $IMAGE touch /testrw
-    CONTAINERS_CONF="$containersconf" run_podman create --pod pod1 --name test2 $IMAGE touch /testro
-    CONTAINERS_CONF="$containersconf" run_podman create --pod pod1 --name test3 $IMAGE touch /tmp/testtmp
-    CONTAINERS_CONF="$containersconf" run_podman container inspect --format '{{.HostConfig.ReadonlyRootfs}}' test1 test2 test3
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --pod new:pod1 --read-only=false --name test1 $IMAGE touch /testrw
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --pod pod1 --name test2 $IMAGE touch /testro
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --pod pod1 --name test3 $IMAGE touch /tmp/testtmp
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman container inspect --format '{{.HostConfig.ReadonlyRootfs}}' test1 test2 test3
     is "$output" "false.*true.*true" "Rootfs should be read/only"
 
     # Now generate and run kube.yaml on a machine without the defaults set
-    CONTAINERS_CONF="$containersconf" run_podman kube generate pod1 -f $YAML
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman kube generate pod1 -f $YAML
     cat $YAML
 
     run_podman kube play --replace $YAML

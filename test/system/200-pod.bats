@@ -62,7 +62,7 @@ function teardown() {
 
 
 @test "podman pod create - custom infra image" {
-    skip_if_remote "CONTAINERS_CONF only affects server side"
+    skip_if_remote "CONTAINERS_CONF_OVERRIDE only affects server side"
     image="i.do/not/exist:image"
     tmpdir=$PODMAN_TMPDIR/pod-test
     mkdir -p $tmpdir
@@ -75,10 +75,10 @@ EOF
     run_podman 125 pod create --infra-image $image
     is "$output" ".*initializing source docker://$image:.*"
 
-    CONTAINERS_CONF=$containersconf run_podman 125 pod create
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman 125 pod create
     is "$output" ".*initializing source docker://$image:.*"
 
-    CONTAINERS_CONF=$containersconf run_podman 125 create --pod new:test $IMAGE
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman 125 create --pod new:test $IMAGE
     is "$output" ".*initializing source docker://$image:.*"
 }
 

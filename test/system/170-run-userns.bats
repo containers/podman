@@ -83,7 +83,7 @@ function _require_crun() {
 userns="auto"
 EOF
     # First make sure a user namespace is created
-    CONTAINERS_CONF=$PODMAN_TMPDIR/userns_auto.conf run_podman run -d $IMAGE sleep infinity
+    CONTAINERS_CONF_OVERRIDE=$PODMAN_TMPDIR/userns_auto.conf run_podman run -d $IMAGE sleep infinity
     cid=$output
 
     run_podman inspect --format '{{.HostConfig.UsernsMode}}' $cid
@@ -92,7 +92,7 @@ EOF
     run_podman rm -t 0 -f $cid
 
     # Then check that the main user is not mapped into the user namespace
-    CONTAINERS_CONF=$PODMAN_TMPDIR/userns_auto.conf run_podman 0 run --rm $IMAGE awk '{if($2 == "0"){exit 1}}' /proc/self/uid_map /proc/self/gid_map
+    CONTAINERS_CONF_OVERRIDE=$PODMAN_TMPDIR/userns_auto.conf run_podman 0 run --rm $IMAGE awk '{if($2 == "0"){exit 1}}' /proc/self/uid_map /proc/self/gid_map
 }
 
 @test "podman userns=auto and secrets" {

@@ -481,16 +481,16 @@ EOF
     run_podman 1 run --image-volume ignore --rm volume_image stat -f -c %T /data
     is "$output" "stat: can't read file system information for '/data': No such file or directory" "Should fail with /data does not exist"
 
-    CONTAINERS_CONF="$containersconf" run_podman run --rm volume_image stat -f -c %T /data
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm volume_image stat -f -c %T /data
     is "$output" "tmpfs" "Should be tmpfs"
 
-    CONTAINERS_CONF="$containersconf" run_podman run --image-volume bind --rm volume_image stat -f -c %T /data
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --image-volume bind --rm volume_image stat -f -c %T /data
     assert "$output" != "tmpfs" "Should match hosts $fs"
 
-    CONTAINERS_CONF="$containersconf" run_podman run --image-volume tmpfs --rm volume_image stat -f -c %T /data
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --image-volume tmpfs --rm volume_image stat -f -c %T /data
     is "$output" "tmpfs" "Should be tmpfs"
 
-    CONTAINERS_CONF="$containersconf" run_podman 1 run --image-volume ignore --rm volume_image stat -f -c %T /data
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman 1 run --image-volume ignore --rm volume_image stat -f -c %T /data
     is "$output" "stat: can't read file system information for '/data': No such file or directory" "Should fail with /data does not exist"
 
     run_podman rm --all --force -t 0
