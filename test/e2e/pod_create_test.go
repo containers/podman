@@ -1199,4 +1199,20 @@ ENTRYPOINT ["sleep","99999"]
 		Expect(strings[0]).Should(ContainSubstring("size=10240k"))
 	})
 
+	It("create pod with name subset of existing ID", func() {
+		create1 := podmanTest.Podman([]string{"pod", "create"})
+		create1.WaitWithDefaultTimeout()
+		Expect(create1).Should(Exit(0))
+		pod1ID := create1.OutputToString()
+
+		pod2Name := pod1ID[:5]
+		create2 := podmanTest.Podman([]string{"pod", "create", pod2Name})
+		create2.WaitWithDefaultTimeout()
+		Expect(create2).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"pod", "inspect", "--format", "{{.Name}}", pod2Name})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).Should(Equal(pod2Name))
+	})
 })
