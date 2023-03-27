@@ -8,7 +8,14 @@ die() { echo "${1:-No error message given} (from $(basename $0))"; exit 1; }
 [ -n "$VERSION" ] || die "\$VERSION is empty or undefined"
 
 function install() {
-    echo "Installing golangci-lint v$VERSION into $BIN"
+    local retry=$1
+
+    local msg="Installing golangci-lint v$VERSION into $BIN"
+    if [[ $retry -ne 0 ]]; then
+        msg+=" - retry #$retry"
+    fi
+    echo $msg
+
     curl -sSL --retry 5 https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v$VERSION
 }
 
@@ -17,7 +24,11 @@ function install() {
 export BINDIR="./bin"
 BIN="$BINDIR/golangci-lint"
 if [ ! -x "$BIN" ]; then
-	install
+    # This flakes much too frequently with "crit unable to find v1.51.1"
+    for retry in $(seq 0 5); do
+	install $retry && exit 0
+        sleep 5
+    done
 else
     # Prints its own file name as part of --version output
     $BIN --version | grep "$VERSION"
