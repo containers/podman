@@ -3,6 +3,8 @@
 
 package hypervctl
 
+import "fmt"
+
 const MemoryResourceType = "Microsoft:Hyper-V:Memory"
 
 type MemorySettings struct {
@@ -41,7 +43,11 @@ type MemorySettings struct {
 }
 
 func createMemorySettings(settings *MemorySettings) (string, error) {
-	return createResourceSettingGeneric(settings, MemoryResourceType)
+	str, err := createResourceSettingGeneric(settings, MemoryResourceType)
+	if err != nil {
+		err = fmt.Errorf("could not create memory settings: %w", err)
+	}
+	return str, err
 }
 
 func fetchDefaultMemorySettings() (*MemorySettings, error) {

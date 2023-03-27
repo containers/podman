@@ -46,12 +46,11 @@ const (
 	SummaryRequestOtherEnabledState                = 132
 )
 
-
 type SummaryRequestSet []uint
 
 var (
 
-	// SummaryRequestCommon includes a smaller subset of commonly used fields 
+	// SummaryRequestCommon includes a smaller subset of commonly used fields
 	SummaryRequestCommon = SummaryRequestSet{
 		SummaryRequestName,
 		SummaryRequestElementName,
@@ -72,7 +71,7 @@ var (
 		SummaryRequestSwapFilesInUse,
 	}
 
-	// SummaryRequestNearAll includes everything but load history and thumbnails 
+	// SummaryRequestNearAll includes everything but load history and thumbnails
 	SummaryRequestNearAll = SummaryRequestSet{
 		SummaryRequestName,
 		SummaryRequestElementName,

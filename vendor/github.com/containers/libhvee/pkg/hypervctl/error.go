@@ -68,7 +68,6 @@ const (
 	ErrShutdownInProgress       = 32782
 )
 
-
 type shutdownCompError struct {
 	errorCode int
 	message   string
@@ -114,4 +113,45 @@ func translateShutdownError(code int) error {
 	}
 
 	return &shutdownCompError{code, message}
+}
+
+// Modify resource errors
+const (
+	ErrModifyResourceNotSupported     = 1
+	ErrModifyResourceFailed           = 2
+	ErrModifyResourceTimeout          = 3
+	ErrModifyResourceInvalidParameter = 4
+	ErrModifyResourceInvalidState     = 5
+	ErrModifyResourceIncompatParam    = 6
+)
+
+type modifyResourceError struct {
+	errorCode int
+	message   string
+}
+
+func (m *modifyResourceError) Error() string {
+	return fmt.Sprintf("%s (%d)", m.message, m.errorCode)
+}
+
+func translateModifyError(code int) error {
+	var message string
+	switch code {
+	case ErrModifyResourceNotSupported:
+		message = "virtual machine does not support modification operations"
+	case ErrModifyResourceFailed:
+		message = "resource modification failed"
+	case ErrModifyResourceTimeout:
+		message = "timeout modifying resource"
+	case ErrModifyResourceInvalidParameter:
+		message = "a modify resource operation was passed an invalid parameter"
+	case ErrModifyResourceInvalidState:
+		message = "the requested modification could not be applied due to an invalid state"
+	case ErrModifyResourceIncompatParam:
+		message = "an incompatible parameter was passed to a modify resource operation"
+	default:
+		message = "unknown error"
+	}
+
+	return &modifyResourceError{code, message}
 }

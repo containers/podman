@@ -17,8 +17,8 @@ import (
 )
 
 var (
-	unixEpoch = time.Unix(0,0)
-	zeroTime = time.Time{}
+	unixEpoch = time.Unix(0, 0)
+	zeroTime  = time.Time{}
 )
 
 // Automation variants do not follow the OLE rules, instead they use the following mapping:
@@ -346,7 +346,7 @@ func convertTimeToDataTime(time *time.Time) ole.VARIANT {
 	return ole.NewVariant(ole.VT_BSTR, int64(uintptr(unsafe.Pointer(ole.SysAllocStringLen(s)))))
 }
 
-func convertDurationToDateTime(duration time.Duration) ole.VARIANT  {
+func convertDurationToDateTime(duration time.Duration) ole.VARIANT {
 	const daySeconds = time.Second * 86400
 
 	if duration == 0 {
@@ -367,7 +367,7 @@ func convertDurationToDateTime(duration time.Duration) ole.VARIANT  {
 
 	micros := duration / time.Microsecond
 
-	s:=fmt.Sprintf("%08d%02d%02d%02d.%06d:000", days, hours, mins, seconds, micros)
+	s := fmt.Sprintf("%08d%02d%02d%02d.%06d:000", days, hours, mins, seconds, micros)
 	return ole.NewVariant(ole.VT_BSTR, int64(uintptr(unsafe.Pointer(ole.SysAllocStringLen(s)))))
 }
 
@@ -426,7 +426,7 @@ func parseIntervalTime(interval string) (time.Time, error) {
 	}
 
 	days, err := parseUintChain(interval[0:8], nil)
-    hours, err := parseUintChain(interval[8:10], err)
+	hours, err := parseUintChain(interval[8:10], err)
 	mins, err := parseUintChain(interval[10:12], err)
 	secs, err := parseUintChain(interval[12:14], err)
 	micros, err := parseUintChain(interval[15:21], err)
@@ -440,7 +440,7 @@ func parseIntervalTime(interval string) (time.Time, error) {
 	stamp += hours * 3600
 	stamp += mins * 60
 
-    return time.Unix(int64(stamp), int64(micros * 1000)), nil
+	return time.Unix(int64(stamp), int64(micros*1000)), nil
 }
 
 func convertIntervalToDuration(variant *ole.VARIANT) (time.Duration, error) {
@@ -464,7 +464,6 @@ func parseUintChain(str string, err error) (uint64, error) {
 	}
 	return strconv.ParseUint(str, 10, 0)
 }
-
 
 func abs(num int) int {
 	if num < 0 {

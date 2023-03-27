@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/docker/go-units"
+	"io/fs"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -18,6 +18,7 @@ import (
 	"github.com/containers/libhvee/pkg/hypervctl"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/storage/pkg/homedir"
+	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
 )
 
@@ -237,11 +238,12 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 	}
 	// In hyperv, they call running 'enabled'
 	if vm.State() == hypervctl.Enabled {
-		// TODO Add for force
-		// Right now, the ole response from hyperv is segv'ing
-		// and until it comes back clean, force cannot be implemented
-		// because it will always fail.
-		return "", nil, hypervctl.ErrMachineStateInvalid
+		if !opts.Force {
+			return "", nil, hypervctl.ErrMachineStateInvalid
+		}
+		if err := vm.Stop(); err != nil {
+			return "", nil, err
+		}
 	}
 
 	// Collect all the files that need to be destroyed
@@ -330,25 +332,34 @@ func (m *HyperVMachine) Stop(name string, opts machine.StopOptions) error {
 	return vm.Stop()
 }
 
+func (m *HyperVMachine) jsonConfigPath() (string, error) {
+	configDir, err := machine.GetConfDir(machine.HyperVVirt)
+	if err != nil {
+		return "", err
+	}
+	return getVMConfigPath(configDir, m.Name), nil
+}
+
 func (m *HyperVMachine) loadFromFile() (*HyperVMachine, error) {
 	if len(m.Name) < 1 {
 		return nil, errors.New("encountered machine with no name")
+	}
+
+	jsonPath, err := m.jsonConfigPath()
+	if err != nil {
+		return nil, err
+	}
+	mm := HyperVMachine{}
+
+	if err := loadMacMachineFromJSON(jsonPath, &mm); err != nil {
+		return nil, err
 	}
 	vmm := hypervctl.NewVirtualMachineManager()
 	vm, err := vmm.GetMachine(m.Name)
 	if err != nil {
 		return nil, err
 	}
-	configDir, err := machine.GetConfDir(machine.HyperVVirt)
-	if err != nil {
-		return nil, err
-	}
 
-	jsonPath := getVMConfigPath(configDir, m.Name)
-	mm := HyperVMachine{}
-	if err := loadMacMachineFromJSON(jsonPath, &mm); err != nil {
-		return nil, err
-	}
 	cfg, err := vm.GetConfig(mm.ImagePath.GetPath())
 	if err != nil {
 		return nil, err
@@ -378,6 +389,9 @@ func getVMConfigPath(configDir, vmName string) string {
 func loadMacMachineFromJSON(fqConfigPath string, macMachine *HyperVMachine) error {
 	b, err := os.ReadFile(fqConfigPath)
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("%q: %w", fqConfigPath, machine.ErrNoSuchVM)
+		}
 		return err
 	}
 	return json.Unmarshal(b, macMachine)
