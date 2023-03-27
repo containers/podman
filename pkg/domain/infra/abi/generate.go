@@ -103,12 +103,19 @@ func (ic *ContainerEngine) GenerateSpec(ctx context.Context, opts *entities.Gene
 
 func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string, options entities.GenerateKubeOptions) (*entities.GenerateKubeReport, error) {
 	var (
-		pods       []*libpod.Pod
-		ctrs       []*libpod.Container
-		vols       []*libpod.Volume
-		podContent [][]byte
-		content    [][]byte
+		pods        []*libpod.Pod
+		ctrs        []*libpod.Container
+		vols        []*libpod.Volume
+		typeContent [][]byte
+		content     [][]byte
 	)
+
+	if options.Replicas > 1 && options.Type != define.K8sKindDeployment {
+		return nil, fmt.Errorf("--replicas can only be set when --type is set to deployment")
+	}
+	if options.Replicas < 1 {
+		return nil, fmt.Errorf("--replicas has to be greater than or equal to 1. By default, --replicas is set to 1")
+	}
 
 	defaultKubeNS := true
 	// Lookup for podman objects.
@@ -187,12 +194,12 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 
 	// Generate kube pods and services from pods.
 	if len(pods) >= 1 {
-		pos, svcs, err := getKubePods(ctx, pods, options.Service)
+		out, svcs, err := getKubePods(ctx, pods, options)
 		if err != nil {
 			return nil, err
 		}
 
-		podContent = append(podContent, pos...)
+		typeContent = append(typeContent, out...)
 		if options.Service {
 			content = append(content, svcs...)
 		}
@@ -212,12 +219,29 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 `
 			content = append(content, []byte(warning))
 		}
-		b, err := generateKubeYAML(libpod.ConvertV1PodToYAMLPod(po))
-		if err != nil {
-			return nil, err
+
+		// Create a pod or deployment kind depending on what Type was requested by the user
+		switch options.Type {
+		case define.K8sKindDeployment:
+			dep, err := libpod.GenerateForKubeDeployment(ctx, libpod.ConvertV1PodToYAMLPod(po), options)
+			if err != nil {
+				return nil, err
+			}
+			b, err := generateKubeYAML(dep)
+			if err != nil {
+				return nil, err
+			}
+			typeContent = append(typeContent, b)
+		case define.K8sKindPod:
+			b, err := generateKubeYAML(libpod.ConvertV1PodToYAMLPod(po))
+			if err != nil {
+				return nil, err
+			}
+			typeContent = append(typeContent, b)
+		default:
+			return nil, fmt.Errorf("invalid generation type - only pods and deployments are currently supported")
 		}
 
-		podContent = append(podContent, b)
 		if options.Service {
 			svc, err := libpod.GenerateKubeServiceFromV1Pod(po, []k8sAPI.ServicePort{})
 			if err != nil {
@@ -231,8 +255,8 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 		}
 	}
 
-	// Content order is based on helm install order (secret, persistentVolumeClaim, service, pod).
-	content = append(content, podContent...)
+	// Content order is based on helm install order (secret, persistentVolumeClaim, service, pod/deployment).
+	content = append(content, typeContent...)
 
 	// Generate kube YAML file from all kube kinds.
 	k, err := generateKubeOutput(content)
@@ -243,24 +267,39 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 	return &entities.GenerateKubeReport{Reader: bytes.NewReader(k)}, nil
 }
 
-// getKubePods returns kube pod and service YAML files from podman pods.
-func getKubePods(ctx context.Context, pods []*libpod.Pod, getService bool) ([][]byte, [][]byte, error) {
-	pos := [][]byte{}
+// getKubePods returns kube pod or deployment and service YAML files from podman pods.
+func getKubePods(ctx context.Context, pods []*libpod.Pod, options entities.GenerateKubeOptions) ([][]byte, [][]byte, error) {
+	out := [][]byte{}
 	svcs := [][]byte{}
 
 	for _, p := range pods {
-		po, sp, err := p.GenerateForKube(ctx, getService)
+		po, sp, err := p.GenerateForKube(ctx, options.Service)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		b, err := generateKubeYAML(po)
-		if err != nil {
-			return nil, nil, err
+		switch options.Type {
+		case define.K8sKindDeployment:
+			dep, err := libpod.GenerateForKubeDeployment(ctx, libpod.ConvertV1PodToYAMLPod(po), options)
+			if err != nil {
+				return nil, nil, err
+			}
+			b, err := generateKubeYAML(dep)
+			if err != nil {
+				return nil, nil, err
+			}
+			out = append(out, b)
+		case define.K8sKindPod:
+			b, err := generateKubeYAML(libpod.ConvertV1PodToYAMLPod(po))
+			if err != nil {
+				return nil, nil, err
+			}
+			out = append(out, b)
+		default:
+			return nil, nil, fmt.Errorf("invalid generation type - only pods and deployments are currently supported")
 		}
-		pos = append(pos, b)
 
-		if getService {
+		if options.Service {
 			svc, err := libpod.GenerateKubeServiceFromV1Pod(po, sp)
 			if err != nil {
 				return nil, nil, err
@@ -273,7 +312,7 @@ func getKubePods(ctx context.Context, pods []*libpod.Pod, getService bool) ([][]
 		}
 	}
 
-	return pos, svcs, nil
+	return out, svcs, nil
 }
 
 // getKubePVCs returns kube persistent volume claim YAML files from podman volumes.

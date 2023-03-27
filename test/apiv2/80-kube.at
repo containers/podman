@@ -29,6 +29,12 @@ like "$output" ".*metadata:.*" "Check generated kube yaml(service=true) - metada
 like "$output" ".*spec:.*" "Check generated kube yaml(service=true) - spec"
 like "$output" ".*kind:\\sService.*" "Check generated kube yaml(service=true) - kind: Service"
 
+t GET "libpod/generate/kube?type=deployment&names=$cid" 200
+like "$output" ".*apiVersion:.*" "Check generated kube yaml - apiVersion"
+like "$output" ".*kind:\\sDeployment.*" "Check generated kube yaml - kind: Deployment"
+like "$output" ".*metadata:.*" "Check generated kube yaml - metadata"
+like "$output" ".*spec:.*" "Check generated kube yaml - spec"
+
 TMPD=$(mktemp -d podman-apiv2-test-kube.XXXXXX)
 YAML="${TMPD}/kube.yaml"
 echo "$output" > $YAML

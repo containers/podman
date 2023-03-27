@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -53,6 +54,9 @@ func Kube(ctx context.Context, nameOrIDs []string, options *KubeOptions) (*entit
 	}
 	for _, name := range nameOrIDs {
 		params.Add("names", name)
+	}
+	if options.Replicas != nil {
+		params.Set("replicas", strconv.Itoa(int(*options.Replicas)))
 	}
 	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/generate/kube", params, nil)
 	if err != nil {

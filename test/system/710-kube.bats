@@ -106,24 +106,23 @@ metadata.labels.app        | =  | ${pname}
 metadata.name              | =  | ${pname}
 
 spec.hostname                              | =  | $pname
-spec.restartPolicy                         | =  | Never
 
 spec.containers[0].command                 | =  | [\"top\"]
 spec.containers[0].image                   | =  | $IMAGE
 spec.containers[0].name                    | =  | $cname1
 spec.containers[0].ports[0].containerPort  | =  | 8888
 spec.containers[0].ports[0].hostPort       | =  | 9999
-spec.containers[0].resources               | =  | {}
+spec.containers[0].resources               | =  | null
 
 spec.containers[1].command                 | =  | [\"bottom\"]
 spec.containers[1].image                   | =  | $IMAGE
 spec.containers[1].name                    | =  | $cname2
 spec.containers[1].ports                   | =  | null
-spec.containers[1].resources               | =  | {}
+spec.containers[1].resources               | =  | null
 
 spec.containers[0].securityContext.capabilities  | =  | $capabilities
 
-status  | =  | {}
+status  | =  | null
 "
 
     while read key op expect; do

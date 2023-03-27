@@ -7,7 +7,7 @@ podman-kube-generate - Generate Kubernetes YAML based on containers, pods or vol
 
 ## DESCRIPTION
 **podman kube generate** will generate Kubernetes YAML (v1 specification) from Podman containers, pods or volumes. Regardless of whether
-the input is for containers or pods, Podman will always generate the specification as a Pod. The input may be in the form
+the input is for containers or pods, Podman will generate the specification as a Pod by default. The input may be in the form
 of one or more containers, pods or volumes names or IDs.
 
 `Podman Containers or Pods`
@@ -34,9 +34,18 @@ Note that the generated Kubernetes YAML file can be used to re-run the deploymen
 
 Output to the given file, instead of STDOUT. If the file already exists, `kube generate` will refuse to replace it and return an error.
 
+#### **--replicas**, **-r**=*replica count*
+
+The value to set `replicas` to when generating a **Deployment** kind.
+Note: this can only be set with the option `--type=deployment`.
+
 #### **--service**, **-s**
 
 Generate a Kubernetes service object in addition to the Pods. Used to generate a Service specification for the corresponding Pod output. In particular, if the object has portmap bindings, the service specification will include a NodePort declaration to expose the service. A random port is assigned by Podman in the specification.
+
+#### **--type**, **-t**=*pod | deployment*
+
+The Kubernetes kind to generate in the YAML file. Currently, the only supported Kubernetes specifications are `Pod` and `Deployment`. By default, the `Pod` specification will be generated.
 
 ## EXAMPLES
 
@@ -79,6 +88,43 @@ spec:
       hostPort: 36533
     tty: true
 ```
+
+Create Kubernetes Deployment YAML with 3 replicas for a container called `dep-ctr`
+```
+$ podman kube generate --type deployment --replicas 3 dep-ct
+r
+# Save the output of this file and use kubectl create -f to import
+# it into Kubernetes.
+#
+# Created with podman-4.5.0-dev
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: "2023-03-27T20:45:08Z"
+  labels:
+    app: dep-ctr-pod
+  name: dep-ctr-pod-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: dep-ctr-pod
+  template:
+    metadata:
+      annotations:
+        io.podman.annotations.ulimit: nofile=524288:524288,nproc=127332:127332
+      creationTimestamp: "2023-03-27T20:45:08Z"
+      labels:
+        app: dep-ctr-pod
+      name: dep-ctr-pod
+    spec:
+      containers:
+      - command:
+        - top
+        image: docker.io/library/alpine:latest
+        name: dep-ctr
+```
+
 
 Create Kubernetes Pod YAML for a container with the directory `/home/user/my-data` on the host bind-mounted in the container to `/volume`.
 ```

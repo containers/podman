@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/containers/podman/v4/libpod"
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v4/pkg/api/types"
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -89,10 +90,14 @@ func GenerateKube(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		Names   []string `schema:"names"`
-		Service bool     `schema:"service"`
+		Names    []string `schema:"names"`
+		Service  bool     `schema:"service"`
+		Type     string   `schema:"type"`
+		Replicas int32    `schema:"replicas"`
 	}{
 		// Defaults would go here.
+		Type:     define.K8sKindPod,
+		Replicas: 1,
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -101,7 +106,7 @@ func GenerateKube(w http.ResponseWriter, r *http.Request) {
 	}
 
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
-	options := entities.GenerateKubeOptions{Service: query.Service}
+	options := entities.GenerateKubeOptions{Service: query.Service, Type: query.Type, Replicas: query.Replicas}
 	report, err := containerEngine.GenerateKube(r.Context(), query.Names, options)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("generating YAML: %w", err))

@@ -31,3 +31,33 @@ func (o *KubeOptions) GetService() bool {
 	}
 	return *o.Service
 }
+
+// WithType set field Type to given value
+func (o *KubeOptions) WithType(value string) *KubeOptions {
+	o.Type = &value
+	return o
+}
+
+// GetType returns value of field Type
+func (o *KubeOptions) GetType() string {
+	if o.Type == nil {
+		var z string
+		return z
+	}
+	return *o.Type
+}
+
+// WithReplicas set field Replicas to given value
+func (o *KubeOptions) WithReplicas(value int32) *KubeOptions {
+	o.Replicas = &value
+	return o
+}
+
+// GetReplicas returns value of field Replicas
+func (o *KubeOptions) GetReplicas() int32 {
+	if o.Replicas == nil {
+		var z int32
+		return z
+	}
+	return *o.Replicas
+}

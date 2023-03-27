@@ -531,7 +531,7 @@ var _ = Describe("Podman kube generate", func() {
 	It("podman generate kube on pod with restartPolicy", func() {
 		// podName,  set,  expect
 		testSli := [][]string{
-			{"testPod1", "", "Never"}, // some pod create from cmdline, so set it to Never
+			{"testPod1", "", ""}, // some pod create from cmdline, so set it to an empty string and let k8s default it to Always
 			{"testPod2", "always", "Always"},
 			{"testPod3", "on-failure", "OnFailure"},
 			{"testPod4", "no", "Never"},
@@ -1401,5 +1401,88 @@ USER test1`
 		Expect(inspect.OutputToString()).To(ContainSubstring("RLIMIT_NOFILE"))
 		Expect(inspect.OutputToString()).To(ContainSubstring("1231"))
 		Expect(inspect.OutputToString()).To(ContainSubstring("3123"))
+	})
+
+	It("podman generate kube on pod with --type=deployment", func() {
+		podName := "test-pod"
+		session := podmanTest.Podman([]string{"pod", "create", podName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"create", "--pod", podName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		session = podmanTest.Podman([]string{"create", "--pod", podName, ALPINE, "sleep", "100"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "--type", "deployment", podName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		dep := new(v1.Deployment)
+		err := yaml.Unmarshal(kube.Out.Contents(), dep)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(dep.Name).To(Equal(podName + "-deployment"))
+		Expect(dep.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app", podName))
+		Expect(dep.Spec.Template.Name).To(Equal(podName))
+
+		numContainers := 0
+		for range dep.Spec.Template.Spec.Containers {
+			numContainers++
+		}
+		Expect(numContainers).To(Equal(2))
+	})
+
+	It("podman generate kube on ctr with --type=deployment and --replicas=3", func() {
+		ctrName := "test-ctr"
+		session := podmanTest.Podman([]string{"create", "--name", ctrName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "--type", "deployment", "--replicas", "3", ctrName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		dep := new(v1.Deployment)
+		err := yaml.Unmarshal(kube.Out.Contents(), dep)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(dep.Name).To(Equal(ctrName + "-pod-deployment"))
+		Expect(dep.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app", ctrName+"-pod"))
+		Expect(dep.Spec.Template.Name).To(Equal(ctrName + "-pod"))
+		Expect(int(*dep.Spec.Replicas)).To(Equal(3))
+
+		numContainers := 0
+		for range dep.Spec.Template.Spec.Containers {
+			numContainers++
+		}
+		Expect(numContainers).To(Equal(1))
+	})
+
+	It("podman generate kube on ctr with --type=pod and --replicas=3 should fail", func() {
+		ctrName := "test-ctr"
+		session := podmanTest.Podman([]string{"create", "--name", ctrName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "--type", "pod", "--replicas", "3", ctrName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(125))
+	})
+
+	It("podman generate kube on pod with --type=deployment and --restart=no should fail", func() {
+		// TODO: When we add --restart for pods, fix this test to reflect that
+		podName := "test-pod"
+		session := podmanTest.Podman([]string{"pod", "create", podName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"create", "--pod", podName, "--restart", "no", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "--type", "deployment", podName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(125))
 	})
 })

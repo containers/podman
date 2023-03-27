@@ -162,3 +162,44 @@ load helpers.bash
     run minikube kubectl delete namespace $project
     assert $status -eq 0 "delete namespace $project"
 }
+
+@test "minikube - deploy generated container yaml to minikube --type=deployment" {
+    cname="test-ctr"
+    fname="/tmp/minikube_deploy_$(random_string 6).yaml"
+    run_podman container create --name $cname $IMAGE top
+    run_podman kube generate --type deployment -f $fname $cname
+
+    # deploy to the minikube cluster
+    project="dep-ctr-ns"
+    run minikube kubectl create namespace $project
+    assert "$status" -eq 0 "create new namespace $project"
+    run minikube kubectl -- apply -f $fname
+    assert "$status" -eq 0 "deploy $fname to the cluster"
+    assert "$output" == "deployment.apps/$cname-pod-deployment created"
+    wait_for_pods_to_start
+    run minikube kubectl delete namespace $project
+    assert $status -eq 0 "delete namespace $project"
+}
+
+@test "minikube - deploy generated pod yaml to minikube --type=deployment" {
+    pname="test-pod"
+    cname1="test-ctr1"
+    cname2="test-ctr2"
+    fname="/tmp/minikube_deploy_$(random_string 6).yaml"
+
+    run_podman pod create --name $pname --publish 9999:8888
+    run_podman container create --name $cname1 --pod $pname $IMAGE sleep 1000
+    run_podman container create --name $cname2 --pod $pname $IMAGE sleep 2000
+    run_podman kube generate --type deployment -f $fname $pname
+
+    # deploy to the minikube cluster
+    project="dep-pod-ns"
+    run minikube kubectl create namespace $project
+    assert "$status" -eq 0 "create new namespace $project"
+    run minikube kubectl -- apply -f $fname
+    assert "$status" -eq 0 "deploy $fname to the cluster"
+    assert "$output" == "deployment.apps/$pname-deployment created"
+    wait_for_pods_to_start
+    run minikube kubectl delete namespace $project
+    assert $status -eq 0 "delete namespace $project"
+}

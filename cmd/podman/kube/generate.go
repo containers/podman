@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/generate"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/utils"
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
@@ -68,10 +70,28 @@ func generateFlags(cmd *cobra.Command) {
 	flags.StringVarP(&generateFile, filenameFlagName, "f", "", "Write output to the specified path")
 	_ = cmd.RegisterFlagCompletionFunc(filenameFlagName, completion.AutocompleteDefault)
 
+	// TODO: default should be configurable in containers.conf
+	typeFlagName := "type"
+	flags.StringVarP(&generateOptions.Type, typeFlagName, "t", define.K8sKindPod, "Generate YAML for the given Kubernetes kind")
+	_ = cmd.RegisterFlagCompletionFunc(typeFlagName, completion.AutocompleteNone)
+
+	replicasFlagName := "replicas"
+	flags.Int32VarP(&generateOptions.Replicas, replicasFlagName, "r", 1, "Set the replicas number for Deployment kind")
+	_ = cmd.RegisterFlagCompletionFunc(replicasFlagName, completion.AutocompleteNone)
+
 	flags.SetNormalizeFunc(utils.AliasFlags)
 }
 
 func generateKube(cmd *cobra.Command, args []string) error {
+	typeVal, err := cmd.Flags().GetString("type")
+	if err != nil {
+		return err
+	}
+	typeVal = strings.ToLower(typeVal)
+	if typeVal != define.K8sKindPod && typeVal != define.K8sKindDeployment {
+		return fmt.Errorf("invalid type given, only supported types are pod and deployment")
+	}
+
 	report, err := registry.ContainerEngine().GenerateKube(registry.GetContext(), args, generateOptions)
 	if err != nil {
 		return err
