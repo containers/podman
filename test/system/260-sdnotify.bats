@@ -203,7 +203,9 @@ spec:
   restartPolicy: "Never"
   containers:
   - command:
-    - true
+    - /bin/sh
+    - -c
+    - 'while :; do if test -e /tearsinrain; then exit 0; fi; sleep 1; done'
     image: $IMAGE
     name: test
     resources: {}
@@ -225,7 +227,8 @@ EOF
     run_podman container inspect $service_container --format "{{.State.ConmonPid}}"
     main_pid="$output"
 
-    # Will run until all containers have stopped.
+    # Tell pod to finish, then wait for all containers to stop
+    run_podman exec test_pod-test touch /tearsinrain
     run_podman container wait $service_container test_pod-test
 
     # Make sure the containers have the correct policy.
