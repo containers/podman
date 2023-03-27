@@ -306,6 +306,20 @@ func (s *Service) FindFirstRelatedInstance(objPath string, className string) (*I
 	return s.FindFirstInstance(wql)
 }
 
+// FindFirstRelatedInstanceThrough finds and returns a related associator of the specified WMI object path of the
+// expected className type, and only through the expected association type.
+func (s *Service) FindFirstRelatedInstanceThrough(objPath string, resultClass string, assocClass string) (*Instance, error) {
+	wql := fmt.Sprintf("ASSOCIATORS OF {%s} WHERE AssocClass = %s ResultClass = %s ", objPath, assocClass, resultClass)
+	return s.FindFirstInstance(wql)
+}
+
+// FindFirstRelatedObject finds and returns a related associator of the specified WMI object path of the
+// expected className type, and populates the passed in struct with its fields
+func (s *Service) FindFirstRelatedObject(objPath string, className string, target interface{}) error {
+	wql := fmt.Sprintf("ASSOCIATORS OF {%s} WHERE ResultClass = %s", objPath, className)
+	return s.FindFirstObject(wql, target)
+}
+
 // FindFirstObject finds and returns the first WMI Instance in the result set for a WSL query, and
 // populates the specified struct pointer passed in through the target parameter.
 func (s *Service) FindFirstObject(wql string, target interface{}) error {

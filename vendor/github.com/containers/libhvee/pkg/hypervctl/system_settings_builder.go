@@ -139,9 +139,9 @@ func (builder *SystemSettingsBuilder) Build() (*SystemSettings, error) {
 		return nil, fmt.Errorf("failed to define system: %w", err)
 	}
 
-	err = waitVMResult(res, service, job)
+	err = waitVMResult(res, service, job, "failed to define system", nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to define system: %w", err)
+		return nil, err
 	}
 
 	newSettings, err := service.FindFirstRelatedInstance(resultingSystem, "Msvm_VirtualSystemSettingData")

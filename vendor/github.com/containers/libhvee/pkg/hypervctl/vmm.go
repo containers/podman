@@ -138,7 +138,7 @@ func (*VirtualMachineManager) CreateVhdxFile(path string, maxSize uint64) error 
 		return fmt.Errorf("failed to create vhdx: %w", err)
 	}
 
-	return waitVMResult(ret, service, job)
+	return waitVMResult(ret, service, job, "failed to create vhdx", nil)
 }
 
 // GetSummaryInformation returns the live VM summary information for all virtual machines.
