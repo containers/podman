@@ -203,6 +203,9 @@ func (u *updater) updateUnit(ctx context.Context, unit string, tasks []*task) []
 
 	// Jump to the next unit on successful update or if rollbacks are disabled.
 	if updateError == nil || !u.options.Rollback {
+		if updateError != nil {
+			errors = append(errors, fmt.Errorf("restarting unit %s during update: %w", unit, updateError))
+		}
 		return errors
 	}
 
