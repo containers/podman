@@ -59,5 +59,5 @@ check_diffs \
     "^(\\+[^#]+io/ioutil)|(\\+.+ioutil\\..+)"
 
 check_diffs \
-    "use of os.IsNotExists(err) vs recommended errors.Is(err, os.ErrNotExist)" \
-    "^\\+[^#]*os\\.IsNotExists\\("
+    "use of os.IsNotExist(err) vs recommended errors.Is(err, fs.ErrNotExist)" \
+    "^\\+[^#]*os\\.IsNotExist\\("
