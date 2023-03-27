@@ -333,23 +333,30 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 		runtimeGraphDriver = storeOpts.GraphDriverName
 	}
 
-	row := s.conn.QueryRow("SELECT Os, StaticDir, TmpDir, GraphRoot, RunRoot, GraphDriver, VolumeDir FROM DBConfig;")
+	// We have to do this in a transaction to ensure mutual exclusion.
+	// Otherwise we have a race - multiple processes can be checking the
+	// row's existence simultaneously, both try to create it, second one to
+	// get the transaction lock gets an error.
+	// TODO: The transaction isn't strictly necessary, and there's a (small)
+	// chance it's a perf hit. If it is, we can move it entirely within the
+	// `errors.Is()` block below, with extra validation to ensure the row
+	// still does not exist (and, if it does, to retry this function).
+	tx, err := s.conn.Begin()
+	if err != nil {
+		return fmt.Errorf("beginning database validation transaction: %w", err)
+	}
+	defer func() {
+		if defErr != nil {
+			if err := tx.Rollback(); err != nil {
+				logrus.Errorf("Rolling back transaction to validate database: %v", err)
+			}
+		}
+	}()
+
+	row := tx.QueryRow("SELECT Os, StaticDir, TmpDir, GraphRoot, RunRoot, GraphDriver, VolumeDir FROM DBConfig;")
 
 	if err := row.Scan(&os, &staticDir, &tmpDir, &graphRoot, &runRoot, &graphDriver, &volumePath); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			// Need to create runtime config info in DB
-			tx, err := s.conn.Begin()
-			if err != nil {
-				return fmt.Errorf("beginning DB config transaction: %w", err)
-			}
-			defer func() {
-				if defErr != nil {
-					if err := tx.Rollback(); err != nil {
-						logrus.Errorf("Rolling back transaction to create DB config: %v", err)
-					}
-				}
-			}()
-
 			if _, err := tx.Exec(createRow, 1, schemaVersion, runtimeOS,
 				runtimeStaticDir, runtimeTmpDir, runtimeGraphRoot,
 				runtimeRunRoot, runtimeGraphDriver, runtimeVolumePath); err != nil {
@@ -357,13 +364,17 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 			}
 
 			if err := tx.Commit(); err != nil {
-				return fmt.Errorf("committing DB config transaction: %w", err)
+				return fmt.Errorf("committing write of database validation row: %w", err)
 			}
 
 			return nil
 		}
 
 		return fmt.Errorf("retrieving DB config: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing database validation row: %w", err)
 	}
 
 	checkField := func(fieldName, dbVal, ourVal string) error {
