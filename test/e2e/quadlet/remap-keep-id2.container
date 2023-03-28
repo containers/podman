@@ -1,0 +1,7 @@
+## assert-podman-args "--userns=keep-id:uid=200,gid=210"
+
+[Container]
+Image=localhost/imagename
+RemapUsers=keep-id
+RemapUid=200
+RemapGid=210

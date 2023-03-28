@@ -933,7 +933,23 @@ func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *Podman
 		if !isUser {
 			return fmt.Errorf("RemapUsers=keep-id is unsupported for system units")
 		}
-		podman.addf("--userns=keep-id")
+
+		keepidOpts := make([]string, 0)
+		if len(uidMaps) > 0 {
+			if len(uidMaps) > 1 {
+				return fmt.Errorf("RemapUsers=keep-id supports only a single value for UID mapping")
+			}
+			keepidOpts = append(keepidOpts, "uid="+uidMaps[0])
+		}
+		if len(gidMaps) > 0 {
+			if len(gidMaps) > 1 {
+				return fmt.Errorf("RemapUsers=keep-id supports only a single value for GID mapping")
+			}
+			keepidOpts = append(keepidOpts, "gid="+gidMaps[0])
+		}
+
+		podman.addf("--userns=" + usernsOpts("keep-id", keepidOpts))
+
 	default:
 		return fmt.Errorf("unsupported RemapUsers option '%s'", remapUsers)
 	}
