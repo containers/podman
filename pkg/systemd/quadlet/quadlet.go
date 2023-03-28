@@ -968,8 +968,22 @@ func addNetworks(quadletUnitFile *parser.UnitFile, groupName string, serviceUnit
 	}
 }
 
+// Systemd Specifiers start with % with the exception of %%
+func startsWithSystemdSpecifier(filePath string) bool {
+	if len(filePath) == 0 || filePath[0] != '%' {
+		return false
+	}
+
+	if len(filePath) > 1 && filePath[1] == '%' {
+		return false
+	}
+
+	return true
+}
+
 func getAbsolutePath(quadletUnitFile *parser.UnitFile, filePath string) (string, error) {
-	if !filepath.IsAbs(filePath) {
+	// When the path starts with a Systemd specifier do not resolve what looks like a relative address
+	if !startsWithSystemdSpecifier(filePath) && !filepath.IsAbs(filePath) {
 		if len(quadletUnitFile.Path) > 0 {
 			filePath = filepath.Join(filepath.Dir(quadletUnitFile.Path), filePath)
 		} else {
