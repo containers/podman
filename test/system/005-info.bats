@@ -94,7 +94,6 @@ host.slirp4netns.executable | $expr_path
 }
 
 @test "podman info - confirm desired database" {
-    skip "FIXME: no way yet (2023-03-16) to override DB in system tests"
     if [[ -z "$CI_DESIRED_DATABASE" ]]; then
         # When running in Cirrus, CI_DESIRED_DATABASE *must* be defined
         # in .cirrus.yml so we can double-check that all CI VMs are

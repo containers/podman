@@ -75,6 +75,8 @@ fi
 
 cd "${GOSRC}/"
 
+mkdir -p /etc/containers/containers.conf.d
+
 # Defined by lib.sh: Does the host support cgroups v1 or v2? Use runc or crun
 # respectively.
 # **IMPORTANT**: $OCI_RUNTIME is a fakeout! It is used only in e2e tests.
@@ -84,7 +86,7 @@ case "$CG_FS_TYPE" in
         if ((CONTAINER==0)); then
             warn "Forcing testing with runc instead of crun"
             echo "OCI_RUNTIME=runc" >> /etc/ci_environment
-            printf "[engine]\nruntime=\"runc\"\n" >>/etc/containers/containers.conf
+            printf "[engine]\nruntime=\"runc\"\n" > /etc/containers/containers.conf.d/90-runtime.conf
         fi
         ;;
     cgroup2fs)
@@ -92,6 +94,10 @@ case "$CG_FS_TYPE" in
         ;;
     *) die_unknown CG_FS_TYPE
 esac
+
+# Force the requested database backend without having to use command-line args
+# shellcheck disable=SC2154
+printf "[engine]\ndatabase_backend=\"$CI_DESIRED_DATABASE\"\n" > /etc/containers/containers.conf.d/92-db.conf
 
 if ((CONTAINER==0)); then  # Not yet running inside a container
     # Discovered reemergence of BFQ scheduler bug in kernel 5.8.12-200
