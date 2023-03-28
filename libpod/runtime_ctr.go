@@ -811,7 +811,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 
 	// Remove the container's CID file on container removal.
 	if cidFile, ok := c.config.Spec.Annotations[define.InspectAnnotationCIDFile]; ok {
-		if err := os.Remove(cidFile); err != nil {
+		if err := os.Remove(cidFile); err != nil && !errors.Is(err, os.ErrNotExist) {
 			if cleanupErr == nil {
 				cleanupErr = err
 			} else {
