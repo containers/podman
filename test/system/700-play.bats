@@ -625,8 +625,10 @@ spec:
 
     run_podman kube play --wait $fname
 
+    # debug to see what container is being left behind after the cleanup
     # there should be no containers running or created
-    run_podman ps -aq
+    run_podman ps -a --noheading
     is "$output" "" "There should be no containers"
+    run_podman pod ps
     run_podman rmi $(pause_image)
 }
