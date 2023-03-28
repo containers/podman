@@ -80,10 +80,6 @@ func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 
 	state.conn = conn
 
-	if err := state.conn.Ping(); err != nil {
-		return nil, fmt.Errorf("cannot connect to database: %w", err)
-	}
-
 	// Migrate schema (if necessary)
 	if err := state.migrateSchemaIfNecessary(); err != nil {
 		return nil, err
