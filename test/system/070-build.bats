@@ -153,7 +153,12 @@ runtime="idonotexist"
 EOF
 
     CONTAINERS_CONF="$containersconf" run_podman 125 build -t build_test $tmpdir
-    is "$output" ".*\"idonotexist\" not found.*" "failed when passing invalid OCI runtime via containers.conf"
+    is "$output" ".*\"idonotexist\" not found.*" \
+       "failed when passing invalid OCI runtime via \$CONTAINERS_CONF"
+
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman 125 build -t build_test $tmpdir
+    is "$output" ".*\"idonotexist\" not found.*" \
+       "failed when passing invalid OCI runtime via \$CONTAINERS_CONF_OVERRIDE"
 }
 
 # Regression from v1.5.0. This test passes fine in v1.5.0, fails in 1.6

@@ -852,11 +852,11 @@ EOF
 [containers]
 oom_score_adj=$oomscore
 EOF
-    CONTAINERS_CONF=$PODMAN_TMPDIR/containers.conf run_podman run --rm $IMAGE cat /proc/self/oom_score_adj
+    CONTAINERS_CONF_OVERRIDE=$PODMAN_TMPDIR/containers.conf run_podman run --rm $IMAGE cat /proc/self/oom_score_adj
     is "$output" "$oomscore" "two more then default oomscore"
 
     oomscore=$((oomscore+1))
-    CONTAINERS_CONF=$PODMAN_TMPDIR/containers.conf run_podman run --oom-score-adj=$oomscore --rm $IMAGE cat /proc/self/oom_score_adj
+    CONTAINERS_CONF_OVERRIDE=$PODMAN_TMPDIR/containers.conf run_podman run --oom-score-adj=$oomscore --rm $IMAGE cat /proc/self/oom_score_adj
     is "$output" "$oomscore" "--oom-score-adj should override containers.conf"
 }
 
@@ -1018,10 +1018,10 @@ $IMAGE--c_ok" \
 read_only=true
 EOF
 
-    CONTAINERS_CONF="$containersconf" run_podman 1 run --rm $IMAGE touch /testro
-    CONTAINERS_CONF="$containersconf" run_podman run --rm --read-only=false $IMAGE touch /testrw
-    CONTAINERS_CONF="$containersconf" run_podman run --rm $IMAGE touch /tmp/testrw
-    CONTAINERS_CONF="$containersconf" run_podman 1 run --rm --read-only-tmpfs=false $IMAGE touch /tmp/testro
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman 1 run --rm $IMAGE touch /testro
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm --read-only=false $IMAGE touch /testrw
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm $IMAGE touch /tmp/testrw
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman 1 run --rm --read-only-tmpfs=false $IMAGE touch /tmp/testro
 }
 
 @test "podman run ulimit from containers.conf" {
@@ -1037,9 +1037,9 @@ default_ulimits = [
 ]
 EOF
 
-    CONTAINERS_CONF="$containersconf" run_podman run --rm $IMAGE grep "Max open files" /proc/self/limits
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm $IMAGE grep "Max open files" /proc/self/limits
     assert "$output" =~ " ${nofile1}  * ${nofile1}  * files"
-    CONTAINERS_CONF="$containersconf" run_podman run --ulimit nofile=${nofile2}:${nofile2} --rm $IMAGE grep "Max open files" /proc/self/limits
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --ulimit nofile=${nofile2}:${nofile2} --rm $IMAGE grep "Max open files" /proc/self/limits
     assert "$output" =~ " ${nofile2}  * ${nofile2}  * files"
 }
 

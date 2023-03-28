@@ -630,8 +630,8 @@ load helpers.network
     run_podman network rm -t 0 -f $netname
 }
 
-@test "podman run CONTAINERS_CONF dns options" {
-    skip_if_remote "CONTAINERS_CONF redirect does not work on remote"
+@test "podman run CONTAINERS_CONF_OVERRIDE dns options" {
+    skip_if_remote "CONTAINERS_CONF_OVERRIDE redirect does not work on remote"
     # Test on the CLI and via containers.conf
     containersconf=$PODMAN_TMPDIR/containers.conf
 
@@ -650,7 +650,7 @@ EOF
     local nl="
 "
 
-    CONTAINERS_CONF=$containersconf run_podman run --rm $IMAGE cat /etc/resolv.conf
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman run --rm $IMAGE cat /etc/resolv.conf
     is "$output" "search example.com.*" "correct search domain"
     is "$output" ".*nameserver 1.1.1.1${nl}nameserver $searchIP${nl}nameserver 1.0.0.1${nl}nameserver 8.8.8.8" "nameserver order is correct"
 
@@ -659,7 +659,7 @@ EOF
     local subnet=$(random_rfc1918_subnet)
     run_podman network create --subnet "$subnet.0/24"  $netname
     # custom server overwrites the network dns server
-    CONTAINERS_CONF=$containersconf run_podman run --network $netname --rm $IMAGE cat /etc/resolv.conf
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman run --network $netname --rm $IMAGE cat /etc/resolv.conf
     is "$output" "search example.com.*" "correct search domain"
     local store=$output
     if is_netavark; then
@@ -714,8 +714,8 @@ nameserver 8.8.8.8" "nameserver order is correct"
     done
 }
 
-@test "podman run CONTAINERS_CONF /etc/hosts options" {
-    skip_if_remote "CONTAINERS_CONF redirect does not work on remote"
+@test "podman run CONTAINERS_CONF_OVERRIDE /etc/hosts options" {
+    skip_if_remote "CONTAINERS_CONF_OVERRIDE redirect does not work on remote"
 
     containersconf=$PODMAN_TMPDIR/containers.conf
     basehost=$PODMAN_TMPDIR/host
@@ -740,7 +740,7 @@ EOF
     ip3="$(random_rfc1918_subnet).$((RANDOM % 256))"
     name3=host3$(random_string)
 
-    CONTAINERS_CONF=$containersconf run_podman run --rm --add-host $name3:$ip3 $IMAGE cat /etc/hosts
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman run --rm --add-host $name3:$ip3 $IMAGE cat /etc/hosts
     is "$output" ".*$ip3[[:blank:]]$name3.*" "--add-host entry in /etc/host"
     is "$output" ".*$ip1[[:blank:]]$name1.*" "first base entry in /etc/host"
     is "$output" ".*$ip2[[:blank:]]$name2.*" "second base entry in /etc/host"
@@ -751,7 +751,7 @@ EOF
 
     # now try again with container name and hostname == host entry name
     # in this case podman should not add its own entry thus we only have 5 entries (-1 for the removed --add-host)
-    CONTAINERS_CONF=$containersconf run_podman run --rm --name $name1 --hostname $name1 $IMAGE cat /etc/hosts
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman run --rm --name $name1 --hostname $name1 $IMAGE cat /etc/hosts
     is "$output" ".*$ip1[[:blank:]]$name1.*" "first base entry in /etc/host"
     is "$output" ".*$ip2[[:blank:]]$name2.*" "second base entry in /etc/host"
     is "$output" ".*$containersinternal_ip[[:blank:]]host\.containers\.internal.*" "host.containers.internal ip from config in /etc/host"
