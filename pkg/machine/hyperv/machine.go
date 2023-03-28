@@ -283,7 +283,67 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 }
 
 func (m *HyperVMachine) Set(name string, opts machine.SetOptions) ([]error, error) {
-	return nil, machine.ErrNotImplemented
+	var (
+		cpuChanged, memoryChanged bool
+		setErrors                 []error
+	)
+	vmm := hypervctl.NewVirtualMachineManager()
+	// Considering this a hard return if we cannot lookup the machine
+	vm, err := vmm.GetMachine(m.Name)
+	if err != nil {
+		return setErrors, err
+	}
+	if vm.State() != hypervctl.Disabled {
+		return nil, errors.New("unable to change settings unless vm is stopped")
+	}
+
+	if opts.Rootful != nil && m.Rootful != *opts.Rootful {
+		setErrors = append(setErrors, hypervctl.ErrNotImplemented)
+	}
+	if opts.DiskSize != nil && m.DiskSize != *opts.DiskSize {
+		setErrors = append(setErrors, hypervctl.ErrNotImplemented)
+	}
+	if opts.CPUs != nil && m.CPUs != *opts.CPUs {
+		m.CPUs = *opts.CPUs
+		cpuChanged = true
+	}
+	if opts.Memory != nil && m.Memory != *opts.Memory {
+		m.Memory = *opts.Memory
+		memoryChanged = true
+	}
+
+	if !cpuChanged && !memoryChanged {
+		switch len(setErrors) {
+		case 0:
+			return nil, nil
+		case 1:
+			return nil, setErrors[0]
+		default:
+			return setErrors[1:], setErrors[0]
+		}
+	}
+	// Write the new JSON out
+	// considering this a hard return if we cannot write the JSON file.
+	b, err := json.MarshalIndent(m, "", " ")
+	if err != nil {
+		return setErrors, err
+	}
+	if err := os.WriteFile(m.ConfigPath.GetPath(), b, 0644); err != nil {
+		return setErrors, err
+	}
+
+	return setErrors, vm.UpdateProcessorMemSettings(func(ps *hypervctl.ProcessorSettings) {
+		if cpuChanged {
+			ps.VirtualQuantity = m.CPUs
+		}
+	}, func(ms *hypervctl.MemorySettings) {
+		if memoryChanged {
+			ms.DynamicMemoryEnabled = false
+			ms.VirtualQuantity = m.Memory
+			ms.Limit = m.Memory
+			ms.Reservation = m.Memory
+		}
+	})
 }
 
 func (m *HyperVMachine) SSH(name string, opts machine.SSHOptions) error {
