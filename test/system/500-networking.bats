@@ -196,8 +196,18 @@ load helpers.network
 @test "podman run with slirp4ns adds correct dns address to resolv.conf" {
     CIDR="$(random_rfc1918_subnet)"
     run_podman run --rm --network slirp4netns:cidr="${CIDR}.0/24" \
-                $IMAGE grep "${CIDR}" /etc/resolv.conf
-    is "$output"   "nameserver ${CIDR}.3"   "resolv.conf should have slirp4netns cidr+3 as a nameserver"
+                $IMAGE cat /etc/resolv.conf
+    assert "$output" =~ "nameserver ${CIDR}.3" "resolv.conf should have slirp4netns cidr+3 as first nameserver"
+    no_userns_out="$output"
+
+    if is_rootless; then
+    # check the slirp ip also works correct with userns
+        run_podman run --rm --userns keep-id --network slirp4netns:cidr="${CIDR}.0/24" \
+                $IMAGE cat /etc/resolv.conf
+        assert "$output" =~ "nameserver ${CIDR}.3" "resolv.conf should have slirp4netns cidr+3 as first nameserver with userns"
+        assert "$output" == "$no_userns_out" "resolv.conf should look the same for userns"
+    fi
+
 }
 
 @test "podman run with slirp4ns assigns correct ip address container" {
