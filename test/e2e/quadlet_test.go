@@ -503,7 +503,7 @@ var _ = Describe("quadlet system generator", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// Run quadlet to convert the file
-			session := podmanTest.Quadlet([]string{"-no-kmsg-log", generatedDir}, quadletDir)
+			session := podmanTest.Quadlet([]string{"--user", "-no-kmsg-log", generatedDir}, quadletDir)
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
 
@@ -551,6 +551,8 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("remap-manual.container", "remap-manual.container"),
 		Entry("remap-auto.container", "remap-auto.container"),
 		Entry("remap-auto2.container", "remap-auto2.container"),
+		Entry("remap-keep-id.container", "remap-keep-id.container"),
+		Entry("remap-keep-id2.container", "remap-keep-id2.container"),
 		Entry("volume.container", "volume.container"),
 		Entry("env-file.container", "env-file.container"),
 		Entry("env-host.container", "env-host.container"),

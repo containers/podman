@@ -549,13 +549,17 @@ This key can be listed multiple times.
 
 ### `RemapGid=`
 
-If `RemapUsers` is enabled, this specifies a gid mapping of the form `container_gid:from_gid:amount`,
+If `RemapUsers` is enabled, this specifies a gid mapping.
+If `RemapUsers` is set to `keep-id` the value should be a single GID and should appear only once.
+Otherwise, the value takes the form `container_gid:from_gid:amount`,
 which will map `amount` number of gids on the host starting at `from_gid` into the container, starting
 at `container_gid`.
 
 ### `RemapUid=`
 
-If `RemapUsers` is enabled, this specifies a uid mapping of the form `container_uid:from_uid:amount`,
+If `RemapUsers` is enabled, this specifies a uid mapping.
+If `RemapUsers` is set to `keep-id` the value should be a single UID and should appear only once.
+Otherwise, the value takes the form `container_uid:from_uid:amount`,
 which will map `amount` number of uids on the host starting at `from_uid` into the container, starting
 at `container_uid`.
 
@@ -573,8 +577,10 @@ host uids/gids to use for the container. By default this will try to estimate a 
 to remap, but `RemapUidSize` can be specified to use an explicit size. Use `RemapUid` and
 `RemapGid` key to force a particular host uid to be mapped to the container.
 
-In `keep-id` mode, the running user is mapped to the same id in the container. This is supported
-only on user systemd units.
+In `keep-id` mode, if `RemapUid` or `RemapGid` are set the running user is mapped
+to the corresponding ids in the container.
+Otherwise, the user is mapped to the user's host machine ids in the container.
+This is supported only on user systemd units.
 
 ### `Yaml=`
 
