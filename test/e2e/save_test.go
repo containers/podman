@@ -171,6 +171,8 @@ var _ = Describe("Podman save", func() {
 		}
 
 		cmd := exec.Command("gpg", "--import", "sign/secret-key.asc")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
 		err = cmd.Run()
 		Expect(err).ToNot(HaveOccurred())
 
