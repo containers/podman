@@ -10,7 +10,6 @@ PODMAN_TEST_IMAGE_USER=${PODMAN_TEST_IMAGE_USER:-"libpod"}
 PODMAN_TEST_IMAGE_NAME=${PODMAN_TEST_IMAGE_NAME:-"testimage"}
 PODMAN_TEST_IMAGE_TAG=${PODMAN_TEST_IMAGE_TAG:-"20221018"}
 PODMAN_TEST_IMAGE_FQN="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:$PODMAN_TEST_IMAGE_TAG"
-PODMAN_TEST_IMAGE_ID=
 
 # Larger image containing systemd tools.
 PODMAN_SYSTEMD_IMAGE_NAME=${PODMAN_SYSTEMD_IMAGE_NAME:-"systemd-image"}
@@ -36,6 +35,63 @@ if [ $(id -u) -eq 0 ]; then
     _LOG_PROMPT='#'
 fi
 
+# This is set in bats v1.3.0 and above (I think) but there may be RHEL
+# environments in which we're still using super-ancient bats.
+if [[ -z "$BATS_RUN_TMPDIR" ]]; then
+    BATS_RUN_TMPDIR=$(mktemp -d "${BATS_TMPDIR}/bats-run-XXXXXX")
+    export BATS_RUN_TMPDIR
+    echo "# WARNING: $BATS_RUN_TMPDIR will not be cleaned up at finish" >&3
+fi
+mkdir -p "${BATS_RUN_TMPDIR}/imagecache"
+
+###############################################################################
+# BEGIN tools for fetching & caching test images
+#
+# Registries are flaky: any time we have to pull an image, that's a risk.
+#
+
+function _prefetch() {
+    local want=$1
+
+    # Do we already have it in image store?
+    run_podman '?' image exists "$want"
+    if [[ $status -eq 0 ]]; then
+        return
+    fi
+
+    # No. Do we have it already cached?
+    local cachename=$(sed -e 's;[/:];--;g' <<<"$want")
+    local cachepath="${BATS_RUN_TMPDIR}/imagecache/${cachename}.tar"
+    if [[ ! -e "$cachepath" ]]; then
+        # No. Fetch it and cache it. Retry twice, because of flakes.
+        cmd="skopeo copy --preserve-digests docker://$want oci-archive:$cachepath"
+        echo "$_LOG_PROMPT $cmd"
+        run $cmd
+        echo "$output"
+        if [[ $status -ne 0 ]]; then
+            echo "# 'pull $want' failed, will retry..." >&3
+            sleep 5
+
+            run $cmd
+            echo "$output"
+            if [[ $status -ne 0 ]]; then
+                echo "# 'pull $want' failed again, will retry one last time..." >&3
+                sleep 30
+                $cmd
+            fi
+        fi
+    fi
+
+    # Cached image is now guaranteed to exist.
+    run_podman load -q -i $cachepath
+    # Sigh. 'skopeo copy' does not preserve the image name/tag. Use the
+    # output from 'podman load ("Loaded image: sha256:xxxx") to get the
+    # image ID, then tag it.
+    iid=$(awk '{print $NF}' <<<"$output")
+    run_podman tag "$iid" "$want"
+}
+
+# END   tools for fetching & caching test images
 ###############################################################################
 # BEGIN setup/teardown tools
 
@@ -56,37 +112,13 @@ function basic_setup() {
         run_podman rm -f $1
     done
 
-    # Clean up all images except those desired
-    found_needed_image=
-    run_podman images --all --format '{{.Repository}}:{{.Tag}} {{.ID}}'
-    for line in "${lines[@]}"; do
-        set $line
-        if [[ "$1" == "$PODMAN_TEST_IMAGE_FQN" ]]; then
-            if [[ -z "$PODMAN_TEST_IMAGE_ID" ]]; then
-                # This will probably only trigger the 2nd time through setup
-                PODMAN_TEST_IMAGE_ID=$2
-            fi
-            found_needed_image=1
-        elif [[ "$1" == "$PODMAN_SYSTEMD_IMAGE_FQN" ]]; then
-            # This is a big image, don't force unnecessary pulls
-            :
-        else
-            # Always remove image that doesn't match by name
-            echo "# setup(): removing stray image $1" >&3
-            run_podman rmi --force "$1" >/dev/null 2>&1 || true
-
-            # Tagged image will have same IID as our test image; don't rmi it.
-            if [[ $2 != "$PODMAN_TEST_IMAGE_ID" ]]; then
-                echo "# setup(): removing stray image $2" >&3
-                run_podman rmi --force "$2" >/dev/null 2>&1 || true
-            fi
-        fi
-    done
-
-    # Make sure desired images are present
-    if [ -z "$found_needed_image" ]; then
-        run_podman pull "$PODMAN_TEST_IMAGE_FQN"
-    fi
+    # Remove all images, then preload $IMAGE so every test is guaranteed
+    # to begin with a known setup.
+    # FIXME? This means that every system-test run, even a filtered one,
+    #   will incur the expense of a pull. It may also slow down total
+    #   test run time because of so many podman-loads.
+    run_podman rmi -f -a
+    _prefetch $IMAGE
 
     # Argh. Although BATS provides $BATS_TMPDIR, it's just /tmp!
     # That's bloody worthless. Let's make our own, in which subtests

@@ -31,7 +31,7 @@ EOF
 
 function check_signature() {
     local sigfile=$1
-    ls -laR $PODMAN_TMPDIR/signatures
+    find $PODMAN_TMPDIR/signatures
     run_podman inspect --format '{{.Digest}}' $PODMAN_TEST_IMAGE_FQN
     local repodigest=${output/:/=}
 
@@ -47,7 +47,7 @@ function check_signature() {
 
 
 @test "podman image - sign with no sigfile" {
-    GNUPGHOME=$_GNUPGHOME_TMP run_podman image sign --sign-by foo@bar.com --directory $PODMAN_TMPDIR/signatures  "docker://$PODMAN_TEST_IMAGE_FQN"
+    GNUPGHOME=$_GNUPGHOME_TMP run_podman image sign --sign-by foo@bar.com --directory $PODMAN_TMPDIR/signatures  "containers-storage:$PODMAN_TEST_IMAGE_FQN"
     check_signature "signature-1"
 }
 

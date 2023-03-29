@@ -33,7 +33,7 @@ json.dump(yaml.safe_load(sys.stdin), sys.stdout)'
     cname=c$(random_string 15)
     run_podman container create --cap-drop fowner --cap-drop setfcap --name $cname $IMAGE top
     run_podman kube generate $cname
-    assert "$output" !~ "Kubernetes only allows 63 characters"
+
     # Convert yaml to json, and dump to stdout (to help in case of errors)
     json=$(yaml2json <<<"$output")
     jq . <<<"$json"

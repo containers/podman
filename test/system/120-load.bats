@@ -184,10 +184,6 @@ verify_iid_and_name() {
     run_podman rmi $iid
     run_podman image load < $archive
     verify_iid_and_name "<none>:<none>"
-
-    # Cleanup: since load-by-iid doesn't preserve name, re-tag it;
-    # otherwise our global teardown will rmi and re-pull our standard image.
-    run_podman tag $iid $img_name
 }
 
 @test "podman load - by image name" {

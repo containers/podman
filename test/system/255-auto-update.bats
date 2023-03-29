@@ -11,6 +11,9 @@ SNAME_FILE=$BATS_TMPDIR/services
 function setup() {
     skip_if_remote "systemd tests are meaningless over remote"
     basic_setup
+
+    # Save time and minimize flake risk
+    _prefetch $SYSTEMD_IMAGE
 }
 
 function teardown() {
