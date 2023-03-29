@@ -51,5 +51,5 @@ $ man podman
 
 ## Using the client
 
-To learn how to use the Podman client, refer its
+To learn how to use the Podman client, refer to its
 [tutorial](https://github.com/containers/podman/blob/main/docs/tutorials/remote_client.md).
