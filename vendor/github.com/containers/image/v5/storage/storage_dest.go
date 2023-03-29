@@ -77,13 +77,19 @@ type storageImageDestination struct {
 	indexToStorageID map[int]*string
 	// All accesses to below data are protected by `lock` which is made
 	// *explicit* in the code.
-	blobDiffIDs            map[digest.Digest]digest.Digest                       // Mapping from layer blobsums to their corresponding DiffIDs
-	fileSizes              map[digest.Digest]int64                               // Mapping from layer blobsums to their sizes
-	filenames              map[digest.Digest]string                              // Mapping from layer blobsums to names of files we used to hold them
-	currentIndex           int                                                   // The index of the layer to be committed (i.e., lower indices have already been committed)
-	indexToPulledLayerInfo map[int]*manifest.LayerInfo                           // Mapping from layer (by index) to pulled down blob
-	blobAdditionalLayer    map[digest.Digest]storage.AdditionalLayer             // Mapping from layer blobsums to their corresponding additional layer
-	diffOutputs            map[digest.Digest]*graphdriver.DriverWithDifferOutput // Mapping from digest to differ output
+	blobDiffIDs           map[digest.Digest]digest.Digest                       // Mapping from layer blobsums to their corresponding DiffIDs
+	fileSizes             map[digest.Digest]int64                               // Mapping from layer blobsums to their sizes
+	filenames             map[digest.Digest]string                              // Mapping from layer blobsums to names of files we used to hold them
+	currentIndex          int                                                   // The index of the layer to be committed (i.e., lower indices have already been committed)
+	indexToAddedLayerInfo map[int]addedLayerInfo                                // Mapping from layer (by index) to blob to add to the image
+	blobAdditionalLayer   map[digest.Digest]storage.AdditionalLayer             // Mapping from layer blobsums to their corresponding additional layer
+	diffOutputs           map[digest.Digest]*graphdriver.DriverWithDifferOutput // Mapping from digest to differ output
+}
+
+// addedLayerInfo records data about a layer to use in this image.
+type addedLayerInfo struct {
+	digest     digest.Digest
+	emptyLayer bool // The layer is an “empty”/“throwaway” one, and may or may not be physically represented in various transport / storage systems.  false if the manifest type does not have the concept.
 }
 
 // newImageDestination sets us up to write a new image, caching blobs in a temporary directory until
@@ -111,18 +117,18 @@ func newImageDestination(sys *types.SystemContext, imageRef storageReference) (*
 			HasThreadSafePutBlob:           true,
 		}),
 
-		imageRef:               imageRef,
-		directory:              directory,
-		signatureses:           make(map[digest.Digest][]byte),
-		blobDiffIDs:            make(map[digest.Digest]digest.Digest),
-		blobAdditionalLayer:    make(map[digest.Digest]storage.AdditionalLayer),
-		fileSizes:              make(map[digest.Digest]int64),
-		filenames:              make(map[digest.Digest]string),
-		SignatureSizes:         []int{},
-		SignaturesSizes:        make(map[digest.Digest][]int),
-		indexToStorageID:       make(map[int]*string),
-		indexToPulledLayerInfo: make(map[int]*manifest.LayerInfo),
-		diffOutputs:            make(map[digest.Digest]*graphdriver.DriverWithDifferOutput),
+		imageRef:              imageRef,
+		directory:             directory,
+		signatureses:          make(map[digest.Digest][]byte),
+		blobDiffIDs:           make(map[digest.Digest]digest.Digest),
+		blobAdditionalLayer:   make(map[digest.Digest]storage.AdditionalLayer),
+		fileSizes:             make(map[digest.Digest]int64),
+		filenames:             make(map[digest.Digest]string),
+		SignatureSizes:        []int{},
+		SignaturesSizes:       make(map[digest.Digest][]int),
+		indexToStorageID:      make(map[int]*string),
+		indexToAddedLayerInfo: make(map[int]addedLayerInfo),
+		diffOutputs:           make(map[digest.Digest]*graphdriver.DriverWithDifferOutput),
 	}
 	dest.Compat = impl.AddCompat(dest)
 	return dest, nil
@@ -158,7 +164,7 @@ func (s *storageImageDestination) computeNextBlobCacheFile() string {
 // WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 // to any other readers for download using the supplied digest.
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-func (s *storageImageDestination) PutBlobWithOptions(ctx context.Context, stream io.Reader, blobinfo types.BlobInfo, options private.PutBlobOptions) (types.BlobInfo, error) {
+func (s *storageImageDestination) PutBlobWithOptions(ctx context.Context, stream io.Reader, blobinfo types.BlobInfo, options private.PutBlobOptions) (private.UploadedBlob, error) {
 	info, err := s.putBlobToPendingFile(stream, blobinfo, &options)
 	if err != nil {
 		return info, err
@@ -168,21 +174,20 @@ func (s *storageImageDestination) PutBlobWithOptions(ctx context.Context, stream
 		return info, nil
 	}
 
-	return info, s.queueOrCommit(ctx, info, *options.LayerIndex, options.EmptyLayer)
+	return info, s.queueOrCommit(*options.LayerIndex, addedLayerInfo{
+		digest:     info.Digest,
+		emptyLayer: options.EmptyLayer,
+	})
 }
 
 // putBlobToPendingFile implements ImageDestination.PutBlobWithOptions, storing stream into an on-disk file.
 // The caller must arrange the blob to be eventually committed using s.commitLayer().
-func (s *storageImageDestination) putBlobToPendingFile(stream io.Reader, blobinfo types.BlobInfo, options *private.PutBlobOptions) (types.BlobInfo, error) {
+func (s *storageImageDestination) putBlobToPendingFile(stream io.Reader, blobinfo types.BlobInfo, options *private.PutBlobOptions) (private.UploadedBlob, error) {
 	// Stores a layer or data blob in our temporary directory, checking that any information
 	// in the blobinfo matches the incoming data.
-	errorBlobInfo := types.BlobInfo{
-		Digest: "",
-		Size:   -1,
-	}
 	if blobinfo.Digest != "" {
 		if err := blobinfo.Digest.Validate(); err != nil {
-			return errorBlobInfo, fmt.Errorf("invalid digest %#v: %w", blobinfo.Digest.String(), err)
+			return private.UploadedBlob{}, fmt.Errorf("invalid digest %#v: %w", blobinfo.Digest.String(), err)
 		}
 	}
 
@@ -190,7 +195,7 @@ func (s *storageImageDestination) putBlobToPendingFile(stream io.Reader, blobinf
 	filename := s.computeNextBlobCacheFile()
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY|os.O_EXCL, 0600)
 	if err != nil {
-		return errorBlobInfo, fmt.Errorf("creating temporary file %q: %w", filename, err)
+		return private.UploadedBlob{}, fmt.Errorf("creating temporary file %q: %w", filename, err)
 	}
 	defer file.Close()
 	counter := ioutils.NewWriteCounter(file)
@@ -198,7 +203,7 @@ func (s *storageImageDestination) putBlobToPendingFile(stream io.Reader, blobinf
 	digester, stream := putblobdigest.DigestIfUnknown(stream, blobinfo)
 	decompressed, err := archive.DecompressStream(stream)
 	if err != nil {
-		return errorBlobInfo, fmt.Errorf("setting up to decompress blob: %w", err)
+		return private.UploadedBlob{}, fmt.Errorf("setting up to decompress blob: %w", err)
 	}
 
 	diffID := digest.Canonical.Digester()
@@ -207,7 +212,7 @@ func (s *storageImageDestination) putBlobToPendingFile(stream io.Reader, blobinf
 	_, err = io.Copy(diffID.Hash(), decompressed)
 	decompressed.Close()
 	if err != nil {
-		return errorBlobInfo, fmt.Errorf("storing blob to file %q: %w", filename, err)
+		return private.UploadedBlob{}, fmt.Errorf("storing blob to file %q: %w", filename, err)
 	}
 
 	// Determine blob properties, and fail if information that we were given about the blob
@@ -217,7 +222,7 @@ func (s *storageImageDestination) putBlobToPendingFile(stream io.Reader, blobinf
 	if blobSize < 0 {
 		blobSize = counter.Count
 	} else if blobinfo.Size != counter.Count {
-		return errorBlobInfo, ErrBlobSizeMismatch
+		return private.UploadedBlob{}, ErrBlobSizeMismatch
 	}
 
 	// Record information about the blob.
@@ -229,10 +234,9 @@ func (s *storageImageDestination) putBlobToPendingFile(stream io.Reader, blobinf
 	// This is safe because we have just computed diffID, and blobDigest was either computed
 	// by us, or validated by the caller (usually copy.digestingReader).
 	options.Cache.RecordDigestUncompressedPair(blobDigest, diffID.Digest())
-	return types.BlobInfo{
-		Digest:    blobDigest,
-		Size:      blobSize,
-		MediaType: blobinfo.MediaType,
+	return private.UploadedBlob{
+		Digest: blobDigest,
+		Size:   blobSize,
 	}, nil
 }
 
@@ -265,7 +269,7 @@ func (f *zstdFetcher) GetBlobAt(chunks []chunked.ImageSourceChunk) (chan io.Read
 // It is available only if SupportsPutBlobPartial().
 // Even if SupportsPutBlobPartial() returns true, the call can fail, in which case the caller
 // should fall back to PutBlobWithOptions.
-func (s *storageImageDestination) PutBlobPartial(ctx context.Context, chunkAccessor private.BlobChunkAccessor, srcInfo types.BlobInfo, cache blobinfocache.BlobInfoCache2) (types.BlobInfo, error) {
+func (s *storageImageDestination) PutBlobPartial(ctx context.Context, chunkAccessor private.BlobChunkAccessor, srcInfo types.BlobInfo, cache blobinfocache.BlobInfoCache2) (private.UploadedBlob, error) {
 	fetcher := zstdFetcher{
 		chunkAccessor: chunkAccessor,
 		ctx:           ctx,
@@ -274,12 +278,12 @@ func (s *storageImageDestination) PutBlobPartial(ctx context.Context, chunkAcces
 
 	differ, err := chunked.GetDiffer(ctx, s.imageRef.transport.store, srcInfo.Size, srcInfo.Annotations, &fetcher)
 	if err != nil {
-		return srcInfo, err
+		return private.UploadedBlob{}, err
 	}
 
 	out, err := s.imageRef.transport.store.ApplyDiffWithDiffer("", nil, differ)
 	if err != nil {
-		return srcInfo, err
+		return private.UploadedBlob{}, err
 	}
 
 	blobDigest := srcInfo.Digest
@@ -291,124 +295,126 @@ func (s *storageImageDestination) PutBlobPartial(ctx context.Context, chunkAcces
 	s.diffOutputs[blobDigest] = out
 	s.lock.Unlock()
 
-	return srcInfo, nil
+	return private.UploadedBlob{
+		Digest: blobDigest,
+		Size:   srcInfo.Size,
+	}, nil
 }
 
 // TryReusingBlobWithOptions checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
 // (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
 // info.Digest must not be empty.
-// If the blob has been successfully reused, returns (true, info, nil); info must contain at least a digest and size, and may
-// include CompressionOperation and CompressionAlgorithm fields to indicate that a change to the compression type should be
-// reflected in the manifest that will be written.
+// If the blob has been successfully reused, returns (true, info, nil).
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
-func (s *storageImageDestination) TryReusingBlobWithOptions(ctx context.Context, blobinfo types.BlobInfo, options private.TryReusingBlobOptions) (bool, types.BlobInfo, error) {
-	reused, info, err := s.tryReusingBlobAsPending(blobinfo, &options)
+func (s *storageImageDestination) TryReusingBlobWithOptions(ctx context.Context, blobinfo types.BlobInfo, options private.TryReusingBlobOptions) (bool, private.ReusedBlob, error) {
+	reused, info, err := s.tryReusingBlobAsPending(blobinfo.Digest, blobinfo.Size, &options)
 	if err != nil || !reused || options.LayerIndex == nil {
 		return reused, info, err
 	}
 
-	return reused, info, s.queueOrCommit(ctx, info, *options.LayerIndex, options.EmptyLayer)
+	return reused, info, s.queueOrCommit(*options.LayerIndex, addedLayerInfo{
+		digest:     info.Digest,
+		emptyLayer: options.EmptyLayer,
+	})
 }
 
-// tryReusingBlobAsPending implements TryReusingBlobWithOptions, filling s.blobDiffIDs and other metadata.
+// tryReusingBlobAsPending implements TryReusingBlobWithOptions for (digest, size or -1), filling s.blobDiffIDs and other metadata.
 // The caller must arrange the blob to be eventually committed using s.commitLayer().
-func (s *storageImageDestination) tryReusingBlobAsPending(blobinfo types.BlobInfo, options *private.TryReusingBlobOptions) (bool, types.BlobInfo, error) {
+func (s *storageImageDestination) tryReusingBlobAsPending(digest digest.Digest, size int64, options *private.TryReusingBlobOptions) (bool, private.ReusedBlob, error) {
 	// lock the entire method as it executes fairly quickly
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	if options.SrcRef != nil {
 		// Check if we have the layer in the underlying additional layer store.
-		aLayer, err := s.imageRef.transport.store.LookupAdditionalLayer(blobinfo.Digest, options.SrcRef.String())
+		aLayer, err := s.imageRef.transport.store.LookupAdditionalLayer(digest, options.SrcRef.String())
 		if err != nil && !errors.Is(err, storage.ErrLayerUnknown) {
-			return false, types.BlobInfo{}, fmt.Errorf(`looking for compressed layers with digest %q and labels: %w`, blobinfo.Digest, err)
+			return false, private.ReusedBlob{}, fmt.Errorf(`looking for compressed layers with digest %q and labels: %w`, digest, err)
 		} else if err == nil {
 			// Record the uncompressed value so that we can use it to calculate layer IDs.
-			s.blobDiffIDs[blobinfo.Digest] = aLayer.UncompressedDigest()
-			s.blobAdditionalLayer[blobinfo.Digest] = aLayer
-			return true, types.BlobInfo{
-				Digest:    blobinfo.Digest,
-				Size:      aLayer.CompressedSize(),
-				MediaType: blobinfo.MediaType,
+			s.blobDiffIDs[digest] = aLayer.UncompressedDigest()
+			s.blobAdditionalLayer[digest] = aLayer
+			return true, private.ReusedBlob{
+				Digest: digest,
+				Size:   aLayer.CompressedSize(),
 			}, nil
 		}
 	}
 
-	if blobinfo.Digest == "" {
-		return false, types.BlobInfo{}, errors.New(`Can not check for a blob with unknown digest`)
+	if digest == "" {
+		return false, private.ReusedBlob{}, errors.New(`Can not check for a blob with unknown digest`)
 	}
-	if err := blobinfo.Digest.Validate(); err != nil {
-		return false, types.BlobInfo{}, fmt.Errorf("Can not check for a blob with invalid digest: %w", err)
+	if err := digest.Validate(); err != nil {
+		return false, private.ReusedBlob{}, fmt.Errorf("Can not check for a blob with invalid digest: %w", err)
 	}
 
 	// Check if we've already cached it in a file.
-	if size, ok := s.fileSizes[blobinfo.Digest]; ok {
-		return true, types.BlobInfo{
-			Digest:    blobinfo.Digest,
-			Size:      size,
-			MediaType: blobinfo.MediaType,
+	if size, ok := s.fileSizes[digest]; ok {
+		return true, private.ReusedBlob{
+			Digest: digest,
+			Size:   size,
 		}, nil
 	}
 
 	// Check if we have a wasn't-compressed layer in storage that's based on that blob.
-	layers, err := s.imageRef.transport.store.LayersByUncompressedDigest(blobinfo.Digest)
+	layers, err := s.imageRef.transport.store.LayersByUncompressedDigest(digest)
 	if err != nil && !errors.Is(err, storage.ErrLayerUnknown) {
-		return false, types.BlobInfo{}, fmt.Errorf(`looking for layers with digest %q: %w`, blobinfo.Digest, err)
+		return false, private.ReusedBlob{}, fmt.Errorf(`looking for layers with digest %q: %w`, digest, err)
 	}
 	if len(layers) > 0 {
 		// Save this for completeness.
-		s.blobDiffIDs[blobinfo.Digest] = layers[0].UncompressedDigest
-		return true, types.BlobInfo{
-			Digest:    blobinfo.Digest,
-			Size:      layers[0].UncompressedSize,
-			MediaType: blobinfo.MediaType,
+		s.blobDiffIDs[digest] = layers[0].UncompressedDigest
+		return true, private.ReusedBlob{
+			Digest: digest,
+			Size:   layers[0].UncompressedSize,
 		}, nil
 	}
 
 	// Check if we have a was-compressed layer in storage that's based on that blob.
-	layers, err = s.imageRef.transport.store.LayersByCompressedDigest(blobinfo.Digest)
+	layers, err = s.imageRef.transport.store.LayersByCompressedDigest(digest)
 	if err != nil && !errors.Is(err, storage.ErrLayerUnknown) {
-		return false, types.BlobInfo{}, fmt.Errorf(`looking for compressed layers with digest %q: %w`, blobinfo.Digest, err)
+		return false, private.ReusedBlob{}, fmt.Errorf(`looking for compressed layers with digest %q: %w`, digest, err)
 	}
 	if len(layers) > 0 {
 		// Record the uncompressed value so that we can use it to calculate layer IDs.
-		s.blobDiffIDs[blobinfo.Digest] = layers[0].UncompressedDigest
-		return true, types.BlobInfo{
-			Digest:    blobinfo.Digest,
-			Size:      layers[0].CompressedSize,
-			MediaType: blobinfo.MediaType,
+		s.blobDiffIDs[digest] = layers[0].UncompressedDigest
+		return true, private.ReusedBlob{
+			Digest: digest,
+			Size:   layers[0].CompressedSize,
 		}, nil
 	}
 
 	// Does the blob correspond to a known DiffID which we already have available?
 	// Because we must return the size, which is unknown for unavailable compressed blobs, the returned BlobInfo refers to the
 	// uncompressed layer, and that can happen only if options.CanSubstitute, or if the incoming manifest already specifies the size.
-	if options.CanSubstitute || blobinfo.Size != -1 {
-		if uncompressedDigest := options.Cache.UncompressedDigest(blobinfo.Digest); uncompressedDigest != "" && uncompressedDigest != blobinfo.Digest {
+	if options.CanSubstitute || size != -1 {
+		if uncompressedDigest := options.Cache.UncompressedDigest(digest); uncompressedDigest != "" && uncompressedDigest != digest {
 			layers, err := s.imageRef.transport.store.LayersByUncompressedDigest(uncompressedDigest)
 			if err != nil && !errors.Is(err, storage.ErrLayerUnknown) {
-				return false, types.BlobInfo{}, fmt.Errorf(`looking for layers with digest %q: %w`, uncompressedDigest, err)
+				return false, private.ReusedBlob{}, fmt.Errorf(`looking for layers with digest %q: %w`, uncompressedDigest, err)
 			}
 			if len(layers) > 0 {
-				if blobinfo.Size != -1 {
-					s.blobDiffIDs[blobinfo.Digest] = layers[0].UncompressedDigest
-					return true, blobinfo, nil
+				if size != -1 {
+					s.blobDiffIDs[digest] = layers[0].UncompressedDigest
+					return true, private.ReusedBlob{
+						Digest: digest,
+						Size:   size,
+					}, nil
 				}
 				if !options.CanSubstitute {
-					return false, types.BlobInfo{}, fmt.Errorf("Internal error: options.CanSubstitute was expected to be true for blobInfo %v", blobinfo)
+					return false, private.ReusedBlob{}, fmt.Errorf("Internal error: options.CanSubstitute was expected to be true for blob with digest %s", digest)
 				}
 				s.blobDiffIDs[uncompressedDigest] = layers[0].UncompressedDigest
-				return true, types.BlobInfo{
-					Digest:    uncompressedDigest,
-					Size:      layers[0].UncompressedSize,
-					MediaType: blobinfo.MediaType,
+				return true, private.ReusedBlob{
+					Digest: uncompressedDigest,
+					Size:   layers[0].UncompressedSize,
 				}, nil
 			}
 		}
 	}
 
 	// Nope, we don't have it.
-	return false, types.BlobInfo{}, nil
+	return false, private.ReusedBlob{}, nil
 }
 
 // computeID computes a recommended image ID based on information we have so far.  If
@@ -470,10 +476,10 @@ func (s *storageImageDestination) getConfigBlob(info types.BlobInfo) ([]byte, er
 	return nil, errors.New("blob not found")
 }
 
-// queueOrCommit queues in the specified blob to be committed to the storage.
+// queueOrCommit queues the specified layer to be committed to the storage.
 // If no other goroutine is already committing layers, the layer and all
 // subsequent layers (if already queued) will be committed to the storage.
-func (s *storageImageDestination) queueOrCommit(ctx context.Context, blob types.BlobInfo, index int, emptyLayer bool) error {
+func (s *storageImageDestination) queueOrCommit(index int, info addedLayerInfo) error {
 	// NOTE: whenever the code below is touched, make sure that all code
 	// paths unlock the lock and to unlock it exactly once.
 	//
@@ -493,10 +499,7 @@ func (s *storageImageDestination) queueOrCommit(ctx context.Context, blob types.
 	// caller is the "worker" routine committing layers.  All other routines
 	// can continue pulling and queuing in layers.
 	s.lock.Lock()
-	s.indexToPulledLayerInfo[index] = &manifest.LayerInfo{
-		BlobInfo:   blob,
-		EmptyLayer: emptyLayer,
-	}
+	s.indexToAddedLayerInfo[index] = info
 
 	// We're still waiting for at least one previous/parent layer to be
 	// committed, so there's nothing to do.
@@ -505,10 +508,14 @@ func (s *storageImageDestination) queueOrCommit(ctx context.Context, blob types.
 		return nil
 	}
 
-	for info := s.indexToPulledLayerInfo[index]; info != nil; info = s.indexToPulledLayerInfo[index] {
+	for {
+		info, ok := s.indexToAddedLayerInfo[index]
+		if !ok {
+			break
+		}
 		s.lock.Unlock()
 		// Note: commitLayer locks on-demand.
-		if err := s.commitLayer(ctx, *info, index); err != nil {
+		if err := s.commitLayer(index, info, -1); err != nil {
 			return err
 		}
 		s.lock.Lock()
@@ -522,13 +529,15 @@ func (s *storageImageDestination) queueOrCommit(ctx context.Context, blob types.
 	return nil
 }
 
-// commitLayer commits the specified blob with the given index to the storage.
+// commitLayer commits the specified layer with the given index to the storage.
+// size can usually be -1; it can be provided if the layer is not known to be already present in blobDiffIDs.
+//
 // Note that the previous layer is expected to already be committed.
 //
 // Caution: this function must be called without holding `s.lock`.  Callers
 // must guarantee that, at any given time, at most one goroutine may execute
 // `commitLayer()`.
-func (s *storageImageDestination) commitLayer(ctx context.Context, blob manifest.LayerInfo, index int) error {
+func (s *storageImageDestination) commitLayer(index int, info addedLayerInfo, size int64) error {
 	// Already committed?  Return early.
 	if _, alreadyCommitted := s.indexToStorageID[index]; alreadyCommitted {
 		return nil
@@ -543,7 +552,7 @@ func (s *storageImageDestination) commitLayer(ctx context.Context, blob manifest
 	}
 
 	// Carry over the previous ID for empty non-base layers.
-	if blob.EmptyLayer {
+	if info.emptyLayer {
 		s.indexToStorageID[index] = &lastLayer
 		return nil
 	}
@@ -551,7 +560,7 @@ func (s *storageImageDestination) commitLayer(ctx context.Context, blob manifest
 	// Check if there's already a layer with the ID that we'd give to the result of applying
 	// this layer blob to its parent, if it has one, or the blob's hex value otherwise.
 	s.lock.Lock()
-	diffID, haveDiffID := s.blobDiffIDs[blob.Digest]
+	diffID, haveDiffID := s.blobDiffIDs[info.digest]
 	s.lock.Unlock()
 	if !haveDiffID {
 		// Check if it's elsewhere and the caller just forgot to pass it to us in a PutBlob(),
@@ -560,18 +569,21 @@ func (s *storageImageDestination) commitLayer(ctx context.Context, blob manifest
 		// that relies on using a blob digest that has never been seen by the store had better call
 		// TryReusingBlob; not calling PutBlob already violates the documented API, so there’s only
 		// so far we are going to accommodate that (if we should be doing that at all).
-		logrus.Debugf("looking for diffID for blob %+v", blob.Digest)
-		// NOTE: use `TryReusingBlob` to prevent recursion.
-		has, _, err := s.TryReusingBlob(ctx, blob.BlobInfo, none.NoCache, false)
+		logrus.Debugf("looking for diffID for blob %+v", info.digest)
+		// Use tryReusingBlobAsPending, not the top-level TryReusingBlobWithOptions, to prevent recursion via queueOrCommit.
+		has, _, err := s.tryReusingBlobAsPending(info.digest, size, &private.TryReusingBlobOptions{
+			Cache:         none.NoCache,
+			CanSubstitute: false,
+		})
 		if err != nil {
-			return fmt.Errorf("checking for a layer based on blob %q: %w", blob.Digest.String(), err)
+			return fmt.Errorf("checking for a layer based on blob %q: %w", info.digest.String(), err)
 		}
 		if !has {
-			return fmt.Errorf("error determining uncompressed digest for blob %q", blob.Digest.String())
+			return fmt.Errorf("error determining uncompressed digest for blob %q", info.digest.String())
 		}
-		diffID, haveDiffID = s.blobDiffIDs[blob.Digest]
+		diffID, haveDiffID = s.blobDiffIDs[info.digest]
 		if !haveDiffID {
-			return fmt.Errorf("we have blob %q, but don't know its uncompressed digest", blob.Digest.String())
+			return fmt.Errorf("we have blob %q, but don't know its uncompressed digest", info.digest.String())
 		}
 	}
 	id := diffID.Hex()
@@ -586,7 +598,7 @@ func (s *storageImageDestination) commitLayer(ctx context.Context, blob manifest
 	}
 
 	s.lock.Lock()
-	diffOutput, ok := s.diffOutputs[blob.Digest]
+	diffOutput, ok := s.diffOutputs[info.digest]
 	s.lock.Unlock()
 	if ok {
 		layer, err := s.imageRef.transport.store.CreateLayer(id, lastLayer, nil, "", false, nil)
@@ -595,7 +607,7 @@ func (s *storageImageDestination) commitLayer(ctx context.Context, blob manifest
 		}
 
 		// FIXME: what to do with the uncompressed digest?
-		diffOutput.UncompressedDigest = blob.Digest
+		diffOutput.UncompressedDigest = info.digest
 
 		if err := s.imageRef.transport.store.ApplyDiffFromStagingDirectory(layer.ID, diffOutput.Target, diffOutput, nil); err != nil {
 			_ = s.imageRef.transport.store.Delete(layer.ID)
@@ -607,7 +619,7 @@ func (s *storageImageDestination) commitLayer(ctx context.Context, blob manifest
 	}
 
 	s.lock.Lock()
-	al, ok := s.blobAdditionalLayer[blob.Digest]
+	al, ok := s.blobAdditionalLayer[info.digest]
 	s.lock.Unlock()
 	if ok {
 		layer, err := al.PutAs(id, lastLayer, nil)
@@ -622,7 +634,7 @@ func (s *storageImageDestination) commitLayer(ctx context.Context, blob manifest
 	// Check if we previously cached a file with that blob's contents.  If we didn't,
 	// then we need to read the desired contents from a layer.
 	s.lock.Lock()
-	filename, ok := s.filenames[blob.Digest]
+	filename, ok := s.filenames[info.digest]
 	s.lock.Unlock()
 	if !ok {
 		// Try to find the layer with contents matching that blobsum.
@@ -631,13 +643,13 @@ func (s *storageImageDestination) commitLayer(ctx context.Context, blob manifest
 		if err2 == nil && len(layers) > 0 {
 			layer = layers[0].ID
 		} else {
-			layers, err2 = s.imageRef.transport.store.LayersByCompressedDigest(blob.Digest)
+			layers, err2 = s.imageRef.transport.store.LayersByCompressedDigest(info.digest)
 			if err2 == nil && len(layers) > 0 {
 				layer = layers[0].ID
 			}
 		}
 		if layer == "" {
-			return fmt.Errorf("locating layer for blob %q: %w", blob.Digest, err2)
+			return fmt.Errorf("locating layer for blob %q: %w", info.digest, err2)
 		}
 		// Read the layer's contents.
 		noCompression := archive.Uncompressed
@@ -646,7 +658,7 @@ func (s *storageImageDestination) commitLayer(ctx context.Context, blob manifest
 		}
 		diff, err2 := s.imageRef.transport.store.Diff("", layer, diffOptions)
 		if err2 != nil {
-			return fmt.Errorf("reading layer %q for blob %q: %w", layer, blob.Digest, err2)
+			return fmt.Errorf("reading layer %q for blob %q: %w", layer, info.digest, err2)
 		}
 		// Copy the layer diff to a file.  Diff() takes a lock that it holds
 		// until the ReadCloser that it returns is closed, and PutLayer() wants
@@ -670,7 +682,7 @@ func (s *storageImageDestination) commitLayer(ctx context.Context, blob manifest
 		// Make sure that we can find this file later, should we need the layer's
 		// contents again.
 		s.lock.Lock()
-		s.filenames[blob.Digest] = filename
+		s.filenames[info.digest] = filename
 		s.lock.Unlock()
 	}
 	// Read the cached blob and use it as a diff.
@@ -682,11 +694,11 @@ func (s *storageImageDestination) commitLayer(ctx context.Context, blob manifest
 	// Build the new layer using the diff, regardless of where it came from.
 	// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
 	layer, _, err := s.imageRef.transport.store.PutLayer(id, lastLayer, nil, "", false, &storage.LayerOptions{
-		OriginalDigest:     blob.Digest,
+		OriginalDigest:     info.digest,
 		UncompressedDigest: diffID,
 	}, file)
 	if err != nil && !errors.Is(err, storage.ErrDuplicateID) {
-		return fmt.Errorf("adding layer with blob %q: %w", blob.Digest, err)
+		return fmt.Errorf("adding layer with blob %q: %w", info.digest, err)
 	}
 
 	s.indexToStorageID[index] = &layer.ID
@@ -737,7 +749,10 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 
 	// Extract, commit, or find the layers.
 	for i, blob := range layerBlobs {
-		if err := s.commitLayer(ctx, blob, i); err != nil {
+		if err := s.commitLayer(i, addedLayerInfo{
+			digest:     blob.Digest,
+			emptyLayer: blob.EmptyLayer,
+		}, blob.Size); err != nil {
 			return err
 		}
 	}

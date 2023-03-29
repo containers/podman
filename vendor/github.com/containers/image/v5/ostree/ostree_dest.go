@@ -135,16 +135,16 @@ func (d *ostreeImageDestination) Close() error {
 // WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 // to any other readers for download using the supplied digest.
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-func (d *ostreeImageDestination) PutBlobWithOptions(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, options private.PutBlobOptions) (types.BlobInfo, error) {
+func (d *ostreeImageDestination) PutBlobWithOptions(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, options private.PutBlobOptions) (private.UploadedBlob, error) {
 	tmpDir, err := os.MkdirTemp(d.tmpDirPath, "blob")
 	if err != nil {
-		return types.BlobInfo{}, err
+		return private.UploadedBlob{}, err
 	}
 
 	blobPath := filepath.Join(tmpDir, "content")
 	blobFile, err := os.Create(blobPath)
 	if err != nil {
-		return types.BlobInfo{}, err
+		return private.UploadedBlob{}, err
 	}
 	defer blobFile.Close()
 
@@ -152,19 +152,19 @@ func (d *ostreeImageDestination) PutBlobWithOptions(ctx context.Context, stream 
 	// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
 	size, err := io.Copy(blobFile, stream)
 	if err != nil {
-		return types.BlobInfo{}, err
+		return private.UploadedBlob{}, err
 	}
 	blobDigest := digester.Digest()
 	if inputInfo.Size != -1 && size != inputInfo.Size {
-		return types.BlobInfo{}, fmt.Errorf("Size mismatch when copying %s, expected %d, got %d", blobDigest, inputInfo.Size, size)
+		return private.UploadedBlob{}, fmt.Errorf("Size mismatch when copying %s, expected %d, got %d", blobDigest, inputInfo.Size, size)
 	}
 	if err := blobFile.Sync(); err != nil {
-		return types.BlobInfo{}, err
+		return private.UploadedBlob{}, err
 	}
 
 	hash := blobDigest.Hex()
 	d.blobs[hash] = &blobToImport{Size: size, Digest: blobDigest, BlobPath: blobPath}
-	return types.BlobInfo{Digest: blobDigest, Size: size}, nil
+	return private.UploadedBlob{Digest: blobDigest, Size: size}, nil
 }
 
 func fixFiles(selinuxHnd *C.struct_selabel_handle, root string, dir string, usermode bool) error {
@@ -334,11 +334,11 @@ func (d *ostreeImageDestination) importConfig(repo *otbuiltin.Repo, blob *blobTo
 // include CompressionOperation and CompressionAlgorithm fields to indicate that a change to the compression type should be
 // reflected in the manifest that will be written.
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
-func (d *ostreeImageDestination) TryReusingBlobWithOptions(ctx context.Context, info types.BlobInfo, options private.TryReusingBlobOptions) (bool, types.BlobInfo, error) {
+func (d *ostreeImageDestination) TryReusingBlobWithOptions(ctx context.Context, info types.BlobInfo, options private.TryReusingBlobOptions) (bool, private.ReusedBlob, error) {
 	if d.repo == nil {
 		repo, err := openRepo(d.ref.repo)
 		if err != nil {
-			return false, types.BlobInfo{}, err
+			return false, private.ReusedBlob{}, err
 		}
 		d.repo = repo
 	}
@@ -346,25 +346,25 @@ func (d *ostreeImageDestination) TryReusingBlobWithOptions(ctx context.Context, 
 
 	found, data, err := readMetadata(d.repo, branch, "docker.uncompressed_digest")
 	if err != nil || !found {
-		return found, types.BlobInfo{}, err
+		return found, private.ReusedBlob{}, err
 	}
 
 	found, data, err = readMetadata(d.repo, branch, "docker.uncompressed_size")
 	if err != nil || !found {
-		return found, types.BlobInfo{}, err
+		return found, private.ReusedBlob{}, err
 	}
 
 	found, data, err = readMetadata(d.repo, branch, "docker.size")
 	if err != nil || !found {
-		return found, types.BlobInfo{}, err
+		return found, private.ReusedBlob{}, err
 	}
 
 	size, err := strconv.ParseInt(data, 10, 64)
 	if err != nil {
-		return false, types.BlobInfo{}, err
+		return false, private.ReusedBlob{}, err
 	}
 
-	return true, types.BlobInfo{Digest: info.Digest, Size: size}, nil
+	return true, private.ReusedBlob{Digest: info.Digest, Size: size}, nil
 }
 
 // PutManifest writes manifest to the destination.

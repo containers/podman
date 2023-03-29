@@ -132,11 +132,11 @@ func (d *dirImageDestination) Close() error {
 // inputInfo.MediaType describes the blob format, if known.
 // WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 // to any other readers for download using the supplied digest.
-// If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-func (d *dirImageDestination) PutBlobWithOptions(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, options private.PutBlobOptions) (types.BlobInfo, error) {
+// If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlobWithOptions MUST 1) fail, and 2) delete any data stored so far.
+func (d *dirImageDestination) PutBlobWithOptions(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, options private.PutBlobOptions) (private.UploadedBlob, error) {
 	blobFile, err := os.CreateTemp(d.ref.path, "dir-put-blob")
 	if err != nil {
-		return types.BlobInfo{}, err
+		return private.UploadedBlob{}, err
 	}
 	succeeded := false
 	explicitClosed := false
@@ -153,14 +153,14 @@ func (d *dirImageDestination) PutBlobWithOptions(ctx context.Context, stream io.
 	// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
 	size, err := io.Copy(blobFile, stream)
 	if err != nil {
-		return types.BlobInfo{}, err
+		return private.UploadedBlob{}, err
 	}
 	blobDigest := digester.Digest()
 	if inputInfo.Size != -1 && size != inputInfo.Size {
-		return types.BlobInfo{}, fmt.Errorf("Size mismatch when copying %s, expected %d, got %d", blobDigest, inputInfo.Size, size)
+		return private.UploadedBlob{}, fmt.Errorf("Size mismatch when copying %s, expected %d, got %d", blobDigest, inputInfo.Size, size)
 	}
 	if err := blobFile.Sync(); err != nil {
-		return types.BlobInfo{}, err
+		return private.UploadedBlob{}, err
 	}
 
 	// On POSIX systems, blobFile was created with mode 0600, so we need to make it readable.
@@ -169,7 +169,7 @@ func (d *dirImageDestination) PutBlobWithOptions(ctx context.Context, stream io.
 	// always fails on Windows.
 	if runtime.GOOS != "windows" {
 		if err := blobFile.Chmod(0644); err != nil {
-			return types.BlobInfo{}, err
+			return private.UploadedBlob{}, err
 		}
 	}
 
@@ -178,32 +178,30 @@ func (d *dirImageDestination) PutBlobWithOptions(ctx context.Context, stream io.
 	blobFile.Close()
 	explicitClosed = true
 	if err := os.Rename(blobFile.Name(), blobPath); err != nil {
-		return types.BlobInfo{}, err
+		return private.UploadedBlob{}, err
 	}
 	succeeded = true
-	return types.BlobInfo{Digest: blobDigest, Size: size}, nil
+	return private.UploadedBlob{Digest: blobDigest, Size: size}, nil
 }
 
 // TryReusingBlobWithOptions checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
 // (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
 // info.Digest must not be empty.
-// If the blob has been successfully reused, returns (true, info, nil); info must contain at least a digest and size, and may
-// include CompressionOperation and CompressionAlgorithm fields to indicate that a change to the compression type should be
-// reflected in the manifest that will be written.
+// If the blob has been successfully reused, returns (true, info, nil).
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
-func (d *dirImageDestination) TryReusingBlobWithOptions(ctx context.Context, info types.BlobInfo, options private.TryReusingBlobOptions) (bool, types.BlobInfo, error) {
+func (d *dirImageDestination) TryReusingBlobWithOptions(ctx context.Context, info types.BlobInfo, options private.TryReusingBlobOptions) (bool, private.ReusedBlob, error) {
 	if info.Digest == "" {
-		return false, types.BlobInfo{}, fmt.Errorf("Can not check for a blob with unknown digest")
+		return false, private.ReusedBlob{}, fmt.Errorf("Can not check for a blob with unknown digest")
 	}
 	blobPath := d.ref.layerPath(info.Digest)
 	finfo, err := os.Stat(blobPath)
 	if err != nil && os.IsNotExist(err) {
-		return false, types.BlobInfo{}, nil
+		return false, private.ReusedBlob{}, nil
 	}
 	if err != nil {
-		return false, types.BlobInfo{}, err
+		return false, private.ReusedBlob{}, err
 	}
-	return true, types.BlobInfo{Digest: info.Digest, Size: finfo.Size()}, nil
+	return true, private.ReusedBlob{Digest: info.Digest, Size: finfo.Size()}, nil
 }
 
 // PutManifest writes manifest to the destination.
