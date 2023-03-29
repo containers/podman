@@ -1010,12 +1010,6 @@ func generateNetworkConfig(p *PodmanTestIntegration) (string, string) {
 	return name, path
 }
 
-func (p *PodmanTestIntegration) removeNetwork(name string) {
-	session := p.Podman([]string{"network", "rm", "-f", name})
-	session.WaitWithDefaultTimeout()
-	Expect(session.ExitCode()).To(BeNumerically("<=", 1), "Exit code must be 0 or 1")
-}
-
 // generatePolicyFile generates a signature verification policy file.
 // it returns the policy file path.
 func generatePolicyFile(tempDir string) string {

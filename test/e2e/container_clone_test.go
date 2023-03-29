@@ -271,7 +271,6 @@ var _ = Describe("Podman container clone", func() {
 	It("podman container clone network passing", func() {
 		networkCreate := podmanTest.Podman([]string{"network", "create", "testing123"})
 		networkCreate.WaitWithDefaultTimeout()
-		defer podmanTest.removeNetwork("testing123")
 		Expect(networkCreate).To(Exit(0))
 		run := podmanTest.Podman([]string{"run", "--network", "bridge", "-dt", ALPINE})
 		run.WaitWithDefaultTimeout()

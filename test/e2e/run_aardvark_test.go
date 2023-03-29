@@ -39,7 +39,6 @@ var _ = Describe("Podman run networking", func() {
 		netName := createNetworkName("Test")
 		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()
-		defer podmanTest.removeNetwork(netName)
 		Expect(session).Should(Exit(0))
 
 		ctrID := podmanTest.Podman([]string{"run", "-dt", "--name", "aone", "--network", netName, NGINX_IMAGE})
@@ -69,7 +68,6 @@ var _ = Describe("Podman run networking", func() {
 		netName := createNetworkName("Test")
 		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()
-		defer podmanTest.removeNetwork(netName)
 		Expect(session).Should(Exit(0))
 
 		ctr1 := podmanTest.Podman([]string{"run", "-dt", "--name", "aone", "--network", netName, NGINX_IMAGE})
@@ -120,7 +118,6 @@ var _ = Describe("Podman run networking", func() {
 		netName := createNetworkName("Test")
 		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()
-		defer podmanTest.removeNetwork(netName)
 		Expect(session).Should(Exit(0))
 
 		ctr1 := podmanTest.Podman([]string{"run", "-dt", "--name", "aone", "--network", netName, "--network-alias", "alias_a1,alias_1a", NGINX_IMAGE})
@@ -161,13 +158,11 @@ var _ = Describe("Podman run networking", func() {
 		netNameA := createNetworkName("TestA")
 		sessionA := podmanTest.Podman([]string{"network", "create", netNameA})
 		sessionA.WaitWithDefaultTimeout()
-		defer podmanTest.removeNetwork(netNameA)
 		Expect(sessionA).Should(Exit(0))
 
 		netNameB := createNetworkName("TestB")
 		sessionB := podmanTest.Podman([]string{"network", "create", netNameB})
 		sessionB.WaitWithDefaultTimeout()
-		defer podmanTest.removeNetwork(netNameB)
 		Expect(sessionB).Should(Exit(0))
 
 		ctrA1 := podmanTest.Podman([]string{"run", "-dt", "--name", "aone", "--network", netNameA, NGINX_IMAGE})
@@ -205,13 +200,11 @@ var _ = Describe("Podman run networking", func() {
 		netNameA := createNetworkName("TestA")
 		sessionA := podmanTest.Podman([]string{"network", "create", netNameA})
 		sessionA.WaitWithDefaultTimeout()
-		defer podmanTest.removeNetwork(netNameA)
 		Expect(sessionA).Should(Exit(0))
 
 		netNameB := createNetworkName("TestB")
 		sessionB := podmanTest.Podman([]string{"network", "create", netNameB})
 		sessionB.WaitWithDefaultTimeout()
-		defer podmanTest.removeNetwork(netNameB)
 		Expect(sessionB).Should(Exit(0))
 
 		ctrA1 := podmanTest.Podman([]string{"run", "-dt", "--name", "aone", "--network", netNameA, NGINX_IMAGE})
@@ -263,19 +256,16 @@ var _ = Describe("Podman run networking", func() {
 		netNameA := createNetworkName("TestA")
 		sessionA := podmanTest.Podman([]string{"network", "create", netNameA})
 		sessionA.WaitWithDefaultTimeout()
-		defer podmanTest.removeNetwork(netNameA)
 		Expect(sessionA).Should(Exit(0))
 
 		netNameB := createNetworkName("TestB")
 		sessionB := podmanTest.Podman([]string{"network", "create", netNameB})
 		sessionB.WaitWithDefaultTimeout()
-		defer podmanTest.removeNetwork(netNameB)
 		Expect(sessionB).Should(Exit(0))
 
 		netNameC := createNetworkName("TestC")
 		sessionC := podmanTest.Podman([]string{"network", "create", netNameC})
 		sessionC.WaitWithDefaultTimeout()
-		defer podmanTest.removeNetwork(netNameC)
 		Expect(sessionC).Should(Exit(0))
 
 		ctrA := podmanTest.Podman([]string{"run", "-dt", "--name", "aone", "--network", netNameA, NGINX_IMAGE})

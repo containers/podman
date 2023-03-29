@@ -835,7 +835,6 @@ var _ = Describe("Podman ps", func() {
 		session := podmanTest.Podman([]string{"network", "create", net})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		defer podmanTest.removeNetwork(net)
 
 		session = podmanTest.Podman([]string{"create", "--network", net, ALPINE})
 		session.WaitWithDefaultTimeout()
@@ -878,12 +877,10 @@ var _ = Describe("Podman ps", func() {
 		session = podmanTest.Podman([]string{"network", "create", net1})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		defer podmanTest.removeNetwork(net1)
 		net2 := stringid.GenerateRandomID()
 		session = podmanTest.Podman([]string{"network", "create", net2})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		defer podmanTest.removeNetwork(net2)
 
 		session = podmanTest.Podman([]string{"create", "--network", net1 + "," + net2, ALPINE})
 		session.WaitWithDefaultTimeout()
