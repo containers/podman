@@ -260,11 +260,6 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune networks", func() {
-		// set custom network directory to prevent flakes since the dir is shared with all tests by default
-		podmanTest.NetworkConfigDir = tempdir
-		if IsRemote() {
-			podmanTest.RestartRemoteService()
-		}
 
 		// Create new network.
 		session := podmanTest.Podman([]string{"network", "create", "test"})
