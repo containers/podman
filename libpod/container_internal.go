@@ -1005,6 +1005,8 @@ func (c *Container) completeNetworkSetup() error {
 			nameservers = append(nameservers, server.String())
 		}
 	}
+	nameservers = c.addSlirp4netnsDNS(nameservers)
+
 	// check if we have a bindmount for /etc/hosts
 	if hostsBindMount, ok := state.BindMounts[config.DefaultHostsFile]; ok {
 		entries, err := c.getHostsEntries()
