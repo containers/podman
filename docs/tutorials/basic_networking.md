@@ -257,15 +257,12 @@ valid_lft 78808sec preferred_lft 78808sec
 inet6 fe80::5632:6f10:9e76:c33/64 scope link noprefixroute
 valid_lft forever preferred_lft forever
 ```
-
 For rootless containers, make sure to open the firewall ports on the host so that a client outside the host can communicate.
 An example if you are using firewalld:
-
 ```
 sudo firewall-cmd --add-port=8080/tcp --permanent 
 sudo firewall-cmd --reload
 ```
-
 From another rootless container, use the host’s IP address and port to communicate
 between the two rootless containers successfully.
 ```
