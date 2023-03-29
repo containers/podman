@@ -255,17 +255,9 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 	}
 
 	networkBackend := CNI
-	networkConfigDir := "/etc/cni/net.d"
-	if isRootless() {
-		networkConfigDir = filepath.Join(os.Getenv("HOME"), ".config/cni/net.d")
-	}
-
+	networkConfigDir := filepath.Join(tempDir, "networks")
 	if strings.ToLower(os.Getenv("NETWORK_BACKEND")) == "netavark" {
 		networkBackend = Netavark
-		networkConfigDir = "/etc/containers/networks"
-		if isRootless() {
-			networkConfigDir = filepath.Join(root, "etc", "networks")
-		}
 	}
 
 	if err := os.MkdirAll(root, 0755); err != nil {
