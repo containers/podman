@@ -12,13 +12,13 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.2.0
 	github.com/containers/buildah v1.29.1-0.20230201192322-e56eb25575c7
-	github.com/containers/common v0.51.1-0.20230323135459-03a2cc01973c
+	github.com/containers/common v0.51.1-0.20230329113838-e27c30ee9b1b
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.24.3-0.20230314083015-0c6d07e02a9a
+	github.com/containers/image/v5 v5.24.3-0.20230324204529-08b04b816eb8
 	github.com/containers/libhvee v0.0.2
 	github.com/containers/ocicrypt v1.1.7
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.45.5-0.20230315220505-1c6287eea927
+	github.com/containers/storage v1.45.5-0.20230326103843-b1216421c44b
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.4.1
 	github.com/cyphar/filepath-securejoin v0.2.3
@@ -103,7 +103,7 @@ require (
 	github.com/go-openapi/loads v0.21.2 // indirect
 	github.com/go-openapi/runtime v0.24.1 // indirect
 	github.com/go-openapi/spec v0.20.7 // indirect
-	github.com/go-openapi/strfmt v0.21.3 // indirect
+	github.com/go-openapi/strfmt v0.21.5 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/go-openapi/validate v0.22.0 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
@@ -119,7 +119,7 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.2 // indirect
-	github.com/imdario/mergo v0.3.13 // indirect
+	github.com/imdario/mergo v0.3.15 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/jinzhu/copier v0.3.5 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
@@ -155,7 +155,7 @@ require (
 	github.com/sigstore/sigstore v1.6.0 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20201008174630-78d3cae3a980 // indirect
-	github.com/sylabs/sif/v2 v2.11.0 // indirect
+	github.com/sylabs/sif/v2 v2.11.1 // indirect
 	github.com/tchap/go-patricia/v2 v2.3.1 // indirect
 	github.com/theupdateframework/go-tuf v0.5.2 // indirect
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect

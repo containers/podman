@@ -74,7 +74,7 @@ function _corrupt_image_test() {
         # Corruptify, and confirm that 'podman images' throws an error
         rm -v ${PODMAN_CORRUPT_TEST_WORKDIR}/root/*-images/$id/${rm_path}
         run_podman 125 images
-        is "$output" "Error: retrieving label for image \"$id\": you may need to remove the image to resolve the error.*"
+        is "$output" "Error: locating item named \".*\" for image with ID \"$id\" (consider removing the image to resolve the issue): file does not exist.*"
 
         # Run the requested command. Confirm it succeeds, with suitable warnings
         run_podman $*

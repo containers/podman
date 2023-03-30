@@ -32,3 +32,7 @@ func (q *Control) SetQuota(targetPath string, quota Quota) error {
 func (q *Control) GetQuota(targetPath string, quota *Quota) error {
 	return errors.New("filesystem does not support, or has not enabled quotas")
 }
+
+// ClearQuota removes the map entry in the quotas map for targetPath.
+// It does so to prevent the map leaking entries as directories are deleted.
+func (q *Control) ClearQuota(targetPath string) {}

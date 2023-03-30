@@ -76,15 +76,15 @@ func (d *Destination) AddRepoTags(tags []reference.NamedTagged) {
 // inputInfo.MediaType describes the blob format, if known.
 // WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 // to any other readers for download using the supplied digest.
-// If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-func (d *Destination) PutBlobWithOptions(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, options private.PutBlobOptions) (types.BlobInfo, error) {
+// If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlobWithOptions MUST 1) fail, and 2) delete any data stored so far.
+func (d *Destination) PutBlobWithOptions(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, options private.PutBlobOptions) (private.UploadedBlob, error) {
 	// Ouch, we need to stream the blob into a temporary file just to determine the size.
 	// When the layer is decompressed, we also have to generate the digest on uncompressed data.
 	if inputInfo.Size == -1 || inputInfo.Digest == "" {
 		logrus.Debugf("docker tarfile: input with unknown size, streaming to disk first ...")
 		streamCopy, cleanup, err := streamdigest.ComputeBlobInfo(d.sysCtx, stream, &inputInfo)
 		if err != nil {
-			return types.BlobInfo{}, err
+			return private.UploadedBlob{}, err
 		}
 		defer cleanup()
 		stream = streamCopy
@@ -92,47 +92,45 @@ func (d *Destination) PutBlobWithOptions(ctx context.Context, stream io.Reader, 
 	}
 
 	if err := d.archive.lock(); err != nil {
-		return types.BlobInfo{}, err
+		return private.UploadedBlob{}, err
 	}
 	defer d.archive.unlock()
 
 	// Maybe the blob has been already sent
 	ok, reusedInfo, err := d.archive.tryReusingBlobLocked(inputInfo)
 	if err != nil {
-		return types.BlobInfo{}, err
+		return private.UploadedBlob{}, err
 	}
 	if ok {
-		return reusedInfo, nil
+		return private.UploadedBlob{Digest: reusedInfo.Digest, Size: reusedInfo.Size}, nil
 	}
 
 	if options.IsConfig {
 		buf, err := iolimits.ReadAtMost(stream, iolimits.MaxConfigBodySize)
 		if err != nil {
-			return types.BlobInfo{}, fmt.Errorf("reading Config file stream: %w", err)
+			return private.UploadedBlob{}, fmt.Errorf("reading Config file stream: %w", err)
 		}
 		d.config = buf
 		if err := d.archive.sendFileLocked(d.archive.configPath(inputInfo.Digest), inputInfo.Size, bytes.NewReader(buf)); err != nil {
-			return types.BlobInfo{}, fmt.Errorf("writing Config file: %w", err)
+			return private.UploadedBlob{}, fmt.Errorf("writing Config file: %w", err)
 		}
 	} else {
 		if err := d.archive.sendFileLocked(d.archive.physicalLayerPath(inputInfo.Digest), inputInfo.Size, stream); err != nil {
-			return types.BlobInfo{}, err
+			return private.UploadedBlob{}, err
 		}
 	}
 	d.archive.recordBlobLocked(types.BlobInfo{Digest: inputInfo.Digest, Size: inputInfo.Size})
-	return types.BlobInfo{Digest: inputInfo.Digest, Size: inputInfo.Size}, nil
+	return private.UploadedBlob{Digest: inputInfo.Digest, Size: inputInfo.Size}, nil
 }
 
 // TryReusingBlobWithOptions checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
 // (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
 // info.Digest must not be empty.
-// If the blob has been successfully reused, returns (true, info, nil); info must contain at least a digest and size, and may
-// include CompressionOperation and CompressionAlgorithm fields to indicate that a change to the compression type should be
-// reflected in the manifest that will be written.
+// If the blob has been successfully reused, returns (true, info, nil).
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
-func (d *Destination) TryReusingBlobWithOptions(ctx context.Context, info types.BlobInfo, options private.TryReusingBlobOptions) (bool, types.BlobInfo, error) {
+func (d *Destination) TryReusingBlobWithOptions(ctx context.Context, info types.BlobInfo, options private.TryReusingBlobOptions) (bool, private.ReusedBlob, error) {
 	if err := d.archive.lock(); err != nil {
-		return false, types.BlobInfo{}, err
+		return false, private.ReusedBlob{}, err
 	}
 	defer d.archive.unlock()
 

@@ -621,7 +621,7 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 		// a failure when we eventually try to update the manifest with the digest and MIME type of the reused blob.
 		// Fixing that will probably require passing more information to TryReusingBlob() than the current version of
 		// the ImageDestination interface lets us pass in.
-		reused, blobInfo, err := ic.c.dest.TryReusingBlobWithOptions(ctx, srcInfo, private.TryReusingBlobOptions{
+		reused, reusedBlob, err := ic.c.dest.TryReusingBlobWithOptions(ctx, srcInfo, private.TryReusingBlobOptions{
 			Cache:         ic.c.blobInfoCache,
 			CanSubstitute: canSubstitute,
 			EmptyLayer:    emptyLayer,
@@ -634,7 +634,7 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 		if reused {
 			logrus.Debugf("Skipping blob %s (already present):", srcInfo.Digest)
 			func() { // A scope for defer
-				bar := ic.c.createProgressBar(pool, false, types.BlobInfo{Digest: blobInfo.Digest, Size: 0}, "blob", "skipped: already exists")
+				bar := ic.c.createProgressBar(pool, false, types.BlobInfo{Digest: reusedBlob.Digest, Size: 0}, "blob", "skipped: already exists")
 				defer bar.Abort(false)
 				bar.mark100PercentComplete()
 			}()
@@ -647,19 +647,7 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 				}
 			}
 
-			// If the reused blob has the same digest as the one we asked for, but
-			// the transport didn't/couldn't supply compression info, fill it in based
-			// on what we know from the srcInfos we were given.
-			// If the srcInfos came from LayerInfosForCopy(), then UpdatedImage() will
-			// call UpdateLayerInfos(), which uses this information to compute the
-			// MediaType value for the updated layer infos, and it the transport
-			// didn't pass the information along from its input to its output, then
-			// it can derive the MediaType incorrectly.
-			if blobInfo.Digest == srcInfo.Digest && blobInfo.CompressionAlgorithm == nil {
-				blobInfo.CompressionOperation = srcInfo.CompressionOperation
-				blobInfo.CompressionAlgorithm = srcInfo.CompressionAlgorithm
-			}
-			return blobInfo, cachedDiffID, nil
+			return updatedBlobInfoFromReuse(srcInfo, reusedBlob), cachedDiffID, nil
 		}
 	}
 
@@ -679,7 +667,7 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 				wrapped: ic.c.rawSource,
 				bar:     bar,
 			}
-			info, err := ic.c.dest.PutBlobPartial(ctx, &proxy, srcInfo, ic.c.blobInfoCache)
+			uploadedBlob, err := ic.c.dest.PutBlobPartial(ctx, &proxy, srcInfo, ic.c.blobInfoCache)
 			if err == nil {
 				if srcInfo.Size != -1 {
 					bar.SetRefill(srcInfo.Size - bar.Current())
@@ -687,7 +675,7 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 				bar.mark100PercentComplete()
 				hideProgressBar = false
 				logrus.Debugf("Retrieved partial blob %v", srcInfo.Digest)
-				return true, info
+				return true, updatedBlobInfoFromUpload(srcInfo, uploadedBlob)
 			}
 			logrus.Debugf("Failed to retrieve partial blob: %v", err)
 			return false, types.BlobInfo{}
@@ -740,6 +728,32 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 		bar.mark100PercentComplete()
 		return blobInfo, diffID, nil
 	}()
+}
+
+// updatedBlobInfoFromReuse returns inputInfo updated with reusedBlob which was created based on inputInfo.
+func updatedBlobInfoFromReuse(inputInfo types.BlobInfo, reusedBlob private.ReusedBlob) types.BlobInfo {
+	// The transport is only tasked with finding the blob, determining its size if necessary, and returning the right
+	// compression format if the blob was substituted.
+	// Handling of compression, encryption, and the related MIME types and the like are all the responsibility
+	// of the generic code in this package.
+	res := types.BlobInfo{
+		Digest:               reusedBlob.Digest,
+		Size:                 reusedBlob.Size,
+		URLs:                 nil, // This _must_ be cleared if Digest changes; clear it in other cases as well, to preserve previous behavior.
+		Annotations:          inputInfo.Annotations,
+		MediaType:            inputInfo.MediaType, // Mostly irrelevant, MediaType is updated based on Compression*/CryptoOperation.
+		CompressionOperation: reusedBlob.CompressionOperation,
+		CompressionAlgorithm: reusedBlob.CompressionAlgorithm,
+		CryptoOperation:      inputInfo.CryptoOperation, // Expected to be unset anyway.
+	}
+	// The transport is only expected to fill CompressionOperation and CompressionAlgorithm
+	// if the blob was substituted; otherwise, fill it in based
+	// on what we know from the srcInfos we were given.
+	if reusedBlob.Digest == inputInfo.Digest {
+		res.CompressionOperation = inputInfo.CompressionOperation
+		res.CompressionAlgorithm = inputInfo.CompressionAlgorithm
+	}
+	return res
 }
 
 // copyLayerFromStream is an implementation detail of copyLayer; mostly providing a separate “defer” scope.

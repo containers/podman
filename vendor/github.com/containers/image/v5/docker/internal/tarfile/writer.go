@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/internal/set"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
@@ -69,17 +70,17 @@ func (w *Writer) unlock() {
 
 // tryReusingBlobLocked checks whether the transport already contains, a blob, and if so, returns its metadata.
 // info.Digest must not be empty.
-// If the blob has been successfully reused, returns (true, info, nil); info must contain at least a digest and size.
+// If the blob has been successfully reused, returns (true, info, nil).
 // If the transport can not reuse the requested blob, tryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
 // The caller must have locked the Writer.
-func (w *Writer) tryReusingBlobLocked(info types.BlobInfo) (bool, types.BlobInfo, error) {
+func (w *Writer) tryReusingBlobLocked(info types.BlobInfo) (bool, private.ReusedBlob, error) {
 	if info.Digest == "" {
-		return false, types.BlobInfo{}, errors.New("Can not check for a blob with unknown digest")
+		return false, private.ReusedBlob{}, errors.New("Can not check for a blob with unknown digest")
 	}
 	if blob, ok := w.blobs[info.Digest]; ok {
-		return true, types.BlobInfo{Digest: info.Digest, Size: blob.Size}, nil
+		return true, private.ReusedBlob{Digest: info.Digest, Size: blob.Size}, nil
 	}
-	return false, types.BlobInfo{}, nil
+	return false, private.ReusedBlob{}, nil
 }
 
 // recordBlob records metadata of a recorded blob, which must contain at least a digest and size.

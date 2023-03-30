@@ -109,7 +109,7 @@ func (f *defaultFormats) MapStructureHookFunc() mapstructure.DecodeHookFunc { //
 			if to == tpe {
 				switch v.Name {
 				case "date":
-					d, err := time.Parse(RFC3339FullDate, data)
+					d, err := time.ParseInLocation(RFC3339FullDate, data, DefaultTimeLocation)
 					if err != nil {
 						return nil, err
 					}
