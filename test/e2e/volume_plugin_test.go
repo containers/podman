@@ -66,6 +66,10 @@ var _ = Describe("Podman volume plugins", func() {
 		plugin.WaitWithDefaultTimeout()
 		Expect(plugin).Should(Exit(0))
 
+		// Make sure the socket is available (see #17956)
+		err = WaitForFile(fmt.Sprintf("/run/docker/plugins/%s.sock", pluginName))
+		Expect(err).ToNot(HaveOccurred())
+
 		volName := "testVolume1"
 		create := podmanTest.Podman([]string{"volume", "create", "--driver", pluginName, volName})
 		create.WaitWithDefaultTimeout()
@@ -107,6 +111,10 @@ var _ = Describe("Podman volume plugins", func() {
 		plugin.WaitWithDefaultTimeout()
 		Expect(plugin).Should(Exit(0))
 
+		// Make sure the socket is available (see #17956)
+		err = WaitForFile(fmt.Sprintf("/run/docker/plugins/%s.sock", pluginName))
+		Expect(err).ToNot(HaveOccurred())
+
 		volName := "testVolume1"
 		create := podmanTest.Podman([]string{"volume", "create", "--driver", pluginName, volName})
 		create.WaitWithDefaultTimeout()
@@ -131,6 +139,10 @@ var _ = Describe("Podman volume plugins", func() {
 		plugin := podmanTest.Podman([]string{"run", "--name", ctrName, "--security-opt", "label=disable", "-v", "/run/docker/plugins:/run/docker/plugins", "-v", fmt.Sprintf("%v:%v", pluginStatePath, pluginStatePath), "-d", volumeTest, "--sock-name", pluginName, "--path", pluginStatePath})
 		plugin.WaitWithDefaultTimeout()
 		Expect(plugin).Should(Exit(0))
+
+		// Make sure the socket is available (see #17956)
+		err = WaitForFile(fmt.Sprintf("/run/docker/plugins/%s.sock", pluginName))
+		Expect(err).ToNot(HaveOccurred())
 
 		volName := "testVolume1"
 		create := podmanTest.Podman([]string{"volume", "create", "--driver", pluginName, volName})
@@ -172,6 +184,10 @@ var _ = Describe("Podman volume plugins", func() {
 		plugin := podmanTest.Podman([]string{"run", "--security-opt", "label=disable", "-v", "/run/docker/plugins:/run/docker/plugins", "-v", fmt.Sprintf("%v:%v", pluginStatePath, pluginStatePath), "-d", volumeTest, "--sock-name", pluginName, "--path", pluginStatePath})
 		plugin.WaitWithDefaultTimeout()
 		Expect(plugin).Should(Exit(0))
+
+		// Make sure the socket is available (see #17956)
+		err = WaitForFile(fmt.Sprintf("/run/docker/plugins/%s.sock", pluginName))
+		Expect(err).ToNot(HaveOccurred())
 
 		volName := "testVolume1"
 		create := podmanTest.Podman([]string{"volume", "create", "--driver", pluginName, volName})
@@ -218,6 +234,10 @@ testvol5 = "/run/docker/plugins/testvol5.sock"`), 0o644)
 			"-v", fmt.Sprintf("%v:%v", pluginStatePath, pluginStatePath), "-d", volumeTest, "--sock-name", pluginName, "--path", pluginStatePath})
 		plugin.WaitWithDefaultTimeout()
 		Expect(plugin).Should(Exit(0))
+
+		// Make sure the socket is available (see #17956)
+		err = WaitForFile(fmt.Sprintf("/run/docker/plugins/%s.sock", pluginName))
+		Expect(err).ToNot(HaveOccurred())
 
 		localvol := "local-" + stringid.GenerateRandomID()
 		// create local volume
@@ -276,6 +296,10 @@ Removed:
 		plugin := podmanTest.Podman([]string{"run", "--security-opt", "label=disable", "-v", "/run/docker/plugins:/run/docker/plugins", "-v", fmt.Sprintf("%v:%v", pluginStatePath, pluginStatePath), "-d", volumeTest, "--sock-name", pluginName, "--path", pluginStatePath})
 		plugin.WaitWithDefaultTimeout()
 		Expect(plugin).Should(Exit(0))
+
+		// Make sure the socket is available (see #17956)
+		err = WaitForFile(fmt.Sprintf("/run/docker/plugins/%s.sock", pluginName))
+		Expect(err).ToNot(HaveOccurred())
 
 		volName := "testVolume1"
 		create := podmanTest.Podman([]string{"volume", "create", "--driver", pluginName, volName})
