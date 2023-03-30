@@ -582,4 +582,29 @@ EOF
     rm -rf $tmp_path
 }
 
+@test "quadlet - tmpfs" {
+    local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).container
+    cat > $quadlet_file <<EOF
+[Container]
+Image=$IMAGE
+Exec=top
+Tmpfs=/tmpfs1
+Tmpfs=/tmpfs2:ro
+EOF
+
+    run_quadlet "$quadlet_file"
+    service_setup $QUADLET_SERVICE_NAME
+
+    run_podman container inspect  --format '{{index .HostConfig.Tmpfs "/tmpfs1"}}' $QUADLET_CONTAINER_NAME
+    is "$output" "rw,rprivate,nosuid,nodev,tmpcopyup" "regular tmpfs mount"
+
+    run_podman container inspect  --format '{{index .HostConfig.Tmpfs "/tmpfs2"}}' $QUADLET_CONTAINER_NAME
+    is "$output" "ro,rprivate,nosuid,nodev,tmpcopyup" "read-only tmpfs mount"
+
+    run_podman container inspect  --format '{{index .HostConfig.Tmpfs "/tmpfs3"}}' $QUADLET_CONTAINER_NAME
+    is "$output" "" "nonexistent tmpfs mount"
+
+    service_cleanup $QUADLET_SERVICE_NAME failed
+}
+
 # vim: filetype=sh
