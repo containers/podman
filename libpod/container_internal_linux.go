@@ -6,6 +6,7 @@ package libpod
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -695,4 +696,82 @@ func (c *Container) getConmonPidFd() int {
 		}
 	}
 	return -1
+}
+
+type safeMountInfo struct {
+	// file is the open File.
+	file *os.File
+
+	// mountPoint is the mount point.
+	mountPoint string
+}
+
+// Close releases the resources allocated with the safe mount info.
+func (s *safeMountInfo) Close() {
+	_ = unix.Unmount(s.mountPoint, unix.MNT_DETACH)
+	_ = s.file.Close()
+}
+
+// safeMountSubPath securely mounts a subpath inside a volume to a new temporary location.
+// The function checks that the subpath is a valid subpath within the volume and that it
+// does not escape the boundaries of the mount point (volume).
+//
+// The caller is responsible for closing the file descriptor and unmounting the subpath
+// when it's no longer needed.
+func (c *Container) safeMountSubPath(mountPoint, subpath string) (s *safeMountInfo, err error) {
+	joinedPath := filepath.Clean(filepath.Join(mountPoint, subpath))
+	fd, err := unix.Open(joinedPath, unix.O_RDONLY|unix.O_PATH, 0)
+	if err != nil {
+		return nil, err
+	}
+	f := os.NewFile(uintptr(fd), joinedPath)
+	defer func() {
+		if err != nil {
+			f.Close()
+		}
+	}()
+
+	// Once we got the file descriptor, we need to check that the subpath is a valid.  We
+	// refer to the open FD so there won't be other path lookups (and no risk to follow a symlink).
+	fdPath := fmt.Sprintf("/proc/%d/fd/%d", os.Getpid(), f.Fd())
+	p, err := os.Readlink(fdPath)
+	if err != nil {
+		return nil, err
+	}
+	relPath, err := filepath.Rel(mountPoint, p)
+	if err != nil {
+		return nil, err
+	}
+	if relPath == ".." || strings.HasPrefix(relPath, "../") {
+		return nil, fmt.Errorf("subpath %q is outside of the volume %q", subpath, mountPoint)
+	}
+
+	fi, err := os.Stat(fdPath)
+	if err != nil {
+		return nil, err
+	}
+	npath := ""
+	switch {
+	case fi.Mode()&fs.ModeSymlink != 0:
+		return nil, fmt.Errorf("file %q is a symlink", joinedPath)
+	case fi.IsDir():
+		npath, err = os.MkdirTemp(c.state.RunDir, "subpath")
+		if err != nil {
+			return nil, err
+		}
+	default:
+		tmp, err := os.CreateTemp(c.state.RunDir, "subpath")
+		if err != nil {
+			return nil, err
+		}
+		tmp.Close()
+		npath = tmp.Name()
+	}
+	if err := unix.Mount(fdPath, npath, "", unix.MS_BIND|unix.MS_REC, ""); err != nil {
+		return nil, err
+	}
+	return &safeMountInfo{
+		file:       f,
+		mountPoint: npath,
+	}, nil
 }
