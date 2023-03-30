@@ -7,7 +7,7 @@ While "containers are Linux," Podman also runs on Mac and Windows, where it
 provides a native CLI and embeds a guest Linux system to launch your
 containers. This guest is referred to as a Podman machine and is managed with
 the `podman machine` command. On Windows, each Podman machine is backed by a
-virtualized Windows System for Linux (WSLv2) distribution. The podman command
+virtualized Windows Subsystem for Linux (WSLv2) distribution. The podman command
 can be run directly from your Windows PowerShell (or CMD) prompt, where it
 remotely communicates with the podman service running in the WSL environment.
 Alternatively, you can access Podman directly from the WSL instance if you
