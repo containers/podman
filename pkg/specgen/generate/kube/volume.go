@@ -147,20 +147,31 @@ func VolumeFromSecret(secretSource *v1.SecretVolumeSource, secretsManager *secre
 		return nil, err
 	}
 
-	data := &v1.Secret{}
+	secret := &v1.Secret{}
 
-	err = yaml.Unmarshal(secretByte, data)
+	err = yaml.Unmarshal(secretByte, secret)
 	if err != nil {
 		return nil, err
 	}
 
-	// add key: value pairs to the items array
-	for key, entry := range data.Data {
-		kv.Items[key] = entry
-	}
+	// If there are Items specified in the volumeSource, that overwrites the Data from the Secret
+	if len(secretSource.Items) > 0 {
+		for _, item := range secretSource.Items {
+			if val, ok := secret.Data[item.Key]; ok {
+				kv.Items[item.Path] = val
+			} else if val, ok := secret.StringData[item.Key]; ok {
+				kv.Items[item.Path] = []byte(val)
+			}
+		}
+	} else {
+		// add key: value pairs to the items array
+		for key, entry := range secret.Data {
+			kv.Items[key] = entry
+		}
 
-	for key, entry := range data.StringData {
-		kv.Items[key] = []byte(entry)
+		for key, entry := range secret.StringData {
+			kv.Items[key] = []byte(entry)
+		}
 	}
 
 	return kv, nil

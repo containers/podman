@@ -492,6 +492,19 @@ data:
 {{ end }}
 `
 
+var secretYamlTemplate = `
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Name }}
+data:
+{{ with .Data }}
+  {{ range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+  {{ end }}
+{{ end }}
+`
+
 var persistentVolumeClaimYamlTemplate = `
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -692,6 +705,18 @@ spec:
           path: {{ .path }}
     {{- end }}
     {{- end }}
+    {{- end }}
+	{{- if (eq .VolumeType "Secret") }}
+    secret:
+      secretName: {{ .SecretVol.SecretName }}
+      optional: {{ .SecretVol.Optional }}
+      {{- with .SecretVol.Items }}
+      items:
+      {{- range . }}
+        - key: {{ .key }}
+          path: {{ .path }}
+    {{- end }}
+	{{- end }}
     {{- end }}
   {{ end }}
 {{ end }}
@@ -1019,6 +1044,7 @@ var (
 	defaultVolName        = "testVol"
 	defaultDeploymentName = "testDeployment"
 	defaultConfigMapName  = "testConfigMap"
+	defaultSecretName     = "testSecret"
 	defaultPVCName        = "testPVC"
 	seccompPwdEPERM       = []byte(`{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"name":"getcwd","action":"SCMP_ACT_ERRNO"}]}`)
 	// CPU Period in ms
@@ -1041,6 +1067,8 @@ func getKubeYaml(kind string, object interface{}) (string, error) {
 		yamlTemplate = deploymentYamlTemplate
 	case "persistentVolumeClaim":
 		yamlTemplate = persistentVolumeClaimYamlTemplate
+	case "secret":
+		yamlTemplate = secretYamlTemplate
 	default:
 		return "", fmt.Errorf("unsupported kubernetes kind")
 	}
@@ -1087,6 +1115,39 @@ func createSecret(podmanTest *PodmanTestIntegration, name string, value []byte) 
 	secret := podmanTest.Podman([]string{"secret", "create", name, secretFilePath})
 	secret.WaitWithDefaultTimeout()
 	Expect(secret).Should(Exit(0))
+}
+
+// Secret describes the options a kube yaml can be configured at secret level
+type Secret struct {
+	Name string
+	Data map[string]string
+}
+
+func getSecret(options ...secretOption) *Secret {
+	secret := Secret{
+		Name: defaultSecretName,
+		Data: map[string]string{},
+	}
+
+	for _, option := range options {
+		option(&secret)
+	}
+
+	return &secret
+}
+
+type secretOption func(*Secret)
+
+func withSecretName(name string) secretOption {
+	return func(secret *Secret) {
+		secret.Name = name
+	}
+}
+
+func withSecretData(k, v string) secretOption {
+	return func(secret *Secret) {
+		secret.Data[k] = base64.StdEncoding.EncodeToString([]byte(v))
+	}
 }
 
 // CM describes the options a kube yaml can be configured at configmap level
@@ -1568,6 +1629,12 @@ type ConfigMap struct {
 	Optional bool
 }
 
+type SecretVol struct {
+	SecretName string
+	Items      []map[string]string
+	Optional   bool
+}
+
 type EmptyDir struct{}
 
 type Volume struct {
@@ -1577,6 +1644,7 @@ type Volume struct {
 	PersistentVolumeClaim
 	ConfigMap
 	EmptyDir
+	SecretVol
 }
 
 // getHostPathVolume takes a type and a location for a HostPath
@@ -1614,6 +1682,18 @@ func getConfigMapVolume(vName string, items []map[string]string, optional bool) 
 			Name:     vName,
 			Items:    items,
 			Optional: optional,
+		},
+	}
+}
+
+func getSecretVolume(vName string, items []map[string]string, optional bool) *Volume {
+	return &Volume{
+		VolumeType: "Secret",
+		Name:       defaultVolName,
+		SecretVol: SecretVol{
+			SecretName: vName,
+			Items:      items,
+			Optional:   optional,
 		},
 	}
 }
@@ -4728,6 +4808,62 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		testPodWithSecret(podmanTest, noOptionalNonExistingSecretPodYaml, kubeYaml, false, false)
 
 		deleteAndTestSecret(podmanTest, "newsecret")
+	})
+
+	It("podman play kube secret as volume with no items", func() {
+		volumeName := "secretVol"
+		secret := getSecret(withSecretName(volumeName), withSecretData("FOO", "testuser"))
+		secretYaml, err := getKubeYaml("secret", secret)
+		Expect(err).ToNot(HaveOccurred())
+
+		ctr := getCtr(withVolumeMount("/test", "", false), withImage(BB))
+		pod := getPod(withVolume(getSecretVolume(volumeName, []map[string]string{}, false)), withCtr(ctr))
+		podYaml, err := getKubeYaml("pod", pod)
+		Expect(err).ToNot(HaveOccurred())
+		yamls := []string{secretYaml, podYaml}
+		err = generateMultiDocKubeYaml(yamls, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		secretData := podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "cat", "/test/FOO"})
+		secretData.WaitWithDefaultTimeout()
+		Expect(secretData).Should(Exit(0))
+		Expect(secretData.OutputToString()).To(Equal("testuser"))
+	})
+
+	It("podman play kube secret as volume with items", func() {
+		volumeName := "secretVol"
+		secret := getSecret(withSecretName(volumeName), withSecretData("FOO", "foobar"))
+		secretYaml, err := getKubeYaml("secret", secret)
+		Expect(err).ToNot(HaveOccurred())
+		volumeContents := []map[string]string{{
+			"key":  "FOO",
+			"path": "BAR",
+		}}
+
+		ctr := getCtr(withVolumeMount("/test", "", false), withImage(BB))
+		pod := getPod(withVolume(getSecretVolume(volumeName, volumeContents, false)), withCtr(ctr))
+		podYaml, err := getKubeYaml("pod", pod)
+		Expect(err).ToNot(HaveOccurred())
+		yamls := []string{secretYaml, podYaml}
+		err = generateMultiDocKubeYaml(yamls, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		secretData := podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "cat", "/test/BAR"})
+		secretData.WaitWithDefaultTimeout()
+		Expect(secretData).Should(Exit(0))
+		Expect(secretData.OutputToString()).To(Equal("foobar"))
+
+		secretData = podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "cat", "/test/FOO"})
+		secretData.WaitWithDefaultTimeout()
+		Expect(secretData).Should(Not(Exit(0)))
 	})
 
 	It("podman play kube with disabled cgroup", func() {
