@@ -266,4 +266,34 @@ t GET "libpod/events?stream=false&since=$START"  200  \
 t GET "events?stream=false&since=$START"  200  \
   'select(.status | contains("delete")).Action=delete'
 
+# Test image removal with `noprune={true,false}`
+podman create --name c_test1 $IMAGE true
+podman commit -q c_test1 i_test1
+podman create --name c_test2 i_test1 true
+podman commit -q c_test2 i_test2
+podman create --name c_test3 i_test2 true
+podman commit -q c_test3 i_test3
+
+t GET libpod/images/i_test1/json 200
+iid_test1=$(jq -r '.Id' <<<"$output")
+t GET libpod/images/i_test2/json 200
+iid_test2=$(jq -r '.Id' <<<"$output")
+t GET libpod/images/i_test3/json 200
+iid_test3=$(jq -r '.Id' <<<"$output")
+
+podman untag $iid_test1
+podman untag $iid_test2
+
+podman rm -af
+
+# Deleting i_test3 with --no-prune must not remove _2 and _1.
+t DELETE images/$iid_test3?noprune=true  200
+t GET libpod/images/i_test3/exists    404
+t GET libpod/images/$iid_test1/exists 204
+t GET libpod/images/$iid_test2/exists 204
+
+t DELETE images/$iid_test2?noprune=false 200
+t GET libpod/images/$iid_test1/exists 404
+t GET libpod/images/$iid_test2/exists 404
+
 # vim: filetype=sh
