@@ -163,20 +163,11 @@ exec_binary (const char *path, char **argv, int argc)
       exit (EXIT_FAILURE);
     }
   if (WIFEXITED(status) && WEXITSTATUS (status))
-    {
-      fprintf (stderr, "external preexec hook %s failed\n", path);
-      exit (WEXITSTATUS(status));
-    }
+    exit (WEXITSTATUS(status));
   if (WIFSIGNALED (status))
-    {
-      fprintf (stderr, "external preexec hook %s failed\n", path);
-      exit (127+WTERMSIG (status));
-    }
+    exit (127+WTERMSIG (status));
   if (WIFSTOPPED (status))
-    {
-      fprintf (stderr, "external preexec hook %s failed\n", path);
       exit (EXIT_FAILURE);
-    }
 }
 
 static void
