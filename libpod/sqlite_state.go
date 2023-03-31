@@ -35,7 +35,7 @@ const (
 	// Set the journal mode (https://www.sqlite.org/pragma.html#pragma_journal_mode).
 	sqliteOptionJournal = "&_journal=WAL"
 	// Force WAL mode to fsync after each transaction (https://www.sqlite.org/pragma.html#pragma_synchronous).
-	sqliteOptionSynchronous = "&_sync=FULL"
+	sqliteOptionSynchronous = "&_sync=NORMAL"
 	// Allow foreign keys (https://www.sqlite.org/pragma.html#pragma_foreign_keys).
 	sqliteOptionForeignKeys = "&_foreign_keys=1"
 	// Make sure that transactions happen exclusively.
@@ -52,6 +52,8 @@ const (
 
 // NewSqliteState creates a new SQLite-backed state database.
 func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
+	startTime := time.Now()
+
 	state := new(SQLiteState)
 
 	basePath := runtime.storageConfig.GraphRoot
@@ -93,21 +95,34 @@ func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 	state.valid = true
 	state.runtime = runtime
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("NewSqliteState: %s", elapsed.String())
+
 	return state, nil
 }
 
 // Close closes the state and prevents further use
 func (s *SQLiteState) Close() error {
+	startTime := time.Now()
+
 	if err := s.conn.Close(); err != nil {
 		return err
 	}
 
 	s.valid = false
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite Close: %s", elapsed.String())
+
 	return nil
 }
 
 // Refresh clears container and pod states after a reboot
 func (s *SQLiteState) Refresh() (defErr error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -256,12 +271,18 @@ func (s *SQLiteState) Refresh() (defErr error) {
 		return fmt.Errorf("committing transaction: %w", err)
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite Refresh: %s", elapsed.String())
+
 	return nil
 }
 
 // GetDBConfig retrieves runtime configuration fields that were created when
 // the database was first initialized
 func (s *SQLiteState) GetDBConfig() (*DBConfig, error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -285,11 +306,17 @@ func (s *SQLiteState) GetDBConfig() (*DBConfig, error) {
 	cfg.GraphDriver = graphDriver
 	cfg.VolumePath = volumeDir
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite GetDBConfig: %s", elapsed.String())
+
 	return cfg, nil
 }
 
 // ValidateDBConfig validates paths in the given runtime against the database
 func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -363,6 +390,10 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 				return fmt.Errorf("committing write of database validation row: %w", err)
 			}
 
+			endTime := time.Now()
+			elapsed := endTime.Sub(startTime)
+			logrus.Errorf("Sqlite ValidateDBConfig: %s", elapsed.String())
+
 			return nil
 		}
 
@@ -403,12 +434,18 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 		return err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite ValidateDBConfig: %s", elapsed.String())
+
 	return nil
 }
 
 // GetContainerName returns the name of the container associated with a given
 // ID. Returns ErrNoSuchCtr if the ID does not exist.
 func (s *SQLiteState) GetContainerName(id string) (string, error) {
+	startTime := time.Now()
+
 	if id == "" {
 		return "", define.ErrEmptyID
 	}
@@ -428,12 +465,18 @@ func (s *SQLiteState) GetContainerName(id string) (string, error) {
 		return "", fmt.Errorf("looking up container %s name: %w", id, err)
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite GetContainerName: %s", elapsed.String())
+
 	return name, nil
 }
 
 // GetPodName returns the name of the pod associated with a given ID.
 // Returns ErrNoSuchPod if the ID does not exist.
 func (s *SQLiteState) GetPodName(id string) (string, error) {
+	startTime := time.Now()
+
 	if id == "" {
 		return "", define.ErrEmptyID
 	}
@@ -453,11 +496,17 @@ func (s *SQLiteState) GetPodName(id string) (string, error) {
 		return "", fmt.Errorf("looking up pod %s name: %w", id, err)
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite GetPodName: %s", elapsed.String())
+
 	return name, nil
 }
 
 // Container retrieves a single container from the state by its full ID
 func (s *SQLiteState) Container(id string) (*Container, error) {
+	startTime := time.Now()
+
 	if id == "" {
 		return nil, define.ErrEmptyID
 	}
@@ -480,12 +529,18 @@ func (s *SQLiteState) Container(id string) (*Container, error) {
 		return nil, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite Container: %s", elapsed.String())
+
 	return ctr, nil
 }
 
 // LookupContainerID retrieves a container ID from the state by full or unique
 // partial ID or name
 func (s *SQLiteState) LookupContainerID(idOrName string) (string, error) {
+	startTime := time.Now()
+
 	if idOrName == "" {
 		return "", define.ErrEmptyID
 	}
@@ -519,12 +574,18 @@ func (s *SQLiteState) LookupContainerID(idOrName string) (string, error) {
 		return "", fmt.Errorf("more than one result for container %q: %w", idOrName, define.ErrCtrExists)
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite LookupContainerID: %s", elapsed.String())
+
 	return id, nil
 }
 
 // LookupContainer retrieves a container from the state by full or unique
 // partial ID or name
 func (s *SQLiteState) LookupContainer(idOrName string) (*Container, error) {
+	startTime := time.Now()
+
 	if idOrName == "" {
 		return nil, define.ErrEmptyID
 	}
@@ -575,11 +636,17 @@ func (s *SQLiteState) LookupContainer(idOrName string) (*Container, error) {
 		return nil, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite LookupContainer: %s", elapsed.String())
+
 	return ctr, nil
 }
 
 // HasContainer checks if a container is present in the state
 func (s *SQLiteState) HasContainer(id string) (bool, error) {
+	startTime := time.Now()
+
 	if id == "" {
 		return false, define.ErrEmptyID
 	}
@@ -599,6 +666,10 @@ func (s *SQLiteState) HasContainer(id string) (bool, error) {
 	} else if check != 1 {
 		return false, fmt.Errorf("check digit for container %s lookup incorrect: %w", id, define.ErrInternal)
 	}
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite HasContainer: %s", elapsed.String())
 
 	return true, nil
 }
@@ -638,6 +709,8 @@ func (s *SQLiteState) RemoveContainer(ctr *Container) error {
 
 // UpdateContainer updates a container's state from the database
 func (s *SQLiteState) UpdateContainer(ctr *Container) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -664,11 +737,17 @@ func (s *SQLiteState) UpdateContainer(ctr *Container) error {
 
 	ctr.state = newState
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite UpdateContainer: %s", elapsed.String())
+
 	return nil
 }
 
 // SaveContainer saves a container's current state in the database
 func (s *SQLiteState) SaveContainer(ctr *Container) (defErr error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -711,6 +790,10 @@ func (s *SQLiteState) SaveContainer(ctr *Container) (defErr error) {
 		return fmt.Errorf("committing container %s state: %w", ctr.ID(), err)
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite SaveContainer: %s", elapsed.String())
+
 	return nil
 }
 
@@ -718,6 +801,8 @@ func (s *SQLiteState) SaveContainer(ctr *Container) (defErr error) {
 // It returns a slice of the IDs of the containers depending on the given
 // container. If the slice is empty, no containers depend on the given container
 func (s *SQLiteState) ContainerInUse(ctr *Container) ([]string, error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -741,12 +826,18 @@ func (s *SQLiteState) ContainerInUse(ctr *Container) ([]string, error) {
 		deps = append(deps, dep)
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite ContainerInUse: %s", elapsed.String())
+
 	return deps, nil
 }
 
 // AllContainers retrieves all the containers in the database
 // If `loadState` is set, the containers' state will be loaded as well.
 func (s *SQLiteState) AllContainers(loadState bool) ([]*Container, error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -812,11 +903,17 @@ func (s *SQLiteState) AllContainers(loadState bool) ([]*Container, error) {
 		}
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite AllContainers: %s", elapsed.String())
+
 	return ctrs, nil
 }
 
 // GetNetworks returns the networks this container is a part of.
 func (s *SQLiteState) GetNetworks(ctr *Container) (map[string]types.PerNetworkOptions, error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -837,6 +934,10 @@ func (s *SQLiteState) GetNetworks(ctr *Container) (map[string]types.PerNetworkOp
 		}
 		return nil, err
 	}
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite GetNetworks: %s", elapsed.String())
 
 	return cfg.Networks, nil
 }
@@ -860,6 +961,8 @@ func (s *SQLiteState) NetworkDisconnect(ctr *Container, network string) error {
 
 // GetContainerConfig returns a container config from the database by full ID
 func (s *SQLiteState) GetContainerConfig(id string) (*ContainerConfig, error) {
+	startTime := time.Now()
+
 	if len(id) == 0 {
 		return nil, define.ErrEmptyID
 	}
@@ -868,11 +971,19 @@ func (s *SQLiteState) GetContainerConfig(id string) (*ContainerConfig, error) {
 		return nil, define.ErrDBClosed
 	}
 
-	return s.getCtrConfig(id)
+	cfg, err := s.getCtrConfig(id)
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite GetContainerConfig: %s", elapsed.String())
+
+	return cfg, err
 }
 
 // AddContainerExitCode adds the exit code for the specified container to the database.
 func (s *SQLiteState) AddContainerExitCode(id string, exitCode int32) (defErr error) {
+	startTime := time.Now()
+
 	if len(id) == 0 {
 		return define.ErrEmptyID
 	}
@@ -901,11 +1012,17 @@ func (s *SQLiteState) AddContainerExitCode(id string, exitCode int32) (defErr er
 		return fmt.Errorf("committing transaction to add exit code: %w", err)
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite AddContainerExitCode: %s", elapsed.String())
+
 	return nil
 }
 
 // GetContainerExitCode returns the exit code for the specified container.
 func (s *SQLiteState) GetContainerExitCode(id string) (int32, error) {
+	startTime := time.Now()
+
 	if len(id) == 0 {
 		return -1, define.ErrEmptyID
 	}
@@ -924,12 +1041,18 @@ func (s *SQLiteState) GetContainerExitCode(id string) (int32, error) {
 		return -1, fmt.Errorf("scanning exit code of container %s: %w", id, err)
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite GetContainerExitCode: %s", elapsed.String())
+
 	return exitCode, nil
 }
 
 // GetContainerExitCodeTimeStamp returns the time stamp when the exit code of
 // the specified container was added to the database.
 func (s *SQLiteState) GetContainerExitCodeTimeStamp(id string) (*time.Time, error) {
+	startTime := time.Now()
+
 	if len(id) == 0 {
 		return nil, define.ErrEmptyID
 	}
@@ -950,11 +1073,17 @@ func (s *SQLiteState) GetContainerExitCodeTimeStamp(id string) (*time.Time, erro
 
 	result := time.Unix(timestamp, 0)
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite GetContainerExitCodeTimeStamp: %s", elapsed.String())
+
 	return &result, nil
 }
 
 // PruneExitCodes removes exit codes older than 5 minutes.
 func (s *SQLiteState) PruneContainerExitCodes() (defErr error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -981,11 +1110,17 @@ func (s *SQLiteState) PruneContainerExitCodes() (defErr error) {
 		return fmt.Errorf("committing transaction to remove old timestamps: %w", err)
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite PruneContainerExitCodes: %s", elapsed.String())
+
 	return nil
 }
 
 // AddExecSession adds an exec session to the state.
 func (s *SQLiteState) AddExecSession(ctr *Container, session *ExecSession) (defErr error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1014,12 +1149,18 @@ func (s *SQLiteState) AddExecSession(ctr *Container, session *ExecSession) (defE
 		return fmt.Errorf("committing container %s exec session %s addition: %w", ctr.ID(), session.Id, err)
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite AddExecSession: %s", elapsed.String())
+
 	return nil
 }
 
 // GetExecSession returns the ID of the container an exec session is associated
 // with.
 func (s *SQLiteState) GetExecSession(id string) (string, error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return "", define.ErrDBClosed
 	}
@@ -1038,12 +1179,18 @@ func (s *SQLiteState) GetExecSession(id string) (string, error) {
 		return "", fmt.Errorf("retrieving exec session %s from database: %w", id, err)
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite GetExecSession: %s", elapsed.String())
+
 	return ctrID, nil
 }
 
 // RemoveExecSession removes references to the given exec session in the
 // database.
 func (s *SQLiteState) RemoveExecSession(session *ExecSession) (defErr error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1076,12 +1223,18 @@ func (s *SQLiteState) RemoveExecSession(session *ExecSession) (defErr error) {
 		return fmt.Errorf("committing container %s exec session %s removal: %w", session.ContainerId, session.Id, err)
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite RemoveExecSession: %s", elapsed.String())
+
 	return nil
 }
 
 // GetContainerExecSessions retrieves the IDs of all exec sessions running in a
 // container that the database is aware of (IE, were added via AddExecSession).
 func (s *SQLiteState) GetContainerExecSessions(ctr *Container) ([]string, error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -1105,12 +1258,18 @@ func (s *SQLiteState) GetContainerExecSessions(ctr *Container) ([]string, error)
 		sessions = append(sessions, session)
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite GetContainerExecSessions: %s", elapsed.String())
+
 	return sessions, nil
 }
 
 // RemoveContainerExecSessions removes all exec sessions attached to a given
 // container.
 func (s *SQLiteState) RemoveContainerExecSessions(ctr *Container) (defErr error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1138,6 +1297,10 @@ func (s *SQLiteState) RemoveContainerExecSessions(ctr *Container) (defErr error)
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("committing container %s exec session removal: %w", ctr.ID(), err)
 	}
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite RemoveContainerExecSessions: %s", elapsed.String())
 
 	return nil
 }
@@ -1189,6 +1352,8 @@ func (s *SQLiteState) SafeRewriteContainerConfig(ctr *Container, oldName, newNam
 // WARNING: This function is DANGEROUS. Do not use without reading the full
 // comment on this function in state.go.
 func (s *SQLiteState) RewritePodConfig(pod *Pod, newCfg *PodConfig) (defErr error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1231,6 +1396,10 @@ func (s *SQLiteState) RewritePodConfig(pod *Pod, newCfg *PodConfig) (defErr erro
 		return fmt.Errorf("committing transaction to rewrite pod %s config: %w", pod.ID(), err)
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite RewritePodConfig: %s", elapsed.String())
+
 	return nil
 }
 
@@ -1238,6 +1407,8 @@ func (s *SQLiteState) RewritePodConfig(pod *Pod, newCfg *PodConfig) (defErr erro
 // WARNING: This function is DANGEROUS. Do not use without reading the full
 // comment on this function in state.go.
 func (s *SQLiteState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) (defErr error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1280,11 +1451,17 @@ func (s *SQLiteState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) 
 		return fmt.Errorf("committing transaction to rewrite volume %s config: %w", volume.Name(), err)
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite RewriteVolumeConfig: %s", elapsed.String())
+
 	return nil
 }
 
 // Pod retrieves a pod given its full ID
 func (s *SQLiteState) Pod(id string) (*Pod, error) {
+	startTime := time.Now()
+
 	if id == "" {
 		return nil, define.ErrEmptyID
 	}
@@ -1307,11 +1484,19 @@ func (s *SQLiteState) Pod(id string) (*Pod, error) {
 		return nil, fmt.Errorf("unmarshalling container %s config: %w", id, err)
 	}
 
-	return s.createPod(rawJSON)
+	pod, err := s.createPod(rawJSON)
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite Pod: %s", elapsed.String())
+
+	return pod, err
 }
 
 // LookupPod retrieves a pod from a full or unique partial ID, or a name.
 func (s *SQLiteState) LookupPod(idOrName string) (*Pod, error) {
+	startTime := time.Now()
+
 	if idOrName == "" {
 		return nil, define.ErrEmptyID
 	}
@@ -1349,7 +1534,13 @@ func (s *SQLiteState) LookupPod(idOrName string) (*Pod, error) {
 		}
 	}
 
-	return s.createPod(rawJSON)
+	pod, err := s.createPod(rawJSON)
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite LookupPod: %s", elapsed.String())
+
+	return pod, err
 }
 
 // HasPod checks if a pod with the given ID exists in the state

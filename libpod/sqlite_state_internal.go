@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v4/libpod/define"
@@ -331,6 +332,8 @@ func finalizeVolumeSqlite(vol *Volume) error {
 }
 
 func (s *SQLiteState) rewriteContainerConfig(ctr *Container, newCfg *ContainerConfig) (defErr error) {
+	startTime := time.Now()
+
 	json, err := json.Marshal(newCfg)
 	if err != nil {
 		return fmt.Errorf("error marshalling container %s new config JSON: %w", ctr.ID(), err)
@@ -365,10 +368,16 @@ func (s *SQLiteState) rewriteContainerConfig(ctr *Container, newCfg *ContainerCo
 		return fmt.Errorf("committing transaction to rewrite container %s config: %w", ctr.ID(), err)
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite rewriteContainerConfig: %s", elapsed.String())
+
 	return nil
 }
 
 func (s *SQLiteState) addContainer(ctr *Container) (defErr error) {
+	startTime := time.Now()
+
 	for net := range ctr.config.Networks {
 		opts := ctr.config.Networks[net]
 		opts.Aliases = append(opts.Aliases, ctr.config.ID[:12])
@@ -460,11 +469,17 @@ func (s *SQLiteState) addContainer(ctr *Container) (defErr error) {
 		return fmt.Errorf("committing transaction: %w", err)
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite addContainer: %s", elapsed.String())
+
 	return nil
 }
 
 // removeContainer remove the specified container from the database.
 func (s *SQLiteState) removeContainer(ctr *Container) (defErr error) {
+	startTime := time.Now()
+
 	tx, err := s.conn.Begin()
 	if err != nil {
 		return fmt.Errorf("beginning container %s removal transaction: %w", ctr.ID(), err)
@@ -485,6 +500,10 @@ func (s *SQLiteState) removeContainer(ctr *Container) (defErr error) {
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("committing container %s removal transaction: %w", ctr.ID(), err)
 	}
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite removeContainer: %s", elapsed.String())
 
 	return nil
 }
@@ -518,6 +537,8 @@ func (s *SQLiteState) removeContainerWithTx(id string, tx *sql.Tx) error {
 
 // networkModify allows you to modify or add a new network, to add a new network use the new bool
 func (s *SQLiteState) networkModify(ctr *Container, network string, opts types.PerNetworkOptions, new, disconnect bool) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -563,6 +584,10 @@ func (s *SQLiteState) networkModify(ctr *Container, network string, opts types.P
 	}
 
 	ctr.config = newCfg
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Sqlite networkModify: %s", elapsed.String())
 
 	return nil
 }

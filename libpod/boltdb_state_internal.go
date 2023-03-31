@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
@@ -578,6 +579,8 @@ func (s *BoltState) getVolumeFromDB(name []byte, volume *Volume, volBkt *bolt.Bu
 // Add a container to the DB
 // If pod is not nil, the container is added to the pod as well
 func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
+	startTime := time.Now()
+
 	// Set the original networks to nil. We can save some space by not storing it in the config
 	// since we store it in a different mutable bucket anyway.
 	configNetworks := ctr.config.Networks
@@ -792,6 +795,11 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 
 		return nil
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb AddContainer: %s", elapsed.String())
+
 	return err
 }
 

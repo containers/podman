@@ -69,6 +69,8 @@ type BoltState struct {
 
 // NewBoltState creates a new bolt-backed state database
 func NewBoltState(path string, runtime *Runtime) (State, error) {
+	startTime := time.Now()
+
 	state := new(BoltState)
 	state.dbPath = path
 	state.runtime = runtime
@@ -119,6 +121,10 @@ func NewBoltState(path string, runtime *Runtime) (State, error) {
 	}
 
 	if !needsUpdate {
+		endTime := time.Now()
+		elapsed := endTime.Sub(startTime)
+		logrus.Errorf("NewBoltState: %s", elapsed.String())
+
 		state.valid = true
 		return state, nil
 	}
@@ -138,17 +144,30 @@ func NewBoltState(path string, runtime *Runtime) (State, error) {
 
 	state.valid = true
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("NewBoltState: %s", elapsed.String())
+
 	return state, nil
 }
 
 // Close closes the state and prevents further use
 func (s *BoltState) Close() error {
+	startTime := time.Now()
+
 	s.valid = false
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb Close: %s", elapsed.String())
+
 	return nil
 }
 
 // Refresh clears container and pod states after a reboot
 func (s *BoltState) Refresh() error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -417,12 +436,19 @@ func (s *BoltState) Refresh() error {
 
 		return nil
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb Refresh: %s", elapsed.String())
+
 	return err
 }
 
 // GetDBConfig retrieves runtime configuration fields that were created when
 // the database was first initialized
 func (s *BoltState) GetDBConfig() (*DBConfig, error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -465,11 +491,17 @@ func (s *BoltState) GetDBConfig() (*DBConfig, error) {
 		return nil, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb GetDBConfig: %s", elapsed.String())
+
 	return cfg, nil
 }
 
 // ValidateDBConfig validates paths in the given runtime against the database
 func (s *BoltState) ValidateDBConfig(runtime *Runtime) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -485,12 +517,18 @@ func (s *BoltState) ValidateDBConfig(runtime *Runtime) error {
 		return err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb ValidateDBConfig: %s", elapsed.String())
+
 	return nil
 }
 
 // GetContainerName returns the name associated with a given ID.
 // Returns ErrNoSuchCtr if the ID does not exist.
 func (s *BoltState) GetContainerName(id string) (string, error) {
+	startTime := time.Now()
+
 	if id == "" {
 		return "", define.ErrEmptyID
 	}
@@ -537,12 +575,18 @@ func (s *BoltState) GetContainerName(id string) (string, error) {
 		return "", err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb GetContainerName: %s", elapsed.String())
+
 	return name, nil
 }
 
 // GetPodName returns the name associated with a given ID.
 // Returns ErrNoSuchPod if the ID does not exist.
 func (s *BoltState) GetPodName(id string) (string, error) {
+	startTime := time.Now()
+
 	if id == "" {
 		return "", define.ErrEmptyID
 	}
@@ -589,11 +633,17 @@ func (s *BoltState) GetPodName(id string) (string, error) {
 		return "", err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb GetPodName: %s", elapsed.String())
+
 	return name, nil
 }
 
 // Container retrieves a single container from the state by its full ID
 func (s *BoltState) Container(id string) (*Container, error) {
+	startTime := time.Now()
+
 	if id == "" {
 		return nil, define.ErrEmptyID
 	}
@@ -626,12 +676,18 @@ func (s *BoltState) Container(id string) (*Container, error) {
 		return nil, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb Container: %s", elapsed.String())
+
 	return ctr, nil
 }
 
 // LookupContainerID retrieves a container ID from the state by full or unique
 // partial ID or name
 func (s *BoltState) LookupContainerID(idOrName string) (string, error) {
+	startTime := time.Now()
+
 	if idOrName == "" {
 		return "", define.ErrEmptyID
 	}
@@ -668,12 +724,19 @@ func (s *BoltState) LookupContainerID(idOrName string) (string, error) {
 	}
 
 	retID := string(id)
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb LookupContainerID: %s", elapsed.String())
+
 	return retID, nil
 }
 
 // LookupContainer retrieves a container from the state by full or unique
 // partial ID or name
 func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
+	startTime := time.Now()
+
 	if idOrName == "" {
 		return nil, define.ErrEmptyID
 	}
@@ -714,11 +777,17 @@ func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
 		return nil, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb LookupContainer: %s", elapsed.String())
+
 	return ctr, nil
 }
 
 // HasContainer checks if a container is present in the state
 func (s *BoltState) HasContainer(id string) (bool, error) {
+	startTime := time.Now()
+
 	if id == "" {
 		return false, define.ErrEmptyID
 	}
@@ -754,6 +823,10 @@ func (s *BoltState) HasContainer(id string) (bool, error) {
 		return false, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb HasContainer: %s", elapsed.String())
+
 	return exists, nil
 }
 
@@ -779,6 +852,8 @@ func (s *BoltState) AddContainer(ctr *Container) error {
 // Only removes containers not in pods - for containers that are a member of a
 // pod, use RemoveContainerFromPod
 func (s *BoltState) RemoveContainer(ctr *Container) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -796,11 +871,18 @@ func (s *BoltState) RemoveContainer(ctr *Container) error {
 	err = db.Update(func(tx *bolt.Tx) error {
 		return s.removeContainer(ctr, nil, tx)
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb RemoveContainer: %s", elapsed.String())
+
 	return err
 }
 
 // UpdateContainer updates a container's state from the database
 func (s *BoltState) UpdateContainer(ctr *Container) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -817,17 +899,25 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 	}
 	defer s.deferredCloseDBCon(db)
 
-	return db.View(func(tx *bolt.Tx) error {
+	err = db.View(func(tx *bolt.Tx) error {
 		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
 			return err
 		}
 		return s.getContainerStateDB(ctrID, ctr, ctrBucket)
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb UpdateContainer: %s", elapsed.String())
+
+	return err
 }
 
 // SaveContainer saves a container's current state in the database
 func (s *BoltState) SaveContainer(ctr *Container) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -876,6 +966,11 @@ func (s *BoltState) SaveContainer(ctr *Container) error {
 
 		return nil
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb SaveContainer: %s", elapsed.String())
+
 	return err
 }
 
@@ -883,6 +978,8 @@ func (s *BoltState) SaveContainer(ctr *Container) error {
 // It returns a slice of the IDs of the containers depending on the given
 // container. If the slice is empty, no containers depend on the given container
 func (s *BoltState) ContainerInUse(ctr *Container) ([]string, error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -932,12 +1029,18 @@ func (s *BoltState) ContainerInUse(ctr *Container) ([]string, error) {
 		return nil, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb ContainerInUse: %s", elapsed.String())
+
 	return depCtrs, nil
 }
 
 // AllContainers retrieves all the containers in the database
 // If `loadState` is set, the containers' state will be loaded as well.
 func (s *BoltState) AllContainers(loadState bool) ([]*Container, error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -987,11 +1090,17 @@ func (s *BoltState) AllContainers(loadState bool) ([]*Container, error) {
 		return nil, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb AllContainers: %s", elapsed.String())
+
 	return ctrs, nil
 }
 
 // GetNetworks returns the networks this container is a part of.
 func (s *BoltState) GetNetworks(ctr *Container) (map[string]types.PerNetworkOptions, error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -1156,6 +1265,10 @@ func (s *BoltState) GetNetworks(ctr *Container) (map[string]types.PerNetworkOpti
 		}
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb GetNetworks: %s", elapsed.String())
+
 	return networks, nil
 }
 
@@ -1172,6 +1285,8 @@ func (s *BoltState) NetworkModify(ctr *Container, network string, opts types.Per
 
 // networkModify allows you to modify or add a new network, to add a new network use the new bool
 func (s *BoltState) networkModify(ctr *Container, network string, opts types.PerNetworkOptions, new bool) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1197,7 +1312,7 @@ func (s *BoltState) networkModify(ctr *Container, network string, opts types.Per
 	}
 	defer s.deferredCloseDBCon(db)
 
-	return db.Update(func(tx *bolt.Tx) error {
+	err = db.Update(func(tx *bolt.Tx) error {
 		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
 			return err
@@ -1228,11 +1343,19 @@ func (s *BoltState) networkModify(ctr *Container, network string, opts types.Per
 
 		return nil
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb networkModify: %s", elapsed.String())
+
+	return err
 }
 
 // NetworkDisconnect disconnects the container from the given network, also
 // removing any aliases in the network.
 func (s *BoltState) NetworkDisconnect(ctr *Container, network string) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1253,7 +1376,7 @@ func (s *BoltState) NetworkDisconnect(ctr *Container, network string) error {
 	}
 	defer s.deferredCloseDBCon(db)
 
-	return db.Update(func(tx *bolt.Tx) error {
+	err = db.Update(func(tx *bolt.Tx) error {
 		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
 			return err
@@ -1292,10 +1415,18 @@ func (s *BoltState) NetworkDisconnect(ctr *Container, network string) error {
 
 		return nil
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb NetworkDisconnect: %s", elapsed.String())
+
+	return err
 }
 
 // GetContainerConfig returns a container config from the database by full ID
 func (s *BoltState) GetContainerConfig(id string) (*ContainerConfig, error) {
+	startTime := time.Now()
+
 	if len(id) == 0 {
 		return nil, define.ErrEmptyID
 	}
@@ -1324,11 +1455,17 @@ func (s *BoltState) GetContainerConfig(id string) (*ContainerConfig, error) {
 		return nil, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb GetContainerConfig: %s", elapsed.String())
+
 	return config, nil
 }
 
 // AddContainerExitCode adds the exit code for the specified container to the database.
 func (s *BoltState) AddContainerExitCode(id string, exitCode int32) error {
+	startTime := time.Now()
+
 	if len(id) == 0 {
 		return define.ErrEmptyID
 	}
@@ -1350,7 +1487,7 @@ func (s *BoltState) AddContainerExitCode(id string, exitCode int32) error {
 		return fmt.Errorf("marshalling exit-code time stamp: %w", err)
 	}
 
-	return db.Update(func(tx *bolt.Tx) error {
+	err = db.Update(func(tx *bolt.Tx) error {
 		exitCodeBucket, err := getExitCodeBucket(tx)
 		if err != nil {
 			return err
@@ -1372,10 +1509,18 @@ func (s *BoltState) AddContainerExitCode(id string, exitCode int32) error {
 
 		return nil
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb AddContainerExitCode: %s", elapsed.String())
+
+	return err
 }
 
 // GetContainerExitCode returns the exit code for the specified container.
 func (s *BoltState) GetContainerExitCode(id string) (int32, error) {
+	startTime := time.Now()
+
 	if len(id) == 0 {
 		return -1, define.ErrEmptyID
 	}
@@ -1392,7 +1537,7 @@ func (s *BoltState) GetContainerExitCode(id string) (int32, error) {
 
 	rawID := []byte(id)
 	result := int32(-1)
-	return result, db.View(func(tx *bolt.Tx) error {
+	err = db.View(func(tx *bolt.Tx) error {
 		exitCodeBucket, err := getExitCodeBucket(tx)
 		if err != nil {
 			return err
@@ -1411,11 +1556,19 @@ func (s *BoltState) GetContainerExitCode(id string) (int32, error) {
 		result = int32(exitCode)
 		return nil
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb GetContainerExitCode: %s", elapsed.String())
+
+	return result, err
 }
 
 // GetContainerExitCodeTimeStamp returns the time stamp when the exit code of
 // the specified container was added to the database.
 func (s *BoltState) GetContainerExitCodeTimeStamp(id string) (*time.Time, error) {
+	startTime := time.Now()
+
 	if len(id) == 0 {
 		return nil, define.ErrEmptyID
 	}
@@ -1432,7 +1585,7 @@ func (s *BoltState) GetContainerExitCodeTimeStamp(id string) (*time.Time, error)
 
 	rawID := []byte(id)
 	var result time.Time
-	return &result, db.View(func(tx *bolt.Tx) error {
+	err = db.View(func(tx *bolt.Tx) error {
 		timeStampBucket, err := getExitCodeTimeStampBucket(tx)
 		if err != nil {
 			return err
@@ -1449,10 +1602,18 @@ func (s *BoltState) GetContainerExitCodeTimeStamp(id string) (*time.Time, error)
 
 		return nil
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb ValidateDBConfig: %s", elapsed.String())
+
+	return &result, err
 }
 
 // PruneExitCodes removes exit codes older than 5 minutes.
 func (s *BoltState) PruneContainerExitCodes() error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1522,11 +1683,17 @@ func (s *BoltState) PruneContainerExitCodes() error {
 		}
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb PruneContainerExitCodes: %s", elapsed.String())
+
 	return nil
 }
 
 // AddExecSession adds an exec session to the state.
 func (s *BoltState) AddExecSession(ctr *Container, session *ExecSession) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1580,12 +1747,19 @@ func (s *BoltState) AddExecSession(ctr *Container, session *ExecSession) error {
 
 		return nil
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb AddExecSession: %s", elapsed.String())
+
 	return err
 }
 
 // GetExecSession returns the ID of the container an exec session is associated
 // with.
 func (s *BoltState) GetExecSession(id string) (string, error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return "", define.ErrDBClosed
 	}
@@ -1614,12 +1788,19 @@ func (s *BoltState) GetExecSession(id string) (string, error) {
 		ctrID = string(ctr)
 		return nil
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb GetExecSession: %s", elapsed.String())
+
 	return ctrID, err
 }
 
 // RemoveExecSession removes references to the given exec session in the
 // database.
 func (s *BoltState) RemoveExecSession(session *ExecSession) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1681,12 +1862,19 @@ func (s *BoltState) RemoveExecSession(session *ExecSession) error {
 
 		return nil
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb RemoveExecSession: %s", elapsed.String())
+
 	return err
 }
 
 // GetContainerExecSessions retrieves the IDs of all exec sessions running in a
 // container that the database is aware of (IE, were added via AddExecSession).
 func (s *BoltState) GetContainerExecSessions(ctr *Container) ([]string, error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -1729,12 +1917,18 @@ func (s *BoltState) GetContainerExecSessions(ctr *Container) ([]string, error) {
 		return nil, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb GetContainerExecSessions: %s", elapsed.String())
+
 	return sessions, nil
 }
 
 // RemoveContainerExecSessions removes all exec sessions attached to a given
 // container.
 func (s *BoltState) RemoveContainerExecSessions(ctr *Container) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1803,6 +1997,11 @@ func (s *BoltState) RemoveContainerExecSessions(ctr *Container) error {
 
 		return nil
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb RemoveContainerExecSessions: %s", elapsed.String())
+
 	return err
 }
 
@@ -1810,6 +2009,8 @@ func (s *BoltState) RemoveContainerExecSessions(ctr *Container) error {
 // WARNING: This function is DANGEROUS. Do not use without reading the full
 // comment on this function in state.go.
 func (s *BoltState) RewriteContainerConfig(ctr *Container, newCfg *ContainerConfig) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1847,6 +2048,11 @@ func (s *BoltState) RewriteContainerConfig(ctr *Container, newCfg *ContainerConf
 
 		return nil
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb RewriteContainerConfig: %s", elapsed.String())
+
 	return err
 }
 
@@ -1856,6 +2062,8 @@ func (s *BoltState) RewriteContainerConfig(ctr *Container, newCfg *ContainerConf
 // DO NOT USE TO: Change container dependencies, change pod membership, change
 // locks, change container ID.
 func (s *BoltState) SafeRewriteContainerConfig(ctr *Container, oldName, newName string, newCfg *ContainerConfig) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1962,6 +2170,11 @@ func (s *BoltState) SafeRewriteContainerConfig(ctr *Container, oldName, newName 
 
 		return nil
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb SafeRewriteContainerConfig: %s", elapsed.String())
+
 	return err
 }
 
@@ -1969,6 +2182,8 @@ func (s *BoltState) SafeRewriteContainerConfig(ctr *Container, oldName, newName 
 // WARNING: This function is DANGEROUS. Do not use without reading the full
 // comment on this function in state.go.
 func (s *BoltState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -2006,6 +2221,11 @@ func (s *BoltState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
 
 		return nil
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb RewritePodConfig: %s", elapsed.String())
+
 	return err
 }
 
@@ -2013,6 +2233,8 @@ func (s *BoltState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
 // WARNING: This function is DANGEROUS. Do not use without reading the full
 // comment on this function in state.go.
 func (s *BoltState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -2050,11 +2272,18 @@ func (s *BoltState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) er
 
 		return nil
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb RewriteVolumeConfig: %s", elapsed.String())
+
 	return err
 }
 
 // Pod retrieves a pod given its full ID
 func (s *BoltState) Pod(id string) (*Pod, error) {
+	startTime := time.Now()
+
 	if id == "" {
 		return nil, define.ErrEmptyID
 	}
@@ -2087,11 +2316,17 @@ func (s *BoltState) Pod(id string) (*Pod, error) {
 		return nil, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb Pod: %s", elapsed.String())
+
 	return pod, nil
 }
 
 // LookupPod retrieves a pod from full or unique partial ID or name
 func (s *BoltState) LookupPod(idOrName string) (*Pod, error) {
+	startTime := time.Now()
+
 	if idOrName == "" {
 		return nil, define.ErrEmptyID
 	}
@@ -2179,11 +2414,17 @@ func (s *BoltState) LookupPod(idOrName string) (*Pod, error) {
 		return nil, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb LookupPod: %s", elapsed.String())
+
 	return pod, nil
 }
 
 // HasPod checks if a pod with the given ID exists in the state
 func (s *BoltState) HasPod(id string) (bool, error) {
+	startTime := time.Now()
+
 	if id == "" {
 		return false, define.ErrEmptyID
 	}
@@ -2219,11 +2460,17 @@ func (s *BoltState) HasPod(id string) (bool, error) {
 		return false, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb HasPod: %s", elapsed.String())
+
 	return exists, nil
 }
 
 // PodHasContainer checks if the given pod has a container with the given ID
 func (s *BoltState) PodHasContainer(pod *Pod, id string) (bool, error) {
+	startTime := time.Now()
+
 	if id == "" {
 		return false, define.ErrEmptyID
 	}
@@ -2277,11 +2524,17 @@ func (s *BoltState) PodHasContainer(pod *Pod, id string) (bool, error) {
 		return false, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb PodHasContainer: %s", elapsed.String())
+
 	return exists, nil
 }
 
 // PodContainersByID returns the IDs of all containers present in the given pod
 func (s *BoltState) PodContainersByID(pod *Pod) ([]string, error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -2335,11 +2588,17 @@ func (s *BoltState) PodContainersByID(pod *Pod) ([]string, error) {
 		return nil, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb PodContainersByID: %s", elapsed.String())
+
 	return ctrs, nil
 }
 
 // PodContainers returns all the containers present in the given pod
 func (s *BoltState) PodContainers(pod *Pod) ([]*Container, error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -2401,12 +2660,18 @@ func (s *BoltState) PodContainers(pod *Pod) ([]*Container, error) {
 		return nil, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb PodContainers: %s", elapsed.String())
+
 	return ctrs, nil
 }
 
 // AddVolume adds the given volume to the state. It also adds ctrDepID to
 // the sub bucket holding the container dependencies that this volume has
 func (s *BoltState) AddVolume(volume *Volume) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -2494,11 +2759,18 @@ func (s *BoltState) AddVolume(volume *Volume) error {
 
 		return nil
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb AddVolume: %s", elapsed.String())
+
 	return err
 }
 
 // RemoveVolume removes the given volume from the state
 func (s *BoltState) RemoveVolume(volume *Volume) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -2586,11 +2858,18 @@ func (s *BoltState) RemoveVolume(volume *Volume) error {
 
 		return nil
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb RemoveVolume: %s", elapsed.String())
+
 	return err
 }
 
 // UpdateVolume updates the volume's state from the database.
 func (s *BoltState) UpdateVolume(volume *Volume) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -2639,11 +2918,17 @@ func (s *BoltState) UpdateVolume(volume *Volume) error {
 
 	volume.state = newState
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb UpdateVolume: %s", elapsed.String())
+
 	return nil
 }
 
 // SaveVolume saves the volume's state to the database.
 func (s *BoltState) SaveVolume(volume *Volume) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -2683,11 +2968,18 @@ func (s *BoltState) SaveVolume(volume *Volume) error {
 
 		return volToUpdate.Put(stateKey, newStateJSON)
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb SaveVolume: %s", elapsed.String())
+
 	return err
 }
 
 // AllVolumes returns all volumes present in the state
 func (s *BoltState) AllVolumes() ([]*Volume, error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -2738,11 +3030,17 @@ func (s *BoltState) AllVolumes() ([]*Volume, error) {
 		return nil, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb AllVolumes: %s", elapsed.String())
+
 	return volumes, nil
 }
 
 // Volume retrieves a volume from full name
 func (s *BoltState) Volume(name string) (*Volume, error) {
+	startTime := time.Now()
+
 	if name == "" {
 		return nil, define.ErrEmptyID
 	}
@@ -2775,11 +3073,17 @@ func (s *BoltState) Volume(name string) (*Volume, error) {
 		return nil, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb Volume: %s", elapsed.String())
+
 	return volume, nil
 }
 
 // LookupVolume locates a volume from a partial name.
 func (s *BoltState) LookupVolume(name string) (*Volume, error) {
+	startTime := time.Now()
+
 	if name == "" {
 		return nil, define.ErrEmptyID
 	}
@@ -2843,11 +3147,17 @@ func (s *BoltState) LookupVolume(name string) (*Volume, error) {
 		return nil, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb LookupVolume: %s", elapsed.String())
+
 	return volume, nil
 }
 
 // HasVolume returns true if the given volume exists in the state, otherwise it returns false
 func (s *BoltState) HasVolume(name string) (bool, error) {
+	startTime := time.Now()
+
 	if name == "" {
 		return false, define.ErrEmptyID
 	}
@@ -2883,6 +3193,10 @@ func (s *BoltState) HasVolume(name string) (bool, error) {
 		return false, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb HasVolume: %s", elapsed.String())
+
 	return exists, nil
 }
 
@@ -2890,6 +3204,8 @@ func (s *BoltState) HasVolume(name string) (bool, error) {
 // It returns a slice of the IDs of the containers using the given
 // volume. If the slice is empty, no containers use the given volume
 func (s *BoltState) VolumeInUse(volume *Volume) ([]string, error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -2951,11 +3267,17 @@ func (s *BoltState) VolumeInUse(volume *Volume) ([]string, error) {
 		return nil, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb VolumeInUse: %s", elapsed.String())
+
 	return depCtrs, nil
 }
 
 // AddPod adds the given pod to the state.
 func (s *BoltState) AddPod(pod *Pod) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -3059,12 +3381,18 @@ func (s *BoltState) AddPod(pod *Pod) error {
 		return err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb AddPod: %s", elapsed.String())
+
 	return nil
 }
 
 // RemovePod removes the given pod from the state
 // Only empty pods can be removed
 func (s *BoltState) RemovePod(pod *Pod) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -3144,11 +3472,17 @@ func (s *BoltState) RemovePod(pod *Pod) error {
 		return err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb RemovePod: %s", elapsed.String())
+
 	return nil
 }
 
 // RemovePodContainers removes all containers in a pod
 func (s *BoltState) RemovePodContainers(pod *Pod) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -3267,6 +3601,10 @@ func (s *BoltState) RemovePodContainers(pod *Pod) error {
 		return err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb RemovePodContainers: %s", elapsed.String())
+
 	return nil
 }
 
@@ -3295,6 +3633,8 @@ func (s *BoltState) AddContainerToPod(pod *Pod, ctr *Container) error {
 // RemoveContainerFromPod removes a container from an existing pod
 // The container will also be removed from the state
 func (s *BoltState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -3320,11 +3660,18 @@ func (s *BoltState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 	err = db.Update(func(tx *bolt.Tx) error {
 		return s.removeContainer(ctr, pod, tx)
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb RemoveContainerFromPod: %s", elapsed.String())
+
 	return err
 }
 
 // UpdatePod updates a pod's state from the database
 func (s *BoltState) UpdatePod(pod *Pod) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -3373,11 +3720,17 @@ func (s *BoltState) UpdatePod(pod *Pod) error {
 
 	pod.state = newState
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb UpdatePod: %s", elapsed.String())
+
 	return nil
 }
 
 // SavePod saves a pod's state to the database
 func (s *BoltState) SavePod(pod *Pod) error {
+	startTime := time.Now()
+
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -3422,11 +3775,17 @@ func (s *BoltState) SavePod(pod *Pod) error {
 		return err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb SavePod: %s", elapsed.String())
+
 	return nil
 }
 
 // AllPods returns all pods present in the state
 func (s *BoltState) AllPods() ([]*Pod, error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -3478,12 +3837,18 @@ func (s *BoltState) AllPods() ([]*Pod, error) {
 		return nil, err
 	}
 
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb AllPods: %s", elapsed.String())
+
 	return pods, nil
 }
 
 // ContainerIDIsVolume checks if the given c/storage container ID is used as
 // backing storage for a volume.
 func (s *BoltState) ContainerIDIsVolume(id string) (bool, error) {
+	startTime := time.Now()
+
 	if !s.valid {
 		return false, define.ErrDBClosed
 	}
@@ -3509,5 +3874,10 @@ func (s *BoltState) ContainerIDIsVolume(id string) (bool, error) {
 
 		return nil
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Boltdb ContainerIDIsVolume: %s", elapsed.String())
+
 	return isVol, err
 }
