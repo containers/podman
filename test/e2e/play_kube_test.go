@@ -2386,7 +2386,6 @@ var _ = Describe("Podman play kube", func() {
 	})
 
 	It("podman play kube test env value from configmap", func() {
-		SkipIfRemote("configmap list is not supported as a param")
 		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 		cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
 		err := generateKubeYaml("configmap", cm, cmYamlPathname)
@@ -2407,7 +2406,6 @@ var _ = Describe("Podman play kube", func() {
 	})
 
 	It("podman play kube test env value from configmap and --replace should reuse the configmap volume", func() {
-		SkipIfRemote("configmap list is not supported as a param")
 		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 		cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
 		err := generateKubeYaml("configmap", cm, cmYamlPathname)
@@ -2433,7 +2431,6 @@ var _ = Describe("Podman play kube", func() {
 	})
 
 	It("podman play kube test required env value from configmap with missing key", func() {
-		SkipIfRemote("configmap list is not supported as a param")
 		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 		cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
 		err := generateKubeYaml("configmap", cm, cmYamlPathname)
@@ -2459,7 +2456,6 @@ var _ = Describe("Podman play kube", func() {
 	})
 
 	It("podman play kube test optional env value from configmap with missing key", func() {
-		SkipIfRemote("configmap list is not supported as a param")
 		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 		cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
 		err := generateKubeYaml("configmap", cm, cmYamlPathname)
@@ -2495,7 +2491,6 @@ var _ = Describe("Podman play kube", func() {
 	})
 
 	It("podman play kube test get all key-value pairs from configmap as envs", func() {
-		SkipIfRemote("configmap list is not supported as a param")
 		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 		cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO1", "foo1"), withConfigMapData("FOO2", "foo2"))
 		err := generateKubeYaml("configmap", cm, cmYamlPathname)
@@ -4408,8 +4403,6 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 	Context("with configmap in multi-doc yaml and files", func() {
 		It("podman play kube uses env values from both sources", func() {
-			SkipIfRemote("--configmaps is not supported for remote")
-
 			fsCmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 			fsCm := getConfigMap(withConfigMapName("fooFs"), withConfigMapData("FOO_FS", "fooFS"))
 			err := generateKubeYaml("configmap", fsCm, fsCmYamlPathname)
@@ -4446,8 +4439,6 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		})
 
 		It("podman play kube uses all env values from both sources", func() {
-			SkipIfRemote("--configmaps is not supported for remote")
-
 			fsCmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 			fsCm := getConfigMap(withConfigMapName("fooFs"),
 				withConfigMapData("FOO_FS_1", "fooFS1"),
@@ -4491,7 +4482,8 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		})
 
 		It("podman play kube reports error when the same configmap name is present in both sources", func() {
-			SkipIfRemote("--configmaps is not supported for remote")
+			// We will never hit this error in the remote case as the configmap content is appended to the main yaml content
+			SkipIfRemote("--configmaps is appended to the main yaml for the remote case")
 
 			fsCmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 			fsCm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "fooFS"))
