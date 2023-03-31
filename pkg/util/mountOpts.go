@@ -44,7 +44,10 @@ func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string
 				continue
 			}
 		}
-
+		if strings.HasPrefix(splitOpt[0], "subpath") {
+			newOptions = append(newOptions, opt)
+			continue
+		}
 		if strings.HasPrefix(splitOpt[0], "idmap") {
 			if foundIdmap {
 				return nil, fmt.Errorf("the 'idmap' option can only be set once: %w", ErrDupeMntOption)

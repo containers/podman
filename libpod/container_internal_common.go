@@ -13,6 +13,7 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -170,7 +171,21 @@ func getOverlayUpperAndWorkDir(options []string) (string, string, error) {
 
 // Generate spec for a container
 // Accepts a map of the container's dependencies
-func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
+func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFuncRet func(), err error) {
+	var safeMounts []*safeMountInfo
+	// lock the thread so that the current thread will be kept alive until the mounts are used
+	runtime.LockOSThread()
+	cleanupFunc := func() {
+		runtime.UnlockOSThread()
+		for _, s := range safeMounts {
+			s.Close()
+		}
+	}
+	defer func() {
+		if err != nil {
+			cleanupFunc()
+		}
+	}()
 	overrides := c.getUserOverrides()
 	execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, c.config.User, overrides)
 	if err != nil {
@@ -178,7 +193,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			execUser, err = lookupHostUser(c.config.User)
 		}
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -194,51 +209,57 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			systemdMode = *c.config.Systemd
 		}
 		if err := util.AddPrivilegedDevices(&g, systemdMode); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	// If network namespace was requested, add it now
 	if err := c.addNetworkNamespace(&g); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Apply AppArmor checks and load the default profile if needed.
 	if len(c.config.Spec.Process.ApparmorProfile) > 0 {
 		updatedProfile, err := apparmor.CheckProfileAndLoadDefault(c.config.Spec.Process.ApparmorProfile)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		g.SetProcessApparmorProfile(updatedProfile)
 	}
 
 	if err := c.makeBindMounts(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := c.mountNotifySocket(g); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Get host UID and GID based on the container process UID and GID.
 	hostUID, hostGID, err := butil.GetHostIDs(util.IDtoolsToRuntimeSpec(c.config.IDMappings.UIDMap), util.IDtoolsToRuntimeSpec(c.config.IDMappings.GIDMap), uint32(execUser.Uid), uint32(execUser.Gid))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Add named volumes
 	for _, namedVol := range c.config.NamedVolumes {
 		volume, err := c.runtime.GetVolume(namedVol.Name)
 		if err != nil {
-			return nil, fmt.Errorf("retrieving volume %s to add to container %s: %w", namedVol.Name, c.ID(), err)
+			return nil, nil, fmt.Errorf("retrieving volume %s to add to container %s: %w", namedVol.Name, c.ID(), err)
 		}
 		mountPoint, err := volume.MountPoint()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		if len(namedVol.SubPath) > 0 {
-			mountPoint = filepath.Join(mountPoint, namedVol.SubPath)
+			safeMount, err := c.safeMountSubPath(mountPoint, namedVol.SubPath)
+			if err != nil {
+				return nil, nil, err
+			}
+			safeMounts = append(safeMounts, safeMount)
+
+			mountPoint = safeMount.mountPoint
 		}
 
 		overlayFlag := false
@@ -249,7 +270,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 				overlayFlag = true
 				upperDir, workDir, err = getOverlayUpperAndWorkDir(namedVol.Options)
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 			}
 		}
@@ -259,7 +280,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			var overlayOpts *overlay.Options
 			contentDir, err := overlay.TempDir(c.config.StaticDir, c.RootUID(), c.RootGID())
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			overlayOpts = &overlay.Options{RootUID: c.RootUID(),
@@ -271,17 +292,17 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 			overlayMount, err = overlay.MountWithOptions(contentDir, mountPoint, namedVol.Dest, overlayOpts)
 			if err != nil {
-				return nil, fmt.Errorf("mounting overlay failed %q: %w", mountPoint, err)
+				return nil, nil, fmt.Errorf("mounting overlay failed %q: %w", mountPoint, err)
 			}
 
 			for _, o := range namedVol.Options {
 				if o == "U" {
 					if err := c.ChangeHostPathOwnership(mountPoint, true, int(hostUID), int(hostGID)); err != nil {
-						return nil, err
+						return nil, nil, err
 					}
 
 					if err := c.ChangeHostPathOwnership(contentDir, true, int(hostUID), int(hostGID)); err != nil {
-						return nil, err
+						return nil, nil, err
 					}
 				}
 			}
@@ -305,11 +326,21 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		m := &g.Config.Mounts[i]
 		var options []string
 		for _, o := range m.Options {
+			if strings.HasPrefix(o, "subpath=") {
+				subpath := strings.Split(o, "=")[1]
+				safeMount, err := c.safeMountSubPath(m.Source, subpath)
+				if err != nil {
+					return nil, nil, err
+				}
+				safeMounts = append(safeMounts, safeMount)
+				m.Source = safeMount.mountPoint
+				continue
+			}
 			if o == "idmap" || strings.HasPrefix(o, "idmap=") {
 				var err error
 				m.UIDMappings, m.GIDMappings, err = parseIDMapMountOption(c.config.IDMappings, o)
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 				continue
 			}
@@ -320,14 +351,14 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 				} else {
 					// only chown on initial creation of container
 					if err := c.ChangeHostPathOwnership(m.Source, true, int(hostUID), int(hostGID)); err != nil {
-						return nil, err
+						return nil, nil, err
 					}
 				}
 			case "z":
 				fallthrough
 			case "Z":
 				if err := c.relabel(m.Source, c.MountLabel(), label.IsShared(o)); err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 
 			default:
@@ -365,11 +396,11 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	for _, overlayVol := range c.config.OverlayVolumes {
 		upperDir, workDir, err := getOverlayUpperAndWorkDir(overlayVol.Options)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		contentDir, err := overlay.TempDir(c.config.StaticDir, c.RootUID(), c.RootGID())
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		overlayOpts := &overlay.Options{RootUID: c.RootUID(),
 			RootGID:                c.RootGID(),
@@ -380,18 +411,18 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 		overlayMount, err := overlay.MountWithOptions(contentDir, overlayVol.Source, overlayVol.Dest, overlayOpts)
 		if err != nil {
-			return nil, fmt.Errorf("mounting overlay failed %q: %w", overlayVol.Source, err)
+			return nil, nil, fmt.Errorf("mounting overlay failed %q: %w", overlayVol.Source, err)
 		}
 
 		// Check overlay volume options
 		for _, o := range overlayVol.Options {
 			if o == "U" {
 				if err := c.ChangeHostPathOwnership(overlayVol.Source, true, int(hostUID), int(hostGID)); err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 
 				if err := c.ChangeHostPathOwnership(contentDir, true, int(hostUID), int(hostGID)); err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 			}
 		}
@@ -404,16 +435,16 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		// Mount the specified image.
 		img, _, err := c.runtime.LibimageRuntime().LookupImage(volume.Source, nil)
 		if err != nil {
-			return nil, fmt.Errorf("creating image volume %q:%q: %w", volume.Source, volume.Dest, err)
+			return nil, nil, fmt.Errorf("creating image volume %q:%q: %w", volume.Source, volume.Dest, err)
 		}
 		mountPoint, err := img.Mount(ctx, nil, "")
 		if err != nil {
-			return nil, fmt.Errorf("mounting image volume %q:%q: %w", volume.Source, volume.Dest, err)
+			return nil, nil, fmt.Errorf("mounting image volume %q:%q: %w", volume.Source, volume.Dest, err)
 		}
 
 		contentDir, err := overlay.TempDir(c.config.StaticDir, c.RootUID(), c.RootGID())
 		if err != nil {
-			return nil, fmt.Errorf("failed to create TempDir in the %s directory: %w", c.config.StaticDir, err)
+			return nil, nil, fmt.Errorf("failed to create TempDir in the %s directory: %w", c.config.StaticDir, err)
 		}
 
 		var overlayMount spec.Mount
@@ -423,7 +454,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			overlayMount, err = overlay.MountReadOnly(contentDir, mountPoint, volume.Dest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
 		}
 		if err != nil {
-			return nil, fmt.Errorf("creating overlay mount for image %q failed: %w", volume.Source, err)
+			return nil, nil, fmt.Errorf("creating overlay mount for image %q failed: %w", volume.Source, err)
 		}
 		g.AddMount(overlayMount)
 	}
@@ -449,7 +480,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	if c.config.Umask != "" {
 		decVal, err := strconv.ParseUint(c.config.Umask, 8, 32)
 		if err != nil {
-			return nil, fmt.Errorf("invalid Umask Value: %w", err)
+			return nil, nil, fmt.Errorf("invalid Umask Value: %w", err)
 		}
 		umask := uint32(decVal)
 		g.Config.Process.User.Umask = &umask
@@ -459,7 +490,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	if len(c.config.Groups) > 0 {
 		gids, err := lookup.GetContainerGroups(c.config.Groups, c.state.Mountpoint, overrides)
 		if err != nil {
-			return nil, fmt.Errorf("looking up supplemental groups for container %s: %w", c.ID(), err)
+			return nil, nil, fmt.Errorf("looking up supplemental groups for container %s: %w", c.ID(), err)
 		}
 		for _, gid := range gids {
 			g.AddProcessAdditionalGid(gid)
@@ -467,7 +498,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	if err := c.addSystemdMounts(&g); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Look up and add groups the user belongs to, if a group wasn't directly specified
@@ -482,7 +513,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			// Check whether the current user namespace has enough gids available.
 			availableGids, err := rootless.GetAvailableGids()
 			if err != nil {
-				return nil, fmt.Errorf("cannot read number of available GIDs: %w", err)
+				return nil, nil, fmt.Errorf("cannot read number of available GIDs: %w", err)
 			}
 			gidMappings = []idtools.IDMap{{
 				ContainerID: 0,
@@ -514,7 +545,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	// Add shared namespaces from other containers
 	if err := c.addSharedNamespaces(&g); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	g.SetRootPath(c.state.Mountpoint)
@@ -525,7 +556,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	if err := c.setCgroupsPath(&g); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Warning: CDI may alter g.Config in place.
@@ -538,7 +569,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 		_, err := registry.InjectDevices(g.Config, c.config.CDIDevices...)
 		if err != nil {
-			return nil, fmt.Errorf("setting up CDI devices: %w", err)
+			return nil, nil, fmt.Errorf("setting up CDI devices: %w", err)
 		}
 	}
 
@@ -554,7 +585,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		if m.Type == "tmpfs" {
 			finalPath, err := securejoin.SecureJoin(c.state.Mountpoint, m.Destination)
 			if err != nil {
-				return nil, fmt.Errorf("resolving symlinks for mount destination %s: %w", m.Destination, err)
+				return nil, nil, fmt.Errorf("resolving symlinks for mount destination %s: %w", m.Destination, err)
 			}
 			trimmedPath := strings.TrimPrefix(finalPath, strings.TrimSuffix(c.state.Mountpoint, "/"))
 			m.Destination = trimmedPath
@@ -563,25 +594,25 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	if err := c.addRootPropagation(&g, mounts); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Warning: precreate hooks may alter g.Config in place.
 	if c.state.ExtensionStageHooks, err = c.setupOCIHooks(ctx, g.Config); err != nil {
-		return nil, fmt.Errorf("setting up OCI Hooks: %w", err)
+		return nil, nil, fmt.Errorf("setting up OCI Hooks: %w", err)
 	}
 	if len(c.config.EnvSecrets) > 0 {
 		manager, err := c.runtime.SecretsManager()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		for name, secr := range c.config.EnvSecrets {
 			_, data, err := manager.LookupSecretData(secr.Name)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			g.AddProcessEnv(name, string(data))
 		}
@@ -599,7 +630,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
-	return g.Config, nil
+	return g.Config, cleanupFunc, nil
 }
 
 // isWorkDirSymlink returns true if resolved workdir is symlink or a chain of symlinks,

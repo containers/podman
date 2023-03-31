@@ -6,6 +6,7 @@ package libpod
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
@@ -315,4 +316,23 @@ func (c *Container) jailName() string {
 	} else {
 		return c.ID()
 	}
+}
+
+type safeMountInfo struct {
+	// mountPoint is the mount point.
+	mountPoint string
+}
+
+// Close releases the resources allocated with the safe mount info.
+func (s *safeMountInfo) Close() {
+}
+
+// safeMountSubPath securely mounts a subpath inside a volume to a new temporary location.
+// The function checks that the subpath is a valid subpath within the volume and that it
+// does not escape the boundaries of the mount point (volume).
+//
+// The caller is responsible for closing the file descriptor and unmounting the subpath
+// when it's no longer needed.
+func (c *Container) safeMountSubPath(mountPoint, subpath string) (s *safeMountInfo, err error) {
+	return &safeMountInfo{mountPoint: filepath.Join(mountPoint, subpath)}, nil
 }

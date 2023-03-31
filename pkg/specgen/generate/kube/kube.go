@@ -8,7 +8,6 @@ import (
 	"math"
 	"net"
 	"os"
-	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -407,10 +406,6 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		}
 
 		volume.MountPath = dest
-		path := volumeSource.Source
-		if len(volume.SubPath) > 0 {
-			path = filepath.Join(path, volume.SubPath)
-		}
 		switch volumeSource.Type {
 		case KubeVolumeTypeBindMount:
 			// If the container has bind mounts, we need to check if
@@ -419,16 +414,19 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 				// Make sure the z/Z option is not already there (from editing the YAML)
 				if k == define.BindMountPrefix {
 					lastIndex := strings.LastIndex(v, ":")
-					if v[:lastIndex] == path && !cutil.StringInSlice("z", options) && !cutil.StringInSlice("Z", options) {
+					if v[:lastIndex] == volumeSource.Source && !cutil.StringInSlice("z", options) && !cutil.StringInSlice("Z", options) {
 						options = append(options, v[lastIndex+1:])
 					}
 				}
 			}
 			mount := spec.Mount{
 				Destination: volume.MountPath,
-				Source:      path,
+				Source:      volumeSource.Source,
 				Type:        "bind",
 				Options:     options,
+			}
+			if len(volume.SubPath) > 0 {
+				mount.Options = append(mount.Options, fmt.Sprintf("subpath=%s", volume.SubPath))
 			}
 			s.Mounts = append(s.Mounts, mount)
 		case KubeVolumeTypeNamed:
@@ -451,7 +449,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			// We are setting the path as hostPath:mountPath to comply with pkg/specgen/generate.DeviceFromPath.
 			// The type is here just to improve readability as it is not taken into account when the actual device is created.
 			device := spec.LinuxDevice{
-				Path: fmt.Sprintf("%s:%s", path, volume.MountPath),
+				Path: fmt.Sprintf("%s:%s", volumeSource.Source, volume.MountPath),
 				Type: "c",
 			}
 			s.Devices = append(s.Devices, device)
@@ -459,7 +457,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			// We are setting the path as hostPath:mountPath to comply with pkg/specgen/generate.DeviceFromPath.
 			// The type is here just to improve readability as it is not taken into account when the actual device is created.
 			device := spec.LinuxDevice{
-				Path: fmt.Sprintf("%s:%s", path, volume.MountPath),
+				Path: fmt.Sprintf("%s:%s", volumeSource.Source, volume.MountPath),
 				Type: "b",
 			}
 			s.Devices = append(s.Devices, device)

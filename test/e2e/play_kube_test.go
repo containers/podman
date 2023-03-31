@@ -5015,6 +5015,58 @@ spec:
 		Expect(exec.OutputToString()).Should(ContainSubstring("123.txt"))
 	})
 
+	It("podman play kube with unsafe subpaths", func() {
+		SkipIfRemote("volume export does not exist on remote")
+		volumeCreate := podmanTest.Podman([]string{"volume", "create", "testvol1"})
+		volumeCreate.WaitWithDefaultTimeout()
+		Expect(volumeCreate).Should(Exit(0))
+
+		session := podmanTest.Podman([]string{"run", "--volume", "testvol1:/data", ALPINE, "sh", "-c", "mkdir -p /data/testing && ln -s /etc /data/testing/onlythis"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		tar := filepath.Join(podmanTest.TempDir, "out.tar")
+		session = podmanTest.Podman([]string{"volume", "export", "--output", tar, "testvol1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		volumeCreate = podmanTest.Podman([]string{"volume", "create", "testvol"})
+		volumeCreate.WaitWithDefaultTimeout()
+		Expect(volumeCreate).Should(Exit(0))
+
+		volumeImp := podmanTest.Podman([]string{"volume", "import", "testvol", filepath.Join(podmanTest.TempDir, "out.tar")})
+		volumeImp.WaitWithDefaultTimeout()
+		Expect(volumeImp).Should(Exit(0))
+
+		err = writeYaml(subpathTestNamedVolume, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		playKube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		playKube.WaitWithDefaultTimeout()
+		Expect(playKube).Should(Exit(125))
+		Expect(playKube.OutputToString()).Should(ContainSubstring("is outside"))
+	})
+
+	It("podman play kube with unsafe hostPath subpaths", func() {
+		if !Containerized() {
+			Skip("something is wrong with file permissions in CI or in the yaml creation. cannot ls or cat the fs unless in a container")
+		}
+		hostPathLocation := podmanTest.TempDir
+
+		Expect(os.MkdirAll(filepath.Join(hostPathLocation, "testing"), 0755)).To(Succeed())
+		Expect(os.Symlink("/", filepath.Join(hostPathLocation, "testing", "symlink"))).To(Succeed())
+
+		pod := getPod(withPodName("testpod"), withCtr(getCtr(withImage(ALPINE), withName("testctr"), withCmd([]string{"top"}), withVolumeMount("/foo", "testing/symlink", false))), withVolume(getHostPathVolume("DirectoryOrCreate", hostPathLocation)))
+
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(Not(HaveOccurred()))
+
+		playKube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		playKube.WaitWithDefaultTimeout()
+		Expect(playKube).Should(Exit(125))
+		Expect(playKube.OutputToString()).Should(ContainSubstring("is outside"))
+	})
+
 	It("podman play kube with configMap subpaths", func() {
 		volumeName := "cmVol"
 		cm := getConfigMap(withConfigMapName(volumeName), withConfigMapData("FOO", "foobar"))

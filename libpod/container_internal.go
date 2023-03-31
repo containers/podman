@@ -1035,10 +1035,11 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	}
 
 	// Generate the OCI newSpec
-	newSpec, err := c.generateSpec(ctx)
+	newSpec, cleanupFunc, err := c.generateSpec(ctx)
 	if err != nil {
 		return err
 	}
+	defer cleanupFunc()
 
 	// Make sure the workdir exists while initializing container
 	if err := c.resolveWorkDir(); err != nil {
