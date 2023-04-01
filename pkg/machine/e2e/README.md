@@ -28,6 +28,17 @@ Note: To run specific test files, add the test files to the end of the winmake c
 
 `./winmake localmachine "basic_test.go start_test.go"`
 
+### QEMU
+1. Install QEMU and add it to either user or sysmem PATH variable
+1. Install Podman release (needed to have gvproxy binary)
+1. Open a powershell as a regular user
+1. $env:CONTAINERS_MACHINE_PROVIDER="qemu"
+1. `./winmake localmachine`
+
+Note: To run specific test files, add the test files to the end of the winmake command:
+
+`./winmake localmachine "basic_test.go start_test.go"`
+
 ## MacOS
 
 ### Apple Hypervisor

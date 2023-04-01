@@ -189,6 +189,9 @@ var _ = Describe("podman machine init", func() {
 			Skip("volumes are not supported on hyperv yet")
 		}
 		skipIfWSL("WSL volumes are much different.  This test will not pass as is")
+		if testProvider.VMType() == define.QemuVirt && runtime.GOOS == "windows" {
+			Skip("volumes are not yet supported on official qemu builds running under Windows")
+		}
 
 		tmpDir, err := os.MkdirTemp("", "")
 		Expect(err).ToNot(HaveOccurred())

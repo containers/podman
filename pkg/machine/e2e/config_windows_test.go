@@ -14,7 +14,7 @@ import (
 const podmanBinary = "../../../bin/windows/podman.exe"
 
 func getDownloadLocation(p machine.VirtProvider) string {
-	if p.VMType() == define.HyperVVirt {
+	if p.VMType() == define.HyperVVirt || p.VMType() == define.QemuVirt {
 		return getFCOSDownloadLocation(p)
 	}
 	fd, err := wsl.NewFedoraDownloader(define.WSLVirt, "", defaultStream.String())

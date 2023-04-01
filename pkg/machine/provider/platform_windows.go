@@ -32,6 +32,8 @@ func Get() (machine.VirtProvider, error) {
 		return wsl.VirtualizationProvider(), nil
 	case define.HyperVVirt:
 		return hyperv.VirtualizationProvider(), nil
+	case define.QemuVirt:
+		return getQemuProvider()
 	default:
 		return nil, fmt.Errorf("unsupported virtualization provider: `%s`", resolvedVMType.String())
 	}
