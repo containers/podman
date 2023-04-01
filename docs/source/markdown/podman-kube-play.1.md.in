@@ -22,6 +22,7 @@ Currently, the supported Kubernetes kinds are:
 - Deployment
 - PersistentVolumeClaim
 - ConfigMap
+- Secret
 
 `Kubernetes Pods or Deployments`
 
@@ -118,6 +119,40 @@ spec:
     - configMapRef:
         name: foo
         optional: false
+```
+
+and as a result environment variable `FOO` will be set to `bar` for container `container-1`.
+
+`Kubernetes Secret`
+
+Kubernetes Secret represents a Podman named secret. The Kubernetes Secret is saved as a whole and may be referred to as a source of environment variables or volumes in Pods or Deployments.
+
+For example, the following YAML document defines a Secret and then uses it in a Pod:
+
+```
+kind: Secret
+apiVersion: v1
+metadata:
+  name: foo
+data:
+  foo: YmFy # base64 for bar
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: foobar
+spec:
+  containers:
+  - command:
+    - top
+    name: container-1
+    image: foobar
+    env:
+    - name: FOO
+      valueFrom:
+        secretKeyRef:
+          name: foo
+          key: foo
 ```
 
 and as a result environment variable `FOO` will be set to `bar` for container `container-1`.
