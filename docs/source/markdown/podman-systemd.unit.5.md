@@ -110,7 +110,7 @@ Valid options for `[Container]` are listed below:
 | PodmanArgs=--add-host foobar     | --add-host foobar                      |
 | PublishPort=true                 | --publish                              |
 | ReadOnly=true                    | --read-only                            |
-| RemapGid=keep-id                 | --group-add keep-id                    |
+| RemapGid=0:20000:400             | --gidmap 0:20000:400                   |
 | RemapUid=0:100000:2000           | --uidmap 0:100000:2000                 |
 | RemapUidSize=6000                | --userns auto:6000                     |
 | RemapUsers=auto                  | --userns auto                          |
@@ -387,8 +387,9 @@ If enabled, makes image read-only, with /var/tmp, /tmp and /run a tmpfs (unless 
 
 `RemapGid` key to force a particular host uid to be mapped to the container.
 
-In `keep-id` mode, the running user is mapped to the same id in the container. This is supported
-only on user systemd units.
+In `keep-id` mode, the value should be a single GID and should appear only once.
+If no value is set, the running user is mapped to the same id in the container.
+This is supported only on user systemd units.
 
 If `RemapUsers` is enabled, this specifies a gid mapping of the form `container_gid:from_gid:amount`,
 which will map `amount` number of gids on the host starting at `from_gid` into the container, starting
@@ -396,7 +397,9 @@ at `container_gid`.
 
 ### `RemapUid=`
 
-If `RemapUsers` is enabled, this specifies a uid mapping of the form `container_uid:from_uid:amount`,
+If `RemapUsers` is enabled, this specifies a uid mapping.
+If `RemapUsers` is set to `keep-id` the value should be a single UID and should appear only once.
+Otherwise, the value takes the form `container_uid:from_uid:amount`,
 which will map `amount` number of uids on the host starting at `from_uid` into the container, starting
 at `container_uid`.
 
@@ -494,7 +497,7 @@ Valid options for `[Kube]` are listed below:
 | LogDriver=journald               | --log-driver journald                  |
 | Network=host                     | --net host                             |
 | PublishPort=59-60                | --publish=59-60                        |
-| RemapGid=keep-id                 | --group-add keep-id                    |
+| RemapGid=0:20000:400             | --gidmap 0:20000:400                   |
 | RemapUid=0:100000:2000           | --uidmap 0:100000:2000                 |
 | RemapUidSize=6000                | --userns auto:6000                     |
 | RemapUsers=auto                  | --userns auto                          |
