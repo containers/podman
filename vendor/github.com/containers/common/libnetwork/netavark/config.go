@@ -57,6 +57,17 @@ func (n *netavarkNetwork) NetworkUpdate(name string, options types.NetworkUpdate
 	if err != nil {
 		return err
 	}
+	// Nameservers must be IP Addresses.
+	for _, dnsServer := range options.AddDNSServers {
+		if net.ParseIP(dnsServer) == nil {
+			return fmt.Errorf("unable to parse ip %s specified in AddDNSServer: %w", dnsServer, types.ErrInvalidArg)
+		}
+	}
+	for _, dnsServer := range options.RemoveDNSServers {
+		if net.ParseIP(dnsServer) == nil {
+			return fmt.Errorf("unable to parse ip %s specified in RemoveDNSServer: %w", dnsServer, types.ErrInvalidArg)
+		}
+	}
 	networkDNSServersBefore := network.NetworkDNSServers
 	networkDNSServersAfter := []string{}
 	for _, server := range networkDNSServersBefore {
