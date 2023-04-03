@@ -23,6 +23,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type CopyInfo struct {
+	sourceContainerStr string
+	sourcePath         string
+	destContainerStr   string
+	destPath           string
+	rename             string
+	followLink         bool
+}
+
 var (
 	cpDescription = `Copy the contents of SRC_PATH to the DEST_PATH.
 
@@ -50,14 +59,16 @@ var (
 )
 
 var (
-	cpOpts entities.ContainerCpOptions
-	chown  bool
+	cpOpts     entities.ContainerCpOptions
+	chown      bool
+	followLink bool
 )
 
 func cpFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 	flags.BoolVar(&cpOpts.OverwriteDirNonDir, "overwrite", false, "Allow to overwrite directories with non-directories and vice versa")
 	flags.BoolVarP(&chown, "archive", "a", true, `Chown copied files to the primary uid/gid of the destination container.`)
+	flags.BoolVar(&followLink, "follow-link", false, `follows symbolic links`)
 
 	// Deprecated flags (both are NOPs): exist for backwards compat
 	flags.BoolVar(&cpOpts.Extract, "extract", false, "Deprecated...")
@@ -86,13 +97,22 @@ func cp(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	copyInfo := &CopyInfo{
+		sourceContainerStr: sourceContainerStr,
+		sourcePath:         sourcePath,
+		destContainerStr:   destContainerStr,
+		destPath:           destPath,
+		followLink:         followLink,
+	}
+
 	if len(sourceContainerStr) > 0 && len(destContainerStr) > 0 {
 		return copyContainerToContainer(sourceContainerStr, sourcePath, destContainerStr, destPath)
 	} else if len(sourceContainerStr) > 0 {
 		return copyFromContainer(sourceContainerStr, sourcePath, destPath)
 	}
 
-	return copyToContainer(destContainerStr, destPath, sourcePath)
+	// return copyToContainer(destContainerStr, destPath, sourcePath)
+	return copyToContainer(copyInfo)
 }
 
 // containerMustExist returns an error if the specified container does not
@@ -334,24 +354,24 @@ func copyFromContainer(container string, containerPath string, hostPath string) 
 }
 
 // copyToContainer copies the hostPath to containerPath on the container.
-func copyToContainer(container string, containerPath string, hostPath string) error {
-	if err := containerMustExist(container); err != nil {
+func copyToContainer(cI *CopyInfo) error {
+	if err := containerMustExist(cI.destContainerStr); err != nil {
 		return err
 	}
 
 	isStdin := false
-	if hostPath == "-" {
-		hostPath = os.Stdin.Name()
+	if cI.sourcePath == "-" {
+		cI.sourcePath = os.Stdin.Name()
 		isStdin = true
 	}
 
 	// Make sure that host path exists.
-	hostInfo, err := copy.ResolveHostPath(hostPath)
+	hostInfo, err := copy.ResolveHostPath(cI.sourcePath)
 	if err != nil {
-		return fmt.Errorf("%q could not be found on the host: %w", hostPath, err)
+		return fmt.Errorf("%q could not be found on the host: %w", cI.sourcePath, err)
 	}
 
-	containerBaseName, containerInfo, containerResolvedToParentDir, err := resolvePathOnDestinationContainer(container, containerPath, isStdin)
+	containerBaseName, containerInfo, containerResolvedToParentDir, err := resolvePathOnDestinationContainer(cI.destContainerStr, cI.destPath, isStdin)
 	if err != nil {
 		return err
 	}
@@ -416,6 +436,7 @@ func copyToContainer(container string, containerPath string, hostPath string) er
 			// Unless the specified path points to ".", we want to
 			// copy the base directory.
 			KeepDirectoryNames: hostInfo.IsDir && filepath.Base(hostTarget) != ".",
+			NoDerefSymlinks:    !cI.followLink,
 		}
 		if (!hostInfo.IsDir && !containerInfo.IsDir) || containerResolvedToParentDir {
 			// If we're having a file-to-file copy, make sure to
@@ -435,7 +456,7 @@ func copyToContainer(container string, containerPath string, hostPath string) er
 			target = filepath.Dir(target)
 		}
 
-		copyFunc, err := registry.ContainerEngine().ContainerCopyFromArchive(registry.GetContext(), container, target, reader, entities.CopyOptions{Chown: chown, NoOverwriteDirNonDir: !cpOpts.OverwriteDirNonDir})
+		copyFunc, err := registry.ContainerEngine().ContainerCopyFromArchive(registry.GetContext(), cI.destContainerStr, target, reader, entities.CopyOptions{Chown: chown, NoOverwriteDirNonDir: !cpOpts.OverwriteDirNonDir})
 		if err != nil {
 			return err
 		}
