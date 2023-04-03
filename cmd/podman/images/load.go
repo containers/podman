@@ -63,6 +63,7 @@ func loadFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(inputFlagName, completion.AutocompleteDefault)
 
 	flags.BoolVarP(&loadOpts.Quiet, "quiet", "q", false, "Suppress the output")
+	flags.StringVar(&loadOpts.TmpDir, "tmp-dir", "d", "Set temporary directory when load image. if not set, use system temporary directory(`/var/tmp/`)")
 	if !registry.IsRemote() {
 		flags.StringVar(&loadOpts.SignaturePolicy, "signature-policy", "", "Pathname of signature policy file")
 		_ = flags.MarkHidden("signature-policy")

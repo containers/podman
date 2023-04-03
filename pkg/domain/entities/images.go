@@ -323,6 +323,7 @@ type ImageLoadOptions struct {
 	Input           string
 	Quiet           bool
 	SignaturePolicy string
+	TmpDir          string
 }
 
 type ImageLoadReport struct {
