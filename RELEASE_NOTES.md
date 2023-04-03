@@ -1,5 +1,59 @@
 # Release Notes
 
+## 4.4.4
+### Changes
+- Podman now writes direct mappings for idmapped mounts.
+
+### Bugfixes
+- Fixed a regression which caused the MacOS installer to fail if podman-mac-helper was already installed ([#17910](https://github.com/containers/podman/issues/17910)).
+
+## 4.4.3
+### Security
+- This release fixes CVE-2022-41723, a vulnerability in the golang.org/x/net package where a maliciously crafted HTTP/2 stream could cause excessive CPU consumption, sufficient to cause a denial of service.
+
+### Changes
+- Added `SYS_CHROOT` back to the default set of capabilities.
+
+### Bugfixes
+- Fixed a bug where quadlet would not use the default runtime set.
+- Fixed a bug where `podman system service --log-level=trace` did not hijack the client connection, causing remote `podman run/attach` calls to work incorrectly ([#17749](https://github.com/containers/podman/issues/17749)).
+- Fixed a bug where the podman-mac-helper returned an incorrect exit code after erroring. `podman-mac-helper` now exits with 1 on error ([#17785](https://github.com/containers/podman/issues/17785)).
+- Fixed a bug where `podman run --dns ... --network` would not respect the dns option. Podman will no longer add host nameservers to resolv.conf when aardvark-dns is used ([#17499](https://github.com/containers/podman/issues/17499)).
+- Fixed a bug where `podman logs` errored out with the passthrough driver when the container was run from a systemd service.
+- Fixed a bug where `--health-on-failure=restart` would not restart the container when the health state turned unhealthy ([#17777](https://github.com/containers/podman/issues/17777)).
+- Fixed a bug where podman machine VMs could have their system time drift behind real time. New machines will no longer be affected by this ([#11541](https://github.com/containers/podman/issues/11541)).
+
+### API
+- Fixed a bug where creating a network with the Compat API would return an incorrect status code. The API call now returns 409 when creating a network with an existing name and when CheckDuplicate is set to true ([#17585](https://github.com/containers/podman/issues/17585)).
+- Fixed a bug in the /auth REST API where logging into Docker Hub would fail ([#17571](https://github.com/containers/podman/issues/17571)).
+
+### Misc
+- Updated the containers/common library to v0.51.1
+- Updated the Mac pkginstaller QEMU to v7.2.0
+
+## 4.4.2
+### Security
+- This release fixes CVE-2023-0778, which allowed a malicious user to potentially replace a normal file in a volume with a symlink while exporting the volume, allowing for access to arbitrary files on the host file system.
+
+### Bugfixes
+- Fixed a bug where containers started via the `podman-kube` systemd template would always use the "passthrough" log driver ([#17482](https://github.com/containers/podman/issues/17482)).
+- Fixed a bug where pulls would unexpectedly encounter an EOF error. Now, Podman automatically transparently resumes aborted pull connections.
+- Fixed a race condition in Podman's signal proxy.
+
+### Misc
+- Updated the containers/image library to v5.24.1.
+
+## 4.4.1
+### Changes
+- Added the `podman-systemd.unit` man page, which can also be displayed using `man quadlet` ([#17349](https://github.com/containers/podman/issues/17349)).
+- Documented journald identifiers used in the journald backend for the `podman events` command.
+- Dropped the CAP_CHROOT, CAP_AUDIT_WRITE, CAP_MKNOD, CAP_MKNOD default capabilities.
+
+### Bugfixes
+- Fixed a bug where the default handling of pids-limit was incorrect.
+- Fixed a bug where parallel calls to `make docs` crashed ([#17322](https://github.com/containers/podman/issues/17322)).
+- Fixed a regression in the `podman kube play` command where existing resources got mistakenly removed.
+
 ## 4.4.0
 ### Features
 - Introduce Quadlet, a new systemd-generator that easily writes and maintains systemd services using Podman.
