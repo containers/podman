@@ -24,7 +24,7 @@ func (i *Image) History(ctx context.Context) ([]ImageHistory, error) {
 		return nil, err
 	}
 
-	layerTree, err := i.runtime.layerTree(nil)
+	layerTree, err := i.runtime.layerTree()
 	if err != nil {
 		return nil, err
 	}

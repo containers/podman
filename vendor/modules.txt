@@ -123,8 +123,8 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.51.1-0.20230329113838-e27c30ee9b1b
-## explicit; go 1.18
+# github.com/containers/common v0.51.2
+## explicit; go 1.17
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
 github.com/containers/common/libimage/manifests

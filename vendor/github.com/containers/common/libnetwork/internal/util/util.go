@@ -129,19 +129,3 @@ func GetFreeIPv6NetworkSubnet(usedNetworks []*net.IPNet) (*types.Subnet, error) 
 	}
 	return nil, errors.New("failed to get random ipv6 subnet")
 }
-
-// Map docker driver network options to podman network options
-func MapDockerBridgeDriverOptions(n *types.Network) {
-	// validate the given options
-	for key, value := range n.Options {
-		switch key {
-		case "com.docker.network.driver.mtu":
-			n.Options[types.MTUOption] = value
-			delete(n.Options, "com.docker.network.driver.mtu")
-
-		case "com.docker.network.bridge.name":
-			n.NetworkInterface = value
-			delete(n.Options, "com.docker.network.bridge.name")
-		}
-	}
-}

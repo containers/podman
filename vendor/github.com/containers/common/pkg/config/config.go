@@ -109,10 +109,6 @@ type ContainersConfig struct {
 	// Default cgroup configuration
 	Cgroups string `toml:"cgroups,omitempty"`
 
-	// CgroupConf entries specifies a list of cgroup files to write to and their values. For example
-	// "memory.high=1073741824" sets the memory.high limit to 1GB.
-	CgroupConf []string `toml:"cgroup_conf,omitempty"`
-
 	// Capabilities to add to all containers.
 	DefaultCapabilities []string `toml:"default_capabilities,omitempty"`
 
@@ -184,10 +180,6 @@ type ContainersConfig struct {
 	// NoHosts tells container engine whether to create its own /etc/hosts
 	NoHosts bool `toml:"no_hosts,omitempty"`
 
-	// OOMScoreAdj tunes the host's OOM preferences for containers
-	// (accepts values from -1000 to 1000).
-	OOMScoreAdj *int `toml:"oom_score_adj,omitempty"`
-
 	// PidsLimit is the number of processes each container is restricted to
 	// by the cgroup process number controller.
 	PidsLimit int64 `toml:"pids_limit,omitempty,omitzero"`
@@ -258,9 +250,6 @@ type EngineConfig struct {
 	// ignore unqualified-search-registries and short-name aliases defined
 	// in containers-registries.conf(5).
 	CompatAPIEnforceDockerHub bool `toml:"compat_api_enforce_docker_hub,omitempty"`
-
-	// DBBackend is the database backend to be used by Podman.
-	DBBackend string `toml:"database_backend,omitempty"`
 
 	// DetachKeys is the sequence of keys used to detach a container.
 	DetachKeys string `toml:"detach_keys,omitempty"`
@@ -620,7 +609,7 @@ type MachineConfig struct {
 	CPUs uint64 `toml:"cpus,omitempty,omitzero"`
 	// DiskSize is the size of the disk in GB created when init-ing a podman-machine VM
 	DiskSize uint64 `toml:"disk_size,omitempty,omitzero"`
-	// Image is the image used when init-ing a podman-machine VM
+	// MachineImage is the image used when init-ing a podman-machine VM
 	Image string `toml:"image,omitempty"`
 	// Memory in MB a machine is created with.
 	Memory uint64 `toml:"memory,omitempty,omitzero"`
@@ -628,8 +617,6 @@ type MachineConfig struct {
 	User string `toml:"user,omitempty"`
 	// Volumes are host directories mounted into the VM by default.
 	Volumes []string `toml:"volumes"`
-	// Provider is the virtualization provider used to run podman-machine VM
-	Provider string `toml:"provider,omitempty"`
 }
 
 // Destination represents destination for remote service
@@ -765,21 +752,11 @@ func addConfigs(dirPath string, configs []string) ([]string, error) {
 // Returns the list of configuration files, if they exist in order of hierarchy.
 // The files are read in order and each new file can/will override previous
 // file settings.
-func systemConfigs() (configs []string, finalErr error) {
-	if path := os.Getenv("CONTAINERS_CONF_OVERRIDE"); path != "" {
-		if _, err := os.Stat(path); err != nil {
-			return nil, fmt.Errorf("CONTAINERS_CONF_OVERRIDE file: %w", err)
-		}
-		// Add the override config last to make sure it can override any
-		// previous settings.
-		defer func() {
-			if finalErr == nil {
-				configs = append(configs, path)
-			}
-		}()
-	}
-
-	if path := os.Getenv("CONTAINERS_CONF"); path != "" {
+func systemConfigs() ([]string, error) {
+	var err error
+	configs := []string{}
+	path := os.Getenv("CONTAINERS_CONF")
+	if path != "" {
 		if _, err := os.Stat(path); err != nil {
 			return nil, fmt.Errorf("CONTAINERS_CONF file: %w", err)
 		}
@@ -791,14 +768,12 @@ func systemConfigs() (configs []string, finalErr error) {
 	if _, err := os.Stat(OverrideContainersConfig); err == nil {
 		configs = append(configs, OverrideContainersConfig)
 	}
-
-	var err error
 	configs, err = addConfigs(OverrideContainersConfig+".d", configs)
 	if err != nil {
 		return nil, err
 	}
 
-	path, err := ifRootlessConfigPath()
+	path, err = ifRootlessConfigPath()
 	if err != nil {
 		return nil, err
 	}
@@ -921,11 +896,6 @@ func (c *EngineConfig) Validate() error {
 	if _, err := ValidatePullPolicy(pullPolicy); err != nil {
 		return fmt.Errorf("invalid pull type from containers.conf %q: %w", c.PullPolicy, err)
 	}
-
-	if _, err := ParseDBBackend(c.DBBackend); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -1360,13 +1330,9 @@ func (c *Config) FindHelperBinary(name string, searchPATH bool) (string, error) 
 				path = filepath.Join(bindirPath, strings.TrimPrefix(path, bindirPrefix+string(filepath.Separator)))
 			}
 		}
-		// Absolute path will force exec.LookPath to check for binary existence instead of lookup everywhere in PATH
-		if abspath, err := filepath.Abs(filepath.Join(path, name)); err == nil {
-			// exec.LookPath from absolute path on Unix is equal to os.Stat + IsNotDir + check for executable bits in FileMode
-			// exec.LookPath from absolute path on Windows is equal to os.Stat + IsNotDir for `file.ext` or loops through extensions from PATHEXT for `file`
-			if lp, err := exec.LookPath(abspath); err == nil {
-				return lp, nil
-			}
+		fullpath := filepath.Join(path, name)
+		if fi, err := os.Stat(fullpath); err == nil && fi.Mode().IsRegular() {
+			return fullpath, nil
 		}
 	}
 	if searchPATH {

@@ -49,15 +49,6 @@ type Formatter struct {
 	writer        io.Writer          // Destination for formatted output
 }
 
-// stringsCutPrefix is equivalent to Go 1.20’s strings.CutPrefix.
-// Replace this function with a direct call to the standard library after we update to Go 1.20.
-func stringsCutPrefix(s, prefix string) (string, bool) {
-	if !strings.HasPrefix(s, prefix) {
-		return s, false
-	}
-	return s[len(prefix):], true
-}
-
 // Parse parses golang template returning a formatter
 //
 //   - OriginPodman implies text is a template from podman code. Output will
@@ -73,12 +64,11 @@ func (f *Formatter) Parse(origin Origin, text string) (*Formatter, error) {
 	// To be backwards compatible with the previous behavior we try to replace and
 	// parse the template. If it fails use the original text and parse again.
 	var normText string
-	textWithoutTable, hasTable := stringsCutPrefix(text, "table ")
 	switch {
-	case hasTable:
+	case strings.HasPrefix(text, "table "):
 		f.RenderTable = true
 		normText = "{{range .}}" + NormalizeFormat(text) + "{{end -}}"
-		text = "{{range .}}" + textWithoutTable + "{{end -}}"
+		text = "{{range .}}" + text + "{{end -}}"
 	case OriginUser == origin:
 		normText = EnforceRange(NormalizeFormat(text))
 		text = EnforceRange(text)

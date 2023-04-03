@@ -26,7 +26,7 @@ type Driver struct {
 	// secretsDataFilePath is the path to the secretsfile
 	secretsDataFilePath string
 	// lockfile is the filedriver lockfile
-	lockfile *lockfile.LockFile
+	lockfile lockfile.Locker
 }
 
 // NewDriver creates a new file driver.

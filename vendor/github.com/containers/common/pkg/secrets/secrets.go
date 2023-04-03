@@ -62,7 +62,7 @@ type SecretsManager struct {
 	// secretsPath is the path to the db file where secrets are stored
 	secretsDBPath string
 	// lockfile is the locker for the secrets file
-	lockfile *lockfile.LockFile
+	lockfile lockfile.Locker
 	// db is an in-memory cache of the database of secrets
 	db *db
 }

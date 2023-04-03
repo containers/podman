@@ -23,17 +23,6 @@ import (
 // Image represents an image in the containers storage and allows for further
 // operations and data manipulation.
 type Image struct {
-	// ListData that is being set by (*Runtime).ListImages().  Note that
-	// the data may be outdated.
-	ListData struct {
-		// Dangling indicates if the image is dangling.  Use
-		// `IsDangling()` to compute the latest state.
-		IsDangling *bool
-		// Parent points to the parent image.  Use `Parent()` to
-		// compute the latest state.
-		Parent *Image
-	}
-
 	// Backwards pointer to the runtime.
 	runtime *Runtime
 
@@ -227,14 +216,10 @@ func (i *Image) TopLayer() string {
 
 // Parent returns the parent image or nil if there is none
 func (i *Image) Parent(ctx context.Context) (*Image, error) {
-	tree, err := i.runtime.layerTree(nil)
+	tree, err := i.runtime.layerTree()
 	if err != nil {
 		return nil, err
 	}
-	return i.parent(ctx, tree)
-}
-
-func (i *Image) parent(ctx context.Context, tree *layerTree) (*Image, error) {
 	return tree.parent(ctx, i)
 }
 
@@ -261,7 +246,7 @@ func (i *Image) Children(ctx context.Context) ([]*Image, error) {
 // created for this invocation only.
 func (i *Image) getChildren(ctx context.Context, all bool, tree *layerTree) ([]*Image, error) {
 	if tree == nil {
-		t, err := i.runtime.layerTree(nil)
+		t, err := i.runtime.layerTree()
 		if err != nil {
 			return nil, err
 		}

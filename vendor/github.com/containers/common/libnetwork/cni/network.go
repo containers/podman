@@ -44,7 +44,7 @@ type cniNetwork struct {
 	isMachine bool
 
 	// lock is a internal lock for critical operations
-	lock *lockfile.LockFile
+	lock lockfile.Locker
 
 	// modTime is the timestamp when the config dir was modified
 	modTime time.Time

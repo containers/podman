@@ -35,7 +35,7 @@ func (i *Image) Tree(traverseChildren bool) (string, error) {
 		fmt.Fprintf(sb, "No Image Layers")
 	}
 
-	layerTree, err := i.runtime.layerTree(nil)
+	layerTree, err := i.runtime.layerTree()
 	if err != nil {
 		return "", err
 	}
