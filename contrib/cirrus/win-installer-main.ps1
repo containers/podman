@@ -33,6 +33,10 @@ Remove-Item Env:\GOPATH
 Remove-Item Env:\GOSRC
 Remove-Item Env:\GOCACHE
 
+# Drop large known env variables (an env > 32k will break MSI/ICE validation)
+Remove-Item Env:\CIRRUS_COMMIT_MESSAGE
+Remove-Item Env:\CIRRUS_PR_BODY
+
 Set-Location contrib\win-installer
 
 # Download and extract alt_build win release zip
