@@ -46,6 +46,8 @@ arc unarchive repo.tbz2 .; CheckExit
 # refreshenv
 # c:\tools\msys64\usr\bin\bash -lc "pacman --noconfirm -S tmate"
 # c:\tools\msys64\usr\bin\bash -lc "tmate -F"
+cmd /c set > env.txt
+ls -l env.txt
 
 # Build Installer
 .\build.ps1 $Env:WIN_INST_VER dev repo; CheckExit
