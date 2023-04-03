@@ -36,10 +36,16 @@ Remove-Item Env:\GOCACHE
 Set-Location contrib\win-installer
 
 # Download and extract alt_build win release zip
-$url = "${ENV:ART_URL}/Windows Cross/repo/repo.tbz"
+# $url = "${ENV:ART_URL}/Windows Cross/repo/repo.tbz"
+$url = "https://api.cirrus-ci.com/v1/artifact/build/5232073510748160/Windows Cross/repo/repo.tbz"
 # Arc requires extension to be "tbz2"
 DownloadFile "$url" "repo.tbz2"
 arc unarchive repo.tbz2 .; CheckExit
+
+choco install msys2
+refreshenv
+c:\tools\msys64\usr\bin\bash -lc "pacman --noconfirm -S tmate"
+c:\tools\msys64\usr\bin\bash -lc "tmate -F"
 
 # Build Installer
 .\build.ps1 $Env:WIN_INST_VER dev repo; CheckExit
