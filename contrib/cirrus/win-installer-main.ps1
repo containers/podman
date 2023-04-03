@@ -42,7 +42,7 @@ $url = "https://api.cirrus-ci.com/v1/artifact/build/5232073510748160/Windows Cro
 DownloadFile "$url" "repo.tbz2"
 arc unarchive repo.tbz2 .; CheckExit
 
-choco install msys2
+choco install -y msys2
 refreshenv
 c:\tools\msys64\usr\bin\bash -lc "pacman --noconfirm -S tmate"
 c:\tools\msys64\usr\bin\bash -lc "tmate -F"
