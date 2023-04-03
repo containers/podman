@@ -22,6 +22,7 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/homedir"
+	"github.com/containers/storage/pkg/ioutils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"
@@ -450,21 +451,22 @@ func downloadDistro(v *MachineVM, opts machine.InitOptions) error {
 func (v *MachineVM) writeConfig() error {
 	const format = "could not write machine json config: %w"
 	jsonFile := v.ConfigPath
-	tmpFile, err := getConfigPathExt(v.Name, "tmp")
-	if err != nil {
-		return err
-	}
 
-	b, err := json.MarshalIndent(v, "", " ")
+	opts := &ioutils.AtomicFileWriterOptions{ExplicitCommit: true}
+	w, err := ioutils.NewAtomicFileWriterWithOpts(jsonFile, 0644, opts)
 	if err != nil {
 		return fmt.Errorf(format, err)
 	}
+	defer w.Close()
 
-	if err := os.WriteFile(tmpFile, b, 0644); err != nil {
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", " ")
+	if err := enc.Encode(v); err != nil {
 		return fmt.Errorf(format, err)
 	}
 
-	if err := os.Rename(tmpFile, jsonFile); err != nil {
+	// Commit the changes to disk if no error has occurred
+	if err := w.Commit(); err != nil {
 		return fmt.Errorf(format, err)
 	}
 
