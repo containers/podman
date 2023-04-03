@@ -4,17 +4,21 @@
 package events
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/coreos/go-systemd/v22/journal"
 	"github.com/coreos/go-systemd/v22/sdjournal"
+	"github.com/klauspost/compress/zstd"
 	"github.com/sirupsen/logrus"
 )
 
@@ -61,12 +65,22 @@ func (e EventJournalD) Write(ee Event) error {
 			if err != nil {
 				return err
 			}
-			m["PODMAN_LABELS"] = string(b)
+
+			s, err := compress(string(b))
+			if err != nil {
+				return err
+			}
+
+			m["PODMAN_LABELS"] = s
 		}
 		m["PODMAN_HEALTH_STATUS"] = ee.HealthStatus
 
 		if len(ee.Details.ContainerInspectData) > 0 {
-			m["PODMAN_CONTAINER_INSPECT_DATA"] = ee.Details.ContainerInspectData
+			s, err := compress(ee.Details.ContainerInspectData)
+			if err != nil {
+				return err
+			}
+			m["PODMAN_CONTAINER_INSPECT_DATA"] = s
 		}
 	case Network:
 		m["PODMAN_ID"] = ee.ID
@@ -200,6 +214,11 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {
 
 		// we need to check for the presence of labels recorded to a container event
 		if stringLabels, ok := entry.Fields["PODMAN_LABELS"]; ok && len(stringLabels) > 0 {
+			stringLabels, err = decompress(stringLabels)
+			if err != nil {
+				return nil, err
+			}
+
 			labels := make(map[string]string, 0)
 			if err := json.Unmarshal([]byte(stringLabels), &labels); err != nil {
 				return nil, err
@@ -211,7 +230,10 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {
 			}
 		}
 		newEvent.HealthStatus = entry.Fields["PODMAN_HEALTH_STATUS"]
-		newEvent.Details.ContainerInspectData = entry.Fields["PODMAN_CONTAINER_INSPECT_DATA"]
+		newEvent.Details.ContainerInspectData, err = decompress(entry.Fields["PODMAN_CONTAINER_INSPECT_DATA"])
+		if err != nil {
+			return nil, err
+		}
 	case Network:
 		newEvent.ID = entry.Fields["PODMAN_ID"]
 		newEvent.Network = entry.Fields["PODMAN_NETWORK_NAME"]
@@ -272,4 +294,51 @@ func GetNextEntry(ctx context.Context, j *sdjournal.Journal, stream bool, untilT
 		}
 		return entry, nil
 	}
+}
+
+func compress(s string) (string, error) {
+	if len(s) < (32 * (1 << 10)) {
+		return s, nil
+	}
+
+	var buff bytes.Buffer
+
+	w, err := zstd.NewWriter(&buff)
+	if err != nil {
+		return "", fmt.Errorf("cannot create compression writer: %w", err)
+	}
+
+	_, err = io.Copy(w, strings.NewReader(s))
+	if err != nil {
+		return "", fmt.Errorf("cannot copy to compression writer: %w", err)
+	}
+
+	err = w.Close()
+	if err != nil {
+		return "", fmt.Errorf("cannot close compression writer: %w", err)
+	}
+
+	return buff.String(), nil
+}
+
+func decompress(s string) (string, error) {
+	r, err := zstd.NewReader(strings.NewReader(s))
+	if err != nil {
+		if errors.Is(err, zstd.ErrMagicMismatch) {
+			return s, nil
+		}
+		return "", fmt.Errorf("cannot create compression reader: %w", err)
+	}
+
+	var buff bytes.Buffer
+
+	_, err = io.Copy(&buff, r)
+	if err != nil {
+		if errors.Is(err, zstd.ErrMagicMismatch) {
+			return s, nil
+		}
+		return "", fmt.Errorf("cannot copy from compression reader: %w", err)
+	}
+
+	return buff.String(), nil
 }
