@@ -18,6 +18,7 @@ import (
 	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/annotations"
+	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/env"
 	v1 "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
 	"github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/api/resource"
@@ -107,8 +108,8 @@ func (p *Pod) GenerateForKube(ctx context.Context, getService bool) (*v1.Pod, []
 				pod.Spec.RestartPolicy = v1.RestartPolicyOnFailure
 			case define.RestartPolicyNo:
 				pod.Spec.RestartPolicy = v1.RestartPolicyNever
-			default: // some pod create from cmdline, such as "", so set it to Never
-				pod.Spec.RestartPolicy = v1.RestartPolicyNever
+			default: // some pod create from cmdline, such as "", so set it to "" as k8s automatically defaults to always
+				pod.Spec.RestartPolicy = ""
 			}
 			break
 		}
@@ -129,6 +130,65 @@ func (p *Pod) getInfraContainer() (*Container, error) {
 		return nil, err
 	}
 	return p.runtime.GetContainer(infraID)
+}
+
+// GenerateForKubeDeployment returns a YAMLDeployment from a YAMLPod that is then used to create a kubernetes Deployment
+// kind YAML.
+func GenerateForKubeDeployment(ctx context.Context, pod *YAMLPod, options entities.GenerateKubeOptions) (*YAMLDeployment, error) {
+	// Restart policy for Deployments can only be set to Always
+	if options.Type == define.K8sKindDeployment && !(pod.Spec.RestartPolicy == "" || pod.Spec.RestartPolicy == define.RestartPolicyAlways) {
+		return nil, fmt.Errorf("k8s Deployments can only have restartPolicy set to Always")
+	}
+
+	// Create label map that will be added to podSpec and Deployment metadata
+	// The matching label lets the deployment know which pods to manage
+	appKey := "app"
+	matchLabels := map[string]string{appKey: pod.Name}
+	// Add the key:value (app:pod-name) to the podSpec labels
+	if pod.Labels == nil {
+		pod.Labels = matchLabels
+	} else {
+		pod.Labels[appKey] = pod.Name
+	}
+
+	depSpec := YAMLDeploymentSpec{
+		DeploymentSpec: v1.DeploymentSpec{
+			Selector: &v12.LabelSelector{
+				MatchLabels: matchLabels,
+			},
+		},
+		Template: &YAMLPodTemplateSpec{
+			PodTemplateSpec: v1.PodTemplateSpec{
+				ObjectMeta: pod.ObjectMeta,
+			},
+			Spec: pod.Spec,
+		},
+	}
+
+	// Add replicas count if user adds replica number with --replicas flag and is greater than 1
+	// If replicas is set to 1, no need to add it to the generated yaml as k8s automatically defaults
+	// to that. Podman as sets replicas to 1 by default.
+	if options.Replicas > 1 {
+		depSpec.Replicas = &options.Replicas
+	}
+
+	// Create the Deployment opbject
+	dep := YAMLDeployment{
+		Deployment: v1.Deployment{
+			ObjectMeta: v12.ObjectMeta{
+				Name:              pod.Name + "-deployment",
+				CreationTimestamp: pod.CreationTimestamp,
+				Labels:            pod.Labels,
+			},
+			TypeMeta: v12.TypeMeta{
+				Kind:       "Deployment",
+				APIVersion: "apps/v1",
+			},
+		},
+		Spec: &depSpec,
+	}
+
+	return &dep, nil
 }
 
 // GenerateForKube generates a v1.PersistentVolumeClaim from a libpod volume.
@@ -193,6 +253,37 @@ type YAMLPod struct {
 	v1.Pod
 	Spec   *YAMLPodSpec  `json:"spec,omitempty"`
 	Status *v1.PodStatus `json:"status,omitempty"`
+}
+
+// YAMLPodTemplateSpec represents the same k8s API core PodTemplateStruct with a
+// small change and that is having Spec as a pointer to YAMLPodSpec.
+// Because Go doesn't omit empty struct and we want to omit any empty structs in the
+// Pod yaml. This is used when generating a Deployment kind.
+type YAMLPodTemplateSpec struct {
+	v1.PodTemplateSpec
+	Spec *YAMLPodSpec `json:"spec,omitempty"`
+}
+
+// YAMLDeploymentSpec represents the same k8s API core DeploymentSpec with a small
+// change and that is having Template as a pointer to YAMLPodTemplateSpec and Strategy
+// as a pointer to k8s API core DeploymentStrategy.
+// Because Go doesn't omit empty struct and we want to omit Strategy and any fields in the Pod YAML
+// if it's empty.
+type YAMLDeploymentSpec struct {
+	v1.DeploymentSpec
+	Template *YAMLPodTemplateSpec   `json:"template,omitempty"`
+	Strategy *v1.DeploymentStrategy `json:"strategy,omitempty"`
+}
+
+// YAMLDeployment represents the same k8s API core Deployment with a small change
+// and that is having Spec as a pointer to YAMLDeploymentSpec and Status as a pointer to
+// k8s API core DeploymentStatus.
+// Because Go doesn't omit empty struct and we want to omit Status and any fields in the DeploymentSpec
+// if it's empty.
+type YAMLDeployment struct {
+	v1.Deployment
+	Spec   *YAMLDeploymentSpec  `json:"spec,omitempty"`
+	Status *v1.DeploymentStatus `json:"status,omitempty"`
 }
 
 // YAMLService represents the same k8s API core Service struct with a small

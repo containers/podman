@@ -31,6 +31,10 @@ type GenerateSystemdReport struct {
 type GenerateKubeOptions struct {
 	// Service - generate YAML for a Kubernetes _service_ object.
 	Service bool
+	// Type - the k8s kind to be generated i.e Pod or Deployment
+	Type string
+	// Replicas - the value to set in the replicas field for a Deployment
+	Replicas int32
 }
 
 type KubeGenerateOptions = GenerateKubeOptions

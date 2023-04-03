@@ -38,3 +38,11 @@ const (
 	// ContainerInitPath is the default path of the mounted container init.
 	ContainerInitPath = "/run/podman-init"
 )
+
+// Kubernetes Kinds
+const (
+	// A Pod kube yaml spec
+	K8sKindPod = "pod"
+	// A Deployment kube yaml spec
+	K8sKindDeployment = "deployment"
+)

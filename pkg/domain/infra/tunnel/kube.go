@@ -46,7 +46,7 @@ func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string,
 //
 // Note: Caller is responsible for closing returned Reader
 func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string, opts entities.GenerateKubeOptions) (*entities.GenerateKubeReport, error) {
-	options := new(generate.KubeOptions).WithService(opts.Service)
+	options := new(generate.KubeOptions).WithService(opts.Service).WithType(opts.Type).WithReplicas(opts.Replicas)
 	return generate.Kube(ic.ClientCtx, nameOrIDs, options)
 }
 

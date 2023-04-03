@@ -114,6 +114,17 @@ func (s *APIServer) registerKubeHandlers(r *mux.Router) error {
 	//    type: boolean
 	//    default: false
 	//    description: Generate YAML for a Kubernetes service object.
+	//  - in: query
+	//    name: type
+	//    type: string
+	//    default: pod
+	//    description: Generate YAML for the given Kubernetes kind.
+	//  - in: query
+	//    name: replicas
+	//    type: integer
+	//    format: int32
+	//    default: 0
+	//    description: Set the replica number for Deployment kind.
 	// produces:
 	// - text/vnd.yaml
 	// - application/json
