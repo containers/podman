@@ -88,3 +88,17 @@ func Create(ctx context.Context, reader io.Reader, options *CreateOptions) (*ent
 
 	return create, response.Process(&create)
 }
+
+func Exists(ctx context.Context, nameOrID string) (bool, error) {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return false, err
+	}
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/secrets/%s/exists", nil, nil, nameOrID)
+	if err != nil {
+		return false, err
+	}
+	defer response.Body.Close()
+
+	return response.IsSuccess(), nil
+}

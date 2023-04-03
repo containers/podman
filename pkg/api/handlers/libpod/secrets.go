@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v4/pkg/api/types"
@@ -43,4 +44,21 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, report)
+}
+
+func SecretExists(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	name := utils.GetName(r)
+	ic := abi.ContainerEngine{Libpod: runtime}
+
+	report, err := ic.SecretExists(r.Context(), name)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	if !report.Value {
+		utils.SecretNotFound(w, name, secrets.ErrNoSuchSecret)
+		return
+	}
+	utils.WriteResponse(w, http.StatusNoContent, "")
 }

@@ -372,4 +372,33 @@ var _ = Describe("Podman secret", func() {
 		Expect(inspect.OutputToString()).To(Equal("map[]"))
 
 	})
+
+	It("podman secret exists should return true if secret exists", func() {
+		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
+		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		secretName := "does_exist"
+
+		session := podmanTest.Podman([]string{"secret", "create", secretName, secretFilePath})
+		session.WaitWithDefaultTimeout()
+		secretID := session.OutputToString()
+		Expect(session).Should(Exit(0))
+
+		exists := podmanTest.Podman([]string{"secret", "exists", secretName})
+		exists.WaitWithDefaultTimeout()
+		Expect(exists).Should(Exit(0))
+
+		exists = podmanTest.Podman([]string{"secret", "exists", secretID})
+		exists.WaitWithDefaultTimeout()
+		Expect(exists).Should(Exit(0))
+	})
+
+	It("podman secret exists should return false if secret does not exist", func() {
+		secretName := "does_not_exist"
+
+		exists := podmanTest.Podman([]string{"secret", "exists", secretName})
+		exists.WaitWithDefaultTimeout()
+		Expect(exists).Should(Exit(1))
+	})
 })

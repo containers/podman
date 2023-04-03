@@ -2,6 +2,7 @@ package abi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -164,4 +165,18 @@ func (ic *ContainerEngine) SecretRm(ctx context.Context, nameOrIDs []string, opt
 	}
 
 	return reports, nil
+}
+
+func (ic *ContainerEngine) SecretExists(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
+	manager, err := ic.Libpod.SecretsManager()
+	if err != nil {
+		return nil, err
+	}
+
+	secret, err := manager.Lookup(nameOrID)
+	if err != nil && !errors.Is(err, secrets.ErrNoSuchSecret) {
+		return nil, err
+	}
+
+	return &entities.BoolReport{Value: secret != nil}, nil
 }
