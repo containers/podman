@@ -7,7 +7,7 @@
 Run container in systemd mode. The default is **true**.
 
 - **true** enables systemd mode only when the command executed inside the container is *systemd*, */usr/sbin/init*,
-*/sbin/init* or */usr/local/sbin/init*, systemd mode is enabled.
+*/sbin/init* or */usr/local/sbin/init*.
 
 - **false** disables systemd mode.
 
