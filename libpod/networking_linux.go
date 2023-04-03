@@ -365,15 +365,26 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 	netnsName := fmt.Sprintf("%s-%x", rootlessNetNsName, hash[:10])
 
 	path := filepath.Join(nsDir, netnsName)
-	ns, err := ns.GetNS(path)
+	nsReference, err := ns.GetNS(path)
 	if err != nil {
 		if !new {
 			// return an error if we could not get the namespace and should no create one
 			return nil, fmt.Errorf("getting rootless network namespace: %w", err)
 		}
+
+		// When the netns is not valid but the file exists we have to remove it first,
+		// https://github.com/containers/common/pull/1381 changed the behavior from
+		// NewNSWithName()so it will now error whe the file already exists.
+		// https://github.com/containers/podman/issues/17903#issuecomment-1494329622
+		if errors.As(err, &ns.NSPathNotNSErr{}) {
+			logrus.Infof("rootless netns is no longer valid: %v", err)
+			// ignore errors, if something is wrong NewNSWithName() will fail below anyway
+			_ = os.Remove(path)
+		}
+
 		// create a new namespace
 		logrus.Debugf("creating rootless network namespace with name %q", netnsName)
-		ns, err = netns.NewNSWithName(netnsName)
+		nsReference, err = netns.NewNSWithName(netnsName)
 		if err != nil {
 			return nil, fmt.Errorf("creating rootless network namespace: %w", err)
 		}
@@ -408,7 +419,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 		}
 		// Note we do not use --exit-fd, we kill this process by pid
 		cmdArgs = append(cmdArgs, "-c", "-r", "3")
-		cmdArgs = append(cmdArgs, "--netns-type=path", ns.Path(), "tap0")
+		cmdArgs = append(cmdArgs, "--netns-type=path", nsReference.Path(), "tap0")
 
 		cmd := exec.Command(path, cmdArgs...)
 		logrus.Debugf("slirp4netns command: %s", strings.Join(cmd.Args, " "))
@@ -540,7 +551,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 	// Important set rootlessNetNS as last step.
 	// Do not return any errors after this.
 	rootlessNetNS = &RootlessNetNS{
-		ns:   ns,
+		ns:   nsReference,
 		dir:  rootlessNetNsDir,
 		Lock: lock,
 	}
