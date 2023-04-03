@@ -46,8 +46,7 @@ podman inspect -l | grep IPAddress\":
             "IPAddress": "",
 ```
 
-Note: The -l is a convenience argument for **latest container**.  You can also use the container's ID instead
-of -l.
+Note: The -l or --latest option is a convenience argument for **latest container**. This option is not available with the remote Podman client; use the container name or ID instead.
 
 ### Testing the httpd server
 As we do not have the IP address of the container, we can test the network communication between the host
@@ -60,7 +59,7 @@ curl http://localhost:8080
 ### Viewing the container's logs
 You can view the container's logs with Podman as well:
 ```console
-podman logs --latest
+podman logs <container_id>
 10.88.0.1 - - [07/Feb/2018:15:22:11 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
 10.88.0.1 - - [07/Feb/2018:15:22:30 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
 10.88.0.1 - - [07/Feb/2018:15:22:30 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
@@ -126,7 +125,7 @@ curl http://<IP_address>:8080
 ### Stopping the container
 To stop the httpd container:
 ```console
-podman stop --latest
+podman stop <container_id>
 ```
 You can also check the status of one or more containers using the *ps* subcommand. In this case, we should
 use the *-a* argument to list all containers.
@@ -137,7 +136,7 @@ podman ps -a
 ### Removing the container
 To remove the httpd container:
 ```console
-podman rm --latest
+podman rm <container_id>
 ```
 You can verify the deletion of the container by running *podman ps -a*.
 
