@@ -121,6 +121,7 @@ Valid options for `[Container]` are listed below:
 | SecurityLabelLevel=s0:c1,c2      | --security-opt label=level:s0:c1,c2    |
 | SecurityLabelType=spc_t          | --security-opt label=type:spc_t        |
 | Timezone=local                   | --tz local                             |
+| Tmpfs=/work                      | --tmpfs /work                          |
 | User=bin                         | --user bin                             |
 | VolatileTmp=true                 | --tmpfs /tmp                           |
 | Volume=/source:/dest             | --volume /source:/dest                 |
@@ -449,6 +450,13 @@ Set the label process type for the container processes.
 
 Use a Podman secret in the container either as a file or an environment variable.
 This is equivalent to the Podman `--secret` option and generally has the form `secret[,opt=opt ...]`
+
+### `Tmpfs=`
+
+Mount a tmpfs in the container. This is equivalent to the Podman `--tmpfs` option, and
+generally has the form `CONTAINER-DIR[:OPTIONS]`.
+
+This key can be listed multiple times.
 
 ### `Timezone=` (if unset uses system-configured default)
 

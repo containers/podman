@@ -94,6 +94,7 @@ const (
 	KeySecurityLabelType     = "SecurityLabelType"
 	KeySecret                = "Secret"
 	KeyTimezone              = "Timezone"
+	KeyTmpfs                 = "Tmpfs"
 	KeyType                  = "Type"
 	KeyUser                  = "User"
 	KeyVolatileTmp           = "VolatileTmp"
@@ -152,6 +153,7 @@ var (
 		KeySecurityLabelLevel:    true,
 		KeySecurityLabelType:     true,
 		KeySecret:                true,
+		KeyTmpfs:                 true,
 		KeyTimezone:              true,
 		KeyUser:                  true,
 		KeyVolatileTmp:           true,
@@ -472,6 +474,15 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 
 	if err := handleUserRemap(container, ContainerGroup, podman, isUser, true); err != nil {
 		return nil, err
+	}
+
+	tmpfsValues := container.LookupAll(ContainerGroup, KeyTmpfs)
+	for _, tmpfs := range tmpfsValues {
+		if strings.Count(tmpfs, ":") > 1 {
+			return nil, fmt.Errorf("invalid tmpfs format '%s'", tmpfs)
+		}
+
+		podman.add("--tmpfs", tmpfs)
 	}
 
 	volumes := container.LookupAll(ContainerGroup, KeyVolume)
