@@ -77,6 +77,10 @@ func networkCreateFlags(cmd *cobra.Command) {
 	flags.StringArrayVar(&networkCreateOptions.Subnets, subnetFlagName, nil, "subnets in CIDR format")
 	_ = cmd.RegisterFlagCompletionFunc(subnetFlagName, completion.AutocompleteNone)
 
+	interfaceFlagName := "interface-name"
+	flags.StringVar(&networkCreateOptions.InterfaceName, interfaceFlagName, "", "interface name which is used by the driver")
+	_ = cmd.RegisterFlagCompletionFunc(interfaceFlagName, completion.AutocompleteNone)
+
 	flags.BoolVar(&networkCreateOptions.DisableDNS, "disable-dns", false, "disable dns plugin")
 
 	flags.BoolVar(&networkCreateOptions.IgnoreIfExists, "ignore", false, "Don't fail if network already exists")
@@ -118,6 +122,7 @@ func networkCreate(cmd *cobra.Command, args []string) error {
 		DNSEnabled:        !networkCreateOptions.DisableDNS,
 		NetworkDNSServers: networkCreateOptions.NetworkDNSServers,
 		Internal:          networkCreateOptions.Internal,
+		NetworkInterface:  networkCreateOptions.InterfaceName,
 	}
 
 	if cmd.Flags().Changed(ipamDriverFlagName) {
