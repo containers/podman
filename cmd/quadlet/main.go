@@ -12,6 +12,7 @@ import (
 
 	"github.com/containers/podman/v4/pkg/systemd/parser"
 	"github.com/containers/podman/v4/pkg/systemd/quadlet"
+	"github.com/containers/podman/v4/version/rawversion"
 )
 
 // This commandline app is the systemd generator (system and user,
@@ -27,6 +28,7 @@ var (
 	noKmsgFlag  bool
 	isUserFlag  bool // True if run as quadlet-user-generator executable
 	dryRunFlag  bool // True if -dryrun is used
+	versionFlag bool // True if -version is used
 )
 
 var (
@@ -298,6 +300,11 @@ func main() {
 
 	flag.Parse()
 
+	if versionFlag {
+		fmt.Printf("%s\n", rawversion.RawVersion)
+		return
+	}
+
 	if verboseFlag || dryRunFlag {
 		enableDebug()
 	}
@@ -389,5 +396,6 @@ func init() {
 	flag.BoolVar(&verboseFlag, "v", false, "Print debug information")
 	flag.BoolVar(&noKmsgFlag, "no-kmsg-log", false, "Don't log to kmsg")
 	flag.BoolVar(&isUserFlag, "user", false, "Run as systemd user")
-	flag.BoolVar(&dryRunFlag, "dryrun", false, "run in dryrun mode printing debug information")
+	flag.BoolVar(&dryRunFlag, "dryrun", false, "Run in dryrun mode printing debug information")
+	flag.BoolVar(&versionFlag, "version", false, "Print version information and exit")
 }
