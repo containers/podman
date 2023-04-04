@@ -34,12 +34,12 @@ func intToPtr(i int) *int {
 }
 
 // Convenience function to convert string to ptr
-func strToPtr(s string) *string {
+func StrToPtr(s string) *string {
 	return &s
 }
 
 // Convenience function to convert bool to ptr
-func boolToPtr(b bool) *bool {
+func BoolToPtr(b bool) *bool {
 	return &b
 }
 
@@ -57,11 +57,21 @@ type DynamicIgnition struct {
 	TimeZone  string
 	UID       int
 	VMName    string
+	VMType    VMType
 	WritePath string
+	Cfg       Config
 }
 
-// NewIgnitionFile
-func NewIgnitionFile(ign DynamicIgnition, vmType VMType) error {
+func (ign *DynamicIgnition) Write() error {
+	b, err := json.Marshal(ign.Cfg)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(ign.WritePath, b, 0644)
+}
+
+// GenerateIgnitionConfig
+func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 	if len(ign.Name) < 1 {
 		ign.Name = DefaultIgnitionUserName
 	}
@@ -109,32 +119,17 @@ func NewIgnitionFile(ign DynamicIgnition, vmType VMType) error {
 			Node: Node{
 				Group:     getNodeGrp("root"),
 				Path:      "/etc/localtime",
-				Overwrite: boolToPtr(false),
+				Overwrite: BoolToPtr(false),
 				User:      getNodeUsr("root"),
 			},
 			LinkEmbedded1: LinkEmbedded1{
-				Hard:   boolToPtr(false),
+				Hard:   BoolToPtr(false),
 				Target: filepath.Join("/usr/share/zoneinfo", tz),
 			},
 		}
 		ignStorage.Links = append(ignStorage.Links, tzLink)
 	}
 
-	// ready is a unit file that sets up the virtual serial device
-	// where when the VM is done configuring, it will send an ack
-	// so a listening host knows it can being interacting with it
-	ready := `[Unit]
-Requires=dev-virtio\\x2dports-%s.device
-After=remove-moby.service sshd.socket sshd.service
-OnFailure=emergency.target
-OnFailureJobMode=isolate
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/bin/sh -c '/usr/bin/echo Ready >/dev/%s'
-[Install]
-RequiredBy=default.target
-`
 	deMoby := `[Unit]
 Description=Remove moby-engine
 # Run once for the machine
@@ -190,26 +185,21 @@ WantedBy=sysinit.target
 	ignSystemd := Systemd{
 		Units: []Unit{
 			{
-				Enabled: boolToPtr(true),
+				Enabled: BoolToPtr(true),
 				Name:    "podman.socket",
 			},
 			{
-				Enabled:  boolToPtr(true),
-				Name:     "ready.service",
-				Contents: strToPtr(fmt.Sprintf(ready, "vport1p1", "vport1p1")),
-			},
-			{
-				Enabled: boolToPtr(false),
+				Enabled: BoolToPtr(false),
 				Name:    "docker.service",
-				Mask:    boolToPtr(true),
+				Mask:    BoolToPtr(true),
 			},
 			{
-				Enabled: boolToPtr(false),
+				Enabled: BoolToPtr(false),
 				Name:    "docker.socket",
-				Mask:    boolToPtr(true),
+				Mask:    BoolToPtr(true),
 			},
 			{
-				Enabled:  boolToPtr(true),
+				Enabled:  BoolToPtr(true),
 				Name:     "remove-moby.service",
 				Contents: &deMoby,
 			},
@@ -222,20 +212,16 @@ WantedBy=sysinit.target
 	}
 
 	// Only qemu has the qemu firmware environment setting
-	if vmType == QemuVirt {
+	if ign.VMType == QemuVirt {
 		qemuUnit := Unit{
-			Enabled:  boolToPtr(true),
+			Enabled:  BoolToPtr(true),
 			Name:     "envset-fwcfg.service",
 			Contents: &envset,
 		}
 		ignSystemd.Units = append(ignSystemd.Units, qemuUnit)
 	}
-
-	b, err := json.Marshal(ignConfig)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(ign.WritePath, b, 0644)
+	ign.Cfg = ignConfig
+	return nil
 }
 
 func getDirs(usrName string) []Directory {
@@ -363,7 +349,7 @@ Delegate=memory pids cpu io
 				Group:     getNodeGrp("root"),
 				Path:      sub,
 				User:      getNodeUsr("root"),
-				Overwrite: boolToPtr(true),
+				Overwrite: BoolToPtr(true),
 			},
 			FileEmbedded1: FileEmbedded1{
 				Append: nil,
@@ -428,6 +414,7 @@ Delegate=memory pids cpu io
 		FileEmbedded1: FileEmbedded1{
 			Append: nil,
 			Contents: Resource{
+				// TODO this should be fixed for all vmtypes
 				Source: encodeDataURLPtr("qemu\n"),
 			},
 			Mode: intToPtr(0644),
@@ -633,23 +620,23 @@ func getLinks(usrName string) []Link {
 			User:  getNodeUsr(usrName),
 		},
 		LinkEmbedded1: LinkEmbedded1{
-			Hard:   boolToPtr(false),
+			Hard:   BoolToPtr(false),
 			Target: "/home/" + usrName + "/.config/systemd/user/linger-example.service",
 		},
 	}, {
 		Node: Node{
 			Group:     getNodeGrp("root"),
 			Path:      "/usr/local/bin/docker",
-			Overwrite: boolToPtr(true),
+			Overwrite: BoolToPtr(true),
 			User:      getNodeUsr("root"),
 		},
 		LinkEmbedded1: LinkEmbedded1{
-			Hard:   boolToPtr(false),
+			Hard:   BoolToPtr(false),
 			Target: "/usr/bin/podman",
 		},
 	}}
 }
 
 func encodeDataURLPtr(contents string) *string {
-	return strToPtr(fmt.Sprintf("data:,%s", url.PathEscape(contents)))
+	return StrToPtr(fmt.Sprintf("data:,%s", url.PathEscape(contents)))
 }

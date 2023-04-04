@@ -384,16 +384,43 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		return false, os.WriteFile(v.getIgnitionFile(), inputIgnition, 0644)
 	}
 	// Write the ignition file
-	ign := machine.DynamicIgnition{
+	ign := &machine.DynamicIgnition{
 		Name:      opts.Username,
 		Key:       key,
 		VMName:    v.Name,
+		VMType:    machine.QemuVirt,
 		TimeZone:  opts.TimeZone,
 		WritePath: v.getIgnitionFile(),
 		UID:       v.UID,
 	}
 
-	err = machine.NewIgnitionFile(ign, machine.QemuVirt)
+	if err := ign.GenerateIgnitionConfig(); err != nil {
+		return false, err
+	}
+
+	// ready is a unit file that sets up the virtual serial device
+	// where when the VM is done configuring, it will send an ack
+	// so a listening host knows it can being interacting with it
+	ready := `[Unit]
+Requires=dev-virtio\\x2dports-%s.device
+After=remove-moby.service sshd.socket sshd.service
+OnFailure=emergency.target
+OnFailureJobMode=isolate
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c '/usr/bin/echo Ready >/dev/%s'
+[Install]
+RequiredBy=default.target
+`
+	readyUnit := machine.Unit{
+		Enabled:  machine.BoolToPtr(true),
+		Name:     "ready.service",
+		Contents: machine.StrToPtr(fmt.Sprintf(ready, "vport1p1", "vport1p1")),
+	}
+	ign.Cfg.Systemd.Units = append(ign.Cfg.Systemd.Units, readyUnit)
+
+	err = ign.Write()
 	return err == nil, err
 }
 
