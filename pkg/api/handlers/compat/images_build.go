@@ -895,7 +895,6 @@ func extractTarFile(r *http.Request) (string, error) {
 
 	// Content-Length not used as too many existing API clients didn't honor it
 	_, err = io.Copy(tarBall, r.Body)
-	r.Body.Close()
 	if err != nil {
 		return "", fmt.Errorf("failed Request: Unable to copy tar file from request body %s", r.RequestURI)
 	}
