@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v4/pkg/systemd/parser"
+	"github.com/containers/podman/v4/version"
 	"github.com/mattn/go-shellwords"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -424,6 +425,15 @@ var _ = Describe("quadlet system generator", func() {
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
 
+	})
+
+	Describe("quadlet -version", func() {
+		It("Should print correct version", func() {
+			session := podmanTest.Quadlet([]string{"-version"}, "/something")
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+			Expect(session.OutputToString()).To(Equal(version.Version.String()))
+		})
 	})
 
 	Describe("Running quadlet dryrun tests", func() {
