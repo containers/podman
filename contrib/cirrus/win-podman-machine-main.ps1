@@ -10,9 +10,9 @@ function CheckExit {
 }
 
 # Drop global envs which have unix paths, defaults are fine
-Remove-Item Env:\GOPATH
-Remove-Item Env:\GOSRC
-Remove-Item Env:\GOCACHE
+Remove-Item Env:\GOPATH -ErrorAction:Ignore
+Remove-Item Env:\GOSRC -ErrorAction:Ignore
+Remove-Item Env:\GOCACHE -ErrorAction:Ignore
 
 mkdir tmp
 Set-Location tmp

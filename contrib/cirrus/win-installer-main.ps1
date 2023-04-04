@@ -29,13 +29,13 @@ function DownloadFile {
     }
 }
 # Drop global envs which have unix paths, defaults are fine
-Remove-Item Env:\GOPATH
-Remove-Item Env:\GOSRC
-Remove-Item Env:\GOCACHE
+Remove-Item Env:\GOPATH -ErrorAction:Ignore
+Remove-Item Env:\GOSRC -ErrorAction:Ignore
+Remove-Item Env:\GOCACHE -ErrorAction:Ignore
 
 # Drop large known env variables (an env > 32k will break MSI/ICE validation)
-Remove-Item Env:\CIRRUS_COMMIT_MESSAGE
-Remove-Item Env:\CIRRUS_PR_BODY
+Remove-Item Env:\CIRRUS_COMMIT_MESSAGE -ErrorAction:Ignore
+Remove-Item Env:\CIRRUS_PR_BODY -ErrorAction:Ignore
 
 Set-Location contrib\win-installer
 
