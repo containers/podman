@@ -1,0 +1,70 @@
+/*
+   Renovate is a service similar to GitHub Dependabot, but with
+   (fantastically) more configuration options.  So many options
+   in fact, if you're new I recommend glossing over this cheat-sheet
+   prior to the official documentation:
+
+   https://www.augmentedmind.de/2021/07/25/renovate-bot-cheat-sheet
+
+   Configuration Update/Change Procedure:
+     1. Make changes
+     2. Manually validate changes (from repo-root):
+
+        podman run -it \
+            -v ./.github/renovate.json5:/usr/src/app/renovate.json5:z \
+            docker.io/renovate/renovate:latest \
+            renovate-config-validator
+     3. Commit.
+
+   Configuration Reference:
+   https://docs.renovatebot.com/configuration-options/
+
+   Monitoring Dashboard:
+   https://app.renovatebot.com/dashboard#github/containers
+
+   Note: The Renovate bot will create/manage it's business on
+         branches named 'renovate/*'.  Otherwise, and by
+         default, the only the copy of this file that matters
+         is the one on the `main` branch.  No other branches
+         will be monitored or touched in any way.
+*/
+
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+
+  /*************************************************
+   ****** Global/general configuration options *****
+   *************************************************/
+
+  // Re-use predefined sets of configuration options to DRY
+  "extends": [
+    // https://github.com/containers/automation/blob/main/renovate/defaults.json5
+    "github>containers/automation//renovate/defaults.json5"
+  ],
+
+  /*************************************************
+   *** Repository-specific configuration options ***
+   *************************************************/
+
+  "golang": {
+    // N/B: LAST matching rule wins
+    "packageRules": [
+      // Updates for `github.com/containers/*` should be checked hourly.
+      {
+        "matchPackagePrefixes": ["github.com/containers"],
+        "schedule": "before 11am",  // UTC
+      },
+
+      // Updates for c/common, c/image, and c/storage should be grouped into a single PR
+      {
+        "matchPackagePatterns": [
+          "^github.com/containers/common",
+          "^github.com/containers/image",
+          "^github.com/containers/storage",
+        ],
+        "groupName": "common, image, and storage deps",
+        "schedule": "before 11am",  // UTC
+      }
+    ],
+  }
+}
