@@ -8,8 +8,8 @@ podman\-network-create - Create a Podman network
 
 ## DESCRIPTION
 Create a network configuration for use with Podman. By default, Podman creates a bridge connection.
-A *Macvlan* connection can be created with the *-d macvlan* option. A parent device for macvlan can
-be designated with the *-o parent=`<device>`* or *--network-interface=`<device>`* option.
+A *Macvlan* connection can be created with the *-d macvlan* option. A parent device for macvlan or
+ipvlan can be designated with the *-o parent=`<device>`* or *--network-interface=`<device>`* option.
 
 If no options are provided, Podman will assign a free subnet and name for the network.
 
@@ -22,29 +22,35 @@ release because it is used as a special network mode in **podman run/create --ne
 #### **--disable-dns**
 
 Disables the DNS plugin for this network which if enabled, can perform container to container name
-resolution.
+resolution. It is only supported with the `bridge` driver, for other drivers it will be always disabled.
 
 #### **--dns**=*ip*
 
 Set network-scoped DNS resolver/nameserver for containers in this network. If not set, the host servers from `/etc/resolv.conf` will be used.  It can be overwritten on the container level with the `podman run/create --dns` option. This option can be specified multiple times to set more than one IP.
 
-#### **--driver**, **-d**
+#### **--driver**, **-d**=*driver*
 
 Driver to manage the network. Currently `bridge`, `macvlan` and `ipvlan` are supported. Defaults to `bridge`.
 As rootless the `macvlan` and `ipvlan` driver have no access to the host network interfaces because rootless networking requires a separate network namespace.
 
-Special considerations for the *netavark* backend:
+The netavark backend allows the use of so called *netavark plugins*, see the
+[plugin-API.md](https://github.com/containers/netavark/blob/main/plugin-API.md)
+documentation in netavark. The binary must be placed in a specified directory
+so podman can discover it, this list is set in `netavark_plugin_dirs` in
+**[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**
+under the `[network]` section.
 
-- The `macvlan` driver requires the `--subnet` option, DHCP is currently not supported.
-- The `ipvlan` driver is not currently supported.
+The name of the plugin can then be used as driver to create a network for your plugin.
+The list of all supported drivers and plugins can be seen with `podman info --format {{.Plugins.Network}}`.
 
-#### **--gateway**
+#### **--gateway**=*ip*
 
 Define a gateway for the subnet. To provide a gateway address, a
 *subnet* option is required. Can be specified multiple times.
 The argument order of the **--subnet**, **--gateway** and **--ip-range** options must match.
 
 #### **--ignore**
+
 Ignore the create request if a network with the same name already exists instead of failing.
 Note, trying to create a network with an existing name and different parameters, will not change the configuration of the existing one
 
@@ -59,7 +65,7 @@ For `macvlan` and `ipvlan` this will be the parent device on the host. It is the
 Restrict external access of this network. Note when using this option, the dnsname plugin will be
 automatically disabled.
 
-#### **--ip-range**
+#### **--ip-range**=*range*
 
 Allocate container IP from a range.  The range must be a complete subnet and in CIDR notation.  The *ip-range* option
 must be used with a *subnet* option. Can be specified multiple times.
@@ -82,7 +88,7 @@ View the driver in the **podman network inspect** output under the `ipam_options
 
 Enable IPv6 (Dual Stack) networking. If not subnets are given it will allocate an ipv4 and an ipv6 subnet.
 
-#### **--label**
+#### **--label**=*label*
 
 Set metadata for a network (e.g., --label mykey=value).
 
@@ -109,7 +115,7 @@ The `macvlan` and `ipvlan` driver support the following options:
   - Supported values for `macvlan` are `bridge`, `private`, `vepa`, `passthru`. Defaults to `bridge`.
   - Supported values for `ipvlan` are `l2`, `l3`, `l3s`. Defaults to `l2`.
 
-#### **--subnet**
+#### **--subnet**=*subnet*
 
 The subnet in CIDR notation. Can be specified multiple times to allocate more than one subnet for this network.
 The argument order of the **--subnet**, **--gateway** and **--ip-range** options must match.
@@ -160,7 +166,7 @@ newnet
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-network(1)](podman-network.1.md)**, **[podman-network-inspect(1)](podman-network-inspect.1.md)**, **[podman-network-ls(1)](podman-network-ls.1.md)**
+**[podman(1)](podman.1.md)**, **[podman-network(1)](podman-network.1.md)**, **[podman-network-inspect(1)](podman-network-inspect.1.md)**, **[podman-network-ls(1)](podman-network-ls.1.md)**, **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**
 
 ## HISTORY
 August 2021, Updated with the new network format by Paul Holzinger <pholzing@redhat.com>
