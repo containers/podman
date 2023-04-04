@@ -51,7 +51,9 @@ t POST   libpod/kube/play $YAML 200 \
 t DELETE libpod/kube/play $YAML 200 \
   .Pods[0].ID~null \
   .Pods[0].ContainerErrors=null \
-  .Pods[0].Containers[0]~null
+  .Pods[0].Containers[0]~null \
+  .StopReport[0].Id~[0-9a-f]\\{64\\} \
+  .RmReport[0].Id~[0-9a-f]\\{64\\}
 
 # Make sure that play-kube works
 
