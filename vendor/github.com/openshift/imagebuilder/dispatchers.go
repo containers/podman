@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -20,12 +19,13 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	"github.com/containerd/containerd/platforms"
+	"github.com/containers/storage/pkg/regexp"
 	"github.com/openshift/imagebuilder/signal"
 	"github.com/openshift/imagebuilder/strslice"
 )
 
 var (
-	obRgex = regexp.MustCompile(`(?i)^\s*ONBUILD\s*`)
+	obRgex = regexp.Delayed(`(?i)^\s*ONBUILD\s*`)
 )
 
 var localspec = platforms.DefaultSpec()
@@ -53,7 +53,6 @@ func init() {
 //
 // Sets the environment variable foo to bar, also makes interpolation
 // in the dockerfile available from the next statement on via ${foo}.
-//
 func env(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) == 0 {
 		return errAtLeastOneArgument("ENV")
@@ -106,7 +105,6 @@ func maintainer(b *Builder, args []string, attributes map[string]bool, flagArgs 
 // LABEL some json data describing the image
 //
 // Sets the Label variable foo to bar,
-//
 func label(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) == 0 {
 		return errAtLeastOneArgument("LABEL")
@@ -133,7 +131,6 @@ func label(b *Builder, args []string, attributes map[string]bool, flagArgs []str
 //
 // Add the file 'foo' to '/path'. Tarball and Remote URL (git, http) handling
 // exist here. If you do not wish to have this automatic handling, use COPY.
-//
 func add(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) < 2 {
 		return errAtLeastTwoArgument("ADD")
@@ -174,7 +171,6 @@ func add(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 // COPY foo /path
 //
 // Same as 'ADD' but without the tar and remote url handling.
-//
 func dispatchCopy(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) < 2 {
 		return errAtLeastTwoArgument("COPY")
@@ -212,7 +208,6 @@ func dispatchCopy(b *Builder, args []string, attributes map[string]bool, flagArg
 // FROM imagename
 //
 // This sets the image the dockerfile will build on top of.
-//
 func from(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	switch {
 	case len(args) == 1:
@@ -278,7 +273,6 @@ func from(b *Builder, args []string, attributes map[string]bool, flagArgs []stri
 // evaluator.go and comments around dispatch() in the same file explain the
 // special cases. search for 'OnBuild' in internals.go for additional special
 // cases.
-//
 func onbuild(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) == 0 {
 		return errAtLeastOneArgument("ONBUILD")
@@ -301,7 +295,6 @@ func onbuild(b *Builder, args []string, attributes map[string]bool, flagArgs []s
 // WORKDIR /tmp
 //
 // Set the working directory for future RUN/CMD/etc statements.
-//
 func workdir(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) != 1 {
 		return errExactlyOneArgument("WORKDIR")
@@ -329,7 +322,6 @@ func workdir(b *Builder, args []string, attributes map[string]bool, flagArgs []s
 // RUN echo hi          # sh -c echo hi       (Linux)
 // RUN echo hi          # cmd /S /C echo hi   (Windows)
 // RUN [ "echo", "hi" ] # echo hi
-//
 func run(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if b.RunConfig.Image == "" {
 		return fmt.Errorf("Please provide a source image with `from` prior to run")
@@ -338,6 +330,7 @@ func run(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 	args = handleJSONArgs(args, attributes)
 
 	var mounts []string
+	var network string
 	filteredUserArgs := make(map[string]string)
 	for k, v := range b.Args {
 		if _, ok := b.AllowedArgs[k]; ok {
@@ -354,14 +347,17 @@ func run(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 		case strings.HasPrefix(arg, "--mount="):
 			mount := strings.TrimPrefix(arg, "--mount=")
 			mounts = append(mounts, mount)
+		case strings.HasPrefix(arg, "--network="):
+			network = strings.TrimPrefix(arg, "--network=")
 		default:
-			return fmt.Errorf("RUN only supports the --mount flag")
+			return fmt.Errorf("RUN only supports the --mount and --network flag")
 		}
 	}
 
 	run := Run{
-		Args:   args,
-		Mounts: mounts,
+		Args:    args,
+		Mounts:  mounts,
+		Network: network,
 	}
 
 	if !attributes["json"] {
@@ -375,7 +371,6 @@ func run(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 //
 // Set the default command to run in the container (which may be empty).
 // Argument handling is the same as RUN.
-//
 func cmd(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	cmdSlice := handleJSONArgs(args, attributes)
 
@@ -401,7 +396,6 @@ func cmd(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 //
 // Handles command processing similar to CMD and RUN, only b.RunConfig.Entrypoint
 // is initialized at NewBuilder time instead of through argument parsing.
-//
 func entrypoint(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	parsed := handleJSONArgs(args, attributes)
 
@@ -433,7 +427,6 @@ func entrypoint(b *Builder, args []string, attributes map[string]bool, flagArgs 
 //
 // Expose ports for links and port mappings. This all ends up in
 // b.RunConfig.ExposedPorts for runconfig.
-//
 func expose(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) == 0 {
 		return errAtLeastOneArgument("EXPOSE")
@@ -461,7 +454,6 @@ func expose(b *Builder, args []string, attributes map[string]bool, flagArgs []st
 //
 // Set the user to 'foo' for future commands and when running the
 // ENTRYPOINT/CMD at container run time.
-//
 func user(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) != 1 {
 		return errExactlyOneArgument("USER")
@@ -474,7 +466,6 @@ func user(b *Builder, args []string, attributes map[string]bool, flagArgs []stri
 // VOLUME /foo
 //
 // Expose the volume /foo for use. Will also accept the JSON array form.
-//
 func volume(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) == 0 {
 		return errAtLeastOneArgument("VOLUME")
@@ -515,7 +506,6 @@ func stopSignal(b *Builder, args []string, attributes map[string]bool, flagArgs 
 //
 // Set the default healthcheck command to run in the container (which may be empty).
 // Argument handling is the same as RUN.
-//
 func healthcheck(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) == 0 {
 		return errAtLeastOneArgument("HEALTHCHECK")
