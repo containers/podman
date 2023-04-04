@@ -164,7 +164,7 @@ spelled with complete minutiae.
       `git checkout -b bump_vX.Y.Z`.
    1. Look up the *COMMIT ID* of the last release,
       `git log -1 $(git tag | sort -V | tail -1)`.
-   1. Edit `version/version.go` and bump the `Version` value to the new
+   1. Edit `version/rawversion/version.go` and bump the `Version` value to the new
       release version.  If there were API changes, also bump `APIVersion` value.
       Make sure to also bump the version in the swagger.yaml `pkg/api/server/docs.go`
       and to add a new entry in `docs/source/Reference.rst` for major and minor releases.
@@ -181,7 +181,7 @@ spelled with complete minutiae.
    1. Tag the `Bump to vX.Y.Z` commit as a release by running
       `git tag -s -m 'vX.Y.Z' vX.Y.Z $HASH` where `$HASH` is specified explicitly
       and carefully, to avoid (basically) unfixable accidents (if they are pushed).
-   1. Change `version/version.go` again. This time, bump the **patch** version and
+   1. Change `version/rawversion/version.go` again. This time, bump the **patch** version and
       re-add the `-dev` suffix to indicate this is a non-released version of Podman.
    1. Change `contrib/spec/podman.spec.in`, bumping **patch** number of `Version`.
    1. Commit these changes with the message `Bump to X.Y.Z-dev`.
