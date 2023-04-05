@@ -40,6 +40,7 @@ filter __podman-remote_escapeStringWithSpecialChars {
     $ShellCompDirectiveNoFileComp=4
     $ShellCompDirectiveFilterFileExt=8
     $ShellCompDirectiveFilterDirs=16
+    $ShellCompDirectiveKeepOrder=32
 
     # Prepare the command to request completions for the program.
     # Split the command at the first space to separate the program and arguments.
@@ -69,8 +70,17 @@ filter __podman-remote_escapeStringWithSpecialChars {
         # If the last parameter is complete (there is a space following it)
         # We add an extra empty parameter so we can indicate this to the go method.
         __podman-remote_debug "Adding extra empty parameter"
-        # We need to use `"`" to pass an empty argument a "" or '' does not work!!!
-        $RequestComp="$RequestComp" + ' `"`"'
+        # PowerShell 7.2+ changed the way how the arguments are passed to executables,
+        # so for pre-7.2 or when Legacy argument passing is enabled we need to use
+        # `"`" to pass an empty argument, a "" or '' does not work!!!
+        if ($PSVersionTable.PsVersion -lt [version]'7.2.0' -or
+            ($PSVersionTable.PsVersion -lt [version]'7.3.0' -and -not [ExperimentalFeature]::IsEnabled("PSNativeCommandArgumentPassing")) -or
+            (($PSVersionTable.PsVersion -ge [version]'7.3.0' -or [ExperimentalFeature]::IsEnabled("PSNativeCommandArgumentPassing")) -and
+              $PSNativeCommandArgumentPassing -eq 'Legacy')) {
+             $RequestComp="$RequestComp" + ' `"`"'
+        } else {
+             $RequestComp="$RequestComp" + ' ""'
+        }
     }
 
     __podman-remote_debug "Calling $RequestComp"
@@ -100,7 +110,7 @@ filter __podman-remote_escapeStringWithSpecialChars {
     }
 
     $Longest = 0
-    $Values = $Out | ForEach-Object {
+    [Array]$Values = $Out | ForEach-Object {
         #Split the output in name and description
         $Name, $Description = $_.Split("`t",2)
         __podman-remote_debug "Name: $Name Description: $Description"
@@ -143,6 +153,11 @@ filter __podman-remote_escapeStringWithSpecialChars {
             __podman-remote_debug "Join the equal sign flag back to the completion value"
             $_.Name = $Flag + "=" + $_.Name
         }
+    }
+
+    # we sort the values in ascending order by name if keep order isn't passed
+    if (($Directive -band $ShellCompDirectiveKeepOrder) -eq 0 ) {
+        $Values = $Values | Sort-Object -Property Name
     }
 
     if (($Directive -band $ShellCompDirectiveNoFileComp) -ne 0 ) {
