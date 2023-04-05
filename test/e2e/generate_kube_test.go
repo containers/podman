@@ -1485,4 +1485,26 @@ USER test1`
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(125))
 	})
+
+	It("podman generate kube on pod with invalid name", func() {
+		podName := "test_pod"
+		session := podmanTest.Podman([]string{"pod", "create", podName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"create", "--pod", podName, "--restart", "no", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+		// The pod name should no longer have _ and there should be no hostname in the generated yaml
+		Expect(pod.Name).To(Equal("testpod"))
+		Expect(pod.Spec.Hostname).To(Equal(""))
+	})
 })
