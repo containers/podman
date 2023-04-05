@@ -373,7 +373,15 @@ can_use_shortcut (char **argv)
   for (argc = 0; argv[argc]; argc++)
     {
       if (argc == 0 || argv[argc][0] == '-')
-        continue;
+        {
+          // --tmpdir changes the location of the pause.pid file, so we need to prevent
+          // us from joining the wrong process and let the podman go code handle it
+          // https://github.com/containers/podman/issues/17903#issuecomment-1497232184
+          if (strcmp(argv[argc], "--tmpdir") == 0)
+            return false;
+          continue;
+        }
+
 
       if (strcmp (argv[argc], "mount") == 0
           || strcmp (argv[argc], "machine") == 0
