@@ -36,6 +36,11 @@ Source:     {{{ git_dir_pack }}}
 BuildRequires: btrfs-progs-devel
 %endif
 BuildRequires: gcc
+%if 0%{?fedora} >= 37
+BuildRequires: gettext-envsubst
+%else
+BuildRequires: gettext
+%endif
 BuildRequires: golang >= 1.16.6
 BuildRequires: glib2-devel
 BuildRequires: glibc-devel
