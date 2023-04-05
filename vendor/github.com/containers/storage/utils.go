@@ -2,7 +2,6 @@ package storage
 
 import (
 	"fmt"
-	"unicode"
 
 	"github.com/containers/storage/types"
 )
@@ -72,16 +71,4 @@ func applyNameOperation(oldNames []string, opParameters []string, op updateNameO
 		return result, errInvalidUpdateNameOperation
 	}
 	return dedupeNames(result), nil
-}
-
-func nameLooksLikeID(name string) bool {
-	if len(name) != 64 {
-		return false
-	}
-	for _, c := range name {
-		if !unicode.Is(unicode.ASCII_Hex_Digit, c) {
-			return false
-		}
-	}
-	return true
 }

@@ -239,7 +239,7 @@ func (a *Driver) Status() [][2]string {
 
 // Metadata not implemented
 func (a *Driver) Metadata(id string) (map[string]string, error) {
-	return nil, nil
+	return nil, nil //nolint: nilnil
 }
 
 // Exists returns true if the given id is registered with
