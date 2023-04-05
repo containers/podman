@@ -84,6 +84,10 @@ var _ = Describe("Podman logs", func() {
 			Expect(logc).To(Exit(0))
 			cid := logc.OutputToString()
 
+			wait := podmanTest.Podman([]string{"wait", cid})
+			wait.WaitWithDefaultTimeout()
+			Expect(wait).To(Exit(0))
+
 			results := podmanTest.Podman([]string{"logs", "--tail", "2", cid})
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
@@ -98,6 +102,10 @@ var _ = Describe("Podman logs", func() {
 			Expect(logc).To(Exit(0))
 			cid := logc.OutputToString()
 
+			wait := podmanTest.Podman([]string{"wait", cid})
+			wait.WaitWithDefaultTimeout()
+			Expect(wait).To(Exit(0))
+
 			results := podmanTest.Podman([]string{"logs", "--tail", "0", cid})
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
@@ -111,6 +119,10 @@ var _ = Describe("Podman logs", func() {
 			logc := podmanTest.Podman([]string{"run", "--name", name, "--log-driver", log, ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
 			logc.WaitWithDefaultTimeout()
 			Expect(logc).To(Exit(0))
+
+			wait := podmanTest.Podman([]string{"wait", name})
+			wait.WaitWithDefaultTimeout()
+			Expect(wait).To(Exit(0))
 
 			results := podmanTest.Podman([]string{"logs", "--tail", "99", name})
 			results.WaitWithDefaultTimeout()
@@ -146,6 +158,10 @@ var _ = Describe("Podman logs", func() {
 			Expect(logc).To(Exit(0))
 			cid := logc.OutputToString()
 
+			wait := podmanTest.Podman([]string{"wait", cid})
+			wait.WaitWithDefaultTimeout()
+			Expect(wait).To(Exit(0))
+
 			results := podmanTest.Podman([]string{"logs", "--tail", "2", "-t", cid})
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
@@ -159,6 +175,10 @@ var _ = Describe("Podman logs", func() {
 			logc.WaitWithDefaultTimeout()
 			Expect(logc).To(Exit(0))
 			cid := logc.OutputToString()
+
+			wait := podmanTest.Podman([]string{"wait", cid})
+			wait.WaitWithDefaultTimeout()
+			Expect(wait).To(Exit(0))
 
 			results := podmanTest.Podman([]string{"logs", "--since", "2017-08-07T10:10:09.056611202-04:00", cid})
 			results.WaitWithDefaultTimeout()
@@ -174,6 +194,10 @@ var _ = Describe("Podman logs", func() {
 			Expect(logc).To(Exit(0))
 			cid := logc.OutputToString()
 
+			wait := podmanTest.Podman([]string{"wait", cid})
+			wait.WaitWithDefaultTimeout()
+			Expect(wait).To(Exit(0))
+
 			results := podmanTest.Podman([]string{"logs", "--since", "10m", cid})
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
@@ -188,6 +212,10 @@ var _ = Describe("Podman logs", func() {
 			Expect(logc).To(Exit(0))
 			cid := logc.OutputToString()
 
+			wait := podmanTest.Podman([]string{"wait", cid})
+			wait.WaitWithDefaultTimeout()
+			Expect(wait).To(Exit(0))
+
 			results := podmanTest.Podman([]string{"logs", "--until", "10m", cid})
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
@@ -201,6 +229,10 @@ var _ = Describe("Podman logs", func() {
 			logc.WaitWithDefaultTimeout()
 			Expect(logc).To(Exit(0))
 			cid := logc.OutputToString()
+
+			wait := podmanTest.Podman([]string{"wait", cid})
+			wait.WaitWithDefaultTimeout()
+			Expect(wait).To(Exit(0))
 
 			now := time.Now()
 			now = now.Add(time.Minute * 1)
@@ -232,6 +264,10 @@ var _ = Describe("Podman logs", func() {
 			log2.WaitWithDefaultTimeout()
 			Expect(log2).Should(Exit(0))
 			cid2 := log2.OutputToString()
+
+			wait := podmanTest.Podman([]string{"wait", cid1, cid2})
+			wait.WaitWithDefaultTimeout()
+			Expect(wait).To(Exit(0))
 
 			results := podmanTest.Podman([]string{"logs", cid1, cid2})
 			results.WaitWithDefaultTimeout()

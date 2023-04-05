@@ -2021,6 +2021,11 @@ var _ = Describe("Podman play kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
+		wait := podmanTest.Podman([]string{"wait", "test-symlink-test-symlink"})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait).Should(Exit(0))
+		Expect(wait.OutputToString()).To(Equal("0"))
+
 		logs := podmanTest.Podman([]string{"pod", "logs", "-c", "test-symlink-test-symlink", "test-symlink"})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs).Should(Exit(0))
