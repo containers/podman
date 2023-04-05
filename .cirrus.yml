@@ -759,7 +759,9 @@ local_system_test_aarch64_task: &local_system_test_task_aarch64
     # Don't create task for tags, or if using [CI:DOCS], [CI:BUILD], multiarch
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_build_docs_multiarch
-    depends_on: *build_unit
+    depends_on:
+        - build_aarch64
+        - unit_test
     ec2_instance: *standard_build_ec2_aarch64
     env:
         <<: *stdenvars_aarch64
