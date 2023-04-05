@@ -431,10 +431,10 @@ func GetPortLock(port string) *lockfile.LockFile {
 func GetRandomIPAddress() string {
 	// To avoid IP collisions of initialize random seed for random IP addresses
 	rand.Seed(time.Now().UnixNano())
-	// Add GinkgoParallelNode() on top of the IP address
+	// Add GinkgoParallelProcess() on top of the IP address
 	// in case of the same random seed
-	ip3 := strconv.Itoa(rand.Intn(230) + GinkgoParallelNode())
-	ip4 := strconv.Itoa(rand.Intn(230) + GinkgoParallelNode())
+	ip3 := strconv.Itoa(rand.Intn(230) + GinkgoParallelProcess())
+	ip4 := strconv.Itoa(rand.Intn(230) + GinkgoParallelProcess())
 	return "10.88." + ip3 + "." + ip4
 }
 
