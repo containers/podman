@@ -904,6 +904,7 @@ RUN ls /dev/test1`, ALPINE)
 
 	It("podman system reset must clean host shared cache", func() {
 		SkipIfRemote("podman-remote does not have system reset -f")
+		useCustomNetworkDir(podmanTest, tempdir)
 		podmanTest.AddImageToRWStore(ALPINE)
 		session := podmanTest.Podman([]string{"build", "--pull-never", "--file", "build/cache/Dockerfilecachewrite", "build/cache/"})
 		session.WaitWithDefaultTimeout()

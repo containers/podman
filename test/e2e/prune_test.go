@@ -214,6 +214,7 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system image prune unused images", func() {
+		useCustomNetworkDir(podmanTest, tempdir)
 		podmanTest.AddImageToRWStore(ALPINE)
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
 		prune := podmanTest.Podman([]string{"system", "prune", "-a", "--force"})
@@ -260,12 +261,7 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune networks", func() {
-		// set custom network directory to prevent flakes since the dir is shared with all tests by default
-		podmanTest.NetworkConfigDir = tempdir
-		if IsRemote() {
-			podmanTest.RestartRemoteService()
-		}
-
+		useCustomNetworkDir(podmanTest, tempdir)
 		// Create new network.
 		session := podmanTest.Podman([]string{"network", "create", "test"})
 		session.WaitWithDefaultTimeout()
@@ -308,6 +304,7 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune - pod,container stopped", func() {
+		useCustomNetworkDir(podmanTest, tempdir)
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -340,6 +337,7 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune with running, exited pod and volume prune set true", func() {
+		useCustomNetworkDir(podmanTest, tempdir)
 		// Start and stop a pod to get it in exited state.
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
@@ -417,6 +415,7 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune - with dangling images true", func() {
+		useCustomNetworkDir(podmanTest, tempdir)
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -465,6 +464,7 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune --volumes --filter", func() {
+		useCustomNetworkDir(podmanTest, tempdir)
 		session := podmanTest.Podman([]string{"volume", "create", "--label", "label1=value1", "myvol1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -531,6 +531,7 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune --external leaves referenced containers", func() {
+		useCustomNetworkDir(podmanTest, tempdir)
 		containerStorageDir := filepath.Join(podmanTest.Root, podmanTest.ImageCacheFS+"-containers")
 
 		create := podmanTest.Podman([]string{"create", "--name", "test", BB})
@@ -561,6 +562,7 @@ var _ = Describe("Podman prune", func() {
 
 	It("podman system prune --external removes unreferenced containers", func() {
 		SkipIfRemote("Can't drop database while daemon running")
+		useCustomNetworkDir(podmanTest, tempdir)
 
 		containerStorageDir := filepath.Join(podmanTest.Root, podmanTest.ImageCacheFS+"-containers")
 

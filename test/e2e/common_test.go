@@ -1198,3 +1198,15 @@ func WaitForService(address url.URL) {
 	}
 	Expect(err).ShouldNot(HaveOccurred())
 }
+
+// useCustomNetworkDir makes sure this test uses a custom network dir.
+// This needs to be called for all test they may remove networks from other tests,
+// so netwokr prune, system prune, or system reset.
+// see https://github.com/containers/podman/issues/17946
+func useCustomNetworkDir(podmanTest *PodmanTestIntegration, tempdir string) {
+	// set custom network directory to prevent flakes since the dir is shared with all tests by default
+	podmanTest.NetworkConfigDir = tempdir
+	if IsRemote() {
+		podmanTest.RestartRemoteService()
+	}
+}
