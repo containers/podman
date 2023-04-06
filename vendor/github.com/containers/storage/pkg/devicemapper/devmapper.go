@@ -15,7 +15,7 @@ import (
 )
 
 // Same as DM_DEVICE_* enum values from libdevmapper.h
-// nolint: deadcode
+// nolint: unused
 const (
 	deviceCreate TaskType = iota
 	deviceReload
@@ -198,13 +198,6 @@ func (t *Task) setAddNode(addNode AddNodeType) error {
 	return nil
 }
 
-func (t *Task) setRo() error {
-	if res := DmTaskSetRo(t.unmanaged); res != 1 {
-		return ErrTaskSetRo
-	}
-	return nil
-}
-
 func (t *Task) addTarget(start, size uint64, ttype, params string) error {
 	if res := DmTaskAddTarget(t.unmanaged, start, size,
 		ttype, params); res != 1 {
@@ -213,7 +206,7 @@ func (t *Task) addTarget(start, size uint64, ttype, params string) error {
 	return nil
 }
 
-func (t *Task) getDeps() (*Deps, error) {
+func (t *Task) getDeps() (*Deps, error) { //nolint:unused
 	var deps *Deps
 	if deps = DmTaskGetDeps(t.unmanaged); deps == nil {
 		return nil, ErrTaskGetDeps
