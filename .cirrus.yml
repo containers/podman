@@ -193,6 +193,9 @@ build_aarch64_task:
     # Multiarch doesn't depend on buildability in this automation context
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: "$CIRRUS_CRON != 'multiarch'"
+    # Enable labeling of EC2 VMs with cirrus task ID. TODO: This can be
+    # removed when the feature goes mainstream.
+    experimental: true
     ec2_instance: &standard_build_ec2_aarch64
         image: ${VM_IMAGE_NAME}
         type: ${EC2_INST_TYPE}
@@ -271,7 +274,7 @@ validate_aarch64_task:
     only_if: *is_pr
     depends_on:
         - build_aarch64
-    # golangci-lint is a very, very hungry beast.
+    experimental: true  # Enable labeling of EC2 VMs with cirrus task ID
     ec2_instance: *standard_build_ec2_aarch64
     env:
         <<: *stdenvars_aarch64
@@ -547,6 +550,7 @@ windows_smoke_test_task:
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*'
     depends_on:
       - alt_build
+    experimental: true  # Enable labeling of EC2 VMs with cirrus task ID
     ec2_instance:
         image: "${WINDOWS_AMI}"
         type: m5zn.metal
@@ -665,6 +669,7 @@ podman_machine_task:
         - remote_integration_test
         - container_integration_test
         - rootless_integration_test
+    experimental: true  # Enable labeling of EC2 VMs with cirrus task ID
     ec2_instance:
         image: "${VM_IMAGE_NAME}"
         type: "${EC2_INST_TYPE}"
@@ -696,6 +701,7 @@ podman_machine_aarch64_task:
         - remote_integration_test
         - container_integration_test
         - rootless_integration_test
+    experimental: true  # Enable labeling of EC2 VMs with cirrus task ID
     ec2_instance:
         <<: *standard_build_ec2_aarch64
     env:
@@ -762,6 +768,7 @@ local_system_test_aarch64_task: &local_system_test_task_aarch64
     depends_on:
         - build_aarch64
         - unit_test
+    experimental: true  # Enable labeling of EC2 VMs with cirrus task ID
     ec2_instance: *standard_build_ec2_aarch64
     env:
         <<: *stdenvars_aarch64
