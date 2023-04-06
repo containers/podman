@@ -16,8 +16,8 @@ import (
 	"github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/util/intstr"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/docker/docker/pkg/system"
-	"github.com/ghodss/yaml"
 	"github.com/stretchr/testify/assert"
+	"sigs.k8s.io/yaml"
 )
 
 func createSecrets(t *testing.T, d string) *secrets.SecretsManager {

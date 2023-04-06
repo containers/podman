@@ -438,9 +438,6 @@ github.com/fsnotify/fsnotify
 # github.com/fsouza/go-dockerclient v1.9.6
 ## explicit; go 1.19
 github.com/fsouza/go-dockerclient
-# github.com/ghodss/yaml v1.0.0
-## explicit
-github.com/ghodss/yaml
 # github.com/go-jose/go-jose/v3 v3.0.0
 ## explicit; go 1.12
 github.com/go-jose/go-jose/v3

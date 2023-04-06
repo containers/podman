@@ -14,7 +14,7 @@ import (
 	"github.com/containers/podman/v4/pkg/specgen"
 	generateUtils "github.com/containers/podman/v4/pkg/specgen/generate"
 	"github.com/containers/podman/v4/pkg/systemd/generate"
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string, options entities.GenerateSystemdOptions) (*entities.GenerateSystemdReport, error) {
