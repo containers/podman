@@ -28,7 +28,6 @@ require (
 	github.com/docker/go-plugins-helpers v0.0.0-20211224144127-6eecb7beb651
 	github.com/docker/go-units v0.5.0
 	github.com/fsnotify/fsnotify v1.6.0
-	github.com/ghodss/yaml v1.0.0
 	github.com/godbus/dbus/v5 v5.1.1-0.20221029134443-4b691ce883d5
 	github.com/google/gofuzz v1.2.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
@@ -70,6 +69,7 @@ require (
 	google.golang.org/protobuf v1.30.0
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v3 v3.0.1
+	sigs.k8s.io/yaml v1.3.0
 )
 
 require (
@@ -176,7 +176,6 @@ require (
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
 replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc

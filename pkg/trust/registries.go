@@ -8,7 +8,7 @@ import (
 
 	"github.com/containers/image/v5/types"
 	"github.com/docker/docker/pkg/homedir"
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 // registryConfiguration is one of the files in registriesDirPath configuring lookaside locations, or the result of merging them all.

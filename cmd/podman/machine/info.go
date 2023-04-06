@@ -17,8 +17,8 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/machine"
-	"github.com/ghodss/yaml"
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
 )
 
 var infoDescription = `Display information pertaining to the machine host.`
