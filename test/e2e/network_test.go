@@ -726,11 +726,7 @@ var _ = Describe("Podman network", func() {
 	})
 
 	It("podman network prune --filter", func() {
-		// set custom network directory to prevent flakes since the dir is shared with all tests by default
-		podmanTest.NetworkConfigDir = tempdir
-		if IsRemote() {
-			podmanTest.RestartRemoteService()
-		}
+		useCustomNetworkDir(podmanTest, tempdir)
 		net1 := "macvlan" + stringid.GenerateRandomID() + "net1"
 
 		nc := podmanTest.Podman([]string{"network", "create", net1})
@@ -774,11 +770,7 @@ var _ = Describe("Podman network", func() {
 	})
 
 	It("podman network prune", func() {
-		// set custom network directory to prevent flakes since the dir is shared with all tests by default
-		podmanTest.NetworkConfigDir = tempdir
-		if IsRemote() {
-			podmanTest.RestartRemoteService()
-		}
+		useCustomNetworkDir(podmanTest, tempdir)
 		// Create two networks
 		// Check they are there
 		// Run a container on one of them
