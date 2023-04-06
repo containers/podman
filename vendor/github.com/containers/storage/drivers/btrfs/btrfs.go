@@ -157,7 +157,7 @@ func (d *Driver) Status() [][2]string {
 
 // Metadata returns empty metadata for this driver.
 func (d *Driver) Metadata(id string) (map[string]string, error) {
-	return nil, nil
+	return nil, nil //nolint: nilnil
 }
 
 // Cleanup unmounts the home directory.

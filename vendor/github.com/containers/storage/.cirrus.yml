@@ -17,15 +17,15 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ###
-    FEDORA_NAME: "fedora-37" ### 20230120t152650z-f37f36u2204
-    UBUNTU_NAME: "ubuntu-2204" ### 20230120t152650z-f37f36u2204
+    FEDORA_NAME: "fedora-37"
+    DEBIAN_NAME: "debian-12"
 
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
     # VM Image built in containers/automation_images
-    IMAGE_SUFFIX: "c20230120t152650z-f37f36u2204"
+    IMAGE_SUFFIX: "c20230405t152256z-f37f36d12"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
+    DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
 
     ####
     #### Command variables to help avoid duplication
@@ -67,7 +67,7 @@ linux_testing: &linux_testing
     always:
         df_script: '${_DFCMD} || true'
         rh_audit_log_script: '${_RAUDITCMD} || true'
-        ubuntu_audit_log_script: '${_UAUDITCMD} || true'
+        debian_audit_log_script: '${_UAUDITCMD} || true'
         journal_log_script: '${_JOURNALCMD} || true'
 
 
@@ -95,13 +95,13 @@ fedora_testing_task: &fedora_testing
 
 
 # aufs was dropped between 20.04 and 22.04, can't test it
-ubuntu_testing_task: &ubuntu_testing
+debian_testing_task: &debian_testing
     <<: *linux_testing
-    alias: ubuntu_testing
+    alias: debian_testing
     name: *std_test_name
     env:
-        OS_NAME: "${UBUNTU_NAME}"
-        VM_IMAGE: "${UBUNTU_CACHE_IMAGE_NAME}"
+        OS_NAME: "${DEBIAN_NAME}"
+        VM_IMAGE: "${DEBIAN_CACHE_IMAGE_NAME}"
     # Not all $TEST_DRIVER combinations valid for all $VM_IMAGE types.
     matrix:
         - env:
@@ -122,7 +122,7 @@ lint_task:
     env:
         CIRRUS_WORKING_DIR: "/go/src/github.com/containers/storage"
     container:
-        image: golang:1.17
+        image: golang
     modules_cache:
         fingerprint_script: cat go.sum
         folder: $GOPATH/pkg/mod
@@ -145,7 +145,7 @@ meta_task:
         # Space-separated list of images used by this repository state
         IMGNAMES: |-
             ${FEDORA_CACHE_IMAGE_NAME}
-            ${UBUNTU_CACHE_IMAGE_NAME}
+            ${DEBIAN_CACHE_IMAGE_NAME}
         BUILDID: "${CIRRUS_BUILD_ID}"
         REPOREF: "${CIRRUS_CHANGE_IN_REPO}"
         GCPJSON: ENCRYPTED[244a93fe8b386b48b96f748342bf741350e43805eee81dd04b45093bdf737e540b993fc735df41f131835fa0f9b65826]
@@ -158,7 +158,7 @@ meta_task:
 
 vendor_task:
     container:
-        image: golang:1.17
+        image: golang
     modules_cache:
         fingerprint_script: cat go.sum
         folder: $GOPATH/pkg/mod
@@ -177,7 +177,7 @@ success_task:
     depends_on:
         - lint
         - fedora_testing
-        - ubuntu_testing
+        - debian_testing
         - meta
         - vendor
         - cross
