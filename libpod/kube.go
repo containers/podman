@@ -470,8 +470,8 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 			// Since hostname is only set at pod level, set the hostname to the hostname of the first container we encounter
 			if hostname == "" {
 				// Only set the hostname if it is not set to the truncated container ID, which we do by default if no
-				// hostname is specified for the container
-				if !strings.Contains(ctr.ID(), ctr.Hostname()) {
+				// hostname is specified for the container and if it is not set to the pod name.
+				if !strings.Contains(ctr.ID(), ctr.Hostname()) && ctr.Hostname() != p.Name() {
 					hostname = ctr.Hostname()
 				}
 			}
@@ -533,9 +533,10 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 	for _, vol := range deDupPodVolumes {
 		podVolumes = append(podVolumes, *vol)
 	}
+	podName := removeUnderscores(p.Name())
 
 	return newPodObject(
-		p.Name(),
+		podName,
 		podAnnotations,
 		podInitCtrs,
 		podContainers,

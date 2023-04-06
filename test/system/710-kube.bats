@@ -105,7 +105,7 @@ metadata.creationTimestamp | =~ | [0-9T:-]\\+Z
 metadata.labels.app        | =  | ${pname}
 metadata.name              | =  | ${pname}
 
-spec.hostname                              | =  | $pname
+spec.hostname                              | =  | null
 
 spec.containers[0].command                 | =  | [\"top\"]
 spec.containers[0].image                   | =  | $IMAGE
