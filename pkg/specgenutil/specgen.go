@@ -23,6 +23,10 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
+const (
+	rlimitPrefix = "rlimit_"
+)
+
 func getCPULimits(c *entities.ContainerCreateOptions) *specs.LinuxCPU {
 	cpu := &specs.LinuxCPU{}
 	hasLimits := false
@@ -236,11 +240,15 @@ func setNamespaces(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions)
 func GenRlimits(ulimits []string) ([]specs.POSIXRlimit, error) {
 	rlimits := make([]specs.POSIXRlimit, 0, len(ulimits))
 	// Rlimits/Ulimits
-	for _, u := range ulimits {
-		if u == "host" {
+	for _, ulimit := range ulimits {
+		if ulimit == "host" {
 			rlimits = nil
 			break
 		}
+		// `ulimitNameMapping` from go-units uses lowercase and names
+		// without prefixes, e.g. `RLIMIT_NOFILE` should be converted to `nofile`.
+		// https://github.com/containers/podman/issues/9803
+		u := strings.TrimPrefix(strings.ToLower(ulimit), rlimitPrefix)
 		ul, err := units.ParseUlimit(u)
 		if err != nil {
 			return nil, fmt.Errorf("ulimit option %q requires name=SOFT:HARD, failed to be parsed: %w", u, err)
