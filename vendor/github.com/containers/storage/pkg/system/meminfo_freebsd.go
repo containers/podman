@@ -59,7 +59,8 @@ func getSwapInfo() (int64, int64, error) {
 }
 
 // ReadMemInfo retrieves memory statistics of the host system and returns a
-//  MemInfo type.
+//
+//	MemInfo type.
 func ReadMemInfo() (*MemInfo, error) {
 	MemTotal, MemFree, err := getMemInfo()
 	if err != nil {
