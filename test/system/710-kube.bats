@@ -135,4 +135,45 @@ status  | =  | null
     run_podman rmi $(pause_image)
 }
 
+@test "podman kube generate - deployment" {
+    skip_if_remote "containersconf needs to be set on server side"
+    local pname=p$(random_string 15)
+    local cname1=c1$(random_string 15)
+    local cname2=c2$(random_string 15)
+
+    run_podman pod create --name $pname
+    run_podman container create --name $cname1 --pod $pname $IMAGE top
+    run_podman container create --name $cname2 --pod $pname $IMAGE bottom
+
+    containersconf=$PODMAN_TMPDIR/containers.conf
+    cat >$containersconf <<EOF
+[engine]
+kube_generate_type="deployment"
+EOF
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman kube generate $pname
+
+    json=$(yaml2json <<<"$output")
+    # For debugging purposes in the event we regress, we can see the generate output to know what went wrong
+    jq . <<<"$json"
+
+    # See container test above for description of this table
+    expect="
+apiVersion | =  | apps/v1
+kind       | =  | Deployment
+
+metadata.creationTimestamp | =~ | [0-9T:-]\\+Z
+metadata.labels.app        | =  | ${pname}
+metadata.name              | =  | ${pname}-deployment
+"
+
+    while read key op expect; do
+        actual=$(jq -r -c ".$key" <<<"$json")
+        assert "$actual" $op "$expect" ".$key"
+    done < <(parse_table "$expect")
+
+    run_podman rm $cname1 $cname2
+    run_podman pod rm $pname
+    run_podman rmi $(pause_image)
+}
+
 # vim: filetype=sh
