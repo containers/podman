@@ -30,12 +30,6 @@ func GetRootlessPauseProcessPidPath() (string, error) {
 	return "", fmt.Errorf("GetRootlessPauseProcessPidPath: %w", errNotImplemented)
 }
 
-// GetRootlessPauseProcessPidPath returns the path to the file that holds the pid for
-// the pause process
-func GetRootlessPauseProcessPidPathGivenDir(unused string) (string, error) {
-	return "", fmt.Errorf("GetRootlessPauseProcessPidPath: %w", errNotImplemented)
-}
-
 // GetRuntimeDir returns the runtime directory
 func GetRuntimeDir() (string, error) {
 	data, err := homedir.GetDataHome()
