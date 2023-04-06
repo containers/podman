@@ -1,5 +1,39 @@
 # Release Notes
 
+## 4.5.0
+### Features
+- The `podman kube play` command now supports the hostIPC field ([#17157](https://github.com/containers/podman/issues/17157)).
+- The `podman kube generate` and `podman kube play` commands now support SELinux filetype labels.
+- The `podman machine inspect` command now shows information about named pipe addresses on Windows ([#16860](https://github.com/containers/podman/issues/16860)).
+- The `--userns=keep-id` option for `podman create`, ` run`, and `kube play` now works for root containers by copying the current mapping into a new user namespace ([#17337](https://github.com/containers/podman/issues/17337)).
+- Quadlet now supports the `Rootfs=` option, allowing containers to be based on rootfs in addition to image.
+- Quadlet now supports the Secret key in the Container group.
+- Quadlet now supports the Logdriver key in .container and .kube units.
+- The `podman kube generate` and `podman kube play` commands now support ulimit annotations ([#16404](https://github.com/containers/podman/issues/16404)).
+- The `podman create`, `run`, `pod create`, and `pod clone` commands now support a new option, `--shm-size-systemd`, that allows limiting tmpfs sizes for systemd-specific mounts ([#17037](https://github.com/containers/podman/issues/17037)).
+- The `podman create` and `run` commands now support a new option, `--group-entry` which customizes the entry that is written to the `/etc/group` file within the container when the `--user` option is used ([#14965](https://github.com/containers/podman/issues/14965)).
+- A new command, `podman machine os apply` has been added, which applies OS changes to a Podman machine, from an OCI image.
+- The `podman kube play` command now supports syctl options ([#16711](https://github.com/containers/podman/issues/16711)).
+- Podman now supports auto updates for containers running inside a pod ([#17181](https://github.com/containers/podman/issues/17181)).
+- Podman can now use a SQLite database as a backend for increased stability.
+
+### Changes
+- Remote builds using the `podman build` command no longer allows `.containerignore` or `.dockerignore` files to be symlinks outside the build context.
+- The `podman system reset` command now clears build caches.
+- Quadlet now forbids specifying SELinux label types, including disabling selinux separation.
+- The `podman play kube` command now adds ctrName as an alias to the pod network ([#16544](https://github.com/containers/podman/issues/16544)).
+- The `podman kube generate` command no longer adds hostPort to the pod spec when generating service kinds.
+
+
+### Bugfixes
+- Fixed a bug in the network list API where a race condition would cause the list to fail if a container had just been removed ([#17341](https://github.com/containers/podman/issues/17341)).
+- Fixed a bug in the `podman image scp` command to correctly use identity settings.
+- Fixed a bug in the remote Podman client's `podman build` command where building from stdin would fail.  `podman --remote build -f -` now works correctly ([#17495](https://github.com/containers/podman/issues/17495)).
+- Fixed a bug in the `podman volume prune` command where exclusive (`!=`) filters would fail ([#17051](https://github.com/containers/podman/issues/17051)).
+- Fixed a bug in the `--volume` option in the `podman create`, `run`, `pod create`, and `pod clone` commands where specifying relative mappings or idmapped mounts would fail ([#17517](https://github.com/containers/podman/issues/17517)).
+- Fixed a bug in the `podman kube play` command where a secret would be created, but nothing would be printed on the terminal ([#17071](https://github.com/containers/podman/issues/17071)).
+- Fixed a bug in the `podman kube down` command where secrets were not removed.
+
 ## 4.4.4
 ### Changes
 - Podman now writes direct mappings for idmapped mounts.
