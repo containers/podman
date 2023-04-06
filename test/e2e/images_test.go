@@ -217,7 +217,8 @@ WORKDIR /test
 	})
 
 	It("podman pull by digest and list --all", func() {
-		// Prevent regressing on issue #7651.
+		// Prevent regressing on issue #7651: error parsing name that includes a digest
+		// component as if were a name that includes tag component.
 		digestPullAndList := func(noneTag bool) {
 			session := podmanTest.Podman([]string{"pull", ALPINEAMD64DIGEST})
 			session.WaitWithDefaultTimeout()
@@ -233,14 +234,18 @@ WORKDIR /test
 				Expect(result.OutputToString()).To(Not(ContainSubstring("<none>")))
 			}
 		}
-		// No "<none>" tag as tagged alpine instances should be present.
+		// No "<none>" in the tag column as image tagged as "ALPINE" should be present in
+		// the additional image store we're using.  Pull the same image by another name to
+		// copy an entry for the image into read-write storage so that the name can be
+		// attached to it.
 		session := podmanTest.Podman([]string{"pull", ALPINELISTTAG})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		digestPullAndList(false)
 
-		// Now remove all images, re-pull by digest and check for the "<none>" tag.
-		session = podmanTest.Podman([]string{"rmi", "-af"})
+		// Now remove all names from the read-write image record, re-pull by digest and
+		// check for the "<none>" in its listing.
+		session = podmanTest.Podman([]string{"untag", ALPINELISTTAG})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
