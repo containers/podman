@@ -607,4 +607,22 @@ EOF
     service_cleanup $QUADLET_SERVICE_NAME failed
 }
 
+@test "quadlet - userns" {
+    local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).container
+    cat > $quadlet_file <<EOF
+[Container]
+Image=$IMAGE
+Exec=top
+UserNS=keep-id:uid=200,gid=210
+EOF
+
+    run_quadlet "$quadlet_file"
+    service_setup $QUADLET_SERVICE_NAME
+
+    run_podman container inspect --format '{{.Config.CreateCommand}}' $QUADLET_CONTAINER_NAME
+    is "${output/* --userns keep-id:uid=200,gid=210 */found}" "found"
+
+    service_cleanup $QUADLET_SERVICE_NAME failed
+}
+
 # vim: filetype=sh

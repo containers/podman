@@ -110,10 +110,6 @@ Valid options for `[Container]` are listed below:
 | PodmanArgs=--add-host foobar     | --add-host foobar                      |
 | PublishPort=true                 | --publish                              |
 | ReadOnly=true                    | --read-only                            |
-| RemapGid=0:20000:400             | --gidmap 0:20000:400                   |
-| RemapUid=0:100000:2000           | --uidmap 0:100000:2000                 |
-| RemapUidSize=6000                | --userns auto:6000                     |
-| RemapUsers=auto                  | --userns auto                          |
 | RunInit=true                     | --init                                 |
 | SeccompProfile=/tmp/s.json       | --security-opt seccomp=/tmp/s.json     |
 | SecurityLabelDisable=true        | --security-opt label=disable           |
@@ -123,6 +119,7 @@ Valid options for `[Container]` are listed below:
 | Timezone=local                   | --tz local                             |
 | Tmpfs=/work                      | --tmpfs /work                          |
 | User=bin                         | --user bin                             |
+| UserNS=keep-id:uid=200,gid=210   | --userns keep-id:uid=200,gid=210       |
 | VolatileTmp=true                 | --tmpfs /tmp                           |
 | Volume=/source:/dest             | --volume /source:/dest                 |
 
@@ -206,7 +203,7 @@ This key can be listed multiple times.
 ### `Group=`
 
 The (numeric) gid to run as inside the container. This does not need to match the gid on the host,
-which can be modified with `RemapUsers`, but if that is not specified, this gid is also used on the host.
+which can be modified with `UsersNS`, but if that is not specified, this gid is also used on the host.
 
 
 ### `HealthCmd=`
@@ -384,42 +381,6 @@ If enabled, makes image read-only, with /var/tmp, /tmp and /run a tmpfs (unless 
 
 **NOTE:** Podman will automatically copy any content from the image onto the tmpfs
 
-### `RemapGid=`
-
-`RemapGid` key to force a particular host uid to be mapped to the container.
-
-In `keep-id` mode, the value should be a single GID and should appear only once.
-If no value is set, the running user is mapped to the same id in the container.
-This is supported only on user systemd units.
-
-If `RemapUsers` is enabled, this specifies a gid mapping of the form `container_gid:from_gid:amount`,
-which will map `amount` number of gids on the host starting at `from_gid` into the container, starting
-at `container_gid`.
-
-### `RemapUid=`
-
-If `RemapUsers` is enabled, this specifies a uid mapping.
-If `RemapUsers` is set to `keep-id` the value should be a single UID and should appear only once.
-Otherwise, the value takes the form `container_uid:from_uid:amount`,
-which will map `amount` number of uids on the host starting at `from_uid` into the container, starting
-at `container_uid`.
-
-### `RemapUidSize=`
-
-If `RemapUsers` is enabled and set to `auto`, this specifies the count of the ids to remap
-
-### `RemapUsers=`
-
-If this is set, then host user and group ids are remapped in the container. It currently
-supports values: `auto`, `manual` and `keep-id`.
-
-In `manual` mode, the `RemapUid` and `RemapGid` options can define an
-exact mapping of uids from host to container. You must specify these.
-
-In `auto` mode mode, the subuids and subgids allocated to the `containers` user is used to allocate
-host uids/gids to use for the container. By default this will try to estimate a count of the ids
-to remap, but `RemapUidSize` can be specified to use an explicit size. Use `RemapUid` and
-
 ### `RunInit=` (default to `no`)
 
 If enabled, the container will have a minimal init process inside the
@@ -465,7 +426,12 @@ The timezone to run the container in.
 ### `User=`
 
 The (numeric) uid to run as inside the container. This does not need to match the uid on the host,
-which can be modified with `RemapUsers`, but if that is not specified, this uid is also used on the host.
+which can be modified with `UserNS`, but if that is not specified, this uid is also used on the host.
+
+### `UserNS=`
+
+Set the user namespace mode for the container. This is equivalent to the Podman `--userns` option and
+generally has the form `MODE[:OPTIONS,...]`.
 
 ### `VolatileTmp=` (default to `no`, or `yes` if `ReadOnly` enabled)
 
@@ -505,10 +471,7 @@ Valid options for `[Kube]` are listed below:
 | LogDriver=journald               | --log-driver journald                  |
 | Network=host                     | --net host                             |
 | PublishPort=59-60                | --publish=59-60                        |
-| RemapGid=0:20000:400             | --gidmap 0:20000:400                   |
-| RemapUid=0:100000:2000           | --uidmap 0:100000:2000                 |
-| RemapUidSize=6000                | --userns auto:6000                     |
-| RemapUsers=auto                  | --userns auto                          |
+| UserNS=keep-id:uid=200,gid=210   | --userns keep-id:uid=200,gid=210       |
 | Yaml=/tmp/kube.yaml              | podman kube play /tmp/kube.yaml        |
 
 Supported keys in the `[Kube]` section are:
@@ -558,40 +521,10 @@ entry from the unit file will take precedence
 
 This key can be listed multiple times.
 
-### `RemapGid=`
+### `UserNS=`
 
-If `RemapUsers` is enabled, this specifies a gid mapping.
-If `RemapUsers` is set to `keep-id` the value should be a single GID and should appear only once.
-Otherwise, the value takes the form `container_gid:from_gid:amount`,
-which will map `amount` number of gids on the host starting at `from_gid` into the container, starting
-at `container_gid`.
-
-### `RemapUid=`
-
-If `RemapUsers` is enabled, this specifies a uid mapping.
-If `RemapUsers` is set to `keep-id` the value should be a single UID and should appear only once.
-Otherwise, the value takes the form `container_uid:from_uid:amount`,
-which will map `amount` number of uids on the host starting at `from_uid` into the container, starting
-at `container_uid`.
-
-### `RemapUidSize=`
-
-If `RemapUsers` is enabled and set to `auto`, this specifies the count of the ids to remap.
-
-### `RemapUsers=`
-
-If this is set, then host user and group ids are remapped in the container. It currently
-supports values: `auto`, and `keep-id`.
-
-In `auto` mode mode, the subuids and subgids allocated to the `containers` user is used to allocate
-host uids/gids to use for the container. By default this will try to estimate a count of the ids
-to remap, but `RemapUidSize` can be specified to use an explicit size. Use `RemapUid` and
-`RemapGid` key to force a particular host uid to be mapped to the container.
-
-In `keep-id` mode, if `RemapUid` or `RemapGid` are set the running user is mapped
-to the corresponding ids in the container.
-Otherwise, the user is mapped to the user's host machine ids in the container.
-This is supported only on user systemd units.
+Set the user namespace mode for the container. This is equivalent to the Podman `--userns` option and
+generally has the form `MODE[:OPTIONS,...]`.
 
 ### `Yaml=`
 
