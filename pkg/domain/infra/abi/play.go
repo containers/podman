@@ -1343,6 +1343,23 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, opt
 		}
 	}
 
+	// Get the service containers associated with the pods if any
+	serviceCtrIDs := []string{}
+	for _, name := range podNames {
+		pod, err := ic.Libpod.LookupPod(name)
+		if err != nil {
+			return nil, err
+		}
+		ctr, err := pod.ServiceContainer()
+		if errors.Is(err, define.ErrNoSuchCtr) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		serviceCtrIDs = append(serviceCtrIDs, ctr.ID())
+	}
+
 	// Add the reports
 	reports.StopReport, err = ic.PodStop(ctx, podNames, entities.PodStopOptions{})
 	if err != nil {
@@ -1368,10 +1385,12 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, opt
 
 	// Remove the service container to ensure it is removed before we return for the remote case
 	// Needed for the clean up with podman kube play --wait in the remote case
-	if reports.ServiceContainerID != "" {
-		_, err = ic.ContainerRm(ctx, []string{reports.ServiceContainerID}, entities.RmOptions{})
-		if err != nil && !errors.Is(err, define.ErrNoSuchCtr) {
-			return nil, err
+	if len(serviceCtrIDs) > 0 {
+		for _, ctrID := range serviceCtrIDs {
+			_, err = ic.ContainerRm(ctx, []string{ctrID}, entities.RmOptions{})
+			if err != nil && !errors.Is(err, define.ErrNoSuchCtr) {
+				return nil, err
+			}
 		}
 	}
 
