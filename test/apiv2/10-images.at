@@ -124,7 +124,7 @@ from alpine
 RUN >file1
 EOF
 
-podman image build -t test:test --label xyz -<<EOF
+podman image build -t test:test --label xyz --label abc -<<EOF
 from alpine
 RUN >file2
 EOF
@@ -136,11 +136,15 @@ t GET images/json?filters='{"dangling":["true"]}' 200 length=0
 #label filter check in libpod and compat
 t GET images/json?filters='{"label":["xyz"]}' 200 length=1
 t GET libpod/images/json?filters='{"label":["xyz"]}' 200 length=1
+t GET images/json?filters='{"label":["xyz", "abc"]}' 200 length=1
+t GET libpod/images/json?filters='{"label":["xyz", "abc"]}' 200 length=1
 
 t DELETE libpod/images/test:test 200
 
 t GET images/json?filters='{"label":["xyz"]}' 200 length=0
 t GET libpod/images/json?filters='{"label":["xyz"]}' 200 length=0
+t GET images/json?filters='{"label":["xyz", "abc"]}' 200 length=0
+t GET libpod/images/json?filters='{"label":["xyz", "abc"]}' 200 length=0
 
 
 # to be used in prune until filter tests
