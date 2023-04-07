@@ -2,6 +2,19 @@
 
 set -eo pipefail
 
+# Skip this entire script when run under nightly treadmill cron job.
+#
+# Treadmill vendors in containers/<many>, which may bring in new versions
+# of other dependencies such as cobra, which may change the completion
+# files, which gives us a failure that we don't care one whit about.
+# The purpose of the treadmill is to check for incompatibilities with
+# other closely-tied container modules.
+# shellcheck disable=SC2154
+if [[ "$CIRRUS_CRON" = "treadmill" ]]; then
+    echo "[in treadmill; skipping $(basename $0)]"
+    exit 0
+fi
+
 # This script attempts to confirm all included go modules from
 # other sources match what is expected in `vendor/modules.txt`
 # vs `go.mod`.  Also make sure that the generated bindings in
