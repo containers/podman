@@ -244,13 +244,14 @@ Start the pod after creating it, set to false to only create it.
 
 Run pods and containers in the foreground. Default is false.
 
-At  any time you can run `podman pod ps` in the other shell to view a list of
+At  any time you can run `podman pod ps` in another shell to view a list of
 the running pods and containers.
 
 When  attached  in the tty mode, you can kill the pods and containers by pressing
 Ctrl-C or receiving any other interrupt signals.
 
-Volumes created with `podman kube play` will be removed when `--wait=true`.
+All pods, containers, and volumes created with `podman kube play` will be removed
+upon exit.
 
 ## EXAMPLES
 
