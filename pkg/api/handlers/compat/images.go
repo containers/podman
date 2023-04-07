@@ -11,7 +11,6 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/common/pkg/filters"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/libpod"
@@ -21,6 +20,7 @@ import (
 	"github.com/containers/podman/v4/pkg/auth"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
+	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/gorilla/schema"
@@ -431,7 +431,7 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filterList, err := filters.FiltersFromRequest(r)
+	filterList, err := util.FiltersFromRequest(r)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, err)
 		return
