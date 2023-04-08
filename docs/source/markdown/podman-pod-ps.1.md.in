@@ -10,11 +10,11 @@ podman\-pod\-ps - Prints out information about pods
 **podman pod ps** lists the pods on the system.
 By default it lists:
 
- * pod id
+ * pod ID
  * pod name
  * the time the pod was created
  * number of containers attached to pod
- * container id of the pod infra container
+ * container ID of the pod infra container
  * status of pod as defined by the following table
 
 |  **Status**  | **Description**                                 |

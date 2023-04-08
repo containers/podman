@@ -14,7 +14,7 @@ Key       | Host User |  Container User
 ----------|---------------|---------------------
 ""        |$UID         |0 (Default User account mapped to root user in container.)
 keep-id   |$UID         |$UID (Map user account to same UID within container.)
-keep-id:uid=200,gid=210 |$UID| 200:210 (Map user account to specified uid, gid value within container.)
+keep-id:uid=200,gid=210 |$UID| 200:210 (Map user account to specified UID, GID value within container.)
 auto      |$UID         | nil (Host User UID is not mapped into container.)
 nomap     |$UID         | nil (Host User UID is not mapped into container.)
 
@@ -26,7 +26,7 @@ The `--userns=auto` flag requires that the user name __containers__ be specified
 
 Example: `containers:2147483647:2147483648`.
 
-Podman allocates unique ranges of UIDs and GIDs from the `containers` subordinate user ids. The size of the ranges is based on the number of UIDs required in the image. The number of UIDs and GIDs can be overridden with the `size` option.
+Podman allocates unique ranges of UIDs and GIDs from the `containers` subordinate user IDs. The size of the ranges is based on the number of UIDs required in the image. The number of UIDs and GIDs can be overridden with the `size` option.
 
 The option `--userns=keep-id` uses all the subuids and subgids of the user.
 The option `--userns=nomap` uses all the subuids and subgids of the user except the user's own ID.

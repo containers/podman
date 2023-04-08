@@ -403,7 +403,7 @@ $ podman create --annotation HELLO=WORLD alpine ls
 ### Set UID/GID mapping in a new user namespace
 
 Running a container in a new user namespace requires a mapping of
-the uids and gids from the host.
+the UIDs and GIDs from the host.
 
 ```
 $ podman create --uidmap 0:30000:7000 --gidmap 0:30000:7000 fedora echo hello

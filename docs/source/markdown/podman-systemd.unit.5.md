@@ -202,9 +202,8 @@ This key can be listed multiple times.
 
 ### `Group=`
 
-The (numeric) gid to run as inside the container. This does not need to match the gid on the host,
-which can be modified with `UsersNS`, but if that is not specified, this gid is also used on the host.
-
+The (numeric) GID to run as inside the container. This does not need to match the GID on the host,
+which can be modified with `UsersNS`, but if that is not specified, this GID is also used on the host.
 
 ### `HealthCmd=`
 
@@ -425,8 +424,8 @@ The timezone to run the container in.
 
 ### `User=`
 
-The (numeric) uid to run as inside the container. This does not need to match the uid on the host,
-which can be modified with `UserNS`, but if that is not specified, this uid is also used on the host.
+The (numeric) UID to run as inside the container. This does not need to match the UID on the host,
+which can be modified with `UserNS`, but if that is not specified, this UID is also used on the host.
 
 ### `UserNS=`
 
@@ -663,7 +662,7 @@ The path of a device which should be mounted for the volume.
 
 ### `Group=`
 
-The host (numeric) gid, or group name to use as the group for the volume
+The host (numeric) GID, or group name to use as the group for the volume
 
 ### `Label=`
 
@@ -682,7 +681,7 @@ The filesystem type of `Device` as used by the **mount(8)** commands `-t` option
 
 ### `User=`
 
-The host (numeric) uid, or user name to use as the owner for the volume
+The host (numeric) UID, or user name to use as the owner for the volume
 
 ## EXAMPLES
 

@@ -91,10 +91,10 @@ Example /etc/fstab entry:
 /dev/podman/podman-var /var xfs defaults,x-systemd.device-timeout=0,pquota 1 2
 ```
 
-Podman generates project ids for each builtin volume, but these project ids need to be unique for the XFS file system. These project ids by default are generated randomly, with a potential for overlap with other quotas on the same file
+Podman generates project IDs for each builtin volume, but these project IDs need to be unique for the XFS file system. These project IDs by default are generated randomly, with a potential for overlap with other quotas on the same file
 system.
 
-The xfs_quota tool can be used to assign a project id to the storage driver directory, e.g.:
+The xfs_quota tool can be used to assign a project ID to the storage driver directory, e.g.:
 
 ```
 echo 100000:/var/lib/containers/storage/overlay >> /etc/projects
@@ -105,9 +105,9 @@ xfs_quota -x -c 'project -s storage volumes' /<xfs mount point>
 ```
 
 In the example above we are configuring the overlay storage driver for newly
-created containers as well as volumes to use project ids with a **start offset**.
-All containers will be assigned larger project ids (e.g. >= 100000).
-All volume assigned project ids larger project ids starting with 200000.
+created containers as well as volumes to use project IDs with a **start offset**.
+All containers will be assigned larger project IDs (e.g. >= 100000).
+All volume assigned project IDs larger project IDs starting with 200000.
 This prevents xfs_quota management conflicts with containers/storage.
 
 ## SEE ALSO

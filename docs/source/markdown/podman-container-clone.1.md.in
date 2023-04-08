@@ -7,7 +7,7 @@ podman\-container\-clone - Creates a copy of an existing container
 **podman container clone** [*options*] *container* *name* *image*
 
 ## DESCRIPTION
-**podman container clone** creates a copy of a container, recreating the original with an identical configuration. This command takes three arguments: the first being the container id or name to clone, the second argument in this command can change the name of the clone from the default of $ORIGINAL_NAME-clone, and the third is a new image to use in the cloned container.
+**podman container clone** creates a copy of a container, recreating the original with an identical configuration. This command takes three arguments: the first being the container ID or name to clone, the second argument in this command can change the name of the clone from the default of $ORIGINAL_NAME-clone, and the third is a new image to use in the cloned container.
 
 ## OPTIONS
 

@@ -23,7 +23,7 @@ Running the container in systemd mode causes the following changes:
   * _/var/lib/journal_
 * Podman sets the default stop signal to **SIGRTMIN+3**.
 * Podman sets **container_uuid** environment variable in the container to the
-first 32 characters of the container id.
+first 32 characters of the container ID.
 * Podman will not mount virtual consoles (_/dev/tty\d+_) when running with **--privileged**.
 
 This allows systemd to run in a confined container without any modifications.
