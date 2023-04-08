@@ -97,6 +97,7 @@ const (
 	KeyTmpfs                 = "Tmpfs"
 	KeyType                  = "Type"
 	KeyUser                  = "User"
+	KeyUserNS                = "UserNS"
 	KeyVolatileTmp           = "VolatileTmp"
 	KeyVolume                = "Volume"
 	KeyYaml                  = "Yaml"
@@ -156,6 +157,7 @@ var (
 		KeyTmpfs:                 true,
 		KeyTimezone:              true,
 		KeyUser:                  true,
+		KeyUserNS:                true,
 		KeyVolatileTmp:           true,
 		KeyVolume:                true,
 	}
@@ -195,6 +197,7 @@ var (
 		KeyRemapUID:     true,
 		KeyRemapUIDSize: true,
 		KeyRemapUsers:   true,
+		KeyUserNS:       true,
 		KeyYaml:         true,
 	}
 )
@@ -475,6 +478,8 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	if err := handleUserRemap(container, ContainerGroup, podman, isUser, true); err != nil {
 		return nil, err
 	}
+
+	handleUserNS(container, ContainerGroup, podman)
 
 	tmpfsValues := container.LookupAll(ContainerGroup, KeyTmpfs)
 	for _, tmpfs := range tmpfsValues {
@@ -877,6 +882,8 @@ func ConvertKube(kube *parser.UnitFile, isUser bool) (*parser.UnitFile, error) {
 		return nil, err
 	}
 
+	handleUserNS(kube, KubeGroup, execStart)
+
 	addNetworks(kube, KubeGroup, service, execStart)
 
 	configMaps := kube.LookupAllStrv(KubeGroup, KeyConfigMap)
@@ -904,6 +911,11 @@ func ConvertKube(kube *parser.UnitFile, isUser bool) (*parser.UnitFile, error) {
 }
 
 func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline, isUser, supportManual bool) error {
+	// ignore Remap keys if UserNS is set
+	if userns, ok := unitFile.Lookup(groupName, KeyUserNS); ok && len(userns) > 0 {
+		return nil
+	}
+
 	uidMaps := unitFile.LookupAllStrv(groupName, KeyRemapUID)
 	gidMaps := unitFile.LookupAllStrv(groupName, KeyRemapGID)
 	remapUsers, _ := unitFile.LookupLast(groupName, KeyRemapUsers)
@@ -966,6 +978,12 @@ func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *Podman
 	}
 
 	return nil
+}
+
+func handleUserNS(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline) {
+	if userns, ok := unitFile.Lookup(groupName, KeyUserNS); ok && len(userns) > 0 {
+		podman.add("--userns", userns)
+	}
 }
 
 func addNetworks(quadletUnitFile *parser.UnitFile, groupName string, serviceUnitFile *parser.UnitFile, podman *PodmanCmdline) {
