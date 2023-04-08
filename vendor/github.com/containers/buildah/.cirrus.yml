@@ -29,12 +29,13 @@ env:
     IMAGE_PROJECT: "libpod-218412"
     FEDORA_NAME: "fedora-37"
     PRIOR_FEDORA_NAME: "fedora-36"
-    UBUNTU_NAME: "ubuntu-2204"
+    DEBIAN_NAME: "debian-12"
 
-    IMAGE_SUFFIX: "c6300530360713216"
+    # Image identifiers
+    IMAGE_SUFFIX: "c20230405t152256z-f37f36d12"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
+    DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
 
     IN_PODMAN_IMAGE: "quay.io/libpod/fedora_podman:${IMAGE_SUFFIX}"
 
@@ -75,7 +76,7 @@ meta_task:
         IMGNAMES: |-
             ${FEDORA_CACHE_IMAGE_NAME}
             ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-            ${UBUNTU_CACHE_IMAGE_NAME}
+            ${DEBIAN_CACHE_IMAGE_NAME}
             build-push-${IMAGE_SUFFIX}
         BUILDID: "${CIRRUS_BUILD_ID}"
         REPOREF: "${CIRRUS_CHANGE_IN_REPO}"
@@ -120,7 +121,7 @@ vendor_task:
 
     # Runs within Cirrus's "community cluster"
     container:
-        image: docker.io/library/golang:1.17
+        image: docker.io/library/golang:1.18
         cpu: 1
         memory: 1
 
@@ -189,7 +190,7 @@ conformance_task:
     depends_on: *smoke_vendor_cross
 
     gce_instance:
-        image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
+        image_name: "${DEBIAN_CACHE_IMAGE_NAME}"
 
     timeout_in: 25m
 
@@ -220,8 +221,8 @@ integration_task:
             IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'vfs'
         - env:
-            DISTRO_NV: "${UBUNTU_NAME}"
-            IMAGE_NAME: "${UBUNTU_CACHE_IMAGE_NAME}"
+            DISTRO_NV: "${DEBIAN_NAME}"
+            IMAGE_NAME: "${DEBIAN_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'vfs'
         # OVERLAY
         - env:
@@ -233,8 +234,8 @@ integration_task:
             IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
         - env:
-            DISTRO_NV: "${UBUNTU_NAME}"
-            IMAGE_NAME: "${UBUNTU_CACHE_IMAGE_NAME}"
+            DISTRO_NV: "${DEBIAN_NAME}"
+            IMAGE_NAME: "${DEBIAN_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
 
     gce_instance:
@@ -278,8 +279,8 @@ integration_rootless_task:
             STORAGE_DRIVER: 'overlay'
             PRIV_NAME: rootless
         - env:
-            DISTRO_NV: "${UBUNTU_NAME}"
-            IMAGE_NAME: "${UBUNTU_CACHE_IMAGE_NAME}"
+            DISTRO_NV: "${DEBIAN_NAME}"
+            IMAGE_NAME: "${DEBIAN_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
             PRIV_NAME: rootless
 

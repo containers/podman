@@ -599,6 +599,7 @@ func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 		defer devNull.Close()
 		stdin = devNull
 	}
+	namespaceOptions := append([]define.NamespaceOption{}, s.executor.namespaceOptions...)
 	options := buildah.RunOptions{
 		Args:             s.executor.runtimeArgs,
 		Cmd:              config.Cmd,
@@ -609,7 +610,7 @@ func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 		Hostname:         config.Hostname,
 		Logger:           s.executor.logger,
 		Mounts:           append([]Mount{}, s.executor.transientMounts...),
-		NamespaceOptions: s.executor.namespaceOptions,
+		NamespaceOptions: namespaceOptions,
 		NoHosts:          s.executor.noHosts,
 		NoPivot:          os.Getenv("BUILDAH_NOPIVOT") != "",
 		Quiet:            s.executor.quiet,
@@ -625,6 +626,19 @@ func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 		Terminal:         buildah.WithoutTerminal,
 		User:             config.User,
 		WorkingDir:       config.WorkingDir,
+	}
+
+	// Honor `RUN --network=<>`.
+	switch run.Network {
+	case "host":
+		options.NamespaceOptions.AddOrReplace(define.NamespaceOption{Name: "network", Host: true})
+		options.ConfigureNetwork = define.NetworkEnabled
+	case "none":
+		options.ConfigureNetwork = define.NetworkDisabled
+	case "", "default":
+		// do nothing
+	default:
+		return fmt.Errorf(`unsupported value %q for "RUN --network", must be either "host" or "none"`, run.Network)
 	}
 
 	if config.NetworkDisabled {
@@ -678,7 +692,7 @@ func (s *StageExecutor) UnrecognizedInstruction(step *imagebuilder.Step) error {
 // prepare creates a working container based on the specified image, or if one
 // isn't specified, the first argument passed to the first FROM instruction we
 // can find in the stage's parsed tree.
-func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBConfig, rebase bool, pullPolicy define.PullPolicy) (builder *buildah.Builder, err error) {
+func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBConfig, rebase, preserveBaseImageAnnotations bool, pullPolicy define.PullPolicy) (builder *buildah.Builder, err error) {
 	stage := s.stage
 	ib := stage.Builder
 	node := stage.Node
@@ -753,6 +767,7 @@ func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		Logger:                s.executor.logger,
 		ProcessLabel:          s.executor.processLabel,
 		MountLabel:            s.executor.mountLabel,
+		PreserveBaseImageAnns: preserveBaseImageAnnotations,
 	}
 
 	builder, err = buildah.NewBuilder(ctx, s.executor.store, builderOptions)
@@ -865,7 +880,7 @@ func (s *StageExecutor) getImageRootfs(ctx context.Context, image string) (mount
 	if builder, ok := s.executor.containerMap[image]; ok {
 		return builder.MountPoint, nil
 	}
-	builder, err := s.prepare(ctx, image, false, false, s.executor.pullPolicy)
+	builder, err := s.prepare(ctx, image, false, false, false, s.executor.pullPolicy)
 	if err != nil {
 		return "", err
 	}
@@ -912,9 +927,11 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 	}
 	pullPolicy := s.executor.pullPolicy
 	s.executor.stagesLock.Lock()
+	var preserveBaseImageAnnotationsAtStageStart bool
 	if stageImage, isPreviousStage := s.executor.imageMap[base]; isPreviousStage {
 		base = stageImage
 		pullPolicy = define.PullNever
+		preserveBaseImageAnnotationsAtStageStart = true
 	}
 	s.executor.stagesLock.Unlock()
 
@@ -945,7 +962,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 	// Create the (first) working container for this stage.  Reinitializing
 	// the imagebuilder configuration may alter the list of steps we have,
 	// so take a snapshot of them *after* that.
-	if _, err := s.prepare(ctx, base, true, true, pullPolicy); err != nil {
+	if _, err := s.prepare(ctx, base, true, true, preserveBaseImageAnnotationsAtStageStart, pullPolicy); err != nil {
 		return "", nil, err
 	}
 	children := stage.Node.Children
@@ -968,18 +985,18 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 	}
 	// logCachePulled produces build log for cases when `--cache-from`
 	// is used and a valid intermediate image is pulled from remote source.
-	logCachePulled := func(cacheKey string) {
+	logCachePulled := func(cacheKey string, remote reference.Named) {
 		if !s.executor.quiet {
-			cacheHitMessage := "--> Cache pulled from remote"
-			fmt.Fprintf(s.executor.out, "%s %s\n", cacheHitMessage, fmt.Sprintf("%s:%s", s.executor.cacheFrom, cacheKey))
+			cachePullMessage := "--> Cache pulled from remote"
+			fmt.Fprintf(s.executor.out, "%s %s\n", cachePullMessage, fmt.Sprintf("%s:%s", remote.String(), cacheKey))
 		}
 	}
 	// logCachePush produces build log for cases when `--cache-to`
 	// is used and a valid intermediate image is pushed tp remote source.
 	logCachePush := func(cacheKey string) {
 		if !s.executor.quiet {
-			cacheHitMessage := "--> Pushing cache"
-			fmt.Fprintf(s.executor.out, "%s %s\n", cacheHitMessage, fmt.Sprintf("%s:%s", s.executor.cacheTo, cacheKey))
+			cachePushMessage := "--> Pushing cache"
+			fmt.Fprintf(s.executor.out, "%s %s\n", cachePushMessage, fmt.Sprintf("%s:%s", s.executor.cacheTo, cacheKey))
 		}
 	}
 	logCacheHit := func(cacheID string) {
@@ -989,8 +1006,8 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		}
 	}
 	logImageID := func(imgID string) {
-		if len(imgID) > 11 {
-			imgID = imgID[0:11]
+		if len(imgID) > 12 {
+			imgID = imgID[:12]
 		}
 		if s.executor.iidfile == "" {
 			fmt.Fprintf(s.executor.out, "--> %s\n", imgID)
@@ -1236,7 +1253,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			}
 		}
 
-		needsCacheKey := (s.executor.cacheFrom != nil || s.executor.cacheTo != nil) && !avoidLookingCache
+		needsCacheKey := (len(s.executor.cacheFrom) != 0 || len(s.executor.cacheTo) != 0) && !avoidLookingCache
 
 		// If we have to commit for this instruction, only assign the
 		// stage's configured output name to the last layer.
@@ -1289,12 +1306,12 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			}
 			// All the best effort to find cache on localstorage have failed try pulling
 			// cache from remote repo if `--cache-from` was configured.
-			if cacheID == "" && s.executor.cacheFrom != nil {
+			if cacheID == "" && len(s.executor.cacheFrom) != 0 {
 				// only attempt to use cache again if pulling was successful
 				// otherwise do nothing and attempt to run the step, err != nil
 				// is ignored and will be automatically logged for --log-level debug
-				if id, err := s.pullCache(ctx, cacheKey); id != "" && err == nil {
-					logCachePulled(cacheKey)
+				if ref, id, err := s.pullCache(ctx, cacheKey); ref != nil && id != "" && err == nil {
+					logCachePulled(cacheKey, ref)
 					cacheID, err = s.intermediateImageExists(ctx, node, addedContentSummary, s.stepRequiresLayer(step))
 					if err != nil {
 						return "", nil, fmt.Errorf("checking if cached image exists from a previous build: %w", err)
@@ -1340,12 +1357,12 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				// All the best effort to find cache on localstorage have failed try pulling
 				// cache from remote repo if `--cache-from` was configured and cacheKey was
 				// generated again after adding content summary.
-				if cacheID == "" && s.executor.cacheFrom != nil {
+				if cacheID == "" && len(s.executor.cacheFrom) != 0 {
 					// only attempt to use cache again if pulling was successful
 					// otherwise do nothing and attempt to run the step, err != nil
 					// is ignored and will be automatically logged for --log-level debug
-					if id, err := s.pullCache(ctx, cacheKey); id != "" && err == nil {
-						logCachePulled(cacheKey)
+					if ref, id, err := s.pullCache(ctx, cacheKey); ref != nil && id != "" && err == nil {
+						logCachePulled(cacheKey, ref)
 						cacheID, err = s.intermediateImageExists(ctx, node, addedContentSummary, s.stepRequiresLayer(step))
 						if err != nil {
 							return "", nil, fmt.Errorf("checking if cached image exists from a previous build: %w", err)
@@ -1425,7 +1442,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		// Try to push this cache to remote repository only
 		// if cache was present on local storage and not
 		// pulled from remote source while processing this
-		if s.executor.cacheTo != nil && (!pulledAndUsedCacheImage || cacheID == "") {
+		if len(s.executor.cacheTo) != 0 && (!pulledAndUsedCacheImage || cacheID == "") && needsCacheKey {
 			logCachePush(cacheKey)
 			if err = s.pushCache(ctx, imgID, cacheKey); err != nil {
 				return "", nil, err
@@ -1489,7 +1506,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			// Enforce pull "never" since we already have an image
 			// ID that we really should not be pulling anymore (see
 			// containers/podman/issues/10307).
-			if _, err := s.prepare(ctx, imgID, false, true, define.PullNever); err != nil {
+			if _, err := s.prepare(ctx, imgID, false, true, true, define.PullNever); err != nil {
 				return "", nil, fmt.Errorf("preparing container for next step: %w", err)
 			}
 		}
@@ -1816,10 +1833,10 @@ func (s *StageExecutor) pushCache(ctx context.Context, src, cacheKey string) err
 // or a newer version of cache was found in the upstream repo. If new
 // image was pulled function returns image id otherwise returns empty
 // string "" or error if any error was encontered while pulling the cache.
-func (s *StageExecutor) pullCache(ctx context.Context, cacheKey string) (string, error) {
+func (s *StageExecutor) pullCache(ctx context.Context, cacheKey string) (reference.Named, string, error) {
 	srcList, err := cacheImageReferences(s.executor.cacheFrom, cacheKey)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 	for _, src := range srcList {
 		logrus.Debugf("trying to pull cache from remote repo: %+v", src.DockerReference())
@@ -1841,9 +1858,9 @@ func (s *StageExecutor) pullCache(ctx context.Context, cacheKey string) (string,
 			//return "", fmt.Errorf("failed while pulling cache from %q: %w", src, err)
 		}
 		logrus.Debugf("successfully pulled cache from repo %s: %s", src, id)
-		return id, nil
+		return src.DockerReference(), id, nil
 	}
-	return "", fmt.Errorf("failed pulling cache from all available sources %q", srcList)
+	return nil, "", fmt.Errorf("failed pulling cache from all available sources %q", srcList)
 }
 
 // intermediateImageExists returns true if an intermediate image of currNode exists in the image store from a previous build.
@@ -2005,14 +2022,6 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 	if s.executor.commonBuildOptions.IdentityLabel == types.OptionalBoolUndefined || s.executor.commonBuildOptions.IdentityLabel == types.OptionalBoolTrue {
 		s.builder.SetLabel(buildah.BuilderIdentityAnnotation, define.Version)
 	}
-	for _, labelSpec := range s.executor.labels {
-		label := strings.SplitN(labelSpec, "=", 2)
-		if len(label) > 1 {
-			s.builder.SetLabel(label[0], label[1])
-		} else {
-			s.builder.SetLabel(label[0], "")
-		}
-	}
 	for _, annotationSpec := range s.executor.annotations {
 		annotation := strings.SplitN(annotationSpec, "=", 2)
 		if len(annotation) > 1 {
@@ -2071,7 +2080,7 @@ func (s *StageExecutor) generateBuildOutput(buildOutputOpts define.BuildOutputOp
 		// decided to strip setuid,setgid and extended attributes.
 		// Since modes like setuid,setgid leaves room for executable
 		// to get invoked with different file-system permission its safer
-		// to strip them off for unpriviledged invocation.
+		// to strip them off for unprivileged invocation.
 		// See: https://github.com/containers/buildah/pull/3823#discussion_r829376633
 		extractRootfsOpts.StripSetuidBit = true
 		extractRootfsOpts.StripSetgidBit = true

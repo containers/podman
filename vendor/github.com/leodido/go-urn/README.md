@@ -1,4 +1,4 @@
-[![Build](https://img.shields.io/travis/leodido/go-urn/master.svg?style=for-the-badge)](https://travis-ci.org/leodido/go-urn) [![Coverage](https://img.shields.io/codecov/c/github/leodido/go-urn.svg?style=for-the-badge)](https://codecov.io/gh/leodido/go-urn) [![Documentation](https://img.shields.io/badge/godoc-reference-blue.svg?style=for-the-badge)](https://godoc.org/github.com/leodido/go-urn)
+[![Build](https://img.shields.io/circleci/build/github/leodido/go-urn?style=for-the-badge)](https://app.circleci.com/pipelines/github/leodido/go-urn) [![Coverage](https://img.shields.io/codecov/c/github/leodido/go-urn.svg?style=for-the-badge)](https://codecov.io/gh/leodido/go-urn) [![Documentation](https://img.shields.io/badge/godoc-reference-blue.svg?style=for-the-badge)](https://godoc.org/github.com/leodido/go-urn)
 
 **A parser for URNs**.
 
@@ -51,5 +51,31 @@ no/19/urn:UrN:NSS__________________________________/-4      20000000      399 ns
 * <a name="mymachine">[1]</a>: Intel Core i7-7600U CPU @ 2.80GHz
 
 ---
+
+## Example
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/leodido/go-urn"
+)
+
+func main() {
+	var uid = "URN:foo:a123,456"
+
+	u, ok := urn.Parse([]byte(uid))
+	if !ok {
+		panic("error parsing urn")
+	}
+
+	fmt.Println(u.ID)
+	fmt.Println(u.SS)
+
+	// Output:
+	// foo
+	// a123,456
+}
+```
 
 [![Analytics](https://ga-beacon.appspot.com/UA-49657176-1/go-urn?flat)](https://github.com/igrigorik/ga-beacon)

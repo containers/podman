@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package trillian contains the generated protobuf code for the Trillian API.
 package trillian
 
 //go:generate protoc -I=. -I=third_party/googleapis --go_out=paths=source_relative:. --go-grpc_out=paths=source_relative:. --go-grpc_opt=require_unimplemented_servers=false trillian_log_api.proto trillian_admin_api.proto trillian.proto --doc_out=markdown,api.md:./docs/

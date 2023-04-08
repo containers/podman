@@ -33,6 +33,58 @@ func (f *fulcioTrustRoot) validate() error {
 	return nil
 }
 
+// fulcioIssuerInCertificate returns the OIDC issuer recorded by Fulcio in unutrustedCertificate;
+// it fails if the extension is not present in the certificate, or on any inconsistency.
+func fulcioIssuerInCertificate(untrustedCertificate *x509.Certificate) (string, error) {
+	// == Validate the recorded OIDC issuer
+	gotOIDCIssuer1 := false
+	gotOIDCIssuer2 := false
+	var oidcIssuer1, oidcIssuer2 string
+	// certificate.ParseExtensions doesn’t reject duplicate extensions, and doesn’t detect inconsistencies
+	// between certificate.OIDIssuer and certificate.OIDIssuerV2.
+	// Go 1.19 rejects duplicate extensions universally; but until we can require Go 1.19,
+	// reject duplicates manually.
+	for _, untrustedExt := range untrustedCertificate.Extensions {
+		if untrustedExt.Id.Equal(certificate.OIDIssuer) { //nolint:staticcheck // This is deprecated, but we must continue to accept it.
+			if gotOIDCIssuer1 {
+				// Coverage: This is unreachable in Go ≥1.19, which rejects certificates with duplicate extensions
+				// already in ParseCertificate.
+				return "", internal.NewInvalidSignatureError("Fulcio certificate has a duplicate OIDC issuer v1 extension")
+			}
+			oidcIssuer1 = string(untrustedExt.Value)
+			gotOIDCIssuer1 = true
+		} else if untrustedExt.Id.Equal(certificate.OIDIssuerV2) {
+			if gotOIDCIssuer2 {
+				// Coverage: This is unreachable in Go ≥1.19, which rejects certificates with duplicate extensions
+				// already in ParseCertificate.
+				return "", internal.NewInvalidSignatureError("Fulcio certificate has a duplicate OIDC issuer v2 extension")
+			}
+			rest, err := asn1.Unmarshal(untrustedExt.Value, &oidcIssuer2)
+			if err != nil {
+				return "", internal.NewInvalidSignatureError(fmt.Sprintf("invalid ASN.1 in OIDC issuer v2 extension: %v", err))
+			}
+			if len(rest) != 0 {
+				return "", internal.NewInvalidSignatureError("invalid ASN.1 in OIDC issuer v2 extension, trailing data")
+			}
+			gotOIDCIssuer2 = true
+		}
+	}
+	switch {
+	case gotOIDCIssuer1 && gotOIDCIssuer2:
+		if oidcIssuer1 != oidcIssuer2 {
+			return "", internal.NewInvalidSignatureError(fmt.Sprintf("inconsistent OIDC issuer extension values: v1 %#v, v2 %#v",
+				oidcIssuer1, oidcIssuer2))
+		}
+		return oidcIssuer1, nil
+	case gotOIDCIssuer1:
+		return oidcIssuer1, nil
+	case gotOIDCIssuer2:
+		return oidcIssuer2, nil
+	default:
+		return "", internal.NewInvalidSignatureError("Fulcio certificate is missing the issuer extension")
+	}
+}
+
 func (f *fulcioTrustRoot) verifyFulcioCertificateAtTime(relevantTime time.Time, untrustedCertificateBytes []byte, untrustedIntermediateChainBytes []byte) (crypto.PublicKey, error) {
 	// == Verify the certificate is correctly signed
 	var untrustedIntermediatePool *x509.CertPool // = nil
@@ -113,24 +165,9 @@ func (f *fulcioTrustRoot) verifyFulcioCertificateAtTime(relevantTime time.Time, 
 	// make the SCT (and all of Rekor apart from the trusted timestamp) unnecessary.
 
 	// == Validate the recorded OIDC issuer
-	gotOIDCIssuer := false
-	var oidcIssuer string
-	// certificate.ParseExtensions doesn’t reject duplicate extensions.
-	// Go 1.19 rejects duplicate extensions universally; but until we can require Go 1.19,
-	// reject duplicates manually. With Go 1.19, we could call certificate.ParseExtensions again.
-	for _, untrustedExt := range untrustedCertificate.Extensions {
-		if untrustedExt.Id.Equal(certificate.OIDIssuer) {
-			if gotOIDCIssuer {
-				// Coverage: This is unreachable in Go ≥1.19, which rejects certificates with duplicate extensions
-				// already in ParseCertificate.
-				return nil, internal.NewInvalidSignatureError("Fulcio certificate has a duplicate OIDC issuer extension")
-			}
-			oidcIssuer = string(untrustedExt.Value)
-			gotOIDCIssuer = true
-		}
-	}
-	if !gotOIDCIssuer {
-		return nil, internal.NewInvalidSignatureError("Fulcio certificate is missing the issuer extension")
+	oidcIssuer, err := fulcioIssuerInCertificate(untrustedCertificate)
+	if err != nil {
+		return nil, err
 	}
 	if oidcIssuer != f.oidcIssuer {
 		return nil, internal.NewInvalidSignatureError(fmt.Sprintf("Unexpected Fulcio OIDC issuer %q", oidcIssuer))

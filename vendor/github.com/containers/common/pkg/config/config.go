@@ -16,6 +16,7 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/common/pkg/util"
+	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/unshare"
 	units "github.com/docker/go-units"
 	selinux "github.com/opencontainers/selinux/go-selinux"
@@ -323,7 +324,7 @@ type EngineConfig struct {
 	// Building/committing defaults to OCI.
 	ImageDefaultFormat string `toml:"image_default_format,omitempty"`
 
-	// ImageVolumeMode Tells container engines how to handle the builtin
+	// ImageVolumeMode Tells container engines how to handle the built-in
 	// image volumes.  Acceptable values are "bind", "tmpfs", and "ignore".
 	ImageVolumeMode string `toml:"image_volume_mode,omitempty"`
 
@@ -336,6 +337,10 @@ type EngineConfig struct {
 
 	// InitPath is the path to the container-init binary.
 	InitPath string `toml:"init_path,omitempty"`
+
+	// KubeGenerateType sets the Kubernetes kind/specification to generate by default
+	// with the podman kube generate command
+	KubeGenerateType string `toml:"kube_generate_type,omitempty"`
 
 	// LockType is the type of locking to use.
 	LockType string `toml:"lock_type,omitempty"`
@@ -552,6 +557,9 @@ type NetworkConfig struct {
 
 	// CNIPluginDirs is where CNI plugin binaries are stored.
 	CNIPluginDirs []string `toml:"cni_plugin_dirs,omitempty"`
+
+	// NetavarkPluginDirs is a list of directories which contain netavark plugins.
+	NetavarkPluginDirs []string `toml:"netavark_plugin_dirs,omitempty"`
 
 	// DefaultNetwork is the network name of the default network
 	// to attach pods to.
@@ -836,7 +844,7 @@ func (c *Config) CheckCgroupsAndAdjustConfig() {
 
 	if !hasSession && unshare.GetRootlessUID() != 0 {
 		logrus.Warningf("The cgroupv2 manager is set to systemd but there is no systemd user session available")
-		logrus.Warningf("For using systemd, you may need to login using an user session")
+		logrus.Warningf("For using systemd, you may need to log in using a user session")
 		logrus.Warningf("Alternatively, you can enable lingering with: `loginctl enable-linger %d` (possibly as root)", unshare.GetRootlessUID())
 		logrus.Warningf("Falling back to --cgroup-manager=cgroupfs")
 		c.Engine.CgroupManager = CgroupfsCgroupsManager
@@ -1255,16 +1263,21 @@ func (c *Config) Write() error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	configFile, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0o644)
+
+	opts := &ioutils.AtomicFileWriterOptions{ExplicitCommit: true}
+	configFile, err := ioutils.NewAtomicFileWriterWithOpts(path, 0o644, opts)
 	if err != nil {
 		return err
 	}
 	defer configFile.Close()
+
 	enc := toml.NewEncoder(configFile)
 	if err := enc.Encode(c); err != nil {
 		return err
 	}
-	return nil
+
+	// If no errors commit the changes to the config file
+	return configFile.Commit()
 }
 
 // Reload clean the cached config and reloads the configuration from containers.conf files

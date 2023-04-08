@@ -78,7 +78,7 @@ func (c *defaultChecker) IsMounted(path string) bool {
 }
 
 // Mounted checks if the given path is mounted as the fs type
-//Solaris supports only ZFS for now
+// Solaris supports only ZFS for now
 func Mounted(fsType FsMagic, mountPath string) (bool, error) {
 
 	cs := C.CString(filepath.Dir(mountPath))
