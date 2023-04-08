@@ -58,9 +58,9 @@ Further note that `podman cp` does not support globbing (e.g., `cp dir/*.txt`). 
 
 #### **--archive**, **-a**
 
-Archive mode (copy all uid/gid information).
+Archive mode (copy all UID/GID information).
 When set to true, files copied to a container will have changed ownership to the primary UID/GID of the container.
-When set to false, maintain uid/gid from archive sources instead of changing them to the primary uid/gid of the destination container.
+When set to false, maintain UID/GID from archive sources instead of changing them to the primary UID/GID of the destination container.
 The default is **true**.
 
 #### **--overwrite**

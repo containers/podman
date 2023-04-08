@@ -31,7 +31,7 @@ file is created in each container to indicate to programs they are running in a
 container. This file is located at _/run/.containerenv_. When using the
 --privileged flag the .containerenv contains name/value pairs indicating the
 container engine version, whether the engine is running in rootless mode, the
-container name and id, as well as the image name and id that the container is based on.
+container name and ID, as well as the image name and ID that the container is based on.
 
 When running from a user defined network namespace, the _/etc/netns/NSNAME/resolv.conf_
 will be used if it exists, otherwise _/etc/resolv.conf_ will be used.
@@ -736,7 +736,7 @@ supported sysctls.
 ### Set UID/GID mapping in a new user namespace
 
 Running a container in a new user namespace requires a mapping of
-the uids and gids from the host.
+the UIDs and GIDs from the host.
 
 ```
 $ podman run --uidmap 0:30000:7000 --gidmap 0:30000:7000 fedora echo hello

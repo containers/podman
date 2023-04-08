@@ -408,7 +408,7 @@ Podman can also be used as non-root user. When podman runs in rootless mode, a u
 
 Containers created by a non-root user are not visible to other users and are not seen or managed by Podman running as root.
 
-It is required to have multiple uids/gids set for a user.  Be sure the user is present in the files `/etc/subuid` and `/etc/subgid`.
+It is required to have multiple UIDS/GIDS set for a user.  Be sure the user is present in the files `/etc/subuid` and `/etc/subgid`.
 
 Execute the following commands to add the ranges to the files
 

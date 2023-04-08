@@ -33,7 +33,7 @@ Supported filters:
 
 | Filter             | Description                                                                                   |
 | :----------------: | --------------------------------------------------------------------------------------------- |
-| *id*               | Filter by image id.                                                                           |
+| *id*               | Filter by image ID.                                                                           |
 | *before*           | Filter by images created before the given IMAGE (name or tag).                                |
 | *containers*       | Filter by images with a running container.                                                    |
 | *dangling*         | Filter by dangling (unused) images.                                                           |
@@ -46,7 +46,7 @@ Supported filters:
 | *after*/*since*    | Filter by images created after the given IMAGE (name or tag).                                 |
 | *until*            | Filter by images created until the given duration or time.                                    |
 
-The `id` *filter* accepts the image id string.
+The `id` *filter* accepts the image ID string.
 
 The `before` *filter* accepts formats: `<image-name>[:<tag>]`, `<image id>` or `<image@digest>`.
 
