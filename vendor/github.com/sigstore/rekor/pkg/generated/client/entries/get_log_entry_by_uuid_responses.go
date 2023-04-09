@@ -102,6 +102,11 @@ func (o *GetLogEntryByUUIDOK) IsCode(code int) bool {
 	return code == 200
 }
 
+// Code gets the status code for the get log entry by Uuid o k response
+func (o *GetLogEntryByUUIDOK) Code() int {
+	return 200
+}
+
 func (o *GetLogEntryByUUIDOK) Error() string {
 	return fmt.Sprintf("[GET /api/v1/log/entries/{entryUUID}][%d] getLogEntryByUuidOK  %+v", 200, o.Payload)
 }
@@ -162,6 +167,11 @@ func (o *GetLogEntryByUUIDNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the get log entry by Uuid not found response
+func (o *GetLogEntryByUUIDNotFound) Code() int {
+	return 404
+}
+
 func (o *GetLogEntryByUUIDNotFound) Error() string {
 	return fmt.Sprintf("[GET /api/v1/log/entries/{entryUUID}][%d] getLogEntryByUuidNotFound ", 404)
 }
@@ -193,11 +203,6 @@ type GetLogEntryByUUIDDefault struct {
 	Payload *models.Error
 }
 
-// Code gets the status code for the get log entry by UUID default response
-func (o *GetLogEntryByUUIDDefault) Code() int {
-	return o._statusCode
-}
-
 // IsSuccess returns true when this get log entry by UUID default response has a 2xx status code
 func (o *GetLogEntryByUUIDDefault) IsSuccess() bool {
 	return o._statusCode/100 == 2
@@ -221,6 +226,11 @@ func (o *GetLogEntryByUUIDDefault) IsServerError() bool {
 // IsCode returns true when this get log entry by UUID default response a status code equal to that given
 func (o *GetLogEntryByUUIDDefault) IsCode(code int) bool {
 	return o._statusCode == code
+}
+
+// Code gets the status code for the get log entry by UUID default response
+func (o *GetLogEntryByUUIDDefault) Code() int {
+	return o._statusCode
 }
 
 func (o *GetLogEntryByUUIDDefault) Error() string {

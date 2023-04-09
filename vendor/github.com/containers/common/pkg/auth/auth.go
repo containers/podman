@@ -94,7 +94,7 @@ func Login(ctx context.Context, systemContext *types.SystemContext, opts *LoginO
 	switch len(args) {
 	case 0:
 		if !opts.AcceptUnspecifiedRegistry {
-			return errors.New("please provide a registry to login to")
+			return errors.New("please provide a registry to log in to")
 		}
 		if key, err = defaultRegistryWhenUnspecified(systemContext); err != nil {
 			return err
@@ -109,7 +109,7 @@ func Login(ctx context.Context, systemContext *types.SystemContext, opts *LoginO
 		}
 
 	default:
-		return errors.New("login accepts only one registry to login to")
+		return errors.New("login accepts only one registry to log in to")
 	}
 
 	authConfig, err := config.GetCredentials(systemContext, key)
@@ -299,7 +299,7 @@ func Logout(systemContext *types.SystemContext, opts *LogoutOptions, args []stri
 	switch len(args) {
 	case 0:
 		if !opts.AcceptUnspecifiedRegistry {
-			return errors.New("please provide a registry to logout from")
+			return errors.New("please provide a registry to log out from")
 		}
 		if key, err = defaultRegistryWhenUnspecified(systemContext); err != nil {
 			return err
@@ -314,7 +314,7 @@ func Logout(systemContext *types.SystemContext, opts *LogoutOptions, args []stri
 		}
 
 	default:
-		return errors.New("logout accepts only one registry to logout from")
+		return errors.New("logout accepts only one registry to log out from")
 	}
 
 	err = config.RemoveAuthentication(systemContext, key)
