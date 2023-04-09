@@ -2,6 +2,79 @@
 
 # Changelog
 
+## v1.30.0 (2023-04-06)
+
+    fix(deps): update module github.com/opencontainers/runc to v1.1.5
+    fix(deps): update module github.com/fsouza/go-dockerclient to v1.9.7
+    buildah image should not enable fuse-overlayfs for rootful mode
+    stage_executor: inline network add default string
+    fix(deps): update module github.com/containers/common to v0.51.2
+    chore(deps): update dependency containers/automation_images to v20230330
+    fix(deps): update module github.com/docker/docker to v23.0.2+incompatible
+    chore(deps): update dependency containers/automation_images to v20230320
+    fix(deps): update module github.com/onsi/gomega to v1.27.6
+    fix(deps): update github.com/opencontainers/runtime-tools digest to e931285
+    [skip-ci] Update actions/stale action to v8
+    test: don't allow to override io.buildah.version
+    executor: only apply label on the final stage
+    Update docs/buildah-build.1.md
+    update build instruction for Ubuntu
+    code review
+    build: accept arguments from file with --build-arg-file
+    run_linux: Update heuristic for mounting /sys
+    [CI:BUILD] Packit: Enable Copr builds on PR and commit to main
+    fix(deps): update module github.com/fsouza/go-dockerclient to v1.9.6
+    Update to Go 1.18
+    Disable dependabot in favor of renovate
+    chore(deps): update dependency containers/automation_images to v20230314
+    Fix requiring tests on Makefile changes
+    Vendor in latest containers/(storage, common, image)
+    imagebuildah: set len(short_image_id) to 12
+    Re-enable conformance tests
+    Skip conformance test failures with Docker 23.0.1
+    Cirrus: Replace Ubuntu -> Debian SID
+    run: add support for inline --network in RUN stmt
+    vendor: bump imagebuilder to a3c3f8358ca31b1e4daa6
+    stage_executor: attempt to push cache only when cacheKey is valid
+    Add "ifnewer" as option in help message for pull command
+    build: document behaviour of buildah's distributed cache
+    fix(deps): update module golang.org/x/term to v0.6.0
+    Add default list of capabilities required to run buildah in a container
+    executor,copy: honor default ARG value while eval stage
+    sshagent: use ExtendedAgent instead of Agent
+    tests/bud: remove unwated test
+    executor: do not warn on builtin default args
+    executor: don't warn about unused TARGETARCH,TARGETOS,TARGETPLATFORM
+    Fix tutorial for rootless mode
+    Vendor in latest containers/(common, storage, image)
+    Ignore the base image's base image annotations
+    fix(deps): update module github.com/fsouza/go-dockerclient to v1.9.5
+    build(deps): bump github.com/containers/storage from 1.45.3 to 1.45.4
+    Vendor in latest containers/common
+    docs/tutorials/04: add defaults for Run()
+    imagebuildah.StageExecutor: suppress bogus "Pushing cache []:..."
+    executor: also add stage with no children to cleanupStages
+    [CI:BUILD] copr: fix el8 builds
+    Fix documentation on which Capabilities are allowed by default
+    Skip subject-length validation for renovate PRs
+    Temporarily hard-skip bud-multiple-platform-values test
+    fix(deps): update github.com/openshift/imagebuilder digest to 86828bf
+    build(deps): bump github.com/containerd/containerd from 1.6.16 to 1.6.17
+    build(deps): bump tim-actions/get-pr-commits from 1.1.0 to 1.2.0
+    build(deps): bump github.com/containers/image/v5 from 5.24.0 to 5.24.1
+    [skip-ci] Update tim-actions/get-pr-commits digest to 55b867b
+    build(deps): bump github.com/opencontainers/selinux
+    build(deps): bump golang.org/x/crypto from 0.5.0 to 0.6.0
+    Add renovate configuration
+    Run codespell on codebase
+    login: support interspersed args for password
+    conformance: use scratch for minimal test
+    pkg/parse: expose public CleanCacheMount API
+    build(deps): bump go.etcd.io/bbolt from 1.3.6 to 1.3.7
+    build(deps): bump github.com/containerd/containerd from 1.6.15 to 1.6.16
+    docs: specify order preference for FROM
+    Bump to v1.30.0-dev
+
 ## v1.29.0 (2023-01-25)
 
     tests: improve build-with-network-test

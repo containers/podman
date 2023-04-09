@@ -282,7 +282,7 @@ func (m *IntotoV001SchemaContent) UnmarshalBinary(b []byte) error {
 	return nil
 }
 
-// IntotoV001SchemaContentHash Specifies the hash algorithm and value encompassing the entire signed envelope
+// IntotoV001SchemaContentHash Specifies the hash algorithm and value encompassing the entire signed envelope; this is computed by the rekor server, client-provided values are ignored
 //
 // swagger:model IntotoV001SchemaContentHash
 type IntotoV001SchemaContentHash struct {
@@ -392,7 +392,7 @@ func (m *IntotoV001SchemaContentHash) UnmarshalBinary(b []byte) error {
 	return nil
 }
 
-// IntotoV001SchemaContentPayloadHash Specifies the hash algorithm and value covering the payload within the DSSE envelope
+// IntotoV001SchemaContentPayloadHash Specifies the hash algorithm and value covering the payload within the DSSE envelope; this is computed by the rekor server, client-provided values are ignored
 //
 // swagger:model IntotoV001SchemaContentPayloadHash
 type IntotoV001SchemaContentPayloadHash struct {

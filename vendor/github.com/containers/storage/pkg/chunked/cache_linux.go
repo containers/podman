@@ -361,7 +361,7 @@ func readMetadataFromCache(bigData io.Reader) (*metadata, error) {
 		return nil, err
 	}
 	if version != cacheVersion {
-		return nil, nil
+		return nil, nil //nolint: nilnil
 	}
 	if err := binary.Read(bigData, binary.LittleEndian, &tagLen); err != nil {
 		return nil, err
@@ -398,7 +398,8 @@ func prepareMetadata(manifest []byte) ([]*internal.FileMetadata, error) {
 	toc, err := unmarshalToc(manifest)
 	if err != nil {
 		// ignore errors here.  They might be caused by a different manifest format.
-		return nil, nil
+		logrus.Debugf("could not unmarshal manifest: %v", err)
+		return nil, nil //nolint: nilnil
 	}
 
 	var r []*internal.FileMetadata

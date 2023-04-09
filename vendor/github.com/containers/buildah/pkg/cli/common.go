@@ -53,6 +53,7 @@ type BudResults struct {
 	Annotation          []string
 	Authfile            string
 	BuildArg            []string
+	BuildArgFile        []string
 	BuildContext        []string
 	CacheFrom           []string
 	CacheTo             []string
@@ -204,6 +205,7 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.StringVar(&flags.Authfile, "authfile", "", "path of the authentication file.")
 	fs.StringArrayVar(&flags.OCIHooksDir, "hooks-dir", []string{}, "set the OCI hooks directory path (may be set multiple times)")
 	fs.StringArrayVar(&flags.BuildArg, "build-arg", []string{}, "`argument=value` to supply to the builder")
+	fs.StringArrayVar(&flags.BuildArgFile, "build-arg-file", []string{}, "`argfile.conf` containing lines of argument=value to supply to the builder")
 	fs.StringArrayVar(&flags.BuildContext, "build-context", []string{}, "`argument=value` to supply additional build context to the builder")
 	fs.StringArrayVar(&flags.CacheFrom, "cache-from", []string{}, "remote repository list to utilise as potential cache source.")
 	fs.StringArrayVar(&flags.CacheTo, "cache-to", []string{}, "remote repository list to utilise as potential cache destination.")
@@ -285,6 +287,7 @@ func GetBudFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion["arch"] = commonComp.AutocompleteNone
 	flagCompletion["authfile"] = commonComp.AutocompleteDefault
 	flagCompletion["build-arg"] = commonComp.AutocompleteNone
+	flagCompletion["build-arg-file"] = commonComp.AutocompleteDefault
 	flagCompletion["build-context"] = commonComp.AutocompleteNone
 	flagCompletion["cache-from"] = commonComp.AutocompleteNone
 	flagCompletion["cache-to"] = commonComp.AutocompleteNone
@@ -480,4 +483,43 @@ func AliasFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
 		name = "terminal"
 	}
 	return pflag.NormalizedName(name)
+}
+
+// LookupEnvVarReferences returns a copy of specs with keys and values resolved
+// from environ. Strings are in "key=value" form, the same as [os.Environ].
+//
+//   - When a string in specs lacks "=", it is treated as a key and the value
+//     is retrieved from environ. When the key is missing from environ, neither
+//     the key nor value are returned.
+//
+//   - When a string in specs lacks "=" and ends with "*", it is treated as
+//     a key prefix and any keys with the same prefix in environ are returned.
+//
+//   - When a string in specs is exactly "*", all keys and values in environ
+//     are returned.
+func LookupEnvVarReferences(specs, environ []string) []string {
+	result := make([]string, 0, len(specs))
+
+	for _, spec := range specs {
+		if key, _, ok := strings.Cut(spec, "="); ok {
+			result = append(result, spec)
+
+		} else if key == "*" {
+			result = append(result, environ...)
+
+		} else {
+			prefix := key + "="
+			if strings.HasSuffix(key, "*") {
+				prefix = strings.TrimSuffix(key, "*")
+			}
+
+			for _, spec := range environ {
+				if strings.HasPrefix(spec, prefix) {
+					result = append(result, spec)
+				}
+			}
+		}
+	}
+
+	return result
 }

@@ -51,7 +51,7 @@ var iso3166_1_alpha2 = map[string]bool{
 	"TV": true, "UG": true, "UA": true, "AE": true, "GB": true,
 	"US": true, "UM": true, "UY": true, "UZ": true, "VU": true,
 	"VE": true, "VN": true, "VG": true, "VI": true, "WF": true,
-	"EH": true, "YE": true, "ZM": true, "ZW": true,
+	"EH": true, "YE": true, "ZM": true, "ZW": true, "XK": true,
 }
 
 var iso3166_1_alpha3 = map[string]bool{
@@ -105,7 +105,7 @@ var iso3166_1_alpha3 = map[string]bool{
 	"UGA": true, "UKR": true, "ARE": true, "GBR": true, "UMI": true,
 	"USA": true, "URY": true, "UZB": true, "VUT": true, "VEN": true,
 	"VNM": true, "VGB": true, "VIR": true, "WLF": true, "ESH": true,
-	"YEM": true, "ZMB": true, "ZWE": true, "ALA": true,
+	"YEM": true, "ZMB": true, "ZWE": true, "ALA": true, "UNK": true,
 }
 var iso3166_1_alpha_numeric = map[int]bool{
 	// see: https://www.iso.org/iso-3166-country-codes.html
@@ -158,7 +158,7 @@ var iso3166_1_alpha_numeric = map[int]bool{
 	800: true, 804: true, 784: true, 826: true, 581: true,
 	840: true, 858: true, 860: true, 548: true, 862: true,
 	704: true, 92: true, 850: true, 876: true, 732: true,
-	887: true, 894: true, 716: true, 248: true,
+	887: true, 894: true, 716: true, 248: true, 153:true,
 }
 
 var iso3166_2 = map[string]bool{

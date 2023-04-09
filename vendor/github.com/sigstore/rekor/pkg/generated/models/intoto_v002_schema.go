@@ -132,7 +132,8 @@ func (m *IntotoV002Schema) UnmarshalBinary(b []byte) error {
 type IntotoV002SchemaContent struct {
 
 	// envelope
-	Envelope *IntotoV002SchemaContentEnvelope `json:"envelope,omitempty"`
+	// Required: true
+	Envelope *IntotoV002SchemaContentEnvelope `json:"envelope"`
 
 	// hash
 	Hash *IntotoV002SchemaContentHash `json:"hash,omitempty"`
@@ -164,8 +165,9 @@ func (m *IntotoV002SchemaContent) Validate(formats strfmt.Registry) error {
 }
 
 func (m *IntotoV002SchemaContent) validateEnvelope(formats strfmt.Registry) error {
-	if swag.IsZero(m.Envelope) { // not required
-		return nil
+
+	if err := validate.Required("content"+"."+"envelope", "body", m.Envelope); err != nil {
+		return err
 	}
 
 	if m.Envelope != nil {
