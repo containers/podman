@@ -734,7 +734,7 @@ STEP 1/2: FROM $IMAGE
 STEP 2/2: RUN echo x${random2}y
 x${random2}y${remote_extra}
 COMMIT build_test${remote_extra}
---> [0-9a-f]\{11\}
+--> [0-9a-f]\{12\}
 Successfully tagged localhost/build_test:latest
 [0-9a-f]\{64\}
 a${random3}z"
