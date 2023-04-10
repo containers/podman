@@ -172,7 +172,7 @@ func GenerateForKubeDeployment(ctx context.Context, pod *YAMLPod, options entiti
 		depSpec.Replicas = &options.Replicas
 	}
 
-	// Create the Deployment opbject
+	// Create the Deployment object
 	dep := YAMLDeployment{
 		Deployment: v1.Deployment{
 			ObjectMeta: v12.ObjectMeta{

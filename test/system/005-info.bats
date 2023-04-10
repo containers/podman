@@ -203,7 +203,7 @@ EOF
     CONTAINERS_CONF_OVERRIDE=$overrideConf run_podman info --format "{{ .Host.DatabaseBackend }}"
     is "$output" "sqlite"
 
-    # CONTAINERS_CONF will be overriden by _OVERRIDE
+    # CONTAINERS_CONF will be overridden by _OVERRIDE
     CONTAINERS_CONF=$containersConf CONTAINERS_CONF_OVERRIDE=$overrideConf run_podman info --format "{{ .Host.DatabaseBackend }}"
     is "$output" "sqlite"
 }
