@@ -19,7 +19,7 @@ package sqlite3
 #cgo CFLAGS: -Wno-deprecated-declarations
 
 #ifndef USE_LIBSQLITE3
-#include "sqlite3-binding.h"
+#include <sqlite3-binding.h>
 #else
 #include <sqlite3.h>
 #endif
@@ -226,42 +226,10 @@ static sqlite3_module goModule = {
 	0	                     // xRollbackTo
 };
 
-// See https://sqlite.org/vtab.html#eponymous_only_virtual_tables
-static sqlite3_module goModuleEponymousOnly = {
-	0,                       // iVersion
-	0,                       // xCreate - create a table, which here is null
-	cXConnect,               // xConnect - connect to an existing table
-	cXBestIndex,             // xBestIndex - Determine search strategy
-	cXDisconnect,            // xDisconnect - Disconnect from a table
-	cXDestroy,               // xDestroy - Drop a table
-	cXOpen,                  // xOpen - open a cursor
-	cXClose,                 // xClose - close a cursor
-	cXFilter,                // xFilter - configure scan constraints
-	cXNext,                  // xNext - advance a cursor
-	cXEof,                   // xEof
-	cXColumn,                // xColumn - read data
-	cXRowid,                 // xRowid - read data
-	cXUpdate,                // xUpdate - write data
-// Not implemented
-	0,                       // xBegin - begin transaction
-	0,                       // xSync - sync transaction
-	0,                       // xCommit - commit transaction
-	0,                       // xRollback - rollback transaction
-	0,                       // xFindFunction - function overloading
-	0,                       // xRename - rename the table
-	0,                       // xSavepoint
-	0,                       // xRelease
-	0	                     // xRollbackTo
-};
-
 void goMDestroy(void*);
 
 static int _sqlite3_create_module(sqlite3 *db, const char *zName, uintptr_t pClientData) {
   return sqlite3_create_module_v2(db, zName, &goModule, (void*) pClientData, goMDestroy);
-}
-
-static int _sqlite3_create_module_eponymous_only(sqlite3 *db, const char *zName, uintptr_t pClientData) {
-  return sqlite3_create_module_v2(db, zName, &goModuleEponymousOnly, (void*) pClientData, goMDestroy);
 }
 */
 import "C"
@@ -320,13 +288,10 @@ type InfoOrderBy struct {
 }
 
 func constraints(info *C.sqlite3_index_info) []InfoConstraint {
-	slice := *(*[]C.struct_sqlite3_index_constraint)(unsafe.Pointer(&reflect.SliceHeader{
-		Data: uintptr(unsafe.Pointer(info.aConstraint)),
-		Len:  int(info.nConstraint),
-		Cap:  int(info.nConstraint),
-	}))
+	l := info.nConstraint
+	slice := (*[1 << 30]C.struct_sqlite3_index_constraint)(unsafe.Pointer(info.aConstraint))[:l:l]
 
-	cst := make([]InfoConstraint, 0, len(slice))
+	cst := make([]InfoConstraint, 0, l)
 	for _, c := range slice {
 		var usable bool
 		if c.usable > 0 {
@@ -342,13 +307,10 @@ func constraints(info *C.sqlite3_index_info) []InfoConstraint {
 }
 
 func orderBys(info *C.sqlite3_index_info) []InfoOrderBy {
-	slice := *(*[]C.struct_sqlite3_index_orderby)(unsafe.Pointer(&reflect.SliceHeader{
-		Data: uintptr(unsafe.Pointer(info.aOrderBy)),
-		Len:  int(info.nOrderBy),
-		Cap:  int(info.nOrderBy),
-	}))
+	l := info.nOrderBy
+	slice := (*[1 << 30]C.struct_sqlite3_index_orderby)(unsafe.Pointer(info.aOrderBy))[:l:l]
 
-	ob := make([]InfoOrderBy, 0, len(slice))
+	ob := make([]InfoOrderBy, 0, l)
 	for _, c := range slice {
 		var desc bool
 		if c.desc > 0 {
@@ -385,7 +347,7 @@ func mPrintf(format, arg string) *C.char {
 
 //export goMInit
 func goMInit(db, pClientData unsafe.Pointer, argc C.int, argv **C.char, pzErr **C.char, isCreate C.int) C.uintptr_t {
-	m := lookupHandle(pClientData).(*sqliteModule)
+	m := lookupHandle(uintptr(pClientData)).(*sqliteModule)
 	if m.c.db != (*C.sqlite3)(db) {
 		*pzErr = mPrintf("%s", "Inconsistent db handles")
 		return 0
@@ -411,12 +373,12 @@ func goMInit(db, pClientData unsafe.Pointer, argc C.int, argv **C.char, pzErr **
 	}
 	vt := sqliteVTab{m, vTab}
 	*pzErr = nil
-	return C.uintptr_t(uintptr(newHandle(m.c, &vt)))
+	return C.uintptr_t(newHandle(m.c, &vt))
 }
 
 //export goVRelease
 func goVRelease(pVTab unsafe.Pointer, isDestroy C.int) *C.char {
-	vt := lookupHandle(pVTab).(*sqliteVTab)
+	vt := lookupHandle(uintptr(pVTab)).(*sqliteVTab)
 	var err error
 	if isDestroy == 1 {
 		err = vt.vTab.Destroy()
@@ -431,7 +393,7 @@ func goVRelease(pVTab unsafe.Pointer, isDestroy C.int) *C.char {
 
 //export goVOpen
 func goVOpen(pVTab unsafe.Pointer, pzErr **C.char) C.uintptr_t {
-	vt := lookupHandle(pVTab).(*sqliteVTab)
+	vt := lookupHandle(uintptr(pVTab)).(*sqliteVTab)
 	vTabCursor, err := vt.vTab.Open()
 	if err != nil {
 		*pzErr = mPrintf("%s", err.Error())
@@ -439,12 +401,12 @@ func goVOpen(pVTab unsafe.Pointer, pzErr **C.char) C.uintptr_t {
 	}
 	vtc := sqliteVTabCursor{vt, vTabCursor}
 	*pzErr = nil
-	return C.uintptr_t(uintptr(newHandle(vt.module.c, &vtc)))
+	return C.uintptr_t(newHandle(vt.module.c, &vtc))
 }
 
 //export goVBestIndex
 func goVBestIndex(pVTab unsafe.Pointer, icp unsafe.Pointer) *C.char {
-	vt := lookupHandle(pVTab).(*sqliteVTab)
+	vt := lookupHandle(uintptr(pVTab)).(*sqliteVTab)
 	info := (*C.sqlite3_index_info)(icp)
 	csts := constraints(info)
 	res, err := vt.vTab.BestIndex(csts, orderBys(info))
@@ -456,37 +418,22 @@ func goVBestIndex(pVTab unsafe.Pointer, icp unsafe.Pointer) *C.char {
 	}
 
 	// Get a pointer to constraint_usage struct so we can update in place.
-
-	slice := *(*[]C.struct_sqlite3_index_constraint_usage)(unsafe.Pointer(&reflect.SliceHeader{
-		Data: uintptr(unsafe.Pointer(info.aConstraintUsage)),
-		Len:  int(info.nConstraint),
-		Cap:  int(info.nConstraint),
-	}))
+	l := info.nConstraint
+	s := (*[1 << 30]C.struct_sqlite3_index_constraint_usage)(unsafe.Pointer(info.aConstraintUsage))[:l:l]
 	index := 1
-	for i := range slice {
+	for i := C.int(0); i < info.nConstraint; i++ {
 		if res.Used[i] {
-			slice[i].argvIndex = C.int(index)
-			slice[i].omit = C.uchar(1)
+			s[i].argvIndex = C.int(index)
+			s[i].omit = C.uchar(1)
 			index++
 		}
 	}
 
 	info.idxNum = C.int(res.IdxNum)
-	info.idxStr = (*C.char)(C.sqlite3_malloc(C.int(len(res.IdxStr) + 1)))
-	if info.idxStr == nil {
-		// C.malloc and C.CString ordinarily do this for you. See https://golang.org/cmd/cgo/
-		panic("out of memory")
-	}
-	info.needToFreeIdxStr = C.int(1)
-
-	idxStr := *(*[]byte)(unsafe.Pointer(&reflect.SliceHeader{
-		Data: uintptr(unsafe.Pointer(info.idxStr)),
-		Len:  len(res.IdxStr) + 1,
-		Cap:  len(res.IdxStr) + 1,
-	}))
-	copy(idxStr, res.IdxStr)
-	idxStr[len(idxStr)-1] = 0 // null-terminated string
-
+	idxStr := C.CString(res.IdxStr)
+	defer C.free(unsafe.Pointer(idxStr))
+	info.idxStr = idxStr
+	info.needToFreeIdxStr = C.int(0)
 	if res.AlreadyOrdered {
 		info.orderByConsumed = C.int(1)
 	}
@@ -498,7 +445,7 @@ func goVBestIndex(pVTab unsafe.Pointer, icp unsafe.Pointer) *C.char {
 
 //export goVClose
 func goVClose(pCursor unsafe.Pointer) *C.char {
-	vtc := lookupHandle(pCursor).(*sqliteVTabCursor)
+	vtc := lookupHandle(uintptr(pCursor)).(*sqliteVTabCursor)
 	err := vtc.vTabCursor.Close()
 	if err != nil {
 		return mPrintf("%s", err.Error())
@@ -508,13 +455,13 @@ func goVClose(pCursor unsafe.Pointer) *C.char {
 
 //export goMDestroy
 func goMDestroy(pClientData unsafe.Pointer) {
-	m := lookupHandle(pClientData).(*sqliteModule)
+	m := lookupHandle(uintptr(pClientData)).(*sqliteModule)
 	m.module.DestroyModule()
 }
 
 //export goVFilter
 func goVFilter(pCursor unsafe.Pointer, idxNum C.int, idxName *C.char, argc C.int, argv **C.sqlite3_value) *C.char {
-	vtc := lookupHandle(pCursor).(*sqliteVTabCursor)
+	vtc := lookupHandle(uintptr(pCursor)).(*sqliteVTabCursor)
 	args := (*[(math.MaxInt32 - 1) / unsafe.Sizeof((*C.sqlite3_value)(nil))]*C.sqlite3_value)(unsafe.Pointer(argv))[:argc:argc]
 	vals := make([]interface{}, 0, argc)
 	for _, v := range args {
@@ -533,7 +480,7 @@ func goVFilter(pCursor unsafe.Pointer, idxNum C.int, idxName *C.char, argc C.int
 
 //export goVNext
 func goVNext(pCursor unsafe.Pointer) *C.char {
-	vtc := lookupHandle(pCursor).(*sqliteVTabCursor)
+	vtc := lookupHandle(uintptr(pCursor)).(*sqliteVTabCursor)
 	err := vtc.vTabCursor.Next()
 	if err != nil {
 		return mPrintf("%s", err.Error())
@@ -543,7 +490,7 @@ func goVNext(pCursor unsafe.Pointer) *C.char {
 
 //export goVEof
 func goVEof(pCursor unsafe.Pointer) C.int {
-	vtc := lookupHandle(pCursor).(*sqliteVTabCursor)
+	vtc := lookupHandle(uintptr(pCursor)).(*sqliteVTabCursor)
 	err := vtc.vTabCursor.EOF()
 	if err {
 		return 1
@@ -553,7 +500,7 @@ func goVEof(pCursor unsafe.Pointer) C.int {
 
 //export goVColumn
 func goVColumn(pCursor, cp unsafe.Pointer, col C.int) *C.char {
-	vtc := lookupHandle(pCursor).(*sqliteVTabCursor)
+	vtc := lookupHandle(uintptr(pCursor)).(*sqliteVTabCursor)
 	c := (*SQLiteContext)(cp)
 	err := vtc.vTabCursor.Column(c, int(col))
 	if err != nil {
@@ -564,7 +511,7 @@ func goVColumn(pCursor, cp unsafe.Pointer, col C.int) *C.char {
 
 //export goVRowid
 func goVRowid(pCursor unsafe.Pointer, pRowid *C.sqlite3_int64) *C.char {
-	vtc := lookupHandle(pCursor).(*sqliteVTabCursor)
+	vtc := lookupHandle(uintptr(pCursor)).(*sqliteVTabCursor)
 	rowid, err := vtc.vTabCursor.Rowid()
 	if err != nil {
 		return mPrintf("%s", err.Error())
@@ -575,7 +522,7 @@ func goVRowid(pCursor unsafe.Pointer, pRowid *C.sqlite3_int64) *C.char {
 
 //export goVUpdate
 func goVUpdate(pVTab unsafe.Pointer, argc C.int, argv **C.sqlite3_value, pRowid *C.sqlite3_int64) *C.char {
-	vt := lookupHandle(pVTab).(*sqliteVTab)
+	vt := lookupHandle(uintptr(pVTab)).(*sqliteVTab)
 
 	var tname string
 	if n, ok := vt.vTab.(interface {
@@ -638,13 +585,6 @@ type Module interface {
 	DestroyModule()
 }
 
-// EponymousOnlyModule is a "virtual table module" (as above), but
-// for defining "eponymous only" virtual tables See: https://sqlite.org/vtab.html#eponymous_only_virtual_tables
-type EponymousOnlyModule interface {
-	Module
-	EponymousOnlyModule()
-}
-
 // VTab describes a particular instance of the virtual table.
 // See: http://sqlite.org/c3ref/vtab.html
 type VTab interface {
@@ -702,19 +642,9 @@ func (c *SQLiteConn) CreateModule(moduleName string, module Module) error {
 	mname := C.CString(moduleName)
 	defer C.free(unsafe.Pointer(mname))
 	udm := sqliteModule{c, moduleName, module}
-	switch module.(type) {
-	case EponymousOnlyModule:
-		rv := C._sqlite3_create_module_eponymous_only(c.db, mname, C.uintptr_t(uintptr(newHandle(c, &udm))))
-		if rv != C.SQLITE_OK {
-			return c.lastError()
-		}
-		return nil
-	case Module:
-		rv := C._sqlite3_create_module(c.db, mname, C.uintptr_t(uintptr(newHandle(c, &udm))))
-		if rv != C.SQLITE_OK {
-			return c.lastError()
-		}
-		return nil
+	rv := C._sqlite3_create_module(c.db, mname, C.uintptr_t(newHandle(c, &udm)))
+	if rv != C.SQLITE_OK {
+		return c.lastError()
 	}
 	return nil
 }
