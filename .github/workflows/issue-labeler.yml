@@ -13,7 +13,7 @@ jobs:
       issues: write  # for github/issue-labeler to create or remove labels
     runs-on: ubuntu-latest
     steps:
-    - uses: github/issue-labeler@de16e742018d174ccf61d287f6ed31eb48faa64f # v2.6
+    - uses: github/issue-labeler@e24a3eb6b2e28c8904d086302a2b760647f5f45c # v3.1
       with:
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
         configuration-path: .github/issue-labeler.yml
