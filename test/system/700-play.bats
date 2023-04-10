@@ -236,7 +236,6 @@ EOF
 }
 
 @test "podman kube --network" {
-    skip_if_rootless_cgroupsv1 "Test will never be supported, see #17582."
     TESTDIR=$PODMAN_TMPDIR/testdir
     mkdir -p $TESTDIR
     echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
