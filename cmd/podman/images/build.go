@@ -25,6 +25,7 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/containers/podman/v4/pkg/env"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -400,6 +401,17 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	}
 
 	args := make(map[string]string)
+	if c.Flag("build-arg-file").Changed {
+		for _, argfile := range flags.BuildArgFile {
+			fargs, err := env.ParseFile(argfile)
+			if err != nil {
+				return nil, err
+			}
+			for name, val := range fargs {
+				args[name] = val
+			}
+		}
+	}
 	if c.Flag("build-arg").Changed {
 		for _, arg := range flags.BuildArg {
 			av := strings.SplitN(arg, "=", 2)

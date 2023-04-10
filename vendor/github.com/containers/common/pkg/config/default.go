@@ -71,6 +71,12 @@ var (
 		"/usr/lib/cni",
 		"/opt/cni/bin",
 	}
+	DefaultNetavarkPluginDirs = []string{
+		"/usr/local/libexec/netavark",
+		"/usr/libexec/netavark",
+		"/usr/local/lib/netavark",
+		"/usr/lib/netavark",
+	}
 	DefaultSubnetPools = []SubnetPool{
 		// 10.89.0.0/24-10.255.255.0/24
 		parseSubnetPool("10.89.0.0/16", 24),
@@ -214,6 +220,7 @@ func DefaultConfig() (*Config, error) {
 			DefaultSubnetPools: DefaultSubnetPools,
 			DNSBindPort:        0,
 			CNIPluginDirs:      DefaultCNIPluginDirs,
+			NetavarkPluginDirs: DefaultNetavarkPluginDirs,
 		},
 		Engine:  *defaultEngineConfig,
 		Secrets: defaultSecretConfig(),
@@ -418,6 +425,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 
 	c.PodExitPolicy = defaultPodExitPolicy
 	c.SSHConfig = getDefaultSSHConfig()
+	c.KubeGenerateType = "pod"
 
 	return c, nil
 }

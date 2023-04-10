@@ -70,7 +70,7 @@ func ParseFile(path string) (_ map[string]string, err error) {
 	env := make(map[string]string)
 	defer func() {
 		if err != nil {
-			err = fmt.Errorf("parsing env file %q: %w", path, err)
+			err = fmt.Errorf("parsing file %q: %w", path, err)
 		}
 	}()
 
@@ -99,7 +99,7 @@ func parseEnv(env map[string]string, line string) error {
 
 	// catch invalid variables such as "=" or "=A"
 	if data[0] == "" {
-		return fmt.Errorf("invalid environment variable: %q", line)
+		return fmt.Errorf("invalid variable: %q", line)
 	}
 	// trim the front of a variable, but nothing else
 	name := strings.TrimLeft(data[0], whiteSpaces)

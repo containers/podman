@@ -195,6 +195,17 @@ func NewRoutableContext(spec *loads.Document, routableAPI RoutableAPI, routes Ro
 	if spec != nil {
 		an = analysis.New(spec.Spec())
 	}
+
+	return NewRoutableContextWithAnalyzedSpec(spec, an, routableAPI, routes)
+}
+
+// NewRoutableContextWithAnalyzedSpec is like NewRoutableContext but takes in input the analysed spec too
+func NewRoutableContextWithAnalyzedSpec(spec *loads.Document, an *analysis.Spec, routableAPI RoutableAPI, routes Router) *Context {
+	// Either there are no spec doc and analysis, or both of them.
+	if !((spec == nil && an == nil) || (spec != nil && an != nil)) {
+		panic(errors.New(http.StatusInternalServerError, "routable context requires either both spec doc and analysis, or none of them"))
+	}
+
 	ctx := &Context{spec: spec, api: routableAPI, analyzer: an, router: routes}
 	return ctx
 }
@@ -498,7 +509,9 @@ func (c *Context) Respond(rw http.ResponseWriter, r *http.Request, produces []st
 
 	if resp, ok := data.(Responder); ok {
 		producers := route.Producers
-		prod, ok := producers[format]
+		// producers contains keys with normalized format, if a format has MIME type parameter such as `text/plain; charset=utf-8`
+		// then you must provide `text/plain` to get the correct producer. HOWEVER, format here is not normalized.
+		prod, ok := producers[normalizeOffer(format)]
 		if !ok {
 			prods := c.api.ProducersFor(normalizeOffers([]string{c.api.DefaultProduces()}))
 			pr, ok := prods[c.api.DefaultProduces()]

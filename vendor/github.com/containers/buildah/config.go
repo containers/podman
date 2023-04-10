@@ -92,13 +92,7 @@ func (b *Builder) initConfig(ctx context.Context, img types.Image, sys *types.Sy
 				return fmt.Errorf("parsing OCI manifest %q: %w", string(b.Manifest), err)
 			}
 			for k, v := range v1Manifest.Annotations {
-				// NOTE: do not override annotations that are
-				// already set. Otherwise, we may erase
-				// annotations such as the digest of the base
-				// image.
-				if value := b.ImageAnnotations[k]; value == "" {
-					b.ImageAnnotations[k] = v
-				}
+				b.ImageAnnotations[k] = v
 			}
 		}
 	}
