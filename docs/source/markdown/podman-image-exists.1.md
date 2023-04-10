@@ -35,6 +35,25 @@ $ echo $?
 1
 $
 ```
+When used in a script with errexit set, a non-zero return code from `podman image exists`can cause
+the script to fail unexpectedly unless handled correctly. The script below checks if an image called
+`webbackend` exists in local storage and displays a message. This is just one of several alternative
+methods to handle nonzero return codes in a script.
+```
+#!/usr/bin/env bash
+set -o errexit
+
+rc=0
+(podman image exists webbackend) || rc=$?
+
+if [[ "${rc}" -eq "0" ]]
+then
+  echo "webbackend exists"
+else
+  echo "webbackend does not exist"
+fi
+echo "The scripted completed normally"
+```
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-image(1)](podman-image.1.md)**
