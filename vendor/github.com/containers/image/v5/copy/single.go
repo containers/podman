@@ -739,9 +739,9 @@ func updatedBlobInfoFromReuse(inputInfo types.BlobInfo, reusedBlob private.Reuse
 	res := types.BlobInfo{
 		Digest:               reusedBlob.Digest,
 		Size:                 reusedBlob.Size,
-		URLs:                 nil, // This _must_ be cleared if Digest changes; clear it in other cases as well, to preserve previous behavior.
-		Annotations:          inputInfo.Annotations,
-		MediaType:            inputInfo.MediaType, // Mostly irrelevant, MediaType is updated based on Compression*/CryptoOperation.
+		URLs:                 nil,                   // This _must_ be cleared if Digest changes; clear it in other cases as well, to preserve previous behavior.
+		Annotations:          inputInfo.Annotations, // FIXME: This should remove zstd:chunked annotations (but those annotations being left with incorrect values should not break pulls)
+		MediaType:            inputInfo.MediaType,   // Mostly irrelevant, MediaType is updated based on Compression*/CryptoOperation.
 		CompressionOperation: reusedBlob.CompressionOperation,
 		CompressionAlgorithm: reusedBlob.CompressionAlgorithm,
 		CryptoOperation:      inputInfo.CryptoOperation, // Expected to be unset anyway.

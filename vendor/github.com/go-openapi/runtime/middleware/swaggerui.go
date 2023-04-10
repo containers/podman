@@ -16,6 +16,8 @@ type SwaggerUIOpts struct {
 	Path string
 	// SpecURL the url to find the spec for
 	SpecURL string
+	// OAuthCallbackURL the url called after OAuth2 login
+	OAuthCallbackURL string
 
 	// The three components needed to embed swagger-ui
 	SwaggerURL       string
@@ -39,6 +41,9 @@ func (r *SwaggerUIOpts) EnsureDefaults() {
 	}
 	if r.SpecURL == "" {
 		r.SpecURL = "/swagger.json"
+	}
+	if r.OAuthCallbackURL == "" {
+		r.OAuthCallbackURL = path.Join(r.BasePath, r.Path, "oauth2-callback")
 	}
 	if r.SwaggerURL == "" {
 		r.SwaggerURL = swaggerLatest
@@ -149,7 +154,8 @@ const (
         plugins: [
           SwaggerUIBundle.plugins.DownloadUrl
         ],
-        layout: "StandaloneLayout"
+        layout: "StandaloneLayout",
+		oauth2RedirectUrl: '{{ .OAuthCallbackURL }}'
       })
       // End Swagger UI call region
 

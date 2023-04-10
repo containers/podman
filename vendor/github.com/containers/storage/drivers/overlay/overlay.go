@@ -17,7 +17,6 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-	"unicode"
 
 	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/drivers/overlayutils"
@@ -30,6 +29,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/parsers"
+	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/pkg/unshare"
 	units "github.com/docker/go-units"
@@ -314,9 +314,6 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 	}
 	fsName, ok := graphdriver.FsNames[fsMagic]
 	if !ok {
-		if opts.mountProgram == "" {
-			return nil, fmt.Errorf("filesystem type %#x reported for %s is not supported with 'overlay': %w", fsMagic, filepath.Dir(home), graphdriver.ErrIncompatibleFS)
-		}
 		fsName = "<unknown>"
 	}
 	backingFs = fsName
@@ -549,6 +546,9 @@ func parseOptions(options []string) (*overlayOptions, error) {
 		case "skip_mount_home":
 			logrus.Debugf("overlay: skip_mount_home=%s", val)
 			o.skipMountHome, err = strconv.ParseBool(val)
+			if err != nil {
+				return nil, err
+			}
 		case "ignore_chown_errors":
 			logrus.Debugf("overlay: ignore_chown_errors=%s", val)
 			o.ignoreChownErrors, err = strconv.ParseBool(val)
@@ -685,8 +685,11 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 
 		// Try a test mount in the specific location we're looking at using.
 		mergedDir := filepath.Join(layerDir, "merged")
+		mergedSubdir := filepath.Join(mergedDir, "subdir")
 		lower1Dir := filepath.Join(layerDir, "lower1")
 		lower2Dir := filepath.Join(layerDir, "lower2")
+		lower2Subdir := filepath.Join(lower2Dir, "subdir")
+		lower2SubdirFile := filepath.Join(lower2Subdir, "file")
 		upperDir := filepath.Join(layerDir, "upper")
 		workDir := filepath.Join(layerDir, "work")
 		defer func() {
@@ -700,8 +703,15 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 		_ = idtools.MkdirAs(mergedDir, 0700, rootUID, rootGID)
 		_ = idtools.MkdirAs(lower1Dir, 0700, rootUID, rootGID)
 		_ = idtools.MkdirAs(lower2Dir, 0700, rootUID, rootGID)
+		_ = idtools.MkdirAs(lower2Subdir, 0700, rootUID, rootGID)
 		_ = idtools.MkdirAs(upperDir, 0700, rootUID, rootGID)
 		_ = idtools.MkdirAs(workDir, 0700, rootUID, rootGID)
+		f, err := os.Create(lower2SubdirFile)
+		if err != nil {
+			logrus.Debugf("Unable to create test file: %v", err)
+			return supportsDType, fmt.Errorf("unable to create test file: %w", err)
+		}
+		f.Close()
 		flags := fmt.Sprintf("lowerdir=%s:%s,upperdir=%s,workdir=%s", lower1Dir, lower2Dir, upperDir, workDir)
 		if selinux.GetEnabled() &&
 			selinux.SecurityCheckContext(selinuxLabelTest) == nil {
@@ -721,6 +731,10 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 		if len(flags) < unix.Getpagesize() {
 			err := unix.Mount("overlay", mergedDir, "overlay", 0, flags)
 			if err == nil {
+				if err = os.RemoveAll(mergedSubdir); err != nil {
+					logrus.StandardLogger().Logf(logLevel, "overlay: removing an item from the merged directory failed: %v", err)
+					return supportsDType, fmt.Errorf("kernel returned %v when we tried to delete an item in the merged directory: %w", err, graphdriver.ErrNotSupported)
+				}
 				logrus.Debugf("overlay: test mount with multiple lowers succeeded")
 				return supportsDType, nil
 			}
@@ -1427,7 +1441,6 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 						perms = os.FileMode(st2.Mode())
 						permsKnown = true
 					}
-					l = lower
 					break
 				}
 				lower = ""
@@ -1509,7 +1522,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		}
 	}
 
-	if !disableShifting && len(options.UidMaps) > 0 && len(options.GidMaps) > 0 {
+	if !disableShifting && len(options.UidMaps) > 0 && len(options.GidMaps) > 0 && d.options.mountProgram == "" {
 		var newAbsDir []string
 		mappedRoot := filepath.Join(d.home, id, "mapped")
 		if err := os.MkdirAll(mappedRoot, 0700); err != nil {
@@ -1706,18 +1719,6 @@ func (d *Driver) Exists(id string) bool {
 	return err == nil
 }
 
-func nameLooksLikeID(name string) bool {
-	if len(name) != 64 {
-		return false
-	}
-	for _, c := range name {
-		if !unicode.Is(unicode.ASCII_Hex_Digit, c) {
-			return false
-		}
-	}
-	return true
-}
-
 // List layers (not including additional image stores)
 func (d *Driver) ListLayers() ([]string, error) {
 	entries, err := os.ReadDir(d.home)
@@ -1730,7 +1731,7 @@ func (d *Driver) ListLayers() ([]string, error) {
 	for _, entry := range entries {
 		id := entry.Name()
 		// Does it look like a datadir directory?
-		if !entry.IsDir() || !nameLooksLikeID(id) {
+		if !entry.IsDir() || stringid.ValidateID(id) != nil {
 			continue
 		}
 
@@ -1827,7 +1828,7 @@ func (d *Driver) ApplyDiffWithDiffer(id, parent string, options *graphdriver.App
 		idMappings = &idtools.IDMappings{}
 	}
 
-	applyDir := ""
+	var applyDir string
 
 	if id == "" {
 		err := os.MkdirAll(d.getStagingDir(), 0700)

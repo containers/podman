@@ -176,7 +176,7 @@ func (ic *imageCopier) bpcRecompressCompressed(stream *sourceStream, detected bp
 		recompressed, annotations := ic.compressedStream(decompressed, *ic.compressionFormat)
 		// Note: recompressed must be closed on all return paths.
 		stream.reader = recompressed
-		stream.info = types.BlobInfo{ // FIXME? Should we preserve more data in src.info?
+		stream.info = types.BlobInfo{ // FIXME? Should we preserve more data in src.info? Notably the current approach correctly removes zstd:chunked metadata annotations.
 			Digest: "",
 			Size:   -1,
 		}
@@ -203,7 +203,7 @@ func (ic *imageCopier) bpcDecompressCompressed(stream *sourceStream, detected bp
 		}
 		// Note: s must be closed on all return paths.
 		stream.reader = s
-		stream.info = types.BlobInfo{ // FIXME? Should we preserve more data in src.info?
+		stream.info = types.BlobInfo{ // FIXME? Should we preserve more data in src.info? Notably the current approach correctly removes zstd:chunked metadata annotations.
 			Digest: "",
 			Size:   -1,
 		}

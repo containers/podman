@@ -254,6 +254,15 @@ default_sysctls = [
 #  "/opt/cni/bin",
 #]
 
+# List of directories that will be searched for netavark plugins.
+#
+#netavark_plugin_dirs = [
+#  "/usr/local/libexec/netavark",
+#	"/usr/libexec/netavark",
+#	"/usr/local/lib/netavark",
+#	"/usr/lib/netavark",
+#]
+
 # The network name of the default network to attach pods to.
 #
 #default_network = "podman"
@@ -396,9 +405,9 @@ default_sysctls = [
 
 # Infra (pause) container image name for pod infra containers.  When running a
 # pod, we start a `pause` process in a container to hold open the namespaces
-# associated with the  pod.  This container does nothing other then sleep,
-# reserving the pods resources for the lifetime of the pod. By default container
-# engines run a builtin container using the pause executable. If you want override
+# associated with the  pod.  This container does nothing other than sleep,
+# reserving the pod's resources for the lifetime of the pod. By default container
+# engines run a built-in container using the pause executable. If you want override
 # specify an image to pull.
 #
 #infra_image = ""

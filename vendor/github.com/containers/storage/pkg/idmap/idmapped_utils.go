@@ -34,10 +34,10 @@ func openTree(path string, flags int) (fd int, err error) {
 	if e1 != 0 {
 		err = e1
 	}
-	return int(r), nil
+	return int(r), err
 }
 
-// moveMount is a wrapper for the the move_mount syscall.
+// moveMount is a wrapper for the move_mount syscall.
 func moveMount(fdTree int, target string) (err error) {
 	var _p0, _p1 *byte
 

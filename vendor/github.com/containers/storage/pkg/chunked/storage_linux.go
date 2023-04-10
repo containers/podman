@@ -147,7 +147,7 @@ func GetDiffer(ctx context.Context, store storage.Store, blobSize int64, annotat
 }
 
 func makeZstdChunkedDiffer(ctx context.Context, store storage.Store, blobSize int64, annotations map[string]string, iss ImageSourceSeekable) (*chunkedDiffer, error) {
-	manifest, tocOffset, err := readZstdChunkedManifest(iss, blobSize, annotations)
+	manifest, tocOffset, err := readZstdChunkedManifest(ctx, iss, blobSize, annotations)
 	if err != nil {
 		return nil, fmt.Errorf("read zstd:chunked manifest: %w", err)
 	}
@@ -279,6 +279,7 @@ func canDedupFileWithHardLink(file *internal.FileMetadata, fd int, s os.FileInfo
 func findFileInOSTreeRepos(file *internal.FileMetadata, ostreeRepos []string, dirfd int, useHardLinks bool) (bool, *os.File, int64, error) {
 	digest, err := digest.Parse(file.Digest)
 	if err != nil {
+		logrus.Debugf("could not parse digest: %v", err)
 		return false, nil, 0, nil
 	}
 	payloadLink := digest.Encoded() + ".payload-link"
@@ -297,6 +298,7 @@ func findFileInOSTreeRepos(file *internal.FileMetadata, ostreeRepos []string, di
 		}
 		fd, err := unix.Open(sourceFile, unix.O_RDONLY|unix.O_NONBLOCK, 0)
 		if err != nil {
+			logrus.Debugf("could not open sourceFile %s: %v", sourceFile, err)
 			return false, nil, 0, nil
 		}
 		f := os.NewFile(uintptr(fd), "fd")
@@ -309,6 +311,7 @@ func findFileInOSTreeRepos(file *internal.FileMetadata, ostreeRepos []string, di
 
 		dstFile, written, err := copyFileContent(fd, file.Name, dirfd, 0, useHardLinks)
 		if err != nil {
+			logrus.Debugf("could not copyFileContent: %v", err)
 			return false, nil, 0, nil
 		}
 		return true, dstFile, written, nil
@@ -503,7 +506,7 @@ func openFileUnderRootFallback(dirfd int, name string, flags uint64, mode os.Fil
 
 	hasNoFollow := (flags & unix.O_NOFOLLOW) != 0
 
-	fd := -1
+	var fd int
 	// If O_NOFOLLOW is specified in the flags, then resolve only the parent directory and use the
 	// last component as the path to openat().
 	if hasNoFollow {
