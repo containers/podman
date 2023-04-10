@@ -76,7 +76,24 @@ func getRustLogEnv() string {
 // used to marshal the netavark output into it. This can be nil.
 // All errors return by this function should be of the type netavarkError
 // to provide a helpful error message.
-func (n *netavarkNetwork) execNetavark(args []string, stdin, result interface{}) error {
+func (n *netavarkNetwork) execNetavark(args []string, needPlugin bool, stdin, result interface{}) error {
+	// set the netavark log level to the same as the podman
+	env := append(os.Environ(), getRustLogEnv())
+	// if we run with debug log level lets also set RUST_BACKTRACE=1 so we can get the full stack trace in case of panics
+	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+		env = append(env, "RUST_BACKTRACE=1")
+	}
+	if n.dnsBindPort != 0 {
+		env = append(env, "NETAVARK_DNS_PORT="+strconv.Itoa(int(n.dnsBindPort)))
+	}
+	return n.execBinary(n.netavarkBinary, append(n.getCommonNetavarkOptions(needPlugin), args...), stdin, result, env)
+}
+
+func (n *netavarkNetwork) execPlugin(path string, args []string, stdin, result interface{}) error {
+	return n.execBinary(path, args, stdin, result, nil)
+}
+
+func (n *netavarkNetwork) execBinary(path string, args []string, stdin, result interface{}, env []string) error {
 	stdinR, stdinW, err := os.Pipe()
 	if err != nil {
 		return newNetavarkError("failed to create stdin pipe", err)
@@ -108,20 +125,12 @@ func (n *netavarkNetwork) execNetavark(args []string, stdin, result interface{})
 		logWriter = io.MultiWriter(logWriter, &logrusNetavarkWriter{})
 	}
 
-	cmd := exec.Command(n.netavarkBinary, append(n.getCommonNetavarkOptions(), args...)...)
+	cmd := exec.Command(path, args...)
 	// connect the pipes to stdin and stdout
 	cmd.Stdin = stdinR
 	cmd.Stdout = stdoutW
 	cmd.Stderr = logWriter
-	// set the netavark log level to the same as the podman
-	cmd.Env = append(os.Environ(), getRustLogEnv())
-	// if we run with debug log level lets also set RUST_BACKTRACE=1 so we can get the full stack trace in case of panics
-	if logrus.IsLevelEnabled(logrus.DebugLevel) {
-		cmd.Env = append(cmd.Env, "RUST_BACKTRACE=1")
-	}
-	if n.dnsBindPort != 0 {
-		cmd.Env = append(cmd.Env, "NETAVARK_DNS_PORT="+strconv.Itoa(int(n.dnsBindPort)))
-	}
+	cmd.Env = env
 
 	err = cmd.Start()
 	if err != nil {

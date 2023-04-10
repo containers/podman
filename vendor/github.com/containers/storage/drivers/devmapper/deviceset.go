@@ -460,7 +460,7 @@ func (devices *DeviceSet) loadDeviceFilesOnStart() error {
 
 	var scan = func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			logrus.Debugf("devmapper: Can't walk the file %s", path)
+			logrus.Debugf("devmapper: Can't walk the file %s: %v", path, err)
 			return nil
 		}
 
@@ -2487,10 +2487,11 @@ func (devices *DeviceSet) deviceStatus(devName string) (sizeInSectors, mappedSec
 	var params string
 	_, sizeInSectors, _, params, err = devicemapper.GetStatus(devName)
 	if err != nil {
+		logrus.Debugf("could not find devicemapper status: %v", err)
 		return
 	}
-	if _, err = fmt.Sscanf(params, "%d %d", &mappedSectors, &highestMappedSector); err == nil {
-		return
+	if _, err = fmt.Sscanf(params, "%d %d", &mappedSectors, &highestMappedSector); err != nil {
+		logrus.Debugf("could not find scanf devicemapper status: %v", err)
 	}
 	return
 }

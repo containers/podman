@@ -48,7 +48,7 @@ func validateLVMConfig(cfg directLVMConfig) error {
 func checkDevAvailable(dev string) error {
 	lvmScan, err := exec.LookPath("lvmdiskscan")
 	if err != nil {
-		logrus.Debug("could not find lvmdiskscan")
+		logrus.Debugf("could not find lvmdiskscan: %v", err)
 		return nil
 	}
 
@@ -67,7 +67,7 @@ func checkDevAvailable(dev string) error {
 func checkDevInVG(dev string) error {
 	pvDisplay, err := exec.LookPath("pvdisplay")
 	if err != nil {
-		logrus.Debug("could not find pvdisplay")
+		logrus.Debugf("could not find pvdisplay: %v", err)
 		return nil
 	}
 
@@ -96,7 +96,7 @@ func checkDevInVG(dev string) error {
 func checkDevHasFS(dev string) error {
 	blkid, err := exec.LookPath("blkid")
 	if err != nil {
-		logrus.Debug("could not find blkid")
+		logrus.Debugf("could not find blkid %v", err)
 		return nil
 	}
 

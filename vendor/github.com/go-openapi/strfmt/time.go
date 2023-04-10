@@ -133,13 +133,19 @@ func (t DateTime) String() string {
 }
 
 // IsZero returns whether the date time is a zero value
-func (t DateTime) IsZero() bool {
-	return time.Time(t).IsZero()
+func (t *DateTime) IsZero() bool {
+	if t == nil {
+		return true
+	}
+	return time.Time(*t).IsZero()
 }
 
 // IsUnixZerom returns whether the date time is equivalent to time.Unix(0, 0).UTC().
-func (t DateTime) IsUnixZero() bool {
-	return time.Time(t) == UnixZero
+func (t *DateTime) IsUnixZero() bool {
+	if t == nil {
+		return true
+	}
+	return time.Time(*t).Equal(UnixZero)
 }
 
 // MarshalText implements the text marshaller interface

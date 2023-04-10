@@ -1,15 +1,15 @@
-From 49aa33946b9d5757f59c80f0b7827579c8456598 Mon Sep 17 00:00:00 2001
+From d94ba4638cb37e5f1eef97d6de9faf2161696c71 Mon Sep 17 00:00:00 2001
 From: Ed Santiago <santiago@redhat.com>
 Date: Thu, 6 Oct 2022 17:32:59 -0600
 Subject: [PATCH] tweaks for running buildah tests under podman
 
 Signed-off-by: Ed Santiago <santiago@redhat.com>
 ---
- tests/helpers.bash | 87 +++++++++++++++++++++++++++++++++++++++++++---
- 1 file changed, 83 insertions(+), 4 deletions(-)
+ tests/helpers.bash | 98 ++++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 94 insertions(+), 4 deletions(-)
 
 diff --git a/tests/helpers.bash b/tests/helpers.bash
-index 349145f29..40a46da4e 100644
+index 349145f29..742b41629 100644
 --- a/tests/helpers.bash
 +++ b/tests/helpers.bash
 @@ -70,6 +70,37 @@ EOF
@@ -126,7 +126,7 @@ index 349145f29..40a46da4e 100644
          # without "quotes", multiple lines are glommed together into one
          if [ -n "$output" ]; then
              echo "$output"
-@@ -621,6 +691,15 @@ function skip_if_no_docker() {
+@@ -621,6 +691,26 @@ function skip_if_no_docker() {
    fi
  }
  
@@ -136,6 +136,17 @@ index 349145f29..40a46da4e 100644
 +function skip_if_remote() {
 +    if [[ -n "$REMOTE" ]]; then
 +        skip "${1:-test does not work with podman-remote}"
++    fi
++}
++
++#############################
++#  skip_if_rootless_remote  #  (only applicable for podman)
++#############################
++function skip_if_rootless_remote() {
++    if [[ -n "$REMOTE" ]]; then
++        if is_rootless; then
++            skip "${1:-test does not work with rootless podman-remote}"
++        fi
 +    fi
 +}
 +
