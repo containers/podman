@@ -33,9 +33,9 @@ type Cmd struct {
 	*exec.Cmd
 	UnshareFlags               int
 	UseNewuidmap               bool
-	UidMappings                []specs.LinuxIDMapping // nolint: golint
+	UidMappings                []specs.LinuxIDMapping // nolint: revive,golint
 	UseNewgidmap               bool
-	GidMappings                []specs.LinuxIDMapping // nolint: golint
+	GidMappings                []specs.LinuxIDMapping // nolint: revive,golint
 	GidMappingsEnableSetgroups bool
 	Setsid                     bool
 	Setpgrp                    bool
@@ -175,12 +175,11 @@ func (c *Cmd) Start() error {
 	pidWrite = nil
 
 	// Read the child's PID from the pipe.
-	pidString := ""
 	b := new(bytes.Buffer)
 	if _, err := io.Copy(b, pidRead); err != nil {
 		return fmt.Errorf("reading child PID: %w", err)
 	}
-	pidString = b.String()
+	pidString := b.String()
 	pid, err := strconv.Atoi(pidString)
 	if err != nil {
 		fmt.Fprintf(continueWrite, "error parsing PID %q: %v", pidString, err)
@@ -451,7 +450,7 @@ type Runnable interface {
 	Run() error
 }
 
-func bailOnError(err error, format string, a ...interface{}) { // nolint: golint,goprintffuncname
+func bailOnError(err error, format string, a ...interface{}) { // nolint: revive,goprintffuncname
 	if err != nil {
 		if format != "" {
 			logrus.Errorf("%s: %v", fmt.Sprintf(format, a...), err)
