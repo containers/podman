@@ -293,7 +293,7 @@ func buildLayerInfosForCopy(manifestInfos []manifest.LayerInfo, physicalInfos []
 			if nextPhysical >= len(physicalInfos) {
 				return nil, fmt.Errorf("expected more than %d physical layers to exist", len(physicalInfos))
 			}
-			res[i] = physicalInfos[nextPhysical]
+			res[i] = physicalInfos[nextPhysical] // FIXME? Should we preserve more data in manifestInfos? Notably the current approach correctly removes zstd:chunked metadata annotations.
 			nextPhysical++
 		}
 	}

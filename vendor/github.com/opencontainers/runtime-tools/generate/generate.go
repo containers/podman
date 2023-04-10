@@ -182,7 +182,7 @@ func New(os string) (generator Generator, err error) {
 				Destination: "/dev",
 				Type:        "tmpfs",
 				Source:      "tmpfs",
-				Options:     []string{"nosuid", "noexec", "strictatime", "mode=755", "size=65536k"},
+				Options:     []string{"nosuid", "strictatime", "mode=755", "size=65536k"},
 			},
 			{
 				Destination: "/dev/pts",

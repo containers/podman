@@ -30,8 +30,8 @@ type walker struct {
 	dir2   string
 	root1  *FileInfo
 	root2  *FileInfo
-	idmap1 *idtools.IDMappings
-	idmap2 *idtools.IDMappings
+	idmap1 *idtools.IDMappings //nolint:unused
+	idmap2 *idtools.IDMappings //nolint:unused
 }
 
 // collectFileInfoForChanges returns a complete representation of the trees

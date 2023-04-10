@@ -28,9 +28,8 @@ const (
 	// Package is the name of this package, used in help output and to
 	// identify working containers.
 	Package = "buildah"
-	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
-	// too.
-	Version = "1.30.0-dev"
+	// Version for the Package. Also used by .packit.sh for Packit builds.
+	Version = "1.30.0"
 
 	// DefaultRuntime if containers.conf fails.
 	DefaultRuntime = "runc"

@@ -446,6 +446,12 @@ func (x *Tree) GetDeleteTime() *timestamppb.Timestamp {
 }
 
 // SignedLogRoot represents a commitment by a Log to a particular tree.
+//
+// Note that the signature itself is no-longer provided by Trillian since
+// https://github.com/google/trillian/pull/2452 .
+// This functionality was intended to support a niche-use case but added
+// significant complexity and was prone to causing confusion and
+// misunderstanding for personality authors.
 type SignedLogRoot struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

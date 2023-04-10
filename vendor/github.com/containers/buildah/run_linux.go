@@ -96,7 +96,13 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	if isolation == define.IsolationDefault {
 		isolation = b.Isolation
 		if isolation == define.IsolationDefault {
-			isolation = define.IsolationOCI
+			isolation, err = parse.IsolationOption("")
+			if err != nil {
+				logrus.Debugf("got %v while trying to determine default isolation, guessing OCI", err)
+				isolation = IsolationOCI
+			} else if isolation == IsolationDefault {
+				isolation = IsolationOCI
+			}
 		}
 	}
 	if err := checkAndOverrideIsolationOptions(isolation, &options); err != nil {
@@ -1098,8 +1104,8 @@ func setupSpecialMountSpecChanges(spec *spec.Spec, shmSize string) ([]specs.Moun
 	}
 
 	addCgroup := true
-	// mount sys when root and no userns or when both netns and userns are private
-	canMountSys := (!isRootless && !isNewUserns) || (isNetns && isNewUserns)
+	// mount sys when root and no userns or when a new netns is created
+	canMountSys := (!isRootless && !isNewUserns) || isNetns
 	if !canMountSys {
 		addCgroup = false
 		sys := "/sys"

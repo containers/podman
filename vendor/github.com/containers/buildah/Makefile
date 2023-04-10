@@ -185,11 +185,11 @@ test-unit: tests/testreport/testreport
 	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover $(RACEFLAGS) ./cmd/buildah -args --root $$tmp/root --runroot $$tmp/runroot --storage-driver vfs --signature-policy $(shell pwd)/tests/policy.json --registries-conf $(shell pwd)/tests/registries.conf
 
 vendor-in-container:
-	podman run --privileged --rm --env HOME=/root -v `pwd`:/src -w /src docker.io/library/golang:1.17 make vendor
+	podman run --privileged --rm --env HOME=/root -v `pwd`:/src -w /src docker.io/library/golang:1.18 make vendor
 
 .PHONY: vendor
 vendor:
-	GO111MODULE=on $(GO) mod tidy -compat=1.17
+	GO111MODULE=on $(GO) mod tidy
 	GO111MODULE=on $(GO) mod vendor
 	GO111MODULE=on $(GO) mod verify
 

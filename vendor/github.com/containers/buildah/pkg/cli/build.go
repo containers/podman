@@ -105,19 +105,16 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 	logrus.Debugf("Pull Policy for pull [%v]", pullPolicy)
 
 	args := make(map[string]string)
+	if c.Flag("build-arg-file").Changed {
+		for _, argfile := range iopts.BuildArgFile {
+			if err := readBuildArgFile(argfile, args); err != nil {
+				return options, nil, nil, err
+			}
+		}
+	}
 	if c.Flag("build-arg").Changed {
 		for _, arg := range iopts.BuildArg {
-			av := strings.SplitN(arg, "=", 2)
-			if len(av) > 1 {
-				args[av[0]] = av[1]
-			} else {
-				// check if the env is set in the local environment and use that value if it is
-				if val, present := os.LookupEnv(av[0]); present {
-					args[av[0]] = val
-				} else {
-					delete(args, av[0])
-				}
-			}
+			readBuildArg(arg, args)
 		}
 	}
 
@@ -325,7 +322,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		// If user explicitly specified `--cache-ttl=0s`
 		// it would effectively mean that user is asking
 		// to use no cache at all. In such use cases
-		// buildah can skip looking for cache entierly
+		// buildah can skip looking for cache entirely
 		// by setting `--no-cache=true` internally.
 		if int64(cacheTTL) == 0 {
 			logrus.Debug("Setting --no-cache=true since --cache-ttl was set to 0s which effectively means user wants to ignore cache")
@@ -375,7 +372,6 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		ContextDirectory:        contextDir,
 		Devices:                 iopts.Devices,
 		DropCapabilities:        iopts.CapDrop,
-		Envs:                    iopts.Envs,
 		Err:                     stderr,
 		Excludes:                excludes,
 		ForceRmIntermediateCtrs: iopts.ForceRm,
@@ -425,7 +421,38 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 	if iopts.Quiet {
 		options.ReportWriter = io.Discard
 	}
+
+	options.Envs = LookupEnvVarReferences(iopts.Envs, os.Environ())
+
 	return options, containerfiles, removeAll, nil
+}
+
+func readBuildArgFile(buildargfile string, args map[string]string) error {
+	argfile, err := os.ReadFile(buildargfile)
+	if err != nil {
+		return err
+	}
+	for _, arg := range strings.Split(string(argfile), "\n") {
+		if len (arg) == 0 || arg[0] == '#' {
+			continue
+		}
+		readBuildArg(arg, args)
+	}
+	return err
+}
+
+func readBuildArg(buildarg string, args map[string]string) {
+	av := strings.SplitN(buildarg, "=", 2)
+	if len(av) > 1 {
+		args[av[0]] = av[1]
+	} else {
+		// check if the env is set in the local environment and use that value if it is
+		if val, present := os.LookupEnv(av[0]); present {
+			args[av[0]] = val
+		} else {
+			delete(args, av[0])
+		}
+	}
 }
 
 func getContainerfiles(files []string) []string {

@@ -19,6 +19,7 @@ import (
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/internal"
 	"github.com/containers/buildah/pkg/jail"
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/util"
 	"github.com/containers/common/libnetwork/resolvconf"
 	nettypes "github.com/containers/common/libnetwork/types"
@@ -98,7 +99,13 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	if isolation == IsolationDefault {
 		isolation = b.Isolation
 		if isolation == IsolationDefault {
-			isolation = IsolationOCI
+			isolation, err = parse.IsolationOption("")
+			if err != nil {
+				logrus.Debugf("got %v while trying to determine default isolation, guessing OCI", err)
+				isolation = IsolationOCI
+			} else if isolation == IsolationDefault {
+				isolation = IsolationOCI
+			}
 		}
 	}
 	if err := checkAndOverrideIsolationOptions(isolation, &options); err != nil {

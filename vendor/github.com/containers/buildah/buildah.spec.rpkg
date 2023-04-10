@@ -11,15 +11,17 @@
 
 %global with_debug 1
 
+# RHEL 8's default %%gobuild macro doesn't account for the BUILDTAGS variable, so we
+# set it separately here and do not depend on RHEL 8's go-srpm-macros package.
+%if !0%{?fedora} && 0%{?rhel} <= 8
+%define gobuild(o:) GO111MODULE=off go build -buildmode pie -compiler gc -tags="rpm_crashtraceback libtrust_openssl ${BUILDTAGS:-}" -ldflags "-linkmode=external -compressdwarf=false ${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '%__global_ldflags'" -a -v -x %{?**};
+%endif
+
 %if 0%{?with_debug}
 %global _find_debuginfo_dwz_opts %{nil}
 %global _dwz_low_mem_die_limit 0
 %else
 %global debug_package %{nil}
-%endif
-
-%if ! 0%{?gobuild:1}
-%define gobuild(o:) GO111MODULE=off go build -buildmode pie -compiler gc -tags="rpm_crashtraceback ${BUILDTAGS:-}" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '-Wl,-z,relro -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld '" -a -v -x %{?**};
 %endif
 
 %global provider github
@@ -56,11 +58,7 @@ BuildRequires: shadow-utils-subid-devel
 %if 0%{?fedora} && ! 0%{?rhel}
 BuildRequires: btrfs-progs-devel
 %endif
-%if 0%{?fedora} <= 35
-Requires: containers-common >= 4:1-39
-%else
-Requires: containers-common-extra
-%endif
+Requires: containers-common-extra >= 4:1-78
 %if 0%{?rhel}
 BuildRequires: libseccomp-devel
 %else
@@ -68,7 +66,6 @@ BuildRequires: libseccomp-static
 %endif
 Requires: libseccomp
 Suggests: cpp
-Suggests: qemu-user-static
 
 %description
 The %{name} package provides a command line tool which can be used to
@@ -102,7 +99,6 @@ This package contains system tests for %{name}
 
 %build
 %set_build_flags
-export GO111MODULE=off
 export GOPATH=$(pwd)/_build:$(pwd)
 export CGO_CFLAGS=$CFLAGS
 # These extra flags present in $CFLAGS have been skipped for now as they break the build
@@ -113,6 +109,7 @@ CGO_CFLAGS=$(echo $CGO_CFLAGS | sed 's/-specs=\/usr\/lib\/rpm\/redhat\/redhat-an
 %ifarch x86_64
 export CGO_CFLAGS+=" -m64 -mtune=generic -fcf-protection=full"
 %endif
+
 mkdir _build
 pushd _build
 mkdir -p src/%{provider}.%{provider_tld}/%{project}
@@ -124,9 +121,9 @@ mv vendor src
 export CNI_VERSION=`grep '^# github.com/containernetworking/cni ' src/modules.txt | sed 's,.* ,,'`
 export LDFLAGS="-X main.buildInfo=`date +%s` -X main.cniVersion=${CNI_VERSION}"
 
-export BUILDTAGS='seccomp libsubid selinux'
+export BUILDTAGS="$(hack/libsubid_tag.sh) seccomp selinux $(hack/systemd_tag.sh)"
 %if 0%{?rhel}
-export BUILDTAGS='$BUILDTAGS exclude_graphdriver_btrfs btrfs_noversion'
+export BUILDTAGS="$BUILDTAGS exclude_graphdriver_btrfs btrfs_noversion"
 %endif
 
 %gobuild -o bin/%{name} %{import_path}/cmd/%{name}

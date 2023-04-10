@@ -157,7 +157,7 @@ func (s *blobCacheSource) LayerInfosForCopy(ctx context.Context, instanceDigest 
 						case types.Compress:
 							info.MediaType = v1.MediaTypeImageLayerGzip
 							info.CompressionAlgorithm = &compression.Gzip
-						case types.Decompress:
+						case types.Decompress: // FIXME: This should remove zstd:chunked annotations (but those annotations being left with incorrect values should not break pulls)
 							info.MediaType = v1.MediaTypeImageLayer
 							info.CompressionAlgorithm = nil
 						}

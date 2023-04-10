@@ -74,7 +74,7 @@ func ExportFromReader(input io.Reader, opts define.BuildOutputOption) error {
 		// invoked as root since caller already has access to artifacts
 		// therefore we can preserve ownership as is, however for rootless users
 		// ownership has to be changed so exported artifacts can still
-		// be accessible by unpriviledged users.
+		// be accessible by unprivileged users.
 		// See: https://github.com/containers/buildah/pull/3823#discussion_r829376633
 		noLChown := false
 		if unshare.IsRootless() {
