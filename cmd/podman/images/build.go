@@ -585,7 +585,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		DefaultMountsFilePath:   podmanConfig.ContainersConfDefaultsRO.Containers.DefaultMountsFile,
 		Devices:                 flags.Devices,
 		DropCapabilities:        flags.CapDrop,
-		Envs:                    flags.Envs,
+		Envs:                    buildahCLI.LookupEnvVarReferences(flags.Envs, os.Environ()),
 		Err:                     stderr,
 		ForceRmIntermediateCtrs: flags.ForceRm,
 		From:                    flags.From,
