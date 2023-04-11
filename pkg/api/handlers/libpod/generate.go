@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/containers/podman/v4/libpod"
-	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v4/pkg/api/types"
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -96,7 +95,6 @@ func GenerateKube(w http.ResponseWriter, r *http.Request) {
 		Replicas int32    `schema:"replicas"`
 	}{
 		// Defaults would go here.
-		Type:     define.K8sKindPod,
 		Replicas: 1,
 	}
 
@@ -105,8 +103,19 @@ func GenerateKube(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Read the default kubeGenerateType from containers.conf it the user doesn't specify it
+	generateType := query.Type
+	if generateType == "" {
+		config, err := runtime.GetConfigNoCopy()
+		if err != nil {
+			utils.Error(w, http.StatusInternalServerError, err)
+			return
+		}
+		generateType = config.Engine.KubeGenerateType
+	}
+
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
-	options := entities.GenerateKubeOptions{Service: query.Service, Type: query.Type, Replicas: query.Replicas}
+	options := entities.GenerateKubeOptions{Service: query.Service, Type: generateType, Replicas: query.Replicas}
 	report, err := containerEngine.GenerateKube(r.Context(), query.Names, options)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("generating YAML: %w", err))
