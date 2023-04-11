@@ -29,6 +29,7 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/homedir"
+	"github.com/containers/storage/pkg/ioutils"
 	"github.com/digitalocean/go-qemu/qmp"
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
@@ -1560,14 +1561,22 @@ func (v *MachineVM) writeConfig() error {
 		return err
 	}
 	// Write the JSON file
-	b, err := json.MarshalIndent(v, "", " ")
+	opts := &ioutils.AtomicFileWriterOptions{ExplicitCommit: true}
+	w, err := ioutils.NewAtomicFileWriterWithOpts(v.ConfigPath.GetPath(), 0644, opts)
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(v.ConfigPath.GetPath(), b, 0644); err != nil {
+	defer w.Close()
+
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", " ")
+
+	if err := enc.Encode(v); err != nil {
 		return err
 	}
-	return nil
+
+	// Commit the changes to disk if no errors
+	return w.Commit()
 }
 
 // getImageFile wrapper returns the path to the image used
