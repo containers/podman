@@ -46,6 +46,11 @@
    *** Repository-specific configuration options ***
    *************************************************/
 
+  "ignorePaths": [
+    "**/vendor/**",
+    "**/docs/**",
+  ],
+
   "golang": {
     // N/B: LAST matching rule wins
     "packageRules": [
