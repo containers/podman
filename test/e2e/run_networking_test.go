@@ -961,8 +961,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(run.OutputToString()).To(ContainSubstring(ipAddr))
 	})
 
-	It("podman CNI network works across user ns", func() {
-		SkipIfNetavark(podmanTest)
+	It("podman network works across user ns", func() {
 		netName := stringid.GenerateRandomID()
 		create := podmanTest.Podman([]string{"network", "create", netName})
 		create.WaitWithDefaultTimeout()
@@ -1085,8 +1084,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		pingTest("--net=private")
 	})
 
-	It("podman run check dnsname plugin with CNI", func() {
-		SkipIfNetavark(podmanTest)
+	It("podman run check dns", func() {
 		pod := "testpod"
 		session := podmanTest.Podman([]string{"pod", "create", "--name", pod})
 		session.WaitWithDefaultTimeout()
@@ -1157,8 +1155,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(session).Should(Exit(0))
 	})
 
-	It("podman run check dnsname adds dns search domain with CNI", func() {
-		SkipIfNetavark(podmanTest)
+	It("podman network adds dns search domain with dns", func() {
 		net := createNetworkName("dnsname")
 		session := podmanTest.Podman([]string{"network", "create", net})
 		session.WaitWithDefaultTimeout()

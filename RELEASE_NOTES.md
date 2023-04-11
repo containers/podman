@@ -19,6 +19,7 @@
 - Defaults for the `--cgroup-config` option for `podman create` and `podman run` can now be set in `containers.conf`.
 - Podman now supports auto updates for containers running inside a pod ([#17181](https://github.com/containers/podman/issues/17181)).
 - Podman can now use a SQLite database as a backend for increased stability. The default remains the old database, BoltDB. The database to use is selected through the `database_backend` field in `containers.conf`.
+- Netavark plugin support is added, the netavark network backend now allows users to create custom network drivers. `podman network create -d <plugin>` can be used to create a network config for your plugin and then podman will use it like any other config and takes care of setup/teardown on container start/stop. This requires at least netavark version 1.6.
 
 ### Changes
 - Remote builds using the `podman build` command no longer allows `.containerignore` or `.dockerignore` files to be symlinks outside the build context.

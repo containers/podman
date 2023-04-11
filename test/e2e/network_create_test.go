@@ -481,4 +481,31 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).To(Exit(0))
 		Expect(nc.OutputToString()).To(Equal(name))
 	})
+
+	It("podman network create --interface-name", func() {
+		netName := "bridge-" + stringid.GenerateRandomID()
+		bridgeName := "mybridge" + stringid.GenerateRandomID()[:4]
+		nc := podmanTest.Podman([]string{"network", "create", "--interface-name", bridgeName, netName})
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(netName)
+		Expect(nc).To(Exit(0))
+		Expect(nc.OutputToString()).To(Equal(netName))
+
+		session := podmanTest.Podman([]string{"network", "inspect", "--format", "{{.NetworkInterface}}", netName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(Exit(0))
+		Expect(session.OutputToString()).To(Equal(bridgeName))
+
+		session = podmanTest.Podman([]string{"run", "-d", "--network", netName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(Exit(0))
+
+		// can only check this as root
+		if !isRootless() {
+			// make sure cni/netavark created bridge with expected name
+			bridge, err := net.InterfaceByName(bridgeName)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bridge.Name).To(Equal(bridgeName))
+		}
+	})
 })

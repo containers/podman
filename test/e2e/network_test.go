@@ -477,59 +477,7 @@ var _ = Describe("Podman network", func() {
 		Expect(lines[1]).To(Equal(netName2))
 	})
 
-	It("podman CNI network with multiple aliases", func() {
-		SkipIfNetavark(podmanTest)
-		var worked bool
-		netName := createNetworkName("aliasTest")
-		session := podmanTest.Podman([]string{"network", "create", netName})
-		session.WaitWithDefaultTimeout()
-		defer podmanTest.removeNetwork(netName)
-		Expect(session).Should(Exit(0))
-
-		interval := 250 * time.Millisecond
-		for i := 0; i < 6; i++ {
-			n := podmanTest.Podman([]string{"network", "exists", netName})
-			n.WaitWithDefaultTimeout()
-			worked = n.ExitCode() == 0
-			if worked {
-				break
-			}
-			time.Sleep(interval)
-			interval *= 2
-		}
-
-		top := podmanTest.Podman([]string{"run", "-dt", "--name=web", "--network=" + netName, "--network-alias=web1", "--network-alias=web2", NGINX_IMAGE})
-		top.WaitWithDefaultTimeout()
-		Expect(top).Should(Exit(0))
-		interval = 250 * time.Millisecond
-		// Wait for the nginx service to be running
-		for i := 0; i < 6; i++ {
-			// Test curl against the container's name
-			c1 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, NGINX_IMAGE, "curl", "web"})
-			c1.WaitWithDefaultTimeout()
-			worked = c1.ExitCode() == 0
-			if worked {
-				break
-			}
-			time.Sleep(interval)
-			interval *= 2
-		}
-		Expect(worked).To(BeTrue())
-
-		// Nginx is now running so no need to do a loop
-		// Test against the first alias
-		c2 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, NGINX_IMAGE, "curl", "web1"})
-		c2.WaitWithDefaultTimeout()
-		Expect(c2).Should(Exit(0))
-
-		// Test against the second alias
-		c3 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, NGINX_IMAGE, "curl", "web2"})
-		c3.WaitWithDefaultTimeout()
-		Expect(c3).Should(Exit(0))
-	})
-
-	It("podman Netavark network with multiple aliases", func() {
-		SkipIfCNI(podmanTest)
+	It("podman network with multiple aliases", func() {
 		var worked bool
 		netName := createNetworkName("aliasTest")
 		session := podmanTest.Podman([]string{"network", "create", netName})
@@ -620,34 +568,37 @@ var _ = Describe("Podman network", func() {
 		Expect(nc).Should(Exit(0))
 	})
 
-	It("podman network create/remove macvlan as driver (-d) with device name", func() {
-		// Netavark currently does not do dhcp so the this test fails
-		SkipIfNetavark(podmanTest)
-		net := "macvlan" + stringid.GenerateRandomID()
-		nc := podmanTest.Podman([]string{"network", "create", "-d", "macvlan", "-o", "parent=lo", net})
-		nc.WaitWithDefaultTimeout()
-		defer podmanTest.removeNetwork(net)
-		Expect(nc).Should(Exit(0))
+	for _, opt := range []string{"-o=parent=lo", "--interface-name=lo"} {
+		opt := opt
+		It(fmt.Sprintf("podman network create/remove macvlan as driver (-d) with %s", opt), func() {
+			// Netavark currently does not do dhcp so the this test fails
+			SkipIfNetavark(podmanTest)
+			net := "macvlan" + stringid.GenerateRandomID()
+			nc := podmanTest.Podman([]string{"network", "create", "-d", "macvlan", opt, net})
+			nc.WaitWithDefaultTimeout()
+			defer podmanTest.removeNetwork(net)
+			Expect(nc).Should(Exit(0))
 
-		inspect := podmanTest.Podman([]string{"network", "inspect", net})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+			inspect := podmanTest.Podman([]string{"network", "inspect", net})
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect).Should(Exit(0))
 
-		var results []types.Network
-		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(results).To(HaveLen(1))
-		result := results[0]
+			var results []types.Network
+			err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(results).To(HaveLen(1))
+			result := results[0]
 
-		Expect(result).To(HaveField("Driver", "macvlan"))
-		Expect(result).To(HaveField("NetworkInterface", "lo"))
-		Expect(result.IPAMOptions).To(HaveKeyWithValue("driver", "dhcp"))
-		Expect(result.Subnets).To(HaveLen(0))
+			Expect(result).To(HaveField("Driver", "macvlan"))
+			Expect(result).To(HaveField("NetworkInterface", "lo"))
+			Expect(result.IPAMOptions).To(HaveKeyWithValue("driver", "dhcp"))
+			Expect(result.Subnets).To(HaveLen(0))
 
-		nc = podmanTest.Podman([]string{"network", "rm", net})
-		nc.WaitWithDefaultTimeout()
-		Expect(nc).Should(Exit(0))
-	})
+			nc = podmanTest.Podman([]string{"network", "rm", net})
+			nc.WaitWithDefaultTimeout()
+			Expect(nc).Should(Exit(0))
+		})
+	}
 
 	It("podman network create/remove ipvlan as driver (-d) with device name", func() {
 		// Netavark currently does not support ipvlan
