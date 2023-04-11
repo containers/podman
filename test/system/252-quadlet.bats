@@ -145,18 +145,24 @@ function remove_secret() {
 Image=$IMAGE
 Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; sleep inf"
 Notify=yes
+LogDriver=passthrough
 EOF
 
     run_quadlet "$quadlet_file"
     service_setup $QUADLET_SERVICE_NAME
 
-    # Ensure we have output. Output is synced via sd-notify (socat in Exec)
+    # Check that we can read the logs from the container with podman logs even
+    # with the `passthrough` driver.  The log may need a short period of time
+    # to bubble up into the journal logs, so wait for it.
+    wait_for_output "STARTED CONTAINER" $QUADLET_CONTAINER_NAME
+    # Make sure it's an *exact* match, not just a substring (i.e. no spurious
+    # warnings or other cruft).
+    run_podman logs $QUADLET_CONTAINER_NAME
+    assert "$output" == "STARTED CONTAINER" "exact/full match when using the 'passthrough' driver"
+
+    # Also look for the logs via `journalctl`.
     run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
     is "$output" '.*STARTED CONTAINER.*'
-
-    # check that we can read the logs from the container with podman logs
-    run_podman logs $QUADLET_CONTAINER_NAME
-    assert "$output" == "STARTED CONTAINER" "podman logs works on quadlet container"
 
     run_podman container inspect  --format "{{.State.Status}}" $QUADLET_CONTAINER_NAME
     is "$output" "running" "container should be started by systemd and hence be running"
