@@ -19,7 +19,7 @@
 - Defaults for the `--cgroup-config` option for `podman create` and `podman run` can now be set in `containers.conf`.
 - Podman now supports auto updates for containers running inside a pod ([#17181](https://github.com/containers/podman/issues/17181)).
 - Podman can now use a SQLite database as a backend for increased stability. The default remains the old database, BoltDB. The database to use is selected through the `database_backend` field in `containers.conf`.
-- Netavark plugin support is added, the netavark network backend now allows users to create custom network drivers. `podman network create -d <plugin>` can be used to create a network config for your plugin and then podman will use it like any other config and takes care of setup/teardown on container start/stop. This requires at least netavark version 1.6.
+- Netavark plugin support has been added. The netavark network backend now allows users to create custom network drivers. `podman network create -d <plugin>` can be used to create a network config for your plugin and then Podman will use it like any other config and takes care of setup/teardown on container start/stop. This requires at least Netavark version 1.6.
 
 ### Changes
 - Remote builds using the `podman build` command no longer allows `.containerignore` or `.dockerignore` files to be symlinks outside the build context.
@@ -40,6 +40,7 @@
 - Quadlet now supports relative paths in the Volume key in .container files ([#17418](https://github.com/containers/podman/issues/17418)).
 - Quadlet now supports setting the UID and GID options for `--userns=keep-id` ([#17908](https://github.com/containers/podman/issues/17908)).
 - Quadlet now supports adding `tmpfs` filesystems through the `Tmpfs` key in `.container` files ([#17907](https://github.com/containers/podman/issues/17907)).
+- Quadlet now supports the `UserNS` option in `.container` files, which will replace the existing `RemapGid`, `RemapUid`, `RemapUidSize` and `RemapUsers` options in a future release ([#17984](https://github.com/containers/podman/issues/17984)).
 - Quadlet now includes a `--version` option.
 - Quadlet now forbids specifying SELinux label types, including disabling selinux separation.
 - Fixed a bug where Quadlet did not recognize paths starting with systemd specifiers as absolute ([#17906](https://github.com/containers/podman/issues/17906)).
@@ -64,6 +65,7 @@
 - Fixed a bug where the `podman play kube` command did not properly handle `secret.items` in volumes ([#17829](https://github.com/containers/podman/issues/17829)).
 - Fixed a bug where the `podman generate kube` command could generate pods with invalid names and hostnames ([#18054](https://github.com/containers/podman/issues/18054)).
 - Fixed a bug where names of limits (such as `RLIMIT_NOFILE`) passed to the `--ulimit` option to `podman create` and `podman run` were case-sensitive ([#18077](https://github.com/containers/podman/issues/18077)).
+- Fixed a possible corruption issue with the configuration state of `podman machine` during system failures on Mac, Linux, and Windows.
 
 ### API
 - The Compat Stats endpoint for Containers now returns the `Id` key as lowercase `id` to match Docker ([#17869](https://github.com/containers/podman/issues/17869)).
@@ -71,6 +73,10 @@
 ### Misc
 - The `podman version` command no longer joins the rootless user namespace ([#17657](https://github.com/containers/podman/issues/17657)).
 - The `podman-events --stream` option is no longer hidden and is now documented.
+- Updated Buildah to v1.30.0
+- Updated the containers/storage library to v1.46.1
+- Updated the containers/image library to v5.25.0
+- Updated the containers/common library to v0.52.0
 
 ## 4.4.4
 ### Changes
