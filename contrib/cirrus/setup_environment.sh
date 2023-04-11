@@ -122,7 +122,12 @@ fi
 
 # Which distribution are we testing on.
 case "$OS_RELEASE_ID" in
-    debian) ;;
+    debian)
+        # FIXME 2023-04-11: workaround for runc regression causing failure
+        # in system tests: "skipping device /dev/char/10:200 for systemd"
+        # FIXME: please remove this once runc >= 1.2 makes it into debian.
+        modprobe tun
+        ;;
     fedora)
         if ((CONTAINER==0)); then
             # All SELinux distros need this for systemd-in-a-container
