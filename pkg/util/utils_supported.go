@@ -107,21 +107,13 @@ func GetRootlessConfigHomeDir() (string, error) {
 
 // GetRootlessPauseProcessPidPath returns the path to the file that holds the pid for
 // the pause process.
-// DEPRECATED - switch to GetRootlessPauseProcessPidPathGivenDir
 func GetRootlessPauseProcessPidPath() (string, error) {
 	runtimeDir, err := GetRuntimeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(runtimeDir, "libpod", "pause.pid"), nil
-}
-
-// GetRootlessPauseProcessPidPathGivenDir returns the path to the file that
-// holds the PID of the pause process, given the location of Libpod's temporary
-// files.
-func GetRootlessPauseProcessPidPathGivenDir(libpodTmpDir string) (string, error) {
-	if libpodTmpDir == "" {
-		return "", errors.New("must provide non-empty temporary directory")
-	}
-	return filepath.Join(libpodTmpDir, "pause.pid"), nil
+	// Note this path must be kept in sync with pkg/rootless/rootless_linux.go
+	// We only want a single pause process per user, so we do not want to use
+	// the tmpdir which can be changed via --tmpdir.
+	return filepath.Join(runtimeDir, "libpod", "tmp", "pause.pid"), nil
 }

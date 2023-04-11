@@ -278,7 +278,7 @@ do_pause ()
     sigaction (sig[i], &act, NULL);
 
   /* Attempt to execv catatonit to keep the pause process alive.  */
-  execl (LIBEXECPODMAN "catatonit", "catatonit", "-P", NULL);
+  execl (LIBEXECPODMAN "/catatonit", "catatonit", "-P", NULL);
   execl ("/usr/bin/catatonit", "catatonit", "-P", NULL);
   /* and if the catatonit executable could not be found, fallback here... */
 

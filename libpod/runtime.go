@@ -579,10 +579,17 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 			}
 			unLockFunc()
 			unLockFunc = nil
-			pausePid, err := util.GetRootlessPauseProcessPidPathGivenDir(runtime.config.Engine.TmpDir)
+			pausePid, err := util.GetRootlessPauseProcessPidPath()
 			if err != nil {
 				return fmt.Errorf("could not get pause process pid file path: %w", err)
 			}
+
+			// create the path in case it does not already exists
+			// https://github.com/containers/podman/issues/8539
+			if err := os.MkdirAll(filepath.Dir(pausePid), 0o700); err != nil {
+				return fmt.Errorf("could not create pause process pid file directory: %w", err)
+			}
+
 			became, ret, err := rootless.BecomeRootInUserNS(pausePid)
 			if err != nil {
 				return err

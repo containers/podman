@@ -107,11 +107,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) 
 		return nil
 	}
 
-	tmpDir, err := ic.Libpod.TmpDir()
-	if err != nil {
-		return err
-	}
-	pausePidPath, err := util.GetRootlessPauseProcessPidPathGivenDir(tmpDir)
+	pausePidPath, err := util.GetRootlessPauseProcessPidPath()
 	if err != nil {
 		return fmt.Errorf("could not get pause process pid file path: %w", err)
 	}
