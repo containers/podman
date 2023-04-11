@@ -80,6 +80,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     # Make sure that the K8s pause image isn't pulled but the local podman-pause is built.
     run_podman images
     run_podman 1 image exists k8s.gcr.io/pause
+    run_podman 1 image exists registry.k8s.io/pause
     run_podman image exists $(pause_image)
 
     run_podman stop -a -t 0
