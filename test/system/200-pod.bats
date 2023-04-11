@@ -325,7 +325,7 @@ EOF
 
 @test "podman pod create should fail when infra-name is already in use" {
     local infra_name="infra_container_$(random_string 10 | tr A-Z a-z)"
-    local infra_image="k8s.gcr.io/pause:3.5"
+    local infra_image="registry.k8s.io/pause:3.5"
     local pod_name="$(random_string 10 | tr A-Z a-z)"
 
     run_podman --noout pod create --name $pod_name --infra-name "$infra_name" --infra-image "$infra_image"
