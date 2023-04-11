@@ -510,6 +510,37 @@ json-file | f
     is "$output" "" "output should be empty"
 }
 
+@test "podman --out run should save the container id" {
+    outfile=${PODMAN_TMPDIR}/out-results
+
+    # first we'll need to run something, write its output to a file, and then read its contents.
+    run_podman --out $outfile run -d --name test $IMAGE echo hola
+    is "$output" "" "output should be redirected"
+    run_podman wait test
+
+    # compare the container id against the one in the file
+    run_podman container inspect --format '{{.Id}}' test
+    is "$output" "$(<$outfile)" "container id should match"
+
+    run_podman --out /dev/null rm test
+    is "$output" "" "output should be empty"
+}
+
+@test "podman --out create should save the container id" {
+    outfile=${PODMAN_TMPDIR}/out-results
+
+    # first we'll need to run something, write its output to a file, and then read its contents.
+    run_podman --out $outfile create --name test $IMAGE echo hola
+    is "$output" "" "output should be redirected"
+
+    # compare the container id against the one in the file
+    run_podman container inspect --format '{{.Id}}' test
+    is "$output" "$(<$outfile)" "container id should match"
+
+    run_podman --out /dev/null rm test
+    is "$output" "" "output should be empty"
+}
+
 # Regression test for issue #8082
 @test "podman run : look up correct image name" {
     # Create a 2nd tag for the local image. Force to lower case, and apply it.
