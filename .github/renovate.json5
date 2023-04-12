@@ -46,6 +46,13 @@
    *** Repository-specific configuration options ***
    *************************************************/
 
+  "ignorePaths": [
+    "**/vendor/**",
+    "**/docs/**",
+  ],
+
+  "addLabels": ["release-note-none"],
+
   "golang": {
     // N/B: LAST matching rule wins
     "packageRules": [
