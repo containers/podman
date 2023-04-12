@@ -231,6 +231,8 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		Expect(hostNS).To(Equal(ctrNS))
 
 		session = podmanTest.Podman([]string{"run", option, "private", ALPINE, "ls", "-l", nspath})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
 		fields = strings.Split(session.OutputToString(), " ")
 		ctrNS = fields[len(fields)-1]
 		Expect(hostNS).ToNot(Equal(ctrNS))
