@@ -264,7 +264,6 @@ class TestContainers(common.DockerTestCase):
                 vol.remove(force=True)
 
     def test_wait_next_exit(self):
-        self.skipTest("Skip until fix container-selinux#196 is available.")
         ctr: Container = self.docker.containers.create(
             image=constant.ALPINE,
             name="test-exit",
