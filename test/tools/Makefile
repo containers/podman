@@ -34,4 +34,4 @@ $(BUILDDIR)/git-validation: $(SOURCES)
 	$(GO_BUILD) -o $@ ./vendor/github.com/vbatts/git-validation
 
 $(BUILDDIR)/ginkgo: $(SOURCES)
-	$(GO_BUILD) -o $@ ./vendor/github.com/onsi/ginkgo/ginkgo
+	$(GO_BUILD) -o $@ ./vendor/github.com/onsi/ginkgo/v2/ginkgo

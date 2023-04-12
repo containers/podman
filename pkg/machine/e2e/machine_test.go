@@ -13,7 +13,7 @@ import (
 
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/qemu"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

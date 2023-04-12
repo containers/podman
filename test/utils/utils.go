@@ -19,7 +19,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/containers/storage/pkg/parsers/kernel"
-	. "github.com/onsi/ginkgo"       //nolint:revive,stylecheck
+	. "github.com/onsi/ginkgo/v2"    //nolint:revive,stylecheck
 	. "github.com/onsi/gomega"       //nolint:revive,stylecheck
 	. "github.com/onsi/gomega/gexec" //nolint:revive,stylecheck
 )
