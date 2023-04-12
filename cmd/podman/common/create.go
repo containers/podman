@@ -397,7 +397,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		createFlags.BoolVar(
 			&cf.Rm,
 			"rm", false,
-			"Remove container (and pod if created) after exit",
+			"Remove container and any anonymous unnamed volume associated with the container after exit",
 		)
 		createFlags.BoolVar(
 			&cf.RootFS,
