@@ -577,6 +577,10 @@ func (p *PodmanTestIntegration) Cleanup() {
 	rmall := p.Podman([]string{"rm", "-fa", "-t", "0"})
 	rmall.WaitWithDefaultTimeout()
 
+	// make sure to only check exit code after both commands ran otherwise we leak when pod rm fails
+	Expect(podrm).To(Exit(0))
+	Expect(rmall).To(Exit(0))
+
 	p.StopRemoteService()
 	// Nuke tempdir
 	p.removeCache(p.TempDir)
