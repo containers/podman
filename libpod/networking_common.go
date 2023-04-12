@@ -115,7 +115,7 @@ func (r *Runtime) teardownNetworkBackend(ns string, opts types.NetworkOptions) e
 		// execute the network setup in the rootless net ns
 		err = rootlessNetNS.Do(tearDownPod)
 		if cerr := rootlessNetNS.Cleanup(r); cerr != nil {
-			logrus.WithError(err).Error("failed to clean up rootless netns")
+			logrus.WithError(cerr).Error("failed to clean up rootless netns")
 		}
 		rootlessNetNS.Lock.Unlock()
 	} else {
