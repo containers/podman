@@ -33,6 +33,10 @@ type InitOptions struct {
 	Rootful      bool
 	// The numerical userid of the user that called machine
 	UID string
+	// ExtraDiskNum is the number of extra disks to create
+	ExtraDiskNum uint64
+	// ExtraDiskSize is the size in gigabytes of the extra disks to create
+	ExtraDiskSize uint64
 }
 
 type Status = string
@@ -107,10 +111,12 @@ type ListResponse struct {
 }
 
 type SetOptions struct {
-	CPUs     *uint64
-	DiskSize *uint64
-	Memory   *uint64
-	Rootful  *bool
+	CPUs          *uint64
+	DiskSize      *uint64
+	Memory        *uint64
+	Rootful       *bool
+	ExtraDiskNum  *uint64
+	ExtraDiskSize *uint64
 }
 
 type SSHOptions struct {
@@ -130,6 +136,7 @@ type RemoveOptions struct {
 	SaveKeys     bool
 	SaveImage    bool
 	SaveIgnition bool
+	SaveDisks    bool
 }
 
 type InspectOptions struct{}
@@ -155,6 +162,7 @@ type InspectInfo struct {
 	ConnectionInfo ConnectionConfig
 	Created        time.Time
 	Image          ImageConfig
+	Disks          []VMFile
 	LastUp         time.Time
 	Name           string
 	Resources      ResourceConfig
@@ -260,6 +268,10 @@ type ResourceConfig struct {
 	CPUs uint64
 	// Disk size in gigabytes assigned to the vm
 	DiskSize uint64
+	// ExtraDiskNum is the number of extra disks to create
+	ExtraDiskNum uint64
+	// ExtraDiskSize is the size in gigabytes of the extra disks to create
+	ExtraDiskSize uint64
 	// Memory in megabytes assigned to the vm
 	Memory uint64
 }

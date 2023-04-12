@@ -41,6 +41,10 @@ Do not delete the VM image.
 Do not delete the SSH keys for the VM.  The system connection is always
 deleted.
 
+#### **--save-disks**
+
+Do not delete the VM disk(s).
+
 ## EXAMPLES
 
 Remove a VM named "test1":

@@ -24,6 +24,16 @@ Only supported for QEMU machines.
 Size of the disk for the guest VM in GB.
 Can only be increased. Only supported for QEMU machines.
 
+#### **--extra-disk-num**=*number*, **-d**=*number*
+
+Number of extra disk(s) to add to the guest VM.
+Can only be increased. Only supported for QEMU machines.
+
+#### **--extra-disk-size**=*number*, **-s**=*number*
+
+Size of the extra disk(s) for the guest VM in GB.
+Cannot be changed on already added disk. Only supported for QEMU machines.
+
 #### **--help**
 
 Print usage statement.
@@ -66,6 +76,11 @@ $ podman machine set --rootful=false
 To switch the VM `myvm` from rootless to rootful:
 ```
 $ podman machine set --rootful myvm
+```
+
+To add more two additional disks of 50GiB to the VM `myvm`:
+```
+$ podman machine set --extra-disk-num 2 --extra-disk-size 50 myvm
 ```
 
 ## SEE ALSO

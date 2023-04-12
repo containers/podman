@@ -24,6 +24,16 @@ func TestEditCmd(t *testing.T) {
 	require.Equal(t, vm.CmdLine, []string{"command", "-flag", "newvalue", "-anotherflag", "anothervalue"})
 }
 
+func TestAppendCmd(t *testing.T) {
+	vm := new(MachineVM)
+	vm.CmdLine = []string{"command", "-flag", "value"}
+
+	vm.appendCmdLine("-drive", "foo")
+	vm.appendCmdLine("-drive", "bar")
+
+	require.Equal(t, vm.CmdLine, []string{"command", "-flag", "value", "-drive", "foo", "-drive", "bar"})
+}
+
 func TestPropagateHostEnv(t *testing.T) {
 	t.Setenv("SSL_CERT_FILE", "/some/foo.cert")
 	t.Setenv("SSL_CERT_DIR", "/some/my/certs")

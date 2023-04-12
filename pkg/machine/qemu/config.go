@@ -78,6 +78,8 @@ type MachineVM struct {
 	Created time.Time
 	// LastUp contains the last recorded uptime
 	LastUp time.Time
+	// ExtraDiskPaths is the list of extra disks attached to the VM
+	ExtraDiskPaths []machine.VMFile
 }
 
 type Monitorv1 struct {

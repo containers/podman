@@ -32,10 +32,12 @@ var (
 )
 
 type SetFlags struct {
-	CPUs     uint64
-	DiskSize uint64
-	Memory   uint64
-	Rootful  bool
+	CPUs          uint64
+	DiskSize      uint64
+	Memory        uint64
+	Rootful       bool
+	ExtraDiskNum  uint64
+	ExtraDiskSize uint64
 }
 
 func init() {
@@ -72,6 +74,22 @@ func init() {
 		"Memory in MB",
 	)
 	_ = setCmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
+
+	extraDiskNumFlagName := "extra-disk-num"
+	flags.Uint64VarP(
+		&setFlags.ExtraDiskNum,
+		extraDiskNumFlagName, "d", 0,
+		"Number of extra disks to create",
+	)
+	_ = setCmd.RegisterFlagCompletionFunc(extraDiskNumFlagName, completion.AutocompleteNone)
+
+	extraDiskSizeFlagName := "extra-disk-size"
+	flags.Uint64VarP(
+		&setFlags.ExtraDiskSize,
+		extraDiskSizeFlagName, "s", 0,
+		"Extra disk size in GB",
+	)
+	_ = setCmd.RegisterFlagCompletionFunc(extraDiskSizeFlagName, completion.AutocompleteNone)
 }
 
 func setMachine(cmd *cobra.Command, args []string) error {
@@ -101,6 +119,12 @@ func setMachine(cmd *cobra.Command, args []string) error {
 	}
 	if cmd.Flags().Changed("disk-size") {
 		setOpts.DiskSize = &setFlags.DiskSize
+	}
+	if cmd.Flags().Changed("extra-disk-num") {
+		setOpts.ExtraDiskNum = &setFlags.ExtraDiskNum
+	}
+	if cmd.Flags().Changed("extra-disk-size") {
+		setOpts.ExtraDiskSize = &setFlags.ExtraDiskSize
 	}
 
 	setErrs, lasterr := vm.Set(vmName, setOpts)

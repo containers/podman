@@ -51,6 +51,9 @@ func init() {
 
 	imageFlagName := "save-image"
 	flags.BoolVar(&destroyOptions.SaveImage, imageFlagName, false, "Do not delete the image file")
+
+	diskFlagName := "save-disks"
+	flags.BoolVar(&destroyOptions.SaveDisks, diskFlagName, false, "Do not delete the disk file(s)")
 }
 
 func rm(_ *cobra.Command, args []string) error {

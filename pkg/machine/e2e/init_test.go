@@ -99,7 +99,16 @@ var _ = Describe("podman machine init", func() {
 	It("machine init with cpus, disk size, memory, timezone", func() {
 		name := randomString()
 		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withCPUs(2).withDiskSize(102).withMemory(4096).withTimezone("Pacific/Honolulu")).run()
+		session, err := mb.setName(name).
+			setCmd(
+				i.withImagePath(mb.imagePath).
+					withCPUs(2).
+					withDiskSize(102).
+					withMemory(4096).
+					withTimezone("Pacific/Honolulu").
+					withExtraDiskNum(2).
+					withExtraDiskSize(50)).
+			run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -119,6 +128,13 @@ var _ = Describe("podman machine init", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(diskSession).To(Exit(0))
 		Expect(diskSession.outputToString()).To(ContainSubstring("102 GiB"))
+
+		sshExtraDisks := sshMachine{}
+		extraDisksSession, err := mb.setName(name).setCmd(sshExtraDisks.withSSHCommand([]string{"sudo", "lsblk", "-o", "NAME,SIZE", "|", "grep", "vd[b-z]"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(extraDisksSession).To(Exit(0))
+		Expect(extraDisksSession.outputToStringSlice()).To(HaveLen(2))
+		Expect(extraDisksSession.outputToString()).To(ContainSubstring("50G"))
 
 		sshMemory := sshMachine{}
 		memorySession, err := mb.setName(name).setCmd(sshMemory.withSSHCommand([]string{"cat", "/proc/meminfo", "|", "grep", "-i", "'memtotal'", "|", "grep", "-o", "'[[:digit:]]*'"})).run()

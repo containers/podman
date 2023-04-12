@@ -1013,6 +1013,10 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 		setErrors = append(setErrors, errors.New("changing Disk Size not supported for WSL machines"))
 	}
 
+	if opts.ExtraDiskNum != nil {
+		setErrors = append(setErrors, errors.New("adding more disk(s) is not supported for WSL machines"))
+	}
+
 	return setErrors, v.writeConfig()
 }
 

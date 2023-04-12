@@ -5,9 +5,11 @@ import (
 )
 
 type setMachine struct {
-	cpus     *uint
-	diskSize *uint
-	memory   *uint
+	cpus          *uint
+	diskSize      *uint
+	memory        *uint
+	extraDiskNum  *uint
+	extraDiskSize *uint
 
 	cmd []string
 }
@@ -22,6 +24,12 @@ func (i *setMachine) buildCmd(m *machineTestBuilder) []string {
 	}
 	if i.memory != nil {
 		cmd = append(cmd, "--memory", strconv.Itoa(int(*i.memory)))
+	}
+	if i.extraDiskNum != nil {
+		cmd = append(cmd, "--extra-disk-num", strconv.Itoa(int(*i.extraDiskNum)))
+	}
+	if i.extraDiskSize != nil {
+		cmd = append(cmd, "--extra-disk-size", strconv.Itoa(int(*i.extraDiskSize)))
 	}
 	cmd = append(cmd, m.name)
 	i.cmd = cmd
@@ -39,5 +47,15 @@ func (i *setMachine) withDiskSize(size uint) *setMachine {
 
 func (i *setMachine) withMemory(num uint) *setMachine {
 	i.memory = &num
+	return i
+}
+
+func (i *setMachine) withExtraDiskNum(num uint) *setMachine {
+	i.extraDiskNum = &num
+	return i
+}
+
+func (i *setMachine) withExtraDiskSize(num uint) *setMachine {
+	i.extraDiskSize = &num
 	return i
 }

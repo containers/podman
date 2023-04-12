@@ -19,16 +19,18 @@ type initMachine struct {
 	      --volume-driver string   Optional volume driver
 
 	*/
-	cpus         *uint
-	diskSize     *uint
-	ignitionPath string
-	username     string
-	imagePath    string
-	memory       *uint
-	now          bool
-	timezone     string
-	rootful      bool //nolint:unused
-	volumes      []string
+	cpus          *uint
+	diskSize      *uint
+	ignitionPath  string
+	username      string
+	imagePath     string
+	memory        *uint
+	now           bool
+	timezone      string
+	rootful       bool //nolint:unused
+	volumes       []string
+	extraDiskNum  *uint
+	extraDiskSize *uint
 
 	cmd []string
 }
@@ -40,6 +42,12 @@ func (i *initMachine) buildCmd(m *machineTestBuilder) []string {
 	}
 	if i.diskSize != nil {
 		cmd = append(cmd, "--disk-size", strconv.Itoa(int(*i.diskSize)))
+	}
+	if i.extraDiskNum != nil {
+		cmd = append(cmd, "--extra-disk-num", strconv.Itoa(int(*i.extraDiskNum)))
+	}
+	if i.extraDiskSize != nil {
+		cmd = append(cmd, "--extra-disk-size", strconv.Itoa(int(*i.extraDiskSize)))
 	}
 	if l := len(i.ignitionPath); l > 0 {
 		cmd = append(cmd, "--ignition-path", i.ignitionPath)
@@ -108,5 +116,15 @@ func (i *initMachine) withTimezone(tz string) *initMachine {
 
 func (i *initMachine) withVolume(v string) *initMachine {
 	i.volumes = append(i.volumes, v)
+	return i
+}
+
+func (i *initMachine) withExtraDiskNum(num uint) *initMachine {
+	i.extraDiskNum = &num
+	return i
+}
+
+func (i *initMachine) withExtraDiskSize(num uint) *initMachine {
+	i.extraDiskSize = &num
 	return i
 }

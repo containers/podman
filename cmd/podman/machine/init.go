@@ -60,6 +60,28 @@ func init() {
 
 	_ = initCmd.RegisterFlagCompletionFunc(diskSizeFlagName, completion.AutocompleteNone)
 
+	extraDiskNumFlagName := "extra-disk-num"
+	flags.Uint64VarP(
+		&initOpts.ExtraDiskNum,
+		// TODO: change me once I commit this to https://github.com/containers/common/blob/main/pkg/config/config.go
+		// extraDiskNumFlagName, cfg.ContainersConfDefaultsRO.Machine.ExtraDiskNum,
+		extraDiskNumFlagName, "d", 0,
+		"Number of extra disks to create",
+	)
+
+	_ = initCmd.RegisterFlagCompletionFunc(extraDiskNumFlagName, completion.AutocompleteNone)
+
+	extraDiskSizeFlagName := "extra-disk-size"
+	flags.Uint64VarP(
+		&initOpts.ExtraDiskSize,
+		// TODO (leseb): change me once I commit a change to https://github.com/containers/common/blob/main/pkg/config/config.go
+		// extraDiskSizeFlagName, cfg.ContainersConfDefaultsRO.Machine.ExtraDiskSize,
+		extraDiskSizeFlagName, "s", cfg.ContainersConfDefaultsRO.Machine.DiskSize,
+		"Extra disk size in GB",
+	)
+
+	_ = initCmd.RegisterFlagCompletionFunc(extraDiskSizeFlagName, completion.AutocompleteNone)
+
 	memoryFlagName := "memory"
 	flags.Uint64VarP(
 		&initOpts.Memory,

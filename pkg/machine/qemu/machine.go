@@ -18,6 +18,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -99,6 +100,8 @@ func (p *Virtualization) NewMachine(opts machine.InitOptions) (machine.VM, error
 	vm.CPUs = opts.CPUS
 	vm.Memory = opts.Memory
 	vm.DiskSize = opts.DiskSize
+	vm.ExtraDiskNum = opts.ExtraDiskNum
+	vm.ExtraDiskSize = opts.ExtraDiskSize
 
 	vm.Created = time.Now()
 
@@ -348,6 +351,17 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	} else {
 		fmt.Println("An ignition path was provided.  No SSH connection was added to Podman")
 	}
+
+	// Configure extra disks
+	if err := v.addExtraDisks(opts.ExtraDiskNum, opts.ExtraDiskSize); err != nil {
+		return false, err
+	}
+
+	// Add extra disks
+	for _, disk := range v.ExtraDiskPaths {
+		v.CmdLine = append(v.CmdLine, "-drive", fmt.Sprintf("if=virtio,file=%s", disk.Path))
+	}
+
 	// Write the JSON file
 	if err := v.writeConfig(); err != nil {
 		return false, fmt.Errorf("writing JSON file: %w", err)
@@ -437,6 +451,25 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 			setErrors = append(setErrors, fmt.Errorf("failed to resize disk: %w", err))
 		} else {
 			v.DiskSize = *opts.DiskSize
+		}
+	}
+
+	// Handle extra disks
+	if opts.ExtraDiskNum != nil && *opts.ExtraDiskNum < v.ExtraDiskNum {
+		setErrors = append(setErrors, errors.New("cannot decrease number of extra disks"))
+	}
+	if opts.ExtraDiskNum != nil && *opts.ExtraDiskNum > v.ExtraDiskNum {
+		if opts.ExtraDiskSize == nil {
+			opts.ExtraDiskSize = &v.ExtraDiskSize
+		}
+		if err := v.addExtraDisks(*opts.ExtraDiskNum, *opts.ExtraDiskSize); err != nil {
+			setErrors = append(setErrors, fmt.Errorf("failed to add extra disks: %w", err))
+		} else {
+			v.ExtraDiskNum = *opts.ExtraDiskNum
+		}
+
+		for _, disk := range v.ExtraDiskPaths {
+			v.appendCmdLine("-drive", fmt.Sprintf("if=virtio,file=%s", disk.Path))
 		}
 	}
 
@@ -938,6 +971,12 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 	}
 	files = append(files, socketPath.Path)
 	files = append(files, v.archRemovalFiles()...)
+
+	if !opts.SaveDisks {
+		for _, disk := range v.ExtraDiskPaths {
+			files = append(files, disk.GetPath())
+		}
+	}
 
 	if err := machine.RemoveConnection(v.Name); err != nil {
 		logrus.Error(err)
@@ -1598,6 +1637,7 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
 		ConnectionInfo: *connInfo,
 		Created:        v.Created,
 		Image:          v.ImageConfig,
+		Disks:          v.ExtraDiskPaths,
 		LastUp:         v.LastUp,
 		Name:           v.Name,
 		Resources:      v.ResourceConfig,
@@ -1628,7 +1668,39 @@ func (v *MachineVM) resizeDisk(diskSize uint64, oldSize uint64) error {
 	resize.Stdout = os.Stdout
 	resize.Stderr = os.Stderr
 	if err := resize.Run(); err != nil {
-		return fmt.Errorf("resizing image: %q", err)
+		return fmt.Errorf("failed to resize disk image: %w", err)
+	}
+
+	return nil
+}
+
+func (v *MachineVM) addExtraDisks(extraDiskNum, extraDiskSize uint64) error {
+	for i := uint64(0); i < extraDiskNum; i++ {
+		// using %s_disk-%d.qcow2 as the disk name, the underscore separator follows the same pattern
+		// than the image name, and the disk number is added to the end to avoid conflicts
+		diskPath := filepath.Join(path.Dir(v.ImagePath.GetPath()), fmt.Sprintf("%s_disk-%d.qcow2", v.Name, i))
+		if _, err := os.Stat(diskPath); err == nil {
+			// disk already exists, skip to the next one so it doesn't get added twice to the qemu config
+			continue
+		}
+		// Find the qemu executable
+		cfg, err := config.Default()
+		if err != nil {
+			return err
+		}
+		qemuPath, err := cfg.FindHelperBinary("qemu-img", true)
+		if err != nil {
+			return err
+		}
+		// qcow2 is very efficient for disk images format since it's copy-on-write
+		qemuArgs := []string{"create", "-f", "qcow2", diskPath, strconv.Itoa(int(extraDiskSize)) + "G"}
+		qemuCmd := exec.Command(qemuPath, qemuArgs...)
+		qemuCmd.Stdout = os.Stdout
+		qemuCmd.Stderr = os.Stderr
+		if err := qemuCmd.Run(); err != nil {
+			return fmt.Errorf("failed to execute qemu-img command: %q, %w", qemuArgs, err)
+		}
+		v.ExtraDiskPaths = append(v.ExtraDiskPaths, machine.VMFile{Path: diskPath})
 	}
 
 	return nil
@@ -1659,6 +1731,19 @@ func (v *MachineVM) editCmdLine(flag string, value string) {
 		if val == flag {
 			found = true
 			v.CmdLine[i+1] = value
+			break
+		}
+	}
+	if !found {
+		v.CmdLine = append(v.CmdLine, []string{flag, value}...)
+	}
+}
+
+func (v *MachineVM) appendCmdLine(flag string, value string) {
+	found := false
+	for i, val := range v.CmdLine {
+		if val == flag && v.CmdLine[i+1] == value {
+			found = true
 			break
 		}
 	}

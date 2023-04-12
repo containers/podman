@@ -54,7 +54,7 @@ var _ = Describe("podman machine stop", func() {
 	It("inspect with go format", func() {
 		name := randomString()
 		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
+		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withExtraDiskNum(1)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -68,6 +68,7 @@ var _ = Describe("podman machine stop", func() {
 		err = jsoniter.Unmarshal(inspectSession.Bytes(), &inspectInfo)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(strings.HasSuffix(inspectInfo[0].ConnectionInfo.PodmanSocket.GetPath(), "podman.sock"))
+		Expect(inspectInfo[0].Disks[0].GetPath()).ToNot(BeEmpty())
 
 		inspect := new(inspectMachine)
 		inspect = inspect.withFormat("{{.Name}}")

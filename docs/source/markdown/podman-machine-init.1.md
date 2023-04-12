@@ -35,6 +35,16 @@ Number of CPUs.
 
 Size of the disk for the guest VM in GB.
 
+#### **--extra-disk-num**=*number*, **-d**=*number*
+
+Number of extra disk(s) to add to the guest VM.
+Can only be increased. Only supported for QEMU machines.
+
+#### **--extra-disk-size**=*number*, **-s**=*number*
+
+Size of the extra disk(s) for the guest VM in GB.
+Cannot be changed on already added disk. Only supported for QEMU machines.
+
 #### **--help**
 
 Print usage statement.
@@ -128,6 +138,7 @@ $ podman machine init
 $ podman machine init myvm
 $ podman machine init --rootful
 $ podman machine init --disk-size 50
+$ podman machine init --extra-disk-num 3 --extra-disk-size 200
 $ podman machine init --memory=1024 myvm
 $ podman machine init -v /Users:/mnt/Users
 ```
