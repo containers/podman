@@ -542,11 +542,11 @@ localunit: test/goecho/goecho test/version/version
 	UNIT=1 $(GINKGO) \
 		-r \
 		$(TESTFLAGS) \
-		--skipPackage test/e2e,pkg/apparmor,pkg/bindings,hack,pkg/machine/e2e \
+		--skip-package test/e2e,pkg/bindings,hack,pkg/machine/e2e \
 		--cover \
 		--covermode atomic \
 		--coverprofile coverprofile \
-		--outputdir ${COVERAGE_PATH} \
+		--output-dir ${COVERAGE_PATH} \
 		--tags "$(BUILDTAGS)" \
 		--succinct
 	$(GO) tool cover -html=${COVERAGE_PATH}/coverprofile -o ${COVERAGE_PATH}/coverage.html
@@ -558,8 +558,8 @@ test: localunit localintegration remoteintegration localsystem remotesystem  ## 
 
 .PHONY: ginkgo-run
 ginkgo-run: .install.ginkgo
-	ACK_GINKGO_RC=true $(GINKGO) version
-	ACK_GINKGO_RC=true $(GINKGO) -v $(TESTFLAGS) -tags "$(TAGS) remote" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes $(GINKGONODES) -debug $(GINKGOWHAT) $(HACK)
+	$(GINKGO) version
+	$(GINKGO) -v $(TESTFLAGS) --tags "$(TAGS) remote" $(GINKGOTIMEOUT) --flake-attempts 3 --trace --no-color --nodes $(GINKGONODES) $(GINKGOWHAT) $(HACK)
 
 .PHONY: ginkgo
 ginkgo:
@@ -571,7 +571,7 @@ ginkgo-remote:
 
 .PHONY: testbindings
 testbindings: .install.ginkgo
-	ACK_GINKGO_RC=true $(GINKGO) -v $(TESTFLAGS) -tags "$(TAGS) remote" $(GINKGOTIMEOUT) -progress -trace -noColor -debug -timeout 30m  -v -r ./pkg/bindings/test
+	$(GINKGO) -v $(TESTFLAGS) --tags "$(TAGS) remote" $(GINKGOTIMEOUT) --trace --no-color --timeout 30m  -v -r ./pkg/bindings/test
 
 .PHONY: localintegration
 localintegration: test-binaries ginkgo
@@ -585,10 +585,10 @@ localmachine: test-binaries .install.ginkgo
 
 .PHONY: localbenchmarks
 localbenchmarks: install.tools test-binaries
-	PATH=$(PATH):$(shell pwd)/hack ACK_GINKGO_RC=true $(GINKGO) \
-		      -focus "Podman Benchmark Suite" \
-		      -tags "$(BUILDTAGS) benchmarks" -noColor \
-		      -noisySkippings=false -noisyPendings=false \
+	PATH=$(PATH):$(shell pwd)/hack $(GINKGO) \
+		      --focus "Podman Benchmark Suite" \
+		      --tags "$(BUILDTAGS) benchmarks" --no-color \
+		      --succinct \
 		      test/e2e/.
 
 .PHONY: localsystem
