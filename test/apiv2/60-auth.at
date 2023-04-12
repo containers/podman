@@ -27,4 +27,15 @@ t POST /v1.40/auth username=$REGISTRY_USERNAME password=$REGISTRY_PASSWORD serve
   .Status="Login Succeeded" \
   .IdentityToken=""
 
+# No username -> error
+t POST /v1.40/auth password=$REGISTRY_PASSWORD serveraddress=localhost:$REGISTRY_PORT/ \
+  500 \
+  .message~'.* cannot prompt for username without stdin'
+
+
+# No password -> error
+t POST /v1.40/auth username=$REGISTRY_USERNAME serveraddress=https://localhost:$REGISTRY_PORT/ \
+  500 \
+  .message~'.* reading password: inappropriate ioctl for device'
+
 stop_registry
