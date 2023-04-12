@@ -941,29 +941,41 @@ EOF
 }
 
 @test "podman build COPY hardlinks " {
-    tmpdir=$PODMAN_TMPDIR/build-test
-    subdir=$tmpdir/subdir
-    subsubdir=$subdir/subsubdir
-    mkdir -p $subsubdir
+    local build_dir=$PODMAN_TMPDIR/build-test
 
-    dockerfile=$tmpdir/Dockerfile
+    mkdir -p $build_dir
+    dockerfile=$build_dir/Dockerfile
     cat >$dockerfile <<EOF
 FROM $IMAGE
 COPY . /test
 EOF
-    ln $dockerfile $tmpdir/hardlink1
-    ln $dockerfile $subdir/hardlink2
-    ln $dockerfile $subsubdir/hardlink3
 
-    run_podman build -t build_test $tmpdir
-    run_podman run --rm build_test stat -c '%i' /test/Dockerfile
-    dinode=$output
-    run_podman run --rm build_test stat -c '%i' /test/hardlink1
-    is "$output"   "$dinode"   "COPY hardlinks work"
-    run_podman run --rm build_test stat -c '%i' /test/subdir/hardlink2
-    is "$output"   "$dinode"   "COPY hardlinks work"
-    run_podman run --rm build_test stat -c '%i' /test/subdir/subsubdir/hardlink3
-    is "$output"   "$dinode"   "COPY hardlinks work"
+    # Create all our hardlinks, including their parent directories
+    local -a linkfiles=(hardlink1 subdir/hardlink2 subdir/subsubdir/hardlink3)
+    for l in "${linkfiles[@]}"; do
+        mkdir -p $(dirname $build_dir/$l)
+        ln $dockerfile $build_dir/$l
+    done
+
+    run_podman build -t build_test $build_dir
+
+    # Stat() all files in one fell swoop, because it seems impossible
+    # for inode numbers to change within the scope of one exec, but
+    # maybe they do across different runs?? fuse-overlay maybe?? #17979
+    run_podman run --rm build_test \
+               stat -c '%i %n' /test/Dockerfile "${linkfiles[@]/#//test/}"
+
+    # First output line is the inode of our reference file and its filename.
+    # Slash-replacement strips off everything after the space.
+    local dinode="${lines[0]/ */}"
+
+    # All subsequent inodes must match the first one. We check filename (%n)
+    # simply out of unwarranted paranoia.
+    local i=1
+    for l in "${linkfiles[@]}"; do
+        assert "${lines[$i]}" = "$dinode /test/$l" "line $i: inode of $l"
+        i=$((i + 1))
+    done
 
     run_podman rmi -f build_test
 }
