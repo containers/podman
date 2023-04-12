@@ -85,7 +85,7 @@ var _ = Describe("Podman run ns", func() {
 	})
 
 	It("podman run ipcns ipcmk container test", func() {
-		setup := podmanTest.Podman([]string{"run", "-d", "--name", "test1", fedoraMinimal, "sleep", "999"})
+		setup := podmanTest.Podman([]string{"run", "-d", "--name", "test1", fedoraMinimal, "sleep", "30"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(Exit(0))
 
@@ -94,7 +94,12 @@ var _ = Describe("Podman run ns", func() {
 		Expect(session).Should(Exit(0))
 		output := strings.Split(session.OutputToString(), " ")
 		ipc := output[len(output)-1]
-		session = podmanTest.Podman([]string{"run", "--ipc=container:test1", fedoraMinimal, "ipcs", "-m", "-i", ipc})
+		session = podmanTest.Podman([]string{"run", "--name=t2", "--ipc=container:test1", fedoraMinimal, "ipcs", "-m", "-i", ipc})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// We have to remove the dependency container first, rm --all fails in the cleanup because of the unknown ordering.
+		session = podmanTest.Podman([]string{"rm", "t2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})
