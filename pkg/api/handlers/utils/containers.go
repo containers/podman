@@ -43,7 +43,7 @@ func WaitContainerDocker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	interval := time.Nanosecond
+	interval := time.Millisecond * 250
 
 	condition := "not-running"
 	if _, found := r.URL.Query()["condition"]; found {
