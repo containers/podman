@@ -27,7 +27,7 @@ var _ = Describe("Podman commit", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 
 	})

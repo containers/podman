@@ -36,7 +36,7 @@ var _ = Describe("Podman run with volumes", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 	})
 
@@ -678,7 +678,7 @@ VOLUME /test/`, ALPINE)
 
 		session = podmanTest.Podman([]string{"run", "--rm", "-v", ".:/app:O", ALPINE, "ls", "/app"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.OutputToString()).To(ContainSubstring(filepath.Base(CurrentGinkgoTestDescription().FileName)))
+		Expect(session.OutputToString()).To(ContainSubstring(filepath.Base(CurrentSpecReport().FileName())))
 		Expect(session).Should(Exit(0))
 
 		// Make sure modifications in container do not show up on host

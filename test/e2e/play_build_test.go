@@ -33,7 +33,7 @@ var _ = Describe("Podman play kube with build", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 
 	})

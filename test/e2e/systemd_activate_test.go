@@ -54,7 +54,8 @@ var _ = Describe("Systemd activate", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		processTestResult(CurrentGinkgoTestDescription())
+		f := CurrentSpecReport()
+		processTestResult(f)
 	})
 
 	It("stop podman.service", func() {

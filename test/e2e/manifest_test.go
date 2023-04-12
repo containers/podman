@@ -43,7 +43,7 @@ var _ = Describe("Podman manifest", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 	})
 	It("create w/o image and attempt push w/o dest", func() {

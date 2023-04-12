@@ -28,7 +28,7 @@ var _ = Describe("Podman rm", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 
 	})

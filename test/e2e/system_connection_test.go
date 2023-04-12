@@ -45,7 +45,7 @@ var _ = Describe("podman system connection", func() {
 			os.Unsetenv("CONTAINERS_CONF")
 		}
 
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 	})
 

@@ -43,7 +43,7 @@ var _ = Describe("Podman run device", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 		os.Unsetenv("CONTAINERS_CONF")
 	})

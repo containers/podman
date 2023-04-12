@@ -33,7 +33,7 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 
 	})

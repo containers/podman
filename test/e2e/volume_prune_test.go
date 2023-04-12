@@ -27,7 +27,7 @@ var _ = Describe("Podman volume prune", func() {
 
 	AfterEach(func() {
 		podmanTest.CleanupVolume()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 
 	})

@@ -86,7 +86,7 @@ var _ = Describe("Podman create data volume", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 		os.Unsetenv("CONTAINERS_CONF")
 	})

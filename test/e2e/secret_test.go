@@ -29,7 +29,7 @@ var _ = Describe("Podman secret", func() {
 
 	AfterEach(func() {
 		podmanTest.CleanupSecrets()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 
 	})

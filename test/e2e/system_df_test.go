@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -30,9 +29,8 @@ var _ = Describe("podman system df", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		_, _ = GinkgoWriter.Write([]byte(timedResult))
+		f := CurrentSpecReport()
+		processTestResult(f)
 	})
 
 	It("podman system df", func() {

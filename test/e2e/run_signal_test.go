@@ -37,7 +37,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 
 	})

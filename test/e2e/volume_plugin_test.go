@@ -35,7 +35,7 @@ var _ = Describe("Podman volume plugins", func() {
 
 	AfterEach(func() {
 		podmanTest.CleanupVolume()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 		os.Unsetenv("CONTAINERS_CONF")
 	})

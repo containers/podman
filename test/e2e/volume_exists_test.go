@@ -28,7 +28,7 @@ var _ = Describe("Podman volume exists", func() {
 
 	AfterEach(func() {
 		podmanTest.CleanupVolume()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 
 	})

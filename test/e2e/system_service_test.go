@@ -32,7 +32,8 @@ var _ = Describe("podman system service", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		processTestResult(CurrentGinkgoTestDescription())
+		f := CurrentSpecReport()
+		processTestResult(f)
 	})
 
 	Describe("verify timeout", func() {

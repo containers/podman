@@ -45,7 +45,7 @@ var _ = Describe("podman image scp", func() {
 		} else {
 			os.Unsetenv("CONTAINERS_CONF")
 		}
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 
 	})

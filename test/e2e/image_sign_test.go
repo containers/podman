@@ -39,7 +39,7 @@ var _ = Describe("Podman image sign", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 		os.Setenv("GNUPGHOME", origGNUPGHOME)
 	})

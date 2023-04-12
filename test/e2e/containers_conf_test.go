@@ -38,7 +38,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 		os.Unsetenv("CONTAINERS_CONF")
 		os.Unsetenv("CONTAINERS_CONF_OVERRIDE")

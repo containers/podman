@@ -408,8 +408,8 @@ func (p *PodmanTestIntegration) InspectContainer(name string) []define.InspectCo
 	return session.InspectContainerToJSON()
 }
 
-func processTestResult(f GinkgoTestDescription) {
-	tr := testResult{length: f.Duration.Seconds(), name: f.TestText}
+func processTestResult(r SpecReport) {
+	tr := testResult{length: r.RunTime.Seconds(), name: r.LeafNodeText}
 	testResultsMutex.Lock()
 	testResults = append(testResults, tr)
 	testResultsMutex.Unlock()

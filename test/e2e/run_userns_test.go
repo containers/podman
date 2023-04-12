@@ -51,7 +51,7 @@ var _ = Describe("Podman UserNS support", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 		os.Unsetenv("CONTAINERS_CONF")
 	})
