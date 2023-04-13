@@ -121,6 +121,14 @@ if root; then
     .memory_stats.limit=536870912 \
     .id~[0-9a-f]\\{64\\}
 
+    t GET containers/$CTRNAME/top?stream=false 200 \
+      .Titles='[
+  "PID",
+  "USER",
+  "TIME",
+  "COMMAND"
+]'
+
     podman rm -f $CTRNAME
 fi
 
