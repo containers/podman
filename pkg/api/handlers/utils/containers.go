@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/containers/podman/v4/libpod/events"
@@ -237,4 +238,24 @@ func containerExists(ctx context.Context, name string) (bool, error) {
 		return false, err
 	}
 	return ctrExistRep.Value, nil
+}
+
+// PSTitles merges CAPS headers from ps output. All PS headers are single words, except for
+// CAPS. Function compines CAP Headers into single field separated by a space.
+func PSTitles(output string) []string {
+	var titles []string
+
+	for _, title := range strings.Fields(output) {
+		switch title {
+		case "AMBIENT", "INHERITED", "PERMITTED", "EFFECTIVE", "BOUNDING":
+			{
+				titles = append(titles, title+" CAPS")
+			}
+		case "CAPS":
+			continue
+		default:
+			titles = append(titles, title)
+		}
+	}
+	return titles
 }

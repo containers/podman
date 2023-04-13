@@ -413,7 +413,7 @@ loop: // break out of for/select infinite` loop
 
 			if len(output) > 0 {
 				body := handlers.PodTopOKBody{}
-				body.Titles = strings.Split(output[0], "\t")
+				body.Titles = utils.PSTitles(output[0])
 				for i := range body.Titles {
 					body.Titles[i] = strings.TrimSpace(body.Titles[i])
 				}
