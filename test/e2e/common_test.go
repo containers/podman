@@ -569,6 +569,12 @@ func (p *PodmanTestIntegration) Quadlet(args []string, sourceDir string) *Podman
 
 // Cleanup cleans up the temporary store
 func (p *PodmanTestIntegration) Cleanup() {
+	// ginkgo v2 still goes into AfterEach() when Skip() was called,
+	// some tests call skip before the podman test is initialized.
+	if p == nil {
+		return
+	}
+
 	// first stop everything, rm -fa is unreliable
 	// https://github.com/containers/podman/issues/18180
 	stop := p.Podman([]string{"stop", "--all", "-t", "0"})
