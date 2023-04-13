@@ -583,14 +583,6 @@ remoteintegration: test-binaries ginkgo-remote
 localmachine: test-binaries .install.ginkgo
 	$(MAKE) ginkgo-run GINKGONODES=1 GINKGOWHAT=pkg/machine/e2e/. HACK=
 
-.PHONY: localbenchmarks
-localbenchmarks: install.tools test-binaries
-	PATH=$(PATH):$(shell pwd)/hack $(GINKGO) \
-		      --focus "Podman Benchmark Suite" \
-		      --tags "$(BUILDTAGS) benchmarks" --no-color \
-		      --succinct \
-		      test/e2e/.
-
 .PHONY: localsystem
 localsystem:
 	# Wipe existing config, database, and cache: start with clean slate.
