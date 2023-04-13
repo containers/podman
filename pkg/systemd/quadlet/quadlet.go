@@ -27,9 +27,6 @@ const (
 	XKubeGroup      = "X-Kube"
 	XNetworkGroup   = "X-Network"
 	XVolumeGroup    = "X-Volume"
-
-	// Use passthough as the default log driver to output to Journal
-	defaultLogDriver = "passthrough"
 )
 
 // All the supported quadlet keys
@@ -1108,10 +1105,9 @@ func handlePublishPorts(unitFile *parser.UnitFile, groupName string, podman *Pod
 
 func handleLogDriver(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline) {
 	logDriver, found := unitFile.Lookup(groupName, KeyLogDriver)
-	if !found {
-		logDriver = defaultLogDriver
+	if found {
+		podman.add("--log-driver", logDriver)
 	}
-	podman.add("--log-driver", logDriver)
 }
 
 func handleStorageSource(quadletUnitFile, serviceUnitFile *parser.UnitFile, source string) (string, error) {

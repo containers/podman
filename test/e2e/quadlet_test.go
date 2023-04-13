@@ -475,7 +475,6 @@ var _ = Describe("quadlet system generator", func() {
 				"## assert-podman-final-args-regex .*/podman_test.*/quadlet/deployment.yml",
 				"## assert-podman-args \"--replace\"",
 				"## assert-podman-args \"--service-container=true\"",
-				"## assert-podman-args \"--log-driver\" \"passthrough\"",
 				"## assert-podman-stop-args \"kube\"",
 				"## assert-podman-stop-args \"down\"",
 				"## assert-podman-stop-final-args-regex .*/podman_test.*/quadlet/deployment.yml",
@@ -496,7 +495,7 @@ var _ = Describe("quadlet system generator", func() {
 				"Type=notify",
 				"NotifyAccess=all",
 				"SyslogIdentifier=%N",
-				fmt.Sprintf("ExecStart=/usr/local/bin/podman kube play --replace --service-container=true --log-driver passthrough %s/deployment.yml", quadletDir),
+				fmt.Sprintf("ExecStart=/usr/local/bin/podman kube play --replace --service-container=true %s/deployment.yml", quadletDir),
 				fmt.Sprintf("ExecStop=/usr/local/bin/podman kube down %s/deployment.yml", quadletDir),
 			}
 

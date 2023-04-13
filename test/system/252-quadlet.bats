@@ -177,6 +177,7 @@ EOF
 Image=$IMAGE
 Exec=sh -c "echo OUTPUT: \"\$FOOBAR\" \"\$BAR\""
 Environment="FOOBAR=Foo  Bar" BAR=bar
+LogDriver=passthrough
 EOF
 
     run_quadlet "$quadlet_file"
