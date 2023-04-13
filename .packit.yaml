@@ -1,0 +1,32 @@
+---
+# See the documentation for more information:
+# https://packit.dev/docs/configuration/
+
+# Build targets can be found at:
+# https://copr.fedorainfracloud.org/coprs/rhcontainerbot/packit-builds/
+
+specfile_path: podman.spec
+
+jobs:
+  - &copr
+    job: copr_build
+    trigger: pull_request
+    owner: rhcontainerbot
+    project: packit-builds
+    enable_net: true
+    srpm_build_deps:
+      - make
+      - rpkg
+    actions:
+      post-upstream-clone:
+        - "rpkg spec --outdir ./"
+      fix-spec-file:
+        - "bash .packit.sh"
+
+  - <<: *copr
+    # Run on commit to v4.5 branch
+    # The `rhcontainerbot/qm` copr needs podman v4.5 for testing on
+    # centos stream 9
+    trigger: commit
+    branch: v4.5
+    project: qm
