@@ -128,9 +128,28 @@ func getContainers(runtime *libpod.Runtime, options getContainersOptions) ([]con
 		return containers, nil
 	}
 
-	containers := make([]containerWrapper, len(libpodContainers))
-	for i := range libpodContainers {
-		containers[i] = containerWrapper{Container: libpodContainers[i], rawInput: libpodContainers[i].ID()}
+	// If no names or IDs are specified, we can return the result as is.
+	// Otherwise, we need to do some further lookups.
+	if len(options.names) == 0 || (len(options.names) == 1 && options.names[0] == "") {
+		containers := make([]containerWrapper, len(libpodContainers))
+		for i, c := range libpodContainers {
+			containers[i] = containerWrapper{Container: libpodContainers[i], rawInput: c.ID()}
+		}
+		return containers, nil
+	}
+
+	containers := []containerWrapper{}
+	for _, n := range options.names {
+		c, err := runtime.LookupContainer(n)
+		if err != nil {
+			return nil, err
+		}
+		for i, lc := range libpodContainers {
+			if c.ID() == lc.ID() {
+				containers = append(containers, containerWrapper{Container: libpodContainers[i], rawInput: n})
+				break
+			}
+		}
 	}
 
 	return containers, nil
