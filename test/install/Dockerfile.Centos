@@ -1,3 +1,0 @@
-FROM registry.centos.org/centos/centos:8
-
-RUN yum install -y rpms/x86_64/*
