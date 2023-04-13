@@ -314,7 +314,10 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 	}
 	fsName, ok := graphdriver.FsNames[fsMagic]
 	if !ok {
-		return nil, fmt.Errorf("filesystem type %#x reported for %s is not supported with 'overlay': %w", fsMagic, filepath.Dir(home), graphdriver.ErrIncompatibleFS)
+		if opts.mountProgram == "" {
+			return nil, fmt.Errorf("filesystem type %#x reported for %s is not supported with 'overlay': %w", fsMagic, filepath.Dir(home), graphdriver.ErrIncompatibleFS)
+		}
+		fsName = "<unknown>"
 	}
 	backingFs = fsName
 

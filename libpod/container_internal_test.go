@@ -153,7 +153,7 @@ func TestPostDeleteHooks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	stateRegexp := `{"ociVersion":"1\.0\.2-dev","id":"123abc","status":"stopped","bundle":"` + dir + `","annotations":{"a":"b"}}`
+	stateRegexp := `{"ociVersion":"1\.1\.0\-rc\.1","id":"123abc","status":"stopped","bundle":"` + dir + `","annotations":{"a":"b"}}`
 	for _, p := range []string{statePath, copyPath} {
 		path := p
 		t.Run(path, func(t *testing.T) {
