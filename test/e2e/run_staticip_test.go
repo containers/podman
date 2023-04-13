@@ -126,9 +126,9 @@ var _ = Describe("Podman run with --ip flag", func() {
 			}
 
 			if err != nil {
-				fmt.Printf("nginx not ready yet; error=%v; %d retries left...\n", err, retries)
+				GinkgoWriter.Printf("nginx not ready yet; error=%v; %d retries left...\n", err, retries)
 			} else {
-				fmt.Printf("nginx not ready yet; response=%v; %d retries left...\n", response.StatusCode, retries)
+				GinkgoWriter.Printf("nginx not ready yet; response=%v; %d retries left...\n", response.StatusCode, retries)
 			}
 			time.Sleep(1 * time.Second)
 		}

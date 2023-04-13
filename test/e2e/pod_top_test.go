@@ -135,7 +135,7 @@ var _ = Describe("Podman top", func() {
 		Expect(session).Should(Exit(0))
 
 		for i := 0; i < 10; i++ {
-			fmt.Println("Waiting for containers to be running .... ")
+			GinkgoWriter.Println("Waiting for containers to be running .... ")
 			if podmanTest.NumberOfContainersRunning() == 2 {
 				break
 			}

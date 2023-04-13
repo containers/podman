@@ -1,7 +1,6 @@
 package utils_test
 
 import (
-	"fmt"
 	"io"
 	"os/exec"
 	"strings"
@@ -41,7 +40,7 @@ func StartFakeCmdSession(args []string) *PodmanSession {
 	command := exec.Command(GoechoPath, args...)
 	session, err := gexec.Start(command, outWriter, errWriter)
 	if err != nil {
-		fmt.Println(err)
+		GinkgoWriter.Println(err)
 	}
 	return &PodmanSession{session}
 }

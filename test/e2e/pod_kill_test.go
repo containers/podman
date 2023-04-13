@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -148,7 +147,7 @@ var _ = Describe("Podman pod kill", func() {
 
 		result := podmanTest.Podman([]string{"pod", "kill", "-a"})
 		result.WaitWithDefaultTimeout()
-		fmt.Println(result.OutputToString(), result.ErrorToString())
+		GinkgoWriter.Println(result.OutputToString(), result.ErrorToString())
 		Expect(result).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 	})

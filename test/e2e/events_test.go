@@ -96,7 +96,7 @@ var _ = Describe("Podman events", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		events := result.OutputToStringArray()
-		fmt.Println(events)
+		GinkgoWriter.Println(events)
 		Expect(len(events)).To(BeNumerically(">=", 2), "Number of events")
 		Expect(events).To(ContainElement(ContainSubstring(" pod create ")))
 		Expect(events).To(ContainElement(ContainSubstring(" pod stop ")))

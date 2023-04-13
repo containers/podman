@@ -110,7 +110,7 @@ var _ = Describe("Podman login and logout", func() {
 		var authInfo map[string]interface{}
 		err = json.Unmarshal(authBytes, &authInfo)
 		Expect(err).ToNot(HaveOccurred())
-		fmt.Println(authInfo)
+		GinkgoWriter.Println(authInfo)
 
 		const authsKey = "auths"
 		Expect(authInfo).To(HaveKey(authsKey))

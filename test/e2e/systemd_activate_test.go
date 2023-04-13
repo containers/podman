@@ -2,7 +2,6 @@ package integration
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"net"
 	"os"
@@ -30,7 +29,7 @@ var _ = Describe("Systemd activate", func() {
 
 		tempDir, err = testUtils.CreateTempDirInTempDir()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%v\n", err)
+			GinkgoWriter.Printf("%v\n", err)
 			os.Exit(1)
 		}
 

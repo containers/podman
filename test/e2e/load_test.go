@@ -40,7 +40,7 @@ var _ = Describe("Podman load", func() {
 
 		images := podmanTest.Podman([]string{"images"})
 		images.WaitWithDefaultTimeout()
-		fmt.Println(images.OutputToStringArray())
+		GinkgoWriter.Println(images.OutputToStringArray())
 
 		save := podmanTest.Podman([]string{"save", "-o", outfile, ALPINE})
 		save.WaitWithDefaultTimeout()

@@ -69,7 +69,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 			buf := make([]byte, 1024)
 			n, err := uds.Read(buf)
 			if err != nil && err != io.EOF {
-				fmt.Println(err)
+				GinkgoWriter.Println(err)
 				return
 			}
 			data := string(buf[0:n])
@@ -95,7 +95,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 			buf := make([]byte, 1024)
 			n, err := uds.Read(buf)
 			if err != nil {
-				fmt.Println(err)
+				GinkgoWriter.Println(err)
 				return
 			}
 			data := string(buf[0:n])

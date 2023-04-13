@@ -2781,7 +2781,7 @@ var _ = Describe("Podman play kube", func() {
 		// expect play kube is expected to set a seccomp label if it's applied as an annotation
 		jsonFile, err := podmanTest.CreateSeccompJSON(seccompPwdEPERM)
 		if err != nil {
-			fmt.Println(err)
+			GinkgoWriter.Println(err)
 			Skip("Failed to prepare seccomp.json for test.")
 		}
 
@@ -2808,7 +2808,7 @@ var _ = Describe("Podman play kube", func() {
 		// expect play kube is expected to set a seccomp label if it's applied as an annotation
 		jsonFile, err := podmanTest.CreateSeccompJSON(seccompPwdEPERM)
 		if err != nil {
-			fmt.Println(err)
+			GinkgoWriter.Println(err)
 			Skip("Failed to prepare seccomp.json for test.")
 		}
 		defer os.Remove(jsonFile)

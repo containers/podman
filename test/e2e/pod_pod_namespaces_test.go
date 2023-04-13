@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -54,9 +53,9 @@ var _ = Describe("Podman pod create", func() {
 		Expect(outputArray).To(HaveLen(2))
 
 		NAMESPACE1 := outputArray[0]
-		fmt.Println("NAMESPACE1:", NAMESPACE1)
+		GinkgoWriter.Println("NAMESPACE1:", NAMESPACE1)
 		NAMESPACE2 := outputArray[1]
-		fmt.Println("NAMESPACE2:", NAMESPACE2)
+		GinkgoWriter.Println("NAMESPACE2:", NAMESPACE2)
 		Expect(NAMESPACE1).To(Equal(NAMESPACE2))
 	})
 
@@ -100,9 +99,9 @@ var _ = Describe("Podman pod create", func() {
 		Expect(outputArray).To(HaveLen(2))
 
 		NAMESPACE1 := outputArray[0]
-		fmt.Println("NAMESPACE1:", NAMESPACE1)
+		GinkgoWriter.Println("NAMESPACE1:", NAMESPACE1)
 		NAMESPACE2 := outputArray[1]
-		fmt.Println("NAMESPACE2:", NAMESPACE2)
+		GinkgoWriter.Println("NAMESPACE2:", NAMESPACE2)
 		Expect(NAMESPACE1).To(Not(Equal(NAMESPACE2)))
 	})
 

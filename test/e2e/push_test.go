@@ -155,7 +155,7 @@ var _ = Describe("Podman push", func() {
 			cmd := exec.Command("cp", "testdata/sigstore-registries.d-fragment.yaml", systemRegistriesDAddition)
 			output, err := cmd.CombinedOutput()
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Skipping sigstore tests because /etc/containers/registries.d isn’t writable: %s", string(output))
+				GinkgoWriter.Printf("Skipping sigstore tests because /etc/containers/registries.d isn’t writable: %s\n", string(output))
 			} else {
 				defer func() {
 					err := os.Remove(systemRegistriesDAddition)

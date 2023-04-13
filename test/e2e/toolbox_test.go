@@ -90,7 +90,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 
 		err = syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rlimit)
 		Expect(err).ToNot(HaveOccurred())
-		fmt.Printf("Expected value: %d", rlimit.Max)
+		GinkgoWriter.Printf("Expected value: %d", rlimit.Max)
 
 		session = podmanTest.Podman([]string{"create", "--name", "test", "--ulimit", "host", ALPINE,
 			"sleep", "1000"})

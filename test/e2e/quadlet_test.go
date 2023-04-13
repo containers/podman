@@ -524,7 +524,7 @@ var _ = Describe("quadlet system generator", func() {
 			// Print any stderr output
 			errs := session.ErrorToString()
 			if errs != "" {
-				fmt.Println("error:", session.ErrorToString())
+				GinkgoWriter.Println("error:", session.ErrorToString())
 			}
 
 			testcase.check(generatedDir, session)

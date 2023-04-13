@@ -387,10 +387,8 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(err).ToNot(HaveOccurred())
 		mountCmd1.Wait(90)
 		Expect(mountCmd1).Should(Exit(0))
-		os.Stdout.Sync()
-		os.Stderr.Sync()
 		mountOut1 := strings.Join(strings.Fields(string(mountCmd1.Out.Contents())), " ")
-		fmt.Printf("Output: %s", mountOut1)
+		GinkgoWriter.Printf("Output: %s", mountOut1)
 		Expect(mountOut1).To(Not(ContainSubstring(volName)))
 
 		ctrName := "testctr"
@@ -403,10 +401,8 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(err).ToNot(HaveOccurred())
 		mountCmd2.Wait(90)
 		Expect(mountCmd2).Should(Exit(0))
-		os.Stdout.Sync()
-		os.Stderr.Sync()
 		mountOut2 := strings.Join(strings.Fields(string(mountCmd2.Out.Contents())), " ")
-		fmt.Printf("Output: %s", mountOut2)
+		GinkgoWriter.Printf("Output: %s", mountOut2)
 		Expect(mountOut2).To(ContainSubstring(volName))
 
 		// Stop the container to unmount
@@ -424,10 +420,8 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(err).ToNot(HaveOccurred())
 		mountCmd3.Wait(90)
 		Expect(mountCmd3).Should(Exit(0))
-		os.Stdout.Sync()
-		os.Stderr.Sync()
 		mountOut3 := strings.Join(strings.Fields(string(mountCmd3.Out.Contents())), " ")
-		fmt.Printf("Output: %s", mountOut3)
+		GinkgoWriter.Printf("Output: %s", mountOut3)
 		Expect(mountOut3).To(Not(ContainSubstring(volName)))
 	})
 

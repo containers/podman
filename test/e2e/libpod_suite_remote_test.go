@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -85,9 +86,9 @@ func (p *PodmanTestIntegration) StartRemoteService() {
 		fmt.Sprintf("%s.imagestore=%s", p.PodmanTest.ImageCacheFS, p.PodmanTest.ImageCacheDir)}
 	podmanOptions = append(cacheOptions, podmanOptions...)
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
-	command.Stdout = os.Stdout
-	command.Stderr = os.Stderr
-	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
+	command.Stdout = GinkgoWriter
+	command.Stderr = GinkgoWriter
+	GinkgoWriter.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
 	err := command.Start()
 	Expect(err).ToNot(HaveOccurred())
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -98,18 +99,18 @@ func (p *PodmanTestIntegration) StartRemoteService() {
 
 func (p *PodmanTestIntegration) StopRemoteService() {
 	if err := p.RemoteSession.Kill(); err != nil {
-		fmt.Fprintf(os.Stderr, "unable to clean up service %d, %v\n", p.RemoteSession.Pid, err)
+		GinkgoWriter.Printf("unable to clean up service %d, %v\n", p.RemoteSession.Pid, err)
 	}
 	if _, err := p.RemoteSession.Wait(); err != nil {
-		fmt.Fprintf(os.Stderr, "error on remote stop-wait %q", err)
+		GinkgoWriter.Printf("error on remote stop-wait %q", err)
 	}
 	socket := strings.Split(p.RemoteSocket, ":")[1]
 	if err := os.Remove(socket); err != nil && !errors.Is(err, os.ErrNotExist) {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		GinkgoWriter.Printf("%v\n", err)
 	}
 	if p.RemoteSocketLock != "" {
 		if err := os.Remove(p.RemoteSocketLock); err != nil && !errors.Is(err, os.ErrNotExist) {
-			fmt.Fprintf(os.Stderr, "%v\n", err)
+			GinkgoWriter.Printf("%v\n", err)
 		}
 	}
 }
@@ -128,11 +129,11 @@ func getRemoteOptions(p *PodmanTestIntegration, args []string) []string {
 func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 	tarball := imageTarPath(image)
 	if _, err := os.Stat(tarball); err == nil {
-		fmt.Printf("Restoring %s...\n", image)
+		GinkgoWriter.Printf("Restoring %s...\n", image)
 		args := []string{"load", "-q", "-i", tarball}
 		podmanOptions := getRemoteOptions(p, args)
 		command := exec.Command(p.PodmanBinary, podmanOptions...)
-		fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
+		GinkgoWriter.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
 		if err := command.Start(); err != nil {
 			return err
 		}
