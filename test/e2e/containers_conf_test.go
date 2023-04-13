@@ -37,11 +37,11 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 	})
 
 	AfterEach(func() {
+		os.Unsetenv("CONTAINERS_CONF")
+		os.Unsetenv("CONTAINERS_CONF_OVERRIDE")
 		podmanTest.Cleanup()
 		f := CurrentSpecReport()
 		processTestResult(f)
-		os.Unsetenv("CONTAINERS_CONF")
-		os.Unsetenv("CONTAINERS_CONF_OVERRIDE")
 	})
 
 	It("limits test", func() {
