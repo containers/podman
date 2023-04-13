@@ -124,5 +124,11 @@ var _ = Describe("Podman container cleanup", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
 		Expect(session.ErrorToString()).To(ContainSubstring("container state improper"))
+
+		// unpause so that the cleanup can stop the container,
+		// otherwise it fails with container state improper
+		session = podmanTest.Podman([]string{"unpause", "paused"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
 	})
 })
