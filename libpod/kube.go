@@ -97,23 +97,8 @@ func (p *Pod) GenerateForKube(ctx context.Context, getService bool) (*v1.Pod, []
 	}
 	pod.Spec.HostAliases = extraHost
 
-	// vendor/k8s.io/api/core/v1/types.go: v1.Container cannot save restartPolicy
-	// so set it at here
-	for _, ctr := range allContainers {
-		if !ctr.IsInfra() {
-			switch ctr.config.RestartPolicy {
-			case define.RestartPolicyAlways:
-				pod.Spec.RestartPolicy = v1.RestartPolicyAlways
-			case define.RestartPolicyOnFailure:
-				pod.Spec.RestartPolicy = v1.RestartPolicyOnFailure
-			case define.RestartPolicyNo:
-				pod.Spec.RestartPolicy = v1.RestartPolicyNever
-			default: // some pod create from cmdline, such as "", so set it to "" as k8s automatically defaults to always
-				pod.Spec.RestartPolicy = ""
-			}
-			break
-		}
-	}
+	// Set the pod's restart policy
+	pod.Spec.RestartPolicy = getPodRestartPolicy(p.config.RestartPolicy)
 
 	if p.SharesPID() {
 		// unfortunately, go doesn't have a nice way to specify a pointer to a bool
@@ -136,7 +121,7 @@ func (p *Pod) getInfraContainer() (*Container, error) {
 // kind YAML.
 func GenerateForKubeDeployment(ctx context.Context, pod *YAMLPod, options entities.GenerateKubeOptions) (*YAMLDeployment, error) {
 	// Restart policy for Deployments can only be set to Always
-	if options.Type == define.K8sKindDeployment && !(pod.Spec.RestartPolicy == "" || pod.Spec.RestartPolicy == define.RestartPolicyAlways) {
+	if options.Type == define.K8sKindDeployment && !(pod.Spec.RestartPolicy == "" || pod.Spec.RestartPolicy == v1.RestartPolicyAlways) {
 		return nil, fmt.Errorf("k8s Deployments can only have restartPolicy set to Always")
 	}
 
@@ -599,6 +584,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 	kubeAnnotations := make(map[string]string)
 	ctrNames := make([]string, 0, len(ctrs))
 	var hostname string
+	var restartPolicy *string
 	for _, ctr := range ctrs {
 		ctrNames = append(ctrNames, removeUnderscores(ctr.Name()))
 		for k, v := range ctr.config.Spec.Annotations {
@@ -621,6 +607,11 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 			if !strings.Contains(ctr.ID(), ctr.Hostname()) {
 				hostname = ctr.Hostname()
 			}
+		}
+
+		// Use the restart policy of the first non-init container
+		if !isInit && restartPolicy == nil {
+			restartPolicy = &ctr.config.RestartPolicy
 		}
 
 		if ctr.config.Spec.Process != nil {
@@ -700,7 +691,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 		podName += "-pod"
 	}
 
-	return newPodObject(
+	pod := newPodObject(
 		podName,
 		kubeAnnotations,
 		kubeInitCtrs,
@@ -709,7 +700,30 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 		&podDNS,
 		hostNetwork,
 		hostUsers,
-		hostname), nil
+		hostname)
+
+	// Set the pod's restart policy
+	policy := ""
+	if restartPolicy != nil {
+		policy = *restartPolicy
+	}
+	pod.Spec.RestartPolicy = getPodRestartPolicy(policy)
+
+	return pod, nil
+}
+
+// getPodRestartPolicy returns the pod restart policy to be set in the generated kube yaml
+func getPodRestartPolicy(policy string) v1.RestartPolicy {
+	switch policy {
+	case define.RestartPolicyNo:
+		return v1.RestartPolicyNever
+	case define.RestartPolicyAlways:
+		return v1.RestartPolicyAlways
+	case define.RestartPolicyOnFailure:
+		return v1.RestartPolicyOnFailure
+	default: // some pod/ctr create from cmdline, such as "" - set it to "" and let k8s handle the defaults
+		return ""
+	}
 }
 
 // containerToV1Container converts information we know about a libpod container

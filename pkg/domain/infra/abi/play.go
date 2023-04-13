@@ -592,16 +592,16 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		return nil, nil, err
 	}
 
-	var ctrRestartPolicy string
+	// Set the restart policy from the kube yaml at the pod level in podman
 	switch podYAML.Spec.RestartPolicy {
 	case v1.RestartPolicyAlways:
-		ctrRestartPolicy = define.RestartPolicyAlways
+		podSpec.PodSpecGen.RestartPolicy = define.RestartPolicyAlways
 	case v1.RestartPolicyOnFailure:
-		ctrRestartPolicy = define.RestartPolicyOnFailure
+		podSpec.PodSpecGen.RestartPolicy = define.RestartPolicyOnFailure
 	case v1.RestartPolicyNever:
-		ctrRestartPolicy = define.RestartPolicyNo
+		podSpec.PodSpecGen.RestartPolicy = define.RestartPolicyNo
 	default: // Default to Always
-		ctrRestartPolicy = define.RestartPolicyAlways
+		podSpec.PodSpecGen.RestartPolicy = define.RestartPolicyAlways
 	}
 
 	if podOpt.Infra {
@@ -775,7 +775,6 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			PodName:            podName,
 			PodSecurityContext: podYAML.Spec.SecurityContext,
 			ReadOnly:           readOnly,
-			RestartPolicy:      ctrRestartPolicy,
 			SeccompPaths:       seccompPaths,
 			SecretsManager:     secretsManager,
 			UserNSIsHost:       p.Userns.IsHost(),
