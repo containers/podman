@@ -569,6 +569,11 @@ func (p *PodmanTestIntegration) Quadlet(args []string, sourceDir string) *Podman
 
 // Cleanup cleans up the temporary store
 func (p *PodmanTestIntegration) Cleanup() {
+	// first stop everything, rm -fa is unreliable
+	// https://github.com/containers/podman/issues/18180
+	stop := p.Podman([]string{"stop", "--all", "-t", "0"})
+	stop.WaitWithDefaultTimeout()
+
 	// Remove all pods...
 	podrm := p.Podman([]string{"pod", "rm", "-fa", "-t", "0"})
 	podrm.WaitWithDefaultTimeout()
@@ -577,16 +582,18 @@ func (p *PodmanTestIntegration) Cleanup() {
 	rmall := p.Podman([]string{"rm", "-fa", "-t", "0"})
 	rmall.WaitWithDefaultTimeout()
 
-	// make sure to only check exit code after both commands ran otherwise we leak when pod rm fails
-	Expect(podrm).To(Exit(0))
-	Expect(rmall).To(Exit(0))
-
 	p.StopRemoteService()
 	// Nuke tempdir
 	p.removeCache(p.TempDir)
 
 	// Clean up the registries configuration file ENV variable set in Create
 	resetRegistriesConfigEnv()
+
+	// Make sure to only check exit codes after all cleanup is done.
+	// An error would cause it to stop and return early otherwise.
+	Expect(stop).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", stop.Command.Args, stop.OutputToString(), stop.ErrorToString())
+	Expect(podrm).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", podrm.Command.Args, podrm.OutputToString(), podrm.ErrorToString())
+	Expect(rmall).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", rmall.Command.Args, rmall.OutputToString(), rmall.ErrorToString())
 }
 
 // CleanupVolume cleans up the temporary store
