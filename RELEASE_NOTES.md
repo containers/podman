@@ -20,6 +20,7 @@
 - Podman now supports auto updates for containers running inside a pod ([#17181](https://github.com/containers/podman/issues/17181)).
 - Podman can now use a SQLite database as a backend for increased stability. The default remains the old database, BoltDB. The database to use is selected through the `database_backend` field in `containers.conf`.
 - Netavark plugin support has been added. The netavark network backend now allows users to create custom network drivers. `podman network create -d <plugin>` can be used to create a network config for your plugin and then Podman will use it like any other config and takes care of setup/teardown on container start/stop. This requires at least Netavark version 1.6.
+- DHCP with macvlan and the netavark backend is now supported.
 
 ### Changes
 - Remote builds using the `podman build` command no longer allows `.containerignore` or `.dockerignore` files to be symlinks outside the build context.
@@ -43,6 +44,7 @@
 - Quadlet now supports the `UserNS` option in `.container` files, which will replace the existing `RemapGid`, `RemapUid`, `RemapUidSize` and `RemapUsers` options in a future release ([#17984](https://github.com/containers/podman/issues/17984)).
 - Quadlet now includes a `--version` option.
 - Quadlet now forbids specifying SELinux label types, including disabling selinux separation.
+- Quadlet now does not set log-driver by default.
 - Fixed a bug where Quadlet did not recognize paths starting with systemd specifiers as absolute ([#17906](https://github.com/containers/podman/issues/17906)).
 
 ### Bugfixes
@@ -66,6 +68,7 @@
 - Fixed a bug where the `podman generate kube` command could generate pods with invalid names and hostnames ([#18054](https://github.com/containers/podman/issues/18054)).
 - Fixed a bug where names of limits (such as `RLIMIT_NOFILE`) passed to the `--ulimit` option to `podman create` and `podman run` were case-sensitive ([#18077](https://github.com/containers/podman/issues/18077)).
 - Fixed a possible corruption issue with the configuration state of `podman machine` during system failures on Mac, Linux, and Windows.
+- Fixed a bug where Podman attempted to split the headers returned by the ps command into a list of headers which was a problem for multi-word headers ([#17524](https://github.com/containers/podman/issues/17524)).
 
 ### API
 - The Compat Stats endpoint for Containers now returns the `Id` key as lowercase `id` to match Docker ([#17869](https://github.com/containers/podman/issues/17869)).
