@@ -602,28 +602,26 @@ func (p *PodmanTestIntegration) Cleanup() {
 	Expect(rmall).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", rmall.Command.Args, rmall.OutputToString(), rmall.ErrorToString())
 }
 
-// CleanupVolume cleans up the temporary store
+// CleanupVolume cleans up the volumes and containers.
+// This already calls Cleanup() internally.
 func (p *PodmanTestIntegration) CleanupVolume() {
 	// Remove all containers
 	session := p.Podman([]string{"volume", "rm", "-fa"})
-	session.Wait(90)
+	session.WaitWithDefaultTimeout()
 
 	p.Cleanup()
+	Expect(session).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", session.Command.Args, session.OutputToString(), session.ErrorToString())
 }
 
-// CleanupSecret cleans up the temporary store
+// CleanupSecret cleans up the secrets and containers.
+// This already calls Cleanup() internally.
 func (p *PodmanTestIntegration) CleanupSecrets() {
 	// Remove all containers
 	session := p.Podman([]string{"secret", "rm", "-a"})
 	session.Wait(90)
 
-	// Stop remove service on secret cleanup
-	p.StopRemoteService()
-
-	// Nuke tempdir
-	if err := os.RemoveAll(p.TempDir); err != nil {
-		GinkgoWriter.Printf("%q\n", err)
-	}
+	p.Cleanup()
+	Expect(session).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", session.Command.Args, session.OutputToString(), session.ErrorToString())
 }
 
 // InspectContainerToJSON takes the session output of an inspect

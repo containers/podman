@@ -521,8 +521,6 @@ var _ = Describe("Podman prune", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToStringArray()).To(HaveLen(3))
-
-		podmanTest.Cleanup()
 	})
 
 	It("podman system prune --all --external fails", func() {

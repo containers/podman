@@ -66,8 +66,6 @@ var _ = Describe("Podman volume rm", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToStringArray()).To(BeEmpty())
-
-		podmanTest.Cleanup()
 	})
 
 	It("podman volume remove bogus", func() {
