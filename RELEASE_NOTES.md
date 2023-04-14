@@ -68,7 +68,7 @@
 - Fixed a bug where the `podman generate kube` command could generate pods with invalid names and hostnames ([#18054](https://github.com/containers/podman/issues/18054)).
 - Fixed a bug where names of limits (such as `RLIMIT_NOFILE`) passed to the `--ulimit` option to `podman create` and `podman run` were case-sensitive ([#18077](https://github.com/containers/podman/issues/18077)).
 - Fixed a possible corruption issue with the configuration state of `podman machine` during system failures on Mac, Linux, and Windows.
-- Fixed a bug where Podman attempted to split the headers returned by the ps command into a list of headers which was a problem for multi-word headers ([#17524](https://github.com/containers/podman/issues/17524)).
+- Fixed a bug where the Compat top endpoint incorrectly returned titles as a string instead of a list ([#17524](https://github.com/containers/podman/issues/17524)).
 
 ### API
 - The Compat Stats endpoint for Containers now returns the `Id` key as lowercase `id` to match Docker ([#17869](https://github.com/containers/podman/issues/17869)).
