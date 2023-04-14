@@ -377,7 +377,12 @@ func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []st
 }
 
 func (ic *ContainerEngine) removeContainer(ctx context.Context, ctr *libpod.Container, options entities.RmOptions) error {
-	err := ic.Libpod.RemoveContainer(ctx, ctr, options.Force, options.Volumes, options.Timeout)
+	var err error
+	if options.All || options.Depend {
+		err = ic.Libpod.RemoveContainerAndDependencies(ctx, ctr, options.Force, options.Volumes, options.Timeout)
+	} else {
+		err = ic.Libpod.RemoveContainer(ctx, ctr, options.Force, options.Volumes, options.Timeout)
+	}
 	if err == nil {
 		return nil
 	}
@@ -435,36 +440,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		}
 	}
 
-	alreadyRemoved := make(map[string]bool)
-	addReports := func(newReports []*reports.RmReport) {
-		for i := range newReports {
-			alreadyRemoved[newReports[i].Id] = true
-			rmReports = append(rmReports, newReports[i])
-		}
-	}
-
-	// First, remove dependent containers.
-	if options.All || options.Depend {
-		for _, ctr := range libpodContainers {
-			// When `All` is set, remove the infra containers and
-			// their dependencies first. Otherwise, we'd error out.
-			//
-			// TODO: All this logic should probably live in libpod.
-			if alreadyRemoved[ctr.ID()] || (options.All && !ctr.IsInfra()) {
-				continue
-			}
-			reports, err := ic.Libpod.RemoveDepend(ctx, ctr, options.Force, options.Volumes, options.Timeout)
-			if err != nil {
-				return rmReports, err
-			}
-			addReports(reports)
-		}
-	}
-
 	errMap, err := parallelctr.ContainerOp(ctx, libpodContainers, func(c *libpod.Container) error {
-		if alreadyRemoved[c.ID()] {
-			return nil
-		}
 		return ic.removeContainer(ctx, c, options)
 	})
 	if err != nil {
@@ -472,9 +448,6 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	}
 
 	for ctr, err := range errMap {
-		if alreadyRemoved[ctr.ID()] {
-			continue
-		}
 		report := new(reports.RmReport)
 		report.Id = ctr.ID()
 		report.Err = err

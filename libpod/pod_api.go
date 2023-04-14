@@ -40,7 +40,7 @@ func (p *Pod) startInitContainers(ctx context.Context) error {
 			icLock := initCon.lock
 			icLock.Lock()
 			var time *uint
-			if err := p.runtime.removeContainer(ctx, initCon, false, false, true, false, time); err != nil {
+			if err := p.runtime.removeContainer(ctx, initCon, false, false, true, false, false, false, time); err != nil {
 				icLock.Unlock()
 				return fmt.Errorf("failed to remove once init container %s: %w", initCon.ID(), err)
 			}
