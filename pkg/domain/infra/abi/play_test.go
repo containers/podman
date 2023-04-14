@@ -99,7 +99,7 @@ binaryData:
 	for _, test := range tests {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
-			buf := bytes.NewBufferString(test.configMapContent)
+			buf := bytes.NewReader([]byte(test.configMapContent))
 			cm, err := readConfigMapFromFile(buf)
 
 			if test.expectError {
