@@ -15,8 +15,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libhvee/pkg/hypervctl"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
@@ -101,6 +103,15 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 
 	sshDir := filepath.Join(homedir.Get(), ".ssh")
 	m.IdentityPath = filepath.Join(sshDir, m.Name)
+
+	// TODO This needs to be fixed in c-common
+	m.RemoteUsername = "core"
+
+	sshPort, err := utils.GetRandomPort()
+	if err != nil {
+		return false, err
+	}
+	m.Port = sshPort
 
 	if len(opts.IgnitionPath) < 1 {
 		uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", fmt.Sprintf("/run/user/%d/podman/podman.sock", m.UID), strconv.Itoa(m.Port), m.RemoteUsername)
@@ -205,7 +216,61 @@ RequiredBy=default.target
 		Name:     "ready.service",
 		Contents: machine.StrToPtr(fmt.Sprintf(ready, m.ReadyHVSock.Port)),
 	}
-	ign.Cfg.Systemd.Units = append(ign.Cfg.Systemd.Units, readyUnit)
+
+	// userNetwork is a systemd unit file that calls the vm helpoer utility
+	// needed to take traffic from a network vsock0 device to the actual vsock
+	// and onto the host
+	userNetwork := `
+[Unit]
+Description=vsock_network
+After=NetworkManager.service
+
+[Service]
+ExecStart=/usr/libexec/podman/vm -preexisting -iface vsock0 -url vsock://2:%d/connect
+ExecStartPost=/usr/bin/nmcli c up vsock0
+
+[Install]
+WantedBy=multi-user.target
+`
+	vsockNetUnit := machine.Unit{
+		Contents: machine.StrToPtr(fmt.Sprintf(userNetwork, m.NetworkHVSock.Port)),
+		Enabled:  machine.BoolToPtr(true),
+		Name:     "vsock-network.service",
+	}
+
+	ign.Cfg.Systemd.Units = append(ign.Cfg.Systemd.Units, readyUnit, vsockNetUnit)
+
+	vSockNMConnection := `
+[connection]
+id=vsock0
+type=tun
+interface-name=vsock0
+
+[tun]
+mode=2
+
+[802-3-ethernet]
+cloned-mac-address=5A:94:EF:E4:0C:EE
+
+[ipv4]
+method=auto
+
+[proxy]
+`
+
+	ign.Cfg.Storage.Files = append(ign.Cfg.Storage.Files, machine.File{
+		Node: machine.Node{
+			Path: "/etc/NetworkManager/system-connections/vsock0.nmconnection",
+		},
+		FileEmbedded1: machine.FileEmbedded1{
+			Append: nil,
+			Contents: machine.Resource{
+				Source: machine.EncodeDataURLPtr(vSockNMConnection),
+			},
+			Mode: machine.IntToPtr(0600),
+		},
+	})
+
 	if err := ign.Write(); err != nil {
 		return false, err
 	}
@@ -388,7 +453,19 @@ func (m *HyperVMachine) Set(name string, opts machine.SetOptions) ([]error, erro
 }
 
 func (m *HyperVMachine) SSH(name string, opts machine.SSHOptions) error {
-	return machine.ErrNotImplemented
+	state, err := m.State(false)
+	if err != nil {
+		return err
+	}
+	if state != machine.Running {
+		return fmt.Errorf("vm %q is not running", m.Name)
+	}
+
+	username := opts.Username
+	if username == "" {
+		username = m.RemoteUsername
+	}
+	return machine.CommonSSH(username, m.IdentityPath, m.Name, m.Port, opts.Args)
 }
 
 func (m *HyperVMachine) Start(name string, opts machine.StartOptions) error {
@@ -400,6 +477,10 @@ func (m *HyperVMachine) Start(name string, opts machine.StartOptions) error {
 	}
 	if vm.State() != hypervctl.Disabled {
 		return hypervctl.ErrMachineStateInvalid
+	}
+	_, _, err = m.startHostNetworking()
+	if err != nil {
+		return fmt.Errorf("unable to start host networking: %q", err)
 	}
 	if err := vm.Start(); err != nil {
 		return err
@@ -500,4 +581,55 @@ func loadMacMachineFromJSON(fqConfigPath string, macMachine *HyperVMachine) erro
 		return err
 	}
 	return json.Unmarshal(b, macMachine)
+}
+
+func (m *HyperVMachine) startHostNetworking() (string, apiForwardingState, error) {
+	cfg, err := config.Default()
+	if err != nil {
+		return "", noForwarding, err
+	}
+
+	attr := new(os.ProcAttr)
+	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
+	if err != nil {
+		return "", noForwarding, err
+	}
+	dnw, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
+	if err != nil {
+		return "", noForwarding, err
+	}
+
+	defer func() {
+		if err := dnr.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
+	defer func() {
+		if err := dnw.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
+
+	gvproxy, err := cfg.FindHelperBinary("gvproxy.exe", false)
+	if err != nil {
+		return "", 0, err
+	}
+
+	attr.Files = []*os.File{dnr, dnw, dnw}
+	cmd := []string{gvproxy}
+	// Add the ssh port
+	cmd = append(cmd, []string{"-ssh-port", fmt.Sprintf("%d", m.Port)}...)
+	cmd = append(cmd, []string{"-listen", fmt.Sprintf("vsock://%s", m.NetworkHVSock.KeyName)}...)
+
+	var forwardSock string
+
+	if logrus.GetLevel() == logrus.DebugLevel {
+		cmd = append(cmd, "--debug")
+		fmt.Println(cmd)
+	}
+	_, err = os.StartProcess(cmd[0], cmd, attr)
+	if err != nil {
+		return "", 0, fmt.Errorf("unable to execute: %q: %w", cmd, err)
+	}
+	return forwardSock, noForwarding, nil
 }

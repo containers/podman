@@ -1069,25 +1069,7 @@ func (v *MachineVM) SSH(_ string, opts machine.SSHOptions) error {
 		username = v.RemoteUsername
 	}
 
-	sshDestination := username + "@localhost"
-	port := strconv.Itoa(v.Port)
-
-	args := []string{"-i", v.IdentityPath, "-p", port, sshDestination,
-		"-o", "StrictHostKeyChecking=no", "-o", "LogLevel=ERROR", "-o", "SetEnv=LC_ALL="}
-	if len(opts.Args) > 0 {
-		args = append(args, opts.Args...)
-	} else {
-		fmt.Printf("Connecting to vm %s. To close connection, use `~.` or `exit`\n", v.Name)
-	}
-
-	cmd := exec.Command("ssh", args...)
-	logrus.Debugf("Executing: ssh %v\n", args)
-
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-
-	return cmd.Run()
+	return machine.CommonSSH(username, v.IdentityPath, v.Name, v.Port, opts.Args)
 }
 
 // executes qemu-image info to get the virtual disk size
