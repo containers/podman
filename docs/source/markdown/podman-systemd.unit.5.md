@@ -295,8 +295,6 @@ This key can be listed multiple times.
 Set the log-driver Podman should use when running the container.
 Equivalent to the Podman `--log-driver` option.
 
-The default value is `passthrough`.
-
 ### `Mount=`
 
 Attach a filesystem mount to the container.
@@ -487,8 +485,6 @@ This key may be used multiple times
 
 Set the log-driver Podman should use when running the container.
 Equivalent to the Podman `--log-driver` option.
-
-The default value is `passthrough`.
 
 ### `Network=`
 
