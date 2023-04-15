@@ -19,7 +19,7 @@ const (
 )
 
 // DoneError represents an error when `*mpb.Progress` is done but its functionality is requested.
-var DoneError = fmt.Errorf("%T instance can't be reused after it's done!", (*Progress)(nil))
+var DoneError = fmt.Errorf("%T instance can't be reused after it's done", (*Progress)(nil))
 
 // Progress represents a container that renders one or more progress bars.
 type Progress struct {
@@ -351,7 +351,7 @@ func (s *pState) render(cw *cwriter.Writer) (err error) {
 }
 
 func (s *pState) flush(cw *cwriter.Writer, height int) error {
-	wg := new(sync.WaitGroup)
+	var wg sync.WaitGroup
 	defer wg.Wait() // waiting for all s.hm.push to complete
 
 	var popCount int

@@ -82,8 +82,8 @@ func main() {
             mpb.AppendDecorators(
                 // replace ETA decorator with "done" message, OnComplete event
                 decor.OnComplete(
-                    // ETA decorator with ewma age of 60
-                    decor.EwmaETA(decor.ET_STYLE_GO, 60, decor.WCSyncWidth), "done",
+                    // ETA decorator with ewma age of 30
+                    decor.EwmaETA(decor.ET_STYLE_GO, 30, decor.WCSyncWidth), "done",
                 ),
             ),
         )

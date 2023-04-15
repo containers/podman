@@ -199,8 +199,7 @@ func chooseTimeProducer(style TimeStyle) func(time.Duration) string {
 		}
 	default:
 		return func(remaining time.Duration) string {
-			// strip off nanoseconds
-			return ((remaining / time.Second) * time.Second).String()
+			return remaining.Truncate(time.Second).String()
 		}
 	}
 }

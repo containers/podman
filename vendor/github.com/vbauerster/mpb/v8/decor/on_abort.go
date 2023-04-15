@@ -34,8 +34,7 @@ type onAbortWrapper struct {
 
 func (d *onAbortWrapper) Decor(s Statistics) string {
 	if s.Aborted {
-		wc := d.GetConf()
-		return wc.FormatMsg(d.msg)
+		return d.GetConf().FormatMsg(d.msg)
 	}
 	return d.Decorator.Decor(s)
 }

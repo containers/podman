@@ -46,6 +46,7 @@ func (m heapManager) run() {
 	var sync bool
 
 	for req := range m {
+	next:
 		switch req.cmd {
 		case h_push:
 			data := req.data.(pushData)
@@ -78,7 +79,8 @@ func (m heapManager) run() {
 				select {
 				case data.iter <- b:
 				case <-data.drop:
-					break
+					close(data.iter)
+					break next
 				}
 			}
 			close(data.iter)
@@ -88,7 +90,8 @@ func (m heapManager) run() {
 				select {
 				case data.iter <- heap.Pop(&bHeap).(*Bar):
 				case <-data.drop:
-					break
+					close(data.iter)
+					break next
 				}
 			}
 			close(data.iter)
