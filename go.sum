@@ -987,8 +987,8 @@ github.com/urfave/cli v1.22.12/go.mod h1:sSBEIC79qR6OvcmsD4U3KABeOTxDqQtdDnaFuUN
 github.com/vbatts/tar-split v0.11.2/go.mod h1:vV3ZuO2yWSVsz+pfFzDG/upWH1JhjOiEaWq6kXyQ3VI=
 github.com/vbatts/tar-split v0.11.3 h1:hLFqsOLQ1SsppQNTMpkpPXClLDfC2A3Zgy9OUU+RVck=
 github.com/vbatts/tar-split v0.11.3/go.mod h1:9QlHN18E+fEH7RdG+QAJJcuya3rqT7eXSTY7wGrAokY=
-github.com/vbauerster/mpb/v8 v8.3.0 h1:xw2eMJ6v5NP8Rd7yOVzU6OqnRPrS1yWAoLTrWe7W4Nc=
-github.com/vbauerster/mpb/v8 v8.3.0/go.mod h1:bngtYUAu25QGxcYYglsF6oyoHlC9Yhh582xF9LjfmL4=
+github.com/vbauerster/mpb/v8 v8.4.0 h1:Jq2iNA7T6SydpMVOwaT+2OBWlXS9Th8KEvBqeu5eeTo=
+github.com/vbauerster/mpb/v8 v8.4.0/go.mod h1:vjp3hSTuCtR+x98/+2vW3eZ8XzxvGoP8CPseHMhiPyc=
 github.com/vishvananda/netlink v0.0.0-20181108222139-023a6dafdcdf/go.mod h1:+SR5DhBJrl6ZM7CoCKvpw5BKroDKQ+PJqOg65H/2ktk=
 github.com/vishvananda/netlink v1.1.0/go.mod h1:cTgwzPIzzgDAYoQrMm0EdrjRUBkTqKYppBueQtXaqoE=
 github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852/go.mod h1:twkDnbuQxJYemMlGd4JFIcuhgX83tXhKS2B/PRMpOho=

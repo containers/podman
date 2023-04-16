@@ -8,6 +8,13 @@ import (
 //go:generate stringer -type=SizeB1024 -trimprefix=_i
 //go:generate stringer -type=SizeB1000 -trimprefix=_
 
+var (
+	_ fmt.Formatter = SizeB1024(0)
+	_ fmt.Stringer  = SizeB1024(0)
+	_ fmt.Formatter = SizeB1000(0)
+	_ fmt.Stringer  = SizeB1000(0)
+)
+
 const (
 	_ib   SizeB1024 = iota + 1
 	_iKiB SizeB1024 = 1 << (iota * 10)
@@ -22,17 +29,17 @@ const (
 type SizeB1024 int64
 
 func (self SizeB1024) Format(st fmt.State, verb rune) {
-	var prec int
+	prec := -1
 	switch verb {
-	case 'd':
-	case 's':
-		prec = -1
-	default:
+	case 'f', 'e', 'E':
+		prec = 6 // default prec of fmt.Printf("%f|%e|%E")
+		fallthrough
+	case 'b', 'g', 'G', 'x', 'X':
 		if p, ok := st.Precision(); ok {
 			prec = p
-		} else {
-			prec = 6
 		}
+	default:
+		verb, prec = 'f', 0
 	}
 
 	var unit SizeB1024
@@ -49,8 +56,7 @@ func (self SizeB1024) Format(st fmt.State, verb rune) {
 		unit = _iTiB
 	}
 
-	p := bytesPool.Get().(*[]byte)
-	b := strconv.AppendFloat(*p, float64(self)/float64(unit), 'f', prec, 64)
+	b := strconv.AppendFloat(make([]byte, 0, 24), float64(self)/float64(unit), byte(verb), prec, 64)
 	if st.Flag(' ') {
 		b = append(b, ' ')
 	}
@@ -59,7 +65,6 @@ func (self SizeB1024) Format(st fmt.State, verb rune) {
 	if err != nil {
 		panic(err)
 	}
-	bytesPool.Put(p)
 }
 
 const (
@@ -76,17 +81,17 @@ const (
 type SizeB1000 int64
 
 func (self SizeB1000) Format(st fmt.State, verb rune) {
-	var prec int
+	prec := -1
 	switch verb {
-	case 'd':
-	case 's':
-		prec = -1
-	default:
+	case 'f', 'e', 'E':
+		prec = 6 // default prec of fmt.Printf("%f|%e|%E")
+		fallthrough
+	case 'b', 'g', 'G', 'x', 'X':
 		if p, ok := st.Precision(); ok {
 			prec = p
-		} else {
-			prec = 6
 		}
+	default:
+		verb, prec = 'f', 0
 	}
 
 	var unit SizeB1000
@@ -103,8 +108,7 @@ func (self SizeB1000) Format(st fmt.State, verb rune) {
 		unit = _TB
 	}
 
-	p := bytesPool.Get().(*[]byte)
-	b := strconv.AppendFloat(*p, float64(self)/float64(unit), 'f', prec, 64)
+	b := strconv.AppendFloat(make([]byte, 0, 24), float64(self)/float64(unit), byte(verb), prec, 64)
 	if st.Flag(' ') {
 		b = append(b, ' ')
 	}
@@ -113,5 +117,4 @@ func (self SizeB1000) Format(st fmt.State, verb rune) {
 	if err != nil {
 		panic(err)
 	}
-	bytesPool.Put(p)
 }

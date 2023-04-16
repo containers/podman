@@ -33,8 +33,7 @@ type onCompleteWrapper struct {
 
 func (d *onCompleteWrapper) Decor(s Statistics) string {
 	if s.Completed {
-		wc := d.GetConf()
-		return wc.FormatMsg(d.msg)
+		return d.GetConf().FormatMsg(d.msg)
 	}
 	return d.Decorator.Decor(s)
 }
