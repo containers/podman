@@ -7,6 +7,7 @@ Contributors are more than welcomed to help with this work.  If you decide to ca
 * Podman can not create containers that bind to ports < 1024.
   * The kernel does not allow processes without CAP_NET_BIND_SERVICE to bind to low ports.
   * You can modify the `net.ipv4.ip_unprivileged_port_start` sysctl to change the lowest port.  For example `sysctl net.ipv4.ip_unprivileged_port_start=443` allows rootless Podman containers to bind to ports >= 443.
+  * A proxy server, kernel firewall rule, or redirection tool such as [redir](https://github.com/troglobit/redir) may be used to redirect traffic from a privileged port to an unprivileged one (where a podman pod is bound) in a server scenario - where a user has access to the root account (or setuid on the binary would be a permissible risk), but wants to run the containers as an unprivileged user for enhanced security and for a limited number of pre-known ports.
 * “How To” documentation is patchy at best.
 * If /etc/subuid and /etc/subgid are not set up for a user, then podman commands
 can easily fail
