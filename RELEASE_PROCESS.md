@@ -241,16 +241,7 @@ spelled with complete minutiae.
 
       ```shell
       $ git checkout vX.Y.Z
-      $ make podman-remote-release-darwin_amd64.zip \
-          podman-remote-release-darwin_arm64.zip \
-          podman-remote-release-windows_amd64.zip \
-          podman-remote-static-linux_amd64 \
-          podman-remote-static-linux_arm64
-      $ mv podman-* bin/
-      $ cd bin/
-      $ tar -cvzf podman-remote-static-linux_amd64.tar.gz podman-remote-static-linux_amd64
-      $ tar -cvzf podman-remote-static-linux_arm64.tar.gz podman-remote-static-linux_arm64
-      $ sha256sum *.zip *.tar.gz > shasums
+      $ make release-artifacts
       ```
 
    1. The `podman-vX.Y.Z.dmg` file is produced manually by someone in
@@ -267,9 +258,7 @@ spelled with complete minutiae.
       the release.
    1. Near the bottom of the page there is a box with the message
       “Add binaries by dropping them here or selecting them”.  Use
-      that to upload the artifacts you previously downloaded, including
-      the `shasums` file.
-
+      that to upload the artifacts in the `release/` dir generated earlier:
       * podman-remote-release-darwin_amd64.zip
       * podman-remote-release-darwin_arm64.zip
       * podman-remote-release-windows_amd64.zip
