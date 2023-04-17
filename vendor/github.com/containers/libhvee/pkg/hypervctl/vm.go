@@ -395,9 +395,6 @@ func (vmm *VirtualMachineManager) NewVirtualMachine(name string, config *Hardwar
 		return err
 	}
 
-	//if err := vmm.CreateVhdxFile(config.DiskPath, config.DiskSize*1024*1024*1024); err != nil {
-	//	return err
-	//}
 	if err := NewDriveSettingsBuilder(systemSettings).
 		AddScsiController().
 		AddSyntheticDiskDrive(0).
@@ -416,13 +413,15 @@ func (vmm *VirtualMachineManager) NewVirtualMachine(name string, config *Hardwar
 		return err
 	}
 	// Add default network connection
-	if err := NewNetworkSettingsBuilder(systemSettings).
-		AddSyntheticEthernetPort(nil).
-		AddEthernetPortAllocation(""). // "" = connect to default switch
-		Finish().                      // allocation
-		Finish().                      // port
-		Complete(); err != nil {
-		return err
+	if config.Network {
+		if err := NewNetworkSettingsBuilder(systemSettings).
+			AddSyntheticEthernetPort(nil).
+			AddEthernetPortAllocation(""). // "" = connect to default switch
+			Finish().                      // allocation
+			Finish().                      // port
+			Complete(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
