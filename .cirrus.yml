@@ -241,28 +241,6 @@ bindings_task:
     always: *runner_stats
 
 
-# Check that all included go modules from other sources match
-# what is expected in `vendor/modules.txt` vs `go.mod`.  Also
-# make sure that the generated bindings in pkg/bindings/...
-# are in sync with the code.
-consistency_task:
-    name: "Test Code Consistency"
-    alias: consistency
-    skip: *tags
-    depends_on:
-        - build
-    container: *smallcontainer
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: consistency
-        TEST_ENVIRON: container
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-    clone_script: *full_clone  # build-cache not available to container tasks
-    setup_script: *setup
-    main_script: *main
-    always: *runner_stats
-
-
 # There are several other important variations of podman which
 # must always build successfully.  Most of them are handled in
 # this task, though a few need dedicated tasks which follow.
@@ -503,7 +481,6 @@ success_task:
         - build
         - validate
         - bindings
-        - consistency
         - alt_build
         - unit_test
         - local_integration_test

@@ -577,18 +577,12 @@ uninstall:
 	rm -f ${DESTDIR}${USERSYSTEMDDIR}/podman.service
 
 .PHONY: install.tools
-install.tools: .install.goimports .install.md2man .install.ginkgo .install.golangci-lint .install.bats ## Install needed tools
+install.tools: .install.md2man .install.ginkgo .install.golangci-lint .install.bats ## Install needed tools
 
 define go-get
 	env GO111MODULE=off \
 		$(GO) get -u ${1}
 endef
-
-.install.goimports: .gopathok
-	if [ ! -x "$(GOBIN)/goimports" ]; then \
-		$(call go-get,golang.org/x/tools/cmd/goimports); \
-	fi
-	touch .install.goimports
 
 .PHONY: .install.ginkgo
 .install.ginkgo: .gopathok
