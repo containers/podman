@@ -110,8 +110,6 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		// FIXME: Needs crun-1.8.2-2 to allow this with --cgroup-manager=cgroupfs, once this is available remove the skip below.
 		SkipIfRootless("--cgroup-manager=cgoupfs and --cgroup-conf not supported in rootless mode with crun")
 		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
-		tempdir, err = CreateTempDirInTempDir()
-		Expect(err).ToNot(HaveOccurred())
 
 		err := os.WriteFile(conffile, []byte("[containers]\ncgroup_conf = [\"pids.max=1234\",]\n"), 0755)
 		Expect(err).ToNot(HaveOccurred())
@@ -281,17 +279,18 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 
 	It("add volumes", func() {
 		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
-		tempdir, err = CreateTempDirInTempDir()
-		Expect(err).ToNot(HaveOccurred())
 
-		err := os.WriteFile(conffile, []byte(fmt.Sprintf("[containers]\nvolumes=[\"%s:%s:Z\",]\n", tempdir, tempdir)), 0755)
+		volume := filepath.Join(podmanTest.TempDir, "vol")
+		err = os.MkdirAll(volume, os.ModePerm)
+		Expect(err).ToNot(HaveOccurred())
+		err := os.WriteFile(conffile, []byte(fmt.Sprintf("[containers]\nvolumes=[\"%s:%s:Z\",]\n", volume, volume)), 0755)
 		Expect(err).ToNot(HaveOccurred())
 
 		os.Setenv("CONTAINERS_CONF", conffile)
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
 		}
-		result := podmanTest.Podman([]string{"run", ALPINE, "ls", tempdir})
+		result := podmanTest.Podman([]string{"run", ALPINE, "ls", volume})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 	})

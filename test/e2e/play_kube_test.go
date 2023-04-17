@@ -2933,8 +2933,6 @@ spec:
 		Expect(c).Should(Exit(0))
 
 		conffile := filepath.Join(podmanTest.TempDir, "kube.yaml")
-		tempdir, err = CreateTempDirInTempDir()
-		Expect(err).ToNot(HaveOccurred())
 
 		err := os.WriteFile(conffile, []byte(testyaml), 0755)
 		Expect(err).ToNot(HaveOccurred())

@@ -304,11 +304,8 @@ var _ = Describe("Podman pod create", func() {
 		cwd, err := os.Getwd()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(os.Chdir(os.TempDir())).To(Succeed())
-		targetPath, err := CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		targetFile := filepath.Join(targetPath, "idFile")
+
+		targetFile := filepath.Join(podmanTest.TempDir, "idFile")
 		defer Expect(os.RemoveAll(targetFile)).To(BeNil())
 		defer Expect(os.Chdir(cwd)).To(BeNil())
 

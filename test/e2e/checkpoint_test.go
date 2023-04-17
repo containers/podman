@@ -1327,6 +1327,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		cid := session.OutputToString()
 		fileName := filepath.Join(podmanTest.TempDir, "/checkpoint-"+cid+".tar.gz")
+		defer os.Remove(fileName)
 
 		result := podmanTest.Podman([]string{
 			"container",
@@ -1343,8 +1344,9 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
 
 		// Extract checkpoint archive
-		destinationDirectory, err := CreateTempDirInTempDir()
-		Expect(err).ShouldNot(HaveOccurred())
+		destinationDirectory := filepath.Join(podmanTest.TempDir, "dest")
+		err = os.MkdirAll(destinationDirectory, os.ModePerm)
+		Expect(err).ToNot(HaveOccurred())
 
 		tarsession := SystemExec(
 			"tar",
@@ -1359,11 +1361,6 @@ var _ = Describe("Podman checkpoint", func() {
 
 		_, err = os.Stat(filepath.Join(destinationDirectory, stats.StatsDump))
 		Expect(err).ShouldNot(HaveOccurred())
-
-		Expect(os.RemoveAll(destinationDirectory)).To(Succeed())
-
-		// Remove exported checkpoint
-		os.Remove(fileName)
 	})
 
 	It("podman checkpoint and restore containers with --print-stats", func() {
