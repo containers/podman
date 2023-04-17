@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -98,28 +97,12 @@ func (p *PodmanTestIntegration) StartRemoteService() {
 }
 
 func (p *PodmanTestIntegration) StopRemoteService() {
-	if !isRootless() {
-		if err := p.RemoteSession.Kill(); err != nil {
-			fmt.Fprintf(os.Stderr, "error on remote stop-kill %q", err)
-		}
-		if _, err := p.RemoteSession.Wait(); err != nil {
-			fmt.Fprintf(os.Stderr, "error on remote stop-wait %q", err)
-		}
-	} else {
-		// Stop any children of `podman system service`
-		pkill := exec.Command("pkill", "-P", strconv.Itoa(p.RemoteSession.Pid), "-15")
-		if err := pkill.Run(); err != nil {
-			exitErr := err.(*exec.ExitError)
-			if exitErr.ExitCode() != 1 {
-				fmt.Fprintf(os.Stderr, "pkill unable to clean up service %d children, exit code %d\n",
-					p.RemoteSession.Pid, exitErr.ExitCode())
-			}
-		}
-		if err := p.RemoteSession.Kill(); err != nil {
-			fmt.Fprintf(os.Stderr, "unable to clean up service %d, %v\n", p.RemoteSession.Pid, err)
-		}
+	if err := p.RemoteSession.Kill(); err != nil {
+		fmt.Fprintf(os.Stderr, "unable to clean up service %d, %v\n", p.RemoteSession.Pid, err)
 	}
-
+	if _, err := p.RemoteSession.Wait(); err != nil {
+		fmt.Fprintf(os.Stderr, "error on remote stop-wait %q", err)
+	}
 	socket := strings.Split(p.RemoteSocket, ":")[1]
 	if err := os.Remove(socket); err != nil && !errors.Is(err, os.ErrNotExist) {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
