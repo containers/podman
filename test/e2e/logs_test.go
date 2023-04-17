@@ -47,6 +47,13 @@ var _ = Describe("Podman logs", func() {
 
 	})
 
+	It("podman logs on not existent container", func() {
+		results := podmanTest.Podman([]string{"logs", "notexist"})
+		results.WaitWithDefaultTimeout()
+		Expect(results).To(Exit(125))
+		Expect(results.ErrorToString()).To(Equal(`Error: no container with name or ID "notexist" found: no such container`))
+	})
+
 	for _, log := range []string{"k8s-file", "journald", "json-file"} {
 		// This is important to move the 'log' var to the correct scope under Ginkgo flow.
 		log := log
