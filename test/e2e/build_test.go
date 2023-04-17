@@ -411,6 +411,7 @@ COPY /* /dir`, ALPINE)
 		containerfilePath := filepath.Join(cwd, "ContainerfilePathToCopier")
 		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
 		Expect(err).ToNot(HaveOccurred())
+		defer os.Remove(containerfilePath)
 
 		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "-f", "ContainerfilePathToCopier", targetSubPath})
 		session.WaitWithDefaultTimeout()
