@@ -951,6 +951,24 @@ install.tools: .install.golangci-lint ## Install needed tools
 		$(PYTHON) -m pip install --user pre-commit; \
 	fi
 
+.PHONY: release-artifacts
+release-artifacts: clean-binaries
+	mkdir -p release/
+	$(MAKE) podman-remote-release-darwin_amd64.zip
+	mv podman-remote-release-darwin_amd64.zip release/
+	$(MAKE) podman-remote-release-darwin_arm64.zip
+	mv podman-remote-release-darwin_arm64.zip release/
+	$(MAKE) podman-remote-release-windows_amd64.zip
+	mv podman-remote-release-windows_amd64.zip release/
+	$(MAKE) podman-remote-static-linux_amd64
+	tar -cvzf podman-remote-static-linux_amd64.tar.gz bin/podman-remote-static-linux_amd64
+	$(MAKE) podman-remote-static-linux_arm64
+	tar -cvzf podman-remote-static-linux_arm64.tar.gz bin/podman-remote-static-linux_arm64
+	mv podman-remote-static-linux*.tar.gz release/
+	$(MAKE) podman.msi
+	mv podman-v*.msi release/
+	cd release/; sha256sum *.zip *.tar.gz *.msi > shasums
+
 .PHONY: uninstall
 uninstall:
 	for i in $(filter %.1,$(MANPAGES_DEST)); do \
