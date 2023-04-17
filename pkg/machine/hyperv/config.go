@@ -6,7 +6,6 @@ package hyperv
 import (
 	"encoding/json"
 	"errors"
-	"github.com/sirupsen/logrus"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -15,6 +14,7 @@ import (
 	"github.com/containers/libhvee/pkg/hypervctl"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/docker/go-units"
+	"github.com/sirupsen/logrus"
 )
 
 type Virtualization struct {
@@ -178,7 +178,6 @@ func (v Virtualization) NewMachine(opts machine.InitOptions) (machine.VM, error)
 		return nil, err
 	}
 	return v.LoadVMByName(opts.Name)
-
 }
 
 func (v Virtualization) RemoveAndCleanMachines() error {
@@ -219,6 +218,12 @@ func (v Virtualization) RemoveAndCleanMachines() error {
 			}
 		}
 		if err := vm.Remove(mm.ImagePath.GetPath()); err != nil {
+			prevErr = handlePrevError(err, prevErr)
+		}
+		if err := mm.ReadyHVSock.Remove(); err != nil {
+			prevErr = handlePrevError(err, prevErr)
+		}
+		if err := mm.NetworkHVSock.Remove(); err != nil {
 			prevErr = handlePrevError(err, prevErr)
 		}
 	}

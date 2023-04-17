@@ -56,12 +56,8 @@ const (
 )
 
 type HyperVMachine struct {
-	// copied from qemu, cull and add as needed
-
 	// ConfigPath is the fully qualified path to the configuration file
 	ConfigPath machine.VMFile
-	// The command line representation of the qemu command
-	//CmdLine []string
 	// HostUser contains info about host user
 	machine.HostUser
 	// ImageConfig describes the bootable image
@@ -70,14 +66,10 @@ type HyperVMachine struct {
 	Mounts []machine.Mount
 	// Name of VM
 	Name string
-	// PidFilePath is the where the Proxy PID file lives
-	//PidFilePath machine.VMFile
-	// VMPidFilePath is the where the VM PID file lives
-	//VMPidFilePath machine.VMFile
-	// QMPMonitor is the qemu monitor object for sending commands
-	//QMPMonitor Monitor
+	// NetworkVSock is for the user networking
+	NetworkHVSock HVSockRegistryEntry
 	// ReadySocket tells host when vm is booted
-	ReadySocket machine.VMFile
+	ReadyHVSock HVSockRegistryEntry
 	// ResourceConfig is physical attrs of the VM
 	machine.ResourceConfig
 	// SSHConfig for accessing the remote vm
@@ -94,6 +86,18 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	var (
 		key string
 	)
+
+	// Add the network and ready sockets to the Windows registry
+	networkHVSock, err := NewHVSockRegistryEntry(m.Name, Network)
+	if err != nil {
+		return false, err
+	}
+	eventHVSocket, err := NewHVSockRegistryEntry(m.Name, Events)
+	if err != nil {
+		return false, err
+	}
+	m.NetworkHVSock = *networkHVSock
+	m.ReadyHVSock = *eventHVSocket
 
 	sshDir := filepath.Join(homedir.Get(), ".ssh")
 	m.IdentityPath = filepath.Join(sshDir, m.Name)
@@ -170,12 +174,39 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 		Name:      user,
 		Key:       key,
 		VMName:    m.Name,
+		VMType:    machine.HyperVVirt,
 		TimeZone:  opts.TimeZone,
 		WritePath: m.IgnitionFile.GetPath(),
 		UID:       m.UID,
 	}
 
-	if err := machine.NewIgnitionFile(ign, machine.HyperVVirt); err != nil {
+	if err := ign.GenerateIgnitionConfig(); err != nil {
+		return false, err
+	}
+
+	// ready is a unit file that sets up the virtual serial device
+	// where when the VM is done configuring, it will send an ack
+	// so a listening host knows it can being interacting with it
+	//
+	// VSOCK-CONNECT:2 <- shortcut to connect to the hostvm
+	ready := `[Unit]
+After=remove-moby.service sshd.socket sshd.service
+OnFailure=emergency.target
+OnFailureJobMode=isolate
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c '/usr/bin/echo Ready | socat - VSOCK-CONNECT:2:%d'
+[Install]
+RequiredBy=default.target
+`
+	readyUnit := machine.Unit{
+		Enabled:  machine.BoolToPtr(true),
+		Name:     "ready.service",
+		Contents: machine.StrToPtr(fmt.Sprintf(ready, m.ReadyHVSock.Port)),
+	}
+	ign.Cfg.Systemd.Units = append(ign.Cfg.Systemd.Units, readyUnit)
+	if err := ign.Write(); err != nil {
 		return false, err
 	}
 	// The ignition file has been written. We now need to
@@ -259,12 +290,6 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 		files = append(files, diskPath)
 	}
 
-	if err := machine.RemoveConnection(m.Name); err != nil {
-		logrus.Error(err)
-	}
-	if err := machine.RemoveConnection(m.Name + "-root"); err != nil {
-		logrus.Error(err)
-	}
 	files = append(files, getVMConfigPath(m.ConfigPath.GetPath(), m.Name))
 	confirmationMessage := "\nThe following files will be deleted:\n\n"
 	for _, msg := range files {
@@ -277,6 +302,22 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 			if err := os.Remove(f); err != nil && !errors.Is(err, os.ErrNotExist) {
 				logrus.Error(err)
 			}
+		}
+		if err := machine.RemoveConnection(m.Name); err != nil {
+			logrus.Error(err)
+		}
+		if err := machine.RemoveConnection(m.Name + "-root"); err != nil {
+			logrus.Error(err)
+		}
+
+		// Remove the HVSOCK for networking
+		if err := m.NetworkHVSock.Remove(); err != nil {
+			logrus.Errorf("unable to remove registry entry for %s: %q", m.NetworkHVSock.KeyName, err)
+		}
+
+		// Remove the HVSOCK for events
+		if err := m.ReadyHVSock.Remove(); err != nil {
+			logrus.Errorf("unable to remove registry entry for %s: %q", m.NetworkHVSock.KeyName, err)
 		}
 		return vm.Remove(diskPath)
 	}, nil
@@ -360,7 +401,11 @@ func (m *HyperVMachine) Start(name string, opts machine.StartOptions) error {
 	if vm.State() != hypervctl.Disabled {
 		return hypervctl.ErrMachineStateInvalid
 	}
-	return vm.Start()
+	if err := vm.Start(); err != nil {
+		return err
+	}
+	// Wait on notification from the guest
+	return m.ReadyHVSock.Listen()
 }
 
 func (m *HyperVMachine) State(_ bool) (machine.Status, error) {
