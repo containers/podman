@@ -63,7 +63,6 @@ var (
 	procBackupWrite                                          = modkernel32.NewProc("BackupWrite")
 	procCancelIoEx                                           = modkernel32.NewProc("CancelIoEx")
 	procConnectNamedPipe                                     = modkernel32.NewProc("ConnectNamedPipe")
-	procCreateFileW                                          = modkernel32.NewProc("CreateFileW")
 	procCreateIoCompletionPort                               = modkernel32.NewProc("CreateIoCompletionPort")
 	procCreateNamedPipeW                                     = modkernel32.NewProc("CreateNamedPipeW")
 	procGetCurrentThread                                     = modkernel32.NewProc("GetCurrentThread")
@@ -300,24 +299,6 @@ func cancelIoEx(file syscall.Handle, o *syscall.Overlapped) (err error) {
 func connectNamedPipe(pipe syscall.Handle, o *syscall.Overlapped) (err error) {
 	r1, _, e1 := syscall.Syscall(procConnectNamedPipe.Addr(), 2, uintptr(pipe), uintptr(unsafe.Pointer(o)), 0)
 	if r1 == 0 {
-		err = errnoErr(e1)
-	}
-	return
-}
-
-func createFile(name string, access uint32, mode uint32, sa *syscall.SecurityAttributes, createmode uint32, attrs uint32, templatefile syscall.Handle) (handle syscall.Handle, err error) {
-	var _p0 *uint16
-	_p0, err = syscall.UTF16PtrFromString(name)
-	if err != nil {
-		return
-	}
-	return _createFile(_p0, access, mode, sa, createmode, attrs, templatefile)
-}
-
-func _createFile(name *uint16, access uint32, mode uint32, sa *syscall.SecurityAttributes, createmode uint32, attrs uint32, templatefile syscall.Handle) (handle syscall.Handle, err error) {
-	r0, _, e1 := syscall.Syscall9(procCreateFileW.Addr(), 7, uintptr(unsafe.Pointer(name)), uintptr(access), uintptr(mode), uintptr(unsafe.Pointer(sa)), uintptr(createmode), uintptr(attrs), uintptr(templatefile), 0, 0)
-	handle = syscall.Handle(r0)
-	if handle == syscall.InvalidHandle {
 		err = errnoErr(e1)
 	}
 	return
