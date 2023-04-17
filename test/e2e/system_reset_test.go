@@ -9,7 +9,8 @@ import (
 	. "github.com/onsi/gomega/gexec"
 )
 
-var _ = Describe("podman system reset", func() {
+// system reset must run serial: https://github.com/containers/podman/issues/17903
+var _ = Describe("podman system reset", Serial, func() {
 	var (
 		tempdir    string
 		err        error
