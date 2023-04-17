@@ -29,7 +29,7 @@ const (
 )
 
 // Convenience function to convert int to ptr
-func intToPtr(i int) *int {
+func IntToPtr(i int) *int {
 	return &i
 }
 
@@ -43,11 +43,11 @@ func BoolToPtr(b bool) *bool {
 	return &b
 }
 
-func getNodeUsr(usrName string) NodeUser {
+func GetNodeUsr(usrName string) NodeUser {
 	return NodeUser{Name: &usrName}
 }
 
-func getNodeGrp(grpName string) NodeGroup {
+func GetNodeGrp(grpName string) NodeGroup {
 	return NodeGroup{Name: &grpName}
 }
 
@@ -84,7 +84,8 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 				Name:              ign.Name,
 				SSHAuthorizedKeys: []SSHAuthorizedKey{SSHAuthorizedKey(ign.Key)},
 				// Set the UID of the core user inside the machine
-				UID: intToPtr(ign.UID),
+				UID:          IntToPtr(ign.UID),
+				PasswordHash: StrToPtr("$y$j9T$/us37H88.4.5WydimEMC3/$f0sz48KNYevw7RO8iT.9gjmqaUlpmhwfdk7nlTql8QB"),
 			},
 			{
 				Name:              "root",
@@ -117,10 +118,10 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 		}
 		tzLink := Link{
 			Node: Node{
-				Group:     getNodeGrp("root"),
+				Group:     GetNodeGrp("root"),
 				Path:      "/etc/localtime",
 				Overwrite: BoolToPtr(false),
-				User:      getNodeUsr("root"),
+				User:      GetNodeUsr("root"),
 			},
 			LinkEmbedded1: LinkEmbedded1{
 				Hard:   BoolToPtr(false),
@@ -240,11 +241,11 @@ func getDirs(usrName string) []Directory {
 	for i, d := range newDirs {
 		newDir := Directory{
 			Node: Node{
-				Group: getNodeGrp(usrName),
+				Group: GetNodeGrp(usrName),
 				Path:  d,
-				User:  getNodeUsr(usrName),
+				User:  GetNodeUsr(usrName),
 			},
-			DirectoryEmbedded1: DirectoryEmbedded1{Mode: intToPtr(0755)},
+			DirectoryEmbedded1: DirectoryEmbedded1{Mode: IntToPtr(0755)},
 		}
 		dirs[i] = newDir
 	}
@@ -256,11 +257,11 @@ func getDirs(usrName string) []Directory {
 	// as a workaround.
 	dirs = append(dirs, Directory{
 		Node: Node{
-			Group: getNodeGrp("root"),
+			Group: GetNodeGrp("root"),
 			Path:  "/etc/containers/registries.conf.d",
-			User:  getNodeUsr("root"),
+			User:  GetNodeUsr("root"),
 		},
-		DirectoryEmbedded1: DirectoryEmbedded1{Mode: intToPtr(0755)},
+		DirectoryEmbedded1: DirectoryEmbedded1{Mode: IntToPtr(0755)},
 	})
 
 	// The directory is used by envset-fwcfg.service
@@ -268,18 +269,18 @@ func getDirs(usrName string) []Directory {
 	// from a host
 	dirs = append(dirs, Directory{
 		Node: Node{
-			Group: getNodeGrp("root"),
+			Group: GetNodeGrp("root"),
 			Path:  "/etc/systemd/system.conf.d",
-			User:  getNodeUsr("root"),
+			User:  GetNodeUsr("root"),
 		},
-		DirectoryEmbedded1: DirectoryEmbedded1{Mode: intToPtr(0755)},
+		DirectoryEmbedded1: DirectoryEmbedded1{Mode: IntToPtr(0755)},
 	}, Directory{
 		Node: Node{
-			Group: getNodeGrp("root"),
+			Group: GetNodeGrp("root"),
 			Path:  "/etc/environment.d",
-			User:  getNodeUsr("root"),
+			User:  GetNodeUsr("root"),
 		},
-		DirectoryEmbedded1: DirectoryEmbedded1{Mode: intToPtr(0755)},
+		DirectoryEmbedded1: DirectoryEmbedded1{Mode: IntToPtr(0755)},
 	})
 
 	return dirs
@@ -312,16 +313,16 @@ Delegate=memory pids cpu io
 	// Add a fake systemd service to get the user socket rolling
 	files = append(files, File{
 		Node: Node{
-			Group: getNodeGrp(usrName),
+			Group: GetNodeGrp(usrName),
 			Path:  "/home/" + usrName + "/.config/systemd/user/linger-example.service",
-			User:  getNodeUsr(usrName),
+			User:  GetNodeUsr(usrName),
 		},
 		FileEmbedded1: FileEmbedded1{
 			Append: nil,
 			Contents: Resource{
-				Source: encodeDataURLPtr(lingerExample),
+				Source: EncodeDataURLPtr(lingerExample),
 			},
-			Mode: intToPtr(0744),
+			Mode: IntToPtr(0744),
 		},
 	})
 
@@ -329,16 +330,16 @@ Delegate=memory pids cpu io
 	// by default
 	files = append(files, File{
 		Node: Node{
-			Group: getNodeGrp(usrName),
+			Group: GetNodeGrp(usrName),
 			Path:  "/home/" + usrName + "/.config/containers/containers.conf",
-			User:  getNodeUsr(usrName),
+			User:  GetNodeUsr(usrName),
 		},
 		FileEmbedded1: FileEmbedded1{
 			Append: nil,
 			Contents: Resource{
-				Source: encodeDataURLPtr(containers),
+				Source: EncodeDataURLPtr(containers),
 			},
-			Mode: intToPtr(0744),
+			Mode: IntToPtr(0744),
 		},
 	})
 
@@ -346,17 +347,17 @@ Delegate=memory pids cpu io
 	for _, sub := range []string{"/etc/subuid", "/etc/subgid"} {
 		files = append(files, File{
 			Node: Node{
-				Group:     getNodeGrp("root"),
+				Group:     GetNodeGrp("root"),
 				Path:      sub,
-				User:      getNodeUsr("root"),
+				User:      GetNodeUsr("root"),
 				Overwrite: BoolToPtr(true),
 			},
 			FileEmbedded1: FileEmbedded1{
 				Append: nil,
 				Contents: Resource{
-					Source: encodeDataURLPtr(fmt.Sprintf(subUID, usrName)),
+					Source: EncodeDataURLPtr(fmt.Sprintf(subUID, usrName)),
 				},
-				Mode: intToPtr(0744),
+				Mode: IntToPtr(0744),
 			},
 		})
 	}
@@ -365,59 +366,59 @@ Delegate=memory pids cpu io
 	// by default
 	files = append(files, File{
 		Node: Node{
-			Group: getNodeGrp("root"),
+			Group: GetNodeGrp("root"),
 			Path:  "/etc/systemd/system/user@.service.d/delegate.conf",
-			User:  getNodeUsr("root"),
+			User:  GetNodeUsr("root"),
 		},
 		FileEmbedded1: FileEmbedded1{
 			Append: nil,
 			Contents: Resource{
-				Source: encodeDataURLPtr(delegateConf),
+				Source: EncodeDataURLPtr(delegateConf),
 			},
-			Mode: intToPtr(0644),
+			Mode: IntToPtr(0644),
 		},
 	})
 
 	// Add a file into linger
 	files = append(files, File{
 		Node: Node{
-			Group: getNodeGrp(usrName),
+			Group: GetNodeGrp(usrName),
 			Path:  "/var/lib/systemd/linger/core",
-			User:  getNodeUsr(usrName),
+			User:  GetNodeUsr(usrName),
 		},
-		FileEmbedded1: FileEmbedded1{Mode: intToPtr(0644)},
+		FileEmbedded1: FileEmbedded1{Mode: IntToPtr(0644)},
 	})
 
 	// Set deprecated machine_enabled to true to indicate we're in a VM
 	files = append(files, File{
 		Node: Node{
-			Group: getNodeGrp("root"),
+			Group: GetNodeGrp("root"),
 			Path:  "/etc/containers/containers.conf",
-			User:  getNodeUsr("root"),
+			User:  GetNodeUsr("root"),
 		},
 		FileEmbedded1: FileEmbedded1{
 			Append: nil,
 			Contents: Resource{
-				Source: encodeDataURLPtr(rootContainers),
+				Source: EncodeDataURLPtr(rootContainers),
 			},
-			Mode: intToPtr(0644),
+			Mode: IntToPtr(0644),
 		},
 	})
 
 	// Set machine marker file to indicate podman is in a qemu based machine
 	files = append(files, File{
 		Node: Node{
-			Group: getNodeGrp("root"),
+			Group: GetNodeGrp("root"),
 			Path:  "/etc/containers/podman-machine",
-			User:  getNodeUsr("root"),
+			User:  GetNodeUsr("root"),
 		},
 		FileEmbedded1: FileEmbedded1{
 			Append: nil,
 			Contents: Resource{
 				// TODO this should be fixed for all vmtypes
-				Source: encodeDataURLPtr("qemu\n"),
+				Source: EncodeDataURLPtr("qemu\n"),
 			},
-			Mode: intToPtr(0644),
+			Mode: IntToPtr(0644),
 		},
 	})
 
@@ -428,16 +429,16 @@ Delegate=memory pids cpu io
 	// as a workaround.
 	files = append(files, File{
 		Node: Node{
-			Group: getNodeGrp("root"),
+			Group: GetNodeGrp("root"),
 			Path:  "/etc/containers/registries.conf.d/999-podman-machine.conf",
-			User:  getNodeUsr("root"),
+			User:  GetNodeUsr("root"),
 		},
 		FileEmbedded1: FileEmbedded1{
 			Append: nil,
 			Contents: Resource{
-				Source: encodeDataURLPtr("unqualified-search-registries=[\"docker.io\"]\n"),
+				Source: EncodeDataURLPtr("unqualified-search-registries=[\"docker.io\"]\n"),
 			},
-			Mode: intToPtr(0644),
+			Mode: IntToPtr(0644),
 		},
 	})
 
@@ -450,9 +451,9 @@ Delegate=memory pids cpu io
 			// Create a symlink from the docker socket to the podman socket.
 			// Taken from https://github.com/containers/podman/blob/main/contrib/systemd/system/podman-docker.conf
 			Contents: Resource{
-				Source: encodeDataURLPtr("L+  /run/docker.sock   -    -    -     -   /run/podman/podman.sock\n"),
+				Source: EncodeDataURLPtr("L+  /run/docker.sock   -    -    -     -   /run/podman/podman.sock\n"),
 			},
-			Mode: intToPtr(0644),
+			Mode: IntToPtr(0644),
 		},
 	})
 
@@ -461,16 +462,16 @@ Delegate=memory pids cpu io
 
 	files = append(files, File{
 		Node: Node{
-			Group: getNodeGrp("root"),
+			Group: GetNodeGrp("root"),
 			Path:  "/etc/profile.d/docker-host.sh",
-			User:  getNodeUsr("root"),
+			User:  GetNodeUsr("root"),
 		},
 		FileEmbedded1: FileEmbedded1{
 			Append: nil,
 			Contents: Resource{
-				Source: encodeDataURLPtr(setDockerHost),
+				Source: EncodeDataURLPtr(setDockerHost),
 			},
-			Mode: intToPtr(0644),
+			Mode: IntToPtr(0644),
 		},
 	})
 
@@ -507,13 +508,13 @@ Delegate=memory pids cpu io
 
 	files = append(files, File{
 		Node: Node{
-			User:  getNodeUsr("root"),
-			Group: getNodeGrp("root"),
+			User:  GetNodeUsr("root"),
+			Group: GetNodeGrp("root"),
 			Path:  "/etc/chrony.conf",
 		},
 		FileEmbedded1: FileEmbedded1{
 			Append: []Resource{{
-				Source: encodeDataURLPtr("\nconfdir /etc/chrony.d\n"),
+				Source: EncodeDataURLPtr("\nconfdir /etc/chrony.d\n"),
 			}},
 		},
 	})
@@ -522,13 +523,13 @@ Delegate=memory pids cpu io
 	// far from NTP time.
 	files = append(files, File{
 		Node: Node{
-			User:  getNodeUsr("root"),
-			Group: getNodeGrp("root"),
+			User:  GetNodeUsr("root"),
+			Group: GetNodeGrp("root"),
 			Path:  "/etc/chrony.d/50-podman-makestep.conf",
 		},
 		FileEmbedded1: FileEmbedded1{
 			Contents: Resource{
-				Source: encodeDataURLPtr("makestep 1 -1\n"),
+				Source: EncodeDataURLPtr("makestep 1 -1\n"),
 			},
 		},
 	})
@@ -587,16 +588,16 @@ func prepareCertFile(path string, name string) (File, error) {
 
 	file := File{
 		Node: Node{
-			Group: getNodeGrp("root"),
+			Group: GetNodeGrp("root"),
 			Path:  targetPath,
-			User:  getNodeUsr("root"),
+			User:  GetNodeUsr("root"),
 		},
 		FileEmbedded1: FileEmbedded1{
 			Append: nil,
 			Contents: Resource{
-				Source: encodeDataURLPtr(string(b)),
+				Source: EncodeDataURLPtr(string(b)),
 			},
-			Mode: intToPtr(0644),
+			Mode: IntToPtr(0644),
 		},
 	}
 	return file, nil
@@ -615,9 +616,9 @@ func GetProxyVariables() map[string]string {
 func getLinks(usrName string) []Link {
 	return []Link{{
 		Node: Node{
-			Group: getNodeGrp(usrName),
+			Group: GetNodeGrp(usrName),
 			Path:  "/home/" + usrName + "/.config/systemd/user/default.target.wants/linger-example.service",
-			User:  getNodeUsr(usrName),
+			User:  GetNodeUsr(usrName),
 		},
 		LinkEmbedded1: LinkEmbedded1{
 			Hard:   BoolToPtr(false),
@@ -625,10 +626,10 @@ func getLinks(usrName string) []Link {
 		},
 	}, {
 		Node: Node{
-			Group:     getNodeGrp("root"),
+			Group:     GetNodeGrp("root"),
 			Path:      "/usr/local/bin/docker",
 			Overwrite: BoolToPtr(true),
-			User:      getNodeUsr("root"),
+			User:      GetNodeUsr("root"),
 		},
 		LinkEmbedded1: LinkEmbedded1{
 			Hard:   BoolToPtr(false),
@@ -637,6 +638,6 @@ func getLinks(usrName string) []Link {
 	}}
 }
 
-func encodeDataURLPtr(contents string) *string {
+func EncodeDataURLPtr(contents string) *string {
 	return StrToPtr(fmt.Sprintf("data:,%s", url.PathEscape(contents)))
 }

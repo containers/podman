@@ -98,6 +98,9 @@ type HardwareConfig struct {
 	DiskSize uint64
 	// Memory in megabytes assigned to the vm
 	Memory int32
+	// Network is bool to add a Network Connection to the
+	// default network switch in Microsoft HyperV
+	Network bool
 }
 
 type Statuses struct {

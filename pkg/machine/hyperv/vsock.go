@@ -239,7 +239,7 @@ func LoadHVSockRegistryEntry(port uint64) (*HVSockRegistryEntry, error) {
 	}, nil
 }
 
-// Listen s used on the windows side to listen for anything to come
+// Listen is used on the windows side to listen for anything to come
 // over the hvsock as a signal the vm is booted
 func (hv *HVSockRegistryEntry) Listen() error {
 	n := winio.HvsockAddr{
