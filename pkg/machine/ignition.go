@@ -84,8 +84,7 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 				Name:              ign.Name,
 				SSHAuthorizedKeys: []SSHAuthorizedKey{SSHAuthorizedKey(ign.Key)},
 				// Set the UID of the core user inside the machine
-				UID:          IntToPtr(ign.UID),
-				PasswordHash: StrToPtr("$y$j9T$/us37H88.4.5WydimEMC3/$f0sz48KNYevw7RO8iT.9gjmqaUlpmhwfdk7nlTql8QB"),
+				UID: IntToPtr(ign.UID),
 			},
 			{
 				Name:              "root",

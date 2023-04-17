@@ -107,6 +107,10 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	// TODO This needs to be fixed in c-common
 	m.RemoteUsername = "core"
 
+	if m.UID == 0 {
+		m.UID = 1000
+	}
+
 	sshPort, err := utils.GetRandomPort()
 	if err != nil {
 		return false, err
@@ -166,10 +170,6 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	}
 	if err := os.WriteFile(m.ConfigPath.GetPath(), b, 0644); err != nil {
 		return false, err
-	}
-
-	if m.UID == 0 {
-		m.UID = 1000
 	}
 
 	// c/common sets the default machine user for "windows" to be "user"; this

@@ -239,6 +239,17 @@ func (vm *VirtualMachine) Stop() error {
 		return translateShutdownError(int(res))
 	}
 
+	// Wait for vm to actually *be* down
+	for i := 0; i < 25; i++ {
+		refreshVM, err := vm.vmm.GetMachine(vm.ElementName)
+		if err != nil {
+			return err
+		}
+		if refreshVM.State() == Disabled {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
 	return nil
 }
 
