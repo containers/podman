@@ -257,7 +257,7 @@ func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
 	if err != nil {
 		return fmt.Errorf("reading stdout: %s: %w", ctr.ID(), err)
 	}
-	if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(state); err != nil {
+	if err := json.NewDecoder(bytes.NewReader(out)).Decode(state); err != nil {
 		return fmt.Errorf("decoding container status for container %s: %w", ctr.ID(), err)
 	}
 	ctr.state.PID = state.Pid
