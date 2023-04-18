@@ -258,6 +258,34 @@ EOF
     run_podman volume rm my_vol2
 }
 
+# stdout with NULs is easier to test here than in ginkgo
+@test "podman volume export to stdout" {
+    skip_if_remote "N/A on podman-remote"
+
+    local volname="myvol_$(random_string 10)"
+    local mountpoint="/data$(random_string 8)"
+
+    run_podman volume create $volname
+    assert "$output" == "$volname" "volume create emits the name it was given"
+
+    local content="mycontent-$(random_string 20)-the-end"
+    run_podman run --rm --volume "$volname:$mountpoint" $IMAGE \
+               sh -c "echo $content >$mountpoint/testfile"
+    assert "$output" = ""
+
+    # We can't use run_podman because bash can't handle NUL characters.
+    # Can't even store them in variables, so we need immediate redirection
+    # The "-v" is only for debugging: tar will emit the filename to stderr.
+    # If this test ever fails, that may give a clue.
+    echo "$_LOG_PROMPT $PODMAN volume export $volname | tar -x ..."
+    tar_output="$($PODMAN volume export $volname | tar -x -v --to-stdout)"
+    echo "$tar_output"
+    assert "$tar_output" == "$content" "extracted content"
+
+    # Clean up
+    run_podman volume rm $volname
+}
+
 # Podman volume user test
 @test "podman volume user test" {
     is_rootless || skip "only meaningful when run rootless"
