@@ -548,8 +548,17 @@ func (p *PodmanTestIntegration) PodmanPID(args []string) (*PodmanSessionIntegrat
 func (p *PodmanTestIntegration) Quadlet(args []string, sourceDir string) *PodmanSessionIntegration {
 	fmt.Printf("Running: %s %s with QUADLET_UNIT_DIRS=%s\n", p.QuadletBinary, strings.Join(args, " "), sourceDir)
 
+	// quadlet uses PODMAN env to get a stable podman path
+	podmanPath, found := os.LookupEnv("PODMAN")
+	if !found {
+		podmanPath = p.PodmanBinary
+	}
+
 	command := exec.Command(p.QuadletBinary, args...)
-	command.Env = []string{fmt.Sprintf("QUADLET_UNIT_DIRS=%s", sourceDir)}
+	command.Env = []string{
+		fmt.Sprintf("QUADLET_UNIT_DIRS=%s", sourceDir),
+		fmt.Sprintf("PODMAN=%s", podmanPath),
+	}
 	session, err := Start(command, GinkgoWriter, GinkgoWriter)
 	if err != nil {
 		Fail("unable to run quadlet command: " + strings.Join(args, " "))
