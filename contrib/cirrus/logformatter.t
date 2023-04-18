@@ -128,7 +128,7 @@ ok 4 blah
 [+0006s] CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build  -ldflags '-X github.com/containers/podman/v4/libpod/define.gitCommit=074143b0fac7af72cd92048d27931a92fe745084 -X github.com/containers/podman/v4/libpod/define.buildInfo=1681728434 -X github.com/containers/podman/v4/libpod/config._installPrefix=/usr/local -X github.com/containers/podman/v4/libpod/config._etcDir=/usr/local/etc -X github.com/containers/podman/v4/pkg/systemd/quadlet._binDir=/usr/local/bin -X github.com/containers/common/pkg/config.additionalHelperBinariesDir= ' -o test/goecho/goecho ./test/goecho
 [+0006s] ./hack/install_catatonit.sh
 [+0270s] ------------------------------
-[+0271s] â¢ [3.327 seconds]
+[+0271s] * [3.327 seconds]
 [+0271s] Podman restart
 [+0271s] /var/tmp/go/src/github.com/containers/podman/test/e2e/restart_test.go:14
 [+0271s]   podman restart non-stop container with short timeout
@@ -160,10 +160,10 @@ ok 4 blah
 </pre>
 <hr />
 <pre>
-<span class="timestamp">[+0271s] </span>â¢ <b>[3.327 seconds]</b>
-<span class="timestamp">         </span>Podman restart
+<span class="timestamp">[+0271s] </span><a name='t--podman-restart-non-stop-container-with-short-timeout--1'><h2 class="log-passed">* <b>[3.327 seconds]</b></h2></a>
+<span class="timestamp">         </span><h2 class="log-passed">Podman restart</h2>
 <span class="timestamp">         </span>/var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/074143b0fac7af72cd92048d27931a92fe745084/test/e2e/restart_test.go#L14'>/containers/podman/test/e2e/restart_test.go:14</a>
-<span class="timestamp">         </span><a name='t--podman-restart-non-stop-container-with-short-timeout--1'><h2 class="log-passed">  podman restart non-stop container with short timeout</h2></a>
+<span class="timestamp">         </span><h3 class="log-passed">  podman restart non-stop container with short timeout</h3>
 <span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/074143b0fac7af72cd92048d27931a92fe745084/test/e2e/restart_test.go#L148'>/containers/podman/test/e2e/restart_test.go:148</a>
 [+0271s]
 <span class="timestamp">         </span>  Timeline &gt;&gt;
