@@ -57,15 +57,26 @@ size      | -\\\?[0-9]\\\+
 
 @test "podman image history Created" {
     # Values from image LIST
-    run_podman image list --format '{{.CreatedSince}}--{{.CreatedAt}}' $IMAGE
+    run_podman image list --format '{{.CreatedSince}};{{.CreatedAt}}' $IMAGE
     from_imagelist="$output"
-    assert "$from_imagelist" =~ "^[0-9].* ago--[0-9]+-[0-9]+-[0-9]+ [0-9:]+ " \
+    assert "$from_imagelist" =~ "^[0-9].* ago;[0-9]+-[0-9]+-[0-9]+ [0-9:]+ " \
            "CreatedSince and CreatedAt look reasonable"
 
     # Values from image HISTORY
-    run_podman image history --format '{{.CreatedSince}}--{{.CreatedAt}}' $IMAGE
-    assert "${lines[0]}" == "$from_imagelist" \
-           "CreatedSince and CreatedAt from image history should == image list"
+    run_podman image history --format '{{.CreatedSince}};{{.CreatedAt}}' $IMAGE
+    from_imagehistory="${lines[0]}"
+
+    imagelist_since=$(echo "$from_imagelist" | cut -d';' -f1)
+    imagehist_since=$(echo "$from_imagehistory" | cut -d';' -f1)
+
+    assert "$imagehist_since" == "$imagelist_since" \
+           "CreatedSince from image history should == image list"
+
+    imagelist_at=$(date --rfc-3339=seconds -f <(echo "$from_imagelist" | cut -d';' -f2 | sed 's/ UTC//'))
+    imagehist_at=$(date --rfc-3339=seconds -f <(echo "$from_imagehistory" | cut -d';' -f2))
+
+    assert "$imagehist_at" == "$imagelist_at" \
+           "CreatedAt from image history should == image list"
 }
 
 # vim: filetype=sh

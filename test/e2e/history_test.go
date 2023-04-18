@@ -44,6 +44,11 @@ var _ = Describe("Podman history", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToStringArray()).ToNot(BeEmpty())
+
+		session = podmanTest.Podman([]string{"history", "--format", "{{.CreatedAt}};{{.Size}}", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(MatchRegexp("[0-9-]{10}T[0-9:]{8}[Z0-9+:-]+;[0-9.]+[MG]*B( .+)?"))
 	})
 
 	It("podman history with human flag", func() {
