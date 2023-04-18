@@ -42,19 +42,9 @@ const (
 	// working code.
 	VolumeTypeVirtfs     = "virtfs"
 	MountType9p          = "9p"
-	dockerSock           = "/var/run/docker.sock"
+	dockerSockPath       = "/var/run/docker.sock"
 	dockerConnectTimeout = 5 * time.Second
 	apiUpTimeout         = 20 * time.Second
-)
-
-type apiForwardingState int
-
-const (
-	noForwarding apiForwardingState = iota
-	claimUnsupported
-	notInstalled
-	machineLocal
-	dockerGlobal
 )
 
 type HyperVMachine struct {
@@ -469,7 +459,6 @@ func (m *HyperVMachine) SSH(name string, opts machine.SSHOptions) error {
 }
 
 func (m *HyperVMachine) Start(name string, opts machine.StartOptions) error {
-	// TODO We need to hold Start until it actually finishes booting and ignition stuff
 	vmm := hypervctl.NewVirtualMachineManager()
 	vm, err := vmm.GetMachine(m.Name)
 	if err != nil {
@@ -583,20 +572,24 @@ func loadMacMachineFromJSON(fqConfigPath string, macMachine *HyperVMachine) erro
 	return json.Unmarshal(b, macMachine)
 }
 
-func (m *HyperVMachine) startHostNetworking() (string, apiForwardingState, error) {
+func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingState, error) {
+	var (
+		forwardSock string
+		state       machine.APIForwardingState
+	)
 	cfg, err := config.Default()
 	if err != nil {
-		return "", noForwarding, err
+		return "", machine.NoForwarding, err
 	}
 
 	attr := new(os.ProcAttr)
 	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
 	if err != nil {
-		return "", noForwarding, err
+		return "", machine.NoForwarding, err
 	}
 	dnw, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
 	if err != nil {
-		return "", noForwarding, err
+		return "", machine.NoForwarding, err
 	}
 
 	defer func() {
@@ -621,8 +614,7 @@ func (m *HyperVMachine) startHostNetworking() (string, apiForwardingState, error
 	cmd = append(cmd, []string{"-ssh-port", fmt.Sprintf("%d", m.Port)}...)
 	cmd = append(cmd, []string{"-listen", fmt.Sprintf("vsock://%s", m.NetworkHVSock.KeyName)}...)
 
-	var forwardSock string
-
+	cmd, forwardSock, state = m.setupAPIForwarding(cmd)
 	if logrus.GetLevel() == logrus.DebugLevel {
 		cmd = append(cmd, "--debug")
 		fmt.Println(cmd)
@@ -631,5 +623,44 @@ func (m *HyperVMachine) startHostNetworking() (string, apiForwardingState, error
 	if err != nil {
 		return "", 0, fmt.Errorf("unable to execute: %q: %w", cmd, err)
 	}
-	return forwardSock, noForwarding, nil
+	return forwardSock, state, nil
+}
+
+func (m *HyperVMachine) setupAPIForwarding(cmd []string) ([]string, string, machine.APIForwardingState) {
+	socket, err := m.forwardSocketPath()
+	if err != nil {
+		return cmd, "", machine.NoForwarding
+	}
+
+	destSock := fmt.Sprintf("/run/user/%d/podman/podman.sock", m.UID)
+	forwardUser := "core"
+
+	if m.Rootful {
+		destSock = "/run/podman/podman.sock"
+		forwardUser = "root"
+	}
+
+	cmd = append(cmd, []string{"-forward-sock", socket.GetPath()}...)
+	cmd = append(cmd, []string{"-forward-dest", destSock}...)
+	cmd = append(cmd, []string{"-forward-user", forwardUser}...)
+	cmd = append(cmd, []string{"-forward-identity", m.IdentityPath}...)
+
+	return cmd, "", machine.MachineLocal
+}
+
+func (m *HyperVMachine) dockerSock() (string, error) {
+	dd, err := machine.GetDataDir(machine.HyperVVirt)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dd, "podman.sock"), nil
+}
+
+func (m *HyperVMachine) forwardSocketPath() (*machine.VMFile, error) {
+	sockName := "podman.sock"
+	path, err := machine.GetDataDir(machine.HyperVVirt)
+	if err != nil {
+		return nil, fmt.Errorf("Resolving data dir: %s", err.Error())
+	}
+	return machine.NewMachineFile(filepath.Join(path, sockName), &sockName)
 }
