@@ -181,6 +181,8 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 		}
 	}()
 
+	totalDocs := len(documentList)
+	completedDocs := 0
 	// create pod on each document if it is a pod or deployment
 	// any other kube kind will be skipped
 	for _, document := range documentList {
@@ -311,6 +313,8 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 			logrus.Infof("Kube kind %s not supported", kind)
 			continue
 		}
+		completedDocs++
+		fmt.Fprintf(os.Stdout, "Progress (Completed / Total): %d / %d\n", completedDocs, totalDocs)
 	}
 
 	if validKinds == 0 {
