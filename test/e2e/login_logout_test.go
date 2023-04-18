@@ -116,7 +116,7 @@ var _ = Describe("Podman login and logout", func() {
 		Expect(authInfo).To(HaveKey(authsKey))
 
 		auths, ok := authInfo[authsKey].(map[string]interface{})
-		Expect(ok).To(BeTrue())
+		Expect(ok).To(BeTrue(), "authInfo[%s]", authsKey)
 
 		return auths
 	}

@@ -119,15 +119,8 @@ var _ = Describe("Podman commit", func() {
 
 		check := podmanTest.Podman([]string{"inspect", "foobar.com/test1-image:latest"})
 		check.WaitWithDefaultTimeout()
-		data := check.InspectImageJSON()
-		foundBlue := false
-		for _, i := range data[0].Labels {
-			if i == "blue" {
-				foundBlue = true
-				break
-			}
-		}
-		Expect(foundBlue).To(BeTrue())
+		inspectResults := check.InspectImageJSON()
+		Expect(inspectResults[0].Labels).To(HaveKeyWithValue("image", "blue"))
 	})
 
 	It("podman commit container with --squash", func() {

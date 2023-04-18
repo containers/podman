@@ -62,9 +62,7 @@ var _ = Describe("Podman run", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "cat", "/proc/self/attr/current"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		match1, _ := session.GrepString("container_t")
-		match2, _ := session.GrepString("svirt_lxc_net_t")
-		Expect(match1 || match2).Should(BeTrue())
+		Expect(session.OutputToString()).To(Or(ContainSubstring("container_t"), ContainSubstring("svirt_lxc_net_t")))
 	})
 
 	It("podman run selinux type setup test", func() {

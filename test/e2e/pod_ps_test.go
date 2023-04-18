@@ -169,7 +169,7 @@ var _ = Describe("Podman ps", func() {
 
 		sortedArr := session.OutputToStringArray()
 
-		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] < sortedArr[j] })).To(BeTrue())
+		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] < sortedArr[j] })).To(BeTrue(), "slice is sorted")
 	})
 
 	It("podman pod ps --ctr-names", func() {

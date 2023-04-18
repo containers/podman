@@ -3169,7 +3169,7 @@ spec:
 		// the file should have been created
 		st, err := os.Stat(hostPathLocation)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(st.Mode().IsDir()).To(BeTrue())
+		Expect(st.Mode().IsDir()).To(BeTrue(), "hostPathLocation is a directory")
 	})
 
 	It("podman play kube test with DirectoryOrCreate HostPath type volume and non-existent directory path", func() {
@@ -3186,7 +3186,7 @@ spec:
 		// the full path should have been created
 		st, err := os.Stat(hostPathLocation)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(st.Mode().IsDir()).To(BeTrue())
+		Expect(st.Mode().IsDir()).To(BeTrue(), "hostPathLocation is a directory")
 	})
 
 	It("podman play kube test with DirectoryOrCreate HostPath type volume and existent directory path", func() {

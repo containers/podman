@@ -144,7 +144,7 @@ var _ = Describe("Podman stats", func() {
 			}
 			time.Sleep(time.Second)
 		}
-		Expect(found).To(BeTrue())
+		Expect(found).To(BeTrue(), "container has started")
 		stats := podmanTest.Podman([]string{"stats", "--all", "--no-stream", "--format", "json"})
 		stats.WaitWithDefaultTimeout()
 		Expect(stats).Should(Exit(0))

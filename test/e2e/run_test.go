@@ -1254,11 +1254,9 @@ USER mail`, BB)
 		session := podmanTest.Podman([]string{"run", "--volume", vol1 + ":/myvol1:z", "--volume", vol2 + ":/myvol2:shared,z", fedoraMinimal, "findmnt", "-o", "TARGET,PROPAGATION"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		match, shared := session.GrepString("shared")
-		Expect(match).Should(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("shared"))
 		// make sure it's only shared (and not 'shared,slave')
-		isSharedOnly := !strings.Contains(shared[0], "shared,")
-		Expect(isSharedOnly).Should(BeTrue())
+		Expect(session.OutputToString()).To(Not(ContainSubstring("shared,")))
 	})
 
 	It("podman run --security-opts proc-opts=", func() {
@@ -1417,7 +1415,7 @@ USER mail`, BB)
 				break
 			}
 		}
-		Expect(found).To(BeTrue())
+		Expect(found).To(BeTrue(), "found expected /ran file")
 
 		err = os.Remove(aliveFile)
 		Expect(err).ToNot(HaveOccurred())
@@ -1433,7 +1431,7 @@ USER mail`, BB)
 				break
 			}
 		}
-		Expect(found).To(BeTrue())
+		Expect(found).To(BeTrue(), "found /ran file after restart")
 	})
 
 	It("podman run with restart policy does not restart on manual stop", func() {
@@ -2098,7 +2096,7 @@ WORKDIR /madethis`, BB)
 		mount.WaitWithDefaultTimeout()
 		Expect(mount).Should(Exit(0))
 		t, strings := mount.GrepString("tmpfs on /run/lock")
-		Expect(t).To(BeTrue())
+		Expect(t).To(BeTrue(), "found /run/lock")
 		Expect(strings[0]).Should(ContainSubstring("size=10240k"))
 	})
 })

@@ -49,7 +49,7 @@ var _ = Describe("Podman run restart containers", func() {
 	It("Podman start after signal kill", func() {
 		_ = podmanTest.RunTopContainer("test1")
 		ok := WaitForContainer(podmanTest)
-		Expect(ok).To(BeTrue())
+		Expect(ok).To(BeTrue(), "test1 container started")
 
 		killSession := podmanTest.Podman([]string{"kill", "-s", "9", "test1"})
 		killSession.WaitWithDefaultTimeout()

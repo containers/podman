@@ -288,10 +288,9 @@ var _ = Describe("Podman container clone", func() {
 		inspect := podmanTest.Podman([]string{"inspect", clone.OutputToString()})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).To(Exit(0))
-		Expect(inspect.InspectContainerToJSON()[0].NetworkSettings.Networks).To(HaveLen(2))
-		_, ok := inspect.InspectContainerToJSON()[0].NetworkSettings.Networks["testing123"]
-		Expect(ok).To(BeTrue())
-
+		networks := inspect.InspectContainerToJSON()[0].NetworkSettings.Networks
+		Expect(networks).To(HaveLen(2))
+		Expect(networks).To(HaveKey("testing123"))
 	})
 
 	It("podman container clone env test", func() {

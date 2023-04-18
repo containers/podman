@@ -154,7 +154,7 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session2.OutputToString()).To(Equal(session.OutputToString()))
 	})
 
-	It(" add --all", func() {
+	It("add --all", func() {
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -375,7 +375,7 @@ var _ = Describe("Podman manifest", func() {
 				break
 			}
 		}
-		Expect(foundZstdFile).To(BeTrue())
+		Expect(foundZstdFile).To(BeTrue(), "found zstd file")
 	})
 
 	It("push progress", func() {

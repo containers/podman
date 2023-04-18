@@ -102,7 +102,7 @@ var _ = Describe("Podman pod create", func() {
 		webserver := podmanTest.Podman([]string{"run", "--pod", pod, "-dt", NGINX_IMAGE})
 		webserver.WaitWithDefaultTimeout()
 		Expect(webserver).Should(Exit(0))
-		Expect(ncz(port)).To(BeTrue())
+		Expect(ncz(port)).To(BeTrue(), "port %d is up", port)
 	})
 
 	It("podman create pod with id file with network portbindings", func() {
@@ -116,7 +116,7 @@ var _ = Describe("Podman pod create", func() {
 		webserver := podmanTest.Podman([]string{"run", "--pod-id-file", file, "-dt", NGINX_IMAGE})
 		webserver.WaitWithDefaultTimeout()
 		Expect(webserver).Should(Exit(0))
-		Expect(ncz(port)).To(BeTrue())
+		Expect(ncz(port)).To(BeTrue(), "port %d is up", port)
 	})
 
 	It("podman create pod with no infra but portbindings should fail", func() {
@@ -988,8 +988,7 @@ ENTRYPOINT ["sleep","99999"]
 		ctrCreate = podmanTest.Podman([]string{"container", "run", "--pod", podCreate.OutputToString(), ALPINE, "cat", "/proc/self/attr/current"})
 		ctrCreate.WaitWithDefaultTimeout()
 		Expect(ctrCreate).Should(Exit(0))
-		match, _ := ctrCreate.GrepString("spc_t")
-		Expect(match).Should(BeTrue())
+		Expect(ctrCreate.OutputToString()).To(ContainSubstring("spc_t"))
 	})
 
 	It("podman pod create --security-opt seccomp", func() {
@@ -1138,7 +1137,7 @@ ENTRYPOINT ["sleep","99999"]
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(Exit(0))
 		t, strings := run.GrepString("shm on /dev/shm type tmpfs")
-		Expect(t).To(BeTrue())
+		Expect(t).To(BeTrue(), "found /dev/shm")
 		Expect(strings[0]).Should(ContainSubstring("size=10240k"))
 	})
 
@@ -1192,7 +1191,7 @@ ENTRYPOINT ["sleep","99999"]
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(Exit(0))
 		t, strings := run.GrepString("tmpfs on /run/lock")
-		Expect(t).To(BeTrue())
+		Expect(t).To(BeTrue(), "found /run/lock")
 		Expect(strings[0]).Should(ContainSubstring("size=10240k"))
 	})
 

@@ -152,7 +152,7 @@ var _ = Describe("Podman pod clone", func() {
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(Exit(0))
 		t, strings := run.GrepString("shm on /dev/shm type tmpfs")
-		Expect(t).To(BeTrue())
+		Expect(t).To(BeTrue(), "found /dev/shm")
 		Expect(strings[0]).Should(ContainSubstring("size=10240k"))
 	})
 
