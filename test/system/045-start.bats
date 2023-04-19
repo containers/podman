@@ -38,15 +38,30 @@ load helpers
 }
 
 @test "podman start --filter - start only containers that match the filter" {
-    run_podman run -d $IMAGE /bin/true
-    cid="$output"
-    run_podman wait $cid
+    c1="c1_always_$(random_string 15)"
+    c2="c2_on_failure_$(random_string 15)"
+    c3="c3_always_$(random_string 15)"
 
-    run_podman start --filter restart-policy=always $cid
-    is "$output" "" "CID of restart-policy=always container"
+    run_podman create --name=$c1 --restart=always $IMAGE /bin/true
+    c1_id="$output"
+    run_podman create --name=$c2 --restart=on-failure $IMAGE /bin/true
+    c2_id="$output"
+    run_podman create --name=$c3 --restart=always $IMAGE /bin/true
+    c3_id="$output"
 
-    run_podman start --filter restart-policy=none $cid
-    is "$output" "$cid" "CID of restart-policy=none container"
+    # Start via --filter
+    run_podman start --filter restart-policy=always
+    # Output order not sorted wrt creation time, so we need two regexes
+    is "$output" ".*$c1_id.*" "--filter finds container 1"
+    is "$output" ".*$c3_id.*" "--filter finds container 3"
+
+    # Start via filtered names
+    run_podman start --filter restart-policy=on-failure $c2 $c3
+    is "$output" "$c2" "--filter finds container 2"
+
+    # Nothing on match
+    run_podman start --filter restart-policy=none --all
+    is "$output" ""
 }
 
 @test "podman start --filter invalid-restart-policy - return error" {

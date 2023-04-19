@@ -29,31 +29,22 @@ func getContainersAndInputByContext(contextWithConnection context.Context, all, 
 	if err != nil {
 		return nil, nil, err
 	}
+
 	rawInputs := []string{}
-	switch {
-	case len(filters) > 0:
-		namesOrIDs = nil
-		for i := range allContainers {
-			if len(namesOrIDs) > 0 {
-				for _, name := range namesOrIDs {
-					if name == allContainers[i].ID {
-						namesOrIDs = append(namesOrIDs, allContainers[i].ID)
-					}
-				}
-			} else {
-				namesOrIDs = append(namesOrIDs, allContainers[i].ID)
-			}
-		}
-	case all:
+
+	// If no names or IDs are specified, we can return the result as is.
+	// Otherwise, we need to do some further lookups.
+	if len(namesOrIDs) == 0 {
 		for i := range allContainers {
 			rawInputs = append(rawInputs, allContainers[i].ID)
 		}
 		return allContainers, rawInputs, err
 	}
 
-	// Note: it would be nicer if the lists endpoint would support that as
-	// we could use the libpod backend for looking up containers rather
-	// than risking diverging the local and remote lookups.
+	// Note: it would be nicer if the lists endpoint would support batch
+	// name/ID lookups as we could use the libpod backend for looking up
+	// containers rather than risking diverging the local and remote
+	// lookups.
 	//
 	// A `--filter nameOrId=abc` that can be specified multiple times would
 	// be awesome to have.
