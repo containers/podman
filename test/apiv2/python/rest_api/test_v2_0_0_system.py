@@ -3,6 +3,7 @@ import unittest
 import uuid
 
 import requests
+import yaml
 from .fixtures import APITestCase
 
 
@@ -16,7 +17,18 @@ class SystemTestCase(APITestCase):
         r = requests.get(self.podman_url + "/v1.40/info")
         self.assertEqual(r.status_code, 200, r.text)
         self.assertIsNotNone(r.content)
-        _ = r.json()
+        response = r.json()
+
+        info_status = yaml.load(self.podman.run("info").stdout, Loader=yaml.FullLoader)
+        if info_status["host"]["security"]["rootless"]:
+            self.assertIn("name=rootless", response["SecurityOptions"])
+        else:
+            self.assertNotIn("name=rootless", response["SecurityOptions"])
+
+        if info_status["host"]["security"]["selinuxEnabled"]:
+            self.assertIn("name=selinux", response["SecurityOptions"])
+        else:
+            self.assertNotIn("name=selinux", response["SecurityOptions"])
 
     def test_events(self):
         r = requests.get(self.uri("/events?stream=false"))
