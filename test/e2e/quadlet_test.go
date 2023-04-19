@@ -459,6 +459,12 @@ var _ = Describe("quadlet system generator", func() {
 			fileName := "basic.kube"
 			testcase := loadQuadletTestcase(filepath.Join("quadlet", fileName))
 
+			// quadlet uses PODMAN env to get a stable podman path
+			podmanPath, found := os.LookupEnv("PODMAN")
+			if !found {
+				podmanPath = podmanTest.PodmanBinary
+			}
+
 			// Write the tested file to the quadlet dir
 			err = os.WriteFile(filepath.Join(quadletDir, fileName), testcase.data, 0644)
 			Expect(err).ToNot(HaveOccurred())
@@ -495,8 +501,8 @@ var _ = Describe("quadlet system generator", func() {
 				"Type=notify",
 				"NotifyAccess=all",
 				"SyslogIdentifier=%N",
-				fmt.Sprintf("ExecStart=/usr/local/bin/podman kube play --replace --service-container=true %s/deployment.yml", quadletDir),
-				fmt.Sprintf("ExecStop=/usr/local/bin/podman kube down %s/deployment.yml", quadletDir),
+				fmt.Sprintf("ExecStart=%s kube play --replace --service-container=true %s/deployment.yml", podmanPath, quadletDir),
+				fmt.Sprintf("ExecStop=%s kube down %s/deployment.yml", podmanPath, quadletDir),
 			}
 
 			Expect(expected).To(Equal(current))
