@@ -14,7 +14,8 @@ import (
 	"github.com/containers/podman/v4/pkg/bindings/containers"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega/gexec"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 type testImage struct {
@@ -71,7 +72,7 @@ func (b *bindingTest) NewConnection() error {
 	return nil
 }
 
-func (b *bindingTest) runPodman(command []string) *gexec.Session {
+func (b *bindingTest) runPodman(command []string) *Session {
 	var cmd []string
 	podmanBinary := getPodmanBinary()
 	val, ok := os.LookupEnv("PODMAN_BINARY")
@@ -123,7 +124,7 @@ func (b *bindingTest) runPodman(command []string) *gexec.Session {
 	cmd = append(cmd, command...)
 	c := exec.Command(podmanBinary, cmd...)
 	fmt.Printf("Running: %s %s\n", podmanBinary, strings.Join(cmd, " "))
-	session, err := gexec.Start(c, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
+	session, err := Start(c, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 	if err != nil {
 		panic(fmt.Errorf("unable to run podman command: %q", cmd))
 	}
@@ -148,7 +149,7 @@ func createTempDirInTempDir() (string, error) {
 	return os.MkdirTemp("", "libpod_api")
 }
 
-func (b *bindingTest) startAPIService() *gexec.Session {
+func (b *bindingTest) startAPIService() *Session {
 	cmd := []string{"--log-level=debug", "system", "service", "--timeout=0", b.sock}
 	session := b.runPodman(cmd)
 
@@ -178,11 +179,13 @@ func (b *bindingTest) cleanup() {
 func (b *bindingTest) Pull(name string) {
 	p := b.runPodman([]string{"pull", name})
 	p.Wait(45)
+	Expect(p).To(Exit(0))
 }
 
 func (b *bindingTest) Save(i testImage) {
 	p := b.runPodman([]string{"save", "-o", filepath.Join(ImageCacheDir, i.tarballName), i.name})
 	p.Wait(45)
+	Expect(p).To(Exit(0))
 }
 
 func (b *bindingTest) RestoreImagesFromCache() {
@@ -193,6 +196,7 @@ func (b *bindingTest) RestoreImagesFromCache() {
 func (b *bindingTest) restoreImageFromCache(i testImage) {
 	p := b.runPodman([]string{"load", "-i", filepath.Join(ImageCacheDir, i.tarballName)})
 	p.Wait(45)
+	Expect(p).To(Exit(0))
 }
 
 // Run a container within or without a pod
@@ -255,19 +259,15 @@ func StringInSlice(s string, sl []string) bool {
 
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	// make cache dir
-	if err := os.MkdirAll(ImageCacheDir, 0777); err != nil {
-		fmt.Printf("%q\n", err)
-		os.Exit(1)
-	}
+	err := os.MkdirAll(ImageCacheDir, 0777)
+	Expect(err).ToNot(HaveOccurred())
 
 	// If running localized tests, the cache dir is created and populated. if the
 	// tests are remote, this is a no-op
 	createCache()
 	path, err := os.MkdirTemp("", "libpodlock")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	Expect(err).ToNot(HaveOccurred())
+
 	return []byte(path)
 }, func(data []byte) {
 	LockTmpDir = string(data)
