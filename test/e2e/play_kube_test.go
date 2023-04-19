@@ -1868,6 +1868,7 @@ var _ = Describe("Podman play kube", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
+		useCustomNetworkDir(podmanTest, tempdir)
 		kubeYaml = filepath.Join(podmanTest.TempDir, "kube.yaml")
 	})
 

@@ -85,6 +85,7 @@ LABEL marge=mom
 `
 
 	It("Check that image is built using Dockerfile", func() {
+		useCustomNetworkDir(podmanTest, tempdir)
 		// Setup
 		yamlDir := filepath.Join(tempdir, RandomString(12))
 		err := os.Mkdir(yamlDir, 0755)
