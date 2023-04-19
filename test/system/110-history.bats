@@ -57,26 +57,30 @@ size      | -\\\?[0-9]\\\+
 
 @test "podman image history Created" {
     # Values from image LIST
-    run_podman image list --format '{{.CreatedSince}};{{.CreatedAt}}' $IMAGE
-    from_imagelist="$output"
-    assert "$from_imagelist" =~ "^[0-9].* ago;[0-9]+-[0-9]+-[0-9]+ [0-9:]+ " \
-           "CreatedSince and CreatedAt look reasonable"
+    run_podman image list --format '{{.CreatedSince}}\n{{.CreatedAt}}' $IMAGE
+    imagelist_since="${lines[0]}"
+    imagelist_at="${lines[1]}"
 
-    # Values from image HISTORY
-    run_podman image history --format '{{.CreatedSince}};{{.CreatedAt}}' $IMAGE
-    from_imagehistory="${lines[0]}"
+    assert "${imagelist_since}" =~ "^[0-9]+.* ago" \
+           "image list: CreatedSince looks reasonable"
+    assert "${imagelist_at}" =~ "^[0-9]+-[0-9]+-[0-9]+ [0-9:]+ \+0000 UTC\$" \
+           "image list: CreatedAt looks reasonable"
 
-    imagelist_since=$(echo "$from_imagelist" | cut -d';' -f1)
-    imagehist_since=$(echo "$from_imagehistory" | cut -d';' -f1)
+    # Values from image HISTORY. For docker compatibility, this command now
+    # honors $TZ (#18213) for CreatedAt.
+    TZ=UTC run_podman image history --format '{{.CreatedSince}}\n{{.CreatedAt}}' $IMAGE
+    imagehistory_since="${lines[0]}"
+    imagehistory_at="${lines[1]}"
 
-    assert "$imagehist_since" == "$imagelist_since" \
+    assert "$imagehistory_since" == "$imagelist_since" \
            "CreatedSince from image history should == image list"
 
-    imagelist_at=$(date --rfc-3339=seconds -f <(echo "$from_imagelist" | cut -d';' -f2 | sed 's/ UTC//'))
-    imagehist_at=$(date --rfc-3339=seconds -f <(echo "$from_imagehistory" | cut -d';' -f2))
-
-    assert "$imagehist_at" == "$imagelist_at" \
-           "CreatedAt from image history should == image list"
+    # More docker compatibility: both commands emit ISO8601-ish dates but
+    # with different separators so we need to compare date & time separately.
+    assert "${imagehistory_at:0:10}" == "${imagelist_at:0:10}" \
+           "CreatedAt (date) from image history should == image list"
+    assert "${imagehistory_at:11:8}" == "${imagelist_at:11:8}" \
+           "CreatedAt (time) from image history should == image list"
 }
 
 # vim: filetype=sh
