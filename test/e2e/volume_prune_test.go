@@ -162,6 +162,7 @@ var _ = Describe("Podman volume prune", func() {
 	})
 
 	It("podman system prune --volume", func() {
+		useCustomNetworkDir(podmanTest, tempdir)
 		session := podmanTest.Podman([]string{"volume", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))

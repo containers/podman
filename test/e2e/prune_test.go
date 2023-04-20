@@ -228,6 +228,7 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune pods", func() {
+		useCustomNetworkDir(podmanTest, tempdir)
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
