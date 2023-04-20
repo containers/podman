@@ -238,6 +238,11 @@ func (c *Container) shouldRestart() bool {
 		}
 	}
 
+	// Explicitly stopped by user, do not restart again.
+	if c.state.StoppedByUser {
+		return false
+	}
+
 	// If we did not get a restart policy match, return false
 	// Do the same if we're not a policy that restarts.
 	if !c.state.RestartPolicyMatch ||
@@ -1307,15 +1312,38 @@ func (c *Container) stop(timeout uint) error {
 		}
 	}
 
-	// Set the container state to "stopping" and unlock the container
-	// before handing it over to conmon to unblock other commands.  #8501
-	// demonstrates nicely that a high stop timeout will block even simple
-	// commands such as `podman ps` from progressing if the container lock
-	// is held when busy-waiting for the container to be stopped.
+	// OK, the following code looks a bit weird but we have to make sure we can stop
+	// containers with the restart policy always, to do this we have to set
+	// StoppedByUser even when there is nothing to stop right now. This is due to the
+	// cleanup process waiting on the container lock and then afterwards restarts it.
+	// shouldRestart() then checks for StoppedByUser and does not restart it.
+	// https://github.com/containers/podman/issues/18259
+	var cannotStopErr error
+	if c.ensureState(define.ContainerStateStopped, define.ContainerStateExited) {
+		cannotStopErr = define.ErrCtrStopped
+	} else if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStateStopping) {
+		cannotStopErr = fmt.Errorf("can only stop created or running containers. %s is in state %s: %w", c.ID(), c.state.State.String(), define.ErrCtrStateInvalid)
+	}
+
 	c.state.StoppedByUser = true
-	c.state.State = define.ContainerStateStopping
+	if cannotStopErr == nil {
+		// Set the container state to "stopping" and unlock the container
+		// before handing it over to conmon to unblock other commands.  #8501
+		// demonstrates nicely that a high stop timeout will block even simple
+		// commands such as `podman ps` from progressing if the container lock
+		// is held when busy-waiting for the container to be stopped.
+		c.state.State = define.ContainerStateStopping
+	}
 	if err := c.save(); err != nil {
-		return fmt.Errorf("saving container %s state before stopping: %w", c.ID(), err)
+		rErr := fmt.Errorf("saving container %s state before stopping: %w", c.ID(), err)
+		if cannotStopErr == nil {
+			return rErr
+		}
+		// we return below with cannotStopErr
+		logrus.Error(rErr)
+	}
+	if cannotStopErr != nil {
+		return cannotStopErr
 	}
 	if !c.batched {
 		c.lock.Unlock()
