@@ -27,9 +27,16 @@ var (
 	}
 
 	initOpts           = machine.InitOptions{}
+	initOptionalFlags  = InitOptionalFlags{}
 	defaultMachineName = machine.DefaultMachineName
 	now                bool
+	defaultProvider    = GetSystemDefaultProvider()
 )
+
+// Flags which have a meaning when unspecified that differs from the flag default
+type InitOptionalFlags struct {
+	UserModeNetworking bool
+}
 
 // maxMachineNameSize is set to thirty to limit huge machine names primarily
 // because macOS has a much smaller file size limit.
@@ -110,6 +117,10 @@ func init() {
 
 	rootfulFlagName := "rootful"
 	flags.BoolVar(&initOpts.Rootful, rootfulFlagName, false, "Whether this machine should prefer rootful container execution")
+
+	userModeNetFlagName := "user-mode-networking"
+	flags.BoolVar(&initOptionalFlags.UserModeNetworking, userModeNetFlagName, false,
+		"Whether this machine should use user-mode networking, routing traffic through a host user-space process")
 }
 
 func initMachine(cmd *cobra.Command, args []string) error {
@@ -118,7 +129,7 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		vm  machine.VM
 	)
 
-	provider := GetSystemDefaultProvider()
+	provider := defaultProvider
 	initOpts.Name = defaultMachineName
 	if len(args) > 0 {
 		if len(args[0]) > maxMachineNameSize {
@@ -132,6 +143,12 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	for idx, vol := range initOpts.Volumes {
 		initOpts.Volumes[idx] = os.ExpandEnv(vol)
 	}
+
+	// Process optional flags (flags where unspecified / nil has meaning )
+	if cmd.Flags().Changed("user-mode-networking") {
+		initOpts.UserModeNetworking = &initOptionalFlags.UserModeNetworking
+	}
+
 	vm, err = provider.NewMachine(initOpts)
 	if err != nil {
 		return err

@@ -31,6 +31,7 @@ Print results with a Go template.
 | .Resources ...      | Resources used by the machine                         |
 | .SSHConfig ...      | SSH configuration info for communitating with machine |
 | .State ...          | Machine state                                         |
+| .UserModeNetworking | Whether this machine uses user-mode networking        |
 
 #### **--help**
 

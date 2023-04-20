@@ -32,10 +32,11 @@ var (
 )
 
 type SetFlags struct {
-	CPUs     uint64
-	DiskSize uint64
-	Memory   uint64
-	Rootful  bool
+	CPUs               uint64
+	DiskSize           uint64
+	Memory             uint64
+	Rootful            bool
+	UserModeNetworking bool
 }
 
 func init() {
@@ -72,6 +73,10 @@ func init() {
 		"Memory in MB",
 	)
 	_ = setCmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
+
+	userModeNetFlagName := "user-mode-networking"
+	flags.BoolVar(&setFlags.UserModeNetworking, userModeNetFlagName, false, // defaults not-relevant due to use of Changed()
+		"Whether this machine should use user-mode networking, routing traffic through a host user-space process")
 }
 
 func setMachine(cmd *cobra.Command, args []string) error {
@@ -101,6 +106,9 @@ func setMachine(cmd *cobra.Command, args []string) error {
 	}
 	if cmd.Flags().Changed("disk-size") {
 		setOpts.DiskSize = &setFlags.DiskSize
+	}
+	if cmd.Flags().Changed("user-mode-networking") {
+		setOpts.UserModeNetworking = &setFlags.UserModeNetworking
 	}
 
 	setErrs, lasterr := vm.Set(vmName, setOpts)
