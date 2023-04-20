@@ -19,10 +19,6 @@
 #ifndef SQLITE3EXT_H
 #define SQLITE3EXT_H
 #include "sqlite3-binding.h"
-#ifdef __clang__
-#define assert(condition) ((void)0)
-#endif
-
 
 /*
 ** The following structure holds pointers to all of the SQLite API
@@ -335,33 +331,6 @@ struct sqlite3_api_routines {
   const char *(*filename_database)(const char*);
   const char *(*filename_journal)(const char*);
   const char *(*filename_wal)(const char*);
-  /* Version 3.32.0 and later */
-  char *(*create_filename)(const char*,const char*,const char*,
-                           int,const char**);
-  void (*free_filename)(char*);
-  sqlite3_file *(*database_file_object)(const char*);
-  /* Version 3.34.0 and later */
-  int (*txn_state)(sqlite3*,const char*);
-  /* Version 3.36.1 and later */
-  sqlite3_int64 (*changes64)(sqlite3*);
-  sqlite3_int64 (*total_changes64)(sqlite3*);
-  /* Version 3.37.0 and later */
-  int (*autovacuum_pages)(sqlite3*,
-     unsigned int(*)(void*,const char*,unsigned int,unsigned int,unsigned int),
-     void*, void(*)(void*));
-  /* Version 3.38.0 and later */
-  int (*error_offset)(sqlite3*);
-  int (*vtab_rhs_value)(sqlite3_index_info*,int,sqlite3_value**);
-  int (*vtab_distinct)(sqlite3_index_info*);
-  int (*vtab_in)(sqlite3_index_info*,int,int);
-  int (*vtab_in_first)(sqlite3_value*,sqlite3_value**);
-  int (*vtab_in_next)(sqlite3_value*,sqlite3_value**);
-  /* Version 3.39.0 and later */
-  int (*deserialize)(sqlite3*,const char*,unsigned char*,
-                     sqlite3_int64,sqlite3_int64,unsigned);
-  unsigned char *(*serialize)(sqlite3*,const char *,sqlite3_int64*,
-                              unsigned int);
-  const char *(*db_name)(sqlite3*,int);
 };
 
 /*
@@ -662,30 +631,6 @@ typedef int (*sqlite3_loadext_entry)(
 #define sqlite3_filename_database      sqlite3_api->filename_database
 #define sqlite3_filename_journal       sqlite3_api->filename_journal
 #define sqlite3_filename_wal           sqlite3_api->filename_wal
-/* Version 3.32.0 and later */
-#define sqlite3_create_filename        sqlite3_api->create_filename
-#define sqlite3_free_filename          sqlite3_api->free_filename
-#define sqlite3_database_file_object   sqlite3_api->database_file_object
-/* Version 3.34.0 and later */
-#define sqlite3_txn_state              sqlite3_api->txn_state
-/* Version 3.36.1 and later */
-#define sqlite3_changes64              sqlite3_api->changes64
-#define sqlite3_total_changes64        sqlite3_api->total_changes64
-/* Version 3.37.0 and later */
-#define sqlite3_autovacuum_pages       sqlite3_api->autovacuum_pages
-/* Version 3.38.0 and later */
-#define sqlite3_error_offset           sqlite3_api->error_offset
-#define sqlite3_vtab_rhs_value         sqlite3_api->vtab_rhs_value
-#define sqlite3_vtab_distinct          sqlite3_api->vtab_distinct
-#define sqlite3_vtab_in                sqlite3_api->vtab_in
-#define sqlite3_vtab_in_first          sqlite3_api->vtab_in_first
-#define sqlite3_vtab_in_next           sqlite3_api->vtab_in_next
-/* Version 3.39.0 and later */
-#ifndef SQLITE_OMIT_DESERIALIZE
-#define sqlite3_deserialize            sqlite3_api->deserialize
-#define sqlite3_serialize              sqlite3_api->serialize
-#endif
-#define sqlite3_db_name                sqlite3_api->db_name
 #endif /* !defined(SQLITE_CORE) && !defined(SQLITE_OMIT_LOAD_EXTENSION) */
 
 #if !defined(SQLITE_CORE) && !defined(SQLITE_OMIT_LOAD_EXTENSION)

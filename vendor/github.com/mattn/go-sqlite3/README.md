@@ -1,23 +1,21 @@
 go-sqlite3
 ==========
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/mattn/go-sqlite3.svg)](https://pkg.go.dev/github.com/mattn/go-sqlite3)
-[![GitHub Actions](https://github.com/mattn/go-sqlite3/workflows/Go/badge.svg)](https://github.com/mattn/go-sqlite3/actions?query=workflow%3AGo)
+[![GoDoc Reference](https://godoc.org/github.com/mattn/go-sqlite3?status.svg)](http://godoc.org/github.com/mattn/go-sqlite3)
+[![Build Status](https://travis-ci.org/mattn/go-sqlite3.svg?branch=master)](https://travis-ci.org/mattn/go-sqlite3)
 [![Financial Contributors on Open Collective](https://opencollective.com/mattn-go-sqlite3/all/badge.svg?label=financial+contributors)](https://opencollective.com/mattn-go-sqlite3) 
-[![codecov](https://codecov.io/gh/mattn/go-sqlite3/branch/master/graph/badge.svg)](https://codecov.io/gh/mattn/go-sqlite3)
+[![Coverage Status](https://coveralls.io/repos/mattn/go-sqlite3/badge.svg?branch=master)](https://coveralls.io/r/mattn/go-sqlite3?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mattn/go-sqlite3)](https://goreportcard.com/report/github.com/mattn/go-sqlite3)
 
-Latest stable version is v1.14 or later, not v2.
-
-~~**NOTE:** The increase to v2 was an accident. There were no major changes or features.~~
+NOTE: v2.0.1 or higher is unfortunatal release. So there are no big changes. And does not provide v2 feature.
 
 # Description
 
-A sqlite3 driver that conforms to the built-in database/sql interface.
+sqlite3 driver conforming to the built-in database/sql interface
 
-Supported Golang version: See [.github/workflows/go.yaml](./.github/workflows/go.yaml).
+Supported Golang version: See .travis.yml
 
-This package follows the official [Golang Release Policy](https://golang.org/doc/devel/release.html#policy).
+[This package follows the official Golang Release Policy.](https://golang.org/doc/devel/release.html#policy)
 
 ### Overview
 
@@ -64,7 +62,7 @@ This package follows the official [Golang Release Policy](https://golang.org/doc
 
 # Installation
 
-This package can be installed with the `go get` command:
+This package can be installed with the go get command:
 
     go get github.com/mattn/go-sqlite3
 
@@ -72,28 +70,28 @@ _go-sqlite3_ is *cgo* package.
 If you want to build your app using go-sqlite3, you need gcc.
 However, after you have built and installed _go-sqlite3_ with `go install github.com/mattn/go-sqlite3` (which requires gcc), you can build your app without relying on gcc in future.
 
-***Important: because this is a `CGO` enabled package, you are required to set the environment variable `CGO_ENABLED=1` and have a `gcc` compile present within your path.***
+***Important: because this is a `CGO` enabled package you are required to set the environment variable `CGO_ENABLED=1` and have a `gcc` compile present within your path.***
 
 # API Reference
 
-API documentation can be found [here](http://godoc.org/github.com/mattn/go-sqlite3).
+API documentation can be found here: http://godoc.org/github.com/mattn/go-sqlite3
 
-Examples can be found under the [examples](./_example) directory.
+Examples can be found under the [examples](./_example) directory
 
 # Connection String
 
 When creating a new SQLite database or connection to an existing one, with the file name additional options can be given.
-This is also known as a DSN (Data Source Name) string.
+This is also known as a DSN string. (Data Source Name).
 
 Options are append after the filename of the SQLite database.
-The database filename and options are separated by an `?` (Question Mark).
+The database filename and options are seperated by an `?` (Question Mark).
 Options should be URL-encoded (see [url.QueryEscape](https://golang.org/pkg/net/url/#QueryEscape)).
 
 This also applies when using an in-memory database instead of a file.
 
 Options can be given using the following format: `KEYWORD=VALUE` and multiple options can be combined with the `&` ampersand.
 
-This library supports DSN options of SQLite itself and provides additional options.
+This library supports dsn options of SQLite itself and provides additional options.
 
 Boolean values can be one of:
 * `0` `no` `false` `off`
@@ -125,8 +123,6 @@ Boolean values can be one of:
 | Time Zone Location | `_loc` | auto | Specify location of time format. |
 | Transaction Lock | `_txlock` | <ul><li>immediate</li><li>deferred</li><li>exclusive</li></ul> | Specify locking behavior for transactions. |
 | Writable Schema | `_writable_schema` | `Boolean` | When this pragma is on, the SQLITE_MASTER tables in which database can be changed using ordinary UPDATE, INSERT, and DELETE statements. Warning: misuse of this pragma can easily result in a corrupt database file. |
-| Cache Size | `_cache_size` | `int` | Maximum cache size; default is 2000K (2M). See [PRAGMA cache_size](https://sqlite.org/pragma.html#pragma_cache_size) |
-
 
 ## DSN Examples
 
@@ -138,18 +134,19 @@ file:test.db?cache=shared&mode=memory
 
 This package allows additional configuration of features available within SQLite3 to be enabled or disabled by golang build constraints also known as build `tags`.
 
-Click [here](https://golang.org/pkg/go/build/#hdr-Build_Constraints) for more information about build tags / constraints.
+[Click here for more information about build tags / constraints.](https://golang.org/pkg/go/build/#hdr-Build_Constraints)
 
 ### Usage
 
-If you wish to build this library with additional extensions / features, use the following command:
+If you wish to build this library with additional extensions / features.
+Use the following command.
 
 ```bash
 go build --tags "<FEATURE>"
 ```
 
-For available features, see the extension list.
-When using multiple build tags, all the different tags should be space delimited.
+For available features see the extension list.
+When using multiple build tags, all the different tags should be space delimted.
 
 Example:
 
@@ -172,20 +169,17 @@ go build --tags "icu json1 fts5 secure_delete"
 |  International Components for Unicode | sqlite_icu | This option causes the International Components for Unicode or "ICU" extension to SQLite to be added to the build |
 | Introspect PRAGMAS | sqlite_introspect | This option adds some extra PRAGMA statements. <ul><li>PRAGMA function_list</li><li>PRAGMA module_list</li><li>PRAGMA pragma_list</li></ul> |
 | JSON SQL Functions | sqlite_json | When this option is defined in the amalgamation, the JSON SQL functions are added to the build automatically |
-| Math Functions | sqlite_math_functions | This compile-time option enables built-in scalar math functions. For more information see [Built-In Mathematical SQL Functions](https://www.sqlite.org/lang_mathfunc.html) |
-| OS Trace | sqlite_os_trace | This option enables OSTRACE() debug logging. This can be verbose and should not be used in production. |
 | Pre Update Hook | sqlite_preupdate_hook | Registers a callback function that is invoked prior to each INSERT, UPDATE, and DELETE operation on a database table. |
 | Secure Delete | sqlite_secure_delete | This compile-time option changes the default setting of the secure_delete pragma.<br><br>When this option is not used, secure_delete defaults to off. When this option is present, secure_delete defaults to on.<br><br>The secure_delete setting causes deleted content to be overwritten with zeros. There is a small performance penalty since additional I/O must occur.<br><br>On the other hand, secure_delete can prevent fragments of sensitive information from lingering in unused parts of the database file after it has been deleted. See the documentation on the secure_delete pragma for additional information |
 | Secure Delete (FAST) | sqlite_secure_delete_fast | For more information see [PRAGMA secure_delete](https://www.sqlite.org/pragma.html#pragma_secure_delete) |
 | Tracing / Debug | sqlite_trace | Activate trace functions |
 | User Authentication | sqlite_userauth | SQLite User Authentication see [User Authentication](#user-authentication) for more information. |
-| Virtual Tables | sqlite_vtable | SQLite Virtual Tables see [SQLite Official VTABLE Documentation](https://www.sqlite.org/vtab.html) for more information, and a [full example here](https://github.com/mattn/go-sqlite3/tree/master/_example/vtable) |
 
 # Compilation
 
-This package requires the `CGO_ENABLED=1` environment variable if not set by default, and the presence of the `gcc` compiler.
+This package requires `CGO_ENABLED=1` ennvironment variable if not set by default, and the presence of the `gcc` compiler.
 
-If you need to add additional CFLAGS or LDFLAGS to the build command, and do not want to modify this package, then this can be achieved by using the `CGO_CFLAGS` and `CGO_LDFLAGS` environment variables.
+If you need to add additional CFLAGS or LDFLAGS to the build command, and do not want to modify this package. Then this can be achieved by  using the `CGO_CFLAGS` and `CGO_LDFLAGS` environment variables.
 
 ## Android
 
@@ -200,7 +194,7 @@ For more information see [#201](https://github.com/mattn/go-sqlite3/issues/201)
 
 # ARM
 
-To compile for `ARM` use the following environment:
+To compile for `ARM` use the following environment.
 
 ```bash
 env CC=arm-linux-gnueabihf-gcc CXX=arm-linux-gnueabihf-g++ \
@@ -218,14 +212,9 @@ This library can be cross-compiled.
 
 In some cases you are required to the `CC` environment variable with the cross compiler.
 
-## Cross Compiling from MAC OSX
-The simplest way to cross compile from OSX is to use [musl-cross](https://github.com/FiloSottile/homebrew-musl-cross).
-
-Steps:
-- Install [musl-cross](https://github.com/FiloSottile/homebrew-musl-cross) (`brew install FiloSottile/musl-cross/musl-cross`).
-- Run `CC=x86_64-linux-musl-gcc CXX=x86_64-linux-musl-g++ GOARCH=amd64 GOOS=linux CGO_ENABLED=1 go build -ldflags "-linkmode external -extldflags -static"`.
-
-Please refer to the project's [README](https://github.com/FiloSottile/homebrew-musl-cross#readme) for further information.
+Additional information:
+- [#491](https://github.com/mattn/go-sqlite3/issues/491)
+- [#560](https://github.com/mattn/go-sqlite3/issues/560)
 
 # Google Cloud Platform
 
@@ -235,7 +224,7 @@ Please work only with compiled final binaries.
 
 ## Linux
 
-To compile this package on Linux, you must install the development tools for your linux distribution.
+To compile this package on Linux you must install the development tools for your linux distribution.
 
 To compile under linux use the build tag `linux`.
 
@@ -251,7 +240,7 @@ go build --tags "libsqlite3 linux"
 
 ### Alpine
 
-When building in an `alpine` container  run the following command before building:
+When building in an `alpine` container run the following command before building.
 
 ```
 apk add --update gcc musl-dev
@@ -271,29 +260,29 @@ sudo apt-get install build-essential
 
 ## Mac OSX
 
-OSX should have all the tools present to compile this package. If not, install XCode to add all the developers tools.
+OSX should have all the tools present to compile this package, if not install XCode this will add all the developers tools.
 
-Required dependency:
+Required dependency
 
 ```bash
 brew install sqlite3
 ```
 
-For OSX, there is an additional package to install which is required if you wish to build the `icu` extension.
+For OSX there is an additional package install which is required if you wish to build the `icu` extension.
 
-This additional package can be installed with `homebrew`:
+This additional package can be installed with `homebrew`.
 
 ```bash
 brew upgrade icu4c
 ```
 
-To compile for Mac OSX:
+To compile for Mac OSX.
 
 ```bash
 go build --tags "darwin"
 ```
 
-If you wish to link directly to libsqlite3, use the `libsqlite3` build tag:
+If you wish to link directly to libsqlite3 then you can use the `libsqlite3` build tag.
 
 ```
 go build --tags "libsqlite3 darwin"
@@ -305,14 +294,14 @@ Additional information:
 
 ## Windows
 
-To compile this package on Windows, you must have the `gcc` compiler installed.
+To compile this package on Windows OS you must have the `gcc` compiler installed.
 
 1) Install a Windows `gcc` toolchain.
-2) Add the `bin` folder to the Windows path, if the installer did not do this by default.
-3) Open a terminal for the TDM-GCC toolchain, which can be found in the Windows Start menu.
+2) Add the `bin` folders to the Windows path if the installer did not do this by default.
+3) Open a terminal for the TDM-GCC toolchain, can be found in the Windows Start menu.
 4) Navigate to your project folder and run the `go build ...` command for this package.
 
-For example the TDM-GCC Toolchain can be found [here](https://jmeubank.github.io/tdm-gcc/).
+For example the TDM-GCC Toolchain can be found [here](https://sourceforge.net/projects/tdm-gcc/).
 
 ## Errors
 
@@ -350,28 +339,28 @@ This package supports the SQLite User Authentication module.
 
 ## Compile
 
-To use the User authentication module, the package has to be compiled with the tag `sqlite_userauth`. See [Features](#features).
+To use the User authentication module the package has to be compiled with the tag `sqlite_userauth`. See [Features](#features).
 
 ## Usage
 
 ### Create protected database
 
-To create a database protected by user authentication, provide the following argument to the connection string `_auth`.
+To create a database protected by user authentication provide the following argument to the connection string `_auth`.
 This will enable user authentication within the database. This option however requires two additional arguments:
 
 - `_auth_user`
 - `_auth_pass`
 
-When `_auth` is present in the connection string user authentication will be enabled and the provided user will be created
+When `_auth` is present on the connection string user authentication will be enabled and the provided user will be created
 as an `admin` user. After initial creation, the parameter `_auth` has no effect anymore and can be omitted from the connection string.
 
-Example connection strings:
+Example connection string:
 
-Create an user authentication database with user `admin` and password `admin`:
+Create an user authentication database with user `admin` and password `admin`.
 
 `file:test.s3db?_auth&_auth_user=admin&_auth_pass=admin`
 
-Create an user authentication database with user `admin` and password `admin` and use `SHA1` for the password encoding:
+Create an user authentication database with user `admin` and password `admin` and use `SHA1` for the password encoding.
 
 `file:test.s3db?_auth&_auth_user=admin&_auth_pass=admin&_auth_crypt=sha1`
 
@@ -397,11 +386,11 @@ salt this can be configured with `_auth_salt`.
 
 ### Restrictions
 
-Operations on the database regarding user management can only be preformed by an administrator user.
+Operations on the database regarding to user management can only be preformed by an administrator user.
 
 ### Support
 
-The user authentication supports two kinds of users:
+The user authentication supports two kinds of users
 
 - administrators
 - regular users
@@ -412,7 +401,7 @@ User management can be done by directly using the `*SQLiteConn` or by SQL.
 
 #### SQL
 
-The following sql functions are available for user management:
+The following sql functions are available for user management.
 
 | Function | Arguments | Description |
 |----------|-----------|-------------|
@@ -421,7 +410,7 @@ The following sql functions are available for user management:
 | `auth_user_change` | username `string`, password `string`, admin `int` | Function to modify an user. Users can change their own password, but only an administrator can change the administrator flag. |
 | `authUserDelete` | username `string` | Delete an user from the database. Can only be used by an administrator. The current logged in administrator cannot be deleted. This is to make sure their is always an administrator remaining. |
 
-These functions will return an integer:
+These functions will return an integer.
 
 - 0 (SQLITE_OK)
 - 23 (SQLITE_AUTH) Failed to perform due to authentication or insufficient privileges
@@ -442,7 +431,7 @@ SELECT user_delete('user');
 
 #### *SQLiteConn
 
-The following functions are available for User authentication from the `*SQLiteConn`:
+The following functions are available for User authentication from the `*SQLiteConn`.
 
 | Function | Description |
 |----------|-------------|
@@ -453,26 +442,16 @@ The following functions are available for User authentication from the `*SQLiteC
 
 ### Attached database
 
-When using attached databases, SQLite will use the authentication from the `main` database for the attached database(s).
+When using attached databases. SQLite will use the authentication from the `main` database for the attached database(s).
 
 # Extensions
 
-If you want your own extension to be listed here, or you want to add a reference to an extension; please submit an Issue for this.
+If you want your own extension to be listed here or you want to add a reference to an extension; please submit an Issue for this.
 
 ## Spatialite
 
 Spatialite is available as an extension to SQLite, and can be used in combination with this repository.
-For an example, see [shaxbee/go-spatialite](https://github.com/shaxbee/go-spatialite).
-
-## extension-functions.c from SQLite3 Contrib
-
-extension-functions.c is available as an extension to SQLite, and provides the following functions:
-
-- Math: acos, asin, atan, atn2, atan2, acosh, asinh, atanh, difference, degrees, radians, cos, sin, tan, cot, cosh, sinh, tanh, coth, exp, log, log10, power, sign, sqrt, square, ceil, floor, pi.
-- String: replicate, charindex, leftstr, rightstr, ltrim, rtrim, trim, replace, reverse, proper, padl, padr, padc, strfilter.
-- Aggregate: stdev, variance, mode, median, lower_quartile, upper_quartile
-
-For an example, see [dinedal/go-sqlite3-extension-functions](https://github.com/dinedal/go-sqlite3-extension-functions).
+For an example see [shaxbee/go-spatialite](https://github.com/shaxbee/go-spatialite).
 
 # FAQ
 
@@ -492,7 +471,7 @@ For an example, see [dinedal/go-sqlite3-extension-functions](https://github.com/
 
 - Can I use this in multiple routines concurrently?
 
-    Yes for readonly. But not for writable. See [#50](https://github.com/mattn/go-sqlite3/issues/50), [#51](https://github.com/mattn/go-sqlite3/issues/51), [#209](https://github.com/mattn/go-sqlite3/issues/209), [#274](https://github.com/mattn/go-sqlite3/issues/274).
+    Yes for readonly. But, No for writable. See [#50](https://github.com/mattn/go-sqlite3/issues/50), [#51](https://github.com/mattn/go-sqlite3/issues/51), [#209](https://github.com/mattn/go-sqlite3/issues/209), [#274](https://github.com/mattn/go-sqlite3/issues/274).
 
 - Why I'm getting `no such table` error?
 
@@ -506,7 +485,7 @@ For an example, see [dinedal/go-sqlite3-extension-functions](https://github.com/
     
     Note that if the last database connection in the pool closes, the in-memory database is deleted. Make sure the [max idle connection limit](https://golang.org/pkg/database/sql/#DB.SetMaxIdleConns) is > 0, and the [connection lifetime](https://golang.org/pkg/database/sql/#DB.SetConnMaxLifetime) is infinite.
     
-    For more information see:
+    For more information see
     * [#204](https://github.com/mattn/go-sqlite3/issues/204)
     * [#511](https://github.com/mattn/go-sqlite3/issues/511)
     * https://www.sqlite.org/sharedcache.html#shared_cache_and_in_memory_databases
@@ -516,20 +495,20 @@ For an example, see [dinedal/go-sqlite3-extension-functions](https://github.com/
 
     OS X limits OS-wide to not have more than 1000 files open simultaneously by default.
 
-    For more information, see [#289](https://github.com/mattn/go-sqlite3/issues/289)
+    For more information see [#289](https://github.com/mattn/go-sqlite3/issues/289)
 
 - Trying to execute a `.` (dot) command throws an error.
 
     Error: `Error: near ".": syntax error`
-    Dot command are part of SQLite3 CLI, not of this library.
+    Dot command are part of SQLite3 CLI not of this library.
 
     You need to implement the feature or call the sqlite3 cli.
 
-    More information see [#305](https://github.com/mattn/go-sqlite3/issues/305).
+    More information see [#305](https://github.com/mattn/go-sqlite3/issues/305)
 
 - Error: `database is locked`
 
-    When you get a database is locked, please use the following options.
+    When you get a database is locked. Please use the following options.
 
     Add to DSN: `cache=shared`
 
@@ -538,24 +517,24 @@ For an example, see [dinedal/go-sqlite3-extension-functions](https://github.com/
     db, err := sql.Open("sqlite3", "file:locked.sqlite?cache=shared")
     ```
 
-    Next, please set the database connections of the SQL package to 1:
+    Second please set the database connections of the SQL package to 1.
     
     ```go
     db.SetMaxOpenConns(1)
     ```
 
-    For more information, see [#209](https://github.com/mattn/go-sqlite3/issues/209).
+    More information see [#209](https://github.com/mattn/go-sqlite3/issues/209)
 
 ## Contributors
 
 ### Code Contributors
 
-This project exists thanks to all the people who [[contribute](CONTRIBUTING.md)].
+This project exists thanks to all the people who contribute. [[Contribute](CONTRIBUTING.md)].
 <a href="https://github.com/mattn/go-sqlite3/graphs/contributors"><img src="https://opencollective.com/mattn-go-sqlite3/contributors.svg?width=890&button=false" /></a>
 
 ### Financial Contributors
 
-Become a financial contributor and help us sustain our community. [[Contribute here](https://opencollective.com/mattn-go-sqlite3/contribute)].
+Become a financial contributor and help us sustain our community. [[Contribute](https://opencollective.com/mattn-go-sqlite3/contribute)]
 
 #### Individuals
 

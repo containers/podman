@@ -5,7 +5,7 @@
 
 #ifdef SQLITE_ENABLE_UNLOCK_NOTIFY
 #include <stdio.h>
-#include "sqlite3-binding.h"
+#include <sqlite3-binding.h>
 
 extern int unlock_notify_wait(sqlite3 *db);
 
