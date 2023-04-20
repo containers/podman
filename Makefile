@@ -748,13 +748,7 @@ install.systemd:
 endif
 
 .PHONY: install.tools
-install.tools: .install.goimports .install.md2man .install.ginkgo .install.golangci-lint .install.bats ## Install needed tools
-
-.install.goimports: .gopathok
-	if [ ! -x "$(GOBIN)/goimports" ]; then \
-		$(call go-get,golang.org/x/tools/cmd/goimports); \
-	fi
-	touch .install.goimports
+install.tools: .install.md2man .install.ginkgo .install.golangci-lint .install.bats ## Install needed tools
 
 .PHONY: .install.ginkgo
 .install.ginkgo: .gopathok
@@ -829,6 +823,5 @@ clean: ## Clean all make artifacts
 		libpod/pod_ffjson.go \
 		libpod/container_easyjson.go \
 		libpod/pod_easyjson.go \
-		.install.goimports \
 		docs/build
 	make -C docs clean
