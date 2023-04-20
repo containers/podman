@@ -213,7 +213,6 @@ case "$TEST_FLAVOR" in
 
         install_test_configs
         ;;
-    consistency) make clean ;;
     release) ;;
     *) die_unknown TEST_FLAVOR
 esac
