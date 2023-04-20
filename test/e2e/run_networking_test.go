@@ -15,7 +15,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
-	"github.com/uber/jaeger-client-go/utils"
 	"github.com/vishvananda/netlink"
 )
 
@@ -566,8 +565,12 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 	})
 
 	It("podman run network bind to HostIP", func() {
-		ip, err := utils.HostIP()
+		// Determine our likeliest outgoing IP address
+		conn, err := net.Dial("udp", "8.8.8.8:80")
 		Expect(err).ToNot(HaveOccurred())
+
+		defer conn.Close()
+		ip := conn.LocalAddr().(*net.UDPAddr).IP
 		port := GetPort()
 
 		slirp4netnsHelp := SystemExec("slirp4netns", []string{"--help"})
@@ -576,7 +579,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 
 		if strings.Contains(slirp4netnsHelp.OutputToString(), "outbound-addr") {
 			ncListener := StartSystemExec("nc", []string{"-v", "-n", "-l", "-p", fmt.Sprintf("%d", port)})
-			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, "-dt", ALPINE, "nc", "-w", "2", "10.0.2.2", fmt.Sprintf("%d", port)})
+			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, ALPINE, "nc", "-w", "2", "10.0.2.2", fmt.Sprintf("%d", port)})
 			session.Wait(30)
 			ncListener.Wait(30)
 
@@ -584,7 +587,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 			Expect(ncListener).Should(Exit(0))
 			Expect(ncListener.ErrorToString()).To(ContainSubstring(ip.String()))
 		} else {
-			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, "-dt", ALPINE, "nc", "-w", "2", "10.0.2.2", fmt.Sprintf("%d", port)})
+			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, ALPINE, "nc", "-w", "2", "10.0.2.2", fmt.Sprintf("%d", port)})
 			session.Wait(30)
 			Expect(session).To(ExitWithError())
 			Expect(session.ErrorToString()).To(ContainSubstring("outbound_addr not supported"))
