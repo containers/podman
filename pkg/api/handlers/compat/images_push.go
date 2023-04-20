@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/containers/image/v5/types"
@@ -26,13 +24,6 @@ import (
 func PushImage(w http.ResponseWriter, r *http.Request) {
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-
-	digestFile, err := os.CreateTemp("", "digest.txt")
-	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to create tempfile: %w", err))
-		return
-	}
-	defer digestFile.Close()
 
 	// Now use the ABI implementation to prevent us from having duplicate
 	// code.
@@ -97,15 +88,14 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		password = authconf.Password
 	}
 	options := entities.ImagePushOptions{
-		All:        query.All,
-		Authfile:   authfile,
-		Compress:   query.Compress,
-		Format:     query.Format,
-		Password:   password,
-		Username:   username,
-		DigestFile: digestFile.Name(),
-		Quiet:      true,
-		Progress:   make(chan types.ProgressProperties),
+		All:      query.All,
+		Authfile: authfile,
+		Compress: query.Compress,
+		Format:   query.Format,
+		Password: password,
+		Username: username,
+		Quiet:    true,
+		Progress: make(chan types.ProgressProperties),
 	}
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
@@ -138,8 +128,11 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	flush()
 
 	pushErrChan := make(chan error)
+	var pushReport *entities.ImagePushReport
 	go func() {
-		pushErrChan <- imageEngine.Push(r.Context(), imageName, destination, options)
+		var err error
+		pushReport, err = imageEngine.Push(r.Context(), imageName, destination, options)
+		pushErrChan <- err
 	}()
 
 loop: // break out of for/select infinite loop
@@ -187,23 +180,16 @@ loop: // break out of for/select infinite loop
 				break loop
 			}
 
-			digestBytes, err := io.ReadAll(digestFile)
-			if err != nil {
-				report.Error = &jsonmessage.JSONError{
-					Message: err.Error(),
-				}
-				report.ErrorMessage = err.Error()
-				if err := enc.Encode(report); err != nil {
-					logrus.Warnf("Failed to json encode error %q", err.Error())
-				}
-				flush()
-				break loop
-			}
 			tag := query.Tag
 			if tag == "" {
 				tag = "latest"
 			}
-			report.Status = fmt.Sprintf("%s: digest: %s size: %d", tag, string(digestBytes), len(rawManifest))
+
+			var digestStr string
+			if pushReport != nil {
+				digestStr = pushReport.ManifestDigest
+			}
+			report.Status = fmt.Sprintf("%s: digest: %s size: %d", tag, digestStr, len(rawManifest))
 			if err := enc.Encode(report); err != nil {
 				logrus.Warnf("Failed to json encode error %q", err.Error())
 			}

@@ -87,6 +87,8 @@ LOOP:
 		switch {
 		case report.Stream != "":
 			fmt.Fprint(writer, report.Stream)
+		case report.ManifestDigest != "":
+			options.ManifestDigest = &report.ManifestDigest
 		case report.Error != "":
 			// There can only be one error.
 			return errors.New(report.Error)

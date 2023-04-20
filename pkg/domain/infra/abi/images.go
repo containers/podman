@@ -281,7 +281,7 @@ func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts en
 	return reports, errs, nil
 }
 
-func (ir *ImageEngine) Push(ctx context.Context, source string, destination string, options entities.ImagePushOptions) error {
+func (ir *ImageEngine) Push(ctx context.Context, source string, destination string, options entities.ImagePushOptions) (*entities.ImagePushReport, error) {
 	var manifestType string
 	switch options.Format {
 	case "":
@@ -293,7 +293,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	case "v2s2", "docker":
 		manifestType = manifest.DockerV2Schema2MediaType
 	default:
-		return fmt.Errorf("unknown format %q. Choose on of the supported formats: 'oci', 'v2s1', or 'v2s2'", options.Format)
+		return nil, fmt.Errorf("unknown format %q. Choose on of the supported formats: 'oci', 'v2s1', or 'v2s2'", options.Format)
 	}
 
 	pushOptions := &libimage.PushOptions{}
@@ -320,14 +320,14 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	if compressionFormat == "" {
 		config, err := ir.Libpod.GetConfigNoCopy()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		compressionFormat = config.Engine.CompressionFormat
 	}
 	if compressionFormat != "" {
 		algo, err := compression.AlgorithmByName(compressionFormat)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		pushOptions.CompressionFormat = &algo
 	}
@@ -338,27 +338,24 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 
 	pushedManifestBytes, pushError := ir.Libpod.LibimageRuntime().Push(ctx, source, destination, pushOptions)
 	if pushError == nil {
-		if options.DigestFile != "" {
-			manifestDigest, err := manifest.Digest(pushedManifestBytes)
-			if err != nil {
-				return err
-			}
-
-			if err := os.WriteFile(options.DigestFile, []byte(manifestDigest.String()), 0644); err != nil {
-				return err
-			}
+		manifestDigest, err := manifest.Digest(pushedManifestBytes)
+		if err != nil {
+			return nil, err
 		}
-		return nil
+		return &entities.ImagePushReport{ManifestDigest: manifestDigest.String()}, nil
 	}
 	// If the image could not be found, we may be referring to a manifest
 	// list but could not find a matching image instance in the local
 	// containers storage. In that case, fall back and attempt to push the
 	// (entire) manifest.
 	if _, err := ir.Libpod.LibimageRuntime().LookupManifestList(source); err == nil {
-		_, err := ir.ManifestPush(ctx, source, destination, options)
-		return err
+		pushedManifestString, err := ir.ManifestPush(ctx, source, destination, options)
+		if err != nil {
+			return nil, err
+		}
+		return &entities.ImagePushReport{ManifestDigest: pushedManifestString}, nil
 	}
-	return pushError
+	return nil, pushError
 }
 
 func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, options entities.ImageTagOptions) error {

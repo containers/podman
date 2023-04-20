@@ -137,16 +137,14 @@ var _ = Describe("Podman push", func() {
 			Expect(push).Should(Exit(0))
 		}
 
-		if !IsRemote() { // Remote does not support --digestfile
-			// Test --digestfile option
-			digestFile := filepath.Join(podmanTest.TempDir, "digestfile.txt")
-			push2 := podmanTest.Podman([]string{"push", "--tls-verify=false", "--digestfile=" + digestFile, "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
-			push2.WaitWithDefaultTimeout()
-			fi, err := os.Lstat(digestFile)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(fi.Name()).To(Equal("digestfile.txt"))
-			Expect(push2).Should(Exit(0))
-		}
+		// Test --digestfile option
+		digestFile := filepath.Join(podmanTest.TempDir, "digestfile.txt")
+		push2 := podmanTest.Podman([]string{"push", "--tls-verify=false", "--digestfile=" + digestFile, "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
+		push2.WaitWithDefaultTimeout()
+		fi, err := os.Lstat(digestFile)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(fi.Name()).To(Equal("digestfile.txt"))
+		Expect(push2).Should(Exit(0))
 
 		if !IsRemote() { // Remote does not support signing
 			By("pushing and pulling with --sign-by-sigstore-private-key")

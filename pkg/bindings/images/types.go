@@ -158,6 +158,9 @@ type PushOptions struct {
 	Username *string `schema:"-"`
 	// Quiet can be specified to suppress progress when pushing.
 	Quiet *bool
+
+	// Manifest of the pushed image.  Set by images.Push.
+	ManifestDigest *string
 }
 
 // SearchOptions are optional options for searching images on registries

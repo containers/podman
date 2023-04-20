@@ -195,9 +195,6 @@ type ImagePushOptions struct {
 	Username string
 	// Password for authenticating against the registry.
 	Password string
-	// DigestFile, after copying the image, write the digest of the resulting
-	// image to the file.  Ignored for remote calls.
-	DigestFile string
 	// Format is the Manifest type (oci, v2s1, or v2s2) to use when pushing an
 	// image. Default is manifest type of source, with fallbacks.
 	// Ignored for remote calls.
@@ -247,9 +244,17 @@ type ImagePushOptions struct {
 	OciEncryptLayers *[]int
 }
 
+// ImagePushReport is the response from pushing an image.
+type ImagePushReport struct {
+	// The digest of the manifest of the pushed image.
+	ManifestDigest string
+}
+
 // ImagePushStream is the response from pushing an image. Only used in the
 // remote API.
 type ImagePushStream struct {
+	// ManifestDigest is the digest of the manifest of the pushed image.
+	ManifestDigest string `json:"manifestdigest,omitempty"`
 	// Stream used to provide push progress
 	Stream string `json:"stream,omitempty"`
 	// Error contains text of errors from pushing
