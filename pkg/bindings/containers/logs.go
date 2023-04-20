@@ -35,6 +35,11 @@ func Logs(ctx context.Context, nameOrID string, options *LogOptions, stdoutChan,
 	}
 	defer response.Body.Close()
 
+	// if not success handle and return possible error message
+	if !(response.IsSuccess() || response.IsInformational()) {
+		return response.Process(nil)
+	}
+
 	buffer := make([]byte, 1024)
 	for {
 		fd, l, err := DemuxHeader(response.Body, buffer)
