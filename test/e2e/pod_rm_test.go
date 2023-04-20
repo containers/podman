@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -47,10 +48,12 @@ var _ = Describe("Podman pod rm", func() {
 		// Also check that we don't leak cgroups
 		err := filepath.WalkDir("/sys/fs/cgroup", func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
+				// A cgroup directory could have been deleted in the meanwhile filepath.WalkDir was
+				// accessing it.  If that happens, we just ignore the error.
+				if d.IsDir() && errors.Is(err, os.ErrNotExist) {
+					return nil
+				}
 				return err
-			}
-			if !d.IsDir() {
-				Expect(err).ToNot(HaveOccurred())
 			}
 			if strings.Contains(d.Name(), podid) {
 				return fmt.Errorf("leaking cgroup path %s", path)
