@@ -400,3 +400,13 @@ func (v VMType) String() string {
 	}
 	return "qemu"
 }
+
+type APIForwardingState int
+
+const (
+	NoForwarding APIForwardingState = iota
+	ClaimUnsupported
+	NotInstalled
+	MachineLocal
+	DockerGlobal
+)
