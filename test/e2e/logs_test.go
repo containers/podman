@@ -305,7 +305,11 @@ var _ = Describe("Podman logs", func() {
 			if log == "journald" && !isEventBackendJournald(podmanTest) {
 				// --follow + journald log-driver is only supported with journald events-backend(PR #10431)
 				Expect(results).To(Exit(125))
-				Expect(results.ErrorToString()).To(ContainSubstring("using --follow with the journald --log-driver but without the journald --events-backend"))
+				err := "using --follow with the journald --log-driver but without the journald --events-backend"
+				if IsRemote() {
+					err = "lost synchronization with multiplexed"
+				}
+				Expect(results.ErrorToString()).To(ContainSubstring(err))
 				return
 			}
 
@@ -345,6 +349,11 @@ var _ = Describe("Podman logs", func() {
 			if log == "journald" && !isEventBackendJournald(podmanTest) {
 				// --follow + journald log-driver is only supported with journald events-backend(PR #10431)
 				Expect(results).To(Exit(125))
+				err := "using --follow with the journald --log-driver but without the journald --events-backend"
+				if IsRemote() {
+					err = "lost synchronization with multiplexed"
+				}
+				Expect(results.ErrorToString()).To(ContainSubstring(err))
 				return
 			}
 			Expect(results).To(Exit(0))
