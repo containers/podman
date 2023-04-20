@@ -820,19 +820,14 @@ func SkipIfInContainer(reason string) {
 func SkipIfNotActive(unit string, reason string) {
 	checkReason(reason)
 
-	var buffer bytes.Buffer
 	cmd := exec.Command("systemctl", "is-active", unit)
-	cmd.Stdout = &buffer
-	err := cmd.Start()
-	Expect(err).ToNot(HaveOccurred())
-
-	err = cmd.Wait()
-	Expect(err).ToNot(HaveOccurred())
-
-	Expect(err).ToNot(HaveOccurred())
-	if strings.TrimSpace(buffer.String()) != "active" {
-		Skip(fmt.Sprintf("[systemd]: unit %s is not active: %s", unit, reason))
+	cmd.Stdout = GinkgoWriter
+	cmd.Stderr = GinkgoWriter
+	err := cmd.Run()
+	if cmd.ProcessState.ExitCode() == 0 {
+		return
 	}
+	Skip(fmt.Sprintf("[systemd]: unit %s is not active (%v): %s", unit, err, reason))
 }
 
 func SkipIfCNI(p *PodmanTestIntegration) {

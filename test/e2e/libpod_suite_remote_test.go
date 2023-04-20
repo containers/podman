@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -98,28 +97,12 @@ func (p *PodmanTestIntegration) StartRemoteService() {
 }
 
 func (p *PodmanTestIntegration) StopRemoteService() {
-	if !isRootless() {
-		if err := p.RemoteSession.Kill(); err != nil {
-			fmt.Fprintf(os.Stderr, "error on remote stop-kill %q", err)
-		}
-		if _, err := p.RemoteSession.Wait(); err != nil {
-			fmt.Fprintf(os.Stderr, "error on remote stop-wait %q", err)
-		}
-	} else {
-		// Stop any children of `podman system service`
-		pkill := exec.Command("pkill", "-P", strconv.Itoa(p.RemoteSession.Pid), "-15")
-		if err := pkill.Run(); err != nil {
-			exitErr := err.(*exec.ExitError)
-			if exitErr.ExitCode() != 1 {
-				fmt.Fprintf(os.Stderr, "pkill unable to clean up service %d children, exit code %d\n",
-					p.RemoteSession.Pid, exitErr.ExitCode())
-			}
-		}
-		if err := p.RemoteSession.Kill(); err != nil {
-			fmt.Fprintf(os.Stderr, "unable to clean up service %d, %v\n", p.RemoteSession.Pid, err)
-		}
+	if err := p.RemoteSession.Kill(); err != nil {
+		fmt.Fprintf(os.Stderr, "unable to clean up service %d, %v\n", p.RemoteSession.Pid, err)
 	}
-
+	if _, err := p.RemoteSession.Wait(); err != nil {
+		fmt.Fprintf(os.Stderr, "error on remote stop-wait %q", err)
+	}
 	socket := strings.Split(p.RemoteSocket, ":")[1]
 	if err := os.Remove(socket); err != nil && !errors.Is(err, os.ErrNotExist) {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -134,8 +117,8 @@ func (p *PodmanTestIntegration) StopRemoteService() {
 // MakeOptions assembles all the podman main options
 func getRemoteOptions(p *PodmanTestIntegration, args []string) []string {
 	networkDir := p.NetworkConfigDir
-	podmanOptions := strings.Split(fmt.Sprintf("--root %s --runroot %s --runtime %s --conmon %s --network-config-dir %s --network-backend %s --cgroup-manager %s --db-backend %s",
-		p.Root, p.RunRoot, p.OCIRuntime, p.ConmonBinary, networkDir, p.NetworkBackend.ToString(), p.CgroupManager, p.DatabaseBackend), " ")
+	podmanOptions := strings.Split(fmt.Sprintf("--root %s --runroot %s --runtime %s --conmon %s --network-config-dir %s --network-backend %s --cgroup-manager %s --tmpdir %s --events-backend %s --db-backend %s",
+		p.Root, p.RunRoot, p.OCIRuntime, p.ConmonBinary, networkDir, p.NetworkBackend.ToString(), p.CgroupManager, p.TmpDir, "file", p.DatabaseBackend), " ")
 	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
 	podmanOptions = append(podmanOptions, args...)
 	return podmanOptions

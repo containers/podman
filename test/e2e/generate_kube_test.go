@@ -1072,9 +1072,7 @@ var _ = Describe("Podman kube generate", func() {
 		containerfile := `FROM quay.io/libpod/alpine:latest
 ENTRYPOINT ["sleep"]`
 
-		targetPath, err := CreateTempDirInTempDir()
-		Expect(err).ToNot(HaveOccurred())
-		containerfilePath := filepath.Join(targetPath, "Containerfile")
+		containerfilePath := filepath.Join(podmanTest.TempDir, "Containerfile")
 		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -1126,9 +1124,7 @@ ENTRYPOINT ["sleep"]`
 		containerfile := `FROM quay.io/libpod/alpine:latest
 USER 1000`
 
-		targetPath, err := CreateTempDirInTempDir()
-		Expect(err).ToNot(HaveOccurred())
-		containerfilePath := filepath.Join(targetPath, "Containerfile")
+		containerfilePath := filepath.Join(podmanTest.TempDir, "Containerfile")
 		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -1197,9 +1193,7 @@ USER 1000`
 RUN adduser -u 10001 -S test1
 USER test1`
 
-		targetPath, err := CreateTempDirInTempDir()
-		Expect(err).ToNot(HaveOccurred())
-		containerfilePath := filepath.Join(targetPath, "Containerfile")
+		containerfilePath := filepath.Join(podmanTest.TempDir, "Containerfile")
 		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
 		Expect(err).ToNot(HaveOccurred())
 

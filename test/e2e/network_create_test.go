@@ -211,7 +211,7 @@ var _ = Describe("Podman network create", func() {
 
 	It("podman network create with ipv4 subnet and ipv6 flag", func() {
 		name := stringid.GenerateRandomID()
-		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.12.0/24", "--ipv6", name})
+		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.14.0/24", "--ipv6", name})
 		nc.WaitWithDefaultTimeout()
 		Expect(nc).To(Exit(0))
 		defer podmanTest.removeNetwork(name)
@@ -220,7 +220,7 @@ var _ = Describe("Podman network create", func() {
 		nc.WaitWithDefaultTimeout()
 		Expect(nc).To(Exit(0))
 		Expect(nc.OutputToString()).To(ContainSubstring(`::/64`))
-		Expect(nc.OutputToString()).To(ContainSubstring(`10.11.12.0/24`))
+		Expect(nc.OutputToString()).To(ContainSubstring(`10.11.14.0/24`))
 	})
 
 	It("podman network create with empty subnet and ipv6 flag", func() {

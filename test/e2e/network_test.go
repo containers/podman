@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/containers/common/libnetwork/types"
@@ -39,9 +40,7 @@ var _ = Describe("Podman network", func() {
 
 	It("podman --cni-config-dir backwards compat", func() {
 		SkipIfRemote("--cni-config-dir only works locally")
-		netDir, err := CreateTempDirInTempDir()
-		Expect(err).ToNot(HaveOccurred())
-		defer os.RemoveAll(netDir)
+		netDir := filepath.Join(podmanTest.TempDir, "networks123")
 		session := podmanTest.Podman([]string{"--cni-config-dir", netDir, "network", "ls", "--noheading"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))

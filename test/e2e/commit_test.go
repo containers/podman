@@ -270,12 +270,8 @@ var _ = Describe("Podman commit", func() {
 		cwd, err := os.Getwd()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(os.Chdir(os.TempDir())).To(Succeed())
-		targetPath, err := CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
+		targetPath := podmanTest.TempDir
 		targetFile := filepath.Join(targetPath, "idFile")
-		defer Expect(os.RemoveAll(targetFile)).To(BeNil())
 		defer Expect(os.Chdir(cwd)).To(BeNil())
 
 		_, ec, _ := podmanTest.RunLsContainer("test1")
