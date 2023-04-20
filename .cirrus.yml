@@ -29,16 +29,18 @@ env:
     FEDORA_NAME: "fedora-37"
     FEDORA_AARCH64_NAME: "${FEDORA_NAME}-aarch64"
     PRIOR_FEDORA_NAME: "fedora-36"
+    RAWHIDE_NAME: "rawhide"
     DEBIAN_NAME: "debian-12"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20230405t152256z-f37f36d12"
+    IMAGE_SUFFIX: "c20230420t184033z-f37f36d12"
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
     FEDORA_AARCH64_AMI: "fedora-podman-aws-arm64-${IMAGE_SUFFIX}"
     # GCP Images
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
+    RAWHIDE_CACHE_IMAGE_NAME: "rawhide-${IMAGE_SUFFIX}"
     DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
     # Container FQIN's
     FEDORA_CONTAINER_FQIN: "quay.io/libpod/fedora_podman:${IMAGE_SUFFIX}"
@@ -120,6 +122,11 @@ build_task:
               CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
               CI_DESIRED_RUNTIME: crun
               CI_DESIRED_NETWORK: cni
+        - env:
+              <<: *sqliteenvvars
+              DISTRO_NV: ${RAWHIDE_NAME}
+              VM_IMAGE_NAME: ${RAWHIDE_CACHE_IMAGE_NAME}
+              CTR_FQIN: ""
         - env: &debian_envvars
               DISTRO_NV: ${DEBIAN_NAME}
               VM_IMAGE_NAME: ${DEBIAN_CACHE_IMAGE_NAME}
@@ -988,6 +995,7 @@ meta_task:
         IMGNAMES: >-
             ${FEDORA_CACHE_IMAGE_NAME}
             ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
+            ${RAWHIDE_CACHE_IMAGE_NAME}
             ${DEBIAN_CACHE_IMAGE_NAME}
             build-push-${IMAGE_SUFFIX}
         EC2IMGNAMES: >-
