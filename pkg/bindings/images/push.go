@@ -69,7 +69,7 @@ func Push(ctx context.Context, source string, destination string, options *PushO
 	dec := json.NewDecoder(response.Body)
 LOOP:
 	for {
-		var report entities.ImagePushReport
+		var report entities.ImagePushStream
 		if err := dec.Decode(&report); err != nil {
 			if errors.Is(err, io.EOF) {
 				break

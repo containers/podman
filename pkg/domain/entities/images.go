@@ -247,9 +247,9 @@ type ImagePushOptions struct {
 	OciEncryptLayers *[]int
 }
 
-// ImagePushReport is the response from pushing an image.
-// Currently only used in the remote API.
-type ImagePushReport struct {
+// ImagePushStream is the response from pushing an image. Only used in the
+// remote API.
+type ImagePushStream struct {
 	// Stream used to provide push progress
 	Stream string `json:"stream,omitempty"`
 	// Error contains text of errors from pushing

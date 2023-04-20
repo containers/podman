@@ -122,18 +122,18 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(true)
 	for {
-		var report entities.ImagePushReport
+		var stream entities.ImagePushStream
 		select {
 		case s := <-writer.Chan():
-			report.Stream = string(s)
-			if err := enc.Encode(report); err != nil {
+			stream.Stream = string(s)
+			if err := enc.Encode(stream); err != nil {
 				logrus.Warnf("Failed to encode json: %v", err)
 			}
 			flush()
 		case <-pushCtx.Done():
 			if pushError != nil {
-				report.Error = pushError.Error()
-				if err := enc.Encode(report); err != nil {
+				stream.Error = pushError.Error()
+				if err := enc.Encode(stream); err != nil {
 					logrus.Warnf("Failed to encode json: %v", err)
 				}
 			}
