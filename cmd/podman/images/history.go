@@ -3,9 +3,7 @@ package images
 import (
 	"fmt"
 	"os"
-	"strings"
 	"time"
-	"unicode"
 
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v4/cmd/podman/common"
@@ -149,9 +147,7 @@ func (h historyReporter) Created() string {
 }
 
 func (h historyReporter) Size() string {
-	s := units.HumanSizeWithPrecision(float64(h.ImageHistoryLayer.Size), 3)
-	i := strings.LastIndexFunc(s, unicode.IsNumber)
-	return s[:i+1] + " " + s[i+1:]
+	return units.HumanSizeWithPrecision(float64(h.ImageHistoryLayer.Size), 3)
 }
 
 func (h historyReporter) CreatedBy() string {
@@ -169,7 +165,7 @@ func (h historyReporter) ID() string {
 }
 
 func (h historyReporter) CreatedAt() string {
-	return time.Unix(h.ImageHistoryLayer.Created.Unix(), 0).UTC().String()
+	return time.Unix(h.ImageHistoryLayer.Created.Unix(), 0).Format(time.RFC3339)
 }
 
 func (h historyReporter) CreatedSince() string {
