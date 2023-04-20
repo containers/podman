@@ -1103,12 +1103,6 @@ artifacts_task:
         - tar xjf repo.tbz
         - mv ./podman-remote-release-darwin_*.zip $CIRRUS_WORKING_DIR/
         - mv ./contrib/pkginstaller/out/podman-installer-macos-*.pkg $CIRRUS_WORKING_DIR/
-    benchmarks_script:
-        - mkdir -p /tmp/benchmarks
-        - cd /tmp/benchmarks
-        - $ARTCURL/podman_machine/benchmark.zip
-        - unzip benchmark.zip
-        - mv ./data/benchmarks.{env,csv} $CIRRUS_WORKING_DIR/
     always:
       contents_script: ls -la $CIRRUS_WORKING_DIR
       # Produce downloadable files and an automatic zip-file accessible
