@@ -229,7 +229,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: noprune
 	//    type: boolean
-	//    description: not supported. will be logged as an invalid parameter if enabled
+	//    description: do not remove dangling parent images
 	// produces:
 	//  - application/json
 	// responses:
