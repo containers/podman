@@ -458,18 +458,8 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		podman.add("--read-only-tmpfs=false")
 	}
 
-	hasUser := container.HasKey(ContainerGroup, KeyUser)
-	hasGroup := container.HasKey(ContainerGroup, KeyGroup)
-	if hasUser || hasGroup {
-		uid := container.LookupUint32(ContainerGroup, KeyUser, 0)
-		gid := container.LookupUint32(ContainerGroup, KeyGroup, 0)
-
-		podman.add("--user")
-		if hasGroup {
-			podman.addf("%d:%d", uid, gid)
-		} else {
-			podman.addf("%d", uid)
-		}
+	if err := handleUser(container, ContainerGroup, podman); err != nil {
+		return nil, err
 	}
 
 	if err := handleUserRemap(container, ContainerGroup, podman, isUser, true); err != nil {
@@ -905,6 +895,35 @@ func ConvertKube(kube *parser.UnitFile, isUser bool) (*parser.UnitFile, error) {
 	service.AddCmdline(ServiceGroup, "ExecStop", execStop.Args)
 
 	return service, nil
+}
+
+func handleUser(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline) error {
+	user, hasUser := unitFile.Lookup(groupName, KeyUser)
+	okUser := hasUser && len(user) > 0
+
+	group, hasGroup := unitFile.Lookup(groupName, KeyGroup)
+	okGroup := hasGroup && len(group) > 0
+
+	if !okUser {
+		if okGroup {
+			return fmt.Errorf("Group set without User")
+		}
+		return nil
+	}
+
+	if !okGroup {
+		podman.add("--user", user)
+		return nil
+	}
+
+	if strings.Contains(user, ":") {
+		return fmt.Errorf("Group already provided in User")
+	}
+
+	podman.add("--user")
+	podman.addf("%s:%s", user, group)
+
+	return nil
 }
 
 func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline, isUser, supportManual bool) error {
