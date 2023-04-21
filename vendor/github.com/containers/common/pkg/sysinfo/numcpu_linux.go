@@ -4,7 +4,6 @@
 package sysinfo
 
 import (
-	"runtime"
 	"unsafe"
 
 	"golang.org/x/sys/unix"
@@ -33,12 +32,4 @@ func numCPU() int {
 		ncpu += int(popcnt(uint64(e)))
 	}
 	return ncpu
-}
-
-// NumCPU returns the number of CPUs which are currently online
-func NumCPU() int {
-	if ncpu := numCPU(); ncpu > 0 {
-		return ncpu
-	}
-	return runtime.NumCPU()
 }
