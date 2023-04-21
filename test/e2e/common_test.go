@@ -756,6 +756,33 @@ func SkipIfNotFedora() {
 	}
 }
 
+type journaldTests struct {
+	journaldSkip bool
+	journaldOnce sync.Once
+}
+
+var journald journaldTests
+
+func SkipIfJournaldUnavailable() {
+	f := func() {
+		journald.journaldSkip = false
+
+		// Check if journalctl is unavailable
+		cmd := exec.Command("journalctl", "-n", "1")
+		if err := cmd.Run(); err != nil {
+			journald.journaldSkip = true
+		}
+	}
+	journald.journaldOnce.Do(f)
+
+	// In container, journalctl does not return an error even if
+	// journald is unavailable
+	SkipIfInContainer("[journald]: journalctl inside a container doesn't work correctly")
+	if journald.journaldSkip {
+		Skip("[journald]: journald is unavailable")
+	}
+}
+
 // Use isRootless() instead of rootless.IsRootless()
 // This function can detect to join the user namespace by mistake
 func isRootless() bool {

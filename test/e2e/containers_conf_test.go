@@ -257,7 +257,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 	})
 
 	It("using journald for container with container log_tag", func() {
-		SkipIfInContainer("journalctl inside a container doesn't work correctly")
+		SkipIfJournaldUnavailable()
 		os.Setenv("CONTAINERS_CONF", "config/containers-journald.conf")
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
