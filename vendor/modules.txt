@@ -703,6 +703,8 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
+# github.com/onsi/ginkgo/v2 v2.9.2
+## explicit; go 1.18
 # github.com/onsi/gomega v1.27.6
 ## explicit; go 1.18
 github.com/onsi/gomega
