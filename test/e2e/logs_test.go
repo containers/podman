@@ -44,7 +44,6 @@ var _ = Describe("Podman logs", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 
 	It("podman logs on not existent container", func() {
@@ -60,7 +59,7 @@ var _ = Describe("Podman logs", func() {
 
 		skipIfJournaldInContainer := func() {
 			if log == "journald" {
-				SkipIfInContainer("journalctl inside a container doesn't work correctly")
+				SkipIfJournaldUnavailable()
 			}
 		}
 
@@ -513,7 +512,7 @@ var _ = Describe("Podman logs", func() {
 	}
 
 	It("using journald for container with container tag", func() {
-		SkipIfInContainer("journalctl inside a container doesn't work correctly")
+		SkipIfJournaldUnavailable()
 		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "--log-opt=tag={{.ImageName}}", "-d", ALPINE, "sh", "-c", "echo podman; sleep 0.1; echo podman; sleep 0.1; echo podman"})
 		logc.WaitWithDefaultTimeout()
 		Expect(logc).To(Exit(0))
@@ -530,7 +529,7 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("using journald container name", func() {
-		SkipIfInContainer("journalctl inside a container doesn't work correctly")
+		SkipIfJournaldUnavailable()
 		containerName := "inside-journal"
 		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "-d", "--name", containerName, ALPINE, "sh", "-c", "echo podman; sleep 0.1; echo podman; sleep 0.1; echo podman"})
 		logc.WaitWithDefaultTimeout()
@@ -560,7 +559,6 @@ var _ = Describe("Podman logs", func() {
 
 	It("podman pod logs with container names", func() {
 		SkipIfRemote("Remote can only process one container at a time")
-		SkipIfInContainer("journalctl inside a container doesn't work correctly")
 		podName := "testPod"
 		containerName1 := "container1"
 		containerName2 := "container2"
@@ -588,7 +586,6 @@ var _ = Describe("Podman logs", func() {
 	})
 	It("podman pod logs with different colors", func() {
 		SkipIfRemote("Remote can only process one container at a time")
-		SkipIfInContainer("journalctl inside a container doesn't work correctly")
 		podName := "testPod"
 		containerName1 := "container1"
 		containerName2 := "container2"
