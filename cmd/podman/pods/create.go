@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -207,16 +206,13 @@ func create(cmd *cobra.Command, args []string) error {
 	}
 
 	numCPU := sysinfo.NumCPU()
-	if numCPU == 0 {
-		numCPU = runtime.NumCPU()
-	}
 	if createOptions.Cpus > float64(numCPU) {
 		createOptions.Cpus = float64(numCPU)
 	}
 	copy := infraOptions.CPUSetCPUs
 	cpuSet := infraOptions.CPUS
 	if cpuSet == 0 {
-		cpuSet = float64(sysinfo.NumCPU())
+		cpuSet = float64(numCPU)
 	}
 	ret, err := parsers.ParseUintList(copy)
 	copy = ""
