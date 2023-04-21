@@ -182,3 +182,18 @@ func (o *PushOptions) GetQuiet() bool {
 	}
 	return *o.Quiet
 }
+
+// WithManifestDigest set field ManifestDigest to given value
+func (o *PushOptions) WithManifestDigest(value string) *PushOptions {
+	o.ManifestDigest = &value
+	return o
+}
+
+// GetManifestDigest returns value of field ManifestDigest
+func (o *PushOptions) GetManifestDigest() string {
+	if o.ManifestDigest == nil {
+		var z string
+		return z
+	}
+	return *o.ManifestDigest
+}

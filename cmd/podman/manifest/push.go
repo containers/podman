@@ -25,6 +25,7 @@ type manifestPushOptsWrapper struct {
 	CredentialsCLI             string
 	SignBySigstoreParamFileCLI string
 	SignPassphraseFileCLI      string
+	DigestFile                 string
 }
 
 var (

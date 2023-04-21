@@ -243,12 +243,12 @@ func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOpti
 	return images.Import(ir.ClientCtx, f, options)
 }
 
-func (ir *ImageEngine) Push(ctx context.Context, source string, destination string, opts entities.ImagePushOptions) error {
+func (ir *ImageEngine) Push(ctx context.Context, source string, destination string, opts entities.ImagePushOptions) (*entities.ImagePushReport, error) {
 	if opts.Signers != nil {
-		return fmt.Errorf("forwarding Signers is not supported for remote clients")
+		return nil, fmt.Errorf("forwarding Signers is not supported for remote clients")
 	}
 	if opts.OciEncryptConfig != nil {
-		return fmt.Errorf("encryption is not supported for remote clients")
+		return nil, fmt.Errorf("encryption is not supported for remote clients")
 	}
 
 	options := new(images.PushOptions)
@@ -261,7 +261,10 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 			options.WithSkipTLSVerify(false)
 		}
 	}
-	return images.Push(ir.ClientCtx, source, destination, options)
+	if err := images.Push(ir.ClientCtx, source, destination, options); err != nil {
+		return nil, err
+	}
+	return &entities.ImagePushReport{ManifestDigest: options.GetManifestDigest()}, nil
 }
 
 func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string, opts entities.ImageSaveOptions) error {

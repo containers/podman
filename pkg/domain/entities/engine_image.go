@@ -20,7 +20,7 @@ type ImageEngine interface { //nolint:interfacebloat
 	Mount(ctx context.Context, images []string, options ImageMountOptions) ([]*ImageMountReport, error)
 	Prune(ctx context.Context, opts ImagePruneOptions) ([]*reports.PruneReport, error)
 	Pull(ctx context.Context, rawImage string, opts ImagePullOptions) (*ImagePullReport, error)
-	Push(ctx context.Context, source string, destination string, opts ImagePushOptions) error
+	Push(ctx context.Context, source string, destination string, opts ImagePushOptions) (*ImagePushReport, error)
 	Remove(ctx context.Context, images []string, opts ImageRemoveOptions) (*ImageRemoveReport, []error)
 	Save(ctx context.Context, nameOrID string, tags []string, options ImageSaveOptions) error
 	Scp(ctx context.Context, src, dst string, parentFlags []string, quiet bool, sshMode ssh.EngineMode) error

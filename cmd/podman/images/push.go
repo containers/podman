@@ -24,6 +24,7 @@ type pushOptionsWrapper struct {
 	SignBySigstoreParamFileCLI string
 	EncryptionKeys             []string
 	EncryptLayers              []int
+	DigestFile                 string
 }
 
 var (
@@ -140,7 +141,6 @@ func pushFlags(cmd *cobra.Command) {
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("cert-dir")
 		_ = flags.MarkHidden("compress")
-		_ = flags.MarkHidden("digestfile")
 		_ = flags.MarkHidden("quiet")
 		_ = flags.MarkHidden(signByFlagName)
 		_ = flags.MarkHidden(signBySigstoreFlagName)
@@ -203,5 +203,16 @@ func imagePush(cmd *cobra.Command, args []string) error {
 
 	// Let's do all the remaining Yoga in the API to prevent us from scattering
 	// logic across (too) many parts of the code.
-	return registry.ImageEngine().Push(registry.GetContext(), source, destination, pushOptions.ImagePushOptions)
+	report, err := registry.ImageEngine().Push(registry.GetContext(), source, destination, pushOptions.ImagePushOptions)
+	if err != nil {
+		return err
+	}
+
+	if pushOptions.DigestFile != "" {
+		if err := os.WriteFile(pushOptions.DigestFile, []byte(report.ManifestDigest), 0644); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

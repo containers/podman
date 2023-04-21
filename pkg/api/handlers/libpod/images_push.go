@@ -90,7 +90,8 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 
 	// Let's keep thing simple when running in quiet mode and push directly.
 	if query.Quiet {
-		if err := imageEngine.Push(r.Context(), source, destination, options); err != nil {
+		_, err := imageEngine.Push(r.Context(), source, destination, options)
+		if err != nil {
 			utils.Error(w, http.StatusBadRequest, fmt.Errorf("pushing image %q: %w", destination, err))
 			return
 		}
@@ -104,9 +105,10 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 
 	pushCtx, pushCancel := context.WithCancel(r.Context())
 	var pushError error
+	var pushReport *entities.ImagePushReport
 	go func() {
 		defer pushCancel()
-		pushError = imageEngine.Push(pushCtx, source, destination, options)
+		pushReport, pushError = imageEngine.Push(pushCtx, source, destination, options)
 	}()
 
 	flush := func() {
@@ -122,18 +124,21 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(true)
 	for {
-		var report entities.ImagePushReport
+		var stream entities.ImagePushStream
 		select {
 		case s := <-writer.Chan():
-			report.Stream = string(s)
-			if err := enc.Encode(report); err != nil {
+			stream.Stream = string(s)
+			if err := enc.Encode(stream); err != nil {
 				logrus.Warnf("Failed to encode json: %v", err)
 			}
 			flush()
 		case <-pushCtx.Done():
+			if pushReport != nil {
+				stream.ManifestDigest = pushReport.ManifestDigest
+			}
 			if pushError != nil {
-				report.Error = pushError.Error()
-				if err := enc.Encode(report); err != nil {
+				stream.Error = pushError.Error()
+				if err := enc.Encode(stream); err != nil {
 					logrus.Warnf("Failed to encode json: %v", err)
 				}
 			}
