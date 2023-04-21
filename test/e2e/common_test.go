@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -167,11 +168,40 @@ func (p *PodmanTestIntegration) Setup() {
 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
 }
 
-var _ = SynchronizedAfterSuite(func() {},
+var _ = SynchronizedAfterSuite(func() {
+	f, err := os.Create(fmt.Sprintf("%s/timings-%d", LockTmpDir, GinkgoParallelProcess()))
+	Expect(err).ToNot(HaveOccurred())
+	defer f.Close()
+	for _, result := range testResults {
+		_, err := f.WriteString(fmt.Sprintf("%s\t\t%f\n", result.name, result.length))
+		Expect(err).ToNot(HaveOccurred(), "write timings")
+	}
+},
 	func() {
-		sort.Sort(testResultsSortedLength{testResults})
+		testTimings := make(testResultsSorted, 0, 2000)
+		for i := 1; i <= GinkgoT().ParallelTotal(); i++ {
+			f, err := os.Open(fmt.Sprintf("%s/timings-%d", LockTmpDir, i))
+			Expect(err).ToNot(HaveOccurred())
+			defer f.Close()
+			scanner := bufio.NewScanner(f)
+			for scanner.Scan() {
+				text := scanner.Text()
+				timing := strings.SplitN(text, "\t\t", 2)
+				if len(timing) != 2 {
+					Fail(fmt.Sprintf("incorrect timing line: %q", text))
+				}
+				name := timing[0]
+				duration, err := strconv.ParseFloat(timing[1], 64)
+				Expect(err).ToNot(HaveOccurred(), "failed to parse float from timings file")
+				testTimings = append(testTimings, testResult{name: name, length: duration})
+			}
+			if err := scanner.Err(); err != nil {
+				Expect(err).ToNot(HaveOccurred(), "read timings %d", i)
+			}
+		}
+		sort.Sort(testResultsSortedLength{testTimings})
 		GinkgoWriter.Println("integration timing results")
-		for _, result := range testResults {
+		for _, result := range testTimings {
 			GinkgoWriter.Printf("%s\t\t%f\n", result.name, result.length)
 		}
 
