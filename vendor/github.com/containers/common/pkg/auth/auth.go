@@ -242,19 +242,14 @@ func replaceURLByHostPort(repository string) (string, error) {
 // using the -u and -p flags.  If the username prompt is left empty, the
 // displayed userFromAuthFile will be used instead.
 func getUserAndPass(opts *LoginOptions, password, userFromAuthFile string) (user, pass string, err error) {
+	reader := bufio.NewReader(opts.Stdin)
 	username := opts.Username
 	if username == "" {
-		if opts.Stdin == nil {
-			return "", "", fmt.Errorf("cannot prompt for username without stdin")
-		}
-
 		if userFromAuthFile != "" {
 			fmt.Fprintf(opts.Stdout, "Username (%s): ", userFromAuthFile)
 		} else {
 			fmt.Fprint(opts.Stdout, "Username: ")
 		}
-
-		reader := bufio.NewReader(opts.Stdin)
 		username, err = reader.ReadString('\n')
 		if err != nil {
 			return "", "", fmt.Errorf("reading username: %w", err)

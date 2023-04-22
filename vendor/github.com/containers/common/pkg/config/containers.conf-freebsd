@@ -29,11 +29,6 @@
 #
 #base_hosts_file = ""
 
-# The database backend of Podman.  Supported values are "boltdb" (default) and
-# "sqlite". Please run `podman-system-reset` prior to changing the database
-# backend of an existing deployment, to make sure Podman can operate correctly.
-#database_backend="boltdb"
-
 # List of default capabilities for containers. If it is empty or commented out,
 # the default capabilities defined in the container engine will be added.
 #
