@@ -10,8 +10,11 @@ import (
 var (
 	byteType        = reflect.TypeOf(byte(0))
 	boolType        = reflect.TypeOf(false)
+	uint8Type       = reflect.TypeOf(uint8(0))
 	int16Type       = reflect.TypeOf(int16(0))
 	uint16Type      = reflect.TypeOf(uint16(0))
+	intType         = reflect.TypeOf(int(0))
+	uintType        = reflect.TypeOf(uint(0))
 	int32Type       = reflect.TypeOf(int32(0))
 	uint32Type      = reflect.TypeOf(uint32(0))
 	int64Type       = reflect.TypeOf(int64(0))
@@ -82,7 +85,7 @@ func storeBase(dest, src reflect.Value) error {
 
 func setDest(dest, src reflect.Value) error {
 	if !isVariant(src.Type()) && isVariant(dest.Type()) {
-		// special conversion for dbus.Variant
+		//special conversion for dbus.Variant
 		dest.Set(reflect.ValueOf(MakeVariant(src.Interface())))
 		return nil
 	}
@@ -163,8 +166,8 @@ func storeMapIntoVariant(dest, src reflect.Value) error {
 func storeMapIntoInterface(dest, src reflect.Value) error {
 	var dv reflect.Value
 	if isVariant(src.Type().Elem()) {
-		// Convert variants to interface{} recursively when converting
-		// to interface{}
+		//Convert variants to interface{} recursively when converting
+		//to interface{}
 		dv = reflect.MakeMap(
 			reflect.MapOf(src.Type().Key(), interfaceType))
 	} else {
@@ -197,7 +200,7 @@ func storeMapIntoMap(dest, src reflect.Value) error {
 func storeSlice(dest, src reflect.Value) error {
 	switch {
 	case src.Type() == interfacesType && dest.Kind() == reflect.Struct:
-		// The decoder always decodes structs as slices of interface{}
+		//The decoder always decodes structs as slices of interface{}
 		return storeStruct(dest, src)
 	case !kindsAreCompatible(dest.Type(), src.Type()):
 		return fmt.Errorf(
@@ -257,8 +260,8 @@ func storeSliceIntoVariant(dest, src reflect.Value) error {
 func storeSliceIntoInterface(dest, src reflect.Value) error {
 	var dv reflect.Value
 	if isVariant(src.Type().Elem()) {
-		// Convert variants to interface{} recursively when converting
-		// to interface{}
+		//Convert variants to interface{} recursively when converting
+		//to interface{}
 		dv = reflect.MakeSlice(reflect.SliceOf(interfaceType),
 			src.Len(), src.Cap())
 	} else {
@@ -331,7 +334,7 @@ func (o ObjectPath) IsValid() bool {
 }
 
 // A UnixFD is a Unix file descriptor sent over the wire. See the package-level
-// documentation for more information about Unix file descriptor passing.
+// documentation for more information about Unix file descriptor passsing.
 type UnixFD int32
 
 // A UnixFDIndex is the representation of a Unix file descriptor in a message.

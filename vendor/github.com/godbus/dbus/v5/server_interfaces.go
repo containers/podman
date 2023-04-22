@@ -22,7 +22,7 @@ type Handler interface {
 // of Interface lookup is up to the implementation of
 // the ServerObject. The ServerObject implementation may
 // choose to implement empty string as a valid interface
-// representing all methods or not per the D-Bus specification.
+// represeting all methods or not per the D-Bus specification.
 type ServerObject interface {
 	LookupInterface(name string) (Interface, bool)
 }

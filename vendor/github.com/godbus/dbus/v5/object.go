@@ -46,7 +46,7 @@ func (o *Object) CallWithContext(ctx context.Context, method string, flags Flags
 // Deprecated: use (*Conn) AddMatchSignal instead.
 func (o *Object) AddMatchSignal(iface, member string, options ...MatchOption) *Call {
 	base := []MatchOption{
-		withMatchTypeSignal(),
+		withMatchType("signal"),
 		WithMatchInterface(iface),
 		WithMatchMember(member),
 	}
@@ -65,7 +65,7 @@ func (o *Object) AddMatchSignal(iface, member string, options ...MatchOption) *C
 // Deprecated: use (*Conn) RemoveMatchSignal instead.
 func (o *Object) RemoveMatchSignal(iface, member string, options ...MatchOption) *Call {
 	base := []MatchOption{
-		withMatchTypeSignal(),
+		withMatchType("signal"),
 		WithMatchInterface(iface),
 		WithMatchMember(member),
 	}

@@ -148,7 +148,7 @@ func (m exportedMethod) Call(args ...interface{}) ([]interface{}, error) {
 		out[i] = val.Interface()
 	}
 	if nilErr || err == nil {
-		// concrete type to interface nil is a special case
+		//concrete type to interface nil is a special case
 		return out, nil
 	}
 	return out, err
@@ -213,6 +213,10 @@ func (obj *exportedObj) LookupMethod(name string) (Method, bool) {
 		}
 	}
 	return nil, false
+}
+
+func (obj *exportedObj) isFallbackInterface() bool {
+	return false
 }
 
 func newExportedIntf(methods map[string]Method, includeSubtree bool) *exportedIntf {

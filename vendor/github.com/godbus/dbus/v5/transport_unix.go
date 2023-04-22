@@ -1,5 +1,4 @@
-//go:build !windows && !solaris
-// +build !windows,!solaris
+//+build !windows,!solaris
 
 package dbus
 
@@ -102,12 +101,8 @@ func (t *unixTransport) ReadMessage() (*Message, error) {
 	}
 	// csheader[4:8] -> length of message body, csheader[12:16] -> length of
 	// header fields (without alignment)
-	if err := binary.Read(bytes.NewBuffer(csheader[4:8]), order, &blen); err != nil {
-		return nil, err
-	}
-	if err := binary.Read(bytes.NewBuffer(csheader[12:]), order, &hlen); err != nil {
-		return nil, err
-	}
+	binary.Read(bytes.NewBuffer(csheader[4:8]), order, &blen)
+	binary.Read(bytes.NewBuffer(csheader[12:]), order, &hlen)
 	if hlen%8 != 0 {
 		hlen += 8 - (hlen % 8)
 	}
@@ -124,10 +119,7 @@ func (t *unixTransport) ReadMessage() (*Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = Store(vs, &headers)
-	if err != nil {
-		return nil, err
-	}
+	Store(vs, &headers)
 	for _, v := range headers {
 		if v.Field == byte(FieldUnixFDs) {
 			unixfds, _ = v.Variant.value.(uint32)

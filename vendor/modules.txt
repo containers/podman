@@ -510,7 +510,7 @@ github.com/go-playground/universal-translator
 # github.com/go-playground/validator/v10 v10.12.0
 ## explicit; go 1.18
 github.com/go-playground/validator/v10
-# github.com/godbus/dbus/v5 v5.1.1-0.20221029134443-4b691ce883d5
+# github.com/godbus/dbus/v5 v5.1.0
 ## explicit; go 1.12
 github.com/godbus/dbus/v5
 # github.com/gogo/protobuf v1.3.2

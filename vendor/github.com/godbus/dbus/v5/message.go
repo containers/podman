@@ -158,9 +158,7 @@ func DecodeMessageWithFDs(rd io.Reader, fds []int) (msg *Message, err error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := binary.Read(bytes.NewBuffer(b), order, &hlength); err != nil {
-		return nil, err
-	}
+	binary.Read(bytes.NewBuffer(b), order, &hlength)
 	if hlength+length+16 > 1<<27 {
 		return nil, InvalidMessageError("message is too long")
 	}
@@ -267,14 +265,12 @@ func (msg *Message) EncodeToWithFDs(out io.Writer, order binary.ByteOrder) (fds 
 		return
 	}
 	enc.align(8)
-	if _, err := body.WriteTo(&buf); err != nil {
-		return nil, err
-	}
+	body.WriteTo(&buf)
 	if buf.Len() > 1<<27 {
-		return nil, InvalidMessageError("message is too long")
+		return make([]int, 0), InvalidMessageError("message is too long")
 	}
 	if _, err := buf.WriteTo(out); err != nil {
-		return nil, err
+		return make([]int, 0), err
 	}
 	return enc.fds, nil
 }

@@ -34,7 +34,6 @@ gives a short overview over the basic usage.
 - [iwd](https://github.com/shibumi/iwd) go bindings for the internet wireless daemon "iwd".
 - [notify](https://github.com/esiqveland/notify) provides desktop notifications over dbus into a library.
 - [playerbm](https://github.com/altdesktop/playerbm) a bookmark utility for media players.
-- [rpic](https://github.com/stephenhu/rpic) lightweight web app and RESTful API for managing a Raspberry Pi
 
 Please note that the API is considered unstable for now and may change without
 further notice.

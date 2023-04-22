@@ -221,9 +221,6 @@ func validSingle(s string, depth *depthCounter) (err error, rem string) {
 			i++
 			rem = s[i+1:]
 			s = s[2:i]
-			if len(s) == 0 {
-				return SignatureError{Sig: s, Reason: "empty dict"}, ""
-			}
 			if err, _ = validSingle(s[:1], depth.EnterArray().EnterDictEntry()); err != nil {
 				return err, ""
 			}
