@@ -11,7 +11,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/containers/podman/v4/pkg/machine/wsl"
+	"github.com/containers/podman/v4/pkg/machine/wsl/wutil"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/windows/svc/eventlog"
 )
@@ -49,7 +49,7 @@ func installWslKernel() error {
 	)
 	backoff := 500 * time.Millisecond
 	for i := 1; i < 6; i++ {
-		err = wsl.SilentExec("wsl", "--update")
+		err = wutil.SilentExec("wsl", "--update")
 		if err == nil {
 			break
 		}
@@ -87,7 +87,7 @@ func warn(title string, caption string) int {
 func main() {
 	args := os.Args
 	setupLogging(path.Base(args[0]))
-	if wsl.IsWSLInstalled() {
+	if wutil.IsWSLInstalled() {
 		// nothing to do
 		logrus.Info("WSL Kernel already installed")
 		return

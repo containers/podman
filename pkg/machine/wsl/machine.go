@@ -20,6 +20,7 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/wsl/wutil"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/ioutils"
@@ -695,7 +696,7 @@ func installScripts(dist string) error {
 }
 
 func checkAndInstallWSL(opts machine.InitOptions) (bool, error) {
-	if IsWSLInstalled() {
+	if wutil.IsWSLInstalled() {
 		return true, nil
 	}
 
@@ -1143,35 +1144,8 @@ func getWinProxyStateDir(v *MachineVM) (string, error) {
 	return stateDir, nil
 }
 
-func IsWSLInstalled() bool {
-	cmd := SilentExecCmd("wsl", "--status")
-	out, err := cmd.StdoutPipe()
-	cmd.Stderr = nil
-	if err != nil {
-		return false
-	}
-	if err = cmd.Start(); err != nil {
-		return false
-	}
-	scanner := bufio.NewScanner(transform.NewReader(out, unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewDecoder()))
-	result := true
-	for scanner.Scan() {
-		line := scanner.Text()
-		// Windows 11 does not set an error exit code when a kernel is not avail
-		if strings.Contains(line, "kernel file is not found") {
-			result = false
-			break
-		}
-	}
-	if err := cmd.Wait(); !result || err != nil {
-		return false
-	}
-
-	return true
-}
-
 func IsWSLFeatureEnabled() bool {
-	return SilentExec("wsl", "--set-default-version", "2") == nil
+	return wutil.SilentExec("wsl", "--set-default-version", "2") == nil
 }
 
 func isWSLRunning(dist string) (bool, error) {
