@@ -338,8 +338,10 @@ ignore"
     # potential issues.
     run_podman exec --env NOTIFY_SOCKET="/run/notify/notify.sock" $container_a /usr/bin/systemd-notify --ready
 
-    # Instruct the container to stop
-    run_podman exec $container_a /bin/touch /stop
+    # Instruct the container to stop.
+    # Run detached as the `exec` session races with the cleanup process
+    # of the exiting container (see #10825).
+    run_podman exec -d $container_a /bin/touch /stop
 
     run_podman container wait $container_a
     run_podman container inspect $container_a --format "{{.State.ExitCode}}"
