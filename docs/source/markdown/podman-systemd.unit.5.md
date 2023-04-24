@@ -26,8 +26,10 @@ These files are read during boot (and when `systemctl daemon-reload` is run) and
 corresponding regular systemd service unit files. Both system and user systemd units are supported.
 
 The Podman generator reads the search paths above and reads files with the extensions `.container`
-`.volume` and `*.kube`, and for each file generates a similarly named `.service` file. These units
-can be started and managed with systemctl like any other systemd service.
+`.volume` and `*.kube`, and for each file generates a similarly named `.service` file. Be aware that
+existing vendor services (i.e., in `/usr/`) are replaced if they have the same name. The generated unit files can
+be started and managed with `systemctl` like any other systemd service. `systemctl {--user} list-unit-files`
+lists existing unit files on the system.
 
 Files with the `.network` extension are only read if they are mentioned in a `.container` file. See the `Network=` key.
 
