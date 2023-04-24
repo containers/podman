@@ -63,6 +63,7 @@ echo -e "\n# Begin single-use VM global variables (${BASH_SOURCE[0]})" \
 # shellcheck disable=SC2154
 grep -q "$DISTRO_NV" <<<"$OS_REL_VER" || \
     grep -q "$OS_REL_VER" <<<"$DISTRO_NV" || \
+    grep -q "rawhide" <<<"$DISTRO_NV" || \
     die "Automation spec. '$DISTRO_NV'; actual host '$OS_REL_VER'"
 
 # Only allow this script to execute once
