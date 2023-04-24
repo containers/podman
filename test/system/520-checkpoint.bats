@@ -211,7 +211,9 @@ function teardown() {
     is "$output" "$cid" "podman container restore"
 
     # Signal the container to continue; this is where the 1-2-3s will come from
-    run_podman exec $cid rm /wait
+    # The '-d' is because container exit is racy: the exec process itself
+    # could get caught and killed by cleanup, causing this step to exit 137
+    run_podman exec -d $cid rm /wait
 
     # Wait for the container to stop
     run_podman wait $cid

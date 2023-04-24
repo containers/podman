@@ -24,10 +24,9 @@ load helpers
     run_podman run -d ${opt_log_driver} $IMAGE sh -c \
         "for i in ${signals[*]}; do trap \"echo got: \$i\" \$i; done;
         echo READY;
-        while ! test -e /stop; do sleep 0.05; done;
+        while ! test -e /stop; do sleep 0.1; done;
         echo DONE"
-    # Ignore output regarding pulling/processing container images
-    cid=$(echo "$output" | tail -1)
+    cid="$output"
 
     # Run 'logs -f' on that container, but run it in the background with
     # redirection to a named pipe from which we (foreground job) read
@@ -71,8 +70,10 @@ load helpers
     kill_and_check -SIGUSR1 10
     kill_and_check  SIGUSR2 12
 
-    # Done. Tell the container to stop, and wait for final DONE
-    run_podman exec $cid touch /stop
+    # Done. Tell the container to stop, and wait for final DONE.
+    # The '-d' is because container exit is racy: the exec process itself
+    # could get caught and killed by cleanup, causing this step to exit 137
+    run_podman exec -d $cid touch /stop
     read -t 5 -u 5 done || die "Timed out waiting for DONE from container"
     is "$done" "DONE" "final log message from container"
 
