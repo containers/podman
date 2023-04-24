@@ -82,24 +82,25 @@ var _ = Describe("Podman create with --ip flag", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 
-		// race prevention: wait until IP address is assigned
+		// race prevention: wait until IP address is assigned and
+		// container is running.
 		for i := 0; i < 5; i++ {
-			result = podmanTest.Podman([]string{"inspect", "--format", "{{.NetworkSettings.IPAddress}}", "test1"})
+			result = podmanTest.Podman([]string{"inspect", "--format", "{{.State.Status}} {{.NetworkSettings.IPAddress}}", "test1"})
 			result.WaitWithDefaultTimeout()
 			Expect(result).Should(Exit(0))
-			if result.OutputToString() != "" {
+			if result.OutputToString() == "running "+ip {
 				break
 			}
 			time.Sleep(1 * time.Second)
 		}
-		Expect(result.OutputToString()).To(Equal(ip))
+		Expect(result.OutputToString()).To(Equal("running " + ip))
 
 		// test1 container is running with the given IP.
-		result = podmanTest.Podman([]string{"start", "test2"})
+		result = podmanTest.Podman([]string{"start", "-a", "test2"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).To(ExitWithError())
 		if podmanTest.NetworkBackend == CNI {
-			Expect(result.ErrorToString()).To(ContainSubstring("requested IP address " + ip + " is not available"))
+			Expect(result.ErrorToString()).To(ContainSubstring("requested IP address %s is not available", ip))
 		} else if podmanTest.NetworkBackend == Netavark {
 			Expect(result.ErrorToString()).To(ContainSubstring("requested ip address %s is already allocated", ip))
 		}
