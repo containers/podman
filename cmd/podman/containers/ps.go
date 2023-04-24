@@ -351,8 +351,8 @@ func (l psReporter) Pod() string {
 	return l.ListContainer.Pod
 }
 
-// State returns the container state in human duration
-func (l psReporter) State() string {
+// Status returns the container status in the default ps output format.
+func (l psReporter) Status() string {
 	var state string
 	switch l.ListContainer.State {
 	case "running":
@@ -370,16 +370,11 @@ func (l psReporter) State() string {
 		//nolint:staticcheck
 		state = strings.Title(l.ListContainer.State)
 	}
-	return state
-}
-
-// Status is a synonym for State()
-func (l psReporter) Status() string {
 	hc := l.ListContainer.Status
 	if hc != "" {
-		return l.State() + " (" + hc + ")"
+		state += " (" + hc + ")"
 	}
-	return l.State()
+	return state
 }
 
 func (l psReporter) RunningFor() string {
