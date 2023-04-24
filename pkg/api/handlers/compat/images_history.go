@@ -33,12 +33,16 @@ func HistoryImage(w http.ResponseWriter, r *http.Request) {
 	allHistory := make([]handlers.HistoryResponse, 0, len(history))
 	for _, h := range history {
 		l := handlers.HistoryResponse{
-			ID:        h.ID,
 			Created:   h.Created.Unix(),
 			CreatedBy: h.CreatedBy,
 			Tags:      h.Tags,
 			Size:      h.Size,
 			Comment:   h.Comment,
+		}
+		if utils.IsLibpodRequest(r) {
+			l.ID = h.ID
+		} else {
+			l.ID = "sha256:" + h.ID
 		}
 		allHistory = append(allHistory, l)
 	}
