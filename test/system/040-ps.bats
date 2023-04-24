@@ -14,8 +14,8 @@ load helpers
 
     # Special case: formatted ps
     run_podman ps --no-trunc \
-               --format '{{.ID}} {{.Image}} {{.Command}} {{.Names}}'
-    is "$output" "$cid $IMAGE sleep 5 $rand_name" "podman ps"
+               --format '{{.ID}} {{.Image}} {{.Command}} {{.Names}} {{.State}}'
+    is "$output" "$cid $IMAGE sleep 5 $rand_name running" "podman ps"
 
 
     # Plain old regular ps
