@@ -263,6 +263,13 @@ do_preexec_hooks_dir (const char *dir, char **argv, int argc)
 static void
 do_preexec_hooks (char **argv, int argc)
 {
+  // Access the preexec_hooks_dir indicator file
+  // return without processing if the file doesn't exist
+  char preexec_hooks_path[] = "/etc/containers/podman_preexec_hooks.txt";
+  if (access(preexec_hooks_path, F_OK) != 0) {
+    return;
+  }
+
   char *preexec_hooks = getenv ("PODMAN_PREEXEC_HOOKS_DIR");
   do_preexec_hooks_dir (LIBEXECPODMAN "/pre-exec-hooks", argv, argc);
   do_preexec_hooks_dir (ETC_PREEXEC_HOOKS, argv, argc);
