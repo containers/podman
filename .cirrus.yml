@@ -235,7 +235,7 @@ build_aarch64_task:
 # This confirms the binaries can be executed, checks --help vs docs, and
 # other essential post-build validation checks.
 validate_task:
-    name: "Validate $DISTRO_NV Build"
+    name: "Validate ${DISTRO_NV} Build"
     alias: validate
     # This task is primarily intended to catch human-errors early on, in a
     # PR.  Skip it for branch-push, branch-create, and tag-push to improve
@@ -251,9 +251,16 @@ validate_task:
         <<: *standardvm
         cpu: 8
         memory: "16Gb"
+    matrix:
+        - env:
+            <<: *stdenvars
+            VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
+            DISTRO_NV: ${FEDORA_NAME}
+        - env:
+            <<: *stdenvars
+            VM_IMAGE_NAME: ${RAWHIDE_CACHE_IMAGE_NAME}
+            DISTRO_NV: ${RAWHIDE_NAME}
     env:
-        <<: *stdenvars
-        DISTRO_NV: ${FEDORA_NAME}
         TEST_FLAVOR: validate
     # N/B: This script depends on ${DISTRO_NV} being defined for the task.
     clone_script: &get_gosrc |
