@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"math/rand"
 	"os"
 	"testing"
 
@@ -19,10 +18,8 @@ func Test_generateName(t *testing.T) {
 	}
 
 	// Test that (*Runtime).generateName returns different names
-	// if called twice, even if the global RNG has the default
-	// seed.
+	// if called twice.
 	n1, _ := r.generateName()
-	rand.Seed(1)
 	n2, _ := r.generateName()
 	assert.NotEqual(t, n1, n2)
 }

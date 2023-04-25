@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -116,13 +115,6 @@ type Runtime struct {
 	noStore bool
 	// secretsManager manages secrets
 	secretsManager *secrets.SecretsManager
-}
-
-func init() {
-	// generateName calls namesgenerator.GetRandomName which the
-	// global RNG from math/rand. Seed it here to make sure we
-	// don't get the same name every time.
-	rand.Seed(time.Now().UnixNano())
 }
 
 // SetXdgDirs ensures the XDG_RUNTIME_DIR env and XDG_CONFIG_HOME variables are set.
