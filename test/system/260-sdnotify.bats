@@ -110,7 +110,7 @@ function _assert_mainpid_is_conmon() {
     run_podman run -d --name sdnotify_conmon_c \
                --sdnotify=conmon \
                $IMAGE \
-               sh -c 'printenv NOTIFY_SOCKET;echo READY;while ! test -f /stop;do sleep 0.1;done'
+               sh -c 'printenv NOTIFY_SOCKET;echo READY;sleep 999'
     cid="$output"
     wait_for_ready $cid
 
@@ -135,9 +135,7 @@ READY=1" "sdnotify sent MAINPID and READY"
     _assert_mainpid_is_conmon "$output"
 
     # Done. Stop container, clean up.
-    run_podman exec $cid touch /stop
-    run_podman wait $cid
-    run_podman rm $cid
+    run_podman rm -f -t0 $cid
     _stop_socat
 }
 
@@ -153,7 +151,7 @@ READY=1" "sdnotify sent MAINPID and READY"
     _start_socat
 
     run_podman run -d --sdnotify=container $SYSTEMD_IMAGE \
-               sh -c 'printenv NOTIFY_SOCKET; echo READY; while ! test -f /stop;do sleep 0.1;done;systemd-notify --ready'
+               sh -c 'trap "touch /stop" SIGUSR1;printenv NOTIFY_SOCKET; echo READY; while ! test -f /stop;do sleep 0.1;done;systemd-notify --ready'
     cid="$output"
     wait_for_ready $cid
 
@@ -174,8 +172,8 @@ READY=1" "sdnotify sent MAINPID and READY"
 
     is "$output" "MAINPID=$mainPID" "Container is not ready yet, so we only know the main PID"
 
-    # Done. Stop container, clean up.
-    run_podman exec $cid touch /stop
+    # Done. Tell container to stop itself, and clean up
+    run_podman kill -s USR1 $cid
     run_podman wait $cid
 
     wait_for_file $_SOCAT_LOG
@@ -205,10 +203,18 @@ spec:
   - command:
     - /bin/sh
     - -c
-    - 'while :; do if test -e /tearsinrain; then exit 0; fi; sleep 1; done'
+    - 'while :; do if test -e /rain/tears; then exit 0; fi; sleep 1; done'
     image: $IMAGE
     name: test
     resources: {}
+    volumeMounts:
+    - mountPath: /rain:z
+      name: test-mountdir
+  volumes:
+  - hostPath:
+      path: $PODMAN_TMPDIR
+      type: Directory
+    name: test-mountdir
 EOF
 
     # The name of the service container is predictable: the first 12 characters
@@ -228,7 +234,7 @@ EOF
     main_pid="$output"
 
     # Tell pod to finish, then wait for all containers to stop
-    run_podman exec test_pod-test touch /tearsinrain
+    touch $PODMAN_TMPDIR/tears
     run_podman container wait $service_container test_pod-test
 
     # Make sure the containers have the correct policy.

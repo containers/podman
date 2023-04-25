@@ -27,8 +27,10 @@ load helpers
     run_podman 127 exec $cid /no/such/command
     is "$output" ".*such file or dir"   "podman exec /no/such/command"
 
-    # Done
-    run_podman exec $cid rm -f /$rand_filename
+    # Done. Tell the container to stop.
+    # The '-d' is because container exit is racy: the exec process itself
+    # could get caught and killed by cleanup, causing this step to exit 137
+    run_podman exec -d $cid rm -f /$rand_filename
 
     run_podman wait $cid
     is "$output" "0"   "output from podman wait (container exit code)"
@@ -59,7 +61,7 @@ load helpers
 # Issue #4785 - piping to exec statement - fixed in #4818
 # Issue #5046 - piping to exec truncates results (actually a conmon issue)
 @test "podman exec - cat from stdin" {
-    run_podman run -d $IMAGE sh -c 'while [ ! -e /stop ]; do sleep 0.1;done'
+    run_podman run -d $IMAGE top
     cid="$output"
 
     echo_string=$(random_string 20)
@@ -80,26 +82,21 @@ load helpers
     is "${output% *}" "$expect " "SHA of file in container"
 
     # Clean up
-    run_podman exec $cid touch /stop
-    run_podman wait $cid
-    run_podman rm $cid
+    run_podman rm -f -t0 $cid
 }
 
 # #6829 : add username to /etc/passwd inside container if --userns=keep-id
 @test "podman exec - with keep-id" {
     skip_if_not_rootless "--userns=keep-id only works in rootless mode"
     # Multiple --userns options confirm command-line override (last one wins)
-    run_podman run -d --userns=private --userns=keep-id $IMAGE sh -c \
-               "echo READY;while [ ! -f /tmp/stop ]; do sleep 1; done"
+    run_podman run -d --userns=private --userns=keep-id $IMAGE sh -c 'echo READY;top'
     cid="$output"
     wait_for_ready $cid
 
     run_podman exec $cid id -un
     is "$output" "$(id -un)" "container is running as current user"
 
-    run_podman exec --user=$(id -un) $cid touch /tmp/stop
-    run_podman wait $cid
-    run_podman rm $cid
+    run_podman rm -f -t0 $cid
 }
 
 # #11496: podman-remote loses output

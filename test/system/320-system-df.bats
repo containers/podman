@@ -82,8 +82,7 @@ Size           |   ~12.*MB |         0B |            0B
 
 @test "podman system df - with active containers and volumes" {
     run_podman run    -v /myvol1 --name c1 $IMAGE true
-    run_podman run -d -v /myvol2 --name c2 $IMAGE \
-               sh -c 'while ! test -e /stop; do sleep 0.1;done'
+    run_podman run -d -v /myvol2 --name c2 $IMAGE top
 
     run_podman system df --format '{{ .Type }}:{{ .Total }}:{{ .Active }}'
     is "${lines[0]}" "Images:1:1"        "system df : Images line"
@@ -124,8 +123,7 @@ Size           |   ~12.*MB |         0B |            0B
     run_podman system df --format '{{.Reclaimable}}'
     is "${lines[0]}" "0B (0%)" "cannot reclaim image data as it's still used by the containers"
 
-    run_podman exec c2 touch /stop
-    run_podman wait c2
+    run_podman stop c2
 
     # Create a second image by committing a container.
     run_podman container commit -q c1

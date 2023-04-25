@@ -99,12 +99,11 @@ function check_label() {
                --security-opt seccomp=unconfined \
                --security-opt label=type:spc_t \
                --security-opt label=level:s0 \
-               $IMAGE sh -c 'while test ! -e /stop; do sleep 0.1; done'
+               $IMAGE top
     run_podman inspect --format='{{ .HostConfig.SecurityOpt }}' myc
     is "$output" "[label=type:spc_t,label=level:s0 seccomp=unconfined]" \
       "'podman inspect' preserves all --security-opts"
 
-    run_podman exec myc touch /stop
     run_podman rm -t 0 -f myc
 }
 
