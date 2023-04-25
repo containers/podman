@@ -245,7 +245,7 @@ var _ = Describe("Podman commit", func() {
 	})
 
 	It("podman commit container check env variables", func() {
-		s := podmanTest.Podman([]string{"run", "--name", "test1", "-e", "TEST=1=1-01=9.01", "-it", "alpine", "true"})
+		s := podmanTest.Podman([]string{"run", "--name", "test1", "-e", "TEST=1=1-01=9.01", "alpine", "true"})
 		s.WaitWithDefaultTimeout()
 		Expect(s).Should(Exit(0))
 

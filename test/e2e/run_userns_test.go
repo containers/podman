@@ -95,7 +95,7 @@ var _ = Describe("Podman UserNS support", func() {
 	//     https://github.com/containers/podman/pull/1066#issuecomment-403562116
 	// To avoid a potential future regression, use this as a test.
 	It("podman uidmapping and gidmapping with short-opts", func() {
-		session := podmanTest.Podman([]string{"run", "--uidmap=0:1:5000", "--gidmap=0:200:5000", "-it", "alpine", "echo", "hello"})
+		session := podmanTest.Podman([]string{"run", "--uidmap=0:1:5000", "--gidmap=0:200:5000", "alpine", "echo", "hello"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("hello"))
@@ -179,12 +179,12 @@ var _ = Describe("Podman UserNS support", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		exec1 := podmanTest.Podman([]string{"exec", "-t", "-i", ctrName, "cat", "/etc/passwd"})
+		exec1 := podmanTest.Podman([]string{"exec", ctrName, "cat", "/etc/passwd"})
 		exec1.WaitWithDefaultTimeout()
 		Expect(exec1).Should(Exit(0))
 		Expect(exec1.OutputToString()).To(ContainSubstring(userName))
 
-		exec2 := podmanTest.Podman([]string{"exec", "-t", "-i", ctrName, "useradd", "testuser"})
+		exec2 := podmanTest.Podman([]string{"exec", ctrName, "useradd", "testuser"})
 		exec2.WaitWithDefaultTimeout()
 		Expect(exec2).Should(Exit(0))
 	})

@@ -148,7 +148,7 @@ var _ = Describe("Podman pod clone", func() {
 		podClone.WaitWithDefaultTimeout()
 		Expect(podClone).Should(Exit(0))
 
-		run := podmanTest.Podman([]string{"run", "-it", "--pod", podClone.OutputToString(), ALPINE, "mount"})
+		run := podmanTest.Podman([]string{"run", "--pod", podClone.OutputToString(), ALPINE, "mount"})
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(Exit(0))
 		t, strings := run.GrepString("shm on /dev/shm type tmpfs")
@@ -167,7 +167,7 @@ var _ = Describe("Podman pod clone", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"run", "-it", "--pod", session.OutputToString(), ALPINE, "printenv", "HOSTNAME"})
+		session = podmanTest.Podman([]string{"run", "--pod", session.OutputToString(), ALPINE, "printenv", "HOSTNAME"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(hostname))

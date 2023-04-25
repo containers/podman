@@ -1794,7 +1794,7 @@ func testPodWithSecret(podmanTest *PodmanTestIntegration, podYamlString, fileNam
 	}
 	Expect(kube).Should(Exit(0))
 
-	exec := podmanTest.Podman([]string{"exec", "-it", "mypod-myctr", "cat", "/etc/foo/username"})
+	exec := podmanTest.Podman([]string{"exec", "mypod-myctr", "cat", "/etc/foo/username"})
 	exec.WaitWithDefaultTimeout()
 	if exists {
 		Expect(exec).Should(Exit(0))
@@ -4783,19 +4783,19 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		exec := podmanTest.Podman([]string{"exec", "-it", "mypod2-myctr", "cat", "/etc/foo/username"})
+		exec := podmanTest.Podman([]string{"exec", "mypod2-myctr", "cat", "/etc/foo/username"})
 		exec.WaitWithDefaultTimeout()
 		Expect(exec).Should(Exit(0))
 		username, _ := base64.StdEncoding.DecodeString("dXNlcg==")
 		Expect(exec.OutputToString()).Should(ContainSubstring(string(username)))
 
-		exec = podmanTest.Podman([]string{"exec", "-it", "mypod2-myctr", "cat", "/etc/bar/username"})
+		exec = podmanTest.Podman([]string{"exec", "mypod2-myctr", "cat", "/etc/bar/username"})
 		exec.WaitWithDefaultTimeout()
 		Expect(exec).Should(Exit(0))
 		username, _ = base64.StdEncoding.DecodeString("Y2RvZXJu")
 		Expect(exec.OutputToString()).Should(ContainSubstring(string(username)))
 
-		exec = podmanTest.Podman([]string{"exec", "-it", "mypod2-myctr", "cat", "/etc/baz/plain_note"})
+		exec = podmanTest.Podman([]string{"exec", "mypod2-myctr", "cat", "/etc/baz/plain_note"})
 		exec.WaitWithDefaultTimeout()
 		Expect(exec).Should(Exit(0))
 		Expect(exec.OutputToString()).Should(ContainSubstring("This is a test"))
@@ -4983,7 +4983,7 @@ spec:
 		playKube.WaitWithDefaultTimeout()
 		Expect(playKube).Should(Exit(0))
 
-		exec := podmanTest.Podman([]string{"exec", "-it", "testpod-testctr", "cat", "/var/123.txt"})
+		exec := podmanTest.Podman([]string{"exec", "testpod-testctr", "cat", "/var/123.txt"})
 		exec.WaitWithDefaultTimeout()
 		Expect(exec).Should(Exit(0))
 		Expect(exec.OutputToString()).Should(Equal("hi"))
@@ -5012,7 +5012,7 @@ spec:
 		playKube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		playKube.WaitWithDefaultTimeout()
 		Expect(playKube).Should(Exit(0))
-		exec := podmanTest.Podman([]string{"exec", "-it", "testpod-testctr", "ls", "/var"})
+		exec := podmanTest.Podman([]string{"exec", "testpod-testctr", "ls", "/var"})
 		exec.WaitWithDefaultTimeout()
 		Expect(exec).Should(Exit(0))
 		Expect(exec.OutputToString()).Should(ContainSubstring("123.txt"))
@@ -5095,7 +5095,7 @@ spec:
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0), string(out))
 
-		exec := podmanTest.Podman([]string{"exec", "-it", "testpod-testctr", "ls", "/etc/"})
+		exec := podmanTest.Podman([]string{"exec", "testpod-testctr", "ls", "/etc/"})
 		exec.WaitWithDefaultTimeout()
 		Expect(exec).Should(Exit(0))
 		Expect(exec.OutputToString()).ShouldNot(HaveLen(3))

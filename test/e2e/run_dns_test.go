@@ -93,7 +93,7 @@ var _ = Describe("Podman run dns", func() {
 	})
 
 	It("podman run add hostname sets /etc/hosts", func() {
-		session := podmanTest.Podman([]string{"run", "-t", "-i", "--hostname=foobar", ALPINE, "cat", "/etc/hosts"})
+		session := podmanTest.Podman([]string{"run", "--hostname=foobar", ALPINE, "cat", "/etc/hosts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("foobar"))

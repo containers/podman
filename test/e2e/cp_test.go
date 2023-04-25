@@ -247,7 +247,7 @@ var _ = Describe("Podman cp", func() {
 		Expect(session).Should(Exit(0))
 
 		// owner of the file copied to a container is the root user
-		session = podmanTest.Podman([]string{"exec", "-it", "testctr", "ls", "-l", "testfile2"})
+		session = podmanTest.Podman([]string{"exec", "testctr", "ls", "-l", "testfile2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("root"))

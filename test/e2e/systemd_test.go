@@ -90,7 +90,7 @@ WantedBy=default.target
 		started := podmanTest.WaitContainerReady(ctrName, "Reached target multi-user.target - Multi-User System.", 30, 1)
 		Expect(started).To(BeTrue())
 
-		systemctl := podmanTest.Podman([]string{"exec", "-t", "-i", ctrName, "systemctl", "status", "--no-pager"})
+		systemctl := podmanTest.Podman([]string{"exec", ctrName, "systemctl", "status", "--no-pager"})
 		systemctl.WaitWithDefaultTimeout()
 		Expect(systemctl).Should(Exit(0))
 		Expect(systemctl.OutputToString()).To(ContainSubstring("State:"))

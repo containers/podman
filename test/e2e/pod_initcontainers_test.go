@@ -91,7 +91,7 @@ var _ = Describe("Podman init containers", func() {
 		start := podmanTest.Podman([]string{"pod", "start", "foobar"})
 		start.WaitWithDefaultTimeout()
 		Expect(start).Should(Exit(0))
-		checkLog := podmanTest.Podman([]string{"exec", "-it", verify.OutputToString(), "cat", filename})
+		checkLog := podmanTest.Podman([]string{"exec", verify.OutputToString(), "cat", filename})
 		checkLog.WaitWithDefaultTimeout()
 		Expect(checkLog).Should(Exit(0))
 		Expect(checkLog.OutputToString()).To(Equal(content))
@@ -124,7 +124,7 @@ var _ = Describe("Podman init containers", func() {
 		Expect(startPod).Should(Exit(0))
 
 		// Because no init was run, the file should not even exist
-		doubleCheck := podmanTest.Podman([]string{"exec", "-it", verify.OutputToString(), "cat", filename})
+		doubleCheck := podmanTest.Podman([]string{"exec", verify.OutputToString(), "cat", filename})
 		doubleCheck.WaitWithDefaultTimeout()
 		Expect(doubleCheck).Should(Exit(1))
 
@@ -145,7 +145,7 @@ var _ = Describe("Podman init containers", func() {
 		Expect(start).Should(Exit(0))
 
 		// capture the date written
-		checkLog := podmanTest.Podman([]string{"exec", "-it", verify.OutputToString(), "cat", filename})
+		checkLog := podmanTest.Podman([]string{"exec", verify.OutputToString(), "cat", filename})
 		checkLog.WaitWithDefaultTimeout()
 		firstResult := checkLog.OutputToString()
 		Expect(checkLog).Should(Exit(0))
@@ -159,7 +159,7 @@ var _ = Describe("Podman init containers", func() {
 		Expect(startPod).Should(Exit(0))
 
 		// Check the file again with exec
-		secondCheckLog := podmanTest.Podman([]string{"exec", "-it", verify.OutputToString(), "cat", filename})
+		secondCheckLog := podmanTest.Podman([]string{"exec", verify.OutputToString(), "cat", filename})
 		secondCheckLog.WaitWithDefaultTimeout()
 		Expect(secondCheckLog).Should(Exit(0))
 
