@@ -965,31 +965,6 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 	})
 
 	It("podman network works across user ns", func() {
-		netName := stringid.GenerateRandomID()
-		create := podmanTest.Podman([]string{"network", "create", netName})
-		create.WaitWithDefaultTimeout()
-		Expect(create).Should(Exit(0))
-		defer podmanTest.removeNetwork(netName)
-
-		name := "nc-server"
-		run := podmanTest.Podman([]string{"run", "--log-driver", "k8s-file", "-d", "--name", name, "--net", netName, ALPINE, "nc", "-l", "-p", "9480"})
-		run.WaitWithDefaultTimeout()
-		Expect(run).Should(Exit(0))
-
-		// NOTE: we force the k8s-file log driver to make sure the
-		// tests are passing inside a container.
-		run = podmanTest.Podman([]string{"run", "--log-driver", "k8s-file", "--rm", "--net", netName, "--uidmap", "0:1:4096", ALPINE, "sh", "-c", fmt.Sprintf("echo podman | nc -w 1 %s.dns.podman 9480", name)})
-		run.WaitWithDefaultTimeout()
-		Expect(run).Should(Exit(0))
-
-		log := podmanTest.Podman([]string{"logs", name})
-		log.WaitWithDefaultTimeout()
-		Expect(log).Should(Exit(0))
-		Expect(log.OutputToString()).To(Equal("podman"))
-	})
-
-	It("podman Netavark network works across user ns", func() {
-		SkipIfCNI(podmanTest)
 		netName := createNetworkName("")
 		create := podmanTest.Podman([]string{"network", "create", netName})
 		create.WaitWithDefaultTimeout()
@@ -1003,7 +978,8 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 
 		// NOTE: we force the k8s-file log driver to make sure the
 		// tests are passing inside a container.
-		run = podmanTest.Podman([]string{"run", "--log-driver", "k8s-file", "--rm", "--net", netName, "--uidmap", "0:1:4096", ALPINE, "sh", "-c", fmt.Sprintf("echo podman | nc -w 1 %s.dns.podman 9480", name)})
+		// "sleep" needed to give aardvark-dns time to come up; #16272
+		run = podmanTest.Podman([]string{"run", "--log-driver", "k8s-file", "--rm", "--net", netName, "--uidmap", "0:1:4096", ALPINE, "sh", "-c", fmt.Sprintf("sleep 2;echo podman | nc -w 1 %s.dns.podman 9480", name)})
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(Exit(0))
 
