@@ -249,16 +249,7 @@ func (t *task) report() *entities.AutoUpdateReport {
 func (t *task) updateAvailable(ctx context.Context) (bool, error) {
 	switch t.policy {
 	case PolicyRegistryImage:
-		// Errors checking for updates only should not be fatal.
-		// Especially on Edge systems, connection may be limited or
-		// there may just be a temporary downtime of the registry.
-		// But make sure to leave some breadcrumbs in the debug logs
-		// such that potential issues _can_ be analyzed if needed.
-		available, err := t.registryUpdateAvailable(ctx)
-		if err != nil {
-			logrus.Debugf("Error checking updates for image %s: %v (ignoring error)", t.rawImageName, err)
-		}
-		return available, nil
+		return t.registryUpdateAvailable(ctx)
 	case PolicyLocalImage:
 		return t.localUpdateAvailable()
 	default:
