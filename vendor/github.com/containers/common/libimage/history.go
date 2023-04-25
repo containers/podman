@@ -42,16 +42,17 @@ func (i *Image) History(ctx context.Context) ([]ImageHistory, error) {
 	// corresponding image ID, size and get the next later if needed.
 	numHistories := len(ociImage.History) - 1
 	usedIDs := make(map[string]bool) // prevents assigning images IDs more than once
+	tags := i.NamesHistory()
 	for x := numHistories; x >= 0; x-- {
 		history := ImageHistory{
 			ID:        "<missing>", // may be overridden below
 			Created:   ociImage.History[x].Created,
 			CreatedBy: ociImage.History[x].CreatedBy,
 			Comment:   ociImage.History[x].Comment,
+			Tags:      tags,
 		}
 
 		if layer != nil {
-			history.Tags = layer.Names
 			if !ociImage.History[x].EmptyLayer {
 				history.Size = layer.UncompressedSize
 			}
