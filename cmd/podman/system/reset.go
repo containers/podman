@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	systemResetDescription = `Reset podman storage back to default state"
+	systemResetDescription = `Reset podman storage back to default state
 
   All containers will be stopped and removed, and all images, volumes, networks and container content will be removed.
 `
