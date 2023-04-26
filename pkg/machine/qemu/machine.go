@@ -771,6 +771,13 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
 	if _, err := os.Stat(v.QMPMonitor.Address.GetPath()); os.IsNotExist(err) {
 		// Right now it is NOT an error to stop a stopped machine
 		logrus.Debugf("QMP monitor socket %v does not exist", v.QMPMonitor.Address)
+		// Fix incorrect starting state in case of crash during start
+		if v.Starting {
+			v.Starting = false
+			if err := v.writeConfig(); err != nil {
+				return fmt.Errorf("writing JSON file: %w", err)
+			}
+		}
 		return nil
 	}
 	qmpMonitor, err := qmp.NewSocketMonitor(v.QMPMonitor.Network, v.QMPMonitor.Address.GetPath(), v.QMPMonitor.Timeout)
