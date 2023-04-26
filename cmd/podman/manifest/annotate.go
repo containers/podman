@@ -18,7 +18,7 @@ var (
 		Long:              "Adds or updates information about an entry in a manifest list or image index.",
 		RunE:              annotate,
 		Args:              cobra.ExactArgs(2),
-		Example:           `podman manifest annotate --annotation left=right mylist:v1.11 image:v1.11-amd64`,
+		Example:           `podman manifest annotate --annotation left=right mylist:v1.11 sha256:15352d97781ffdf357bf3459c037be3efac4133dc9070c2dce7eca7c05c3e736`,
 		ValidArgsFunction: common.AutocompleteImages,
 	}
 )
