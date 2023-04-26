@@ -78,18 +78,11 @@ func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 		}
 	}()
 
-	state.conn = conn
-
-	// Migrate schema (if necessary)
-	if err := state.migrateSchemaIfNecessary(); err != nil {
+	if err := initSQLiteDB(conn); err != nil {
 		return nil, err
 	}
 
-	// Set up tables
-	if err := sqliteInitTables(state.conn); err != nil {
-		return nil, fmt.Errorf("creating tables: %w", err)
-	}
-
+	state.conn = conn
 	state.valid = true
 	state.runtime = runtime
 
