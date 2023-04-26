@@ -1368,10 +1368,7 @@ func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, fun
 
 	confirmationMessage += "\n"
 	return confirmationMessage, func() error {
-		if err := machine.RemoveConnection(v.Name); err != nil {
-			logrus.Error(err)
-		}
-		if err := machine.RemoveConnection(v.Name + "-root"); err != nil {
+		if err := machine.RemoveConnections(v.Name, v.Name+"-root"); err != nil {
 			logrus.Error(err)
 		}
 		if err := runCmdPassThrough("wsl", "--unregister", toDist(v.Name)); err != nil {

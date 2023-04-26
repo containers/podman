@@ -994,10 +994,7 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 				logrus.Error(err)
 			}
 		}
-		if err := machine.RemoveConnection(v.Name); err != nil {
-			logrus.Error(err)
-		}
-		if err := machine.RemoveConnection(v.Name + "-root"); err != nil {
+		if err := machine.RemoveConnections(v.Name, v.Name+"-root"); err != nil {
 			logrus.Error(err)
 		}
 		return nil
