@@ -146,7 +146,7 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination strin
 	}
 	digest, err := manifests.Push(ir.ClientCtx, name, destination, options)
 	if err != nil {
-		return "", fmt.Errorf("adding to manifest list %s: %w", name, err)
+		return "", fmt.Errorf("pushing manifest list %s: %w", name, err)
 	}
 
 	if opts.Rm {
