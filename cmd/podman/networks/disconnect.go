@@ -12,7 +12,7 @@ var (
 	networkDisconnectDescription = `Remove container from a network`
 	networkDisconnectCommand     = &cobra.Command{
 		Use:               "disconnect [options] NETWORK CONTAINER",
-		Short:             "network rm",
+		Short:             "Disconnect a container from a network",
 		Long:              networkDisconnectDescription,
 		RunE:              networkDisconnect,
 		Example:           `podman network disconnect web secondary`,
