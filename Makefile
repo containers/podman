@@ -481,6 +481,7 @@ docdir:
 
 .PHONY: docs
 docs: $(MANPAGES) ## Generate documentation
+	@ln -sf $(CURDIR)/docs/source/markdown/links/* docs/build/man/
 
 # docs/remote-docs.sh requires a locally executable 'podman-remote' binary
 # in addition to the target-architecture binary (if different). That's
