@@ -940,13 +940,6 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 	files = append(files, socketPath.Path)
 	files = append(files, v.archRemovalFiles()...)
 
-	if err := machine.RemoveConnection(v.Name); err != nil {
-		logrus.Error(err)
-	}
-	if err := machine.RemoveConnection(v.Name + "-root"); err != nil {
-		logrus.Error(err)
-	}
-
 	vmConfigDir, err := machine.GetConfDir(vmtype)
 	if err != nil {
 		return "", nil, err
@@ -976,6 +969,12 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 			if err := os.Remove(f); err != nil && !errors.Is(err, os.ErrNotExist) {
 				logrus.Error(err)
 			}
+		}
+		if err := machine.RemoveConnection(v.Name); err != nil {
+			logrus.Error(err)
+		}
+		if err := machine.RemoveConnection(v.Name + "-root"); err != nil {
+			logrus.Error(err)
 		}
 		return nil
 	}, nil
