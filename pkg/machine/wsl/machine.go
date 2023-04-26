@@ -20,6 +20,7 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/wsl/wutil"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/ioutils"
@@ -115,6 +116,15 @@ const wslConf = `[user]
 default=[USER]
 `
 
+const wslConfUserNet = `
+[network]
+generateResolvConf = false
+`
+
+const resolvConfUserNet = `
+nameserver 192.168.127.1
+`
+
 // WSL kernel does not have sg and crypto_user modules
 const overrideSysusers = `[Service]
 LoadCredential=
@@ -198,10 +208,12 @@ http://docs.microsoft.com/en-us/windows/wsl/install\
 `
 
 const (
+	gvProxy        = "gvproxy.exe"
 	winSShProxy    = "win-sshproxy.exe"
 	winSshProxyTid = "win-sshproxy.tid"
 	pipePrefix     = "npipe:////./pipe/"
 	globalPipe     = "docker_engine"
+	userModeDist   = "podman-net-usermode"
 )
 
 type Virtualization struct {
@@ -241,6 +253,8 @@ type MachineVM struct {
 	machine.SSHConfig
 	// machine version
 	Version int
+	// Whether to use user-mode networking
+	UserModeNetworking bool
 }
 
 type ExitCodeError struct {
@@ -275,6 +289,11 @@ func (p *Virtualization) NewMachine(opts machine.InitOptions) (machine.VM, error
 	vm.RemoteUsername = opts.Username
 	vm.Created = time.Now()
 	vm.LastUp = vm.Created
+
+	// Default is false
+	if opts.UserModeNetworking != nil {
+		vm.UserModeNetworking = *opts.UserModeNetworking
+	}
 
 	// Add a random port for ssh
 	port, err := utils.GetRandomPort()
@@ -395,9 +414,17 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	dist, err := provisionWSLDist(v)
+	const prompt = "Importing operating system into WSL (this may take a few minutes on a new WSL install)..."
+	dist, err := provisionWSLDist(v.Name, v.ImagePath, prompt)
 	if err != nil {
 		return false, err
+	}
+
+	if v.UserModeNetworking {
+		if err = installUserModeDist(dist, v.ImagePath); err != nil {
+			_ = unregisterDist(dist)
+			return false, err
+		}
 	}
 
 	fmt.Println("Configuring system...")
@@ -496,36 +523,27 @@ func setupConnections(v *MachineVM, opts machine.InitOptions, sshDir string) err
 	return nil
 }
 
-func provisionWSLDist(v *MachineVM) (string, error) {
+func provisionWSLDist(name string, imagePath string, prompt string) (string, error) {
 	vmDataDir, err := machine.GetDataDir(vmtype)
 	if err != nil {
 		return "", err
 	}
 
 	distDir := filepath.Join(vmDataDir, "wsldist")
-	distTarget := filepath.Join(distDir, v.Name)
+	distTarget := filepath.Join(distDir, name)
 	if err := os.MkdirAll(distDir, 0755); err != nil {
 		return "", fmt.Errorf("could not create wsldist directory: %w", err)
 	}
 
-	dist := toDist(v.Name)
-	fmt.Println("Importing operating system into WSL (this may take a few minutes on a new WSL install)...")
-	if err = runCmdPassThrough("wsl", "--import", dist, distTarget, v.ImagePath, "--version", "2"); err != nil {
+	dist := toDist(name)
+	fmt.Println(prompt)
+	if err = runCmdPassThrough("wsl", "--import", dist, distTarget, imagePath, "--version", "2"); err != nil {
 		return "", fmt.Errorf("the WSL import of guest OS failed: %w", err)
 	}
 
 	// Fixes newuidmap
 	if err = wslInvoke(dist, "rpm", "--restore", "shadow-utils"); err != nil {
 		return "", fmt.Errorf("package permissions restore of shadow-utils on guest OS failed: %w", err)
-	}
-
-	// Windows 11 (NT Version = 10, Build 22000) generates harmless but scary messages on every
-	// operation when mount was not present on the initial start. Force a cycle so that it won't
-	// repeatedly complain.
-	if winVersionAtLeast(10, 0, 22000) {
-		if err := terminateDist(dist); err != nil {
-			logrus.Warnf("could not cycle WSL dist: %s", err.Error())
-		}
 	}
 
 	return dist, nil
@@ -606,11 +624,7 @@ func configureSystem(v *MachineVM, dist string) error {
 		return fmt.Errorf("could not create podman-machine file for guest OS: %w", err)
 	}
 
-	if err := wslPipe(withUser(wslConf, user), dist, "sh", "-c", "cat > /etc/wsl.conf"); err != nil {
-		return fmt.Errorf("could not configure wsl config for guest OS: %w", err)
-	}
-
-	return nil
+	return changeDistUserModeNetworking(dist, user, "", v.UserModeNetworking)
 }
 
 func configureProxy(dist string, useProxy bool, quiet bool) error {
@@ -694,8 +708,16 @@ func installScripts(dist string) error {
 	return nil
 }
 
+func writeWslConf(dist string, user string) error {
+	if err := wslPipe(withUser(wslConf, user), dist, "sh", "-c", "cat > /etc/wsl.conf"); err != nil {
+		return fmt.Errorf("could not configure wsl config for guest OS: %w", err)
+	}
+
+	return nil
+}
+
 func checkAndInstallWSL(opts machine.InitOptions) (bool, error) {
-	if IsWSLInstalled() {
+	if wutil.IsWSLInstalled() {
 		return true, nil
 	}
 
@@ -1015,6 +1037,27 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 		setErrors = append(setErrors, errors.New("changing Disk Size not supported for WSL machines"))
 	}
 
+	if opts.UserModeNetworking != nil && *opts.UserModeNetworking != v.UserModeNetworking {
+		update := true
+		if v.isRunning() {
+			update = false
+			setErrors = append(setErrors, fmt.Errorf("user-mode networking can only be changed when the machine is not running"))
+		}
+
+		if update && *opts.UserModeNetworking {
+			dist := toDist(v.Name)
+
+			if err := changeDistUserModeNetworking(dist, v.RemoteUsername, v.ImagePath, *opts.UserModeNetworking); err != nil {
+				update = false
+				setErrors = append(setErrors, err)
+			}
+		}
+
+		if update {
+			v.UserModeNetworking = *opts.UserModeNetworking
+		}
+	}
+
 	return setErrors, v.writeConfig()
 }
 
@@ -1026,6 +1069,11 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	dist := toDist(name)
 	useProxy := setupWslProxyEnv()
 	if err := configureProxy(dist, useProxy, opts.Quiet); err != nil {
+		return err
+	}
+
+	// Startup user-mode networking if enabled
+	if err := v.startUserModeNetworking(); err != nil {
 		return err
 	}
 
@@ -1072,6 +1120,20 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	return err
 }
 
+func findExecutablePeer(name string) (string, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+
+	exe, err = filepath.EvalSymlinks(exe)
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(filepath.Dir(exe), name), nil
+}
+
 func launchWinProxy(v *MachineVM) (bool, string, error) {
 	machinePipe := toDist(v.Name)
 	if !machine.PipeNameAvailable(machinePipe) {
@@ -1083,17 +1145,11 @@ func launchWinProxy(v *MachineVM) (bool, string, error) {
 		globalName = true
 	}
 
-	exe, err := os.Executable()
+	command, err := findExecutablePeer(winSShProxy)
 	if err != nil {
 		return globalName, "", err
 	}
 
-	exe, err = filepath.EvalSymlinks(exe)
-	if err != nil {
-		return globalName, "", err
-	}
-
-	command := filepath.Join(filepath.Dir(exe), winSShProxy)
 	stateDir, err := getWinProxyStateDir(v)
 	if err != nil {
 		return globalName, "", err
@@ -1143,59 +1199,54 @@ func getWinProxyStateDir(v *MachineVM) (string, error) {
 	return stateDir, nil
 }
 
-func IsWSLInstalled() bool {
-	cmd := SilentExecCmd("wsl", "--status")
-	out, err := cmd.StdoutPipe()
-	cmd.Stderr = nil
-	if err != nil {
-		return false
-	}
-	if err = cmd.Start(); err != nil {
-		return false
-	}
-	scanner := bufio.NewScanner(transform.NewReader(out, unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewDecoder()))
-	result := true
-	for scanner.Scan() {
-		line := scanner.Text()
-		// Windows 11 does not set an error exit code when a kernel is not avail
-		if strings.Contains(line, "kernel file is not found") {
-			result = false
-			break
-		}
-	}
-	if err := cmd.Wait(); !result || err != nil {
-		return false
-	}
-
-	return true
-}
-
 func IsWSLFeatureEnabled() bool {
-	return SilentExec("wsl", "--set-default-version", "2") == nil
+	return wutil.SilentExec("wsl", "--set-default-version", "2") == nil
 }
 
 func isWSLRunning(dist string) (bool, error) {
-	cmd := exec.Command("wsl", "-l", "--running", "--quiet")
-	out, err := cmd.StdoutPipe()
+	return wslCheckExists(dist, true)
+}
+
+func isWSLExist(dist string) (bool, error) {
+	return wslCheckExists(dist, false)
+}
+
+func wslCheckExists(dist string, running bool) (bool, error) {
+	all, err := getAllWSLDistros(running)
 	if err != nil {
 		return false, err
 	}
-	if err = cmd.Start(); err != nil {
-		return false, err
+
+	_, exists := all[dist]
+	return exists, nil
+}
+
+func getAllWSLDistros(running bool) (map[string]struct{}, error) {
+	args := []string{"-l", "--quiet"}
+	if running {
+		args = append(args, "--running")
 	}
+	cmd := exec.Command("wsl", args...)
+	out, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	if err = cmd.Start(); err != nil {
+		return nil, err
+	}
+
+	all := make(map[string]struct{})
 	scanner := bufio.NewScanner(transform.NewReader(out, unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewDecoder()))
-	result := false
 	for scanner.Scan() {
 		fields := strings.Fields(scanner.Text())
-		if len(fields) > 0 && dist == fields[0] {
-			result = true
-			break
+		if len(fields) > 0 {
+			all[fields[0]] = struct{}{}
 		}
 	}
 
 	_ = cmd.Wait()
 
-	return result, nil
+	return all, nil
 }
 
 func isSystemdRunning(dist string) (bool, error) {
@@ -1243,6 +1294,11 @@ func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
 		return fmt.Errorf("%q is not running", v.Name)
 	}
 
+	// Stop user-mode networking if enabled
+	if err := v.stopUserModeNetworking(dist); err != nil {
+		fmt.Fprintf(os.Stderr, "Could not cleanly stop user-mode networking: %s\n", err.Error())
+	}
+
 	_, _, _ = v.updateTimeStamps(true)
 
 	if err := stopWinProxy(v); err != nil {
@@ -1269,6 +1325,11 @@ func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
 
 func terminateDist(dist string) error {
 	cmd := exec.Command("wsl", "--terminate", dist)
+	return cmd.Run()
+}
+
+func unregisterDist(dist string) error {
+	cmd := exec.Command("wsl", "--unregister", dist)
 	return cmd.Run()
 }
 
@@ -1470,6 +1531,7 @@ func GetVMInfos() ([]*machine.ListResponse, error) {
 			listEntry.Port = vm.Port
 			listEntry.IdentityPath = vm.IdentityPath
 			listEntry.Starting = false
+			listEntry.UserModeNetworking = vm.UserModeNetworking
 
 			running := vm.isRunning()
 			listEntry.CreatedAt, listEntry.LastUp, _ = vm.updateTimeStamps(running)
@@ -1624,11 +1686,12 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
 			ImagePath:   machine.VMFile{Path: v.ImagePath},
 			ImageStream: v.ImageStream,
 		},
-		LastUp:    lastUp,
-		Name:      v.Name,
-		Resources: v.getResources(),
-		SSHConfig: v.SSHConfig,
-		State:     state,
+		LastUp:             lastUp,
+		Name:               v.Name,
+		Resources:          v.getResources(),
+		SSHConfig:          v.SSHConfig,
+		State:              state,
+		UserModeNetworking: v.UserModeNetworking,
 	}, nil
 }
 

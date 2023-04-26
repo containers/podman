@@ -364,6 +364,11 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	if err := v.resizeDisk(opts.DiskSize, originalDiskSize>>(10*3)); err != nil {
 		return false, err
 	}
+
+	if opts.UserModeNetworking != nil && !*opts.UserModeNetworking {
+		logrus.Warn("ignoring init option to disable user-mode networking: this mode is not supported by the QEMU backend")
+	}
+
 	// If the user provides an ignition file, we need to
 	// copy it into the conf dir
 	if len(opts.IgnitionPath) > 0 {
@@ -1152,6 +1157,7 @@ func getVMInfos() ([]*machine.ListResponse, error) {
 			listEntry.IdentityPath = vm.IdentityPath
 			listEntry.CreatedAt = vm.Created
 			listEntry.Starting = vm.Starting
+			listEntry.UserModeNetworking = true // always true
 
 			if listEntry.CreatedAt.IsZero() {
 				listEntry.CreatedAt = time.Now()
@@ -1609,15 +1615,16 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
 	}
 	connInfo.PodmanSocket = podmanSocket
 	return &machine.InspectInfo{
-		ConfigPath:     v.ConfigPath,
-		ConnectionInfo: *connInfo,
-		Created:        v.Created,
-		Image:          v.ImageConfig,
-		LastUp:         v.LastUp,
-		Name:           v.Name,
-		Resources:      v.ResourceConfig,
-		SSHConfig:      v.SSHConfig,
-		State:          state,
+		ConfigPath:         v.ConfigPath,
+		ConnectionInfo:     *connInfo,
+		Created:            v.Created,
+		Image:              v.ImageConfig,
+		LastUp:             v.LastUp,
+		Name:               v.Name,
+		Resources:          v.ResourceConfig,
+		SSHConfig:          v.SSHConfig,
+		State:              state,
+		UserModeNetworking: true, // always true
 	}, nil
 }
 

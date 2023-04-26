@@ -17,22 +17,22 @@ import (
 )
 
 type InitOptions struct {
-	CPUS         uint64
-	DiskSize     uint64
-	IgnitionPath string
-	ImagePath    string
-	Volumes      []string
-	VolumeDriver string
-	IsDefault    bool
-	Memory       uint64
-	Name         string
-	TimeZone     string
-	URI          url.URL
-	Username     string
-	ReExec       bool
-	Rootful      bool
-	// The numerical userid of the user that called machine
-	UID string
+	CPUS               uint64
+	DiskSize           uint64
+	IgnitionPath       string
+	ImagePath          string
+	Volumes            []string
+	VolumeDriver       string
+	IsDefault          bool
+	Memory             uint64
+	Name               string
+	TimeZone           string
+	URI                url.URL
+	Username           string
+	ReExec             bool
+	Rootful            bool
+	UID                string // uid of the user that called machine
+	UserModeNetworking *bool  // nil = use backend/system default, false = disable, true = enable
 }
 
 type Status = string
@@ -91,26 +91,28 @@ type Download struct {
 type ListOptions struct{}
 
 type ListResponse struct {
-	Name           string
-	CreatedAt      time.Time
-	LastUp         time.Time
-	Running        bool
-	Starting       bool
-	Stream         string
-	VMType         string
-	CPUs           uint64
-	Memory         uint64
-	DiskSize       uint64
-	Port           int
-	RemoteUsername string
-	IdentityPath   string
+	Name               string
+	CreatedAt          time.Time
+	LastUp             time.Time
+	Running            bool
+	Starting           bool
+	Stream             string
+	VMType             string
+	CPUs               uint64
+	Memory             uint64
+	DiskSize           uint64
+	Port               int
+	RemoteUsername     string
+	IdentityPath       string
+	UserModeNetworking bool
 }
 
 type SetOptions struct {
-	CPUs     *uint64
-	DiskSize *uint64
-	Memory   *uint64
-	Rootful  *bool
+	CPUs               *uint64
+	DiskSize           *uint64
+	Memory             *uint64
+	Rootful            *bool
+	UserModeNetworking *bool
 }
 
 type SSHOptions struct {
@@ -151,15 +153,16 @@ type DistributionDownload interface {
 	CleanCache() error
 }
 type InspectInfo struct {
-	ConfigPath     VMFile
-	ConnectionInfo ConnectionConfig
-	Created        time.Time
-	Image          ImageConfig
-	LastUp         time.Time
-	Name           string
-	Resources      ResourceConfig
-	SSHConfig      SSHConfig
-	State          Status
+	ConfigPath         VMFile
+	ConnectionInfo     ConnectionConfig
+	Created            time.Time
+	Image              ImageConfig
+	LastUp             time.Time
+	Name               string
+	Resources          ResourceConfig
+	SSHConfig          SSHConfig
+	State              Status
+	UserModeNetworking bool
 }
 
 func (rc RemoteConnectionType) MakeSSHURL(host, path, port, userName string) url.URL {

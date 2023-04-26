@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -344,18 +343,4 @@ func sendQuit(tid uint32) {
 	user32 := syscall.NewLazyDLL("user32.dll")
 	postMessage := user32.NewProc("PostThreadMessageW")
 	postMessage.Call(uintptr(tid), WM_QUIT, 0, 0)
-}
-
-func SilentExec(command string, args ...string) error {
-	cmd := exec.Command(command, args...)
-	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x08000000}
-	cmd.Stdout = nil
-	cmd.Stderr = nil
-	return cmd.Run()
-}
-
-func SilentExecCmd(command string, args ...string) *exec.Cmd {
-	cmd := exec.Command(command, args...)
-	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x08000000}
-	return cmd
 }

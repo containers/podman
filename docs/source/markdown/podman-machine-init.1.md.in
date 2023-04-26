@@ -76,6 +76,8 @@ Set the timezone for the machine and containers.  Valid values are `local` or
 a `timezone` such as `America/Chicago`.  A value of `local`, which is the default,
 means to use the timezone of the machine host.
 
+@@option user-mode-networking
+
 #### **--username**
 
 Username to use for executing commands in remote VM. Default value is `core`

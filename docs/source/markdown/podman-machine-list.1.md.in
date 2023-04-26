@@ -32,22 +32,23 @@ Change the default output format.  This can be of a supported type like 'json'
 or a Go template.
 Valid placeholders for the Go template are listed below:
 
-| **Placeholder** | **Description**                 |
-| --------------- | ------------------------------- |
-| .CPUs           | Number of CPUs                  |
-| .Created        | Time since VM creation          |
-| .Default        | Is default machine              |
-| .DiskSize       | Disk size of machine            |
-| .IdentityPath   | Path to ssh identity file       |
-| .LastUp         | Time machine was last up        |
-| .LastUp         | Time since the VM was last run  |
-| .Memory         | Allocated memory for machine   |
-| .Name           | VM name                         |
-| .Port           | SSH Port to use to connect to VM|
-| .RemoteUsername | VM Username for rootless Podman |
-| .Running        | Is machine running              |
-| .Stream         | Stream name                     |
-| .VMType         | VM type                         |
+| **Placeholder**     | **Description**                           |
+| ------------------- | ----------------------------------------- |
+| .CPUs               | Number of CPUs                            |
+| .Created            | Time since VM creation                    |
+| .Default            | Is default machine                        |
+| .DiskSize           | Disk size of machine                      |
+| .IdentityPath       | Path to ssh identity file                 |
+| .LastUp             | Time machine was last up                  |
+| .LastUp             | Time since the VM was last run            |
+| .Memory             | Allocated memory for machine              |
+| .Name               | VM name                                   |
+| .Port               | SSH Port to use to connect to VM          |
+| .RemoteUsername     | VM Username for rootless Podman           |
+| .Running            | Is machine running                        |
+| .Stream             | Stream name                               |
+| .UserModeNetworking | Whether machine uses user-mode networking |
+| .VMType             | VM type                                   |
 
 #### **--help**
 
