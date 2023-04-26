@@ -65,6 +65,13 @@ func reset(cmd *cobra.Command, args []string) {
         - all machines
         - all volumes`)
 
+		info, _ := registry.ContainerEngine().Info(registry.Context())
+		// lets not hard fail in case of an error
+		if info != nil {
+			fmt.Printf("        - the graphRoot directory: %q\n", info.Store.GraphRoot)
+			fmt.Printf("        - the runRoot directory: %q\n", info.Store.RunRoot)
+		}
+
 		if len(listCtn) > 0 {
 			fmt.Println(`WARNING! The following external containers will be purged:`)
 			// print first 12 characters of ID and first configured name alias
