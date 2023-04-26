@@ -51,6 +51,13 @@ function bloat_approved() {
     #        requiring a MAX_BIN_GROWTH=nnn statement in github comments.
     local actual_growth="$1"
 
+    # Running on cron treadmill? Sigh... allow it. The purpose of the treadmill
+    # is to detect *vendoring problems*: compilation errors or behavior changes
+    # that lead to regressions. Bloat is secondary.
+    if [[ "${CIRRUS_CRON:-none}" = "treadmill" ]]; then
+        return 0
+    fi
+
     if [[ -z "$CIRRUS_PR" ]]; then
         echo "$ME: cannot query github: \$CIRRUS_PR is undefined" >&2
         return 1
