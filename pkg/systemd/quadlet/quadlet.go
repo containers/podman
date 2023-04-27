@@ -1,7 +1,9 @@
 package quadlet
 
 import (
+	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -421,6 +423,13 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	// But allow overrides with AddCapability
 	devices := container.LookupAllStrv(ContainerGroup, KeyAddDevice)
 	for _, device := range devices {
+		if device[0] == '-' {
+			device = device[1:]
+			_, err := os.Stat(strings.Split(device, ":")[0])
+			if errors.Is(err, os.ErrNotExist) {
+				continue
+			}
+		}
 		podman.addf("--device=%s", device)
 	}
 
