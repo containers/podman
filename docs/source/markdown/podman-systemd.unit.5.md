@@ -145,7 +145,8 @@ Adds a device node from the host into the container. The format of this is
 `HOST-DEVICE[:CONTAINER-DEVICE][:PERMISSIONS]`, where `HOST-DEVICE` is the path of
 the device node on the host, `CONTAINER-DEVICE` is the path of the device node in
 the container, and `PERMISSIONS` is a list of permissions combining 'r' for read,
-'w' for write, and 'm' for mknod(2).
+'w' for write, and 'm' for mknod(2). The `-` prefix tells quadlet to add the device
+only if it exists on the host.
 
 This key can be listed multiple times.
 
