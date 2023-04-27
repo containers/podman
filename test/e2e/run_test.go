@@ -48,6 +48,36 @@ var _ = Describe("Podman run", func() {
 		Expect(session).Should(Exit(0))
 	})
 
+	// This test may seem entirely pointless, it is not.  Due to compatibility
+	// and historical reasons, the container name generator uses a globally
+	// scoped RNG, seeded from a global state.  An easy way to check if its
+	// been initialized properly (i.e. pseudo-non-deterministically) is
+	// checking if the name-generator spits out the same name twice.  Because
+	// existing containers are checked when generating names, the test must ensure
+	// the first container is removed before creating a second.
+	It("podman generates different names for successive containers", func() {
+		var names [2]string
+
+		for i := range names {
+			session := podmanTest.Podman([]string{"create", ALPINE, "true"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+			cid := session.OutputToString()
+			Expect(cid).To(Not(Equal("")))
+
+			session = podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Name}}", cid})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+			names[i] = session.OutputToString()
+			Expect(names[i]).To(Not(Equal("")))
+
+			session = podmanTest.Podman([]string{"rm", cid})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+		}
+		Expect(names[0]).ToNot(Equal(names[1]), "Podman generated duplicate successive container names, has the global RNG been seeded correctly?")
+	})
+
 	It("podman run check /run/.containerenv", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "cat", "/run/.containerenv"})
 		session.WaitWithDefaultTimeout()
