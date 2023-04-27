@@ -155,22 +155,6 @@ build_task:
           _gc='git config --file /root/.gitconfig'
           $_gc user.email "TMcTestFace@example.com"
           $_gc user.name "Testy McTestface"
-          # Nightly dependency-bump job: fetch latest versions of the
-          # Big Three dependencies, and run full CI test suite. Notification
-          # email will go out to monitor-list upon failure.
-          if [[ "$CIRRUS_CRON" = "treadmill" ]]; then
-              for pkg in common image/v5 storage; do
-                  echo "go mod edit --require containers/$pkg@main"
-                  go mod edit --require github.com/containers/$pkg@main
-                  make vendor
-              done
-              git add vendor
-              # Show what changed.
-              echo "git diff go.mod, then git diff --stat:"
-              git diff go.mod
-              git diff --stat
-              HOME=/root git commit --allow-empty -asm"Bump containers/common,image,storage"
-          fi
     # Attempt to prevent flakes by confirming basic environment expectations,
     # network service connectivity and essential container image availability.
     prebuild_script: &prebuild $SCRIPT_BASE/prebuild.sh
@@ -880,7 +864,7 @@ buildah_bud_test_task:
 rootless_buildah_bud_test_task:
     name: *std_name_fmt
     alias: rootless_buildah_bud_test
-    # Docs: ./contrib/cirrus/CIModes.md
+    # Please keep this as-is: the buildah treadmill (#13808) relies on it.
     only_if: $CIRRUS_CRON == 'treadmill'
     depends_on:
         - build
