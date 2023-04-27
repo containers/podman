@@ -26,14 +26,15 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ####
-    FEDORA_NAME: "fedora-37"
+    FEDORA_NAME: "fedora-38"
     FEDORA_AARCH64_NAME: "${FEDORA_NAME}-aarch64"
-    PRIOR_FEDORA_NAME: "fedora-36"
+    PRIOR_FEDORA_NAME: "fedora-37"
     RAWHIDE_NAME: "rawhide"
     DEBIAN_NAME: "debian-12"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20230420t184033z-f37f36d12"
+    IMAGE_SUFFIX: "c20230426t140447z-f38f37d12"
+
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
     FEDORA_AARCH64_AMI: "fedora-podman-aws-arm64-${IMAGE_SUFFIX}"
@@ -219,7 +220,7 @@ build_aarch64_task:
 # This confirms the binaries can be executed, checks --help vs docs, and
 # other essential post-build validation checks.
 validate_task:
-    name: "Validate $DISTRO_NV Build"
+    name: "Validate ${DISTRO_NV} Build"
     alias: validate
     # This task is primarily intended to catch human-errors early on, in a
     # PR.  Skip it for branch-push, branch-create, and tag-push to improve
@@ -235,9 +236,16 @@ validate_task:
         <<: *standardvm
         cpu: 8
         memory: "16Gb"
+    matrix:
+        - env:
+            <<: *stdenvars
+            VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
+            DISTRO_NV: ${FEDORA_NAME}
+        - env:
+            <<: *stdenvars
+            VM_IMAGE_NAME: ${RAWHIDE_CACHE_IMAGE_NAME}
+            DISTRO_NV: ${RAWHIDE_NAME}
     env:
-        <<: *stdenvars
-        DISTRO_NV: ${FEDORA_NAME}
         TEST_FLAVOR: validate
     # N/B: This script depends on ${DISTRO_NV} being defined for the task.
     clone_script: &get_gosrc |
