@@ -70,12 +70,11 @@ class TestImages(common.DockerTestCase):
         """Image history"""
         img = self.docker.images.get(constant.ALPINE)
         history = img.history()
-        image_id = img.id[7:] if img.id.startswith("sha256:") else img.id
 
         found = False
         for change in history:
-            found |= image_id in change.values()
-        self.assertTrue(found, f"image id {image_id} not found in history")
+            found |= img.id in change.values()
+        self.assertTrue(found, f"image id {img.id} not found in history")
 
     def test_get_image_exists_not(self):
         """Negative test for get image"""
