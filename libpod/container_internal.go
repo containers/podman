@@ -1866,8 +1866,12 @@ func (c *Container) cleanupStorage() error {
 		}
 	}
 	if c.config.RootfsMapping != nil {
-		if err := unix.Unmount(c.config.Rootfs, 0); err != nil {
-			logrus.Errorf("Unmounting idmapped rootfs for container %s after mount error: %v", c.ID(), err)
+		if err := unix.Unmount(c.config.Rootfs, 0); err != nil && err != unix.EINVAL {
+			if cleanupErr != nil {
+				logrus.Errorf("Unmounting idmapped rootfs for container %s after mount error: %v", c.ID(), err)
+			} else {
+				cleanupErr = fmt.Errorf("unmounting idmapped rootfs for container %s after mount error: %w", c.ID(), err)
+			}
 		}
 	}
 
