@@ -1848,9 +1848,10 @@ func (c *Container) cleanupStorage() error {
 		if c.valid {
 			if err := c.save(); err != nil {
 				if cleanupErr != nil {
-					logrus.Errorf("Unmounting container %s: %v", c.ID(), cleanupErr)
+					logrus.Errorf("Unmounting container %s: %v", c.ID(), err)
+				} else {
+					cleanupErr = err
 				}
-				cleanupErr = err
 			}
 		}
 	}
@@ -1861,8 +1862,9 @@ func (c *Container) cleanupStorage() error {
 		if err := overlay.Unmount(overlayBasePath); err != nil {
 			if cleanupErr != nil {
 				logrus.Errorf("Failed to clean up overlay mounts for %s: %v", c.ID(), err)
+			} else {
+				cleanupErr = fmt.Errorf("failed to clean up overlay mounts for %s: %w", c.ID(), err)
 			}
-			cleanupErr = err
 		}
 	}
 	if c.config.RootfsMapping != nil {
@@ -1878,16 +1880,20 @@ func (c *Container) cleanupStorage() error {
 	for _, containerMount := range c.config.Mounts {
 		if err := c.unmountSHM(containerMount); err != nil {
 			if cleanupErr != nil {
-				logrus.Errorf("Unmounting container %s: %v", c.ID(), cleanupErr)
+				logrus.Errorf("Unmounting container %s: %v", c.ID(), err)
+			} else {
+				cleanupErr = fmt.Errorf("unmounting container %s: %w", c.ID(), err)
 			}
-			cleanupErr = err
 		}
 	}
 
 	if err := c.cleanupOverlayMounts(); err != nil {
 		// If the container can't remove content report the error
-		logrus.Errorf("Failed to clean up overlay mounts for %s: %v", c.ID(), err)
-		cleanupErr = err
+		if cleanupErr != nil {
+			logrus.Errorf("Failed to clean up overlay mounts for %s: %v", c.ID(), err)
+		} else {
+			cleanupErr = fmt.Errorf("failed to clean up overlay mounts for %s: %w", c.ID(), err)
+		}
 	}
 
 	if c.config.Rootfs != "" {
@@ -1905,8 +1911,9 @@ func (c *Container) cleanupStorage() error {
 		} else {
 			if cleanupErr != nil {
 				logrus.Errorf("Cleaning up container %s storage: %v", c.ID(), cleanupErr)
+			} else {
+				cleanupErr = fmt.Errorf("cleaning up container %s storage: %w", c.ID(), cleanupErr)
 			}
-			cleanupErr = err
 		}
 	}
 
@@ -1915,9 +1922,10 @@ func (c *Container) cleanupStorage() error {
 		vol, err := c.runtime.state.Volume(v.Name)
 		if err != nil {
 			if cleanupErr != nil {
-				logrus.Errorf("Unmounting container %s: %v", c.ID(), cleanupErr)
+				logrus.Errorf("Retrieving named volume %s for container %s: %v", v.Name, c.ID(), err)
+			} else {
+				cleanupErr = fmt.Errorf("retrieving named volume %s for container %s: %w", v.Name, c.ID(), err)
 			}
-			cleanupErr = fmt.Errorf("retrieving named volume %s for container %s: %w", v.Name, c.ID(), err)
 
 			// We need to try and unmount every volume, so continue
 			// if they fail.
@@ -1928,9 +1936,10 @@ func (c *Container) cleanupStorage() error {
 			vol.lock.Lock()
 			if err := vol.unmount(false); err != nil {
 				if cleanupErr != nil {
-					logrus.Errorf("Unmounting container %s: %v", c.ID(), cleanupErr)
+					logrus.Errorf("Unmounting volume %s for container %s: %v", vol.Name(), c.ID(), err)
+				} else {
+					cleanupErr = fmt.Errorf("unmounting volume %s for container %s: %w", vol.Name(), c.ID(), err)
 				}
-				cleanupErr = fmt.Errorf("unmounting volume %s for container %s: %w", vol.Name(), c.ID(), err)
 			}
 			vol.lock.Unlock()
 		}
