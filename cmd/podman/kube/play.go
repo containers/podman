@@ -346,34 +346,26 @@ func playKube(cmd *cobra.Command, args []string) error {
 }
 
 func readerFromArg(fileName string) (*bytes.Reader, error) {
-	errURL := parse.ValidURL(fileName)
-	if fileName == "-" { // Read from stdin
-		data, err := io.ReadAll(os.Stdin)
-		if err != nil {
-			return nil, err
-		}
-		return bytes.NewReader(data), nil
-	}
-	if errURL == nil {
+	var reader io.Reader
+	switch {
+	case fileName == "-": // Read from stdin
+		reader = os.Stdin
+	case parse.ValidURL(fileName) == nil:
 		response, err := http.Get(fileName)
 		if err != nil {
 			return nil, err
 		}
 		defer response.Body.Close()
-
-		data, err := io.ReadAll(response.Body)
+		reader = response.Body
+	default:
+		f, err := os.Open(fileName)
 		if err != nil {
 			return nil, err
 		}
-		return bytes.NewReader(data), nil
+		defer f.Close()
+		reader = f
 	}
-	f, err := os.Open(fileName)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	data, err := io.ReadAll(f)
+	data, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
