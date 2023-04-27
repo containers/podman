@@ -375,7 +375,7 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps filter by exited does not need all", func() {
-		ctr := podmanTest.Podman([]string{"run", "-t", "-i", ALPINE, "ls", "/"})
+		ctr := podmanTest.Podman([]string{"run", ALPINE, "ls", "/"})
 		ctr.WaitWithDefaultTimeout()
 		Expect(ctr).Should(Exit(0))
 
@@ -392,7 +392,7 @@ var _ = Describe("Podman ps", func() {
 
 	It("podman filter without status does not find non-running", func() {
 		ctrName := "aContainerName"
-		ctr := podmanTest.Podman([]string{"create", "--name", ctrName, "-t", "-i", ALPINE, "ls", "/"})
+		ctr := podmanTest.Podman([]string{"create", "--name", ctrName, ALPINE, "ls", "/"})
 		ctr.WaitWithDefaultTimeout()
 		Expect(ctr).Should(Exit(0))
 
@@ -420,7 +420,7 @@ var _ = Describe("Podman ps", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"create", "-t", ALPINE, "top"})
+		session = podmanTest.Podman([]string{"create", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -435,7 +435,7 @@ var _ = Describe("Podman ps", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"create", "-t", ALPINE, "top"})
+		session = podmanTest.Podman([]string{"create", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 

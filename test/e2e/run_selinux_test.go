@@ -45,21 +45,21 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run selinux grep test", func() {
-		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", "label=level:s0:c1,c2", ALPINE, "cat", "/proc/self/attr/current"})
+		session := podmanTest.Podman([]string{"run", "--security-opt", "label=level:s0:c1,c2", ALPINE, "cat", "/proc/self/attr/current"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("s0:c1,c2"))
 	})
 
 	It("podman run selinux disable test", func() {
-		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", "label=disable", ALPINE, "cat", "/proc/self/attr/current"})
+		session := podmanTest.Podman([]string{"run", "--security-opt", "label=disable", ALPINE, "cat", "/proc/self/attr/current"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("spc_t"))
 	})
 
 	It("podman run selinux type check test", func() {
-		session := podmanTest.Podman([]string{"run", "-it", ALPINE, "cat", "/proc/self/attr/current"})
+		session := podmanTest.Podman([]string{"run", ALPINE, "cat", "/proc/self/attr/current"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		match1, _ := session.GrepString("container_t")
@@ -68,7 +68,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run selinux type setup test", func() {
-		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", "label=type:spc_t", ALPINE, "cat", "/proc/self/attr/current"})
+		session := podmanTest.Podman([]string{"run", "--security-opt", "label=type:spc_t", ALPINE, "cat", "/proc/self/attr/current"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("spc_t"))
@@ -138,12 +138,12 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run selinux file type setup test", func() {
-		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", "label=type:spc_t", "--security-opt", "label=filetype:container_var_lib_t", fedoraMinimal, "ls", "-Z", "/dev"})
+		session := podmanTest.Podman([]string{"run", "--security-opt", "label=type:spc_t", "--security-opt", "label=filetype:container_var_lib_t", fedoraMinimal, "ls", "-Z", "/dev"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("container_var_lib_t"))
 
-		session = podmanTest.Podman([]string{"run", "-it", "--security-opt", "label=type:spc_t", "--security-opt", "label=filetype:foobar", fedoraMinimal, "ls", "-Z", "/dev"})
+		session = podmanTest.Podman([]string{"run", "--security-opt", "label=type:spc_t", "--security-opt", "label=filetype:foobar", fedoraMinimal, "ls", "-Z", "/dev"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(126))
 	})
@@ -161,7 +161,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run --privileged and --security-opt SELinux options", func() {
-		session := podmanTest.Podman([]string{"run", "-it", "--privileged", "--security-opt", "label=type:spc_t", "--security-opt", "label=level:s0:c1,c2", ALPINE, "cat", "/proc/self/attr/current"})
+		session := podmanTest.Podman([]string{"run", "--privileged", "--security-opt", "label=type:spc_t", "--security-opt", "label=level:s0:c1,c2", ALPINE, "cat", "/proc/self/attr/current"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("spc_t"))

@@ -432,12 +432,12 @@ var _ = Describe("Podman run with volumes", func() {
 	})
 
 	It("podman named volume copyup", func() {
-		baselineSession := podmanTest.Podman([]string{"run", "--rm", "-t", "-i", ALPINE, "ls", "/etc/apk/"})
+		baselineSession := podmanTest.Podman([]string{"run", "--rm", ALPINE, "ls", "/etc/apk/"})
 		baselineSession.WaitWithDefaultTimeout()
 		Expect(baselineSession).Should(Exit(0))
 		baselineOutput := baselineSession.OutputToString()
 
-		inlineVolumeSession := podmanTest.Podman([]string{"run", "--rm", "-t", "-i", "-v", "testvol1:/etc/apk", ALPINE, "ls", "/etc/apk/"})
+		inlineVolumeSession := podmanTest.Podman([]string{"run", "--rm", "-v", "testvol1:/etc/apk", ALPINE, "ls", "/etc/apk/"})
 		inlineVolumeSession.WaitWithDefaultTimeout()
 		Expect(inlineVolumeSession).Should(Exit(0))
 		Expect(inlineVolumeSession.OutputToString()).To(Equal(baselineOutput))
@@ -446,7 +446,7 @@ var _ = Describe("Podman run with volumes", func() {
 		makeVolumeSession.WaitWithDefaultTimeout()
 		Expect(makeVolumeSession).Should(Exit(0))
 
-		separateVolumeSession := podmanTest.Podman([]string{"run", "--rm", "-t", "-i", "-v", "testvol2:/etc/apk", ALPINE, "ls", "/etc/apk/"})
+		separateVolumeSession := podmanTest.Podman([]string{"run", "--rm", "-v", "testvol2:/etc/apk", ALPINE, "ls", "/etc/apk/"})
 		separateVolumeSession.WaitWithDefaultTimeout()
 		Expect(separateVolumeSession).Should(Exit(0))
 		Expect(separateVolumeSession.OutputToString()).To(Equal(baselineOutput))
@@ -467,47 +467,47 @@ RUN touch /testfile
 RUN sh -c "cd /etc/apk && ln -s ../../testfile"`, ALPINE)
 		podmanTest.BuildImage(dockerfile, imgName, "false")
 
-		baselineSession := podmanTest.Podman([]string{"run", "--rm", "-t", "-i", imgName, "ls", "/etc/apk/"})
+		baselineSession := podmanTest.Podman([]string{"run", "--rm", imgName, "ls", "/etc/apk/"})
 		baselineSession.WaitWithDefaultTimeout()
 		Expect(baselineSession).Should(Exit(0))
 		baselineOutput := baselineSession.OutputToString()
 
-		outputSession := podmanTest.Podman([]string{"run", "-t", "-i", "-v", "/etc/apk/", imgName, "ls", "/etc/apk/"})
+		outputSession := podmanTest.Podman([]string{"run", "-v", "/etc/apk/", imgName, "ls", "/etc/apk/"})
 		outputSession.WaitWithDefaultTimeout()
 		Expect(outputSession).Should(Exit(0))
 		Expect(outputSession.OutputToString()).To(Equal(baselineOutput))
 	})
 
 	It("podman named volume copyup empty directory", func() {
-		baselineSession := podmanTest.Podman([]string{"run", "--rm", "-t", "-i", ALPINE, "ls", "/srv"})
+		baselineSession := podmanTest.Podman([]string{"run", "--rm", ALPINE, "ls", "/srv"})
 		baselineSession.WaitWithDefaultTimeout()
 		Expect(baselineSession).Should(Exit(0))
 		baselineOutput := baselineSession.OutputToString()
 
-		outputSession := podmanTest.Podman([]string{"run", "-t", "-i", "-v", "/srv", ALPINE, "ls", "/srv"})
+		outputSession := podmanTest.Podman([]string{"run", "-v", "/srv", ALPINE, "ls", "/srv"})
 		outputSession.WaitWithDefaultTimeout()
 		Expect(outputSession).Should(Exit(0))
 		Expect(outputSession.OutputToString()).To(Equal(baselineOutput))
 	})
 
 	It("podman named volume copyup of /var", func() {
-		baselineSession := podmanTest.Podman([]string{"run", "--rm", "-t", "-i", fedoraMinimal, "ls", "/var"})
+		baselineSession := podmanTest.Podman([]string{"run", "--rm", fedoraMinimal, "ls", "/var"})
 		baselineSession.WaitWithDefaultTimeout()
 		Expect(baselineSession).Should(Exit(0))
 		baselineOutput := baselineSession.OutputToString()
 
-		outputSession := podmanTest.Podman([]string{"run", "-t", "-i", "-v", "/var", fedoraMinimal, "ls", "/var"})
+		outputSession := podmanTest.Podman([]string{"run", "-v", "/var", fedoraMinimal, "ls", "/var"})
 		outputSession.WaitWithDefaultTimeout()
 		Expect(outputSession).Should(Exit(0))
 		Expect(outputSession.OutputToString()).To(Equal(baselineOutput))
 	})
 
 	It("podman read-only tmpfs conflict with volume", func() {
-		session := podmanTest.Podman([]string{"run", "--rm", "-t", "-i", "--read-only", "-v", "tmp_volume:" + dest, ALPINE, "touch", dest + "/a"})
+		session := podmanTest.Podman([]string{"run", "--rm", "--read-only", "-v", "tmp_volume:" + dest, ALPINE, "touch", dest + "/a"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session2 := podmanTest.Podman([]string{"run", "--rm", "-t", "-i", "--read-only", "--tmpfs", dest, ALPINE, "touch", dest + "/a"})
+		session2 := podmanTest.Podman([]string{"run", "--rm", "--read-only", "--tmpfs", dest, ALPINE, "touch", dest + "/a"})
 		session2.WaitWithDefaultTimeout()
 		Expect(session2).Should(Exit(0))
 	})
@@ -623,7 +623,7 @@ RUN sh -c "cd /etc/apk && ln -s ../../testfile"`, ALPINE)
 		Expect(err).ToNot(HaveOccurred())
 		defer file.Close()
 
-		runLs := podmanTest.Podman([]string{"run", "-t", "-i", "--rm", "-v", fmt.Sprintf("%v:/etc/ssl", volName), ALPINE, "ls", "-1", "/etc/ssl"})
+		runLs := podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%v:/etc/ssl", volName), ALPINE, "ls", "-1", "/etc/ssl"})
 		runLs.WaitWithDefaultTimeout()
 		Expect(runLs).Should(Exit(0))
 		outputArr := runLs.OutputToStringArray()
@@ -746,7 +746,7 @@ VOLUME /test/`, ALPINE)
 
 	It("same volume in multiple places does not deadlock", func() {
 		volName := "testVol1"
-		session := podmanTest.Podman([]string{"run", "-t", "-i", "-v", fmt.Sprintf("%s:/test1", volName), "-v", fmt.Sprintf("%s:/test2", volName), "--rm", ALPINE, "sh", "-c", "mount | grep /test"})
+		session := podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:/test1", volName), "-v", fmt.Sprintf("%s:/test2", volName), "--rm", ALPINE, "sh", "-c", "mount | grep /test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToStringArray()).To(HaveLen(2))
@@ -987,7 +987,7 @@ USER testuser`, fedoraMinimal)
 			Expect(err).ToNot(HaveOccurred())
 		}()
 
-		run := podmanTest.Podman([]string{"run", "-it", "--security-opt", "label=disable", "-v", "./:" + dest, ALPINE, "ls", dest})
+		run := podmanTest.Podman([]string{"run", "--security-opt", "label=disable", "-v", "./:" + dest, ALPINE, "ls", dest})
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(Exit(0))
 		Expect(run.OutputToString()).Should(ContainSubstring(strings.TrimLeft("/vol/", f.Name())))

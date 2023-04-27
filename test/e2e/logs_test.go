@@ -287,7 +287,7 @@ var _ = Describe("Podman logs", func() {
 		It("podman logs on a created container should result in 0 exit code: "+log, func() {
 			skipIfJournaldInContainer()
 
-			session := podmanTest.Podman([]string{"create", "--log-driver", log, "-t", "--name", "log", ALPINE})
+			session := podmanTest.Podman([]string{"create", "--log-driver", log, "--name", "log", ALPINE})
 			session.WaitWithDefaultTimeout()
 			Expect(session).To(Exit(0))
 
@@ -382,7 +382,7 @@ var _ = Describe("Podman logs", func() {
 		It("Make sure logs match expected length: "+log, func() {
 			skipIfJournaldInContainer()
 
-			logc := podmanTest.Podman([]string{"run", "--log-driver", log, "-t", "--name", "test", ALPINE, "sh", "-c", "echo 1; echo 2"})
+			logc := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", "test", ALPINE, "sh", "-c", "echo 1; echo 2"})
 			logc.WaitWithDefaultTimeout()
 			Expect(logc).To(Exit(0))
 
@@ -395,8 +395,8 @@ var _ = Describe("Podman logs", func() {
 			Expect(results).To(Exit(0))
 			outlines := results.OutputToStringArray()
 			Expect(outlines).To(HaveLen(2))
-			Expect(outlines[0]).To(Equal("1\r"))
-			Expect(outlines[1]).To(Equal("2\r"))
+			Expect(outlines[0]).To(Equal("1"))
+			Expect(outlines[1]).To(Equal("2"))
 		})
 
 		It("podman logs test stdout and stderr: "+log, func() {

@@ -58,7 +58,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 			err = podmanTest.RestoreArtifact(fedoraMinimal)
 			Expect(err).ToNot(HaveOccurred())
 		}
-		_, pid := podmanTest.PodmanPID([]string{"run", "-it", "-v", fmt.Sprintf("%s:/h:Z", udsDir), fedoraMinimal, "bash", "-c", sigCatch})
+		_, pid := podmanTest.PodmanPID([]string{"run", "-v", fmt.Sprintf("%s:/h:Z", udsDir), fedoraMinimal, "bash", "-c", sigCatch})
 
 		uds, _ := os.OpenFile(udsPath, os.O_RDONLY|syscall.O_NONBLOCK, 0600)
 		defer uds.Close()
