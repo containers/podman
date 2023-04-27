@@ -2745,10 +2745,7 @@ func (c *Container) createSecretMountDir() error {
 	src := filepath.Join(c.state.RunDir, "/run/secrets")
 	_, err := os.Stat(src)
 	if os.IsNotExist(err) {
-		oldUmask := umask.Set(0)
-		defer umask.Set(oldUmask)
-
-		if err := os.MkdirAll(src, 0755); err != nil {
+		if err := umask.MkdirAllIgnoreUmask(src, os.FileMode(0o755)); err != nil {
 			return err
 		}
 		if err := label.Relabel(src, c.config.MountLabel, false); err != nil {
