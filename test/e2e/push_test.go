@@ -286,10 +286,12 @@ var _ = Describe("Podman push", func() {
 		push := podmanTest.Podman([]string{"push", "--tls-verify=true", "--format=v2s2", "--creds=podmantest:test", ALPINE, "localhost:5000/tlstest"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).To(ExitWithError())
+		Expect(push.ErrorToString()).To(ContainSubstring("x509: certificate signed by unknown authority"))
 
 		push = podmanTest.Podman([]string{"push", "--creds=podmantest:test", "--tls-verify=false", ALPINE, "localhost:5000/tlstest"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
+		Expect(push.ErrorToString()).To(ContainSubstring("Writing manifest to image destination"))
 
 		setup := SystemExec("cp", []string{filepath.Join(certPath, "domain.crt"), "/etc/containers/certs.d/localhost:5000/ca.crt"})
 		Expect(setup).Should(Exit(0))
@@ -297,17 +299,20 @@ var _ = Describe("Podman push", func() {
 		push = podmanTest.Podman([]string{"push", "--creds=podmantest:wrongpasswd", ALPINE, "localhost:5000/credstest"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).To(ExitWithError())
+		Expect(push.ErrorToString()).To(ContainSubstring("/credstest: authentication required"))
 
 		if !IsRemote() {
 			// remote does not support --cert-dir
 			push = podmanTest.Podman([]string{"push", "--tls-verify=true", "--creds=podmantest:test", "--cert-dir=fakedir", ALPINE, "localhost:5000/certdirtest"})
 			push.WaitWithDefaultTimeout()
 			Expect(push).To(ExitWithError())
+			Expect(push.ErrorToString()).To(ContainSubstring("x509: certificate signed by unknown authority"))
 		}
 
 		push = podmanTest.Podman([]string{"push", "--creds=podmantest:test", ALPINE, "localhost:5000/defaultflags"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
+		Expect(push.ErrorToString()).To(ContainSubstring("Writing manifest to image destination"))
 	})
 
 	It("podman push and encrypt to oci", func() {
