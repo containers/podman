@@ -341,7 +341,7 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 	}
 
 	if !opts.SaveImage {
-		diskPath := m.ImagePath.GetPath()
+		diskPath = m.ImagePath.GetPath()
 		files = append(files, diskPath)
 	}
 
