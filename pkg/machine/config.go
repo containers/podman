@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/containers/storage/pkg/homedir"
@@ -413,3 +414,20 @@ const (
 	MachineLocal
 	DockerGlobal
 )
+
+func ParseVMType(input string, emptyFallback VMType) (VMType, error) {
+	switch strings.TrimSpace(strings.ToLower(input)) {
+	case "qemu":
+		return QemuVirt, nil
+	case "wsl":
+		return WSLVirt, nil
+	case "applehv":
+		return AppleHvVirt, nil
+	case "hyperv":
+		return HyperVVirt, nil
+	case "":
+		return emptyFallback, nil
+	default:
+		return QemuVirt, fmt.Errorf("unknown VMType `%s`", input)
+	}
+}

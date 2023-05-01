@@ -101,7 +101,10 @@ func hostInfo() (*entities.MachineHostInfo, error) {
 	host.Arch = runtime.GOARCH
 	host.OS = runtime.GOOS
 
-	provider := GetSystemDefaultProvider()
+	provider, err := GetSystemProvider()
+	if err != nil {
+		return nil, err
+	}
 	var listOpts machine.ListOptions
 	listResponse, err := provider.List(listOpts)
 	if err != nil {
