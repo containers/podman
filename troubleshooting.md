@@ -272,8 +272,8 @@ You should ensure that each user has a unique range of UIDs, because overlapping
 would potentially allow one user to attack another user. In addition, make sure
 that the range of UIDs you allocate can cover all UIDs that the container
 requires. For example, if the container has a user with UID 10000, ensure you
-have at least 10001 subuids, and if the container needs to be run as a user with
-UID 1000000, ensure you have at least 1000001 subuids.
+have at least 10000 subuids, and if the container needs to be run as a user with
+UID 1000000, ensure you have at least 1000000 subuids.
 
 You could also use the `usermod` program to assign UIDs to a user.
 
