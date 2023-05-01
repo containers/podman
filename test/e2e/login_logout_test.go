@@ -91,9 +91,13 @@ var _ = Describe("Podman login and logout", func() {
 		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
 			Skip("Cannot start docker registry.")
 		}
+
+		// collision protection: each test uses a unique authfile
+		os.Setenv("REGISTRY_AUTH_FILE", filepath.Join(podmanTest.TempDir, "default-auth.json"))
 	})
 
 	AfterEach(func() {
+		os.Unsetenv("REGISTRY_AUTH_FILE")
 		podmanTest.Cleanup()
 		os.RemoveAll(authPath)
 		os.RemoveAll(certDirPath)
@@ -118,9 +122,18 @@ var _ = Describe("Podman login and logout", func() {
 	}
 
 	It("podman login and logout", func() {
+		authFile := os.Getenv("REGISTRY_AUTH_FILE")
+		Expect(authFile).NotTo(BeEmpty(), "$REGISTRY_AUTH_FILE")
+
 		session := podmanTest.Podman([]string{"login", "-u", "podmantest", "-p", "test", server})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+
+		// Confirm that file was created, with the desired credentials
+		auths := readAuthInfo(authFile)
+		Expect(auths).To(HaveKey(server))
+		// base64-encoded "podmantest:test"
+		Expect(auths[server]).To(HaveKeyWithValue("auth", "cG9kbWFudGVzdDp0ZXN0"))
 
 		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
@@ -133,6 +146,7 @@ var _ = Describe("Podman login and logout", func() {
 		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(ContainSubstring(": authentication required"))
 	})
 
 	It("podman login and logout without registry parameter", func() {
@@ -177,6 +191,7 @@ var _ = Describe("Podman login and logout", func() {
 		session = podmanTest.Podman([]string{"push", "--authfile", "/tmp/nonexistent", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(Equal("Error: stat /tmp/nonexistent: no such file or directory"))
 
 		session = podmanTest.Podman([]string{"push", "--authfile", authFile, ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
@@ -190,6 +205,7 @@ var _ = Describe("Podman login and logout", func() {
 		session = podmanTest.Podman([]string{"logout", "--authfile", "/tmp/nonexistent", server})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(Equal("Error: checking authfile: stat /tmp/nonexistent: no such file or directory"))
 
 		session = podmanTest.Podman([]string{"logout", "--authfile", authFile, server})
 		session.WaitWithDefaultTimeout()
@@ -241,6 +257,10 @@ var _ = Describe("Podman login and logout", func() {
 		setup.WaitWithDefaultTimeout()
 		defer os.RemoveAll(certDir)
 
+		// FIXME: #18405, podman-run barfs if $REGISTRY_AUTH_FILE missing
+		err = os.WriteFile(os.Getenv("REGISTRY_AUTH_FILE"), []byte(`{"auths": {}}`), 0600)
+		Expect(err).ToNot(HaveOccurred(), "touching authfile")
+
 		// N/B: This second registry container shares the same auth and cert dirs
 		//      as the registry started from BeforeEach().  Since this one starts
 		//      second, re-labeling the volumes should keep SELinux happy.
@@ -267,6 +287,7 @@ var _ = Describe("Podman login and logout", func() {
 		session = podmanTest.Podman([]string{"push", ALPINE, "localhost:9001/test-alpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(ContainSubstring("/test-alpine: authentication required"))
 
 		session = podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test", "localhost:9001"})
 		session.WaitWithDefaultTimeout()
@@ -287,6 +308,7 @@ var _ = Describe("Podman login and logout", func() {
 		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(ContainSubstring("/test-alpine: authentication required"))
 
 		session = podmanTest.Podman([]string{"push", ALPINE, "localhost:9001/test-alpine"})
 		session.WaitWithDefaultTimeout()
@@ -303,10 +325,12 @@ var _ = Describe("Podman login and logout", func() {
 		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(ContainSubstring("/test-alpine: authentication required"))
 
 		session = podmanTest.Podman([]string{"push", ALPINE, "localhost:9001/test-alpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(ContainSubstring("/test-alpine: authentication required"))
 	})
 
 	It("podman login and logout with repository", func() {
@@ -460,6 +484,7 @@ var _ = Describe("Podman login and logout", func() {
 		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(ContainSubstring("/test-image: authentication required"))
 
 		session = podmanTest.Podman([]string{
 			"push",
@@ -507,5 +532,6 @@ var _ = Describe("Podman login and logout", func() {
 		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(ContainSubstring("/test-alpine: authentication required"))
 	})
 })
