@@ -65,15 +65,25 @@ func ChangeDefault(name string) error {
 	return cfg.Write()
 }
 
-func RemoveConnection(name string) error {
+func RemoveConnections(names ...string) error {
 	cfg, err := config.ReadCustomConfig()
 	if err != nil {
 		return err
 	}
-	if _, ok := cfg.Engine.ServiceDestinations[name]; ok {
-		delete(cfg.Engine.ServiceDestinations, name)
-	} else {
-		return fmt.Errorf("unable to find connection named %q", name)
+	for _, name := range names {
+		if _, ok := cfg.Engine.ServiceDestinations[name]; ok {
+			delete(cfg.Engine.ServiceDestinations, name)
+		} else {
+			return fmt.Errorf("unable to find connection named %q", name)
+		}
+
+		if cfg.Engine.ActiveService == name {
+			cfg.Engine.ActiveService = ""
+			for service := range cfg.Engine.ServiceDestinations {
+				cfg.Engine.ActiveService = service
+				break
+			}
+		}
 	}
 	return cfg.Write()
 }

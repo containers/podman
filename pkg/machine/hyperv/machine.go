@@ -358,10 +358,7 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 				logrus.Error(err)
 			}
 		}
-		if err := machine.RemoveConnection(m.Name); err != nil {
-			logrus.Error(err)
-		}
-		if err := machine.RemoveConnection(m.Name + "-root"); err != nil {
+		if err := machine.RemoveConnections(m.Name, m.Name+"-root"); err != nil {
 			logrus.Error(err)
 		}
 
