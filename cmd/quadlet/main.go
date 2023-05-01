@@ -109,12 +109,23 @@ func getUnitDirs(user bool) []string {
 	dirs := make([]string, 0)
 	if user {
 		if configDir, err := os.UserConfigDir(); err == nil {
-			dirs = append(dirs, path.Join(configDir, "containers/systemd"))
+			dirs = returnSubPaths(dirs, path.Join(configDir, "containers/systemd"))
 		}
 	} else {
-		dirs = append(dirs, quadlet.UnitDirAdmin)
-		dirs = append(dirs, quadlet.UnitDirDistro)
+		dirs = returnSubPaths(dirs, quadlet.UnitDirAdmin)
+		dirs = returnSubPaths(dirs, quadlet.UnitDirDistro)
 	}
+	return dirs
+}
+
+func returnSubPaths(dirs []string, path string) []string {
+	filepath.Walk(path, func(_path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		dirs = append(dirs, _path)
+		return nil
+	})
 	return dirs
 }
 
