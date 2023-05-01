@@ -95,7 +95,7 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 
 	ignStorage := Storage{
 		Directories: getDirs(ign.Name),
-		Files:       getFiles(ign.Name),
+		Files:       getFiles(ign.Name, ign.UID),
 		Links:       getLinks(ign.Name),
 	}
 
@@ -285,7 +285,7 @@ func getDirs(usrName string) []Directory {
 	return dirs
 }
 
-func getFiles(usrName string) []File {
+func getFiles(usrName string, uid int) []File {
 	files := make([]File, 0)
 
 	lingerExample := `[Unit]
@@ -307,7 +307,13 @@ machine_enabled=true
 	delegateConf := `[Service]
 Delegate=memory pids cpu io
 `
-	subUID := `%s:100000:1000000`
+	// Prevent subUID from clashing with actual UID
+	subUID := 100000
+	subUIDs := 1000000
+	if uid >= subUID && uid < (subUID+subUIDs) {
+		subUID = uid + 1
+	}
+	etcSubUID := fmt.Sprintf(`%s:%d:%d`, usrName, subUID, subUIDs)
 
 	// Add a fake systemd service to get the user socket rolling
 	files = append(files, File{
@@ -341,7 +347,6 @@ Delegate=memory pids cpu io
 			Mode: IntToPtr(0744),
 		},
 	})
-
 	// Set up /etc/subuid and /etc/subgid
 	for _, sub := range []string{"/etc/subuid", "/etc/subgid"} {
 		files = append(files, File{
@@ -354,7 +359,7 @@ Delegate=memory pids cpu io
 			FileEmbedded1: FileEmbedded1{
 				Append: nil,
 				Contents: Resource{
-					Source: EncodeDataURLPtr(fmt.Sprintf(subUID, usrName)),
+					Source: EncodeDataURLPtr(etcSubUID),
 				},
 				Mode: IntToPtr(0744),
 			},
