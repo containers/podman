@@ -480,8 +480,7 @@ _EOF
     is "$output" ".*Error: inspecting object: no such object: \"test_pod-test\""
 
     run_podman pod rm -a -f
-    run_podman rm -a -f
-    run_podman rm -f -t0 myyaml
+    run_podman rm -a -f -t0
 }
 
 @test "podman play with init container" {
