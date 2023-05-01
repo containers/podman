@@ -46,7 +46,7 @@ var _ = Describe("Podman manifest", func() {
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
 	})
-	It("create w/o image", func() {
+	It("create w/o image and attempt push w/o dest", func() {
 		for _, amend := range []string{"--amend", "-a"} {
 			session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 			session.WaitWithDefaultTimeout()
@@ -55,6 +55,13 @@ var _ = Describe("Podman manifest", func() {
 			session = podmanTest.Podman([]string{"manifest", "create", "foo"})
 			session.WaitWithDefaultTimeout()
 			Expect(session).To(ExitWithError())
+
+			session = podmanTest.Podman([]string{"manifest", "push", "--all", "foo"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).To(ExitWithError())
+			// Push should actually fail since its not valid registry
+			Expect(session.ErrorToString()).To(ContainSubstring("requested access to the resource is denied"))
+			Expect(session.OutputToString()).To(Not(ContainSubstring("accepts 2 arg(s), received 1")))
 
 			session = podmanTest.Podman([]string{"manifest", "create", amend, "foo"})
 			session.WaitWithDefaultTimeout()
