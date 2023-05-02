@@ -2,7 +2,6 @@ package integration
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"net"
 	"os"
@@ -14,7 +13,7 @@ import (
 
 	testUtils "github.com/containers/podman/v4/test/utils"
 	podmanUtils "github.com/containers/podman/v4/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
@@ -30,7 +29,7 @@ var _ = Describe("Systemd activate", func() {
 
 		tempDir, err = testUtils.CreateTempDirInTempDir()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%v\n", err)
+			GinkgoWriter.Printf("%v\n", err)
 			os.Exit(1)
 		}
 
@@ -54,7 +53,8 @@ var _ = Describe("Systemd activate", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		processTestResult(CurrentGinkgoTestDescription())
+		f := CurrentSpecReport()
+		processTestResult(f)
 	})
 
 	It("stop podman.service", func() {

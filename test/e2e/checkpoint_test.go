@@ -16,7 +16,7 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/podman/v4/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
@@ -66,7 +66,7 @@ var _ = Describe("Podman checkpoint", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 
 	})
@@ -1072,7 +1072,7 @@ var _ = Describe("Podman checkpoint", func() {
 			Fail("Container failed to get ready")
 		}
 
-		fmt.Fprintf(os.Stderr, "Trying to connect to redis server at localhost:%d", randomPort)
+		GinkgoWriter.Printf("Trying to connect to redis server at localhost:%d\n", randomPort)
 		// Open a network connection to the redis server via initial port mapping
 		conn, err := net.DialTimeout("tcp4", fmt.Sprintf("localhost:%d", randomPort), time.Duration(3)*time.Second)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -1105,7 +1105,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("connection refused"))
 		// Open a network connection to the redis server via new port mapping
-		fmt.Fprintf(os.Stderr, "Trying to reconnect to redis server at localhost:%d", newRandomPort)
+		GinkgoWriter.Printf("Trying to reconnect to redis server at localhost:%d\n", newRandomPort)
 		conn, err = net.DialTimeout("tcp4", fmt.Sprintf("localhost:%d", newRandomPort), time.Duration(3)*time.Second)
 		Expect(err).ShouldNot(HaveOccurred())
 		conn.Close()

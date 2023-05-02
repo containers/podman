@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
@@ -39,15 +39,15 @@ var _ = Describe("Podman image sign", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 		os.Setenv("GNUPGHOME", origGNUPGHOME)
 	})
 
 	It("podman sign image", func() {
 		cmd := exec.Command("gpg", "--import", "sign/secret-key.asc")
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		cmd.Stdout = GinkgoWriter
+		cmd.Stderr = GinkgoWriter
 		err := cmd.Run()
 		Expect(err).ToNot(HaveOccurred())
 		sigDir := filepath.Join(podmanTest.TempDir, "test-sign")
@@ -62,8 +62,8 @@ var _ = Describe("Podman image sign", func() {
 
 	It("podman sign --all multi-arch image", func() {
 		cmd := exec.Command("gpg", "--import", "sign/secret-key.asc")
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		cmd.Stdout = GinkgoWriter
+		cmd.Stderr = GinkgoWriter
 		err := cmd.Run()
 		Expect(err).ToNot(HaveOccurred())
 		sigDir := filepath.Join(podmanTest.TempDir, "test-sign-multi")

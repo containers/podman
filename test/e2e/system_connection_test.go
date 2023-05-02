@@ -10,7 +10,7 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gexec"
@@ -45,7 +45,7 @@ var _ = Describe("podman system connection", func() {
 			os.Unsetenv("CONTAINERS_CONF")
 		}
 
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 	})
 

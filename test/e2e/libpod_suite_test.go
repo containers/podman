@@ -4,10 +4,10 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -62,7 +62,7 @@ func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
 func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 	tarball := imageTarPath(image)
 	if _, err := os.Stat(tarball); err == nil {
-		fmt.Printf("Restoring %s...\n", image)
+		GinkgoWriter.Printf("Restoring %s...\n", image)
 		restore := p.PodmanNoEvents([]string{"load", "-q", "-i", tarball})
 		restore.Wait(90)
 	}

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
@@ -48,7 +48,7 @@ var _ = Describe("Podman pause", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 
 	})
@@ -151,6 +151,11 @@ var _ = Describe("Podman pause", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(strings.ToLower(podmanTest.GetContainerStatus())).To(ContainSubstring(pausedState))
 
+		// unpause so that the cleanup can stop the container,
+		// otherwise it fails with container state improper
+		session = podmanTest.Podman([]string{"unpause", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
 	})
 
 	It("podman remove a paused container by id with force", func() {

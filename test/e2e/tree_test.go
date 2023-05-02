@@ -1,11 +1,10 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
@@ -29,9 +28,8 @@ var _ = Describe("Podman image tree", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		_, _ = GinkgoWriter.Write([]byte(timedResult))
+		f := CurrentSpecReport()
+		processTestResult(f)
 	})
 
 	It("podman image tree", func() {

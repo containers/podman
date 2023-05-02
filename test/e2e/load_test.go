@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
@@ -30,7 +30,7 @@ var _ = Describe("Podman load", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 
 	})
@@ -40,7 +40,7 @@ var _ = Describe("Podman load", func() {
 
 		images := podmanTest.Podman([]string{"images"})
 		images.WaitWithDefaultTimeout()
-		fmt.Println(images.OutputToStringArray())
+		GinkgoWriter.Println(images.OutputToStringArray())
 
 		save := podmanTest.Podman([]string{"save", "-o", outfile, ALPINE})
 		save.WaitWithDefaultTimeout()

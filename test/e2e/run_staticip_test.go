@@ -8,7 +8,7 @@ import (
 
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
@@ -34,7 +34,7 @@ var _ = Describe("Podman run with --ip flag", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 
 	})
@@ -126,9 +126,9 @@ var _ = Describe("Podman run with --ip flag", func() {
 			}
 
 			if err != nil {
-				fmt.Printf("nginx not ready yet; error=%v; %d retries left...\n", err, retries)
+				GinkgoWriter.Printf("nginx not ready yet; error=%v; %d retries left...\n", err, retries)
 			} else {
-				fmt.Printf("nginx not ready yet; response=%v; %d retries left...\n", response.StatusCode, retries)
+				GinkgoWriter.Printf("nginx not ready yet; response=%v; %d retries left...\n", response.StatusCode, retries)
 			}
 			time.Sleep(1 * time.Second)
 		}

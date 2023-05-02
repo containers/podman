@@ -15,7 +15,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
@@ -38,7 +38,7 @@ var _ = Describe("Podman run", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 	})
 
@@ -270,7 +270,7 @@ var _ = Describe("Podman run", func() {
 		Expect(tarball).Should(BeARegularFile())
 
 		// N/B: This will loose any extended attributes like SELinux types
-		fmt.Fprintf(os.Stderr, "Extracting container root tarball\n")
+		GinkgoWriter.Printf("Extracting container root tarball\n")
 		tarsession := SystemExec("tar", []string{"xf", tarball, "-C", rootfs})
 		Expect(tarsession).Should(Exit(0))
 		Expect(filepath.Join(rootfs, uls)).Should(BeADirectory())
@@ -371,7 +371,7 @@ var _ = Describe("Podman run", func() {
 		in := []byte(`{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"name":"getcwd","action":"SCMP_ACT_ERRNO"}]}`)
 		jsonFile, err := podmanTest.CreateSeccompJSON(in)
 		if err != nil {
-			fmt.Println(err)
+			GinkgoWriter.Println(err)
 			Skip("Failed to prepare seccomp.json for test.")
 		}
 		return jsonFile
@@ -1516,7 +1516,7 @@ USER mail`, BB)
 		curCgroupsBytes, err := os.ReadFile("/proc/self/cgroup")
 		Expect(err).ShouldNot(HaveOccurred())
 		curCgroups := trim(string(curCgroupsBytes))
-		fmt.Printf("Output:\n%s\n", curCgroups)
+		GinkgoWriter.Printf("Output:\n%s\n", curCgroups)
 		Expect(curCgroups).ToNot(Equal(""))
 
 		container := podmanTest.Podman([]string{"run", "--cgroupns=host", "--cgroups=disabled", ALPINE, "cat", "/proc/self/cgroup"})
@@ -1524,7 +1524,7 @@ USER mail`, BB)
 		Expect(container).Should(Exit(0))
 
 		ctrCgroups := trim(container.OutputToString())
-		fmt.Printf("Output\n:%s\n", ctrCgroups)
+		GinkgoWriter.Printf("Output\n:%s\n", ctrCgroups)
 
 		Expect(ctrCgroups).To(Equal(curCgroups))
 	})
@@ -1539,7 +1539,7 @@ USER mail`, BB)
 		curCgroupsBytes, err := os.ReadFile("/proc/self/cgroup")
 		Expect(err).ToNot(HaveOccurred())
 		var curCgroups string = string(curCgroupsBytes)
-		fmt.Printf("Output:\n%s\n", curCgroups)
+		GinkgoWriter.Printf("Output:\n%s\n", curCgroups)
 		Expect(curCgroups).To(Not(Equal("")))
 
 		ctrName := "testctr"
@@ -1556,7 +1556,7 @@ USER mail`, BB)
 		ctrCgroupsBytes, err := os.ReadFile(fmt.Sprintf("/proc/%d/cgroup", pid))
 		Expect(err).ToNot(HaveOccurred())
 		var ctrCgroups string = string(ctrCgroupsBytes)
-		fmt.Printf("Output\n:%s\n", ctrCgroups)
+		GinkgoWriter.Printf("Output\n:%s\n", ctrCgroups)
 		Expect(curCgroups).To(Not(Equal(ctrCgroups)))
 	})
 

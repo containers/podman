@@ -2,7 +2,7 @@ package bindings_test
 
 import (
 	"github.com/containers/podman/v4/pkg/bindings/containers"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 )

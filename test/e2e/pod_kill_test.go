@@ -1,11 +1,10 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
@@ -28,7 +27,7 @@ var _ = Describe("Podman pod kill", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 
 	})
@@ -148,7 +147,7 @@ var _ = Describe("Podman pod kill", func() {
 
 		result := podmanTest.Podman([]string{"pod", "kill", "-a"})
 		result.WaitWithDefaultTimeout()
-		fmt.Println(result.OutputToString(), result.ErrorToString())
+		GinkgoWriter.Println(result.OutputToString(), result.ErrorToString())
 		Expect(result).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 	})

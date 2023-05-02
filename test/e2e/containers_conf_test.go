@@ -9,7 +9,7 @@ import (
 
 	"github.com/containers/podman/v4/libpod/define"
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gexec"
@@ -37,11 +37,11 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 	})
 
 	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
 		os.Unsetenv("CONTAINERS_CONF")
 		os.Unsetenv("CONTAINERS_CONF_OVERRIDE")
+		podmanTest.Cleanup()
+		f := CurrentSpecReport()
+		processTestResult(f)
 	})
 
 	It("limits test", func() {
@@ -231,6 +231,8 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		Expect(hostNS).To(Equal(ctrNS))
 
 		session = podmanTest.Podman([]string{"run", option, "private", ALPINE, "ls", "-l", nspath})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
 		fields = strings.Split(session.OutputToString(), " ")
 		ctrNS = fields[len(fields)-1]
 		Expect(hostNS).ToNot(Equal(ctrNS))

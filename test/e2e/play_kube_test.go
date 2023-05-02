@@ -27,7 +27,7 @@ import (
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
 	. "github.com/onsi/gomega/gexec"
@@ -1873,7 +1873,7 @@ var _ = Describe("Podman play kube", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 	})
 
@@ -2781,7 +2781,7 @@ var _ = Describe("Podman play kube", func() {
 		// expect play kube is expected to set a seccomp label if it's applied as an annotation
 		jsonFile, err := podmanTest.CreateSeccompJSON(seccompPwdEPERM)
 		if err != nil {
-			fmt.Println(err)
+			GinkgoWriter.Println(err)
 			Skip("Failed to prepare seccomp.json for test.")
 		}
 
@@ -2808,7 +2808,7 @@ var _ = Describe("Podman play kube", func() {
 		// expect play kube is expected to set a seccomp label if it's applied as an annotation
 		jsonFile, err := podmanTest.CreateSeccompJSON(seccompPwdEPERM)
 		if err != nil {
-			fmt.Println(err)
+			GinkgoWriter.Println(err)
 			Skip("Failed to prepare seccomp.json for test.")
 		}
 		defer os.Remove(jsonFile)

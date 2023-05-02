@@ -10,7 +10,7 @@ import (
 	"time"
 
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	"golang.org/x/sys/unix"
@@ -37,7 +37,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 
 	})
@@ -69,7 +69,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 			buf := make([]byte, 1024)
 			n, err := uds.Read(buf)
 			if err != nil && err != io.EOF {
-				fmt.Println(err)
+				GinkgoWriter.Println(err)
 				return
 			}
 			data := string(buf[0:n])
@@ -95,7 +95,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 			buf := make([]byte, 1024)
 			n, err := uds.Read(buf)
 			if err != nil {
-				fmt.Println(err)
+				GinkgoWriter.Println(err)
 				return
 			}
 			data := string(buf[0:n])

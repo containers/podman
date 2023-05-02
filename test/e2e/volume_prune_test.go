@@ -4,7 +4,7 @@ import (
 	"os"
 
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
@@ -27,7 +27,7 @@ var _ = Describe("Podman volume prune", func() {
 
 	AfterEach(func() {
 		podmanTest.CleanupVolume()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 
 	})
@@ -58,8 +58,6 @@ var _ = Describe("Podman volume prune", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToStringArray()).To(HaveLen(2))
-
-		podmanTest.Cleanup()
 	})
 
 	It("podman prune volume --filter until", func() {
@@ -89,8 +87,6 @@ var _ = Describe("Podman volume prune", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToStringArray()).To(BeEmpty())
-
-		podmanTest.Cleanup()
 	})
 
 	It("podman prune volume --filter", func() {
@@ -157,8 +153,6 @@ var _ = Describe("Podman volume prune", func() {
 		session = podmanTest.Podman([]string{"volume", "prune", "--force", "--filter", "label!=testlabel"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-
-		podmanTest.Cleanup()
 	})
 
 	It("podman system prune --volume", func() {
@@ -188,7 +182,5 @@ var _ = Describe("Podman volume prune", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToStringArray()).To(BeEmpty())
-
-		podmanTest.Cleanup()
 	})
 })

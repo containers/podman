@@ -13,7 +13,7 @@ import (
 	"github.com/containers/podman/v4/pkg/bindings/containers"
 	"github.com/containers/podman/v4/pkg/bindings/images"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	. "github.com/onsi/gomega/gstruct"
@@ -47,7 +47,7 @@ var _ = Describe("Podman images", func() {
 
 	AfterEach(func() {
 		// podmanTest.Cleanup()
-		// f := CurrentGinkgoTestDescription()
+		// f := CurrentSpecReport()
 		// processTestResult(f)
 		s.Kill()
 		bt.cleanup()

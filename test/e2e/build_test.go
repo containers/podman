@@ -11,7 +11,7 @@ import (
 
 	"github.com/containers/buildah"
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
@@ -34,7 +34,7 @@ var _ = Describe("Podman build", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
+		f := CurrentSpecReport()
 		processTestResult(f)
 	})
 
@@ -884,7 +884,8 @@ RUN ls /dev/test1`, ALPINE)
 		Expect(build).To(Exit(0))
 	})
 
-	It("podman system reset must clean host shared cache", func() {
+	// system reset must run serial: https://github.com/containers/podman/issues/17903
+	It("podman system reset must clean host shared cache", Serial, func() {
 		SkipIfRemote("podman-remote does not have system reset -f")
 		useCustomNetworkDir(podmanTest, tempdir)
 		podmanTest.AddImageToRWStore(ALPINE)
