@@ -73,7 +73,7 @@ for i in $iid ${iid:0:12} $PODMAN_TEST_IMAGE_NAME; do
   t GET libpod/images/$i/history 200 \
     .[0].Id=$iid \
     .[0].Created~[0-9]\\{10\\} \
-    .[0].Tags=null \
+    .[0].Tags[0]="$IMAGE" \
     .[0].Size=0 \
     .[0].Comment=
 done
@@ -82,7 +82,7 @@ for i in $iid ${iid:0:12} $PODMAN_TEST_IMAGE_NAME; do
   t GET images/$i/history 200 \
     .[0].Id="sha256:"$iid \
     .[0].Created~[0-9]\\{10\\} \
-    .[0].Tags=null \
+    .[0].Tags[0]="$IMAGE" \
     .[0].Size=0 \
     .[0].Comment=
 done
