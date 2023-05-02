@@ -451,7 +451,7 @@ var _ = Describe("quadlet system generator", func() {
 			current := session.ErrorToStringArray()
 			expected := "No files to parse from [/something]"
 
-			Expect(strings.Contains(current[0], expected)).To(BeTrue())
+			Expect(current[0]).To(ContainSubstring(expected))
 		})
 
 		It("Should parse a kube file and print it to stdout", func() {
@@ -504,7 +504,7 @@ var _ = Describe("quadlet system generator", func() {
 				fmt.Sprintf("ExecStop=%s kube down %s/deployment.yml", podmanPath, quadletDir),
 			}
 
-			Expect(expected).To(Equal(current))
+			Expect(current).To(Equal(expected))
 		})
 	})
 

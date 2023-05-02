@@ -193,8 +193,7 @@ var _ = Describe("Podman events", func() {
 		Expect(result).Should(Exit(0))
 		tEnd := time.Now()
 		outDur := tEnd.Sub(untilT)
-		diff := outDur.Seconds() > 0
-		Expect(diff).To(BeTrue())
+		Expect(outDur.Seconds()).To(BeNumerically(">", 0), "duration")
 		Expect(result.OutputToString()).To(ContainSubstring(name1))
 		Expect(result.OutputToString()).To(ContainSubstring(name2))
 		Expect(result.OutputToString()).To(ContainSubstring(name3))

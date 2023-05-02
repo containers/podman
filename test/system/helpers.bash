@@ -527,16 +527,6 @@ function skip_if_journald_unavailable {
     fi
 }
 
-function skip_if_root_ubuntu {
-    if is_ubuntu; then
-        if ! is_remote; then
-            if ! is_rootless; then
-                 skip "Cannot run this test on rootful ubuntu, usually due to user errors"
-            fi
-        fi
-    fi
-}
-
 function skip_if_aarch64 {
     if is_aarch64; then
         skip "${msg:-Cannot run this test on aarch64 systems}"

@@ -301,8 +301,8 @@ var _ = Describe("Podman network", func() {
 		conData := inspect.InspectContainerToJSON()
 		Expect(conData).To(HaveLen(1))
 		Expect(conData[0].NetworkSettings.Networks).To(HaveLen(1))
-		net, ok := conData[0].NetworkSettings.Networks[netName]
-		Expect(ok).To(BeTrue())
+		Expect(conData[0].NetworkSettings.Networks).To(HaveKey(netName))
+		net := conData[0].NetworkSettings.Networks[netName]
 		Expect(net).To(HaveField("NetworkID", netName))
 		Expect(net).To(HaveField("IPPrefixLen", 24))
 		Expect(net.IPAddress).To(HavePrefix("10.50.50."))
@@ -337,11 +337,11 @@ var _ = Describe("Podman network", func() {
 		conData := inspect.InspectContainerToJSON()
 		Expect(conData).To(HaveLen(1))
 		Expect(conData[0].NetworkSettings.Networks).To(HaveLen(2))
-		net1, ok := conData[0].NetworkSettings.Networks[netName1]
-		Expect(ok).To(BeTrue())
+		Expect(conData[0].NetworkSettings.Networks).To(HaveKey(netName1))
+		Expect(conData[0].NetworkSettings.Networks).To(HaveKey(netName2))
+		net1 := conData[0].NetworkSettings.Networks[netName1]
 		Expect(net1).To(HaveField("NetworkID", netName1))
-		net2, ok := conData[0].NetworkSettings.Networks[netName2]
-		Expect(ok).To(BeTrue())
+		net2 := conData[0].NetworkSettings.Networks[netName2]
 		Expect(net2).To(HaveField("NetworkID", netName2))
 
 		// Necessary to ensure the CNI network is removed cleanly
@@ -374,13 +374,13 @@ var _ = Describe("Podman network", func() {
 		conData := inspect.InspectContainerToJSON()
 		Expect(conData).To(HaveLen(1))
 		Expect(conData[0].NetworkSettings.Networks).To(HaveLen(2))
-		net1, ok := conData[0].NetworkSettings.Networks[netName1]
-		Expect(ok).To(BeTrue())
+		Expect(conData[0].NetworkSettings.Networks).To(HaveKey(netName1))
+		Expect(conData[0].NetworkSettings.Networks).To(HaveKey(netName2))
+		net1 := conData[0].NetworkSettings.Networks[netName1]
 		Expect(net1).To(HaveField("NetworkID", netName1))
 		Expect(net1).To(HaveField("IPPrefixLen", 25))
 		Expect(net1.IPAddress).To(HavePrefix("10.50.51."))
-		net2, ok := conData[0].NetworkSettings.Networks[netName2]
-		Expect(ok).To(BeTrue())
+		net2 := conData[0].NetworkSettings.Networks[netName2]
 		Expect(net2).To(HaveField("NetworkID", netName2))
 		Expect(net2).To(HaveField("IPPrefixLen", 26))
 		Expect(net2.IPAddress).To(HavePrefix("10.50.51."))
@@ -512,7 +512,7 @@ var _ = Describe("Podman network", func() {
 			time.Sleep(interval)
 			interval *= 2
 		}
-		Expect(worked).To(BeTrue())
+		Expect(worked).To(BeTrue(), "nginx came up")
 
 		// Nginx is now running so no need to do a loop
 		// Test against the first alias

@@ -91,7 +91,7 @@ var _ = Describe("Podman push", func() {
 				break
 			}
 		}
-		Expect(foundZstdFile).To(BeTrue())
+		Expect(foundZstdFile).To(BeTrue(), "found zstd file")
 	})
 
 	It("podman push to local registry", func() {

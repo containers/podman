@@ -524,9 +524,10 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune --all --external fails", func() {
-		prune := podmanTest.Podman([]string{"system", "prune", "--all", "--enternal"})
+		prune := podmanTest.Podman([]string{"system", "prune", "--all", "--external"})
 		prune.WaitWithDefaultTimeout()
 		Expect(prune).Should(Exit(125))
+		Expect(prune.ErrorToString()).To(ContainSubstring("--external cannot be combined with other options"))
 	})
 
 	It("podman system prune --external leaves referenced containers", func() {

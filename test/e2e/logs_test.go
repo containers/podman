@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -281,7 +280,7 @@ var _ = Describe("Podman logs", func() {
 
 			output := results.OutputToStringArray()
 			Expect(output).To(HaveLen(6))
-			Expect(strings.Contains(output[0], cid1[:12]) || strings.Contains(output[0], cid2[:12])).To(BeTrue())
+			Expect(output[0]).To(Or(ContainSubstring(cid1[:12]), ContainSubstring(cid2[:12])))
 		})
 
 		It("podman logs on a created container should result in 0 exit code: "+log, func() {

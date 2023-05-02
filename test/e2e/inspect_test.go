@@ -509,7 +509,7 @@ var _ = Describe("Podman inspect", func() {
 				Expect(ulimit.Hard).To(BeNumerically("==", -1))
 			}
 		}
-		Expect(found).To(BeTrue())
+		Expect(found).To(BeTrue(), "found RLIMIT_CORE")
 	})
 
 	It("Dropped capabilities are sorted", func() {

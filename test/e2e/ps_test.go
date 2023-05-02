@@ -271,7 +271,7 @@ var _ = Describe("Podman ps", func() {
 
 	It("podman ps print a human-readable `Status` with json format", func() {
 		_, ec, _ := podmanTest.RunLsContainer("test1")
-		Expect(ec).To(Equal(0))
+		Expect(ec).To(Equal(0), "container exit code")
 
 		result := podmanTest.Podman([]string{"ps", "-a", "--format", "json"})
 		result.WaitWithDefaultTimeout()
@@ -279,7 +279,7 @@ var _ = Describe("Podman ps", func() {
 		Expect(result.OutputToString()).To(BeValidJSON())
 		// must contain "Status"
 		match, StatusLine := result.GrepString(`Status`)
-		Expect(match).To(BeTrue())
+		Expect(match).To(BeTrue(), "found 'Status'")
 		// we waited for container to exit, so this must contain `Exited`
 		Expect(StatusLine[0]).To(ContainSubstring("Exited"))
 	})
@@ -460,7 +460,7 @@ var _ = Describe("Podman ps", func() {
 			size1, _ := units.FromHumanSize(matches1[1])
 			size2, _ := units.FromHumanSize(matches2[1])
 			return size1 < size2
-		})).To(BeTrue())
+		})).To(BeTrue(), "slice is sorted")
 
 	})
 
@@ -480,7 +480,7 @@ var _ = Describe("Podman ps", func() {
 		Expect(session.OutputToString()).ToNot(ContainSubstring("COMMAND"))
 
 		sortedArr := session.OutputToStringArray()
-		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] < sortedArr[j] })).To(BeTrue())
+		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] < sortedArr[j] })).To(BeTrue(), "slice is sorted")
 	})
 
 	It("podman --pod", func() {

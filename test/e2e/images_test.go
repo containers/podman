@@ -316,7 +316,7 @@ WORKDIR /test
 
 		actual := podmanTest.Podman([]string{"images", "--sort", "created", "-q"})
 		actual.WaitWithDefaultTimeout()
-		Expect(expected.Out).Should(Equal(actual.Out))
+		Expect(actual.Out).Should(Equal(expected.Out))
 	})
 
 	It("podman images --all flag", func() {
