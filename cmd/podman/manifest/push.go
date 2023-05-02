@@ -36,7 +36,7 @@ var (
 		Long:              "Pushes manifest lists and image indexes to registries.",
 		RunE:              push,
 		Example:           `podman manifest push mylist:v1.11 docker://quay.io/myuser/image:v1.11`,
-		Args:              cobra.ExactArgs(2),
+		Args:              cobra.RangeArgs(1, 2),
 		ValidArgsFunction: common.AutocompleteImages,
 	}
 )
@@ -114,7 +114,7 @@ func push(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	listImageSpec := args[0]
-	destSpec := args[1]
+	destSpec := args[len(args)-1]
 	if listImageSpec == "" {
 		return fmt.Errorf(`invalid image name "%s"`, listImageSpec)
 	}
@@ -155,7 +155,7 @@ func push(cmd *cobra.Command, args []string) error {
 		}
 		manifestPushOpts.SkipTLSVerify = types.NewOptionalBool(manifestPushOpts.Insecure)
 	}
-	digest, err := registry.ImageEngine().ManifestPush(registry.Context(), args[0], args[1], manifestPushOpts.ImagePushOptions)
+	digest, err := registry.ImageEngine().ManifestPush(registry.Context(), listImageSpec, destSpec, manifestPushOpts.ImagePushOptions)
 	if err != nil {
 		return err
 	}

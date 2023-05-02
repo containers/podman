@@ -313,6 +313,16 @@ var _ = Describe("Podman push", func() {
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
 		Expect(push.ErrorToString()).To(ContainSubstring("Writing manifest to image destination"))
+
+		// create and push manifest
+		session = podmanTest.Podman([]string{"manifest", "create", "localhost:5000/manifesttest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"manifest", "push", "--creds=podmantest:test", "--tls-verify=false", "--all", "localhost:5000/manifesttest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.ErrorToString()).To(ContainSubstring("Writing manifest list to image destination"))
 	})
 
 	It("podman push and encrypt to oci", func() {
