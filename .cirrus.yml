@@ -585,6 +585,9 @@ local_integration_test_task: &local_integration_test_task
         ginkgo_node_logs_artifacts:
             path: ./test/e2e/ginkgo-node-*.log
             type: text/plain
+        ginkgo_json_artifacts:
+            path: ./ginkgo-e2e.json
+            type: application/json
 
 
 # Nearly identical to `local_integration_test` except all operations
