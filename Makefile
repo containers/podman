@@ -558,7 +558,7 @@ test: localunit localintegration remoteintegration localsystem remotesystem  ## 
 .PHONY: ginkgo-run
 ginkgo-run: .install.ginkgo
 	$(GINKGO) version
-	$(GINKGO) -vv $(TESTFLAGS) --tags "$(TAGS) remote" $(GINKGOTIMEOUT) --flake-attempts 3 --trace --no-color $(if $(findstring y,$(GINKGO_PARALLEL)),-p,) $(GINKGOWHAT) $(HACK)
+	$(GINKGO) -vv $(TESTFLAGS) --tags "$(TAGS) remote" $(GINKGOTIMEOUT) --flake-attempts 3 --trace --no-color --json-report ginkgo-e2e.json $(if $(findstring y,$(GINKGO_PARALLEL)),-p,) $(GINKGOWHAT) $(HACK)
 
 .PHONY: ginkgo
 ginkgo:
