@@ -126,8 +126,7 @@ LIBSECCOMP_COMMIT := v2.3.3
 GINKGOTIMEOUT ?= -timeout=90m
 # By default, run test/e2e
 GINKGOWHAT ?= test/e2e/.
-# By default, run tests in parallel across 3 nodes.
-GINKGONODES ?= 3
+GINKGO_PARALLEL=y
 GINKGO ?= ./test/tools/build/ginkgo
 
 # Conditional required to produce empty-output if binary not built yet.
@@ -559,7 +558,7 @@ test: localunit localintegration remoteintegration localsystem remotesystem  ## 
 .PHONY: ginkgo-run
 ginkgo-run: .install.ginkgo
 	$(GINKGO) version
-	$(GINKGO) -vv $(TESTFLAGS) --tags "$(TAGS) remote" $(GINKGOTIMEOUT) --flake-attempts 3 --trace --no-color -p $(GINKGOWHAT) $(HACK)
+	$(GINKGO) -vv $(TESTFLAGS) --tags "$(TAGS) remote" $(GINKGOTIMEOUT) --flake-attempts 3 --trace --no-color $(if $(findstring y,$(GINKGO_PARALLEL)),-p,) $(GINKGOWHAT) $(HACK)
 
 .PHONY: ginkgo
 ginkgo:
@@ -581,7 +580,7 @@ remoteintegration: test-binaries ginkgo-remote
 
 .PHONY: localmachine
 localmachine: test-binaries .install.ginkgo
-	$(MAKE) ginkgo-run GINKGONODES=1 GINKGOWHAT=pkg/machine/e2e/. HACK=
+	$(MAKE) ginkgo-run GINKGO_PARALLEL=n GINKGOWHAT=pkg/machine/e2e/. HACK=
 
 .PHONY: localsystem
 localsystem:
