@@ -12,10 +12,7 @@ import (
 // Deprecated: use [unix.Termios].
 type Termios = unix.Termios
 
-// MakeRaw puts the terminal connected to the given file descriptor into raw
-// mode and returns the previous state of the terminal so that it can be
-// restored.
-func MakeRaw(fd uintptr) (*State, error) {
+func makeRaw(fd uintptr) (*State, error) {
 	termios, err := tcget(fd)
 	if err != nil {
 		return nil, err
