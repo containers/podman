@@ -51,7 +51,6 @@ func (i *Image) History(ctx context.Context) ([]ImageHistory, error) {
 		}
 
 		if layer != nil {
-			history.Tags = layer.Names
 			if !ociImage.History[x].EmptyLayer {
 				history.Size = layer.UncompressedSize
 			}
@@ -64,8 +63,13 @@ func (i *Image) History(ctx context.Context) ([]ImageHistory, error) {
 					history.ID = id
 					usedIDs[id] = true
 				}
+				for i := range node.images {
+					history.Tags = append(history.Tags, node.images[i].Names()...)
+				}
 			}
-			if layer.Parent != "" && !ociImage.History[x].EmptyLayer {
+			if layer.Parent == "" {
+				layer = nil
+			} else if !ociImage.History[x].EmptyLayer {
 				layer, err = i.runtime.store.Layer(layer.Parent)
 				if err != nil {
 					return nil, err

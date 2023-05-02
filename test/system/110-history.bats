@@ -27,6 +27,9 @@ load helpers
     while IFS= read -r row; do
         is "$row" ".*	.*$"
     done <<<$output
+
+    run_podman history --format "{{.Tags}}" $IMAGE
+    is "$output" "\[$IMAGE\].*" "podman history sets tags"
 }
 
 @test "podman history - json" {
