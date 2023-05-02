@@ -38,9 +38,10 @@ type ListPodsReport struct {
 }
 
 type ListPodContainer struct {
-	Id     string //nolint:revive,stylecheck
-	Names  string
-	Status string
+	Id           string //nolint:revive,stylecheck
+	Names        string
+	Status       string
+	RestartCount uint
 }
 
 type PodPauseOptions struct {
@@ -135,6 +136,7 @@ type PodCreateOptions struct {
 	Net                *NetOptions       `json:"net,omitempty"`
 	Share              []string          `json:"share,omitempty"`
 	ShareParent        *bool             `json:"share_parent,omitempty"`
+	Restart            string            `json:"restart,omitempty"`
 	Pid                string            `json:"pid,omitempty"`
 	Cpus               float64           `json:"cpus,omitempty"`
 	CpusetCpus         string            `json:"cpuset_cpus,omitempty"`
@@ -375,6 +377,14 @@ func ToPodSpecGen(s specgen.PodSpecGenerator, p *PodCreateOptions) (*specgen.Pod
 	s.ShareParent = p.ShareParent
 	s.PodCreateCommand = p.CreateCommand
 	s.VolumesFrom = p.VolumesFrom
+	if p.Restart != "" {
+		policy, retries, err := util.ParseRestartPolicy(p.Restart)
+		if err != nil {
+			return nil, err
+		}
+		s.RestartPolicy = policy
+		s.RestartRetries = &retries
+	}
 
 	// Networking config
 

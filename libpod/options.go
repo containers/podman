@@ -2020,6 +2020,40 @@ func WithPodExitPolicy(policy string) PodCreateOption {
 	}
 }
 
+// WithPodRestartPolicy sets the restart policy of the pod.
+func WithPodRestartPolicy(policy string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		switch policy {
+		//TODO: v5.0 if no restart policy is set, follow k8s convention and default to Always
+		case define.RestartPolicyNone, define.RestartPolicyNo, define.RestartPolicyOnFailure, define.RestartPolicyAlways, define.RestartPolicyUnlessStopped:
+			pod.config.RestartPolicy = policy
+		default:
+			return fmt.Errorf("%q is not a valid restart policy: %w", policy, define.ErrInvalidArg)
+		}
+
+		return nil
+	}
+}
+
+// WithPodRestartRetries sets the number of retries to use when restarting a
+// container with the "on-failure" restart policy.
+// 0 is an allowed value, and indicates infinite retries.
+func WithPodRestartRetries(tries uint) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		pod.config.RestartRetries = &tries
+
+		return nil
+	}
+}
+
 // WithPodHostname sets the hostname of the pod.
 func WithPodHostname(hostname string) PodCreateOption {
 	return func(pod *Pod) error {

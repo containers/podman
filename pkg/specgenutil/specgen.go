@@ -808,27 +808,12 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.OOMScoreAdj = c.OOMScoreAdj
 	}
 	if c.Restart != "" {
-		splitRestart := strings.Split(c.Restart, ":")
-		switch len(splitRestart) {
-		case 1:
-			// No retries specified
-		case 2:
-			if strings.ToLower(splitRestart[0]) != "on-failure" {
-				return errors.New("restart policy retries can only be specified with on-failure restart policy")
-			}
-			retries, err := strconv.Atoi(splitRestart[1])
-			if err != nil {
-				return fmt.Errorf("parsing restart policy retry count: %w", err)
-			}
-			if retries < 0 {
-				return errors.New("must specify restart policy retry count as a number greater than 0")
-			}
-			var retriesUint = uint(retries)
-			s.RestartRetries = &retriesUint
-		default:
-			return errors.New("invalid restart policy: may specify retries at most once")
+		policy, retries, err := util.ParseRestartPolicy(c.Restart)
+		if err != nil {
+			return err
 		}
-		s.RestartPolicy = splitRestart[0]
+		s.RestartPolicy = policy
+		s.RestartRetries = &retries
 	}
 
 	if len(s.Secrets) == 0 || len(c.Secrets) != 0 {

@@ -67,6 +67,10 @@ Set a custom name for the cloned pod. The default if not specified is of the syn
 
 @@option pid.pod
 
+@@option restart
+
+Default restart policy for all the containers in a pod.
+
 @@option security-opt
 
 @@option shm-size

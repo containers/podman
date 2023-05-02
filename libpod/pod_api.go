@@ -741,6 +741,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		CPUSetMems:          p.CPUSetMems(),
 		BlkioDeviceWriteBps: p.BlkiThrottleWriteBps(),
 		CPUShares:           p.CPUShares(),
+		RestartPolicy:       p.config.RestartPolicy,
 	}
 
 	return &inspectData, nil

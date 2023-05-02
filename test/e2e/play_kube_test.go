@@ -2382,7 +2382,7 @@ var _ = Describe("Podman play kube", func() {
 			kube.WaitWithDefaultTimeout()
 			Expect(kube).Should(Exit(0))
 
-			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "{{.HostConfig.RestartPolicy.Name}}"})
+			inspect := podmanTest.Podman([]string{"inspect", pod.Name, "--format", "{{.RestartPolicy}}"})
 			inspect.WaitWithDefaultTimeout()
 			Expect(inspect).Should(Exit(0))
 			Expect(inspect.OutputToString()).To(Equal(v[2]))

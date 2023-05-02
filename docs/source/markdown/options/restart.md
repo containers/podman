@@ -1,5 +1,5 @@
 ####> This option file is used in:
-####>   podman create, run
+####>   podman create, pod clone, pod create, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--restart**=*policy*
@@ -10,6 +10,7 @@ Restart policy will not take effect if a container is stopped via the **podman k
 Valid _policy_ values are:
 
 - `no`                       : Do not restart containers on exit
+- `never`                    : Synonym for **no**; do not restart containers on exit
 - `on-failure[:max_retries]` : Restart containers when they exit with a non-zero exit code, retrying indefinitely or until the optional *max_retries* count is hit
 - `always`                   : Restart containers when they exit, regardless of status, retrying indefinitely
 - `unless-stopped`           : Identical to **always**
