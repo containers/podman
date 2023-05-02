@@ -19,6 +19,17 @@ die_unknown() {
     die "Unknown/unsupported \$$var_name '$var_value'"
 }
 
+_EOL=20250501
+if [[ $(date +%Y%m%d) -ge $_EOL ]]; then
+    die "As of $_EOL this branch is probably
+no longer supported in RHEL 8.4.0, please
+confirm this with RHEL Program Management.  If so:
+It should be removed from Cirrus-Cron,
+the .cirrus.yml file removed, and
+the VM images (manually) unmarked
+'permanent=true'"
+fi
+
 msg "************************************************************"
 msg "Setting up runtime environment"
 msg "************************************************************"
