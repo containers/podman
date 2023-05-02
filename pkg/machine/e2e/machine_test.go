@@ -61,7 +61,7 @@ var _ = BeforeSuite(func() {
 			if err := machine.DownloadVMImage(getMe, suiteImageName, fqImageName+".xz"); err != nil {
 				Fail(fmt.Sprintf("unable to download machine image: %q", err))
 			}
-			fmt.Println("Download took: ", time.Since(now).String())
+			GinkgoWriter.Println("Download took: ", time.Since(now).String())
 			if err := machine.Decompress(fqImageName+".xz", fqImageName); err != nil {
 				Fail(fmt.Sprintf("unable to decompress image file: %q", err))
 			}
@@ -71,10 +71,7 @@ var _ = BeforeSuite(func() {
 	}
 })
 
-var _ = SynchronizedAfterSuite(func() {},
-	func() {
-		fmt.Println("After")
-	})
+var _ = SynchronizedAfterSuite(func() {}, func() {})
 
 func setup() (string, *machineTestBuilder) {
 	// Set TMPDIR if this needs a new directory
@@ -127,7 +124,7 @@ func teardown(origHomeDir string, testDir string, mb *machineTestBuilder) {
 	r := new(rmMachine)
 	for _, name := range mb.names {
 		if _, err := mb.setName(name).setCmd(r.withForce()).run(); err != nil {
-			fmt.Printf("error occurred rm'ing machine: %q\n", err)
+			GinkgoWriter.Printf("error occurred rm'ing machine: %q\n", err)
 		}
 	}
 	if err := machine.GuardedRemoveAll(testDir); err != nil {

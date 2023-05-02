@@ -50,8 +50,6 @@ type machineTestBuilder struct {
 // number of seconds
 func (ms *machineSession) waitWithTimeout(timeout time.Duration) {
 	Eventually(ms, timeout).Should(Exit())
-	os.Stdout.Sync()
-	os.Stderr.Sync()
 }
 
 func (ms *machineSession) Bytes() []byte {
@@ -154,7 +152,7 @@ func runWrapper(podmanBinary string, cmdArgs []string, timeout time.Duration, wa
 	if len(os.Getenv("DEBUG")) > 0 {
 		cmdArgs = append([]string{"--log-level=debug"}, cmdArgs...)
 	}
-	fmt.Println(podmanBinary + " " + strings.Join(cmdArgs, " "))
+	GinkgoWriter.Println(podmanBinary + " " + strings.Join(cmdArgs, " "))
 	c := exec.Command(podmanBinary, cmdArgs...)
 	session, err := Start(c, GinkgoWriter, GinkgoWriter)
 	if err != nil {
@@ -164,7 +162,6 @@ func runWrapper(podmanBinary string, cmdArgs []string, timeout time.Duration, wa
 	ms := machineSession{session}
 	if wait {
 		ms.waitWithTimeout(timeout)
-		fmt.Println("output:", ms.outputToString())
 	}
 	return &ms, nil
 }
