@@ -562,35 +562,8 @@ END_HTML
             $current_output .= ' ' . $line;
         }
 
-        #######################################################################
-        # DANGER DANGER DANGER! This is hideous and probably fragile.
-        #
-        # The way ginkgo shows tests is:
-        #
-        #      -------------
-        #   1  [+NNNNs] * Status [x.y seconds]
-        #   2  Podman test module name
-        #   3  /var/tmp/..../something_test.go:linenumber
-        #   4    podman actual test name
-        #
-        # That is: one line after each divider, there's a status/timing line,
-        # then the Describe() string from a foo_test.go file with the next
-        # line being the file and line number; then the fourth line after
-        # divider is the actual subtest name, the It() string. USUALLY: ginkgo
-        # also spits out dash lines for other purposes. More on that below.
-        #
-        # When we link to a test result (in-page anchor) we use line 4,
-        # the subtest name. It's easy to link to that line (4), but it's
-        # way more useful to link to the status line (1): that way the
-        # user can see status, start time, run time, module name, all
-        # without having to scroll up.
-        #
-        # To do that, we need to read ahead in our input stream. For now I
-        # choose to use tell(), read, then seek() back. If that doesn't work
-        # I'll have to look into a rolling input buffer. Either way, yuk.
-        #######################################################################
+        # One line after each divider, there's a status/timing line.
         if ($after_divider == 1) {
-            # Line 1: status and timing results
             $line =~ s{(\[(\d+)\.\d+\s+seconds\])}{
                 if ($2 > 5) { "<b><span class='log-slow'>$1</span></b>" }
                 else        { "<b>$1</b>" }
@@ -602,49 +575,20 @@ END_HTML
                 $subtest_status = lc($2);
             }
 
-            # Read ahead. Here's where it gets ugly.
-            my $stream_pos = tell STDIN;
-            # As mentioned above, ginkgo can spit out lots of other things
-            # after a row of dashes. Check for those, and exclude them.
-            chomp(my $l2 = <STDIN>);
-            if ($l2 && $l2 !~ /(\[.*Suite\]|Summarizing|Runner executing|Ran \d+ of \d+ Specs)/) {
-                # Don't really care about line 3, only that it has slashes
-                chomp(my $l3 = <STDIN>);
-                if ($l3 && $l3 =~ m!/.*/!) {
-                    # Line 4 should be a test name, indented, possibly with [It]
-                    chomp(my $l4 = <STDIN>);
-                    if ($l4 =~ /^\[\+\d+s\]   *(\[It\]\s*)?([a-zA-Z-].*\S)/) {
-                        # Yes! From the subtest name, make a page anchor,
-                        # and link to our **CURRENT LINE**, the status one.
-                        my $id = make_id(escapeHTML($2), 'anchor');
-                        $line = "<a name='t--$id'><h2 class=\"log-$subtest_status\">$line</h2></a>";
-                    }
-                    else {
-                        # Line 4 does not look like a test name.
-                        # This warning will only likely be seen by Ed.
-                        warn "$ME: line $.: unexpected line three down from dashes:\n";
-                        warn "     $line\n     $l2\n     $l3\n     $l4\n";
-                    }
-                }
-            }
-            else {
-                # Line 2 is one of the other non-test-result things that
-                # ginkgo emits after a row of dashes. Set this so our
-                # test name highlighter (below) does not false-trigger.
-                $after_divider = 999;
-            }
-
-            # Reset back to where we were in the input stream, and continue.
-            seek STDIN, $stream_pos, 0;
-
             # FIXME: gray out entire block if it's skipped?
         }
 
-        # Two and four lines after each divider, there's a test module
-        # Description and a subtest name. Highlight both.
-        if ($after_divider == 2 || $after_divider == 4) {
-            my $level = 2 + ($after_divider == 4);
-            $line = "<h$level class=\"log-$subtest_status\">$line</h$level>";
+        # Four lines after each divider, there's a test name. Make it
+        # an anchor so we can link to it later.
+        if ($after_divider == 4) {
+            # Sigh. There is no actual marker. Assume that anything with
+            ## two leading spaces then alpha or hyphen (not slashes) is
+            ## a test name.
+            if ($line =~ /^  (\[It\]\s*)?([a-zA-Z-].*\S)/) {
+                my $id = make_id($2, 'anchor');
+
+                $line = "<a name='t--$id'><h2 class=\"log-$subtest_status\">$line</h2></a>";
+            }
         }
         ++$after_divider;
 
