@@ -118,12 +118,6 @@ func run(cmd *cobra.Command, args []string) error {
 		logrus.Warnf("The input device is not a TTY. The --tty and --interactive flags might not work properly")
 	}
 
-	if af := cliVals.Authfile; len(af) > 0 {
-		if _, err := os.Stat(af); err != nil {
-			return err
-		}
-	}
-
 	runOpts.CIDFile = cliVals.CIDFile
 	runOpts.Rm = cliVals.Rm
 	cliVals, err := CreateInit(cmd, cliVals, false)
