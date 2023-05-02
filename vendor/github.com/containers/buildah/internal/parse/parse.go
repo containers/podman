@@ -55,6 +55,7 @@ func GetBindMount(ctx *types.SystemContext, args []string, contextDir string, st
 		Type: define.TypeBind,
 	}
 
+	setRelabel := false
 	mountReadability := false
 	setDest := false
 	bindNonRecursive := false
@@ -111,6 +112,22 @@ func GetBindMount(ctx *types.SystemContext, args []string, contextDir string, st
 			}
 			newMount.Destination = targetPath
 			setDest = true
+		case "relabel":
+			if setRelabel {
+				return newMount, "", fmt.Errorf("cannot pass 'relabel' option more than once: %w", errBadOptionArg)
+			}
+			setRelabel = true
+			if len(kv) != 2 {
+				return newMount, "", fmt.Errorf("%s mount option must be 'private' or 'shared': %w", kv[0], errBadMntOption)
+			}
+			switch kv[1] {
+			case "private":
+				newMount.Options = append(newMount.Options, "Z")
+			case "shared":
+				newMount.Options = append(newMount.Options, "z")
+			default:
+				return newMount, "", fmt.Errorf("%s mount option must be 'private' or 'shared': %w", kv[0], errBadMntOption)
+			}
 		case "consistency":
 			// Option for OS X only, has no meaning on other platforms
 			// and can thus be safely ignored.

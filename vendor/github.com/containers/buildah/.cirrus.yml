@@ -192,7 +192,7 @@ conformance_task:
     gce_instance:
         image_name: "${DEBIAN_CACHE_IMAGE_NAME}"
 
-    timeout_in: 25m
+    timeout_in: 65m
 
     matrix:
         - env:
