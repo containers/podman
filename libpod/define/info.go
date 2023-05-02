@@ -6,6 +6,7 @@ import (
 
 // Info is the overall struct that describes the host system
 // running libpod/podman
+// swagger:model LibpodInfo
 type Info struct {
 	Host       *HostInfo              `json:"host"`
 	Store      *StoreInfo             `json:"store"`
