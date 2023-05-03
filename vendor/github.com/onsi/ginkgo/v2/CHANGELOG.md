@@ -1,3 +1,21 @@
+## 2.9.3
+
+### Features
+- Add RenderTimeline to GinkgoT() [c0c77b6]
+
+### Fixes
+- update Measure deprecation message. fixes #1176 [227c662]
+- add newlines to GinkgoLogr (#1170) (#1171) [0de0e7c]
+
+### Maintenance
+- Bump commonmarker from 0.23.8 to 0.23.9 in /docs (#1183) [8b925ab]
+- Bump nokogiri from 1.14.1 to 1.14.3 in /docs (#1184) [e3795a4]
+- Bump golang.org/x/tools from 0.7.0 to 0.8.0 (#1182) [b453793]
+- Bump actions/setup-go from 3 to 4 (#1164) [73ed75b]
+- Bump github.com/onsi/gomega from 1.27.4 to 1.27.6 (#1173) [0a2bc64]
+- Bump github.com/go-logr/logr from 1.2.3 to 1.2.4 (#1174) [f41c557]
+- Bump golang.org/x/sys from 0.6.0 to 0.7.0 (#1179) [8e423e5]
+
 ## 2.9.2
 
 ### Maintenance
