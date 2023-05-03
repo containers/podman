@@ -25,6 +25,3 @@ under the "Contributors" section using the format:
 `First Last <email@example.com>`.
 
 Finally, submit a pull request for review!
-
-Questions?  Feel free to join us in [`#go-qemu` on freenode](https://webchat.freenode.net/)
-if you'd like to discuss the project.

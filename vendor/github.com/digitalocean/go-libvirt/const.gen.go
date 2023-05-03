@@ -167,313 +167,323 @@ const (
 	MigrateParamMigrateDisks = "migrate_disks"
 	// MigrateParamDisksPort as defined in libvirt/libvirt-domain.h:982
 	MigrateParamDisksPort = "disks_port"
-	// MigrateParamCompression as defined in libvirt/libvirt-domain.h:992
+	// MigrateParamDisksURI as defined in libvirt/libvirt-domain.h:995
+	MigrateParamDisksURI = "disks_uri"
+	// MigrateParamCompression as defined in libvirt/libvirt-domain.h:1005
 	MigrateParamCompression = "compression"
-	// MigrateParamCompressionMtLevel as defined in libvirt/libvirt-domain.h:1001
+	// MigrateParamCompressionMtLevel as defined in libvirt/libvirt-domain.h:1014
 	MigrateParamCompressionMtLevel = "compression.mt.level"
-	// MigrateParamCompressionMtThreads as defined in libvirt/libvirt-domain.h:1009
+	// MigrateParamCompressionMtThreads as defined in libvirt/libvirt-domain.h:1022
 	MigrateParamCompressionMtThreads = "compression.mt.threads"
-	// MigrateParamCompressionMtDthreads as defined in libvirt/libvirt-domain.h:1017
+	// MigrateParamCompressionMtDthreads as defined in libvirt/libvirt-domain.h:1030
 	MigrateParamCompressionMtDthreads = "compression.mt.dthreads"
-	// MigrateParamCompressionXbzrleCache as defined in libvirt/libvirt-domain.h:1025
+	// MigrateParamCompressionXbzrleCache as defined in libvirt/libvirt-domain.h:1038
 	MigrateParamCompressionXbzrleCache = "compression.xbzrle.cache"
-	// MigrateParamAutoConvergeInitial as defined in libvirt/libvirt-domain.h:1034
+	// MigrateParamAutoConvergeInitial as defined in libvirt/libvirt-domain.h:1047
 	MigrateParamAutoConvergeInitial = "auto_converge.initial"
-	// MigrateParamAutoConvergeIncrement as defined in libvirt/libvirt-domain.h:1044
+	// MigrateParamAutoConvergeIncrement as defined in libvirt/libvirt-domain.h:1057
 	MigrateParamAutoConvergeIncrement = "auto_converge.increment"
-	// MigrateParamParallelConnections as defined in libvirt/libvirt-domain.h:1052
+	// MigrateParamParallelConnections as defined in libvirt/libvirt-domain.h:1065
 	MigrateParamParallelConnections = "parallel.connections"
-	// MigrateParamTLSDestination as defined in libvirt/libvirt-domain.h:1066
+	// MigrateParamTLSDestination as defined in libvirt/libvirt-domain.h:1079
 	MigrateParamTLSDestination = "tls.destination"
-	// DomainCPUStatsCputime as defined in libvirt/libvirt-domain.h:1326
+	// MigrateParamSuseMaxIters as defined in libvirt/libvirt-domain.h:1086
+	MigrateParamSuseMaxIters = "max_iters"
+	// MigrateParamSuseMinRemaining as defined in libvirt/libvirt-domain.h:1092
+	MigrateParamSuseMinRemaining = "min_remaining"
+	// MigrateParamSuseAbortIfBusy as defined in libvirt/libvirt-domain.h:1098
+	MigrateParamSuseAbortIfBusy = "abort_if_busy"
+	// DomainCPUStatsCputime as defined in libvirt/libvirt-domain.h:1358
 	DomainCPUStatsCputime = "cpu_time"
-	// DomainCPUStatsUsertime as defined in libvirt/libvirt-domain.h:1332
+	// DomainCPUStatsUsertime as defined in libvirt/libvirt-domain.h:1364
 	DomainCPUStatsUsertime = "user_time"
-	// DomainCPUStatsSystemtime as defined in libvirt/libvirt-domain.h:1338
+	// DomainCPUStatsSystemtime as defined in libvirt/libvirt-domain.h:1370
 	DomainCPUStatsSystemtime = "system_time"
-	// DomainCPUStatsVcputime as defined in libvirt/libvirt-domain.h:1345
+	// DomainCPUStatsVcputime as defined in libvirt/libvirt-domain.h:1377
 	DomainCPUStatsVcputime = "vcpu_time"
-	// DomainBlkioWeight as defined in libvirt/libvirt-domain.h:1374
+	// DomainBlkioWeight as defined in libvirt/libvirt-domain.h:1406
 	DomainBlkioWeight = "weight"
-	// DomainBlkioDeviceWeight as defined in libvirt/libvirt-domain.h:1384
+	// DomainBlkioDeviceWeight as defined in libvirt/libvirt-domain.h:1416
 	DomainBlkioDeviceWeight = "device_weight"
-	// DomainBlkioDeviceReadIops as defined in libvirt/libvirt-domain.h:1395
+	// DomainBlkioDeviceReadIops as defined in libvirt/libvirt-domain.h:1427
 	DomainBlkioDeviceReadIops = "device_read_iops_sec"
-	// DomainBlkioDeviceWriteIops as defined in libvirt/libvirt-domain.h:1406
+	// DomainBlkioDeviceWriteIops as defined in libvirt/libvirt-domain.h:1438
 	DomainBlkioDeviceWriteIops = "device_write_iops_sec"
-	// DomainBlkioDeviceReadBps as defined in libvirt/libvirt-domain.h:1417
+	// DomainBlkioDeviceReadBps as defined in libvirt/libvirt-domain.h:1449
 	DomainBlkioDeviceReadBps = "device_read_bytes_sec"
-	// DomainBlkioDeviceWriteBps as defined in libvirt/libvirt-domain.h:1428
+	// DomainBlkioDeviceWriteBps as defined in libvirt/libvirt-domain.h:1460
 	DomainBlkioDeviceWriteBps = "device_write_bytes_sec"
-	// DomainMemoryParamUnlimited as defined in libvirt/libvirt-domain.h:1447
+	// DomainMemoryParamUnlimited as defined in libvirt/libvirt-domain.h:1479
 	DomainMemoryParamUnlimited = 9007199254740991
-	// DomainMemoryHardLimit as defined in libvirt/libvirt-domain.h:1456
+	// DomainMemoryHardLimit as defined in libvirt/libvirt-domain.h:1488
 	DomainMemoryHardLimit = "hard_limit"
-	// DomainMemorySoftLimit as defined in libvirt/libvirt-domain.h:1465
+	// DomainMemorySoftLimit as defined in libvirt/libvirt-domain.h:1497
 	DomainMemorySoftLimit = "soft_limit"
-	// DomainMemoryMinGuarantee as defined in libvirt/libvirt-domain.h:1474
+	// DomainMemoryMinGuarantee as defined in libvirt/libvirt-domain.h:1506
 	DomainMemoryMinGuarantee = "min_guarantee"
-	// DomainMemorySwapHardLimit as defined in libvirt/libvirt-domain.h:1484
+	// DomainMemorySwapHardLimit as defined in libvirt/libvirt-domain.h:1516
 	DomainMemorySwapHardLimit = "swap_hard_limit"
-	// DomainNumaNodeset as defined in libvirt/libvirt-domain.h:1529
+	// DomainNumaNodeset as defined in libvirt/libvirt-domain.h:1561
 	DomainNumaNodeset = "numa_nodeset"
-	// DomainNumaMode as defined in libvirt/libvirt-domain.h:1537
+	// DomainNumaMode as defined in libvirt/libvirt-domain.h:1569
 	DomainNumaMode = "numa_mode"
-	// DomainBandwidthInAverage as defined in libvirt/libvirt-domain.h:1653
+	// DomainBandwidthInAverage as defined in libvirt/libvirt-domain.h:1691
 	DomainBandwidthInAverage = "inbound.average"
-	// DomainBandwidthInPeak as defined in libvirt/libvirt-domain.h:1660
+	// DomainBandwidthInPeak as defined in libvirt/libvirt-domain.h:1698
 	DomainBandwidthInPeak = "inbound.peak"
-	// DomainBandwidthInBurst as defined in libvirt/libvirt-domain.h:1667
+	// DomainBandwidthInBurst as defined in libvirt/libvirt-domain.h:1705
 	DomainBandwidthInBurst = "inbound.burst"
-	// DomainBandwidthInFloor as defined in libvirt/libvirt-domain.h:1674
+	// DomainBandwidthInFloor as defined in libvirt/libvirt-domain.h:1712
 	DomainBandwidthInFloor = "inbound.floor"
-	// DomainBandwidthOutAverage as defined in libvirt/libvirt-domain.h:1681
+	// DomainBandwidthOutAverage as defined in libvirt/libvirt-domain.h:1719
 	DomainBandwidthOutAverage = "outbound.average"
-	// DomainBandwidthOutPeak as defined in libvirt/libvirt-domain.h:1688
+	// DomainBandwidthOutPeak as defined in libvirt/libvirt-domain.h:1726
 	DomainBandwidthOutPeak = "outbound.peak"
-	// DomainBandwidthOutBurst as defined in libvirt/libvirt-domain.h:1695
+	// DomainBandwidthOutBurst as defined in libvirt/libvirt-domain.h:1733
 	DomainBandwidthOutBurst = "outbound.burst"
-	// DomainIothreadPollMaxNs as defined in libvirt/libvirt-domain.h:1995
+	// DomainIothreadPollMaxNs as defined in libvirt/libvirt-domain.h:2038
 	DomainIothreadPollMaxNs = "poll_max_ns"
-	// DomainIothreadPollGrow as defined in libvirt/libvirt-domain.h:2005
+	// DomainIothreadPollGrow as defined in libvirt/libvirt-domain.h:2048
 	DomainIothreadPollGrow = "poll_grow"
-	// DomainIothreadPollShrink as defined in libvirt/libvirt-domain.h:2016
+	// DomainIothreadPollShrink as defined in libvirt/libvirt-domain.h:2059
 	DomainIothreadPollShrink = "poll_shrink"
-	// PerfParamCmt as defined in libvirt/libvirt-domain.h:2208
+	// PerfParamCmt as defined in libvirt/libvirt-domain.h:2251
 	PerfParamCmt = "cmt"
-	// PerfParamMbmt as defined in libvirt/libvirt-domain.h:2219
+	// PerfParamMbmt as defined in libvirt/libvirt-domain.h:2262
 	PerfParamMbmt = "mbmt"
-	// PerfParamMbml as defined in libvirt/libvirt-domain.h:2229
+	// PerfParamMbml as defined in libvirt/libvirt-domain.h:2272
 	PerfParamMbml = "mbml"
-	// PerfParamCacheMisses as defined in libvirt/libvirt-domain.h:2239
+	// PerfParamCacheMisses as defined in libvirt/libvirt-domain.h:2282
 	PerfParamCacheMisses = "cache_misses"
-	// PerfParamCacheReferences as defined in libvirt/libvirt-domain.h:2249
+	// PerfParamCacheReferences as defined in libvirt/libvirt-domain.h:2292
 	PerfParamCacheReferences = "cache_references"
-	// PerfParamInstructions as defined in libvirt/libvirt-domain.h:2259
+	// PerfParamInstructions as defined in libvirt/libvirt-domain.h:2302
 	PerfParamInstructions = "instructions"
-	// PerfParamCPUCycles as defined in libvirt/libvirt-domain.h:2269
+	// PerfParamCPUCycles as defined in libvirt/libvirt-domain.h:2312
 	PerfParamCPUCycles = "cpu_cycles"
-	// PerfParamBranchInstructions as defined in libvirt/libvirt-domain.h:2279
+	// PerfParamBranchInstructions as defined in libvirt/libvirt-domain.h:2322
 	PerfParamBranchInstructions = "branch_instructions"
-	// PerfParamBranchMisses as defined in libvirt/libvirt-domain.h:2289
+	// PerfParamBranchMisses as defined in libvirt/libvirt-domain.h:2332
 	PerfParamBranchMisses = "branch_misses"
-	// PerfParamBusCycles as defined in libvirt/libvirt-domain.h:2299
+	// PerfParamBusCycles as defined in libvirt/libvirt-domain.h:2342
 	PerfParamBusCycles = "bus_cycles"
-	// PerfParamStalledCyclesFrontend as defined in libvirt/libvirt-domain.h:2310
+	// PerfParamStalledCyclesFrontend as defined in libvirt/libvirt-domain.h:2353
 	PerfParamStalledCyclesFrontend = "stalled_cycles_frontend"
-	// PerfParamStalledCyclesBackend as defined in libvirt/libvirt-domain.h:2321
+	// PerfParamStalledCyclesBackend as defined in libvirt/libvirt-domain.h:2364
 	PerfParamStalledCyclesBackend = "stalled_cycles_backend"
-	// PerfParamRefCPUCycles as defined in libvirt/libvirt-domain.h:2332
+	// PerfParamRefCPUCycles as defined in libvirt/libvirt-domain.h:2375
 	PerfParamRefCPUCycles = "ref_cpu_cycles"
-	// PerfParamCPUClock as defined in libvirt/libvirt-domain.h:2343
+	// PerfParamCPUClock as defined in libvirt/libvirt-domain.h:2386
 	PerfParamCPUClock = "cpu_clock"
-	// PerfParamTaskClock as defined in libvirt/libvirt-domain.h:2354
+	// PerfParamTaskClock as defined in libvirt/libvirt-domain.h:2397
 	PerfParamTaskClock = "task_clock"
-	// PerfParamPageFaults as defined in libvirt/libvirt-domain.h:2364
+	// PerfParamPageFaults as defined in libvirt/libvirt-domain.h:2407
 	PerfParamPageFaults = "page_faults"
-	// PerfParamContextSwitches as defined in libvirt/libvirt-domain.h:2374
+	// PerfParamContextSwitches as defined in libvirt/libvirt-domain.h:2417
 	PerfParamContextSwitches = "context_switches"
-	// PerfParamCPUMigrations as defined in libvirt/libvirt-domain.h:2384
+	// PerfParamCPUMigrations as defined in libvirt/libvirt-domain.h:2427
 	PerfParamCPUMigrations = "cpu_migrations"
-	// PerfParamPageFaultsMin as defined in libvirt/libvirt-domain.h:2394
+	// PerfParamPageFaultsMin as defined in libvirt/libvirt-domain.h:2437
 	PerfParamPageFaultsMin = "page_faults_min"
-	// PerfParamPageFaultsMaj as defined in libvirt/libvirt-domain.h:2404
+	// PerfParamPageFaultsMaj as defined in libvirt/libvirt-domain.h:2447
 	PerfParamPageFaultsMaj = "page_faults_maj"
-	// PerfParamAlignmentFaults as defined in libvirt/libvirt-domain.h:2414
+	// PerfParamAlignmentFaults as defined in libvirt/libvirt-domain.h:2457
 	PerfParamAlignmentFaults = "alignment_faults"
-	// PerfParamEmulationFaults as defined in libvirt/libvirt-domain.h:2424
+	// PerfParamEmulationFaults as defined in libvirt/libvirt-domain.h:2467
 	PerfParamEmulationFaults = "emulation_faults"
-	// DomainBlockCopyBandwidth as defined in libvirt/libvirt-domain.h:2592
+	// DomainBlockCopyBandwidth as defined in libvirt/libvirt-domain.h:2635
 	DomainBlockCopyBandwidth = "bandwidth"
-	// DomainBlockCopyGranularity as defined in libvirt/libvirt-domain.h:2603
+	// DomainBlockCopyGranularity as defined in libvirt/libvirt-domain.h:2646
 	DomainBlockCopyGranularity = "granularity"
-	// DomainBlockCopyBufSize as defined in libvirt/libvirt-domain.h:2612
+	// DomainBlockCopyBufSize as defined in libvirt/libvirt-domain.h:2655
 	DomainBlockCopyBufSize = "buf-size"
-	// DomainBlockIotuneTotalBytesSec as defined in libvirt/libvirt-domain.h:2653
+	// DomainBlockIotuneTotalBytesSec as defined in libvirt/libvirt-domain.h:2696
 	DomainBlockIotuneTotalBytesSec = "total_bytes_sec"
-	// DomainBlockIotuneReadBytesSec as defined in libvirt/libvirt-domain.h:2661
+	// DomainBlockIotuneReadBytesSec as defined in libvirt/libvirt-domain.h:2704
 	DomainBlockIotuneReadBytesSec = "read_bytes_sec"
-	// DomainBlockIotuneWriteBytesSec as defined in libvirt/libvirt-domain.h:2669
+	// DomainBlockIotuneWriteBytesSec as defined in libvirt/libvirt-domain.h:2712
 	DomainBlockIotuneWriteBytesSec = "write_bytes_sec"
-	// DomainBlockIotuneTotalIopsSec as defined in libvirt/libvirt-domain.h:2677
+	// DomainBlockIotuneTotalIopsSec as defined in libvirt/libvirt-domain.h:2720
 	DomainBlockIotuneTotalIopsSec = "total_iops_sec"
-	// DomainBlockIotuneReadIopsSec as defined in libvirt/libvirt-domain.h:2685
+	// DomainBlockIotuneReadIopsSec as defined in libvirt/libvirt-domain.h:2728
 	DomainBlockIotuneReadIopsSec = "read_iops_sec"
-	// DomainBlockIotuneWriteIopsSec as defined in libvirt/libvirt-domain.h:2692
+	// DomainBlockIotuneWriteIopsSec as defined in libvirt/libvirt-domain.h:2735
 	DomainBlockIotuneWriteIopsSec = "write_iops_sec"
-	// DomainBlockIotuneTotalBytesSecMax as defined in libvirt/libvirt-domain.h:2700
+	// DomainBlockIotuneTotalBytesSecMax as defined in libvirt/libvirt-domain.h:2743
 	DomainBlockIotuneTotalBytesSecMax = "total_bytes_sec_max"
-	// DomainBlockIotuneReadBytesSecMax as defined in libvirt/libvirt-domain.h:2708
+	// DomainBlockIotuneReadBytesSecMax as defined in libvirt/libvirt-domain.h:2751
 	DomainBlockIotuneReadBytesSecMax = "read_bytes_sec_max"
-	// DomainBlockIotuneWriteBytesSecMax as defined in libvirt/libvirt-domain.h:2716
+	// DomainBlockIotuneWriteBytesSecMax as defined in libvirt/libvirt-domain.h:2759
 	DomainBlockIotuneWriteBytesSecMax = "write_bytes_sec_max"
-	// DomainBlockIotuneTotalIopsSecMax as defined in libvirt/libvirt-domain.h:2724
+	// DomainBlockIotuneTotalIopsSecMax as defined in libvirt/libvirt-domain.h:2767
 	DomainBlockIotuneTotalIopsSecMax = "total_iops_sec_max"
-	// DomainBlockIotuneReadIopsSecMax as defined in libvirt/libvirt-domain.h:2732
+	// DomainBlockIotuneReadIopsSecMax as defined in libvirt/libvirt-domain.h:2775
 	DomainBlockIotuneReadIopsSecMax = "read_iops_sec_max"
-	// DomainBlockIotuneWriteIopsSecMax as defined in libvirt/libvirt-domain.h:2739
+	// DomainBlockIotuneWriteIopsSecMax as defined in libvirt/libvirt-domain.h:2782
 	DomainBlockIotuneWriteIopsSecMax = "write_iops_sec_max"
-	// DomainBlockIotuneTotalBytesSecMaxLength as defined in libvirt/libvirt-domain.h:2747
+	// DomainBlockIotuneTotalBytesSecMaxLength as defined in libvirt/libvirt-domain.h:2790
 	DomainBlockIotuneTotalBytesSecMaxLength = "total_bytes_sec_max_length"
-	// DomainBlockIotuneReadBytesSecMaxLength as defined in libvirt/libvirt-domain.h:2755
+	// DomainBlockIotuneReadBytesSecMaxLength as defined in libvirt/libvirt-domain.h:2798
 	DomainBlockIotuneReadBytesSecMaxLength = "read_bytes_sec_max_length"
-	// DomainBlockIotuneWriteBytesSecMaxLength as defined in libvirt/libvirt-domain.h:2763
+	// DomainBlockIotuneWriteBytesSecMaxLength as defined in libvirt/libvirt-domain.h:2806
 	DomainBlockIotuneWriteBytesSecMaxLength = "write_bytes_sec_max_length"
-	// DomainBlockIotuneTotalIopsSecMaxLength as defined in libvirt/libvirt-domain.h:2771
+	// DomainBlockIotuneTotalIopsSecMaxLength as defined in libvirt/libvirt-domain.h:2814
 	DomainBlockIotuneTotalIopsSecMaxLength = "total_iops_sec_max_length"
-	// DomainBlockIotuneReadIopsSecMaxLength as defined in libvirt/libvirt-domain.h:2779
+	// DomainBlockIotuneReadIopsSecMaxLength as defined in libvirt/libvirt-domain.h:2822
 	DomainBlockIotuneReadIopsSecMaxLength = "read_iops_sec_max_length"
-	// DomainBlockIotuneWriteIopsSecMaxLength as defined in libvirt/libvirt-domain.h:2787
+	// DomainBlockIotuneWriteIopsSecMaxLength as defined in libvirt/libvirt-domain.h:2830
 	DomainBlockIotuneWriteIopsSecMaxLength = "write_iops_sec_max_length"
-	// DomainBlockIotuneSizeIopsSec as defined in libvirt/libvirt-domain.h:2794
+	// DomainBlockIotuneSizeIopsSec as defined in libvirt/libvirt-domain.h:2837
 	DomainBlockIotuneSizeIopsSec = "size_iops_sec"
-	// DomainBlockIotuneGroupName as defined in libvirt/libvirt-domain.h:2801
+	// DomainBlockIotuneGroupName as defined in libvirt/libvirt-domain.h:2844
 	DomainBlockIotuneGroupName = "group_name"
-	// KeycodeSetRfb as defined in libvirt/libvirt-domain.h:2882
+	// KeycodeSetRfb as defined in libvirt/libvirt-domain.h:2925
 	KeycodeSetRfb = 0
-	// DomainSendKeyMaxKeys as defined in libvirt/libvirt-domain.h:2889
+	// DomainSendKeyMaxKeys as defined in libvirt/libvirt-domain.h:2932
 	DomainSendKeyMaxKeys = 16
-	// DomainJobOperationStr as defined in libvirt/libvirt-domain.h:3304
+	// DomainJobOperationStr as defined in libvirt/libvirt-domain.h:3406
 	DomainJobOperationStr = "operation"
-	// DomainJobTimeElapsed as defined in libvirt/libvirt-domain.h:3314
+	// DomainJobTimeElapsed as defined in libvirt/libvirt-domain.h:3416
 	DomainJobTimeElapsed = "time_elapsed"
-	// DomainJobTimeElapsedNet as defined in libvirt/libvirt-domain.h:3324
+	// DomainJobTimeElapsedNet as defined in libvirt/libvirt-domain.h:3426
 	DomainJobTimeElapsedNet = "time_elapsed_net"
-	// DomainJobTimeRemaining as defined in libvirt/libvirt-domain.h:3334
+	// DomainJobTimeRemaining as defined in libvirt/libvirt-domain.h:3436
 	DomainJobTimeRemaining = "time_remaining"
-	// DomainJobDowntime as defined in libvirt/libvirt-domain.h:3344
+	// DomainJobDowntime as defined in libvirt/libvirt-domain.h:3446
 	DomainJobDowntime = "downtime"
-	// DomainJobDowntimeNet as defined in libvirt/libvirt-domain.h:3353
+	// DomainJobDowntimeNet as defined in libvirt/libvirt-domain.h:3455
 	DomainJobDowntimeNet = "downtime_net"
-	// DomainJobSetupTime as defined in libvirt/libvirt-domain.h:3362
+	// DomainJobSetupTime as defined in libvirt/libvirt-domain.h:3464
 	DomainJobSetupTime = "setup_time"
-	// DomainJobDataTotal as defined in libvirt/libvirt-domain.h:3377
+	// DomainJobDataTotal as defined in libvirt/libvirt-domain.h:3479
 	DomainJobDataTotal = "data_total"
-	// DomainJobDataProcessed as defined in libvirt/libvirt-domain.h:3387
+	// DomainJobDataProcessed as defined in libvirt/libvirt-domain.h:3489
 	DomainJobDataProcessed = "data_processed"
-	// DomainJobDataRemaining as defined in libvirt/libvirt-domain.h:3397
+	// DomainJobDataRemaining as defined in libvirt/libvirt-domain.h:3499
 	DomainJobDataRemaining = "data_remaining"
-	// DomainJobMemoryTotal as defined in libvirt/libvirt-domain.h:3407
+	// DomainJobMemoryTotal as defined in libvirt/libvirt-domain.h:3509
 	DomainJobMemoryTotal = "memory_total"
-	// DomainJobMemoryProcessed as defined in libvirt/libvirt-domain.h:3417
+	// DomainJobMemoryProcessed as defined in libvirt/libvirt-domain.h:3519
 	DomainJobMemoryProcessed = "memory_processed"
-	// DomainJobMemoryRemaining as defined in libvirt/libvirt-domain.h:3427
+	// DomainJobMemoryRemaining as defined in libvirt/libvirt-domain.h:3529
 	DomainJobMemoryRemaining = "memory_remaining"
-	// DomainJobMemoryConstant as defined in libvirt/libvirt-domain.h:3439
+	// DomainJobMemoryConstant as defined in libvirt/libvirt-domain.h:3541
 	DomainJobMemoryConstant = "memory_constant"
-	// DomainJobMemoryNormal as defined in libvirt/libvirt-domain.h:3449
+	// DomainJobMemoryNormal as defined in libvirt/libvirt-domain.h:3551
 	DomainJobMemoryNormal = "memory_normal"
-	// DomainJobMemoryNormalBytes as defined in libvirt/libvirt-domain.h:3459
+	// DomainJobMemoryNormalBytes as defined in libvirt/libvirt-domain.h:3561
 	DomainJobMemoryNormalBytes = "memory_normal_bytes"
-	// DomainJobMemoryBps as defined in libvirt/libvirt-domain.h:3467
+	// DomainJobMemoryBps as defined in libvirt/libvirt-domain.h:3569
 	DomainJobMemoryBps = "memory_bps"
-	// DomainJobMemoryDirtyRate as defined in libvirt/libvirt-domain.h:3475
+	// DomainJobMemoryDirtyRate as defined in libvirt/libvirt-domain.h:3577
 	DomainJobMemoryDirtyRate = "memory_dirty_rate"
-	// DomainJobMemoryPageSize as defined in libvirt/libvirt-domain.h:3486
+	// DomainJobMemoryPageSize as defined in libvirt/libvirt-domain.h:3588
 	DomainJobMemoryPageSize = "memory_page_size"
-	// DomainJobMemoryIteration as defined in libvirt/libvirt-domain.h:3497
+	// DomainJobMemoryIteration as defined in libvirt/libvirt-domain.h:3599
 	DomainJobMemoryIteration = "memory_iteration"
-	// DomainJobMemoryPostcopyReqs as defined in libvirt/libvirt-domain.h:3507
+	// DomainJobMemoryPostcopyReqs as defined in libvirt/libvirt-domain.h:3609
 	DomainJobMemoryPostcopyReqs = "memory_postcopy_requests"
-	// DomainJobDiskTotal as defined in libvirt/libvirt-domain.h:3517
+	// DomainJobDiskTotal as defined in libvirt/libvirt-domain.h:3619
 	DomainJobDiskTotal = "disk_total"
-	// DomainJobDiskProcessed as defined in libvirt/libvirt-domain.h:3527
+	// DomainJobDiskProcessed as defined in libvirt/libvirt-domain.h:3629
 	DomainJobDiskProcessed = "disk_processed"
-	// DomainJobDiskRemaining as defined in libvirt/libvirt-domain.h:3537
+	// DomainJobDiskRemaining as defined in libvirt/libvirt-domain.h:3639
 	DomainJobDiskRemaining = "disk_remaining"
-	// DomainJobDiskBps as defined in libvirt/libvirt-domain.h:3545
+	// DomainJobDiskBps as defined in libvirt/libvirt-domain.h:3647
 	DomainJobDiskBps = "disk_bps"
-	// DomainJobCompressionCache as defined in libvirt/libvirt-domain.h:3554
+	// DomainJobCompressionCache as defined in libvirt/libvirt-domain.h:3656
 	DomainJobCompressionCache = "compression_cache"
-	// DomainJobCompressionBytes as defined in libvirt/libvirt-domain.h:3562
+	// DomainJobCompressionBytes as defined in libvirt/libvirt-domain.h:3664
 	DomainJobCompressionBytes = "compression_bytes"
-	// DomainJobCompressionPages as defined in libvirt/libvirt-domain.h:3570
+	// DomainJobCompressionPages as defined in libvirt/libvirt-domain.h:3672
 	DomainJobCompressionPages = "compression_pages"
-	// DomainJobCompressionCacheMisses as defined in libvirt/libvirt-domain.h:3579
+	// DomainJobCompressionCacheMisses as defined in libvirt/libvirt-domain.h:3681
 	DomainJobCompressionCacheMisses = "compression_cache_misses"
-	// DomainJobCompressionOverflow as defined in libvirt/libvirt-domain.h:3589
+	// DomainJobCompressionOverflow as defined in libvirt/libvirt-domain.h:3691
 	DomainJobCompressionOverflow = "compression_overflow"
-	// DomainJobAutoConvergeThrottle as defined in libvirt/libvirt-domain.h:3598
+	// DomainJobAutoConvergeThrottle as defined in libvirt/libvirt-domain.h:3700
 	DomainJobAutoConvergeThrottle = "auto_converge_throttle"
-	// DomainJobSuccess as defined in libvirt/libvirt-domain.h:3606
+	// DomainJobSuccess as defined in libvirt/libvirt-domain.h:3708
 	DomainJobSuccess = "success"
-	// DomainJobDiskTempUsed as defined in libvirt/libvirt-domain.h:3613
+	// DomainJobErrmsg as defined in libvirt/libvirt-domain.h:3716
+	DomainJobErrmsg = "errmsg"
+	// DomainJobDiskTempUsed as defined in libvirt/libvirt-domain.h:3724
 	DomainJobDiskTempUsed = "disk_temp_used"
-	// DomainJobDiskTempTotal as defined in libvirt/libvirt-domain.h:3620
+	// DomainJobDiskTempTotal as defined in libvirt/libvirt-domain.h:3731
 	DomainJobDiskTempTotal = "disk_temp_total"
-	// DomainTunableCPUVcpupin as defined in libvirt/libvirt-domain.h:4175
+	// DomainTunableCPUVcpupin as defined in libvirt/libvirt-domain.h:4286
 	DomainTunableCPUVcpupin = "cputune.vcpupin%u"
-	// DomainTunableCPUEmulatorpin as defined in libvirt/libvirt-domain.h:4183
+	// DomainTunableCPUEmulatorpin as defined in libvirt/libvirt-domain.h:4294
 	DomainTunableCPUEmulatorpin = "cputune.emulatorpin"
-	// DomainTunableCPUIothreadspin as defined in libvirt/libvirt-domain.h:4192
+	// DomainTunableCPUIothreadspin as defined in libvirt/libvirt-domain.h:4303
 	DomainTunableCPUIothreadspin = "cputune.iothreadpin%u"
-	// DomainTunableCPUCpuShares as defined in libvirt/libvirt-domain.h:4200
+	// DomainTunableCPUCpuShares as defined in libvirt/libvirt-domain.h:4311
 	DomainTunableCPUCpuShares = "cputune.cpu_shares"
-	// DomainTunableCPUGlobalPeriod as defined in libvirt/libvirt-domain.h:4208
+	// DomainTunableCPUGlobalPeriod as defined in libvirt/libvirt-domain.h:4319
 	DomainTunableCPUGlobalPeriod = "cputune.global_period"
-	// DomainTunableCPUGlobalQuota as defined in libvirt/libvirt-domain.h:4216
+	// DomainTunableCPUGlobalQuota as defined in libvirt/libvirt-domain.h:4327
 	DomainTunableCPUGlobalQuota = "cputune.global_quota"
-	// DomainTunableCPUVCPUPeriod as defined in libvirt/libvirt-domain.h:4224
+	// DomainTunableCPUVCPUPeriod as defined in libvirt/libvirt-domain.h:4335
 	DomainTunableCPUVCPUPeriod = "cputune.vcpu_period"
-	// DomainTunableCPUVCPUQuota as defined in libvirt/libvirt-domain.h:4232
+	// DomainTunableCPUVCPUQuota as defined in libvirt/libvirt-domain.h:4343
 	DomainTunableCPUVCPUQuota = "cputune.vcpu_quota"
-	// DomainTunableCPUEmulatorPeriod as defined in libvirt/libvirt-domain.h:4241
+	// DomainTunableCPUEmulatorPeriod as defined in libvirt/libvirt-domain.h:4352
 	DomainTunableCPUEmulatorPeriod = "cputune.emulator_period"
-	// DomainTunableCPUEmulatorQuota as defined in libvirt/libvirt-domain.h:4250
+	// DomainTunableCPUEmulatorQuota as defined in libvirt/libvirt-domain.h:4361
 	DomainTunableCPUEmulatorQuota = "cputune.emulator_quota"
-	// DomainTunableCPUIothreadPeriod as defined in libvirt/libvirt-domain.h:4258
+	// DomainTunableCPUIothreadPeriod as defined in libvirt/libvirt-domain.h:4369
 	DomainTunableCPUIothreadPeriod = "cputune.iothread_period"
-	// DomainTunableCPUIothreadQuota as defined in libvirt/libvirt-domain.h:4266
+	// DomainTunableCPUIothreadQuota as defined in libvirt/libvirt-domain.h:4377
 	DomainTunableCPUIothreadQuota = "cputune.iothread_quota"
-	// DomainTunableBlkdevDisk as defined in libvirt/libvirt-domain.h:4274
+	// DomainTunableBlkdevDisk as defined in libvirt/libvirt-domain.h:4385
 	DomainTunableBlkdevDisk = "blkdeviotune.disk"
-	// DomainTunableBlkdevTotalBytesSec as defined in libvirt/libvirt-domain.h:4282
+	// DomainTunableBlkdevTotalBytesSec as defined in libvirt/libvirt-domain.h:4393
 	DomainTunableBlkdevTotalBytesSec = "blkdeviotune.total_bytes_sec"
-	// DomainTunableBlkdevReadBytesSec as defined in libvirt/libvirt-domain.h:4290
+	// DomainTunableBlkdevReadBytesSec as defined in libvirt/libvirt-domain.h:4401
 	DomainTunableBlkdevReadBytesSec = "blkdeviotune.read_bytes_sec"
-	// DomainTunableBlkdevWriteBytesSec as defined in libvirt/libvirt-domain.h:4298
+	// DomainTunableBlkdevWriteBytesSec as defined in libvirt/libvirt-domain.h:4409
 	DomainTunableBlkdevWriteBytesSec = "blkdeviotune.write_bytes_sec"
-	// DomainTunableBlkdevTotalIopsSec as defined in libvirt/libvirt-domain.h:4306
+	// DomainTunableBlkdevTotalIopsSec as defined in libvirt/libvirt-domain.h:4417
 	DomainTunableBlkdevTotalIopsSec = "blkdeviotune.total_iops_sec"
-	// DomainTunableBlkdevReadIopsSec as defined in libvirt/libvirt-domain.h:4314
+	// DomainTunableBlkdevReadIopsSec as defined in libvirt/libvirt-domain.h:4425
 	DomainTunableBlkdevReadIopsSec = "blkdeviotune.read_iops_sec"
-	// DomainTunableBlkdevWriteIopsSec as defined in libvirt/libvirt-domain.h:4322
+	// DomainTunableBlkdevWriteIopsSec as defined in libvirt/libvirt-domain.h:4433
 	DomainTunableBlkdevWriteIopsSec = "blkdeviotune.write_iops_sec"
-	// DomainTunableBlkdevTotalBytesSecMax as defined in libvirt/libvirt-domain.h:4330
+	// DomainTunableBlkdevTotalBytesSecMax as defined in libvirt/libvirt-domain.h:4441
 	DomainTunableBlkdevTotalBytesSecMax = "blkdeviotune.total_bytes_sec_max"
-	// DomainTunableBlkdevReadBytesSecMax as defined in libvirt/libvirt-domain.h:4338
+	// DomainTunableBlkdevReadBytesSecMax as defined in libvirt/libvirt-domain.h:4449
 	DomainTunableBlkdevReadBytesSecMax = "blkdeviotune.read_bytes_sec_max"
-	// DomainTunableBlkdevWriteBytesSecMax as defined in libvirt/libvirt-domain.h:4346
+	// DomainTunableBlkdevWriteBytesSecMax as defined in libvirt/libvirt-domain.h:4457
 	DomainTunableBlkdevWriteBytesSecMax = "blkdeviotune.write_bytes_sec_max"
-	// DomainTunableBlkdevTotalIopsSecMax as defined in libvirt/libvirt-domain.h:4354
+	// DomainTunableBlkdevTotalIopsSecMax as defined in libvirt/libvirt-domain.h:4465
 	DomainTunableBlkdevTotalIopsSecMax = "blkdeviotune.total_iops_sec_max"
-	// DomainTunableBlkdevReadIopsSecMax as defined in libvirt/libvirt-domain.h:4362
+	// DomainTunableBlkdevReadIopsSecMax as defined in libvirt/libvirt-domain.h:4473
 	DomainTunableBlkdevReadIopsSecMax = "blkdeviotune.read_iops_sec_max"
-	// DomainTunableBlkdevWriteIopsSecMax as defined in libvirt/libvirt-domain.h:4370
+	// DomainTunableBlkdevWriteIopsSecMax as defined in libvirt/libvirt-domain.h:4481
 	DomainTunableBlkdevWriteIopsSecMax = "blkdeviotune.write_iops_sec_max"
-	// DomainTunableBlkdevSizeIopsSec as defined in libvirt/libvirt-domain.h:4378
+	// DomainTunableBlkdevSizeIopsSec as defined in libvirt/libvirt-domain.h:4489
 	DomainTunableBlkdevSizeIopsSec = "blkdeviotune.size_iops_sec"
-	// DomainTunableBlkdevGroupName as defined in libvirt/libvirt-domain.h:4386
+	// DomainTunableBlkdevGroupName as defined in libvirt/libvirt-domain.h:4497
 	DomainTunableBlkdevGroupName = "blkdeviotune.group_name"
-	// DomainTunableBlkdevTotalBytesSecMaxLength as defined in libvirt/libvirt-domain.h:4395
+	// DomainTunableBlkdevTotalBytesSecMaxLength as defined in libvirt/libvirt-domain.h:4506
 	DomainTunableBlkdevTotalBytesSecMaxLength = "blkdeviotune.total_bytes_sec_max_length"
-	// DomainTunableBlkdevReadBytesSecMaxLength as defined in libvirt/libvirt-domain.h:4404
+	// DomainTunableBlkdevReadBytesSecMaxLength as defined in libvirt/libvirt-domain.h:4515
 	DomainTunableBlkdevReadBytesSecMaxLength = "blkdeviotune.read_bytes_sec_max_length"
-	// DomainTunableBlkdevWriteBytesSecMaxLength as defined in libvirt/libvirt-domain.h:4413
+	// DomainTunableBlkdevWriteBytesSecMaxLength as defined in libvirt/libvirt-domain.h:4524
 	DomainTunableBlkdevWriteBytesSecMaxLength = "blkdeviotune.write_bytes_sec_max_length"
-	// DomainTunableBlkdevTotalIopsSecMaxLength as defined in libvirt/libvirt-domain.h:4422
+	// DomainTunableBlkdevTotalIopsSecMaxLength as defined in libvirt/libvirt-domain.h:4533
 	DomainTunableBlkdevTotalIopsSecMaxLength = "blkdeviotune.total_iops_sec_max_length"
-	// DomainTunableBlkdevReadIopsSecMaxLength as defined in libvirt/libvirt-domain.h:4431
+	// DomainTunableBlkdevReadIopsSecMaxLength as defined in libvirt/libvirt-domain.h:4542
 	DomainTunableBlkdevReadIopsSecMaxLength = "blkdeviotune.read_iops_sec_max_length"
-	// DomainTunableBlkdevWriteIopsSecMaxLength as defined in libvirt/libvirt-domain.h:4440
+	// DomainTunableBlkdevWriteIopsSecMaxLength as defined in libvirt/libvirt-domain.h:4551
 	DomainTunableBlkdevWriteIopsSecMaxLength = "blkdeviotune.write_iops_sec_max_length"
-	// DomainSchedFieldLength as defined in libvirt/libvirt-domain.h:4728
+	// DomainSchedFieldLength as defined in libvirt/libvirt-domain.h:4865
 	DomainSchedFieldLength = 80
-	// DomainBlkioFieldLength as defined in libvirt/libvirt-domain.h:4772
+	// DomainBlkioFieldLength as defined in libvirt/libvirt-domain.h:4909
 	DomainBlkioFieldLength = 80
-	// DomainMemoryFieldLength as defined in libvirt/libvirt-domain.h:4816
+	// DomainMemoryFieldLength as defined in libvirt/libvirt-domain.h:4953
 	DomainMemoryFieldLength = 80
-	// DomainLaunchSecuritySevMeasurement as defined in libvirt/libvirt-domain.h:4942
+	// DomainLaunchSecuritySevMeasurement as defined in libvirt/libvirt-domain.h:5079
 	DomainLaunchSecuritySevMeasurement = "sev-measurement"
 	// NetworkPortBandwidthInAverage as defined in libvirt/libvirt-network.h:391
 	NetworkPortBandwidthInAverage = "inbound.average"
@@ -586,27 +596,28 @@ const (
 	CPUCompareSuperset     CPUCompareResult = 2
 )
 
-// ConnectCompareCPUFlags as declared in libvirt/libvirt-host.h:757
+// ConnectCompareCPUFlags as declared in libvirt/libvirt-host.h:759
 type ConnectCompareCPUFlags int32
 
-// ConnectCompareCPUFlags enumeration from libvirt/libvirt-host.h:757
+// ConnectCompareCPUFlags enumeration from libvirt/libvirt-host.h:759
 const (
 	ConnectCompareCPUFailIncompatible ConnectCompareCPUFlags = 1
+	ConnectCompareCPUValidateXML      ConnectCompareCPUFlags = 2
 )
 
-// ConnectBaselineCPUFlags as declared in libvirt/libvirt-host.h:783
+// ConnectBaselineCPUFlags as declared in libvirt/libvirt-host.h:785
 type ConnectBaselineCPUFlags int32
 
-// ConnectBaselineCPUFlags enumeration from libvirt/libvirt-host.h:783
+// ConnectBaselineCPUFlags enumeration from libvirt/libvirt-host.h:785
 const (
 	ConnectBaselineCPUExpandFeatures ConnectBaselineCPUFlags = 1
 	ConnectBaselineCPUMigratable     ConnectBaselineCPUFlags = 2
 )
 
-// NodeAllocPagesFlags as declared in libvirt/libvirt-host.h:813
+// NodeAllocPagesFlags as declared in libvirt/libvirt-host.h:815
 type NodeAllocPagesFlags int32
 
-// NodeAllocPagesFlags enumeration from libvirt/libvirt-host.h:813
+// NodeAllocPagesFlags enumeration from libvirt/libvirt-host.h:815
 const (
 	NodeAllocPagesAdd NodeAllocPagesFlags = iota
 	NodeAllocPagesSet NodeAllocPagesFlags = 1
@@ -846,18 +857,18 @@ const (
 	MigrateParallel         DomainMigrateFlags = 131072
 )
 
-// DomainMigrateMaxSpeedFlags as declared in libvirt/libvirt-domain.h:1118
+// DomainMigrateMaxSpeedFlags as declared in libvirt/libvirt-domain.h:1150
 type DomainMigrateMaxSpeedFlags int32
 
-// DomainMigrateMaxSpeedFlags enumeration from libvirt/libvirt-domain.h:1118
+// DomainMigrateMaxSpeedFlags enumeration from libvirt/libvirt-domain.h:1150
 const (
 	DomainMigrateMaxSpeedPostcopy DomainMigrateMaxSpeedFlags = 1
 )
 
-// DomainShutdownFlagValues as declared in libvirt/libvirt-domain.h:1184
+// DomainShutdownFlagValues as declared in libvirt/libvirt-domain.h:1216
 type DomainShutdownFlagValues int32
 
-// DomainShutdownFlagValues enumeration from libvirt/libvirt-domain.h:1184
+// DomainShutdownFlagValues enumeration from libvirt/libvirt-domain.h:1216
 const (
 	DomainShutdownDefault      DomainShutdownFlagValues = iota
 	DomainShutdownAcpiPowerBtn DomainShutdownFlagValues = 1
@@ -867,10 +878,10 @@ const (
 	DomainShutdownParavirt     DomainShutdownFlagValues = 16
 )
 
-// DomainRebootFlagValues as declared in libvirt/libvirt-domain.h:1197
+// DomainRebootFlagValues as declared in libvirt/libvirt-domain.h:1229
 type DomainRebootFlagValues int32
 
-// DomainRebootFlagValues enumeration from libvirt/libvirt-domain.h:1197
+// DomainRebootFlagValues enumeration from libvirt/libvirt-domain.h:1229
 const (
 	DomainRebootDefault      DomainRebootFlagValues = iota
 	DomainRebootAcpiPowerBtn DomainRebootFlagValues = 1
@@ -880,29 +891,29 @@ const (
 	DomainRebootParavirt     DomainRebootFlagValues = 16
 )
 
-// DomainDestroyFlagsValues as declared in libvirt/libvirt-domain.h:1215
+// DomainDestroyFlagsValues as declared in libvirt/libvirt-domain.h:1247
 type DomainDestroyFlagsValues int32
 
-// DomainDestroyFlagsValues enumeration from libvirt/libvirt-domain.h:1215
+// DomainDestroyFlagsValues enumeration from libvirt/libvirt-domain.h:1247
 const (
 	DomainDestroyDefault  DomainDestroyFlagsValues = iota
 	DomainDestroyGraceful DomainDestroyFlagsValues = 1
 )
 
-// DomainSaveRestoreFlags as declared in libvirt/libvirt-domain.h:1247
+// DomainSaveRestoreFlags as declared in libvirt/libvirt-domain.h:1279
 type DomainSaveRestoreFlags int32
 
-// DomainSaveRestoreFlags enumeration from libvirt/libvirt-domain.h:1247
+// DomainSaveRestoreFlags enumeration from libvirt/libvirt-domain.h:1279
 const (
 	DomainSaveBypassCache DomainSaveRestoreFlags = 1
 	DomainSaveRunning     DomainSaveRestoreFlags = 2
 	DomainSavePaused      DomainSaveRestoreFlags = 4
 )
 
-// DomainMemoryModFlags as declared in libvirt/libvirt-domain.h:1503
+// DomainMemoryModFlags as declared in libvirt/libvirt-domain.h:1535
 type DomainMemoryModFlags int32
 
-// DomainMemoryModFlags enumeration from libvirt/libvirt-domain.h:1503
+// DomainMemoryModFlags enumeration from libvirt/libvirt-domain.h:1535
 const (
 	DomainMemCurrent DomainMemoryModFlags = iota
 	DomainMemLive    DomainMemoryModFlags = 1
@@ -910,30 +921,39 @@ const (
 	DomainMemMaximum DomainMemoryModFlags = 4
 )
 
-// DomainNumatuneMemMode as declared in libvirt/libvirt-domain.h:1521
+// DomainNumatuneMemMode as declared in libvirt/libvirt-domain.h:1553
 type DomainNumatuneMemMode int32
 
-// DomainNumatuneMemMode enumeration from libvirt/libvirt-domain.h:1521
+// DomainNumatuneMemMode enumeration from libvirt/libvirt-domain.h:1553
 const (
 	DomainNumatuneMemStrict     DomainNumatuneMemMode = iota
 	DomainNumatuneMemPreferred  DomainNumatuneMemMode = 1
 	DomainNumatuneMemInterleave DomainNumatuneMemMode = 2
 )
 
-// DomainMetadataType as declared in libvirt/libvirt-domain.h:1583
+// DomainGetHostnameFlags as declared in libvirt/libvirt-domain.h:1606
+type DomainGetHostnameFlags int32
+
+// DomainGetHostnameFlags enumeration from libvirt/libvirt-domain.h:1606
+const (
+	DomainGetHostnameLease DomainGetHostnameFlags = 1
+	DomainGetHostnameAgent DomainGetHostnameFlags = 2
+)
+
+// DomainMetadataType as declared in libvirt/libvirt-domain.h:1621
 type DomainMetadataType int32
 
-// DomainMetadataType enumeration from libvirt/libvirt-domain.h:1583
+// DomainMetadataType enumeration from libvirt/libvirt-domain.h:1621
 const (
 	DomainMetadataDescription DomainMetadataType = iota
 	DomainMetadataTitle       DomainMetadataType = 1
 	DomainMetadataElement     DomainMetadataType = 2
 )
 
-// DomainXMLFlags as declared in libvirt/libvirt-domain.h:1613
+// DomainXMLFlags as declared in libvirt/libvirt-domain.h:1651
 type DomainXMLFlags int32
 
-// DomainXMLFlags enumeration from libvirt/libvirt-domain.h:1613
+// DomainXMLFlags enumeration from libvirt/libvirt-domain.h:1651
 const (
 	DomainXMLSecure     DomainXMLFlags = 1
 	DomainXMLInactive   DomainXMLFlags = 2
@@ -941,43 +961,43 @@ const (
 	DomainXMLMigratable DomainXMLFlags = 8
 )
 
-// DomainSaveImageXMLFlags as declared in libvirt/libvirt-domain.h:1617
+// DomainSaveImageXMLFlags as declared in libvirt/libvirt-domain.h:1655
 type DomainSaveImageXMLFlags int32
 
-// DomainSaveImageXMLFlags enumeration from libvirt/libvirt-domain.h:1617
+// DomainSaveImageXMLFlags enumeration from libvirt/libvirt-domain.h:1655
 const (
 	DomainSaveImageXMLSecure DomainSaveImageXMLFlags = 1
 )
 
-// DomainBlockResizeFlags as declared in libvirt/libvirt-domain.h:1722
+// DomainBlockResizeFlags as declared in libvirt/libvirt-domain.h:1760
 type DomainBlockResizeFlags int32
 
-// DomainBlockResizeFlags enumeration from libvirt/libvirt-domain.h:1722
+// DomainBlockResizeFlags enumeration from libvirt/libvirt-domain.h:1760
 const (
 	DomainBlockResizeBytes DomainBlockResizeFlags = 1
 )
 
-// DomainMemoryFlags as declared in libvirt/libvirt-domain.h:1785
+// DomainMemoryFlags as declared in libvirt/libvirt-domain.h:1823
 type DomainMemoryFlags int32
 
-// DomainMemoryFlags enumeration from libvirt/libvirt-domain.h:1785
+// DomainMemoryFlags enumeration from libvirt/libvirt-domain.h:1823
 const (
 	MemoryVirtual  DomainMemoryFlags = 1
 	MemoryPhysical DomainMemoryFlags = 2
 )
 
-// DomainDefineFlags as declared in libvirt/libvirt-domain.h:1795
+// DomainDefineFlags as declared in libvirt/libvirt-domain.h:1833
 type DomainDefineFlags int32
 
-// DomainDefineFlags enumeration from libvirt/libvirt-domain.h:1795
+// DomainDefineFlags enumeration from libvirt/libvirt-domain.h:1833
 const (
 	DomainDefineValidate DomainDefineFlags = 1
 )
 
-// DomainUndefineFlagsValues as declared in libvirt/libvirt-domain.h:1822
+// DomainUndefineFlagsValues as declared in libvirt/libvirt-domain.h:1860
 type DomainUndefineFlagsValues int32
 
-// DomainUndefineFlagsValues enumeration from libvirt/libvirt-domain.h:1822
+// DomainUndefineFlagsValues enumeration from libvirt/libvirt-domain.h:1860
 const (
 	DomainUndefineManagedSave         DomainUndefineFlagsValues = 1
 	DomainUndefineSnapshotsMetadata   DomainUndefineFlagsValues = 2
@@ -986,10 +1006,10 @@ const (
 	DomainUndefineCheckpointsMetadata DomainUndefineFlagsValues = 16
 )
 
-// ConnectListAllDomainsFlags as declared in libvirt/libvirt-domain.h:1861
+// ConnectListAllDomainsFlags as declared in libvirt/libvirt-domain.h:1899
 type ConnectListAllDomainsFlags int32
 
-// ConnectListAllDomainsFlags enumeration from libvirt/libvirt-domain.h:1861
+// ConnectListAllDomainsFlags enumeration from libvirt/libvirt-domain.h:1899
 const (
 	ConnectListDomainsActive        ConnectListAllDomainsFlags = 1
 	ConnectListDomainsInactive      ConnectListAllDomainsFlags = 2
@@ -1009,20 +1029,29 @@ const (
 	ConnectListDomainsNoCheckpoint  ConnectListAllDomainsFlags = 32768
 )
 
-// VCPUState as declared in libvirt/libvirt-domain.h:1892
+// VCPUState as declared in libvirt/libvirt-domain.h:1930
 type VCPUState int32
 
-// VCPUState enumeration from libvirt/libvirt-domain.h:1892
+// VCPUState enumeration from libvirt/libvirt-domain.h:1930
 const (
 	VCPUOffline VCPUState = iota
 	VCPURunning VCPUState = 1
 	VCPUBlocked VCPUState = 2
 )
 
-// DomainVCPUFlags as declared in libvirt/libvirt-domain.h:1914
+// VCPUHostCPUState as declared in libvirt/libvirt-domain.h:1935
+type VCPUHostCPUState int32
+
+// VCPUHostCPUState enumeration from libvirt/libvirt-domain.h:1935
+const (
+	VCPUInfoCPUOffline     VCPUHostCPUState = -1
+	VCPUInfoCPUUnavailable VCPUHostCPUState = -2
+)
+
+// DomainVCPUFlags as declared in libvirt/libvirt-domain.h:1957
 type DomainVCPUFlags int32
 
-// DomainVCPUFlags enumeration from libvirt/libvirt-domain.h:1914
+// DomainVCPUFlags enumeration from libvirt/libvirt-domain.h:1957
 const (
 	DomainVCPUCurrent      DomainVCPUFlags = iota
 	DomainVCPULive         DomainVCPUFlags = 1
@@ -1032,10 +1061,10 @@ const (
 	DomainVCPUHotpluggable DomainVCPUFlags = 16
 )
 
-// DomainDeviceModifyFlags as declared in libvirt/libvirt-domain.h:2131
+// DomainDeviceModifyFlags as declared in libvirt/libvirt-domain.h:2174
 type DomainDeviceModifyFlags int32
 
-// DomainDeviceModifyFlags enumeration from libvirt/libvirt-domain.h:2131
+// DomainDeviceModifyFlags enumeration from libvirt/libvirt-domain.h:2174
 const (
 	DomainDeviceModifyCurrent DomainDeviceModifyFlags = iota
 	DomainDeviceModifyLive    DomainDeviceModifyFlags = 1
@@ -1043,10 +1072,10 @@ const (
 	DomainDeviceModifyForce   DomainDeviceModifyFlags = 4
 )
 
-// DomainStatsTypes as declared in libvirt/libvirt-domain.h:2164
+// DomainStatsTypes as declared in libvirt/libvirt-domain.h:2207
 type DomainStatsTypes int32
 
-// DomainStatsTypes enumeration from libvirt/libvirt-domain.h:2164
+// DomainStatsTypes enumeration from libvirt/libvirt-domain.h:2207
 const (
 	DomainStatsState     DomainStatsTypes = 1
 	DomainStatsCPUTotal  DomainStatsTypes = 2
@@ -1059,10 +1088,10 @@ const (
 	DomainStatsMemory    DomainStatsTypes = 256
 )
 
-// ConnectGetAllDomainStatsFlags as declared in libvirt/libvirt-domain.h:2182
+// ConnectGetAllDomainStatsFlags as declared in libvirt/libvirt-domain.h:2225
 type ConnectGetAllDomainStatsFlags int32
 
-// ConnectGetAllDomainStatsFlags enumeration from libvirt/libvirt-domain.h:2182
+// ConnectGetAllDomainStatsFlags enumeration from libvirt/libvirt-domain.h:2225
 const (
 	ConnectGetAllDomainsStatsActive       ConnectGetAllDomainStatsFlags = 1
 	ConnectGetAllDomainsStatsInactive     ConnectGetAllDomainStatsFlags = 2
@@ -1077,10 +1106,10 @@ const (
 	ConnectGetAllDomainsStatsEnforceStats ConnectGetAllDomainStatsFlags = -2147483648
 )
 
-// DomainBlockJobType as declared in libvirt/libvirt-domain.h:2470
+// DomainBlockJobType as declared in libvirt/libvirt-domain.h:2513
 type DomainBlockJobType int32
 
-// DomainBlockJobType enumeration from libvirt/libvirt-domain.h:2470
+// DomainBlockJobType enumeration from libvirt/libvirt-domain.h:2513
 const (
 	DomainBlockJobTypeUnknown      DomainBlockJobType = iota
 	DomainBlockJobTypePull         DomainBlockJobType = 1
@@ -1090,43 +1119,43 @@ const (
 	DomainBlockJobTypeBackup       DomainBlockJobType = 5
 )
 
-// DomainBlockJobAbortFlags as declared in libvirt/libvirt-domain.h:2482
+// DomainBlockJobAbortFlags as declared in libvirt/libvirt-domain.h:2525
 type DomainBlockJobAbortFlags int32
 
-// DomainBlockJobAbortFlags enumeration from libvirt/libvirt-domain.h:2482
+// DomainBlockJobAbortFlags enumeration from libvirt/libvirt-domain.h:2525
 const (
 	DomainBlockJobAbortAsync DomainBlockJobAbortFlags = 1
 	DomainBlockJobAbortPivot DomainBlockJobAbortFlags = 2
 )
 
-// DomainBlockJobInfoFlags as declared in libvirt/libvirt-domain.h:2491
+// DomainBlockJobInfoFlags as declared in libvirt/libvirt-domain.h:2534
 type DomainBlockJobInfoFlags int32
 
-// DomainBlockJobInfoFlags enumeration from libvirt/libvirt-domain.h:2491
+// DomainBlockJobInfoFlags enumeration from libvirt/libvirt-domain.h:2534
 const (
 	DomainBlockJobInfoBandwidthBytes DomainBlockJobInfoFlags = 1
 )
 
-// DomainBlockJobSetSpeedFlags as declared in libvirt/libvirt-domain.h:2520
+// DomainBlockJobSetSpeedFlags as declared in libvirt/libvirt-domain.h:2563
 type DomainBlockJobSetSpeedFlags int32
 
-// DomainBlockJobSetSpeedFlags enumeration from libvirt/libvirt-domain.h:2520
+// DomainBlockJobSetSpeedFlags enumeration from libvirt/libvirt-domain.h:2563
 const (
 	DomainBlockJobSpeedBandwidthBytes DomainBlockJobSetSpeedFlags = 1
 )
 
-// DomainBlockPullFlags as declared in libvirt/libvirt-domain.h:2530
+// DomainBlockPullFlags as declared in libvirt/libvirt-domain.h:2573
 type DomainBlockPullFlags int32
 
-// DomainBlockPullFlags enumeration from libvirt/libvirt-domain.h:2530
+// DomainBlockPullFlags enumeration from libvirt/libvirt-domain.h:2573
 const (
 	DomainBlockPullBandwidthBytes DomainBlockPullFlags = 64
 )
 
-// DomainBlockRebaseFlags as declared in libvirt/libvirt-domain.h:2554
+// DomainBlockRebaseFlags as declared in libvirt/libvirt-domain.h:2597
 type DomainBlockRebaseFlags int32
 
-// DomainBlockRebaseFlags enumeration from libvirt/libvirt-domain.h:2554
+// DomainBlockRebaseFlags enumeration from libvirt/libvirt-domain.h:2597
 const (
 	DomainBlockRebaseShallow        DomainBlockRebaseFlags = 1
 	DomainBlockRebaseReuseExt       DomainBlockRebaseFlags = 2
@@ -1137,20 +1166,20 @@ const (
 	DomainBlockRebaseBandwidthBytes DomainBlockRebaseFlags = 64
 )
 
-// DomainBlockCopyFlags as declared in libvirt/libvirt-domain.h:2573
+// DomainBlockCopyFlags as declared in libvirt/libvirt-domain.h:2616
 type DomainBlockCopyFlags int32
 
-// DomainBlockCopyFlags enumeration from libvirt/libvirt-domain.h:2573
+// DomainBlockCopyFlags enumeration from libvirt/libvirt-domain.h:2616
 const (
 	DomainBlockCopyShallow      DomainBlockCopyFlags = 1
 	DomainBlockCopyReuseExt     DomainBlockCopyFlags = 2
 	DomainBlockCopyTransientJob DomainBlockCopyFlags = 4
 )
 
-// DomainBlockCommitFlags as declared in libvirt/libvirt-domain.h:2638
+// DomainBlockCommitFlags as declared in libvirt/libvirt-domain.h:2681
 type DomainBlockCommitFlags int32
 
-// DomainBlockCommitFlags enumeration from libvirt/libvirt-domain.h:2638
+// DomainBlockCommitFlags enumeration from libvirt/libvirt-domain.h:2681
 const (
 	DomainBlockCommitShallow        DomainBlockCommitFlags = 1
 	DomainBlockCommitDelete         DomainBlockCommitFlags = 2
@@ -1159,20 +1188,20 @@ const (
 	DomainBlockCommitBandwidthBytes DomainBlockCommitFlags = 16
 )
 
-// DomainDiskErrorCode as declared in libvirt/libvirt-domain.h:2829
+// DomainDiskErrorCode as declared in libvirt/libvirt-domain.h:2872
 type DomainDiskErrorCode int32
 
-// DomainDiskErrorCode enumeration from libvirt/libvirt-domain.h:2829
+// DomainDiskErrorCode enumeration from libvirt/libvirt-domain.h:2872
 const (
 	DomainDiskErrorNone    DomainDiskErrorCode = iota
 	DomainDiskErrorUnspec  DomainDiskErrorCode = 1
 	DomainDiskErrorNoSpace DomainDiskErrorCode = 2
 )
 
-// KeycodeSet as declared in libvirt/libvirt-domain.h:2875
+// KeycodeSet as declared in libvirt/libvirt-domain.h:2918
 type KeycodeSet int32
 
-// KeycodeSet enumeration from libvirt/libvirt-domain.h:2875
+// KeycodeSet enumeration from libvirt/libvirt-domain.h:2918
 const (
 	KeycodeSetLinux  KeycodeSet = iota
 	KeycodeSetXt     KeycodeSet = 1
@@ -1186,10 +1215,10 @@ const (
 	KeycodeSetQnum   KeycodeSet = 9
 )
 
-// DomainProcessSignal as declared in libvirt/libvirt-domain.h:2984
+// DomainProcessSignal as declared in libvirt/libvirt-domain.h:3027
 type DomainProcessSignal int32
 
-// DomainProcessSignal enumeration from libvirt/libvirt-domain.h:2984
+// DomainProcessSignal enumeration from libvirt/libvirt-domain.h:3027
 const (
 	DomainProcessSignalNop    DomainProcessSignal = iota
 	DomainProcessSignalHup    DomainProcessSignal = 1
@@ -1258,10 +1287,10 @@ const (
 	DomainProcessSignalRt32   DomainProcessSignal = 64
 )
 
-// DomainEventType as declared in libvirt/libvirt-domain.h:3022
+// DomainEventType as declared in libvirt/libvirt-domain.h:3065
 type DomainEventType int32
 
-// DomainEventType enumeration from libvirt/libvirt-domain.h:3022
+// DomainEventType enumeration from libvirt/libvirt-domain.h:3065
 const (
 	DomainEventDefined     DomainEventType = iota
 	DomainEventUndefined   DomainEventType = 1
@@ -1274,10 +1303,10 @@ const (
 	DomainEventCrashed     DomainEventType = 8
 )
 
-// DomainEventDefinedDetailType as declared in libvirt/libvirt-domain.h:3038
+// DomainEventDefinedDetailType as declared in libvirt/libvirt-domain.h:3081
 type DomainEventDefinedDetailType int32
 
-// DomainEventDefinedDetailType enumeration from libvirt/libvirt-domain.h:3038
+// DomainEventDefinedDetailType enumeration from libvirt/libvirt-domain.h:3081
 const (
 	DomainEventDefinedAdded        DomainEventDefinedDetailType = iota
 	DomainEventDefinedUpdated      DomainEventDefinedDetailType = 1
@@ -1285,19 +1314,19 @@ const (
 	DomainEventDefinedFromSnapshot DomainEventDefinedDetailType = 3
 )
 
-// DomainEventUndefinedDetailType as declared in libvirt/libvirt-domain.h:3052
+// DomainEventUndefinedDetailType as declared in libvirt/libvirt-domain.h:3095
 type DomainEventUndefinedDetailType int32
 
-// DomainEventUndefinedDetailType enumeration from libvirt/libvirt-domain.h:3052
+// DomainEventUndefinedDetailType enumeration from libvirt/libvirt-domain.h:3095
 const (
 	DomainEventUndefinedRemoved DomainEventUndefinedDetailType = iota
 	DomainEventUndefinedRenamed DomainEventUndefinedDetailType = 1
 )
 
-// DomainEventStartedDetailType as declared in libvirt/libvirt-domain.h:3069
+// DomainEventStartedDetailType as declared in libvirt/libvirt-domain.h:3112
 type DomainEventStartedDetailType int32
 
-// DomainEventStartedDetailType enumeration from libvirt/libvirt-domain.h:3069
+// DomainEventStartedDetailType enumeration from libvirt/libvirt-domain.h:3112
 const (
 	DomainEventStartedBooted       DomainEventStartedDetailType = iota
 	DomainEventStartedMigrated     DomainEventStartedDetailType = 1
@@ -1306,10 +1335,10 @@ const (
 	DomainEventStartedWakeup       DomainEventStartedDetailType = 4
 )
 
-// DomainEventSuspendedDetailType as declared in libvirt/libvirt-domain.h:3090
+// DomainEventSuspendedDetailType as declared in libvirt/libvirt-domain.h:3133
 type DomainEventSuspendedDetailType int32
 
-// DomainEventSuspendedDetailType enumeration from libvirt/libvirt-domain.h:3090
+// DomainEventSuspendedDetailType enumeration from libvirt/libvirt-domain.h:3133
 const (
 	DomainEventSuspendedPaused         DomainEventSuspendedDetailType = iota
 	DomainEventSuspendedMigrated       DomainEventSuspendedDetailType = 1
@@ -1322,10 +1351,10 @@ const (
 	DomainEventSuspendedPostcopyFailed DomainEventSuspendedDetailType = 8
 )
 
-// DomainEventResumedDetailType as declared in libvirt/libvirt-domain.h:3107
+// DomainEventResumedDetailType as declared in libvirt/libvirt-domain.h:3150
 type DomainEventResumedDetailType int32
 
-// DomainEventResumedDetailType enumeration from libvirt/libvirt-domain.h:3107
+// DomainEventResumedDetailType enumeration from libvirt/libvirt-domain.h:3150
 const (
 	DomainEventResumedUnpaused     DomainEventResumedDetailType = iota
 	DomainEventResumedMigrated     DomainEventResumedDetailType = 1
@@ -1333,10 +1362,10 @@ const (
 	DomainEventResumedPostcopy     DomainEventResumedDetailType = 3
 )
 
-// DomainEventStoppedDetailType as declared in libvirt/libvirt-domain.h:3126
+// DomainEventStoppedDetailType as declared in libvirt/libvirt-domain.h:3169
 type DomainEventStoppedDetailType int32
 
-// DomainEventStoppedDetailType enumeration from libvirt/libvirt-domain.h:3126
+// DomainEventStoppedDetailType enumeration from libvirt/libvirt-domain.h:3169
 const (
 	DomainEventStoppedShutdown     DomainEventStoppedDetailType = iota
 	DomainEventStoppedDestroyed    DomainEventStoppedDetailType = 1
@@ -1347,37 +1376,67 @@ const (
 	DomainEventStoppedFromSnapshot DomainEventStoppedDetailType = 6
 )
 
-// DomainEventShutdownDetailType as declared in libvirt/libvirt-domain.h:3149
+// DomainEventShutdownDetailType as declared in libvirt/libvirt-domain.h:3192
 type DomainEventShutdownDetailType int32
 
-// DomainEventShutdownDetailType enumeration from libvirt/libvirt-domain.h:3149
+// DomainEventShutdownDetailType enumeration from libvirt/libvirt-domain.h:3192
 const (
 	DomainEventShutdownFinished DomainEventShutdownDetailType = iota
 	DomainEventShutdownGuest    DomainEventShutdownDetailType = 1
 	DomainEventShutdownHost     DomainEventShutdownDetailType = 2
 )
 
-// DomainEventPMSuspendedDetailType as declared in libvirt/libvirt-domain.h:3163
+// DomainEventPMSuspendedDetailType as declared in libvirt/libvirt-domain.h:3206
 type DomainEventPMSuspendedDetailType int32
 
-// DomainEventPMSuspendedDetailType enumeration from libvirt/libvirt-domain.h:3163
+// DomainEventPMSuspendedDetailType enumeration from libvirt/libvirt-domain.h:3206
 const (
 	DomainEventPmsuspendedMemory DomainEventPMSuspendedDetailType = iota
 	DomainEventPmsuspendedDisk   DomainEventPMSuspendedDetailType = 1
 )
 
-// DomainEventCrashedDetailType as declared in libvirt/libvirt-domain.h:3176
+// DomainEventCrashedDetailType as declared in libvirt/libvirt-domain.h:3220
 type DomainEventCrashedDetailType int32
 
-// DomainEventCrashedDetailType enumeration from libvirt/libvirt-domain.h:3176
+// DomainEventCrashedDetailType enumeration from libvirt/libvirt-domain.h:3220
 const (
-	DomainEventCrashedPanicked DomainEventCrashedDetailType = iota
+	DomainEventCrashedPanicked    DomainEventCrashedDetailType = iota
+	DomainEventCrashedCrashloaded DomainEventCrashedDetailType = 1
 )
 
-// DomainJobType as declared in libvirt/libvirt-domain.h:3220
+// DomainMemoryFailureRecipientType as declared in libvirt/libvirt-domain.h:3237
+type DomainMemoryFailureRecipientType int32
+
+// DomainMemoryFailureRecipientType enumeration from libvirt/libvirt-domain.h:3237
+const (
+	DomainEventMemoryFailureRecipientHypervisor DomainMemoryFailureRecipientType = iota
+	DomainEventMemoryFailureRecipientGuest      DomainMemoryFailureRecipientType = 1
+)
+
+// DomainMemoryFailureActionType as declared in libvirt/libvirt-domain.h:3266
+type DomainMemoryFailureActionType int32
+
+// DomainMemoryFailureActionType enumeration from libvirt/libvirt-domain.h:3266
+const (
+	DomainEventMemoryFailureActionIgnore DomainMemoryFailureActionType = iota
+	DomainEventMemoryFailureActionInject DomainMemoryFailureActionType = 1
+	DomainEventMemoryFailureActionFatal  DomainMemoryFailureActionType = 2
+	DomainEventMemoryFailureActionReset  DomainMemoryFailureActionType = 3
+)
+
+// DomainMemoryFailureFlags as declared in libvirt/libvirt-domain.h:3277
+type DomainMemoryFailureFlags int32
+
+// DomainMemoryFailureFlags enumeration from libvirt/libvirt-domain.h:3277
+const (
+	DomainMemoryFailureActionRequired DomainMemoryFailureFlags = 1
+	DomainMemoryFailureRecursive      DomainMemoryFailureFlags = 2
+)
+
+// DomainJobType as declared in libvirt/libvirt-domain.h:3322
 type DomainJobType int32
 
-// DomainJobType enumeration from libvirt/libvirt-domain.h:3220
+// DomainJobType enumeration from libvirt/libvirt-domain.h:3322
 const (
 	DomainJobNone      DomainJobType = iota
 	DomainJobBounded   DomainJobType = 1
@@ -1387,19 +1446,19 @@ const (
 	DomainJobCancelled DomainJobType = 5
 )
 
-// DomainGetJobStatsFlags as declared in libvirt/libvirt-domain.h:3269
+// DomainGetJobStatsFlags as declared in libvirt/libvirt-domain.h:3371
 type DomainGetJobStatsFlags int32
 
-// DomainGetJobStatsFlags enumeration from libvirt/libvirt-domain.h:3269
+// DomainGetJobStatsFlags enumeration from libvirt/libvirt-domain.h:3371
 const (
 	DomainJobStatsCompleted     DomainGetJobStatsFlags = 1
 	DomainJobStatsKeepCompleted DomainGetJobStatsFlags = 2
 )
 
-// DomainJobOperation as declared in libvirt/libvirt-domain.h:3295
+// DomainJobOperation as declared in libvirt/libvirt-domain.h:3397
 type DomainJobOperation int32
 
-// DomainJobOperation enumeration from libvirt/libvirt-domain.h:3295
+// DomainJobOperation enumeration from libvirt/libvirt-domain.h:3397
 const (
 	DomainJobOperationStrUnknown        DomainJobOperation = iota
 	DomainJobOperationStrStart          DomainJobOperation = 1
@@ -1413,10 +1472,10 @@ const (
 	DomainJobOperationStrBackup         DomainJobOperation = 9
 )
 
-// DomainEventWatchdogAction as declared in libvirt/libvirt-domain.h:3670
+// DomainEventWatchdogAction as declared in libvirt/libvirt-domain.h:3781
 type DomainEventWatchdogAction int32
 
-// DomainEventWatchdogAction enumeration from libvirt/libvirt-domain.h:3670
+// DomainEventWatchdogAction enumeration from libvirt/libvirt-domain.h:3781
 const (
 	DomainEventWatchdogNone      DomainEventWatchdogAction = iota
 	DomainEventWatchdogPause     DomainEventWatchdogAction = 1
@@ -1427,40 +1486,40 @@ const (
 	DomainEventWatchdogInjectnmi DomainEventWatchdogAction = 6
 )
 
-// DomainEventIOErrorAction as declared in libvirt/libvirt-domain.h:3701
+// DomainEventIOErrorAction as declared in libvirt/libvirt-domain.h:3812
 type DomainEventIOErrorAction int32
 
-// DomainEventIOErrorAction enumeration from libvirt/libvirt-domain.h:3701
+// DomainEventIOErrorAction enumeration from libvirt/libvirt-domain.h:3812
 const (
 	DomainEventIoErrorNone   DomainEventIOErrorAction = iota
 	DomainEventIoErrorPause  DomainEventIOErrorAction = 1
 	DomainEventIoErrorReport DomainEventIOErrorAction = 2
 )
 
-// DomainEventGraphicsPhase as declared in libvirt/libvirt-domain.h:3764
+// DomainEventGraphicsPhase as declared in libvirt/libvirt-domain.h:3875
 type DomainEventGraphicsPhase int32
 
-// DomainEventGraphicsPhase enumeration from libvirt/libvirt-domain.h:3764
+// DomainEventGraphicsPhase enumeration from libvirt/libvirt-domain.h:3875
 const (
 	DomainEventGraphicsConnect    DomainEventGraphicsPhase = iota
 	DomainEventGraphicsInitialize DomainEventGraphicsPhase = 1
 	DomainEventGraphicsDisconnect DomainEventGraphicsPhase = 2
 )
 
-// DomainEventGraphicsAddressType as declared in libvirt/libvirt-domain.h:3779
+// DomainEventGraphicsAddressType as declared in libvirt/libvirt-domain.h:3890
 type DomainEventGraphicsAddressType int32
 
-// DomainEventGraphicsAddressType enumeration from libvirt/libvirt-domain.h:3779
+// DomainEventGraphicsAddressType enumeration from libvirt/libvirt-domain.h:3890
 const (
 	DomainEventGraphicsAddressIpv4 DomainEventGraphicsAddressType = iota
 	DomainEventGraphicsAddressIpv6 DomainEventGraphicsAddressType = 1
 	DomainEventGraphicsAddressUnix DomainEventGraphicsAddressType = 2
 )
 
-// ConnectDomainEventBlockJobStatus as declared in libvirt/libvirt-domain.h:3867
+// ConnectDomainEventBlockJobStatus as declared in libvirt/libvirt-domain.h:3978
 type ConnectDomainEventBlockJobStatus int32
 
-// ConnectDomainEventBlockJobStatus enumeration from libvirt/libvirt-domain.h:3867
+// ConnectDomainEventBlockJobStatus enumeration from libvirt/libvirt-domain.h:3978
 const (
 	DomainBlockJobCompleted ConnectDomainEventBlockJobStatus = iota
 	DomainBlockJobFailed    ConnectDomainEventBlockJobStatus = 1
@@ -1468,47 +1527,47 @@ const (
 	DomainBlockJobReady     ConnectDomainEventBlockJobStatus = 3
 )
 
-// ConnectDomainEventDiskChangeReason as declared in libvirt/libvirt-domain.h:3917
+// ConnectDomainEventDiskChangeReason as declared in libvirt/libvirt-domain.h:4028
 type ConnectDomainEventDiskChangeReason int32
 
-// ConnectDomainEventDiskChangeReason enumeration from libvirt/libvirt-domain.h:3917
+// ConnectDomainEventDiskChangeReason enumeration from libvirt/libvirt-domain.h:4028
 const (
 	DomainEventDiskChangeMissingOnStart ConnectDomainEventDiskChangeReason = iota
 	DomainEventDiskDropMissingOnStart   ConnectDomainEventDiskChangeReason = 1
 )
 
-// DomainEventTrayChangeReason as declared in libvirt/libvirt-domain.h:3958
+// DomainEventTrayChangeReason as declared in libvirt/libvirt-domain.h:4069
 type DomainEventTrayChangeReason int32
 
-// DomainEventTrayChangeReason enumeration from libvirt/libvirt-domain.h:3958
+// DomainEventTrayChangeReason enumeration from libvirt/libvirt-domain.h:4069
 const (
 	DomainEventTrayChangeOpen  DomainEventTrayChangeReason = iota
 	DomainEventTrayChangeClose DomainEventTrayChangeReason = 1
 )
 
-// ConnectDomainEventAgentLifecycleState as declared in libvirt/libvirt-domain.h:4475
+// ConnectDomainEventAgentLifecycleState as declared in libvirt/libvirt-domain.h:4586
 type ConnectDomainEventAgentLifecycleState int32
 
-// ConnectDomainEventAgentLifecycleState enumeration from libvirt/libvirt-domain.h:4475
+// ConnectDomainEventAgentLifecycleState enumeration from libvirt/libvirt-domain.h:4586
 const (
 	ConnectDomainEventAgentLifecycleStateConnected    ConnectDomainEventAgentLifecycleState = 1
 	ConnectDomainEventAgentLifecycleStateDisconnected ConnectDomainEventAgentLifecycleState = 2
 )
 
-// ConnectDomainEventAgentLifecycleReason as declared in libvirt/libvirt-domain.h:4485
+// ConnectDomainEventAgentLifecycleReason as declared in libvirt/libvirt-domain.h:4596
 type ConnectDomainEventAgentLifecycleReason int32
 
-// ConnectDomainEventAgentLifecycleReason enumeration from libvirt/libvirt-domain.h:4485
+// ConnectDomainEventAgentLifecycleReason enumeration from libvirt/libvirt-domain.h:4596
 const (
 	ConnectDomainEventAgentLifecycleReasonUnknown       ConnectDomainEventAgentLifecycleReason = iota
 	ConnectDomainEventAgentLifecycleReasonDomainStarted ConnectDomainEventAgentLifecycleReason = 1
 	ConnectDomainEventAgentLifecycleReasonChannel       ConnectDomainEventAgentLifecycleReason = 2
 )
 
-// DomainEventID as declared in libvirt/libvirt-domain.h:4589
+// DomainEventID as declared in libvirt/libvirt-domain.h:4726
 type DomainEventID int32
 
-// DomainEventID enumeration from libvirt/libvirt-domain.h:4589
+// DomainEventID enumeration from libvirt/libvirt-domain.h:4726
 const (
 	DomainEventIDLifecycle           DomainEventID = iota
 	DomainEventIDReboot              DomainEventID = 1
@@ -1535,45 +1594,46 @@ const (
 	DomainEventIDDeviceRemovalFailed DomainEventID = 22
 	DomainEventIDMetadataChange      DomainEventID = 23
 	DomainEventIDBlockThreshold      DomainEventID = 24
+	DomainEventIDMemoryFailure       DomainEventID = 25
 )
 
-// DomainConsoleFlags as declared in libvirt/libvirt-domain.h:4616
+// DomainConsoleFlags as declared in libvirt/libvirt-domain.h:4753
 type DomainConsoleFlags int32
 
-// DomainConsoleFlags enumeration from libvirt/libvirt-domain.h:4616
+// DomainConsoleFlags enumeration from libvirt/libvirt-domain.h:4753
 const (
 	DomainConsoleForce DomainConsoleFlags = 1
 	DomainConsoleSafe  DomainConsoleFlags = 2
 )
 
-// DomainChannelFlags as declared in libvirt/libvirt-domain.h:4632
+// DomainChannelFlags as declared in libvirt/libvirt-domain.h:4769
 type DomainChannelFlags int32
 
-// DomainChannelFlags enumeration from libvirt/libvirt-domain.h:4632
+// DomainChannelFlags enumeration from libvirt/libvirt-domain.h:4769
 const (
 	DomainChannelForce DomainChannelFlags = 1
 )
 
-// DomainOpenGraphicsFlags as declared in libvirt/libvirt-domain.h:4641
+// DomainOpenGraphicsFlags as declared in libvirt/libvirt-domain.h:4778
 type DomainOpenGraphicsFlags int32
 
-// DomainOpenGraphicsFlags enumeration from libvirt/libvirt-domain.h:4641
+// DomainOpenGraphicsFlags enumeration from libvirt/libvirt-domain.h:4778
 const (
 	DomainOpenGraphicsSkipauth DomainOpenGraphicsFlags = 1
 )
 
-// DomainSetTimeFlags as declared in libvirt/libvirt-domain.h:4698
+// DomainSetTimeFlags as declared in libvirt/libvirt-domain.h:4835
 type DomainSetTimeFlags int32
 
-// DomainSetTimeFlags enumeration from libvirt/libvirt-domain.h:4698
+// DomainSetTimeFlags enumeration from libvirt/libvirt-domain.h:4835
 const (
 	DomainTimeSync DomainSetTimeFlags = 1
 )
 
-// SchedParameterType as declared in libvirt/libvirt-domain.h:4719
+// SchedParameterType as declared in libvirt/libvirt-domain.h:4856
 type SchedParameterType int32
 
-// SchedParameterType enumeration from libvirt/libvirt-domain.h:4719
+// SchedParameterType enumeration from libvirt/libvirt-domain.h:4856
 const (
 	DomainSchedFieldInt     SchedParameterType = 1
 	DomainSchedFieldUint    SchedParameterType = 2
@@ -1583,10 +1643,10 @@ const (
 	DomainSchedFieldBoolean SchedParameterType = 6
 )
 
-// BlkioParameterType as declared in libvirt/libvirt-domain.h:4763
+// BlkioParameterType as declared in libvirt/libvirt-domain.h:4900
 type BlkioParameterType int32
 
-// BlkioParameterType enumeration from libvirt/libvirt-domain.h:4763
+// BlkioParameterType enumeration from libvirt/libvirt-domain.h:4900
 const (
 	DomainBlkioParamInt     BlkioParameterType = 1
 	DomainBlkioParamUint    BlkioParameterType = 2
@@ -1596,10 +1656,10 @@ const (
 	DomainBlkioParamBoolean BlkioParameterType = 6
 )
 
-// MemoryParameterType as declared in libvirt/libvirt-domain.h:4807
+// MemoryParameterType as declared in libvirt/libvirt-domain.h:4944
 type MemoryParameterType int32
 
-// MemoryParameterType enumeration from libvirt/libvirt-domain.h:4807
+// MemoryParameterType enumeration from libvirt/libvirt-domain.h:4944
 const (
 	DomainMemoryParamInt     MemoryParameterType = 1
 	DomainMemoryParamUint    MemoryParameterType = 2
@@ -1609,38 +1669,38 @@ const (
 	DomainMemoryParamBoolean MemoryParameterType = 6
 )
 
-// DomainInterfaceAddressesSource as declared in libvirt/libvirt-domain.h:4845
+// DomainInterfaceAddressesSource as declared in libvirt/libvirt-domain.h:4982
 type DomainInterfaceAddressesSource int32
 
-// DomainInterfaceAddressesSource enumeration from libvirt/libvirt-domain.h:4845
+// DomainInterfaceAddressesSource enumeration from libvirt/libvirt-domain.h:4982
 const (
 	DomainInterfaceAddressesSrcLease DomainInterfaceAddressesSource = iota
 	DomainInterfaceAddressesSrcAgent DomainInterfaceAddressesSource = 1
 	DomainInterfaceAddressesSrcArp   DomainInterfaceAddressesSource = 2
 )
 
-// DomainSetUserPasswordFlags as declared in libvirt/libvirt-domain.h:4873
+// DomainSetUserPasswordFlags as declared in libvirt/libvirt-domain.h:5010
 type DomainSetUserPasswordFlags int32
 
-// DomainSetUserPasswordFlags enumeration from libvirt/libvirt-domain.h:4873
+// DomainSetUserPasswordFlags enumeration from libvirt/libvirt-domain.h:5010
 const (
 	DomainPasswordEncrypted DomainSetUserPasswordFlags = 1
 )
 
-// DomainLifecycle as declared in libvirt/libvirt-domain.h:4912
+// DomainLifecycle as declared in libvirt/libvirt-domain.h:5049
 type DomainLifecycle int32
 
-// DomainLifecycle enumeration from libvirt/libvirt-domain.h:4912
+// DomainLifecycle enumeration from libvirt/libvirt-domain.h:5049
 const (
 	DomainLifecyclePoweroff DomainLifecycle = iota
 	DomainLifecycleReboot   DomainLifecycle = 1
 	DomainLifecycleCrash    DomainLifecycle = 2
 )
 
-// DomainLifecycleAction as declared in libvirt/libvirt-domain.h:4925
+// DomainLifecycleAction as declared in libvirt/libvirt-domain.h:5062
 type DomainLifecycleAction int32
 
-// DomainLifecycleAction enumeration from libvirt/libvirt-domain.h:4925
+// DomainLifecycleAction enumeration from libvirt/libvirt-domain.h:5062
 const (
 	DomainLifecycleActionDestroy         DomainLifecycleAction = iota
 	DomainLifecycleActionRestart         DomainLifecycleAction = 1
@@ -1650,59 +1710,79 @@ const (
 	DomainLifecycleActionCoredumpRestart DomainLifecycleAction = 5
 )
 
-// DomainGuestInfoTypes as declared in libvirt/libvirt-domain.h:4955
+// DomainGuestInfoTypes as declared in libvirt/libvirt-domain.h:5093
 type DomainGuestInfoTypes int32
 
-// DomainGuestInfoTypes enumeration from libvirt/libvirt-domain.h:4955
+// DomainGuestInfoTypes enumeration from libvirt/libvirt-domain.h:5093
 const (
 	DomainGuestInfoUsers      DomainGuestInfoTypes = 1
 	DomainGuestInfoOs         DomainGuestInfoTypes = 2
 	DomainGuestInfoTimezone   DomainGuestInfoTypes = 4
 	DomainGuestInfoHostname   DomainGuestInfoTypes = 8
 	DomainGuestInfoFilesystem DomainGuestInfoTypes = 16
+	DomainGuestInfoDisks      DomainGuestInfoTypes = 32
 )
 
-// DomainAgentResponseTimeoutValues as declared in libvirt/libvirt-domain.h:4967
+// DomainAgentResponseTimeoutValues as declared in libvirt/libvirt-domain.h:5105
 type DomainAgentResponseTimeoutValues int32
 
-// DomainAgentResponseTimeoutValues enumeration from libvirt/libvirt-domain.h:4967
+// DomainAgentResponseTimeoutValues enumeration from libvirt/libvirt-domain.h:5105
 const (
 	DomainAgentResponseTimeoutBlock   DomainAgentResponseTimeoutValues = -2
 	DomainAgentResponseTimeoutDefault DomainAgentResponseTimeoutValues = -1
 	DomainAgentResponseTimeoutNowait  DomainAgentResponseTimeoutValues = 0
 )
 
-// DomainBackupBeginFlags as declared in libvirt/libvirt-domain.h:4976
+// DomainBackupBeginFlags as declared in libvirt/libvirt-domain.h:5114
 type DomainBackupBeginFlags int32
 
-// DomainBackupBeginFlags enumeration from libvirt/libvirt-domain.h:4976
+// DomainBackupBeginFlags enumeration from libvirt/libvirt-domain.h:5114
 const (
 	DomainBackupBeginReuseExternal DomainBackupBeginFlags = 1
 )
 
-// DomainCheckpointCreateFlags as declared in libvirt/libvirt-domain-checkpoint.h:60
-type DomainCheckpointCreateFlags int32
+// DomainAuthorizedSSHKeysSetFlags as declared in libvirt/libvirt-domain.h:5133
+type DomainAuthorizedSSHKeysSetFlags int32
 
-// DomainCheckpointCreateFlags enumeration from libvirt/libvirt-domain-checkpoint.h:60
+// DomainAuthorizedSSHKeysSetFlags enumeration from libvirt/libvirt-domain.h:5133
 const (
-	DomainCheckpointCreateRedefine DomainCheckpointCreateFlags = 1
-	DomainCheckpointCreateQuiesce  DomainCheckpointCreateFlags = 2
+	DomainAuthorizedSSHKeysSetAppend DomainAuthorizedSSHKeysSetFlags = 1
+	DomainAuthorizedSSHKeysSetRemove DomainAuthorizedSSHKeysSetFlags = 2
 )
 
-// DomainCheckpointXMLFlags as declared in libvirt/libvirt-domain-checkpoint.h:73
+// DomainMessageType as declared in libvirt/libvirt-domain.h:5144
+type DomainMessageType int32
+
+// DomainMessageType enumeration from libvirt/libvirt-domain.h:5144
+const (
+	DomainMessageDeprecation DomainMessageType = 1
+	DomainMessageTainting    DomainMessageType = 2
+)
+
+// DomainCheckpointCreateFlags as declared in libvirt/libvirt-domain-checkpoint.h:62
+type DomainCheckpointCreateFlags int32
+
+// DomainCheckpointCreateFlags enumeration from libvirt/libvirt-domain-checkpoint.h:62
+const (
+	DomainCheckpointCreateRedefine         DomainCheckpointCreateFlags = 1
+	DomainCheckpointCreateQuiesce          DomainCheckpointCreateFlags = 2
+	DomainCheckpointCreateRedefineValidate DomainCheckpointCreateFlags = 4
+)
+
+// DomainCheckpointXMLFlags as declared in libvirt/libvirt-domain-checkpoint.h:75
 type DomainCheckpointXMLFlags int32
 
-// DomainCheckpointXMLFlags enumeration from libvirt/libvirt-domain-checkpoint.h:73
+// DomainCheckpointXMLFlags enumeration from libvirt/libvirt-domain-checkpoint.h:75
 const (
 	DomainCheckpointXMLSecure   DomainCheckpointXMLFlags = 1
 	DomainCheckpointXMLNoDomain DomainCheckpointXMLFlags = 2
 	DomainCheckpointXMLSize     DomainCheckpointXMLFlags = 4
 )
 
-// DomainCheckpointListFlags as declared in libvirt/libvirt-domain-checkpoint.h:103
+// DomainCheckpointListFlags as declared in libvirt/libvirt-domain-checkpoint.h:105
 type DomainCheckpointListFlags int32
 
-// DomainCheckpointListFlags enumeration from libvirt/libvirt-domain-checkpoint.h:103
+// DomainCheckpointListFlags enumeration from libvirt/libvirt-domain-checkpoint.h:105
 const (
 	DomainCheckpointListRoots       DomainCheckpointListFlags = 1
 	DomainCheckpointListDescendants DomainCheckpointListFlags = 1
@@ -1711,10 +1791,10 @@ const (
 	DomainCheckpointListNoLeaves    DomainCheckpointListFlags = 8
 )
 
-// DomainCheckpointDeleteFlags as declared in libvirt/libvirt-domain-checkpoint.h:129
+// DomainCheckpointDeleteFlags as declared in libvirt/libvirt-domain-checkpoint.h:131
 type DomainCheckpointDeleteFlags int32
 
-// DomainCheckpointDeleteFlags enumeration from libvirt/libvirt-domain-checkpoint.h:129
+// DomainCheckpointDeleteFlags enumeration from libvirt/libvirt-domain-checkpoint.h:131
 const (
 	DomainCheckpointDeleteChildren     DomainCheckpointDeleteFlags = 1
 	DomainCheckpointDeleteMetadataOnly DomainCheckpointDeleteFlags = 2
@@ -1912,10 +1992,10 @@ const (
 	NetworkPortCreateReclaim NetworkPortCreateFlags = 1
 )
 
-// ConnectListAllNodeDeviceFlags as declared in libvirt/libvirt-nodedev.h:84
+// ConnectListAllNodeDeviceFlags as declared in libvirt/libvirt-nodedev.h:89
 type ConnectListAllNodeDeviceFlags int32
 
-// ConnectListAllNodeDeviceFlags enumeration from libvirt/libvirt-nodedev.h:84
+// ConnectListAllNodeDeviceFlags enumeration from libvirt/libvirt-nodedev.h:89
 const (
 	ConnectListNodeDevicesCapSystem       ConnectListAllNodeDeviceFlags = 1
 	ConnectListNodeDevicesCapPciDev       ConnectListAllNodeDeviceFlags = 2
@@ -1933,21 +2013,26 @@ const (
 	ConnectListNodeDevicesCapMdevTypes    ConnectListAllNodeDeviceFlags = 8192
 	ConnectListNodeDevicesCapMdev         ConnectListAllNodeDeviceFlags = 16384
 	ConnectListNodeDevicesCapCcwDev       ConnectListAllNodeDeviceFlags = 32768
+	ConnectListNodeDevicesCapCssDev       ConnectListAllNodeDeviceFlags = 65536
+	ConnectListNodeDevicesCapVdpa         ConnectListAllNodeDeviceFlags = 131072
+	ConnectListNodeDevicesCapApCard       ConnectListAllNodeDeviceFlags = 262144
+	ConnectListNodeDevicesCapApQueue      ConnectListAllNodeDeviceFlags = 524288
+	ConnectListNodeDevicesCapApMatrix     ConnectListAllNodeDeviceFlags = 1048576
 )
 
-// NodeDeviceEventID as declared in libvirt/libvirt-nodedev.h:154
+// NodeDeviceEventID as declared in libvirt/libvirt-nodedev.h:159
 type NodeDeviceEventID int32
 
-// NodeDeviceEventID enumeration from libvirt/libvirt-nodedev.h:154
+// NodeDeviceEventID enumeration from libvirt/libvirt-nodedev.h:159
 const (
 	NodeDeviceEventIDLifecycle NodeDeviceEventID = iota
 	NodeDeviceEventIDUpdate    NodeDeviceEventID = 1
 )
 
-// NodeDeviceEventLifecycleType as declared in libvirt/libvirt-nodedev.h:196
+// NodeDeviceEventLifecycleType as declared in libvirt/libvirt-nodedev.h:201
 type NodeDeviceEventLifecycleType int32
 
-// NodeDeviceEventLifecycleType enumeration from libvirt/libvirt-nodedev.h:196
+// NodeDeviceEventLifecycleType enumeration from libvirt/libvirt-nodedev.h:201
 const (
 	NodeDeviceEventCreated NodeDeviceEventLifecycleType = iota
 	NodeDeviceEventDeleted NodeDeviceEventLifecycleType = 1
@@ -2207,208 +2292,209 @@ const (
 	StreamEventHangup   StreamEventType = 8
 )
 
-// errorLevel as declared in libvirt/virterror.h:42
-type errorLevel int32
+// ErrorLevel as declared in libvirt/virterror.h:42
+type ErrorLevel int32
 
-// errorLevel enumeration from libvirt/virterror.h:42
+// ErrorLevel enumeration from libvirt/virterror.h:42
 const (
-	errNone    errorLevel = iota
-	errWarning errorLevel = 1
-	errError   errorLevel = 2
+	ErrNone    ErrorLevel = iota
+	ErrWarning ErrorLevel = 1
+	ErrError   ErrorLevel = 2
 )
 
-// errorDomain as declared in libvirt/virterror.h:143
-type errorDomain int32
+// ErrorDomain as declared in libvirt/virterror.h:143
+type ErrorDomain int32
 
-// errorDomain enumeration from libvirt/virterror.h:143
+// ErrorDomain enumeration from libvirt/virterror.h:143
 const (
-	fromNone             errorDomain = iota
-	fromXen              errorDomain = 1
-	fromXend             errorDomain = 2
-	fromXenstore         errorDomain = 3
-	fromSexpr            errorDomain = 4
-	fromXML              errorDomain = 5
-	fromDom              errorDomain = 6
-	fromRPC              errorDomain = 7
-	fromProxy            errorDomain = 8
-	fromConf             errorDomain = 9
-	fromQemu             errorDomain = 10
-	fromNet              errorDomain = 11
-	fromTest             errorDomain = 12
-	fromRemote           errorDomain = 13
-	fromOpenvz           errorDomain = 14
-	fromXenxm            errorDomain = 15
-	fromStatsLinux       errorDomain = 16
-	fromLxc              errorDomain = 17
-	fromStorage          errorDomain = 18
-	fromNetwork          errorDomain = 19
-	fromDomain           errorDomain = 20
-	fromUml              errorDomain = 21
-	fromNodedev          errorDomain = 22
-	fromXenInotify       errorDomain = 23
-	fromSecurity         errorDomain = 24
-	fromVbox             errorDomain = 25
-	fromInterface        errorDomain = 26
-	fromOne              errorDomain = 27
-	fromEsx              errorDomain = 28
-	fromPhyp             errorDomain = 29
-	fromSecret           errorDomain = 30
-	fromCPU              errorDomain = 31
-	fromXenapi           errorDomain = 32
-	fromNwfilter         errorDomain = 33
-	fromHook             errorDomain = 34
-	fromDomainSnapshot   errorDomain = 35
-	fromAudit            errorDomain = 36
-	fromSysinfo          errorDomain = 37
-	fromStreams          errorDomain = 38
-	fromVmware           errorDomain = 39
-	fromEvent            errorDomain = 40
-	fromLibxl            errorDomain = 41
-	fromLocking          errorDomain = 42
-	fromHyperv           errorDomain = 43
-	fromCapabilities     errorDomain = 44
-	fromURI              errorDomain = 45
-	fromAuth             errorDomain = 46
-	fromDbus             errorDomain = 47
-	fromParallels        errorDomain = 48
-	fromDevice           errorDomain = 49
-	fromSSH              errorDomain = 50
-	fromLockspace        errorDomain = 51
-	fromInitctl          errorDomain = 52
-	fromIdentity         errorDomain = 53
-	fromCgroup           errorDomain = 54
-	fromAccess           errorDomain = 55
-	fromSystemd          errorDomain = 56
-	fromBhyve            errorDomain = 57
-	fromCrypto           errorDomain = 58
-	fromFirewall         errorDomain = 59
-	fromPolkit           errorDomain = 60
-	fromThread           errorDomain = 61
-	fromAdmin            errorDomain = 62
-	fromLogging          errorDomain = 63
-	fromXenxl            errorDomain = 64
-	fromPerf             errorDomain = 65
-	fromLibssh           errorDomain = 66
-	fromResctrl          errorDomain = 67
-	fromFirewalld        errorDomain = 68
-	fromDomainCheckpoint errorDomain = 69
-	fromTpm              errorDomain = 70
-	fromBpf              errorDomain = 71
+	fromNone             ErrorDomain = iota
+	fromXen              ErrorDomain = 1
+	fromXend             ErrorDomain = 2
+	fromXenstore         ErrorDomain = 3
+	fromSexpr            ErrorDomain = 4
+	fromXML              ErrorDomain = 5
+	fromDom              ErrorDomain = 6
+	fromRPC              ErrorDomain = 7
+	fromProxy            ErrorDomain = 8
+	fromConf             ErrorDomain = 9
+	fromQemu             ErrorDomain = 10
+	fromNet              ErrorDomain = 11
+	fromTest             ErrorDomain = 12
+	fromRemote           ErrorDomain = 13
+	fromOpenvz           ErrorDomain = 14
+	fromXenxm            ErrorDomain = 15
+	fromStatsLinux       ErrorDomain = 16
+	fromLxc              ErrorDomain = 17
+	fromStorage          ErrorDomain = 18
+	fromNetwork          ErrorDomain = 19
+	fromDomain           ErrorDomain = 20
+	fromUml              ErrorDomain = 21
+	fromNodedev          ErrorDomain = 22
+	fromXenInotify       ErrorDomain = 23
+	fromSecurity         ErrorDomain = 24
+	fromVbox             ErrorDomain = 25
+	fromInterface        ErrorDomain = 26
+	fromOne              ErrorDomain = 27
+	fromEsx              ErrorDomain = 28
+	fromPhyp             ErrorDomain = 29
+	fromSecret           ErrorDomain = 30
+	fromCPU              ErrorDomain = 31
+	fromXenapi           ErrorDomain = 32
+	fromNwfilter         ErrorDomain = 33
+	fromHook             ErrorDomain = 34
+	fromDomainSnapshot   ErrorDomain = 35
+	fromAudit            ErrorDomain = 36
+	fromSysinfo          ErrorDomain = 37
+	fromStreams          ErrorDomain = 38
+	fromVmware           ErrorDomain = 39
+	fromEvent            ErrorDomain = 40
+	fromLibxl            ErrorDomain = 41
+	fromLocking          ErrorDomain = 42
+	fromHyperv           ErrorDomain = 43
+	fromCapabilities     ErrorDomain = 44
+	fromURI              ErrorDomain = 45
+	fromAuth             ErrorDomain = 46
+	fromDbus             ErrorDomain = 47
+	fromParallels        ErrorDomain = 48
+	fromDevice           ErrorDomain = 49
+	fromSSH              ErrorDomain = 50
+	fromLockspace        ErrorDomain = 51
+	fromInitctl          ErrorDomain = 52
+	fromIdentity         ErrorDomain = 53
+	fromCgroup           ErrorDomain = 54
+	fromAccess           ErrorDomain = 55
+	fromSystemd          ErrorDomain = 56
+	fromBhyve            ErrorDomain = 57
+	fromCrypto           ErrorDomain = 58
+	fromFirewall         ErrorDomain = 59
+	fromPolkit           ErrorDomain = 60
+	fromThread           ErrorDomain = 61
+	fromAdmin            ErrorDomain = 62
+	fromLogging          ErrorDomain = 63
+	fromXenxl            ErrorDomain = 64
+	fromPerf             ErrorDomain = 65
+	fromLibssh           ErrorDomain = 66
+	fromResctrl          ErrorDomain = 67
+	fromFirewalld        ErrorDomain = 68
+	fromDomainCheckpoint ErrorDomain = 69
+	fromTpm              ErrorDomain = 70
+	fromBpf              ErrorDomain = 71
 )
 
-// errorNumber as declared in libvirt/virterror.h:340
-type errorNumber int32
+// ErrorNumber as declared in libvirt/virterror.h:341
+type ErrorNumber int32
 
-// errorNumber enumeration from libvirt/virterror.h:340
+// ErrorNumber enumeration from libvirt/virterror.h:341
 const (
-	errOk                      errorNumber = iota
-	errInternalError           errorNumber = 1
-	errNoMemory                errorNumber = 2
-	errNoSupport               errorNumber = 3
-	errUnknownHost             errorNumber = 4
-	errNoConnect               errorNumber = 5
-	errInvalidConn             errorNumber = 6
-	errInvalidDomain           errorNumber = 7
-	errInvalidArg              errorNumber = 8
-	errOperationFailed         errorNumber = 9
-	errGetFailed               errorNumber = 10
-	errPostFailed              errorNumber = 11
-	errHTTPError               errorNumber = 12
-	errSexprSerial             errorNumber = 13
-	errNoXen                   errorNumber = 14
-	errXenCall                 errorNumber = 15
-	errOsType                  errorNumber = 16
-	errNoKernel                errorNumber = 17
-	errNoRoot                  errorNumber = 18
-	errNoSource                errorNumber = 19
-	errNoTarget                errorNumber = 20
-	errNoName                  errorNumber = 21
-	errNoOs                    errorNumber = 22
-	errNoDevice                errorNumber = 23
-	errNoXenstore              errorNumber = 24
-	errDriverFull              errorNumber = 25
-	errCallFailed              errorNumber = 26
-	errXMLError                errorNumber = 27
-	errDomExist                errorNumber = 28
-	errOperationDenied         errorNumber = 29
-	errOpenFailed              errorNumber = 30
-	errReadFailed              errorNumber = 31
-	errParseFailed             errorNumber = 32
-	errConfSyntax              errorNumber = 33
-	errWriteFailed             errorNumber = 34
-	errXMLDetail               errorNumber = 35
-	errInvalidNetwork          errorNumber = 36
-	errNetworkExist            errorNumber = 37
-	errSystemError             errorNumber = 38
-	errRPC                     errorNumber = 39
-	errGnutlsError             errorNumber = 40
-	warNoNetwork               errorNumber = 41
-	errNoDomain                errorNumber = 42
-	errNoNetwork               errorNumber = 43
-	errInvalidMac              errorNumber = 44
-	errAuthFailed              errorNumber = 45
-	errInvalidStoragePool      errorNumber = 46
-	errInvalidStorageVol       errorNumber = 47
-	warNoStorage               errorNumber = 48
-	errNoStoragePool           errorNumber = 49
-	errNoStorageVol            errorNumber = 50
-	warNoNode                  errorNumber = 51
-	errInvalidNodeDevice       errorNumber = 52
-	errNoNodeDevice            errorNumber = 53
-	errNoSecurityModel         errorNumber = 54
-	errOperationInvalid        errorNumber = 55
-	warNoInterface             errorNumber = 56
-	errNoInterface             errorNumber = 57
-	errInvalidInterface        errorNumber = 58
-	errMultipleInterfaces      errorNumber = 59
-	warNoNwfilter              errorNumber = 60
-	errInvalidNwfilter         errorNumber = 61
-	errNoNwfilter              errorNumber = 62
-	errBuildFirewall           errorNumber = 63
-	warNoSecret                errorNumber = 64
-	errInvalidSecret           errorNumber = 65
-	errNoSecret                errorNumber = 66
-	errConfigUnsupported       errorNumber = 67
-	errOperationTimeout        errorNumber = 68
-	errMigratePersistFailed    errorNumber = 69
-	errHookScriptFailed        errorNumber = 70
-	errInvalidDomainSnapshot   errorNumber = 71
-	errNoDomainSnapshot        errorNumber = 72
-	errInvalidStream           errorNumber = 73
-	errArgumentUnsupported     errorNumber = 74
-	errStorageProbeFailed      errorNumber = 75
-	errStoragePoolBuilt        errorNumber = 76
-	errSnapshotRevertRisky     errorNumber = 77
-	errOperationAborted        errorNumber = 78
-	errAuthCancelled           errorNumber = 79
-	errNoDomainMetadata        errorNumber = 80
-	errMigrateUnsafe           errorNumber = 81
-	errOverflow                errorNumber = 82
-	errBlockCopyActive         errorNumber = 83
-	errOperationUnsupported    errorNumber = 84
-	errSSH                     errorNumber = 85
-	errAgentUnresponsive       errorNumber = 86
-	errResourceBusy            errorNumber = 87
-	errAccessDenied            errorNumber = 88
-	errDbusService             errorNumber = 89
-	errStorageVolExist         errorNumber = 90
-	errCPUIncompatible         errorNumber = 91
-	errXMLInvalidSchema        errorNumber = 92
-	errMigrateFinishOk         errorNumber = 93
-	errAuthUnavailable         errorNumber = 94
-	errNoServer                errorNumber = 95
-	errNoClient                errorNumber = 96
-	errAgentUnsynced           errorNumber = 97
-	errLibssh                  errorNumber = 98
-	errDeviceMissing           errorNumber = 99
-	errInvalidNwfilterBinding  errorNumber = 100
-	errNoNwfilterBinding       errorNumber = 101
-	errInvalidDomainCheckpoint errorNumber = 102
-	errNoDomainCheckpoint      errorNumber = 103
-	errNoDomainBackup          errorNumber = 104
-	errInvalidNetworkPort      errorNumber = 105
-	errNetworkPortExist        errorNumber = 106
-	errNoNetworkPort           errorNumber = 107
-	errNoHostname              errorNumber = 108
-	errCheckpointInconsistent  errorNumber = 109
+	ErrOk                      ErrorNumber = iota
+	ErrInternalError           ErrorNumber = 1
+	ErrNoMemory                ErrorNumber = 2
+	ErrNoSupport               ErrorNumber = 3
+	ErrUnknownHost             ErrorNumber = 4
+	ErrNoConnect               ErrorNumber = 5
+	ErrInvalidConn             ErrorNumber = 6
+	ErrInvalidDomain           ErrorNumber = 7
+	ErrInvalidArg              ErrorNumber = 8
+	ErrOperationFailed         ErrorNumber = 9
+	ErrGetFailed               ErrorNumber = 10
+	ErrPostFailed              ErrorNumber = 11
+	ErrHTTPError               ErrorNumber = 12
+	ErrSexprSerial             ErrorNumber = 13
+	ErrNoXen                   ErrorNumber = 14
+	ErrXenCall                 ErrorNumber = 15
+	ErrOsType                  ErrorNumber = 16
+	ErrNoKernel                ErrorNumber = 17
+	ErrNoRoot                  ErrorNumber = 18
+	ErrNoSource                ErrorNumber = 19
+	ErrNoTarget                ErrorNumber = 20
+	ErrNoName                  ErrorNumber = 21
+	ErrNoOs                    ErrorNumber = 22
+	ErrNoDevice                ErrorNumber = 23
+	ErrNoXenstore              ErrorNumber = 24
+	ErrDriverFull              ErrorNumber = 25
+	ErrCallFailed              ErrorNumber = 26
+	ErrXMLError                ErrorNumber = 27
+	ErrDomExist                ErrorNumber = 28
+	ErrOperationDenied         ErrorNumber = 29
+	ErrOpenFailed              ErrorNumber = 30
+	ErrReadFailed              ErrorNumber = 31
+	ErrParseFailed             ErrorNumber = 32
+	ErrConfSyntax              ErrorNumber = 33
+	ErrWriteFailed             ErrorNumber = 34
+	ErrXMLDetail               ErrorNumber = 35
+	ErrInvalidNetwork          ErrorNumber = 36
+	ErrNetworkExist            ErrorNumber = 37
+	ErrSystemError             ErrorNumber = 38
+	ErrRPC                     ErrorNumber = 39
+	ErrGnutlsError             ErrorNumber = 40
+	WarNoNetwork               ErrorNumber = 41
+	ErrNoDomain                ErrorNumber = 42
+	ErrNoNetwork               ErrorNumber = 43
+	ErrInvalidMac              ErrorNumber = 44
+	ErrAuthFailed              ErrorNumber = 45
+	ErrInvalidStoragePool      ErrorNumber = 46
+	ErrInvalidStorageVol       ErrorNumber = 47
+	WarNoStorage               ErrorNumber = 48
+	ErrNoStoragePool           ErrorNumber = 49
+	ErrNoStorageVol            ErrorNumber = 50
+	WarNoNode                  ErrorNumber = 51
+	ErrInvalidNodeDevice       ErrorNumber = 52
+	ErrNoNodeDevice            ErrorNumber = 53
+	ErrNoSecurityModel         ErrorNumber = 54
+	ErrOperationInvalid        ErrorNumber = 55
+	WarNoInterface             ErrorNumber = 56
+	ErrNoInterface             ErrorNumber = 57
+	ErrInvalidInterface        ErrorNumber = 58
+	ErrMultipleInterfaces      ErrorNumber = 59
+	WarNoNwfilter              ErrorNumber = 60
+	ErrInvalidNwfilter         ErrorNumber = 61
+	ErrNoNwfilter              ErrorNumber = 62
+	ErrBuildFirewall           ErrorNumber = 63
+	WarNoSecret                ErrorNumber = 64
+	ErrInvalidSecret           ErrorNumber = 65
+	ErrNoSecret                ErrorNumber = 66
+	ErrConfigUnsupported       ErrorNumber = 67
+	ErrOperationTimeout        ErrorNumber = 68
+	ErrMigratePersistFailed    ErrorNumber = 69
+	ErrHookScriptFailed        ErrorNumber = 70
+	ErrInvalidDomainSnapshot   ErrorNumber = 71
+	ErrNoDomainSnapshot        ErrorNumber = 72
+	ErrInvalidStream           ErrorNumber = 73
+	ErrArgumentUnsupported     ErrorNumber = 74
+	ErrStorageProbeFailed      ErrorNumber = 75
+	ErrStoragePoolBuilt        ErrorNumber = 76
+	ErrSnapshotRevertRisky     ErrorNumber = 77
+	ErrOperationAborted        ErrorNumber = 78
+	ErrAuthCancelled           ErrorNumber = 79
+	ErrNoDomainMetadata        ErrorNumber = 80
+	ErrMigrateUnsafe           ErrorNumber = 81
+	ErrOverflow                ErrorNumber = 82
+	ErrBlockCopyActive         ErrorNumber = 83
+	ErrOperationUnsupported    ErrorNumber = 84
+	ErrSSH                     ErrorNumber = 85
+	ErrAgentUnresponsive       ErrorNumber = 86
+	ErrResourceBusy            ErrorNumber = 87
+	ErrAccessDenied            ErrorNumber = 88
+	ErrDbusService             ErrorNumber = 89
+	ErrStorageVolExist         ErrorNumber = 90
+	ErrCPUIncompatible         ErrorNumber = 91
+	ErrXMLInvalidSchema        ErrorNumber = 92
+	ErrMigrateFinishOk         ErrorNumber = 93
+	ErrAuthUnavailable         ErrorNumber = 94
+	ErrNoServer                ErrorNumber = 95
+	ErrNoClient                ErrorNumber = 96
+	ErrAgentUnsynced           ErrorNumber = 97
+	ErrLibssh                  ErrorNumber = 98
+	ErrDeviceMissing           ErrorNumber = 99
+	ErrInvalidNwfilterBinding  ErrorNumber = 100
+	ErrNoNwfilterBinding       ErrorNumber = 101
+	ErrInvalidDomainCheckpoint ErrorNumber = 102
+	ErrNoDomainCheckpoint      ErrorNumber = 103
+	ErrNoDomainBackup          ErrorNumber = 104
+	ErrInvalidNetworkPort      ErrorNumber = 105
+	ErrNetworkPortExist        ErrorNumber = 106
+	ErrNoNetworkPort           ErrorNumber = 107
+	ErrNoHostname              ErrorNumber = 108
+	ErrCheckpointInconsistent  ErrorNumber = 109
+	ErrMultipleDomains         ErrorNumber = 110
 )

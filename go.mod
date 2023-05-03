@@ -24,7 +24,7 @@ require (
 	github.com/coreos/stream-metadata-go v0.4.1
 	github.com/crc-org/vfkit v0.0.5-0.20230427143911-8117c28876bc
 	github.com/cyphar/filepath-securejoin v0.2.3
-	github.com/digitalocean/go-qemu v0.0.0-20210326154740-ac9e0b687001
+	github.com/digitalocean/go-qemu v0.0.0-20221209210016-f035778c97f7
 	github.com/docker/docker v23.0.5+incompatible
 	github.com/docker/go-connections v0.4.1-0.20210727194412-58542c764a11
 	github.com/docker/go-plugins-helpers v0.0.0-20211224144127-6eecb7beb651
@@ -88,7 +88,7 @@ require (
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20220623050100-57a0ce2678a7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/digitalocean/go-libvirt v0.0.0-20201209184759-e2a69bcd5bd1 // indirect
+	github.com/digitalocean/go-libvirt v0.0.0-20220804181439-8648fbde413e // indirect
 	github.com/disiqueira/gotree/v3 v3.0.2 // indirect
 	github.com/docker/distribution v2.8.1+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect

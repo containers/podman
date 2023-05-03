@@ -27,7 +27,7 @@ PARSER:
     # rely on our caller to link the libvirt source directory to lv_source/, and
     # run on that code. This isn't ideal, but changes to c-for-go are needed to
     # fix it.
-    IncludePaths: [./lv_source/include]
+    IncludePaths: [./lv_source/include, ./lv_source/build/include]
     SourcesPaths:
         - libvirt/libvirt.h
         - libvirt/virterror.h
@@ -56,7 +56,7 @@ TRANSLATOR:
             - {action: replace, from: "Rpc([A-Z]|$)", to: "RPC$1"}
             - {action: replace, from: "Ssh([A-Z]|$)", to: "SSH$1"}
             - {action: replace, from: "Http([A-Z]|$)", to: "HTTP$1"}
-            - {transform: unexport, from: "^(Err|From|War)"}
+            - {transform: unexport, from: "^From"}
         const:
             - {action: accept, from: "^VIR_"}
             # Special case to prevent a collision with a type:
