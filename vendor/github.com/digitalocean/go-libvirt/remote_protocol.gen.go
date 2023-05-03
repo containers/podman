@@ -147,8 +147,8 @@ type DomainSnapshot struct {
 	Dom Domain
 }
 
-// Error is libvirt's remote_error
-type Error struct {
+// remote_error is libvirt's remote_error
+type remote_error struct {
 	Code int32
 	OptDomain int32
 	Message OptString
@@ -191,7 +191,7 @@ type NodeGetMemoryStats struct {
 // DomainDiskError is libvirt's remote_domain_disk_error
 type DomainDiskError struct {
 	Disk string
-	Error int32
+	remote_error int32
 }
 
 // ConnectOpenArgs is libvirt's remote_connect_open_args
@@ -1371,7 +1371,7 @@ type DomainGetCPUStatsRet struct {
 // DomainGetHostnameArgs is libvirt's remote_domain_get_hostname_args
 type DomainGetHostnameArgs struct {
 	Dom Domain
-	Flags uint32
+	Flags DomainGetHostnameFlags
 }
 
 // DomainGetHostnameRet is libvirt's remote_domain_get_hostname_ret
@@ -4117,6 +4117,17 @@ type DomainAuthorizedSshKeysSetArgs struct {
 	User string
 	Keys []string
 	Flags uint32
+}
+
+// DomainGetMessagesArgs is libvirt's remote_domain_get_messages_args
+type DomainGetMessagesArgs struct {
+	Dom Domain
+	Flags uint32
+}
+
+// DomainGetMessagesRet is libvirt's remote_domain_get_messages_ret
+type DomainGetMessagesRet struct {
+	Msgs []string
 }
 
 
@@ -12387,7 +12398,7 @@ func (l *Libvirt) DomainEventBalloonChange() (err error) {
 }
 
 // DomainGetHostname is the go wrapper for REMOTE_PROC_DOMAIN_GET_HOSTNAME.
-func (l *Libvirt) DomainGetHostname(Dom Domain, Flags uint32) (rHostname string, err error) {
+func (l *Libvirt) DomainGetHostname(Dom Domain, Flags DomainGetHostnameFlags) (rHostname string, err error) {
 	var buf []byte
 
 	args := DomainGetHostnameArgs {
@@ -16440,6 +16451,40 @@ func (l *Libvirt) DomainAuthorizedSshKeysSet(Dom Domain, User string, Keys []str
 
 
 	_, err = l.requestStream(425, constants.Program, buf, nil, nil)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+// DomainGetMessages is the go wrapper for REMOTE_PROC_DOMAIN_GET_MESSAGES.
+func (l *Libvirt) DomainGetMessages(Dom Domain, Flags uint32) (rMsgs []string, err error) {
+	var buf []byte
+
+	args := DomainGetMessagesArgs {
+		Dom: Dom,
+		Flags: Flags,
+	}
+
+	buf, err = encode(&args)
+	if err != nil {
+		return
+	}
+
+	var r response
+	r, err = l.requestStream(426, constants.Program, buf, nil, nil)
+	if err != nil {
+		return
+	}
+
+	// Return value unmarshaling
+	tpd := typedParamDecoder{}
+	ct := map[string]xdr.TypeDecoder{"libvirt.TypedParam": tpd}
+	rdr := bytes.NewReader(r.Payload)
+	dec := xdr.NewDecoderCustomTypes(rdr, 0, ct)
+	// Msgs: []string
+	_, err = dec.Decode(&rMsgs)
 	if err != nil {
 		return
 	}

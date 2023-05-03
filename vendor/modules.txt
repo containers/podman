@@ -365,14 +365,16 @@ github.com/cyphar/filepath-securejoin
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/digitalocean/go-libvirt v0.0.0-20201209184759-e2a69bcd5bd1
-## explicit; go 1.14
+# github.com/digitalocean/go-libvirt v0.0.0-20220804181439-8648fbde413e
+## explicit; go 1.15
 github.com/digitalocean/go-libvirt
 github.com/digitalocean/go-libvirt/internal/constants
 github.com/digitalocean/go-libvirt/internal/event
 github.com/digitalocean/go-libvirt/internal/go-xdr/xdr2
-# github.com/digitalocean/go-qemu v0.0.0-20210326154740-ac9e0b687001
-## explicit; go 1.15
+github.com/digitalocean/go-libvirt/socket
+github.com/digitalocean/go-libvirt/socket/dialers
+# github.com/digitalocean/go-qemu v0.0.0-20221209210016-f035778c97f7
+## explicit; go 1.18
 github.com/digitalocean/go-qemu/qmp
 # github.com/disiqueira/gotree/v3 v3.0.2
 ## explicit; go 1.13
