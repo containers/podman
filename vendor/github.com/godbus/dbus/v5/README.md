@@ -23,7 +23,7 @@ go get github.com/godbus/dbus/v5
 ### Usage
 
 The complete package documentation and some simple examples are available at
-[godoc.org](http://godoc.org/github.com/godbus/dbus). Also, the
+[pkg.go.dev](https://pkg.go.dev/github.com/godbus/dbus/v5). Also, the
 [_examples](https://github.com/godbus/dbus/tree/master/_examples) directory
 gives a short overview over the basic usage. 
 

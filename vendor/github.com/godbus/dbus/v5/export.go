@@ -208,10 +208,10 @@ func (conn *Conn) handleCall(msg *Message) {
 		copy(reply.Body, ret)
 		reply.Headers[FieldSignature] = MakeVariant(SignatureOf(reply.Body...))
 
-		if err := reply.IsValid(); err != nil {
-			fmt.Fprintf(os.Stderr, "dbus: dropping invalid reply to %s.%s on obj %s: %s\n", ifaceName, name, path, err)
-		} else {
-			conn.sendMessageAndIfClosed(reply, nil)
+		if err := conn.sendMessageAndIfClosed(reply, nil); err != nil {
+			if _, ok := err.(FormatError); ok {
+				fmt.Fprintf(os.Stderr, "dbus: replacing invalid reply to %s.%s on obj %s: %s\n", ifaceName, name, path, err)
+			}
 		}
 	}
 }
@@ -235,18 +235,15 @@ func (conn *Conn) Emit(path ObjectPath, name string, values ...interface{}) erro
 	if len(values) > 0 {
 		msg.Headers[FieldSignature] = MakeVariant(SignatureOf(values...))
 	}
-	if err := msg.IsValid(); err != nil {
-		return err
-	}
 
 	var closed bool
-	conn.sendMessageAndIfClosed(msg, func() {
+	err := conn.sendMessageAndIfClosed(msg, func() {
 		closed = true
 	})
 	if closed {
 		return ErrClosed
 	}
-	return nil
+	return err
 }
 
 // Export registers the given value to be exported as an object on the

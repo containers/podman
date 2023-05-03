@@ -477,8 +477,8 @@ github.com/godbus/dbus v0.0.0-20190422162347-ade71ed3457e/go.mod h1:bBOAhwG1umN6
 github.com/godbus/dbus/v5 v5.0.3/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5xrFpKfA=
 github.com/godbus/dbus/v5 v5.0.4/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5xrFpKfA=
 github.com/godbus/dbus/v5 v5.1.0/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5xrFpKfA=
-github.com/godbus/dbus/v5 v5.1.1-0.20221029134443-4b691ce883d5 h1:boOtwyhKoC3Aadiw5zbhU54YyCkm9EpZCSN6mOx0KLc=
-github.com/godbus/dbus/v5 v5.1.1-0.20221029134443-4b691ce883d5/go.mod h1:fXoNnqaUvdKqjJmMGeiBgmRphUg+kO0MT4AhPOP6+Qg=
+github.com/godbus/dbus/v5 v5.1.1-0.20230502183206-6cc540df4ec5 h1:Nf+zAZaroBWc9zLetbUKzWGLu1xgSa5fTjvtqOLr4ds=
+github.com/godbus/dbus/v5 v5.1.1-0.20230502183206-6cc540df4ec5/go.mod h1:fXoNnqaUvdKqjJmMGeiBgmRphUg+kO0MT4AhPOP6+Qg=
 github.com/gogo/googleapis v1.2.0/go.mod h1:Njal3psf3qN6dwBtQfUmBZh2ybovJ0tlu3o/AC7HYjU=
 github.com/gogo/googleapis v1.4.0/go.mod h1:5YRNX2z1oM5gXdAkurHa942MDgEJyk02w4OecKY87+c=
 github.com/gogo/protobuf v1.1.1/go.mod h1:r8qH/GZQm5c6nD/R0oafs1akxWv10x8SbQlK7atdtwQ=

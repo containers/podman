@@ -11,6 +11,11 @@ type decoder struct {
 	order binary.ByteOrder
 	pos   int
 	fds   []int
+
+	// The following fields are used to reduce memory allocs.
+	buf []byte
+	d   float64
+	y   [1]byte
 }
 
 // newDecoder returns a new decoder that reads values from in. The input is
@@ -23,14 +28,19 @@ func newDecoder(in io.Reader, order binary.ByteOrder, fds []int) *decoder {
 	return dec
 }
 
+// Reset resets the decoder to be reading from in.
+func (dec *decoder) Reset(in io.Reader, order binary.ByteOrder, fds []int) {
+	dec.in = in
+	dec.order = order
+	dec.pos = 0
+	dec.fds = fds
+}
+
 // align aligns the input to the given boundary and panics on error.
 func (dec *decoder) align(n int) {
 	if dec.pos%n != 0 {
 		newpos := (dec.pos + n - 1) & ^(n - 1)
-		empty := make([]byte, newpos-dec.pos)
-		if _, err := io.ReadFull(dec.in, empty); err != nil {
-			panic(err)
-		}
+		dec.read2buf(newpos - dec.pos)
 		dec.pos = newpos
 	}
 }
@@ -66,79 +76,89 @@ func (dec *decoder) Decode(sig Signature) (vs []interface{}, err error) {
 	return vs, nil
 }
 
+// read2buf reads exactly n bytes from the reader dec.in into the buffer dec.buf
+// to reduce memory allocs.
+// The buffer grows automatically.
+func (dec *decoder) read2buf(n int) {
+	if cap(dec.buf) < n {
+		dec.buf = make([]byte, n)
+	} else {
+		dec.buf = dec.buf[:n]
+	}
+	if _, err := io.ReadFull(dec.in, dec.buf); err != nil {
+		panic(err)
+	}
+}
+
+// decodeU decodes uint32 obtained from the reader dec.in.
+// The goal is to reduce memory allocs.
+func (dec *decoder) decodeU() uint32 {
+	dec.align(4)
+	dec.read2buf(4)
+	dec.pos += 4
+	return dec.order.Uint32(dec.buf)
+}
+
 func (dec *decoder) decode(s string, depth int) interface{} {
 	dec.align(alignment(typeFor(s)))
 	switch s[0] {
 	case 'y':
-		var b [1]byte
-		if _, err := dec.in.Read(b[:]); err != nil {
+		if _, err := dec.in.Read(dec.y[:]); err != nil {
 			panic(err)
 		}
 		dec.pos++
-		return b[0]
+		return dec.y[0]
 	case 'b':
-		i := dec.decode("u", depth).(uint32)
-		switch {
-		case i == 0:
+		switch dec.decodeU() {
+		case 0:
 			return false
-		case i == 1:
+		case 1:
 			return true
 		default:
 			panic(FormatError("invalid value for boolean"))
 		}
 	case 'n':
-		var i int16
-		dec.binread(&i)
+		dec.read2buf(2)
 		dec.pos += 2
-		return i
+		return int16(dec.order.Uint16(dec.buf))
 	case 'i':
-		var i int32
-		dec.binread(&i)
+		dec.read2buf(4)
 		dec.pos += 4
-		return i
+		return int32(dec.order.Uint32(dec.buf))
 	case 'x':
-		var i int64
-		dec.binread(&i)
+		dec.read2buf(8)
 		dec.pos += 8
-		return i
+		return int64(dec.order.Uint64(dec.buf))
 	case 'q':
-		var i uint16
-		dec.binread(&i)
+		dec.read2buf(2)
 		dec.pos += 2
-		return i
+		return dec.order.Uint16(dec.buf)
 	case 'u':
-		var i uint32
-		dec.binread(&i)
-		dec.pos += 4
-		return i
+		return dec.decodeU()
 	case 't':
-		var i uint64
-		dec.binread(&i)
+		dec.read2buf(8)
 		dec.pos += 8
-		return i
+		return dec.order.Uint64(dec.buf)
 	case 'd':
-		var f float64
-		dec.binread(&f)
+		dec.binread(&dec.d)
 		dec.pos += 8
-		return f
+		return dec.d
 	case 's':
-		length := dec.decode("u", depth).(uint32)
-		b := make([]byte, int(length)+1)
-		if _, err := io.ReadFull(dec.in, b); err != nil {
-			panic(err)
-		}
-		dec.pos += int(length) + 1
-		return string(b[:len(b)-1])
+		length := dec.decodeU()
+		p := int(length) + 1
+		dec.read2buf(p)
+		dec.pos += p
+		return string(dec.buf[:len(dec.buf)-1])
 	case 'o':
 		return ObjectPath(dec.decode("s", depth).(string))
 	case 'g':
 		length := dec.decode("y", depth).(byte)
-		b := make([]byte, int(length)+1)
-		if _, err := io.ReadFull(dec.in, b); err != nil {
-			panic(err)
-		}
-		dec.pos += int(length) + 1
-		sig, err := ParseSignature(string(b[:len(b)-1]))
+		p := int(length) + 1
+		dec.read2buf(p)
+		dec.pos += p
+		sig, err := ParseSignature(
+			string(dec.buf[:len(dec.buf)-1]),
+		)
 		if err != nil {
 			panic(err)
 		}
@@ -163,7 +183,7 @@ func (dec *decoder) decode(s string, depth int) interface{} {
 		variant.value = dec.decode(sig.str, depth+1)
 		return variant
 	case 'h':
-		idx := dec.decode("u", depth).(uint32)
+		idx := dec.decodeU()
 		if int(idx) < len(dec.fds) {
 			return UnixFD(dec.fds[idx])
 		}
@@ -176,7 +196,7 @@ func (dec *decoder) decode(s string, depth int) interface{} {
 			if depth >= 63 {
 				panic(FormatError("input exceeds container depth limit"))
 			}
-			length := dec.decode("u", depth).(uint32)
+			length := dec.decodeU()
 			// Even for empty maps, the correct padding must be included
 			dec.align(8)
 			spos := dec.pos
@@ -195,7 +215,7 @@ func (dec *decoder) decode(s string, depth int) interface{} {
 			panic(FormatError("input exceeds container depth limit"))
 		}
 		sig := s[1:]
-		length := dec.decode("u", depth).(uint32)
+		length := dec.decodeU()
 		// capacity can be determined only for fixed-size element types
 		var capacity int
 		if s := sigByteSize(sig); s != 0 {
