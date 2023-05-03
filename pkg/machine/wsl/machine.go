@@ -406,7 +406,14 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	_ = setupWslProxyEnv()
 	homeDir := homedir.Get()
 	sshDir := filepath.Join(homeDir, ".ssh")
-	v.IdentityPath = filepath.Join(sshDir, v.Name)
+	targetIdentity, err := utils.FindTargetIdentityPath(sshDir, opts.Identity, "podman-machine", v.Port)
+	if err != nil {
+		return false, err
+	}
+	if filepath.Dir(targetIdentity) != sshDir {
+		return false, fmt.Errorf("can only place keys inside `%s` directory", sshDir)
+	}
+	v.IdentityPath = targetIdentity
 	v.Rootful = opts.Rootful
 	v.Version = currentMachineVersion
 
@@ -436,7 +443,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	if err = createKeys(v, dist, sshDir); err != nil {
+	if err = createKeys(v, dist, filepath.Dir(targetIdentity), filepath.Base(targetIdentity)); err != nil {
 		return false, err
 	}
 
@@ -447,7 +454,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	if err := setupConnections(v, opts, sshDir); err != nil {
+	if err := setupConnections(v, opts, v.IdentityPath); err != nil {
 		return false, err
 	}
 
@@ -500,10 +507,9 @@ func (v *MachineVM) writeConfig() error {
 	return nil
 }
 
-func setupConnections(v *MachineVM, opts machine.InitOptions, sshDir string) error {
+func setupConnections(v *MachineVM, opts machine.InitOptions, identityPath string) error {
 	uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/user/1000/podman/podman.sock", strconv.Itoa(v.Port), v.RemoteUsername)
 	uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
-	identity := filepath.Join(sshDir, v.Name)
 
 	uris := []url.URL{uri, uriRoot}
 	names := []string{v.Name, v.Name + "-root"}
@@ -515,7 +521,7 @@ func setupConnections(v *MachineVM, opts machine.InitOptions, sshDir string) err
 	}
 
 	for i := 0; i < 2; i++ {
-		if err := machine.AddConnection(&uris[i], names[i], identity, opts.IsDefault && i == 0); err != nil {
+		if err := machine.AddConnection(&uris[i], names[i], identityPath, opts.IsDefault && i == 0); err != nil {
 			return err
 		}
 	}
@@ -549,7 +555,7 @@ func provisionWSLDist(name string, imagePath string, prompt string) (string, err
 	return dist, nil
 }
 
-func createKeys(v *MachineVM, dist string, sshDir string) error {
+func createKeys(v *MachineVM, dist string, sshDir string, keyFile string) error {
 	user := v.RemoteUsername
 
 	if err := os.MkdirAll(sshDir, 0700); err != nil {
@@ -560,7 +566,7 @@ func createKeys(v *MachineVM, dist string, sshDir string) error {
 		return fmt.Errorf("could not cycle WSL dist: %w", err)
 	}
 
-	key, err := wslCreateKeys(sshDir, v.Name, dist)
+	key, err := wslCreateKeys(sshDir, keyFile, dist)
 	if err != nil {
 		return fmt.Errorf("could not create ssh keys: %w", err)
 	}

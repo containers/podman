@@ -34,6 +34,7 @@ type InitOptions struct {
 	Rootful            bool
 	UID                string // uid of the user that called machine
 	UserModeNetworking *bool  // nil = use backend/system default, false = disable, true = enable
+	Identity           string
 }
 
 type Status = string

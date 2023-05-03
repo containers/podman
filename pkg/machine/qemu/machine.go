@@ -243,7 +243,11 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		key string
 	)
 	sshDir := filepath.Join(homedir.Get(), ".ssh")
-	v.IdentityPath = filepath.Join(sshDir, v.Name)
+	targetIdentity, err := utils.FindTargetIdentityPath(sshDir, opts.Identity, "podman-machine", v.Port)
+	if err != nil {
+		return false, err
+	}
+	v.IdentityPath = targetIdentity
 	v.Rootful = opts.Rootful
 
 	switch opts.ImagePath {
@@ -320,7 +324,6 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	if len(opts.IgnitionPath) < 1 {
 		uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", fmt.Sprintf("/run/user/%d/podman/podman.sock", v.UID), strconv.Itoa(v.Port), v.RemoteUsername)
 		uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
-		identity := filepath.Join(sshDir, v.Name)
 
 		uris := []url.URL{uri, uriRoot}
 		names := []string{v.Name, v.Name + "-root"}
@@ -332,7 +335,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		}
 
 		for i := 0; i < 2; i++ {
-			if err := machine.AddConnection(&uris[i], names[i], identity, opts.IsDefault && i == 0); err != nil {
+			if err := machine.AddConnection(&uris[i], names[i], v.IdentityPath, opts.IsDefault && i == 0); err != nil {
 				return false, err
 			}
 		}

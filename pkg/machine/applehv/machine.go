@@ -17,6 +17,7 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
@@ -124,7 +125,11 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 	m.VfkitHelper = *vfhelper
 
 	sshDir := filepath.Join(homedir.Get(), ".ssh")
-	m.IdentityPath = filepath.Join(sshDir, m.Name)
+	targetIdentity, err := utils.FindTargetIdentityPath(sshDir, opts.Identity, "podman-machine", m.Port)
+	if err != nil {
+		return false, err
+	}
+	m.IdentityPath = targetIdentity
 	m.Rootful = opts.Rootful
 	m.RemoteUsername = opts.Username
 
@@ -142,7 +147,6 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		// TODO localhost needs to be restored here
 		uri := machine.SSHRemoteConnection.MakeSSHURL("192.168.64.2", fmt.Sprintf("/run/user/%d/podman/podman.sock", m.UID), strconv.Itoa(m.Port), m.RemoteUsername)
 		uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(m.Port), "root")
-		identity := filepath.Join(sshDir, m.Name)
 
 		uris := []url.URL{uri, uriRoot}
 		names := []string{m.Name, m.Name + "-root"}
@@ -154,7 +158,7 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		}
 
 		for i := 0; i < 2; i++ {
-			if err := machine.AddConnection(&uris[i], names[i], identity, opts.IsDefault && i == 0); err != nil {
+			if err := machine.AddConnection(&uris[i], names[i], m.IdentityPath, opts.IsDefault && i == 0); err != nil {
 				return false, err
 			}
 		}

@@ -98,6 +98,10 @@ func init() {
 	flags.StringVar(&initOpts.Username, UsernameFlagName, cfg.ContainersConfDefaultsRO.Machine.User, "Username used in image")
 	_ = initCmd.RegisterFlagCompletionFunc(UsernameFlagName, completion.AutocompleteDefault)
 
+	identityFlagName := "identity"
+	flags.StringVar(&initOpts.Identity, identityFlagName, "", "Name of the identity used for keys")
+	_ = initCmd.RegisterFlagCompletionFunc(identityFlagName, completion.AutocompleteDefault)
+
 	ImagePathFlagName := "image-path"
 	flags.StringVar(&initOpts.ImagePath, ImagePathFlagName, cfg.ContainersConfDefaultsRO.Machine.Image, "Path to bootable image")
 	_ = initCmd.RegisterFlagCompletionFunc(ImagePathFlagName, completion.AutocompleteDefault)
