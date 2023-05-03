@@ -183,19 +183,19 @@ func (cnt *depthCounter) Valid() bool {
 	return cnt.arrayDepth <= 32 && cnt.structDepth <= 32 && cnt.dictEntryDepth <= 32
 }
 
-func (cnt depthCounter) EnterArray() *depthCounter {
+func (cnt *depthCounter) EnterArray() *depthCounter {
 	cnt.arrayDepth++
-	return &cnt
+	return cnt
 }
 
-func (cnt depthCounter) EnterStruct() *depthCounter {
+func (cnt *depthCounter) EnterStruct() *depthCounter {
 	cnt.structDepth++
-	return &cnt
+	return cnt
 }
 
-func (cnt depthCounter) EnterDictEntry() *depthCounter {
+func (cnt *depthCounter) EnterDictEntry() *depthCounter {
 	cnt.dictEntryDepth++
-	return &cnt
+	return cnt
 }
 
 // Try to read a single type from this string. If it was successful, err is nil

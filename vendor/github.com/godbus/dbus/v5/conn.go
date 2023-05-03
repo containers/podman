@@ -484,7 +484,7 @@ func (conn *Conn) Object(dest string, path ObjectPath) BusObject {
 	return &Object{conn, dest, path}
 }
 
-func (conn *Conn) sendMessageAndIfClosed(msg *Message, ifClosed func()) {
+func (conn *Conn) sendMessageAndIfClosed(msg *Message, ifClosed func()) error {
 	if msg.serial == 0 {
 		msg.serial = conn.getSerial()
 	}
@@ -497,6 +497,7 @@ func (conn *Conn) sendMessageAndIfClosed(msg *Message, ifClosed func()) {
 	} else if msg.Type != TypeMethodCall {
 		conn.serialGen.RetireSerial(msg.serial)
 	}
+	return err
 }
 
 func (conn *Conn) handleSendError(msg *Message, err error) {
@@ -504,6 +505,9 @@ func (conn *Conn) handleSendError(msg *Message, err error) {
 		conn.calls.handleSendError(msg, err)
 	} else if msg.Type == TypeMethodReply {
 		if _, ok := err.(FormatError); ok {
+			// Make sure that the caller gets some kind of error response if
+			// the application code tried to respond, but the resulting message
+			// was malformed in the end
 			conn.sendError(err, msg.Headers[FieldDestination].value.(string), msg.Headers[FieldReplySerial].value.(uint32))
 		}
 	}
@@ -559,7 +563,8 @@ func (conn *Conn) send(ctx context.Context, msg *Message, ch chan *Call) *Call {
 			<-ctx.Done()
 			conn.calls.handleSendError(msg, ctx.Err())
 		}()
-		conn.sendMessageAndIfClosed(msg, func() {
+		// error is handled in handleSendError
+		_ = conn.sendMessageAndIfClosed(msg, func() {
 			conn.calls.handleSendError(msg, ErrClosed)
 			canceler()
 		})
@@ -567,7 +572,8 @@ func (conn *Conn) send(ctx context.Context, msg *Message, ch chan *Call) *Call {
 		canceler()
 		call = &Call{Err: nil, Done: ch}
 		ch <- call
-		conn.sendMessageAndIfClosed(msg, func() {
+		// error is handled in handleSendError
+		_ = conn.sendMessageAndIfClosed(msg, func() {
 			call = &Call{Err: ErrClosed}
 		})
 	}
@@ -601,7 +607,8 @@ func (conn *Conn) sendError(err error, dest string, serial uint32) {
 	if len(e.Body) > 0 {
 		msg.Headers[FieldSignature] = MakeVariant(SignatureOf(e.Body...))
 	}
-	conn.sendMessageAndIfClosed(msg, nil)
+	// not much we can do to handle a possible error here
+	_ = conn.sendMessageAndIfClosed(msg, nil)
 }
 
 // sendReply creates a method reply message corresponding to the parameters and
@@ -618,7 +625,8 @@ func (conn *Conn) sendReply(dest string, serial uint32, values ...interface{}) {
 	if len(values) > 0 {
 		msg.Headers[FieldSignature] = MakeVariant(SignatureOf(values...))
 	}
-	conn.sendMessageAndIfClosed(msg, nil)
+	// not much we can do to handle a possible error here
+	_ = conn.sendMessageAndIfClosed(msg, nil)
 }
 
 // AddMatchSignal registers the given match rule to receive broadcast
