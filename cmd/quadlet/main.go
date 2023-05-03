@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/user"
 	"path"
 	"path/filepath"
 	"strings"
@@ -98,8 +99,8 @@ func Debugf(format string, a ...interface{}) {
 // This returns the directories where we read quadlet .container and .volumes from
 // For system generators these are in /usr/share/containers/systemd (for distro files)
 // and /etc/containers/systemd (for sysadmin files).
-// For user generators these live in $XDG_CONFIG_HOME/containers/systemd
-func getUnitDirs(user bool) []string {
+// For user generators these can live in /etc/containers/systemd/users, /etc/containers/systemd/users/$UID, and $XDG_CONFIG_HOME/containers/systemd
+func getUnitDirs(rootless bool) []string {
 	// Allow overdiding source dir, this is mainly for the CI tests
 	unitDirsEnv := os.Getenv("QUADLET_UNIT_DIRS")
 	if len(unitDirsEnv) > 0 {
@@ -107,15 +108,23 @@ func getUnitDirs(user bool) []string {
 	}
 
 	dirs := make([]string, 0)
-	if user {
-		if configDir, err := os.UserConfigDir(); err == nil {
-			dirs = append(dirs, path.Join(configDir, "containers/systemd"))
+	if rootless {
+		configDir, err := os.UserConfigDir()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: %v", err)
+			return nil
 		}
-	} else {
-		dirs = append(dirs, quadlet.UnitDirAdmin)
-		dirs = append(dirs, quadlet.UnitDirDistro)
+		dirs = append(dirs, path.Join(configDir, "containers/systemd"))
+		dirs = append(dirs, filepath.Join(quadlet.UnitDirAdmin, "users"))
+		u, err := user.Current()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: %v", err)
+			return dirs
+		}
+		return append(dirs, filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid))
 	}
-	return dirs
+	dirs = append(dirs, quadlet.UnitDirAdmin)
+	return append(dirs, quadlet.UnitDirDistro)
 }
 
 func isExtSupported(filename string) bool {

@@ -2,7 +2,7 @@
 
 ## NAME
 
-podman\-systemd.unit - systemd units using Podman quadlet
+podman\-systemd.unit - systemd units using Podman Quadlet
 
 ## SYNOPSIS
 
@@ -15,6 +15,8 @@ podman\-systemd.unit - systemd units using Podman quadlet
 
 ### Podman user unit search path
 
+ * /etc/containers/systemd/users/
+ * /etc/containers/systemd/users/$(UID)
  * $XDG_CONFIG_HOME/containers/systemd/
  * ~/.config/containers/systemd/
 
@@ -37,6 +39,14 @@ The Podman files use the same format as [regular systemd unit files](https://www
 Each file type has a custom section (for example, `[Container]`) that is handled by Podman, and all
 other sections will be passed on untouched, allowing the use of any normal systemd configuration options
 like dependencies or cgroup limits.
+
+For rootless containers, when administrators place Quadlet files in the
+/etc/containers/systemd/users directory, all users sessions will execute the
+Quadlet when the login session begins. If the administrator places a Quadlet
+file in the /etc/containers/systemd/user/${UID}/ directory, then only the
+user with the matching UID will execute the Quadlet when the login
+session gets started.
+
 
 ### Enabling unit files
 
@@ -145,7 +155,7 @@ Adds a device node from the host into the container. The format of this is
 `HOST-DEVICE[:CONTAINER-DEVICE][:PERMISSIONS]`, where `HOST-DEVICE` is the path of
 the device node on the host, `CONTAINER-DEVICE` is the path of the device node in
 the container, and `PERMISSIONS` is a list of permissions combining 'r' for read,
-'w' for write, and 'm' for mknod(2). The `-` prefix tells quadlet to add the device
+'w' for write, and 'm' for mknod(2). The `-` prefix tells Quadlet to add the device
 only if it exists on the host.
 
 This key can be listed multiple times.
@@ -307,7 +317,7 @@ generally has the form `type=TYPE,TYPE-SPECIFIC-OPTION[,...]`.
 As a special case, for `type=volume` if `source` ends with `.volume`, a Podman named volume called
 `systemd-$name` will be used as the source, and the generated systemd service will contain
 a dependency on the `$name-volume.service`. Such a volume can be automatically be lazily
-created by using a `$name.volume` quadlet file.
+created by using a `$name.volume` Quadlet file.
 
 This key can be listed multiple times.
 
@@ -320,7 +330,7 @@ not set up networking in the container.
 As a special case, if the `name` of the network ends with `.network`, a Podman network called
 `systemd-$name` will be used, and the generated systemd service will contain
 a dependency on the `$name-network.service`. Such a network can be automatically
-created by using a `$name.network` quadlet file.
+created by using a `$name.network` Quadlet file.
 
 This key can be listed multiple times.
 
@@ -449,7 +459,7 @@ If `SOURCE-VOLUME` starts with `.`, Quadlet will resolve the path relative to th
 As a special case, if `SOURCE-VOLUME` ends with `.volume`, a Podman named volume called
 `systemd-$name` will be used as the source, and the generated systemd service will contain
 a dependency on the `$name-volume.service`. Such a volume can be automatically be lazily
-created by using a `$name.volume` quadlet file.
+created by using a `$name.volume` Quadlet file.
 
 This key can be listed multiple times.
 
@@ -498,7 +508,7 @@ not set up networking in the container.
 As a special case, if the `name` of the network ends with `.network`, a Podman network called
 `systemd-$name` will be used, and the generated systemd service will contain
 a dependency on the `$name-network.service`. Such a network can be automatically
-created by using a `$name.network` quadlet file.
+created by using a `$name.network` Quadlet file.
 
 This key can be listed multiple times.
 
