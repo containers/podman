@@ -239,7 +239,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		tmpName = findUnusedContainer(tmpName, containers)
 	}
 
-	conflict := 100
+	suffixDigitsModulo := 100
 	for {
 
 		var flags map[string]interface{}
@@ -265,8 +265,10 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		if !errors.Is(err, storage.ErrDuplicateName) || options.Container != "" {
 			return nil, fmt.Errorf("creating container: %w", err)
 		}
-		tmpName = fmt.Sprintf("%s-%d", name, rand.Int()%conflict)
-		conflict = conflict * 10
+		tmpName = fmt.Sprintf("%s-%d", name, rand.Int()%suffixDigitsModulo)
+		if suffixDigitsModulo < 1_000_000_000 {
+			suffixDigitsModulo *= 10
+		}
 	}
 	defer func() {
 		if err != nil {
