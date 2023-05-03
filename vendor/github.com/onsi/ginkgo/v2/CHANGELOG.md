@@ -1,3 +1,14 @@
+## 2.9.4
+
+### Fixes
+- fix hang with ginkgo -p (#1192) [15d4bdc] - this addresses a _long_ standing issue related to Ginkgo hanging when a child process spawned by the test does not exit.
+
+- fix: fail fast may cause Serial spec or cleanup Node interrupted (#1178) [8dea88b] - prior to this there was a small gap in which specs on other processes might start even if one process has tried to abort the suite.
+
+
+### Maintenance
+- Document run order when multiple setup nodes are at the same nesting level [903be81]
+
 ## 2.9.3
 
 ### Features
