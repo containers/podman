@@ -21,6 +21,7 @@ import (
 	"github.com/containers/podman/v4/pkg/auth"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
+	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/gorilla/schema"
@@ -431,12 +432,22 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filterList, err := filters.FiltersFromRequest(r)
-	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, err)
-		return
-	}
-	if !utils.IsLibpodRequest(r) {
+	var filterList []string
+	var err error
+	if utils.IsLibpodRequest(r) {
+		// Podman clients split the filter map as `"{"label":["version","1.0"]}`
+		filterList, err = filters.FiltersFromRequest(r)
+		if err != nil {
+			utils.Error(w, http.StatusInternalServerError, err)
+			return
+		}
+	} else {
+		// Docker clients split the filter map as `"{"label":["version=1.0"]}`
+		filterList, err = util.FiltersFromRequest(r)
+		if err != nil {
+			utils.Error(w, http.StatusInternalServerError, err)
+			return
+		}
 		if len(query.Filter) > 0 { // Docker 1.24 compatibility
 			filterList = append(filterList, "reference="+query.Filter)
 		}
