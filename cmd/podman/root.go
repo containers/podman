@@ -17,6 +17,7 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/containers/podman/v4/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/parallel"
@@ -109,7 +110,7 @@ func Execute() {
 			registry.SetExitCode(define.ExecErrorCodeGeneric)
 		}
 		if registry.IsRemote() {
-			if strings.Contains(err.Error(), "unable to connect to Podman") {
+			if errors.As(err, &bindings.ConnectError{}) {
 				fmt.Fprintln(os.Stderr, "Cannot connect to Podman. Please verify your connection to the Linux system using `podman system connection list`, or try `podman machine init` and `podman machine start` to manage a new Linux VM")
 			}
 		}
