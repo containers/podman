@@ -37,6 +37,22 @@ const (
 	versionKey = valueKey("ServiceVersion")
 )
 
+type ConnectError struct {
+	Err error
+}
+
+func (c ConnectError) Error() string {
+	return "unable to connect to Podman socket: " + c.Err.Error()
+}
+
+func (c ConnectError) Unwrap() error {
+	return c.Err
+}
+
+func newConnectError(err error) error {
+	return ConnectError{Err: err}
+}
+
 // GetClient from context build by NewConnection()
 func GetClient(ctx context.Context) (*Connection, error) {
 	if c, ok := ctx.Value(clientKey).(*Connection); ok {
@@ -107,7 +123,7 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string,
 			InsecureIsMachineConnection: machine,
 		}, "golang")
 		if err != nil {
-			return nil, err
+			return nil, newConnectError(err)
 		}
 		connection = Connection{URI: _url}
 		connection.Client = &http.Client{
@@ -129,20 +145,17 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string,
 		}
 		conn, err := tcpClient(_url)
 		if err != nil {
-			return nil, err
+			return nil, newConnectError(err)
 		}
 		connection = conn
 	default:
 		return nil, fmt.Errorf("unable to create connection. %q is not a supported schema", _url.Scheme)
 	}
-	if err != nil {
-		return nil, fmt.Errorf("unable to connect to Podman. failed to create %sClient: %w", _url.Scheme, err)
-	}
 
 	ctx = context.WithValue(ctx, clientKey, &connection)
 	serviceVersion, err := pingNewConnection(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("unable to connect to Podman socket: %w", err)
+		return nil, newConnectError(err)
 	}
 	ctx = context.WithValue(ctx, versionKey, serviceVersion)
 	return ctx, nil
