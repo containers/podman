@@ -38,7 +38,7 @@ if [[ $n_commits -gt 1 ]]; then
 fi
 
 # Scope check: make sure the only files changed is helpers.bash
-changes=$(git diff --name-status [BASETAG]..HEAD | egrep -v '\stests/helpers.bash')
+changes=$(git diff --name-status [BASETAG]..HEAD | grep -E -v '\stests/helpers.bash')
 if [[ -n "$changes" ]]; then
     echo $changes
     die "Found modified files other than 'tests/helpers.bash'"

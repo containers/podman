@@ -18,7 +18,7 @@ expect_regex() {
     local input_file
     expected_regex="$1"
     input_file="$2"
-    egrep -q "$expected_regex" $input_file || \
+    grep -E -q "$expected_regex" $input_file || \
         die "No match to '$expected_regex' in '$(<$input_file)'"
 }
 
@@ -48,7 +48,7 @@ trap "rm -rf $GITHUB_OUTPUT $GITHUB_WORKSPACE $NAME_ID_FILEPATH" EXIT
 #####
 
 cd /tmp || fail
-# Replace newlines and indentation to make egrep easier
+# Replace newlines and indentation to make grep easier
 if ! $base/cron_failures.sh |& \
         tr -s '[:space:]' ' ' > $GITHUB_WORKSPACE/output; then
     die "Failed: $base/cron_failures.sh with output '$(<$GITHUB_WORKSPACE/output)'"

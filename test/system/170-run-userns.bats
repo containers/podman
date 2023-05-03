@@ -73,9 +73,9 @@ function _require_crun() {
     skip_if_remote "userns=auto is set on the server"
 
     if is_rootless; then
-        egrep -q "^$(id -un):" /etc/subuid || skip "no IDs allocated for current user"
+        grep -E -q "^$(id -un):" /etc/subuid || skip "no IDs allocated for current user"
     else
-        egrep -q "^containers:" /etc/subuid || skip "no IDs allocated for user 'containers'"
+        grep -E -q "^containers:" /etc/subuid || skip "no IDs allocated for user 'containers'"
     fi
 
     cat > $PODMAN_TMPDIR/userns_auto.conf <<EOF
@@ -100,7 +100,7 @@ EOF
     if is_rootless; then
         ns_user=$(id -un)
     fi
-    egrep -q "${ns_user}:" /etc/subuid || skip "no IDs allocated for user ${ns_user}"
+    grep -E -q "${ns_user}:" /etc/subuid || skip "no IDs allocated for user ${ns_user}"
     test_name="test_$(random_string 12)"
     secret_file=$PODMAN_TMPDIR/secret$(random_string 12)
     secret_content=$(random_string)
@@ -114,7 +114,7 @@ EOF
 @test "podman userns=nomap" {
     if is_rootless; then
         ns_user=$(id -un)
-        baseuid=$(egrep "${ns_user}:" /etc/subuid | cut -f2 -d:)
+        baseuid=$(grep -E "${ns_user}:" /etc/subuid | cut -f2 -d:)
         test ! -z ${baseuid} ||  skip "no IDs allocated for user ${ns_user}"
 
         test_name="test_$(random_string 12)"

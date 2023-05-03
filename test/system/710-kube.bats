@@ -13,7 +13,7 @@ kubernetes_63='Truncation Annotation: .* Kubernetes only allows 63 characters'
 
 # filter: convert yaml to json, because bash+yaml=madness
 function yaml2json() {
-    egrep -v "$kubernetes_63" | python3 -c 'import yaml
+    grep -E -v "$kubernetes_63" | python3 -c 'import yaml
 import json
 import sys
 json.dump(yaml.safe_load(sys.stdin), sys.stdout)'

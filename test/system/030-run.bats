@@ -1071,7 +1071,7 @@ EOF
 
     skip_if_remote "userns=auto is set on the server"
 
-    egrep -q "^containers:" /etc/subuid || skip "no IDs allocated for user 'containers'"
+    grep -E -q "^containers:" /etc/subuid || skip "no IDs allocated for user 'containers'"
 
     # check if the underlying file system supports idmapped mounts
     check_dir=$PODMAN_TMPDIR/idmap-check
