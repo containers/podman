@@ -882,6 +882,17 @@ func (c *Container) execSessionNoCopy(id string) (*ExecSession, error) {
 		return nil, fmt.Errorf("no exec session with ID %s found in container %s: %w", id, c.ID(), define.ErrNoSuchExecSession)
 	}
 
+	// make sure to update the exec session if needed #18424
+	alive, err := c.ociRuntime.ExecUpdateStatus(c, id)
+	if err != nil {
+		return nil, err
+	}
+	if !alive {
+		if err := retrieveAndWriteExecExitCode(c, session.ID()); err != nil {
+			return nil, err
+		}
+	}
+
 	return session, nil
 }
 
