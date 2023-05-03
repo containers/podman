@@ -23,10 +23,10 @@ check_diffs() {
     regex="$2"
     check_msg "Confirming changes have no $check"
     req_env_vars check regex diffs
-    if egrep -q "$regex"<<<"$diffs"; then
+    if grep -E -q "$regex"<<<"$diffs"; then
         # Show 5 context lines before/after as compromise for script simplicity
         die "Found $check:
-$(egrep -B 5 -A 5 "$regex"<<<"$diffs")"
+$(grep -E -B 5 -A 5 "$regex"<<<"$diffs")"
     fi
 }
 

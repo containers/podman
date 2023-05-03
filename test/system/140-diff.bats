@@ -30,7 +30,7 @@ load helpers
         # PR is https://github.com/containers/podman/pull/8561
         # Anyhow, without the egrep below, this test fails about 50% of the
         # time on rootless RHEL8. (No, I don't know why it's not 100%).
-        result=$(jq -r -c ".${field}[]" <<<"$output" | egrep -v '^/sys/fs')
+        result=$(jq -r -c ".${field}[]" <<<"$output" | grep -E -v '^/sys/fs')
         is "$result" "${expect[$field]}" "$field"
     done
 

@@ -45,7 +45,7 @@ function errmsg() {
     local msg_new=${1//\//\\/};  shift
 
     for t in "$@"; do
-        if fgrep -qx "@test \"$t\" {" $BUD; then
+        if grep -F -qx "@test \"$t\" {" $BUD; then
             $ECHO "@test \"$t\" : updating to \"$msg_new\""
             t=${t//\//\\/}
             # FIXME: emit error if msg_orig not found
@@ -68,7 +68,7 @@ function _skip() {
     fi
 
     for t in "$@"; do
-        if fgrep -qx "@test \"$t\" {" $BUD; then
+        if grep -F -qx "@test \"$t\" {" $BUD; then
             $ECHO "@test \"$t\" : $skip \"$reason\""
             # Escape slash in test name, 'custom files in /run/'
             t=${t//\//\\/}
