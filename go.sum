@@ -237,10 +237,10 @@ github.com/containernetworking/plugins v0.8.6/go.mod h1:qnw5mN19D8fIwkqW7oHHYDHV
 github.com/containernetworking/plugins v0.9.1/go.mod h1:xP/idU2ldlzN6m4p5LmGiwRDjeJr6FLK6vuiUwoH7P8=
 github.com/containernetworking/plugins v1.2.0 h1:SWgg3dQG1yzUo4d9iD8cwSVh1VqI+bP7mkPDoSfP9VU=
 github.com/containernetworking/plugins v1.2.0/go.mod h1:/VjX4uHecW5vVimFa1wkG4s+r/s9qIfPdqlLF4TW8c4=
-github.com/containers/buildah v1.30.1-0.20230501124043-3908816d5310 h1:xYQch7NrCYPrNcrDUHPc1dE2nwg+2xHiG5l59T+m5Q4=
-github.com/containers/buildah v1.30.1-0.20230501124043-3908816d5310/go.mod h1:6A/BK0YJLXL8+AqlbceKJrhUT+NtEgsvAc51F7TAllc=
-github.com/containers/common v0.53.1-0.20230502134647-9cd0cc23c80f h1:NGr0tr+qnavYQ3m+ajnrCLCp7y/YlGj14OXsYD5RhqY=
-github.com/containers/common v0.53.1-0.20230502134647-9cd0cc23c80f/go.mod h1:uG5iTo9KbPxcyj3nsq0OPbBRTrSsrXKIMNRw4D6rt/w=
+github.com/containers/buildah v1.30.0 h1:mdp2COGKFFEZNEGP8VZ5ITuUFVNPFoH+iK2sSesNfTA=
+github.com/containers/buildah v1.30.0/go.mod h1:lyMLZIevpAa6zSzjRl7z4lFJMCMQLFjfo56YIefaB/U=
+github.com/containers/common v0.53.0 h1:Ax814cLeX5VXSnkKUdxz762g+27fJj1st4UvKoXmkKs=
+github.com/containers/common v0.53.0/go.mod h1:pABPxJwlTE8oYk9/2BW0e0mumkuhJHIPsABHTGRXN3w=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.25.0 h1:TJ0unmalbU+scd0i3Txap2wjGsAnv06MSCwgn6bsizk=
@@ -813,8 +813,8 @@ github.com/opencontainers/selinux v1.8.2/go.mod h1:MUIHuUEvKB1wtJjQdOyYRgOnLD2xA
 github.com/opencontainers/selinux v1.10.1/go.mod h1:2i0OySw99QjzBBQByd1Gr9gSjvuho1lHsJxIJ3gGbJI=
 github.com/opencontainers/selinux v1.11.0 h1:+5Zbo97w3Lbmb3PeqQtpmTkMwsW5nRI3YaLpt7tQ7oU=
 github.com/opencontainers/selinux v1.11.0/go.mod h1:E5dMC3VPuVvVHDYmi78qvhJp8+M586T4DlDRYpFkyec=
-github.com/openshift/imagebuilder v1.2.4 h1:JDT6B1K3lHneR+JNWXQ6rReVNvIC4LPkTX6AvrY3qAY=
-github.com/openshift/imagebuilder v1.2.4/go.mod h1:9eM1yF1PSe8JaYw4IxcMdTHARvpAQ7q3OBXJM+382Ms=
+github.com/openshift/imagebuilder v1.2.4-0.20230309135844-a3c3f8358ca3 h1:JMtosRja+FqjYFtYk439be/g0DeysMu25sI5PISmVEY=
+github.com/openshift/imagebuilder v1.2.4-0.20230309135844-a3c3f8358ca3/go.mod h1:k1mq/1hUuymyinjudQds8a9YcR+JGib6/9JQWvr5ql8=
 github.com/opentracing/opentracing-go v1.2.0 h1:uEJPy/1a5RIPAJ0Ov+OIO8OxWu77jEv+1B0VhjKrZUs=
 github.com/opentracing/opentracing-go v1.2.0/go.mod h1:GxEUsuufX4nBwe+T+Wl9TAgYrxe9dPLANfrWvHYVTgc=
 github.com/ostreedev/ostree-go v0.0.0-20210805093236-719684c64e4f h1:/UDgs8FGMqwnHagNDPGOlts35QkhAZ8by3DR7nMih7M=

@@ -12,8 +12,8 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.5.4
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.2.0
-	github.com/containers/buildah v1.30.1-0.20230501124043-3908816d5310
-	github.com/containers/common v0.53.1-0.20230502134647-9cd0cc23c80f
+	github.com/containers/buildah v1.30.0
+	github.com/containers/common v0.53.0
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.25.0
 	github.com/containers/libhvee v0.0.5
@@ -50,7 +50,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.1.0-rc.2
 	github.com/opencontainers/runtime-tools v0.9.1-0.20230317050512-e931285f4b69
 	github.com/opencontainers/selinux v1.11.0
-	github.com/openshift/imagebuilder v1.2.4
+	github.com/openshift/imagebuilder v1.2.4-0.20230309135844-a3c3f8358ca3
 	github.com/rootless-containers/rootlesskit v1.1.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.7.0

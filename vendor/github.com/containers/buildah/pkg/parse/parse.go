@@ -510,6 +510,8 @@ func PlatformsFromOptions(c *cobra.Command) (platforms []struct{ OS, Arch, Varia
 	return platforms, nil
 }
 
+const platformSep = "/"
+
 // DefaultPlatform returns the standard platform for the current system
 func DefaultPlatform() string {
 	return platforms.DefaultString()
@@ -518,19 +520,21 @@ func DefaultPlatform() string {
 // Platform separates the platform string into os, arch and variant,
 // accepting any of $arch, $os/$arch, or $os/$arch/$variant.
 func Platform(platform string) (os, arch, variant string, err error) {
-	if platform == "local" || platform == "" || platform == "/" {
-		return Platform(DefaultPlatform())
+	split := strings.Split(platform, platformSep)
+	switch len(split) {
+	case 3:
+		variant = split[2]
+		fallthrough
+	case 2:
+		arch = split[1]
+		os = split[0]
+		return
+	case 1:
+		if platform == "local" {
+			return Platform(DefaultPlatform())
+		}
 	}
-	if platform[len(platform)-1] == '/' || platform[0] == '/' {
-		// If --platform string has format as `some/plat/string/`
-		// or `/some/plat/string` make it `some/plat/string`
-		platform = strings.Trim(platform, "/")
-	}
-	platformSpec, err := platforms.Parse(platform)
-	if err != nil {
-		return "", "", "", fmt.Errorf("invalid platform syntax for --platform=%q: %w", platform, err)
-	}
-	return platformSpec.OS, platformSpec.Architecture, platformSpec.Variant, nil
+	return "", "", "", fmt.Errorf("invalid platform syntax for %q (use OS/ARCH[/VARIANT][,...])", platform)
 }
 
 func parseCreds(creds string) (string, string) {
