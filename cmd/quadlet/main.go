@@ -119,13 +119,17 @@ func getUnitDirs(user bool) []string {
 }
 
 func appendSubPaths(dirs []string, path string) []string {
-	filepath.Walk(path, func(_path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
+	err := filepath.Walk(path, func(_path string, info os.FileInfo, err error) error {
+		if info.IsDir() {
+			dirs = append(dirs, _path)
 		}
-		dirs = append(dirs, _path)
-		return nil
+		return err
 	})
+	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			Debugf("Error occurred walking sub directories \"%s\": %s", path, err)
+		}
+	}
 	return dirs
 }
 
