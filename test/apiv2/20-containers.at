@@ -357,6 +357,15 @@ t GET containers/$cid/json 200 \
 
 t DELETE containers/$cid?v=true 204
 
+# Test Volumes with bind mount, for some reason docker-py sets this #18454
+t POST containers/create Image=$IMAGE Volumes='{"/test/":{}}'  HostConfig='{"Binds":["/tmp:/test/:ro"]}'  201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+t GET containers/$cid/json 200 \
+  .Mounts[0].Destination="/test/"
+
+t DELETE containers/$cid?v=true 204
+
 # test port mapping
 podman run -d --rm --name bar -p 8080:9090 $IMAGE top
 
