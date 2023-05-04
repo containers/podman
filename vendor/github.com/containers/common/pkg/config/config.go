@@ -143,6 +143,12 @@ type ContainersConfig struct {
 	// Labeling to separate containers (SELinux)
 	EnableLabeling bool `toml:"label,omitempty"`
 
+	// EnableLabeledUsers indicates whether to enforce confined users with
+	// containers on SELinux systems. This option causes containers to
+	// maintain the current user and role field of the calling process.
+	// Otherwise containers run with user system_u, and the role system_r.
+	EnableLabeledUsers bool `toml:"label_users,omitempty"`
+
 	// Env is the environment variable list for container process.
 	Env []string `toml:"env,omitempty"`
 
