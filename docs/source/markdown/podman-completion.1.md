@@ -29,7 +29,7 @@ The default is **false**.
 `bash-completion` has to be installed on the system.
 
 To load the completion script into the current session run:\
-**source <(podman completion bash)**.
+**source <(podman completion bash)**
 
 To make it available for all bash sessions run:\
 **podman completion -f /etc/bash_completion.d/podman bash**.
