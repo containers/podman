@@ -19,9 +19,22 @@ function check_label() {
     # warning line about dup devices. Ignore it.
     remove_same_dev_warning
     local context="$output"
+    run id -Z
+    user=$(secon -u $output)
+    role=$(secon -r $output)
 
-    is "$context" ".*_u:system_r:.*" "SELinux role should always be system_r"
-
+    case "$args" in
+        # Containers that run automatically without SELinux transitions, run
+        # with the current role.
+        *--privileged*| *--pid=host* | *--ipc=host* | *"--security-opt label=disable"*)
+                is "$context" "$user:$role:.*" "Non SELinux separated containers role should always be the current user and role"
+                ;;
+        # Containers that are confined or force the spc_t type default
+        # to running with the system_r role.
+        *)
+                is "$context" ".*_u:system_r:.*" "SELinux separated containers role should always be system_r"
+                ;;
+    esac
     # e.g. system_u:system_r:container_t:s0:c45,c745 -> "container_t"
     type=$(cut -d: -f3 <<<"$context")
     is "$type" "$1" "SELinux type"
@@ -43,7 +56,15 @@ function check_label() {
 }
 
 @test "podman selinux: privileged container" {
+    check_label "--privileged" "spc_t"
+}
+
+@test "podman selinux: privileged --userns=host container" {
     check_label "--privileged --userns=host" "spc_t"
+}
+
+@test "podman selinux: --ipc=host container" {
+    check_label "--ipc=host" "spc_t"
 }
 
 @test "podman selinux: init container" {
@@ -300,6 +321,28 @@ function check_label() {
     run_podman run --rm --security-opt label=nested --security-opt label=level:s0:c1,c2 $IMAGE mount
     assert "$output" =~ "${ROOTCONTEXT}" "Uses rootcontext"
     assert "$output" =~ "${SELINUXMNT}" "Mount SELinux file system readwrite"
+}
+
+@test "podman EnableLabeledUsers" {
+    skip_if_no_selinux
+
+    overrideConf=$PODMAN_TMPDIR/containers.conf
+    cat >$overrideConf <<EOF
+[Containers]
+label_users=true
+EOF
+
+    run id -Z
+    user=$(secon -u $output)
+    role=$(secon -r $output)
+    CONTAINERS_CONF_OVERRIDE=$overrideConf run_podman run $IMAGE cat /proc/self/attr/current
+    level=$(secon -l $output)
+    id -Z
+    is "$output" "$user:$role:container_t:$level"  "Confined label Correctly"
+
+    CONTAINERS_CONF_OVERRIDE=$overrideConf run_podman run --rm --name label --security-opt label=role:system_r $IMAGE cat /proc/self/attr/current
+    level=$(secon -l $output)
+    is "$output" "$user:system_r:container_t:$level" "Confined with role override label Correctly"
 }
 
 # vim: filetype=sh

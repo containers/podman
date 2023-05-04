@@ -21,6 +21,7 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/selinux/go-selinux"
 )
 
 const (
@@ -263,12 +264,38 @@ func GenRlimits(ulimits []string) ([]specs.POSIXRlimit, error) {
 	return rlimits, nil
 }
 
+func currentLabelOpts() ([]string, error) {
+	label, err := selinux.CurrentLabel()
+	if err != nil {
+		return nil, err
+	}
+	if label == "" {
+		return nil, nil
+	}
+	con, err := selinux.NewContext(label)
+	if err != nil {
+		return nil, err
+	}
+	return []string{
+		fmt.Sprintf("label=user:%s", con["user"]),
+		fmt.Sprintf("label=role:%s", con["role"]),
+	}, nil
+}
+
 func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions, args []string) error {
 	rtc, err := config.Default()
 	if err != nil {
 		return err
 	}
 
+	if rtc.Containers.EnableLabeledUsers {
+		defSecurityOpts, err := currentLabelOpts()
+		if err != nil {
+			return err
+		}
+
+		c.SecurityOpt = append(defSecurityOpts, c.SecurityOpt...)
+	}
 	// validate flags as needed
 	if err := validate(c); err != nil {
 		return err
