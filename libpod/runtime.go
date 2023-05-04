@@ -1020,7 +1020,7 @@ func (r *Runtime) mergeDBConfig(dbConfig *DBConfig) {
 	if !r.storageSet.RunRootSet && dbConfig.StorageTmp != "" {
 		if r.storageConfig.RunRoot != dbConfig.StorageTmp &&
 			r.storageConfig.RunRoot != "" {
-			logrus.Debugf("Overriding run root %q with %q from database",
+			logrus.Warnf("Overriding run root %q with %q from database",
 				r.storageConfig.RunRoot, dbConfig.StorageTmp)
 		}
 		r.storageConfig.RunRoot = dbConfig.StorageTmp
@@ -1029,7 +1029,7 @@ func (r *Runtime) mergeDBConfig(dbConfig *DBConfig) {
 	if !r.storageSet.GraphRootSet && dbConfig.StorageRoot != "" {
 		if r.storageConfig.GraphRoot != dbConfig.StorageRoot &&
 			r.storageConfig.GraphRoot != "" {
-			logrus.Debugf("Overriding graph root %q with %q from database",
+			logrus.Warnf("Overriding graph root %q with %q from database",
 				r.storageConfig.GraphRoot, dbConfig.StorageRoot)
 		}
 		r.storageConfig.GraphRoot = dbConfig.StorageRoot
@@ -1046,21 +1046,21 @@ func (r *Runtime) mergeDBConfig(dbConfig *DBConfig) {
 
 	if !r.storageSet.StaticDirSet && dbConfig.LibpodRoot != "" {
 		if c.StaticDir != dbConfig.LibpodRoot && c.StaticDir != "" {
-			logrus.Debugf("Overriding static dir %q with %q from database", c.StaticDir, dbConfig.LibpodRoot)
+			logrus.Warnf("Overriding static dir %q with %q from database", c.StaticDir, dbConfig.LibpodRoot)
 		}
 		c.StaticDir = dbConfig.LibpodRoot
 	}
 
 	if !r.storageSet.TmpDirSet && dbConfig.LibpodTmp != "" {
 		if c.TmpDir != dbConfig.LibpodTmp && c.TmpDir != "" {
-			logrus.Debugf("Overriding tmp dir %q with %q from database", c.TmpDir, dbConfig.LibpodTmp)
+			logrus.Warnf("Overriding tmp dir %q with %q from database", c.TmpDir, dbConfig.LibpodTmp)
 		}
 		c.TmpDir = dbConfig.LibpodTmp
 	}
 
 	if !r.storageSet.VolumePathSet && dbConfig.VolumePath != "" {
 		if c.VolumePath != dbConfig.VolumePath && c.VolumePath != "" {
-			logrus.Debugf("Overriding volume path %q with %q from database", c.VolumePath, dbConfig.VolumePath)
+			logrus.Warnf("Overriding volume path %q with %q from database", c.VolumePath, dbConfig.VolumePath)
 		}
 		c.VolumePath = dbConfig.VolumePath
 	}

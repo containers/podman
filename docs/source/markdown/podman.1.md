@@ -114,6 +114,8 @@ Overriding this option will cause the *storage-opt* settings in `containers-stor
 Storage state directory where all state information is stored (default: "/run/containers/storage" for UID 0, "/run/user/$UID/run" for other users).
 Default state dir configured in `containers-storage.conf(5)`.
 
+Note: This option is intended to be used on the first run of Podman or when `--root` is set to an entierly new path, after which its value will be set as the default until `podman system reset` is run. The default cannot be overridden without podman system reset
+
 #### **--runtime**=*value*
 
 Name of the OCI runtime as specified in containers.conf or absolute path to the OCI compatible binary used to run containers.
@@ -141,6 +143,8 @@ Storage driver.  The default storage driver for UID 0 is configured in `containe
 Overriding this option will cause the *storage-opt* settings in `containers-storage.conf(5)` to be ignored.  The user must
 specify additional options via the `--storage-opt` flag.
 
+Note: This option is intended to be used on the first run of Podman or when `--root` is set to an entierly new path, after which its value will be set as the default until `podman system reset` is run. The default cannot be overridden without podman system reset
+
 #### **--storage-opt**=*value*
 
 Specify a storage driver option. Default storage driver options are configured in `containers-storage.conf(5)`. The `STORAGE_OPTS` environment variable overrides the default. The --storage-opt specified options override all. Specify --storage-opt="" so no storage options will be used.
@@ -156,6 +160,8 @@ On remote clients, including Mac and Windows (excluding WSL2) machines, logging 
 Path to the tmp directory, for libpod runtime content. Defaults to `$XDG_RUNTIME_DIR/libpod/tmp` as rootless and `/run/libpod/tmp` as rootful.
 
 NOTE --tmpdir is not used for the temporary storage of downloaded images.  Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
+
+Note: This option is intended to be used on the first run of Podman or when `--root` is set to an entierly new path, after which its value will be set as the default until `podman system reset` is run. The default cannot be overridden without podman system reset
 
 #### **--transient-store**
 
@@ -205,6 +211,8 @@ Print the version
 #### **--volumepath**=*value*
 
 Volume directory where builtin volume information is stored (default: "/var/lib/containers/storage/volumes" for UID 0, "$HOME/.local/share/containers/storage/volumes" for other users). Default volume path can be overridden in `containers.conf`.
+
+Note: This option is intended to be used on the first run of Podman or when `--root` is set to an entierly new path, after which its value will be set as the default until `podman system reset` is run. The default cannot be overridden without podman system reset
 
 ## Environment Variables
 

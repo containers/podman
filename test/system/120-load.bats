@@ -123,7 +123,7 @@ verify_iid_and_name() {
     run_podman image scp -q ${notme}@localhost::$newname
 
     expect="Loaded image: $newname"
-    is "$output" "$expect" "-q silences output"
+    assert "$output" =~ "$expect" "-q silences output"
 
     # Confirm that we have it, and that its digest matches our original
     run_podman image inspect --format '{{.Digest}}' $newname
