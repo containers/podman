@@ -2210,7 +2210,7 @@ var _ = Describe("Podman play kube", func() {
 	// With annotation set to always
 	It("podman play kube test with init containers and annotation set", func() {
 		// With the init container type annotation set to always
-		pod := getPod(withAnnotation("io.podman.annotations.init.container.type", "always"), withPodInitCtr(getCtr(withImage(ALPINE), withCmd([]string{"echo", "hello"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(ALPINE), withCmd([]string{"top"}))))
+		pod := getPod(withAnnotation("io.podman.annotations.init.container.type", "always"), withPodInitCtr(getCtr(withImage(ALPINE), withCmd([]string{"printenv", "container"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(ALPINE), withCmd([]string{"top"}))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -2233,6 +2233,12 @@ var _ = Describe("Podman play kube", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring("running"))
+
+		// Init containers need environment too! #18384
+		logs := podmanTest.Podman([]string{"logs", "testPod-init-test"})
+		logs.WaitWithDefaultTimeout()
+		Expect(logs).Should(Exit(0))
+		Expect(logs.OutputToString()).To(Equal("podman"))
 	})
 
 	// If you have an init container in the pod yaml, podman should create and run the init container with play kube
