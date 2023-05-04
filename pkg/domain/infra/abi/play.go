@@ -727,6 +727,16 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		if err != nil {
 			return nil, nil, err
 		}
+
+		// ensure the environment is setup for initContainers as well: https://github.com/containers/podman/issues/18384
+		warn, err := generate.CompleteSpec(ctx, ic.Libpod, specGen)
+		if err != nil {
+			return nil, nil, err
+		}
+		for _, w := range warn {
+			logrus.Warn(w)
+		}
+
 		specGen.SdNotifyMode = define.SdNotifyModeIgnore
 		rtSpec, spec, opts, err := generate.MakeContainer(ctx, ic.Libpod, specGen, false, nil)
 		if err != nil {
@@ -792,7 +802,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			return nil, nil, err
 		}
 		for _, w := range warn {
-			fmt.Fprintf(os.Stderr, "%s\n", w)
+			logrus.Warn(w)
 		}
 
 		specGen.RawImageName = container.Image
