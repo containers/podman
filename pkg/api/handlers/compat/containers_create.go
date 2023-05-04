@@ -483,7 +483,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 	// This also handles volumes duplicated between cc.HostConfig.Mounts and
 	// cc.Volumes, as seen in compose v2.0.
 	for vol := range cc.Volumes {
-		if _, ok := volDestinations[filepath.Clean(vol)]; ok {
+		if _, ok := volDestinations[vol]; ok {
 			continue
 		}
 		cliOpts.Volume = append(cliOpts.Volume, vol)
