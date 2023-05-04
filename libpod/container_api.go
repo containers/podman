@@ -765,6 +765,11 @@ func (c *Container) Cleanup(ctx context.Context) error {
 		return fmt.Errorf("container %s is running or paused, refusing to clean up: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
+	// if the container was not created in the oci runtime or was already cleaned up, then do nothing
+	if c.ensureState(define.ContainerStateConfigured, define.ContainerStateExited) {
+		return nil
+	}
+
 	// Handle restart policy.
 	// Returns a bool indicating whether we actually restarted.
 	// If we did, don't proceed to cleanup - just exit.
