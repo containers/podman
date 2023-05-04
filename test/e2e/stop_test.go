@@ -126,6 +126,12 @@ var _ = Describe("Podman stop", func() {
 		finalCtrs.WaitWithDefaultTimeout()
 		Expect(finalCtrs).Should(Exit(0))
 		Expect(strings.TrimSpace(finalCtrs.OutputToString())).To(Equal(""))
+
+		// make sure we only have one cleanup event for this container
+		events := podmanTest.Podman([]string{"events", "--since=30s", "--stream=false"})
+		events.WaitWithDefaultTimeout()
+		Expect(events).Should(Exit(0))
+		Expect(strings.Count(events.OutputToString(), "container cleanup")).To(Equal(1), "cleanup event should show up exactly once")
 	})
 
 	It("podman stop all containers -t", func() {
