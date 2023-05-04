@@ -128,6 +128,8 @@ GINKGOTIMEOUT ?= -timeout=90m
 GINKGOWHAT ?= test/e2e/.
 GINKGO_PARALLEL=y
 GINKGO ?= ./test/tools/build/ginkgo
+# ginkgo json output is only useful in CI, not on developer runs
+GINKGO_JSON ?= $(if $(CI),--json-report ginkgo-e2e.json,)
 
 # Conditional required to produce empty-output if binary not built yet.
 RELEASE_VERSION = $(shell if test -x test/version/version; then test/version/version; fi)
@@ -559,7 +561,7 @@ test: localunit localintegration remoteintegration localsystem remotesystem  ## 
 .PHONY: ginkgo-run
 ginkgo-run: .install.ginkgo
 	$(GINKGO) version
-	$(GINKGO) -vv $(TESTFLAGS) --tags "$(TAGS) remote" $(GINKGOTIMEOUT) --flake-attempts 3 --trace --no-color --json-report ginkgo-e2e.json $(if $(findstring y,$(GINKGO_PARALLEL)),-p,) $(GINKGOWHAT) $(HACK)
+	$(GINKGO) -vv $(TESTFLAGS) --tags "$(TAGS) remote" $(GINKGOTIMEOUT) --flake-attempts 3 --trace --no-color $(GINKGO_JSON) $(if $(findstring y,$(GINKGO_PARALLEL)),-p,) $(GINKGOWHAT) $(HACK)
 
 .PHONY: ginkgo
 ginkgo:
