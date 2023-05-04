@@ -212,7 +212,7 @@ func createBasicSlirp4netnsCmdArgs(options *slirp4netnsNetworkOptions, features 
 }
 
 // setupSlirp4netns can be called in rootful as well as in rootless
-func (r *Runtime) setupSlirp4netns(ctr *Container, netns string) error {
+func (r *Runtime) setupSlirp4netns(ctr *Container, netnsPath string) error {
 	path := r.config.Engine.NetworkCmdPath
 	if path == "" {
 		var err error
@@ -261,21 +261,10 @@ func (r *Runtime) setupSlirp4netns(ctr *Container, netns string) error {
 		apiSocket = filepath.Join(ctr.runtime.config.Engine.TmpDir, fmt.Sprintf("%s.net", ctr.config.ID))
 		cmdArgs = append(cmdArgs, "--api-socket", apiSocket)
 	}
-	netnsPath := ""
-	if !ctr.config.PostConfigureNetNS {
-		ctr.rootlessSlirpSyncR, ctr.rootlessSlirpSyncW, err = os.Pipe()
-		if err != nil {
-			return fmt.Errorf("failed to create rootless network sync pipe: %w", err)
-		}
-		netnsPath = netns
-		cmdArgs = append(cmdArgs, "--netns-type=path", netnsPath, "tap0")
-	} else {
-		defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncR)
-		defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncW)
-		netnsPath = fmt.Sprintf("/proc/%d/ns/net", ctr.state.PID)
-		// we don't use --netns-path here (unavailable for slirp4netns < v0.4)
-		cmdArgs = append(cmdArgs, fmt.Sprintf("%d", ctr.state.PID), "tap0")
-	}
+	defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncR)
+	defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncW)
+	// we don't use --netns-path here (unavailable for slirp4netns < v0.4)
+	cmdArgs = append(cmdArgs, fmt.Sprintf("%d", ctr.state.PID), "tap0")
 
 	cmd := exec.Command(path, cmdArgs...)
 	logrus.Debugf("slirp4netns command: %s", strings.Join(cmd.Args, " "))
@@ -520,13 +509,6 @@ func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath strin
 	// It is still accessible through the open fd logFile.
 	if err := os.Remove(logPath); err != nil {
 		return fmt.Errorf("delete file %s: %w", logPath, err)
-	}
-
-	if !ctr.config.PostConfigureNetNS {
-		ctr.rootlessPortSyncR, ctr.rootlessPortSyncW, err = os.Pipe()
-		if err != nil {
-			return fmt.Errorf("failed to create rootless port sync pipe: %w", err)
-		}
 	}
 
 	childIP := getRootlessPortChildIP(ctr, netStatus)

@@ -11,11 +11,9 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
-	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod/define"
@@ -59,97 +57,19 @@ func (c *Container) unmountSHM(mount string) error {
 // prepare mounts the container and sets up other required resources like net
 // namespaces
 func (c *Container) prepare() error {
-	var (
-		wg                              sync.WaitGroup
-		netNS                           string
-		networkStatus                   map[string]types.StatusBlock
-		createNetNSErr, mountStorageErr error
-		mountPoint                      string
-		tmpStateLock                    sync.Mutex
-	)
-
-	wg.Add(2)
-
-	go func() {
-		defer wg.Done()
-		// Set up network namespace if not already set up
-		noNetNS := c.state.NetNS == ""
-		if c.config.CreateNetNS && noNetNS && !c.config.PostConfigureNetNS {
-			netNS, networkStatus, createNetNSErr = c.runtime.createNetNS(c)
-			if createNetNSErr != nil {
-				return
-			}
-
-			tmpStateLock.Lock()
-			defer tmpStateLock.Unlock()
-
-			// Assign NetNS attributes to container
-			c.state.NetNS = netNS
-			c.state.NetworkStatus = networkStatus
-		}
-	}()
-	// Mount storage if not mounted
-	go func() {
-		defer wg.Done()
-		mountPoint, mountStorageErr = c.mountStorage()
-
-		if mountStorageErr != nil {
-			return
-		}
-
-		tmpStateLock.Lock()
-		defer tmpStateLock.Unlock()
-
-		// Finish up mountStorage
-		c.state.Mounted = true
-		c.state.Mountpoint = mountPoint
-
-		logrus.Debugf("Created root filesystem for container %s at %s", c.ID(), c.state.Mountpoint)
-	}()
-
-	wg.Wait()
-
-	var createErr error
-	if createNetNSErr != nil {
-		createErr = createNetNSErr
-	}
-	if mountStorageErr != nil {
-		if createErr != nil {
-			logrus.Errorf("Preparing container %s: %v", c.ID(), createErr)
-		}
-		createErr = mountStorageErr
-	}
-
-	// Only trigger storage cleanup if mountStorage was successful.
-	// Otherwise, we may mess up mount counters.
-	if createNetNSErr != nil && mountStorageErr == nil {
-		if err := c.cleanupStorage(); err != nil {
-			// createErr is guaranteed non-nil, so print
-			// unconditionally
-			logrus.Errorf("Preparing container %s: %v", c.ID(), createErr)
-			createErr = fmt.Errorf("unmounting storage for container %s after network create failure: %w", c.ID(), err)
-		}
-	}
-
-	// It's OK to unconditionally trigger network cleanup. If the network
-	// isn't ready it will do nothing.
-	if createErr != nil {
-		if err := c.cleanupNetwork(); err != nil {
-			logrus.Errorf("Preparing container %s: %v", c.ID(), createErr)
-			createErr = fmt.Errorf("cleaning up container %s network after setup failure: %w", c.ID(), err)
-		}
-	}
-
-	if createErr != nil {
-		return createErr
-	}
-
-	// Save changes to container state
-	if err := c.save(); err != nil {
+	mountPoint, err := c.mountStorage()
+	if err != nil {
 		return err
 	}
 
-	return nil
+	// Finish up mountStorage
+	c.state.Mounted = true
+	c.state.Mountpoint = mountPoint
+
+	logrus.Debugf("Created root filesystem for container %s at %s", c.ID(), c.state.Mountpoint)
+
+	// Save changes to container state
+	return c.save()
 }
 
 // cleanupNetwork unmounts and cleans up the container's network
@@ -415,42 +335,13 @@ func (c *Container) getOCICgroupPath() (string, error) {
 	}
 }
 
-// If the container is rootless, set up the slirp4netns network
-func (c *Container) setupRootlessNetwork() error {
-	// set up slirp4netns again because slirp4netns will die when conmon exits
-	if c.config.NetMode.IsSlirp4netns() {
-		err := c.runtime.setupSlirp4netns(c, c.state.NetNS)
-		if err != nil {
-			return err
-		}
-	}
-
-	// set up rootlesskit port forwarder again since it dies when conmon exits
-	// we use rootlesskit port forwarder only as rootless and when bridge network is used
-	if rootless.IsRootless() && c.config.NetMode.IsBridge() && len(c.config.PortMappings) > 0 {
-		err := c.runtime.setupRootlessPortMappingViaRLK(c, c.state.NetNS, c.state.NetworkStatus)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func openDirectory(path string) (fd int, err error) {
 	return unix.Open(path, unix.O_RDONLY|unix.O_PATH, 0)
 }
 
 func (c *Container) addNetworkNamespace(g *generate.Generator) error {
 	if c.config.CreateNetNS {
-		if c.config.PostConfigureNetNS {
-			if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), ""); err != nil {
-				return err
-			}
-		} else {
-			if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), c.state.NetNS); err != nil {
-				return err
-			}
-		}
+		return g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), c.state.NetNS)
 	}
 	return nil
 }

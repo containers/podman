@@ -1466,6 +1466,12 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		g.SetRootPath(c.state.Mountpoint)
 	}
 
+	// For restore we have to create the netns before, this makes
+	// it not work correctly with userns but there is no other way
+	// as restore will start the container right away, see #18502.
+	if err := c.completeNetworkSetup(true); err != nil {
+		return nil, 0, err
+	}
 	// We want to have the same network namespace as before.
 	if err := c.addNetworkNamespace(&g); err != nil {
 		return nil, 0, err
@@ -1857,13 +1863,13 @@ func (c *Container) makeBindMounts() error {
 			}
 		} else {
 			if !c.config.UseImageResolvConf {
-				if err := c.generateResolvConf(); err != nil {
+				if err := c.createResolvConf(); err != nil {
 					return fmt.Errorf("creating resolv.conf for container %s: %w", c.ID(), err)
 				}
 			}
 
 			if !c.config.UseImageHosts {
-				if err := c.createHosts(); err != nil {
+				if err := c.createHostsFile(); err != nil {
 					return fmt.Errorf("creating hosts file for container %s: %w", c.ID(), err)
 				}
 			}
@@ -1881,7 +1887,7 @@ func (c *Container) makeBindMounts() error {
 			}
 		}
 	} else if !c.config.UseImageHosts && c.state.BindMounts["/etc/hosts"] == "" {
-		if err := c.createHosts(); err != nil {
+		if err := c.createHostsFile(); err != nil {
 			return fmt.Errorf("creating hosts file for container %s: %w", c.ID(), err)
 		}
 	}
@@ -2016,12 +2022,29 @@ rootless=%d
 	return c.makePlatformBindMounts()
 }
 
-// generateResolvConf generates a containers resolv.conf
-func (c *Container) generateResolvConf() error {
+// createResolvConf create the resolv.conf file and bind mount it
+func (c *Container) createResolvConf() error {
+	destPath := filepath.Join(c.state.RunDir, "resolv.conf")
+	f, err := os.Create(destPath)
+	if err != nil {
+		return err
+	}
+	f.Close()
+	return c.bindMountRootFile(destPath, resolvconf.DefaultResolvConf)
+}
+
+// addResolvConf add resolv.conf entries
+func (c *Container) addResolvConf() error {
 	var (
 		networkNameServers   []string
 		networkSearchDomains []string
 	)
+
+	destPath, ok := c.state.BindMounts[resolvconf.DefaultResolvConf]
+	if !ok {
+		// no resolv.conf mount, do nothing
+		return nil
+	}
 
 	netStatus := c.getNetworkStatus()
 	for _, status := range netStatus {
@@ -2072,9 +2095,7 @@ func (c *Container) generateResolvConf() error {
 		// slirp4netns has a built in DNS forwarder.
 		// If in userns the network is not setup here, instead we need to do that in
 		// c.completeNetworkSetup() which knows the actual slirp dns ip only at that point
-		if !c.config.PostConfigureNetNS {
-			nameservers = c.addSlirp4netnsDNS(nameservers)
-		}
+		nameservers = c.addSlirp4netnsDNS(nameservers)
 	}
 
 	// Set DNS search domains
@@ -2090,8 +2111,6 @@ func (c *Container) generateResolvConf() error {
 	options := make([]string, 0, len(c.config.DNSOption)+len(c.runtime.config.Containers.DNSOptions))
 	options = append(options, c.runtime.config.Containers.DNSOptions...)
 	options = append(options, c.config.DNSOption...)
-
-	destPath := filepath.Join(c.state.RunDir, "resolv.conf")
 
 	var namespaces []spec.LinuxNamespace
 	if c.config.Spec.Linux != nil {
@@ -2109,8 +2128,7 @@ func (c *Container) generateResolvConf() error {
 	}); err != nil {
 		return fmt.Errorf("building resolv.conf for container %s: %w", c.ID(), err)
 	}
-
-	return c.bindMountRootFile(destPath, resolvconf.DefaultResolvConf)
+	return nil
 }
 
 // Check if a container uses IPv6.
@@ -2197,36 +2215,38 @@ func (c *Container) getHostsEntries() (etchosts.HostEntries, error) {
 	return entries, nil
 }
 
-func (c *Container) createHosts() error {
-	var containerIPsEntries etchosts.HostEntries
-	var err error
-	// if we configure the netns after the container create we should not add
-	// the hosts here since we have no information about the actual ips
-	// instead we will add them in c.completeNetworkSetup()
-	if !c.config.PostConfigureNetNS {
-		containerIPsEntries, err = c.getHostsEntries()
-		if err != nil {
-			return fmt.Errorf("failed to get container ip host entries: %w", err)
-		}
+func (c *Container) createHostsFile() error {
+	targetFile := filepath.Join(c.state.RunDir, "hosts")
+	f, err := os.Create(targetFile)
+	if err != nil {
+		return err
+	}
+	f.Close()
+	return c.bindMountRootFile(targetFile, config.DefaultHostsFile)
+}
+
+func (c *Container) addHosts() error {
+	targetFile, ok := c.state.BindMounts[config.DefaultHostsFile]
+	if !ok {
+		// no host file nothing to do
+		return nil
+	}
+	containerIPsEntries, err := c.getHostsEntries()
+	if err != nil {
+		return fmt.Errorf("failed to get container ip host entries: %w", err)
 	}
 	baseHostFile, err := etchosts.GetBaseHostFile(c.runtime.config.Containers.BaseHostsFile, c.state.Mountpoint)
 	if err != nil {
 		return err
 	}
 
-	targetFile := filepath.Join(c.state.RunDir, "hosts")
-	err = etchosts.New(&etchosts.Params{
+	return etchosts.New(&etchosts.Params{
 		BaseFile:                 baseHostFile,
 		ExtraHosts:               c.config.HostAdd,
 		ContainerIPs:             containerIPsEntries,
 		HostContainersInternalIP: etchosts.GetHostContainersInternalIP(c.runtime.config, c.state.NetworkStatus, c.runtime.network),
 		TargetFile:               targetFile,
 	})
-	if err != nil {
-		return err
-	}
-
-	return c.bindMountRootFile(targetFile, config.DefaultHostsFile)
 }
 
 // bindMountRootFile will chown and relabel the source file to make it usable in the container.

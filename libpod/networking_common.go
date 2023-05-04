@@ -206,9 +206,8 @@ func (r *Runtime) reloadContainerNetwork(ctr *Container) (map[string]types.Statu
 		}
 		networkOpts[network] = perNetOpts
 	}
-	ctr.perNetworkOpts = networkOpts
 
-	return r.configureNetNS(ctr, ctr.state.NetNS)
+	return r.setUpNetwork(ctr.state.NetNS, ctr.getNetworkOptions(networkOpts))
 }
 
 // Produce an InspectNetworkSettings containing information on the container

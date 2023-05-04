@@ -267,7 +267,3 @@ func (c *Container) inspectJoinedNetworkNS(networkns string) (q types.StatusBloc
 func (c *Container) reloadRootlessRLKPortMapping() error {
 	return errors.New("unsupported (*Container).reloadRootlessRLKPortMapping")
 }
-
-func (c *Container) setupRootlessNetwork() error {
-	return nil
-}

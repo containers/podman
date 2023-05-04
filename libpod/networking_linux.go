@@ -560,22 +560,31 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 
 // Create and configure a new network namespace for a container
 func (r *Runtime) configureNetNS(ctr *Container, ctrNS string) (status map[string]types.StatusBlock, rerr error) {
-	if err := r.exposeMachinePorts(ctr.config.PortMappings); err != nil {
-		return nil, err
-	}
-	defer func() {
-		// make sure to unexpose the gvproxy ports when an error happens
-		if rerr != nil {
-			if err := r.unexposeMachinePorts(ctr.config.PortMappings); err != nil {
-				logrus.Errorf("failed to free gvproxy machine ports: %v", err)
-			}
+	// When we get restarted via -restart policy we keep the same ns.
+	// In this case we only need to restart process that are bound to
+	// the container live cycle and not the netns, slirp and rootlessport
+	isNewNS := ctr.state.NetNS != ctrNS
+
+	if isNewNS {
+		if err := r.exposeMachinePorts(ctr.config.PortMappings); err != nil {
+			return nil, err
 		}
-	}()
+		defer func() {
+			// make sure to unexpose the gvproxy ports when an error happens
+			if rerr != nil {
+				if err := r.unexposeMachinePorts(ctr.config.PortMappings); err != nil {
+					logrus.Errorf("failed to free gvproxy machine ports: %v", err)
+				}
+			}
+		}()
+	}
 	if ctr.config.NetMode.IsSlirp4netns() {
 		return nil, r.setupSlirp4netns(ctr, ctrNS)
 	}
 	if ctr.config.NetMode.IsPasta() {
-		return nil, r.setupPasta(ctr, ctrNS)
+		if isNewNS {
+			return nil, r.setupPasta(ctr, ctrNS)
+		}
 	}
 	networks, err := ctr.networks()
 	if err != nil {
@@ -587,24 +596,32 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS string) (status map[strin
 		return nil, nil
 	}
 
-	netOpts := ctr.getNetworkOptions(networks)
-	netStatus, err := r.setUpNetwork(ctrNS, netOpts)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		// do not forget to tear down the netns when a later error happened.
-		if rerr != nil {
-			if err := r.teardownNetworkBackend(ctrNS, netOpts); err != nil {
-				logrus.Warnf("failed to teardown network after failed setup: %v", err)
-			}
+	var netStatus map[string]types.StatusBlock
+
+	if isNewNS {
+		netOpts := ctr.getNetworkOptions(networks)
+		netStatus, err = r.setUpNetwork(ctrNS, netOpts)
+		if err != nil {
+			return nil, err
 		}
-	}()
+		defer func() {
+			// do not forget to tear down the netns when a later error happened.
+			if rerr != nil {
+				if err := r.teardownNetworkBackend(ctrNS, netOpts); err != nil {
+					logrus.Warnf("failed to teardown network after failed setup: %v", err)
+				}
+			}
+		}()
+	} else {
+		// if the netns was already setup, i.e. after restart=always, then just use
+		// the existing status and do the ports below
+		netStatus = ctr.getNetworkStatus()
+	}
 
 	// set up rootless port forwarder when rootless with ports and the network status is empty,
 	// if this is called from network reload the network status will not be empty and we should
 	// not set up port because they are still active
-	if rootless.IsRootless() && len(ctr.config.PortMappings) > 0 && ctr.getNetworkStatus() == nil {
+	if rootless.IsRootless() && len(ctr.config.PortMappings) > 0 {
 		// set up port forwarder for rootless netns
 		// TODO: support slirp4netns port forwarder as well
 		// make sure to fix this in container.handleRestartPolicy() as well
@@ -615,65 +632,52 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS string) (status map[strin
 	return netStatus, err
 }
 
-// Create and configure a new network namespace for a container
-func (r *Runtime) createNetNS(ctr *Container) (n string, q map[string]types.StatusBlock, retErr error) {
-	ctrNS, err := netns.NewNS()
-	if err != nil {
-		return "", nil, fmt.Errorf("creating network namespace for container %s: %w", ctr.ID(), err)
-	}
-	defer func() {
-		if retErr != nil {
-			if err := netns.UnmountNS(ctrNS.Path()); err != nil {
-				logrus.Errorf("Unmounting partially created network namespace for container %s: %v", ctr.ID(), err)
-			}
-			if err := ctrNS.Close(); err != nil {
-				logrus.Errorf("Closing partially created network namespace for container %s: %v", ctr.ID(), err)
-			}
-		}
-	}()
-
-	logrus.Debugf("Made network namespace at %s for container %s", ctrNS.Path(), ctr.ID())
-
-	var networkStatus map[string]types.StatusBlock
-	networkStatus, err = r.configureNetNS(ctr, ctrNS.Path())
-	return ctrNS.Path(), networkStatus, err
-}
-
 // Configure the network namespace using the container process
-func (r *Runtime) setupNetNS(ctr *Container) error {
-	nsProcess := fmt.Sprintf("/proc/%d/ns/net", ctr.state.PID)
+func (r *Runtime) setupNetNS(ctr *Container, restore bool) error {
+	netnsPath := ctr.state.NetNS
+	if netnsPath == "" {
+		// when we restore we must create the netns before the container so we cannot use the pid
+		if restore {
+			ns, err := netns.NewNS()
+			if err != nil {
+				return err
+			}
+			netnsPath = ns.Path()
+		} else {
+			netnsPath = fmt.Sprintf("/proc/%d/ns/net", ctr.state.PID)
+			b := make([]byte, 16)
+			if _, err := rand.Reader.Read(b); err != nil {
+				return fmt.Errorf("failed to generate random netns name: %w", err)
+			}
+			nsPath, err := netns.GetNSRunDir()
+			if err != nil {
+				return err
+			}
+			nsPath = filepath.Join(nsPath, fmt.Sprintf("netns-%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:]))
 
-	b := make([]byte, 16)
+			if err := os.MkdirAll(filepath.Dir(nsPath), 0711); err != nil {
+				return err
+			}
 
-	if _, err := rand.Reader.Read(b); err != nil {
-		return fmt.Errorf("failed to generate random netns name: %w", err)
-	}
-	nsPath, err := netns.GetNSRunDir()
-	if err != nil {
-		return err
-	}
-	nsPath = filepath.Join(nsPath, fmt.Sprintf("netns-%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:]))
+			mountPointFd, err := os.Create(nsPath)
+			if err != nil {
+				return err
+			}
+			if err := mountPointFd.Close(); err != nil {
+				return err
+			}
 
-	if err := os.MkdirAll(filepath.Dir(nsPath), 0711); err != nil {
-		return err
-	}
-
-	mountPointFd, err := os.Create(nsPath)
-	if err != nil {
-		return err
-	}
-	if err := mountPointFd.Close(); err != nil {
-		return err
+			if err := unix.Mount(netnsPath, nsPath, "none", unix.MS_BIND, ""); err != nil {
+				return fmt.Errorf("cannot mount %s to %s: %w", netnsPath, nsPath, err)
+			}
+			netnsPath = nsPath
+		}
 	}
 
-	if err := unix.Mount(nsProcess, nsPath, "none", unix.MS_BIND, ""); err != nil {
-		return fmt.Errorf("cannot mount %s: %w", nsPath, err)
-	}
-
-	networkStatus, err := r.configureNetNS(ctr, nsPath)
+	networkStatus, err := r.configureNetNS(ctr, netnsPath)
 
 	// Assign NetNS attributes to container
-	ctr.state.NetNS = nsPath
+	ctr.state.NetNS = netnsPath
 	ctr.state.NetworkStatus = networkStatus
 	return err
 }

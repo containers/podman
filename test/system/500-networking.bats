@@ -582,7 +582,13 @@ load helpers.network
     run_podman network create $netname
     is "$output" "$netname" "output of 'network create'"
 
-    for network in "slirp4netns" "$netname"; do
+    # pasta only work as rootless
+    pasta=
+    if is_rootless; then
+        pasta=pasta
+    fi
+
+    for network in "slirp4netns" "$netname" $pasta; do
         # Start container with the restart always policy
         run_podman run -d --name myweb -p "$HOST_PORT:80" \
                 --restart always \

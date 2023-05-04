@@ -28,10 +28,6 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	return nil, errors.New("not implemented (*Container) getContainerNetworkInfo")
 }
 
-func (c *Container) setupRootlessNetwork() error {
-	return errors.New("not implemented (*Container) setupRootlessNetwork")
-}
-
 func (r *Runtime) setupNetNS(ctr *Container) error {
 	return errors.New("not implemented (*Runtime) setupNetNS")
 }

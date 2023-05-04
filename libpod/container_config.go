@@ -384,6 +384,8 @@ type ContainerMiscConfig struct {
 	// PostConfigureNetNS needed when a user namespace is created by an OCI runtime
 	// if the network namespace is created before the user namespace it will be
 	// owned by the wrong user namespace.
+	// Deprecated: Do not use this anymore. Always set to true for new containers to
+	// allow compatibility in case of a downgrade.
 	PostConfigureNetNS bool `json:"postConfigureNetNS"`
 	// OCIRuntime used to create the container
 	OCIRuntime string `json:"runtime,omitempty"`

@@ -8,11 +8,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
-	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v4/pkg/rootless"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -35,93 +33,19 @@ func (c *Container) unmountSHM(path string) error {
 // prepare mounts the container and sets up other required resources like net
 // namespaces
 func (c *Container) prepare() error {
-	var (
-		wg                              sync.WaitGroup
-		ctrNS                           string
-		networkStatus                   map[string]types.StatusBlock
-		createNetNSErr, mountStorageErr error
-		mountPoint                      string
-		tmpStateLock                    sync.Mutex
-	)
-
-	wg.Add(2)
-
-	go func() {
-		defer wg.Done()
-		// Set up network namespace if not already set up
-		noNetNS := c.state.NetNS == ""
-		if c.config.CreateNetNS && noNetNS && !c.config.PostConfigureNetNS {
-			ctrNS, networkStatus, createNetNSErr = c.runtime.createNetNS(c)
-			if createNetNSErr != nil {
-				return
-			}
-
-			tmpStateLock.Lock()
-			defer tmpStateLock.Unlock()
-
-			// Assign NetNS attributes to container
-			c.state.NetNS = ctrNS
-			c.state.NetworkStatus = networkStatus
-		}
-	}()
-	// Mount storage if not mounted
-	go func() {
-		defer wg.Done()
-		mountPoint, mountStorageErr = c.mountStorage()
-
-		if mountStorageErr != nil {
-			return
-		}
-
-		tmpStateLock.Lock()
-		defer tmpStateLock.Unlock()
-
-		// Finish up mountStorage
-		c.state.Mounted = true
-		c.state.Mountpoint = mountPoint
-
-		logrus.Debugf("Created root filesystem for container %s at %s", c.ID(), c.state.Mountpoint)
-	}()
-
-	wg.Wait()
-
-	var createErr error
-	if createNetNSErr != nil {
-		createErr = createNetNSErr
-	}
-	if mountStorageErr != nil {
-		if createErr != nil {
-			logrus.Errorf("Preparing container %s: %v", c.ID(), createErr)
-		}
-		createErr = mountStorageErr
-	}
-
-	// Only trigger storage cleanup if mountStorage was successful.
-	// Otherwise, we may mess up mount counters.
-	if createErr != nil {
-		if mountStorageErr == nil {
-			if err := c.cleanupStorage(); err != nil {
-				// createErr is guaranteed non-nil, so print
-				// unconditionally
-				logrus.Errorf("Preparing container %s: %v", c.ID(), createErr)
-				createErr = fmt.Errorf("unmounting storage for container %s after network create failure: %w", c.ID(), err)
-			}
-		}
-		// It's OK to unconditionally trigger network cleanup. If the network
-		// isn't ready it will do nothing.
-		if err := c.cleanupNetwork(); err != nil {
-			logrus.Errorf("Preparing container %s: %v", c.ID(), createErr)
-			createErr = fmt.Errorf("cleaning up container %s network after setup failure: %w", c.ID(), err)
-		}
-		return createErr
-	}
-
-	// Save changes to container state
-	if err := c.save(); err != nil {
+	mountPoint, err := c.mountStorage()
+	if err != nil {
 		return err
 	}
 
-	return nil
+	// Finish up mountStorage
+	c.state.Mounted = true
+	c.state.Mountpoint = mountPoint
+
+	logrus.Debugf("Created root filesystem for container %s at %s", c.ID(), c.state.Mountpoint)
+
+	// Save changes to container state
+	return c.save()
 }
 
 // cleanupNetwork unmounts and cleans up the container's network

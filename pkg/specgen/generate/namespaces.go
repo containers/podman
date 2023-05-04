@@ -293,7 +293,6 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 		toReturn = append(toReturn, libpod.WithCgroupsMode(s.CgroupsMode))
 	}
 
-	postConfigureNetNS := !s.UserNS.IsHost()
 	// when we are rootless we default to slirp4netns
 	if rootless.IsRootless() && (s.NetNS.IsPrivate() || s.NetNS.IsDefault()) {
 		s.NetNS.NSMode = specgen.Slirp
@@ -326,14 +325,14 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 		if s.NetNS.Value != "" {
 			val = fmt.Sprintf("slirp4netns:%s", s.NetNS.Value)
 		}
-		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, val, nil))
+		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, val, nil))
 	case specgen.Pasta:
 		portMappings, expose, err := createPortMappings(s, imageData)
 		if err != nil {
 			return nil, err
 		}
 		val := "pasta"
-		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, val, nil))
+		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, val, nil))
 	case specgen.Bridge, specgen.Private, specgen.Default:
 		portMappings, expose, err := createPortMappings(s, imageData)
 		if err != nil {
@@ -366,7 +365,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 			s.Networks[rtConfig.Network.DefaultNetwork] = opts
 			delete(s.Networks, "default")
 		}
-		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, "bridge", s.Networks))
+		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, "bridge", s.Networks))
 	}
 
 	if s.UseImageHosts {
