@@ -1369,12 +1369,6 @@ func (c *Container) stop(timeout uint) error {
 		}
 	}
 
-	// We have to check stopErr *after* we lock again - otherwise, we have a
-	// change of panicking on a double-unlock. Ref: GH Issue 9615
-	if stopErr != nil {
-		return stopErr
-	}
-
 	// Since we're now subject to a race condition with other processes who
 	// may have altered the state (and other data), let's check if the
 	// state has changed.  If so, we should return immediately and leave
@@ -1385,6 +1379,17 @@ func (c *Container) stop(timeout uint) error {
 			c.ID(), define.ContainerStateStopping, c.state.State,
 		)
 		return nil
+	}
+
+	// We have to check stopErr *after* we lock again - otherwise, we have a
+	// chance of panicking on a double-unlock (see #9615).
+	//
+	// If the state has changed, stopErr is ignored (see #18452) since we
+	// should optimistically assume that another process has already
+	// stopped/killed the container or that the container has exited in the
+	// meantime.
+	if stopErr != nil {
+		return stopErr
 	}
 
 	c.newContainerEvent(events.Stop)
