@@ -42,7 +42,7 @@ func (r *Runtime) RemoveContainersForImageCallback(ctx context.Context) libimage
 				if err != nil {
 					return fmt.Errorf("container %s is in pod %s, but pod cannot be retrieved: %w", ctr.ID(), ctr.config.Pod, err)
 				}
-				if err := r.removePod(ctx, pod, true, true, timeout); err != nil {
+				if _, err := r.removePod(ctx, pod, true, true, timeout); err != nil {
 					return fmt.Errorf("removing image %s: container %s using image could not be removed: %w", imageID, ctr.ID(), err)
 				}
 			} else {

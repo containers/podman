@@ -97,9 +97,14 @@ func (r *Runtime) reset(ctx context.Context) error {
 		return err
 	}
 	for _, p := range pods {
-		if err := r.RemovePod(ctx, p, true, true, timeout); err != nil {
+		if ctrs, err := r.RemovePod(ctx, p, true, true, timeout); err != nil {
 			if errors.Is(err, define.ErrNoSuchPod) {
 				continue
+			}
+			for ctr, err := range ctrs {
+				if err != nil {
+					logrus.Errorf("Error removing pod %s container %s: %v", p.ID(), ctr, err)
+				}
 			}
 			logrus.Errorf("Removing Pod %s: %v", p.ID(), err)
 		}

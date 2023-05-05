@@ -751,7 +751,11 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 				continue
 			}
 			logrus.Infof("Removing pod %s as container %s is its service container", depPod.ID(), c.ID())
-			if err := r.RemovePod(ctx, depPod, true, force, timeout); err != nil {
+			podRemovedCtrs, err := r.RemovePod(ctx, depPod, true, force, timeout)
+			for ctr, err := range podRemovedCtrs {
+				removedCtrs[ctr] = err
+			}
+			if err != nil {
 				removedPods[depPod.ID()] = err
 				retErr = fmt.Errorf("error removing container %s dependency pods: %w", c.ID(), err)
 				return
@@ -769,7 +773,11 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		}
 
 		logrus.Infof("Removing pod %s (dependency of container %s)", pod.ID(), c.ID())
-		if err := r.removePod(ctx, pod, true, force, timeout); err != nil {
+		podRemovedCtrs, err := r.removePod(ctx, pod, true, force, timeout)
+		for ctr, err := range podRemovedCtrs {
+			removedCtrs[ctr] = err
+		}
+		if err != nil {
 			removedPods[pod.ID()] = err
 			retErr = fmt.Errorf("error removing container %s pod: %w", c.ID(), err)
 			return

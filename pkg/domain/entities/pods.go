@@ -105,8 +105,9 @@ type PodRmOptions struct {
 }
 
 type PodRmReport struct {
-	Err error
-	Id  string //nolint:revive,stylecheck
+	RemovedCtrs map[string]error
+	Err         error
+	Id          string //nolint:revive,stylecheck
 }
 
 // PddSpec is an abstracted version of PodSpecGen designed to eventually accept options

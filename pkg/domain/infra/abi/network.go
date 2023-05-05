@@ -133,7 +133,7 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 					if err != nil {
 						return reports, err
 					}
-					if err := ic.Libpod.RemovePod(ctx, pod, true, true, options.Timeout); err != nil {
+					if _, err := ic.Libpod.RemovePod(ctx, pod, true, true, options.Timeout); err != nil {
 						return reports, err
 					}
 				} else if err := ic.Libpod.RemoveContainer(ctx, c, true, true, options.Timeout); err != nil && !errors.Is(err, define.ErrNoSuchCtr) {

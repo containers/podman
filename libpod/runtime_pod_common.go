@@ -124,8 +124,9 @@ func (r *Runtime) SavePod(pod *Pod) error {
 
 // DO NOT USE THIS FUNCTION DIRECTLY. Use removePod(), below. It will call
 // removeMalformedPod() if necessary.
-func (r *Runtime) removeMalformedPod(ctx context.Context, p *Pod, ctrs []*Container, force bool, timeout *uint, ctrNamedVolumes map[string]*ContainerNamedVolume) error {
-	var removalErr error
+func (r *Runtime) removeMalformedPod(ctx context.Context, p *Pod, ctrs []*Container, force bool, timeout *uint, ctrNamedVolumes map[string]*ContainerNamedVolume) (map[string]error, error) {
+	removedCtrs := make(map[string]error)
+	errored := false
 	for _, ctr := range ctrs {
 		err := func() error {
 			ctrLock := ctr.lock
@@ -145,15 +146,24 @@ func (r *Runtime) removeMalformedPod(ctx context.Context, p *Pod, ctrs []*Contai
 			_, _, err := r.removeContainer(ctx, ctr, force, false, true, true, false, false, timeout)
 			return err
 		}()
-
-		if removalErr == nil {
-			removalErr = err
-		} else {
-			logrus.Errorf("Removing container %s from pod %s: %v", ctr.ID(), p.ID(), err)
+		removedCtrs[ctr.ID()] = err
+		if err != nil {
+			errored = true
 		}
 	}
-	if removalErr != nil {
-		return removalErr
+
+	// So, technically, no containers have been *removed*.
+	// They're still in the DB.
+	// So just return nil for removed containers. Squash all the errors into
+	// a multierror so we don't lose them.
+	if errored {
+		var allErrors error
+		for ctr, err := range removedCtrs {
+			if err != nil {
+				allErrors = multierror.Append(allErrors, fmt.Errorf("removing container %s: %w", ctr, err))
+			}
+		}
+		return nil, fmt.Errorf("no containers were removed due to the following errors: %w", allErrors)
 	}
 
 	// Clear infra container ID before we remove the infra container.
@@ -162,7 +172,7 @@ func (r *Runtime) removeMalformedPod(ctx context.Context, p *Pod, ctrs []*Contai
 	// later - we end up with a reference to a nonexistent infra container.
 	p.state.InfraContainerID = ""
 	if err := p.save(); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Remove all containers in the pod from the state.
@@ -170,20 +180,22 @@ func (r *Runtime) removeMalformedPod(ctx context.Context, p *Pod, ctrs []*Contai
 		// If this fails, there isn't much more we can do.
 		// The containers in the pod are unusable, but they still exist,
 		// so pod removal will fail.
-		return err
+		return nil, err
 	}
 
-	return nil
+	return removedCtrs, nil
 }
 
-func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool, timeout *uint) error {
+func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool, timeout *uint) (map[string]error, error) {
+	removedCtrs := make(map[string]error)
+
 	if err := p.updatePod(); err != nil {
-		return err
+		return nil, err
 	}
 
 	ctrs, err := r.state.PodContainers(p)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	numCtrs := len(ctrs)
 
@@ -194,7 +206,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 		force = true
 	}
 	if !removeCtrs && numCtrs > 0 {
-		return fmt.Errorf("pod %s contains containers and cannot be removed: %w", p.ID(), define.ErrCtrExists)
+		return nil, fmt.Errorf("pod %s contains containers and cannot be removed: %w", p.ID(), define.ErrCtrExists)
 	}
 
 	var removalErr error
@@ -206,14 +218,15 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 		// We have to allow the pod to be removed.
 		// But let's only do it if force is set.
 		if !force {
-			return fmt.Errorf("cannot create container graph for pod %s: %w", p.ID(), err)
+			return nil, fmt.Errorf("cannot create container graph for pod %s: %w", p.ID(), err)
 		}
 
 		removalErr = fmt.Errorf("creating container graph for pod %s failed, fell back to loop removal: %w", p.ID(), err)
 
-		if err := r.removeMalformedPod(ctx, p, ctrs, force, timeout, ctrNamedVolumes); err != nil {
+		removedCtrs, err = r.removeMalformedPod(ctx, p, ctrs, force, timeout, ctrNamedVolumes)
+		if err != nil {
 			logrus.Errorf("Error creating container graph for pod %s: %v. Falling back to loop removal.", p.ID(), err)
-			return err
+			return removedCtrs, err
 		}
 	} else {
 		ctrErrors := make(map[string]error)
@@ -223,16 +236,13 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 			removeNode(ctx, node, p, force, timeout, false, ctrErrors, ctrsVisited, ctrNamedVolumes)
 		}
 
-		// This is gross, but I don't want to change the signature on
-		// removePod - especially since any change here eventually has
-		// to map down to one error unless we want to make a breaking
-		// API change.
+		// Finalize the removed containers list
+		for ctr, _ := range ctrsVisited {
+			removedCtrs[ctr] = ctrErrors[ctr]
+		}
+
 		if len(ctrErrors) > 0 {
-			var allErrs error
-			for id, err := range ctrErrors {
-				allErrs = multierror.Append(allErrs, fmt.Errorf("removing container %s from pod %s: %w", id, p.ID(), err))
-			}
-			return allErrs
+			return removedCtrs, fmt.Errorf("not all containers could be removed from pod %s: %w", p.ID(), define.ErrCtrExists)
 		}
 	}
 
@@ -319,7 +329,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 	}
 
 	if err := p.maybeRemoveServiceContainer(); err != nil {
-		return err
+		return removedCtrs, err
 	}
 
 	// Remove pod from state
@@ -327,7 +337,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 		if removalErr != nil {
 			logrus.Errorf("%v", removalErr)
 		}
-		return err
+		return removedCtrs, err
 	}
 
 	// Mark pod invalid
@@ -343,5 +353,5 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 		}
 	}
 
-	return removalErr
+	return removedCtrs, removalErr
 }

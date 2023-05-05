@@ -246,11 +246,12 @@ func PodDelete(w http.ResponseWriter, r *http.Request) {
 		utils.PodNotFound(w, name, err)
 		return
 	}
-	if err := runtime.RemovePod(r.Context(), pod, true, query.Force, query.Timeout); err != nil {
+	ctrs, err := runtime.RemovePod(r.Context(), pod, true, query.Force, query.Timeout)
+	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
-	report := entities.PodRmReport{Id: pod.ID()}
+	report := entities.PodRmReport{Id: pod.ID(), RemovedCtrs: ctrs}
 	utils.WriteResponse(w, http.StatusOK, report)
 }
 

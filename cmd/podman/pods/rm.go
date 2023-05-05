@@ -128,6 +128,11 @@ func removePods(namesOrIDs []string, rmOptions entities.PodRmOptions, printIDs b
 			}
 			setExitCode(r.Err)
 			errs = append(errs, r.Err)
+			for ctr, err := range r.RemovedCtrs {
+				if err != nil {
+					errs = append(errs, fmt.Errorf("error removing container %s from pod %s: %w", ctr, r.Id, err))
+				}
+			}
 		}
 	}
 	return errs
