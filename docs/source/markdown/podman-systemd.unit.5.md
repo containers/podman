@@ -41,7 +41,7 @@ other sections will be passed on untouched, allowing the use of any normal syste
 like dependencies or cgroup limits.
 
 For rootless containers, when administrators place Quadlet files in the
-/etc/containers/systemd/users directory, all users sessions will execute the
+/etc/containers/systemd/users directory, all users' sessions will execute the
 Quadlet when the login session begins. If the administrator places a Quadlet
 file in the /etc/containers/systemd/user/${UID}/ directory, then only the
 user with the matching UID will execute the Quadlet when the login
