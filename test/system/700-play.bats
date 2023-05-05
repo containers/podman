@@ -274,22 +274,31 @@ EOF
 
 @test "podman kube play read-only" {
     YAML=$PODMAN_TMPDIR/test.yml
-    run_podman create --pod new:pod1 --name test1 $IMAGE touch /testrw
-    run_podman create --pod pod1 --read-only --name test2 $IMAGE touch /testro
-    run_podman create --pod pod1 --read-only --name test3 $IMAGE touch /tmp/testtmp
+
+    # --restart=no is crucial: without that, the "podman wait" below
+    # will spin for indeterminate time.
+    run_podman create --pod new:pod1         --restart=no --name test1 $IMAGE touch /testrw
+    run_podman create --pod pod1 --read-only --restart=no --name test2 $IMAGE touch /testro
+    run_podman create --pod pod1 --read-only --restart=no --name test3 $IMAGE touch /tmp/testtmp
+
+    # Generate and run from yaml. (The "cat" is for debugging failures)
     run_podman kube generate pod1 -f $YAML
-
+    cat $YAML
     run_podman kube play --replace $YAML
+
+    # Wait for all containers and check their exit statuses
+    run_podman wait pod1-test1 pod1-test2 pod1-test3
+    is "${lines[0]}" 0 "exit status: touch /file on read/write container"
+    is "${lines[1]}" 1 "exit status: touch /file on read-only container"
+    is "${lines[2]}" 0 "exit status: touch on /tmp is always ok, even on read-only container"
+
+    # Confirm config settings
     run_podman container inspect --format '{{.HostConfig.ReadonlyRootfs}}' pod1-test1 pod1-test2 pod1-test3
-    is "$output" "false.*true.*true" "Rootfs should be read/only"
+    is "${lines[0]}" "false"  "ReadonlyRootfs - container 1"
+    is "${lines[1]}" "true"   "ReadonlyRootfs - container 2"
+    is "${lines[2]}" "true"   "ReadonlyRootfs - container 3"
 
-    run_podman inspect --format "{{.State.ExitCode}}" pod1-test1
-    is "$output" "0" "Container / should be read/write"
-    run_podman inspect --format "{{.State.ExitCode}}" pod1-test2
-    is "$output" "1" "Container / should be read/only"
-    run_podman inspect --format "{{.State.ExitCode}}" pod1-test3
-    is "$output" "0" "/tmp in a read-only container should be read/write"
-
+    # Clean up
     run_podman kube down - < $YAML
     run_podman 1 container exists pod1-test1
     run_podman 1 container exists pod1-test2
@@ -304,27 +313,38 @@ read_only=true
 EOF
 
     YAML=$PODMAN_TMPDIR/test.yml
-    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --pod new:pod1 --read-only=false --name test1 $IMAGE touch /testrw
-    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --pod pod1 --name test2 $IMAGE touch /testro
-    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --pod pod1 --name test3 $IMAGE touch /tmp/testtmp
+
+    # --restart=no is crucial: without that, the "podman wait" below
+    # will spin for indeterminate time.
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --pod new:pod1 --read-only=false --restart=no --name test1 $IMAGE touch /testrw
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --pod pod1                       --restart=no --name test2 $IMAGE touch /testro
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --pod pod1                       --restart=no --name test3 $IMAGE touch /tmp/testtmp
+
+    # Inspect settings in created containers
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman container inspect --format '{{.HostConfig.ReadonlyRootfs}}' test1 test2 test3
-    is "$output" "false.*true.*true" "Rootfs should be read/only"
+    is "${lines[0]}" "false"  "ReadonlyRootfs - container 1, created"
+    is "${lines[1]}" "true"   "ReadonlyRootfs - container 2, created"
+    is "${lines[2]}" "true"   "ReadonlyRootfs - container 3, created"
 
     # Now generate and run kube.yaml on a machine without the defaults set
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman kube generate pod1 -f $YAML
     cat $YAML
 
     run_podman kube play --replace $YAML
+
+    # Wait for all containers and check their exit statuses
+    run_podman wait pod1-test1 pod1-test2 pod1-test3
+    is "${lines[0]}" 0 "exit status: touch /file on read/write container"
+    is "${lines[1]}" 1 "exit status: touch /file on read-only container"
+    is "${lines[2]}" 0 "exit status: touch on /tmp is always ok, even on read-only container"
+
+    # Confirm settings again
     run_podman container inspect --format '{{.HostConfig.ReadonlyRootfs}}' pod1-test1 pod1-test2 pod1-test3
-    is "$output" "false.*true.*true" "Rootfs should be read/only"
+    is "${lines[0]}" "false"  "ReadonlyRootfs - container 1, post-run"
+    is "${lines[1]}" "true"   "ReadonlyRootfs - container 2, post-run"
+    is "${lines[2]}" "true"   "ReadonlyRootfs - container 3, post-run"
 
-    run_podman inspect --format "{{.State.ExitCode}}" pod1-test1
-    is "$output" "0" "Container / should be read/write"
-    run_podman inspect --format "{{.State.ExitCode}}" pod1-test2
-    is "$output" "1" "Container / should be read/only"
-    run_podman inspect --format "{{.State.ExitCode}}" pod1-test3
-    is "$output" "0" "/tmp in a read-only container should be read/write"
-
+    # Clean up
     run_podman kube down - < $YAML
     run_podman 1 container exists pod1-test1
     run_podman 1 container exists pod1-test2
