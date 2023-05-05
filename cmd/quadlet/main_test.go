@@ -61,8 +61,8 @@ func TestUnitDirs(t *testing.T) {
 
 	rootlessDirs := []string{
 		path.Join(configDir, "containers/systemd"),
-		filepath.Join(quadlet.UnitDirAdmin, "users"),
 		filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid),
+		filepath.Join(quadlet.UnitDirAdmin, "users"),
 	}
 
 	unitDirs = getUnitDirs(true)
