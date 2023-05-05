@@ -249,4 +249,89 @@ var _ = Describe("Podman start", func() {
 		Expect(session1).Should(Exit(0))
 		Expect(session1.OutputToString()).To(BeEquivalentTo(cid2))
 	})
+
+	It("podman start container does not set HOME to home of caller", func() {
+		home, err := os.UserHomeDir()
+		Expect(err).ToNot(HaveOccurred())
+		session := podmanTest.Podman([]string{"create", "--userns", "keep-id", "--user", "bin:bin", "--volume", fmt.Sprintf("%s:%s:ro", home, home), ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		cid := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"start", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"inspect", cid, "--format", "{{.Config.Env}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		env := session.OutputToString()
+		Expect(env).To(ContainSubstring("HOME"))
+		Expect(env).ToNot(ContainSubstring(fmt.Sprintf("HOME=%s", home)))
+
+		session = podmanTest.Podman([]string{"restart", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"inspect", cid, "--format", "{{.Config.Env}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		env = session.OutputToString()
+		Expect(env).To(ContainSubstring("HOME"))
+		Expect(env).ToNot(ContainSubstring(fmt.Sprintf("HOME=%s", home)))
+	})
+
+	It("podman start container sets HOME to home of execUser", func() {
+		session := podmanTest.Podman([]string{"create", "--userns", "keep-id", "--user", "bin:bin", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		cid := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"start", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"inspect", cid, "--format", "{{.Config.Env}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		env := session.OutputToString()
+		Expect(env).To(ContainSubstring("HOME=/bin"))
+
+		session = podmanTest.Podman([]string{"restart", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"inspect", cid, "--format", "{{.Config.Env}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		env = session.OutputToString()
+		Expect(env).To(ContainSubstring("HOME=/bin"))
+	})
+
+	It("podman start container retains the HOME env if present", func() {
+		session := podmanTest.Podman([]string{"create", "--userns", "keep-id", "--user", "bin:bin", "--env=HOME=/env/is/respected", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		cid := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"start", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"inspect", cid, "--format", "{{.Config.Env}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		env := session.OutputToString()
+		Expect(env).To(ContainSubstring("HOME=/env/is/respected"))
+
+		session = podmanTest.Podman([]string{"restart", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"inspect", cid, "--format", "{{.Config.Env}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		env = session.OutputToString()
+		Expect(env).To(ContainSubstring("HOME=/env/is/respected"))
+	})
 })
