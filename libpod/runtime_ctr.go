@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -690,8 +691,10 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 				retErr = fmt.Errorf("container %s and pod %s share lock ID %d: %w", c.ID(), pod.ID(), c.config.LockID, define.ErrWillDeadlock)
 				return
 			}
-			pod.lock.Lock()
-			defer pod.lock.Unlock()
+			if !noLockPod {
+				pod.lock.Lock()
+				defer pod.lock.Unlock()
+			}
 			if err := pod.updatePod(); err != nil {
 				retErr = err
 				return
@@ -763,7 +766,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 			removedPods[depPod.ID()] = nil
 		}
 	}
-	if serviceForPod || c.config.IsInfra {
+	if (serviceForPod || c.config.IsInfra) && !removePod {
 		// We're going to remove the pod we are a part of.
 		// This will get rid of us as well, so we can just return
 		// immediately after.
@@ -946,7 +949,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	removedCtrs[c.ID()] = nil
 
 	// Deallocate the container's lock
-	if err := c.lock.Free(); err != nil {
+	if err := c.lock.Free(); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		reportErrorf("freeing lock for container %s: %w", c.ID(), err)
 	}
 
@@ -978,6 +981,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		}
 	}
 
+	//nolint:nakedret
 	return
 }
 

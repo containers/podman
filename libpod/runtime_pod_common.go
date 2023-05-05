@@ -237,7 +237,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 		}
 
 		// Finalize the removed containers list
-		for ctr, _ := range ctrsVisited {
+		for ctr := range ctrsVisited {
 			removedCtrs[ctr] = ctrErrors[ctr]
 		}
 

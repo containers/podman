@@ -376,6 +376,7 @@ func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []st
 	return reports, nil
 }
 
+//nolint:unparam
 func (ic *ContainerEngine) removeContainer(ctx context.Context, ctr *libpod.Container, options entities.RmOptions) (map[string]error, map[string]error, error) {
 	var err error
 	ctrs := make(map[string]error)
@@ -442,6 +443,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		}
 		mapMutex.Unlock()
 
+		// TODO: We should report removed pods back somehow.
 		ctrs, _, err := ic.removeContainer(ctx, c, options)
 
 		mapMutex.Lock()
@@ -458,7 +460,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 
 	for ctr, err := range errMap {
 		if _, ok := ctrsMap[ctr.ID()]; ok {
-			logrus.Debugf("Multiple results for container %s - attempted multiple removals?", ctr)
+			logrus.Debugf("Multiple results for container %s - attempted multiple removals?", ctr.ID())
 		}
 		ctrsMap[ctr.ID()] = err
 	}
