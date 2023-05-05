@@ -13,7 +13,7 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.2.0
 	github.com/containers/buildah v1.30.1-0.20230504052500-e925b5852e07
-	github.com/containers/common v0.53.1-0.20230504080917-ea87b34db578
+	github.com/containers/common v0.53.1-0.20230505014331-bc15b042e305
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.25.0
 	github.com/containers/libhvee v0.0.5
@@ -64,8 +64,8 @@ require (
 	go.etcd.io/bbolt v1.3.7
 	golang.org/x/net v0.9.0
 	golang.org/x/sync v0.2.0
-	golang.org/x/sys v0.7.0
-	golang.org/x/term v0.7.0
+	golang.org/x/sys v0.8.0
+	golang.org/x/term v0.8.0
 	golang.org/x/text v0.9.0
 	google.golang.org/protobuf v1.30.0
 	gopkg.in/inf.v0 v0.9.1
