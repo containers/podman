@@ -1,4 +1,4 @@
-docker~=6.0.1
+docker~=6.1.0
 requests-mock~=1.10.0
 requests~=2.30.0
 setuptools~=67.7.0
