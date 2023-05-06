@@ -33,28 +33,33 @@ type bpDecryptionStepData struct {
 // blobPipelineDecryptionStep updates *stream to decrypt if, it necessary.
 // srcInfo is only used for error messages.
 // Returns data for other steps; the caller should eventually use updateCryptoOperation.
-func (c *copier) blobPipelineDecryptionStep(stream *sourceStream, srcInfo types.BlobInfo) (*bpDecryptionStepData, error) {
-	if isOciEncrypted(stream.info.MediaType) && c.ociDecryptConfig != nil {
-		desc := imgspecv1.Descriptor{
-			Annotations: stream.info.Annotations,
-		}
-		reader, decryptedDigest, err := ocicrypt.DecryptLayer(c.ociDecryptConfig, stream.reader, desc, false)
-		if err != nil {
-			return nil, fmt.Errorf("decrypting layer %s: %w", srcInfo.Digest, err)
-		}
-
-		stream.reader = reader
-		stream.info.Digest = decryptedDigest
-		stream.info.Size = -1
-		maps.DeleteFunc(stream.info.Annotations, func(k string, _ string) bool {
-			return strings.HasPrefix(k, "org.opencontainers.image.enc")
-		})
+func (ic *imageCopier) blobPipelineDecryptionStep(stream *sourceStream, srcInfo types.BlobInfo) (*bpDecryptionStepData, error) {
+	if !isOciEncrypted(stream.info.MediaType) || ic.c.ociDecryptConfig == nil {
 		return &bpDecryptionStepData{
-			decrypting: true,
+			decrypting: false,
 		}, nil
 	}
+
+	if ic.cannotModifyManifestReason != "" {
+		return nil, fmt.Errorf("layer %s should be decrypted, but we can’t modify the manifest: %s", srcInfo.Digest, ic.cannotModifyManifestReason)
+	}
+
+	desc := imgspecv1.Descriptor{
+		Annotations: stream.info.Annotations,
+	}
+	reader, decryptedDigest, err := ocicrypt.DecryptLayer(ic.c.ociDecryptConfig, stream.reader, desc, false)
+	if err != nil {
+		return nil, fmt.Errorf("decrypting layer %s: %w", srcInfo.Digest, err)
+	}
+
+	stream.reader = reader
+	stream.info.Digest = decryptedDigest
+	stream.info.Size = -1
+	maps.DeleteFunc(stream.info.Annotations, func(k string, _ string) bool {
+		return strings.HasPrefix(k, "org.opencontainers.image.enc")
+	})
 	return &bpDecryptionStepData{
-		decrypting: false,
+		decrypting: true,
 	}, nil
 }
 
@@ -74,34 +79,39 @@ type bpEncryptionStepData struct {
 // blobPipelineEncryptionStep updates *stream to encrypt if, it required by toEncrypt.
 // srcInfo is primarily used for error messages.
 // Returns data for other steps; the caller should eventually call updateCryptoOperationAndAnnotations.
-func (c *copier) blobPipelineEncryptionStep(stream *sourceStream, toEncrypt bool, srcInfo types.BlobInfo,
+func (ic *imageCopier) blobPipelineEncryptionStep(stream *sourceStream, toEncrypt bool, srcInfo types.BlobInfo,
 	decryptionStep *bpDecryptionStepData) (*bpEncryptionStepData, error) {
-	if toEncrypt && !isOciEncrypted(srcInfo.MediaType) && c.ociEncryptConfig != nil {
-		var annotations map[string]string
-		if !decryptionStep.decrypting {
-			annotations = srcInfo.Annotations
-		}
-		desc := imgspecv1.Descriptor{
-			MediaType:   srcInfo.MediaType,
-			Digest:      srcInfo.Digest,
-			Size:        srcInfo.Size,
-			Annotations: annotations,
-		}
-		reader, finalizer, err := ocicrypt.EncryptLayer(c.ociEncryptConfig, stream.reader, desc)
-		if err != nil {
-			return nil, fmt.Errorf("encrypting blob %s: %w", srcInfo.Digest, err)
-		}
-
-		stream.reader = reader
-		stream.info.Digest = ""
-		stream.info.Size = -1
+	if !toEncrypt || isOciEncrypted(srcInfo.MediaType) || ic.c.ociEncryptConfig == nil {
 		return &bpEncryptionStepData{
-			encrypting: true,
-			finalizer:  finalizer,
+			encrypting: false,
 		}, nil
 	}
+
+	if ic.cannotModifyManifestReason != "" {
+		return nil, fmt.Errorf("layer %s should be encrypted, but we can’t modify the manifest: %s", srcInfo.Digest, ic.cannotModifyManifestReason)
+	}
+
+	var annotations map[string]string
+	if !decryptionStep.decrypting {
+		annotations = srcInfo.Annotations
+	}
+	desc := imgspecv1.Descriptor{
+		MediaType:   srcInfo.MediaType,
+		Digest:      srcInfo.Digest,
+		Size:        srcInfo.Size,
+		Annotations: annotations,
+	}
+	reader, finalizer, err := ocicrypt.EncryptLayer(ic.c.ociEncryptConfig, stream.reader, desc)
+	if err != nil {
+		return nil, fmt.Errorf("encrypting blob %s: %w", srcInfo.Digest, err)
+	}
+
+	stream.reader = reader
+	stream.info.Digest = ""
+	stream.info.Size = -1
 	return &bpEncryptionStepData{
-		encrypting: false,
+		encrypting: true,
+		finalizer:  finalizer,
 	}, nil
 }
 

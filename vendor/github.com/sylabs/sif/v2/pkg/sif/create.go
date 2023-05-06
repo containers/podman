@@ -622,60 +622,52 @@ func (f *FileImage) SetPrimPart(id uint32, opts ...SetOpt) error {
 		return fmt.Errorf("%w", errNotPartition)
 	}
 
-	fs, pt, arch, err := descr.getPartitionMetadata()
-	if err != nil {
+	var p partition
+	if err := descr.getExtra(binaryUnmarshaler{&p}); err != nil {
 		return fmt.Errorf("%w", err)
 	}
 
 	// if already primary system partition, nothing to do
-	if pt == PartPrimSys {
+	if p.Parttype == PartPrimSys {
 		return nil
 	}
 
-	if pt != PartSystem {
+	if p.Parttype != PartSystem {
 		return fmt.Errorf("%w", errNotSystem)
 	}
 
-	olddescr, err := f.getDescriptor(WithPartitionType(PartPrimSys))
-	if err != nil && !errors.Is(err, ErrObjectNotFound) {
+	// If there is currently a primary system partition, update it.
+	if d, err := f.getDescriptor(WithPartitionType(PartPrimSys)); err == nil {
+		var p partition
+		if err := d.getExtra(binaryUnmarshaler{&p}); err != nil {
+			return fmt.Errorf("%w", err)
+		}
+
+		p.Parttype = PartSystem
+
+		if err := d.setExtra(p); err != nil {
+			return fmt.Errorf("%w", err)
+		}
+
+		d.ModifiedAt = so.t.Unix()
+	} else if !errors.Is(err, ErrObjectNotFound) {
 		return fmt.Errorf("%w", err)
 	}
-	extra := partition{
-		Fstype:   fs,
-		Parttype: PartPrimSys,
-	}
-	copy(extra.Arch[:], arch)
 
-	if err := descr.setExtra(extra); err != nil {
+	// Update the descriptor of the new primary system partition.
+	p.Parttype = PartPrimSys
+
+	if err := descr.setExtra(p); err != nil {
 		return fmt.Errorf("%w", err)
 	}
 
 	descr.ModifiedAt = so.t.Unix()
 
-	if olddescr != nil {
-		oldfs, _, oldarch, err := olddescr.getPartitionMetadata()
-		if err != nil {
-			return fmt.Errorf("%w", err)
-		}
-
-		oldextra := partition{
-			Fstype:   oldfs,
-			Parttype: PartSystem,
-			Arch:     getSIFArch(oldarch),
-		}
-
-		if err := olddescr.setExtra(oldextra); err != nil {
-			return fmt.Errorf("%w", err)
-		}
-
-		olddescr.ModifiedAt = so.t.Unix()
-	}
-
 	if err := f.writeDescriptors(); err != nil {
 		return fmt.Errorf("%w", err)
 	}
 
-	f.h.Arch = getSIFArch(arch)
+	f.h.Arch = p.Arch
 	f.h.ModifiedAt = so.t.Unix()
 
 	if err := f.writeHeader(); err != nil {

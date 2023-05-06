@@ -146,7 +146,7 @@ use the UTF-8 hex representation 0x7C, which is replaced in the code as a pipe,
 so the above will become excludesall=0x7C
 
 	type Test struct {
-		Field `validate:"excludesall=|"`    // BAD! Do not include a a pipe!
+		Field `validate:"excludesall=|"`    // BAD! Do not include a pipe!
 		Field `validate:"excludesall=0x7C"` // GOOD! Use the UTF-8 hex representation.
 	}
 
@@ -239,7 +239,7 @@ Example #2
 
 	map[[2]string]string with validation tag "gt=0,dive,keys,dive,eq=1|eq=2,endkeys,required"
 	// gt=0 will be applied to the map itself
-	// eq=1|eq=2 will be applied to each array element in the the map keys
+	// eq=1|eq=2 will be applied to each array element in the map keys
 	// required will be applied to map values
 
 # Required
@@ -916,7 +916,7 @@ this with the omitempty tag.
 # Base64URL String
 
 This validates that a string value contains a valid base64 URL safe value
-according the the RFC4648 spec.
+according the RFC4648 spec.
 Although an empty string is a valid base64 URL safe value, this will report
 an empty string as an error, if you wish to accept an empty string as valid
 you can use this with the omitempty tag.
@@ -927,7 +927,7 @@ you can use this with the omitempty tag.
 # Base64RawURL String
 
 This validates that a string value contains a valid base64 URL safe value,
-but without = padding, according the the RFC4648 spec, section 3.2.
+but without = padding, according the RFC4648 spec, section 3.2.
 Although an empty string is a valid base64 URL safe value, this will report
 an empty string as an error, if you wish to accept an empty string as valid
 you can use this with the omitempty tag.
@@ -1361,7 +1361,7 @@ More information on https://cve.mitre.org/
 
 # Credit Card
 
-This validates that a string value contains a valid credit card number using Luhn algoritm.
+This validates that a string value contains a valid credit card number using Luhn algorithm.
 
 	Usage: credit_card
 
@@ -1372,8 +1372,7 @@ This validates that a string value contains a valid credit card number using Luh
 
 This validates that a string or (u)int value contains a valid checksum using the Luhn algorithm.
 
-
-#MongoDb ObjectID
+# MongoDb ObjectID
 
 This validates that a string is a valid 24 character hexadecimal string.
 

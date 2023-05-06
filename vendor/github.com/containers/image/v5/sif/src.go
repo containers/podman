@@ -96,9 +96,11 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, ref sifRefere
 
 	created := sifImg.ModifiedAt()
 	config := imgspecv1.Image{
-		Created:      &created,
-		Architecture: sifImg.PrimaryArch(),
-		OS:           "linux",
+		Created: &created,
+		Platform: imgspecv1.Platform{
+			Architecture: sifImg.PrimaryArch(),
+			OS:           "linux",
+		},
 		Config: imgspecv1.ImageConfig{
 			Cmd: commandLine,
 		},
@@ -180,7 +182,7 @@ func (s *sifImageSource) Close() error {
 func (s *sifImageSource) GetBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache) (io.ReadCloser, int64, error) {
 	switch info.Digest {
 	case s.configDigest:
-		return io.NopCloser(bytes.NewBuffer(s.config)), int64(len(s.config)), nil
+		return io.NopCloser(bytes.NewReader(s.config)), int64(len(s.config)), nil
 	case s.layerDigest:
 		reader, err := os.Open(s.layerFile)
 		if err != nil {

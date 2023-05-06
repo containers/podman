@@ -42,7 +42,12 @@ type OCI1 struct {
 // useful for validation anyway.
 func SupportedOCI1MediaType(m string) error {
 	switch m {
-	case imgspecv1.MediaTypeDescriptor, imgspecv1.MediaTypeImageConfig, imgspecv1.MediaTypeImageLayer, imgspecv1.MediaTypeImageLayerGzip, imgspecv1.MediaTypeImageLayerNonDistributable, imgspecv1.MediaTypeImageLayerNonDistributableGzip, imgspecv1.MediaTypeImageLayerNonDistributableZstd, imgspecv1.MediaTypeImageLayerZstd, imgspecv1.MediaTypeImageManifest, imgspecv1.MediaTypeLayoutHeader, ociencspec.MediaTypeLayerEnc, ociencspec.MediaTypeLayerGzipEnc:
+	case imgspecv1.MediaTypeDescriptor, imgspecv1.MediaTypeImageConfig,
+		imgspecv1.MediaTypeImageLayer, imgspecv1.MediaTypeImageLayerGzip, imgspecv1.MediaTypeImageLayerZstd,
+		imgspecv1.MediaTypeImageLayerNonDistributable, imgspecv1.MediaTypeImageLayerNonDistributableGzip, imgspecv1.MediaTypeImageLayerNonDistributableZstd, //nolint:staticcheck // NonDistributable layers are deprecated, but we want to continue to support manipulating pre-existing images.
+		imgspecv1.MediaTypeImageManifest,
+		imgspecv1.MediaTypeLayoutHeader,
+		ociencspec.MediaTypeLayerEnc, ociencspec.MediaTypeLayerGzipEnc:
 		return nil
 	default:
 		return fmt.Errorf("unsupported OCIv1 media type: %q", m)
@@ -102,9 +107,9 @@ func (m *OCI1) LayerInfos() []LayerInfo {
 
 var oci1CompressionMIMETypeSets = []compressionMIMETypeSet{
 	{
-		mtsUncompressed:                    imgspecv1.MediaTypeImageLayerNonDistributable,
-		compressiontypes.GzipAlgorithmName: imgspecv1.MediaTypeImageLayerNonDistributableGzip,
-		compressiontypes.ZstdAlgorithmName: imgspecv1.MediaTypeImageLayerNonDistributableZstd,
+		mtsUncompressed:                    imgspecv1.MediaTypeImageLayerNonDistributable,     //nolint:staticcheck // NonDistributable layers are deprecated, but we want to continue to support manipulating pre-existing images.
+		compressiontypes.GzipAlgorithmName: imgspecv1.MediaTypeImageLayerNonDistributableGzip, //nolint:staticcheck // NonDistributable layers are deprecated, but we want to continue to support manipulating pre-existing images.
+		compressiontypes.ZstdAlgorithmName: imgspecv1.MediaTypeImageLayerNonDistributableZstd, //nolint:staticcheck // NonDistributable layers are deprecated, but we want to continue to support manipulating pre-existing images.
 	},
 	{
 		mtsUncompressed:                    imgspecv1.MediaTypeImageLayer,
@@ -166,7 +171,8 @@ func getEncryptedMediaType(mediatype string) (string, error) {
 	}
 	unsuffixedMediatype := strings.Split(mediatype, "+")[0]
 	switch unsuffixedMediatype {
-	case DockerV2Schema2LayerMediaType, imgspecv1.MediaTypeImageLayer, imgspecv1.MediaTypeImageLayerNonDistributable:
+	case DockerV2Schema2LayerMediaType, imgspecv1.MediaTypeImageLayer,
+		imgspecv1.MediaTypeImageLayerNonDistributable: //nolint:staticcheck // NonDistributable layers are deprecated, but we want to continue to support manipulating pre-existing images.
 		return mediatype + "+encrypted", nil
 	}
 

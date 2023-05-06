@@ -215,11 +215,11 @@ func (m *manifestOCI1) convertToManifestSchema2(_ context.Context, _ *types.Mani
 	for idx := range layers {
 		layers[idx] = schema2DescriptorFromOCI1Descriptor(m.m.Layers[idx])
 		switch layers[idx].MediaType {
-		case imgspecv1.MediaTypeImageLayerNonDistributable:
+		case imgspecv1.MediaTypeImageLayerNonDistributable: //nolint:staticcheck // NonDistributable layers are deprecated, but we want to continue to support manipulating pre-existing images.
 			layers[idx].MediaType = manifest.DockerV2Schema2ForeignLayerMediaType
-		case imgspecv1.MediaTypeImageLayerNonDistributableGzip:
+		case imgspecv1.MediaTypeImageLayerNonDistributableGzip: //nolint:staticcheck // NonDistributable layers are deprecated, but we want to continue to support manipulating pre-existing images.
 			layers[idx].MediaType = manifest.DockerV2Schema2ForeignLayerMediaTypeGzip
-		case imgspecv1.MediaTypeImageLayerNonDistributableZstd:
+		case imgspecv1.MediaTypeImageLayerNonDistributableZstd: //nolint:staticcheck // NonDistributable layers are deprecated, but we want to continue to support manipulating pre-existing images.
 			return nil, fmt.Errorf("Error during manifest conversion: %q: zstd compression is not supported for docker images", layers[idx].MediaType)
 		case imgspecv1.MediaTypeImageLayer:
 			layers[idx].MediaType = manifest.DockerV2SchemaLayerMediaTypeUncompressed
