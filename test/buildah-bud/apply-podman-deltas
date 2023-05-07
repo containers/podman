@@ -143,7 +143,7 @@ errmsg "no such file or directory" \
        "bud without any arguments should fail when no Dockerfile exists"
 
 errmsg "is not a file" \
-       "Error: containerfile: .* cannot be path to a directory" \
+       "Error: no Containerfile or Dockerfile specified or found in context directory" \
        "bud with specified context should fail if assumed Dockerfile is a directory"
 
 errmsg "no such file or directory" \
