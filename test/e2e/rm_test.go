@@ -322,4 +322,25 @@ var _ = Describe("Podman rm", func() {
 		Expect(session1).Should(Exit(0))
 		Expect(session1.OutputToString()).To(BeEquivalentTo(cid4))
 	})
+
+	It("podman rm -fa with dependencies", func() {
+		ctr1Name := "ctr1"
+		ctr1 := podmanTest.RunTopContainer(ctr1Name)
+		ctr1.WaitWithDefaultTimeout()
+		Expect(ctr1).Should(Exit(0))
+		cid1 := ctr1.OutputToString()
+
+		ctr2 := podmanTest.Podman([]string{"run", "-d", "--network", fmt.Sprintf("container:%s", ctr1Name), ALPINE, "top"})
+		ctr2.WaitWithDefaultTimeout()
+		Expect(ctr2).Should(Exit(0))
+		cid2 := ctr2.OutputToString()
+
+		rm := podmanTest.Podman([]string{"rm", "-fa"})
+		rm.WaitWithDefaultTimeout()
+		Expect(rm).Should(Exit(0))
+		Expect(rm.ErrorToString()).To(BeEmpty(), "rm -fa error logged")
+		Expect(rm.OutputToStringArray()).Should(ConsistOf(cid1, cid2))
+
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+	})
 })
