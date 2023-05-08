@@ -62,7 +62,7 @@ type StructLevel interface {
 	// existing namespace that validator is on.
 	// e.g. pass 'User.FirstName' or 'Users[0].FirstName' depending
 	// on the nesting. most of the time they will be blank, unless you validate
-	// at a level lower the the current field depth
+	// at a level lower the current field depth
 	ReportValidationErrors(relativeNamespace, relativeActualNamespace string, errs ValidationErrors)
 }
 
@@ -74,7 +74,7 @@ var _ StructLevel = new(validate)
 // if not is a nested struct.
 //
 // this is only called when within Struct and Field Level validation and
-// should not be relied upon for an acurate value otherwise.
+// should not be relied upon for an accurate value otherwise.
 func (v *validate) Top() reflect.Value {
 	return v.top
 }
@@ -85,7 +85,7 @@ func (v *validate) Top() reflect.Value {
 // if not is a nested struct.
 //
 // this is only called when within Struct and Field Level validation and
-// should not be relied upon for an acurate value otherwise.
+// should not be relied upon for an accurate value otherwise.
 func (v *validate) Parent() reflect.Value {
 	return v.slflParent
 }

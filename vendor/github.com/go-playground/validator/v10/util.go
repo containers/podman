@@ -234,7 +234,7 @@ func asInt(param string) int64 {
 func asIntFromTimeDuration(param string) int64 {
 	d, err := time.ParseDuration(param)
 	if err != nil {
-		// attempt parsing as an an integer assuming nanosecond precision
+		// attempt parsing as an integer assuming nanosecond precision
 		return asInt(param)
 	}
 	return int64(d)

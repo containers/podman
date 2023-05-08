@@ -85,6 +85,8 @@ linters-settings:
           - "**/internal/matchers/*.go"
   godot:
     exclude:
+      # Exclude links.
+      - '^ *\[[^]]+\]:'
       # Exclude sentence fragments for lists.
       - '^[ ]*[-•]'
       # Exclude sentences prefixing a list.

@@ -29,6 +29,7 @@ const (
 	requiredWithAllTag    = "required_with_all"
 	requiredIfTag         = "required_if"
 	requiredUnlessTag     = "required_unless"
+	skipUnlessTag         = "skip_unless"
 	excludedWithoutAllTag = "excluded_without_all"
 	excludedWithoutTag    = "excluded_without"
 	excludedWithTag       = "excluded_with"
@@ -57,7 +58,7 @@ var (
 
 // FilterFunc is the type used to filter fields using
 // StructFiltered(...) function.
-// returning true results in the field being filtered/skiped from
+// returning true results in the field being filtered/skipped from
 // validation
 type FilterFunc func(ns []byte) bool
 
@@ -123,7 +124,8 @@ func New() *Validate {
 		switch k {
 		// these require that even if the value is nil that the validation should run, omitempty still overrides this behaviour
 		case requiredIfTag, requiredUnlessTag, requiredWithTag, requiredWithAllTag, requiredWithoutTag, requiredWithoutAllTag,
-			excludedIfTag, excludedUnlessTag, excludedWithTag, excludedWithAllTag, excludedWithoutTag, excludedWithoutAllTag:
+			excludedIfTag, excludedUnlessTag, excludedWithTag, excludedWithAllTag, excludedWithoutTag, excludedWithoutAllTag,
+			skipUnlessTag:
 			_ = v.registerValidation(k, wrapFunc(val), true, true)
 		default:
 			// no need to error check here, baked in will always be valid
@@ -151,7 +153,7 @@ func (v *Validate) SetTagName(name string) {
 }
 
 // ValidateMapCtx validates a map using a map of validation rules and allows passing of contextual
-// validation validation information via context.Context.
+// validation information via context.Context.
 func (v Validate) ValidateMapCtx(ctx context.Context, data map[string]interface{}, rules map[string]interface{}) map[string]interface{} {
 	errs := make(map[string]interface{})
 	for field, rule := range rules {
@@ -451,7 +453,7 @@ func (v *Validate) StructPartial(s interface{}, fields ...string) error {
 }
 
 // StructPartialCtx validates the fields passed in only, ignoring all others and allows passing of contextual
-// validation validation information via context.Context
+// validation information via context.Context
 // Fields may be provided in a namespaced fashion relative to the  struct provided
 // eg. NestedStruct.Field or NestedArrayField[0].Struct.Name
 //
@@ -541,7 +543,7 @@ func (v *Validate) StructExcept(s interface{}, fields ...string) error {
 }
 
 // StructExceptCtx validates all fields except the ones passed in and allows passing of contextual
-// validation validation information via context.Context
+// validation information via context.Context
 // Fields may be provided in a namespaced fashion relative to the  struct provided
 // i.e. NestedStruct.Field or NestedArrayField[0].Struct.Name
 //

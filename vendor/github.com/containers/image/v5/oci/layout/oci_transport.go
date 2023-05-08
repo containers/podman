@@ -188,13 +188,17 @@ func (ref ociReference) getManifestDescriptor() (imgspecv1.Descriptor, error) {
 		return index.Manifests[0], nil
 	} else {
 		// if image specified, look through all manifests for a match
+		var unsupportedMIMETypes []string
 		for _, md := range index.Manifests {
-			if md.MediaType != imgspecv1.MediaTypeImageManifest && md.MediaType != imgspecv1.MediaTypeImageIndex {
-				continue
-			}
 			if refName, ok := md.Annotations[imgspecv1.AnnotationRefName]; ok && refName == ref.image {
-				return md, nil
+				if md.MediaType == imgspecv1.MediaTypeImageManifest || md.MediaType == imgspecv1.MediaTypeImageIndex {
+					return md, nil
+				}
+				unsupportedMIMETypes = append(unsupportedMIMETypes, md.MediaType)
 			}
+		}
+		if len(unsupportedMIMETypes) != 0 {
+			return imgspecv1.Descriptor{}, fmt.Errorf("reference %q matches unsupported manifest MIME types %q", ref.image, unsupportedMIMETypes)
 		}
 	}
 	return imgspecv1.Descriptor{}, ImageNotFoundError{ref}

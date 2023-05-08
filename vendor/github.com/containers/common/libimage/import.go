@@ -54,11 +54,13 @@ func (r *Runtime) Import(ctx context.Context, path string, options *ImportOption
 	}
 
 	config := v1.Image{
-		Config:       ic,
-		History:      history,
-		OS:           options.OS,
-		Architecture: options.Arch,
-		Variant:      options.Variant,
+		Config:  ic,
+		History: history,
+		Platform: v1.Platform{
+			OS:           options.OS,
+			Architecture: options.Arch,
+			Variant:      options.Variant,
+		},
 	}
 
 	u, err := url.ParseRequestURI(path)
