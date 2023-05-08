@@ -55,18 +55,23 @@ function teardown() {
 Type           | Images    | Containers | Local Volumes
 Total          |         1 |          2 |             0
 Active         |         1 |          1 |             0
-RawSize        | ~12...... |          0 |             0
-RawReclaimable |         0 |          0 |             0
+RawSize        | ~12...... |         !0 |             0
+RawReclaimable |         0 |         !0 |             0
+Reclaimable    |   ~\(0%\) |   ~\(50%\) |       ~\(0%\)
 TotalCount     |         1 |          2 |             0
-Size           |   ~12.*MB |         0B |            0B
+Size           |   ~12.*MB |        !0B |            0B
 '
     while read -a fields; do
         for i in 0 1 2;do
             expect="${fields[$((i+1))]}"
             actual=$(jq -r ".[$i].${fields[0]}" <<<"$results")
 
-            # Do exact-match check, unless the expect term starts with ~
+            # Do exact-match check, unless the expect term starts with ~ or !
             op='='
+            if [[ "$expect" =~ ^\! ]]; then
+                op='!='
+                expect=${expect##\!}
+            fi
             if [[ "$expect" =~ ^~ ]]; then
                 op='=~'
                 expect=${expect##\~}

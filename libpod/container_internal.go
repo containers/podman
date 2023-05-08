@@ -55,10 +55,11 @@ const (
 	preCheckpointDir  = "pre-checkpoint"
 )
 
-// rootFsSize gets the size of the container's root filesystem
-// A container FS is split into two parts.  The first is the top layer, a
-// mutable layer, and the rest is the RootFS: the set of immutable layers
-// that make up the image on which the container is based.
+// rootFsSize gets the size of the container, which can be divided notionally
+// into two parts.  The first is the part of its size that can be directly
+// attributed to its base image, if it has one.  The second is the set of
+// changes that the container has had made relative to that base image.  Both
+// parts include some ancillary data, and we count that, too.
 func (c *Container) rootFsSize() (int64, error) {
 	if c.config.Rootfs != "" {
 		return 0, nil
@@ -72,58 +73,33 @@ func (c *Container) rootFsSize() (int64, error) {
 		return 0, err
 	}
 
-	// Ignore the size of the top layer.   The top layer is a mutable RW layer
-	// and is not considered a part of the rootfs
-	rwLayer, err := c.runtime.store.Layer(container.LayerID)
-	if err != nil {
-		return 0, err
-	}
-	layer, err := c.runtime.store.Layer(rwLayer.Parent)
-	if err != nil {
-		return 0, err
-	}
-
 	size := int64(0)
-	for layer.Parent != "" {
-		layerSize, err := c.runtime.store.DiffSize(layer.Parent, layer.ID)
-		if err != nil {
-			return size, fmt.Errorf("getting diffsize of layer %q and its parent %q: %w", layer.ID, layer.Parent, err)
-		}
-		size += layerSize
-		layer, err = c.runtime.store.Layer(layer.Parent)
+	if container.ImageID != "" {
+		size, err = c.runtime.store.ImageSize(container.ImageID)
 		if err != nil {
 			return 0, err
 		}
 	}
-	// Get the size of the last layer.  Has to be outside of the loop
-	// because the parent of the last layer is "", and lstore.Get("")
-	// will return an error.
-	layerSize, err := c.runtime.store.DiffSize(layer.Parent, layer.ID)
+
+	layerSize, err := c.runtime.store.ContainerSize(c.ID())
+
 	return size + layerSize, err
 }
 
-// rwSize gets the size of the mutable top layer of the container.
+// rwSize gets the combined size of the writeable layer and any ancillary data
+// for a given container.
 func (c *Container) rwSize() (int64, error) {
 	if c.config.Rootfs != "" {
 		size, err := util.SizeOfPath(c.config.Rootfs)
 		return int64(size), err
 	}
 
-	container, err := c.runtime.store.Container(c.ID())
+	layerSize, err := c.runtime.store.ContainerSize(c.ID())
 	if err != nil {
 		return 0, err
 	}
 
-	// The top layer of a container is
-	// the only readable/writeable layer, all others are immutable.
-	rwLayer, err := c.runtime.store.Layer(container.LayerID)
-	if err != nil {
-		return 0, err
-	}
-
-	// Get the size of the top layer by calculating the size of the diff
-	// between the layer and its parent.
-	return c.runtime.store.DiffSize(rwLayer.Parent, rwLayer.ID)
+	return layerSize, nil
 }
 
 // bundlePath returns the path to the container's root filesystem - where the OCI spec will be
