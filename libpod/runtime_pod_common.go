@@ -143,7 +143,13 @@ func (r *Runtime) removeMalformedPod(ctx context.Context, p *Pod, ctrs []*Contai
 				ctrNamedVolumes[vol.Name] = vol
 			}
 
-			_, _, err := r.removeContainer(ctx, ctr, force, false, true, true, false, false, timeout)
+			opts := ctrRmOpts{
+				Force:      force,
+				RemovePod:  true,
+				IgnoreDeps: true,
+				Timeout:    timeout,
+			}
+			_, _, err := r.removeContainer(ctx, ctr, opts)
 			return err
 		}()
 		removedCtrs[ctr.ID()] = err
