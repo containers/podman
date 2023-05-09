@@ -22,15 +22,15 @@ fi
 mkdir -p $UNIT_DIR
 
 systemctl() {
-    command systemctl $_DASHUSER "$@"
+    timeout --foreground -v --kill=10 $PODMAN_TIMEOUT systemctl $_DASHUSER "$@"
 }
 
 journalctl() {
-    command journalctl $_DASHUSER "$@"
+    timeout --foreground -v --kill=10 $PODMAN_TIMEOUT journalctl $_DASHUSER "$@"
 }
 
 systemd-run() {
-    command systemd-run $_DASHUSER "$@";
+    timeout --foreground -v --kill=10 $PODMAN_TIMEOUT systemd-run $_DASHUSER "$@";
 }
 
 install_kube_template() {

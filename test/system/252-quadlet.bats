@@ -52,7 +52,9 @@ function run_quadlet() {
     cp $sourcefile $quadlet_tmpdir/
 
     echo "$_LOG_PROMPT $QUADLET $_DASHUSER $UNIT_DIR"
-    QUADLET_UNIT_DIRS="$quadlet_tmpdir" run $QUADLET $_DASHUSER $UNIT_DIR
+    QUADLET_UNIT_DIRS="$quadlet_tmpdir" run \
+                     timeout --foreground -v --kill=10 $PODMAN_TIMEOUT \
+                     $QUADLET $_DASHUSER $UNIT_DIR
     echo "$output"
     assert $status -eq 0 "Failed to convert quadlet file: $sourcefile"
     is "$output" "" "quadlet should report no errors"
