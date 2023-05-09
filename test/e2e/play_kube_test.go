@@ -2803,10 +2803,15 @@ var _ = Describe("Podman play kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		logs := podmanTest.Podman([]string{"logs", getCtrNameInPod(pod)})
+		ctrName := getCtrNameInPod(pod)
+		wait := podmanTest.Podman([]string{"wait", ctrName})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait).Should(Exit(0), "podman wait %s", ctrName)
+
+		logs := podmanTest.Podman([]string{"logs", ctrName})
 		logs.WaitWithDefaultTimeout()
-		Expect(logs).Should(Exit(0))
-		Expect(logs.ErrorToString()).To(ContainSubstring("Operation not permitted"))
+		Expect(logs).Should(Exit(0), "podman logs %s", ctrName)
+		Expect(logs.ErrorToString()).To(ContainSubstring("getcwd: Operation not permitted"))
 	})
 
 	It("podman play kube seccomp pod level", func() {
