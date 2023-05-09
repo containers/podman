@@ -575,6 +575,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("logdriver.container", "logdriver.container"),
 		Entry("mount.container", "mount.container"),
 		Entry("health.container", "health.container"),
+		Entry("hostname.container", "hostname.container"),
 
 		Entry("basic.volume", "basic.volume"),
 		Entry("label.volume", "label.volume"),

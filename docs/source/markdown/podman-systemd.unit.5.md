@@ -108,6 +108,7 @@ Valid options for `[Container]` are listed below:
 | HealthStartupSuccess=2           | --health-startup-success=2             |
 | HealthStartupTimeout=1m33s       | --health-startup-timeout=1m33s         |
 | HealthTimeout=20s                | --health-timeout=20s                   |
+| HostName=new-host-name           | --hostname="new-host-name"             |
 | Image=ubi8                       | Image specification - ubi8             |
 | IP=192.5.0.1                     | --ip 192.5.0.0                         |
 | IP6=fd46:db93:aa76:ac37::10      | --ip6 2001:db8::1                      |
@@ -274,6 +275,11 @@ Equivalent to the Podman `--health-startup-timeout` option.
 
 The maximum time allowed to complete the healthcheck before an interval is considered failed.
 Equivalent to the Podman `--health-timeout` option.
+
+### `HostName=`
+
+Sets the host name that is available inside the container.
+Equivalent to the Podman `--hostname` option.
 
 ### `Image=`
 
