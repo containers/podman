@@ -58,6 +58,7 @@ const (
 	KeyHealthStartupSuccess  = "HealthStartupSuccess"
 	KeyHealthStartupTimeout  = "HealthStartupTimeout"
 	KeyHealthTimeout         = "HealthTimeout"
+	KeyHostName              = "HostName"
 	KeyImage                 = "Image"
 	KeyIP                    = "IP"
 	KeyIP6                   = "IP6"
@@ -129,6 +130,7 @@ var (
 		KeyHealthStartupSuccess:  true,
 		KeyHealthStartupTimeout:  true,
 		KeyHealthTimeout:         true,
+		KeyHostName:              true,
 		KeyImage:                 true,
 		KeyIP:                    true,
 		KeyIP6:                   true,
@@ -613,6 +615,10 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	}
 
 	handleHealth(container, ContainerGroup, podman)
+
+	if hostname, ok := container.Lookup(ContainerGroup, KeyHostName); ok {
+		podman.add("--hostname", hostname)
+	}
 
 	podmanArgs := container.LookupAllArgs(ContainerGroup, KeyPodmanArgs)
 	podman.add(podmanArgs...)
