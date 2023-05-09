@@ -564,12 +564,17 @@ END_HTML
 
         # One line after each divider, there's a status/timing line.
         if ($after_divider == 1) {
+            # When run with -p, ginkgo emits timing information on the
+            # first line after the divider. (Without -p, it's at the end).
+            # Recognize this, because it affects our recognition (below)
+            # of the test name.
             $line =~ s{(\[(\d+)\.\d+\s+seconds\])}{
                 if ($2 > 5) { "<b><span class='log-slow'>$1</span></b>" }
                 else        { "<b>$1</b>" }
-            }e;
+            }e && --$after_divider;
 
-            # Make FAILED and SKIPPING visible
+            # Make FAILED and SKIPPING visible. (Only works with ginkgo -p;
+            # without -p, status is at the bottom of the test block)
             $subtest_status = 'passed';
             if ($line =~ s!^(.*\[(SKIPPED|FAILED|FLAKEY).*\].*)!<span class="log-\L$2\E">$1</span>!) {
                 $subtest_status = lc($2);
@@ -578,9 +583,10 @@ END_HTML
             # FIXME: gray out entire block if it's skipped?
         }
 
-        # Four lines after each divider, there's a test name. Make it
-        # an anchor so we can link to it later.
-        if ($after_divider == 4) {
+        # Three lines after each divider (four, if ginkgo is run with "-p",
+        # see above), there's a test name. Make it an anchor so we can link
+        # to it later.
+        if ($after_divider == 3) {
             # Sigh. There is no actual marker. Assume that anything with
             ## two leading spaces then alpha or hyphen (not slashes) is
             ## a test name.
