@@ -115,13 +115,13 @@ func getUnitDirs(rootless bool) []string {
 			return nil
 		}
 		dirs = append(dirs, path.Join(configDir, "containers/systemd"))
-		dirs = append(dirs, filepath.Join(quadlet.UnitDirAdmin, "users"))
 		u, err := user.Current()
-		if err != nil {
+		if err == nil {
+			dirs = append(dirs, filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid))
+		} else {
 			fmt.Fprintf(os.Stderr, "Warning: %v", err)
-			return dirs
 		}
-		return append(dirs, filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid))
+		return append(dirs, filepath.Join(quadlet.UnitDirAdmin, "users"))
 	}
 	dirs = append(dirs, quadlet.UnitDirAdmin)
 	return append(dirs, quadlet.UnitDirDistro)

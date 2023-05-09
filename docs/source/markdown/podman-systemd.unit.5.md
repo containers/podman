@@ -15,10 +15,9 @@ podman\-systemd.unit - systemd units using Podman Quadlet
 
 ### Podman user unit search path
 
- * /etc/containers/systemd/users/
+ * $XDG_CONFIG_HOME/containers/systemd/ or ~/.config/containers/systemd/
  * /etc/containers/systemd/users/$(UID)
- * $XDG_CONFIG_HOME/containers/systemd/
- * ~/.config/containers/systemd/
+ * /etc/containers/systemd/users/
 
 ## DESCRIPTION
 
