@@ -445,10 +445,6 @@ github.com/fsnotify/fsnotify
 # github.com/fsouza/go-dockerclient v1.9.7
 ## explicit; go 1.19
 github.com/fsouza/go-dockerclient
-# github.com/go-chi/chi v4.1.2+incompatible
-## explicit
-github.com/go-chi/chi
-github.com/go-chi/chi/middleware
 # github.com/go-jose/go-jose/v3 v3.0.0
 ## explicit; go 1.12
 github.com/go-jose/go-jose/v3
@@ -509,16 +505,6 @@ github.com/go-openapi/swag
 # github.com/go-openapi/validate v0.22.1
 ## explicit; go 1.14
 github.com/go-openapi/validate
-# github.com/go-playground/locales v0.14.1
-## explicit; go 1.17
-github.com/go-playground/locales
-github.com/go-playground/locales/currency
-# github.com/go-playground/universal-translator v0.18.1
-## explicit; go 1.18
-github.com/go-playground/universal-translator
-# github.com/go-playground/validator/v10 v10.13.0
-## explicit; go 1.18
-github.com/go-playground/validator/v10
 # github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572
 ## explicit; go 1.13
 github.com/go-task/slim-sprig
@@ -567,8 +553,6 @@ github.com/google/shlex
 # github.com/google/trillian v1.5.1
 ## explicit; go 1.17
 github.com/google/trillian
-github.com/google/trillian/client
-github.com/google/trillian/client/backoff
 github.com/google/trillian/types
 github.com/google/trillian/types/internal/tls
 # github.com/google/uuid v1.3.0
@@ -626,9 +610,6 @@ github.com/klauspost/pgzip
 # github.com/kr/fs v0.1.0
 ## explicit
 github.com/kr/fs
-# github.com/leodido/go-urn v1.2.3
-## explicit; go 1.16
-github.com/leodido/go-urn
 # github.com/letsencrypt/boulder v0.0.0-20230213213521-fdfea0d469b6
 ## explicit; go 1.18
 github.com/letsencrypt/boulder/core
@@ -824,7 +805,7 @@ github.com/segmentio/ksuid
 ## explicit; go 1.20
 github.com/sigstore/fulcio/pkg/api
 github.com/sigstore/fulcio/pkg/certificate
-# github.com/sigstore/rekor v1.1.1
+# github.com/sigstore/rekor v1.1.2-0.20230508234306-ad288b385a44
 ## explicit; go 1.19
 github.com/sigstore/rekor/pkg/client
 github.com/sigstore/rekor/pkg/generated/client
@@ -833,7 +814,6 @@ github.com/sigstore/rekor/pkg/generated/client/index
 github.com/sigstore/rekor/pkg/generated/client/pubkey
 github.com/sigstore/rekor/pkg/generated/client/tlog
 github.com/sigstore/rekor/pkg/generated/models
-github.com/sigstore/rekor/pkg/log
 github.com/sigstore/rekor/pkg/util
 # github.com/sigstore/sigstore v1.6.4
 ## explicit; go 1.18
@@ -878,12 +858,6 @@ github.com/theupdateframework/go-tuf/encrypted
 # github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
 ## explicit
 github.com/titanous/rocacheck
-# github.com/transparency-dev/merkle v0.0.1
-## explicit; go 1.16
-github.com/transparency-dev/merkle
-github.com/transparency-dev/merkle/compact
-github.com/transparency-dev/merkle/proof
-github.com/transparency-dev/merkle/rfc6962
 # github.com/ulikunitz/xz v0.5.11
 ## explicit; go 1.12
 github.com/ulikunitz/xz
@@ -946,21 +920,6 @@ go.opentelemetry.io/otel/semconv/v1.12.0
 # go.opentelemetry.io/otel/trace v1.15.0
 ## explicit; go 1.19
 go.opentelemetry.io/otel/trace
-# go.uber.org/atomic v1.10.0
-## explicit; go 1.18
-go.uber.org/atomic
-# go.uber.org/multierr v1.11.0
-## explicit; go 1.19
-go.uber.org/multierr
-# go.uber.org/zap v1.24.0
-## explicit; go 1.19
-go.uber.org/zap
-go.uber.org/zap/buffer
-go.uber.org/zap/internal
-go.uber.org/zap/internal/bufferpool
-go.uber.org/zap/internal/color
-go.uber.org/zap/internal/exit
-go.uber.org/zap/zapcore
 # golang.org/x/crypto v0.8.0
 ## explicit; go 1.17
 golang.org/x/crypto/blowfish
@@ -1084,7 +1043,7 @@ google.golang.org/appengine/urlfetch
 # google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.54.0
+# google.golang.org/grpc v1.55.0
 ## explicit; go 1.17
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -1191,14 +1150,6 @@ gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# k8s.io/klog/v2 v2.90.1
-## explicit; go 1.13
-k8s.io/klog/v2
-k8s.io/klog/v2/internal/buffer
-k8s.io/klog/v2/internal/clock
-k8s.io/klog/v2/internal/dbg
-k8s.io/klog/v2/internal/serialize
-k8s.io/klog/v2/internal/severity
 # sigs.k8s.io/yaml v1.3.0
 ## explicit; go 1.12
 sigs.k8s.io/yaml
