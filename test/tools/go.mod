@@ -6,7 +6,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.2
 	github.com/onsi/ginkgo/v2 v2.9.4
 	github.com/vbatts/git-validation v1.2.0
-	golang.org/x/tools v0.9.0
+	golang.org/x/tools v0.9.1
 )
 
 require (
