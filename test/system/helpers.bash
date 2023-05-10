@@ -102,10 +102,26 @@ function basic_setup() {
 # Basic teardown: remove all pods and containers
 function basic_teardown() {
     echo "# [teardown]" >&2
-    run_podman '?' pod rm -t 0 --all --force --ignore
-    run_podman '?'     rm -t 0 --all --force --ignore
-    run_podman '?' network prune --force
-    run_podman '?' volume rm -a -f
+    local actions=(
+        "pod rm -t 0 --all --force --ignore"
+            "rm -t 0 --all --force --ignore"
+        "network prune --force"
+        "volume rm -a -f"
+    )
+    for action in "${actions[@]}"; do
+        run_podman '?' $action
+
+        # The -f commands should never exit nonzero, but if they do we want
+        # to know about it.
+        #   FIXME: someday: also test for [[ -n "$output" ]] - can't do this
+        #   yet because too many tests don't clean up their containers
+        if [[ $status -ne 0 ]]; then
+            echo "# [teardown] $_LOG_PROMPT podman $action" >&3
+            for line in "${lines[*]}"; do
+                echo "# $line" >&3
+            done
+        fi
+    done
 
     command rm -rf $PODMAN_TMPDIR
 }

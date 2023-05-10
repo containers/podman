@@ -53,10 +53,12 @@ function _require_crun() {
 }
 
 @test "podman --remote --group-add keep-groups " {
-    if is_remote; then
-        run_podman 125 run --rm --group-add keep-groups $IMAGE id
-        is "$output" ".*not supported in remote mode" "Remote check --group-add keep-groups"
+    if ! is_remote; then
+        skip "this test only meaningful under podman-remote"
     fi
+
+    run_podman 125 run --rm --group-add keep-groups $IMAGE id
+    is "$output" ".*not supported in remote mode" "Remote check --group-add keep-groups"
 }
 
 @test "podman --group-add without keep-groups " {
