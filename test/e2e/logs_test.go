@@ -566,11 +566,11 @@ var _ = Describe("Podman logs", func() {
 		testPod.WaitWithDefaultTimeout()
 		Expect(testPod).To(Exit(0))
 
-		log1 := podmanTest.Podman([]string{"run", "--name", containerName1, "-d", "--pod", podName, BB, "/bin/sh", "-c", "echo log1"})
+		log1 := podmanTest.Podman([]string{"run", "--name", containerName1, "--pod", podName, BB, "/bin/sh", "-c", "echo log1"})
 		log1.WaitWithDefaultTimeout()
 		Expect(log1).To(Exit(0))
 
-		log2 := podmanTest.Podman([]string{"run", "--name", containerName2, "-d", "--pod", podName, BB, "/bin/sh", "-c", "echo log2"})
+		log2 := podmanTest.Podman([]string{"run", "--name", containerName2, "--pod", podName, BB, "/bin/sh", "-c", "echo log2"})
 		log2.WaitWithDefaultTimeout()
 		Expect(log2).To(Exit(0))
 
@@ -591,10 +591,10 @@ var _ = Describe("Podman logs", func() {
 		testPod := podmanTest.Podman([]string{"pod", "create", fmt.Sprintf("--name=%s", podName)})
 		testPod.WaitWithDefaultTimeout()
 		Expect(testPod).To(Exit(0))
-		log1 := podmanTest.Podman([]string{"run", "--name", containerName1, "-d", "--pod", podName, BB, "/bin/sh", "-c", "echo log1"})
+		log1 := podmanTest.Podman([]string{"run", "--name", containerName1, "--pod", podName, BB, "/bin/sh", "-c", "echo log1"})
 		log1.WaitWithDefaultTimeout()
 		Expect(log1).To(Exit(0))
-		log2 := podmanTest.Podman([]string{"run", "--name", containerName2, "-d", "--pod", podName, BB, "/bin/sh", "-c", "echo log2"})
+		log2 := podmanTest.Podman([]string{"run", "--name", containerName2, "--pod", podName, BB, "/bin/sh", "-c", "echo log2"})
 		log2.WaitWithDefaultTimeout()
 		Expect(log2).To(Exit(0))
 		results := podmanTest.Podman([]string{"pod", "logs", "--color", podName})
