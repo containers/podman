@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/fs"
 	"net"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -77,6 +78,7 @@ var _ = Describe("Systemd activate", func() {
 
 		activateSession := testUtils.StartSystemExec(activate, systemdArgs)
 		Expect(activateSession.Exited).ShouldNot(Receive(), "Failed to start podman service")
+		WaitForService(url.URL{Scheme: "tcp", Host: addr})
 		defer activateSession.Signal(syscall.SIGTERM)
 
 		// Create custom functions for running podman and
