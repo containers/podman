@@ -111,6 +111,10 @@ type ProtoDriver interface {
 	Exists(id string) bool
 	// Returns a list of layer ids that exist on this driver (does not include
 	// additional storage layers). Not supported by all backends.
+	// If the driver requires that layers be removed in a particular order,
+	// usually due to parent-child relationships that it cares about, The
+	// list should be sorted well enough so that if all layers need to be
+	// removed, they can be removed in the order in which they're returned.
 	ListLayers() ([]string, error)
 	// Status returns a set of key-value pairs which give low
 	// level diagnostic status about this driver.
@@ -322,6 +326,7 @@ func getBuiltinDriver(name, home string, options Options) (Driver, error) {
 type Options struct {
 	Root                string
 	RunRoot             string
+	ImageStore          string
 	DriverPriority      []string
 	DriverOptions       []string
 	UIDMaps             []idtools.IDMap

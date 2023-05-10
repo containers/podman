@@ -1422,7 +1422,7 @@ func IsArchive(header []byte) bool {
 	if compression != Uncompressed {
 		return true
 	}
-	r := tar.NewReader(bytes.NewBuffer(header))
+	r := tar.NewReader(bytes.NewReader(header))
 	_, err := r.Next()
 	return err == nil
 }

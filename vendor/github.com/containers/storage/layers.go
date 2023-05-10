@@ -1922,6 +1922,18 @@ func (r *layerStore) Wipe() error {
 			return err
 		}
 	}
+	ids, err := r.driver.ListLayers()
+	if err != nil {
+		if !errors.Is(err, drivers.ErrNotSupported) {
+			return err
+		}
+		ids = nil
+	}
+	for _, id := range ids {
+		if err := r.driver.Remove(id); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -2198,7 +2210,7 @@ func (r *layerStore) applyDiffWithOptions(to string, layerOptions *LayerOptions,
 		return -1, err
 	}
 	compression := archive.DetectCompression(header[:n])
-	defragmented := io.MultiReader(bytes.NewBuffer(header[:n]), diff)
+	defragmented := io.MultiReader(bytes.NewReader(header[:n]), diff)
 
 	// Decide if we need to compute digests
 	var compressedDigest, uncompressedDigest digest.Digest       // = ""

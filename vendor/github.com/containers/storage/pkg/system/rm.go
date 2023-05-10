@@ -30,6 +30,12 @@ func EnsureRemoveAll(dir string) error {
 	exitOnErr := make(map[string]int)
 	maxRetry := 100
 
+	// Attempt a simple remove all first, this avoids the more expensive
+	// RecursiveUnmount call if not needed.
+	if err := os.RemoveAll(dir); err == nil {
+		return nil
+	}
+
 	// Attempt to unmount anything beneath this dir first
 	if err := mount.RecursiveUnmount(dir); err != nil {
 		logrus.Debugf("RecusiveUnmount on %s failed: %v", dir, err)

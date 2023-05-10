@@ -21,6 +21,7 @@ type TomlConfig struct {
 		Driver              string            `toml:"driver,omitempty"`
 		DriverPriority      []string          `toml:"driver_priority,omitempty"`
 		RunRoot             string            `toml:"runroot,omitempty"`
+		ImageStore          string            `toml:"imagestore,omitempty"`
 		GraphRoot           string            `toml:"graphroot,omitempty"`
 		RootlessStoragePath string            `toml:"rootless_storage_path,omitempty"`
 		TransientStore      bool              `toml:"transient_store,omitempty"`
@@ -215,6 +216,10 @@ type StoreOptions struct {
 	// GraphRoot is the filesystem path under which we will store the
 	// contents of layers, images, and containers.
 	GraphRoot string `json:"root,omitempty"`
+	// Image Store is the location of image store which is seperated from the
+	// container store. Usually this is not recommended unless users wants
+	// seperate store for image and containers.
+	ImageStore string `json:"imagestore,omitempty"`
 	// RootlessStoragePath is the storage path for rootless users
 	// default $HOME/.local/share/containers/storage
 	RootlessStoragePath string `toml:"rootless_storage_path"`
@@ -305,7 +310,11 @@ func getRootlessStorageOpts(rootlessUID int, systemOpts StoreOptions) (StoreOpti
 	}
 	if opts.GraphDriverName == "" {
 		if len(systemOpts.GraphDriverPriority) == 0 {
-			opts.GraphDriverName = "vfs"
+			if canUseRootlessOverlay(opts.GraphRoot, opts.RunRoot) {
+				opts.GraphDriverName = overlayDriver
+			} else {
+				opts.GraphDriverName = "vfs"
+			}
 		} else {
 			opts.GraphDriverPriority = systemOpts.GraphDriverPriority
 		}
@@ -404,6 +413,9 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) erro
 	}
 	if config.Storage.GraphRoot != "" {
 		storeOptions.GraphRoot = config.Storage.GraphRoot
+	}
+	if config.Storage.ImageStore != "" {
+		storeOptions.ImageStore = config.Storage.ImageStore
 	}
 	if config.Storage.RootlessStoragePath != "" {
 		storeOptions.RootlessStoragePath = config.Storage.RootlessStoragePath
