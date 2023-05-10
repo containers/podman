@@ -18,6 +18,7 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -280,7 +281,7 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 		dfImages = append(dfImages, &report)
 	}
 
-	// Get Containers and iterate them
+	// Get containers and iterate over them
 	cons, err := ic.Libpod.GetAllContainers()
 	if err != nil {
 		return nil, err
@@ -322,7 +323,7 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 		dfContainers = append(dfContainers, &report)
 	}
 
-	//	Get volumes and iterate them
+	// Get volumes and iterate over them
 	vols, err := ic.Libpod.GetAllVolumes()
 	if err != nil {
 		return nil, err
@@ -330,7 +331,7 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 
 	dfVolumes := make([]*entities.SystemDfVolumeReport, 0, len(vols))
 	for _, v := range vols {
-		var reclaimableSize uint64
+		var reclaimableSize int64
 		mountPoint, err := v.MountPoint()
 		if err != nil {
 			return nil, err
@@ -341,7 +342,7 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 			// TODO: fix this.
 			continue
 		}
-		volSize, err := util.SizeOfPath(mountPoint)
+		volSize, err := directory.Size(mountPoint)
 		if err != nil {
 			return nil, err
 		}
@@ -355,8 +356,8 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 		report := entities.SystemDfVolumeReport{
 			VolumeName:      v.Name(),
 			Links:           len(inUse),
-			Size:            int64(volSize),
-			ReclaimableSize: int64(reclaimableSize),
+			Size:            volSize,
+			ReclaimableSize: reclaimableSize,
 		}
 		dfVolumes = append(dfVolumes, &report)
 	}
