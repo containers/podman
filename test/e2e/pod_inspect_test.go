@@ -2,7 +2,6 @@ package integration
 
 import (
 	"encoding/json"
-	"os"
 
 	"github.com/containers/podman/v4/libpod/define"
 	. "github.com/containers/podman/v4/test/utils"
@@ -12,27 +11,6 @@ import (
 )
 
 var _ = Describe("Podman pod inspect", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-
-	})
 
 	It("podman inspect bogus pod", func() {
 		session := podmanTest.Podman([]string{"pod", "inspect", "foobar"})

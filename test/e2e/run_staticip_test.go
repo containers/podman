@@ -3,7 +3,6 @@ package integration
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -14,27 +13,9 @@ import (
 )
 
 var _ = Describe("Podman run with --ip flag", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
 
 	BeforeEach(func() {
 		SkipIfRootless("rootless does not support --ip without network")
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-
 	})
 
 	It("Podman run --ip with garbage address", func() {

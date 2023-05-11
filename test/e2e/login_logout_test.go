@@ -16,9 +16,7 @@ import (
 
 var _ = Describe("Podman login and logout", func() {
 	var (
-		tempdir                  string
 		err                      error
-		podmanTest               *PodmanTestIntegration
 		authPath                 string
 		certPath                 string
 		certDirPath              string
@@ -28,11 +26,6 @@ var _ = Describe("Podman login and logout", func() {
 	)
 
 	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
 
 		authPath = filepath.Join(podmanTest.TempDir, "auth")
 		err := os.Mkdir(authPath, os.ModePerm)
@@ -98,7 +91,6 @@ var _ = Describe("Podman login and logout", func() {
 
 	AfterEach(func() {
 		os.Unsetenv("REGISTRY_AUTH_FILE")
-		podmanTest.Cleanup()
 		os.RemoveAll(authPath)
 		os.RemoveAll(certDirPath)
 	})

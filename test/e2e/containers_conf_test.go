@@ -16,32 +16,13 @@ import (
 )
 
 var _ = Describe("Verify podman containers.conf usage", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
 
 	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
 		os.Setenv("CONTAINERS_CONF", "config/containers.conf")
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
 		}
 
-	})
-
-	AfterEach(func() {
-		os.Unsetenv("CONTAINERS_CONF")
-		os.Unsetenv("CONTAINERS_CONF_OVERRIDE")
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
 	})
 
 	It("limits test", func() {

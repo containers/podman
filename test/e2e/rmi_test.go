@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"os"
 	"sync"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -12,27 +11,6 @@ import (
 )
 
 var _ = Describe("Podman rmi", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-
-	})
 
 	It("podman rmi bogus image", func() {
 		session := podmanTest.Podman([]string{"rmi", "debian:6.0.10"})

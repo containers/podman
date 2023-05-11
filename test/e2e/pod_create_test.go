@@ -21,28 +21,7 @@ import (
 )
 
 var _ = Describe("Podman pod create", func() {
-	var (
-		tempdir     string
-		err         error
-		podmanTest  *PodmanTestIntegration
-		hostname, _ = os.Hostname()
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-
-	})
+	hostname, _ := os.Hostname()
 
 	It("podman create pod", func() {
 		_, ec, podID := podmanTest.CreatePod(nil)
@@ -952,7 +931,6 @@ ENTRYPOINT ["sleep","99999"]
 		confPath, err := filepath.Abs("config/containers-netns.conf")
 		Expect(err).ToNot(HaveOccurred())
 		os.Setenv("CONTAINERS_CONF", confPath)
-		defer os.Unsetenv("CONTAINERS_CONF")
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
 		}

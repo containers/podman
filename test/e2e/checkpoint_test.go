@@ -28,20 +28,11 @@ func getRunString(input []string) []string {
 }
 
 var _ = Describe("Podman checkpoint", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
 
 	BeforeEach(func() {
 		SkipIfRootless("checkpoint not supported in rootless mode")
 		SkipIfContainerized("FIXME: #15015. All checkpoint tests hang when containerized.")
-		tempdir, err = CreateTempDirInTempDir()
-		Expect(err).ToNot(HaveOccurred())
 
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
 		// Check if the runtime implements checkpointing. Currently only
 		// runc's checkpoint/restore implementation is supported.
 		cmd := exec.Command(podmanTest.OCIRuntime, "checkpoint", "--help")
@@ -62,13 +53,6 @@ var _ = Describe("Podman checkpoint", func() {
 		if hostInfo.Distribution == "fedora" && hostInfo.Version < "29" {
 			Skip("Checkpoint/Restore with SELinux only works on Fedora >= 29")
 		}
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-
 	})
 
 	It("podman checkpoint bogus container", func() {

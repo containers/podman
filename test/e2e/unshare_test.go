@@ -3,7 +3,6 @@ package integration
 import (
 	"os"
 
-	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -18,11 +17,6 @@ func cleanupRootlessSlirp4netns(p *PodmanTestIntegration) {
 }
 
 var _ = Describe("Podman unshare", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
 	BeforeEach(func() {
 		if _, err := os.Stat("/proc/self/uid_map"); err != nil {
 			Skip("User namespaces not supported.")
@@ -31,21 +25,6 @@ var _ = Describe("Podman unshare", func() {
 		if !isRootless() {
 			Skip("Use unshare in rootless only")
 		}
-
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.CgroupManager = "cgroupfs"
-		podmanTest.StorageOptions = ROOTLESS_STORAGE_OPTIONS
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
 	})
 
 	It("podman unshare", func() {

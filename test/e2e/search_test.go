@@ -25,11 +25,6 @@ func (e *endpoint) Address() string {
 }
 
 var _ = Describe("Podman search", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
 
 	const regFileContents = `
 [registries.search]
@@ -54,22 +49,6 @@ registries = ['{{.Host}}:{{.Port}}', '{{.Host}}:6000']
 [registries.insecure]
 registries = ['{{.Host}}:{{.Port}}']`
 	registryFileTwoTmpl := template.Must(template.New("registryFileTwo").Parse(regFileContents2))
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-	})
 
 	It("podman search", func() {
 		search := podmanTest.Podman([]string{"search", "alpine"})

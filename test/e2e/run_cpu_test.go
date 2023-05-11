@@ -10,35 +10,15 @@ import (
 )
 
 var _ = Describe("Podman run cpu", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
 
 	BeforeEach(func() {
 		SkipIfRootlessCgroupsV1("Setting CPU not supported on cgroupv1 for rootless users")
-
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
 
 		if CGROUPSV2 {
 			if err := os.WriteFile("/sys/fs/cgroup/cgroup.subtree_control", []byte("+cpuset"), 0644); err != nil {
 				Skip("cpuset controller not available on the current kernel")
 			}
 		}
-
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-
 	})
 
 	It("podman run cpu-period", func() {

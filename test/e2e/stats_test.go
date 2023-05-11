@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"time"
 
@@ -15,30 +14,12 @@ import (
 // TODO: we need to check the output. Currently, we only check the exit codes
 // which is not enough.
 var _ = Describe("Podman stats", func() {
-	var (
-		tempdir    string
-		podmanTest *PodmanTestIntegration
-	)
 
 	BeforeEach(func() {
 		SkipIfRootlessCgroupsV1("stats not supported on cgroupv1 for rootless users")
 		if isContainerized() {
 			SkipIfCgroupV1("stats not supported inside cgroupv1 container environment")
 		}
-		var err error
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-
 	})
 
 	It("podman stats with bogus container", func() {

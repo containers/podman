@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 	"time"
 
@@ -24,26 +23,6 @@ func isEventBackendJournald(podmanTest *PodmanTestIntegration) bool {
 }
 
 var _ = Describe("Podman logs", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-	})
 
 	It("podman logs on not existent container", func() {
 		results := podmanTest.Podman([]string{"logs", "notexist"})

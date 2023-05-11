@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"os"
 	"os/exec"
 	"strings"
 
@@ -12,27 +11,6 @@ import (
 )
 
 var _ = Describe("Podman run ns", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-
-	})
 
 	It("podman run pidns test", func() {
 		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")

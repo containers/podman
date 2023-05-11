@@ -1854,27 +1854,10 @@ func verifyPodPorts(podmanTest *PodmanTestIntegration, podName string, ports ...
 }
 
 var _ = Describe("Podman play kube", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-		kubeYaml   string
-	)
+	var kubeYaml string
 
 	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
 		kubeYaml = filepath.Join(podmanTest.TempDir, "kube.yaml")
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
 	})
 
 	It("podman play kube fail with yaml of unsupported kind", func() {
@@ -1966,7 +1949,6 @@ var _ = Describe("Podman play kube", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		os.Setenv("CONTAINERS_CONF", conffile)
-		defer os.Unsetenv("CONTAINERS_CONF")
 
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
@@ -4105,7 +4087,6 @@ invalid kube kind
 		confPath, err := filepath.Abs("config/containers-netns2.conf")
 		Expect(err).ToNot(HaveOccurred())
 		os.Setenv("CONTAINERS_CONF", confPath)
-		defer os.Unsetenv("CONTAINERS_CONF")
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
 		}
@@ -4897,7 +4878,6 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 ipcns="host"
 cgroups="disabled"`), 0644)
 		Expect(err).ToNot(HaveOccurred())
-		defer os.Unsetenv("CONTAINERS_CONF")
 		os.Setenv("CONTAINERS_CONF", conffile)
 		err = writeYaml(simplePodYaml, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())

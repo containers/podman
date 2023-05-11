@@ -19,26 +19,6 @@ import (
 const dest = "/unique/path"
 
 var _ = Describe("Podman run with volumes", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-	})
 
 	// Returns the /proc/self/mountinfo line for a given mount point
 	getMountInfo := func(volume string) []string {

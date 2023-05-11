@@ -20,22 +20,10 @@ import (
 )
 
 var _ = Describe("Systemd activate", func() {
-	var tempDir string
-	var err error
-	var podmanTest *PodmanTestIntegration
 	var activate string
 
 	BeforeEach(func() {
 		SkipIfRemote("Testing stopped service requires both podman and podman-remote binaries")
-
-		tempDir, err = testUtils.CreateTempDirInTempDir()
-		if err != nil {
-			GinkgoWriter.Printf("%v\n", err)
-			os.Exit(1)
-		}
-
-		podmanTest = PodmanTestCreate(tempDir)
-		podmanTest.Setup()
 
 		activate, err = exec.LookPath("systemd-socket-activate")
 		if err != nil {
@@ -50,12 +38,6 @@ var _ = Describe("Systemd activate", func() {
 		case err != nil:
 			Skip(err.Error())
 		}
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
 	})
 
 	It("stop podman.service", func() {
@@ -134,7 +116,7 @@ var _ = Describe("Systemd activate", func() {
 		activateSession := testUtils.StartSystemExec(activate, []string{
 			"--datagram", "--listen", addr,
 			podmanTest.PodmanBinary,
-			"--root=" + filepath.Join(tempDir, "server_root"),
+			"--root=" + filepath.Join(tempdir, "server_root"),
 			"system", "service",
 			"--time=0",
 		})

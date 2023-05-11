@@ -26,27 +26,6 @@ func createContainersConfFileWithDevices(pTest *PodmanTestIntegration, devices s
 }
 
 var _ = Describe("Podman run device", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-		os.Unsetenv("CONTAINERS_CONF")
-	})
 
 	It("podman run bad device test", func() {
 		session := podmanTest.Podman([]string{"run", "-q", "--device", "/dev/baddevice", ALPINE, "true"})

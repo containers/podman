@@ -13,42 +13,8 @@ import (
 )
 
 var _ = Describe("podman image scp", func() {
-	ConfPath := struct {
-		Value string
-		IsSet bool
-	}{}
-	var (
-		tempdir    string
-		podmanTest *PodmanTestIntegration
-	)
 
-	BeforeEach(func() {
-		ConfPath.Value, ConfPath.IsSet = os.LookupEnv("CONTAINERS_CONF")
-		conf, err := os.CreateTemp("", "containersconf")
-		Expect(err).ToNot(HaveOccurred())
-
-		os.Setenv("CONTAINERS_CONF", conf.Name())
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-
-		os.Remove(os.Getenv("CONTAINERS_CONF"))
-		if ConfPath.IsSet {
-			os.Setenv("CONTAINERS_CONF", ConfPath.Value)
-		} else {
-			os.Unsetenv("CONTAINERS_CONF")
-		}
-		f := CurrentSpecReport()
-		processTestResult(f)
-
-	})
+	BeforeEach(setupEmptyContainersConf)
 
 	It("podman image scp bogus image", func() {
 		scp := podmanTest.Podman([]string{"image", "scp", "FOOBAR"})

@@ -13,21 +13,11 @@ import (
 )
 
 var _ = Describe("Podman pause", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
 	pausedState := "paused"
 	createdState := "created"
 
 	BeforeEach(func() {
 		SkipIfRootlessCgroupsV1("Pause is not supported in cgroups v1")
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
 
 		if CGROUPSV2 {
 			b, err := os.ReadFile("/proc/self/cgroup")
@@ -41,15 +31,6 @@ var _ = Describe("Podman pause", func() {
 				Skip("freezer controller not available on the current kernel")
 			}
 		}
-
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
 
 	})
 

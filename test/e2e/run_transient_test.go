@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"os"
 	"path/filepath"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -12,10 +11,6 @@ import (
 
 var _ = Describe("Podman run with volumes", func() {
 	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-
 		containerStorageDir    string
 		dbDir                  string
 		runContainerStorageDir string
@@ -23,23 +18,10 @@ var _ = Describe("Podman run with volumes", func() {
 	)
 
 	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-
 		containerStorageDir = filepath.Join(podmanTest.Root, podmanTest.ImageCacheFS+"-containers")
 		dbDir = filepath.Join(podmanTest.Root, "libpod")
 		runContainerStorageDir = filepath.Join(podmanTest.RunRoot, podmanTest.ImageCacheFS+"-containers")
 		runDBDir = tempdir
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
 	})
 
 	It("podman run with no transient-store", func() {
