@@ -113,7 +113,10 @@ func removePods(namesOrIDs []string, rmOptions entities.PodRmOptions, printIDs b
 			return nil
 		}
 		setExitCode(err)
-		return append(errs, err)
+		errs = append(errs, err)
+		if !strings.Contains(err.Error(), define.ErrRemovingCtrs.Error()) {
+			return errs
+		}
 	}
 
 	// in the cli, first we print out all the successful attempts

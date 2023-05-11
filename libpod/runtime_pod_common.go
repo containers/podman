@@ -248,7 +248,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 		}
 
 		if len(ctrErrors) > 0 {
-			return removedCtrs, fmt.Errorf("not all containers could be removed from pod %s: %w", p.ID(), define.ErrCtrExists)
+			return removedCtrs, fmt.Errorf("not all containers could be removed from pod %s: %w", p.ID(), define.ErrRemovingCtrs)
 		}
 	}
 
