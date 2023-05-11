@@ -89,13 +89,13 @@ of this document, it's not possible to override the behavior of `$CIRRUS_PR`.
 + success
 + artifacts
 
-### Intended `[CI:NVAV=update]` or `[CI:NVAV=main]` behavior:
+### Intended `[CI:NEXT]` behavior:
 
-If and only if the PR is in **draft-mode**, either update Fedora CI VMs to the
-latest Netavark/Aardvark-dns RPMs ("update" keyword), or install the most
-recent package builds from their `main` branch ("main" keyword).  These are
-**runtime changes** only, and will not persist or impact other PRs
-in any way.
+If and only if the PR is in **draft-mode**, update Fedora CI VMs at runtime
+to the latest packages available in the podman-next COPR repo.  These packages
+represent primary podman dependencies, and are regularly built from their
+upstream repos.  These are **runtime changes** only, and will not persist
+or impact other PRs in any way.
 
 The intent is to temporarily support testing of updates with the latest podman
 code & tests.  To help prevent accidents, when the PR is not in draft-mode, the
