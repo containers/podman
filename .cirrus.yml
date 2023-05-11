@@ -300,7 +300,6 @@ bindings_task:
     only_if: >-
         $CIRRUS_PR != '' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
     depends_on:
         - build
@@ -459,7 +458,6 @@ docker-py_test_task:
     only_if: &not_tag_branch_build_docs >-
         $CIRRUS_PR != '' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
 
     depends_on:
@@ -566,7 +564,6 @@ windows_smoke_test_task:
         $CIRRUS_TAG == '' &&
         $CIRRUS_CRON != 'multiarch' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
         $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
         $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
     depends_on:
@@ -684,7 +681,6 @@ podman_machine_task:
     only_if: &not_tag_build_docs_multiarch >-
         $CIRRUS_TAG == '' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
         $CIRRUS_CRON != 'multiarch'
     depends_on:
@@ -1090,7 +1086,6 @@ artifacts_task:
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: >-
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
         $CIRRUS_CRON != 'multiarch' &&
         $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
         $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
