@@ -310,15 +310,23 @@ Deleted: $pauseID"
 }
 
 @test "podman images - commit docker with comment" {
-    run_podman run --name my-container -itd $IMAGE sleep 1d
+    run_podman run --name my-container -d $IMAGE top
     run_podman 125 commit -m comment my-container my-test-image
     assert "$output" == "Error: messages are only compatible with the docker image format (-f docker)" "podman should fail unless docker format"
-    run_podman commit my-container --format docker -m comment my-test-image
-    run_podman commit -q my-container --format docker -m comment my-test-image
-    assert "$output" =~ "^[0-9a-f]{64}\$" \
-           "Output is a commit ID, no warnings or other output"
 
-    run_podman rmi my-test-image
+    # Without -q: verbose output, but only on podman-local, not remote
+    run_podman commit my-container --format docker -m comment my-test-image1
+    if ! is_remote; then
+        assert "$output" =~ "Getting image.*Writing manif.*Storing signatu" \
+               "Without -q, verbose output"
+    fi
+
+    # With -q, both local and remote: only an image ID
+    run_podman commit -q my-container --format docker -m comment my-test-image2
+    assert "$output" =~ "^[0-9a-f]{64}\$" \
+           "With -q, output is a commit ID, no warnings or other output"
+
+    run_podman rmi my-test-image1 my-test-image2
     run_podman rm my-container --force -t 0
 }
 
