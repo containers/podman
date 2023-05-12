@@ -2234,6 +2234,12 @@ var _ = Describe("Podman play kube", func() {
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring("running"))
 
+		// Init containers should not be restarted
+		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{ .HostConfig.RestartPolicy.Name }}", "testPod-" + defaultCtrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(define.RestartPolicyNo))
+
 		// Init containers need environment too! #18384
 		logs := podmanTest.Podman([]string{"logs", "testPod-init-test"})
 		logs.WaitWithDefaultTimeout()

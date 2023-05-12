@@ -586,6 +586,10 @@ func (s *SpecGenerator) GetImage() (*libimage.Image, string) {
 	return s.image, s.resolvedImageName
 }
 
+func (s *SpecGenerator) IsInitContainer() bool {
+	return len(s.InitContainerType) != 0
+}
+
 type Secret struct {
 	Source string
 	Target string
