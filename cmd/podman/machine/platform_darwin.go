@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/applehv"
 	"github.com/containers/podman/v4/pkg/machine/qemu"
 	"github.com/sirupsen/logrus"
 )
@@ -30,6 +31,8 @@ func GetSystemProvider() (machine.VirtProvider, error) {
 	switch resolvedVMType {
 	case machine.QemuVirt:
 		return qemu.GetVirtualizationProvider(), nil
+	case machine.AppleHvVirt:
+		return applehv.GetVirtualizationProvider(), nil
 	default:
 		return nil, fmt.Errorf("unsupported virtualization provider: `%s`", resolvedVMType.String())
 	}

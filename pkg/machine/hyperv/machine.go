@@ -20,6 +20,7 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/homedir"
+	"github.com/containers/storage/pkg/ioutils"
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
 )
@@ -154,11 +155,7 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	}
 
 	// Write the JSON file for the second time.  First time was in NewMachine
-	b, err := json.MarshalIndent(m, "", " ")
-	if err != nil {
-		return false, err
-	}
-	if err := os.WriteFile(m.ConfigPath.GetPath(), b, 0644); err != nil {
+	if err := m.writeConfig(); err != nil {
 		return false, err
 	}
 
@@ -391,7 +388,11 @@ func (m *HyperVMachine) Set(name string, opts machine.SetOptions) ([]error, erro
 	}
 
 	if opts.Rootful != nil && m.Rootful != *opts.Rootful {
-		setErrors = append(setErrors, hypervctl.ErrNotImplemented)
+		if err := m.setRootful(*opts.Rootful); err != nil {
+			setErrors = append(setErrors, fmt.Errorf("failed to set rootful option: %w", err))
+		} else {
+			m.Rootful = *opts.Rootful
+		}
 	}
 	if opts.DiskSize != nil && m.DiskSize != *opts.DiskSize {
 		setErrors = append(setErrors, hypervctl.ErrNotImplemented)
@@ -405,38 +406,31 @@ func (m *HyperVMachine) Set(name string, opts machine.SetOptions) ([]error, erro
 		memoryChanged = true
 	}
 
-	if !cpuChanged && !memoryChanged {
-		switch len(setErrors) {
-		case 0:
-			return nil, nil
-		case 1:
-			return nil, setErrors[0]
-		default:
-			return setErrors[1:], setErrors[0]
+	if cpuChanged || memoryChanged {
+		err := vm.UpdateProcessorMemSettings(func(ps *hypervctl.ProcessorSettings) {
+			if cpuChanged {
+				ps.VirtualQuantity = m.CPUs
+			}
+		}, func(ms *hypervctl.MemorySettings) {
+			if memoryChanged {
+				ms.DynamicMemoryEnabled = false
+				ms.VirtualQuantity = m.Memory
+				ms.Limit = m.Memory
+				ms.Reservation = m.Memory
+			}
+		})
+		if err != nil {
+			setErrors = append(setErrors, err)
 		}
-	}
-	// Write the new JSON out
-	// considering this a hard return if we cannot write the JSON file.
-	b, err := json.MarshalIndent(m, "", " ")
-	if err != nil {
-		return setErrors, err
-	}
-	if err := os.WriteFile(m.ConfigPath.GetPath(), b, 0644); err != nil {
-		return setErrors, err
 	}
 
-	return setErrors, vm.UpdateProcessorMemSettings(func(ps *hypervctl.ProcessorSettings) {
-		if cpuChanged {
-			ps.VirtualQuantity = m.CPUs
-		}
-	}, func(ms *hypervctl.MemorySettings) {
-		if memoryChanged {
-			ms.DynamicMemoryEnabled = false
-			ms.VirtualQuantity = m.Memory
-			ms.Limit = m.Memory
-			ms.Reservation = m.Memory
-		}
-	})
+	if len(setErrors) > 0 {
+		return setErrors, setErrors[0]
+	}
+
+	// Write the new JSON out
+	// considering this a hard return if we cannot write the JSON file.
+	return setErrors, m.writeConfig()
 }
 
 func (m *HyperVMachine) SSH(name string, opts machine.SSHOptions) error {
@@ -472,7 +466,20 @@ func (m *HyperVMachine) Start(name string, opts machine.StartOptions) error {
 		return err
 	}
 	// Wait on notification from the guest
-	return m.ReadyHVSock.Listen()
+	if err := m.ReadyHVSock.Listen(); err != nil {
+		return err
+	}
+
+	if m.HostUser.Modified {
+		if machine.UpdatePodmanDockerSockService(m, name, m.UID, m.Rootful) == nil {
+			// Reset modification state if there are no errors, otherwise ignore errors
+			// which are already logged
+			m.HostUser.Modified = false
+			_ = m.writeConfig()
+		}
+	}
+
+	return nil
 }
 
 func (m *HyperVMachine) State(_ bool) (machine.Status, error) {
@@ -660,4 +667,45 @@ func (m *HyperVMachine) forwardSocketPath() (*machine.VMFile, error) {
 		return nil, fmt.Errorf("Resolving data dir: %s", err.Error())
 	}
 	return machine.NewMachineFile(filepath.Join(path, sockName), &sockName)
+}
+
+func (m *HyperVMachine) writeConfig() error {
+	// Write the JSON file
+	opts := &ioutils.AtomicFileWriterOptions{ExplicitCommit: true}
+	w, err := ioutils.NewAtomicFileWriterWithOpts(m.ConfigPath.GetPath(), 0644, opts)
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", " ")
+
+	if err := enc.Encode(m); err != nil {
+		return err
+	}
+
+	// Commit the changes to disk if no errors
+	return w.Commit()
+}
+
+func (m *HyperVMachine) setRootful(rootful bool) error {
+	changeCon, err := machine.AnyConnectionDefault(m.Name, m.Name+"-root")
+	if err != nil {
+		return err
+	}
+
+	if changeCon {
+		newDefault := m.Name
+		if rootful {
+			newDefault += "-root"
+		}
+		err := machine.ChangeDefault(newDefault)
+		if err != nil {
+			return err
+		}
+	}
+
+	m.HostUser.Modified = true
+	return nil
 }

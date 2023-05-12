@@ -25,7 +25,8 @@ import (
 */
 
 const (
-	UserCertsTargetPath = "/etc/containers/certs.d"
+	UserCertsTargetPath     = "/etc/containers/certs.d"
+	PodmanDockerTmpConfPath = "/etc/tmpfiles.d/podman-docker.conf"
 )
 
 // Convenience function to convert int to ptr
@@ -60,6 +61,7 @@ type DynamicIgnition struct {
 	VMType    VMType
 	WritePath string
 	Cfg       Config
+	Rootful   bool
 }
 
 func (ign *DynamicIgnition) Write() error {
@@ -95,7 +97,7 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 
 	ignStorage := Storage{
 		Directories: getDirs(ign.Name),
-		Files:       getFiles(ign.Name, ign.UID),
+		Files:       getFiles(ign.Name, ign.UID, ign.Rootful),
 		Links:       getLinks(ign.Name),
 	}
 
@@ -285,7 +287,7 @@ func getDirs(usrName string) []Directory {
 	return dirs
 }
 
-func getFiles(usrName string, uid int) []File {
+func getFiles(usrName string, uid int, rootful bool) []File {
 	files := make([]File, 0)
 
 	lingerExample := `[Unit]
@@ -448,14 +450,13 @@ Delegate=memory pids cpu io
 
 	files = append(files, File{
 		Node: Node{
-			Path: "/etc/tmpfiles.d/podman-docker.conf",
+			Path: PodmanDockerTmpConfPath,
 		},
 		FileEmbedded1: FileEmbedded1{
 			Append: nil,
 			// Create a symlink from the docker socket to the podman socket.
-			// Taken from https://github.com/containers/podman/blob/main/contrib/systemd/system/podman-docker.conf
 			Contents: Resource{
-				Source: EncodeDataURLPtr("L+  /run/docker.sock   -    -    -     -   /run/podman/podman.sock\n"),
+				Source: EncodeDataURLPtr(GetPodmanDockerTmpConfig(uid, rootful, true)),
 			},
 			Mode: IntToPtr(0644),
 		},
@@ -644,4 +645,18 @@ func getLinks(usrName string) []Link {
 
 func EncodeDataURLPtr(contents string) *string {
 	return StrToPtr(fmt.Sprintf("data:,%s", url.PathEscape(contents)))
+}
+
+func GetPodmanDockerTmpConfig(uid int, rootful bool, newline bool) string {
+	// Derived from https://github.com/containers/podman/blob/main/contrib/systemd/system/podman-docker.conf
+	podmanSock := "/run/podman/podman.sock"
+	if !rootful {
+		podmanSock = fmt.Sprintf("/run/user/%d/podman/podman.sock", uid)
+	}
+	suffix := ""
+	if newline {
+		suffix = "\n"
+	}
+
+	return fmt.Sprintf("L+  /run/docker.sock   -    -    -     -   %s%s", podmanSock, suffix)
 }

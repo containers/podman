@@ -359,6 +359,8 @@ type HostUser struct {
 	Rootful bool
 	// UID is the numerical id of the user that called machine
 	UID int
+	// Whether one of these fields has changed and actions should be taken
+	Modified bool `json:"HostUserModified"`
 }
 
 // SSHConfig contains remote access information for SSH

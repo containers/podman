@@ -387,6 +387,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		TimeZone:  opts.TimeZone,
 		WritePath: v.getIgnitionFile(),
 		UID:       v.UID,
+		Rootful:   v.Rootful,
 	}
 
 	if err := ign.GenerateIgnitionConfig(); err != nil {
@@ -644,6 +645,15 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	_, err = bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
 		return err
+	}
+
+	if v.HostUser.Modified {
+		if machine.UpdatePodmanDockerSockService(v, name, v.UID, v.Rootful) == nil {
+			// Reset modification state if there are no errors, otherwise ignore errors
+			// which are already logged
+			v.HostUser.Modified = false
+			_ = v.writeConfig()
+		}
 	}
 	if len(v.Mounts) > 0 {
 		state, err := v.State(true)
@@ -1668,6 +1678,8 @@ func (v *MachineVM) setRootful(rootful bool) error {
 			return err
 		}
 	}
+
+	v.HostUser.Modified = true
 	return nil
 }
 

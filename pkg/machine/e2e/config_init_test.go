@@ -27,7 +27,7 @@ type initMachine struct {
 	memory       *uint
 	now          bool
 	timezone     string
-	rootful      bool //nolint:unused
+	rootful      bool
 	volumes      []string
 
 	cmd []string
@@ -61,6 +61,9 @@ func (i *initMachine) buildCmd(m *machineTestBuilder) []string {
 	}
 	if i.now {
 		cmd = append(cmd, "--now")
+	}
+	if i.rootful {
+		cmd = append(cmd, "--rootful")
 	}
 	cmd = append(cmd, m.name)
 	i.cmd = cmd
@@ -108,5 +111,10 @@ func (i *initMachine) withTimezone(tz string) *initMachine {
 
 func (i *initMachine) withVolume(v string) *initMachine {
 	i.volumes = append(i.volumes, v)
+	return i
+}
+
+func (i *initMachine) withRootful(r bool) *initMachine {
+	i.rootful = r
 	return i
 }
