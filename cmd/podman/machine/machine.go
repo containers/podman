@@ -147,8 +147,10 @@ func eventSockDir() (string, error) {
 func newMachineEvent(status events.Status, event events.Event) {
 	openEventSock.Do(initMachineEvents)
 
+	now := time.Now()
+	event.Time = now.Unix()
+	event.TimeNano = now.UnixNano()
 	event.Status = status
-	event.Time = time.Now()
 	event.Type = events.Machine
 
 	payload, err := json.Marshal(event)

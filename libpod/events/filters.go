@@ -82,13 +82,13 @@ func generateEventFilter(filter, filterValue string) (func(e *Event) bool, error
 
 func generateEventSinceOption(timeSince time.Time) func(e *Event) bool {
 	return func(e *Event) bool {
-		return e.Time.After(timeSince)
+		return time.Unix(0, e.TimeNano).After(timeSince)
 	}
 }
 
 func generateEventUntilOption(timeUntil time.Time) func(e *Event) bool {
 	return func(e *Event) bool {
-		return e.Time.Before(timeUntil)
+		return time.Unix(0, e.TimeNano).Before(timeUntil)
 	}
 }
 

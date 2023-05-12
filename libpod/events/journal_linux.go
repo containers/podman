@@ -37,7 +37,7 @@ func (e EventJournalD) Write(ee Event) error {
 	m["SYSLOG_IDENTIFIER"] = "podman"
 	m["PODMAN_EVENT"] = ee.Status.String()
 	m["PODMAN_TYPE"] = ee.Type.String()
-	m["PODMAN_TIME"] = ee.Time.Format(time.RFC3339Nano)
+	m["PODMAN_TIME"] = time.Unix(0, ee.TimeNano).Format(time.RFC3339Nano)
 
 	// Add specialized information based on the podman type
 	switch ee.Type {
@@ -180,7 +180,8 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {
 		return nil, err
 	}
 	newEvent.Type = eventType
-	newEvent.Time = eventTime
+	newEvent.Time = eventTime.Unix()
+	newEvent.TimeNano = eventTime.UnixNano()
 	newEvent.Status = eventStatus
 	newEvent.Name = entry.Fields["PODMAN_NAME"]
 

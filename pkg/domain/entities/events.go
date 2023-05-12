@@ -2,7 +2,6 @@ package entities
 
 import (
 	"strconv"
-	"time"
 
 	libpodEvents "github.com/containers/podman/v4/libpod/events"
 	dockerEvents "github.com/docker/docker/api/types/events"
@@ -44,7 +43,8 @@ func ConvertToLibpodEvent(e Event) *libpodEvents.Event {
 		Image:             image,
 		Name:              name,
 		Status:            status,
-		Time:              time.Unix(0, e.TimeNano),
+		Time:              e.Time,
+		TimeNano:          e.TimeNano,
 		Type:              t,
 		HealthStatus:      e.HealthStatus,
 		Details: libpodEvents.Details{
@@ -76,8 +76,8 @@ func ConvertToEntitiesEvent(e libpodEvents.Event) *Event {
 			Attributes: attributes,
 		},
 		Scope:    "local",
-		Time:     e.Time.Unix(),
-		TimeNano: e.Time.UnixNano(),
+		Time:     e.Time,
+		TimeNano: e.TimeNano,
 	}
 	return &Event{
 		message,

@@ -48,9 +48,11 @@ func IsValidEventer(eventer string) bool {
 // NewEvent creates an event struct and populates with
 // the given status and time.
 func NewEvent(status Status) Event {
+	now := time.Now()
 	return Event{
-		Status: status,
-		Time:   time.Now(),
+		Status:   status,
+		Time:     now.Unix(),
+		TimeNano: now.UnixNano(),
 	}
 }
 
@@ -76,7 +78,7 @@ func (e *Event) ToHumanReadable(truncate bool) string {
 	}
 	switch e.Type {
 	case Container, Pod:
-		humanFormat = fmt.Sprintf("%s %s %s %s (image=%s, name=%s", e.Time, e.Type, e.Status, id, e.Image, e.Name)
+		humanFormat = fmt.Sprintf("%s %s %s %s (image=%s, name=%s", time.Unix(0, e.TimeNano), e.Type, e.Status, id, e.Image, e.Name)
 		if e.PodID != "" {
 			humanFormat += fmt.Sprintf(", pod_id=%s", e.PodID)
 		}
@@ -91,17 +93,17 @@ func (e *Event) ToHumanReadable(truncate bool) string {
 		}
 		humanFormat += ")"
 	case Network:
-		humanFormat = fmt.Sprintf("%s %s %s %s (container=%s, name=%s)", e.Time, e.Type, e.Status, id, id, e.Network)
+		humanFormat = fmt.Sprintf("%s %s %s %s (container=%s, name=%s)", time.Unix(0, e.TimeNano), e.Type, e.Status, id, id, e.Network)
 	case Image:
-		humanFormat = fmt.Sprintf("%s %s %s %s %s", e.Time, e.Type, e.Status, id, e.Name)
+		humanFormat = fmt.Sprintf("%s %s %s %s %s", time.Unix(0, e.TimeNano), e.Type, e.Status, id, e.Name)
 	case System:
 		if e.Name != "" {
-			humanFormat = fmt.Sprintf("%s %s %s %s", e.Time, e.Type, e.Status, e.Name)
+			humanFormat = fmt.Sprintf("%s %s %s %s", time.Unix(0, e.TimeNano), e.Type, e.Status, e.Name)
 		} else {
-			humanFormat = fmt.Sprintf("%s %s %s", e.Time, e.Type, e.Status)
+			humanFormat = fmt.Sprintf("%s %s %s", time.Unix(0, e.TimeNano), e.Type, e.Status)
 		}
 	case Volume, Machine:
-		humanFormat = fmt.Sprintf("%s %s %s %s", e.Time, e.Type, e.Status, e.Name)
+		humanFormat = fmt.Sprintf("%s %s %s %s", time.Unix(0, e.TimeNano), e.Type, e.Status, e.Name)
 	}
 	return humanFormat
 }

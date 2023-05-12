@@ -178,7 +178,7 @@ func (e EventLogFile) Read(ctx context.Context, options ReadOptions) error {
 			if err != nil {
 				return err
 			}
-			if begin && event.Time.After(readTime) {
+			if begin && time.Unix(0, event.TimeNano).After(readTime) {
 				// If the rotation event happened _after_ we
 				// started reading, we need to ignore/skip
 				// subsequent event until the end of the

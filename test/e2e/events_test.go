@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -120,7 +121,10 @@ var _ = Describe("Podman events", func() {
 	})
 
 	It("podman events format", func() {
-		_, ec, _ := podmanTest.RunLsContainer("")
+		start := time.Now()
+		ctrName := "testCtr"
+		_, ec, _ := podmanTest.RunLsContainer(ctrName)
+		end := time.Now()
 		Expect(ec).To(Equal(0))
 
 		test := podmanTest.Podman([]string{"events", "--stream=false", "--format", "json"})
@@ -134,7 +138,13 @@ var _ = Describe("Podman events", func() {
 		err := json.Unmarshal([]byte(jsonArr[0]), &event)
 		Expect(err).ToNot(HaveOccurred())
 
-		test = podmanTest.Podman([]string{"events", "--stream=false", "--format", "{{json.}}"})
+		test = podmanTest.Podman([]string{
+			"events",
+			"--stream=false",
+			"--since", strconv.FormatInt(start.Unix(), 10),
+			"--filter", fmt.Sprintf("container=%s", ctrName),
+			"--format", "{{json.}}",
+		})
 		test.WaitWithDefaultTimeout()
 		Expect(test).To(Exit(0))
 
@@ -144,6 +154,15 @@ var _ = Describe("Podman events", func() {
 		event = events.Event{}
 		err = json.Unmarshal([]byte(jsonArr[0]), &event)
 		Expect(err).ToNot(HaveOccurred())
+
+		Expect(event.Time).To(BeNumerically(">=", start.Unix()))
+		Expect(event.Time).To(BeNumerically("<=", end.Unix()))
+		Expect(event.TimeNano).To(BeNumerically(">=", start.UnixNano()))
+		Expect(event.TimeNano).To(BeNumerically("<=", end.UnixNano()))
+		Expect(time.Unix(0, event.TimeNano).Unix()).To(BeEquivalentTo(event.Time))
+
+		date := time.Unix(0, event.TimeNano).Format("2006-01-02")
+		Expect(event.ToHumanReadable(false)).To(HavePrefix(date))
 
 		test = podmanTest.Podman([]string{"events", "--stream=false", "--filter=type=container", "--format", "ID: {{.ID}}"})
 		test.WaitWithDefaultTimeout()

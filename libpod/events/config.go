@@ -3,7 +3,6 @@ package events
 import (
 	"context"
 	"errors"
-	"time"
 )
 
 // EventerType ...
@@ -36,7 +35,9 @@ type Event struct {
 	// Status describes the event that occurred
 	Status Status
 	// Time the event occurred
-	Time time.Time
+	Time int64 `json:"time,omitempty"`
+	// TimeNano the event occurred in nanoseconds
+	TimeNano int64 `json:"timeNano,omitempty"`
 	// Type of event that occurred
 	Type Type
 	// Health status of the current container

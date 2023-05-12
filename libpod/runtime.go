@@ -738,11 +738,12 @@ func (r *Runtime) libimageEvents() {
 			for len(eventChannel) > 0 {
 				libimageEvent := <-eventChannel
 				e := events.Event{
-					ID:     libimageEvent.ID,
-					Name:   libimageEvent.Name,
-					Status: toLibpodEventStatus(libimageEvent),
-					Time:   libimageEvent.Time,
-					Type:   events.Image,
+					ID:       libimageEvent.ID,
+					Name:     libimageEvent.Name,
+					Status:   toLibpodEventStatus(libimageEvent),
+					Time:     libimageEvent.Time.Unix(),
+					TimeNano: libimageEvent.Time.UnixNano(),
+					Type:     events.Image,
 				}
 				if err := r.eventer.Write(e); err != nil {
 					logrus.Errorf("Unable to write image event: %q", err)
