@@ -41,7 +41,10 @@ Print usage statement.
 
 #### **--identity**
 
-Relative or absolute path to use for identity files (private key part). If the
+Relative or absolute path for identity files (private key part). If the
+path is relative, it will be evaluated relative to the default .ssh
+directory. All directories should be created in advance. If this is unset, whitespace, or empty, then the filename would be dynamically chosen for the
+machine.
 path is relative, then it would be evaluated relative to the default .ssh
 directory. All directories should be created in advance. If this is unset or
 is whitespace or empty, then the filename would be dynamically chosen for the
