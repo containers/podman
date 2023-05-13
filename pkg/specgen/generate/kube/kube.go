@@ -77,7 +77,7 @@ func ToPodOpt(ctx context.Context, podName string, p entities.PodCreateOptions, 
 		}
 		p.Net.AddHosts = hosts
 	}
-	podPorts := getPodPorts(podYAML.Spec.Containers)
+	podPorts := getPodPorts(podYAML.Spec.Containers, p.PublishAll)
 	p.Net.PublishPorts = podPorts
 
 	if dnsConfig := podYAML.Spec.DNSConfig; dnsConfig != nil {
@@ -1044,7 +1044,7 @@ func getContainerResources(container v1.Container) (v1.ResourceRequirements, err
 
 // getPodPorts converts a slice of kube container descriptions to an
 // array of portmapping
-func getPodPorts(containers []v1.Container) []types.PortMapping {
+func getPodPorts(containers []v1.Container, publishAll bool) []types.PortMapping {
 	var infraPorts []types.PortMapping
 	for _, container := range containers {
 		for _, p := range container.Ports {
@@ -1052,7 +1052,9 @@ func getPodPorts(containers []v1.Container) []types.PortMapping {
 				p.ContainerPort = p.HostPort
 			}
 			if p.HostPort == 0 && p.ContainerPort != 0 {
-				p.HostPort = p.ContainerPort
+				if publishAll {
+					p.HostPort = p.ContainerPort
+				}
 			}
 			if p.Protocol == "" {
 				p.Protocol = "tcp"

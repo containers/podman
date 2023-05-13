@@ -417,6 +417,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		Infra:      true,
 		Net:        &entities.NetOptions{NoHosts: options.NoHosts},
 		ExitPolicy: string(config.PodExitPolicyStop),
+		PublishAll: options.PublishAll,
 	}
 	podOpt, err = kube.ToPodOpt(ctx, podName, podOpt, podYAML)
 	if err != nil {

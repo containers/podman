@@ -143,6 +143,7 @@ type PodCreateOptions struct {
 	Userns             specgen.Namespace `json:"-"`
 	Volume             []string          `json:"volume,omitempty"`
 	VolumesFrom        []string          `json:"volumes_from,omitempty"`
+	PublishAll         bool              ``
 	SecurityOpt        []string          `json:"security_opt,omitempty"`
 	Sysctl             []string          `json:"sysctl,omitempty"`
 }

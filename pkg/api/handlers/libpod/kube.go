@@ -28,6 +28,7 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 		StaticIPs        []string          `schema:"staticIPs"`
 		StaticMACs       []string          `schema:"staticMACs"`
 		NoHosts          bool              `schema:"noHosts"`
+		PublishAll       bool              `schema:"publishAll"`
 		PublishPorts     []string          `schema:"publishPorts"`
 		Wait             bool              `schema:"wait"`
 		ServiceContainer bool              `schema:"serviceContainer"`
@@ -100,6 +101,7 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 		PublishPorts:     query.PublishPorts,
 		Wait:             query.Wait,
 		ServiceContainer: query.ServiceContainer,
+		PublishAll:       query.PublishAll,
 	}
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)

@@ -158,6 +158,10 @@ func playFlags(cmd *cobra.Command) {
 	flags.StringSliceVar(&playOptions.PublishPorts, publishPortsFlagName, []string{}, "Publish a container's port, or a range of ports, to the host")
 	_ = cmd.RegisterFlagCompletionFunc(publishPortsFlagName, completion.AutocompleteNone)
 
+	publishAllFlagName := "publish-all"
+	flags.BoolVar(&playOptions.PublishAll, publishAllFlagName, false, "Publish all containerPorts from the YAML file without a matching hostPort")
+	_ = cmd.RegisterFlagCompletionFunc(publishAllFlagName, completion.AutocompleteNone)
+
 	waitFlagName := "wait"
 	flags.BoolVarP(&playOptions.Wait, waitFlagName, "w", false, "Clean up all objects created when a SIGTERM is received or pods exit")
 

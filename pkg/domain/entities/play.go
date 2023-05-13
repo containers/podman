@@ -64,6 +64,8 @@ type PlayKubeOptions struct {
 	Force bool
 	// PublishPorts - configure how to expose ports configured inside the K8S YAML file
 	PublishPorts []string
+	// PublishAll - expose all container ports without a host pair
+	PublishAll bool
 	// Wait - indicates whether to return after having created the pods
 	Wait bool
 }
