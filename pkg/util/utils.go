@@ -3,11 +3,14 @@ package util
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"math"
+	"math/bits"
 	"os"
 	"os/user"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -28,10 +31,18 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	stypes "github.com/containers/storage/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
+	ruser "github.com/opencontainers/runc/libcontainer/user"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/term"
 )
+
+// The flags that an [ug]id mapping can have
+type idMapFlags struct {
+	Extends  bool // The "+" flag
+	UserMap  bool // The "u" flag
+	GroupMap bool // The "g" flag
+}
 
 var containerConfig *config.Config
 
@@ -224,13 +235,6 @@ func GetKeepIDMapping(opts *namespaces.KeepIDUserNsOptions) (*stypes.IDMappingOp
 		return &options, uid, gid, nil
 	}
 
-	min := func(a, b int) int {
-		if a < b {
-			return a
-		}
-		return b
-	}
-
 	uid := rootless.GetRootlessUID()
 	gid := rootless.GetRootlessGID()
 	if opts.UID != nil {
@@ -303,6 +307,530 @@ func GetNoMapMapping() (*stypes.IDMappingOptions, int, int, error) {
 	return &options, 0, 0, nil
 }
 
+// Map a given ID to the Parent/Host ID of a given mapping, and return
+// its corresponding ID/ContainerID.
+// Returns an error if the given ID is not found on the mapping parents
+func mapIDwithMapping(id uint64, mapping []ruser.IDMap, mapSetting string) (mappedid uint64, err error) {
+	for _, v := range mapping {
+		if v.Count == 0 {
+			continue
+		}
+		if id >= uint64(v.ParentID) && id < uint64(v.ParentID+v.Count) {
+			offset := id - uint64(v.ParentID)
+			return uint64(v.ID) + offset, nil
+		}
+	}
+	return uint64(0), fmt.Errorf("parent ID %s %d is not mapped/delegated", mapSetting, id)
+}
+
+// Parse flags from spec
+// The `u` and `g` flags can be used to enforce that the mapping applies
+// exclusively to UIDs or GIDs.
+//
+// The `+` flag is interpreted as if the mapping replaces previous mappings
+// removing any conflicting mapping from those before adding this one.
+func parseFlags(spec []string) (flags idMapFlags, read int, err error) {
+	flags.Extends = false
+	flags.UserMap = false
+	flags.GroupMap = false
+	for read, char := range spec[0] {
+		switch {
+		case '0' <= char && char <= '9':
+			return flags, read, nil
+		case char == '+':
+			flags.Extends = true
+		case char == 'u':
+			flags.UserMap = true
+		case char == 'g':
+			flags.GroupMap = true
+		case true:
+			return flags, 0, fmt.Errorf("invalid mapping: %v. Unknown flag %v", spec, char)
+		}
+	}
+	return flags, read, fmt.Errorf("invalid mapping: %v, parsing flags", spec)
+}
+
+// Extension of idTools.parseTriple that parses idmap triples.
+// The triple should be a length 3 string array, containing:
+// - Flags and ContainerID
+// - HostID
+// - Size
+//
+// parseTriple returns the parsed mapping, the mapping flags and
+// any possible error. If the error is not-nil, the mapping and flags
+// are not well-defined.
+//
+// idTools.parseTriple is extended here with the following enhancements:
+//
+// HostID @ syntax:
+// =================
+// HostID may use the "@" syntax: The "101001:@1001:1" mapping
+// means "take the 1001 id from the parent namespace and map it to 101001"
+//
+// Flags:
+// ======
+// Flags can be used to tell the caller how should the mapping be interpreted
+func parseTriple(spec []string, parentMapping []ruser.IDMap, mapSetting string) (mappings []idtools.IDMap, flags idMapFlags, err error) {
+	if len(spec[0]) == 0 {
+		return mappings, flags, fmt.Errorf("invalid empty container id at %s map: %v", mapSetting, spec)
+	}
+	var cids, hids, sizes []uint64
+	var cid, hid uint64
+	var hidIsParent bool
+	flags, i, err := parseFlags(spec)
+	if err != nil {
+		return mappings, flags, err
+	}
+	// If no "u" nor "g" flag is given, assume the mapping applies to both
+	if !flags.UserMap && !flags.GroupMap {
+		flags.UserMap = true
+		flags.GroupMap = true
+	}
+	// Parse the container ID, which must be an integer:
+	cid, err = strconv.ParseUint(spec[0][i:], 10, 32)
+	if err != nil {
+		return mappings, flags, fmt.Errorf("parsing id map value %q: %w", spec[0], err)
+	}
+	// Parse the host id, which may be integer or @<integer>
+	if len(spec[1]) == 0 {
+		return mappings, flags, fmt.Errorf("invalid empty host id at %s map: %v", mapSetting, spec)
+	}
+	if spec[1][0] != '@' {
+		hidIsParent = false
+		hid, err = strconv.ParseUint(spec[1], 10, 32)
+	} else {
+		// Parse @<id>, where <id> is an integer corresponding to the parent mapping
+		hidIsParent = true
+		hid, err = strconv.ParseUint(spec[1][1:], 10, 32)
+	}
+	if err != nil {
+		return mappings, flags, fmt.Errorf("parsing id map value %q: %w", spec[1], err)
+	}
+	// Parse the size of the mapping, which must be an integer
+	sz, err := strconv.ParseUint(spec[2], 10, 32)
+	if err != nil {
+		return mappings, flags, fmt.Errorf("parsing id map value %q: %w", spec[2], err)
+	}
+
+	if hidIsParent {
+		if (mapSetting == "UID" && flags.UserMap) || (mapSetting == "GID" && flags.GroupMap) {
+			for i := uint64(0); i < sz; i++ {
+				cids = append(cids, cid+i)
+				mappedID, err := mapIDwithMapping(hid+i, parentMapping, mapSetting)
+				if err != nil {
+					return mappings, flags, err
+				}
+				hids = append(hids, mappedID)
+				sizes = append(sizes, 1)
+			}
+		}
+	} else {
+		cids = []uint64{cid}
+		hids = []uint64{hid}
+		sizes = []uint64{sz}
+	}
+
+	// Avoid possible integer overflow on 32bit builds
+	if bits.UintSize == 32 {
+		for i := range cids {
+			if cids[i] > math.MaxInt32 || hids[i] > math.MaxInt32 || sizes[i] > math.MaxInt32 {
+				return mappings, flags, fmt.Errorf("initializing ID mappings: %s setting is malformed expected [\"[+ug]uint32:[@]uint32[:uint32]\"] : %q", mapSetting, spec)
+			}
+		}
+	}
+	for i := range cids {
+		mappings = append(mappings, idtools.IDMap{
+			ContainerID: int(cids[i]),
+			HostID:      int(hids[i]),
+			Size:        int(sizes[i]),
+		})
+	}
+	return mappings, flags, nil
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+// Remove any conflicting mapping from mapping present in extension, so
+// extension can be appended to mapping without conflicts.
+// Returns the resulting mapping, with extension appended to it.
+func breakInsert(mapping []idtools.IDMap, extension idtools.IDMap) (result []idtools.IDMap) {
+	// Two steps:
+	// 1. Remove extension regions from mapping
+	//    For each element in mapping, remove those parts of the mapping
+	//    that overlap with the extension, both in the container range
+	//    or in the host range.
+	// 2. Add extension to mapping
+	// Step 1: Remove extension regions from mapping
+	for _, mapPiece := range mapping {
+		// Make container and host ranges comparable, by computing their
+		// extension relative to the start of the mapPiece:
+		range1Start := extension.ContainerID - mapPiece.ContainerID
+		range2Start := extension.HostID - mapPiece.HostID
+
+		// Range end relative to mapPiece range
+		range1End := range1Start + extension.Size
+		range2End := range2Start + extension.Size
+
+		// mapPiece range:
+		mapPieceStart := 0
+		mapPieceEnd := mapPiece.Size
+
+		if range1End < mapPieceStart || range1Start >= mapPieceEnd {
+			// out of range, forget about it
+			range1End = -1
+			range1Start = -1
+		} else {
+			// clip limits removal to mapPiece
+			range1End = min(range1End, mapPieceEnd)
+			range1Start = max(range1Start, mapPieceStart)
+		}
+
+		if range2End < mapPieceStart || range2Start >= mapPieceEnd {
+			// out of range, forget about it
+			range2End = -1
+			range2Start = -1
+		} else {
+			// clip limits removal to mapPiece
+			range2End = min(range2End, mapPieceEnd)
+			range2Start = max(range2Start, mapPieceStart)
+		}
+
+		// If there is nothing to remove, append the original and continue:
+		if range1Start == -1 && range2Start == -1 {
+			result = append(result, mapPiece)
+			continue
+		}
+
+		// If there is one range to remove, save it at range1:
+		if range1Start == -1 && range2Start != -1 {
+			range1Start = range2Start
+			range1End = range2End
+			range2Start = -1
+			range2End = -1
+		}
+
+		// If we have two valid ranges, merge them into range1 if possible
+		if range2Start != -1 {
+			// Swap ranges so always range1Start is <= range2Start
+			if range2Start < range1Start {
+				range1Start, range2Start = range2Start, range1Start
+				range1End, range2End = range2End, range1End
+			}
+			// If there is overlap, merge them:
+			if range1End >= range2Start {
+				range1End = max(range1End, range2End)
+				range2Start = -1
+				range2End = -1
+			}
+		}
+
+		if range1Start > 0 {
+			// Append everything before range1Start
+			result = append(result, idtools.IDMap{
+				ContainerID: mapPiece.ContainerID,
+				HostID:      mapPiece.HostID,
+				Size:        range1Start,
+			})
+		}
+		if range2Start == -1 {
+			// Append everything after range1
+			if mapPiece.Size-range1End > 0 {
+				result = append(result, idtools.IDMap{
+					ContainerID: mapPiece.ContainerID + range1End,
+					HostID:      mapPiece.HostID + range1End,
+					Size:        mapPiece.Size - range1End,
+				})
+			}
+		} else {
+			// Append everything between range1 and range2
+			result = append(result, idtools.IDMap{
+				ContainerID: mapPiece.ContainerID + range1End,
+				HostID:      mapPiece.HostID + range1End,
+				Size:        range2Start - range1End,
+			})
+			// Append everything after range2
+			if mapPiece.Size-range2End > 0 {
+				result = append(result, idtools.IDMap{
+					ContainerID: mapPiece.ContainerID + range2End,
+					HostID:      mapPiece.HostID + range2End,
+					Size:        mapPiece.Size - range2End,
+				})
+			}
+		}
+	}
+	// Step 2. Add extension to mapping
+	result = append(result, extension)
+	return result
+}
+
+// A multirange is a list of [start,end) ranges and is expressed as
+// an array of length-2 integers.
+//
+// This function computes availableRanges = fullRanges - usedRanges,
+// where all variables are multiranges.
+// The subtraction operation is defined as "return the multirange
+// containing all integers found in fullRanges and not found in usedRanges.
+func getAvailableIDRanges(fullRanges, usedRanges [][2]int) (availableRanges [][2]int) {
+	// Sort them
+	sort.Slice(fullRanges, func(i, j int) bool {
+		return fullRanges[i][0] < fullRanges[j][0]
+	})
+
+	if len(usedRanges) == 0 {
+		return fullRanges
+	}
+
+	sort.Slice(usedRanges, func(i, j int) bool {
+		return usedRanges[i][0] < usedRanges[j][0]
+	})
+
+	// To traverse usedRanges
+	i := 0
+	nextUsedID := usedRanges[i][0]
+	nextUsedIDEnd := usedRanges[i][1]
+
+	for _, fullRange := range fullRanges {
+		currentIDToProcess := fullRange[0]
+		for currentIDToProcess < fullRange[1] {
+			switch {
+			case nextUsedID == -1:
+				// No further used ids, append all the remaining ranges
+				availableRanges = append(availableRanges, [2]int{currentIDToProcess, fullRange[1]})
+				currentIDToProcess = fullRange[1]
+			case currentIDToProcess < nextUsedID:
+				// currentIDToProcess is not used, append:
+				if fullRange[1] <= nextUsedID {
+					availableRanges = append(availableRanges, [2]int{currentIDToProcess, fullRange[1]})
+					currentIDToProcess = fullRange[1]
+				} else {
+					availableRanges = append(availableRanges, [2]int{currentIDToProcess, nextUsedID})
+					currentIDToProcess = nextUsedID
+				}
+			case currentIDToProcess == nextUsedID:
+				// currentIDToProcess and all ids until nextUsedIDEnd are used
+				// Advance currentIDToProcess
+				currentIDToProcess = min(fullRange[1], nextUsedIDEnd)
+			default: // currentIDToProcess > nextUsedID
+				// Increment nextUsedID so it is >= currentIDToProcess
+				// Go to next used block if this one is all behind:
+				if currentIDToProcess >= nextUsedIDEnd {
+					i += 1
+					if i == len(usedRanges) {
+						// No more used ranges
+						nextUsedID = -1
+					} else {
+						nextUsedID = usedRanges[i][0]
+						nextUsedIDEnd = usedRanges[i][1]
+					}
+					continue
+				} else { // currentIDToProcess < nextUsedIDEnd
+					currentIDToProcess = min(fullRange[1], nextUsedIDEnd)
+				}
+			}
+		}
+	}
+	return availableRanges
+}
+
+// Gets the multirange of subordinated ids from parentMapping and the
+// multirange of already assigned ids from idmap, and returns the
+// multirange of unassigned subordinated ids.
+func getAvailableIDRangesFromMappings(idmap []idtools.IDMap, parentMapping []ruser.IDMap) (availableRanges [][2]int) {
+	// Get all subordinated ids from parentMapping:
+	fullRanges := [][2]int{} // {Multirange: [start, end), [start, end), ...}
+	for _, mapPiece := range parentMapping {
+		fullRanges = append(fullRanges, [2]int{int(mapPiece.ID), int(mapPiece.ID + mapPiece.Count)})
+	}
+
+	// Get the ids already mapped:
+	usedRanges := [][2]int{}
+	for _, mapPiece := range idmap {
+		usedRanges = append(usedRanges, [2]int{mapPiece.HostID, mapPiece.HostID + mapPiece.Size})
+	}
+
+	// availableRanges = fullRanges - usedRanges
+	availableRanges = getAvailableIDRanges(fullRanges, usedRanges)
+	return availableRanges
+}
+
+// Fills unassigned idmap ContainerIDs, starting from zero with all
+// the available ids given by availableRanges.
+// Returns the filled idmap.
+func fillIDMap(idmap []idtools.IDMap, availableRanges [][2]int) (output []idtools.IDMap) {
+	idmapByCid := append([]idtools.IDMap{}, idmap...)
+	sort.Slice(idmapByCid, func(i, j int) bool {
+		return idmapByCid[i].ContainerID < idmapByCid[j].ContainerID
+	})
+
+	if len(availableRanges) == 0 {
+		return idmapByCid
+	}
+
+	i := 0 // to iterate through availableRanges
+	nextCid := 0
+	nextAvailHid := availableRanges[i][0]
+
+	for _, mapPiece := range idmapByCid {
+		// While there are available IDs to map and unassigned
+		// container ids, map the available ids:
+		for nextCid < mapPiece.ContainerID && nextAvailHid != -1 {
+			size := min(mapPiece.ContainerID-nextCid, availableRanges[i][1]-nextAvailHid)
+			output = append(output, idtools.IDMap{
+				ContainerID: nextCid,
+				HostID:      nextAvailHid,
+				Size:        size,
+			})
+			nextCid += size
+			if nextAvailHid+size < availableRanges[i][1] {
+				nextAvailHid += size
+			} else {
+				i += 1
+				if i == len(availableRanges) {
+					nextAvailHid = -1
+					continue
+				}
+				nextAvailHid = availableRanges[i][0]
+			}
+		}
+		// The given mapping does not change
+		output = append(output, mapPiece)
+		nextCid += mapPiece.Size
+	}
+	// After the last given mapping is mapped, we use all the remaining
+	// ids to map the rest of the space
+	for nextAvailHid != -1 {
+		size := availableRanges[i][1] - nextAvailHid
+		output = append(output, idtools.IDMap{
+			ContainerID: nextCid,
+			HostID:      nextAvailHid,
+			Size:        size,
+		})
+		nextCid += size
+		i += 1
+		if i == len(availableRanges) {
+			nextAvailHid = -1
+			continue
+		}
+		nextAvailHid = availableRanges[i][0]
+	}
+	return output
+}
+
+func addOneMapping(idmap []idtools.IDMap, fillMap bool, mapping idtools.IDMap, flags idMapFlags, mapSetting string) ([]idtools.IDMap, bool) {
+	// If we are mapping uids and the spec doesn't have the usermap flag, ignore it
+	if mapSetting == "UID" && !flags.UserMap {
+		return idmap, fillMap
+	}
+	// If we are mapping gids and the spec doesn't have the groupmap flag, ignore it
+	if mapSetting == "GID" && !flags.GroupMap {
+		return idmap, fillMap
+	}
+
+	// Zero-size mapping is ignored
+	if mapping.Size == 0 {
+		return idmap, fillMap
+	}
+
+	// Not extending, just append:
+	if !flags.Extends {
+		idmap = append(idmap, mapping)
+		return idmap, fillMap
+	}
+	// Break and extend the last mapping:
+
+	// Extending without any mapping, if rootless, we will fill
+	// the space with the remaining IDs:
+	if len(idmap) == 0 && rootless.IsRootless() {
+		fillMap = true
+	}
+
+	idmap = breakInsert(idmap, mapping)
+	return idmap, fillMap
+}
+
+// Extension of idTools.ParseIDMap that parses idmap triples from string.
+// This extension accepts additional flags that control how the mapping is done
+func ParseIDMap(mapSpec []string, mapSetting string, parentMapping []ruser.IDMap) (idmap []idtools.IDMap, err error) {
+	stdErr := fmt.Errorf("initializing ID mappings: %s setting is malformed expected [\"[+ug]uint32:[@]uint32[:uint32]\"] : %q", mapSetting, mapSpec)
+	// When fillMap is true, the given mapping will be filled with the remaining subordinate available ids
+	fillMap := false
+	for _, idMapSpec := range mapSpec {
+		if idMapSpec == "" {
+			continue
+		}
+		idSpec := strings.Split(idMapSpec, ":")
+		// if it's a length-2 list assume the size is 1:
+		if len(idSpec) == 2 {
+			idSpec = append(idSpec, "1")
+		}
+		if len(idSpec)%3 != 0 {
+			return nil, stdErr
+		}
+		for i := range idSpec {
+			if i%3 != 0 {
+				continue
+			}
+			if len(idSpec[i]) == 0 {
+				return nil, stdErr
+			}
+			// Parse this mapping:
+			mappings, flags, err := parseTriple(idSpec[i:i+3], parentMapping, mapSetting)
+			if err != nil {
+				return nil, err
+			}
+			for _, mapping := range mappings {
+				idmap, fillMap = addOneMapping(idmap, fillMap, mapping, flags, mapSetting)
+			}
+		}
+	}
+	if fillMap {
+		availableRanges := getAvailableIDRangesFromMappings(idmap, parentMapping)
+		idmap = fillIDMap(idmap, availableRanges)
+	}
+
+	if len(idmap) == 0 {
+		return idmap, nil
+	}
+	idmap = sortAndMergeConsecutiveMappings(idmap)
+	return idmap, nil
+}
+
+// Given a mapping, sort all entries by their ContainerID then and merge
+// entries that are consecutive.
+func sortAndMergeConsecutiveMappings(idmap []idtools.IDMap) (finalIDMap []idtools.IDMap) {
+	idmapByCid := append([]idtools.IDMap{}, idmap...)
+	sort.Slice(idmapByCid, func(i, j int) bool {
+		return idmapByCid[i].ContainerID < idmapByCid[j].ContainerID
+	})
+	for i, mapPiece := range idmapByCid {
+		if i == 0 {
+			finalIDMap = append(finalIDMap, mapPiece)
+			continue
+		}
+		lastMap := finalIDMap[len(finalIDMap)-1]
+		containersMatch := lastMap.ContainerID+lastMap.Size == mapPiece.ContainerID
+		hostsMatch := lastMap.HostID+lastMap.Size == mapPiece.HostID
+		if containersMatch && hostsMatch {
+			finalIDMap[len(finalIDMap)-1].Size += mapPiece.Size
+		} else {
+			finalIDMap = append(finalIDMap, mapPiece)
+		}
+	}
+	return finalIDMap
+}
+
 // ParseIDMapping takes idmappings and subuid and subgid maps and returns a storage mapping
 func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []string, subUIDMap, subGIDMap string) (*stypes.IDMappingOptions, error) {
 	options := stypes.IDMappingOptions{
@@ -349,14 +877,38 @@ func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []strin
 		options.UIDMap = mappings.UIDs()
 		options.GIDMap = mappings.GIDs()
 	}
-	parsedUIDMap, err := idtools.ParseIDMap(uidMapSlice, "UID")
+
+	parentUIDMap, parentGIDMap, err := rootless.GetAvailableIDMaps()
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			// The kernel-provided files only exist if user namespaces are supported
+			logrus.Debugf("User or group ID mappings not available: %s", err)
+		} else {
+			return nil, err
+		}
+	}
+
+	parsedUIDMap, err := ParseIDMap(uidMapSlice, "UID", parentUIDMap)
 	if err != nil {
 		return nil, err
 	}
-	parsedGIDMap, err := idtools.ParseIDMap(gidMapSlice, "GID")
+	parsedGIDMap, err := ParseIDMap(gidMapSlice, "GID", parentGIDMap)
 	if err != nil {
 		return nil, err
 	}
+
+	// When running rootless, if one of UID/GID mappings is provided, fill the other one:
+	if rootless.IsRootless() {
+		switch {
+		case len(parsedUIDMap) != 0 && len(parsedGIDMap) == 0:
+			availableRanges := getAvailableIDRangesFromMappings(parsedGIDMap, parentGIDMap)
+			parsedGIDMap = fillIDMap(parsedGIDMap, availableRanges)
+		case len(parsedUIDMap) == 0 && len(parsedGIDMap) != 0:
+			availableRanges := getAvailableIDRangesFromMappings(parsedUIDMap, parentUIDMap)
+			parsedUIDMap = fillIDMap(parsedUIDMap, availableRanges)
+		}
+	}
+
 	options.UIDMap = append(options.UIDMap, parsedUIDMap...)
 	options.GIDMap = append(options.GIDMap, parsedGIDMap...)
 	if len(options.UIDMap) > 0 {

@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/signal"
 	"sync"
@@ -17,6 +18,7 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/namespaces"
 	"github.com/containers/podman/v4/pkg/rootless"
+	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/types"
 	"github.com/sirupsen/logrus"
@@ -333,11 +335,22 @@ func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []strin
 		options.UIDMap = mappings.UIDs()
 		options.GIDMap = mappings.GIDs()
 	}
-	parsedUIDMap, err := idtools.ParseIDMap(uidMapSlice, "UID")
+
+	parentUIDMap, parentGIDMap, err := rootless.GetAvailableIDMaps()
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			// The kernel-provided files only exist if user namespaces are supported
+			logrus.Debugf("User or group ID mappings not available: %s", err)
+		} else {
+			return nil, err
+		}
+	}
+
+	parsedUIDMap, err := util.ParseIDMap(uidMapSlice, "UID", parentUIDMap)
 	if err != nil {
 		return nil, err
 	}
-	parsedGIDMap, err := idtools.ParseIDMap(gidMapSlice, "GID")
+	parsedGIDMap, err := util.ParseIDMap(gidMapSlice, "GID", parentGIDMap)
 	if err != nil {
 		return nil, err
 	}

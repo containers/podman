@@ -304,7 +304,7 @@ var _ = Describe("Podman UserNS support", func() {
 
 	It("podman --userns=container:CTR", func() {
 		ctrName := "userns-ctr"
-		session := podmanTest.Podman([]string{"run", "-d", "--uidmap=0:0:1", "--uidmap=1:1:4998", "--name", ctrName, "alpine", "top"})
+		session := podmanTest.Podman([]string{"run", "-d", "--uidmap=0:0:1", "--uidmap=1:2:4998", "--name", ctrName, "alpine", "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
