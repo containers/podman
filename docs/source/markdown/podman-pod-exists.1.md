@@ -8,8 +8,8 @@ podman-pod-exists - Check if a pod exists in local storage
 
 ## DESCRIPTION
 **podman pod exists** checks if a pod exists in local storage. The **ID** or **Name**
-of the pod may be used as input.  Podman will return an exit code
-of `0` when the pod is found.  A `1` will be returned otherwise. An exit code of `125` indicates there
+of the pod may be used as input.  Podman returns an exit code
+of `0` when the pod is found.  A `1` is returned otherwise. An exit code of `125` indicates there
 was an issue accessing the local storage.
 
 ## EXAMPLES

@@ -17,7 +17,7 @@ without any arguments. External containers are containers in container/storage b
 For example Buildah and CRI-O.
 
 Rootless mode only supports mounting VFS driver, unless Podman is run within the user namespace
-via the `podman unshare` command. All other storage drivers will fail to mount.
+via the `podman unshare` command. All other storage drivers fails to mount.
 
 ## RETURN VALUE
 The location of the mounted file system.  On error an empty string and errno is
@@ -27,7 +27,7 @@ returned.
 
 #### **--all**, **-a**
 
-Mount all podman containers. (External containers will not be mounted)
+Mount all podman containers. (External containers are not mounted)
 
 #### **--format**=*format*
 

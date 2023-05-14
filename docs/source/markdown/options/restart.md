@@ -5,7 +5,7 @@
 #### **--restart**=*policy*
 
 Restart policy to follow when containers exit.
-Restart policy will not take effect if a container is stopped via the **podman kill** or **podman stop** commands.
+Restart policy does not take effect if a container is stopped via the **podman kill** or **podman stop** commands.
 
 Valid _policy_ values are:
 
@@ -17,4 +17,4 @@ Valid _policy_ values are:
 
 Podman provides a systemd unit file, podman-restart.service, which restarts containers after a system reboot.
 
-If container will run as a system service, generate a systemd unit file to manage it. See **podman generate systemd**.
+If container runs as a system service, generate a systemd unit file to manage it. See **podman generate systemd**.

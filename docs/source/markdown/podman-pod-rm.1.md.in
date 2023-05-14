@@ -7,7 +7,7 @@ podman\-pod\-rm - Remove one or more stopped pods and containers
 **podman pod rm** [*options*] *pod*
 
 ## DESCRIPTION
-**podman pod rm** will remove one or more stopped pods and their containers from the host.  The pod name or ID can be used. The \-f option stops all containers and then removes them before removing the pod. If all containers added by the user are in an exited state, the pod will be removed.
+**podman pod rm** removes one or more stopped pods and their containers from the host.  The pod name or ID can be used. The \-f option stops all containers and then removes them before removing the pod. If all containers added by the user are in an exited state, the pod is removed.
 
 ## OPTIONS
 
@@ -24,7 +24,7 @@ Stop running containers and delete all stopped containers before removal of pod.
 @@option latest
 
 @@option pod-id-file.pod
-If specified, the pod-id-file will be removed along with the pod.
+If specified, the pod-id-file is removed along with the pod.
 
 @@option time
 

@@ -24,7 +24,7 @@ man pages.
 ## IMAGE
 
   The image is specified using transport:path format. If no transport is specified, the `docker` (container registry)
-transport will be used by default. For remote Podman, including Mac and Windows (excluding WSL2) machines, `docker` is the only allowed transport.
+transport is used by default. For remote Podman, including Mac and Windows (excluding WSL2) machines, `docker` is the only allowed transport.
 
   **dir:**_path_
   An existing local directory _path_ storing the manifest, layer tarballs and signatures as individual files. This
@@ -36,9 +36,9 @@ is a non-standardized format, primarily useful for debugging or noninvasive cont
   **docker://**_docker-reference_ (Default)
   An image reference stored in  a remote container image registry. Example: "quay.io/podman/stable:latest".
 The reference can include a path to a specific registry; if it does not, the
-registries listed in registries.conf will be queried to find a matching image.
+registries listed in registries.conf is queried to find a matching image.
 By default, credentials from `podman login` (stored at
-$XDG_RUNTIME_DIR/containers/auth.json by default) will be used to authenticate;
+$XDG_RUNTIME_DIR/containers/auth.json by default) is used to authenticate;
 otherwise it falls back to using credentials in $HOME/.docker/config.json.
 
     $ podman create registry.fedoraproject.org/fedora:latest echo hello
@@ -118,7 +118,7 @@ and specified with a _tag_.
 @@option device
 
 Note: if the user only has access rights via a group, accessing the device
-from inside a rootless container will fail. Use the `--group-add keep-groups`
+from inside a rootless container fails. Use the `--group-add keep-groups`
 flag to pass the user's supplementary group access into the container.
 
 @@option device-cgroup-rule
@@ -207,11 +207,11 @@ but before regular pod containers are started.  Init containers are useful for r
 setup operations for the pod's applications.
 
 Valid values for `init-ctr` type are *always* or *once*.  The *always* value
-means the container will run with each and every `pod start`, whereas the *once*
-value means the container will only run once when the pod is started and then the container is removed.
+means the container runs with each and every `pod start`, whereas the *once*
+value means the container only runs once when the pod is started and then the container is removed.
 
-Init containers are only run on pod `start`.  Restarting a pod will not execute any init
-containers should they be present.  Furthermore, init containers can only be created in a
+Init containers are only run on pod `start`.  Restarting a pod does not execute
+any init containers.  Furthermore, init containers can only be created in a
 pod when that pod is not running.
 
 @@option init-path
@@ -252,7 +252,7 @@ pod when that pod is not running.
 
 Invalid if using **--dns**, **--dns-option**, or **--dns-search** with **--network** set to **none** or **container:**_id_.
 
-If used together with **--pod**, the container will not join the pod's network namespace.
+If used together with **--pod**, the container does not join the pod's network namespace.
 
 @@option network-alias
 
@@ -288,7 +288,7 @@ This option conflicts with **--add-host**.
 
 @@option publish
 
-**Note:** If a container will be run within a pod, it is not necessary to publish the port for
+**Note:** If a container runs within a pod, it is not necessary to publish the port for
 the containers in the pod. The port must only be published by the pod itself. Pod network
 stacks act like the network stack on the host - when there are a variety of containers in the pod,
 and programs in the container, all sharing a single interface and IP address, and
@@ -426,7 +426,7 @@ $ podman create --tz=US/Eastern alpine date
 
 ### Adding dependency containers
 
-Podman will make sure the first container, container1, is running before the second container (container2) is started.
+Podman makes sure the first container, container1, is running before the second container (container2) is started.
 
 ```
 $ podman create --name container1 -t -i fedora bash
@@ -489,10 +489,10 @@ Environment variables within containers can be set using multiple different opti
 Precedence order (later entries override earlier entries):
 
 - **--env-host** : Host environment of the process executing Podman is added.
-- **--http-proxy**: By default, several environment variables will be passed in from the host, such as **http_proxy** and **no_proxy**. See **--http-proxy** for details.
+- **--http-proxy**: By default, several environment variables are passed in from the host, such as **http_proxy** and **no_proxy**. See **--http-proxy** for details.
 - Container image : Any environment variables specified in the container image.
 - **--env-file** : Any environment variables specified via env-files. If multiple files specified, then they override each other in order of entry.
-- **--env** : Any environment variables specified will override previous settings.
+- **--env** : Any environment variables specified overrides previous settings.
 
 Create containers and set the environment ending with a __*__.
 The trailing __*__ glob functionality is only active when no value is specified:
@@ -541,4 +541,4 @@ September 2014, updated by Sven Dowideit `<SvenDowideit@home.org.au>`
 August 2014, updated by Sven Dowideit `<SvenDowideit@home.org.au>`
 
 ## FOOTNOTES
-<a name="Footnote1">1</a>: The Podman project is committed to inclusivity, a core value of open source. The `master` and `slave` mount propagation terminology used here is problematic and divisive, and should be changed. However, these terms are currently used within the Linux kernel and must be used as-is at this time. When the kernel maintainers rectify this usage, Podman will follow suit immediately.
+<a name="Footnote1">1</a>: The Podman project is committed to inclusivity, a core value of open source. The `master` and `slave` mount propagation terminology used here is problematic and divisive, and needs to be changed. However, these terms are currently used within the Linux kernel and must be used as-is at this time. When the kernel maintainers rectify this usage, Podman will follow suit immediately.

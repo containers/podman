@@ -66,7 +66,7 @@ Sign the pushed images with a sigstore signature using a private key at the spec
 
  The DESTINATION is a location to store container images
  The Image "DESTINATION" uses a "transport":"details" format.
- If a transport is not given, podman push will attempt to push
+ If a transport is not given, `podman push` attempts to push
  to a registry.
 
  Multiple transports are supported:

@@ -7,14 +7,14 @@ podman-kube-play - Create containers, pods and volumes based on Kubernetes YAML
 **podman kube play** [*options*] *file.yml|-|https://website.io/file.yml*
 
 ## DESCRIPTION
-**podman kube play** will read in a structured file of Kubernetes YAML.  It will then recreate the containers, pods or volumes described in the YAML.  Containers within a pod are then started and the ID of the new Pod or the name of the new Volume is output. If the yaml file is specified as "-" then `podman kube play` will read the YAML file from stdin.
-The input can also be a URL that points to a YAML file such as https://podman.io/demo.yml. `podman kube play` will read the YAML from the URL and create pods and containers from it.
+**podman kube play** reads in a structured file of Kubernetes YAML.  It recreates the containers, pods, or volumes described in the YAML.  Containers within a pod are then started, and the ID of the new Pod or the name of the new Volume is output. If the YAML file is specified as "-", then `podman kube play` reads the YAML file from stdin.
+The input can also be a URL that points to a YAML file such as https://podman.io/demo.yml. `podman kube play` reads the YAML from the URL and create pods and containers from it.
 
 Using the `--down` command line option, it is also capable of tearing down the pods created by a previous run of `podman kube play`.
 
-Using the `--replace` command line option, it will tear down the pods(if any) created by a previous run of `podman kube play` and recreate the pods with the Kubernetes YAML file.
+Using the `--replace` command line option, it tears down the pods(if any) created by a previous run of `podman kube play` and recreate the pods with the Kubernetes YAML file.
 
-Ideally the input file would be one created by Podman (see podman-kube-generate(1)).  This would guarantee a smooth import and expected results.
+Ideally the input file is created by Podman (see podman-kube-generate(1)).  This guarantees a smooth import and expected results.
 
 Currently, the supported Kubernetes kinds are:
 
@@ -34,13 +34,13 @@ Only three volume types are supported by kube play, the *hostPath*, *emptyDir*, 
 
 Note: The default restart policy for containers is `always`.  You can change the default by setting the `restartPolicy` field in the spec.
 
-Note: When playing a kube YAML with init containers, the init container will be created with init type value `once`. To change the default type, use the `io.podman.annotations.init.container.type` annotation to set the type to `always`.
+Note: When playing a kube YAML with init containers, the init container is created with init type value `once`. To change the default type, use the `io.podman.annotations.init.container.type` annotation to set the type to `always`.
 
-Note: *hostPath* volume types created by kube play will be given an SELinux shared label (z), bind mounts are not relabeled (use `chcon -t container_file_t -R <directory>`).
+Note: *hostPath* volume types created by kube play is given an SELinux shared label (z), bind mounts are not relabeled (use `chcon -t container_file_t -R <directory>`).
 
-Note: If the `:latest` tag is used, Podman will attempt to pull the image from a registry. If the image was built locally with Podman or Buildah, it will have `localhost` as the domain, in that case, Podman will use the image from the local store even if it has the `:latest` tag.
+Note: If the `:latest` tag is used, Podman attempts to pull the image from a registry. If the image was built locally with Podman or Buildah, it has `localhost` as the domain, in that case, Podman uses the image from the local store even if it has the `:latest` tag.
 
-Note: The command `podman play kube` is an alias of `podman kube play`, and will perform the same function.
+Note: The command `podman play kube` is an alias of `podman kube play`, and performs the same function.
 
 Note: The command `podman kube down` can be used to stop and remove pods or containers based on the same Kubernetes YAML used
 by `podman kube play` to create them.
@@ -77,7 +77,7 @@ spec:
 ```
 
 If there is a directory named `foobar` in the current working directory with a file named `Containerfile` or `Dockerfile`,
-Podman kube play will build that image and name it `foobar`.  An example directory structure for this example would look
+Podman kube play builds that image and name it `foobar`.  An example directory structure for this example looks
 like:
 ```
 |- mykubefiles
@@ -86,14 +86,14 @@ like:
          |- Containerfile
 ```
 
-The build will consider `foobar` to be the context directory for the build. If there is an image in local storage
-called `foobar`, the image will not be built unless the `--build` flag is used. Use `--build=false` to completely
+The build considers `foobar` to be the context directory for the build. If there is an image in local storage
+called `foobar`, the image is not built unless the `--build` flag is used. Use `--build=false` to completely
 disable builds.
 
 `Kubernetes ConfigMap`
 
 Kubernetes ConfigMap can be referred as a source of environment variables or volumes in Pods or Deployments.
-ConfigMaps aren't a standalone object in Podman; instead, when a container uses a ConfigMap, Podman will create environment variables or volumes as needed.
+ConfigMaps aren't a standalone object in Podman; instead, when a container uses a ConfigMap, Podman creates environment variables or volumes as needed.
 
 For example, the following YAML document defines a ConfigMap and then uses it in a Pod:
 
@@ -121,7 +121,7 @@ spec:
         optional: false
 ```
 
-and as a result environment variable `FOO` will be set to `bar` for container `container-1`.
+and as a result environment variable `FOO` is set to `bar` for container `container-1`.
 
 `Kubernetes Secret`
 
@@ -155,7 +155,7 @@ spec:
           key: foo
 ```
 
-and as a result environment variable `FOO` will be set to `bar` for container `container-1`.
+and as a result environment variable `FOO` is set to `bar` for container `container-1`.
 
 ## OPTIONS
 
@@ -251,7 +251,7 @@ the running pods and containers.
 When  attached  in the tty mode, you can kill the pods and containers by pressing
 Ctrl-C or receiving any other interrupt signals.
 
-All pods, containers, and volumes created with `podman kube play` will be removed
+All pods, containers, and volumes created with `podman kube play` is removed
 upon exit.
 
 ## EXAMPLES
@@ -304,7 +304,7 @@ Pods stopped:
 Pods removed:
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 ```
-`podman kube play --down` will not work with a URL if the YAML file the URL points to
+`podman kube play --down` does not work with a URL if the YAML file the URL points to
 has been changed or altered.
 
 @@include ../../kubernetes_support.md

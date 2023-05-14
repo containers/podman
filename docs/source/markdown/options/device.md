@@ -10,11 +10,11 @@ can be used to specify device permissions by combining
 
 Example: **--device=/dev/sdc:/dev/xvdc:rwm**.
 
-Note: if *host-device* is a symbolic link then it will be resolved first.
-The <<container|pod>> will only store the major and minor numbers of the host device.
+Note: if *host-device* is a symbolic link then it is resolved first.
+The <<container|pod>> only stores the major and minor numbers of the host device.
 
 Podman may load kernel modules required for using the specified
-device. The devices that Podman will load modules for when necessary are:
+device. The devices that Podman loads modules for when necessary are:
 /dev/fuse.
 
 In rootless mode, the new device is bind mounted in the container from the host

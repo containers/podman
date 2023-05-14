@@ -4,4 +4,4 @@
 ####> are applicable to all of those.
 #### **--infra-name**=*name*
 
-The name that will be used for the pod's infra container.
+The name that is used for the pod's infra container.

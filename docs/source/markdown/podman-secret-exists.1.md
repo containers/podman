@@ -7,8 +7,8 @@ podman\-secret\-exists - Check if the given secret exists
 **podman secret exists** *secret*
 
 ## DESCRIPTION
-**podman secret exists** checks if a secret exists. Podman will return an exit code
-of `0` when the secret is found. A `1` will be returned otherwise. An exit code of
+**podman secret exists** checks if a secret exists. Podman returns an exit code
+of `0` when the secret is found. A `1` is returned otherwise. An exit code of
 `125` indicates there was another issue.
 
 

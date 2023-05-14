@@ -19,7 +19,7 @@ created by the other.
 
 Podman-remote provides a local client interacting with a Podman backend node through a RESTful API tunneled through a ssh connection. In this context, a Podman node is a Linux system with Podman installed on it and the API service activated. Credentials for this session can be passed in using flags, environment variables, or in `containers.conf`.
 
-The `containers.conf` file should be placed under `$HOME/.config/containers/containers.conf` on Linux and Mac and `%APPDATA%\containers\containers.conf` on Windows.
+The `containers.conf` file is placed under `$HOME/.config/containers/containers.conf` on Linux and Mac and `%APPDATA%\containers\containers.conf` on Windows.
 
 **podman [GLOBAL OPTIONS]**
 
@@ -62,7 +62,7 @@ Details:
    * `ssh` (default): a local unix(7) socket on the named `host` and `port`, reachable via SSH
    * `tcp`: an unencrypted, unauthenticated TCP connection to the named `host` and `port`, can work with proxy if `CONTAINER_PROXY` is set
    * `unix`: a local unix(7) socket at the specified `path`, or the default for the user
- - `user` will default to either `root` or the current running user (`ssh` only)
+ - `user` defaults to either `root` or the current running user (`ssh` only)
  - `password` has no default (`ssh` only)
  - `host` must be provided and is either the IP or name of the machine hosting the Podman service (`ssh` and `tcp`)
  - `port` defaults to 22 (`ssh` and `tcp`)

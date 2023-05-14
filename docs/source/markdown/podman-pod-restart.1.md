@@ -7,10 +7,10 @@ podman\-pod\-restart - Restart one or more pods
 **podman pod restart** [*options*] *pod* ...
 
 ## DESCRIPTION
-Restart containers in one or more pods. Containers will be stopped if running and then restarted.
-Stopped containers will only be started. You may use pod IDs or names as input.
-The pod ID will be printed upon successful restart.
-When restarting multiple pods, an error from restarting one pod will not effect restarting other pods.
+Restart containers in one or more pods. Running containers are stopped an restarted.
+Stopped containers are started. You may use pod IDs or names as input.
+The pod ID is printed upon successful restart.
+When restarting multiple pods, an error from restarting one pod does not effect restarting other pods.
 
 ## OPTIONS
 

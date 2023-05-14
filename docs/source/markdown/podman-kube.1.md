@@ -7,8 +7,8 @@ podman\-kube - Play containers, pods or volumes based on a structured input file
 **podman kube** *subcommand*
 
 ## DESCRIPTION
-The kube command will recreate containers, pods or volumes based on the input from a structured (like YAML)
-file input.  Containers will be automatically started.
+The kube command recreates containers, pods or volumes based on the input from a structured (like YAML)
+file input.  Containers are automatically started.
 
 ## COMMANDS
 

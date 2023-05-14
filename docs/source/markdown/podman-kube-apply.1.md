@@ -6,7 +6,7 @@ podman-kube-apply - Apply Kubernetes YAML based on containers, pods, or volumes 
 **podman kube apply** [*options*] [*container...* | *pod...* | *volume...*]
 
 ## DESCRIPTION
-**podman kube apply** will deploy a podman container, pod, or volume to a Kubernetes cluster. Use the `--file` flag to deploy a Kubernetes YAML (v1 specification) to a kubernetes cluster as well.
+**podman kube apply** deploys a podman container, pod, or volume to a Kubernetes cluster. Use the `--file` option to deploy a Kubernetes YAML (v1 specification) to a Kubernetes cluster as well.
 
 Note that the Kubernetes YAML file can be used to run the deployment in Podman via podman-play-kube(1).
 
@@ -23,7 +23,7 @@ Path to the kubernetes yaml file to deploy onto the kubernetes cluster. This fil
 #### **--kubeconfig**, **-k**=*kubeconfig filepath*
 
 Path to the kubeconfig file to be used when deploying the generated kube yaml to the Kubernetes cluster. The environment variable `KUBECONFIG` can be used to set the path for the kubeconfig file as well.
-Note: A kubeconfig can have multiple cluster configurations, but `kube generate` will always only pick the first cluster configuration in the given kubeconfig.
+Note: A kubeconfig can have multiple cluster configurations, but `kube generate` always picks the first cluster configuration in the given kubeconfig.
 
 #### **--ns**=*namespace*
 
@@ -31,7 +31,7 @@ The namespace or project to deploy the workloads of the generated kube yaml to i
 
 #### **--service**, **-s**
 
-Used to create a service for the corresponding container or pod being deployed to the cluster. In particular, if the container or pod has portmap bindings, the service specification will include a NodePort declaration to expose the service. A random port is assigned by Podman in the service specification that is deployed to the cluster.
+Used to create a service for the corresponding container or pod being deployed to the cluster. In particular, if the container or pod has portmap bindings, the service specification includes a NodePort declaration to expose the service. A random port is assigned by Podman in the service specification that is deployed to the cluster.
 
 ## EXAMPLES
 

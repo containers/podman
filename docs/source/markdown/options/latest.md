@@ -5,6 +5,6 @@
 #### **--latest**, **-l**
 
 Instead of providing the <<container|pod>> name or ID, use the last created <<container|pod>>.
-Note: the last started <<container|pod>> could be from other users of Podman on the host machine.
+Note: the last started <<container|pod>> can be from other users of Podman on the host machine.
 (This option is not available with the remote Podman client, including Mac and Windows
 (excluding WSL2) machines)

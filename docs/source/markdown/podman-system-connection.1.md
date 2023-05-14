@@ -9,7 +9,7 @@ podman\-system\-connection - Manage the destination(s) for Podman service(s)
 ## DESCRIPTION
 Manage the destination(s) for Podman service(s).
 
-The user will be prompted for the ssh login password or key file pass phrase as required. The `ssh-agent` is supported if it is running.
+The user is prompted for the ssh login password or key file pass phrase as required. The `ssh-agent` is supported if it is running.
 
 ## COMMANDS
 

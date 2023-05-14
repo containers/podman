@@ -22,7 +22,7 @@ development efforts occur on the *main* branch.  Branches with a
   be dedicated to writing release notes.
 * For a **minor** or **patch** release, you have 2-4 hours of time available
   (minimum depends largely on the speed/reliability of automated testing)
-* You will annouce the release on the proper platforms
+* You will announce the release on the proper platforms
   (i.e. Podman blog, Twitter, Mastodon Podman and Podman-Desktop mailing lists)
 
 # Releases

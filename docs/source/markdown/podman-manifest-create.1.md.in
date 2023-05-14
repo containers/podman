@@ -18,9 +18,9 @@ index.
 
 #### **--all**
 
-If any of the images which should be added to the new list or index are
+If any of the images added to the new list or index are
 themselves lists or indexes, add all of their contents.  By default, only one
-image from such a list will be added to the newly-created list or index.
+image from such a list is added to the newly-created list or index.
 
 #### **--amend**, **-a**
 
