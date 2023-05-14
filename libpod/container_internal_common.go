@@ -1938,11 +1938,16 @@ func (c *Container) makeBindMounts() error {
 
 	_, hasRunContainerenv := c.state.BindMounts["/run/.containerenv"]
 	if !hasRunContainerenv {
+	Loop:
 		// check in the spec mounts
 		for _, m := range c.config.Spec.Mounts {
-			if m.Destination == "/run/.containerenv" || m.Destination == "/run" {
+			switch {
+			case m.Destination == "/run/.containerenv":
 				hasRunContainerenv = true
-				break
+				break Loop
+			case m.Destination == "/run" && m.Source != "tmpfs":
+				hasRunContainerenv = true
+				break Loop
 			}
 		}
 	}
