@@ -87,31 +87,30 @@ var _ = Describe("Podman save", func() {
 	})
 
 	It("podman save to directory with oci format", func() {
-		if isRootless() {
-			Skip("Requires a fix in containers image for chown/lchown")
-		}
 		outdir := filepath.Join(podmanTest.TempDir, "save")
 
 		save := podmanTest.Podman([]string{"save", "--format", "oci-dir", "-o", outdir, ALPINE})
 		save.WaitWithDefaultTimeout()
 		Expect(save).Should(Exit(0))
+
+		// Smoke test if it looks like an OCI dir
+		Expect(filepath.Join(outdir, "oci-layout")).Should(BeAnExistingFile())
+		Expect(filepath.Join(outdir, "index.json")).Should(BeAnExistingFile())
+		Expect(filepath.Join(outdir, "blobs")).Should(BeAnExistingFile())
 	})
 
 	It("podman save to directory with v2s2 docker format", func() {
-		if isRootless() {
-			Skip("Requires a fix in containers image for chown/lchown")
-		}
 		outdir := filepath.Join(podmanTest.TempDir, "save")
 
 		save := podmanTest.Podman([]string{"save", "--format", "docker-dir", "-o", outdir, ALPINE})
 		save.WaitWithDefaultTimeout()
 		Expect(save).Should(Exit(0))
+
+		// Smoke test if it looks like a docker dir
+		Expect(filepath.Join(outdir, "version")).Should(BeAnExistingFile())
 	})
 
 	It("podman save to directory with docker format and compression", func() {
-		if isRootless() && podmanTest.RemoteTest {
-			Skip("Requires a fix in containers image for chown/lchown")
-		}
 		outdir := filepath.Join(podmanTest.TempDir, "save")
 
 		save := podmanTest.Podman([]string{"save", "--compress", "--format", "docker-dir", "-o", outdir, ALPINE})
@@ -120,9 +119,6 @@ var _ = Describe("Podman save", func() {
 	})
 
 	It("podman save to directory with --compress but not use docker-dir and oci-dir", func() {
-		if isRootless() && podmanTest.RemoteTest {
-			Skip("Requires a fix in containers image for chown/lchown")
-		}
 		outdir := filepath.Join(podmanTest.TempDir, "save")
 
 		save := podmanTest.Podman([]string{"save", "--compress", "--format", "docker-archive", "-o", outdir, ALPINE})

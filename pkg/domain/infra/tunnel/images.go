@@ -19,7 +19,7 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
 	"github.com/containers/podman/v4/pkg/domain/utils"
 	"github.com/containers/podman/v4/pkg/errorhandling"
-	utils2 "github.com/containers/podman/v4/utils"
+	"github.com/containers/storage/pkg/archive"
 )
 
 func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.BoolReport, error) {
@@ -329,7 +329,8 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 	default:
 		return err
 	}
-	return utils2.UntarToFileSystem(opts.Output, f, nil)
+
+	return archive.Untar(f, opts.Output, nil)
 }
 
 func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.ImageSearchOptions) ([]entities.ImageSearchReport, error) {
