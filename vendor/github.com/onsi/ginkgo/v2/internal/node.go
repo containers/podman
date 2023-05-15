@@ -875,6 +875,15 @@ func (n Nodes) FirstNodeMarkedOrdered() Node {
 	return Node{}
 }
 
+func (n Nodes) IndexOfFirstNodeMarkedOrdered() int {
+	for i := range n {
+		if n[i].MarkedOrdered {
+			return i
+		}
+	}
+	return -1
+}
+
 func (n Nodes) GetMaxFlakeAttempts() int {
 	maxFlakeAttempts := 0
 	for i := range n {
