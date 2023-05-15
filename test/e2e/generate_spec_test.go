@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"os"
 	"path/filepath"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -11,27 +10,9 @@ import (
 )
 
 var _ = Describe("Podman generate spec", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
 
 	BeforeEach(func() {
 		SkipIfRemote("podman generate spec is not supported on the remote client")
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-
 	})
 
 	It("podman generate spec bogus should fail", func() {

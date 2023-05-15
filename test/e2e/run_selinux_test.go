@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 
-	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -12,29 +11,10 @@ import (
 )
 
 var _ = Describe("Podman run", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
 	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
 		if !selinux.GetEnabled() {
 			Skip("SELinux not enabled")
 		}
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-
 	})
 
 	It("podman run selinux", func() {

@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/containers/podman/v4/libpod/define"
@@ -13,27 +12,6 @@ import (
 )
 
 var _ = Describe("Podman init containers", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-
-	})
 
 	It("podman create init container without --pod should fail", func() {
 		session := podmanTest.Podman([]string{"create", "--init-ctr", "always", ALPINE, "top"})

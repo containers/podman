@@ -3,12 +3,10 @@ package integration
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"sync"
 	"time"
 
 	"github.com/containers/podman/v4/libpod/events"
-	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -16,26 +14,6 @@ import (
 )
 
 var _ = Describe("Podman events", func() {
-	var (
-		tempdir    string
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		var err error
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-	})
 
 	// For most, all, of these tests we do not "live" test following a log because it may make a fragile test
 	// system more complex.  Instead we run the "events" and then verify that the events are processed correctly.

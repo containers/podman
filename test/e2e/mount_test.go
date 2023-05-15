@@ -1,8 +1,6 @@
 package integration
 
 import (
-	"os"
-
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -10,29 +8,11 @@ import (
 )
 
 var _ = Describe("Podman mount", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
 
 	BeforeEach(func() {
 		SkipIfRemote("Podman mount not supported for remote connections")
 		SkipIfRootless("Podman mount requires podman unshare first to work")
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
 		podmanTest.AddImageToRWStore(ALPINE)
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-
 	})
 
 	It("podman mount", func() {

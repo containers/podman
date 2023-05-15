@@ -13,27 +13,6 @@ import (
 )
 
 var _ = Describe("Podman pull", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-
-	})
 
 	It("podman pull multiple images with/without tag/digest", func() {
 		session := podmanTest.Podman([]string{"pull", "busybox:musl", "alpine", "alpine:latest", "quay.io/libpod/cirros", "quay.io/libpod/testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb"})

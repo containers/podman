@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"os"
 	"sort"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -13,27 +12,6 @@ import (
 )
 
 var _ = Describe("Podman diff", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-
-	})
 
 	It("podman diff of image", func() {
 		session := podmanTest.Podman([]string{"diff", ALPINE})

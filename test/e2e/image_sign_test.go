@@ -5,28 +5,16 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman image sign", func() {
-	var (
-		origGNUPGHOME string
-		tempdir       string
-		err           error
-		podmanTest    *PodmanTestIntegration
-	)
+	var origGNUPGHOME string
 
 	BeforeEach(func() {
 		SkipIfRemote("podman-remote image sign is not supported")
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
 		tempGNUPGHOME := filepath.Join(podmanTest.TempDir, "tmpGPG")
 		err := os.Mkdir(tempGNUPGHOME, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
@@ -38,9 +26,6 @@ var _ = Describe("Podman image sign", func() {
 	})
 
 	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
 		os.Setenv("GNUPGHOME", origGNUPGHOME)
 	})
 

@@ -13,20 +13,10 @@ import (
 )
 
 var _ = Describe("Podman systemd", func() {
-	var (
-		tempdir         string
-		err             error
-		podmanTest      *PodmanTestIntegration
-		systemdUnitFile string
-	)
+
+	var systemdUnitFile string
 
 	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
 		systemdUnitFile = fmt.Sprintf(`[Unit]
 Description=redis container
 [Service]
@@ -37,13 +27,6 @@ KillMode=process
 [Install]
 WantedBy=default.target
 `, podmanTest.PodmanBinary, podmanTest.PodmanBinary)
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-
 	})
 
 	It("podman start container by systemd", func() {

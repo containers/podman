@@ -21,26 +21,6 @@ import (
 )
 
 var _ = Describe("Podman run", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-	})
 
 	It("podman run a container based on local image", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "ls"})

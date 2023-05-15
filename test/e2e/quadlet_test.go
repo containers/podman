@@ -12,7 +12,6 @@ import (
 	"github.com/containers/podman/v4/version"
 	"github.com/mattn/go-shellwords"
 
-	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -395,21 +394,12 @@ func (t *quadletTestcase) check(generateDir string, session *PodmanSessionIntegr
 
 var _ = Describe("quadlet system generator", func() {
 	var (
-		tempdir      string
 		err          error
 		generatedDir string
 		quadletDir   string
-		podmanTest   *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-
 		generatedDir = filepath.Join(podmanTest.TempDir, "generated")
 		err = os.Mkdir(generatedDir, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
@@ -417,13 +407,6 @@ var _ = Describe("quadlet system generator", func() {
 		quadletDir = filepath.Join(podmanTest.TempDir, "quadlet")
 		err = os.Mkdir(quadletDir, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-
 	})
 
 	Describe("quadlet -version", func() {

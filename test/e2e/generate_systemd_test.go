@@ -11,27 +11,6 @@ import (
 )
 
 var _ = Describe("Podman generate systemd", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-
-	})
 
 	It("podman generate systemd on bogus container/pod", func() {
 		session := podmanTest.Podman([]string{"generate", "systemd", "foobar"})

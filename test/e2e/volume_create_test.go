@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -12,26 +11,9 @@ import (
 )
 
 var _ = Describe("Podman volume create", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
 
 	AfterEach(func() {
 		podmanTest.CleanupVolume()
-		f := CurrentSpecReport()
-		processTestResult(f)
-
 	})
 
 	It("podman create volume", func() {

@@ -3,7 +3,6 @@ package integration
 import (
 	"encoding/json"
 	"net"
-	"os"
 
 	"github.com/containers/common/libnetwork/types"
 	. "github.com/containers/podman/v4/test/utils"
@@ -19,26 +18,6 @@ func removeNetworkDevice(name string) {
 }
 
 var _ = Describe("Podman network create", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-	})
 
 	It("podman network create with name and subnet", func() {
 		netName := "subnet-" + stringid.GenerateRandomID()

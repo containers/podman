@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -28,12 +27,6 @@ func createContainersConfFileWithCustomUserns(pTest *PodmanTestIntegration, user
 }
 
 var _ = Describe("Podman UserNS support", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
 	BeforeEach(func() {
 		if os.Getenv("SKIP_USERNS") != "" {
 			Skip("Skip userns tests.")
@@ -41,19 +34,6 @@ var _ = Describe("Podman UserNS support", func() {
 		if _, err := os.Stat("/proc/self/uid_map"); err != nil {
 			Skip("User namespaces not supported.")
 		}
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-		os.Unsetenv("CONTAINERS_CONF")
 	})
 
 	// Note: Lot of tests for build with --userns=auto are already there in buildah

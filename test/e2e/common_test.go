@@ -102,6 +102,29 @@ func TestLibpod(t *testing.T) {
 	RunSpecs(t, "Libpod Suite")
 }
 
+var (
+	tempdir    string
+	err        error
+	podmanTest *PodmanTestIntegration
+
+	_ = BeforeEach(func() {
+		tempdir, err = CreateTempDirInTempDir()
+		Expect(err).ToNot(HaveOccurred())
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+	})
+
+	_ = AfterEach(func() {
+		// First unset CONTAINERS_CONF before doing Cleanup() to prevent
+		// invalid containers.conf files to fail the cleanup.
+		os.Unsetenv("CONTAINERS_CONF")
+		os.Unsetenv("CONTAINERS_CONF_OVERRIDE")
+		podmanTest.Cleanup()
+		f := CurrentSpecReport()
+		processTestResult(f)
+	})
+)
+
 var _ = SynchronizedBeforeSuite(func() []byte {
 	// make cache dir
 	ImageCacheDir = filepath.Join(os.TempDir(), "imagecachedir")
@@ -643,8 +666,6 @@ func (p *PodmanTestIntegration) CleanupVolume() {
 	// Remove all containers
 	session := p.Podman([]string{"volume", "rm", "-fa"})
 	session.WaitWithDefaultTimeout()
-
-	p.Cleanup()
 	Expect(session).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", session.Command.Args, session.OutputToString(), session.ErrorToString())
 }
 
@@ -654,8 +675,6 @@ func (p *PodmanTestIntegration) CleanupSecrets() {
 	// Remove all containers
 	session := p.Podman([]string{"secret", "rm", "-a"})
 	session.Wait(90)
-
-	p.Cleanup()
 	Expect(session).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", session.Command.Args, session.OutputToString(), session.ErrorToString())
 }
 

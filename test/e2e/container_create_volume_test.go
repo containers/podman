@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 
-	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -69,27 +68,6 @@ func checkDataVolumeContainer(pTest *PodmanTestIntegration, image, cont, dest, d
 }
 
 var _ = Describe("Podman create data volume", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentSpecReport()
-		processTestResult(f)
-		os.Unsetenv("CONTAINERS_CONF")
-	})
 
 	It("podman create with volume data copy turned off", func() {
 		imgName, volData, volDest := "dataimg", "dummy", "/test"
