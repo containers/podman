@@ -193,6 +193,7 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		TimeZone:  opts.TimeZone,
 		WritePath: m.IgnitionFile.GetPath(),
 		UID:       m.UID,
+		Rootful:   m.Rootful,
 	}
 
 	if err := ign.GenerateIgnitionConfig(); err != nil {
@@ -278,10 +279,10 @@ func (m *MacMachine) Remove(name string, opts machine.RemoveOptions) (string, fu
 				logrus.Error(err)
 			}
 		}
-		if err := machine.RemoveConnection(m.Name); err != nil {
+		if err := machine.RemoveConnections(m.Name); err != nil {
 			logrus.Error(err)
 		}
-		if err := machine.RemoveConnection(m.Name + "-root"); err != nil {
+		if err := machine.RemoveConnections(m.Name + "-root"); err != nil {
 			logrus.Error(err)
 		}
 

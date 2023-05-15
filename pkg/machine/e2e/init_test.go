@@ -3,6 +3,7 @@ package e2e_test
 import (
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/containers/podman/v4/pkg/machine"
@@ -162,4 +163,46 @@ var _ = Describe("podman machine init", func() {
 		Expect(sshSession2.outputToString()).To(ContainSubstring("example"))
 	})
 
+	It("machine init rootless docker.sock check", func() {
+		i := initMachine{}
+		name := randomString()
+		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		s := startMachine{}
+		ssession, err := mb.setCmd(s).setTimeout(time.Minute * 10).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(ssession).Should(Exit(0))
+
+		ssh2 := sshMachine{}
+		sshSession2, err := mb.setName(name).setCmd(ssh2.withSSHCommand([]string{"readlink /var/run/docker.sock"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(sshSession2).To(Exit(0))
+
+		output := strings.TrimSpace(sshSession2.outputToString())
+		Expect(output).To(HavePrefix("/run/user"))
+		Expect(output).To(HaveSuffix("/podman/podman.sock"))
+
+	})
+
+	It("machine init rootful docker.sock check", func() {
+		i := initMachine{}
+		name := randomString()
+		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withRootful(true)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		s := startMachine{}
+		ssession, err := mb.setCmd(s).setTimeout(time.Minute * 10).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(ssession).Should(Exit(0))
+
+		ssh2 := sshMachine{}
+		sshSession2, err := mb.setName(name).setCmd(ssh2.withSSHCommand([]string{"readlink /var/run/docker.sock"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(sshSession2).To(Exit(0))
+		output := strings.TrimSpace(sshSession2.outputToString())
+		Expect(output).To(Equal("/run/podman/podman.sock"))
+	})
 })
