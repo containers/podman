@@ -26,10 +26,17 @@ var _ = Describe("Podman image sign", func() {
 	})
 
 	AfterEach(func() {
+		// There's no way to run gpg without an agent, so, clean up
+		// after every test. No need to check error status.
+		cmd := exec.Command("gpgconf", "--kill", "gpg-agent")
+		cmd.Stdout = GinkgoWriter
+		cmd.Stderr = GinkgoWriter
+		_ = cmd.Run()
+
 		os.Setenv("GNUPGHOME", origGNUPGHOME)
 	})
 
-	It("podman sign image", func() {
+	It("podman sign image", Serial, func() {
 		cmd := exec.Command("gpg", "--import", "sign/secret-key.asc")
 		cmd.Stdout = GinkgoWriter
 		cmd.Stderr = GinkgoWriter
@@ -45,7 +52,7 @@ var _ = Describe("Podman image sign", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("podman sign --all multi-arch image", func() {
+	It("podman sign --all multi-arch image", Serial, func() {
 		cmd := exec.Command("gpg", "--import", "sign/secret-key.asc")
 		cmd.Stdout = GinkgoWriter
 		cmd.Stderr = GinkgoWriter
