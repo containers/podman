@@ -367,8 +367,8 @@ alt_build_task:
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: &no_multiarch_rhel |
         $CIRRUS_CRON != 'multiarch' &&
-        $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
-        $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
+        $CIRRUS_BRANCH !=~ '.*v[0-9\.]+-rhel.*' &&
+        $CIRRUS_BASE_BRANCH !=~ '.*v[0-9\.]+-rhel.*'
     depends_on:
         - build
     env:
@@ -567,8 +567,8 @@ windows_smoke_test_task:
         $CIRRUS_CRON != 'multiarch' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
-        $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
-        $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
+        $CIRRUS_BRANCH !=~ '.*v[0-9\.]+-rhel.*' &&
+        $CIRRUS_BASE_BRANCH !=~ '.*v[0-9\.]+-rhel.*'
     depends_on:
       - alt_build
     experimental: true  # Enable labeling of EC2 VMs with cirrus task ID
@@ -1092,8 +1092,8 @@ artifacts_task:
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
         $CIRRUS_CRON != 'multiarch' &&
-        $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
-        $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
+        $CIRRUS_BRANCH !=~ '.*v[0-9\.]+-rhel.*' &&
+        $CIRRUS_BASE_BRANCH !=~ '.*v[0-9\.]+-rhel.*'
     depends_on:
         - success
     # This task is a secondary/convenience for downstream consumers, don't
