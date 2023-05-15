@@ -650,14 +650,14 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 		defer gw.Close()
 		defer tw.Close()
 		seen := make(map[devino]string)
-		for _, src := range sources {
-			s, err := filepath.Abs(src)
+		for i, src := range sources {
+			source, err := filepath.Abs(src)
 			if err != nil {
 				logrus.Errorf("Cannot stat one of source context: %v", err)
 				merr = multierror.Append(merr, err)
 				return
 			}
-			err = filepath.WalkDir(s, func(path string, d fs.DirEntry, err error) error {
+			err = filepath.WalkDir(source, func(path string, dentry fs.DirEntry, err error) error {
 				if err != nil {
 					return err
 				}
@@ -665,9 +665,9 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 				separator := string(filepath.Separator)
 				// check if what we are given is an empty dir, if so then continue w/ it. Else return.
 				// if we are given a file or a symlink, we do not want to exclude it.
-				if s == path {
+				if source == path {
 					separator = ""
-					if d.IsDir() {
+					if dentry.IsDir() {
 						var p *os.File
 						p, err = os.Open(path)
 						if err != nil {
@@ -682,8 +682,15 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 						}
 					}
 				}
-				name := filepath.ToSlash(strings.TrimPrefix(path, s+separator))
-
+				var name string
+				if i == 0 {
+					name = filepath.ToSlash(strings.TrimPrefix(path, source+separator))
+				} else {
+					if !dentry.Type().IsRegular() {
+						return fmt.Errorf("path %s must be a regular file", path)
+					}
+					name = filepath.ToSlash(path)
+				}
 				excluded, err := pm.Matches(name) //nolint:staticcheck
 				if err != nil {
 					return fmt.Errorf("checking if %q is excluded: %w", name, err)
@@ -695,8 +702,8 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 					return nil
 				}
 				switch {
-				case d.Type().IsRegular(): // add file item
-					info, err := d.Info()
+				case dentry.Type().IsRegular(): // add file item
+					info, err := dentry.Info()
 					if err != nil {
 						return err
 					}
@@ -735,8 +742,8 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 						seen[di] = name
 					}
 					return err
-				case d.IsDir(): // add folders
-					info, err := d.Info()
+				case dentry.IsDir(): // add folders
+					info, err := dentry.Info()
 					if err != nil {
 						return err
 					}
@@ -749,12 +756,12 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 					if lerr := tw.WriteHeader(hdr); lerr != nil {
 						return lerr
 					}
-				case d.Type()&os.ModeSymlink != 0: // add symlinks as it, not content
+				case dentry.Type()&os.ModeSymlink != 0: // add symlinks as it, not content
 					link, err := os.Readlink(path)
 					if err != nil {
 						return err
 					}
-					info, err := d.Info()
+					info, err := dentry.Info()
 					if err != nil {
 						return err
 					}

@@ -94,6 +94,7 @@ func ParseDockerignore(containerfiles []string, root string) ([]string, string, 
 		// so remote must support parsing that.
 		if dockerIgnoreErr != nil {
 			for _, containerfile := range containerfiles {
+				containerfile = strings.TrimPrefix(containerfile, root)
 				if _, err := os.Stat(filepath.Join(root, containerfile+".containerignore")); err == nil {
 					path, symlinkErr = securejoin.SecureJoin(root, containerfile+".containerignore")
 					if symlinkErr == nil {
