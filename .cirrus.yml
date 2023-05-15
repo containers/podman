@@ -363,9 +363,12 @@ swagger_task:
 alt_build_task:
     name: "$ALT_NAME"
     alias: alt_build
-    # Don't create task for [CI:DOCS] or multiarch builds
+    # Don't create task for [CI:DOCS], multiarch or rhel-release builds
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: $CIRRUS_CRON != 'multiarch'
+    only_if: &no_multiarch_rhel |
+        $CIRRUS_CRON != 'multiarch' &&
+        $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
+        $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
     depends_on:
         - build
     env:
@@ -393,12 +396,31 @@ alt_build_task:
     always: *runner_stats
 
 
+win_installer_task:
+    name: "Verify Win Installer Build"
+    alias: win_installer
+    # Don't run for multiarch container image cirrus-cron job.
+    only_if: *no_multiarch_rhel
+    depends_on:
+      - alt_build
+    windows_container:
+        image: cirrusci/windowsservercore:2019
+    env:
+        PATH: "${PATH};C:\\ProgramData\\chocolatey\\bin"
+        CIRRUS_SHELL: powershell
+        # Fake version, we are only testing the installer functions, so version doesn't matter
+        WIN_INST_VER: 9.9.9
+        CIRRUS_WORKING_DIR: "${LOCALAPPDATA}\\Temp\\cirrus-ci-build"
+    install_script: '.\contrib\cirrus\win-installer-install.ps1'
+    main_script: '.\contrib\cirrus\win-installer-main.ps1'
+
+
 # Confirm building the remote client, natively on a Mac OS-X VM.
 osx_alt_build_task:
     name: "OSX Cross"
     alias: osx_alt_build
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: $CIRRUS_CRON != 'multiarch'
+    only_if: *no_multiarch_rhel
     depends_on:
         - build
     env:
@@ -544,7 +566,9 @@ windows_smoke_test_task:
         $CIRRUS_TAG == '' &&
         $CIRRUS_CRON != 'multiarch' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*'
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
+        $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
+        $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
     depends_on:
       - alt_build
     experimental: true  # Enable labeling of EC2 VMs with cirrus task ID
@@ -1067,7 +1091,9 @@ artifacts_task:
     only_if: >-
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
-        $CIRRUS_CRON != 'multiarch'
+        $CIRRUS_CRON != 'multiarch' &&
+        $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
+        $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
     depends_on:
         - success
     # This task is a secondary/convenience for downstream consumers, don't
@@ -1114,25 +1140,6 @@ artifacts_task:
       binary_artifacts:
           path: ./*
           type: application/octet-stream
-
-
-win_installer_task:
-    name: "Verify Win Installer Build"
-    alias: win_installer
-    # Don't run for multiarch container image cirrus-cron job.
-    only_if: $CIRRUS_CRON != 'multiarch'
-    depends_on:
-      - alt_build
-    windows_container:
-        image: cirrusci/windowsservercore:2019
-    env:
-        PATH: "${PATH};C:\\ProgramData\\chocolatey\\bin"
-        CIRRUS_SHELL: powershell
-        # Fake version, we are only testing the installer functions, so version doesn't matter
-        WIN_INST_VER: 9.9.9
-        CIRRUS_WORKING_DIR: "${LOCALAPPDATA}\\Temp\\cirrus-ci-build"
-    install_script: '.\contrib\cirrus\win-installer-install.ps1'
-    main_script: '.\contrib\cirrus\win-installer-main.ps1'
 
 
 # When a new tag is pushed, confirm that the code and commits
