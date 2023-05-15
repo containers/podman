@@ -83,7 +83,7 @@ Remote connections use local containers.conf for default.
 Log messages at and above specified level: debug, info, warn, error, fatal or panic (default: "warn")
 
 #### **--network-cmd-path**=*path*
-Path to the command binary to use for setting up a network.  It is currently only used for setting up a slirp4netns(1) or pasta(1) network.  If "" is used then the binary is looked up using the $PATH environment variable.
+Path to the `slirp4netns(1)` command binary to use for setting up a slirp4netns network.  If "" is used then the binary is looked up using the $PATH environment variable.
 
 #### **--network-config-dir**=*directory*
 
