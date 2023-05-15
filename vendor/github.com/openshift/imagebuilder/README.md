@@ -3,7 +3,7 @@ OCI Image Builder
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/openshift/imagebuilder)](https://goreportcard.com/report/github.com/openshift/imagebuilder)
 [![GoDoc](https://godoc.org/github.com/openshift/imagebuilder?status.png)](https://godoc.org/github.com/openshift/imagebuilder)
-[![Travis](https://travis-ci.org/openshift/imagebuilder.svg?branch=master)](https://travis-ci.org/openshift/imagebuilder)
+[![Travis](https://app.travis-ci.com/openshift/imagebuilder.svg?branch=master)](https://app.travis-ci.com/github/openshift/imagebuilder)
 [![Join the chat at freenode:openshift-dev](https://img.shields.io/badge/irc-freenode%3A%20%23openshift--dev-blue.svg)](http://webchat.freenode.net/?channels=%23openshift-dev)
 
 Please test your images (and add to our conformance suite)!
@@ -36,7 +36,7 @@ Future goals include:
 To download and install the library and the binary, set up a Golang build environment and with `GOPATH` set run:
 
 ```
-$ go get -u github.com/openshift/imagebuilder/cmd/imagebuilder
+$ go install github.com/openshift/imagebuilder/cmd/imagebuilder@latest
 ```
 
 The included command line takes one argument, a path to a directory containing a Dockerfile. The `-t` option
