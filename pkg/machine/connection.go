@@ -10,6 +10,8 @@ import (
 	"github.com/containers/common/pkg/config"
 )
 
+const LocalhostIP = "127.0.0.1"
+
 func AddConnection(uri fmt.Stringer, name, identity string, isDefault bool) error {
 	if len(identity) < 1 {
 		return errors.New("identity must be defined")
