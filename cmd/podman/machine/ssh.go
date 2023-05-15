@@ -22,7 +22,7 @@ var (
 		Long:              "SSH into a managed virtual machine ",
 		PersistentPreRunE: rootlessOnly,
 		RunE:              ssh,
-		Example: `podman machine ssh myvm
+		Example: `podman machine ssh podman-machine-default
   podman machine ssh myvm echo hello`,
 		ValidArgsFunction: autocompleteMachineSSH,
 	}

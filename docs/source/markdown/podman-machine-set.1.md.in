@@ -10,6 +10,9 @@ podman\-machine\-set - Sets a virtual machine setting
 
 Change a machine setting.
 
+The default machine name is `podman-machine-default`. If a machine name is not specified as an argument,
+then the settings will be applied to `podman-machine-default`.
+
 Rootless only.
 
 ## OPTIONS

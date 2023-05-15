@@ -16,6 +16,9 @@ generated for that VM are also removed as is its image file on the filesystem.
 Users get a display of what will be deleted and are required to confirm unless the option `--force`
 is used.
 
+The default machine name is `podman-machine-default`. If a machine name is not specified as an argument,
+then `podman-machine-default` will be removed.
+
 Rootless only.
 
 ## OPTIONS

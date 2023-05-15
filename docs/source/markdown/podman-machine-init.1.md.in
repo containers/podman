@@ -10,6 +10,9 @@ podman\-machine\-init - Initialize a new virtual machine
 
 Initialize a new virtual machine for Podman.
 
+The default machine name is `podman-machine-default`. If a machine name is not specified as an argument,
+then the new machine will be named `podman-machine-default`.
+
 Rootless only.
 
 Podman on MacOS and Windows requires a virtual machine. This is because containers are Linux -
