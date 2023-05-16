@@ -31,7 +31,7 @@ import (
 	"github.com/containers/podman/v4/pkg/specgen/generate"
 	systemdDefine "github.com/containers/podman/v4/pkg/systemd/define"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/docker/docker/pkg/system"
+	"github.com/docker/docker/pkg/meminfo"
 	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -1012,7 +1012,7 @@ func getContainerResources(container v1.Container) (v1.ResourceRequirements, err
 	requests := container.Resources.Requests
 
 	if limits == nil || limits.Memory().IsZero() {
-		mi, err := system.ReadMemInfo()
+		mi, err := meminfo.Read()
 		if err != nil {
 			return result, err
 		}
