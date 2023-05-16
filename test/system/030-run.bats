@@ -1104,5 +1104,13 @@ EOF
     rm -rf $romount
 }
 
+@test "podman run --restart=always -- wait" {
+    # regression test for #18572 to make sure Podman waits less than 20 seconds
+    ctr=$(random_string)
+    run_podman run -d --restart=always --name=$ctr $IMAGE false
+    PODMAN_TIMEOUT=20 run_podman wait $ctr
+    is "$output" "1" "container should exit 1"
+    run_podman rm -f -t0 $ctr
+}
 
 # vim: filetype=sh
