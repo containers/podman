@@ -226,6 +226,11 @@ t POST "build?dockerfile=containerfile" $CONTAINERFILE_TAR application/json 200
 response_headers=$(cat "$WORKDIR/curl.headers.out")
 like "$response_headers" ".*application/json.*" "header does not contain application/json"
 
+# Build api response header must contain Content-type: application/json
+t POST "build?dockerfile=containerfile&pull=never" $CONTAINERFILE_TAR application/json 200
+response_headers=$(cat "$WORKDIR/curl.headers.out")
+like "$response_headers" ".*application/json.*" "header does not contain application/json"
+
 # PR #12091: output from compat API must now include {"aux":{"ID":"sha..."}}
 t POST "build?dockerfile=containerfile" $CONTAINERFILE_TAR 200 \
   '.aux|select(has("ID")).ID~^sha256:[0-9a-f]\{64\}$'
