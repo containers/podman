@@ -95,10 +95,13 @@ The following environment variables are supported by the test setup:
 You can run a single file of integration tests using the go test command:
 
 ```
-go test -v test/e2e/libpod_suite_test.go test/e2e/common_test.go test/e2e/config.go test/e2e/config_amd64.go test/e2e/your_test.go
+make localintegration FOCUS_FILE=your_test.go
 ```
 
-If you want to run the tests with the podman-remote client, make sure to replace `test/e2e/libpod_suite_test.go` with `test/e2e/libpod_suite_remote_test.go`.
+`FOCUS_FILE` file maps to ginkgo's `--focus-file` option, see the ginkgo
+[docs](https://onsi.github.io/ginkgo/#location-based-filtering) for the accepted syntax.
+
+For remote tests use the `remoteintegration` Makefile target instead.
 
 ### Running a single integration test
 Before running the test suite, you have to declare which test you want run in the test
@@ -112,17 +115,16 @@ It("podman inspect bogus pod", func() {
 ```
 
 To mark this as the test you want run, you simply change the *It* description to *FIt*. Please note how
-both the `F` and `I` are capitalized.
-
-You can run a single integration test using the same command we used to run all the tests in a single
-file.
-
-```
-go test -v test/e2e/libpod_suite_test.go test/e2e/common_test.go test/e2e/config.go test/e2e/config_amd64.go test/e2e/your_test.go
-```
+both the `F` and `I` are capitalized. Also see the ginkgo [docs](https://onsi.github.io/ginkgo/#focused-specs).
 
 *Note*: Be sure you remove the `F` from the tests before committing your changes or you will skip all tests
 in that file except the one with the `FIt` denotation.
+
+Alternatively you can use the `FOCUS` option which maps to `--focus`, again see the ginkgo
+[docs](https://onsi.github.io/ginkgo/#description-based-filtering) for more info about the syntax.
+```
+make localintegration FOCUS="podman inspect bogus pod"
+```
 
 # System tests
 System tests are used for testing the *podman* CLI in the context of a complete system. It
