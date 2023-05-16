@@ -10,7 +10,10 @@ import (
 	. "github.com/onsi/gomega/gexec"
 )
 
-var _ = Describe("Podman image sign", func() {
+// Each of these tests runs with a different GNUPGHOME; gpg-agent blows up
+// if these run in parallel. We use Serial, not Ordered, because tests in
+// trust_test.go also rely on gpg and can't coexist with us.
+var _ = Describe("Podman image sign", Serial, func() {
 	var origGNUPGHOME string
 
 	BeforeEach(func() {
@@ -36,7 +39,7 @@ var _ = Describe("Podman image sign", func() {
 		os.Setenv("GNUPGHOME", origGNUPGHOME)
 	})
 
-	It("podman sign image", Serial, func() {
+	It("podman sign image", func() {
 		cmd := exec.Command("gpg", "--import", "sign/secret-key.asc")
 		cmd.Stdout = GinkgoWriter
 		cmd.Stderr = GinkgoWriter
@@ -52,7 +55,7 @@ var _ = Describe("Podman image sign", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("podman sign --all multi-arch image", Serial, func() {
+	It("podman sign --all multi-arch image", func() {
 		cmd := exec.Command("gpg", "--import", "sign/secret-key.asc")
 		cmd.Stdout = GinkgoWriter
 		cmd.Stderr = GinkgoWriter
