@@ -22,7 +22,7 @@ var (
 		PersistentPreRunE: rootlessOnly,
 		RunE:              initMachine,
 		Args:              cobra.MaximumNArgs(1),
-		Example:           `podman machine init myvm`,
+		Example:           `podman machine init podman-machine-default`,
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
 

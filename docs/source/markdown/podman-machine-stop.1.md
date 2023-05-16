@@ -10,6 +10,9 @@ podman\-machine\-stop - Stop a virtual machine
 
 Stops a virtual machine.
 
+The default machine name is `podman-machine-default`. If a machine name is not specified as an argument,
+then `podman-machine-default` will be stopped.
+
 Rootless only.
 
 Podman on MacOS and Windows requires a virtual machine. This is because containers are Linux -

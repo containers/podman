@@ -17,6 +17,9 @@ containers do not run on any other OS because containers' core functionality are
 tied to the Linux kernel. Podman machine must be used to manage MacOS and Windows machines,
 but can be optionally used on Linux.
 
+The default machine name is `podman-machine-default`. If a machine name is not specified as an argument,
+then `podman-machine-default` will be started.
+
 Only one Podman managed VM can be active at a time. If a VM is already running,
 `podman machine start` will return an error.
 
