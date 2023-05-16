@@ -524,14 +524,12 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 	pidFile := filepath.Join(bundlePath, "pid")
 	args := append(append(append(runtimeArgs, "create", "--bundle", bundlePath, "--pid-file", pidFile), moreCreateArgs...), containerName)
 	create := exec.Command(runtime, args...)
-	setPdeathsig(create)
 	create.Dir = bundlePath
 	stdin, stdout, stderr := getCreateStdio()
 	create.Stdin, create.Stdout, create.Stderr = stdin, stdout, stderr
 
 	args = append(options.Args, "start", containerName)
 	start := exec.Command(runtime, args...)
-	setPdeathsig(start)
 	start.Dir = bundlePath
 	start.Stderr = os.Stderr
 
@@ -1122,7 +1120,6 @@ func (b *Builder) runUsingRuntimeSubproc(isolation define.Isolation, options Run
 		return fmt.Errorf("encoding configuration for %q: %w", runUsingRuntimeCommand, conferr)
 	}
 	cmd := reexec.Command(runUsingRuntimeCommand)
-	setPdeathsig(cmd)
 	cmd.Dir = bundlePath
 	cmd.Stdin = options.Stdin
 	if cmd.Stdin == nil {
@@ -1328,7 +1325,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 		processGID: int(processGID),
 	}
 	// Get the list of mounts that are just for this Run() call.
-	runMounts, mountArtifacts, err := b.runSetupRunMounts(runFileMounts, runMountInfo, idMaps)
+	runMounts, mountArtifacts, err := b.runSetupRunMounts(mountPoint, runFileMounts, runMountInfo, idMaps)
 	if err != nil {
 		return nil, err
 	}
@@ -1464,10 +1461,28 @@ func cleanableDestinationListFromMounts(mounts []spec.Mount) []string {
 	return mountDest
 }
 
+func checkIfMountDestinationPreExists(root string, dest string) (bool, error) {
+	statResults, err := copier.Stat(root, "", copier.StatOptions{}, []string{dest})
+	if err != nil {
+		return false, err
+	}
+	if len(statResults) > 0 {
+		// We created exact path for globbing so it will
+		// return only one result.
+		if statResults[0].Error != "" && len(statResults[0].Globbed) == 0 {
+			// Path do not exsits.
+			return false, nil
+		}
+		// Path exists.
+		return true, nil
+	}
+	return false, nil
+}
+
 // runSetupRunMounts sets up mounts that exist only in this RUN, not in subsequent runs
 //
 // If this function succeeds, the caller must unlock runMountArtifacts.TargetLocks (when??)
-func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMaps IDMaps) ([]spec.Mount, *runMountArtifacts, error) {
+func (b *Builder) runSetupRunMounts(mountPoint string, mounts []string, sources runMountInfo, idMaps IDMaps) ([]spec.Mount, *runMountArtifacts, error) {
 	// If `type` is not set default to TypeBind
 	mountType := define.TypeBind
 	mountTargets := make([]string, 0, 10)
@@ -1485,6 +1500,11 @@ func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMap
 		}
 	}()
 	for _, mount := range mounts {
+		var mountSpec *spec.Mount
+		var err error
+		var envFile, image string
+		var agent *sshagent.AgentServer
+		var tl *lockfile.LockFile
 		tokens := strings.Split(mount, ",")
 		for _, field := range tokens {
 			if strings.HasPrefix(field, "type=") {
@@ -1497,62 +1517,70 @@ func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMap
 		}
 		switch mountType {
 		case "secret":
-			mount, envFile, err := b.getSecretMount(tokens, sources.Secrets, idMaps, sources.WorkDir)
+			mountSpec, envFile, err = b.getSecretMount(tokens, sources.Secrets, idMaps, sources.WorkDir)
 			if err != nil {
 				return nil, nil, err
 			}
-			if mount != nil {
-				finalMounts = append(finalMounts, *mount)
-				mountTargets = append(mountTargets, mount.Destination)
+			if mountSpec != nil {
+				finalMounts = append(finalMounts, *mountSpec)
 				if envFile != "" {
 					tmpFiles = append(tmpFiles, envFile)
 				}
 			}
 		case "ssh":
-			mount, agent, err := b.getSSHMount(tokens, sshCount, sources.SSHSources, idMaps)
+			mountSpec, agent, err = b.getSSHMount(tokens, sshCount, sources.SSHSources, idMaps)
 			if err != nil {
 				return nil, nil, err
 			}
-			if mount != nil {
-				finalMounts = append(finalMounts, *mount)
-				mountTargets = append(mountTargets, mount.Destination)
+			if mountSpec != nil {
+				finalMounts = append(finalMounts, *mountSpec)
 				agents = append(agents, agent)
 				if sshCount == 0 {
-					defaultSSHSock = mount.Destination
+					defaultSSHSock = mountSpec.Destination
 				}
 				// Count is needed as the default destination of the ssh sock inside the container is  /run/buildkit/ssh_agent.{i}
 				sshCount++
 			}
 		case define.TypeBind:
-			mount, image, err := b.getBindMount(tokens, sources.SystemContext, sources.ContextDir, sources.StageMountPoints, idMaps, sources.WorkDir)
+			mountSpec, image, err = b.getBindMount(tokens, sources.SystemContext, sources.ContextDir, sources.StageMountPoints, idMaps, sources.WorkDir)
 			if err != nil {
 				return nil, nil, err
 			}
-			finalMounts = append(finalMounts, *mount)
-			mountTargets = append(mountTargets, mount.Destination)
+			finalMounts = append(finalMounts, *mountSpec)
 			// only perform cleanup if image was mounted ignore everything else
 			if image != "" {
 				mountImages = append(mountImages, image)
 			}
 		case "tmpfs":
-			mount, err := b.getTmpfsMount(tokens, idMaps)
+			mountSpec, err = b.getTmpfsMount(tokens, idMaps)
 			if err != nil {
 				return nil, nil, err
 			}
-			finalMounts = append(finalMounts, *mount)
-			mountTargets = append(mountTargets, mount.Destination)
+			finalMounts = append(finalMounts, *mountSpec)
 		case "cache":
-			mount, tl, err := b.getCacheMount(tokens, sources.StageMountPoints, idMaps, sources.WorkDir)
+			mountSpec, tl, err = b.getCacheMount(tokens, sources.StageMountPoints, idMaps, sources.WorkDir)
 			if err != nil {
 				return nil, nil, err
 			}
-			finalMounts = append(finalMounts, *mount)
-			mountTargets = append(mountTargets, mount.Destination)
+			finalMounts = append(finalMounts, *mountSpec)
 			if tl != nil {
 				targetLocks = append(targetLocks, tl)
 			}
 		default:
 			return nil, nil, fmt.Errorf("invalid mount type %q", mountType)
+		}
+
+		if mountSpec != nil {
+			pathPreExists, err := checkIfMountDestinationPreExists(mountPoint, mountSpec.Destination)
+			if err != nil {
+				return nil, nil, err
+			}
+			if !pathPreExists {
+				// In such case it means that the path did not exists before
+				// creating any new mounts therefore we must clean the newly
+				// created directory after this step.
+				mountTargets = append(mountTargets, mountSpec.Destination)
+			}
 		}
 	}
 	succeeded = true
@@ -1622,9 +1650,12 @@ func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secr
 				target = filepath.Join(workdir, target)
 			}
 		case "required":
-			required, err = strconv.ParseBool(kv[1])
-			if err != nil {
-				return nil, "", errInvalidSyntax
+			required = true
+			if len(kv) > 1 {
+				required, err = strconv.ParseBool(kv[1])
+				if err != nil {
+					return nil, "", errInvalidSyntax
+				}
 			}
 		case "mode":
 			mode64, err := strconv.ParseUint(kv[1], 8, 32)
@@ -1876,7 +1907,6 @@ func (b *Builder) cleanupRunMounts(context *imageTypes.SystemContext, mountpoint
 			return err
 		}
 	}
-
 	opts := copier.RemoveOptions{
 		All: true,
 	}

@@ -70,7 +70,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 	if err != nil {
 		return nil, err
 	}
-	if err := idtools.MkdirAllAs(home, 0700, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAllAs(filepath.Join(home, "subvolumes"), 0700, rootUID, rootGID); err != nil {
 		return nil, err
 	}
 
@@ -119,7 +119,7 @@ func parseOptions(opt []string) (btrfsOptions, bool, error) {
 		case "btrfs.mountopt":
 			return options, userDiskQuota, fmt.Errorf("btrfs driver does not support mount options")
 		default:
-			return options, userDiskQuota, fmt.Errorf("unknown option %s", key)
+			return options, userDiskQuota, fmt.Errorf("unknown option %s (%q)", key, option)
 		}
 	}
 	return options, userDiskQuota, nil
@@ -479,8 +479,8 @@ func (d *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts
 
 // Create the filesystem with given id.
 func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
-	quotas := path.Join(d.home, "quotas")
-	subvolumes := path.Join(d.home, "subvolumes")
+	quotas := d.quotasDir()
+	subvolumes := d.subvolumesDir()
 	rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)
 	if err != nil {
 		return err
@@ -560,7 +560,7 @@ func (d *Driver) parseStorageOpt(storageOpt map[string]string, driver *Driver) e
 			}
 			driver.options.size = uint64(size)
 		default:
-			return fmt.Errorf("unknown option %s", key)
+			return fmt.Errorf("unknown option %s (%q)", key, storageOpt)
 		}
 	}
 
@@ -679,9 +679,21 @@ func (d *Driver) Exists(id string) bool {
 	return err == nil
 }
 
-// List layers (not including additional image stores)
+// List all of the layers known to the driver.
 func (d *Driver) ListLayers() ([]string, error) {
-	return nil, graphdriver.ErrNotSupported
+	subvolumesDir := filepath.Join(d.home, "subvolumes")
+	entries, err := os.ReadDir(subvolumesDir)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		results = append(results, entry.Name())
+	}
+	return results, nil
 }
 
 // AdditionalImageStores returns additional image stores supported by the driver

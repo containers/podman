@@ -12,14 +12,14 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.5.4
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
-	github.com/containers/buildah v1.30.1-0.20230504052500-e925b5852e07
-	github.com/containers/common v0.53.1-0.20230506101404-3e93a76d461c
+	github.com/containers/buildah v1.30.1-0.20230522160735-eda32d4a2c72
+	github.com/containers/common v0.53.1-0.20230516065732-82045748b3e3
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.25.1-0.20230505072505-dc4a4be9cc1e
+	github.com/containers/image/v5 v5.25.1-0.20230511204805-94ab8dee62ea
 	github.com/containers/libhvee v0.0.5
 	github.com/containers/ocicrypt v1.1.7
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.46.1
+	github.com/containers/storage v1.46.2-0.20230508110141-51c23d59f8f3
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.4.1
 	github.com/crc-org/vfkit v0.0.5-0.20230427143911-8117c28876bc
@@ -75,13 +75,13 @@ require (
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
-	github.com/Microsoft/hcsshim v0.10.0-rc.7 // indirect
+	github.com/Microsoft/hcsshim v0.10.0-rc.8 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
-	github.com/containerd/containerd v1.7.0 // indirect
+	github.com/containerd/containerd v1.7.1 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.14.3 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/coreos/go-oidc/v3 v3.5.0 // indirect
@@ -166,10 +166,10 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.15.0 // indirect
 	go.opentelemetry.io/otel/trace v1.15.0 // indirect
-	golang.org/x/crypto v0.8.0 // indirect
+	golang.org/x/crypto v0.9.0 // indirect
 	golang.org/x/exp v0.0.0-20230425010034-47ecfdc1ba53 // indirect
 	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/oauth2 v0.7.0 // indirect
+	golang.org/x/oauth2 v0.8.0 // indirect
 	golang.org/x/tools v0.9.1 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect

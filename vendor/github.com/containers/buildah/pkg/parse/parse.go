@@ -154,9 +154,6 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 		return nil, fmt.Errorf("invalid --shm-size: %w", err)
 	}
 	volumes, _ := flags.GetStringArray("volume")
-	if err := Volumes(volumes); err != nil {
-		return nil, err
-	}
 	cpuPeriod, _ := flags.GetUint64("cpu-period")
 	cpuQuota, _ := flags.GetInt64("cpu-quota")
 	cpuShares, _ := flags.GetUint64("cpu-shares")

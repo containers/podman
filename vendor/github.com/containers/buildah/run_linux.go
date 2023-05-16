@@ -504,7 +504,6 @@ func setupRootlessNetwork(pid int) (teardown func(), err error) {
 	}
 
 	cmd := exec.Command(slirp4netns, "--mtu", "65520", "-r", "3", "-c", strconv.Itoa(pid), "tap0")
-	setPdeathsig(cmd)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = nil, nil, nil
 	cmd.ExtraFiles = []*os.File{rootlessSlirpSyncW}
 
@@ -1227,12 +1226,4 @@ func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]int
 	}
 	succeeded = true
 	return &volumes[0], targetLock, nil
-}
-
-// setPdeathsig sets a parent-death signal for the process
-func setPdeathsig(cmd *exec.Cmd) {
-	if cmd.SysProcAttr == nil {
-		cmd.SysProcAttr = &syscall.SysProcAttr{}
-	}
-	cmd.SysProcAttr.Pdeathsig = syscall.SIGKILL
 }

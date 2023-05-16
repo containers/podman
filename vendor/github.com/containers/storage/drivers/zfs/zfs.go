@@ -409,7 +409,6 @@ func (d *Driver) Remove(id string) error {
 
 // Get returns the mountpoint for the given id after creating the target directories if necessary.
 func (d *Driver) Get(id string, options graphdriver.MountOpts) (_ string, retErr error) {
-
 	mountpoint := d.mountPath(id)
 	if count := d.ctr.Increment(mountpoint); count > 1 {
 		return mountpoint, nil
@@ -506,7 +505,9 @@ func (d *Driver) Exists(id string) bool {
 	return d.filesystemsCache[d.zfsPath(id)]
 }
 
-// List layers (not including additional image stores)
+// List layers (not including additional image stores).  Our layers aren't all
+// dependent on a single well-known dataset, so we can't reliably tell which
+// datasets are ours and which ones just look like they could be ours.
 func (d *Driver) ListLayers() ([]string, error) {
 	return nil, graphdriver.ErrNotSupported
 }

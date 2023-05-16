@@ -1001,6 +1001,10 @@ func (devices *DeviceSet) verifyBaseDeviceUUIDFS(baseInfo *devInfo) error {
 	devices.Lock()
 	defer devices.Unlock()
 
+	if devices.filesystem == "" {
+		devices.filesystem = determineDefaultFS()
+	}
+
 	if err := devices.activateDeviceIfNeeded(baseInfo, false); err != nil {
 		return err
 	}
@@ -1707,6 +1711,9 @@ func (devices *DeviceSet) initDevmapper(doInit bool) (retErr error) {
 	if err := os.MkdirAll(devices.metadataDir(), 0700); err != nil {
 		return err
 	}
+	if err := idtools.MkdirAs(filepath.Join(devices.root, "mnt"), 0700, uid, gid); err != nil && !errors.Is(err, os.ErrExist) {
+		return err
+	}
 
 	prevSetupConfig, err := readLVMConfig(devices.root)
 	if err != nil {
@@ -2317,7 +2324,7 @@ func (devices *DeviceSet) Shutdown(home string) error {
 		info.lock.Lock()
 		devices.Lock()
 		if err := devices.deactivateDevice(info); err != nil {
-			logrus.Debugf("devmapper: Shutdown deactivate base , error: %s", err)
+			logrus.Debugf("devmapper: Shutdown deactivate base, error: %s", err)
 		}
 		devices.Unlock()
 		info.lock.Unlock()
@@ -2326,7 +2333,7 @@ func (devices *DeviceSet) Shutdown(home string) error {
 	devices.Lock()
 	if devices.thinPoolDevice == "" {
 		if err := devices.deactivatePool(); err != nil {
-			logrus.Debugf("devmapper: Shutdown deactivate pool , error: %s", err)
+			logrus.Debugf("devmapper: Shutdown deactivate pool, error: %s", err)
 		}
 	}
 	devices.Unlock()
@@ -2481,6 +2488,26 @@ func (devices *DeviceSet) List() []string {
 		i++
 	}
 	return ids
+}
+
+// ListLayers returns a list of device IDs, omitting the ""/"base" device and
+// any which have been marked as deleted.
+func (devices *DeviceSet) ListLayers() ([]string, error) {
+	if err := devices.cleanupDeletedDevices(); err != nil {
+		return nil, err
+	}
+
+	devices.Lock()
+	defer devices.Unlock()
+
+	ids := make([]string, 0, len(devices.Devices))
+	for k, d := range devices.Devices {
+		if k == "" || d.Deleted {
+			continue
+		}
+		ids = append(ids, k)
+	}
+	return ids, nil
 }
 
 func (devices *DeviceSet) deviceStatus(devName string) (sizeInSectors, mappedSectors, highestMappedSector uint64, err error) {

@@ -251,9 +251,21 @@ func (a *Driver) Exists(id string) bool {
 	return true
 }
 
-// List layers (not including additional image stores)
+// ListLayers() returns all of the layers known to the driver.
 func (a *Driver) ListLayers() ([]string, error) {
-	return nil, graphdriver.ErrNotSupported
+	diffsDir := filepath.Join(a.rootPath(), "diff")
+	entries, err := os.ReadDir(diffsDir)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		results = append(results, entry.Name())
+	}
+	return results, nil
 }
 
 // AdditionalImageStores returns additional image stores supported by the driver
