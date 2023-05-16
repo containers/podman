@@ -6,14 +6,14 @@
 
 Create a bind mount. If `-v /HOST-DIR:/CONTAINER-DIR` is specified, Podman
 bind mounts `/HOST-DIR` from the host into `/CONTAINER-DIR` in the Podman
-container. Similarly, `-v SOURCE-VOLUME:/CONTAINER-DIR` will mount the named
+container. Similarly, `-v SOURCE-VOLUME:/CONTAINER-DIR` mounts the named
 volume from the host into the container. If no such named volume exists,
-Podman will create one. If no source is given, the volume will be created
-as an anonymously named volume with a randomly generated name, and will be
+Podman creates one. If no source is given, the volume is created
+as an anonymously named volume with a randomly generated name, and is
 removed when the <<container|pod>> is removed via the `--rm` flag or
 the `podman rm --volumes` command.
 
-(Note when using the remote client, including Mac and Windows (excluding WSL2) machines, the volumes will be mounted from the remote server, not necessarily the client machine.)
+(Note when using the remote client, including Mac and Windows (excluding WSL2) machines, the volumes are mounted from the remote server, not necessarily the client machine.)
 
 The _OPTIONS_ is a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>
 
@@ -30,16 +30,16 @@ The _OPTIONS_ is a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>
 * **idmap**[=**options**]
 
 The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The volume
-will be mounted into the container at this directory.
+is mounted into the container at this directory.
 
 If a volume source is specified, it must be a path on the host or the name of a
 named volume. Host paths are allowed to be absolute or relative; relative paths
 are resolved relative to the directory Podman is run in. If the source does not
-exist, Podman will return an error. Users must pre-create the source files or
+exist, Podman returns an error. Users must pre-create the source files or
 directories.
 
-Any source that does not begin with a `.` or `/` will be treated as the name of
-a named volume. If a volume with that name does not exist, it will be created.
+Any source that does not begin with a `.` or `/` is treated as the name of
+a named volume. If a volume with that name does not exist, it is created.
 Volumes created with names are not anonymous, and they are not removed by the `--rm`
 option and the `podman rm --volumes` command.
 
@@ -63,9 +63,9 @@ The `:U` suffix tells Podman to use the correct host UID and GID based on the
 UID and GID within the <<container|pod>>, to change recursively the owner and
 group of the source volume. Chowning walks the file system under the volume and
 changes the UID/GID on each file, it the volume has thousands of inodes, this
-process will take a long time, delaying the start of the <<container|pod>>.
+process takes a long time, delaying the start of the <<container|pod>>.
 
-**Warning** use with caution since this will modify the host filesystem.
+**Warning** use with caution since this modifies the host filesystem.
 
   `Labeling Volume Mounts`
 
@@ -82,7 +82,7 @@ content with a shared content label. Shared volume labels allow all containers
 to read/write content. The **Z** option tells Podman to label the content with
 a private unshared label Only the current <<container|pod>> can use a private
 volume. Relabeling walks the file system under the volume and changes the label
-on each file, if the volume has thousands of inodes, this process will take a
+on each file, if the volume has thousands of inodes, this process takes a
 long time, delaying the start of the <<container|pod>>. If the volume
 was previously relabeled with the `z` option, Podman is optimized to not relabel
 a second time. If files are moved into the volume, then the labels can be
@@ -103,17 +103,17 @@ For example if a user wanted to volume mount their entire home directory into a
 temporary storage using the `overlay file system`. The <<container|pod>> processes
 can modify content within the mountpoint which is stored in the
 container storage in a separate directory. In overlay terms, the source
-directory will be the lower, and the container storage directory will be the
+directory is the lower, and the container storage directory is the
 upper. Modifications to the mount point are destroyed when the <<container|pod>>
 finishes executing, similar to a tmpfs mount point being unmounted.
 
 For advanced users, the **overlay** option also supports custom non-volatile
 **upperdir** and **workdir** for the overlay mount. Custom **upperdir** and
-**workdir** can be fully managed by the users themselves, and Podman will not
+**workdir** can be fully managed by the users themselves, and Podman does not
 remove it on lifecycle completion.
 Example **:O,upperdir=/some/upper,workdir=/some/work**
 
-  Subsequent executions of the container will see the original source directory
+  Subsequent executions of the container sees the original source directory
 content, any changes from previous <<container|pod>> executions no longer exist.
 
   One use case of the overlay mount is sharing the package cache from the
@@ -128,19 +128,17 @@ by the <<|pod infra>> container label. Usually containers can read/execute `cont
 and can read/write `container_file_t`. If unable to change the labels on a
 source volume, SELinux container separation must be disabled for the <<|pod or infra>> container
 to work.
-     - The source directory mounted into the <<container|pod>> with an overlay mount
-should not be modified, it can cause unexpected failures. It is recommended
-to not modify the directory until the container finishes running.
+     - Do not modify the source directory mounted into the <<container|pod>> with an overlay mount, it can cause unexpected failures. Only modify the directory after the container finishes running.
 
   `Mounts propagation`
 
 By default bind mounted volumes are `private`. That means any mounts done
-inside the <<container|pod>> will not be visible on host and vice versa. One can change
+inside the <<container|pod>> is not visible on host and vice versa. One can change
 this behavior by specifying a volume mount propagation property. Making a
-volume shared mounts done under that volume inside the <<container|pod>> will be
+volume shared mounts done under that volume inside the <<container|pod>> is
 visible on host and vice versa. Making a volume **slave** enables only one
 way mount propagation and that is mounts done on host under that volume
-will be visible inside container but not the other way around. <sup>[[1]](#Footnote1)</sup>
+is visible inside container but not the other way around. <sup>[[1]](#Footnote1)</sup>
 
 To control mount propagation property of a volume one can use the [**r**]**shared**,
 [**r**]**slave**, [**r**]**private** or the [**r**]**unbindable** propagation flag.
@@ -153,7 +151,7 @@ slave volumes, the source mount point has to be either shared or slave.
 
 To recursively mount a volume and all of its submounts into a
 <<container|pod>>, use the **rbind** option. By default the bind option is
-used, and submounts of the source directory will not be mounted into the
+used, and submounts of the source directory is not mounted into the
 <<container|pod>>.
 
 Mounting the volume with a **copy** option tells podman to copy content from
@@ -162,15 +160,15 @@ the underlying destination directory onto newly created internal volumes. The
 copied up when the volume is subsequently used on different containers. The
 **copy** option is ignored on bind mounts and has no effect.
 
-Mounting the volume with the **nosuid** options means that SUID applications on
-the volume will not be able to change their privilege. By default volumes
-are mounted with **nosuid**.
+Mounting volumes with the **nosuid** options means that SUID executables on the
+volume can not be used by applications to change their privilege. By default
+volumes are mounted with **nosuid**.
 
 Mounting the volume with the **noexec** option means that no executables on the
-volume will be able to be executed within the <<container|pod>>.
+volume can be executed within the <<container|pod>>.
 
 Mounting the volume with the **nodev** option means that no devices on the volume
-will be able to be used by processes within the <<container|pod>>. By default volumes
+can be used by processes within the <<container|pod>>. By default volumes
 are mounted with **nodev**.
 
 If the _HOST-DIR_ is a mount point, then **dev**, **suid**, and **exec** options are
@@ -187,12 +185,12 @@ is slave, and if nothing is there, the mount is private. <sup>[[1]](#Footnote1)<
 To change propagation properties of a mount point, use **mount**(8) command. For
 example, if one wants to bind mount source directory _/foo_, one can do
 **mount --bind /foo /foo** and **mount --make-private --make-shared /foo**. This
-will convert /foo into a shared mount point. Alternatively, one can directly
+converts /foo into a shared mount point. Alternatively, one can directly
 change propagation properties of source mount. Say _/_ is source mount for
 _/foo_, then use **mount --make-shared /** to convert _/_ into a shared mount.
 
 Note: if the user only has access rights via a group, accessing the volume
-from inside a rootless <<container|pod>> will fail.
+from inside a rootless <<container|pod>> fails.
 
  `Idmapped mount`
 

@@ -9,8 +9,8 @@ podman\-rm - Remove one or more containers
 **podman container rm** [*options*] *container*
 
 ## DESCRIPTION
-**podman rm** will remove one or more containers from the host.  The container name or ID can be used.  This does not remove images.
-Running or unusable containers will not be removed without the **-f** option.
+**podman rm** removes one or more containers from the host.  The container name or ID can be used.  This does not remove images.
+Running or unusable containers are not removed without the **-f** option.
 
 ## OPTIONS
 
@@ -51,8 +51,8 @@ Valid filters are listed below:
 #### **--force**, **-f**
 
 Force the removal of running and paused containers. Forcing a container removal also
-removes containers from container storage even if the container is not known to podman.
-Containers could have been created by a different container engine.
+removes containers from container storage even if the container is not known to Podman.
+For example, containers that are created by different container engines like Buildah.
 In addition, forcing can be used to remove unusable containers, e.g. containers
 whose OCI runtime has become unavailable.
 
@@ -117,7 +117,7 @@ $ podman rm -f --latest
   **125** The command fails for any other reason
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[crio(8)](https://github.com/cri-o/cri-o/blob/main/docs/crio.8.md)**
+**[podman(1)](podman.1.md)**
 
 ## HISTORY
 August 2017, Originally compiled by Ryan Cole <rycole@redhat.com>

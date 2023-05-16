@@ -36,8 +36,7 @@ the scope of this example.  Building a multi-arch manifest list
         $ platarch=linux/amd64,linux/ppc64le,linux/arm64,linux/s390x
         $ podman build --jobs=4 --platform=$platarch --manifest shazam .
 
-**Note:** The `--jobs` argument is optional, and the `-t` or `--tag`
-option should *not* be used.
+**Note:** The `--jobs` argument is optional. Do not use the `podman build` command's `--tag` (or `-t`) option when building a multi-arch manifest list.
 
 ### Assembling a multi-arch manifest from separately built images
 
@@ -60,7 +59,7 @@ pushed, not just the native platform/arch.
 
 Special care is needed when removing and pushing manifest lists, as opposed
 to the contents.  You almost always want to use the `manifest rm` and
-`manifest push --all` subcommands.  For example, a rename and push could
+`manifest push --all` subcommands.  For example, a rename and push can
 be performed like this:
 
         $ podman tag localhost/shazam example.com/example/shazam

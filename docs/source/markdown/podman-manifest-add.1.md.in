@@ -17,9 +17,9 @@ The list image's ID.
 
 #### **--all**
 
-If the image which should be added to the list or index is itself a list or
+If the image which is added to the list or index is itself a list or
 index, add all of the contents to the local list.  By default, only one image
-from such a list or index will be added to the list or index.  Combining
+from such a list or index is added to the list or index.  Combining
 *--all* with any of the other options described below is NOT recommended.
 
 @@option annotation.manifest
@@ -28,7 +28,7 @@ from such a list or index will be added to the list or index.  Combining
 
 Override the architecture which the list or index records as a requirement for
 the image.  If *imageName* refers to a manifest list or image index, the
-architecture information will be retrieved from it.  Otherwise, it will be
+architecture information is retrieved from it.  Otherwise, it is
 retrieved from the image's configuration information.
 
 @@option authfile
@@ -43,7 +43,7 @@ retrieved from the image's configuration information.
 
 Override the OS which the list or index records as a requirement for the image.
 If *imagename* refers to a manifest list or image index, the OS information
-will be retrieved from it.  Otherwise, it will be retrieved from the image's
+is retrieved from it.  Otherwise, it is retrieved from the image's
 configuration information.
 
 @@option os-version

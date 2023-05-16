@@ -11,22 +11,22 @@ Create a network configuration for use with Podman. By default, Podman creates a
 A *Macvlan* connection can be created with the *-d macvlan* option. A parent device for macvlan or
 ipvlan can be designated with the *-o parent=`<device>`* or *--network-interface=`<device>`* option.
 
-If no options are provided, Podman will assign a free subnet and name for the network.
+If no options are provided, Podman assigns a free subnet and name for the network.
 
-Upon completion of creating the network, Podman will display the name of the newly added network.
+Upon completion of creating the network, Podman displays the name of the newly added network.
 
-NOTE: The support for the network name pasta is deprecated and will be removed in the next major
+NOTE: The support for the network name "pasta" is deprecated and will be removed in the next major
 release because it is used as a special network mode in **podman run/create --network**.
 
 ## OPTIONS
 #### **--disable-dns**
 
 Disables the DNS plugin for this network which if enabled, can perform container to container name
-resolution. It is only supported with the `bridge` driver, for other drivers it will be always disabled.
+resolution. It is only supported with the `bridge` driver, for other drivers it is always disabled.
 
 #### **--dns**=*ip*
 
-Set network-scoped DNS resolver/nameserver for containers in this network. If not set, the host servers from `/etc/resolv.conf` will be used.  It can be overwritten on the container level with the `podman run/create --dns` option. This option can be specified multiple times to set more than one IP.
+Set network-scoped DNS resolver/nameserver for containers in this network. If not set, the host servers from `/etc/resolv.conf` is used.  It can be overwritten on the container level with the `podman run/create --dns` option. This option can be specified multiple times to set more than one IP.
 
 #### **--driver**, **-d**=*driver*
 
@@ -52,18 +52,17 @@ The argument order of the **--subnet**, **--gateway** and **--ip-range** options
 #### **--ignore**
 
 Ignore the create request if a network with the same name already exists instead of failing.
-Note, trying to create a network with an existing name and different parameters, will not change the configuration of the existing one
+Note, trying to create a network with an existing name and different parameters does not change the configuration of the existing one.
 
 #### **--interface-name**=*name*
 
 This option maps the the *network_interface* option in the network config, see **podman network inspect**.
-Depending on the driver this can have different effects, for `bridge` it will be the bridge interface name.
-For `macvlan` and `ipvlan` this will be the parent device on the host. It is the same as `--opt parent=...`.
+Depending on the driver, this can have different effects; for `bridge`, it uses the bridge interface name.
+For `macvlan` and `ipvlan`, it is the parent device on the host. It is the same as `--opt parent=...`.
 
 #### **--internal**
 
-Restrict external access of this network. Note when using this option, the dnsname plugin will be
-automatically disabled.
+Restrict external access of this network. Note when using this option, the dnsname plugin is automatically disabled.
 
 #### **--ip-range**=*range*
 
@@ -73,7 +72,7 @@ The argument order of the **--subnet**, **--gateway** and **--ip-range** options
 
 #### **--ipam-driver**=*driver*
 
-Set the ipam driver (IP Address Management Driver) for the network. When unset podman will choose an
+Set the ipam driver (IP Address Management Driver) for the network. When unset podman chooses an
 ipam driver automatically based on the network driver.
 
 Valid values are:
@@ -86,7 +85,7 @@ View the driver in the **podman network inspect** output under the `ipam_options
 
 #### **--ipv6**
 
-Enable IPv6 (Dual Stack) networking. If no subnets are given it will allocate an ipv4 and an ipv6 subnet.
+Enable IPv6 (Dual Stack) networking. If no subnets are given, it allocates an ipv4 and an ipv6 subnet.
 
 #### **--label**=*label*
 
@@ -110,7 +109,7 @@ Additionally the `bridge` driver supports the following options:
 
 The `macvlan` and `ipvlan` driver support the following options:
 
-- `parent`: The host device which should be used for the macvlan interface. Defaults to the default route interface.
+- `parent`: The host device which is used for the macvlan interface. Defaults to the default route interface.
 - `mode`: This option sets the specified ip/macvlan mode on the interface.
   - Supported values for `macvlan` are `bridge`, `private`, `vepa`, `passthru`. Defaults to `bridge`.
   - Supported values for `ipvlan` are `l2`, `l3`, `l3s`. Defaults to `l2`.

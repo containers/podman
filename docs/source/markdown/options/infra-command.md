@@ -4,4 +4,4 @@
 ####> are applicable to all of those.
 #### **--infra-command**=*command*
 
-The command that will be run to start the infra container. Default: "/pause".
+The command that is run to start the infra container. Default: "/pause".

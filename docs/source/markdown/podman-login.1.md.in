@@ -9,15 +9,15 @@ podman\-login - Login to a container registry
 ## DESCRIPTION
 **podman login** logs into a specified registry server with the correct username
 and password. If the registry is not specified, the first registry under [registries.search]
-from registries.conf will be used. **podman login** reads in the username and password from STDIN.
+from registries.conf is used. **podman login** reads in the username and password from STDIN.
 The username and password can also be set using the **username** and **password** flags.
 The path of the authentication file can be specified by the user by setting the **authfile**
 flag. The default path for reading and writing credentials is **${XDG\_RUNTIME\_DIR}/containers/auth.json**.
-Podman will use existing credentials if the user does not pass in a username.
-Podman will first search for the username and password in the **${XDG\_RUNTIME\_DIR}/containers/auth.json**, if they are not valid,
-Podman will then use any existing credentials found in **$HOME/.docker/config.json**.
-If those credentials are not present, Podman will create **${XDG\_RUNTIME\_DIR}/containers/auth.json** (if the file does not exist) and
-will then store the username and password from STDIN as a base64 encoded string in it.
+Podman uses existing credentials if the user does not pass in a username.
+Podman first searches for the username and password in the **${XDG\_RUNTIME\_DIR}/containers/auth.json**, if they are not valid,
+Podman then uses any existing credentials found in **$HOME/.docker/config.json**.
+If those credentials are not present, Podman creates **${XDG\_RUNTIME\_DIR}/containers/auth.json** (if the file does not exist) and
+then stores the username and password from STDIN as a base64 encoded string in it.
 For more details about format and configurations of the auth.json file, please refer to containers-auth.json(5)
 
 **podman [GLOBAL OPTIONS]**

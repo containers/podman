@@ -10,16 +10,16 @@ podman\-events - Monitor Podman events
 
 ## DESCRIPTION
 
-Monitor and print events that occur in Podman. Each event will include a timestamp,
+Monitor and print events that occur in Podman. Each event includes a timestamp,
 a type, a status, name (if applicable), and image (if applicable).  The default logging
 mechanism is *journald*. This can be changed in containers.conf by changing the `events_logger`
 value to `file`.  Only `file` and `journald` are accepted. A `none` logger is also
-available but this logging mechanism completely disables events; nothing will be reported by
+available, but this logging mechanism completely disables events; nothing is reported by
 `podman events`.
 
 By default, streaming mode is used, printing new events as they occur.  Previous events can be listed via `--since` and `--until`.
 
-The *container* event type will report the follow statuses:
+The *container* event type reports the follow statuses:
  * attach
  * checkpoint
  * cleanup
@@ -48,7 +48,7 @@ The *container* event type will report the follow statuses:
  * unmount
  * unpause
 
-The *pod* event type will report the follow statuses:
+The *pod* event type reports the follow statuses:
  * create
  * kill
  * pause
@@ -57,7 +57,7 @@ The *pod* event type will report the follow statuses:
  * stop
  * unpause
 
-The *image* event type will report the following statuses:
+The *image* event type reports the following statuses:
  * loadFromArchive,
  * mount
  * pull
@@ -68,11 +68,11 @@ The *image* event type will report the following statuses:
  * unmount
  * untag
 
-The *system* type will report the following statuses:
+The *system* type reports the following statuses:
  * refresh
  * renumber
 
-The *volume* type will report the following statuses:
+The *volume* type reports the following statuses:
  * create
  * prune
  * remove
@@ -137,7 +137,7 @@ Stream events and do not exit after reading the last known event (default *true*
 Show all events created until the given timestamp
 
 The *since* and *until* values can be RFC3339Nano time stamps or a Go duration string such as 10m, 5h. If no
-*since* or *until* values are provided, only new events will be shown.
+*since* or *until* values are provided, only new events are shown.
 
 ## JOURNALD IDENTIFIERS
 

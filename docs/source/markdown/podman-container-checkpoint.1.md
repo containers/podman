@@ -36,7 +36,7 @@ all of the checkpoint files. The content of this image layer is in the same form
 checkpoint created with **--export**. A checkpoint image can be pushed to a
 standard container registry and pulled on a different system to enable container
 migration. In addition, the image can be exported with **podman image save** and
-inspected with **podman inspect**. Inspecting a checkpoint image would display
+inspected with **podman inspect**. Inspecting a checkpoint image displays
 additional information, stored as annotations, about the host environment used
 to do the checkpoint:
 
@@ -107,7 +107,7 @@ The default is **false**.\
 
 This OPTION must be used in combination with the **--export, -e** OPTION.
 When this OPTION is specified, the content of volumes associated with
-the *container* will not be included into the checkpoint tar.gz file.\
+the *container* is not included into the checkpoint tar.gz file.\
 The default is **false**.
 
 #### **--keep**, **-k**
@@ -117,8 +117,7 @@ The default is **false**.
 
 #### **--latest**, **-l**
 
-Instead of providing the *container ID* or *name*, use the last created *container*. If other methods than Podman are used to run *containers* such as `CRI-O`, the last started *container* could be from either of those methods.\
-The default is **false**.\
+Instead of providing the *container ID* or *name*, use the last created *container*. The default is **false**.
 *IMPORTANT: This OPTION is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines. This OPTION does not need a container name or ID as input argument.*
 
 #### **--leave-running**, **-R**
@@ -129,14 +128,14 @@ The default is **false**.
 #### **--pre-checkpoint**, **-P**
 
 Dump the *container's* memory information only, leaving the *container* running. Later
-operations will supersede prior dumps. It only works on `runc 1.0-rc3` or `higher`.\
+operations supersedes prior dumps. It only works on `runc 1.0-rc3` or `higher`.\
 The default is **false**.
 
 The functionality to only checkpoint the memory of the container and in a second
 checkpoint only write out the memory pages which have changed since the first
 checkpoint relies on the Linux kernel's soft-dirty bit, which is not available
 on all systems as it depends on the system architecture and the configuration
-of the Linux kernel. Podman will verify if the current system supports this
+of the Linux kernel. Podman verifies if the current system supports this
 functionality and return an error if the current system does not support it.
 
 #### **--print-stats**
@@ -188,7 +187,7 @@ The default is **false**.\
 *IMPORTANT: This OPTION is not available with __--pre-checkpoint__*.
 
 This option requires that the option __--pre-checkpoint__ has been used before on the
-same container. Without an existing pre-checkpoint, this option will fail.
+same container. Without an existing pre-checkpoint, this option fails.
 
 Also see __--pre-checkpoint__ for additional information about __--pre-checkpoint__
 availability on different systems.

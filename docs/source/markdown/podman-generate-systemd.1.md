@@ -7,8 +7,8 @@ podman\-generate\-systemd - Generate systemd unit file(s) for a container or pod
 **podman generate systemd** [*options*] *container|pod*
 
 ## DESCRIPTION
-**podman generate systemd** will create a systemd unit file that can be used to control a container or pod.
-By default, the command will print the content of the unit files to stdout.
+**podman generate systemd** creates a systemd unit file that can be used to control a container or pod.
+By default, the command prints the content of the unit files to stdout.
 
 Generating unit files for a pod requires the pod to be created with an infra container (see `--infra=true`).  An infra container runs across the entire lifespan of a pod and is hence required for systemd to manage the life cycle of the pod's main unit.
 
@@ -17,7 +17,7 @@ Generating unit files for a pod requires the pod to be created with an infra con
 - Note: The generated `podman run` command contains an `--sdnotify` option with the value taken from the container.
 If the container does not have any explicitly set value or the value is set to __ignore__, the value __conmon__ is used.
 The reason for overriding the default value __container__ is that almost no container workloads send notify messages.
-Systemd would wait for a ready message that never comes, if the value __container__ is used for a container
+Systemd waits for a ready message that never comes, if the value __container__ is used for a container
 that does not send notify messages. The use of the default value might have been unintentional by the user,
 therefore the overridden default value._
 
@@ -38,7 +38,7 @@ active
 
 Add the systemd unit after (`After=`) option, that ordering dependencies between the list of dependencies and this service. This option may be specified more than once.
 
-User-defined dependencies will be appended to the generated unit file, but any existing options such as needed or defined by default (e.g. `online.target`) will **not** be removed or overridden.
+User-defined dependencies are appended to the generated unit file, but any existing options needed or defined by default (e.g., `online.target`) are **not** removed or overridden.
 
 #### **--container-prefix**=*prefix*
 
@@ -48,17 +48,17 @@ Set the systemd unit name prefix for containers. The default is *container*.
 
 Set environment variables to the systemd unit files.
 
-If an environment variable is specified without a value, Podman will check the host environment for a value and set the variable only if it is set on the host. As a special case, if an environment variable ending in __*__ is specified without a value, Podman will search the host environment for variables starting with the prefix and will add those variables to the systemd unit files.
+If an environment variable is specified without a value, Podman checks the host environment for a value and sets the variable only if it is set on the host. As a special case, if an environment variable ending in __*__ is specified without a value, Podman searches the host environment for variables starting with the prefix and adds those variables to the systemd unit files.
 
 #### **--files**, **-f**
 
-Generate files instead of printing to stdout.  The generated files are named {container,pod}-{ID,name}.service and will be placed in the current working directory.
+Generate files instead of printing to stdout.  The generated files are named {container,pod}-{ID,name}.service and are placed in the current working directory.
 
-Note: On a system with SELinux enabled, the generated files will inherit contexts from the current working directory. Depending on the SELinux setup, changes to the generated files using `restorecon`, `chcon`, or `semanage` may be required to allow systemd to access these files. Alternatively, use the `-Z` option when running `mv` or `cp`.
+Note: On a system with SELinux enabled, the generated files inherits contexts from the current working directory. Depending on the SELinux setup, changes to the generated files using `restorecon`, `chcon`, or `semanage` may be required to allow systemd to access these files. Alternatively, use the `-Z` option when running `mv` or `cp`.
 
 #### **--format**=*format*
 
-Print the created units in specified format (json). If `--files` is specified the paths to the created files will be printed instead of the unit content.
+Print the created units in the specified format (json). If `--files` is specified, the paths to the created files are printed instead of the unit content.
 
 #### **--name**, **-n**
 
@@ -66,7 +66,7 @@ Use the name of the container for the start, stop, and description in the unit f
 
 #### **--new**
 
-Using this flag will yield unit files that do not expect containers and pods to exist.  Instead, new containers and pods are created based on their configuration files.  The unit files are created best effort and may need to be further edited; please review the generated files carefully before using them in production.
+This option yields unit files that do not expect containers and pods to exist.  Instead, new containers and pods are created based on their configuration files.  The unit files are created best effort and may need further editing; please review the generated files carefully before using them in production.
 
 Note that `--new` only works on containers and pods created directly via Podman (i.e., `podman [container] {create,run}` or `podman pod create`).  It does not work on containers or pods created via the REST API or via `podman kube play`.  For `podman kube play`, please use the `podman-kube@.service` systemd template instead.
 
@@ -87,7 +87,7 @@ Set the systemd unit requires (`Requires=`) option. Similar to wants, but declar
 Set the systemd restart policy.  The restart-policy must be one of: "no", "on-success", "on-failure", "on-abnormal",
 "on-watchdog", "on-abort", or "always".  The default policy is *on-failure* unless the container was created with a custom restart policy.
 
-Note that generating a unit without `--new` on a container with a custom restart policy can lead to issues on shutdown; systemd will attempt to stop the unit while Podman tries to restart it.  It is recommended to to create the container without `--restart` and use the `--restart-policy` option instead when generating the unit file.
+Note that generating a unit without `--new` on a container with a custom restart policy can lead to issues on shutdown; systemd attempts to stop the unit while Podman tries to restart it.  Creating the container without `--restart` and using the `--restart-policy` option when generating the unit file is recommended.
 
 #### **--restart-sec**=*time*
 
@@ -110,13 +110,13 @@ Override the default stop timeout for the container with the given value in seco
 
 Add template specifiers to run multiple services from the systemd unit file.
 
-Note that if `--new` was not set to true, it is set to true by default. However, if `--new` is set to `false` explicitly the command will fail.
+Note that if `--new` was not set to true, it is set to true by default. However, the command fails if `--new` is set to `false` explicitly.
 
 #### **--wants**=*dependency_name*
 
 Add the systemd unit wants (`Wants=`) option, that this service is (weak) dependent on. This option may be specified more than once. This option does not influence the order in which services are started or stopped.
 
-User-defined dependencies will be appended to the generated unit file, but any existing options such as needed or defined by default (e.g. `online.target`) will **not** be removed or overridden.
+User-defined dependencies are appended to the generated unit file, but any existing options needed or defined by default (e.g., `online.target`) are **not** removed or overridden.
 
 ## EXAMPLES
 
@@ -195,7 +195,7 @@ WantedBy=default.target
 
 ### Generate systemd unit files for a pod with two simple alpine containers
 
-Note `systemctl` should only be used on the pod unit and one should not start or stop containers individually via `systemctl`, as they are managed by the pod service along with the internal infra-container.
+Note `systemctl` must only be used on the pod unit and not used to start or stop containers individually. The containers are managed by the pod service along with the internal infra-container.
 
 Use `systemctl status` or `journalctl` to examine container or pod unit files.
 ```

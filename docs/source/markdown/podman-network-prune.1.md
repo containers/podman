@@ -8,7 +8,7 @@ podman\-network\-prune - Remove all unused networks
 
 ## DESCRIPTION
 Remove all unused networks.  An unused network is defined by a network which
-has no containers connected or configured to connect to it. It will not remove
+has no containers connected or configured to connect to it. It does not remove
 the so-called default network which goes by the name of *podman*.
 
 ## OPTIONS

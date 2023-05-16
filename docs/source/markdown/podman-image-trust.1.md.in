@@ -17,13 +17,20 @@ as an example, `docker` is the transport and `docker.io` is the registry host.
 Trust is defined in **/etc/containers/policy.json** and is enforced when a user attempts to pull
 a remote image from a registry.  The trust policy in policy.json describes a registry scope (registry and/or repository) for the trust.  This trust can use public keys for signed images.
 
-The scope of the trust is evaluated from most specific to the least specific. In other words, a policy may be defined for an entire registry.  Or it could be defined for a particular repository in that registry. Or it could be defined down to a specific signed image inside of the registry.
+The scope of the trust is evaluated from most specific to the least specific. In other words, a policy may be:
 
-For example, the following list includes valid scope values that could be used in policy.json from most specific to the least specific:
+ * Defined to an entire registry.
+ * Defined to a particular repository in that registry.
+ * Defined to a specific signed image inside of the registry.
+
+The following list are examples of valid scope values used in policy.json from most specific to the least specific:
 
 docker.io/library/busybox:notlatest
+
 docker.io/library/busybox
+
 docker.io/library
+
 docker.io
 
 If no configuration is found for any of these scopes, the default value (specified by using "default" instead of REGISTRY[/REPOSITORY]) is used.
@@ -45,7 +52,7 @@ Trust may be updated using the command **podman image trust set** for an existin
 
 #### **--pubkeysfile**, **-f**=*KEY1*
   A path to an exported public key on the local system. Key paths
-  will be referenced in policy.json. Any path to a file may be used but locating the file in **/etc/pki/containers** is recommended. Options may be used multiple times to
+  are referenced in policy.json. Any path to a file may be used but locating the file in **/etc/pki/containers** is recommended. Options may be used multiple times to
   require an image be signed by multiple keys.  The **--pubkeysfile** option is required for the **signedBy** and **sigstoreSigned** types.
 
 #### **--type**, **-t**=*value*

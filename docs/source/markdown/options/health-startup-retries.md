@@ -4,5 +4,4 @@
 ####> are applicable to all of those.
 #### **--health-startup-retries**=*retries*
 
-The number of attempts allowed before the startup healthcheck restarts the container. If set to **0**, the container will never be
-restarted. The default is **0**.
+The number of attempts allowed before the startup healthcheck restarts the container. If set to **0**, the container is never restarted. The default is **0**.

@@ -30,7 +30,7 @@ You can poke around in the busybox container for a while, but you’ll quickly f
 
 There’s an old saying that “nobody runs an operating system just to run an operating system” and the same is true with containers. It’s the workload running on top of an operating system or in a container that’s interesting and valuable.
 
-Sometimes we can find a publicly available container image for the exact workload we’re looking for and it will already be packaged exactly how we want. But, more often than not, there’s something that we want to add, remove, or customize. It could be as simple as a configuration setting for security or performance, or as complex as adding a complex workload. Either way, containers make it fairly easy to make the changes we need.
+Sometimes we can find a publicly available container image for the exact workload we’re looking for and it will already be packaged exactly how we want. But, more often than not, there’s something that we want to add, remove, or customize. It can be as simple as a configuration setting for security or performance, or as complex as adding a complex workload. Either way, containers make it fairly easy to make the changes we need.
 
 Container Images aren’t actually images, they’re repositories often made up of multiple layers. These layers can easily be added, saved, and shared with others by using a Containerfile (Dockerfile). This single file often contains all the instructions needed to build a new container image and can easily be shared with others publicly using tools like GitHub.
 
@@ -49,7 +49,7 @@ Output::
     <p><em>Thank you for using nginx.</em></p>
     ...
 
-Building new images is great, but sharing our work with others let’s them review our work, critique how we built them, and offer improved versions. Our newly built Nginx image could be published at quay.io or docker.io to share it with the world. Everything needed to run the Nginx application is provided in the container image. Others could easily pull it down and use it, or make improvements to it.
+Building new images is great, but sharing our work with others lets them review our work, critique how we built them, and offer improved versions. Our newly built Nginx image can be published at quay.io or docker.io to share it with the world. Everything needed to run the Nginx application is provided in the container image. Others can easily pull it down and use it, or make improvements to it.
 
 Standardizing on container images and `Container Registries`_ enable a new level of collaboration through simple consumption. This simple consumption model is possible because every major Container Engine and Registry Server uses the Open Containers Initiative (OCI_) format. This allows users to find, run, build, share and deploy containers anywhere they want. Podman and other `Container Engines`_ like CRI-O, Docker, or containerd can create and consume container images from docker.io, quay.io, an on premise registry or even one provided by a cloud provider. The OCI image format facilitates this ecosystem through a single standard.
 

@@ -69,7 +69,7 @@ Valid placeholders for the Go template are listed below:
 
 | **Placeholder**    | **Description**                              |
 |--------------------|----------------------------------------------|
-| .AutoRemove        | If true, container will be removed on exit   |
+| .AutoRemove        | If true, containers are removed on exit      |
 | .Command           | Quoted command used                          |
 | .Created           | Creation time for container, Y-M-D H:M:S     |
 | .CreatedAt         | Creation time for container (same as above)  |
@@ -135,13 +135,13 @@ Display the total file size
 #### **--sort**=*created*
 
 Sort by command, created, id, image, names, runningfor, size, or status",
-Note: Choosing size will sort by size of rootFs, not alphabetically like the rest of the options
+Note: Choosing size sorts by size of rootFs, not alphabetically like the rest of the options
 
 #### **--sync**
 
 Force a sync of container state with the OCI runtime.
 In some cases, a container's state in the runtime can become out of sync with Podman's state.
-This will update Podman's state based on what the OCI runtime reports.
+This updates Podman's state based on what the OCI runtime reports.
 Forcibly syncing is much slower, but can resolve inconsistent state issues.
 
 #### **--watch**, **-w**

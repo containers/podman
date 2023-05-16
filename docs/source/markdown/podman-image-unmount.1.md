@@ -21,15 +21,14 @@ An unmount can be forced with the --force flag.
 ## OPTIONS
 #### **--all**, **-a**
 
-All of the currently mounted images will be unmounted.
+All of the currently mounted images are unmounted.
 
 #### **--force**, **-f**
 
 Force the unmounting of specified images' root file system, even if other
 processes have mounted it.
 
-Note: This could cause other processes that are using the file system to fail,
-as the mount point could be removed without their knowledge.
+Note: Other processes using the file system can fail if the mount point is removed without their knowledge.
 
 ## EXAMPLE
 

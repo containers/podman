@@ -22,7 +22,7 @@ Remove all images in the local storage.
 
 #### **--force**, **-f**
 
-This option will cause podman to remove all containers that are using the image before removing the image from the system.
+This option causes Podman to remove all containers that are using the image before removing the image from the system.
 
 #### **--ignore**, **-i**
 
@@ -30,7 +30,7 @@ If a specified image does not exist in the local storage, ignore it and do not t
 
 #### **--no-prune**
 
-This options will not remove dangling parents of specified image
+This option does not remove dangling parents of the specified image.
 
 Remove an image by its short ID
 ```

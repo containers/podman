@@ -9,7 +9,7 @@ This option can only be used if the <<container|pod>> is joined to only a single
 and if the <<container|pod>> is not joining another container's network namespace via **--network=container:_id_**.
 
 Remember that the MAC address in an Ethernet network must be unique.
-The IPv6 link-local address will be based on the device's MAC address
+The IPv6 link-local address is based on the device's MAC address
 according to RFC4862.
 
 To specify multiple static MAC addresses per <<container|pod>>, set multiple networks using the **--network** option with a static MAC address specified for each using the `mac` mode for that option.

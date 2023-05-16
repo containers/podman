@@ -13,14 +13,14 @@ The user can specify which registry to search by prefixing the registry in the s
 unqualified-search registries in `containers-registries.conf(5)` are used.
 
 The default number of results is 25. The number of results can be limited using the **--limit** flag.
-If more than one registry is being searched, the limit will be applied to each registry. The output can be filtered
+If more than one registry is being searched, the limit is applied to each registry. The output can be filtered
 using the **--filter** flag. To get all available images in a registry without a specific
 search term, the user can just enter the registry name with a trailing "/" (example **registry.fedoraproject.org/**).
 
 Note that **podman search** is not a reliable way to determine the presence or existence of an image.
 The search behavior of the v1 and v2 Docker distribution API is specific to the implementation of each registry.
 Some registries may not support searching at all.
-Further note that searching without a search term will only work for registries that implement the v2 API.
+Further note that searching without a search term only works for registries that implement the v2 API.
 
 **podman [GLOBAL OPTIONS]**
 
@@ -76,9 +76,9 @@ Print usage statement
 #### **--limit**=*limit*
 
 Limit the number of results (default 25).
-Note: The results from each registry will be limited to this value.
+Note: The results from each registry is limited to this value.
 Example if limit is 10 and two registries are being searched, the total
-number of results will be 20, 10 from each (if there are at least 10 matches in each).
+number of results is 20, 10 from each (if there are at least 10 matches in each).
 The order of the search results is the order in which the API endpoint returns the results.
 
 #### **--list-tags**
@@ -129,13 +129,13 @@ registry.access.redhat.com/ubi8  8.4-199
 registry.access.redhat.com/ubi8  8.4-211-source
 
 ```
-Note: This works only with registries that implement the v2 API. If tried with a v1 registry an error will be returned.
+Note: This works only with registries that implement the v2 API. If tried with a v1 registry an error is returned.
 
 ## FILES
 
 **registries.conf** (`/etc/containers/registries.conf`)
 
-registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
+registries.conf is the configuration file which specifies which container registries is consulted when completing image names which do not include a registry or domain portion.
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[containers-registries(5)](https://github.com/containers/image/blob/main/docs/containers-registries.5.md)**

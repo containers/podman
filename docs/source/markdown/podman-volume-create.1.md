@@ -23,9 +23,9 @@ There are two drivers supported by Podman itself: **local** and **image**.
 The **local** driver uses a directory on disk as the backend by default, but can also use the **mount(8)** command to mount a filesystem as the volume if **--opt** is specified.
 
 The **image** driver uses an image as the backing store of for the volume.
-An overlay filesystem will be created, which allows changes to the volume to be committed as a new layer on top of the image.
+An overlay filesystem is created, which allows changes to the volume to be committed as a new layer on top of the image.
 
-Using a value other than **local** or **image**, Podman will attempt to create the volume using a volume plugin with the given name.
+Using a value other than **local** or **image**, Podman attempts to create the volume using a volume plugin with the given name.
 Such plugins must be defined in the **volume_plugins** section of the **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)** configuration file.
 
 #### **--help**
@@ -106,7 +106,7 @@ xfs_quota -x -c 'project -s storage volumes' /<xfs mount point>
 
 In the example above we are configuring the overlay storage driver for newly
 created containers as well as volumes to use project IDs with a **start offset**.
-All containers will be assigned larger project IDs (e.g. >= 100000).
+All containers are assigned larger project IDs (e.g. >= 100000).
 All volume assigned project IDs larger project IDs starting with 200000.
 This prevents xfs_quota management conflicts with containers/storage.
 

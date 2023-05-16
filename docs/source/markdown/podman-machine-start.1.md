@@ -21,7 +21,7 @@ The default machine name is `podman-machine-default`. If a machine name is not s
 then `podman-machine-default` will be started.
 
 Only one Podman managed VM can be active at a time. If a VM is already running,
-`podman machine start` will return an error.
+`podman machine start` returns an error.
 
 **podman machine start** starts a Linux virtual machine where containers are run.
 

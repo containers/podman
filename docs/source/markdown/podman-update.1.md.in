@@ -11,8 +11,8 @@ podman\-update - Updates the cgroup configuration of a given container
 ## DESCRIPTION
 
 Updates the cgroup configuration of an already existing container. The currently supported options are a subset of the
-podman create/run resource limits options. These new options are non-persistent and only last for the current execution of the container; the configuration will be honored on its next run.
-This means that this command can only be executed on an already running container and the changes made will be erased the next time the container is stopped and restarted, this is to ensure immutability.
+podman create/run resource limits options. These new options are non-persistent and only last for the current execution of the container; the configuration is honored on its next run.
+This means that this command can only be executed on an already running container and the changes made is erased the next time the container is stopped and restarted, this is to ensure immutability.
 This command takes one argument, a container name or ID, alongside the resource flags to modify the cgroup.
 
 ## OPTIONS
