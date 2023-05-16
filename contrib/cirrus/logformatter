@@ -230,6 +230,7 @@ END_HTML
 
     # State variables
     my $previous_timestamp = '';  # timestamp of previous line
+    my $previous_timestamp_fine;  # fine-grain timestamp (BATS only)
     my $cirrus_task;              # Cirrus task number, used for linking
     my $git_commit;               # git SHA, used for linking to source files
     my $subtest_status;           # pass, fail, skip, flake - for each subtest
@@ -374,6 +375,44 @@ END_HTML
 
         if ($looks_like_bats) {
             my $css;
+
+            # 2023-05-16 run_podman() now displays NS-precision timestamps
+            # on commands and their output. This is cluttery, so if we
+            # see these, strip them and display in the left-hand (coarse)
+            # timestamp column instead. Hovering will display the full time.
+            #
+            #               1   1  23   3 4   4 5        52
+            if ($line =~ s{^(#\s)\[((\d+):(\d+):(\d+\.\d+))\]\s}{$1}) {
+                my ($full, $h, $m, $s) = ($2, $3, $4, $5);
+                my $timestamp_fine = $h * 3600.0 + $m * 60.0 + $s;
+                my $short;
+                if ($previous_timestamp_fine) {
+                    # This will fail if we do a midnight wraparound. NBD.
+                    my $delta = $timestamp_fine - $previous_timestamp_fine;
+
+                    # Human-readable format
+                    if ($delta > 10) {
+                        $short = sprintf("%04ds", $delta);
+                    }
+                    elsif ($delta > 1) {
+                        $short = sprintf("%03.2fs", $delta);
+                    }
+                    elsif ($delta > 0.001) {
+                        $short = sprintf("%03dms", $delta * 1000.0);
+                    }
+                    else {
+                        # Ultra-improbable
+                        $short = sprintf("%03dns", $delta * 1_000_000.0);
+                    }
+                }
+                else {
+                    $short = "     ";
+                }
+
+                # left-hand timestamp [+0001s] becomes <+013ms>
+                $timestamp = "<span title=\"$full\">&lt;+$short&gt;</span> ";
+                $previous_timestamp_fine = $timestamp_fine;
+            }
 
             # Readability: /long/path/to/podman -> podman (hover for full path)
             # Also make it boldface, to make commands stand out

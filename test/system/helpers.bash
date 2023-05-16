@@ -161,6 +161,11 @@ function restore_image() {
 ###############################################################################
 # BEGIN podman helpers
 
+# Displays '[HH:MM:SS.NNNNN]' in command output. logformatter relies on this.
+function timestamp() {
+    date +'[%T.%N]'
+}
+
 ################
 #  run_podman  #  Invoke $PODMAN, with timeout, using BATS 'run'
 ################
@@ -197,13 +202,13 @@ function run_podman() {
     MOST_RECENT_PODMAN_COMMAND="podman $*"
 
     # stdout is only emitted upon error; this echo is to help a debugger
-    echo "$_LOG_PROMPT $PODMAN $*"
+    echo "$(timestamp) $_LOG_PROMPT $PODMAN $*"
     # BATS hangs if a subprocess remains and keeps FD 3 open; this happens
     # if podman crashes unexpectedly without cleaning up subprocesses.
     run timeout --foreground -v --kill=10 $PODMAN_TIMEOUT $PODMAN $_PODMAN_TEST_OPTS "$@" 3>/dev/null
     # without "quotes", multiple lines are glommed together into one
     if [ -n "$output" ]; then
-        echo "$output"
+        echo "$(timestamp) $output"
 
         # FIXME FIXME FIXME: instrumenting to track down #15488. Please
         # remove once that's fixed. We include the args because, remember,
@@ -215,7 +220,7 @@ function run_podman() {
         fi
     fi
     if [ "$status" -ne 0 ]; then
-        echo -n "[ rc=$status ";
+        echo -n "$(timestamp) [ rc=$status ";
         if [ -n "$expected_rc" ]; then
             if [ "$status" -eq "$expected_rc" ]; then
                 echo -n "(expected) ";
