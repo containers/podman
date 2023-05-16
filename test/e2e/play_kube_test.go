@@ -989,7 +989,8 @@ spec:
   containers:
   - name: alpine
     image: quay.io/libpod/alpine:latest
-    command: ['sh', '-c', 'ls -l /proc/self/ns/ipc']
+    command: ['ls', '-l', '/proc/self/ns/ipc']
+  restartPolicy: Never
 `
 
 var podWithSysctlDefined = `
@@ -1011,6 +1012,7 @@ spec:
     - "/bin/sh"
     - "-c"
     - "sysctl kernel.msgmax;sysctl net.core.somaxconn"
+  restartPolicy: Never
 `
 
 var podWithSysctlHostNetDefined = `
@@ -2823,7 +2825,12 @@ var _ = Describe("Podman play kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		logs := podmanTest.Podman([]string{"logs", getCtrNameInPod(pod)})
+		podName := getCtrNameInPod(pod)
+		wait := podmanTest.Podman([]string{"wait", podName})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait).Should(Exit(0))
+
+		logs := podmanTest.Podman([]string{"logs", podName})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs).Should(Exit(0))
 		Expect(logs.ErrorToString()).To(ContainSubstring("Operation not permitted"))
@@ -2837,6 +2844,7 @@ var _ = Describe("Podman play kube", func() {
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(125))
+		Expect(kube.ErrorToString()).To(ContainSubstring(BB_GLIBC + ": image not known"))
 	})
 
 	It("podman play kube with pull policy of missing", func() {
@@ -5251,6 +5259,10 @@ spec:
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
+		wait := podmanTest.Podman([]string{"wait", "test-hostipc-alpine"})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait).Should(Exit(0))
+
 		inspect := podmanTest.Podman([]string{"inspect", "test-hostipc-alpine", "--format", "{{ .HostConfig.IpcMode }}"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
@@ -5268,7 +5280,7 @@ spec:
 		fields = strings.Split(logs.OutputToString(), " ")
 		ctrIpcNS := strings.TrimSuffix(fields[len(fields)-1], "\n")
 
-		Expect(hostIpcNS).To(Equal(ctrIpcNS))
+		Expect(ctrIpcNS).To(Equal(hostIpcNS), "container IPC NS == host IPC NS")
 	})
 
 	It("podman play kube with ctrName should be in network alias", func() {
@@ -5306,6 +5318,10 @@ spec:
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
+		wait := podmanTest.Podman([]string{"wait", "test-sysctl-alpine"})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait).Should(Exit(0))
+
 		logs := podmanTest.Podman([]string{"pod", "logs", "-c", "test-sysctl-alpine", "test-sysctl"})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs).Should(Exit(0))
@@ -5321,5 +5337,6 @@ spec:
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(125))
+		Expect(kube.ErrorToString()).To(ContainSubstring("since Network Namespace set to host: invalid argument"))
 	})
 })
