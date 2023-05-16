@@ -115,10 +115,66 @@ ok 4 blah
 <hr/><span class='bats-summary'>Summary: <span class='bats-passed'>2 Passed</span>, <span class='bats-failed'>1 Failed</span>, <span class='bats-skipped'>1 Skipped</span>. Total tests: 4</span>
 
 
-
-
-
-
+== bats with timestamps 2023-05-16
+<<<
+[+0000s] 1..2
+[+0000s] ok 1 this passes
+[+0018s] not ok 2 this fails, and includes command timestamps
+[+0018s] # (from function `die' in file test/system/helpers.bash, line 564,
+[+0018s] #  from function `run_podman' in file test/system/helpers.bash, line 245,
+[+0018s] #  in test file test/system/888-foo.bats, line 15)
+[+0018s] #   `run_podman image exists sdfsdfsdf' failed
+[+0018s] # [07:46:52.641456481] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman rm -t 0 --all --force --ignore
+[+0018s] # [07:46:52.688219032] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman ps --all --external --format {{.ID}} {{.Names}}
+[+0018s] # [07:46:52.747613611] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman images --all --format {{.Repository}}:{{.Tag}} {{.ID}}
+[+0018s] # [07:46:52.791987930] quay.io/libpod/testimage:20221018 f5a99120db64
+[+0018s] # [07:46:52.801043907] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman container exists nonesuch
+[+0018s] # [07:46:52.842840593] [ rc=1 (expected) ]
+[+0018s] # [07:46:52.848492506] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman container exists nonesuch
+[+0018s] # [07:46:52.893686015] [ rc=1 (expected) ]
+[+0018s] # [07:47:02.910006230] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman image inspect --format {{.Os}} quay.io/libpod/testimage:20221018
+[+0018s] # [07:47:02.961306244] linux
+[+0018s] # [07:47:02.966100272] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman run --rm quay.io/libpod/testimage:20221018 sleep 7
+[+0018s] # [07:47:10.167561880] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman image exists sdfsdfsdf
+[+0018s] # [07:47:10.213750267] [ rc=1 (** EXPECTED 0 **) ]
+[+0018s] # #/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+[+0018s] # #| FAIL: exit code is 1; expected 0
+[+0018s] # #\^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[+0018s] # # [teardown]
+[+0018s] # [07:47:10.219704348] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman pod rm -t 0 --all --force --ignore
+[+0018s] # [07:47:10.263332041] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman rm -t 0 --all --force --ignore
+[+0018s] # [07:47:10.300645440] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman network prune --force
+[+0018s] # [07:47:10.337464840] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman volume rm -a -f
+>>>
+<span class="timestamp">[+0000s] </span>1..2
+<span class="timestamp">         </span><span class='bats-passed'><a name='t--00001'>ok 1 this passes</a></span>
+<span class="timestamp">[+0018s] </span><span class='bats-failed'><a name='t--00002'>not ok 2 this fails, and includes command timestamps</a></span>
+<span class="timestamp">         </span><span class='bats-log'># (from function `die&#39; in file test/system/<a class="codelink" href="https://github.com/containers/podman/blob/ceci-nest-pas-une-sha/test/system/helpers.bash#L564">helpers.bash, line 564</a>,</span>
+<span class="timestamp">         </span><span class='bats-log'>#  from function `run_podman&#39; in file test/system/<a class="codelink" href="https://github.com/containers/podman/blob/ceci-nest-pas-une-sha/test/system/helpers.bash#L245">helpers.bash, line 245</a>,</span>
+<span class="timestamp">         </span><span class='bats-log'>#  in test file test/system/<a class="codelink" href="https://github.com/containers/podman/blob/ceci-nest-pas-une-sha/test/system/888-foo.bats#L15">888-foo.bats, line 15</a>)</span>
+<span class="timestamp">         </span><span class='bats-log'>#   `run_podman image exists sdfsdfsdf&#39; failed</span>
+<span class="timestamp"><span title="07:46:52.641456481">&lt;+     &gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> rm -t 0 --all --force --ignore</b></span>
+<span class="timestamp"><span title="07:46:52.688219032">&lt;+046ms&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> ps --all --external --format {{.ID}} {{.Names}}</b></span>
+<span class="timestamp"><span title="07:46:52.747613611">&lt;+059ms&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> images --all --format {{.Repository}}:{{.Tag}} {{.ID}}</b></span>
+<span class="timestamp"><span title="07:46:52.791987930">&lt;+044ms&gt;</span> </span><span class='bats-log'># quay.io/libpod/testimage:20221018 f5a99120db64</span>
+<span class="timestamp"><span title="07:46:52.801043907">&lt;+009ms&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> container exists nonesuch</b></span>
+<span class="timestamp"><span title="07:46:52.842840593">&lt;+041ms&gt;</span> </span><span class='bats-log'># [ rc=1 (expected) ]</span>
+<span class="timestamp"><span title="07:46:52.848492506">&lt;+005ms&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> container exists nonesuch</b></span>
+<span class="timestamp"><span title="07:46:52.893686015">&lt;+045ms&gt;</span> </span><span class='bats-log'># [ rc=1 (expected) ]</span>
+<span class="timestamp"><span title="07:47:02.910006230">&lt;+0010s&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> image inspect --format {{.Os}} quay.io/libpod/testimage:20221018</b></span>
+<span class="timestamp"><span title="07:47:02.961306244">&lt;+051ms&gt;</span> </span><span class='bats-log'># linux</span>
+<span class="timestamp"><span title="07:47:02.966100272">&lt;+004ms&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> run --rm quay.io/libpod/testimage:20221018 sleep 7</b></span>
+<span class="timestamp"><span title="07:47:10.167561880">&lt;+7.20s&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> image exists sdfsdfsdf</b></span>
+<span class="timestamp"><span title="07:47:10.213750267">&lt;+046ms&gt;</span> </span><span class='bats-log'># [ rc=1 (** EXPECTED 0 **) ]</span>
+<span class="timestamp">         </span><span class='bats-log-failblock'># #/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv</span>
+<span class="timestamp">         </span><span class='bats-log-failblock'># #| FAIL: exit code is 1; expected 0</span>
+<span class="timestamp">         </span><span class='bats-log-failblock'># #\^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^</span>
+<span class="timestamp">         </span><span class='bats-log'># # [teardown]</span>
+<span class="timestamp"><span title="07:47:10.219704348">&lt;+005ms&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> pod rm -t 0 --all --force --ignore</b></span>
+<span class="timestamp"><span title="07:47:10.263332041">&lt;+043ms&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> rm -t 0 --all --force --ignore</b></span>
+<span class="timestamp"><span title="07:47:10.300645440">&lt;+037ms&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> network prune --force</b></span>
+<span class="timestamp"><span title="07:47:10.337464840">&lt;+036ms&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> volume rm -a -f</b></span>
+<hr/><span class='bats-summary'>Summary: <span class='bats-passed'>1 Passed</span>, <span class='bats-failed'>1 Failed</span>. Total tests: 2</span>
 
 == simple ginkgo
 
