@@ -36,6 +36,7 @@ case $1 in
     packages)
         # These names are common to Fedora and Debian
         PKG_NAMES=(\
+                    buildah
                     conmon
                     containernetworking-plugins
                     containers-common
