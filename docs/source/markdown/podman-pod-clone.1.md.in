@@ -63,7 +63,7 @@ Print usage statement.
 
 #### **--name**, **-n**
 
-Set a custom name for the cloned pod. The default if not specified is of the syntax: **<ORIGINAL_NAME>-clone**
+Set a custom name for the cloned pod. The default if not specified is of the syntax: **\<ORIGINAL_NAME\>-clone**
 
 @@option pid.pod
 

@@ -78,7 +78,7 @@ the swap value.
 
 #### **--name**
 
-Set a custom name for the cloned container. The default if not specified is of the syntax: **<ORIGINAL_NAME>-clone**
+Set a custom name for the cloned container. The default if not specified is of the syntax: **\<ORIGINAL_NAME\>-clone**
 
 #### **--pod**=*name*
 
