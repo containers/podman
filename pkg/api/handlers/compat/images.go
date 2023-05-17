@@ -181,7 +181,8 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 		FromSrc  string   `schema:"fromSrc"`
 		Message  string   `schema:"message"`
 		Platform string   `schema:"platform"`
-		Repo     string   `shchema:"repo"`
+		Repo     string   `schema:"repo"`
+		Tag      string   `schema:"tag"`
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -208,7 +209,7 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 
 	reference := query.Repo
 	if query.Repo != "" {
-		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, reference)
+		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, mergeNameAndTagOrDigest(reference, query.Tag))
 		if err != nil {
 			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("normalizing image: %w", err))
 			return
