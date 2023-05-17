@@ -12,7 +12,7 @@ Note: **N/A** means that the option cannot be supported in a single-node Podman 
 | initContainers                                    | ✅      |
 | imagePullSecrets                                  |         |
 | enableServiceLinks                                |         |
-| os<nolink>.name                                   |         |
+| os\<nolink\>.name                                 |         |
 | volumes                                           |         |
 | nodeSelector                                      | N/A     |
 | nodeName                                          | N/A     |
@@ -42,7 +42,7 @@ Note: **N/A** means that the option cannot be supported in a single-node Podman 
 | hostAliases.hostnames                             | ✅      |
 | hostAliases.ip                                    | ✅      |
 | dnsConfig.nameservers                             | ✅      |
-| dnsConfig<nolink>.options.name                    | ✅      |
+| dnsConfig\<nolink\>.options.name                  | ✅      |
 | dnsConfig.options.value                           | ✅      |
 | dnsConfig.searches                                | ✅      |
 | dnsPolicy                                         |         |
@@ -64,7 +64,7 @@ Note: **N/A** means that the option cannot be supported in a single-node Podman 
 | securityContext.seLinuxOptions.role               |         |
 | securityContext.seLinuxOptions.type               |         |
 | securityContext.seLinuxOptions.user               |         |
-| securityContext<nolink>.sysctls.name              |         |
+| securityContext\<nolink\>.sysctls.name            |         |
 | securityContext.sysctls.value                     |         |
 | securityContext.windowsOptions.gmsaCredentialSpec |         |
 | securityContext.windowsOptions.hostProcess        |         |
@@ -83,31 +83,31 @@ Note: **N/A** means that the option cannot be supported in a single-node Podman 
 | ports.containerPort                               | ✅      |
 | ports.hostIP                                      | ✅      |
 | ports.hostPort                                    | ✅      |
-| ports<nolink>.name                                | ✅      |
+| ports\<nolink\>.name                              | ✅      |
 | ports.protocol                                    | ✅      |
-| env<nolink>.name                                  | ✅      |
+| env\<nolink\>.name                                | ✅      |
 | env.value                                         | ✅      |
 | env.valueFrom.configMapKeyRef.key                 | ✅      |
-| env<nolink>.valueFrom.configMapKeyRef.name        | ✅      |
+| env\<nolink\>.valueFrom.configMapKeyRef.name      | ✅      |
 | env.valueFrom.configMapKeyRef.optional            | ✅      |
 | env.valueFrom.fieldRef                            | ✅      |
 | env.valueFrom.resourceFieldRef                    | ✅      |
 | env.valueFrom.secretKeyRef.key                    | ✅      |
-| env<nolink>.valueFrom.secretKeyRef.name           | ✅      |
+| env\<nolink\>.valueFrom.secretKeyRef.name         | ✅      |
 | env.valueFrom.secretKeyRef.optional               | ✅      |
-| envFrom<nolink>.configMapRef.name                 | ✅      |
+| envFrom\<nolink\>.configMapRef.name               | ✅      |
 | envFrom.configMapRef.optional                     | ✅      |
 | envFrom.prefix                                    |         |
-| envFrom<nolink>.secretRef.name                    | ✅      |
+| envFrom\<nolink\>.secretRef.name                  | ✅      |
 | envFrom.secretRef.optional                        | ✅      |
 | volumeMounts.mountPath                            | ✅      |
-| volumeMounts<nolink>.name                         | ✅      |
+| volumeMounts\<nolink\>.name                       | ✅      |
 | volumeMounts.mountPropagation                     |         |
 | volumeMounts.readOnly                             | ✅      |
 | volumeMounts.subPath                              |         |
 | volumeMounts.subPathExpr                          |         |
 | volumeDevices.devicePath                          |         |
-| volumeDevices<nolink>.name                        |         |
+| volumeDevices\<nolink\>.name                      |         |
 | resources.limits                                  | ✅      |
 | resources.requests                                | ✅      |
 | lifecycle.postStart                               |         |
