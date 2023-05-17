@@ -255,6 +255,10 @@ function t() {
 
         for arg; do
             case "$arg" in
+                # This is just some hack to avoid adding `-d {}` to curl for endpoints where we really need an empty body.
+                # --disable makes curl not lookup the curlrc file, it't should't effect the tests in any way.
+                -)                curl_args+=(--disable);
+                                  shift;;
                 *=*)              post_args+=("$arg");
                                   shift;;
                 *.json)           _add_curl_args $arg;
