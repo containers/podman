@@ -49,4 +49,26 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(rmCon).To(Exit(0))
 	})
 
+	It("Build with volume on machine end", func() {
+		// golangci-lint has trouble with actually skipping tests marked Skip
+		// so skip it on cirrus envs and where CIRRUS_CI isn't set.
+		name := randomString()
+		i := new(initMachine)
+		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withNow()).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		sshCPU := sshMachine{}
+
+		session, err = mb.setName(name).setCmd(sshCPU.withSSHCommand([]string{"echo", "hey", ">", "world"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		bm := basicMachine{}
+		runAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"build", "--security-opt", "label=disable", "-v", "/var/home/core/world:world", "-f", "build/Containerfile", "-t", "test-mount"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(runAlp).To(Exit(0))
+		Expect(runAlp.outputToString()).To(ContainSubstring("hey"))
+	})
+
 })
