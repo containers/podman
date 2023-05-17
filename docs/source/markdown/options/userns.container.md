@@ -4,7 +4,7 @@
 ####> are applicable to all of those.
 #### **--userns**=*mode*
 
-Set the user namespace mode for the container. It defaults to the **PODMAN_USERNS** environment variable. An empty value ("") means user namespaces are disabled unless an explicit mapping is set with the **--uidmap** and **--gidmap** options.
+Set the user namespace mode for the container. It defaults to the **PODMAN_USERNS** environment variable unless `--pod` is specified. An empty value ("") means user namespaces are disabled unless an explicit mapping is set with the **--uidmap** and **--gidmap** options.
 
 This option is incompatible with **--gidmap**, **--uidmap**, **--subuidname** and **--subgidname**.
 
