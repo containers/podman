@@ -6,150 +6,150 @@ Note: **N/A** means that the option cannot be supported in a single-node Podman 
 
 ## Pod Fields
 
-| Field                                             | Support |
-|---------------------------------------------------|---------|
-| containers                                        | ✅      |
-| initContainers                                    | ✅      |
-| imagePullSecrets                                  |         |
-| enableServiceLinks                                |         |
-| os\<nolink\>.name                                 |         |
-| volumes                                           |         |
-| nodeSelector                                      | N/A     |
-| nodeName                                          | N/A     |
-| affinity.nodeAffinity                             | N/A     |
-| affinity.podAffinity                              | N/A     |
-| affinity.podAntiAffinity                          | N/A     |
-| tolerations.key                                   | N/A     |
-| tolerations.operator                              | N/A     |
-| tolerations.effect                                | N/A     |
-| tolerations.tolerationSeconds                     | N/A     |
-| schedulerName                                     | N/A     |
-| runtimeClassName                                  |         |
-| priorityClassName                                 |         |
-| priority                                          |         |
-| topologySpreadConstraints.maxSkew                 | N/A     |
-| topologySpreadConstraints.topologyKey             | N/A     |
-| topologySpreadConstraints.whenUnsatisfiable       | N/A     |
-| topologySpreadConstraints.labelSelector           | N/A     |
-| topologySpreadConstraints.minDomains              | N/A     |
-| restartPolicy                                     | ✅      |
-| terminationGracePeriod                            |         |
-| activeDeadlineSeconds                             |         |
-| readinessGates.conditionType                      |         |
-| hostname                                          | ✅      |
-| setHostnameAsFQDN                                 |         |
-| subdomain                                         |         |
-| hostAliases.hostnames                             | ✅      |
-| hostAliases.ip                                    | ✅      |
-| dnsConfig.nameservers                             | ✅      |
-| dnsConfig\<nolink\>.options.name                  | ✅      |
-| dnsConfig.options.value                           | ✅      |
-| dnsConfig.searches                                | ✅      |
-| dnsPolicy                                         |         |
-| hostNetwork                                       | ✅      |
-| hostPID                                           | ✅      |
-| hostIPC                                           | ✅      |
-| shareProcessNamespace                             | ✅      |
-| serviceAccountName                                |         |
-| automountServiceAccountToken                      |         |
-| securityContext.runAsUser                         |         |
-| securityContext.runAsNonRoot                      |         |
-| securityContext.runAsGroup                        |         |
-| securityContext.supplementalGroups                |         |
-| securityContext.fsGroup                           |         |
-| securityContext.fsGroupChangePolicy               |         |
-| securityContext.seccompProfile.type               |         |
-| securityContext.seccompProfile.localhostProfile   |         |
-| securityContext.seLinuxOptions.level              |         |
-| securityContext.seLinuxOptions.role               |         |
-| securityContext.seLinuxOptions.type               |         |
-| securityContext.seLinuxOptions.user               |         |
-| securityContext\<nolink\>.sysctls.name            |         |
-| securityContext.sysctls.value                     |         |
-| securityContext.windowsOptions.gmsaCredentialSpec |         |
-| securityContext.windowsOptions.hostProcess        |         |
-| securityContext.windowsOptions.runAsUserName      |         |
+| Field                                               | Support |
+|-----------------------------------------------------|---------|
+| containers                                          | ✅      |
+| initContainers                                      | ✅      |
+| imagePullSecrets                                    | no      |
+| enableServiceLinks                                  | no      |
+| os\.name                                            | no      |
+| volumes                                             | no      |
+| nodeSelector                                        | N/A     |
+| nodeName                                            | N/A     |
+| affinity\.nodeAffinity                              | N/A     |
+| affinity\.podAffinity                               | N/A     |
+| affinity\.podAntiAffinity                           | N/A     |
+| tolerations\.key                                    | N/A     |
+| tolerations\.operator                               | N/A     |
+| tolerations\.effect                                 | N/A     |
+| tolerations\.tolerationSeconds                      | N/A     |
+| schedulerName                                       | N/A     |
+| runtimeClassName                                    | no      |
+| priorityClassName                                   | no      |
+| priority                                            | no      |
+| topologySpreadConstraints\.maxSkew                  | N/A     |
+| topologySpreadConstraints\.topologyKey              | N/A     |
+| topologySpreadConstraints\.whenUnsatisfiable        | N/A     |
+| topologySpreadConstraints\.labelSelector            | N/A     |
+| topologySpreadConstraints\.minDomains               | N/A     |
+| restartPolicy                                       | ✅      |
+| terminationGracePeriod                              | no      |
+| activeDeadlineSeconds                               | no      |
+| readinessGates\.conditionType                       | no      |
+| hostname                                            | ✅      |
+| setHostnameAsFQDN                                   | no      |
+| subdomain                                           | no      |
+| hostAliases\.hostnames                              | ✅      |
+| hostAliases\.ip                                     | ✅      |
+| dnsConfig\.nameservers                              | ✅      |
+| dnsConfig\.options\.name                            | ✅      |
+| dnsConfig\.options\.value                           | ✅      |
+| dnsConfig\.searches                                 | ✅      |
+| dnsPolicy                                           | no      |
+| hostNetwork                                         | ✅      |
+| hostPID                                             | ✅      |
+| hostIPC                                             | ✅      |
+| shareProcessNamespace                               | ✅      |
+| serviceAccountName                                  | no      |
+| automountServiceAccountToken                        | no      |
+| securityContext\.runAsUser                          | no      |
+| securityContext\.runAsNonRoot                       | no      |
+| securityContext\.runAsGroup                         | no      |
+| securityContext\.supplementalGroups                 | no      |
+| securityContext\.fsGroup                            | no      |
+| securityContext\.fsGroupChangePolicy                | no      |
+| securityContext\.seccompProfile\.type               | no      |
+| securityContext\.seccompProfile\.localhostProfile   | no      |
+| securityContext\.seLinuxOptions\.level              | no      |
+| securityContext\.seLinuxOptions\.role               | no      |
+| securityContext\.seLinuxOptions\.type               | no      |
+| securityContext\.seLinuxOptions\.user               | no      |
+| securityContext\.sysctls\.name                      | no      |
+| securityContext\.sysctls\.value                     | no      |
+| securityContext\.windowsOptions\.gmsaCredentialSpec | no      |
+| securityContext\.windowsOptions\.hostProcess        | no      |
+| securityContext\.windowsOptions\.runAsUserName      | no      |
 
 ## Container Fields
 
-| Field                                             | Support |
-|---------------------------------------------------|---------|
-| name                                              | ✅      |
-| image                                             | ✅      |
-| imagePullPolicy                                   | ✅      |
-| command                                           | ✅      |
-| args                                              | ✅      |
-| workingDir                                        | ✅      |
-| ports.containerPort                               | ✅      |
-| ports.hostIP                                      | ✅      |
-| ports.hostPort                                    | ✅      |
-| ports\<nolink\>.name                              | ✅      |
-| ports.protocol                                    | ✅      |
-| env\<nolink\>.name                                | ✅      |
-| env.value                                         | ✅      |
-| env.valueFrom.configMapKeyRef.key                 | ✅      |
-| env\<nolink\>.valueFrom.configMapKeyRef.name      | ✅      |
-| env.valueFrom.configMapKeyRef.optional            | ✅      |
-| env.valueFrom.fieldRef                            | ✅      |
-| env.valueFrom.resourceFieldRef                    | ✅      |
-| env.valueFrom.secretKeyRef.key                    | ✅      |
-| env\<nolink\>.valueFrom.secretKeyRef.name         | ✅      |
-| env.valueFrom.secretKeyRef.optional               | ✅      |
-| envFrom\<nolink\>.configMapRef.name               | ✅      |
-| envFrom.configMapRef.optional                     | ✅      |
-| envFrom.prefix                                    |         |
-| envFrom\<nolink\>.secretRef.name                  | ✅      |
-| envFrom.secretRef.optional                        | ✅      |
-| volumeMounts.mountPath                            | ✅      |
-| volumeMounts\<nolink\>.name                       | ✅      |
-| volumeMounts.mountPropagation                     |         |
-| volumeMounts.readOnly                             | ✅      |
-| volumeMounts.subPath                              |         |
-| volumeMounts.subPathExpr                          |         |
-| volumeDevices.devicePath                          |         |
-| volumeDevices\<nolink\>.name                      |         |
-| resources.limits                                  | ✅      |
-| resources.requests                                | ✅      |
-| lifecycle.postStart                               |         |
-| lifecycle.preStop                                 |         |
-| terminationMessagePath                            |         |
-| terminationMessagePolicy                          |         |
-| livenessProbe                                     | ✅      |
-| readinessProbe                                    |         |
-| startupProbe                                      |         |
-| securityContext.runAsUser                         | ✅      |
-| securityContext.runAsNonRoot                      |         |
-| securityContext.runAsGroup                        | ✅      |
-| securityContext.readOnlyRootFilesystem            | ✅      |
-| securityContext.procMount                         |         |
-| securityContext.privileged                        | ✅      |
-| securityContext.allowPrivilegeEscalation          | ✅      |
-| securityContext.capabilities.add                  | ✅      |
-| securityContext.capabilities.drop                 | ✅      |
-| securityContext.seccompProfile.type               |         |
-| securityContext.seccompProfile.localhostProfile   |         |
-| securityContext.seLinuxOptions.level              | ✅      |
-| securityContext.seLinuxOptions.role               | ✅      |
-| securityContext.seLinuxOptions.type               | ✅      |
-| securityContext.seLinuxOptions.user               | ✅      |
-| securityContext.windowsOptions.gmsaCredentialSpec |         |
-| securityContext.windowsOptions.hostProcess        |         |
-| securityContext.windowsOptions.runAsUserName      |         |
-| stdin                                             |         |
-| stdinOnce                                         |         |
-| tty                                               |         |
+| Field                                               | Support |
+|-----------------------------------------------------|---------|
+| name                                                | ✅      |
+| image                                               | ✅      |
+| imagePullPolicy                                     | ✅      |
+| command                                             | ✅      |
+| args                                                | ✅      |
+| workingDir                                          | ✅      |
+| ports\.containerPort                                | ✅      |
+| ports\.hostIP                                       | ✅      |
+| ports\.hostPort                                     | ✅      |
+| ports\.name                                         | ✅      |
+| ports\.protocol                                     | ✅      |
+| env\.name                                           | ✅      |
+| env\.value                                          | ✅      |
+| env\.valueFrom\.configMapKeyRef\.key                | ✅      |
+| env\.valueFrom\.configMapKeyRef\.name               | ✅      |
+| env\.valueFrom\.configMapKeyRef\.optional           | ✅      |
+| env\.valueFrom\.fieldRef                            | ✅      |
+| env\.valueFrom\.resourceFieldRef                    | ✅      |
+| env\.valueFrom\.secretKeyRef\.key                   | ✅      |
+| env\.valueFrom\.secretKeyRef\.name                  | ✅      |
+| env\.valueFrom\.secretKeyRef\.optional              | ✅      |
+| envFrom\.configMapRef\.name                         | ✅      |
+| envFrom\.configMapRef\.optional                     | ✅      |
+| envFrom\.prefix                                     | no      |
+| envFrom\.secretRef\.name                            | ✅      |
+| envFrom\.secretRef\.optional                        | ✅      |
+| volumeMounts\.mountPath                             | ✅      |
+| volumeMounts\.name                                  | ✅      |
+| volumeMounts\.mountPropagation                      | no      |
+| volumeMounts\.readOnly                              | ✅      |
+| volumeMounts\.subPath                               | no      |
+| volumeMounts\.subPathExpr                           | no      |
+| volumeDevices\.devicePath                           | no      |
+| volumeDevices\.name                                 | no      |
+| resources\.limits                                   | ✅      |
+| resources\.requests                                 | ✅      |
+| lifecycle\.postStart                                | no      |
+| lifecycle\.preStop                                  | no      |
+| terminationMessagePath                              | no      |
+| terminationMessagePolicy                            | no      |
+| livenessProbe                                       | ✅      |
+| readinessProbe                                      | no      |
+| startupProbe                                        | no      |
+| securityContext\.runAsUser                          | ✅      |
+| securityContext\.runAsNonRoot                       | no      |
+| securityContext\.runAsGroup                         | ✅      |
+| securityContext\.readOnlyRootFilesystem             | ✅      |
+| securityContext\.procMount                          | no      |
+| securityContext\.privileged                         | ✅      |
+| securityContext\.allowPrivilegeEscalation           | ✅      |
+| securityContext\.capabilities\.add                  | ✅      |
+| securityContext\.capabilities\.drop                 | ✅      |
+| securityContext\.seccompProfile\.type               | no      |
+| securityContext\.seccompProfile\.localhostProfile   | no      |
+| securityContext\.seLinuxOptions\.level              | ✅      |
+| securityContext\.seLinuxOptions\.role               | ✅      |
+| securityContext\.seLinuxOptions\.type               | ✅      |
+| securityContext\.seLinuxOptions\.user               | ✅      |
+| securityContext\.windowsOptions\.gmsaCredentialSpec | no      |
+| securityContext\.windowsOptions\.hostProcess        | no      |
+| securityContext\.windowsOptions\.runAsUserName      | no      |
+| stdin                                               | no      |
+| stdinOnce                                           | no      |
+| tty                                                 | no      |
 
 ## PersistentVolumeClaim Fields
 
-| Field              | Support |
-|--------------------|---------|
-| volumeName         |         |
-| storageClassName   | ✅      |
-| volumeMode         |         |
-| accessModes        | ✅      |
-| selector           |         |
-| resources.limits   |         |
-| resources.requests | ✅      |
+| Field               | Support |
+|---------------------|---------|
+| volumeName          | no      |
+| storageClassName    | ✅      |
+| volumeMode          | no      |
+| accessModes         | ✅      |
+| selector            | no      |
+| resources\.limits   | no      |
+| resources\.requests | ✅      |
 
 ## ConfigMap Fields
 
@@ -157,19 +157,19 @@ Note: **N/A** means that the option cannot be supported in a single-node Podman 
 |------------|---------|
 | binaryData | ✅      |
 | data       | ✅      |
-| immutable  |         |
+| immutable  | no      |
 
 ## Deployment Fields
 
-| Field                                 | Support                                               |
-|---------------------------------------|-------------------------------------------------------|
-| replicas                              | ✅ (the actual replica count is ignored and set to 1) |
-| selector                              | ✅                                                    |
-| template                              | ✅                                                    |
-| minReadySeconds                       |                                                       |
-| strategy.type                         |                                                       |
-| strategy.rollingUpdate.maxSurge       |                                                       |
-| strategy.rollingUpdate.maxUnavailable |                                                       |
-| revisionHistoryLimit                  |                                                       |
-| progressDeadlineSeconds               |                                                       |
-| paused                                |                                                       |
+| Field                                   | Support                                               |
+|-----------------------------------------|-------------------------------------------------------|
+| replicas                                | ✅ (the actual replica count is ignored and set to 1) |
+| selector                                | ✅                                                    |
+| template                                | ✅                                                    |
+| minReadySeconds                         | no                                                    |
+| strategy\.type                          | no                                                    |
+| strategy\.rollingUpdate\.maxSurge       | no                                                    |
+| strategy\.rollingUpdate\.maxUnavailable | no                                                    |
+| revisionHistoryLimit                    | no                                                    |
+| progressDeadlineSeconds                 | no                                                    |
+| paused                                  | no                                                    |
