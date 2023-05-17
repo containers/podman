@@ -30,10 +30,10 @@ env:
     FEDORA_AARCH64_NAME: "${FEDORA_NAME}-aarch64"
     PRIOR_FEDORA_NAME: "fedora-37"
     RAWHIDE_NAME: "rawhide"
-    DEBIAN_NAME: "debian-12"
+    DEBIAN_NAME: "debian-13"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20230426t140447z-f38f37d12"
+    IMAGE_SUFFIX: "c20230726t191046z-f38f37d13"
 
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
@@ -243,9 +243,9 @@ validate_task:
             <<: *stdenvars
             VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
             DISTRO_NV: ${FEDORA_NAME}
-        # FIXME: Python changes in the c20230706t200047z images due
-        #        to broken dependencies at image-build time.  Re-enable
-        #        this once fixed.
+        # FIXME: #18612 c20230726t191046z-f38f37d13 Python dependnecies
+        # broken in rawhide image cause this task to fail.  Re-enable
+        # check if fixed in next set of images.
         # - env:
         #     <<: *stdenvars
         #     VM_IMAGE_NAME: ${RAWHIDE_CACHE_IMAGE_NAME}
