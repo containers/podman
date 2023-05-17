@@ -595,7 +595,7 @@ $ podman run -v /var/cache/dnf:/var/cache/dnf:O -ti fedora dnf -y update
 
 If the container needs a writeable mounted volume by a non root user inside the container, use the **U** option. This option tells Podman to chown the source volume to match the default UID and GID used within the container.
 ```
-$ podman run -d -e MYSQL_ROOT_PASSWORD=root --user mysql --userns=keep-id -v ~/data:/var/lib/mysql:z,U mariadb
+$ podman run -d -e MYSQL_ROOT_PASSWORD=root --user mysql --userns=keep-id -v ~/data:/var/lib/mysql:Z,U mariadb
 ```
 
 Alternatively if the container needs a writable volume by a non root
@@ -603,7 +603,7 @@ user inside of the container, the --userns=keep-id option allows users to
 specify the UID and GID of the user executing Podman to specific UIDs and GIDs
 within the container. Since the processes running in the container run as the user's UID, they can read/write files owned by the user.
 ```
-$ podman run -d -e MYSQL_ROOT_PASSWORD=root --user mysql --userns=keep-id:uid=999,gid=999 -v ~/data:/var/lib/mysql:z mariadb
+$ podman run -d -e MYSQL_ROOT_PASSWORD=root --user mysql --userns=keep-id:uid=999,gid=999 -v ~/data:/var/lib/mysql:Z mariadb
 ```
 
 Using **--mount** flags to mount a host directory as a container folder, specify
