@@ -170,6 +170,7 @@ func PodUnits(pod *libpod.Pod, options entities.GenerateSystemdOptions) (map[str
 		if ctr.ID() == infraID {
 			continue
 		}
+
 		ctrInfo, err := generateContainerInfo(ctr, options)
 		if err != nil {
 			return nil, err
