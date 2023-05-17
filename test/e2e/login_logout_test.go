@@ -26,23 +26,9 @@ var _ = Describe("Podman login and logout", func() {
 	)
 
 	BeforeEach(func() {
-
 		authPath = filepath.Join(podmanTest.TempDir, "auth")
 		err := os.Mkdir(authPath, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
-
-		if IsCommandAvailable("getenforce") {
-			ge := SystemExec("getenforce", []string{})
-			ge.WaitWithDefaultTimeout()
-			if ge.OutputToString() == "Enforcing" {
-				se := SystemExec("setenforce", []string{"0"})
-				se.WaitWithDefaultTimeout()
-				if se.ExitCode() != 0 {
-					Skip("Cannot disable selinux, this may cause problem for reading cert files inside container.")
-				}
-				defer SystemExec("setenforce", []string{"1"})
-			}
-		}
 
 		htpasswd := SystemExec("htpasswd", []string{"-Bbn", "podmantest", "test"})
 		htpasswd.WaitWithDefaultTimeout()
