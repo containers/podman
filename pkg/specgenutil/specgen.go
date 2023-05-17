@@ -220,9 +220,9 @@ func setNamespaces(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions)
 			return err
 		}
 	}
-	userns := os.Getenv("PODMAN_USERNS")
-	if c.UserNS != "" {
-		userns = c.UserNS
+	userns := c.UserNS
+	if userns == "" && c.Pod == "" {
+		userns = os.Getenv("PODMAN_USERNS")
 	}
 	// userns must be treated differently
 	if userns != "" {

@@ -395,6 +395,11 @@ var _ = Describe("Podman UserNS support", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.OutputToString()).To(Not(Equal("<nil>")))
 
+		// --pod should work.
+		result = podmanTest.Podman([]string{"create", "--pod=new:new-pod", ALPINE, "true"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
 		}
