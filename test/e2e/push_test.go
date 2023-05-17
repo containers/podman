@@ -209,7 +209,7 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to local registry with authorization", func() {
-		SkipIfRootless("volume-mounting a certs.d file N/A over remote")
+		SkipIfRootless("/etc/containers/certs.d not writable")
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -223,18 +223,6 @@ var _ = Describe("Podman push", func() {
 		cwd, _ := os.Getwd()
 		certPath := filepath.Join(cwd, "../", "certs")
 
-		if IsCommandAvailable("getenforce") {
-			ge := SystemExec("getenforce", []string{})
-			Expect(ge).Should(Exit(0))
-			if ge.OutputToString() == "Enforcing" {
-				se := SystemExec("setenforce", []string{"0"})
-				Expect(se).Should(Exit(0))
-				defer func() {
-					se2 := SystemExec("setenforce", []string{"1"})
-					Expect(se2).Should(Exit(0))
-				}()
-			}
-		}
 		lock := GetPortLock("5000")
 		defer lock.Unlock()
 		htpasswd := SystemExec("htpasswd", []string{"-Bbn", "podmantest", "test"})
