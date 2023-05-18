@@ -395,6 +395,28 @@ case "$TEST_FLAVOR" in
     *) die_unknown TEST_FLAVOR
 esac
 
+# See ./contrib/cirrus/CIModes.md.
+# Vars defined by cirrus-ci
+# shellcheck disable=SC2154
+if [[ ! "$OS_RELEASE_ID" =~ "debian" ]] && \
+   [[ "$CIRRUS_CHANGE_TITLE" =~ CI:NEXT ]]
+then
+    # shellcheck disable=SC2154
+    if [[ "$CIRRUS_PR_DRAFT" != "true" ]]; then
+        die "Magic 'CI:NEXT' string can only be used on DRAFT PRs"
+    fi
+
+    showrun dnf copr enable rhcontainerbot/podman-next -y
+
+    # DNF ignores repos that don't exist.  For example, updates-testing is not
+    # enabled on Fedora N-1 CI VMs.  Don't updated everything, isolate just the
+    # podman-next COPR updates.
+    showrun dnf update -y \
+      "--enablerepo=copr:copr.fedorainfracloud.org:rhcontainerbot:podman-next" \
+      "--disablerepo=copr:copr.fedorainfracloud.org:sbrivio:passt" \
+      "--disablerepo=fedora*" "--disablerepo=updates*"
+fi
+
 # Must be the very last command.  Prevents setup from running twice.
 echo 'SETUP_ENVIRONMENT=1' >> /etc/ci_environment
 echo -e "\n# End of global variable definitions" \
