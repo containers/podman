@@ -63,6 +63,9 @@ type PodmanTestIntegration struct {
 
 var LockTmpDir string
 
+var portUsed = map[int]bool{}
+var portUsedMutex sync.Mutex
+
 // PodmanSessionIntegration struct for command line session
 type PodmanSessionIntegration struct {
 	*PodmanSession
@@ -1208,19 +1211,39 @@ func writeYaml(content string, fileName string) error {
 	return nil
 }
 
+// markPortInUse reserves a port, or returns false if port already reserved
+func markPortInUse(port int) bool {
+	portUsedMutex.Lock()
+	defer portUsedMutex.Unlock()
+	if portUsed[port] {
+		return false
+	}
+	portUsed[port] = true
+	return true
+}
+
 // GetPort finds an unused port on the system
 func GetPort() int {
 	a, err := net.ResolveTCPAddr("tcp", "localhost:0")
 	if err != nil {
-		Fail(fmt.Sprintf("unable to get free port: %v", err))
+		Fail(fmt.Sprintf("unable to find free port: %v", err))
 	}
 
-	l, err := net.ListenTCP("tcp", a)
-	if err != nil {
-		Fail(fmt.Sprintf("unable to get free port: %v", err))
+	for tries := 0; tries < 20; tries++ {
+		l, err := net.ListenTCP("tcp", a)
+		if err != nil {
+			Fail(fmt.Sprintf("unable to get free port: %v", err))
+		}
+
+		port := l.Addr().(*net.TCPAddr).Port
+		if markPortInUse(port) {
+			l.Close()
+			return port
+		}
+		l.Close()
 	}
-	defer l.Close()
-	return l.Addr().(*net.TCPAddr).Port
+	Fail("unable to find any free ports")
+	return 0 // notreached
 }
 
 func ncz(port int) bool {
