@@ -161,6 +161,10 @@ func playFlags(cmd *cobra.Command) {
 	waitFlagName := "wait"
 	flags.BoolVarP(&playOptions.Wait, waitFlagName, "w", false, "Clean up all objects created when a SIGTERM is received or pods exit")
 
+	configmapFlagName := "configmap"
+	flags.StringSliceVar(&playOptions.ConfigMaps, configmapFlagName, []string{}, "`Pathname` of a YAML file containing a kubernetes configmap")
+	_ = cmd.RegisterFlagCompletionFunc(configmapFlagName, completion.AutocompleteDefault)
+
 	if !registry.IsRemote() {
 		certDirFlagName := "cert-dir"
 		flags.StringVar(&playOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")
@@ -169,10 +173,6 @@ func playFlags(cmd *cobra.Command) {
 		seccompProfileRootFlagName := "seccomp-profile-root"
 		flags.StringVar(&playOptions.SeccompProfileRoot, seccompProfileRootFlagName, defaultSeccompRoot, "Directory path for seccomp profiles")
 		_ = cmd.RegisterFlagCompletionFunc(seccompProfileRootFlagName, completion.AutocompleteDefault)
-
-		configmapFlagName := "configmap"
-		flags.StringSliceVar(&playOptions.ConfigMaps, configmapFlagName, []string{}, "`Pathname` of a YAML file containing a kubernetes configmap")
-		_ = cmd.RegisterFlagCompletionFunc(configmapFlagName, completion.AutocompleteDefault)
 
 		buildFlagName := "build"
 		flags.BoolVar(&playOptions.BuildCLI, buildFlagName, false, "Build all images in a YAML (given Containerfiles exist)")

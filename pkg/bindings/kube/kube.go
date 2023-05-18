@@ -1,6 +1,7 @@
 package kube
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"net/http"
@@ -47,6 +48,26 @@ func PlayWithBody(ctx context.Context, body io.Reader, options *PlayOptions) (*e
 	}
 	if options.Start != nil {
 		params.Set("start", strconv.FormatBool(options.GetStart()))
+	}
+
+	// For the remote case, read any configMaps passed and append it to the main yaml content
+	if options.ConfigMaps != nil {
+		yamlBytes, err := io.ReadAll(body)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, cm := range *options.ConfigMaps {
+			// Add kube yaml splitter
+			yamlBytes = append(yamlBytes, []byte("---\n")...)
+			cmBytes, err := os.ReadFile(cm)
+			if err != nil {
+				return nil, err
+			}
+			cmBytes = append(cmBytes, []byte("\n")...)
+			yamlBytes = append(yamlBytes, cmBytes...)
+		}
+		body = io.NopCloser(bytes.NewReader(yamlBytes))
 	}
 
 	header, err := auth.MakeXRegistryAuthHeader(&types.SystemContext{AuthFilePath: options.GetAuthfile()}, options.GetUsername(), options.GetPassword())

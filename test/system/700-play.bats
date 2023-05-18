@@ -653,8 +653,6 @@ spec:
 }
 
 @test "podman kube play with configmaps" {
-    skip_if_remote "the configmap argument is supported only locally"
-
     configmap_file=${PODMAN_TMPDIR}/play_kube_configmap_configmaps$(random_string 6).yaml
     echo "
 ---
