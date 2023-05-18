@@ -38,6 +38,26 @@ var _ = Describe("Podman events", func() {
 		date := time.Now().Format("2006-01-02")
 		Expect(result.OutputToStringArray()).To(ContainElement(HavePrefix(date)), "event log has correct timestamp")
 	})
+	It("podman events with a volume filter", func() {
+		_, ec, vname := podmanTest.CreateVolume(nil)
+		Expect(ec).To(Equal(0))
+
+		// Run two event commands - one with the full volume name and the second with the prefix
+		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", fmt.Sprintf("volume=%s", vname)})
+		resultPrefix := podmanTest.Podman([]string{"events", "--stream=false", "--filter", fmt.Sprintf("volume=%s", vname[:5])})
+
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		events := result.OutputToStringArray()
+		Expect(events).To(HaveLen(1), "number of events")
+		Expect(events[0]).To(ContainSubstring(vname), "event log includes volume name")
+
+		resultPrefix.WaitWithDefaultTimeout()
+		Expect(resultPrefix).Should(Exit(0))
+		events = resultPrefix.OutputToStringArray()
+		Expect(events).To(HaveLen(1), "number of events")
+		Expect(events[0]).To(ContainSubstring(vname), "event log includes volume name")
+	})
 
 	It("podman events with an event filter and container=cid", func() {
 		_, ec, cid := podmanTest.RunLsContainer("")

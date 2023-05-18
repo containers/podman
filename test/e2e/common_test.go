@@ -718,6 +718,19 @@ func (p *PodmanTestIntegration) CreatePod(options map[string][]string) (*PodmanS
 	return session, session.ExitCode(), session.OutputToString()
 }
 
+func (p *PodmanTestIntegration) CreateVolume(options map[string][]string) (*PodmanSessionIntegration, int, string) {
+	var args = []string{"volume", "create"}
+	for k, values := range options {
+		for _, v := range values {
+			args = append(args, k+"="+v)
+		}
+	}
+
+	session := p.Podman(args)
+	session.WaitWithDefaultTimeout()
+	return session, session.ExitCode(), session.OutputToString()
+}
+
 func (p *PodmanTestIntegration) RunTopContainerInPod(name, pod string) *PodmanSessionIntegration {
 	return p.RunTopContainerWithArgs(name, []string{"--pod", pod})
 }
