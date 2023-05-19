@@ -83,7 +83,9 @@ Remote connections use local containers.conf for default.
 Log messages at and above specified level: debug, info, warn, error, fatal or panic (default: "warn")
 
 #### **--network-cmd-path**=*path*
-Path to the `slirp4netns(1)` command binary to use for setting up a slirp4netns network.  If "" is used then the binary is looked up using the $PATH environment variable.
+Path to the `slirp4netns(1)` command binary to use for setting up a slirp4netns network.
+If "" is used, then the binary will first be searched using the `helper_binaries_dir` option in `containers.conf`, and second using the `$PATH` environment variable.
+**Note:** This option is deprecated and will be removed with Podman 5.0. Use the `helper_binaries_dir` option in `containers.conf` instead.
 
 #### **--network-config-dir**=*directory*
 
