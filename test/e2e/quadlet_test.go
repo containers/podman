@@ -563,7 +563,8 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("basic.volume", "basic.volume"),
 		Entry("label.volume", "label.volume"),
 		Entry("uid.volume", "uid.volume"),
-		Entry("device.volume", "device-copy.volume"),
+		Entry("device-copy.volume", "device-copy.volume"),
+		Entry("device.volume", "device.volume"),
 
 		Entry("Basic kube", "basic.kube"),
 		Entry("Syslog Identifier", "syslog.identifier.kube"),
