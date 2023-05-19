@@ -575,14 +575,16 @@ func (r *imageStore) Save() error {
 	if err != nil {
 		return err
 	}
-	if err := ioutils.AtomicWriteFile(rpath, jdata, 0600); err != nil {
-		return err
-	}
+	// This must be done before we write the file, because the process could be terminated
+	// after the file is written but before the lock file is updated.
 	lw, err := r.lockfile.RecordWrite()
 	if err != nil {
 		return err
 	}
 	r.lastWrite = lw
+	if err := ioutils.AtomicWriteFile(rpath, jdata, 0600); err != nil {
+		return err
+	}
 	return nil
 }
 

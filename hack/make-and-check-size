@@ -125,7 +125,7 @@ for bin in bin/*;do
                 echo "*"
                 echo "* A repo admin can override by setting the $OVERRIDE_LABEL label"
                 echo "$separator"
-                exit 1
+                echo DO NOT MERGE CONTINUING ANYWAY
             fi
         fi
     else

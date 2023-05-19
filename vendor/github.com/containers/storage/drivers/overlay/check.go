@@ -210,6 +210,9 @@ func doesVolatile(d string) (bool, error) {
 	}
 	// Mount using the mandatory options and configured options
 	opts := fmt.Sprintf("volatile,lowerdir=%s,upperdir=%s,workdir=%s", path.Join(td, "lower"), path.Join(td, "upper"), path.Join(td, "work"))
+	if unshare.IsRootless() {
+		opts = fmt.Sprintf("%s,userxattr", opts)
+	}
 	if err := unix.Mount("overlay", filepath.Join(td, "merged"), "overlay", 0, opts); err != nil {
 		return false, fmt.Errorf("failed to mount overlay for volatile check: %w", err)
 	}

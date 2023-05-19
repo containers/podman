@@ -67,6 +67,10 @@ import (
 
 const projectIDsAllocatedPerQuotaHome = 10000
 
+// BackingFsBlockDeviceLink is the name of a file that we place in
+// the home directory of a driver that uses this package.
+const BackingFsBlockDeviceLink = "backingFsBlockDev"
+
 // Quota limit params - currently we only control blocks hard limit and inodes
 type Quota struct {
 	Size   uint64
@@ -395,9 +399,9 @@ func openDir(path string) (*C.DIR, error) {
 	Cpath := C.CString(path)
 	defer free(Cpath)
 
-	dir := C.opendir(Cpath)
+	dir, errno := C.opendir(Cpath)
 	if dir == nil {
-		return nil, fmt.Errorf("can't open dir %v", Cpath)
+		return nil, fmt.Errorf("can't open dir %v: %w", Cpath, errno)
 	}
 	return dir, nil
 }
@@ -421,7 +425,7 @@ func makeBackingFsDev(home string) (string, error) {
 		return "", err
 	}
 
-	backingFsBlockDev := path.Join(home, "backingFsBlockDev")
+	backingFsBlockDev := path.Join(home, BackingFsBlockDeviceLink)
 	backingFsBlockDevTmp := backingFsBlockDev + ".tmp"
 	// Re-create just in case someone copied the home directory over to a new device
 	if err := unix.Mknod(backingFsBlockDevTmp, unix.S_IFBLK|0600, int(stat.Dev)); err != nil {

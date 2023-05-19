@@ -523,6 +523,13 @@ func (r *containerStore) load(lockedForWriting bool) (bool, error) {
 // The caller must hold r.inProcessLock for reading (but usually holds it for writing in order to make the desired changes).
 func (r *containerStore) save(saveLocations containerLocations) error {
 	r.lockfile.AssertLockedForWriting()
+	// This must be done before we write the file, because the process could be terminated
+	// after the file is written but before the lock file is updated.
+	lw, err := r.lockfile.RecordWrite()
+	if err != nil {
+		return err
+	}
+	r.lastWrite = lw
 	for locationIndex := 0; locationIndex < numContainerLocationIndex; locationIndex++ {
 		location := containerLocationFromIndex(locationIndex)
 		if location&saveLocations == 0 {
@@ -553,11 +560,6 @@ func (r *containerStore) save(saveLocations containerLocations) error {
 			return err
 		}
 	}
-	lw, err := r.lockfile.RecordWrite()
-	if err != nil {
-		return err
-	}
-	r.lastWrite = lw
 	return nil
 }
 
