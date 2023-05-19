@@ -1886,9 +1886,9 @@ func (c *Container) cleanupStorage() error {
 			logrus.Errorf("Storage for container %s has been removed", c.ID())
 		} else {
 			if cleanupErr != nil {
-				logrus.Errorf("Cleaning up container %s storage: %v", c.ID(), cleanupErr)
+				logrus.Errorf("Cleaning up container %s storage: %v", c.ID(), err)
 			} else {
-				cleanupErr = fmt.Errorf("cleaning up container %s storage: %w", c.ID(), cleanupErr)
+				cleanupErr = fmt.Errorf("cleaning up container %s storage: %w", c.ID(), err)
 			}
 		}
 	}
