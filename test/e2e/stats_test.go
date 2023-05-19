@@ -3,6 +3,7 @@ package integration
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -181,6 +182,9 @@ var _ = Describe("Podman stats", func() {
 
 	// Regression test for #8265
 	It("podman stats with custom memory limits", func() {
+		if strings.Contains(podmanTest.OCIRuntime, "crun") {
+			Skip("Test requires crun > 1.8.4")
+		}
 		// Run three containers. One with a memory limit.  Make sure
 		// that the limits are different and the limited one has a
 		// lower limit.
@@ -228,5 +232,36 @@ var _ = Describe("Podman stats", func() {
 		session = podmanTest.Podman([]string{"stats", "--no-stream", ctr})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+	})
+
+	It("podman stats show cgroup memory limit", func() {
+		if strings.Contains(podmanTest.OCIRuntime, "crun") {
+			Skip("Test requires crun > 1.8.4")
+		}
+		ctrWithLimit := "with-limit"
+
+		session := podmanTest.Podman([]string{"run", "-d", "--name", ctrWithLimit, "--memory", "50m", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"stats", "--no-stream", "--format", "{{.MemLimit}}", ctrWithLimit})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		limit, err := strconv.Atoi(session.OutputToString())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(limit).To(BeNumerically("==", 50*1024*1024))
+
+		session = podmanTest.Podman([]string{"container", "update", ctrWithLimit, "--memory", "100m"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"stats", "--no-stream", "--format", "{{.MemLimit}}", ctrWithLimit})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		limit, err = strconv.Atoi(session.OutputToString())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(limit).To(BeNumerically("==", 100*1024*1024))
 	})
 })
