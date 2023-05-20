@@ -61,7 +61,10 @@ type slirp4netnsNetworkOptions struct {
 	outboundAddr6       string
 }
 
-const ipv6ConfDefaultAcceptDadSysctl = "/proc/sys/net/ipv6/conf/default/accept_dad"
+const (
+	ipv6ConfDefaultAcceptDadSysctl = "/proc/sys/net/ipv6/conf/default/accept_dad"
+	slirp4netnsBinaryName          = "slirp4netns"
+)
 
 func checkSlirpFlags(path string) (*slirpFeatures, error) {
 	cmd := exec.Command(path, "--help")
@@ -216,7 +219,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container, netns string) error {
 	path := r.config.Engine.NetworkCmdPath
 	if path == "" {
 		var err error
-		path, err = exec.LookPath("slirp4netns")
+		path, err = r.config.FindHelperBinary(slirp4netnsBinaryName, true)
 		if err != nil {
 			return fmt.Errorf("could not find slirp4netns, the network namespace can't be configured: %w", err)
 		}
@@ -234,7 +237,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container, netns string) error {
 
 	ctrNetworkSlipOpts := []string{}
 	if ctr.config.NetworkOptions != nil {
-		ctrNetworkSlipOpts = append(ctrNetworkSlipOpts, ctr.config.NetworkOptions["slirp4netns"]...)
+		ctrNetworkSlipOpts = append(ctrNetworkSlipOpts, ctr.config.NetworkOptions[slirp4netnsBinaryName]...)
 	}
 	netOptions, err := parseSlirp4netnsNetworkOptions(r, ctrNetworkSlipOpts)
 	if err != nil {

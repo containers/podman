@@ -438,7 +438,8 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 		pFlags.StringVar(&podmanConfig.ConmonPath, conmonFlagName, "", "Path of the conmon binary")
 		_ = cmd.RegisterFlagCompletionFunc(conmonFlagName, completion.AutocompleteDefault)
 
-		// TODO (5.0): remove this option with the next major release after https://github.com/containers/podman/issues/18560 was implemented
+		// TODO (5.0): --network-cmd-path is deprecated, remove this option with the next major release
+		// We need to find all the places that use r.config.Engine.NetworkCmdPath and remove it
 		networkCmdPathFlagName := "network-cmd-path"
 		pFlags.StringVar(&podmanConfig.ContainersConf.Engine.NetworkCmdPath, networkCmdPathFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.NetworkCmdPath, "Path to the command for configuring the network")
 		_ = cmd.RegisterFlagCompletionFunc(networkCmdPathFlagName, completion.AutocompleteDefault)
