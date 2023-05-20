@@ -71,6 +71,20 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 		info.Slirp4NetNS = program
 	}
 
+	pastaPath, _ := r.config.FindHelperBinary(pastaBinaryName, true)
+	if pastaPath != "" {
+		version, err := programVersion(pastaPath)
+		if err != nil {
+			logrus.Warnf("Failed to retrieve program version for %s: %v", pastaPath, err)
+		}
+		program := define.PastaInfo{
+			Executable: pastaPath,
+			Package:    packageVersion(pastaPath),
+			Version:    version,
+		}
+		info.Pasta = program
+	}
+
 	if rootless.IsRootless() {
 		uidmappings, err := rootless.ReadMappingsProc("/proc/self/uid_map")
 		if err != nil {
