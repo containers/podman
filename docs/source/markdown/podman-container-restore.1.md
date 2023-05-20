@@ -58,7 +58,7 @@ The default is **false**.
 
 This option must be used in combination with the **--import, -i** option.
 When restoring *containers* from a checkpoint tar.gz file with this option,
-the content of associated volumes will not be restored.\
+the content of associated volumes are not restored.\
 The default is **false**.
 
 #### **--import**, **-i**=*file*
@@ -67,10 +67,10 @@ Import a checkpoint tar.gz file, which was exported by Podman. This can be used
 to import a checkpointed *container* from another host.\
 *IMPORTANT: This OPTION does not need a container name or ID as input argument.*
 
-During the import of a checkpoint file Podman will select the same container runtime
+During the import of a checkpoint file Podman selects the same container runtime
 which was used during checkpointing. This is especially important if a specific
-(non-default) container runtime was specified during container creation. Podman will
-also abort the restore if the container runtime specified during restore does
+(non-default) container runtime was specified during container creation. Podman
+also aborts the restore if the container runtime specified during restore does
 not much the container runtime used for container creation.
 
 #### **--import-previous**=*file*
@@ -89,13 +89,12 @@ files for further analysis. This includes the checkpoint directory with all
 files created during checkpointing. The size required by the checkpoint
 directory is roughly the same as the amount of memory required by the
 processes in the checkpointed *container*.\
-Without the **--keep**, **-k** option the checkpoint will be consumed and cannot be used again.\
+Without the **--keep**, **-k** option, the checkpoint is consumed and cannot be used again.\
 The default is **false**.
 
 #### **--latest**, **-l**
 
-Instead of providing the *container ID* or *name*, use the last created *container*. If other tools than Podman are used to run *containers* such as `CRI-O`, the last started *container* could be from either tool.\
-The default is **false**.\
+Instead of providing the *container ID* or *name*, use the last created *container*. The default is **false**.
 *IMPORTANT: This OPTION is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines. This OPTION does not need a container name or ID as input argument.*
 
 #### **--name**, **-n**=*name*
@@ -103,9 +102,9 @@ The default is **false**.\
 If a *container* is restored from a checkpoint tar.gz file it is possible to rename it with **--name, -n**. This way it is possible to restore a *container* from a checkpoint multiple times with different
 names.
 
-If the **--name, -n** option is used, Podman will not attempt to assign the same IP
+If the **--name, -n** option is used, Podman does not attempt to assign the same IP
 address to the *container* it was using before checkpointing as each IP address can only
-be used once and the restored *container* will have another IP address. This also means
+be used once, and the restored *container* has another IP address. This also means
 that **--name, -n** cannot be used in combination with **--tcp-established**.\
 *IMPORTANT: This OPTION is only available for a checkpoint image or in combination
 with __--import, -i__.*

@@ -32,22 +32,27 @@ us to use native Golang to perform our tests and there is a strong affiliation
 between Ginkgo and the Go test framework.
 
 ## Installing dependencies
-The dependencies for integration really consists of three things:
-* ginkgo binary
+Some external binaries are required to successfully run the tests.
+The test currently depend on:
+ - normal podman runtime dependencies
+ - coreutils
+ - ncat
+ - gzip
+ - xz
+ - htpasswd
+ - iproute2
+ - iptables
+ - util-linux
+ - tar
+ - docker
+ - systemd/systemctl
 
-The following instructions assume your GOPATH is ~/go. Adjust as needed for your
-environment.
+Most of these are only required for a few tests so it is not a big issue if not everything is installed. Only a few test should fail then.
 
 ### Installing ginkgo
-Build ginkgo and install it under $GOPATH/bin with the following commands:
+Build ginkgo and install it under ./test/tools/build/ginkgo with the following command:
 ```
-export GOCACHE="$(mktemp -d)"
-GOPATH=~/go make .install.ginkgo
-```
-If your PATH does not include $GOPATH/bin, you might consider adding it.
-
-```
-PATH=$PATH:$GOPATH/bin
+make .install.ginkgo
 ```
 
 # Integration Tests
@@ -63,21 +68,40 @@ output with given format JSON by using *structs* defined in inspect package.
 You can run the entire suite of integration tests with the following command:
 
 ```
-GOPATH=~/go ginkgo -tags "remote" -v test/e2e/.
+make localintegration
 ```
 
-Note the trailing period on the command above. Also, **-v** invokes verbose mode.  That
-switch is optional.
+To run the remote tests use:
+```
+make remoteintegration
+```
 
+### Test variables
+
+Some test only work as rootless while others only work as root. So to test everything
+you should make sure to run the make command above as normal user and root.
+
+The following environment variables are supported by the test setup:
+ - `PODMAN_BINARY`: path to the podman binary, defaults to `bin/podman` in the repository root.
+ - `PODMAN_REMOTE_BINARY`: path to the podman-remote binary, defaults to `bin/podman-remote` in the repository root.
+ - `QUADLET_BINARY`: path to the quadlet binary, defaults to `bin/quadlet` in the repository root.
+ - `CONMON_BINARY`: path to th conmon binary, defaults to `/usr/libexec/podman/conmon`.
+ - `OCI_RUNTIME`: which oci runtime to use, defaults to `crun`.
+ - `NETWORK_BACKEND`: the network backend, either `cni` (default) or `netavark`.
+ - `PODMAN_DB`: the database backend `boltdb` (default) or `sqlite`.
+ - `PODMAN_TEST_IMAGE_CACHE_DIR`: path were the container images should be cached, defaults to `/tmp`.
 
 ### Running a single file of integration tests
 You can run a single file of integration tests using the go test command:
 
 ```
-GOPATH=~/go go test -v test/e2e/libpod_suite_test.go test/e2e/common_test.go test/e2e/config.go test/e2e/config_amd64.go test/e2e/your_test.go
+make localintegration FOCUS_FILE=your_test.go
 ```
 
-If you want to run the tests with the podman-remote client, make sure to replace `test/e2e/libpod_suite_test.go` with `test/e2e/libpod_suite_remote_test.go`.
+`FOCUS_FILE` file maps to ginkgo's `--focus-file` option, see the ginkgo
+[docs](https://onsi.github.io/ginkgo/#location-based-filtering) for the accepted syntax.
+
+For remote tests use the `remoteintegration` Makefile target instead.
 
 ### Running a single integration test
 Before running the test suite, you have to declare which test you want run in the test
@@ -91,27 +115,16 @@ It("podman inspect bogus pod", func() {
 ```
 
 To mark this as the test you want run, you simply change the *It* description to *FIt*. Please note how
-both the `F` and `I` are capitalized.
-
-You can run a single integration test using the same command we used to run all the tests in a single
-file.
-
-```
-GOPATH=~/go go test -v test/e2e/libpod_suite_test.go test/e2e/common_test.go test/e2e/config.go test/e2e/config_amd64.go test/e2e/your_test.go
-```
+both the `F` and `I` are capitalized. Also see the ginkgo [docs](https://onsi.github.io/ginkgo/#focused-specs).
 
 *Note*: Be sure you remove the `F` from the tests before committing your changes or you will skip all tests
 in that file except the one with the `FIt` denotation.
 
-
-### Run tests in a container
-In case you have issue running the tests locally on your machine, you can run
-them in a container:
+Alternatively you can use the `FOCUS` option which maps to `--focus`, again see the ginkgo
+[docs](https://onsi.github.io/ginkgo/#description-based-filtering) for more info about the syntax.
 ```
-make shell
+make localintegration FOCUS="podman inspect bogus pod"
 ```
-
-This will run a container and give you a shell and you can follow the instructions above.
 
 # System tests
 System tests are used for testing the *podman* CLI in the context of a complete system. It

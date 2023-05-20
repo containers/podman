@@ -214,6 +214,8 @@ const (
 	pipePrefix     = "npipe:////./pipe/"
 	globalPipe     = "docker_engine"
 	userModeDist   = "podman-net-usermode"
+	rootfulSock    = "/run/podman/podman.sock"
+	rootlessSock   = "/run/user/1000/podman/podman.sock"
 )
 
 type Virtualization struct {
@@ -501,8 +503,8 @@ func (v *MachineVM) writeConfig() error {
 }
 
 func setupConnections(v *MachineVM, opts machine.InitOptions, sshDir string) error {
-	uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/user/1000/podman/podman.sock", strconv.Itoa(v.Port), v.RemoteUsername)
-	uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
+	uri := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, rootlessSock, strconv.Itoa(v.Port), v.RemoteUsername)
+	uriRoot := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, rootfulSock, strconv.Itoa(v.Port), "root")
 	identity := filepath.Join(sshDir, v.Name)
 
 	uris := []url.URL{uri, uriRoot}
@@ -620,11 +622,25 @@ func configureSystem(v *MachineVM, dist string) error {
 		return err
 	}
 
+	if err := v.setupPodmanDockerSock(dist, v.Rootful); err != nil {
+		return err
+	}
+
 	if err := wslInvoke(dist, "sh", "-c", "echo wsl > /etc/containers/podman-machine"); err != nil {
 		return fmt.Errorf("could not create podman-machine file for guest OS: %w", err)
 	}
 
 	return changeDistUserModeNetworking(dist, user, "", v.UserModeNetworking)
+}
+
+func (v *MachineVM) setupPodmanDockerSock(dist string, rootful bool) error {
+	content := machine.GetPodmanDockerTmpConfig(1000, rootful, true)
+
+	if err := wslPipe(content, dist, "sh", "-c", "cat > "+machine.PodmanDockerTmpConfPath); err != nil {
+		return fmt.Errorf("could not create internal docker sock conf: %w", err)
+	}
+
+	return nil
 }
 
 func configureProxy(dist string, useProxy bool, quiet bool) error {
@@ -1020,6 +1036,9 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 		if err != nil {
 			setErrors = append(setErrors, fmt.Errorf("setting rootful option: %w", err))
 		} else {
+			if v.isRunning() {
+				logrus.Warn("restart is necessary for rootful change to go into effect")
+			}
 			v.Rootful = *opts.Rootful
 		}
 	}
@@ -1155,11 +1174,11 @@ func launchWinProxy(v *MachineVM) (bool, string, error) {
 		return globalName, "", err
 	}
 
-	destSock := "/run/user/1000/podman/podman.sock"
+	destSock := rootlessSock
 	forwardUser := v.RemoteUsername
 
 	if v.Rootful {
-		destSock = "/run/podman/podman.sock"
+		destSock = rootfulSock
 		forwardUser = "root"
 	}
 
@@ -1429,10 +1448,7 @@ func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, fun
 
 	confirmationMessage += "\n"
 	return confirmationMessage, func() error {
-		if err := machine.RemoveConnection(v.Name); err != nil {
-			logrus.Error(err)
-		}
-		if err := machine.RemoveConnection(v.Name + "-root"); err != nil {
+		if err := machine.RemoveConnections(v.Name, v.Name+"-root"); err != nil {
 			logrus.Error(err)
 		}
 		if err := runCmdPassThrough("wsl", "--unregister", toDist(v.Name)); err != nil {
@@ -1663,7 +1679,9 @@ func (v *MachineVM) setRootful(rootful bool) error {
 			return err
 		}
 	}
-	return nil
+
+	dist := toDist(v.Name)
+	return v.setupPodmanDockerSock(dist, rootful)
 }
 
 // Inspect returns verbose detail about the machine

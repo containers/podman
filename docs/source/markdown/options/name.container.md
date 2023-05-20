@@ -13,6 +13,6 @@ The operator can identify a container in three ways:
 - Name (“jonah”).
 
 Podman generates a UUID for each container, and if a name is not assigned
-to the container with **--name** then it will generate a random
+to the container with **--name** then it generates a random
 string name. The name can be useful as a more human-friendly way to identify containers.
 This works for both background and foreground containers.

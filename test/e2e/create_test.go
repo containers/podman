@@ -9,31 +9,12 @@ import (
 
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman create", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		Expect(err).ToNot(HaveOccurred())
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
-	})
 
 	It("podman create container based on a local image", func() {
 		session := podmanTest.Podman([]string{"create", "--name", "local_image_test", ALPINE, "ls"})

@@ -5,8 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
@@ -23,27 +22,6 @@ ENV test1=test1
 ENV test2=test2`
 
 var _ = Describe("Podman prune", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
-	})
 
 	It("podman container prune containers", func() {
 		top := podmanTest.RunTopContainer("")
@@ -521,14 +499,13 @@ var _ = Describe("Podman prune", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToStringArray()).To(HaveLen(3))
-
-		podmanTest.Cleanup()
 	})
 
 	It("podman system prune --all --external fails", func() {
-		prune := podmanTest.Podman([]string{"system", "prune", "--all", "--enternal"})
+		prune := podmanTest.Podman([]string{"system", "prune", "--all", "--external"})
 		prune.WaitWithDefaultTimeout()
 		Expect(prune).Should(Exit(125))
+		Expect(prune.ErrorToString()).To(ContainSubstring("--external cannot be combined with other options"))
 	})
 
 	It("podman system prune --external leaves referenced containers", func() {

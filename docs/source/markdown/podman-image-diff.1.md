@@ -7,7 +7,7 @@ podman-image-diff - Inspect changes on an image's filesystem
 **podman image diff** [*options*] *image* [*image*]
 
 ## DESCRIPTION
-Displays changes on an image's filesystem.  The image will be compared to its parent layer or the second argument when given.
+Displays changes on an image's filesystem.  The image is compared to its parent layer or the second argument when given.
 
 The output is prefixed with the following symbols:
 

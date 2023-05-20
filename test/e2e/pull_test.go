@@ -7,33 +7,12 @@ import (
 	"runtime"
 
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman pull", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
-	})
 
 	It("podman pull multiple images with/without tag/digest", func() {
 		session := podmanTest.Podman([]string{"pull", "busybox:musl", "alpine", "alpine:latest", "quay.io/libpod/cirros", "quay.io/libpod/testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb"})
@@ -44,8 +23,7 @@ var _ = Describe("Podman pull", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
 		expectedError := "initializing source docker://ibetthisdoesnotexistfr:random"
-		found, _ := session.ErrorGrepString(expectedError)
-		Expect(found).To(BeTrue())
+		Expect(session.ErrorToString()).To(ContainSubstring(expectedError))
 
 		session = podmanTest.Podman([]string{"rmi", "busybox:musl", "alpine", "quay.io/libpod/cirros", "testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb"})
 		session.WaitWithDefaultTimeout()
@@ -288,8 +266,7 @@ var _ = Describe("Podman pull", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
 		expectedError := "Unexpected tar manifest.json: expected 1 item, got 2"
-		found, _ := session.ErrorGrepString(expectedError)
-		Expect(found).To(BeTrue())
+		Expect(session.ErrorToString()).To(ContainSubstring(expectedError))
 
 		// Now pull _one_ image from a multi-image archive via the name
 		// and index syntax.
@@ -314,15 +291,13 @@ var _ = Describe("Podman pull", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
 		expectedError = "Tag \"foo.com/does/not/exist:latest\" not found"
-		found, _ = session.ErrorGrepString(expectedError)
-		Expect(found).To(BeTrue())
+		Expect(session.ErrorToString()).To(ContainSubstring(expectedError))
 
 		session = podmanTest.Podman([]string{"pull", "docker-archive:./testdata/docker-two-images.tar.xz:@2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
 		expectedError = "Invalid source index @2, only 2 manifest items available"
-		found, _ = session.ErrorGrepString(expectedError)
-		Expect(found).To(BeTrue())
+		Expect(session.ErrorToString()).To(ContainSubstring(expectedError))
 	})
 
 	It("podman pull from oci-archive", func() {

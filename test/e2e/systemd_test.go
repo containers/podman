@@ -7,26 +7,16 @@ import (
 	"strings"
 
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman systemd", func() {
-	var (
-		tempdir         string
-		err             error
-		podmanTest      *PodmanTestIntegration
-		systemdUnitFile string
-	)
+
+	var systemdUnitFile string
 
 	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
 		systemdUnitFile = fmt.Sprintf(`[Unit]
 Description=redis container
 [Service]
@@ -37,13 +27,6 @@ KillMode=process
 [Install]
 WantedBy=default.target
 `, podmanTest.PodmanBinary, podmanTest.PodmanBinary)
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
 	})
 
 	It("podman start container by systemd", func() {
@@ -88,7 +71,7 @@ WantedBy=default.target
 
 		// Give container 10 seconds to start
 		started := podmanTest.WaitContainerReady(ctrName, "Reached target multi-user.target - Multi-User System.", 30, 1)
-		Expect(started).To(BeTrue())
+		Expect(started).To(BeTrue(), "Reached multi-user.target")
 
 		systemctl := podmanTest.Podman([]string{"exec", ctrName, "systemctl", "status", "--no-pager"})
 		systemctl.WaitWithDefaultTimeout()
@@ -100,7 +83,7 @@ WantedBy=default.target
 		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
 		Expect(conData).To(HaveLen(1))
-		Expect(conData[0].Config.SystemdMode).To(BeTrue())
+		Expect(conData[0].Config).To(HaveField("SystemdMode", true))
 
 		// stats not supported w/ CGv1 rootless or containerized
 		if isCgroupsV1() && (isRootless() || isContainerized()) {
@@ -127,7 +110,7 @@ WantedBy=default.target
 		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
 		Expect(conData).To(HaveLen(1))
-		Expect(conData[0].Config.SystemdMode).To(BeTrue())
+		Expect(conData[0].Config).To(HaveField("SystemdMode", true))
 	})
 
 	It("podman systemd in command triggers systemd mode", func() {
@@ -152,7 +135,7 @@ CMD /usr/lib/systemd/systemd`, ALPINE)
 		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
 		Expect(conData).To(HaveLen(1))
-		Expect(conData[0].Config.SystemdMode).To(BeTrue())
+		Expect(conData[0].Config).To(HaveField("SystemdMode", true))
 	})
 
 	It("podman create container with --uidmap and conmon PidFile accessible", func() {
@@ -181,7 +164,7 @@ CMD /usr/lib/systemd/systemd`, ALPINE)
 		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
 		Expect(conData).To(HaveLen(1))
-		Expect(conData[0].Config.SystemdMode).To(BeTrue())
+		Expect(conData[0].Config).To(HaveField("SystemdMode", true))
 	})
 
 	It("podman run --systemd container should NOT mount /run noexec", func() {

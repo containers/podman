@@ -16,7 +16,7 @@ import (
 	"github.com/containers/podman/v4/pkg/bindings/images"
 	"github.com/containers/podman/v4/pkg/bindings/pods"
 	"github.com/containers/podman/v4/pkg/bindings/system"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )

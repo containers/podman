@@ -8,10 +8,10 @@ podman\-inspect - Display a container, image, volume, network, or pod's configur
 
 ## DESCRIPTION
 
-This displays the low-level information on containers and images identified by name or ID. By default, this will render
+This displays the low-level information on containers and images identified by name or ID. By default, this renders
 all results in a JSON array. If the inspect type is all, the order of inspection is: containers, images, volumes, network, pods.
- So, if a container has the same name as an image, then the container JSON will be returned, and so on.
- If a format is specified, the given template will be executed for each result.
+ If a container has the same name as an image, then the container JSON is returned, and so on.
+ If a format is specified, the given template is executed for each result.
 
 For more inspection options, see also
 [podman-container-inspect(1)](podman-container-inspect.1.md),

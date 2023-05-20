@@ -13,7 +13,7 @@ Each Podman container and pod is allocated a lock at creation time, up to a maxi
 
 When all available locks are exhausted, no further containers and pods can be created until some existing containers and pods are removed. This can be avoided by increasing the number of locks available via modifying **containers.conf** and subsequently running **podman system renumber** to prepare the new locks (and reallocate lock numbers to fit the new struct).
 
-**podman system renumber** must be called after any changes to **num_locks** - failure to do so will result in errors starting Podman as the number of locks available conflicts with the configured number of locks.
+**podman system renumber** must be called after any changes to **num_locks** - failure to do so results in errors starting Podman as the number of locks available conflicts with the configured number of locks.
 
 **podman system renumber** can also be used to migrate 1.0 and earlier versions of Podman, which used a different locking scheme, to the new locking model. It is not strictly required to do this, but it is highly recommended to do so as deadlocks can occur otherwise.
 

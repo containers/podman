@@ -31,7 +31,7 @@ file is created in each container to indicate to programs they are running in a
 container. This file is located at _/run/.containerenv_. When using the
 --privileged flag the .containerenv contains name/value pairs indicating the
 container engine version, whether the engine is running in rootless mode, the
-container name and ID, as well as the image name and ID that the container is based on.
+container name and ID, as well as the image name and ID that the container is based on. Note: _/run/.containerenv_ will not be created when a volume is mounted on /run.
 
 When running from a user defined network namespace, the _/etc/netns/NSNAME/resolv.conf_
 will be used if it exists, otherwise _/etc/resolv.conf_ will be used.
@@ -43,7 +43,7 @@ pages.
 ## IMAGE
 
   The image is specified using transport:path format. If no transport is specified, the `docker` (container registry)
-transport will be used by default. For remote Podman, including Mac and Windows (excluding WSL2) machines, `docker` is the only allowed transport.
+transport is used by default. For remote Podman, including Mac and Windows (excluding WSL2) machines, `docker` is the only allowed transport.
 
   **dir:**_path_
   An existing local directory _path_ storing the manifest, layer tarballs and signatures as individual files. This
@@ -55,9 +55,9 @@ is a non-standardized format, primarily useful for debugging or noninvasive cont
   **docker://**_docker-reference_ (Default)
   An image reference stored in a remote container image registry. Example: "quay.io/podman/stable:latest".
 The reference can include a path to a specific registry; if it does not, the
-registries listed in registries.conf will be queried to find a matching image.
+registries listed in registries.conf are queried to find a matching image.
 By default, credentials from `podman login` (stored at
-$XDG_RUNTIME_DIR/containers/auth.json by default) will be used to authenticate;
+$XDG_RUNTIME_DIR/containers/auth.json by default) are used to authenticate;
 otherwise it falls back to using credentials in $HOME/.docker/config.json.
 
     $ podman run registry.fedoraproject.org/fedora:latest echo hello
@@ -151,7 +151,7 @@ it in the **containers.conf** file: see **containers.conf(5)** for more informat
 @@option device
 
 Note: if the user only has access rights via a group, accessing the device
-from inside a rootless container will fail. Use the `--group-add keep-groups`
+from inside a rootless container fails. Use the `--group-add keep-groups`
 flag to pass the user's supplementary group access into the container.
 
 @@option device-cgroup-rule
@@ -270,7 +270,7 @@ Print usage statement
 
 Invalid if using **--dns**, **--dns-option**, or **--dns-search** with **--network** set to **none** or **container:**_id_.
 
-If used together with **--pod**, the container will not join the pod's network namespace.
+If used together with **--pod**, the container joins the pod's network namespace.
 
 @@option network-alias
 
@@ -313,7 +313,7 @@ This is used to override the Podman provided user setup in favor of entrypoint c
 
 @@option publish
 
-**Note:** If a container will be run within a pod, it is not necessary to publish the port for
+**Note:** If a container runs within a pod, it is not necessary to publish the port for
 the containers in the pod. The port must only be published by the pod itself. Pod network
 stacks act like the network stack on the host - meaning a variety of containers in the pod
 and programs in the container all share a single interface, IP address, and
@@ -459,7 +459,7 @@ to volumes if they need to write to file systems at all. Applications can be
 made more secure by running them in read-only mode using the **--read-only** switch.
 This protects the container's image from modification. By default read-only
 containers can write to temporary data. Podman mounts a tmpfs on _/run_ and
-_/tmp_ within the container. If the container should not write to any file
+_/tmp_ within the container. If the container does not write to any file
 system within the container, including tmpfs, set --read-only-tmpfs=false.
 
 ```
@@ -491,11 +491,11 @@ Then exit and check the journal.
 $ journalctl -b | grep Hello
 ```
 
-This should list the message sent to logger.
+This lists the message sent to the logger.
 
 ### Attaching to one or more from STDIN, STDOUT, STDERR
 
-Without specifying the **-a** option, Podman will attach everything (stdin, stdout, stderr).
+Without specifying the **-a** option, Podman attaches everything (stdin, stdout, stderr).
 Override the default by specifying -a (stdin, stdout, stderr), as in:
 
 ```
@@ -582,8 +582,8 @@ $ podman run -p 8080:80 -d -i -t fedora/httpd
 To mount a host directory as a container volume, specify the absolute path to
 the directory and the absolute path for the container directory separated by a
 colon. If the source is a named volume maintained by Podman, it is recommended to
-use its name rather than the path to the volume. Otherwise the volume will be
-considered as an orphan and wiped by the **podman volume prune** command:
+use its name rather than the path to the volume. Otherwise the volume is
+considered an orphan and wiped by the **podman volume prune** command:
 
 ```
 $ podman run -v /var/db:/data1 -i -t fedora bash
@@ -595,7 +595,7 @@ $ podman run -v /var/cache/dnf:/var/cache/dnf:O -ti fedora dnf -y update
 
 If the container needs a writeable mounted volume by a non root user inside the container, use the **U** option. This option tells Podman to chown the source volume to match the default UID and GID used within the container.
 ```
-$ podman run -d -e MYSQL_ROOT_PASSWORD=root --user mysql --userns=keep-id -v ~/data:/var/lib/mysql:z,U mariadb
+$ podman run -d -e MYSQL_ROOT_PASSWORD=root --user mysql --userns=keep-id -v ~/data:/var/lib/mysql:Z,U mariadb
 ```
 
 Alternatively if the container needs a writable volume by a non root
@@ -603,7 +603,7 @@ user inside of the container, the --userns=keep-id option allows users to
 specify the UID and GID of the user executing Podman to specific UIDs and GIDs
 within the container. Since the processes running in the container run as the user's UID, they can read/write files owned by the user.
 ```
-$ podman run -d -e MYSQL_ROOT_PASSWORD=root --user mysql --userns=keep-id:uid=999,gid=999 -v ~/data:/var/lib/mysql:z mariadb
+$ podman run -d -e MYSQL_ROOT_PASSWORD=root --user mysql --userns=keep-id:uid=999,gid=999 -v ~/data:/var/lib/mysql:Z mariadb
 ```
 
 Using **--mount** flags to mount a host directory as a container folder, specify
@@ -619,7 +619,7 @@ $ podman run --mount type=bind,src=volume-name,target=/data1 busybox sh
 When using SELinux, be aware that the host has no knowledge of container SELinux
 policy. Therefore, in the above example, if SELinux policy is enforced, the
 _/var/db_ directory is not writable to the container. A "Permission Denied"
-message will occur and an **avc:** message in the host's syslog.
+message occurs, and an **avc:** message is added to the host's syslog.
 
 To work around this, at time of writing this man page, the following command
 needs to be run in order for the proper SELinux policy type label to be attached
@@ -629,8 +629,8 @@ to the host directory:
 $ chcon -Rt svirt_sandbox_file_t /var/db
 ```
 
-Now, writing to the _/data1_ volume in the container will be allowed and the
-changes will also be reflected on the host in _/var/db_.
+Now, writing to the _/data1_ volume in the container is allowed and the
+changes are reflected on the host in _/var/db_.
 
 ### Using alternative security labeling
 
@@ -665,7 +665,7 @@ command:
 $ podman run --security-opt label=type:svirt_apache_t -i -t centos bash
 ```
 
-Note an SELinux policy defining a **svirt_apache_t** type would need to be written.
+Note that an SELinux policy defining a **svirt_apache_t** type must be written.
 
 To mask additional specific paths in the container, specify the paths
 separated by a colon using the **mask** option with the **--security-opt**
@@ -763,8 +763,8 @@ $ podman run --tz=US/Eastern alpine date
 
 ### Adding dependency containers
 
-The first container, container1, is not started initially, but must be running before container2 will start.
-The `podman run` command will start the container automatically before starting container2.
+The first container, container1, is not started initially, but must be running before container2 starts.
+The `podman run` command starts the container automatically before starting container2.
 
 ```
 $ podman create --name container1 -t -i fedora bash
@@ -801,7 +801,7 @@ $ podman run --name container1 --rootfs /path/to/rootfs:O bash
 
 In order to use a timezone other than UTC when running a
 Java application within a container, the `TZ` environment variable must be
-set within the container. Java applications will ignore the value set with the
+set within the container. Java applications ignores the value set with the
 `--tz` option.
 
 ```
@@ -843,10 +843,10 @@ Environment variables within containers can be set using multiple different opti
 in the following order of precedence (later entries override earlier entries):
 
 - Container image: Any environment variables specified in the container image.
-- **--http-proxy**: By default, several environment variables will be passed in from the host, such as **http_proxy** and **no_proxy**. See **--http-proxy** for details.
+- **--http-proxy**: By default, several environment variables are passed in from the host, such as **http_proxy** and **no_proxy**. See **--http-proxy** for details.
 - **--env-host**: Host environment of the process executing Podman is added.
 - **--env-file**: Any environment variables specified via env-files. If multiple files are specified, then they override each other in order of entry.
-- **--env**: Any environment variables specified will override previous settings.
+- **--env**: Any environment variables specified overrides previous settings.
 
 Run containers and set the environment ending with a __*__.
 The trailing __*__ glob functionality is only active when no value is specified:
@@ -896,4 +896,4 @@ June 2014, updated by Sven Dowideit `<SvenDowideit@home.org.au>`
 April 2014, Originally compiled by William Henry `<whenry@redhat.com>` based on docker.com source material and internal work.
 
 ## FOOTNOTES
-<a name="Footnote1">1</a>: The Podman project is committed to inclusivity, a core value of open source. The `master` and `slave` mount propagation terminology used here is problematic and divisive, and should be changed. However, these terms are currently used within the Linux kernel and must be used as-is at this time. When the kernel maintainers rectify this usage, Podman will follow suit immediately.
+<a name="Footnote1">1</a>: The Podman project is committed to inclusivity, a core value of open source. The `master` and `slave` mount propagation terminology used here is problematic and divisive, and needs to be changed. However, these terms are currently used within the Linux kernel and must be used as-is at this time. When the kernel maintainers rectify this usage, Podman will follow suit immediately.

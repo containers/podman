@@ -15,37 +15,47 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman run", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-	})
 
 	It("podman run a container based on local image", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+	})
+
+	// This test may seem entirely pointless, it is not.  Due to compatibility
+	// and historical reasons, the container name generator uses a globally
+	// scoped RNG, seeded from a global state.  An easy way to check if its
+	// been initialized properly (i.e. pseudo-non-deterministically) is
+	// checking if the name-generator spits out the same name twice.  Because
+	// existing containers are checked when generating names, the test must ensure
+	// the first container is removed before creating a second.
+	It("podman generates different names for successive containers", func() {
+		var names [2]string
+
+		for i := range names {
+			session := podmanTest.Podman([]string{"create", ALPINE, "true"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+			cid := session.OutputToString()
+			Expect(cid).To(Not(Equal("")))
+
+			session = podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Name}}", cid})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+			names[i] = session.OutputToString()
+			Expect(names[i]).To(Not(Equal("")))
+
+			session = podmanTest.Podman([]string{"rm", cid})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+		}
+		Expect(names[0]).ToNot(Equal(names[1]), "Podman generated duplicate successive container names, has the global RNG been seeded correctly?")
 	})
 
 	It("podman run check /run/.containerenv", func() {
@@ -240,7 +250,7 @@ var _ = Describe("Podman run", func() {
 		Expect(tarball).Should(BeARegularFile())
 
 		// N/B: This will loose any extended attributes like SELinux types
-		fmt.Fprintf(os.Stderr, "Extracting container root tarball\n")
+		GinkgoWriter.Printf("Extracting container root tarball\n")
 		tarsession := SystemExec("tar", []string{"xf", tarball, "-C", rootfs})
 		Expect(tarsession).Should(Exit(0))
 		Expect(filepath.Join(rootfs, uls)).Should(BeADirectory())
@@ -341,7 +351,7 @@ var _ = Describe("Podman run", func() {
 		in := []byte(`{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"name":"getcwd","action":"SCMP_ACT_ERRNO"}]}`)
 		jsonFile, err := podmanTest.CreateSeccompJSON(in)
 		if err != nil {
-			fmt.Println(err)
+			GinkgoWriter.Println(err)
 			Skip("Failed to prepare seccomp.json for test.")
 		}
 		return jsonFile
@@ -1224,11 +1234,9 @@ USER mail`, BB)
 		session := podmanTest.Podman([]string{"run", "--volume", vol1 + ":/myvol1:z", "--volume", vol2 + ":/myvol2:shared,z", fedoraMinimal, "findmnt", "-o", "TARGET,PROPAGATION"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		match, shared := session.GrepString("shared")
-		Expect(match).Should(BeTrue())
+		Expect(session.OutputToString()).To(ContainSubstring("shared"))
 		// make sure it's only shared (and not 'shared,slave')
-		isSharedOnly := !strings.Contains(shared[0], "shared,")
-		Expect(isSharedOnly).Should(BeTrue())
+		Expect(session.OutputToString()).To(Not(ContainSubstring("shared,")))
 	})
 
 	It("podman run --security-opts proc-opts=", func() {
@@ -1387,7 +1395,7 @@ USER mail`, BB)
 				break
 			}
 		}
-		Expect(found).To(BeTrue())
+		Expect(found).To(BeTrue(), "found expected /ran file")
 
 		err = os.Remove(aliveFile)
 		Expect(err).ToNot(HaveOccurred())
@@ -1403,7 +1411,7 @@ USER mail`, BB)
 				break
 			}
 		}
-		Expect(found).To(BeTrue())
+		Expect(found).To(BeTrue(), "found /ran file after restart")
 	})
 
 	It("podman run with restart policy does not restart on manual stop", func() {
@@ -1486,7 +1494,7 @@ USER mail`, BB)
 		curCgroupsBytes, err := os.ReadFile("/proc/self/cgroup")
 		Expect(err).ShouldNot(HaveOccurred())
 		curCgroups := trim(string(curCgroupsBytes))
-		fmt.Printf("Output:\n%s\n", curCgroups)
+		GinkgoWriter.Printf("Output:\n%s\n", curCgroups)
 		Expect(curCgroups).ToNot(Equal(""))
 
 		container := podmanTest.Podman([]string{"run", "--cgroupns=host", "--cgroups=disabled", ALPINE, "cat", "/proc/self/cgroup"})
@@ -1494,7 +1502,7 @@ USER mail`, BB)
 		Expect(container).Should(Exit(0))
 
 		ctrCgroups := trim(container.OutputToString())
-		fmt.Printf("Output\n:%s\n", ctrCgroups)
+		GinkgoWriter.Printf("Output\n:%s\n", ctrCgroups)
 
 		Expect(ctrCgroups).To(Equal(curCgroups))
 	})
@@ -1509,7 +1517,7 @@ USER mail`, BB)
 		curCgroupsBytes, err := os.ReadFile("/proc/self/cgroup")
 		Expect(err).ToNot(HaveOccurred())
 		var curCgroups string = string(curCgroupsBytes)
-		fmt.Printf("Output:\n%s\n", curCgroups)
+		GinkgoWriter.Printf("Output:\n%s\n", curCgroups)
 		Expect(curCgroups).To(Not(Equal("")))
 
 		ctrName := "testctr"
@@ -1526,7 +1534,7 @@ USER mail`, BB)
 		ctrCgroupsBytes, err := os.ReadFile(fmt.Sprintf("/proc/%d/cgroup", pid))
 		Expect(err).ToNot(HaveOccurred())
 		var ctrCgroups string = string(ctrCgroupsBytes)
-		fmt.Printf("Output\n:%s\n", ctrCgroups)
+		GinkgoWriter.Printf("Output\n:%s\n", ctrCgroups)
 		Expect(curCgroups).To(Not(Equal(ctrCgroups)))
 	})
 
@@ -2068,7 +2076,33 @@ WORKDIR /madethis`, BB)
 		mount.WaitWithDefaultTimeout()
 		Expect(mount).Should(Exit(0))
 		t, strings := mount.GrepString("tmpfs on /run/lock")
-		Expect(t).To(BeTrue())
+		Expect(t).To(BeTrue(), "found /run/lock")
 		Expect(strings[0]).Should(ContainSubstring("size=10240k"))
+	})
+
+	It("podman run does not preserve image annotations", func() {
+		annoName := "test.annotation.present"
+		annoValue := "annovalue"
+		imgName := "basicalpine"
+		build := podmanTest.Podman([]string{"build", "-f", "build/basicalpine/Containerfile.with_label", "--annotation", fmt.Sprintf("%s=%s", annoName, annoValue), "-t", imgName})
+		build.WaitWithDefaultTimeout()
+		Expect(build).Should(Exit(0))
+		Expect(build.ErrorToString()).To(BeEmpty(), "build error logged")
+
+		ctrName := "ctr1"
+		run := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, imgName, "top"})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+		Expect(run.ErrorToString()).To(BeEmpty(), "run error logged")
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.ErrorToString()).To(BeEmpty(), "inspect error logged")
+
+		inspectData := inspect.InspectContainerToJSON()
+		Expect(inspectData).To(HaveLen(1))
+		Expect(inspectData[0].Config.Annotations).To(Not(HaveKey(annoName)))
+		Expect(inspectData[0].Config.Annotations).To(Not(HaveKey("testlabel")))
 	})
 })

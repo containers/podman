@@ -64,6 +64,17 @@ type PodBasicConfig struct {
 	// Conflicts with NoInfra=true.
 	// Optional.
 	SharedNamespaces []string `json:"shared_namespaces,omitempty"`
+	// RestartPolicy is the pod's restart policy - an action which
+	// will be taken when one or all the containers in the pod exits.
+	// If not given, the default policy will be set to Always, which
+	// restarts the containers in the pod when they exit indefinitely.
+	// Optional.
+	RestartPolicy string `json:"restart_policy,omitempty"`
+	// RestartRetries is the number of attempts that will be made to restart
+	// the container.
+	// Only available when RestartPolicy is set to "on-failure".
+	// Optional.
+	RestartRetries *uint `json:"restart_tries,omitempty"`
 	// PodCreateCommand is the command used to create this pod.
 	// This will be shown in the output of Inspect() on the pod, and may
 	// also be used by some tools that wish to recreate the pod

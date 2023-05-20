@@ -23,9 +23,13 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	domainUtils "github.com/containers/podman/v4/pkg/domain/utils"
 	"github.com/containers/podman/v4/pkg/errorhandling"
+	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 	utils2 "github.com/containers/podman/v4/utils"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/chrootarchive"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/gorilla/schema"
 )
 
@@ -266,16 +270,6 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if format is dir, server will save to an archive
-	// the client will unArchive after receive the archive file
-	// so must convert is at here
-	switch query.Format {
-	case define.OCIManifestDir:
-		query.Format = define.OCIArchive
-	case define.V2s2ManifestDir:
-		query.Format = define.V2s2Archive
-	}
-
 	switch query.Format {
 	case define.V2s2Archive, define.OCIArchive:
 		tmpfile, err := os.CreateTemp("", "api.tar")
@@ -316,13 +310,31 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rdr, err := os.Open(output)
+	// If we already produced a tar archive, let's stream that directly.
+	switch query.Format {
+	case define.V2s2Archive, define.OCIArchive:
+		rdr, err := os.Open(output)
+		if err != nil {
+			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to read the exported tarfile: %w", err))
+			return
+		}
+		defer rdr.Close()
+		utils.WriteResponse(w, http.StatusOK, rdr)
+		return
+	}
+
+	tarOptions := &archive.TarOptions{
+		ChownOpts: &idtools.IDPair{
+			UID: rootless.GetRootlessUID(),
+			GID: rootless.GetRootlessGID(),
+		},
+	}
+	tar, err := chrootarchive.Tar(output, tarOptions, output)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to read the exported tarfile: %w", err))
 		return
 	}
-	defer rdr.Close()
-	utils.WriteResponse(w, http.StatusOK, rdr)
+	utils.WriteResponse(w, http.StatusOK, tar)
 }
 
 func ImagesLoad(w http.ResponseWriter, r *http.Request) {

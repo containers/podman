@@ -55,10 +55,11 @@ const (
 	preCheckpointDir  = "pre-checkpoint"
 )
 
-// rootFsSize gets the size of the container's root filesystem
-// A container FS is split into two parts.  The first is the top layer, a
-// mutable layer, and the rest is the RootFS: the set of immutable layers
-// that make up the image on which the container is based.
+// rootFsSize gets the size of the container, which can be divided notionally
+// into two parts.  The first is the part of its size that can be directly
+// attributed to its base image, if it has one.  The second is the set of
+// changes that the container has had made relative to that base image.  Both
+// parts include some ancillary data, and we count that, too.
 func (c *Container) rootFsSize() (int64, error) {
 	if c.config.Rootfs != "" {
 		return 0, nil
@@ -72,58 +73,33 @@ func (c *Container) rootFsSize() (int64, error) {
 		return 0, err
 	}
 
-	// Ignore the size of the top layer.   The top layer is a mutable RW layer
-	// and is not considered a part of the rootfs
-	rwLayer, err := c.runtime.store.Layer(container.LayerID)
-	if err != nil {
-		return 0, err
-	}
-	layer, err := c.runtime.store.Layer(rwLayer.Parent)
-	if err != nil {
-		return 0, err
-	}
-
 	size := int64(0)
-	for layer.Parent != "" {
-		layerSize, err := c.runtime.store.DiffSize(layer.Parent, layer.ID)
-		if err != nil {
-			return size, fmt.Errorf("getting diffsize of layer %q and its parent %q: %w", layer.ID, layer.Parent, err)
-		}
-		size += layerSize
-		layer, err = c.runtime.store.Layer(layer.Parent)
+	if container.ImageID != "" {
+		size, err = c.runtime.store.ImageSize(container.ImageID)
 		if err != nil {
 			return 0, err
 		}
 	}
-	// Get the size of the last layer.  Has to be outside of the loop
-	// because the parent of the last layer is "", and lstore.Get("")
-	// will return an error.
-	layerSize, err := c.runtime.store.DiffSize(layer.Parent, layer.ID)
+
+	layerSize, err := c.runtime.store.ContainerSize(c.ID())
+
 	return size + layerSize, err
 }
 
-// rwSize gets the size of the mutable top layer of the container.
+// rwSize gets the combined size of the writeable layer and any ancillary data
+// for a given container.
 func (c *Container) rwSize() (int64, error) {
 	if c.config.Rootfs != "" {
 		size, err := util.SizeOfPath(c.config.Rootfs)
 		return int64(size), err
 	}
 
-	container, err := c.runtime.store.Container(c.ID())
+	layerSize, err := c.runtime.store.ContainerSize(c.ID())
 	if err != nil {
 		return 0, err
 	}
 
-	// The top layer of a container is
-	// the only readable/writeable layer, all others are immutable.
-	rwLayer, err := c.runtime.store.Layer(container.LayerID)
-	if err != nil {
-		return 0, err
-	}
-
-	// Get the size of the top layer by calculating the size of the diff
-	// between the layer and its parent.
-	return c.runtime.store.DiffSize(rwLayer.Parent, rwLayer.ID)
+	return layerSize, nil
 }
 
 // bundlePath returns the path to the container's root filesystem - where the OCI spec will be
@@ -1848,9 +1824,10 @@ func (c *Container) cleanupStorage() error {
 		if c.valid {
 			if err := c.save(); err != nil {
 				if cleanupErr != nil {
-					logrus.Errorf("Unmounting container %s: %v", c.ID(), cleanupErr)
+					logrus.Errorf("Unmounting container %s: %v", c.ID(), err)
+				} else {
+					cleanupErr = err
 				}
-				cleanupErr = err
 			}
 		}
 	}
@@ -1861,29 +1838,38 @@ func (c *Container) cleanupStorage() error {
 		if err := overlay.Unmount(overlayBasePath); err != nil {
 			if cleanupErr != nil {
 				logrus.Errorf("Failed to clean up overlay mounts for %s: %v", c.ID(), err)
+			} else {
+				cleanupErr = fmt.Errorf("failed to clean up overlay mounts for %s: %w", c.ID(), err)
 			}
-			cleanupErr = err
 		}
 	}
 	if c.config.RootfsMapping != nil {
-		if err := unix.Unmount(c.config.Rootfs, 0); err != nil {
-			logrus.Errorf("Unmounting idmapped rootfs for container %s after mount error: %v", c.ID(), err)
+		if err := unix.Unmount(c.config.Rootfs, 0); err != nil && err != unix.EINVAL {
+			if cleanupErr != nil {
+				logrus.Errorf("Unmounting idmapped rootfs for container %s after mount error: %v", c.ID(), err)
+			} else {
+				cleanupErr = fmt.Errorf("unmounting idmapped rootfs for container %s after mount error: %w", c.ID(), err)
+			}
 		}
 	}
 
 	for _, containerMount := range c.config.Mounts {
 		if err := c.unmountSHM(containerMount); err != nil {
 			if cleanupErr != nil {
-				logrus.Errorf("Unmounting container %s: %v", c.ID(), cleanupErr)
+				logrus.Errorf("Unmounting container %s: %v", c.ID(), err)
+			} else {
+				cleanupErr = fmt.Errorf("unmounting container %s: %w", c.ID(), err)
 			}
-			cleanupErr = err
 		}
 	}
 
 	if err := c.cleanupOverlayMounts(); err != nil {
 		// If the container can't remove content report the error
-		logrus.Errorf("Failed to clean up overlay mounts for %s: %v", c.ID(), err)
-		cleanupErr = err
+		if cleanupErr != nil {
+			logrus.Errorf("Failed to clean up overlay mounts for %s: %v", c.ID(), err)
+		} else {
+			cleanupErr = fmt.Errorf("failed to clean up overlay mounts for %s: %w", c.ID(), err)
+		}
 	}
 
 	if c.config.Rootfs != "" {
@@ -1901,8 +1887,9 @@ func (c *Container) cleanupStorage() error {
 		} else {
 			if cleanupErr != nil {
 				logrus.Errorf("Cleaning up container %s storage: %v", c.ID(), cleanupErr)
+			} else {
+				cleanupErr = fmt.Errorf("cleaning up container %s storage: %w", c.ID(), cleanupErr)
 			}
-			cleanupErr = err
 		}
 	}
 
@@ -1911,9 +1898,10 @@ func (c *Container) cleanupStorage() error {
 		vol, err := c.runtime.state.Volume(v.Name)
 		if err != nil {
 			if cleanupErr != nil {
-				logrus.Errorf("Unmounting container %s: %v", c.ID(), cleanupErr)
+				logrus.Errorf("Retrieving named volume %s for container %s: %v", v.Name, c.ID(), err)
+			} else {
+				cleanupErr = fmt.Errorf("retrieving named volume %s for container %s: %w", v.Name, c.ID(), err)
 			}
-			cleanupErr = fmt.Errorf("retrieving named volume %s for container %s: %w", v.Name, c.ID(), err)
 
 			// We need to try and unmount every volume, so continue
 			// if they fail.
@@ -1924,9 +1912,10 @@ func (c *Container) cleanupStorage() error {
 			vol.lock.Lock()
 			if err := vol.unmount(false); err != nil {
 				if cleanupErr != nil {
-					logrus.Errorf("Unmounting container %s: %v", c.ID(), cleanupErr)
+					logrus.Errorf("Unmounting volume %s for container %s: %v", vol.Name(), c.ID(), err)
+				} else {
+					cleanupErr = fmt.Errorf("unmounting volume %s for container %s: %w", vol.Name(), c.ID(), err)
 				}
-				cleanupErr = fmt.Errorf("unmounting volume %s for container %s: %w", vol.Name(), c.ID(), err)
 			}
 			vol.lock.Unlock()
 		}

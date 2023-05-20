@@ -4,5 +4,5 @@
 ####> are applicable to all of those.
 #### **--health-startup-success**=*retries*
 
-The number of successful runs required before the startup healthcheck will succeed and the regular healthcheck will begin. A value
-of **0** means that any success will begin the regular healthcheck. The default is **0**.
+The number of successful runs required before the startup healthcheck succeeds and the regular healthcheck begins. A value
+of **0** means that any success begins the regular healthcheck. The default is **0**.

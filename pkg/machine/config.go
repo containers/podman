@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/containers/storage/pkg/homedir"
@@ -65,11 +66,6 @@ type RemoteConnectionType string
 var (
 	SSHRemoteConnection     RemoteConnectionType = "ssh"
 	DefaultIgnitionUserName                      = "core"
-	ErrNoSuchVM                                  = errors.New("VM does not exist")
-	ErrVMAlreadyExists                           = errors.New("VM already exists")
-	ErrVMAlreadyRunning                          = errors.New("VM already running or starting")
-	ErrMultipleActiveVM                          = errors.New("only one VM can be active at a time")
-	ErrNotImplemented                            = errors.New("functionality not implemented")
 	ForwarderBinaryName                          = "gvproxy"
 )
 
@@ -363,6 +359,8 @@ type HostUser struct {
 	Rootful bool
 	// UID is the numerical id of the user that called machine
 	UID int
+	// Whether one of these fields has changed and actions should be taken
+	Modified bool `json:"HostUserModified"`
 }
 
 // SSHConfig contains remote access information for SSH
@@ -413,3 +411,20 @@ const (
 	MachineLocal
 	DockerGlobal
 )
+
+func ParseVMType(input string, emptyFallback VMType) (VMType, error) {
+	switch strings.TrimSpace(strings.ToLower(input)) {
+	case "qemu":
+		return QemuVirt, nil
+	case "wsl":
+		return WSLVirt, nil
+	case "applehv":
+		return AppleHvVirt, nil
+	case "hyperv":
+		return HyperVVirt, nil
+	case "":
+		return emptyFallback, nil
+	default:
+		return QemuVirt, fmt.Errorf("unknown VMType `%s`", input)
+	}
+}

@@ -8,7 +8,7 @@ package tools
 
 import (
 	_ "github.com/cpuguy83/go-md2man/v2"
-	_ "github.com/onsi/ginkgo/ginkgo"
+	_ "github.com/onsi/ginkgo/v2/ginkgo"
 	_ "github.com/vbatts/git-validation"
 	_ "golang.org/x/tools/cmd/goimports"
 )

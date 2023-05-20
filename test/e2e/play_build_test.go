@@ -10,33 +10,12 @@ import (
 	"path/filepath"
 
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman play kube with build", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
-	})
 
 	var testYAML = `
 apiVersion: v1

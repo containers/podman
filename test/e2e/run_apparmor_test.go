@@ -10,7 +10,7 @@ import (
 
 	"github.com/containers/common/pkg/apparmor"
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
@@ -28,27 +28,6 @@ func skipIfAppArmorDisabled() {
 }
 
 var _ = Describe("Podman run", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
-	})
 
 	It("podman run apparmor default", func() {
 		skipIfAppArmorDisabled()

@@ -7,8 +7,9 @@ podman\-manifest\-exists - Check if the given manifest list exists in local stor
 **podman manifest exists** *manifest*
 
 ## DESCRIPTION
-**podman manifest exists** checks if a manifest list exists on local storage. Podman will
-return an exit code of `0` when the manifest is found. A `1` will be returned otherwise.
+**podman manifest exists** checks if a manifest list exists on local storage.
+Podman returns an exit code of `0` when the manifest is found. A `1` is
+returned otherwise.
 An exit code of `125` indicates there was another issue.
 
 

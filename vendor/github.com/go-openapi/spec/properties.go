@@ -42,8 +42,8 @@ func (items OrderSchemaItems) MarshalJSON() ([]byte, error) {
 func (items OrderSchemaItems) Len() int      { return len(items) }
 func (items OrderSchemaItems) Swap(i, j int) { items[i], items[j] = items[j], items[i] }
 func (items OrderSchemaItems) Less(i, j int) (ret bool) {
-	ii, oki := items[i].Extensions.GetString("x-order")
-	ij, okj := items[j].Extensions.GetString("x-order")
+	ii, oki := items[i].Extensions.GetInt("x-order")
+	ij, okj := items[j].Extensions.GetInt("x-order")
 	if oki {
 		if okj {
 			defer func() {
@@ -56,7 +56,7 @@ func (items OrderSchemaItems) Less(i, j int) (ret bool) {
 					ret = reflect.ValueOf(ii).String() < reflect.ValueOf(ij).String()
 				}
 			}()
-			return reflect.ValueOf(ii).Int() < reflect.ValueOf(ij).Int()
+			return ii < ij
 		}
 		return true
 	} else if okj {

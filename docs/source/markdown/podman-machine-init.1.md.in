@@ -10,6 +10,9 @@ podman\-machine\-init - Initialize a new virtual machine
 
 Initialize a new virtual machine for Podman.
 
+The default machine name is `podman-machine-default`. If a machine name is not specified as an argument,
+then the new machine will be named `podman-machine-default`.
+
 Rootless only.
 
 Podman on MacOS and Windows requires a virtual machine. This is because containers are Linux -
@@ -22,7 +25,7 @@ SSH keys are automatically generated to access the VM, and system connections to
 and a user account inside the VM are added.
 
 By default, the VM distribution is [Fedora CoreOS](https://getfedora.org/en/coreos?stream=testing).
-Fedora CoreOS upgrades come out every 14 days and are detected and installed automatically. The VM will be rebooted during the upgrade.
+Fedora CoreOS upgrades come out every 14 days and are detected and installed automatically. The VM is rebooted during the upgrade.
 For more information on updates and advanced configuration, please see the FCOS update docs [here](https://docs.fedoraproject.org/en-US/fedora-coreos/auto-updates/) and [here](https://coreos.github.io/zincati/usage/updates-strategy/).
 
 ## OPTIONS
@@ -44,9 +47,7 @@ Print usage statement.
 Fully qualified path of the ignition file.
 
 If an ignition file is provided, the file
-will be copied into the user's CONF_DIR and renamed.  Additionally, no SSH keys will
-be generated nor will a system connection be made.  It is assumed that the user will
-do these things manually or handle otherwise.
+is copied into the user's CONF_DIR and renamed.  Additionally, no SSH keys are generated, nor are any system connections made.  It is assumed that the user does these things manually or handled otherwise.
 
 #### **--image-path**
 
@@ -64,11 +65,11 @@ Start the virtual machine immediately after it has been initialized.
 
 #### **--rootful**
 
-Whether this machine should prefer rootful (`true`) or rootless (`false`)
-container execution. This option will also determine the remote connection default
+Whether this machine prefers rootful (`true`) or rootless (`false`)
+container execution. This option determines the remote connection default
 if there is no existing remote connection configurations.
 
-API forwarding, if available, will follow this setting.
+API forwarding, if available, follows this setting.
 
 #### **--timezone**
 
@@ -109,7 +110,7 @@ attributes as extended attributes on the host. This is suitable when the host
 and the guest do not need to interoperate on the shared filesystem, but has
 caveats for actual shared access; notably, symlinks on the host are not usable
 on the guest and vice versa. If interoperability is required, then choose
-*none* instead, but keep in mind that the guest will not be able to do things
+*none* instead, but keep in mind that the guest is not able to do things
 that the user running the virtual machine cannot do, e.g. create files owned by
 another user. Using *none* is almost certainly the best choice for read-only
 volumes.

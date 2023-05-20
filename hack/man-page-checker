@@ -26,7 +26,7 @@ for md in *.1.md;do
     # There may be more than one name, e.g. podman-info.1.md has
     # podman-system-info then another line with podman-info. We
     # care only about the first.
-    name=$(egrep -A1 '^#* NAME' $md|tail -1|awk '{print $1}' | tr -d \\\\)
+    name=$(grep -E -A1 '^#* NAME' $md|tail -1|awk '{print $1}' | tr -d \\\\)
 
     expect=$(basename $md .1.md)
     if [ "$name" != "$expect" ]; then
@@ -43,7 +43,7 @@ done
 # in the table in podman.1.md. podman-remote is not a podman subcommand,
 # so it is excluded here.
 for md in $(ls -1 *-*.1.md | grep -v remote);do
-    desc=$(egrep -A1 '^#* NAME' $md|tail -1|sed -e 's/^podman[^ ]\+ - //')
+    desc=$(grep -E -A1 '^#* NAME' $md|tail -1|sed -e 's/^podman[^ ]\+ - //')
 
     # podman.1.md has a two-column table; podman-*.1.md all have three.
     parent=$(echo $md | sed -e 's/^\(.*\)-.*$/\1.1.md/')
@@ -141,7 +141,7 @@ for md in *.1.md;do
     #        To view those:
     #           $ less $(for i in docs/*.1.md;do x=$(grep -A2 '^#* SYNOPSIS' $i|tail -1); if [ -n "$x" ]; then echo $i;fi;done)
     #
-    synopsis=$(egrep -A1 '^#* SYNOPSIS' $md|tail -1)
+    synopsis=$(grep -E -A1 '^#* SYNOPSIS' $md|tail -1)
 
     # Command name must be bracketed by double asterisks; options and
     # arguments are bracketed by single ones.

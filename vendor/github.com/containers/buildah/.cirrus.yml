@@ -83,9 +83,9 @@ meta_task:
         GCPJSON: ENCRYPTED[d3614d6f5cc0e66be89d4252b3365fd84f14eee0259d4eb47e25fc0bc2842c7937f5ee8c882b7e547b4c5ec4b6733b14]
         GCPNAME: ENCRYPTED[8509e6a681b859479ce6aa275bd3c4ac82de5beec6df6057925afc4cd85b7ef2e879066ae8baaa2d453b82958e434578]
         GCPPROJECT: ENCRYPTED[cc09b62d0ec6746a3df685e663ad25d9d5af95ef5fd843c96f3d0ec9d7f065dc63216b9c685c9f43a776a1d403991494]
-        CIRRUS_CLONE_DEPTH: 1  # source not used
 
-    script: '/usr/local/bin/entrypoint.sh |& ${_TIMESTAMP}'
+    clone_script: 'true'
+    script: '/usr/local/bin/entrypoint.sh'
 
 
 smoke_task:
@@ -192,7 +192,7 @@ conformance_task:
     gce_instance:
         image_name: "${DEBIAN_CACHE_IMAGE_NAME}"
 
-    timeout_in: 25m
+    timeout_in: 65m
 
     matrix:
         - env:

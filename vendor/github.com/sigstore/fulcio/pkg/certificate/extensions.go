@@ -344,59 +344,59 @@ func parseExtensions(ext []pkix.Extension) (Extensions, error) {
 			out.GithubWorkflowRef = string(e.Value)
 		// END: Deprecated
 		case e.Id.Equal(OIDIssuerV2):
-			if err := parseDERString(e.Value, &out.Issuer); err != nil {
+			if err := ParseDERString(e.Value, &out.Issuer); err != nil {
 				return Extensions{}, err
 			}
 		case e.Id.Equal(OIDBuildSignerURI):
-			if err := parseDERString(e.Value, &out.BuildSignerURI); err != nil {
+			if err := ParseDERString(e.Value, &out.BuildSignerURI); err != nil {
 				return Extensions{}, err
 			}
 		case e.Id.Equal(OIDBuildSignerDigest):
-			if err := parseDERString(e.Value, &out.BuildSignerDigest); err != nil {
+			if err := ParseDERString(e.Value, &out.BuildSignerDigest); err != nil {
 				return Extensions{}, err
 			}
 		case e.Id.Equal(OIDRunnerEnvironment):
-			if err := parseDERString(e.Value, &out.RunnerEnvironment); err != nil {
+			if err := ParseDERString(e.Value, &out.RunnerEnvironment); err != nil {
 				return Extensions{}, err
 			}
 		case e.Id.Equal(OIDSourceRepositoryURI):
-			if err := parseDERString(e.Value, &out.SourceRepositoryURI); err != nil {
+			if err := ParseDERString(e.Value, &out.SourceRepositoryURI); err != nil {
 				return Extensions{}, err
 			}
 		case e.Id.Equal(OIDSourceRepositoryDigest):
-			if err := parseDERString(e.Value, &out.SourceRepositoryDigest); err != nil {
+			if err := ParseDERString(e.Value, &out.SourceRepositoryDigest); err != nil {
 				return Extensions{}, err
 			}
 		case e.Id.Equal(OIDSourceRepositoryRef):
-			if err := parseDERString(e.Value, &out.SourceRepositoryRef); err != nil {
+			if err := ParseDERString(e.Value, &out.SourceRepositoryRef); err != nil {
 				return Extensions{}, err
 			}
 		case e.Id.Equal(OIDSourceRepositoryIdentifier):
-			if err := parseDERString(e.Value, &out.SourceRepositoryIdentifier); err != nil {
+			if err := ParseDERString(e.Value, &out.SourceRepositoryIdentifier); err != nil {
 				return Extensions{}, err
 			}
 		case e.Id.Equal(OIDSourceRepositoryOwnerURI):
-			if err := parseDERString(e.Value, &out.SourceRepositoryOwnerURI); err != nil {
+			if err := ParseDERString(e.Value, &out.SourceRepositoryOwnerURI); err != nil {
 				return Extensions{}, err
 			}
 		case e.Id.Equal(OIDSourceRepositoryOwnerIdentifier):
-			if err := parseDERString(e.Value, &out.SourceRepositoryOwnerIdentifier); err != nil {
+			if err := ParseDERString(e.Value, &out.SourceRepositoryOwnerIdentifier); err != nil {
 				return Extensions{}, err
 			}
 		case e.Id.Equal(OIDBuildConfigURI):
-			if err := parseDERString(e.Value, &out.BuildConfigURI); err != nil {
+			if err := ParseDERString(e.Value, &out.BuildConfigURI); err != nil {
 				return Extensions{}, err
 			}
 		case e.Id.Equal(OIDBuildConfigDigest):
-			if err := parseDERString(e.Value, &out.BuildConfigDigest); err != nil {
+			if err := ParseDERString(e.Value, &out.BuildConfigDigest); err != nil {
 				return Extensions{}, err
 			}
 		case e.Id.Equal(OIDBuildTrigger):
-			if err := parseDERString(e.Value, &out.BuildTrigger); err != nil {
+			if err := ParseDERString(e.Value, &out.BuildTrigger); err != nil {
 				return Extensions{}, err
 			}
 		case e.Id.Equal(OIDRunInvocationURI):
-			if err := parseDERString(e.Value, &out.RunInvocationURI); err != nil {
+			if err := ParseDERString(e.Value, &out.RunInvocationURI); err != nil {
 				return Extensions{}, err
 			}
 		}
@@ -407,9 +407,9 @@ func parseExtensions(ext []pkix.Extension) (Extensions, error) {
 	return out, nil
 }
 
-// parseDERString decodes a DER-encoded string and puts the value in parsedVal.
-// Rerturns an error if the unmarshalling fails or if there are trailing bytes in the encoding.
-func parseDERString(val []byte, parsedVal *string) error {
+// ParseDERString decodes a DER-encoded string and puts the value in parsedVal.
+// Returns an error if the unmarshalling fails or if there are trailing bytes in the encoding.
+func ParseDERString(val []byte, parsedVal *string) error {
 	rest, err := asn1.Unmarshal(val, parsedVal)
 	if err != nil {
 		return fmt.Errorf("unexpected error unmarshalling DER-encoded string: %v", err)

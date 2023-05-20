@@ -2,37 +2,14 @@ package integration
 
 import (
 	"fmt"
-	"os"
 	"time"
 
-	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman top", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
-	})
 
 	It("podman pod top without pod name or id", func() {
 		result := podmanTest.Podman([]string{"pod", "top"})
@@ -135,7 +112,7 @@ var _ = Describe("Podman top", func() {
 		Expect(session).Should(Exit(0))
 
 		for i := 0; i < 10; i++ {
-			fmt.Println("Waiting for containers to be running .... ")
+			GinkgoWriter.Println("Waiting for containers to be running .... ")
 			if podmanTest.NumberOfContainersRunning() == 2 {
 				break
 			}

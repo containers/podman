@@ -40,11 +40,13 @@ const (
 
 	Qemu Artifact = iota
 	HyperV
+	Metal
 	None
 
 	Qcow ImageFormat = iota
 	Vhdx
 	Tar
+	Raw
 )
 
 //
@@ -56,8 +58,11 @@ const (
 //
 
 func (a Artifact) String() string {
-	if a == HyperV {
+	switch a {
+	case HyperV:
 		return "hyperv"
+	case Metal:
+		return "metal"
 	}
 	return "qemu"
 }
@@ -68,6 +73,8 @@ func (imf ImageFormat) String() string {
 		return "vhdx.zip"
 	case Tar:
 		return "tar.xz"
+	case Raw:
+		return "raw.xz"
 	}
 	return "qcow2.xz"
 }

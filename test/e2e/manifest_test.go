@@ -10,17 +10,12 @@ import (
 	podmanRegistry "github.com/containers/podman/v4/hack/podman-registry-go"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/archive"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman manifest", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
 
 	const (
 		imageList                      = "docker://registry.k8s.io/pause:3.1"
@@ -32,21 +27,7 @@ var _ = Describe("Podman manifest", func() {
 		imageListS390XInstanceDigest   = "sha256:882a20ee0df7399a445285361d38b711c299ca093af978217112c73803546d5e"
 	)
 
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-	})
-	It("create w/o image", func() {
+	It("create w/o image and attempt push w/o dest", func() {
 		for _, amend := range []string{"--amend", "-a"} {
 			session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 			session.WaitWithDefaultTimeout()
@@ -55,6 +36,13 @@ var _ = Describe("Podman manifest", func() {
 			session = podmanTest.Podman([]string{"manifest", "create", "foo"})
 			session.WaitWithDefaultTimeout()
 			Expect(session).To(ExitWithError())
+
+			session = podmanTest.Podman([]string{"manifest", "push", "--all", "foo"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).To(ExitWithError())
+			// Push should actually fail since its not valid registry
+			Expect(session.ErrorToString()).To(ContainSubstring("requested access to the resource is denied"))
+			Expect(session.OutputToString()).To(Not(ContainSubstring("accepts 2 arg(s), received 1")))
 
 			session = podmanTest.Podman([]string{"manifest", "create", amend, "foo"})
 			session.WaitWithDefaultTimeout()
@@ -147,7 +135,7 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session2.OutputToString()).To(Equal(session.OutputToString()))
 	})
 
-	It(" add --all", func() {
+	It("add --all", func() {
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -368,7 +356,7 @@ var _ = Describe("Podman manifest", func() {
 				break
 			}
 		}
-		Expect(foundZstdFile).To(BeTrue())
+		Expect(foundZstdFile).To(BeTrue(), "found zstd file")
 	})
 
 	It("push progress", func() {

@@ -81,6 +81,12 @@ type PodConfig struct {
 	// The pod's exit policy.
 	ExitPolicy config.PodExitPolicy `json:"ExitPolicy,omitempty"`
 
+	// The pod's restart policy
+	RestartPolicy string `json:"RestartPolicy,omitempty"`
+
+	// The max number of retries for a pod based on restart policy
+	RestartRetries *uint `json:"RestartRetries,omitempty"`
+
 	// ID of the pod's lock
 	LockID uint32 `json:"lockID"`
 
@@ -521,4 +527,11 @@ func (p *Pod) Config() (*PodConfig, error) {
 	err := JSONDeepCopy(p.config, conf)
 
 	return conf, err
+}
+
+// ConfigNoCopy returns the configuration used by the pod.
+// Note that the returned value is not a copy and must hence
+// only be used in a reading fashion.
+func (p *Pod) ConfigNoCopy() *PodConfig {
+	return p.config
 }

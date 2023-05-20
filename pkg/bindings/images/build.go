@@ -298,6 +298,12 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	if len(options.Platforms) > 0 {
 		params.Del("platform")
 		for _, platformSpec := range options.Platforms {
+			// podman-cli will send empty struct, in such
+			// case don't add platform to param and let the
+			// build backend decide the default platform.
+			if platformSpec.OS == "" && platformSpec.Arch == "" && platformSpec.Variant == "" {
+				continue
+			}
 			platform = platformSpec.OS + "/" + platformSpec.Arch
 			if platformSpec.Variant != "" {
 				platform += "/" + platformSpec.Variant

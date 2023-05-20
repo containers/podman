@@ -7,25 +7,13 @@ import (
 
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman volume plugins", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
 	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
 		os.Setenv("CONTAINERS_CONF", "config/containers.conf")
 		SkipIfRemote("Volume plugins only supported as local")
 		SkipIfRootless("Root is required for volume plugin testing")
@@ -35,9 +23,6 @@ var _ = Describe("Podman volume plugins", func() {
 
 	AfterEach(func() {
 		podmanTest.CleanupVolume()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-		os.Unsetenv("CONTAINERS_CONF")
 	})
 
 	It("volume create with nonexistent plugin errors", func() {

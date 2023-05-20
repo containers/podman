@@ -4,41 +4,21 @@ import (
 	"os"
 
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman run cpu", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
 
 	BeforeEach(func() {
 		SkipIfRootlessCgroupsV1("Setting CPU not supported on cgroupv1 for rootless users")
-
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
 
 		if CGROUPSV2 {
 			if err := os.WriteFile("/sys/fs/cgroup/cgroup.subtree_control", []byte("+cpuset"), 0644); err != nil {
 				Skip("cpuset controller not available on the current kernel")
 			}
 		}
-
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
 	})
 
 	It("podman run cpu-period", func() {

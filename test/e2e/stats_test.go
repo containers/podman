@@ -2,12 +2,12 @@ package integration
 
 import (
 	"fmt"
-	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
@@ -15,30 +15,12 @@ import (
 // TODO: we need to check the output. Currently, we only check the exit codes
 // which is not enough.
 var _ = Describe("Podman stats", func() {
-	var (
-		tempdir    string
-		podmanTest *PodmanTestIntegration
-	)
 
 	BeforeEach(func() {
 		SkipIfRootlessCgroupsV1("stats not supported on cgroupv1 for rootless users")
 		if isContainerized() {
 			SkipIfCgroupV1("stats not supported inside cgroupv1 container environment")
 		}
-		var err error
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
 	})
 
 	It("podman stats with bogus container", func() {
@@ -144,7 +126,7 @@ var _ = Describe("Podman stats", func() {
 			}
 			time.Sleep(time.Second)
 		}
-		Expect(found).To(BeTrue())
+		Expect(found).To(BeTrue(), "container has started")
 		stats := podmanTest.Podman([]string{"stats", "--all", "--no-stream", "--format", "json"})
 		stats.WaitWithDefaultTimeout()
 		Expect(stats).Should(Exit(0))
@@ -200,6 +182,9 @@ var _ = Describe("Podman stats", func() {
 
 	// Regression test for #8265
 	It("podman stats with custom memory limits", func() {
+		if strings.Contains(podmanTest.OCIRuntime, "crun") {
+			Skip("Test requires crun > 1.8.4")
+		}
 		// Run three containers. One with a memory limit.  Make sure
 		// that the limits are different and the limited one has a
 		// lower limit.
@@ -247,5 +232,36 @@ var _ = Describe("Podman stats", func() {
 		session = podmanTest.Podman([]string{"stats", "--no-stream", ctr})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+	})
+
+	It("podman stats show cgroup memory limit", func() {
+		if strings.Contains(podmanTest.OCIRuntime, "crun") {
+			Skip("Test requires crun > 1.8.4")
+		}
+		ctrWithLimit := "with-limit"
+
+		session := podmanTest.Podman([]string{"run", "-d", "--name", ctrWithLimit, "--memory", "50m", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"stats", "--no-stream", "--format", "{{.MemLimit}}", ctrWithLimit})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		limit, err := strconv.Atoi(session.OutputToString())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(limit).To(BeNumerically("==", 50*1024*1024))
+
+		session = podmanTest.Podman([]string{"container", "update", ctrWithLimit, "--memory", "100m"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"stats", "--no-stream", "--format", "{{.MemLimit}}", ctrWithLimit})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		limit, err = strconv.Atoi(session.OutputToString())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(limit).To(BeNumerically("==", 100*1024*1024))
 	})
 })

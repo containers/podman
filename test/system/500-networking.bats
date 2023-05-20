@@ -168,7 +168,7 @@ load helpers.network
     is "${lines[0]}" "$pod_name" "hostname is the pod hostname"
     is "${lines[1]}" "$pod_name" "/etc/hostname contains correct pod hostname"
 
-    run_podman pod rm $pod_name
+    run_podman pod rm -f -t0 $pod_name
     is "$output" "$pid" "Only ID in output (no extra errors)"
 
     # Clean up

@@ -372,11 +372,8 @@ sub tweak_cirrus_test_order {
             # of the treadmill PR. Here we switch Cirrus task dependencies
             # such that bud tests run as early as possible.
             if ($current_task =~ /buildah_bud_test/) {
-                # Buildah bud test now depends on validate...
+                # Buildah bud, both root and rootless, now depend on validate
                 $line = "${indent}validate";
-                # ...and *rootless* bud depends on the regular bud test.
-                $line = "${indent}buildah_bud_test"
-                    if $current_task =~ /rootless/;
             }
             elsif ($2 eq 'validate' && $current_task ne 'success') {
                 # Other tests that relied on validate, now rely on

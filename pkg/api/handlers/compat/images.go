@@ -21,6 +21,7 @@ import (
 	"github.com/containers/podman/v4/pkg/auth"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
+	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/gorilla/schema"
@@ -180,7 +181,8 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 		FromSrc  string   `schema:"fromSrc"`
 		Message  string   `schema:"message"`
 		Platform string   `schema:"platform"`
-		Repo     string   `shchema:"repo"`
+		Repo     string   `schema:"repo"`
+		Tag      string   `schema:"tag"`
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -207,7 +209,7 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 
 	reference := query.Repo
 	if query.Repo != "" {
-		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, reference)
+		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, mergeNameAndTagOrDigest(reference, query.Tag))
 		if err != nil {
 			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("normalizing image: %w", err))
 			return
@@ -431,12 +433,22 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filterList, err := filters.FiltersFromRequest(r)
-	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, err)
-		return
-	}
-	if !utils.IsLibpodRequest(r) {
+	var filterList []string
+	var err error
+	if utils.IsLibpodRequest(r) {
+		// Podman clients split the filter map as `"{"label":["version","1.0"]}`
+		filterList, err = filters.FiltersFromRequest(r)
+		if err != nil {
+			utils.Error(w, http.StatusInternalServerError, err)
+			return
+		}
+	} else {
+		// Docker clients split the filter map as `"{"label":["version=1.0"]}`
+		filterList, err = util.FiltersFromRequest(r)
+		if err != nil {
+			utils.Error(w, http.StatusInternalServerError, err)
+			return
+		}
 		if len(query.Filter) > 0 { // Docker 1.24 compatibility
 			filterList = append(filterList, "reference="+query.Filter)
 		}

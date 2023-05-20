@@ -6,25 +6,25 @@ podman-kube-generate - Generate Kubernetes YAML based on containers, pods or vol
 **podman kube generate** [*options*] *container...* | *pod...* | *volume...*
 
 ## DESCRIPTION
-**podman kube generate** will generate Kubernetes YAML (v1 specification) from Podman containers, pods or volumes. Regardless of whether
-the input is for containers or pods, Podman will generate the specification as a Pod by default. The input may be in the form
+**podman kube generate** generates Kubernetes YAML (v1 specification) from Podman containers, pods or volumes. Regardless of whether
+the input is for containers or pods, Podman generates the specification as a Pod by default. The input may be in the form
 of one or more containers, pods or volumes names or IDs.
 
 `Podman Containers or Pods`
 
-Volumes appear in the generated YAML according to two different volume types. Bind-mounted volumes become *hostPath* volume types and named volumes become *persistentVolumeClaim* volume types. Generated *hostPath* volume types will be one of three subtypes depending on the state of the host path: *DirectoryOrCreate* when no file or directory exists at the host, *Directory* when host path is a directory, or *File* when host path is a file. The value for *claimName* for a *persistentVolumeClaim* is the name of the named volume registered in Podman.
+Volumes appear in the generated YAML according to two different volume types. Bind-mounted volumes become *hostPath* volume types and named volumes become *persistentVolumeClaim* volume types. Generated *hostPath* volume types are one of three subtypes depending on the state of the host path: *DirectoryOrCreate* when no file or directory exists at the host, *Directory* when host path is a directory, or *File* when host path is a file. The value for *claimName* for a *persistentVolumeClaim* is the name of the named volume registered in Podman.
 
 Potential name conflicts between volumes are avoided by using a standard naming scheme for each volume type. The *hostPath* volume types are named according to the path on the host machine, replacing forward slashes with hyphens less any leading and trailing forward slashes. The special case of the filesystem root, `/`, translates to the name `root`. Additionally, the name is suffixed with `-host` to avoid naming conflicts with *persistentVolumeClaim* volumes. Each *persistentVolumeClaim* volume type uses the name of its associated named volume suffixed with `-pvc`.
 
-Note that if an init container is created with type `once` and the pod has been started, the init container will not show up in the generated kube YAML as `once` type init containers are deleted after they are run. If the pod has only been created and not started, it will be in the generated kube YAML.
-Init containers created with type `always` will always be generated in the kube YAML as they are never deleted, even after running to completion.
+Note that if an init container is created with type `once` and the pod has been started, it does not show up in the generated kube YAML as `once` type init containers are deleted after they are run. If the pod has only been created and not started, it is in the generated kube YAML.
+Init containers created with type `always` are always generated in the kube YAML as they are never deleted, even after running to completion.
 
 *Note*: When using volumes and generating a Kubernetes YAML for an unprivileged and rootless podman container on an **SELinux enabled system**,  one of the following options must be completed:
   * Add the "privileged: true" option to the pod spec
   * Add `type: spc_t` under the `securityContext` `seLinuxOptions` in the pod spec
   * Relabel the volume via the CLI command `chcon -t container_file_t -R <directory>`
 
-Once completed, the correct permissions will be in place to access the volume when the pod/container is created in a Kubernetes cluster.
+Once completed, the correct permissions are in place to access the volume when the pod/container is created in a Kubernetes cluster.
 
 Note that the generated Kubernetes YAML file can be used to re-run the deployment via podman-play-kube(1).
 
@@ -32,7 +32,7 @@ Note that the generated Kubernetes YAML file can be used to re-run the deploymen
 
 #### **--filename**, **-f**=*filename*
 
-Output to the given file, instead of STDOUT. If the file already exists, `kube generate` will refuse to replace it and return an error.
+Output to the given file instead of STDOUT. If the file already exists, `kube generate` refuses to replace it and returns an error.
 
 #### **--replicas**, **-r**=*replica count*
 
@@ -41,11 +41,11 @@ Note: this can only be set with the option `--type=deployment`.
 
 #### **--service**, **-s**
 
-Generate a Kubernetes service object in addition to the Pods. Used to generate a Service specification for the corresponding Pod output. In particular, if the object has portmap bindings, the service specification will include a NodePort declaration to expose the service. A random port is assigned by Podman in the specification.
+Generate a Kubernetes service object in addition to the Pods. Used to generate a Service specification for the corresponding Pod output. In particular, if the object has portmap bindings, the service specification includes a NodePort declaration to expose the service. A random port is assigned by Podman in the specification.
 
 #### **--type**, **-t**=*pod | deployment*
 
-The Kubernetes kind to generate in the YAML file. Currently, the only supported Kubernetes specifications are `Pod` and `Deployment`. By default, the `Pod` specification will be generated.
+The Kubernetes kind to generate in the YAML file. Currently, the only supported Kubernetes specifications are `Pod` and `Deployment`. By default, the `Pod` specification is generated.
 
 ## EXAMPLES
 

@@ -12,8 +12,8 @@ Delete one or more Podman networks.
 ## OPTIONS
 #### **--force**, **-f**
 
-The `force` option will remove all containers that use the named network. If the container is
-running, the container will be stopped and removed.
+The `force` option removes all containers that use the named network. If the container is
+running, the container is stopped and removed.
 
 #### **--time**, **-t**=*seconds*
 

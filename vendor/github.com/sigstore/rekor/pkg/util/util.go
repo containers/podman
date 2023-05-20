@@ -32,8 +32,6 @@ import (
 	"time"
 
 	"golang.org/x/crypto/openpgp"
-
-	"github.com/sigstore/rekor/pkg/generated/models"
 )
 
 var (
@@ -375,19 +373,6 @@ func CreateArtifact(t *testing.T, artifactPath string) string {
 	// Write this to a file
 	write(t, artifact, artifactPath)
 	return artifact
-}
-
-func extractLogEntry(t *testing.T, le models.LogEntry) models.LogEntryAnon {
-	t.Helper()
-
-	if len(le) != 1 {
-		t.Fatal("expected length to be 1, is actually", len(le))
-	}
-	for _, v := range le {
-		return v
-	}
-	// this should never happen
-	return models.LogEntryAnon{}
 }
 
 func write(t *testing.T, data string, path string) {

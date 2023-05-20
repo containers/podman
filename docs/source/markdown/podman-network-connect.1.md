@@ -14,7 +14,7 @@ Once connected, the container can communicate with other containers in the same 
 #### **--alias**=*name*
 Add network-scoped alias for the container. If the network has DNS enabled (`podman network inspect -f {{.DNSEnabled}} <NAME>`),
 these aliases can be used for name resolution on the given network.  Multiple *--alias* options may be specified as input.
-NOTE: When using CNI a container will only have access to aliases on the first network that it joins. This limitation does
+NOTE: When using CNI, a container only has access to aliases on the first network that it joins. This limitation does
 not exist with netavark/aardvark-dns.
 
 #### **--ip**=*address*

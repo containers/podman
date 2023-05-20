@@ -7,7 +7,7 @@ podman\-pod\-kill - Kill the main process of each container in one or more pods
 **podman pod kill** [*options*] *pod* ...
 
 ## DESCRIPTION
-The main process of each container inside the pods specified will be sent SIGKILL, or any signal specified with option --signal.
+The main process of each container inside the pods specified is sent SIGKILL, or any signal specified with option --signal.
 
 ## OPTIONS
 #### **--all**, **-a**

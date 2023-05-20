@@ -104,6 +104,9 @@ func (mon *SocketMonitor) Disconnect() error {
 	atomic.StoreInt32(mon.listeners, 0)
 	err := mon.c.Close()
 
+	for range mon.stream {
+	}
+
 	return err
 }
 

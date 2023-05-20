@@ -9,7 +9,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/machine"
@@ -24,7 +23,7 @@ var (
 		PersistentPreRunE: rootlessOnly,
 		RunE:              rm,
 		Args:              cobra.MaximumNArgs(1),
-		Example:           `podman machine rm myvm`,
+		Example:           `podman machine rm podman-machine-default`,
 		ValidArgsFunction: autocompleteMachine,
 	}
 )
@@ -63,7 +62,10 @@ func rm(_ *cobra.Command, args []string) error {
 		vmName = args[0]
 	}
 
-	provider := GetSystemDefaultProvider()
+	provider, err := GetSystemProvider()
+	if err != nil {
+		return err
+	}
 	vm, err = provider.LoadVMByName(vmName)
 	if err != nil {
 		return err
@@ -91,24 +93,5 @@ func rm(_ *cobra.Command, args []string) error {
 		return err
 	}
 	newMachineEvent(events.Remove, events.Event{Name: vmName})
-	err = updateDefaultMachineInConfig(vmName)
-	if err != nil {
-		return fmt.Errorf("failed to update default machine: %v", err)
-	}
 	return nil
-}
-
-func updateDefaultMachineInConfig(vmName string) error {
-	cfg, err := config.ReadCustomConfig()
-	if err != nil {
-		return err
-	}
-	if cfg.Engine.ActiveService == vmName {
-		cfg.Engine.ActiveService = ""
-		for machine := range cfg.Engine.ServiceDestinations {
-			cfg.Engine.ActiveService = machine
-			break
-		}
-	}
-	return cfg.Write()
 }

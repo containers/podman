@@ -32,9 +32,7 @@ type SQLiteState struct {
 const (
 	// Deal with timezone automatically.
 	sqliteOptionLocation = "_loc=auto"
-	// Set the journal mode (https://www.sqlite.org/pragma.html#pragma_journal_mode).
-	sqliteOptionJournal = "&_journal=WAL"
-	// Force WAL mode to fsync after each transaction (https://www.sqlite.org/pragma.html#pragma_synchronous).
+	// Force an fsync after each transaction (https://www.sqlite.org/pragma.html#pragma_synchronous).
 	sqliteOptionSynchronous = "&_sync=FULL"
 	// Allow foreign keys (https://www.sqlite.org/pragma.html#pragma_foreign_keys).
 	sqliteOptionForeignKeys = "&_foreign_keys=1"
@@ -44,7 +42,6 @@ const (
 	// Assembled sqlite options used when opening the database.
 	sqliteOptions = "db.sql?" +
 		sqliteOptionLocation +
-		sqliteOptionJournal +
 		sqliteOptionSynchronous +
 		sqliteOptionForeignKeys +
 		sqliteOptionTXLock

@@ -5,33 +5,12 @@ import (
 	"strings"
 
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman generate systemd", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
-	})
 
 	It("podman generate systemd on bogus container/pod", func() {
 		session := podmanTest.Podman([]string{"generate", "systemd", "foobar"})
@@ -236,6 +215,22 @@ var _ = Describe("Podman generate systemd", func() {
 		Expect(strings.Count(output, "RequiresMountsFor="+podmanTest.RunRoot)).To(Equal(3))
 		// The podman commands in the unit should not contain the root flags
 		Expect(output).ToNot(ContainSubstring(" --runroot"))
+
+		// Generating pod/container units for an init container is not
+		// supported (see #18585).
+		n = podmanTest.Podman([]string{"create", "--pod", "foo", "--init-ctr", "always", "--name", "foo-init", "alpine", "top"})
+		n.WaitWithDefaultTimeout()
+		Expect(n).Should(Exit(0))
+		// Fail for the pod
+		session = podmanTest.Podman([]string{"generate", "systemd", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("cannot generate systemd units for init containers"))
+		// Fail for the init container
+		session = podmanTest.Podman([]string{"generate", "systemd", "foo-init"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("cannot generate systemd units for init containers"))
 	})
 
 	It("podman generate systemd pod --name --files", func() {

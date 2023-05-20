@@ -10,44 +10,24 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gexec"
 )
 
+func setupEmptyContainersConf() {
+	// make sure connections are not written to real user config on host
+	file := filepath.Join(podmanTest.TempDir, "containersconf")
+	f, err := os.Create(file)
+	Expect(err).ToNot(HaveOccurred())
+	f.Close()
+	os.Setenv("CONTAINERS_CONF", file)
+}
+
 var _ = Describe("podman system connection", func() {
-	ConfPath := struct {
-		Value string
-		IsSet bool
-	}{}
 
-	var podmanTest *PodmanTestIntegration
-
-	BeforeEach(func() {
-		ConfPath.Value, ConfPath.IsSet = os.LookupEnv("CONTAINERS_CONF")
-		conf, err := os.CreateTemp("", "containersconf")
-		Expect(err).ToNot(HaveOccurred())
-		os.Setenv("CONTAINERS_CONF", conf.Name())
-
-		tempdir, err := CreateTempDirInTempDir()
-		Expect(err).ToNot(HaveOccurred())
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		os.Remove(os.Getenv("CONTAINERS_CONF"))
-		if ConfPath.IsSet {
-			os.Setenv("CONTAINERS_CONF", ConfPath.Value)
-		} else {
-			os.Unsetenv("CONTAINERS_CONF")
-		}
-
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-	})
+	BeforeEach(setupEmptyContainersConf)
 
 	Context("without running API service", func() {
 		It("add ssh://", func() {

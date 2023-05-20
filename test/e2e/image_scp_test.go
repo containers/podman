@@ -7,48 +7,14 @@ import (
 	"github.com/containers/common/pkg/config"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/homedir"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("podman image scp", func() {
-	ConfPath := struct {
-		Value string
-		IsSet bool
-	}{}
-	var (
-		tempdir    string
-		podmanTest *PodmanTestIntegration
-	)
 
-	BeforeEach(func() {
-		ConfPath.Value, ConfPath.IsSet = os.LookupEnv("CONTAINERS_CONF")
-		conf, err := os.CreateTemp("", "containersconf")
-		Expect(err).ToNot(HaveOccurred())
-
-		os.Setenv("CONTAINERS_CONF", conf.Name())
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-
-		os.Remove(os.Getenv("CONTAINERS_CONF"))
-		if ConfPath.IsSet {
-			os.Setenv("CONTAINERS_CONF", ConfPath.Value)
-		} else {
-			os.Unsetenv("CONTAINERS_CONF")
-		}
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
-	})
+	BeforeEach(setupEmptyContainersConf)
 
 	It("podman image scp bogus image", func() {
 		scp := podmanTest.Podman([]string{"image", "scp", "FOOBAR"})

@@ -18,9 +18,9 @@ func newIntrospectIntf(h *defaultHandler) *exportedIntf {
 	return newExportedIntf(methods, true)
 }
 
-//NewDefaultHandler returns an instance of the default
-//call handler. This is useful if you want to implement only
-//one of the two handlers but not both.
+// NewDefaultHandler returns an instance of the default
+// call handler. This is useful if you want to implement only
+// one of the two handlers but not both.
 //
 // Deprecated: this is the default value, don't use it, it will be unexported.
 func NewDefaultHandler() *defaultHandler {
@@ -238,9 +238,9 @@ func (obj *exportedIntf) isFallbackInterface() bool {
 	return obj.includeSubtree
 }
 
-//NewDefaultSignalHandler returns an instance of the default
-//signal handler. This is useful if you want to implement only
-//one of the two handlers but not both.
+// NewDefaultSignalHandler returns an instance of the default
+// signal handler. This is useful if you want to implement only
+// one of the two handlers but not both.
 //
 // Deprecated: this is the default value, don't use it, it will be unexported.
 func NewDefaultSignalHandler() *defaultSignalHandler {

@@ -13,7 +13,7 @@ podman\-pull - Pull an image from a registry
 **podman image pull** [*options*] [*transport*]*name*[:*tag*|@*digest*]
 
 ## DESCRIPTION
-podman pull copies an image from a registry onto the local machine. The command can pull one or more images.  If the image reference in the command line argument does not contain a registry, it is referred to as a`short-name` reference. If the image is a 'short-name' reference, Podman will prompt the user for the specific container registry to pull the image from, if an alias for the short-name has not been specified in the `short-name-aliases.conf`.  If an image tag is not specified, **podman pull** defaults to the image with the **latest** tag (if it exists) and pulls it. After the image is pulled, podman will print the full image ID.  **podman pull** can also pull images using a digest **podman pull** *image*@*digest* and can also be used to pull images from archives and local storage using different transports.
+podman pull copies an image from a registry onto the local machine. The command can pull one or more images.  If the image reference in the command line argument does not contain a registry, it is referred to as a`short-name` reference. If the image is a 'short-name' reference, Podman prompts the user for the specific container registry to pull the image from, if an alias for the short-name has not been specified in the `short-name-aliases.conf`.  If an image tag is not specified, **podman pull** defaults to the image with the **latest** tag (if it exists) and pulls it. After the image is pulled, podman prints the full image ID.  **podman pull** can also pull images using a digest **podman pull** *image*@*digest* and can also be used to pull images from archives and local storage using different transports.
 *IMPORTANT: Images are stored in local image storage.*
 
 ## SOURCE
@@ -45,9 +45,9 @@ $ podman pull oci-archive:/tmp/myimage
 ## OPTIONS
 #### **--all-tags**, **-a**
 
-All tagged images in the repository will be pulled.
+All tagged images in the repository are pulled.
 
-*IMPORTANT: When using the all-tags flag, Podman will not iterate over the search registries in the **[containers-registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md)** but will always use docker.io for unqualified image names.*
+*IMPORTANT: When using the all-tags flag, Podman does not iterate over the search registries in the **[containers-registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md)** but always uses docker.io for unqualified image names.*
 
 @@option arch
 
@@ -88,14 +88,14 @@ Using short names is subject to the risk of hitting squatted registry namespaces
 
 While it is highly recommended to always use fully-qualified image references, existing deployments using short names may not be easily changed. To circumvent the aforementioned ambiguity, so called short-name aliases can be configured that point to a fully-qualified image reference. Distributions often ship a default shortnames.conf expansion file in /etc/containers/registries.conf.d/ directory. Administrators can use this directory to add their own local short-name expansion files.
 
-When pulling an image, if the user does not specify the complete registry, container engines attempt to expand the short-name into a full name. If the command is executed with a tty, the user will be prompted to select a registry from the
+When pulling an image, if the user does not specify the complete registry, container engines attempt to expand the short-name into a full name. If the command is executed with a tty, the user is prompted to select a registry from the
 default list unqualified registries defined in registries.conf. The user's selection is then stored in a cache file to be used in all future short-name expansions. Rootful short-names are stored in /var/cache/containers/short-name-aliases.conf. Rootless short-names are stored in the $HOME/.cache/containers/short-name-aliases.conf file.
 
 For more information on short-names, see `containers-registries.conf(5)`
 
 **registries.conf** (`/etc/containers/registries.conf`)
 
-registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
+registries.conf is the configuration file which specifies which container registries is consulted when completing image names which do not include a registry or domain portion.
 
 NOTE: Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
 

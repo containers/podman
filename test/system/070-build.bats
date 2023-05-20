@@ -660,8 +660,7 @@ EOF
     mv $tmpdir/Dockerfile $tmpdir/foofile
 
     run_podman 125 build -t build_test $tmpdir
-    is "$output" ".*Dockerfile: no such file or directory"
-
+    is "$output" "Error: no Containerfile or Dockerfile specified or found in context directory, $tmpdir: no such file or directory"
     run_podman build -t build_test -f $tmpdir/foofile $tmpdir
 
     # Clean up
@@ -730,7 +729,7 @@ EOF
     if is_remote; then remote_extra=".*";fi
     expect="${random1}
 .*
-STEP 1/2: FROM $IMAGE
+\[[0-9:.]\+\] STEP 1/2: FROM $IMAGE
 STEP 2/2: RUN echo x${random2}y
 x${random2}y${remote_extra}
 COMMIT build_test${remote_extra}

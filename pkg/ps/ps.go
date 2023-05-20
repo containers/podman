@@ -145,6 +145,7 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		portMappings                            []libnetworkTypes.PortMapping
 		networks                                []string
 		healthStatus                            string
+		restartCount                            uint
 	)
 
 	batchErr := ctr.Batch(func(c *libpod.Container) error {
@@ -189,6 +190,11 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		}
 
 		healthStatus, err = c.HealthCheckStatus()
+		if err != nil {
+			return err
+		}
+
+		restartCount, err = c.RestartCount()
 		if err != nil {
 			return err
 		}
@@ -251,6 +257,7 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		StartedAt:  startedTime.Unix(),
 		State:      conState.String(),
 		Status:     healthStatus,
+		Restarts:   restartCount,
 	}
 	if opts.Pod && len(conConfig.Pod) > 0 {
 		podName, err := rt.GetPodName(conConfig.Pod)

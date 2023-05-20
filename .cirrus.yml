@@ -300,7 +300,6 @@ bindings_task:
     only_if: >-
         $CIRRUS_PR != '' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
     depends_on:
         - build
@@ -363,9 +362,12 @@ swagger_task:
 alt_build_task:
     name: "$ALT_NAME"
     alias: alt_build
-    # Don't create task for [CI:DOCS] or multiarch builds
+    # Don't create task for [CI:DOCS], multiarch or rhel-release builds
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: $CIRRUS_CRON != 'multiarch'
+    only_if: &no_multiarch_rhel |
+        $CIRRUS_CRON != 'multiarch' &&
+        $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
+        $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
     depends_on:
         - build
     env:
@@ -393,12 +395,31 @@ alt_build_task:
     always: *runner_stats
 
 
+win_installer_task:
+    name: "Verify Win Installer Build"
+    alias: win_installer
+    # Don't run for multiarch container image cirrus-cron job.
+    only_if: *no_multiarch_rhel
+    depends_on:
+      - alt_build
+    windows_container:
+        image: cirrusci/windowsservercore:2019
+    env:
+        PATH: "${PATH};C:\\ProgramData\\chocolatey\\bin"
+        CIRRUS_SHELL: powershell
+        # Fake version, we are only testing the installer functions, so version doesn't matter
+        WIN_INST_VER: 9.9.9
+        CIRRUS_WORKING_DIR: "${LOCALAPPDATA}\\Temp\\cirrus-ci-build"
+    install_script: '.\contrib\cirrus\win-installer-install.ps1'
+    main_script: '.\contrib\cirrus\win-installer-main.ps1'
+
+
 # Confirm building the remote client, natively on a Mac OS-X VM.
 osx_alt_build_task:
     name: "OSX Cross"
     alias: osx_alt_build
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: $CIRRUS_CRON != 'multiarch'
+    only_if: *no_multiarch_rhel
     depends_on:
         - build
     env:
@@ -437,7 +458,6 @@ docker-py_test_task:
     only_if: &not_tag_branch_build_docs >-
         $CIRRUS_PR != '' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
 
     depends_on:
@@ -544,7 +564,8 @@ windows_smoke_test_task:
         $CIRRUS_TAG == '' &&
         $CIRRUS_CRON != 'multiarch' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*'
+        $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
+        $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
     depends_on:
       - alt_build
     experimental: true  # Enable labeling of EC2 VMs with cirrus task ID
@@ -574,7 +595,7 @@ local_integration_test_task: &local_integration_test_task
         - unit_test
     matrix: *platform_axis
     gce_instance: *standardvm
-    timeout_in: 90m
+    timeout_in: 50m
     env:
         TEST_FLAVOR: int
     clone_script: *get_gosrc
@@ -585,6 +606,9 @@ local_integration_test_task: &local_integration_test_task
         ginkgo_node_logs_artifacts:
             path: ./test/e2e/ginkgo-node-*.log
             type: text/plain
+        ginkgo_json_artifacts:
+            path: ./ginkgo-e2e.json
+            type: application/json
 
 
 # Nearly identical to `local_integration_test` except all operations
@@ -620,7 +644,7 @@ container_integration_test_task:
               CI_DESIRED_RUNTIME: crun
               CI_DESIRED_NETWORK: cni
     gce_instance: *standardvm
-    timeout_in: 90m
+    timeout_in: 50m
     env:
         TEST_FLAVOR: int
         TEST_ENVIRON: container
@@ -639,7 +663,7 @@ rootless_integration_test_task:
     depends_on: *build_unit
     matrix: *platform_axis
     gce_instance: *standardvm
-    timeout_in: 90m
+    timeout_in: 50m
     env:
         TEST_FLAVOR: int
         PRIV_NAME: rootless
@@ -657,7 +681,6 @@ podman_machine_task:
     only_if: &not_tag_build_docs_multiarch >-
         $CIRRUS_TAG == '' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
         $CIRRUS_CRON != 'multiarch'
     depends_on:
@@ -1063,8 +1086,9 @@ artifacts_task:
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: >-
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
-        $CIRRUS_CRON != 'multiarch'
+        $CIRRUS_CRON != 'multiarch' &&
+        $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
+        $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
     depends_on:
         - success
     # This task is a secondary/convenience for downstream consumers, don't
@@ -1111,25 +1135,6 @@ artifacts_task:
       binary_artifacts:
           path: ./*
           type: application/octet-stream
-
-
-win_installer_task:
-    name: "Verify Win Installer Build"
-    alias: win_installer
-    # Don't run for multiarch container image cirrus-cron job.
-    only_if: $CIRRUS_CRON != 'multiarch'
-    depends_on:
-      - alt_build
-    windows_container:
-        image: cirrusci/windowsservercore:2019
-    env:
-        PATH: "${PATH};C:\\ProgramData\\chocolatey\\bin"
-        CIRRUS_SHELL: powershell
-        # Fake version, we are only testing the installer functions, so version doesn't matter
-        WIN_INST_VER: 9.9.9
-        CIRRUS_WORKING_DIR: "${LOCALAPPDATA}\\Temp\\cirrus-ci-build"
-    install_script: '.\contrib\cirrus\win-installer-install.ps1'
-    main_script: '.\contrib\cirrus\win-installer-main.ps1'
 
 
 # When a new tag is pushed, confirm that the code and commits

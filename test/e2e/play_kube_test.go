@@ -27,7 +27,7 @@ import (
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
 	. "github.com/onsi/gomega/gexec"
@@ -989,7 +989,8 @@ spec:
   containers:
   - name: alpine
     image: quay.io/libpod/alpine:latest
-    command: ['sh', '-c', 'ls -l /proc/self/ns/ipc']
+    command: ['ls', '-l', '/proc/self/ns/ipc']
+  restartPolicy: Never
 `
 
 var podWithSysctlDefined = `
@@ -1011,6 +1012,7 @@ spec:
     - "/bin/sh"
     - "-c"
     - "sysctl kernel.msgmax;sysctl net.core.somaxconn"
+  restartPolicy: Never
 `
 
 var podWithSysctlHostNetDefined = `
@@ -1854,27 +1856,10 @@ func verifyPodPorts(podmanTest *PodmanTestIntegration, podName string, ports ...
 }
 
 var _ = Describe("Podman play kube", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-		kubeYaml   string
-	)
+	var kubeYaml string
 
 	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
 		kubeYaml = filepath.Join(podmanTest.TempDir, "kube.yaml")
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
 	})
 
 	It("podman play kube fail with yaml of unsupported kind", func() {
@@ -1966,7 +1951,6 @@ var _ = Describe("Podman play kube", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		os.Setenv("CONTAINERS_CONF", conffile)
-		defer os.Unsetenv("CONTAINERS_CONF")
 
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
@@ -2210,7 +2194,7 @@ var _ = Describe("Podman play kube", func() {
 	// With annotation set to always
 	It("podman play kube test with init containers and annotation set", func() {
 		// With the init container type annotation set to always
-		pod := getPod(withAnnotation("io.podman.annotations.init.container.type", "always"), withPodInitCtr(getCtr(withImage(ALPINE), withCmd([]string{"echo", "hello"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(ALPINE), withCmd([]string{"top"}))))
+		pod := getPod(withAnnotation("io.podman.annotations.init.container.type", "always"), withPodInitCtr(getCtr(withImage(ALPINE), withCmd([]string{"printenv", "container"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(ALPINE), withCmd([]string{"top"}))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -2233,6 +2217,18 @@ var _ = Describe("Podman play kube", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring("running"))
+
+		// Init containers should not be restarted
+		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{ .HostConfig.RestartPolicy.Name }}", "testPod-" + defaultCtrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(define.RestartPolicyNo))
+
+		// Init containers need environment too! #18384
+		logs := podmanTest.Podman([]string{"logs", "testPod-init-test"})
+		logs.WaitWithDefaultTimeout()
+		Expect(logs).Should(Exit(0))
+		Expect(logs.OutputToString()).To(Equal("podman"))
 	})
 
 	// If you have an init container in the pod yaml, podman should create and run the init container with play kube
@@ -2382,7 +2378,7 @@ var _ = Describe("Podman play kube", func() {
 			kube.WaitWithDefaultTimeout()
 			Expect(kube).Should(Exit(0))
 
-			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "{{.HostConfig.RestartPolicy.Name}}"})
+			inspect := podmanTest.Podman([]string{"inspect", pod.Name, "--format", "{{.RestartPolicy}}"})
 			inspect.WaitWithDefaultTimeout()
 			Expect(inspect).Should(Exit(0))
 			Expect(inspect.OutputToString()).To(Equal(v[2]))
@@ -2390,7 +2386,6 @@ var _ = Describe("Podman play kube", func() {
 	})
 
 	It("podman play kube test env value from configmap", func() {
-		SkipIfRemote("configmap list is not supported as a param")
 		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 		cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
 		err := generateKubeYaml("configmap", cm, cmYamlPathname)
@@ -2411,7 +2406,6 @@ var _ = Describe("Podman play kube", func() {
 	})
 
 	It("podman play kube test env value from configmap and --replace should reuse the configmap volume", func() {
-		SkipIfRemote("configmap list is not supported as a param")
 		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 		cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
 		err := generateKubeYaml("configmap", cm, cmYamlPathname)
@@ -2437,7 +2431,6 @@ var _ = Describe("Podman play kube", func() {
 	})
 
 	It("podman play kube test required env value from configmap with missing key", func() {
-		SkipIfRemote("configmap list is not supported as a param")
 		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 		cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
 		err := generateKubeYaml("configmap", cm, cmYamlPathname)
@@ -2463,7 +2456,6 @@ var _ = Describe("Podman play kube", func() {
 	})
 
 	It("podman play kube test optional env value from configmap with missing key", func() {
-		SkipIfRemote("configmap list is not supported as a param")
 		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 		cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
 		err := generateKubeYaml("configmap", cm, cmYamlPathname)
@@ -2499,7 +2491,6 @@ var _ = Describe("Podman play kube", func() {
 	})
 
 	It("podman play kube test get all key-value pairs from configmap as envs", func() {
-		SkipIfRemote("configmap list is not supported as a param")
 		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 		cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO1", "foo1"), withConfigMapData("FOO2", "foo2"))
 		err := generateKubeYaml("configmap", cm, cmYamlPathname)
@@ -2781,7 +2772,7 @@ var _ = Describe("Podman play kube", func() {
 		// expect play kube is expected to set a seccomp label if it's applied as an annotation
 		jsonFile, err := podmanTest.CreateSeccompJSON(seccompPwdEPERM)
 		if err != nil {
-			fmt.Println(err)
+			GinkgoWriter.Println(err)
 			Skip("Failed to prepare seccomp.json for test.")
 		}
 
@@ -2797,10 +2788,15 @@ var _ = Describe("Podman play kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		logs := podmanTest.Podman([]string{"logs", getCtrNameInPod(pod)})
+		ctrName := getCtrNameInPod(pod)
+		wait := podmanTest.Podman([]string{"wait", ctrName})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait).Should(Exit(0), "podman wait %s", ctrName)
+
+		logs := podmanTest.Podman([]string{"logs", ctrName})
 		logs.WaitWithDefaultTimeout()
-		Expect(logs).Should(Exit(0))
-		Expect(logs.ErrorToString()).To(ContainSubstring("Operation not permitted"))
+		Expect(logs).Should(Exit(0), "podman logs %s", ctrName)
+		Expect(logs.ErrorToString()).To(ContainSubstring("getcwd: Operation not permitted"))
 	})
 
 	It("podman play kube seccomp pod level", func() {
@@ -2808,7 +2804,7 @@ var _ = Describe("Podman play kube", func() {
 		// expect play kube is expected to set a seccomp label if it's applied as an annotation
 		jsonFile, err := podmanTest.CreateSeccompJSON(seccompPwdEPERM)
 		if err != nil {
-			fmt.Println(err)
+			GinkgoWriter.Println(err)
 			Skip("Failed to prepare seccomp.json for test.")
 		}
 		defer os.Remove(jsonFile)
@@ -2824,7 +2820,12 @@ var _ = Describe("Podman play kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		logs := podmanTest.Podman([]string{"logs", getCtrNameInPod(pod)})
+		podName := getCtrNameInPod(pod)
+		wait := podmanTest.Podman([]string{"wait", podName})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait).Should(Exit(0))
+
+		logs := podmanTest.Podman([]string{"logs", podName})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs).Should(Exit(0))
 		Expect(logs.ErrorToString()).To(ContainSubstring("Operation not permitted"))
@@ -2838,6 +2839,7 @@ var _ = Describe("Podman play kube", func() {
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(125))
+		Expect(kube.ErrorToString()).To(ContainSubstring(BB_GLIBC + ": image not known"))
 	})
 
 	It("podman play kube with pull policy of missing", func() {
@@ -3169,7 +3171,7 @@ spec:
 		// the file should have been created
 		st, err := os.Stat(hostPathLocation)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(st.Mode().IsDir()).To(BeTrue())
+		Expect(st.Mode().IsDir()).To(BeTrue(), "hostPathLocation is a directory")
 	})
 
 	It("podman play kube test with DirectoryOrCreate HostPath type volume and non-existent directory path", func() {
@@ -3186,7 +3188,7 @@ spec:
 		// the full path should have been created
 		st, err := os.Stat(hostPathLocation)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(st.Mode().IsDir()).To(BeTrue())
+		Expect(st.Mode().IsDir()).To(BeTrue(), "hostPathLocation is a directory")
 	})
 
 	It("podman play kube test with DirectoryOrCreate HostPath type volume and existent directory path", func() {
@@ -4088,7 +4090,6 @@ invalid kube kind
 		confPath, err := filepath.Abs("config/containers-netns2.conf")
 		Expect(err).ToNot(HaveOccurred())
 		os.Setenv("CONTAINERS_CONF", confPath)
-		defer os.Unsetenv("CONTAINERS_CONF")
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
 		}
@@ -4402,8 +4403,6 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 	Context("with configmap in multi-doc yaml and files", func() {
 		It("podman play kube uses env values from both sources", func() {
-			SkipIfRemote("--configmaps is not supported for remote")
-
 			fsCmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 			fsCm := getConfigMap(withConfigMapName("fooFs"), withConfigMapData("FOO_FS", "fooFS"))
 			err := generateKubeYaml("configmap", fsCm, fsCmYamlPathname)
@@ -4440,8 +4439,6 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		})
 
 		It("podman play kube uses all env values from both sources", func() {
-			SkipIfRemote("--configmaps is not supported for remote")
-
 			fsCmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 			fsCm := getConfigMap(withConfigMapName("fooFs"),
 				withConfigMapData("FOO_FS_1", "fooFS1"),
@@ -4485,7 +4482,8 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		})
 
 		It("podman play kube reports error when the same configmap name is present in both sources", func() {
-			SkipIfRemote("--configmaps is not supported for remote")
+			// We will never hit this error in the remote case as the configmap content is appended to the main yaml content
+			SkipIfRemote("--configmaps is appended to the main yaml for the remote case")
 
 			fsCmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 			fsCm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "fooFS"))
@@ -4880,7 +4878,6 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 ipcns="host"
 cgroups="disabled"`), 0644)
 		Expect(err).ToNot(HaveOccurred())
-		defer os.Unsetenv("CONTAINERS_CONF")
 		os.Setenv("CONTAINERS_CONF", conffile)
 		err = writeYaml(simplePodYaml, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
@@ -5254,6 +5251,10 @@ spec:
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
+		wait := podmanTest.Podman([]string{"wait", "test-hostipc-alpine"})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait).Should(Exit(0))
+
 		inspect := podmanTest.Podman([]string{"inspect", "test-hostipc-alpine", "--format", "{{ .HostConfig.IpcMode }}"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
@@ -5271,7 +5272,7 @@ spec:
 		fields = strings.Split(logs.OutputToString(), " ")
 		ctrIpcNS := strings.TrimSuffix(fields[len(fields)-1], "\n")
 
-		Expect(hostIpcNS).To(Equal(ctrIpcNS))
+		Expect(ctrIpcNS).To(Equal(hostIpcNS), "container IPC NS == host IPC NS")
 	})
 
 	It("podman play kube with ctrName should be in network alias", func() {
@@ -5309,6 +5310,10 @@ spec:
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
+		wait := podmanTest.Podman([]string{"wait", "test-sysctl-alpine"})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait).Should(Exit(0))
+
 		logs := podmanTest.Podman([]string{"pod", "logs", "-c", "test-sysctl-alpine", "test-sysctl"})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs).Should(Exit(0))
@@ -5324,5 +5329,6 @@ spec:
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(125))
+		Expect(kube.ErrorToString()).To(ContainSubstring("since Network Namespace set to host: invalid argument"))
 	})
 })

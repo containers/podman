@@ -144,6 +144,10 @@ func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSyste
 	}
 
 	config := ctr.Config()
+	if len(config.InitContainerType) > 0 {
+		return nil, fmt.Errorf("unsupported container %s: cannot generate systemd units for init containers", ctr.ID())
+	}
+
 	conmonPidFile := config.ConmonPidFile
 	if conmonPidFile == "" {
 		return nil, errors.New("conmon PID file path is empty, try to recreate the container with --conmon-pidfile flag")

@@ -23,37 +23,37 @@ base=$(git merge-base ${DEST_BRANCH:-main} $head)
 #    M    bar.c
 # We look for Added or Modified (not Deleted!) files under 'test'.
 # --no-renames ensures that renamed tests (#9420) show up as 'A'dded.
-if git diff --name-status --no-renames $base $head | egrep -q '^[AM]\s+(test/|.*_test\.go)'; then
+if git diff --name-status --no-renames $base $head | grep -E -q '^[AM]\s+(test/|.*_test\.go)'; then
     exit 0
 fi
 
 # Nothing changed under test subdirectory.
 #
 # This is OK if the only files being touched are "safe" ones.
-filtered_changes=$(git diff --name-only $base $head      |
-                       fgrep -vx .cirrus.yml             |
-                       fgrep -vx .pre-commit-config.yaml |
-                       fgrep -vx .gitignore              |
-                       fgrep -vx go.mod                  |
-                       fgrep -vx go.sum                  |
-                       fgrep -vx podman.spec.rpkg        |
-                       fgrep -vx .golangci.yml           |
-                       egrep -v  '/*Makefile$'           |
-                       egrep -v  '^[^/]+\.md$'           |
-                       egrep -v  '^.github'              |
-                       egrep -v  '^contrib/'             |
-                       egrep -v  '^docs/'                |
-                       egrep -v  '^hack/'                |
-                       egrep -v  '^nix/'                 |
-                       egrep -v  '^vendor/'              |
-                       egrep -v  '^version/')
+filtered_changes=$(git diff --name-only $base $head        |
+                       grep -F -vx .cirrus.yml             |
+                       grep -F -vx .pre-commit-config.yaml |
+                       grep -F -vx .gitignore              |
+                       grep -F -vx go.mod                  |
+                       grep -F -vx go.sum                  |
+                       grep -F -vx podman.spec.rpkg        |
+                       grep -F -vx .golangci.yml           |
+                       grep -E -v  '/*Makefile$'           |
+                       grep -E -v  '^[^/]+\.md$'           |
+                       grep -E -v  '^.github'              |
+                       grep -E -v  '^contrib/'             |
+                       grep -E -v  '^docs/'                |
+                       grep -E -v  '^hack/'                |
+                       grep -E -v  '^nix/'                 |
+                       grep -E -v  '^vendor/'              |
+                       grep -E -v  '^version/')
 if [[ -z "$filtered_changes" ]]; then
     exit 0
 fi
 
 # One last chance: perhaps the developer included the magic '[NO NEW TESTS NEEDED]'
 # string in an amended commit.
-if git log --format=%B ${base}..${head} | fgrep '[NO NEW TESTS NEEDED]'; then
+if git log --format=%B ${base}..${head} | grep -F '[NO NEW TESTS NEEDED]'; then
    exit 0
 fi
 

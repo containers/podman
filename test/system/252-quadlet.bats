@@ -52,7 +52,9 @@ function run_quadlet() {
     cp $sourcefile $quadlet_tmpdir/
 
     echo "$_LOG_PROMPT $QUADLET $_DASHUSER $UNIT_DIR"
-    QUADLET_UNIT_DIRS="$quadlet_tmpdir" run $QUADLET $_DASHUSER $UNIT_DIR
+    QUADLET_UNIT_DIRS="$quadlet_tmpdir" run \
+                     timeout --foreground -v --kill=10 $PODMAN_TIMEOUT \
+                     $QUADLET $_DASHUSER $UNIT_DIR
     echo "$output"
     assert $status -eq 0 "Failed to convert quadlet file: $sourcefile"
     is "$output" "" "quadlet should report no errors"
@@ -450,6 +452,7 @@ EOF
 [Container]
 Rootfs=/:O
 Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; top"
+Notify=yes
 EOF
 
     run_quadlet "$quadlet_file"
@@ -467,7 +470,7 @@ EOF
 [Container]
 Image=$IMAGE
 SecurityLabelDisable=true
-Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; top"
+Exec=sh -c "echo STARTED CONTAINER; top"
 EOF
 
     run_quadlet "$quadlet_file"
@@ -494,7 +497,7 @@ Image=$IMAGE
 SecurityLabelType=spc_t
 SecurityLabelLevel=s0:c100,c200
 SecurityLabelFileType=container_ro_file_t
-Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; top"
+Exec=sh -c "echo STARTED CONTAINER; top"
 EOF
 
     run_quadlet "$quadlet_file"
@@ -523,6 +526,7 @@ ContainerName=$NAME
 Image=$IMAGE
 Secret=$SECRET_NAME,type=env,target=MYSECRET
 Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; top"
+Notify=yes
 EOF
 
     run_quadlet "$quadlet_file"
@@ -549,6 +553,7 @@ ContainerName=$NAME
 Image=$IMAGE
 Secret=$SECRET_NAME,type=mount,target=/root/secret
 Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; top"
+Notify=yes
 EOF
 
     run_quadlet "$quadlet_file"
@@ -578,6 +583,7 @@ EOF
 Image=$IMAGE
 Volume=%T/$tmp_dir:/test_content:Z
 Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; top"
+Notify=yes
 EOF
 
     run_quadlet "$quadlet_file"

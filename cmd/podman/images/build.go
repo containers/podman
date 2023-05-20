@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	buildahDefine "github.com/containers/buildah/define"
@@ -281,10 +282,19 @@ func build(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("context must be a directory: %q", contextDir)
 	}
 	if len(containerFiles) == 0 {
-		if utils.FileExists(filepath.Join(contextDir, "Containerfile")) {
+		switch {
+		case utils.FileExists(filepath.Join(contextDir, "Containerfile")):
+			if utils.IsDir(filepath.Join(contextDir, "Containerfile")) {
+				return fmt.Errorf("containerfile:  cannot be path or directory")
+			}
 			containerFiles = append(containerFiles, filepath.Join(contextDir, "Containerfile"))
-		} else {
+		case utils.FileExists(filepath.Join(contextDir, "Dockerfile")):
+			if utils.IsDir(filepath.Join(contextDir, "Dockerfile")) {
+				return fmt.Errorf("dockerfile:  cannot be path or directory")
+			}
 			containerFiles = append(containerFiles, filepath.Join(contextDir, "Dockerfile"))
+		default:
+			return fmt.Errorf("no Containerfile or Dockerfile specified or found in context directory, %s: %w", contextDir, syscall.ENOENT)
 		}
 	}
 

@@ -5,7 +5,7 @@ import (
 
 	"github.com/containers/podman/v4/pkg/api/handlers"
 	"github.com/containers/podman/v4/pkg/bindings/containers"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 )
@@ -30,7 +30,7 @@ var _ = Describe("Podman containers exec", func() {
 		bt.cleanup()
 	})
 
-	It("Podman exec create makes an exec session", func() {
+	It("Podman exec create+start makes an exec session", func() {
 		name := "testCtr"
 		cid, err := bt.RunTopContainer(&name, nil)
 		Expect(err).ToNot(HaveOccurred())
@@ -48,6 +48,15 @@ var _ = Describe("Podman containers exec", func() {
 		Expect(inspectOut.ProcessConfig.Entrypoint).To(Equal("echo"))
 		Expect(inspectOut.ProcessConfig.Arguments).To(HaveLen(1))
 		Expect(inspectOut.ProcessConfig.Arguments[0]).To(Equal("hello world"))
+
+		err = containers.ExecStart(bt.conn, sessionID, nil)
+		Expect(err).ToNot(HaveOccurred())
+
+		inspectOut, err = containers.ExecInspect(bt.conn, sessionID, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(inspectOut.ContainerID).To(Equal(cid))
+		Expect(inspectOut.Running).To(BeFalse(), "session should not be running")
+		Expect(inspectOut.ExitCode).To(Equal(0), "exit code from echo")
 	})
 
 	It("Podman exec create with bad command fails", func() {

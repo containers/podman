@@ -128,7 +128,7 @@ function random_rfc1918_subnet() {
     while [ "$retries" -gt 0 ];do
         local cidr=172.$(( 16 + $RANDOM % 16 )).$(( $RANDOM & 255 ))
 
-        in_use=$(ip route list | fgrep $cidr)
+        in_use=$(ip route list | grep -F $cidr)
         if [ -z "$in_use" ]; then
             echo "$cidr"
             return

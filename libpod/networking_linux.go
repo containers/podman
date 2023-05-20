@@ -392,7 +392,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 		path := r.config.Engine.NetworkCmdPath
 		if path == "" {
 			var err error
-			path, err = exec.LookPath("slirp4netns")
+			path, err = r.config.FindHelperBinary(slirp4netnsBinaryName, true)
 			if err != nil {
 				return nil, err
 			}

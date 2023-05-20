@@ -1,37 +1,13 @@
 package integration
 
 import (
-	"fmt"
-	"os"
-
-	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
-var _ = Describe("podman system reset", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		_, _ = GinkgoWriter.Write([]byte(timedResult))
-	})
+// system reset must run serial: https://github.com/containers/podman/issues/17903
+var _ = Describe("podman system reset", Serial, func() {
 
 	It("podman system reset", func() {
 		SkipIfRemote("system reset not supported on podman --remote")

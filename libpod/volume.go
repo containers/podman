@@ -6,7 +6,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/lock"
 	"github.com/containers/podman/v4/libpod/plugin"
-	"github.com/containers/podman/v4/pkg/util"
+	"github.com/containers/storage/pkg/directory"
 )
 
 // Volume is a libpod named volume.
@@ -109,7 +109,8 @@ func (v *Volume) Name() string {
 
 // Returns the size on disk of volume
 func (v *Volume) Size() (uint64, error) {
-	return util.SizeOfPath(v.config.MountPoint)
+	size, err := directory.Size(v.config.MountPoint)
+	return uint64(size), err
 }
 
 // Driver retrieves the volume's driver.

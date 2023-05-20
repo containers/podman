@@ -55,6 +55,10 @@ type ListContainer struct {
 	PodName string
 	// Port mappings
 	Ports []types.PortMapping
+	// Restarts is how many times the container was restarted by its
+	// restart policy. This is NOT incremented by normal container restarts
+	// (only by restart policy).
+	Restarts uint
 	// Size of the container rootfs.  Requires the size boolean to be true
 	Size *define.ContainerSize
 	// Time when container started

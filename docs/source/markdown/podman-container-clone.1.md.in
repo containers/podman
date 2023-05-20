@@ -62,28 +62,28 @@ Force removal of the original container that we are cloning. Can only be used in
 
 @@option memory
 
-If no memory limits are specified, the original container's will be used.
+If no memory limits are specified, the original container's memory limits are used.
 
 @@option memory-reservation
 
-If unspecified, memory reservation will be the same as memory limit from the
+If unspecified, memory reservation is the same as memory limit from the
 container being cloned.
 
 @@option memory-swap
 
-If unspecified, the container being cloned will be used to derive
+If unspecified, the container being cloned is used to derive
 the swap value.
 
 @@option memory-swappiness
 
 #### **--name**
 
-Set a custom name for the cloned container. The default if not specified is of the syntax: **<ORIGINAL_NAME>-clone**
+Set a custom name for the cloned container. The default if not specified is of the syntax: **\<ORIGINAL_NAME\>-clone**
 
 #### **--pod**=*name*
 
 Clone the container in an existing pod.  It is helpful to move a container to an
-existing pod.  The container will join the pod shared namespaces, losing its configuration
+existing pod.  The container joins the pod shared namespaces, losing its configuration
 that conflicts with the shared namespaces.
 
 #### **--run**

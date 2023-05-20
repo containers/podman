@@ -126,9 +126,10 @@ LIBSECCOMP_COMMIT := v2.3.3
 GINKGOTIMEOUT ?= -timeout=90m
 # By default, run test/e2e
 GINKGOWHAT ?= test/e2e/.
-# By default, run tests in parallel across 3 nodes.
-GINKGONODES ?= 3
+GINKGO_PARALLEL=y
 GINKGO ?= ./test/tools/build/ginkgo
+# ginkgo json output is only useful in CI, not on developer runs
+GINKGO_JSON ?= $(if $(CI),--json-report ginkgo-e2e.json,)
 
 # Conditional required to produce empty-output if binary not built yet.
 RELEASE_VERSION = $(shell if test -x test/version/version; then test/version/version; fi)
@@ -482,6 +483,7 @@ docdir:
 
 .PHONY: docs
 docs: $(MANPAGES) ## Generate documentation
+	@ln -sf $(CURDIR)/docs/source/markdown/links/* docs/build/man/
 
 # docs/remote-docs.sh requires a locally executable 'podman-remote' binary
 # in addition to the target-architecture binary (if different). That's
@@ -542,11 +544,11 @@ localunit: test/goecho/goecho test/version/version
 	UNIT=1 $(GINKGO) \
 		-r \
 		$(TESTFLAGS) \
-		--skipPackage test/e2e,pkg/apparmor,pkg/bindings,hack,pkg/machine/e2e \
+		--skip-package test/e2e,pkg/bindings,hack,pkg/machine/e2e \
 		--cover \
 		--covermode atomic \
 		--coverprofile coverprofile \
-		--outputdir ${COVERAGE_PATH} \
+		--output-dir ${COVERAGE_PATH} \
 		--tags "$(BUILDTAGS)" \
 		--succinct
 	$(GO) tool cover -html=${COVERAGE_PATH}/coverprofile -o ${COVERAGE_PATH}/coverage.html
@@ -558,8 +560,10 @@ test: localunit localintegration remoteintegration localsystem remotesystem  ## 
 
 .PHONY: ginkgo-run
 ginkgo-run: .install.ginkgo
-	ACK_GINKGO_RC=true $(GINKGO) version
-	ACK_GINKGO_RC=true $(GINKGO) -v $(TESTFLAGS) -tags "$(TAGS) remote" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes $(GINKGONODES) -debug $(GINKGOWHAT) $(HACK)
+	$(GINKGO) version
+	$(GINKGO) -vv $(TESTFLAGS) --tags "$(TAGS) remote" $(GINKGOTIMEOUT) --flake-attempts 3 --trace --no-color \
+		$(GINKGO_JSON) $(if $(findstring y,$(GINKGO_PARALLEL)),-p,) $(if $(FOCUS),--focus "$(FOCUS)",) \
+		$(if $(FOCUS_FILE),--focus-file "$(FOCUS_FILE)",) $(GINKGOWHAT) $(HACK)
 
 .PHONY: ginkgo
 ginkgo:
@@ -571,7 +575,7 @@ ginkgo-remote:
 
 .PHONY: testbindings
 testbindings: .install.ginkgo
-	ACK_GINKGO_RC=true $(GINKGO) -v $(TESTFLAGS) -tags "$(TAGS) remote" $(GINKGOTIMEOUT) -progress -trace -noColor -debug -timeout 30m  -v -r ./pkg/bindings/test
+	$(GINKGO) -v $(TESTFLAGS) --tags "$(TAGS) remote" $(GINKGOTIMEOUT) --trace --no-color --timeout 30m  -v -r ./pkg/bindings/test
 
 .PHONY: localintegration
 localintegration: test-binaries ginkgo
@@ -581,15 +585,7 @@ remoteintegration: test-binaries ginkgo-remote
 
 .PHONY: localmachine
 localmachine: test-binaries .install.ginkgo
-	$(MAKE) ginkgo-run GINKGONODES=1 GINKGOWHAT=pkg/machine/e2e/. HACK=
-
-.PHONY: localbenchmarks
-localbenchmarks: install.tools test-binaries
-	PATH=$(PATH):$(shell pwd)/hack ACK_GINKGO_RC=true $(GINKGO) \
-		      -focus "Podman Benchmark Suite" \
-		      -tags "$(BUILDTAGS) benchmarks" -noColor \
-		      -noisySkippings=false -noisyPendings=false \
-		      test/e2e/.
+	$(MAKE) ginkgo-run GINKGO_PARALLEL=n GINKGOWHAT=pkg/machine/e2e/. HACK=
 
 .PHONY: localsystem
 localsystem:
@@ -665,7 +661,7 @@ tests-included:
 
 .PHONY: tests-expect-exit
 tests-expect-exit:
-	@if egrep --line-number 'Expect.*ExitCode' test/e2e/*.go | egrep -v ', ".*"\)'; then \
+	@if grep -E --line-number 'Expect.*ExitCode' test/e2e/*.go | grep -E -v ', ".*"\)'; then \
 		echo "^^^ Unhelpful use of Expect(ExitCode())"; \
 		echo "   Please use '.Should(Exit(...))' pattern instead."; \
 		echo "   If that's not possible, please add an annotation (description) to your assertion:"; \

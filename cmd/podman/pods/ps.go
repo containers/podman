@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -147,6 +148,7 @@ func pods(cmd *cobra.Command, _ []string) error {
 			"ContainerStatuses":  "STATUS",
 			"Cgroup":             "CGROUP",
 			"Namespace":          "NAMESPACES",
+			"Restarts":           "RESTARTS",
 		})
 
 		if err := rpt.Execute(headers); err != nil {
@@ -178,6 +180,7 @@ func podPsFormat() string {
 	if !psInput.CtrStatus && !psInput.CtrNames && !psInput.CtrIds {
 		row = append(row, "{{.NumberOfContainers}}")
 	}
+
 	return "{{range . }}" + strings.Join(row, "\t") + "\n" + "{{end -}}"
 }
 
@@ -263,6 +266,15 @@ func (l ListPodReporter) ContainerStatuses() string {
 		statuses = append(statuses, c.Status)
 	}
 	return strings.Join(statuses, ",")
+}
+
+// Restarts returns the total number of restarts for all the containers in the pod
+func (l ListPodReporter) Restarts() string {
+	restarts := 0
+	for _, c := range l.Containers {
+		restarts += int(c.RestartCount)
+	}
+	return strconv.Itoa(restarts)
 }
 
 func sortPodPsOutput(sortBy string, lprs []*entities.ListPodsReport) error {

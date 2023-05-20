@@ -429,10 +429,15 @@ func (ic *ContainerEngine) listPodReportFromPod(p *libpod.Pod) (*entities.ListPo
 		if err != nil {
 			return nil, err
 		}
+		restartCount, err := c.RestartCount()
+		if err != nil {
+			return nil, err
+		}
 		lpcs[i] = &entities.ListPodContainer{
-			Id:     c.ID(),
-			Names:  c.Name(),
-			Status: state.String(),
+			Id:           c.ID(),
+			Names:        c.Name(),
+			Status:       state.String(),
+			RestartCount: restartCount,
 		}
 	}
 	infraID, err := p.InfraContainerID()

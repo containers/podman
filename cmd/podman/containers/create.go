@@ -137,6 +137,7 @@ func create(cmd *cobra.Command, args []string) error {
 		}
 		cliVals.InitContainerType = initctr
 	}
+	// TODO: v5.0 block users from setting restart policy for a container if the container is in a pod
 
 	cliVals, err := CreateInit(cmd, cliVals, false)
 	if err != nil {
@@ -405,6 +406,7 @@ func createPodIfNecessary(cmd *cobra.Command, s *specgen.SpecGenerator, netOpts 
 		CpusetCpus:    cliVals.CPUSetCPUs,
 		Pid:           cliVals.PID,
 		Userns:        uns,
+		Restart:       cliVals.Restart,
 	}
 	// Unset config values we passed to the pod to prevent them being used twice for the container and pod.
 	s.ContainerBasicConfig.Hostname = ""

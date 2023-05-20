@@ -151,7 +151,14 @@ func (o *Object) StoreProperty(p string, value interface{}) error {
 
 // SetProperty calls org.freedesktop.DBus.Properties.Set on the given
 // object. The property name must be given in interface.member notation.
+// Panics if v is not a valid Variant type.
 func (o *Object) SetProperty(p string, v interface{}) error {
+	// v might already be a variant...
+	variant, ok := v.(Variant)
+	if !ok {
+		// Otherwise, make it into one.
+		variant = MakeVariant(v)
+	}
 	idx := strings.LastIndex(p, ".")
 	if idx == -1 || idx+1 == len(p) {
 		return errors.New("dbus: invalid property " + p)
@@ -160,7 +167,7 @@ func (o *Object) SetProperty(p string, v interface{}) error {
 	iface := p[:idx]
 	prop := p[idx+1:]
 
-	return o.Call("org.freedesktop.DBus.Properties.Set", 0, iface, prop, v).Err
+	return o.Call("org.freedesktop.DBus.Properties.Set", 0, iface, prop, variant).Err
 }
 
 // Destination returns the destination that calls on (o *Object) are sent to.

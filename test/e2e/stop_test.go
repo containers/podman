@@ -5,34 +5,12 @@ import (
 	"os"
 	"strings"
 
-	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman stop", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
-	})
 
 	It("podman stop bogus container", func() {
 		session := podmanTest.Podman([]string{"stop", "foobar"})
@@ -126,6 +104,12 @@ var _ = Describe("Podman stop", func() {
 		finalCtrs.WaitWithDefaultTimeout()
 		Expect(finalCtrs).Should(Exit(0))
 		Expect(strings.TrimSpace(finalCtrs.OutputToString())).To(Equal(""))
+
+		// make sure we only have one cleanup event for this container
+		events := podmanTest.Podman([]string{"events", "--since=30s", "--stream=false"})
+		events.WaitWithDefaultTimeout()
+		Expect(events).Should(Exit(0))
+		Expect(strings.Count(events.OutputToString(), "container cleanup")).To(Equal(1), "cleanup event should show up exactly once")
 	})
 
 	It("podman stop all containers -t", func() {

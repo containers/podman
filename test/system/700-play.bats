@@ -480,8 +480,7 @@ _EOF
     is "$output" ".*Error: inspecting object: no such object: \"test_pod-test\""
 
     run_podman pod rm -a -f
-    run_podman rm -a -f
-    run_podman rm -f -t0 myyaml
+    run_podman rm -a -f -t0
 }
 
 @test "podman play with init container" {
@@ -651,4 +650,62 @@ spec:
     is "$output" "" "There should be no containers"
     run_podman pod ps
     run_podman rmi $(pause_image)
+}
+
+@test "podman kube play with configmaps" {
+    configmap_file=${PODMAN_TMPDIR}/play_kube_configmap_configmaps$(random_string 6).yaml
+    echo "
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: foo
+data:
+  value: foo
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bar
+data:
+  value: bar
+" > $configmap_file
+
+    pod_file=${PODMAN_TMPDIR}/play_kube_configmap_pod$(random_string 6).yaml
+    echo "
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test
+  name: test_pod
+spec:
+  restartPolicy: Never
+  containers:
+  - name: server
+    image: $IMAGE
+    env:
+    - name: FOO
+      valueFrom:
+        configMapKeyRef:
+          name: foo
+          key: value
+    - name: BAR
+      valueFrom:
+        configMapKeyRef:
+          name: bar
+          key: value
+    command:
+    - /bin/sh
+    args:
+    - -c
+    - "echo \$FOO:\$BAR"
+" > $pod_file
+
+    run_podman kube play --configmap=$configmap_file $pod_file
+    run_podman wait test_pod-server
+    run_podman logs test_pod-server
+    is $output "foo:bar"
+
+    run_podman kube down $pod_file
 }

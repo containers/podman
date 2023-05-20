@@ -255,6 +255,10 @@ function t() {
 
         for arg; do
             case "$arg" in
+                # This is just some hack to avoid adding `-d {}` to curl for endpoints where we really need an empty body.
+                # --disable makes curl not lookup the curlrc file, it't should't effect the tests in any way.
+                -)                curl_args+=(--disable);
+                                  shift;;
                 *=*)              post_args+=("$arg");
                                   shift;;
                 *.json)           _add_curl_args $arg;
@@ -342,7 +346,7 @@ function t() {
     # Show returned headers (without trailing ^M or empty lines) in log file.
     # Sometimes -- I can't remember why! -- we don't get headers.
     if [[ -e $WORKDIR/curl.headers.out ]]; then
-        tr -d '\015' < $WORKDIR/curl.headers.out | egrep '.' >>$LOG
+        tr -d '\015' < $WORKDIR/curl.headers.out | grep -E '.' >>$LOG
     fi
 
     IFS='^' read actual_code content_type time_total <<<"$response"

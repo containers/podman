@@ -3,7 +3,6 @@ package util
 import (
 	"errors"
 	"fmt"
-	"io/fs"
 	"math"
 	"os"
 	"os/user"
@@ -21,10 +20,12 @@ import (
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	enchelpers "github.com/containers/ocicrypt/helpers"
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/namespaces"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/signal"
+	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/idtools"
 	stypes "github.com/containers/storage/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
@@ -617,19 +618,10 @@ func LookupUser(name string) (*user.User, error) {
 
 // SizeOfPath determines the file usage of a given path. it was called volumeSize in v1
 // and now is made to be generic and take a path instead of a libpod volume
+// Deprecated: use github.com/containers/storage/pkg/directory.Size() instead.
 func SizeOfPath(path string) (uint64, error) {
-	var size uint64
-	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
-		if err == nil && !d.IsDir() {
-			info, err := d.Info()
-			if err != nil {
-				return err
-			}
-			size += uint64(info.Size())
-		}
-		return err
-	})
-	return size, err
+	size, err := directory.Size(path)
+	return uint64(size), err
 }
 
 // EncryptConfig translates encryptionKeys into a EncriptionsConfig structure
@@ -664,4 +656,38 @@ func DecryptConfig(decryptionKeys []string) (*encconfig.DecryptConfig, error) {
 	}
 
 	return decryptConfig, nil
+}
+
+// ParseRestartPolicy parses the value given to the --restart flag and returns the policy
+// and restart retries value
+func ParseRestartPolicy(policy string) (string, uint, error) {
+	var (
+		retriesUint uint
+		policyType  string
+	)
+	splitRestart := strings.Split(policy, ":")
+	switch len(splitRestart) {
+	case 1:
+		// No retries specified
+		policyType = splitRestart[0]
+		if strings.ToLower(splitRestart[0]) == "never" {
+			policyType = define.RestartPolicyNo
+		}
+	case 2:
+		if strings.ToLower(splitRestart[0]) != "on-failure" {
+			return "", 0, errors.New("restart policy retries can only be specified with on-failure restart policy")
+		}
+		retries, err := strconv.Atoi(splitRestart[1])
+		if err != nil {
+			return "", 0, fmt.Errorf("parsing restart policy retry count: %w", err)
+		}
+		if retries < 0 {
+			return "", 0, errors.New("must specify restart policy retry count as a number greater than 0")
+		}
+		retriesUint = uint(retries)
+		policyType = splitRestart[0]
+	default:
+		return "", 0, errors.New("invalid restart policy: may specify retries at most once")
+	}
+	return policyType, retriesUint, nil
 }

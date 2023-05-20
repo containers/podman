@@ -2,38 +2,16 @@ package integration
 
 import (
 	"fmt"
-	"os"
 	"sort"
 
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman ps", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
-	})
 
 	It("podman pod ps no pods", func() {
 		session := podmanTest.Podman([]string{"pod", "ps"})
@@ -169,7 +147,7 @@ var _ = Describe("Podman ps", func() {
 
 		sortedArr := session.OutputToStringArray()
 
-		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] < sortedArr[j] })).To(BeTrue())
+		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] < sortedArr[j] })).To(BeTrue(), "slice is sorted")
 	})
 
 	It("podman pod ps --ctr-names", func() {

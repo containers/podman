@@ -6,31 +6,12 @@ import (
 	"strings"
 
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman commit", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		Expect(err).ToNot(HaveOccurred())
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
-	})
 
 	It("podman commit container", func() {
 		_, ec, _ := podmanTest.RunLsContainer("test1")
@@ -119,15 +100,8 @@ var _ = Describe("Podman commit", func() {
 
 		check := podmanTest.Podman([]string{"inspect", "foobar.com/test1-image:latest"})
 		check.WaitWithDefaultTimeout()
-		data := check.InspectImageJSON()
-		foundBlue := false
-		for _, i := range data[0].Labels {
-			if i == "blue" {
-				foundBlue = true
-				break
-			}
-		}
-		Expect(foundBlue).To(BeTrue())
+		inspectResults := check.InspectImageJSON()
+		Expect(inspectResults[0].Labels).To(HaveKeyWithValue("image", "blue"))
 	})
 
 	It("podman commit container with --squash", func() {

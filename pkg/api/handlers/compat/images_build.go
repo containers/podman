@@ -121,7 +121,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		OSVersion               string   `schema:"osversion"`
 		OutputFormat            string   `schema:"outputformat"`
 		Platform                []string `schema:"platform"`
-		Pull                    bool     `schema:"pull"`
+		Pull                    string   `schema:"pull"`
 		PullPolicy              string   `schema:"pullpolicy"`
 		Quiet                   bool     `schema:"q"`
 		Registry                string   `schema:"registry"`
@@ -578,8 +578,19 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		pullPolicy = buildahDefine.PolicyMap[query.PullPolicy]
 	} else {
 		if _, found := r.URL.Query()["pull"]; found {
-			if query.Pull {
+			switch strings.ToLower(query.Pull) {
+			case "false":
+				pullPolicy = buildahDefine.PullIfMissing
+			case "true":
 				pullPolicy = buildahDefine.PullAlways
+			default:
+				policyFromMap, foundPolicy := buildahDefine.PolicyMap[query.Pull]
+				if foundPolicy {
+					pullPolicy = policyFromMap
+				} else {
+					utils.BadRequest(w, "pull", query.Pull, fmt.Errorf("invalid pull policy: %q", query.Pull))
+					return
+				}
 			}
 		}
 	}

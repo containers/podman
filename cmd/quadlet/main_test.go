@@ -1,8 +1,13 @@
 package main
 
 import (
+	"os"
+	"os/user"
+	"path"
+	"path/filepath"
 	"testing"
 
+	"github.com/containers/podman/v4/pkg/systemd/quadlet"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,4 +44,39 @@ func TestIsUnambiguousName(t *testing.T) {
 		res := isUnambiguousName(test.input)
 		assert.Equal(t, res, test.res, "%q", test.input)
 	}
+}
+
+func TestUnitDirs(t *testing.T) {
+	rootDirs := []string{
+		quadlet.UnitDirAdmin,
+		quadlet.UnitDirDistro,
+	}
+	unitDirs := getUnitDirs(false)
+	assert.Equal(t, unitDirs, rootDirs, "rootful unit dirs should match")
+
+	configDir, err := os.UserConfigDir()
+	assert.Nil(t, err)
+	u, err := user.Current()
+	assert.Nil(t, err)
+
+	rootlessDirs := []string{
+		path.Join(configDir, "containers/systemd"),
+		filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid),
+		filepath.Join(quadlet.UnitDirAdmin, "users"),
+	}
+
+	unitDirs = getUnitDirs(true)
+	assert.Equal(t, unitDirs, rootlessDirs, "rootless unit dirs should match")
+
+	name, err := os.MkdirTemp("", "dir")
+	assert.Nil(t, err)
+	// remove the temporary directory at the end of the program
+	defer os.RemoveAll(name)
+
+	t.Setenv("QUADLET_UNIT_DIRS", name)
+	unitDirs = getUnitDirs(false)
+	assert.Equal(t, unitDirs, []string{name}, "rootful should use environment variable")
+
+	unitDirs = getUnitDirs(true)
+	assert.Equal(t, unitDirs, []string{name}, "rootless should use environment variable")
 }

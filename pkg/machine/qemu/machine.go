@@ -318,8 +318,8 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	v.CmdLine = append(v.CmdLine, "-drive", "if=virtio,file="+v.getImageFile())
 	// This kind of stinks but no other way around this r/n
 	if len(opts.IgnitionPath) < 1 {
-		uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", fmt.Sprintf("/run/user/%d/podman/podman.sock", v.UID), strconv.Itoa(v.Port), v.RemoteUsername)
-		uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
+		uri := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, fmt.Sprintf("/run/user/%d/podman/podman.sock", v.UID), strconv.Itoa(v.Port), v.RemoteUsername)
+		uriRoot := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
 		identity := filepath.Join(sshDir, v.Name)
 
 		uris := []url.URL{uri, uriRoot}
@@ -387,6 +387,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		TimeZone:  opts.TimeZone,
 		WritePath: v.getIgnitionFile(),
 		UID:       v.UID,
+		Rootful:   v.Rootful,
 	}
 
 	if err := ign.GenerateIgnitionConfig(); err != nil {
@@ -644,6 +645,15 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	_, err = bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
 		return err
+	}
+
+	if v.HostUser.Modified {
+		if machine.UpdatePodmanDockerSockService(v, name, v.UID, v.Rootful) == nil {
+			// Reset modification state if there are no errors, otherwise ignore errors
+			// which are already logged
+			v.HostUser.Modified = false
+			_ = v.writeConfig()
+		}
 	}
 	if len(v.Mounts) > 0 {
 		state, err := v.State(true)
@@ -969,13 +979,6 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 	files = append(files, socketPath.Path)
 	files = append(files, v.archRemovalFiles()...)
 
-	if err := machine.RemoveConnection(v.Name); err != nil {
-		logrus.Error(err)
-	}
-	if err := machine.RemoveConnection(v.Name + "-root"); err != nil {
-		logrus.Error(err)
-	}
-
 	vmConfigDir, err := machine.GetConfDir(vmtype)
 	if err != nil {
 		return "", nil, err
@@ -1005,6 +1008,9 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 			if err := os.Remove(f); err != nil && !errors.Is(err, os.ErrNotExist) {
 				logrus.Error(err)
 			}
+		}
+		if err := machine.RemoveConnections(v.Name, v.Name+"-root"); err != nil {
+			logrus.Error(err)
 		}
 		return nil
 	}, nil
@@ -1672,6 +1678,8 @@ func (v *MachineVM) setRootful(rootful bool) error {
 			return err
 		}
 	}
+
+	v.HostUser.Modified = true
 	return nil
 }
 

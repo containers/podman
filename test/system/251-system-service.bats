@@ -15,7 +15,7 @@ function teardown() {
     basic_teardown
 }
 
-@test "podman systerm service <bad_scheme_uri> returns error" {
+@test "podman system service <bad_scheme_uri> returns error" {
     skip_if_remote "podman system service unavailable over remote"
     run_podman 125 system service localhost:9292
     is "$output" "Error: API Service endpoint scheme \"localhost\" is not supported. Try tcp://localhost:9292 or unix:/localhost:9292"

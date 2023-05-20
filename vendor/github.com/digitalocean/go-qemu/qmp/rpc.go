@@ -67,11 +67,11 @@ func (rpc *LibvirtRPCMonitor) Events(ctx context.Context) (<-chan Event, error) 
 
 	c := make(chan Event)
 	go func() {
+		defer close(c)
 		// process events
 		for e := range events {
 			qe, err := qmpEvent(&e)
 			if err != nil {
-				close(c)
 				break
 			}
 

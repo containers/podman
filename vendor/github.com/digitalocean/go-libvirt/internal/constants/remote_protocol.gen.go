@@ -881,6 +881,8 @@ const (
 	ProcDomainAuthorizedSshKeysGet = 424
 	// ProcDomainAuthorizedSshKeysSet is libvirt's REMOTE_PROC_DOMAIN_AUTHORIZED_SSH_KEYS_SET
 	ProcDomainAuthorizedSshKeysSet = 425
+	// ProcDomainGetMessages is libvirt's REMOTE_PROC_DOMAIN_GET_MESSAGES
+	ProcDomainGetMessages = 426
 
 
 	// From consts:
@@ -1010,6 +1012,8 @@ const (
 	NetworkPortParametersMax = 16
 	// DomainAuthorizedSshKeysMax is libvirt's REMOTE_DOMAIN_AUTHORIZED_SSH_KEYS_MAX
 	DomainAuthorizedSshKeysMax = 2048
+	// DomainMessagesMax is libvirt's REMOTE_DOMAIN_MESSAGES_MAX
+	DomainMessagesMax = 2048
 	// DomainEventGraphicsIdentityMax is libvirt's REMOTE_DOMAIN_EVENT_GRAPHICS_IDENTITY_MAX
 	DomainEventGraphicsIdentityMax = 20
 	// Program is libvirt's REMOTE_PROGRAM

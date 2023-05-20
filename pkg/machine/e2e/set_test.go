@@ -2,8 +2,9 @@ package e2e_test
 
 import (
 	"strconv"
+	"strings"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
@@ -100,4 +101,28 @@ var _ = Describe("podman machine set", func() {
 		Expect(sshSession3.outputToString()).To(ContainSubstring("100 GiB"))
 	})
 
+	It("set rootful, docker sock change", func() {
+		name := randomString()
+		i := new(initMachine)
+		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		set := setMachine{}
+		setSession, err := mb.setName(name).setCmd(set.withRootful(true)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(setSession).To(Exit(0))
+
+		s := new(startMachine)
+		startSession, err := mb.setCmd(s).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(startSession).To(Exit(0))
+
+		ssh2 := sshMachine{}
+		sshSession2, err := mb.setName(name).setCmd(ssh2.withSSHCommand([]string{"readlink /var/run/docker.sock"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(sshSession2).To(Exit(0))
+		output := strings.TrimSpace(sshSession2.outputToString())
+		Expect(output).To(Equal("/run/podman/podman.sock"))
+	})
 })

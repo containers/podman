@@ -7,41 +7,21 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/seccomp"
 	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/podman/v4/pkg/util"
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/opencontainers/selinux/go-selinux"
 )
 
 var _ = Describe("Podman pod create", func() {
-	var (
-		tempdir     string
-		err         error
-		podmanTest  *PodmanTestIntegration
-		hostname, _ = os.Hostname()
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
-	})
+	hostname, _ := os.Hostname()
 
 	It("podman create pod", func() {
 		_, ec, podID := podmanTest.CreatePod(nil)
@@ -102,7 +82,7 @@ var _ = Describe("Podman pod create", func() {
 		webserver := podmanTest.Podman([]string{"run", "--pod", pod, "-dt", NGINX_IMAGE})
 		webserver.WaitWithDefaultTimeout()
 		Expect(webserver).Should(Exit(0))
-		Expect(ncz(port)).To(BeTrue())
+		Expect(ncz(port)).To(BeTrue(), "port %d is up", port)
 	})
 
 	It("podman create pod with id file with network portbindings", func() {
@@ -116,7 +96,7 @@ var _ = Describe("Podman pod create", func() {
 		webserver := podmanTest.Podman([]string{"run", "--pod-id-file", file, "-dt", NGINX_IMAGE})
 		webserver.WaitWithDefaultTimeout()
 		Expect(webserver).Should(Exit(0))
-		Expect(ncz(port)).To(BeTrue())
+		Expect(ncz(port)).To(BeTrue(), "port %d is up", port)
 	})
 
 	It("podman create pod with no infra but portbindings should fail", func() {
@@ -951,7 +931,6 @@ ENTRYPOINT ["sleep","99999"]
 		confPath, err := filepath.Abs("config/containers-netns.conf")
 		Expect(err).ToNot(HaveOccurred())
 		os.Setenv("CONTAINERS_CONF", confPath)
-		defer os.Unsetenv("CONTAINERS_CONF")
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
 		}
@@ -988,8 +967,7 @@ ENTRYPOINT ["sleep","99999"]
 		ctrCreate = podmanTest.Podman([]string{"container", "run", "--pod", podCreate.OutputToString(), ALPINE, "cat", "/proc/self/attr/current"})
 		ctrCreate.WaitWithDefaultTimeout()
 		Expect(ctrCreate).Should(Exit(0))
-		match, _ := ctrCreate.GrepString("spc_t")
-		Expect(match).Should(BeTrue())
+		Expect(ctrCreate.OutputToString()).To(ContainSubstring("spc_t"))
 	})
 
 	It("podman pod create --security-opt seccomp", func() {
@@ -1138,7 +1116,7 @@ ENTRYPOINT ["sleep","99999"]
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(Exit(0))
 		t, strings := run.GrepString("shm on /dev/shm type tmpfs")
-		Expect(t).To(BeTrue())
+		Expect(t).To(BeTrue(), "found /dev/shm")
 		Expect(strings[0]).Should(ContainSubstring("size=10240k"))
 	})
 
@@ -1192,7 +1170,7 @@ ENTRYPOINT ["sleep","99999"]
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(Exit(0))
 		t, strings := run.GrepString("tmpfs on /run/lock")
-		Expect(t).To(BeTrue())
+		Expect(t).To(BeTrue(), "found /run/lock")
 		Expect(strings[0]).Should(ContainSubstring("size=10240k"))
 	})
 
@@ -1211,5 +1189,116 @@ ENTRYPOINT ["sleep","99999"]
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).Should(Equal(pod2Name))
+	})
+
+	It("podman pod create --restart set to default", func() {
+		// When the --restart flag is not set, the default value is No
+		// TODO: v5.0 change this so that the default value is Always
+		podName := "mypod"
+		testCtr := "ctr1"
+		session := podmanTest.Podman([]string{"pod", "create", podName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		// add container to pod
+		ctrRun := podmanTest.Podman([]string{"run", "--name", testCtr, "-d", "--pod", podName, ALPINE, "echo", "hello"})
+		ctrRun.WaitWithDefaultTimeout()
+		Expect(ctrRun).Should(Exit(0))
+		// Wait about 1 second, so we can check the number of restarts as default restart policy is set to No
+		time.Sleep(1 * time.Second)
+		ps := podmanTest.Podman([]string{"ps", "-a", "--filter", "name=" + testCtr, "--format", "{{.Restarts}}"})
+		ps.WaitWithDefaultTimeout()
+		Expect(ps).Should(Exit(0))
+		restarts, err := strconv.Atoi(ps.OutputToString())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(restarts).To(BeNumerically("==", 0))
+		ps = podmanTest.Podman([]string{"ps", "-a", "--filter", "name=" + testCtr, "--format", "{{.Status}}"})
+		ps.WaitWithDefaultTimeout()
+		Expect(ps).Should(Exit(0))
+		Expect(ps.OutputToString()).To(ContainSubstring("Exited"))
+	})
+
+	It("podman pod create --restart=on-failure", func() {
+		// Restart policy set to on-failure with max 2 retries
+		podName := "mypod"
+		runningCtr := "ctr1"
+		testCtr := "ctr2"
+		session := podmanTest.Podman([]string{"pod", "create", "--restart", "on-failure:2", podName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		// add container to pod
+		ctrRun := podmanTest.Podman([]string{"run", "--name", runningCtr, "-d", "--pod", podName, ALPINE, "sleep", "100"})
+		ctrRun.WaitWithDefaultTimeout()
+		Expect(ctrRun).Should(Exit(0))
+		ctrRun = podmanTest.Podman([]string{"run", "--name", testCtr, "-d", "--pod", podName, ALPINE, "sh", "-c", "echo hello && exit 1"})
+		ctrRun.WaitWithDefaultTimeout()
+		Expect(ctrRun).Should(Exit(0))
+		// Wait about 2 seconds, so we can check the number of restarts after failure
+		time.Sleep(2 * time.Second)
+		ps := podmanTest.Podman([]string{"ps", "-a", "--filter", "name=" + testCtr, "--format", "{{.Restarts}}"})
+		ps.WaitWithDefaultTimeout()
+		Expect(ps).Should(Exit(0))
+		restarts, err := strconv.Atoi(ps.OutputToString())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(restarts).To(BeNumerically("==", 2))
+		ps = podmanTest.Podman([]string{"ps", "-a", "--filter", "name=" + testCtr, "--format", "{{.Status}}"})
+		ps.WaitWithDefaultTimeout()
+		Expect(ps).Should(Exit(0))
+		Expect(ps.OutputToString()).To(ContainSubstring("Exited"))
+		ps = podmanTest.Podman([]string{"ps", "-a", "--filter", "name=" + runningCtr, "--format", "{{.Status}}"})
+		ps.WaitWithDefaultTimeout()
+		Expect(ps).Should(Exit(0))
+		Expect(ps.OutputToString()).To(ContainSubstring("Up"))
+	})
+
+	It("podman pod create --restart=no/never", func() {
+		// never and no are the same, just different words to do the same thing
+		policy := []string{"no", "never"}
+		for _, p := range policy {
+			podName := "mypod-" + p
+			runningCtr := "ctr1-" + p
+			testCtr := "ctr2-" + p
+			testCtr2 := "ctr3-" + p
+			session := podmanTest.Podman([]string{"pod", "create", "--restart", p, podName})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+			// add container to pod
+			ctrRun := podmanTest.Podman([]string{"run", "--name", runningCtr, "-d", "--pod", podName, ALPINE, "sleep", "100"})
+			ctrRun.WaitWithDefaultTimeout()
+			Expect(ctrRun).Should(Exit(0))
+			ctrRun = podmanTest.Podman([]string{"run", "--name", testCtr, "-d", "--pod", podName, ALPINE, "echo", "hello"})
+			ctrRun.WaitWithDefaultTimeout()
+			Expect(ctrRun).Should(Exit(0))
+			ctrRun = podmanTest.Podman([]string{"run", "--name", testCtr2, "-d", "--pod", podName, ALPINE, "sh", "-c", "echo hello && exit 1"})
+			ctrRun.WaitWithDefaultTimeout()
+			Expect(ctrRun).Should(Exit(0))
+			// Wait 1 second, so we can check the number of restarts and make sure the container has actually ran
+			time.Sleep(1 * time.Second)
+			// check first test container - container exits with exit code 0
+			ps := podmanTest.Podman([]string{"ps", "-a", "--filter", "name=" + testCtr, "--format", "{{.Restarts}}"})
+			ps.WaitWithDefaultTimeout()
+			Expect(ps).Should(Exit(0))
+			restarts, err := strconv.Atoi(ps.OutputToString())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(restarts).To(BeNumerically("==", 0))
+			ps = podmanTest.Podman([]string{"ps", "-a", "--filter", "name=" + testCtr, "--format", "{{.Status}}"})
+			ps.WaitWithDefaultTimeout()
+			Expect(ps).Should(Exit(0))
+			Expect(ps.OutputToString()).To(ContainSubstring("Exited"))
+			// Check second test container - container exits with non-zero exit code
+			ps = podmanTest.Podman([]string{"ps", "-a", "--filter", "name=" + testCtr2, "--format", "{{.Restarts}}"})
+			ps.WaitWithDefaultTimeout()
+			Expect(ps).Should(Exit(0))
+			restarts, err = strconv.Atoi(ps.OutputToString())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(restarts).To(BeNumerically("==", 0))
+			ps = podmanTest.Podman([]string{"ps", "-a", "--filter", "name=" + testCtr2, "--format", "{{.Status}}"})
+			ps.WaitWithDefaultTimeout()
+			Expect(ps).Should(Exit(0))
+			Expect(ps.OutputToString()).To(ContainSubstring("Exited"))
+			ps = podmanTest.Podman([]string{"ps", "-a", "--filter", "name=" + runningCtr, "--format", "{{.Status}}"})
+			ps.WaitWithDefaultTimeout()
+			Expect(ps).Should(Exit(0))
+			Expect(ps.OutputToString()).To(ContainSubstring("Up"))
+		}
 	})
 })

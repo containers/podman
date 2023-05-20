@@ -29,7 +29,7 @@ const (
 	// identify working containers.
 	Package = "buildah"
 	// Version for the Package. Also used by .packit.sh for Packit builds.
-	Version = "1.30.0"
+	Version = "1.31.0-dev"
 
 	// DefaultRuntime if containers.conf fails.
 	DefaultRuntime = "runc"

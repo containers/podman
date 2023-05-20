@@ -1,37 +1,14 @@
 package integration
 
 import (
-	"os"
-
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/opencontainers/selinux/go-selinux"
 )
 
 var _ = Describe("Podman inspect", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
-	})
 
 	It("podman inspect alpine image", func() {
 		session := podmanTest.Podman([]string{"inspect", "--format=json", ALPINE})
@@ -509,7 +486,7 @@ var _ = Describe("Podman inspect", func() {
 				Expect(ulimit.Hard).To(BeNumerically("==", -1))
 			}
 		}
-		Expect(found).To(BeTrue())
+		Expect(found).To(BeTrue(), "found RLIMIT_CORE")
 	})
 
 	It("Dropped capabilities are sorted", func() {

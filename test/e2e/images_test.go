@@ -2,39 +2,18 @@ package integration
 
 import (
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/docker/go-units"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman images", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
 
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
-	})
 	It("podman images", func() {
 		session := podmanTest.Podman([]string{"images"})
 		session.WaitWithDefaultTimeout()
@@ -316,7 +295,7 @@ WORKDIR /test
 
 		actual := podmanTest.Podman([]string{"images", "--sort", "created", "-q"})
 		actual.WaitWithDefaultTimeout()
-		Expect(expected.Out).Should(Equal(actual.Out))
+		Expect(actual.Out).Should(Equal(expected.Out))
 	})
 
 	It("podman images --all flag", func() {

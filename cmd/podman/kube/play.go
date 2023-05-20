@@ -161,6 +161,10 @@ func playFlags(cmd *cobra.Command) {
 	waitFlagName := "wait"
 	flags.BoolVarP(&playOptions.Wait, waitFlagName, "w", false, "Clean up all objects created when a SIGTERM is received or pods exit")
 
+	configmapFlagName := "configmap"
+	flags.StringSliceVar(&playOptions.ConfigMaps, configmapFlagName, []string{}, "`Pathname` of a YAML file containing a kubernetes configmap")
+	_ = cmd.RegisterFlagCompletionFunc(configmapFlagName, completion.AutocompleteDefault)
+
 	if !registry.IsRemote() {
 		certDirFlagName := "cert-dir"
 		flags.StringVar(&playOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")
@@ -169,10 +173,6 @@ func playFlags(cmd *cobra.Command) {
 		seccompProfileRootFlagName := "seccomp-profile-root"
 		flags.StringVar(&playOptions.SeccompProfileRoot, seccompProfileRootFlagName, defaultSeccompRoot, "Directory path for seccomp profiles")
 		_ = cmd.RegisterFlagCompletionFunc(seccompProfileRootFlagName, completion.AutocompleteDefault)
-
-		configmapFlagName := "configmap"
-		flags.StringSliceVar(&playOptions.ConfigMaps, configmapFlagName, []string{}, "`Pathname` of a YAML file containing a kubernetes configmap")
-		_ = cmd.RegisterFlagCompletionFunc(configmapFlagName, completion.AutocompleteDefault)
 
 		buildFlagName := "build"
 		flags.BoolVar(&playOptions.BuildCLI, buildFlagName, false, "Build all images in a YAML (given Containerfiles exist)")
@@ -346,34 +346,26 @@ func playKube(cmd *cobra.Command, args []string) error {
 }
 
 func readerFromArg(fileName string) (*bytes.Reader, error) {
-	errURL := parse.ValidURL(fileName)
-	if fileName == "-" { // Read from stdin
-		data, err := io.ReadAll(os.Stdin)
-		if err != nil {
-			return nil, err
-		}
-		return bytes.NewReader(data), nil
-	}
-	if errURL == nil {
+	var reader io.Reader
+	switch {
+	case fileName == "-": // Read from stdin
+		reader = os.Stdin
+	case parse.ValidURL(fileName) == nil:
 		response, err := http.Get(fileName)
 		if err != nil {
 			return nil, err
 		}
 		defer response.Body.Close()
-
-		data, err := io.ReadAll(response.Body)
+		reader = response.Body
+	default:
+		f, err := os.Open(fileName)
 		if err != nil {
 			return nil, err
 		}
-		return bytes.NewReader(data), nil
+		defer f.Close()
+		reader = f
 	}
-	f, err := os.Open(fileName)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	data, err := io.ReadAll(f)
+	data, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}

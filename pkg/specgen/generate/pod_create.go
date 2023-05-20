@@ -165,6 +165,10 @@ func createPodOptions(p *specgen.PodSpecGenerator) ([]libpod.PodCreateOption, er
 	}
 
 	options = append(options, libpod.WithPodExitPolicy(p.ExitPolicy))
+	options = append(options, libpod.WithPodRestartPolicy(p.RestartPolicy))
+	if p.RestartRetries != nil {
+		options = append(options, libpod.WithPodRestartRetries(*p.RestartRetries))
+	}
 
 	return options, nil
 }

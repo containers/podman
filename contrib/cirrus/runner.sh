@@ -403,9 +403,6 @@ dotest() {
 }
 
 _run_machine() {
-    # This environment is convenient for executing some benchmarking
-    localbenchmarks
-
     # N/B: Can't use _bail_if_test_can_be_skipped here b/c content isn't under test/
     make localmachine |& logformatter
 }
@@ -438,7 +435,7 @@ function _bail_if_test_can_be_skipped() {
 
     # If PR touches any files in an argument directory, we cannot skip
     for subdir in "$@"; do
-        if egrep -q "^$subdir/" <<<"$diffs"; then
+        if grep -E -q "^$subdir/" <<<"$diffs"; then
             return 0
         fi
     done
@@ -448,7 +445,7 @@ function _bail_if_test_can_be_skipped() {
     # filtering these out from the diff results.
     for subdir in docs test; do
         # || true needed because we're running with set -e
-        diffs=$(egrep -v "^$subdir/" <<<"$diffs" || true)
+        diffs=$(grep -E -v "^$subdir/" <<<"$diffs" || true)
     done
 
     # If we still have diffs, they indicate files outside of docs & test.

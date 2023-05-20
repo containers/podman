@@ -11,7 +11,7 @@ podman\-stats - Display a live stream of one or more container's resource usage 
 ## DESCRIPTION
 Display a live stream of one or more containers' resource usage statistics
 
-Note:  Podman stats will not work in rootless environments that use CGroups V1.
+Note:  Podman stats does not work in rootless environments that use CGroups V1.
 Podman stats relies on CGroup information for statistics, and CGroup v1 is not
 supported for rootless use cases.
 
@@ -122,7 +122,7 @@ ID             NAME           MEM USAGE / LIMIT
 ```
 
 Note: When using a slirp4netns network with the rootlesskit port
-handler, the traffic send via the port forwarding will be accounted to
+handler, the traffic sent via the port forwarding is accounted to
 the `lo` device.  Traffic accounted to `lo` is not accounted in the
 stats output.
 

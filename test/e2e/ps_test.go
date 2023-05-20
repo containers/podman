@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -10,33 +9,12 @@ import (
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/go-units"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman ps", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
-	})
 
 	It("podman ps no containers", func() {
 		session := podmanTest.Podman([]string{"ps"})
@@ -271,7 +249,7 @@ var _ = Describe("Podman ps", func() {
 
 	It("podman ps print a human-readable `Status` with json format", func() {
 		_, ec, _ := podmanTest.RunLsContainer("test1")
-		Expect(ec).To(Equal(0))
+		Expect(ec).To(Equal(0), "container exit code")
 
 		result := podmanTest.Podman([]string{"ps", "-a", "--format", "json"})
 		result.WaitWithDefaultTimeout()
@@ -279,7 +257,7 @@ var _ = Describe("Podman ps", func() {
 		Expect(result.OutputToString()).To(BeValidJSON())
 		// must contain "Status"
 		match, StatusLine := result.GrepString(`Status`)
-		Expect(match).To(BeTrue())
+		Expect(match).To(BeTrue(), "found 'Status'")
 		// we waited for container to exit, so this must contain `Exited`
 		Expect(StatusLine[0]).To(ContainSubstring("Exited"))
 	})
@@ -460,7 +438,7 @@ var _ = Describe("Podman ps", func() {
 			size1, _ := units.FromHumanSize(matches1[1])
 			size2, _ := units.FromHumanSize(matches2[1])
 			return size1 < size2
-		})).To(BeTrue())
+		})).To(BeTrue(), "slice is sorted")
 
 	})
 
@@ -480,7 +458,7 @@ var _ = Describe("Podman ps", func() {
 		Expect(session.OutputToString()).ToNot(ContainSubstring("COMMAND"))
 
 		sortedArr := session.OutputToStringArray()
-		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] < sortedArr[j] })).To(BeTrue())
+		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] < sortedArr[j] })).To(BeTrue(), "slice is sorted")
 	})
 
 	It("podman --pod", func() {

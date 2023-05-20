@@ -43,7 +43,7 @@ func (ic *imageCopier) copyBlobFromStream(ctx context.Context, srcReader io.Read
 	stream.reader = bar.ProxyReader(stream.reader)
 
 	// === Decrypt the stream, if required.
-	decryptionStep, err := ic.c.blobPipelineDecryptionStep(&stream, srcInfo)
+	decryptionStep, err := ic.blobPipelineDecryptionStep(&stream, srcInfo)
 	if err != nil {
 		return types.BlobInfo{}, err
 	}
@@ -78,7 +78,7 @@ func (ic *imageCopier) copyBlobFromStream(ctx context.Context, srcReader io.Read
 		// Before relaxing this, see the original pull request’s review if there are other reasons to reject this.
 		return types.BlobInfo{}, errors.New("Unable to support both decryption and encryption in the same copy")
 	}
-	encryptionStep, err := ic.c.blobPipelineEncryptionStep(&stream, toEncrypt, srcInfo, decryptionStep)
+	encryptionStep, err := ic.blobPipelineEncryptionStep(&stream, toEncrypt, srcInfo, decryptionStep)
 	if err != nil {
 		return types.BlobInfo{}, err
 	}

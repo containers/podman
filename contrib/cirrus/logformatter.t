@@ -115,173 +115,186 @@ ok 4 blah
 <hr/><span class='bats-summary'>Summary: <span class='bats-passed'>2 Passed</span>, <span class='bats-failed'>1 Failed</span>, <span class='bats-skipped'>1 Skipped</span>. Total tests: 4</span>
 
 
-
-
-
-
+== bats with timestamps 2023-05-16
+<<<
+[+0000s] 1..2
+[+0000s] ok 1 this passes
+[+0018s] not ok 2 this fails, and includes command timestamps
+[+0018s] # (from function `die' in file test/system/helpers.bash, line 564,
+[+0018s] #  from function `run_podman' in file test/system/helpers.bash, line 245,
+[+0018s] #  in test file test/system/888-foo.bats, line 15)
+[+0018s] #   `run_podman image exists sdfsdfsdf' failed
+[+0018s] # [07:46:52.641456481] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman rm -t 0 --all --force --ignore
+[+0018s] # [07:46:52.688219032] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman ps --all --external --format {{.ID}} {{.Names}}
+[+0018s] # [07:46:52.747613611] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman images --all --format {{.Repository}}:{{.Tag}} {{.ID}}
+[+0018s] # [07:46:52.791987930] quay.io/libpod/testimage:20221018 f5a99120db64
+[+0018s] # [07:46:52.801043907] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman container exists nonesuch
+[+0018s] # [07:46:52.842840593] [ rc=1 (expected) ]
+[+0018s] # [07:46:52.848492506] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman container exists nonesuch
+[+0018s] # [07:46:52.893686015] [ rc=1 (expected) ]
+[+0018s] # [07:47:02.910006230] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman image inspect --format {{.Os}} quay.io/libpod/testimage:20221018
+[+0018s] # [07:47:02.961306244] linux
+[+0018s] # [07:47:02.966100272] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman run --rm quay.io/libpod/testimage:20221018 sleep 7
+[+0018s] # [07:47:10.167561880] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman image exists sdfsdfsdf
+[+0018s] # [07:47:10.213750267] [ rc=1 (** EXPECTED 0 **) ]
+[+0018s] # #/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+[+0018s] # #| FAIL: exit code is 1; expected 0
+[+0018s] # #\^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[+0018s] # # [teardown]
+[+0018s] # [07:47:10.219704348] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman pod rm -t 0 --all --force --ignore
+[+0018s] # [07:47:10.263332041] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman rm -t 0 --all --force --ignore
+[+0018s] # [07:47:10.300645440] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman network prune --force
+[+0018s] # [07:47:10.337464840] $ /home/esm/src/atomic/2018-02.podman/libpod/bin/podman volume rm -a -f
+>>>
+<span class="timestamp">[+0000s] </span>1..2
+<span class="timestamp">         </span><span class='bats-passed'><a name='t--00001'>ok 1 this passes</a></span>
+<span class="timestamp">[+0018s] </span><span class='bats-failed'><a name='t--00002'>not ok 2 this fails, and includes command timestamps</a></span>
+<span class="timestamp">         </span><span class='bats-log'># (from function `die&#39; in file test/system/<a class="codelink" href="https://github.com/containers/podman/blob/ceci-nest-pas-une-sha/test/system/helpers.bash#L564">helpers.bash, line 564</a>,</span>
+<span class="timestamp">         </span><span class='bats-log'>#  from function `run_podman&#39; in file test/system/<a class="codelink" href="https://github.com/containers/podman/blob/ceci-nest-pas-une-sha/test/system/helpers.bash#L245">helpers.bash, line 245</a>,</span>
+<span class="timestamp">         </span><span class='bats-log'>#  in test file test/system/<a class="codelink" href="https://github.com/containers/podman/blob/ceci-nest-pas-une-sha/test/system/888-foo.bats#L15">888-foo.bats, line 15</a>)</span>
+<span class="timestamp">         </span><span class='bats-log'>#   `run_podman image exists sdfsdfsdf&#39; failed</span>
+<span class="timestamp"><span title="07:46:52.641456481">&lt;+     &gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> rm -t 0 --all --force --ignore</b></span>
+<span class="timestamp"><span title="07:46:52.688219032">&lt;+046ms&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> ps --all --external --format {{.ID}} {{.Names}}</b></span>
+<span class="timestamp"><span title="07:46:52.747613611">&lt;+059ms&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> images --all --format {{.Repository}}:{{.Tag}} {{.ID}}</b></span>
+<span class="timestamp"><span title="07:46:52.791987930">&lt;+044ms&gt;</span> </span><span class='bats-log'># quay.io/libpod/testimage:20221018 f5a99120db64</span>
+<span class="timestamp"><span title="07:46:52.801043907">&lt;+009ms&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> container exists nonesuch</b></span>
+<span class="timestamp"><span title="07:46:52.842840593">&lt;+041ms&gt;</span> </span><span class='bats-log'># [ rc=1 (expected) ]</span>
+<span class="timestamp"><span title="07:46:52.848492506">&lt;+005ms&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> container exists nonesuch</b></span>
+<span class="timestamp"><span title="07:46:52.893686015">&lt;+045ms&gt;</span> </span><span class='bats-log'># [ rc=1 (expected) ]</span>
+<span class="timestamp"><span title="07:47:02.910006230">&lt;+0010s&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> image inspect --format {{.Os}} quay.io/libpod/testimage:20221018</b></span>
+<span class="timestamp"><span title="07:47:02.961306244">&lt;+051ms&gt;</span> </span><span class='bats-log'># linux</span>
+<span class="timestamp"><span title="07:47:02.966100272">&lt;+004ms&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> run --rm quay.io/libpod/testimage:20221018 sleep 7</b></span>
+<span class="timestamp"><span title="07:47:10.167561880">&lt;+7.20s&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> image exists sdfsdfsdf</b></span>
+<span class="timestamp"><span title="07:47:10.213750267">&lt;+046ms&gt;</span> </span><span class='bats-log'># [ rc=1 (** EXPECTED 0 **) ]</span>
+<span class="timestamp">         </span><span class='bats-log-failblock'># #/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv</span>
+<span class="timestamp">         </span><span class='bats-log-failblock'># #| FAIL: exit code is 1; expected 0</span>
+<span class="timestamp">         </span><span class='bats-log-failblock'># #\^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^</span>
+<span class="timestamp">         </span><span class='bats-log'># # [teardown]</span>
+<span class="timestamp"><span title="07:47:10.219704348">&lt;+005ms&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> pod rm -t 0 --all --force --ignore</b></span>
+<span class="timestamp"><span title="07:47:10.263332041">&lt;+043ms&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> rm -t 0 --all --force --ignore</b></span>
+<span class="timestamp"><span title="07:47:10.300645440">&lt;+037ms&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> network prune --force</b></span>
+<span class="timestamp"><span title="07:47:10.337464840">&lt;+036ms&gt;</span> </span><span class='bats-log'># $ <b><span title="/home/esm/src/atomic/2018-02.podman/libpod/bin/podman">podman</span> volume rm -a -f</b></span>
+<hr/><span class='bats-summary'>Summary: <span class='bats-passed'>1 Passed</span>, <span class='bats-failed'>1 Failed</span>. Total tests: 2</span>
 
 == simple ginkgo
 
 <<<
-$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}
-[08:26:19] START - All [+xxxx] lines that follow are relative to right now.
-[+0002s] GO111MODULE=on go build -mod=vendor  -gcflags 'all=-trimpath=/var/tmp/go/src/github.com/containers/podman' -asmflags 'all=-trimpath=/var/tmp/go/src/github.com/containers/podman' -ldflags '-X github.com/containers/podman/libpod/define.gitCommit=40f5d8b1becd381c4e8283ed3940d09193e4fe06 -X github.com/containers/podman/libpod/define.buildInfo=1582809981 -X github.com/containers/podman/libpod/config._installPrefix=/usr/local -X github.com/containers/podman/libpod/config._etcDir=/etc -extldflags ""' -tags "   selinux systemd exclude_graphdriver_devicemapper seccomp varlink" -o bin/podman github.com/containers/podman/cmd/podman
-[+0103s] •
-[+0103s] ------------------------------
-[+0103s] Podman pod restart
-[+0103s]   podman pod restart single empty pod
-[+0103s]   /var/tmp/go/src/github.com/containers/podman/test/e2e/pod_restart_test.go:41
-[+0103s] [BeforeEach] Podman pod restart
-[+0103s]   /var/tmp/go/src/github.com/containers/podman/test/e2e/pod_restart_test.go:18
-[+0103s] [It] podman pod restart single empty pod
-[+0103s]   /var/tmp/go/src/github.com/containers/podman/test/e2e/pod_restart_test.go:41
-[+0103s] Running: /var/tmp/go/src/github.com/containers/podman/bin/quadlet -no-kmsg-log /tmp/podman_test620310100/generated with QUADLET_UNIT_DIRS=/tmp/podman_test620310100/quadlet
-[+0103s] quadlet-generator[98757]: Error converting 'range.less-subnet.network', ignoring: cannot set more ranges than subnets
-[+0103s] Running: /var/tmp/go/src/github.com/containers/podman/bin/podman --network-backend netavark --storage-opt vfs.imagestore=/tmp/podman/imagecachedir --root /tmp/podman_test553496330/crio --runroot /tmp/podman_test553496330/crio-run --runtime /usr/bin/runc --conmon /usr/bin/conmon --network-config-dir /etc/cni/net.d --cgroup-manager systemd --tmpdir /tmp/podman_test553496330 --events-backend file --storage-driver vfs pod create --infra=false --share
-[+0103s] 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89
-[+0103s] output: 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89
-[+0103s] Running: /var/tmp/go/src/github.com/containers/podman/bin/podman --storage-opt vfs.imagestore=/tmp/podman/imagecachedir --root /tmp/podman_test553496330/crio --runroot /tmp/podman_test553496330/crio-run --runtime /usr/bin/runc --conmon /usr/bin/conmon --network-config-dir /etc/cni/net.d --cgroup-manager systemd --tmpdir /tmp/podman_test553496330 --events-backend file --storage-driver vfs pod restart 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89
-[+0103s] Error: no containers in pod 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89 have no dependencies, cannot start pod: no such container
-[+0103s] output:
-[+0103s] [AfterEach] Podman pod restart
-[+0103s]   /var/tmp/go/src/github.com/containers/podman/test/e2e/pod_restart_test.go:28
-[+0103s] Running: /var/tmp/go/src/github.com/containers/podman/bin/podman --storage-opt vfs.imagestore=/tmp/podman/imagecachedir --root /tmp/podman_test553496330/crio --runroot /tmp/podman_test553496330/crio-run --runtime /usr/bin/runc --conmon /usr/bin/conmon --network-config-dir /etc/cni/net.d --cgroup-manager systemd --tmpdir /tmp/podman_test553496330 --events-backend file --storage-driver vfs pod rm -fa
-[+0103s] 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89
-[+0104s] Running: /var/tmp/go/src/github.com/containers/libpod/bin/podman-remote --storage-opt vfs.imagestore=/tmp/podman/imagecachedir --root /tmp/podman_test553496330/crio --runroot /tmp/podman_test553496330/crio-run --runtime /usr/bin/runc --conmon /usr/bin/conmon --network-config-dir /etc/cni/net.d --cgroup-manager systemd --tmpdir /tmp/podman_test553496330 --events-backend file --storage-driver vfs --remote --url unix:/run/user/12345/podman-xyz.sock pod rm -fa
-[+0104s] 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89 again
-
-
-[+0107s] •
-[+0523s] ------------------------------
-[+0523s] Podman play kube with build
-[+0523s]   --build should override image in store
-[+0523s]   /var/tmp/go/src/github.com/containers/podman/test/e2e/play_build_test.go:215
-
-
-[+0479s] •
-[+0479s] ------------------------------
-[+0479s] Podman pod rm
-[+0479s]   podman pod rm -a doesn't remove a running container
-[+0479s]   /var/tmp/go/src/github.com/containers/podman/test/e2e/pod_rm_test.go:119
-
-
-[+1405s] •
-[+1405s] ------------------------------
-[+1405s] Podman run entrypoint
-[+1405s]   podman run entrypoint == [""]
-[+1405s]   /var/tmp/go/src/github.com/containers/podman/test/e2e/run_entrypoint_test.go:47
-
-[+0184s] S [SKIPPING] [3.086 seconds]
-[+1385s] S [SKIPPING] in Spec Setup (BeforeEach) [0.001 seconds]
-
-[+1512s] Summarizing 6 Failures:
-[+1512s]
-[+1512s] [Fail] Podman play kube with build [It] --build should override image in store
-[+1512s] /var/tmp/go/src/github.com/containers/podman/test/e2e/play_build_test.go:259
+[05:47:08] START - All [+xxxx] lines that follow are relative to 2023-04-17T05:47:08.
+[+0004s] CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build  -ldflags '-X github.com/containers/podman/v4/libpod/define.gitCommit=074143b0fac7af72cd92048d27931a92fe745084 -X github.com/containers/podman/v4/libpod/define.buildInfo=1681728432 -X github.com/containers/podman/v4/libpod/config._installPrefix=/usr/local -X github.com/containers/podman/v4/libpod/config._etcDir=/usr/local/etc -X github.com/containers/podman/v4/pkg/systemd/quadlet._binDir=/usr/local/bin -X github.com/containers/common/pkg/config.additionalHelperBinariesDir= ' -tags "   selinux systemd  exclude_graphdriver_devicemapper seccomp" -o test/checkseccomp/checkseccomp ./test/checkseccomp
+[+0006s] CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build  -ldflags '-X github.com/containers/podman/v4/libpod/define.gitCommit=074143b0fac7af72cd92048d27931a92fe745084 -X github.com/containers/podman/v4/libpod/define.buildInfo=1681728434 -X github.com/containers/podman/v4/libpod/config._installPrefix=/usr/local -X github.com/containers/podman/v4/libpod/config._etcDir=/usr/local/etc -X github.com/containers/podman/v4/pkg/systemd/quadlet._binDir=/usr/local/bin -X github.com/containers/common/pkg/config.additionalHelperBinariesDir= ' -o test/goecho/goecho ./test/goecho
+[+0006s] ./hack/install_catatonit.sh
+[+0270s] ------------------------------
+[+0271s] â¢ [3.327 seconds]
+[+0271s] Podman restart
+[+0271s] /var/tmp/go/src/github.com/containers/podman/test/e2e/restart_test.go:14
+[+0271s]   podman restart non-stop container with short timeout
+[+0271s]   /var/tmp/go/src/github.com/containers/podman/test/e2e/restart_test.go:148
+[+0271s]
+[+0271s]   Timeline >>
+[+0271s]   > Enter [BeforeEach] Podman restart - /var/tmp/go/src/github.com/containers/podman/test/e2e/restart_test.go:21 @ 04/17/23 10:00:28.653
+[+0271s]   < Exit [BeforeEach] Podman restart - /var/tmp/go/src/github.com/containers/podman/test/e2e/restart_test.go:21 @ 04/17/23 10:00:28.653 (0s)
+[+0271s]   > Enter [It] podman restart non-stop container with short timeout - /var/tmp/go/src/github.com/containers/podman/test/e2e/restart_test.go:148 @ 04/17/23 10:00:28.653
+[+0271s]   Running: /var/tmp/go/src/github.com/containers/podman/bin/podman --storage-opt vfs.imagestore=/tmp/imagecachedir --root /tmp/podman_test2968516396/root --runroot /tmp/podman_test2968516396/runroot --runtime crun --conmon /usr/bin/conmon --network-config-dir /tmp/podman_test2968516396/root/etc/networks --network-backend netavark --cgroup-manager systemd --tmpdir /tmp/podman_test2968516396 --events-backend file --db-backend sqlite --storage-driver vfs run -d --name test1 --env STOPSIGNAL=SIGKILL quay.io/libpod/alpine:latest sleep 999
+[+0271s]   7f5f8fb3d043984cdff65994d14c4fd157479d20e0a0fcf769c35b50e8975edc
+[+0271s]   Running: /var/tmp/go/src/github.com/containers/podman/bin/podman --storage-opt vfs.imagestore=/tmp/imagecachedir --root /tmp/podman_test2968516396/root --runroot /tmp/podman_test2968516396/runroot --runtime crun --conmon /usr/bin/conmon --network-config-dir /tmp/podman_test2968516396/root/etc/networks --network-backend netavark --cgroup-manager systemd --tmpdir /tmp/podman_test2968516396 --events-backend file --db-backend sqlite --storage-driver vfs restart -t 2 test1
+[+0271s]   time="2023-04-17T10:00:31-05:00" level=warning msg="StopSignal SIGTERM failed to stop container test1 in 2 seconds, resorting to SIGKILL"
+[+0271s]   test1
+[+0271s]   < Exit [It] podman restart non-stop container with short timeout - /var/tmp/go/src/github.com/containers/podman/test/e2e/restart_test.go:148 @ 04/17/23 10:00:31.334 (2.681s)
+[+0271s]   > Enter [AfterEach] Podman restart - /var/tmp/go/src/github.com/containers/podman/test/e2e/restart_test.go:30 @ 04/17/23 10:00:31.334
+[+0271s]   Running: /var/tmp/go/src/github.com/containers/podman/bin/podman --storage-opt vfs.imagestore=/tmp/imagecachedir --root /tmp/podman_test2968516396/root --runroot /tmp/podman_test2968516396/runroot --runtime crun --conmon /usr/bin/conmon --network-config-dir /tmp/podman_test2968516396/root/etc/networks --network-backend netavark --cgroup-manager systemd --tmpdir /tmp/podman_test2968516396 --events-backend file --db-backend sqlite --storage-driver vfs stop --all -t 0
+[+0271s]   7f5f8fb3d043984cdff65994d14c4fd157479d20e0a0fcf769c35b50e8975edc
+[+0271s]   Running: /var/tmp/go/src/github.com/containers/podman/bin/podman --storage-opt vfs.imagestore=/tmp/imagecachedir --root /tmp/podman_test2968516396/root --runroot /tmp/podman_test2968516396/runroot --runtime crun --conmon /usr/bin/conmon --network-config-dir /tmp/podman_test2968516396/root/etc/networks --network-backend netavark --cgroup-manager systemd --tmpdir /tmp/podman_test2968516396 --events-backend file --db-backend sqlite --storage-driver vfs pod rm -fa -t 0
+[+0271s]   Running: /var/tmp/go/src/github.com/containers/podman/bin/podman --storage-opt vfs.imagestore=/tmp/imagecachedir --root /tmp/podman_test2968516396/root --runroot /tmp/podman_test2968516396/runroot --runtime crun --conmon /usr/bin/conmon --network-config-dir /tmp/podman_test2968516396/root/etc/networks --network-backend netavark --cgroup-manager systemd --tmpdir /tmp/podman_test2968516396 --events-backend file --db-backend sqlite --storage-driver vfs rm -fa -t 0
+[+0271s]   7f5f8fb3d043984cdff65994d14c4fd157479d20e0a0fcf769c35b50e8975edc
+[+0271s]   < Exit [AfterEach] Podman restart - /var/tmp/go/src/github.com/containers/podman/test/e2e/restart_test.go:30 @ 04/17/23 10:00:31.979 (645ms)
+[+0271s]   << Timeline
 >>>
-$SCRIPT_BASE/integration_test.sh |&amp; ${TIMESTAMP}
-[08:26:19] START - All [+xxxx] lines that follow are relative to right now.
-<span class="timestamp">[+0002s] </span>GO111MODULE=on go build -mod=vendor  -gcflags &#39;all=-trimpath=/var/tmp/go/src/github.com/containers/podman&#39; -asmflags &#39;all=-trimpath=/var/tmp/go/src/github.com/containers/podman&#39; -ldflags &#39;-X github.com/containers/podman/libpod/define.gitCommit=40f5d8b1becd381c4e8283ed3940d09193e4fe06 -X github.com/containers/podman/libpod/define.buildInfo=1582809981 -X github.com/containers/podman/libpod/config._installPrefix=/usr/local -X github.com/containers/podman/libpod/config._etcDir=/etc -extldflags &quot;&quot;&#39; -tags &quot;   selinux systemd exclude_graphdriver_devicemapper seccomp varlink&quot; -o bin/podman github.com/containers/podman/cmd/podman
-<span class="timestamp">[+0103s] </span>•
+[05:47:08] START - All [+xxxx] lines that follow are relative to 2023-04-17T05:47:08.
+<span class="timestamp">[+0004s] </span>CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build  -ldflags &#39;-X github.com/containers/podman/v4/libpod/define.gitCommit=074143b0fac7af72cd92048d27931a92fe745084 -X github.com/containers/podman/v4/libpod/define.buildInfo=1681728432 -X github.com/containers/podman/v4/libpod/config._installPrefix=/usr/local -X github.com/containers/podman/v4/libpod/config._etcDir=/usr/local/etc -X github.com/containers/podman/v4/pkg/systemd/quadlet._binDir=/usr/local/bin -X github.com/containers/common/pkg/config.additionalHelperBinariesDir= &#39; -tags &quot;   selinux systemd  exclude_graphdriver_devicemapper seccomp&quot; -o test/checkseccomp/checkseccomp ./test/checkseccomp
+<span class="timestamp">[+0006s] </span>CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build  -ldflags &#39;-X github.com/containers/podman/v4/libpod/define.gitCommit=074143b0fac7af72cd92048d27931a92fe745084 -X github.com/containers/podman/v4/libpod/define.buildInfo=1681728434 -X github.com/containers/podman/v4/libpod/config._installPrefix=/usr/local -X github.com/containers/podman/v4/libpod/config._etcDir=/usr/local/etc -X github.com/containers/podman/v4/pkg/systemd/quadlet._binDir=/usr/local/bin -X github.com/containers/common/pkg/config.additionalHelperBinariesDir= &#39; -o test/goecho/goecho ./test/goecho
+<span class="timestamp">         </span>./hack/install_catatonit.sh
 </pre>
 <hr />
 <pre>
-<span class="timestamp">[+0103s] </span>Podman pod restart
-<span class="timestamp">         </span><a name='t--podman-pod-restart-single-empty-pod--1'><h2>  podman pod restart single empty pod</h2></a>
-<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_restart_test.go#L41'>/containers/podman/test/e2e/pod_restart_test.go:41</a>
-<span class="timestamp">         </span>[BeforeEach] Podman pod restart
-<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_restart_test.go#L18'>/containers/podman/test/e2e/pod_restart_test.go:18</a>
-<span class="timestamp">         </span><span class="testname">[It] podman pod restart single empty pod</span>
-<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_restart_test.go#L41'>/containers/podman/test/e2e/pod_restart_test.go:41</a>
-<span class="timestamp">         </span><span class="boring">#</span> <span title="/var/tmp/go/src/github.com/containers/podman/bin/quadlet"><b>quadlet -no-kmsg-log /tmp/podman_test620310100/generated</b></span><span class="boring"> with QUADLET_UNIT_DIRS=</span><b>/tmp/podman_test620310100/quadlet</b>
-<span class="timestamp">         </span>quadlet-generator[98757]: Error converting &#39;range.less-subnet.network&#39;, ignoring: cannot set more ranges than subnets
-<span class="timestamp">         </span><span class="boring">#</span> <span title="/var/tmp/go/src/github.com/containers/podman/bin/podman"><b>podman</b></span> <span class="boring" title="--network-backend netavark
---storage-opt vfs.imagestore=/tmp/podman/imagecachedir
---root /tmp/podman_test553496330/crio
---runroot /tmp/podman_test553496330/crio-run
---runtime /usr/bin/runc
+<span class="timestamp">[+0271s] </span>â¢ <b>[3.327 seconds]</b>
+<span class="timestamp">         </span>Podman restart
+<span class="timestamp">         </span>/var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/074143b0fac7af72cd92048d27931a92fe745084/test/e2e/restart_test.go#L14'>/containers/podman/test/e2e/restart_test.go:14</a>
+<span class="timestamp">         </span><a name='t--podman-restart-non-stop-container-with-short-timeout--1'><h2 class="log-passed">  podman restart non-stop container with short timeout</h2></a>
+<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/074143b0fac7af72cd92048d27931a92fe745084/test/e2e/restart_test.go#L148'>/containers/podman/test/e2e/restart_test.go:148</a>
+[+0271s]
+<span class="timestamp">         </span>  Timeline &gt;&gt;
+<div class="ginkgo-timeline ginkgo-beforeeach"><span class="timestamp">         </span>  &rarr; Enter [<b>BeforeEach</b>] Podman restart - /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/074143b0fac7af72cd92048d27931a92fe745084/test/e2e/restart_test.go#L21'>/containers/podman/test/e2e/restart_test.go:21</a> @ 04/17/23 10:00:28.653
+<span class="timestamp">         </span>  &larr; Exit  [BeforeEach] Podman restart - /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/074143b0fac7af72cd92048d27931a92fe745084/test/e2e/restart_test.go#L21'>/containers/podman/test/e2e/restart_test.go:21</a> @ 04/17/23 10:00:28.653 (0s)
+</div><div class="ginkgo-timeline ginkgo-it"><span class="timestamp">         </span>  &rarr; Enter [<b>It</b>] podman restart non-stop container with short timeout - /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/074143b0fac7af72cd92048d27931a92fe745084/test/e2e/restart_test.go#L148'>/containers/podman/test/e2e/restart_test.go:148</a> @ 04/17/23 10:00:28.653
+<span class="timestamp">         </span><span class="boring">  #</span> <span title="/var/tmp/go/src/github.com/containers/podman/bin/podman"><b>podman</b></span> <span class="boring" title="--storage-opt vfs.imagestore=/tmp/imagecachedir
+--root /tmp/podman_test2968516396/root
+--runroot /tmp/podman_test2968516396/runroot
+--runtime crun
 --conmon /usr/bin/conmon
---network-config-dir /etc/cni/net.d
+--network-config-dir /tmp/podman_test2968516396/root/etc/networks
+--network-backend netavark
 --cgroup-manager systemd
---tmpdir /tmp/podman_test553496330
+--tmpdir /tmp/podman_test2968516396
 --events-backend file
---storage-driver vfs">[options]</span><b> pod create --infra=false --share</b>
-<span class="timestamp">         </span>4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89
-<span class="timestamp">         </span><span class="boring">#</span> <span title="/var/tmp/go/src/github.com/containers/podman/bin/podman"><b>podman</b></span> <span class="boring" title="--storage-opt vfs.imagestore=/tmp/podman/imagecachedir
---root /tmp/podman_test553496330/crio
---runroot /tmp/podman_test553496330/crio-run
---runtime /usr/bin/runc
+--db-backend sqlite
+--storage-driver vfs">[options]</span><b> run -d --name test1 --env STOPSIGNAL=SIGKILL quay.io/libpod/alpine:latest sleep 999</b>
+<span class="timestamp">         </span>  7f5f8fb3d043984cdff65994d14c4fd157479d20e0a0fcf769c35b50e8975edc
+<span class="timestamp">         </span><span class="boring">  #</span> <span title="/var/tmp/go/src/github.com/containers/podman/bin/podman"><b>podman</b></span> <span class="boring" title="--storage-opt vfs.imagestore=/tmp/imagecachedir
+--root /tmp/podman_test2968516396/root
+--runroot /tmp/podman_test2968516396/runroot
+--runtime crun
 --conmon /usr/bin/conmon
---network-config-dir /etc/cni/net.d
+--network-config-dir /tmp/podman_test2968516396/root/etc/networks
+--network-backend netavark
 --cgroup-manager systemd
---tmpdir /tmp/podman_test553496330
+--tmpdir /tmp/podman_test2968516396
 --events-backend file
---storage-driver vfs">[options]</span><b> pod restart 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89</b>
-<span class="timestamp">         </span><span class='log-warning'>Error: no containers in pod 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89 have no dependencies, cannot start pod: no such container</span>
-<span class="timestamp">         </span>output:
-<span class="timestamp">         </span>[AfterEach] Podman pod restart
-<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_restart_test.go#L28'>/containers/podman/test/e2e/pod_restart_test.go:28</a>
-<span class="timestamp">         </span><span class="boring">#</span> <span title="/var/tmp/go/src/github.com/containers/podman/bin/podman"><b>podman</b></span> <span class="boring" title="--storage-opt vfs.imagestore=/tmp/podman/imagecachedir
---root /tmp/podman_test553496330/crio
---runroot /tmp/podman_test553496330/crio-run
---runtime /usr/bin/runc
+--db-backend sqlite
+--storage-driver vfs">[options]</span><b> restart -t 2 test1</b>
+<span class="timestamp">         </span>  time=<span class='log-warning'>&quot;2023-04-17T10:00:31-05:00&quot;</span> level=<span class='log-warning'>warning</span> msg=<span class='log-warning'>&quot;StopSignal SIGTERM failed to stop container test1 in 2 seconds, resorting to SIGKILL&quot;</span>
+<span class="timestamp">         </span>  test1
+<span class="timestamp">         </span>  &larr; Exit  [It] podman restart non-stop container with short timeout - /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/074143b0fac7af72cd92048d27931a92fe745084/test/e2e/restart_test.go#L148'>/containers/podman/test/e2e/restart_test.go:148</a> @ 04/17/23 10:00:31.334 (2.681s)
+</div><div class="ginkgo-timeline ginkgo-aftereach"><span class="timestamp">         </span>  &rarr; Enter [<b>AfterEach</b>] Podman restart - /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/074143b0fac7af72cd92048d27931a92fe745084/test/e2e/restart_test.go#L30'>/containers/podman/test/e2e/restart_test.go:30</a> @ 04/17/23 10:00:31.334
+<span class="timestamp">         </span><span class="boring">  #</span> <span title="/var/tmp/go/src/github.com/containers/podman/bin/podman"><b>podman</b></span> <span class="boring" title="--storage-opt vfs.imagestore=/tmp/imagecachedir
+--root /tmp/podman_test2968516396/root
+--runroot /tmp/podman_test2968516396/runroot
+--runtime crun
 --conmon /usr/bin/conmon
---network-config-dir /etc/cni/net.d
+--network-config-dir /tmp/podman_test2968516396/root/etc/networks
+--network-backend netavark
 --cgroup-manager systemd
---tmpdir /tmp/podman_test553496330
+--tmpdir /tmp/podman_test2968516396
 --events-backend file
---storage-driver vfs">[options]</span><b> pod rm -fa</b>
-<span class="timestamp">         </span>4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89
-
-<span class="timestamp">[+0104s] </span><span class="boring">#</span> <span title="/var/tmp/go/src/github.com/containers/libpod/bin/podman-remote"><b>podman-remote</b></span> <span class="boring" title="--storage-opt vfs.imagestore=/tmp/podman/imagecachedir
---root /tmp/podman_test553496330/crio
---runroot /tmp/podman_test553496330/crio-run
---runtime /usr/bin/runc
+--db-backend sqlite
+--storage-driver vfs">[options]</span><b> stop --all -t 0</b>
+<span class="timestamp">         </span>  7f5f8fb3d043984cdff65994d14c4fd157479d20e0a0fcf769c35b50e8975edc
+<span class="timestamp">         </span><span class="boring">  #</span> <span title="/var/tmp/go/src/github.com/containers/podman/bin/podman"><b>podman</b></span> <span class="boring" title="--storage-opt vfs.imagestore=/tmp/imagecachedir
+--root /tmp/podman_test2968516396/root
+--runroot /tmp/podman_test2968516396/runroot
+--runtime crun
 --conmon /usr/bin/conmon
---network-config-dir /etc/cni/net.d
+--network-config-dir /tmp/podman_test2968516396/root/etc/networks
+--network-backend netavark
 --cgroup-manager systemd
---tmpdir /tmp/podman_test553496330
+--tmpdir /tmp/podman_test2968516396
 --events-backend file
---storage-driver vfs
---url unix:/run/user/12345/podman-xyz.sock">[options]</span><b> pod rm -fa</b>
-<span class="timestamp">         </span>4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89 again
-
-
-<span class="timestamp">[+0107s] </span>•
-</pre>
-<hr />
-<pre>
-<span class="timestamp">[+0523s] </span>Podman play kube with build
-<span class="timestamp">         </span><a name='t----build-should-override-image-in-store--1'><h2>  --build should override image in store</h2></a>
-<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/play_build_test.go#L215'>/containers/podman/test/e2e/play_build_test.go:215</a>
-
-
-<span class="timestamp">[+0479s] </span>•
-</pre>
-<hr />
-<pre>
-<span class="timestamp">[+0479s] </span>Podman pod rm
-<span class="timestamp">         </span><a name='t--podman-pod-rm--a-doesnt-remove-a-running-container--1'><h2>  podman pod rm -a doesn&#39;t remove a running container</h2></a>
-<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_rm_test.go#L119'>/containers/podman/test/e2e/pod_rm_test.go:119</a>
-
-
-<span class="timestamp">[+1405s] </span>•
-</pre>
-<hr />
-<pre>
-<span class="timestamp">[+1405s] </span>Podman run entrypoint
-<span class="timestamp">         </span><a name='t--podman-run-entrypoint---1'><h2>  podman run entrypoint == [&quot;&quot;]</h2></a>
-<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/run_entrypoint_test.go#L47'>/containers/podman/test/e2e/run_entrypoint_test.go:47</a>
-
-
-<span class="timestamp">[+0184s] </span>S <span class="log-skip">[SKIPPING] [3.086 seconds]</span>
-<span class="timestamp">[+1385s] </span>S <span class="log-skip">[SKIPPING] in Spec Setup (BeforeEach) [0.001 seconds]</span>
-
-
-<span class="timestamp">[+1512s] </span>Summarizing 6 Failures:
-[+1512s]
-<span class="timestamp">         </span><b>[Fail] Podman play kube with build [It] <a href='#t----build-should-override-image-in-store--1'>--build should override image in store</a></b>
-<span class="timestamp">         </span>/var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/play_build_test.go#L259'>/containers/podman/test/e2e/play_build_test.go:259</a>
+--db-backend sqlite
+--storage-driver vfs">[options]</span><b> pod rm -fa -t 0</b>
+<span class="timestamp">         </span><span class="boring">  #</span> <span title="/var/tmp/go/src/github.com/containers/podman/bin/podman"><b>podman</b></span> <span class="boring" title="--storage-opt vfs.imagestore=/tmp/imagecachedir
+--root /tmp/podman_test2968516396/root
+--runroot /tmp/podman_test2968516396/runroot
+--runtime crun
+--conmon /usr/bin/conmon
+--network-config-dir /tmp/podman_test2968516396/root/etc/networks
+--network-backend netavark
+--cgroup-manager systemd
+--tmpdir /tmp/podman_test2968516396
+--events-backend file
+--db-backend sqlite
+--storage-driver vfs">[options]</span><b> rm -fa -t 0</b>
+<span class="timestamp">         </span>  7f5f8fb3d043984cdff65994d14c4fd157479d20e0a0fcf769c35b50e8975edc
+<span class="timestamp">         </span>  &larr; Exit  [AfterEach] Podman restart - /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/074143b0fac7af72cd92048d27931a92fe745084/test/e2e/restart_test.go#L30'>/containers/podman/test/e2e/restart_test.go:30</a> @ 04/17/23 10:00:31.979 (645ms)
+</div><span class="timestamp">         </span>  &lt;&lt; Timeline
 
 
 == simple python

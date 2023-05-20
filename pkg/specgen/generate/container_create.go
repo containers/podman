@@ -555,12 +555,24 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	}
 	// Default used if not overridden on command line
 
-	if s.RestartPolicy != "" {
-		if s.RestartRetries != nil {
-			options = append(options, libpod.WithRestartRetries(*s.RestartRetries))
+	var (
+		restartPolicy string
+		retries       uint
+	)
+	// If the container is running in a pod, use the pod's restart policy for all the containers
+	if pod != nil && !s.IsInitContainer() {
+		podConfig := pod.ConfigNoCopy()
+		if podConfig.RestartRetries != nil {
+			retries = *podConfig.RestartRetries
 		}
-		options = append(options, libpod.WithRestartPolicy(s.RestartPolicy))
+		restartPolicy = podConfig.RestartPolicy
+	} else if s.RestartPolicy != "" {
+		if s.RestartRetries != nil {
+			retries = *s.RestartRetries
+		}
+		restartPolicy = s.RestartPolicy
 	}
+	options = append(options, libpod.WithRestartRetries(retries), libpod.WithRestartPolicy(restartPolicy))
 
 	if s.ContainerHealthCheckConfig.HealthConfig != nil {
 		options = append(options, libpod.WithHealthCheck(s.ContainerHealthCheckConfig.HealthConfig))

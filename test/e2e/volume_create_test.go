@@ -2,36 +2,18 @@ package integration
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman volume create", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
 
 	AfterEach(func() {
 		podmanTest.CleanupVolume()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
 	})
 
 	It("podman create volume", func() {
@@ -85,18 +67,30 @@ var _ = Describe("Podman volume create", func() {
 			Skip("Volume export check does not work with a remote client")
 		}
 
-		session := podmanTest.Podman([]string{"volume", "create", "myvol"})
-		session.WaitWithDefaultTimeout()
-		volName := session.OutputToString()
-		Expect(session).Should(Exit(0))
-
-		session = podmanTest.Podman([]string{"run", "--volume", volName + ":/data", ALPINE, "sh", "-c", "echo hello >> " + "/data/test"})
+		volName := "my_vol_" + RandomString(10)
+		session := podmanTest.Podman([]string{"volume", "create", volName})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal(volName))
 
-		check := podmanTest.Podman([]string{"volume", "export", volName})
+		helloString := "hello-" + RandomString(20)
+		session = podmanTest.Podman([]string{"run", "--volume", volName + ":/data", ALPINE, "sh", "-c", "echo " + helloString + " >> /data/test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// export to tar file...
+		helloTar := filepath.Join(podmanTest.TempDir, "hello.tar")
+		check := podmanTest.Podman([]string{"volume", "export", "-o", helloTar, volName})
 		check.WaitWithDefaultTimeout()
-		Expect(check.OutputToString()).To(ContainSubstring("hello"))
+		Expect(check).Should(Exit(0))
+
+		// ...then confirm that tar file has our desired content.
+		// These flags emit filename to stderr (-v), contents to stdout
+		tar := SystemExec("tar", []string{"-x", "-v", "--to-stdout", "-f", helloTar})
+		tar.WaitWithDefaultTimeout()
+		Expect(tar).To(Exit(0))
+		Expect(tar.ErrorToString()).To(Equal("test"))
+		Expect(tar.OutputToString()).To(Equal(helloString))
 	})
 
 	It("podman create and import volume", func() {
@@ -104,12 +98,13 @@ var _ = Describe("Podman volume create", func() {
 			Skip("Volume export check does not work with a remote client")
 		}
 
-		session := podmanTest.Podman([]string{"volume", "create", "my_vol"})
+		volName := "my_vol_" + RandomString(10)
+		session := podmanTest.Podman([]string{"volume", "create", volName})
 		session.WaitWithDefaultTimeout()
-		volName := session.OutputToString()
 		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal(volName))
 
-		session = podmanTest.Podman([]string{"run", "--volume", volName + ":/data", ALPINE, "sh", "-c", "echo hello >> " + "/data/test"})
+		session = podmanTest.Podman([]string{"run", "--volume", volName + ":/data", ALPINE, "sh", "-c", "echo hello >> /data/test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 

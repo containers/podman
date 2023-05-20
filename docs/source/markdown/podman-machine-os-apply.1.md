@@ -17,6 +17,9 @@ By default, Podman machines on Mac and Linux use an rpm-ostree based distrubitio
 
 For more information, please see the [rpm-ostree docs](https://coreos.github.io/rpm-ostree/container/).
 
+The default machine name is `podman-machine-default`. If a machine name is not specified as an argument,
+then the OS changes will be applied to `podman-machine-default`.
+
 ## OPTIONS
 
 #### **--help**

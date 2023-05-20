@@ -66,6 +66,13 @@ podman untag docker.io/library/alpine:latest
 
 t POST "images/create?fromImage=quay.io/libpod/alpine&tag=sha256:fa93b01658e3a5a1686dc3ae55f170d8de487006fb53a28efcd12ab0710a2e5f" 200
 
+# create image from source with tag
+# Note the "-" is used to use an empty body and not "{}" which is the default.
+t POST "images/create?fromSrc=-&repo=myimage&tag=mytag" - 200
+t GET "images/myimage:mytag/json" 200 \
+  .Id~'^sha256:[0-9a-f]\{64\}$' \
+  .RepoTags[0]="docker.io/library/myimage:mytag"
+
 # Display the image history
 t GET libpod/images/nonesuch/history 404
 
@@ -73,7 +80,7 @@ for i in $iid ${iid:0:12} $PODMAN_TEST_IMAGE_NAME; do
   t GET libpod/images/$i/history 200 \
     .[0].Id=$iid \
     .[0].Created~[0-9]\\{10\\} \
-    .[0].Tags=null \
+    .[0].Tags[0]="$IMAGE" \
     .[0].Size=0 \
     .[0].Comment=
 done
@@ -82,7 +89,7 @@ for i in $iid ${iid:0:12} $PODMAN_TEST_IMAGE_NAME; do
   t GET images/$i/history 200 \
     .[0].Id="sha256:"$iid \
     .[0].Created~[0-9]\\{10\\} \
-    .[0].Tags=null \
+    .[0].Tags[0]="$IMAGE" \
     .[0].Size=0 \
     .[0].Comment=
 done
@@ -133,7 +140,7 @@ from alpine
 RUN >file1
 EOF
 
-podman image build -t test:test --label xyz -<<EOF
+podman image build -t test:test --label xyz --label abc -<<EOF
 from alpine
 RUN >file2
 EOF
@@ -143,7 +150,7 @@ t POST images/prune?filters='{"dangling":["true"]}' 200
 t GET images/json?filters='{"dangling":["true"]}' 200 length=0
 
 #label filter check in libpod and compat
-t GET images/json?filters='{"label":["xyz"]}' 200 length=1
+t GET images/json?filters='{"label":["xyz","abc"]}' 200 length=1
 t GET libpod/images/json?filters='{"label":["xyz"]}' 200 length=1
 
 t DELETE libpod/images/test:test 200
@@ -223,6 +230,11 @@ t POST "libpod/build?remote=https%3A%2F%2Fgithub.com%2Falpinelinux%2Fdocker-alpi
 
 # Build api response header must contain Content-type: application/json
 t POST "build?dockerfile=containerfile" $CONTAINERFILE_TAR application/json 200
+response_headers=$(cat "$WORKDIR/curl.headers.out")
+like "$response_headers" ".*application/json.*" "header does not contain application/json"
+
+# Build api response header must contain Content-type: application/json
+t POST "build?dockerfile=containerfile&pull=never" $CONTAINERFILE_TAR application/json 200
 response_headers=$(cat "$WORKDIR/curl.headers.out")
 like "$response_headers" ".*application/json.*" "header does not contain application/json"
 

@@ -27,7 +27,6 @@ package integration
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 	"os/user"
 	"path"
@@ -36,32 +35,12 @@ import (
 	"syscall"
 
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Toolbox-specific testing", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-	})
 
 	It("podman run --dns=none - allows self-management of /etc/resolv.conf", func() {
 		session := podmanTest.Podman([]string{"run", "--dns", "none", ALPINE, "sh", "-c",
@@ -90,7 +69,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 
 		err = syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rlimit)
 		Expect(err).ToNot(HaveOccurred())
-		fmt.Printf("Expected value: %d", rlimit.Max)
+		GinkgoWriter.Printf("Expected value: %d", rlimit.Max)
 
 		session = podmanTest.Podman([]string{"create", "--name", "test", "--ulimit", "host", ALPINE,
 			"sleep", "1000"})

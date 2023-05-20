@@ -7,27 +7,17 @@ import (
 	"strings"
 
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman pause", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
 	pausedState := "paused"
 	createdState := "created"
 
 	BeforeEach(func() {
 		SkipIfRootlessCgroupsV1("Pause is not supported in cgroups v1")
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
 
 		if CGROUPSV2 {
 			b, err := os.ReadFile("/proc/self/cgroup")
@@ -41,15 +31,6 @@ var _ = Describe("Podman pause", func() {
 				Skip("freezer controller not available on the current kernel")
 			}
 		}
-
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
 
 	})
 
@@ -151,6 +132,11 @@ var _ = Describe("Podman pause", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(strings.ToLower(podmanTest.GetContainerStatus())).To(ContainSubstring(pausedState))
 
+		// unpause so that the cleanup can stop the container,
+		// otherwise it fails with container state improper
+		session = podmanTest.Podman([]string{"unpause", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
 	})
 
 	It("podman remove a paused container by id with force", func() {

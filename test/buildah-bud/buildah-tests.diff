@@ -1,18 +1,18 @@
-From d94ba4638cb37e5f1eef97d6de9faf2161696c71 Mon Sep 17 00:00:00 2001
+From 716a55e6ce36c30df4dc9cde3d1b43b8c7d19c9e Mon Sep 17 00:00:00 2001
 From: Ed Santiago <santiago@redhat.com>
 Date: Thu, 6 Oct 2022 17:32:59 -0600
 Subject: [PATCH] tweaks for running buildah tests under podman
 
 Signed-off-by: Ed Santiago <santiago@redhat.com>
 ---
- tests/helpers.bash | 98 ++++++++++++++++++++++++++++++++++++++++++++--
- 1 file changed, 94 insertions(+), 4 deletions(-)
+ tests/helpers.bash | 119 +++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 115 insertions(+), 4 deletions(-)
 
 diff --git a/tests/helpers.bash b/tests/helpers.bash
-index 349145f29..742b41629 100644
+index 349145f29..3a0348f0b 100644
 --- a/tests/helpers.bash
 +++ b/tests/helpers.bash
-@@ -70,6 +70,37 @@ EOF
+@@ -70,6 +70,38 @@ EOF
      ROOTDIR_OPTS="--root ${TEST_SCRATCH_DIR}/root --runroot ${TEST_SCRATCH_DIR}/runroot --storage-driver ${STORAGE_DRIVER}"
      BUILDAH_REGISTRY_OPTS="--registries-conf ${TEST_SOURCES}/registries.conf --registries-conf-dir ${TEST_SCRATCH_DIR}/registries.d --short-name-alias-conf ${TEST_SCRATCH_DIR}/cache/shortnames.conf"
      PODMAN_REGISTRY_OPTS="--registries-conf ${TEST_SOURCES}/registries.conf"
@@ -37,8 +37,9 @@ index 349145f29..742b41629 100644
 +        # static CONTAINERS_CONF needed for capabilities test. As of 2021-07-01
 +        # no tests in bud.bats override this; if at some point any test does
 +        # so, it will probably need to be skip_if_remote()d.
-+        env CONTAINERS_CONF=${CONTAINERS_CONF:-$(dirname ${BASH_SOURCE})/containers.conf} $PODMAN_NATIVE system service --log-level=info --timeout=0 &>>${PODMAN_SERVER_LOG:-/dev/stderr} &
++        env CONTAINERS_CONF_OVERRIDE=${CONTAINERS_CONF_OVERRIDE:-$(dirname ${BASH_SOURCE})/containers.conf} $PODMAN_NATIVE system service --log-level=info --timeout=0 &>>${PODMAN_SERVER_LOG:-/dev/stderr} &
 +        PODMAN_SERVER_PID=$!
++        echo ">> pid=$PODMAN_SERVER_PID" >>${PODMAN_SERVER_LOG:-/dev/stderr}
 +        local timeout=10
 +        while ((timeout > 0)); do
 +            test -S $PODMAN_SOCK_FILE && return
@@ -50,20 +51,40 @@ index 349145f29..742b41629 100644
  }
  
  function starthttpd() {
-@@ -113,6 +144,12 @@ function teardown_tests() {
+@@ -113,6 +145,32 @@ function teardown_tests() {
      stop_git_daemon
      stop_registry
  
 +    if [[ -n "$PODMAN_SERVER_PID" ]]; then
++        echo "teardown: stopping podman server $PODMAN_SERVER_PID"
 +        kill $PODMAN_SERVER_PID
 +        wait $PODMAN_SERVER_PID
-+        rm -f $PODMAN_SOCK_FILE
++        # Socket file should go away once server exits
++        local timeout=10
++        while [[ -S $PODMAN_SOCK_FILE ]]; do
++            timeout=$((timeout - 1))
++            if [[ $timeout -eq 0 ]]; then
++                echo "# WARNING! $PODMAN_SOCK_FILE did not go away" >&3
++                rm -f $PODMAN_SOCK_FILE
++            fi
++            sleep 0.5
++        done
++    fi
++
++    # FIXME! 2023-04-11: under remote + rootless, on the very first test,
++    # we somehow end up with two podman-system-service jobs. The second one
++    # lingers, and prevents BATS from completing, manifesting as a test hang.
++    if is_rootless; then
++        ps auxww | grep "system service" | grep -v grep | while read user pid rest; do
++            echo "# teardown: killing stray server: $user $pid $rest" >&3
++            kill $pid
++        done
 +    fi
 +
      # Workaround for #1991 - buildah + overlayfs leaks mount points.
      # Many tests leave behind /var/tmp/.../root/overlay and sub-mounts;
      # let's find those and clean them up, otherwise 'rm -rf' fails.
-@@ -202,7 +239,12 @@ function copy() {
+@@ -202,7 +260,12 @@ function copy() {
  }
  
  function podman() {
@@ -77,7 +98,7 @@ index 349145f29..742b41629 100644
  }
  
  # There are various scenarios where we would like to execute `tests` as rootless user, however certain commands like `buildah mount`
-@@ -266,8 +308,36 @@ function run_buildah() {
+@@ -266,8 +329,36 @@ function run_buildah() {
          --retry)         retry=3;        shift;;  # retry network flakes
      esac
  
@@ -115,7 +136,7 @@ index 349145f29..742b41629 100644
  
      # If session is rootless and `buildah mount` is invoked, perform unshare,
      # since normal user cannot mount a filesystem unless they're in a user namespace along with its own mount namespace.
-@@ -281,8 +351,8 @@ function run_buildah() {
+@@ -281,8 +372,8 @@ function run_buildah() {
          retry=$(( retry - 1 ))
  
          # stdout is only emitted upon error; this echo is to help a debugger
@@ -126,7 +147,7 @@ index 349145f29..742b41629 100644
          # without "quotes", multiple lines are glommed together into one
          if [ -n "$output" ]; then
              echo "$output"
-@@ -621,6 +691,26 @@ function skip_if_no_docker() {
+@@ -621,6 +712,26 @@ function skip_if_no_docker() {
    fi
  }
  

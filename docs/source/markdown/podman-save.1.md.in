@@ -12,7 +12,7 @@ podman\-save - Save image(s) to an archive
 **podman save** saves an image to a local file or directory.
 **podman save** writes to STDOUT by default and can be redirected to a
 file using the **output** flag. The **quiet** flag suppresses the output when set.
-**podman save** will save parent layers of the image(s) and the image(s) can be loaded using **podman load**.
+**podman save** saves parent layers of the image(s) and the image(s) can be loaded using **podman load**.
 To export the containers, use the **podman export**.
 Note: `:` is a restricted character and cannot be part of the file name.
 
@@ -45,7 +45,7 @@ Print usage statement
 
 #### **--multi-image-archive**, **-m**
 
-Allow for creating archives with more than one image.  Additional names will be interpreted as images instead of tags.  Only supported for **--format=docker-archive**.
+Allow for creating archives with more than one image.  Additional names are interpreted as images instead of tags.  Only supported for **--format=docker-archive**.
 The default for this option can be modified via the `multi_image_archive="true"|"false"` flag in containers.conf.
 
 #### **--output**, **-o**=*file*

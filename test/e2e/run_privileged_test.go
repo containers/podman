@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/syndtr/gocapability/capability"
@@ -36,27 +36,6 @@ func containerCapMatchesHost(ctrCap string, hostCap string) {
 }
 
 var _ = Describe("Podman privileged container tests", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
-	})
 
 	It("podman privileged make sure sys is mounted rw", func() {
 		session := podmanTest.Podman([]string{"run", "--privileged", BB, "mount"})

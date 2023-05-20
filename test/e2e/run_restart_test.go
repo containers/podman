@@ -1,36 +1,13 @@
 package integration
 
 import (
-	"os"
-
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman run restart containers", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
-	})
 
 	It("Podman start after successful run", func() {
 		session := podmanTest.Podman([]string{"run", "--name", "test", ALPINE, "ls"})
@@ -49,7 +26,7 @@ var _ = Describe("Podman run restart containers", func() {
 	It("Podman start after signal kill", func() {
 		_ = podmanTest.RunTopContainer("test1")
 		ok := WaitForContainer(podmanTest)
-		Expect(ok).To(BeTrue())
+		Expect(ok).To(BeTrue(), "test1 container started")
 
 		killSession := podmanTest.Podman([]string{"kill", "-s", "9", "test1"})
 		killSession.WaitWithDefaultTimeout()

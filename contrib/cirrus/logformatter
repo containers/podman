@@ -12,13 +12,14 @@ use utf8;
 # Grumble. CI system doesn't have 'open'
 binmode STDIN,  ':utf8';
 binmode STDOUT, ':utf8';
+binmode STDERR, ':utf8';
 
 use strict;
 use warnings;
 
 (our $ME = $0) =~ s|.*/||;
 
-our $VERSION = '0.2';
+our $VERSION = '0.3';
 
 # Autoflush stdout
 $| = 1;
@@ -46,14 +47,34 @@ table.synopsis { border: none; border-collapse: collapse; margin-left: 2em; marg
 .log-debug    { color: #999; }
 .log-info     { color: #333; }
 .log-warning  { color: #f60; }
-.log-error    { color: #900; font-weight: bold; }
-.log-skip     { color: #F90; }
+.log-error    { background: #fee; color: #900; font-weight: bold; }
+.error-retry  { color: #c33; font-size: 125%; font-weight: bold; border-top: 1px solid #f00; }
+.log-passed   { color: #393; }
+.log-failed   { color: #F00; font-weight: bold; font-size: 150%; }
+.log-skipped  { color: #F90; }
+.log-flakey   { background: #f93; font-weight: bold; font-size: 150%; }
 .log-slow     { background: #FF0; color: #000; font-weight: bold; }
 .subtest      { background: #eee; }
 .subsubtest   { color: #F39; font-weight: bold; }
 .string       { color: #00c; }
 .command      { font-weight: bold; color: #000; }
 .changed      { color: #000; font-weight: bold; }
+
+/* Ginkgo "Enter/Exit [foo]": visually separate from each other */
+.ginkgo-timeline   { margin-top: 1ex; margin-bottom: 1ex; }
+
+/* BeforeEach and AfterEach tend to be boring. Gray them out. */
+.ginkgo-beforeeach { background: #f0f0f0; color: #999; }
+.ginkgo-aftereach  { background: #f0f0f0; color: #999; }
+.ginkgo-beforeeach b { color: #000; }
+.ginkgo-aftereach  b { color: #000; }
+
+/* [It] is where the test happens but we don't need any special highlights */
+.ginkgo-it           { }
+
+/* Finall summary line at bottom */
+.ginkgo-final-success { background: #393; font-weight: bold; font-size: 150%; }
+.ginkgo-final-fail    { background: #f00; font-weight: bold; font-size: 150%; }
 
 /* links to source files: not as prominent as links to errors */
 a.codelink:link    { color: #000; }
@@ -67,6 +88,7 @@ a.timing           { text-decoration: none; }
 /* BATS styles */
 .bats-passed    { color: #393; }
 .bats-failed    { color: #F00; font-weight: bold; }
+.bats-flaked    { color: #F93; font-weight: bold; }
 .bats-skipped   { color: #F90; }
 .bats-log       { color: #933; }
 .bats-log-failblock { color: #b00; background-color: #fee; display: inline-flex; margin: 0 -500%; padding: 0 500% !important; }
@@ -74,7 +96,7 @@ a.timing           { text-decoration: none; }
 .bats-summary   { font-size: 150%; }
 
 /* error titles: display next to timestamp, not on separate line */
-h2 { display: inline; }
+h2,h3 { display: inline; }
 END_CSS
 
 # END   user-customizable section
@@ -208,11 +230,13 @@ END_HTML
 
     # State variables
     my $previous_timestamp = '';  # timestamp of previous line
+    my $previous_timestamp_fine;  # fine-grain timestamp (BATS only)
     my $cirrus_task;              # Cirrus task number, used for linking
     my $git_commit;               # git SHA, used for linking to source files
+    my $subtest_status;           # pass, fail, skip, flake - for each subtest
     my $in_failure;               # binary flag: are we in an error dump?
     my $in_timing;                # binary flag: are we in the timing section?
-    my $after_divider = 0;        # Count of lines after seeing '-----'
+    my $after_divider = 999;      # Count of lines after seeing '-----'
     my $current_output;           # for removing duplication
     my $looks_like_bats;          # binary flag: for detecting BATS results
     my $looks_like_python;        #   " "   "  : for colorizing python tests
@@ -230,6 +254,12 @@ END_HTML
     # Main loop: read input, one line at a time, and write out reformatted
   LINE:
     while (my $line = <STDIN>) {
+        # ARGH. Some log files have NUL characters , apparently because
+        # certain tests write tar to stdout. Bleagh. Although it seems
+        # rude to strip those from our (purportedly untouched) log,
+        # it's worse to read log files with random NULs.
+        $line =~ s/\0//g;
+
         print $line;                    # Immediately dump back to stdout
 
         $Prompt = '$' if $line =~ /Runner executing .* as rootless /;
@@ -238,7 +268,6 @@ END_HTML
         next LINE if ! $out_fh;
 
         chomp $line;
-        $line =~ s/\0//g;               # Some log files have NULs????
         $line = escapeHTML($line);
 
         # Temporarily strip off leading timestamp
@@ -251,8 +280,8 @@ END_HTML
             $previous_timestamp = $timestamp;
         }
 
-        # Helper function for printing a formatted line. This should always
-        # be followed by 'next LINE'.
+        # Helper function for printing a formatted line. This should almost
+        # always be followed by 'next LINE'.
         my $print_line = sub {
             my $css = shift;
 
@@ -263,6 +292,20 @@ END_HTML
             print { $out_fh } "</span>"                 if $css;
             print { $out_fh } "\n";
         };
+
+        # ARGH! Special case for tests that run 'cat /proc/self/attr/current:
+        # that file terminates with NUL, so ginkgo logs concatenate the next
+        # output line, which is usually "Running: next-podman-command".
+        # This makes the log readable by splitting into two lines.
+        if ($line =~ /^(\s*)(\S+_u:\S+_t:\S+:c\S+)(Running:.*)/) {
+            my ($indent, $selinux, $nextline) = ($1||'', $2, $3);
+            # Print the SELinux line, unmodified...
+            $line = $indent . $selinux;
+            $print_line->();
+            # ...then forget that, and continue processing (fall through)
+            # with the 'Running' line.
+            $line = $indent . $nextline;
+        }
 
         # Try to identify the git commit we're working with...
         if ($line =~ m!/define.gitCommit=([0-9a-f]+)!) {
@@ -333,6 +376,44 @@ END_HTML
         if ($looks_like_bats) {
             my $css;
 
+            # 2023-05-16 run_podman() now displays NS-precision timestamps
+            # on commands and their output. This is cluttery, so if we
+            # see these, strip them and display in the left-hand (coarse)
+            # timestamp column instead. Hovering will display the full time.
+            #
+            #               1   1  23   3 4   4 5        52
+            if ($line =~ s{^(#\s)\[((\d+):(\d+):(\d+\.\d+))\]\s}{$1}) {
+                my ($full, $h, $m, $s) = ($2, $3, $4, $5);
+                my $timestamp_fine = $h * 3600.0 + $m * 60.0 + $s;
+                my $short;
+                if ($previous_timestamp_fine) {
+                    # This will fail if we do a midnight wraparound. NBD.
+                    my $delta = $timestamp_fine - $previous_timestamp_fine;
+
+                    # Human-readable format
+                    if ($delta > 10) {
+                        $short = sprintf("%04ds", $delta);
+                    }
+                    elsif ($delta > 1) {
+                        $short = sprintf("%03.2fs", $delta);
+                    }
+                    elsif ($delta > 0.001) {
+                        $short = sprintf("%03dms", $delta * 1000.0);
+                    }
+                    else {
+                        # Ultra-improbable
+                        $short = sprintf("%03dns", $delta * 1_000_000.0);
+                    }
+                }
+                else {
+                    $short = "     ";
+                }
+
+                # left-hand timestamp [+0001s] becomes <+013ms>
+                $timestamp = "<span title=\"$full\">&lt;+$short&gt;</span> ";
+                $previous_timestamp_fine = $timestamp_fine;
+            }
+
             # Readability: /long/path/to/podman -> podman (hover for full path)
             # Also make it boldface, to make commands stand out
             $line =~ s{^(#\s+(#|\$)\s+)(\S+/)(podman\S*)(\s.*)}
@@ -384,18 +465,51 @@ END_HTML
             next LINE;
         }
 
+        #
+        # Must be ginkgo
+        #
+        if ($line =~ s!^(\s*)(&[gl]t;)\s+(Enter|Exit)\s+\[(\w+)\]!!) {
+            my ($indent, $arrow, $action, $block) = ($1, $2, $3, $4);
+            if ($action eq 'Enter') {
+                printf { $out_fh } "<div class=\"ginkgo-timeline ginkgo-%s\">",
+                    lc($block);
+                $line = "$indent&rarr; Enter [<b>$block</b>]$line";
+                $print_line->();
+            }
+            else {
+                # Can be a div within a div
+                if ($in_failure) {
+                    $in_failure = 0;
+                    print { $out_fh } "</div>";
+                }
+
+                $line = "$indent&larr; Exit  [$block]$line";
+                $print_line->();
+
+                print { $out_fh } "</div>";
+            }
+
+            next LINE;
+        }
+
+        # Ginkgo v2 nicely lumps all retries for the same given test
+        if ($line =~ /^\s*Attempt\s+\#\d+\s+Failed\.\s+Retr/) {
+            $print_line->("error-retry");
+            next LINE;
+        }
+
         # Timing section at the bottom of the page
         if ($line =~ / timing results\s*$/) {
             $in_timing = 1;
         }
         elsif ($in_timing) {
-            if ($line =~ /^(\S.*\S)\s+(\d+\.\d+)\s*$/) {
+            if ($line =~ /^\s*(\S.*\S)\s+(\d+\.\d+)\s*$/) {
                 my ($name, $time) = ($1, $2);
                 my $id = make_id($1, 'timing');
 
                 # Try to column-align the timing numbers. Some test names
                 # will be longer than our max - oh well.
-                my $spaces = 80 - length(unescapeHTML($name));
+                my $spaces = 90 - length(unescapeHTML($name));
                 $spaces = 1 if $spaces < 1;
                 $spaces++ if $time < 10;
                 my $spacing = ' ' x $spaces;
@@ -406,10 +520,38 @@ END_HTML
             }
         }
 
+        # Ginkgo summary line. Colorize Passed, Failed, Flaked, Skipped
+        if ($line =~ /^(\s*)(FAIL|SUCCESS)!(\s+--\s+)(.*\d+\sPassed.*)/) {
+            my ($indent, $status, $dashes, $rhs) = ($1, $2, $3, $4);
+            my @counts = split('\|', $rhs);
+            my @formatted;
+            for my $c (@counts) {
+                $c =~ /^(\s*)(\d+)\s+(\w+)(\s*)$/
+                    or warn "$ME: line $.: WEIRD: '$c' in '$rhs' from '$line'";
+                my ($lhs, $n, $category, $rhs) = ($1||'', $2, $3, $4||'');
+                # Only highlight if count > 0, so "0 Failed" doesn't yell
+                if ($n > 0) {
+                    # Yes, we use 'bats-xxxx' classes even though we're ginkgo.
+                    push @formatted, sprintf("%s<span class=\"bats-%s\"><b>%d</b> %s</span>%s",
+                                             $lhs, lc($category), $n, $category, $rhs);
+                }
+                else {
+                    # Zero. Leave unhighlighted.
+                    push @formatted, $c;
+                }
+            }
+            $line = sprintf("%s<span class=\"ginkgo-final-%s\">%s!</span>%s%s",
+                            $indent,
+                            lc($status), $status,
+                            $dashes, join('|', @formatted));
+            $print_line->();
+            next LINE;
+        }
+
         #
         # Ginkgo error reformatting
         #
-        if ($line =~ /^.{1,4} (Failure|Panic)( in .*)? \[/) {
+        if ($line =~ /^\s*\[(FAILED|PANICKED)\]/) {
             # Begins a block of multiple lines including a stack trace
             print { $out_fh } "<div class='log-error'>\n";
             $in_failure = 1;
@@ -428,7 +570,7 @@ END_HTML
             next LINE;
         }
         # (bindings test sometimes emits 'Running' with leading bullet char)
-        elsif ($line =~ s!^•?Running:!<span class="boring">$Prompt</span>!) {
+        elsif ($line =~ s!^•?(\s*)Running:!<span class="boring">$1$Prompt</span>!) {
             # Highlight the important (non-boilerplate) podman command.
             $line =~ s/\s+--remote\s+/ /g;      # --remote takes no args
             # Strip out the global podman options, but show them on hover
@@ -449,15 +591,7 @@ END_HTML
 
             $current_output = '';
         }
-        # Grrr. 'output:' usually just tells us what we already know.
-        elsif ($line =~ /^output:/) {
-            $current_output =~ s!^\s+|\s+$!!g;  # Trim leading/trailing blanks
-            $current_output =~ s/\s+/ /g;       # Collapse multiple spaces
-            if ($line eq "output: $current_output" || $line eq 'output: ') {
-                next LINE;
-            }
-        }
-        elsif ($line =~ /^Error:/ || $line =~ / level=(warning|error) /) {
+        elsif ($line =~ /^\s*Error:/ || $line =~ / level=(warning|error) /) {
             $line = "<span class='log-warning'>" . $line . "</span>";
         }
         elsif ($line =~ /^panic:/) {
@@ -467,23 +601,41 @@ END_HTML
             $current_output .= ' ' . $line;
         }
 
+        # One line after each divider, there's a status/timing line.
+        if ($after_divider == 1) {
+            # When run with -p, ginkgo emits timing information on the
+            # first line after the divider. (Without -p, it's at the end).
+            # Recognize this, because it affects our recognition (below)
+            # of the test name.
+            $line =~ s{(\[(\d+)\.\d+\s+seconds\])}{
+                if ($2 > 5) { "<b><span class='log-slow'>$1</span></b>" }
+                else        { "<b>$1</b>" }
+            }e && --$after_divider;
 
-        # Two lines after each divider, there's a test name. Make it
-        # an anchor so we can link to it later.
-        if ($after_divider++ == 2) {
+            # Make FAILED and SKIPPING visible. (Only works with ginkgo -p;
+            # without -p, status is at the bottom of the test block)
+            $subtest_status = 'passed';
+            if ($line =~ s!^(.*\[(SKIPPED|FAILED|FLAKEY).*\].*)!<span class="log-\L$2\E">$1</span>!) {
+                $subtest_status = lc($2);
+            }
+
+            # FIXME: gray out entire block if it's skipped?
+        }
+
+        # Three lines after each divider (four, if ginkgo is run with "-p",
+        # see above), there's a test name. Make it an anchor so we can link
+        # to it later.
+        if ($after_divider == 3) {
             # Sigh. There is no actual marker. Assume that anything with
             ## two leading spaces then alpha or hyphen (not slashes) is
             ## a test name.
-            if ($line =~ /^  [a-zA-Z-]/) {
-                my $id = make_id($line, 'anchor');
+            if ($line =~ /^  (\[It\]\s*)?([a-zA-Z-].*\S)/) {
+                my $id = make_id($2, 'anchor');
 
-                $line = "<a name='t--$id'><h2>$line</h2></a>";
+                $line = "<a name='t--$id'><h2 class=\"log-$subtest_status\">$line</h2></a>";
             }
         }
-
-        # Make SKIPPING and SLOW TEST visible
-        $line =~ s!(\[SKIPPING\].*)!<span class="log-skip">$1</span>!;
-        $line =~ s!(\[SLOW TEST.*\])!<span class="log-slow">$1</span>!;
+        ++$after_divider;
 
         # Highlight test name when it appears in the middle of commands.
         # But make it boring, because we already have the test name in large
@@ -491,12 +643,12 @@ END_HTML
         $line =~ s!^(\s*)(\[It\]\s+.*)!$1<span class="testname">$2</span>!;
 
         # Failure name corresponds to a previously-seen block.
-        #              1  2           2        3             3   14           4
-        if ($line =~ /^(\[(Fail|Panic!)\] .* \[(It|BeforeEach)\] )([A-Za-z-].*)/) {
+        #              1     2           2        3                       3   14           4
+        if ($line =~ /^(\s*\[(FAIL|PANIC!)\] .* \[(It|BeforeEach|AfterEach)\] )([A-Za-z-].*)/) {
             my ($lhs, $type, $ginkgo_fluff, $testname) = ($1, $2, $3, $4);
             my $id = make_id($testname, 'link');
 
-            $line = "<b>$lhs<a href='#t--$id'>$testname</a></b>";
+            $line = "<span class=\"log-error\">$lhs<a href='#t--$id'>$testname</a></span>";
         }
 
         print { $out_fh } "<span class=\"timestamp\">$timestamp</span>"
@@ -603,6 +755,7 @@ sub make_id {
     state %counter;
 
     $name =~ s/^\s+|\s+$//g;            # strip leading/trailing whitespace
+    $name =~ s/^\[It\]\s*//;            # strip leading "[It] "
     $name =~ s/\&#\d+;//g;              # 'doesn&#39;t' -> 'doesnt'
     $name =~ s/\&quot;/-/g;             # '&quot;path&quot;' -> '-path-'
     $name =~ s/[^a-zA-Z0-9_-]/-/g;      # Convert non-alphanumeric to dash

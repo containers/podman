@@ -14,7 +14,7 @@ The `podman image mount` command without any arguments lists all of the
 currently mounted images.
 
 Rootless mode only supports mounting VFS driver, unless podman is run in a user namespace.
-Use the `podman unshare` command to enter the user namespace. All other storage drivers will fail to mount.
+Use the `podman unshare` command to enter the user namespace. All other storage drivers fail to mount.
 
 ## RETURN VALUE
 The location of the mounted file system.  On error an empty string and errno is

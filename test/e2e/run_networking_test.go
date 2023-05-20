@@ -12,35 +12,15 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/vishvananda/netlink"
 )
 
 var _ = Describe("Podman run networking", func() {
-	var (
-		tempdir     string
-		err         error
-		podmanTest  *PodmanTestIntegration
-		hostname, _ = os.Hostname()
-	)
 
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
-	})
+	hostname, _ := os.Hostname()
 
 	It("podman verify network scoped DNS server and also verify updating network dns server", func() {
 		// Following test is only functional with netavark and aardvark

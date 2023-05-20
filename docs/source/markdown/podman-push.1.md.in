@@ -65,7 +65,7 @@ Note: This flag can only be set when using the **dir** transport
 
 #### **--encrypt-layer**=*layer(s)*
 
-Layer(s) to encrypt: 0-indexed layer indices with support for negative indexing (e.g. 0 is the first layer, -1 is the last layer). If not defined, will encrypt all layers if encryption-key flag is specified.
+Layer(s) to encrypt: 0-indexed layer indices with support for negative indexing (e.g. 0 is the first layer, -1 is the last layer). If not defined, encrypts all layers if encryption-key flag is specified.
 
 #### **--encryption-key**=*key*
 

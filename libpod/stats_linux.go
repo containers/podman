@@ -5,7 +5,6 @@ package libpod
 
 import (
 	"fmt"
-	"math"
 	"strings"
 	"syscall"
 	"time"
@@ -59,7 +58,7 @@ func (c *Container) getPlatformContainerStats(stats *define.ContainerStats, prev
 	// calc the average cpu usage for the time the container is running
 	stats.AvgCPU = calculateCPUPercent(cgroupStats, 0, now, uint64(c.state.StartedTime.UnixNano()))
 	stats.MemUsage = cgroupStats.MemoryStats.Usage.Usage
-	stats.MemLimit = c.getMemLimit()
+	stats.MemLimit = c.getMemLimit(cgroupStats.MemoryStats.Usage.Limit)
 	stats.MemPerc = (float64(stats.MemUsage) / float64(stats.MemLimit)) * 100
 	stats.PIDs = 0
 	if conState == define.ContainerStateRunning || conState == define.ContainerStatePaused {
@@ -83,14 +82,7 @@ func (c *Container) getPlatformContainerStats(stats *define.ContainerStats, prev
 }
 
 // getMemory limit returns the memory limit for a container
-func (c *Container) getMemLimit() uint64 {
-	memLimit := uint64(math.MaxUint64)
-
-	resources := c.LinuxResources()
-	if resources != nil && resources.Memory != nil && resources.Memory.Limit != nil {
-		memLimit = uint64(*resources.Memory.Limit)
-	}
-
+func (c *Container) getMemLimit(memLimit uint64) uint64 {
 	si := &syscall.Sysinfo_t{}
 	err := syscall.Sysinfo(si)
 	if err != nil {

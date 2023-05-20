@@ -568,8 +568,13 @@ json-file | f
 
 @test "Verify /run/.containerenv exist" {
     # Nonprivileged container: file exists, but must be empty
-    run_podman run --rm $IMAGE stat -c '%s' /run/.containerenv
-    is "$output" "0" "file size of /run/.containerenv, nonprivileged"
+    for opt in "" "--tmpfs=/run" "--tmpfs=/run --init" "--read-only" "--systemd=always"; do
+        run_podman run --rm $opt $IMAGE stat -c '%s' /run/.containerenv
+        is "$output" "0" "/run/.containerenv exists and is empty: podman run ${opt}"
+    done
+
+    run_podman 1 run --rm -v ${PODMAN_TMPDIR}:/run:Z $IMAGE stat -c '%s' /run/.containerenv
+    is "$output" "stat: can't stat '/run/.containerenv': No such file or directory" "do not create .containerenv on bind mounts"
 
     # Prep work: get ID of image; make a cont. name; determine if we're rootless
     run_podman inspect --format '{{.ID}}' $IMAGE
@@ -1071,7 +1076,7 @@ EOF
 
     skip_if_remote "userns=auto is set on the server"
 
-    egrep -q "^containers:" /etc/subuid || skip "no IDs allocated for user 'containers'"
+    grep -E -q "^containers:" /etc/subuid || skip "no IDs allocated for user 'containers'"
 
     # check if the underlying file system supports idmapped mounts
     check_dir=$PODMAN_TMPDIR/idmap-check

@@ -7,7 +7,7 @@ podman\-container\-diff - Inspect changes on a container's filesystem
 **podman container diff** [*options*] *container* [*container*]
 
 ## DESCRIPTION
-Displays changes on a container's filesystem. The container will be compared to its parent layer or the second argument when given.
+Displays changes on a container's filesystem. The container is compared to its parent layer or the second argument when given.
 
 The output is prefixed with the following symbols:
 

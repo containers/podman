@@ -2,14 +2,12 @@ package integration
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
@@ -25,26 +23,6 @@ func isEventBackendJournald(podmanTest *PodmanTestIntegration) bool {
 }
 
 var _ = Describe("Podman logs", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-	})
 
 	It("podman logs on not existent container", func() {
 		results := podmanTest.Podman([]string{"logs", "notexist"})
@@ -281,7 +259,7 @@ var _ = Describe("Podman logs", func() {
 
 			output := results.OutputToStringArray()
 			Expect(output).To(HaveLen(6))
-			Expect(strings.Contains(output[0], cid1[:12]) || strings.Contains(output[0], cid2[:12])).To(BeTrue())
+			Expect(output[0]).To(Or(ContainSubstring(cid1[:12]), ContainSubstring(cid2[:12])))
 		})
 
 		It("podman logs on a created container should result in 0 exit code: "+log, func() {
@@ -567,11 +545,11 @@ var _ = Describe("Podman logs", func() {
 		testPod.WaitWithDefaultTimeout()
 		Expect(testPod).To(Exit(0))
 
-		log1 := podmanTest.Podman([]string{"run", "--name", containerName1, "-d", "--pod", podName, BB, "/bin/sh", "-c", "echo log1"})
+		log1 := podmanTest.Podman([]string{"run", "--name", containerName1, "--pod", podName, BB, "/bin/sh", "-c", "echo log1"})
 		log1.WaitWithDefaultTimeout()
 		Expect(log1).To(Exit(0))
 
-		log2 := podmanTest.Podman([]string{"run", "--name", containerName2, "-d", "--pod", podName, BB, "/bin/sh", "-c", "echo log2"})
+		log2 := podmanTest.Podman([]string{"run", "--name", containerName2, "--pod", podName, BB, "/bin/sh", "-c", "echo log2"})
 		log2.WaitWithDefaultTimeout()
 		Expect(log2).To(Exit(0))
 
@@ -592,10 +570,10 @@ var _ = Describe("Podman logs", func() {
 		testPod := podmanTest.Podman([]string{"pod", "create", fmt.Sprintf("--name=%s", podName)})
 		testPod.WaitWithDefaultTimeout()
 		Expect(testPod).To(Exit(0))
-		log1 := podmanTest.Podman([]string{"run", "--name", containerName1, "-d", "--pod", podName, BB, "/bin/sh", "-c", "echo log1"})
+		log1 := podmanTest.Podman([]string{"run", "--name", containerName1, "--pod", podName, BB, "/bin/sh", "-c", "echo log1"})
 		log1.WaitWithDefaultTimeout()
 		Expect(log1).To(Exit(0))
-		log2 := podmanTest.Podman([]string{"run", "--name", containerName2, "-d", "--pod", podName, BB, "/bin/sh", "-c", "echo log2"})
+		log2 := podmanTest.Podman([]string{"run", "--name", containerName2, "--pod", podName, BB, "/bin/sh", "-c", "echo log2"})
 		log2.WaitWithDefaultTimeout()
 		Expect(log2).To(Exit(0))
 		results := podmanTest.Podman([]string{"pod", "logs", "--color", podName})

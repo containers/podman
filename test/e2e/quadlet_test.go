@@ -12,9 +12,7 @@ import (
 	"github.com/containers/podman/v4/version"
 	"github.com/mattn/go-shellwords"
 
-	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
@@ -396,21 +394,12 @@ func (t *quadletTestcase) check(generateDir string, session *PodmanSessionIntegr
 
 var _ = Describe("quadlet system generator", func() {
 	var (
-		tempdir      string
 		err          error
 		generatedDir string
 		quadletDir   string
-		podmanTest   *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-
 		generatedDir = filepath.Join(podmanTest.TempDir, "generated")
 		err = os.Mkdir(generatedDir, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
@@ -418,13 +407,6 @@ var _ = Describe("quadlet system generator", func() {
 		quadletDir = filepath.Join(podmanTest.TempDir, "quadlet")
 		err = os.Mkdir(quadletDir, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
 	})
 
 	Describe("quadlet -version", func() {
@@ -452,7 +434,7 @@ var _ = Describe("quadlet system generator", func() {
 			current := session.ErrorToStringArray()
 			expected := "No files to parse from [/something]"
 
-			Expect(strings.Contains(current[0], expected)).To(BeTrue())
+			Expect(current[0]).To(ContainSubstring(expected))
 		})
 
 		It("Should parse a kube file and print it to stdout", func() {
@@ -505,7 +487,7 @@ var _ = Describe("quadlet system generator", func() {
 				fmt.Sprintf("ExecStop=%s kube down %s/deployment.yml", podmanPath, quadletDir),
 			}
 
-			Expect(expected).To(Equal(current))
+			Expect(current).To(Equal(expected))
 		})
 	})
 
@@ -525,7 +507,7 @@ var _ = Describe("quadlet system generator", func() {
 			// Print any stderr output
 			errs := session.ErrorToString()
 			if errs != "" {
-				fmt.Println("error:", session.ErrorToString())
+				GinkgoWriter.Println("error:", session.ErrorToString())
 			}
 
 			testcase.check(generatedDir, session)
@@ -576,6 +558,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("logdriver.container", "logdriver.container"),
 		Entry("mount.container", "mount.container"),
 		Entry("health.container", "health.container"),
+		Entry("hostname.container", "hostname.container"),
 
 		Entry("basic.volume", "basic.volume"),
 		Entry("label.volume", "label.volume"),

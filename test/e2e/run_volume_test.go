@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
@@ -19,26 +19,6 @@ import (
 const dest = "/unique/path"
 
 var _ = Describe("Podman run with volumes", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
-
-	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-	})
 
 	// Returns the /proc/self/mountinfo line for a given mount point
 	getMountInfo := func(volume string) []string {
@@ -387,10 +367,8 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(err).ToNot(HaveOccurred())
 		mountCmd1.Wait(90)
 		Expect(mountCmd1).Should(Exit(0))
-		os.Stdout.Sync()
-		os.Stderr.Sync()
 		mountOut1 := strings.Join(strings.Fields(string(mountCmd1.Out.Contents())), " ")
-		fmt.Printf("Output: %s", mountOut1)
+		GinkgoWriter.Printf("Output: %s", mountOut1)
 		Expect(mountOut1).To(Not(ContainSubstring(volName)))
 
 		ctrName := "testctr"
@@ -403,10 +381,8 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(err).ToNot(HaveOccurred())
 		mountCmd2.Wait(90)
 		Expect(mountCmd2).Should(Exit(0))
-		os.Stdout.Sync()
-		os.Stderr.Sync()
 		mountOut2 := strings.Join(strings.Fields(string(mountCmd2.Out.Contents())), " ")
-		fmt.Printf("Output: %s", mountOut2)
+		GinkgoWriter.Printf("Output: %s", mountOut2)
 		Expect(mountOut2).To(ContainSubstring(volName))
 
 		// Stop the container to unmount
@@ -424,10 +400,8 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(err).ToNot(HaveOccurred())
 		mountCmd3.Wait(90)
 		Expect(mountCmd3).Should(Exit(0))
-		os.Stdout.Sync()
-		os.Stderr.Sync()
 		mountOut3 := strings.Join(strings.Fields(string(mountCmd3.Out.Contents())), " ")
-		fmt.Printf("Output: %s", mountOut3)
+		GinkgoWriter.Printf("Output: %s", mountOut3)
 		Expect(mountOut3).To(Not(ContainSubstring(volName)))
 	})
 
@@ -678,7 +652,7 @@ VOLUME /test/`, ALPINE)
 
 		session = podmanTest.Podman([]string{"run", "--rm", "-v", ".:/app:O", ALPINE, "ls", "/app"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.OutputToString()).To(ContainSubstring(filepath.Base(CurrentGinkgoTestDescription().FileName)))
+		Expect(session.OutputToString()).To(ContainSubstring(filepath.Base(CurrentSpecReport().FileName())))
 		Expect(session).Should(Exit(0))
 
 		// Make sure modifications in container do not show up on host

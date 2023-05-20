@@ -1,41 +1,21 @@
 package integration
 
 import (
-	"os"
-
 	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman pod stats", func() {
-	var (
-		err        error
-		tempdir    string
-		podmanTest *PodmanTestIntegration
-	)
 
 	BeforeEach(func() {
 		SkipIfRootlessCgroupsV1("Tests fail with both CGv1 + required --cgroup-manager=cgroupfs")
 		if isContainerized() {
 			SkipIfCgroupV1("All tests fail Error: unable to load cgroup at ...: cgroup deleted")
 		}
-
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
 	})
 
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
-	})
 	It("podman pod stats should run with no pods", func() {
 		session := podmanTest.Podman([]string{"pod", "stats", "--no-stream"})
 		session.WaitWithDefaultTimeout()

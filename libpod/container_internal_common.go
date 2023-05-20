@@ -459,15 +459,9 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 		g.AddMount(overlayMount)
 	}
 
-	hasHomeSet := false
-	for _, s := range c.config.Spec.Process.Env {
-		if strings.HasPrefix(s, "HOME=") {
-			hasHomeSet = true
-			break
-		}
-	}
-	if !hasHomeSet && execUser.Home != "" {
-		c.config.Spec.Process.Env = append(c.config.Spec.Process.Env, fmt.Sprintf("HOME=%s", execUser.Home))
+	err = c.setHomeEnvIfNeeded()
+	if err != nil {
+		return nil, nil, err
 	}
 
 	if c.config.User != "" {
@@ -1944,11 +1938,16 @@ func (c *Container) makeBindMounts() error {
 
 	_, hasRunContainerenv := c.state.BindMounts["/run/.containerenv"]
 	if !hasRunContainerenv {
+	Loop:
 		// check in the spec mounts
 		for _, m := range c.config.Spec.Mounts {
-			if m.Destination == "/run/.containerenv" || m.Destination == "/run" {
+			switch {
+			case m.Destination == "/run/.containerenv":
 				hasRunContainerenv = true
-				break
+				break Loop
+			case m.Destination == "/run" && m.Source != "tmpfs":
+				hasRunContainerenv = true
+				break Loop
 			}
 		}
 	}
@@ -2432,6 +2431,41 @@ func (c *Container) generateCurrentUserPasswdEntry() (string, int, int, error) {
 	return pwd, uid, rootless.GetRootlessGID(), nil
 }
 
+// Sets the HOME env. variable with precedence: existing home env. variable, execUser home
+func (c *Container) setHomeEnvIfNeeded() error {
+	getExecUserHome := func() (string, error) {
+		overrides := c.getUserOverrides()
+		execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, c.config.User, overrides)
+		if err != nil {
+			if cutil.StringInSlice(c.config.User, c.config.HostUsers) {
+				execUser, err = lookupHostUser(c.config.User)
+			}
+
+			if err != nil {
+				return "", err
+			}
+		}
+
+		return execUser.Home, nil
+	}
+
+	// Ensure HOME is not already set in Env
+	home := ""
+	for _, s := range c.config.Spec.Process.Env {
+		if strings.HasPrefix(s, "HOME=") {
+			return nil
+		}
+	}
+
+	home, err := getExecUserHome()
+	if err != nil {
+		return err
+	}
+
+	c.config.Spec.Process.Env = append(c.config.Spec.Process.Env, fmt.Sprintf("HOME=%s", home))
+	return nil
+}
+
 func (c *Container) userPasswdEntry(u *user.User) (string, error) {
 	// Look up the user to see if it exists in the container image.
 	_, err := lookup.GetUser(c.state.Mountpoint, u.Username)
@@ -2464,17 +2498,7 @@ func (c *Container) userPasswdEntry(u *user.User) (string, error) {
 			}
 		}
 	}
-	// Set HOME environment if not already set
-	hasHomeSet := false
-	for _, s := range c.config.Spec.Process.Env {
-		if strings.HasPrefix(s, "HOME=") {
-			hasHomeSet = true
-			break
-		}
-	}
-	if !hasHomeSet {
-		c.config.Spec.Process.Env = append(c.config.Spec.Process.Env, fmt.Sprintf("HOME=%s", homeDir))
-	}
+
 	if c.config.PasswdEntry != "" {
 		return c.passwdEntry(u.Username, u.Uid, u.Gid, u.Name, homeDir), nil
 	}

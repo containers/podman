@@ -8,8 +8,7 @@ podman\-image\-inspect - Display an image's configuration
 
 ## DESCRIPTION
 
-This displays the low-level information on images identified by name or ID. By default, this will render
-all results in a JSON array.  If a format is specified, the given template will be executed for each result.
+This displays the low-level information on images identified by name or ID. By default, this renders all results in a JSON array.  If a format is specified, the given template is executed for each result.
 
 ## OPTIONS
 

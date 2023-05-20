@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 
@@ -57,7 +56,7 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 
 	slirp4netnsPath := r.config.Engine.NetworkCmdPath
 	if slirp4netnsPath == "" {
-		slirp4netnsPath, _ = exec.LookPath("slirp4netns")
+		slirp4netnsPath, _ = r.config.FindHelperBinary(slirp4netnsBinaryName, true)
 	}
 	if slirp4netnsPath != "" {
 		version, err := programVersion(slirp4netnsPath)

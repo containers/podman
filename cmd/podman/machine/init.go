@@ -22,7 +22,7 @@ var (
 		PersistentPreRunE: rootlessOnly,
 		RunE:              initMachine,
 		Args:              cobra.MaximumNArgs(1),
-		Example:           `podman machine init myvm`,
+		Example:           `podman machine init podman-machine-default`,
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
 
@@ -30,7 +30,6 @@ var (
 	initOptionalFlags  = InitOptionalFlags{}
 	defaultMachineName = machine.DefaultMachineName
 	now                bool
-	defaultProvider    = GetSystemDefaultProvider()
 )
 
 // Flags which have a meaning when unspecified that differs from the flag default
@@ -129,7 +128,10 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		vm  machine.VM
 	)
 
-	provider := defaultProvider
+	provider, err := GetSystemProvider()
+	if err != nil {
+		return err
+	}
 	initOpts.Name = defaultMachineName
 	if len(args) > 0 {
 		if len(args[0]) > maxMachineNameSize {

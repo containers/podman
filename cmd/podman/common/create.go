@@ -386,14 +386,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(requiresFlagName, AutocompleteContainers)
 
-		restartFlagName := "restart"
-		createFlags.StringVar(
-			&cf.Restart,
-			restartFlagName, "",
-			`Restart policy to apply when a container exits ("always"|"no"|"on-failure"|"unless-stopped")`,
-		)
-		_ = cmd.RegisterFlagCompletionFunc(restartFlagName, AutocompleteRestartOption)
-
 		createFlags.BoolVar(
 			&cf.Rm,
 			"rm", false,
@@ -635,6 +627,14 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 	}
 	if mode == entities.InfraMode || (mode == entities.CreateMode) { // infra container flags, create should also pick these up
+		restartFlagName := "restart"
+		createFlags.StringVar(
+			&cf.Restart,
+			restartFlagName, "",
+			`Restart policy to apply when a container exits ("always"|"no"|"never"|"on-failure"|"unless-stopped")`,
+		)
+		_ = cmd.RegisterFlagCompletionFunc(restartFlagName, AutocompleteRestartOption)
+
 		shmSizeFlagName := "shm-size"
 		createFlags.String(
 			shmSizeFlagName, shmSize(),

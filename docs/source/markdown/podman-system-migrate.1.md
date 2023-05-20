@@ -30,7 +30,7 @@ newly configured mappings.
 
 Set a new OCI runtime for all containers.
 This can be used after a system upgrade which changes the default OCI runtime to move all containers to the new runtime.
-There are no guarantees that the containers will continue to work under the new runtime, as some runtimes support differing options and configurations.
+There are no guarantees that the containers continue to work under the new runtime, as some runtimes support differing options and configurations.
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-system(1)](podman-system.1.md)**, **usermod(8)**

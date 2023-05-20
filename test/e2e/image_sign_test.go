@@ -5,28 +5,19 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
-var _ = Describe("Podman image sign", func() {
-	var (
-		origGNUPGHOME string
-		tempdir       string
-		err           error
-		podmanTest    *PodmanTestIntegration
-	)
+// Each of these tests runs with a different GNUPGHOME; gpg-agent blows up
+// if these run in parallel. We use Serial, not Ordered, because tests in
+// trust_test.go also rely on gpg and can't coexist with us.
+var _ = Describe("Podman image sign", Serial, func() {
+	var origGNUPGHOME string
 
 	BeforeEach(func() {
 		SkipIfRemote("podman-remote image sign is not supported")
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
 		tempGNUPGHOME := filepath.Join(podmanTest.TempDir, "tmpGPG")
 		err := os.Mkdir(tempGNUPGHOME, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
@@ -38,16 +29,20 @@ var _ = Describe("Podman image sign", func() {
 	})
 
 	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
+		// There's no way to run gpg without an agent, so, clean up
+		// after every test. No need to check error status.
+		cmd := exec.Command("gpgconf", "--kill", "gpg-agent")
+		cmd.Stdout = GinkgoWriter
+		cmd.Stderr = GinkgoWriter
+		_ = cmd.Run()
+
 		os.Setenv("GNUPGHOME", origGNUPGHOME)
 	})
 
 	It("podman sign image", func() {
 		cmd := exec.Command("gpg", "--import", "sign/secret-key.asc")
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		cmd.Stdout = GinkgoWriter
+		cmd.Stderr = GinkgoWriter
 		err := cmd.Run()
 		Expect(err).ToNot(HaveOccurred())
 		sigDir := filepath.Join(podmanTest.TempDir, "test-sign")
@@ -62,8 +57,8 @@ var _ = Describe("Podman image sign", func() {
 
 	It("podman sign --all multi-arch image", func() {
 		cmd := exec.Command("gpg", "--import", "sign/secret-key.asc")
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		cmd.Stdout = GinkgoWriter
+		cmd.Stderr = GinkgoWriter
 		err := cmd.Run()
 		Expect(err).ToNot(HaveOccurred())
 		sigDir := filepath.Join(podmanTest.TempDir, "test-sign-multi")

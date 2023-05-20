@@ -6,7 +6,7 @@
 
 Logging driver for the container. Currently available options are **k8s-file**, **journald**, **none** and **passthrough**, with **json-file** aliased to **k8s-file** for scripting compatibility. (Default **journald**).
 
-The podman info command below will display the default log-driver for the system.
+The podman info command below displays the default log-driver for the system.
 ```
 $ podman info --format '{{ .Host.LogDriver }}'
 journald

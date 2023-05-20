@@ -524,16 +524,18 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		}
 		defer f.Close()
 
-		cm, err := readConfigMapFromFile(f)
+		cms, err := readConfigMapFromFile(f)
 		if err != nil {
 			return nil, nil, fmt.Errorf("%q: %w", p, err)
 		}
 
-		if _, present := configMapIndex[cm.Name]; present {
-			return nil, nil, fmt.Errorf("ambiguous configuration: the same config map %s is present in YAML and in --configmaps %s file", cm.Name, p)
-		}
+		for _, cm := range cms {
+			if _, present := configMapIndex[cm.Name]; present {
+				return nil, nil, fmt.Errorf("ambiguous configuration: the same config map %s is present in YAML and in --configmaps %s file", cm.Name, p)
+			}
 
-		configMaps = append(configMaps, cm)
+			configMaps = append(configMaps, cm)
+		}
 	}
 
 	mountLabel, err := getMountLabel(podYAML.Spec.SecurityContext)
@@ -592,16 +594,16 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		return nil, nil, err
 	}
 
-	var ctrRestartPolicy string
+	// Set the restart policy from the kube yaml at the pod level in podman
 	switch podYAML.Spec.RestartPolicy {
 	case v1.RestartPolicyAlways:
-		ctrRestartPolicy = define.RestartPolicyAlways
+		podSpec.PodSpecGen.RestartPolicy = define.RestartPolicyAlways
 	case v1.RestartPolicyOnFailure:
-		ctrRestartPolicy = define.RestartPolicyOnFailure
+		podSpec.PodSpecGen.RestartPolicy = define.RestartPolicyOnFailure
 	case v1.RestartPolicyNever:
-		ctrRestartPolicy = define.RestartPolicyNo
+		podSpec.PodSpecGen.RestartPolicy = define.RestartPolicyNo
 	default: // Default to Always
-		ctrRestartPolicy = define.RestartPolicyAlways
+		podSpec.PodSpecGen.RestartPolicy = define.RestartPolicyAlways
 	}
 
 	if podOpt.Infra {
@@ -727,6 +729,16 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		if err != nil {
 			return nil, nil, err
 		}
+
+		// ensure the environment is setup for initContainers as well: https://github.com/containers/podman/issues/18384
+		warn, err := generate.CompleteSpec(ctx, ic.Libpod, specGen)
+		if err != nil {
+			return nil, nil, err
+		}
+		for _, w := range warn {
+			logrus.Warn(w)
+		}
+
 		specGen.SdNotifyMode = define.SdNotifyModeIgnore
 		rtSpec, spec, opts, err := generate.MakeContainer(ctx, ic.Libpod, specGen, false, nil)
 		if err != nil {
@@ -775,7 +787,6 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			PodName:            podName,
 			PodSecurityContext: podYAML.Spec.SecurityContext,
 			ReadOnly:           readOnly,
-			RestartPolicy:      ctrRestartPolicy,
 			SeccompPaths:       seccompPaths,
 			SecretsManager:     secretsManager,
 			UserNSIsHost:       p.Userns.IsHost(),
@@ -793,7 +804,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			return nil, nil, err
 		}
 		for _, w := range warn {
-			fmt.Fprintf(os.Stderr, "%s\n", w)
+			logrus.Warn(w)
 		}
 
 		specGen.RawImageName = container.Image
@@ -1143,23 +1154,38 @@ func (ic *ContainerEngine) importVolume(ctx context.Context, vol *libpod.Volume,
 }
 
 // readConfigMapFromFile returns a kubernetes configMap obtained from --configmap flag
-func readConfigMapFromFile(r io.Reader) (v1.ConfigMap, error) {
-	var cm v1.ConfigMap
+func readConfigMapFromFile(r io.Reader) ([]v1.ConfigMap, error) {
+	configMaps := make([]v1.ConfigMap, 0)
 
 	content, err := io.ReadAll(r)
 	if err != nil {
-		return cm, fmt.Errorf("unable to read ConfigMap YAML content: %w", err)
+		return nil, fmt.Errorf("unable to read ConfigMap YAML content: %w", err)
 	}
 
-	if err := yaml.Unmarshal(content, &cm); err != nil {
-		return cm, fmt.Errorf("unable to read YAML as Kube ConfigMap: %w", err)
+	// split yaml document
+	documentList, err := splitMultiDocYAML(content)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read as kube YAML: %w", err)
 	}
 
-	if cm.Kind != "ConfigMap" {
-		return cm, fmt.Errorf("invalid YAML kind: %q. [ConfigMap] is the only supported by --configmap", cm.Kind)
+	for _, document := range documentList {
+		kind, err := getKubeKind(document)
+		if err != nil {
+			return nil, fmt.Errorf("unable to read as kube YAML: %w", err)
+		}
+
+		if kind != "ConfigMap" {
+			return nil, fmt.Errorf("invalid YAML kind: %q. [ConfigMap] is the only supported by --configmap", kind)
+		}
+
+		var configMap v1.ConfigMap
+		if err := yaml.Unmarshal(document, &configMap); err != nil {
+			return nil, fmt.Errorf("unable to read YAML as Kube ConfigMap: %w", err)
+		}
+		configMaps = append(configMaps, configMap)
 	}
 
-	return cm, nil
+	return configMaps, nil
 }
 
 // splitMultiDocYAML reads multiple documents in a YAML file and

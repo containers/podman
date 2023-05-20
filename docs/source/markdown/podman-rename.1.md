@@ -10,7 +10,7 @@ podman\-rename - Rename an existing container
 
 ## DESCRIPTION
 Rename changes the name of an existing container.
-The old name will be freed, and will be available for use.
+The old name is freed, and is available for use.
 This command can be run on containers in any state.
 However, running containers may not fully receive the effects until they are restarted - for example, a running container may still use the old name in its logs.
 At present, only containers are supported; pods and volumes cannot be renamed.

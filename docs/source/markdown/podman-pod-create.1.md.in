@@ -20,7 +20,7 @@ UUID short identifier (“f78375b1c487”)
 Name (“jonah”)
 
 podman generates a UUID for each pod, and if a name is not assigned
-to the container with **--name** then a random string name will be generated
+to the container with **--name** then a random string name is generated
 for it. This name is useful to identify a pod.
 
 Note: resource limit related flags work by setting the limits explicitly in the pod's cgroup parent
@@ -59,15 +59,15 @@ Note: the pod implements devices by storing the initial configuration passed by 
 
 #### **--dns**=*ipaddr*
 
-Set custom DNS servers in the /etc/resolv.conf file that will be shared between all containers in the pod. A special option, "none" is allowed which disables creation of /etc/resolv.conf for the pod.
+Set custom DNS servers in the /etc/resolv.conf file that is shared between all containers in the pod. A special option, "none" is allowed which disables creation of /etc/resolv.conf for the pod.
 
 #### **--dns-option**=*option*
 
-Set custom DNS options in the /etc/resolv.conf file that will be shared between all containers in the pod.
+Set custom DNS options in the /etc/resolv.conf file that is shared between all containers in the pod.
 
 #### **--dns-search**=*domain*
 
-Set custom DNS search domains in the /etc/resolv.conf file that will be shared between all containers in the pod.
+Set custom DNS search domains in the /etc/resolv.conf file that is shared between all containers in the pod.
 
 #### **--exit-policy**=**continue** | *stop*
 
@@ -96,7 +96,7 @@ Create an infra container and associate it with the pod. An infra container is a
 
 #### **--infra-image**=*image*
 
-The custom image that will be used for the infra container.  Unless specified, Podman builds a custom local image which does not require pulling down an image.
+The custom image that is used for the infra container.  Unless specified, Podman builds a custom local image which does not require pulling down an image.
 
 @@option infra-name
 
@@ -143,17 +143,21 @@ but only by the pod itself.
 
 @@option replace
 
+@@option restart
+
+Default restart policy for all the containers in a pod.
+
 @@option security-opt
 
 #### **--share**=*namespace*
 
-A comma-separated list of kernel namespaces to share. If none or "" is specified, no namespaces will be shared and the infra container will not be created unless expiclity specified via **--infra=true**. The namespaces to choose from are cgroup, ipc, net, pid, uts. If the option is prefixed with a "+" then the namespace is appended to the default list, otherwise it replaces the default list. Defaults matches Kubernetes default (ipc, net, uts)
+A comma-separated list of kernel namespaces to share. If none or "" is specified, no namespaces are shared, and the infra container is not created unless explicitly specified via **--infra=true**. The namespaces to choose from are cgroup, ipc, net, pid, uts. If the option is prefixed with a "+", the namespace is appended to the default list. Otherwise, it replaces the default list. Defaults match Kubernetes default (ipc, net, uts)
 
 #### **--share-parent**
 
-This boolean determines whether or not all containers entering the pod will use the pod as their cgroup parent. The default value of this flag is true. Use the **--share** option to share the cgroup namespace rather than a cgroup parent in a pod.
+This boolean determines whether or not all containers entering the pod use the pod as their cgroup parent. The default value of this option is true. Use the **--share** option to share the cgroup namespace rather than a cgroup parent in a pod.
 
-Note: This options conflict with **--share=cgroup** since that would set the pod as the cgroup parent but enter the container into the same cgroupNS as the infra container.
+Note: This option conflicts with the **--share=cgroup** option since that option sets the pod as the cgroup parent but enters the container into the same cgroupNS as the infra container.
 
 @@option shm-size
 
@@ -205,4 +209,4 @@ $ podman pod create --network net1:ip=10.89.1.5 --network net2:ip=10.89.10.10
 July 2018, Originally compiled by Peter Hunt <pehunt@redhat.com>
 
 ## FOOTNOTES
-<a name="Footnote1">1</a>: The Podman project is committed to inclusivity, a core value of open source. The `master` and `slave` mount propagation terminology used here is problematic and divisive, and should be changed. However, these terms are currently used within the Linux kernel and must be used as-is at this time. When the kernel maintainers rectify this usage, Podman will follow suit immediately.
+<a name="Footnote1">1</a>: The Podman project is committed to inclusivity, a core value of open source. The `master` and `slave` mount propagation terminology used here is problematic and divisive, and needs to be changed. However, these terms are currently used within the Linux kernel and must be used as-is at this time. When the kernel maintainers rectify this usage, Podman will follow suit immediately.

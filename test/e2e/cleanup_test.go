@@ -1,36 +1,15 @@
 package integration
 
 import (
-	"os"
-
-	. "github.com/containers/podman/v4/test/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman container cleanup", func() {
-	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-	)
 
 	BeforeEach(func() {
 		SkipIfRemote("podman container cleanup is not supported in remote")
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.Setup()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		processTestResult(f)
-
 	})
 
 	It("podman cleanup bogus container", func() {
@@ -124,5 +103,11 @@ var _ = Describe("Podman container cleanup", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
 		Expect(session.ErrorToString()).To(ContainSubstring("container state improper"))
+
+		// unpause so that the cleanup can stop the container,
+		// otherwise it fails with container state improper
+		session = podmanTest.Podman([]string{"unpause", "paused"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
 	})
 })

@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package libvirt is a pure Go implementation of the libvirt RPC protocol.
-// For more information on the protocol, see https://libvirt.org/internals/l.html
 package libvirt
 
 // We'll use c-for-go to extract the consts and typedefs from the libvirt
@@ -21,7 +19,6 @@ package libvirt
 //go:generate scripts/gen-consts.sh
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -29,22 +26,47 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"syscall"
+	"time"
 
 	"github.com/digitalocean/go-libvirt/internal/constants"
 	"github.com/digitalocean/go-libvirt/internal/event"
 	xdr "github.com/digitalocean/go-libvirt/internal/go-xdr/xdr2"
+	"github.com/digitalocean/go-libvirt/socket"
+	"github.com/digitalocean/go-libvirt/socket/dialers"
 )
 
 // ErrEventsNotSupported is returned by Events() if event streams
 // are unsupported by either QEMU or libvirt.
 var ErrEventsNotSupported = errors.New("event monitor is not supported")
 
+// ConnectURI defines a type for driver URIs for libvirt
+// the defined constants are *not* exhaustive as there are also options
+// e.g. to connect remote via SSH
+type ConnectURI string
+
+const (
+	// QEMUSystem connects to a QEMU system mode daemon
+	QEMUSystem ConnectURI = "qemu:///system"
+	// QEMUSession connects to a QEMU session mode daemon (unprivileged)
+	QEMUSession ConnectURI = "qemu:///session"
+	// XenSystem connects to a Xen system mode daemon
+	XenSystem ConnectURI = "xen:///system"
+	//TestDefault connect to default mock driver
+	TestDefault ConnectURI = "test:///default"
+
+	// disconnectedTimeout is how long to wait for disconnect cleanup to
+	// complete
+	disconnectTimeout = 5 * time.Second
+)
+
 // Libvirt implements libvirt's remote procedure call protocol.
 type Libvirt struct {
-	conn net.Conn
-	r    *bufio.Reader
-	w    *bufio.Writer
-	mu   *sync.Mutex
+	// socket connection
+	socket *socket.Socket
+	// closed after cleanup complete following the underlying connection to
+	// libvirt being disconnected.
+	disconnected chan struct{}
 
 	// method callbacks
 	cmux      sync.RWMutex
@@ -93,16 +115,39 @@ func (l *Libvirt) Capabilities() ([]byte, error) {
 	return []byte(caps), err
 }
 
-// Connect establishes communication with the libvirt server.
-// The underlying libvirt socket connection must be previously established.
-func (l *Libvirt) Connect() error {
+// called at connection time, authenticating with all supported auth types
+func (l *Libvirt) authenticate() error {
+	// libvirt requires that we call auth-list prior to connecting,
+	// even when no authentication is used.
+	resp, err := l.AuthList()
+	if err != nil {
+		return err
+	}
+
+	for _, auth := range resp {
+		switch auth {
+		case constants.AuthNone:
+		case constants.AuthPolkit:
+			_, err := l.AuthPolkit()
+			if err != nil {
+				return err
+			}
+		default:
+			continue
+		}
+		break
+	}
+	return nil
+}
+
+func (l *Libvirt) initLibvirtComms(uri ConnectURI) error {
 	payload := struct {
 		Padding [3]byte
 		Name    string
 		Flags   uint32
 	}{
 		Padding: [3]byte{0x1, 0x0, 0x0},
-		Name:    "qemu:///system",
+		Name:    string(uri),
 		Flags:   0,
 	}
 
@@ -111,9 +156,7 @@ func (l *Libvirt) Connect() error {
 		return err
 	}
 
-	// libvirt requires that we call auth-list prior to connecting,
-	// event when no authentication is used.
-	_, err = l.request(constants.ProcAuthList, constants.Program, buf)
+	err = l.authenticate()
 	if err != nil {
 		return err
 	}
@@ -126,24 +169,76 @@ func (l *Libvirt) Connect() error {
 	return nil
 }
 
-// Disconnect shuts down communication with the libvirt server and closes the
-// underlying net.Conn.
-func (l *Libvirt) Disconnect() error {
-	// close event streams
-	for _, ev := range l.events {
-		l.unsubscribeEvents(ev)
-	}
-
-	// Deregister all callbacks to prevent blocking on clients with
-	// outstanding requests
-	l.deregisterAll()
-
-	_, err := l.request(constants.ProcConnectClose, constants.Program, nil)
+// ConnectToURI establishes communication with the specified libvirt driver
+// The underlying libvirt socket connection will be created via the dialer.
+// Since the connection can be lost, the Disconnected function can be used
+// to monitor for a lost connection.
+func (l *Libvirt) ConnectToURI(uri ConnectURI) error {
+	err := l.socket.Connect()
 	if err != nil {
 		return err
 	}
 
-	return l.conn.Close()
+	// Start watching the underlying socket connection immediately.
+	// If we don't, and Libvirt goes away partway through initLibvirtComms,
+	// then the callbacks that initLibvirtComms has registered will never
+	// be closed, and therefore it will be stuck waiting for data from a
+	// channel that will never arrive.
+	go l.waitAndDisconnect()
+
+	err = l.initLibvirtComms(uri)
+	if err != nil {
+		l.socket.Disconnect()
+		return err
+	}
+
+	l.disconnected = make(chan struct{})
+
+	return nil
+}
+
+// Connect establishes communication with the libvirt server.
+// The underlying libvirt socket connection will be created via the dialer.
+// Since the connection can be lost, the Disconnected function can be used
+// to monitor for a lost connection.
+func (l *Libvirt) Connect() error {
+	return l.ConnectToURI(QEMUSystem)
+}
+
+// Disconnect shuts down communication with the libvirt server and closes the
+// underlying net.Conn.
+func (l *Libvirt) Disconnect() error {
+	// Ordering is important here. We want to make sure the connection is closed
+	// before unsubscribing and deregistering the events and requests, to
+	// prevent new requests from racing.
+	_, err := l.request(constants.ProcConnectClose, constants.Program, nil)
+
+	// syscall.EINVAL is returned by the socket pkg when things have already
+	// been disconnected.
+	if err != nil && err != syscall.EINVAL {
+		return err
+	}
+	err = l.socket.Disconnect()
+	if err != nil {
+		return err
+	}
+
+	// wait for the listen goroutine to detect the lost connection and clean up
+	// to happen once it returns.  Safeguard with a timeout.
+	// Things not fully cleaned up is better than a deadlock.
+	select {
+	case <-l.disconnected:
+	case <-time.After(disconnectTimeout):
+	}
+
+	return err
+}
+
+// Disconnected allows callers to detect if the underlying connection
+// to libvirt has been closed. If the returned channel is closed, then
+// the connection to libvirt has been lost (or disconnected intentionally).
+func (l *Libvirt) Disconnected() <-chan struct{} {
+	return l.disconnected
 }
 
 // Domains returns a list of all domains managed by libvirt.
@@ -192,7 +287,7 @@ func (l *Libvirt) SubscribeQEMUEvents(ctx context.Context, dom string) (<-chan D
 		defer cancel()
 		defer l.unsubscribeQEMUEvents(stream)
 		defer stream.Shutdown()
-		defer func() { close(ch) }()
+		defer close(ch)
 
 		for {
 			select {
@@ -260,10 +355,10 @@ func (l *Libvirt) SubscribeEvents(ctx context.Context, eventID DomainEventID,
 
 // unsubscribeEvents stops the flow of the specified events from libvirt. There
 // are two steps to this process: a call to libvirt to deregister our callback,
-// and then removing the callback from the list used by the `route` fucntion. If
+// and then removing the callback from the list used by the `Route` function. If
 // the deregister call fails, we'll return the error, but still remove the
 // callback from the list. That's ok; if any events arrive after this point, the
-// route function will drop them when it finds no registered handler.
+// Route function will drop them when it finds no registered handler.
 func (l *Libvirt) unsubscribeEvents(stream *event.Stream) error {
 	err := l.ConnectDomainEventCallbackDeregisterAny(stream.CallbackID)
 	l.removeStream(stream.CallbackID)
@@ -590,19 +685,85 @@ func getQEMUError(r response) error {
 	return nil
 }
 
-// New configures a new Libvirt RPC connection.
-func New(conn net.Conn) *Libvirt {
-	l := &Libvirt{
-		conn:      conn,
-		s:         0,
-		r:         bufio.NewReader(conn),
-		w:         bufio.NewWriter(conn),
-		mu:        &sync.Mutex{},
-		callbacks: make(map[int32]chan response),
-		events:    make(map[int32]*event.Stream),
+func (l *Libvirt) waitAndDisconnect() {
+	// wait for the socket to indicate if/when it's been disconnected
+	<-l.socket.Disconnected()
+
+	// close event streams
+	l.removeAllStreams()
+
+	// Deregister all callbacks to prevent blocking on clients with
+	// outstanding requests
+	l.deregisterAll()
+
+	select {
+	case <-l.disconnected:
+		// l.disconnected is already closed, i.e., Libvirt.ConnectToURI
+		// was unable to complete all phases of its connection and
+		// so this hadn't been assigned to an open channel yet (it
+		// is set to a closed channel in Libvirt.New*)
+		//
+		// Just return to avoid closing an already-closed channel.
+		return
+	default:
+		// if we make it here then reading from l.disconnected is blocking,
+		// which suggests that it is open and must be closed.
 	}
 
-	go l.listen()
+	close(l.disconnected)
+}
+
+// NewWithDialer configures a new Libvirt object that can be used to perform
+// RPCs via libvirt's socket.  The actual connection will not be established
+// until Connect is called.  The same Libvirt object may be used to re-connect
+// multiple times.
+func NewWithDialer(dialer socket.Dialer) *Libvirt {
+	l := &Libvirt{
+		s:            0,
+		disconnected: make(chan struct{}),
+		callbacks:    make(map[int32]chan response),
+		events:       make(map[int32]*event.Stream),
+	}
+
+	l.socket = socket.New(dialer, l)
+
+	// we start with a closed channel since that indicates no connection
+	close(l.disconnected)
 
 	return l
+}
+
+// New configures a new Libvirt RPC connection.
+// This function only remains to retain backwards compatability.
+// When Libvirt's Connect function is called, the Dial will simply return the
+// connection passed in here and start a goroutine listening/reading from it.
+// If at any point the Disconnect function is called, any subsequent Connect
+// call will simply return an already closed connection.
+//
+// Deprecated: Please use NewWithDialer.
+func New(conn net.Conn) *Libvirt {
+	return NewWithDialer(dialers.NewAlreadyConnected(conn))
+}
+
+// NetworkUpdateCompat is a wrapper over NetworkUpdate which swaps `Command` and `Section` when needed.
+// This function must be used instead of NetworkUpdate to be sure that the
+// NetworkUpdate call works both with older and newer libvirtd connections.
+//
+// libvirt on-wire protocol had a bug for a long time where Command and Section
+// were reversed. It's been fixed in newer libvirt versions, and backported to
+// some older versions. This helper detects what argument order libvirtd expects
+// and makes the correct NetworkUpdate call.
+func (l *Libvirt) NetworkUpdateCompat(Net Network, Command NetworkUpdateCommand, Section NetworkUpdateSection, ParentIndex int32, XML string, Flags NetworkUpdateFlags) (err error) {
+	// This is defined in libvirt/src/libvirt_internal.h and thus not available in go-libvirt autogenerated code
+	const virDrvFeatureNetworkUpdateHasCorrectOrder = 16
+	hasCorrectOrder, err := l.ConnectSupportsFeature(virDrvFeatureNetworkUpdateHasCorrectOrder)
+	if err != nil {
+		return fmt.Errorf("failed to confirm argument order for NetworkUpdate: %w", err)
+	}
+
+	// https://gitlab.com/libvirt/libvirt/-/commit/b0f78d626a18bcecae3a4d165540ab88bfbfc9ee
+	if hasCorrectOrder == 0 {
+		return l.NetworkUpdate(Net, uint32(Section), uint32(Command), ParentIndex, XML, Flags)
+	}
+	return l.NetworkUpdate(Net, uint32(Command), uint32(Section), ParentIndex, XML, Flags)
 }

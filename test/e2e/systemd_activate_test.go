@@ -2,9 +2,9 @@ package integration
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"net"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,28 +14,16 @@ import (
 
 	testUtils "github.com/containers/podman/v4/test/utils"
 	podmanUtils "github.com/containers/podman/v4/utils"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Systemd activate", func() {
-	var tempDir string
-	var err error
-	var podmanTest *PodmanTestIntegration
 	var activate string
 
 	BeforeEach(func() {
 		SkipIfRemote("Testing stopped service requires both podman and podman-remote binaries")
-
-		tempDir, err = testUtils.CreateTempDirInTempDir()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%v\n", err)
-			os.Exit(1)
-		}
-
-		podmanTest = PodmanTestCreate(tempDir)
-		podmanTest.Setup()
 
 		activate, err = exec.LookPath("systemd-socket-activate")
 		if err != nil {
@@ -50,11 +38,6 @@ var _ = Describe("Systemd activate", func() {
 		case err != nil:
 			Skip(err.Error())
 		}
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		processTestResult(CurrentGinkgoTestDescription())
 	})
 
 	It("stop podman.service", func() {
@@ -77,6 +60,7 @@ var _ = Describe("Systemd activate", func() {
 
 		activateSession := testUtils.StartSystemExec(activate, systemdArgs)
 		Expect(activateSession.Exited).ShouldNot(Receive(), "Failed to start podman service")
+		WaitForService(url.URL{Scheme: "tcp", Host: addr})
 		defer activateSession.Signal(syscall.SIGTERM)
 
 		// Create custom functions for running podman and
@@ -132,7 +116,7 @@ var _ = Describe("Systemd activate", func() {
 		activateSession := testUtils.StartSystemExec(activate, []string{
 			"--datagram", "--listen", addr,
 			podmanTest.PodmanBinary,
-			"--root=" + filepath.Join(tempDir, "server_root"),
+			"--root=" + filepath.Join(tempdir, "server_root"),
 			"system", "service",
 			"--time=0",
 		})
