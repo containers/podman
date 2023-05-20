@@ -76,36 +76,67 @@ stateDiagram-v2
     s2 --> container: socket inherited via exec
 ```
 
-This type of socket activation can be used in systemd services that are generated with the command
-[`podman generate systemd`](https://docs.podman.io/en/latest/markdown/podman-generate-systemd.1.html).
+This type of socket activation can be used in systemd services that are generated from container unit files (see [podman-systemd.unit(5)](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html)) or from the command [`podman generate systemd`](https://docs.podman.io/en/latest/markdown/podman-generate-systemd.1.html).
 The container must also support socket activation. Not all software daemons support socket activation
 but it's getting more popular. For instance Apache HTTP server, MariaDB, DBUS, PipeWire, Gunicorn, CUPS
 all have socket activation support.
 
 ### Example: socket-activated echo server container in a systemd service
 
-Let's try out [socket-activate-echo](https://github.com/eriksjolund/socket-activate-echo/pkgs/container/socket-activate-echo), a simple echo server container that supports socket activation.
+This example shows how to run the socket-activated echo server
+[socket-activate-echo](https://github.com/eriksjolund/socket-activate-echo/pkgs/container/socket-activate-echo)
+in a systemd user service. Podman version 4.4.0 or higher is required.
 
-Create the container
+Enable lingering for your regular user
 
 ```
-$ podman create --rm --name echo --network none ghcr.io/eriksjolund/socket-activate-echo
+$ loginctl enable-linger $USER
 ```
 
-Generate the systemd service unit
+The command has these effects on your enabled systemd user units:
+
+* the units are automatically started after a reboot
+* the units are not automatically stopped after you log out
+
+Create directories
 
 ```
 $ mkdir -p ~/.config/systemd/user
-$ podman generate systemd --name --new echo > ~/.config/systemd/user/echo.service
+$ mkdir -p ~/.config/containers/systemd
 ```
 
-A socket activated service also requires a systemd socket unit.
+Create the file _~/.config/containers/systemd/echo.container_ with the file contents:
+
+```
+[Unit]
+Description=Example echo service
+Requires=echo.socket
+After=echo.socket
+
+[Container]
+Image=ghcr.io/eriksjolund/socket-activate-echo
+Network=none
+
+[Install]
+WantedBy=default.target
+```
+
+The file follows the syntax described in [__podman-systemd.unit__(5)](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html).
+
+The `[Install]` section is optional. If you remove the two last lines, the _echo.service_ will not
+be automatically started after a reboot. Instead, the _echo.service_ is started when the first
+client connects to the socket.
+
+The line `Network=none` is optional. It improves security by removing network connectivity for the container.
+The container can still be serving the internet because `Network=none` has no effect on activated sockets.
+
+A socket-activated service also requires a systemd socket unit.
 Create the file _~/.config/systemd/user/echo.socket_ that defines the
 sockets that the container should use
 
 ```
 [Unit]
-Description=echo server
+Description=Example echo socket
 
 [Socket]
 ListenStream=127.0.0.1:3000
@@ -119,15 +150,38 @@ ListenStream=%h/echo_stream_sock
 ListenStream=vsock:4294967295:3000
 
 [Install]
-WantedBy=default.target
+WantedBy=sockets.target
 ```
 
 `%h` is a systemd specifier that expands to the user's home directory.
 
-After editing the unit files, systemd needs to reload its configuration
+After editing the unit files, systemd needs to reload its configuration.
 
 ```
 $ systemctl --user daemon-reload
+```
+
+While reloading its configuration systemd generates the unit _echo.service_
+from the file _~/.config/containers/systemd/echo.container_
+by executing the unit generator `/usr/lib/systemd/system-generators/podman-system-generator`.
+
+Optional: View the generated _echo.service_ to see the `podman run` command that
+will be run.
+
+```
+$ systemctl --user cat echo.service
+```
+
+Configure systemd to automatically start _echo.socket_ after reboots.
+
+```
+$ systemctl --user enable echo.socket
+```
+
+Pull the container image beforehand
+
+```
+$ podman pull ghcr.io/eriksjolund/socket-activate-echo
 ```
 
 Start the socket unit
