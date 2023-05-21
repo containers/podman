@@ -103,18 +103,23 @@ func Debugf(format string, a ...interface{}) {
 func getUnitDirs(rootless bool) []string {
 	// Allow overdiding source dir, this is mainly for the CI tests
 	unitDirsEnv := os.Getenv("QUADLET_UNIT_DIRS")
-	if len(unitDirsEnv) > 0 {
-		return strings.Split(unitDirsEnv, ":")
-	}
 
 	dirs := make([]string, 0)
+
+	if len(unitDirsEnv) > 0 {
+		for _, eachUnitDir := range strings.Split(unitDirsEnv, ":") {
+			dirs = appendSubPaths(dirs, eachUnitDir)
+		}
+		return dirs
+	}
+
 	if rootless {
 		configDir, err := os.UserConfigDir()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: %v", err)
 			return nil
 		}
-		dirs = append(dirs, path.Join(configDir, "containers/systemd"))
+		dirs = appendSubPaths(dirs, path.Join(configDir, "containers/systemd"))
 		u, err := user.Current()
 		if err == nil {
 			dirs = append(dirs, filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid))
@@ -124,7 +129,22 @@ func getUnitDirs(rootless bool) []string {
 		return append(dirs, filepath.Join(quadlet.UnitDirAdmin, "users"))
 	}
 	dirs = append(dirs, quadlet.UnitDirAdmin)
-	return append(dirs, quadlet.UnitDirDistro)
+	return appendSubPaths(dirs, quadlet.UnitDirDistro)
+}
+
+func appendSubPaths(dirs []string, path string) []string {
+	err := filepath.Walk(path, func(_path string, info os.FileInfo, err error) error {
+		if info == nil || info.IsDir() {
+			dirs = append(dirs, _path)
+		}
+		return err
+	})
+	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			Debugf("Error occurred walking sub directories \"%s\": %s", path, err)
+		}
+	}
+	return dirs
 }
 
 func isExtSupported(filename string) bool {

@@ -437,6 +437,26 @@ var _ = Describe("quadlet system generator", func() {
 			Expect(current[0]).To(ContainSubstring(expected))
 		})
 
+		It("Should scan and return output for files in subdirectories", func() {
+			dirName := "test_subdir"
+
+			fmt.Println("QuadletDir: " + quadletDir)
+
+			CopyDirectory(filepath.Join("quadlet", dirName), quadletDir)
+
+			session := podmanTest.Quadlet([]string{"-dryrun", "-user"}, quadletDir)
+			session.WaitWithDefaultTimeout()
+
+			current := session.OutputToStringArray()
+			expected := []string{
+				"---sample.service---",
+				"---sample_one.service---",
+				"---sample_two.service---",
+			}
+
+			Expect(current).To(ContainElements(expected))
+		})
+
 		It("Should parse a kube file and print it to stdout", func() {
 			fileName := "basic.kube"
 			testcase := loadQuadletTestcase(filepath.Join("quadlet", fileName))
