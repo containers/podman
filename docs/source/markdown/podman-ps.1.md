@@ -1,7 +1,7 @@
 % podman-ps 1
 
 ## NAME
-podman\-ps - Prints out information about containers
+podman\-ps - Print out information about containers
 
 ## SYNOPSIS
 **podman ps** [*options*]

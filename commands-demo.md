@@ -10,12 +10,12 @@
 | [podman-build(1)](https://podman.readthedocs.io/en/latest/markdown/podman-build.1.html)                               | Build a container image using a Containerfile                              |
 | [podman-commit(1)](https://podman.readthedocs.io/en/latest/markdown/podman-commit.1.html)                             | Create new image based on the changed container                            |
 | [podman-container(1)](https://podman.readthedocs.io/en/latest/managecontainers.html)                                  | Manage Containers                                                          |
-| [podman-container-checkpoint(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-checkpoint.1.html) | Checkpoints one or more running containers                                 |
+| [podman-container-checkpoint(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-checkpoint.1.html) | Checkpoint one or more running containers                                  |
 | [podman-container-cleanup(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-cleanup.1.html)       | Clean up the container's network and mountpoints                           |
 | [podman-container-exists(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-exists.1.html)         | Check if a container exists in local storage                              |
 | [podman-container-prune(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-prune.1.html)           | Remove all stopped containers from local storage                           |
-| [podman-container-restore(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-restore.1.html)       | Restores one or more containers from a checkpoint                          |
-| [podman-container-runlabel(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-runlabel.1.html)     | Executes a command as described by a container image label                 |
+| [podman-container-restore(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-restore.1.html)       | Restore one or more containers from a checkpoint                           |
+| [podman-container-runlabel(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-runlabel.1.html)     | Execute a command as described by a container image label                  |
 | [podman-cp(1)](https://podman.readthedocs.io/en/latest/markdown/podman-cp.1.html)                                     | Copy files/folders between a container and the local filesystem            |
 | [podman-create(1)](https://podman.readthedocs.io/en/latest/markdown/podman-create.1.html)                             | Create a new container                                                     |
 | [podman-diff(1)](https://podman.readthedocs.io/en/latest/markdown/podman-diff.1.html)                                 | Inspect changes on a container or image's filesystem                       |
@@ -25,31 +25,31 @@
 | [podman-generate(1)](https://podman.readthedocs.io/en/latest/generate.html)                                           | Generate structured output based on Podman containers and pods             |
 | [podman-generate-kube(1)](https://podman.readthedocs.io/en/latest/markdown/podman-generate-kube.1.html)               | Generate Kubernetes YAML based on a pod or container                       |
 | [podman-generate-systemd(1)](https://podman.readthedocs.io/en/latest/markdown/podman-generate-systemd.1.html)         | Generate systemd unit file(s) for a container or pod. Not supported for the remote client  |
-| [podman-history(1)](https://podman.readthedocs.io/en/latest/markdown/podman-history.1.html)                           | Shows the history of an image                                              |
+| [podman-history(1)](https://podman.readthedocs.io/en/latest/markdown/podman-history.1.html)                           | Show the history of an image                                               |
 | [podman-image(1)](https://podman.readthedocs.io/en/latest/image.html)                                                 | Manage Images                                                              |
 | [podman-image-diff(1)](https://podman.readthedocs.io/en/latest/markdown/podman-image-diff.html)                       | Inspect changes on an image's filesystem.                                  |
 | [podman-image-exists(1)](https://podman.readthedocs.io/en/latest/markdown/podman-image-exists.1.html)                 | Check if an image exists in local storage                                  |
 | [podman-image-prune(1)](https://podman.readthedocs.io/en/latest/markdown/podman-image-prune.1.html)                   | Remove all unused images from the local store                              |
 | [podman-image-search(1)](https://podman.readthedocs.io/en/latest/markdown/podman-search.1.html)                       | Search a registry for an image.                                            |
 | [podman-image-sign(1)](https://podman.readthedocs.io/en/latest/markdown/podman-image-sign.1.html)                     | Create a signature for an image                                            |
-| [podman-image-tree(1)](https://podman.readthedocs.io/en/latest/markdown/podman-image-tree.1.html)                     | Prints layer hierarchy of an image in a tree format                        |
+| [podman-image-tree(1)](https://podman.readthedocs.io/en/latest/markdown/podman-image-tree.1.html)                     | Print layer hierarchy of an image in a tree format                         |
 | [podman-image-trust(1)](https://podman.readthedocs.io/en/latest/markdown/podman-image-trust.1.html)                   | Manage container registry image trust policy                               |
 | [podman-images(1)](https://podman.readthedocs.io/en/latest/markdown/podman-images.1.html)                             | List images in local storage                                               | [![...](/docs/source/markdown/play.png)](https://podman.io/asciinema/podman/images/)        | [Here](https://github.com/containers/Demos/blob/main/podman_cli/podman_images.sh) |
 | [podman-import(1)](https://podman.readthedocs.io/en/latest/markdown/podman-import.1.html)                             | Import a tarball and save it as a filesystem image                         |
-| [podman-info(1)](https://podman.readthedocs.io/en/latest/markdown/podman-info.1.html)                                 | Displays Podman related system information                                 |
+| [podman-info(1)](https://podman.readthedocs.io/en/latest/markdown/podman-info.1.html)                                 | Display Podman related system information                                  |
 | [podman-init(1)](https://podman.readthedocs.io/en/latest/markdown/podman-init.1.html)                                 | Initialize one or more containers                                          |
 | [podman-inspect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-inspect.1.html)                           | Display a container or image's configuration                               | [![...](/docs/source/markdown/play.png)](https://podman.io/asciinema/podman/inspect/)         | [Here](https://github.com/containers/Demos/blob/main/podman_cli/podman_inspect.sh) |
 | [podman-kill(1)](https://podman.readthedocs.io/en/latest/markdown/podman-kill.1.html)                                 | Kill the main process in one or more running containers                    |
 | [podman-load(1)](https://podman.readthedocs.io/en/latest/markdown/podman-load.1.html)                                 | Load an image from a container image archive into container storage        |
-| [podman-login(1)](https://podman.readthedocs.io/en/latest/markdown/podman-login.1.html)                               | Login to a container registry                                              |
-| [podman-logout(1)](https://podman.readthedocs.io/en/latest/markdown/podman-logout.1.html)                             | Logout of a container registry                                             |
+| [podman-login(1)](https://podman.readthedocs.io/en/latest/markdown/podman-login.1.html)                               | Log in to a container registry                                             |
+| [podman-logout(1)](https://podman.readthedocs.io/en/latest/markdown/podman-logout.1.html)                             | Log out of a container registry                                            |
 | [podman-logs(1)](https://podman.readthedocs.io/en/latest/markdown/podman-logs.1.html)                                 | Display the logs of one or more containers                                 |
 | [podman-mount(1)](https://podman.readthedocs.io/en/latest/markdown/podman-mount.1.html)                               | Mount a working container's root filesystem                                |
 | [podman-network(1)](https://podman.readthedocs.io/en/latest/network.html)                                             | Manage Podman networks                                                 |
 | [podman-network-create(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-create.1.html)             | Create a network                                                       |
 | [podman-network-connect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-connect.1.html)           | Connect a container to a network                                       |
 | [podman-network-disconnect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-disconnect.1.html)             | Disconnect a container from a network                                  |
-| [podman-network-inspect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-inspect.1.html)           | Displays the network configuration for one or more networks        |
+| [podman-network-inspect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-inspect.1.html)           | Display the network configuration for one or more networks                 |
 | [podman-network-ls(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-ls.1.html)                     | Display a summary of networks                                          |
 | [podman-network-rm(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-rm.1.html)                     | Remove one or more networks                                            |
 | [podman-pause(1)](https://podman.readthedocs.io/en/latest/markdown/podman-pause.1.html)                               | Pause one or more running containers                                       | [![...](/docs/source/markdown/play.png)](https://podman.io/asciinema/podman/pause_unpause/)        | [Here](https://github.com/containers/Demos/blob/main/podman_cli/podman_pause_unpause.sh) |
@@ -58,11 +58,11 @@
 | [podman-pod(1)](https://podman.readthedocs.io/en/latest/pod.html)                                                     | Manage pods                                                                |
 | [podman-pod-create(1)](https://podman.readthedocs.io/en/latest/markdown/podman-pod-create.1.html)                     | Create a new pod                                                           |
 | [podman-pod-exists(1)](https://podman.readthedocs.io/en/latest/markdown/podman-pod-exists.1.html)                     | Check if a pod exists in local storage                                     |
-| [podman-pod-inspect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-pod-inspect.1.html)                   | Displays information describing a pod                                      |
+| [podman-pod-inspect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-pod-inspect.1.html)                   | Display information describing a pod                                       |
 | [podman-pod-kill(1)](https://podman.readthedocs.io/en/latest/markdown/podman-pod-kill.1.html)                         | Kill the main process of each container in one or more pods                |
 | [podman-pod-pause(1)](https://podman.readthedocs.io/en/latest/markdown/podman-pause.1.html)                           | Pause one or more containers                                               |
 | [podman-pod-prune(1)](https://podman.readthedocs.io/en/latest/markdown/podman-pod-prune.1.html)                       | Remove all stopped pods and their containers                               |
-| [podman-pod-ps(1)](https://podman.readthedocs.io/en/latest/markdown/podman-pod-ps.1.html)                             | Prints out information about pods                                          |
+| [podman-pod-ps(1)](https://podman.readthedocs.io/en/latest/markdown/podman-pod-ps.1.html)                             | Print out information about pods                                           |
 | [podman-pod-restart](https://podman.readthedocs.io/en/latest/markdown/podman-pod-restart.1.html)                      | Restart one or more pods                                                   |
 | [podman-pod-rm(1)](https://podman.readthedocs.io/en/latest/markdown/podman-pod-rm.1.html)                             | Remove one or more stopped pods and containers                             |
 | [podman-pod-start(1)](https://podman.readthedocs.io/en/latest/markdown/podman-pod-start.1.html)                       | Start one or more pods                                                     |
@@ -71,12 +71,12 @@
 | [podman-pod-top(1)](https://podman.readthedocs.io/en/latest/markdown/podman-pod-top.1.html)                           | Display the running processes of containers in a pod                       |
 | [podman-pod-unpause(1)](https://podman.readthedocs.io/en/latest/markdown/podman-pod-unpause.1.html)                   | Unpause one or more pods.                                                  |
 | [podman-port(1)](https://podman.readthedocs.io/en/latest/markdown/podman-port.1.html)                                 | List port mappings for a container                                         |
-| [podman-ps(1)](https://podman.readthedocs.io/en/latest/markdown/podman-ps.1.html)                                     | Prints out information about containers                                    |
+| [podman-ps(1)](https://podman.readthedocs.io/en/latest/markdown/podman-ps.1.html)                                     | Print out information about containers                                     |
 | [podman-pull(1)](https://podman.readthedocs.io/en/latest/markdown/podman-pull.1.html)                                 | Pull an image from a registry                                              |
 | [podman-push(1)](https://podman.readthedocs.io/en/latest/markdown/podman-push.1.html)                                 | Push an image from local storage to elsewhere                              | [![...](/docs/source/markdown/play.png)](https://asciinema.org/a/133276)                    |
-| [podman-restart(1)](https://podman.readthedocs.io/en/latest/markdown/podman-restart.1.html)                           | Restarts one or more containers                                            | [![...](/docs/source/markdown/play.png)](https://asciinema.org/a/jiqxJAxcVXw604xdzMLTkQvHM) |
-| [podman-rm(1)](https://podman.readthedocs.io/en/latest/markdown/podman-rm.1.html)                                     | Removes one or more containers                                             |
-| [podman-rmi(1)](https://podman.readthedocs.io/en/latest/markdown/podman-rmi.1.html)                                   | Removes one or more locally stored images                                  |
+| [podman-restart(1)](https://podman.readthedocs.io/en/latest/markdown/podman-restart.1.html)                           | Restart one or more containers                                             | [![...](/docs/source/markdown/play.png)](https://asciinema.org/a/jiqxJAxcVXw604xdzMLTkQvHM) |
+| [podman-rm(1)](https://podman.readthedocs.io/en/latest/markdown/podman-rm.1.html)                                     | Remove one or more containers                                              |
+| [podman-rmi(1)](https://podman.readthedocs.io/en/latest/markdown/podman-rmi.1.html)                                   | Remove one or more locally stored images                                   |
 | [podman-run(1)](https://podman.readthedocs.io/en/latest/markdown/podman-run.1.html)                                   | Run a command in a new container                                           |
 | [podman-save(1)](https://podman.readthedocs.io/en/latest/markdown/podman-save.1.html)                                 | Save an image to a container archive                                       |
 | [podman-search(1)](https://podman.readthedocs.io/en/latest/markdown/podman-search.1.html)                             | Search a registry for an image                                             |
@@ -90,8 +90,8 @@
 | [podman-stop(1)](https://podman.readthedocs.io/en/latest/markdown/podman-stop.1.html)                                 | Stops one or more running containers                                       |
 | [podman-system(1)](https://podman.readthedocs.io/en/latest/system.html)                                               | Manage podman                                                              |
 | [podman-system-df(1)](https://podman.readthedocs.io/en/latest/markdown/podman-system-df.1.html)                       | Show podman disk usage.                                                    |
-| [podman-system-events(1)](https://podman.readthedocs.io/en/latest/markdown/podman-events.1.html)                          | Displays Podman related system events.                                |
-| [podman-system-info(1)](https://podman.readthedocs.io/en/latest/markdown/podman-info.1.html)                          | Displays Podman related system information.                                |
+| [podman-system-events(1)](https://podman.readthedocs.io/en/latest/markdown/podman-events.1.html)                      | Display Podman related system events.                                      |
+| [podman-system-info(1)](https://podman.readthedocs.io/en/latest/markdown/podman-info.1.html)                          | Display Podman related system information.                                 |
 | [podman-system-migrate(1)](https://podman.readthedocs.io/en/latest/markdown/podman-system-migrate.1.html)             | Migrate existing containers to a new podman version                        |
 | [podman-system-prune(1)](https://podman.readthedocs.io/en/latest/markdown/podman-system-prune.1.html)                 | Remove all unused container, image and volume data                         |
 | [podman-system-renumber(1)](https://podman.readthedocs.io/en/latest/markdown/podman-system-renumber.1.html)           | Migrate lock numbers to handle a change in maximum number of locks         |

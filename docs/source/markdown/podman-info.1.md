@@ -1,7 +1,7 @@
 % podman-info 1
 
 ## NAME
-podman\-info - Displays Podman related system information
+podman\-info - Display Podman related system information
 
 ## SYNOPSIS
 **podman info** [*options*]

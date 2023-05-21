@@ -1,7 +1,7 @@
 % podman-pod-logs 1
 
 ## NAME
-podman\-pod\-logs - Displays logs for pod with one or more containers
+podman\-pod\-logs - Display logs for pod with one or more containers
 
 ## SYNOPSIS
 **podman pod logs** [*options*] *pod*

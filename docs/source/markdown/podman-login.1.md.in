@@ -1,7 +1,7 @@
 % podman-login 1
 
 ## NAME
-podman\-login - Login to a container registry
+podman\-login - Log in to a container registry
 
 ## SYNOPSIS
 **podman login** [*options*] [*registry*]

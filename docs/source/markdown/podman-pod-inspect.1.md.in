@@ -1,7 +1,7 @@
 % podman-pod-inspect 1
 
 ## NAME
-podman\-pod\-inspect - Displays information describing a pod
+podman\-pod\-inspect - Display information describing a pod
 
 ## SYNOPSIS
 **podman pod inspect** [*options*] *pod* ...

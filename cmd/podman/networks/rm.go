@@ -20,7 +20,7 @@ var (
 	networkrmCommand     = &cobra.Command{
 		Use:               "rm [options] NETWORK [NETWORK...]",
 		Aliases:           []string{"remove"},
-		Short:             "network rm",
+		Short:             "Remove networks",
 		Long:              networkrmDescription,
 		RunE:              networkRm,
 		Example:           `podman network rm podman`,

@@ -1,7 +1,7 @@
 % podman-container-clone 1
 
 ## NAME
-podman\-container\-clone - Creates a copy of an existing container
+podman\-container\-clone - Create a copy of an existing container
 
 ## SYNOPSIS
 **podman container clone** [*options*] *container* *name* *image*

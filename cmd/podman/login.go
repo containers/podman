@@ -21,8 +21,8 @@ var (
 	loginOptions = loginOptionsWrapper{}
 	loginCommand = &cobra.Command{
 		Use:               "login [options] [REGISTRY]",
-		Short:             "Login to a container registry",
-		Long:              "Login to a container registry on a specified server.",
+		Short:             "Log in to a container registry",
+		Long:              "Log in to a container registry on a specified server.",
 		RunE:              login,
 		Args:              cobra.MaximumNArgs(1),
 		ValidArgsFunction: common.AutocompleteRegistries,

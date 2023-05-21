@@ -27,7 +27,7 @@ var (
 `
 	checkpointCommand = &cobra.Command{
 		Use:   "checkpoint [options] CONTAINER [CONTAINER...]",
-		Short: "Checkpoints one or more containers",
+		Short: "Checkpoint one or more containers",
 		Long:  checkpointDescription,
 		RunE:  checkpoint,
 		Args: func(cmd *cobra.Command, args []string) error {

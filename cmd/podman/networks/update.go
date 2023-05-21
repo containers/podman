@@ -14,7 +14,7 @@ var (
 	networkUpdateDescription = `Update an existing podman network`
 	networkUpdateCommand     = &cobra.Command{
 		Use:               "update [options] NETWORK",
-		Short:             "update an existing podman network",
+		Short:             "Update an existing podman network",
 		Long:              networkUpdateDescription,
 		RunE:              networkUpdate,
 		Args:              cobra.ExactArgs(1),

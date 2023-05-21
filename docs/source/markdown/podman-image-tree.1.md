@@ -1,7 +1,7 @@
 % podman-image-tree 1
 
 ## NAME
-podman\-image\-tree - Prints layer hierarchy of an image in a tree format
+podman\-image\-tree - Print layer hierarchy of an image in a tree format
 
 ## SYNOPSIS
 **podman image tree** [*options*] *image:tag*|*image-id*

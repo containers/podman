@@ -1,7 +1,7 @@
 % podman-container-checkpoint 1
 
 ## NAME
-podman\-container\-checkpoint - Checkpoints one or more running containers
+podman\-container\-checkpoint - Checkpoint one or more running containers
 
 ## SYNOPSIS
 **podman container checkpoint** [*options*] *container* [*container* ...]
