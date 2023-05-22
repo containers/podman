@@ -592,13 +592,21 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 			conmonAlive, err := c.ociRuntime.CheckConmonRunning(c)
 			switch {
 			case errors.Is(err, define.ErrNoSuchCtr):
+				// Container has been removed, so we assume the
+				// exit code is present in the DB.
 				containerRemoved = true
 			case err != nil:
 				return false, -1, err
 			case !conmonAlive:
+				// Give the exit code at most 20 seconds to
+				// show up in the DB.  That should largely be
+				// enough for the cleanup process.
 				timerDuration := time.Second * 20
 				conmonTimer = *time.NewTimer(timerDuration)
 				conmonTimerSet = true
+			case conmonAlive:
+				// Continue waiting if conmon's still running.
+				return false, -1, nil
 			}
 		}
 
@@ -609,7 +617,18 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 			case <-conmonTimer.C:
 				logrus.Debugf("Exceeded conmon timeout waiting for container %s to exit", id)
 			default:
-				if !c.ensureState(define.ContainerStateExited, define.ContainerStateConfigured) {
+				switch c.state.State {
+				case define.ContainerStateExited, define.ContainerStateConfigured:
+					// Container exited, so we can look up the exit code.
+				case define.ContainerStateStopped:
+					// Continue looping unless the restart policy is always.
+					// In this case, the container would never transition to
+					// the exited state, so we need to look up the exit code.
+					if c.config.RestartPolicy != define.RestartPolicyAlways {
+						return false, -1, nil
+					}
+				default:
+					// Continue looping
 					return false, -1, nil
 				}
 			}
@@ -617,9 +636,11 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 
 		exitCode, err := c.runtime.state.GetContainerExitCode(id)
 		if err != nil {
-			if errors.Is(err, define.ErrNoSuchExitCode) && c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated) {
-				// The container never ran.
-				return true, 0, nil
+			if errors.Is(err, define.ErrNoSuchExitCode) {
+				// If the container is configured or created, we must assume it never ran.
+				if c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated) {
+					return true, 0, nil
+				}
 			}
 			return true, -1, fmt.Errorf("%w (container in state %s)", err, c.state.State)
 		}
