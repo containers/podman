@@ -61,7 +61,7 @@ func (c *Container) getNetworkOptions(networkOpts map[string]types.PerNetworkOpt
 	return opts
 }
 
-// setUpNetwork will set up the the networks, on error it will also tear down the cni
+// setUpNetwork will set up the networks, on error it will also tear down the cni
 // networks. If rootless it will join/create the rootless network namespace.
 func (r *Runtime) setUpNetwork(ns string, opts types.NetworkOptions) (map[string]types.StatusBlock, error) {
 	rootlessNetNS, err := r.GetRootlessNetNs(true)
@@ -385,7 +385,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 		return err
 	}
 
-	// check if network exists and if the input is a ID we get the name
+	// check if network exists and if the input is an ID we get the name
 	// CNI and netavark and the libpod db only uses names so it is important that we only use the name
 	netName, err = c.runtime.normalizeNetworkName(netName)
 	if err != nil {
@@ -499,7 +499,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 		return err
 	}
 
-	// check if network exists and if the input is a ID we get the name
+	// check if network exists and if the input is an ID we get the name
 	// CNI and netavark and the libpod db only uses names so it is important that we only use the name
 	netName, err = c.runtime.normalizeNetworkName(netName)
 	if err != nil {

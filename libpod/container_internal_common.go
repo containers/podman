@@ -2371,7 +2371,7 @@ func (c *Container) groupEntry(groupname, gid string, list []string) string {
 //     /etc/passwd via AddCurrentUserPasswdEntry (though this does not trigger if
 //     the user in question already exists in /etc/passwd) or the UID to be added
 //     is 0).
-//  3. The user specified additional host user accounts to add the the /etc/passwd file
+//  3. The user specified additional host user accounts to add to the /etc/passwd file
 //
 // Returns password entry (as a string that can be appended to /etc/passwd) and
 // any error that occurred.

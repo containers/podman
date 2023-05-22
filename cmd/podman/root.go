@@ -233,7 +233,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	// Special case if command is hidden completion command ("__complete","__completeNoDesc")
 	// Since __completeNoDesc is an alias the cm.Name is always __complete
 	if cmd.Name() == cobra.ShellCompRequestCmd {
-		// Parse the cli arguments after the the completion cmd (always called as second argument)
+		// Parse the cli arguments after the completion cmd (always called as second argument)
 		// This ensures that the --url, --identity and --connection flags are properly set
 		compCmd, _, err := cmd.Root().Traverse(os.Args[2:])
 		if err != nil {

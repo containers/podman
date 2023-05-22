@@ -358,7 +358,7 @@ By default, Podman is run in such a way that the systemd startup notify command 
 the container runtime. In other words, the service is deemed started when the container runtime
 starts the child in the container. However, if the container application supports
 [sd_notify](https://www.freedesktop.org/software/systemd/man/sd_notify.html), then setting
-`Notify`to true passes the notification details to the container allowing it to notify
+`Notify` to true passes the notification details to the container allowing it to notify
 of startup on its own.
 
 ### `PodmanArgs=`

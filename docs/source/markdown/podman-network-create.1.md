@@ -146,7 +146,7 @@ $ podman network create --subnet 192.168.33.0/24 --gateway 192.168.33.3 newnet
 newnet
 ```
 
-Create a network that uses a *192.168.55.0/24** subnet and has an IP address range of *192.168.55.129 - 192.168.55.254*.
+Create a network that uses a *192.168.55.0/24* subnet and has an IP address range of *192.168.55.129 - 192.168.55.254*.
 ```
 $ podman network create --subnet 192.168.55.0/24 --ip-range 192.168.55.128/25
 podman5

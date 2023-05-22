@@ -26,7 +26,7 @@ load helpers.network
     run_podman network create $net3
 
     run_podman network ls --quiet
-    # just check the the order of the created networks is correct
+    # just check that the order of the created networks is correct
     # we cannot do an exact match since developer and CI systems could contain more networks
     is "$output" ".*$net1.*$net2.*$net3.*podman.*" "networks sorted alphabetically"
 

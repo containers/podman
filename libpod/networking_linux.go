@@ -541,7 +541,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 	// The CNI plugins and netavark need access to iptables in $PATH. As it turns out debian doesn't put
 	// /usr/sbin in $PATH for rootless users. This will break rootless networking completely.
 	// We might break existing users and we cannot expect everyone to change their $PATH so
-	// lets add /usr/sbin to $PATH ourselves.
+	// let's add /usr/sbin to $PATH ourselves.
 	path = os.Getenv("PATH")
 	if !strings.Contains(path, "/usr/sbin") {
 		path += ":/usr/sbin"

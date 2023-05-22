@@ -305,7 +305,7 @@ var _ = Describe("Podman ps", func() {
 		Expect(result).Should(Exit(0))
 		Expect(result.OutputToString()).To(Equal(cid))
 
-		// Query for an non-existing image using regex should not match anything
+		// Query for a non-existing image using regex should not match anything
 		result = podmanTest.Podman([]string{"ps", "-q", "--no-trunc", "-a", "--filter", "ancestor=^quai.io/libpod/alpi"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))

@@ -122,7 +122,7 @@ func (n UsernsMode) IsDefaultValue() bool {
 	return n == "" || n == defaultType
 }
 
-// GetAutoOptions returns a AutoUserNsOptions with the settings to automatically set up
+// GetAutoOptions returns an AutoUserNsOptions with the settings to automatically set up
 // a user namespace.
 func (n UsernsMode) GetAutoOptions() (*types.AutoUserNsOptions, error) {
 	parts := strings.SplitN(string(n), ":", 2)

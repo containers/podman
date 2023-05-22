@@ -29,7 +29,7 @@ $ echo $?
 $
 ```
 
-Check if an manifest called `mylist` exists (the manifest list does not actually exist).
+Check if a manifest called `mylist` exists (the manifest list does not actually exist).
 ```
 $ podman manifest exists mylist
 $ echo $?

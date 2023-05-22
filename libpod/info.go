@@ -77,7 +77,7 @@ func (r *Runtime) info() (*define.Info, error) {
 
 // top-level "host" info
 func (r *Runtime) hostInfo() (*define.HostInfo, error) {
-	// lets say OS, arch, number of cpus, amount of memory, maybe os distribution/version, hostname, kernel version, uptime
+	// let's say OS, arch, number of cpus, amount of memory, maybe os distribution/version, hostname, kernel version, uptime
 	mi, err := system.ReadMemInfo()
 	if err != nil {
 		return nil, fmt.Errorf("reading memory info: %w", err)
@@ -195,7 +195,7 @@ func (r *Runtime) getContainerStoreInfo() (define.ContainerStore, error) {
 
 // top-level "store" info
 func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
-	// lets say storage driver in use, number of images, number of containers
+	// let's say storage driver in use, number of images, number of containers
 	configFile, err := storage.DefaultConfigFile(rootless.IsRootless())
 	if err != nil {
 		return nil, err

@@ -322,7 +322,7 @@ function _log_test_follow_since() {
         sh -c "sleep 1; while :; do echo $content && sleep 5; done"
 
     # sleep is required to make sure the podman event backend no longer sees the start event in the log
-    # This value must be greater or equal than the the value given in --since below
+    # This value must be greater or equal than the value given in --since below
     sleep 0.2
 
     # Make sure podman logs actually follows by giving a low timeout and check that the command times out

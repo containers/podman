@@ -20,7 +20,7 @@ import (
 
 // ExecConfig contains the configuration of an exec session
 type ExecConfig struct {
-	// Command the the command that will be invoked in the exec session.
+	// Command is the command that will be invoked in the exec session.
 	// Must not be empty.
 	Command []string `json:"command"`
 	// Terminal is whether the exec session will allocate a pseudoterminal.

@@ -133,7 +133,7 @@ func (p *Virtualization) NewMachine(opts machine.InitOptions) (machine.VM, error
 		"-device", "virtio-serial",
 		// qemu needs to establish the long name; other connections can use the symlink'd
 		// Note both id and chardev start with an extra "a" because qemu requires that it
-		// starts with an letter but users can also use numbers
+		// starts with a letter but users can also use numbers
 		"-chardev", "socket,path=" + vm.ReadySocket.Path + ",server=on,wait=off,id=a" + vm.Name + "_ready",
 		"-device", "virtserialport,chardev=a" + vm.Name + "_ready" + ",name=org.fedoraproject.port.0",
 		"-pidfile", vm.VMPidFilePath.GetPath()}...)
@@ -1047,7 +1047,7 @@ func (v *MachineVM) State(bypass bool) (machine.Status, error) {
 			logrus.Error(err)
 		}
 	}()
-	// If there is a monitor, lets see if we can query state
+	// If there is a monitor, let's see if we can query state
 	return v.checkStatus(monitor)
 }
 

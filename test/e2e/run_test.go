@@ -249,7 +249,7 @@ var _ = Describe("Podman run", func() {
 		Expect(esession).Should(Exit(0))
 		Expect(tarball).Should(BeARegularFile())
 
-		// N/B: This will loose any extended attributes like SELinux types
+		// N/B: This will lose any extended attributes like SELinux types
 		GinkgoWriter.Printf("Extracting container root tarball\n")
 		tarsession := SystemExec("tar", []string{"xf", tarball, "-C", rootfs})
 		Expect(tarsession).Should(Exit(0))

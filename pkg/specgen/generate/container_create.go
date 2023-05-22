@@ -181,7 +181,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 
 	_, err = rt.LookupPod(s.Hostname)
 	if len(s.Hostname) > 0 && !s.UtsNS.IsPrivate() && err == nil {
-		// ok, we are incorrectly setting the pod as the hostname, lets undo that before validation
+		// ok, we are incorrectly setting the pod as the hostname, let's undo that before validation
 		s.Hostname = ""
 	}
 	if err := s.Validate(); err != nil {
