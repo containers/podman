@@ -957,11 +957,11 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 	}
 
 	if c.IsService() {
-		canStop, err := c.canStopServiceContainer()
+		report, err := c.canStopServiceContainer()
 		if err != nil {
 			return id, err
 		}
-		if !canStop {
+		if !report.canBeStopped {
 			return id, fmt.Errorf("container %s is the service container of pod(s) %s and cannot be removed without removing the pod(s)", c.ID(), strings.Join(c.state.Service.Pods, ","))
 		}
 	}
