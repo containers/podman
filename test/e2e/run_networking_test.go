@@ -34,6 +34,7 @@ var _ = Describe("Podman run networking", func() {
 		session = podmanTest.Podman([]string{"network", "inspect", net})
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)
+		Expect(session).Should(Exit(0))
 		var results []types.Network
 		err := json.Unmarshal([]byte(session.OutputToString()), &results)
 		Expect(err).ToNot(HaveOccurred())
@@ -41,8 +42,7 @@ var _ = Describe("Podman run networking", func() {
 		result := results[0]
 		Expect(result.Subnets).To(HaveLen(1))
 		aardvarkDNSGateway := result.Subnets[0].Gateway.String()
-		Expect(session.OutputToString()).To(ContainSubstring("1.1.1.1"))
-		Expect(session).Should(Exit(0))
+		Expect(result.NetworkDNSServers).To(Equal([]string{"1.1.1.1"}))
 
 		session = podmanTest.Podman([]string{"run", "-d", "--name", "con1", "--network", net, "busybox", "top"})
 		session.WaitWithDefaultTimeout()
@@ -54,7 +54,7 @@ var _ = Describe("Podman run networking", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("Non-authoritative answer: Name: google.com Address:"))
 
 		// Update to a bad DNS Server
-		session = podmanTest.Podman([]string{"network", "update", net, "--dns-add", "7.7.7.7"})
+		session = podmanTest.Podman([]string{"network", "update", net, "--dns-add", "127.0.0.255"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -62,6 +62,58 @@ var _ = Describe("Podman run networking", func() {
 		session = podmanTest.Podman([]string{"network", "update", net, "--dns-drop=1.1.1.1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"exec", "con1", "nslookup", "google.com", aardvarkDNSGateway})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(1))
+		Expect(session.OutputToString()).To(ContainSubstring(";; connection timed out; no servers could be reached"))
+	})
+
+	It("podman network dns multiple servers", func() {
+		// Following test is only functional with netavark and aardvark
+		SkipIfCNI(podmanTest)
+		net := createNetworkName("IntTest")
+		session := podmanTest.Podman([]string{"network", "create", net, "--dns", "1.1.1.1,8.8.8.8", "--dns", "8.4.4.8"})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(net)
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"network", "inspect", net})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(net)
+		Expect(session).Should(Exit(0))
+		var results []types.Network
+		err := json.Unmarshal([]byte(session.OutputToString()), &results)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(results).To(HaveLen(1))
+		result := results[0]
+		Expect(result.Subnets).To(HaveLen(1))
+		aardvarkDNSGateway := result.Subnets[0].Gateway.String()
+		Expect(result.NetworkDNSServers).To(Equal([]string{"1.1.1.1", "8.8.8.8", "8.4.4.8"}))
+
+		session = podmanTest.Podman([]string{"run", "-d", "--name", "con1", "--network", net, "busybox", "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"exec", "con1", "nslookup", "google.com", aardvarkDNSGateway})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("Non-authoritative answer: Name: google.com Address:"))
+
+		// Update DNS server
+		session = podmanTest.Podman([]string{"network", "update", net, "--dns-drop=1.1.1.1,8.8.8.8",
+			"--dns-drop", "8.4.4.8", "--dns-add", "127.0.0.253,127.0.0.254", "--dns-add", "127.0.0.255"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"network", "inspect", net})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(net)
+		Expect(session).Should(Exit(0))
+		err = json.Unmarshal([]byte(session.OutputToString()), &results)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(results).To(HaveLen(1))
+		Expect(results[0].NetworkDNSServers).To(Equal([]string{"127.0.0.253", "127.0.0.254", "127.0.0.255"}))
 
 		session = podmanTest.Podman([]string{"exec", "con1", "nslookup", "google.com", aardvarkDNSGateway})
 		session.WaitWithDefaultTimeout()
