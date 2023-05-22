@@ -1732,11 +1732,14 @@ func (d *Driver) Put(id string) error {
 	mappedRoot := filepath.Join(d.home, id, "mapped")
 	// It should not happen, but cleanup any mapped mount if it was leaked.
 	if _, err := os.Stat(mappedRoot); err == nil {
+		logrus.Errorf("DO NOT MERGE: Cleaning up mappedRoot")
 		mounts, err := os.ReadDir(mappedRoot)
 		if err == nil {
 			// Go through all of the mapped mounts.
 			for _, m := range mounts {
-				_ = unix.Unmount(filepath.Join(mappedRoot, m.Name()), unix.MNT_DETACH)
+				if err := unix.Unmount(filepath.Join(mappedRoot, m.Name()), unix.MNT_DETACH); err != nil {
+					logrus.Errorf("DO NOT MERGE: Unmounting mappedRoot %q: %v", filepath.Join(mappedRoot, m.Name()), err)
+				}
 			}
 		}
 	}
@@ -1747,13 +1750,14 @@ func (d *Driver) Put(id string) error {
 		for _, v := range []string{"fusermount3", "fusermount"} {
 			err := exec.Command(v, "-u", mountpoint).Run()
 			if err != nil && !errors.Is(err, exec.ErrNotFound) {
-				logrus.Debugf("Error unmounting %s with %s - %v", mountpoint, v, err)
+				logrus.Errorf("Error unmounting %s with %s - %v", mountpoint, v, err)
 			}
 			if err == nil {
 				unmounted = true
 				break
 			}
 		}
+		logrus.Errorf("DO NOT MERGE: Using mountProgram, failed to unmount")
 		// If fusermount|fusermount3 failed to unmount the FUSE file system, make sure all
 		// pending changes are propagated to the file system
 		if !unmounted {

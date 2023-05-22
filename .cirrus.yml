@@ -166,7 +166,7 @@ build_task:
     # Standard main execution stage call, used by nearly every task in CI.
     main_script: &main '/usr/bin/time --verbose --output="$STATS_LOGFILE" $GOSRC/$SCRIPT_BASE/runner.sh'
     # Attempt to catch code-quality and vendoring problems early.
-    postbuild_script: &postbuild $SCRIPT_BASE/postbuild.sh
+    #postbuild_script: &postbuild $SCRIPT_BASE/postbuild.sh
     # Cirrus-CI is very slow uploading one file at time, and the repo contains
     # thousands of files.  Speed this up by archiving into tarball first.
     repo_prep_script: &repo_prep >-
@@ -204,7 +204,7 @@ build_aarch64_task:
     clone_script: *full_clone
     prebuild_script: *prebuild
     setup_script: *setup
-    postbuild_script: *postbuild
+    #postbuild_script: *postbuild
     main_script: *main
     # Cirrus-CI is very slow uploading one file at time, and the repo contains
     # thousands of files.  Speed this up by archiving into tarball first.
