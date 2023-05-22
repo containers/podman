@@ -943,7 +943,8 @@ func (s *SQLiteState) GetContainerExitCodeTimeStamp(id string) (*time.Time, erro
 	return &result, nil
 }
 
-// PruneExitCodes removes exit codes older than 5 minutes.
+// PruneExitCodes removes exit codes older than 5 minutes unless the associated
+// container still exists.
 func (s *SQLiteState) PruneContainerExitCodes() (defErr error) {
 	if !s.valid {
 		return define.ErrDBClosed
@@ -963,7 +964,7 @@ func (s *SQLiteState) PruneContainerExitCodes() (defErr error) {
 		}
 	}()
 
-	if _, err := tx.Exec("DELETE FROM ContainerExitCode WHERE (Timestamp <= ?);", fiveMinsAgo); err != nil {
+	if _, err := tx.Exec("DELETE FROM ContainerExitCode WHERE (Timestamp <= ?) AND (ID NOT IN (SELECT ID FROM ContainerConfig))", fiveMinsAgo); err != nil {
 		return fmt.Errorf("removing exit codes with timestamps older than 5 minutes: %w", err)
 	}
 
