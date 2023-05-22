@@ -625,7 +625,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		}
 	}
 
-	// Add the the original container names from the kube yaml as aliases for it. This will allow network to work with
+	// Add the original container names from the kube yaml as aliases for it. This will allow network to work with
 	// both just containerName as well as containerName-podName.
 	// In the future, we want to extend this to the CLI as well, where the name of the container created will not have
 	// the podName appended to it, but this is a breaking change and will be done in podman 5.0

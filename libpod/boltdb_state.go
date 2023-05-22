@@ -1115,7 +1115,7 @@ func (s *BoltState) GetNetworks(ctr *Container) (map[string]types.PerNetworkOpti
 						return nil
 					}
 
-					// lets ignore the error here there is nothing we can do
+					// let's ignore the error here there is nothing we can do
 					_ = netAliasesBkt.ForEach(func(alias, v []byte) error {
 						aliases = append(aliases, string(alias))
 						return nil

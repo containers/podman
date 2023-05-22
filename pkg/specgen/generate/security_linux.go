@@ -115,7 +115,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 
 		privCapsRequired := []string{}
 
-		// If the container image specifies an label with a
+		// If the container image specifies a label with a
 		// capabilities.ContainerImageLabel then split the comma separated list
 		// of capabilities and record them.  This list indicates the only
 		// capabilities, required to run the container.

@@ -21,7 +21,7 @@ Secret Options
 
 - `type=mount|env`    : How the secret is exposed to the container.
                         `mount` mounts the secret into the container as a file.
-                        `env` exposes the secret as a environment variable.
+                        `env` exposes the secret as an environment variable.
                         Defaults to `mount`.
 - `target=target`     : Target of secret.
                         For mounted secrets, this is the path to the secret inside the container.

@@ -624,7 +624,7 @@ func SizeOfPath(path string) (uint64, error) {
 	return uint64(size), err
 }
 
-// EncryptConfig translates encryptionKeys into a EncriptionsConfig structure
+// EncryptConfig translates encryptionKeys into an EncriptionsConfig structure
 func EncryptConfig(encryptionKeys []string, encryptLayers []int) (*encconfig.EncryptConfig, *[]int, error) {
 	var encLayers *[]int
 	var encConfig *encconfig.EncryptConfig

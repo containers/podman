@@ -339,7 +339,7 @@ func getPathCompletion(root string, toComplete string) ([]string, cobra.ShellCom
 	for _, e := range entries {
 		if strings.HasPrefix(e.Name(), base) {
 			suf := ""
-			// When the entry is an directory we add the "/" as suffix and do not want to add space
+			// When the entry is a directory we add the "/" as suffix and do not want to add space
 			// to match normal shell completion behavior.
 			// Just inc counter again to fake more than one entry in this case and thus get no space.
 			if e.IsDir() {
@@ -383,7 +383,7 @@ func validCurrentCmdLine(cmd *cobra.Command, args []string, toComplete string) b
 	if err := cmd.Args(cmd, append(args, toComplete)); err != nil {
 		// Special case if we use ExactArgs(2) or MinimumNArgs(2),
 		// They will error if we try to complete the first arg.
-		// Lets try to parse the common error and compare if we have less args than
+		// Let's try to parse the common error and compare if we have less args than
 		// required. In this case we are fine and should provide completion.
 
 		// Clean the err msg so we can parse it with fmt.Sscanf
@@ -698,7 +698,7 @@ func AutocompleteCpCommand(cmd *cobra.Command, args []string, toComplete string)
 	if len(args) < 2 {
 		if i := strings.IndexByte(toComplete, ':'); i > -1 {
 			// Looks like the user already set the container.
-			// Lets mount it and provide path completion for files in the container.
+			// Let's mount it and provide path completion for files in the container.
 			engine, err := setupContainerEngine(cmd)
 			if err != nil {
 				cobra.CompErrorln(err.Error())
@@ -1328,9 +1328,9 @@ func getMethodNames(f reflect.Value, prefix string) []formatSuggestion {
 		if kind == reflect.Struct || kind == reflect.Map {
 			suffix = "."
 		}
-		// From a template users POV it is not important when the use a struct field or method.
+		// From a template user's POV it is not important whether they use a struct field or method.
 		// They only notice the difference when the function requires arguments.
-		// So lets be nice and let the user know that this method requires arguments via the help text.
+		// So let's be nice and let the user know that this method requires arguments via the help text.
 		// Note since this is actually a method on a type the first argument is always fix so we should skip it.
 		num := method.Func.Type().NumIn() - 1
 		if num > 0 {

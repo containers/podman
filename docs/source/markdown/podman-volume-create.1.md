@@ -84,7 +84,7 @@ $ podman volume create --label foo=bar myvol
 
 ## QUOTAS
 
-podman volume create uses `XFS project quota controls` for controlling the size and the number of inodes of builtin volumes. The directory used to store the volumes must be an`XFS` file system and be mounted with the `pquota` option.
+podman volume create uses `XFS project quota controls` for controlling the size and the number of inodes of builtin volumes. The directory used to store the volumes must be an `XFS` file system and be mounted with the `pquota` option.
 
 Example /etc/fstab entry:
 ```

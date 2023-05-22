@@ -209,7 +209,7 @@ EOF
     # Stop the *main* container and make sure that
     #  1) The pod transitions to Exited
     #  2) The service container is stopped
-    #  #) The service container is marked as an service container
+    #  #) The service container is marked as a service container
     run_podman stop test_pod-test
     _ensure_pod_state test_pod Exited
     _ensure_container_running $service_container false

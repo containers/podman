@@ -279,7 +279,7 @@ func play(cmd *cobra.Command, args []string) error {
 	ch := make(chan os.Signal, 1)
 	var teardownReader *bytes.Reader
 	if playOptions.Wait {
-		// Stop the the shutdown signal handler so we can actually clean up after a SIGTERM or interrupt
+		// Stop the shutdown signal handler so we can actually clean up after a SIGTERM or interrupt
 		if err := shutdown.Stop(); err != nil && err != shutdown.ErrNotStarted {
 			return err
 		}

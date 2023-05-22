@@ -749,7 +749,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//        - `health`=(`starting`, `healthy`, `unhealthy` or `none`)
 	//        - `id=<ID>` a container's ID
 	//        - `is-task`=(`true` or `false`)
-	//        - `label`=(`key` or `"key=value"`) of an container label
+	//        - `label`=(`key` or `"key=value"`) of a container label
 	//        - `name=<name>` a container's name
 	//        - `network`=(`<network id>` or `<network name>`)
 	//        - `pod`=(`<pod id>` or `<pod name>`)

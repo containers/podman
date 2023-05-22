@@ -458,7 +458,6 @@ the user session completed.
 Once the user logs out all the containers exit.
 
 #### Solution
-You'll need to either:
 
 ```console
 # loginctl enable-linger $UID

@@ -93,7 +93,7 @@ var _ = Describe("Podman init containers", func() {
 		// Container was rm'd
 		// Expect(check).Should(Exit(1))
 		Expect(check.ExitCode()).To(Equal(1), "I dont understand why the other way does not work")
-		// Lets double check with a stop and start
+		// Let's double check with a stop and start
 		stopPod := podmanTest.Podman([]string{"pod", "stop", "foobar"})
 		stopPod.WaitWithDefaultTimeout()
 		Expect(stopPod).Should(Exit(0))

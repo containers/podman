@@ -29,7 +29,7 @@ const KernelWarning = "WSL Kernel installation did not complete successfully. " 
 
 func setupLogging(name string) (*eventlog.Log, error) {
 	// Reuse the Built-in .NET Runtime Source so that we do not
-	// have to provide a messaage table and modify the system
+	// have to provide a message table and modify the system
 	// event configuration
 	log, err := eventlog.Open(".NET Runtime")
 	if err != nil {
