@@ -15,11 +15,11 @@ import (
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v4/pkg/api/types"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	docker "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/registry"
 )
 
 func Auth(w http.ResponseWriter, r *http.Request) {
-	var authConfig docker.AuthConfig
+	var authConfig registry.AuthConfig
 	err := json.NewDecoder(r.Body).Decode(&authConfig)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to parse request: %w", err))
