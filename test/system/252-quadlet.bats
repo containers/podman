@@ -637,4 +637,64 @@ EOF
     service_cleanup $QUADLET_SERVICE_NAME failed
 }
 
+@test "quadlet - exit-code propagation" {
+   local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).kube
+   local yaml_file=$PODMAN_TMPDIR/$(random_string).yaml
+
+   exit_tests="
+all  | true  | 0   | inactive
+all  | false | 137 | failed
+none | false | 0   | inactive
+"
+   while read exit_code_prop cmd exit_code service_state; do
+      cat > $yaml_file <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test
+  name: test_pod
+spec:
+  restartPolicy: Never
+  containers:
+    - name: ctr
+      image: $IMAGE
+      command:
+      - $cmd
+EOF
+       cat > $quadlet_file <<EOF
+[Kube]
+Yaml=$yaml_file
+ExitCodePropagation=$exit_code_prop
+
+# Never restart the service as we only want to test exit codes.
+[Service]
+Restart=never
+EOF
+
+      run_quadlet "$quadlet_file"
+      run systemctl status $QUADLET_SERVICE_NAME
+      service_setup $QUADLET_SERVICE_NAME
+
+      # Ensure we have output. Output is synced via sd-notify (socat in Exec)
+      run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
+      is "$output" '.*Started.*\.service.*'
+
+      yaml_sha=$(sha256sum $yaml_file)
+      service_container="${yaml_sha:0:12}-service"
+      run_podman container inspect --format '{{.KubeExitCodePropagation}}' $service_container
+      is "$output" "$exit_code_prop" "service container has the expected policy set in its annotations"
+      run_podman wait $service_container
+      is "$output" "$exit_code" "service container reflects expected exit code $exit_code"
+
+      # FIXME: we need an additional cleanup when the main PID exits non-zero.
+      # For .kube files we probably need a similar trick as in .container files
+      # and use an ExecStopPost which _is_ being executed in case of failure.
+      service_cleanup $QUADLET_SERVICE_NAME $service_state
+      run_podman '?' kube down $yaml_file
+   done < <(parse_table "$exit_tests")
+
+   run_podman rmi $(pause_image)
+}
+
 # vim: filetype=sh

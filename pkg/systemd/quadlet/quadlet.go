@@ -62,6 +62,7 @@ const (
 	KeyImage                 = "Image"
 	KeyIP                    = "IP"
 	KeyIP6                   = "IP6"
+	KeyExitCodePropagation   = "ExitCodePropagation"
 	KeyLabel                 = "Label"
 	KeyLogDriver             = "LogDriver"
 	KeyMount                 = "Mount"
@@ -192,17 +193,18 @@ var (
 
 	// Supported keys in "Kube" group
 	supportedKubeKeys = map[string]bool{
-		KeyConfigMap:    true,
-		KeyLogDriver:    true,
-		KeyNetwork:      true,
-		KeyPodmanArgs:   true,
-		KeyPublishPort:  true,
-		KeyRemapGID:     true,
-		KeyRemapUID:     true,
-		KeyRemapUIDSize: true,
-		KeyRemapUsers:   true,
-		KeyUserNS:       true,
-		KeyYaml:         true,
+		KeyConfigMap:           true,
+		KeyExitCodePropagation: true,
+		KeyLogDriver:           true,
+		KeyNetwork:             true,
+		KeyPodmanArgs:          true,
+		KeyPublishPort:         true,
+		KeyRemapGID:            true,
+		KeyRemapUID:            true,
+		KeyRemapUIDSize:        true,
+		KeyRemapUsers:          true,
+		KeyUserNS:              true,
+		KeyYaml:                true,
 	}
 )
 
@@ -894,6 +896,10 @@ func ConvertKube(kube *parser.UnitFile, isUser bool) (*parser.UnitFile, error) {
 		// Use a service container
 		"--service-container=true",
 	)
+
+	if ecp, ok := kube.Lookup(KubeGroup, KeyExitCodePropagation); ok && len(ecp) > 0 {
+		execStart.addf("--service-exit-code-propagation=%s", ecp)
+	}
 
 	handleLogDriver(kube, KubeGroup, execStart)
 

@@ -580,6 +580,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("Kube - Publish IPv6 ports", "ports_ipv6.kube"),
 		Entry("Kube - Logdriver", "logdriver.kube"),
 		Entry("Kube - PodmanArgs", "podmanargs.kube"),
+		Entry("Kube - Exit Code Propagation", "exit_code_propagation.kube"),
 
 		Entry("Network - Basic", "basic.network"),
 		Entry("Network - Label", "label.network"),
