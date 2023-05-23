@@ -2071,4 +2071,30 @@ WORKDIR /madethis`, BB)
 		Expect(t).To(BeTrue())
 		Expect(strings[0]).Should(ContainSubstring("size=10240k"))
 	})
+
+	It("podman run does not preserve image annotations", func() {
+		annoName := "test.annotation.present"
+		annoValue := "annovalue"
+		imgName := "basicalpine"
+		build := podmanTest.Podman([]string{"build", "-f", "build/basicalpine/Containerfile.with_label", "--annotation", fmt.Sprintf("%s=%s", annoName, annoValue), "-t", imgName})
+		build.WaitWithDefaultTimeout()
+		Expect(build).Should(Exit(0))
+		Expect(build.ErrorToString()).To(BeEmpty(), "build error logged")
+
+		ctrName := "ctr1"
+		run := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, imgName, "top"})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+		Expect(run.ErrorToString()).To(BeEmpty(), "run error logged")
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.ErrorToString()).To(BeEmpty(), "inspect error logged")
+
+		inspectData := inspect.InspectContainerToJSON()
+		Expect(inspectData).To(HaveLen(1))
+		Expect(inspectData[0].Config.Annotations).To(Not(HaveKey(annoName)))
+		Expect(inspectData[0].Config.Annotations).To(Not(HaveKey("testlabel")))
+	})
 })
