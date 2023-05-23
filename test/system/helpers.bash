@@ -45,6 +45,11 @@ fi
 
 # Setup helper: establish a test environment with exactly the images needed
 function basic_setup() {
+    # FIXME FIXME FIXME: remove if #17216 is fixed. See below also.
+    if [[ -e "${BATS_SUITE_TMPDIR}/forget-it" ]]; then
+        skip "everything is hosed, no point in going on"
+    fi
+
     # Clean up all containers
     run_podman rm -t 0 --all --force --ignore
 
@@ -58,7 +63,24 @@ function basic_setup() {
 
     # Clean up all images except those desired
     found_needed_image=
-    run_podman images --all --format '{{.Repository}}:{{.Tag}} {{.ID}}'
+    run_podman '?' images --all --format '{{.Repository}}:{{.Tag}} {{.ID}}'
+    # FIXME FIXME FIXME: temporary hack for #17216. If we see the unlinkat-busy
+    # flake, nothing will ever work again.
+    if [[ $status -ne 0 ]]; then
+        if [[ "$output" =~ unlinkat.*busy ]]; then
+            # Signal (see above) to skip all subsequent tests.
+            touch "${BATS_SUITE_TMPDIR}/forget-it"
+            # Gather some debugging info, then fail
+            echo "$_LOG_PROMPT ps auxww --forest"
+            ps auxww --forest
+            echo "$_LOG_PROMPT mount"
+            mount
+            echo "$_LOG_PROMPT lsof /var/lib/containers"
+            lsof /var/lib/containers
+            false
+        fi
+    fi
+
     for line in "${lines[@]}"; do
         set $line
         if [[ "$1" == "$PODMAN_TEST_IMAGE_FQN" ]]; then
