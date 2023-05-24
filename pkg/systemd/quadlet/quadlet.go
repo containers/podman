@@ -930,9 +930,11 @@ func ConvertKube(kube *parser.UnitFile, isUser bool) (*parser.UnitFile, error) {
 
 	service.AddCmdline(ServiceGroup, "ExecStart", execStart.Args)
 
+	// Use `ExecStopPost` to make sure cleanup happens even in case of
+	// errors; otherwise containers, pods, etc. would be left behind.
 	execStop := NewPodmanCmdline("kube", "down")
 	execStop.add(yamlPath)
-	service.AddCmdline(ServiceGroup, "ExecStop", execStop.Args)
+	service.AddCmdline(ServiceGroup, "ExecStopPost", execStop.Args)
 
 	return service, nil
 }

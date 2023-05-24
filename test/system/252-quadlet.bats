@@ -687,11 +687,9 @@ EOF
       run_podman wait $service_container
       is "$output" "$exit_code" "service container reflects expected exit code $exit_code"
 
-      # FIXME: we need an additional cleanup when the main PID exits non-zero.
-      # For .kube files we probably need a similar trick as in .container files
-      # and use an ExecStopPost which _is_ being executed in case of failure.
       service_cleanup $QUADLET_SERVICE_NAME $service_state
-      run_podman '?' kube down $yaml_file
+      run_podman ps -aq
+      is "$output" "" "all containers are cleaned up even in case of errors"
    done < <(parse_table "$exit_tests")
 
    run_podman rmi $(pause_image)
