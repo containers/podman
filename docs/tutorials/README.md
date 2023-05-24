@@ -39,3 +39,7 @@ Learn how to run containers that support socket activation.
 **[Performance](performance.md)**
 
 Performance guide regarding Podman configuration and usage.
+
+**[DevContainers in Visual Studio Code with Podman](vscode_devcontainers_tutorial.md)**
+
+Learn how to set up and use Podman to run DevContainers in Visual Studio Code.
