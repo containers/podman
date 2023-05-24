@@ -5,8 +5,8 @@
 ## assert-podman-args "--with-space" "yes"
 
 
-[Container]
-Image=localhost/imagename
+[Kube]
+Yaml=kube.yaml
 PodmanArgs="--foo" \
   --bar
 PodmanArgs=--also
