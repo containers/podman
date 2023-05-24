@@ -84,56 +84,56 @@ There is only one required key, `Image`, which defines the container image the s
 
 Valid options for `[Container]` are listed below:
 
-| **[Container] options**          | **podman run equivalent**              |
-| -----------------                | ------------------                     |
-| AddCapability=CAP                | --cap-add CAP                          |
-| AddDevice=/dev/foo               | --device /dev/foo                      |
-| Annotation="YXZ"                 | --annotation "XYZ"                     |
-| ContainerName=name               | --name name                            |
-| DropCapability=CAP               | --cap-drop=CAP                         |
-| Environment=foo=bar              | --env foo=bar                          |
-| EnvironmentFile=/tmp/env         | --env-file /tmp/env                    |
-| EnvironmentHost=true             | --env-host                             |
-| Exec=/usr/bin/command            | Command after image specification - /usr/bin/command   |
-| ExposeHostPort=50-59             | --expose 50-59                         |
-| Group=1234                       | --user UID:1234                        |
-| HealthCmd="/usr/bin/command"     | --health-cmd="/usr/bin/command"        |
-| HealthInterval=2m                | --health-interval=2m                   |
-| HealthOnFailure=kill          | --health-on-failure=kill            |
-| HealthRetries=5                  | --health-retries=5                     |
-| HealthStartPeriod=1m             | --health-start-period=period=1m        |
-| HealthStartupCmd="/usr/bin/command" | --health-startup-cmd="/usr/bin/command" |
-| HealthStartupInterval=1m         | --health-startup-interval=2m           |
-| HealthStartupRetries=8           | --health-startup-retries=8             |
-| HealthStartupSuccess=2           | --health-startup-success=2             |
-| HealthStartupTimeout=1m33s       | --health-startup-timeout=1m33s         |
-| HealthTimeout=20s                | --health-timeout=20s                   |
-| HostName=new-host-name           | --hostname="new-host-name"             |
-| Image=ubi8                       | Image specification - ubi8             |
-| IP=192.5.0.1                     | --ip 192.5.0.0                         |
-| IP6=fd46:db93:aa76:ac37::10      | --ip6 2001:db8::1                      |
-| Label="YXZ"                      | --label "XYZ"                          |
-| LogDriver=journald               | --log-driver journald                  |
-| Mount=type=bind,source=/path/on/host,destination=/path/in/container | --mount type=bind,source=/path/on/host,destination=/path/in/container |
-| Network=host                     | --net host                             |
-| NoNewPrivileges=true             | --security-opt no-new-privileges       |
-| Rootfs=/var/lib/rootfs           | --rootfs /var/lib/rootfs               |
-| Notify=true                      | --sdnotify container                   |
-| PodmanArgs=--add-host foobar     | --add-host foobar                      |
-| PublishPort=true                 | --publish                              |
-| ReadOnly=true                    | --read-only                            |
-| RunInit=true                     | --init                                 |
-| SeccompProfile=/tmp/s.json       | --security-opt seccomp=/tmp/s.json     |
-| SecurityLabelDisable=true        | --security-opt label=disable           |
-| SecurityLabelFileType=usr_t      | --security-opt label=filetype:usr_t    |
-| SecurityLabelLevel=s0:c1,c2      | --security-opt label=level:s0:c1,c2    |
-| SecurityLabelType=spc_t          | --security-opt label=type:spc_t        |
-| Timezone=local                   | --tz local                             |
-| Tmpfs=/work                      | --tmpfs /work                          |
-| User=bin                         | --user bin                             |
-| UserNS=keep-id:uid=200,gid=210   | --userns keep-id:uid=200,gid=210       |
-| VolatileTmp=true                 | --tmpfs /tmp                           |
-| Volume=/source:/dest             | --volume /source:/dest                 |
+| **[Container] options**        | **podman run equivalent**                            |
+|--------------------------------|------------------------------------------------------|
+| AddCapability=CAP              | --cap-add CAP                                        |
+| AddDevice=/dev/foo             | --device /dev/foo                                    |
+| Annotation="YXZ"               | --annotation "XYZ"                                   |
+| ContainerName=name             | --name name                                          |
+| DropCapability=CAP             | --cap-drop=CAP                                       |
+| Environment=foo=bar            | --env foo=bar                                        |
+| EnvironmentFile=/tmp/env       | --env-file /tmp/env                                  |
+| EnvironmentHost=true           | --env-host                                           |
+| Exec=/usr/bin/command          | Command after image specification - /usr/bin/command |
+| ExposeHostPort=50-59           | --expose 50-59                                       |
+| Group=1234                     | --user UID:1234                                      |
+| HealthCmd="/usr/bin/command"   | --health-cmd="/usr/bin/command"                      |
+| HealthInterval=2m              | --health-interval=2m                                 |
+| HealthOnFailure=kill           | --health-on-failure=kill                             |
+| HealthRetries=5                | --health-retries=5                                   |
+| HealthStartPeriod=1m           | --health-start-period=period=1m                      |
+| HealthStartupCmd="command"     | --health-startup-cmd="command"                       |
+| HealthStartupInterval=1m       | --health-startup-interval=2m                         |
+| HealthStartupRetries=8         | --health-startup-retries=8                           |
+| HealthStartupSuccess=2         | --health-startup-success=2                           |
+| HealthStartupTimeout=1m33s     | --health-startup-timeout=1m33s                       |
+| HealthTimeout=20s              | --health-timeout=20s                                 |
+| HostName=new-host-name         | --hostname="new-host-name"                           |
+| Image=ubi8                     | Image specification - ubi8                           |
+| IP=192.5.0.1                   | --ip 192.5.0.0                                       |
+| IP6=fd46:db93:aa76:ac37::10    | --ip6 2001:db8::1                                    |
+| Label="YXZ"                    | --label "XYZ"                                        |
+| LogDriver=journald             | --log-driver journald                                |
+| Mount=type=...                 | --mount type=...                                     |
+| Network=host                   | --net host                                           |
+| NoNewPrivileges=true           | --security-opt no-new-privileges                     |
+| Rootfs=/var/lib/rootfs         | --rootfs /var/lib/rootfs                             |
+| Notify=true                    | --sdnotify container                                 |
+| PodmanArgs=--add-host foobar   | --add-host foobar                                    |
+| PublishPort=true               | --publish                                            |
+| ReadOnly=true                  | --read-only                                          |
+| RunInit=true                   | --init                                               |
+| SeccompProfile=/tmp/s.json     | --security-opt seccomp=/tmp/s.json                   |
+| SecurityLabelDisable=true      | --security-opt label=disable                         |
+| SecurityLabelFileType=usr_t    | --security-opt label=filetype:usr_t                  |
+| SecurityLabelLevel=s0:c1,c2    | --security-opt label=level:s0:c1,c2                  |
+| SecurityLabelType=spc_t        | --security-opt label=type:spc_t                      |
+| Timezone=local                 | --tz local                                           |
+| Tmpfs=/work                    | --tmpfs /work                                        |
+| User=bin                       | --user bin                                           |
+| UserNS=keep-id:uid=200,gid=210 | --userns keep-id:uid=200,gid=210                     |
+| VolatileTmp=true               | --tmpfs /tmp                                         |
+| Volume=/source:/dest           | --volume /source:/dest                               |
 
 Description of `[Container]` section are:
 
