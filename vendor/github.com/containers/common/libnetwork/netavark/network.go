@@ -15,6 +15,7 @@ import (
 	"github.com/containers/common/libnetwork/internal/util"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
+	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/sirupsen/logrus"
@@ -334,6 +335,37 @@ func (n *netavarkNetwork) Len() int {
 // DefaultInterfaceName return the default cni bridge name, must be suffixed with a number.
 func (n *netavarkNetwork) DefaultInterfaceName() string {
 	return defaultBridgeName
+}
+
+// NetworkInfo return the network information about binary path,
+// package version and program version.
+func (n *netavarkNetwork) NetworkInfo() types.NetworkInfo {
+	path := n.netavarkBinary
+	packageVersion := cutil.PackageVersion(path)
+	programVersion, err := cutil.ProgramVersion(path)
+	if err != nil {
+		logrus.Infof("Failed to get the netavark version: %v", err)
+	}
+	info := types.NetworkInfo{
+		Backend: types.Netavark,
+		Version: programVersion,
+		Package: packageVersion,
+		Path:    path,
+	}
+
+	dnsPath := n.aardvarkBinary
+	dnsPackage := cutil.PackageVersion(dnsPath)
+	dnsProgram, err := cutil.ProgramVersion(dnsPath)
+	if err != nil {
+		logrus.Infof("Failed to get the aardvark version: %v", err)
+	}
+	info.DNS = types.DNSNetworkInfo{
+		Package: dnsPackage,
+		Path:    dnsPath,
+		Version: dnsProgram,
+	}
+
+	return info
 }
 
 func (n *netavarkNetwork) Network(nameOrID string) (*types.Network, error) {

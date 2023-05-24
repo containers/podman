@@ -14,8 +14,7 @@ var DefaultSampler = trace.AlwaysSample()
 func SetSpanStatus(span *trace.Span, err error) {
 	status := trace.Status{}
 	if err != nil {
-		// TODO: JTERRY75 - Handle errors in a non-generic way
-		status.Code = trace.StatusCodeUnknown
+		status.Code = int32(toStatusCode(err))
 		status.Message = err.Error()
 	}
 	span.SetStatus(status)
@@ -46,3 +45,14 @@ func update(ctx context.Context, s *trace.Span) (context.Context, *trace.Span) {
 
 var WithServerSpanKind = trace.WithSpanKind(trace.SpanKindServer)
 var WithClientSpanKind = trace.WithSpanKind(trace.SpanKindClient)
+
+func spanKindToString(sk int) string {
+	switch sk {
+	case trace.SpanKindClient:
+		return "client"
+	case trace.SpanKindServer:
+		return "server"
+	default:
+		return ""
+	}
+}

@@ -17,13 +17,13 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ###
-    FEDORA_NAME: "fedora-37"
+    FEDORA_NAME: "fedora-38"
     DEBIAN_NAME: "debian-12"
 
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
     # VM Image built in containers/automation_images
-    IMAGE_SUFFIX: "c20230405t152256z-f37f36d12"
+    IMAGE_SUFFIX: "c20230426t140447z-f38f37d12"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
 
@@ -127,7 +127,6 @@ lint_task:
         fingerprint_script: cat go.sum
         folder: $GOPATH/pkg/mod
     build_script: |
-      echo "deb http://deb.debian.org/debian stretch-backports main" > /etc/apt/sources.list.d/backports.list
       apt-get update
       apt-get install -y libbtrfs-dev libdevmapper-dev
     test_script: make TAGS=regex_precompile local-validate && make lint && make clean
@@ -168,7 +167,7 @@ vendor_task:
 
 cross_task:
     container:
-        image: golang:1.17
+        image: golang:1.18
     build_script: make cross
 
 
@@ -182,6 +181,6 @@ success_task:
         - vendor
         - cross
     container:
-        image: golang:1.17
+        image: golang:1.18
     clone_script: 'mkdir -p "$CIRRUS_WORKING_DIR"'  # Source code not needed
     script: /bin/true

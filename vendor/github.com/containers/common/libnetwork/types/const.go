@@ -41,6 +41,7 @@ const (
 	ModeOption    = "mode"
 	IsolateOption = "isolate"
 	MetricOption  = "metric"
+	NoDefaultRoute = "no_default_route"
 )
 
 type NetworkBackend string

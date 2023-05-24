@@ -12,3 +12,8 @@ const (
 var (
 	defaultOverrideConfigFile = "/usr/local/etc/containers/storage.conf"
 )
+
+// canUseRootlessOverlay returns true if the overlay driver can be used for rootless containers
+func canUseRootlessOverlay(home, runhome string) bool {
+	return false
+}

@@ -55,7 +55,6 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		ctr:       graphdriver.NewRefCounter(graphdriver.NewDefaultChecker()),
 		locker:    locker.New(),
 	}
-
 	return graphdriver.NewNaiveDiffDriver(d, graphdriver.NewNaiveLayerIDMapUpdater(d)), nil
 }
 
@@ -265,11 +264,6 @@ func (d *Driver) ReadWriteDiskUsage(id string) (*directory.DiskUsage, error) {
 // Exists checks to see if the device exists.
 func (d *Driver) Exists(id string) bool {
 	return d.DeviceSet.HasDevice(id)
-}
-
-// List layers (not including additional image stores)
-func (d *Driver) ListLayers() ([]string, error) {
-	return nil, graphdriver.ErrNotSupported
 }
 
 // AdditionalImageStores returns additional image stores supported by the driver
