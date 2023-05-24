@@ -328,8 +328,8 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	v.CmdLine = append(v.CmdLine, "-drive", "if=virtio,file="+v.getImageFile())
 	// This kind of stinks but no other way around this r/n
 	if len(opts.IgnitionPath) < 1 {
-		uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", fmt.Sprintf("/run/user/%d/podman/podman.sock", v.UID), strconv.Itoa(v.Port), v.RemoteUsername)
-		uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
+		uri := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, fmt.Sprintf("/run/user/%d/podman/podman.sock", v.UID), strconv.Itoa(v.Port), v.RemoteUsername)
+		uriRoot := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
 		identity := filepath.Join(sshDir, v.Name)
 
 		uris := []url.URL{uri, uriRoot}
@@ -940,13 +940,6 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 	files = append(files, socketPath.Path)
 	files = append(files, v.archRemovalFiles()...)
 
-	if err := machine.RemoveConnection(v.Name); err != nil {
-		logrus.Error(err)
-	}
-	if err := machine.RemoveConnection(v.Name + "-root"); err != nil {
-		logrus.Error(err)
-	}
-
 	vmConfigDir, err := machine.GetConfDir(vmtype)
 	if err != nil {
 		return "", nil, err
@@ -976,6 +969,12 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 			if err := os.Remove(f); err != nil && !errors.Is(err, os.ErrNotExist) {
 				logrus.Error(err)
 			}
+		}
+		if err := machine.RemoveConnection(v.Name); err != nil {
+			logrus.Error(err)
+		}
+		if err := machine.RemoveConnection(v.Name + "-root"); err != nil {
+			logrus.Error(err)
 		}
 		return nil
 	}, nil

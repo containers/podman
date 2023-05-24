@@ -31,9 +31,9 @@ func networkUpdateFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
 	addDNSServerFlagName := "dns-add"
-	flags.StringArrayVar(&networkUpdateOptions.AddDNSServers, addDNSServerFlagName, nil, "add network level nameservers")
+	flags.StringSliceVar(&networkUpdateOptions.AddDNSServers, addDNSServerFlagName, nil, "add network level nameservers")
 	removeDNSServerFlagName := "dns-drop"
-	flags.StringArrayVar(&networkUpdateOptions.RemoveDNSServers, removeDNSServerFlagName, nil, "remove network level nameservers")
+	flags.StringSliceVar(&networkUpdateOptions.RemoveDNSServers, removeDNSServerFlagName, nil, "remove network level nameservers")
 	_ = cmd.RegisterFlagCompletionFunc(addDNSServerFlagName, completion.AutocompleteNone)
 	_ = cmd.RegisterFlagCompletionFunc(removeDNSServerFlagName, completion.AutocompleteNone)
 }

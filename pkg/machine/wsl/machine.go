@@ -474,8 +474,8 @@ func (v *MachineVM) writeConfig() error {
 }
 
 func setupConnections(v *MachineVM, opts machine.InitOptions, sshDir string) error {
-	uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/user/1000/podman/podman.sock", strconv.Itoa(v.Port), v.RemoteUsername)
-	uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
+	uri := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, "/run/user/1000/podman/podman.sock", strconv.Itoa(v.Port), v.RemoteUsername)
+	uriRoot := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
 	identity := filepath.Join(sshDir, v.Name)
 
 	uris := []url.URL{uri, uriRoot}

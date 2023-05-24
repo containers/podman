@@ -592,6 +592,14 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS string) (status map[strin
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		// do not forget to tear down the netns when a later error happened.
+		if rerr != nil {
+			if err := r.teardownNetworkBackend(ctrNS, netOpts); err != nil {
+				logrus.Warnf("failed to teardown network after failed setup: %v", err)
+			}
+		}
+	}()
 
 	// set up rootless port forwarder when rootless with ports and the network status is empty,
 	// if this is called from network reload the network status will not be empty and we should
