@@ -5,8 +5,7 @@
 ## assert-podman-args "--with-space" "yes"
 
 
-[Container]
-Image=localhost/imagename
+[Volume]
 PodmanArgs="--foo" \
   --bar
 PodmanArgs=--also

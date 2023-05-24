@@ -565,6 +565,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("uid.volume", "uid.volume"),
 		Entry("device-copy.volume", "device-copy.volume"),
 		Entry("device.volume", "device.volume"),
+		Entry("podmanargs.volume", "podmanargs.volume"),
 
 		Entry("Basic kube", "basic.kube"),
 		Entry("Syslog Identifier", "syslog.identifier.kube"),
@@ -578,6 +579,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("Kube - Publish IPv4 ports", "ports.kube"),
 		Entry("Kube - Publish IPv6 ports", "ports_ipv6.kube"),
 		Entry("Kube - Logdriver", "logdriver.kube"),
+		Entry("Kube - PodmanArgs", "podmanargs.kube"),
 
 		Entry("Network - Basic", "basic.network"),
 		Entry("Network - Label", "label.network"),
@@ -597,6 +599,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("Network - IPv6", "ipv6.network"),
 		Entry("Network - Options", "options.network"),
 		Entry("Network - Multiple Options", "options.multiple.network"),
+		Entry("Network - PodmanArgs", "podmanargs.network"),
 	)
 
 })

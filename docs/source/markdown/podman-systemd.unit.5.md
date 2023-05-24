@@ -370,8 +370,9 @@ of what unexpected interactions can be caused by these arguments, is not recomme
 this option.
 
 The format of this is a space separated list of arguments, which can optionally be individually
-escaped to allow inclusion of whitespace and other control characters. This key can be listed
-multiple times.
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
 
 ### `PublishPort=`
 
@@ -480,14 +481,15 @@ There is only one required key, `Yaml`, which defines the path to the Kubernetes
 
 Valid options for `[Kube]` are listed below:
 
-| **[Kube] options**               | **podman kube play equivalent**        |
-| -----------------                | ------------------                     |
-| ConfigMap=/tmp/config.map        | --config-map /tmp/config.map           |
-| LogDriver=journald               | --log-driver journald                  |
-| Network=host                     | --net host                             |
-| PublishPort=59-60                | --publish=59-60                        |
-| UserNS=keep-id:uid=200,gid=210   | --userns keep-id:uid=200,gid=210       |
-| Yaml=/tmp/kube.yaml              | podman kube play /tmp/kube.yaml        |
+| **[Kube] options**                | **podman kube play equivalent**        |
+| -----------------                 | ------------------                     |
+| ConfigMap=/tmp/config.map         | --config-map /tmp/config.map           |
+| LogDriver=journald                | --log-driver journald                  |
+| Network=host                      | --net host                             |
+| PodmanArgs=--annotation=key=value | --annotation=key=value                 |
+| PublishPort=59-60                 | --publish=59-60                        |
+| UserNS=keep-id:uid=200,gid=210    | --userns keep-id:uid=200,gid=210       |
+| Yaml=/tmp/kube.yaml               | podman kube play /tmp/kube.yaml        |
 
 Supported keys in the `[Kube]` section are:
 
@@ -514,6 +516,19 @@ As a special case, if the `name` of the network ends with `.network`, a Podman n
 `systemd-$name` is used, and the generated systemd service contains
 a dependency on the `$name-network.service`. Such a network can be automatically
 created by using a `$name.network` Quadlet file.
+
+This key can be listed multiple times.
+
+### `PodmanArgs=`
+
+This key contains a list of arguments passed directly to the end of the `podman kube play` command
+in the generated file (right before the path to the yaml file in the command line). It can be used to
+access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
 
 This key can be listed multiple times.
 
@@ -568,6 +583,7 @@ Valid options for `[Network]` are listed below:
 | IPv6=true                        | --ipv6                                 |
 | Label="YXZ"                      | --label "XYZ"                          |
 | Options=isolate                  | --opt isolate                          |
+| PodmanArgs=--dns=192.168.55.1    | --dns=192.168.55.1                     |
 | Subnet=192.5.0.0/16              | --subnet 192.5.0.0/16                  |
 
 Supported keys in `[Network]` section are:
@@ -631,6 +647,19 @@ Set driver specific options.
 
 This is equivalent to the Podman `--opt` option
 
+### `PodmanArgs=`
+
+This key contains a list of arguments passed directly to the end of the `podman network create` command
+in the generated file (right before the name of the network in the command line). It can be used to
+access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
+
 ### `Subnet=`
 
 The subnet in CIDR notation.
@@ -661,6 +690,7 @@ Valid options for `[Volume]` are listed below:
 | Group=192                        | --opt group=192                       |
 | Label="foo=bar"                  | --label "foo=bar"                     |
 | Options=XYZ                      | --opt XYZ                             |
+| PodmanArgs=--driver=image        | --driver=image                        |
 
 Supported keys in `[Volume]` section are:
 
@@ -687,6 +717,19 @@ This key can be listed multiple times.
 ### `Options=`
 
 The mount options to use for a filesystem as used by the **mount(8)** command `-o` option.
+
+### `PodmanArgs=`
+
+This key contains a list of arguments passed directly to the end of the `podman volume create` command
+in the generated file (right before the name of the network in the command line). It can be used to
+access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
 
 ### `Type=`
 

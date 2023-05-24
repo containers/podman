@@ -165,13 +165,14 @@ var (
 
 	// Supported keys in "Volume" group
 	supportedVolumeKeys = map[string]bool{
-		KeyCopy:    true,
-		KeyDevice:  true,
-		KeyGroup:   true,
-		KeyLabel:   true,
-		KeyOptions: true,
-		KeyType:    true,
-		KeyUser:    true,
+		KeyCopy:       true,
+		KeyDevice:     true,
+		KeyGroup:      true,
+		KeyLabel:      true,
+		KeyOptions:    true,
+		KeyPodmanArgs: true,
+		KeyType:       true,
+		KeyUser:       true,
 	}
 
 	// Supported keys in "Network" group
@@ -186,6 +187,7 @@ var (
 		KeyNetworkInternal:   true,
 		KeyNetworkOptions:    true,
 		KeyNetworkSubnet:     true,
+		KeyPodmanArgs:        true,
 	}
 
 	// Supported keys in "Kube" group
@@ -193,6 +195,7 @@ var (
 		KeyConfigMap:    true,
 		KeyLogDriver:    true,
 		KeyNetwork:      true,
+		KeyPodmanArgs:   true,
 		KeyPublishPort:  true,
 		KeyRemapGID:     true,
 		KeyRemapUID:     true,
@@ -620,8 +623,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		podman.add("--hostname", hostname)
 	}
 
-	podmanArgs := container.LookupAllArgs(ContainerGroup, KeyPodmanArgs)
-	podman.add(podmanArgs...)
+	handlePodmanArgs(container, ContainerGroup, podman)
 
 	if len(image) > 0 {
 		podman.add(image)
@@ -713,6 +715,8 @@ func ConvertNetwork(network *parser.UnitFile, name string) (*parser.UnitFile, er
 	if labels := network.LookupAllKeyVal(NetworkGroup, KeyLabel); len(labels) > 0 {
 		podman.addLabels(labels)
 	}
+
+	handlePodmanArgs(network, NetworkGroup, podman)
 
 	podman.add(networkName)
 
@@ -814,6 +818,9 @@ func ConvertVolume(volume *parser.UnitFile, name string) (*parser.UnitFile, erro
 	}
 
 	podman.addLabels(labels)
+
+	handlePodmanArgs(volume, VolumeGroup, podman)
+
 	podman.add(volumeName)
 
 	service.AddCmdline(ServiceGroup, "ExecStart", podman.Args)
@@ -910,6 +917,8 @@ func ConvertKube(kube *parser.UnitFile, isUser bool) (*parser.UnitFile, error) {
 	if err := handlePublishPorts(kube, KubeGroup, execStart); err != nil {
 		return nil, err
 	}
+
+	handlePodmanArgs(kube, KubeGroup, execStart)
 
 	execStart.add(yamlPath)
 
@@ -1173,5 +1182,12 @@ func handleHealth(unitFile *parser.UnitFile, groupName string, podman *PodmanCmd
 			podman.addf("--health-%s", keyArg[1])
 			podman.addf("%s", val)
 		}
+	}
+}
+
+func handlePodmanArgs(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline) {
+	podmanArgs := unitFile.LookupAllArgs(groupName, KeyPodmanArgs)
+	if len(podmanArgs) > 0 {
+		podman.add(podmanArgs...)
 	}
 }
