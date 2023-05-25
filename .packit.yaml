@@ -5,7 +5,8 @@
 # Build targets can be found at:
 # https://copr.fedorainfracloud.org/coprs/rhcontainerbot/packit-builds/
 
-specfile_path: podman.spec
+specfile_path: rpm/podman.spec
+upstream_tag_template: v{version}
 
 jobs:
   - &copr
@@ -18,8 +19,6 @@ jobs:
       - make
       - rpkg
     actions:
-      post-upstream-clone:
-        - "rpkg spec --outdir ./"
       fix-spec-file:
         - "bash .packit.sh"
 
@@ -30,3 +29,22 @@ jobs:
     trigger: commit
     branch: v4.5
     project: qm
+
+  - job: propose_downstream
+    trigger: release
+    update_release: false
+    dist_git_branches:
+      - fedora-all
+    actions:
+        pre-sync:
+          - "cd rpm && bash update-spec-provides.sh"
+
+  - job: koji_build
+    trigger: commit
+    dist_git_branches:
+      - fedora-all
+
+  - job: bodhi_update
+    trigger: commit
+    dist_git_branches:
+      - fedora-branched # rawhide updates are created automatically

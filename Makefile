@@ -774,7 +774,7 @@ win-gvproxy: test/version/version
 
 .PHONY: package
 package:  ## Build rpm packages
-	rpkg local
+	$(MAKE) -C rpm
 
 ###
 ### Installation targets

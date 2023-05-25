@@ -381,8 +381,6 @@ alt_build_task:
       - env:
             ALT_NAME: 'Build Without CGO'
       - env:
-            ALT_NAME: 'Test build podman-next Copr RPM'
-      - env:
             ALT_NAME: 'Alt Arch. Cross'
       - env:
             ALT_NAME: 'FreeBSD Cross'

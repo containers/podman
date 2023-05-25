@@ -5,24 +5,33 @@
 
 set -eo pipefail
 
-# Get Version from version/version.go in HEAD
-VERSION=$(grep '^const RawVersion' version/rawversion/version.go | cut -d\" -f2 | sed -e 's/-/~/')
+# Set path to rpm spec file
+SPEC_FILE=rpm/podman.spec
+
+# Get Version from HEAD
+VERSION=$(grep '^const RawVersion' version/rawversion/version.go | cut -d\" -f2)
+
+# RPM Version can't take "-"
+RPM_VERSION=$(echo $VERSION | sed -e 's/-/~/')
 
 # Generate source tarball from HEAD
 git archive --prefix=podman-$VERSION/ -o podman-$VERSION.tar.gz HEAD
 
+# rpmbuild expects source tarball in the same dir as spec file
+mv podman-$VERSION.tar.gz rpm/
+
 # RPM Spec modifications
 
-# Use the Version from version/version.go in rpm spec
-sed -i "s/^Version:.*/Version: $VERSION/" podman.spec
+# Use the Version from HEAD in rpm spec
+sed -i "s/^Version:.*/Version: $RPM_VERSION/" $SPEC_FILE
 
 # Use Packit's supplied variable in the Release field in rpm spec.
 # podman.spec is generated using `rpkg spec --outdir ./` as mentioned in the
 # `post-upstream-clone` action in .packit.yaml.
-sed -i "s/^Release:.*/Release: $PACKIT_RPMSPEC_RELEASE%{?dist}/" podman.spec
+sed -i "s/^Release:.*/Release: $PACKIT_RPMSPEC_RELEASE%{?dist}/" $SPEC_FILE
 
 # Use above generated tarball as Source in rpm spec
-sed -i "s/^Source:.*.tar.gz/Source: podman-$VERSION.tar.gz/" podman.spec
+sed -i "s/^Source0:.*.tar.gz/Source0: podman-$VERSION.tar.gz/" $SPEC_FILE
 
-# Use the right build dir for autosetup stage in rpm spec
-sed -i "s/^%setup.*/%autosetup -Sgit -n %{name}-$VERSION/" podman.spec
+# Update setup macro to use the correct build dir
+sed -i "s/^%autosetup.*/%autosetup -Sgit -n %{name}-$VERSION/" $SPEC_FILE
