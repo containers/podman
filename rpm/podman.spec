@@ -154,8 +154,6 @@ Recommends: %{name}-gvproxy = %{epoch}:%{version}-%{release}
 Provides: %{name}-quadlet
 Obsoletes: %{name}-quadlet <= 5:4.4.0-1
 Provides: %{name}-quadlet = %{epoch}:%{version}-%{release}
-# TODO: need to find the right action in packit propose-downstream to update
-# the goimports here. None of the actions seem to work so far.
 # DO NOT DELETE BELOW LINE - used for updating downstream goimports
 # vendored libraries
 

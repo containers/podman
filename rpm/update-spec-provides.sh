@@ -4,6 +4,8 @@
 # packaging, via the `propose-downstream` packit action.
 # The goimports don't need to be present upstream.
 
+set -e
+
 SPEC_FILE=$(pwd)/podman.spec
 
 sed -i '/Provides: bundled(golang.*/d' $SPEC_FILE
