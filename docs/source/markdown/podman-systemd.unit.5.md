@@ -481,15 +481,15 @@ There is only one required key, `Yaml`, which defines the path to the Kubernetes
 
 Valid options for `[Kube]` are listed below:
 
-| **[Kube] options**                | **podman kube play equivalent**             |
-| --------------------------------- | ------------------------------------------- |
-| ConfigMap=/tmp/config.map         | --config-map /tmp/config.map                |
-| LogDriver=journald                | --log-driver journald                       |
-| Network=host                      | --net host                                  |
-| PodmanArgs=--annotation=key=value | --annotation=key=value                      |
-| PublishPort=59-60                 | --publish=59-60                             |
-| UserNS=keep-id:uid=200,gid=210    | --userns keep-id:uid=200,gid=210            |
-| Yaml=/tmp/kube.yaml               | podman kube play /tmp/kube.yaml             |
+| **[Kube] options**                  | **podman kube play equivalent**             |
+| ----------------------------------- | ------------------------------------------- |
+| ConfigMap=/tmp/config.map           | --config-map /tmp/config.map                |
+| LogDriver=journald                  | --log-driver journald                       |
+| Network=host                        | --net host                                  |
+| PodmanArgs=\-\-annotation=key=value | --annotation=key=value                      |
+| PublishPort=59-60                   | --publish=59-60                             |
+| UserNS=keep-id:uid=200,gid=210      | --userns keep-id:uid=200,gid=210            |
+| Yaml=/tmp/kube.yaml                 | podman kube play /tmp/kube.yaml             |
 
 Supported keys in the `[Kube]` section are:
 
