@@ -184,12 +184,7 @@ func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
 		return false, -1, fmt.Errorf("cannot re-exec process to join the existing user namespace")
 	}
 
-	ret := C.reexec_in_user_namespace_wait(pidC, 0)
-	if ret < 0 {
-		return false, -1, errors.New("waiting for the re-exec process")
-	}
-
-	return true, int(ret), nil
+	return waitAndProxySignalsToChild(pidC)
 }
 
 // GetConfiguredMappings returns the additional IDs configured for the current user.
@@ -395,7 +390,6 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		if ret < 0 {
 			return false, -1, errors.New("waiting for the re-exec process")
 		}
-
 		return true, 0, nil
 	}
 
@@ -418,6 +412,10 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		return false, -1, errors.New("setting up the process")
 	}
 
+	return waitAndProxySignalsToChild(pidC)
+}
+
+func waitAndProxySignalsToChild(pid C.int) (bool, int, error) {
 	signals := []os.Signal{}
 	for sig := 0; sig < numSig; sig++ {
 		if sig == int(unix.SIGTSTP) {
@@ -426,24 +424,28 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		signals = append(signals, unix.Signal(sig))
 	}
 
+	// Disable all existing signal handlers, from now forward everything to the child and let
+	// it deal with it. All we do is to wait and propagate the exit code from the child to our parent.
+	gosignal.Reset()
 	c := make(chan os.Signal, len(signals))
 	gosignal.Notify(c, signals...)
-	defer gosignal.Reset()
 	go func() {
 		for s := range c {
 			if s == unix.SIGCHLD || s == unix.SIGPIPE {
 				continue
 			}
 
-			if err := unix.Kill(int(pidC), s.(unix.Signal)); err != nil {
+			if err := unix.Kill(int(pid), s.(unix.Signal)); err != nil {
 				if err != unix.ESRCH {
-					logrus.Errorf("Failed to propagate signal to child process %d: %v", int(pidC), err)
+					logrus.Errorf("Failed to propagate signal to child process %d: %v", int(pid), err)
 				}
 			}
 		}
 	}()
 
-	ret := C.reexec_in_user_namespace_wait(pidC, 0)
+	ret := C.reexec_in_user_namespace_wait(pid, 0)
+	// child exited reset our signal proxy handler
+	gosignal.Reset()
 	if ret < 0 {
 		return false, -1, errors.New("waiting for the re-exec process")
 	}
