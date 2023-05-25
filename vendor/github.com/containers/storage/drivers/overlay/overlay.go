@@ -443,6 +443,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		return nil, fmt.Errorf("storage option overlay.size and overlay.inodes only supported for backingFS XFS. Found %v", backingFs)
 	}
 
+	fmt.Println("----in Init before debug log------")
 	logrus.Debugf("backingFs=%s, projectQuotaSupported=%v, useNativeDiff=%v, usingMetacopy=%v", backingFs, projectQuotaSupported, !d.useNaiveDiff(), d.usingMetacopy)
 
 	return d, nil

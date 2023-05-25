@@ -318,7 +318,10 @@ func OverlayChanges(layers []string, rw string) ([]Change, error) {
 	dc := func(root, path string, fi os.FileInfo) (string, error) {
 		return overlayDeletedFile(layers, root, path, fi)
 	}
-	return changes(layers, rw, dc, nil, overlayLowerContainsWhiteout)
+	rdc := func(root, path string, fi os.FileInfo) ([]string, error) {
+		return overlayRedirectDir(layers, root, path, fi)
+	}
+	return changes(layers, rw, dc, nil, overlayLowerContainsWhiteout, rdc)
 }
 
 func overlayLowerContainsWhiteout(root, path string) (bool, error) {
@@ -335,6 +338,51 @@ func overlayLowerContainsWhiteout(root, path string) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+func overlayRedirectDir(layers []string, root, path string, fi os.FileInfo) ([]string, error) {
+	var redirectPaths []string
+	// We only need to pay attention to directories
+	if !fi.IsDir() {
+		return redirectPaths, nil
+	}
+	// If the directory doesn't have the redirect attribute set, move on
+	redirect, err := system.Lgetxattr(filepath.Join(root, path), GetOverlayXattrName("redirect"))
+	if err != nil {
+		return redirectPaths, err
+	}
+	if redirect == nil {
+		return redirectPaths, err
+	}
+	// If there are no lower layers, then it can't be a redirect in this layer
+	if len(layers) == 0 {
+		return redirectPaths, err
+	}
+	// Ensure we are building the full path of the redirect directory
+	fullRedirectPath := filepath.Join(filepath.Dir(path), string(redirect))
+	// At this point, we have a directory that is a redirect
+	for _, layer := range layers {
+		lowerDirPath := filepath.Join(layer, fullRedirectPath)
+		err := filepath.Walk(lowerDirPath, func(path string, f os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			// Rebase path
+			path, err = filepath.Rel(lowerDirPath, path)
+			if err != nil {
+				return err
+			}
+			// Don't add main directory that has the redirect attribute set
+			if path != "." {
+				redirectPaths = append(redirectPaths, path)
+			}
+			return nil
+		})
+		if err != nil {
+			return redirectPaths, err
+		}
+	}
+	return redirectPaths, nil
 }
 
 func overlayDeletedFile(layers []string, root, path string, fi os.FileInfo) (string, error) {

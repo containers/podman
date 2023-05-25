@@ -81,7 +81,7 @@ func sameFsTimeSpec(a, b syscall.Timespec) bool {
 // Changes walks the path rw and determines changes for the files in the path,
 // with respect to the parent layers
 func Changes(layers []string, rw string) ([]Change, error) {
-	return changes(layers, rw, aufsDeletedFile, aufsMetadataSkip, aufsWhiteoutPresent)
+	return changes(layers, rw, aufsDeletedFile, aufsMetadataSkip, aufsWhiteoutPresent, aufsRedirectDir)
 }
 
 func aufsMetadataSkip(path string) (skip bool, err error) {
@@ -116,6 +116,16 @@ func aufsWhiteoutPresent(root, path string) (bool, error) {
 	return false, err
 }
 
+func aufsRedirectDir(root, path string, fi os.FileInfo) ([]string, error) {
+	var redirectPaths []string
+	redirect, err := system.Lgetxattr(filepath.Join(root, path), GetOverlayXattrName("redirect"))
+	if err != nil {
+		return redirectPaths, err
+	}
+	fmt.Println("----not sure what to do here redirect-----:", string(redirect))
+	return redirectPaths, nil
+}
+
 func isENOTDIR(err error) bool {
 	if err == nil {
 		return false
@@ -134,8 +144,9 @@ func isENOTDIR(err error) bool {
 type skipChange func(string) (bool, error)
 type deleteChange func(string, string, os.FileInfo) (string, error)
 type whiteoutChange func(string, string) (bool, error)
+type redirectChange func(string, string, os.FileInfo) ([]string, error)
 
-func changes(layers []string, rw string, dc deleteChange, sc skipChange, wc whiteoutChange) ([]Change, error) {
+func changes(layers []string, rw string, dc deleteChange, sc skipChange, wc whiteoutChange, rdc redirectChange) ([]Change, error) {
 	var (
 		changes     []Change
 		changedDirs = make(map[string]struct{})
@@ -170,6 +181,11 @@ func changes(layers []string, rw string, dc deleteChange, sc skipChange, wc whit
 			Path: path,
 		}
 
+		redirectPaths, err := rdc(rw, path, f)
+		if err != nil {
+			return err
+		}
+
 		deletedFile, err := dc(rw, path, f)
 		if err != nil {
 			return err
@@ -179,6 +195,15 @@ func changes(layers []string, rw string, dc deleteChange, sc skipChange, wc whit
 		if deletedFile != "" {
 			change.Path = deletedFile
 			change.Kind = ChangeDelete
+		} else if len(redirectPaths) > 0 {
+			for _, rdp := range redirectPaths {
+				fmt.Println("---new redirects----:", filepath.Join(path, rdp))
+				change := Change{
+					Kind: ChangeAdd,
+					Path: filepath.Join(path, rdp),
+				}
+				changes = append(changes, change)
+			}
 		} else {
 			// Otherwise, the file was added
 			change.Kind = ChangeAdd
@@ -196,6 +221,7 @@ func changes(layers []string, rw string, dc deleteChange, sc skipChange, wc whit
 					if ignore {
 						break layerScan
 					}
+
 					for dir := filepath.Dir(path); dir != "" && dir != string(os.PathSeparator); dir = filepath.Dir(dir) {
 						ignore, err = wc(layer, dir)
 						if err != nil {

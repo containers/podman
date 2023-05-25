@@ -103,15 +103,6 @@ func doesSupportNativeDiff(d, mountOpts string) error {
 		}
 		return fmt.Errorf("failed to rename dir in merged directory: %w", err)
 	}
-	// get the xattr of "d2"
-	xattrRedirect, err := system.Lgetxattr(filepath.Join(td, "l3", "d2"), archive.GetOverlayXattrName("redirect"))
-	if err != nil {
-		return fmt.Errorf("failed to read redirect flag on upper layer: %w", err)
-	}
-
-	if string(xattrRedirect) == "d1" {
-		return errors.New("kernel has CONFIG_OVERLAY_FS_REDIRECT_DIR enabled")
-	}
 
 	return nil
 }
