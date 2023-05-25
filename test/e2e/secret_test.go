@@ -229,7 +229,7 @@ var _ = Describe("Podman secret", func() {
 		Expect(list.OutputToStringArray()).To(HaveLen(2))
 		Expect(list.OutputToStringArray()[1]).To(ContainSubstring(secrID2))
 
-		list = podmanTest.Podman([]string{"secret", "ls", "--filter", fmt.Sprintf("name=%s,name=%s", secret1, secret2)})
+		list = podmanTest.Podman([]string{"secret", "ls", "--filter", fmt.Sprintf("name=%s", secret1), "--filter", fmt.Sprintf("name=%s", secret2)})
 		list.WaitWithDefaultTimeout()
 		Expect(list).Should(Exit(0))
 		Expect(list.OutputToStringArray()).To(HaveLen(3))

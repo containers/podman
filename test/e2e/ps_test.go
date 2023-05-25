@@ -190,6 +190,26 @@ var _ = Describe("Podman ps", func() {
 		Expect(actual).ToNot(ContainSubstring("table"))
 	})
 
+	It("podman ps --filter label=test=with,comma", func() {
+		ctrAlpha := "first"
+		container := podmanTest.Podman([]string{"run", "-dt", "--label", "test=with,comma", "--name", ctrAlpha, ALPINE, "top"})
+		container.WaitWithDefaultTimeout()
+		Expect(container).Should(Exit(0))
+
+		ctrBravo := "second"
+		containerBravo := podmanTest.Podman([]string{"run", "-dt", "--name", ctrBravo, ALPINE, "top"})
+		containerBravo.WaitWithDefaultTimeout()
+		Expect(containerBravo).Should(Exit(0))
+
+		result := podmanTest.Podman([]string{"ps", "-a", "--format", "table {{.Names}}", "--filter", "label=test=with,comma"})
+		result.WaitWithDefaultTimeout()
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		actual := result.OutputToString()
+		Expect(actual).To(ContainSubstring("first"))
+		Expect(actual).ToNot(ContainSubstring("table"))
+	})
+
 	It("podman ps namespace flag", func() {
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
