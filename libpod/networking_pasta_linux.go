@@ -15,6 +15,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	pastaBinaryName = "passt"
+)
+
 func (r *Runtime) setupPasta(ctr *Container, netns string) error {
 	var NoTCPInitPorts = true
 	var NoUDPInitPorts = true
