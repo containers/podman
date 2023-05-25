@@ -75,7 +75,7 @@ func rmFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(cidfileFlagName, completion.AutocompleteDefault)
 
 	filterFlagName := "filter"
-	flags.StringSliceVar(&filters, filterFlagName, []string{}, "Filter output based on conditions given")
+	flags.StringArrayVar(&filters, filterFlagName, []string{}, "Filter output based on conditions given")
 	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePsFilters)
 
 	if !registry.IsRemote() {
