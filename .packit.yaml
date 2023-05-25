@@ -35,11 +35,9 @@ jobs:
     update_release: false
     dist_git_branches:
       - fedora-all
-    #TODO use the right action to update the goimports
-    # For whatever reason, none of the actions seem to work
-    #actions:
-    #    create-patches:
-    #      - "cd rpm && bash update-spec-provides.sh"
+    actions:
+        pre-sync:
+          - "cd rpm && bash update-spec-provides.sh"
 
   - job: koji_build
     trigger: commit
