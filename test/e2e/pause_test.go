@@ -437,7 +437,7 @@ var _ = Describe("Podman pause", func() {
 		Expect(session1).Should(Exit(0))
 		cid2 := session1.OutputToString()
 
-		session1 = podmanTest.RunTopContainer("")
+		session1 = podmanTest.RunTopContainerWithArgs("", []string{"--label", "test=with,comma"})
 		session1.WaitWithDefaultTimeout()
 		Expect(session1).Should(Exit(0))
 		cid3 := session1.OutputToString()
@@ -450,6 +450,16 @@ var _ = Describe("Podman pause", func() {
 		session1 = podmanTest.Podman([]string{"unpause", cid1, "-f", "status=paused"})
 		session1.WaitWithDefaultTimeout()
 		Expect(session1).Should(Exit(125))
+
+		session1 = podmanTest.Podman([]string{"pause", "-a", "--filter", "label=test=with,comma"})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(BeEquivalentTo(cid3))
+
+		session1 = podmanTest.Podman([]string{"unpause", "-a", "--filter", "label=test=with,comma"})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(BeEquivalentTo(cid3))
 
 		session1 = podmanTest.Podman([]string{"pause", "-a", "--filter", fmt.Sprintf("id=%swrongid", shortCid3)})
 		session1.WaitWithDefaultTimeout()

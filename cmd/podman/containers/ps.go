@@ -76,7 +76,7 @@ func listFlagSet(cmd *cobra.Command) {
 	flags.BoolVar(&listOpts.External, "external", false, "Show containers in storage not controlled by Podman")
 
 	filterFlagName := "filter"
-	flags.StringSliceVarP(&filters, filterFlagName, "f", []string{}, "Filter output based on conditions given")
+	flags.StringArrayVarP(&filters, filterFlagName, "f", []string{}, "Filter output based on conditions given")
 	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePsFilters)
 
 	formatFlagName := "format"

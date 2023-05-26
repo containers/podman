@@ -89,7 +89,7 @@ func imageListFlagSet(cmd *cobra.Command) {
 	flags.BoolVarP(&listOptions.All, "all", "a", false, "Show all images (default hides intermediate images)")
 
 	filterFlagName := "filter"
-	flags.StringSliceVarP(&listOptions.Filter, filterFlagName, "f", []string{}, "Filter output based on conditions provided (default [])")
+	flags.StringArrayVarP(&listOptions.Filter, filterFlagName, "f", []string{}, "Filter output based on conditions provided (default [])")
 	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteImageFilters)
 
 	formatFlagName := "format"

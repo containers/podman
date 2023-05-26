@@ -50,7 +50,7 @@ func init() {
 	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.SecretInfoReport{}))
 
 	filterFlagName := "filter"
-	flags.StringSliceVarP(&listFlag.filter, filterFlagName, "f", []string{}, "Filter secret output")
+	flags.StringArrayVarP(&listFlag.filter, filterFlagName, "f", []string{}, "Filter secret output")
 	_ = lsCmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteSecretFilters)
 
 	noHeadingFlagName := "noheading"

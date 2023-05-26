@@ -392,6 +392,16 @@ LABEL "com.example.vendor"="Example Vendor"
 		Expect(output).To(Equal("[]"))
 	})
 
+	It("podman images --filter label=with,comma", func() {
+		dockerfile := `FROM quay.io/libpod/alpine:latest
+`
+		podmanTest.BuildImageWithLabel(dockerfile, "foobar.com/before:latest", "false", "test=with,comma")
+		result := podmanTest.Podman([]string{"images", "--filter", "label=test=with,comma"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(result.OutputToStringArray()).To(HaveLen(2))
+	})
+
 	It("podman images --filter readonly", func() {
 		dockerfile := `FROM quay.io/libpod/alpine:latest
 `

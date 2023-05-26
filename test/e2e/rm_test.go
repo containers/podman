@@ -292,6 +292,11 @@ var _ = Describe("Podman rm", func() {
 		cid3 := session1.OutputToString()
 		shortCid3 := cid3[0:5]
 
+		session1 = podmanTest.RunTopContainerWithArgs("test4", []string{"--label", "test=with,comma"})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		cid4 := session1.OutputToString()
+
 		session1 = podmanTest.Podman([]string{"rm", cid1, "-f", "--filter", "status=running"})
 		session1.WaitWithDefaultTimeout()
 		Expect(session1).Should(Exit(125))
@@ -311,5 +316,10 @@ var _ = Describe("Podman rm", func() {
 		session1.WaitWithDefaultTimeout()
 		Expect(session1).Should(Exit(0))
 		Expect(session1.OutputToString()).To(BeEquivalentTo(cid2))
+
+		session1 = podmanTest.Podman([]string{"rm", "-f", "--filter", "label=test=with,comma"})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(BeEquivalentTo(cid4))
 	})
 })
