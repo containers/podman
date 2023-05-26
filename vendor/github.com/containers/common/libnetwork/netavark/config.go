@@ -284,6 +284,11 @@ func createMacvlan(network *types.Network) error {
 			if err != nil {
 				return err
 			}
+		case types.BclimOption:
+			_, err := strconv.ParseInt(value, 10, 32)
+			if err != nil {
+				return fmt.Errorf("failed to parse %q option: %w", key, err)
+			}
 		default:
 			return fmt.Errorf("unsupported macvlan network option %s", key)
 		}

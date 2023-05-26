@@ -41,6 +41,7 @@ const (
 	ModeOption    = "mode"
 	IsolateOption = "isolate"
 	MetricOption  = "metric"
+	BclimOption   = "bclim"
 )
 
 type NetworkBackend string
