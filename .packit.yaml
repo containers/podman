@@ -35,7 +35,7 @@ jobs:
       - fedora-all
     actions:
         pre-sync:
-          - "cd rpm && bash update-spec-provides.sh"
+          - "bash rpm/update-spec-provides.sh"
 
   - job: koji_build
     trigger: commit

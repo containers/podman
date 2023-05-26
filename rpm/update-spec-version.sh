@@ -6,7 +6,9 @@
 
 set -e
 
-SPEC_FILE=$(pwd)/podman.spec
+# Script is run from git root directory
+SPEC_FILE=rpm/podman.spec
+
 LATEST_TAG=$(git tag --sort=creatordate | tail -1)
 LATEST_VERSION=$(echo $LATEST_TAG | sed -e 's/^v//')
 
