@@ -286,6 +286,18 @@ func (t *quadletTestcase) assertStopPodmanFinalArgsRegex(args []string, unit *pa
 	return t.assertPodmanFinalArgsRegex(args, unit, "ExecStop")
 }
 
+func (t *quadletTestcase) assertStopPostPodmanArgs(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgs(args, unit, "ExecStopPost")
+}
+
+func (t *quadletTestcase) assertStopPostPodmanFinalArgs(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanFinalArgs(args, unit, "ExecStopPost")
+}
+
+func (t *quadletTestcase) assertStopPostPodmanFinalArgsRegex(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanFinalArgsRegex(args, unit, "ExecStopPost")
+}
+
 func (t *quadletTestcase) assertSymlink(args []string, unit *parser.UnitFile) bool {
 	Expect(args).To(HaveLen(2))
 	symlink := args[0]
@@ -347,6 +359,13 @@ func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, sessio
 		ok = t.assertStopPodmanFinalArgs(args, unit)
 	case "assert-podman-stop-final-args-regex":
 		ok = t.assertStopPodmanFinalArgsRegex(args, unit)
+	case "assert-podman-stop-post-args":
+		ok = t.assertStopPostPodmanArgs(args, unit)
+	case "assert-podman-stop-post-final-args":
+		ok = t.assertStopPostPodmanFinalArgs(args, unit)
+	case "assert-podman-stop-post-final-args-regex":
+		ok = t.assertStopPostPodmanFinalArgsRegex(args, unit)
+
 	default:
 		return fmt.Errorf("Unsupported assertion %s", op)
 	}
@@ -463,9 +482,9 @@ var _ = Describe("quadlet system generator", func() {
 				"## assert-podman-final-args-regex .*/podman_test.*/quadlet/deployment.yml",
 				"## assert-podman-args \"--replace\"",
 				"## assert-podman-args \"--service-container=true\"",
-				"## assert-podman-stop-args \"kube\"",
-				"## assert-podman-stop-args \"down\"",
-				"## assert-podman-stop-final-args-regex .*/podman_test.*/quadlet/deployment.yml",
+				"## assert-podman-stop-post-args \"kube\"",
+				"## assert-podman-stop-post-args \"down\"",
+				"## assert-podman-stop-post-final-args-regex .*/podman_test.*/quadlet/deployment.yml",
 				"## assert-key-is \"Unit\" \"RequiresMountsFor\" \"%t/containers\"",
 				"## assert-key-is \"Service\" \"KillMode\" \"mixed\"",
 				"## assert-key-is \"Service\" \"Type\" \"notify\"",
@@ -484,7 +503,7 @@ var _ = Describe("quadlet system generator", func() {
 				"NotifyAccess=all",
 				"SyslogIdentifier=%N",
 				fmt.Sprintf("ExecStart=%s kube play --replace --service-container=true %s/deployment.yml", podmanPath, quadletDir),
-				fmt.Sprintf("ExecStop=%s kube down %s/deployment.yml", podmanPath, quadletDir),
+				fmt.Sprintf("ExecStopPost=%s kube down %s/deployment.yml", podmanPath, quadletDir),
 			}
 
 			Expect(current).To(Equal(expected))
@@ -580,6 +599,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("Kube - Publish IPv6 ports", "ports_ipv6.kube"),
 		Entry("Kube - Logdriver", "logdriver.kube"),
 		Entry("Kube - PodmanArgs", "podmanargs.kube"),
+		Entry("Kube - Exit Code Propagation", "exit_code_propagation.kube"),
 
 		Entry("Network - Basic", "basic.network"),
 		Entry("Network - Label", "label.network"),

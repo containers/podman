@@ -481,15 +481,15 @@ There is only one required key, `Yaml`, which defines the path to the Kubernetes
 
 Valid options for `[Kube]` are listed below:
 
-| **[Kube] options**                | **podman kube play equivalent**        |
-| -----------------                 | ------------------                     |
-| ConfigMap=/tmp/config.map         | --config-map /tmp/config.map           |
-| LogDriver=journald                | --log-driver journald                  |
-| Network=host                      | --net host                             |
-| PodmanArgs=--annotation=key=value | --annotation=key=value                 |
-| PublishPort=59-60                 | --publish=59-60                        |
-| UserNS=keep-id:uid=200,gid=210    | --userns keep-id:uid=200,gid=210       |
-| Yaml=/tmp/kube.yaml               | podman kube play /tmp/kube.yaml        |
+| **[Kube] options**                  | **podman kube play equivalent**             |
+| ----------------------------------- | ------------------------------------------- |
+| ConfigMap=/tmp/config.map           | --config-map /tmp/config.map                |
+| LogDriver=journald                  | --log-driver journald                       |
+| Network=host                        | --net host                                  |
+| PodmanArgs=\-\-annotation=key=value | --annotation=key=value                      |
+| PublishPort=59-60                   | --publish=59-60                             |
+| UserNS=keep-id:uid=200,gid=210      | --userns keep-id:uid=200,gid=210            |
+| Yaml=/tmp/kube.yaml                 | podman kube play /tmp/kube.yaml             |
 
 Supported keys in the `[Kube]` section are:
 
@@ -500,6 +500,15 @@ Unlike the `configmap` argument, the value may contain only one path but
 it may be absolute or relative to the location of the unit file.
 
 This key may be used multiple times
+
+### `ExitCodePropagation=`
+
+Control how the main PID of the systemd service should exit.  The following values are supported:
+- `all`: exit non-zero if all containers have failed (i.e., exited non-zero)
+- `any`: exit non-zero if any container has failed
+- `none`: exit zero and ignore failed containers
+
+The current default value is `none`.
 
 ### `LogDriver=`
 

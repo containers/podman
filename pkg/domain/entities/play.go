@@ -21,6 +21,9 @@ type PlayKubeOptions struct {
 	// Down indicates whether to bring contents of a yaml file "down"
 	// as in stop
 	Down bool
+	// ExitCodePropagation decides how the main PID of the Kube service
+	// should exit depending on the containers' exit codes.
+	ExitCodePropagation string
 	// Replace indicates whether to delete and recreate a yaml file
 	Replace bool
 	// Do not create /etc/hosts within the pod's containers,
@@ -100,6 +103,8 @@ type PlayKubeReport struct {
 	Secrets []PlaySecret
 	// ServiceContainerID - ID of the service container if one is created
 	ServiceContainerID string
+	// If set, exit with the specified exit code.
+	ExitCode *int32
 }
 
 type KubePlayReport = PlayKubeReport

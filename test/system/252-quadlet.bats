@@ -439,8 +439,7 @@ EOF
     run_podman container inspect  --format "{{.State.Status}}" test_pod-test
     is "$output" "running" "container should be started by systemd and hence be running"
 
-    # The service is marked as failed as the service container exits non-zero.
-    service_cleanup $QUADLET_SERVICE_NAME failed
+    service_cleanup $QUADLET_SERVICE_NAME inactive
     run_podman rmi $(pause_image)
 }
 
@@ -636,6 +635,64 @@ EOF
     is "${output/* --userns keep-id:uid=200,gid=210 */found}" "found"
 
     service_cleanup $QUADLET_SERVICE_NAME failed
+}
+
+@test "quadlet - exit-code propagation" {
+   local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).kube
+   local yaml_file=$PODMAN_TMPDIR/$(random_string).yaml
+
+   exit_tests="
+all  | true  | 0   | inactive
+all  | false | 137 | failed
+none | false | 0   | inactive
+"
+   while read exit_code_prop cmd exit_code service_state; do
+      cat > $yaml_file <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test
+  name: test_pod
+spec:
+  restartPolicy: Never
+  containers:
+    - name: ctr
+      image: $IMAGE
+      command:
+      - $cmd
+EOF
+       cat > $quadlet_file <<EOF
+[Kube]
+Yaml=$yaml_file
+ExitCodePropagation=$exit_code_prop
+
+# Never restart the service as we only want to test exit codes.
+[Service]
+Restart=never
+EOF
+
+      run_quadlet "$quadlet_file"
+      run systemctl status $QUADLET_SERVICE_NAME
+      service_setup $QUADLET_SERVICE_NAME
+
+      # Ensure we have output. Output is synced via sd-notify (socat in Exec)
+      run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
+      is "$output" '.*Started.*\.service.*'
+
+      yaml_sha=$(sha256sum $yaml_file)
+      service_container="${yaml_sha:0:12}-service"
+      run_podman container inspect --format '{{.KubeExitCodePropagation}}' $service_container
+      is "$output" "$exit_code_prop" "service container has the expected policy set in its annotations"
+      run_podman wait $service_container
+      is "$output" "$exit_code" "service container reflects expected exit code $exit_code"
+
+      service_cleanup $QUADLET_SERVICE_NAME $service_state
+      run_podman ps -aq
+      is "$output" "" "all containers are cleaned up even in case of errors"
+   done < <(parse_table "$exit_tests")
+
+   run_podman rmi $(pause_image)
 }
 
 # vim: filetype=sh

@@ -1579,15 +1579,16 @@ func withIsInfra() CtrCreateOption {
 }
 
 // WithIsService allows us to differentiate between service containers and other container
-// within the container config
-func WithIsService() CtrCreateOption {
+// within the container config.  It also sets the exit-code propagation of the
+// service container.
+func WithIsService(ecp define.KubeExitCodePropagation) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
 
 		ctr.config.IsService = true
-
+		ctr.config.KubeExitCodePropagation = ecp
 		return nil
 	}
 }

@@ -86,7 +86,12 @@ func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name stri
 	if err != nil {
 		return nil, fmt.Errorf("creating runtime spec for service container: %w", err)
 	}
-	opts = append(opts, libpod.WithIsService())
+
+	ecp, err := define.ParseKubeExitCodePropagation(options.ExitCodePropagation)
+	if err != nil {
+		return nil, err
+	}
+	opts = append(opts, libpod.WithIsService(ecp))
 
 	// Set the sd-notify mode to "ignore".  Podman is responsible for
 	// sending the notify messages when all containers are ready.
@@ -348,9 +353,11 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 			if err := notifyproxy.SendMessage("", message); err != nil {
 				return nil, err
 			}
-			if _, err := serviceContainer.Wait(ctx); err != nil {
+			exitCode, err := serviceContainer.Wait(ctx)
+			if err != nil {
 				return nil, fmt.Errorf("waiting for service container: %w", err)
 			}
+			report.ExitCode = &exitCode
 		}
 
 		report.ServiceContainerID = serviceContainer.ID()
