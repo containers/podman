@@ -505,6 +505,7 @@ podman-remote-%-docs: podman-remote
 man-page-check: bin/podman
 	hack/man-page-checker
 	hack/xref-helpmsgs-manpages
+	hack/man-page-table-check
 
 .PHONY: swagger-check
 swagger-check:
