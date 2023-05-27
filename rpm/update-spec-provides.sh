@@ -6,7 +6,8 @@
 
 set -e
 
-SPEC_FILE=$(pwd)/podman.spec
+# script is run from git root directory
+SPEC_FILE=rpm/podman.spec
 
 sed -i '/Provides: bundled(golang.*/d' $SPEC_FILE
 
