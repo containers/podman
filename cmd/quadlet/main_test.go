@@ -59,11 +59,11 @@ func TestUnitDirs(t *testing.T) {
 	u, err := user.Current()
 	assert.Nil(t, err)
 
-	rootlessDirs := []string{
-		path.Join(configDir, "containers/systemd"),
-		filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid),
-		filepath.Join(quadlet.UnitDirAdmin, "users"),
-	}
+	rootlessDirs := []string{}
+
+	rootlessDirs = appendSubPaths(rootlessDirs, path.Join(configDir, "containers/systemd"))
+	rootlessDirs = appendSubPaths(rootlessDirs, filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid))
+	rootlessDirs = append(rootlessDirs, filepath.Join(quadlet.UnitDirAdmin, "users"))
 
 	unitDirs = getUnitDirs(true)
 	assert.Equal(t, unitDirs, rootlessDirs, "rootless unit dirs should match")

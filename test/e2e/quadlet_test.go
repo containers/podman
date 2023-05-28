@@ -442,7 +442,11 @@ var _ = Describe("quadlet system generator", func() {
 
 			fmt.Println("QuadletDir: " + quadletDir)
 
-			CopyDirectory(filepath.Join("quadlet", dirName), quadletDir)
+			err = CopyDirectory(filepath.Join("quadlet", dirName), quadletDir)
+
+			if err != nil {
+				GinkgoWriter.Println("error:", err)
+			}
 
 			session := podmanTest.Quadlet([]string{"-dryrun", "-user"}, quadletDir)
 			session.WaitWithDefaultTimeout()
