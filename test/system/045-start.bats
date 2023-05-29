@@ -99,4 +99,43 @@ load helpers
     run_podman rm -t 0 -f $ctrID $cname
 }
 
+@test "podman start again with lower ulimit -u" {
+    skip_if_not_rootless "tests ulimit -u changes in the rootless scenario"
+    skip_if_remote "test relies on control of ulimit -u (not possible for remote)"
+    # get current ulimit -u
+    nrpoc_limit=$(ulimit -Hu)
+
+    # create container
+    run_podman create $IMAGE echo "hello"
+    ctrID="$output"
+
+    # inspect
+    run_podman inspect $ctrID
+    assert "$output" =~ '"Ulimits": \[\]' "Ulimits has to be empty after create"
+
+    # start container for the first time
+    run_podman start $ctrID
+    is "$output" "$ctrID"
+
+    # inspect
+    run_podman inspect $ctrID --format '{{range .HostConfig.Ulimits}}{{if eq .Name "RLIMIT_NPROC" }}{{.Soft}}:{{.Hard}}{{end}}{{end}}'
+    assert "$output" == "${nrpoc_limit}:${nrpoc_limit}" "Ulimit has to match ulimit -Hu"
+
+    # lower ulimit -u by one
+    ((nrpoc_limit--))
+
+    # set new ulimit -u
+    ulimit -u $nrpoc_limit
+
+    # start container for the second time
+    run_podman start $ctrID
+    is "$output" "$ctrID"
+
+    # inspect
+    run_podman inspect $ctrID --format '{{range .HostConfig.Ulimits}}{{if eq .Name "RLIMIT_NPROC" }}{{.Soft}}:{{.Hard}}{{end}}{{end}}'
+    assert "$output" == "${nrpoc_limit}:${nrpoc_limit}" "Ulimit has to match new ulimit -Hu"
+
+    run_podman rm -t 0 -f $ctrID $cname
+}
+
 # vim: filetype=sh
