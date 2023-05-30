@@ -353,6 +353,11 @@ function _check_no_suggestions() {
         run_completion $cmd $IMAGE "/etc/os-"
         assert "$output" =~ ".*^/etc/os-release\$.*" "/etc files suggested (cmd: podman $cmd /etc/os-)"
 
+        # regression check for https://bugzilla.redhat.com/show_bug.cgi?id=2209809
+        # check for relative directory without slash in path.
+        run_completion $cmd $IMAGE "e"
+        assert "$output" =~ ".*^etc/\$.*" "etc dir suggested (cmd: podman $cmd e)"
+
         # check completion with relative path components
         # It is important the we will still use the image root and not escape to the host
         run_completion $cmd $IMAGE "../../"
