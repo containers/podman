@@ -362,6 +362,11 @@ func getPathCompletion(root string, toComplete string) ([]string, cobra.ShellCom
 // We cannot use path.Join() for the completions logic because this one always calls Clean() on
 // the path which changes it from the input.
 func simplePathJoinUnix(p1, p2 string) string {
+	if len(p1) == 0 {
+		// Special case if p1 is not set just return p2 as is
+		// and do not add a slash as the input didn't contain one either.
+		return p2
+	}
 	if p1[len(p1)-1] == '/' {
 		return p1 + p2
 	}
