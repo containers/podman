@@ -783,7 +783,7 @@ github.com/proglottis/gpgme
 # github.com/rivo/uniseg v0.4.4
 ## explicit; go 1.18
 github.com/rivo/uniseg
-# github.com/rootless-containers/rootlesskit v1.1.0
+# github.com/rootless-containers/rootlesskit v1.1.1
 ## explicit; go 1.19
 github.com/rootless-containers/rootlesskit/pkg/api
 github.com/rootless-containers/rootlesskit/pkg/msgutil
