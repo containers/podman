@@ -661,7 +661,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 			return err
 		}
 		listening := v.isListening()
-		for state != machine.Running || !listening {
+		for state != machine.Running && !listening {
 			time.Sleep(100 * time.Millisecond)
 			state, err = v.State(true)
 			if err != nil {
