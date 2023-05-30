@@ -13,6 +13,7 @@ import (
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/libpod/define"
+	"golang.org/x/sys/unix"
 )
 
 // getPlatformContainerStats gets the platform-specific running stats
@@ -128,4 +129,19 @@ func calculateBlockIO(stats *runccgroup.Stats) (read uint64, write uint64) {
 		}
 	}
 	return
+}
+
+func getOnlineCPUs(container *Container) (int, error) {
+	ctrPID, err := container.PID()
+	if err != nil {
+		return -1, fmt.Errorf("failed to obtain Container %s PID: %w", container.Name(), err)
+	}
+	if ctrPID == 0 {
+		return ctrPID, define.ErrCtrStopped
+	}
+	var cpuSet unix.CPUSet
+	if err := unix.SchedGetaffinity(ctrPID, &cpuSet); err != nil {
+		return -1, fmt.Errorf("failed to obtain Container %s online cpus: %w", container.Name(), err)
+	}
+	return cpuSet.Count(), nil
 }
