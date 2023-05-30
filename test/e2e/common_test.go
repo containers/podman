@@ -1188,7 +1188,7 @@ func (s *PodmanSessionIntegration) jq(jqCommand string) (string, error) {
 }
 
 func (p *PodmanTestIntegration) buildImage(dockerfile, imageName string, layers string, label string) string {
-	dockerfilePath := filepath.Join(p.TempDir, "Dockerfile")
+	dockerfilePath := filepath.Join(p.TempDir, "Dockerfile-"+stringid.GenerateRandomID())
 	err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
 	Expect(err).ToNot(HaveOccurred())
 	cmd := []string{"build", "--pull-never", "--layers=" + layers, "--file", dockerfilePath}
