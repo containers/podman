@@ -2,6 +2,7 @@ package toml
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -9,6 +10,11 @@ import (
 
 	"github.com/BurntSushi/toml/internal"
 )
+
+var tomlNext = func() bool {
+	_, ok := os.LookupEnv("BURNTSUSHI_TOML_110")
+	return ok
+}()
 
 type parser struct {
 	lx         *lexer
@@ -41,9 +47,12 @@ func parse(data string) (p *parser, err error) {
 	}()
 
 	// Read over BOM; do this here as the lexer calls utf8.DecodeRuneInString()
-	// which mangles stuff.
-	if strings.HasPrefix(data, "\xff\xfe") || strings.HasPrefix(data, "\xfe\xff") {
+	// which mangles stuff. UTF-16 BOM isn't strictly valid, but some tools add
+	// it anyway.
+	if strings.HasPrefix(data, "\xff\xfe") || strings.HasPrefix(data, "\xfe\xff") { // UTF-16
 		data = data[2:]
+	} else if strings.HasPrefix(data, "\xef\xbb\xbf") { // UTF-8
+		data = data[3:]
 	}
 
 	// Examine first few bytes for NULL bytes; this probably means it's a UTF-16
@@ -236,7 +245,7 @@ func (p *parser) value(it item, parentIsArray bool) (interface{}, tomlType) {
 	case itemString:
 		return p.replaceEscapes(it, it.val), p.typeOfPrimitive(it)
 	case itemMultilineString:
-		return p.replaceEscapes(it, stripFirstNewline(p.stripEscapedNewlines(it.val))), p.typeOfPrimitive(it)
+		return p.replaceEscapes(it, p.stripEscapedNewlines(stripFirstNewline(it.val))), p.typeOfPrimitive(it)
 	case itemRawString:
 		return it.val, p.typeOfPrimitive(it)
 	case itemRawMultilineString:
@@ -331,11 +340,17 @@ func (p *parser) valueFloat(it item) (interface{}, tomlType) {
 var dtTypes = []struct {
 	fmt  string
 	zone *time.Location
+	next bool
 }{
-	{time.RFC3339Nano, time.Local},
-	{"2006-01-02T15:04:05.999999999", internal.LocalDatetime},
-	{"2006-01-02", internal.LocalDate},
-	{"15:04:05.999999999", internal.LocalTime},
+	{time.RFC3339Nano, time.Local, false},
+	{"2006-01-02T15:04:05.999999999", internal.LocalDatetime, false},
+	{"2006-01-02", internal.LocalDate, false},
+	{"15:04:05.999999999", internal.LocalTime, false},
+
+	// tomlNext
+	{"2006-01-02T15:04Z07:00", time.Local, true},
+	{"2006-01-02T15:04", internal.LocalDatetime, true},
+	{"15:04", internal.LocalTime, true},
 }
 
 func (p *parser) valueDatetime(it item) (interface{}, tomlType) {
@@ -346,6 +361,9 @@ func (p *parser) valueDatetime(it item) (interface{}, tomlType) {
 		err error
 	)
 	for _, dt := range dtTypes {
+		if dt.next && !tomlNext {
+			continue
+		}
 		t, err = time.ParseInLocation(dt.fmt, it.val, dt.zone)
 		if err == nil {
 			ok = true
@@ -384,6 +402,7 @@ func (p *parser) valueArray(it item) (interface{}, tomlType) {
 		//
 		// Not entirely sure how to best store this; could use "key[0]",
 		// "key[1]" notation, or maybe store it on the Array type?
+		_ = types
 	}
 	return array, tomlArray
 }
@@ -662,49 +681,54 @@ func stripFirstNewline(s string) string {
 	return s
 }
 
-// Remove newlines inside triple-quoted strings if a line ends with "\".
+// stripEscapedNewlines removes whitespace after line-ending backslashes in
+// multiline strings.
+//
+// A line-ending backslash is an unescaped \ followed only by whitespace until
+// the next newline. After a line-ending backslash, all whitespace is removed
+// until the next non-whitespace character.
 func (p *parser) stripEscapedNewlines(s string) string {
-	split := strings.Split(s, "\n")
-	if len(split) < 1 {
-		return s
-	}
+	var b strings.Builder
+	var i int
+	for {
+		ix := strings.Index(s[i:], `\`)
+		if ix < 0 {
+			b.WriteString(s)
+			return b.String()
+		}
+		i += ix
 
-	escNL := false // Keep track of the last non-blank line was escaped.
-	for i, line := range split {
-		line = strings.TrimRight(line, " \t\r")
-
-		if len(line) == 0 || line[len(line)-1] != '\\' {
-			split[i] = strings.TrimRight(split[i], "\r")
-			if !escNL && i != len(split)-1 {
-				split[i] += "\n"
+		if len(s) > i+1 && s[i+1] == '\\' {
+			// Escaped backslash.
+			i += 2
+			continue
+		}
+		// Scan until the next non-whitespace.
+		j := i + 1
+	whitespaceLoop:
+		for ; j < len(s); j++ {
+			switch s[j] {
+			case ' ', '\t', '\r', '\n':
+			default:
+				break whitespaceLoop
 			}
+		}
+		if j == i+1 {
+			// Not a whitespace escape.
+			i++
 			continue
 		}
-
-		escBS := true
-		for j := len(line) - 1; j >= 0 && line[j] == '\\'; j-- {
-			escBS = !escBS
-		}
-		if escNL {
-			line = strings.TrimLeft(line, " \t\r")
-		}
-		escNL = !escBS
-
-		if escBS {
-			split[i] += "\n"
+		if !strings.Contains(s[i:j], "\n") {
+			// This is not a line-ending backslash.
+			// (It's a bad escape sequence, but we can let
+			// replaceEscapes catch it.)
+			i++
 			continue
 		}
-
-		if i == len(split)-1 {
-			p.panicf("invalid escape: '\\ '")
-		}
-
-		split[i] = line[:len(line)-1] // Remove \
-		if len(split)-1 > i {
-			split[i+1] = strings.TrimLeft(split[i+1], " \t\r")
-		}
+		b.WriteString(s[:i])
+		s = s[j:]
+		i = 0
 	}
-	return strings.Join(split, "")
 }
 
 func (p *parser) replaceEscapes(it item, str string) string {
@@ -743,12 +767,23 @@ func (p *parser) replaceEscapes(it item, str string) string {
 		case 'r':
 			replaced = append(replaced, rune(0x000D))
 			r += 1
+		case 'e':
+			if tomlNext {
+				replaced = append(replaced, rune(0x001B))
+				r += 1
+			}
 		case '"':
 			replaced = append(replaced, rune(0x0022))
 			r += 1
 		case '\\':
 			replaced = append(replaced, rune(0x005C))
 			r += 1
+		case 'x':
+			if tomlNext {
+				escaped := p.asciiEscapeToUnicode(it, s[r+1:r+3])
+				replaced = append(replaced, escaped)
+				r += 3
+			}
 		case 'u':
 			// At this point, we know we have a Unicode escape of the form
 			// `uXXXX` at [r, r+5). (Because the lexer guarantees this
