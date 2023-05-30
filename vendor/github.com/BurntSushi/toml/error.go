@@ -84,7 +84,7 @@ func (pe ParseError) Error() string {
 		pe.Position.Line, pe.LastKey, msg)
 }
 
-// ErrorWithUsage() returns the error with detailed location context.
+// ErrorWithPosition returns the error with detailed location context.
 //
 // See the documentation on [ParseError].
 func (pe ParseError) ErrorWithPosition() string {
@@ -124,7 +124,7 @@ func (pe ParseError) ErrorWithPosition() string {
 	return b.String()
 }
 
-// ErrorWithUsage() returns the error with detailed location context and usage
+// ErrorWithUsage returns the error with detailed location context and usage
 // guidance.
 //
 // See the documentation on [ParseError].

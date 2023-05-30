@@ -91,7 +91,7 @@ const (
 // UnmarshalText method. See the Unmarshaler example for a demonstration with
 // email addresses.
 //
-// ### Key mapping
+// # Key mapping
 //
 // TOML keys can map to either keys in a Go map or field names in a Go struct.
 // The special `toml` struct tag can be used to map TOML keys to struct fields
