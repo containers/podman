@@ -1,125 +1,54 @@
 //go:build arm64 && darwin
+// +build arm64,darwin
 
 package applehv
 
 import (
-	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strconv"
-	"strings"
-
-	"github.com/containers/common/pkg/config"
-	"github.com/containers/podman/v4/pkg/machine"
-	"github.com/sirupsen/logrus"
+	vfConfig "github.com/crc-org/vfkit/pkg/config"
 )
 
-// getDefaultDevices is a constructor for vfkit devices
-func getDefaultDevices(imagePath, logPath string) []string {
-	defaultDevices := []string{
-		"virtio-rng",
-		"virtio-net,nat,mac=72:20:43:d4:38:62",
-		fmt.Sprintf("virtio-blk,path=%s", imagePath),
-		fmt.Sprintf("virtio-serial,logFilePath=%s", logPath),
-		fmt.Sprintf("virtio-input,pointing"),
-		fmt.Sprintf("virtio-input,keyboard"),
-		fmt.Sprintf("virtio-gpu"),
-	}
-	return defaultDevices
-}
+func getDefaultDevices(imagePath, logPath, readyPath string) ([]vfConfig.VirtioDevice, error) {
+	var devices []vfConfig.VirtioDevice
 
-func newVfkitHelper(name, endpoint, imagePath string) (*VfkitHelper, error) {
-	dataDir, err := machine.GetDataDir(machine.AppleHvVirt)
+	disk, err := vfConfig.VirtioBlkNew(imagePath)
 	if err != nil {
 		return nil, err
 	}
-	logPath := filepath.Join(dataDir, fmt.Sprintf("%s.log", name))
-	logLevel := logrus.GetLevel()
-
-	cfg, err := config.Default()
+	rng, err := vfConfig.VirtioRngNew()
 	if err != nil {
 		return nil, err
 	}
-	vfkitPath, err := cfg.FindHelperBinary("vfkit", false)
+
+	serial, err := vfConfig.VirtioSerialNew(logPath)
 	if err != nil {
 		return nil, err
 	}
-	return &VfkitHelper{
-		Bootloader:        fmt.Sprintf("efi,variable-store=%s/%s-efi-store,create", dataDir, name),
-		Devices:           getDefaultDevices(imagePath, logPath),
-		LogLevel:          logLevel,
-		PathToVfkitBinary: vfkitPath,
-		Endpoint:          endpoint,
-	}, nil
+
+	readyDevice, err := vfConfig.VirtioVsockNew(1025, readyPath, true)
+	if err != nil {
+		return nil, err
+	}
+	devices = append(devices, disk, rng, serial, readyDevice)
+	return devices, nil
 }
 
-// toCmdLine creates the command line for calling vfkit.  the vfkit binary is
-// NOT part of the cmdline
-func (vf *VfkitHelper) toCmdLine(cpus, memory string) []string {
-	endpoint := vf.Endpoint
-	if strings.HasPrefix(endpoint, "http") {
-		endpoint = strings.Replace(endpoint, "http", "tcp", 1)
+func getDebugDevices() ([]vfConfig.VirtioDevice, error) {
+	var devices []vfConfig.VirtioDevice
+	gpu, err := vfConfig.VirtioGPUNew()
+	if err != nil {
+		return nil, err
 	}
-	cmd := []string{
-		vf.PathToVfkitBinary,
-		"--cpus", cpus,
-		"--memory", memory,
-		"--bootloader", vf.Bootloader,
-		"--restful-uri", endpoint,
-		// this is on for development but can probably be disabled later, or
-		// we can leave it as optional.
-		//"--log-level", "debug",
+	mouse, err := vfConfig.VirtioInputNew(vfConfig.VirtioInputPointingDevice)
+	if err != nil {
+		return nil, err
 	}
-	if vf.LogLevel == logrus.DebugLevel {
-		cmd = append(cmd, "--gui")
+	kb, err := vfConfig.VirtioInputNew(vfConfig.VirtioInputKeyboardDevice)
+	if err != nil {
+		return nil, err
 	}
-	for _, d := range vf.Devices {
-		cmd = append(cmd, "--device", d)
-	}
-	return cmd
+	return append(devices, gpu, mouse, kb), nil
 }
 
-func (vf *VfkitHelper) startVfkit(m *MacMachine) error {
-	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
-	if err != nil {
-		return err
-	}
-	dnw, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err := dnr.Close(); err != nil {
-			logrus.Error(err)
-		}
-	}()
-	defer func() {
-		if err := dnw.Close(); err != nil {
-			logrus.Error(err)
-		}
-	}()
-
-	attr := new(os.ProcAttr)
-	attr.Files = []*os.File{dnr, dnw}
-	cmdLine := vf.toCmdLine(
-		strconv.Itoa(int(m.ResourceConfig.CPUs)),
-		strconv.Itoa(int(m.ResourceConfig.Memory)),
-	)
-	logrus.Debugf("vfkit cmd: %v", cmdLine)
-	//stderrBuf := &bytes.Buffer{}
-	cmd := &exec.Cmd{
-		Args:   cmdLine,
-		Path:   vf.PathToVfkitBinary,
-		Stdin:  dnr,
-		Stdout: dnw,
-		// this makes no sense to me ... this only works if I pipe stdout to stderr
-		Stderr: os.Stdout,
-	}
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-	defer cmd.Process.Release() //nolint:errcheck
-	return nil
+func getIgnitionVsockDevice(path string) (vfConfig.VirtioDevice, error) {
+	return vfConfig.VirtioVsockNew(1024, path, true)
 }

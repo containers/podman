@@ -1,20 +1,24 @@
 //go:build arm64 && darwin
+// +build arm64,darwin
 
 package applehv
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"path/filepath"
 	"time"
 
 	"github.com/containers/podman/v4/pkg/machine"
+	vfConfig "github.com/crc-org/vfkit/pkg/config"
 	"github.com/docker/go-units"
 	"golang.org/x/sys/unix"
 )
 
 const (
 	defaultVFKitEndpoint = "http://localhost:8081"
+	ignitionSocketName   = "ignition.sock"
 )
 
 type AppleHVVirtualization struct {
@@ -71,7 +75,7 @@ func (v AppleHVVirtualization) List(opts machine.ListOptions) ([]*machine.ListRe
 	}
 
 	for _, mm := range mms {
-		vmState, err := mm.state()
+		vmState, err := mm.Vfkit.state()
 		if err != nil {
 			if errors.Is(err, unix.ECONNREFUSED) {
 				vmState = machine.Stopped
@@ -119,6 +123,11 @@ func (v AppleHVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM,
 	}
 	m.ConfigPath = *configPath
 
+	dataDir, err := machine.GetDataDir(machine.AppleHvVirt)
+	if err != nil {
+		return nil, err
+	}
+
 	ignitionPath, err := machine.NewMachineFile(filepath.Join(configDir, m.Name)+".ign", nil)
 	if err != nil {
 		return nil, err
@@ -134,6 +143,8 @@ func (v AppleHVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM,
 		// Diskpath will be needed
 		Memory: opts.Memory,
 	}
+	bl := vfConfig.NewEFIBootloader(fmt.Sprintf("%s/%ss", dataDir, opts.Name), true)
+	m.Vfkit.VirtualMachine = vfConfig.NewVirtualMachine(uint(opts.CPUS), opts.Memory, bl)
 
 	if err := m.writeConfig(); err != nil {
 		return nil, err
