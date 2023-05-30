@@ -20,7 +20,7 @@ PODMAN=${PODMAN:-$(dirname $0)/../bin/podman}
 ###############################################################################
 # BEGIN help messages
 
-missing=" argument is missing; see $ME --help for details"
+missing=" argument is missing; see $ME -h for details"
 usage="Usage: $ME [options] [start|stop|ps|logs]
 
 $ME manages a local instance of a container registry.
