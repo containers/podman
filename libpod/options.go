@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/containers/buildah/pkg/parse"
 	nettypes "github.com/containers/common/libnetwork/types"
@@ -1814,15 +1815,10 @@ func WithTimezone(path string) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 		if path != "local" {
-			zone := filepath.Join("/usr/share/zoneinfo", path)
-
-			file, err := os.Stat(zone)
+			// validate the format of the timezone specified if it's not "local"
+			_, err := time.LoadLocation(path)
 			if err != nil {
-				return err
-			}
-			// We don't want to mount a timezone directory
-			if file.IsDir() {
-				return errors.New("invalid timezone: is a directory")
+				return fmt.Errorf("finding timezone: %w", err)
 			}
 		}
 

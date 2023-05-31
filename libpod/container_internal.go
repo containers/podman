@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -1666,6 +1667,48 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 		err = unix.Fchownat(etcInTheContainerFd, "mtab", rootUID, rootGID, unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
 			return "", fmt.Errorf("chown /etc/mtab: %w", err)
+		}
+	}
+
+	tz := c.Timezone()
+	if tz != "" {
+		timezonePath := filepath.Join("/usr/share/zoneinfo", tz)
+		if tz == "local" {
+			timezonePath, err = filepath.EvalSymlinks("/etc/localtime")
+			if err != nil {
+				return "", fmt.Errorf("finding local timezone for container %s: %w", c.ID(), err)
+			}
+		}
+		// make sure to remove any existing locatime file in the container to not create invalid links
+		err = unix.Unlinkat(etcInTheContainerFd, "localtime", 0)
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return "", fmt.Errorf("removing /etc/localtime: %w", err)
+		}
+
+		hostPath, err := securejoin.SecureJoin(mountPoint, timezonePath)
+		if err != nil {
+			return "", fmt.Errorf("resolve zoneinfo path in the container: %w", err)
+		}
+
+		_, err = os.Stat(hostPath)
+		if err != nil {
+			// file does not exists which means tzdata is not installed in the container, just create /etc/locatime which a copy from the host
+			logrus.Debugf("Timezone %s does not exists in the container, create our own copy from the host", timezonePath)
+			localtimePath, err := c.copyTimezoneFile(timezonePath)
+			if err != nil {
+				return "", fmt.Errorf("setting timezone for container %s: %w", c.ID(), err)
+			}
+			if c.state.BindMounts == nil {
+				c.state.BindMounts = make(map[string]string)
+			}
+			c.state.BindMounts["/etc/localtime"] = localtimePath
+		} else {
+			// file exists lets just symlink according to localtime(5)
+			logrus.Debugf("Create locatime symlink for %s", timezonePath)
+			err = unix.Symlinkat(".."+timezonePath, etcInTheContainerFd, "localtime")
+			if err != nil {
+				return "", fmt.Errorf("creating /etc/localtime symlink: %w", err)
+			}
 		}
 	}
 

@@ -461,11 +461,15 @@ var _ = Describe("Podman create", func() {
 	It("podman create --tz", func() {
 		session := podmanTest.Podman([]string{"create", "--tz", "foo", "--name", "bad", ALPINE, "date"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(Exit(125))
+		Expect(session.ErrorToString()).To(
+			Equal("Error: running container create option: finding timezone: unknown time zone foo"))
 
 		session = podmanTest.Podman([]string{"create", "--tz", "America", "--name", "dir", ALPINE, "date"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(Exit(125))
+		Expect(session.ErrorToString()).To(
+			Equal("Error: running container create option: finding timezone: is a directory"))
 
 		session = podmanTest.Podman([]string{"create", "--tz", "Pacific/Honolulu", "--name", "zone", ALPINE, "date"})
 		session.WaitWithDefaultTimeout()
