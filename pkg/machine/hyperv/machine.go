@@ -18,8 +18,8 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/libhvee/pkg/hypervctl"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
-	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
@@ -91,9 +91,7 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	}
 	m.NetworkHVSock = *networkHVSock
 	m.ReadyHVSock = *eventHVSocket
-
-	sshDir := filepath.Join(homedir.Get(), ".ssh")
-	m.IdentityPath = filepath.Join(sshDir, m.Name)
+	m.IdentityPath = util.GetIdentityPath(m.Name)
 
 	// TODO This needs to be fixed in c-common
 	m.RemoteUsername = "core"
@@ -111,7 +109,6 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	if len(opts.IgnitionPath) < 1 {
 		uri := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, fmt.Sprintf("/run/user/%d/podman/podman.sock", m.UID), strconv.Itoa(m.Port), m.RemoteUsername)
 		uriRoot := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, "/run/podman/podman.sock", strconv.Itoa(m.Port), "root")
-		identity := filepath.Join(sshDir, m.Name)
 
 		uris := []url.URL{uri, uriRoot}
 		names := []string{m.Name, m.Name + "-root"}
@@ -123,7 +120,7 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 		}
 
 		for i := 0; i < 2; i++ {
-			if err := machine.AddConnection(&uris[i], names[i], identity, opts.IsDefault && i == 0); err != nil {
+			if err := machine.AddConnection(&uris[i], names[i], m.IdentityPath, opts.IsDefault && i == 0); err != nil {
 				return false, err
 			}
 		}
