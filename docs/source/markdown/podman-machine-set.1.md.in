@@ -1,7 +1,7 @@
 % podman-machine-set 1
 
 ## NAME
-podman\-machine\-set - Sets a virtual machine setting
+podman\-machine\-set - Set a virtual machine setting
 
 ## SYNOPSIS
 **podman machine set** [*options*] [*name*]

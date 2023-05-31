@@ -15,7 +15,7 @@ var (
 	logoutOptions = auth.LogoutOptions{}
 	logoutCommand = &cobra.Command{
 		Use:               "logout [options] [REGISTRY]",
-		Short:             "Logout of a container registry",
+		Short:             "Log out of a container registry",
 		Long:              "Remove the cached username and password for the registry.",
 		RunE:              logout,
 		Args:              cobra.MaximumNArgs(1),

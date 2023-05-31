@@ -16,8 +16,8 @@ import (
 var (
 	setCmd = &cobra.Command{
 		Use:               "set [options] [NAME]",
-		Short:             "Sets a virtual machine setting",
-		Long:              "Sets an updatable virtual machine setting",
+		Short:             "Set a virtual machine setting",
+		Long:              "Set an updatable virtual machine setting",
 		PersistentPreRunE: rootlessOnly,
 		RunE:              setMachine,
 		Args:              cobra.MaximumNArgs(1),

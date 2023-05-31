@@ -16,7 +16,7 @@ var (
 
 	inspectCmd = &cobra.Command{
 		Use:               "inspect [options] POD [POD...]",
-		Short:             "Displays a pod configuration",
+		Short:             "Display a pod configuration",
 		Long:              inspectDescription,
 		RunE:              inspectExec,
 		ValidArgsFunction: common.AutocompletePods,

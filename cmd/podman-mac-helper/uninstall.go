@@ -14,8 +14,8 @@ import (
 
 var uninstallCmd = &cobra.Command{
 	Use:    "uninstall",
-	Short:  "uninstalls the podman helper agent",
-	Long:   "uninstalls the podman helper agent, which manages the /var/run/docker.sock link",
+	Short:  "Uninstall the podman helper agent",
+	Long:   "Uninstall the podman helper agent, which manages the /var/run/docker.sock link",
 	PreRun: silentUsage,
 	RunE:   uninstall,
 }

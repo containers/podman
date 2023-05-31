@@ -46,7 +46,7 @@ var (
 
 	systemdCmd = &cobra.Command{
 		Use:               "systemd [options] {CONTAINER|POD}",
-		Short:             "Generate systemd units.",
+		Short:             "Generate systemd units",
 		Long:              systemdDescription,
 		RunE:              systemd,
 		Args:              cobra.ExactArgs(1),

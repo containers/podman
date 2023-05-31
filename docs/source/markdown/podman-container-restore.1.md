@@ -1,7 +1,7 @@
 % podman-container-restore 1
 
 ## NAME
-podman\-container\-restore - Restores one or more containers from a checkpoint
+podman\-container\-restore - Restore one or more containers from a checkpoint
 
 ## SYNOPSIS
 **podman container restore** [*options*] *name* [...]
@@ -160,7 +160,7 @@ connections.\
 The default is **false**.
 
 ## EXAMPLE
-Restores the container "mywebserver".
+Restore the container "mywebserver".
 ```
 # podman container restore mywebserver
 ```

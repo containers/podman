@@ -1,7 +1,7 @@
 % podman-pod-ps 1
 
 ## NAME
-podman\-pod\-ps - Prints out information about pods
+podman\-pod\-ps - Print out information about pods
 
 ## SYNOPSIS
 **podman pod ps** [*options*]

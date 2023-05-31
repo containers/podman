@@ -23,7 +23,7 @@ var (
 `
 	restoreCommand = &cobra.Command{
 		Use:   "restore [options] CONTAINER|IMAGE [CONTAINER|IMAGE...]",
-		Short: "Restores one or more containers from a checkpoint",
+		Short: "Restore one or more containers from a checkpoint",
 		Long:  restoreDescription,
 		RunE:  restore,
 		Args: func(cmd *cobra.Command, args []string) error {

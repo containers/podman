@@ -23,7 +23,7 @@ var (
 	networklistCommand     = &cobra.Command{
 		Use:               "ls [options]",
 		Args:              validate.NoArgs,
-		Short:             "network list",
+		Short:             "List networks",
 		Long:              networklistDescription,
 		RunE:              networkList,
 		ValidArgsFunction: completion.AutocompleteNone,

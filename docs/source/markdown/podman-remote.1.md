@@ -157,7 +157,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-image(1)](podman-image.1.md)             | Manage images.                                                              |
 | [podman-images(1)](podman-images.1.md)           | List images in local storage.                                               |
 | [podman-import(1)](podman-import.1.md)           | Import a tarball and save it as a filesystem image.                         |
-| [podman-info(1)](podman-info.1.md)               | Displays Podman related system information.                                 |
+| [podman-info(1)](podman-info.1.md)               | Display Podman related system information.                                  |
 | [podman-init(1)](podman-init.1.md)               | Initialize a container                                                      |
 | [podman-inspect(1)](podman-inspect.1.md)         | Display a container or image's configuration.                               |
 | [podman-kill(1)](podman-kill.1.md)               | Kill the main process in one or more containers.                            |
@@ -166,12 +166,12 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-pause(1)](podman-pause.1.md)             | Pause one or more containers.                                               |
 | [podman-pod(1)](podman-pod.1.md)                 | Management tool for groups of containers, called pods.                      |
 | [podman-port(1)](podman-port.1.md)               | List port mappings for a container.                                         |
-| [podman-ps(1)](podman-ps.1.md)                   | Prints out information about containers.                                    |
+| [podman-ps(1)](podman-ps.1.md)                   | Print out information about containers.                                     |
 | [podman-pull(1)](podman-pull.1.md)               | Pull an image from a registry.                                              |
 | [podman-push(1)](podman-push.1.md)               | Push an image from local storage to elsewhere.                              |
 | [podman-restart(1)](podman-restart.1.md)         | Restart one or more containers.                                             |
 | [podman-rm(1)](podman-rm.1.md)                   | Remove one or more containers.                                              |
-| [podman-rmi(1)](podman-rmi.1.md)                 | Removes one or more locally stored images.                                  |
+| [podman-rmi(1)](podman-rmi.1.md)                 | Remove one or more locally stored images.                                   |
 | [podman-run(1)](podman-run.1.md)                 | Run a command in a new container.                                           |
 | [podman-save(1)](podman-save.1.md)               | Save an image to a container archive.                                       |
 | [podman-start(1)](podman-start.1.md)             | Start one or more containers.                                               |

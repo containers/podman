@@ -23,7 +23,7 @@ var (
 		Annotations: map[string]string{registry.EngineMode: registry.ABIMode},
 		Use:         "unmount [options] CONTAINER [CONTAINER...]",
 		Aliases:     []string{"umount"},
-		Short:       "Unmounts working container's root filesystem",
+		Short:       "Unmount working container's root filesystem",
 		Long:        description,
 		RunE:        unmount,
 		Args: func(cmd *cobra.Command, args []string) error {

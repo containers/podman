@@ -50,7 +50,7 @@ var (
 
 	playCmd = &cobra.Command{
 		Use:               "play [options] KUBEFILE|-",
-		Short:             "Play a pod or volume based on Kubernetes YAML.",
+		Short:             "Play a pod or volume based on Kubernetes YAML",
 		Long:              playDescription,
 		RunE:              play,
 		Args:              cobra.ExactArgs(1),
@@ -65,7 +65,7 @@ var (
 var (
 	playKubeCmd = &cobra.Command{
 		Use:               "kube [options] KUBEFILE|-",
-		Short:             "Play a pod or volume based on Kubernetes YAML.",
+		Short:             "Play a pod or volume based on Kubernetes YAML",
 		Long:              playDescription,
 		Hidden:            true,
 		RunE:              playKube,

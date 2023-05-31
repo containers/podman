@@ -17,7 +17,7 @@ var (
 	reloadCommand = &cobra.Command{
 		Use:               "reload",
 		Args:              validate.NoArgs,
-		Short:             "reload all volumes from volume plugins",
+		Short:             "Reload all volumes from volume plugins",
 		Long:              reloadDescription,
 		RunE:              reload,
 		ValidArgsFunction: completion.AutocompleteNone,

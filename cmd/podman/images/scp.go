@@ -18,7 +18,7 @@ var (
 			registry.ParentNSRequired: "",
 		},
 		Long:              saveScpDescription,
-		Short:             "securely copy images",
+		Short:             "Securely copy images",
 		RunE:              scp,
 		Args:              cobra.RangeArgs(1, 2),
 		ValidArgsFunction: common.AutocompleteScp,

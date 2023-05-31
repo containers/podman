@@ -1,7 +1,7 @@
 % podman-network-inspect 1
 
 ## NAME
-podman\-network\-inspect - Displays the network configuration for one or more networks
+podman\-network\-inspect - Display the network configuration for one or more networks
 
 ## SYNOPSIS
 **podman network inspect** [*options*] *network* [*network* ...]

@@ -19,7 +19,7 @@ var (
 
 	updateCommand = &cobra.Command{
 		Use:               "update [options] CONTAINER",
-		Short:             "update an existing container",
+		Short:             "Update an existing container",
 		Long:              updateDescription,
 		RunE:              update,
 		Args:              cobra.ExactArgs(1),

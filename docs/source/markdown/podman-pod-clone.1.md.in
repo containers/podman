@@ -1,7 +1,7 @@
 % podman-pod-clone 1
 
 ## NAME
-podman\-pod\-clone - Creates a copy of an existing pod
+podman\-pod\-clone - Create a copy of an existing pod
 
 ## SYNOPSIS
 **podman pod clone** [*options*] *pod* *name*

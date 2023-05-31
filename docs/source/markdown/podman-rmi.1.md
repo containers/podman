@@ -1,7 +1,7 @@
 % podman-rmi 1
 
 ## NAME
-podman\-rmi - Removes one or more locally stored images
+podman\-rmi - Remove one or more locally stored images
 
 ## SYNOPSIS
 **podman rmi** [*options*] *image* [...]

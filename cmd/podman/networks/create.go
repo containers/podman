@@ -17,10 +17,10 @@ import (
 )
 
 var (
-	networkCreateDescription = `create networks for containers and pods`
+	networkCreateDescription = `Create networks for containers and pods`
 	networkCreateCommand     = &cobra.Command{
 		Use:               "create [options] [NAME]",
-		Short:             "network create",
+		Short:             "Create networks for containers and pods",
 		Long:              networkCreateDescription,
 		RunE:              networkCreate,
 		Args:              cobra.MaximumNArgs(1),

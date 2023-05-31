@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	networkReloadDescription = `reload container networks, recreating firewall rules`
+	networkReloadDescription = `Reload container networks, recreating firewall rules`
 	networkReloadCommand     = &cobra.Command{
 		Annotations: map[string]string{registry.EngineMode: registry.ABIMode},
 		Use:         "reload [options] [CONTAINER...]",
