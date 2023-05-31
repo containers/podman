@@ -1,6 +1,6 @@
 //go:build freebsd
 // +build freebsd
 
-package generate
+package libpod
 
 type rlimT int64

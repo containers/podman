@@ -3,13 +3,11 @@ package specgen
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
-	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 var (
@@ -135,38 +133,6 @@ func (s *SpecGenerator) Validate() error {
 	// default:
 	//	return errors.New("unrecognized option for cgroups; supported are 'default', 'disabled', 'no-conmon'")
 	// }
-	invalidUlimitFormatError := errors.New("invalid default ulimit definition must be form of type=soft:hard")
-	// set ulimits if not rootless
-	if len(s.ContainerResourceConfig.Rlimits) < 1 && !rootless.IsRootless() {
-		// Containers common defines this as something like nproc=4194304:4194304
-		tmpnproc := containerConfig.Ulimits()
-		var posixLimits []specs.POSIXRlimit
-		for _, limit := range tmpnproc {
-			limitSplit := strings.SplitN(limit, "=", 2)
-			if len(limitSplit) < 2 {
-				return fmt.Errorf("missing = in %s: %w", limit, invalidUlimitFormatError)
-			}
-			valueSplit := strings.SplitN(limitSplit[1], ":", 2)
-			if len(valueSplit) < 2 {
-				return fmt.Errorf("missing : in %s: %w", limit, invalidUlimitFormatError)
-			}
-			hard, err := strconv.Atoi(valueSplit[0])
-			if err != nil {
-				return err
-			}
-			soft, err := strconv.Atoi(valueSplit[1])
-			if err != nil {
-				return err
-			}
-			posixLimit := specs.POSIXRlimit{
-				Type: limitSplit[0],
-				Hard: uint64(hard),
-				Soft: uint64(soft),
-			}
-			posixLimits = append(posixLimits, posixLimit)
-		}
-		s.ContainerResourceConfig.Rlimits = posixLimits
-	}
 	// Namespaces
 	if err := s.UtsNS.validate(); err != nil {
 		return err

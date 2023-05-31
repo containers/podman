@@ -489,6 +489,34 @@ var _ = Describe("Podman inspect", func() {
 		Expect(found).To(BeTrue(), "found RLIMIT_CORE")
 	})
 
+	It("Container inspect Ulimit test", func() {
+		SkipIfNotRootless("Only applicable to rootless")
+		ctrName := "testctr"
+		session := podmanTest.Podman([]string{"create", "--name", ctrName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+
+		dataCreate := inspect.InspectContainerToJSON()
+		ulimitsCreate := dataCreate[0].HostConfig.Ulimits
+		Expect(ulimitsCreate).To(BeEmpty())
+
+		start := podmanTest.Podman([]string{"start", ctrName})
+		start.WaitWithDefaultTimeout()
+		Expect(start).Should(Exit(0))
+
+		inspect2 := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect2.WaitWithDefaultTimeout()
+		Expect(inspect2).Should(Exit(0))
+
+		dataStart := inspect2.InspectContainerToJSON()
+		ulimitsStart := dataStart[0].HostConfig.Ulimits
+		Expect(ulimitsStart).ToNot(BeEmpty())
+	})
+
 	It("Dropped capabilities are sorted", func() {
 		ctrName := "testCtr"
 		session := podmanTest.Podman([]string{"run", "-d", "--cap-drop", "SETUID", "--cap-drop", "SETGID", "--cap-drop", "CAP_NET_BIND_SERVICE", "--name", ctrName, ALPINE, "top"})

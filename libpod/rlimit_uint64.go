@@ -1,6 +1,6 @@
 //go:build linux || darwin
 // +build linux darwin
 
-package generate
+package libpod
 
 type rlimT uint64
