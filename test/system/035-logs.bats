@@ -181,7 +181,7 @@ function _log_test_since() {
 
     before=$(date --iso-8601=seconds)
     run_podman run --log-driver=$driver -d --name test $IMAGE sh -c \
-        "echo $s_before; trap 'echo $s_after; exit' SIGTERM; while :; do sleep 1; done"
+        "echo $s_before; trap 'echo $s_after; exit' SIGTERM; while :; do sleep 0.1; done"
 
     # sleep a second to make sure the date is after the first echo
     sleep 1
@@ -223,7 +223,7 @@ function _log_test_until() {
     before=$(date --iso-8601=seconds)
     sleep 1
     run_podman run --log-driver=$driver -d --name test $IMAGE sh -c \
-        "echo $s_before; trap 'echo $s_after; exit' SIGTERM; while :; do sleep 1; done"
+        "echo $s_before; trap 'echo $s_after; exit' SIGTERM; while :; do sleep 0.1; done"
 
     # sleep a second to make sure the date is after the first echo
     sleep 1
@@ -248,7 +248,7 @@ $s_after"
     run_podman logs --until $before test
     is "$output" "" "podman logs --until before"
 
-    after=$(date --date='+1 second' --iso-8601=seconds)
+    after=$(date --date='+1 second' --iso-8601=ns)
 
     run_podman logs --until $after test
     is "$output" "$s_both" "podman logs --until after"
@@ -355,7 +355,7 @@ function _log_test_follow_until() {
     fi
 
     run_podman ${events_backend} run --log-driver=$driver --name $cname -d $IMAGE \
-        sh -c "n=1;while :; do echo $content--\$n; n=\$((n+1));sleep 1; done"
+        sh -c "n=1;while :; do echo $content--\$n; n=\$((n+1));sleep 0.1; done"
 
     t0=$SECONDS
     # The logs command should exit after the until time even when follow is set
