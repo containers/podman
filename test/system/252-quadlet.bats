@@ -668,10 +668,6 @@ EOF
 [Kube]
 Yaml=$yaml_file
 ExitCodePropagation=$exit_code_prop
-
-# Never restart the service as we only want to test exit codes.
-[Service]
-Restart=never
 EOF
 
       run_quadlet "$quadlet_file"
