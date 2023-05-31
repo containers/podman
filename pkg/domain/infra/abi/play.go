@@ -12,6 +12,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/containers/podman/v4/libpod/events"
+	metav1 "github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	buildahDefine "github.com/containers/buildah/define"
 	"github.com/containers/common/libimage"
 	nettypes "github.com/containers/common/libnetwork/types"
@@ -185,6 +188,37 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 			}
 		}
 	}()
+
+	var eventFilters []string
+	for _, document := range documentList {
+		kind, err := getKubeKind(document)
+		if err != nil {
+			return nil, fmt.Errorf("unable to read kube YAML: %w", err)
+		}
+		name, err := getKubeName(document)
+		if err != nil {
+			return nil, fmt.Errorf("unable to read kube YAML: %w", err)
+		}
+		switch strings.ToLower(kind) {
+		case "pod":
+			kind = "pod"
+		case "deployment":
+			kind = "pod"
+			name = fmt.Sprintf("%s-pod", name)
+		case "persistentvolumeclaim", "configmap", "secret":
+			kind = "volume"
+		}
+		eventFilters = append(eventFilters, fmt.Sprintf("%s=%s", kind, name))
+	}
+
+	// Start an event listener for each filter
+	if listener := ic.Libpod.GetEventListener(); listener != nil {
+		for _, filter := range eventFilters {
+			errChan := make(chan error)
+			eventChan := make(chan *events.Event)
+			go listener(eventChan, errChan, filter)
+		}
+	}
 
 	// create pod on each document if it is a pod or deployment
 	// any other kube kind will be skipped
@@ -1235,6 +1269,19 @@ func getKubeKind(obj []byte) (string, error) {
 	}
 
 	return kubeObject.Kind, nil
+}
+
+// getKubeName unmarshalls a kube YAML document and returns its name.
+func getKubeName(obj []byte) (string, error) {
+	var kubeObject struct {
+		metav1.ObjectMeta `json:"metadata"`
+	}
+
+	if err := yaml.Unmarshal(obj, &kubeObject); err != nil {
+		return "", err
+	}
+
+	return kubeObject.Name, nil
 }
 
 // sortKubeKinds adds the correct creation order for the kube kinds.

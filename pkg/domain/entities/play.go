@@ -68,7 +68,8 @@ type PlayKubeOptions struct {
 	// PublishPorts - configure how to expose ports configured inside the K8S YAML file
 	PublishPorts []string
 	// Wait - indicates whether to return after having created the pods
-	Wait bool
+	Wait          bool
+	PrintProgress bool
 }
 
 // PlayKubePod represents a single pod and associated containers created by play kube
@@ -105,6 +106,7 @@ type PlayKubeReport struct {
 	ServiceContainerID string
 	// If set, exit with the specified exit code.
 	ExitCode *int32
+	Stream   string
 }
 
 type KubePlayReport = PlayKubeReport

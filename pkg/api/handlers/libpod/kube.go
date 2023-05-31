@@ -1,12 +1,16 @@
 package libpod
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/libpod"
+	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v4/pkg/api/types"
 	"github.com/containers/podman/v4/pkg/auth"
@@ -31,6 +35,7 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 		PublishPorts     []string          `schema:"publishPorts"`
 		Wait             bool              `schema:"wait"`
 		ServiceContainer bool              `schema:"serviceContainer"`
+		PrintProgress    bool              `schema:"printProgress`
 	}{
 		TLSVerify: true,
 		Start:     true,
@@ -100,6 +105,7 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 		PublishPorts:     query.PublishPorts,
 		Wait:             query.Wait,
 		ServiceContainer: query.ServiceContainer,
+		PrintProgress:    query.PrintProgress,
 	}
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
@@ -107,7 +113,51 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 	if _, found := r.URL.Query()["start"]; found {
 		options.Start = types.NewOptionalBool(query.Start)
 	}
+
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if query.PrintProgress {
+		ctx, cancel = context.WithCancel(r.Context())
+		containerEngine.Libpod.SetEventListener(func(eventChan chan *events.Event, errChan chan error, filter string) {
+
+			go func() {
+				errChan <- containerEngine.Events(r.Context(), entities.EventsOptions{EventChan: eventChan, Filter: []string{filter}})
+			}()
+			go func() {
+				flush := func() {
+					if flusher, ok := w.(http.Flusher); ok {
+						flusher.Flush()
+					}
+				}
+				enc := json.NewEncoder(w)
+				enc.SetEscapeHTML(true)
+				for {
+					select {
+					case <-ctx.Done():
+						return
+					default:
+						select {
+						case event, ok := <-eventChan:
+							if !ok {
+								return
+							}
+							enc.Encode(entities.KubePlayReport{Stream: event.ToHumanReadable(true)})
+							flush()
+							time.Sleep(time.Second)
+						case <-errChan:
+							return
+						default:
+							// non-blocking call
+						}
+					}
+				}
+			}()
+		})
+	}
 	report, err := containerEngine.PlayKube(r.Context(), r.Body, options)
+	if query.PrintProgress {
+		cancel()
+	}
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("playing YAML file: %w", err))
 		return

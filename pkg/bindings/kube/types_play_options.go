@@ -347,3 +347,18 @@ func (o *PlayOptions) GetServiceContainer() bool {
 	}
 	return *o.ServiceContainer
 }
+
+// WithPrintProgress set field PrintProgress to given value
+func (o *PlayOptions) WithPrintProgress(value bool) *PlayOptions {
+	o.PrintProgress = &value
+	return o
+}
+
+// GetPrintProgress returns value of field PrintProgress
+func (o *PlayOptions) GetPrintProgress() bool {
+	if o.PrintProgress == nil {
+		var z bool
+		return z
+	}
+	return *o.PrintProgress
+}

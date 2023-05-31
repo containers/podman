@@ -142,6 +142,8 @@ func playFlags(cmd *cobra.Command) {
 	flags.BoolVar(&playOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 	flags.BoolVar(&playOptions.StartCLI, "start", true, "Start the pod after creating it")
 	flags.BoolVar(&playOptions.Force, "force", false, "Remove volumes as part of --down")
+	flags.BoolVar(&playOptions.PrintProgress, "print-progress", false, "Print progress")
+	flags.MarkHidden("print-progress")
 
 	authfileFlagName := "authfile"
 	flags.StringVar(&playOptions.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")

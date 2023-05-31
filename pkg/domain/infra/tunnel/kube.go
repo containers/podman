@@ -73,6 +73,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, opts en
 		options.WithStart(start == types.OptionalBoolTrue)
 	}
 	options.WithPublishPorts(opts.PublishPorts)
+	options.WithPrintProgress(opts.PrintProgress)
 	return play.KubeWithBody(ic.ClientCtx, body, options)
 }
 

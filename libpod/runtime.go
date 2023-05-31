@@ -115,6 +115,8 @@ type Runtime struct {
 	noStore bool
 	// secretsManager manages secrets
 	secretsManager *secrets.SecretsManager
+
+	eventListener func(chan *events.Event, chan error, string)
 }
 
 // SetXdgDirs ensures the XDG_RUNTIME_DIR env and XDG_CONFIG_HOME variables are set.
@@ -1187,4 +1189,12 @@ func (r *Runtime) RemoteURI() string {
 // SetRemoteURI records the API server URI
 func (r *Runtime) SetRemoteURI(uri string) {
 	r.config.Engine.RemoteURI = uri
+}
+
+func (r *Runtime) SetEventListener(listener func(chan *events.Event, chan error, string)) {
+	r.eventListener = listener
+}
+
+func (r *Runtime) GetEventListener() func(chan *events.Event, chan error, string) {
+	return r.eventListener
 }

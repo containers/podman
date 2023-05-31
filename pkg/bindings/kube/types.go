@@ -53,6 +53,7 @@ type PlayOptions struct {
 	// // Wait - indicates whether to return after having created the pods
 	Wait             *bool
 	ServiceContainer *bool
+	PrintProgress    *bool
 }
 
 // ApplyOptions are optional options for applying kube YAML files to a k8s cluster

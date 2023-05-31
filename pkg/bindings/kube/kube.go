@@ -3,6 +3,9 @@ package kube
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -81,8 +84,26 @@ func PlayWithBody(ctx context.Context, body io.Reader, options *PlayOptions) (*e
 	}
 	defer response.Body.Close()
 
-	if err := response.Process(&report); err != nil {
-		return nil, err
+	dec := json.NewDecoder(response.Body.(io.Reader))
+
+	for {
+
+		var s entities.KubePlayReport
+		if err := dec.Decode(&s); err != nil {
+			if errors.Is(err, io.ErrUnexpectedEOF) {
+				return nil, fmt.Errorf("server probably quit: %w", err)
+			}
+
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return &entities.KubePlayReport{}, fmt.Errorf("decoding stream: %w", err)
+		}
+
+		report = s
+		if s.Stream != "" {
+			fmt.Fprintln(os.Stdout, s.Stream)
+		}
 	}
 
 	return &report, nil
