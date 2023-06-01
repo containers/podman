@@ -80,6 +80,11 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 			ThrottlingData: docker.ThrottlingData{},
 		}
 	}
+	onlineCPUs, err := libpod.GetOnlineCPUs(ctnr)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
 
 streamLabel: // A label to flatten the scope
 	select {
@@ -178,7 +183,7 @@ streamLabel: // A label to flatten the scope
 					},
 					CPU:         stats.CPU,
 					SystemUsage: systemUsage,
-					OnlineCPUs:  uint32(len(cgroupStat.CpuStats.CpuUsage.PercpuUsage)),
+					OnlineCPUs:  uint32(onlineCPUs),
 					ThrottlingData: docker.ThrottlingData{
 						Periods:          0,
 						ThrottledPeriods: 0,

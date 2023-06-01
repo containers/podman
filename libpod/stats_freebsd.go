@@ -147,3 +147,7 @@ func calculateBlockIO(stats *cgroups.Metrics) (read uint64, write uint64) {
 	}
 	return
 }
+
+func getOnlineCPUs(container *Container) (int, error) {
+	return 0, nil
+}
