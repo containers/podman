@@ -50,10 +50,6 @@ load helpers
     run_podman image mount $IMAGE
     mount_path="$output"
 
-    # Make sure that `mount -a` prints a table
-    run_podman image mount -a
-    is "$output" "$IMAGE .*$mount_path"
-
     test -d $mount_path
 
     # Image is custom-built and has a file containing the YMD tag. Check it.
@@ -66,16 +62,23 @@ load helpers
     run_podman image mount
     is "$output" "$IMAGE *$mount_path" "podman image mount with no args"
 
-    # Clean up: -f since we mounted it twice
+    # Clean up, and make sure nothing is mounted any more
     run_podman image umount -f $IMAGE
     is "$output" "$iid" "podman image umount: image ID of what was umounted"
 
     run_podman image umount $IMAGE
     is "$output" "" "podman image umount: does not re-umount"
 
-    run_podman 125 image umount no-such-container
-    is "$output" "Error: no-such-container: image not known" \
-       "error message from image umount no-such-container"
+    run_podman 125 image umount no-such-image
+    is "$output" "Error: no-such-image: image not known" \
+       "error message from image umount no-such-image"
+
+    # Tests for mount -a. This may mount more than one image! (E.g. systemd)
+    run_podman image mount -a
+    is "$output" "$IMAGE .*$mount_path"
+
+    run_podman image umount -a
+    assert "$output" =~ "$iid" "Test image is unmounted"
 
     run_podman image mount
     is "$output" "" "podman image mount, no args, after umount"

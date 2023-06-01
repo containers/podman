@@ -472,6 +472,14 @@ json-file | f
     is "$output" "$expect" "podman run with --tz=local, matches host"
 }
 
+@test "podman run --tz with zoneinfo" {
+    # First make sure that zoneinfo is actually in the image otherwise the test is pointless
+    run_podman run --rm $SYSTEMD_IMAGE ls /usr/share/zoneinfo
+
+    run_podman run --rm --tz Europe/Berlin $SYSTEMD_IMAGE readlink /etc/localtime
+    assert "$output" == "../usr/share/zoneinfo/Europe/Berlin" "localtime is linked correctly"
+}
+
 # run with --runtime should preserve the named runtime
 @test "podman run : full path to --runtime is preserved" {
     skip_if_remote "podman-remote does not support --runtime option"

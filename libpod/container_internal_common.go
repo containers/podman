@@ -1949,38 +1949,6 @@ func (c *Container) makeBindMounts() error {
 		}
 	}
 
-	// Make /etc/localtime
-	ctrTimezone := c.Timezone()
-	if ctrTimezone != "" {
-		// validate the format of the timezone specified if it's not "local"
-		if ctrTimezone != "local" {
-			_, err = time.LoadLocation(ctrTimezone)
-			if err != nil {
-				return fmt.Errorf("finding timezone for container %s: %w", c.ID(), err)
-			}
-		}
-		if _, ok := c.state.BindMounts["/etc/localtime"]; !ok {
-			var zonePath string
-			if ctrTimezone == "local" {
-				zonePath, err = filepath.EvalSymlinks("/etc/localtime")
-				if err != nil {
-					return fmt.Errorf("finding local timezone for container %s: %w", c.ID(), err)
-				}
-			} else {
-				zone := filepath.Join("/usr/share/zoneinfo", ctrTimezone)
-				zonePath, err = filepath.EvalSymlinks(zone)
-				if err != nil {
-					return fmt.Errorf("setting timezone for container %s: %w", c.ID(), err)
-				}
-			}
-			localtimePath, err := c.copyTimezoneFile(zonePath)
-			if err != nil {
-				return fmt.Errorf("setting timezone for container %s: %w", c.ID(), err)
-			}
-			c.state.BindMounts["/etc/localtime"] = localtimePath
-		}
-	}
-
 	_, hasRunContainerenv := c.state.BindMounts["/run/.containerenv"]
 	if !hasRunContainerenv {
 	Loop:

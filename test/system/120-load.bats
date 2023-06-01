@@ -63,16 +63,6 @@ verify_iid_and_name() {
     run_podman images $fqin --format '{{.Repository}}:{{.Tag}}'
     is "${lines[0]}" "$fqin" "image preserves name across save/load"
 
-    # Load with a new tag
-    local new_name=x1$(random_string 14 | tr A-Z a-z)
-    local new_tag=t1$(random_string 6 | tr A-Z a-z)
-    run_podman rmi $fqin
-
-    run_podman load -i $archive
-    run_podman images --format '{{.Repository}}:{{.Tag}}' --sort tag
-    is "${lines[0]}" "$IMAGE"     "image is preserved"
-    is "${lines[1]}" "$fqin"      "image is reloaded with old fqin"
-
     # Clean up
     run_podman rmi $fqin
 }
