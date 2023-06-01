@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"io"
 	"reflect"
+	"unsafe"
 )
 
 type decoder struct {
@@ -13,9 +14,10 @@ type decoder struct {
 	fds   []int
 
 	// The following fields are used to reduce memory allocs.
-	buf []byte
-	d   float64
-	y   [1]byte
+	conv *stringConverter
+	buf  []byte
+	d    float64
+	y    [1]byte
 }
 
 // newDecoder returns a new decoder that reads values from in. The input is
@@ -25,6 +27,7 @@ func newDecoder(in io.Reader, order binary.ByteOrder, fds []int) *decoder {
 	dec.in = in
 	dec.order = order
 	dec.fds = fds
+	dec.conv = newStringConverter(stringConverterBufferSize)
 	return dec
 }
 
@@ -34,6 +37,10 @@ func (dec *decoder) Reset(in io.Reader, order binary.ByteOrder, fds []int) {
 	dec.order = order
 	dec.pos = 0
 	dec.fds = fds
+
+	if dec.conv == nil {
+		dec.conv = newStringConverter(stringConverterBufferSize)
+	}
 }
 
 // align aligns the input to the given boundary and panics on error.
@@ -148,7 +155,7 @@ func (dec *decoder) decode(s string, depth int) interface{} {
 		p := int(length) + 1
 		dec.read2buf(p)
 		dec.pos += p
-		return string(dec.buf[:len(dec.buf)-1])
+		return dec.conv.String(dec.buf[:len(dec.buf)-1])
 	case 'o':
 		return ObjectPath(dec.decode("s", depth).(string))
 	case 'g':
@@ -157,7 +164,7 @@ func (dec *decoder) decode(s string, depth int) interface{} {
 		dec.read2buf(p)
 		dec.pos += p
 		sig, err := ParseSignature(
-			string(dec.buf[:len(dec.buf)-1]),
+			dec.conv.String(dec.buf[:len(dec.buf)-1]),
 		)
 		if err != nil {
 			panic(err)
@@ -309,4 +316,66 @@ type FormatError string
 
 func (e FormatError) Error() string {
 	return "dbus: wire format error: " + string(e)
+}
+
+// stringConverterBufferSize defines the recommended buffer size of 4KB.
+// It showed good results in a benchmark when decoding 35KB message,
+// see https://github.com/marselester/systemd#testing.
+const stringConverterBufferSize = 4096
+
+func newStringConverter(capacity int) *stringConverter {
+	return &stringConverter{
+		buf:    make([]byte, 0, capacity),
+		offset: 0,
+	}
+}
+
+// stringConverter converts bytes to strings with less allocs.
+// The idea is to accumulate bytes in a buffer with specified capacity
+// and create strings with unsafe package using bytes from a buffer.
+// For example, 10 "fizz" strings written to a 40-byte buffer
+// will result in 1 alloc instead of 10.
+//
+// Once a buffer is filled, a new one is created with the same capacity.
+// Old buffers will be eventually GC-ed
+// with no side effects to the returned strings.
+type stringConverter struct {
+	// buf is a temporary buffer where decoded strings are batched.
+	buf []byte
+	// offset is a buffer position where the last string was written.
+	offset int
+}
+
+// String converts bytes to a string.
+func (c *stringConverter) String(b []byte) string {
+	n := len(b)
+	if n == 0 {
+		return ""
+	}
+	// Must allocate because a string doesn't fit into the buffer.
+	if n > cap(c.buf) {
+		return string(b)
+	}
+
+	if len(c.buf)+n > cap(c.buf) {
+		c.buf = make([]byte, 0, cap(c.buf))
+		c.offset = 0
+	}
+	c.buf = append(c.buf, b...)
+
+	b = c.buf[c.offset:]
+	s := toString(b)
+	c.offset += n
+	return s
+}
+
+// toString converts a byte slice to a string without allocating.
+// Starting from Go 1.20 you should use unsafe.String.
+func toString(b []byte) string {
+	var s string
+	h := (*reflect.StringHeader)(unsafe.Pointer(&s))
+	h.Data = uintptr(unsafe.Pointer(&b[0]))
+	h.Len = len(b)
+
+	return s
 }
