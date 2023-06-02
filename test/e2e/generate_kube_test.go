@@ -1404,6 +1404,25 @@ USER test1`
 		Expect(pod.Spec.Volumes[0].Secret).To(BeNil())
 	})
 
+	It("podman kube generate with default ulimits", func() {
+		ctrName := "ulimit-ctr"
+		session := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, ALPINE, "sleep", "1000"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		outputFile := filepath.Join(podmanTest.RunRoot, "pod.yaml")
+		kube := podmanTest.Podman([]string{"kube", "generate", ctrName, "-f", outputFile})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		b, err := os.ReadFile(outputFile)
+		Expect(err).ShouldNot(HaveOccurred())
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(b, pod)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pod.Annotations).To(Not(HaveKey(define.UlimitAnnotation)))
+	})
+
 	It("podman generate & play kube with --ulimit set", func() {
 		ctrName := "ulimit-ctr"
 		ctrNameInKubePod := ctrName + "-pod-" + ctrName
