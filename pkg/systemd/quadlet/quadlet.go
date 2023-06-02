@@ -94,6 +94,7 @@ const (
 	KeySecurityLabelLevel    = "SecurityLabelLevel"
 	KeySecurityLabelType     = "SecurityLabelType"
 	KeySecret                = "Secret"
+	KeySysctl                = "Sysctl"
 	KeyTimezone              = "Timezone"
 	KeyTmpfs                 = "Tmpfs"
 	KeyType                  = "Type"
@@ -156,6 +157,7 @@ var (
 		KeySecurityLabelLevel:    true,
 		KeySecurityLabelType:     true,
 		KeySecret:                true,
+		KeySysctl:                true,
 		KeyTmpfs:                 true,
 		KeyTimezone:              true,
 		KeyUser:                  true,
@@ -456,6 +458,11 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	addCaps := container.LookupAllStrv(ContainerGroup, KeyAddCapability)
 	for _, caps := range addCaps {
 		podman.addf("--cap-add=%s", strings.ToLower(caps))
+	}
+
+	sysctl := container.LookupAllStrv(ContainerGroup, KeySysctl)
+	for _, sysctlItem := range sysctl {
+		podman.addf("--sysctl=%s", sysctlItem)
 	}
 
 	readOnly, ok := container.LookupBoolean(ContainerGroup, KeyReadOnly)

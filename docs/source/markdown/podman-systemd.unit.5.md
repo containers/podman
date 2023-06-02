@@ -128,6 +128,7 @@ Valid options for `[Container]` are listed below:
 | SecurityLabelFileType=usr_t    | --security-opt label=filetype:usr_t                  |
 | SecurityLabelLevel=s0:c1,c2    | --security-opt label=level:s0:c1,c2                  |
 | SecurityLabelType=spc_t        | --security-opt label=type:spc_t                      |
+| Sysctl=name=value              | --sysctl=name=value                                  |
 | Timezone=local                 | --tz local                                           |
 | Tmpfs=/work                    | --tmpfs /work                                        |
 | User=bin                       | --user bin                                           |
@@ -427,6 +428,17 @@ Set the label process type for the container processes.
 
 Use a Podman secret in the container either as a file or an environment variable.
 This is equivalent to the Podman `--secret` option and generally has the form `secret[,opt=opt ...]`
+
+### `Sysctl=`
+
+Configures namespaced kernel parameters for the container. The format is `Sysctl=name=value`.
+
+This is a space separated list of kernel parameters. This key can be listed multiple times.
+
+For example:
+```
+Sysctl=net.ipv6.conf.all.disable_ipv6=1 net.ipv6.conf.all.use_tempaddr=1
+```
 
 ### `Tmpfs=`
 
