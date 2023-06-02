@@ -718,6 +718,21 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 	if c.config.Pod != "" {
 		pod, err = r.state.Pod(c.config.Pod)
 		if err != nil {
+			// There's a potential race here where the pod we are in
+			// was already removed.
+			// If so, this container is also removed, as pods take
+			// all their containers with them.
+			// So if it's already gone, check if we are too.
+			if errors.Is(err, define.ErrNoSuchPod) {
+				// We could check the DB to see if we still
+				// exist, but that would be a serious violation
+				// of DB integrity.
+				// Mark this container as removed so there's no
+				// confusion, though.
+				removedCtrs[c.ID()] = nil
+				return
+			}
+
 			retErr = err
 			return
 		}
@@ -733,6 +748,13 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 				defer pod.lock.Unlock()
 			}
 			if err := pod.updatePod(); err != nil {
+				// As above, there's a chance the pod was
+				// already removed.
+				if errors.Is(err, define.ErrNoSuchPod) {
+					removedCtrs[c.ID()] = nil
+					return
+				}
+
 				retErr = err
 				return
 			}
