@@ -41,9 +41,7 @@ Note: If you add *-a* to the *ps* command, Podman will show all containers.
 You can "inspect" a running container for metadata and details about itself.  We can even use
 the inspect subcommand to see what IP address was assigned to the container. As the container is running in rootless mode, an IP address is not assigned and the value will be listed as "none" in the output from inspect.
 ```console
-podman inspect -l | grep IPAddress\":
-            "SecondaryIPAddresses": null,
-            "IPAddress": "",
+podman inspect -l | grep 'IPAddress|SecondaryIPAddresses'
 ```
 
 Note: The -l or --latest option is a convenience argument for **latest container**. This option is not available with the remote Podman client; use the container name or ID instead.
