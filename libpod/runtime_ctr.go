@@ -795,7 +795,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 			for ctr, err := range podRemovedCtrs {
 				removedCtrs[ctr] = err
 			}
-			if err != nil {
+			if err != nil && !errors.Is(err, define.ErrNoSuchPod) && !errors.Is(err, define.ErrPodRemoved) {
 				removedPods[depPod.ID()] = err
 				retErr = fmt.Errorf("error removing container %s dependency pods: %w", c.ID(), err)
 				return
@@ -817,7 +817,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 		for ctr, err := range podRemovedCtrs {
 			removedCtrs[ctr] = err
 		}
-		if err != nil {
+		if err != nil && !errors.Is(err, define.ErrNoSuchPod) && !errors.Is(err, define.ErrPodRemoved) {
 			removedPods[pod.ID()] = err
 			retErr = fmt.Errorf("error removing container %s pod: %w", c.ID(), err)
 			return
