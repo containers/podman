@@ -81,6 +81,7 @@ const (
 	KeyOptions               = "Options"
 	KeyPodmanArgs            = "PodmanArgs"
 	KeyPublishPort           = "PublishPort"
+	KeyPull                  = "Pull"
 	KeyReadOnly              = "ReadOnly"
 	KeyRemapGID              = "RemapGid"
 	KeyRemapUID              = "RemapUid"
@@ -143,6 +144,7 @@ var (
 		KeyNotify:                true,
 		KeyPodmanArgs:            true,
 		KeyPublishPort:           true,
+		KeyPull:                  true,
 		KeyReadOnly:              true,
 		KeyRemapGID:              true,
 		KeyRemapUID:              true,
@@ -623,6 +625,11 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 
 	if hostname, ok := container.Lookup(ContainerGroup, KeyHostName); ok {
 		podman.add("--hostname", hostname)
+	}
+
+	pull, ok := container.Lookup(ContainerGroup, KeyPull)
+	if ok && len(pull) > 0 {
+		podman.add("--pull", pull)
 	}
 
 	handlePodmanArgs(container, ContainerGroup, podman)
