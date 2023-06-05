@@ -117,6 +117,20 @@ communicate with a registry and not use TLS verification.
   * Turn off TLS verification by passing false to the tls-verify option.
   * I.e. `podman push --tls-verify=false alpine docker://localhost:5000/myalpine:latest`
 
+
+For a global workaround, users[1] can create the file `/etc/containers/registries.conf.d/registry-NAME.conf`
+(replacing NAME with the name of this registry) with the following content (replacing FULLY.QUALIFIED.NAME.OF.REGISTRY with the address of this registry):
+
+```
+[[registry]]
+location = "FULLY.QUALIFIED.NAME.OF.REGISTRY"
+insecure = true
+```
+
+[1] If you are using a Mac / Windows, you should execute `podman machine ssh` to login into podman machine before adding the insecure entry to the registry—conf file.
+
+**This is an insecure method and should be used cautiously.**
+
 ---
 ### 5) rootless containers cannot ping hosts
 
