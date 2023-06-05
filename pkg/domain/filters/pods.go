@@ -3,6 +3,7 @@ package filters
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -25,8 +26,25 @@ func GeneratePodFilterFunc(filter string, filterValues []string, r *libpod.Runti
 			if err != nil {
 				return false
 			}
-			for _, id := range ctrIds {
-				return util.StringMatchRegexSlice(id, filterValues)
+			for _, want := range filterValues {
+				isRegex := define.NotHexRegex.MatchString(want)
+				if isRegex {
+					re, err := regexp.Compile(want)
+					if err != nil {
+						return false
+					}
+					for _, id := range ctrIds {
+						if re.MatchString(id) {
+							return true
+						}
+					}
+				} else {
+					for _, id := range ctrIds {
+						if strings.HasPrefix(id, strings.ToLower(want)) {
+							return true
+						}
+					}
+				}
 			}
 			return false
 		}, nil
@@ -89,7 +107,18 @@ func GeneratePodFilterFunc(filter string, filterValues []string, r *libpod.Runti
 		}, nil
 	case "id":
 		return func(p *libpod.Pod) bool {
-			return util.StringMatchRegexSlice(p.ID(), filterValues)
+			for _, want := range filterValues {
+				isRegex := define.NotHexRegex.MatchString(want)
+				if isRegex {
+					match, err := regexp.MatchString(want, p.ID())
+					if err == nil && match {
+						return true
+					}
+				} else if strings.HasPrefix(p.ID(), strings.ToLower(want)) {
+					return true
+				}
+			}
+			return false
 		}, nil
 	case "name":
 		return func(p *libpod.Pod) bool {

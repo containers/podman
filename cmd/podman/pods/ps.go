@@ -290,7 +290,7 @@ func sortPodPsOutput(sortBy string, lprs []*entities.ListPodsReport) error {
 	case "status":
 		sort.Sort(podPsSortedStatus{lprs})
 	default:
-		return errors.New("invalid option for --sort, options are: id, names, or number")
+		return errors.New("invalid option for --sort, options are: created, id, name, number, or status")
 	}
 	return nil
 }

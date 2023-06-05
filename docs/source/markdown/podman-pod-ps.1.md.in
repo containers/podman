@@ -48,18 +48,18 @@ The *filters* argument format is of `key=value`. If there is more than one *filt
 
 Supported filters:
 
-|   Filter    |   Description                                                                                      |
-| ----------  | -------------------------------------------------------------------------------------------------- |
-| *ctr-ids*   | Filter by container ID within the pod.                                                             |
-| *ctr-names* | Filter by container name within the pod.                                                           |
-| *ctr-number*| Filter by number of containers in the pod.                                                         |
-| *ctr-status*| Filter by container status within the pod.                                                         |
-| *id*        | Filter by pod ID.                                                                                  |
-| *label*     | Filter by container with (or without, in the case of label!=[...] is used) the specified labels.   |
-| *name*      | Filter by pod name.                                                                                |
-| *network*   | Filter by network name or full ID of network.                                                      |
-| *status*    | Filter by pod status.                                                                              |
-| *until*     | Filter by pods created before given timestamp.                                                     |
+| Filter       | Description                                                                                      |
+|--------------|--------------------------------------------------------------------------------------------------|
+| *ctr-ids*    | Filter by container ID within the pod. (CID prefix match by default; accepts regex)              |
+| *ctr-names*  | Filter by container name within the pod.                                                         |
+| *ctr-number* | Filter by number of containers in the pod.                                                       |
+| *ctr-status* | Filter by container status within the pod.                                                       |
+| *id*         | Filter by pod ID. (Prefix match by default; accepts regex)                                       |
+| *label*      | Filter by container with (or without, in the case of label!=[...] is used) the specified labels. |
+| *name*       | Filter by pod name.                                                                              |
+| *network*    | Filter by network name or full ID of network.                                                    |
+| *status*     | Filter by pod status.                                                                            |
+| *until*      | Filter by pods created before given timestamp.                                                   |
 
 The `ctr-ids`, `ctr-names`, `id`, `name` filters accept `regex` format.
 
