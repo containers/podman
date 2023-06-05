@@ -123,7 +123,7 @@ var _ = Describe("Podman pod rm", func() {
 		result := podmanTest.Podman([]string{"pod", "rm", "-a"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).To(ExitWithError())
-		Expect(result.ErrorToString()).To(ContainSubstring("cannot be removed"))
+		Expect(result.ErrorToString()).To(ContainSubstring("not all containers could be removed from pod"))
 
 		numPods = podmanTest.NumberOfPods()
 		ps = podmanTest.Podman([]string{"pod", "ps"})
