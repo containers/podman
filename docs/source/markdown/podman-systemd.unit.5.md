@@ -121,6 +121,7 @@ Valid options for `[Container]` are listed below:
 | Notify=true                    | --sdnotify container                                 |
 | PodmanArgs=--add-host foobar   | --add-host foobar                                    |
 | PublishPort=true               | --publish                                            |
+| Pull=never                     | --pull=never                                         |
 | ReadOnly=true                  | --read-only                                          |
 | RunInit=true                   | --init                                               |
 | SeccompProfile=/tmp/s.json     | --security-opt seccomp=/tmp/s.json                   |
@@ -283,8 +284,7 @@ Equivalent to the Podman `--hostname` option.
 
 ### `Image=`
 
-The image to run in the container. This image must be locally installed for the service to work
-when it is activated, because the generated service file never tries to download images.
+The image to run in the container.
 It is recommended to use a fully qualified image name rather than a short name, both for
 performance and robustness reasons.
 
@@ -390,6 +390,11 @@ may be different for each invocation of service. This makes that a less useful o
 allocated port can be found with the `podman port` command.
 
 This key can be listed multiple times.
+
+### `Pull=`
+
+Set the image pull policy.
+This is equivalent to the Podman `--pull` option
 
 ### `ReadOnly=` (defaults to `no`)
 
