@@ -681,3 +681,11 @@ function teardown() {
     sleep 1
     ! ps -p $(cat "${pidfile}") && rm "${pidfile}"
 }
+
+### Options ####################################################################
+@test "podman networking with pasta(1) - Unsupported protocol in port forwarding" {
+    local port=$(random_free_port "" "" tcp)
+
+    run_podman 126 run --net=pasta -p "${port}:${port}/sctp" $IMAGE true
+    is "$output" "Error: .*can't forward protocol: sctp"
+}
