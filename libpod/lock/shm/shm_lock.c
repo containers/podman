@@ -537,3 +537,53 @@ int32_t unlock_semaphore(shm_struct_t *shm, uint32_t sem_index) {
 
   return -1 * release_mutex(&(shm->locks[bitmap_index].locks[index_in_bitmap]));
 }
+
+// Get the number of free locks.
+// Returns a positive integer guaranteed to be less than UINT32_MAX on success,
+// or negative errno values on failure.
+// On success, the returned integer is the number of free semaphores.
+int64_t available_locks(shm_struct_t *shm) {
+  int ret_code, i, count;
+  bitmap_t test_map;
+  int64_t free_locks = 0;
+
+  if (shm == NULL) {
+    return -1 * EINVAL;
+  }
+
+  // Lock the semaphore controlling access to the SHM segment.
+  // This isn't strictly necessary as we're only reading, but it seems safer.
+  ret_code = take_mutex(&(shm->segment_lock));
+  if (ret_code != 0) {
+    return -1 * ret_code;
+  }
+
+  // Loop through all bitmaps, counting number of allocated locks.
+  for (i = 0; i < shm->num_bitmaps; i++) {
+    // Short-circuit to catch fully-empty bitmaps quick.
+    if (shm->locks[i].bitmap == 0) {
+      free_locks += 32;
+      continue;
+    }
+
+    // Use Kernighan's Algorithm to count bits set. Subtract from number of bits
+    // in the integer to get free bits, and thus free lock count.
+    test_map = shm->locks[i].bitmap;
+    count = 0;
+    while (test_map) {
+      test_map = test_map & (test_map - 1);
+      count++;
+    }
+
+    free_locks += 32 - count;
+  }
+
+  // Clear the mutex
+  ret_code = release_mutex(&(shm->segment_lock));
+  if (ret_code != 0) {
+    return -1 * ret_code;
+  }
+
+  // Return free lock count.
+  return free_locks;
+}

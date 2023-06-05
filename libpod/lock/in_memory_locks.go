@@ -116,3 +116,16 @@ func (m *InMemoryManager) FreeAllLocks() error {
 
 	return nil
 }
+
+// Get number of available locks
+func (m *InMemoryManager) AvailableLocks() (*uint32, error) {
+	var count uint32
+
+	for _, lock := range m.locks {
+		if !lock.allocated {
+			count++
+		}
+	}
+
+	return &count, nil
+}

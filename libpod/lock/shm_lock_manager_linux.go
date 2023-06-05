@@ -98,6 +98,16 @@ func (m *SHMLockManager) FreeAllLocks() error {
 	return m.locks.DeallocateAllSemaphores()
 }
 
+// AvailableLocks returns the number of free locks in the manager.
+func (m *SHMLockManager) AvailableLocks() (*uint32, error) {
+	avail, err := m.locks.GetFreeLocks()
+	if err != nil {
+		return nil, err
+	}
+
+	return &avail, nil
+}
+
 // SHMLock is an individual shared memory lock.
 type SHMLock struct {
 	lockID  uint32

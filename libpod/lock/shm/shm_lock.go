@@ -266,6 +266,21 @@ func (locks *SHMLocks) UnlockSemaphore(sem uint32) error {
 	return nil
 }
 
+// GetFreeLocks gets the number of locks available to be allocated.
+func (locks *SHMLocks) GetFreeLocks() (uint32, error) {
+	if !locks.valid {
+		return 0, fmt.Errorf("locks have already been closed: %w", syscall.EINVAL)
+	}
+
+	retCode := C.available_locks(locks.lockStruct)
+	if retCode < 0 {
+		// Negative errno returned
+		return 0, syscall.Errno(-1 * retCode)
+	}
+
+	return uint32(retCode), nil
+}
+
 func unlinkSHMLock(path string) error {
 	cPath := C.CString(path)
 	defer C.free(unsafe.Pointer(cPath))

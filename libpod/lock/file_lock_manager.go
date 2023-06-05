@@ -79,6 +79,12 @@ func (m *FileLockManager) FreeAllLocks() error {
 	return m.locks.DeallocateAllLocks()
 }
 
+// AvailableLocks returns the number of available locks. Since this is not
+// limited in the file lock implementation, nil is returned.
+func (locks *FileLockManager) AvailableLocks() (*uint32, error) {
+	return nil, nil
+}
+
 // FileLock is an individual shared memory lock.
 type FileLock struct {
 	lockID  uint32

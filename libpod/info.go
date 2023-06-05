@@ -99,6 +99,12 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	locksFree, err := r.lockManager.AvailableLocks()
+	if err != nil {
+		return nil, fmt.Errorf("getting free locks: %w", err)
+	}
+
 	info := define.HostInfo{
 		Arch:            runtime.GOARCH,
 		BuildahVersion:  buildah.Version,
@@ -107,6 +113,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 		CPUs:            runtime.NumCPU(),
 		CPUUtilization:  cpuUtil,
 		Distribution:    hostDistributionInfo,
+		FreeLocks:       locksFree,
 		LogDriver:       r.config.Containers.LogDriver,
 		EventLogger:     r.eventer.String(),
 		Hostname:        host,
