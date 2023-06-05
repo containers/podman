@@ -563,6 +563,7 @@ END_HTML
                 print { $out_fh } "</div>\n";
             }
             $after_divider = 1;
+            $subtest_status = 'passed';         # until proven otherwise
 
             print { $out_fh } "</pre>\n<hr />\n<pre>\n";
             # Always show timestamp at start of each new test
@@ -614,7 +615,6 @@ END_HTML
 
             # Make FAILED and SKIPPING visible. (Only works with ginkgo -p;
             # without -p, status is at the bottom of the test block)
-            $subtest_status = 'passed';
             if ($line =~ s!^(.*\[(SKIPPED|FAILED|FLAKEY).*\].*)!<span class="log-\L$2\E">$1</span>!) {
                 $subtest_status = lc($2);
             }
