@@ -10,8 +10,10 @@ package sqlite3
 /*
 #cgo CFLAGS: -DUSE_LIBSQLITE3
 #cgo linux LDFLAGS: -lsqlite3
-#cgo darwin LDFLAGS: -L/usr/local/opt/sqlite/lib -lsqlite3
-#cgo darwin CFLAGS: -I/usr/local/opt/sqlite/include
+#cgo darwin,amd64 LDFLAGS: -L/usr/local/opt/sqlite/lib -lsqlite3
+#cgo darwin,amd64 CFLAGS:  -I/usr/local/opt/sqlite/include
+#cgo darwin,arm64 LDFLAGS: -L/opt/homebrew/opt/sqlite/lib -lsqlite3
+#cgo darwin,arm64 CFLAGS:  -I/opt/homebrew/opt/sqlite/include
 #cgo openbsd LDFLAGS: -lsqlite3
 #cgo solaris LDFLAGS: -lsqlite3
 #cgo windows LDFLAGS: -lsqlite3
