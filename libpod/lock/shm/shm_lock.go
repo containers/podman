@@ -281,6 +281,31 @@ func (locks *SHMLocks) GetFreeLocks() (uint32, error) {
 	return uint32(retCode), nil
 }
 
+// Get a list of locks that are currently taken.
+func (locks *SHMLocks) GetTakenLocks() ([]uint32, error) {
+	if !locks.valid {
+		return nil, fmt.Errorf("locks have already been closed: %w", syscall.EINVAL)
+	}
+
+	var usedLocks []uint32
+
+	// I don't think we need to lock the OS thread here, since the lock (if
+	// taken) is immediately released, and Go shouldn't reschedule the CGo
+	// to another thread before the function finished executing.
+	var i uint32
+	for i = 0; i < locks.maxLocks; i++ {
+		retCode := C.try_lock(locks.lockStruct, C.uint32_t(i))
+		if retCode < 0 {
+			return nil, syscall.Errno(-1 * retCode)
+		}
+		if retCode == 0 {
+			usedLocks = append(usedLocks, i)
+		}
+	}
+
+	return usedLocks, nil
+}
+
 func unlinkSHMLock(path string) error {
 	cPath := C.CString(path)
 	defer C.free(unsafe.Pointer(cPath))

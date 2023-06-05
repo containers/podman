@@ -129,3 +129,20 @@ func (m *InMemoryManager) AvailableLocks() (*uint32, error) {
 
 	return &count, nil
 }
+
+// Get any locks that are presently being held.
+// Useful for debugging deadlocks.
+func (m *InMemoryManager) LocksHeld() ([]uint32, error) {
+	//nolint:prealloc
+	var locks []uint32
+
+	for _, lock := range m.locks {
+		if lock.lock.TryLock() {
+			lock.lock.Unlock()
+			continue
+		}
+		locks = append(locks, lock.ID())
+	}
+
+	return locks, nil
+}

@@ -125,4 +125,5 @@ type AuthReport struct {
 // lead to deadlocks.
 type LocksReport struct {
 	LockConflicts map[uint32][]string
+	LocksHeld     []uint32
 }

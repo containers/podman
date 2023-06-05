@@ -1189,19 +1189,19 @@ func (r *Runtime) SetRemoteURI(uri string) {
 	r.config.Engine.RemoteURI = uri
 }
 
-
 // Get information on potential lock conflicts.
 // Returns a map of lock number to object(s) using the lock, formatted as
-// "container <id>" or "volume <id>" or "pod <id>".
+// "container <id>" or "volume <id>" or "pod <id>", and an array of locks that
+// are currently being held, formatted as []uint32.
 // If the map returned is not empty, you should immediately renumber locks on
 // the runtime, because you have a deadlock waiting to happen.
-func (r *Runtime) LockConflicts() (map[uint32][]string, error) {
+func (r *Runtime) LockConflicts() (map[uint32][]string, []uint32, error) {
 	// Make an internal map to store what lock is associated with what
 	locksInUse := make(map[uint32][]string)
 
 	ctrs, err := r.state.AllContainers(false)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for _, ctr := range ctrs {
 		lockNum := ctr.lock.ID()
@@ -1216,7 +1216,7 @@ func (r *Runtime) LockConflicts() (map[uint32][]string, error) {
 
 	pods, err := r.state.AllPods()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for _, pod := range pods {
 		lockNum := pod.lock.ID()
@@ -1231,7 +1231,7 @@ func (r *Runtime) LockConflicts() (map[uint32][]string, error) {
 
 	volumes, err := r.state.AllVolumes()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for _, vol := range volumes {
 		lockNum := vol.lock.ID()
@@ -1256,5 +1256,15 @@ func (r *Runtime) LockConflicts() (map[uint32][]string, error) {
 		}
 	}
 
-	return toReturn, nil
+	locksHeld, err := r.lockManager.LocksHeld()
+	if err != nil {
+		if errors.Is(err, define.ErrNotImplemented) {
+			logrus.Warnf("Could not retrieve currently taken locks as the lock backend does not support this operation")
+			return toReturn, []uint32{}, nil
+		}
+
+		return nil, nil, err
+	}
+
+	return toReturn, locksHeld, nil
 }

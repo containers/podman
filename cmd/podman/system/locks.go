@@ -10,9 +10,9 @@ import (
 
 var (
 	locksCommand = &cobra.Command{
-		Use: "locks",
-		Short: "Debug Libpod's use of locks, identifying any potential conflicts",
-		Args: validate.NoArgs,
+		Use:    "locks",
+		Short:  "Debug Libpod's use of locks, identifying any potential conflicts",
+		Args:   validate.NoArgs,
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runLocks()
@@ -24,7 +24,7 @@ var (
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: locksCommand,
-		Parent: systemCmd,
+		Parent:  systemCmd,
 	})
 }
 func runLocks() error {
@@ -41,7 +41,13 @@ func runLocks() error {
 	}
 
 	if len(report.LockConflicts) > 0 {
-		fmt.Printf("\nLock conflicts have been detected. Recommend immediate use of `podman system renumber` to resolve.\n")
+		fmt.Printf("\nLock conflicts have been detected. Recommend immediate use of `podman system renumber` to resolve.\n\n")
+	} else {
+		fmt.Printf("\nNo lock conflicts have been detected, system safe from deadlocks.\n\n")
+	}
+
+	for _, lockNum := range report.LocksHeld {
+		fmt.Printf("Lock %d is presently being held\n", lockNum)
 	}
 
 	return nil

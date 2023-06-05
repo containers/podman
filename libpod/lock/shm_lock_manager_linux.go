@@ -108,6 +108,10 @@ func (m *SHMLockManager) AvailableLocks() (*uint32, error) {
 	return &avail, nil
 }
 
+func (m *SHMLockManager) LocksHeld() ([]uint32, error) {
+	return m.locks.GetTakenLocks()
+}
+
 // SHMLock is an individual shared memory lock.
 type SHMLock struct {
 	lockID  uint32

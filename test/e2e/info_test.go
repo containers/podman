@@ -185,7 +185,7 @@ var _ = Describe("Podman Info", func() {
 		info1.WaitWithDefaultTimeout()
 		Expect(info1).To(Exit(0))
 		free1, err := strconv.Atoi(info1.OutputToString())
-		Expect(err).To(BeNil())
+		Expect(err).To(Not(HaveOccurred()))
 
 		ctr := podmanTest.Podman([]string{"create", ALPINE, "top"})
 		ctr.WaitWithDefaultTimeout()
@@ -195,7 +195,7 @@ var _ = Describe("Podman Info", func() {
 		info2.WaitWithDefaultTimeout()
 		Expect(info2).To(Exit(0))
 		free2, err := strconv.Atoi(info2.OutputToString())
-		Expect(err).To(BeNil())
+		Expect(err).To(Not(HaveOccurred()))
 
 		Expect(free1).To(Equal(free2 + 1))
 	})
