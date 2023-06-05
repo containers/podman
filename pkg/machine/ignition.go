@@ -206,12 +206,6 @@ WantedBy=sysinit.target
 				Contents: &deMoby,
 			},
 		}}
-	ignConfig := Config{
-		Ignition: ignVersion,
-		Passwd:   ignPassword,
-		Storage:  ignStorage,
-		Systemd:  ignSystemd,
-	}
 
 	// Only qemu has the qemu firmware environment setting
 	if ign.VMType == QemuVirt {
@@ -222,7 +216,14 @@ WantedBy=sysinit.target
 		}
 		ignSystemd.Units = append(ignSystemd.Units, qemuUnit)
 	}
-	ign.Cfg = ignConfig
+	// Only after all checks are done
+	// it's ready create the ingConfig
+	ign.Cfg = Config{
+		Ignition: ignVersion,
+		Passwd:   ignPassword,
+		Storage:  ignStorage,
+		Systemd:  ignSystemd,
+	}
 	return nil
 }
 
