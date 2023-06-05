@@ -11,7 +11,6 @@ options:
   - name: go-modules
     path: /go
   env:
-    - GO111MODULE=on
     - GOPATH=/go
     - GOLANG_PROTOBUF_REGISTRATION_CONFLICT=ignore # Temporary work-around v1.proto already registered error.
     - DOCKER_CLIENT_TIMEOUT=120
