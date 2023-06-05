@@ -388,22 +388,21 @@ var _ = Describe("Podman manifest", func() {
 
 	It("authenticated push", func() {
 		registryOptions := &podmanRegistry.Options{
-			Image: "docker-archive:" + imageTarPath(REGISTRY_IMAGE),
+			PodmanPath: podmanTest.PodmanBinary,
+			PodmanArgs: podmanTest.MakeOptions(nil, false, false),
+			Image:      "docker-archive:" + imageTarPath(REGISTRY_IMAGE),
 		}
 
-		// registry script invokes $PODMAN; make sure we define that
-		// so it can use our same networking options.
-		opts := strings.Join(podmanTest.MakeOptions(nil, false, false), " ")
+		// Special case for remote: invoke local podman, with all
+		// network/storage/other args
 		if IsRemote() {
-			opts = strings.Join(getRemoteOptions(podmanTest, nil), " ")
+			registryOptions.PodmanArgs = getRemoteOptions(podmanTest, nil)
 		}
-		os.Setenv("PODMAN", podmanTest.PodmanBinary+" "+opts)
 		registry, err := podmanRegistry.StartWithOptions(registryOptions)
 		Expect(err).ToNot(HaveOccurred())
 		defer func() {
 			err := registry.Stop()
 			Expect(err).ToNot(HaveOccurred())
-			os.Unsetenv("PODMAN")
 		}()
 
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
@@ -438,6 +437,7 @@ var _ = Describe("Podman manifest", func() {
 		push = podmanTest.Podman([]string{"manifest", "push", "--tls-verify=false", "--creds=podmantest:wrongpasswd", "foo", "localhost:" + registry.Port + "/credstest"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).To(ExitWithError())
+		Expect(push.ErrorToString()).To(ContainSubstring(": authentication required"))
 
 		// push --rm after pull image (#15033)
 		push = podmanTest.Podman([]string{"manifest", "push", "--rm", "--tls-verify=false", "--creds=" + registry.User + ":" + registry.Password, "foo", "localhost:" + registry.Port + "/rmtest"})
