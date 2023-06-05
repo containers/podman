@@ -22,7 +22,7 @@ require (
 	github.com/containers/storage v1.46.1
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.4.2
-	github.com/crc-org/vfkit v0.0.5-0.20230427143911-8117c28876bc
+	github.com/crc-org/vfkit v0.0.5-0.20230602131541-3d57f09010c9
 	github.com/cyphar/filepath-securejoin v0.2.3
 	github.com/digitalocean/go-qemu v0.0.0-20221209210016-f035778c97f7
 	github.com/docker/docker v24.0.0+incompatible
