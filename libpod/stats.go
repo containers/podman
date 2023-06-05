@@ -12,7 +12,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// GetContainerStats gets the running stats for a given container
+// GetContainerStats gets the running stats for a given container.
+// The previousStats is used to correctly calculate cpu percentages. You
+// should pass nil if there is no previous stat for this container.
 func (c *Container) GetContainerStats(previousStats *define.ContainerStats) (*define.ContainerStats, error) {
 	stats := new(define.ContainerStats)
 	stats.ContainerID = c.ID()
@@ -32,6 +34,14 @@ func (c *Container) GetContainerStats(previousStats *define.ContainerStats) (*de
 
 	if c.state.State != define.ContainerStateRunning {
 		return stats, define.ErrCtrStateInvalid
+	}
+
+	if previousStats == nil {
+		previousStats = &define.ContainerStats{
+			// if we have no prev stats use the container start time as prev time
+			// otherwise we cannot correctly calculate the CPU percentage
+			SystemNano: uint64(c.state.StartedTime.UnixNano()),
+		}
 	}
 
 	cgroupPath, err := c.cGroupPath()
