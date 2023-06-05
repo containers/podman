@@ -215,6 +215,8 @@ all: binaries docs
 .PHONY: binaries
 ifeq ($(shell uname -s),FreeBSD)
 binaries: podman podman-remote ## Build podman and podman-remote binaries
+else ifneq (, $(findstring $(GOOS),darwin windows))
+binaries: podman-remote ## Build podman-remote (client) only binaries
 else
 binaries: podman podman-remote rootlessport quadlet ## Build podman, podman-remote and rootlessport binaries quadlet
 endif
@@ -224,7 +226,16 @@ endif
 # at reference-time (due to `=` and not `=:`).
 _HLP_TGTS_RX = '^[[:print:]]+:.*?\#\# .*$$'
 _HLP_TGTS_CMD = grep -E $(_HLP_TGTS_RX) $(MAKEFILE_LIST)
-_HLP_TGTS_LEN = $(shell $(call err_if_empty,_HLP_TGTS_CMD) | cut -d : -f 1 | wc -L)
+_HLP_TGTS_LEN = $(shell $(call err_if_empty,_HLP_TGTS_CMD) | cut -d : -f 1 | wc -L 2>/dev/null || echo "PARSING_ERROR")
+# Separated condition for Darwin
+ifeq ($(shell uname -s)$(_HLP_TGTS_LEN),DarwinPARSING_ERROR)
+ifneq (,$(wildcard /usr/local/bin/gwc))
+_HLP_TGTS_LEN = $(shell $(call err_if_empty,_HLP_TGTS_CMD) | cut -d : -f 1 | gwc -L)
+else
+$(warning On Darwin (MacOS) installed coreutils is necessary)
+$(warning Use 'brew install coreutils' command to install coreutils on your system)
+endif
+endif
 _HLPFMT = "%-$(call err_if_empty,_HLP_TGTS_LEN)s %s\n"
 .PHONY: help
 help: ## (Default) Print listing of key targets with their descriptions
