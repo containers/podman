@@ -234,6 +234,7 @@ END_HTML
     my $cirrus_task;              # Cirrus task number, used for linking
     my $git_commit;               # git SHA, used for linking to source files
     my $subtest_status;           # pass, fail, skip, flake - for each subtest
+    my $subtest_name;             # assembled from two or more Describe()/It()s
     my $in_failure;               # binary flag: are we in an error dump?
     my $in_timing;                # binary flag: are we in the timing section?
     my $after_divider = 999;      # Count of lines after seeing '-----'
@@ -475,6 +476,10 @@ END_HTML
                     lc($block);
                 $line = "$indent&rarr; Enter [<b>$block</b>]$line";
                 $print_line->();
+
+                # machine tests, run without -p, don't have a blank line
+                # separating headers from logs; but this works just fine.
+                $after_divider = 999;
             }
             else {
                 # Can be a div within a div
@@ -564,6 +569,7 @@ END_HTML
             }
             $after_divider = 1;
             $subtest_status = 'passed';         # until proven otherwise
+            $subtest_name = '';
 
             print { $out_fh } "</pre>\n<hr />\n<pre>\n";
             # Always show timestamp at start of each new test
@@ -622,16 +628,44 @@ END_HTML
             # FIXME: gray out entire block if it's skipped?
         }
 
-        # Three lines after each divider (four, if ginkgo is run with "-p",
-        # see above), there's a test name. Make it an anchor so we can link
-        # to it later.
-        if ($after_divider == 3) {
-            # Sigh. There is no actual marker. Assume that anything with
-            ## two leading spaces then alpha or hyphen (not slashes) is
-            ## a test name.
-            if ($line =~ /^  (\[It\]\s*)?([a-zA-Z-].*\S)/) {
-                my $id = make_id($2, 'anchor');
-
+        # Test name recognition, linking, and highlighting.
+        # The lines after each divider, until the first empty line, are
+        # one or more test name specifiers, a nested level of Description()
+        # and It() names:
+        #    -----------
+        #    * blah [N seconds]     <<<---- only when run with -p
+        #    Podman foo
+        #    /var/tmp/go/src/path/to/this/file.go:lineno
+        #       podman bar
+        #       /var/tmp/go/src/path/to/this/file.go:lineno
+        #
+        # There may even be three nested levels (e.g., quadlet). We
+        # look for non-path lines and assemble them -- "Podman foo",
+        # " Podman foo podman bar" -- giving each an HTML anchor
+        # to which we can link from the summary section at bottom.
+        if ($after_divider <= 10) {      # Assume no more than ~5 levels
+            if ($line =~ /^\s*$/) {
+                # Stop looking when we get to the blank line
+                $after_divider = 999;
+            }
+            elsif ($line =~ /span.*class=.boring./) {
+                # Sigh. Bindings tests run without -p, and have no blank line
+                # separator. Use the first command to signal real logs.
+                # FIXME: can we solve this with ReportBeforeEach()?
+                #   https://onsi.github.io/ginkgo/#generating-reports-programmatically
+                $after_divider = 999;
+            }
+            elsif ($line =~ m!^\s*/\S+!) {
+                # Source code path: skip
+            }
+            elsif ($line =~ /<b/) {
+                # Already-formatted line (like the "N seconds" one): skip
+            }
+            elsif ($line =~ /^\s*(\[It\]\s*)?(.*)/) {
+                # Test description or name! Remove the "It", and make an anchor
+                $subtest_name .= " " if $subtest_name;
+                $subtest_name .= $2;
+                my $id = make_id($subtest_name, 'anchor');
                 $line = "<a name='t--$id'><h2 class=\"log-$subtest_status\">$line</h2></a>";
             }
         }
@@ -643,10 +677,10 @@ END_HTML
         $line =~ s!^(\s*)(\[It\]\s+.*)!$1<span class="testname">$2</span>!;
 
         # Failure name corresponds to a previously-seen block.
-        #              1     2           2        3                       3   14           4
-        if ($line =~ /^(\s*\[(FAIL|PANIC!)\] .* \[(It|BeforeEach|AfterEach)\] )([A-Za-z-].*)/) {
-            my ($lhs, $type, $ginkgo_fluff, $testname) = ($1, $2, $3, $4);
-            my $id = make_id($testname, 'link');
+        #              1     2           2   3  3   4                       4   15           5
+        if ($line =~ /^(\s*\[(FAIL|PANIC!)\] (.*) \[(It|BeforeEach|AfterEach)\] )([A-Za-z-].*)/) {
+            my ($lhs, $type, $desc, $ginkgo_fluff, $testname) = ($1, $2, $3, $4, $5);
+            my $id = make_id("$desc $testname", 'link');
 
             $line = "<span class=\"log-error\">$lhs<a href='#t--$id'>$testname</a></span>";
         }
@@ -811,6 +845,18 @@ END_SYNOPSIS
     $s .= _tr("Cirrus", sprintf("<small>Build %s</small> / <b>Task %s</b>",
                                 _a("{CIRRUS_BUILD_ID}", "https://cirrus-ci.com/build/{CIRRUS_BUILD_ID}"),
                                 _a("{CIRRUS_TASK_ID}", "https://cirrus-ci.com/task/{CIRRUS_TASK_ID}")));
+
+    # Logs: link to original (unformatted) log; journal; and, if remote, server
+    my @logs = (
+        _a("main", "https://api.cirrus-ci.com/v1/task/{CIRRUS_TASK_ID}/logs/main.log"),
+        _a("journal", "https://api.cirrus-ci.com/v1/task/{CIRRUS_TASK_ID}/logs/journal.log"),
+    );
+
+    # System tests are single-threaded, and have a server log available
+    if ($test_name =~ /sys\s+remote\s/) {
+        push @logs, _a("remote server", "https://api.cirrus-ci.com/v1/artifact/task/{CIRRUS_TASK_ID}/server_log/podman-server.log");
+    }
+    $s .= _tr("Logs", join(" / ", @logs));
 
     # BASE_SHA can tell us if our parent includes--or doesn't--a purported
     # fix for a flake. Note that "commits", plural, links to a git history
