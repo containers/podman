@@ -1343,6 +1343,17 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, opt
 				return nil, fmt.Errorf("unable to read YAML as Kube Pod: %w", err)
 			}
 			podNames = append(podNames, podYAML.ObjectMeta.Name)
+
+			for _, vol := range podYAML.Spec.Volumes {
+				switch vs := vol.VolumeSource; {
+				case vs.PersistentVolumeClaim != nil:
+					volumeNames = append(volumeNames, vs.PersistentVolumeClaim.ClaimName)
+				case vs.ConfigMap != nil:
+					volumeNames = append(volumeNames, vs.ConfigMap.Name)
+				case vs.Secret != nil:
+					volumeNames = append(volumeNames, vs.Secret.SecretName)
+				}
+			}
 		case "Deployment":
 			var deploymentYAML v1apps.Deployment
 

@@ -4984,6 +4984,19 @@ spec:
 		exec.WaitWithDefaultTimeout()
 		Expect(exec).Should(Exit(0))
 		Expect(exec.OutputToString()).Should(Equal("hi"))
+
+		teardown := podmanTest.Podman([]string{"kube", "down", "--force", kubeYaml})
+		teardown.WaitWithDefaultTimeout()
+		Expect(teardown).Should(Exit(0))
+		Expect(teardown.OutputToString()).Should(ContainSubstring("testvol"))
+
+		// kube down --force should remove volumes
+		// specified in the manifest but not externally
+		// created volumes, testvol1 in this case
+		checkVol := podmanTest.Podman([]string{"volume", "ls", "--format", "{{.Name}}"})
+		checkVol.WaitWithDefaultTimeout()
+		Expect(checkVol).Should(Exit(0))
+		Expect(checkVol.OutputToString()).To(Equal("testvol1"))
 	})
 
 	It("podman play kube with hostPath subpaths", func() {
