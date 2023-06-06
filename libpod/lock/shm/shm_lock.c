@@ -568,7 +568,7 @@ int64_t available_locks(shm_struct_t *shm) {
   for (i = 0; i < shm->num_bitmaps; i++) {
     // Short-circuit to catch fully-empty bitmaps quick.
     if (shm->locks[i].bitmap == 0) {
-      free_locks += 32;
+      free_locks += sizeof(bitmap_t) * 8;
       continue;
     }
 
@@ -581,7 +581,7 @@ int64_t available_locks(shm_struct_t *shm) {
       count++;
     }
 
-    free_locks += 32 - count;
+    free_locks += (sizeof(bitmap_t) * 8) - count;
   }
 
   // Clear the mutex

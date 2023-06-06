@@ -1206,12 +1206,7 @@ func (r *Runtime) LockConflicts() (map[uint32][]string, []uint32, error) {
 	for _, ctr := range ctrs {
 		lockNum := ctr.lock.ID()
 		ctrString := fmt.Sprintf("container %s", ctr.ID())
-		locksArr, ok := locksInUse[lockNum]
-		if ok {
-			locksInUse[lockNum] = append(locksArr, ctrString)
-		} else {
-			locksInUse[lockNum] = []string{ctrString}
-		}
+		locksInUse[lockNum] = append(locksInUse[lockNum], ctrString)
 	}
 
 	pods, err := r.state.AllPods()
@@ -1221,12 +1216,7 @@ func (r *Runtime) LockConflicts() (map[uint32][]string, []uint32, error) {
 	for _, pod := range pods {
 		lockNum := pod.lock.ID()
 		podString := fmt.Sprintf("pod %s", pod.ID())
-		locksArr, ok := locksInUse[lockNum]
-		if ok {
-			locksInUse[lockNum] = append(locksArr, podString)
-		} else {
-			locksInUse[lockNum] = []string{podString}
-		}
+		locksInUse[lockNum] = append(locksInUse[lockNum], podString)
 	}
 
 	volumes, err := r.state.AllVolumes()
@@ -1236,12 +1226,7 @@ func (r *Runtime) LockConflicts() (map[uint32][]string, []uint32, error) {
 	for _, vol := range volumes {
 		lockNum := vol.lock.ID()
 		volString := fmt.Sprintf("volume %s", vol.Name())
-		locksArr, ok := locksInUse[lockNum]
-		if ok {
-			locksInUse[lockNum] = append(locksArr, volString)
-		} else {
-			locksInUse[lockNum] = []string{volString}
-		}
+		locksInUse[lockNum] = append(locksInUse[lockNum], volString)
 	}
 
 	// Now go through and find any entries with >1 item associated

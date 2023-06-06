@@ -43,7 +43,7 @@ func runLocks() error {
 	if len(report.LockConflicts) > 0 {
 		fmt.Printf("\nLock conflicts have been detected. Recommend immediate use of `podman system renumber` to resolve.\n\n")
 	} else {
-		fmt.Printf("\nNo lock conflicts have been detected, system safe from deadlocks.\n\n")
+		fmt.Printf("\nNo lock conflicts have been detected.\n\n")
 	}
 
 	for _, lockNum := range report.LocksHeld {

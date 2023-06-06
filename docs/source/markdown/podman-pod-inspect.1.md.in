@@ -44,6 +44,7 @@ Valid placeholders for the Go template are listed below:
 | .InfraContainerID    | Pod infrastructure ID                       |
 | .InspectPodData ...  | Nested structure, for experts only          |
 | .Labels              | Pod labels                                  |
+| .LockNumber          | Number of the pod's Libpod lock             |
 | .MemoryLimit         | Memory limit, bytes                         |
 | .MemorySwap          | Memory swap limit, in bytes                 |
 | .Mounts              | Mounts                                      |

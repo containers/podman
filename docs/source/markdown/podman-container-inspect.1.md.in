@@ -43,6 +43,7 @@ Valid placeholders for the Go template are listed below:
 | .IsInfra                 | Is this an infra container? (string: true/false)   |
 | .IsService               | Is this a service container? (string: true/false)  |
 | .KubeExitCodePropagation | Kube exit-code propagation (string)                |
+| .LockNumber              | Number of the container's Libpod lock              |
 | .MountLabel              | SELinux label of mount (string)                    |
 | .Mounts                  | Mounts (array of strings)                          |
 | .Name                    | Container name (string)                            |
