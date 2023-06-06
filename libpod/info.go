@@ -14,6 +14,7 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/pkg/util"
+	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/linkmode"
@@ -118,6 +119,30 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 		SwapFree:        mi.SwapFree,
 		SwapTotal:       mi.SwapTotal,
 	}
+	if info.NetworkBackend == string(types.Netavark) {
+		path, err := r.config.FindHelperBinary(info.NetworkBackend, true)
+		if err != nil {
+			logrus.Errorf("Getting host info on netavark: %v", err)
+		} else {
+			version, err := programVersion(path)
+			if err != nil {
+				logrus.Errorf("Getting netavark version: %v", err)
+			}
+			info.NetworkBackendInfo = &define.NetavarkInfo{
+				Path:    path,
+				Package: packageVersion(path),
+				Version: version,
+			}
+			path, err = r.config.FindHelperBinary("aardvark-dns", true)
+			if err == nil {
+				version, _ = programVersion(path)
+				info.NetworkBackendInfo.DNSPath = path
+				info.NetworkBackendInfo.DNSPackage = packageVersion(path)
+				info.NetworkBackendInfo.DNSVersion = version
+			}
+		}
+	}
+
 	if err := r.setPlatformHostInfo(&info); err != nil {
 		return nil, err
 	}

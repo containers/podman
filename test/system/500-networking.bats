@@ -276,6 +276,14 @@ load helpers.network
     run_podman 1 network rm $mynetname
 }
 
+@test "podman info netavark" {
+        if !is_netavark; then
+	   skip "only meaningful for netavark"
+	fi
+	run_podman info --format '{{ .Host.NetworkBackendInfo }}'
+	assert "$output" =~ "netavark" "NetworkBackendInfo should contain inforamation about netavark"
+}
+
 @test "podman network reload" {
     skip_if_remote "podman network reload does not have remote support"
 
