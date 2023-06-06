@@ -43,7 +43,7 @@ function _check_health {
 
     _check_health "All healthy" "
 Status           | \"healthy\"
-FailingStreak    | 0
+FailingStreak    | null
 Log[-1].ExitCode | 0
 Log[-1].Output   | \"Life is Good on stdout\\\nLife is Good on stderr\"
 "

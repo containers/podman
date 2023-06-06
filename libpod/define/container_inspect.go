@@ -239,11 +239,11 @@ func (s *InspectContainerState) Healthcheck() HealthCheckResults {
 // HealthCheckResults describes the results/logs from a healthcheck
 type HealthCheckResults struct {
 	// Status starting, healthy or unhealthy
-	Status string `json:"Status"`
+	Status string `json:"Status,omitempty"`
 	// FailingStreak is the number of consecutive failed healthchecks
-	FailingStreak int `json:"FailingStreak"`
+	FailingStreak int `json:"FailingStreak,omitzero,omitempty"`
 	// Log describes healthcheck attempts and results
-	Log []HealthCheckLog `json:"Log"`
+	Log []HealthCheckLog `json:"Log,omitempty"`
 }
 
 // HealthCheckLog describes the results of a single healthcheck

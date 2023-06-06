@@ -34,10 +34,10 @@ var _ = Describe("Podman healthcheck run", func() {
 		session := podmanTest.Podman([]string{"run", "-dt", "--no-healthcheck", "--name", "hc", HEALTHCHECK_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		hc := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.State.Health.Status}}", "hc"})
+		hc := podmanTest.Podman([]string{"container", "inspect", "hc"})
 		hc.WaitWithDefaultTimeout()
 		Expect(hc).Should(Exit(0))
-		Expect(hc.OutputToString()).To(Not(ContainSubstring("starting")))
+		Expect(hc.OutputToString()).To(ContainSubstring("\"Health\": {},"))
 	})
 
 	It("podman run healthcheck and logs should contain healthcheck output", func() {
