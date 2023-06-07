@@ -433,7 +433,8 @@ registries = ['{{.Host}}:{{.Port}}']`
 		Expect(search).To(ExitWithError())
 	})
 
-	It("podman search with wildcards", func() {
+	// Registry is unreliable (#18484), this is another super-common flake
+	It("podman search with wildcards", FlakeAttempts(3), func() {
 		search := podmanTest.Podman([]string{"search", "registry.access.redhat.com/*openshift*"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
