@@ -22,6 +22,9 @@ func getDefaultDevices(imagePath, logPath string) []string {
 		"virtio-net,nat,mac=72:20:43:d4:38:62",
 		fmt.Sprintf("virtio-blk,path=%s", imagePath),
 		fmt.Sprintf("virtio-serial,logFilePath=%s", logPath),
+		fmt.Sprintf("virtio-input,pointing"),
+		fmt.Sprintf("virtio-input,keyboard"),
+		fmt.Sprintf("virtio-gpu"),
 	}
 	return defaultDevices
 }
@@ -67,6 +70,9 @@ func (vf *VfkitHelper) toCmdLine(cpus, memory string) []string {
 		// this is on for development but can probably be disabled later, or
 		// we can leave it as optional.
 		//"--log-level", "debug",
+	}
+	if vf.LogLevel == logrus.DebugLevel {
+		cmd = append(cmd, "--gui")
 	}
 	for _, d := range vf.Devices {
 		cmd = append(cmd, "--device", d)
