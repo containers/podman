@@ -2,9 +2,11 @@ package util
 
 import (
 	"fmt"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/containers/storage/pkg/homedir"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/assert"
 )
@@ -54,6 +56,12 @@ func TestValidateSysctlBadSysctlWithExtraSpaces(t *testing.T) {
 	_, err = ValidateSysctls(strSlice2)
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), fmt.Sprintf(expectedError, strSlice2[1]))
+}
+
+func TestGetIdentityPath(t *testing.T) {
+	name := "p-test"
+	identityPath := GetIdentityPath(name)
+	assert.Equal(t, identityPath, filepath.Join(homedir.Get(), ".ssh", name))
 }
 
 func TestCoresToPeriodAndQuota(t *testing.T) {
