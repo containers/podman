@@ -37,22 +37,37 @@ load helpers
 }
 
 @test "podman ps --filter" {
-    run_podman run -d --name runner $IMAGE top
-    cid_runner=$output
+    local -A cid
 
-    run_podman run -d --name stopped $IMAGE true
-    cid_stopped=$output
-    run_podman wait stopped
+    # Create three containers, each of whose CID begins with a different char
+    run_podman run -d --name running $IMAGE top
+    cid[running]=$output
 
-    run_podman run -d --name failed $IMAGE false
-    cid_failed=$output
-    run_podman wait failed
+    cid[stopped]=$output
+    while [[ ${cid[stopped]:0:1} == ${cid[running]:0:1} ]]; do
+        run_podman rm -f stopped
+        run_podman run -d --name stopped $IMAGE true
+        cid[stopped]=$output
+        run_podman wait stopped
+    done
 
+    cid[failed]=${cid[stopped]}
+    while [[ ${cid[failed]:0:1} == ${cid[running]:0:1} ]] || [[ ${cid[failed]:0:1} == ${cid[stopped]:0:1} ]]; do
+        run_podman rm -f failed
+        run_podman run -d --name failed $IMAGE false
+        cid[failed]=$output
+        run_podman wait failed
+    done
+
+    # This one is never tested in the id filter, so its cid can be anything
     run_podman create --name created $IMAGE echo hi
-    cid_created=$output
+    cid[created]=$output
 
-    run_podman ps --filter name=runner --format '{{.ID}}'
-    is "$output" "${cid_runner:0:12}" "filter: name=runner"
+    # For debugging
+    run_podman ps -a
+
+    run_podman ps --filter name=running --format '{{.ID}}'
+    is "$output" "${cid[running]:0:12}" "filter: name=running"
 
     # Stopped container should not appear (because we're not using -a)
     run_podman ps --filter name=stopped --format '{{.ID}}'
@@ -60,7 +75,7 @@ load helpers
 
     # Again, but with -a
     run_podman ps -a --filter name=stopped --format '{{.ID}}'
-    is "$output" "${cid_stopped:0:12}" "filter: name=stopped (with -a)"
+    is "$output" "${cid[stopped]:0:12}" "filter: name=stopped (with -a)"
 
     run_podman ps --filter status=stopped --format '{{.Names}}' --sort names
     is "${lines[0]}" "failed"  "status=stopped: 1 of 2"
@@ -72,14 +87,52 @@ load helpers
     run_podman ps --filter status=exited --filter exited=1 --format '{{.Names}}'
     is "$output" "failed" "exited=1"
 
+    run_podman ps --filter status=created --format '{{.Names}}'
+    is "$output" "created" "state=created"
+
     # Multiple statuses allowed; and test sort=created
     run_podman ps -a --filter status=exited --filter status=running \
                --format '{{.Names}}' --sort created
-    is "${lines[0]}" "runner"  "status=stopped: 1 of 3"
+    is "${lines[0]}" "running" "status=stopped: 1 of 3"
     is "${lines[1]}" "stopped" "status=stopped: 2 of 3"
     is "${lines[2]}" "failed"  "status=stopped: 3 of 3"
 
-    run_podman stop -t 1 runner
+    # ID filtering: if filter is only hex chars, it's a prefix; if it has
+    # anything else, it's a regex
+    run_podman rm created
+    for state in running stopped failed; do
+        local test_cid=${cid[$state]}
+        for prefix in ${test_cid:0:1} ${test_cid:0:2} ${test_cid:0:13}; do
+            # Test lower-case (default), upper-case, and with '^' anchor
+            for uclc in ${prefix,,} ${prefix^^} "^$prefix"; do
+                run_podman ps -a --filter id=$uclc --format '{{.Names}}'
+                assert "$output" = "$state" "ps --filter id=$uclc"
+            done
+        done
+
+        # Regex check
+        local f="^[^${test_cid:0:1}]"
+        run_podman ps -a --filter id="$f" --format '{{.Names}}'
+        assert "${#lines[*]}" == "2" "filter id=$f: number of lines"
+        assert "$output" !~ $state   "filter id=$f: '$state' not in results"
+    done
+
+    # All CIDs will have hex characters
+    run_podman ps -a --filter id="[0-9a-f]" --format '{{.Names}}' --sort names
+    assert "${lines[0]}" == "failed"  "filter id=[0-9a-f], line 1"
+    assert "${lines[1]}" == "running" "filter id=[0-9a-f], line 2"
+    assert "${lines[2]}" == "stopped" "filter id=[0-9a-f], line 3"
+
+    run_podman ps -a --filter id="[^0-9a-f]" --noheading
+    assert "$output" = "" "id=[^0-9a-f], should match no containers"
+
+    # Finally, multiple filters
+    run_podman ps -a --filter id=${cid[running]} --filter id=${cid[failed]} \
+               --format '{{.Names}}' --sort names
+    assert "${lines[0]}" == "failed"  "filter id=running+failed, line 1"
+    assert "${lines[1]}" == "running" "filter id=running+failed, line 2"
+
+    run_podman stop -t 1 running
     run_podman rm -a
 }
 
