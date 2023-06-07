@@ -742,6 +742,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		BlkioDeviceWriteBps: p.BlkiThrottleWriteBps(),
 		CPUShares:           p.CPUShares(),
 		RestartPolicy:       p.config.RestartPolicy,
+		LockNumber:          p.lock.ID(),
 	}
 
 	return &inspectData, nil

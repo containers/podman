@@ -61,6 +61,8 @@ type InspectVolumeData struct {
 	// StorageID is the ID of the container backing the volume in c/storage.
 	// Only used with Image Volumes.
 	StorageID string `json:"StorageID,omitempty"`
+	// LockNumber is the number of the volume's Libpod lock.
+	LockNumber uint32
 }
 
 type VolumeReload struct {

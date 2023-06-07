@@ -166,6 +166,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 		IsInfra:                 c.IsInfra(),
 		IsService:               c.IsService(),
 		KubeExitCodePropagation: config.KubeExitCodePropagation.String(),
+		LockNumber:              c.lock.ID(),
 	}
 
 	if config.RootfsImageID != "" { // May not be set if the container was created with --rootfs

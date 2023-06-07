@@ -691,6 +691,7 @@ type InspectContainerData struct {
 	IsInfra                 bool                        `json:"IsInfra"`
 	IsService               bool                        `json:"IsService"`
 	KubeExitCodePropagation string                      `json:"KubeExitCodePropagation"`
+	LockNumber              uint32                      `json:"lockNumber"`
 	Config                  *InspectContainerConfig     `json:"Config"`
 	HostConfig              *InspectContainerHostConfig `json:"HostConfig"`
 }

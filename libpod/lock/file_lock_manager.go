@@ -1,6 +1,7 @@
 package lock
 
 import (
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/lock/file"
 )
 
@@ -77,6 +78,21 @@ func (m *FileLockManager) RetrieveLock(id uint32) (Locker, error) {
 // trying to use it.
 func (m *FileLockManager) FreeAllLocks() error {
 	return m.locks.DeallocateAllLocks()
+}
+
+// AvailableLocks returns the number of available locks. Since this is not
+// limited in the file lock implementation, nil is returned.
+func (m *FileLockManager) AvailableLocks() (*uint32, error) {
+	return nil, nil
+}
+
+// LocksHeld returns any locks that are presently locked.
+// It is not implemented for the file lock backend.
+// It ought to be possible, but my motivation to dig into c/storage and add
+// trylock semantics to the filelocker implementation for an uncommonly-used
+// lock backend is lacking.
+func (m *FileLockManager) LocksHeld() ([]uint32, error) {
+	return nil, define.ErrNotImplemented
 }
 
 // FileLock is an individual shared memory lock.

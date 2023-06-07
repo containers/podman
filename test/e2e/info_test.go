@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"strconv"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -174,5 +175,31 @@ var _ = Describe("Podman Info", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(Exit(0))
 		Expect(session.OutputToString()).To(Equal(want))
+	})
+
+	It("Podman info: check lock count", Serial, func() {
+		// This should not run on architectures and OSes that use the file locks backend.
+		// Which, for now, is Linux + RISCV and FreeBSD, neither of which are in CI - so
+		// no skips.
+		info1 := podmanTest.Podman([]string{"info", "--format", "{{ .Host.FreeLocks }}"})
+		info1.WaitWithDefaultTimeout()
+		Expect(info1).To(Exit(0))
+		free1, err := strconv.Atoi(info1.OutputToString())
+		Expect(err).To(Not(HaveOccurred()))
+
+		ctr := podmanTest.Podman([]string{"create", ALPINE, "top"})
+		ctr.WaitWithDefaultTimeout()
+		Expect(ctr).To(Exit(0))
+
+		info2 := podmanTest.Podman([]string{"info", "--format", "{{ .Host.FreeLocks }}"})
+		info2.WaitWithDefaultTimeout()
+		Expect(info2).To(Exit(0))
+		free2, err := strconv.Atoi(info2.OutputToString())
+		Expect(err).To(Not(HaveOccurred()))
+
+		// Effectively, we are checking that 1 lock has been taken.
+		// We do this by comparing the number of locks after (plus 1), to the number of locks before.
+		// Don't check absolute numbers because there is a decent chance of contamination, containers that were never removed properly, etc.
+		Expect(free1).To(Equal(free2 + 1))
 	})
 })

@@ -41,5 +41,7 @@ int32_t deallocate_semaphore(shm_struct_t *shm, uint32_t sem_index);
 int32_t deallocate_all_semaphores(shm_struct_t *shm);
 int32_t lock_semaphore(shm_struct_t *shm, uint32_t sem_index);
 int32_t unlock_semaphore(shm_struct_t *shm, uint32_t sem_index);
+int64_t available_locks(shm_struct_t *shm);
+int32_t try_lock(shm_struct_t *shm, uint32_t sem_index);
 
 #endif

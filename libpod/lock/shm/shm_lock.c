@@ -20,12 +20,18 @@ static size_t compute_shm_size(uint32_t num_bitmaps) {
 // Handles exceptional conditions, including a mutex locked by a process that
 // died holding it.
 // Returns 0 on success, or positive errno on failure.
-static int take_mutex(pthread_mutex_t *mutex) {
+static int take_mutex(pthread_mutex_t *mutex, bool trylock) {
   int ret_code;
 
-  do {
-    ret_code = pthread_mutex_lock(mutex);
-  } while(ret_code == EAGAIN);
+  if (!trylock) {
+    do {
+      ret_code = pthread_mutex_lock(mutex);
+    } while(ret_code == EAGAIN);
+  } else {
+    do {
+      ret_code = pthread_mutex_trylock(mutex);
+    } while(ret_code == EAGAIN);
+  }
 
   if (ret_code == EOWNERDEAD) {
     // The previous owner of the mutex died while holding it
@@ -309,7 +315,7 @@ int64_t allocate_semaphore(shm_struct_t *shm) {
   }
 
   // Lock the semaphore controlling access to our shared memory
-  ret_code = take_mutex(&(shm->segment_lock));
+  ret_code = take_mutex(&(shm->segment_lock), false);
   if (ret_code != 0) {
     return -1 * ret_code;
   }
@@ -383,7 +389,7 @@ int32_t allocate_given_semaphore(shm_struct_t *shm, uint32_t sem_index) {
   test_map = 0x1 << index_in_bitmap;
 
   // Lock the mutex controlling access to our shared memory
-  ret_code = take_mutex(&(shm->segment_lock));
+  ret_code = take_mutex(&(shm->segment_lock), false);
   if (ret_code != 0) {
     return -1 * ret_code;
   }
@@ -436,7 +442,7 @@ int32_t deallocate_semaphore(shm_struct_t *shm, uint32_t sem_index) {
   test_map = 0x1 << index_in_bitmap;
 
   // Lock the mutex controlling access to our shared memory
-  ret_code = take_mutex(&(shm->segment_lock));
+  ret_code = take_mutex(&(shm->segment_lock), false);
   if (ret_code != 0) {
     return -1 * ret_code;
   }
@@ -475,7 +481,7 @@ int32_t deallocate_all_semaphores(shm_struct_t *shm) {
   }
 
   // Lock the mutex controlling access to our shared memory
-  ret_code = take_mutex(&(shm->segment_lock));
+  ret_code = take_mutex(&(shm->segment_lock), false);
   if (ret_code != 0) {
     return -1 * ret_code;
   }
@@ -513,7 +519,7 @@ int32_t lock_semaphore(shm_struct_t *shm, uint32_t sem_index) {
   bitmap_index = sem_index / BITMAP_SIZE;
   index_in_bitmap = sem_index % BITMAP_SIZE;
 
-  return -1 * take_mutex(&(shm->locks[bitmap_index].locks[index_in_bitmap]));
+  return -1 * take_mutex(&(shm->locks[bitmap_index].locks[index_in_bitmap]), false);
 }
 
 // Unlock a given semaphore
@@ -536,4 +542,99 @@ int32_t unlock_semaphore(shm_struct_t *shm, uint32_t sem_index) {
   index_in_bitmap = sem_index % BITMAP_SIZE;
 
   return -1 * release_mutex(&(shm->locks[bitmap_index].locks[index_in_bitmap]));
+}
+
+// Get the number of free locks.
+// Returns a positive integer guaranteed to be less than UINT32_MAX on success,
+// or negative errno values on failure.
+// On success, the returned integer is the number of free semaphores.
+int64_t available_locks(shm_struct_t *shm) {
+  int ret_code, i, count;
+  bitmap_t test_map;
+  int64_t free_locks = 0;
+
+  if (shm == NULL) {
+    return -1 * EINVAL;
+  }
+
+  // Lock the semaphore controlling access to the SHM segment.
+  // This isn't strictly necessary as we're only reading, but it seems safer.
+  ret_code = take_mutex(&(shm->segment_lock), false);
+  if (ret_code != 0) {
+    return -1 * ret_code;
+  }
+
+  // Loop through all bitmaps, counting number of allocated locks.
+  for (i = 0; i < shm->num_bitmaps; i++) {
+    // Short-circuit to catch fully-empty bitmaps quick.
+    if (shm->locks[i].bitmap == 0) {
+      free_locks += sizeof(bitmap_t) * 8;
+      continue;
+    }
+
+    // Use Kernighan's Algorithm to count bits set. Subtract from number of bits
+    // in the integer to get free bits, and thus free lock count.
+    test_map = shm->locks[i].bitmap;
+    count = 0;
+    while (test_map) {
+      test_map = test_map & (test_map - 1);
+      count++;
+    }
+
+    free_locks += (sizeof(bitmap_t) * 8) - count;
+  }
+
+  // Clear the mutex
+  ret_code = release_mutex(&(shm->segment_lock));
+  if (ret_code != 0) {
+    return -1 * ret_code;
+  }
+
+  // Return free lock count.
+  return free_locks;
+}
+
+// Attempt to take a given semaphore. If successfully taken, it is immediately
+// released before the function returns.
+// Used to check if a semaphore is in use, to detect potential deadlocks where a
+// lock has not been released for an extended period of time.
+// Note that this is NOT POSIX trylock as the lock is immediately released if
+// taken.
+// Returns negative errno on failure.
+// On success, returns 1 if the lock was successfully taken, and 0 if it was
+// not.
+int32_t try_lock(shm_struct_t *shm, uint32_t sem_index) {
+  int bitmap_index, index_in_bitmap, ret_code;
+  pthread_mutex_t *mutex;
+
+  if (shm == NULL) {
+    return -1 * EINVAL;
+  }
+
+  if (sem_index >= shm->num_locks) {
+    return -1 * EINVAL;
+  }
+
+  bitmap_index = sem_index / BITMAP_SIZE;
+  index_in_bitmap = sem_index % BITMAP_SIZE;
+
+  mutex = &(shm->locks[bitmap_index].locks[index_in_bitmap]);
+
+  ret_code = take_mutex(mutex, true);
+
+  if (ret_code == EBUSY) {
+    // Did not successfully take the lock
+    return 0;
+  } else if (ret_code != 0) {
+    // Another, unrelated error
+    return -1 * ret_code;
+  }
+
+  // Lock taken successfully, unlock and return.
+  ret_code = release_mutex(mutex);
+  if (ret_code != 0) {
+    return -1 * ret_code;
+  }
+
+  return 1;
 }

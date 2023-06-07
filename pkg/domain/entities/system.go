@@ -120,3 +120,10 @@ type AuthReport struct {
 	IdentityToken string
 	Status        string
 }
+
+// LocksReport describes any conflicts in Libpod's lock allocations that could
+// lead to deadlocks.
+type LocksReport struct {
+	LockConflicts map[uint32][]string
+	LocksHeld     []uint32
+}

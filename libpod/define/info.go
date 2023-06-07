@@ -38,6 +38,7 @@ type HostInfo struct {
 	DatabaseBackend   string           `json:"databaseBackend"`
 	Distribution      DistributionInfo `json:"distribution"`
 	EventLogger       string           `json:"eventLogger"`
+	FreeLocks         *uint32          `json:"freeLocks,omitempty"`
 	Hostname          string           `json:"hostname"`
 	IDMappings        IDMappings       `json:"idMappings,omitempty"`
 	Kernel            string           `json:"kernel"`
