@@ -248,7 +248,7 @@ func (md *MetaData) unify(data interface{}, rv reflect.Value) error {
 	case reflect.Bool:
 		return md.unifyBool(data, rv)
 	case reflect.Interface:
-		if rv.NumMethod() > 0 { // Only support empty interfaces are supported.
+		if rv.NumMethod() > 0 { /// Only empty interfaces are supported.
 			return md.e("unsupported type %s", rv.Type())
 		}
 		return md.unifyAnything(data, rv)

@@ -11,10 +11,7 @@ import (
 	"github.com/BurntSushi/toml/internal"
 )
 
-var tomlNext = func() bool {
-	_, ok := os.LookupEnv("BURNTSUSHI_TOML_110")
-	return ok
-}()
+var tomlNext bool
 
 type parser struct {
 	lx         *lexer
@@ -35,6 +32,9 @@ type keyInfo struct {
 }
 
 func parse(data string) (p *parser, err error) {
+	_, ok := os.LookupEnv("BURNTSUSHI_TOML_110")
+	tomlNext = ok
+
 	defer func() {
 		if r := recover(); r != nil {
 			if pErr, ok := r.(ParseError); ok {
@@ -203,12 +203,12 @@ func (p *parser) topLevel(item item) {
 		for i := range context {
 			p.addImplicitContext(append(p.context, context[i:i+1]...))
 		}
+		p.ordered = append(p.ordered, p.context.add(p.currentKey))
 
 		/// Set value.
 		vItem := p.next()
 		val, typ := p.value(vItem, false)
 		p.set(p.currentKey, val, typ, vItem.pos)
-		p.ordered = append(p.ordered, p.context.add(p.currentKey))
 
 		/// Remove the context we added (preserving any context from [tbl] lines).
 		p.context = outerContext
@@ -445,11 +445,11 @@ func (p *parser) valueInlineTable(it item, parentIsArray bool) (interface{}, tom
 		for i := range context {
 			p.addImplicitContext(append(p.context, context[i:i+1]...))
 		}
+		p.ordered = append(p.ordered, p.context.add(p.currentKey))
 
 		/// Set the value.
 		val, typ := p.value(p.next(), false)
 		p.set(p.currentKey, val, typ, it.pos)
-		p.ordered = append(p.ordered, p.context.add(p.currentKey))
 		hash[p.currentKey] = val
 
 		/// Restore context.
@@ -570,7 +570,6 @@ func (p *parser) addContext(key Key, array bool) {
 func (p *parser) set(key string, val interface{}, typ tomlType, pos Position) {
 	p.setValue(key, val)
 	p.setType(key, typ, pos)
-
 }
 
 // setValue sets the given key to the given value in the current context.
@@ -651,14 +650,11 @@ func (p *parser) setType(key string, typ tomlType, pos Position) {
 
 // Implicit keys need to be created when tables are implied in "a.b.c.d = 1" and
 // "[a.b.c]" (the "a", "b", and "c" hashes are never created explicitly).
-func (p *parser) addImplicit(key Key)     { p.implicits[key.String()] = struct{}{} }
-func (p *parser) removeImplicit(key Key)  { delete(p.implicits, key.String()) }
-func (p *parser) isImplicit(key Key) bool { _, ok := p.implicits[key.String()]; return ok }
-func (p *parser) isArray(key Key) bool    { return p.keyInfo[key.String()].tomlType == tomlArray }
-func (p *parser) addImplicitContext(key Key) {
-	p.addImplicit(key)
-	p.addContext(key, false)
-}
+func (p *parser) addImplicit(key Key)        { p.implicits[key.String()] = struct{}{} }
+func (p *parser) removeImplicit(key Key)     { delete(p.implicits, key.String()) }
+func (p *parser) isImplicit(key Key) bool    { _, ok := p.implicits[key.String()]; return ok }
+func (p *parser) isArray(key Key) bool       { return p.keyInfo[key.String()].tomlType == tomlArray }
+func (p *parser) addImplicitContext(key Key) { p.addImplicit(key); p.addContext(key, false) }
 
 // current returns the full key name of the current context.
 func (p *parser) current() string {
