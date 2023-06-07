@@ -128,6 +128,7 @@ Valid options for `[Container]` are listed below:
 | SecurityLabelDisable=true      | --security-opt label=disable                         |
 | SecurityLabelFileType=usr_t    | --security-opt label=filetype:usr_t                  |
 | SecurityLabelLevel=s0:c1,c2    | --security-opt label=level:s0:c1,c2                  |
+| SecurityLabelNested=true       | --security-opt label=nested                          |
 | SecurityLabelType=spc_t        | --security-opt label=type:spc_t                      |
 | Timezone=local                 | --tz local                                           |
 | Tmpfs=/work                    | --tmpfs /work                                        |
@@ -423,6 +424,10 @@ Set the label file type for the container files.
 ### `SecurityLabelLevel=`
 
 Set the label process level for the container processes.
+
+### `SecurityLabelNested=`
+
+Allow SecurityLabels to function within the container. This allows separation of containers created within the container.
 
 ### `SecurityLabelType=`
 

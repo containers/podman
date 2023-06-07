@@ -537,6 +537,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("capabilities.container", "capabilities.container"),
 		Entry("capabilities2.container", "capabilities2.container"),
 		Entry("disableselinux.container", "disableselinux.container"),
+		Entry("nestedselinux.container", "nestedselinux.container"),
 		Entry("devices.container", "devices.container"),
 		Entry("env.container", "env.container"),
 		Entry("escapes.container", "escapes.container"),

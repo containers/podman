@@ -93,6 +93,7 @@ const (
 	KeySecurityLabelDisable  = "SecurityLabelDisable"
 	KeySecurityLabelFileType = "SecurityLabelFileType"
 	KeySecurityLabelLevel    = "SecurityLabelLevel"
+	KeySecurityLabelNested   = "SecurityLabelNested"
 	KeySecurityLabelType     = "SecurityLabelType"
 	KeySecret                = "Secret"
 	KeyTimezone              = "Timezone"
@@ -156,6 +157,7 @@ var (
 		KeySecurityLabelDisable:  true,
 		KeySecurityLabelFileType: true,
 		KeySecurityLabelLevel:    true,
+		KeySecurityLabelNested:   true,
 		KeySecurityLabelType:     true,
 		KeySecret:                true,
 		KeyTmpfs:                 true,
@@ -412,6 +414,11 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	securityLabelDisable := container.LookupBooleanWithDefault(ContainerGroup, KeySecurityLabelDisable, false)
 	if securityLabelDisable {
 		podman.add("--security-opt", "label:disable")
+	}
+
+	securityLabelNested := container.LookupBooleanWithDefault(ContainerGroup, KeySecurityLabelNested, false)
+	if securityLabelNested {
+		podman.add("--security-opt", "label:nested")
 	}
 
 	securityLabelType, _ := container.Lookup(ContainerGroup, KeySecurityLabelType)
