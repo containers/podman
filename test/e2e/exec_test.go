@@ -308,7 +308,8 @@ var _ = Describe("Podman exec", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("0000000000000000"))
 	})
 
-	It("podman exec terminal doesn't hang", func() {
+	// #10927 ("no logs from conmon"), one of our nastiest flakes
+	It("podman exec terminal doesn't hang", FlakeAttempts(3), func() {
 		setup := podmanTest.Podman([]string{"run", "-dti", "--name", "test1", fedoraMinimal, "sleep", "+Inf"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(Exit(0))
