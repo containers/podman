@@ -10,8 +10,8 @@ source $(dirname "${BASH_SOURCE[0]}")/lib.sh
 _errfmt="Expecting %s value to not be empty"
 if [[ -z "$GITHUB_REPOSITORY" ]]; then  # <owner>/<repo>
     err $(printf "$_errfmt" "\$GITHUB_REPOSITORY")
-elif [[ -z "$NAME_ID_FILEPATH" ]]; then  # output filepath
-    err $(printf "$_errfmt" "\$NAME_ID_FILEPATH")
+elif [[ -z "$ID_NAME_FILEPATH" ]]; then  # output filepath
+    err $(printf "$_errfmt" "\$ID_NAME_FILEPATH")
 fi
 
 confirm_gha_environment
@@ -74,18 +74,19 @@ gql "$(<./artifacts/query.json)" "$filt_head" > ./artifacts/reply.json
 #         }
 #         ...
 
-filt="$filt_head | map(select(.lastInvocationBuild.status==\"FAILED\") | { name:.name, id:.lastInvocationBuild.id} | join(\" \")) | join(\"\n\")"
-jq --raw-output "$filt" ./artifacts/reply.json > "$NAME_ID_FILEPATH"
+# Output format: <build id> <cron-job name>
+# Where <cron-job name> may contain multiple words
+filt="$filt_head | map(select(.lastInvocationBuild.status==\"FAILED\") | {id:.lastInvocationBuild.id, name:.name} | join(\" \")) | join(\"\n\")"
+jq --raw-output "$filt" ./artifacts/reply.json > "$ID_NAME_FILEPATH"
 
-echo "<Cron Name> <Failed Build ID>"
-cat "$NAME_ID_FILEPATH"
+# Print out the file to assist in job debugging
+echo "<Failed Build ID> <Cron Name>"
+cat "$ID_NAME_FILEPATH"
 
-# Don't rely on a newline present for zero/one output line, always count words
-records=$(wc --words "$NAME_ID_FILEPATH" | cut -d ' ' -f 1)
-# Always two words per record
-failures=$((records/2))
+# Count non-empty lines (in case there are any)
+records=$(awk -r -e '/\w+/{print $0}' "$ID_NAME_FILEPATH" | wc -l)
 # Set the output of this step.
 # Ref: https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#setting-an-output-parameter
 # shellcheck disable=SC2154
-echo "failures=$failures" >> $GITHUB_OUTPUT
-echo "Total failed Cirrus-CI cron builds: $failures"
+echo "failures=$records" >> $GITHUB_OUTPUT
+echo "Total failed Cirrus-CI cron builds: $records"

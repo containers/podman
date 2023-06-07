@@ -32,9 +32,9 @@ on:
 env:
     # CSV listing of e-mail addresses for delivery failure or error notices
     RCPTCSV: rh.container.bot@gmail.com,podman-monitor@lists.podman.io
-    # Filename for table of cron-name to build-id data
+    # Filename for table of build-id to cron-name data
     # (must be in $GITHUB_WORKSPACE/artifacts/)
-    NAME_ID_FILEPATH: './artifacts/name_id.txt'
+    ID_NAME_FILEPATH: './artifacts/id_name.txt'
 
 permissions:
   contents: read

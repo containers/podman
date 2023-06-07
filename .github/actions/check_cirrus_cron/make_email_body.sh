@@ -9,24 +9,26 @@ set -eo pipefail
 source $(dirname "${BASH_SOURCE[0]}")/lib.sh
 
 _errfmt="Expecting %s value to not be empty"
-# NAME_ID_FILEPATH is defined by workflow YAML
+# ID_NAME_FILEPATH is defined by workflow YAML
 # shellcheck disable=SC2154
 if [[ -z "$GITHUB_REPOSITORY" ]]; then
     err $(printf "$_errfmt" "\$GITHUB_REPOSITORY")
-elif [[ ! -r "$NAME_ID_FILEPATH" ]]; then
-    err "Expecting \$NAME_ID_FILEPATH value ($NAME_ID_FILEPATH) to be a readable file"
+elif [[ ! -r "$ID_NAME_FILEPATH" ]]; then
+    err "Expecting \$ID_NAME_FILEPATH value ($ID_NAME_FILEPATH) to be a readable file"
 fi
 
 confirm_gha_environment
 
-mkdir -p artifacts
+# GITHUB_WORKSPACE confirmed by confirm_gha_environment()
+# shellcheck disable=SC2154
+mkdir -p "$GITHUB_WORKSPACE/artifacts"
 (
     echo "Detected one or more Cirrus-CI cron-triggered jobs have failed recently:"
     echo ""
 
-    while read -r NAME BID; do
+    while read -r BID NAME; do
         echo "Cron build '$NAME' Failed: https://cirrus-ci.com/build/$BID"
-    done < "$NAME_ID_FILEPATH"
+    done < "$ID_NAME_FILEPATH"
 
     echo ""
     # Defined by github-actions
@@ -35,4 +37,4 @@ mkdir -p artifacts
     # Separate content from sendgrid.com automatic footer.
     echo ""
     echo ""
-) > ./artifacts/email_body.txt
+) > $GITHUB_WORKSPACE/artifacts/email_body.txt
