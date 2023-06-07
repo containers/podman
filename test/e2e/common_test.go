@@ -462,7 +462,7 @@ func (p *PodmanTestIntegration) InspectContainer(name string) []define.InspectCo
 }
 
 func processTestResult(r SpecReport) {
-	tr := testResult{length: r.RunTime.Seconds(), name: r.LeafNodeText}
+	tr := testResult{length: r.RunTime.Seconds(), name: r.FullText()}
 	testResultsMutex.Lock()
 	testResults = append(testResults, tr)
 	testResultsMutex.Unlock()
