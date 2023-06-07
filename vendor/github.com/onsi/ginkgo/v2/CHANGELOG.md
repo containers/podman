@@ -1,3 +1,8 @@
+## 2.9.7
+
+### Fixes
+- fix race when multiple defercleanups are called in goroutines [07fc3a0]
+
 ## 2.9.6
 
 ### Fixes

@@ -1,3 +1,11 @@
+## 1.27.8
+
+### Fixes
+- HaveExactElement should not call FailureMessage if a submatcher returned an error [096f392]
+
+### Maintenance
+- Bump github.com/onsi/ginkgo/v2 from 2.9.5 to 2.9.7 (#669) [8884bee]
+
 ## 1.27.7
 
 ### Fixes
