@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/containers/buildah/pkg/parse"
 	nettypes "github.com/containers/common/libnetwork/types"
@@ -1579,15 +1580,16 @@ func withIsInfra() CtrCreateOption {
 }
 
 // WithIsService allows us to differentiate between service containers and other container
-// within the container config
-func WithIsService() CtrCreateOption {
+// within the container config.  It also sets the exit-code propagation of the
+// service container.
+func WithIsService(ecp define.KubeExitCodePropagation) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
 
 		ctr.config.IsService = true
-
+		ctr.config.KubeExitCodePropagation = ecp
 		return nil
 	}
 }
@@ -1813,15 +1815,10 @@ func WithTimezone(path string) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 		if path != "local" {
-			zone := filepath.Join("/usr/share/zoneinfo", path)
-
-			file, err := os.Stat(zone)
+			// validate the format of the timezone specified if it's not "local"
+			_, err := time.LoadLocation(path)
 			if err != nil {
-				return err
-			}
-			// We don't want to mount a timezone directory
-			if file.IsDir() {
-				return errors.New("invalid timezone: is a directory")
+				return fmt.Errorf("finding timezone: %w", err)
 			}
 		}
 

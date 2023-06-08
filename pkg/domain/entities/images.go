@@ -179,7 +179,7 @@ type ImagePullReport struct {
 
 // ImagePushOptions are the arguments for pushing images.
 type ImagePushOptions struct {
-	// All indicates that all images referenced in an manifest list should be pushed
+	// All indicates that all images referenced in a manifest list should be pushed
 	All bool
 	// Authfile is the path to the authentication file. Ignored for remote
 	// calls.

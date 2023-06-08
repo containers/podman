@@ -20,7 +20,7 @@ var (
 	networkPruneDescription = `Prune unused networks`
 	networkPruneCommand     = &cobra.Command{
 		Use:               "prune [options]",
-		Short:             "network prune",
+		Short:             "Prune unused networks",
 		Long:              networkPruneDescription,
 		RunE:              networkPrune,
 		Example:           `podman network prune`,

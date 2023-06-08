@@ -56,6 +56,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 func parseOptionIDs(ctrMappings []idtools.IDMap, option string) ([]idtools.IDMap, error) {
@@ -621,6 +622,50 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 				val = "1"
 			}
 			g.AddProcessEnv(key, val)
+		}
+	}
+
+	// setup rlimits
+	nofileSet := false
+	nprocSet := false
+	isRootless := rootless.IsRootless()
+	if isRootless {
+		for _, rlimit := range c.config.Spec.Process.Rlimits {
+			if rlimit.Type == "RLIMIT_NOFILE" {
+				nofileSet = true
+			} else if rlimit.Type == "RLIMIT_NPROC" {
+				nprocSet = true
+			}
+		}
+		if !nofileSet {
+			max := rlimT(define.RLimitDefaultValue)
+			current := rlimT(define.RLimitDefaultValue)
+			var rlimit unix.Rlimit
+			if err := unix.Getrlimit(unix.RLIMIT_NOFILE, &rlimit); err != nil {
+				logrus.Warnf("Failed to return RLIMIT_NOFILE ulimit %q", err)
+			}
+			if rlimT(rlimit.Cur) < current {
+				current = rlimT(rlimit.Cur)
+			}
+			if rlimT(rlimit.Max) < max {
+				max = rlimT(rlimit.Max)
+			}
+			g.AddProcessRlimits("RLIMIT_NOFILE", uint64(max), uint64(current))
+		}
+		if !nprocSet {
+			max := rlimT(define.RLimitDefaultValue)
+			current := rlimT(define.RLimitDefaultValue)
+			var rlimit unix.Rlimit
+			if err := unix.Getrlimit(unix.RLIMIT_NPROC, &rlimit); err != nil {
+				logrus.Warnf("Failed to return RLIMIT_NPROC ulimit %q", err)
+			}
+			if rlimT(rlimit.Cur) < current {
+				current = rlimT(rlimit.Cur)
+			}
+			if rlimT(rlimit.Max) < max {
+				max = rlimT(rlimit.Max)
+			}
+			g.AddProcessRlimits("RLIMIT_NPROC", uint64(max), uint64(current))
 		}
 	}
 
@@ -1904,38 +1949,6 @@ func (c *Container) makeBindMounts() error {
 		}
 	}
 
-	// Make /etc/localtime
-	ctrTimezone := c.Timezone()
-	if ctrTimezone != "" {
-		// validate the format of the timezone specified if it's not "local"
-		if ctrTimezone != "local" {
-			_, err = time.LoadLocation(ctrTimezone)
-			if err != nil {
-				return fmt.Errorf("finding timezone for container %s: %w", c.ID(), err)
-			}
-		}
-		if _, ok := c.state.BindMounts["/etc/localtime"]; !ok {
-			var zonePath string
-			if ctrTimezone == "local" {
-				zonePath, err = filepath.EvalSymlinks("/etc/localtime")
-				if err != nil {
-					return fmt.Errorf("finding local timezone for container %s: %w", c.ID(), err)
-				}
-			} else {
-				zone := filepath.Join("/usr/share/zoneinfo", ctrTimezone)
-				zonePath, err = filepath.EvalSymlinks(zone)
-				if err != nil {
-					return fmt.Errorf("setting timezone for container %s: %w", c.ID(), err)
-				}
-			}
-			localtimePath, err := c.copyTimezoneFile(zonePath)
-			if err != nil {
-				return fmt.Errorf("setting timezone for container %s: %w", c.ID(), err)
-			}
-			c.state.BindMounts["/etc/localtime"] = localtimePath
-		}
-	}
-
 	_, hasRunContainerenv := c.state.BindMounts["/run/.containerenv"]
 	if !hasRunContainerenv {
 	Loop:
@@ -2371,7 +2384,7 @@ func (c *Container) groupEntry(groupname, gid string, list []string) string {
 //     /etc/passwd via AddCurrentUserPasswdEntry (though this does not trigger if
 //     the user in question already exists in /etc/passwd) or the UID to be added
 //     is 0).
-//  3. The user specified additional host user accounts to add the the /etc/passwd file
+//  3. The user specified additional host user accounts to add to the /etc/passwd file
 //
 // Returns password entry (as a string that can be appended to /etc/passwd) and
 // any error that occurred.

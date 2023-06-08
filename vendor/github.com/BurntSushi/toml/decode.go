@@ -91,7 +91,7 @@ const (
 // UnmarshalText method. See the Unmarshaler example for a demonstration with
 // email addresses.
 //
-// ### Key mapping
+// # Key mapping
 //
 // TOML keys can map to either keys in a Go map or field names in a Go struct.
 // The special `toml` struct tag can be used to map TOML keys to struct fields
@@ -248,7 +248,7 @@ func (md *MetaData) unify(data interface{}, rv reflect.Value) error {
 	case reflect.Bool:
 		return md.unifyBool(data, rv)
 	case reflect.Interface:
-		if rv.NumMethod() > 0 { // Only support empty interfaces are supported.
+		if rv.NumMethod() > 0 { /// Only empty interfaces are supported.
 			return md.e("unsupported type %s", rv.Type())
 		}
 		return md.unifyAnything(data, rv)

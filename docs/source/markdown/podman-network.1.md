@@ -12,7 +12,7 @@ The network command manages networks for Podman.
 Podman supports two network backends [Netavark](https://github.com/containers/netavark)
 and [CNI](https://www.cni.dev/). Netavark is the default network backend and was added in Podman v4.0. CNI will be deprecated in the future in preference of
 Netavark. To configure
-the network backend use the `network_backend`key under the `[Network]` in
+the network backend use the `network_backend` key under the `[Network]` in
 **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**.
 New systems use netavark by default, to check what backend is used run
 `podman info --format {{.Host.NetworkBackend}}`.
@@ -28,7 +28,7 @@ so networks have to be created again after a backend change.
 | create     | [podman-network-create(1)](podman-network-create.1.md)         | Create a Podman network                                         |
 | disconnect | [podman-network-disconnect(1)](podman-network-disconnect.1.md) | Disconnect a container from a network                           |
 | exists     | [podman-network-exists(1)](podman-network-exists.1.md)         | Check if the given network exists                               |
-| inspect    | [podman-network-inspect(1)](podman-network-inspect.1.md)       | Displays the network configuration for one or more networks     |
+| inspect    | [podman-network-inspect(1)](podman-network-inspect.1.md)       | Display the network configuration for one or more networks      |
 | ls         | [podman-network-ls(1)](podman-network-ls.1.md)                 | Display a summary of networks                                   |
 | prune      | [podman-network-prune(1)](podman-network-prune.1.md)           | Remove all unused networks                                      |
 | reload     | [podman-network-reload(1)](podman-network-reload.1.md)         | Reload network configuration for containers                     |

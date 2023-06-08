@@ -85,6 +85,8 @@ type InspectPodData struct {
 	BlkioWeightDevice []InspectBlkioWeightDevice `json:"blkio_weight_device,omitempty"`
 	// RestartPolicy of the pod.
 	RestartPolicy string `json:"RestartPolicy,omitempty"`
+	// Number of the pod's Libpod lock.
+	LockNumber uint32
 }
 
 // InspectPodInfraConfig contains the configuration of the pod's infra

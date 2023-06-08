@@ -51,7 +51,7 @@ func init() {
 	flags := lsCommand.Flags()
 
 	filterFlagName := "filter"
-	flags.StringSliceVarP(&cliOpts.Filter, filterFlagName, "f", []string{}, "Filter volume output")
+	flags.StringArrayVarP(&cliOpts.Filter, filterFlagName, "f", []string{}, "Filter volume output")
 	_ = lsCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteVolumeFilters)
 
 	formatFlagName := "format"

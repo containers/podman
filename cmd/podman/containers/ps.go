@@ -76,7 +76,7 @@ func listFlagSet(cmd *cobra.Command) {
 	flags.BoolVar(&listOpts.External, "external", false, "Show containers in storage not controlled by Podman")
 
 	filterFlagName := "filter"
-	flags.StringSliceVarP(&filters, filterFlagName, "f", []string{}, "Filter output based on conditions given")
+	flags.StringArrayVarP(&filters, filterFlagName, "f", []string{}, "Filter output based on conditions given")
 	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePsFilters)
 
 	formatFlagName := "format"
@@ -368,7 +368,7 @@ func (l psReporter) Status() string {
 
 		// strings.Title is deprecated since go 1.18
 		// However for our use case it is still fine. The recommended replacement
-		// is adding about 400kb binary size so lets keep using this for now.
+		// is adding about 400kb binary size so let's keep using this for now.
 		//nolint:staticcheck
 		state = strings.Title(l.ListContainer.State)
 	}

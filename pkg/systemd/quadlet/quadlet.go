@@ -62,6 +62,7 @@ const (
 	KeyImage                 = "Image"
 	KeyIP                    = "IP"
 	KeyIP6                   = "IP6"
+	KeyExitCodePropagation   = "ExitCodePropagation"
 	KeyLabel                 = "Label"
 	KeyLogDriver             = "LogDriver"
 	KeyMount                 = "Mount"
@@ -80,6 +81,7 @@ const (
 	KeyOptions               = "Options"
 	KeyPodmanArgs            = "PodmanArgs"
 	KeyPublishPort           = "PublishPort"
+	KeyPull                  = "Pull"
 	KeyReadOnly              = "ReadOnly"
 	KeyRemapGID              = "RemapGid"
 	KeyRemapUID              = "RemapUid"
@@ -91,6 +93,7 @@ const (
 	KeySecurityLabelDisable  = "SecurityLabelDisable"
 	KeySecurityLabelFileType = "SecurityLabelFileType"
 	KeySecurityLabelLevel    = "SecurityLabelLevel"
+	KeySecurityLabelNested   = "SecurityLabelNested"
 	KeySecurityLabelType     = "SecurityLabelType"
 	KeySecret                = "Secret"
 	KeyTimezone              = "Timezone"
@@ -142,6 +145,7 @@ var (
 		KeyNotify:                true,
 		KeyPodmanArgs:            true,
 		KeyPublishPort:           true,
+		KeyPull:                  true,
 		KeyReadOnly:              true,
 		KeyRemapGID:              true,
 		KeyRemapUID:              true,
@@ -153,6 +157,7 @@ var (
 		KeySecurityLabelDisable:  true,
 		KeySecurityLabelFileType: true,
 		KeySecurityLabelLevel:    true,
+		KeySecurityLabelNested:   true,
 		KeySecurityLabelType:     true,
 		KeySecret:                true,
 		KeyTmpfs:                 true,
@@ -165,13 +170,14 @@ var (
 
 	// Supported keys in "Volume" group
 	supportedVolumeKeys = map[string]bool{
-		KeyCopy:    true,
-		KeyDevice:  true,
-		KeyGroup:   true,
-		KeyLabel:   true,
-		KeyOptions: true,
-		KeyType:    true,
-		KeyUser:    true,
+		KeyCopy:       true,
+		KeyDevice:     true,
+		KeyGroup:      true,
+		KeyLabel:      true,
+		KeyOptions:    true,
+		KeyPodmanArgs: true,
+		KeyType:       true,
+		KeyUser:       true,
 	}
 
 	// Supported keys in "Network" group
@@ -186,20 +192,23 @@ var (
 		KeyNetworkInternal:   true,
 		KeyNetworkOptions:    true,
 		KeyNetworkSubnet:     true,
+		KeyPodmanArgs:        true,
 	}
 
 	// Supported keys in "Kube" group
 	supportedKubeKeys = map[string]bool{
-		KeyConfigMap:    true,
-		KeyLogDriver:    true,
-		KeyNetwork:      true,
-		KeyPublishPort:  true,
-		KeyRemapGID:     true,
-		KeyRemapUID:     true,
-		KeyRemapUIDSize: true,
-		KeyRemapUsers:   true,
-		KeyUserNS:       true,
-		KeyYaml:         true,
+		KeyConfigMap:           true,
+		KeyExitCodePropagation: true,
+		KeyLogDriver:           true,
+		KeyNetwork:             true,
+		KeyPodmanArgs:          true,
+		KeyPublishPort:         true,
+		KeyRemapGID:            true,
+		KeyRemapUID:            true,
+		KeyRemapUIDSize:        true,
+		KeyRemapUsers:          true,
+		KeyUserNS:              true,
+		KeyYaml:                true,
 	}
 )
 
@@ -405,6 +414,11 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	securityLabelDisable := container.LookupBooleanWithDefault(ContainerGroup, KeySecurityLabelDisable, false)
 	if securityLabelDisable {
 		podman.add("--security-opt", "label:disable")
+	}
+
+	securityLabelNested := container.LookupBooleanWithDefault(ContainerGroup, KeySecurityLabelNested, false)
+	if securityLabelNested {
+		podman.add("--security-opt", "label:nested")
 	}
 
 	securityLabelType, _ := container.Lookup(ContainerGroup, KeySecurityLabelType)
@@ -620,8 +634,12 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		podman.add("--hostname", hostname)
 	}
 
-	podmanArgs := container.LookupAllArgs(ContainerGroup, KeyPodmanArgs)
-	podman.add(podmanArgs...)
+	pull, ok := container.Lookup(ContainerGroup, KeyPull)
+	if ok && len(pull) > 0 {
+		podman.add("--pull", pull)
+	}
+
+	handlePodmanArgs(container, ContainerGroup, podman)
 
 	if len(image) > 0 {
 		podman.add(image)
@@ -713,6 +731,8 @@ func ConvertNetwork(network *parser.UnitFile, name string) (*parser.UnitFile, er
 	if labels := network.LookupAllKeyVal(NetworkGroup, KeyLabel); len(labels) > 0 {
 		podman.addLabels(labels)
 	}
+
+	handlePodmanArgs(network, NetworkGroup, podman)
 
 	podman.add(networkName)
 
@@ -814,6 +834,9 @@ func ConvertVolume(volume *parser.UnitFile, name string) (*parser.UnitFile, erro
 	}
 
 	podman.addLabels(labels)
+
+	handlePodmanArgs(volume, VolumeGroup, podman)
+
 	podman.add(volumeName)
 
 	service.AddCmdline(ServiceGroup, "ExecStart", podman.Args)
@@ -888,6 +911,10 @@ func ConvertKube(kube *parser.UnitFile, isUser bool) (*parser.UnitFile, error) {
 		"--service-container=true",
 	)
 
+	if ecp, ok := kube.Lookup(KubeGroup, KeyExitCodePropagation); ok && len(ecp) > 0 {
+		execStart.addf("--service-exit-code-propagation=%s", ecp)
+	}
+
 	handleLogDriver(kube, KubeGroup, execStart)
 
 	if err := handleUserRemap(kube, KubeGroup, execStart, isUser, false); err != nil {
@@ -911,13 +938,17 @@ func ConvertKube(kube *parser.UnitFile, isUser bool) (*parser.UnitFile, error) {
 		return nil, err
 	}
 
+	handlePodmanArgs(kube, KubeGroup, execStart)
+
 	execStart.add(yamlPath)
 
 	service.AddCmdline(ServiceGroup, "ExecStart", execStart.Args)
 
+	// Use `ExecStopPost` to make sure cleanup happens even in case of
+	// errors; otherwise containers, pods, etc. would be left behind.
 	execStop := NewPodmanCmdline("kube", "down")
 	execStop.add(yamlPath)
-	service.AddCmdline(ServiceGroup, "ExecStop", execStop.Args)
+	service.AddCmdline(ServiceGroup, "ExecStopPost", execStop.Args)
 
 	return service, nil
 }
@@ -1173,5 +1204,12 @@ func handleHealth(unitFile *parser.UnitFile, groupName string, podman *PodmanCmd
 			podman.addf("--health-%s", keyArg[1])
 			podman.addf("%s", val)
 		}
+	}
+}
+
+func handlePodmanArgs(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline) {
+	podmanArgs := unitFile.LookupAllArgs(groupName, KeyPodmanArgs)
+	if len(podmanArgs) > 0 {
+		podman.add(podmanArgs...)
 	}
 }

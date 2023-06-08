@@ -1,7 +1,7 @@
 % podman-info 1
 
 ## NAME
-podman\-info - Displays Podman related system information
+podman\-info - Display Podman related system information
 
 ## SYNOPSIS
 **podman info** [*options*]
@@ -87,6 +87,15 @@ host:
       spec: 1.0.0
       +SYSTEMD +SELINUX +APPARMOR +CAP +SECCOMP +EBPF +CRIU +YAJL
   os: linux
+  pasta:
+    executable: /usr/bin/passt
+    package: passt-0^20221116.gace074c-1.fc34.x86_64
+    version: |
+      passt 0^20221116.gace074c-1.fc34.x86_64
+      Copyright Red Hat
+      GNU Affero GPL version 3 or later <https://www.gnu.org/licenses/agpl-3.0.html>
+      This is free software: you are free to change and redistribute it.
+      There is NO WARRANTY, to the extent permitted by law.
   remoteSocket:
     path: /run/user/3267/podman/podman.sock
   security:
@@ -234,6 +243,11 @@ $ podman info --format json
       "executable": "/bin/slirp4netns",
       "package": "slirp4netns-1.1.12-2.fc34.x86_64",
       "version": "slirp4netns version 1.1.12\ncommit: 7a104a101aa3278a2152351a082a6df71f57c9a3\nlibslirp: 4.4.0\nSLIRP_CONFIG_VERSION_MAX: 3\nlibseccomp: 2.5.0"
+    },
+    "pasta": {
+      "executable": "/usr/bin/passt",
+      "package": "passt-0^20221116.gace074c-1.fc34.x86_64",
+      "version": "passt 0^20221116.gace074c-1.fc34.x86_64\nCopyright Red Hat\nGNU Affero GPL version 3 or later \u003chttps://www.gnu.org/licenses/agpl-3.0.html\u003e\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n"
     },
     "swapFree": 15687475200,
     "swapTotal": 16886259712,

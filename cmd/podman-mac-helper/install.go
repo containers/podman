@@ -72,8 +72,8 @@ type launchParams struct {
 
 var installCmd = &cobra.Command{
 	Use:    "install",
-	Short:  "installs the podman helper agent",
-	Long:   "installs the podman helper agent, which manages the /var/run/docker.sock link",
+	Short:  "Install the podman helper agent",
+	Long:   "Install the podman helper agent, which manages the /var/run/docker.sock link",
 	PreRun: silentUsage,
 	RunE:   install,
 }

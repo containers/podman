@@ -167,7 +167,7 @@ func DownloadVMImage(downloadURL *url2.URL, imageName string, localImagePath str
 	onComplete := prefix + ": done"
 
 	p := mpb.New(
-		mpb.WithWidth(60),
+		mpb.WithWidth(80), // Do not go below 80, see bug #17718
 		mpb.WithRefreshRate(180*time.Millisecond),
 	)
 

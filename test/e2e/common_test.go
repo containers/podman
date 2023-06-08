@@ -465,7 +465,7 @@ func (p *PodmanTestIntegration) InspectContainer(name string) []define.InspectCo
 }
 
 func processTestResult(r SpecReport) {
-	tr := testResult{length: r.RunTime.Seconds(), name: r.LeafNodeText}
+	tr := testResult{length: r.RunTime.Seconds(), name: r.FullText()}
 	testResultsMutex.Lock()
 	testResults = append(testResults, tr)
 	testResultsMutex.Unlock()
@@ -710,6 +710,19 @@ func (s *PodmanSessionIntegration) InspectPodArrToJSON() []define.InspectPodData
 // it optionally takes a pod name
 func (p *PodmanTestIntegration) CreatePod(options map[string][]string) (*PodmanSessionIntegration, int, string) {
 	var args = []string{"pod", "create", "--infra=false", "--share", ""}
+	for k, values := range options {
+		for _, v := range values {
+			args = append(args, k+"="+v)
+		}
+	}
+
+	session := p.Podman(args)
+	session.WaitWithDefaultTimeout()
+	return session, session.ExitCode(), session.OutputToString()
+}
+
+func (p *PodmanTestIntegration) CreateVolume(options map[string][]string) (*PodmanSessionIntegration, int, string) {
+	var args = []string{"volume", "create"}
 	for k, values := range options {
 		for _, v := range values {
 			args = append(args, k+"="+v)
@@ -1178,7 +1191,7 @@ func (s *PodmanSessionIntegration) jq(jqCommand string) (string, error) {
 }
 
 func (p *PodmanTestIntegration) buildImage(dockerfile, imageName string, layers string, label string) string {
-	dockerfilePath := filepath.Join(p.TempDir, "Dockerfile")
+	dockerfilePath := filepath.Join(p.TempDir, "Dockerfile-"+stringid.GenerateRandomID())
 	err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
 	Expect(err).ToNot(HaveOccurred())
 	cmd := []string{"build", "--pull-never", "--layers=" + layers, "--file", dockerfilePath}
@@ -1211,19 +1224,31 @@ func writeYaml(content string, fileName string) error {
 	return nil
 }
 
-// GetPort finds an unused port on the system
+// GetPort finds an unused TCP/IP port on the system, in the range 5000-5999
 func GetPort() int {
-	a, err := net.ResolveTCPAddr("tcp", "localhost:0")
-	if err != nil {
-		Fail(fmt.Sprintf("unable to get free port: %v", err))
+	portMin := 5000
+	portMax := 5999
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	// Avoid dup-allocation races between parallel ginkgo processes
+	nProcs := GinkgoT().ParallelTotal()
+	myProc := GinkgoT().ParallelProcess() - 1
+
+	for i := 0; i < 50; i++ {
+		// Random port within that range
+		port := portMin + rng.Intn((portMax-portMin)/nProcs)*nProcs + myProc
+
+		used, err := net.Listen("tcp", "localhost:"+strconv.Itoa(port))
+		if err == nil {
+			// it's open. Return it.
+			err = used.Close()
+			Expect(err).ToNot(HaveOccurred(), "closing random port")
+			return port
+		}
 	}
 
-	l, err := net.ListenTCP("tcp", a)
-	if err != nil {
-		Fail(fmt.Sprintf("unable to get free port: %v", err))
-	}
-	defer l.Close()
-	return l.Addr().(*net.TCPAddr).Port
+	Fail(fmt.Sprintf("unable to get free port: %v", err))
+	return 0 // notreached
 }
 
 func ncz(port int) bool {

@@ -42,12 +42,12 @@ export GITHUB_REPOSITORY="$CIRRUS_REPO_FULL_NAME"
 export GITHUB_WORKSPACE=$(mktemp -d -p '' cron_failures_workspace_XXXX)
 export GITHUB_WORKFLOW="testing"
 # shellcheck disable=SC2155
-export NAME_ID_FILEPATH=$(mktemp -p '' cron_failures_data_XXXX)
-trap "rm -rf $GITHUB_OUTPUT $GITHUB_WORKSPACE $NAME_ID_FILEPATH" EXIT
+export ID_NAME_FILEPATH=$(mktemp -p '' cron_failures_data_XXXX)
+trap "rm -rf $GITHUB_OUTPUT $GITHUB_WORKSPACE $ID_NAME_FILEPATH" EXIT
 
 #####
 
-cd /tmp || fail
+cd $GITHUB_WORKSPACE || fail
 # Replace newlines and indentation to make grep easier
 if ! $base/cron_failures.sh |& \
         tr -s '[:space:]' ' ' > $GITHUB_WORKSPACE/output; then
@@ -62,7 +62,7 @@ expect_regex \
 
 msg "$header make_email_body.sh"
 # It's possible no cirrus-cron jobs actually failed
-echo '' >> "$NAME_ID_FILEPATH"
+echo -e '\n\n     \n\t\n' >> "$ID_NAME_FILEPATH"  # blank lines should be ignored
 # Don't need to test stdout/stderr of this
 if ! $base/make_email_body.sh; then
     die "make_email_body.sh failed"
@@ -74,11 +74,23 @@ expect_regex \
 
 #####
 
+msg "$header make_email_body.sh name and link"
+# Job names may contain spaces, confirm lines are parsed properly
+echo -e '1234567890 cirrus-cron test job' >> "$ID_NAME_FILEPATH"  # Append to blank lines
+$base/make_email_body.sh
+expected="Cron build 'cirrus-cron test job' Failed: https://cirrus-ci.com/build/1234567890"
+if ! grep -q "$expected" $GITHUB_WORKSPACE/artifacts/email_body.txt; then
+    die "Expecting to find string '$expected' in generated e-mail body:
+$(<$GITHUB_WORKSPACE/artifacts/email_body.txt)"
+fi
+
+#####
+
 msg "$header rerun_failed_tasks.sh"
 export SECRET_CIRRUS_API_KEY=testing-nottherightkey
 # test.sh is sensitive to the 'testing' name.  Var. defined by cirrus-ci
 # shellcheck disable=SC2154
-echo "testing $CIRRUS_BUILD_ID" > "$NAME_ID_FILEPATH"
+echo "$CIRRUS_BUILD_ID test cron job name" > "$ID_NAME_FILEPATH"
 if ! $base/rerun_failed_tasks.sh |& \
         tr -s '[:space:]' ' ' > $GITHUB_WORKSPACE/rerun_output; then
     die "rerun_failed_tasks.sh failed"

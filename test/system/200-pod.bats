@@ -567,4 +567,101 @@ io.max          | $lomajmin rbps=1048576 wbps=1048576 riops=max wiops=max
     run_podman 1 pod exists $podname
 }
 
+# Helper used by pod ps --filter test. Creates one pod or container
+# with a UNIQUE two-character CID prefix.
+function thingy_with_unique_id() {
+    local what="$1"; shift              # pod or container
+    local how="$1"; shift               # e.g. "--name p1c1 --pod p1"
+
+    while :;do
+          local try_again=
+
+          run_podman $what create $how
+          # This is our return value; it propagates up to caller's namespace
+          id="$output"
+
+          # Make sure the first two characters aren't already used in an ID
+          for existing_id in "$@"; do
+              if [[ -z "$try_again" ]]; then
+                  if [[ "${existing_id:0:2}" == "${id:0:2}" ]]; then
+                      run_podman $what rm $id
+                      try_again=1
+                  fi
+              fi
+          done
+
+          if [[ -z "$try_again" ]]; then
+              # Nope! groovy! caller gets $id
+              return
+          fi
+    done
+}
+
+@test "podman pod ps --filter" {
+    local -A podid
+    local -A ctrid
+
+    # Setup: create three pods, each with three containers, all of them with
+    # unique (distinct) first two characters of their pod/container ID.
+    for p in 1 2 3;do
+        # no infra, please! That creates an extra container with a CID
+        # that may collide with our other ones, and it's too hard to fix.
+        thingy_with_unique_id "pod" "--infra=false --name p${p}" \
+                              ${podid[*]} ${ctrid[*]}
+        podid[$p]=$id
+
+        for c in 1 2 3; do
+            thingy_with_unique_id "container" \
+                                  "--pod p${p} --name p${p}c${c} $IMAGE true" \
+                                  ${podid[*]} ${ctrid[*]}
+            ctrid[$p$c]=$id
+        done
+    done
+
+    # for debugging; without this, on test failure it's too hard to
+    # associate IDs with names
+    run_podman pod ps
+    run_podman ps -a
+
+    # Test: ps and filter for each pod and container, by ID
+    for p in 1 2 3; do
+        local pid=${podid[$p]}
+
+        # Search by short pod ID, longer pod ID, pod ID regex, and pod name
+        # ps by short ID, longer ID, regex, and name
+        for filter in "id=${pid:0:2}" "id=${pid:0:10}" "id=^${pid:0:2}" "name=p$p"; do
+            run_podman pod ps --filter=$filter --format '{{.Name}}:{{.Id}}'
+            assert "$output" == "p$p:${pid:0:12}" "pod $p, filter=$filter"
+        done
+
+        # ps by negation (regex) of our pid, should find all other pods
+        f1="^[^${pid:0:1}]"
+        f2="^.[^${pid:1:1}]"
+        run_podman pod ps --filter=id="$f1" --filter=id="$f2" --format '{{.Name}}'
+        assert "${#lines[*]}" == "2" "filter=$f1 + $f2 finds 2 pods"
+        assert "$output" !~ "p$p"    "filter=$f1 + $f2 does not find p$p"
+
+        # Search by *container* ID
+        for c in 1 2 3;do
+            local cid=${ctrid[$p$c]}
+            for filter in "ctr-ids=${cid:0:2}" "ctr-ids=^${cid:0:2}.*"; do
+                run_podman pod ps --filter=$filter --format '{{.Name}}:{{.Id}}'
+                assert "$output" == "p${p}:${pid:0:12}" \
+                       "pod $p, container $c, filter=$filter"
+            done
+        done
+    done
+
+    # Multiple filters, multiple pods
+    run_podman pod ps --filter=ctr-ids=${ctrid[12]} \
+                      --filter=ctr-ids=${ctrid[23]} \
+                      --filter=ctr-ids=${ctrid[31]} \
+                      --format='{{.Name}}' --sort=name
+    assert "$(echo $output)" == "p1 p2 p3" "multiple ctr-ids filters"
+
+    # Clean up
+    run_podman pod rm -f -a
+    run_podman rm -f -a
+}
+
 # vim: filetype=sh

@@ -30,7 +30,7 @@ environment variable while the machines are running can lead to unexpected behav
 | list    | [podman-machine-list(1)](podman-machine-list.1.md)        | List virtual machines                |
 | os      | [podman-machine-os(1)](podman-machine-os.1.md)            | Manage a Podman virtual machine's OS |
 | rm      | [podman-machine-rm(1)](podman-machine-rm.1.md)            | Remove a virtual machine             |
-| set     | [podman-machine-set(1)](podman-machine-set.1.md)          | Sets a virtual machine setting       |
+| set     | [podman-machine-set(1)](podman-machine-set.1.md)          | Set a virtual machine setting        |
 | ssh     | [podman-machine-ssh(1)](podman-machine-ssh.1.md)          | SSH into a virtual machine           |
 | start   | [podman-machine-start(1)](podman-machine-start.1.md)      | Start a virtual machine              |
 | stop    | [podman-machine-stop(1)](podman-machine-stop.1.md)        | Stop a virtual machine               |

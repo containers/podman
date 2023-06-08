@@ -766,12 +766,20 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	}
 
 	var cleanupErr error
+	reportErrorf := func(msg string, args ...any) {
+		err := fmt.Errorf(msg, args...) // Always use fmt.Errorf instead of just logrus.Errorf(…) because the format string probably contains %w
+		if cleanupErr == nil {
+			cleanupErr = err
+		} else {
+			logrus.Errorf("%s", err.Error())
+		}
+	}
 
 	// Clean up network namespace, cgroups, mounts.
 	// Do this before we set ContainerStateRemoving, to ensure that we can
 	// actually remove from the OCI runtime.
 	if err := c.cleanup(ctx); err != nil {
-		cleanupErr = fmt.Errorf("cleaning up container %s: %w", c.ID(), err)
+		reportErrorf("cleaning up container %s: %w", c.ID(), err)
 	}
 
 	// Remove all active exec sessions
@@ -779,11 +787,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	// after setting the state to ContainerStateRemoving will prevent that the container is
 	// restarted
 	if err := c.removeAllExecSessions(); err != nil {
-		if cleanupErr == nil {
-			cleanupErr = err
-		} else {
-			logrus.Errorf("Remove exec sessions: %v", err)
-		}
+		reportErrorf("removing exec sessions: %w", err)
 	}
 
 	// Set ContainerStateRemoving as an intermediate state (we may get
@@ -792,31 +796,19 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 
 	if err := c.save(); err != nil {
 		if !errors.Is(err, define.ErrCtrRemoved) {
-			if cleanupErr == nil {
-				cleanupErr = err
-			} else {
-				logrus.Errorf("Saving container: %v", err)
-			}
+			reportErrorf("saving container: %w", err)
 		}
 	}
 
 	// Stop the container's storage
 	if err := c.teardownStorage(); err != nil {
-		if cleanupErr == nil {
-			cleanupErr = err
-		} else {
-			logrus.Errorf("Cleaning up storage: %v", err)
-		}
+		reportErrorf("cleaning up storage: %w", err)
 	}
 
 	// Remove the container's CID file on container removal.
 	if cidFile, ok := c.config.Spec.Annotations[define.InspectAnnotationCIDFile]; ok {
 		if err := os.Remove(cidFile); err != nil && !errors.Is(err, os.ErrNotExist) {
-			if cleanupErr == nil {
-				cleanupErr = err
-			} else {
-				logrus.Errorf("Cleaning up CID file: %v", err)
-			}
+			reportErrorf("cleaning up CID file: %w", err)
 		}
 	}
 	// Remove the container from the state
@@ -824,29 +816,17 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		// If we're removing the pod, the container will be evicted
 		// from the state elsewhere
 		if err := r.state.RemoveContainerFromPod(pod, c); err != nil {
-			if cleanupErr == nil {
-				cleanupErr = err
-			} else {
-				logrus.Errorf("Removing container %s from database: %v", c.ID(), err)
-			}
+			reportErrorf("removing container %s from database: %w", c.ID(), err)
 		}
 	} else {
 		if err := r.state.RemoveContainer(c); err != nil {
-			if cleanupErr == nil {
-				cleanupErr = err
-			} else {
-				logrus.Errorf("Removing container %s from database: %v", c.ID(), err)
-			}
+			reportErrorf("removing container %s from database: %w", c.ID(), err)
 		}
 	}
 
 	// Deallocate the container's lock
 	if err := c.lock.Free(); err != nil {
-		if cleanupErr == nil && !os.IsNotExist(err) {
-			cleanupErr = fmt.Errorf("freeing lock for container %s: %w", c.ID(), err)
-		} else {
-			logrus.Errorf("Free container lock: %v", err)
-		}
+		reportErrorf("freeing lock for container %s: %w", c.ID(), err)
 	}
 
 	// Set container as invalid so it can no longer be used
@@ -977,11 +957,11 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 	}
 
 	if c.IsService() {
-		canStop, err := c.canStopServiceContainer()
+		report, err := c.canStopServiceContainer()
 		if err != nil {
 			return id, err
 		}
-		if !canStop {
+		if !report.canBeStopped {
 			return id, fmt.Errorf("container %s is the service container of pod(s) %s and cannot be removed without removing the pod(s)", c.ID(), strings.Join(c.state.Service.Pods, ","))
 		}
 	}

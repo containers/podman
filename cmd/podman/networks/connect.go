@@ -15,7 +15,7 @@ var (
 	networkConnectDescription = `Add container to a network`
 	networkConnectCommand     = &cobra.Command{
 		Use:               "connect [options] NETWORK CONTAINER",
-		Short:             "network connect",
+		Short:             "Add container to a network",
 		Long:              networkConnectDescription,
 		RunE:              networkConnect,
 		Example:           `podman network connect web secondary`,

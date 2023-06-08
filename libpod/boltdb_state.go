@@ -1115,7 +1115,7 @@ func (s *BoltState) GetNetworks(ctr *Container) (map[string]types.PerNetworkOpti
 						return nil
 					}
 
-					// lets ignore the error here there is nothing we can do
+					// let's ignore the error here there is nothing we can do
 					_ = netAliasesBkt.ForEach(func(alias, v []byte) error {
 						aliases = append(aliases, string(alias))
 						return nil
@@ -1451,7 +1451,8 @@ func (s *BoltState) GetContainerExitCodeTimeStamp(id string) (*time.Time, error)
 	})
 }
 
-// PruneExitCodes removes exit codes older than 5 minutes.
+// PruneExitCodes removes exit codes older than 5 minutes unless the associated
+// container still exists.
 func (s *BoltState) PruneContainerExitCodes() error {
 	if !s.valid {
 		return define.ErrDBClosed
@@ -1472,7 +1473,17 @@ func (s *BoltState) PruneContainerExitCodes() error {
 			return err
 		}
 
+		ctrsBucket, err := getCtrBucket(tx)
+		if err != nil {
+			return err
+		}
+
 		return timeStampBucket.ForEach(func(rawID, rawTimeStamp []byte) error {
+			if ctrsBucket.Bucket(rawID) != nil {
+				// If the container still exists, don't prune
+				// its exit code since we may still need it.
+				return nil
+			}
 			var timeStamp time.Time
 			if err := timeStamp.UnmarshalText(rawTimeStamp); err != nil {
 				return fmt.Errorf("converting raw time stamp %v of container %s from DB: %w", rawTimeStamp, string(rawID), err)

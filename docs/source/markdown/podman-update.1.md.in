@@ -1,7 +1,7 @@
 % podman-update 1
 
 ## NAME
-podman\-update - Updates the cgroup configuration of a given container
+podman\-update - Update the cgroup configuration of a given container
 
 ## SYNOPSIS
 **podman update** [*options*] *container*

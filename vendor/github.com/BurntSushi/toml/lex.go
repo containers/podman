@@ -46,12 +46,13 @@ func (p Position) String() string {
 }
 
 type lexer struct {
-	input string
-	start int
-	pos   int
-	line  int
-	state stateFn
-	items chan item
+	input    string
+	start    int
+	pos      int
+	line     int
+	state    stateFn
+	items    chan item
+	tomlNext bool
 
 	// Allow for backing up up to 4 runes. This is necessary because TOML
 	// contains 3-rune tokens (""" and ''').
@@ -87,13 +88,14 @@ func (lx *lexer) nextItem() item {
 	}
 }
 
-func lex(input string) *lexer {
+func lex(input string, tomlNext bool) *lexer {
 	lx := &lexer{
-		input: input,
-		state: lexTop,
-		items: make(chan item, 10),
-		stack: make([]stateFn, 0, 10),
-		line:  1,
+		input:    input,
+		state:    lexTop,
+		items:    make(chan item, 10),
+		stack:    make([]stateFn, 0, 10),
+		line:     1,
+		tomlNext: tomlNext,
 	}
 	return lx
 }
@@ -408,7 +410,7 @@ func lexTableNameEnd(lx *lexer) stateFn {
 // Lexes only one part, e.g. only 'a' inside 'a.b'.
 func lexBareName(lx *lexer) stateFn {
 	r := lx.next()
-	if isBareKeyChar(r) {
+	if isBareKeyChar(r, lx.tomlNext) {
 		return lexBareName
 	}
 	lx.backup()
@@ -618,6 +620,9 @@ func lexInlineTableValue(lx *lexer) stateFn {
 	case isWhitespace(r):
 		return lexSkip(lx, lexInlineTableValue)
 	case isNL(r):
+		if lx.tomlNext {
+			return lexSkip(lx, lexInlineTableValue)
+		}
 		return lx.errorPrevLine(errLexInlineTableNL{})
 	case r == '#':
 		lx.push(lexInlineTableValue)
@@ -640,6 +645,9 @@ func lexInlineTableValueEnd(lx *lexer) stateFn {
 	case isWhitespace(r):
 		return lexSkip(lx, lexInlineTableValueEnd)
 	case isNL(r):
+		if lx.tomlNext {
+			return lexSkip(lx, lexInlineTableValueEnd)
+		}
 		return lx.errorPrevLine(errLexInlineTableNL{})
 	case r == '#':
 		lx.push(lexInlineTableValueEnd)
@@ -648,6 +656,9 @@ func lexInlineTableValueEnd(lx *lexer) stateFn {
 		lx.ignore()
 		lx.skip(isWhitespace)
 		if lx.peek() == '}' {
+			if lx.tomlNext {
+				return lexInlineTableValueEnd
+			}
 			return lx.errorf("trailing comma not allowed in inline tables")
 		}
 		return lexInlineTableValue
@@ -770,8 +781,8 @@ func lexRawString(lx *lexer) stateFn {
 	}
 }
 
-// lexMultilineRawString consumes a raw string. Nothing can be escaped in such
-// a string. It assumes that the beginning ''' has already been consumed and
+// lexMultilineRawString consumes a raw string. Nothing can be escaped in such a
+// string. It assumes that the beginning triple-' has already been consumed and
 // ignored.
 func lexMultilineRawString(lx *lexer) stateFn {
 	r := lx.next()
@@ -828,6 +839,11 @@ func lexMultilineStringEscape(lx *lexer) stateFn {
 func lexStringEscape(lx *lexer) stateFn {
 	r := lx.next()
 	switch r {
+	case 'e':
+		if !lx.tomlNext {
+			return lx.error(errLexEscape{r})
+		}
+		fallthrough
 	case 'b':
 		fallthrough
 	case 't':
@@ -846,12 +862,30 @@ func lexStringEscape(lx *lexer) stateFn {
 		fallthrough
 	case '\\':
 		return lx.pop()
+	case 'x':
+		if !lx.tomlNext {
+			return lx.error(errLexEscape{r})
+		}
+		return lexHexEscape
 	case 'u':
 		return lexShortUnicodeEscape
 	case 'U':
 		return lexLongUnicodeEscape
 	}
 	return lx.error(errLexEscape{r})
+}
+
+func lexHexEscape(lx *lexer) stateFn {
+	var r rune
+	for i := 0; i < 2; i++ {
+		r = lx.next()
+		if !isHexadecimal(r) {
+			return lx.errorf(
+				`expected two hexadecimal digits after '\x', but got %q instead`,
+				lx.current())
+		}
+	}
+	return lx.pop()
 }
 
 func lexShortUnicodeEscape(lx *lexer) stateFn {
@@ -1225,7 +1259,23 @@ func isOctal(r rune) bool  { return r >= '0' && r <= '7' }
 func isHexadecimal(r rune) bool {
 	return (r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')
 }
-func isBareKeyChar(r rune) bool {
+
+func isBareKeyChar(r rune, tomlNext bool) bool {
+	if tomlNext {
+		return (r >= 'A' && r <= 'Z') ||
+			(r >= 'a' && r <= 'z') ||
+			(r >= '0' && r <= '9') ||
+			r == '_' || r == '-' ||
+			r == 0xb2 || r == 0xb3 || r == 0xb9 || (r >= 0xbc && r <= 0xbe) ||
+			(r >= 0xc0 && r <= 0xd6) || (r >= 0xd8 && r <= 0xf6) || (r >= 0xf8 && r <= 0x037d) ||
+			(r >= 0x037f && r <= 0x1fff) ||
+			(r >= 0x200c && r <= 0x200d) || (r >= 0x203f && r <= 0x2040) ||
+			(r >= 0x2070 && r <= 0x218f) || (r >= 0x2460 && r <= 0x24ff) ||
+			(r >= 0x2c00 && r <= 0x2fef) || (r >= 0x3001 && r <= 0xd7ff) ||
+			(r >= 0xf900 && r <= 0xfdcf) || (r >= 0xfdf0 && r <= 0xfffd) ||
+			(r >= 0x10000 && r <= 0xeffff)
+	}
+
 	return (r >= 'A' && r <= 'Z') ||
 		(r >= 'a' && r <= 'z') ||
 		(r >= '0' && r <= '9') ||

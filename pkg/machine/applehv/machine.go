@@ -17,7 +17,7 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine"
-	"github.com/containers/storage/pkg/homedir"
+	"github.com/containers/podman/v4/pkg/util"
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
 )
@@ -123,8 +123,7 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 	}
 	m.VfkitHelper = *vfhelper
 
-	sshDir := filepath.Join(homedir.Get(), ".ssh")
-	m.IdentityPath = filepath.Join(sshDir, m.Name)
+	m.IdentityPath = util.GetIdentityPath(m.Name)
 	m.Rootful = opts.Rootful
 	m.RemoteUsername = opts.Username
 
@@ -142,7 +141,7 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		// TODO localhost needs to be restored here
 		uri := machine.SSHRemoteConnection.MakeSSHURL("192.168.64.2", fmt.Sprintf("/run/user/%d/podman/podman.sock", m.UID), strconv.Itoa(m.Port), m.RemoteUsername)
 		uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(m.Port), "root")
-		identity := filepath.Join(sshDir, m.Name)
+		identity := m.IdentityPath
 
 		uris := []url.URL{uri, uriRoot}
 		names := []string{m.Name, m.Name + "-root"}

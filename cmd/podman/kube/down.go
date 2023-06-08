@@ -19,7 +19,7 @@ var (
 
 	downCmd = &cobra.Command{
 		Use:               "down [options] KUBEFILE|-",
-		Short:             "Remove pods based on Kubernetes YAML.",
+		Short:             "Remove pods based on Kubernetes YAML",
 		Long:              downDescription,
 		RunE:              down,
 		Args:              cobra.ExactArgs(1),

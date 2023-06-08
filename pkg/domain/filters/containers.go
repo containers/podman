@@ -3,6 +3,7 @@ package filters
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -18,9 +19,19 @@ import (
 func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpod.Runtime) (func(container *libpod.Container) bool, error) {
 	switch filter {
 	case "id":
-		// we only have to match one ID
 		return func(c *libpod.Container) bool {
-			return util.StringMatchRegexSlice(c.ID(), filterValues)
+			for _, want := range filterValues {
+				isRegex := define.NotHexRegex.MatchString(want)
+				if isRegex {
+					match, err := regexp.MatchString(want, c.ID())
+					if err == nil && match {
+						return true
+					}
+				} else if strings.HasPrefix(c.ID(), strings.ToLower(want)) {
+					return true
+				}
+			}
+			return false
 		}, nil
 	case "label":
 		// we have to match that all given labels exits on that container

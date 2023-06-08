@@ -472,6 +472,14 @@ json-file | f
     is "$output" "$expect" "podman run with --tz=local, matches host"
 }
 
+@test "podman run --tz with zoneinfo" {
+    # First make sure that zoneinfo is actually in the image otherwise the test is pointless
+    run_podman run --rm $SYSTEMD_IMAGE ls /usr/share/zoneinfo
+
+    run_podman run --rm --tz Europe/Berlin $SYSTEMD_IMAGE readlink /etc/localtime
+    assert "$output" == "../usr/share/zoneinfo/Europe/Berlin" "localtime is linked correctly"
+}
+
 # run with --runtime should preserve the named runtime
 @test "podman run : full path to --runtime is preserved" {
     skip_if_remote "podman-remote does not support --runtime option"
@@ -507,6 +515,37 @@ json-file | f
     run_podman --noout create --name test $IMAGE echo hi
     is "$output" "" "output should be empty"
     run_podman --noout rm test
+    is "$output" "" "output should be empty"
+}
+
+@test "podman --out run should save the container id" {
+    outfile=${PODMAN_TMPDIR}/out-results
+
+    # first we'll need to run something, write its output to a file, and then read its contents.
+    run_podman --out $outfile run -d --name test $IMAGE echo hola
+    is "$output" "" "output should be redirected"
+    run_podman wait test
+
+    # compare the container id against the one in the file
+    run_podman container inspect --format '{{.Id}}' test
+    is "$output" "$(<$outfile)" "container id should match"
+
+    run_podman --out /dev/null rm test
+    is "$output" "" "output should be empty"
+}
+
+@test "podman --out create should save the container id" {
+    outfile=${PODMAN_TMPDIR}/out-results
+
+    # first we'll need to run something, write its output to a file, and then read its contents.
+    run_podman --out $outfile create --name test $IMAGE echo hola
+    is "$output" "" "output should be redirected"
+
+    # compare the container id against the one in the file
+    run_podman container inspect --format '{{.Id}}' test
+    is "$output" "$(<$outfile)" "container id should match"
+
+    run_podman --out /dev/null rm test
     is "$output" "" "output should be empty"
 }
 
@@ -1104,5 +1143,13 @@ EOF
     rm -rf $romount
 }
 
+@test "podman run --restart=always -- wait" {
+    # regression test for #18572 to make sure Podman waits less than 20 seconds
+    ctr=$(random_string)
+    run_podman run -d --restart=always --name=$ctr $IMAGE false
+    PODMAN_TIMEOUT=20 run_podman wait $ctr
+    is "$output" "1" "container should exit 1"
+    run_podman rm -f -t0 $ctr
+}
 
 # vim: filetype=sh

@@ -14,6 +14,11 @@ name or ID.  In the case of multiple containers, Podman waits on each consecutiv
 After all specified containers are stopped, the containers' return codes are printed
 separated by newline in the same order as they were given to the command.
 
+NOTE: there is an inherent race condition when waiting for containers with a
+restart policy of `always` or `on-failure`, such as those created by `podman
+kube play`. Such containers may be repeatedly exiting and restarting, possibly
+with different exit codes, but `podman wait` can only display and detect one.
+
 ## OPTIONS
 
 #### **--condition**=*state*

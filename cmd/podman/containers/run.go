@@ -48,12 +48,8 @@ var (
 )
 
 var (
-	runOpts = entities.ContainerRunOptions{
-		OutputStream: os.Stdout,
-		InputStream:  os.Stdin,
-		ErrorStream:  os.Stderr,
-	}
-	runRmi bool
+	runOpts entities.ContainerRunOptions
+	runRmi  bool
 )
 
 func runFlags(cmd *cobra.Command) {
@@ -153,6 +149,11 @@ func run(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	}
+
+	// First set the default streams before they get modified by any flags.
+	runOpts.OutputStream = os.Stdout
+	runOpts.InputStream = os.Stdin
+	runOpts.ErrorStream = os.Stderr
 
 	// If -i is not set, clear stdin
 	if !cliVals.Interactive {

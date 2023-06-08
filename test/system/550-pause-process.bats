@@ -4,6 +4,7 @@
 #
 
 load helpers
+load helpers.sig-proxy
 
 function _check_pause_process() {
     pause_pid=
@@ -76,4 +77,64 @@ function _check_pause_process() {
     run_podman --tmpdir $PODMAN_TMPDIR/tmp2 $getns
     assert "$output" == "$tmpdir_userns" \
            "podman with tmpdir2 should use the same userns created using a tmpdir"
+}
+
+# https://github.com/containers/podman/issues/16091
+@test "rootless reexec with sig-proxy" {
+    skip_if_not_rootless "pause process is only used as rootless"
+    skip_if_remote "system migrate not supported via remote"
+
+    # Use podman system migrate to stop the currently running pause process
+    run_podman system migrate
+
+    # We're forced to use $PODMAN because run_podman cannot be backgrounded
+    $PODMAN run -i --name c_run $IMAGE sh -c "$SLEEPLOOP" &
+    local kidpid=$!
+
+    _test_sigproxy c_run $kidpid
+
+    # our container exits 0 so podman should too
+    wait $kidpid || die "podman run exited $? instead of zero"
+}
+
+
+@test "rootless reexec with sig-proxy when rejoining userns from container" {
+    skip_if_not_rootless "pause process is only used as rootless"
+    skip_if_remote "unshare not supported via remote"
+
+    # System tests can execute in contexts without XDG; in those, we have to
+    # skip the pause-pid-file checks.
+    if [[ -z "$XDG_RUNTIME_DIR" ]]; then
+        skip "\$XDG_RUNTIME_DIR not defined"
+    fi
+    local pause_pid_file="$XDG_RUNTIME_DIR/libpod/tmp/pause.pid"
+
+    # First let's run a container in the background to keep the userns active
+    local cname1=c1_$(random_string)
+    run_podman run -d --name $cname1 $IMAGE top
+
+    run_podman unshare readlink /proc/self/ns/user
+    userns="$output"
+
+    # check for pause pid and then kill it
+    _check_pause_process
+    kill -9 $pause_pid
+
+    # Now again directly start podman run and make sure it can forward signals
+    # We're forced to use $PODMAN because run_podman cannot be backgrounded
+    local cname2=c2_$(random_string)
+    $PODMAN run -i --name $cname2 $IMAGE sh -c "$SLEEPLOOP" &
+    local kidpid=$!
+
+    _test_sigproxy $cname2 $kidpid
+
+    # our container exits 0 so podman should too
+    wait $kidpid || die "podman run exited $? instead of zero"
+
+    # Check that podman joined the same userns as it tries to use the one
+    # from the running podman process in the background.
+    run_podman unshare readlink /proc/self/ns/user
+    assert "$output" == "$userns" "userns before/after kill is the same"
+
+    run_podman rm -f -t0 $cname1
 }

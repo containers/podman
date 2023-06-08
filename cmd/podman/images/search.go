@@ -84,7 +84,7 @@ func searchFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
 	filterFlagName := "filter"
-	flags.StringSliceVarP(&searchOptions.Filters, filterFlagName, "f", []string{}, "Filter output based on conditions provided (default [])")
+	flags.StringArrayVarP(&searchOptions.Filters, filterFlagName, "f", []string{}, "Filter output based on conditions provided (default [])")
 	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteImageSearchFilters)
 
 	formatFlagName := "format"

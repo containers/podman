@@ -20,7 +20,7 @@ PODMAN=${PODMAN:-$(dirname $0)/../bin/podman}
 ###############################################################################
 # BEGIN help messages
 
-missing=" argument is missing; see $ME --help for details"
+missing=" argument is missing; see $ME -h for details"
 usage="Usage: $ME [options] [start|stop|ps|logs]
 
 $ME manages a local instance of a container registry.
@@ -99,6 +99,9 @@ function podman() {
         fi
     fi
 
+    # Reset $PODMAN, so ps/logs/stop use same args as the initial start
+    PODMAN="$(<${PODMAN_REGISTRY_WORKDIR}/PODMAN)"
+
     ${PODMAN} --root    ${PODMAN_REGISTRY_WORKDIR}/root        \
               --runroot ${PODMAN_REGISTRY_WORKDIR}/runroot     \
               "$@"
@@ -173,6 +176,10 @@ function do_start() {
     set -e
 
     mkdir -p ${PODMAN_REGISTRY_WORKDIR}
+
+    # Preserve initial podman path & args, so all subsequent invocations
+    # of this script are consistent with the first one.
+    echo "$PODMAN" >${PODMAN_REGISTRY_WORKDIR}/PODMAN
 
     local AUTHDIR=${PODMAN_REGISTRY_WORKDIR}/auth
     mkdir -p $AUTHDIR

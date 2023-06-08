@@ -476,7 +476,7 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				ctr.Ports = nil
 
 				// We add the original port declarations from the libpod infra container
-				// to the first kubernetes container description because otherwise we loose
+				// to the first kubernetes container description because otherwise we lose
 				// the original container/port bindings.
 				// Add the port configuration to the first regular container or the first
 				// init container if only init containers have been created in the pod.
@@ -903,7 +903,7 @@ func containerToV1Container(ctx context.Context, c *Container, getService bool) 
 	return kubeContainer, kubeVolumes, &dns, annotations, nil
 }
 
-// portMappingToContainerPort takes an portmapping and converts
+// portMappingToContainerPort takes a portmapping and converts
 // it to a v1.ContainerPort format for kube output
 func portMappingToContainerPort(portMappings []types.PortMapping, getService bool) ([]v1.ContainerPort, error) {
 	containerPorts := make([]v1.ContainerPort, 0, len(portMappings))

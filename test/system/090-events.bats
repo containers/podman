@@ -382,3 +382,18 @@ EOF
         --stream=false
     is "${lines[0]}" ".* container died .* (image=$IMAGE, name=$cname, .*)"
 }
+
+@test "events - volume events" {
+    local vname=v$(random_string 10)
+    run_podman volume create $vname
+    run_podman volume rm $vname
+
+    run_podman events --since=1m --stream=false --filter volume=$vname
+    notrunc_results="$output"
+    assert "${lines[0]}" =~ ".* volume create $vname"
+    assert "${lines[1]}" =~ ".* volume remove $vname"
+
+    # Prefix test
+    run_podman events --since=1m --stream=false --filter volume=${vname:0:5}
+    assert "$output" = "$notrunc_results"
+}

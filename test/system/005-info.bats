@@ -43,6 +43,7 @@ host.conmon.package       | .*conmon.*
 host.cgroupManager        | \\\(systemd\\\|cgroupfs\\\)
 host.cgroupVersion        | v[12]
 host.ociRuntime.path      | $expr_path
+host.pasta                | .*executable.*package.*
 store.configFile          | $expr_path
 store.graphDriverName     | [a-z0-9]\\\+\\\$
 store.graphRoot           | $expr_path

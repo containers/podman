@@ -79,17 +79,24 @@ var (
 
 	useSyslog      bool
 	requireCleanup = true
-	noOut          = false
+
+	// Defaults for capturing/redirecting the command output since (the) cobra is
+	// global-hungry and doesn't allow you to attach anything that allows us to
+	// transform the noStdout BoolVar to a string that we can assign to useStdout.
+	noStdout  = false
+	useStdout = ""
 )
 
 func init() {
-	// Hooks are called before PersistentPreRunE()
+	// Hooks are called before PersistentPreRunE(). These hooks affect global
+	// state and are executed after processing the command-line, but before
+	// actually running the command.
 	cobra.OnInitialize(
+		stdOutHook, // Caution, this hook redirects stdout and output from any following hooks may be affected.
 		loggingHook,
 		syslogHook,
 		earlyInitHook,
 		configHook,
-		noOutHook,
 	)
 
 	rootFlags(rootCmd, registry.PodmanConfig())
@@ -233,7 +240,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	// Special case if command is hidden completion command ("__complete","__completeNoDesc")
 	// Since __completeNoDesc is an alias the cm.Name is always __complete
 	if cmd.Name() == cobra.ShellCompRequestCmd {
-		// Parse the cli arguments after the the completion cmd (always called as second argument)
+		// Parse the cli arguments after the completion cmd (always called as second argument)
 		// This ensures that the --url, --identity and --connection flags are properly set
 		compCmd, _, err := cmd.Root().Traverse(os.Args[2:])
 		if err != nil {
@@ -376,10 +383,23 @@ func loggingHook() {
 	}
 }
 
-func noOutHook() {
-	if noOut {
-		null, _ := os.Open(os.DevNull)
-		os.Stdout = null
+// used for capturing podman's formatted output to some file as per the -out and -noout flags.
+func stdOutHook() {
+	// if noStdOut was specified, then assign /dev/null as the standard file for output.
+	if noStdout {
+		useStdout = os.DevNull
+	}
+	// if we were given a filename for output, then open that and use it. we end up leaking
+	// the file since it's intended to be in scope as long as our process is running.
+	if useStdout != "" {
+		if fd, err := os.OpenFile(useStdout, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm); err == nil {
+			os.Stdout = fd
+
+			// if we couldn't open the file for write, then just bail with an error.
+		} else {
+			fmt.Fprintf(os.Stderr, "unable to open file for standard output: %s\n", err.Error())
+			os.Exit(1)
+		}
 	}
 }
 
@@ -415,7 +435,14 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 	lFlags.StringVar(&podmanConfig.Identity, identityFlagName, ident, "path to SSH identity file, (CONTAINER_SSHKEY)")
 	_ = cmd.RegisterFlagCompletionFunc(identityFlagName, completion.AutocompleteDefault)
 
-	lFlags.BoolVar(&noOut, "noout", false, "do not output to stdout")
+	// Flags that control or influence any kind of output.
+	outFlagName := "out"
+	lFlags.StringVar(&useStdout, outFlagName, "", "Send output (stdout) from podman to a file")
+	_ = cmd.RegisterFlagCompletionFunc(outFlagName, completion.AutocompleteDefault)
+
+	lFlags.BoolVar(&noStdout, "noout", false, "do not output to stdout")
+	_ = lFlags.MarkHidden("noout") // Superseded by --out
+
 	lFlags.BoolVarP(&podmanConfig.Remote, "remote", "r", registry.IsRemote(), "Access remote Podman service")
 	pFlags := cmd.PersistentFlags()
 	if registry.IsRemote() {

@@ -1,7 +1,7 @@
 % podman-volume-export 1
 
 ## NAME
-podman\-volume\-export - Exports volume to external tar
+podman\-volume\-export - Export volume to external tar
 
 ## SYNOPSIS
 **podman volume export** [*options*] *volume*

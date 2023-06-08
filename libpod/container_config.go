@@ -360,6 +360,8 @@ type ContainerMiscConfig struct {
 	CgroupParent string `json:"cgroupParent"`
 	// GroupEntry specifies arbitrary data to append to a file.
 	GroupEntry string `json:"group_entry,omitempty"`
+	// KubeExitCodePropagation of the service container.
+	KubeExitCodePropagation define.KubeExitCodePropagation `json:"kubeExitCodePropagation"`
 	// LogPath log location
 	LogPath string `json:"logPath"`
 	// LogTag is the tag used for logging

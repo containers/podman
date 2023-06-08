@@ -84,56 +84,58 @@ There is only one required key, `Image`, which defines the container image the s
 
 Valid options for `[Container]` are listed below:
 
-| **[Container] options**          | **podman run equivalent**              |
-| -----------------                | ------------------                     |
-| AddCapability=CAP                | --cap-add CAP                          |
-| AddDevice=/dev/foo               | --device /dev/foo                      |
-| Annotation="YXZ"                 | --annotation "XYZ"                     |
-| ContainerName=name               | --name name                            |
-| DropCapability=CAP               | --cap-drop=CAP                         |
-| Environment=foo=bar              | --env foo=bar                          |
-| EnvironmentFile=/tmp/env         | --env-file /tmp/env                    |
-| EnvironmentHost=true             | --env-host                             |
-| Exec=/usr/bin/command            | Command after image specification - /usr/bin/command   |
-| ExposeHostPort=50-59             | --expose 50-59                         |
-| Group=1234                       | --user UID:1234                        |
-| HealthCmd="/usr/bin/command"     | --health-cmd="/usr/bin/command"        |
-| HealthInterval=2m                | --health-interval=2m                   |
-| HealthOnFailure=kill          | --health-on-failure=kill            |
-| HealthRetries=5                  | --health-retries=5                     |
-| HealthStartPeriod=1m             | --health-start-period=period=1m        |
-| HealthStartupCmd="/usr/bin/command" | --health-startup-cmd="/usr/bin/command" |
-| HealthStartupInterval=1m         | --health-startup-interval=2m           |
-| HealthStartupRetries=8           | --health-startup-retries=8             |
-| HealthStartupSuccess=2           | --health-startup-success=2             |
-| HealthStartupTimeout=1m33s       | --health-startup-timeout=1m33s         |
-| HealthTimeout=20s                | --health-timeout=20s                   |
-| HostName=new-host-name           | --hostname="new-host-name"             |
-| Image=ubi8                       | Image specification - ubi8             |
-| IP=192.5.0.1                     | --ip 192.5.0.0                         |
-| IP6=fd46:db93:aa76:ac37::10      | --ip6 2001:db8::1                      |
-| Label="YXZ"                      | --label "XYZ"                          |
-| LogDriver=journald               | --log-driver journald                  |
-| Mount=type=bind,source=/path/on/host,destination=/path/in/container | --mount type=bind,source=/path/on/host,destination=/path/in/container |
-| Network=host                     | --net host                             |
-| NoNewPrivileges=true             | --security-opt no-new-privileges       |
-| Rootfs=/var/lib/rootfs           | --rootfs /var/lib/rootfs               |
-| Notify=true                      | --sdnotify container                   |
-| PodmanArgs=--add-host foobar     | --add-host foobar                      |
-| PublishPort=true                 | --publish                              |
-| ReadOnly=true                    | --read-only                            |
-| RunInit=true                     | --init                                 |
-| SeccompProfile=/tmp/s.json       | --security-opt seccomp=/tmp/s.json     |
-| SecurityLabelDisable=true        | --security-opt label=disable           |
-| SecurityLabelFileType=usr_t      | --security-opt label=filetype:usr_t    |
-| SecurityLabelLevel=s0:c1,c2      | --security-opt label=level:s0:c1,c2    |
-| SecurityLabelType=spc_t          | --security-opt label=type:spc_t        |
-| Timezone=local                   | --tz local                             |
-| Tmpfs=/work                      | --tmpfs /work                          |
-| User=bin                         | --user bin                             |
-| UserNS=keep-id:uid=200,gid=210   | --userns keep-id:uid=200,gid=210       |
-| VolatileTmp=true                 | --tmpfs /tmp                           |
-| Volume=/source:/dest             | --volume /source:/dest                 |
+| **[Container] options**        | **podman run equivalent**                            |
+|--------------------------------|------------------------------------------------------|
+| AddCapability=CAP              | --cap-add CAP                                        |
+| AddDevice=/dev/foo             | --device /dev/foo                                    |
+| Annotation="YXZ"               | --annotation "XYZ"                                   |
+| ContainerName=name             | --name name                                          |
+| DropCapability=CAP             | --cap-drop=CAP                                       |
+| Environment=foo=bar            | --env foo=bar                                        |
+| EnvironmentFile=/tmp/env       | --env-file /tmp/env                                  |
+| EnvironmentHost=true           | --env-host                                           |
+| Exec=/usr/bin/command          | Command after image specification - /usr/bin/command |
+| ExposeHostPort=50-59           | --expose 50-59                                       |
+| Group=1234                     | --user UID:1234                                      |
+| HealthCmd="/usr/bin/command"   | --health-cmd="/usr/bin/command"                      |
+| HealthInterval=2m              | --health-interval=2m                                 |
+| HealthOnFailure=kill           | --health-on-failure=kill                             |
+| HealthRetries=5                | --health-retries=5                                   |
+| HealthStartPeriod=1m           | --health-start-period=period=1m                      |
+| HealthStartupCmd="command"     | --health-startup-cmd="command"                       |
+| HealthStartupInterval=1m       | --health-startup-interval=2m                         |
+| HealthStartupRetries=8         | --health-startup-retries=8                           |
+| HealthStartupSuccess=2         | --health-startup-success=2                           |
+| HealthStartupTimeout=1m33s     | --health-startup-timeout=1m33s                       |
+| HealthTimeout=20s              | --health-timeout=20s                                 |
+| HostName=new-host-name         | --hostname="new-host-name"                           |
+| Image=ubi8                     | Image specification - ubi8                           |
+| IP=192.5.0.1                   | --ip 192.5.0.0                                       |
+| IP6=fd46:db93:aa76:ac37::10    | --ip6 2001:db8::1                                    |
+| Label="YXZ"                    | --label "XYZ"                                        |
+| LogDriver=journald             | --log-driver journald                                |
+| Mount=type=...                 | --mount type=...                                     |
+| Network=host                   | --net host                                           |
+| NoNewPrivileges=true           | --security-opt no-new-privileges                     |
+| Rootfs=/var/lib/rootfs         | --rootfs /var/lib/rootfs                             |
+| Notify=true                    | --sdnotify container                                 |
+| PodmanArgs=--add-host foobar   | --add-host foobar                                    |
+| PublishPort=true               | --publish                                            |
+| Pull=never                     | --pull=never                                         |
+| ReadOnly=true                  | --read-only                                          |
+| RunInit=true                   | --init                                               |
+| SeccompProfile=/tmp/s.json     | --security-opt seccomp=/tmp/s.json                   |
+| SecurityLabelDisable=true      | --security-opt label=disable                         |
+| SecurityLabelFileType=usr_t    | --security-opt label=filetype:usr_t                  |
+| SecurityLabelLevel=s0:c1,c2    | --security-opt label=level:s0:c1,c2                  |
+| SecurityLabelNested=true       | --security-opt label=nested                          |
+| SecurityLabelType=spc_t        | --security-opt label=type:spc_t                      |
+| Timezone=local                 | --tz local                                           |
+| Tmpfs=/work                    | --tmpfs /work                                        |
+| User=bin                       | --user bin                                           |
+| UserNS=keep-id:uid=200,gid=210 | --userns keep-id:uid=200,gid=210                     |
+| VolatileTmp=true               | --tmpfs /tmp                                         |
+| Volume=/source:/dest           | --volume /source:/dest                               |
 
 Description of `[Container]` section are:
 
@@ -283,8 +285,7 @@ Equivalent to the Podman `--hostname` option.
 
 ### `Image=`
 
-The image to run in the container. This image must be locally installed for the service to work
-when it is activated, because the generated service file never tries to download images.
+The image to run in the container.
 It is recommended to use a fully qualified image name rather than a short name, both for
 performance and robustness reasons.
 
@@ -358,7 +359,7 @@ By default, Podman is run in such a way that the systemd startup notify command 
 the container runtime. In other words, the service is deemed started when the container runtime
 starts the child in the container. However, if the container application supports
 [sd_notify](https://www.freedesktop.org/software/systemd/man/sd_notify.html), then setting
-`Notify`to true passes the notification details to the container allowing it to notify
+`Notify` to true passes the notification details to the container allowing it to notify
 of startup on its own.
 
 ### `PodmanArgs=`
@@ -370,8 +371,9 @@ of what unexpected interactions can be caused by these arguments, is not recomme
 this option.
 
 The format of this is a space separated list of arguments, which can optionally be individually
-escaped to allow inclusion of whitespace and other control characters. This key can be listed
-multiple times.
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
 
 ### `PublishPort=`
 
@@ -389,6 +391,11 @@ may be different for each invocation of service. This makes that a less useful o
 allocated port can be found with the `podman port` command.
 
 This key can be listed multiple times.
+
+### `Pull=`
+
+Set the image pull policy.
+This is equivalent to the Podman `--pull` option
 
 ### `ReadOnly=` (defaults to `no`)
 
@@ -417,6 +424,10 @@ Set the label file type for the container files.
 ### `SecurityLabelLevel=`
 
 Set the label process level for the container processes.
+
+### `SecurityLabelNested=`
+
+Allow SecurityLabels to function within the container. This allows separation of containers created within the container.
 
 ### `SecurityLabelType=`
 
@@ -480,14 +491,15 @@ There is only one required key, `Yaml`, which defines the path to the Kubernetes
 
 Valid options for `[Kube]` are listed below:
 
-| **[Kube] options**               | **podman kube play equivalent**        |
-| -----------------                | ------------------                     |
-| ConfigMap=/tmp/config.map        | --config-map /tmp/config.map           |
-| LogDriver=journald               | --log-driver journald                  |
-| Network=host                     | --net host                             |
-| PublishPort=59-60                | --publish=59-60                        |
-| UserNS=keep-id:uid=200,gid=210   | --userns keep-id:uid=200,gid=210       |
-| Yaml=/tmp/kube.yaml              | podman kube play /tmp/kube.yaml        |
+| **[Kube] options**                  | **podman kube play equivalent**             |
+| ----------------------------------- | ------------------------------------------- |
+| ConfigMap=/tmp/config.map           | --config-map /tmp/config.map                |
+| LogDriver=journald                  | --log-driver journald                       |
+| Network=host                        | --net host                                  |
+| PodmanArgs=\-\-annotation=key=value | --annotation=key=value                      |
+| PublishPort=59-60                   | --publish=59-60                             |
+| UserNS=keep-id:uid=200,gid=210      | --userns keep-id:uid=200,gid=210            |
+| Yaml=/tmp/kube.yaml                 | podman kube play /tmp/kube.yaml             |
 
 Supported keys in the `[Kube]` section are:
 
@@ -498,6 +510,15 @@ Unlike the `configmap` argument, the value may contain only one path but
 it may be absolute or relative to the location of the unit file.
 
 This key may be used multiple times
+
+### `ExitCodePropagation=`
+
+Control how the main PID of the systemd service should exit.  The following values are supported:
+- `all`: exit non-zero if all containers have failed (i.e., exited non-zero)
+- `any`: exit non-zero if any container has failed
+- `none`: exit zero and ignore failed containers
+
+The current default value is `none`.
 
 ### `LogDriver=`
 
@@ -514,6 +535,19 @@ As a special case, if the `name` of the network ends with `.network`, a Podman n
 `systemd-$name` is used, and the generated systemd service contains
 a dependency on the `$name-network.service`. Such a network can be automatically
 created by using a `$name.network` Quadlet file.
+
+This key can be listed multiple times.
+
+### `PodmanArgs=`
+
+This key contains a list of arguments passed directly to the end of the `podman kube play` command
+in the generated file (right before the path to the yaml file in the command line). It can be used to
+access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
 
 This key can be listed multiple times.
 
@@ -568,6 +602,7 @@ Valid options for `[Network]` are listed below:
 | IPv6=true                        | --ipv6                                 |
 | Label="YXZ"                      | --label "XYZ"                          |
 | Options=isolate                  | --opt isolate                          |
+| PodmanArgs=--dns=192.168.55.1    | --dns=192.168.55.1                     |
 | Subnet=192.5.0.0/16              | --subnet 192.5.0.0/16                  |
 
 Supported keys in `[Network]` section are:
@@ -631,6 +666,19 @@ Set driver specific options.
 
 This is equivalent to the Podman `--opt` option
 
+### `PodmanArgs=`
+
+This key contains a list of arguments passed directly to the end of the `podman network create` command
+in the generated file (right before the name of the network in the command line). It can be used to
+access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
+
 ### `Subnet=`
 
 The subnet in CIDR notation.
@@ -661,6 +709,7 @@ Valid options for `[Volume]` are listed below:
 | Group=192                        | --opt group=192                       |
 | Label="foo=bar"                  | --label "foo=bar"                     |
 | Options=XYZ                      | --opt XYZ                             |
+| PodmanArgs=--driver=image        | --driver=image                        |
 
 Supported keys in `[Volume]` section are:
 
@@ -687,6 +736,19 @@ This key can be listed multiple times.
 ### `Options=`
 
 The mount options to use for a filesystem as used by the **mount(8)** command `-o` option.
+
+### `PodmanArgs=`
+
+This key contains a list of arguments passed directly to the end of the `podman volume create` command
+in the generated file (right before the name of the network in the command line). It can be used to
+access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
 
 ### `Type=`
 

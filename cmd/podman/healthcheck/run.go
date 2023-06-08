@@ -14,8 +14,8 @@ import (
 var (
 	runCmd = &cobra.Command{
 		Use:               "run CONTAINER",
-		Short:             "run the health check of a container",
-		Long:              "run the health check of a container",
+		Short:             "Run the health check of a container",
+		Long:              "Run the health check of a container",
 		Example:           `podman healthcheck run mywebapp`,
 		RunE:              run,
 		Args:              cobra.ExactArgs(1),

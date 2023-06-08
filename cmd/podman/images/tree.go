@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	treeDescription = "Prints layer hierarchy of an image in a tree format"
+	treeDescription = "Print layer hierarchy of an image in a tree format"
 	treeCmd         = &cobra.Command{
 		Use:               "tree [options] IMAGE",
 		Args:              cobra.ExactArgs(1),

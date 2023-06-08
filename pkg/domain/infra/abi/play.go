@@ -86,7 +86,12 @@ func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name stri
 	if err != nil {
 		return nil, fmt.Errorf("creating runtime spec for service container: %w", err)
 	}
-	opts = append(opts, libpod.WithIsService())
+
+	ecp, err := define.ParseKubeExitCodePropagation(options.ExitCodePropagation)
+	if err != nil {
+		return nil, err
+	}
+	opts = append(opts, libpod.WithIsService(ecp))
 
 	// Set the sd-notify mode to "ignore".  Podman is responsible for
 	// sending the notify messages when all containers are ready.
@@ -348,9 +353,11 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 			if err := notifyproxy.SendMessage("", message); err != nil {
 				return nil, err
 			}
-			if _, err := serviceContainer.Wait(ctx); err != nil {
+			exitCode, err := serviceContainer.Wait(ctx)
+			if err != nil {
 				return nil, fmt.Errorf("waiting for service container: %w", err)
 			}
+			report.ExitCode = &exitCode
 		}
 
 		report.ServiceContainerID = serviceContainer.ID()
@@ -625,7 +632,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		}
 	}
 
-	// Add the the original container names from the kube yaml as aliases for it. This will allow network to work with
+	// Add the original container names from the kube yaml as aliases for it. This will allow network to work with
 	// both just containerName as well as containerName-podName.
 	// In the future, we want to extend this to the CLI as well, where the name of the container created will not have
 	// the podName appended to it, but this is a breaking change and will be done in podman 5.0

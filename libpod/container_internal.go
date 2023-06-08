@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -1669,6 +1670,48 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 		}
 	}
 
+	tz := c.Timezone()
+	if tz != "" {
+		timezonePath := filepath.Join("/usr/share/zoneinfo", tz)
+		if tz == "local" {
+			timezonePath, err = filepath.EvalSymlinks("/etc/localtime")
+			if err != nil {
+				return "", fmt.Errorf("finding local timezone for container %s: %w", c.ID(), err)
+			}
+		}
+		// make sure to remove any existing localtime file in the container to not create invalid links
+		err = unix.Unlinkat(etcInTheContainerFd, "localtime", 0)
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return "", fmt.Errorf("removing /etc/localtime: %w", err)
+		}
+
+		hostPath, err := securejoin.SecureJoin(mountPoint, timezonePath)
+		if err != nil {
+			return "", fmt.Errorf("resolve zoneinfo path in the container: %w", err)
+		}
+
+		_, err = os.Stat(hostPath)
+		if err != nil {
+			// file does not exists which means tzdata is not installed in the container, just create /etc/locatime which a copy from the host
+			logrus.Debugf("Timezone %s does not exist in the container, create our own copy from the host", timezonePath)
+			localtimePath, err := c.copyTimezoneFile(timezonePath)
+			if err != nil {
+				return "", fmt.Errorf("setting timezone for container %s: %w", c.ID(), err)
+			}
+			if c.state.BindMounts == nil {
+				c.state.BindMounts = make(map[string]string)
+			}
+			c.state.BindMounts["/etc/localtime"] = localtimePath
+		} else {
+			// file exists lets just symlink according to localtime(5)
+			logrus.Debugf("Create locatime symlink for %s", timezonePath)
+			err = unix.Symlinkat(".."+timezonePath, etcInTheContainerFd, "localtime")
+			if err != nil {
+				return "", fmt.Errorf("creating /etc/localtime symlink: %w", err)
+			}
+		}
+	}
+
 	// Request a mount of all named volumes
 	for _, v := range c.config.NamedVolumes {
 		vol, err := c.mountNamedVolume(v, mountPoint)
@@ -1816,6 +1859,14 @@ func (c *Container) cleanupStorage() error {
 	}
 
 	var cleanupErr error
+	reportErrorf := func(msg string, args ...any) {
+		err := fmt.Errorf(msg, args...) // Always use fmt.Errorf instead of just logrus.Errorf(…) because the format string probably contains %w
+		if cleanupErr == nil {
+			cleanupErr = err
+		} else {
+			logrus.Errorf("%s", err.Error())
+		}
+	}
 
 	markUnmounted := func() {
 		c.state.Mountpoint = ""
@@ -1823,11 +1874,7 @@ func (c *Container) cleanupStorage() error {
 
 		if c.valid {
 			if err := c.save(); err != nil {
-				if cleanupErr != nil {
-					logrus.Errorf("Unmounting container %s: %v", c.ID(), err)
-				} else {
-					cleanupErr = err
-				}
+				reportErrorf("unmounting container %s: %w", c.ID(), err)
 			}
 		}
 	}
@@ -1836,40 +1883,24 @@ func (c *Container) cleanupStorage() error {
 	if c.config.RootfsOverlay {
 		overlayBasePath := filepath.Dir(c.state.Mountpoint)
 		if err := overlay.Unmount(overlayBasePath); err != nil {
-			if cleanupErr != nil {
-				logrus.Errorf("Failed to clean up overlay mounts for %s: %v", c.ID(), err)
-			} else {
-				cleanupErr = fmt.Errorf("failed to clean up overlay mounts for %s: %w", c.ID(), err)
-			}
+			reportErrorf("failed to clean up overlay mounts for %s: %w", c.ID(), err)
 		}
 	}
 	if c.config.RootfsMapping != nil {
 		if err := unix.Unmount(c.config.Rootfs, 0); err != nil && err != unix.EINVAL {
-			if cleanupErr != nil {
-				logrus.Errorf("Unmounting idmapped rootfs for container %s after mount error: %v", c.ID(), err)
-			} else {
-				cleanupErr = fmt.Errorf("unmounting idmapped rootfs for container %s after mount error: %w", c.ID(), err)
-			}
+			reportErrorf("unmounting idmapped rootfs for container %s after mount error: %w", c.ID(), err)
 		}
 	}
 
 	for _, containerMount := range c.config.Mounts {
 		if err := c.unmountSHM(containerMount); err != nil {
-			if cleanupErr != nil {
-				logrus.Errorf("Unmounting container %s: %v", c.ID(), err)
-			} else {
-				cleanupErr = fmt.Errorf("unmounting container %s: %w", c.ID(), err)
-			}
+			reportErrorf("unmounting container %s: %w", c.ID(), err)
 		}
 	}
 
 	if err := c.cleanupOverlayMounts(); err != nil {
 		// If the container can't remove content report the error
-		if cleanupErr != nil {
-			logrus.Errorf("Failed to clean up overlay mounts for %s: %v", c.ID(), err)
-		} else {
-			cleanupErr = fmt.Errorf("failed to clean up overlay mounts for %s: %w", c.ID(), err)
-		}
+		reportErrorf("failed to clean up overlay mounts for %s: %w", c.ID(), err)
 	}
 
 	if c.config.Rootfs != "" {
@@ -1885,11 +1916,7 @@ func (c *Container) cleanupStorage() error {
 		if errors.Is(err, storage.ErrNotAContainer) || errors.Is(err, storage.ErrContainerUnknown) || errors.Is(err, storage.ErrLayerNotMounted) {
 			logrus.Errorf("Storage for container %s has been removed", c.ID())
 		} else {
-			if cleanupErr != nil {
-				logrus.Errorf("Cleaning up container %s storage: %v", c.ID(), cleanupErr)
-			} else {
-				cleanupErr = fmt.Errorf("cleaning up container %s storage: %w", c.ID(), cleanupErr)
-			}
+			reportErrorf("cleaning up container %s storage: %w", c.ID(), err)
 		}
 	}
 
@@ -1897,11 +1924,7 @@ func (c *Container) cleanupStorage() error {
 	for _, v := range c.config.NamedVolumes {
 		vol, err := c.runtime.state.Volume(v.Name)
 		if err != nil {
-			if cleanupErr != nil {
-				logrus.Errorf("Retrieving named volume %s for container %s: %v", v.Name, c.ID(), err)
-			} else {
-				cleanupErr = fmt.Errorf("retrieving named volume %s for container %s: %w", v.Name, c.ID(), err)
-			}
+			reportErrorf("retrieving named volume %s for container %s: %w", v.Name, c.ID(), err)
 
 			// We need to try and unmount every volume, so continue
 			// if they fail.
@@ -1911,11 +1934,7 @@ func (c *Container) cleanupStorage() error {
 		if vol.needsMount() {
 			vol.lock.Lock()
 			if err := vol.unmount(false); err != nil {
-				if cleanupErr != nil {
-					logrus.Errorf("Unmounting volume %s for container %s: %v", vol.Name(), c.ID(), err)
-				} else {
-					cleanupErr = fmt.Errorf("unmounting volume %s for container %s: %w", vol.Name(), c.ID(), err)
-				}
+				reportErrorf("unmounting volume %s for container %s: %w", vol.Name(), c.ID(), err)
 			}
 			vol.lock.Unlock()
 		}

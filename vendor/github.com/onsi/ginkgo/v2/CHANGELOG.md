@@ -1,3 +1,16 @@
+## 2.9.7
+
+### Fixes
+- fix race when multiple defercleanups are called in goroutines [07fc3a0]
+
+## 2.9.6
+
+### Fixes
+- fix: create parent directory before report files (#1212) [0ac65de]
+
+### Maintenance
+- Bump github.com/onsi/gomega from 1.27.6 to 1.27.7 (#1202) [3e39231]
+
 ## 2.9.5
 
 ### Fixes

@@ -15,6 +15,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	pastaBinaryName = "passt"
+)
+
 func (r *Runtime) setupPasta(ctr *Container, netns string) error {
 	var NoTCPInitPorts = true
 	var NoUDPInitPorts = true
@@ -44,7 +48,7 @@ func (r *Runtime) setupPasta(ctr *Container, netns string) error {
 				cmdArgs = append(cmdArgs, "-t")
 			case "udp":
 				cmdArgs = append(cmdArgs, "-u")
-			case "default":
+			default:
 				return fmt.Errorf("can't forward protocol: %s", protocol)
 			}
 

@@ -1351,7 +1351,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   - images
 	// summary: Report on changes to images's filesystem; adds, deletes or modifications.
 	// description: |
-	//   Returns which files in a images's filesystem have been added, deleted, or modified. The Kind of modification can be one of:
+	//   Returns which files in an image's filesystem have been added, deleted, or modified. The Kind of modification can be one of:
 	//
 	//   0: Modified
 	//   1: Added

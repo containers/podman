@@ -318,7 +318,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 
 		Expect(search).Should(Exit(125))
 		Expect(search.OutputToString()).Should(BeEmpty())
-		Expect(search.ErrorToString()).To(ContainSubstring("error"))
+		Expect(search.ErrorToString()).To(ContainSubstring("http: server gave HTTP response to HTTPS client"))
 
 		// cleanup
 		resetRegistriesConfigEnv()
@@ -363,13 +363,14 @@ registries = ['{{.Host}}:{{.Port}}']`
 
 		Expect(search).Should(Exit(125))
 		Expect(search.OutputToString()).Should(BeEmpty())
-		Expect(search.ErrorToString()).To(ContainSubstring("error"))
+		Expect(search.ErrorToString()).To(ContainSubstring("http: server gave HTTP response to HTTPS client"))
 
 		// cleanup
 		resetRegistriesConfigEnv()
 	})
 
 	It("podman search doesn't attempt HTTP if one registry is not listed as insecure", func() {
+		Skip("FIXME FIXME FIXME #18768: This test is a NOP")
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -432,7 +433,8 @@ registries = ['{{.Host}}:{{.Port}}']`
 		Expect(search).To(ExitWithError())
 	})
 
-	It("podman search with wildcards", func() {
+	// Registry is unreliable (#18484), this is another super-common flake
+	It("podman search with wildcards", FlakeAttempts(3), func() {
 		search := podmanTest.Podman([]string{"search", "registry.access.redhat.com/*openshift*"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))

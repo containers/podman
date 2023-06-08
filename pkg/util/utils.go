@@ -26,6 +26,7 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/signal"
 	"github.com/containers/storage/pkg/directory"
+	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/idtools"
 	stypes "github.com/containers/storage/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
@@ -94,6 +95,7 @@ func ParseDockerignore(containerfiles []string, root string) ([]string, string, 
 		// so remote must support parsing that.
 		if dockerIgnoreErr != nil {
 			for _, containerfile := range containerfiles {
+				containerfile = strings.TrimPrefix(containerfile, root)
 				if _, err := os.Stat(filepath.Join(root, containerfile+".containerignore")); err == nil {
 					path, symlinkErr = securejoin.SecureJoin(root, containerfile+".containerignore")
 					if symlinkErr == nil {
@@ -472,17 +474,8 @@ func ExitCode(err error) int {
 	return 126
 }
 
-// HomeDir returns the home directory for the current user.
-func HomeDir() (string, error) {
-	home := os.Getenv("HOME")
-	if home == "" {
-		usr, err := user.LookupId(fmt.Sprintf("%d", rootless.GetRootlessUID()))
-		if err != nil {
-			return "", fmt.Errorf("unable to resolve HOME directory: %w", err)
-		}
-		home = usr.HomeDir
-	}
-	return home, nil
+func GetIdentityPath(name string) string {
+	return filepath.Join(homedir.Get(), ".ssh", name)
 }
 
 func Tmpdir() string {
@@ -624,7 +617,7 @@ func SizeOfPath(path string) (uint64, error) {
 	return uint64(size), err
 }
 
-// EncryptConfig translates encryptionKeys into a EncriptionsConfig structure
+// EncryptConfig translates encryptionKeys into an EncriptionsConfig structure
 func EncryptConfig(encryptionKeys []string, encryptLayers []int) (*encconfig.EncryptConfig, *[]int, error) {
 	var encLayers *[]int
 	var encConfig *encconfig.EncryptConfig

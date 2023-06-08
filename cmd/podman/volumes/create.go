@@ -48,7 +48,7 @@ func init() {
 	_ = createCommand.RegisterFlagCompletionFunc(driverFlagName, completion.AutocompleteNone)
 
 	labelFlagName := "label"
-	flags.StringSliceVarP(&opts.Label, labelFlagName, "l", []string{}, "Set metadata for a volume (default [])")
+	flags.StringArrayVarP(&opts.Label, labelFlagName, "l", []string{}, "Set metadata for a volume (default [])")
 	_ = createCommand.RegisterFlagCompletionFunc(labelFlagName, completion.AutocompleteNone)
 
 	optFlagName := "opt"

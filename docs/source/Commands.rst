@@ -51,9 +51,9 @@ Commands
 
 :doc:`load <markdown/podman-load.1>` Load an image from container archive
 
-:doc:`login <markdown/podman-login.1>` Login to a container registry
+:doc:`login <markdown/podman-login.1>` Log in to a container registry
 
-:doc:`logout <markdown/podman-logout.1>` Logout of a container registry
+:doc:`logout <markdown/podman-logout.1>` Log out of a container registry
 
 :doc:`logs <markdown/podman-logs.1>` Fetch the logs of a container
 
@@ -83,7 +83,7 @@ Commands
 
 :doc:`rm <markdown/podman-rm.1>` Remove one or more containers
 
-:doc:`rmi <markdown/podman-rmi.1>` Removes one or more images from local storage
+:doc:`rmi <markdown/podman-rmi.1>` Remove one or more images from local storage
 
 :doc:`run <markdown/podman-run.1>` Run a command in a new container
 
@@ -105,13 +105,13 @@ Commands
 
 :doc:`top <markdown/podman-top.1>` Display the running processes of a container
 
-:doc:`unmount <markdown/podman-unmount.1>` Unmounts working container's root filesystem
+:doc:`unmount <markdown/podman-unmount.1>` Unmount working container's root filesystem
 
 :doc:`unpause <markdown/podman-unpause.1>` Unpause the processes in one or more containers
 
 :doc:`unshare <markdown/podman-unshare.1>` Run a command in a modified user namespace
 
-:doc:`untag <markdown/podman-untag.1>` Removes one or more names from a locally-stored image
+:doc:`untag <markdown/podman-untag.1>` Remove one or more names from a locally-stored image
 
 :doc:`version <markdown/podman-version.1>` Display the Podman Version Information
 

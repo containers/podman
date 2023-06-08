@@ -27,8 +27,8 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/rootless"
+	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
-	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/digitalocean/go-qemu/qmp"
 	"github.com/docker/go-units"
@@ -133,7 +133,7 @@ func (p *Virtualization) NewMachine(opts machine.InitOptions) (machine.VM, error
 		"-device", "virtio-serial",
 		// qemu needs to establish the long name; other connections can use the symlink'd
 		// Note both id and chardev start with an extra "a" because qemu requires that it
-		// starts with an letter but users can also use numbers
+		// starts with a letter but users can also use numbers
 		"-chardev", "socket,path=" + vm.ReadySocket.Path + ",server=on,wait=off,id=a" + vm.Name + "_ready",
 		"-device", "virtserialport,chardev=a" + vm.Name + "_ready" + ",name=org.fedoraproject.port.0",
 		"-pidfile", vm.VMPidFilePath.GetPath()}...)
@@ -242,8 +242,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	var (
 		key string
 	)
-	sshDir := filepath.Join(homedir.Get(), ".ssh")
-	v.IdentityPath = filepath.Join(sshDir, v.Name)
+	v.IdentityPath = util.GetIdentityPath(v.Name)
 	v.Rootful = opts.Rootful
 
 	switch opts.ImagePath {
@@ -320,7 +319,6 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	if len(opts.IgnitionPath) < 1 {
 		uri := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, fmt.Sprintf("/run/user/%d/podman/podman.sock", v.UID), strconv.Itoa(v.Port), v.RemoteUsername)
 		uriRoot := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
-		identity := filepath.Join(sshDir, v.Name)
 
 		uris := []url.URL{uri, uriRoot}
 		names := []string{v.Name, v.Name + "-root"}
@@ -332,7 +330,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		}
 
 		for i := 0; i < 2; i++ {
-			if err := machine.AddConnection(&uris[i], names[i], identity, opts.IsDefault && i == 0); err != nil {
+			if err := machine.AddConnection(&uris[i], names[i], v.IdentityPath, opts.IsDefault && i == 0); err != nil {
 				return false, err
 			}
 		}
@@ -1047,7 +1045,7 @@ func (v *MachineVM) State(bypass bool) (machine.Status, error) {
 			logrus.Error(err)
 		}
 	}()
-	// If there is a monitor, lets see if we can query state
+	// If there is a monitor, let's see if we can query state
 	return v.checkStatus(monitor)
 }
 

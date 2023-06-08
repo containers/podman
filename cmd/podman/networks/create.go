@@ -17,10 +17,10 @@ import (
 )
 
 var (
-	networkCreateDescription = `create networks for containers and pods`
+	networkCreateDescription = `Create networks for containers and pods`
 	networkCreateCommand     = &cobra.Command{
 		Use:               "create [options] [NAME]",
-		Short:             "network create",
+		Short:             "Create networks for containers and pods",
 		Long:              networkCreateDescription,
 		RunE:              networkCreate,
 		Args:              cobra.MaximumNArgs(1),
@@ -85,7 +85,7 @@ func networkCreateFlags(cmd *cobra.Command) {
 
 	flags.BoolVar(&networkCreateOptions.IgnoreIfExists, "ignore", false, "Don't fail if network already exists")
 	dnsserverFlagName := "dns"
-	flags.StringArrayVar(&networkCreateOptions.NetworkDNSServers, dnsserverFlagName, nil, "DNS servers this network will use")
+	flags.StringSliceVar(&networkCreateOptions.NetworkDNSServers, dnsserverFlagName, nil, "DNS servers this network will use")
 	_ = cmd.RegisterFlagCompletionFunc(dnsserverFlagName, completion.AutocompleteNone)
 }
 func init() {

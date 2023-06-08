@@ -18,7 +18,7 @@ var (
 	initCmd = &cobra.Command{
 		Use:               "init [options] [NAME]",
 		Short:             "Initialize a virtual machine",
-		Long:              "initialize a virtual machine ",
+		Long:              "Initialize a virtual machine",
 		PersistentPreRunE: rootlessOnly,
 		RunE:              initMachine,
 		Args:              cobra.MaximumNArgs(1),

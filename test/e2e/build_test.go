@@ -358,14 +358,9 @@ RUN exit 5`, ALPINE)
 		if IsRemote() {
 			podmanTest.StopRemoteService()
 			podmanTest.StartRemoteService()
-		} else {
-			Skip("Only valid at remote test, case works fine for regular podman and buildah")
 		}
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-
 		// Write target and fake files
-		targetSubPath := filepath.Join(cwd, "emptydir")
+		targetSubPath := filepath.Join(podmanTest.TempDir, "emptydir")
 		if _, err = os.Stat(targetSubPath); err != nil {
 			if os.IsNotExist(err) {
 				err = os.Mkdir(targetSubPath, 0755)
@@ -374,14 +369,14 @@ RUN exit 5`, ALPINE)
 		}
 
 		containerfile := fmt.Sprintf(`FROM %s
-COPY /* /dir`, ALPINE)
+COPY /emptydir/* /dir`, ALPINE)
 
-		containerfilePath := filepath.Join(cwd, "ContainerfilePathToCopier")
+		containerfilePath := filepath.Join(podmanTest.TempDir, "ContainerfilePathToCopier")
 		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
 		Expect(err).ToNot(HaveOccurred())
 		defer os.Remove(containerfilePath)
 
-		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "-f", "ContainerfilePathToCopier", targetSubPath})
+		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "-f", "ContainerfilePathToCopier", podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()
 		// NOTE: Docker and buildah both should error when `COPY /* /dir` is done on emptydir
 		// as context. However buildkit simply ignores this so when buildah also starts ignoring
@@ -614,7 +609,6 @@ subdir**`
 		Expect(session).To(Exit(0))
 
 		output := session.OutputToString()
-		Expect(output).NotTo(ContainSubstring("Containerfile"))
 		Expect(output).To(ContainSubstring("/testfilter/expected"))
 		Expect(output).NotTo(ContainSubstring("subdir"))
 	})

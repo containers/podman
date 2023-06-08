@@ -3,7 +3,7 @@ module github.com/containers/podman/v4
 go 1.18
 
 require (
-	github.com/BurntSushi/toml v1.2.1
+	github.com/BurntSushi/toml v1.3.2
 	github.com/Microsoft/go-winio v0.6.1
 	github.com/blang/semver/v4 v4.0.0
 	github.com/buger/goterm v1.0.4
@@ -21,16 +21,16 @@ require (
 	github.com/containers/psgo v1.8.0
 	github.com/containers/storage v1.46.1
 	github.com/coreos/go-systemd/v22 v22.5.0
-	github.com/coreos/stream-metadata-go v0.4.1
-	github.com/crc-org/vfkit v0.0.5-0.20230427143911-8117c28876bc
+	github.com/coreos/stream-metadata-go v0.4.2
+	github.com/crc-org/vfkit v0.0.5-0.20230602131541-3d57f09010c9
 	github.com/cyphar/filepath-securejoin v0.2.3
 	github.com/digitalocean/go-qemu v0.0.0-20221209210016-f035778c97f7
-	github.com/docker/docker v23.0.6+incompatible
+	github.com/docker/docker v24.0.0+incompatible
 	github.com/docker/go-connections v0.4.1-0.20210727194412-58542c764a11
 	github.com/docker/go-plugins-helpers v0.0.0-20211224144127-6eecb7beb651
 	github.com/docker/go-units v0.5.0
 	github.com/fsnotify/fsnotify v1.6.0
-	github.com/godbus/dbus/v5 v5.1.1-0.20230502183206-6cc540df4ec5
+	github.com/godbus/dbus/v5 v5.1.1-0.20230522191255-76236955d466
 	github.com/google/gofuzz v1.2.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/uuid v1.3.0
@@ -40,11 +40,11 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/json-iterator/go v1.1.12
 	github.com/mattn/go-shellwords v1.0.12
-	github.com/mattn/go-sqlite3 v1.14.16
+	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/moby/term v0.5.0
 	github.com/nxadm/tail v1.4.8
-	github.com/onsi/ginkgo/v2 v2.9.5
-	github.com/onsi/gomega v1.27.6
+	github.com/onsi/ginkgo/v2 v2.9.7
+	github.com/onsi/gomega v1.27.8
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc3
 	github.com/opencontainers/runc v1.1.7
@@ -52,11 +52,11 @@ require (
 	github.com/opencontainers/runtime-tools v0.9.1-0.20230317050512-e931285f4b69
 	github.com/opencontainers/selinux v1.11.0
 	github.com/openshift/imagebuilder v1.2.5
-	github.com/rootless-containers/rootlesskit v1.1.0
-	github.com/sirupsen/logrus v1.9.0
+	github.com/rootless-containers/rootlesskit v1.1.1
+	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.8.3
+	github.com/stretchr/testify v1.8.4
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	github.com/ulikunitz/xz v0.5.11
 	github.com/vbauerster/mpb/v8 v8.4.0

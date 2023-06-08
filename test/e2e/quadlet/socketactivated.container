@@ -1,9 +1,0 @@
-## assert-podman-args --preserve-fds=1
-## assert-podman-args --env LISTEN_FDS=1
-## assert-podman-args --env LISTEN_PID=2
-## assert-key-is "Service" "Type" "notify"
-## assert-key-is "Service" "NotifyAccess" "all"
-
-[Container]
-Image=localhost/imagename
-SocketActivated=yes

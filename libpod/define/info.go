@@ -38,6 +38,7 @@ type HostInfo struct {
 	DatabaseBackend   string           `json:"databaseBackend"`
 	Distribution      DistributionInfo `json:"distribution"`
 	EventLogger       string           `json:"eventLogger"`
+	FreeLocks         *uint32          `json:"freeLocks,omitempty"`
 	Hostname          string           `json:"hostname"`
 	IDMappings        IDMappings       `json:"idMappings,omitempty"`
 	Kernel            string           `json:"kernel"`
@@ -54,10 +55,12 @@ type HostInfo struct {
 	ServiceIsRemote bool         `json:"serviceIsRemote"`
 	Security        SecurityInfo `json:"security"`
 	Slirp4NetNS     SlirpInfo    `json:"slirp4netns,omitempty"`
-	SwapFree        int64        `json:"swapFree"`
-	SwapTotal       int64        `json:"swapTotal"`
-	Uptime          string       `json:"uptime"`
-	Linkmode        string       `json:"linkmode"`
+	Pasta           PastaInfo    `json:"pasta,omitempty"`
+
+	SwapFree  int64  `json:"swapFree"`
+	SwapTotal int64  `json:"swapTotal"`
+	Uptime    string `json:"uptime"`
+	Linkmode  string `json:"linkmode"`
 }
 
 // RemoteSocket describes information about the API socket
@@ -68,6 +71,13 @@ type RemoteSocket struct {
 
 // SlirpInfo describes the slirp executable that is being used
 type SlirpInfo struct {
+	Executable string `json:"executable"`
+	Package    string `json:"package"`
+	Version    string `json:"version"`
+}
+
+// PastaInfo describes the pasta executable that is being used
+type PastaInfo struct {
 	Executable string `json:"executable"`
 	Package    string `json:"package"`
 	Version    string `json:"version"`

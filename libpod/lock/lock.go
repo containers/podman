@@ -45,6 +45,16 @@ type Manager interface {
 	// renumbering, where reasonable guarantees about other processes can be
 	// made.
 	FreeAllLocks() error
+	// NumAvailableLocks gets the number of remaining locks available to be
+	// allocated.
+	// Some lock managers do not have a maximum number of locks, and can
+	// allocate an unlimited number. These implementations should return
+	// a nil uin32.
+	AvailableLocks() (*uint32, error)
+	// Get a list of locks that are currently locked.
+	// This may not be supported by some drivers, depending on the exact
+	// backend implementation in use.
+	LocksHeld() ([]uint32, error)
 }
 
 // Locker is similar to sync.Locker, but provides a method for freeing the lock

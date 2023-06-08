@@ -101,7 +101,7 @@ func Debugf(format string, a ...interface{}) {
 // and /etc/containers/systemd (for sysadmin files).
 // For user generators these can live in /etc/containers/systemd/users, /etc/containers/systemd/users/$UID, and $XDG_CONFIG_HOME/containers/systemd
 func getUnitDirs(rootless bool) []string {
-	// Allow overdiding source dir, this is mainly for the CI tests
+	// Allow overriding source dir, this is mainly for the CI tests
 	unitDirsEnv := os.Getenv("QUADLET_UNIT_DIRS")
 
 	dirs := make([]string, 0)

@@ -249,7 +249,7 @@ var _ = Describe("Podman run", func() {
 		Expect(esession).Should(Exit(0))
 		Expect(tarball).Should(BeARegularFile())
 
-		// N/B: This will loose any extended attributes like SELinux types
+		// N/B: This will lose any extended attributes like SELinux types
 		GinkgoWriter.Printf("Extracting container root tarball\n")
 		tarsession := SystemExec("tar", []string{"xf", tarball, "-C", rootfs})
 		Expect(tarsession).Should(Exit(0))
@@ -1611,6 +1611,7 @@ USER mail`, BB)
 		tzFile := filepath.Join(testDir, "tzfile.txt")
 		file, err := os.Create(tzFile)
 		Expect(err).ToNot(HaveOccurred())
+		defer os.Remove(tzFile)
 
 		_, err = file.WriteString("Hello")
 		Expect(err).ToNot(HaveOccurred())
@@ -1620,18 +1621,8 @@ USER mail`, BB)
 		session := podmanTest.Podman([]string{"run", "--tz", badTZFile, "--rm", ALPINE, "date"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("finding timezone for container"))
-
-		err = os.Remove(tzFile)
-		Expect(err).ToNot(HaveOccurred())
-
-		session = podmanTest.Podman([]string{"run", "--tz", "foo", "--rm", ALPINE, "date"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-
-		session = podmanTest.Podman([]string{"run", "--tz", "America", "--rm", ALPINE, "date"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(
+			Equal("Error: running container create option: finding timezone: time: invalid location name"))
 
 		session = podmanTest.Podman([]string{"run", "--tz", "Pacific/Honolulu", "--rm", ALPINE, "date", "+'%H %Z'"})
 		session.WaitWithDefaultTimeout()

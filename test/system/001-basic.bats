@@ -239,6 +239,36 @@ run_podman --noout system connection ls
     is "$output" "" "output should be empty"
 }
 
+# Tests --noout to ensure that the output fd can be written to.
+@test "podman --noout is actually writing to /dev/null" {
+    skip_if_remote "unshare only works locally"
+    skip_if_not_rootless "unshare requires rootless"
+    run_podman --noout unshare ls
+    is "$output" "" "output should be empty"
+}
+
+@test "podman version --out writes matching version to a json" {
+    run_podman version
+
+    # copypasta from version check. we're doing this to extract the version.
+    if expr "${lines[0]}" : "Client: *" >/dev/null; then
+        lines=("${lines[@]:1}")
+    fi
+
+    # get the version number so that we have something to compare with.
+    IFS=: read version_key version_number <<<"${lines[0]}"
+    is "$version_key" "Version" "Version line"
+
+    # now we can output everything as some json. we can't use PODMAN_TMPDIR since basic_setup
+    # isn't being used in setup() due to being unable to trust podman-images or podman-rm.
+    outfile=$(mktemp -p ${BATS_TEST_TMPDIR} veroutXXXXXXXX)
+    run_podman --out $outfile version -f json
+
+    # extract the version from the file.
+    run jq -r --arg field "$version_key" '.Client | .[$field]' $outfile
+    is "$output" ${version_number} "Version matches"
+}
+
 @test "podman - shutdown engines" {
     run_podman --log-level=debug run --rm $IMAGE true
     is "$output" ".*Shutting down engines.*"

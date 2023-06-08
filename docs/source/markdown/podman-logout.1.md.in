@@ -1,7 +1,7 @@
 % podman-logout 1
 
 ## NAME
-podman\-logout - Logout of a container registry
+podman\-logout - Log out of a container registry
 
 ## SYNOPSIS
 **podman logout** [*options*] *registry*

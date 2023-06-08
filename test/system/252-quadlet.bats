@@ -91,6 +91,7 @@ function service_setup() {
     echo "$output"
     assert $status -eq 0 "Error starting systemd unit $service"
 
+    # FIXME FIXME FIXME: this is racy with short-lived containers!
     echo "$_LOG_PROMPT systemctl status $service"
     run systemctl status "$service"
     echo "$output"
@@ -439,8 +440,7 @@ EOF
     run_podman container inspect  --format "{{.State.Status}}" test_pod-test
     is "$output" "running" "container should be started by systemd and hence be running"
 
-    # The service is marked as failed as the service container exits non-zero.
-    service_cleanup $QUADLET_SERVICE_NAME failed
+    service_cleanup $QUADLET_SERVICE_NAME inactive
     run_podman rmi $(pause_image)
 }
 
@@ -636,6 +636,84 @@ EOF
     is "${output/* --userns keep-id:uid=200,gid=210 */found}" "found"
 
     service_cleanup $QUADLET_SERVICE_NAME failed
+}
+
+@test "quadlet - exit-code propagation" {
+   exit_tests="
+all  | true  | 0   | inactive
+all  | false | 137 | failed
+none | false | 0   | inactive
+"
+   while read exit_code_prop cmd exit_code service_state; do
+      local basename=propagate-${exit_code_prop}-${cmd}-$(random_string)
+      local quadlet_file=$PODMAN_TMPDIR/$basename.kube
+      local yaml_file=$PODMAN_TMPDIR/$basename.yaml
+
+      cat > $yaml_file <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test
+  name: test_pod
+spec:
+  restartPolicy: Never
+  containers:
+    - name: ctr
+      image: $IMAGE
+      command:
+      - $cmd
+EOF
+       cat > $quadlet_file <<EOF
+[Kube]
+Yaml=$yaml_file
+ExitCodePropagation=$exit_code_prop
+EOF
+
+      run_quadlet "$quadlet_file"
+      run systemctl status $QUADLET_SERVICE_NAME
+
+      yaml_sha=$(sha256sum $yaml_file)
+      service_container="${yaml_sha:0:12}-service"
+
+      service_setup $QUADLET_SERVICE_NAME
+
+      # Ensure we have output. Output is synced via sd-notify (socat in Exec)
+      run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
+      is "$output" '.*Started.*\.service.*'
+
+      # Opportunistic test: confirm that the Propagation field got set.
+      # This is racy, because the container is short-lived and quadlet
+      # cleans up on exit (via kube-down in ExecStopPost). So we use '?'
+      # and only check output if the inspect succeeds.
+      run_podman '?' container inspect --format '{{.KubeExitCodePropagation}}' $service_container
+      if [[ $status -eq 0 ]]; then
+          is "$output" "$exit_code_prop" \
+             "$basename: service container has the expected policy set in its annotations"
+      else
+          assert "$output" =~ "no such container $service_container" \
+                 "$basename: unexpected error from podman container inspect"
+      fi
+
+      # Container must stop of its own accord before we call service_cleanup(),
+      # otherwise the 'systemctl stop' there may affect the unit's status.
+      # Again, use '?' to handle the abovementioned race condition.
+      run_podman '?' wait $service_container
+      if [[ $status -eq 0 ]]; then
+          assert "$output" = "$exit_code" \
+                 "$basename: service container reflects expected exit code"
+      else
+          assert "$output" =~ "no container with name or ID" \
+                 "$basename: unexpected error from podman wait"
+      fi
+
+      # This is the actual propagation check
+      service_cleanup $QUADLET_SERVICE_NAME $service_state
+      run_podman ps -aq
+      is "$output" "" "all containers are cleaned up even in case of errors"
+   done < <(parse_table "$exit_tests")
+
+   run_podman rmi $(pause_image)
 }
 
 # vim: filetype=sh

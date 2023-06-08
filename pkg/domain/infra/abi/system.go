@@ -429,3 +429,14 @@ func (ic ContainerEngine) Version(ctx context.Context) (*entities.SystemVersionR
 	report.Client = &v
 	return &report, err
 }
+
+func (ic ContainerEngine) Locks(ctx context.Context) (*entities.LocksReport, error) {
+	var report entities.LocksReport
+	conflicts, held, err := ic.Libpod.LockConflicts()
+	if err != nil {
+		return nil, err
+	}
+	report.LockConflicts = conflicts
+	report.LocksHeld = held
+	return &report, nil
+}

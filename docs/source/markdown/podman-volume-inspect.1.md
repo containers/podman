@@ -33,6 +33,7 @@ Valid placeholders for the Go template are listed below:
 | .Driver             | Volume driver                                          |
 | .GID                | GID the volume was created with                        |
 | .Labels             | Label information associated with the volume           |
+| .LockNumber         | Number of the volume's Libpod lock                     |
 | .MountCount         | Number of times the volume is mounted                  |
 | .Mountpoint         | Source of volume mount point                           |
 | .Name               | Volume name                                            |
