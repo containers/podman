@@ -11,13 +11,12 @@ import (
 	"github.com/BurntSushi/toml/internal"
 )
 
-var tomlNext bool
-
 type parser struct {
 	lx         *lexer
 	context    Key      // Full key for the current hash in scope.
 	currentKey string   // Base key name for everything except hashes.
 	pos        Position // Current position in the TOML file.
+	tomlNext   bool
 
 	ordered []Key // List of keys in the order that they appear in the TOML data.
 
@@ -32,8 +31,7 @@ type keyInfo struct {
 }
 
 func parse(data string) (p *parser, err error) {
-	_, ok := os.LookupEnv("BURNTSUSHI_TOML_110")
-	tomlNext = ok
+	_, tomlNext := os.LookupEnv("BURNTSUSHI_TOML_110")
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -74,9 +72,10 @@ func parse(data string) (p *parser, err error) {
 	p = &parser{
 		keyInfo:   make(map[string]keyInfo),
 		mapping:   make(map[string]interface{}),
-		lx:        lex(data),
+		lx:        lex(data, tomlNext),
 		ordered:   make([]Key, 0),
 		implicits: make(map[string]struct{}),
+		tomlNext:  tomlNext,
 	}
 	for {
 		item := p.next()
@@ -361,7 +360,7 @@ func (p *parser) valueDatetime(it item) (interface{}, tomlType) {
 		err error
 	)
 	for _, dt := range dtTypes {
-		if dt.next && !tomlNext {
+		if dt.next && !p.tomlNext {
 			continue
 		}
 		t, err = time.ParseInLocation(dt.fmt, it.val, dt.zone)
@@ -764,7 +763,7 @@ func (p *parser) replaceEscapes(it item, str string) string {
 			replaced = append(replaced, rune(0x000D))
 			r += 1
 		case 'e':
-			if tomlNext {
+			if p.tomlNext {
 				replaced = append(replaced, rune(0x001B))
 				r += 1
 			}
@@ -775,7 +774,7 @@ func (p *parser) replaceEscapes(it item, str string) string {
 			replaced = append(replaced, rune(0x005C))
 			r += 1
 		case 'x':
-			if tomlNext {
+			if p.tomlNext {
 				escaped := p.asciiEscapeToUnicode(it, s[r+1:r+3])
 				replaced = append(replaced, escaped)
 				r += 3
