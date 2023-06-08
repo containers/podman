@@ -21,7 +21,7 @@
 ###
 
 # Default shell `/bin/sh` has different meanings depending on the platform.
-SHELL := /bin/bash
+SHELL := $(shell command -v bash)
 GO ?= go
 GO_LDFLAGS:= $(shell if $(GO) version|grep -q gccgo ; then echo "-gccgoflags"; else echo "-ldflags"; fi)
 GOCMD = CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO)
@@ -57,11 +57,6 @@ BUILDTAGS ?= \
 	$(shell hack/libsubid_tag.sh) \
 	exclude_graphdriver_devicemapper \
 	seccomp
-ifeq ($(shell uname -s),FreeBSD)
-# Use bash for make's shell function - the default shell on FreeBSD
-# has a command builtin is not compatible with the way its used below
-SHELL := $(shell command -v bash)
-endif
 PYTHON ?= $(shell command -v python3 python|head -n1)
 PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
 # ~/.local/bin is not in PATH on all systems
