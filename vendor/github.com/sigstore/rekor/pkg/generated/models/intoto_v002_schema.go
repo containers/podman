@@ -450,25 +450,25 @@ type IntotoV002SchemaContentEnvelopeSignaturesItems0 struct {
 	Keyid string `json:"keyid,omitempty"`
 
 	// public key that corresponds to this signature
-	// Read Only: true
+	// Required: true
 	// Format: byte
-	PublicKey strfmt.Base64 `json:"publicKey,omitempty"`
+	PublicKey *strfmt.Base64 `json:"publicKey"`
 
 	// signature of the payload
+	// Required: true
 	// Format: byte
-	Sig strfmt.Base64 `json:"sig,omitempty"`
+	Sig *strfmt.Base64 `json:"sig"`
 }
 
 // Validate validates this intoto v002 schema content envelope signatures items0
 func (m *IntotoV002SchemaContentEnvelopeSignaturesItems0) Validate(formats strfmt.Registry) error {
-	return nil
-}
-
-// ContextValidate validate this intoto v002 schema content envelope signatures items0 based on the context it is used
-func (m *IntotoV002SchemaContentEnvelopeSignaturesItems0) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.contextValidatePublicKey(ctx, formats); err != nil {
+	if err := m.validatePublicKey(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateSig(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -478,12 +478,26 @@ func (m *IntotoV002SchemaContentEnvelopeSignaturesItems0) ContextValidate(ctx co
 	return nil
 }
 
-func (m *IntotoV002SchemaContentEnvelopeSignaturesItems0) contextValidatePublicKey(ctx context.Context, formats strfmt.Registry) error {
+func (m *IntotoV002SchemaContentEnvelopeSignaturesItems0) validatePublicKey(formats strfmt.Registry) error {
 
-	if err := validate.ReadOnly(ctx, "publicKey", "body", strfmt.Base64(m.PublicKey)); err != nil {
+	if err := validate.Required("publicKey", "body", m.PublicKey); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func (m *IntotoV002SchemaContentEnvelopeSignaturesItems0) validateSig(formats strfmt.Registry) error {
+
+	if err := validate.Required("sig", "body", m.Sig); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validates this intoto v002 schema content envelope signatures items0 based on context it is used
+func (m *IntotoV002SchemaContentEnvelopeSignaturesItems0) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

@@ -2,6 +2,32 @@
 
 ## HEAD
 
+## v.1.5.2
+
+* Recommended go version for development: 1.19
+  * This is the version used by the cloudbuild presubmits. Using a
+    different version can lead to presubmits failing due to unexpected
+    diffs.
+
+### Storage
+
+#### CloudSpanner
+
+* Removed use of the `--cloudspanner_write_sessions` flag.
+  This was related to preparing some fraction of CloudSpanner sessionpool entries with
+  Read/Write transactions, however this functionality is no longer supported by the client
+  library.
+
+### Repo config
+* Enable all lint checks in trillian repo by @mhutchinson in https://github.com/google/trillian/pull/2979
+
+### Dependency updates
+
+* Bump contrib.go.opencensus.io/exporter/stackdriver from 0.13.12 to 0.13.14 by @samuelattwood in https://github.com/google/trillian/pull/2950
+* Bump Go version from 1.17 to 1.19.
+* Updated golangci-lint to v1.51.1 (developers should update to this version)
+* Update transparency-dev/merkle to v0.0.2
+
 ## v1.5.1
 
 ### Storage
@@ -10,6 +36,7 @@
   with support provided by Equinix Metal.
 
 ### Misc
+
 * Fix log server not exiting properly on SIGINT
 
 ### Dependency updates

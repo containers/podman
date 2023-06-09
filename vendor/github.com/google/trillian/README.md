@@ -73,7 +73,7 @@ The current state of feature implementation is recorded in the
 
 To build and test Trillian you need:
 
- - Go 1.17 or later (go 1.17 matches cloudbuild, and is preferred for developers
+ - Go 1.19 or later (go 1.19 matches cloudbuild, and is preferred for developers
    that will be submitting PRs to this project).
 
 To run many of the tests (and production deployment) you need:
@@ -193,7 +193,6 @@ go generate -x ./...  # hunts for //go:generate comments and runs them
 The Trillian codebase uses go.mod to declare fixed versions of its dependencies. 
 With Go modules, updating a dependency simply involves running `go get`:
 ```
-export GO111MODULE=on
 go get package/path       # Fetch the latest published version
 go get package/path@X.Y.Z # Fetch a specific published version
 go get package/path@HEAD  # Fetch the latest commit 
@@ -215,7 +214,7 @@ and tests over the codebase.
 
 #### Install [golangci-lint](https://github.com/golangci/golangci-lint#local-installation).
 ```bash
-go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.47.3
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.1
 ```
 
 #### Run code generation, build, test and linters
