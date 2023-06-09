@@ -153,8 +153,7 @@ func (overlayWhiteoutConverter) ConvertReadWithHandler(hdr *tar.Header, path str
 	return true, nil
 }
 
-type directHandler struct {
-}
+type directHandler struct{}
 
 func (d directHandler) Setxattr(path, name string, value []byte) error {
 	return unix.Setxattr(path, name, value, 0)
@@ -185,7 +184,7 @@ func GetFileOwner(path string) (uint32, uint32, uint32, error) {
 	}
 	s, ok := f.Sys().(*syscall.Stat_t)
 	if ok {
-		return s.Uid, s.Gid, s.Mode & 07777, nil
+		return s.Uid, s.Gid, s.Mode & 0o7777, nil
 	}
 	return 0, 0, uint32(f.Mode()), nil
 }

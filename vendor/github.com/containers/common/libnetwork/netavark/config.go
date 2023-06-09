@@ -198,6 +198,13 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 				if err != nil {
 					return nil, err
 				}
+			case types.NoDefaultRoute:
+				val, err := strconv.ParseBool(value)
+				if err != nil {
+					return nil, err
+				}
+				// rust only support "true" or "false" while go can parse 1 and 0 as well so we need to change it
+				newNetwork.Options[types.NoDefaultRoute] = strconv.FormatBool(val)
 
 			default:
 				return nil, fmt.Errorf("unsupported bridge network option %s", key)
@@ -233,6 +240,12 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 	// add gateway when not internal or dns enabled
 	addGateway := !newNetwork.Internal || newNetwork.DNSEnabled
 	err = internalutil.ValidateSubnets(newNetwork, addGateway, usedNetworks)
+	if err != nil {
+		return nil, err
+	}
+
+	//validate routes
+	err = internalutil.ValidateRoutes(newNetwork.Routes)
 	if err != nil {
 		return nil, err
 	}
@@ -317,6 +330,24 @@ func createIpvlanOrMacvlan(network *types.Network) error {
 			if err != nil {
 				return err
 			}
+		case types.NoDefaultRoute:
+			val, err := strconv.ParseBool(value)
+			if err != nil {
+				return err
+			}
+			// rust only support "true" or "false" while go can parse 1 and 0 as well so we need to change it
+			network.Options[types.NoDefaultRoute] = strconv.FormatBool(val)
+		case types.BclimOption:
+			if isMacVlan {
+				_, err := strconv.ParseInt(value, 10, 32)
+				if err != nil {
+					return fmt.Errorf("failed to parse %q option: %w", key, err)
+				}
+				// do not fallthrough for macvlan
+				break
+			}
+			// bclim is only valid for macvlan not ipvlan so fallthrough to error case
+			fallthrough
 		default:
 			return fmt.Errorf("unsupported %s network option %s", driver, key)
 		}

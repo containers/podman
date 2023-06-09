@@ -124,7 +124,7 @@ type DeviceSet struct {
 	deletionWorkerTicker  *time.Ticker
 	uidMaps               []idtools.IDMap
 	gidMaps               []idtools.IDMap
-	minFreeSpacePercent   uint32 //min free space percentage in thinpool
+	minFreeSpacePercent   uint32 // min free space percentage in thinpool
 	xfsNospaceRetries     string // max retries when xfs receives ENOSPC
 	lvmSetupConfig        directLVMConfig
 }
@@ -273,7 +273,7 @@ func (devices *DeviceSet) ensureImage(name string, size int64) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := idtools.MkdirAllAs(dirname, 0700, uid, gid); err != nil {
+	if err := idtools.MkdirAllAs(dirname, 0o700, uid, gid); err != nil {
 		return "", err
 	}
 
@@ -282,7 +282,7 @@ func (devices *DeviceSet) ensureImage(name string, size int64) (string, error) {
 			return "", err
 		}
 		logrus.Debugf("devmapper: Creating loopback file %s for device-manage use", filename)
-		file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0600)
+		file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0o600)
 		if err != nil {
 			return "", err
 		}
@@ -293,7 +293,7 @@ func (devices *DeviceSet) ensureImage(name string, size int64) (string, error) {
 		}
 	} else {
 		if fi.Size() < size {
-			file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0600)
+			file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0o600)
 			if err != nil {
 				return "", err
 			}
@@ -421,7 +421,6 @@ func (devices *DeviceSet) constructDeviceIDMap() {
 }
 
 func (devices *DeviceSet) deviceFileWalkFunction(path string, name string) error {
-
 	// Skip some of the meta files which are not device files.
 	if strings.HasSuffix(name, ".migrated") {
 		logrus.Debugf("devmapper: Skipping file %s", path)
@@ -458,7 +457,7 @@ func (devices *DeviceSet) loadDeviceFilesOnStart() error {
 	logrus.Debug("devmapper: loadDeviceFilesOnStart()")
 	defer logrus.Debug("devmapper: loadDeviceFilesOnStart() END")
 
-	var scan = func(path string, d fs.DirEntry, err error) error {
+	scan := func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			logrus.Debugf("devmapper: Can't walk the file %s: %v", path, err)
 			return nil
@@ -1001,6 +1000,10 @@ func (devices *DeviceSet) verifyBaseDeviceUUIDFS(baseInfo *devInfo) error {
 	devices.Lock()
 	defer devices.Unlock()
 
+	if devices.filesystem == "" {
+		devices.filesystem = determineDefaultFS()
+	}
+
 	if err := devices.activateDeviceIfNeeded(baseInfo, false); err != nil {
 		return err
 	}
@@ -1152,7 +1155,6 @@ func (devices *DeviceSet) setupVerifyBaseImageUUIDFS(baseInfo *devInfo) error {
 }
 
 func (devices *DeviceSet) checkGrowBaseDeviceFS(info *devInfo) error {
-
 	if !userBaseSize {
 		return nil
 	}
@@ -1191,7 +1193,7 @@ func (devices *DeviceSet) growFS(info *devInfo) error {
 
 	fsMountPoint := "/run/containers/storage/mnt"
 	if _, err := os.Stat(fsMountPoint); os.IsNotExist(err) {
-		if err := os.MkdirAll(fsMountPoint, 0700); err != nil {
+		if err := os.MkdirAll(fsMountPoint, 0o700); err != nil {
 			return err
 		}
 		defer os.RemoveAll(fsMountPoint)
@@ -1657,7 +1659,6 @@ func (devices *DeviceSet) loadThinPoolLoopBackInfo() error {
 }
 
 func (devices *DeviceSet) enableDeferredRemovalDeletion() error {
-
 	// If user asked for deferred removal then check both libdm library
 	// and kernel driver support deferred removal otherwise error out.
 	if enableDeferredRemoval {
@@ -1695,16 +1696,19 @@ func (devices *DeviceSet) initDevmapper(doInit bool) (retErr error) {
 		}
 	}
 
-	//create the root dir of the devmapper driver ownership to match this
-	//daemon's remapped root uid/gid so containers can start properly
+	// create the root dir of the devmapper driver ownership to match this
+	// daemon's remapped root uid/gid so containers can start properly
 	uid, gid, err := idtools.GetRootUIDGID(devices.uidMaps, devices.gidMaps)
 	if err != nil {
 		return err
 	}
-	if err := idtools.MkdirAs(devices.root, 0700, uid, gid); err != nil {
+	if err := idtools.MkdirAs(devices.root, 0o700, uid, gid); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(devices.metadataDir(), 0700); err != nil {
+	if err := os.MkdirAll(devices.metadataDir(), 0o700); err != nil {
+		return err
+	}
+	if err := idtools.MkdirAs(filepath.Join(devices.root, "mnt"), 0o700, uid, gid); err != nil && !errors.Is(err, os.ErrExist) {
 		return err
 	}
 
@@ -1811,7 +1815,7 @@ func (devices *DeviceSet) initDevmapper(doInit bool) (retErr error) {
 			devices.dataLoopFile = data
 			devices.dataDevice = dataFile.Name()
 		} else {
-			dataFile, err = os.OpenFile(devices.dataDevice, os.O_RDWR, 0600)
+			dataFile, err = os.OpenFile(devices.dataDevice, os.O_RDWR, 0o600)
 			if err != nil {
 				return err
 			}
@@ -1844,7 +1848,7 @@ func (devices *DeviceSet) initDevmapper(doInit bool) (retErr error) {
 			devices.metadataLoopFile = metadata
 			devices.metadataDevice = metadataFile.Name()
 		} else {
-			metadataFile, err = os.OpenFile(devices.metadataDevice, os.O_RDWR, 0600)
+			metadataFile, err = os.OpenFile(devices.metadataDevice, os.O_RDWR, 0o600)
 			if err != nil {
 				return err
 			}
@@ -1966,7 +1970,6 @@ func (devices *DeviceSet) AddDevice(hash, baseHash string, storageOpt map[string
 }
 
 func (devices *DeviceSet) parseStorageOpt(storageOpt map[string]string) (uint64, error) {
-
 	// Read size to change the block device size per container.
 	for key, val := range storageOpt {
 		key := strings.ToLower(key)
@@ -2317,7 +2320,7 @@ func (devices *DeviceSet) Shutdown(home string) error {
 		info.lock.Lock()
 		devices.Lock()
 		if err := devices.deactivateDevice(info); err != nil {
-			logrus.Debugf("devmapper: Shutdown deactivate base , error: %s", err)
+			logrus.Debugf("devmapper: Shutdown deactivate base, error: %s", err)
 		}
 		devices.Unlock()
 		info.lock.Unlock()
@@ -2326,7 +2329,7 @@ func (devices *DeviceSet) Shutdown(home string) error {
 	devices.Lock()
 	if devices.thinPoolDevice == "" {
 		if err := devices.deactivatePool(); err != nil {
-			logrus.Debugf("devmapper: Shutdown deactivate pool , error: %s", err)
+			logrus.Debugf("devmapper: Shutdown deactivate pool, error: %s", err)
 		}
 	}
 	devices.Unlock()
@@ -2483,6 +2486,26 @@ func (devices *DeviceSet) List() []string {
 	return ids
 }
 
+// ListLayers returns a list of device IDs, omitting the ""/"base" device and
+// any which have been marked as deleted.
+func (devices *DeviceSet) ListLayers() ([]string, error) {
+	if err := devices.cleanupDeletedDevices(); err != nil {
+		return nil, err
+	}
+
+	devices.Lock()
+	defer devices.Unlock()
+
+	ids := make([]string, 0, len(devices.Devices))
+	for k, d := range devices.Devices {
+		if k == "" || d.Deleted {
+			continue
+		}
+		ids = append(ids, k)
+	}
+	return ids, nil
+}
+
 func (devices *DeviceSet) deviceStatus(devName string) (sizeInSectors, mappedSectors, highestMappedSector uint64, err error) {
 	var params string
 	_, sizeInSectors, _, params, err = devicemapper.GetStatus(devName)
@@ -2520,7 +2543,6 @@ func (devices *DeviceSet) GetDeviceStatus(hash string) (*DevStatus, error) {
 	}
 
 	sizeInSectors, mappedSectors, highestMappedSector, err := devices.deviceStatus(info.DevName())
-
 	if err != nil {
 		return nil, err
 	}

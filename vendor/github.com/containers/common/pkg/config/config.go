@@ -584,6 +584,10 @@ type NetworkConfig struct {
 	// are always assigned randomly.
 	DefaultSubnetPools []SubnetPool `toml:"default_subnet_pools,omitempty"`
 
+	// DefaultRootlessNetworkCmd is used to set the default rootless network
+	// program, either "slirp4nents" (default) or "pasta".
+	DefaultRootlessNetworkCmd string `toml:"default_rootless_network_cmd,omitempty"`
+
 	// NetworkConfigDir is where network configuration files are stored.
 	NetworkConfigDir string `toml:"network_config_dir,omitempty"`
 
@@ -591,6 +595,10 @@ type NetworkConfig struct {
 	// for netavark rootful bridges with dns enabled. This can be necessary
 	// when other dns forwarders run on the machine. 53 is used if unset.
 	DNSBindPort uint16 `toml:"dns_bind_port,omitempty,omitzero"`
+
+	// PastaOptions contains a default list of pasta(1) options that should
+	// be used when running pasta.
+	PastaOptions []string `toml:"pasta_options,omitempty"`
 }
 
 type SubnetPool struct {

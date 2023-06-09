@@ -11,7 +11,7 @@ import (
 // of apps that want to use global regex variables. This library initializes them on
 // first use as opposed to the start of the executable.
 type Regexp struct {
-	once   sync.Once
+	once   *sync.Once
 	regexp *regexp.Regexp
 	val    string
 }
@@ -22,7 +22,10 @@ func Delayed(val string) Regexp {
 	}
 	if precompile {
 		re.regexp = regexp.MustCompile(re.val)
+	} else {
+		re.once = &sync.Once{}
 	}
+
 	return re
 }
 
@@ -44,6 +47,7 @@ func (re *Regexp) ExpandString(dst []byte, template string, src string, match []
 	re.compile()
 	return re.regexp.ExpandString(dst, template, src, match)
 }
+
 func (re *Regexp) Find(b []byte) []byte {
 	re.compile()
 	return re.regexp.Find(b)
@@ -153,6 +157,7 @@ func (re *Regexp) MatchReader(r io.RuneReader) bool {
 	re.compile()
 	return re.regexp.MatchReader(r)
 }
+
 func (re *Regexp) MatchString(s string) bool {
 	re.compile()
 	return re.regexp.MatchString(s)

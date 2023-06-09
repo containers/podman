@@ -397,5 +397,4 @@ func overlayDeletedFile(layers []string, root, path string, fi os.FileInfo) (str
 
 	// We didn't find the same path in any older layers, so it was new in this one.
 	return "", nil
-
 }

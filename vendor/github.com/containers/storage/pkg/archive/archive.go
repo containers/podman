@@ -132,13 +132,13 @@ const (
 )
 
 const (
-	modeISDIR  = 040000  // Directory
-	modeISFIFO = 010000  // FIFO
-	modeISREG  = 0100000 // Regular file
-	modeISLNK  = 0120000 // Symbolic link
-	modeISBLK  = 060000  // Block special file
-	modeISCHR  = 020000  // Character special file
-	modeISSOCK = 0140000 // Socket
+	modeISDIR  = 0o40000  // Directory
+	modeISFIFO = 0o10000  // FIFO
+	modeISREG  = 0o100000 // Regular file
+	modeISLNK  = 0o120000 // Symbolic link
+	modeISBLK  = 0o60000  // Block special file
+	modeISCHR  = 0o20000  // Character special file
+	modeISSOCK = 0o140000 // Socket
 )
 
 // IsArchivePath checks if the (possibly compressed) file at the given path
@@ -328,7 +328,6 @@ func ReplaceFileTarWrapper(inputTarStream io.ReadCloser, mods map[string]TarModi
 		}
 
 		pipeWriter.Close()
-
 	}()
 	return pipeReader
 }
@@ -552,9 +551,9 @@ func (ta *tarAppender) addTarFile(path, name string) error {
 		}
 	}
 
-	//handle re-mapping container ID mappings back to host ID mappings before
-	//writing tar headers/files. We skip whiteout files because they were written
-	//by the kernel and already have proper ownership relative to the host
+	// handle re-mapping container ID mappings back to host ID mappings before
+	// writing tar headers/files. We skip whiteout files because they were written
+	// by the kernel and already have proper ownership relative to the host
 	if !strings.HasPrefix(filepath.Base(hdr.Name), WhiteoutPrefix) && !ta.IDMappings.Empty() {
 		fileIDPair, err := getFileUIDGID(fi.Sys())
 		if err != nil {
@@ -702,7 +701,7 @@ func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, L
 	}
 
 	if forceMask != nil && (hdr.Typeflag != tar.TypeSymlink || runtime.GOOS == "darwin") {
-		value := fmt.Sprintf("%d:%d:0%o", hdr.Uid, hdr.Gid, hdrInfo.Mode()&07777)
+		value := fmt.Sprintf("%d:%d:0%o", hdr.Uid, hdr.Gid, hdrInfo.Mode()&0o7777)
 		if err := system.Lsetxattr(path, idtools.ContainersOverrideXattr, []byte(value), 0); err != nil {
 			return err
 		}
@@ -800,7 +799,6 @@ func Tar(path string, compression Compression) (io.ReadCloser, error) {
 // TarWithOptions creates an archive from the directory at `path`, only including files whose relative
 // paths are included in `options.IncludeFiles` (if non-nil) or not in `options.ExcludePatterns`.
 func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) {
-
 	// Fix the source path to work with long path names. This is a no-op
 	// on platforms other than Windows.
 	srcPath = fixVolumePathPrefix(srcPath)
@@ -1032,7 +1030,7 @@ loop:
 			parent := filepath.Dir(hdr.Name)
 			parentPath := filepath.Join(dest, parent)
 			if _, err := os.Lstat(parentPath); err != nil && os.IsNotExist(err) {
-				err = idtools.MkdirAllAndChownNew(parentPath, 0777, rootIDs)
+				err = idtools.MkdirAllAndChownNew(parentPath, 0o777, rootIDs)
 				if err != nil {
 					return err
 				}
@@ -1239,7 +1237,7 @@ func (archiver *Archiver) CopyWithTar(src, dst string) error {
 	}
 	// Create dst, copy src's content into it
 	logrus.Debugf("Creating dest directory: %s", dst)
-	if err := idtools.MkdirAllAndChownNew(dst, 0755, rootIDs); err != nil {
+	if err := idtools.MkdirAllAndChownNew(dst, 0o755, rootIDs); err != nil {
 		return err
 	}
 	logrus.Debugf("Calling TarUntar(%s, %s)", src, dst)
@@ -1266,7 +1264,7 @@ func (archiver *Archiver) CopyFileWithTar(src, dst string) (err error) {
 		dst = filepath.Join(dst, filepath.Base(src))
 	}
 	// Create the holding directory if necessary
-	if err := os.MkdirAll(filepath.Dir(dst), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dst), 0o700); err != nil {
 		return err
 	}
 
@@ -1422,7 +1420,7 @@ func IsArchive(header []byte) bool {
 	if compression != Uncompressed {
 		return true
 	}
-	r := tar.NewReader(bytes.NewBuffer(header))
+	r := tar.NewReader(bytes.NewReader(header))
 	_, err := r.Next()
 	return err == nil
 }

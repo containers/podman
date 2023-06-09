@@ -64,7 +64,7 @@ var (
 	enableDirperm     bool
 )
 
-const defaultPerms = os.FileMode(0555)
+const defaultPerms = os.FileMode(0o555)
 
 func init() {
 	graphdriver.MustRegister("aufs", Init)
@@ -87,11 +87,9 @@ type Driver struct {
 // Init returns a new AUFS driver.
 // An error is returned if AUFS is not supported.
 func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) {
-
 	// Try to load the aufs kernel module
 	if err := supportsAufs(); err != nil {
 		return nil, fmt.Errorf("kernel does not support aufs: %w", graphdriver.ErrNotSupported)
-
 	}
 
 	fsMagic, err := graphdriver.GetFSMagic(home)
@@ -145,7 +143,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 	// Create the root aufs driver dir and return
 	// if it already exists
 	// If not populate the dir structure
-	if err := idtools.MkdirAllAs(home, 0700, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAllAs(home, 0o700, rootUID, rootGID); err != nil {
 		if os.IsExist(err) {
 			return a, nil
 		}
@@ -158,7 +156,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 
 	// Populate the dir structure
 	for _, p := range paths {
-		if err := idtools.MkdirAllAs(path.Join(home, p), 0700, rootUID, rootGID); err != nil {
+		if err := idtools.MkdirAllAs(path.Join(home, p), 0o700, rootUID, rootGID); err != nil {
 			return nil, err
 		}
 	}
@@ -251,9 +249,21 @@ func (a *Driver) Exists(id string) bool {
 	return true
 }
 
-// List layers (not including additional image stores)
+// ListLayers() returns all of the layers known to the driver.
 func (a *Driver) ListLayers() ([]string, error) {
-	return nil, graphdriver.ErrNotSupported
+	diffsDir := filepath.Join(a.rootPath(), "diff")
+	entries, err := os.ReadDir(diffsDir)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		results = append(results, entry.Name())
+	}
+	return results, nil
 }
 
 // AdditionalImageStores returns additional image stores supported by the driver
@@ -278,7 +288,6 @@ func (a *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts
 // Create three folders for each id
 // mnt, layers, and diff
 func (a *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
-
 	if opts != nil && len(opts.StorageOpt) != 0 {
 		return fmt.Errorf("--storage-opt is not supported for aufs")
 	}

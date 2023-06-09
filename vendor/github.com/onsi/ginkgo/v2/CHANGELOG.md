@@ -1,3 +1,15 @@
+## 2.10.0
+
+### Features
+- feat(ginkgo/generators): add --tags flag (#1216) [a782a77]
+  adds a new --tags flag to ginkgo generate
+
+### Fixes
+- Fix broken link of MIGRATING_TO_V2.md (#1217) [548d78e]
+
+### Maintenance
+- Bump golang.org/x/tools from 0.9.1 to 0.9.3 (#1215) [2b76a5e]
+
 ## 2.9.7
 
 ### Fixes

@@ -11,6 +11,7 @@ package copy
 #endif
 */
 import "C"
+
 import (
 	"container/list"
 	"errors"

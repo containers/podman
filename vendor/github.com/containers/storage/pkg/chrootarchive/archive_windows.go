@@ -14,7 +14,8 @@ func chroot(path string) error {
 
 func invokeUnpack(decompressedArchive io.Reader,
 	dest string,
-	options *archive.TarOptions, root string) error {
+	options *archive.TarOptions, root string,
+) error {
 	// Windows is different to Linux here because Windows does not support
 	// chroot. Hence there is no point sandboxing a chrooted process to
 	// do the unpack. We call inline instead within the daemon process.

@@ -98,7 +98,7 @@ func parseFileFlags(fflags string) (uint32, uint32, error) {
 }
 
 func formatFileFlags(fflags uint32) (string, error) {
-	var res = []string{}
+	res := []string{}
 	for fflags != 0 {
 		// Extract lowest set bit
 		fflag := uint32(1) << bits.TrailingZeros32(fflags)

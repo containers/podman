@@ -14,11 +14,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	// ApplyUncompressedLayer defines the unpack method used by the graph
-	// driver.
-	ApplyUncompressedLayer = chrootarchive.ApplyUncompressedLayer
-)
+// ApplyUncompressedLayer defines the unpack method used by the graph
+// driver.
+var ApplyUncompressedLayer = chrootarchive.ApplyUncompressedLayer
 
 // NaiveDiffDriver takes a ProtoDriver and adds the
 // capability of the Diffing methods which it may or may not
@@ -173,7 +171,7 @@ func (gdw *NaiveDiffDriver) ApplyDiff(id, parent string, options ApplyDiffOpts) 
 	}
 	defer driverPut(driver, id, &err)
 
-	defaultForceMask := os.FileMode(0700)
+	defaultForceMask := os.FileMode(0o700)
 	var forceMask *os.FileMode // = nil
 	if runtime.GOOS == "darwin" {
 		forceMask = &defaultForceMask

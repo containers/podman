@@ -48,8 +48,10 @@ type layersCache struct {
 	created time.Time
 }
 
-var cacheMutex sync.Mutex
-var cache *layersCache
+var (
+	cacheMutex sync.Mutex
+	cache      *layersCache
+)
 
 func (c *layersCache) release() {
 	cacheMutex.Lock()

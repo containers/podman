@@ -17,6 +17,7 @@ import (
 	"github.com/containernetworking/cni/libcni"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
+	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/sirupsen/logrus"
@@ -293,6 +294,43 @@ func (n *cniNetwork) Len() int {
 // DefaultInterfaceName return the default cni bridge name, must be suffixed with a number.
 func (n *cniNetwork) DefaultInterfaceName() string {
 	return cniDeviceName
+}
+
+// NetworkInfo return the network information about binary path,
+// package version and program version.
+func (n *cniNetwork) NetworkInfo() types.NetworkInfo {
+	path := ""
+	packageVersion := ""
+	for _, p := range n.cniPluginDirs {
+		ver := cutil.PackageVersion(p)
+		if ver != cutil.UnknownPackage {
+			path = p
+			packageVersion = ver
+			break
+		}
+	}
+
+	info := types.NetworkInfo{
+		Backend: types.CNI,
+		Package: packageVersion,
+		Path:    path,
+	}
+
+	dnsPath := filepath.Join(path, "dnsname")
+	dnsPackage := cutil.PackageVersion(dnsPath)
+	dnsProgram, err := cutil.ProgramVersionDnsname(dnsPath)
+	if err != nil {
+		logrus.Infof("Failed to get the dnsname plugin version: %v", err)
+	}
+	if _, err := os.Stat(dnsPath); err == nil {
+		info.DNS = types.DNSNetworkInfo{
+			Path:    dnsPath,
+			Package: dnsPackage,
+			Version: dnsProgram,
+		}
+	}
+
+	return info
 }
 
 func (n *cniNetwork) Network(nameOrID string) (*types.Network, error) {
