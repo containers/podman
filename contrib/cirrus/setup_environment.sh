@@ -100,6 +100,21 @@ esac
 # shellcheck disable=SC2154
 printf "[engine]\ndatabase_backend=\"$CI_DESIRED_DATABASE\"\n" > /etc/containers/containers.conf.d/92-db.conf
 
+# For debian envs pre-configure storage driver as overlay.
+# See: Discussion here https://github.com/containers/podman/pull/18510#discussion_r1189812306
+# for more details.
+# TODO: remove this once all CI VM have newer buildah version. (i.e where buildah
+# does not defaults to using `vfs` as storage driver)
+# shellcheck disable=SC2154
+if [[ "$OS_RELEASE_ID" == "debian" ]]; then
+    conf=/etc/containers/storage.conf
+    if [[ -e $conf ]]; then
+        die "FATAL! INTERNAL ERROR! Cannot override $conf"
+    fi
+    msg "Overriding $conf, setting overlay (was: $buildah_storage)"
+    printf '[storage]\ndriver = "overlay"\nrunroot = "/run/containers/storage"\ngraphroot = "/var/lib/containers/storage"\n' >$conf
+fi
+
 if ((CONTAINER==0)); then  # Not yet running inside a container
     # Discovered reemergence of BFQ scheduler bug in kernel 5.8.12-200
     # which causes a kernel panic when system is under heavy I/O load.
