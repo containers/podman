@@ -241,7 +241,16 @@ filter __podman_escapeStringWithSpecialChars {
 
     }
 }
+# Enumerate the cmds for podman (set by System.Environment)
+$availablePodmans = Get-Command -Name podman -All -ErrorAction SilentlyContinue
 
-Register-ArgumentCompleter -CommandName 'podman' -ScriptBlock $__podmanCompleterBlock
+# Enumerate set aliases for podman (set by user)
+$podmanAliases = @()
+foreach($podmanCmd in $availablePodmans){
+    $podmanAliases += Get-Alias | Where-Object { $_.Definition -eq ($podmanCmd | Resolve-Path) }
+}
+
+# Register args completer for all cmds and aliases
+Register-ArgumentCompleter -CommandName ([array]$availablePodmans.Name + [array]$podmanAliases.Name) -ScriptBlock $__podmanCompleterBlock
 
 # This file is generated with "podman completion"; see: podman-completion(1)
