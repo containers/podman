@@ -62,7 +62,7 @@ the service _podman.service_ is started. See its definition in the file _/usr/li
 
 Since version 3.4.0 Podman supports socket activation of containers, i.e.,  passing
 a socket-activated socket to the container. Thanks to the fork/exec model of Podman, the socket will be first
-inherited by conmon and then by the OCI runtime and finally by the container
+inherited by Podman and then by the OCI runtime and finally by the container
 as can be seen in the following diagram:
 
 
@@ -71,8 +71,7 @@ stateDiagram-v2
     [*] --> systemd: first client connects
     systemd --> podman: socket inherited via fork/exec
     state "OCI runtime" as s2
-    podman --> conmon: socket inherited via double fork/exec
-    conmon --> s2: socket inherited via fork/exec
+    podman --> s2: socket inherited via fork/exec
     s2 --> container: socket inherited via exec
 ```
 
