@@ -558,7 +558,7 @@ func openFileUnderRootFallback(dirfd int, name string, flags uint64, mode os.Fil
 func openFileUnderRootOpenat2(dirfd int, name string, flags uint64, mode os.FileMode) (int, error) {
 	how := unix.OpenHow{
 		Flags:   flags,
-		Mode:    uint64(mode & 07777),
+		Mode:    uint64(mode & 0o7777),
 		Resolve: unix.RESOLVE_IN_ROOT,
 	}
 	return unix.Openat2(dirfd, name, &how)
@@ -636,7 +636,7 @@ func openOrCreateDirUnderRoot(name string, dirfd int, mode os.FileMode) (*os.Fil
 
 			baseName := filepath.Base(name)
 
-			if err2 := unix.Mkdirat(int(pDir.Fd()), baseName, 0755); err2 != nil {
+			if err2 := unix.Mkdirat(int(pDir.Fd()), baseName, 0o755); err2 != nil {
 				return nil, err
 			}
 
@@ -1384,7 +1384,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions) (gra
 	filesToWaitFor := 0
 	for i, r := range mergedEntries {
 		if options.ForceMask != nil {
-			value := fmt.Sprintf("%d:%d:0%o", r.UID, r.GID, r.Mode&07777)
+			value := fmt.Sprintf("%d:%d:0%o", r.UID, r.GID, r.Mode&0o7777)
 			r.Xattrs[containersOverrideXattr] = base64.StdEncoding.EncodeToString([]byte(value))
 			r.Mode = int64(*options.ForceMask)
 		}

@@ -90,7 +90,7 @@ const (
 
 var (
 	// Slice of drivers that should be used in an order
-	priority = []string{
+	Priority = []string{
 		"overlay",
 		// We don't support devicemapper without configuration
 		// "devicemapper",
@@ -161,8 +161,7 @@ func NewDefaultChecker() Checker {
 	return &defaultChecker{}
 }
 
-type defaultChecker struct {
-}
+type defaultChecker struct{}
 
 func (c *defaultChecker) IsMounted(path string) bool {
 	m, _ := mount.Mounted(path)

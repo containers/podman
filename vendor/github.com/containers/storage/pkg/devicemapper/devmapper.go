@@ -239,8 +239,8 @@ func (t *Task) getDriverVersion() (string, error) {
 }
 
 func (t *Task) getNextTarget(next unsafe.Pointer) (nextPtr unsafe.Pointer, start uint64,
-	length uint64, targetType string, params string) {
-
+	length uint64, targetType string, params string,
+) {
 	return DmGetNextTarget(t.unmanaged, next, &start, &length,
 			&targetType, &params),
 		start, length, targetType, params
@@ -345,8 +345,7 @@ func RemoveDeviceDeferred(name string) error {
 	// disable udev dm rules and delete the symlink under /dev/mapper by itself,
 	// even if the removal is deferred by the kernel.
 	cookie := new(uint)
-	var flags uint16
-	flags = DmUdevDisableLibraryFallback
+	flags := uint16(DmUdevDisableLibraryFallback)
 	if err := task.setCookie(cookie, flags); err != nil {
 		return fmt.Errorf("devicemapper: Can not set cookie: %s", err)
 	}
@@ -384,7 +383,7 @@ func CancelDeferredRemove(deviceName string) error {
 		return fmt.Errorf("devicemapper: Can't set sector %s", err)
 	}
 
-	if err := task.setMessage(fmt.Sprintf("@cancel_deferred_remove")); err != nil {
+	if err := task.setMessage("@cancel_deferred_remove"); err != nil {
 		return fmt.Errorf("devicemapper: Can't set message %s", err)
 	}
 
@@ -459,8 +458,7 @@ func CreatePool(poolName string, dataFile, metadataFile *os.File, poolBlockSize 
 	}
 
 	cookie := new(uint)
-	var flags uint16
-	flags = DmUdevDisableSubsystemRulesFlag | DmUdevDisableDiskRulesFlag | DmUdevDisableOtherRulesFlag
+	flags := uint16(DmUdevDisableSubsystemRulesFlag | DmUdevDisableDiskRulesFlag | DmUdevDisableOtherRulesFlag)
 	if err := task.setCookie(cookie, flags); err != nil {
 		return fmt.Errorf("devicemapper: Can't set cookie %s", err)
 	}

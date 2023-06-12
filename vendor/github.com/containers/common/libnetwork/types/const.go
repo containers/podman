@@ -36,11 +36,13 @@ const (
 	IPVLANModeL3s = "l3s"
 
 	// valid network options
-	VLANOption    = "vlan"
-	MTUOption     = "mtu"
-	ModeOption    = "mode"
-	IsolateOption = "isolate"
-	MetricOption  = "metric"
+	VLANOption     = "vlan"
+	MTUOption      = "mtu"
+	ModeOption     = "mode"
+	IsolateOption  = "isolate"
+	MetricOption   = "metric"
+	NoDefaultRoute = "no_default_route"
+	BclimOption    = "bclim"
 )
 
 type NetworkBackend string

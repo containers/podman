@@ -568,26 +568,28 @@ func (r *imageStore) Save() error {
 	}
 	r.lockfile.AssertLockedForWriting()
 	rpath := r.imagespath()
-	if err := os.MkdirAll(filepath.Dir(rpath), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(rpath), 0o700); err != nil {
 		return err
 	}
 	jdata, err := json.Marshal(&r.images)
 	if err != nil {
 		return err
 	}
-	if err := ioutils.AtomicWriteFile(rpath, jdata, 0600); err != nil {
-		return err
-	}
+	// This must be done before we write the file, because the process could be terminated
+	// after the file is written but before the lock file is updated.
 	lw, err := r.lockfile.RecordWrite()
 	if err != nil {
 		return err
 	}
 	r.lastWrite = lw
+	if err := ioutils.AtomicWriteFile(rpath, jdata, 0o600); err != nil {
+		return err
+	}
 	return nil
 }
 
 func newImageStore(dir string) (rwImageStore, error) {
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, err
 	}
 	lockfile, err := lockfile.GetLockFile(filepath.Join(dir, "images.lock"))
@@ -1015,11 +1017,11 @@ func (r *imageStore) setBigData(image *Image, key string, data []byte, newDigest
 	if key == "" {
 		return fmt.Errorf("can't set empty name for image big data item: %w", ErrInvalidBigDataName)
 	}
-	err := os.MkdirAll(r.datadir(image.ID), 0700)
+	err := os.MkdirAll(r.datadir(image.ID), 0o700)
 	if err != nil {
 		return err
 	}
-	err = ioutils.AtomicWriteFile(r.datapath(image.ID, key), data, 0600)
+	err = ioutils.AtomicWriteFile(r.datapath(image.ID, key), data, 0o600)
 	if err == nil {
 		save := false
 		if image.BigDataSizes == nil {

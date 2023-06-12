@@ -215,12 +215,13 @@ func DefaultConfig() (*Config, error) {
 			UserNSSize: DefaultUserNSSize, // Deprecated
 		},
 		Network: NetworkConfig{
-			DefaultNetwork:     "podman",
-			DefaultSubnet:      DefaultSubnet,
-			DefaultSubnetPools: DefaultSubnetPools,
-			DNSBindPort:        0,
-			CNIPluginDirs:      DefaultCNIPluginDirs,
-			NetavarkPluginDirs: DefaultNetavarkPluginDirs,
+			DefaultNetwork:            "podman",
+			DefaultSubnet:             DefaultSubnet,
+			DefaultSubnetPools:        DefaultSubnetPools,
+			DefaultRootlessNetworkCmd: "slirp4netns",
+			DNSBindPort:               0,
+			CNIPluginDirs:             DefaultCNIPluginDirs,
+			NetavarkPluginDirs:        DefaultNetavarkPluginDirs,
 		},
 		Engine:  *defaultEngineConfig,
 		Secrets: defaultSecretConfig(),
@@ -283,6 +284,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.VolumePath = filepath.Join(storeOpts.GraphRoot, "volumes")
 
 	c.VolumePluginTimeout = DefaultVolumePluginTimeout
+	c.CompressionFormat = "gzip"
 
 	c.HelperBinariesDir = defaultHelperBinariesDir
 	if additionalHelperBinariesDir != "" {

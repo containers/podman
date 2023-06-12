@@ -55,7 +55,7 @@ func mountOverlayFrom(dir, device, target, mType string, flags uintptr, label st
 		w.Close()
 		return fmt.Errorf("mountfrom error on re-exec cmd: %w", err)
 	}
-	//write the options to the pipe for the untar exec to read
+	// write the options to the pipe for the untar exec to read
 	if err := json.NewEncoder(w).Encode(options); err != nil {
 		w.Close()
 		return fmt.Errorf("mountfrom json encode to pipe failed: %w", err)

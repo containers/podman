@@ -62,6 +62,215 @@ var _ = Describe("Podman network create", func() {
 		Expect(subnet.Contains(containerIP)).To(BeTrue(), "subnet contains containerIP")
 	})
 
+	It("podman network create with name and subnet and static route", func() {
+		SkipIfCNI(podmanTest)
+		netName := "subnet-" + stringid.GenerateRandomID()
+		nc := podmanTest.Podman([]string{
+			"network",
+			"create",
+			"--subnet",
+			"10.19.12.0/24",
+			"--route",
+			"10.21.0.0/24,10.19.12.250",
+			netName,
+		})
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(netName)
+		Expect(nc).Should(Exit(0))
+
+		// Inspect the network configuration
+		inspect := podmanTest.Podman([]string{"network", "inspect", netName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+
+		// JSON the network configuration into something usable
+		var results []types.Network
+		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(results).To(HaveLen(1))
+		result := results[0]
+		Expect(result).To(HaveField("Name", netName))
+		Expect(result.Subnets).To(HaveLen(1))
+		Expect(result.Subnets[0].Subnet.String()).To(Equal("10.19.12.0/24"))
+		Expect(result.Subnets[0].Gateway.String()).To(Equal("10.19.12.1"))
+		Expect(result.Routes[0].Destination.String()).To(Equal("10.21.0.0/24"))
+		Expect(result.Routes[0].Gateway.String()).To(Equal("10.19.12.250"))
+		Expect(result.Routes[0].Metric).To(BeNil())
+
+		// Once a container executes a new network, the nic will be created. We should clean those up
+		// best we can
+		defer removeNetworkDevice(result.NetworkInterface)
+
+	})
+
+	It("podman network create with name and subnet and static route and metric", func() {
+		SkipIfCNI(podmanTest)
+		netName := "subnet-" + stringid.GenerateRandomID()
+		nc := podmanTest.Podman([]string{
+			"network",
+			"create",
+			"--subnet",
+			"10.19.13.0/24",
+			"--route",
+			"10.21.1.0/24,10.19.13.250,120",
+			netName,
+		})
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(netName)
+		Expect(nc).Should(Exit(0))
+
+		// Inspect the network configuration
+		inspect := podmanTest.Podman([]string{"network", "inspect", netName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+
+		// JSON the network configuration into something usable
+		var results []types.Network
+		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(results).To(HaveLen(1))
+		result := results[0]
+		Expect(result).To(HaveField("Name", netName))
+		Expect(result.Subnets).To(HaveLen(1))
+		Expect(result.Subnets[0].Subnet.String()).To(Equal("10.19.13.0/24"))
+		Expect(result.Subnets[0].Gateway.String()).To(Equal("10.19.13.1"))
+		Expect(result.Routes[0].Destination.String()).To(Equal("10.21.1.0/24"))
+		Expect(result.Routes[0].Gateway.String()).To(Equal("10.19.13.250"))
+		Expect(*result.Routes[0].Metric).To(Equal(uint32(120)))
+
+		// Once a container executes a new network, the nic will be created. We should clean those up
+		// best we can
+		defer removeNetworkDevice(result.NetworkInterface)
+
+	})
+
+	It("podman network create with name and subnet and two static routes", func() {
+		SkipIfCNI(podmanTest)
+		netName := "subnet-" + stringid.GenerateRandomID()
+		nc := podmanTest.Podman([]string{
+			"network",
+			"create",
+			"--subnet",
+			"10.19.14.0/24",
+			"--route",
+			"10.21.2.0/24,10.19.14.250",
+			"--route",
+			"10.21.3.0/24,10.19.14.251,120",
+			netName,
+		})
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(netName)
+		Expect(nc).Should(Exit(0))
+
+		// Inspect the network configuration
+		inspect := podmanTest.Podman([]string{"network", "inspect", netName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+
+		// JSON the network configuration into something usable
+		var results []types.Network
+		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(results).To(HaveLen(1))
+		result := results[0]
+		Expect(result).To(HaveField("Name", netName))
+		Expect(result.Subnets).To(HaveLen(1))
+		Expect(result.Subnets[0].Subnet.String()).To(Equal("10.19.14.0/24"))
+		Expect(result.Subnets[0].Gateway.String()).To(Equal("10.19.14.1"))
+		Expect(result.Routes).To(HaveLen(2))
+		Expect(result.Routes[0].Destination.String()).To(Equal("10.21.2.0/24"))
+		Expect(result.Routes[0].Gateway.String()).To(Equal("10.19.14.250"))
+		Expect(result.Routes[0].Metric).To(BeNil())
+		Expect(result.Routes[1].Destination.String()).To(Equal("10.21.3.0/24"))
+		Expect(result.Routes[1].Gateway.String()).To(Equal("10.19.14.251"))
+		Expect(*result.Routes[1].Metric).To(Equal(uint32(120)))
+
+		// Once a container executes a new network, the nic will be created. We should clean those up
+		// best we can
+		defer removeNetworkDevice(result.NetworkInterface)
+
+	})
+
+	It("podman network create with name and subnet and static route (ipv6)", func() {
+		SkipIfCNI(podmanTest)
+		netName := "subnet-" + stringid.GenerateRandomID()
+		nc := podmanTest.Podman([]string{
+			"network",
+			"create",
+			"--subnet",
+			"fd:ab04::/64",
+			"--route",
+			"fd:1::/64,fd::1,120",
+			netName,
+		})
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(netName)
+		Expect(nc).Should(Exit(0))
+
+		// Inspect the network configuration
+		inspect := podmanTest.Podman([]string{"network", "inspect", netName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+
+		// JSON the network configuration into something usable
+		var results []types.Network
+		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(results).To(HaveLen(1))
+		result := results[0]
+		Expect(result).To(HaveField("Name", netName))
+		Expect(result.Subnets).To(HaveLen(1))
+		Expect(result.Subnets[0].Subnet.String()).To(Equal("fd:ab04::/64"))
+		Expect(result.Subnets[0].Gateway.String()).To(Equal("fd:ab04::1"))
+		Expect(result.Routes[0].Destination.String()).To(Equal("fd:1::/64"))
+		Expect(result.Routes[0].Gateway.String()).To(Equal("fd::1"))
+		Expect(*result.Routes[0].Metric).To(Equal(uint32(120)))
+
+		// Once a container executes a new network, the nic will be created. We should clean those up
+		// best we can
+		defer removeNetworkDevice(result.NetworkInterface)
+
+	})
+
+	It("podman network create with name and subnet with --opt no_default_route=1", func() {
+		SkipIfCNI(podmanTest)
+		netName := "subnet-" + stringid.GenerateRandomID()
+		nc := podmanTest.Podman([]string{
+			"network",
+			"create",
+			"--subnet",
+			"10.19.15.0/24",
+			"--opt",
+			"no_default_route=1",
+			netName,
+		})
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(netName)
+		Expect(nc).Should(Exit(0))
+
+		// Inspect the network configuration
+		inspect := podmanTest.Podman([]string{"network", "inspect", netName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+
+		// JSON the network configuration into something usable
+		var results []types.Network
+		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(results).To(HaveLen(1))
+		result := results[0]
+		Expect(result).To(HaveField("Name", netName))
+		Expect(result.Subnets).To(HaveLen(1))
+		Expect(result.Subnets[0].Subnet.String()).To(Equal("10.19.15.0/24"))
+		Expect(result.Subnets[0].Gateway.String()).To(Equal("10.19.15.1"))
+		Expect(result.Options[types.NoDefaultRoute]).To(Equal("true"))
+
+		// Once a container executes a new network, the nic will be created. We should clean those up
+		// best we can
+		defer removeNetworkDevice(result.NetworkInterface)
+
+	})
+
 	It("podman network create with name and IPv6 subnet", func() {
 		netName := "ipv6-" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "fd00:1:2:3:4::/64", netName})

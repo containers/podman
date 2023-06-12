@@ -15,8 +15,10 @@ import (
 	"github.com/vbatts/tar-split/archive/tar"
 )
 
-const RollsumBits = 16
-const holesThreshold = int64(1 << 10)
+const (
+	RollsumBits    = 16
+	holesThreshold = int64(1 << 10)
+)
 
 type holesFinder struct {
 	reader    *bufio.Reader

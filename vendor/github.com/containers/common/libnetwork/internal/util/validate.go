@@ -81,6 +81,43 @@ func ValidateSubnets(network *types.Network, addGateway bool, usedNetworks []*ne
 	return nil
 }
 
+func ValidateRoutes(routes []types.Route) error {
+	for _, route := range routes {
+		err := ValidateRoute(route)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func ValidateRoute(route types.Route) error {
+	if route.Destination.IP == nil {
+		return fmt.Errorf("route destination ip nil")
+	}
+
+	if route.Destination.Mask == nil {
+		return fmt.Errorf("route destination mask nil")
+	}
+
+	if route.Gateway == nil {
+		return fmt.Errorf("route gateway nil")
+	}
+
+	// Reparse to ensure destination is valid.
+	ip, ipNet, err := net.ParseCIDR(route.Destination.String())
+	if err != nil {
+		return fmt.Errorf("route destination invalid: %w", err)
+	}
+
+	// check that destination is a network and not an address
+	if !ip.Equal(ipNet.IP) {
+		return fmt.Errorf("route destination invalid")
+	}
+
+	return nil
+}
+
 func ValidateSetupOptions(n NetUtil, namespacePath string, options types.SetupOptions) error {
 	if namespacePath == "" {
 		return errors.New("namespacePath is empty")

@@ -34,6 +34,7 @@ func NaiveCreateFromTemplate(d TemplateDriver, id, template string, templateIDMa
 		}
 		return err
 	}
+	defer diff.Close()
 
 	applyOptions := ApplyDiffOpts{
 		Diff:              diff,

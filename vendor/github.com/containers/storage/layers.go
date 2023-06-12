@@ -657,7 +657,6 @@ func (r *layerStore) Layers() ([]Layer, error) {
 // Requires startWriting.
 func (r *layerStore) GarbageCollect() error {
 	layers, err := r.driver.ListLayers()
-
 	if err != nil {
 		if errors.Is(err, drivers.ErrNotSupported) {
 			return nil
@@ -864,33 +863,35 @@ func (r *layerStore) loadMounts() error {
 		return err
 	}
 	layerMounts := []layerMountPoint{}
-	if err = json.Unmarshal(data, &layerMounts); len(data) == 0 || err == nil {
-		// Clear all of our mount information.  If another process
-		// unmounted something, it (along with its zero count) won't
-		// have been encoded into the version of mountpoints.json that
-		// we're loading, so our count could fall out of sync with it
-		// if we don't, and if we subsequently change something else,
-		// we'd pass that error along to other process that reloaded
-		// the data after we saved it.
-		for _, layer := range r.layers {
-			layer.MountPoint = ""
-			layer.MountCount = 0
+	if len(data) != 0 {
+		if err := json.Unmarshal(data, &layerMounts); err != nil {
+			return err
 		}
-		// All of the non-zero count values will have been encoded, so
-		// we reset the still-mounted ones based on the contents.
-		for _, mount := range layerMounts {
-			if mount.MountPoint != "" {
-				if layer, ok := r.lookup(mount.ID); ok {
-					mounts[mount.MountPoint] = layer
-					layer.MountPoint = mount.MountPoint
-					layer.MountCount = mount.MountCount
-				}
+	}
+	// Clear all of our mount information.  If another process
+	// unmounted something, it (along with its zero count) won't
+	// have been encoded into the version of mountpoints.json that
+	// we're loading, so our count could fall out of sync with it
+	// if we don't, and if we subsequently change something else,
+	// we'd pass that error along to other process that reloaded
+	// the data after we saved it.
+	for _, layer := range r.layers {
+		layer.MountPoint = ""
+		layer.MountCount = 0
+	}
+	// All of the non-zero count values will have been encoded, so
+	// we reset the still-mounted ones based on the contents.
+	for _, mount := range layerMounts {
+		if mount.MountPoint != "" {
+			if layer, ok := r.lookup(mount.ID); ok {
+				mounts[mount.MountPoint] = layer
+				layer.MountPoint = mount.MountPoint
+				layer.MountCount = mount.MountCount
 			}
 		}
-		err = nil
 	}
 	r.bymount = mounts
-	return err
+	return nil
 }
 
 // save saves the contents of the store to disk.
@@ -920,13 +921,21 @@ func (r *layerStore) saveLayers(saveLocations layerLocations) error {
 	}
 	r.lockfile.AssertLockedForWriting()
 
+	// This must be done before we write the file, because the process could be terminated
+	// after the file is written but before the lock file is updated.
+	lw, err := r.lockfile.RecordWrite()
+	if err != nil {
+		return err
+	}
+	r.lastWrite = lw
+
 	for locationIndex := 0; locationIndex < numLayerLocationIndex; locationIndex++ {
 		location := layerLocationFromIndex(locationIndex)
 		if location&saveLocations == 0 {
 			continue
 		}
 		rpath := r.jsonPath[locationIndex]
-		if err := os.MkdirAll(filepath.Dir(rpath), 0700); err != nil {
+		if err := os.MkdirAll(filepath.Dir(rpath), 0o700); err != nil {
 			return err
 		}
 		subsetLayers := make([]*Layer, 0, len(r.layers))
@@ -944,16 +953,11 @@ func (r *layerStore) saveLayers(saveLocations layerLocations) error {
 		if location == volatileLayerLocation {
 			opts.NoSync = true
 		}
-		if err := ioutils.AtomicWriteFileWithOpts(rpath, jldata, 0600, &opts); err != nil {
+		if err := ioutils.AtomicWriteFileWithOpts(rpath, jldata, 0o600, &opts); err != nil {
 			return err
 		}
 		r.layerspathsModified[locationIndex] = opts.ModTime
 	}
-	lw, err := r.lockfile.RecordWrite()
-	if err != nil {
-		return err
-	}
-	r.lastWrite = lw
 	return nil
 }
 
@@ -965,7 +969,7 @@ func (r *layerStore) saveMounts() error {
 	}
 	r.mountsLockfile.AssertLockedForWriting()
 	mpath := r.mountspath()
-	if err := os.MkdirAll(filepath.Dir(mpath), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(mpath), 0o700); err != nil {
 		return err
 	}
 	mounts := make([]layerMountPoint, 0, len(r.layers))
@@ -982,22 +986,26 @@ func (r *layerStore) saveMounts() error {
 	if err != nil {
 		return err
 	}
-	if err = ioutils.AtomicWriteFile(mpath, jmdata, 0600); err != nil {
-		return err
-	}
+
+	// This must be done before we write the file, because the process could be terminated
+	// after the file is written but before the lock file is updated.
 	lw, err := r.mountsLockfile.RecordWrite()
 	if err != nil {
 		return err
 	}
 	r.mountsLastWrite = lw
+
+	if err = ioutils.AtomicWriteFile(mpath, jmdata, 0o600); err != nil {
+		return err
+	}
 	return r.loadMounts()
 }
 
 func (s *store) newLayerStore(rundir string, layerdir string, driver drivers.Driver, transient bool) (rwLayerStore, error) {
-	if err := os.MkdirAll(rundir, 0700); err != nil {
+	if err := os.MkdirAll(rundir, 0o700); err != nil {
 		return nil, err
 	}
-	if err := os.MkdirAll(layerdir, 0700); err != nil {
+	if err := os.MkdirAll(layerdir, 0o700); err != nil {
 		return nil, err
 	}
 	// Note: While the containers.lock file is in rundir for transient stores
@@ -1213,10 +1221,10 @@ func (r *layerStore) create(id string, parentLayer *Layer, names []string, mount
 	if !r.lockfile.IsReadWrite() {
 		return nil, -1, fmt.Errorf("not allowed to create new layers at %q: %w", r.layerdir, ErrStoreIsReadOnly)
 	}
-	if err := os.MkdirAll(r.rundir, 0700); err != nil {
+	if err := os.MkdirAll(r.rundir, 0o700); err != nil {
 		return nil, -1, err
 	}
-	if err := os.MkdirAll(r.layerdir, 0700); err != nil {
+	if err := os.MkdirAll(r.layerdir, 0o700); err != nil {
 		return nil, -1, err
 	}
 	if id == "" {
@@ -1690,7 +1698,7 @@ func (r *layerStore) setBigData(layer *Layer, key string, data io.Reader) error 
 	if key == "" {
 		return fmt.Errorf("can't set empty name for layer big data item: %w", ErrInvalidBigDataName)
 	}
-	err := os.MkdirAll(r.datadir(layer.ID), 0700)
+	err := os.MkdirAll(r.datadir(layer.ID), 0o700)
 	if err != nil {
 		return err
 	}
@@ -1698,7 +1706,7 @@ func (r *layerStore) setBigData(layer *Layer, key string, data io.Reader) error 
 	// NewAtomicFileWriter doesn't overwrite/truncate the existing inode.
 	// BigData() relies on this behaviour when opening the file for read
 	// so that it is either accessing the old data or the new one.
-	writer, err := ioutils.NewAtomicFileWriter(r.datapath(layer.ID, key), 0600)
+	writer, err := ioutils.NewAtomicFileWriter(r.datapath(layer.ID, key), 0o600)
 	if err != nil {
 		return fmt.Errorf("opening bigdata file: %w", err)
 	}
@@ -1919,6 +1927,18 @@ func (r *layerStore) Wipe() error {
 	})
 	for _, id := range ids {
 		if err := r.Delete(id); err != nil {
+			return err
+		}
+	}
+	ids, err := r.driver.ListLayers()
+	if err != nil {
+		if !errors.Is(err, drivers.ErrNotSupported) {
+			return err
+		}
+		ids = nil
+	}
+	for _, id := range ids {
+		if err := r.driver.Remove(id); err != nil {
 			return err
 		}
 	}
@@ -2198,7 +2218,7 @@ func (r *layerStore) applyDiffWithOptions(to string, layerOptions *LayerOptions,
 		return -1, err
 	}
 	compression := archive.DetectCompression(header[:n])
-	defragmented := io.MultiReader(bytes.NewBuffer(header[:n]), diff)
+	defragmented := io.MultiReader(bytes.NewReader(header[:n]), diff)
 
 	// Decide if we need to compute digests
 	var compressedDigest, uncompressedDigest digest.Digest       // = ""
@@ -2270,10 +2290,10 @@ func (r *layerStore) applyDiffWithOptions(to string, layerOptions *LayerOptions,
 		return -1, err
 	}
 	compressor.Close()
-	if err := os.MkdirAll(filepath.Dir(r.tspath(layer.ID)), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(r.tspath(layer.ID)), 0o700); err != nil {
 		return -1, err
 	}
-	if err := ioutils.AtomicWriteFile(r.tspath(layer.ID), tsdata.Bytes(), 0600); err != nil {
+	if err := ioutils.AtomicWriteFile(r.tspath(layer.ID), tsdata.Bytes(), 0o600); err != nil {
 		return -1, err
 	}
 	if compressedDigester != nil {

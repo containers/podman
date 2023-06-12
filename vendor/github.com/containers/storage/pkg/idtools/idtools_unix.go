@@ -91,13 +91,13 @@ func CanAccess(path string, pair IDPair) bool {
 }
 
 func accessible(isOwner, isGroup bool, perms os.FileMode) bool {
-	if isOwner && (perms&0100 == 0100) {
+	if isOwner && (perms&0o100 == 0o100) {
 		return true
 	}
-	if isGroup && (perms&0010 == 0010) {
+	if isGroup && (perms&0o010 == 0o010) {
 		return true
 	}
-	if perms&0001 == 0001 {
+	if perms&0o001 == 0o001 {
 		return true
 	}
 	return false

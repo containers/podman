@@ -134,7 +134,7 @@ func WriteZstdChunkedManifest(dest io.Writer, outMetadata map[string]string, off
 		Entries: metadata,
 	}
 
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	// Generate the manifest
 	manifest, err := json.Marshal(toc)
 	if err != nil {

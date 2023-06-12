@@ -50,6 +50,7 @@ type NetworkCreateOptions struct {
 	NetworkDNSServers []string
 	Ranges            []string
 	Subnets           []string
+	Routes            []string
 	IPv6              bool
 	// Mapping of driver options and values.
 	Options map[string]string

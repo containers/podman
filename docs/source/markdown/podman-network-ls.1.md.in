@@ -56,6 +56,7 @@ Valid placeholders for the Go template are listed below:
 | .NetworkDNSServers | Array of DNS servers used in this network |
 | .NetworkInterface  | Name of the network interface on the host |
 | .Options           | Network options                           |
+| .Routes            | List of static routes for this network    |
 | .Subnets           | List of subnets on this network           |
 
 #### **--no-trunc**

@@ -102,9 +102,7 @@ func (idx *TruncIndex) Get(s string) (string, error) {
 	if s == "" {
 		return "", ErrEmptyPrefix
 	}
-	var (
-		id string
-	)
+	var id string
 	subTreeVisitFunc := func(prefix patricia.Prefix, item patricia.Item) error {
 		if id != "" {
 			// we haven't found the ID if there are two or more IDs
