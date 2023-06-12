@@ -137,6 +137,7 @@ Valid options for `[Container]` are listed below:
 | UserNS=keep-id:uid=200,gid=210 | --userns keep-id:uid=200,gid=210                     |
 | VolatileTmp=true               | --tmpfs /tmp                                         |
 | Volume=/source:/dest           | --volume /source:/dest                               |
+| WorkingDir=$HOME               | --workdir $HOME                                      |
 
 Description of `[Container]` section are:
 
@@ -490,6 +491,12 @@ a dependency on the `$name-volume.service`. Such a volume can be automatically b
 created by using a `$name.volume` Quadlet file.
 
 This key can be listed multiple times.
+
+### `WorkingDir=`
+
+Working directory inside the container.
+
+The default working directory for running binaries within a container is the root directory (/). The image developer can set a different default with the WORKDIR instruction. This option overrides the working directory by using the -w option.
 
 ## Kube units [Kube]
 

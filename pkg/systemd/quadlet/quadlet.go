@@ -104,6 +104,7 @@ const (
 	KeyUserNS                = "UserNS"
 	KeyVolatileTmp           = "VolatileTmp"
 	KeyVolume                = "Volume"
+	KeyWorkingDir            = "WorkingDir"
 	KeyYaml                  = "Yaml"
 )
 
@@ -168,6 +169,7 @@ var (
 		KeyUserNS:                true,
 		KeyVolatileTmp:           true,
 		KeyVolume:                true,
+		KeyWorkingDir:            true,
 	}
 
 	// Supported keys in "Volume" group
@@ -502,6 +504,10 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		} else {
 			podman.addf("%d", uid)
 		}
+	}
+
+	if workdir, exists := container.Lookup(ContainerGroup, KeyWorkingDir); exists {
+		podman.addf("-w=%s", workdir)
 	}
 
 	if err := handleUserRemap(container, ContainerGroup, podman, isUser, true); err != nil {
