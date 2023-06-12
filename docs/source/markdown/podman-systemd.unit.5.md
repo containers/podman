@@ -492,7 +492,7 @@ created by using a `$name.volume` Quadlet file.
 
 This key can be listed multiple times.
 
-### `WorkingDir=` (default to images working dir)
+### `WorkingDir=`
 
 Working directory inside the container.
 
