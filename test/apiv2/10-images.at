@@ -317,4 +317,6 @@ t DELETE images/$iid_test2?noprune=false 200
 t GET libpod/images/$iid_test1/exists 404
 t GET libpod/images/$iid_test2/exists 404
 
+t POST /images/create?fromImage=busybox:invalidtag123 404
+
 # vim: filetype=sh

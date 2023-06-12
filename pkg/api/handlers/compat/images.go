@@ -23,6 +23,7 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
+	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/gorilla/schema"
 	"github.com/opencontainers/go-digest"
@@ -313,15 +314,22 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 		pullResChan <- pullResult{images: pulledImages, err: err}
 	}()
 
+	wasStatusCodeSet := false
+	setHeaderStatusCodeOnce := func(statusCode int) {
+		if wasStatusCodeSet {
+			return
+		}
+		w.WriteHeader(statusCode)
+		wasStatusCodeSet = true
+	}
 	flush := func() {
+		setHeaderStatusCodeOnce(http.StatusOK)
 		if flusher, ok := w.(http.Flusher); ok {
 			flusher.Flush()
 		}
 	}
 
-	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	flush()
 
 	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(true)
@@ -346,6 +354,7 @@ loop: // break out of for/select infinite loop
 				report.Status = "Download complete"
 			}
 			report.ID = e.Artifact.Digest.Encoded()[0:12]
+			setHeaderStatusCodeOnce(http.StatusOK)
 			if err := enc.Encode(report); err != nil {
 				logrus.Warnf("Failed to json encode error %q", err.Error())
 			}
@@ -354,6 +363,12 @@ loop: // break out of for/select infinite loop
 			err := pullRes.err
 			pulledImages := pullRes.images
 			if err != nil {
+				var errcd errcode.ErrorCoder
+				if errors.As(err, &errcd) {
+					setHeaderStatusCodeOnce(errcd.ErrorCode().Descriptor().HTTPStatusCode)
+				} else {
+					setHeaderStatusCodeOnce(http.StatusInternalServerError)
+				}
 				msg := err.Error()
 				report.Error = &jsonmessage.JSONError{
 					Message: msg,
@@ -374,8 +389,10 @@ loop: // break out of for/select infinite loop
 						Message: msg,
 					}
 					report.ErrorMessage = msg
+					setHeaderStatusCodeOnce(http.StatusInternalServerError)
 				}
 			}
+			setHeaderStatusCodeOnce(http.StatusOK)
 			if err := enc.Encode(report); err != nil {
 				logrus.Warnf("Failed to json encode error %q", err.Error())
 			}
