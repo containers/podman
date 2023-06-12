@@ -143,8 +143,7 @@ Description of `[Container]` section are:
 
 ### `AddCapability=`
 
-By default, the container runs with no capabilities (due to DropCapabilities='all'). If any specific
-caps are needed, then add them with this key. For example using `AddCapability=CAP_DAC_OVERRIDE`.
+Add these capabilities, in addition to the default podman capability set, to the container.
 
 This is a space separated list of capabilities. This key can be listed multiple times.
 
@@ -177,7 +176,7 @@ The (optional) name of the Podman container. If this is not specified, the defau
 of `systemd-%N` is used, which is the same as the service name but with a `systemd-`
 prefix to avoid conflicts with user-managed containers.
 
-### `DropCapability=` (defaults to `all`)
+### `DropCapability=`
 
 Drop these capabilities from the default podman capability set, or `all` to drop all capabilities.
 
@@ -344,7 +343,7 @@ This key can be listed multiple times.
 
 ### `NoNewPrivileges=` (defaults to `no`)
 
-If enabled (which is the default), this disables the container processes from gaining additional privileges via things like
+If enabled, this disables the container processes from gaining additional privileges via things like
 setuid and file capabilities.
 
 ### `Rootfs=`
@@ -401,9 +400,7 @@ This is equivalent to the Podman `--pull` option
 
 ### `ReadOnly=` (defaults to `no`)
 
-If enabled, makes image read-only, with /var/tmp, /tmp and /run a tmpfs (unless disabled by `VolatileTmp=no`).r
-
-**NOTE:** Podman automatically copies any content from the image onto the tmpfs
+If enabled, makes image read-only.
 
 ### `RunInit=` (default to `no`)
 
@@ -472,7 +469,7 @@ which can be modified with `UserNS`, but if that is not specified, this UID is a
 Set the user namespace mode for the container. This is equivalent to the Podman `--userns` option and
 generally has the form `MODE[:OPTIONS,...]`.
 
-### `VolatileTmp=` (default to `no`, or `yes` if `ReadOnly` enabled)
+### `VolatileTmp=` (defaults to `no`)
 
 If enabled, the container has a fresh tmpfs mounted on `/tmp`.
 
