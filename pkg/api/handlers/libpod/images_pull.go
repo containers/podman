@@ -92,15 +92,17 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	if query.Quiet {
 		images, err := runtime.LibimageRuntime().Pull(r.Context(), query.Reference, pullPolicy, pullOptions)
 		var report entities.ImagePullReport
+		statusCode := http.StatusOK
 		if err != nil {
 			report.Error = err.Error()
+			statusCode = http.StatusInternalServerError
 		}
 		for _, image := range images {
 			report.Images = append(report.Images, image.ID())
 			// Pull last ID from list and publish in 'id' stanza.  This maintains previous API contract
 			report.ID = image.ID()
 		}
-		utils.WriteResponse(w, http.StatusOK, report)
+		utils.WriteResponse(w, statusCode, report)
 		return
 	}
 
@@ -116,15 +118,22 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 		pulledImages, pullError = runtime.LibimageRuntime().Pull(runCtx, query.Reference, pullPolicy, pullOptions)
 	}()
 
+	wasHeaderStatusCodeSet := false
+	setHeaderStatusCodeOnce := func(statusCode int) {
+		if wasHeaderStatusCodeSet {
+			return
+		}
+		wasHeaderStatusCodeSet = true
+		w.WriteHeader(statusCode)
+	}
 	flush := func() {
+		setHeaderStatusCodeOnce(http.StatusOK)
 		if flusher, ok := w.(http.Flusher); ok {
 			flusher.Flush()
 		}
 	}
 
-	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	flush()
 
 	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(true)
@@ -133,6 +142,7 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 		select {
 		case s := <-writer.Chan():
 			report.Stream = string(s)
+			setHeaderStatusCodeOnce(http.StatusOK)
 			if err := enc.Encode(report); err != nil {
 				logrus.Warnf("Failed to encode json: %v", err)
 			}
@@ -144,8 +154,10 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 				report.ID = image.ID()
 			}
 			if pullError != nil {
+				setHeaderStatusCodeOnce(http.StatusInternalServerError)
 				report.Error = pullError.Error()
 			}
+			setHeaderStatusCodeOnce(http.StatusOK)
 			if err := enc.Encode(report); err != nil {
 				logrus.Warnf("Failed to encode json: %v", err)
 			}
