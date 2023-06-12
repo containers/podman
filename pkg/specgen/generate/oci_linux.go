@@ -57,7 +57,7 @@ func getCgroupPermissions(unmask []string) string {
 		return ro
 	}
 
-	if unmask != nil && unmask[0] == "ALL" {
+	if len(unmask) != 0 && unmask[0] == "ALL" {
 		return rw
 	}
 
