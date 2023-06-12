@@ -142,6 +142,14 @@ shm_struct_t *setup_lock_shm(char *path, uint32_t num_locks, int *error_code) {
     goto CLEANUP_UNMAP;
   }
 
+  // Ensure that recursive locking of a mutex by the same OS thread (which may
+  // refer to numerous goroutines) blocks.
+  ret_code = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+  if (ret_code != 0) {
+    *error_code = -1 * ret_code;
+    goto CLEANUP_FREEATTR;
+  }
+
   // Set mutexes to pshared - multiprocess-safe
   ret_code = pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
   if (ret_code != 0) {

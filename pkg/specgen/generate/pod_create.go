@@ -22,7 +22,7 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (_ *libpod.Pod, finalErr e
 	var createdPod *libpod.Pod
 	defer func() {
 		if finalErr != nil && createdPod != nil {
-			if err := rt.RemovePod(context.Background(), createdPod, true, true, nil); err != nil {
+			if _, err := rt.RemovePod(context.Background(), createdPod, true, true, nil); err != nil {
 				logrus.Errorf("Removing pod: %v", err)
 			}
 		}

@@ -652,12 +652,7 @@ func (p *PodmanTestIntegration) Cleanup() {
 	// An error would cause it to stop and return early otherwise.
 	Expect(stop).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", stop.Command.Args, stop.OutputToString(), stop.ErrorToString())
 	Expect(podrm).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", podrm.Command.Args, podrm.OutputToString(), podrm.ErrorToString())
-
-	// FIXME: Remove this special case when the issue is fixed.
-	// Special case rm -fa is not working correctly with dependencies, https://github.com/containers/podman/issues/18180
-	if !strings.Contains(rmall.ErrorToString(), "has dependent containers which must be removed before it") {
-		Expect(rmall).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", rmall.Command.Args, rmall.OutputToString(), rmall.ErrorToString())
-	}
+	Expect(rmall).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", rmall.Command.Args, rmall.OutputToString(), rmall.ErrorToString())
 }
 
 // CleanupVolume cleans up the volumes and containers.

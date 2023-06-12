@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -600,14 +601,66 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	return ctr, nil
 }
 
-// RemoveContainer removes the given container
-// If force is specified, the container will be stopped first
-// If removeVolume is specified, named volumes used by the container will
-// be removed also if and only if the container is the sole user
-// Otherwise, RemoveContainer will return an error if the container is running
+// RemoveContainer removes the given container. If force is true, the container
+// will be stopped first (otherwise, an error will be returned if the container
+// is running). If removeVolume is specified, anonymous named volumes used by the
+// container will be removed also (iff the container is the sole user of the
+// volumes). Timeout sets the stop timeout for the container if it is running.
 func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool, removeVolume bool, timeout *uint) error {
-	// NOTE: container will be locked down the road.
-	return r.removeContainer(ctx, c, force, removeVolume, false, false, timeout)
+	opts := ctrRmOpts{
+		Force:        force,
+		RemoveVolume: removeVolume,
+		Timeout:      timeout,
+	}
+
+	// NOTE: container will be locked down the road. There is no unlocked
+	// version of removeContainer.
+	_, _, err := r.removeContainer(ctx, c, opts)
+	return err
+}
+
+// RemoveContainerAndDependencies removes the given container and all its
+// dependencies. This may include pods (if the container or any of its
+// dependencies is an infra or service container, the associated pod(s) will also
+// be removed). Otherwise, it functions identically to RemoveContainer.
+// Returns two arrays: containers removed, and pods removed. These arrays are
+// always returned, even if error is set, and indicate any containers that were
+// successfully removed prior to the error.
+func (r *Runtime) RemoveContainerAndDependencies(ctx context.Context, c *Container, force bool, removeVolume bool, timeout *uint) (map[string]error, map[string]error, error) {
+	opts := ctrRmOpts{
+		Force:        force,
+		RemoveVolume: removeVolume,
+		RemoveDeps:   true,
+		Timeout:      timeout,
+	}
+
+	// NOTE: container will be locked down the road. There is no unlocked
+	// version of removeContainer.
+	return r.removeContainer(ctx, c, opts)
+}
+
+// Options for removeContainer
+type ctrRmOpts struct {
+	// Whether to stop running container(s)
+	Force bool
+	// Whether to remove anonymous volumes used by removing the container
+	RemoveVolume bool
+	// Only set by `removePod` as `removeContainer` is being called as part
+	// of removing a whole pod.
+	RemovePod bool
+	// Whether to ignore dependencies of the container when removing
+	// (This is *DANGEROUS* and should not be used outside of non-graph
+	// traversal pod removal code).
+	IgnoreDeps bool
+	// Remove all the dependencies associated with the container. Can cause
+	// multiple containers, and possibly one or more pods, to be removed.
+	RemoveDeps bool
+	// Do not lock the pod that the container is part of (used only by
+	// recursive calls of removeContainer, used when removing dependencies)
+	NoLockPod bool
+	// Timeout to use when stopping the container. Only used if `Force` is
+	// true.
+	Timeout *uint
 }
 
 // Internal function to remove a container.
@@ -617,13 +670,28 @@ func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool,
 // remove will handle that).
 // ignoreDeps is *DANGEROUS* and should not be used outside of a very specific
 // context (alternate pod removal code, where graph traversal is not possible).
-func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, removeVolume, removePod, ignoreDeps bool, timeout *uint) error {
+// removeDeps instructs Podman to remove dependency containers (and possible
+// a dependency pod if an infra container is involved). removeDeps conflicts
+// with removePod - pods have their own dependency management.
+// noLockPod is used for recursive removeContainer calls when the pod is already
+// locked.
+// TODO: At this point we should just start accepting an options struct
+func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmOpts) (removedCtrs map[string]error, removedPods map[string]error, retErr error) {
+	removedCtrs = make(map[string]error)
+	removedPods = make(map[string]error)
+
 	if !c.valid {
 		if ok, _ := r.state.HasContainer(c.ID()); !ok {
 			// Container probably already removed
 			// Or was never in the runtime to begin with
-			return nil
+			removedCtrs[c.ID()] = nil
+			return
 		}
+	}
+
+	if opts.RemovePod && opts.RemoveDeps {
+		retErr = fmt.Errorf("cannot remove dependencies while also removing a pod: %w", define.ErrInvalidArg)
+		return
 	}
 
 	// We need to refresh container config from the DB, to ensure that any
@@ -634,7 +702,8 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	// exist once we're done.
 	newConf, err := r.state.GetContainerConfig(c.ID())
 	if err != nil {
-		return fmt.Errorf("retrieving container %s configuration from DB to remove: %w", c.ID(), err)
+		retErr = fmt.Errorf("retrieving container %s configuration from DB to remove: %w", c.ID(), err)
+		return
 	}
 	c.config = newConf
 
@@ -649,106 +718,224 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	if c.config.Pod != "" {
 		pod, err = r.state.Pod(c.config.Pod)
 		if err != nil {
-			return fmt.Errorf("container %s is in pod %s, but pod cannot be retrieved: %w", c.ID(), pod.ID(), err)
+			// There's a potential race here where the pod we are in
+			// was already removed.
+			// If so, this container is also removed, as pods take
+			// all their containers with them.
+			// So if it's already gone, check if we are too.
+			if errors.Is(err, define.ErrNoSuchPod) {
+				// We could check the DB to see if we still
+				// exist, but that would be a serious violation
+				// of DB integrity.
+				// Mark this container as removed so there's no
+				// confusion, though.
+				removedCtrs[c.ID()] = nil
+				return
+			}
+
+			retErr = err
+			return
 		}
 
-		if !removePod {
+		if !opts.RemovePod {
 			// Lock the pod while we're removing container
 			if pod.config.LockID == c.config.LockID {
-				return fmt.Errorf("container %s and pod %s share lock ID %d: %w", c.ID(), pod.ID(), c.config.LockID, define.ErrWillDeadlock)
+				retErr = fmt.Errorf("container %s and pod %s share lock ID %d: %w", c.ID(), pod.ID(), c.config.LockID, define.ErrWillDeadlock)
+				return
 			}
-			pod.lock.Lock()
-			defer pod.lock.Unlock()
+			if !opts.NoLockPod {
+				pod.lock.Lock()
+				defer pod.lock.Unlock()
+			}
 			if err := pod.updatePod(); err != nil {
-				return err
+				// As above, there's a chance the pod was
+				// already removed.
+				if errors.Is(err, define.ErrNoSuchPod) {
+					removedCtrs[c.ID()] = nil
+					return
+				}
+
+				retErr = err
+				return
 			}
 
 			infraID := pod.state.InfraContainerID
-			if c.ID() == infraID {
-				return fmt.Errorf("container %s is the infra container of pod %s and cannot be removed without removing the pod", c.ID(), pod.ID())
+			if c.ID() == infraID && !opts.RemoveDeps {
+				retErr = fmt.Errorf("container %s is the infra container of pod %s and cannot be removed without removing the pod", c.ID(), pod.ID())
+				return
 			}
 		}
 	}
 
 	// For pod removal, the container is already locked by the caller
-	if !removePod {
+	locked := false
+	if !opts.RemovePod {
 		c.lock.Lock()
-		defer c.lock.Unlock()
+		defer func() {
+			if locked {
+				c.lock.Unlock()
+			}
+		}()
+		locked = true
 	}
 
 	if !r.valid {
-		return define.ErrRuntimeStopped
+		retErr = define.ErrRuntimeStopped
+		return
 	}
 
 	// Update the container to get current state
 	if err := c.syncContainer(); err != nil {
-		return err
+		retErr = err
+		return
 	}
 
+	serviceForPod := false
 	if c.IsService() {
 		for _, id := range c.state.Service.Pods {
-			if _, err := c.runtime.LookupPod(id); err != nil {
+			depPod, err := c.runtime.LookupPod(id)
+			if err != nil {
 				if errors.Is(err, define.ErrNoSuchPod) {
 					continue
 				}
-				return err
+				retErr = err
+				return
 			}
-			return fmt.Errorf("container %s is the service container of pod(s) %s and cannot be removed without removing the pod(s)", c.ID(), strings.Join(c.state.Service.Pods, ","))
+			if !opts.RemoveDeps {
+				retErr = fmt.Errorf("container %s is the service container of pod(s) %s and cannot be removed without removing the pod(s)", c.ID(), strings.Join(c.state.Service.Pods, ","))
+				return
+			}
+			// If we are the service container for the pod we are a
+			// member of: we need to remove that pod last, since
+			// this container is part of it.
+			if pod != nil && pod.ID() == depPod.ID() {
+				serviceForPod = true
+				continue
+			}
+			logrus.Infof("Removing pod %s as container %s is its service container", depPod.ID(), c.ID())
+			podRemovedCtrs, err := r.RemovePod(ctx, depPod, true, opts.Force, opts.Timeout)
+			for ctr, err := range podRemovedCtrs {
+				removedCtrs[ctr] = err
+			}
+			if err != nil && !errors.Is(err, define.ErrNoSuchPod) && !errors.Is(err, define.ErrPodRemoved) {
+				removedPods[depPod.ID()] = err
+				retErr = fmt.Errorf("error removing container %s dependency pods: %w", c.ID(), err)
+				return
+			}
+			removedPods[depPod.ID()] = nil
 		}
+	}
+	if (serviceForPod || c.config.IsInfra) && !opts.RemovePod {
+		// We're going to remove the pod we are a part of.
+		// This will get rid of us as well, so we can just return
+		// immediately after.
+		if locked {
+			locked = false
+			c.lock.Unlock()
+		}
+
+		logrus.Infof("Removing pod %s (dependency of container %s)", pod.ID(), c.ID())
+		podRemovedCtrs, err := r.removePod(ctx, pod, true, opts.Force, opts.Timeout)
+		for ctr, err := range podRemovedCtrs {
+			removedCtrs[ctr] = err
+		}
+		if err != nil && !errors.Is(err, define.ErrNoSuchPod) && !errors.Is(err, define.ErrPodRemoved) {
+			removedPods[pod.ID()] = err
+			retErr = fmt.Errorf("error removing container %s pod: %w", c.ID(), err)
+			return
+		}
+		removedPods[pod.ID()] = nil
+		return
 	}
 
 	// If we're not force-removing, we need to check if we're in a good
 	// state to remove.
-	if !force {
+	if !opts.Force {
 		if err := c.checkReadyForRemoval(); err != nil {
-			return err
+			retErr = err
+			return
 		}
 	}
 
 	if c.state.State == define.ContainerStatePaused {
 		isV2, err := cgroups.IsCgroup2UnifiedMode()
 		if err != nil {
-			return err
+			retErr = err
+			return
 		}
 		// cgroups v1 and v2 handle signals on paused processes differently
 		if !isV2 {
 			if err := c.unpause(); err != nil {
-				return err
+				retErr = err
+				return
 			}
 		}
 		if err := c.ociRuntime.KillContainer(c, 9, false); err != nil {
-			return err
+			retErr = err
+			return
 		}
 		// Need to update container state to make sure we know it's stopped
 		if err := c.waitForExitFileAndSync(); err != nil {
-			return err
+			retErr = err
+			return
 		}
 	}
 
 	// Check that no other containers depend on the container.
 	// Only used if not removing a pod - pods guarantee that all
 	// deps will be evicted at the same time.
-	if !ignoreDeps {
+	if !opts.IgnoreDeps {
 		deps, err := r.state.ContainerInUse(c)
 		if err != nil {
-			return err
+			retErr = err
+			return
 		}
-		if len(deps) != 0 {
-			depsStr := strings.Join(deps, ", ")
-			return fmt.Errorf("container %s has dependent containers which must be removed before it: %s: %w", c.ID(), depsStr, define.ErrCtrExists)
+		if !opts.RemoveDeps {
+			if len(deps) != 0 {
+				depsStr := strings.Join(deps, ", ")
+				retErr = fmt.Errorf("container %s has dependent containers which must be removed before it: %s: %w", c.ID(), depsStr, define.ErrCtrExists)
+				return
+			}
+		}
+		for _, depCtr := range deps {
+			dep, err := r.GetContainer(depCtr)
+			if err != nil {
+				retErr = err
+				return
+			}
+			logrus.Infof("Removing container %s (dependency of container %s)", dep.ID(), c.ID())
+			recursiveOpts := ctrRmOpts{
+				Force:        opts.Force,
+				RemoveVolume: opts.RemoveVolume,
+				RemoveDeps:   true,
+				NoLockPod:    true,
+				Timeout:      opts.Timeout,
+			}
+			ctrs, pods, err := r.removeContainer(ctx, dep, recursiveOpts)
+			for rmCtr, err := range ctrs {
+				removedCtrs[rmCtr] = err
+			}
+			for rmPod, err := range pods {
+				removedPods[rmPod] = err
+			}
+			if err != nil {
+				retErr = err
+				return
+			}
 		}
 	}
 
 	// Check that the container's in a good state to be removed.
 	if c.ensureState(define.ContainerStateRunning, define.ContainerStateStopping) {
 		time := c.StopTimeout()
-		if timeout != nil {
-			time = *timeout
+		if opts.Timeout != nil {
+			time = *opts.Timeout
 		}
 		// Ignore ErrConmonDead - we couldn't retrieve the container's
 		// exit code properly, but it's still stopped.
 		if err := c.stop(time); err != nil && !errors.Is(err, define.ErrConmonDead) {
-			return fmt.Errorf("cannot remove container %s as it could not be stopped: %w", c.ID(), err)
+			retErr = fmt.Errorf("cannot remove container %s as it could not be stopped: %w", c.ID(), err)
+			return
 		}
 
 		// We unlocked as part of stop() above - there's a chance someone
@@ -759,17 +946,19 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		if ok, _ := r.state.HasContainer(c.ID()); !ok {
 			// When the container has already been removed, the OCI runtime directory remain.
 			if err := c.cleanupRuntime(ctx); err != nil {
-				return fmt.Errorf("cleaning up container %s from OCI runtime: %w", c.ID(), err)
+				retErr = fmt.Errorf("cleaning up container %s from OCI runtime: %w", c.ID(), err)
+				return
 			}
-			return nil
+			// Do not add to removed containers, someone else
+			// removed it.
+			return
 		}
 	}
 
-	var cleanupErr error
 	reportErrorf := func(msg string, args ...any) {
 		err := fmt.Errorf(msg, args...) // Always use fmt.Errorf instead of just logrus.Errorf(…) because the format string probably contains %w
-		if cleanupErr == nil {
-			cleanupErr = err
+		if retErr == nil {
+			retErr = err
 		} else {
 			logrus.Errorf("%s", err.Error())
 		}
@@ -823,9 +1012,10 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 			reportErrorf("removing container %s from database: %w", c.ID(), err)
 		}
 	}
+	removedCtrs[c.ID()] = nil
 
 	// Deallocate the container's lock
-	if err := c.lock.Free(); err != nil {
+	if err := c.lock.Free(); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		reportErrorf("freeing lock for container %s: %w", c.ID(), err)
 	}
 
@@ -834,8 +1024,8 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 
 	c.newContainerEvent(events.Remove)
 
-	if !removeVolume {
-		return cleanupErr
+	if !opts.RemoveVolume {
+		return
 	}
 
 	for _, v := range c.config.NamedVolumes {
@@ -843,7 +1033,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 			if !volume.Anonymous() {
 				continue
 			}
-			if err := runtime.removeVolume(ctx, volume, false, timeout, false); err != nil && !errors.Is(err, define.ErrNoSuchVolume) {
+			if err := runtime.removeVolume(ctx, volume, false, opts.Timeout, false); err != nil && !errors.Is(err, define.ErrNoSuchVolume) {
 				if errors.Is(err, define.ErrVolumeBeingUsed) {
 					// Ignore error, since podman will report original error
 					volumesFrom, _ := c.volumesFrom()
@@ -857,7 +1047,8 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		}
 	}
 
-	return cleanupErr
+	//nolint:nakedret
+	return
 }
 
 // EvictContainer removes the given container partial or full ID or name, and
@@ -896,7 +1087,12 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 	if err == nil {
 		logrus.Infof("Container %s successfully retrieved from state, attempting normal removal", id)
 		// Assume force = true for the evict case
-		err = r.removeContainer(ctx, tmpCtr, true, removeVolume, false, false, timeout)
+		opts := ctrRmOpts{
+			Force:        true,
+			RemoveVolume: removeVolume,
+			Timeout:      timeout,
+		}
+		_, _, err = r.removeContainer(ctx, tmpCtr, opts)
 		if !tmpCtr.valid {
 			// If the container is marked invalid, remove succeeded
 			// in kicking it out of the state - no need to continue.
@@ -1008,58 +1204,6 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 	}
 
 	return id, cleanupErr
-}
-
-// RemoveDepend removes all dependencies for a container.
-// If the container is an infra container, the entire pod gets removed.
-func (r *Runtime) RemoveDepend(ctx context.Context, rmCtr *Container, force bool, removeVolume bool, timeout *uint) ([]*reports.RmReport, error) {
-	logrus.Debugf("Removing container %s and all dependent containers", rmCtr.ID())
-	rmReports := make([]*reports.RmReport, 0)
-	if rmCtr.IsInfra() {
-		pod, err := r.GetPod(rmCtr.PodID())
-		if err != nil {
-			return nil, err
-		}
-		logrus.Debugf("Removing pod %s: depends on infra container %s", pod.ID(), rmCtr.ID())
-		podContainerIDS, err := pod.AllContainersByID()
-		if err != nil {
-			return nil, err
-		}
-		if err := r.RemovePod(ctx, pod, true, force, timeout); err != nil {
-			return nil, err
-		}
-		for _, cID := range podContainerIDS {
-			rmReports = append(rmReports, &reports.RmReport{Id: cID})
-		}
-		return rmReports, nil
-	}
-
-	deps, err := r.state.ContainerInUse(rmCtr)
-	if err != nil {
-		if err == define.ErrCtrRemoved {
-			return rmReports, nil
-		}
-		return rmReports, err
-	}
-	for _, cid := range deps {
-		ctr, err := r.state.Container(cid)
-		if err != nil {
-			if err == define.ErrNoSuchCtr {
-				continue
-			}
-			return rmReports, err
-		}
-
-		reports, err := r.RemoveDepend(ctx, ctr, force, removeVolume, timeout)
-		if err != nil {
-			return rmReports, err
-		}
-		rmReports = append(rmReports, reports...)
-	}
-
-	report := reports.RmReport{Id: rmCtr.ID()}
-	report.Err = r.removeContainer(ctx, rmCtr, force, removeVolume, false, false, timeout)
-	return append(rmReports, &report), nil
 }
 
 // GetContainer retrieves a container by its ID

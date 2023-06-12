@@ -211,4 +211,8 @@ var (
 	// ErrConmonVersionFormat is used when the expected version format of conmon
 	// has changed.
 	ErrConmonVersionFormat = "conmon version changed format"
+
+	// ErrRemovingCtrs indicates that there was an error removing all
+	// containers from a pod.
+	ErrRemovingCtrs = errors.New("removing pod containers")
 )

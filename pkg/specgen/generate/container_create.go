@@ -79,7 +79,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	compatibleOptions := &libpod.InfraInherit{}
 	var infraSpec *specs.Spec
 	if infra != nil {
-		options, infraSpec, compatibleOptions, err = Inherit(*infra, s, rt)
+		options, infraSpec, compatibleOptions, err = Inherit(infra, s, rt)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -636,7 +636,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	return options, nil
 }
 
-func Inherit(infra libpod.Container, s *specgen.SpecGenerator, rt *libpod.Runtime) (opts []libpod.CtrCreateOption, infraS *specs.Spec, compat *libpod.InfraInherit, err error) {
+func Inherit(infra *libpod.Container, s *specgen.SpecGenerator, rt *libpod.Runtime) (opts []libpod.CtrCreateOption, infraS *specs.Spec, compat *libpod.InfraInherit, err error) {
 	inheritSpec := &specgen.SpecGenerator{}
 	_, compatibleOptions, err := ConfigToSpec(rt, inheritSpec, infra.ID())
 	if err != nil {
