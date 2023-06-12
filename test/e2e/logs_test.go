@@ -2,6 +2,7 @@ package integration
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"time"
 
@@ -548,6 +549,19 @@ var _ = Describe("Podman logs", func() {
 		Expect(logs.ErrorToString()).To(ContainSubstring("this container is using the 'none' log driver, cannot read logs: this container is not logging output"))
 	})
 
+	It("podman logs with non ASCII log tag fails without env", func() {
+		// Env won't be passed to the podman command by default, so it will be empty
+		logc := podmanTest.Podman([]string{"run", "--log-opt", "tag=\"äöüß\"", ALPINE, "echo", "podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc).To(Not(Exit(0)))
+	})
+
+	It("podman logs with non ASCII log tag succeeds with env", func() {
+		env := append(os.Environ(), "LANG=en_US.UTF-8", "LC_ALL=")
+		logc := podmanTest.PodmanAsUser([]string{"run", "--log-opt", "tag=äöüß", ALPINE, "echo", "podman"}, 0, 0, "", env)
+		logc.WaitWithDefaultTimeout()
+		Expect(logc).To(Exit(0))
+	})
 	It("podman pod logs with container names", func() {
 		SkipIfRemote("Remote can only process one container at a time")
 		podName := "testPod"
@@ -597,5 +611,4 @@ var _ = Describe("Podman logs", func() {
 		Expect(output[0]).To(MatchRegexp(`\x1b\[3[0-9a-z ]+\x1b\[0m`))
 		Expect(output[1]).To(MatchRegexp(`\x1b\[3[0-9a-z ]+\x1b\[0m`))
 	})
-
 })
