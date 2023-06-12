@@ -1311,6 +1311,9 @@ func (r *ConmonOCIRuntime) configureConmonEnv(runtimeDir string) []string {
 		if strings.HasPrefix(e, "LC_") {
 			env = append(env, e)
 		}
+		if strings.HasPrefix(e, "LANG=") {
+			env = append(env, e)
+		}
 	}
 	if path, ok := os.LookupEnv("PATH"); ok {
 		env = append(env, fmt.Sprintf("PATH=%s", path))
