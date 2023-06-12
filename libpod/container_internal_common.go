@@ -1135,8 +1135,8 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 }
 
 func (c *Container) checkpointRestoreSupported(version int) error {
-	if !criu.CheckForCriu(version) {
-		return fmt.Errorf("checkpoint/restore requires at least CRIU %d", version)
+	if err := criu.CheckForCriu(version); err != nil {
+		return err
 	}
 	if !c.ociRuntime.SupportsCheckpoint() {
 		return errors.New("configured runtime does not support checkpoint/restore")
