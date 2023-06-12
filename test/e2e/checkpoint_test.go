@@ -43,8 +43,8 @@ var _ = Describe("Podman checkpoint", func() {
 			Skip("OCI runtime does not support checkpoint/restore")
 		}
 
-		if !criu.CheckForCriu(criu.MinCriuVersion) {
-			Skip("CRIU is missing or too old.")
+		if err := criu.CheckForCriu(criu.MinCriuVersion); err != nil {
+			Skip(fmt.Sprintf("check CRIU version error: %v", err))
 		}
 		// Only Fedora 29 and newer has a new enough selinux-policy and
 		// container-selinux package to support CRIU in correctly
@@ -1121,8 +1121,8 @@ var _ = Describe("Podman checkpoint", func() {
 		share := share // copy into local scope, for use inside function
 
 		It(testName, func() {
-			if !criu.CheckForCriu(criu.PodCriuVersion) {
-				Skip("CRIU is missing or too old.")
+			if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
+				Skip(fmt.Sprintf("check CRIU pod version error: %v", err))
 			}
 			if !crutils.CRRuntimeSupportsPodCheckpointRestore(podmanTest.OCIRuntime) {
 				Skip("runtime does not support pod restore: " + podmanTest.OCIRuntime)
