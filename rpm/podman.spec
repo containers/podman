@@ -277,6 +277,7 @@ ln -s vendor src
 LDFLAGS="-X %{import_path}/libpod/define.buildInfo=$(date +%s)"
 
 # build rootlessport first
+export BUILDTAGS="exclude_graphdriver_aufs exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay exclude_graphdriver_zfs"
 %gobuild -o bin/rootlessport %{import_path}/cmd/rootlessport
 
 export BASEBUILDTAGS="seccomp exclude_graphdriver_devicemapper $(hack/systemd_tag.sh) $(hack/libsubid_tag.sh)"
