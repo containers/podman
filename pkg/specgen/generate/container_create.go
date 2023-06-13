@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/containers/podman/v4/pkg/util/expansion"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,6 +27,14 @@ import (
 // Returns the created, container and any warnings resulting from creating the
 // container, or an error.
 func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator, clone bool, c *libpod.Container) (*specs.Spec, *specgen.SpecGenerator, []libpod.CtrCreateOption, error) {
+	mapping := expansion.MappingFuncFor(s.Env)
+	for i, subCmd := range s.Entrypoint {
+		s.Entrypoint[i] = expansion.Expand(subCmd, mapping)
+	}
+	for i, subCmd := range s.Command {
+		s.Command[i] = expansion.Expand(subCmd, mapping)
+	}
+
 	rtc, err := rt.GetConfigNoCopy()
 	if err != nil {
 		return nil, nil, nil, err

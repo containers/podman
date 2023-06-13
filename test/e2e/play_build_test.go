@@ -63,6 +63,46 @@ LABEL marge=mom
 	var copyFile = `just a text file
 `
 
+	var testYAMLForEnvExpand = `
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2021-08-05T17:55:51Z"
+  labels:
+    app: foobar
+  name: echo_pod
+spec:
+  containers:
+  - command:
+    - /bin/sh
+    - -c
+    - echo $(FOO)
+    - ${FOO}
+    - $$(FOO)
+    - FOO$(FOO)BAZ
+    env:
+    - name: PATH
+      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    - name: TERM
+      value: xterm
+    - name: container
+      value: podman
+    - name: FOO
+      value: BAR
+    image: foobar
+    name: foobar
+    resources: {}
+    securityContext:
+      allowPrivilegeEscalation: true
+      privileged: false
+      readOnlyRootFilesystem: false
+      seLinuxOptions: {}
+    tty: true
+    workingDir: /
+  dnsConfig: {}
+status: {}
+`
+
 	It("Check that image is built using Dockerfile", func() {
 		// Setup
 		yamlDir := filepath.Join(tempdir, RandomString(12))
@@ -98,6 +138,44 @@ LABEL marge=mom
 		inspectData := inspect.InspectContainerToJSON()
 		Expect(inspectData).ToNot(BeEmpty())
 		Expect(inspectData[0].Config.Labels).To(HaveKeyWithValue("homer", "dad"))
+	})
+
+	It("Check that command is expanded", func() {
+		// Setup
+		yamlDir := filepath.Join(tempdir, RandomString(12))
+		err := os.Mkdir(yamlDir, 0755)
+		Expect(err).ToNot(HaveOccurred(), "mkdir "+yamlDir)
+		err = writeYaml(testYAMLForEnvExpand, filepath.Join(yamlDir, "echo.yaml"))
+		Expect(err).ToNot(HaveOccurred())
+		app1Dir := filepath.Join(yamlDir, "foobar")
+		err = os.Mkdir(app1Dir, 0755)
+		Expect(err).ToNot(HaveOccurred())
+		err = writeYaml(playBuildFile, filepath.Join(app1Dir, "Containerfile"))
+		Expect(err).ToNot(HaveOccurred())
+		// Write a file to be copied
+		err = writeYaml(copyFile, filepath.Join(app1Dir, "copyfile"))
+		Expect(err).ToNot(HaveOccurred())
+		// Switch to temp dir and restore it afterwards
+		cwd, err := os.Getwd()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(os.Chdir(yamlDir)).To(Succeed())
+		defer func() { (Expect(os.Chdir(cwd)).To(BeNil())) }()
+
+		session := podmanTest.Podman([]string{"play", "kube", "echo.yaml"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"container", "inspect", "echo_pod-foobar"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		inspectData := inspect.InspectContainerToJSON()
+		Expect(inspectData).ToNot(BeEmpty())
+
+		Expect(len(inspectData[0].Args)).To(BeEquivalentTo(5))
+		Expect(inspectData[0].Args[1]).To(BeEquivalentTo("echo BAR"))
+		Expect(inspectData[0].Args[2]).To(BeEquivalentTo("${FOO}"))
+		Expect(inspectData[0].Args[3]).To(BeEquivalentTo("$(FOO)"))
+		Expect(inspectData[0].Args[4]).To(BeEquivalentTo("FOOBARBAZ"))
 	})
 
 	It("Check that image is built using Containerfile", func() {
