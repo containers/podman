@@ -330,4 +330,33 @@ Deleted: $pauseID"
     run_podman rm my-container --force -t 0
 }
 
+@test "podman pull image with additional store" {
+    skip_if_remote "only works on local"
+
+    local imstore=$PODMAN_TMPDIR/imagestore
+    local sconf=$PODMAN_TMPDIR/storage.conf
+    cat >$sconf <<EOF
+[storage]
+driver="overlay"
+
+[storage.options]
+additionalimagestores = [ "$imstore/root" ]
+EOF
+
+    skopeo copy containers-storage:$IMAGE \
+           containers-storage:\[overlay@$imstore/root+$imstore/runroot\]$IMAGE
+
+    CONTAINERS_STORAGE_CONF=$sconf run_podman images -a -n --format "{{.Repository}}:{{.Tag}} {{.ReadOnly}}"
+    is "${lines[0]}" "$IMAGE false" "image from readonly store"
+    is "${lines[1]}" "$IMAGE true" "image from readwrite store"
+
+    CONTAINERS_STORAGE_CONF=$sconf run_podman images -a -n --format "{{.Id}}"
+    id=${lines[0]}
+
+    CONTAINERS_STORAGE_CONF=$sconf run_podman pull -q $IMAGE
+    is "$output" "$id" "Should only print one line"
+
+    run_podman --root $imstore/root rmi --all
+}
+
 # vim: filetype=sh
