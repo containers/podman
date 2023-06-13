@@ -186,7 +186,7 @@ ok 4 blah
 [+0006s] CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build  -ldflags '-X github.com/containers/podman/v4/libpod/define.gitCommit=074143b0fac7af72cd92048d27931a92fe745084 -X github.com/containers/podman/v4/libpod/define.buildInfo=1681728434 -X github.com/containers/podman/v4/libpod/config._installPrefix=/usr/local -X github.com/containers/podman/v4/libpod/config._etcDir=/usr/local/etc -X github.com/containers/podman/v4/pkg/systemd/quadlet._binDir=/usr/local/bin -X github.com/containers/common/pkg/config.additionalHelperBinariesDir= ' -o test/goecho/goecho ./test/goecho
 [+0006s] ./hack/install_catatonit.sh
 [+0270s] ------------------------------
-[+0271s] â¢ [3.327 seconds]
+[+0271s] • [3.327 seconds]
 [+0271s] Podman restart
 [+0271s] /var/tmp/go/src/github.com/containers/podman/test/e2e/restart_test.go:14
 [+0271s]   podman restart non-stop container with short timeout
@@ -210,6 +210,25 @@ ok 4 blah
 [+0271s]   7f5f8fb3d043984cdff65994d14c4fd157479d20e0a0fcf769c35b50e8975edc
 [+0271s]   < Exit [AfterEach] Podman restart - /var/tmp/go/src/github.com/containers/podman/test/e2e/restart_test.go:30 @ 04/17/23 10:00:31.979 (645ms)
 [+0271s]   << Timeline
+[+0296s] ------------------------------
+[+0298s] • [FAILED] [6.071 seconds]
+[+0298s] TOP-LEVEL [AfterEach]
+[+0298s] /var/tmp/go/src/github.com/containers/podman/test/e2e/common_test.go:117
+[+0298s]   Podman pod create
+[+0298s]   /var/tmp/go/src/github.com/containers/podman/test/e2e/pod_infra_container_test.go:12
+[+0298s]     podman pod correctly sets up PIDNS
+[+0298s]     /var/tmp/go/src/github.com/containers/podman/test/e2e/pod_infra_container_test.go:154
+[+0298s]&TRAILINGSPACE;&TRAILINGSPACE;&TRAILINGSPACE;
+[+0298s]   Timeline >>
+[+0298s]   << Timeline
+[+1741s] ------------------------------
+[+1741s]&TRAILINGSPACE;
+[+1741s] Summarizing 1 Failure:
+[+1741s]   [FAIL] TOP-LEVEL [AfterEach] Podman pod create podman pod correctly sets up PIDNS
+[+1741s]   /var/tmp/go/src/github.com/containers/podman/test/e2e/common_test.go:657
+[+1741s]&TRAILINGSPACE;
+[+1741s] Ran 1889 of 2014 Specs in 1607.919 seconds
+[+1741s] FAIL! -- 1881 Passed | 1 Failed | 0 Pending | 125 Skipped
 >>>
 [05:47:08] START - All [+xxxx] lines that follow are relative to 2023-04-17T05:47:08.
 <span class="timestamp">[+0004s] </span>CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build  -ldflags &#39;-X github.com/containers/podman/v4/libpod/define.gitCommit=074143b0fac7af72cd92048d27931a92fe745084 -X github.com/containers/podman/v4/libpod/define.buildInfo=1681728432 -X github.com/containers/podman/v4/libpod/config._installPrefix=/usr/local -X github.com/containers/podman/v4/libpod/config._etcDir=/usr/local/etc -X github.com/containers/podman/v4/pkg/systemd/quadlet._binDir=/usr/local/bin -X github.com/containers/common/pkg/config.additionalHelperBinariesDir= &#39; -tags &quot;   selinux systemd  exclude_graphdriver_devicemapper seccomp&quot; -o test/checkseccomp/checkseccomp ./test/checkseccomp
@@ -218,7 +237,7 @@ ok 4 blah
 </pre>
 <hr />
 <pre>
-<span class="timestamp">[+0271s] </span>â¢ <b>[3.327 seconds]</b>
+<span class="timestamp">[+0271s] </span>• <b>[3.327 seconds]</b>
 <span class="timestamp">         </span><a name='t--Podman-restart--1'><h2 class="log-passed">Podman restart</h2></a>
 <span class="timestamp">         </span>/var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/074143b0fac7af72cd92048d27931a92fe745084/test/e2e/restart_test.go#L14'>/containers/podman/test/e2e/restart_test.go:14</a>
 <span class="timestamp">         </span><a name='t--Podman-restart-podman-restart-non-stop-container-with-short-timeout--1'><h2 class="log-passed">  podman restart non-stop container with short timeout</h2></a>
@@ -297,7 +316,29 @@ ok 4 blah
 <span class="timestamp">         </span>  7f5f8fb3d043984cdff65994d14c4fd157479d20e0a0fcf769c35b50e8975edc
 <span class="timestamp">         </span>  &larr; Exit  [AfterEach] Podman restart - /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/074143b0fac7af72cd92048d27931a92fe745084/test/e2e/restart_test.go#L30'>/containers/podman/test/e2e/restart_test.go:30</a> @ 04/17/23 10:00:31.979 (645ms)
 </div><span class="timestamp">         </span>  &lt;&lt; Timeline
-
+</pre>
+<hr />
+<pre>
+<span class="timestamp">[+0298s] </span><span class="log-failed">• [FAILED] <b><span class='log-slow'>[6.071 seconds]</span></b></span>
+<span class="timestamp">         </span><a name='t--TOP-LEVEL--AfterEach---1'><h2 class="log-failed">TOP-LEVEL [AfterEach]</h2></a>
+<span class="timestamp">         </span>/var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/074143b0fac7af72cd92048d27931a92fe745084/test/e2e/common_test.go#L117'>/containers/podman/test/e2e/common_test.go:117</a>
+<span class="timestamp">         </span><a name='t--Podman-pod-create--1'><h2 class="log-failed">  Podman pod create</h2></a>
+<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/074143b0fac7af72cd92048d27931a92fe745084/test/e2e/pod_infra_container_test.go#L12'>/containers/podman/test/e2e/pod_infra_container_test.go:12</a>
+<span class="timestamp">         </span><a name='t--Podman-pod-create-podman-pod-correctly-sets-up-PIDNS--1'><h2 class="log-failed">    podman pod correctly sets up PIDNS</h2></a>
+<span class="timestamp">         </span>    /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/074143b0fac7af72cd92048d27931a92fe745084/test/e2e/pod_infra_container_test.go#L154'>/containers/podman/test/e2e/pod_infra_container_test.go:154</a>
+<span class="timestamp">         </span>&TRAILINGSPACE;&TRAILINGSPACE;
+<span class="timestamp">         </span>  Timeline &gt;&gt;
+<span class="timestamp">         </span>  &lt;&lt; Timeline
+</pre>
+<hr />
+<pre>
+<span class="timestamp">[+1741s] </span>
+<span class="timestamp">         </span>Summarizing 1 Failure:
+<span class="timestamp">         </span><span class="log-error">  [FAIL] TOP-LEVEL [AfterEach] <a href='#t--Podman-pod-create-podman-pod-correctly-sets-up-PIDNS--1'>Podman pod create podman pod correctly sets up PIDNS</a></span>
+<span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/074143b0fac7af72cd92048d27931a92fe745084/test/e2e/common_test.go#L657'>/containers/podman/test/e2e/common_test.go:657</a>
+<span class="timestamp">         </span>
+<span class="timestamp">         </span>Ran 1889 of 2014 Specs in 1607.919 seconds
+<span class="timestamp">         </span><span class="ginkgo-final-fail">FAIL!</span> -- <span class="bats-passed"><b>1881</b> Passed</span> | <span class="bats-failed"><b>1</b> Failed</span> | 0 Pending | <span class="bats-skipped"><b>125</b> Skipped</span>
 
 == simple python
 
