@@ -610,12 +610,14 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 			}
 		}
 
+		timedout := ""
 		if !containerRemoved {
 			// If conmon is dead for more than $timerDuration or if the
 			// container has exited properly, try to look up the exit code.
 			select {
 			case <-conmonTimer.C:
 				logrus.Debugf("Exceeded conmon timeout waiting for container %s to exit", id)
+				timedout = " [exceeded conmon timeout waiting for container to exit]"
 			default:
 				switch c.state.State {
 				case define.ContainerStateExited, define.ContainerStateConfigured:
@@ -642,7 +644,7 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 					return true, 0, nil
 				}
 			}
-			return true, -1, fmt.Errorf("%w (container in state %s)", err, c.state.State)
+			return true, -1, fmt.Errorf("%w (container in state %s)%s", err, c.state.State, timedout)
 		}
 
 		return true, exitCode, nil
