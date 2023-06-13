@@ -1268,8 +1268,8 @@ func (cc *ClientConn) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	cancelRequest := func(cs *clientStream, err error) error {
 		cs.cc.mu.Lock()
-		defer cs.cc.mu.Unlock()
 		cs.abortStreamLocked(err)
+		bodyClosed := cs.reqBodyClosed
 		if cs.ID != 0 {
 			// This request may have failed because of a problem with the connection,
 			// or for some unrelated reason. (For example, the user might have canceled
@@ -1283,6 +1283,23 @@ func (cc *ClientConn) RoundTrip(req *http.Request) (*http.Response, error) {
 			// is set, for example, in which case retrying on a different connection
 			// will not help.
 			cs.cc.doNotReuse = true
+		}
+		cs.cc.mu.Unlock()
+		// Wait for the request body to be closed.
+		//
+		// If nothing closed the body before now, abortStreamLocked
+		// will have started a goroutine to close it.
+		//
+		// Closing the body before returning avoids a race condition
+		// with net/http checking its readTrackingBody to see if the
+		// body was read from or closed. See golang/go#60041.
+		//
+		// The body is closed in a separate goroutine without the
+		// connection mutex held, but dropping the mutex before waiting
+		// will keep us from holding it indefinitely if the body
+		// close is slow for some reason.
+		if bodyClosed != nil {
+			<-bodyClosed
 		}
 		return err
 	}
@@ -1899,7 +1916,7 @@ func (cc *ClientConn) encodeHeaders(req *http.Request, addGzipHeader bool, trail
 		// 8.1.2.3 Request Pseudo-Header Fields
 		// The :path pseudo-header field includes the path and query parts of the
 		// target URI (the path-absolute production and optionally a '?' character
-		// followed by the query production (see Sections 3.3 and 3.4 of
+		// followed by the query production, see Sections 3.3 and 3.4 of
 		// [RFC3986]).
 		f(":authority", host)
 		m := req.Method
