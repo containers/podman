@@ -6,14 +6,13 @@ import (
 	"regexp"
 	"strings"
 
-	pruneFilters "github.com/containers/common/pkg/filters"
+	"github.com/containers/common/pkg/filters"
 	"github.com/containers/podman/v4/libpod"
-	"github.com/containers/podman/v4/pkg/util"
 )
 
-func GenerateVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, error) {
+func GenerateVolumeFilters(filtersValues url.Values) ([]libpod.VolumeFilter, error) {
 	var vf []libpod.VolumeFilter
-	for filter, v := range filters {
+	for filter, v := range filtersValues {
 		for _, val := range v {
 			switch filter {
 			case "name":
@@ -37,12 +36,12 @@ func GenerateVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, error) {
 			case "label":
 				filter := val
 				vf = append(vf, func(v *libpod.Volume) bool {
-					return pruneFilters.MatchLabelFilters([]string{filter}, v.Labels())
+					return filters.MatchLabelFilters([]string{filter}, v.Labels())
 				})
 			case "label!":
 				filter := val
 				vf = append(vf, func(v *libpod.Volume) bool {
-					return !pruneFilters.MatchLabelFilters([]string{filter}, v.Labels())
+					return !filters.MatchLabelFilters([]string{filter}, v.Labels())
 				})
 			case "opt":
 				filterArray := strings.SplitN(val, "=", 2)
@@ -98,20 +97,20 @@ func GenerateVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, error) {
 	return vf, nil
 }
 
-func GeneratePruneVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, error) {
+func GeneratePruneVolumeFilters(filtersValues url.Values) ([]libpod.VolumeFilter, error) {
 	var vf []libpod.VolumeFilter
-	for filter, v := range filters {
+	for filter, v := range filtersValues {
 		for _, val := range v {
 			filterVal := val
 			switch filter {
 			case "label":
 				vf = append(vf, func(v *libpod.Volume) bool {
-					return pruneFilters.MatchLabelFilters([]string{filterVal}, v.Labels())
+					return filters.MatchLabelFilters([]string{filterVal}, v.Labels())
 				})
 			case "label!":
 				filter := val
 				vf = append(vf, func(v *libpod.Volume) bool {
-					return !pruneFilters.MatchLabelFilters([]string{filter}, v.Labels())
+					return !filters.MatchLabelFilters([]string{filter}, v.Labels())
 				})
 			case "until":
 				f, err := createUntilFilterVolumeFunction(filterVal)
@@ -128,7 +127,7 @@ func GeneratePruneVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, erro
 }
 
 func createUntilFilterVolumeFunction(filter string) (libpod.VolumeFilter, error) {
-	until, err := util.ComputeUntilTimestamp([]string{filter})
+	until, err := filters.ComputeUntilTimestamp([]string{filter})
 	if err != nil {
 		return nil, err
 	}

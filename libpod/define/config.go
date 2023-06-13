@@ -5,7 +5,6 @@ import (
 	"io"
 
 	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/storage/pkg/regexp"
 )
 
 var (
@@ -18,9 +17,6 @@ var (
 	// This must NOT be changed from outside of Libpod. It should be a
 	// constant, but Go won't let us do that.
 	NameRegex = types.NameRegex
-	// NotHexRegex is a regular expression to check if a string is
-	// a hexadecimal string.
-	NotHexRegex = regexp.Delayed(`[^0-9a-fA-F]`)
 	// RegexError is thrown in presence of an invalid container/pod name.
 	RegexError = types.RegexError
 )
