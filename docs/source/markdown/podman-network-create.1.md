@@ -116,6 +116,10 @@ The `macvlan` and `ipvlan` driver support the following options:
   - Supported values for `macvlan` are `bridge`, `private`, `vepa`, `passthru`. Defaults to `bridge`.
   - Supported values for `ipvlan` are `l2`, `l3`, `l3s`. Defaults to `l2`.
 
+Additionally the `macvlan` driver supports the `bclim` option:
+
+- `bclim`: Set the threshold for broadcast queueing. Must be a 32 bit integer. Setting this value to `-1` disables broadcast queueing altogether.
+
 #### **--route**=*route*
 
 A static route in the format <destination in CIDR notation>,<gateway>,<route metric (optional)>. This route will be added to every container in this network. Only available with the netavark backend. It can be specified multiple times if more than one static route is desired.
