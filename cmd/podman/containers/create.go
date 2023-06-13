@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/buildah/pkg/cli"
 	"github.com/containers/common/pkg/config"
 	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/image/v5/transports/alltransports"
@@ -346,7 +347,7 @@ func PullImage(imageName string, cliVals *entities.ContainerCreateOptions) (stri
 		skipTLSVerify = types.NewOptionalBool(!cliVals.TLSVerify.Value())
 	}
 
-	decConfig, err := util.DecryptConfig(cliVals.DecryptionKeys)
+	decConfig, err := cli.DecryptConfig(cliVals.DecryptionKeys)
 	if err != nil {
 		return "unable to obtain decryption config", err
 	}
