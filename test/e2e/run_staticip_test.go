@@ -37,7 +37,7 @@ var _ = Describe("Podman run with --ip flag", func() {
 	})
 
 	It("Podman run with specified static IP has correct IP", func() {
-		ip := GetRandomIPAddress()
+		ip := GetSafeIPAddress()
 		result := podmanTest.Podman([]string{"run", "--ip", ip, ALPINE, "ip", "addr"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
@@ -59,7 +59,7 @@ var _ = Describe("Podman run with --ip flag", func() {
 	})
 
 	It("Podman run with --network bridge:ip=", func() {
-		ip := GetRandomIPAddress()
+		ip := GetSafeIPAddress()
 		result := podmanTest.Podman([]string{"run", "--network", "bridge:ip=" + ip, ALPINE, "ip", "addr"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
@@ -67,7 +67,7 @@ var _ = Describe("Podman run with --ip flag", func() {
 	})
 
 	It("Podman run with --network net:ip=,mac=,interface_name=", func() {
-		ip := GetRandomIPAddress()
+		ip := GetSafeIPAddress()
 		mac := "44:33:22:11:00:99"
 		intName := "myeth"
 		result := podmanTest.Podman([]string{"run", "--network", "bridge:ip=" + ip + ",mac=" + mac + ",interface_name=" + intName, ALPINE, "ip", "addr"})
@@ -79,7 +79,7 @@ var _ = Describe("Podman run with --ip flag", func() {
 	})
 
 	It("Podman run two containers with the same IP", func() {
-		ip := GetRandomIPAddress()
+		ip := GetSafeIPAddress()
 		result := podmanTest.Podman([]string{"run", "-d", "--name", "nginx", "--ip", ip, NGINX_IMAGE})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))

@@ -103,15 +103,19 @@ func TestLibpod(t *testing.T) {
 }
 
 var (
-	tempdir    string
-	err        error
-	podmanTest *PodmanTestIntegration
+	tempdir      string
+	err          error
+	podmanTest   *PodmanTestIntegration
+	safeIPOctets [2]uint8
 
 	_ = BeforeEach(func() {
 		tempdir, err = CreateTempDirInTempDir()
 		Expect(err).ToNot(HaveOccurred())
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
+		// see GetSafeIPAddress() below
+		safeIPOctets[0] = uint8(GinkgoT().ParallelProcess()) + 128
+		safeIPOctets[1] = 2
 	})
 
 	_ = AfterEach(func() {
@@ -479,19 +483,23 @@ func GetPortLock(port string) *lockfile.LockFile {
 	return lock
 }
 
-// GetRandomIPAddress returns a random IP address to avoid IP
-// collisions during parallel tests
-func GetRandomIPAddress() string {
-	// To avoid IP collisions of initialize random seed for random IP addresses
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-	nProcs := GinkgoT().ParallelTotal()
-	myProc := GinkgoT().ParallelProcess() - 1
-
-	// 10.88.255 is unlikely to be used by CNI or netavark.
-	// Last octet .0 - .254, and will be unique to this ginkgo process.
-	ip4 := strconv.Itoa(rng.Intn((255-nProcs)/nProcs)*nProcs + myProc)
-	return "10.88.255." + ip4
+// GetSafeIPAddress returns a sequentially allocated IP address that _should_
+// be safe and unique across parallel tasks
+//
+// Used by tests which want to use "--ip SOMETHING-SAFE". Picking at random
+// just doesn't work: we get occasional collisions. Our current approach
+// allocates a /24 subnet for each ginkgo process, starting at .128.x, see
+// BeforeEach() above. Unfortunately, CNI remembers each address assigned
+// and assigns <previous+1> by default -- so other parallel jobs may
+// get IPs in our block. The +10 leaves a gap for that. (Netavark works
+// differently, allocating sequentially from .0.0, hence our .128.x).
+// This heuristic will fail if run in parallel on >127 processors or if
+// one test calls us more than 25 times or if some other test runs more
+// than ten networked containers at the same time as any test that
+// relies on GetSafeIPAddress(). I'm finding it hard to care.
+func GetSafeIPAddress() string {
+	safeIPOctets[1] += 10
+	return fmt.Sprintf("10.88.%d.%d", safeIPOctets[0], safeIPOctets[1])
 }
 
 // RunTopContainer runs a simple container in the background that
