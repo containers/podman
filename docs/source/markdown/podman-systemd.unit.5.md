@@ -143,7 +143,7 @@ Description of `[Container]` section are:
 
 ### `AddCapability=`
 
-Add these capabilities, in addition to the default podman capability set, to the container.
+Add these capabilities, in addition to the default Podman capability set, to the container.
 
 This is a space separated list of capabilities. This key can be listed multiple times.
 
@@ -400,7 +400,7 @@ This is equivalent to the Podman `--pull` option
 
 ### `ReadOnly=` (defaults to `no`)
 
-If enabled, makes image read-only.
+If enabled, makes the image read-only.
 
 ### `RunInit=` (default to `no`)
 
