@@ -484,11 +484,14 @@ func GetPortLock(port string) *lockfile.LockFile {
 func GetRandomIPAddress() string {
 	// To avoid IP collisions of initialize random seed for random IP addresses
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	// Add GinkgoParallelProcess() on top of the IP address
-	// in case of the same random seed
-	ip3 := strconv.Itoa(rng.Intn(230) + GinkgoParallelProcess())
-	ip4 := strconv.Itoa(rng.Intn(230) + GinkgoParallelProcess())
-	return "10.88." + ip3 + "." + ip4
+
+	nProcs := GinkgoT().ParallelTotal()
+	myProc := GinkgoT().ParallelProcess() - 1
+
+	// 10.88.255 is unlikely to be used by CNI or netavark.
+	// Last octet .0 - .254, and will be unique to this ginkgo process.
+	ip4 := strconv.Itoa(rng.Intn((255-nProcs)/nProcs)*nProcs + myProc)
+	return "10.88.255." + ip4
 }
 
 // RunTopContainer runs a simple container in the background that
