@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -16,16 +15,10 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod/define"
-	"github.com/containers/podman/v4/utils"
 	"github.com/fsnotify/fsnotify"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
-)
-
-// Runtime API constants
-const (
-	unknownPackage = "Unknown"
 )
 
 // FuncTimer helps measure the execution time of a function
@@ -143,57 +136,6 @@ func JSONDeepCopy(from, to interface{}) error {
 		return err
 	}
 	return json.Unmarshal(tmp, to)
-}
-
-func queryPackageVersion(cmdArg ...string) string {
-	output := unknownPackage
-	if 1 < len(cmdArg) {
-		cmd := exec.Command(cmdArg[0], cmdArg[1:]...)
-		if outp, err := cmd.Output(); err == nil {
-			output = string(outp)
-			if cmdArg[0] == "/usr/bin/dpkg" {
-				r := strings.Split(output, ": ")
-				queryFormat := `${Package}_${Version}_${Architecture}`
-				cmd = exec.Command("/usr/bin/dpkg-query", "-f", queryFormat, "-W", r[0])
-				if outp, err := cmd.Output(); err == nil {
-					output = string(outp)
-				}
-			}
-		}
-		if cmdArg[0] == "/sbin/apk" {
-			prefix := cmdArg[len(cmdArg)-1] + " is owned by "
-			output = strings.Replace(output, prefix, "", 1)
-		}
-	}
-	return strings.Trim(output, "\n")
-}
-
-func packageVersion(program string) string { // program is full path
-	packagers := [][]string{
-		{"/usr/bin/rpm", "-q", "-f"},
-		{"/usr/bin/dpkg", "-S"},                // Debian, Ubuntu
-		{"/usr/bin/pacman", "-Qo"},             // Arch
-		{"/usr/bin/qfile", "-qv"},              // Gentoo (quick)
-		{"/usr/bin/equery", "b"},               // Gentoo (slow)
-		{"/sbin/apk", "info", "-W"},            // Alpine
-		{"/usr/local/sbin/pkg", "which", "-q"}, // FreeBSD
-	}
-
-	for _, cmd := range packagers {
-		cmd = append(cmd, program)
-		if out := queryPackageVersion(cmd...); out != unknownPackage {
-			return out
-		}
-	}
-	return unknownPackage
-}
-
-func programVersion(mountProgram string) (string, error) {
-	output, err := utils.ExecCmd(mountProgram, "--version")
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSuffix(output, "\n"), nil
 }
 
 // DefaultSeccompPath returns the path to the default seccomp.json file

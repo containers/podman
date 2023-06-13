@@ -11,6 +11,7 @@ import (
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/seccomp"
+	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/opencontainers/selinux/go-selinux"
@@ -59,13 +60,13 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 		slirp4netnsPath, _ = r.config.FindHelperBinary(slirp4netnsBinaryName, true)
 	}
 	if slirp4netnsPath != "" {
-		version, err := programVersion(slirp4netnsPath)
+		version, err := util.ProgramVersion(slirp4netnsPath)
 		if err != nil {
 			logrus.Warnf("Failed to retrieve program version for %s: %v", slirp4netnsPath, err)
 		}
 		program := define.SlirpInfo{
 			Executable: slirp4netnsPath,
-			Package:    packageVersion(slirp4netnsPath),
+			Package:    util.PackageVersion(slirp4netnsPath),
 			Version:    version,
 		}
 		info.Slirp4NetNS = program
@@ -73,13 +74,13 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 
 	pastaPath, _ := r.config.FindHelperBinary(pastaBinaryName, true)
 	if pastaPath != "" {
-		version, err := programVersion(pastaPath)
+		version, err := util.ProgramVersion(pastaPath)
 		if err != nil {
 			logrus.Warnf("Failed to retrieve program version for %s: %v", pastaPath, err)
 		}
 		program := define.PastaInfo{
 			Executable: pastaPath,
-			Package:    packageVersion(pastaPath),
+			Package:    util.PackageVersion(pastaPath),
 			Version:    version,
 		}
 		info.Pasta = program

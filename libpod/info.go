@@ -14,6 +14,7 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/pkg/util"
+	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/linkmode"
@@ -106,24 +107,25 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 	}
 
 	info := define.HostInfo{
-		Arch:            runtime.GOARCH,
-		BuildahVersion:  buildah.Version,
-		DatabaseBackend: r.config.Engine.DBBackend,
-		Linkmode:        linkmode.Linkmode(),
-		CPUs:            runtime.NumCPU(),
-		CPUUtilization:  cpuUtil,
-		Distribution:    hostDistributionInfo,
-		FreeLocks:       locksFree,
-		LogDriver:       r.config.Containers.LogDriver,
-		EventLogger:     r.eventer.String(),
-		Hostname:        host,
-		Kernel:          kv,
-		MemFree:         mi.MemFree,
-		MemTotal:        mi.MemTotal,
-		NetworkBackend:  r.config.Network.NetworkBackend,
-		OS:              runtime.GOOS,
-		SwapFree:        mi.SwapFree,
-		SwapTotal:       mi.SwapTotal,
+		Arch:               runtime.GOARCH,
+		BuildahVersion:     buildah.Version,
+		DatabaseBackend:    r.config.Engine.DBBackend,
+		Linkmode:           linkmode.Linkmode(),
+		CPUs:               runtime.NumCPU(),
+		CPUUtilization:     cpuUtil,
+		Distribution:       hostDistributionInfo,
+		LogDriver:          r.config.Containers.LogDriver,
+		EventLogger:        r.eventer.String(),
+		FreeLocks:          locksFree,
+		Hostname:           host,
+		Kernel:             kv,
+		MemFree:            mi.MemFree,
+		MemTotal:           mi.MemTotal,
+		NetworkBackend:     r.config.Network.NetworkBackend,
+		NetworkBackendInfo: r.network.NetworkInfo(),
+		OS:                 runtime.GOOS,
+		SwapFree:           mi.SwapFree,
+		SwapTotal:          mi.SwapTotal,
 	}
 	if err := r.setPlatformHostInfo(&info); err != nil {
 		return nil, err
@@ -241,14 +243,14 @@ func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 	for _, o := range r.store.GraphOptions() {
 		split := strings.SplitN(o, "=", 2)
 		if strings.HasSuffix(split[0], "mount_program") {
-			version, err := programVersion(split[1])
+			version, err := cutil.ProgramVersion(split[1])
 			if err != nil {
 				logrus.Warnf("Failed to retrieve program version for %s: %v", split[1], err)
 			}
 			program := map[string]interface{}{}
 			program["Executable"] = split[1]
 			program["Version"] = version
-			program["Package"] = packageVersion(split[1])
+			program["Package"] = cutil.PackageVersion(split[1])
 			graphOptions[split[0]] = program
 		} else {
 			graphOptions[split[0]] = split[1]
