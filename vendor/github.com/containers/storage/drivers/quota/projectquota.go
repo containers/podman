@@ -428,7 +428,14 @@ func makeBackingFsDev(home string) (string, error) {
 	backingFsBlockDevTmp := backingFsBlockDev + ".tmp"
 	// Re-create just in case someone copied the home directory over to a new device
 	if err := unix.Mknod(backingFsBlockDevTmp, unix.S_IFBLK|0o600, int(stat.Dev)); err != nil {
-		return "", fmt.Errorf("failed to mknod %s: %w", backingFsBlockDevTmp, err)
+		if !errors.Is(err, unix.EEXIST) {
+			return "", fmt.Errorf("failed to mknod %s: %w", backingFsBlockDevTmp, err)
+		}
+		// On EEXIST, try again after unlinking any potential leftover.
+		_ = unix.Unlink(backingFsBlockDevTmp)
+		if err := unix.Mknod(backingFsBlockDevTmp, unix.S_IFBLK|0o600, int(stat.Dev)); err != nil {
+			return "", fmt.Errorf("failed to mknod %s: %w", backingFsBlockDevTmp, err)
+		}
 	}
 	if err := unix.Rename(backingFsBlockDevTmp, backingFsBlockDev); err != nil {
 		return "", fmt.Errorf("failed to rename %s to %s: %w", backingFsBlockDevTmp, backingFsBlockDev, err)

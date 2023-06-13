@@ -32,8 +32,6 @@ const (
 )
 
 var (
-	// DefaultInitPath is the default path to the container-init binary.
-	DefaultInitPath = "/usr/libexec/podman/catatonit"
 	// DefaultInfraImage is the default image to run as infrastructure containers in pods.
 	DefaultInfraImage = ""
 	// DefaultRootlessSHMLockPath is the default path for rootless SHM locks.

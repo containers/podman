@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+
+	"github.com/containers/common/libnetwork/types"
 )
 
 const (
@@ -105,6 +107,25 @@ func StringMatchRegexSlice(s string, re []string) bool {
 	for _, r := range re {
 		m, err := regexp.MatchString(r, s)
 		if err == nil && m {
+			return true
+		}
+	}
+	return false
+}
+
+// FilterID is a function used to compare an id against a set of ids, if the
+// input is hex we check if the prefix matches. Otherwise we assume it is a
+// regex and try to match that.
+// see https://github.com/containers/podman/issues/18471 for why we do this
+func FilterID(id string, filters []string) bool {
+	for _, want := range filters {
+		isRegex := types.NotHexRegex.MatchString(want)
+		if isRegex {
+			match, err := regexp.MatchString(want, id)
+			if err == nil && match {
+				return true
+			}
+		} else if strings.HasPrefix(id, strings.ToLower(want)) {
 			return true
 		}
 	}

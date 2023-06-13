@@ -3,7 +3,8 @@ package types
 import (
 	"errors"
 	"fmt"
-	"regexp"
+
+	"github.com/containers/storage/pkg/regexp"
 )
 
 var (
@@ -19,7 +20,11 @@ var (
 
 	// NameRegex is a regular expression to validate names.
 	// This must NOT be changed.
-	NameRegex = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
+	NameRegex = regexp.Delayed("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
 	// RegexError is thrown in presence of an invalid name.
 	RegexError = fmt.Errorf("names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*: %w", ErrInvalidArg) // nolint:revive // This lint is new and we do not want to break the API.
+
+	// NotHexRegex is a regular expression to check if a string is
+	// a hexadecimal string.
+	NotHexRegex = regexp.Delayed(`[^0-9a-fA-F]`)
 )

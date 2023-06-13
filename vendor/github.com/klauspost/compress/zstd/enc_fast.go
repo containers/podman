@@ -133,8 +133,7 @@ encodeLoop:
 			if canRepeat && repIndex >= 0 && load3232(src, repIndex) == uint32(cv>>16) {
 				// Consider history as well.
 				var seq seq
-				var length int32
-				length = 4 + e.matchlen(s+6, repIndex+4, src)
+				length := 4 + e.matchlen(s+6, repIndex+4, src)
 				seq.matchLen = uint32(length - zstdMinMatch)
 
 				// We might be able to match backwards.
@@ -645,8 +644,7 @@ encodeLoop:
 			if canRepeat && repIndex >= 0 && load3232(src, repIndex) == uint32(cv>>16) {
 				// Consider history as well.
 				var seq seq
-				var length int32
-				length = 4 + e.matchlen(s+6, repIndex+4, src)
+				length := 4 + e.matchlen(s+6, repIndex+4, src)
 
 				seq.matchLen = uint32(length - zstdMinMatch)
 

@@ -2246,50 +2246,59 @@ func (r *layerStore) applyDiffWithOptions(to string, layerOptions *LayerOptions,
 	defragmented = io.TeeReader(defragmented, compressedCounter)
 
 	tsdata := bytes.Buffer{}
-	compressor, err := pgzip.NewWriterLevel(&tsdata, pgzip.BestSpeed)
-	if err != nil {
-		compressor = pgzip.NewWriter(&tsdata)
-	}
-	if err := compressor.SetConcurrency(1024*1024, 1); err != nil { // 1024*1024 is the hard-coded default; we're not changing that
-		logrus.Infof("setting compression concurrency threads to 1: %v; ignoring", err)
-	}
-	metadata := storage.NewJSONPacker(compressor)
-	uncompressed, err := archive.DecompressStream(defragmented)
-	if err != nil {
-		return -1, err
-	}
-	defer uncompressed.Close()
 	uidLog := make(map[uint32]struct{})
 	gidLog := make(map[uint32]struct{})
-	idLogger, err := tarlog.NewLogger(func(h *tar.Header) {
-		if !strings.HasPrefix(path.Base(h.Name), archive.WhiteoutPrefix) {
-			uidLog[uint32(h.Uid)] = struct{}{}
-			gidLog[uint32(h.Gid)] = struct{}{}
+	var uncompressedCounter *ioutils.WriteCounter
+
+	size, err = func() (int64, error) { // A scope for defer
+		compressor, err := pgzip.NewWriterLevel(&tsdata, pgzip.BestSpeed)
+		if err != nil {
+			return -1, err
 		}
-	})
+		defer compressor.Close()                                        // This must happen before tsdata is consumed.
+		if err := compressor.SetConcurrency(1024*1024, 1); err != nil { // 1024*1024 is the hard-coded default; we're not changing that
+			logrus.Infof("setting compression concurrency threads to 1: %v; ignoring", err)
+		}
+		metadata := storage.NewJSONPacker(compressor)
+		uncompressed, err := archive.DecompressStream(defragmented)
+		if err != nil {
+			return -1, err
+		}
+		defer uncompressed.Close()
+		idLogger, err := tarlog.NewLogger(func(h *tar.Header) {
+			if !strings.HasPrefix(path.Base(h.Name), archive.WhiteoutPrefix) {
+				uidLog[uint32(h.Uid)] = struct{}{}
+				gidLog[uint32(h.Gid)] = struct{}{}
+			}
+		})
+		if err != nil {
+			return -1, err
+		}
+		defer idLogger.Close() // This must happen before uidLog and gidLog is consumed.
+		uncompressedCounter = ioutils.NewWriteCounter(idLogger)
+		uncompressedWriter := (io.Writer)(uncompressedCounter)
+		if uncompressedDigester != nil {
+			uncompressedWriter = io.MultiWriter(uncompressedWriter, uncompressedDigester.Hash())
+		}
+		payload, err := asm.NewInputTarStream(io.TeeReader(uncompressed, uncompressedWriter), metadata, storage.NewDiscardFilePutter())
+		if err != nil {
+			return -1, err
+		}
+		options := drivers.ApplyDiffOpts{
+			Diff:       payload,
+			Mappings:   r.layerMappings(layer),
+			MountLabel: layer.MountLabel,
+		}
+		size, err := r.driver.ApplyDiff(layer.ID, layer.Parent, options)
+		if err != nil {
+			return -1, err
+		}
+		return size, err
+	}()
 	if err != nil {
 		return -1, err
 	}
-	defer idLogger.Close()
-	uncompressedCounter := ioutils.NewWriteCounter(idLogger)
-	uncompressedWriter := (io.Writer)(uncompressedCounter)
-	if uncompressedDigester != nil {
-		uncompressedWriter = io.MultiWriter(uncompressedWriter, uncompressedDigester.Hash())
-	}
-	payload, err := asm.NewInputTarStream(io.TeeReader(uncompressed, uncompressedWriter), metadata, storage.NewDiscardFilePutter())
-	if err != nil {
-		return -1, err
-	}
-	options := drivers.ApplyDiffOpts{
-		Diff:       payload,
-		Mappings:   r.layerMappings(layer),
-		MountLabel: layer.MountLabel,
-	}
-	size, err = r.driver.ApplyDiff(layer.ID, layer.Parent, options)
-	if err != nil {
-		return -1, err
-	}
-	compressor.Close()
+
 	if err := os.MkdirAll(filepath.Dir(r.tspath(layer.ID)), 0o700); err != nil {
 		return -1, err
 	}

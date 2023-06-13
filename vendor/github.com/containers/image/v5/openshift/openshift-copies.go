@@ -957,8 +957,6 @@ func tlsConfigFor(c *restConfig) (*tls.Config, error) {
 	}
 
 	tlsConfig := &tls.Config{
-		// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
-		MinVersion:         tls.VersionTLS10,
 		InsecureSkipVerify: c.Insecure,
 	}
 
