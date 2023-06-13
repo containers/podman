@@ -64,8 +64,10 @@ PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
 PRE_COMMIT = $(shell command -v bin/venv/bin/pre-commit ~/.local/bin/pre-commit pre-commit | head -n1)
 ifeq ($(shell uname -s),FreeBSD)
 SED=gsed
+GREP=ggrep
 else
 SED=sed
+GREP=grep
 endif
 
 # This isn't what we actually build; it's a superset, used for target
@@ -221,7 +223,7 @@ endif
 # the `help` target.  Otherwise These simple-substitutions are resolved
 # at reference-time (due to `=` and not `=:`).
 _HLP_TGTS_RX = '^[[:print:]]+:.*?\#\# .*$$'
-_HLP_TGTS_CMD = grep -E $(_HLP_TGTS_RX) $(MAKEFILE_LIST)
+_HLP_TGTS_CMD = $(GREP) -E $(_HLP_TGTS_RX) $(MAKEFILE_LIST)
 _HLP_TGTS_LEN = $(shell $(call err_if_empty,_HLP_TGTS_CMD) | cut -d : -f 1 | wc -L 2>/dev/null || echo "PARSING_ERROR")
 # Separated condition for Darwin
 ifeq ($(shell uname -s)$(_HLP_TGTS_LEN),DarwinPARSING_ERROR)
