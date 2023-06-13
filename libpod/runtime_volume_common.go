@@ -120,7 +120,7 @@ func (r *Runtime) newVolume(ctx context.Context, noCreatePluginVolume bool, opti
 
 		// Create a backing container in c/storage.
 		storageConfig := storage.ContainerOptions{
-			LabelOpts: []string{"filetype:container_file_t:s0"},
+			LabelOpts: []string{"filetype:container_file_t", "level:s0"},
 		}
 		if _, err := r.storageService.CreateContainerStorage(ctx, r.imageContext, imgString, image.ID(), volume.config.StorageName, volume.config.StorageID, storageConfig); err != nil {
 			return nil, fmt.Errorf("creating backing storage for image driver: %w", err)
