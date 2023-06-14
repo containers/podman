@@ -36,6 +36,7 @@ const (
 	KeyAddCapability         = "AddCapability"
 	KeyAddDevice             = "AddDevice"
 	KeyAnnotation            = "Annotation"
+	KeyAutoUpdate            = "AutoUpdate"
 	KeyConfigMap             = "ConfigMap"
 	KeyContainerName         = "ContainerName"
 	KeyCopy                  = "Copy"
@@ -116,6 +117,7 @@ var (
 		KeyAddCapability:         true,
 		KeyAddDevice:             true,
 		KeyAnnotation:            true,
+		KeyAutoUpdate:            true,
 		KeyContainerName:         true,
 		KeyDropCapability:        true,
 		KeyEnvironment:           true,
@@ -556,6 +558,13 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		} else {
 			podman.addf("%s:%s%s", source, dest, options)
 		}
+	}
+
+	update, ok := container.Lookup(ContainerGroup, KeyAutoUpdate)
+	if ok && len(update) > 0 {
+		podman.addLabels(map[string]string{
+			"io.containers.autoupdate": update,
+		})
 	}
 
 	exposedPorts := container.LookupAll(ContainerGroup, KeyExposeHostPort)
