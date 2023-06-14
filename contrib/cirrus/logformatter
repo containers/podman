@@ -667,6 +667,13 @@ END_HTML
                 $subtest_name .= $2;
                 my $id = make_id($subtest_name, 'anchor');
                 $line = "<a name='t--$id'><h2 class=\"log-$subtest_status\">$line</h2></a>";
+
+                # Special case for tests that fail outside of a Describe()
+                # block, e.g., global After/BeforeEach. We still want to
+                # highlight those in the <h2>, but do not include "TOP-LEVEL"
+                # in the anchor name for the actual test name (which will
+                # come later, a few lines down).
+                $subtest_name = '' if $subtest_name =~ /^\s*TOP-LEVEL/;
             }
         }
         ++$after_divider;
@@ -680,6 +687,7 @@ END_HTML
         #              1     2           2   3  3   4                       4   15           5
         if ($line =~ /^(\s*\[(FAIL|PANIC!)\] (.*) \[(It|BeforeEach|AfterEach)\] )([A-Za-z-].*)/) {
             my ($lhs, $type, $desc, $ginkgo_fluff, $testname) = ($1, $2, $3, $4, $5);
+            $desc =~ s/^TOP-LEVEL\s*//;
             my $id = make_id("$desc $testname", 'link');
 
             $line = "<span class=\"log-error\">$lhs<a href='#t--$id'>$testname</a></span>";
