@@ -127,4 +127,18 @@ load helpers
     run_podman rm -t 0 -f $cid
 }
 
+@test "podman exec --wait" {
+    skip_if_remote "test is meaningless over remote"
+
+    # wait on bogus container
+    run_podman 125 exec --wait 5 "bogus_container" echo hello
+    assert "$output" = "Error: cancelled by user"
+
+    run_podman create --name "wait_container" $IMAGE top
+    run_podman 255 exec --wait 5 "wait_container" echo hello
+    assert "$output" = "Error: can only create exec sessions on running containers: container state improper"
+
+    run_podman rm -f wait_container
+}
+
 # vim: filetype=sh

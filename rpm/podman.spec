@@ -241,6 +241,19 @@ It is based on the network stack of gVisor. Compared to libslirp,
 gvisor-tap-vsock brings a configurable DNS server and
 dynamic port forwarding.
 
+%package -n %{name}sh
+Summary: Confined login and user shell using %{name}
+Requires: %{name} = %{epoch}:%{version}-%{release}
+Provides: %{name}-shell = %{epoch}:%{version}-%{release}
+Provides: %{name}-%{name}sh = %{epoch}:%{version}-%{release}
+
+%description -n %{name}sh
+%{name}sh provides a confined login and user shell with access to volumes and
+capabilities specified in user quadlets.
+
+It is a symlink to %{_bindir}/%{name} and execs into the `%{name}sh` container
+when `%{_bindir}/%{name}sh is set as a login shell or set as os.Args[0].
+
 %prep
 %autosetup -Sgit -n %{name}-%{version}
 sed -i 's;@@PODMAN@@\;$(BINDIR);@@PODMAN@@\;%{_bindir};' Makefile
@@ -413,6 +426,11 @@ cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 %dir %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/gvproxy
 %{_libexecdir}/%{name}/gvforwarder
+
+%files -n %{name}sh
+%license LICENSE
+%doc README.md CONTRIBUTING.md install.md transfer.md
+%{_bindir}/%{name}sh
 
 %changelog
 %if %{with changelog}
