@@ -57,7 +57,6 @@ BUILDTAGS ?= \
 	$(shell hack/libsubid_tag.sh) \
 	exclude_graphdriver_devicemapper \
 	seccomp
-ROOTLESSPORTTAGS ?= exclude_graphdriver_aufs exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay exclude_graphdriver_zfs
 PYTHON ?= $(shell command -v python3 python|head -n1)
 PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
 # ~/.local/bin is not in PATH on all systems
@@ -404,7 +403,6 @@ bin/rootlessport: $(SOURCES) go.mod go.sum
 	CGO_ENABLED=$(CGO_ENABLED) \
 		$(GO) build \
 		$(BUILDFLAGS) \
-		-tags "$(ROOTLESSPORTTAGS)" \
 		-o $@ ./cmd/rootlessport
 
 .PHONY: rootlessport

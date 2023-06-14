@@ -90,9 +90,8 @@ type advancedState struct {
 	ii uint16 // position of last match, intended to overflow to reset.
 
 	// input window: unprocessed data is window[index:windowEnd]
-	index          int
-	estBitsPerByte int
-	hashMatch      [maxMatchLength + minMatchLength]uint32
+	index     int
+	hashMatch [maxMatchLength + minMatchLength]uint32
 
 	// Input hash chains
 	// hashHead[hashValue] contains the largest inputIndex with the specified hash value

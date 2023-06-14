@@ -3,15 +3,13 @@ package filters
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/containers/common/pkg/filters"
-	cutil "github.com/containers/common/pkg/util"
+	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
-	"github.com/containers/podman/v4/pkg/util"
 )
 
 // GeneratePodFilterFunc takes a filter and filtervalue (key, value)
@@ -26,24 +24,9 @@ func GeneratePodFilterFunc(filter string, filterValues []string, r *libpod.Runti
 			if err != nil {
 				return false
 			}
-			for _, want := range filterValues {
-				isRegex := define.NotHexRegex.MatchString(want)
-				if isRegex {
-					re, err := regexp.Compile(want)
-					if err != nil {
-						return false
-					}
-					for _, id := range ctrIds {
-						if re.MatchString(id) {
-							return true
-						}
-					}
-				} else {
-					for _, id := range ctrIds {
-						if strings.HasPrefix(id, strings.ToLower(want)) {
-							return true
-						}
-					}
+			for _, id := range ctrIds {
+				if util.FilterID(id, filterValues) {
+					return true
 				}
 			}
 			return false
@@ -78,7 +61,7 @@ func GeneratePodFilterFunc(filter string, filterValues []string, r *libpod.Runti
 		}, nil
 	case "ctr-status":
 		for _, filterValue := range filterValues {
-			if !cutil.StringInSlice(filterValue, []string{"created", "running", "paused", "stopped", "exited", "unknown"}) {
+			if !util.StringInSlice(filterValue, []string{"created", "running", "paused", "stopped", "exited", "unknown"}) {
 				return nil, fmt.Errorf("%s is not a valid status", filterValue)
 			}
 		}
@@ -107,18 +90,7 @@ func GeneratePodFilterFunc(filter string, filterValues []string, r *libpod.Runti
 		}, nil
 	case "id":
 		return func(p *libpod.Pod) bool {
-			for _, want := range filterValues {
-				isRegex := define.NotHexRegex.MatchString(want)
-				if isRegex {
-					match, err := regexp.MatchString(want, p.ID())
-					if err == nil && match {
-						return true
-					}
-				} else if strings.HasPrefix(p.ID(), strings.ToLower(want)) {
-					return true
-				}
-			}
-			return false
+			return util.FilterID(p.ID(), filterValues)
 		}, nil
 	case "name":
 		return func(p *libpod.Pod) bool {
@@ -126,7 +98,7 @@ func GeneratePodFilterFunc(filter string, filterValues []string, r *libpod.Runti
 		}, nil
 	case "status":
 		for _, filterValue := range filterValues {
-			if !cutil.StringInSlice(filterValue, []string{"stopped", "running", "paused", "exited", "dead", "created", "degraded"}) {
+			if !util.StringInSlice(filterValue, []string{"stopped", "running", "paused", "exited", "dead", "created", "degraded"}) {
 				return nil, fmt.Errorf("%s is not a valid pod status", filterValue)
 			}
 		}
@@ -149,7 +121,7 @@ func GeneratePodFilterFunc(filter string, filterValues []string, r *libpod.Runti
 		}, nil
 	case "until":
 		return func(p *libpod.Pod) bool {
-			until, err := util.ComputeUntilTimestamp(filterValues)
+			until, err := filters.ComputeUntilTimestamp(filterValues)
 			if err != nil {
 				return false
 			}
@@ -182,7 +154,7 @@ func GeneratePodFilterFunc(filter string, filterValues []string, r *libpod.Runti
 				return false
 			}
 			for _, net := range networks {
-				if cutil.StringInSlice(net, inputNetNames) {
+				if util.StringInSlice(net, inputNetNames) {
 					return true
 				}
 			}

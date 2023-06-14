@@ -179,7 +179,7 @@ var _ = Describe("Podman network", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(net + " " + netID[:12]))
 
-		session = podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}} {{.ID}}", "--filter", "id=" + netID[10:50], "--no-trunc"})
+		session = podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}} {{.ID}}", "--filter", "id=" + netID[:50], "--no-trunc"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(net + " " + netID))

@@ -13,13 +13,13 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
 	github.com/containers/buildah v1.30.1-0.20230504052500-e925b5852e07
-	github.com/containers/common v0.53.1-0.20230608150349-2c1849f43e14
+	github.com/containers/common v0.53.1-0.20230613082804-74f276a3624f
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.25.1-0.20230608153337-8ad019310ff2
+	github.com/containers/image/v5 v5.25.1-0.20230613062531-9e44c062ca20
 	github.com/containers/libhvee v0.0.5
 	github.com/containers/ocicrypt v1.1.7
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.46.2-0.20230530174214-1dc289a244ce
+	github.com/containers/storage v1.46.2-0.20230613134951-e424b6649be3
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.4.2
 	github.com/crc-org/vfkit v0.0.5-0.20230602131541-3d57f09010c9
@@ -48,7 +48,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc3
 	github.com/opencontainers/runc v1.1.7
-	github.com/opencontainers/runtime-spec v1.1.0-rc.2
+	github.com/opencontainers/runtime-spec v1.1.0-rc.3
 	github.com/opencontainers/runtime-tools v0.9.1-0.20230317050512-e931285f4b69
 	github.com/opencontainers/selinux v1.11.0
 	github.com/openshift/imagebuilder v1.2.5
@@ -106,7 +106,7 @@ require (
 	github.com/go-openapi/runtime v0.26.0 // indirect
 	github.com/go-openapi/spec v0.20.9 // indirect
 	github.com/go-openapi/strfmt v0.21.7 // indirect
-	github.com/go-openapi/swag v0.22.3 // indirect
+	github.com/go-openapi/swag v0.22.4 // indirect
 	github.com/go-openapi/validate v0.22.1 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -123,7 +123,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jinzhu/copier v0.3.5 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
-	github.com/klauspost/compress v1.16.5 // indirect
+	github.com/klauspost/compress v1.16.6 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/letsencrypt/boulder v0.0.0-20230213213521-fdfea0d469b6 // indirect

@@ -161,17 +161,6 @@ func newBearerTokenFromJSONBlob(blob []byte) (*bearerToken, error) {
 	return token, nil
 }
 
-// this is cloned from docker/go-connections because upstream docker has changed
-// it and make deps here fails otherwise.
-// We'll drop this once we upgrade to docker 1.13.x deps.
-func serverDefault() *tls.Config {
-	return &tls.Config{
-		// Avoid fallback to SSL protocols < TLS1.0
-		MinVersion:   tls.VersionTLS10,
-		CipherSuites: tlsconfig.DefaultServerAcceptedCiphers,
-	}
-}
-
 // dockerCertDir returns a path to a directory to be consumed by tlsclientconfig.SetupCertificates() depending on ctx and hostPort.
 func dockerCertDir(sys *types.SystemContext, hostPort string) (string, error) {
 	if sys != nil && sys.DockerCertPath != "" {
@@ -254,7 +243,9 @@ func newDockerClient(sys *types.SystemContext, registry, reference string) (*doc
 	if registry == dockerHostname {
 		registry = dockerRegistry
 	}
-	tlsClientConfig := serverDefault()
+	tlsClientConfig := &tls.Config{
+		CipherSuites: tlsconfig.DefaultServerAcceptedCiphers,
+	}
 
 	// It is undefined whether the host[:port] string for dockerHostname should be dockerHostname or dockerRegistry,
 	// because docker/docker does not read the certs.d subdirectory at all in that case.  We use the user-visible
