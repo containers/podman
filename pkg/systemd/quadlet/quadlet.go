@@ -65,6 +65,7 @@ const (
 	KeyExitCodePropagation   = "ExitCodePropagation"
 	KeyLabel                 = "Label"
 	KeyLogDriver             = "LogDriver"
+	KeyMask                  = "Mask"
 	KeyMount                 = "Mount"
 	KeyNetwork               = "Network"
 	KeyNetworkDisableDNS     = "DisableDNS"
@@ -100,6 +101,7 @@ const (
 	KeyTimezone              = "Timezone"
 	KeyTmpfs                 = "Tmpfs"
 	KeyType                  = "Type"
+	KeyUnmask                = "Unmask"
 	KeyUser                  = "User"
 	KeyUserNS                = "UserNS"
 	KeyVolatileTmp           = "VolatileTmp"
@@ -136,11 +138,12 @@ var (
 		KeyHealthStartupTimeout:  true,
 		KeyHealthTimeout:         true,
 		KeyHostName:              true,
-		KeyImage:                 true,
-		KeyIP:                    true,
 		KeyIP6:                   true,
+		KeyIP:                    true,
+		KeyImage:                 true,
 		KeyLabel:                 true,
 		KeyLogDriver:             true,
+		KeyMask:                  true,
 		KeyMount:                 true,
 		KeyNetwork:               true,
 		KeyNoNewPrivileges:       true,
@@ -156,15 +159,16 @@ var (
 		KeyRootfs:                true,
 		KeyRunInit:               true,
 		KeySeccompProfile:        true,
+		KeySecret:                true,
 		KeySecurityLabelDisable:  true,
 		KeySecurityLabelFileType: true,
 		KeySecurityLabelLevel:    true,
 		KeySecurityLabelNested:   true,
 		KeySecurityLabelType:     true,
-		KeySecret:                true,
 		KeySysctl:                true,
-		KeyTmpfs:                 true,
 		KeyTimezone:              true,
+		KeyTmpfs:                 true,
+		KeyUnmask:                true,
 		KeyUser:                  true,
 		KeyUserNS:                true,
 		KeyVolatileTmp:           true,
@@ -590,6 +594,16 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 
 	annotations := container.LookupAllKeyVal(ContainerGroup, KeyAnnotation)
 	podman.addAnnotations(annotations)
+
+	masks := container.LookupAllArgs(ContainerGroup, KeyMask)
+	for _, mask := range masks {
+		podman.add("--security-opt", fmt.Sprintf("mask=%s", mask))
+	}
+
+	unmasks := container.LookupAllArgs(ContainerGroup, KeyUnmask)
+	for _, unmask := range unmasks {
+		podman.add("--security-opt", fmt.Sprintf("unmask=%s", unmask))
+	}
 
 	envFiles := container.LookupAllArgs(ContainerGroup, KeyEnvironmentFile)
 	for _, envFile := range envFiles {

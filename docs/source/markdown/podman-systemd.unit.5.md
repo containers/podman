@@ -541,6 +541,10 @@ The current default value is `none`.
 Set the log-driver Podman uses when running the container.
 Equivalent to the Podman `--log-driver` option.
 
+### `Mask=`
+
+Specify the paths to mask separated by a colon. `Mask=/path/1:/path/2`.  A masked path cannot be accessed inside the container.
+
 ### `Network=`
 
 Specify a custom network for the container. This has the same format as the `--network` option
@@ -583,6 +587,16 @@ in the Kubernetes YAML file. If the same container port and protocol is specifie
 entry from the unit file takes precedence
 
 This key can be listed multiple times.
+
+### `Unmask=`
+
+Specify the paths to unmask separated by a colon. unmask=ALL or /path/1:/path/2, or shell expanded paths (/proc/*):
+
+If set to `ALL`, Podman will unmask all the paths that are masked or made read-only by default.
+
+The default masked paths are /proc/acpi, /proc/kcore, /proc/keys, /proc/latency_stats, /proc/sched_debug, /proc/scsi, /proc/timer_list, /proc/timer_stats, /sys/firmware, and /sys/fs/selinux.
+
+The default paths that are read-only are /proc/asound, /proc/bus, /proc/fs, /proc/irq, /proc/sys, /proc/sysrq-trigger, /sys/fs/cgroup.
 
 ### `UserNS=`
 
