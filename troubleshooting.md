@@ -1399,3 +1399,25 @@ first process can acquire it, this type of `image not known` error can arise.
 The maintainers of Podman have considered heavier-duty locks to close this
 timing window. However, the slowdown that all Podman commands would encounter
 was not considered worth the cost of completely closing this small timing window.
+
+### 41) A podman build step with `--mount=type=secret` fails with "operation not permitted"
+
+Executing a step in a `Dockerfile`/`Containerfile` which mounts secrets using `--mount=type=secret` fails with "operation not permitted" when running on a host filesystem mounted with `nosuid` and when using the `runc` runtime.
+
+#### Symptom
+
+A `RUN` line in the `Dockerfile`/`Containerfile` contains a [secret mount](https://github.com/containers/common/blob/main/docs/Containerfile.5.md) such as `--mount=type=secret,id=MY_USER,target=/etc/dnf/vars/MY_USER`.
+When running `podman build` the process fails with an error message like:
+
+```
+STEP 3/13: RUN --mount=type=secret,id=MY_USER,target=/etc/dnf/vars/MY_USER     --mount=type=secret,id=MY_USER,target=/etc/dnf/vars/MY_USER     ...: time="2023-06-13T18:04:59+02:00" level=error msg="runc create failed: unable to start container process: error during container init: error mounting \"/var/tmp/buildah2251989386/mnt/buildah-bind-target-11\" to rootfs at \"/etc/dnf/vars/MY_USER\": mount /var/tmp/buildah2251989386/mnt/buildah-bind-target-11:/etc/dnf/vars/MY_USER (via /proc/self/fd/7), flags: 0x1021: operation not permitted"
+: exit status 1
+ERRO[0002] did not get container create message from subprocess: EOF
+```
+
+#### Solution
+
+* Install `crun`, e.g. with `dnf install crun`.
+* Use the `crun` runtime by passing `--runtime /usr/bin/crun` to `podman build`.
+
+See also [Buildah issue 4228](https://github.com/containers/buildah/issues/4228) for a full discussion of the problem.
