@@ -32,11 +32,14 @@ func RetryIfNecessary(ctx context.Context, operation func() error, options *Opti
 
 // IfNecessary retries the operation in exponential backoff with the retry Options.
 func IfNecessary(ctx context.Context, operation func() error, options *Options) error {
-	if options.IsErrorRetryable == nil {
-		options.IsErrorRetryable = IsErrorRetryable
+	var isRetryable func(error) bool
+	if options.IsErrorRetryable != nil {
+		isRetryable = options.IsErrorRetryable
+	} else {
+		isRetryable = IsErrorRetryable
 	}
 	err := operation()
-	for attempt := 0; err != nil && options.IsErrorRetryable(err) && attempt < options.MaxRetry; attempt++ {
+	for attempt := 0; err != nil && isRetryable(err) && attempt < options.MaxRetry; attempt++ {
 		delay := time.Duration(int(math.Pow(2, float64(attempt)))) * time.Second
 		if options.Delay != 0 {
 			delay = options.Delay
