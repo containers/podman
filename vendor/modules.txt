@@ -125,7 +125,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.53.1-0.20230613082804-74f276a3624f
+# github.com/containers/common v0.53.1-0.20230613082804-74f276a3624f => github.com/vrothberg/common v0.0.3-0.20230614084519-a146adf2e7c1
 ## explicit; go 1.18
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -917,7 +917,7 @@ go.opentelemetry.io/otel/semconv/v1.12.0
 # go.opentelemetry.io/otel/trace v1.15.0
 ## explicit; go 1.19
 go.opentelemetry.io/otel/trace
-# golang.org/x/crypto v0.9.0
+# golang.org/x/crypto v0.10.0
 ## explicit; go 1.17
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
@@ -1150,3 +1150,4 @@ gopkg.in/yaml.v3
 ## explicit; go 1.12
 sigs.k8s.io/yaml
 # github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
+# github.com/containers/common => github.com/vrothberg/common v0.0.3-0.20230614084519-a146adf2e7c1
