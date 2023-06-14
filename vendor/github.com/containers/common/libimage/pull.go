@@ -442,8 +442,17 @@ func (r *Runtime) imagesIDsForManifest(manifestBytes []byte, sys *types.SystemCo
 	if err != nil {
 		return nil, fmt.Errorf("listing images by manifest digest: %w", err)
 	}
-	results := make([]string, 0, len(images))
+
+	// If you have additionStores defined and the same image stored in
+	// both storage and additional store, it can be output twice.
+	// Fixes github.com/containers/podman/issues/18647
+	results := []string{}
+	imageMap := map[string]bool{}
 	for _, image := range images {
+		if imageMap[image.ID] {
+			continue
+		}
+		imageMap[image.ID] = true
 		results = append(results, image.ID)
 	}
 	if len(results) == 0 {
