@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/common/libnetwork/pasta"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/seccomp"
@@ -72,7 +73,7 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 		info.Slirp4NetNS = program
 	}
 
-	pastaPath, _ := r.config.FindHelperBinary(pastaBinaryName, true)
+	pastaPath, _ := r.config.FindHelperBinary(pasta.BinaryName, true)
 	if pastaPath != "" {
 		version, err := util.ProgramVersion(pastaPath)
 		if err != nil {

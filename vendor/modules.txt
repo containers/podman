@@ -135,6 +135,7 @@ github.com/containers/common/libnetwork/etchosts
 github.com/containers/common/libnetwork/internal/util
 github.com/containers/common/libnetwork/netavark
 github.com/containers/common/libnetwork/network
+github.com/containers/common/libnetwork/pasta
 github.com/containers/common/libnetwork/resolvconf
 github.com/containers/common/libnetwork/types
 github.com/containers/common/libnetwork/util
