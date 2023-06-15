@@ -1387,10 +1387,8 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 	logLevel := logrus.GetLevel()
 	args = append(args, "--log-level", logLevel.String())
 
-	if logLevel == logrus.DebugLevel {
-		logrus.Debugf("%s messages will be logged to syslog", r.conmonPath)
-		args = append(args, "--syslog")
-	}
+	logrus.Debugf("%s messages will be logged to syslog", r.conmonPath)
+	args = append(args, "--syslog")
 
 	size := r.logSizeMax
 	if ctr.config.LogSize > 0 {
