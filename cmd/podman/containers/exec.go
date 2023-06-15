@@ -2,10 +2,12 @@ package containers
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/common"
@@ -84,6 +86,10 @@ func execFlags(cmd *cobra.Command) {
 	flags.StringVarP(&execOpts.WorkDir, workdirFlagName, "w", "", "Working directory inside the container")
 	_ = cmd.RegisterFlagCompletionFunc(workdirFlagName, completion.AutocompleteDefault)
 
+	waitFlagName := "wait"
+	flags.Int32(waitFlagName, 0, "Total seconds to wait for container to start")
+	_ = flags.MarkHidden(waitFlagName)
+
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("preserve-fds")
 	}
@@ -104,7 +110,7 @@ func init() {
 	validate.AddLatestFlag(containerExecCommand, &execOpts.Latest)
 }
 
-func exec(_ *cobra.Command, args []string) error {
+func exec(cmd *cobra.Command, args []string) error {
 	var nameOrID string
 
 	if len(args) == 0 && !execOpts.Latest {
@@ -138,6 +144,16 @@ func exec(_ *cobra.Command, args []string) error {
 		}
 	}
 
+	if cmd.Flags().Changed("wait") {
+		seconds, err := cmd.Flags().GetInt32("wait")
+		if err != nil {
+			return err
+		}
+		if err := execWait(nameOrID, seconds); err != nil {
+			return err
+		}
+	}
+
 	if !execDetach {
 		streams := define.AttachStreams{}
 		streams.OutputStream = os.Stdout
@@ -160,4 +176,38 @@ func exec(_ *cobra.Command, args []string) error {
 	}
 	fmt.Println(id)
 	return nil
+}
+
+func execWait(ctr string, seconds int32) error {
+	maxDuration := time.Duration(seconds) * time.Second
+	interval := 100 * time.Millisecond
+
+	ctx, cancel := context.WithTimeout(registry.Context(), maxDuration)
+	defer cancel()
+
+	cond, err := define.StringToContainerStatus("running")
+	if err != nil {
+		return err
+	}
+	waitOptions.Condition = append(waitOptions.Condition, cond)
+
+	startTime := time.Now()
+	for time.Since(startTime) < maxDuration {
+		_, err = registry.ContainerEngine().ContainerWait(ctx, []string{ctr}, waitOptions)
+		if err == nil {
+			return nil
+		}
+
+		if !errors.Is(err, define.ErrNoSuchCtr) {
+			return err
+		}
+
+		interval *= 2
+		since := time.Since(startTime)
+		if since+interval > maxDuration {
+			interval = maxDuration - since
+		}
+		time.Sleep(interval)
+	}
+	return define.ErrCanceled
 }

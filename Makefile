@@ -215,7 +215,7 @@ binaries: podman podman-remote ## Build podman and podman-remote binaries
 else ifneq (, $(findstring $(GOOS),darwin windows))
 binaries: podman-remote ## Build podman-remote (client) only binaries
 else
-binaries: podman podman-remote rootlessport quadlet ## Build podman, podman-remote and rootlessport binaries quadlet
+binaries: podman podman-remote podmansh rootlessport quadlet ## Build podman, podman-remote and rootlessport binaries quadlet
 endif
 
 # Extract text following double-# for targets, as their description for
@@ -407,6 +407,12 @@ bin/rootlessport: $(SOURCES) go.mod go.sum
 
 .PHONY: rootlessport
 rootlessport: bin/rootlessport
+
+# podmansh calls `podman exec` into the `podmansh` container when used as
+# os.Args[0] and is intended to be set as a login shell for users.
+# Run: `man 1 podmansh` for details.
+podmansh: bin/podman
+	if [ ! -f bin/podmansh ]; then ln -s podman bin/podmansh; fi
 
 ###
 ### Secondary binary-build targets
@@ -820,6 +826,7 @@ install.remote:
 install.bin:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
 	install ${SELINUXOPT} -m 755 bin/podman $(DESTDIR)$(BINDIR)/podman
+	ln -sfr $(DESTDIR)$(BINDIR)/podman $(DESTDIR)$(BINDIR)/podmansh
 	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman bin/podman
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(LIBEXECPODMAN)
 ifneq ($(shell uname -s),FreeBSD)
