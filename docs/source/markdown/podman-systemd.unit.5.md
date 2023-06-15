@@ -89,6 +89,7 @@ Valid options for `[Container]` are listed below:
 | AddCapability=CAP              | --cap-add CAP                                        |
 | AddDevice=/dev/foo             | --device /dev/foo                                    |
 | Annotation="YXZ"               | --annotation "XYZ"                                   |
+| AutoUpdate=registry            | --label "io.containers.autoupdate=registry"          |
 | ContainerName=name             | --name name                                          |
 | DropCapability=CAP             | --cap-drop=CAP                                       |
 | Environment=foo=bar            | --env foo=bar                                        |
@@ -170,6 +171,14 @@ similar to `Environment`.
 
 This key can be listed multiple times.
 
+### `AutoUpdate=`
+
+Indicates whether the container will be auto-updated ([podman-auto-update(1)](podman-auto-update.1.md)). The following values are supported:
+
+* `registry`: Requires a fully-qualified image reference (e.g., quay.io/podman/stable:latest) to be used to create the container. This enforcement is necessary to know which image to actually check and pull. If an image ID was used, Podman does not know which image to check/pull anymore.
+
+* `local`: Tells Podman to compare the image a container is using to the image with its raw name in local storage. If an image is updated locally, Podman simply restarts the systemd unit executing the container.
+
 ### `ContainerName=`
 
 The (optional) name of the Podman container. If this is not specified, the default value
@@ -199,7 +208,7 @@ Use a line-delimited file to set environment variables in the container.
 The path may be absolute or relative to the location of the unit file.
 This key may be used multiple times, and the order persists when passed to `podman run`.
 
-### `EnvironmentHost=` (defaults to `no`)
+### `EnvironmentHost=`
 
 Use the host environment inside of the container.
 
@@ -852,4 +861,5 @@ Label=org.test.Key=value
 **[systemd.unit(5)](https://www.freedesktop.org/software/systemd/man/systemd.unit.html)**,
 **[systemd.service(5)](https://www.freedesktop.org/software/systemd/man/systemd.service.html)**,
 **[podman-run(1)](podman-run.1.md)**,
-**[podman-network-create(1)](podman-network-create.1.md)**
+**[podman-network-create(1)](podman-network-create.1.md)**,
+**[podman-auto-update(1)](podman-auto-update.1.md)**
