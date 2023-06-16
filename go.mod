@@ -13,9 +13,9 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
 	github.com/containers/buildah v1.30.1-0.20230504052500-e925b5852e07
-	github.com/containers/common v0.53.1-0.20230613173441-e1ea4d9a74e5
+	github.com/containers/common v0.53.1-0.20230615101243-20def0054c6e
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.25.1-0.20230613062531-9e44c062ca20
+	github.com/containers/image/v5 v5.25.1-0.20230613183705-07ced6137083
 	github.com/containers/libhvee v0.0.5
 	github.com/containers/ocicrypt v1.1.7
 	github.com/containers/psgo v1.8.0
@@ -62,8 +62,8 @@ require (
 	github.com/vbauerster/mpb/v8 v8.4.0
 	github.com/vishvananda/netlink v1.2.1-beta.2
 	go.etcd.io/bbolt v1.3.7
-	golang.org/x/net v0.10.0
-	golang.org/x/sync v0.2.0
+	golang.org/x/net v0.11.0
+	golang.org/x/sync v0.3.0
 	golang.org/x/sys v0.9.0
 	golang.org/x/term v0.9.0
 	golang.org/x/text v0.10.0
@@ -154,7 +154,7 @@ require (
 	github.com/sigstore/sigstore v1.6.5 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20201008174630-78d3cae3a980 // indirect
-	github.com/sylabs/sif/v2 v2.11.4 // indirect
+	github.com/sylabs/sif/v2 v2.11.5 // indirect
 	github.com/tchap/go-patricia/v2 v2.3.1 // indirect
 	github.com/theupdateframework/go-tuf v0.5.2 // indirect
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
@@ -168,7 +168,7 @@ require (
 	golang.org/x/crypto v0.10.0 // indirect
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
 	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/oauth2 v0.8.0 // indirect
+	golang.org/x/oauth2 v0.9.0 // indirect
 	golang.org/x/tools v0.9.3 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect

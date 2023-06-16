@@ -689,3 +689,21 @@ function teardown() {
     run_podman 126 run --net=pasta -p "${port}:${port}/sctp" $IMAGE true
     is "$output" "Error: .*can't forward protocol: sctp"
 }
+
+@test "podman networking with pasta(1) - Use options from containers.conf" {
+    skip_if_remote "containers.conf must be set for the server"
+
+    containersconf=$PODMAN_TMPDIR/containers.conf
+    mac="9a:dd:31:ea:92:98"
+    cat >$containersconf <<EOF
+[network]
+pasta_options = ["-I", "myname", "--ns-mac-addr", "$mac"]
+EOF
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman run --net=pasta $IMAGE ip link show myname
+    assert "$output" =~ "$mac" "mac address is set on custom interface"
+
+    # now, again but this time overwrite a option on the cli.
+    mac2="aa:bb:cc:dd:ee:ff"
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman run --net=pasta:--ns-mac-addr,"$mac2" $IMAGE ip link show myname
+    assert "$output" =~ "$mac2" "mac address from cli is set on custom interface"
+}
