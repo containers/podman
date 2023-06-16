@@ -189,11 +189,21 @@ var notRunningStates = []define.ContainerStatus{
 }
 
 func waitRemoved(ctrWait containerWaitFn) (int32, error) {
-	code, err := ctrWait(define.ContainerStateUnknown)
-	if err != nil && errors.Is(err, define.ErrNoSuchCtr) {
-		return code, nil
+	var code int32
+	for {
+		c, err := ctrWait(define.ContainerStateExited)
+		if errors.Is(err, define.ErrNoSuchCtr) {
+			// Make sure to wait until the container has been removed.
+			break
+		}
+		if err != nil {
+			return code, err
+		}
+		// If the container doesn't exist, the return code is -1, so
+		// only set it in case of success.
+		code = c
 	}
-	return code, err
+	return code, nil
 }
 
 func waitNextExit(ctx context.Context, containerName string) (int32, error) {
