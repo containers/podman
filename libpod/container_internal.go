@@ -2094,14 +2094,17 @@ func (c *Container) postDeleteHooks(ctx context.Context) error {
 				hook := hook
 				logrus.Debugf("container %s: invoke poststop hook %d, path %s", c.ID(), i, hook.Path)
 				var stderr, stdout bytes.Buffer
-				opts := exec.RunOptions{
-					Hook:            &hook,
-					State:           state,
-					Stdout:          &stdout,
-					Stderr:          &stderr,
-					PostKillTimeout: exec.DefaultPostKillTimeout,
-				}
-				hookErr, err := exec.RunWithOptions(ctx, opts) //nolint:staticcheck
+				hookErr, err := exec.RunWithOptions(
+					ctx,
+					exec.RunOptions{
+						Hook:            &hook,
+						Dir:             c.bundlePath(),
+						State:           state,
+						Stdout:          &stdout,
+						Stderr:          &stderr,
+						PostKillTimeout: exec.DefaultPostKillTimeout,
+					},
+				)
 				if err != nil {
 					logrus.Warnf("Container %s: poststop hook %d: %v", c.ID(), i, err)
 					if hookErr != err {
@@ -2229,12 +2232,16 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[s
 			return nil, err
 		}
 	}
-	opts := exec.RuntimeConfigFilterOptions{
-		Hooks:           allHooks["precreate"],
-		Config:          config,
-		PostKillTimeout: exec.DefaultPostKillTimeout,
-	}
-	hookErr, err := exec.RuntimeConfigFilterWithOptions(ctx, opts) //nolint:staticcheck
+
+	hookErr, err := exec.RuntimeConfigFilterWithOptions(
+		ctx,
+		exec.RuntimeConfigFilterOptions{
+			Hooks:           allHooks["precreate"],
+			Dir:             c.bundlePath(),
+			Config:          config,
+			PostKillTimeout: exec.DefaultPostKillTimeout,
+		},
+	)
 	if err != nil {
 		logrus.Warnf("Container %s: precreate hook: %v", c.ID(), err)
 		if hookErr != nil && hookErr != err {
