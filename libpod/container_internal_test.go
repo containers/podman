@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/containers/storage/pkg/idtools"
@@ -142,6 +143,7 @@ func TestPostDeleteHooks(t *testing.T) {
 
 	statePath := filepath.Join(dir, "state")
 	copyPath := filepath.Join(dir, "copy")
+	cwdPath := filepath.Join(dir, "cwd")
 	c := Container{
 		runtime: &Runtime{},
 		config: &ContainerConfig{
@@ -169,6 +171,10 @@ func TestPostDeleteHooks(t *testing.T) {
 						Path: hookPath,
 						Args: []string{"sh", "-c", fmt.Sprintf("cp %s %s", statePath, copyPath)},
 					},
+					rspec.Hook{
+						Path: hookPath,
+						Args: []string{"sh", "-c", fmt.Sprintf("pwd >%s", cwdPath)},
+					},
 				},
 			},
 		},
@@ -188,6 +194,11 @@ func TestPostDeleteHooks(t *testing.T) {
 			assert.Regexp(t, stateRegexp, string(content))
 		})
 	}
+	content, err := os.ReadFile(cwdPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, strings.TrimSuffix(string(content), "\n"), dir)
 }
 
 func init() {
