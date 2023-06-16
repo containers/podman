@@ -1216,6 +1216,54 @@ func writeToLayerStore[T any](s *store, fn func(store rwLayerStore) (T, error)) 
 	return fn(store)
 }
 
+// readOrWriteAllLayerStores processes allLayerStores() in order:
+// It locks the writeable store for writing and all others for reading, checks
+// for updates, and calls
+//
+//	(data, done, err) := fn(store)
+//
+// until the callback returns done == true, and returns the data from the callback.
+//
+// If reading or writing any layer store fails, it immediately returns ({}, true, err).
+//
+// If all layer stores are processed without setting done == true, it returns ({}, false, nil).
+//
+// Typical usage:
+//
+//	if res, done, err := s.readOrWriteAllLayerStores(store, func(…) {
+//		…
+//	}; done {
+//		return res, err
+//	}
+func readOrWriteAllLayerStores[T any](s *store, fn func(store roLayerStore) (T, bool, error)) (T, bool, error) {
+	var zeroRes T // A zero value of T
+
+	rwLayerStore, roLayerStores, err := s.bothLayerStoreKinds()
+	if err != nil {
+		return zeroRes, true, err
+	}
+
+	if err := rwLayerStore.startWriting(); err != nil {
+		return zeroRes, true, err
+	}
+	defer rwLayerStore.stopWriting()
+	if res, done, err := fn(rwLayerStore); done {
+		return res, true, err
+	}
+
+	for _, s := range roLayerStores {
+		store := s
+		if err := store.startReading(); err != nil {
+			return zeroRes, true, err
+		}
+		defer store.stopReading()
+		if res, done, err := fn(store); done {
+			return res, true, err
+		}
+	}
+	return zeroRes, false, nil
+}
+
 // allImageStores returns a list of all image store objects used by the Store.
 // This is a convenience method for read-only users of the Store.
 func (s *store) allImageStores() []roImageStore {
@@ -1319,10 +1367,13 @@ func (s *store) writeToAllStores(fn func(rlstore rwLayerStore) error) error {
 	return fn(rlstore)
 }
 
-// canUseShifting returns ???
-// store must be locked for writing.
-func canUseShifting(store rwLayerStore, uidmap, gidmap []idtools.IDMap) bool {
-	if !store.supportsShifting() {
+// canUseShifting returns true if we can use mount-time arguments (shifting) to
+// avoid having to create a mapped top layer for a base image when we want to
+// use it to create a container using ID mappings.
+// On entry:
+// - rlstore must be locked for writing
+func (s *store) canUseShifting(uidmap, gidmap []idtools.IDMap) bool {
+	if !s.graphDriver.SupportsShifting() {
 		return false
 	}
 	if uidmap != nil && !idtools.IsContiguous(uidmap) {
@@ -1409,7 +1460,7 @@ func (s *store) PutLayer(id, parent string, names []string, mountLabel string, w
 		OriginalDigest:     options.OriginalDigest,
 		UncompressedDigest: options.UncompressedDigest,
 	}
-	if canUseShifting(rlstore, uidMap, gidMap) {
+	if s.canUseShifting(uidMap, gidMap) {
 		layerOptions.IDMappingOptions = types.IDMappingOptions{HostUIDMapping: true, HostGIDMapping: true, UIDMap: nil, GIDMap: nil}
 	} else {
 		layerOptions.IDMappingOptions = types.IDMappingOptions{
@@ -1535,7 +1586,9 @@ func (s *store) CreateImage(id string, names []string, layer, metadata string, i
 	})
 }
 
-// imageTopLayerForMapping does ???
+// imageTopLayerForMapping locates the layer that can take the place of the
+// image's top layer as the shared parent layer for a one or more containers
+// which are using ID mappings.
 // On entry:
 // - ristore must be locked EITHER for reading or writing
 // - s.imageStore must be locked for writing; it might be identical to ristore.
@@ -1544,7 +1597,7 @@ func (s *store) CreateImage(id string, names []string, layer, metadata string, i
 func (s *store) imageTopLayerForMapping(image *Image, ristore roImageStore, rlstore rwLayerStore, lstores []roLayerStore, options types.IDMappingOptions) (*Layer, error) {
 	layerMatchesMappingOptions := func(layer *Layer, options types.IDMappingOptions) bool {
 		// If the driver supports shifting and the layer has no mappings, we can use it.
-		if canUseShifting(rlstore, options.UIDMap, options.GIDMap) && len(layer.UIDMap) == 0 && len(layer.GIDMap) == 0 {
+		if s.canUseShifting(options.UIDMap, options.GIDMap) && len(layer.UIDMap) == 0 && len(layer.GIDMap) == 0 {
 			return true
 		}
 		// If we want host mapping, and the layer uses mappings, it's not the best match.
@@ -1611,7 +1664,7 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore roImageStore, rlst
 	// that lets us edit image metadata, so create a duplicate of the layer with the desired
 	// mappings, and register it as an alternate top layer in the image.
 	var layerOptions LayerOptions
-	if canUseShifting(rlstore, options.UIDMap, options.GIDMap) {
+	if s.canUseShifting(options.UIDMap, options.GIDMap) {
 		layerOptions.IDMappingOptions = types.IDMappingOptions{
 			HostUIDMapping: true,
 			HostGIDMapping: true,
@@ -1764,7 +1817,7 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		// But in transient store mode, all container layers are volatile.
 		Volatile: options.Volatile || s.transientStore,
 	}
-	if canUseShifting(rlstore, uidMap, gidMap) {
+	if s.canUseShifting(uidMap, gidMap) {
 		layerOptions.IDMappingOptions = types.IDMappingOptions{
 			HostUIDMapping: true,
 			HostGIDMapping: true,
@@ -2715,7 +2768,7 @@ func (s *store) mount(id string, options drivers.MountOpts) (string, error) {
 	defer rlstore.stopWriting()
 
 	if options.UidMaps != nil || options.GidMaps != nil {
-		options.DisableShifting = !canUseShifting(rlstore, options.UidMaps, options.GidMaps)
+		options.DisableShifting = !s.canUseShifting(options.UidMaps, options.GidMaps)
 	}
 
 	if rlstore.Exists(id) {

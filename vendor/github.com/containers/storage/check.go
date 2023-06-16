@@ -15,6 +15,7 @@ import (
 
 	drivers "github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/types"
 	"github.com/sirupsen/logrus"
@@ -74,6 +75,13 @@ type CheckOptions struct {
 	ContainerData               bool           // check that associated "big" data items are present and can be read
 }
 
+// checkIgnore is used to tell functions that compare the contents of a mounted
+// layer to the contents that we'd expect it to have to ignore certain
+// discrepancies
+type checkIgnore struct {
+	ownership, timestamps, permissions bool
+}
+
 // CheckMost returns a CheckOptions with mostly just "quick" checks enabled.
 func CheckMost() *CheckOptions {
 	return &CheckOptions{
@@ -125,10 +133,20 @@ func RepairEverything() *RepairOptions {
 // Check returns a list of problems with what's in the store, as a whole.  It can be very expensive
 // to call.
 func (s *store) Check(options *CheckOptions) (CheckReport, error) {
-	var ignoreChownErrors bool
+	var ignore checkIgnore
 	for _, o := range s.graphOptions {
-		if strings.Contains(o, "ignore_chown_errors") {
-			ignoreChownErrors = true
+		if strings.Contains(o, "ignore_chown_errors=true") {
+			ignore.ownership = true
+		}
+		if strings.HasPrefix(o, "force_mask=") {
+			ignore.permissions = true
+		}
+	}
+	for o := range s.pullOptions {
+		if strings.Contains(o, "use_hard_links") {
+			if s.pullOptions[o] == "true" {
+				ignore.timestamps = true
+			}
 		}
 	}
 
@@ -160,7 +178,7 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 
 	// Walk the list of layer stores, looking at each layer that we didn't see in a
 	// previously-visited store.
-	if _, _, err := readAllLayerStores(s, func(store roLayerStore) (struct{}, bool, error) {
+	if _, _, err := readOrWriteAllLayerStores(s, func(store roLayerStore) (struct{}, bool, error) {
 		layers, err := store.Layers()
 		if err != nil {
 			return struct{}{}, true, err
@@ -315,7 +333,6 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 						} else {
 							report.ROLayers[id] = append(report.ROLayers[id], err)
 						}
-						return
 					}
 					if layer.UncompressedSize != -1 && counter.Count != layer.UncompressedSize {
 						// We expected the diff to have a specific size, and
@@ -329,7 +346,6 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 						} else {
 							report.ROLayers[id] = append(report.ROLayers[id], err)
 						}
-						return
 					}
 				}()
 			}
@@ -398,6 +414,11 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 						expectedCheckDirectory.headers(diffHeaders)
 					}
 					// Scan the directory tree under the mount point.
+					var idmap *idtools.IDMappings
+					if !s.canUseShifting(layer.UIDMap, layer.GIDMap) {
+						// we would have had to chown() layer contents to match ID maps
+						idmap = idtools.NewIDMappingsFromMaps(layer.UIDMap, layer.GIDMap)
+					}
 					actualCheckDirectory, err := newCheckDirectoryFromDirectory(mountPoint)
 					if err != nil {
 						err := fmt.Errorf("scanning contents of %slayer %s: %w", readWriteDesc, id, err)
@@ -409,7 +430,7 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 						return
 					}
 					// Every departure from our expectations is an error.
-					diffs := compareCheckDirectory(expectedCheckDirectory, actualCheckDirectory, ignoreChownErrors)
+					diffs := compareCheckDirectory(expectedCheckDirectory, actualCheckDirectory, idmap, ignore)
 					for _, diff := range diffs {
 						err := fmt.Errorf("%slayer %s: %s, %w", readWriteDesc, id, diff, ErrLayerContentModified)
 						if isReadWrite {
@@ -805,26 +826,32 @@ func (s *store) Repair(report CheckReport, options *RepairOptions) []error {
 }
 
 // compareFileInfo returns a string summarizing what's different between the two checkFileInfos
-func compareFileInfo(a, b checkFileInfo, ignoreChownErrors bool) string {
-	if a.typeflag == b.typeflag && a.uid != b.uid && a.gid != b.gid && a.size != b.size &&
-		(os.ModeType|os.ModePerm)&a.mode != (os.ModeType|os.ModePerm)&b.mode {
-		return ""
-	}
+func compareFileInfo(a, b checkFileInfo, idmap *idtools.IDMappings, ignore checkIgnore) string {
 	var comparison []string
 	if a.typeflag != b.typeflag {
 		comparison = append(comparison, fmt.Sprintf("filetype:%v￫%v", a.typeflag, b.typeflag))
 	}
-	if a.uid != b.uid && ignoreChownErrors {
+	if idmap != nil && !idmap.Empty() {
+		mappedUID, mappedGID, err := idmap.ToContainer(idtools.IDPair{UID: b.uid, GID: b.gid})
+		if err != nil {
+			return err.Error()
+		}
+		b.uid, b.gid = mappedUID, mappedGID
+	}
+	if a.uid != b.uid && !ignore.ownership {
 		comparison = append(comparison, fmt.Sprintf("uid:%d￫%d", a.uid, b.uid))
 	}
-	if a.gid != b.gid && ignoreChownErrors {
+	if a.gid != b.gid && !ignore.ownership {
 		comparison = append(comparison, fmt.Sprintf("gid:%d￫%d", a.gid, b.gid))
 	}
 	if a.size != b.size {
 		comparison = append(comparison, fmt.Sprintf("size:%d￫%d", a.size, b.size))
 	}
-	if (os.ModeType|os.ModePerm)&a.mode != (os.ModeType|os.ModePerm)&b.mode {
+	if (os.ModeType|os.ModePerm)&a.mode != (os.ModeType|os.ModePerm)&b.mode && !ignore.permissions {
 		comparison = append(comparison, fmt.Sprintf("mode:%04o￫%04o", a.mode, b.mode))
+	}
+	if a.mtime != b.mtime && !ignore.timestamps {
+		comparison = append(comparison, fmt.Sprintf("mtime:0x%x￫0x%x", a.mtime, b.mtime))
 	}
 	return strings.Join(comparison, ",")
 }
@@ -835,6 +862,7 @@ type checkFileInfo struct {
 	uid, gid int
 	size     int64
 	mode     os.FileMode
+	mtime    int64 // unix-style whole seconds
 }
 
 // checkDirectory is a node in a filesystem record, possibly the top
@@ -845,7 +873,7 @@ type checkDirectory struct {
 }
 
 // newCheckDirectory creates an empty checkDirectory
-func newCheckDirectory(uid, gid int, size int64, mode os.FileMode) *checkDirectory {
+func newCheckDirectory(uid, gid int, size int64, mode os.FileMode, mtime int64) *checkDirectory {
 	return &checkDirectory{
 		directory: make(map[string]*checkDirectory),
 		file:      make(map[string]checkFileInfo),
@@ -855,6 +883,7 @@ func newCheckDirectory(uid, gid int, size int64, mode os.FileMode) *checkDirecto
 			gid:      gid,
 			size:     size,
 			mode:     mode,
+			mtime:    mtime,
 		},
 	}
 }
@@ -862,7 +891,7 @@ func newCheckDirectory(uid, gid int, size int64, mode os.FileMode) *checkDirecto
 // newCheckDirectoryDefaults creates an empty checkDirectory with hardwired defaults for the UID
 // (0), GID (0), size (0) and permissions (0o555)
 func newCheckDirectoryDefaults() *checkDirectory {
-	return newCheckDirectory(0, 0, 0, 0o555)
+	return newCheckDirectory(0, 0, 0, 0o555, time.Now().Unix())
 }
 
 // newCheckDirectoryFromDirectory creates a checkDirectory for an on-disk directory tree
@@ -880,9 +909,6 @@ func newCheckDirectoryFromDirectory(dir string) (*checkDirectory, error) {
 		if err != nil {
 			return err
 		}
-		if hdr.Typeflag == tar.TypeLink || hdr.Typeflag == tar.TypeRegA {
-			hdr.Typeflag = tar.TypeReg
-		}
 		hdr.Name = filepath.ToSlash(rel)
 		cd.header(hdr)
 		return nil
@@ -894,16 +920,23 @@ func newCheckDirectoryFromDirectory(dir string) (*checkDirectory, error) {
 }
 
 // add adds an item to a checkDirectory
-func (c *checkDirectory) add(path string, typeflag byte, uid, gid int, size int64, mode os.FileMode) {
+func (c *checkDirectory) add(path string, typeflag byte, uid, gid int, size int64, mode os.FileMode, mtime int64) {
 	components := strings.Split(path, "/")
 	if components[len(components)-1] == "" {
 		components = components[:len(components)-1]
 	}
-	if typeflag == tar.TypeLink || typeflag == tar.TypeRegA {
-		typeflag = tar.TypeReg
+	if components[0] == "." {
+		components = components[1:]
+	}
+	if typeflag != tar.TypeReg {
+		size = 0
 	}
 	switch len(components) {
 	case 0:
+		c.uid = uid
+		c.gid = gid
+		c.mode = mode
+		c.mtime = mtime
 		return
 	case 1:
 		switch typeflag {
@@ -911,7 +944,7 @@ func (c *checkDirectory) add(path string, typeflag byte, uid, gid int, size int6
 			delete(c.file, components[0])
 			// directory entries are mergers, not replacements
 			if _, present := c.directory[components[0]]; !present {
-				c.directory[components[0]] = newCheckDirectory(uid, gid, size, mode)
+				c.directory[components[0]] = newCheckDirectory(uid, gid, size, mode, mtime)
 			} else {
 				c.directory[components[0]].checkFileInfo = checkFileInfo{
 					typeflag: tar.TypeDir,
@@ -919,6 +952,7 @@ func (c *checkDirectory) add(path string, typeflag byte, uid, gid int, size int6
 					gid:      gid,
 					size:     size,
 					mode:     mode,
+					mtime:    mtime,
 				}
 			}
 		default:
@@ -930,6 +964,7 @@ func (c *checkDirectory) add(path string, typeflag byte, uid, gid int, size int6
 				gid:      gid,
 				size:     size,
 				mode:     mode,
+				mtime:    mtime,
 			}
 		case tar.TypeXGlobalHeader:
 			// ignore, since even though it looks like a valid pathname, it doesn't end
@@ -939,10 +974,10 @@ func (c *checkDirectory) add(path string, typeflag byte, uid, gid int, size int6
 	}
 	subdirectory := c.directory[components[0]]
 	if subdirectory == nil {
-		subdirectory = newCheckDirectory(uid, gid, size, mode)
+		subdirectory = newCheckDirectory(uid, gid, size, mode, mtime)
 		c.directory[components[0]] = subdirectory
 	}
-	subdirectory.add(strings.Join(components[1:], "/"), typeflag, uid, gid, size, mode)
+	subdirectory.add(strings.Join(components[1:], "/"), typeflag, uid, gid, size, mode, mtime)
 }
 
 // remove removes an item from a checkDirectory
@@ -966,12 +1001,37 @@ func (c *checkDirectory) header(hdr *tar.Header) {
 	if strings.HasPrefix(base, archive.WhiteoutPrefix) {
 		if base == archive.WhiteoutOpaqueDir {
 			c.remove(path.Clean(dir))
-			c.add(path.Clean(dir), tar.TypeDir, hdr.Uid, hdr.Gid, hdr.Size, os.FileMode(hdr.Mode))
+			c.add(path.Clean(dir), tar.TypeDir, hdr.Uid, hdr.Gid, hdr.Size, os.FileMode(hdr.Mode), hdr.ModTime.Unix())
 		} else {
 			c.remove(path.Join(dir, base[len(archive.WhiteoutPrefix):]))
 		}
 	} else {
-		c.add(name, hdr.Typeflag, hdr.Uid, hdr.Gid, hdr.Size, os.FileMode(hdr.Mode))
+		if hdr.Typeflag == tar.TypeLink {
+			// look up the attributes of the target of the hard link
+			// n.b. by convention, Linkname is always relative to the
+			// root directory of the archive, which is not always the
+			// same as being relative to hdr.Name
+			directory := c
+			for _, component := range strings.Split(path.Clean(hdr.Linkname), "/") {
+				if component == "." || component == ".." {
+					continue
+				}
+				if subdir, ok := directory.directory[component]; ok {
+					directory = subdir
+					continue
+				}
+				if file, ok := directory.file[component]; ok {
+					hdr.Typeflag = file.typeflag
+					hdr.Uid = file.uid
+					hdr.Gid = file.gid
+					hdr.Size = file.size
+					hdr.Mode = int64(file.mode)
+					hdr.ModTime = time.Unix(file.mtime, 0)
+				}
+				break
+			}
+		}
+		c.add(name, hdr.Typeflag, hdr.Uid, hdr.Gid, hdr.Size, os.FileMode(hdr.Mode), hdr.ModTime.Unix())
 	}
 }
 
@@ -981,7 +1041,14 @@ func (c *checkDirectory) headers(hdrs []*tar.Header) {
 	// sort the headers from the diff to ensure that whiteouts appear
 	// before content when they both appear in the same directory, per
 	// https://github.com/opencontainers/image-spec/blob/main/layer.md#whiteouts
-	sort.Slice(hdrs, func(i, j int) bool {
+	// and that hard links appear after other types of entries
+	sort.SliceStable(hdrs, func(i, j int) bool {
+		if hdrs[i].Typeflag != tar.TypeLink && hdrs[j].Typeflag == tar.TypeLink {
+			return true
+		}
+		if hdrs[i].Typeflag == tar.TypeLink && hdrs[j].Typeflag != tar.TypeLink {
+			return false
+		}
 		idir, ifile := path.Split(hdrs[i].Name)
 		jdir, jfile := path.Split(hdrs[j].Name)
 		if idir != jdir {
@@ -1016,7 +1083,7 @@ func (c *checkDirectory) names() []string {
 }
 
 // compareCheckSubdirectory walks two subdirectory trees and returns a list of differences
-func compareCheckSubdirectory(path string, a, b *checkDirectory, ignoreChownErrors bool) []string {
+func compareCheckSubdirectory(path string, a, b *checkDirectory, idmap *idtools.IDMappings, ignore checkIgnore) []string {
 	var diff []string
 	if a == nil {
 		a = newCheckDirectoryDefaults()
@@ -1028,20 +1095,20 @@ func compareCheckSubdirectory(path string, a, b *checkDirectory, ignoreChownErro
 		if bdir, present := b.directory[aname]; !present {
 			// directory was removed
 			diff = append(diff, "-"+path+"/"+aname+"/")
-			diff = append(diff, compareCheckSubdirectory(path+"/"+aname, adir, nil, ignoreChownErrors)...)
+			diff = append(diff, compareCheckSubdirectory(path+"/"+aname, adir, nil, idmap, ignore)...)
 		} else {
 			// directory is in both trees; descend
-			if attributes := compareFileInfo(adir.checkFileInfo, bdir.checkFileInfo, ignoreChownErrors); attributes != "" {
+			if attributes := compareFileInfo(adir.checkFileInfo, bdir.checkFileInfo, idmap, ignore); attributes != "" {
 				diff = append(diff, path+"/"+aname+"("+attributes+")")
 			}
-			diff = append(diff, compareCheckSubdirectory(path+"/"+aname, adir, bdir, ignoreChownErrors)...)
+			diff = append(diff, compareCheckSubdirectory(path+"/"+aname, adir, bdir, idmap, ignore)...)
 		}
 	}
 	for bname, bdir := range b.directory {
 		if _, present := a.directory[bname]; !present {
 			// directory added
 			diff = append(diff, "+"+path+"/"+bname+"/")
-			diff = append(diff, compareCheckSubdirectory(path+"/"+bname, nil, bdir, ignoreChownErrors)...)
+			diff = append(diff, compareCheckSubdirectory(path+"/"+bname, nil, bdir, idmap, ignore)...)
 		}
 	}
 	for aname, afile := range a.file {
@@ -1050,7 +1117,7 @@ func compareCheckSubdirectory(path string, a, b *checkDirectory, ignoreChownErro
 			diff = append(diff, "-"+path+"/"+aname)
 		} else {
 			// item is in both trees; compare
-			if attributes := compareFileInfo(afile, bfile, ignoreChownErrors); attributes != "" {
+			if attributes := compareFileInfo(afile, bfile, idmap, ignore); attributes != "" {
 				diff = append(diff, path+"/"+aname+"("+attributes+")")
 			}
 		}
@@ -1062,7 +1129,7 @@ func compareCheckSubdirectory(path string, a, b *checkDirectory, ignoreChownErro
 			diff = append(diff, "+"+path+"/"+bname)
 			continue
 		}
-		if attributes := compareFileInfo(filetype, b.file[bname], ignoreChownErrors); attributes != "" {
+		if attributes := compareFileInfo(filetype, b.file[bname], idmap, ignore); attributes != "" {
 			// non-directory replaced with non-directory
 			diff = append(diff, "+"+path+"/"+bname+"("+attributes+")")
 		}
@@ -1071,8 +1138,8 @@ func compareCheckSubdirectory(path string, a, b *checkDirectory, ignoreChownErro
 }
 
 // compareCheckDirectory walks two directory trees and returns a sorted list of differences
-func compareCheckDirectory(a, b *checkDirectory, ignoreChownErrors bool) []string {
-	diff := compareCheckSubdirectory("", a, b, ignoreChownErrors)
+func compareCheckDirectory(a, b *checkDirectory, idmap *idtools.IDMappings, ignore checkIgnore) []string {
+	diff := compareCheckSubdirectory("", a, b, idmap, ignore)
 	sort.Slice(diff, func(i, j int) bool {
 		if strings.Compare(diff[i][1:], diff[j][1:]) < 0 {
 			return true
