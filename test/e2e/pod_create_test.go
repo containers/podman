@@ -213,7 +213,7 @@ var _ = Describe("Podman pod create", func() {
 
 	It("podman create pod with IP address", func() {
 		name := "test"
-		ip := GetRandomIPAddress()
+		ip := GetSafeIPAddress()
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--ip", ip, "--name", name})
 		podCreate.WaitWithDefaultTimeout()
 		// Rootless should error without network
@@ -232,7 +232,7 @@ var _ = Describe("Podman pod create", func() {
 		SkipIfRootless("Rootless does not support --ip without network")
 		podName := "test"
 		ctrName := "testCtr"
-		ip := GetRandomIPAddress()
+		ip := GetSafeIPAddress()
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--ip", ip, "--name", podName})
 		podCreate.WaitWithDefaultTimeout()
 		Expect(podCreate).Should(Exit(0))
@@ -248,7 +248,7 @@ var _ = Describe("Podman pod create", func() {
 
 	It("podman create pod with IP address and no infra should fail", func() {
 		name := "test"
-		ip := GetRandomIPAddress()
+		ip := GetSafeIPAddress()
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--ip", ip, "--name", name, "--infra=false"})
 		podCreate.WaitWithDefaultTimeout()
 		Expect(podCreate).Should(Exit(125))

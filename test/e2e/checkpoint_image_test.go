@@ -49,7 +49,7 @@ var _ = Describe("Podman checkpoint", func() {
 		localRunString := []string{
 			"run",
 			"-d",
-			"--ip", GetRandomIPAddress(),
+			"--ip", GetSafeIPAddress(),
 			"--name", containerName,
 			ALPINE,
 			"top",
