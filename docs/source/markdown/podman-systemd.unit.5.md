@@ -680,7 +680,9 @@ This is equivalent to the Podman `--ipam-driver` option
 
 ### `IPRange=`
 
-Allocate  container  IP  from a range. The range must be a complete subnet and in CIDR notation. The ip-range option must be used with a subnet option.
+Allocate  container  IP  from a range. The range must be a either a complete subnet in CIDR notation or be
+in the `<startIP>-<endIP>` syntax which allows for a more flexible range compared to the CIDR subnet.
+The ip-range option must be used with a subnet option.
 
 This is equivalent to the Podman `--ip-range` option
 
