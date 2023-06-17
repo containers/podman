@@ -300,6 +300,7 @@ func getRootlessStorageOpts(rootlessUID int, systemOpts StoreOptions) (StoreOpti
 	// present.
 	if defaultConfigFileSet {
 		opts.GraphDriverOptions = systemOpts.GraphDriverOptions
+		opts.ImageStore = systemOpts.ImageStore
 	} else if opts.GraphDriverName == overlayDriver {
 		for _, o := range systemOpts.GraphDriverOptions {
 			if strings.Contains(o, "ignore_chown_errors") {

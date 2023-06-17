@@ -52,6 +52,7 @@ type PodmanConfig struct {
 	URI                      string         // URI to RESTful API Service
 
 	Runroot        string
+	ImageStore     string
 	StorageDriver  string
 	StorageOpts    []string
 	SSHMode        string
