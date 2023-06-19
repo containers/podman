@@ -14,7 +14,6 @@ linters:
   disable:
     # too many reports but requires attention
     - depguard
-    - revive
     - tagalign
     # useful hints that should be addressed
     - nakedret
@@ -79,7 +78,12 @@ linters-settings:
     ignore: fmt:.*
   nolintlint:
     allow-leading-space: false
+    allow-unused: true
     require-specific: true
+  revive:
+    rules:
+    - name: unused-parameter
+      disabled: true
 
 issues:
   # Maximum issues count per one linter.
