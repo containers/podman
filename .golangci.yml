@@ -21,7 +21,6 @@ linters:
     # useful hints that should be addressed
     - ginkgolinter
     - nakedret
-    - wastedassign
     - gosmopolitan # usage of time.Local in pkg/k8s.io
     - tagliatelle # too many JSON keys cannot be changed due to compat
     - nosnakecase # too many false positives due to the `unix` package

@@ -2463,7 +2463,6 @@ func (c *Container) setHomeEnvIfNeeded() error {
 	}
 
 	// Ensure HOME is not already set in Env
-	home := ""
 	for _, s := range c.config.Spec.Process.Env {
 		if strings.HasPrefix(s, "HOME=") {
 			return nil

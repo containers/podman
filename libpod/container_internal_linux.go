@@ -750,7 +750,7 @@ func (c *Container) safeMountSubPath(mountPoint, subpath string) (s *safeMountIn
 	if err != nil {
 		return nil, err
 	}
-	npath := ""
+	var npath string
 	switch {
 	case fi.Mode()&fs.ModeSymlink != 0:
 		return nil, fmt.Errorf("file %q is a symlink", joinedPath)
