@@ -324,7 +324,7 @@ var _ = Describe("Podman restart", func() {
 		session1 = podmanTest.Podman([]string{"restart", "-a", "--filter", fmt.Sprintf("id=%swrongid", shortCid3)})
 		session1.WaitWithDefaultTimeout()
 		Expect(session1).Should(Exit(0))
-		Expect(session1.OutputToString()).To(HaveLen(0))
+		Expect(session1.OutputToString()).To(BeEmpty())
 
 		session1 = podmanTest.Podman([]string{"restart", "-a", "--filter", fmt.Sprintf("id=%s", shortCid3)})
 		session1.WaitWithDefaultTimeout()

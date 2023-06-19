@@ -17,7 +17,6 @@ linters:
     - revive
     - tagalign
     # useful hints that should be addressed
-    - ginkgolinter
     - nakedret
     - gosmopolitan # usage of time.Local in pkg/k8s.io
     - tagliatelle # too many JSON keys cannot be changed due to compat

@@ -182,7 +182,7 @@ var _ = Describe("Podman kube generate", func() {
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(pod.Spec).To(HaveField("HostNetwork", false))
-		Expect(pod.Annotations).To(HaveLen(0))
+		Expect(pod.Annotations).To(BeEmpty())
 
 		numContainers := 0
 		for range pod.Spec.Containers {

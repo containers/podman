@@ -3665,7 +3665,7 @@ o: {{ .Options.o }}`})
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		if IsRemote() {
-			Expect(kube).Error()
+			Expect(kube).To(ExitWithError())
 			Expect(kube.ErrorToString()).To(ContainSubstring("importing volumes is not supported for remote requests"))
 			return
 		}
@@ -4947,7 +4947,7 @@ spec:
 		ps := podmanTest.Podman([]string{"pod", "ps", "-q"})
 		ps.WaitWithDefaultTimeout()
 		Expect(ps).Should(Exit(0))
-		Expect(ps.OutputToStringArray()).To(HaveLen(0))
+		Expect(ps.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman play kube with named volume subpaths", func() {
