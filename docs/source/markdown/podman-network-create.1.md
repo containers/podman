@@ -66,8 +66,9 @@ Restrict external access of this network. Note when using this option, the dnsna
 
 #### **--ip-range**=*range*
 
-Allocate container IP from a range.  The range must be a complete subnet and in CIDR notation.  The *ip-range* option
-must be used with a *subnet* option. Can be specified multiple times.
+Allocate container IP from a range. The range must be a either a complete subnet in CIDR notation or be in
+the `<startIP>-<endIP>` syntax which allows for a more flexible range compared to the CIDR subnet.
+The *ip-range* option must be used with a *subnet* option. Can be specified multiple times.
 The argument order of the **--subnet**, **--gateway** and **--ip-range** options must match.
 
 #### **--ipam-driver**=*driver*

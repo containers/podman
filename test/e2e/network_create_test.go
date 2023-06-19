@@ -696,4 +696,41 @@ var _ = Describe("Podman network create", func() {
 			Expect(bridge.Name).To(Equal(bridgeName))
 		}
 	})
+
+	It("podman network create --ip-range sip-eip", func() {
+		netName := "subnet-" + stringid.GenerateRandomID()
+		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.16.0/24", "--ip-range", "10.11.16.11-10.11.16.12", netName})
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(netName)
+		Expect(nc).Should(Exit(0))
+
+		// Inspect the network configuration
+		inspect := podmanTest.Podman([]string{"network", "inspect", netName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+
+		// JSON the network configuration into something usable
+		var results []types.Network
+		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(results).To(HaveLen(1))
+		result := results[0]
+		Expect(result).To(HaveField("Name", netName))
+		Expect(result.Subnets).To(HaveLen(1))
+		Expect(result.Subnets[0].Subnet.String()).To(Equal("10.11.16.0/24"))
+		Expect(result.Subnets[0].Gateway.String()).To(Equal("10.11.16.1"))
+		Expect(result.Subnets[0].LeaseRange).ToNot(BeNil())
+		Expect(result.Subnets[0].LeaseRange.StartIP.String()).To(Equal("10.11.16.11"))
+		Expect(result.Subnets[0].LeaseRange.EndIP.String()).To(Equal("10.11.16.12"))
+
+		try := podmanTest.Podman([]string{"run", "--rm", "--network", netName, ALPINE, "sh", "-c", "ip addr show eth0 |  awk ' /inet / {print $2}'"})
+		try.WaitWithDefaultTimeout()
+		Expect(try).To(Exit(0))
+
+		containerIP, _, err := net.ParseCIDR(try.OutputToString())
+		Expect(err).ToNot(HaveOccurred())
+		// Note as of today (June 2023) we always get the first ip from netavark and cni but let's not depend on that.
+		// All we care about is the ip is from the range which allows for both.
+		Expect(containerIP.String()).To(Or(Equal("10.11.16.11"), Equal("10.11.16.12")), "ip address must be in --ip-range")
+	})
 })
