@@ -1739,7 +1739,7 @@ func createSourceTarFile(fileName, fileContent, tarFilePath string) error {
 		return err
 	}
 
-	_, err = file.Write([]byte(fileContent))
+	_, err = file.WriteString(fileContent)
 	if err != nil {
 		return err
 	}
@@ -4996,7 +4996,7 @@ spec:
 		file, err := os.Create(filepath.Join(hostPathLocation, "testing", "onlythis", "123.txt"))
 		Expect(err).ToNot(HaveOccurred())
 
-		_, err = file.Write([]byte("hi"))
+		_, err = file.WriteString("hi")
 		Expect(err).ToNot(HaveOccurred())
 
 		err = file.Close()

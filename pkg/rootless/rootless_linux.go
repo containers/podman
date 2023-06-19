@@ -374,7 +374,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		}
 	}
 
-	_, err = w.Write([]byte("0"))
+	_, err = w.WriteString("0")
 	if err != nil {
 		return false, -1, fmt.Errorf("write to sync pipe: %w", err)
 	}

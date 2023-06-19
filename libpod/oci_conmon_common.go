@@ -343,7 +343,7 @@ func generateResourceFile(res *spec.LinuxResources) (string, []string, error) {
 	if err != nil {
 		return "", nil, err
 	}
-	_, err = f.WriteString(string(j))
+	_, err = f.Write(j)
 	if err != nil {
 		return "", nil, err
 	}
