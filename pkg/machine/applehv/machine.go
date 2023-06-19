@@ -573,6 +573,7 @@ func AppleHVSSH(username, identityPath, name string, sshPort int, inputArgs []st
 	port := strconv.Itoa(sshPort)
 
 	args := []string{"-i", identityPath, "-p", port, sshDestination,
+		"-o", "IdentitiesOnly=yes",
 		"-o", "StrictHostKeyChecking=no", "-o", "LogLevel=ERROR", "-o", "SetEnv=LC_ALL="}
 	if len(inputArgs) > 0 {
 		args = append(args, inputArgs...)
