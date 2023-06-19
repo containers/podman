@@ -53,6 +53,7 @@ function generate_service() {
     local command=$3
     local extraArgs=$4
     local noTag=$5
+    local requires=$6
 
     # Unless specified, set a default command.
     if [[ -z "$command" ]]; then
@@ -73,9 +74,14 @@ function generate_service() {
     else
         label=""
     fi
+
+    if [[ -n "$requires" ]]; then
+        requires="--requires=$requires"
+    fi
+
     run_podman create $extraArgs --name $cname $label $target_img $command
 
-    (cd $UNIT_DIR; run_podman generate systemd --new --files --name $cname)
+    (cd $UNIT_DIR; run_podman generate systemd --new --files --name $requires $cname)
     echo "container-$cname" >> $SNAME_FILE
     run_podman rm -t 0 -f $cname
 
@@ -161,23 +167,41 @@ function _confirm_update() {
     run_podman events --filter type=system --since $since --stream=false
     is "$output" ""
 
+    # Generate two units.  The first "parent" to be auto updated, the second
+    # "child" depends on/requires the "parent" and is expected to get restarted
+    # as well on auto updates (regression test for #18926).
     generate_service alpine image
+    ctr_parent=$cname
+    _wait_service_ready container-$ctr_parent.service
 
-    _wait_service_ready container-$cname.service
+    generate_service alpine image "" "" "" "container-$ctr_parent.service"
+    ctr_child=$cname
+    _wait_service_ready container-$ctr_child.service
+    run_podman container inspect --format "{{.ID}}" $ctr_child
+    old_child_id=$output
+
     since=$(date --iso-8601=seconds)
     run_podman auto-update --dry-run --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
-    is "$output" ".*container-$cname.service,quay.io/libpod/alpine:latest,pending,registry.*" "Image update is pending."
+    is "$output" ".*container-$ctr_parent.service,quay.io/libpod/alpine:latest,pending,registry.*" "Image update is pending."
     run_podman events --filter type=system --since $since --stream=false
     is "$output" ".* system auto-update"
 
     since=$(date --iso-8601=seconds)
     run_podman auto-update --rollback=false --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
     is "$output" "Trying to pull.*" "Image is updated."
-    is "$output" ".*container-$cname.service,quay.io/libpod/alpine:latest,true,registry.*" "Image is updated."
+    is "$output" ".*container-$ctr_parent.service,quay.io/libpod/alpine:latest,true,registry.*" "Image is updated."
     run_podman events --filter type=system --since $since --stream=false
     is "$output" ".* system auto-update"
 
-    _confirm_update $cname $ori_image
+    # Confirm that the update was successful and that the child container/unit
+    # has been restarted as well.
+    _confirm_update $ctr_parent $ori_image
+    run_podman container inspect --format "{{.ID}}" $ctr_child
+    assert "$output" != "$old_child_id" \
+        "child container/unit has not been restarted during update"
+    run_podman container inspect --format "{{.ID}}" $ctr_child
+    run_podman container inspect --format "{{.State.Status}}" $ctr_child
+    is "$output" "running" "child container is in running state"
 }
 
 @test "podman auto-update - label io.containers.autoupdate=image with rollback" {
