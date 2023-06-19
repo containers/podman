@@ -192,7 +192,7 @@ Details:
 URL value resolution precedence:
  - command line value
  - environment variable `CONTAINER_HOST`
- - `containers.conf` `service_destinations` table
+ - `engine.service_destinations` table in containers.conf, excluding the /usr/share/containers directory
  - `unix://run/podman/podman.sock`
 
 Remote connections use local containers.conf for default.
