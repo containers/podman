@@ -12,8 +12,6 @@ run:
 linters:
   enable-all: true
   disable:
-    # All these break for one reason or another
-    - rowserrcheck # FIXME (urgent): sqlite error checking
     # too many reports but requires attention
     - depguard
     - revive

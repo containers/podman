@@ -139,6 +139,9 @@ func (s *SQLiteState) Refresh() (defErr error) {
 
 		ctrStates[id] = string(newJSON)
 	}
+	if err := ctrRows.Err(); err != nil {
+		return err
+	}
 
 	podRows, err := s.conn.Query("SELECT ID, JSON FROM PodState;")
 	if err != nil {
@@ -169,6 +172,9 @@ func (s *SQLiteState) Refresh() (defErr error) {
 		}
 
 		podStates[id] = string(newJSON)
+	}
+	if err := podRows.Err(); err != nil {
+		return err
 	}
 
 	volRows, err := s.conn.Query("SELECT Name, JSON FROM VolumeState;")
@@ -201,6 +207,9 @@ func (s *SQLiteState) Refresh() (defErr error) {
 		}
 
 		volumeStates[name] = string(newJSON)
+	}
+	if err := volRows.Err(); err != nil {
+		return err
 	}
 
 	// Write updated states back to DB, and perform additional maintenance
@@ -503,6 +512,9 @@ func (s *SQLiteState) LookupContainerID(idOrName string) (string, error) {
 		}
 		resCount++
 	}
+	if err := rows.Err(); err != nil {
+		return "", err
+	}
 	if resCount == 0 {
 		return "", define.ErrNoSuchCtr
 	} else if resCount > 1 {
@@ -543,6 +555,9 @@ func (s *SQLiteState) LookupContainer(idOrName string) (*Container, error) {
 			break
 		}
 		resCount++
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if !exactName {
 		if resCount == 0 {
@@ -730,6 +745,9 @@ func (s *SQLiteState) ContainerInUse(ctr *Container) ([]string, error) {
 		}
 		deps = append(deps, dep)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
 	return deps, nil
 }
@@ -770,6 +788,9 @@ func (s *SQLiteState) AllContainers(loadState bool) ([]*Container, error) {
 
 			ctrs = append(ctrs, ctr)
 		}
+		if err := rows.Err(); err != nil {
+			return nil, err
+		}
 	} else {
 		rows, err := s.conn.Query("SELECT JSON FROM ContainerConfig;")
 		if err != nil {
@@ -793,6 +814,9 @@ func (s *SQLiteState) AllContainers(loadState bool) ([]*Container, error) {
 			}
 
 			ctrs = append(ctrs, ctr)
+		}
+		if err := rows.Err(); err != nil {
+			return nil, err
 		}
 	}
 
@@ -1095,6 +1119,9 @@ func (s *SQLiteState) GetContainerExecSessions(ctr *Container) ([]string, error)
 		}
 		sessions = append(sessions, session)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
 	return sessions, nil
 }
@@ -1332,6 +1359,9 @@ func (s *SQLiteState) LookupPod(idOrName string) (*Pod, error) {
 		}
 		resCount++
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if !exactName {
 		if resCount == 0 {
 			return nil, fmt.Errorf("no pod with name or ID %s found: %w", idOrName, define.ErrNoSuchPod)
@@ -1421,6 +1451,9 @@ func (s *SQLiteState) PodContainersByID(pod *Pod) ([]string, error) {
 
 		ids = append(ids, id)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
 	return ids, nil
 }
@@ -1458,6 +1491,9 @@ func (s *SQLiteState) PodContainers(pod *Pod) ([]*Container, error) {
 		}
 
 		ctrs = append(ctrs, ctr)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	for _, ctr := range ctrs {
@@ -1652,6 +1688,9 @@ func (s *SQLiteState) RemovePodContainers(pod *Pod) (defErr error) {
 			return err
 		}
 	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1804,6 +1843,9 @@ func (s *SQLiteState) AllPods() ([]*Pod, error) {
 
 		pods = append(pods, pod)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
 	return pods, nil
 }
@@ -1909,6 +1951,9 @@ func (s *SQLiteState) RemoveVolume(volume *Volume) (defErr error) {
 			return fmt.Errorf("error scanning row for containers using volume %s: %w", volume.Name(), err)
 		}
 		ctrs = append(ctrs, ctr)
+	}
+	if err := rows.Err(); err != nil {
+		return err
 	}
 	if len(ctrs) > 0 {
 		return fmt.Errorf("volume %s is in use by containers %s: %w", volume.Name(), strings.Join(ctrs, ","), define.ErrVolumeBeingUsed)
@@ -2045,6 +2090,9 @@ func (s *SQLiteState) AllVolumes() ([]*Volume, error) {
 
 		volumes = append(volumes, vol)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
 	return volumes, nil
 }
@@ -2112,6 +2160,9 @@ func (s *SQLiteState) LookupVolume(name string) (*Volume, error) {
 		if foundName == name {
 			break
 		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if foundName == "" {
 		return nil, fmt.Errorf("no volume with name %q found: %w", name, define.ErrNoSuchVolume)
@@ -2185,6 +2236,9 @@ func (s *SQLiteState) VolumeInUse(volume *Volume) ([]string, error) {
 			return nil, fmt.Errorf("scanning container ID for container using volume %s: %w", volume.Name(), err)
 		}
 		ctrs = append(ctrs, ctr)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return ctrs, nil
