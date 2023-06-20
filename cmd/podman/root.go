@@ -508,7 +508,7 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 		_ = cmd.RegisterFlagCompletionFunc(runrootFlagName, completion.AutocompleteDefault)
 
 		imageStoreFlagName := "imagestore"
-		pFlags.StringVar(&podmanConfig.ImageStore, imageStoreFlagName, "", "Path to the `image store`, different from `graph root`, use this to split storing the image into a separate `image store`, see `man containers-storage.conf` for details")
+		pFlags.StringVar(&podmanConfig.ImageStore, imageStoreFlagName, "", "Path to the 'image store', different from 'graph root', use this to split storing the image into a separate 'image store', see 'man containers-storage.conf' for details")
 		_ = cmd.RegisterFlagCompletionFunc(imageStoreFlagName, completion.AutocompleteDefault)
 
 		pFlags.BoolVar(&podmanConfig.TransientStore, "transient-store", false, "Enable transient container storage")
