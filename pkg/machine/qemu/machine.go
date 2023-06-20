@@ -1055,8 +1055,17 @@ func (v *MachineVM) isListening() bool {
 	if err != nil {
 		return false
 	}
-	conn.Close()
-	return true
+	defer conn.Close()
+
+	// Being able to dial the connection is not enough to determine if the connection is up.
+	// OpenSSH returns a string if the SSH connection is successful, rely on that.
+	err = conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+	if err != nil {
+		return false
+	}
+	recvBuf := make([]byte, 256)
+	_, err = conn.Read(recvBuf[:])
+	return err == nil
 }
 
 // SSH opens an interactive SSH session to the vm specified.
