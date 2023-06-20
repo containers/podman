@@ -497,6 +497,9 @@ func GetPortLock(port string) *lockfile.LockFile {
 // one test calls us more than 25 times or if some other test runs more
 // than ten networked containers at the same time as any test that
 // relies on GetSafeIPAddress(). I'm finding it hard to care.
+//
+// DO NOT USE THIS FUNCTION unless there is no possible alternative. In
+// most cases you should use 'podman network create' + 'podman run --network'.
 func GetSafeIPAddress() string {
 	safeIPOctets[1] += 10
 	return fmt.Sprintf("10.88.%d.%d", safeIPOctets[0], safeIPOctets[1])
