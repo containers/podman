@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/sirupsen/logrus"
@@ -613,7 +614,14 @@ func GetProxyVariables() map[string]string {
 	proxyOpts := make(map[string]string)
 	for _, variable := range config.ProxyEnv {
 		if value, ok := os.LookupEnv(variable); ok {
-			proxyOpts[variable] = value
+			if value == "" {
+				continue
+			}
+
+			// TODO: use constants for host.containers.internal
+			v := strings.ReplaceAll(value, "127.0.0.1", "host.containers.internal")
+			v = strings.ReplaceAll(v, "localhost", "host.containers.internal")
+			proxyOpts[variable] = v
 		}
 	}
 	return proxyOpts
