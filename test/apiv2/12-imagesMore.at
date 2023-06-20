@@ -25,7 +25,7 @@ t GET libpod/images/$IMAGE/json 200 \
   .RepoTags[1]=localhost:$REGISTRY_PORT/myrepo:mytag
 
 # Push to local registry...
-t POST "images/localhost:$REGISTRY_PORT/myrepo/push?tag=mytag" 200 \
+t POST "/v1.40/images/localhost:$REGISTRY_PORT/myrepo/push?tag=mytag" 500 \
   .error~".*x509: certificate signed by unknown authority"
 t POST "images/localhost:$REGISTRY_PORT/myrepo/push?tlsVerify=false&tag=mytag" 200 \
   .error~null

@@ -82,10 +82,9 @@ t DELETE "images/foo"                                200
 
 ########## PUSH
 
-t POST   "images/alpine/push?destination=localhost:9999/do:exist"                    200
-t POST   "images/quay.io/libpod/alpine/push?destination=localhost:9999/do/not:exist" 200 # Error is in the response
+t POST   "images/quay.io/libpod/alpine/push?destination=localhost:9999/do/not:exist" 500
 t POST   "images/quay.io/libpod/alpine/tag?repo=foo"                                 201
-t POST   "images/foo/push?destination=localhost:9999/do/not:exist"                   200 # Error is in the response
+t POST   "images/foo/push?destination=localhost:9999/do/not:exist"                   500
 t DELETE "images/foo"                                                                200
 
 
@@ -125,7 +124,7 @@ t POST   "images/alpine/tag?repo=foo"                                 201
 t GET    "images/localhost/foo:latest/get"                            200
 t DELETE "images/foo"                                                 200
 t GET    "images/alpine/history"                                      200
-t POST   "images/alpine/push?destination=localhost:9999/do/not:exist" 200 # Error is in the response
+t POST   "images/alpine/push?destination=localhost:9999/do/not:exist" 500
 t POST   "containers/create" Image=alpine                             201
 cid=$(jq -r '.Id' <<<"$output")
 t POST   "commit?container=$cid&repo=foo&tag=tag"                     201

@@ -108,24 +108,36 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		destination = imageName
 	}
 
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(true)
+
 	flush := func() {}
 	if flusher, ok := w.(http.Flusher); ok {
 		flush = flusher.Flush
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	flush()
-
-	var report jsonmessage.JSONMessage
-	enc := json.NewEncoder(w)
-	enc.SetEscapeHTML(true)
-
-	report.Status = fmt.Sprintf("The push refers to repository [%s]", imageName)
-	if err := enc.Encode(report); err != nil {
-		logrus.Warnf("Failed to json encode error %q", err.Error())
+	statusWritten := false
+	writeStatusCode := func(code int) {
+		if !statusWritten {
+			w.WriteHeader(code)
+			w.Header().Set("Content-Type", "application/json")
+			flush()
+			statusWritten = true
+		}
 	}
-	flush()
+
+	referenceWritten := false
+	writeReference := func() {
+		if !referenceWritten {
+			var report jsonmessage.JSONMessage
+			report.Status = fmt.Sprintf("The push refers to repository [%s]", imageName)
+			if err := enc.Encode(report); err != nil {
+				logrus.Warnf("Failed to json encode error %q", err.Error())
+			}
+			flush()
+			referenceWritten = true
+		}
+	}
 
 	pushErrChan := make(chan error)
 	var pushReport *entities.ImagePushReport
@@ -137,10 +149,12 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 
 loop: // break out of for/select infinite loop
 	for {
-		report = jsonmessage.JSONMessage{}
+		var report jsonmessage.JSONMessage
 
 		select {
 		case e := <-options.Progress:
+			writeStatusCode(http.StatusOK)
+			writeReference()
 			switch e.Event {
 			case types.ProgressEventNewArtifact:
 				report.Status = "Preparing"
@@ -165,8 +179,11 @@ loop: // break out of for/select infinite loop
 			if err != nil {
 				var msg string
 				if errors.Is(err, storage.ErrImageUnknown) {
+					// Image may have been removed in the meantime.
+					writeStatusCode(http.StatusNotFound)
 					msg = "An image does not exist locally with the tag: " + imageName
 				} else {
+					writeStatusCode(http.StatusInternalServerError)
 					msg = err.Error()
 				}
 				report.Error = &jsonmessage.JSONError{
@@ -178,6 +195,9 @@ loop: // break out of for/select infinite loop
 				}
 				flush()
 				break loop
+			} else {
+				writeStatusCode(http.StatusOK)
+				writeReference() // There may not be any progess, so make sure the reference gets written
 			}
 
 			tag := query.Tag
