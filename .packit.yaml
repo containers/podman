@@ -17,10 +17,6 @@ jobs:
     enable_net: true
     srpm_build_deps:
       - make
-      - rpkg
-    actions:
-      fix-spec-file:
-        - "bash .packit.sh"
 
   - <<: *copr
     # Run on commit to main branch
