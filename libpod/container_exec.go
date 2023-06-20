@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/resize"
+	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/storage/pkg/stringid"
@@ -923,7 +924,7 @@ func (c *Container) readExecExitCode(sessionID string) (int, error) {
 	chWait := make(chan error)
 	defer close(chWait)
 
-	_, err := WaitForFile(exitFile, chWait, time.Second*5)
+	_, err := util.WaitForFile(exitFile, chWait, time.Second*5)
 	if err != nil {
 		return -1, err
 	}

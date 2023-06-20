@@ -10,19 +10,17 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/common/libnetwork/resolvconf"
+	"github.com/containers/common/libnetwork/slirp4netns"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/netns"
 	"github.com/containers/common/pkg/util"
-	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/lockfile"
@@ -34,12 +32,6 @@ import (
 )
 
 const (
-	// slirp4netnsMTU the default MTU override
-	slirp4netnsMTU = 65520
-
-	// default slirp4ns subnet
-	defaultSlirp4netnsSubnet = "10.0.2.0/24"
-
 	// rootlessNetNsName is the file name for the rootless network namespace bind mount
 	rootlessNetNsName = "rootless-netns"
 
@@ -388,91 +380,25 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 		if err != nil {
 			return nil, fmt.Errorf("creating rootless network namespace: %w", err)
 		}
-		// set up slirp4netns here
-		path := r.config.Engine.NetworkCmdPath
-		if path == "" {
-			var err error
-			path, err = r.config.FindHelperBinary(slirp4netnsBinaryName, true)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		syncR, syncW, err := os.Pipe()
+		res, err := slirp4netns.Setup(&slirp4netns.SetupOptions{
+			Config:      r.config,
+			ContainerID: "rootless-netns",
+			Netns:       nsReference.Path(),
+		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to open pipe: %w", err)
-		}
-		defer errorhandling.CloseQuiet(syncR)
-		defer errorhandling.CloseQuiet(syncW)
-
-		netOptions, err := parseSlirp4netnsNetworkOptions(r, nil)
-		if err != nil {
-			return nil, err
-		}
-		slirpFeatures, err := checkSlirpFlags(path)
-		if err != nil {
-			return nil, fmt.Errorf("checking slirp4netns binary %s: %q: %w", path, err, err)
-		}
-		cmdArgs, err := createBasicSlirp4netnsCmdArgs(netOptions, slirpFeatures)
-		if err != nil {
-			return nil, err
-		}
-		// Note we do not use --exit-fd, we kill this process by pid
-		cmdArgs = append(cmdArgs, "-c", "-r", "3")
-		cmdArgs = append(cmdArgs, "--netns-type=path", nsReference.Path(), "tap0")
-
-		cmd := exec.Command(path, cmdArgs...)
-		logrus.Debugf("slirp4netns command: %s", strings.Join(cmd.Args, " "))
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			Setpgid: true,
-		}
-
-		// workaround for https://github.com/rootless-containers/slirp4netns/pull/153
-		if !netOptions.noPivotRoot && slirpFeatures.HasEnableSandbox {
-			cmd.SysProcAttr.Cloneflags = syscall.CLONE_NEWNS
-			cmd.SysProcAttr.Unshareflags = syscall.CLONE_NEWNS
-		}
-
-		// Leak one end of the pipe in slirp4netns
-		cmd.ExtraFiles = append(cmd.ExtraFiles, syncW)
-
-		logPath := filepath.Join(r.config.Engine.TmpDir, "slirp4netns-rootless-netns.log")
-		logFile, err := os.Create(logPath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to open slirp4netns log file %s: %w", logPath, err)
-		}
-		defer logFile.Close()
-		// Unlink immediately the file so we won't need to worry about cleaning it up later.
-		// It is still accessible through the open fd logFile.
-		if err := os.Remove(logPath); err != nil {
-			return nil, fmt.Errorf("delete file %s: %w", logPath, err)
-		}
-		cmd.Stdout = logFile
-		cmd.Stderr = logFile
-		if err := cmd.Start(); err != nil {
-			return nil, fmt.Errorf("failed to start slirp4netns process: %w", err)
+			return nil, fmt.Errorf("failed to start rootless-netns slirp4netns: %w", err)
 		}
 		// create pid file for the slirp4netns process
 		// this is need to kill the process in the cleanup
-		pid := strconv.Itoa(cmd.Process.Pid)
+		pid := strconv.Itoa(res.Pid)
 		err = os.WriteFile(filepath.Join(rootlessNetNsDir, rootlessNetNsSilrp4netnsPidFile), []byte(pid), 0700)
 		if err != nil {
 			return nil, fmt.Errorf("unable to write rootless-netns slirp4netns pid file: %w", err)
 		}
 
-		defer func() {
-			if err := cmd.Process.Release(); err != nil {
-				logrus.Errorf("Unable to release command process: %q", err)
-			}
-		}()
-
-		if err := waitForSync(syncR, cmd, logFile, 1*time.Second); err != nil {
-			return nil, err
-		}
-
 		if utils.RunsOnSystemd() {
 			// move to systemd scope to prevent systemd from killing it
-			err = utils.MoveRootlessNetnsSlirpProcessToUserSlice(cmd.Process.Pid)
+			err = utils.MoveRootlessNetnsSlirpProcessToUserSlice(res.Pid)
 			if err != nil {
 				// only log this, it is not fatal but can lead to issues when running podman inside systemd units
 				logrus.Errorf("failed to move the rootless netns slirp4netns process to the systemd user.slice: %v", err)
@@ -480,20 +406,9 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 		}
 
 		// build a new resolv.conf file which uses the slirp4netns dns server address
-		resolveIP, err := GetSlirp4netnsDNS(nil)
+		resolveIP, err := slirp4netns.GetDNS(res.Subnet)
 		if err != nil {
 			return nil, fmt.Errorf("failed to determine default slirp4netns DNS address: %w", err)
-		}
-
-		if netOptions.cidr != "" {
-			_, cidr, err := net.ParseCIDR(netOptions.cidr)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse slirp4netns cidr: %w", err)
-			}
-			resolveIP, err = GetSlirp4netnsDNS(cidr)
-			if err != nil {
-				return nil, fmt.Errorf("failed to determine slirp4netns DNS address from cidr: %s: %w", cidr.String(), err)
-			}
 		}
 
 		if err := resolvconf.New(&resolvconf.Params{
@@ -502,7 +417,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 			Namespaces: []specs.LinuxNamespace{
 				{Type: specs.NetworkNamespace},
 			},
-			IPv6Enabled:     netOptions.enableIPv6,
+			IPv6Enabled:     res.IPv6,
 			KeepHostServers: true,
 			Nameservers:     []string{resolveIP.String()},
 		}); err != nil {
@@ -841,13 +756,4 @@ func (c *Container) inspectJoinedNetworkNS(networkns string) (q types.StatusBloc
 		return nil
 	})
 	return result, err
-}
-
-type logrusDebugWriter struct {
-	prefix string
-}
-
-func (w *logrusDebugWriter) Write(p []byte) (int, error) {
-	logrus.Debugf("%s%s", w.prefix, string(p))
-	return len(p), nil
 }
