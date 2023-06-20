@@ -3665,7 +3665,7 @@ o: {{ .Options.o }}`})
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		if IsRemote() {
-			Expect(kube).To(ExitWithError())
+			Expect(kube).Should(Exit(125))
 			Expect(kube.ErrorToString()).To(ContainSubstring("importing volumes is not supported for remote requests"))
 			return
 		}
