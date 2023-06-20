@@ -340,6 +340,7 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination strin
 	pushOptions.SignSigstorePrivateKeyPassphrase = opts.SignSigstorePrivateKeyPassphrase
 	pushOptions.InsecureSkipTLSVerify = opts.SkipTLSVerify
 	pushOptions.Writer = opts.Writer
+	pushOptions.CompressionLevel = opts.CompressionLevel
 
 	compressionFormat := opts.CompressionFormat
 	if compressionFormat == "" {
@@ -355,6 +356,13 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination strin
 			return "", err
 		}
 		pushOptions.CompressionFormat = &algo
+	}
+	if pushOptions.CompressionLevel == nil {
+		config, err := ir.Libpod.GetConfigNoCopy()
+		if err != nil {
+			return "", err
+		}
+		pushOptions.CompressionLevel = config.Engine.CompressionLevel
 	}
 
 	if opts.All {

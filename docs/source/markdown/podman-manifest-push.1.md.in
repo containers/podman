@@ -25,6 +25,8 @@ the list or index itself. (Default true)
 
 @@option compression-format
 
+@@option compression-level
+
 @@option creds
 
 @@option digestfile

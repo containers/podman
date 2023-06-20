@@ -319,14 +319,33 @@ var _ = Describe("Podman manifest", func() {
 			))
 	})
 
-	It("push with compression-format", func() {
+	It("push with compression-format and compression-level", func() {
 		SkipIfRemote("manifest push to dir not supported in remote mode")
-		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
+		session := podmanTest.Podman([]string{"pull", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		session = podmanTest.Podman([]string{"manifest", "add", "--all", "foo", imageList})
+
+		dockerfile := `FROM quay.io/libpod/alpine:latest
+RUN touch /file
+`
+		podmanTest.BuildImage(dockerfile, "localhost/test", "false")
+
+		session = podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"manifest", "add", "foo", "containers-storage:localhost/test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// Invalid compression format specified, it must fail
+		tmpDir := filepath.Join(podmanTest.TempDir, "wrong-compression")
+		session = podmanTest.Podman([]string{"manifest", "push", "--compression-format", "gzip", "--compression-level", "50", "foo", "oci:" + tmpDir})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		output := session.ErrorToString()
+		Expect(output).To(ContainSubstring("invalid compression level"))
+
 		dest := filepath.Join(podmanTest.TempDir, "pushed")
 		err := os.MkdirAll(dest, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
@@ -434,7 +453,7 @@ var _ = Describe("Podman manifest", func() {
 		Expect(output).To(ContainSubstring("Writing manifest to image destination"))
 		Expect(output).To(ContainSubstring("Storing signatures"))
 
-		push = podmanTest.Podman([]string{"manifest", "push", "--tls-verify=false", "--creds=podmantest:wrongpasswd", "foo", "localhost:" + registry.Port + "/credstest"})
+		push = podmanTest.Podman([]string{"manifest", "push", "--compression-format=gzip", "--compression-level=2", "--tls-verify=false", "--creds=podmantest:wrongpasswd", "foo", "localhost:" + registry.Port + "/credstest"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).To(ExitWithError())
 		Expect(push.ErrorToString()).To(ContainSubstring(": authentication required"))

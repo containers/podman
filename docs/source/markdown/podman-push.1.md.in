@@ -54,6 +54,8 @@ Note: This flag can only be set when using the **dir** transport
 
 @@option compression-format
 
+@@option compression-level
+
 @@option creds
 
 @@option digestfile

@@ -78,6 +78,21 @@ func (o *PushOptions) GetCompressionFormat() string {
 	return *o.CompressionFormat
 }
 
+// WithCompressionLevel set field CompressionLevel to given value
+func (o *PushOptions) WithCompressionLevel(value int) *PushOptions {
+	o.CompressionLevel = &value
+	return o
+}
+
+// GetCompressionLevel returns value of field CompressionLevel
+func (o *PushOptions) GetCompressionLevel() int {
+	if o.CompressionLevel == nil {
+		var z int
+		return z
+	}
+	return *o.CompressionLevel
+}
+
 // WithFormat set field Format to given value
 func (o *PushOptions) WithFormat(value string) *PushOptions {
 	o.Format = &value
