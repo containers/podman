@@ -1058,9 +1058,9 @@ ENTRYPOINT ["sleep","99999"]
 		data := inspectPod.InspectPodToJSON()
 
 		inspect := podmanTest.InspectContainer(ctrCreate.OutputToString())
-		Expect(data.CgroupPath).To(HaveLen(0))
+		Expect(data.CgroupPath).To(BeEmpty())
 		if podmanTest.CgroupManager == "cgroupfs" || !isRootless() {
-			Expect(inspect[0].HostConfig.CgroupParent).To(HaveLen(0))
+			Expect(inspect[0].HostConfig.CgroupParent).To(BeEmpty())
 		} else if podmanTest.CgroupManager == "systemd" {
 			Expect(inspect[0].HostConfig).To(HaveField("CgroupParent", "user.slice"))
 		}

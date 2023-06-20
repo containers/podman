@@ -106,7 +106,7 @@ func add(cmd *cobra.Command, args []string) error {
 		Default:  cOpts.Default,
 	}
 	dest := args[1]
-	if match, err := regexp.Match("^[A-Za-z][A-Za-z0-9+.-]*://", []byte(dest)); err != nil {
+	if match, err := regexp.MatchString("^[A-Za-z][A-Za-z0-9+.-]*://", dest); err != nil {
 		return fmt.Errorf("invalid destination: %w", err)
 	} else if !match {
 		dest = "ssh://" + dest
@@ -203,7 +203,7 @@ func create(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if match, err := regexp.Match("^[A-Za-z][A-Za-z0-9+.-]*://", []byte(dest)); err != nil {
+	if match, err := regexp.MatchString("^[A-Za-z][A-Za-z0-9+.-]*://", dest); err != nil {
 		return fmt.Errorf("invalid destination: %w", err)
 	} else if !match {
 		dest = "ssh://" + dest

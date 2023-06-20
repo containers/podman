@@ -261,7 +261,7 @@ var _ = Describe("Podman prune", func() {
 		session = podmanTest.Podman([]string{"network", "ls", "-q", "--filter", "name=^test$"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToStringArray()).To(HaveLen(0))
+		Expect(session.OutputToStringArray()).To(BeEmpty())
 
 		// Create new network.
 		session = podmanTest.Podman([]string{"network", "create", "test1", "--label", "foo"})

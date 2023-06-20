@@ -64,7 +64,7 @@ func logToKmsg(s string) bool {
 		kmsgFile = f
 	}
 
-	if _, err := kmsgFile.Write([]byte(s)); err != nil {
+	if _, err := kmsgFile.WriteString(s); err != nil {
 		kmsgFile.Close()
 		kmsgFile = nil
 		return false

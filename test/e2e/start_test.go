@@ -145,7 +145,7 @@ var _ = Describe("Podman start", func() {
 		wait.WaitWithDefaultTimeout()
 		Expect(wait).To(ExitWithError())
 
-		Eventually(podmanTest.NumberOfContainers(), defaultWaitTimeout, 3.0).Should(BeZero())
+		Eventually(podmanTest.NumberOfContainers, defaultWaitTimeout, 3.0).Should(BeZero())
 	})
 
 	It("podman failed to start without --rm should NOT delete the container", func() {
@@ -157,7 +157,7 @@ var _ = Describe("Podman start", func() {
 		start.WaitWithDefaultTimeout()
 		Expect(start).To(ExitWithError())
 
-		Eventually(podmanTest.NumberOfContainers(), defaultWaitTimeout, 3.0).Should(Equal(1))
+		Eventually(podmanTest.NumberOfContainers, defaultWaitTimeout, 3.0).Should(Equal(1))
 	})
 
 	It("podman start --sig-proxy should not work without --attach", func() {
@@ -216,12 +216,12 @@ var _ = Describe("Podman start", func() {
 		session1 = podmanTest.Podman([]string{"start", cid1, "-f", "status=running"})
 		session1.WaitWithDefaultTimeout()
 		Expect(session1).Should(Exit(0))
-		Expect(session1.OutputToString()).To(HaveLen(0))
+		Expect(session1.OutputToString()).To(BeEmpty())
 
 		session1 = podmanTest.Podman([]string{"start", "--all", "--filter", fmt.Sprintf("id=%swrongid", shortCid3)})
 		session1.WaitWithDefaultTimeout()
 		Expect(session1).Should(Exit(0))
-		Expect(session1.OutputToString()).To(HaveLen(0))
+		Expect(session1.OutputToString()).To(BeEmpty())
 
 		session1 = podmanTest.Podman([]string{"start", "--all", "--filter", fmt.Sprintf("id=%s", shortCid3)})
 		session1.WaitWithDefaultTimeout()

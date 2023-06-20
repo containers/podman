@@ -571,7 +571,7 @@ var _ = Describe("Podman inspect", func() {
 		session = podmanTest.Podman([]string{"container", "inspect", cid, "-f", "{{ .State.Error }}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(HaveLen(0))
+		Expect(session.OutputToString()).To(BeEmpty())
 
 		session = podmanTest.Podman([]string{"start", cid})
 		session.WaitWithDefaultTimeout()
@@ -579,7 +579,7 @@ var _ = Describe("Podman inspect", func() {
 		session = podmanTest.Podman([]string{"container", "inspect", cid, "-f", "'{{ .State.Error }}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(Not(HaveLen(0)))
+		Expect(session.OutputToString()).ToNot(BeEmpty())
 	})
 
 })

@@ -569,7 +569,7 @@ var _ = Describe("Podman network", func() {
 			Expect(result).To(HaveField("Driver", "macvlan"))
 			Expect(result).To(HaveField("NetworkInterface", "lo"))
 			Expect(result.IPAMOptions).To(HaveKeyWithValue("driver", "dhcp"))
-			Expect(result.Subnets).To(HaveLen(0))
+			Expect(result.Subnets).To(BeEmpty())
 
 			nc = podmanTest.Podman([]string{"network", "rm", net})
 			nc.WaitWithDefaultTimeout()
@@ -599,7 +599,7 @@ var _ = Describe("Podman network", func() {
 		Expect(result).To(HaveField("Driver", "ipvlan"))
 		Expect(result).To(HaveField("NetworkInterface", "lo"))
 		Expect(result.IPAMOptions).To(HaveKeyWithValue("driver", "dhcp"))
-		Expect(result.Subnets).To(HaveLen(0))
+		Expect(result.Subnets).To(BeEmpty())
 
 		nc = podmanTest.Podman([]string{"network", "rm", net})
 		nc.WaitWithDefaultTimeout()

@@ -1739,7 +1739,7 @@ func createSourceTarFile(fileName, fileContent, tarFilePath string) error {
 		return err
 	}
 
-	_, err = file.Write([]byte(fileContent))
+	_, err = file.WriteString(fileContent)
 	if err != nil {
 		return err
 	}
@@ -3665,7 +3665,7 @@ o: {{ .Options.o }}`})
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		if IsRemote() {
-			Expect(kube).Error()
+			Expect(kube).Should(Exit(125))
 			Expect(kube.ErrorToString()).To(ContainSubstring("importing volumes is not supported for remote requests"))
 			return
 		}
@@ -4947,7 +4947,7 @@ spec:
 		ps := podmanTest.Podman([]string{"pod", "ps", "-q"})
 		ps.WaitWithDefaultTimeout()
 		Expect(ps).Should(Exit(0))
-		Expect(ps.OutputToStringArray()).To(HaveLen(0))
+		Expect(ps.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman play kube with named volume subpaths", func() {
@@ -4996,7 +4996,7 @@ spec:
 		file, err := os.Create(filepath.Join(hostPathLocation, "testing", "onlythis", "123.txt"))
 		Expect(err).ToNot(HaveOccurred())
 
-		_, err = file.Write([]byte("hi"))
+		_, err = file.WriteString("hi")
 		Expect(err).ToNot(HaveOccurred())
 
 		err = file.Close()
