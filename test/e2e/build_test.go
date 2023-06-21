@@ -864,6 +864,10 @@ RUN ls /dev/test1`, CITEST_IMAGE)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
+		// 2023-06-21 ESM FIXME
+		ls := SystemExec("bash", []string{"-c", fmt.Sprintf("find %s/events -type f | while read f;do echo;ls -l $f;cat $f;done", tempdir)})
+		ls.WaitWithDefaultTimeout()
+
 		session = podmanTest.Podman([]string{"system", "reset", "-f"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
