@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	hostContainersInternal = "host.containers.internal"
+	HostContainersInternal = "host.containers.internal"
 	localhost              = "localhost"
 )
 
@@ -50,7 +50,7 @@ type Params struct {
 // containerIps. The container ip entry is only added when the name was not already
 // added before.
 func New(params *Params) error {
-	if err := new(params); err != nil {
+	if err := newHost(params); err != nil {
 		return fmt.Errorf("failed to create new hosts file: %w", err)
 	}
 	return nil
@@ -97,7 +97,7 @@ func Remove(file string, entries HostEntries) error {
 }
 
 // new see comment on New()
-func new(params *Params) error {
+func newHost(params *Params) error {
 	entries, err := parseExtraHosts(params.ExtraHosts)
 	if err != nil {
 		return err
@@ -118,15 +118,12 @@ func new(params *Params) error {
 	l2 := HostEntry{IP: "::1", Names: lh}
 	containerIPs = append(containerIPs, l1, l2)
 	if params.HostContainersInternalIP != "" {
-		e := HostEntry{IP: params.HostContainersInternalIP, Names: []string{hostContainersInternal}}
+		e := HostEntry{IP: params.HostContainersInternalIP, Names: []string{HostContainersInternal}}
 		containerIPs = append(containerIPs, e)
 	}
 	containerIPs = append(containerIPs, params.ContainerIPs...)
 
-	if err := writeHostFile(params.TargetFile, entries, containerIPs); err != nil {
-		return err
-	}
-	return nil
+	return writeHostFile(params.TargetFile, entries, containerIPs)
 }
 
 // add see comment on Add()

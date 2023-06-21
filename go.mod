@@ -13,7 +13,7 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
 	github.com/containers/buildah v1.30.1-0.20230504052500-e925b5852e07
-	github.com/containers/common v0.53.1-0.20230615101243-20def0054c6e
+	github.com/containers/common v0.53.1-0.20230620132900-ac2475afa81d
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.25.1-0.20230613183705-07ced6137083
 	github.com/containers/libhvee v0.0.5
@@ -43,7 +43,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/moby/term v0.5.0
 	github.com/nxadm/tail v1.4.8
-	github.com/onsi/ginkgo/v2 v2.10.0
+	github.com/onsi/ginkgo/v2 v2.11.0
 	github.com/onsi/gomega v1.27.8
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc3
