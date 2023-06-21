@@ -510,6 +510,9 @@ type EngineConfig struct {
 
 	// CompressionFormat is the compression format used to compress image layers.
 	CompressionFormat string `toml:"compression_format,omitempty"`
+
+	// CompressionLevel is the compression level used to compress image layers.
+	CompressionLevel *int `toml:"compression_level,omitempty"`
 }
 
 // SetOptions contains a subset of options in a Config. It's used to indicate if

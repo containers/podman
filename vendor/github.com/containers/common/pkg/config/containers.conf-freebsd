@@ -311,6 +311,13 @@ default_sysctls = [
 #
 #compression_format = "gzip"
 
+# The compression level to use when pushing an image.
+# Valid options depend on the compression format used.
+# For gzip, valid options are 1-9, with a default of 5.
+# For zstd, valid options are 1-20, with a default of 3.
+#
+#compression_level = 5
+
 # Environment variables to pass into conmon
 #
 #conmon_env_vars = [
