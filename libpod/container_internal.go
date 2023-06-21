@@ -18,7 +18,6 @@ import (
 	"github.com/containers/buildah/pkg/overlay"
 	butil "github.com/containers/buildah/util"
 	"github.com/containers/common/libnetwork/etchosts"
-	"github.com/containers/common/libnetwork/resolvconf"
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/chown"
 	"github.com/containers/common/pkg/config"
@@ -961,51 +960,34 @@ func (c *Container) checkDependenciesRunning() ([]string, error) {
 }
 
 func (c *Container) completeNetworkSetup() error {
-	var nameservers []string
 	netDisabled, err := c.NetworkDisabled()
 	if err != nil {
 		return err
 	}
-	if !c.config.PostConfigureNetNS || netDisabled {
+	if netDisabled {
+		// with net=none we still want to set up /etc/hosts
+		return c.addHosts()
+	}
+	if c.config.NetNsCtr != "" {
 		return nil
 	}
-	if err := c.syncContainer(); err != nil {
-		return err
-	}
-	if err := c.runtime.setupNetNS(c); err != nil {
-		return err
-	}
-	if err := c.save(); err != nil {
-		return err
-	}
-	state := c.state
-	// collect any dns servers that the network backend tells us to use
-	for _, status := range c.getNetworkStatus() {
-		for _, server := range status.DNSServerIPs {
-			nameservers = append(nameservers, server.String())
-		}
-	}
-	nameservers = c.addSlirp4netnsDNS(nameservers)
-
-	// check if we have a bindmount for /etc/hosts
-	if hostsBindMount, ok := state.BindMounts[config.DefaultHostsFile]; ok {
-		entries, err := c.getHostsEntries()
-		if err != nil {
+	if c.config.PostConfigureNetNS {
+		if err := c.syncContainer(); err != nil {
 			return err
 		}
-		// add new container ips to the hosts file
-		if err := etchosts.Add(hostsBindMount, entries); err != nil {
+		if err := c.runtime.setupNetNS(c); err != nil {
+			return err
+		}
+		if err := c.save(); err != nil {
 			return err
 		}
 	}
-
-	// check if we have a bindmount for resolv.conf
-	resolvBindMount := state.BindMounts[resolvconf.DefaultResolvConf]
-	if len(nameservers) < 1 || resolvBindMount == "" || len(c.config.NetNsCtr) > 0 {
-		return nil
+	// add /etc/hosts entries
+	if err := c.addHosts(); err != nil {
+		return err
 	}
-	// write and return
-	return resolvconf.Add(resolvBindMount, nameservers)
+
+	return c.addResolvConf()
 }
 
 // Initialize a container, creating it in the runtime
