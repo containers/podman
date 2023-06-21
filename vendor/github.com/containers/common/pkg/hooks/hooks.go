@@ -48,7 +48,7 @@ type namedHook struct {
 // those specified in the OCI Runtime Specification and to control
 // OCI-defined stages instead of delegating to the OCI runtime.  See
 // Hooks() for more information.
-func New(ctx context.Context, directories []string, extensionStages []string) (manager *Manager, err error) {
+func New(_ context.Context, directories []string, extensionStages []string) (manager *Manager, err error) {
 	manager = &Manager{
 		hooks:           map[string]*current.Hook{},
 		directories:     directories,

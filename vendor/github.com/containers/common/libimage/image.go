@@ -424,14 +424,12 @@ func (i *Image) removeRecursive(ctx context.Context, rmMap map[string]*RemoveIma
 	numNames := len(i.Names())
 
 	// NOTE: the `numNames == 1` check is not only a performance
-	// optimization but also preserves exiting Podman/Docker behaviour.
+	// optimization but also preserves existing Podman/Docker behaviour.
 	// If image "foo" is used by a container and has only this tag/name,
 	// an `rmi foo` will not untag "foo" but instead attempt to remove the
 	// entire image.  If there's a container using "foo", we should get an
 	// error.
-	if referencedBy == "" || numNames == 1 {
-		// DO NOTHING, the image will be removed
-	} else {
+	if !(referencedBy == "" || numNames == 1) {
 		byID := strings.HasPrefix(i.ID(), referencedBy)
 		byDigest := strings.HasPrefix(referencedBy, "sha256:")
 		if !options.Force {
@@ -737,7 +735,7 @@ func (i *Image) RepoDigests() ([]string, error) {
 // Mount the image with the specified mount options and label, both of which
 // are directly passed down to the containers storage.  Returns the fully
 // evaluated path to the mount point.
-func (i *Image) Mount(ctx context.Context, mountOptions []string, mountLabel string) (string, error) {
+func (i *Image) Mount(_ context.Context, mountOptions []string, mountLabel string) (string, error) {
 	if i.runtime.eventChannel != nil {
 		defer i.runtime.writeEvent(&Event{ID: i.ID(), Name: "", Time: time.Now(), Type: EventTypeImageMount})
 	}

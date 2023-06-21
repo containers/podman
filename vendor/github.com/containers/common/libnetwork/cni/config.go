@@ -15,7 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (n *cniNetwork) NetworkUpdate(name string, options types.NetworkUpdateOptions) error {
+func (n *cniNetwork) NetworkUpdate(_ string, _ types.NetworkUpdateOptions) error {
 	return fmt.Errorf("NetworkUpdate is not supported for backend CNI: %w", types.ErrInvalidArg)
 }
 

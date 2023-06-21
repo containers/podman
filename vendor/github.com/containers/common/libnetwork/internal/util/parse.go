@@ -34,3 +34,21 @@ func ParseVlan(vlan string) (int, error) {
 	}
 	return v, nil
 }
+
+// ParseIsolate parses the isolate option
+func ParseIsolate(isolate string) (string, error) {
+	switch isolate {
+	case "":
+		return "false", nil
+	case "strict":
+		return isolate, nil
+	default:
+		// isolate option accepts "strict" and Rust boolean values "true" or "false"
+		optIsolateBool, err := strconv.ParseBool(isolate)
+		if err != nil {
+			return "", fmt.Errorf("failed to parse isolate option: %w", err)
+		}
+		// Rust boolean only support "true" or "false" while go can parse 1 and 0 as well so we need to change it
+		return strconv.FormatBool(optIsolateBool), nil
+	}
+}

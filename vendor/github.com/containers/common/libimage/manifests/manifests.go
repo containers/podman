@@ -423,7 +423,7 @@ func (l *list) Remove(instanceDigest digest.Digest) error {
 // then use that list's SaveToImage() method to save a modified version of the
 // list to that image record use this lock to avoid accidentally wiping out
 // changes that another process is also attempting to make.
-func LockerForImage(store storage.Store, image string) (lockfile.Locker, error) {
+func LockerForImage(store storage.Store, image string) (lockfile.Locker, error) { // nolint:staticcheck
 	img, err := store.Image(image)
 	if err != nil {
 		return nil, fmt.Errorf("locating image %q for locating lock: %w", image, err)

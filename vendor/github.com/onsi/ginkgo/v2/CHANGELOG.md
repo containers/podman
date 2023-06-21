@@ -1,3 +1,21 @@
+## 2.11.0
+
+In prior versions of Ginkgo specs the CLI filter flags (e.g. `--focus`, `--label-filter`) would _override_ any programmatic focus.  This behavior has proved surprising and confusing in at least the following ways:
+
+- users cannot combine programmatic filters and CLI filters to more efficiently select subsets of tests
+- CLI filters can override programmatic focus on CI systems resulting in an exit code of 0 despite the presence of (incorrectly!) committed focused specs.
+
+Going forward Ginkgo will AND all programmatic and CLI filters.  Moreover, the presence of any programmatic focused tests will always result in a non-zero exit code.
+
+This change is technically a change in Ginkgo's external contract and may require some users to make changes to successfully adopt. Specifically: it's possible some users were intentionally using CLI filters to override programmatic focus.  If this is you please open an issue so we can explore solutions to the underlying problem you are trying to solve.
+
+### Fixes
+- Programmatic focus is no longer overwrriten by CLI filters [d6bba86]
+
+### Maintenance
+- Bump github.com/onsi/gomega from 1.27.7 to 1.27.8 (#1218) [4a70a38]
+- Bump golang.org/x/sys from 0.8.0 to 0.9.0 (#1219) [97eda4d]
+
 ## 2.10.0
 
 ### Features

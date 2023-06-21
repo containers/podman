@@ -176,9 +176,8 @@ func (s *SecretsManager) Store(name string, data []byte, driverType string, opti
 			if errors.Is(err, ErrNoSuchSecret) {
 				secr.ID = newID
 				break
-			} else {
-				return "", err
 			}
+			return "", err
 		}
 	}
 
