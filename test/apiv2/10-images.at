@@ -72,6 +72,7 @@ t POST "images/create?fromSrc=-&repo=myimage&tag=mytag" - 200
 t GET "images/myimage:mytag/json" 200 \
   .Id~'^sha256:[0-9a-f]\{64\}$' \
   .RepoTags[0]="docker.io/library/myimage:mytag"
+t POST /images/create?fromImage=busybox:invalidtag123 404
 
 # Display the image history
 t GET libpod/images/nonesuch/history 404
