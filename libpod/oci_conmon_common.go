@@ -429,7 +429,7 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 			if line == "" {
 				continue
 			}
-			if strings.Contains(line, "container not running") || strings.Contains(line, "open pidfd: No such process") {
+			if strings.Contains(line, "container not running") || strings.Contains(line, "open pidfd: No such process") || strings.Contains(line, "kill container: No such process") {
 				logrus.Debugf("Failure to kill container (already stopped?): logged %s", line)
 				continue
 			}
