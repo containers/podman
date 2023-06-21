@@ -72,14 +72,16 @@ var _ = Describe("Podman run device", func() {
 
 	It("podman run device host device and container device parameter are directories", func() {
 		SkipIfRootless("Cannot create devices in /dev in rootless mode")
-		Expect(os.MkdirAll("/dev/foodevdir", os.ModePerm)).To(Succeed())
-		defer os.RemoveAll("/dev/foodevdir")
+		// path must be unique to this test, not used anywhere else
+		devdir := "/dev/devdirrundevice"
+		Expect(os.MkdirAll(devdir, os.ModePerm)).To(Succeed())
+		defer os.RemoveAll(devdir)
 
-		mknod := SystemExec("mknod", []string{"/dev/foodevdir/null", "c", "1", "3"})
+		mknod := SystemExec("mknod", []string{devdir + "/null", "c", "1", "3"})
 		mknod.WaitWithDefaultTimeout()
 		Expect(mknod).Should(Exit(0))
 
-		session := podmanTest.Podman([]string{"run", "-q", "--device", "/dev/foodevdir:/dev/bar", ALPINE, "stat", "-c%t:%T", "/dev/bar/null"})
+		session := podmanTest.Podman([]string{"run", "-q", "--device", devdir + ":/dev/bar", ALPINE, "stat", "-c%t:%T", "/dev/bar/null"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal("1:3"))
