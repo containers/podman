@@ -118,7 +118,7 @@ var _ = Describe("Podman logs", func() {
 			skipIfJournaldInContainer()
 
 			// this uses -d so that we do not have 1000 unnecessary lines printed in every test log
-			logc := podmanTest.Podman([]string{"run", "--log-driver", log, "-dt", ALPINE, "sh", "-c", "i=1; while [ \"$i\" -ne 1000 ]; do echo \"line $i\"; i=$((i + 1)); done"})
+			logc := podmanTest.Podman([]string{"run", "--log-driver", log, "-d", ALPINE, "sh", "-c", "i=1; while [ \"$i\" -ne 1000 ]; do echo \"line $i\"; i=$((i + 1)); done"})
 			logc.WaitWithDefaultTimeout()
 			Expect(logc).To(Exit(0))
 			cid := logc.OutputToString()
@@ -320,7 +320,7 @@ var _ = Describe("Podman logs", func() {
 
 			containerName := "logs-f"
 
-			logc := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", containerName, "-d", ALPINE, "true"})
+			logc := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", containerName, ALPINE, "true"})
 			logc.WaitWithDefaultTimeout()
 			Expect(logc).To(Exit(0))
 
@@ -329,6 +329,7 @@ var _ = Describe("Podman logs", func() {
 			if log == "journald" && !isEventBackendJournald(podmanTest) {
 				// --follow + journald log-driver is only supported with journald events-backend(PR #10431)
 				Expect(results).To(Exit(125))
+				Expect(results.ErrorToString()).To(ContainSubstring("using --follow with the journald --log-driver but without the journald --events-backend"))
 				return
 			}
 			Expect(results).To(Exit(0))
@@ -337,7 +338,7 @@ var _ = Describe("Podman logs", func() {
 		It("using container with container log-size: "+log, func() {
 			skipIfJournaldInContainer()
 
-			logc := podmanTest.Podman([]string{"run", "--log-driver", log, "--log-opt=max-size=10k", "-d", ALPINE, "sh", "-c", "echo podman podman podman"})
+			logc := podmanTest.Podman([]string{"run", "--log-driver", log, "--log-opt=max-size=10k", "-d", ALPINE, "echo", "podman podman podman"})
 			logc.WaitWithDefaultTimeout()
 			Expect(logc).To(Exit(0))
 			cid := logc.OutputToString()
@@ -428,15 +429,15 @@ var _ = Describe("Podman logs", func() {
 			testPod.WaitWithDefaultTimeout()
 			Expect(testPod).To(Exit(0))
 
-			log1 := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", containerName1, "-d", "--pod", podName, BB, "/bin/sh", "-c", "echo log1"})
+			log1 := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", containerName1, "--pod", podName, BB, "echo", "log1"})
 			log1.WaitWithDefaultTimeout()
 			Expect(log1).To(Exit(0))
 
-			log2 := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", containerName2, "-d", "--pod", podName, BB, "/bin/sh", "-c", "echo log2"})
+			log2 := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", containerName2, "--pod", podName, BB, "echo", "log2"})
 			log2.WaitWithDefaultTimeout()
 			Expect(log2).To(Exit(0))
 
-			ctr := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", containerName3, "-d", BB, "date"})
+			ctr := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", containerName3, BB, "date"})
 			ctr.WaitWithDefaultTimeout()
 			Expect(ctr).To(Exit(0))
 
@@ -468,11 +469,11 @@ var _ = Describe("Podman logs", func() {
 			testPod.WaitWithDefaultTimeout()
 			Expect(testPod).To(Exit(0))
 
-			log1 := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", containerName1, "-d", "--pod", podName, BB, "/bin/sh", "-c", "echo log1"})
+			log1 := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", containerName1, "--pod", podName, BB, "echo", "log1"})
 			log1.WaitWithDefaultTimeout()
 			Expect(log1).To(Exit(0))
 
-			log2 := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", containerName2, "-d", "--pod", podName, BB, "/bin/sh", "-c", "echo log2"})
+			log2 := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", containerName2, "--pod", podName, BB, "echo", "log2"})
 			log2.WaitWithDefaultTimeout()
 			Expect(log2).To(Exit(0))
 
@@ -532,7 +533,8 @@ var _ = Describe("Podman logs", func() {
 
 		logs := podmanTest.Podman([]string{"logs", "-f", ctrName})
 		logs.WaitWithDefaultTimeout()
-		Expect(logs).To(Not(Exit(0)))
+		Expect(logs).To(Exit(125))
+		Expect(logs.ErrorToString()).To(ContainSubstring("this container is using the 'none' log driver, cannot read logs: this container is not logging output"))
 	})
 
 	It("podman pod logs with container names", func() {
@@ -545,11 +547,11 @@ var _ = Describe("Podman logs", func() {
 		testPod.WaitWithDefaultTimeout()
 		Expect(testPod).To(Exit(0))
 
-		log1 := podmanTest.Podman([]string{"run", "--name", containerName1, "--pod", podName, BB, "/bin/sh", "-c", "echo log1"})
+		log1 := podmanTest.Podman([]string{"run", "--name", containerName1, "--pod", podName, BB, "echo", "log1"})
 		log1.WaitWithDefaultTimeout()
 		Expect(log1).To(Exit(0))
 
-		log2 := podmanTest.Podman([]string{"run", "--name", containerName2, "--pod", podName, BB, "/bin/sh", "-c", "echo log2"})
+		log2 := podmanTest.Podman([]string{"run", "--name", containerName2, "--pod", podName, BB, "echo", "log2"})
 		log2.WaitWithDefaultTimeout()
 		Expect(log2).To(Exit(0))
 
@@ -570,10 +572,10 @@ var _ = Describe("Podman logs", func() {
 		testPod := podmanTest.Podman([]string{"pod", "create", fmt.Sprintf("--name=%s", podName)})
 		testPod.WaitWithDefaultTimeout()
 		Expect(testPod).To(Exit(0))
-		log1 := podmanTest.Podman([]string{"run", "--name", containerName1, "--pod", podName, BB, "/bin/sh", "-c", "echo log1"})
+		log1 := podmanTest.Podman([]string{"run", "--name", containerName1, "--pod", podName, BB, "echo", "log1"})
 		log1.WaitWithDefaultTimeout()
 		Expect(log1).To(Exit(0))
-		log2 := podmanTest.Podman([]string{"run", "--name", containerName2, "--pod", podName, BB, "/bin/sh", "-c", "echo log2"})
+		log2 := podmanTest.Podman([]string{"run", "--name", containerName2, "--pod", podName, BB, "echo", "log2"})
 		log2.WaitWithDefaultTimeout()
 		Expect(log2).To(Exit(0))
 		results := podmanTest.Podman([]string{"pod", "logs", "--color", podName})
