@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/containers/common/libnetwork/etchosts"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -55,11 +56,11 @@ func TestPropagateHostEnv(t *testing.T) {
 		},
 		"http_proxy": {
 			"127.0.0.1:8888",
-			"host.containers.internal:8888",
+			fmt.Sprintf("%s:8888", etchosts.HostContainersInternal),
 		},
 		"https_proxy": {
 			"localhost:8888",
-			"host.containers.internal:8888",
+			fmt.Sprintf("%s:8888", etchosts.HostContainersInternal),
 		},
 		"SSL_CERT_FILE": {
 			"/some/f=oo.cert",

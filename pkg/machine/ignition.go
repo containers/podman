@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/common/libnetwork/etchosts"
 	"github.com/containers/common/pkg/config"
 	"github.com/sirupsen/logrus"
 )
@@ -618,9 +619,8 @@ func GetProxyVariables() map[string]string {
 				continue
 			}
 
-			// TODO: use constants for host.containers.internal
-			v := strings.ReplaceAll(value, "127.0.0.1", "host.containers.internal")
-			v = strings.ReplaceAll(v, "localhost", "host.containers.internal")
+			v := strings.ReplaceAll(value, "127.0.0.1", etchosts.HostContainersInternal)
+			v = strings.ReplaceAll(v, "localhost", etchosts.HostContainersInternal)
 			proxyOpts[variable] = v
 		}
 	}
