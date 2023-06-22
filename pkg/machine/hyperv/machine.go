@@ -30,14 +30,6 @@ var (
 	vmtype = machine.HyperVVirt
 )
 
-func GetVirtualizationProvider() machine.VirtProvider {
-	return &Virtualization{
-		artifact:    machine.HyperV,
-		compression: machine.Zip,
-		format:      machine.Vhdx,
-	}
-}
-
 const (
 	// Some of this will need to change when we are closer to having
 	// working code.

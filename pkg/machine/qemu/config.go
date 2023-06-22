@@ -1,15 +1,312 @@
 package qemu
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/utils"
+	"github.com/docker/go-units"
+	"github.com/sirupsen/logrus"
 )
 
-type Virtualization struct {
-	artifact    machine.Artifact
-	compression machine.ImageCompression
-	format      machine.ImageFormat
+type QEMUVirtualization struct {
+	machine.Virtualization
+}
+
+// NewMachine initializes an instance of a virtual machine based on the qemu
+// virtualization.
+func (p *QEMUVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, error) {
+	vmConfigDir, err := machine.GetConfDir(vmtype)
+	if err != nil {
+		return nil, err
+	}
+	vm := new(MachineVM)
+	if len(opts.Name) > 0 {
+		vm.Name = opts.Name
+	}
+	ignitionFile, err := machine.NewMachineFile(filepath.Join(vmConfigDir, vm.Name+".ign"), nil)
+	if err != nil {
+		return nil, err
+	}
+	vm.IgnitionFile = *ignitionFile
+	imagePath, err := machine.NewMachineFile(opts.ImagePath, nil)
+	if err != nil {
+		return nil, err
+	}
+	vm.ImagePath = *imagePath
+	vm.RemoteUsername = opts.Username
+
+	// Add a random port for ssh
+	port, err := utils.GetRandomPort()
+	if err != nil {
+		return nil, err
+	}
+	vm.Port = port
+
+	vm.CPUs = opts.CPUS
+	vm.Memory = opts.Memory
+	vm.DiskSize = opts.DiskSize
+
+	vm.Created = time.Now()
+
+	// Find the qemu executable
+	cfg, err := config.Default()
+	if err != nil {
+		return nil, err
+	}
+	execPath, err := cfg.FindHelperBinary(QemuCommand, true)
+	if err != nil {
+		return nil, err
+	}
+	if err := vm.setPIDSocket(); err != nil {
+		return nil, err
+	}
+	cmd := []string{execPath}
+	// Add memory
+	cmd = append(cmd, []string{"-m", strconv.Itoa(int(vm.Memory))}...)
+	// Add cpus
+	cmd = append(cmd, []string{"-smp", strconv.Itoa(int(vm.CPUs))}...)
+	// Add ignition file
+	cmd = append(cmd, []string{"-fw_cfg", "name=opt/com.coreos/config,file=" + vm.IgnitionFile.GetPath()}...)
+	// Add qmp socket
+	monitor, err := NewQMPMonitor("unix", vm.Name, defaultQMPTimeout)
+	if err != nil {
+		return nil, err
+	}
+	vm.QMPMonitor = monitor
+	cmd = append(cmd, []string{"-qmp", monitor.Network + ":" + monitor.Address.GetPath() + ",server=on,wait=off"}...)
+
+	// Add network
+	// Right now the mac address is hardcoded so that the host networking gives it a specific IP address.  This is
+	// why we can only run one vm at a time right now
+	cmd = append(cmd, []string{"-netdev", "socket,id=vlan,fd=3", "-device", "virtio-net-pci,netdev=vlan,mac=5a:94:ef:e4:0c:ee"}...)
+	if err := vm.setReadySocket(); err != nil {
+		return nil, err
+	}
+
+	// Add serial port for readiness
+	cmd = append(cmd, []string{
+		"-device", "virtio-serial",
+		// qemu needs to establish the long name; other connections can use the symlink'd
+		// Note both id and chardev start with an extra "a" because qemu requires that it
+		// starts with a letter but users can also use numbers
+		"-chardev", "socket,path=" + vm.ReadySocket.Path + ",server=on,wait=off,id=a" + vm.Name + "_ready",
+		"-device", "virtserialport,chardev=a" + vm.Name + "_ready" + ",name=org.fedoraproject.port.0",
+		"-pidfile", vm.VMPidFilePath.GetPath()}...)
+	vm.CmdLine = cmd
+	return vm, nil
+}
+
+// LoadVMByName reads a json file that describes a known qemu vm
+// and returns a vm instance
+func (p *QEMUVirtualization) LoadVMByName(name string) (machine.VM, error) {
+	vm := &MachineVM{Name: name}
+	vm.HostUser = machine.HostUser{UID: -1} // posix reserves -1, so use it to signify undefined
+	if err := vm.update(); err != nil {
+		return nil, err
+	}
+
+	return vm, nil
+}
+
+// List lists all vm's that use qemu virtualization
+func (p *QEMUVirtualization) List(_ machine.ListOptions) ([]*machine.ListResponse, error) {
+	return getVMInfos()
+}
+
+func getVMInfos() ([]*machine.ListResponse, error) {
+	vmConfigDir, err := machine.GetConfDir(vmtype)
+	if err != nil {
+		return nil, err
+	}
+
+	var listed []*machine.ListResponse
+
+	if err = filepath.WalkDir(vmConfigDir, func(path string, d fs.DirEntry, err error) error {
+		vm := new(MachineVM)
+		if strings.HasSuffix(d.Name(), ".json") {
+			fullPath := filepath.Join(vmConfigDir, d.Name())
+			b, err := os.ReadFile(fullPath)
+			if err != nil {
+				return err
+			}
+			err = json.Unmarshal(b, vm)
+			if err != nil {
+				// Checking if the file did not unmarshal because it is using
+				// the deprecated config file format.
+				migrateErr := migrateVM(fullPath, b, vm)
+				if migrateErr != nil {
+					return migrateErr
+				}
+			}
+			listEntry := new(machine.ListResponse)
+
+			listEntry.Name = vm.Name
+			listEntry.Stream = vm.ImageStream
+			listEntry.VMType = "qemu"
+			listEntry.CPUs = vm.CPUs
+			listEntry.Memory = vm.Memory * units.MiB
+			listEntry.DiskSize = vm.DiskSize * units.GiB
+			listEntry.Port = vm.Port
+			listEntry.RemoteUsername = vm.RemoteUsername
+			listEntry.IdentityPath = vm.IdentityPath
+			listEntry.CreatedAt = vm.Created
+			listEntry.Starting = vm.Starting
+			listEntry.UserModeNetworking = true // always true
+
+			if listEntry.CreatedAt.IsZero() {
+				listEntry.CreatedAt = time.Now()
+				vm.Created = time.Now()
+				if err := vm.writeConfig(); err != nil {
+					return err
+				}
+			}
+
+			state, err := vm.State(false)
+			if err != nil {
+				return err
+			}
+			listEntry.Running = state == machine.Running
+
+			if !vm.LastUp.IsZero() { // this means we have already written a time to the config
+				listEntry.LastUp = vm.LastUp
+			} else { // else we just created the machine AKA last up = created time
+				listEntry.LastUp = vm.Created
+				vm.LastUp = listEntry.LastUp
+				if err := vm.writeConfig(); err != nil {
+					return err
+				}
+			}
+
+			listed = append(listed, listEntry)
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return listed, err
+}
+
+func (p *QEMUVirtualization) IsValidVMName(name string) (bool, error) {
+	infos, err := getVMInfos()
+	if err != nil {
+		return false, err
+	}
+	for _, vm := range infos {
+		if vm.Name == name {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// CheckExclusiveActiveVM checks if there is a VM already running
+// that does not allow other VMs to be running
+func (p *QEMUVirtualization) CheckExclusiveActiveVM() (bool, string, error) {
+	vms, err := getVMInfos()
+	if err != nil {
+		return false, "", fmt.Errorf("checking VM active: %w", err)
+	}
+	for _, vm := range vms {
+		if vm.Running || vm.Starting {
+			return true, vm.Name, nil
+		}
+	}
+	return false, "", nil
+}
+
+// RemoveAndCleanMachines removes all machine and cleans up any other files associated with podman machine
+func (p *QEMUVirtualization) RemoveAndCleanMachines() error {
+	var (
+		vm             machine.VM
+		listResponse   []*machine.ListResponse
+		opts           machine.ListOptions
+		destroyOptions machine.RemoveOptions
+	)
+	destroyOptions.Force = true
+	var prevErr error
+
+	listResponse, err := p.List(opts)
+	if err != nil {
+		return err
+	}
+
+	for _, mach := range listResponse {
+		vm, err = p.LoadVMByName(mach.Name)
+		if err != nil {
+			if prevErr != nil {
+				logrus.Error(prevErr)
+			}
+			prevErr = err
+		}
+		_, remove, err := vm.Remove(mach.Name, destroyOptions)
+		if err != nil {
+			if prevErr != nil {
+				logrus.Error(prevErr)
+			}
+			prevErr = err
+		} else {
+			if err := remove(); err != nil {
+				if prevErr != nil {
+					logrus.Error(prevErr)
+				}
+				prevErr = err
+			}
+		}
+	}
+
+	// Clean leftover files in data dir
+	dataDir, err := machine.DataDirPrefix()
+	if err != nil {
+		if prevErr != nil {
+			logrus.Error(prevErr)
+		}
+		prevErr = err
+	} else {
+		err := machine.GuardedRemoveAll(dataDir)
+		if err != nil {
+			if prevErr != nil {
+				logrus.Error(prevErr)
+			}
+			prevErr = err
+		}
+	}
+
+	// Clean leftover files in conf dir
+	confDir, err := machine.ConfDirPrefix()
+	if err != nil {
+		if prevErr != nil {
+			logrus.Error(prevErr)
+		}
+		prevErr = err
+	} else {
+		err := machine.GuardedRemoveAll(confDir)
+		if err != nil {
+			if prevErr != nil {
+				logrus.Error(prevErr)
+			}
+			prevErr = err
+		}
+	}
+	return prevErr
+}
+
+func (p *QEMUVirtualization) VMType() machine.VMType {
+	return vmtype
+}
+
+func VirtualizationProvider() machine.VirtProvider {
+	return &QEMUVirtualization{
+		machine.NewVirtualization(machine.Qemu, machine.Xz, machine.Qcow),
+	}
 }
 
 // Deprecated: MachineVMV1 is being deprecated in favor a more flexible and informative
@@ -47,51 +344,9 @@ type MachineVMV1 struct {
 	UID int
 }
 
-type MachineVM struct {
-	// ConfigPath is the path to the configuration file
-	ConfigPath machine.VMFile
-	// The command line representation of the qemu command
-	CmdLine []string
-	// HostUser contains info about host user
-	machine.HostUser
-	// ImageConfig describes the bootable image
-	machine.ImageConfig
-	// Mounts is the list of remote filesystems to mount
-	Mounts []machine.Mount
-	// Name of VM
-	Name string
-	// PidFilePath is the where the Proxy PID file lives
-	PidFilePath machine.VMFile
-	// VMPidFilePath is the where the VM PID file lives
-	VMPidFilePath machine.VMFile
-	// QMPMonitor is the qemu monitor object for sending commands
-	QMPMonitor Monitor
-	// ReadySocket tells host when vm is booted
-	ReadySocket machine.VMFile
-	// ResourceConfig is physical attrs of the VM
-	machine.ResourceConfig
-	// SSHConfig for accessing the remote vm
-	machine.SSHConfig
-	// Starting tells us whether the machine is running or if we have just dialed it to start it
-	Starting bool
-	// Created contains the original created time instead of querying the file mod time
-	Created time.Time
-	// LastUp contains the last recorded uptime
-	LastUp time.Time
-}
-
 type Monitorv1 struct {
 	//	Address portion of the qmp monitor (/tmp/tmp.sock)
 	Address string
-	// Network portion of the qmp monitor (unix)
-	Network string
-	// Timeout in seconds for qmp monitor transactions
-	Timeout time.Duration
-}
-
-type Monitor struct {
-	//	Address portion of the qmp monitor (/tmp/tmp.sock)
-	Address machine.VMFile
 	// Network portion of the qmp monitor (unix)
 	Network string
 	// Timeout in seconds for qmp monitor transactions

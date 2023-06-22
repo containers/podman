@@ -27,14 +27,6 @@ var (
 	vmtype = machine.AppleHvVirt
 )
 
-func GetVirtualizationProvider() machine.VirtProvider {
-	return &Virtualization{
-		artifact:    machine.None,
-		compression: machine.Xz,
-		format:      machine.Raw,
-	}
-}
-
 // VfkitHelper describes the use of vfkit: cmdline and endpoint
 type VfkitHelper struct {
 	Bootloader        string

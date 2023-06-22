@@ -17,10 +17,8 @@ const (
 	defaultVFKitEndpoint = "http://localhost:8081"
 )
 
-type Virtualization struct {
-	artifact    machine.Artifact
-	compression machine.ImageCompression
-	format      machine.ImageFormat
+type AppleHVVirtualization struct {
+	machine.Virtualization
 }
 
 type MMHardwareConfig struct {
@@ -30,11 +28,13 @@ type MMHardwareConfig struct {
 	Memory   int32
 }
 
-func (v Virtualization) Artifact() machine.Artifact {
-	return machine.Metal
+func VirtualizationProvider() machine.VirtProvider {
+	return &AppleHVVirtualization{
+		machine.NewVirtualization(machine.Metal, machine.Xz, machine.Raw),
+	}
 }
 
-func (v Virtualization) CheckExclusiveActiveVM() (bool, string, error) {
+func (v AppleHVVirtualization) CheckExclusiveActiveVM() (bool, string, error) {
 	fsVms, err := getVMInfos()
 	if err != nil {
 		return false, "", err
@@ -48,15 +48,7 @@ func (v Virtualization) CheckExclusiveActiveVM() (bool, string, error) {
 	return false, "", nil
 }
 
-func (v Virtualization) Compression() machine.ImageCompression {
-	return v.compression
-}
-
-func (v Virtualization) Format() machine.ImageFormat {
-	return v.format
-}
-
-func (v Virtualization) IsValidVMName(name string) (bool, error) {
+func (v AppleHVVirtualization) IsValidVMName(name string) (bool, error) {
 	mm := MacMachine{Name: name}
 	configDir, err := machine.GetConfDir(machine.AppleHvVirt)
 	if err != nil {
@@ -68,7 +60,7 @@ func (v Virtualization) IsValidVMName(name string) (bool, error) {
 	return true, nil
 }
 
-func (v Virtualization) List(opts machine.ListOptions) ([]*machine.ListResponse, error) {
+func (v AppleHVVirtualization) List(opts machine.ListOptions) ([]*machine.ListResponse, error) {
 	var (
 		response []*machine.ListResponse
 	)
@@ -108,12 +100,12 @@ func (v Virtualization) List(opts machine.ListOptions) ([]*machine.ListResponse,
 	return response, nil
 }
 
-func (v Virtualization) LoadVMByName(name string) (machine.VM, error) {
+func (v AppleHVVirtualization) LoadVMByName(name string) (machine.VM, error) {
 	m := MacMachine{Name: name}
 	return m.loadFromFile()
 }
 
-func (v Virtualization) NewMachine(opts machine.InitOptions) (machine.VM, error) {
+func (v AppleHVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	m := MacMachine{Name: opts.Name}
 
 	configDir, err := machine.GetConfDir(machine.AppleHvVirt)
@@ -149,16 +141,16 @@ func (v Virtualization) NewMachine(opts machine.InitOptions) (machine.VM, error)
 	return m.loadFromFile()
 }
 
-func (v Virtualization) RemoveAndCleanMachines() error {
+func (v AppleHVVirtualization) RemoveAndCleanMachines() error {
 	// This can be implemented when host networking is completed.
 	return machine.ErrNotImplemented
 }
 
-func (v Virtualization) VMType() machine.VMType {
+func (v AppleHVVirtualization) VMType() machine.VMType {
 	return vmtype
 }
 
-func (v Virtualization) loadFromLocalJson() ([]*MacMachine, error) {
+func (v AppleHVVirtualization) loadFromLocalJson() ([]*MacMachine, error) {
 	var (
 		jsonFiles []string
 		mms       []*MacMachine
