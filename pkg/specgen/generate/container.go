@@ -135,10 +135,16 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		if err != nil {
 			return nil, fmt.Errorf("unable to process variables for --env-merge %s: %w", e, err)
 		}
-		splitWord := strings.Split(processedWord, "=")
-		if _, ok := defaultEnvs[splitWord[0]]; ok {
-			defaultEnvs[splitWord[0]] = splitWord[1]
+
+		key, val, found := strings.Cut(processedWord, "=")
+		if !found {
+			return nil, fmt.Errorf("missing `=` for --env-merge substitution %s", e)
 		}
+
+		// the env var passed via --env-merge
+		// need not be defined in the image
+		// continue with an empty string
+		defaultEnvs[key] = val
 	}
 
 	for _, e := range s.UnsetEnv {
