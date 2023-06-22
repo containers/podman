@@ -11,8 +11,10 @@ podman\-wait - Wait on one or more containers to stop and print their exit codes
 ## DESCRIPTION
 Waits on one or more containers to stop.  The container can be referred to by its
 name or ID.  In the case of multiple containers, Podman waits on each consecutively.
-After all specified containers are stopped, the containers' return codes are printed
-separated by newline in the same order as they were given to the command.
+After all conditions are satisfied, the containers' return codes are printed
+separated by newline in the same order as they were given to the command.  An
+exit code of -1 is emitted for all conditions other than "stopped" and
+"exited".
 
 NOTE: there is an inherent race condition when waiting for containers with a
 restart policy of `always` or `on-failure`, such as those created by `podman
@@ -22,7 +24,7 @@ with different exit codes, but `podman wait` can only display and detect one.
 ## OPTIONS
 
 #### **--condition**=*state*
-Condition to wait on (default "stopped")
+Container state or condition to wait for.  Can be specified multiple times where at least one condition must match for the command to return.  Supported values are "created", "exited", "initialized", "paused", "removing", "running", "stopped",  "stopping".  The default condition is "stopped".
 
 #### **--help**, **-h**
 
