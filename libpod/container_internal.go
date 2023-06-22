@@ -153,7 +153,7 @@ func (c *Container) waitForExitFileAndSync() error {
 	chWait := make(chan error)
 	defer close(chWait)
 
-	_, err = WaitForFile(exitFile, chWait, time.Second*5)
+	_, err = cutil.WaitForFile(exitFile, chWait, time.Second*5)
 	if err != nil {
 		// Exit file did not appear
 		// Reset our state

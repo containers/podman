@@ -12,12 +12,12 @@ import (
 	"path/filepath"
 
 	"github.com/containers/common/pkg/cgroups"
+	"github.com/containers/common/pkg/servicereaper"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	api "github.com/containers/podman/v4/pkg/api/server"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra"
 	"github.com/containers/podman/v4/pkg/rootless"
-	"github.com/containers/podman/v4/pkg/servicereaper"
 	"github.com/containers/podman/v4/utils"
 	"github.com/coreos/go-systemd/v22/activation"
 	"github.com/sirupsen/logrus"

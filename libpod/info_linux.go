@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/containers/common/libnetwork/pasta"
+	libpod "github.com/containers/common/libnetwork/slirp4netns"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/seccomp"
@@ -58,7 +59,7 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 
 	slirp4netnsPath := r.config.Engine.NetworkCmdPath
 	if slirp4netnsPath == "" {
-		slirp4netnsPath, _ = r.config.FindHelperBinary(slirp4netnsBinaryName, true)
+		slirp4netnsPath, _ = r.config.FindHelperBinary(libpod.BinaryName, true)
 	}
 	if slirp4netnsPath != "" {
 		version, err := util.ProgramVersion(slirp4netnsPath)

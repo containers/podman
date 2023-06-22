@@ -125,7 +125,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.53.1-0.20230621115248-a2cd3ea30337
+# github.com/containers/common v0.53.1-0.20230621174116-586a3be4e1fc
 ## explicit; go 1.18
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -137,6 +137,7 @@ github.com/containers/common/libnetwork/netavark
 github.com/containers/common/libnetwork/network
 github.com/containers/common/libnetwork/pasta
 github.com/containers/common/libnetwork/resolvconf
+github.com/containers/common/libnetwork/slirp4netns
 github.com/containers/common/libnetwork/types
 github.com/containers/common/libnetwork/util
 github.com/containers/common/pkg/apparmor
@@ -163,11 +164,13 @@ github.com/containers/common/pkg/report
 github.com/containers/common/pkg/report/camelcase
 github.com/containers/common/pkg/resize
 github.com/containers/common/pkg/retry
+github.com/containers/common/pkg/rootlessport
 github.com/containers/common/pkg/seccomp
 github.com/containers/common/pkg/secrets
 github.com/containers/common/pkg/secrets/filedriver
 github.com/containers/common/pkg/secrets/passdriver
 github.com/containers/common/pkg/secrets/shelldriver
+github.com/containers/common/pkg/servicereaper
 github.com/containers/common/pkg/signal
 github.com/containers/common/pkg/ssh
 github.com/containers/common/pkg/subscriptions

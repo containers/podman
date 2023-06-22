@@ -13,7 +13,7 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
 	github.com/containers/buildah v1.30.1-0.20230504052500-e925b5852e07
-	github.com/containers/common v0.53.1-0.20230621115248-a2cd3ea30337
+	github.com/containers/common v0.53.1-0.20230621174116-586a3be4e1fc
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.25.1-0.20230613183705-07ced6137083
 	github.com/containers/libhvee v0.0.5
@@ -30,7 +30,6 @@ require (
 	github.com/docker/go-connections v0.4.1-0.20210727194412-58542c764a11
 	github.com/docker/go-plugins-helpers v0.0.0-20211224144127-6eecb7beb651
 	github.com/docker/go-units v0.5.0
-	github.com/fsnotify/fsnotify v1.6.0
 	github.com/godbus/dbus/v5 v5.1.1-0.20230522191255-76236955d466
 	github.com/google/gofuzz v1.2.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
@@ -93,6 +92,7 @@ require (
 	github.com/disiqueira/gotree/v3 v3.0.2 // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
+	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/fsouza/go-dockerclient v1.9.7 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.0 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect

@@ -56,7 +56,7 @@ func reaper(sigc chan os.Signal) {
 			if waitpid == 0 {
 				continue
 			}
-			if status.Exited() {
+			if status.Exited() || status.Signaled() {
 				delete(s.pidMap, pid)
 			}
 		}

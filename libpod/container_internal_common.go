@@ -2066,10 +2066,7 @@ func (c *Container) addResolvConf() error {
 		}
 	}
 
-	ipv6, err := c.checkForIPv6(netStatus)
-	if err != nil {
-		return err
-	}
+	ipv6 := c.checkForIPv6(netStatus)
 
 	networkBackend := c.runtime.config.Network.NetworkBackend
 	nameservers := make([]string, 0, len(c.runtime.config.Containers.DNSServers)+len(c.config.DNSServer))
@@ -2137,13 +2134,13 @@ func (c *Container) addResolvConf() error {
 }
 
 // Check if a container uses IPv6.
-func (c *Container) checkForIPv6(netStatus map[string]types.StatusBlock) (bool, error) {
+func (c *Container) checkForIPv6(netStatus map[string]types.StatusBlock) bool {
 	for _, status := range netStatus {
 		for _, netInt := range status.Interfaces {
 			for _, netAddress := range netInt.Subnets {
 				// Note: only using To16() does not work since it also returns a valid ip for ipv4
 				if netAddress.IPNet.IP.To4() == nil && netAddress.IPNet.IP.To16() != nil {
-					return true, nil
+					return true
 				}
 			}
 		}
@@ -2207,7 +2204,7 @@ func (c *Container) getHostsEntries() (etchosts.HostEntries, error) {
 	case c.config.NetMode.IsBridge():
 		entries = etchosts.GetNetworkHostEntries(c.state.NetworkStatus, names...)
 	case c.config.NetMode.IsSlirp4netns():
-		ip, err := GetSlirp4netnsIP(c.slirp4netnsSubnet)
+		ip, err := getSlirp4netnsIP(c.slirp4netnsSubnet)
 		if err != nil {
 			return nil, err
 		}

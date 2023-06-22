@@ -1,15 +1,7 @@
 //go:build linux
 // +build linux
 
-// Package rootlessport provides reexec for RootlessKit-based port forwarder.
-//
-// init() contains reexec.Register() for ReexecKey .
-//
-// The reexec requires Config to be provided via stdin.
-//
-// The reexec writes human-readable error message on stdout on error.
-//
-// Debug log is printed on stderr.
+// Rootlessport Config type for use in podman/cmd/rootlessport.
 package rootlessport
 
 import (

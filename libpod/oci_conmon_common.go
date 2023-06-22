@@ -1233,16 +1233,13 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 			if err != nil {
 				return 0, fmt.Errorf("failed to create rootless network sync pipe: %w", err)
 			}
-		} else {
-			if ctr.rootlessSlirpSyncR != nil {
-				defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncR)
-			}
-			if ctr.rootlessSlirpSyncW != nil {
-				defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncW)
-			}
 		}
-		// Leak one end in conmon, the other one will be leaked into slirp4netns
-		cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessSlirpSyncW)
+
+		if ctr.rootlessSlirpSyncW != nil {
+			defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncW)
+			// Leak one end in conmon, the other one will be leaked into slirp4netns
+			cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessSlirpSyncW)
+		}
 
 		if ctr.rootlessPortSyncW != nil {
 			defer errorhandling.CloseQuiet(ctr.rootlessPortSyncW)
