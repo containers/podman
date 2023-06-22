@@ -107,90 +107,6 @@ type Monitor struct {
 	Timeout time.Duration
 }
 
-// migrateVM takes the old configuration structure and migrates it
-// to the new structure and writes it to the filesystem
-func migrateVM(configPath string, config []byte, vm *MachineVM) error {
-	fmt.Printf("Migrating machine %q\n", vm.Name)
-	var old MachineVMV1
-	err := json.Unmarshal(config, &old)
-	if err != nil {
-		return err
-	}
-	// Looks like we loaded the older structure; now we need to migrate
-	// from the old structure to the new structure
-	_, pidFile, err := vm.getSocketandPid()
-	if err != nil {
-		return err
-	}
-
-	pidFilePath := define.VMFile{Path: pidFile}
-	qmpMonitor := Monitor{
-		Address: define.VMFile{Path: old.QMPMonitor.Address},
-		Network: old.QMPMonitor.Network,
-		Timeout: old.QMPMonitor.Timeout,
-	}
-	socketPath, err := getRuntimeDir()
-	if err != nil {
-		return err
-	}
-	virtualSocketPath := filepath.Join(socketPath, "podman", vm.Name+"_ready.sock")
-	readySocket := define.VMFile{Path: virtualSocketPath}
-
-	vm.HostUser = machine.HostUser{}
-	vm.ImageConfig = machine.ImageConfig{}
-	vm.ResourceConfig = machine.ResourceConfig{}
-	vm.SSHConfig = machine.SSHConfig{}
-
-	ignitionFilePath, err := define.NewMachineFile(old.IgnitionFilePath, nil)
-	if err != nil {
-		return err
-	}
-	imagePath, err := define.NewMachineFile(old.ImagePath, nil)
-	if err != nil {
-		return err
-	}
-
-	// setReadySocket will stick the entry into the new struct
-	symlink := vm.Name + "_ready.sock"
-	if err := machine.SetSocket(&vm.ReadySocket, machine.ReadySocketPath(socketPath+"/podman/", vm.Name), &symlink); err != nil {
-		return err
-	}
-
-	vm.CPUs = old.CPUs
-	vm.CmdLine = old.CmdLine
-	vm.DiskSize = old.DiskSize
-	vm.IdentityPath = old.IdentityPath
-	vm.IgnitionFile = *ignitionFilePath
-	vm.ImagePath = *imagePath
-	vm.ImageStream = old.ImageStream
-	vm.Memory = old.Memory
-	vm.Mounts = old.Mounts
-	vm.Name = old.Name
-	vm.PidFilePath = pidFilePath
-	vm.Port = old.Port
-	vm.QMPMonitor = qmpMonitor
-	vm.ReadySocket = readySocket
-	vm.RemoteUsername = old.RemoteUsername
-	vm.Rootful = old.Rootful
-	vm.UID = old.UID
-
-	// Back up the original config file
-	if err := os.Rename(configPath, configPath+".orig"); err != nil {
-		return err
-	}
-	// Write the config file
-	if err := vm.writeConfig(); err != nil {
-		// If the config file fails to be written, put the original
-		// config file back before erroring
-		if renameError := os.Rename(configPath+".orig", configPath); renameError != nil {
-			logrus.Warn(renameError)
-		}
-		return err
-	}
-	// Remove the backup file
-	return os.Remove(configPath + ".orig")
-}
-
 // addMountsToVM converts the volumes passed through the CLI into the specified
 // volume driver and adds them to the machine
 func (v *MachineVM) addMountsToVM(opts machine.InitOptions) error {
@@ -1398,22 +1314,6 @@ func (v *MachineVM) setPIDSocket() error {
 	return nil
 }
 
-// Deprecated: getSocketandPid is being replaced by setPIDSocket and
-// machinefiles.
-func (v *MachineVM) getSocketandPid() (string, string, error) {
-	rtPath, err := getRuntimeDir()
-	if err != nil {
-		return "", "", err
-	}
-	if isRootful() {
-		rtPath = "/run"
-	}
-	socketDir := filepath.Join(rtPath, "podman")
-	pidFile := filepath.Join(socketDir, fmt.Sprintf("%s.pid", v.Name))
-	qemuSocket := filepath.Join(socketDir, fmt.Sprintf("qemu_%s.sock", v.Name))
-	return qemuSocket, pidFile, nil
-}
-
 func checkSockInUse(sock string) bool {
 	if info, err := os.Stat(sock); err == nil && info.Mode()&fs.ModeSocket == fs.ModeSocket {
 		_, err = net.DialTimeout("unix", dockerSock, dockerConnectTimeout)
@@ -1444,14 +1344,7 @@ func (v *MachineVM) update() error {
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(b, v)
-	if err != nil {
-		err = migrateVM(v.ConfigPath.GetPath(), b, v)
-		if err != nil {
-			return err
-		}
-	}
-	return err
+	return json.Unmarshal(b, v)
 }
 
 func (v *MachineVM) writeConfig() error {
