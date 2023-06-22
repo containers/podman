@@ -113,9 +113,12 @@ var _ = Describe("Podman privileged container tests", func() {
 	It("podman privileged should restart after host devices change", func() {
 		containerName := "privileged-restart-test"
 		SkipIfRootless("Cannot create devices in /dev in rootless mode")
-		Expect(os.MkdirAll("/dev/foodevdir", os.ModePerm)).To(Succeed())
+		// path must be unique to this test, not used anywhere else
+		devdir := "/dev/devdirprivrestart"
+		Expect(os.MkdirAll(devdir, os.ModePerm)).To(Succeed())
+		defer os.RemoveAll(devdir)
 
-		mknod := SystemExec("mknod", []string{"/dev/foodevdir/null", "c", "1", "3"})
+		mknod := SystemExec("mknod", []string{devdir + "/null", "c", "1", "3"})
 		mknod.WaitWithDefaultTimeout()
 		Expect(mknod).Should(Exit(0))
 
@@ -125,7 +128,7 @@ var _ = Describe("Podman privileged container tests", func() {
 
 		deviceFiles := session.OutputToStringArray()
 
-		os.RemoveAll("/dev/foodevdir")
+		os.RemoveAll(devdir)
 		session = podmanTest.Podman([]string{"start", "--attach", containerName})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
