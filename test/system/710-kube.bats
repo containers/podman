@@ -8,12 +8,9 @@ load helpers
 # capability drop list
 capabilities='{"drop":["CAP_FOWNER","CAP_SETFCAP"]}'
 
-# Warning that is emitted once on containers, multiple times on pods
-kubernetes_63='Truncation Annotation: .* Kubernetes only allows 63 characters'
-
 # filter: convert yaml to json, because bash+yaml=madness
 function yaml2json() {
-    grep -E -v "$kubernetes_63" | python3 -c 'import yaml
+    python3 -c 'import yaml
 import json
 import sys
 json.dump(yaml.safe_load(sys.stdin), sys.stdout)'
@@ -33,6 +30,8 @@ json.dump(yaml.safe_load(sys.stdin), sys.stdout)'
     cname=c$(random_string 15)
     run_podman container create --cap-drop fowner --cap-drop setfcap --name $cname $IMAGE top
     run_podman kube generate $cname
+
+    # As of #18542, we must never see this message again.
     assert "$output" !~ "Kubernetes only allows 63 characters"
     # Convert yaml to json, and dump to stdout (to help in case of errors)
     json=$(yaml2json <<<"$output")

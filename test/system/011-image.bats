@@ -30,8 +30,12 @@ EOF
 }
 
 function check_signature() {
+    # This test requires that $IMAGE be 100% the same as the registry one
+    run_podman rmi -a -f
+    _prefetch $IMAGE
+
     local sigfile=$1
-    ls -laR $PODMAN_TMPDIR/signatures
+    find $PODMAN_TMPDIR/signatures -print
     run_podman inspect --format '{{.Digest}}' $PODMAN_TEST_IMAGE_FQN
     local repodigest=${output/:/=}
 
@@ -47,7 +51,7 @@ function check_signature() {
 
 
 @test "podman image - sign with no sigfile" {
-    GNUPGHOME=$_GNUPGHOME_TMP run_podman image sign --sign-by foo@bar.com --directory $PODMAN_TMPDIR/signatures  "docker://$PODMAN_TEST_IMAGE_FQN"
+    GNUPGHOME=$_GNUPGHOME_TMP run_podman image sign --sign-by foo@bar.com --directory $PODMAN_TMPDIR/signatures  "containers-storage:$PODMAN_TEST_IMAGE_FQN"
     check_signature "signature-1"
 }
 

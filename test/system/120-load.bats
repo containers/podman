@@ -6,6 +6,19 @@
 load helpers
 load helpers.network
 
+function teardown() {
+    # Destroy all images, to make sure we don't leave garbage behind.
+    #
+    # The tests in here do funky things with image store, including
+    # reloading the default $IMAGE in a way that appears normal but
+    # is not actually the same as what is normally pulled, e.g.,
+    # annotations and image digests may be different. See
+    # https://github.com/containers/podman/discussions/17911
+    run_podman rmi -a -f
+
+    basic_teardown
+}
+
 # Custom helpers for this test only. These just save us having to duplicate
 # the same thing four times (two tests, each with -i and stdin).
 #
@@ -174,10 +187,6 @@ verify_iid_and_name() {
     run_podman rmi $iid
     run_podman image load < $archive
     verify_iid_and_name "<none>:<none>"
-
-    # Cleanup: since load-by-iid doesn't preserve name, re-tag it;
-    # otherwise our global teardown will rmi and re-pull our standard image.
-    run_podman tag $iid $img_name
 }
 
 @test "podman load - by image name" {
@@ -240,8 +249,8 @@ verify_iid_and_name() {
     img2="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:multiimage"
     archive=$PODMAN_TMPDIR/myimage-$(random_string 8).tar
 
-    run_podman pull $img1
-    run_podman pull $img2
+    _prefetch $img1
+    _prefetch $img2
 
     run_podman save -m -o $archive $img1 $img2
     run_podman rmi -f $img1 $img2
@@ -258,8 +267,8 @@ verify_iid_and_name() {
     img2="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:multiimage"
     archive=$PODMAN_TMPDIR/myimage-$(random_string 8).tar
 
-    run_podman pull $img1
-    run_podman pull $img2
+    _prefetch $img1
+    _prefetch $img2
 
     # We can't use run_podman because that uses the BATS 'run' function
     # which redirects stdout and stderr. Here we need to guarantee
