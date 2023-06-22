@@ -140,9 +140,13 @@ func createContainerWaitFn(ctx context.Context, containerName string, interval t
 	var containerEngine entities.ContainerEngine = &abi.ContainerEngine{Libpod: runtime}
 
 	return func(conditions ...define.ContainerStatus) (int32, error) {
+		var rawConditions []string
+		for _, con := range conditions {
+			rawConditions = append(rawConditions, con.String())
+		}
 		opts := entities.WaitOptions{
-			Condition: conditions,
-			Interval:  interval,
+			Conditions: rawConditions,
+			Interval:   interval,
 		}
 		ctrWaitReport, err := containerEngine.ContainerWait(ctx, []string{containerName}, opts)
 		if err != nil {

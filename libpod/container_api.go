@@ -683,7 +683,7 @@ type waitResult struct {
 	err  error
 }
 
-func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeout time.Duration, conditions ...define.ContainerStatus) (int32, error) {
+func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeout time.Duration, conditions ...string) (int32, error) {
 	if !c.valid {
 		return -1, define.ErrCtrRemoved
 	}
@@ -699,7 +699,11 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 	waitForExit := false
 	wantedStates := make(map[define.ContainerStatus]bool, len(conditions))
 
-	for _, condition := range conditions {
+	for _, rawCondition := range conditions {
+		condition, err := define.StringToContainerStatus(rawCondition)
+		if err != nil {
+			return -1, err
+		}
 		switch condition {
 		case define.ContainerStateExited, define.ContainerStateStopped:
 			waitForExit = true

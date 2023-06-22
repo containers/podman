@@ -49,15 +49,25 @@ type ContainerRunlabelOptions struct {
 // ContainerRunlabelReport contains the results from executing container-runlabel.
 type ContainerRunlabelReport struct{}
 
+// WaitOptions are arguments for waiting for a container.
 type WaitOptions struct {
-	Condition []define.ContainerStatus
-	Interval  time.Duration
-	Ignore    bool
-	Latest    bool
+	// Conditions to wait on.  Includes container statuses such as
+	// "running" or "stopped" and health-related values such "healthy".
+	Conditions []string
+	// Time interval to wait before polling for completion.
+	Interval time.Duration
+	// Ignore errors when a specified container is missing and mark its
+	// return code as -1.
+	Ignore bool
+	// Use the latest created container.
+	Latest bool
 }
 
+// WaitReport is the result of waiting a container.
 type WaitReport struct {
-	Error    error
+	// Error while waiting.
+	Error error
+	// ExitCode of the container.
 	ExitCode int32
 }
 

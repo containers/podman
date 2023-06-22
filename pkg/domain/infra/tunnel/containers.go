@@ -38,8 +38,17 @@ func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrID string,
 }
 
 func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []string, opts entities.WaitOptions) ([]entities.WaitReport, error) {
+	conditions := make([]define.ContainerStatus, 0, len(opts.Conditions))
+	for _, condition := range opts.Conditions {
+		cond, err := define.StringToContainerStatus(condition)
+		if err != nil {
+			return nil, err
+		}
+		conditions = append(conditions, cond)
+	}
+
 	responses := make([]entities.WaitReport, 0, len(namesOrIds))
-	options := new(containers.WaitOptions).WithCondition(opts.Condition).WithInterval(opts.Interval.String())
+	options := new(containers.WaitOptions).WithCondition(conditions).WithInterval(opts.Interval.String())
 	for _, n := range namesOrIds {
 		response := entities.WaitReport{}
 		exitCode, err := containers.Wait(ic.ClientCtx, n, options)
