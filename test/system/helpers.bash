@@ -58,7 +58,18 @@ function basic_setup() {
     for line in "${lines[@]}"; do
         set $line
         echo "# setup(): removing stray external container $1 ($2)" >&3
-        run_podman rm -f $1
+        run_podman '?' rm -f $1
+        if [[ $status -ne 0 ]]; then
+            echo "# [setup] $_LOG_PROMPT podman rm -f $1" >&3
+            for errline in "${lines[@]}"; do
+                echo "# $errline" >&3
+            done
+            # FIXME FIXME FIXME: temporary hack for #18831. If we see the
+            # unmount/EINVAL flake, nothing will ever work again.
+            if [[ $output =~ unmounting.*invalid ]]; then
+                touch "${BATS_SUITE_TMPDIR}/forget-it"
+            fi
+        fi
     done
 
     # Clean up all images except those desired
@@ -142,6 +153,15 @@ function basic_teardown() {
             for line in "${lines[*]}"; do
                 echo "# $line" >&3
             done
+
+            # Special case for timeout: check for locks (#18514)
+            if [[ $status -eq 124 ]]; then
+                echo "# [teardown] $_LOG_PROMPT podman system locks" >&3
+                run $PODMAN system locks
+                for line in "${lines[*]}"; do
+                    echo "# $line" >&3
+                done
+            fi
         fi
     done
 
