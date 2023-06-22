@@ -229,8 +229,14 @@ type UnpauseOptions struct{}
 //
 //go:generate go run ../generator/generator.go WaitOptions
 type WaitOptions struct {
+	// Conditions to wait on.  Includes container statuses such as
+	// "running" or "stopped" and health-related values such "healthy".
+	Conditions []string `schema:"condition"`
+	// Time interval to wait before polling for completion.
+	Interval *string
+	// Container status to wait on.
+	// Deprecated: use Conditions instead.
 	Condition []define.ContainerStatus
-	Interval  *string
 }
 
 // StopOptions are optional options for stopping containers

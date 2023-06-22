@@ -1229,12 +1229,15 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//      enum:
 	//       - configured
 	//       - created
+	//       - exited
+	//       - healthy
+	//       - initialized
+	//       - paused
+	//       - removing
 	//       - running
 	//       - stopped
-	//       - paused
-	//       - exited
-	//       - removing
 	//       - stopping
+	//       - unhealthy
 	//    description: "Conditions to wait for. If no condition provided the 'exited' condition is assumed."
 	//  - in: query
 	//    name: interval

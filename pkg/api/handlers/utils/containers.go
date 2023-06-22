@@ -28,8 +28,8 @@ type waitQueryDocker struct {
 }
 
 type waitQueryLibpod struct {
-	Interval  string                   `schema:"interval"`
-	Condition []define.ContainerStatus `schema:"condition"`
+	Interval   string   `schema:"interval"`
+	Conditions []string `schema:"condition"`
 }
 
 func WaitContainerDocker(w http.ResponseWriter, r *http.Request) {
@@ -118,19 +118,27 @@ func WaitContainerLibpod(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	containerEngine := &abi.ContainerEngine{Libpod: runtime}
+	opts := entities.WaitOptions{
+		Conditions: query.Conditions,
+		Interval:   interval,
+	}
 	name := GetName(r)
-
-	waitFn := createContainerWaitFn(r.Context(), name, interval)
-	exitCode, err := waitFn(query.Condition...)
+	reports, err := containerEngine.ContainerWait(r.Context(), []string{name}, opts)
 	if err != nil {
 		if errors.Is(err, define.ErrNoSuchCtr) {
 			ContainerNotFound(w, name, err)
 			return
 		}
 		InternalServerError(w, err)
+	}
+	if len(reports) != 1 {
+		Error(w, http.StatusInternalServerError, fmt.Errorf("the ContainerWait() function returned unexpected count of reports: %d", len(reports)))
 		return
 	}
-	WriteResponse(w, http.StatusOK, strconv.Itoa(int(exitCode)))
+
+	WriteResponse(w, http.StatusOK, strconv.Itoa(int(reports[0].ExitCode)))
 }
 
 type containerWaitFn func(conditions ...define.ContainerStatus) (int32, error)

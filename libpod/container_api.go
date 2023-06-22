@@ -698,17 +698,26 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 	resultChan := make(chan waitResult)
 	waitForExit := false
 	wantedStates := make(map[define.ContainerStatus]bool, len(conditions))
+	wantedHealthStates := make(map[string]bool)
 
 	for _, rawCondition := range conditions {
-		condition, err := define.StringToContainerStatus(rawCondition)
-		if err != nil {
-			return -1, err
-		}
-		switch condition {
-		case define.ContainerStateExited, define.ContainerStateStopped:
-			waitForExit = true
+		switch rawCondition {
+		case define.HealthCheckHealthy, define.HealthCheckUnhealthy:
+			if !c.HasHealthCheck() {
+				return -1, fmt.Errorf("cannot use condition %q: container %s has no healthcheck", rawCondition, c.ID())
+			}
+			wantedHealthStates[rawCondition] = true
 		default:
-			wantedStates[condition] = true
+			condition, err := define.StringToContainerStatus(rawCondition)
+			if err != nil {
+				return -1, err
+			}
+			switch condition {
+			case define.ContainerStateExited, define.ContainerStateStopped:
+				waitForExit = true
+			default:
+				wantedStates[condition] = true
+			}
 		}
 	}
 
@@ -731,20 +740,33 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 		}()
 	}
 
-	if len(wantedStates) > 0 {
+	if len(wantedStates) > 0 || len(wantedHealthStates) > 0 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 
 			for {
-				state, err := c.State()
-				if err != nil {
-					trySend(-1, err)
-					return
+				if len(wantedStates) > 0 {
+					state, err := c.State()
+					if err != nil {
+						trySend(-1, err)
+						return
+					}
+					if _, found := wantedStates[state]; found {
+						trySend(-1, nil)
+						return
+					}
 				}
-				if _, found := wantedStates[state]; found {
-					trySend(-1, nil)
-					return
+				if len(wantedHealthStates) > 0 {
+					status, err := c.HealthCheckStatus()
+					if err != nil {
+						trySend(-1, err)
+						return
+					}
+					if _, found := wantedHealthStates[status]; found {
+						trySend(-1, nil)
+						return
+					}
 				}
 				select {
 				case <-ctx.Done():

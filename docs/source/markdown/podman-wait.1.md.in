@@ -24,7 +24,7 @@ with different exit codes, but `podman wait` can only display and detect one.
 ## OPTIONS
 
 #### **--condition**=*state*
-Container state or condition to wait for.  Can be specified multiple times where at least one condition must match for the command to return.  Supported values are "created", "exited", "initialized", "paused", "removing", "running", "stopped",  "stopping".  The default condition is "stopped".
+Container state or condition to wait for.  Can be specified multiple times where at least one condition must match for the command to return.  Supported values are "configured", "created", "exited", "healthy", "initialized", "paused", "removing", "running", "stopped",  "stopping", "unhealthy".  The default condition is "stopped".
 
 #### **--help**, **-h**
 

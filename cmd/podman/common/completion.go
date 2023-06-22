@@ -1474,7 +1474,9 @@ func AutocompleteImageSaveFormat(cmd *cobra.Command, args []string, toComplete s
 // AutocompleteWaitCondition - Autocomplete wait condition options.
 // -> "unknown", "configured", "created", "running", "stopped", "paused", "exited", "removing"
 func AutocompleteWaitCondition(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	states := []string{"unknown", "configured", "created", "running", "stopped", "paused", "exited", "removing"}
+	states := []string{"unknown", "configured", "created", "exited",
+		"healthy", "initialized", "paused", "removing", "running",
+		"stopped", "stopping", "unhealthy"}
 	return states, cobra.ShellCompDirectiveNoFileComp
 }
 
