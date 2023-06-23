@@ -373,7 +373,7 @@ func (p *UnitFileParser) flushPendingComments(toComment bool) {
 func nextLine(data string, afterPos int) (string, string) {
 	rest := data[afterPos:]
 	if i := strings.Index(rest, "\n"); i >= 0 {
-		return data[:i+afterPos], data[i+afterPos+1:]
+		return strings.TrimSpace(data[:i+afterPos]), data[i+afterPos+1:]
 	}
 	return data, ""
 }
