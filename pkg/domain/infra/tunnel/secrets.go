@@ -77,10 +77,12 @@ func (ic *ContainerEngine) SecretRm(ctx context.Context, nameOrIDs []string, opt
 				return nil, err
 			}
 			if errModel.ResponseCode == 404 {
-				allRm = append(allRm, &entities.SecretRmReport{
-					Err: fmt.Errorf("no secret with name or id %q: no such secret ", name),
-					ID:  "",
-				})
+				if !options.Ignore {
+					allRm = append(allRm, &entities.SecretRmReport{
+						Err: fmt.Errorf("no secret with name or id %q: no such secret ", name),
+						ID:  "",
+					})
+				}
 				continue
 			}
 		}
