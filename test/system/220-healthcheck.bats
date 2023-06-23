@@ -83,7 +83,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
     _build_health_check_image $img cleanfile
     run_podman run -d --name $ctr      \
            --health-cmd /healthcheck   \
-           --health-retries=2          \
+           --health-retries=3          \
            --health-interval=disable   \
            $img
 
@@ -102,6 +102,46 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
     is "$output" "0" "Failing streak of restarted container should be 0 again"
 
     run_podman rm -f -t0 $ctr
+    run_podman rmi $img
+}
+
+@test "podman wait --condition={healthy,unhealthy}" {
+    ctr="healthcheck_c"
+    img="healthcheck_i"
+    wait_file="$PODMAN_TMPDIR/$(random_string).wait_for_me"
+    _build_health_check_image $img
+
+    for condition in healthy unhealthy;do
+        rm -f $wait_file
+        run_podman run -d --name $ctr      \
+               --health-cmd /healthcheck   \
+               --health-retries=1          \
+               --health-interval=disable   \
+               $img
+        if [[ $condition == "unhealthy" ]];then
+            # create the uh-oh file to let the health check fail
+            run_podman exec $ctr touch /uh-oh
+        fi
+
+        # Wait for the container in the background and create the $wait_file to
+        # signal the specified wait condition was met.
+        (timeout --foreground -v --kill=5 5 $PODMAN wait --condition=$condition $ctr && touch $wait_file) &
+
+        # Sleep 1 second to make sure above commands are running
+        sleep 1
+        if [[ -f $wait_file ]]; then
+            die "the wait file should only be created after the container turned healthy"
+        fi
+
+        if [[ $condition == "healthy" ]];then
+            run_podman healthcheck run $ctr
+        else
+            run_podman 1 healthcheck run $ctr
+        fi
+        wait_for_file $wait_file
+        run_podman rm -f -t0 $ctr
+    done
+
     run_podman rmi $img
 }
 

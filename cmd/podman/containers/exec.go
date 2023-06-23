@@ -185,15 +185,11 @@ func execWait(ctr string, seconds int32) error {
 	ctx, cancel := context.WithTimeout(registry.Context(), maxDuration)
 	defer cancel()
 
-	cond, err := define.StringToContainerStatus("running")
-	if err != nil {
-		return err
-	}
-	waitOptions.Condition = append(waitOptions.Condition, cond)
+	waitOptions.Conditions = []string{define.ContainerStateRunning.String()}
 
 	startTime := time.Now()
 	for time.Since(startTime) < maxDuration {
-		_, err = registry.ContainerEngine().ContainerWait(ctx, []string{ctr}, waitOptions)
+		_, err := registry.ContainerEngine().ContainerWait(ctx, []string{ctr}, waitOptions)
 		if err == nil {
 			return nil
 		}

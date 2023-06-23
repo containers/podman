@@ -185,10 +185,13 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 		}
 
 		response := entities.WaitReport{}
-		if options.Condition == nil {
-			options.Condition = []define.ContainerStatus{define.ContainerStateStopped, define.ContainerStateExited}
+		var conditions []string
+		if len(options.Conditions) == 0 {
+			conditions = []string{define.ContainerStateStopped.String(), define.ContainerStateExited.String()}
+		} else {
+			conditions = options.Conditions
 		}
-		exitCode, err := c.WaitForConditionWithInterval(ctx, options.Interval, options.Condition...)
+		exitCode, err := c.WaitForConditionWithInterval(ctx, options.Interval, conditions...)
 		if err != nil {
 			response.Error = err
 		} else {
