@@ -470,33 +470,33 @@ func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageE
 	output := ""
 	if stageIndex == len(stages)-1 {
 		output = b.output
-	}
-	// Check if any labels were passed in via the API, and add a final line
-	// to the Dockerfile that would provide the same result.
-	// Reason: Docker adds label modification as a last step which can be
-	// processed like regular steps, and if no modification is done to
-	// layers, its easier to re-use cached layers.
-	if len(b.labels) > 0 {
-		var labelLine string
-		labels := append([]string{}, b.labels...)
-		for _, labelSpec := range labels {
-			label := strings.SplitN(labelSpec, "=", 2)
-			key := label[0]
-			value := ""
-			if len(label) > 1 {
-				value = label[1]
+		// Check if any labels were passed in via the API, and add a final line
+		// to the Dockerfile that would provide the same result.
+		// Reason: Docker adds label modification as a last step which can be
+		// processed like regular steps, and if no modification is done to
+		// layers, its easier to re-use cached layers.
+		if len(b.labels) > 0 {
+			var labelLine string
+			labels := append([]string{}, b.labels...)
+			for _, labelSpec := range labels {
+				label := strings.SplitN(labelSpec, "=", 2)
+				key := label[0]
+				value := ""
+				if len(label) > 1 {
+					value = label[1]
+				}
+				// check only for an empty key since docker allows empty values
+				if key != "" {
+					labelLine += fmt.Sprintf(" %q=%q", key, value)
+				}
 			}
-			// check only for an empty key since docker allows empty values
-			if key != "" {
-				labelLine += fmt.Sprintf(" %q=%q", key, value)
+			if len(labelLine) > 0 {
+				additionalNode, err := imagebuilder.ParseDockerfile(strings.NewReader("LABEL" + labelLine + "\n"))
+				if err != nil {
+					return "", nil, fmt.Errorf("while adding additional LABEL step: %w", err)
+				}
+				stage.Node.Children = append(stage.Node.Children, additionalNode.Children...)
 			}
-		}
-		if len(labelLine) > 0 {
-			additionalNode, err := imagebuilder.ParseDockerfile(strings.NewReader("LABEL" + labelLine + "\n"))
-			if err != nil {
-				return "", nil, fmt.Errorf("while adding additional LABEL step: %w", err)
-			}
-			stage.Node.Children = append(stage.Node.Children, additionalNode.Children...)
 		}
 	}
 

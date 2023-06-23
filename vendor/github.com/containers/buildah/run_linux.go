@@ -264,7 +264,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 
 	hostFile := ""
 	if !options.NoHosts && !contains(volumes, config.DefaultHostsFile) && options.ConfigureNetwork != define.NetworkDisabled {
-		hostFile, err = b.generateHosts(path, rootIDPair, mountPoint)
+		hostFile, err = b.generateHosts(path, rootIDPair, mountPoint, spec)
 		if err != nil {
 			return err
 		}
@@ -1227,12 +1227,4 @@ func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]int
 	}
 	succeeded = true
 	return &volumes[0], targetLock, nil
-}
-
-// setPdeathsig sets a parent-death signal for the process
-func setPdeathsig(cmd *exec.Cmd) {
-	if cmd.SysProcAttr == nil {
-		cmd.SysProcAttr = &syscall.SysProcAttr{}
-	}
-	cmd.SysProcAttr.Pdeathsig = syscall.SIGKILL
 }

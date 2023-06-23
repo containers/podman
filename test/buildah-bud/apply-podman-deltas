@@ -279,4 +279,9 @@ skip_if_rootless_remote "FIXME: not sure if 17788 or some other bug" \
 # END   temporary workarounds that must be reevaluated periodically
 ###############################################################################
 
+# 2023-06-13 buildah 4746 changed exit code & expected error message
+skip "FIXME: 2023-06-13 buildah PR 4746 broke this test" \
+     "bud with encrypted FROM image"
+
 exit $RC
+

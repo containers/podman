@@ -35,6 +35,7 @@ import (
 	"github.com/containers/common/libnetwork/network"
 	"github.com/containers/common/libnetwork/resolvconf"
 	netTypes "github.com/containers/common/libnetwork/types"
+	netUtil "github.com/containers/common/libnetwork/util"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/subscriptions"
 	imageTypes "github.com/containers/image/v5/types"
@@ -117,7 +118,7 @@ func (b *Builder) addResolvConf(rdir string, chownOpts *idtools.IDPair, dnsServe
 }
 
 // generateHosts creates a containers hosts file
-func (b *Builder) generateHosts(rdir string, chownOpts *idtools.IDPair, imageRoot string) (string, error) {
+func (b *Builder) generateHosts(rdir string, chownOpts *idtools.IDPair, imageRoot string, spec *spec.Spec) (string, error) {
 	conf, err := config.Default()
 	if err != nil {
 		return "", err
@@ -128,12 +129,34 @@ func (b *Builder) generateHosts(rdir string, chownOpts *idtools.IDPair, imageRoo
 		return "", err
 	}
 
+	var entries etchosts.HostEntries
+	isHost := true
+	if spec.Linux != nil {
+		for _, ns := range spec.Linux.Namespaces {
+			if ns.Type == specs.NetworkNamespace {
+				isHost = false
+				break
+			}
+		}
+	}
+	// add host entry for local ip when running in host network
+	if spec.Hostname != "" && isHost {
+		ip := netUtil.GetLocalIP()
+		if ip != "" {
+			entries = append(entries, etchosts.HostEntry{
+				Names: []string{spec.Hostname},
+				IP:    ip,
+			})
+		}
+	}
+
 	targetfile := filepath.Join(rdir, "hosts")
 	if err := etchosts.New(&etchosts.Params{
 		BaseFile:                 path,
 		ExtraHosts:               b.CommonBuildOpts.AddHost,
 		HostContainersInternalIP: etchosts.GetHostContainersInternalIP(conf, nil, nil),
 		TargetFile:               targetfile,
+		ContainerIPs:             entries,
 	}); err != nil {
 		return "", err
 	}
@@ -368,6 +391,9 @@ func checkAndOverrideIsolationOptions(isolation define.Isolation, options *RunOp
 		if (pidns != nil && pidns.Host) && (userns != nil && !userns.Host) {
 			return fmt.Errorf("not allowed to mix host PID namespace with container user namespace")
 		}
+	case IsolationChroot:
+		logrus.Info("network namespace isolation not supported with chroot isolation, forcing host network")
+		options.NamespaceOptions.AddOrReplace(define.NamespaceOption{Name: string(specs.NetworkNamespace), Host: true})
 	}
 	return nil
 }
@@ -1107,6 +1133,10 @@ func runUsingRuntimeMain() {
 
 func (b *Builder) runUsingRuntimeSubproc(isolation define.Isolation, options RunOptions, configureNetwork bool, configureNetworks,
 	moreCreateArgs []string, spec *specs.Spec, rootPath, bundlePath, containerName, buildContainerName, hostsFile string) (err error) {
+	// Lock the caller to a single OS-level thread.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	var confwg sync.WaitGroup
 	config, conferr := json.Marshal(runUsingRuntimeSubprocOptions{
 		Options:          options,
@@ -1328,7 +1358,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 		processGID: int(processGID),
 	}
 	// Get the list of mounts that are just for this Run() call.
-	runMounts, mountArtifacts, err := b.runSetupRunMounts(runFileMounts, runMountInfo, idMaps)
+	runMounts, mountArtifacts, err := b.runSetupRunMounts(mountPoint, runFileMounts, runMountInfo, idMaps)
 	if err != nil {
 		return nil, err
 	}
@@ -1464,10 +1494,28 @@ func cleanableDestinationListFromMounts(mounts []spec.Mount) []string {
 	return mountDest
 }
 
+func checkIfMountDestinationPreExists(root string, dest string) (bool, error) {
+	statResults, err := copier.Stat(root, "", copier.StatOptions{}, []string{dest})
+	if err != nil {
+		return false, err
+	}
+	if len(statResults) > 0 {
+		// We created exact path for globbing so it will
+		// return only one result.
+		if statResults[0].Error != "" && len(statResults[0].Globbed) == 0 {
+			// Path do not exsits.
+			return false, nil
+		}
+		// Path exists.
+		return true, nil
+	}
+	return false, nil
+}
+
 // runSetupRunMounts sets up mounts that exist only in this RUN, not in subsequent runs
 //
 // If this function succeeds, the caller must unlock runMountArtifacts.TargetLocks (when??)
-func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMaps IDMaps) ([]spec.Mount, *runMountArtifacts, error) {
+func (b *Builder) runSetupRunMounts(mountPoint string, mounts []string, sources runMountInfo, idMaps IDMaps) ([]spec.Mount, *runMountArtifacts, error) {
 	// If `type` is not set default to TypeBind
 	mountType := define.TypeBind
 	mountTargets := make([]string, 0, 10)
@@ -1485,6 +1533,11 @@ func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMap
 		}
 	}()
 	for _, mount := range mounts {
+		var mountSpec *spec.Mount
+		var err error
+		var envFile, image string
+		var agent *sshagent.AgentServer
+		var tl *lockfile.LockFile
 		tokens := strings.Split(mount, ",")
 		for _, field := range tokens {
 			if strings.HasPrefix(field, "type=") {
@@ -1497,62 +1550,70 @@ func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMap
 		}
 		switch mountType {
 		case "secret":
-			mount, envFile, err := b.getSecretMount(tokens, sources.Secrets, idMaps, sources.WorkDir)
+			mountSpec, envFile, err = b.getSecretMount(tokens, sources.Secrets, idMaps, sources.WorkDir)
 			if err != nil {
 				return nil, nil, err
 			}
-			if mount != nil {
-				finalMounts = append(finalMounts, *mount)
-				mountTargets = append(mountTargets, mount.Destination)
+			if mountSpec != nil {
+				finalMounts = append(finalMounts, *mountSpec)
 				if envFile != "" {
 					tmpFiles = append(tmpFiles, envFile)
 				}
 			}
 		case "ssh":
-			mount, agent, err := b.getSSHMount(tokens, sshCount, sources.SSHSources, idMaps)
+			mountSpec, agent, err = b.getSSHMount(tokens, sshCount, sources.SSHSources, idMaps)
 			if err != nil {
 				return nil, nil, err
 			}
-			if mount != nil {
-				finalMounts = append(finalMounts, *mount)
-				mountTargets = append(mountTargets, mount.Destination)
+			if mountSpec != nil {
+				finalMounts = append(finalMounts, *mountSpec)
 				agents = append(agents, agent)
 				if sshCount == 0 {
-					defaultSSHSock = mount.Destination
+					defaultSSHSock = mountSpec.Destination
 				}
 				// Count is needed as the default destination of the ssh sock inside the container is  /run/buildkit/ssh_agent.{i}
 				sshCount++
 			}
 		case define.TypeBind:
-			mount, image, err := b.getBindMount(tokens, sources.SystemContext, sources.ContextDir, sources.StageMountPoints, idMaps, sources.WorkDir)
+			mountSpec, image, err = b.getBindMount(tokens, sources.SystemContext, sources.ContextDir, sources.StageMountPoints, idMaps, sources.WorkDir)
 			if err != nil {
 				return nil, nil, err
 			}
-			finalMounts = append(finalMounts, *mount)
-			mountTargets = append(mountTargets, mount.Destination)
+			finalMounts = append(finalMounts, *mountSpec)
 			// only perform cleanup if image was mounted ignore everything else
 			if image != "" {
 				mountImages = append(mountImages, image)
 			}
 		case "tmpfs":
-			mount, err := b.getTmpfsMount(tokens, idMaps)
+			mountSpec, err = b.getTmpfsMount(tokens, idMaps)
 			if err != nil {
 				return nil, nil, err
 			}
-			finalMounts = append(finalMounts, *mount)
-			mountTargets = append(mountTargets, mount.Destination)
+			finalMounts = append(finalMounts, *mountSpec)
 		case "cache":
-			mount, tl, err := b.getCacheMount(tokens, sources.StageMountPoints, idMaps, sources.WorkDir)
+			mountSpec, tl, err = b.getCacheMount(tokens, sources.StageMountPoints, idMaps, sources.WorkDir)
 			if err != nil {
 				return nil, nil, err
 			}
-			finalMounts = append(finalMounts, *mount)
-			mountTargets = append(mountTargets, mount.Destination)
+			finalMounts = append(finalMounts, *mountSpec)
 			if tl != nil {
 				targetLocks = append(targetLocks, tl)
 			}
 		default:
 			return nil, nil, fmt.Errorf("invalid mount type %q", mountType)
+		}
+
+		if mountSpec != nil {
+			pathPreExists, err := checkIfMountDestinationPreExists(mountPoint, mountSpec.Destination)
+			if err != nil {
+				return nil, nil, err
+			}
+			if !pathPreExists {
+				// In such case it means that the path did not exists before
+				// creating any new mounts therefore we must clean the newly
+				// created directory after this step.
+				mountTargets = append(mountTargets, mountSpec.Destination)
+			}
 		}
 	}
 	succeeded = true
@@ -1622,9 +1683,12 @@ func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secr
 				target = filepath.Join(workdir, target)
 			}
 		case "required":
-			required, err = strconv.ParseBool(kv[1])
-			if err != nil {
-				return nil, "", errInvalidSyntax
+			required = true
+			if len(kv) > 1 {
+				required, err = strconv.ParseBool(kv[1])
+				if err != nil {
+					return nil, "", errInvalidSyntax
+				}
 			}
 		case "mode":
 			mode64, err := strconv.ParseUint(kv[1], 8, 32)
@@ -1876,7 +1940,6 @@ func (b *Builder) cleanupRunMounts(context *imageTypes.SystemContext, mountpoint
 			return err
 		}
 	}
-
 	opts := copier.RemoveOptions{
 		All: true,
 	}
@@ -1899,4 +1962,14 @@ func (b *Builder) cleanupRunMounts(context *imageTypes.SystemContext, mountpoint
 	// unlock if any locked files from this RUN statement
 	internalParse.UnlockLockArray(artifacts.TargetLocks)
 	return prevErr
+}
+
+// setPdeathsig sets a parent-death signal for the process
+// the goroutine that starts the child process should lock itself to
+// a native thread using runtime.LockOSThread() until the child exits
+func setPdeathsig(cmd *exec.Cmd) {
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	cmd.SysProcAttr.Pdeathsig = syscall.SIGKILL
 }
