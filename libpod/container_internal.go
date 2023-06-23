@@ -2101,7 +2101,7 @@ func (c *Container) postDeleteHooks(ctx context.Context) error {
 					Stderr:          &stderr,
 					PostKillTimeout: exec.DefaultPostKillTimeout,
 				}
-				hookErr, err := exec.RunWithOptions(ctx, opts)
+				hookErr, err := exec.RunWithOptions(ctx, opts) //nolint:staticcheck
 				if err != nil {
 					logrus.Warnf("Container %s: poststop hook %d: %v", c.ID(), i, err)
 					if hookErr != err {
@@ -2234,7 +2234,7 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[s
 		Config:          config,
 		PostKillTimeout: exec.DefaultPostKillTimeout,
 	}
-	hookErr, err := exec.RuntimeConfigFilterWithOptions(ctx, opts)
+	hookErr, err := exec.RuntimeConfigFilterWithOptions(ctx, opts) //nolint:staticcheck
 	if err != nil {
 		logrus.Warnf("Container %s: precreate hook: %v", c.ID(), err)
 		if hookErr != nil && hookErr != err {

@@ -363,4 +363,40 @@ EOF
     run_podman --root $imstore/root rmi --all
 }
 
+@test "podman images with concurrent removal" {
+    skip_if_remote "following test is not supported for remote clients"
+    local count=5
+
+    # First build $count images
+    for i in $(seq --format '%02g' 1 $count); do
+        cat >$PODMAN_TMPDIR/Containerfile <<EOF
+FROM $IMAGE
+RUN echo $i
+EOF
+        run_podman build -q -t i$i $PODMAN_TMPDIR
+    done
+
+    run_podman images
+    # Now remove all images in parallel and in the background and make sure
+    # that listing all images does not fail (see BZ 2216700).
+    for i in $(seq --format '%02g' 1 $count); do
+        timeout --foreground -v --kill=10 60 \
+                $PODMAN rmi i$i &
+    done
+
+    tries=100
+    while [[ ${#lines[*]} -gt 1 ]] && [[ $tries -gt 0 ]]; do
+        # Prior to #18980, 'podman images' during rmi could fail with 'image not known'
+        run_podman images --format "{{.ID}} {{.Names}}"
+        tries=$((tries - 1))
+    done
+
+    if [[ $tries -eq 0 ]]; then
+        die "Timed out waiting for images to be removed"
+    fi
+
+    wait
+}
+
+
 # vim: filetype=sh
