@@ -12,7 +12,7 @@ repos:
       - id: end-of-file-fixer
         exclude: test/buildah-bud/buildah-tests.diff
       - id: trailing-whitespace
-        exclude: test/buildah-bud/buildah-tests.diff
+        exclude: test/buildah-bud/buildah-tests.diff|test/e2e/quadlet/remap-keep-id2.container
       - id: mixed-line-ending
       - id: check-byte-order-marker
       - id: check-executables-have-shebangs
