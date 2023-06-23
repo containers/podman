@@ -132,6 +132,15 @@ if root; then
     podman rm -f $CTRNAME
 fi
 
+CTRNAME=test123
+podman run --name $CTRNAME -d $IMAGE top
+t GET libpod/containers/$CTRNAME/top?ps_args=--invalid 500 \
+  .cause~".*unrecognized option.*"
+t GET containers/$CTRNAME/top?ps_args=--invalid 500 \
+  .cause~".*unrecognized option.*"
+
+podman rm -f $CTRNAME
+
 # Issue #15765: make sure the memory limit is capped
 if root; then
     CTRNAME=ctr-with-limit
