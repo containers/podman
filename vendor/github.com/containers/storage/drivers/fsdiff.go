@@ -55,6 +55,7 @@ func (gdw *NaiveDiffDriver) Diff(id string, idMappings *idtools.IDMappings, pare
 
 	options := MountOpts{
 		MountLabel: mountLabel,
+		Options:    []string{"ro"},
 	}
 	layerFs, err := driver.Get(id, options)
 	if err != nil {
