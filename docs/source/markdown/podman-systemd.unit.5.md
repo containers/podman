@@ -121,7 +121,7 @@ Valid options for `[Container]` are listed below:
 | Rootfs=/var/lib/rootfs         | --rootfs /var/lib/rootfs                             |
 | Notify=true                    | --sdnotify container                                 |
 | PodmanArgs=--add-host foobar   | --add-host foobar                                    |
-| PublishPort=true               | --publish                                            |
+| PublishPort=50-59              | --publish 50-59                                      |
 | Pull=never                     | --pull=never                                         |
 | ReadOnly=true                  | --read-only                                          |
 | RunInit=true                   | --init                                               |
