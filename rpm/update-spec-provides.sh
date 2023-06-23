@@ -4,13 +4,14 @@
 # packaging, via the `propose-downstream` packit action.
 # The goimports don't need to be present upstream.
 
-set -e
+set -eo pipefail
 
+PACKAGE=podman
 # script is run from git root directory
-SPEC_FILE=rpm/podman.spec
+SPEC_FILE=rpm/$PACKAGE.spec
 
 sed -i '/Provides: bundled(golang.*/d' $SPEC_FILE
 
-GO_IMPORTS=$(golist --imported --package-path github.com/containers/podman --skip-self | sort -u | xargs -I{} echo "Provides: bundled(golang({}))")
+GO_IMPORTS=$(golist --imported --package-path github.com/containers/$PACKAGE --skip-self | sort -u | xargs -I{} echo "Provides: bundled(golang({}))")
 
 awk -v r="$GO_IMPORTS" '/^# vendored libraries/ {print; print r; next} 1' $SPEC_FILE > temp && mv temp $SPEC_FILE
