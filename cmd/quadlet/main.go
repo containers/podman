@@ -8,6 +8,7 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"unicode"
 
@@ -132,19 +133,22 @@ func isExtSupported(filename string) bool {
 	return ok
 }
 
-func loadUnitsFromDir(sourcePath string, units map[string]*parser.UnitFile) error {
+func loadUnitsFromDir(sourcePath string) ([]*parser.UnitFile, error) {
 	var prevError error
 	files, err := os.ReadDir(sourcePath)
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
-			return err
+			return nil, err
 		}
-		return nil
+		return []*parser.UnitFile{}, nil
 	}
+
+	var units []*parser.UnitFile
+	var seen = make(map[string]struct{})
 
 	for _, file := range files {
 		name := file.Name()
-		if units[name] == nil && isExtSupported(name) {
+		if _, ok := seen[name]; !ok && isExtSupported(name) {
 			path := path.Join(sourcePath, name)
 
 			Debugf("Loading source unit file %s", path)
@@ -155,11 +159,13 @@ func loadUnitsFromDir(sourcePath string, units map[string]*parser.UnitFile) erro
 					prevError = fmt.Errorf("%s\n%s", prevError, err)
 				}
 			} else {
-				units[name] = f
+				seen[name] = void
+				units = append(units, f)
 			}
 		}
 	}
-	return prevError
+
+	return units, prevError
 }
 
 func generateServiceFile(service *parser.UnitFile) error {
@@ -357,10 +363,12 @@ func process() error {
 
 	sourcePaths := getUnitDirs(isUserFlag)
 
-	units := make(map[string]*parser.UnitFile)
+	var units []*parser.UnitFile
 	for _, d := range sourcePaths {
-		if err := loadUnitsFromDir(d, units); err != nil {
+		if result, err := loadUnitsFromDir(d); err != nil {
 			reportError(err)
+		} else {
+			units = append(units, result...)
 		}
 	}
 
@@ -379,28 +387,43 @@ func process() error {
 		}
 	}
 
-	for name, unit := range units {
+	// Sort unit files according to potential inter-dependencies, with Volume and Network units
+	// taking precedence over all others.
+	sort.Slice(units, func(i, j int) bool {
+		name := units[i].Filename
+		return strings.HasSuffix(name, ".volume") || strings.HasSuffix(name, ".network")
+	})
+
+	// A map of network/volume unit file-names, against their calculated names, as needed by Podman.
+	var resourceNames = make(map[string]string)
+
+	for _, unit := range units {
 		var service *parser.UnitFile
+		var name string
 		var err error
 
 		switch {
-		case strings.HasSuffix(name, ".container"):
+		case strings.HasSuffix(unit.Filename, ".container"):
 			warnIfAmbiguousName(unit)
-			service, err = quadlet.ConvertContainer(unit, isUserFlag)
-		case strings.HasSuffix(name, ".volume"):
-			service, err = quadlet.ConvertVolume(unit, name)
-		case strings.HasSuffix(name, ".kube"):
-			service, err = quadlet.ConvertKube(unit, isUserFlag)
-		case strings.HasSuffix(name, ".network"):
-			service, err = quadlet.ConvertNetwork(unit, name)
+			service, err = quadlet.ConvertContainer(unit, resourceNames, isUserFlag)
+		case strings.HasSuffix(unit.Filename, ".volume"):
+			service, name, err = quadlet.ConvertVolume(unit, unit.Filename)
+		case strings.HasSuffix(unit.Filename, ".kube"):
+			service, err = quadlet.ConvertKube(unit, resourceNames, isUserFlag)
+		case strings.HasSuffix(unit.Filename, ".network"):
+			service, name, err = quadlet.ConvertNetwork(unit, unit.Filename)
 		default:
-			Logf("Unsupported file type %q", name)
+			Logf("Unsupported file type %q", unit.Filename)
 			continue
 		}
 
 		if err != nil {
-			reportError(fmt.Errorf("converting %q: %w", name, err))
+			reportError(fmt.Errorf("converting %q: %w", unit.Filename, err))
 			continue
+		}
+
+		if name != "" {
+			resourceNames[unit.Filename] = name
 		}
 		service.Path = path.Join(outputPath, service.Filename)
 

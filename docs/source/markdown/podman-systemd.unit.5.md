@@ -77,8 +77,9 @@ the container that is run as a service. The resulting service file contains a li
 options passed to Podman. However, some options also affect the details of how systemd is set up to run and
 interact with the container.
 
-By default, the Podman container has the same name as the unit, but with a `systemd-` prefix.
-I.e. a `$name.container` file creates a `$name.service` unit and a `systemd-$name` Podman container.
+By default, the Podman container has the same name as the unit, but with a `systemd-` prefix, i.e.
+a `$name.container` file creates a `$name.service` unit and a `systemd-$name` Podman container. The
+`ContainerName` option allows for overriding this default name with a user-provided one.
 
 There is only one required key, `Image`, which defines the container image the service runs.
 
@@ -622,27 +623,30 @@ Network files are named with a `.network` extension and contain a section `[Netw
 named Podman network. The generated service is a one-time command that ensures that the network
 exists on the host, creating it if needed.
 
-For a network file named `$NAME.network`, the generated Podman network is called `systemd-$NAME`,
-and the generated service file `$NAME-network.service`.
+By default, the Podman network has the same name as the unit, but with a `systemd-` prefix, i.e. for
+a network file named `$NAME.network`, the generated Podman network is called `systemd-$NAME`, and
+the generated service file is `$NAME-network.service`. The `NetworkName` option allows for
+overriding this default name with a user-provided one.
 
 Using network units allows containers to depend on networks being automatically pre-created. This is
 particularly interesting when using special options to control network creation, as Podman otherwise creates networks with the default options.
 
 Valid options for `[Network]` are listed below:
 
-| **[Network] options**            | **podman network create equivalent**   |
-| -----------------                | ------------------                     |
-| DisableDNS=true                  | --disable-dns                          |
-| Driver=bridge                    | --driver bridge                        |
-| Gateway=192.168.55.3             | --gateway 192.168.55.3                 |
-| Internal=true                    | --internal                             |
-| IPAMDriver=dhcp                  | --ipam-driver dhcp                     |
-| IPRange=192.168.55.128/25        | --ip-range 192.168.55.128/25           |
-| IPv6=true                        | --ipv6                                 |
-| Label="YXZ"                      | --label "XYZ"                          |
-| Options=isolate                  | --opt isolate                          |
-| PodmanArgs=--dns=192.168.55.1    | --dns=192.168.55.1                     |
-| Subnet=192.5.0.0/16              | --subnet 192.5.0.0/16                  |
+| **[Network] options**         | **podman network create equivalent** |
+|-------------------------------|--------------------------------------|
+| DisableDNS=true               | --disable-dns                        |
+| Driver=bridge                 | --driver bridge                      |
+| Gateway=192.168.55.3          | --gateway 192.168.55.3               |
+| Internal=true                 | --internal                           |
+| IPAMDriver=dhcp               | --ipam-driver dhcp                   |
+| IPRange=192.168.55.128/25     | --ip-range 192.168.55.128/25         |
+| IPv6=true                     | --ipv6                               |
+| Label="YXZ"                   | --label "XYZ"                        |
+| NetworkName=foo               | podman network create foo            |
+| Options=isolate               | --opt isolate                        |
+| PodmanArgs=--dns=192.168.55.1 | --dns=192.168.55.1                   |
+| Subnet=192.5.0.0/16           | --subnet 192.5.0.0/16                |
 
 Supported keys in `[Network]` section are:
 
@@ -701,6 +705,12 @@ Set one or more OCI labels on the network. The format is a list of
 
 This key can be listed multiple times.
 
+### `NetworkName=`
+
+The (optional) name of the Podman network. If this is not specified, the default value of
+`systemd-%N` is used, which is the same as the unit name but with a `systemd-` prefix to avoid
+conflicts with user-managed networks.
+
 ### `Options=`
 
 Set driver specific options.
@@ -734,8 +744,10 @@ Volume files are named with a `.volume` extension and contain a section `[Volume
 named Podman volume. The generated service is a one-time command that ensures that the volume
 exists on the host, creating it if needed.
 
-For a volume file named `$NAME.volume`, the generated Podman volume is called `systemd-$NAME`,
-and the generated service file `$NAME-volume.service`.
+By default, the Podman volume has the same name as the unit, but with a `systemd-` prefix, i.e. for
+a volume file named `$NAME.volume`, the generated Podman volume is called `systemd-$NAME`, and the
+generated service file is `$NAME-volume.service`. The `VolumeName` option allows for overriding this
+default name with a user-provided one.
 
 Using volume units allows containers to depend on volumes being automatically pre-created. This is
 particularly interesting when using special options to control volume creation,
@@ -743,14 +755,15 @@ as Podman otherwise creates volumes with the default options.
 
 Valid options for `[Volume]` are listed below:
 
-| **[Volume] options**             | **podman volume create equivalent**   |
-| -----------------                | ------------------                    |
-| Device=tmpfs                     | --opt device=tmpfs                    |
-| Copy=true                        | --opt copy                            |
-| Group=192                        | --opt group=192                       |
-| Label="foo=bar"                  | --label "foo=bar"                     |
-| Options=XYZ                      | --opt XYZ                             |
-| PodmanArgs=--driver=image        | --driver=image                        |
+| **[Volume] options**      | **podman volume create equivalent** |
+|---------------------------|-------------------------------------|
+| Device=tmpfs              | --opt device=tmpfs                  |
+| Copy=true                 | --opt copy                          |
+| Group=192                 | --opt group=192                     |
+| Label="foo=bar"           | --label "foo=bar"                   |
+| Options=XYZ               | --opt XYZ                           |
+| PodmanArgs=--driver=image | --driver=image                      |
+| VolumeName=foo            | podman volume create foo            |
 
 Supported keys in `[Volume]` section are:
 
@@ -798,6 +811,12 @@ The filesystem type of `Device` as used by the **mount(8)** commands `-t` option
 ### `User=`
 
 The host (numeric) UID, or user name to use as the owner for the volume
+
+### `VolumeName=`
+
+The (optional) name of the Podman volume. If this is not specified, the default value of
+`systemd-%N` is used, which is the same as the unit name but with a `systemd-` prefix to avoid
+conflicts with user-managed volumes.
 
 ## EXAMPLES
 
