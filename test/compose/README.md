@@ -1,7 +1,9 @@
-Tests for docker-compose
-========================
+Tests for docker-compose v2
+===========================
 
-This directory contains tests for docker-compose under podman.
+This directory contains tests for docker-compose v2 under podman.
+Note, as of late June/early July 2023, compose v1 is no-longer
+tested (or supported).
 
 Each subdirectory must contain one docker-compose.yml file along with
 all necessary infrastructure for it (e.g. Containerfile, any files

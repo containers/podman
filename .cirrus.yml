@@ -535,12 +535,6 @@ compose_test_task:
     gce_instance: *standardvm
     matrix:
       - env:
-            TEST_FLAVOR: compose
-            PRIV_NAME: root
-      - env:
-            TEST_FLAVOR: compose
-            PRIV_NAME: rootless
-      - env:
             TEST_FLAVOR: compose_v2
             PRIV_NAME: root
       - env:

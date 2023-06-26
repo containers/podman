@@ -346,6 +346,10 @@ case "$TEST_FLAVOR" in
         ;;
     compose_v2)
         dnf -y remove docker-compose
+        # TODO: Either move this "install" into CI VM image build scripts
+        # since runtime-installs can be fragile.  Or, configure renovate
+        # to manage the version number since nobody will ever realize to
+        # update it here, on their own.
         curl -SL https://github.com/docker/compose/releases/download/v2.2.3/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
         chmod +x /usr/local/bin/docker-compose
         ;& # Continue with next item
@@ -356,10 +360,6 @@ case "$TEST_FLAVOR" in
         source .venv/requests/bin/activate
         pip install --upgrade pip
         pip install --requirement $GOSRC/test/apiv2/python/requirements.txt
-        ;&  # continue with next item
-    compose)
-        make install.tools
-        dnf install -y podman-docker*
         ;&  # continue with next item
     int)
         make .install.ginkgo
