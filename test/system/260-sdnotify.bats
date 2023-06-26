@@ -142,10 +142,7 @@ READY=1" "sdnotify sent MAINPID and READY"
 # These tests can fail in dev. environment because of SELinux.
 # quick fix: chcon -t container_runtime_exec_t ./bin/podman
 @test "sdnotify : container" {
-    # Pull our systemd image. Retry in case of flakes.
-    run_podman pull $SYSTEMD_IMAGE || \
-        run_podman pull $SYSTEMD_IMAGE || \
-        run_podman pull $SYSTEMD_IMAGE
+    _prefetch $SYSTEMD_IMAGE
 
     export NOTIFY_SOCKET=$PODMAN_TMPDIR/container.sock
     _start_socat
@@ -261,10 +258,7 @@ READY=1" "sdnotify sent MAINPID and READY"
 @test "sdnotify : play kube - with policies" {
     skip_if_journald_unavailable
 
-    # Pull that image. Retry in case of flakes.
-    run_podman pull $SYSTEMD_IMAGE || \
-        run_podman pull $SYSTEMD_IMAGE || \
-        run_podman pull $SYSTEMD_IMAGE
+    _prefetch $SYSTEMD_IMAGE
 
     # Create the YAMl file
     yaml_source="$PODMAN_TMPDIR/test.yaml"

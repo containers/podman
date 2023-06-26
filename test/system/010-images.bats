@@ -126,6 +126,10 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
 # Regression test for https://github.com/containers/podman/issues/7651
 # in which "podman pull image-with-sha" causes "images -a" to crash
 @test "podman images -a, after pulling by sha " {
+    # This test requires that $IMAGE be 100% the same as the registry one
+    run_podman rmi -a -f
+    _prefetch $IMAGE
+
     # Get a baseline for 'images -a'
     run_podman images -a
     local images_baseline="$output"

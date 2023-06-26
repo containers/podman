@@ -289,6 +289,8 @@ function _confirm_update() {
         skip "this test only works with crun, not $runtime"
     fi
 
+    _prefetch $SYSTEMD_IMAGE
+
     dockerfile1=$PODMAN_TMPDIR/Dockerfile.1
     cat >$dockerfile1 <<EOF
 FROM $SYSTEMD_IMAGE
@@ -468,6 +470,7 @@ EOF
         skip "this test only works with crun, not $runtime"
     fi
 
+    _prefetch $SYSTEMD_IMAGE
     install_kube_template
 
     dockerfile1=$PODMAN_TMPDIR/Dockerfile.1
