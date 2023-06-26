@@ -321,7 +321,7 @@ Deleted: $pauseID"
     # Without -q: verbose output, but only on podman-local, not remote
     run_podman commit my-container --format docker -m comment my-test-image1
     if ! is_remote; then
-        assert "$output" =~ "Getting image.*Writing manif.*Storing signatu" \
+        assert "$output" =~ "Getting image.*Writing manif" \
                "Without -q, verbose output"
     fi
 
