@@ -2,6 +2,7 @@
 
 [Container]
 Image=localhost/imagename
-RemapUsers=keep-id
+# The added three spaces to keep-id are necessary for test of trimwhitespace
+RemapUsers=keep-id   
 RemapUid=200
 RemapGid=210
