@@ -56,7 +56,9 @@ func (s *APIServer) apiWrapper(h http.HandlerFunc, w http.ResponseWriter, r *htt
 	}
 
 	if buffer {
-		w = newBufferedResponseWriter(w)
+		bw := newBufferedResponseWriter(w)
+		defer bw.b.Flush()
+		w = bw
 	}
 
 	h(w, r)

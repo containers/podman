@@ -48,12 +48,8 @@ func TopContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// We are committed now - all errors logged but not reported to client, ship has sailed
-	w.WriteHeader(http.StatusOK)
+	statusWritten := false
 	w.Header().Set("Content-Type", "application/json")
-	if f, ok := w.(http.Flusher); ok {
-		f.Flush()
-	}
 
 	encoder := json.NewEncoder(w)
 
@@ -65,7 +61,11 @@ loop: // break out of for/select infinite` loop
 		default:
 			output, err := c.Top(strings.Split(query.PsArgs, ","))
 			if err != nil {
-				logrus.Infof("Error from %s %q : %v", r.Method, r.URL, err)
+				if !statusWritten {
+					utils.InternalServerError(w, err)
+				} else {
+					logrus.Errorf("From %s %q : %v", r.Method, r.URL, err)
+				}
 				break loop
 			}
 
@@ -86,9 +86,15 @@ loop: // break out of for/select infinite` loop
 				}
 
 				if err := encoder.Encode(body); err != nil {
-					logrus.Infof("Error from %s %q : %v", r.Method, r.URL, err)
+					if !statusWritten {
+						utils.InternalServerError(w, err)
+					} else {
+						logrus.Errorf("From %s %q : %v", r.Method, r.URL, err)
+					}
 					break loop
 				}
+				// after the first write we can no longer send a different status code
+				statusWritten = true
 				if f, ok := w.(http.Flusher); ok {
 					f.Flush()
 				}
