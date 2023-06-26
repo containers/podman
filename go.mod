@@ -15,11 +15,11 @@ require (
 	github.com/containers/buildah v1.30.1-0.20230504052500-e925b5852e07
 	github.com/containers/common v0.53.1-0.20230626115555-370c89881624
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.25.1-0.20230613183705-07ced6137083
+	github.com/containers/image/v5 v5.25.1-0.20230623174242-68798a22ce3e
 	github.com/containers/libhvee v0.0.5
 	github.com/containers/ocicrypt v1.1.7
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.46.2-0.20230616083707-cc0d208e5e1c
+	github.com/containers/storage v1.46.2-0.20230621123301-73f29956326d
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.4.2
 	github.com/crc-org/vfkit v0.0.5-0.20230602131541-3d57f09010c9
@@ -74,6 +74,7 @@ require (
 )
 
 require (
+	dario.cat/mergo v1.0.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/Microsoft/hcsshim v0.10.0-rc.8 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
@@ -119,7 +120,6 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.4 // indirect
-	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jinzhu/copier v0.3.5 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
@@ -151,7 +151,7 @@ require (
 	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/sigstore/fulcio v1.3.1 // indirect
 	github.com/sigstore/rekor v1.2.2-0.20230601122533-4c81ff246d12 // indirect
-	github.com/sigstore/sigstore v1.6.5 // indirect
+	github.com/sigstore/sigstore v1.7.1 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20201008174630-78d3cae3a980 // indirect
 	github.com/sylabs/sif/v2 v2.11.5 // indirect

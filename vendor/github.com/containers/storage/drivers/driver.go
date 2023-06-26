@@ -187,6 +187,8 @@ type DriverWithDifferOutput struct {
 	UncompressedDigest digest.Digest
 	Metadata           string
 	BigData            map[string][]byte
+	TarSplit           []byte
+	TOCDigest          digest.Digest
 }
 
 // Differ defines the interface for using a custom differ.

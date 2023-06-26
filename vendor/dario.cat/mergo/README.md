@@ -46,13 +46,19 @@ Also a lovely [comune](http://en.wikipedia.org/wiki/Mergo) (municipality) in the
 
 It is ready for production use. [It is used in several projects by Docker, Google, The Linux Foundation, VMWare, Shopify, Microsoft, etc](https://github.com/imdario/mergo#mergo-in-the-wild).
 
-### Important note
+### Important notes
+
+#### 1.0.0
+
+In [1.0.0](//github.com/imdario/mergo/releases/tag/1.0.0) Mergo moves to a vanity URL `dario.cat/mergo`.
+
+#### 0.3.9
 
 Please keep in mind that a problematic PR broke [0.3.9](//github.com/imdario/mergo/releases/tag/0.3.9). I reverted it in [0.3.10](//github.com/imdario/mergo/releases/tag/0.3.10), and I consider it stable but not bug-free. Also, this version adds support for go modules.
 
 Keep in mind that in [0.3.2](//github.com/imdario/mergo/releases/tag/0.3.2), Mergo changed `Merge()`and `Map()` signatures to support [transformers](#transformers). I added an optional/variadic argument so that it won't break the existing code.
 
-If you were using Mergo before April 6th, 2015, please check your project works as intended after updating your local copy with ```go get -u github.com/imdario/mergo```. I apologize for any issue caused by its previous behavior and any future bug that Mergo could cause in existing projects after the change (release 0.2.0).
+If you were using Mergo before April 6th, 2015, please check your project works as intended after updating your local copy with ```go get -u dario.cat/mergo```. I apologize for any issue caused by its previous behavior and any future bug that Mergo could cause in existing projects after the change (release 0.2.0).
 
 ### Donations
 
@@ -110,11 +116,11 @@ If Mergo is useful to you, consider buying me a coffee, a beer, or making a mont
 
 ## Install
 
-    go get github.com/imdario/mergo
+    go get dario.cat/mergo
 
     // use in your .go code
     import (
-        "github.com/imdario/mergo"
+        "dario.cat/mergo"
     )
 
 ## Usage
@@ -152,7 +158,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/imdario/mergo"
+	"dario.cat/mergo"
 )
 
 type Foo struct {
@@ -188,9 +194,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/imdario/mergo"
-        "reflect"
-        "time"
+	"dario.cat/mergo"
+    "reflect"
+    "time"
 )
 
 type timeTransformer struct {
