@@ -258,7 +258,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	if isRootless && len(s.DeviceCgroupRule) > 0 {
 		return nil, fmt.Errorf("device cgroup rules are not supported in rootless mode or in a user namespace")
 	}
-	if !inUserNS && !s.Privileged {
+	if !isRootless && !s.Privileged {
 		for _, dev := range s.DeviceCgroupRule {
 			g.AddLinuxResourcesDevice(true, dev.Type, dev.Major, dev.Minor, dev.Access)
 		}
