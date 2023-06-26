@@ -746,7 +746,11 @@ EOF
 }
 
 @test "podman run --device-cgroup-rule tests" {
-    skip_if_rootless "cannot add devices in rootless mode"
+    if is_rootless; then
+        run_podman 125 run --device-cgroup-rule="b 7:* rmw" --rm $IMAGE
+        is "$output" "Error: device cgroup rules are not supported in rootless mode or in a user namespace"
+        return
+    fi
 
     run_podman run --device-cgroup-rule="b 7:* rmw" --rm $IMAGE
     run_podman run --device-cgroup-rule="c 7:* rmw" --rm $IMAGE
