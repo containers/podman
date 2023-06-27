@@ -30,9 +30,9 @@ func GetSystemProvider() (machine.VirtProvider, error) {
 	logrus.Debugf("Using Podman machine with `%s` virtualization provider", resolvedVMType.String())
 	switch resolvedVMType {
 	case machine.QemuVirt:
-		return qemu.GetVirtualizationProvider(), nil
+		return qemu.VirtualizationProvider(), nil
 	case machine.AppleHvVirt:
-		return applehv.GetVirtualizationProvider(), nil
+		return applehv.VirtualizationProvider(), nil
 	default:
 		return nil, fmt.Errorf("unsupported virtualization provider: `%s`", resolvedVMType.String())
 	}

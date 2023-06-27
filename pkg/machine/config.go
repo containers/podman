@@ -48,19 +48,6 @@ const (
 	DefaultMachineName string = "podman-machine-default"
 )
 
-type VirtProvider interface {
-	Artifact() Artifact
-	CheckExclusiveActiveVM() (bool, string, error)
-	Compression() ImageCompression
-	Format() ImageFormat
-	IsValidVMName(name string) (bool, error)
-	List(opts ListOptions) ([]*ListResponse, error)
-	LoadVMByName(name string) (VM, error)
-	NewMachine(opts InitOptions) (VM, error)
-	RemoveAndCleanMachines() error
-	VMType() VMType
-}
-
 type RemoteConnectionType string
 
 var (
@@ -426,5 +413,44 @@ func ParseVMType(input string, emptyFallback VMType) (VMType, error) {
 		return emptyFallback, nil
 	default:
 		return QemuVirt, fmt.Errorf("unknown VMType `%s`", input)
+	}
+}
+
+type VirtProvider interface {
+	Artifact() Artifact
+	CheckExclusiveActiveVM() (bool, string, error)
+	Compression() ImageCompression
+	Format() ImageFormat
+	IsValidVMName(name string) (bool, error)
+	List(opts ListOptions) ([]*ListResponse, error)
+	LoadVMByName(name string) (VM, error)
+	NewMachine(opts InitOptions) (VM, error)
+	RemoveAndCleanMachines() error
+	VMType() VMType
+}
+
+type Virtualization struct {
+	artifact    Artifact
+	compression ImageCompression
+	format      ImageFormat
+}
+
+func (p *Virtualization) Artifact() Artifact {
+	return p.artifact
+}
+
+func (p *Virtualization) Compression() ImageCompression {
+	return p.compression
+}
+
+func (p *Virtualization) Format() ImageFormat {
+	return p.format
+}
+
+func NewVirtualization(artifact Artifact, compression ImageCompression, format ImageFormat) Virtualization {
+	return Virtualization{
+		artifact,
+		compression,
+		format,
 	}
 }

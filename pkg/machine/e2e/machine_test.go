@@ -44,7 +44,7 @@ func TestMachine(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	qemuVP := qemu.GetVirtualizationProvider()
+	qemuVP := qemu.VirtualizationProvider()
 	fcd, err := machine.GetFCOSDownload(qemuVP, defaultStream)
 	if err != nil {
 		Fail("unable to get virtual machine image")

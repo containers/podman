@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/url"
 	"os"
 	"os/exec"
@@ -22,7 +21,6 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/wsl/wutil"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/sirupsen/logrus"
@@ -219,24 +217,6 @@ const (
 	rootlessSock   = "/run/user/1000/podman/podman.sock"
 )
 
-type Virtualization struct {
-	artifact    machine.Artifact
-	compression machine.ImageCompression
-	format      machine.ImageFormat
-}
-
-func (p *Virtualization) Artifact() machine.Artifact {
-	return p.artifact
-}
-
-func (p *Virtualization) Compression() machine.ImageCompression {
-	return p.compression
-}
-
-func (p *Virtualization) Format() machine.ImageFormat {
-	return p.format
-}
-
 type MachineVM struct {
 	// ConfigPath is the path to the configuration file
 	ConfigPath string
@@ -268,46 +248,6 @@ func (e *ExitCodeError) Error() string {
 	return fmt.Sprintf("Process failed with exit code: %d", e.code)
 }
 
-func GetWSLProvider() machine.VirtProvider {
-	return &Virtualization{
-		artifact:    machine.None,
-		compression: machine.Xz,
-		format:      machine.Tar,
-	}
-}
-
-// NewMachine initializes an instance of a wsl machine
-func (p *Virtualization) NewMachine(opts machine.InitOptions) (machine.VM, error) {
-	vm := new(MachineVM)
-	if len(opts.Name) > 0 {
-		vm.Name = opts.Name
-	}
-	configPath, err := getConfigPath(opts.Name)
-	if err != nil {
-		return vm, err
-	}
-
-	vm.ConfigPath = configPath
-	vm.ImagePath = opts.ImagePath
-	vm.RemoteUsername = opts.Username
-	vm.Created = time.Now()
-	vm.LastUp = vm.Created
-
-	// Default is false
-	if opts.UserModeNetworking != nil {
-		vm.UserModeNetworking = *opts.UserModeNetworking
-	}
-
-	// Add a random port for ssh
-	port, err := utils.GetRandomPort()
-	if err != nil {
-		return nil, err
-	}
-	vm.Port = port
-
-	return vm, nil
-}
-
 func getConfigPath(name string) (string, error) {
 	return getConfigPathExt(name, "json")
 }
@@ -319,18 +259,6 @@ func getConfigPathExt(name string, extension string) (string, error) {
 	}
 
 	return filepath.Join(vmConfigDir, fmt.Sprintf("%s.%s", name, extension)), nil
-}
-
-// LoadByName reads a json file that describes a known qemu vm
-// and returns a vm instance
-func (p *Virtualization) LoadVMByName(name string) (machine.VM, error) {
-	configPath, err := getConfigPath(name)
-	if err != nil {
-		return nil, err
-	}
-
-	vm, err := readAndMigrate(configPath, name)
-	return vm, err
 }
 
 // readAndMigrate returns the content of the VM's
@@ -1512,53 +1440,6 @@ func (v *MachineVM) SSH(name string, opts machine.SSHOptions) error {
 	return cmd.Run()
 }
 
-// List lists all vm's that use qemu virtualization
-func (p *Virtualization) List(_ machine.ListOptions) ([]*machine.ListResponse, error) {
-	return GetVMInfos()
-}
-
-func GetVMInfos() ([]*machine.ListResponse, error) {
-	vmConfigDir, err := machine.GetConfDir(vmtype)
-	if err != nil {
-		return nil, err
-	}
-
-	var listed []*machine.ListResponse
-
-	if err = filepath.WalkDir(vmConfigDir, func(path string, d fs.DirEntry, err error) error {
-		if strings.HasSuffix(d.Name(), ".json") {
-			path := filepath.Join(vmConfigDir, d.Name())
-			vm, err := readAndMigrate(path, strings.TrimSuffix(d.Name(), ".json"))
-			if err != nil {
-				return err
-			}
-			listEntry := new(machine.ListResponse)
-
-			listEntry.Name = vm.Name
-			listEntry.Stream = vm.ImageStream
-			listEntry.VMType = "wsl"
-			listEntry.CPUs, _ = getCPUs(vm)
-			listEntry.Memory, _ = getMem(vm)
-			listEntry.DiskSize = getDiskSize(vm)
-			listEntry.RemoteUsername = vm.RemoteUsername
-			listEntry.Port = vm.Port
-			listEntry.IdentityPath = vm.IdentityPath
-			listEntry.Starting = false
-			listEntry.UserModeNetworking = vm.UserModeNetworking
-
-			running := vm.isRunning()
-			listEntry.CreatedAt, listEntry.LastUp, _ = vm.updateTimeStamps(running)
-			listEntry.Running = running
-
-			listed = append(listed, listEntry)
-		}
-		return nil
-	}); err != nil {
-		return nil, err
-	}
-	return listed, err
-}
-
 func (vm *MachineVM) updateTimeStamps(updateLast bool) (time.Time, time.Time, error) {
 	var err error
 	if updateLast {
@@ -1643,23 +1524,6 @@ func getMem(vm *MachineVM) (uint64, error) {
 	return total - available, err
 }
 
-func (p *Virtualization) IsValidVMName(name string) (bool, error) {
-	infos, err := GetVMInfos()
-	if err != nil {
-		return false, err
-	}
-	for _, vm := range infos {
-		if vm.Name == name {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
-func (p *Virtualization) CheckExclusiveActiveVM() (bool, string, error) {
-	return false, "", nil
-}
-
 func (v *MachineVM) setRootful(rootful bool) error {
 	changeCon, err := machine.AnyConnectionDefault(v.Name, v.Name+"-root")
 	if err != nil {
@@ -1715,84 +1579,4 @@ func (v *MachineVM) getResources() (resources machine.ResourceConfig) {
 	resources.Memory, _ = getMem(v)
 	resources.DiskSize = getDiskSize(v)
 	return
-}
-
-// RemoveAndCleanMachines removes all machine and cleans up any other files associated with podman machine
-func (p *Virtualization) RemoveAndCleanMachines() error {
-	var (
-		vm             machine.VM
-		listResponse   []*machine.ListResponse
-		opts           machine.ListOptions
-		destroyOptions machine.RemoveOptions
-	)
-	destroyOptions.Force = true
-	var prevErr error
-
-	listResponse, err := p.List(opts)
-	if err != nil {
-		return err
-	}
-
-	for _, mach := range listResponse {
-		vm, err = p.LoadVMByName(mach.Name)
-		if err != nil {
-			if prevErr != nil {
-				logrus.Error(prevErr)
-			}
-			prevErr = err
-		}
-		_, remove, err := vm.Remove(mach.Name, destroyOptions)
-		if err != nil {
-			if prevErr != nil {
-				logrus.Error(prevErr)
-			}
-			prevErr = err
-		} else {
-			if err := remove(); err != nil {
-				if prevErr != nil {
-					logrus.Error(prevErr)
-				}
-				prevErr = err
-			}
-		}
-	}
-
-	// Clean leftover files in data dir
-	dataDir, err := machine.DataDirPrefix()
-	if err != nil {
-		if prevErr != nil {
-			logrus.Error(prevErr)
-		}
-		prevErr = err
-	} else {
-		err := machine.GuardedRemoveAll(dataDir)
-		if err != nil {
-			if prevErr != nil {
-				logrus.Error(prevErr)
-			}
-			prevErr = err
-		}
-	}
-
-	// Clean leftover files in conf dir
-	confDir, err := machine.ConfDirPrefix()
-	if err != nil {
-		if prevErr != nil {
-			logrus.Error(prevErr)
-		}
-		prevErr = err
-	} else {
-		err := machine.GuardedRemoveAll(confDir)
-		if err != nil {
-			if prevErr != nil {
-				logrus.Error(prevErr)
-			}
-			prevErr = err
-		}
-	}
-	return prevErr
-}
-
-func (p *Virtualization) VMType() machine.VMType {
-	return vmtype
 }
