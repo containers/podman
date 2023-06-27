@@ -12,6 +12,10 @@ import (
 )
 
 const (
+	// Fixme should use
+	// github.com/containers/podman/v4/libpod/define.AutoUpdateLabel
+	// but it is causing bloat
+	autoUpdateLabel = "io.containers.autoupdate"
 	// Directory for global Quadlet files (sysadmin owned)
 	UnitDirAdmin = "/etc/containers/systemd"
 	// Directory for global Quadlet files (distro owned)
@@ -207,6 +211,7 @@ var (
 
 	// Supported keys in "Kube" group
 	supportedKubeKeys = map[string]bool{
+		KeyAutoUpdate:          true,
 		KeyConfigMap:           true,
 		KeyExitCodePropagation: true,
 		KeyLogDriver:           true,
@@ -567,7 +572,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	update, ok := container.Lookup(ContainerGroup, KeyAutoUpdate)
 	if ok && len(update) > 0 {
 		podman.addLabels(map[string]string{
-			"io.containers.autoupdate": update,
+			autoUpdateLabel: update,
 		})
 	}
 
@@ -960,6 +965,18 @@ func ConvertKube(kube *parser.UnitFile, isUser bool) (*parser.UnitFile, error) {
 	handleUserNS(kube, KubeGroup, execStart)
 
 	addNetworks(kube, KubeGroup, service, execStart)
+
+	updateMaps := kube.LookupAllStrv(KubeGroup, KeyAutoUpdate)
+	for _, update := range updateMaps {
+		annotation := fmt.Sprintf("--annotation=%s", autoUpdateLabel)
+		updateType := update
+		val := strings.SplitN(update, "/", 2)
+		if len(val) == 2 {
+			annotation = annotation + "/" + val[0]
+			updateType = val[1]
+		}
+		execStart.addf("%s=%s", annotation, updateType)
+	}
 
 	configMaps := kube.LookupAllStrv(KubeGroup, KeyConfigMap)
 	for _, configMap := range configMaps {

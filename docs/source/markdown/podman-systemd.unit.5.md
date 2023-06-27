@@ -517,16 +517,27 @@ There is only one required key, `Yaml`, which defines the path to the Kubernetes
 Valid options for `[Kube]` are listed below:
 
 | **[Kube] options**                  | **podman kube play equivalent**             |
-| ----------------------------------- | ------------------------------------------- |
-| ConfigMap=/tmp/config.map           | --config-map /tmp/config.map                |
-| LogDriver=journald                  | --log-driver journald                       |
-| Network=host                        | --net host                                  |
-| PodmanArgs=\-\-annotation=key=value | --annotation=key=value                      |
-| PublishPort=59-60                   | --publish=59-60                             |
-| UserNS=keep-id:uid=200,gid=210      | --userns keep-id:uid=200,gid=210            |
-| Yaml=/tmp/kube.yaml                 | podman kube play /tmp/kube.yaml             |
+| ----------------------------------- | ------------------------------------------------ |
+| AutoUpdate=registry                 | --annotation "io.containers.autoupdate=registry" |
+| ConfigMap=/tmp/config.map           | --config-map /tmp/config.map                     |
+| LogDriver=journald                  | --log-driver journald                            |
+| Network=host                        | --net host                                       |
+| PodmanArgs=\-\-annotation=key=value | --annotation=key=value                           |
+| PublishPort=59-60                   | --publish=59-60                                  |
+| UserNS=keep-id:uid=200,gid=210      | --userns keep-id:uid=200,gid=210                 |
+| Yaml=/tmp/kube.yaml                 | podman kube play /tmp/kube.yaml                  |
 
 Supported keys in the `[Kube]` section are:
+
+### `AutoUpdate=`
+
+Indicates whether containers will be auto-updated ([podman-auto-update(1)](podman-auto-update.1.md)). AutoUpdate can be specified multiple times. The following values are supported:
+
+* `registry`: Requires a fully-qualified image reference (e.g., quay.io/podman/stable:latest) to be used to create the container. This enforcement is necessary to know which images to actually check and pull. If an image ID was used, Podman does not know which image to check/pull anymore.
+
+* `local`: Tells Podman to compare the image a container is using to the image with its raw name in local storage. If an image is updated locally, Podman simply restarts the systemd unit executing the Kubernetes quadlet.
+
+* `name/(local|registry)`: Tells Podman to preform the `local` or `registry` autoupdate on the specified container name.
 
 ### `ConfigMap=`
 
