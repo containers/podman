@@ -12,14 +12,14 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.5.4
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
-	github.com/containers/buildah v1.30.1-0.20230504052500-e925b5852e07
-	github.com/containers/common v0.53.1-0.20230626115555-370c89881624
+	github.com/containers/buildah v1.30.1-0.20230627110136-33b7088fec7b
+	github.com/containers/common v0.53.1-0.20230627061926-e6f314e59b81
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.25.1-0.20230623174242-68798a22ce3e
 	github.com/containers/libhvee v0.0.5
 	github.com/containers/ocicrypt v1.1.7
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.46.2-0.20230621123301-73f29956326d
+	github.com/containers/storage v1.47.0
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.4.2
 	github.com/crc-org/vfkit v0.0.5-0.20230602131541-3d57f09010c9

@@ -15,6 +15,8 @@ import (
 	"github.com/containers/buildah/pkg/parse"
 	commonComp "github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
+	encconfig "github.com/containers/ocicrypt/config"
+	enchelpers "github.com/containers/ocicrypt/helpers"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/spf13/pflag"
@@ -522,4 +524,50 @@ func LookupEnvVarReferences(specs, environ []string) []string {
 	}
 
 	return result
+}
+
+// DecryptConfig translates decryptionKeys into a DescriptionConfig structure
+func DecryptConfig(decryptionKeys []string) (*encconfig.DecryptConfig, error) {
+	var decryptConfig *encconfig.DecryptConfig
+	if len(decryptionKeys) > 0 {
+		// decryption
+		dcc, err := enchelpers.CreateCryptoConfig([]string{}, decryptionKeys)
+		if err != nil {
+			return nil, fmt.Errorf("invalid decryption keys: %w", err)
+		}
+		cc := encconfig.CombineCryptoConfigs([]encconfig.CryptoConfig{dcc})
+		decryptConfig = cc.DecryptConfig
+	}
+
+	return decryptConfig, nil
+}
+
+// EncryptConfig translates encryptionKeys into a EncriptionsConfig structure
+func EncryptConfig(encryptionKeys []string, encryptLayers []int) (*encconfig.EncryptConfig, *[]int, error) {
+	var encLayers *[]int
+	var encConfig *encconfig.EncryptConfig
+
+	if len(encryptionKeys) > 0 {
+		// encryption
+		encLayers = &encryptLayers
+		ecc, err := enchelpers.CreateCryptoConfig(encryptionKeys, []string{})
+		if err != nil {
+			return nil, nil, fmt.Errorf("invalid encryption keys: %w", err)
+		}
+		cc := encconfig.CombineCryptoConfigs([]encconfig.CryptoConfig{ecc})
+		encConfig = cc.EncryptConfig
+	}
+	return encConfig, encLayers, nil
+}
+
+// GetFormat translates format string into either docker or OCI format constant
+func GetFormat(format string) (string, error) {
+	switch format {
+	case define.OCI:
+		return define.OCIv1ImageManifest, nil
+	case define.DOCKER:
+		return define.Dockerv2ImageManifest, nil
+	default:
+		return "", fmt.Errorf("unrecognized image type %q", format)
+	}
 }

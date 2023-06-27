@@ -161,7 +161,6 @@ Prior to installing Buildah, install the following packages on your Linux distro
 * bats
 * btrfs-progs-devel
 * bzip2
-* device-mapper-devel
 * git
 * go-md2man
 * gpgme-devel
@@ -181,7 +180,6 @@ In Fedora, you can use this command:
     golang \
     bats \
     btrfs-progs-devel \
-    device-mapper-devel \
     glib2-devel \
     gpgme-devel \
     libassuan-devel \
@@ -216,7 +214,6 @@ In RHEL and CentOS, run this command to install the build dependencies:
     golang \
     bats \
     btrfs-progs-devel \
-    device-mapper-devel \
     glib2-devel \
     gpgme-devel \
     libassuan-devel \
@@ -242,7 +239,6 @@ On openSUSE Tumbleweed, install go via `zypper in go`, then run this command:
     bzip2 \
     libgpgme-devel \
     libseccomp-devel \
-    device-mapper-devel \
     libbtrfs-devel \
     go-md2man
 ```
@@ -256,7 +252,7 @@ In Ubuntu jammy you can use these commands:
 
 ```
   sudo apt-get -y -qq update
-  sudo apt-get -y install bats btrfs-progs git libapparmor-dev libdevmapper-dev libglib2.0-dev libgpgme11-dev libseccomp-dev libselinux1-dev skopeo go-md2man make
+  sudo apt-get -y install bats btrfs-progs git libapparmor-dev libglib2.0-dev libgpgme11-dev libseccomp-dev libselinux1-dev skopeo go-md2man make
   sudo apt-get -y install golang-1.18
 ```
 Then to install Buildah on Ubuntu follow the steps in this example:
@@ -282,7 +278,7 @@ sudo gpg --export 0x018BA5AD9DF57A4448F0E6CF8BECF1637AD8C79D >> /usr/share/keyri
 sudo echo 'deb [signed-by=/usr/share/keyrings/projectatomic-ppa.gpg] http://ppa.launchpad.net/projectatomic/ppa/ubuntu zesty main' > /etc/apt/sources.list.d/projectatomic-ppa.list
 sudo apt update
 sudo apt -y install -t stretch-backports golang
-sudo apt -y install bats btrfs-tools git libapparmor-dev libdevmapper-dev libglib2.0-dev libgpgme11-dev libseccomp-dev libselinux1-dev skopeo-containers go-md2man
+sudo apt -y install bats btrfs-tools git libapparmor-dev libglib2.0-dev libgpgme11-dev libseccomp-dev libselinux1-dev skopeo-containers go-md2man
 ```
 
 The build steps on Debian are otherwise the same as Ubuntu, above.
@@ -319,7 +315,7 @@ cat /etc/containers/registries.conf
 # and 'registries.block'.
 
 [registries.search]
-registries = ['docker.io', 'registry.fedoraproject.org', 'quay.io', 'registry.access.redhat.com', 'registry.centos.org']
+registries = ['docker.io', 'registry.fedoraproject.org', 'quay.io', 'registry.access.redhat.com']
 
 # If you need to access insecure registries, add the registry's fully-qualified name.
 # An insecure registry is one that does not have a valid SSL certificate or only does HTTP.

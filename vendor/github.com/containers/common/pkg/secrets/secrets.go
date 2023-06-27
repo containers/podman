@@ -79,6 +79,8 @@ type Secret struct {
 	Metadata map[string]string `json:"metadata,omitempty"`
 	// CreatedAt is when the secret was created
 	CreatedAt time.Time `json:"createdAt"`
+	// UpdatedAt is when the secret was updated
+	UpdatedAt time.Time `json:"updatedAt"`
 	// Driver is the driver used to store secret data
 	Driver string `json:"driver"`
 	// DriverOptions are extra options used to run this driver
@@ -112,6 +114,8 @@ type StoreOptions struct {
 	Metadata map[string]string
 	// Labels are labels on the secret
 	Labels map[string]string
+	// Replace existing secret
+	Replace bool
 }
 
 // NewManager creates a new secrets manager
@@ -140,6 +144,28 @@ func NewManager(rootPath string) (*SecretsManager, error) {
 	return manager, nil
 }
 
+func (s *SecretsManager) newSecret(name string) (*Secret, error) {
+	secr := new(Secret)
+	secr.Name = name
+	secr.CreatedAt = time.Now()
+	secr.UpdatedAt = secr.CreatedAt
+
+	for {
+		newID := stringid.GenerateNonCryptoID()
+		// GenerateNonCryptoID() gives 64 characters, so we truncate to correct length
+		newID = newID[0:secretIDLength]
+		_, err := s.lookupSecret(newID)
+		if err != nil {
+			if errors.Is(err, ErrNoSuchSecret) {
+				secr.ID = newID
+				break
+			}
+			return nil, err
+		}
+	}
+	return secr, nil
+}
+
 // Store takes a name, creates a secret and stores the secret metadata and the secret payload.
 // It returns a generated ID that is associated with the secret.
 // The max size for secret data is 512kB.
@@ -152,7 +178,7 @@ func (s *SecretsManager) Store(name string, data []byte, driverType string, opti
 	if !(len(data) > 0 && len(data) < maxSecretSize) {
 		return "", errDataSize
 	}
-
+	var secr *Secret
 	s.lockfile.Lock()
 	defer s.lockfile.Unlock()
 
@@ -160,23 +186,22 @@ func (s *SecretsManager) Store(name string, data []byte, driverType string, opti
 	if err != nil {
 		return "", err
 	}
+
 	if exist {
-		return "", fmt.Errorf("%s: %w", name, errSecretNameInUse)
-	}
-
-	secr := new(Secret)
-	secr.Name = name
-
-	for {
-		newID := stringid.GenerateNonCryptoID()
-		// GenerateNonCryptoID() gives 64 characters, so we truncate to correct length
-		newID = newID[0:secretIDLength]
-		_, err := s.lookupSecret(newID)
+		if !options.Replace {
+			return "", fmt.Errorf("%s: %w", name, errSecretNameInUse)
+		}
+		secr, err = s.lookupSecret(name)
 		if err != nil {
-			if errors.Is(err, ErrNoSuchSecret) {
-				secr.ID = newID
-				break
-			}
+			return "", err
+		}
+		secr.UpdatedAt = time.Now()
+	} else {
+		if options.Replace {
+			return "", fmt.Errorf("%s: %w", name, ErrNoSuchSecret)
+		}
+		secr, err = s.newSecret(name)
+		if err != nil {
 			return "", err
 		}
 	}
@@ -193,7 +218,6 @@ func (s *SecretsManager) Store(name string, data []byte, driverType string, opti
 
 	secr.Driver = driverType
 	secr.Metadata = options.Metadata
-	secr.CreatedAt = time.Now()
 	secr.DriverOptions = options.DriverOpts
 	secr.Labels = options.Labels
 
@@ -201,6 +225,13 @@ func (s *SecretsManager) Store(name string, data []byte, driverType string, opti
 	if err != nil {
 		return "", err
 	}
+	if options.Replace {
+		err = driver.Delete(secr.ID)
+		if err != nil {
+			return "", fmt.Errorf("replacing secret %s: %w", name, err)
+		}
+	}
+
 	err = driver.Store(secr.ID, data)
 	if err != nil {
 		return "", fmt.Errorf("creating secret %s: %w", name, err)
