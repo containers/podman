@@ -23,11 +23,14 @@ func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader
 	return created, nil
 }
 
-func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string) ([]*entities.SecretInfoReport, []error, error) {
+func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string, options entities.SecretInspectOptions) ([]*entities.SecretInfoReport, []error, error) {
 	allInspect := make([]*entities.SecretInfoReport, 0, len(nameOrIDs))
 	errs := make([]error, 0, len(nameOrIDs))
+	opts := new(secrets.InspectOptions).
+		WithShowSecret(options.ShowSecret)
+
 	for _, name := range nameOrIDs {
-		inspected, err := secrets.Inspect(ic.ClientCtx, name, nil)
+		inspected, err := secrets.Inspect(ic.ClientCtx, name, opts)
 		if err != nil {
 			errModel, ok := err.(*errorhandling.ErrorModel)
 			if !ok {

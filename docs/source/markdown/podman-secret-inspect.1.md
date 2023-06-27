@@ -23,6 +23,7 @@ Format secret output using Go template.
 |--------------------------|-------------------------------------------------------------------|
 | .CreatedAt               | When secret was created (relative timestamp, human-readable)      |
 | .ID                      | ID of secret                                                      |
+| .SecretData              | Secret Data (Displayed only with --showsecret option)		       |
 | .Spec ...                | Details of secret                                                 |
 | .Spec.Driver             | Driver info                                                       |
 | .Spec.Driver.Name        | Driver name (string)                                              |
@@ -39,12 +40,16 @@ Print usage statement.
 
 Print inspect output in human-readable format
 
+#### **--showsecret**
+
+Display secret data
 
 ## EXAMPLES
 
 ```
 $ podman secret inspect mysecret
 $ podman secret inspect --format "{{.Name} {{.Scope}}" mysecret
+$ podman secret inspect --showsecret --format "{{.Name} {{.SecretData}}" mysecret
 ```
 
 ## SEE ALSO

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	. "github.com/containers/podman/v4/test/utils"
+	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -48,8 +49,9 @@ var _ = Describe("Podman secret", func() {
 	})
 
 	It("podman secret inspect", func() {
+		random := stringid.GenerateRandomID()
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		err := os.WriteFile(secretFilePath, []byte(random), 0755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"secret", "create", "a", secretFilePath})
@@ -61,6 +63,16 @@ var _ = Describe("Podman secret", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(BeValidJSON())
+
+		inspect = podmanTest.Podman([]string{"secret", "inspect", "--format", "{{ .SecretData }}", secrID})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(Equal(""))
+
+		inspect = podmanTest.Podman([]string{"secret", "inspect", "--showsecret", "--format", "{{ .SecretData }}", secrID})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(Equal(random))
 	})
 
 	It("podman secret inspect with --format", func() {

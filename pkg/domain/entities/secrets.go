@@ -16,6 +16,10 @@ type SecretCreateOptions struct {
 	Labels     map[string]string
 }
 
+type SecretInspectOptions struct {
+	ShowSecret bool
+}
+
 type SecretListRequest struct {
 	Filters map[string][]string
 }
@@ -38,10 +42,11 @@ type SecretRmReport struct {
 }
 
 type SecretInfoReport struct {
-	ID        string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Spec      SecretSpec
+	ID         string
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	Spec       SecretSpec
+	SecretData string `json:"SecretData,omitempty"`
 }
 
 type SecretInfoReportCompat struct {

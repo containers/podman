@@ -43,6 +43,8 @@ Created at:        {{.CreatedAt}}
 Updated at:        {{.UpdatedAt}}`
 )
 
+var inspectOpts = entities.SecretInspectOptions{}
+
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: inspectCmd,
@@ -53,12 +55,14 @@ func init() {
 	flags.StringVarP(&format, formatFlagName, "f", "", "Format inspect output using Go template")
 	_ = inspectCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.SecretInfoReport{}))
 
+	flags.BoolVar(&inspectOpts.ShowSecret, "showsecret", false, "Display the secret")
+
 	prettyFlagName := "pretty"
 	flags.BoolVar(&pretty, prettyFlagName, false, "Print inspect output in human-readable format")
 }
 
 func inspect(cmd *cobra.Command, args []string) error {
-	inspected, errs, _ := registry.ContainerEngine().SecretInspect(context.Background(), args)
+	inspected, errs, _ := registry.ContainerEngine().SecretInspect(context.Background(), args, inspectOpts)
 
 	// always print valid list
 	if len(inspected) == 0 {
