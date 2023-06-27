@@ -9,6 +9,7 @@ import (
 	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/format"
 	. "github.com/onsi/gomega/gexec"
 )
 
@@ -116,6 +117,16 @@ var _ = Describe("Podman logs", func() {
 
 		It("tail 800 lines: "+log, func() {
 			skipIfJournaldInContainer()
+
+			// we match 800 line array here, make sure to print all lines when assertion fails.
+			// There is something weird going on (https://github.com/containers/podman/issues/18501)
+			// and only the normal output log does not seem to be enough to figure out why it flakes.
+			oldLength := format.MaxLength
+			// unlimited matcher output
+			format.MaxLength = 0
+			defer func() {
+				format.MaxLength = oldLength
+			}()
 
 			// this uses -d so that we do not have 1000 unnecessary lines printed in every test log
 			logc := podmanTest.Podman([]string{"run", "--log-driver", log, "-d", ALPINE, "sh", "-c", "i=1; while [ \"$i\" -ne 1000 ]; do echo \"line $i\"; i=$((i + 1)); done"})
