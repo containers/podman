@@ -18,21 +18,25 @@ The user is confined to the container environment via all of the security mechan
 
 Systemd will automatically create the container when the user session is started. Systemd will take down the container when all connections to the user session are removed. This means users can log in to the system multiple times, with each session connected to the same container.
 
+Administrators can use volumes to expose specific host data from the host system to the user, without the user being exposed to other parts of the system.
+
 ## Setup
-Modify user login session using usermod
+Create user login session using useradd while running as root.
 
 ```
-# usermod -s /usr/bin/podmansh testu
-# grep testu /etc/passwd
-testu:x:4004:4004::/home/testu:/usr/bin/podmansh
+# useradd -s /usr/bin/podmansh lockedu
+# grep lockedu /etc/passwd
+lockedu:x:4008:4008::/home/lockedu:/usr/bin/podmansh
 ```
 
-Now create a podman Quadlet file that looks something like one of the following.
+Create a Podman Quadlet file that looks something like one of the following.
 
 Fully locked down container, no access to host OS.
 
 ```
-sudo cat > /etc/containers/systemd/users/podmansh.container << _EOF
+# UID=$(id -u lockedu)
+# mkdir -p /etc/containers/systemd/users/${UID}
+# cat > /etc/containers/systemd/users/${UID}/podmansh.container << _EOF
 [Unit]
 Description=The podmansh container
 After=local-fs.target
@@ -42,7 +46,7 @@ Image=registry.fedoraproject.org/fedora
 ContainerName=podmansh
 RemapUsers=keep-id
 RunInit=yes
-DropCapabilities=all
+DropCapability=all
 NoNewPrivileges=true
 
 Exec=sleep infinity
@@ -52,13 +56,19 @@ RequiredBy=default.target
 _EOF
 ```
 
-Users inside of this Quadlet are allowed to become root within the user namespace, and able to read/write content in their homedirectory which is mounted from a subdir `data` of the hosts users account.
+Alternatively, while running as root, create a Quadlet where the user is allowed to become root within the user namespace. They can also permanently read/write content from their home directory which is volume mounted from the actual host's users account, rather than being inside of the container.
 
 ```
-sudo cat > /etc/containers/systemd/users/podmansh.container << _EOF
+# useradd -s /usr/bin/podmansh confinedu
+# grep confinedu /etc/passwd
+confinedu:x:4009:4009::/home/confinedu:/usr/bin/podmansh
+# UID=$(id -u confinedu)
+# mkdir -p /etc/containers/systemd/users/${UID}
+# cat > /etc/containers/systemd/users/${UID}/podmansh.container << _EOF
 [Unit]
 Description=The podmansh container
 After=local-fs.target
+ExecStartPre=-/bin/mkdir -p %h/data
 
 [Container]
 Image=registry.fedoraproject.org/fedora
@@ -77,11 +87,15 @@ RequiredBy=default.target
 _EOF
 ```
 
-Users inside this container will be allowed to execute containers with SELinux
-separate and able to read and write content in the $HOME/data directory.
+Another example, while running as root, create a Quadlet where the users inside this container are allowed to execute containers with SELinux separation and able to read and write content in the $HOME/data directory.
 
 ```
-sudo cat > /etc/containers/systemd/users/podmansh.container << _EOF
+# useradd -s /usr/bin/podmansh fullu
+# grep fullu /etc/passwd
+fullu:x:4010:4010::/home/fullu:/usr/bin/podmansh
+# UID=$(id -u fullu)
+# mkdir -p /etc/containers/systemd/users/${UID}
+# cat > /etc/containers/systemd/users/${UID}/podmansh.container << _EOF
 [Unit]
 Description=The podmansh container
 After=local-fs.target
