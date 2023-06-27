@@ -17,6 +17,7 @@ import (
 	"github.com/containerd/containerd/platforms"
 	"github.com/containers/buildah/define"
 	internalUtil "github.com/containers/buildah/internal/util"
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/util"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
@@ -65,7 +66,9 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 	if options.CommonBuildOpts == nil {
 		options.CommonBuildOpts = &define.CommonBuildOptions{}
 	}
-
+	if err := parse.Volumes(options.CommonBuildOpts.Volumes); err != nil {
+		return "", nil, fmt.Errorf("validating volumes: %w", err)
+	}
 	if len(paths) == 0 {
 		return "", nil, errors.New("building: no dockerfiles specified")
 	}

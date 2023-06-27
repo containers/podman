@@ -60,6 +60,8 @@ const (
 	FsMagicCephFs = FsMagic(0x00C36400)
 	// FsMagicCIFS filesystem id for CIFS
 	FsMagicCIFS = FsMagic(0xFF534D42)
+	// FsMagicEROFS filesystem id for EROFS
+	FsMagicEROFS = FsMagic(0xE0F5E1E2)
 	// FsMagicFHGFS filesystem id for FHGFS
 	FsMagicFHGFSFs = FsMagic(0x19830326)
 	// FsMagicIBRIX filesystem id for IBRIX
@@ -106,6 +108,7 @@ var (
 		FsMagicBtrfs:       "btrfs",
 		FsMagicCramfs:      "cramfs",
 		FsMagicEcryptfs:    "ecryptfs",
+		FsMagicEROFS:       "erofs",
 		FsMagicExtfs:       "extfs",
 		FsMagicF2fs:        "f2fs",
 		FsMagicGPFS:        "gpfs",

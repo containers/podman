@@ -114,7 +114,6 @@ var _ = Describe("Podman push", func() {
 		Expect(output).To(ContainSubstring("Copying blob "))
 		Expect(output).To(ContainSubstring("Copying config "))
 		Expect(output).To(ContainSubstring("Writing manifest to image destination"))
-		Expect(output).To(ContainSubstring("Storing signatures"))
 
 		bitSize := 1024
 		keyFileName := filepath.Join(podmanTest.TempDir, "key")

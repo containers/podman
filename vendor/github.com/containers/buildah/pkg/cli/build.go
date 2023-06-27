@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/containers/buildah/define"
-	iutil "github.com/containers/buildah/internal/util"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/util"
 	"github.com/containers/common/pkg/auth"
@@ -135,7 +134,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 	}
 
 	containerfiles := getContainerfiles(iopts.File)
-	format, err := iutil.GetFormat(iopts.Format)
+	format, err := GetFormat(iopts.Format)
 	if err != nil {
 		return options, nil, nil, err
 	}
@@ -272,7 +271,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		return options, nil, nil, err
 	}
 
-	decryptConfig, err := iutil.DecryptConfig(iopts.DecryptionKeys)
+	decryptConfig, err := DecryptConfig(iopts.DecryptionKeys)
 	if err != nil {
 		return options, nil, nil, fmt.Errorf("unable to obtain decrypt config: %w", err)
 	}
@@ -433,7 +432,7 @@ func readBuildArgFile(buildargfile string, args map[string]string) error {
 		return err
 	}
 	for _, arg := range strings.Split(string(argfile), "\n") {
-		if len (arg) == 0 || arg[0] == '#' {
+		if len(arg) == 0 || arg[0] == '#' {
 			continue
 		}
 		readBuildArg(arg, args)

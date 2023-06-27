@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
+	"dario.cat/mergo"
 	"github.com/containers/storage/pkg/homedir"
-	"github.com/imdario/mergo"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
