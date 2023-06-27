@@ -175,10 +175,8 @@ func (m *manager) Set(r *configs.Resources) error {
 	// When rootless is true, errors from the device subsystem are ignored because it is really not expected to work.
 	// However, errors from other subsystems are not ignored.
 	// see @test "runc create (rootless + limits + no cgrouppath + no permission) fails with informative error"
-	if err := setDevices(m.dirPath, r); err != nil {
-		if !m.config.Rootless || errors.Is(err, cgroups.ErrDevicesUnsupported) {
-			return err
-		}
+	if err := setDevices(m.dirPath, r); err != nil && !m.config.Rootless {
+		return err
 	}
 	// cpuset (since kernel 5.0)
 	if err := setCpuset(m.dirPath, r); err != nil {
@@ -201,16 +199,6 @@ func (m *manager) Set(r *configs.Resources) error {
 	}
 	m.config.Resources = r
 	return nil
-}
-
-func setDevices(dirPath string, r *configs.Resources) error {
-	if cgroups.DevicesSetV2 == nil {
-		if len(r.Devices) > 0 {
-			return cgroups.ErrDevicesUnsupported
-		}
-		return nil
-	}
-	return cgroups.DevicesSetV2(dirPath, r)
 }
 
 func (m *manager) setUnified(res map[string]string) error {
