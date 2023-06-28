@@ -39,6 +39,7 @@
 %global repo_plugins dnsname
 %global git_plugins %{container_base_url}/%{repo_plugins}
 %global commit_plugins 18822f9a4fb35d1349eb256f4cd2bfd372474d84
+%global import_path_plugins %{container_base_path}/%{repo_plugins}
 
 # gvproxy
 %global repo_gvproxy gvisor-tap-vsock
@@ -73,7 +74,7 @@ Source1: %{git_plugins}/archive/%{commit_plugins}/%{repo_plugins}-%{commit_plugi
 Source2: %{git_gvproxy}/archive/%{commit_gvproxy}/%{repo_gvproxy}-%{commit_gvproxy}.tar.gz
 Provides: %{name}-manpages = %{epoch}:%{version}-%{release}
 BuildRequires: %{_bindir}/envsubst
-BuildRequires: go-md2man
+BuildRequires: %{_bindir}/go-md2man
 %if %{defined build_with_btrfs}
 BuildRequires: btrfs-progs-devel
 %endif
@@ -255,16 +256,26 @@ export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag
 # reset LDFLAGS for plugins and gvisor binaries
 LDFLAGS=''
 
-cd %{repo_plugins}-%{commit_plugins}
-%gobuild -o bin/dnsname ./plugins/meta/dnsname
-cd ..
-
+# build gvisor-tap-vsock binaries
 cd %{repo_gvproxy}-%{commit_gvproxy}
 %gobuild -o bin/gvproxy ./cmd/gvproxy
 %gobuild -o bin/gvforwarder ./cmd/vm
 cd ..
 
 %{__make} docs docker-docs
+
+# build dnsname the old way otherwise it fails on koji
+cd %{repo_plugins}-%{commit_plugins}
+mkdir _build
+cd _build
+mkdir -p src/%{container_base_path}
+ln -s ../../../../ src/%{import_path_plugins}
+cd ..
+ln -s vendor src
+export GOPATH=$(pwd)/_build:$(pwd)
+%define gomodulesmode GO111MODULE=off
+%gobuild -o bin/dnsname %{import_path_plugins}/plugins/meta/dnsname
+cd ..
 
 %install
 install -dp %{buildroot}%{_unitdir}
