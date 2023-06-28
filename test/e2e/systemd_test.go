@@ -17,6 +17,7 @@ var _ = Describe("Podman systemd", func() {
 	var systemdUnitFile string
 
 	BeforeEach(func() {
+		podmanCmd := fmt.Sprintf("%s %s", podmanTest.PodmanBinary, strings.Join(podmanTest.MakeOptions(nil, false, false), " "))
 		systemdUnitFile = fmt.Sprintf(`[Unit]
 Description=redis container
 [Service]
@@ -26,19 +27,30 @@ ExecStop=%s stop -t 10 redis
 KillMode=process
 [Install]
 WantedBy=default.target
-`, podmanTest.PodmanBinary, podmanTest.PodmanBinary)
+`, podmanCmd, podmanCmd)
 	})
 
 	It("podman start container by systemd", func() {
-		SkipIfRootless("rootless can not write to /etc")
+		SkipIfRemote("cannot create unit file on remote host")
 		SkipIfContainerized("test does not have systemd as pid 1")
 
-		sysFile := os.WriteFile("/etc/systemd/system/redis.service", []byte(systemdUnitFile), 0644)
+		dashWhat := "--system"
+		unitDir := "/run/systemd/system"
+		if isRootless() {
+			dashWhat = "--user"
+			unitDir = fmt.Sprintf("%s/systemd/user", os.Getenv("XDG_RUNTIME_DIR"))
+		}
+		err := os.MkdirAll(unitDir, 0700)
+		Expect(err).ToNot(HaveOccurred())
+
+		serviceName := "redis-" + RandomString(10)
+		sysFilePath := filepath.Join(unitDir, serviceName+".service")
+		sysFile := os.WriteFile(sysFilePath, []byte(systemdUnitFile), 0644)
 		Expect(sysFile).ToNot(HaveOccurred())
 		defer func() {
-			stop := SystemExec("bash", []string{"-c", "systemctl stop redis"})
-			os.Remove("/etc/systemd/system/redis.service")
-			SystemExec("bash", []string{"-c", "systemctl daemon-reload"})
+			stop := SystemExec("systemctl", []string{dashWhat, "stop", serviceName})
+			os.Remove(sysFilePath)
+			SystemExec("systemctl", []string{dashWhat, "daemon-reload"})
 			Expect(stop).Should(Exit(0))
 		}()
 
@@ -46,16 +58,16 @@ WantedBy=default.target
 		create.WaitWithDefaultTimeout()
 		Expect(create).Should(Exit(0))
 
-		enable := SystemExec("bash", []string{"-c", "systemctl daemon-reload"})
+		enable := SystemExec("systemctl", []string{dashWhat, "daemon-reload"})
 		Expect(enable).Should(Exit(0))
 
-		start := SystemExec("bash", []string{"-c", "systemctl start redis"})
+		start := SystemExec("systemctl", []string{dashWhat, "start", serviceName})
 		Expect(start).Should(Exit(0))
 
-		logs := SystemExec("bash", []string{"-c", "journalctl -n 20 -u redis"})
+		logs := SystemExec("journalctl", []string{dashWhat, "-n", "20", "-u", serviceName})
 		Expect(logs).Should(Exit(0))
 
-		status := SystemExec("bash", []string{"-c", "systemctl status redis"})
+		status := SystemExec("systemctl", []string{dashWhat, "status", serviceName})
 		Expect(status.OutputToString()).To(ContainSubstring("active (running)"))
 	})
 
