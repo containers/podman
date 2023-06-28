@@ -18,6 +18,21 @@ function setup() {
     XFER_FILE="${PODMAN_TMPDIR}/pasta.bin"
 }
 
+function default_ifname() {
+    local ip_ver="${1}"
+
+    local expr='[.[] | select(.dst == "default").dev] | .[0]'
+    ip -j -"${ip_ver}" route show | jq -rM "${expr}"
+}
+
+function default_addr() {
+    local ip_ver="${1}"
+    local ifname="${2:-$(default_ifname "${ip_ver}")}"
+
+    local expr='.[0] | .addr_info[0].local'
+    ip -j -"${ip_ver}" addr show "${ifname}" | jq -rM "${expr}"
+}
+
 # pasta_test_do() - Run tests involving clients and servers
 # $1:    IP version: 4 or 6
 # $2:    Interface type: "tap" or "loopback"
@@ -38,28 +53,25 @@ function pasta_test_do() {
     # Calculate and set addresses,
     if [ ${ip_ver} -eq 4 ]; then
         skip_if_no_ipv4 "IPv4 not routable on the host"
-        if [ ${iftype} = "loopback" ]; then
-            local addr="127.0.0.1"
-        else
-            local addr="$(ipv4_get_addr_global)"
-        fi
     elif [ ${ip_ver} -eq 6 ]; then
         skip_if_no_ipv6 "IPv6 not routable on the host"
         if [ ${iftype} = "loopback" ]; then
+            local ifname="lo"
             local addr="::1"
         else
-            local addr="$(ipv6_get_addr_global)"
+            local addr="$(ipv6_get_addr_default)"
         fi
     else
         skip "Unsupported IP version"
     fi
 
-    # interface names,
     if [ ${iftype} = "loopback" ]; then
         local ifname="lo"
     else
-        local ifname="$(ether_get_name)"
+        local ifname="$(default_ifname "${ip_ver}")"
     fi
+
+    local addr="$(default_addr "${ip_ver}" "${ifname}")"
 
     # ports,
     if [ ${range} -gt 1 ]; then
@@ -168,7 +180,7 @@ function teardown() {
     run_podman run --net=pasta $IMAGE ip -j -4 address show
 
     local container_address="$(ipv4_get_addr_global "${output}")"
-    local host_address="$(ipv4_get_addr_global)"
+    local host_address="$(default_addr 4)"
 
     assert "${container_address}" = "${host_address}" \
            "Container address not matching host"
@@ -203,7 +215,7 @@ function teardown() {
     run_podman run --net=pasta $IMAGE ip -j -6 address show
 
     local container_address="$(ipv6_get_addr_global "${output}")"
-    local host_address="$(ipv6_get_addr_global)"
+    local host_address="$(default_addr 6)"
 
     assert "${container_address}" = "${host_address}" \
            "Container address not matching host"
