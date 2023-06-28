@@ -363,7 +363,7 @@ func addContainerInitBinary(s *specgen.SpecGenerator, path string) (spec.Mount, 
 		Destination: define.ContainerInitPath,
 		Type:        define.TypeBind,
 		Source:      path,
-		Options:     []string{define.TypeBind, "ro"},
+		Options:     append(define.BindOptions, "ro"),
 	}
 
 	if path == "" {
