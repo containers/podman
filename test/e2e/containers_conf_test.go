@@ -657,4 +657,35 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		Expect(result).Should(Exit(0))
 		Expect(result.OutputToString()).To(ContainSubstring("Path to the OCI-compatible binary used to run containers. (default \"testruntime\")"))
 	})
+
+	It("podman default_rootless_network_cmd", func() {
+		SkipIfNotRootless("default_rootless_network_cmd is only used rootless")
+
+		for _, mode := range []string{"pasta", "slirp4netns", "invalid"} {
+			conffile := filepath.Join(podmanTest.TempDir, "container.conf")
+			content := "[network]\ndefault_rootless_network_cmd=\"" + mode + "\"\n"
+			err := os.WriteFile(conffile, []byte(content), 0755)
+			Expect(err).ToNot(HaveOccurred())
+
+			os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
+			if IsRemote() {
+				podmanTest.RestartRemoteService()
+			}
+
+			podman := podmanTest.Podman([]string{"create", "--name", mode, ALPINE, "ip", "addr"})
+			podman.WaitWithDefaultTimeout()
+
+			if mode == "invalid" {
+				Expect(podman).Should(Exit(125))
+				Expect(podman.ErrorToString()).Should(ContainSubstring("invalid default_rootless_network_cmd option \"invalid\""))
+				continue
+			}
+			Expect(podman).Should(Exit(0))
+
+			inspect := podmanTest.Podman([]string{"inspect", "--format", "{{.HostConfig.NetworkMode}}", mode})
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect).Should(Exit(0))
+			Expect(inspect.OutputToString()).Should(Equal(mode))
+		}
+	})
 })
