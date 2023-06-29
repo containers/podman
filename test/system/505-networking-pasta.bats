@@ -50,6 +50,68 @@ function pasta_test_do() {
     local bind_type="${6}"
     local bytes="${7}"
 
+    # DO NOT ADD ANY CODE ABOVE THIS LINE! Especially skips: that could
+    # lead to the crossreference check not running in CI.
+    #
+    # BATS has no table-driven test generation mechanism, so there's a
+    # disturbing but unavoidable amount of duplication in the test
+    # invocations. The code below is a desperate sanity check to confirm
+    # that the BATS test name agrees with the parameters we're invoked with.
+    # This test can never, ever fail in gating. It can only fail in CI
+    # when a new test is added, and should be trivial to fix & re-push.
+    #
+    # TODO: a better idea might be to go the other direction: eliminate
+    # the function args entirely, and determine them from $BATS_TEST_NAME.
+    # We would still need a way to get $range and $bytes.
+    local expected_test_name=
+    if [[ $bytes -eq 1 ]]; then
+        # The usual case: a single-byte transfer test. This has many
+        # variations depending on our input args
+        if [[ $range -eq 1 ]]; then
+            # e.g., Single TCP port forwarding, IPv4, loopback
+            if [[ $delta -ne 0 ]]; then
+                expected_test_name+="Translated"
+            elif [[ "${bind_type}" = "port" ]]; then
+                expected_test_name+="Single"
+            else
+                expected_test_name+="${bind_type^}-bound"
+            fi
+            expected_test_name+=" ${proto^^} port"
+        else
+            # e.g., TCP translated port range forwarding, IPv4, tap
+            expected_test_name+="${proto^^}"
+            if [[ $delta -ne 0 ]]; then
+                expected_test_name+=" translated"
+            fi
+            expected_test_name+=" port range"
+        fi
+        expected_test_name+=" forwarding, IPv${ip_ver}, ${iftype}"
+    else
+        # Multi-byte. 2k is the common size for small, all else is large
+        local size="large"
+        if [[ $bytes = "2k" ]]; then
+            size="small"
+        fi
+        expected_test_name="${proto^^}/IPv${ip_ver} $size transfer, ${iftype}"
+
+        # No other input args are variable.
+        assert "$range"     = "1"    "range must = 1 on multibyte transfers"
+        assert "$delta"     = "0"    "delta must = 0 on multibyte transfers"
+        assert "$bind_type" = "port" "bind_type must = 'port' on multibyte transfers"
+    fi
+
+    # Normalize test name back to human-readable form: strip common prefix,
+    # convert '-XX' to chr (dashes, commas) and underscore to space.
+    # Sorry this is so convoluted.
+    local actual_test_name=$(printf "$(sed \
+                            -e 's/^test_podman_networking_with_pasta-281-29_-2d_//'  \
+                            -e 's/-\([0-9a-f]\{2\}\)/\\x\1/gI'                       \
+                            -e 's/_/ /g'                                             \
+                            <<<"${BATS_TEST_NAME}")")
+
+    assert "$actual_test_name" = "$expected_test_name" \
+           "INTERNAL ERROR! Mismatch between BATS test name and test args!"
+
     # Calculate and set addresses,
     if [ ${ip_ver} -eq 4 ]; then
         skip_if_no_ipv4 "IPv4 not routable on the host"
