@@ -102,17 +102,23 @@ func (releaseArch *Arch) toStreamArch(rel *Release) stream.Arch {
 		}
 	}
 
+	if releaseArch.Media.Digitalocean != nil {
+		artifacts["digitalocean"] = stream.PlatformArtifacts{
+			Release: rel.Release,
+			Formats: mapFormats(releaseArch.Media.Digitalocean.Artifacts),
+		}
+
+		/* We're producing artifacts but they're not yet available
+		   in DigitalOcean as distribution images.
+		digitalOceanImage := stream.CloudImage{Image: fmt.Sprintf("fedora-coreos-%s", Stream)}
+		cloudImages.Digitalocean = &digitalOceanImage
+		*/
+	}
+
 	if releaseArch.Media.Exoscale != nil {
 		artifacts["exoscale"] = stream.PlatformArtifacts{
 			Release: rel.Release,
 			Formats: mapFormats(releaseArch.Media.Exoscale.Artifacts),
-		}
-	}
-
-	if releaseArch.Media.Vultr != nil {
-		artifacts["vultr"] = stream.PlatformArtifacts{
-			Release: rel.Release,
-			Formats: mapFormats(releaseArch.Media.Vultr.Artifacts),
 		}
 	}
 
@@ -132,31 +138,11 @@ func (releaseArch *Arch) toStreamArch(rel *Release) stream.Arch {
 		}
 	}
 
-	if releaseArch.Media.KubeVirt != nil {
-		artifacts["kubevirt"] = stream.PlatformArtifacts{
+	if releaseArch.Media.HyperV != nil {
+		artifacts["hyperv"] = stream.PlatformArtifacts{
 			Release: rel.Release,
-			Formats: mapFormats(releaseArch.Media.KubeVirt.Artifacts),
+			Formats: mapFormats(releaseArch.Media.HyperV.Artifacts),
 		}
-		if releaseArch.Media.KubeVirt.Image != nil {
-			cloudImages.KubeVirt = &stream.ContainerImage{
-				Release:   rel.Release,
-				Image:     releaseArch.Media.KubeVirt.Image.Image,
-				DigestRef: releaseArch.Media.KubeVirt.Image.DigestRef,
-			}
-		}
-	}
-
-	if releaseArch.Media.Digitalocean != nil {
-		artifacts["digitalocean"] = stream.PlatformArtifacts{
-			Release: rel.Release,
-			Formats: mapFormats(releaseArch.Media.Digitalocean.Artifacts),
-		}
-
-		/* We're producing artifacts but they're not yet available
-		   in DigitalOcean as distribution images.
-		digitalOceanImage := stream.CloudImage{Image: fmt.Sprintf("fedora-coreos-%s", Stream)}
-		cloudImages.Digitalocean = &digitalOceanImage
-		*/
 	}
 
 	if releaseArch.Media.Ibmcloud != nil {
@@ -182,16 +168,26 @@ func (releaseArch *Arch) toStreamArch(rel *Release) stream.Arch {
 		}
 	}
 
-	// if releaseArch.Media.Packet != nil {
-	// 	packet := StreamMediaDetails{
-	// 		Release: rel.Release,
-	// 		Formats: releaseArch.Media.Packet.Artifacts,
-	// 	}
-	// 	artifacts.Packet = &packet
+	if releaseArch.Media.KubeVirt != nil {
+		artifacts["kubevirt"] = stream.PlatformArtifacts{
+			Release: rel.Release,
+			Formats: mapFormats(releaseArch.Media.KubeVirt.Artifacts),
+		}
+		if releaseArch.Media.KubeVirt.Image != nil {
+			cloudImages.KubeVirt = &stream.ContainerImage{
+				Release:   rel.Release,
+				Image:     releaseArch.Media.KubeVirt.Image.Image,
+				DigestRef: releaseArch.Media.KubeVirt.Image.DigestRef,
+			}
+		}
+	}
 
-	// 	packetImage := StreamCloudImage{Image: fmt.Sprintf("fedora_coreos_%s", rel.Stream)}
-	// 	cloudImages.Packet = &packetImage
-	// }
+	if releaseArch.Media.Metal != nil {
+		artifacts["metal"] = stream.PlatformArtifacts{
+			Release: rel.Release,
+			Formats: mapFormats(releaseArch.Media.Metal.Artifacts),
+		}
+	}
 
 	if releaseArch.Media.Nutanix != nil {
 		artifacts["nutanix"] = stream.PlatformArtifacts{
@@ -206,6 +202,17 @@ func (releaseArch *Arch) toStreamArch(rel *Release) stream.Arch {
 			Formats: mapFormats(releaseArch.Media.Openstack.Artifacts),
 		}
 	}
+
+	// if releaseArch.Media.Packet != nil {
+	// 	packet := StreamMediaDetails{
+	// 		Release: rel.Release,
+	// 		Formats: releaseArch.Media.Packet.Artifacts,
+	// 	}
+	// 	artifacts.Packet = &packet
+
+	// 	packetImage := StreamCloudImage{Image: fmt.Sprintf("fedora_coreos_%s", rel.Stream)}
+	// 	cloudImages.Packet = &packetImage
+	// }
 
 	if releaseArch.Media.PowerVS != nil {
 		artifacts["powervs"] = stream.PlatformArtifacts{
@@ -258,10 +265,10 @@ func (releaseArch *Arch) toStreamArch(rel *Release) stream.Arch {
 		}
 	}
 
-	if releaseArch.Media.Metal != nil {
-		artifacts["metal"] = stream.PlatformArtifacts{
+	if releaseArch.Media.Vultr != nil {
+		artifacts["vultr"] = stream.PlatformArtifacts{
 			Release: rel.Release,
-			Formats: mapFormats(releaseArch.Media.Metal.Artifacts),
+			Formats: mapFormats(releaseArch.Media.Vultr.Artifacts),
 		}
 	}
 
