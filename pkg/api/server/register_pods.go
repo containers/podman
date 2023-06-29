@@ -309,7 +309,7 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: ps_args
 	//    type: string
-	//    default: -ef
+	//    default:
 	//    description: |
 	//      arguments to pass to ps such as aux.
 	//      Requires ps(1) to be installed in the container if no ps(1) compatible AIX descriptors are used.
