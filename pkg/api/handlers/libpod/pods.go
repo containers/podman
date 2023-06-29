@@ -362,17 +362,12 @@ func PodTop(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 
-	psArgs := "-ef"
-	if utils.IsLibpodRequest(r) {
-		psArgs = ""
-	}
 	query := struct {
 		Delay  int    `schema:"delay"`
 		PsArgs string `schema:"ps_args"`
 		Stream bool   `schema:"stream"`
 	}{
-		Delay:  5,
-		PsArgs: psArgs,
+		Delay: 5,
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
