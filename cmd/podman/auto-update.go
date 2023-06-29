@@ -8,6 +8,7 @@ import (
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -17,7 +18,8 @@ import (
 
 type cliAutoUpdateOptions struct {
 	entities.AutoUpdateOptions
-	format string
+	format    string
+	tlsVerify bool
 }
 
 var (
@@ -56,12 +58,18 @@ func init() {
 
 	flags.StringVar(&autoUpdateOptions.format, "format", "", "Change the output format to JSON or a Go template")
 	_ = autoUpdateCommand.RegisterFlagCompletionFunc("format", common.AutocompleteFormat(&autoUpdateOutput{}))
+
+	flags.BoolVarP(&autoUpdateOptions.tlsVerify, "tls-verify", "", true, "Require HTTPS and verify certificates when contacting registries")
 }
 
 func autoUpdate(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		// Backwards compat. System tests expect this error string.
 		return fmt.Errorf("`%s` takes no arguments", cmd.CommandPath())
+	}
+
+	if cmd.Flags().Changed("tls-verify") {
+		autoUpdateOptions.InsecureSkipTLSVerify = types.NewOptionalBool(!autoUpdateOptions.tlsVerify)
 	}
 
 	allReports, failures := registry.ContainerEngine().AutoUpdate(registry.GetContext(), autoUpdateOptions.AutoUpdateOptions)

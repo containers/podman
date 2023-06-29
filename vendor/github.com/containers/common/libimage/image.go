@@ -806,6 +806,9 @@ type HasDifferentDigestOptions struct {
 	// containers-auth.json(5) file to use when authenticating against
 	// container registries.
 	AuthFilePath string
+	// Allow contacting registries over HTTP, or HTTPS with failed TLS
+	// verification. Note that this does not affect other TLS connections.
+	InsecureSkipTLSVerify types.OptionalBool
 }
 
 // HasDifferentDigest returns true if the image specified by `remoteRef` has a
@@ -831,8 +834,15 @@ func (i *Image) HasDifferentDigest(ctx context.Context, remoteRef types.ImageRef
 		sys.VariantChoice = inspectInfo.Variant
 	}
 
-	if options != nil && options.AuthFilePath != "" {
-		sys.AuthFilePath = options.AuthFilePath
+	if options != nil {
+		if options.AuthFilePath != "" {
+			sys.AuthFilePath = options.AuthFilePath
+		}
+		if options.InsecureSkipTLSVerify != types.OptionalBoolUndefined {
+			sys.DockerInsecureSkipTLSVerify = options.InsecureSkipTLSVerify
+			sys.OCIInsecureSkipTLSVerify = options.InsecureSkipTLSVerify == types.OptionalBoolTrue
+			sys.DockerDaemonInsecureSkipTLSVerify = options.InsecureSkipTLSVerify == types.OptionalBoolTrue
+		}
 	}
 
 	return i.hasDifferentDigestWithSystemContext(ctx, remoteRef, sys)

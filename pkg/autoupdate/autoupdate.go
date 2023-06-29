@@ -282,7 +282,10 @@ func (t *task) registryUpdateAvailable(ctx context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	options := &libimage.HasDifferentDigestOptions{AuthFilePath: t.authfile}
+	options := &libimage.HasDifferentDigestOptions{
+		AuthFilePath:          t.authfile,
+		InsecureSkipTLSVerify: t.auto.options.InsecureSkipTLSVerify,
+	}
 	return t.image.HasDifferentDigest(ctx, remoteRef, options)
 }
 
@@ -296,6 +299,7 @@ func (t *task) registryUpdate(ctx context.Context) error {
 	pullOptions := &libimage.PullOptions{}
 	pullOptions.AuthFilePath = t.authfile
 	pullOptions.Writer = os.Stderr
+	pullOptions.InsecureSkipTLSVerify = t.auto.options.InsecureSkipTLSVerify
 	if _, err := t.auto.runtime.LibimageRuntime().Pull(ctx, t.rawImageName, config.PullPolicyAlways, pullOptions); err != nil {
 		return err
 	}
@@ -416,8 +420,14 @@ func (u *updater) assembleTasks(ctx context.Context) []error {
 			continue
 		}
 
+		// Use user-specified auth file (CLI or env variable) unless
+		// the container was created with the auth-file label.
+		authfile := u.options.Authfile
+		if fromContainer, ok := labels[define.AutoUpdateAuthfileLabel]; ok {
+			authfile = fromContainer
+		}
 		t := task{
-			authfile:     labels[define.AutoUpdateAuthfileLabel],
+			authfile:     authfile,
 			auto:         u,
 			container:    ctr,
 			policy:       policy,

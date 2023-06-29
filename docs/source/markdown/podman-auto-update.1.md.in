@@ -79,6 +79,7 @@ Please note that detecting if a systemd unit has failed is best done by the cont
 
 For a container to send the READY message via SDNOTIFY it must be created with the `--sdnotify=container` option (see podman-run(1)).  The application running inside the container can then execute `systemd-notify --ready` when ready or use the sdnotify bindings of the specific programming language (e.g., sd_notify(3)).
 
+@@option tls-verify
 
 ## EXAMPLES
 Autoupdate with registry policy
