@@ -75,7 +75,7 @@ function pasta_test_do() {
         local xseq="$(echo ${xport} | tr '-' ' ')"
     else
         local port=$(random_free_port "" ${address} ${proto})
-        local xport="$((port + port_delta))"
+        local xport="$((port + delta))"
         local seq="${port} ${port}"
         local xseq="${xport} ${xport}"
     fi
@@ -98,9 +98,6 @@ function pasta_test_do() {
     else
         recv="EXEC:md5sum"
     fi
-
-    # socat first address
-    send="OPEN:${XFER_FILE}"
 
     # and port forwarding configuration for Podman and pasta.
     #
@@ -145,7 +142,7 @@ function pasta_test_do() {
         local connect="${proto_upper}${ip_ver}:[${addr}]:${one_port}"
         [ "${proto}" = "udp" ] && connect="${connect},shut-null"
 
-        (while sleep ${delay} && ! socat -u "${send}" "${connect}"; do :
+        (while sleep ${delay} && ! socat -u "OPEN:${XFER_FILE}" "${connect}"; do :
          done) &
     done
 
@@ -700,9 +697,13 @@ function teardown() {
     mac="9a:dd:31:ea:92:98"
     cat >$containersconf <<EOF
 [network]
+default_rootless_network_cmd = "pasta"
 pasta_options = ["-I", "myname", "--ns-mac-addr", "$mac"]
 EOF
-    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman run --net=pasta $IMAGE ip link show myname
+
+    # 2023-06-29 DO NOT INCLUDE "--net=pasta" on this line!
+    # This tests containers.conf:default_rootless_network_cmd (pr #19032)
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman run $IMAGE ip link show myname
     assert "$output" =~ "$mac" "mac address is set on custom interface"
 
     # now, again but this time overwrite a option on the cli.
