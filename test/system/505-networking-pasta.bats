@@ -55,12 +55,6 @@ function pasta_test_do() {
         skip_if_no_ipv4 "IPv4 not routable on the host"
     elif [ ${ip_ver} -eq 6 ]; then
         skip_if_no_ipv6 "IPv6 not routable on the host"
-        if [ ${iftype} = "loopback" ]; then
-            local ifname="lo"
-            local addr="::1"
-        else
-            local addr="$(ipv6_get_addr_default)"
-        fi
     else
         skip "Unsupported IP version"
     fi
