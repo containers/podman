@@ -2203,6 +2203,12 @@ func (c *Container) getHostsEntries() (etchosts.HostEntries, error) {
 	switch {
 	case c.config.NetMode.IsBridge():
 		entries = etchosts.GetNetworkHostEntries(c.state.NetworkStatus, names...)
+	case c.config.NetMode.IsPasta():
+		ip, err := getPastaIP(c.state)
+		if err != nil {
+			return nil, err
+		}
+		entries = etchosts.HostEntries{{IP: ip.String(), Names: names}}
 	case c.config.NetMode.IsSlirp4netns():
 		ip, err := getSlirp4netnsIP(c.slirp4netnsSubnet)
 		if err != nil {
