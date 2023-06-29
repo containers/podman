@@ -78,9 +78,36 @@ function _prefetch() {
         fi
     fi
 
+    # Kludge alert.
+    # Skopeo has no --storage-driver, --root, or --runroot flags; those
+    # need to be expressed in the destination string inside [brackets].
+    # See containers-transports(5). So if we see those options in
+    # _PODMAN_TEST_OPTS, transmogrify $want into skopeo form.
+    skopeo_opts=''
+    driver="$(expr "$_PODMAN_TEST_OPTS" : ".*--storage-driver \([^ ]\+\)" || true)"
+    if [[ -n "$driver" ]]; then
+        skopeo_opts+="$driver@"
+    fi
+
+    altroot="$(expr "$_PODMAN_TEST_OPTS" : ".*--root \([^ ]\+\)" || true)"
+    if [[ -n "$altroot" ]] && [[ -d "$altroot" ]]; then
+        skopeo_opts+="$altroot"
+
+        altrunroot="$(expr "$_PODMAN_TEST_OPTS" : ".*--runroot \([^ ]\+\)" || true)"
+        if [[ -n "$altrunroot" ]] && [[ -d "$altrunroot" ]]; then
+            skopeo_opts+="+$altrunroot"
+        fi
+    fi
+
+    if [[ -n "$skopeo_opts" ]]; then
+        want="[$skopeo_opts]$want"
+    fi
+
     # Cached image is now guaranteed to exist. Be sure to load it
     # with skopeo, not podman, in order to preserve metadata
-    skopeo copy --all oci-archive:$cachepath containers-storage:$want
+    cmd="skopeo copy --all oci-archive:$cachepath containers-storage:$want"
+    echo "$_LOG_PROMPT $cmd"
+    $cmd
 }
 
 # END   tools for fetching & caching test images
