@@ -5,31 +5,8 @@
 
 load helpers
 load helpers.network
+load helpers.registry
 
-###############################################################################
-# BEGIN one-time envariable setup
-
-# Create a scratch directory; our podman registry will run from here. We
-# also use it for other temporary files like authfiles.
-if [ -z "${PODMAN_LOGIN_WORKDIR}" ]; then
-    export PODMAN_LOGIN_WORKDIR=$(mktemp -d --tmpdir=${BATS_TMPDIR:-${TMPDIR:-/tmp}} podman_bats_login.XXXXXX)
-fi
-
-# Randomly-generated username and password
-if [ -z "${PODMAN_LOGIN_USER}" ]; then
-    export PODMAN_LOGIN_USER="user$(random_string 4)"
-    export PODMAN_LOGIN_PASS=$(random_string 15)
-fi
-
-# Randomly-assigned port in the 5xxx range
-if [ -z "${PODMAN_LOGIN_REGISTRY_PORT}" ]; then
-    export PODMAN_LOGIN_REGISTRY_PORT=$(random_free_port)
-fi
-
-# Override any user-set path to an auth file
-unset REGISTRY_AUTH_FILE
-
-# END   one-time envariable setup
 ###############################################################################
 # BEGIN filtering - none of these tests will work with podman-remote
 
@@ -37,72 +14,10 @@ function setup() {
     skip_if_remote "none of these tests work with podman-remote"
 
     basic_setup
+    start_registry
 }
 
 # END   filtering - none of these tests will work with podman-remote
-###############################################################################
-# BEGIN first "test" - start a registry for use by other tests
-#
-# This isn't really a test: it's a helper that starts a local registry.
-# Note that we're careful to use a root/runroot separate from our tests,
-# so setup/teardown don't clobber our registry image.
-#
-
-@test "podman login [start registry]" {
-    AUTHDIR=${PODMAN_LOGIN_WORKDIR}/auth
-    mkdir -p $AUTHDIR
-
-    # Registry image; copy of docker.io, but on our own registry
-    local REGISTRY_IMAGE="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/registry:2.8"
-
-    # Pull registry image, but into a separate container storage
-    mkdir -p ${PODMAN_LOGIN_WORKDIR}/root
-    mkdir -p ${PODMAN_LOGIN_WORKDIR}/runroot
-    PODMAN_LOGIN_ARGS="--storage-driver=vfs --root ${PODMAN_LOGIN_WORKDIR}/root --runroot ${PODMAN_LOGIN_WORKDIR}/runroot"
-    # Give it three tries, to compensate for flakes
-    run_podman ${PODMAN_LOGIN_ARGS} pull $REGISTRY_IMAGE ||
-        run_podman ${PODMAN_LOGIN_ARGS} pull $REGISTRY_IMAGE ||
-        run_podman ${PODMAN_LOGIN_ARGS} pull $REGISTRY_IMAGE
-
-    # Registry image needs a cert. Self-signed is good enough.
-    CERT=$AUTHDIR/domain.crt
-    if [ ! -e $CERT ]; then
-        openssl req -newkey rsa:4096 -nodes -sha256 \
-                -keyout $AUTHDIR/domain.key -x509 -days 2 \
-                -out $AUTHDIR/domain.crt \
-                -subj "/C=US/ST=Foo/L=Bar/O=Red Hat, Inc./CN=localhost" \
-                -addext "subjectAltName=DNS:localhost"
-    fi
-
-    # Copy a cert to another directory for --cert-dir option tests
-    mkdir -p ${PODMAN_LOGIN_WORKDIR}/trusted-registry-cert-dir
-    cp $CERT ${PODMAN_LOGIN_WORKDIR}/trusted-registry-cert-dir
-
-    # Store credentials where container will see them
-    if [ ! -e $AUTHDIR/htpasswd ]; then
-        htpasswd -Bbn ${PODMAN_LOGIN_USER} ${PODMAN_LOGIN_PASS} \
-                 > $AUTHDIR/htpasswd
-
-        # In case $PODMAN_TEST_KEEP_LOGIN_REGISTRY is set, for testing later
-        echo "${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS}" \
-             > $AUTHDIR/htpasswd-plaintext
-    fi
-
-    # Run the registry container.
-    run_podman '?' ${PODMAN_LOGIN_ARGS} rm -t 0 -f registry
-    run_podman ${PODMAN_LOGIN_ARGS} run -d \
-               -p ${PODMAN_LOGIN_REGISTRY_PORT}:5000 \
-               --name registry \
-               -v $AUTHDIR:/auth:Z \
-               -e "REGISTRY_AUTH=htpasswd" \
-               -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" \
-               -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
-               -e REGISTRY_HTTP_TLS_CERTIFICATE=/auth/domain.crt \
-               -e REGISTRY_HTTP_TLS_KEY=/auth/domain.key \
-               $REGISTRY_IMAGE
-}
-
-# END   first "test" - start a registry for use by other tests
 ###############################################################################
 # BEGIN actual tests
 # BEGIN primary podman login/push/pull tests
@@ -357,34 +272,6 @@ function _test_skopeo_credential_sharing() {
 
 # END   cooperation with skopeo
 # END   actual tests
-###############################################################################
-# BEGIN teardown (remove the registry container)
-
-@test "podman login [stop registry, clean up]" {
-    # For manual debugging; user may request keeping the registry running
-    if [ -n "${PODMAN_TEST_KEEP_LOGIN_REGISTRY}" ]; then
-        skip "[leaving registry running by request]"
-    fi
-
-    run_podman --storage-driver=vfs --root    ${PODMAN_LOGIN_WORKDIR}/root   \
-               --runroot ${PODMAN_LOGIN_WORKDIR}/runroot \
-               rm -f registry
-    run_podman --storage-driver=vfs --root    ${PODMAN_LOGIN_WORKDIR}/root   \
-               --runroot ${PODMAN_LOGIN_WORKDIR}/runroot \
-               rmi -a
-
-    # By default, clean up
-    if [ -z "${PODMAN_TEST_KEEP_LOGIN_WORKDIR}" ]; then
-        rm -rf ${PODMAN_LOGIN_WORKDIR}
-    fi
-
-    # Make sure socket is closed
-    if tcp_port_probe $PODMAN_LOGIN_REGISTRY_PORT; then
-        die "Socket still seems open"
-    fi
-}
-
-# END   teardown (remove the registry container)
 ###############################################################################
 
 # vim: filetype=sh

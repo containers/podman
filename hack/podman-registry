@@ -242,7 +242,12 @@ function do_stop() {
     podman rm -f registry
 
     # Use straight podman, not our alias function, to avoid 'overlay: EBUSY'
-    ${PODMAN} unshare rm -rf ${PODMAN_REGISTRY_WORKDIR}
+    cmd="rm -rf ${PODMAN_REGISTRY_WORKDIR}"
+    if [[ $(id -u) -eq 0 ]]; then
+        $cmd
+    else
+        ${PODMAN} unshare $cmd
+    fi
 }
 
 
