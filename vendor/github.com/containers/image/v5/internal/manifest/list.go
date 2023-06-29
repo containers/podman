@@ -3,6 +3,7 @@ package manifest
 import (
 	"fmt"
 
+	compression "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/types"
 	digest "github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -82,17 +83,21 @@ type ListEdit struct {
 	ListOperation ListOp
 
 	// if Op == ListEditUpdate (basically the previous UpdateInstances). All fields must be set.
-	UpdateOldDigest digest.Digest
-	UpdateDigest    digest.Digest
-	UpdateSize      int64
-	UpdateMediaType string
+	UpdateOldDigest             digest.Digest
+	UpdateDigest                digest.Digest
+	UpdateSize                  int64
+	UpdateMediaType             string
+	UpdateAffectAnnotations     bool
+	UpdateAnnotations           map[string]string
+	UpdateCompressionAlgorithms []compression.Algorithm
 
 	// If Op = ListEditAdd. All fields must be set.
-	AddDigest      digest.Digest
-	AddSize        int64
-	AddMediaType   string
-	AddPlatform    *imgspecv1.Platform
-	AddAnnotations map[string]string
+	AddDigest                digest.Digest
+	AddSize                  int64
+	AddMediaType             string
+	AddPlatform              *imgspecv1.Platform
+	AddAnnotations           map[string]string
+	AddCompressionAlgorithms []compression.Algorithm
 }
 
 // ListPublicFromBlob parses a list of manifests.
