@@ -232,6 +232,21 @@ function teardown() {
            "Container has IPv6 global address with IPv6 disabled"
 }
 
+@test "podman networking with pasta(1) - podman puts pasta IP in /etc/hosts" {
+    skip_if_no_ipv4 "IPv4 not routable on the host"
+
+    pname="p$(random_string 30)"
+    ip="$(default_addr 4)"
+
+    run_podman pod create --net=pasta --name "${pname}"
+    run_podman run --pod="${pname}" "${IMAGE}" getent hosts "${pname}"
+
+    assert "$(echo ${output} | cut -f1 -d' ')" = "${ip}" "Correct /etc/hsots entry missing"
+
+    run_podman pod rm "${pname}"
+    run_podman rmi $(pause_image)
+}
+
 ### Routes #####################################################################
 
 @test "podman networking with pasta(1) - IPv4 default route" {
