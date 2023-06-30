@@ -1,5 +1,29 @@
 # Release Notes
 
+## 4.5.1
+### Security
+- Do not include image annotations when building spec. These annotations can have security implications - crun, for example, allows rootless containers to preserve the user's groups through an annotation.
+
+### Quadlet
+- Fixed a bug in quadlet to recognize the systemd optional prefix '-'.
+
+### Bugfixes
+- Fixed a bug where fully resolving symlink paths included the version number, breaking the path to homebrew-installed qmeu files ([#18111](https://github.com/containers/podman/issues/18111)).
+- Fixed a bug where Podman was splitting the filter map slightly differently compared to Docker ([#18092](https://github.com/containers/podman/issues/18092)).
+- Fixed a bug where running `make package` did not work on RHEL 8 environments ([#18421](https://github.com/containers/podman/issues/18421)).
+- Fixed a bug to allow comma separated dns server IP addresses in `podman network create --dns` and `podman network update --dns-add/--dns-drop` ([#18663](https://github.com/containers/podman/pull/18663)).
+- Fixed a bug to correctly stop containers created with --restart=always in all cases ([#18259](https://github.com/containers/podman/issues/18259)).
+- Fixed a bug in podman-remote logs to correctly display errors reported by the server.
+- Fixed a bug to correctly tear down the network stack again when an error happened during the setup.
+- Fixed a bug in the remote API exec inspect call to correctly display updated information, e.g. when the exec process died ([#18424](https://github.com/containers/podman/issues/18424)).
+- Fixed a bug so that podman save on windows can now write to stdout by default ([#18147](https://github.com/containers/podman/issues/18147)).
+- Fixed a bug where podman machine rm with the qemu backend now correctly removes the machine connection after the confirmation message not before ([#18330](https://github.com/containers/podman/issues/18330)).
+- Fixed a problem where podman machine connections would try to connect to the ipv6 localhost ipv6 (::1) ([#16470](https://github.com/containers/podman/issues/16470)).
+
+### API
+- Fixed a bug in the compat container create endpoint which could result in a "duplicate mount destination" error when the volume path was not "clean", e.g. included a final slash at the end. ([#18454](https://github.com/containers/podman/issues/18454)).
+- The compat API now correctly accpets a tag in the images/create?fromSrc endpoint ([#18597](https://github.com/containers/podman/issues/18597)).
+
 ## 4.5.0
 ### Features
 - The `podman kube play` command now supports the hostIPC field ([#17157](https://github.com/containers/podman/issues/17157)).
