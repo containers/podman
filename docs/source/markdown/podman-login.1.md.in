@@ -48,6 +48,11 @@ Password for registry
 
 Take the password from stdin
 
+#### **--secret**=*name*
+
+Read the password for the registry from the podman secret `name`.
+If --username is not specified --username=`name` is used.
+
 @@option tls-verify
 
 #### **--username**, **-u**=*username*
@@ -80,6 +85,13 @@ Login Succeeded!
 ```
 
 ```
+$ echo -n MySecret! | podman secret create secretname -
+a0ad54df3c97cf89d5ca6193c
+$ podman login --secret secretname -u testuser quay.io
+Login Succeeded!
+```
+
+```
 $ podman login --tls-verify=false -u test -p test localhost:5000
 Login Succeeded!
 ```
@@ -108,7 +120,7 @@ Login Succeeded!
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-logout(1)](podman-logout.1.md)**, **[containers-auth.json(5)](https://github.com/containers/image/blob/main/docs/containers-auth.json.5.md)**, **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**, **[containers-registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md)**
+**[podman(1)](podman.1.md)**, **[podman-logout(1)](podman-logout.1.md)**, **[containers-auth.json(5)](https://github.com/containers/image/blob/main/docs/containers-auth.json.5.md)**, **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**, **[containers-registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md)**, **[podman-secret(1)](podman-secret.1.md)**, **[podman-secret-create(1)](podman-secret-create.1.md)**
 
 ## HISTORY
 August 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>
