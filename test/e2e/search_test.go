@@ -177,6 +177,13 @@ registries = ['{{.Host}}:{{.Port}}']`
 		}
 	})
 
+	It("podman search format list tags with custom", func() {
+		search := podmanTest.Podman([]string{"search", "--list-tags", "--format", "{{.Name}}", "--limit", "1", ALPINE})
+		search.WaitWithDefaultTimeout()
+		Expect(search).Should(Exit(0))
+		Expect(search.OutputToString()).To(Equal("quay.io/libpod/alpine"))
+	})
+
 	It("podman search attempts HTTP if tls-verify flag is set false", func() {
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")

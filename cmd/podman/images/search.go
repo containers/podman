@@ -182,7 +182,11 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 			listTagsEntries := buildListTagsJSON(searchReport)
 			return printArbitraryJSON(listTagsEntries)
 		}
-		rpt, err = rpt.Parse(report.OriginPodman, "{{range .}}{{.Name}}\t{{.Tag}}\n{{end -}}")
+		if cmd.Flags().Changed("format") {
+			rpt, err = rpt.Parse(report.OriginUser, searchOptions.Format)
+		} else {
+			rpt, err = rpt.Parse(report.OriginPodman, "{{range .}}{{.Name}}\t{{.Tag}}\n{{end -}}")
+		}
 	case isJSON:
 		return printArbitraryJSON(searchReport)
 	case cmd.Flags().Changed("format"):
