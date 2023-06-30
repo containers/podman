@@ -30,9 +30,9 @@ func ifRootlessConfigPath() (string, error) {
 
 var defaultHelperBinariesDir = []string{
 	// Homebrew install paths
-	"/usr/local/opt/podman/libexec",
+	"/usr/local/opt/podman/libexec/podman",
+	"/opt/homebrew/opt/podman/libexec/podman",
 	"/opt/homebrew/bin",
-	"/opt/homebrew/opt/podman/libexec",
 	"/usr/local/bin",
 	// default paths
 	"/usr/local/libexec/podman",
