@@ -123,10 +123,14 @@ if root; then
 
     t GET containers/$CTRNAME/top?stream=false 200 \
       .Titles='[
+  "UID",
   "PID",
-  "USER",
+  "PPID",
+  "C",
+  "STIME",
+  "TTY",
   "TIME",
-  "COMMAND"
+  "CMD"
 ]'
 
     podman rm -f $CTRNAME
@@ -135,9 +139,9 @@ fi
 CTRNAME=test123
 podman run --name $CTRNAME -d $IMAGE top
 t GET libpod/containers/$CTRNAME/top?ps_args=--invalid 500 \
-  .cause~".*unrecognized option.*"
+  .cause~".*unknown gnu long option.*"
 t GET containers/$CTRNAME/top?ps_args=--invalid 500 \
-  .cause~".*unrecognized option.*"
+  .cause~".*unknown gnu long option.*"
 
 podman rm -f $CTRNAME
 

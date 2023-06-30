@@ -444,7 +444,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    name: ps_args
 	//    type: string
 	//    default: -ef
-	//    description: arguments to pass to ps such as aux. Requires ps(1) to be installed in the container if no ps(1) compatible AIX descriptors are used.
+	//    description: arguments to pass to ps such as aux.
 	// produces:
 	// - application/json
 	// responses:
@@ -1177,7 +1177,6 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    default:
 	//    description: |
 	//      arguments to pass to ps such as aux.
-	//      Requires ps(1) to be installed in the container if no ps(1) compatible AIX descriptors are used.
 	// produces:
 	// - application/json
 	// responses:
