@@ -195,7 +195,7 @@ func GetKeepIDMapping(opts *namespaces.KeepIDUserNsOptions) (*stypes.IDMappingOp
 		if err != nil {
 			return nil, 0, 0, err
 		}
-		gids, err := rootless.ReadMappingsProc("/proc/self/uid_map")
+		gids, err := rootless.ReadMappingsProc("/proc/self/gid_map")
 		if err != nil {
 			return nil, 0, 0, err
 		}
