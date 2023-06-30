@@ -334,6 +334,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	ready := `[Unit]
 Requires=dev-virtio\\x2dports-%s.device
 After=remove-moby.service sshd.socket sshd.service
+After=systemd-user-sessions.service
 OnFailure=emergency.target
 OnFailureJobMode=isolate
 [Service]
