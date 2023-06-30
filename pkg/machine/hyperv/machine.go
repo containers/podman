@@ -186,6 +186,7 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	// VSOCK-CONNECT:2 <- shortcut to connect to the hostvm
 	ready := `[Unit]
 After=remove-moby.service sshd.socket sshd.service
+After=systemd-user-sessions.service
 OnFailure=emergency.target
 OnFailureJobMode=isolate
 [Service]
