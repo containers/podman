@@ -144,6 +144,9 @@ func (i *Image) ID() string {
 // possibly many digests that we have stored for the image, so many
 // applications are better off using the entire list returned by Digests().
 func (i *Image) Digest() digest.Digest {
+	// TODO: we return the image digest or the one of the manifest list
+	// which can lead to issues depending on the callers' assumptions.
+	// Hence, deprecate in favor of Digest_s_.
 	return i.storageImage.Digest
 }
 
@@ -152,6 +155,18 @@ func (i *Image) Digest() digest.Digest {
 // set, its value is also in this list.
 func (i *Image) Digests() []digest.Digest {
 	return i.storageImage.Digests
+}
+
+// hasDigest returns whether the specified value matches any digest of the
+// image.
+func (i *Image) hasDigest(value string) bool {
+	// TODO: change the argument to a typed digest.Digest
+	for _, d := range i.Digests() {
+		if string(d) == value {
+			return true
+		}
+	}
+	return false
 }
 
 // IsReadOnly returns whether the image is set read only.
@@ -656,6 +671,8 @@ func (i *Image) NamedTaggedRepoTags() ([]reference.NamedTagged, error) {
 // NamedRepoTags returns the repotags associated with the image as a
 // slice of reference.Named.
 func (i *Image) NamedRepoTags() ([]reference.Named, error) {
+	// FIXME: the NamedRepoTags name is a bit misleading as it can return
+	// repo@digest values if that’s how an image was pulled.
 	var repoTags []reference.Named
 	for _, name := range i.Names() {
 		parsed, err := reference.Parse(name)
@@ -669,32 +686,37 @@ func (i *Image) NamedRepoTags() ([]reference.Named, error) {
 	return repoTags, nil
 }
 
-// inRepoTags looks for the specified name/tag pair in the image's repo tags.
-func (i *Image) inRepoTags(namedTagged reference.NamedTagged) (reference.Named, error) {
+// inRepoTags looks for the specified name/tag in the image's repo tags.  If
+// `ignoreTag` is set, only the repo must match and the tag is ignored.
+func (i *Image) inRepoTags(namedTagged reference.NamedTagged, ignoreTag bool) (reference.Named, error) {
 	repoTags, err := i.NamedRepoTags()
-	if err != nil {
-		return nil, err
-	}
-
-	pairs, err := ToNameTagPairs(repoTags)
 	if err != nil {
 		return nil, err
 	}
 
 	name := namedTagged.Name()
 	tag := namedTagged.Tag()
-	for _, pair := range pairs {
-		if tag != pair.Tag {
+	for _, r := range repoTags {
+		if !ignoreTag {
+			var repoTag string
+			tagged, isTagged := r.(reference.NamedTagged)
+			if isTagged {
+				repoTag = tagged.Tag()
+			}
+			if !isTagged || tag != repoTag {
+				continue
+			}
+		}
+
+		repoName := r.Name()
+		if !strings.HasSuffix(repoName, name) {
 			continue
 		}
-		if !strings.HasSuffix(pair.Name, name) {
-			continue
+		if len(repoName) == len(name) { // full match
+			return r, nil
 		}
-		if len(pair.Name) == len(name) { // full match
-			return pair.named, nil
-		}
-		if pair.Name[len(pair.Name)-len(name)-1] == '/' { // matches at repo
-			return pair.named, nil
+		if repoName[len(repoName)-len(name)-1] == '/' { // matches at repo
+			return r, nil
 		}
 	}
 

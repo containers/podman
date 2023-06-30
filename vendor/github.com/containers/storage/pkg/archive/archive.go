@@ -131,16 +131,6 @@ const (
 	OverlayWhiteoutFormat
 )
 
-const (
-	modeISDIR  = 0o40000  // Directory
-	modeISFIFO = 0o10000  // FIFO
-	modeISREG  = 0o100000 // Regular file
-	modeISLNK  = 0o120000 // Symbolic link
-	modeISBLK  = 0o60000  // Block special file
-	modeISCHR  = 0o20000  // Character special file
-	modeISSOCK = 0o140000 // Socket
-)
-
 // IsArchivePath checks if the (possibly compressed) file at the given path
 // starts with a tar file header.
 func IsArchivePath(path string) bool {
@@ -358,7 +348,7 @@ func FileInfoHeader(name string, fi os.FileInfo, link string) (*tar.Header, erro
 	if err != nil {
 		return nil, err
 	}
-	hdr.Mode = fillGo18FileTypeBits(int64(chmodTarEntry(os.FileMode(hdr.Mode))), fi)
+	hdr.Mode = int64(chmodTarEntry(os.FileMode(hdr.Mode)))
 	name, err = canonicalTarName(name, fi.IsDir())
 	if err != nil {
 		return nil, fmt.Errorf("tar: cannot canonicalize path: %w", err)
@@ -368,31 +358,6 @@ func FileInfoHeader(name string, fi os.FileInfo, link string) (*tar.Header, erro
 		return nil, err
 	}
 	return hdr, nil
-}
-
-// fillGo18FileTypeBits fills type bits which have been removed on Go 1.9 archive/tar
-// https://github.com/golang/go/commit/66b5a2f
-func fillGo18FileTypeBits(mode int64, fi os.FileInfo) int64 {
-	fm := fi.Mode()
-	switch {
-	case fm.IsRegular():
-		mode |= modeISREG
-	case fi.IsDir():
-		mode |= modeISDIR
-	case fm&os.ModeSymlink != 0:
-		mode |= modeISLNK
-	case fm&os.ModeDevice != 0:
-		if fm&os.ModeCharDevice != 0 {
-			mode |= modeISCHR
-		} else {
-			mode |= modeISBLK
-		}
-	case fm&os.ModeNamedPipe != 0:
-		mode |= modeISFIFO
-	case fm&os.ModeSocket != 0:
-		mode |= modeISSOCK
-	}
-	return mode
 }
 
 // ReadSecurityXattrToTarHeader reads security.capability, security,image
