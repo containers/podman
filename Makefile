@@ -33,6 +33,7 @@ PROJECT := github.com/containers/podman
 GIT_BASE_BRANCH ?= origin/main
 LIBPOD_INSTANCE := libpod_dev
 PREFIX ?= /usr/local
+RELEASE_PREFIX = /usr
 BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
 LIBEXECPODMAN ?= ${LIBEXECDIR}/podman
@@ -180,6 +181,10 @@ else ifeq ($(GOOS),darwin)
 BINSFX :=
 SRCBINDIR := bin/darwin
 CGO_ENABLED := 0
+else ifeq ($(GOOS),freebsd)
+BINSFX := -remote
+SRCBINDIR := bin
+RELEASE_PREFIX = /usr/local
 else
 BINSFX := -remote
 SRCBINDIR := bin
@@ -711,7 +716,7 @@ podman-release: podman-release-$(GOARCH).tar.gz  # Build all Linux binaries for 
 podman-release-%.tar.gz: test/version/version
 	$(eval TMPDIR := $(shell mktemp -d podman_tmp_XXXX))
 	$(eval SUBDIR := podman-v$(call err_if_empty,RELEASE_NUMBER))
-	$(eval _DSTARGS := "DESTDIR=$(TMPDIR)/$(SUBDIR)" "PREFIX=/usr")
+	$(eval _DSTARGS := "DESTDIR=$(TMPDIR)/$(SUBDIR)" "PREFIX=$(RELEASE_PREFIX)")
 	$(eval GOARCH := $*)
 	mkdir -p "$(call err_if_empty,TMPDIR)/$(SUBDIR)"
 	$(MAKE) GOOS=$(GOOS) GOARCH=$(NATIVE_GOARCH) \
@@ -730,7 +735,7 @@ podman-release-%.tar.gz: test/version/version
 podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$GOOS_$GOARCH, and docs. into an installation zip.
 	$(eval TMPDIR := $(shell mktemp -d podman_tmp_XXXX))
 	$(eval SUBDIR := podman-$(call err_if_empty,RELEASE_NUMBER))
-	$(eval _DSTARGS := "DESTDIR=$(TMPDIR)/$(SUBDIR)" "PREFIX=/usr")
+	$(eval _DSTARGS := "DESTDIR=$(TMPDIR)/$(SUBDIR)" "PREFIX=$(RELEASE_PREFIX)")
 	$(eval GOOS := $(firstword $(subst _, ,$*)))
 	$(eval GOARCH := $(lastword $(subst _, ,$*)))
 	$(eval _GOPLAT := GOOS=$(call err_if_empty,GOOS) GOARCH=$(call err_if_empty,GOARCH))
