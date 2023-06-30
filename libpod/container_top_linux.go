@@ -1,22 +1,182 @@
-//go:build linux
-// +build linux
+//go:build linux && cgo
+// +build linux,cgo
 
 package libpod
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
+	"unsafe"
 
+	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/psgo"
+	"github.com/containers/storage/pkg/reexec"
 	"github.com/google/shlex"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
+
+/*
+#include <stdlib.h>
+void fork_exec_ps();
+void create_argv(int len);
+void set_argv(int pos, char *arg);
+*/
+import "C"
+
+const (
+	// podmanTopCommand is the reexec key to safely setup the environment for ps to be executed
+	podmanTopCommand = "podman-top"
+
+	// podmanTopExitCode is a special exec code to signal that podman failed to to something in
+	// reexec command not ps. This is used to give a better error.
+	podmanTopExitCode = 255
+)
+
+func init() {
+	reexec.Register(podmanTopCommand, podmanTopMain)
+}
+
+// podmanTopMain - main function for the reexec
+func podmanTopMain() {
+	if err := podmanTopInner(); err != nil {
+		fmt.Fprint(os.Stderr, err.Error())
+		os.Exit(podmanTopExitCode)
+	}
+	os.Exit(0)
+}
+
+// podmanTopInner os.Args = {command name} {pid} {psPath} [args...]
+// We are rexxec'd in a new mountns, then we need to set some security settings in order
+// to safely execute ps in the container pid namespace. Most notably make sure podman and
+// ps are read only to prevent a process from overwriting it.
+func podmanTopInner() error {
+	if len(os.Args) < 3 {
+		return fmt.Errorf("internal error, need at least two arguments")
+	}
+
+	// We have to lock the thread as we a) switch namespace below and b) use PR_SET_PDEATHSIG
+	// Also do not unlock as this thread should not be reused by go we exit anyway at the end.
+	runtime.LockOSThread()
+
+	if err := unix.Prctl(unix.PR_SET_PDEATHSIG, uintptr(unix.SIGKILL), 0, 0, 0); err != nil {
+		return fmt.Errorf("PR_SET_PDEATHSIG: %w", err)
+	}
+	if err := unix.Prctl(unix.PR_SET_DUMPABLE, 0, 0, 0, 0); err != nil {
+		return fmt.Errorf("PR_SET_DUMPABLE: %w", err)
+	}
+
+	if err := unix.Prctl(unix.PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0); err != nil {
+		return fmt.Errorf("PR_SET_NO_NEW_PRIVS: %w", err)
+	}
+
+	if err := unix.Mount("none", "/", "", unix.MS_REC|unix.MS_PRIVATE, ""); err != nil {
+		return fmt.Errorf("make / mount private: %w", err)
+	}
+
+	psPath := os.Args[2]
+
+	// try to mount everything read only
+	if err := unix.MountSetattr(0, "/", unix.AT_RECURSIVE, &unix.MountAttr{
+		Attr_set: unix.MOUNT_ATTR_RDONLY,
+	}); err != nil {
+		if err != unix.ENOSYS {
+			return fmt.Errorf("mount_setattr / readonly: %w", err)
+		}
+		// old kernel without mount_setattr, i.e. on RHEL 8.8
+		// Bind mount the directories readonly for both podman and ps.
+		psPath, err = remountReadOnly(psPath)
+		if err != nil {
+			return err
+		}
+		_, err = remountReadOnly(reexec.Self())
+		if err != nil {
+			return err
+		}
+	}
+
+	// extra safety check make sure the ps path is actually read only
+	err := unix.Access(psPath, unix.W_OK)
+	if err == nil {
+		return fmt.Errorf("%q was not mounted read only, this can be dangerous so we will not execute it", psPath)
+	}
+
+	pid := os.Args[1]
+	// join the pid namespace of pid
+	pidFD, err := os.Open(fmt.Sprintf("/proc/%s/ns/pid", pid))
+	if err != nil {
+		return fmt.Errorf("open pidns: %w", err)
+	}
+	if err := unix.Setns(int(pidFD.Fd()), unix.CLONE_NEWPID); err != nil {
+		return fmt.Errorf("setns NEWPID: %w", err)
+	}
+	pidFD.Close()
+
+	args := []string{psPath}
+	args = append(args, os.Args[3:]...)
+
+	C.create_argv(C.int(len(args)))
+	for i, arg := range args {
+		cArg := C.CString(arg)
+		C.set_argv(C.int(i), cArg)
+		defer C.free(unsafe.Pointer(cArg))
+	}
+
+	// Now try to close open fds except std streams
+	// While golang open everything O_CLOEXEC it could still leak fds from
+	// the parent, i.e. bash. In this case an attacker might be able to
+	// read/write from them.
+	// Do this as last step, it has to happen before to fork because the child
+	// will be immediately in pid namespace so we cannot close them in the child.
+	entries, err := os.ReadDir("/proc/self/fd")
+	if err != nil {
+		return err
+	}
+	for _, e := range entries {
+		i, err := strconv.Atoi(e.Name())
+		// IsFdInherited checks the we got the fd from a parent process and only close them,
+		// when we close all that would include the ones from the go runtime which
+		// then can panic because of that.
+		if err == nil && i > unix.Stderr && rootless.IsFdInherited(i) {
+			_ = unix.Close(i)
+		}
+	}
+
+	// this function will always exit for us
+	C.fork_exec_ps()
+	return nil
+}
+
+// remountReadOnly remounts the parent directory of the given path read only
+// return the resolved path or an error. The path can then be used to exec the
+// binary as we know it is on a read only mount now.
+func remountReadOnly(path string) (string, error) {
+	resolvedPath, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return "", fmt.Errorf("resolve symlink for %s: %w", path, err)
+	}
+	dir := filepath.Dir(resolvedPath)
+	// create mount point
+	if err := unix.Mount(dir, dir, "", unix.MS_BIND, ""); err != nil {
+		return "", fmt.Errorf("mount %s read only: %w", dir, err)
+	}
+	// remount readonly
+	if err := unix.Mount(dir, dir, "", unix.MS_BIND|unix.MS_REMOUNT|unix.MS_RDONLY, ""); err != nil {
+		return "", fmt.Errorf("mount %s read only: %w", dir, err)
+	}
+	return resolvedPath, nil
+}
 
 // Top gathers statistics about the running processes in a container. It returns a
 // []string for output
@@ -68,9 +228,27 @@ func (c *Container) Top(descriptors []string) ([]string, error) {
 		}
 	}
 
-	output, err = c.execPS(psDescriptors)
-	if err != nil {
-		return nil, fmt.Errorf("executing ps(1) in the container: %w", err)
+	// Only use ps(1) from the host when we know the container was not started with CAP_SYS_PTRACE,
+	// with it the container can access /proc/$pid/ files and potentially escape the container fs.
+	if c.config.Spec.Process.Capabilities != nil &&
+		!util.StringInSlice("CAP_SYS_PTRACE", c.config.Spec.Process.Capabilities.Effective) {
+		var retry bool
+		output, retry, err = c.execPS(psDescriptors)
+		if err != nil {
+			if !retry {
+				return nil, err
+			}
+			logrus.Warnf("Falling back to container ps(1), could not execute ps(1) from the host: %v", err)
+			output, err = c.execPSinContainer(psDescriptors)
+			if err != nil {
+				return nil, fmt.Errorf("executing ps(1) in container: %w", err)
+			}
+		}
+	} else {
+		output, err = c.execPSinContainer(psDescriptors)
+		if err != nil {
+			return nil, fmt.Errorf("executing ps(1) in container: %w", err)
+		}
 	}
 
 	// Trick: filter the ps command from the output instead of
@@ -113,8 +291,63 @@ func (c *Container) GetContainerPidInformation(descriptors []string) ([]string, 
 	return res, nil
 }
 
-// execPS executes ps(1) with the specified args in the container.
-func (c *Container) execPS(args []string) ([]string, error) {
+// execute ps(1) from the host within the container pid namespace
+func (c *Container) execPS(psArgs []string) ([]string, bool, error) {
+	rPipe, wPipe, err := os.Pipe()
+	if err != nil {
+		return nil, false, err
+	}
+	defer wPipe.Close()
+	defer rPipe.Close()
+
+	stdout := []string{}
+	go func() {
+		scanner := bufio.NewScanner(rPipe)
+		for scanner.Scan() {
+			stdout = append(stdout, scanner.Text())
+		}
+	}()
+
+	psPath, err := exec.LookPath("ps")
+	if err != nil {
+		return nil, true, err
+	}
+	args := append([]string{podmanTopCommand, strconv.Itoa(c.state.PID), psPath}, psArgs...)
+
+	cmd := reexec.Command(args...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Unshareflags: unix.CLONE_NEWNS,
+	}
+	var errBuf bytes.Buffer
+	cmd.Stdout = wPipe
+	cmd.Stderr = &errBuf
+	// nil means use current env so explicitly unset all, to not leak any sensitive env vars
+	cmd.Env = []string{}
+
+	retryContainerExec := true
+	err = cmd.Run()
+	if err != nil {
+		exitError := &exec.ExitError{}
+		if errors.As(err, &exitError) {
+			if exitError.ExitCode() != podmanTopExitCode {
+				// ps command failed
+				err = fmt.Errorf("ps(1) failed with exit code %d: %s", exitError.ExitCode(), errBuf.String())
+				// ps command itself failed: likely invalid args, no point in retrying.
+				retryContainerExec = false
+			} else {
+				// podman-top reexec setup fails somewhere
+				err = fmt.Errorf("could not execute ps(1) in the container pid namespace: %s", errBuf.String())
+			}
+		} else {
+			err = fmt.Errorf("could not reexec podman-top command: %w", err)
+		}
+	}
+	return stdout, retryContainerExec, err
+}
+
+// execPS executes ps(1) with the specified args in the container vie exec session.
+// This should be a bit safer then execPS() but it requires ps(1) to be installed in the container.
+func (c *Container) execPSinContainer(args []string) ([]string, error) {
 	rPipe, wPipe, err := os.Pipe()
 	if err != nil {
 		return nil, err
