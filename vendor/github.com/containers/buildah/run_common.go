@@ -48,7 +48,6 @@ import (
 	storageTypes "github.com/containers/storage/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
@@ -118,7 +117,7 @@ func (b *Builder) addResolvConf(rdir string, chownOpts *idtools.IDPair, dnsServe
 }
 
 // generateHosts creates a containers hosts file
-func (b *Builder) generateHosts(rdir string, chownOpts *idtools.IDPair, imageRoot string, spec *spec.Spec) (string, error) {
+func (b *Builder) generateHosts(rdir string, chownOpts *idtools.IDPair, imageRoot string, spec *specs.Spec) (string, error) {
 	conf, err := config.Default()
 	if err != nil {
 		return "", err
@@ -1468,7 +1467,7 @@ func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, builtin
 }
 
 // Destinations which can be cleaned up after every RUN
-func cleanableDestinationListFromMounts(mounts []spec.Mount) []string {
+func cleanableDestinationListFromMounts(mounts []specs.Mount) []string {
 	mountDest := []string{}
 	for _, mount := range mounts {
 		// Add all destination to mountArtifacts so that they can be cleaned up later
@@ -1509,7 +1508,7 @@ func checkIfMountDestinationPreExists(root string, dest string) (bool, error) {
 // runSetupRunMounts sets up mounts that exist only in this RUN, not in subsequent runs
 //
 // If this function succeeds, the caller must unlock runMountArtifacts.TargetLocks (when??)
-func (b *Builder) runSetupRunMounts(mountPoint string, mounts []string, sources runMountInfo, idMaps IDMaps) ([]spec.Mount, *runMountArtifacts, error) {
+func (b *Builder) runSetupRunMounts(mountPoint string, mounts []string, sources runMountInfo, idMaps IDMaps) ([]specs.Mount, *runMountArtifacts, error) {
 	// If `type` is not set default to TypeBind
 	mountType := define.TypeBind
 	mountTargets := make([]string, 0, 10)
@@ -1527,7 +1526,7 @@ func (b *Builder) runSetupRunMounts(mountPoint string, mounts []string, sources 
 		}
 	}()
 	for _, mount := range mounts {
-		var mountSpec *spec.Mount
+		var mountSpec *specs.Mount
 		var err error
 		var envFile, image string
 		var agent *sshagent.AgentServer
@@ -1622,7 +1621,7 @@ func (b *Builder) runSetupRunMounts(mountPoint string, mounts []string, sources 
 	return finalMounts, artifacts, nil
 }
 
-func (b *Builder) getBindMount(tokens []string, context *imageTypes.SystemContext, contextDir string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps, workDir string) (*spec.Mount, string, error) {
+func (b *Builder) getBindMount(tokens []string, context *imageTypes.SystemContext, contextDir string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps, workDir string) (*specs.Mount, string, error) {
 	if contextDir == "" {
 		return nil, "", errors.New("Context Directory for current run invocation is not configured")
 	}
@@ -1639,7 +1638,7 @@ func (b *Builder) getBindMount(tokens []string, context *imageTypes.SystemContex
 	return &volumes[0], image, nil
 }
 
-func (b *Builder) getTmpfsMount(tokens []string, idMaps IDMaps) (*spec.Mount, error) {
+func (b *Builder) getTmpfsMount(tokens []string, idMaps IDMaps) (*specs.Mount, error) {
 	var optionMounts []specs.Mount
 	mount, err := internalParse.GetTmpfsMount(tokens)
 	if err != nil {
@@ -1653,7 +1652,7 @@ func (b *Builder) getTmpfsMount(tokens []string, idMaps IDMaps) (*spec.Mount, er
 	return &volumes[0], nil
 }
 
-func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secret, idMaps IDMaps, workdir string) (*spec.Mount, string, error) {
+func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secret, idMaps IDMaps, workdir string) (*specs.Mount, string, error) {
 	errInvalidSyntax := errors.New("secret should have syntax id=id[,target=path,required=bool,mode=uint,uid=uint,gid=uint")
 	if len(tokens) == 0 {
 		return nil, "", errInvalidSyntax
@@ -1781,7 +1780,7 @@ func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secr
 }
 
 // getSSHMount parses the --mount type=ssh flag in the Containerfile, checks if there's an ssh source provided, and creates and starts an ssh-agent to be forwarded into the container
-func (b *Builder) getSSHMount(tokens []string, count int, sshsources map[string]*sshagent.Source, idMaps IDMaps) (*spec.Mount, *sshagent.AgentServer, error) {
+func (b *Builder) getSSHMount(tokens []string, count int, sshsources map[string]*sshagent.Source, idMaps IDMaps) (*specs.Mount, *sshagent.AgentServer, error) {
 	errInvalidSyntax := errors.New("ssh should have syntax id=id[,target=path,required=bool,mode=uint,uid=uint,gid=uint")
 
 	var err error

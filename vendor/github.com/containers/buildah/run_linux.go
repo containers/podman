@@ -40,7 +40,6 @@ import (
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
@@ -157,7 +156,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		for _, m := range g.Mounts() {
 			mounts[m.Destination] = true
 		}
-		newMounts := []spec.Mount{}
+		newMounts := []specs.Mount{}
 		for _, d := range b.Devices {
 			// Default permission is read-only.
 			perm := "ro"
@@ -166,7 +165,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 			if strings.Contains(string(d.Rule.Permissions), "w") {
 				perm = "rw"
 			}
-			devMnt := spec.Mount{
+			devMnt := specs.Mount{
 				Destination: d.Destination,
 				Type:        parse.TypeBind,
 				Source:      d.Source,
@@ -185,7 +184,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		g.Config.Mounts = append(newMounts, g.Config.Mounts...)
 	} else {
 		for _, d := range b.Devices {
-			sDev := spec.LinuxDevice{
+			sDev := specs.LinuxDevice{
 				Type:     string(d.Type),
 				Path:     d.Path,
 				Major:    d.Major,
@@ -380,8 +379,8 @@ rootless=%d
 	return err
 }
 
-func (b *Builder) setupOCIHooks(config *spec.Spec, hasVolumes bool) (map[string][]spec.Hook, error) {
-	allHooks := make(map[string][]spec.Hook)
+func (b *Builder) setupOCIHooks(config *specs.Spec, hasVolumes bool) (map[string][]specs.Hook, error) {
+	allHooks := make(map[string][]specs.Hook)
 	if len(b.CommonBuildOpts.OCIHooksDir) == 0 {
 		if unshare.IsRootless() {
 			return nil, nil
@@ -472,17 +471,13 @@ func addCommonOptsToSpec(commonOpts *define.CommonBuildOptions, g *generate.Gene
 	return nil
 }
 
-func setupSlirp4netnsNetwork(netns, cid string, options []string) (func(), map[string]nettypes.StatusBlock, error) {
-	defConfig, err := config.Default()
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get container config: %w", err)
-	}
+func setupSlirp4netnsNetwork(config *config.Config, netns, cid string, options []string) (func(), map[string]nettypes.StatusBlock, error) {
 	// we need the TmpDir for the slirp4netns code
-	if err := os.MkdirAll(defConfig.Engine.TmpDir, 0o751); err != nil {
+	if err := os.MkdirAll(config.Engine.TmpDir, 0o751); err != nil {
 		return nil, nil, fmt.Errorf("failed to create tempdir: %w", err)
 	}
 	res, err := slirp4netns.Setup(&slirp4netns.SetupOptions{
-		Config:       defConfig,
+		Config:       config,
 		ContainerID:  cid,
 		Netns:        netns,
 		ExtraOptions: options,
@@ -519,14 +514,9 @@ func setupSlirp4netnsNetwork(netns, cid string, options []string) (func(), map[s
 	}, netStatus, nil
 }
 
-func setupPasta(netns string, options []string) (func(), map[string]nettypes.StatusBlock, error) {
-	defConfig, err := config.Default()
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get container config: %w", err)
-	}
-
-	err = pasta.Setup(&pasta.SetupOptions{
-		Config:       defConfig,
+func setupPasta(config *config.Config, netns string, options []string) (func(), map[string]nettypes.StatusBlock, error) {
+	err := pasta.Setup(&pasta.SetupOptions{
+		Config:       config,
 		Netns:        netns,
 		ExtraOptions: options,
 	})
@@ -565,18 +555,33 @@ func setupPasta(netns string, options []string) (func(), map[string]nettypes.Sta
 func (b *Builder) runConfigureNetwork(pid int, isolation define.Isolation, options RunOptions, network, containerName string) (teardown func(), netStatus map[string]nettypes.StatusBlock, err error) {
 	netns := fmt.Sprintf("/proc/%d/ns/net", pid)
 	var configureNetworks []string
+	defConfig, err := config.Default()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get container config: %w", err)
+	}
 
 	name, networkOpts, hasOpts := strings.Cut(network, ":")
 	var netOpts []string
 	if hasOpts {
 		netOpts = strings.Split(networkOpts, ",")
 	}
+	if isolation == IsolationOCIRootless && name == "" {
+		switch defConfig.Network.DefaultRootlessNetworkCmd {
+		case slirp4netns.BinaryName, "":
+			name = slirp4netns.BinaryName
+		case pasta.BinaryName:
+			name = pasta.BinaryName
+		default:
+			return nil, nil, fmt.Errorf("invalid default_rootless_network_cmd option %q",
+				defConfig.Network.DefaultRootlessNetworkCmd)
+		}
+	}
+
 	switch {
-	case name == slirp4netns.BinaryName,
-		isolation == IsolationOCIRootless && name == "":
-		return setupSlirp4netnsNetwork(netns, containerName, netOpts)
+	case name == slirp4netns.BinaryName:
+		return setupSlirp4netnsNetwork(defConfig, netns, containerName, netOpts)
 	case name == pasta.BinaryName:
-		return setupPasta(netns, netOpts)
+		return setupPasta(defConfig, netns, netOpts)
 
 	// Basically default case except we make sure to not split an empty
 	// name as this would return a slice with one empty string which is
@@ -1107,7 +1112,7 @@ func setupCapabilities(g *generate.Generator, defaultCapabilities, adds, drops [
 	return setupCapDrop(g, drops...)
 }
 
-func addOrReplaceMount(mounts []specs.Mount, mount specs.Mount) []spec.Mount {
+func addOrReplaceMount(mounts []specs.Mount, mount specs.Mount) []specs.Mount {
 	for i := range mounts {
 		if mounts[i].Destination == mount.Destination {
 			mounts[i] = mount
@@ -1120,7 +1125,7 @@ func addOrReplaceMount(mounts []specs.Mount, mount specs.Mount) []spec.Mount {
 // setupSpecialMountSpecChanges creates special mounts for depending on the namespaces
 // logic taken from podman and adapted for buildah
 // https://github.com/containers/podman/blob/4ba71f955a944790edda6e007e6d074009d437a7/pkg/specgen/generate/oci.go#L178
-func setupSpecialMountSpecChanges(spec *spec.Spec, shmSize string) ([]specs.Mount, error) {
+func setupSpecialMountSpecChanges(spec *specs.Spec, shmSize string) ([]specs.Mount, error) {
 	mounts := spec.Mounts
 	isRootless := unshare.IsRootless()
 	isNewUserns := false
@@ -1236,7 +1241,7 @@ func setupSpecialMountSpecChanges(spec *spec.Spec, shmSize string) ([]specs.Moun
 	return mounts, nil
 }
 
-func checkIdsGreaterThan5(ids []spec.LinuxIDMapping) bool {
+func checkIdsGreaterThan5(ids []specs.LinuxIDMapping) bool {
 	for _, r := range ids {
 		if r.ContainerID <= 5 && 5 < r.ContainerID+r.Size {
 			return true
@@ -1246,7 +1251,7 @@ func checkIdsGreaterThan5(ids []spec.LinuxIDMapping) bool {
 }
 
 // If this function succeeds and returns a non-nil *lockfile.LockFile, the caller must unlock it (when??).
-func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps, workDir string) (*spec.Mount, *lockfile.LockFile, error) {
+func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps, workDir string) (*specs.Mount, *lockfile.LockFile, error) {
 	var optionMounts []specs.Mount
 	mount, targetLock, err := internalParse.GetCacheMount(tokens, b.store, b.MountLabel, stageMountPoints, workDir)
 	if err != nil {
