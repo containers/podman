@@ -2,6 +2,92 @@
 
 # Changelog
 
+## v1.31.0 (2023-06-30)
+
+    Bump c/common to 0.55.1 and c/image to 5.26.1
+    Bump c/image to 5.26.0 and c/common to 0.54.0
+    vendor: update c/{common,image,storage} to latest
+    chore: pkg imported more than once
+    buildah: add pasta(1) support
+    use slirp4netns package from c/common
+    update c/common to latest
+    add hostname to /etc/hosts when running with host network
+    vendor: update c/common to latest
+    [CI:BUILD] Packit: add jobs for downstream Fedora package builds
+    fix(deps): update module golang.org/x/sync to v0.3.0
+    fix(deps): update module golang.org/x/crypto to v0.10.0
+    Add smoke tests for encryption CLI helpers
+    fix(deps): update module golang.org/x/term to v0.9.0
+    fix(deps): update module github.com/opencontainers/runtime-spec to v1.1.0-rc.3
+    Remove device mapper support
+    Remove use of deprecated tar.TypeRegA
+    Update tooling to support newer golangci-lint
+    Make cli.EncryptConfig,DecryptConfig, GetFormat public
+    Don't decrypt images by default
+    fix(deps): update module github.com/onsi/gomega to v1.27.8
+    fix(deps): update github.com/containers/storage digest to 3f3fb2f
+    Renovate: Don't touch fragile test stuffs
+    [CI:DOCS] Update comment to remove ambiguity
+    fix(deps): update github.com/containers/image/v5 digest to abe5133
+    fix(deps): update module github.com/sirupsen/logrus to v1.9.3
+    fix(deps): update module github.com/containerd/containerd to v1.7.2
+    Explicitly ref. quay images for CI
+    At startup, log the effective capabilities for debugging
+    parse: use GetTempDir from internal utils
+    GetTmpDir: honor image_copy_tmp_dir from containers.conf
+    docs/Makefile: don't show sed invocations
+    CI: Support testing w/ podman-next COPR packages
+    intermediate-images inherit-label test: make it debuggable
+    fix(deps): update github.com/containers/common digest to 462ccdd
+    Add a warning to `--secret` docs
+    vendor: bump c/storage to v1.46.2-0.20230526114421-55ee2d19292f
+    executor: apply label to only final stage
+    remove registry.centos.org
+    Go back to setting SysProcAttr.Pdeathsig for child processes
+    Fix auth.json path (validated on Fedora 38) wq Signed-off-by: Andreas Mack <andreas.mack@gmail.com>
+    fix(deps): update module github.com/stretchr/testify to v1.8.3
+    CI: fix test broken by renovatebot
+    chore(deps): update quay.io/libpod/testimage docker tag to v20221018
+    fix(deps): update module github.com/onsi/gomega to v1.27.7
+    test: use debian instead of docker.io/library/debian:testing-slim
+    vendor: bump logrus to 1.9.2
+    [skip-ci] Update tim-actions/get-pr-commits action to v1.3.0
+    Revert "Proof of concept: nightly dependency treadmill"
+    fix(deps): update module github.com/sirupsen/logrus to v1.9.1
+    vendor in containers/(common,storage,image)
+    fix(deps): update module github.com/docker/distribution to v2.8.2+incompatible
+    run: drop Pdeathsig
+    chroot: lock thread before setPdeathsig
+    tests: add a case for required=false
+    fix(deps): update module github.com/openshift/imagebuilder to v1.2.5
+    build: validate volumes on backend
+    secret: accept required flag w/o value
+    fix(deps): update module github.com/containerd/containerd to v1.7.1
+    fix(deps): update module golang.org/x/crypto to v0.9.0
+    Update the demos README file to fix minor typos
+    fix(deps): update module golang.org/x/sync to v0.2.0
+    fix(deps): update module golang.org/x/term to v0.8.0
+    manifest, push: use source as destination if not specified
+    run,mount: remove path only if they didnt pre-exist
+    Cirrus: Fix meta task failing to find commit
+    parse: filter edge-case for podman-remote
+    fix(deps): update module github.com/opencontainers/runc to v1.1.7
+    fix(deps): update module github.com/docker/docker to v23.0.5+incompatible
+    build: --platform must accept only arch
+    fix(deps): update module github.com/containers/common to v0.53.0
+    makefile: increase conformance timeout
+    Cap suffixDigitsModulo to a 9-digits suffix.
+    Rename conflict to suffixDigitsModulo
+    fix(deps): update module github.com/opencontainers/runtime-spec to v1.1.0-rc.2
+    fix(deps): update module github.com/opencontainers/runc to v1.1.6
+    chore(deps): update centos docker tag to v8
+    Clarify the need for qemu-user-static package
+    chore(deps): update quay.io/centos/centos docker tag to v8
+    Renovate: Ensure test/tools/go.mod is managed
+    Revert "buildah image should not enable fuse-overlayfs for rootful mode"
+    Bump to v1.31.0-dev
+    parse: add support for relabel bind mount option
+
 ## v1.30.0 (2023-04-06)
 
     fix(deps): update module github.com/opencontainers/runc to v1.1.5

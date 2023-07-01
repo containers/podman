@@ -22,7 +22,6 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
-	is "github.com/containers/image/v5/storage"
 	storageTransport "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
@@ -424,7 +423,7 @@ func (b *Executor) getImageTypeAndHistoryAndDiffIDs(ctx context.Context, imageID
 	if ok {
 		return imageInfo.manifestType, imageInfo.history, imageInfo.diffIDs, imageInfo.err
 	}
-	imageRef, err := is.Transport.ParseStoreReference(b.store, "@"+imageID)
+	imageRef, err := storageTransport.Transport.ParseStoreReference(b.store, "@"+imageID)
 	if err != nil {
 		return "", nil, nil, fmt.Errorf("getting image reference %q: %w", imageID, err)
 	}
@@ -992,8 +991,8 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	// Add additional tags and print image names recorded in storage
 	if dest, err := b.resolveNameToImageRef(b.output); err == nil {
 		switch dest.Transport().Name() {
-		case is.Transport.Name():
-			img, err := is.Transport.GetStoreImage(b.store, dest)
+		case storageTransport.Transport.Name():
+			img, err := storageTransport.Transport.GetStoreImage(b.store, dest)
 			if err != nil {
 				return imageID, ref, fmt.Errorf("locating just-written image %q: %w", transports.ImageName(dest), err)
 			}
@@ -1004,7 +1003,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 				logrus.Debugf("assigned names %v to image %q", img.Names, img.ID)
 			}
 			// Report back the caller the tags applied, if any.
-			img, err = is.Transport.GetStoreImage(b.store, dest)
+			img, err = storageTransport.Transport.GetStoreImage(b.store, dest)
 			if err != nil {
 				return imageID, ref, fmt.Errorf("locating just-written image %q: %w", transports.ImageName(dest), err)
 			}

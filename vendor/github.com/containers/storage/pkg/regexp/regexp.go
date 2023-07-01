@@ -10,7 +10,9 @@ import (
 // used as global variables. Using this structure helps speed the startup time
 // of apps that want to use global regex variables. This library initializes them on
 // first use as opposed to the start of the executable.
-type Regexp = *regexpStruct
+type Regexp struct {
+	*regexpStruct
+}
 
 type regexpStruct struct {
 	_      noCopy
@@ -26,7 +28,7 @@ func Delayed(val string) Regexp {
 	if precompile {
 		re.regexp = regexp.MustCompile(re.val)
 	}
-	return re
+	return Regexp{re}
 }
 
 func (re *regexpStruct) compile() {
