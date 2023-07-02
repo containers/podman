@@ -7,7 +7,6 @@ import (
 
 	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
-	"github.com/containers/podman/v4/pkg/rootless"
 )
 
 var (
@@ -150,15 +149,6 @@ func (s *SpecGenerator) Validate() error {
 		return err
 	}
 
-	// Set defaults if network info is not provided
-	// when we are rootless we default to slirp4netns
-	if s.NetNS.IsPrivate() || s.NetNS.IsDefault() {
-		if rootless.IsRootless() {
-			s.NetNS.NSMode = Slirp
-		} else {
-			s.NetNS.NSMode = Bridge
-		}
-	}
 	if err := validateNetNS(&s.NetNS); err != nil {
 		return err
 	}

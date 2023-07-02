@@ -18,8 +18,6 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/util"
 	"github.com/containers/image/v5/types"
-	encconfig "github.com/containers/ocicrypt/config"
-	enchelpers "github.com/containers/ocicrypt/helpers"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/namespaces"
@@ -615,40 +613,6 @@ func LookupUser(name string) (*user.User, error) {
 func SizeOfPath(path string) (uint64, error) {
 	size, err := directory.Size(path)
 	return uint64(size), err
-}
-
-// EncryptConfig translates encryptionKeys into an EncriptionsConfig structure
-func EncryptConfig(encryptionKeys []string, encryptLayers []int) (*encconfig.EncryptConfig, *[]int, error) {
-	var encLayers *[]int
-	var encConfig *encconfig.EncryptConfig
-
-	if len(encryptionKeys) > 0 {
-		// encryption
-		encLayers = &encryptLayers
-		ecc, err := enchelpers.CreateCryptoConfig(encryptionKeys, []string{})
-		if err != nil {
-			return nil, nil, fmt.Errorf("invalid encryption keys: %w", err)
-		}
-		cc := encconfig.CombineCryptoConfigs([]encconfig.CryptoConfig{ecc})
-		encConfig = cc.EncryptConfig
-	}
-	return encConfig, encLayers, nil
-}
-
-// DecryptConfig translates decryptionKeys into a DescriptionConfig structure
-func DecryptConfig(decryptionKeys []string) (*encconfig.DecryptConfig, error) {
-	var decryptConfig *encconfig.DecryptConfig
-	if len(decryptionKeys) > 0 {
-		// decryption
-		dcc, err := enchelpers.CreateCryptoConfig([]string{}, decryptionKeys)
-		if err != nil {
-			return nil, fmt.Errorf("invalid decryption keys: %w", err)
-		}
-		cc := encconfig.CombineCryptoConfigs([]encconfig.CryptoConfig{dcc})
-		decryptConfig = cc.DecryptConfig
-	}
-
-	return decryptConfig, nil
 }
 
 // ParseRestartPolicy parses the value given to the --restart flag and returns the policy

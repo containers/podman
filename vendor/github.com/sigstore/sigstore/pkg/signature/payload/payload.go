@@ -52,16 +52,32 @@ type Image struct {
 
 // Cosign describes a container image signed using Cosign
 type Cosign struct {
-	Image       name.Digest
-	Annotations map[string]interface{}
+	Image name.Digest
+	// ClaimedIdentity is what the signer claims the image to be; usually a registry.com/…/repo:tag, but can also use a digest instead.
+	// ALMOST ALL consumers MUST verify that ClaimedIdentity in the signature is correct given how user refers to the image;
+	// e.g. if the user asks to access a signed image example.com/repo/mysql:3.14,
+	// it is ALMOST ALWAYS necessary to validate that ClaimedIdentity = example.com/repo/mysql:3.14
+	//
+	// Considerations:
+	// - The user might refer to an image using a digest (example.com/repo/mysql@sha256:…); in that case the registry/…/repo should still match
+	// - If the image is multi-arch, ClaimedIdentity usually refers to the top-level multi-arch image index also on the per-arch images
+	//   (possibly even if ClaimedIdentity contains a digest!)
+	// - Older versions of cosign generate signatures where ClaimedIdentity only contains a registry/…/repo ; signature consumers should allow users
+	//   to determine whether such images should be accepted (and, long-term, the default SHOULD be to reject them)
+	ClaimedIdentity string
+	Annotations     map[string]interface{}
 }
 
 // SimpleContainerImage returns information about a container image in the github.com/containers/image/signature format
 func (p Cosign) SimpleContainerImage() SimpleContainerImage {
+	dockerReference := p.Image.Repository.Name()
+	if p.ClaimedIdentity != "" {
+		dockerReference = p.ClaimedIdentity
+	}
 	return SimpleContainerImage{
 		Critical: Critical{
 			Identity: Identity{
-				DockerReference: p.Image.Repository.Name(),
+				DockerReference: dockerReference,
 			},
 			Image: Image{
 				DockerManifestDigest: p.Image.DigestStr(),
@@ -98,6 +114,7 @@ func (p *Cosign) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("could not parse image digest string %q: %w", digestStr, err)
 	}
 	p.Image = digest
+	p.ClaimedIdentity = simple.Critical.Identity.DockerReference
 	p.Annotations = simple.Optional
 	return nil
 }

@@ -22,7 +22,6 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
-	is "github.com/containers/image/v5/storage"
 	storageTransport "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
@@ -424,7 +423,7 @@ func (b *Executor) getImageTypeAndHistoryAndDiffIDs(ctx context.Context, imageID
 	if ok {
 		return imageInfo.manifestType, imageInfo.history, imageInfo.diffIDs, imageInfo.err
 	}
-	imageRef, err := is.Transport.ParseStoreReference(b.store, "@"+imageID)
+	imageRef, err := storageTransport.Transport.ParseStoreReference(b.store, "@"+imageID)
 	if err != nil {
 		return "", nil, nil, fmt.Errorf("getting image reference %q: %w", imageID, err)
 	}
@@ -470,33 +469,33 @@ func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageE
 	output := ""
 	if stageIndex == len(stages)-1 {
 		output = b.output
-	}
-	// Check if any labels were passed in via the API, and add a final line
-	// to the Dockerfile that would provide the same result.
-	// Reason: Docker adds label modification as a last step which can be
-	// processed like regular steps, and if no modification is done to
-	// layers, its easier to re-use cached layers.
-	if len(b.labels) > 0 {
-		var labelLine string
-		labels := append([]string{}, b.labels...)
-		for _, labelSpec := range labels {
-			label := strings.SplitN(labelSpec, "=", 2)
-			key := label[0]
-			value := ""
-			if len(label) > 1 {
-				value = label[1]
+		// Check if any labels were passed in via the API, and add a final line
+		// to the Dockerfile that would provide the same result.
+		// Reason: Docker adds label modification as a last step which can be
+		// processed like regular steps, and if no modification is done to
+		// layers, its easier to re-use cached layers.
+		if len(b.labels) > 0 {
+			var labelLine string
+			labels := append([]string{}, b.labels...)
+			for _, labelSpec := range labels {
+				label := strings.SplitN(labelSpec, "=", 2)
+				key := label[0]
+				value := ""
+				if len(label) > 1 {
+					value = label[1]
+				}
+				// check only for an empty key since docker allows empty values
+				if key != "" {
+					labelLine += fmt.Sprintf(" %q=%q", key, value)
+				}
 			}
-			// check only for an empty key since docker allows empty values
-			if key != "" {
-				labelLine += fmt.Sprintf(" %q=%q", key, value)
+			if len(labelLine) > 0 {
+				additionalNode, err := imagebuilder.ParseDockerfile(strings.NewReader("LABEL" + labelLine + "\n"))
+				if err != nil {
+					return "", nil, fmt.Errorf("while adding additional LABEL step: %w", err)
+				}
+				stage.Node.Children = append(stage.Node.Children, additionalNode.Children...)
 			}
-		}
-		if len(labelLine) > 0 {
-			additionalNode, err := imagebuilder.ParseDockerfile(strings.NewReader("LABEL" + labelLine + "\n"))
-			if err != nil {
-				return "", nil, fmt.Errorf("while adding additional LABEL step: %w", err)
-			}
-			stage.Node.Children = append(stage.Node.Children, additionalNode.Children...)
 		}
 	}
 
@@ -992,8 +991,8 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	// Add additional tags and print image names recorded in storage
 	if dest, err := b.resolveNameToImageRef(b.output); err == nil {
 		switch dest.Transport().Name() {
-		case is.Transport.Name():
-			img, err := is.Transport.GetStoreImage(b.store, dest)
+		case storageTransport.Transport.Name():
+			img, err := storageTransport.Transport.GetStoreImage(b.store, dest)
 			if err != nil {
 				return imageID, ref, fmt.Errorf("locating just-written image %q: %w", transports.ImageName(dest), err)
 			}
@@ -1004,7 +1003,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 				logrus.Debugf("assigned names %v to image %q", img.Names, img.ID)
 			}
 			// Report back the caller the tags applied, if any.
-			img, err = is.Transport.GetStoreImage(b.store, dest)
+			img, err = storageTransport.Transport.GetStoreImage(b.store, dest)
 			if err != nil {
 				return imageID, ref, fmt.Errorf("locating just-written image %q: %w", transports.ImageName(dest), err)
 			}

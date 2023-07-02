@@ -294,10 +294,6 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	}
 
 	postConfigureNetNS := !s.UserNS.IsHost()
-	// when we are rootless we default to slirp4netns
-	if rootless.IsRootless() && (s.NetNS.IsPrivate() || s.NetNS.IsDefault()) {
-		s.NetNS.NSMode = specgen.Slirp
-	}
 
 	switch s.NetNS.NSMode {
 	case specgen.FromPod:

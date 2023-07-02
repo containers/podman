@@ -263,18 +263,32 @@ skip_if_remote "different error messages between podman & podman-remote" \
 ###############################################################################
 # BEGIN temporary workarounds that must be reevaluated periodically
 
+# 2023-06-27 confirmed this is still broken, main @ 3794d067e
 skip_if_remote "FIXME: can this test be made to work under podman-remote?" \
                "bud-with-mount-cache-like-buildkit-verify-default-selinux-option"
 
+# 2023-06-27 confirmed these are still broken, main @ 3794d067e
 skip_if_rootless_remote "FIXME: #17788 tar + namespaces over http" \
                         "bud-http-context-with-Dockerfile" \
                         "bud-http-context-dir-with-Dockerfile" \
                         "bud-http-context-with-Containerfile"
 
+# 2023-06-27 confirmed these are still broken, main @ 3794d067e
 skip_if_rootless_remote "FIXME: not sure if 17788 or some other bug" \
                         "bud-github-context" \
                         "bud with Dockerfile from stdin tar" \
                         "build-with-network-test"
+
+# 2023-06-27 UPDATE: this seems to be fixed? Maybe we can remove this skip?
+# 2023-05-04 fails with:
+#   Error: creating build container: initializing source docker://debian:testing-slim: reading manifest testing-slim in quay.io/libpod/debian: manifest unknown
+#skip_if_remote "FIXME: 2023-05-04: new code, fails in podman-remote" \
+#               "bud-verify-if-we-dont-clean-prexisting-path"
+
+# 2023-06-27 confirmed this is still broken, main @ 3794d067e
+# 2023-06-13 buildah 4746 changed exit code & expected error message
+skip "FIXME: 2023-06-13 buildah PR 4746 broke this test" \
+     "bud with encrypted FROM image"
 
 # END   temporary workarounds that must be reevaluated periodically
 ###############################################################################

@@ -628,18 +628,13 @@ func (d *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	switch len(options.Options) {
-	case 0:
-	case 1:
-		if options.Options[0] == "ro" {
+	for _, opt := range options.Options {
+		if opt == "ro" {
 			// ignore "ro" option
-			break
+			continue
 		}
-		fallthrough
-	default:
 		return "", fmt.Errorf("btrfs driver does not support mount options")
 	}
-
 	if !st.IsDir() {
 		return "", fmt.Errorf("%s: not a directory", dir)
 	}

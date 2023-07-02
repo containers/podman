@@ -69,8 +69,6 @@ type SetupOptions struct {
 	ContainerID string
 	// Netns path to the netns
 	Netns string
-	// ContainerPID is the pid of container process
-	ContainerPID int
 	// Ports the should be forwarded
 	Ports []types.PortMapping
 	// ExtraOptions for slirp4netns that were set on the cli
@@ -84,6 +82,9 @@ type SetupOptions struct {
 	// RootlessPortSyncPipe pipe used to exit the rootlessport process.
 	// Same as Slirp4netnsExitPipeR, except this is only used when ports are given.
 	RootlessPortExitPipeR *os.File
+	// Pdeathsig is the signal which is send to slirp4netns process if the calling thread
+	// exits. The caller is responsible for locking the thread with runtime.LockOSThread().
+	Pdeathsig syscall.Signal
 }
 
 // SetupResult return type from Setup()
@@ -309,7 +310,8 @@ func Setup(opts *SetupOptions) (*SetupResult, error) {
 	cmd := exec.Command(path, cmdArgs...)
 	logrus.Debugf("slirp4netns command: %s", strings.Join(cmd.Args, " "))
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
+		Setpgid:   true,
+		Pdeathsig: opts.Pdeathsig,
 	}
 
 	// workaround for https://github.com/rootless-containers/slirp4netns/pull/153

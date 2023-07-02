@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/buildah/pkg/cli"
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/image/v5/types"
@@ -198,7 +199,7 @@ func imagePush(cmd *cobra.Command, args []string) error {
 	}
 	defer signingCleanup()
 
-	encConfig, encLayers, err := util.EncryptConfig(pushOptions.EncryptionKeys, pushOptions.EncryptLayers)
+	encConfig, encLayers, err := cli.EncryptConfig(pushOptions.EncryptionKeys, pushOptions.EncryptLayers)
 	if err != nil {
 		return fmt.Errorf("unable to obtain encryption config: %w", err)
 	}
