@@ -18,11 +18,17 @@ import (
 
 // SpecGenToOCI returns the base configuration for the container.
 func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, newImage *libimage.Image, mounts []spec.Mount, pod *libpod.Pod, finalCmd []string, compatibleOptions *libpod.InfraInherit) (*spec.Spec, error) {
-	if s.ImageOS != "freebsd" && s.ImageOS != "linux" {
-		return nil, fmt.Errorf("unsupported image OS: %s", s.ImageOS)
+	inspectData, err := newImage.Inspect(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	imageOs := inspectData.Os
+
+	if imageOs != "freebsd" && imageOs != "linux" {
+		return nil, fmt.Errorf("unsupported image OS: %s", imageOs)
 	}
 
-	g, err := generate.New(s.ImageOS)
+	g, err := generate.New(imageOs)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +61,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	}
 
 	// Linux emulatioon
-	if s.ImageOS == "linux" {
+	if imageOs == "linux" {
 		var mounts []spec.Mount
 		for _, m := range configSpec.Mounts {
 			switch m.Destination {
