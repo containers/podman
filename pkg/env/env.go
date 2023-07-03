@@ -1,13 +1,29 @@
-// Package for processing environment variables.
 package env
 
-// TODO: we need to add tests for this package.
-
 import (
-	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strings"
+
+	"github.com/containers/storage/pkg/regexp"
+)
+
+var (
+	// Form: https://github.com/motdotla/dotenv/blob/aa03dcad1002027390dac1e8d96ac236274de354/lib/main.js#L9C76-L9C76
+	// (?:export\s+)?([\w.-]+) match key
+	// ([\w.%-]+)(\s*[=|*]\s*?|:\s+?) match separator
+	// Remaining match value
+	// e.g. KEY=VALUE => KEY, =, VALUE
+	//
+	//	KEY= => KEY, =, ""
+	//	KEY* => KEY, *, ""
+	//	KEY*=1 => KEY, *, =1
+	lineRegexp = regexp.Delayed(
+		`(?m)(?:^|^)\s*(?:export\s+)?([\w.%-]+)(\s*[=|*]\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*` +
+			"`(?:\\`|[^`])*`" + `|[^#\r\n]+)?\s*(?:#.*)?(?:$|$)`,
+	)
+	onlyKeyRegexp = regexp.Delayed(`^[\w.-]+$`)
 )
 
 const whiteSpaces = " \t"
@@ -80,47 +96,103 @@ func ParseFile(path string) (_ map[string]string, err error) {
 	}
 	defer fh.Close()
 
-	scanner := bufio.NewScanner(fh)
-	for scanner.Scan() {
-		// trim the line from all leading whitespace first
-		line := strings.TrimLeft(scanner.Text(), whiteSpaces)
-		// line is not empty, and not starting with '#'
-		if len(line) > 0 && !strings.HasPrefix(line, "#") {
-			if err := parseEnv(env, line); err != nil {
-				return nil, err
-			}
-		}
+	content, err := io.ReadAll(fh)
+	if err != nil {
+		return nil, err
 	}
-	return env, scanner.Err()
+
+	// replace all \r\n and \r with \n
+	text := strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(string(content))
+	if err := parseEnv(env, text, false); err != nil {
+		return nil, err
+	}
+
+	return env, nil
 }
 
-func parseEnv(env map[string]string, line string) error {
-	data := strings.SplitN(line, "=", 2)
+// parseEnv parse the given content into env format
+// @param enforceMatch bool	"it throws an error if there is no match"
+//
+// @example: parseEnv(env, "#comment", true) => error("invalid variable: #comment")
+// @example: parseEnv(env, "#comment", false) => nil
+// @example: parseEnv(env, "", false) => nil
+// @example: parseEnv(env, "KEY=FOO", true) => nil
+// @example: parseEnv(env, "KEY", true) => nil
+func parseEnv(env map[string]string, content string, enforceMatch bool) error {
+	m := envMatch(content)
 
-	// catch invalid variables such as "=" or "=A"
-	if data[0] == "" {
-		return fmt.Errorf("invalid variable: %q", line)
+	if len(m) == 0 && enforceMatch {
+		return fmt.Errorf("invalid variable: %q", content)
 	}
-	// trim the front of a variable, but nothing else
-	name := strings.TrimLeft(data[0], whiteSpaces)
-	if len(data) > 1 {
-		env[name] = data[1]
-	} else {
-		if strings.HasSuffix(name, "*") {
-			name = strings.TrimSuffix(name, "*")
+
+	for _, match := range m {
+		key := match[1]
+		separator := strings.Trim(match[2], whiteSpaces)
+		value := match[3]
+
+		if strings.Contains(value, "\n") {
+			if strings.HasPrefix(value, "`") {
+				return fmt.Errorf("only support multi-line environment variables surrounded by "+
+					"double quotation marks or single quotation marks. invalid variable: %q", match[0])
+			}
+
+			// In the case of multi-line values, we need to remove the surrounding " '
+			value = strings.Trim(value, "\"'")
+		}
+
+		// KEY*=1 => KEY, *, =1 => KEY*, =, 1
+		if separator == "*" && strings.HasPrefix(value, "=") {
+			key += "*"
+			separator = "="
+			value = strings.TrimPrefix(value, "=")
+		}
+
+		switch separator {
+		case "=":
+			// KEY=
+			if value == "" {
+				if val, ok := os.LookupEnv(key); ok {
+					env[key] = val
+				}
+			} else {
+				env[key] = value
+			}
+		case "*":
 			for _, e := range os.Environ() {
 				part := strings.SplitN(e, "=", 2)
 				if len(part) < 2 {
 					continue
 				}
-				if strings.HasPrefix(part[0], name) {
+				if strings.HasPrefix(part[0], key) {
 					env[part[0]] = part[1]
 				}
 			}
-		} else if val, ok := os.LookupEnv(name); ok {
-			// if only a pass-through variable is given, clean it up.
-			env[name] = val
 		}
 	}
 	return nil
+}
+
+func envMatch(content string) [][]string {
+	m := lineRegexp.FindAllStringSubmatch(content, -1)
+
+	// KEY => KEY, =, ""
+	// Due to the above regex pattern, it will skip cases where only KEY is present (e.g., foo).
+	// However, in our requirement, this situation is equivalent to foo=(i.e., "foo" == "foo=").
+	// Therefore, we need to perform additional processing.
+	// The reason for needing to support this scenario is that we need to consider: `podman run -e CI -e USERNAME`.
+	{
+		noMatched := lineRegexp.ReplaceAllString(content, "")
+		nl := strings.Split(noMatched, "\n")
+		for _, key := range nl {
+			key := strings.Trim(key, whiteSpaces)
+			if key == "" {
+				continue
+			}
+			if onlyKeyRegexp.MatchString(key) {
+				m = append(m, []string{key, key, "=", ""})
+			}
+		}
+	}
+
+	return m
 }
