@@ -1,8 +1,8 @@
 package machine
 
 import (
+	"bytes"
 	"fmt"
-	"os"
 	"os/exec"
 	"strconv"
 
@@ -27,9 +27,15 @@ func CommonSSH(username, identityPath, name string, sshPort int, inputArgs []str
 	cmd := exec.Command("ssh", args...)
 	logrus.Debugf("Executing: ssh %v\n", args)
 
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
 
-	return cmd.Run()
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("SSH failed: %w (stdout: %q, stderr: %q)", err, stdout.String(), stderr.String())
+	}
+
+	return nil
 }
