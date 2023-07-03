@@ -5341,4 +5341,44 @@ spec:
 		Expect(kube).Should(Exit(125))
 		Expect(kube.ErrorToString()).To(ContainSubstring("since Network Namespace set to host: invalid argument"))
 	})
+
+	It("podman kube play test with --no-trunc", func() {
+		ctrName := "demo"
+		vol1 := filepath.Join(podmanTest.TempDir, RandomString(99))
+		err := os.MkdirAll(vol1, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		session := podmanTest.Podman([]string{"run", "-v", vol1 + ":/tmp/foo:Z", "--name", ctrName, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		file := filepath.Join(podmanTest.TempDir, ctrName+".yml")
+		session = podmanTest.Podman([]string{"kube", "generate", "--no-trunc", "-f", file, ctrName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"kube", "play", "--no-trunc", file})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+	})
+
+	It("podman kube play test with long annotation", func() {
+		ctrName := "demo"
+		vol1 := filepath.Join(podmanTest.TempDir, RandomString(99))
+		err := os.MkdirAll(vol1, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		session := podmanTest.Podman([]string{"run", "-v", vol1 + ":/tmp/foo:Z", "--name", ctrName, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		file := filepath.Join(podmanTest.TempDir, ctrName+".yml")
+		session = podmanTest.Podman([]string{"kube", "generate", "--no-trunc", "-f", file, ctrName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"kube", "play", file})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+	})
 })

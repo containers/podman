@@ -165,6 +165,9 @@ func playFlags(cmd *cobra.Command) {
 	flags.StringSliceVar(&playOptions.ConfigMaps, configmapFlagName, []string{}, "`Pathname` of a YAML file containing a kubernetes configmap")
 	_ = cmd.RegisterFlagCompletionFunc(configmapFlagName, completion.AutocompleteDefault)
 
+	noTruncFlagName := "no-trunc"
+	flags.BoolVar(&playOptions.UseLongAnnotations, noTruncFlagName, false, "Use annotations that are not truncated to the Kubernetes maximum length of 63 characters")
+
 	if !registry.IsRemote() {
 		certDirFlagName := "cert-dir"
 		flags.StringVar(&playOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")
@@ -240,7 +243,7 @@ func play(cmd *cobra.Command, args []string) error {
 			playOptions.Annotations = make(map[string]string)
 		}
 		annotation := splitN[1]
-		if len(annotation) > define.MaxKubeAnnotation {
+		if len(annotation) > define.MaxKubeAnnotation && !playOptions.UseLongAnnotations {
 			return fmt.Errorf("annotation exceeds maximum size, %d, of kubernetes annotation: %s", define.MaxKubeAnnotation, annotation)
 		}
 		playOptions.Annotations[splitN[0]] = annotation

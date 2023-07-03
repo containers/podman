@@ -10,6 +10,8 @@ type KubeOptions struct {
 	Type *string
 	// Replicas - the value to set in the replicas field for a Deployment
 	Replicas *int32
+	// NoTrunc - don't truncate annotations to the Kubernetes maximum length of 63 characters
+	NoTrunc *bool
 }
 
 // SystemdOptions are optional options for generating systemd files

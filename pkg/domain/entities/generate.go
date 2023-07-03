@@ -35,6 +35,8 @@ type GenerateKubeOptions struct {
 	Type string
 	// Replicas - the value to set in the replicas field for a Deployment
 	Replicas int32
+	// UseLongAnnotations - don't truncate annotations to the Kubernetes maximum length of 63 characters
+	UseLongAnnotations bool
 }
 
 type KubeGenerateOptions = GenerateKubeOptions

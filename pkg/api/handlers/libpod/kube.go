@@ -29,6 +29,7 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 		StaticMACs       []string          `schema:"staticMACs"`
 		NoHosts          bool              `schema:"noHosts"`
 		PublishPorts     []string          `schema:"publishPorts"`
+		NoTrunc          bool              `schema:"noTrunc"`
 		Wait             bool              `schema:"wait"`
 		ServiceContainer bool              `schema:"serviceContainer"`
 	}{
@@ -85,21 +86,22 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 	options := entities.PlayKubeOptions{
-		Annotations:      query.Annotations,
-		Authfile:         authfile,
-		Username:         username,
-		Password:         password,
-		Networks:         query.Network,
-		NoHosts:          query.NoHosts,
-		Quiet:            true,
-		LogDriver:        logDriver,
-		LogOptions:       query.LogOptions,
-		StaticIPs:        staticIPs,
-		StaticMACs:       staticMACs,
-		IsRemote:         true,
-		PublishPorts:     query.PublishPorts,
-		Wait:             query.Wait,
-		ServiceContainer: query.ServiceContainer,
+		Annotations:        query.Annotations,
+		Authfile:           authfile,
+		Username:           username,
+		Password:           password,
+		Networks:           query.Network,
+		NoHosts:            query.NoHosts,
+		Quiet:              true,
+		LogDriver:          logDriver,
+		LogOptions:         query.LogOptions,
+		StaticIPs:          staticIPs,
+		StaticMACs:         staticMACs,
+		IsRemote:           true,
+		PublishPorts:       query.PublishPorts,
+		Wait:               query.Wait,
+		ServiceContainer:   query.ServiceContainer,
+		UseLongAnnotations: query.NoTrunc,
 	}
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)

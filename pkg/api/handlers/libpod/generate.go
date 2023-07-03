@@ -93,6 +93,7 @@ func GenerateKube(w http.ResponseWriter, r *http.Request) {
 		Service  bool     `schema:"service"`
 		Type     string   `schema:"type"`
 		Replicas int32    `schema:"replicas"`
+		NoTrunc  bool     `schema:"noTrunc"`
 	}{
 		// Defaults would go here.
 		Replicas: 1,
@@ -115,7 +116,12 @@ func GenerateKube(w http.ResponseWriter, r *http.Request) {
 	}
 
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
-	options := entities.GenerateKubeOptions{Service: query.Service, Type: generateType, Replicas: query.Replicas}
+	options := entities.GenerateKubeOptions{
+		Service:            query.Service,
+		Type:               generateType,
+		Replicas:           query.Replicas,
+		UseLongAnnotations: query.NoTrunc,
+	}
 	report, err := containerEngine.GenerateKube(r.Context(), query.Names, options)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("generating YAML: %w", err))
