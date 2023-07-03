@@ -6,9 +6,10 @@
 
 Set the user namespace mode for the container.
 
-If `--userns` is not set the default value is determined as follows.
+If `--userns` is not set, the default value is determined as follows.
 - If `--pod` is set, `--userns` is ignored and the user namespace of the pod is used.
 - If the environment variable **PODMAN_USERNS** is set its value is used.
+- If `userns` is specified in `containers.conf` this value is used.
 - Otherwise, `--userns=host` is assumed.
 
 `--userns=""` (i.e., an empty string) is an alias for `--userns=host`.
@@ -17,13 +18,13 @@ This option is incompatible with **--gidmap**, **--uidmap**, **--subuidname** an
 
 Rootless user --userns=Key mappings:
 
-Key       | Host User |  Container User
-----------|---------------|---------------------
-""        |$UID         |0 (Default User account mapped to root user in container.)
-keep-id   |$UID         |$UID (Map user account to same UID within container.)
-keep-id:uid=200,gid=210 |$UID| 200:210 (Map user account to specified UID, GID value within container.)
-auto      |$UID         | nil (Host User UID is not mapped into container.)
-nomap     |$UID         | nil (Host User UID is not mapped into container.)
+Key                     | Host User | Container User
+------------------------|-----------|---------------------
+auto                    | $UID      | nil (Host User UID is not mapped into container.)
+host                    | $UID      | 0 (Default User account mapped to root user in container.)
+keep-id                 | $UID      | $UID (Map user account to same UID within container.)
+keep-id:uid=200,gid=210 | $UID      | 200:210 (Map user account to specified UID, GID value within container.)
+nomap                   | $UID      | nil (Host User UID is not mapped into container.)
 
 Valid _mode_ values are:
 
