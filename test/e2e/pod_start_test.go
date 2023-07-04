@@ -153,10 +153,8 @@ var _ = Describe("Podman pod start", func() {
 	})
 
 	It("podman pod start single pod via --pod-id-file", func() {
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
+		tmpDir := GinkgoT().TempDir()
 		tmpFile := tmpDir + "podID"
-		defer os.RemoveAll(tmpDir)
 
 		podName := "rudolph"
 
@@ -177,9 +175,7 @@ var _ = Describe("Podman pod start", func() {
 	})
 
 	It("podman pod start multiple pods via --pod-id-file", func() {
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
-		defer os.RemoveAll(tmpDir)
+		tmpDir := GinkgoT().TempDir()
 
 		podIDFiles := []string{}
 		for _, i := range "0123456789" {
@@ -209,10 +205,8 @@ var _ = Describe("Podman pod start", func() {
 	})
 
 	It("podman pod create --infra-conmon-pod create + start", func() {
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
+		tmpDir := GinkgoT().TempDir()
 		tmpFile := tmpDir + "podID"
-		defer os.RemoveAll(tmpDir)
 
 		podName := "rudolph"
 		// Create a pod with --infra-conmon-pid.

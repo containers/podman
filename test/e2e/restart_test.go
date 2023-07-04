@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -229,11 +228,8 @@ var _ = Describe("Podman restart", func() {
 	})
 
 	It("podman restart --cidfile", func() {
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
+		tmpDir := GinkgoT().TempDir()
 		tmpFile := tmpDir + "cid"
-
-		defer os.RemoveAll(tmpDir)
 
 		session := podmanTest.Podman([]string{"create", "--cidfile", tmpFile, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
@@ -252,12 +248,9 @@ var _ = Describe("Podman restart", func() {
 	})
 
 	It("podman restart multiple --cidfile", func() {
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
+		tmpDir := GinkgoT().TempDir()
 		tmpFile1 := tmpDir + "cid-1"
 		tmpFile2 := tmpDir + "cid-2"
-
-		defer os.RemoveAll(tmpDir)
 
 		session := podmanTest.Podman([]string{"run", "--cidfile", tmpFile1, "-d", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()

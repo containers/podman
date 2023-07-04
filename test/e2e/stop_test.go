@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -258,12 +257,8 @@ var _ = Describe("Podman stop", func() {
 	})
 
 	It("podman stop --cidfile", func() {
-
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
+		tmpDir := GinkgoT().TempDir()
 		tmpFile := tmpDir + "cid"
-
-		defer os.RemoveAll(tmpDir)
 
 		session := podmanTest.Podman([]string{"create", "--cidfile", tmpFile, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
@@ -282,13 +277,9 @@ var _ = Describe("Podman stop", func() {
 	})
 
 	It("podman stop multiple --cidfile", func() {
-
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
+		tmpDir := GinkgoT().TempDir()
 		tmpFile1 := tmpDir + "cid-1"
 		tmpFile2 := tmpDir + "cid-2"
-
-		defer os.RemoveAll(tmpDir)
 
 		session := podmanTest.Podman([]string{"run", "--cidfile", tmpFile1, "-d", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
