@@ -126,9 +126,18 @@ var (
 	})
 )
 
+const (
+	// lockdir - do not use directly use LockTmpDir
+	lockdir = "libpodlock"
+	// imageCacheDir - do not use directly use ImageCacheDir
+	imageCacheDir = "imagecachedir"
+)
+
 var _ = SynchronizedBeforeSuite(func() []byte {
+	globalTmpDir := GinkgoT().TempDir()
+
 	// make cache dir
-	ImageCacheDir = filepath.Join(os.TempDir(), "imagecachedir")
+	ImageCacheDir = filepath.Join(globalTmpDir, imageCacheDir)
 	if err := os.MkdirAll(ImageCacheDir, 0700); err != nil {
 		GinkgoWriter.Printf("%q\n", err)
 		os.Exit(1)
@@ -155,9 +164,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	// tests are remote, this is a no-op
 	populateCache(podman)
 
-	path, err := os.MkdirTemp("", "libpodlock")
-	if err != nil {
-		GinkgoWriter.Println(err)
+	if err := os.MkdirAll(filepath.Join(globalTmpDir, lockdir), 0700); err != nil {
+		GinkgoWriter.Printf("%q\n", err)
 		os.Exit(1)
 	}
 
@@ -169,11 +177,13 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	// remove temporary podman files, images are now cached in ImageCacheDir
 	rmAll(podman.PodmanBinary, podman.TempDir)
 
-	return []byte(path)
+	return []byte(globalTmpDir)
 }, func(data []byte) {
 	cwd, _ := os.Getwd()
 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
-	LockTmpDir = string(data)
+	globalTmpDir := string(data)
+	ImageCacheDir = filepath.Join(globalTmpDir, imageCacheDir)
+	LockTmpDir = filepath.Join(globalTmpDir, lockdir)
 
 	timingsFile, err = os.Create(fmt.Sprintf("%s/timings-%d", LockTmpDir, GinkgoParallelProcess()))
 	Expect(err).ToNot(HaveOccurred())
@@ -218,9 +228,6 @@ var _ = SynchronizedAfterSuite(func() {
 
 		cwd, _ := os.Getwd()
 		rmAll(getPodmanBinary(cwd), ImageCacheDir)
-
-		// LockTmpDir can already be removed
-		os.RemoveAll(LockTmpDir)
 	})
 
 func getPodmanBinary(cwd string) string {
@@ -313,8 +320,6 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		storageFs = os.Getenv("STORAGE_FS")
 		storageOptions = "--storage-driver " + storageFs
 	}
-
-	ImageCacheDir = filepath.Join(os.TempDir(), "imagecachedir")
 
 	p := &PodmanTestIntegration{
 		PodmanTest: PodmanTest{
