@@ -137,7 +137,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	// Cache images
 	cwd, _ := os.Getwd()
 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
-	podman := PodmanTestSetup(os.TempDir())
+	podman := PodmanTestSetup(GinkgoT().TempDir())
 
 	// Pull cirros but don't put it into the cache
 	pullImages := []string{CIRROS_IMAGE, fedoraToolbox, volumeTest}
@@ -179,6 +179,9 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	if podman.RemoteTest {
 		podman.StopRemoteService()
 	}
+
+	// remove temporary podman files, images are now cached in ImageCacheDir
+	podman.removeCache(podman.TempDir)
 
 	return []byte(path)
 }, func(data []byte) {
