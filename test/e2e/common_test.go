@@ -155,20 +155,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	// tests are remote, this is a no-op
 	populateCache(podman)
 
-	host := GetHostDistributionInfo()
-	if host.Distribution == "rhel" && strings.HasPrefix(host.Version, "7") {
-		f, err := os.OpenFile("/proc/sys/user/max_user_namespaces", os.O_WRONLY, 0644)
-		if err != nil {
-			GinkgoWriter.Println("Unable to enable userspace on RHEL 7")
-			os.Exit(1)
-		}
-		_, err = f.WriteString("15000")
-		if err != nil {
-			GinkgoWriter.Println("Unable to enable userspace on RHEL 7")
-			os.Exit(1)
-		}
-		f.Close()
-	}
 	path, err := os.MkdirTemp("", "libpodlock")
 	if err != nil {
 		GinkgoWriter.Println(err)
