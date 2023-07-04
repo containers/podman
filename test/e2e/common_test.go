@@ -56,7 +56,6 @@ type PodmanTestIntegration struct {
 	SignaturePolicyPath string
 	CgroupManager       string
 	Host                HostOS
-	Timings             []string
 	TmpDir              string
 	RemoteStartErr      error
 }
@@ -82,9 +81,6 @@ type testResultsSortedLength struct{ testResultsSorted }
 
 func (a testResultsSorted) Less(i, j int) bool { return a[i].length < a[j].length }
 
-var testResults []testResult
-var testResultsMutex sync.Mutex
-
 func TestMain(m *testing.M) {
 	if reexec.Init() {
 		return
@@ -107,6 +103,7 @@ var (
 	err          error
 	podmanTest   *PodmanTestIntegration
 	safeIPOctets [2]uint8
+	timingsFile  *os.File
 
 	_ = BeforeEach(func() {
 		tempdir, err = CreateTempDirInTempDir()
@@ -188,6 +185,9 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	cwd, _ := os.Getwd()
 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
 	LockTmpDir = string(data)
+
+	timingsFile, err = os.Create(fmt.Sprintf("%s/timings-%d", LockTmpDir, GinkgoParallelProcess()))
+	Expect(err).ToNot(HaveOccurred())
 })
 
 func (p *PodmanTestIntegration) Setup() {
@@ -196,13 +196,8 @@ func (p *PodmanTestIntegration) Setup() {
 }
 
 var _ = SynchronizedAfterSuite(func() {
-	f, err := os.Create(fmt.Sprintf("%s/timings-%d", LockTmpDir, GinkgoParallelProcess()))
-	Expect(err).ToNot(HaveOccurred())
-	defer f.Close()
-	for _, result := range testResults {
-		_, err := f.WriteString(fmt.Sprintf("%s\t\t%f\n", result.name, result.length))
-		Expect(err).ToNot(HaveOccurred(), "write timings")
-	}
+	timingsFile.Close()
+	timingsFile = nil
 },
 	func() {
 		testTimings := make(testResultsSorted, 0, 2000)
@@ -467,9 +462,8 @@ func (p *PodmanTestIntegration) InspectContainer(name string) []define.InspectCo
 
 func processTestResult(r SpecReport) {
 	tr := testResult{length: r.RunTime.Seconds(), name: r.FullText()}
-	testResultsMutex.Lock()
-	testResults = append(testResults, tr)
-	testResultsMutex.Unlock()
+	_, err := timingsFile.WriteString(fmt.Sprintf("%s\t\t%f\n", tr.name, tr.length))
+	Expect(err).ToNot(HaveOccurred(), "write timings")
 }
 
 func GetPortLock(port string) *lockfile.LockFile {
