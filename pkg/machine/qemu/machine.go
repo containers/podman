@@ -417,8 +417,10 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		conn           net.Conn
 		err            error
 		qemuSocketConn net.Conn
-		wait           = time.Millisecond * 500
 	)
+
+	defaultBackoff := 500 * time.Millisecond
+	maxBackoffs := 6
 
 	v.Starting = true
 	if err := v.writeConfig(); err != nil {
@@ -471,13 +473,17 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	if err := v.QMPMonitor.Address.Delete(); err != nil {
 		return err
 	}
-	for i := 0; i < 6; i++ {
+
+	backoff := defaultBackoff
+	for i := 0; i < maxBackoffs; i++ {
+		if i > 0 {
+			time.Sleep(backoff)
+			backoff *= 2
+		}
 		qemuSocketConn, err = net.Dial("unix", v.QMPMonitor.Address.GetPath())
 		if err == nil {
 			break
 		}
-		time.Sleep(wait)
-		wait++
 	}
 	if err != nil {
 		return err
@@ -560,7 +566,12 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	// The socket is not made until the qemu process is running so here
 	// we do a backoff waiting for it.  Once we have a conn, we break and
 	// then wait to read it.
-	for i := 0; i < 6; i++ {
+	backoff = defaultBackoff
+	for i := 0; i < maxBackoffs; i++ {
+		if i > 0 {
+			time.Sleep(backoff)
+			backoff *= 2
+		}
 		conn, err = net.Dial("unix", filepath.Join(socketPath, "podman", v.Name+"_ready.sock"))
 		if err == nil {
 			break
@@ -570,8 +581,6 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		if err != nil {
 			return err
 		}
-		time.Sleep(wait)
-		wait++
 	}
 	if err != nil {
 		return err
@@ -591,18 +600,24 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		}
 	}
 	if len(v.Mounts) > 0 {
-		state, err := v.State(true)
-		if err != nil {
-			return err
-		}
-		listening := v.isListening()
-		for state != machine.Running || !listening {
-			time.Sleep(100 * time.Millisecond)
-			state, err = v.State(true)
+		connected := false
+		backoff = 500 * time.Millisecond
+		for i := 0; i < maxBackoffs; i++ {
+			if i > 0 {
+				time.Sleep(backoff)
+				backoff *= 2
+			}
+			state, err := v.State(true)
 			if err != nil {
 				return err
 			}
-			listening = v.isListening()
+			if state == machine.Running && v.isListening() {
+				connected = true
+				break
+			}
+		}
+		if !connected {
+			return fmt.Errorf("machine did not transition into running state")
 		}
 	}
 	for _, mount := range v.Mounts {
