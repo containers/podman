@@ -423,12 +423,14 @@ osx_alt_build_task:
     depends_on:
         - build
     env:
-        <<: *stdenvars
+        DISTRO_NV: macos-ventura
+        VM_IMAGE_NAME: ghcr.io/cirruslabs/${DISTRO_NV}-base:latest
+        CTR_FQIN: notused
         # OSX platform variation prevents this being included in alt_build_task
         TEST_FLAVOR: "altbuild"
         ALT_NAME: 'OSX Cross'
     osx_instance:
-        image: ghcr.io/cirruslabs/macos-ventura-base:latest
+        image: $VM_IMAGE_NAME
     setup_script:
         - brew install go
         - brew install go-md2man
