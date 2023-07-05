@@ -225,13 +225,13 @@ func (p *PodmanTest) WaitContainerReady(id string, expStr string, timeout int, s
 	s.WaitWithDefaultTimeout()
 
 	for {
+		if strings.Contains(s.OutputToString(), expStr) || strings.Contains(s.ErrorToString(), expStr) {
+			return true
+		}
+
 		if time.Since(startTime) >= time.Duration(timeout)*time.Second {
 			GinkgoWriter.Printf("Container %s is not ready in %ds", id, timeout)
 			return false
-		}
-
-		if strings.Contains(s.OutputToString(), expStr) || strings.Contains(s.ErrorToString(), expStr) {
-			return true
 		}
 		time.Sleep(time.Duration(step) * time.Second)
 		s = p.PodmanBase([]string{"logs", id}, false, true)

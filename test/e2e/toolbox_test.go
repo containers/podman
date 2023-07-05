@@ -257,9 +257,9 @@ var _ = Describe("Toolbox-specific testing", func() {
 		var username string = "testuser"
 		var homeDir string = "/home/testuser"
 		var shell string = "/bin/bash"
-		var uid string = "2000"
+		var uid string = "1411"
 		var groupName string = "testgroup"
-		var gid string = "2000"
+		var gid string = "1422"
 
 		// The use of bad* in the name of variables does not imply the invocation
 		// of useradd should fail The user is supposed to be created successfully
