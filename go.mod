@@ -64,8 +64,8 @@ require (
 	go.etcd.io/bbolt v1.3.7
 	golang.org/x/net v0.11.0
 	golang.org/x/sync v0.3.0
-	golang.org/x/sys v0.9.0
-	golang.org/x/term v0.9.0
+	golang.org/x/sys v0.10.0
+	golang.org/x/term v0.10.0
 	golang.org/x/text v0.11.0
 	google.golang.org/protobuf v1.31.0
 	gopkg.in/inf.v0 v0.9.1
