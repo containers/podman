@@ -180,3 +180,5 @@ require (
 )
 
 replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
+
+replace github.com/containers/common => github.com/containers/common v0.55.1-0.20230703090011-0ab70cf5664d

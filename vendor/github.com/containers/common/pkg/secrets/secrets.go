@@ -217,9 +217,12 @@ func (s *SecretsManager) Store(name string, data []byte, driverType string, opti
 	}
 
 	if options.Replace {
-		err = driver.Delete(secr.ID)
-		if err != nil {
-			return "", fmt.Errorf("replacing secret %s: %w", name, err)
+		if err := driver.Delete(secr.ID); err != nil {
+			return "", fmt.Errorf("deleting secret %s: %w", secr.ID, err)
+		}
+
+		if err := s.delete(secr.ID); err != nil {
+			return "", fmt.Errorf("deleting secret %s: %w", secr.ID, err)
 		}
 	}
 

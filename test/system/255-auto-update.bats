@@ -4,6 +4,8 @@
 #
 
 load helpers
+load helpers.network
+load helpers.registry
 load helpers.systemd
 
 SNAME_FILE=$BATS_TMPDIR/services
@@ -47,6 +49,7 @@ function teardown() {
 #   4. Generate the service file from the container
 #   5. Remove the origin container
 #   6. Start the container from service
+#   7. Use this fully-qualified image instead of 2)
 function generate_service() {
     local target_img_basename=$1
     local autoupdate=$2
@@ -64,6 +67,9 @@ function generate_service() {
     # IMPORTANT: variable 'cname' is passed (out of scope) up to caller!
     cname=c_${autoupdate//\'/}_$(random_string)
     target_img="quay.io/libpod/$target_img_basename:latest"
+    if [[ -n "$7" ]]; then
+        target_img="$7"
+    fi
 
     if [[ -z "$noTag" ]]; then
         run_podman tag $IMAGE $target_img
@@ -621,6 +627,64 @@ EOF
     run_podman rmi $local_image $(pause_image)
     rm -f $podunit $ctrunit
     systemctl daemon-reload
+}
+
+@test "podman-auto-update --authfile"  {
+    # Test the three supported ways of using authfiles with auto updates
+    # 1) Passed via --authfile CLI flag
+    # 2) Passed via the REGISTRY_AUTH_FILE env variable
+    # 3) Via a label at container creation where 1) and 2) will be ignored
+
+    registry=localhost:${PODMAN_LOGIN_REGISTRY_PORT}
+    image_on_local_registry=$registry/name:tag
+    authfile=$PODMAN_TMPDIR/authfile.json
+
+    # First, start the registry and populate the authfile that we can use for the test.
+    start_registry
+    run_podman login --authfile=$authfile \
+        --tls-verify=false \
+        --username ${PODMAN_LOGIN_USER} \
+        --password ${PODMAN_LOGIN_PASS} \
+        $registry
+
+    run_podman tag $IMAGE $image_on_local_registry
+    run_podman push --tls-verify=false --creds "${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS}" $image_on_local_registry
+
+    # Generate a systemd service with the "registry" auto-update policy running
+    # "top" inside the image we just pushed to the local registry.
+    generate_service "" registry top "" "" "" $image_on_local_registry
+    ctr=$cname
+    _wait_service_ready container-$ctr.service
+
+    run_podman 125 auto-update
+    is "$output" \
+       ".*Error: checking image updates for container .*: x509: .*"
+
+    run_podman 125 auto-update --tls-verify=false
+    is "$output" \
+       ".*Error: checking image updates for container .*: authentication required"
+
+    # Test 1)
+    run_podman auto-update --authfile=$authfile --tls-verify=false --dry-run --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
+    is "$output" "container-$ctr.service,$image_on_local_registry,false,registry" "auto-update works with authfile"
+
+    # Test 2)
+    REGISTRY_AUTH_FILE=$authfile run_podman auto-update --tls-verify=false --dry-run --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
+    is "$output" "container-$ctr.service,$image_on_local_registry,false,registry" "auto-update works with env var"
+    systemctl stop container-$ctr.service
+    run_podman rm -f -t0 --ignore $ctr
+
+    # Create a container with the auth-file label
+    generate_service "" registry top "--label io.containers.autoupdate.authfile=$authfile" "" "" $image_on_local_registry
+    ctr=$cname
+    _wait_service_ready container-$ctr.service
+
+    # Test 3)
+    # Also make sure that the label takes precedence over the CLI flag.
+    run_podman auto-update --authfile=/dev/null --tls-verify=false --dry-run --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
+    is "$output" "container-$ctr.service,$image_on_local_registry,false,registry" "auto-update works with authfile container label"
+    run_podman rm -f -t0 --ignore $ctr
+    run_podman rmi $image_on_local_registry
 }
 
 # vim: filetype=sh
