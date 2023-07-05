@@ -1,8 +1,6 @@
 package integration
 
 import (
-	"os"
-
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -128,10 +126,8 @@ var _ = Describe("Podman kill", func() {
 	})
 
 	It("podman kill --cidfile", func() {
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
+		tmpDir := GinkgoT().TempDir()
 		tmpFile := tmpDir + "cid"
-		defer os.RemoveAll(tmpDir)
 
 		session := podmanTest.Podman([]string{"run", "-dt", "--cidfile", tmpFile, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
@@ -148,15 +144,11 @@ var _ = Describe("Podman kill", func() {
 	})
 
 	It("podman kill multiple --cidfile", func() {
-		tmpDir1, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
+		tmpDir1 := GinkgoT().TempDir()
 		tmpFile1 := tmpDir1 + "cid"
-		defer os.RemoveAll(tmpDir1)
 
-		tmpDir2, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
+		tmpDir2 := GinkgoT().TempDir()
 		tmpFile2 := tmpDir2 + "cid"
-		defer os.RemoveAll(tmpDir2)
 
 		session := podmanTest.Podman([]string{"run", "-dt", "--cidfile", tmpFile1, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()

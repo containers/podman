@@ -321,11 +321,8 @@ var _ = Describe("Podman pause", func() {
 	})
 
 	It("podman pause --cidfile", func() {
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
+		tmpDir := GinkgoT().TempDir()
 		tmpFile := tmpDir + "cid"
-
-		defer os.RemoveAll(tmpDir)
 
 		session := podmanTest.Podman([]string{"create", "--cidfile", tmpFile, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
@@ -350,8 +347,7 @@ var _ = Describe("Podman pause", func() {
 	})
 
 	It("podman pause multiple --cidfile", func() {
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
+		tmpDir := GinkgoT().TempDir()
 		tmpFile1 := tmpDir + "cid-1"
 		tmpFile2 := tmpDir + "cid-2"
 

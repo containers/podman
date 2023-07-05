@@ -1729,10 +1729,7 @@ func milliCPUToQuota(milliCPU string) int {
 }
 
 func createSourceTarFile(fileName, fileContent, tarFilePath string) error {
-	dir, err := os.MkdirTemp("", "podmanTest")
-	if err != nil {
-		return err
-	}
+	dir := GinkgoT().TempDir()
 
 	file, err := os.Create(filepath.Join(dir, fileName))
 	if err != nil {

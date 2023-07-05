@@ -204,9 +204,7 @@ var _ = Describe("Podman create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
 
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
-		defer os.RemoveAll(tmpDir)
+		tmpDir := GinkgoT().TempDir()
 
 		podName := "rudolph"
 		ctrName := "prancer"

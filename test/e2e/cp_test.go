@@ -243,8 +243,7 @@ var _ = Describe("Podman cp", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
+		tmpDir := GinkgoT().TempDir()
 
 		session = podmanTest.Podman([]string{"cp", container + ":/", tmpDir})
 		session.WaitWithDefaultTimeout()

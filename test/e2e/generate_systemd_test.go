@@ -544,10 +544,8 @@ var _ = Describe("Podman generate systemd", func() {
 	})
 
 	It("podman generate systemd pod with containers --new", func() {
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
+		tmpDir := GinkgoT().TempDir()
 		tmpFile := tmpDir + "podID"
-		defer os.RemoveAll(tmpDir)
 
 		n := podmanTest.Podman([]string{"pod", "create", "--pod-id-file", tmpFile, "--name", "foo"})
 		n.WaitWithDefaultTimeout()
