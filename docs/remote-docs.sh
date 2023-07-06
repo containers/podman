@@ -23,7 +23,7 @@ fi
 
 function usage() {
     echo >&2 "$0 PLATFORM TARGET SOURCES..."
-    echo >&2 "PLATFORM: Is either linux, darwin or windows."
+    echo >&2 "PLATFORM: Is either linux, darwin, windows or freebsd."
     echo >&2 "TARGET: Is the directory where files will be staged. eg, docs/build/remote/linux"
     echo >&2 "SOURCES: Are the directories of source files. eg, docs/source/markdown"
 }
@@ -34,7 +34,7 @@ function fail() {
 }
 
 case $PLATFORM in
-darwin|linux)
+darwin|linux|freebsd)
     PUBLISHER=man_fn
     ext=1
     ;;
