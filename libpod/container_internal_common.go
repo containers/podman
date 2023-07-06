@@ -65,6 +65,10 @@ func parseOptionIDs(ctrMappings []idtools.IDMap, option string) ([]idtools.IDMap
 	for i, m := range ranges {
 		var v idtools.IDMap
 
+		if m == "" {
+			return nil, fmt.Errorf("invalid empty range for %q", option)
+		}
+
 		relative := false
 		if m[0] == '@' {
 			relative = true
