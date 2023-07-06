@@ -69,7 +69,7 @@ func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
 	return pti
 }
 
-func (p *PodmanTestIntegration) StartRemoteService() {
+func (p *PodmanTestIntegration) StartRemoteService(testCommand ...string) {
 	if !isRootless() {
 		err := os.MkdirAll("/run/podman", 0755)
 		Expect(err).ToNot(HaveOccurred())
@@ -94,7 +94,7 @@ func (p *PodmanTestIntegration) StartRemoteService() {
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	p.RemoteCommand = command
 	p.RemoteSession = command.Process
-	p.RemoteStartErr = p.DelayForService()
+	p.RemoteStartErr = p.delayForService(testCommand...)
 }
 
 func (p *PodmanTestIntegration) StopRemoteService() {
@@ -144,17 +144,20 @@ func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 	return nil
 }
 
-func (p *PodmanTestIntegration) DelayForService() error {
+func (p *PodmanTestIntegration) delayForService(testCommand ...string) error {
+	if testCommand == nil {
+		testCommand = []string{"info", "--format", "{{.Host.RemoteSocket.Path}}"}
+	}
 	var session *PodmanSessionIntegration
 	for i := 0; i < 5; i++ {
-		session = p.Podman([]string{"info"})
+		session = p.Podman(testCommand)
 		session.WaitWithDefaultTimeout()
 		if session.ExitCode() == 0 {
 			return nil
 		} else if i == 4 {
 			break
 		}
-		time.Sleep(2 * time.Second)
+		time.Sleep(250 * time.Millisecond)
 	}
 	return fmt.Errorf("service not detected, exit code(%d)", session.ExitCode())
 }

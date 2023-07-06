@@ -945,7 +945,7 @@ func (p *PodmanTestIntegration) PodmanAsUser(args []string, uid, gid uint32, cwd
 // RestartRemoteService stop and start API Server, usually to change config
 func (p *PodmanTestIntegration) RestartRemoteService() {
 	p.StopRemoteService()
-	p.StartRemoteService()
+	p.StartRemoteService("info")
 }
 
 // RestoreArtifactToCache populates the imagecache from tarballs that were cached earlier

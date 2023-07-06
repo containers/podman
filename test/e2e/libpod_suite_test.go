@@ -72,7 +72,7 @@ func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 func (p *PodmanTestIntegration) StopRemoteService() {}
 
 // We don't support running API service when local
-func (p *PodmanTestIntegration) StartRemoteService() {
+func (p *PodmanTestIntegration) StartRemoteService(unused ...string) {
 }
 
 // Just a stub for compiling with `!remote`.
