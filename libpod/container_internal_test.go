@@ -70,6 +70,9 @@ func TestParseOptionIDs(t *testing.T) {
 
 	_, err = parseOptionIDs(idMap, "@10000-20000-2")
 	assert.NotNil(t, err)
+
+	_, err = parseOptionIDs(idMap, "100-200-3###400-500-6")
+	assert.NotNil(t, err)
 }
 
 func TestParseIDMapMountOption(t *testing.T) {
