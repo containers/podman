@@ -36,7 +36,7 @@ Number of CPUs.
 
 #### **--disk-size**=*number*
 
-Size of the disk for the guest VM in GB.
+Size of the disk for the guest VM in GiB.
 
 #### **--help**
 
@@ -57,7 +57,7 @@ Defaults to `testing`.
 
 #### **--memory**, **-m**=*number*
 
-Memory (in MB).
+Memory (in MiB). Note: 1024MiB = 1GiB.
 
 #### **--now**
 

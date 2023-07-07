@@ -61,7 +61,7 @@ func init() {
 	flags.Uint64Var(
 		&setFlags.DiskSize,
 		diskSizeFlagName, 0,
-		"Disk size in GB",
+		"Disk size in GiB",
 	)
 
 	_ = setCmd.RegisterFlagCompletionFunc(diskSizeFlagName, completion.AutocompleteNone)
@@ -70,7 +70,7 @@ func init() {
 	flags.Uint64VarP(
 		&setFlags.Memory,
 		memoryFlagName, "m", 0,
-		"Memory in MB",
+		"Memory in MiB",
 	)
 	_ = setCmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
 
