@@ -243,10 +243,13 @@ validate_task:
             <<: *stdenvars
             VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
             DISTRO_NV: ${FEDORA_NAME}
-        - env:
-            <<: *stdenvars
-            VM_IMAGE_NAME: ${RAWHIDE_CACHE_IMAGE_NAME}
-            DISTRO_NV: ${RAWHIDE_NAME}
+        # FIXME: Python changes in the c20230706t200047z images due
+        #        to broken dependencies at image-build time.  Re-enable
+        #        this once fixed.
+        # - env:
+        #     <<: *stdenvars
+        #     VM_IMAGE_NAME: ${RAWHIDE_CACHE_IMAGE_NAME}
+        #     DISTRO_NV: ${RAWHIDE_NAME}
     env:
         TEST_FLAVOR: validate
     # N/B: This script depends on ${DISTRO_NV} being defined for the task.
