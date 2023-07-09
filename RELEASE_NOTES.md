@@ -7,7 +7,7 @@
 - The `podman machine start` command, when run with `--log-level=debug`, now creates a console window to display the virtual machine while booting.
 - Podman now supports a new option, `--imagestore`, which allows images to be stored in a different directory than the graphroot.
 - The `--ip-range` option to the `podman network create` command now accepts a new syntax, `<startIP>-<endIP>`, which allows more flexibility when limiting the ip range that Podman assigns.
-- A new command, `podmansh`, has been added, which executes a user shell within a container when the user logs into the system. The container that the users get added to can be defined via a Podman Quadlet file.
+- [Tech Preview] A new command, `podmansh`, has been added, which executes a user shell within a container when the user logs into the system. The container that the users get added to can be defined via a Podman Quadlet file. This feature is currently a `Tech Preview` which means it's ready for users to try out but changes can be expected in upcoming versions.
 - The `podman network create` command supports a new `--option`, `bclim`, for the `macvlan` driver.
 - The `podman info` command now prints network information about the binary path, package version, program version and DNS information ([#18443](https://github.com/containers/podman/issues/18443)).
 - The `podman info` command now displays the number of free locks available, helping to debug lock exhaustion scenarios.

@@ -18,6 +18,8 @@ The user is confined to the container environment via all of the security mechan
 
 Systemd will automatically create the container when the user session is started. Systemd will take down the container when all connections to the user session are removed. This means users can log in to the system multiple times, with each session connected to the same container.
 
+NOTE: This feature is currently a Tech Preview. Changes can be expected in upcoming versions.
+
 ## Setup
 Modify user login session using usermod
 
