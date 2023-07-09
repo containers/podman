@@ -1638,18 +1638,8 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 	}
 	defer unix.Close(etcInTheContainerFd)
 
-	// If /etc/mtab does not exist in container image, then we need to
-	// create it, so that mount command within the container will work.
-	err = unix.Symlinkat("/proc/mounts", etcInTheContainerFd, "mtab")
-	if err != nil && !os.IsExist(err) {
-		return "", fmt.Errorf("creating /etc/mtab symlink: %w", err)
-	}
-	// If the symlink was created, then also chown it to root in the container
-	if err == nil && (rootUID != 0 || rootGID != 0) {
-		err = unix.Fchownat(etcInTheContainerFd, "mtab", rootUID, rootGID, unix.AT_SYMLINK_NOFOLLOW)
-		if err != nil {
-			return "", fmt.Errorf("chown /etc/mtab: %w", err)
-		}
+	if err := c.makePlatformMtabLink(etcInTheContainerFd, rootUID, rootGID); err != nil {
+		return "", err
 	}
 
 	tz := c.Timezone()
