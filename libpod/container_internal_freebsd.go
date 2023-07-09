@@ -336,3 +336,8 @@ func (s *safeMountInfo) Close() {
 func (c *Container) safeMountSubPath(mountPoint, subpath string) (s *safeMountInfo, err error) {
 	return &safeMountInfo{mountPoint: filepath.Join(mountPoint, subpath)}, nil
 }
+
+func (c *Container) makePlatformMtabLink(etcInTheContainerFd, rootUID, rootGID int) error {
+	// /etc/mtab does not exist on FreeBSD
+	return nil
+}
