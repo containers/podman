@@ -76,3 +76,18 @@ func (o *CreateOptions) GetLabels() map[string]string {
 	}
 	return o.Labels
 }
+
+// WithReplace set field Replace to given value
+func (o *CreateOptions) WithReplace(value bool) *CreateOptions {
+	o.Replace = &value
+	return o
+}
+
+// GetReplace returns value of field Replace
+func (o *CreateOptions) GetReplace() bool {
+	if o.Replace == nil {
+		var z bool
+		return z
+	}
+	return *o.Replace
+}

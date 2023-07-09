@@ -40,6 +40,12 @@ Print usage statement.
 
 Add label to secret. These labels can be viewed in podman secrete inspect or ls.
 
+#### **--replace**=*false*
+
+If existing secret with the same name already exists, update the secret.
+The `--replace` option does not change secrets within existing containers, only newly created containers.
+ The default is **false**.
+
 ## EXAMPLES
 
 ```

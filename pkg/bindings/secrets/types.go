@@ -28,4 +28,5 @@ type CreateOptions struct {
 	Driver     *string
 	DriverOpts map[string]string
 	Labels     map[string]string
+	Replace    *bool
 }

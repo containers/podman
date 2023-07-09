@@ -55,6 +55,8 @@ func init() {
 	envFlagName := "env"
 	flags.BoolVar(&env, envFlagName, false, "Read secret data from environment variable")
 
+	flags.BoolVar(&createOpts.Replace, "replace", false, "If a secret with the same name exists, replace it")
+
 	labelFlagName := "label"
 	flags.StringArrayVarP(&labels, labelFlagName, "l", nil, "Specify labels on the secret")
 	_ = createCmd.RegisterFlagCompletionFunc(labelFlagName, completion.AutocompleteNone)
