@@ -1268,22 +1268,7 @@ func (cc *ClientConn) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	cancelRequest := func(cs *clientStream, err error) error {
 		cs.cc.mu.Lock()
-		cs.abortStreamLocked(err)
 		bodyClosed := cs.reqBodyClosed
-		if cs.ID != 0 {
-			// This request may have failed because of a problem with the connection,
-			// or for some unrelated reason. (For example, the user might have canceled
-			// the request without waiting for a response.) Mark the connection as
-			// not reusable, since trying to reuse a dead connection is worse than
-			// unnecessarily creating a new one.
-			//
-			// If cs.ID is 0, then the request was never allocated a stream ID and
-			// whatever went wrong was unrelated to the connection. We might have
-			// timed out waiting for a stream slot when StrictMaxConcurrentStreams
-			// is set, for example, in which case retrying on a different connection
-			// will not help.
-			cs.cc.doNotReuse = true
-		}
 		cs.cc.mu.Unlock()
 		// Wait for the request body to be closed.
 		//
@@ -1318,11 +1303,14 @@ func (cc *ClientConn) RoundTrip(req *http.Request) (*http.Response, error) {
 				return handleResponseHeaders()
 			default:
 				waitDone()
-				return nil, cancelRequest(cs, cs.abortErr)
+				return nil, cs.abortErr
 			}
 		case <-ctx.Done():
-			return nil, cancelRequest(cs, ctx.Err())
+			err := ctx.Err()
+			cs.abortStream(err)
+			return nil, cancelRequest(cs, err)
 		case <-cs.reqCancel:
+			cs.abortStream(errRequestCanceled)
 			return nil, cancelRequest(cs, errRequestCanceled)
 		}
 	}
@@ -1879,6 +1867,9 @@ func (cc *ClientConn) encodeHeaders(req *http.Request, addGzipHeader bool, trail
 	host, err := httpguts.PunycodeHostPort(host)
 	if err != nil {
 		return nil, err
+	}
+	if !httpguts.ValidHostHeader(host) {
+		return nil, errors.New("http2: invalid Host header")
 	}
 
 	var path string

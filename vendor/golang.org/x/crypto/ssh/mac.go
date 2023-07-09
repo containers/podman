@@ -53,6 +53,9 @@ var macModes = map[string]*macMode{
 	"hmac-sha2-256-etm@openssh.com": {32, true, func(key []byte) hash.Hash {
 		return hmac.New(sha256.New, key)
 	}},
+	"hmac-sha2-512": {64, false, func(key []byte) hash.Hash {
+		return hmac.New(sha512.New, key)
+	}},
 	"hmac-sha2-256": {32, false, func(key []byte) hash.Hash {
 		return hmac.New(sha256.New, key)
 	}},
