@@ -13,7 +13,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/entities/types"
 	"github.com/containers/podman/v4/version"
-	"github.com/sirupsen/logrus"
 )
 
 func VersionHandler(w http.ResponseWriter, r *http.Request) {
@@ -45,29 +44,19 @@ func VersionHandler(w http.ResponseWriter, r *http.Request) {
 			"MinAPIVersion": version.APIVersion[version.Libpod][version.MinimalAPI].String(),
 			"Os":            goRuntime.GOOS,
 		},
+	}, {
+		Name:    "Conmon",
+		Version: info.Host.Conmon.Version,
+		Details: map[string]string{
+			"Package": info.Host.Conmon.Package,
+		},
+	}, {
+		Name:    fmt.Sprintf("OCI Runtime (%s)", info.Host.OCIRuntime.Name),
+		Version: info.Host.OCIRuntime.Version,
+		Details: map[string]string{
+			"Package": info.Host.OCIRuntime.Package,
+		},
 	}}
-
-	if conmon, oci, err := runtime.DefaultOCIRuntime().RuntimeInfo(); err != nil {
-		logrus.Warnf("Failed to retrieve Conmon and OCI Information: %q", err.Error())
-	} else {
-		additional := []types.ComponentVersion{
-			{
-				Name:    "Conmon",
-				Version: conmon.Version,
-				Details: map[string]string{
-					"Package": conmon.Package,
-				},
-			},
-			{
-				Name:    fmt.Sprintf("OCI Runtime (%s)", oci.Name),
-				Version: oci.Version,
-				Details: map[string]string{
-					"Package": oci.Package,
-				},
-			},
-		}
-		components = append(components, additional...)
-	}
 
 	apiVersion := version.APIVersion[version.Compat][version.CurrentAPI]
 	minVersion := version.APIVersion[version.Compat][version.MinimalAPI]
