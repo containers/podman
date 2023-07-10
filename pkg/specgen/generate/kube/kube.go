@@ -569,6 +569,7 @@ func probeToHealthConfig(probe *v1.Probe, containerPorts []v1.ContainerPort) (*m
 	var commandString string
 	failureCmd := "exit 1"
 	probeHandler := probe.Handler
+	host := "localhost" // Kubernetes default is host IP, but with Podman currently we run inside the container
 
 	// configure healthcheck on the basis of Handler Actions.
 	switch {
@@ -585,7 +586,6 @@ func probeToHealthConfig(probe *v1.Probe, containerPorts []v1.ContainerPort) (*m
 		if probeHandler.HTTPGet.Scheme != "" {
 			uriScheme = probeHandler.HTTPGet.Scheme
 		}
-		host := "localhost" // Kubernetes default is host IP, but with Podman there is only one node
 		if probeHandler.HTTPGet.Host != "" {
 			host = probeHandler.HTTPGet.Host
 		}
@@ -603,7 +603,10 @@ func probeToHealthConfig(probe *v1.Probe, containerPorts []v1.ContainerPort) (*m
 		if err != nil {
 			return nil, err
 		}
-		commandString = fmt.Sprintf("nc -z -v %s %d || %s", probeHandler.TCPSocket.Host, portNum, failureCmd)
+		if probeHandler.TCPSocket.Host != "" {
+			host = probeHandler.TCPSocket.Host
+		}
+		commandString = fmt.Sprintf("nc -z -v %s %d || %s", host, portNum, failureCmd)
 	}
 	return makeHealthCheck(commandString, probe.PeriodSeconds, probe.FailureThreshold, probe.TimeoutSeconds, probe.InitialDelaySeconds)
 }
