@@ -3,6 +3,9 @@
 # test pod-related endpoints
 #
 
+# Need to make 1 container
+podman pull $IMAGE &>/dev/null
+
 t GET  "libpod/pods/json (clean slate at start)"   200 '[]'
 
 t POST libpod/pods/create name=foo 201 .Id~[0-9a-f]\\{64\\}
@@ -28,11 +31,17 @@ t POST "libpod/pods/create (dup pod)" name=foo 409 \
 
 #t POST libpod/pods/create a=b 400 .cause='bad parameter'  # FIXME: unimplemented
 
+# Some tests require a single running container.
+# Don't bother saving CID, it will be removed as part of the pod.
+t POST libpod/containers/create?name=testctr Image=${IMAGE} Pod=foo Entrypoint='["top"]' 201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+
 t POST libpod/pods/foo/start 200 \
   .Errs=null \
   .Id=$pod_id
 
-t POST libpod/pods/foo/start 304 \
+t POST libpod/pods/foo/start 304
 
 t POST libpod/pods/fakename/start 404 \
   .cause="no such pod" \
@@ -52,10 +61,16 @@ t POST "libpod/pods/fakename/unpause" 404\
   .cause="no such pod" \
   .message="no pod with name or ID fakename found: no such pod"
 
+t DELETE libpod/pods/foo?force=false 500 \
+  .cause="removing pod containers" \
+  .message~".*cannot remove container .* as it is running.*"
 
 t POST libpod/pods/foo/stop 200 \
   .Errs=null \
   .Id=$pod_id
+
+# Remove container as it is no longer required
+t DELETE libpod/containers/$cid 200 .[0].Id=$cid
 
 t POST "libpod/pods/foo/stop (pod is already stopped)" 304
 t POST "libpod/pods/fakename/stop" 404\
@@ -85,7 +100,7 @@ t POST "libpod/pods/bar/stop?t=invalid" 400 \
   .cause="schema: error converting value for \"t\"" \
   .message~"failed to parse parameters for"
 
-podman run -d --pod bar busybox sleep 999
+podman run -d --pod bar busybox top
 
 t POST libpod/pods/bar/stop?t=1 200 \
   .Errs=null \
