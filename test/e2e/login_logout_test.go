@@ -190,6 +190,44 @@ var _ = Describe("Podman login and logout", func() {
 		Expect(session).Should(Exit(0))
 	})
 
+	It("podman manifest with --authfile", func() {
+		os.Unsetenv("REGISTRY_AUTH_FILE")
+
+		authFile := filepath.Join(podmanTest.TempDir, "auth.json")
+		session := podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test", "--authfile", authFile, server})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		readAuthInfo(authFile)
+
+		session = podmanTest.Podman([]string{"manifest", "create", testImg})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"manifest", "push", testImg})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(ContainSubstring(": authentication required"))
+
+		session = podmanTest.Podman([]string{"manifest", "push", "--authfile", authFile, testImg})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// Now remove the local manifest to trigger remote inspection
+		session = podmanTest.Podman([]string{"manifest", "rm", testImg})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"manifest", "inspect", testImg})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(ContainSubstring(": authentication required"))
+
+		session = podmanTest.Podman([]string{"manifest", "inspect", "--authfile", authFile, testImg})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+	})
+
 	It("podman login and logout with --tls-verify", func() {
 		session := podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test", "--tls-verify=false", server})
 		session.WaitWithDefaultTimeout()

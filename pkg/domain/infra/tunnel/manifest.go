@@ -34,7 +34,7 @@ func (ir *ImageEngine) ManifestExists(ctx context.Context, name string) (*entiti
 
 // ManifestInspect returns contents of manifest list with given name
 func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string, opts entities.ManifestInspectOptions) ([]byte, error) {
-	options := new(manifests.InspectOptions)
+	options := new(manifests.InspectOptions).WithAuthfile(opts.Authfile)
 	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
 		if s == types.OptionalBoolTrue {
 			options.WithSkipTLSVerify(true)

@@ -4,6 +4,10 @@ package manifests
 //
 //go:generate go run ../generator/generator.go InspectOptions
 type InspectOptions struct {
+	// Authfile - path to an authentication file.
+	Authfile *string
+	// SkipTLSVerify - skip https and certificate validation when
+	// contacting container registries.
 	SkipTLSVerify *bool
 }
 
