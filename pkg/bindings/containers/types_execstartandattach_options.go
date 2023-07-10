@@ -20,30 +20,30 @@ func (o *ExecStartAndAttachOptions) ToParams() (url.Values, error) {
 }
 
 // WithOutputStream set field OutputStream to given value
-func (o *ExecStartAndAttachOptions) WithOutputStream(value io.WriteCloser) *ExecStartAndAttachOptions {
+func (o *ExecStartAndAttachOptions) WithOutputStream(value io.Writer) *ExecStartAndAttachOptions {
 	o.OutputStream = &value
 	return o
 }
 
 // GetOutputStream returns value of field OutputStream
-func (o *ExecStartAndAttachOptions) GetOutputStream() io.WriteCloser {
+func (o *ExecStartAndAttachOptions) GetOutputStream() io.Writer {
 	if o.OutputStream == nil {
-		var z io.WriteCloser
+		var z io.Writer
 		return z
 	}
 	return *o.OutputStream
 }
 
 // WithErrorStream set field ErrorStream to given value
-func (o *ExecStartAndAttachOptions) WithErrorStream(value io.WriteCloser) *ExecStartAndAttachOptions {
+func (o *ExecStartAndAttachOptions) WithErrorStream(value io.Writer) *ExecStartAndAttachOptions {
 	o.ErrorStream = &value
 	return o
 }
 
 // GetErrorStream returns value of field ErrorStream
-func (o *ExecStartAndAttachOptions) GetErrorStream() io.WriteCloser {
+func (o *ExecStartAndAttachOptions) GetErrorStream() io.Writer {
 	if o.ErrorStream == nil {
-		var z io.WriteCloser
+		var z io.Writer
 		return z
 	}
 	return *o.ErrorStream
