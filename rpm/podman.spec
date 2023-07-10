@@ -9,84 +9,46 @@
 
 # RHEL 8's default %%gobuild macro doesn't account for the BUILDTAGS variable, so we
 # set it separately here and do not depend on RHEL 8's go-srpm-macros package.
-%if !0%{?fedora} && 0%{?rhel} <= 8
+%if %{defined rhel} && 0%{?rhel} == 8
 %define gobuild(o:) go build -buildmode pie -compiler gc -tags="rpm_crashtraceback libtrust_openssl ${BUILDTAGS:-}" -ldflags "-linkmode=external -compressdwarf=false ${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '%__global_ldflags'" -a -v -x %{?**};
+%define rhel8py3 1
 %endif
 
-%if 0%{?rhel}
-%bcond_with btrfs
+%global gomodulesmode GO111MODULE=on
+
+%if %{defined rhel}
 # _user_tmpfiles.d currently undefined on rhel
 %global _user_tmpfilesdir %{_datadir}/user-tmpfiles.d
-%else
-%bcond_without btrfs
 %endif
 
-# RHEL 8 needs /usr/bin/python3 to build docs
-%if 0%{?rhel} == 8
-%bcond_without python3
-%else
-%bcond_with python3
+%if %{defined fedora}
+%define build_with_btrfs 1
 %endif
 
-%if 0%{?fedora} || 0%{?rhel} >= 10
-%bcond_without modules_load
-%else
-%bcond_with modules_load
-%endif
+%global container_base_path github.com/containers
+%global container_base_url https://%{container_base_path}
 
-%if 0%{?fedora} || 0%{?rhel} >= 9
-%bcond_without go_rpm_macros
-%else
-%bcond_with go_rpm_macros
-%endif
+# For LDFLAGS
+%global ld_project %{container_base_path}/%{name}/v4
+%global ld_libpod %{ld_project}/libpod
 
-# copr_username is only set on copr environments, not on others like koji
-%if "%{?copr_username}" != "rhcontainerbot"
-%bcond_with copr
-%else
-%bcond_without copr
-%endif
-
-%if 0%{?centos} <= 8
-%bcond_without changelog
-%else
-%bcond_with changelog
-%endif
-
-%if 0%{?fedora}
-%bcond_without golang_arches_future
-%else
-%bcond_with golang_arches_future
-%endif
-
-%global provider github
-%global provider_tld com
-%global project containers
-%global repo %{name}
-# https://github.com/containers/%%{name}
-%global import_path %{provider}.%{provider_tld}/%{project}/%{repo}
-%global git0 https://%{import_path}
+# %%{name}
+%global git0 %{container_base_url}/%{name}
 
 # dnsname
 %global repo_plugins dnsname
-# https://github.com/containers/dnsname
-%global import_path_plugins %{provider}.%{provider_tld}/%{project}/%{repo_plugins}
-%global git_plugins https://%{import_path_plugins}
+%global git_plugins %{container_base_url}/%{repo_plugins}
 %global commit_plugins 18822f9a4fb35d1349eb256f4cd2bfd372474d84
+%global import_path_plugins %{container_base_path}/%{repo_plugins}
 
 # gvproxy
 %global repo_gvproxy gvisor-tap-vsock
-# https://github.com/containers/gvisor-tap-vsock
-%global import_path_gvproxy %{provider}.%{provider_tld}/%{project}/%{repo_gvproxy}
-%global git_gvproxy https://%{import_path_gvproxy}
+%global git_gvproxy %{container_base_url}/%{repo_gvproxy}
 %global commit_gvproxy 407efb5dcdb0f4445935f7360535800b60447544
 
-# podman
-%global git0 https://github.com/containers/%{name}
-
 Name: podman
-%if %{with copr}
-Epoch: 101
+%if %{defined copr_username}
+Epoch: 102
 %else
 Epoch: 5
 %endif
@@ -99,7 +61,7 @@ Epoch: 5
 Version: 0
 License: Apache-2.0 and BSD-2-Clause and BSD-3-Clause and ISC and MIT and MPL-2.0
 Release: %autorelease
-%if %{with golang_arches_future}
+%if %{defined golang_arches_future}
 ExclusiveArch: %{golang_arches_future}
 %else
 ExclusiveArch: aarch64 ppc64le s390x x86_64
@@ -112,8 +74,8 @@ Source1: %{git_plugins}/archive/%{commit_plugins}/%{repo_plugins}-%{commit_plugi
 Source2: %{git_gvproxy}/archive/%{commit_gvproxy}/%{repo_gvproxy}-%{commit_gvproxy}.tar.gz
 Provides: %{name}-manpages = %{epoch}:%{version}-%{release}
 BuildRequires: %{_bindir}/envsubst
-BuildRequires: go-md2man
-%if %{with btrfs}
+BuildRequires: %{_bindir}/go-md2man
+%if %{defined build_with_btrfs}
 BuildRequires: btrfs-progs-devel
 %endif
 BuildRequires: gcc
@@ -122,7 +84,7 @@ BuildRequires: glibc-devel
 BuildRequires: glibc-static
 BuildRequires: golang
 BuildRequires: git-core
-%if %{with go_rpm_macros}
+%if !%{defined gobuild}
 BuildRequires: go-rpm-macros
 %endif
 BuildRequires: gpgme-devel
@@ -136,20 +98,12 @@ BuildRequires: make
 BuildRequires: ostree-devel
 BuildRequires: systemd
 BuildRequires: systemd-devel
-%if %{with python3}
+%if %{defined rhel8py3}
 BuildRequires: python3
 %endif
 Requires: catatonit
 Requires: conmon >= 2:2.1.7-2
-%if 0%{?fedora} > 38
-Requires: containers-common-extra >= 4:1-90
-%else
-%if 0%{?fedora} == 38
-Requires: containers-common-extra >= 4:1-89
-%else
-Requires: containers-common-extra >= 4:1-82
-%endif
-%endif
+Requires: containers-common-extra
 Recommends: %{name}-gvproxy = %{epoch}:%{version}-%{release}
 Provides: %{name}-quadlet
 Obsoletes: %{name}-quadlet <= 5:4.4.0-1
@@ -241,6 +195,19 @@ It is based on the network stack of gVisor. Compared to libslirp,
 gvisor-tap-vsock brings a configurable DNS server and
 dynamic port forwarding.
 
+%package -n %{name}sh
+Summary: Confined login and user shell using %{name}
+Requires: %{name} = %{epoch}:%{version}-%{release}
+Provides: %{name}-shell = %{epoch}:%{version}-%{release}
+Provides: %{name}-%{name}sh = %{epoch}:%{version}-%{release}
+
+%description -n %{name}sh
+%{name}sh provides a confined login and user shell with access to volumes and
+capabilities specified in user quadlets.
+
+It is a symlink to %{_bindir}/%{name} and execs into the `%{name}sh` container
+when `%{_bindir}/%{name}sh is set as a login shell or set as os.Args[0].
+
 %prep
 %autosetup -Sgit -n %{name}-%{version}
 sed -i 's;@@PODMAN@@\;$(BINDIR);@@PODMAN@@\;%{_bindir};' Makefile
@@ -254,6 +221,7 @@ tar zxf %{SOURCE2}
 %build
 %set_build_flags
 export CGO_CFLAGS=$CFLAGS
+
 # These extra flags present in $CFLAGS have been skipped for now as they break the build
 CGO_CFLAGS=$(echo $CGO_CFLAGS | sed 's/-flto=auto//g')
 CGO_CFLAGS=$(echo $CGO_CFLAGS | sed 's/-Wp,D_GLIBCXX_ASSERTIONS//g')
@@ -263,60 +231,51 @@ CGO_CFLAGS=$(echo $CGO_CFLAGS | sed 's/-specs=\/usr\/lib\/rpm\/redhat\/redhat-an
 export CGO_CFLAGS+=" -m64 -mtune=generic -fcf-protection=full"
 %endif
 
-export GO111MODULE=off
-export GOPATH=$(pwd)/_build:$(pwd)
-
-mkdir _build
-cd _build
-mkdir -p src/%{provider}.%{provider_tld}/%{project}
-ln -s ../../../../ src/%{import_path}
-cd ..
-ln -s vendor src
-
-# build date. FIXME: Makefile uses '/v2/libpod', that doesn't work here?
-LDFLAGS="-X %{import_path}/libpod/define.buildInfo=$(date +%s)"
+LDFLAGS="-X %{ld_libpod}/define.buildInfo=$(date +%s) \
+         -X %{ld_libpod}/config._installPrefix=%{_prefix} \
+         -X %{ld_libpod}/config._etcDir=%{_sysconfdir} \
+         -X %{ld_project}/pkg/systemd/quadlet._binDir=%{_bindir}"
 
 # build rootlessport first
-%gobuild -o bin/rootlessport %{import_path}/cmd/rootlessport
+%gobuild -o bin/rootlessport ./cmd/rootlessport
 
 export BASEBUILDTAGS="seccomp exclude_graphdriver_devicemapper $(hack/systemd_tag.sh) $(hack/libsubid_tag.sh)"
 
 # build %%{name}
 export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) $(hack/libdm_tag.sh)"
-%gobuild -o bin/%{name} %{import_path}/cmd/%{name}
+%gobuild -o bin/%{name} ./cmd/%{name}
 
 # build %%{name}-remote
 export BUILDTAGS="$BASEBUILDTAGS exclude_graphdriver_btrfs btrfs_noversion remote"
-%gobuild -o bin/%{name}-remote %{import_path}/cmd/%{name}
+%gobuild -o bin/%{name}-remote ./cmd/%{name}
 
 # build quadlet
 export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh)"
-%gobuild -o bin/quadlet %{import_path}/cmd/quadlet
+%gobuild -o bin/quadlet ./cmd/quadlet
 
+# reset LDFLAGS for plugins and gvisor binaries
+LDFLAGS=''
+
+# build gvisor-tap-vsock binaries
+cd %{repo_gvproxy}-%{commit_gvproxy}
+%gobuild -o bin/gvproxy ./cmd/gvproxy
+%gobuild -o bin/gvforwarder ./cmd/vm
+cd ..
+
+%{__make} docs docker-docs
+
+# build dnsname the old way otherwise it fails on koji
 cd %{repo_plugins}-%{commit_plugins}
 mkdir _build
 cd _build
-mkdir -p src/%{provider}.%{provider_tld}/%{project}
+mkdir -p src/%{container_base_path}
 ln -s ../../../../ src/%{import_path_plugins}
 cd ..
 ln -s vendor src
 export GOPATH=$(pwd)/_build:$(pwd)
+%define gomodulesmode GO111MODULE=off
 %gobuild -o bin/dnsname %{import_path_plugins}/plugins/meta/dnsname
 cd ..
-
-cd %{repo_gvproxy}-%{commit_gvproxy}
-mkdir _build
-cd _build
-mkdir -p src/%{provider}.%{provider_tld}/%{project}
-ln -s ../../../../ src/%{import_path_gvproxy}
-cd ..
-ln -s vendor src
-export GOPATH=$(pwd)/_build:$(pwd)
-%gobuild -o bin/gvproxy %{import_path_gvproxy}/cmd/gvproxy
-%gobuild -o bin/gvforwarder %{import_path_gvproxy}/cmd/vm
-cd ..
-
-%{__make} docs docker-docs
 
 %install
 install -dp %{buildroot}%{_unitdir}
@@ -328,7 +287,7 @@ PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{_sysc
        install.docker \
        install.docker-docs \
        install.remote \
-%if %{with modules_load}
+%if %{defined _modulesloaddir}
         install.modules-load
 %endif
 
@@ -377,7 +336,7 @@ cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 %{_tmpfilesdir}/%{name}.conf
 %{_systemdgeneratordir}/%{name}-system-generator
 %{_systemdusergeneratordir}/%{name}-user-generator
-%if %{with modules_load}
+%if %{defined _modulesloaddir}
 %{_modulesloaddir}/%{name}-iptables.conf
 %endif
 
@@ -414,10 +373,15 @@ cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 %{_libexecdir}/%{name}/gvproxy
 %{_libexecdir}/%{name}/gvforwarder
 
+%files -n %{name}sh
+%license LICENSE
+%doc README.md CONTRIBUTING.md install.md transfer.md
+%{_bindir}/%{name}sh
+
 %changelog
-%if %{with changelog}
+%if %{defined autochangelog}
+%autochangelog
+%else
 * Mon May 01 2023 RH Container Bot <rhcontainerbot@fedoraproject.org>
 - Placeholder changelog for envs that are not autochangelog-ready
-%else
-%autochangelog
 %endif

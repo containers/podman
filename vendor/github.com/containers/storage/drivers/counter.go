@@ -53,7 +53,7 @@ func (c *RefCounter) incdec(path string, infoOp func(minfo *minfo)) int {
 		}
 	} else if !c.checker.IsMounted(path) {
 		// if the unmount was performed outside of this process (e.g. conmon cleanup)
-		//the ref counter would lose track of it.  Check if it is still mounted.
+		// the ref counter would lose track of it.  Check if it is still mounted.
 		m.count = 0
 	}
 	infoOp(m)

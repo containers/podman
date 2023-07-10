@@ -10,7 +10,6 @@ PODMAN_TEST_IMAGE_USER=${PODMAN_TEST_IMAGE_USER:-"libpod"}
 PODMAN_TEST_IMAGE_NAME=${PODMAN_TEST_IMAGE_NAME:-"testimage"}
 PODMAN_TEST_IMAGE_TAG=${PODMAN_TEST_IMAGE_TAG:-"20221018"}
 PODMAN_TEST_IMAGE_FQN="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:$PODMAN_TEST_IMAGE_TAG"
-PODMAN_TEST_IMAGE_ID=
 
 # Larger image containing systemd tools.
 PODMAN_SYSTEMD_IMAGE_NAME=${PODMAN_SYSTEMD_IMAGE_NAME:-"systemd-image"}
@@ -37,6 +36,82 @@ if [ $(id -u) -eq 0 ]; then
 fi
 
 ###############################################################################
+# BEGIN tools for fetching & caching test images
+#
+# Registries are flaky: any time we have to pull an image, that's a risk.
+#
+
+# Store in a semipermanent location. Not important for CI, but nice for
+# developers so test restarts don't hang fetching images.
+export PODMAN_IMAGECACHE=${BATS_TMPDIR:-/tmp}/podman-systest-imagecache-$(id -u)
+mkdir -p ${PODMAN_IMAGECACHE}
+
+function _prefetch() {
+     local want=$1
+
+     # Do we already have it in image store?
+     run_podman '?' image exists "$want"
+     if [[ $status -eq 0 ]]; then
+         return
+     fi
+
+    # No image. Do we have it already cached? (Replace / and : with --)
+    local cachename=$(sed -e 's;[/:];--;g' <<<"$want")
+    local cachepath="${PODMAN_IMAGECACHE}/${cachename}.tar"
+    if [[ ! -e "$cachepath" ]]; then
+        # Not cached. Fetch it and cache it. Retry twice, because of flakes.
+        cmd="skopeo copy --preserve-digests docker://$want oci-archive:$cachepath"
+        echo "$_LOG_PROMPT $cmd"
+        run $cmd
+        echo "$output"
+        if [[ $status -ne 0 ]]; then
+            echo "# 'pull $want' failed, will retry..." >&3
+            sleep 5
+
+            run $cmd
+            echo "$output"
+            if [[ $status -ne 0 ]]; then
+                echo "# 'pull $want' failed again, will retry one last time..." >&3
+                sleep 30
+                $cmd
+            fi
+        fi
+    fi
+
+    # Kludge alert.
+    # Skopeo has no --storage-driver, --root, or --runroot flags; those
+    # need to be expressed in the destination string inside [brackets].
+    # See containers-transports(5). So if we see those options in
+    # _PODMAN_TEST_OPTS, transmogrify $want into skopeo form.
+    skopeo_opts=''
+    driver="$(expr "$_PODMAN_TEST_OPTS" : ".*--storage-driver \([^ ]\+\)" || true)"
+    if [[ -n "$driver" ]]; then
+        skopeo_opts+="$driver@"
+    fi
+
+    altroot="$(expr "$_PODMAN_TEST_OPTS" : ".*--root \([^ ]\+\)" || true)"
+    if [[ -n "$altroot" ]] && [[ -d "$altroot" ]]; then
+        skopeo_opts+="$altroot"
+
+        altrunroot="$(expr "$_PODMAN_TEST_OPTS" : ".*--runroot \([^ ]\+\)" || true)"
+        if [[ -n "$altrunroot" ]] && [[ -d "$altrunroot" ]]; then
+            skopeo_opts+="+$altrunroot"
+        fi
+    fi
+
+    if [[ -n "$skopeo_opts" ]]; then
+        want="[$skopeo_opts]$want"
+    fi
+
+    # Cached image is now guaranteed to exist. Be sure to load it
+    # with skopeo, not podman, in order to preserve metadata
+    cmd="skopeo copy --all oci-archive:$cachepath containers-storage:$want"
+    echo "$_LOG_PROMPT $cmd"
+    $cmd
+}
+
+# END   tools for fetching & caching test images
+###############################################################################
 # BEGIN setup/teardown tools
 
 # Provide common setup and teardown functions, but do not name them such!
@@ -58,10 +133,25 @@ function basic_setup() {
     for line in "${lines[@]}"; do
         set $line
         echo "# setup(): removing stray external container $1 ($2)" >&3
-        run_podman rm -f $1
+        run_podman '?' rm -f $1
+        if [[ $status -ne 0 ]]; then
+            echo "# [setup] $_LOG_PROMPT podman rm -f $1" >&3
+            for errline in "${lines[@]}"; do
+                echo "# $errline" >&3
+            done
+            # FIXME FIXME FIXME: temporary hack for #18831. If we see the
+            # unmount/EINVAL flake, nothing will ever work again.
+            if [[ $output =~ unmounting.*invalid ]]; then
+                touch "${BATS_SUITE_TMPDIR}/forget-it"
+            fi
+        fi
     done
 
-    # Clean up all images except those desired
+    # Clean up all images except those desired.
+    # 2023-06-26 REMINDER: it is tempting to think that this is clunky,
+    # wouldn't it be safer/cleaner to just 'rmi -a' then '_prefetch $IMAGE'?
+    # Yes, but it's also tremendously slower: 29m for a CI run, to 39m.
+    # Image loads are slow.
     found_needed_image=
     run_podman '?' images --all --format '{{.Repository}}:{{.Tag}} {{.ID}}'
     # FIXME FIXME FIXME: temporary hack for #17216. If we see the unlinkat-busy
@@ -105,16 +195,15 @@ function basic_setup() {
         fi
     done
 
-    # Make sure desired images are present
-    if [ -z "$found_needed_image" ]; then
-        run_podman pull "$PODMAN_TEST_IMAGE_FQN"
+    # Make sure desired image is present
+    if [[ -z "$found_needed_image" ]]; then
+        _prefetch $PODMAN_TEST_IMAGE_FQN
     fi
 
-    # Argh. Although BATS provides $BATS_TMPDIR, it's just /tmp!
-    # That's bloody worthless. Let's make our own, in which subtests
-    # can write whatever they like and trust that it'll be deleted
-    # on cleanup.
-    # TODO: do this outside of setup, so it carries across tests?
+    # Temporary subdirectory, in which tests can write whatever they like
+    # and trust that it'll be deleted on cleanup.
+    # (BATS v1.3 and above provide $BATS_TEST_TMPDIR, but we still use
+    # ancient BATS (v1.1) in RHEL gating tests.)
     PODMAN_TMPDIR=$(mktemp -d --tmpdir=${BATS_TMPDIR:-/tmp} podman_bats.XXXXXX)
 
     # In the unlikely event that a test runs is() before a run_podman()
@@ -142,6 +231,15 @@ function basic_teardown() {
             for line in "${lines[*]}"; do
                 echo "# $line" >&3
             done
+
+            # Special case for timeout: check for locks (#18514)
+            if [[ $status -eq 124 ]]; then
+                echo "# [teardown] $_LOG_PROMPT podman system locks" >&3
+                run $PODMAN system locks
+                for line in "${lines[*]}"; do
+                    echo "# $line" >&3
+                done
+            fi
         fi
     done
 

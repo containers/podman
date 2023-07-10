@@ -383,8 +383,6 @@ alt_build_task:
             ALT_NAME: 'Build Without CGO'
       - env:
             ALT_NAME: 'Alt Arch. Cross'
-      - env:
-            ALT_NAME: 'FreeBSD Cross'
     # This task cannot make use of the shared repo.tbz artifact.
     clone_script: *full_clone
     setup_script: *setup
@@ -423,12 +421,14 @@ osx_alt_build_task:
     depends_on:
         - build
     env:
-        <<: *stdenvars
+        DISTRO_NV: macos-ventura
+        VM_IMAGE_NAME: ghcr.io/cirruslabs/${DISTRO_NV}-base:latest
+        CTR_FQIN: notused
         # OSX platform variation prevents this being included in alt_build_task
         TEST_FLAVOR: "altbuild"
         ALT_NAME: 'OSX Cross'
     osx_instance:
-        image: ghcr.io/cirruslabs/macos-ventura-base:latest
+        image: $VM_IMAGE_NAME
     setup_script:
         - brew install go
         - brew install go-md2man
@@ -446,6 +446,37 @@ osx_alt_build_task:
     repo_prep_script: *repo_prep
     repo_artifacts: *repo_artifacts
     always: *runner_stats
+
+
+# Build freebsd release natively on a FreeBSD VM.
+freebsd_alt_build_task:
+    name: "FreeBSD Cross"
+    alias: freebsd_alt_build
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: |
+      $CIRRUS_CRON != 'multiarch' &&
+      ($CIRRUS_BRANCH == 'main' || $CIRRUS_BASE_BRANCH == 'main')
+    depends_on:
+        - build
+    env:
+        <<: *stdenvars
+        # Functional FreeBSD builds must be built natively since they depend on CGO
+        DISTRO_NV: freebsd-13
+        VM_IMAGE_NAME: notyet
+        CTR_FQIN: notyet
+        CIRRUS_SHELL: "/bin/sh"
+        TEST_FLAVOR: "altbuild"
+        ALT_NAME: 'FreeBSD Cross'
+    freebsd_instance:
+        image_family: freebsd-13-2
+    setup_script:
+        - pkg install -y gpgme bash go-md2man gmake gsed gnugrep go pkgconf
+    build_amd64_script:
+        - gmake podman-release
+    # This task cannot make use of the shared repo.tbz artifact and must
+    # produce a new repo.tbz artifact for consumption by 'artifacts' task.
+    repo_prep_script: *repo_prep
+    repo_artifacts: *repo_artifacts
 
 
 # Verify podman is compatible with the docker python-module.
@@ -1041,6 +1072,7 @@ success_task:
         - swagger
         - alt_build
         - osx_alt_build
+        - freebsd_alt_build
         - win_installer
         - windows_smoke_test
         - docker-py_test

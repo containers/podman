@@ -388,10 +388,7 @@ func (m *ManifestList) AnnotateInstance(d digest.Digest, options *ManifestListAn
 	}
 
 	// Write the changes to disk.
-	if err := m.saveAndReload(); err != nil {
-		return err
-	}
-	return nil
+	return m.saveAndReload()
 }
 
 // RemoveInstance removes the instance specified by `d` from the manifest list.
@@ -402,10 +399,7 @@ func (m *ManifestList) RemoveInstance(d digest.Digest) error {
 	}
 
 	// Write the changes to disk.
-	if err := m.saveAndReload(); err != nil {
-		return err
-	}
-	return nil
+	return m.saveAndReload()
 }
 
 // ManifestListPushOptions allow for customizing pushing a manifest list.

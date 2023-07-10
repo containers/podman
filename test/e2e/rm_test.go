@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"os"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -122,11 +121,8 @@ var _ = Describe("Podman rm", func() {
 	})
 
 	It("podman rm --cidfile", func() {
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
+		tmpDir := GinkgoT().TempDir()
 		tmpFile := tmpDir + "cid"
-
-		defer os.RemoveAll(tmpDir)
 
 		session := podmanTest.Podman([]string{"create", "--cidfile", tmpFile, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
@@ -143,12 +139,9 @@ var _ = Describe("Podman rm", func() {
 	})
 
 	It("podman rm multiple --cidfile", func() {
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
+		tmpDir := GinkgoT().TempDir()
 		tmpFile1 := tmpDir + "cid-1"
 		tmpFile2 := tmpDir + "cid-2"
-
-		defer os.RemoveAll(tmpDir)
 
 		session := podmanTest.Podman([]string{"create", "--cidfile", tmpFile1, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
@@ -305,7 +298,7 @@ var _ = Describe("Podman rm", func() {
 		session1 = podmanTest.Podman([]string{"rm", "-a", "-f", "--filter", fmt.Sprintf("id=%swrongid", shortCid3)})
 		session1.WaitWithDefaultTimeout()
 		Expect(session1).Should(Exit(0))
-		Expect(session1.OutputToString()).To(HaveLen(0))
+		Expect(session1.OutputToString()).To(BeEmpty())
 
 		session1 = podmanTest.Podman([]string{"rm", "-a", "-f", "--filter", fmt.Sprintf("id=%s", shortCid3)})
 		session1.WaitWithDefaultTimeout()
@@ -321,5 +314,26 @@ var _ = Describe("Podman rm", func() {
 		session1.WaitWithDefaultTimeout()
 		Expect(session1).Should(Exit(0))
 		Expect(session1.OutputToString()).To(BeEquivalentTo(cid4))
+	})
+
+	It("podman rm -fa with dependencies", func() {
+		ctr1Name := "ctr1"
+		ctr1 := podmanTest.RunTopContainer(ctr1Name)
+		ctr1.WaitWithDefaultTimeout()
+		Expect(ctr1).Should(Exit(0))
+		cid1 := ctr1.OutputToString()
+
+		ctr2 := podmanTest.Podman([]string{"run", "-d", "--network", fmt.Sprintf("container:%s", ctr1Name), ALPINE, "top"})
+		ctr2.WaitWithDefaultTimeout()
+		Expect(ctr2).Should(Exit(0))
+		cid2 := ctr2.OutputToString()
+
+		rm := podmanTest.Podman([]string{"rm", "-fa"})
+		rm.WaitWithDefaultTimeout()
+		Expect(rm).Should(Exit(0))
+		Expect(rm.ErrorToString()).To(BeEmpty(), "rm -fa error logged")
+		Expect(rm.OutputToStringArray()).Should(ConsistOf(cid1, cid2))
+
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
 	})
 })

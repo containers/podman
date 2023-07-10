@@ -27,14 +27,6 @@ var (
 	vmtype = machine.AppleHvVirt
 )
 
-func GetVirtualizationProvider() machine.VirtProvider {
-	return &Virtualization{
-		artifact:    machine.None,
-		compression: machine.Xz,
-		format:      machine.Raw,
-	}
-}
-
 // VfkitHelper describes the use of vfkit: cmdline and endpoint
 type VfkitHelper struct {
 	Bootloader        string
@@ -573,6 +565,7 @@ func AppleHVSSH(username, identityPath, name string, sshPort int, inputArgs []st
 	port := strconv.Itoa(sshPort)
 
 	args := []string{"-i", identityPath, "-p", port, sshDestination,
+		"-o", "IdentitiesOnly=yes",
 		"-o", "StrictHostKeyChecking=no", "-o", "LogLevel=ERROR", "-o", "SetEnv=LC_ALL="}
 	if len(inputArgs) > 0 {
 		args = append(args, inputArgs...)

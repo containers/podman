@@ -274,10 +274,11 @@ func (ic *ContainerEngine) PodRm(ctx context.Context, namesOrIds []string, optio
 	reports := make([]*entities.PodRmReport, 0, len(pods))
 	for _, p := range pods {
 		report := entities.PodRmReport{Id: p.ID()}
-		err := ic.Libpod.RemovePod(ctx, p, true, options.Force, options.Timeout)
+		ctrs, err := ic.Libpod.RemovePod(ctx, p, true, options.Force, options.Timeout)
 		if err != nil {
 			report.Err = err
 		}
+		report.RemovedCtrs = ctrs
 		reports = append(reports, &report)
 	}
 	return reports, nil
@@ -376,8 +377,11 @@ func (ic *ContainerEngine) PodClone(ctx context.Context, podClone entities.PodCl
 
 	if podClone.Destroy {
 		var timeout *uint
-		err = ic.Libpod.RemovePod(ctx, p, true, true, timeout)
+		_, err = ic.Libpod.RemovePod(ctx, p, true, true, timeout)
 		if err != nil {
+			// TODO: Possibly should handle case where containers
+			// failed to remove - maybe compact the errors into a
+			// multierror and return that?
 			return &entities.PodCloneReport{Id: pod.ID()}, err
 		}
 	}

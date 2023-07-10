@@ -126,6 +126,18 @@ func WithTransientStore(transientStore bool) RuntimeOption {
 	}
 }
 
+func WithImageStore(imageStore string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return define.ErrRuntimeFinalized
+		}
+
+		rt.storageConfig.ImageStore = imageStore
+
+		return nil
+	}
+}
+
 // WithSignaturePolicy specifies the path of a file which decides how trust is
 // managed for images we've pulled.
 // If this is not specified, the system default configuration will be used

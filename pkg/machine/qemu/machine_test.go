@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/containers/common/libnetwork/etchosts"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,9 +26,55 @@ func TestEditCmd(t *testing.T) {
 }
 
 func TestPropagateHostEnv(t *testing.T) {
-	t.Setenv("SSL_CERT_FILE", "/some/foo.cert")
-	t.Setenv("SSL_CERT_DIR", "/some/my/certs")
-	t.Setenv("HTTP_PROXY", "proxy")
+	tests := map[string]struct {
+		value  string
+		expect string
+	}{
+		"HTTP_PROXY": {
+			"proxy",
+			"equal",
+		},
+		"ftp_proxy": {
+			"domain.com:8888",
+			"equal",
+		},
+		"FTP_PROXY": {
+			"proxy",
+			"equal",
+		},
+		"NO_PROXY": {
+			"localaddress",
+			"equal",
+		},
+		"HTTPS_PROXY": {
+			"",
+			"unset",
+		},
+		"no_proxy": {
+			"",
+			"unset",
+		},
+		"http_proxy": {
+			"127.0.0.1:8888",
+			fmt.Sprintf("%s:8888", etchosts.HostContainersInternal),
+		},
+		"https_proxy": {
+			"localhost:8888",
+			fmt.Sprintf("%s:8888", etchosts.HostContainersInternal),
+		},
+		"SSL_CERT_FILE": {
+			"/some/f=oo.cert",
+			fmt.Sprintf("%s/f=oo.cert", machine.UserCertsTargetPath),
+		},
+		"SSL_CERT_DIR": {
+			"/some/my/certs",
+			machine.UserCertsTargetPath,
+		},
+	}
+
+	for key, item := range tests {
+		t.Setenv(key, item.value)
+	}
 
 	cmdLine := propagateHostEnv(make([]string, 0))
 
@@ -36,5 +83,26 @@ func TestPropagateHostEnv(t *testing.T) {
 	tokens := strings.Split(cmdLine[1], ",string=")
 	decodeString, err := base64.StdEncoding.DecodeString(tokens[1])
 	assert.NoError(t, err)
-	assert.Equal(t, fmt.Sprintf("HTTP_PROXY=\"proxy\"|SSL_CERT_FILE=\"%s/foo.cert\"|SSL_CERT_DIR=%q", machine.UserCertsTargetPath, machine.UserCertsTargetPath), string(decodeString))
+
+	// envsRawArr looks like: ["BAR=\"bar\"", "FOO=\"foo\""]
+	envsRawArr := strings.Split(string(decodeString), "|")
+	// envs looks like: {"BAR": "bar", "FOO": "foo"}
+	envs := make(map[string]string)
+	for _, env := range envsRawArr {
+		item := strings.SplitN(env, "=", 2)
+		envs[item[0]] = strings.Trim(item[1], "\"")
+	}
+
+	for key, test := range tests {
+		switch test.expect {
+		case "equal":
+			assert.Equal(t, envs[key], test.value)
+		case "unset":
+			if _, ok := envs[key]; ok {
+				t.Errorf("env %s should not be set", key)
+			}
+		default:
+			assert.Equal(t, envs[key], test.expect)
+		}
+	}
 }

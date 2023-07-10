@@ -185,16 +185,16 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 		err = rpt.Execute(data)
 	}
 	if err != nil {
-		errs = append(errs, fmt.Errorf("printing inspect output: %w", err))
+		errs = append(errs, err)
 	}
 
 	if len(errs) > 0 {
 		if len(errs) > 1 {
 			for _, err := range errs[1:] {
-				fmt.Fprintf(os.Stderr, "error inspecting object: %v\n", err)
+				fmt.Fprintf(os.Stderr, "%v\n", err)
 			}
 		}
-		return fmt.Errorf("inspecting object: %w", errs[0])
+		return errs[0]
 	}
 	return nil
 }

@@ -105,7 +105,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 	return nil, nil
 }
 
-func GetSlirp4netnsIP(subnet *net.IPNet) (*net.IP, error) {
+func getSlirp4netnsIP(subnet *net.IPNet) (*net.IP, error) {
 	return nil, errors.New("not implemented GetSlirp4netnsIP")
 }
 
@@ -270,4 +270,8 @@ func (c *Container) reloadRootlessRLKPortMapping() error {
 
 func (c *Container) setupRootlessNetwork() error {
 	return nil
+}
+
+func getPastaIP(state *ContainerState) (net.IP, error) {
+	return nil, fmt.Errorf("pasta networking is Linux only")
 }

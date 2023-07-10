@@ -231,6 +231,8 @@ type ImagePushOptions struct {
 	Progress chan types.ProgressProperties
 	// CompressionFormat is the format to use for the compression of the blobs
 	CompressionFormat string
+	// CompressionLevel is the level to use for the compression of the blobs
+	CompressionLevel *int
 	// Writer is used to display copy information including progress bars.
 	Writer io.Writer
 	// OciEncryptConfig when non-nil indicates that an image should be encrypted.

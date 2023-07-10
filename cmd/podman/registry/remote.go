@@ -2,6 +2,8 @@ package registry
 
 import (
 	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -15,9 +17,18 @@ var remoteFromCLI = struct {
 	sync  sync.Once
 }{}
 
+const PodmanSh = "podmansh"
+
 // IsRemote returns true if podman was built to run remote or --remote flag given on CLI
 // Use in init() functions as an initialization check
 func IsRemote() bool {
+	// remote conflicts with podmansh in how the `-c` option gets parsed
+	// This is noticeable if a user with shell set to podmansh were to execute
+	// a command using ssh like so:
+	// ssh user@host id
+	if strings.HasSuffix(filepath.Base(os.Args[0]), PodmanSh) {
+		return false
+	}
 	remoteFromCLI.sync.Do(func() {
 		remote := false
 		if _, ok := os.LookupEnv("CONTAINER_HOST"); ok {

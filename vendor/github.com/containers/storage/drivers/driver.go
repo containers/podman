@@ -111,6 +111,10 @@ type ProtoDriver interface {
 	Exists(id string) bool
 	// Returns a list of layer ids that exist on this driver (does not include
 	// additional storage layers). Not supported by all backends.
+	// If the driver requires that layers be removed in a particular order,
+	// usually due to parent-child relationships that it cares about, The
+	// list should be sorted well enough so that if all layers need to be
+	// removed, they can be removed in the order in which they're returned.
 	ListLayers() ([]string, error)
 	// Status returns a set of key-value pairs which give low
 	// level diagnostic status about this driver.
@@ -183,6 +187,8 @@ type DriverWithDifferOutput struct {
 	UncompressedDigest digest.Digest
 	Metadata           string
 	BigData            map[string][]byte
+	TarSplit           []byte
+	TOCDigest          digest.Digest
 }
 
 // Differ defines the interface for using a custom differ.
@@ -322,6 +328,7 @@ func getBuiltinDriver(name, home string, options Options) (Driver, error) {
 type Options struct {
 	Root                string
 	RunRoot             string
+	ImageStore          string
 	DriverPriority      []string
 	DriverOptions       []string
 	UIDMaps             []idtools.IDMap
@@ -337,12 +344,12 @@ func New(name string, config Options) (Driver, error) {
 	}
 
 	// Guess for prior driver
-	driversMap := scanPriorDrivers(config.Root)
+	driversMap := ScanPriorDrivers(config.Root)
 
 	// use the supplied priority list unless it is empty
 	prioList := config.DriverPriority
 	if len(prioList) == 0 {
-		prioList = priority
+		prioList = Priority
 	}
 
 	for _, name := range prioList {
@@ -414,12 +421,12 @@ func isDriverNotSupported(err error) bool {
 }
 
 // scanPriorDrivers returns an un-ordered scan of directories of prior storage drivers
-func scanPriorDrivers(root string) map[string]bool {
+func ScanPriorDrivers(root string) map[string]bool {
 	driversMap := make(map[string]bool)
 
 	for driver := range drivers {
 		p := filepath.Join(root, driver)
-		if _, err := os.Stat(p); err == nil && driver != "vfs" {
+		if _, err := os.Stat(p); err == nil {
 			driversMap[driver] = true
 		}
 	}

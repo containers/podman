@@ -42,6 +42,7 @@ host.conmon.path          | $expr_path
 host.conmon.package       | .*conmon.*
 host.cgroupManager        | \\\(systemd\\\|cgroupfs\\\)
 host.cgroupVersion        | v[12]
+host.networkBackendInfo   | .*dns.*package.*
 host.ociRuntime.path      | $expr_path
 host.pasta                | .*executable.*package.*
 store.configFile          | $expr_path

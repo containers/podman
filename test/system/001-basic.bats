@@ -72,7 +72,9 @@ function setup() {
 }
 
 @test "podman can pull an image" {
-    run_podman rmi -a
+    run_podman rmi -a -f
+
+    # This is a risk point: it will fail if the registry or network are flaky
     run_podman pull $IMAGE
 
     # Regression test for https://github.com/containers/image/pull/1615

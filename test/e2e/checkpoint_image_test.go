@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -27,8 +28,8 @@ var _ = Describe("Podman checkpoint", func() {
 			Skip("OCI runtime does not support checkpoint/restore")
 		}
 
-		if !criu.CheckForCriu(criu.MinCriuVersion) {
-			Skip("CRIU is missing or too old.")
+		if err := criu.CheckForCriu(criu.MinCriuVersion); err != nil {
+			Skip(fmt.Sprintf("check CRIU version error: %v", err))
 		}
 	})
 
@@ -48,7 +49,7 @@ var _ = Describe("Podman checkpoint", func() {
 		localRunString := []string{
 			"run",
 			"-d",
-			"--ip", GetRandomIPAddress(),
+			"--ip", GetSafeIPAddress(),
 			"--name", containerName,
 			ALPINE,
 			"top",

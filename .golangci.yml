@@ -12,7 +12,12 @@ run:
 linters:
   enable-all: true
   disable:
-    # All these break for one reason or another
+    # too many reports but requires attention
+    - depguard
+    - tagalign
+    # useful hints that should be addressed
+    - nakedret
+    - gosmopolitan # usage of time.Local in pkg/k8s.io
     - tagliatelle # too many JSON keys cannot be changed due to compat
     - nosnakecase # too many false positives due to the `unix` package
     - dupword # too many false positives (e.g., in tests)
@@ -73,7 +78,12 @@ linters-settings:
     ignore: fmt:.*
   nolintlint:
     allow-leading-space: false
+    allow-unused: true
     require-specific: true
+  revive:
+    rules:
+    - name: unused-parameter
+      disabled: true
 
 issues:
   # Maximum issues count per one linter.

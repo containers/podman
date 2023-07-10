@@ -104,7 +104,7 @@ func CreateIDMappedMount(source, target string, pid int) error {
 		&attr, uint(unsafe.Sizeof(attr))); err != nil {
 		return err
 	}
-	if err := os.Mkdir(target, 0700); err != nil && !os.IsExist(err) {
+	if err := os.Mkdir(target, 0o700); err != nil && !os.IsExist(err) {
 		return err
 	}
 	return moveMount(targetDirFd, target)
@@ -140,7 +140,7 @@ func CreateUsernsProcess(uidMaps []idtools.IDMap, gidMaps []idtools.IDMap) (int,
 		for _, m := range idmap {
 			mappings = mappings + fmt.Sprintf("%d %d %d\n", m.ContainerID, m.HostID, m.Size)
 		}
-		return os.WriteFile(fmt.Sprintf("/proc/%d/%s", pid, fname), []byte(mappings), 0600)
+		return os.WriteFile(fmt.Sprintf("/proc/%d/%s", pid, fname), []byte(mappings), 0o600)
 	}
 	if err := writeMappings("uid_map", uidMaps); err != nil {
 		cleanupFunc()

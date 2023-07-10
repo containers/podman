@@ -22,10 +22,14 @@ var _ = Describe("Podman images", func() {
 	)
 
 	BeforeEach(func() {
+		registryOptions := &podmanRegistry.Options{
+			PodmanPath: getPodmanBinary(),
+		}
+
 		// Note: we need to start the registry **before** setting up
 		// the test. Otherwise, the registry is not reachable for
 		// currently unknown reasons.
-		registry, err = podmanRegistry.Start()
+		registry, err = podmanRegistry.StartWithOptions(registryOptions)
 		Expect(err).ToNot(HaveOccurred())
 
 		bt = newBindingTest()

@@ -12,6 +12,10 @@ import (
 )
 
 const (
+	// Fixme should use
+	// github.com/containers/podman/v4/libpod/define.AutoUpdateLabel
+	// but it is causing bloat
+	autoUpdateLabel = "io.containers.autoupdate"
 	// Directory for global Quadlet files (sysadmin owned)
 	UnitDirAdmin = "/etc/containers/systemd"
 	// Directory for global Quadlet files (distro owned)
@@ -36,6 +40,7 @@ const (
 	KeyAddCapability         = "AddCapability"
 	KeyAddDevice             = "AddDevice"
 	KeyAnnotation            = "Annotation"
+	KeyAutoUpdate            = "AutoUpdate"
 	KeyConfigMap             = "ConfigMap"
 	KeyContainerName         = "ContainerName"
 	KeyCopy                  = "Copy"
@@ -65,6 +70,7 @@ const (
 	KeyExitCodePropagation   = "ExitCodePropagation"
 	KeyLabel                 = "Label"
 	KeyLogDriver             = "LogDriver"
+	KeyMask                  = "Mask"
 	KeyMount                 = "Mount"
 	KeyNetwork               = "Network"
 	KeyNetworkDisableDNS     = "DisableDNS"
@@ -96,13 +102,16 @@ const (
 	KeySecurityLabelNested   = "SecurityLabelNested"
 	KeySecurityLabelType     = "SecurityLabelType"
 	KeySecret                = "Secret"
+	KeySysctl                = "Sysctl"
 	KeyTimezone              = "Timezone"
 	KeyTmpfs                 = "Tmpfs"
 	KeyType                  = "Type"
+	KeyUnmask                = "Unmask"
 	KeyUser                  = "User"
 	KeyUserNS                = "UserNS"
 	KeyVolatileTmp           = "VolatileTmp"
 	KeyVolume                = "Volume"
+	KeyWorkingDir            = "WorkingDir"
 	KeyYaml                  = "Yaml"
 )
 
@@ -114,6 +123,7 @@ var (
 		KeyAddCapability:         true,
 		KeyAddDevice:             true,
 		KeyAnnotation:            true,
+		KeyAutoUpdate:            true,
 		KeyContainerName:         true,
 		KeyDropCapability:        true,
 		KeyEnvironment:           true,
@@ -134,11 +144,12 @@ var (
 		KeyHealthStartupTimeout:  true,
 		KeyHealthTimeout:         true,
 		KeyHostName:              true,
-		KeyImage:                 true,
-		KeyIP:                    true,
 		KeyIP6:                   true,
+		KeyIP:                    true,
+		KeyImage:                 true,
 		KeyLabel:                 true,
 		KeyLogDriver:             true,
+		KeyMask:                  true,
 		KeyMount:                 true,
 		KeyNetwork:               true,
 		KeyNoNewPrivileges:       true,
@@ -154,18 +165,21 @@ var (
 		KeyRootfs:                true,
 		KeyRunInit:               true,
 		KeySeccompProfile:        true,
+		KeySecret:                true,
 		KeySecurityLabelDisable:  true,
 		KeySecurityLabelFileType: true,
 		KeySecurityLabelLevel:    true,
 		KeySecurityLabelNested:   true,
 		KeySecurityLabelType:     true,
-		KeySecret:                true,
-		KeyTmpfs:                 true,
+		KeySysctl:                true,
 		KeyTimezone:              true,
+		KeyTmpfs:                 true,
+		KeyUnmask:                true,
 		KeyUser:                  true,
 		KeyUserNS:                true,
 		KeyVolatileTmp:           true,
 		KeyVolume:                true,
+		KeyWorkingDir:            true,
 	}
 
 	// Supported keys in "Volume" group
@@ -197,6 +211,7 @@ var (
 
 	// Supported keys in "Kube" group
 	supportedKubeKeys = map[string]bool{
+		KeyAutoUpdate:          true,
 		KeyConfigMap:           true,
 		KeyExitCodePropagation: true,
 		KeyLogDriver:           true,
@@ -467,6 +482,11 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		podman.addf("--cap-add=%s", strings.ToLower(caps))
 	}
 
+	sysctl := container.LookupAllStrv(ContainerGroup, KeySysctl)
+	for _, sysctlItem := range sysctl {
+		podman.addf("--sysctl=%s", sysctlItem)
+	}
+
 	readOnly, ok := container.LookupBoolean(ContainerGroup, KeyReadOnly)
 	if ok {
 		podman.addBool("--read-only", readOnly)
@@ -495,6 +515,10 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		} else {
 			podman.addf("%d", uid)
 		}
+	}
+
+	if workdir, exists := container.Lookup(ContainerGroup, KeyWorkingDir); exists {
+		podman.addf("-w=%s", workdir)
 	}
 
 	if err := handleUserRemap(container, ContainerGroup, podman, isUser, true); err != nil {
@@ -545,6 +569,13 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		}
 	}
 
+	update, ok := container.Lookup(ContainerGroup, KeyAutoUpdate)
+	if ok && len(update) > 0 {
+		podman.addLabels(map[string]string{
+			autoUpdateLabel: update,
+		})
+	}
+
 	exposedPorts := container.LookupAll(ContainerGroup, KeyExposeHostPort)
 	for _, exposedPort := range exposedPorts {
 		exposedPort = strings.TrimSpace(exposedPort) // Allow whitespace after
@@ -577,6 +608,16 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 
 	annotations := container.LookupAllKeyVal(ContainerGroup, KeyAnnotation)
 	podman.addAnnotations(annotations)
+
+	masks := container.LookupAllArgs(ContainerGroup, KeyMask)
+	for _, mask := range masks {
+		podman.add("--security-opt", fmt.Sprintf("mask=%s", mask))
+	}
+
+	unmasks := container.LookupAllArgs(ContainerGroup, KeyUnmask)
+	for _, unmask := range unmasks {
+		podman.add("--security-opt", fmt.Sprintf("unmask=%s", unmask))
+	}
 
 	envFiles := container.LookupAllArgs(ContainerGroup, KeyEnvironmentFile)
 	for _, envFile := range envFiles {
@@ -924,6 +965,18 @@ func ConvertKube(kube *parser.UnitFile, isUser bool) (*parser.UnitFile, error) {
 	handleUserNS(kube, KubeGroup, execStart)
 
 	addNetworks(kube, KubeGroup, service, execStart)
+
+	updateMaps := kube.LookupAllStrv(KubeGroup, KeyAutoUpdate)
+	for _, update := range updateMaps {
+		annotation := fmt.Sprintf("--annotation=%s", autoUpdateLabel)
+		updateType := update
+		val := strings.SplitN(update, "/", 2)
+		if len(val) == 2 {
+			annotation = annotation + "/" + val[0]
+			updateType = val[1]
+		}
+		execStart.addf("%s=%s", annotation, updateType)
+	}
 
 	configMaps := kube.LookupAllStrv(KubeGroup, KeyConfigMap)
 	for _, configMap := range configMaps {

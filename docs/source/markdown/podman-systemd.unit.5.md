@@ -42,7 +42,7 @@ like dependencies or cgroup limits.
 For rootless containers, when administrators place Quadlet files in the
 /etc/containers/systemd/users directory, all users' sessions execute the
 Quadlet when the login session begins. If the administrator places a Quadlet
-file in the /etc/containers/systemd/user/${UID}/ directory, then only the
+file in the /etc/containers/systemd/users/${UID}/ directory, then only the
 user with the matching UID execute the Quadlet when the login
 session gets started.
 
@@ -89,6 +89,7 @@ Valid options for `[Container]` are listed below:
 | AddCapability=CAP              | --cap-add CAP                                        |
 | AddDevice=/dev/foo             | --device /dev/foo                                    |
 | Annotation="YXZ"               | --annotation "XYZ"                                   |
+| AutoUpdate=registry            | --label "io.containers.autoupdate=registry"          |
 | ContainerName=name             | --name name                                          |
 | DropCapability=CAP             | --cap-drop=CAP                                       |
 | Environment=foo=bar            | --env foo=bar                                        |
@@ -120,7 +121,7 @@ Valid options for `[Container]` are listed below:
 | Rootfs=/var/lib/rootfs         | --rootfs /var/lib/rootfs                             |
 | Notify=true                    | --sdnotify container                                 |
 | PodmanArgs=--add-host foobar   | --add-host foobar                                    |
-| PublishPort=true               | --publish                                            |
+| PublishPort=50-59              | --publish 50-59                                      |
 | Pull=never                     | --pull=never                                         |
 | ReadOnly=true                  | --read-only                                          |
 | RunInit=true                   | --init                                               |
@@ -130,19 +131,20 @@ Valid options for `[Container]` are listed below:
 | SecurityLabelLevel=s0:c1,c2    | --security-opt label=level:s0:c1,c2                  |
 | SecurityLabelNested=true       | --security-opt label=nested                          |
 | SecurityLabelType=spc_t        | --security-opt label=type:spc_t                      |
+| Sysctl=name=value              | --sysctl=name=value                                  |
 | Timezone=local                 | --tz local                                           |
 | Tmpfs=/work                    | --tmpfs /work                                        |
 | User=bin                       | --user bin                                           |
 | UserNS=keep-id:uid=200,gid=210 | --userns keep-id:uid=200,gid=210                     |
 | VolatileTmp=true               | --tmpfs /tmp                                         |
 | Volume=/source:/dest           | --volume /source:/dest                               |
+| WorkingDir=$HOME               | --workdir $HOME                                      |
 
 Description of `[Container]` section are:
 
 ### `AddCapability=`
 
-By default, the container runs with no capabilities (due to DropCapabilities='all'). If any specific
-caps are needed, then add them with this key. For example using `AddCapability=CAP_DAC_OVERRIDE`.
+Add these capabilities, in addition to the default Podman capability set, to the container.
 
 This is a space separated list of capabilities. This key can be listed multiple times.
 
@@ -169,13 +171,21 @@ similar to `Environment`.
 
 This key can be listed multiple times.
 
+### `AutoUpdate=`
+
+Indicates whether the container will be auto-updated ([podman-auto-update(1)](podman-auto-update.1.md)). The following values are supported:
+
+* `registry`: Requires a fully-qualified image reference (e.g., quay.io/podman/stable:latest) to be used to create the container. This enforcement is necessary to know which image to actually check and pull. If an image ID was used, Podman does not know which image to check/pull anymore.
+
+* `local`: Tells Podman to compare the image a container is using to the image with its raw name in local storage. If an image is updated locally, Podman simply restarts the systemd unit executing the container.
+
 ### `ContainerName=`
 
 The (optional) name of the Podman container. If this is not specified, the default value
 of `systemd-%N` is used, which is the same as the service name but with a `systemd-`
 prefix to avoid conflicts with user-managed containers.
 
-### `DropCapability=` (defaults to `all`)
+### `DropCapability=`
 
 Drop these capabilities from the default podman capability set, or `all` to drop all capabilities.
 
@@ -198,7 +208,7 @@ Use a line-delimited file to set environment variables in the container.
 The path may be absolute or relative to the location of the unit file.
 This key may be used multiple times, and the order persists when passed to `podman run`.
 
-### `EnvironmentHost=` (defaults to `no`)
+### `EnvironmentHost=`
 
 Use the host environment inside of the container.
 
@@ -342,7 +352,7 @@ This key can be listed multiple times.
 
 ### `NoNewPrivileges=` (defaults to `no`)
 
-If enabled (which is the default), this disables the container processes from gaining additional privileges via things like
+If enabled, this disables the container processes from gaining additional privileges via things like
 setuid and file capabilities.
 
 ### `Rootfs=`
@@ -399,9 +409,7 @@ This is equivalent to the Podman `--pull` option
 
 ### `ReadOnly=` (defaults to `no`)
 
-If enabled, makes image read-only, with /var/tmp, /tmp and /run a tmpfs (unless disabled by `VolatileTmp=no`).r
-
-**NOTE:** Podman automatically copies any content from the image onto the tmpfs
+If enabled, makes the image read-only.
 
 ### `RunInit=` (default to `no`)
 
@@ -438,6 +446,17 @@ Set the label process type for the container processes.
 Use a Podman secret in the container either as a file or an environment variable.
 This is equivalent to the Podman `--secret` option and generally has the form `secret[,opt=opt ...]`
 
+### `Sysctl=`
+
+Configures namespaced kernel parameters for the container. The format is `Sysctl=name=value`.
+
+This is a space separated list of kernel parameters. This key can be listed multiple times.
+
+For example:
+```
+Sysctl=net.ipv6.conf.all.disable_ipv6=1 net.ipv6.conf.all.use_tempaddr=1
+```
+
 ### `Tmpfs=`
 
 Mount a tmpfs in the container. This is equivalent to the Podman `--tmpfs` option, and
@@ -459,7 +478,7 @@ which can be modified with `UserNS`, but if that is not specified, this UID is a
 Set the user namespace mode for the container. This is equivalent to the Podman `--userns` option and
 generally has the form `MODE[:OPTIONS,...]`.
 
-### `VolatileTmp=` (default to `no`, or `yes` if `ReadOnly` enabled)
+### `VolatileTmp=` (defaults to `no`)
 
 If enabled, the container has a fresh tmpfs mounted on `/tmp`.
 
@@ -479,6 +498,12 @@ created by using a `$name.volume` Quadlet file.
 
 This key can be listed multiple times.
 
+### `WorkingDir=`
+
+Working directory inside the container.
+
+The default working directory for running binaries within a container is the root directory (/). The image developer can set a different default with the WORKDIR instruction. This option overrides the working directory by using the -w option.
+
 ## Kube units [Kube]
 
 Kube units are named with a `.kube` extension and contain a `[Kube]` section describing
@@ -492,16 +517,27 @@ There is only one required key, `Yaml`, which defines the path to the Kubernetes
 Valid options for `[Kube]` are listed below:
 
 | **[Kube] options**                  | **podman kube play equivalent**             |
-| ----------------------------------- | ------------------------------------------- |
-| ConfigMap=/tmp/config.map           | --config-map /tmp/config.map                |
-| LogDriver=journald                  | --log-driver journald                       |
-| Network=host                        | --net host                                  |
-| PodmanArgs=\-\-annotation=key=value | --annotation=key=value                      |
-| PublishPort=59-60                   | --publish=59-60                             |
-| UserNS=keep-id:uid=200,gid=210      | --userns keep-id:uid=200,gid=210            |
-| Yaml=/tmp/kube.yaml                 | podman kube play /tmp/kube.yaml             |
+| ----------------------------------- | ------------------------------------------------ |
+| AutoUpdate=registry                 | --annotation "io.containers.autoupdate=registry" |
+| ConfigMap=/tmp/config.map           | --config-map /tmp/config.map                     |
+| LogDriver=journald                  | --log-driver journald                            |
+| Network=host                        | --net host                                       |
+| PodmanArgs=\-\-annotation=key=value | --annotation=key=value                           |
+| PublishPort=59-60                   | --publish=59-60                                  |
+| UserNS=keep-id:uid=200,gid=210      | --userns keep-id:uid=200,gid=210                 |
+| Yaml=/tmp/kube.yaml                 | podman kube play /tmp/kube.yaml                  |
 
 Supported keys in the `[Kube]` section are:
+
+### `AutoUpdate=`
+
+Indicates whether containers will be auto-updated ([podman-auto-update(1)](podman-auto-update.1.md)). AutoUpdate can be specified multiple times. The following values are supported:
+
+* `registry`: Requires a fully-qualified image reference (e.g., quay.io/podman/stable:latest) to be used to create the container. This enforcement is necessary to know which images to actually check and pull. If an image ID was used, Podman does not know which image to check/pull anymore.
+
+* `local`: Tells Podman to compare the image a container is using to the image with its raw name in local storage. If an image is updated locally, Podman simply restarts the systemd unit executing the Kubernetes quadlet.
+
+* `name/(local|registry)`: Tells Podman to preform the `local` or `registry` autoupdate on the specified container name.
 
 ### `ConfigMap=`
 
@@ -524,6 +560,10 @@ The current default value is `none`.
 
 Set the log-driver Podman uses when running the container.
 Equivalent to the Podman `--log-driver` option.
+
+### `Mask=`
+
+Specify the paths to mask separated by a colon. `Mask=/path/1:/path/2`.  A masked path cannot be accessed inside the container.
 
 ### `Network=`
 
@@ -567,6 +607,16 @@ in the Kubernetes YAML file. If the same container port and protocol is specifie
 entry from the unit file takes precedence
 
 This key can be listed multiple times.
+
+### `Unmask=`
+
+Specify the paths to unmask separated by a colon. unmask=ALL or /path/1:/path/2, or shell expanded paths (/proc/*):
+
+If set to `ALL`, Podman will unmask all the paths that are masked or made read-only by default.
+
+The default masked paths are /proc/acpi, /proc/kcore, /proc/keys, /proc/latency_stats, /proc/sched_debug, /proc/scsi, /proc/timer_list, /proc/timer_stats, /sys/firmware, and /sys/fs/selinux.
+
+The default paths that are read-only are /proc/asound, /proc/bus, /proc/fs, /proc/irq, /proc/sys, /proc/sysrq-trigger, /sys/fs/cgroup.
 
 ### `UserNS=`
 
@@ -641,7 +691,9 @@ This is equivalent to the Podman `--ipam-driver` option
 
 ### `IPRange=`
 
-Allocate  container  IP  from a range. The range must be a complete subnet and in CIDR notation. The ip-range option must be used with a subnet option.
+Allocate  container  IP  from a range. The range must be a either a complete subnet in CIDR notation or be
+in the `<startIP>-<endIP>` syntax which allows for a more flexible range compared to the CIDR subnet.
+The ip-range option must be used with a subnet option.
 
 This is equivalent to the Podman `--ip-range` option
 
@@ -822,4 +874,5 @@ Label=org.test.Key=value
 **[systemd.unit(5)](https://www.freedesktop.org/software/systemd/man/systemd.unit.html)**,
 **[systemd.service(5)](https://www.freedesktop.org/software/systemd/man/systemd.service.html)**,
 **[podman-run(1)](podman-run.1.md)**,
-**[podman-network-create(1)](podman-network-create.1.md)**
+**[podman-network-create(1)](podman-network-create.1.md)**,
+**[podman-auto-update(1)](podman-auto-update.1.md)**

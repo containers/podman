@@ -160,6 +160,11 @@ var _ = Describe("Podman Info", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(Exit(0))
 		Expect(session.OutputToString()).To(Equal(want))
+
+		session = podmanTest.Podman([]string{"info", "--format", "{{.Host.NetworkBackendInfo.Backend}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(Exit(0))
+		Expect(session.OutputToString()).To(Equal(want))
 	})
 
 	It("Podman info: check desired database backend", func() {

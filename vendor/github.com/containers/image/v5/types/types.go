@@ -585,9 +585,9 @@ type SystemContext struct {
 	// resolving to Docker Hub in the Docker-compatible REST API of Podman; it should never be used outside this
 	// specific context.
 	PodmanOnlyShortNamesIgnoreRegistriesConfAndForceDockerHub bool
-	// If not "", overrides the default path for the authentication file, but only new format files
+	// If not "", overrides the default path for the registry authentication file, but only new format files
 	AuthFilePath string
-	// if not "", overrides the default path for the authentication file, but with the legacy format;
+	// if not "", overrides the default path for the registry authentication file, but with the legacy format;
 	// the code currently will by default look for legacy format files like .dockercfg in the $HOME dir;
 	// but in addition to the home dir, openshift may mount .dockercfg files (via secret mount)
 	// in locations other than the home dir; openshift components should then set this field in those cases;

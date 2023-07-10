@@ -316,6 +316,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	pushOptions.Writer = options.Writer
 	pushOptions.OciEncryptConfig = options.OciEncryptConfig
 	pushOptions.OciEncryptLayers = options.OciEncryptLayers
+	pushOptions.CompressionLevel = options.CompressionLevel
 
 	compressionFormat := options.CompressionFormat
 	if compressionFormat == "" {
@@ -331,6 +332,14 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 			return nil, err
 		}
 		pushOptions.CompressionFormat = &algo
+	}
+
+	if pushOptions.CompressionLevel == nil {
+		config, err := ir.Libpod.GetConfigNoCopy()
+		if err != nil {
+			return nil, err
+		}
+		pushOptions.CompressionLevel = config.Engine.CompressionLevel
 	}
 
 	if !options.Quiet && pushOptions.Writer == nil {

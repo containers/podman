@@ -142,6 +142,8 @@ type PushOptions struct {
 	Compress *bool
 	// CompressionFormat is the format to use for the compression of the blobs
 	CompressionFormat *string
+	// CompressionLevel is the level to use for the compression of the blobs
+	CompressionLevel *int
 	// Manifest type of the pushed image
 	Format *string
 	// Password for authenticating against the registry.

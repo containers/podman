@@ -62,6 +62,73 @@ var _ = Describe("Podman pull", func() {
 		Expect(session).Should(Exit(0))
 	})
 
+	It("podman pull and run on split imagestore", func() {
+		SkipIfRemote("podman-remote does not support setting external imagestore")
+		imgName := "splitstoretest"
+
+		// Make alpine write-able
+		session := podmanTest.Podman([]string{"build", "--pull=never", "--tag", imgName, "build/basicalpine"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		tmpDir := filepath.Join(podmanTest.TempDir, "splitstore")
+		outfile := filepath.Join(podmanTest.TempDir, "image.tar")
+
+		save := podmanTest.Podman([]string{"save", "-o", outfile, "--format", "oci-archive", imgName})
+		save.WaitWithDefaultTimeout()
+		Expect(save).Should(Exit(0))
+
+		rmi := podmanTest.Podman([]string{"rmi", imgName})
+		rmi.WaitWithDefaultTimeout()
+		Expect(rmi).Should(Exit(0))
+
+		// load to splitstore
+		result := podmanTest.Podman([]string{"load", "--imagestore", tmpDir, "-q", "-i", outfile})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+
+		// tag busybox to busybox-test in graphroot since we can delete readonly busybox
+		session = podmanTest.Podman([]string{"tag", "quay.io/libpod/busybox:latest", "busybox-test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"images", "--imagestore", tmpDir})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring(imgName))
+		Expect(session.OutputToString()).To(ContainSubstring("busybox-test"))
+
+		// Test deleting image in graphroot even when `--imagestore` is set
+		session = podmanTest.Podman([]string{"rmi", "--imagestore", tmpDir, "busybox-test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// Images without --imagestore should not contain alpine
+		session = podmanTest.Podman([]string{"images"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Not(ContainSubstring(imgName)))
+
+		// Set `imagestore` in `storage.conf` and container should run.
+		configPath := filepath.Join(podmanTest.TempDir, ".config", "containers", "storage.conf")
+		os.Setenv("CONTAINERS_STORAGE_CONF", configPath)
+		defer func() {
+			os.Unsetenv("CONTAINERS_STORAGE_CONF")
+		}()
+
+		err = os.MkdirAll(filepath.Dir(configPath), os.ModePerm)
+		Expect(err).ToNot(HaveOccurred())
+		storageConf := []byte(fmt.Sprintf("[storage]\nimagestore=\"%s\"", tmpDir))
+		err = os.WriteFile(configPath, storageConf, os.ModePerm)
+		Expect(err).ToNot(HaveOccurred())
+
+		session = podmanTest.Podman([]string{"run", "--name", "test", "--rm",
+			imgName, "echo", "helloworld"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("helloworld"))
+	})
+
 	It("podman pull by digest", func() {
 		session := podmanTest.Podman([]string{"pull", "quay.io/libpod/testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb"})
 		session.WaitWithDefaultTimeout()

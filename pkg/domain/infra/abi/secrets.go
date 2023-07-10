@@ -58,7 +58,11 @@ func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader
 	}, nil
 }
 
-func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string) ([]*entities.SecretInfoReport, []error, error) {
+func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string, options entities.SecretInspectOptions) ([]*entities.SecretInfoReport, []error, error) {
+	var (
+		secret *secrets.Secret
+		data   []byte
+	)
 	manager, err := ic.Libpod.SecretsManager()
 	if err != nil {
 		return nil, nil, err
@@ -66,7 +70,11 @@ func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string
 	errs := make([]error, 0, len(nameOrIDs))
 	reports := make([]*entities.SecretInfoReport, 0, len(nameOrIDs))
 	for _, nameOrID := range nameOrIDs {
-		secret, err := manager.Lookup(nameOrID)
+		if options.ShowSecret {
+			secret, data, err = manager.LookupSecretData(nameOrID)
+		} else {
+			secret, err = manager.Lookup(nameOrID)
+		}
 		if err != nil {
 			if strings.Contains(err.Error(), "no such secret") {
 				errs = append(errs, err)
@@ -90,6 +98,7 @@ func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string
 				},
 				Labels: secret.Labels,
 			},
+			SecretData: string(data),
 		}
 		reports = append(reports, report)
 	}

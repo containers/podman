@@ -77,6 +77,20 @@ host:
   logDriver: journald
   memFree: 1833385984
   memTotal: 16401895424
+  networkBackend: cni
+  networkBackendInfo:
+    backend: cni
+    dns:
+      package: podman-plugins-3.4.4-1.fc34.x86_64
+      path: /usr/libexec/cni/dnsname
+      version: |-
+        CNI dnsname plugin
+        version: 1.3.1
+        commit: unknown
+    package: |-
+      containernetworking-plugins-1.0.1-1.fc34.x86_64
+      podman-plugins-3.4.4-1.fc34.x86_64
+    path: /usr/libexec/cni
   ociRuntime:
     name: crun
     package: crun-1.0-1.fc34.x86_64
@@ -220,6 +234,17 @@ $ podman info --format json
     "logDriver": "journald",
     "memFree": 1785753600,
     "memTotal": 16401895424,
+    "networkBackend": "cni",
+    "networkBackendInfo": {
+      "backend": "cni",
+      "package": "containernetworking-plugins-1.0.1-1.fc34.x86_64\npodman-plugins-3.4.4-1.fc34.x86_64",
+      "path": "/usr/libexec/cni",
+      "dns": {
+        "version": "CNI dnsname plugin\nversion: 1.3.1\ncommit: unknown",
+        "package": "podman-plugins-3.4.4-1.fc34.x86_64",
+        "path": "/usr/libexec/cni/dnsname"
+      }
+    },
     "ociRuntime": {
       "name": "crun",
       "package": "crun-1.0-1.fc34.x86_64",

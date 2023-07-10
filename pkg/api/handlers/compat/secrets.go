@@ -15,6 +15,7 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	"github.com/containers/podman/v4/pkg/util"
+	"github.com/gorilla/schema"
 )
 
 func ListSecrets(w http.ResponseWriter, r *http.Request) {
@@ -51,11 +52,25 @@ func ListSecrets(w http.ResponseWriter, r *http.Request) {
 }
 
 func InspectSecret(w http.ResponseWriter, r *http.Request) {
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
 	names := []string{name}
+	query := struct {
+		ShowSecret bool `schema:"showsecret"`
+	}{
+		// override any golang type defaults
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
+		return
+	}
 	ic := abi.ContainerEngine{Libpod: runtime}
-	reports, errs, err := ic.SecretInspect(r.Context(), names)
+	opts := entities.SecretInspectOptions{}
+	opts.ShowSecret = query.ShowSecret
+
+	reports, errs, err := ic.SecretInspect(r.Context(), names, opts)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

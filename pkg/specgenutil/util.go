@@ -285,6 +285,9 @@ func CreateExitCommandArgs(storageConfig storageTypes.StoreOptions, config *conf
 		"--db-backend", config.Engine.DBBackend,
 		fmt.Sprintf("--transient-store=%t", storageConfig.TransientStore),
 	}
+	if storageConfig.ImageStore != "" {
+		command = append(command, []string{"--imagestore", storageConfig.ImageStore}...)
+	}
 	if config.Engine.OCIRuntime != "" {
 		command = append(command, []string{"--runtime", config.Engine.OCIRuntime}...)
 	}

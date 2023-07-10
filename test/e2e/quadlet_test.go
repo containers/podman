@@ -451,9 +451,24 @@ var _ = Describe("quadlet system generator", func() {
 			Expect(session).Should(Exit(0))
 
 			current := session.ErrorToStringArray()
-			expected := "No files to parse from [/something]"
+			expected := "No files parsed from [/something]"
 
 			Expect(current[0]).To(ContainSubstring(expected))
+		})
+
+		It("Should fail on bad quadlet", func() {
+			quadletfile := fmt.Sprintf(`[Container]
+Image=%s
+BOGUS=foo
+`, ALPINE)
+
+			quadletfilePath := filepath.Join(podmanTest.TempDir, "bogus.container")
+			err = os.WriteFile(quadletfilePath, []byte(quadletfile), 0644)
+			Expect(err).ToNot(HaveOccurred())
+			defer os.Remove(quadletfilePath)
+			session := podmanTest.Quadlet([]string{"-dryrun"}, podmanTest.TempDir)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(1))
 		})
 
 		It("Should parse a kube file and print it to stdout", func() {
@@ -511,7 +526,7 @@ var _ = Describe("quadlet system generator", func() {
 	})
 
 	DescribeTable("Running quadlet test case",
-		func(fileName string) {
+		func(fileName string, exitCode int, errString string) {
 			testcase := loadQuadletTestcase(filepath.Join("quadlet", fileName))
 
 			// Write the tested file to the quadlet dir
@@ -519,109 +534,115 @@ var _ = Describe("quadlet system generator", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// Run quadlet to convert the file
-			session := podmanTest.Quadlet([]string{"--user", "-no-kmsg-log", generatedDir}, quadletDir)
+			session := podmanTest.Quadlet([]string{"--user", "--no-kmsg-log", generatedDir}, quadletDir)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(Exit(exitCode))
 
 			// Print any stderr output
 			errs := session.ErrorToString()
 			if errs != "" {
 				GinkgoWriter.Println("error:", session.ErrorToString())
 			}
+			Expect(errs).Should(ContainSubstring(errString))
 
 			testcase.check(generatedDir, session)
 		},
-		Entry("Basic container", "basic.container"),
-		Entry("annotation.container", "annotation.container"),
-		Entry("basepodman.container", "basepodman.container"),
-		Entry("capabilities.container", "capabilities.container"),
-		Entry("capabilities2.container", "capabilities2.container"),
-		Entry("disableselinux.container", "disableselinux.container"),
-		Entry("nestedselinux.container", "nestedselinux.container"),
-		Entry("devices.container", "devices.container"),
-		Entry("env.container", "env.container"),
-		Entry("escapes.container", "escapes.container"),
-		Entry("exec.container", "exec.container"),
-		Entry("image.container", "image.container"),
-		Entry("install.container", "install.container"),
-		Entry("ip.container", "ip.container"),
-		Entry("label.container", "label.container"),
-		Entry("name.container", "name.container"),
-		Entry("network.container", "network.container"),
-		Entry("network.quadlet.container", "network.quadlet.container"),
-		Entry("noimage.container", "noimage.container"),
-		Entry("notify.container", "notify.container"),
-		Entry("oneshot.container", "oneshot.container"),
-		Entry("rootfs.container", "rootfs.container"),
-		Entry("selinux.container", "selinux.container"),
-		Entry("other-sections.container", "other-sections.container"),
-		Entry("podmanargs.container", "podmanargs.container"),
-		Entry("ports.container", "ports.container"),
-		Entry("ports_ipv6.container", "ports_ipv6.container"),
-		Entry("readonly-notmpfs.container", "readonly-notmpfs.container"),
-		Entry("readwrite.container", "readwrite.container"),
-		Entry("readwrite-notmpfs.container", "readwrite-notmpfs.container"),
-		Entry("seccomp.container", "seccomp.container"),
-		Entry("shortname.container", "shortname.container"),
-		Entry("timezone.container", "timezone.container"),
-		Entry("user.container", "user.container"),
-		Entry("remap-manual.container", "remap-manual.container"),
-		Entry("remap-auto.container", "remap-auto.container"),
-		Entry("remap-auto2.container", "remap-auto2.container"),
-		Entry("remap-keep-id.container", "remap-keep-id.container"),
-		Entry("remap-keep-id2.container", "remap-keep-id2.container"),
-		Entry("volume.container", "volume.container"),
-		Entry("env-file.container", "env-file.container"),
-		Entry("env-host.container", "env-host.container"),
-		Entry("env-host-false.container", "env-host-false.container"),
-		Entry("secrets.container", "secrets.container"),
-		Entry("logdriver.container", "logdriver.container"),
-		Entry("mount.container", "mount.container"),
-		Entry("health.container", "health.container"),
-		Entry("hostname.container", "hostname.container"),
-		Entry("pull.container", "pull.container"),
+		Entry("Basic container", "basic.container", 0, ""),
+		Entry("annotation.container", "annotation.container", 0, ""),
+		Entry("autoupdate.container", "autoupdate.container", 0, ""),
+		Entry("basepodman.container", "basepodman.container", 0, ""),
+		Entry("capabilities.container", "capabilities.container", 0, ""),
+		Entry("capabilities2.container", "capabilities2.container", 0, ""),
+		Entry("devices.container", "devices.container", 0, ""),
+		Entry("disableselinux.container", "disableselinux.container", 0, ""),
+		Entry("env-file.container", "env-file.container", 0, ""),
+		Entry("env-host-false.container", "env-host-false.container", 0, ""),
+		Entry("env-host.container", "env-host.container", 0, ""),
+		Entry("env.container", "env.container", 0, ""),
+		Entry("escapes.container", "escapes.container", 0, ""),
+		Entry("exec.container", "exec.container", 0, ""),
+		Entry("health.container", "health.container", 0, ""),
+		Entry("hostname.container", "hostname.container", 0, ""),
+		Entry("image.container", "image.container", 0, ""),
+		Entry("install.container", "install.container", 0, ""),
+		Entry("ip.container", "ip.container", 0, ""),
+		Entry("label.container", "label.container", 0, ""),
+		Entry("logdriver.container", "logdriver.container", 0, ""),
+		Entry("mask.container", "mask.container", 0, ""),
+		Entry("mount.container", "mount.container", 0, ""),
+		Entry("name.container", "name.container", 0, ""),
+		Entry("nestedselinux.container", "nestedselinux.container", 0, ""),
+		Entry("network.container", "network.container", 0, ""),
+		Entry("network.quadlet.container", "network.quadlet.container", 0, ""),
+		Entry("noimage.container", "noimage.container", 1, "converting \"noimage.container\": no Image or Rootfs key specified"),
+		Entry("notify.container", "notify.container", 0, ""),
+		Entry("oneshot.container", "oneshot.container", 0, ""),
+		Entry("other-sections.container", "other-sections.container", 0, ""),
+		Entry("podmanargs.container", "podmanargs.container", 0, ""),
+		Entry("ports.container", "ports.container", 0, ""),
+		Entry("ports_ipv6.container", "ports_ipv6.container", 0, ""),
+		Entry("pull.container", "pull.container", 0, ""),
+		Entry("readonly-notmpfs.container", "readonly-notmpfs.container", 0, ""),
+		Entry("readwrite-notmpfs.container", "readwrite-notmpfs.container", 0, ""),
+		Entry("readwrite.container", "readwrite.container", 0, ""),
+		Entry("remap-auto.container", "remap-auto.container", 0, ""),
+		Entry("remap-auto2.container", "remap-auto2.container", 0, ""),
+		Entry("remap-keep-id.container", "remap-keep-id.container", 0, ""),
+		Entry("remap-keep-id2.container", "remap-keep-id2.container", 0, ""),
+		Entry("remap-manual.container", "remap-manual.container", 0, ""),
+		Entry("rootfs.container", "rootfs.container", 0, ""),
+		Entry("seccomp.container", "seccomp.container", 0, ""),
+		Entry("secrets.container", "secrets.container", 0, ""),
+		Entry("selinux.container", "selinux.container", 0, ""),
+		Entry("shortname.container", "shortname.container", 0, "Warning: shortname.container specifies the image \"shortname\" which not a fully qualified image name. This is not ideal for performance and security reasons. See the podman-pull manpage discussion of short-name-aliases.conf for details."),
+		Entry("sysctl.container", "sysctl.container", 0, ""),
+		Entry("timezone.container", "timezone.container", 0, ""),
+		Entry("unmask.container", "unmask.container", 0, ""),
+		Entry("user.container", "user.container", 0, ""),
+		Entry("volume.container", "volume.container", 0, ""),
+		Entry("workingdir.container", "workingdir.container", 0, ""),
 
-		Entry("basic.volume", "basic.volume"),
-		Entry("label.volume", "label.volume"),
-		Entry("uid.volume", "uid.volume"),
-		Entry("device-copy.volume", "device-copy.volume"),
-		Entry("device.volume", "device.volume"),
-		Entry("podmanargs.volume", "podmanargs.volume"),
+		Entry("basic.volume", "basic.volume", 0, ""),
+		Entry("device-copy.volume", "device-copy.volume", 0, ""),
+		Entry("device.volume", "device.volume", 0, ""),
+		Entry("label.volume", "label.volume", 0, ""),
+		Entry("podmanargs.volume", "podmanargs.volume", 0, ""),
+		Entry("uid.volume", "uid.volume", 0, ""),
 
-		Entry("Basic kube", "basic.kube"),
-		Entry("Syslog Identifier", "syslog.identifier.kube"),
-		Entry("Absolute Path", "absolute.path.kube"),
-		Entry("Kube - User Remap Manual", "remap-manual.kube"),
-		Entry("Kube - User Remap Auto", "remap-auto.kube"),
-		Entry("Kube - User Remap Auto with IDs", "remap-auto2.kube"),
-		Entry("Kube - Network", "network.kube"),
-		Entry("Kube - Quadlet Network", "network.quadlet.kube"),
-		Entry("Kube - ConfigMap", "configmap.kube"),
-		Entry("Kube - Publish IPv4 ports", "ports.kube"),
-		Entry("Kube - Publish IPv6 ports", "ports_ipv6.kube"),
-		Entry("Kube - Logdriver", "logdriver.kube"),
-		Entry("Kube - PodmanArgs", "podmanargs.kube"),
-		Entry("Kube - Exit Code Propagation", "exit_code_propagation.kube"),
+		Entry("Absolute Path", "absolute.path.kube", 0, ""),
+		Entry("Basic kube", "basic.kube", 0, ""),
+		Entry("Kube - ConfigMap", "configmap.kube", 0, ""),
+		Entry("Kube - Exit Code Propagation", "exit_code_propagation.kube", 0, ""),
+		Entry("Kube - Logdriver", "logdriver.kube", 0, ""),
+		Entry("Kube - Network", "network.kube", 0, ""),
+		Entry("Kube - PodmanArgs", "podmanargs.kube", 0, ""),
+		Entry("Kube - Publish IPv4 ports", "ports.kube", 0, ""),
+		Entry("Kube - Publish IPv6 ports", "ports_ipv6.kube", 0, ""),
+		Entry("Kube - Quadlet Network", "network.quadlet.kube", 0, ""),
+		Entry("Kube - User Remap Auto with IDs", "remap-auto2.kube", 0, ""),
+		Entry("Kube - User Remap Auto", "remap-auto.kube", 0, ""),
+		Entry("Kube - User Remap Manual", "remap-manual.kube", 1, "converting \"remap-manual.kube\": RemapUsers=manual is not supported"),
+		Entry("Syslog Identifier", "syslog.identifier.kube", 0, ""),
 
-		Entry("Network - Basic", "basic.network"),
-		Entry("Network - Label", "label.network"),
-		Entry("Network - Disable DNS", "disable-dns.network"),
-		Entry("Network - Driver", "driver.network"),
-		Entry("Network - Subnets", "subnets.network"),
-		Entry("Network - Gateway", "gateway.network"),
-		Entry("Network - Gateway without Subnet", "gateway.no-subnet.network"),
-		Entry("Network - Gateway not enough Subnet", "gateway.less-subnet.network"),
-		Entry("Network - Range", "range.network"),
-		Entry("Network - Range without Subnet", "range.no-subnet.network"),
-		Entry("Network - Range not enough Subnet", "range.less-subnet.network"),
-		Entry("Network - subnet, gateway and range", "subnet-trio.network"),
-		Entry("Network - multiple subnet, gateway and range", "subnet-trio.multiple.network"),
-		Entry("Network - Internal network", "internal.network"),
-		Entry("Network - IPAM Driver", "ipam-driver.network"),
-		Entry("Network - IPv6", "ipv6.network"),
-		Entry("Network - Options", "options.network"),
-		Entry("Network - Multiple Options", "options.multiple.network"),
-		Entry("Network - PodmanArgs", "podmanargs.network"),
+		Entry("Network - Basic", "basic.network", 0, ""),
+		Entry("Network - Disable DNS", "disable-dns.network", 0, ""),
+		Entry("Network - Driver", "driver.network", 0, ""),
+		Entry("Network - Gateway not enough Subnet", "gateway.less-subnet.network", 1, "converting \"gateway.less-subnet.network\": cannot set more gateways than subnets"),
+		Entry("Network - Gateway without Subnet", "gateway.no-subnet.network", 1, "converting \"gateway.no-subnet.network\": cannot set gateway or range without subnet"),
+		Entry("Network - Gateway", "gateway.network", 0, ""),
+		Entry("Network - IPAM Driver", "ipam-driver.network", 0, ""),
+		Entry("Network - IPv6", "ipv6.network", 0, ""),
+		Entry("Network - Internal network", "internal.network", 0, ""),
+		Entry("Network - Label", "label.network", 0, ""),
+		Entry("Network - Multiple Options", "options.multiple.network", 0, ""),
+		Entry("Network - Options", "options.network", 0, ""),
+		Entry("Network - PodmanArgs", "podmanargs.network", 0, ""),
+		Entry("Network - Range not enough Subnet", "range.less-subnet.network", 1, "converting \"range.less-subnet.network\": cannot set more ranges than subnets"),
+		Entry("Network - Range without Subnet", "range.no-subnet.network", 1, "converting \"range.no-subnet.network\": cannot set gateway or range without subnet"),
+		Entry("Network - Range", "range.network", 0, ""),
+		Entry("Network - Subnets", "subnets.network", 0, ""),
+		Entry("Network - multiple subnet, gateway and range", "subnet-trio.multiple.network", 0, ""),
+		Entry("Network - subnet, gateway and range", "subnet-trio.network", 0, ""),
 	)
 
 })

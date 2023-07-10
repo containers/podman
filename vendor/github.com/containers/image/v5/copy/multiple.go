@@ -12,10 +12,40 @@ import (
 	internalManifest "github.com/containers/image/v5/internal/manifest"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/signature"
+	digest "github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 )
+
+type instanceCopyKind int
+
+const (
+	instanceCopyCopy instanceCopyKind = iota
+	instanceCopyClone
+)
+
+type instanceCopy struct {
+	op           instanceCopyKind
+	sourceDigest digest.Digest
+}
+
+// prepareInstanceCopies prepares a list of instances which needs to copied to the manifest list.
+func prepareInstanceCopies(instanceDigests []digest.Digest, options *Options) []instanceCopy {
+	res := []instanceCopy{}
+	for i, instanceDigest := range instanceDigests {
+		if options.ImageListSelection == CopySpecificImages &&
+			!slices.Contains(options.Instances, instanceDigest) {
+			logrus.Debugf("Skipping instance %s (%d/%d)", instanceDigest, i+1, len(instanceDigests))
+			continue
+		}
+		res = append(res, instanceCopy{
+			op:           instanceCopyCopy,
+			sourceDigest: instanceDigest,
+		})
+	}
+	return res
+}
 
 // copyMultipleImages copies some or all of an image list's instances, using
 // policyContext to validate source image admissibility.
@@ -88,44 +118,35 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 
 	// Copy each image, or just the ones we want to copy, in turn.
 	instanceDigests := updatedList.Instances()
-	imagesToCopy := len(instanceDigests)
-	if options.ImageListSelection == CopySpecificImages {
-		imagesToCopy = len(options.Instances)
-	}
-	c.Printf("Copying %d of %d images in list\n", imagesToCopy, len(instanceDigests))
-	updates := make([]manifest.ListUpdate, len(instanceDigests))
-	instancesCopied := 0
-	for i, instanceDigest := range instanceDigests {
-		if options.ImageListSelection == CopySpecificImages &&
-			!slices.Contains(options.Instances, instanceDigest) {
-			update, err := updatedList.Instance(instanceDigest)
+	instanceEdits := []internalManifest.ListEdit{}
+	instanceCopyList := prepareInstanceCopies(instanceDigests, options)
+	c.Printf("Copying %d of %d images in list\n", len(instanceCopyList), len(instanceDigests))
+	for i, instance := range instanceCopyList {
+		// Update instances to be edited by their `ListOperation` and
+		// populate necessary fields.
+		switch instance.op {
+		case instanceCopyCopy:
+			logrus.Debugf("Copying instance %s (%d/%d)", instance.sourceDigest, i+1, len(instanceCopyList))
+			c.Printf("Copying image %s (%d/%d)\n", instance.sourceDigest, i+1, len(instanceCopyList))
+			unparsedInstance := image.UnparsedInstance(c.rawSource, &instanceCopyList[i].sourceDigest)
+			updatedManifest, updatedManifestType, updatedManifestDigest, err := c.copySingleImage(ctx, policyContext, options, unparsedToplevel, unparsedInstance, &instanceCopyList[i].sourceDigest)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("copying image %d/%d from manifest list: %w", i+1, len(instanceCopyList), err)
 			}
-			logrus.Debugf("Skipping instance %s (%d/%d)", instanceDigest, i+1, len(instanceDigests))
-			// Record the digest/size/type of the manifest that we didn't copy.
-			updates[i] = update
-			continue
+			// Record the result of a possible conversion here.
+			instanceEdits = append(instanceEdits, internalManifest.ListEdit{
+				ListOperation:   internalManifest.ListOpUpdate,
+				UpdateOldDigest: instance.sourceDigest,
+				UpdateDigest:    updatedManifestDigest,
+				UpdateSize:      int64(len(updatedManifest)),
+				UpdateMediaType: updatedManifestType})
+		default:
+			return nil, fmt.Errorf("copying image: invalid copy operation %d", instance.op)
 		}
-		logrus.Debugf("Copying instance %s (%d/%d)", instanceDigest, i+1, len(instanceDigests))
-		c.Printf("Copying image %s (%d/%d)\n", instanceDigest, instancesCopied+1, imagesToCopy)
-		unparsedInstance := image.UnparsedInstance(c.rawSource, &instanceDigest)
-		updatedManifest, updatedManifestType, updatedManifestDigest, err := c.copySingleImage(ctx, policyContext, options, unparsedToplevel, unparsedInstance, &instanceDigest)
-		if err != nil {
-			return nil, fmt.Errorf("copying image %d/%d from manifest list: %w", instancesCopied+1, imagesToCopy, err)
-		}
-		instancesCopied++
-		// Record the result of a possible conversion here.
-		update := manifest.ListUpdate{
-			Digest:    updatedManifestDigest,
-			Size:      int64(len(updatedManifest)),
-			MediaType: updatedManifestType,
-		}
-		updates[i] = update
 	}
 
 	// Now reset the digest/size/types of the manifests in the list to account for any conversions that we made.
-	if err = updatedList.UpdateInstances(updates); err != nil {
+	if err = updatedList.EditInstances(instanceEdits); err != nil {
 		return nil, fmt.Errorf("updating manifest list: %w", err)
 	}
 

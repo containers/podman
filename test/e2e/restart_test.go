@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -229,11 +228,8 @@ var _ = Describe("Podman restart", func() {
 	})
 
 	It("podman restart --cidfile", func() {
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
+		tmpDir := GinkgoT().TempDir()
 		tmpFile := tmpDir + "cid"
-
-		defer os.RemoveAll(tmpDir)
 
 		session := podmanTest.Podman([]string{"create", "--cidfile", tmpFile, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
@@ -252,12 +248,9 @@ var _ = Describe("Podman restart", func() {
 	})
 
 	It("podman restart multiple --cidfile", func() {
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
+		tmpDir := GinkgoT().TempDir()
 		tmpFile1 := tmpDir + "cid-1"
 		tmpFile2 := tmpDir + "cid-2"
-
-		defer os.RemoveAll(tmpDir)
 
 		session := podmanTest.Podman([]string{"run", "--cidfile", tmpFile1, "-d", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
@@ -324,7 +317,7 @@ var _ = Describe("Podman restart", func() {
 		session1 = podmanTest.Podman([]string{"restart", "-a", "--filter", fmt.Sprintf("id=%swrongid", shortCid3)})
 		session1.WaitWithDefaultTimeout()
 		Expect(session1).Should(Exit(0))
-		Expect(session1.OutputToString()).To(HaveLen(0))
+		Expect(session1.OutputToString()).To(BeEmpty())
 
 		session1 = podmanTest.Podman([]string{"restart", "-a", "--filter", fmt.Sprintf("id=%s", shortCid3)})
 		session1.WaitWithDefaultTimeout()

@@ -123,7 +123,7 @@ var _ = Describe("Podman pod rm", func() {
 		result := podmanTest.Podman([]string{"pod", "rm", "-a"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).To(ExitWithError())
-		Expect(result.ErrorToString()).To(ContainSubstring("cannot be removed"))
+		Expect(result.ErrorToString()).To(ContainSubstring("not all containers could be removed from pod"))
 
 		numPods = podmanTest.NumberOfPods()
 		ps = podmanTest.Podman([]string{"pod", "ps"})
@@ -215,10 +215,8 @@ var _ = Describe("Podman pod rm", func() {
 	})
 
 	It("podman pod start/remove single pod via --pod-id-file", func() {
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
+		tmpDir := GinkgoT().TempDir()
 		tmpFile := tmpDir + "podID"
-		defer os.RemoveAll(tmpDir)
 
 		podName := "rudolph"
 
@@ -244,9 +242,7 @@ var _ = Describe("Podman pod rm", func() {
 	})
 
 	It("podman pod start/remove multiple pods via --pod-id-file", func() {
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
-		defer os.RemoveAll(tmpDir)
+		tmpDir := GinkgoT().TempDir()
 
 		podIDFiles := []string{}
 		for _, i := range "0123456789" {

@@ -78,6 +78,12 @@ Identity value resolution precedence:
  - `containers.conf`
 Remote connections use local containers.conf for default.
 
+#### **--imagestore**=*path*
+
+Path of the imagestore where images are stored.  By default, the storage library stores all the images in the graphroot but if an imagestore is provided, then the storage library will store newly pulled images in the provided imagestore and keep using the graphroot for everything else. If the user is using the overlay driver, then the images which were already part of the graphroot will still be accessible.
+
+This will override *imagestore* option in `containers-storage.conf(5)`, refer to `containers-storage.conf(5)` for more details.
+
 #### **--log-level**=*level*
 
 Log messages at and above specified level: debug, info, warn, error, fatal or panic (default: "warn")
@@ -186,7 +192,7 @@ Details:
 URL value resolution precedence:
  - command line value
  - environment variable `CONTAINER_HOST`
- - `containers.conf` `service_destinations` table
+ - `engine.service_destinations` table in containers.conf, excluding the /usr/share/containers directory
  - `unix://run/podman/podman.sock`
 
 Remote connections use local containers.conf for default.

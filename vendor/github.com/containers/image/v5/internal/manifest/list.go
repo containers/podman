@@ -3,6 +3,7 @@ package manifest
 import (
 	"fmt"
 
+	compression "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/types"
 	digest "github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -55,6 +56,10 @@ type List interface {
 	// SystemContext ( or for the current platform if the SystemContext doesn't specify any detail ) and preferGzip for compression which
 	// when configured to OptionalBoolTrue and chooses best available compression when it is OptionalBoolFalse or left OptionalBoolUndefined.
 	ChooseInstanceByCompression(ctx *types.SystemContext, preferGzip types.OptionalBool) (digest.Digest, error)
+	// Edit information about the list's instances. Contains Slice of ListEdit where each element
+	// is responsible for either Modifying or Adding a new instance to the Manifest. Operation is
+	// selected on the basis of configured ListOperation field.
+	EditInstances([]ListEdit) error
 }
 
 // ListUpdate includes the fields which a List's UpdateInstances() method will modify.
@@ -63,6 +68,36 @@ type ListUpdate struct {
 	Digest    digest.Digest
 	Size      int64
 	MediaType string
+}
+
+type ListOp int
+
+const (
+	listOpInvalid ListOp = iota
+	ListOpAdd
+	ListOpUpdate
+)
+
+// ListEdit includes the fields which a List's EditInstances() method will modify.
+type ListEdit struct {
+	ListOperation ListOp
+
+	// if Op == ListEditUpdate (basically the previous UpdateInstances). All fields must be set.
+	UpdateOldDigest             digest.Digest
+	UpdateDigest                digest.Digest
+	UpdateSize                  int64
+	UpdateMediaType             string
+	UpdateAffectAnnotations     bool
+	UpdateAnnotations           map[string]string
+	UpdateCompressionAlgorithms []compression.Algorithm
+
+	// If Op = ListEditAdd. All fields must be set.
+	AddDigest                digest.Digest
+	AddSize                  int64
+	AddMediaType             string
+	AddPlatform              *imgspecv1.Platform
+	AddAnnotations           map[string]string
+	AddCompressionAlgorithms []compression.Algorithm
 }
 
 // ListPublicFromBlob parses a list of manifests.

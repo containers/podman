@@ -132,6 +132,15 @@ if root; then
     podman rm -f $CTRNAME
 fi
 
+CTRNAME=test123
+podman run --name $CTRNAME -d $IMAGE top
+t GET libpod/containers/$CTRNAME/top?ps_args=--invalid 500 \
+  .cause~".*unrecognized option.*"
+t GET containers/$CTRNAME/top?ps_args=--invalid 500 \
+  .cause~".*unrecognized option.*"
+
+podman rm -f $CTRNAME
+
 # Issue #15765: make sure the memory limit is capped
 if root; then
     CTRNAME=ctr-with-limit
@@ -624,3 +633,14 @@ fi
 rm -rf $TMPD
 
 podman container rm -fa
+
+# 18951: Make sure container create supports the platform parameter.  Force an
+# initial architecture to make sure the test runs on all platforms.
+podman pull --platform=linux/amd64 $IMAGE
+t POST containers/create?platform=linux/amd64 \
+  Image=$IMAGE \
+  201
+t POST containers/create?platform=linux/aarch64 \
+  Image=$IMAGE \
+  404
+podman rmi -f $IMAGE

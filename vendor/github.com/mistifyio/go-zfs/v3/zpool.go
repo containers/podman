@@ -49,9 +49,6 @@ func GetZpool(name string) (*Zpool, error) {
 		return nil, err
 	}
 
-	// there is no -H
-	out = out[1:]
-
 	z := &Zpool{Name: name}
 	for _, line := range out {
 		if err := z.parseLine(line); err != nil {

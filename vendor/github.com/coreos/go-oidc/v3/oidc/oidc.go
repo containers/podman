@@ -14,6 +14,7 @@ import (
 	"mime"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -48,39 +49,34 @@ var issuerURLKey contextKey
 // This method sets the same context key used by the golang.org/x/oauth2 package,
 // so the returned context works for that package too.
 //
-//    myClient := &http.Client{}
-//    ctx := oidc.ClientContext(parentContext, myClient)
+//	myClient := &http.Client{}
+//	ctx := oidc.ClientContext(parentContext, myClient)
 //
-//    // This will use the custom client
-//    provider, err := oidc.NewProvider(ctx, "https://accounts.example.com")
-//
+//	// This will use the custom client
+//	provider, err := oidc.NewProvider(ctx, "https://accounts.example.com")
 func ClientContext(ctx context.Context, client *http.Client) context.Context {
 	return context.WithValue(ctx, oauth2.HTTPClient, client)
 }
 
-// cloneContext copies a context's bag-of-values into a new context that isn't
-// associated with its cancellation. This is used to initialize remote keys sets
-// which run in the background and aren't associated with the initial context.
-func cloneContext(ctx context.Context) context.Context {
-	cp := context.Background()
+func getClient(ctx context.Context) *http.Client {
 	if c, ok := ctx.Value(oauth2.HTTPClient).(*http.Client); ok {
-		cp = ClientContext(cp, c)
+		return c
 	}
-	return cp
+	return nil
 }
 
 // InsecureIssuerURLContext allows discovery to work when the issuer_url reported
 // by upstream is mismatched with the discovery URL. This is meant for integration
 // with off-spec providers such as Azure.
 //
-//    discoveryBaseURL := "https://login.microsoftonline.com/organizations/v2.0"
-//    issuerURL := "https://login.microsoftonline.com/my-tenantid/v2.0"
+//	discoveryBaseURL := "https://login.microsoftonline.com/organizations/v2.0"
+//	issuerURL := "https://login.microsoftonline.com/my-tenantid/v2.0"
 //
-//    ctx := oidc.InsecureIssuerURLContext(parentContext, issuerURL)
+//	ctx := oidc.InsecureIssuerURLContext(parentContext, issuerURL)
 //
-//    // Provider will be discovered with the discoveryBaseURL, but use issuerURL
-//    // for future issuer validation.
-//    provider, err := oidc.NewProvider(ctx, discoveryBaseURL)
+//	// Provider will be discovered with the discoveryBaseURL, but use issuerURL
+//	// for future issuer validation.
+//	provider, err := oidc.NewProvider(ctx, discoveryBaseURL)
 //
 // This is insecure because validating the correct issuer is critical for multi-tenant
 // proivders. Any overrides here MUST be carefully reviewed.
@@ -90,7 +86,7 @@ func InsecureIssuerURLContext(ctx context.Context, issuerURL string) context.Con
 
 func doRequest(ctx context.Context, req *http.Request) (*http.Response, error) {
 	client := http.DefaultClient
-	if c, ok := ctx.Value(oauth2.HTTPClient).(*http.Client); ok {
+	if c := getClient(ctx); c != nil {
 		client = c
 	}
 	return client.Do(req.WithContext(ctx))
@@ -102,12 +98,33 @@ type Provider struct {
 	authURL     string
 	tokenURL    string
 	userInfoURL string
+	jwksURL     string
 	algorithms  []string
 
 	// Raw claims returned by the server.
 	rawClaims []byte
 
-	remoteKeySet KeySet
+	// Guards all of the following fields.
+	mu sync.Mutex
+	// HTTP client specified from the initial NewProvider request. This is used
+	// when creating the common key set.
+	client *http.Client
+	// A key set that uses context.Background() and is shared between all code paths
+	// that don't have a convinent way of supplying a unique context.
+	commonRemoteKeySet KeySet
+}
+
+func (p *Provider) remoteKeySet() KeySet {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.commonRemoteKeySet == nil {
+		ctx := context.Background()
+		if p.client != nil {
+			ctx = ClientContext(ctx, p.client)
+		}
+		p.commonRemoteKeySet = NewRemoteKeySet(ctx, p.jwksURL)
+	}
+	return p.commonRemoteKeySet
 }
 
 type providerJSON struct {
@@ -132,6 +149,7 @@ var supportedAlgorithms = map[string]bool{
 	PS256: true,
 	PS384: true,
 	PS512: true,
+	EdDSA: true,
 }
 
 // ProviderConfig allows creating providers when discovery isn't supported. It's
@@ -167,12 +185,13 @@ type ProviderConfig struct {
 // through discovery.
 func (p *ProviderConfig) NewProvider(ctx context.Context) *Provider {
 	return &Provider{
-		issuer:       p.IssuerURL,
-		authURL:      p.AuthURL,
-		tokenURL:     p.TokenURL,
-		userInfoURL:  p.UserInfoURL,
-		algorithms:   p.Algorithms,
-		remoteKeySet: NewRemoteKeySet(cloneContext(ctx), p.JWKSURL),
+		issuer:      p.IssuerURL,
+		authURL:     p.AuthURL,
+		tokenURL:    p.TokenURL,
+		userInfoURL: p.UserInfoURL,
+		jwksURL:     p.JWKSURL,
+		algorithms:  p.Algorithms,
+		client:      getClient(ctx),
 	}
 }
 
@@ -221,26 +240,27 @@ func NewProvider(ctx context.Context, issuer string) (*Provider, error) {
 		}
 	}
 	return &Provider{
-		issuer:       issuerURL,
-		authURL:      p.AuthURL,
-		tokenURL:     p.TokenURL,
-		userInfoURL:  p.UserInfoURL,
-		algorithms:   algs,
-		rawClaims:    body,
-		remoteKeySet: NewRemoteKeySet(cloneContext(ctx), p.JWKSURL),
+		issuer:      issuerURL,
+		authURL:     p.AuthURL,
+		tokenURL:    p.TokenURL,
+		userInfoURL: p.UserInfoURL,
+		jwksURL:     p.JWKSURL,
+		algorithms:  algs,
+		rawClaims:   body,
+		client:      getClient(ctx),
 	}, nil
 }
 
 // Claims unmarshals raw fields returned by the server during discovery.
 //
-//    var claims struct {
-//        ScopesSupported []string `json:"scopes_supported"`
-//        ClaimsSupported []string `json:"claims_supported"`
-//    }
+//	var claims struct {
+//	    ScopesSupported []string `json:"scopes_supported"`
+//	    ClaimsSupported []string `json:"claims_supported"`
+//	}
 //
-//    if err := provider.Claims(&claims); err != nil {
-//        // handle unmarshaling error
-//    }
+//	if err := provider.Claims(&claims); err != nil {
+//	    // handle unmarshaling error
+//	}
 //
 // For a list of fields defined by the OpenID Connect spec see:
 // https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
@@ -254,6 +274,12 @@ func (p *Provider) Claims(v interface{}) error {
 // Endpoint returns the OAuth2 auth and token endpoints for the given provider.
 func (p *Provider) Endpoint() oauth2.Endpoint {
 	return oauth2.Endpoint{AuthURL: p.authURL, TokenURL: p.tokenURL}
+}
+
+// UserInfoEndpoint returns the OpenID Connect userinfo endpoint for the given
+// provider.
+func (p *Provider) UserInfoEndpoint() string {
+	return p.userInfoURL
 }
 
 // UserInfo represents the OpenID Connect userinfo claims.
@@ -317,7 +343,7 @@ func (p *Provider) UserInfo(ctx context.Context, tokenSource oauth2.TokenSource)
 	ct := resp.Header.Get("Content-Type")
 	mediaType, _, parseErr := mime.ParseMediaType(ct)
 	if parseErr == nil && mediaType == "application/jwt" {
-		payload, err := p.remoteKeySet.VerifySignature(ctx, string(body))
+		payload, err := p.remoteKeySet().VerifySignature(ctx, string(body))
 		if err != nil {
 			return nil, fmt.Errorf("oidc: invalid userinfo jwt signature %v", err)
 		}
@@ -391,18 +417,17 @@ type IDToken struct {
 
 // Claims unmarshals the raw JSON payload of the ID Token into a provided struct.
 //
-//		idToken, err := idTokenVerifier.Verify(rawIDToken)
-//		if err != nil {
-//			// handle error
-//		}
-//		var claims struct {
-//			Email         string `json:"email"`
-//			EmailVerified bool   `json:"email_verified"`
-//		}
-//		if err := idToken.Claims(&claims); err != nil {
-//			// handle error
-//		}
-//
+//	idToken, err := idTokenVerifier.Verify(rawIDToken)
+//	if err != nil {
+//		// handle error
+//	}
+//	var claims struct {
+//		Email         string `json:"email"`
+//		EmailVerified bool   `json:"email_verified"`
+//	}
+//	if err := idToken.Claims(&claims); err != nil {
+//		// handle error
+//	}
 func (i *IDToken) Claims(v interface{}) error {
 	if i.claims == nil {
 		return errors.New("oidc: claims not set")
@@ -424,7 +449,7 @@ func (i *IDToken) VerifyAccessToken(accessToken string) error {
 		h = sha256.New()
 	case RS384, ES384, PS384:
 		h = sha512.New384()
-	case RS512, ES512, PS512:
+	case RS512, ES512, PS512, EdDSA:
 		h = sha512.New()
 	default:
 		return fmt.Errorf("oidc: unsupported signing algorithm %q", i.sigAlgorithm)

@@ -17,17 +17,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type Virtualization struct {
-	artifact    machine.Artifact
-	compression machine.ImageCompression
-	format      machine.ImageFormat
+type HyperVVirtualization struct {
+	machine.Virtualization
 }
 
-func (v Virtualization) Artifact() machine.Artifact {
-	return machine.None
+func VirtualizationProvider() machine.VirtProvider {
+	return &HyperVVirtualization{
+		machine.NewVirtualization(machine.HyperV, machine.Zip, machine.Vhdx),
+	}
 }
 
-func (v Virtualization) CheckExclusiveActiveVM() (bool, string, error) {
+func (v HyperVVirtualization) CheckExclusiveActiveVM() (bool, string, error) {
 	vmm := hypervctl.NewVirtualMachineManager()
 	// Use of GetAll is OK here because we do not want to use the same name
 	// as something already *actually* configured in hyperv
@@ -43,15 +43,7 @@ func (v Virtualization) CheckExclusiveActiveVM() (bool, string, error) {
 	return false, "", nil
 }
 
-func (v Virtualization) Compression() machine.ImageCompression {
-	return v.compression
-}
-
-func (v Virtualization) Format() machine.ImageFormat {
-	return v.format
-}
-
-func (v Virtualization) IsValidVMName(name string) (bool, error) {
+func (v HyperVVirtualization) IsValidVMName(name string) (bool, error) {
 	// We check both the local filesystem and hyperv for the valid name
 	mm := HyperVMachine{Name: name}
 	configDir, err := machine.GetConfDir(v.VMType())
@@ -69,7 +61,7 @@ func (v Virtualization) IsValidVMName(name string) (bool, error) {
 	return true, nil
 }
 
-func (v Virtualization) List(opts machine.ListOptions) ([]*machine.ListResponse, error) {
+func (v HyperVVirtualization) List(opts machine.ListOptions) ([]*machine.ListResponse, error) {
 	mms, err := v.loadFromLocalJson()
 	if err != nil {
 		return nil, err
@@ -103,12 +95,12 @@ func (v Virtualization) List(opts machine.ListOptions) ([]*machine.ListResponse,
 	return response, err
 }
 
-func (v Virtualization) LoadVMByName(name string) (machine.VM, error) {
+func (v HyperVVirtualization) LoadVMByName(name string) (machine.VM, error) {
 	m := &HyperVMachine{Name: name}
 	return m.loadFromFile()
 }
 
-func (v Virtualization) NewMachine(opts machine.InitOptions) (machine.VM, error) {
+func (v HyperVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	m := HyperVMachine{Name: opts.Name}
 	if len(opts.ImagePath) < 1 {
 		return nil, errors.New("must define --image-path for hyperv support")
@@ -180,7 +172,7 @@ func (v Virtualization) NewMachine(opts machine.InitOptions) (machine.VM, error)
 	return v.LoadVMByName(opts.Name)
 }
 
-func (v Virtualization) RemoveAndCleanMachines() error {
+func (v HyperVVirtualization) RemoveAndCleanMachines() error {
 	// Error handling used here is following what qemu did
 	var (
 		prevErr error
@@ -238,11 +230,11 @@ func (v Virtualization) RemoveAndCleanMachines() error {
 	return prevErr
 }
 
-func (v Virtualization) VMType() machine.VMType {
+func (v HyperVVirtualization) VMType() machine.VMType {
 	return vmtype
 }
 
-func (v Virtualization) loadFromLocalJson() ([]*HyperVMachine, error) {
+func (v HyperVVirtualization) loadFromLocalJson() ([]*HyperVMachine, error) {
 	var (
 		jsonFiles []string
 		mms       []*HyperVMachine

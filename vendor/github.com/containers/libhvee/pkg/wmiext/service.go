@@ -62,11 +62,17 @@ func connectService(namespace string) (*Service, error) {
 	var err error
 	var res uintptr
 	var strResource *uint16
+	var strLocale *uint16
 	var service *ole.IUnknown
 
 	loc := fmt.Sprintf(`\\.\%s`, namespace)
 
 	if strResource, err = syscall.UTF16PtrFromString(loc); err != nil {
+		return nil, err
+	}
+
+	// Connect with en_US LCID since we do pattern matching against English key values
+	if strLocale, err = syscall.UTF16PtrFromString("MS_409"); err != nil {
 		return nil, err
 	}
 
@@ -77,7 +83,7 @@ func connectService(namespace string) (*Service, error) {
 		uintptr(unsafe.Pointer(strResource)),    // [in]  const BSTR    strNetworkResource,
 		uintptr(0),                              // [in]  const BSTR    strUser,
 		uintptr(0),                              // [in]  const BSTR    strPassword,
-		uintptr(0),                              // [in]  const BSTR    strLocale,
+		uintptr(unsafe.Pointer(strLocale)),      // [in]  const BSTR    strLocale,
 		uintptr(WBEM_FLAG_CONNECT_USE_MAX_WAIT), // [in]  long          lSecurityFlags,
 		uintptr(0),                              // [in]  const BSTR    strAuthority,
 		uintptr(0),                              // [in]  IWbemContext  *pCtx,

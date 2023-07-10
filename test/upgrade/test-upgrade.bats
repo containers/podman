@@ -43,7 +43,9 @@ setup() {
     fi
 
     # cgroup-manager=systemd does not work inside a container
-    export _PODMAN_TEST_OPTS="--cgroup-manager=cgroupfs --root=$PODMAN_UPGRADE_WORKDIR/root --runroot=$PODMAN_UPGRADE_WORKDIR/runroot --tmpdir=$PODMAN_UPGRADE_WORKDIR/tmp"
+    # skip_mount_home=true is required so we can share the storage mounts between host and container,
+    # the default c/storage behavior is to make the mount propagation private.
+    export _PODMAN_TEST_OPTS="--storage-opt=skip_mount_home=true --cgroup-manager=cgroupfs --root=$PODMAN_UPGRADE_WORKDIR/root --runroot=$PODMAN_UPGRADE_WORKDIR/runroot --tmpdir=$PODMAN_UPGRADE_WORKDIR/tmp"
 }
 
 ###############################################################################
@@ -180,7 +182,7 @@ EOF
             -v /var/lib/cni:/var/lib/cni \
             -v /etc/cni/net.d:/etc/cni/net.d \
             -v /dev/shm:/dev/shm \
-            -v $pmroot:$pmroot \
+            -v $pmroot:$pmroot:rshared \
             $OLD_PODMAN $pmroot/setup
 
     _PODMAN_TEST_OPTS= wait_for_ready podman_parent

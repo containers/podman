@@ -16,3 +16,18 @@ func (o *InspectOptions) Changed(fieldName string) bool {
 func (o *InspectOptions) ToParams() (url.Values, error) {
 	return util.ToParams(o)
 }
+
+// WithShowSecret set field ShowSecret to given value
+func (o *InspectOptions) WithShowSecret(value bool) *InspectOptions {
+	o.ShowSecret = &value
+	return o
+}
+
+// GetShowSecret returns value of field ShowSecret
+func (o *InspectOptions) GetShowSecret() bool {
+	if o.ShowSecret == nil {
+		var z bool
+		return z
+	}
+	return *o.ShowSecret
+}

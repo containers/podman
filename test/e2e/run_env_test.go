@@ -76,6 +76,11 @@ ENV hello=world
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("world-earth"))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--env-merge", "foo=${bar}-earth", "test", "printenv", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal("-earth"))
 	})
 
 	It("podman run --env-host environment test", func() {

@@ -65,6 +65,10 @@ func parseOptionIDs(ctrMappings []idtools.IDMap, option string) ([]idtools.IDMap
 	for i, m := range ranges {
 		var v idtools.IDMap
 
+		if m == "" {
+			return nil, fmt.Errorf("invalid empty range for %q", option)
+		}
+
 		relative := false
 		if m[0] == '@' {
 			relative = true
@@ -1135,8 +1139,8 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 }
 
 func (c *Container) checkpointRestoreSupported(version int) error {
-	if !criu.CheckForCriu(version) {
-		return fmt.Errorf("checkpoint/restore requires at least CRIU %d", version)
+	if err := criu.CheckForCriu(version); err != nil {
+		return err
 	}
 	if !c.ociRuntime.SupportsCheckpoint() {
 		return errors.New("configured runtime does not support checkpoint/restore")
@@ -1819,17 +1823,17 @@ func (c *Container) makeBindMounts() error {
 		// will recreate. Only do this if we aren't sharing them with
 		// another container.
 		if c.config.NetNsCtr == "" {
-			if resolvePath, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
+			if resolvePath, ok := c.state.BindMounts[resolvconf.DefaultResolvConf]; ok {
 				if err := os.Remove(resolvePath); err != nil && !os.IsNotExist(err) {
 					return fmt.Errorf("container %s: %w", c.ID(), err)
 				}
-				delete(c.state.BindMounts, "/etc/resolv.conf")
+				delete(c.state.BindMounts, resolvconf.DefaultResolvConf)
 			}
-			if hostsPath, ok := c.state.BindMounts["/etc/hosts"]; ok {
+			if hostsPath, ok := c.state.BindMounts[config.DefaultHostsFile]; ok {
 				if err := os.Remove(hostsPath); err != nil && !os.IsNotExist(err) {
 					return fmt.Errorf("container %s: %w", c.ID(), err)
 				}
-				delete(c.state.BindMounts, "/etc/hosts")
+				delete(c.state.BindMounts, config.DefaultHostsFile)
 			}
 		}
 
@@ -1851,9 +1855,9 @@ func (c *Container) makeBindMounts() error {
 
 			// The other container may not have a resolv.conf or /etc/hosts
 			// If it doesn't, don't copy them
-			resolvPath, exists := bindMounts["/etc/resolv.conf"]
+			resolvPath, exists := bindMounts[resolvconf.DefaultResolvConf]
 			if !c.config.UseImageResolvConf && exists {
-				err := c.mountIntoRootDirs("/etc/resolv.conf", resolvPath)
+				err := c.mountIntoRootDirs(resolvconf.DefaultResolvConf, resolvPath)
 
 				if err != nil {
 					return fmt.Errorf("assigning mounts to container %s: %w", c.ID(), err)
@@ -1896,31 +1900,31 @@ func (c *Container) makeBindMounts() error {
 			}
 		} else {
 			if !c.config.UseImageResolvConf {
-				if err := c.generateResolvConf(); err != nil {
+				if err := c.createResolvConf(); err != nil {
 					return fmt.Errorf("creating resolv.conf for container %s: %w", c.ID(), err)
 				}
 			}
 
 			if !c.config.UseImageHosts {
-				if err := c.createHosts(); err != nil {
+				if err := c.createHostsFile(); err != nil {
 					return fmt.Errorf("creating hosts file for container %s: %w", c.ID(), err)
 				}
 			}
 		}
 
-		if c.state.BindMounts["/etc/hosts"] != "" {
-			if err := c.relabel(c.state.BindMounts["/etc/hosts"], c.config.MountLabel, true); err != nil {
+		if c.state.BindMounts[config.DefaultHostsFile] != "" {
+			if err := c.relabel(c.state.BindMounts[config.DefaultHostsFile], c.config.MountLabel, true); err != nil {
 				return err
 			}
 		}
 
-		if c.state.BindMounts["/etc/resolv.conf"] != "" {
-			if err := c.relabel(c.state.BindMounts["/etc/resolv.conf"], c.config.MountLabel, true); err != nil {
+		if c.state.BindMounts[resolvconf.DefaultResolvConf] != "" {
+			if err := c.relabel(c.state.BindMounts[resolvconf.DefaultResolvConf], c.config.MountLabel, true); err != nil {
 				return err
 			}
 		}
-	} else if !c.config.UseImageHosts && c.state.BindMounts["/etc/hosts"] == "" {
-		if err := c.createHosts(); err != nil {
+	} else if !c.config.UseImageHosts && c.state.BindMounts[config.DefaultHostsFile] == "" {
+		if err := c.createHostsFile(); err != nil {
 			return fmt.Errorf("creating hosts file for container %s: %w", c.ID(), err)
 		}
 	}
@@ -2028,8 +2032,25 @@ rootless=%d
 	return c.makePlatformBindMounts()
 }
 
-// generateResolvConf generates a containers resolv.conf
-func (c *Container) generateResolvConf() error {
+// createResolvConf create the resolv.conf file and bind mount it
+func (c *Container) createResolvConf() error {
+	destPath := filepath.Join(c.state.RunDir, "resolv.conf")
+	f, err := os.Create(destPath)
+	if err != nil {
+		return err
+	}
+	f.Close()
+	return c.bindMountRootFile(destPath, resolvconf.DefaultResolvConf)
+}
+
+// addResolvConf add resolv.conf entries
+func (c *Container) addResolvConf() error {
+	destPath, ok := c.state.BindMounts[resolvconf.DefaultResolvConf]
+	if !ok {
+		// no resolv.conf mount, do nothing
+		return nil
+	}
+
 	var (
 		networkNameServers   []string
 		networkSearchDomains []string
@@ -2049,10 +2070,7 @@ func (c *Container) generateResolvConf() error {
 		}
 	}
 
-	ipv6, err := c.checkForIPv6(netStatus)
-	if err != nil {
-		return err
-	}
+	ipv6 := c.checkForIPv6(netStatus)
 
 	networkBackend := c.runtime.config.Network.NetworkBackend
 	nameservers := make([]string, 0, len(c.runtime.config.Containers.DNSServers)+len(c.config.DNSServer))
@@ -2082,11 +2100,7 @@ func (c *Container) generateResolvConf() error {
 		nameservers = networkNameServers
 
 		// slirp4netns has a built in DNS forwarder.
-		// If in userns the network is not setup here, instead we need to do that in
-		// c.completeNetworkSetup() which knows the actual slirp dns ip only at that point
-		if !c.config.PostConfigureNetNS {
-			nameservers = c.addSlirp4netnsDNS(nameservers)
-		}
+		nameservers = c.addSlirp4netnsDNS(nameservers)
 	}
 
 	// Set DNS search domains
@@ -2102,8 +2116,6 @@ func (c *Container) generateResolvConf() error {
 	options := make([]string, 0, len(c.config.DNSOption)+len(c.runtime.config.Containers.DNSOptions))
 	options = append(options, c.runtime.config.Containers.DNSOptions...)
 	options = append(options, c.config.DNSOption...)
-
-	destPath := filepath.Join(c.state.RunDir, "resolv.conf")
 
 	var namespaces []spec.LinuxNamespace
 	if c.config.Spec.Linux != nil {
@@ -2122,17 +2134,17 @@ func (c *Container) generateResolvConf() error {
 		return fmt.Errorf("building resolv.conf for container %s: %w", c.ID(), err)
 	}
 
-	return c.bindMountRootFile(destPath, resolvconf.DefaultResolvConf)
+	return nil
 }
 
 // Check if a container uses IPv6.
-func (c *Container) checkForIPv6(netStatus map[string]types.StatusBlock) (bool, error) {
+func (c *Container) checkForIPv6(netStatus map[string]types.StatusBlock) bool {
 	for _, status := range netStatus {
 		for _, netInt := range status.Interfaces {
 			for _, netAddress := range netInt.Subnets {
 				// Note: only using To16() does not work since it also returns a valid ip for ipv4
 				if netAddress.IPNet.IP.To4() == nil && netAddress.IPNet.IP.To16() != nil {
-					return true, nil
+					return true
 				}
 			}
 		}
@@ -2195,8 +2207,14 @@ func (c *Container) getHostsEntries() (etchosts.HostEntries, error) {
 	switch {
 	case c.config.NetMode.IsBridge():
 		entries = etchosts.GetNetworkHostEntries(c.state.NetworkStatus, names...)
+	case c.config.NetMode.IsPasta():
+		ip, err := getPastaIP(c.state)
+		if err != nil {
+			return nil, err
+		}
+		entries = etchosts.HostEntries{{IP: ip.String(), Names: names}}
 	case c.config.NetMode.IsSlirp4netns():
-		ip, err := GetSlirp4netnsIP(c.slirp4netnsSubnet)
+		ip, err := getSlirp4netnsIP(c.slirp4netnsSubnet)
 		if err != nil {
 			return nil, err
 		}
@@ -2209,36 +2227,38 @@ func (c *Container) getHostsEntries() (etchosts.HostEntries, error) {
 	return entries, nil
 }
 
-func (c *Container) createHosts() error {
-	var containerIPsEntries etchosts.HostEntries
-	var err error
-	// if we configure the netns after the container create we should not add
-	// the hosts here since we have no information about the actual ips
-	// instead we will add them in c.completeNetworkSetup()
-	if !c.config.PostConfigureNetNS {
-		containerIPsEntries, err = c.getHostsEntries()
-		if err != nil {
-			return fmt.Errorf("failed to get container ip host entries: %w", err)
-		}
+func (c *Container) createHostsFile() error {
+	targetFile := filepath.Join(c.state.RunDir, "hosts")
+	f, err := os.Create(targetFile)
+	if err != nil {
+		return err
+	}
+	f.Close()
+	return c.bindMountRootFile(targetFile, config.DefaultHostsFile)
+}
+
+func (c *Container) addHosts() error {
+	targetFile, ok := c.state.BindMounts[config.DefaultHostsFile]
+	if !ok {
+		// no host file nothing to do
+		return nil
+	}
+	containerIPsEntries, err := c.getHostsEntries()
+	if err != nil {
+		return fmt.Errorf("failed to get container ip host entries: %w", err)
 	}
 	baseHostFile, err := etchosts.GetBaseHostFile(c.runtime.config.Containers.BaseHostsFile, c.state.Mountpoint)
 	if err != nil {
 		return err
 	}
 
-	targetFile := filepath.Join(c.state.RunDir, "hosts")
-	err = etchosts.New(&etchosts.Params{
+	return etchosts.New(&etchosts.Params{
 		BaseFile:                 baseHostFile,
 		ExtraHosts:               c.config.HostAdd,
 		ContainerIPs:             containerIPsEntries,
 		HostContainersInternalIP: etchosts.GetHostContainersInternalIP(c.runtime.config, c.state.NetworkStatus, c.runtime.network),
 		TargetFile:               targetFile,
 	})
-	if err != nil {
-		return err
-	}
-
-	return c.bindMountRootFile(targetFile, config.DefaultHostsFile)
 }
 
 // bindMountRootFile will chown and relabel the source file to make it usable in the container.
@@ -2463,7 +2483,6 @@ func (c *Container) setHomeEnvIfNeeded() error {
 	}
 
 	// Ensure HOME is not already set in Env
-	home := ""
 	for _, s := range c.config.Spec.Process.Env {
 		if strings.HasPrefix(s, "HOME=") {
 			return nil

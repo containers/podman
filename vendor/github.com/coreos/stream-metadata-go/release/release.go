@@ -59,6 +59,7 @@ type Media struct {
 	Digitalocean *PlatformBase     `json:"digitalocean"`
 	Exoscale     *PlatformBase     `json:"exoscale"`
 	Gcp          *PlatformGcp      `json:"gcp"`
+	HyperV       *PlatformBase     `json:"hyperv"`
 	Ibmcloud     *PlatformIBMCloud `json:"ibmcloud"`
 	KubeVirt     *PlatformKubeVirt `json:"kubevirt"`
 	Metal        *PlatformBase     `json:"metal"`

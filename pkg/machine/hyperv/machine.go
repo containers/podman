@@ -30,14 +30,6 @@ var (
 	vmtype = machine.HyperVVirt
 )
 
-func GetVirtualizationProvider() machine.VirtProvider {
-	return &Virtualization{
-		artifact:    machine.HyperV,
-		compression: machine.Zip,
-		format:      machine.Vhdx,
-	}
-}
-
 const (
 	// Some of this will need to change when we are closer to having
 	// working code.
@@ -186,6 +178,7 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	// VSOCK-CONNECT:2 <- shortcut to connect to the hostvm
 	ready := `[Unit]
 After=remove-moby.service sshd.socket sshd.service
+After=systemd-user-sessions.service
 OnFailure=emergency.target
 OnFailureJobMode=isolate
 [Service]

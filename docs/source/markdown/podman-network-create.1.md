@@ -66,8 +66,9 @@ Restrict external access of this network. Note when using this option, the dnsna
 
 #### **--ip-range**=*range*
 
-Allocate container IP from a range.  The range must be a complete subnet and in CIDR notation.  The *ip-range* option
-must be used with a *subnet* option. Can be specified multiple times.
+Allocate container IP from a range. The range must be a either a complete subnet in CIDR notation or be in
+the `<startIP>-<endIP>` syntax which allows for a more flexible range compared to the CIDR subnet.
+The *ip-range* option must be used with a *subnet* option. Can be specified multiple times.
 The argument order of the **--subnet**, **--gateway** and **--ip-range** options must match.
 
 #### **--ipam-driver**=*driver*
@@ -95,10 +96,12 @@ Set metadata for a network (e.g., --label mykey=value).
 
 Set driver specific options.
 
-All drivers accept the `mtu` and `metric` options.
+All drivers accept the `mtu`, `metric`, `no_default_route` and options.
 
 - `mtu`: Sets the Maximum Transmission Unit (MTU) and takes an integer value.
 - `metric` Sets the Route Metric for the default route created in every container joined to this network. Accepts a positive integer value. Can only be used with the Netavark network backend.
+- `no_default_route`: If set to 1, Podman will not automatically add a default route to subnets. Routes can still be added
+manually by creating a custom route using `--route`.
 
 Additionally the `bridge` driver supports the following options:
 
@@ -113,6 +116,14 @@ The `macvlan` and `ipvlan` driver support the following options:
 - `mode`: This option sets the specified ip/macvlan mode on the interface.
   - Supported values for `macvlan` are `bridge`, `private`, `vepa`, `passthru`. Defaults to `bridge`.
   - Supported values for `ipvlan` are `l2`, `l3`, `l3s`. Defaults to `l2`.
+
+Additionally the `macvlan` driver supports the `bclim` option:
+
+- `bclim`: Set the threshold for broadcast queueing. Must be a 32 bit integer. Setting this value to `-1` disables broadcast queueing altogether.
+
+#### **--route**=*route*
+
+A static route in the format <destination in CIDR notation>,<gateway>,<route metric (optional)>. This route will be added to every container in this network. Only available with the netavark backend. It can be specified multiple times if more than one static route is desired.
 
 #### **--subnet**=*subnet*
 
@@ -156,6 +167,17 @@ Create a network with a static ipv4 and ipv6 subnet and set a gateway.
 ```
 $ podman network create --subnet 192.168.55.0/24 --gateway 192.168.55.3 --subnet fd52:2a5a:747e:3acd::/64 --gateway fd52:2a5a:747e:3acd::10
 podman4
+```
+
+Create a network with a static subnet and a static route.
+```
+$ podman network create --subnet 192.168.33.0/24 --route 10.1.0.0/24,192.168.33.10 newnet
+```
+
+Create a network with a static subnet and a static route without a default
+route.
+```
+$ podman network create --subnet 192.168.33.0/24 --route 10.1.0.0/24,192.168.33.10 --opt no_default_route=1 newnet
 ```
 
 Create a Macvlan based network using the host interface eth0. Macvlan networks can only be used as root.

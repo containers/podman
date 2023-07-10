@@ -42,7 +42,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-const defaultPerms = os.FileMode(0555)
+const defaultPerms = os.FileMode(0o555)
 
 func init() {
 	graphdriver.MustRegister("btrfs", Init)
@@ -56,7 +56,6 @@ type btrfsOptions struct {
 // Init returns a new BTRFS driver.
 // An error is returned if BTRFS is not supported.
 func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) {
-
 	fsMagic, err := graphdriver.GetFSMagic(home)
 	if err != nil {
 		return nil, err
@@ -70,7 +69,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 	if err != nil {
 		return nil, err
 	}
-	if err := idtools.MkdirAllAs(home, 0700, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAllAs(filepath.Join(home, "subvolumes"), 0o700, rootUID, rootGID); err != nil {
 		return nil, err
 	}
 
@@ -119,7 +118,7 @@ func parseOptions(opt []string) (btrfsOptions, bool, error) {
 		case "btrfs.mountopt":
 			return options, userDiskQuota, fmt.Errorf("btrfs driver does not support mount options")
 		default:
-			return options, userDiskQuota, fmt.Errorf("unknown option %s", key)
+			return options, userDiskQuota, fmt.Errorf("unknown option %s (%q)", key, option)
 		}
 	}
 	return options, userDiskQuota, nil
@@ -127,7 +126,7 @@ func parseOptions(opt []string) (btrfsOptions, bool, error) {
 
 // Driver contains information about the filesystem mounted.
 type Driver struct {
-	//root of the file system
+	// root of the file system
 	home         string
 	uidMaps      []idtools.IDMap
 	gidMaps      []idtools.IDMap
@@ -226,7 +225,7 @@ func subvolSnapshot(src, dest, name string) error {
 	var args C.struct_btrfs_ioctl_vol_args_v2
 	args.fd = C.__s64(getDirFd(srcDir))
 
-	var cs = C.CString(name)
+	cs := C.CString(name)
 	C.set_name_btrfs_ioctl_vol_args_v2(&args, cs)
 	C.free(unsafe.Pointer(cs))
 
@@ -479,13 +478,13 @@ func (d *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts
 
 // Create the filesystem with given id.
 func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
-	quotas := path.Join(d.home, "quotas")
-	subvolumes := path.Join(d.home, "subvolumes")
+	quotas := d.quotasDir()
+	subvolumes := d.subvolumesDir()
 	rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)
 	if err != nil {
 		return err
 	}
-	if err := idtools.MkdirAllAs(subvolumes, 0700, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAllAs(subvolumes, 0o700, rootUID, rootGID); err != nil {
 		return err
 	}
 	if parent == "" {
@@ -523,10 +522,10 @@ func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
 		if err := d.setStorageSize(path.Join(subvolumes, id), driver); err != nil {
 			return err
 		}
-		if err := idtools.MkdirAllAs(quotas, 0700, rootUID, rootGID); err != nil {
+		if err := idtools.MkdirAllAs(quotas, 0o700, rootUID, rootGID); err != nil {
 			return err
 		}
-		if err := os.WriteFile(path.Join(quotas, id), []byte(fmt.Sprint(driver.options.size)), 0644); err != nil {
+		if err := os.WriteFile(path.Join(quotas, id), []byte(fmt.Sprint(driver.options.size)), 0o644); err != nil {
 			return err
 		}
 	}
@@ -560,7 +559,7 @@ func (d *Driver) parseStorageOpt(storageOpt map[string]string, driver *Driver) e
 			}
 			driver.options.size = uint64(size)
 		default:
-			return fmt.Errorf("unknown option %s", key)
+			return fmt.Errorf("unknown option %s (%q)", key, storageOpt)
 		}
 	}
 
@@ -629,18 +628,13 @@ func (d *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	switch len(options.Options) {
-	case 0:
-	case 1:
-		if options.Options[0] == "ro" {
+	for _, opt := range options.Options {
+		if opt == "ro" {
 			// ignore "ro" option
-			break
+			continue
 		}
-		fallthrough
-	default:
 		return "", fmt.Errorf("btrfs driver does not support mount options")
 	}
-
 	if !st.IsDir() {
 		return "", fmt.Errorf("%s: not a directory", dir)
 	}
@@ -679,9 +673,21 @@ func (d *Driver) Exists(id string) bool {
 	return err == nil
 }
 
-// List layers (not including additional image stores)
+// List all of the layers known to the driver.
 func (d *Driver) ListLayers() ([]string, error) {
-	return nil, graphdriver.ErrNotSupported
+	subvolumesDir := filepath.Join(d.home, "subvolumes")
+	entries, err := os.ReadDir(subvolumesDir)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		results = append(results, entry.Name())
+	}
+	return results, nil
 }
 
 // AdditionalImageStores returns additional image stores supported by the driver

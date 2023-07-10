@@ -176,7 +176,10 @@ var _ = Describe("Podman manifests", func() {
 	})
 
 	It("Manifest Push", func() {
-		registry, err := podmanRegistry.Start()
+		registryOptions := &podmanRegistry.Options{
+			PodmanPath: getPodmanBinary(),
+		}
+		registry, err := podmanRegistry.StartWithOptions(registryOptions)
 		Expect(err).ToNot(HaveOccurred())
 
 		name := "quay.io/libpod/foobar:latest"

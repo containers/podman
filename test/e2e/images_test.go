@@ -192,7 +192,7 @@ WORKDIR /test
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "dangling=true"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0), "dangling image output: %q", result.OutputToString())
-		Expect(result.OutputToStringArray()).Should(HaveLen(0), "dangling image output: %q", result.OutputToString())
+		Expect(result.OutputToStringArray()).Should(BeEmpty(), "dangling image output: %q", result.OutputToString())
 	})
 
 	It("podman pull by digest and list --all", func() {

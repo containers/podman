@@ -402,7 +402,7 @@ func (i *Image) removeRecursive(ctx context.Context, rmMap map[string]*RemoveIma
 	// have a closer look at the errors.  On top, image removal should be
 	// tolerant toward corrupted images.
 	handleError := func(err error) error {
-		if errors.Is(err, storage.ErrImageUnknown) || errors.Is(err, storage.ErrNotAnImage) || errors.Is(err, storage.ErrLayerUnknown) {
+		if ErrorIsImageUnknown(err) {
 			// The image or layers of the image may already have been removed
 			// in which case we consider the image to be removed.
 			return nil
@@ -424,14 +424,12 @@ func (i *Image) removeRecursive(ctx context.Context, rmMap map[string]*RemoveIma
 	numNames := len(i.Names())
 
 	// NOTE: the `numNames == 1` check is not only a performance
-	// optimization but also preserves exiting Podman/Docker behaviour.
+	// optimization but also preserves existing Podman/Docker behaviour.
 	// If image "foo" is used by a container and has only this tag/name,
 	// an `rmi foo` will not untag "foo" but instead attempt to remove the
 	// entire image.  If there's a container using "foo", we should get an
 	// error.
-	if referencedBy == "" || numNames == 1 {
-		// DO NOTHING, the image will be removed
-	} else {
+	if !(referencedBy == "" || numNames == 1) {
 		byID := strings.HasPrefix(i.ID(), referencedBy)
 		byDigest := strings.HasPrefix(referencedBy, "sha256:")
 		if !options.Force {
@@ -737,7 +735,7 @@ func (i *Image) RepoDigests() ([]string, error) {
 // Mount the image with the specified mount options and label, both of which
 // are directly passed down to the containers storage.  Returns the fully
 // evaluated path to the mount point.
-func (i *Image) Mount(ctx context.Context, mountOptions []string, mountLabel string) (string, error) {
+func (i *Image) Mount(_ context.Context, mountOptions []string, mountLabel string) (string, error) {
 	if i.runtime.eventChannel != nil {
 		defer i.runtime.writeEvent(&Event{ID: i.ID(), Name: "", Time: time.Now(), Type: EventTypeImageMount})
 	}
@@ -808,6 +806,9 @@ type HasDifferentDigestOptions struct {
 	// containers-auth.json(5) file to use when authenticating against
 	// container registries.
 	AuthFilePath string
+	// Allow contacting registries over HTTP, or HTTPS with failed TLS
+	// verification. Note that this does not affect other TLS connections.
+	InsecureSkipTLSVerify types.OptionalBool
 }
 
 // HasDifferentDigest returns true if the image specified by `remoteRef` has a
@@ -833,8 +834,15 @@ func (i *Image) HasDifferentDigest(ctx context.Context, remoteRef types.ImageRef
 		sys.VariantChoice = inspectInfo.Variant
 	}
 
-	if options != nil && options.AuthFilePath != "" {
-		sys.AuthFilePath = options.AuthFilePath
+	if options != nil {
+		if options.AuthFilePath != "" {
+			sys.AuthFilePath = options.AuthFilePath
+		}
+		if options.InsecureSkipTLSVerify != types.OptionalBoolUndefined {
+			sys.DockerInsecureSkipTLSVerify = options.InsecureSkipTLSVerify
+			sys.OCIInsecureSkipTLSVerify = options.InsecureSkipTLSVerify == types.OptionalBoolTrue
+			sys.DockerDaemonInsecureSkipTLSVerify = options.InsecureSkipTLSVerify == types.OptionalBoolTrue
+		}
 	}
 
 	return i.hasDifferentDigestWithSystemContext(ctx, remoteRef, sys)

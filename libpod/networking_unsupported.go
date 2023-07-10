@@ -85,7 +85,3 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 func (c *Container) convertPortMappings() []types.PortMapping {
 	return []types.PortMapping{}
 }
-
-func GetSlirp4netnsIP(subnet *net.IPNet) (*net.IP, error) {
-	return nil, errors.New("not implemented GetSlirp4netnsIP")
-}

@@ -548,4 +548,28 @@ RUN useradd -u 1000 auser`, fedoraMinimal)
 		session.WaitWithDefaultTimeout()
 		Expect(session.OutputToString()).To(Not(ContainSubstring(secretsString)))
 	})
+
+	It("podman exec --wait 2 seconds on bogus container", func() {
+		SkipIfRemote("not supported for --wait")
+		session := podmanTest.Podman([]string{"exec", "--wait", "2", "1234"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(Equal("Error: cancelled by user"))
+	})
+
+	It("podman exec --wait 5 seconds for started container", func() {
+		SkipIfRemote("not supported for --wait")
+		ctrName := "waitCtr"
+
+		session := podmanTest.Podman([]string{"exec", "--wait", "5", ctrName, "whoami"})
+
+		session2 := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, ALPINE, "top"})
+		session2.WaitWithDefaultTimeout()
+
+		session.Wait(6)
+
+		Expect(session2).Should(Exit(0))
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal("root"))
+	})
 })

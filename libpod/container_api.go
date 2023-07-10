@@ -610,12 +610,14 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 			}
 		}
 
+		timedout := ""
 		if !containerRemoved {
 			// If conmon is dead for more than $timerDuration or if the
 			// container has exited properly, try to look up the exit code.
 			select {
 			case <-conmonTimer.C:
 				logrus.Debugf("Exceeded conmon timeout waiting for container %s to exit", id)
+				timedout = " [exceeded conmon timeout waiting for container to exit]"
 			default:
 				switch c.state.State {
 				case define.ContainerStateExited, define.ContainerStateConfigured:
@@ -642,7 +644,7 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 					return true, 0, nil
 				}
 			}
-			return true, -1, fmt.Errorf("%w (container in state %s)", err, c.state.State)
+			return true, -1, fmt.Errorf("%w (container in state %s)%s", err, c.state.State, timedout)
 		}
 
 		return true, exitCode, nil
@@ -681,7 +683,7 @@ type waitResult struct {
 	err  error
 }
 
-func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeout time.Duration, conditions ...define.ContainerStatus) (int32, error) {
+func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeout time.Duration, conditions ...string) (int32, error) {
 	if !c.valid {
 		return -1, define.ErrCtrRemoved
 	}
@@ -696,13 +698,26 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 	resultChan := make(chan waitResult)
 	waitForExit := false
 	wantedStates := make(map[define.ContainerStatus]bool, len(conditions))
+	wantedHealthStates := make(map[string]bool)
 
-	for _, condition := range conditions {
-		switch condition {
-		case define.ContainerStateExited, define.ContainerStateStopped:
-			waitForExit = true
+	for _, rawCondition := range conditions {
+		switch rawCondition {
+		case define.HealthCheckHealthy, define.HealthCheckUnhealthy:
+			if !c.HasHealthCheck() {
+				return -1, fmt.Errorf("cannot use condition %q: container %s has no healthcheck", rawCondition, c.ID())
+			}
+			wantedHealthStates[rawCondition] = true
 		default:
-			wantedStates[condition] = true
+			condition, err := define.StringToContainerStatus(rawCondition)
+			if err != nil {
+				return -1, err
+			}
+			switch condition {
+			case define.ContainerStateExited, define.ContainerStateStopped:
+				waitForExit = true
+			default:
+				wantedStates[condition] = true
+			}
 		}
 	}
 
@@ -725,20 +740,33 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 		}()
 	}
 
-	if len(wantedStates) > 0 {
+	if len(wantedStates) > 0 || len(wantedHealthStates) > 0 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 
 			for {
-				state, err := c.State()
-				if err != nil {
-					trySend(-1, err)
-					return
+				if len(wantedStates) > 0 {
+					state, err := c.State()
+					if err != nil {
+						trySend(-1, err)
+						return
+					}
+					if _, found := wantedStates[state]; found {
+						trySend(-1, nil)
+						return
+					}
 				}
-				if _, found := wantedStates[state]; found {
-					trySend(-1, nil)
-					return
+				if len(wantedHealthStates) > 0 {
+					status, err := c.HealthCheckStatus()
+					if err != nil {
+						trySend(-1, err)
+						return
+					}
+					if _, found := wantedHealthStates[status]; found {
+						trySend(-1, nil)
+						return
+					}
 				}
 				select {
 				case <-ctx.Done():

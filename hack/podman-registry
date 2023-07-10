@@ -99,6 +99,9 @@ function podman() {
         fi
     fi
 
+    # Reset $PODMAN, so ps/logs/stop use same args as the initial start
+    PODMAN="$(<${PODMAN_REGISTRY_WORKDIR}/PODMAN)"
+
     ${PODMAN} --root    ${PODMAN_REGISTRY_WORKDIR}/root        \
               --runroot ${PODMAN_REGISTRY_WORKDIR}/runroot     \
               "$@"
@@ -174,6 +177,10 @@ function do_start() {
 
     mkdir -p ${PODMAN_REGISTRY_WORKDIR}
 
+    # Preserve initial podman path & args, so all subsequent invocations
+    # of this script are consistent with the first one.
+    echo "$PODMAN" >${PODMAN_REGISTRY_WORKDIR}/PODMAN
+
     local AUTHDIR=${PODMAN_REGISTRY_WORKDIR}/auth
     mkdir -p $AUTHDIR
 
@@ -235,7 +242,12 @@ function do_stop() {
     podman rm -f registry
 
     # Use straight podman, not our alias function, to avoid 'overlay: EBUSY'
-    ${PODMAN} unshare rm -rf ${PODMAN_REGISTRY_WORKDIR}
+    cmd="rm -rf ${PODMAN_REGISTRY_WORKDIR}"
+    if [[ $(id -u) -eq 0 ]]; then
+        $cmd
+    else
+        ${PODMAN} unshare $cmd
+    fi
 }
 
 

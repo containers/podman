@@ -18,6 +18,21 @@ function setup() {
     XFER_FILE="${PODMAN_TMPDIR}/pasta.bin"
 }
 
+function default_ifname() {
+    local ip_ver="${1}"
+
+    local expr='[.[] | select(.dst == "default").dev] | .[0]'
+    ip -j -"${ip_ver}" route show | jq -rM "${expr}"
+}
+
+function default_addr() {
+    local ip_ver="${1}"
+    local ifname="${2:-$(default_ifname "${ip_ver}")}"
+
+    local expr='.[0] | .addr_info[0].local'
+    ip -j -"${ip_ver}" addr show "${ifname}" | jq -rM "${expr}"
+}
+
 # pasta_test_do() - Run tests involving clients and servers
 # $1:    IP version: 4 or 6
 # $2:    Interface type: "tap" or "loopback"
@@ -35,31 +50,84 @@ function pasta_test_do() {
     local bind_type="${6}"
     local bytes="${7}"
 
+    # DO NOT ADD ANY CODE ABOVE THIS LINE! Especially skips: that could
+    # lead to the crossreference check not running in CI.
+    #
+    # BATS has no table-driven test generation mechanism, so there's a
+    # disturbing but unavoidable amount of duplication in the test
+    # invocations. The code below is a desperate sanity check to confirm
+    # that the BATS test name agrees with the parameters we're invoked with.
+    # This test can never, ever fail in gating. It can only fail in CI
+    # when a new test is added, and should be trivial to fix & re-push.
+    #
+    # TODO: a better idea might be to go the other direction: eliminate
+    # the function args entirely, and determine them from $BATS_TEST_NAME.
+    # We would still need a way to get $range and $bytes.
+    local expected_test_name=
+    if [[ $bytes -eq 1 ]]; then
+        # The usual case: a single-byte transfer test. This has many
+        # variations depending on our input args
+        if [[ $range -eq 1 ]]; then
+            # e.g., Single TCP port forwarding, IPv4, loopback
+            if [[ $delta -ne 0 ]]; then
+                expected_test_name+="Translated"
+            elif [[ "${bind_type}" = "port" ]]; then
+                expected_test_name+="Single"
+            else
+                expected_test_name+="${bind_type^}-bound"
+            fi
+            expected_test_name+=" ${proto^^} port"
+        else
+            # e.g., TCP translated port range forwarding, IPv4, tap
+            expected_test_name+="${proto^^}"
+            if [[ $delta -ne 0 ]]; then
+                expected_test_name+=" translated"
+            fi
+            expected_test_name+=" port range"
+        fi
+        expected_test_name+=" forwarding, IPv${ip_ver}, ${iftype}"
+    else
+        # Multi-byte. 2k is the common size for small, all else is large
+        local size="large"
+        if [[ $bytes = "2k" ]]; then
+            size="small"
+        fi
+        expected_test_name="${proto^^}/IPv${ip_ver} $size transfer, ${iftype}"
+
+        # No other input args are variable.
+        assert "$range"     = "1"    "range must = 1 on multibyte transfers"
+        assert "$delta"     = "0"    "delta must = 0 on multibyte transfers"
+        assert "$bind_type" = "port" "bind_type must = 'port' on multibyte transfers"
+    fi
+
+    # Normalize test name back to human-readable form: strip common prefix,
+    # convert '-XX' to chr (dashes, commas) and underscore to space.
+    # Sorry this is so convoluted.
+    local actual_test_name=$(printf "$(sed \
+                            -e 's/^test_podman_networking_with_pasta-281-29_-2d_//'  \
+                            -e 's/-\([0-9a-f]\{2\}\)/\\x\1/gI'                       \
+                            -e 's/_/ /g'                                             \
+                            <<<"${BATS_TEST_NAME}")")
+
+    assert "$actual_test_name" = "$expected_test_name" \
+           "INTERNAL ERROR! Mismatch between BATS test name and test args!"
+
     # Calculate and set addresses,
     if [ ${ip_ver} -eq 4 ]; then
         skip_if_no_ipv4 "IPv4 not routable on the host"
-        if [ ${iftype} = "loopback" ]; then
-            local addr="127.0.0.1"
-        else
-            local addr="$(ipv4_get_addr_global)"
-        fi
     elif [ ${ip_ver} -eq 6 ]; then
         skip_if_no_ipv6 "IPv6 not routable on the host"
-        if [ ${iftype} = "loopback" ]; then
-            local addr="::1"
-        else
-            local addr="$(ipv6_get_addr_global)"
-        fi
     else
         skip "Unsupported IP version"
     fi
 
-    # interface names,
     if [ ${iftype} = "loopback" ]; then
         local ifname="lo"
     else
-        local ifname="$(ether_get_name)"
+        local ifname="$(default_ifname "${ip_ver}")"
     fi
+
+    local addr="$(default_addr "${ip_ver}" "${ifname}")"
 
     # ports,
     if [ ${range} -gt 1 ]; then
@@ -69,7 +137,7 @@ function pasta_test_do() {
         local xseq="$(echo ${xport} | tr '-' ' ')"
     else
         local port=$(random_free_port "" ${address} ${proto})
-        local xport="$((port + port_delta))"
+        local xport="$((port + delta))"
         local seq="${port} ${port}"
         local xseq="${xport} ${xport}"
     fi
@@ -91,13 +159,6 @@ function pasta_test_do() {
         recv="STDOUT"
     else
         recv="EXEC:md5sum"
-    fi
-
-    # socat options for first <address> in client ("OPEN" or "EXEC"),
-    if [ "${bytes}" = "1" ]; then
-        send="EXEC:printf x"
-    else
-        send="OPEN:${XFER_FILE}"
     fi
 
     # and port forwarding configuration for Podman and pasta.
@@ -124,6 +185,7 @@ function pasta_test_do() {
         dd if=/dev/urandom bs=${bytes} count=1 of="${XFER_FILE}"
         local expect="$(cat "${XFER_FILE}" | md5sum)"
     else
+        printf "x" > "${XFER_FILE}"
         local expect="$(for i in $(seq ${seq}); do printf "x"; done)"
     fi
 
@@ -142,7 +204,7 @@ function pasta_test_do() {
         local connect="${proto_upper}${ip_ver}:[${addr}]:${one_port}"
         [ "${proto}" = "udp" ] && connect="${connect},shut-null"
 
-        (while sleep ${delay} && ! socat -u "${send}" "${connect}"; do :
+        (while sleep ${delay} && ! socat -u "OPEN:${XFER_FILE}" "${connect}"; do :
          done) &
     done
 
@@ -168,7 +230,7 @@ function teardown() {
     run_podman run --net=pasta $IMAGE ip -j -4 address show
 
     local container_address="$(ipv4_get_addr_global "${output}")"
-    local host_address="$(ipv4_get_addr_global)"
+    local host_address="$(default_addr 4)"
 
     assert "${container_address}" = "${host_address}" \
            "Container address not matching host"
@@ -203,7 +265,7 @@ function teardown() {
     run_podman run --net=pasta $IMAGE ip -j -6 address show
 
     local container_address="$(ipv6_get_addr_global "${output}")"
-    local host_address="$(ipv6_get_addr_global)"
+    local host_address="$(default_addr 6)"
 
     assert "${container_address}" = "${host_address}" \
            "Container address not matching host"
@@ -230,6 +292,21 @@ function teardown() {
 
     assert "${container_address}" = "null" \
            "Container has IPv6 global address with IPv6 disabled"
+}
+
+@test "podman networking with pasta(1) - podman puts pasta IP in /etc/hosts" {
+    skip_if_no_ipv4 "IPv4 not routable on the host"
+
+    pname="p$(random_string 30)"
+    ip="$(default_addr 4)"
+
+    run_podman pod create --net=pasta --name "${pname}"
+    run_podman run --pod="${pname}" "${IMAGE}" getent hosts "${pname}"
+
+    assert "$(echo ${output} | cut -f1 -d' ')" = "${ip}" "Correct /etc/hsots entry missing"
+
+    run_podman pod rm "${pname}"
+    run_podman rmi $(pause_image)
 }
 
 ### Routes #####################################################################
@@ -380,11 +457,11 @@ function teardown() {
 }
 
 @test "podman networking with pasta(1) - TCP port range forwarding, IPv4, tap" {
-    pasta_test_do 4 tap      tcp 2 0 "port"      1
+    pasta_test_do 4 tap      tcp 3 0 "port"      1
 }
 
 @test "podman networking with pasta(1) - TCP port range forwarding, IPv4, loopback" {
-    pasta_test_do 4 loopback tcp 2 0 "port"      1
+    pasta_test_do 4 loopback tcp 3 0 "port"      1
 }
 
 @test "podman networking with pasta(1) - Translated TCP port forwarding, IPv4, tap" {
@@ -396,11 +473,11 @@ function teardown() {
 }
 
 @test "podman networking with pasta(1) - TCP translated port range forwarding, IPv4, tap" {
-    pasta_test_do 4 tap      tcp 2 1 "port"      1
+    pasta_test_do 4 tap      tcp 3 1 "port"      1
 }
 
 @test "podman networking with pasta(1) - TCP translated port range forwarding, IPv4, loopback" {
-    pasta_test_do 4 loopback tcp 2 1 "port"      1
+    pasta_test_do 4 loopback tcp 3 1 "port"      1
 }
 
 @test "podman networking with pasta(1) - Address-bound TCP port forwarding, IPv4, tap" {
@@ -430,7 +507,7 @@ function teardown() {
 }
 
 @test "podman networking with pasta(1) - TCP port range forwarding, IPv6, tap" {
-    pasta_test_do 6 tap      tcp 2 0 "port"      1
+    pasta_test_do 6 tap      tcp 3 0 "port"      1
 }
 
 @test "podman networking with pasta(1) - TCP port range forwarding, IPv6, loopback" {
@@ -446,11 +523,11 @@ function teardown() {
 }
 
 @test "podman networking with pasta(1) - TCP translated port range forwarding, IPv6, tap" {
-    pasta_test_do 6 tap      tcp 2 1 "port"      1
+    pasta_test_do 6 tap      tcp 3 1 "port"      1
 }
 
 @test "podman networking with pasta(1) - TCP translated port range forwarding, IPv6, loopback" {
-    pasta_test_do 6 loopback tcp 2 1 "port"      1
+    pasta_test_do 6 loopback tcp 3 1 "port"      1
 }
 
 @test "podman networking with pasta(1) - Address-bound TCP port forwarding, IPv6, tap" {
@@ -688,4 +765,26 @@ function teardown() {
 
     run_podman 126 run --net=pasta -p "${port}:${port}/sctp" $IMAGE true
     is "$output" "Error: .*can't forward protocol: sctp"
+}
+
+@test "podman networking with pasta(1) - Use options from containers.conf" {
+    skip_if_remote "containers.conf must be set for the server"
+
+    containersconf=$PODMAN_TMPDIR/containers.conf
+    mac="9a:dd:31:ea:92:98"
+    cat >$containersconf <<EOF
+[network]
+default_rootless_network_cmd = "pasta"
+pasta_options = ["-I", "myname", "--ns-mac-addr", "$mac"]
+EOF
+
+    # 2023-06-29 DO NOT INCLUDE "--net=pasta" on this line!
+    # This tests containers.conf:default_rootless_network_cmd (pr #19032)
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman run $IMAGE ip link show myname
+    assert "$output" =~ "$mac" "mac address is set on custom interface"
+
+    # now, again but this time overwrite a option on the cli.
+    mac2="aa:bb:cc:dd:ee:ff"
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman run --net=pasta:--ns-mac-addr,"$mac2" $IMAGE ip link show myname
+    assert "$output" =~ "$mac2" "mac address from cli is set on custom interface"
 }

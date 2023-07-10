@@ -46,10 +46,18 @@ var _ = Describe("Podman push", func() {
 		Expect(session).Should(Exit(0))
 	})
 
-	It("podman push to oci with compression-format", func() {
+	It("podman push to oci with compression-format and compression-level", func() {
 		SkipIfRemote("Remote push does not support dir transport")
 		bbdir := filepath.Join(podmanTest.TempDir, "busybox-oci")
-		session := podmanTest.Podman([]string{"push", "--compression-format=zstd", "--remove-signatures", ALPINE,
+
+		// Invalid compression format specified, it must fail
+		session := podmanTest.Podman([]string{"push", "--compression-format=gzip", "--compression-level=40", ALPINE, fmt.Sprintf("oci:%s", bbdir)})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		output := session.ErrorToString()
+		Expect(output).To(ContainSubstring("invalid compression level"))
+
+		session = podmanTest.Podman([]string{"push", "--compression-format=zstd", "--remove-signatures", ALPINE,
 			fmt.Sprintf("oci:%s", bbdir)})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -99,14 +107,13 @@ var _ = Describe("Podman push", func() {
 		Expect(push).Should(Exit(0))
 		Expect(push.ErrorToString()).To(BeEmpty())
 
-		push = podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
+		push = podmanTest.Podman([]string{"push", "--compression-format=gzip", "--compression-level=1", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
 		output := push.ErrorToString()
 		Expect(output).To(ContainSubstring("Copying blob "))
 		Expect(output).To(ContainSubstring("Copying config "))
 		Expect(output).To(ContainSubstring("Writing manifest to image destination"))
-		Expect(output).To(ContainSubstring("Storing signatures"))
 
 		bitSize := 1024
 		keyFileName := filepath.Join(podmanTest.TempDir, "key")

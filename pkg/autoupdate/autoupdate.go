@@ -282,7 +282,10 @@ func (t *task) registryUpdateAvailable(ctx context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	options := &libimage.HasDifferentDigestOptions{AuthFilePath: t.authfile}
+	options := &libimage.HasDifferentDigestOptions{
+		AuthFilePath:          t.authfile,
+		InsecureSkipTLSVerify: t.auto.options.InsecureSkipTLSVerify,
+	}
 	return t.image.HasDifferentDigest(ctx, remoteRef, options)
 }
 
@@ -296,6 +299,7 @@ func (t *task) registryUpdate(ctx context.Context) error {
 	pullOptions := &libimage.PullOptions{}
 	pullOptions.AuthFilePath = t.authfile
 	pullOptions.Writer = os.Stderr
+	pullOptions.InsecureSkipTLSVerify = t.auto.options.InsecureSkipTLSVerify
 	if _, err := t.auto.runtime.LibimageRuntime().Pull(ctx, t.rawImageName, config.PullPolicyAlways, pullOptions); err != nil {
 		return err
 	}
@@ -325,16 +329,8 @@ func (t *task) rollbackImage() error {
 
 // restartSystemdUnit restarts the systemd unit the container is running in.
 func (u *updater) restartSystemdUnit(ctx context.Context, unit string) error {
-	if err := u.stopSystemdUnit(ctx, unit); err != nil {
-		return err
-	}
-	return u.startSystemdUnit(ctx, unit)
-}
-
-// startSystemdUnit starts the systemd unit the container is running in.
-func (u *updater) startSystemdUnit(ctx context.Context, unit string) error {
 	restartChan := make(chan string)
-	if _, err := u.conn.StartUnitContext(ctx, unit, "replace", restartChan); err != nil {
+	if _, err := u.conn.RestartUnitContext(ctx, unit, "replace", restartChan); err != nil {
 		return err
 	}
 
@@ -348,28 +344,7 @@ func (u *updater) startSystemdUnit(ctx context.Context, unit string) error {
 		return nil
 
 	default:
-		return fmt.Errorf("error starting systemd unit %q expected %q but received %q", unit, "done", result)
-	}
-}
-
-// stopSystemdUnit stop the systemd unit the container is running in.
-func (u *updater) stopSystemdUnit(ctx context.Context, unit string) error {
-	restartChan := make(chan string)
-	if _, err := u.conn.StopUnitContext(ctx, unit, "replace", restartChan); err != nil {
-		return err
-	}
-
-	// Wait for the restart to finish and actually check if it was
-	// successful or not.
-	result := <-restartChan
-
-	switch result {
-	case "done":
-		logrus.Infof("Successfully stopped systemd unit %q", unit)
-		return nil
-
-	default:
-		return fmt.Errorf("error stopping systemd unit %q expected %q but received %q", unit, "done", result)
+		return fmt.Errorf("error restarting systemd unit %q expected %q but received %q", unit, "done", result)
 	}
 }
 
@@ -445,8 +420,14 @@ func (u *updater) assembleTasks(ctx context.Context) []error {
 			continue
 		}
 
+		// Use user-specified auth file (CLI or env variable) unless
+		// the container was created with the auth-file label.
+		authfile := u.options.Authfile
+		if fromContainer, ok := labels[define.AutoUpdateAuthfileLabel]; ok {
+			authfile = fromContainer
+		}
 		t := task{
-			authfile:     labels[define.AutoUpdateAuthfileLabel],
+			authfile:     authfile,
 			auto:         u,
 			container:    ctr,
 			policy:       policy,

@@ -266,7 +266,7 @@ EOF
 
     run_podman kube down $PODMAN_TMPDIR/test.yaml
     run_podman 125 inspect test_pod-test
-    is "$output" ".*Error: inspecting object: no such object: \"test_pod-test\""
+    is "$output" ".*Error: no such object: \"test_pod-test\""
     run_podman pod rm -a
     run_podman rm -a
 }
@@ -454,7 +454,7 @@ _EOF
 
     run_podman kube down $PODMAN_TMPDIR/test.yaml
     run_podman 125 inspect test_pod-test
-    is "$output" ".*Error: inspecting object: no such object: \"test_pod-test\""
+    is "$output" ".*Error: no such object: \"test_pod-test\""
     run_podman pod rm -a
     run_podman rm -a
 }
@@ -477,7 +477,7 @@ _EOF
     is "$output" "true"
     run_podman kube down $SERVER/testpod.yaml
     run_podman 125 inspect test_pod-test
-    is "$output" ".*Error: inspecting object: no such object: \"test_pod-test\""
+    is "$output" ".*Error: no such object: \"test_pod-test\""
 
     run_podman pod rm -a -f
     run_podman rm -a -f -t0

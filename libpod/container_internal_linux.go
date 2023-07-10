@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/common/libnetwork/slirp4netns"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
@@ -621,7 +622,7 @@ func (c *Container) setCgroupsPath(g *generate.Generator) error {
 func (c *Container) addSlirp4netnsDNS(nameservers []string) []string {
 	// slirp4netns has a built in DNS forwarder.
 	if c.config.NetMode.IsSlirp4netns() {
-		slirp4netnsDNS, err := GetSlirp4netnsDNS(c.slirp4netnsSubnet)
+		slirp4netnsDNS, err := slirp4netns.GetDNS(c.slirp4netnsSubnet)
 		if err != nil {
 			logrus.Warn("Failed to determine Slirp4netns DNS: ", err.Error())
 		} else {
@@ -631,20 +632,28 @@ func (c *Container) addSlirp4netnsDNS(nameservers []string) []string {
 	return nameservers
 }
 
-func (c *Container) isSlirp4netnsIPv6() (bool, error) {
+func (c *Container) isSlirp4netnsIPv6() bool {
 	if c.config.NetMode.IsSlirp4netns() {
-		ctrNetworkSlipOpts := []string{}
-		if c.config.NetworkOptions != nil {
-			ctrNetworkSlipOpts = append(ctrNetworkSlipOpts, c.config.NetworkOptions["slirp4netns"]...)
+		extraOptions := c.config.NetworkOptions[slirp4netns.BinaryName]
+		options := make([]string, 0, len(c.runtime.config.Engine.NetworkCmdOptions)+len(extraOptions))
+		options = append(options, c.runtime.config.Engine.NetworkCmdOptions...)
+		options = append(options, extraOptions...)
+
+		// loop backwards as the last argument wins and we can exit early
+		// This should be kept in sync with c/common/libnetwork/slirp4netns.
+		for i := len(options) - 1; i >= 0; i-- {
+			switch options[i] {
+			case "enable_ipv6=true":
+				return true
+			case "enable_ipv6=false":
+				return false
+			}
 		}
-		slirpOpts, err := parseSlirp4netnsNetworkOptions(c.runtime, ctrNetworkSlipOpts)
-		if err != nil {
-			return false, err
-		}
-		return slirpOpts.enableIPv6, nil
+		// default is true
+		return true
 	}
 
-	return false, nil
+	return false
 }
 
 // check for net=none
@@ -750,7 +759,7 @@ func (c *Container) safeMountSubPath(mountPoint, subpath string) (s *safeMountIn
 	if err != nil {
 		return nil, err
 	}
-	npath := ""
+	var npath string
 	switch {
 	case fi.Mode()&fs.ModeSymlink != 0:
 		return nil, fmt.Errorf("file %q is a symlink", joinedPath)

@@ -12,7 +12,8 @@ CTR="WaitTestingCtr"
 
 t POST "containers/nonExistent/wait?condition=next-exit" 404
 
-podman create --name "${CTR}" --entrypoint '["true"]' "${IMAGE}"
+# Make sure to test a non-zero exit code (see #18889)
+podman create --name "${CTR}" "${IMAGE}" sh -c "exit 3"
 
 t POST "containers/${CTR}/wait?condition=non-existent-cond" 400
 
@@ -24,7 +25,7 @@ child_pid=$!
 
 # This will block until the background job completes
 t POST "containers/${CTR}/wait?condition=next-exit" 200 \
-  .StatusCode=0 \
+  .StatusCode=3 \
   .Error=null
 wait "${child_pid}"
 
@@ -41,6 +42,10 @@ fi
 child_pid=$!
 
 t POST "containers/${CTR}/wait?condition=removed" 200 \
-  .StatusCode=0 \
+  .StatusCode=3 \
   .Error=null
+# Make sure the container has really been removed after waiting for
+# "condition=removed". This check is racy but should flake in case it doesn't
+# work correctly.
+t POST "containers/${CTR}/wait?condition=next-exit" 404
 wait "${child_pid}"

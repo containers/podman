@@ -135,7 +135,7 @@ func openLock(path string, ro bool) (fd int, err error) {
 
 	// the directory of the lockfile seems to be removed, try to create it
 	if os.IsNotExist(err) {
-		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 			return fd, fmt.Errorf("creating lock file directory: %w", err)
 		}
 

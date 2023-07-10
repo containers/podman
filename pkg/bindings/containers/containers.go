@@ -341,6 +341,8 @@ func Unpause(ctx context.Context, nameOrID string, options *UnpauseOptions) erro
 func Wait(ctx context.Context, nameOrID string, options *WaitOptions) (int32, error) {
 	if options == nil {
 		options = new(WaitOptions)
+	} else if len(options.Condition) > 0 && len(options.Conditions) > 0 {
+		return -1, fmt.Errorf("%q field cannot be used with deprecated %q field", "Conditions", "Condition")
 	}
 	var exitCode int32
 	conn, err := bindings.GetClient(ctx)
@@ -351,6 +353,7 @@ func Wait(ctx context.Context, nameOrID string, options *WaitOptions) (int32, er
 	if err != nil {
 		return exitCode, err
 	}
+	delete(params, "conditions") // They're called "condition"
 	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/containers/%s/wait", params, nil, nameOrID)
 	if err != nil {
 		return exitCode, err

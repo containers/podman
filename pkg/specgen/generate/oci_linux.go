@@ -57,7 +57,7 @@ func getCgroupPermissions(unmask []string) string {
 		return ro
 	}
 
-	if unmask != nil && unmask[0] == "ALL" {
+	if len(unmask) != 0 && unmask[0] == "ALL" {
 		return rw
 	}
 
@@ -255,7 +255,10 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	s.HostDeviceList = userDevices
 
 	// set the devices cgroup when not running in a user namespace
-	if !inUserNS && !s.Privileged {
+	if isRootless && len(s.DeviceCgroupRule) > 0 {
+		return nil, fmt.Errorf("device cgroup rules are not supported in rootless mode or in a user namespace")
+	}
+	if !isRootless && !s.Privileged {
 		for _, dev := range s.DeviceCgroupRule {
 			g.AddLinuxResourcesDevice(true, dev.Type, dev.Major, dev.Minor, dev.Access)
 		}

@@ -1729,17 +1729,14 @@ func milliCPUToQuota(milliCPU string) int {
 }
 
 func createSourceTarFile(fileName, fileContent, tarFilePath string) error {
-	dir, err := os.MkdirTemp("", "podmanTest")
-	if err != nil {
-		return err
-	}
+	dir := GinkgoT().TempDir()
 
 	file, err := os.Create(filepath.Join(dir, fileName))
 	if err != nil {
 		return err
 	}
 
-	_, err = file.Write([]byte(fileContent))
+	_, err = file.WriteString(fileContent)
 	if err != nil {
 		return err
 	}
@@ -3665,7 +3662,7 @@ o: {{ .Options.o }}`})
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		if IsRemote() {
-			Expect(kube).Error()
+			Expect(kube).Should(Exit(125))
 			Expect(kube.ErrorToString()).To(ContainSubstring("importing volumes is not supported for remote requests"))
 			return
 		}
@@ -4947,7 +4944,7 @@ spec:
 		ps := podmanTest.Podman([]string{"pod", "ps", "-q"})
 		ps.WaitWithDefaultTimeout()
 		Expect(ps).Should(Exit(0))
-		Expect(ps.OutputToStringArray()).To(HaveLen(0))
+		Expect(ps.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman play kube with named volume subpaths", func() {
@@ -4984,6 +4981,19 @@ spec:
 		exec.WaitWithDefaultTimeout()
 		Expect(exec).Should(Exit(0))
 		Expect(exec.OutputToString()).Should(Equal("hi"))
+
+		teardown := podmanTest.Podman([]string{"kube", "down", "--force", kubeYaml})
+		teardown.WaitWithDefaultTimeout()
+		Expect(teardown).Should(Exit(0))
+		Expect(teardown.OutputToString()).Should(ContainSubstring("testvol"))
+
+		// kube down --force should remove volumes
+		// specified in the manifest but not externally
+		// created volumes, testvol1 in this case
+		checkVol := podmanTest.Podman([]string{"volume", "ls", "--format", "{{.Name}}"})
+		checkVol.WaitWithDefaultTimeout()
+		Expect(checkVol).Should(Exit(0))
+		Expect(checkVol.OutputToString()).To(Equal("testvol1"))
 	})
 
 	It("podman play kube with hostPath subpaths", func() {
@@ -4996,7 +5006,7 @@ spec:
 		file, err := os.Create(filepath.Join(hostPathLocation, "testing", "onlythis", "123.txt"))
 		Expect(err).ToNot(HaveOccurred())
 
-		_, err = file.Write([]byte("hi"))
+		_, err = file.WriteString("hi")
 		Expect(err).ToNot(HaveOccurred())
 
 		err = file.Close()

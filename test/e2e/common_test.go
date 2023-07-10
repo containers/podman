@@ -56,7 +56,6 @@ type PodmanTestIntegration struct {
 	SignaturePolicyPath string
 	CgroupManager       string
 	Host                HostOS
-	Timings             []string
 	TmpDir              string
 	RemoteStartErr      error
 }
@@ -82,9 +81,6 @@ type testResultsSortedLength struct{ testResultsSorted }
 
 func (a testResultsSorted) Less(i, j int) bool { return a[i].length < a[j].length }
 
-var testResults []testResult
-var testResultsMutex sync.Mutex
-
 func TestMain(m *testing.M) {
 	if reexec.Init() {
 		return
@@ -103,15 +99,20 @@ func TestLibpod(t *testing.T) {
 }
 
 var (
-	tempdir    string
-	err        error
-	podmanTest *PodmanTestIntegration
+	tempdir      string
+	err          error
+	podmanTest   *PodmanTestIntegration
+	safeIPOctets [2]uint8
+	timingsFile  *os.File
 
 	_ = BeforeEach(func() {
 		tempdir, err = CreateTempDirInTempDir()
 		Expect(err).ToNot(HaveOccurred())
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
+		// see GetSafeIPAddress() below
+		safeIPOctets[0] = uint8(GinkgoT().ParallelProcess()) + 128
+		safeIPOctets[1] = 2
 	})
 
 	_ = AfterEach(func() {
@@ -125,9 +126,18 @@ var (
 	})
 )
 
+const (
+	// lockdir - do not use directly use LockTmpDir
+	lockdir = "libpodlock"
+	// imageCacheDir - do not use directly use ImageCacheDir
+	imageCacheDir = "imagecachedir"
+)
+
 var _ = SynchronizedBeforeSuite(func() []byte {
+	globalTmpDir := GinkgoT().TempDir()
+
 	// make cache dir
-	ImageCacheDir = filepath.Join(os.TempDir(), "imagecachedir")
+	ImageCacheDir = filepath.Join(globalTmpDir, imageCacheDir)
 	if err := os.MkdirAll(ImageCacheDir, 0700); err != nil {
 		GinkgoWriter.Printf("%q\n", err)
 		os.Exit(1)
@@ -136,7 +146,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	// Cache images
 	cwd, _ := os.Getwd()
 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
-	podman := PodmanTestSetup(os.TempDir())
+	podman := PodmanTestSetup(GinkgoT().TempDir())
 
 	// Pull cirros but don't put it into the cache
 	pullImages := []string{CIRROS_IMAGE, fedoraToolbox, volumeTest}
@@ -154,23 +164,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	// tests are remote, this is a no-op
 	populateCache(podman)
 
-	host := GetHostDistributionInfo()
-	if host.Distribution == "rhel" && strings.HasPrefix(host.Version, "7") {
-		f, err := os.OpenFile("/proc/sys/user/max_user_namespaces", os.O_WRONLY, 0644)
-		if err != nil {
-			GinkgoWriter.Println("Unable to enable userspace on RHEL 7")
-			os.Exit(1)
-		}
-		_, err = f.WriteString("15000")
-		if err != nil {
-			GinkgoWriter.Println("Unable to enable userspace on RHEL 7")
-			os.Exit(1)
-		}
-		f.Close()
-	}
-	path, err := os.MkdirTemp("", "libpodlock")
-	if err != nil {
-		GinkgoWriter.Println(err)
+	if err := os.MkdirAll(filepath.Join(globalTmpDir, lockdir), 0700); err != nil {
+		GinkgoWriter.Printf("%q\n", err)
 		os.Exit(1)
 	}
 
@@ -179,11 +174,19 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		podman.StopRemoteService()
 	}
 
-	return []byte(path)
+	// remove temporary podman files, images are now cached in ImageCacheDir
+	rmAll(podman.PodmanBinary, podman.TempDir)
+
+	return []byte(globalTmpDir)
 }, func(data []byte) {
 	cwd, _ := os.Getwd()
 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
-	LockTmpDir = string(data)
+	globalTmpDir := string(data)
+	ImageCacheDir = filepath.Join(globalTmpDir, imageCacheDir)
+	LockTmpDir = filepath.Join(globalTmpDir, lockdir)
+
+	timingsFile, err = os.Create(fmt.Sprintf("%s/timings-%d", LockTmpDir, GinkgoParallelProcess()))
+	Expect(err).ToNot(HaveOccurred())
 })
 
 func (p *PodmanTestIntegration) Setup() {
@@ -192,13 +195,8 @@ func (p *PodmanTestIntegration) Setup() {
 }
 
 var _ = SynchronizedAfterSuite(func() {
-	f, err := os.Create(fmt.Sprintf("%s/timings-%d", LockTmpDir, GinkgoParallelProcess()))
-	Expect(err).ToNot(HaveOccurred())
-	defer f.Close()
-	for _, result := range testResults {
-		_, err := f.WriteString(fmt.Sprintf("%s\t\t%f\n", result.name, result.length))
-		Expect(err).ToNot(HaveOccurred(), "write timings")
-	}
+	timingsFile.Close()
+	timingsFile = nil
 },
 	func() {
 		testTimings := make(testResultsSorted, 0, 2000)
@@ -228,29 +226,17 @@ var _ = SynchronizedAfterSuite(func() {
 			GinkgoWriter.Printf("%s\t\t%f\n", result.name, result.length)
 		}
 
-		// previous runroot
-		tempdir, err := CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest := PodmanTestCreate(tempdir)
-		defer os.RemoveAll(tempdir)
-
-		if err := os.RemoveAll(podmanTest.Root); err != nil {
-			GinkgoWriter.Printf("%q\n", err)
-		}
-
-		// If running remote, we need to stop the associated podman system service
-		if podmanTest.RemoteTest {
-			podmanTest.StopRemoteService()
-		}
-		// for localized tests, this removes the image cache dir and for remote tests
-		// this is a no-op
-		podmanTest.removeCache(podmanTest.ImageCacheDir)
-
-		// LockTmpDir can already be removed
-		os.RemoveAll(LockTmpDir)
+		cwd, _ := os.Getwd()
+		rmAll(getPodmanBinary(cwd), ImageCacheDir)
 	})
+
+func getPodmanBinary(cwd string) string {
+	podmanBinary := filepath.Join(cwd, "../../bin/podman")
+	if os.Getenv("PODMAN_BINARY") != "" {
+		podmanBinary = os.Getenv("PODMAN_BINARY")
+	}
+	return podmanBinary
+}
 
 // PodmanTestCreate creates a PodmanTestIntegration instance for the tests
 func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
@@ -260,10 +246,7 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 	cwd, _ := os.Getwd()
 
 	root := filepath.Join(tempDir, "root")
-	podmanBinary := filepath.Join(cwd, "../../bin/podman")
-	if os.Getenv("PODMAN_BINARY") != "" {
-		podmanBinary = os.Getenv("PODMAN_BINARY")
-	}
+	podmanBinary := getPodmanBinary(cwd)
 
 	podmanRemoteBinary = filepath.Join(cwd, "../../bin/podman-remote")
 	if os.Getenv("PODMAN_REMOTE_BINARY") != "" {
@@ -337,8 +320,6 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		storageFs = os.Getenv("STORAGE_FS")
 		storageOptions = "--storage-driver " + storageFs
 	}
-
-	ImageCacheDir = filepath.Join(os.TempDir(), "imagecachedir")
 
 	p := &PodmanTestIntegration{
 		PodmanTest: PodmanTest{
@@ -463,9 +444,8 @@ func (p *PodmanTestIntegration) InspectContainer(name string) []define.InspectCo
 
 func processTestResult(r SpecReport) {
 	tr := testResult{length: r.RunTime.Seconds(), name: r.FullText()}
-	testResultsMutex.Lock()
-	testResults = append(testResults, tr)
-	testResultsMutex.Unlock()
+	_, err := timingsFile.WriteString(fmt.Sprintf("%s\t\t%f\n", tr.name, tr.length))
+	Expect(err).ToNot(HaveOccurred(), "write timings")
 }
 
 func GetPortLock(port string) *lockfile.LockFile {
@@ -479,16 +459,26 @@ func GetPortLock(port string) *lockfile.LockFile {
 	return lock
 }
 
-// GetRandomIPAddress returns a random IP address to avoid IP
-// collisions during parallel tests
-func GetRandomIPAddress() string {
-	// To avoid IP collisions of initialize random seed for random IP addresses
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	// Add GinkgoParallelProcess() on top of the IP address
-	// in case of the same random seed
-	ip3 := strconv.Itoa(rng.Intn(230) + GinkgoParallelProcess())
-	ip4 := strconv.Itoa(rng.Intn(230) + GinkgoParallelProcess())
-	return "10.88." + ip3 + "." + ip4
+// GetSafeIPAddress returns a sequentially allocated IP address that _should_
+// be safe and unique across parallel tasks
+//
+// Used by tests which want to use "--ip SOMETHING-SAFE". Picking at random
+// just doesn't work: we get occasional collisions. Our current approach
+// allocates a /24 subnet for each ginkgo process, starting at .128.x, see
+// BeforeEach() above. Unfortunately, CNI remembers each address assigned
+// and assigns <previous+1> by default -- so other parallel jobs may
+// get IPs in our block. The +10 leaves a gap for that. (Netavark works
+// differently, allocating sequentially from .0.0, hence our .128.x).
+// This heuristic will fail if run in parallel on >127 processors or if
+// one test calls us more than 25 times or if some other test runs more
+// than ten networked containers at the same time as any test that
+// relies on GetSafeIPAddress(). I'm finding it hard to care.
+//
+// DO NOT USE THIS FUNCTION unless there is no possible alternative. In
+// most cases you should use 'podman network create' + 'podman run --network'.
+func GetSafeIPAddress() string {
+	safeIPOctets[1] += 10
+	return fmt.Sprintf("10.88.%d.%d", safeIPOctets[0], safeIPOctets[1])
 }
 
 // RunTopContainer runs a simple container in the background that
@@ -643,7 +633,7 @@ func (p *PodmanTestIntegration) Cleanup() {
 
 	p.StopRemoteService()
 	// Nuke tempdir
-	p.removeCache(p.TempDir)
+	rmAll(p.PodmanBinary, p.TempDir)
 
 	// Clean up the registries configuration file ENV variable set in Create
 	resetRegistriesConfigEnv()
@@ -652,12 +642,7 @@ func (p *PodmanTestIntegration) Cleanup() {
 	// An error would cause it to stop and return early otherwise.
 	Expect(stop).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", stop.Command.Args, stop.OutputToString(), stop.ErrorToString())
 	Expect(podrm).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", podrm.Command.Args, podrm.OutputToString(), podrm.ErrorToString())
-
-	// FIXME: Remove this special case when the issue is fixed.
-	// Special case rm -fa is not working correctly with dependencies, https://github.com/containers/podman/issues/18180
-	if !strings.Contains(rmall.ErrorToString(), "has dependent containers which must be removed before it") {
-		Expect(rmall).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", rmall.Command.Args, rmall.OutputToString(), rmall.ErrorToString())
-	}
+	Expect(rmall).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", rmall.Command.Args, rmall.OutputToString(), rmall.ErrorToString())
 }
 
 // CleanupVolume cleans up the volumes and containers.
@@ -984,11 +969,13 @@ func populateCache(podman *PodmanTestIntegration) {
 	GinkgoWriter.Printf("-----------------------------\n")
 }
 
-func (p *PodmanTestIntegration) removeCache(path string) {
+// rmAll removes the direcory and its content,, when running rootless we use
+// podman unshare to prevent any subuid/gid problems
+func rmAll(podmanBin string, path string) {
 	// Remove cache dirs
 	if isRootless() {
 		// If rootless, os.RemoveAll() is failed due to permission denied
-		cmd := exec.Command(p.PodmanBinary, "unshare", "rm", "-rf", path)
+		cmd := exec.Command(podmanBin, "unshare", "rm", "-rf", path)
 		cmd.Stdout = GinkgoWriter
 		cmd.Stderr = GinkgoWriter
 		if err := cmd.Run(); err != nil {

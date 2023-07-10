@@ -63,7 +63,7 @@ func generateID(r io.Reader) string {
 	}
 }
 
-// GenerateRandomID returns a unique id.
+// GenerateRandomID returns a pseudorandom 64-character hex string.
 func GenerateRandomID() string {
 	return generateID(cryptorand.Reader)
 }

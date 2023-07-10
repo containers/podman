@@ -388,7 +388,10 @@ var _ = Describe("Podman images", func() {
 	})
 
 	It("Image Push", func() {
-		registry, err := podmanRegistry.Start()
+		registryOptions := &podmanRegistry.Options{
+			PodmanPath: getPodmanBinary(),
+		}
+		registry, err := podmanRegistry.StartWithOptions(registryOptions)
 		Expect(err).ToNot(HaveOccurred())
 
 		var writer bytes.Buffer
@@ -400,7 +403,6 @@ var _ = Describe("Podman images", func() {
 		Expect(output).To(ContainSubstring("Copying blob "))
 		Expect(output).To(ContainSubstring("Copying config "))
 		Expect(output).To(ContainSubstring("Writing manifest to image destination"))
-		Expect(output).To(ContainSubstring("Storing signatures"))
 	})
 
 	It("Build no options", func() {

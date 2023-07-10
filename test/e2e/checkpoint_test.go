@@ -21,9 +21,10 @@ import (
 	. "github.com/onsi/gomega/gexec"
 )
 
+var netname string
+
 func getRunString(input []string) []string {
-	// CRIU does not work with seccomp correctly on RHEL7 : seccomp=unconfined
-	runString := []string{"run", "--security-opt", "seccomp=unconfined", "-d", "--ip", GetRandomIPAddress()}
+	runString := []string{"run", "-d", "--network", netname}
 	return append(runString, input...)
 }
 
@@ -43,15 +44,21 @@ var _ = Describe("Podman checkpoint", func() {
 			Skip("OCI runtime does not support checkpoint/restore")
 		}
 
-		if !criu.CheckForCriu(criu.MinCriuVersion) {
-			Skip("CRIU is missing or too old.")
+		if err := criu.CheckForCriu(criu.MinCriuVersion); err != nil {
+			Skip(fmt.Sprintf("check CRIU version error: %v", err))
 		}
-		// Only Fedora 29 and newer has a new enough selinux-policy and
-		// container-selinux package to support CRIU in correctly
-		// restoring threaded processes
-		hostInfo := podmanTest.Host
-		if hostInfo.Distribution == "fedora" && hostInfo.Version < "29" {
-			Skip("Checkpoint/Restore with SELinux only works on Fedora >= 29")
+
+		session := podmanTest.Podman([]string{"network", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		netname = session.OutputToString()
+	})
+
+	AfterEach(func() {
+		if netname != "" {
+			session := podmanTest.Podman([]string{"network", "rm", "-f", netname})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
 		}
 	})
 
@@ -346,7 +353,8 @@ var _ = Describe("Podman checkpoint", func() {
 			Fail("Container failed to get ready")
 		}
 
-		IP := podmanTest.Podman([]string{"inspect", cid, "--format={{.NetworkSettings.IPAddress}}"})
+		// clunky format needed because CNI uses dashes in net names
+		IP := podmanTest.Podman([]string{"inspect", cid, fmt.Sprintf("--format={{(index .NetworkSettings.Networks \"%s\").IPAddress}}", netname)})
 		IP.WaitWithDefaultTimeout()
 		Expect(IP).Should(Exit(0))
 
@@ -438,13 +446,16 @@ var _ = Describe("Podman checkpoint", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		IPBefore := podmanTest.Podman([]string{"inspect", "test_name", "--format={{.NetworkSettings.IPAddress}}"})
+		// clunky format needed because CNI uses dashes in net names
+		IPBefore := podmanTest.Podman([]string{"inspect", "test_name", fmt.Sprintf("--format={{(index .NetworkSettings.Networks \"%s\").IPAddress}}", netname)})
 		IPBefore.WaitWithDefaultTimeout()
 		Expect(IPBefore).Should(Exit(0))
+		Expect(IPBefore.OutputToString()).To(MatchRegexp("^[0-9]+(\\.[0-9]+){3}$"))
 
-		MACBefore := podmanTest.Podman([]string{"inspect", "test_name", "--format={{.NetworkSettings.MacAddress}}"})
+		MACBefore := podmanTest.Podman([]string{"inspect", "test_name", fmt.Sprintf("--format={{(index .NetworkSettings.Networks \"%s\").MacAddress}}", netname)})
 		MACBefore.WaitWithDefaultTimeout()
 		Expect(MACBefore).Should(Exit(0))
+		Expect(MACBefore.OutputToString()).To(MatchRegexp("^[0-9a-f]{2}(:[0-9a-f]{2}){5}$"))
 
 		result := podmanTest.Podman([]string{"container", "checkpoint", "test_name"})
 		result.WaitWithDefaultTimeout()
@@ -456,19 +467,19 @@ var _ = Describe("Podman checkpoint", func() {
 		result = podmanTest.Podman([]string{"container", "restore", "test_name"})
 		result.WaitWithDefaultTimeout()
 
-		IPAfter := podmanTest.Podman([]string{"inspect", "test_name", "--format={{.NetworkSettings.IPAddress}}"})
+		IPAfter := podmanTest.Podman([]string{"inspect", "test_name", fmt.Sprintf("--format={{(index .NetworkSettings.Networks \"%s\").IPAddress}}", netname)})
 		IPAfter.WaitWithDefaultTimeout()
 		Expect(IPAfter).Should(Exit(0))
 
-		MACAfter := podmanTest.Podman([]string{"inspect", "test_name", "--format={{.NetworkSettings.MacAddress}}"})
+		MACAfter := podmanTest.Podman([]string{"inspect", "test_name", fmt.Sprintf("--format={{(index .NetworkSettings.Networks \"%s\").MacAddress}}", netname)})
 		MACAfter.WaitWithDefaultTimeout()
 		Expect(MACAfter).Should(Exit(0))
 
 		// Check that IP address did not change between checkpointing and restoring
-		Expect(IPBefore.OutputToString()).To(Equal(IPAfter.OutputToString()))
+		Expect(IPAfter.OutputToString()).To(Equal(IPBefore.OutputToString()))
 
 		// Check that MAC address did not change between checkpointing and restoring
-		Expect(MACBefore.OutputToString()).To(Equal(MACAfter.OutputToString()))
+		Expect(MACAfter.OutputToString()).To(Equal(MACBefore.OutputToString()))
 
 		Expect(result).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
@@ -1121,8 +1132,8 @@ var _ = Describe("Podman checkpoint", func() {
 		share := share // copy into local scope, for use inside function
 
 		It(testName, func() {
-			if !criu.CheckForCriu(criu.PodCriuVersion) {
-				Skip("CRIU is missing or too old.")
+			if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
+				Skip(fmt.Sprintf("check CRIU pod version error: %v", err))
 			}
 			if !crutils.CRRuntimeSupportsPodCheckpointRestore(podmanTest.OCIRuntime) {
 				Skip("runtime does not support pod restore: " + podmanTest.OCIRuntime)

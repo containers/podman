@@ -21,7 +21,7 @@
 ###
 
 # Default shell `/bin/sh` has different meanings depending on the platform.
-SHELL := /bin/bash
+SHELL := $(shell command -v bash;)
 GO ?= go
 GO_LDFLAGS:= $(shell if $(GO) version|grep -q gccgo ; then echo "-gccgoflags"; else echo "-ldflags"; fi)
 GOCMD = CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO)
@@ -33,6 +33,7 @@ PROJECT := github.com/containers/podman
 GIT_BASE_BRANCH ?= origin/main
 LIBPOD_INSTANCE := libpod_dev
 PREFIX ?= /usr/local
+RELEASE_PREFIX = /usr
 BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
 LIBEXECPODMAN ?= ${LIBEXECDIR}/podman
@@ -57,19 +58,20 @@ BUILDTAGS ?= \
 	$(shell hack/libsubid_tag.sh) \
 	exclude_graphdriver_devicemapper \
 	seccomp
-ifeq ($(shell uname -s),FreeBSD)
-# Use bash for make's shell function - the default shell on FreeBSD
-# has a command builtin is not compatible with the way its used below
-SHELL := $(shell command -v bash)
-endif
+# N/B: This value is managed by Renovate, manual changes are
+# possible, as long as they don't disturb the formatting
+# (i.e. DO NOT ADD A 'v' prefix!)
+GOLANGCI_LINT_VERSION := 1.53.3
 PYTHON ?= $(shell command -v python3 python|head -n1)
 PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
 # ~/.local/bin is not in PATH on all systems
 PRE_COMMIT = $(shell command -v bin/venv/bin/pre-commit ~/.local/bin/pre-commit pre-commit | head -n1)
 ifeq ($(shell uname -s),FreeBSD)
 SED=gsed
+GREP=ggrep
 else
 SED=sed
+GREP=grep
 endif
 
 # This isn't what we actually build; it's a superset, used for target
@@ -179,6 +181,10 @@ else ifeq ($(GOOS),darwin)
 BINSFX :=
 SRCBINDIR := bin/darwin
 CGO_ENABLED := 0
+else ifeq ($(GOOS),freebsd)
+BINSFX := -remote
+SRCBINDIR := bin
+RELEASE_PREFIX = /usr/local
 else
 BINSFX := -remote
 SRCBINDIR := bin
@@ -218,14 +224,14 @@ binaries: podman podman-remote ## Build podman and podman-remote binaries
 else ifneq (, $(findstring $(GOOS),darwin windows))
 binaries: podman-remote ## Build podman-remote (client) only binaries
 else
-binaries: podman podman-remote rootlessport quadlet ## Build podman, podman-remote and rootlessport binaries quadlet
+binaries: podman podman-remote podmansh rootlessport quadlet ## Build podman, podman-remote and rootlessport binaries quadlet
 endif
 
 # Extract text following double-# for targets, as their description for
 # the `help` target.  Otherwise These simple-substitutions are resolved
 # at reference-time (due to `=` and not `=:`).
 _HLP_TGTS_RX = '^[[:print:]]+:.*?\#\# .*$$'
-_HLP_TGTS_CMD = grep -E $(_HLP_TGTS_RX) $(MAKEFILE_LIST)
+_HLP_TGTS_CMD = $(GREP) -E $(_HLP_TGTS_RX) $(MAKEFILE_LIST)
 _HLP_TGTS_LEN = $(shell $(call err_if_empty,_HLP_TGTS_CMD) | cut -d : -f 1 | wc -L 2>/dev/null || echo "PARSING_ERROR")
 # Separated condition for Darwin
 ifeq ($(shell uname -s)$(_HLP_TGTS_LEN),DarwinPARSING_ERROR)
@@ -252,7 +258,7 @@ help: ## (Default) Print listing of key targets with their descriptions
 .PHONY: .gitvalidation
 .gitvalidation:
 	@echo "Validating vs commit '$(call err_if_empty,EPOCH_TEST_COMMIT)'"
-	GIT_CHECK_EXCLUDE="./vendor:./test/tools/vendor:docs/make.bat:test/buildah-bud/buildah-tests.diff" ./test/tools/build/git-validation -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
+	GIT_CHECK_EXCLUDE="./vendor:./test/tools/vendor:docs/make.bat:test/buildah-bud/buildah-tests.diff:test/e2e/quadlet/remap-keep-id2.container" ./test/tools/build/git-validation -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
 
 .PHONY: lint
 lint: golangci-lint
@@ -410,6 +416,12 @@ bin/rootlessport: $(SOURCES) go.mod go.sum
 
 .PHONY: rootlessport
 rootlessport: bin/rootlessport
+
+# podmansh calls `podman exec` into the `podmansh` container when used as
+# os.Args[0] and is intended to be set as a login shell for users.
+# Run: `man 1 podmansh` for details.
+podmansh: bin/podman
+	if [ ! -f bin/podmansh ]; then ln -s podman bin/podmansh; fi
 
 ###
 ### Secondary binary-build targets
@@ -704,7 +716,7 @@ podman-release: podman-release-$(GOARCH).tar.gz  # Build all Linux binaries for 
 podman-release-%.tar.gz: test/version/version
 	$(eval TMPDIR := $(shell mktemp -d podman_tmp_XXXX))
 	$(eval SUBDIR := podman-v$(call err_if_empty,RELEASE_NUMBER))
-	$(eval _DSTARGS := "DESTDIR=$(TMPDIR)/$(SUBDIR)" "PREFIX=/usr")
+	$(eval _DSTARGS := "DESTDIR=$(TMPDIR)/$(SUBDIR)" "PREFIX=$(RELEASE_PREFIX)")
 	$(eval GOARCH := $*)
 	mkdir -p "$(call err_if_empty,TMPDIR)/$(SUBDIR)"
 	$(MAKE) GOOS=$(GOOS) GOARCH=$(NATIVE_GOARCH) \
@@ -723,7 +735,7 @@ podman-release-%.tar.gz: test/version/version
 podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$GOOS_$GOARCH, and docs. into an installation zip.
 	$(eval TMPDIR := $(shell mktemp -d podman_tmp_XXXX))
 	$(eval SUBDIR := podman-$(call err_if_empty,RELEASE_NUMBER))
-	$(eval _DSTARGS := "DESTDIR=$(TMPDIR)/$(SUBDIR)" "PREFIX=/usr")
+	$(eval _DSTARGS := "DESTDIR=$(TMPDIR)/$(SUBDIR)" "PREFIX=$(RELEASE_PREFIX)")
 	$(eval GOOS := $(firstword $(subst _, ,$*)))
 	$(eval GOARCH := $(lastword $(subst _, ,$*)))
 	$(eval _GOPLAT := GOOS=$(call err_if_empty,GOOS) GOARCH=$(call err_if_empty,GOARCH))
@@ -823,6 +835,7 @@ install.remote:
 install.bin:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
 	install ${SELINUXOPT} -m 755 bin/podman $(DESTDIR)$(BINDIR)/podman
+	ln -sf podman $(DESTDIR)$(BINDIR)/podmansh
 	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman bin/podman
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(LIBEXECPODMAN)
 ifneq ($(shell uname -s),FreeBSD)
@@ -937,7 +950,7 @@ install.tools: .install.golangci-lint ## Install needed tools
 
 .PHONY: .install.golangci-lint
 .install.golangci-lint:
-	VERSION=1.51.1 ./hack/install_golangci.sh
+	VERSION=$(GOLANGCI_LINT_VERSION) ./hack/install_golangci.sh
 
 .PHONY: .install.swagger
 .install.swagger:

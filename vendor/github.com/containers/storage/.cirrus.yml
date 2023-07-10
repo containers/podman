@@ -17,13 +17,13 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ###
-    FEDORA_NAME: "fedora-37"
-    DEBIAN_NAME: "debian-12"
+    FEDORA_NAME: "fedora-38"
+    DEBIAN_NAME: "debian-13"
 
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
     # VM Image built in containers/automation_images
-    IMAGE_SUFFIX: "c20230405t152256z-f37f36d12"
+    IMAGE_SUFFIX: "c20230614t132754z-f38f37d13"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
 
@@ -56,7 +56,6 @@ gce_instance:
 linux_testing: &linux_testing
     depends_on:
         - lint
-    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
     gce_instance:  # Only need to specify differences from defaults (above)
         image_name: "${VM_IMAGE}"
 
@@ -127,10 +126,12 @@ lint_task:
         fingerprint_script: cat go.sum
         folder: $GOPATH/pkg/mod
     build_script: |
-      echo "deb http://deb.debian.org/debian stretch-backports main" > /etc/apt/sources.list.d/backports.list
       apt-get update
       apt-get install -y libbtrfs-dev libdevmapper-dev
-    test_script: make TAGS=regex_precompile local-validate && make lint && make clean
+    test_script: |
+      make TAGS=regex_precompile local-validate
+      make lint
+      make clean
 
 
 # Update metadata on VM images referenced by this repository state
@@ -168,7 +169,7 @@ vendor_task:
 
 cross_task:
     container:
-        image: golang:1.17
+        image: golang:1.19
     build_script: make cross
 
 
@@ -182,6 +183,6 @@ success_task:
         - vendor
         - cross
     container:
-        image: golang:1.17
+        image: golang:1.19
     clone_script: 'mkdir -p "$CIRRUS_WORKING_DIR"'  # Source code not needed
     script: /bin/true

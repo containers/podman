@@ -138,8 +138,8 @@ func dmTaskSetRoFct(task *cdmTask) int {
 }
 
 func dmTaskAddTargetFct(task *cdmTask,
-	start, size uint64, ttype, params string) int {
-
+	start, size uint64, ttype, params string,
+) int {
 	Cttype := C.CString(ttype)
 	defer free(Cttype)
 
@@ -156,12 +156,11 @@ func dmTaskGetDepsFct(task *cdmTask) *Deps {
 	}
 
 	// golang issue: https://github.com/golang/go/issues/11925
-	hdr := reflect.SliceHeader{
-		Data: uintptr(unsafe.Pointer(uintptr(unsafe.Pointer(Cdeps)) + unsafe.Sizeof(*Cdeps))),
-		Len:  int(Cdeps.count),
-		Cap:  int(Cdeps.count),
-	}
-	devices := *(*[]C.uint64_t)(unsafe.Pointer(&hdr))
+	var devices []C.uint64_t
+	devicesHdr := (*reflect.SliceHeader)(unsafe.Pointer(&devices))
+	devicesHdr.Data = uintptr(unsafe.Pointer(uintptr(unsafe.Pointer(Cdeps)) + unsafe.Sizeof(*Cdeps)))
+	devicesHdr.Len = int(Cdeps.count)
+	devicesHdr.Cap = int(Cdeps.count)
 
 	deps := &Deps{
 		Count:  uint32(Cdeps.count),

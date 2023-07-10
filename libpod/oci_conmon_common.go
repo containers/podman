@@ -343,7 +343,7 @@ func generateResourceFile(res *spec.LinuxResources) (string, []string, error) {
 	if err != nil {
 		return "", nil, err
 	}
-	_, err = f.WriteString(string(j))
+	_, err = f.Write(j)
 	if err != nil {
 		return "", nil, err
 	}
@@ -356,10 +356,20 @@ func generateResourceFile(res *spec.LinuxResources) (string, []string, error) {
 // If all is set, send to all PIDs in the container.
 // All is only supported if the container created cgroups.
 func (r *ConmonOCIRuntime) KillContainer(ctr *Container, signal uint, all bool) error {
+	if _, err := r.killContainer(ctr, signal, all, false); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// If captureStderr is requested, OCI runtime STDERR will be captured as a
+// *bytes.buffer and returned; otherwise, it is set to os.Stderr.
+func (r *ConmonOCIRuntime) killContainer(ctr *Container, signal uint, all, captureStderr bool) (*bytes.Buffer, error) {
 	logrus.Debugf("Sending signal %d to container %s", signal, ctr.ID())
 	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
 	var args []string
@@ -369,19 +379,27 @@ func (r *ConmonOCIRuntime) KillContainer(ctr *Container, signal uint, all bool) 
 	} else {
 		args = append(args, "kill", ctr.ID(), fmt.Sprintf("%d", signal))
 	}
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, args...); err != nil {
+	var (
+		stderr       io.Writer = os.Stderr
+		stderrBuffer *bytes.Buffer
+	)
+	if captureStderr {
+		stderrBuffer = new(bytes.Buffer)
+		stderr = stderrBuffer
+	}
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, stderr, env, r.path, args...); err != nil {
 		// Update container state - there's a chance we failed because
 		// the container exited in the meantime.
 		if err2 := r.UpdateContainerStatus(ctr); err2 != nil {
 			logrus.Infof("Error updating status for container %s: %v", ctr.ID(), err2)
 		}
 		if ctr.ensureState(define.ContainerStateStopped, define.ContainerStateExited) {
-			return fmt.Errorf("%w: %s", define.ErrCtrStateInvalid, ctr.state.State)
+			return stderrBuffer, fmt.Errorf("%w: %s", define.ErrCtrStateInvalid, ctr.state.State)
 		}
-		return fmt.Errorf("sending signal to container %s: %w", ctr.ID(), err)
+		return stderrBuffer, fmt.Errorf("sending signal to container %s: %w", ctr.ID(), err)
 	}
 
-	return nil
+	return stderrBuffer, nil
 }
 
 // StopContainer stops a container, first using its given stop signal (or
@@ -400,22 +418,64 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 		return nil
 	}
 
-	if timeout > 0 {
-		stopSignal := ctr.config.StopSignal
-		if stopSignal == 0 {
-			stopSignal = uint(syscall.SIGTERM)
+	killCtr := func(signal uint) (bool, error) {
+		stderr, err := r.killContainer(ctr, signal, all, true)
+
+		// Before handling error from KillContainer, convert STDERR to a []string
+		// (one string per line of output) and print it, ignoring known OCI runtime
+		// errors that we don't care about
+		stderrLines := strings.Split(stderr.String(), "\n")
+		for _, line := range stderrLines {
+			if line == "" {
+				continue
+			}
+			if strings.Contains(line, "container not running") || strings.Contains(line, "open pidfd: No such process") || strings.Contains(line, "kill container: No such process") {
+				logrus.Debugf("Failure to kill container (already stopped?): logged %s", line)
+				continue
+			}
+			fmt.Fprintf(os.Stderr, "%s\n", line)
 		}
-		if err := r.KillContainer(ctr, stopSignal, all); err != nil {
+
+		if err != nil {
+			// There's an inherent race with the cleanup process (see
+			// #16142, #17142). If the container has already been marked as
+			// stopped or exited by the cleanup process, we can return
+			// immediately.
+			if errors.Is(err, define.ErrCtrStateInvalid) && ctr.ensureState(define.ContainerStateStopped, define.ContainerStateExited) {
+				return true, nil
+			}
+
+			// If the PID is 0, then the container is already stopped.
+			if ctr.state.PID == 0 {
+				return true, nil
+			}
+
 			// Is the container gone?
 			// If so, it probably died between the first check and
 			// our sending the signal
 			// The container is stopped, so exit cleanly
 			err := unix.Kill(ctr.state.PID, 0)
 			if err == unix.ESRCH {
-				return nil
+				return true, nil
 			}
 
+			return false, err
+		}
+		return false, nil
+	}
+
+	if timeout > 0 {
+		stopSignal := ctr.config.StopSignal
+		if stopSignal == 0 {
+			stopSignal = uint(syscall.SIGTERM)
+		}
+
+		stopped, err := killCtr(stopSignal)
+		if err != nil {
 			return err
+		}
+		if stopped {
+			return nil
 		}
 
 		if err := waitContainerStop(ctr, time.Duration(timeout)*time.Second); err != nil {
@@ -427,26 +487,12 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 		}
 	}
 
-	// If the timeout was set to 0 or if stopping the container with the
-	// specified signal did not work, use the big hammer with SIGKILL.
-	if err := r.KillContainer(ctr, uint(unix.SIGKILL), all); err != nil {
-		// There's an inherent race with the cleanup process (see
-		// #16142, #17142). If the container has already been marked as
-		// stopped or exited by the cleanup process, we can return
-		// immediately.
-		if errors.Is(err, define.ErrCtrStateInvalid) && ctr.ensureState(define.ContainerStateStopped, define.ContainerStateExited) {
-			return nil
-		}
-
-		// If the PID is 0, then the container is already stopped.
-		if ctr.state.PID == 0 {
-			return nil
-		}
-		// Again, check if the container is gone. If it is, exit cleanly.
-		if aliveErr := unix.Kill(ctr.state.PID, 0); errors.Is(aliveErr, unix.ESRCH) {
-			return nil
-		}
+	stopped, err := killCtr(uint(unix.SIGKILL))
+	if err != nil {
 		return fmt.Errorf("sending SIGKILL to container %s: %w", ctr.ID(), err)
+	}
+	if stopped {
+		return nil
 	}
 
 	// Give runtime a few seconds to make it happen
@@ -899,8 +945,8 @@ func (r *ConmonOCIRuntime) ExitFilePath(ctr *Container) (string, error) {
 
 // RuntimeInfo provides information on the runtime.
 func (r *ConmonOCIRuntime) RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeInfo, error) {
-	runtimePackage := packageVersion(r.path)
-	conmonPackage := packageVersion(r.conmonPath)
+	runtimePackage := cutil.PackageVersion(r.path)
+	conmonPackage := cutil.PackageVersion(r.conmonPath)
 	runtimeVersion, err := r.getOCIRuntimeVersion()
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting version of OCI runtime %s: %w", r.name, err)
@@ -1187,16 +1233,13 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 			if err != nil {
 				return 0, fmt.Errorf("failed to create rootless network sync pipe: %w", err)
 			}
-		} else {
-			if ctr.rootlessSlirpSyncR != nil {
-				defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncR)
-			}
-			if ctr.rootlessSlirpSyncW != nil {
-				defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncW)
-			}
 		}
-		// Leak one end in conmon, the other one will be leaked into slirp4netns
-		cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessSlirpSyncW)
+
+		if ctr.rootlessSlirpSyncW != nil {
+			defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncW)
+			// Leak one end in conmon, the other one will be leaked into slirp4netns
+			cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessSlirpSyncW)
+		}
 
 		if ctr.rootlessPortSyncW != nil {
 			defer errorhandling.CloseQuiet(ctr.rootlessPortSyncW)
@@ -1341,10 +1384,8 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 	logLevel := logrus.GetLevel()
 	args = append(args, "--log-level", logLevel.String())
 
-	if logLevel == logrus.DebugLevel {
-		logrus.Debugf("%s messages will be logged to syslog", r.conmonPath)
-		args = append(args, "--syslog")
-	}
+	logrus.Debugf("%s messages will be logged to syslog", r.conmonPath)
+	args = append(args, "--syslog")
 
 	size := r.logSizeMax
 	if ctr.config.LogSize > 0 {
@@ -1444,7 +1485,7 @@ func readConmonPipeData(runtimeName string, pipe *os.File, ociLog string) (int, 
 		ch <- syncStruct{si: si}
 	}()
 
-	data := -1
+	var data int
 	select {
 	case ss := <-ch:
 		if ss.err != nil {

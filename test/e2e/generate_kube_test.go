@@ -182,7 +182,7 @@ var _ = Describe("Podman kube generate", func() {
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(pod.Spec).To(HaveField("HostNetwork", false))
-		Expect(pod.Annotations).To(HaveLen(0))
+		Expect(pod.Annotations).To(BeEmpty())
 
 		numContainers := 0
 		for range pod.Spec.Containers {
@@ -1382,10 +1382,7 @@ USER test1`
 	})
 
 	It("podman generate kube omit secret if empty", func() {
-		dir, err := os.MkdirTemp(tempdir, "podman")
-		Expect(err).ShouldNot(HaveOccurred())
-
-		defer os.RemoveAll(dir)
+		dir := GinkgoT().TempDir()
 
 		podCreate := podmanTest.Podman([]string{"run", "-d", "--pod", "new:" + "noSecretsPod", "--name", "noSecretsCtr", "--volume", dir + ":/foobar", ALPINE})
 		podCreate.WaitWithDefaultTimeout()

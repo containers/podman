@@ -21,7 +21,7 @@
 // API responses. This is because the zero value for the field type is null. The field
 // description in the docs will state what type the field is expected to be for such cases.
 //
-// See podman-service(1) for more information.
+// See podman-system-service(1) for more information.
 //
 //	Quick Examples:
 //

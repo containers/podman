@@ -90,6 +90,8 @@ func GetType(t byte) (string, error) {
 const (
 	ManifestChecksumKey = "io.github.containers.zstd-chunked.manifest-checksum"
 	ManifestInfoKey     = "io.github.containers.zstd-chunked.manifest-position"
+	TarSplitChecksumKey = "io.github.containers.zstd-chunked.tarsplit-checksum"
+	TarSplitInfoKey     = "io.github.containers.zstd-chunked.tarsplit-position"
 
 	// ManifestTypeCRFS is a manifest file compatible with the CRFS TOC file.
 	ManifestTypeCRFS = 1
@@ -97,7 +99,7 @@ const (
 	// FooterSizeSupported is the footer size supported by this implementation.
 	// Newer versions of the image format might increase this value, so reject
 	// any version that is not supported.
-	FooterSizeSupported = 40
+	FooterSizeSupported = 56
 )
 
 var (
@@ -125,16 +127,23 @@ func appendZstdSkippableFrame(dest io.Writer, data []byte) error {
 	return nil
 }
 
-func WriteZstdChunkedManifest(dest io.Writer, outMetadata map[string]string, offset uint64, metadata []FileMetadata, level int) error {
+type TarSplitData struct {
+	Data             []byte
+	Digest           digest.Digest
+	UncompressedSize int64
+}
+
+func WriteZstdChunkedManifest(dest io.Writer, outMetadata map[string]string, offset uint64, tarSplitData *TarSplitData, metadata []FileMetadata, level int) error {
 	// 8 is the size of the zstd skippable frame header + the frame size
-	manifestOffset := offset + 8
+	const zstdSkippableFrameHeader = 8
+	manifestOffset := offset + zstdSkippableFrameHeader
 
 	toc := TOC{
 		Version: 1,
 		Entries: metadata,
 	}
 
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	// Generate the manifest
 	manifest, err := json.Marshal(toc)
 	if err != nil {
@@ -167,13 +176,20 @@ func WriteZstdChunkedManifest(dest io.Writer, outMetadata map[string]string, off
 		return err
 	}
 
+	outMetadata[TarSplitChecksumKey] = tarSplitData.Digest.String()
+	tarSplitOffset := manifestOffset + uint64(len(compressedManifest)) + zstdSkippableFrameHeader
+	outMetadata[TarSplitInfoKey] = fmt.Sprintf("%d:%d:%d", tarSplitOffset, len(tarSplitData.Data), tarSplitData.UncompressedSize)
+	if err := appendZstdSkippableFrame(dest, tarSplitData.Data); err != nil {
+		return err
+	}
+
 	// Store the offset to the manifest and its size in LE order
 	manifestDataLE := make([]byte, FooterSizeSupported)
 	binary.LittleEndian.PutUint64(manifestDataLE, manifestOffset)
-	binary.LittleEndian.PutUint64(manifestDataLE[8:], uint64(len(compressedManifest)))
-	binary.LittleEndian.PutUint64(manifestDataLE[16:], uint64(len(manifest)))
-	binary.LittleEndian.PutUint64(manifestDataLE[24:], uint64(ManifestTypeCRFS))
-	copy(manifestDataLE[32:], ZstdChunkedFrameMagic)
+	binary.LittleEndian.PutUint64(manifestDataLE[8*1:], uint64(len(compressedManifest)))
+	binary.LittleEndian.PutUint64(manifestDataLE[8*2:], uint64(len(manifest)))
+	binary.LittleEndian.PutUint64(manifestDataLE[8*3:], uint64(ManifestTypeCRFS))
+	copy(manifestDataLE[8*4:], ZstdChunkedFrameMagic)
 
 	return appendZstdSkippableFrame(dest, manifestDataLE)
 }

@@ -2,6 +2,7 @@ package registry
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/containers/podman/v4/utils"
@@ -33,16 +34,15 @@ type Registry struct {
 
 // Options allows for customizing a registry.
 type Options struct {
+	// PodmanPath - path to podman executable
+	PodmanPath string
+	// PodmanArgs - array of podman options
+	PodmanArgs []string
 	// Image - custom registry image.
 	Image string
 }
 
-// Start a new registry and return it along with it's image, user, password, and port.
-func Start() (*Registry, error) {
-	return StartWithOptions(nil)
-}
-
-// StartWithOptions a new registry and return it along with it's image, user, password, and port.
+// StartWithOptions a new registry and return it along with its image, user, password, and port.
 func StartWithOptions(options *Options) (*Registry, error) {
 	if options == nil {
 		options = &Options{}
@@ -54,8 +54,18 @@ func StartWithOptions(options *Options) (*Registry, error) {
 	}
 	args = append(args, "start")
 
+	podmanCmd := []string{"podman"}
+	if options.PodmanPath != "" {
+		podmanCmd[0] = options.PodmanPath
+	}
+	if len(options.PodmanArgs) != 0 {
+		podmanCmd = append(podmanCmd, options.PodmanArgs...)
+	}
+
 	// Start a registry.
+	os.Setenv("PODMAN", strings.Join(podmanCmd, " "))
 	out, err := utils.ExecCmd(binary, args...)
+	os.Unsetenv("PODMAN")
 	if err != nil {
 		return nil, fmt.Errorf("running %q: %s: %w", binary, out, err)
 	}

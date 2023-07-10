@@ -388,7 +388,11 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeo
 
 			logrus.Debugf("Removing container %s (depends on volume %q)", ctr.ID(), v.Name())
 
-			if err := r.removeContainer(ctx, ctr, force, false, false, false, timeout); err != nil {
+			opts := ctrRmOpts{
+				Force:   force,
+				Timeout: timeout,
+			}
+			if _, _, err := r.removeContainer(ctx, ctr, opts); err != nil {
 				return fmt.Errorf("removing container %s that depends on volume %s: %w", ctr.ID(), v.Name(), err)
 			}
 		}

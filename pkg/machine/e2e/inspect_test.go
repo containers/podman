@@ -1,8 +1,6 @@
 package e2e_test
 
 import (
-	"strings"
-
 	"github.com/containers/podman/v4/pkg/machine"
 	jsoniter "github.com/json-iterator/go"
 
@@ -67,7 +65,7 @@ var _ = Describe("podman machine stop", func() {
 		var inspectInfo []machine.InspectInfo
 		err = jsoniter.Unmarshal(inspectSession.Bytes(), &inspectInfo)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(strings.HasSuffix(inspectInfo[0].ConnectionInfo.PodmanSocket.GetPath(), "podman.sock"))
+		Expect(inspectInfo[0].ConnectionInfo.PodmanSocket.GetPath()).To(HaveSuffix("podman.sock"))
 
 		inspect := new(inspectMachine)
 		inspect = inspect.withFormat("{{.Name}}")

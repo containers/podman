@@ -33,6 +33,9 @@ func List(ctx context.Context, options *ListOptions) ([]*entities.SecretInfoRepo
 
 // Inspect returns low-level information about a secret.
 func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*entities.SecretInfoReport, error) {
+	if options == nil {
+		options = new(InspectOptions)
+	}
 	var (
 		inspect *entities.SecretInfoReport
 	)
@@ -40,12 +43,15 @@ func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*en
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/secrets/%s/json", nil, nil, nameOrID)
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
+	}
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/secrets/%s/json", params, nil, nameOrID)
 	if err != nil {
 		return inspect, err
 	}
 	defer response.Body.Close()
-
 	return inspect, response.Process(&inspect)
 }
 

@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
+	"dario.cat/mergo"
 	"github.com/containers/storage/pkg/homedir"
-	"github.com/imdario/mergo"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
@@ -957,8 +957,6 @@ func tlsConfigFor(c *restConfig) (*tls.Config, error) {
 	}
 
 	tlsConfig := &tls.Config{
-		// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
-		MinVersion:         tls.VersionTLS10,
 		InsecureSkipVerify: c.Insecure,
 	}
 

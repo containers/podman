@@ -1,8 +1,6 @@
 package integration
 
 import (
-	"os"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -158,10 +156,8 @@ var _ = Describe("Podman pod stop", func() {
 	})
 
 	It("podman pod start/stop single pod via --pod-id-file", func() {
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
+		tmpDir := GinkgoT().TempDir()
 		tmpFile := tmpDir + "podID"
-		defer os.RemoveAll(tmpDir)
 
 		podName := "rudolph"
 
@@ -187,9 +183,7 @@ var _ = Describe("Podman pod stop", func() {
 	})
 
 	It("podman pod start/stop multiple pods via --pod-id-file", func() {
-		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).ToNot(HaveOccurred())
-		defer os.RemoveAll(tmpDir)
+		tmpDir := GinkgoT().TempDir()
 
 		podIDFiles := []string{}
 		for _, i := range "0123456789" {

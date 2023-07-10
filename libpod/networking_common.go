@@ -583,10 +583,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 		}
 	}
 
-	ipv6, err := c.checkForIPv6(networkStatus)
-	if err != nil {
-		return err
-	}
+	ipv6 := c.checkForIPv6(networkStatus)
 
 	// Update resolv.conf if required
 	stringIPs := make([]string, 0, len(results[netName].DNSServerIPs))

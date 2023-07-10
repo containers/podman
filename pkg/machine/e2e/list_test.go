@@ -52,12 +52,12 @@ var _ = Describe("podman machine list", func() {
 		firstList, err := mb.setCmd(list.withQuiet()).run()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(firstList).Should(Exit(0))
-		Expect(firstList.outputToStringSlice()).To(HaveLen(0)) // No header with quiet
+		Expect(firstList.outputToStringSlice()).To(BeEmpty()) // No header with quiet
 
 		noheaderSession, err := mb.setCmd(list.withNoHeading()).run() // noheader
 		Expect(err).NotTo(HaveOccurred())
 		Expect(noheaderSession).Should(Exit(0))
-		Expect(noheaderSession.outputToStringSlice()).To(HaveLen(0))
+		Expect(noheaderSession.outputToStringSlice()).To(BeEmpty())
 
 		i := new(initMachine)
 		session, err := mb.setName(name1).setCmd(i.withImagePath(mb.imagePath)).run()

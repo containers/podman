@@ -328,6 +328,7 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 	query := struct {
 		All               bool   `schema:"all"`
 		CompressionFormat string `schema:"compressionFormat"`
+		CompressionLevel  *int   `schema:"compressionLevel"`
 		Format            string `schema:"format"`
 		RemoveSignatures  bool   `schema:"removeSignatures"`
 		TLSVerify         bool   `schema:"tlsVerify"`
@@ -366,6 +367,7 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 		All:               query.All,
 		Authfile:          authfile,
 		CompressionFormat: query.CompressionFormat,
+		CompressionLevel:  query.CompressionLevel,
 		Format:            query.Format,
 		Password:          password,
 		Quiet:             true,
