@@ -355,16 +355,10 @@ func (c *Container) execPSinContainer(args []string) ([]string, error) {
 	defer wPipe.Close()
 	defer rPipe.Close()
 
-	rErrPipe, wErrPipe, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
-	defer wErrPipe.Close()
-	defer rErrPipe.Close()
-
+	var errBuf bytes.Buffer
 	streams := new(define.AttachStreams)
 	streams.OutputStream = wPipe
-	streams.ErrorStream = wErrPipe
+	streams.ErrorStream = &errBuf
 	streams.AttachOutput = true
 	streams.AttachError = true
 
@@ -375,13 +369,6 @@ func (c *Container) execPSinContainer(args []string) ([]string, error) {
 			stdout = append(stdout, scanner.Text())
 		}
 	}()
-	stderr := []string{}
-	go func() {
-		scanner := bufio.NewScanner(rErrPipe)
-		for scanner.Scan() {
-			stderr = append(stderr, scanner.Text())
-		}
-	}()
 
 	cmd := append([]string{"ps"}, args...)
 	config := new(ExecConfig)
@@ -390,15 +377,13 @@ func (c *Container) execPSinContainer(args []string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	} else if ec != 0 {
-		return nil, fmt.Errorf("runtime failed with exit status: %d and output: %s", ec, strings.Join(stderr, " "))
+		return nil, fmt.Errorf("runtime failed with exit status: %d and output: %s", ec, errBuf.String())
 	}
 
 	if logrus.GetLevel() >= logrus.DebugLevel {
 		// If we're running in debug mode or higher, we might want to have a
 		// look at stderr which includes debug logs from conmon.
-		for _, log := range stderr {
-			logrus.Debugf("%s", log)
-		}
+		logrus.Debugf(errBuf.String())
 	}
 
 	return stdout, nil
