@@ -547,6 +547,7 @@ func PodStats(w http.ResponseWriter, r *http.Request) {
 	options := entities.PodStatsOptions{All: query.All}
 	if err := entities.ValidatePodStatsOptions(query.NamesOrIDs, &options); err != nil {
 		utils.InternalServerError(w, err)
+		return
 	}
 
 	var flush = func() {}

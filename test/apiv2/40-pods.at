@@ -103,6 +103,10 @@ t GET libpod/pods/stats?namesOrIDs=fakename 404 \
   .cause="no such pod" \
   .message="unable to get list of pods: no pod with name or ID fakename found: no such pod"
 
+t GET "libpod/pods/stats?all=true&namesOrIDs=foo" 500 \
+  .cause="--all, --latest and arguments cannot be used together" \
+  .message="--all, --latest and arguments cannot be used together"
+
 t DELETE  libpod/pods/bar?force=true 200
 
 # test the fake name
