@@ -363,7 +363,7 @@ github.com/coreos/stream-metadata-go/release
 github.com/coreos/stream-metadata-go/release/rhcos
 github.com/coreos/stream-metadata-go/stream
 github.com/coreos/stream-metadata-go/stream/rhcos
-# github.com/crc-org/vfkit v0.0.5-0.20230627112704-c9a4b0861530
+# github.com/crc-org/vfkit v0.1.1
 ## explicit; go 1.18
 github.com/crc-org/vfkit/pkg/rest/define
 # github.com/cyberphone/json-canonicalization v0.0.0-20230514072755-504adb8a8af1
