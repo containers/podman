@@ -58,7 +58,6 @@ type PodmanTestIntegration struct {
 	Host                HostOS
 	Timings             []string
 	TmpDir              string
-	RemoteStartErr      error
 }
 
 var LockTmpDir string
