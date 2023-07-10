@@ -15,7 +15,8 @@ func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader
 		WithDriver(options.Driver).
 		WithDriverOpts(options.DriverOpts).
 		WithName(name).
-		WithLabels(options.Labels)
+		WithLabels(options.Labels).
+		WithReplace(options.Replace)
 	created, err := secrets.Create(ic.ClientCtx, reader, opts)
 	if err != nil {
 		return nil, err
@@ -37,7 +38,7 @@ func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string
 				return nil, nil, err
 			}
 			if errModel.ResponseCode == 404 {
-				errs = append(errs, fmt.Errorf("no such secret %q", name))
+				errs = append(errs, fmt.Errorf("no secret with name or id %q: no such secret ", name))
 				continue
 			}
 			return nil, nil, err

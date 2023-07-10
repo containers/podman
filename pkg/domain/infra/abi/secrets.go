@@ -46,6 +46,7 @@ func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader
 	storeOpts := secrets.StoreOptions{
 		DriverOpts: options.DriverOpts,
 		Labels:     options.Labels,
+		Replace:    options.Replace,
 	}
 
 	secretID, err := manager.Store(name, data, options.Driver, storeOpts)
@@ -86,10 +87,13 @@ func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string
 		if secret.Labels == nil {
 			secret.Labels = make(map[string]string)
 		}
+		if secret.UpdatedAt.IsZero() {
+			secret.UpdatedAt = secret.CreatedAt
+		}
 		report := &entities.SecretInfoReport{
 			ID:        secret.ID,
 			CreatedAt: secret.CreatedAt,
-			UpdatedAt: secret.CreatedAt,
+			UpdatedAt: secret.UpdatedAt,
 			Spec: entities.SecretSpec{
 				Name: secret.Name,
 				Driver: entities.SecretDriverSpec{

@@ -36,6 +36,26 @@ var _ = Describe("Podman secret", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring("opt1:val"))
+
+		session = podmanTest.Podman([]string{"secret", "create", "-d", "file", "--driver-opts", "opt1=val1", "a", secretFilePath})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(Equal("Error: a: secret name in use"))
+
+		session = podmanTest.Podman([]string{"secret", "create", "-d", "file", "--driver-opts", "opt1=val1", "--replace", "a", secretFilePath})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Not(Equal(secrID)))
+
+		inspect = podmanTest.Podman([]string{"secret", "inspect", "-f", "{{.Spec.Driver.Options}}", secrID})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).To(ExitWithError())
+		Expect(inspect.ErrorToString()).To(ContainSubstring(fmt.Sprintf("Error: inspecting secret: no secret with name or id %q: no such secret", secrID)))
+
+		inspect = podmanTest.Podman([]string{"secret", "inspect", "-f", "{{.Spec.Driver.Options}}", "a"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring("opt1:val1"))
 	})
 
 	It("podman secret create bad name should fail", func() {
