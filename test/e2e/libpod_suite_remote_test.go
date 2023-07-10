@@ -6,6 +6,7 @@ package integration
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -94,7 +95,8 @@ func (p *PodmanTestIntegration) StartRemoteService() {
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	p.RemoteCommand = command
 	p.RemoteSession = command.Process
-	p.RemoteStartErr = p.DelayForService()
+	err = p.DelayForService()
+	Expect(err).ToNot(HaveOccurred())
 }
 
 func (p *PodmanTestIntegration) StopRemoteService() {
@@ -145,16 +147,15 @@ func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 }
 
 func (p *PodmanTestIntegration) DelayForService() error {
-	var session *PodmanSessionIntegration
-	for i := 0; i < 5; i++ {
-		session = p.Podman([]string{"info"})
-		session.WaitWithDefaultTimeout()
-		if session.ExitCode() == 0 {
+	var err error
+	var conn net.Conn
+	for i := 0; i < 100; i++ {
+		conn, err = net.Dial("unix", strings.TrimPrefix(p.RemoteSocket, "unix:"))
+		if err == nil {
+			conn.Close()
 			return nil
-		} else if i == 4 {
-			break
 		}
-		time.Sleep(2 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 	}
-	return fmt.Errorf("service not detected, exit code(%d)", session.ExitCode())
+	return fmt.Errorf("service socket not detected, timeout after 10 seconds: %w", err)
 }

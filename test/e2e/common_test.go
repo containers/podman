@@ -57,7 +57,6 @@ type PodmanTestIntegration struct {
 	CgroupManager       string
 	Host                HostOS
 	TmpDir              string
-	RemoteStartErr      error
 }
 
 var LockTmpDir string
