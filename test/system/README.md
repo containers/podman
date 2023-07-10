@@ -82,7 +82,15 @@ the function or perhaps just a substring.
 Requirements
 ============
 
-The `jq` tool is needed for parsing JSON output.
+- bats
+- jq
+- skopeo
+- nmap-ncat
+- httpd-tools
+- openssl
+- socat
+- buildah
+- gnupg
 
 
 Further Details
