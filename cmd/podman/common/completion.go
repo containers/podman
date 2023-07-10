@@ -19,6 +19,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/containers/podman/v4/pkg/inspect"
 	"github.com/containers/podman/v4/pkg/signal"
 	systemdDefine "github.com/containers/podman/v4/pkg/systemd/define"
 	"github.com/containers/podman/v4/pkg/util"
@@ -1178,41 +1179,47 @@ func AutocompleteFormat(o interface{}) func(cmd *cobra.Command, args []string, t
 		if strings.HasPrefix("json", toComplete) {
 			return []string{"json"}, cobra.ShellCompDirectiveNoFileComp
 		}
+
+		// special(expensive) flow for "podman inspect"
+		if cmd != nil && cmd.Name() == "inspect" && cmd.Parent() == cmd.Root() {
+			if len(args) == 0 {
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			} else {
+				found := false
+				// container logic
+				if containers, _ := getContainers(cmd, args[0], completeDefault); len(containers) > 0 {
+					o = &define.InspectContainerData{}
+					found = true
+				}
+
+				// image logic
+				if images, _ := getImages(cmd, args[0]); len(images) > 0 && !found {
+					o = &inspect.ImageData{}
+					found = true
+				}
+
+				// volume logic
+				if volumes, _ := getVolumes(cmd, args[0]); len(volumes) > 0 && !found {
+					o = &define.InspectVolumeData{}
+					found = true
+				}
+
+				// pod logic
+				if pods, _ := getPods(cmd, args[0], completeDefault); len(pods) > 0 && !found {
+					o = &entities.PodInspectReport{}
+					found = true
+				}
+
+				// network logic
+				if networks, _ := getNetworks(cmd, args[0], completeDefault); len(networks) > 0 && !found {
+					o = &types.Network{}
+				}
+			}
+		}
+
 		// no input struct we cannot provide completion return nothing
 		if o == nil {
 			return nil, cobra.ShellCompDirectiveNoFileComp
-		}
-
-		// add suggestions for: podman inspect (it will default to container inspect)
-		switch reflect.TypeOf(o).String() {
-		case "*define.InspectContainerData":
-			if containers, _ := getContainers(cmd, args[0], completeDefault); len(containers) == 0 { // there might be a panic here when args length is 0. Is it assured that args will not be empty?
-				return nil, cobra.ShellCompDirectiveNoFileComp
-			}
-			// =============================================================================================
-			// Suggestion: We can add auto-completion for following types, handle-logic needs to be developed.
-
-			// 	break
-			// case "*inspect.ImageData":
-			// 	if images, _ := getImages(cmd, args[0]); len(images) == 0 {
-			// 		return nil, cobra.ShellCompDirectiveNoFileComp
-			// 	}
-			// 	break
-			// case "*define.InspectVolumeData":
-			// 	if volumes, _ := getVolumes(cmd, args[0]); len(volumes) == 0 {
-			// 		return nil, cobra.ShellCompDirectiveNoFileComp
-			// 	}
-			// 	break
-			// case "*entities.PodInspectReport":
-			// 	if pods, _ := getPods(cmd, args[0], completeDefault); len(pods) == 0 {
-			// 		return nil, cobra.ShellCompDirectiveNoFileComp
-			// 	}
-			// 	break
-			// case "*types.Network":
-			// 	if networks, _ := getNetworks(cmd, args[0], completeDefault); len(networks) == 0 {
-			// 		return nil, cobra.ShellCompDirectiveNoFileComp
-			// 	}
-			// =======================================================================================
 		}
 
 		// toComplete could look like this: {{ .Config }} {{ .Field.F

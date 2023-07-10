@@ -13,7 +13,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
-	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
@@ -28,7 +27,7 @@ func AddInspectFlagSet(cmd *cobra.Command) *entities.InspectOptions {
 
 	formatFlagName := "format"
 	flags.StringVarP(&opts.Format, formatFlagName, "f", "json", "Format the output to a Go template or json")
-	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&define.InspectContainerData{}))
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(nil)) // passing nil as the type selection logic is in AutocompleteFormat function
 
 	typeFlagName := "type"
 	flags.StringVarP(&opts.Type, typeFlagName, "t", common.AllType, "Specify inspect-object type")
