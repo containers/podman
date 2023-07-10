@@ -92,7 +92,12 @@ func Inspect(ctx context.Context, name string, options *InspectOptions) (*manife
 		params.Set("tlsVerify", strconv.FormatBool(!options.GetSkipTLSVerify()))
 	}
 
-	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/manifests/%s/json", params, nil, name)
+	header, err := auth.MakeXRegistryAuthHeader(&imageTypes.SystemContext{AuthFilePath: options.GetAuthfile()}, "", "")
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/manifests/%s/json", params, header, name)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +130,12 @@ func InspectListData(ctx context.Context, name string, options *InspectOptions) 
 		params.Set("tlsVerify", strconv.FormatBool(!options.GetSkipTLSVerify()))
 	}
 
-	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/manifests/%s/json", params, nil, name)
+	header, err := auth.MakeXRegistryAuthHeader(&imageTypes.SystemContext{AuthFilePath: options.GetAuthfile()}, "", "")
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/manifests/%s/json", params, header, name)
 	if err != nil {
 		return nil, err
 	}

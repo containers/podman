@@ -14,6 +14,8 @@ type ManifestCreateOptions struct {
 
 // ManifestInspectOptions provides model for inspecting manifest
 type ManifestInspectOptions struct {
+	// Path to an authentication file.
+	Authfile string `json:"-" schema:"-"`
 	// Should TLS registry certificate be verified?
 	SkipTLSVerify types.OptionalBool `json:"-" schema:"-"`
 }

@@ -153,12 +153,19 @@ func ManifestInspect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	imageEngine := abi.ImageEngine{Libpod: runtime}
-	opts := entities.ManifestInspectOptions{}
+	_, authfile, err := auth.GetCredentials(r)
+	if err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
+		return
+	}
+	defer auth.RemoveAuthfile(authfile)
+
+	opts := entities.ManifestInspectOptions{Authfile: authfile}
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		opts.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
 	}
 
+	imageEngine := abi.ImageEngine{Libpod: runtime}
 	rawManifest, err := imageEngine.ManifestInspect(r.Context(), name, opts)
 	if err != nil {
 		utils.Error(w, http.StatusNotFound, err)

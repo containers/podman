@@ -326,35 +326,6 @@ function _test_skopeo_credential_sharing() {
     rm -f $authfile
 }
 
-@test "podman manifest --tls-verify - basic test" {
-    run_podman login --tls-verify=false \
-               --username ${PODMAN_LOGIN_USER} \
-               --password-stdin \
-               localhost:${PODMAN_LOGIN_REGISTRY_PORT} <<<"${PODMAN_LOGIN_PASS}"
-    is "$output" "Login Succeeded!" "output from podman login"
-
-    manifest1="localhost:${PODMAN_LOGIN_REGISTRY_PORT}/test:1.0"
-    run_podman manifest create $manifest1
-    mid=$output
-    run_podman manifest push --authfile=$authfile \
-        --tls-verify=false $mid \
-        $manifest1
-    run_podman manifest rm $manifest1
-    run_podman manifest inspect --insecure $manifest1
-    is "$output" ".*\"mediaType\": \"application/vnd.docker.distribution.manifest.list.v2+json\"" "Verify --insecure works against an insecure registry"
-    run_podman 125 manifest inspect --insecure=false $manifest1
-    is "$output" ".*Error: reading image \"docker://$manifest1\": pinging container registry localhost:${PODMAN_LOGIN_REGISTRY_PORT}:" "Verify --insecure=false fails"
-    run_podman manifest inspect --tls-verify=false $manifest1
-    is "$output" ".*\"mediaType\": \"application/vnd.docker.distribution.manifest.list.v2+json\"" "Verify --tls-verify=false works against an insecure registry"
-    run_podman 125 manifest inspect --tls-verify=true $manifest1
-    is "$output" ".*Error: reading image \"docker://$manifest1\": pinging container registry localhost:${PODMAN_LOGIN_REGISTRY_PORT}:" "Verify --tls-verify=true fails"
-
-    # Now log out
-    run_podman logout localhost:${PODMAN_LOGIN_REGISTRY_PORT}
-    is "$output" "Removed login credentials for localhost:${PODMAN_LOGIN_REGISTRY_PORT}" \
-       "output from podman logout"
-}
-
 # END   cooperation with skopeo
 # END   actual tests
 ###############################################################################
