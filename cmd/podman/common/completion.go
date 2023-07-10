@@ -1183,12 +1183,6 @@ func AutocompleteFormat(o interface{}) func(cmd *cobra.Command, args []string, t
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
 
-		// if len(args) > 0 {
-		// 	if containers, _ := getContainers(cmd, args[0], completeDefault); len(containers) == 0 {
-		// 		return nil, cobra.ShellCompDirectiveNoFileComp
-		// 	}
-		// }
-
 		// add suggestions for: podman inspect (it will default to container inspect)
 		switch reflect.TypeOf(o).String() {
 		case "*define.InspectContainerData":
