@@ -106,6 +106,10 @@ func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string, opts en
 func (ir *ImageEngine) remoteManifestInspect(ctx context.Context, name string, opts entities.ManifestInspectOptions) ([]byte, error) {
 	sys := ir.Libpod.SystemContext()
 
+	if opts.Authfile != "" {
+		sys.AuthFilePath = opts.Authfile
+	}
+
 	sys.DockerInsecureSkipTLSVerify = opts.SkipTLSVerify
 	if opts.SkipTLSVerify == types.OptionalBoolTrue {
 		sys.OCIInsecureSkipTLSVerify = true
