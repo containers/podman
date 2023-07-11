@@ -4533,7 +4533,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 	It("podman play kube using a user namespace", func() {
 		u, err := user.Current()
 		Expect(err).ToNot(HaveOccurred())
-		name := u.Name
+		name := u.Username
 		if name == "root" {
 			name = "containers"
 		}
