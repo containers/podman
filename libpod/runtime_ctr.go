@@ -282,6 +282,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 					return nil, errors.New("failed to find free network interface name")
 				}
 			}
+			opts.Aliases = append(opts.Aliases, getExtraNetworkAliases(ctr)...)
 
 			normalizeNetworks[netName] = opts
 		}
