@@ -282,8 +282,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 					return nil, errors.New("failed to find free network interface name")
 				}
 			}
-			// always add the short id as alias for docker compat
-			opts.Aliases = append(opts.Aliases, ctr.config.ID[:12])
+			opts.Aliases = append(opts.Aliases, getExtraNetworkAliases(ctr)...)
 
 			normalizeNetworks[netName] = opts
 		}
