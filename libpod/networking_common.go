@@ -513,8 +513,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 	// get network status before we connect
 	networkStatus := c.getNetworkStatus()
 
-	// always add the short id as alias for docker compat
-	netOpts.Aliases = append(netOpts.Aliases, c.config.ID[:12])
+	netOpts.Aliases = append(netOpts.Aliases, getExtraNetworkAliases(c)...)
 
 	if netOpts.InterfaceName == "" {
 		netOpts.InterfaceName = getFreeInterfaceName(networks)
@@ -637,6 +636,16 @@ func getFreeInterfaceName(networks map[string]types.PerNetworkOptions) string {
 		}
 	}
 	return ""
+}
+
+func getExtraNetworkAliases(c *Container) []string {
+	// always add the short id as alias for docker compat
+	alias := []string{c.config.ID[:12]}
+	// if an explicit hostname was set add it as well
+	if c.config.Spec.Hostname != "" {
+		alias = append(alias, c.config.Spec.Hostname)
+	}
+	return alias
 }
 
 // DisconnectContainerFromNetwork removes a container from its network
