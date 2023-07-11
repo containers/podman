@@ -607,8 +607,6 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		if opts.InterfaceName == "" {
 			return fmt.Errorf("network interface name cannot be an empty string: %w", define.ErrInvalidArg)
 		}
-		// always add the short id as alias for docker compat
-		opts.Aliases = append(opts.Aliases, ctr.config.ID[:12])
 		optBytes, err := json.Marshal(opts)
 		if err != nil {
 			return fmt.Errorf("marshalling network options JSON for container %s: %w", ctr.ID(), err)
