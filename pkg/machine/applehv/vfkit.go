@@ -4,6 +4,7 @@
 package applehv
 
 import (
+	"github.com/containers/podman/v4/pkg/machine"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
 )
 
@@ -51,4 +52,11 @@ func getDebugDevices() ([]vfConfig.VirtioDevice, error) {
 
 func getIgnitionVsockDevice(path string) (vfConfig.VirtioDevice, error) {
 	return vfConfig.VirtioVsockNew(1024, path, true)
+}
+
+func VirtIOFsToVFKitVirtIODevice(fs machine.VirtIoFs) vfConfig.VirtioFs {
+	return vfConfig.VirtioFs{
+		SharedDir: fs.Source,
+		MountTag:  fs.Tag,
+	}
 }
