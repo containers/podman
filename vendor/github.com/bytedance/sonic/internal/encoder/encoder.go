@@ -21,6 +21,7 @@ import (
     `encoding/json`
     `reflect`
     `runtime`
+    `unsafe`
 
     `github.com/bytedance/sonic/internal/native`
     `github.com/bytedance/sonic/internal/native/types`
@@ -161,8 +162,10 @@ func Quote(s string) string {
 
 // Encode returns the JSON encoding of val, encoded with opts.
 func Encode(val interface{}, opts Options) ([]byte, error) {
+    var ret []byte
+
     buf := newBytes()
-    err := EncodeInto(&buf, val, opts)
+    err := encodeInto(&buf, val, opts)
 
     /* check for errors */
     if err != nil {
@@ -170,12 +173,20 @@ func Encode(val interface{}, opts Options) ([]byte, error) {
         return nil, err
     }
 
-    if opts & EscapeHTML != 0 || opts & ValidateString != 0  {
+    /* htmlescape or correct UTF-8 if opts enable */
+    old := buf
+    buf = encodeFinish(old, opts)
+    pbuf := ((*rt.GoSlice)(unsafe.Pointer(&buf))).Ptr
+    pold := ((*rt.GoSlice)(unsafe.Pointer(&old))).Ptr
+
+    /* return when allocated a new buffer */
+    if pbuf != pold {
+        freeBytes(old)
         return buf, nil
     }
 
     /* make a copy of the result */
-    ret := make([]byte, len(buf))
+    ret = make([]byte, len(buf))
     copy(ret, buf)
 
     freeBytes(buf)
@@ -186,6 +197,15 @@ func Encode(val interface{}, opts Options) ([]byte, error) {
 // EncodeInto is like Encode but uses a user-supplied buffer instead of allocating
 // a new one.
 func EncodeInto(buf *[]byte, val interface{}, opts Options) error {
+    err := encodeInto(buf, val, opts)
+    if err != nil {
+        return err
+    }
+    *buf = encodeFinish(*buf, opts)
+    return err
+}
+
+func encodeInto(buf *[]byte, val interface{}, opts Options) error {
     stk := newStack()
     efv := rt.UnpackEface(val)
     err := encodeTypedPointer(buf, efv.Type, &efv.Value, stk, uint64(opts))
@@ -196,23 +216,20 @@ func EncodeInto(buf *[]byte, val interface{}, opts Options) error {
     }
     freeStack(stk)
 
-    /* EscapeHTML needs to allocate a new buffer*/
-    if opts & EscapeHTML != 0 {
-        dest := HTMLEscape(nil, *buf)
-        freeBytes(*buf) // free origin used buffer
-        *buf = dest
-    }
-
-    if opts & ValidateString != 0 && !utf8.Validate(*buf) {
-        dest := utf8.CorrectWith(nil, *buf, `\ufffd`)
-        freeBytes(*buf) // free origin used buffer
-        *buf = dest
-    }
-
     /* avoid GC ahead */
     runtime.KeepAlive(buf)
     runtime.KeepAlive(efv)
     return err
+}
+
+func encodeFinish(buf []byte, opts Options) []byte {
+    if opts & EscapeHTML != 0 {
+        buf = HTMLEscape(nil, buf)
+    }
+    if opts & ValidateString != 0 && !utf8.Validate(buf) {
+        buf = utf8.CorrectWith(nil, buf, `\ufffd`)
+    }
+    return buf
 }
 
 var typeByte = rt.UnpackType(reflect.TypeOf(byte(0)))

@@ -152,8 +152,8 @@ func resolveFields(vt reflect.Type) []FieldMeta {
         }
 
         /* get the index to the last offset */
-        fvt := fv.typ
         idx := len(path) - 1
+        fvt := path[idx].Type
 
         /* do not dereference into fields */
         if path[idx].Kind == F_deref {

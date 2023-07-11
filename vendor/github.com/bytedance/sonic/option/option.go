@@ -16,6 +16,14 @@
 
 package option
 
+var (
+    // DefaultDecoderBufferSize is the initial buffer size of StreamDecoder
+    DefaultDecoderBufferSize  uint = 128 * 1024
+
+    // DefaultEncoderBufferSize is the initial buffer size of Encoder
+    DefaultEncoderBufferSize  uint = 128 * 1024
+)
+
 // CompileOptions includes all options for encoder or decoder compiler.
 type CompileOptions struct {
     // the maximum depth for compilation inline

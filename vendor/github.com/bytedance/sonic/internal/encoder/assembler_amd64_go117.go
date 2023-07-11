@@ -539,7 +539,8 @@ func (self *_Assembler) call_marshaler(fn obj.Addr, it *rt.GoType, vt reflect.Ty
     switch vt.Kind() {
         case reflect.Interface        : self.call_marshaler_i(fn, it)
         case reflect.Ptr, reflect.Map : self.call_marshaler_v(fn, it, vt, true)
-        default                       : self.call_marshaler_v(fn, it, vt, false)
+        // struct/array of 1 direct iface type can be direct
+        default                       : self.call_marshaler_v(fn, it, vt, !rt.UnpackType(vt).Indirect())
     }
 }
 

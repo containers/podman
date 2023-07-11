@@ -98,6 +98,7 @@ const (
     _OP_dismatch_err
     _OP_go_skip
     _OP_add
+    _OP_check_empty
     _OP_debug
 )
 
@@ -174,6 +175,9 @@ var _OpNames = [256]string {
     _OP_check_char_0     : "check_char_0",
     _OP_dismatch_err     : "dismatch_err",
     _OP_add              : "add",
+    _OP_go_skip          : "go_skip",
+    _OP_check_empty      : "check_empty",
+    _OP_debug            : "debug",
 }
 
 func (self _Op) String() string {
@@ -639,11 +643,6 @@ func (self *_Compiler) compileMapOp(p *_Program, sp int, vt reflect.Type, op _Op
     skip2 := p.pc()
     p.rtt(op, vt)
 
-    /* match the closing quote if needed */
-    if op != _OP_map_key_str && op != _OP_map_key_utext && op != _OP_map_key_utext_p {
-        p.chr(_OP_match_char, '"')
-    }
-
     /* match the value separator */
     p.add(_OP_lspace)
     p.chr(_OP_match_char, ':')
@@ -659,11 +658,6 @@ func (self *_Compiler) compileMapOp(p *_Program, sp int, vt reflect.Type, op _Op
     p.chr(_OP_match_char, '"')
     skip3 := p.pc()
     p.rtt(op, vt)
-
-    /* match the closing quote if needed */
-    if op != _OP_map_key_str && op != _OP_map_key_utext && op != _OP_map_key_utext_p {
-        p.chr(_OP_match_char, '"')
-    }
 
     /* match the value separator */
     p.add(_OP_lspace)
@@ -689,12 +683,37 @@ func (self *_Compiler) compilePtr(p *_Program, sp int, et reflect.Type) {
 
     /* dereference all the way down */
     for et.Kind() == reflect.Ptr {
+        if et.Implements(jsonUnmarshalerType) {
+            p.rtt(_OP_unmarshal_p, et)
+            return
+        }
+
+        if et.Implements(encodingTextUnmarshalerType) {
+            p.add(_OP_lspace)
+            self.compileUnmarshalTextPtr(p, et)
+            return
+        }
+
         et = et.Elem()
         p.rtt(_OP_deref, et)
     }
 
-    /* compile the element type */
-    self.compileOne(p, sp + 1, et)
+    /* check for recursive nesting */
+    ok := self.tab[et]
+    if ok {
+        p.rtt(_OP_recurse, et)
+    } else {
+        /* enter the recursion */
+        p.add(_OP_lspace)
+        self.tab[et] = true
+        
+        /* not inline the pointer type
+        * recursing the defined pointer type's elem will casue issue379.
+        */
+        self.compileOps(p, sp, et)
+    }
+    delete(self.tab, et)
+
     j := p.pc()
     p.add(_OP_goto)
     p.pin(i)
@@ -791,11 +810,11 @@ func (self *_Compiler) compileSliceList(p *_Program, sp int, vt reflect.Type) {
 }
 
 func (self *_Compiler) compileSliceBody(p *_Program, sp int, et reflect.Type) {
-    p.rtt(_OP_slice_init, et)
-    p.add(_OP_save)
     p.add(_OP_lspace)
     j := p.pc()
-    p.chr(_OP_check_char, ']')
+    p.chr(_OP_check_empty, ']')
+    p.rtt(_OP_slice_init, et)
+    p.add(_OP_save)
     p.rtt(_OP_slice_append, et)
     self.compileOne(p, sp + 1, et)
     p.add(_OP_load)
@@ -808,9 +827,9 @@ func (self *_Compiler) compileSliceBody(p *_Program, sp int, et reflect.Type) {
     self.compileOne(p, sp + 1, et)
     p.add(_OP_load)
     p.int(_OP_goto, k0)
-    p.pin(j)
     p.pin(k1)
     p.add(_OP_drop)
+    p.pin(j)
 }
 
 func (self *_Compiler) compileString(p *_Program, vt reflect.Type) {

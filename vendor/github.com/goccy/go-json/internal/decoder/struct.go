@@ -51,6 +51,14 @@ func init() {
 	}
 }
 
+func toASCIILower(s string) string {
+	b := []byte(s)
+	for i := range b {
+		b[i] = largeToSmallTable[b[i]]
+	}
+	return string(b)
+}
+
 func newStructDecoder(structName, fieldName string, fieldMap map[string]*structFieldSet) *structDecoder {
 	return &structDecoder{
 		fieldMap:         fieldMap,
@@ -91,6 +99,10 @@ func (d *structDecoder) tryOptimize() {
 	for k, v := range d.fieldMap {
 		key := strings.ToLower(k)
 		if key != k {
+			if key != toASCIILower(k) {
+				d.isTriedOptimize = true
+				return
+			}
 			// already exists same key (e.g. Hello and HELLO has same lower case key
 			if _, exists := conflicted[key]; exists {
 				d.isTriedOptimize = true
@@ -158,49 +170,53 @@ func (d *structDecoder) tryOptimize() {
 }
 
 // decode from '\uXXXX'
-func decodeKeyCharByUnicodeRune(buf []byte, cursor int64) ([]byte, int64) {
+func decodeKeyCharByUnicodeRune(buf []byte, cursor int64) ([]byte, int64, error) {
 	const defaultOffset = 4
 	const surrogateOffset = 6
+
+	if cursor+defaultOffset >= int64(len(buf)) {
+		return nil, 0, errors.ErrUnexpectedEndOfJSON("escaped string", cursor)
+	}
 
 	r := unicodeToRune(buf[cursor : cursor+defaultOffset])
 	if utf16.IsSurrogate(r) {
 		cursor += defaultOffset
 		if cursor+surrogateOffset >= int64(len(buf)) || buf[cursor] != '\\' || buf[cursor+1] != 'u' {
-			return []byte(string(unicode.ReplacementChar)), cursor + defaultOffset - 1
+			return []byte(string(unicode.ReplacementChar)), cursor + defaultOffset - 1, nil
 		}
 		cursor += 2
 		r2 := unicodeToRune(buf[cursor : cursor+defaultOffset])
 		if r := utf16.DecodeRune(r, r2); r != unicode.ReplacementChar {
-			return []byte(string(r)), cursor + defaultOffset - 1
+			return []byte(string(r)), cursor + defaultOffset - 1, nil
 		}
 	}
-	return []byte(string(r)), cursor + defaultOffset - 1
+	return []byte(string(r)), cursor + defaultOffset - 1, nil
 }
 
-func decodeKeyCharByEscapedChar(buf []byte, cursor int64) ([]byte, int64) {
+func decodeKeyCharByEscapedChar(buf []byte, cursor int64) ([]byte, int64, error) {
 	c := buf[cursor]
 	cursor++
 	switch c {
 	case '"':
-		return []byte{'"'}, cursor
+		return []byte{'"'}, cursor, nil
 	case '\\':
-		return []byte{'\\'}, cursor
+		return []byte{'\\'}, cursor, nil
 	case '/':
-		return []byte{'/'}, cursor
+		return []byte{'/'}, cursor, nil
 	case 'b':
-		return []byte{'\b'}, cursor
+		return []byte{'\b'}, cursor, nil
 	case 'f':
-		return []byte{'\f'}, cursor
+		return []byte{'\f'}, cursor, nil
 	case 'n':
-		return []byte{'\n'}, cursor
+		return []byte{'\n'}, cursor, nil
 	case 'r':
-		return []byte{'\r'}, cursor
+		return []byte{'\r'}, cursor, nil
 	case 't':
-		return []byte{'\t'}, cursor
+		return []byte{'\t'}, cursor, nil
 	case 'u':
 		return decodeKeyCharByUnicodeRune(buf, cursor)
 	}
-	return nil, cursor
+	return nil, cursor, nil
 }
 
 func decodeKeyByBitmapUint8(d *structDecoder, buf []byte, cursor int64) (int64, *structFieldSet, error) {
@@ -242,7 +258,10 @@ func decodeKeyByBitmapUint8(d *structDecoder, buf []byte, cursor int64) (int64, 
 					return 0, nil, errors.ErrUnexpectedEndOfJSON("string", cursor)
 				case '\\':
 					cursor++
-					chars, nextCursor := decodeKeyCharByEscapedChar(buf, cursor)
+					chars, nextCursor, err := decodeKeyCharByEscapedChar(buf, cursor)
+					if err != nil {
+						return 0, nil, err
+					}
 					for _, c := range chars {
 						curBit &= bitmap[keyIdx][largeToSmallTable[c]]
 						if curBit == 0 {
@@ -305,7 +324,10 @@ func decodeKeyByBitmapUint16(d *structDecoder, buf []byte, cursor int64) (int64,
 					return 0, nil, errors.ErrUnexpectedEndOfJSON("string", cursor)
 				case '\\':
 					cursor++
-					chars, nextCursor := decodeKeyCharByEscapedChar(buf, cursor)
+					chars, nextCursor, err := decodeKeyCharByEscapedChar(buf, cursor)
+					if err != nil {
+						return 0, nil, err
+					}
 					for _, c := range chars {
 						curBit &= bitmap[keyIdx][largeToSmallTable[c]]
 						if curBit == 0 {

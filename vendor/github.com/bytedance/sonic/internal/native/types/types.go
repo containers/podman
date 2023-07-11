@@ -76,6 +76,10 @@ const (
     ERR_FLOAT_INFINITY     ParsingError = 8
     ERR_MISMATCH           ParsingError = 9
     ERR_INVALID_UTF8       ParsingError = 10
+
+    // error code used in ast
+    ERR_NOT_FOUND          ParsingError = 33
+    ERR_UNSUPPORT_TYPE     ParsingError = 34
 )
 
 var _ParsingErrors = []string{

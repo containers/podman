@@ -1541,13 +1541,19 @@ var (
     emptyObjectNode = Node{t: types.V_OBJECT}
 )
 
-// NewRaw creates a node of raw json, and decides its type by first char.
+// NewRaw creates a node of raw json.
+// If the input json is invalid, NewRaw returns a error Node.
 func NewRaw(json string) Node {
-    if json == "" {
-        panic("empty json string")
+    parser := NewParser(json)
+    start, err := parser.skip()
+    if err != 0 {
+        return *newError(err, err.Message()) 
     }
-    it := switchRawType(json[0])
-    return newRawNode(json, it)
+    it := switchRawType(parser.s[start])
+    if it == _V_NONE {
+        return Node{}
+    }
+    return newRawNode(parser.s[start:parser.p], it)
 }
 
 // NewAny creates a node of type V_ANY if any's type isn't Node or *Node, 
