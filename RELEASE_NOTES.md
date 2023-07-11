@@ -9,6 +9,7 @@
 - The `--ip-range` option to the `podman network create` command now accepts a new syntax, `<startIP>-<endIP>`, which allows more flexibility when limiting the ip range that Podman assigns.
 - [Tech Preview] A new command, `podmansh`, has been added, which executes a user shell within a container when the user logs into the system. The container that the users get added to can be defined via a Podman Quadlet file. This feature is currently a `Tech Preview` which means it's ready for users to try out but changes can be expected in upcoming versions.
 - The `podman network create` command supports a new `--option`, `bclim`, for the `macvlan` driver.
+- The `podman network create` command supports a new `--route` flag to set static routes.
 - The `podman info` command now prints network information about the binary path, package version, program version and DNS information ([#18443](https://github.com/containers/podman/issues/18443)).
 - The `podman info` command now displays the number of free locks available, helping to debug lock exhaustion scenarios.
 - The `podman info` command now outputs information about pasta, if it exists in helper_binaries_dir or $PATH.
