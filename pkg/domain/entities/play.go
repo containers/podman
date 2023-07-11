@@ -59,6 +59,9 @@ type PlayKubeOptions struct {
 	Start types.OptionalBool
 	// ServiceContainer - creates a service container that is started before and is stopped after all pods.
 	ServiceContainer bool
+	// UseLongAnnotations - use annotations that were not truncated to the
+	// Kubernetes maximum length of 63 characters
+	UseLongAnnotations bool
 	// Userns - define the user namespace to use.
 	Userns string
 	// IsRemote - was the request triggered by running podman-remote

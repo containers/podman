@@ -273,6 +273,21 @@ func (o *PlayOptions) GetStart() bool {
 	return *o.Start
 }
 
+// WithNoTrunc set field NoTrunc to given value
+func (o *PlayOptions) WithNoTrunc(value bool) *PlayOptions {
+	o.NoTrunc = &value
+	return o
+}
+
+// GetNoTrunc returns value of field NoTrunc
+func (o *PlayOptions) GetNoTrunc() bool {
+	if o.NoTrunc == nil {
+		var z bool
+		return z
+	}
+	return *o.NoTrunc
+}
+
 // WithUserns set field Userns to given value
 func (o *PlayOptions) WithUserns(value string) *PlayOptions {
 	o.Userns = &value

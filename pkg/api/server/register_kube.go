@@ -58,6 +58,11 @@ func (s *APIServer) registerKubeHandlers(r *mux.Router) error {
 	//    type: boolean
 	//    default: false
 	//    description: Clean up all objects created when a SIGTERM is received or pods exit.
+	//  - in: query
+	//    name: noTrunc
+	//    type: boolean
+	//    default: false
+	//    description: use annotations that are not truncated to the Kubernetes maximum length of 63 characters
 	//  - in: body
 	//    name: request
 	//    description: Kubernetes YAML file.
@@ -125,6 +130,11 @@ func (s *APIServer) registerKubeHandlers(r *mux.Router) error {
 	//    format: int32
 	//    default: 0
 	//    description: Set the replica number for Deployment kind.
+	//  - in: query
+	//    name: noTrunc
+	//    type: boolean
+	//    default: false
+	//    description: don't truncate annotations to the Kubernetes maximum length of 63 characters
 	// produces:
 	// - text/vnd.yaml
 	// - application/json

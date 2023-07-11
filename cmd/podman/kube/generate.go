@@ -81,6 +81,9 @@ func generateFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 	flags.Int32VarP(&generateOptions.Replicas, replicasFlagName, "r", 1, "Set the replicas number for Deployment kind")
 	_ = cmd.RegisterFlagCompletionFunc(replicasFlagName, completion.AutocompleteNone)
 
+	noTruncAnnotationsFlagName := "no-trunc"
+	flags.BoolVar(&generateOptions.UseLongAnnotations, noTruncAnnotationsFlagName, false, "Don't truncate annotations to Kubernetes length (63 chars)")
+
 	flags.SetNormalizeFunc(utils.AliasFlags)
 }
 

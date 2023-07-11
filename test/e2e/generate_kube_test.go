@@ -1559,4 +1559,102 @@ USER test1`
 		Expect(pod.Name).To(Equal("testpod"))
 		Expect(pod.Spec.Hostname).To(Equal(""))
 	})
+
+	It("podman kube generate --no-trunc on container with long annotation", func() {
+		ctrName := "demo"
+		vol1 := filepath.Join(podmanTest.TempDir, RandomString(99))
+		err := os.MkdirAll(vol1, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		session := podmanTest.Podman([]string{"create", "-v", vol1 + ":/tmp/foo:Z", "--name", ctrName, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--no-trunc", ctrName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(pod.Annotations).To(HaveKeyWithValue(define.BindMountPrefix, vol1+":Z"))
+		Expect(pod.Annotations).To(Not(HaveKeyWithValue(define.BindMountPrefix, vol1[:define.MaxKubeAnnotation])))
+	})
+
+	It("podman kube generate on container with long annotation", func() {
+		ctrName := "demo"
+		vol1 := filepath.Join(podmanTest.TempDir, RandomString(99))
+		err := os.MkdirAll(vol1, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		session := podmanTest.Podman([]string{"create", "-v", vol1 + ":/tmp/foo:Z", "--name", ctrName, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", ctrName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(pod.Annotations).To(HaveKeyWithValue(define.BindMountPrefix, vol1[:define.MaxKubeAnnotation]))
+		Expect(pod.Annotations).To(Not(HaveKeyWithValue(define.BindMountPrefix, vol1+":Z")))
+	})
+
+	It("podman kube generate --no-trunc on pod with long annotation", func() {
+		ctrName := "demoCtr"
+		podName := "demoPod"
+		vol1 := filepath.Join(podmanTest.TempDir, RandomString(99))
+		err := os.MkdirAll(vol1, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		session := podmanTest.Podman([]string{"pod", "create", podName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"create", "-v", vol1 + ":/tmp/foo:Z", "--name", ctrName, "--pod", podName, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--no-trunc", podName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(pod.Annotations).To(HaveKeyWithValue(define.BindMountPrefix, vol1+":Z"))
+		Expect(pod.Annotations).To(Not(HaveKeyWithValue(define.BindMountPrefix, vol1[:define.MaxKubeAnnotation])))
+	})
+
+	It("podman kube generate on pod with long annotation", func() {
+		ctrName := "demoCtr"
+		podName := "demoPod"
+		vol1 := filepath.Join(podmanTest.TempDir, RandomString(99))
+		err := os.MkdirAll(vol1, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		session := podmanTest.Podman([]string{"pod", "create", podName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"create", "-v", vol1 + ":/tmp/foo:Z", "--name", ctrName, "--pod", podName, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", podName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(pod.Annotations).To(HaveKeyWithValue(define.BindMountPrefix, vol1[:define.MaxKubeAnnotation]))
+		Expect(pod.Annotations).To(Not(HaveKeyWithValue(define.BindMountPrefix, vol1+":Z")))
+	})
 })

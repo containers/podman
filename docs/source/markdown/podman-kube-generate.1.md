@@ -34,6 +34,11 @@ Note that the generated Kubernetes YAML file can be used to re-run the deploymen
 
 Output to the given file instead of STDOUT. If the file already exists, `kube generate` refuses to replace it and returns an error.
 
+#### **--no-trunc**
+
+Don't truncate annotations to the Kubernetes maximum length of 63 characters.
+Note: enabling this flag means the generated YAML file is not Kubernetes compatible and can only be used with `podman kube play`
+
 #### **--replicas**, **-r**=*replica count*
 
 The value to set `replicas` to when generating a **Deployment** kind.

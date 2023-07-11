@@ -34,14 +34,14 @@ import (
 
 // GenerateForKube takes a slice of libpod containers and generates
 // one v1.Pod description that includes just a single container.
-func GenerateForKube(ctx context.Context, ctrs []*Container, getService bool) (*v1.Pod, error) {
+func GenerateForKube(ctx context.Context, ctrs []*Container, getService, useLongAnnotations bool) (*v1.Pod, error) {
 	// Generate the v1.Pod yaml description
-	return simplePodWithV1Containers(ctx, ctrs, getService)
+	return simplePodWithV1Containers(ctx, ctrs, getService, useLongAnnotations)
 }
 
 // GenerateForKube takes a slice of libpod containers and generates
 // one v1.Pod description
-func (p *Pod) GenerateForKube(ctx context.Context, getService bool) (*v1.Pod, []v1.ServicePort, error) {
+func (p *Pod) GenerateForKube(ctx context.Context, getService, useLongAnnotations bool) (*v1.Pod, []v1.ServicePort, error) {
 	// Generate the v1.Pod yaml description
 	var (
 		ports        []v1.ContainerPort
@@ -91,7 +91,7 @@ func (p *Pod) GenerateForKube(ctx context.Context, getService bool) (*v1.Pod, []
 		hostNetwork = infraContainer.NetworkMode() == string(namespaces.NetworkMode(specgen.Host))
 		hostUsers = infraContainer.IDMappings().HostUIDMapping && infraContainer.IDMappings().HostGIDMapping
 	}
-	pod, err := p.podWithContainers(ctx, allContainers, ports, hostNetwork, hostUsers, getService)
+	pod, err := p.podWithContainers(ctx, allContainers, ports, hostNetwork, hostUsers, getService, useLongAnnotations)
 	if err != nil {
 		return nil, servicePorts, err
 	}
@@ -370,9 +370,9 @@ func newServicePortState() servicePortState {
 	}
 }
 
-func TruncateKubeAnnotation(str string) string {
+func truncateKubeAnnotation(str string, useLongAnnotations bool) string {
 	str = strings.TrimSpace(str)
-	if utf8.RuneCountInString(str) < define.MaxKubeAnnotation {
+	if useLongAnnotations || utf8.RuneCountInString(str) < define.MaxKubeAnnotation {
 		return str
 	}
 	trunc := string([]rune(str)[:define.MaxKubeAnnotation])
@@ -426,7 +426,7 @@ func containersToServicePorts(containers []v1.Container) ([]v1.ServicePort, erro
 	return sps, nil
 }
 
-func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, ports []v1.ContainerPort, hostNetwork, hostUsers, getService bool) (*v1.Pod, error) {
+func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, ports []v1.ContainerPort, hostNetwork, hostUsers, getService, useLongAnnotations bool) (*v1.Pod, error) {
 	deDupPodVolumes := make(map[string]*v1.Volume)
 	first := true
 	podContainers := make([]v1.Container, 0, len(containers))
@@ -445,11 +445,11 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				if define.IsReservedAnnotation(k) || annotations.IsReservedAnnotation(k) {
 					continue
 				}
-				podAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = TruncateKubeAnnotation(v)
+				podAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = truncateKubeAnnotation(v, useLongAnnotations)
 			}
 			// Convert auto-update labels into kube annotations
-			for k, v := range getAutoUpdateAnnotations(ctr.Name(), ctr.Labels()) {
-				podAnnotations[k] = TruncateKubeAnnotation(v)
+			for k, v := range getAutoUpdateAnnotations(ctr.Name(), ctr.Labels(), useLongAnnotations) {
+				podAnnotations[k] = truncateKubeAnnotation(v, useLongAnnotations)
 			}
 			isInit := ctr.IsInitCtr()
 			// Since hostname is only set at pod level, set the hostname to the hostname of the first container we encounter
@@ -466,7 +466,7 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				return nil, err
 			}
 			for k, v := range annotations {
-				podAnnotations[define.BindMountPrefix] = TruncateKubeAnnotation(k + ":" + v)
+				podAnnotations[define.BindMountPrefix] = truncateKubeAnnotation(k+":"+v, useLongAnnotations)
 			}
 			// Since port bindings for the pod are handled by the
 			// infra container, wipe them here only if we are sharing the net namespace
@@ -574,7 +574,7 @@ func newPodObject(podName string, annotations map[string]string, initCtrs, conta
 
 // simplePodWithV1Containers is a function used by inspect when kube yaml needs to be generated
 // for a single container.  we "insert" that container description in a pod.
-func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getService bool) (*v1.Pod, error) {
+func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getService, useLongAnnotations bool) (*v1.Pod, error) {
 	kubeCtrs := make([]v1.Container, 0, len(ctrs))
 	kubeInitCtrs := []v1.Container{}
 	kubeVolumes := make([]v1.Volume, 0)
@@ -591,12 +591,12 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 			if define.IsReservedAnnotation(k) || annotations.IsReservedAnnotation(k) {
 				continue
 			}
-			kubeAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = TruncateKubeAnnotation(v)
+			kubeAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = truncateKubeAnnotation(v, useLongAnnotations)
 		}
 
 		// Convert auto-update labels into kube annotations
-		for k, v := range getAutoUpdateAnnotations(ctr.Name(), ctr.Labels()) {
-			kubeAnnotations[k] = TruncateKubeAnnotation(v)
+		for k, v := range getAutoUpdateAnnotations(ctr.Name(), ctr.Labels(), useLongAnnotations) {
+			kubeAnnotations[k] = truncateKubeAnnotation(v, useLongAnnotations)
 		}
 
 		isInit := ctr.IsInitCtr()
@@ -643,7 +643,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 			return nil, err
 		}
 		for k, v := range annotations {
-			kubeAnnotations[define.BindMountPrefix] = TruncateKubeAnnotation(k + ":" + v)
+			kubeAnnotations[define.BindMountPrefix] = truncateKubeAnnotation(k+":"+v, useLongAnnotations)
 		}
 		if isInit {
 			kubeInitCtrs = append(kubeInitCtrs, kubeCtr)
@@ -1266,7 +1266,7 @@ func removeUnderscores(s string) string {
 
 // getAutoUpdateAnnotations searches for auto-update container labels
 // and returns them as kube annotations
-func getAutoUpdateAnnotations(ctrName string, ctrLabels map[string]string) map[string]string {
+func getAutoUpdateAnnotations(ctrName string, ctrLabels map[string]string, useLongAnnotations bool) map[string]string {
 	autoUpdateLabel := "io.containers.autoupdate"
 	annotations := make(map[string]string)
 
@@ -1276,7 +1276,7 @@ func getAutoUpdateAnnotations(ctrName string, ctrLabels map[string]string) map[s
 			// since labels can variate between containers within a pod, they will be
 			// identified with the container name when converted into kube annotations
 			kc := fmt.Sprintf("%s/%s", k, ctrName)
-			annotations[kc] = TruncateKubeAnnotation(v)
+			annotations[kc] = truncateKubeAnnotation(v, useLongAnnotations)
 		}
 	}
 

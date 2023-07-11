@@ -431,12 +431,27 @@ _EOF
     assert "$output" =~ "annotation exceeds maximum size, 63, of kubernetes annotation:" "Expected to fail with Length greater than 63"
 }
 
+@test "podman play --no-trunc --annotation > Max" {
+    TESTDIR=$PODMAN_TMPDIR/testdir
+    RANDOMSTRING=$(random_string 65)
+    mkdir -p $TESTDIR
+    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+    run_podman play kube --no-trunc --annotation "name=$RANDOMSTRING" $PODMAN_TMPDIR/test.yaml
+}
+
 @test "podman play Yaml with annotation > Max" {
    RANDOMSTRING=$(random_string 65)
 
    _write_test_yaml "annotations=test: ${RANDOMSTRING}" command=id
-    run_podman 125 play kube - < $PODMAN_TMPDIR/test.yaml
-    assert "$output" =~ "invalid annotation \"test\"=\"$RANDOMSTRING\"" "Expected to fail with annotation length greater than 63"
+   run_podman 125 play kube - < $PODMAN_TMPDIR/test.yaml
+   assert "$output" =~ "annotation \"test\"=\"$RANDOMSTRING\" value length exceeds Kubernetes max 63" "Expected to fail with annotation length greater than 63"
+}
+
+@test "podman play Yaml --no-trunc with annotation > Max" {
+   RANDOMSTRING=$(random_string 65)
+
+   _write_test_yaml "annotations=test: ${RANDOMSTRING}" command=id
+   run_podman play kube --no-trunc - < $PODMAN_TMPDIR/test.yaml
 }
 
 @test "podman kube play - default log driver" {

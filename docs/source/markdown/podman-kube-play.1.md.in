@@ -214,6 +214,10 @@ When no network option is specified and *host* network mode is not configured in
 
 This option conflicts with host added in the Kubernetes YAML.
 
+#### **--no-trunc**
+
+Use annotations that are not truncated to the Kubernetes maximum length of 63 characters
+
 #### **--publish**=*[[ip:][hostPort]:]containerPort[/protocol]*
 
 Define or override a port definition in the YAML file.

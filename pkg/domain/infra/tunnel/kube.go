@@ -46,7 +46,7 @@ func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string,
 //
 // Note: Caller is responsible for closing returned Reader
 func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string, opts entities.GenerateKubeOptions) (*entities.GenerateKubeReport, error) {
-	options := new(generate.KubeOptions).WithService(opts.Service).WithType(opts.Type).WithReplicas(opts.Replicas)
+	options := new(generate.KubeOptions).WithService(opts.Service).WithType(opts.Type).WithReplicas(opts.Replicas).WithNoTrunc(opts.UseLongAnnotations)
 	return generate.Kube(ic.ClientCtx, nameOrIDs, options)
 }
 
@@ -73,6 +73,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, opts en
 		options.WithStart(start == types.OptionalBoolTrue)
 	}
 	options.WithPublishPorts(opts.PublishPorts)
+	options.WithNoTrunc(opts.UseLongAnnotations)
 	return play.KubeWithBody(ic.ClientCtx, body, options)
 }
 

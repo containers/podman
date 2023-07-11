@@ -61,3 +61,18 @@ func (o *KubeOptions) GetReplicas() int32 {
 	}
 	return *o.Replicas
 }
+
+// WithNoTrunc set field NoTrunc to given value
+func (o *KubeOptions) WithNoTrunc(value bool) *KubeOptions {
+	o.NoTrunc = &value
+	return o
+}
+
+// GetNoTrunc returns value of field NoTrunc
+func (o *KubeOptions) GetNoTrunc() bool {
+	if o.NoTrunc == nil {
+		var z bool
+		return z
+	}
+	return *o.NoTrunc
+}
