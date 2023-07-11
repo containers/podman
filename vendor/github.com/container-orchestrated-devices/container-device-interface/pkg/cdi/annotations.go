@@ -20,6 +20,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/container-orchestrated-devices/container-device-interface/pkg/parser"
 )
 
 const (
@@ -101,22 +103,22 @@ func AnnotationKey(pluginName, deviceID string) (string, error) {
 		return "", fmt.Errorf("invalid plugin+deviceID %q, too long", name)
 	}
 
-	if c := rune(name[0]); !isAlphaNumeric(c) {
+	if c := rune(name[0]); !parser.IsAlphaNumeric(c) {
 		return "", fmt.Errorf("invalid name %q, first '%c' should be alphanumeric",
 			name, c)
 	}
 	if len(name) > 2 {
 		for _, c := range name[1 : len(name)-1] {
 			switch {
-			case isAlphaNumeric(c):
+			case parser.IsAlphaNumeric(c):
 			case c == '_' || c == '-' || c == '.':
 			default:
-				return "", fmt.Errorf("invalid name %q, invalid charcter '%c'",
+				return "", fmt.Errorf("invalid name %q, invalid character '%c'",
 					name, c)
 			}
 		}
 	}
-	if c := rune(name[len(name)-1]); !isAlphaNumeric(c) {
+	if c := rune(name[len(name)-1]); !parser.IsAlphaNumeric(c) {
 		return "", fmt.Errorf("invalid name %q, last '%c' should be alphanumeric",
 			name, c)
 	}

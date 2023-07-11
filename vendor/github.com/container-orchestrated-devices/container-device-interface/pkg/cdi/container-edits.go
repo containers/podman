@@ -238,7 +238,7 @@ func (d *DeviceNode) Validate() error {
 	}
 	for _, bit := range d.Permissions {
 		if bit != 'r' && bit != 'w' && bit != 'm' {
-			return fmt.Errorf("device %q: invalid persmissions %q",
+			return fmt.Errorf("device %q: invalid permissions %q",
 				d.Path, d.Permissions)
 		}
 	}

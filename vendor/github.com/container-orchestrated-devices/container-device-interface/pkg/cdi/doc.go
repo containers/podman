@@ -137,7 +137,7 @@
 // were loaded from. The later a directory occurs in the list of CDI
 // directories to scan, the higher priority Spec files loaded from that
 // directory are assigned to. When two or more Spec files define the
-// same device, conflict is resolved by chosing the definition from the
+// same device, conflict is resolved by choosing the definition from the
 // Spec file with the highest priority.
 //
 // The default CDI directory configuration is chosen to encourage
@@ -197,7 +197,7 @@
 //     return registry.SpecDB().WriteSpec(spec, specName)
 // }
 //
-// Similary, generating and later cleaning up transient Spec files can be
+// Similarly, generating and later cleaning up transient Spec files can be
 // done with code fragments similar to the following. These transient Spec
 // files are temporary Spec files with container-specific parametrization.
 // They are typically created before the associated container is created

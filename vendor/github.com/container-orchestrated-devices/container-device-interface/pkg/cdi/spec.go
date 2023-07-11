@@ -28,6 +28,7 @@ import (
 	oci "github.com/opencontainers/runtime-spec/specs-go"
 	"sigs.k8s.io/yaml"
 
+	"github.com/container-orchestrated-devices/container-device-interface/internal/validation"
 	cdi "github.com/container-orchestrated-devices/container-device-interface/specs-go"
 )
 
@@ -131,6 +132,7 @@ func (s *Spec) write(overwrite bool) error {
 
 	if filepath.Ext(s.path) == ".yaml" {
 		data, err = yaml.Marshal(s.Spec)
+		data = append([]byte("---\n"), data...)
 	} else {
 		data, err = json.Marshal(s.Spec)
 	}
@@ -207,7 +209,7 @@ func (s *Spec) validate() (map[string]*Device, error) {
 
 	minVersion, err := MinimumRequiredVersion(s.Spec)
 	if err != nil {
-		return nil, fmt.Errorf("could not determine minumum required version: %v", err)
+		return nil, fmt.Errorf("could not determine minimum required version: %v", err)
 	}
 	if newVersion(minVersion).IsGreaterThan(newVersion(s.Version)) {
 		return nil, fmt.Errorf("the spec version must be at least v%v", minVersion)
@@ -217,6 +219,9 @@ func (s *Spec) validate() (map[string]*Device, error) {
 		return nil, err
 	}
 	if err := ValidateClassName(s.class); err != nil {
+		return nil, err
+	}
+	if err := validation.ValidateSpecAnnotations(s.Kind, s.Annotations); err != nil {
 		return nil, err
 	}
 	if err := s.edits().Validate(); err != nil {
@@ -306,7 +311,7 @@ func GenerateSpecName(vendor, class string) string {
 // match the vendor and class of the CDI Spec. transientID should be
 // unique among all CDI users on the same host that might generate
 // transient Spec files using the same vendor/class combination. If
-// the external entity to which the lifecycle of the tranient Spec
+// the external entity to which the lifecycle of the transient Spec
 // is tied to has a unique ID of its own, then this is usually a
 // good choice for transientID.
 //

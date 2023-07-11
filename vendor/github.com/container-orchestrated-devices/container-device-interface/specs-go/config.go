@@ -3,21 +3,24 @@ package specs
 import "os"
 
 // CurrentVersion is the current version of the Spec.
-const CurrentVersion = "0.5.0"
+const CurrentVersion = "0.6.0"
 
 // Spec is the base configuration for CDI
 type Spec struct {
 	Version string `json:"cdiVersion"`
 	Kind    string `json:"kind"`
-
-	Devices        []Device       `json:"devices"`
-	ContainerEdits ContainerEdits `json:"containerEdits,omitempty"`
+	// Annotations add meta information per CDI spec. Note these are CDI-specific and do not affect container metadata.
+	Annotations    map[string]string `json:"annotations,omitempty"`
+	Devices        []Device          `json:"devices"`
+	ContainerEdits ContainerEdits    `json:"containerEdits,omitempty"`
 }
 
 // Device is a "Device" a container runtime can add to a container
 type Device struct {
-	Name           string         `json:"name"`
-	ContainerEdits ContainerEdits `json:"containerEdits"`
+	Name string `json:"name"`
+	// Annotations add meta information per device. Note these are CDI-specific and do not affect container metadata.
+	Annotations    map[string]string `json:"annotations,omitempty"`
+	ContainerEdits ContainerEdits    `json:"containerEdits"`
 }
 
 // ContainerEdits are edits a container runtime must make to the OCI spec to expose the device.
