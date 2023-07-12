@@ -606,6 +606,7 @@ BOGUS=foo
 		Entry("device-copy.volume", "device-copy.volume", 0, ""),
 		Entry("device.volume", "device.volume", 0, ""),
 		Entry("label.volume", "label.volume", 0, ""),
+		Entry("name.volume", "name.volume", 0, ""),
 		Entry("podmanargs.volume", "podmanargs.volume", 0, ""),
 		Entry("uid.volume", "uid.volume", 0, ""),
 
@@ -635,6 +636,7 @@ BOGUS=foo
 		Entry("Network - Internal network", "internal.network", 0, ""),
 		Entry("Network - Label", "label.network", 0, ""),
 		Entry("Network - Multiple Options", "options.multiple.network", 0, ""),
+		Entry("Network - Name", "name.network", 0, ""),
 		Entry("Network - Options", "options.network", 0, ""),
 		Entry("Network - PodmanArgs", "podmanargs.network", 0, ""),
 		Entry("Network - Range not enough Subnet", "range.less-subnet.network", 1, "converting \"range.less-subnet.network\": cannot set more ranges than subnets"),
