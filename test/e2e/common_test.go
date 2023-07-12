@@ -968,7 +968,7 @@ func populateCache(podman *PodmanTestIntegration) {
 	GinkgoWriter.Printf("-----------------------------\n")
 }
 
-// rmAll removes the direcory and its content,, when running rootless we use
+// rmAll removes the directory and its content, when running rootless we use
 // podman unshare to prevent any subuid/gid problems
 func rmAll(podmanBin string, path string) {
 	// Remove cache dirs

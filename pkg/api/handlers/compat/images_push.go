@@ -197,7 +197,7 @@ loop: // break out of for/select infinite loop
 				break loop
 			} else {
 				writeStatusCode(http.StatusOK)
-				writeReference() // There may not be any progess, so make sure the reference gets written
+				writeReference() // There may not be any progress, so make sure the reference gets written
 			}
 
 			tag := query.Tag

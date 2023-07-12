@@ -537,7 +537,7 @@ Indicates whether containers will be auto-updated ([podman-auto-update(1)](podma
 
 * `local`: Tells Podman to compare the image a container is using to the image with its raw name in local storage. If an image is updated locally, Podman simply restarts the systemd unit executing the Kubernetes quadlet.
 
-* `name/(local|registry)`: Tells Podman to preform the `local` or `registry` autoupdate on the specified container name.
+* `name/(local|registry)`: Tells Podman to perform the `local` or `registry` autoupdate on the specified container name.
 
 ### `ConfigMap=`
 
