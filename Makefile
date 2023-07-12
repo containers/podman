@@ -308,7 +308,7 @@ build-all-new-commits:
 
 .PHONY: vendor
 vendor:
-	$(GO) mod tidy -compat=1.18
+	$(GO) mod tidy
 	$(GO) mod vendor
 	$(GO) mod verify
 
