@@ -55,6 +55,16 @@ function teardown() {
         is "$output" ".*0 \+1 \+0 \+[0-9. ?s]\+/pause" "there is a /pause container"
     fi
 
+    # Cannot remove pod while containers are still running. Error messages
+    # differ slightly between local and remote; these are the common elements.
+    run_podman 125 pod rm $podid
+    assert "${lines[0]}" =~ "Error: not all containers could be removed from pod $podid: removing pod containers.*" \
+           "pod rm while busy: error message line 1 of 3"
+    assert "${lines[1]}" =~ "cannot remove container .* as it is running - running or paused containers cannot be removed without force: container state improper" \
+           "pod rm while busy: error message line 2 of 3"
+    assert "${lines[2]}" =~ "cannot remove container .* as it is running - running or paused containers cannot be removed without force: container state improper" \
+           "pod rm while busy: error message line 3 of 3"
+
     # Clean up
     run_podman --noout pod rm -f -t 0 $podid
     is "$output" "" "output should be empty"

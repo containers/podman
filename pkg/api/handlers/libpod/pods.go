@@ -20,6 +20,7 @@ import (
 	"github.com/containers/podman/v4/pkg/specgenutil"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/gorilla/schema"
+	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 )
 
@@ -248,6 +249,19 @@ func PodDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	ctrs, err := runtime.RemovePod(r.Context(), pod, true, query.Force, query.Timeout)
 	if err != nil {
+		if len(ctrs) > 0 {
+			// We have container errors to send as well.
+			// Since we're just writing an error, and we don't want
+			// special error-handling for just this endpoint: use a
+			// multierror to package up all container errors.
+			var allCtrErrors error
+			for _, ctrErr := range ctrs {
+				allCtrErrors = multierror.Append(allCtrErrors, ctrErr)
+			}
+
+			err = fmt.Errorf("%w. %s", err, allCtrErrors.Error())
+		}
+
 		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
