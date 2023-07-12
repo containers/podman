@@ -53,7 +53,7 @@ func init() {
 	// Podman flags.
 	secretFlagName := "secret"
 	flags.BoolVar(&loginOptions.tlsVerify, "tls-verify", false, "Require HTTPS and verify certificates when contacting registries")
-	flags.String(secretFlagName, "", "Retrieve passwd from secret file")
+	flags.String(secretFlagName, "", "Retrieve password from a podman secret")
 	_ = loginCommand.RegisterFlagCompletionFunc(secretFlagName, common.AutocompleteSecrets)
 
 	loginOptions.Stdin = os.Stdin
