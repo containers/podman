@@ -1186,4 +1186,21 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToStringArray()).To(HaveLen(4), "output should only show link local address")
 	})
+
+	It("podman run with macvlan network", func() {
+		net := "mv-" + stringid.GenerateRandomID()
+		session := podmanTest.Podman([]string{"network", "create", "-d", "macvlan", "--subnet", "10.10.0.0/24", net})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(net)
+		Expect(session).Should(Exit(0))
+
+		// use options and search to make sure we get the same resolv.conf everywhere
+		run := podmanTest.Podman([]string{"run", "--network", net, "--dns", "127.0.0.128",
+			"--dns-option", "ndots:1", "--dns-search", ".", ALPINE, "cat", "/etc/resolv.conf"})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+		Expect(string(run.Out.Contents())).To(Equal(`nameserver 127.0.0.128
+options ndots:1
+`))
+	})
 })
