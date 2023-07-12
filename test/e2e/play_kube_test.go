@@ -4580,6 +4580,25 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		Expect(usernsInCtr).Should(Exit(0))
 		Expect(string(usernsInCtr.Out.Contents())).To(Not(Equal(string(initialUsernsConfig))))
 
+		kube = podmanTest.PodmanNoCache([]string{"play", "kube", "--replace", "--userns=keep-id", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		usernsInCtr = podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "id", "-u"})
+		usernsInCtr.WaitWithDefaultTimeout()
+		Expect(usernsInCtr).Should(Exit(0))
+		uid := fmt.Sprintf("%d", os.Geteuid())
+		Expect(string(usernsInCtr.Out.Contents())).To(ContainSubstring(uid))
+
+		kube = podmanTest.PodmanNoCache([]string{"play", "kube", "--replace", "--userns=keep-id:uid=10,gid=12", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		usernsInCtr = podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "sh", "-c", "echo $(id -u):$(id -g)"})
+		usernsInCtr.WaitWithDefaultTimeout()
+		Expect(usernsInCtr).Should(Exit(0))
+		Expect(string(usernsInCtr.Out.Contents())).To(ContainSubstring("10:12"))
+
 		// Now try with hostUsers in the pod spec
 		for _, hostUsers := range []bool{true, false} {
 			pod = getPod(withHostUsers(hostUsers))
