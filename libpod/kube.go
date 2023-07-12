@@ -34,14 +34,14 @@ import (
 
 // GenerateForKube takes a slice of libpod containers and generates
 // one v1.Pod description that includes just a single container.
-func GenerateForKube(ctx context.Context, ctrs []*Container, getService, useLongAnnotations bool) (*v1.Pod, error) {
+func GenerateForKube(ctx context.Context, ctrs []*Container, getService, useLongAnnotations, podmanOnly bool) (*v1.Pod, error) {
 	// Generate the v1.Pod yaml description
-	return simplePodWithV1Containers(ctx, ctrs, getService, useLongAnnotations)
+	return simplePodWithV1Containers(ctx, ctrs, getService, useLongAnnotations, podmanOnly)
 }
 
 // GenerateForKube takes a slice of libpod containers and generates
 // one v1.Pod description
-func (p *Pod) GenerateForKube(ctx context.Context, getService, useLongAnnotations bool) (*v1.Pod, []v1.ServicePort, error) {
+func (p *Pod) GenerateForKube(ctx context.Context, getService, useLongAnnotations, podmanOnly bool) (*v1.Pod, []v1.ServicePort, error) {
 	// Generate the v1.Pod yaml description
 	var (
 		ports        []v1.ContainerPort
@@ -91,7 +91,7 @@ func (p *Pod) GenerateForKube(ctx context.Context, getService, useLongAnnotation
 		hostNetwork = infraContainer.NetworkMode() == string(namespaces.NetworkMode(specgen.Host))
 		hostUsers = infraContainer.IDMappings().HostUIDMapping && infraContainer.IDMappings().HostGIDMapping
 	}
-	pod, err := p.podWithContainers(ctx, allContainers, ports, hostNetwork, hostUsers, getService, useLongAnnotations)
+	pod, err := p.podWithContainers(ctx, allContainers, ports, hostNetwork, hostUsers, getService, useLongAnnotations, podmanOnly)
 	if err != nil {
 		return nil, servicePorts, err
 	}
@@ -426,7 +426,7 @@ func containersToServicePorts(containers []v1.Container) ([]v1.ServicePort, erro
 	return sps, nil
 }
 
-func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, ports []v1.ContainerPort, hostNetwork, hostUsers, getService, useLongAnnotations bool) (*v1.Pod, error) {
+func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, ports []v1.ContainerPort, hostNetwork, hostUsers, getService, useLongAnnotations, podmanOnly bool) (*v1.Pod, error) {
 	deDupPodVolumes := make(map[string]*v1.Volume)
 	first := true
 	podContainers := make([]v1.Container, 0, len(containers))
@@ -442,7 +442,7 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 	for _, ctr := range containers {
 		if !ctr.IsInfra() {
 			for k, v := range ctr.config.Spec.Annotations {
-				if define.IsReservedAnnotation(k) || annotations.IsReservedAnnotation(k) {
+				if !podmanOnly && (define.IsReservedAnnotation(k) || annotations.IsReservedAnnotation(k)) {
 					continue
 				}
 				podAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = truncateKubeAnnotation(v, useLongAnnotations)
@@ -574,7 +574,7 @@ func newPodObject(podName string, annotations map[string]string, initCtrs, conta
 
 // simplePodWithV1Containers is a function used by inspect when kube yaml needs to be generated
 // for a single container.  we "insert" that container description in a pod.
-func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getService, useLongAnnotations bool) (*v1.Pod, error) {
+func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getService, useLongAnnotations, podmanOnly bool) (*v1.Pod, error) {
 	kubeCtrs := make([]v1.Container, 0, len(ctrs))
 	kubeInitCtrs := []v1.Container{}
 	kubeVolumes := make([]v1.Volume, 0)
@@ -588,7 +588,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 	for _, ctr := range ctrs {
 		ctrNames = append(ctrNames, removeUnderscores(ctr.Name()))
 		for k, v := range ctr.config.Spec.Annotations {
-			if define.IsReservedAnnotation(k) || annotations.IsReservedAnnotation(k) {
+			if !podmanOnly && (define.IsReservedAnnotation(k) || annotations.IsReservedAnnotation(k)) {
 				continue
 			}
 			kubeAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = truncateKubeAnnotation(v, useLongAnnotations)

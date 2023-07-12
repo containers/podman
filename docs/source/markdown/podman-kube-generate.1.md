@@ -39,6 +39,10 @@ Output to the given file instead of STDOUT. If the file already exists, `kube ge
 Don't truncate annotations to the Kubernetes maximum length of 63 characters.
 Note: enabling this flag means the generated YAML file is not Kubernetes compatible and can only be used with `podman kube play`
 
+#### **--podman-only**
+
+Add podman-only reserved annotations in generated YAML file (Cannot be used by Kubernetes)
+
 #### **--replicas**, **-r**=*replica count*
 
 The value to set `replicas` to when generating a **Deployment** kind.

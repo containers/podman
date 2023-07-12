@@ -17,6 +17,21 @@ func (o *KubeOptions) ToParams() (url.Values, error) {
 	return util.ToParams(o)
 }
 
+// WithPodmanOnly set field PodmanOnly to given value
+func (o *KubeOptions) WithPodmanOnly(value bool) *KubeOptions {
+	o.PodmanOnly = &value
+	return o
+}
+
+// GetPodmanOnly returns value of field PodmanOnly
+func (o *KubeOptions) GetPodmanOnly() bool {
+	if o.PodmanOnly == nil {
+		var z bool
+		return z
+	}
+	return *o.PodmanOnly
+}
+
 // WithService set field Service to given value
 func (o *KubeOptions) WithService(value bool) *KubeOptions {
 	o.Service = &value

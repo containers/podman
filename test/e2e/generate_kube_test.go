@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -1656,5 +1657,185 @@ USER test1`
 
 		Expect(pod.Annotations).To(HaveKeyWithValue(define.BindMountPrefix, vol1[:define.MaxKubeAnnotation]))
 		Expect(pod.Annotations).To(Not(HaveKeyWithValue(define.BindMountPrefix, vol1+":Z")))
+	})
+
+	It("podman kube generate --podman-only on container with --volumes-from", func() {
+		ctr1 := "ctr1"
+		ctr2 := "ctr2"
+		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
+
+		err := os.MkdirAll(vol1, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		session := podmanTest.Podman([]string{"create", "--name", ctr1, "-v", vol1, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"create", "--volumes-from", ctr1, "--name", ctr2, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", ctr2})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationVolumesFrom+"/"+ctr2, ctr1))
+	})
+
+	It("podman kube generate --podman-only on container with --rm", func() {
+		ctr := "ctr"
+
+		session := podmanTest.Podman([]string{"create", "--rm", "--name", ctr, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", ctr})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationAutoremove+"/"+ctr, define.InspectResponseTrue))
+	})
+
+	It("podman kube generate --podman-only on container with --privileged", func() {
+		ctr := "ctr"
+
+		session := podmanTest.Podman([]string{"create", "--privileged", "--name", ctr, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", ctr})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationPrivileged+"/"+ctr, define.InspectResponseTrue))
+	})
+
+	It("podman kube generate --podman-only on container with --init", func() {
+		ctr := "ctr"
+
+		session := podmanTest.Podman([]string{"create", "--init", "--name", ctr, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", ctr})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationInit+"/"+ctr, define.InspectResponseTrue))
+	})
+
+	It("podman kube generate --podman-only on container with --cidfile", func() {
+		ctr := "ctr"
+		cidFile := filepath.Join(podmanTest.TempDir, RandomString(10)+".txt")
+
+		session := podmanTest.Podman([]string{"create", "--cidfile", cidFile, "--name", ctr, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", ctr})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationCIDFile+"/"+ctr, cidFile))
+	})
+
+	It("podman kube generate --podman-only on container with --security-opt seccomp=unconfined", func() {
+		ctr := "ctr"
+
+		session := podmanTest.Podman([]string{"create", "--security-opt", "seccomp=unconfined", "--name", ctr, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", ctr})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationSeccomp+"/"+ctr, "unconfined"))
+	})
+
+	It("podman kube generate --podman-only on container with --security-opt apparmor=unconfined", func() {
+		ctr := "ctr"
+
+		session := podmanTest.Podman([]string{"create", "--security-opt", "apparmor=unconfined", "--name", ctr, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", ctr})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationApparmor+"/"+ctr, "unconfined"))
+	})
+
+	It("podman kube generate --podman-only on container with --security-opt label=level:s0", func() {
+		ctr := "ctr"
+
+		session := podmanTest.Podman([]string{"create", "--security-opt", "label=level:s0", "--name", ctr, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", ctr})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationLabel+"/"+ctr, "level:s0"))
+	})
+
+	It("podman kube generate --podman-only on container with --publish-all", func() {
+		podmanTest.AddImageToRWStore(ALPINE)
+		dockerfile := fmt.Sprintf(`FROM %s
+EXPOSE 2002
+EXPOSE 2001-2003
+EXPOSE 2004-2005/tcp`, ALPINE)
+		imageName := "testimg"
+		podmanTest.BuildImage(dockerfile, imageName, "false")
+
+		// Verify that the buildah is just passing through the EXPOSE keys
+		inspect := podmanTest.Podman([]string{"inspect", imageName})
+		inspect.WaitWithDefaultTimeout()
+		image := inspect.InspectImageJSON()
+		Expect(image).To(HaveLen(1))
+		Expect(image[0].Config.ExposedPorts).To(HaveLen(3))
+		Expect(image[0].Config.ExposedPorts).To(HaveKey("2002/tcp"))
+		Expect(image[0].Config.ExposedPorts).To(HaveKey("2001-2003/tcp"))
+		Expect(image[0].Config.ExposedPorts).To(HaveKey("2004-2005/tcp"))
+
+		ctr := "ctr"
+		session := podmanTest.Podman([]string{"create", "--publish-all", "--name", ctr, imageName, "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", ctr})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationPublishAll+"/"+ctr, define.InspectResponseTrue))
 	})
 })

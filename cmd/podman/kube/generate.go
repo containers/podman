@@ -84,6 +84,9 @@ func generateFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 	noTruncAnnotationsFlagName := "no-trunc"
 	flags.BoolVar(&generateOptions.UseLongAnnotations, noTruncAnnotationsFlagName, false, "Don't truncate annotations to Kubernetes length (63 chars)")
 
+	podmanOnlyFlagName := "podman-only"
+	flags.BoolVar(&generateOptions.PodmanOnly, podmanOnlyFlagName, false, "Add podman-only reserved annotations to the generated YAML file (Cannot be used by Kubernetes)")
+
 	flags.SetNormalizeFunc(utils.AliasFlags)
 }
 
