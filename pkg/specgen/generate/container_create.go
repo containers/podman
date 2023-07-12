@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
+	"github.com/container-orchestrated-devices/container-device-interface/pkg/parser"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/libnetwork/pasta"
 	"github.com/containers/common/libnetwork/slirp4netns"
@@ -341,7 +341,7 @@ func ExtractCDIDevices(s *specgen.SpecGenerator) []libpod.CtrCreateOption {
 
 // isCDIDevice checks whether the specified device is a CDI device.
 func isCDIDevice(device string) bool {
-	return cdi.IsQualifiedName(device)
+	return parser.IsQualifiedName(device)
 }
 
 func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume, overlays []*specgen.OverlayVolume, imageData *libimage.ImageData, command []string, infraVolumes bool, compatibleOptions libpod.InfraInherit) ([]libpod.CtrCreateOption, error) {

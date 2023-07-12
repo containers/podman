@@ -22,7 +22,7 @@ func ApplyOCIEditsForDevice(config *spec.Spec, cdi *Spec, dev string) error {
 	return fmt.Errorf("CDI: device %q not found for spec %q", dev, cdi.Kind)
 }
 
-// ApplyOCIEdits applies the OCI edits the CDI spec declares globablly
+// ApplyOCIEdits applies the OCI edits the CDI spec declares globally
 func ApplyOCIEdits(config *spec.Spec, cdi *Spec) error {
 	return ApplyEditsToOCISpec(config, &cdi.ContainerEdits)
 }
