@@ -2,6 +2,7 @@
 
 ## 4.6.0
 ### Features
+- The `podman manifest inspect` command now supports the `--authfile` option, for authentication purposes.
 - The `podman wait` command now supports `--condition={healthy,unhealthy}`, allowing waits on successful health checks.
 - The `podman push` command now supports a new option, ` --compression-level`, which specifies the compression level to use ([#18939](https://github.com/containers/podman/issues/18939)).
 - The `podman machine start` command, when run with `--log-level=debug`, now creates a console window to display the virtual machine while booting.
@@ -51,7 +52,18 @@
 - Quadlet now supports the `HostName` field, which sets the container's host name, in `.container` files ([#18486](https://github.com/containers/podman/issues/18486)).
 
 ### Bugfixes
-- The `podman machine start` command now waits for systemd-user sessions to be up, addressing flaky machine starts ([##17403](https://github.com/containers/podman/issues/#17403)).
+- Fixed a bug where the `podman machine start` command would fail with a 255 exit code. It now waits for systemd-user sessions to be up, and for SSH to be ready, addressing the flaky machine starts ([#17403](https://github.com/containers/podman/issues/#17403)).
+- Fixed a bug where the `podman auto update` command did not correctly use authentication files when contacting container registries.
+- Fixed a bug where the `--dns` option to the `podman run` command was ignored for macvlan networks ([#19169](https://github.com/containers/podman/issues/19169)).
+- Fixed a bug in the `podman system service` command where setting LISTEN_FDS when listening on TCP would misbehave.
+- Fixed a bug where hostnames were not recognized as a network alias. Containers can now resolve other hostnames, in addition to their names ([#17370](https://github.com/containers/podman/issues/17370)).
+- Fixed a bug where the `podman pod run` command would error after a reboot on a non-systemd system ([#19175](https://github.com/containers/podman/issues/19175)).
+- Fixed a bug where the `--syslog` option returned a fatal error when no syslog server was found ([#19075](https://github.com/containers/podman/issues/19075)).
+- Fixed a bug where the `--mount` option would parse the `readonly` option incorrectly ([#18995](https://github.com/containers/podman/issues/18995)).
+- Fixed a bug where hook executables invoked by the `podman run` command set an incorrect working directory. It now sets the correct working directory pointing to the container bundle directory ([#18907](https://github.com/containers/podman/issues/18907)).
+- Fixed a bug where the `-device-cgroup-rule` option was silently ignored in rootless mode ([#18698](https://github.com/containers/podman/issues/18698)).
+- Listing images is now more resilient towards concurrently running image removals.
+- Fixed a bug where the `--force` option to the `podman kube down` command would not remove volumes ([#18797](https://github.com/containers/podman/issues/18797)).
 - Fixed a bug where setting the `--list-tags` option in the `podman search` command would cause the command to ignore the `--format` option ([#18939](https://github.com/containers/podman/issues/18939)).
 - Fixed a bug where the `podman machine start` command did not properly translate the proxy IP.
 - Fixed a bug where the `podman auto-update` command would not restart dependent units (specified via `Requires=`) on auto update ([#18926](https://github.com/containers/podman/issues/18926)).
@@ -101,7 +113,7 @@
 - Updated Buildah to v1.31.0
 - Updated the containers/storage library to v1.48.0
 - Updated the containers/image library to v5.26.1
-- Updated the containers/common library to v0.55.1
+- Updated the containers/common library to v0.55.2
 
 ## 4.5.1
 ### Security
