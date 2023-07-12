@@ -5400,4 +5400,246 @@ spec:
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
 	})
+
+	It("podman play kube test with reserved volumes-from annotation in yaml", func() {
+		ctr1 := "ctr1"
+		ctr2 := "ctr2"
+		ctrNameInKubePod := ctr2 + "-pod-" + ctr2
+		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
+		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
+
+		err := os.MkdirAll(vol1, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		session := podmanTest.Podman([]string{"create", "--name", ctr1, "-v", vol1, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"create", "--volumes-from", ctr1, "--name", ctr2, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", "-f", outputFile, ctr2})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		play := podmanTest.Podman([]string{"kube", "play", outputFile})
+		play.WaitWithDefaultTimeout()
+		Expect(play).Should(Exit(0))
+
+		inspectCtr2 := podmanTest.Podman([]string{"inspect", "-f", "'{{ .HostConfig.Binds }}'", ctrNameInKubePod})
+		inspectCtr2.WaitWithDefaultTimeout()
+		Expect(inspectCtr2).Should(Exit(0))
+		Expect(inspectCtr2.OutputToString()).To(ContainSubstring(":" + vol1 + ":rw"))
+
+		inspectCtr1 := podmanTest.Podman([]string{"inspect", "-f", "'{{ .HostConfig.Binds }}'", ctr1})
+		inspectCtr1.WaitWithDefaultTimeout()
+		Expect(inspectCtr1).Should(Exit(0))
+
+		Expect(inspectCtr2.OutputToString()).To(Equal(inspectCtr1.OutputToString()))
+	})
+
+	It("podman kube play test with reserved autoremove annotation in yaml", func() {
+		ctr := "ctr"
+		ctrNameInKubePod := ctr + "-pod-" + ctr
+		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
+
+		session := podmanTest.Podman([]string{"create", "--rm", "--name", ctr, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", "-f", outputFile, ctr})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		play := podmanTest.Podman([]string{"kube", "play", outputFile})
+		play.WaitWithDefaultTimeout()
+		Expect(play).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"inspect", "-f", "{{ .HostConfig.AutoRemove }}", ctrNameInKubePod})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal("true"))
+	})
+
+	It("podman kube play test with reserved privileged annotation in yaml", func() {
+		ctr := "ctr"
+		ctrNameInKubePod := ctr + "-pod-" + ctr
+		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
+
+		session := podmanTest.Podman([]string{"create", "--privileged", "--name", ctr, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", "-f", outputFile, ctr})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		play := podmanTest.Podman([]string{"kube", "play", outputFile})
+		play.WaitWithDefaultTimeout()
+		Expect(play).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"inspect", "-f", "{{ .HostConfig.Privileged }}", ctrNameInKubePod})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal("true"))
+	})
+
+	It("podman kube play test with reserved init annotation in yaml", func() {
+		ctr := "ctr"
+		ctrNameInKubePod := ctr + "-pod-" + ctr
+		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
+
+		session := podmanTest.Podman([]string{"create", "--init", "--name", ctr, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", "-f", outputFile, ctr})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		play := podmanTest.Podman([]string{"kube", "play", outputFile})
+		play.WaitWithDefaultTimeout()
+		Expect(play).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"inspect", "-f", "{{ .Path }}", ctrNameInKubePod})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal("/run/podman-init"))
+	})
+
+	It("podman kube play test with reserved CIDFile annotation in yaml", func() {
+		ctr := "ctr"
+		ctrNameInKubePod := ctr + "-pod-" + ctr
+		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
+		cidFile := filepath.Join(podmanTest.TempDir, RandomString(10)+".txt")
+
+		session := podmanTest.Podman([]string{"create", "--cidfile", cidFile, "--name", ctr, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", "-f", outputFile, ctr})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		play := podmanTest.Podman([]string{"kube", "play", outputFile})
+		play.WaitWithDefaultTimeout()
+		Expect(play).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"inspect", "-f", "{{ .HostConfig.ContainerIDFile }}", ctrNameInKubePod})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal(cidFile))
+
+	})
+
+	It("podman kube play test with reserved Seccomp annotation in yaml", func() {
+		ctr := "ctr"
+		ctrNameInKubePod := ctr + "-pod-" + ctr
+		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
+
+		session := podmanTest.Podman([]string{"create", "--security-opt", "seccomp=unconfined", "--name", ctr, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", "-f", outputFile, ctr})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		play := podmanTest.Podman([]string{"kube", "play", outputFile})
+		play.WaitWithDefaultTimeout()
+		Expect(play).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"inspect", "-f", "{{ .HostConfig.SecurityOpt }}", ctrNameInKubePod})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal("[seccomp=unconfined]"))
+	})
+
+	It("podman kube play test with reserved Apparmor annotation in yaml", func() {
+		ctr := "ctr"
+		ctrNameInKubePod := ctr + "-pod-" + ctr
+		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
+
+		session := podmanTest.Podman([]string{"create", "--security-opt", "apparmor=unconfined", "--name", ctr, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", "-f", outputFile, ctr})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		play := podmanTest.Podman([]string{"kube", "play", outputFile})
+		play.WaitWithDefaultTimeout()
+		Expect(play).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"inspect", "-f", "{{ .HostConfig.SecurityOpt }}", ctrNameInKubePod})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal("[apparmor=unconfined]"))
+	})
+
+	It("podman kube play test with reserved Label annotation in yaml", func() {
+		ctr := "ctr"
+		ctrNameInKubePod := ctr + "-pod-" + ctr
+		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
+
+		session := podmanTest.Podman([]string{"create", "--security-opt", "label=level:s0", "--name", ctr, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", "-f", outputFile, ctr})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		play := podmanTest.Podman([]string{"kube", "play", outputFile})
+		play.WaitWithDefaultTimeout()
+		Expect(play).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"inspect", "-f", "{{ .HostConfig.SecurityOpt }}", ctrNameInKubePod})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal("[label=level:s0]"))
+	})
+
+	It("podman kube play test with reserved PublishAll annotation in yaml", func() {
+		podmanTest.AddImageToRWStore(ALPINE)
+		dockerfile := fmt.Sprintf(`FROM %s
+EXPOSE 2002
+EXPOSE 2001-2003
+EXPOSE 2004-2005/tcp`, ALPINE)
+		imageName := "testimg"
+		podmanTest.BuildImage(dockerfile, imageName, "false")
+
+		// Verify that the buildah is just passing through the EXPOSE keys
+		inspect := podmanTest.Podman([]string{"inspect", imageName})
+		inspect.WaitWithDefaultTimeout()
+		image := inspect.InspectImageJSON()
+		Expect(image).To(HaveLen(1))
+		Expect(image[0].Config.ExposedPorts).To(HaveLen(3))
+		Expect(image[0].Config.ExposedPorts).To(HaveKey("2002/tcp"))
+		Expect(image[0].Config.ExposedPorts).To(HaveKey("2001-2003/tcp"))
+		Expect(image[0].Config.ExposedPorts).To(HaveKey("2004-2005/tcp"))
+
+		ctr := "ctr"
+		ctrNameInKubePod := ctr + "-pod-" + ctr
+		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
+
+		session := podmanTest.Podman([]string{"create", "--publish-all", "--name", ctr, imageName, "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", "-f", outputFile, ctr})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		play := podmanTest.Podman([]string{"kube", "play", outputFile})
+		play.WaitWithDefaultTimeout()
+		Expect(play).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"inspect", "-f", "{{ .HostConfig.PublishAllPorts }}", ctrNameInKubePod})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal("true"))
+	})
 })

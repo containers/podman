@@ -507,6 +507,9 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 		if ctrSpec.Annotations[define.InspectAnnotationInit] == define.InspectResponseTrue {
 			hostConfig.Init = true
 		}
+		if ctrSpec.Annotations[define.InspectAnnotationPublishAll] == define.InspectResponseTrue {
+			hostConfig.PublishAllPorts = true
+		}
 	}
 
 	if err := c.platformInspectContainerHostConfig(ctrSpec, hostConfig); err != nil {
