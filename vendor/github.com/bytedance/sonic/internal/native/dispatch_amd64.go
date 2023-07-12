@@ -94,7 +94,7 @@ func SkipOneFast(s *string, p *int) int
 //go:nosplit
 //go:noescape
 //goland:noinspection GoUnusedParameter
-func GetByPath(s *string, p *int, path *[]interface{}) int
+func GetByPath(s *string, p *int, path *[]interface{}, m *types.StateMachine) int
 
 //go:nosplit
 //go:noescape

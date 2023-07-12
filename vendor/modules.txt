@@ -61,7 +61,7 @@ github.com/blang/semver/v4
 # github.com/buger/goterm v1.0.4
 ## explicit; go 1.15
 github.com/buger/goterm
-# github.com/bytedance/sonic v1.8.0
+# github.com/bytedance/sonic v1.9.1
 ## explicit; go 1.15
 github.com/bytedance/sonic
 github.com/bytedance/sonic/ast
@@ -69,6 +69,8 @@ github.com/bytedance/sonic/decoder
 github.com/bytedance/sonic/encoder
 github.com/bytedance/sonic/internal/caching
 github.com/bytedance/sonic/internal/cpu
+github.com/bytedance/sonic/internal/decoder
+github.com/bytedance/sonic/internal/encoder
 github.com/bytedance/sonic/internal/jit
 github.com/bytedance/sonic/internal/loader
 github.com/bytedance/sonic/internal/native
@@ -491,8 +493,8 @@ github.com/gabriel-vasile/mimetype/internal/magic
 # github.com/gin-contrib/sse v0.1.0
 ## explicit; go 1.12
 github.com/gin-contrib/sse
-# github.com/gin-gonic/gin v1.9.0
-## explicit; go 1.18
+# github.com/gin-gonic/gin v1.9.1
+## explicit; go 1.20
 github.com/gin-gonic/gin
 github.com/gin-gonic/gin/binding
 github.com/gin-gonic/gin/internal/bytesconv
@@ -571,7 +573,7 @@ github.com/go-playground/validator/v10
 # github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572
 ## explicit; go 1.13
 github.com/go-task/slim-sprig
-# github.com/goccy/go-json v0.10.0
+# github.com/goccy/go-json v0.10.2
 ## explicit; go 1.12
 github.com/goccy/go-json
 github.com/goccy/go-json/internal/decoder
@@ -670,8 +672,8 @@ github.com/klauspost/compress/internal/cpuinfo
 github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/klauspost/cpuid/v2 v2.0.9
-## explicit; go 1.13
+# github.com/klauspost/cpuid/v2 v2.2.4
+## explicit; go 1.15
 github.com/klauspost/cpuid/v2
 # github.com/klauspost/pgzip v1.2.6
 ## explicit
@@ -700,7 +702,7 @@ github.com/mailru/easyjson/jwriter
 github.com/manifoldco/promptui
 github.com/manifoldco/promptui/list
 github.com/manifoldco/promptui/screenbuf
-# github.com/mattn/go-isatty v0.0.17
+# github.com/mattn/go-isatty v0.0.19
 ## explicit; go 1.15
 github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.14
@@ -1024,7 +1026,7 @@ go.opentelemetry.io/otel/semconv/v1.12.0
 # go.opentelemetry.io/otel/trace v1.15.0
 ## explicit; go 1.19
 go.opentelemetry.io/otel/trace
-# golang.org/x/arch v0.0.0-20210923205945-b76863e36670
+# golang.org/x/arch v0.3.0
 ## explicit; go 1.17
 golang.org/x/arch/x86/x86asm
 # golang.org/x/crypto v0.11.0

@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/goccy/go-json/internal/encoder"
 )
@@ -13,6 +14,11 @@ func DebugRun(ctx *encoder.RuntimeContext, b []byte, codeSet *encoder.OpcodeSet)
 			code = codeSet.EscapeKeyCode
 		} else {
 			code = codeSet.NoescapeKeyCode
+		}
+		if wc := ctx.Option.DebugDOTOut; wc != nil {
+			_, _ = io.WriteString(wc, code.DumpDOT())
+			wc.Close()
+			ctx.Option.DebugDOTOut = nil
 		}
 
 		if err := recover(); err != nil {

@@ -1,7 +1,9 @@
 package encoder
 
 import (
+	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 	"unsafe"
 
@@ -553,6 +555,87 @@ func (c *Opcode) Dump() string {
 		}
 	}
 	return strings.Join(codes, "\n")
+}
+
+func (c *Opcode) DumpDOT() string {
+	type edge struct {
+		from, to *Opcode
+		label    string
+		weight   int
+	}
+	var edges []edge
+
+	b := &bytes.Buffer{}
+	fmt.Fprintf(b, "digraph \"%p\" {\n", c.Type)
+	fmt.Fprintln(b, "mclimit=1.5;\nrankdir=TD;\nordering=out;\nnode[shape=box];")
+	for code := c; !code.IsEnd(); {
+		label := code.Op.String()
+		fmt.Fprintf(b, "\"%p\" [label=%q];\n", code, label)
+		if p := code.Next; p != nil {
+			edges = append(edges, edge{
+				from:   code,
+				to:     p,
+				label:  "Next",
+				weight: 10,
+			})
+		}
+		if p := code.NextField; p != nil {
+			edges = append(edges, edge{
+				from:   code,
+				to:     p,
+				label:  "NextField",
+				weight: 2,
+			})
+		}
+		if p := code.End; p != nil {
+			edges = append(edges, edge{
+				from:   code,
+				to:     p,
+				label:  "End",
+				weight: 1,
+			})
+		}
+		if p := code.Jmp; p != nil {
+			edges = append(edges, edge{
+				from:   code,
+				to:     p.Code,
+				label:  "Jmp",
+				weight: 1,
+			})
+		}
+
+		switch code.Op.CodeType() {
+		case CodeSliceHead:
+			code = code.Next
+		case CodeMapHead:
+			code = code.Next
+		case CodeArrayElem, CodeSliceElem:
+			code = code.End
+		case CodeMapKey:
+			code = code.End
+		case CodeMapValue:
+			code = code.Next
+		case CodeMapEnd:
+			code = code.Next
+		case CodeStructField:
+			code = code.Next
+		case CodeStructEnd:
+			code = code.Next
+		default:
+			code = code.Next
+		}
+		if code.IsEnd() {
+			fmt.Fprintf(b, "\"%p\" [label=%q];\n", code, code.Op.String())
+		}
+	}
+	sort.Slice(edges, func(i, j int) bool {
+		return edges[i].to.DisplayIdx < edges[j].to.DisplayIdx
+	})
+	for _, e := range edges {
+		fmt.Fprintf(b, "\"%p\" -> \"%p\" [label=%q][weight=%d];\n", e.from, e.to, e.label, e.weight)
+	}
+	fmt.Fprint(b, "}")
+	return b.String()
 }
 
 func newSliceHeaderCode(ctx *compileContext, typ *runtime.Type) *Opcode {

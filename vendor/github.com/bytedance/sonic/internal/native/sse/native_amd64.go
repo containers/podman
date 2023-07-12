@@ -122,7 +122,7 @@ func __validate_one(s *string, p *int, m *types.StateMachine) (ret int)
 //go:nosplit
 //go:noescape
 //goland:noinspection GoUnusedParameter
-func __get_by_path(s *string, p *int, path *[]interface{}) (ret int)
+func __get_by_path(s *string, p *int, path *[]interface{}, m *types.StateMachine) (ret int)
 
 //go:nosplit
 //go:noescape

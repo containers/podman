@@ -87,7 +87,6 @@ func GuardSlice(buf *[]byte, n int) {
 		copy(tmp, *buf)
 		*buf = tmp
 	}
-	return
 }
 
 //go:nosplit

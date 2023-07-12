@@ -18,6 +18,7 @@ package unquote
 
 import (
     `unsafe`
+    `runtime`
 
     `github.com/bytedance/sonic/internal/native`
     `github.com/bytedance/sonic/internal/native/types`
@@ -43,7 +44,8 @@ func intoBytesUnsafe(s string, m *[]byte) types.ParsingError {
     pos := -1
     slv := (*rt.GoSlice)(unsafe.Pointer(m))
     str := (*rt.GoString)(unsafe.Pointer(&s))
-    ret := native.Unquote(str.Ptr, str.Len, slv.Ptr, &pos, 0)
+    /* unquote as the default configuration, replace invalid unicode with \ufffd */
+    ret := native.Unquote(str.Ptr, str.Len, slv.Ptr, &pos, types.F_UNICODE_REPLACE)
 
     /* check for errors */
     if ret < 0 {
@@ -52,5 +54,6 @@ func intoBytesUnsafe(s string, m *[]byte) types.ParsingError {
 
     /* update the length */
     slv.Len = ret
+    runtime.KeepAlive(s)
     return 0
 }

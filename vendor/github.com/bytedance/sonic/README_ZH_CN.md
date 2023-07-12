@@ -1,22 +1,25 @@
 # Sonic
 
-English | [中文](README_ZH_CN.md)
+[English](README.md) | 中文
 
-A blazingly fast JSON serializing &amp; deserializing library, accelerated by JIT (just-in-time compiling) and SIMD (single-instruction-multiple-data).
+一个速度奇快的 JSON 序列化/反序列化库，由 JIT （即时编译）和 SIMD （单指令流多数据流）加速。
 
-## Requirement
+## 依赖
+
 - Go 1.15~1.20
 - Linux/MacOS/Windows
-- Amd64 ARCH
+- Amd64 架构
 
-## Features
-- Runtime object binding without code generation
-- Complete APIs for JSON value manipulation
-- Fast, fast, fast!
+## 特色
 
-## Benchmarks
-For **all sizes** of json and **all scenarios** of usage, **Sonic performs best**.
-- [Medium](https://github.com/bytedance/sonic/blob/main/decoder/testdata_test.go#L19) (13KB, 300+ key, 6 layers)
+- 运行时对象绑定，无需代码生成
+- 完备的 JSON 操作 API
+- 快，更快，还要更快！
+
+## 基准测试
+
+对于**所有大小**的 json 和**所有使用场景**， **Sonic 表现均为最佳**。
+- [中型](https://github.com/bytedance/sonic/blob/main/decoder/testdata_test.go#L19) (13kB, 300+ 键, 6 层)
 ```powershell
 goversion: 1.17.1
 goos: darwin
@@ -77,21 +80,22 @@ BenchmarkSetOne_Parallel_Sonic-16                      850.9 ns/op       15305.3
 BenchmarkSetOne_Parallel_Sjson-16                      18194 ns/op         715.77 MB/s       52247 B/op          9 allocs/op
 BenchmarkSetOne_Parallel_Jsoniter-16                   33560 ns/op         388.05 MB/s       45892 B/op        964 allocs/op
 ```
-- [Small](https://github.com/bytedance/sonic/blob/main/testdata/small.go) (400B, 11 keys, 3 layers)
+- [小型](https://github.com/bytedance/sonic/blob/main/testdata/small.go) (400B, 11 个键, 3 层)
 ![small benchmarks](./docs/imgs/bench-small.png)
-- [Large](https://github.com/bytedance/sonic/blob/main/testdata/twitter.json) (635KB, 10000+ key, 6 layers)
+- [大型](https://github.com/bytedance/sonic/blob/main/testdata/twitter.json) (635kB, 10000+ 个键, 6 层)
 ![large benchmarks](./docs/imgs/bench-large.png)
 
-See [bench.sh](https://github.com/bytedance/sonic/blob/main/bench.sh) for benchmark codes.
+要查看基准测试代码，请参阅 [bench.sh](https://github.com/bytedance/sonic/blob/main/bench.sh) 。
 
-## How it works
-See [INTRODUCTION.md](./docs/INTRODUCTION.md).
+## 工作原理
 
-## Usage
+请参阅 [INTRODUCTION_ZH_CN.md](./docs/INTRODUCTION_ZH_CN.md).
 
-### Marshal/Unmarshal
+## 使用方式
 
-Default behaviors are mostly consistent with `encoding/json`, except HTML escaping form (see [Escape HTML](https://github.com/bytedance/sonic/blob/main/README.md#escape-html)) and `SortKeys` feature (optional support see [Sort Keys](https://github.com/bytedance/sonic/blob/main/README.md#sort-keys)) that is **NOT** in conformity to [RFC8259](https://datatracker.ietf.org/doc/html/rfc8259).
+### 序列化/反序列化
+
+默认的行为基本上与 `encoding/json` 相一致，除了 HTML 转义形式（参见 [Escape HTML](https://github.com/bytedance/sonic/blob/main/README.md#escape-html)) 和 `SortKeys` 功能（参见 [Sort Keys](https://github.com/bytedance/sonic/blob/main/README.md#sort-keys)）**没有**遵循 [RFC8259](https://datatracker.ietf.org/doc/html/rfc8259) 。
  ```go
 import "github.com/bytedance/sonic"
 
@@ -102,9 +106,10 @@ output, err := sonic.Marshal(&data)
 err := sonic.Unmarshal(output, &data)
  ```
 
-### Streaming IO
-Sonic supports decoding json from `io.Reader` or encoding objects into `io.`Writer`, aims at handling multiple values as well as reducing memory consumption.
-- encoder
+### 流式输入输出
+
+Sonic 支持解码 `io.Reader` 中输入的 json，或将对象编码为 json 后输出至 `io.Writer`，以处理多个值并减少内存消耗。
+- 编码器
 ```go
 var o1 = map[string]interface{}{
     "a": "b",
@@ -119,7 +124,7 @@ fmt.Println(w.String())
 // {"a":"b"}
 // 1
 ```
-- decoder
+- 解码器
 ```go
 var o =  map[string]interface{}{}
 var r = strings.NewReader(`{"a":"b"}{"1":"2"}`)
@@ -131,8 +136,9 @@ fmt.Printf("%+v", o)
 // map[1:2 a:b]
 ```
 
-### Use Number/Use Int64
- ```go
+### 使用 `Number` / `int64`
+
+```go
 import "github.com/bytedance/sonic/decoder"
 
 var input = `1`
@@ -159,8 +165,9 @@ fn := root.Float64()
 fm := root.Interface().(float64) // jn == jm
  ```
 
-### Sort Keys
-On account of the performance loss from sorting (roughly 10%), sonic doesn't enable this feature by default. If your component depends on it to work (like [zstd](https://github.com/facebook/zstd)), Use it like this:
+### 对键排序
+
+考虑到排序带来的性能损失（约 10% ）， sonic 默认不会启用这个功能。如果你的组件依赖这个行为（如 [zstd](https://github.com/facebook/zstd)) ，可以仿照下面的例子：
 ```go
 import "github.com/bytedance/sonic"
 import "github.com/bytedance/sonic/encoder"
@@ -173,19 +180,23 @@ v, err := encoder.Encode(m, encoder.SortMapKeys)
 var root := sonic.Get(JSON)
 err := root.SortKeys()
 ```
-### Escape HTML
-On account of the performance loss (roughly 15%), sonic doesn't enable this feature by default. You can use `encoder.EscapeHTML` option to open this feature (align with `encoding/json.HTMLEscape`).
+
+### HTML 转义
+
+考虑到性能损失（约15%）， sonic 默认不会启用这个功能。你可以使用 `encoder.EscapeHTML` 选项来开启（与 `encoding/json.HTMLEscape` 行为一致）。
 ```go
 import "github.com/bytedance/sonic"
 
 v := map[string]string{"&&":"<>"}
 ret, err := Encode(v, EscapeHTML) // ret == `{"\u0026\u0026":{"X":"\u003c\u003e"}}`
 ```
-### Compact Format
-Sonic encodes primitive objects (struct/map...) as compact-format JSON by default, except marshaling `json.RawMessage` or `json.Marshaler`: sonic ensures validating their output JSON but **DONOT** compacting them for performance concerns. We provide the option `encoder.CompactMarshaler` to add compacting process.
 
-### Print Error
-If there invalid syntax in input JSON, sonic will return `decoder.SyntaxError`, which supports pretty-printing of error position
+### 紧凑格式
+Sonic 默认将基本类型（ `struct` ， `map` 等）编码为紧凑格式的 JSON ，除非使用 `json.RawMessage` or `json.Marshaler` 进行编码： sonic 确保输出的 JSON 合法，但出于性能考虑，**不会**加工成紧凑格式。我们提供选项 `encoder.CompactMarshaler` 来添加此过程，
+
+### 打印错误
+
+如果输入的 JSON 存在无效的语法，sonic 将返回 `decoder.SyntaxError`，该错误支持错误位置的美化输出。
 ```go
 import "github.com/bytedance/sonic"
 import "github.com/bytedance/sonic/decoder"
@@ -210,8 +221,9 @@ if err != nil {
 }
 ```
 
-#### Mismatched Types [Sonic v1.6.0]
-If there a **mismatch-typed** value for a given key, sonic will report `decoder.MismatchTypeError` (if there are many, report the last one), but still skip wrong the value and keep decoding next JSON.
+#### 类型不匹配 [Sonic v1.6.0]
+
+如果给定键中存在**类型不匹配**的值， sonic 会抛出 `decoder.MismatchTypeError` （如果有多个，只会报告最后一个），但仍会跳过错误的值并解码下一个 JSON 。
 ```go
 import "github.com/bytedance/sonic"
 import "github.com/bytedance/sonic/decoder"
@@ -224,10 +236,13 @@ err := UnmarshalString(`{"A":"1","B":1}`, &data)
 println(err.Error())    // Mismatch type int with value string "at index 5: mismatched type with value\n\n\t{\"A\":\"1\",\"B\":1}\n\t.....^.........\n"
 fmt.Printf("%+v", data) // {A:0 B:1}
 ```
-### Ast.Node
-Sonic/ast.Node is a completely self-contained AST for JSON. It implements serialization and deserialization both and provides robust APIs for obtaining and modification of generic data.
-#### Get/Index
-Search partial JSON by given paths, which must be non-negative integer or string, or nil
+### `Ast.Node`
+
+Sonic/ast.Node 是完全独立的 JSON 抽象语法树库。它实现了序列化和反序列化，并提供了获取和修改通用数据的鲁棒的 API。
+
+#### 查找/索引
+
+通过给定的路径搜索 JSON 片段，路径必须为非负整数，字符串或 `nil` 。
 ```go
 import "github.com/bytedance/sonic"
 
@@ -241,10 +256,11 @@ raw := root.Raw() // == string(input)
 root, err := sonic.Get(input, "key1", 1, "key2")
 sub := root.Get("key3").Index(2).Int64() // == 3
 ```
-**Tip**: since `Index()` uses offset to locate data, which is much faster than scanning like `Get()`, we suggest you use it as much as possible. And sonic also provides another API `IndexOrGet()` to underlying use offset as well as ensure the key is matched.
+**注意**：由于 `Index()` 使用偏移量来定位数据，比使用扫描的 `Get()` 要快的多，建议尽可能的使用 `Index` 。 Sonic 也提供了另一个 API， `IndexOrGet()` ，以偏移量为基础并且也确保键的匹配。
 
-#### Set/Unset
-Modify the json content by Set()/Unset()
+#### 修改
+
+使用 ` Set()` / `Unset()` 修改 json 的内容
 ```go
 import "github.com/bytedance/sonic"
 
@@ -260,8 +276,8 @@ exist, err := root.UnsetByIndex(1) // exist == true
 println(root.Get("key4").Check()) // "value not exist"
 ```
 
-#### Serialize
-To encode `ast.Node` as json, use `MarshalJson()` or `json.Marshal()` (MUST pass the node's pointer)
+#### 序列化
+要将 `ast.Node` 编码为 json ，使用 `MarshalJson()` 或者 `json.Marshal()` （必须传递指向节点的指针）
 ```go
 import (
     "encoding/json"
@@ -275,28 +291,28 @@ println(string(buf) == string(exp)) // true
 ```
 
 #### APIs
-- validation: `Check()`, `Error()`, `Valid()`, `Exist()`
-- searching: `Index()`, `Get()`, `IndexPair()`, `IndexOrGet()`, `GetByPath()`
-- go-type casting: `Int64()`, `Float64()`, `String()`, `Number()`, `Bool()`, `Map[UseNumber|UseNode]()`, `Array[UseNumber|UseNode]()`, `Interface[UseNumber|UseNode]()`
-- go-type packing: `NewRaw()`, `NewNumber()`, `NewNull()`, `NewBool()`, `NewString()`, `NewObject()`, `NewArray()`
-- iteration: `Values()`, `Properties()`, `ForEach()`, `SortKeys()`
-- modification: `Set()`, `SetByIndex()`, `Add()`
+- 合法性检查： `Check()`, `Error()`, `Valid()`, `Exist()`
+- 索引： `Index()`, `Get()`, `IndexPair()`, `IndexOrGet()`, `GetByPath()`
+- 转换至 go 内置类型： `Int64()`, `Float64()`, `String()`, `Number()`, `Bool()`, `Map[UseNumber|UseNode]()`, `Array[UseNumber|UseNode]()`, `Interface[UseNumber|UseNode]()`
+- go 类型打包： `NewRaw()`, `NewNumber()`, `NewNull()`, `NewBool()`, `NewString()`, `NewObject()`, `NewArray()`
+- 迭代： `Values()`, `Properties()`, `ForEach()`, `SortKeys()`
+- 修改： `Set()`, `SetByIndex()`, `Add()`
 
-## Compatibility
-Sonic **DOES NOT** ensure to support all environments, due to the difficulty of developing high-performance codes. For developers who use sonic to build their applications in different environments, we have the following suggestions:
+## 兼容性
+由于开发高性能代码的困难性， Sonic **不**保证对所有环境的支持。对于在不同环境中使用 Sonic 构建应用程序的开发者，我们有以下建议：
 
-- Developing on **Mac M1**: Make sure you have Rosetta 2 installed on your machine, and set `GOARCH=amd64` when building your application. Rosetta 2 can automatically translate x86 binaries to arm64 binaries and run x86 applications on Mac M1.
-- Developing on **Linux arm64**: You can install qemu and use the `qemu-x86_64 -cpu max` command to convert x86 binaries to amr64 binaries for applications built with sonic. The qemu can achieve a similar transfer effect to Rosetta 2 on Mac M1.
+- 在 **Mac M1** 上开发：确保在您的计算机上安装了 Rosetta 2，并在构建时设置 `GOARCH=amd64` 。 Rosetta 2 可以自动将 x86 二进制文件转换为 arm64 二进制文件，并在 Mac M1 上运行 x86 应用程序。
+- 在 **Linux arm64** 上开发：您可以安装 qemu 并使用 `qemu-x86_64 -cpu max` 命令来将 x86 二进制文件转换为 arm64 二进制文件。qemu可以实现与Mac M1上的Rosetta 2类似的转换效果。
 
-For developers who want to use sonic on Linux arm64 without qemu, or those who want to handle JSON strictly consistent with `encoding/json`, we provide some compatible APIs as `sonic.API`
-- `ConfigDefault`: the sonic's default config (`EscapeHTML=false`,`SortKeys=false`...) to run on sonic-supporting environment. It will fall back to `encoding/json` with the corresponding config, and some options like `SortKeys=false` will be invalid.
-- `ConfigStd`: the std-compatible config (`EscapeHTML=true`,`SortKeys=true`...) to run on sonic-supporting environment. It will fall back to `encoding/json`.
-- `ConfigFastest`: the fastest config (`NoQuoteTextMarshaler=true`) to run on sonic-supporting environment. It will fall back to `encoding/json` with the corresponding config, and some options will be invalid.
+对于希望在不使用 qemu 下使用 sonic 的开发者，或者希望处理 JSON 时与 `encoding/JSON` 严格保持一致的开发者，我们在 `sonic.API` 中提供了一些兼容性 API
+- `ConfigDefault`: 在支持 sonic 的环境下 sonic 的默认配置（`EscapeHTML=false`，`SortKeys=false`等）。行为与具有相应配置的 `encoding/json` 一致，一些选项，如 `SortKeys=false` 将无效。
+- `ConfigStd`: 在支持 sonic 的环境下与标准库兼容的配置（`EscapeHTML=true`，`SortKeys=true`等）。行为与 `encoding/json` 一致。
+- `ConfigFastest`: 在支持 sonic 的环境下运行最快的配置（`NoQuoteTextMarshaler=true`）。行为与具有相应配置的 `encoding/json` 一致，某些选项将无效。
 
-## Tips
+## 注意事项
 
-### Pretouch
-Since Sonic uses [golang-asm](https://github.com/twitchyliquid64/golang-asm) as a JIT assembler, which is NOT very suitable for runtime compiling, first-hit running of a huge schema may cause request-timeout or even process-OOM. For better stability, we advise **using `Pretouch()` for huge-schema or compact-memory applications** before `Marshal()/Unmarshal()`.
+### 预热
+由于 Sonic 使用 [golang-asm](https://github.com/twitchyliquid64/golang-asm) 作为 JIT 汇编器，这个库并不适用于运行时编译，第一次运行一个大型模式可能会导致请求超时甚至进程内存溢出。为了更好地稳定性，我们建议在运行大型模式或在内存有限的应用中，在使用 `Marshal()/Unmarshal()` 前运行 `Pretouch()`。
 ```go
 import (
     "reflect"
@@ -321,18 +337,21 @@ func init() {
 }
 ```
 
-### Copy string
-When decoding **string values without any escaped characters**, sonic references them from the origin JSON buffer instead of mallocing a new buffer to copy. This helps a lot for CPU performance but may leave the whole JSON buffer in memory as long as the decoded objects are being used. In practice, we found the extra memory introduced by referring JSON buffer is usually 20% ~ 80% of decoded objects. Once an application holds these objects for a long time (for example, cache the decoded objects for reusing), its in-use memory on the server may go up. We provide the option `decoder.CopyString()` for users to choose not to reference the JSON buffer, which may cause a decline in CPU performance to some degree.
+### 拷贝字符串
 
-### Pass string or []byte?
-For alignment to `encoding/json`, we provide API to pass `[]byte` as an argument, but the string-to-bytes copy is conducted at the same time considering safety, which may lose performance when the origin JSON is huge. Therefore, you can use `UnmarshalString()` and `GetFromString()` to pass a string, as long as your origin data is a string or **nocopy-cast** is safe for your []byte. We also provide API `MarshalString()` for convenient **nocopy-cast** of encoded JSON []byte, which is safe since sonic's output bytes is always duplicated and unique.
+当解码 **没有转义字符的字符串**时， sonic 会从原始的 JSON 缓冲区内引用而不是复制到新的一个缓冲区中。这对 CPU 的性能方面很有帮助，但是可能因此在解码后对象仍在使用的时候将整个 JSON 缓冲区保留在内存中。实践中我们发现，通过引用 JSON 缓冲区引入的额外内存通常是解码后对象的 20% 至 80% ，一旦应用长期保留这些对象（如缓存以备重用），服务器所使用的内存可能会增加。我们提供了选项 `decoder.CopyString()` 供用户选择，不引用 JSON 缓冲区。这可能在一定程度上降低 CPU 性能。
 
-### Accelerate `encoding.TextMarshaler`
-To ensure data security, sonic.Encoder quotes and escapes string values from `encoding.TextMarshaler` interfaces by default, which may degrade performance much if most of your data is in form of them. We provide `encoder.NoQuoteTextMarshaler` to skip these operations, which means you **MUST** ensure their output string escaped and quoted following [RFC8259](https://datatracker.ietf.org/doc/html/rfc8259).
+### 传递字符串还是字节数组？
+为了和 `encoding/json` 保持一致，我们提供了传递 `[]byte` 作为参数的 API ，但考虑到安全性，字符串到字节的复制是同时进行的，这在原始 JSON 非常大时可能会导致性能损失。因此，你可以使用 `UnmarshalString()` 和 `GetFromString()` 来传递字符串，只要你的原始数据是字符串，或**零拷贝类型转换**对于你的字节数组是安全的。我们也提供了 `MarshalString()` 的 API ，以便对编码的 JSON 字节数组进行**零拷贝类型转换**，因为 sonic 输出的字节始终是重复并且唯一的，所以这样是安全的。
+
+### 加速 `encoding.TextMarshaler`
+
+为了保证数据安全性， `sonic.Encoder` 默认会对来自 `encoding.TextMarshaler` 接口的字符串进行引用和转义，如果大部分数据都是这种形式那可能会导致很大的性能损失。我们提供了 `encoder.NoQuoteTextMarshaler` 选项来跳过这些操作，但你**必须**保证他们的输出字符串依照 [RFC8259](https://datatracker.ietf.org/doc/html/rfc8259) 进行了转义和引用。
 
 
-### Better performance for generic data
-In **fully-parsed** scenario, `Unmarshal()` performs better than `Get()`+`Node.Interface()`. But if you only have a part of the schema for specific json, you can combine `Get()` and `Unmarshal()` together:
+### 泛型的性能优化
+
+在 **完全解析**的场景下， `Unmarshal()` 表现得比 `Get()`+`Node.Interface()` 更好。但是如果你只有特定 JSON 的部分模式，你可以将 `Get()` 和 `Unmarshal()` 结合使用：
 ```go
 import "github.com/bytedance/sonic"
 
@@ -340,7 +359,7 @@ node, err := sonic.GetFromString(_TwitterJson, "statuses", 3, "user")
 var user User // your partial schema...
 err = sonic.UnmarshalString(node.Raw(), &user)
 ```
-Even if you don't have any schema, use `ast.Node` as the container of generic values instead of `map` or `interface`:
+甚至如果你没有任何模式，可以用 `ast.Node` 代替 `map` 或 `interface` 作为泛型的容器：
 ```go
 import "github.com/bytedance/sonic"
 
@@ -351,12 +370,13 @@ err = user.Check()
 // err = user.LoadAll() // only call this when you want to use 'user' concurrently...
 go someFunc(user)
 ```
-Why? Because `ast.Node` stores its children using `array`:
-- `Array`'s performance is **much better** than `Map` when Inserting (Deserialize) and Scanning (Serialize) data;
-- **Hashing** (`map[x]`) is not as efficient as **Indexing** (`array[x]`), which `ast.Node` can conduct on **both array and object**;
-- Using `Interface()`/`Map()` means Sonic must parse all the underlying values, while `ast.Node` can parse them **on demand**.
+为什么？因为 `ast.Node` 使用 `array` 来存储其子节点：
+- 在插入（反序列化）和扫描（序列化）数据时，`Array` 的性能比 `Map` **好得多**；
+- **哈希**（`map[x]`）的效率不如**索引**（`array[x]`）高效，而 `ast.Node` 可以在数组和对象上使用索引；
+- 使用 `Interface()` / `Map()` 意味着 sonic 必须解析所有的底层值，而 `ast.Node` 可以**按需解析**它们。
 
-**CAUTION:** `ast.Node` **DOESN'T** ensure concurrent security directly, due to its **lazy-load** design. However, you can call `Node.Load()`/`Node.LoadAll()` to achieve that, which may bring performance reduction while it still works faster than converting to `map` or `interface{}`
+**注意**：由于 `ast.Node` 的惰性加载设计，其**不能**直接保证并发安全性，但你可以调用 `Node.Load()` / `Node.LoadAll()` 来实现并发安全。尽管可能会带来性能损失，但仍比转换成 `map` 或 `interface{}` 更为高效。
 
-## Community
-Sonic is a subproject of [CloudWeGo](https://www.cloudwego.io/). We are committed to building a cloud native ecosystem.
+## 社区
+
+Sonic 是 [CloudWeGo](https://www.cloudwego.io/) 下的一个子项目。我们致力于构建云原生生态系统。

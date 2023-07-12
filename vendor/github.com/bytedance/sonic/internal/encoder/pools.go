@@ -30,7 +30,6 @@ import (
 
 const (
     _MaxStack  = 4096      // 4k states
-    _MaxBuffer = 1048576    // 1MB buffer size
 
     _StackSize = unsafe.Sizeof(_Stack{})
 )
@@ -92,7 +91,7 @@ func newBytes() []byte {
     if ret := bytesPool.Get(); ret != nil {
         return ret.([]byte)
     } else {
-        return make([]byte, 0, _MaxBuffer)
+        return make([]byte, 0, option.DefaultEncoderBufferSize)
     }
 }
 
@@ -112,7 +111,7 @@ func newBuffer() *bytes.Buffer {
     if ret := bufferPool.Get(); ret != nil {
         return ret.(*bytes.Buffer)
     } else {
-        return bytes.NewBuffer(make([]byte, 0, _MaxBuffer))
+        return bytes.NewBuffer(make([]byte, 0, option.DefaultEncoderBufferSize))
     }
 }
 

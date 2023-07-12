@@ -72,7 +72,7 @@ TEXT ·SkipOneFast(SB), NOSPLIT, $0 - 24
     JMP  github·com∕bytedance∕sonic∕internal∕native∕avx·__skip_one_fast(SB)
     JMP  github·com∕bytedance∕sonic∕internal∕native∕sse·__skip_one_fast(SB)
 
-TEXT ·GetByPath(SB), NOSPLIT, $0 - 32
+TEXT ·GetByPath(SB), NOSPLIT, $0 - 40
     CMPB github·com∕bytedance∕sonic∕internal∕cpu·HasAVX2(SB), $0
     JE   2(PC)
     JMP  github·com∕bytedance∕sonic∕internal∕native∕avx2·__get_by_path(SB)

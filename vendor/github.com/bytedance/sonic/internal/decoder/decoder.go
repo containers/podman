@@ -17,6 +17,7 @@
 package decoder
 
 import (
+    `unsafe`
     `encoding/json`
     `reflect`
     `runtime`
@@ -127,8 +128,17 @@ func (self *Decoder) Decode(val interface{}) error {
         return &json.InvalidUnmarshalError{Type: vv.Type.Pack()}
     }
 
+    etp := rt.PtrElem(vv.Type)
+
+    /* check the defined pointer type for issue 379 */
+    if vv.Type.IsNamed() {
+        newp := vp
+        etp  = vv.Type
+        vp   = unsafe.Pointer(&newp)
+    }
+
     /* create a new stack, and call the decoder */
-    sb, etp := newStack(), rt.PtrElem(vv.Type)
+    sb := newStack()
     nb, err := decodeTypedPointer(self.s, self.i, etp, vp, sb, self.f)
     /* return the stack back */
     self.i = nb

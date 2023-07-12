@@ -88,7 +88,7 @@ func (d *mapDecoder) DecodeStream(s *Stream, depth int64, p unsafe.Pointer) erro
 		mapValue = makemap(d.mapType, 0)
 	}
 	s.cursor++
-	if s.equalChar('}') {
+	if s.skipWhiteSpace() == '}' {
 		*(*unsafe.Pointer)(p) = mapValue
 		s.cursor++
 		return nil

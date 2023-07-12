@@ -48,6 +48,13 @@ func DebugWith(w io.Writer) EncodeOptionFunc {
 	}
 }
 
+// DebugDOT sets the destination to write opcodes graph.
+func DebugDOT(w io.WriteCloser) EncodeOptionFunc {
+	return func(opt *EncodeOption) {
+		opt.DebugDOTOut = w
+	}
+}
+
 // Colorize add an identifier for coloring to the string of the encoded result.
 func Colorize(scheme *ColorScheme) EncodeOptionFunc {
 	return func(opt *EncodeOption) {

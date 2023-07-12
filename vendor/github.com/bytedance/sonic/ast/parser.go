@@ -350,7 +350,7 @@ func (self *Parser) searchKey(match string) types.ParsingError {
 
         /* skip value */
         if key != match {
-            if _, err = self.skip(); err != 0 {
+            if _, err = self.skipFast(); err != 0 {
                 return err
             }
         } else {
@@ -398,7 +398,7 @@ func (self *Parser) searchIndex(idx int) types.ParsingError {
     for i := 0; i < idx; i++ {
 
         /* decode the value */
-        if _, err = self.skip(); err != 0 {
+        if _, err = self.skipFast(); err != 0 {
             return err
         }
 

@@ -80,7 +80,7 @@ require (
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
-	github.com/bytedance/sonic v1.8.0 // indirect
+	github.com/bytedance/sonic v1.9.1 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
@@ -99,7 +99,7 @@ require (
 	github.com/fsouza/go-dockerclient v1.9.7 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
-	github.com/gin-gonic/gin v1.9.0 // indirect
+	github.com/gin-gonic/gin v1.9.1 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.0 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -118,7 +118,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.14.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
-	github.com/goccy/go-json v0.10.0 // indirect
+	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
@@ -133,14 +133,14 @@ require (
 	github.com/jinzhu/copier v0.3.5 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/klauspost/compress v1.16.6 // indirect
-	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/letsencrypt/boulder v0.0.0-20230213213521-fdfea0d469b6 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/manifoldco/promptui v0.9.0 // indirect
-	github.com/mattn/go-isatty v0.0.17 // indirect
+	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/miekg/pkcs11 v1.1.1 // indirect
 	github.com/mistifyio/go-zfs/v3 v3.0.1 // indirect
@@ -180,7 +180,7 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.15.0 // indirect
 	go.opentelemetry.io/otel/trace v1.15.0 // indirect
-	golang.org/x/arch v0.0.0-20210923205945-b76863e36670 // indirect
+	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/crypto v0.11.0 // indirect
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
 	golang.org/x/mod v0.10.0 // indirect

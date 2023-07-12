@@ -1,6 +1,7 @@
 // Copyright (c) 2015 Klaus Post, released under MIT License. See LICENSE file.
 
-//+build 386,!gccgo,!noasm,!appengine amd64,!gccgo,!noasm,!appengine
+//go:build (386 && !gccgo && !noasm && !appengine) || (amd64 && !gccgo && !noasm && !appengine)
+// +build 386,!gccgo,!noasm,!appengine amd64,!gccgo,!noasm,!appengine
 
 package cpuid
 
@@ -23,7 +24,7 @@ func addInfo(c *CPUInfo, safe bool) {
 	c.maxExFunc = maxExtendedFunction()
 	c.BrandName = brandName()
 	c.CacheLine = cacheLine()
-	c.Family, c.Model = familyModel()
+	c.Family, c.Model, c.Stepping = familyModel()
 	c.featureSet = support()
 	c.SGX = hasSGX(c.featureSet.inSet(SGX), c.featureSet.inSet(SGXLC))
 	c.ThreadsPerCore = threadsPerCore()

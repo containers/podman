@@ -1,5 +1,5 @@
-//go:build go1.15 && !go1.18
-// +build go1.15,!go1.18
+//go:build go1.15 && !go1.16
+// +build go1.15,!go1.16
 
 /*
  * Copyright 2021 ByteDance Inc.
@@ -20,14 +20,9 @@
 package loader
 
 import (
-
     `github.com/bytedance/sonic/internal/loader`
 )
 
 func (self Loader) LoadOne(text []byte, funcName string, frameSize int, argSize int, argStackmap []bool, localStackmap []bool) Function {
     return Function(loader.Loader(text).Load(funcName, frameSize, argSize, argStackmap, localStackmap))
-}
-
-func Load(modulename string, filenames []string, funcs []Func, text []byte) (out []Function) {
-    panic("not implemented") 
 }
