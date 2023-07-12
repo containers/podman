@@ -96,6 +96,18 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 		libpodRuntime.SetRemoteURI(uri.String())
 	}
 
+	// bugzilla.redhat.com/show_bug.cgi?id=2180483:
+	//
+	// Disable leaking the LISTEN_* into containers which
+	// are observed to be passed by systemd even without
+	// being socket activated as described in
+	// https://access.redhat.com/solutions/6512011.
+	for _, val := range []string{"LISTEN_FDS", "LISTEN_PID", "LISTEN_FDNAMES"} {
+		if err := os.Unsetenv(val); err != nil {
+			return fmt.Errorf("unsetting %s: %v", val, err)
+		}
+	}
+
 	// Set stdin to /dev/null, so shortnames will not prompt
 	devNullfile, err := os.Open(os.DevNull)
 	if err != nil {
