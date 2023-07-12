@@ -63,6 +63,10 @@ func (s *APIServer) registerKubeHandlers(r *mux.Router) error {
 	//    type: boolean
 	//    default: false
 	//    description: use annotations that are not truncated to the Kubernetes maximum length of 63 characters
+	//  - in: query
+	//    name: userns
+	//    type: string
+	//    description: Set the user namespace mode for the pods.
 	//  - in: body
 	//    name: request
 	//    description: Kubernetes YAML file.

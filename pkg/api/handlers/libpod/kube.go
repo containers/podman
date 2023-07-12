@@ -28,6 +28,7 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 		StaticIPs        []string          `schema:"staticIPs"`
 		StaticMACs       []string          `schema:"staticMACs"`
 		NoHosts          bool              `schema:"noHosts"`
+		Userns           string            `schema:"userns"`
 		PublishPorts     []string          `schema:"publishPorts"`
 		NoTrunc          bool              `schema:"noTrunc"`
 		Wait             bool              `schema:"wait"`
@@ -98,6 +99,7 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 		StaticIPs:          staticIPs,
 		StaticMACs:         staticMACs,
 		IsRemote:           true,
+		Userns:             query.Userns,
 		PublishPorts:       query.PublishPorts,
 		Wait:               query.Wait,
 		ServiceContainer:   query.ServiceContainer,
