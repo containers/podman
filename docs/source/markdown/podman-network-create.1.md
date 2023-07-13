@@ -62,7 +62,13 @@ For `macvlan` and `ipvlan`, it is the parent device on the host. It is the same 
 
 #### **--internal**
 
-Restrict external access of this network. Note when using this option, the dnsname plugin is automatically disabled.
+Restrict external access of this network when using a `bridge` network. Note when using the CNI backend
+DNS will be automatically disabled, see **--disable-dns**.
+
+When using the `macvlan` or `ipvlan` driver with this option no default route will be added to the container.
+Because it bypasses the host network stack no additional restrictions can be set by podman and if a
+privileged container is run it can set a default route themselves. If this is a concern then the
+container connections should be blocked on your actual network gateway.
 
 #### **--ip-range**=*range*
 
