@@ -84,6 +84,22 @@ load helpers
     is "$output" "" "podman image mount, no args, after umount"
 }
 
+@test "podman run --mount ro=false " {
+    local volpath=/path/in/container
+    local stdopts="type=volume,destination=$volpath"
+
+    # Variations on a theme (not by Paganini). All of these should fail.
+    for varopt in readonly readonly=true ro=true ro rw=false;do
+        run_podman 1 run --rm -q --mount $stdopts,$varopt $IMAGE touch $volpath/a
+        is "$output" "touch: $volpath/a: Read-only file system" "with $varopt"
+    done
+
+    # All of these should pass
+    for varopt in rw rw=true ro=false readonly=false;do
+        run_podman run --rm -q --mount $stdopts,$varopt $IMAGE touch $volpath/a
+    done
+}
+
 @test "podman run --mount image" {
     skip_if_rootless "too hard to test rootless"
 

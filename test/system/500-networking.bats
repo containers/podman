@@ -471,8 +471,10 @@ load helpers.network
     run_podman run -d --network $netname $IMAGE top
     background_cid=$output
 
+    local hostname=host-$(random_string 10)
     # Run a httpd container on first network with exposed port
     run_podman run -d -p "$HOST_PORT:80" \
+            --hostname $hostname \
             --network $netname \
             -v $INDEX1:/var/www/index.txt:Z \
             -w /var/www \
@@ -490,7 +492,7 @@ load helpers.network
 
     # check network alias for container short id
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").Aliases}}"
-    is "$output" "[${cid:0:12}]" "short container id in network aliases"
+    is "$output" "[${cid:0:12} $hostname]" "short container id and hostname in network aliases"
 
     # check /etc/hosts for our entry
     run_podman exec $cid cat /etc/hosts
@@ -550,7 +552,7 @@ load helpers.network
 
     # check network2 alias for container short id
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname2\").Aliases}}"
-    is "$output" "[${cid:0:12}]" "short container id in network aliases"
+    is "$output" "[${cid:0:12} $hostname]" "short container id and hostname in network2 aliases"
 
     # curl should work
     run curl --max-time 3 -s $SERVER/index.txt

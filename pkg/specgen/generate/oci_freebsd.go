@@ -4,6 +4,7 @@ package generate
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/containers/common/libimage"
@@ -17,7 +18,17 @@ import (
 
 // SpecGenToOCI returns the base configuration for the container.
 func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, newImage *libimage.Image, mounts []spec.Mount, pod *libpod.Pod, finalCmd []string, compatibleOptions *libpod.InfraInherit) (*spec.Spec, error) {
-	g, err := generate.New("freebsd")
+	inspectData, err := newImage.Inspect(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	imageOs := inspectData.Os
+
+	if imageOs != "freebsd" && imageOs != "linux" {
+		return nil, fmt.Errorf("unsupported image OS: %s", imageOs)
+	}
+
+	g, err := generate.New(imageOs)
 	if err != nil {
 		return nil, err
 	}
@@ -47,6 +58,51 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 
 	if err := securityConfigureGenerator(s, &g, newImage, rtc); err != nil {
 		return nil, err
+	}
+
+	// Linux emulatioon
+	if imageOs == "linux" {
+		var mounts []spec.Mount
+		for _, m := range configSpec.Mounts {
+			switch m.Destination {
+			case "/proc":
+				m.Type = "linprocfs"
+				m.Options = []string{"nodev"}
+				mounts = append(mounts, m)
+				continue
+			case "/sys":
+				m.Type = "linsysfs"
+				m.Options = []string{"nodev"}
+				mounts = append(mounts, m)
+				continue
+			case "/dev", "/dev/pts", "/dev/shm", "/dev/mqueue":
+				continue
+			}
+		}
+		mounts = append(mounts,
+			spec.Mount{
+				Destination: "/dev",
+				Type:        "devfs",
+				Source:      "devfs",
+				Options: []string{
+					"ruleset=4",
+					"rule=path shm unhide mode 1777",
+				},
+			},
+			spec.Mount{
+				Destination: "/dev/fd",
+				Type:        "fdescfs",
+				Source:      "fdesc",
+				Options:     []string{},
+			},
+			spec.Mount{
+				Destination: "/dev/shm",
+				Type:        "tmpfs",
+				Source:      "shm",
+				Options:     []string{"notmpcopyup"},
+			},
+		)
+		configSpec.Mounts = mounts
 	}
 
 	// BIND MOUNTS

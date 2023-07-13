@@ -65,6 +65,10 @@ func parseOptionIDs(ctrMappings []idtools.IDMap, option string) ([]idtools.IDMap
 	for i, m := range ranges {
 		var v idtools.IDMap
 
+		if m == "" {
+			return nil, fmt.Errorf("invalid empty range for %q", option)
+		}
+
 		relative := false
 		if m[0] == '@' {
 			relative = true
@@ -2073,12 +2077,12 @@ func (c *Container) addResolvConf() error {
 
 	// If NetworkBackend is `netavark` do not populate `/etc/resolv.conf`
 	// with custom dns server since after https://github.com/containers/netavark/pull/452
-	// netavark will always set required `nameservers` in statsBlock and libpod
+	// netavark will always set required `nameservers` in StatusBlock and libpod
 	// will correctly populate `networkNameServers`. Also see https://github.com/containers/podman/issues/16172
 
 	// Exception: Populate `/etc/resolv.conf` if container is not connected to any network
-	// ( i.e len(netStatus)==0 ) since in such case netavark is not invoked at all.
-	if networkBackend != string(types.Netavark) || len(netStatus) == 0 {
+	// with dns enabled then we do not get any nameservers back.
+	if networkBackend != string(types.Netavark) || len(networkNameServers) == 0 {
 		nameservers = append(nameservers, c.runtime.config.Containers.DNSServers...)
 		for _, ip := range c.config.DNSServer {
 			nameservers = append(nameservers, ip.String())

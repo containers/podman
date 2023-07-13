@@ -61,7 +61,7 @@ func init() {
 	flags.Uint64Var(
 		&initOpts.DiskSize,
 		diskSizeFlagName, cfg.ContainersConfDefaultsRO.Machine.DiskSize,
-		"Disk size in GB",
+		"Disk size in GiB",
 	)
 
 	_ = initCmd.RegisterFlagCompletionFunc(diskSizeFlagName, completion.AutocompleteNone)
@@ -70,7 +70,7 @@ func init() {
 	flags.Uint64VarP(
 		&initOpts.Memory,
 		memoryFlagName, "m", cfg.ContainersConfDefaultsRO.Machine.Memory,
-		"Memory in MB",
+		"Memory in MiB",
 	)
 	_ = initCmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
 

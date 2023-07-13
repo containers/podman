@@ -216,8 +216,8 @@ func toHumanFormat(vms []*machine.ListResponse) ([]*entities.ListReporter, error
 		response.Created = units.HumanDuration(time.Since(vm.CreatedAt)) + " ago"
 		response.VMType = vm.VMType
 		response.CPUs = vm.CPUs
-		response.Memory = units.HumanSize(float64(vm.Memory))
-		response.DiskSize = units.HumanSize(float64(vm.DiskSize))
+		response.Memory = units.BytesSize(float64(vm.Memory))
+		response.DiskSize = units.BytesSize(float64(vm.DiskSize))
 
 		humanResponses = append(humanResponses, response)
 	}

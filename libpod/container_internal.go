@@ -1638,18 +1638,8 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 	}
 	defer unix.Close(etcInTheContainerFd)
 
-	// If /etc/mtab does not exist in container image, then we need to
-	// create it, so that mount command within the container will work.
-	err = unix.Symlinkat("/proc/mounts", etcInTheContainerFd, "mtab")
-	if err != nil && !os.IsExist(err) {
-		return "", fmt.Errorf("creating /etc/mtab symlink: %w", err)
-	}
-	// If the symlink was created, then also chown it to root in the container
-	if err == nil && (rootUID != 0 || rootGID != 0) {
-		err = unix.Fchownat(etcInTheContainerFd, "mtab", rootUID, rootGID, unix.AT_SYMLINK_NOFOLLOW)
-		if err != nil {
-			return "", fmt.Errorf("chown /etc/mtab: %w", err)
-		}
+	if err := c.makePlatformMtabLink(etcInTheContainerFd, rootUID, rootGID); err != nil {
+		return "", err
 	}
 
 	tz := c.Timezone()
@@ -2094,14 +2084,17 @@ func (c *Container) postDeleteHooks(ctx context.Context) error {
 				hook := hook
 				logrus.Debugf("container %s: invoke poststop hook %d, path %s", c.ID(), i, hook.Path)
 				var stderr, stdout bytes.Buffer
-				opts := exec.RunOptions{
-					Hook:            &hook,
-					State:           state,
-					Stdout:          &stdout,
-					Stderr:          &stderr,
-					PostKillTimeout: exec.DefaultPostKillTimeout,
-				}
-				hookErr, err := exec.RunWithOptions(ctx, opts)
+				hookErr, err := exec.RunWithOptions(
+					ctx,
+					exec.RunOptions{
+						Hook:            &hook,
+						Dir:             c.bundlePath(),
+						State:           state,
+						Stdout:          &stdout,
+						Stderr:          &stderr,
+						PostKillTimeout: exec.DefaultPostKillTimeout,
+					},
+				)
 				if err != nil {
 					logrus.Warnf("Container %s: poststop hook %d: %v", c.ID(), i, err)
 					if hookErr != err {
@@ -2229,12 +2222,16 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[s
 			return nil, err
 		}
 	}
-	opts := exec.RuntimeConfigFilterOptions{
-		Hooks:           allHooks["precreate"],
-		Config:          config,
-		PostKillTimeout: exec.DefaultPostKillTimeout,
-	}
-	hookErr, err := exec.RuntimeConfigFilterWithOptions(ctx, opts)
+
+	hookErr, err := exec.RuntimeConfigFilterWithOptions(
+		ctx,
+		exec.RuntimeConfigFilterOptions{
+			Hooks:           allHooks["precreate"],
+			Dir:             c.bundlePath(),
+			Config:          config,
+			PostKillTimeout: exec.DefaultPostKillTimeout,
+		},
+	)
 	if err != nil {
 		logrus.Warnf("Container %s: precreate hook: %v", c.ID(), err)
 		if hookErr != nil && hookErr != err {

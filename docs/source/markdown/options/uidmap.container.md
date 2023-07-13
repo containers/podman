@@ -9,7 +9,7 @@ option conflicts with the **--userns** and **--subuidname** options. This
 option provides a way to map host UIDs to container UIDs. It can be passed
 several times to map different ranges.
 
-The _from_uid_ value is based upon the user running the command, either rootful or rootless users.
+The *from_uid* value is based upon the user running the command, either rootful or rootless users.
 * rootful user:  *container_uid*:*host_uid*:*amount*
 * rootless user: *container_uid*:*intermediate_uid*:*amount*
 
@@ -23,13 +23,13 @@ If for example _amount_ is **4** the mapping looks like:
 
 |   host UID     |    container UID    |
 | ----------     | ----------------    |
-| _from_uid_     | _container_uid_     |
-| _from_uid_ + 1 | _container_uid_ + 1 |
-| _from_uid_ + 2 | _container_uid_ + 2 |
-| _from_uid_ + 3 | _container_uid_ + 3 |
+| *from_uid*     | *container_uid*     |
+| *from_uid* + 1 | *container_uid* + 1 |
+| *from_uid* + 2 | *container_uid* + 2 |
+| *from_uid* + 3 | *container_uid* + 3 |
 
 When **podman <<subcommand>>** is called by an unprivileged user (i.e. running rootless),
-the value _from_uid_ is interpreted as an "intermediate UID". In the rootless
+the value *from_uid* is interpreted as an "intermediate UID". In the rootless
 case, host UIDs are not mapped directly to container UIDs. Instead the mapping
 happens over two mapping steps:
 
@@ -59,11 +59,11 @@ If for example _amount_ is **5** the second mapping step looks like:
 
 |   intermediate UID   |    container UID    |
 | ------------------   | ----------------    |
-| _from_uid_           | _container_uid_     |
-| _from_uid_ + 1       | _container_uid_ + 1 |
-| _from_uid_ + 2       | _container_uid_ + 2 |
-| _from_uid_ + 3       | _container_uid_ + 3 |
-| _from_uid_ + 4       | _container_uid_ + 4 |
+| *from_uid*           | *container_uid*     |
+| *from_uid* + 1       | *container_uid* + 1 |
+| *from_uid* + 2       | *container_uid* + 2 |
+| *from_uid* + 3       | *container_uid* + 3 |
+| *from_uid* + 4       | *container_uid* + 4 |
 
 When running as rootless, Podman uses all the ranges configured in the _/etc/subuid_ file.
 

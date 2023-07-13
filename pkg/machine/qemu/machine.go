@@ -481,8 +481,10 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		conn           net.Conn
 		err            error
 		qemuSocketConn net.Conn
-		wait           = time.Millisecond * 500
 	)
+
+	defaultBackoff := 500 * time.Millisecond
+	maxBackoffs := 6
 
 	v.Starting = true
 	if err := v.writeConfig(); err != nil {
@@ -535,13 +537,17 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	if err := v.QMPMonitor.Address.Delete(); err != nil {
 		return err
 	}
-	for i := 0; i < 6; i++ {
+
+	backoff := defaultBackoff
+	for i := 0; i < maxBackoffs; i++ {
+		if i > 0 {
+			time.Sleep(backoff)
+			backoff *= 2
+		}
 		qemuSocketConn, err = net.Dial("unix", v.QMPMonitor.Address.GetPath())
 		if err == nil {
 			break
 		}
-		time.Sleep(wait)
-		wait++
 	}
 	if err != nil {
 		return err
@@ -624,7 +630,12 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	// The socket is not made until the qemu process is running so here
 	// we do a backoff waiting for it.  Once we have a conn, we break and
 	// then wait to read it.
-	for i := 0; i < 6; i++ {
+	backoff = defaultBackoff
+	for i := 0; i < maxBackoffs; i++ {
+		if i > 0 {
+			time.Sleep(backoff)
+			backoff *= 2
+		}
 		conn, err = net.Dial("unix", filepath.Join(socketPath, "podman", v.Name+"_ready.sock"))
 		if err == nil {
 			break
@@ -634,8 +645,6 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		if err != nil {
 			return err
 		}
-		time.Sleep(wait)
-		wait++
 	}
 	if err != nil {
 		return err
@@ -654,21 +663,47 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 			_ = v.writeConfig()
 		}
 	}
-	if len(v.Mounts) > 0 {
+	if len(v.Mounts) == 0 {
+		v.waitAPIAndPrintInfo(forwardState, forwardSock, opts.NoInfo)
+		return nil
+	}
+
+	connected := false
+	backoff = defaultBackoff
+	var sshError error
+	for i := 0; i < maxBackoffs; i++ {
+		if i > 0 {
+			time.Sleep(backoff)
+			backoff *= 2
+		}
 		state, err := v.State(true)
 		if err != nil {
 			return err
 		}
-		listening := v.isListening()
-		for state != machine.Running || !listening {
-			time.Sleep(100 * time.Millisecond)
-			state, err = v.State(true)
-			if err != nil {
-				return err
+		if state == machine.Running && v.isListening() {
+			// Also make sure that SSH is up and running.  The
+			// ready service's dependencies don't fully make sure
+			// that clients can SSH into the machine immediately
+			// after boot.
+			//
+			// CoreOS users have reported the same observation but
+			// the underlying source of the issue remains unknown.
+			if sshError = v.SSH(name, machine.SSHOptions{Args: []string{"true"}}); sshError != nil {
+				logrus.Debugf("SSH readiness check for machine failed: %v", sshError)
+				continue
 			}
-			listening = v.isListening()
+			connected = true
+			break
 		}
 	}
+	if !connected {
+		msg := "machine did not transition into running state"
+		if sshError != nil {
+			return fmt.Errorf("%s: ssh error: %v", msg, sshError)
+		}
+		return errors.New(msg)
+	}
+
 	for _, mount := range v.Mounts {
 		if !opts.Quiet {
 			fmt.Printf("Mounting volume... %s:%s\n", mount.Source, mount.Target)
