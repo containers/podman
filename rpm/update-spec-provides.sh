@@ -10,7 +10,8 @@ PACKAGE=podman
 # script is run from git root directory
 SPEC_FILE=rpm/$PACKAGE.spec
 
-GOPATHDIR=~/go/src/github.com/containers/
+export GOPATH=~/go
+GOPATHDIR=$GOPATH/src/github.com/containers/
 mkdir -p $GOPATHDIR
 ln -sf $(pwd) $GOPATHDIR/.
 
