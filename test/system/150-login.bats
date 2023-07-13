@@ -241,6 +241,49 @@ function _test_skopeo_credential_sharing() {
     rm -f $authfile
 }
 
+@test "podman login -secret test" {
+    secret=$(random_string 10)
+    echo -n ${PODMAN_LOGIN_PASS} > $PODMAN_TMPDIR/secret.file
+    run_podman secret create $secret $PODMAN_TMPDIR/secret.file
+    secretID=${output}
+    run_podman login --tls-verify=false \
+             --username ${PODMAN_LOGIN_USER} \
+             --secret ${secretID} \
+             localhost:${PODMAN_LOGIN_REGISTRY_PORT}
+    is "$output" "Login Succeeded!" "output from podman login"
+    # Now log out
+    run_podman logout localhost:${PODMAN_LOGIN_REGISTRY_PORT}
+    is "$output" "Removed login credentials for localhost:${PODMAN_LOGIN_REGISTRY_PORT}" \
+       "output from podman logout"
+    run_podman secret rm $secret
+
+    # test using secret id as --username
+    run_podman secret create ${PODMAN_LOGIN_USER} $PODMAN_TMPDIR/secret.file
+    run_podman login --tls-verify=false \
+               --secret ${PODMAN_LOGIN_USER} \
+               localhost:${PODMAN_LOGIN_REGISTRY_PORT}
+    is "$output" "Login Succeeded!" "output from podman login"
+    # Now log out
+    run_podman logout localhost:${PODMAN_LOGIN_REGISTRY_PORT}
+    is "$output" "Removed login credentials for localhost:${PODMAN_LOGIN_REGISTRY_PORT}" \
+       "output from podman logout"
+    run_podman secret rm ${PODMAN_LOGIN_USER}
+
+    bogus_secret=$(random_string 10)
+    echo -n ${bogus_secret} > $PODMAN_TMPDIR/secret.file
+    run_podman secret create $secret $PODMAN_TMPDIR/secret.file
+    secretID=${output}
+    run_podman 125 login --tls-verify=false \
+             --username ${PODMAN_LOGIN_USER} \
+             --secret ${secretID} \
+             localhost:${PODMAN_LOGIN_REGISTRY_PORT}
+
+    is "$output" "Error: logging into \"localhost:${PODMAN_LOGIN_REGISTRY_PORT}\": invalid username/password" "output from failed podman login"
+
+    run_podman secret rm $secret
+
+}
+
 # END   cooperation with skopeo
 # END   actual tests
 ###############################################################################
