@@ -792,8 +792,8 @@ win-gvproxy: test/version/version
 	cp tmp-gv/bin/gvproxy.exe bin/windows/
 	rm -rf tmp-gv
 
-.PHONY: package
-package:  ## Build rpm packages
+.PHONY: rpm
+rpm:  ## Build rpm packages
 	$(MAKE) -C rpm
 
 ###
@@ -803,9 +803,9 @@ package:  ## Build rpm packages
 # Remember that rpms install exec to /usr/bin/podman while a `make install`
 # installs them to /usr/local/bin/podman which is likely before. Always use
 # a full path to test installed podman or you risk to call another executable.
-.PHONY: package-install
-package-install: package  ## Install rpm packages
-	sudo $(call err_if_empty,PKG_MANAGER) -y install ${HOME}/rpmbuild/RPMS/*/*.rpm
+.PHONY: rpm-install
+rpm-install: package  ## Install rpm packages
+	$(call err_if_empty,PKG_MANAGER) -y install rpm/RPMS/*/*.rpm
 	/usr/bin/podman version
 	/usr/bin/podman info  # will catch a broken conmon
 
