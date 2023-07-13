@@ -8,3 +8,5 @@ rpm:
 		--define '_srcrpmdir %{_sourcedir}/SRPMS' \
 		--define '_builddir %{_sourcedir}/BUILD' \
 		podman.spec
+	@echo ___RPMS can be found in rpm/RPMS/.___
+	@echo ___Undo any changes to Version, Source0 and %autosetup in rpm/podman.spec before committing.___
