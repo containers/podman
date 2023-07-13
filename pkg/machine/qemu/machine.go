@@ -6,14 +6,12 @@ package qemu
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
 	"net"
-	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
@@ -44,7 +42,6 @@ const (
 	MountType9p          = "9p"
 	dockerSock           = "/var/run/docker.sock"
 	dockerConnectTimeout = 5 * time.Second
-	apiUpTimeout         = 20 * time.Second
 )
 
 type MachineVM struct {
@@ -1307,31 +1304,6 @@ func alreadyLinked(target string, link string) bool {
 	return err == nil && read == target
 }
 
-func waitAndPingAPI(sock string) {
-	client := http.Client{
-		Transport: &http.Transport{
-			DialContext: func(context.Context, string, string) (net.Conn, error) {
-				con, err := net.DialTimeout("unix", sock, apiUpTimeout)
-				if err != nil {
-					return nil, err
-				}
-				if err := con.SetDeadline(time.Now().Add(apiUpTimeout)); err != nil {
-					return nil, err
-				}
-				return con, nil
-			},
-		},
-	}
-
-	resp, err := client.Get("http://host/_ping")
-	if err == nil {
-		defer resp.Body.Close()
-	}
-	if err != nil || resp.StatusCode != 200 {
-		logrus.Warn("API socket failed ping test")
-	}
-}
-
 func (v *MachineVM) waitAPIAndPrintInfo(forwardState machine.APIForwardingState, forwardSock string, noInfo bool) {
 	suffix := ""
 	if v.Name != machine.DefaultMachineName {
@@ -1359,7 +1331,7 @@ func (v *MachineVM) waitAPIAndPrintInfo(forwardState machine.APIForwardingState,
 		return
 	}
 
-	waitAndPingAPI(forwardSock)
+	machine.WaitAndPingAPI(forwardSock)
 
 	if !noInfo {
 		if !v.Rootful {

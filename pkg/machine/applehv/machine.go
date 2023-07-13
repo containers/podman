@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/containers/common/pkg/config"
@@ -32,6 +33,12 @@ import (
 var (
 	// vmtype refers to qemu (vs libvirt, krun, etc).
 	vmtype = machine.AppleHvVirt
+)
+
+const (
+	dockerSock           = "/var/run/docker.sock"
+	dockerConnectTimeout = 5 * time.Second
+	apiUpTimeout         = 20 * time.Second
 )
 
 // VfkitHelper describes the use of vfkit: cmdline and endpoint
@@ -53,12 +60,6 @@ type MacMachine struct {
 	Mounts []machine.Mount
 	// Name of VM
 	Name string
-	// TODO We will need something like this for applehv but until host networking
-	// is worked out, we cannot be sure what it looks like.
-	/*
-		// NetworkVSock is for the user networking
-		NetworkHVSock machine.HVSockRegistryEntry
-	*/
 	// ReadySocket tells host when vm is booted
 	ReadySocket machine.VMFile
 	// ResourceConfig is physical attrs of the VM
@@ -72,13 +73,17 @@ type MacMachine struct {
 	// LastUp contains the last recorded uptime
 	LastUp time.Time
 	// The VFKit endpoint where we can interact with the VM
-	Vfkit   VfkitHelper
-	LogPath machine.VMFile
+	Vfkit       VfkitHelper
+	LogPath     machine.VMFile
+	GvProxyPid  machine.VMFile
+	GvProxySock machine.VMFile
 }
 
 func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 	var (
-		key string
+		key          string
+		mounts       []machine.Mount
+		virtiofsMnts []machine.VirtIoFs
 	)
 	dataDir, err := machine.GetDataDir(machine.AppleHvVirt)
 	if err != nil {
@@ -125,12 +130,22 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 	m.LogPath = *logPath
-	runtimeDir, err := getRuntimeDir()
+	runtimeDir, err := m.getRuntimeDir()
 	if err != nil {
 		return false, err
 	}
 
-	readySocket, err := machine.NewMachineFile(filepath.Join(runtimeDir, "podman", fmt.Sprintf("%s_ready.sock", m.Name)), nil)
+	readySocket, err := machine.NewMachineFile(filepath.Join(runtimeDir, fmt.Sprintf("%s_ready.sock", m.Name)), nil)
+	if err != nil {
+		return false, err
+	}
+
+	gvProxyPid, err := machine.NewMachineFile(filepath.Join(runtimeDir, "gvproxy.pid"), nil)
+	if err != nil {
+		return false, err
+	}
+
+	gvProxySock, err := machine.NewMachineFile(filepath.Join(runtimeDir, "gvproxy.sock"), nil)
 	if err != nil {
 		return false, err
 	}
@@ -150,6 +165,8 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 	}
 
 	m.ReadySocket = *readySocket
+	m.GvProxyPid = *gvProxyPid
+	m.GvProxySock = *gvProxySock
 	m.Vfkit.VirtualMachine.Devices = defaultDevices
 	m.Vfkit.Endpoint = defaultVFKitEndpoint
 	m.Vfkit.VfkitBinaryPath = vfkitBinaryPath
@@ -166,9 +183,20 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 	}
 	m.Port = sshPort
 
+	for _, volume := range opts.Volumes {
+		source, target, _, readOnly, err := machine.ParseVolumeFromPath(volume)
+		if err != nil {
+			return false, err
+		}
+		mnt := machine.NewVirtIoFsMount(source, target, readOnly)
+		virtiofsMnts = append(virtiofsMnts, mnt)
+		mounts = append(mounts, mnt.ToMount())
+	}
+	m.Mounts = mounts
+
 	if len(opts.IgnitionPath) < 1 {
 		// TODO localhost needs to be restored here
-		uri := machine.SSHRemoteConnection.MakeSSHURL("192.168.64.3", fmt.Sprintf("/run/user/%d/podman/podman.sock", m.UID), strconv.Itoa(m.Port), m.RemoteUsername)
+		uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", fmt.Sprintf("/run/user/%d/podman/podman.sock", m.UID), strconv.Itoa(m.Port), m.RemoteUsername)
 		uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(m.Port), "root")
 		identity := m.IdentityPath
 
@@ -252,7 +280,9 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		Name:     "ready.service",
 		Contents: machine.StrToPtr(fmt.Sprintf(ready, "vsock")),
 	}
+	virtiofsUnits := generateSystemDFilesForVirtiofsMounts(virtiofsMnts)
 	ign.Cfg.Systemd.Units = append(ign.Cfg.Systemd.Units, readyUnit)
+	ign.Cfg.Systemd.Units = append(ign.Cfg.Systemd.Units, virtiofsUnits...)
 
 	if err := ign.Write(); err != nil {
 		return false, err
@@ -418,9 +448,7 @@ func (m *MacMachine) SSH(name string, opts machine.SSHOptions) error {
 	if username == "" {
 		username = m.RemoteUsername
 	}
-	// TODO when host networking is figured out, we need to switch this back to
-	// machine.commonssh
-	return AppleHVSSH(username, m.IdentityPath, m.Name, m.Port, opts.Args)
+	return machine.CommonSSH(username, m.IdentityPath, m.Name, m.Port, opts.Args)
 }
 
 func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
@@ -441,22 +469,23 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 	defer ioEater.Close()
 
 	// TODO handle returns from startHostNetworking
-	_, _, err = m.startHostNetworking(ioEater)
+	forwardSock, forwardState, err := m.startHostNetworking(ioEater)
 	if err != nil {
 		return err
 	}
 
 	// Add networking
-	// TODO this creates a nat'd connection and we still need to switch over
-	// to use gvproxy and random ssh ports.
 	netDevice, err := vfConfig.VirtioNetNew("5a:94:ef:e4:0c:ee")
 	if err != nil {
 		return err
 	}
+	// Set user networking with gvproxy
+	netDevice.SetUnixSocketPath(m.GvProxySock.GetPath())
+
 	m.Vfkit.VirtualMachine.Devices = append(m.Vfkit.VirtualMachine.Devices, netDevice)
 
 	for _, vol := range m.Mounts {
-		virtfsDevice, err := vfConfig.VirtioFsNew(vol.Source, "podmanHomeDir")
+		virtfsDevice, err := vfConfig.VirtioFsNew(vol.Source, vol.Tag)
 		if err != nil {
 			return err
 		}
@@ -464,7 +493,6 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 	}
 
 	// To start the VM, we need to call vfkit
-	// TODO need to hold the start command until fcos tells us it is started
 
 	cmd, err := m.Vfkit.VirtualMachine.Cmd(m.Vfkit.VfkitBinaryPath.Path)
 	if err != nil {
@@ -480,6 +508,7 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 		return err
 	}
 	cmd.Args = append(cmd.Args, restArgs...)
+
 	firstBoot, err := m.isFirstBoot()
 	if err != nil {
 		return err
@@ -522,12 +551,8 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 	cmd.ExtraFiles = []*os.File{ioEater, ioEater, ioEater}
 	fmt.Println(cmd.Args)
 
-	readSocketBaseDir := filepath.Base(m.ReadySocket.GetPath())
+	readSocketBaseDir := filepath.Dir(m.ReadySocket.GetPath())
 	if err := os.MkdirAll(readSocketBaseDir, 0755); err != nil {
-		return err
-	}
-
-	if err := cmd.Start(); err != nil {
 		return err
 	}
 
@@ -550,11 +575,21 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 		return err
 	}
 	logrus.Debug("waiting for ready notification")
-	conn, err := readyListen.Accept()
-	if err != nil {
+	var conn net.Conn
+	readyChan := make(chan error)
+	go func() {
+		conn, err = readyListen.Accept()
+		if err != nil {
+			logrus.Error(err)
+		}
+		_, err = bufio.NewReader(conn).ReadString('\n')
+		readyChan <- err
+	}()
+	if err := cmd.Start(); err != nil {
 		return err
 	}
-	_, err = bufio.NewReader(conn).ReadString('\n')
+
+	err = <-readyChan
 	defer func() {
 		if closeErr := conn.Close(); closeErr != nil {
 			logrus.Error(closeErr)
@@ -564,6 +599,7 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 		return err
 	}
 	logrus.Debug("ready notification received")
+	m.waitAPIAndPrintInfo(forwardState, forwardSock, opts.NoInfo)
 	return nil
 }
 
@@ -583,6 +619,34 @@ func (m *MacMachine) Stop(name string, opts machine.StopOptions) error {
 	if vmState != machine.Running {
 		return machine.ErrWrongState
 	}
+
+	defer func() {
+		// I think "soft" errors here is OK
+		gvPid, err := m.GvProxyPid.Read()
+		if err != nil {
+			logrus.Error(fmt.Errorf("unable to read gvproxy pid file %s: %v", m.GvProxyPid.GetPath(), err))
+			return
+		}
+		proxyPid, err := strconv.Atoi(string(gvPid))
+		if err != nil {
+			logrus.Error(fmt.Errorf("unable to convert pid to integer: %v", err))
+			return
+		}
+		proxyProc, err := os.FindProcess(proxyPid)
+		if proxyProc == nil && err != nil {
+			logrus.Error("unable to find process: %v", err)
+			return
+		}
+		if err := proxyProc.Kill(); err != nil {
+			logrus.Error("unable to kill gvproxy: %v", err)
+			return
+		}
+		// gvproxy does not clean up its pid file on exit
+		if err := m.GvProxyPid.Delete(); err != nil {
+			logrus.Error("unable to delete gvproxy pid file: %v", err)
+		}
+	}()
+
 	return m.Vfkit.stop(false, true)
 }
 
@@ -699,11 +763,35 @@ func (m *MacMachine) startHostNetworking(ioEater *os.File) (string, machine.APIF
 		forwardSock string
 		state       machine.APIForwardingState
 	)
+
+	// TODO This should probably be added to startHostNetworking everywhere
+	// GvProxy does not clean up after itself
+	if err := m.GvProxySock.Delete(); err != nil {
+		b, err := m.GvProxyPid.Read()
+		if err != nil {
+			return "", machine.NoForwarding, err
+		}
+		pid, err := strconv.Atoi(string(b))
+		if err != nil {
+			return "", 0, err
+		}
+		gvProcess, err := os.FindProcess(pid)
+		if err != nil {
+			return "", 0, err
+		}
+		// shoot it with a signal 0 and see if it is active
+		err = gvProcess.Signal(syscall.Signal(0))
+		if err == nil {
+			return "", 0, fmt.Errorf("gvproxy process %s already running", string(b))
+		}
+		if err := m.GvProxySock.Delete(); err != nil {
+			return "", 0, err
+		}
+	}
 	cfg, err := config.Default()
 	if err != nil {
 		return "", machine.NoForwarding, err
 	}
-
 	attr := new(os.ProcAttr)
 	gvproxy, err := cfg.FindHelperBinary("gvproxy", false)
 	if err != nil {
@@ -714,12 +802,16 @@ func (m *MacMachine) startHostNetworking(ioEater *os.File) (string, machine.APIF
 	cmd := []string{gvproxy}
 	// Add the ssh port
 	cmd = append(cmd, []string{"-ssh-port", fmt.Sprintf("%d", m.Port)}...)
-
+	// Add pid file
+	cmd = append(cmd, "-pid-file", m.GvProxyPid.GetPath())
+	// Add vfkit proxy listen
+	cmd = append(cmd, "-listen-vfkit", fmt.Sprintf("unixgram://%s", m.GvProxySock.GetPath()))
 	cmd, forwardSock, state = m.setupAPIForwarding(cmd)
 	if logrus.GetLevel() == logrus.DebugLevel {
 		cmd = append(cmd, "--debug")
 		fmt.Println(cmd)
 	}
+
 	_, err = os.StartProcess(cmd[0], cmd, attr)
 	if err != nil {
 		return "", 0, fmt.Errorf("unable to execute: %q: %w", cmd, err)
@@ -770,6 +862,42 @@ func (m *MacMachine) setupAPIForwarding(cmd []string) ([]string, string, machine
 	cmd = append(cmd, []string{"-forward-user", forwardUser}...)
 	cmd = append(cmd, []string{"-forward-identity", m.IdentityPath}...)
 
+	link, err := m.userGlobalSocketLink()
+	if err != nil {
+		return cmd, socket.GetPath(), machine.MachineLocal
+	}
+
+	if !dockerClaimSupported() {
+		return cmd, socket.GetPath(), machine.ClaimUnsupported
+	}
+
+	if !dockerClaimHelperInstalled() {
+		return cmd, socket.GetPath(), machine.NotInstalled
+	}
+
+	if !alreadyLinked(socket.GetPath(), link) {
+		if checkSockInUse(link) {
+			return cmd, socket.GetPath(), machine.MachineLocal
+		}
+
+		_ = os.Remove(link)
+		if err = os.Symlink(socket.GetPath(), link); err != nil {
+			logrus.Warnf("could not create user global API forwarding link: %s", err.Error())
+			return cmd, socket.GetPath(), machine.MachineLocal
+		}
+	}
+
+	if !alreadyLinked(link, dockerSock) {
+		if checkSockInUse(dockerSock) {
+			return cmd, socket.GetPath(), machine.MachineLocal
+		}
+
+		if !claimDockerSock() {
+			logrus.Warn("podman helper is installed, but was not able to claim the global docker sock")
+			return cmd, socket.GetPath(), machine.MachineLocal
+		}
+	}
+
 	return cmd, "", machine.MachineLocal
 }
 
@@ -815,13 +943,131 @@ func (m *MacMachine) getIgnitionSock() (*machine.VMFile, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		if !errors.Is(err, os.ErrExist) {
+			return nil, err
+		}
+	}
 	return machine.NewMachineFile(filepath.Join(dataDir, ignitionSocketName), nil)
 }
 
-func getRuntimeDir() (string, error) {
+func (m *MacMachine) getRuntimeDir() (string, error) {
 	tmpDir, ok := os.LookupEnv("TMPDIR")
 	if !ok {
 		tmpDir = "/tmp"
 	}
-	return tmpDir, nil
+	return filepath.Join(tmpDir, "podman"), nil
+}
+
+func (m *MacMachine) userGlobalSocketLink() (string, error) {
+	path, err := machine.GetDataDir(machine.AppleHvVirt)
+	if err != nil {
+		logrus.Errorf("Resolving data dir: %s", err.Error())
+		return "", err
+	}
+	// User global socket is located in parent directory of machine dirs (one per user)
+	return filepath.Join(filepath.Dir(path), "podman.sock"), err
+}
+
+func (m *MacMachine) waitAPIAndPrintInfo(forwardState machine.APIForwardingState, forwardSock string, noInfo bool) {
+	suffix := ""
+	if m.Name != machine.DefaultMachineName {
+		suffix = " " + m.Name
+	}
+
+	if m.isIncompatible() {
+		fmt.Fprintf(os.Stderr, "\n!!! ACTION REQUIRED: INCOMPATIBLE MACHINE !!!\n")
+
+		fmt.Fprintf(os.Stderr, "\nThis machine was created by an older Podman release that is incompatible\n")
+		fmt.Fprintf(os.Stderr, "with this release of Podman. It has been started in a limited operational\n")
+		fmt.Fprintf(os.Stderr, "mode to allow you to copy any necessary files before recreating it. This\n")
+		fmt.Fprintf(os.Stderr, "can be accomplished with the following commands:\n\n")
+		fmt.Fprintf(os.Stderr, "\t# Login and copy desired files (Optional)\n")
+		fmt.Fprintf(os.Stderr, "\t# Podman machine ssh%s tar cvPf - /path/to/files > backup.tar\n\n", suffix)
+		fmt.Fprintf(os.Stderr, "\t# Recreate machine (DESTRUCTIVE!) \n")
+		fmt.Fprintf(os.Stderr, "\tpodman machine stop%s\n", suffix)
+		fmt.Fprintf(os.Stderr, "\tpodman machine rm -f%s\n", suffix)
+		fmt.Fprintf(os.Stderr, "\tpodman machine init --now%s\n\n", suffix)
+		fmt.Fprintf(os.Stderr, "\t# Copy back files (Optional)\n")
+		fmt.Fprintf(os.Stderr, "\t# cat backup.tar | podman machine ssh%s tar xvPf - \n\n", suffix)
+	}
+
+	if forwardState == machine.NoForwarding {
+		return
+	}
+
+	machine.WaitAndPingAPI(forwardSock)
+
+	if !noInfo {
+		if !m.Rootful {
+			fmt.Printf("\nThis machine is currently configured in rootless mode. If your containers\n")
+			fmt.Printf("require root permissions (e.g. ports < 1024), or if you run into compatibility\n")
+			fmt.Printf("issues with non-Podman clients, you can switch using the following command: \n")
+			fmt.Printf("\n\tpodman machine set --rootful%s\n\n", suffix)
+		}
+
+		fmt.Printf("API forwarding listening on: %s\n", forwardSock)
+		if forwardState == machine.DockerGlobal {
+			fmt.Printf("Docker API clients default to this address. You do not need to set DOCKER_HOST.\n\n")
+		} else {
+			stillString := "still "
+			switch forwardState {
+			case machine.NotInstalled:
+				fmt.Printf("\nThe system helper service is not installed; the default Docker API socket\n")
+				fmt.Printf("address can't be used by Podman. ")
+				if helper := findClaimHelper(); len(helper) > 0 {
+					fmt.Printf("If you would like to install it run the\nfollowing commands:\n")
+					fmt.Printf("\n\tsudo %s install\n", helper)
+					fmt.Printf("\tpodman machine stop%s; podman machine start%s\n\n", suffix, suffix)
+				}
+			case machine.MachineLocal:
+				fmt.Printf("\nAnother process was listening on the default Docker API socket address.\n")
+			case machine.ClaimUnsupported:
+				fallthrough
+			default:
+				stillString = ""
+			}
+
+			fmt.Printf("You can %sconnect Docker API clients by setting DOCKER_HOST using the\n", stillString)
+			fmt.Printf("following command in your terminal session:\n")
+			fmt.Printf("\n\texport DOCKER_HOST='unix://%s'\n\n", forwardSock)
+		}
+	}
+}
+
+func (m *MacMachine) isIncompatible() bool {
+	return m.UID == -1
+}
+
+func generateSystemDFilesForVirtiofsMounts(mounts []machine.VirtIoFs) []machine.Unit {
+	var unitFiles []machine.Unit
+
+	for _, mnt := range mounts {
+		autoMountUnit := `[Automount]
+Where=%s
+[Install]
+WantedBy=multi-user.target
+[Unit]
+Description=Mount virtiofs volume %s
+`
+		mountUnit := `[Mount]
+What=%s
+Where=%s
+Type=virtiofs
+[Install]
+WantedBy=multi-user.target`
+
+		virtiofsAutomount := machine.Unit{
+			Enabled:  machine.BoolToPtr(true),
+			Name:     fmt.Sprintf("%s.automount", mnt.Tag),
+			Contents: machine.StrToPtr(fmt.Sprintf(autoMountUnit, mnt.Target, mnt.Target)),
+		}
+		virtiofsMount := machine.Unit{
+			Enabled:  machine.BoolToPtr(true),
+			Name:     fmt.Sprintf("%s.mount", mnt.Tag),
+			Contents: machine.StrToPtr(fmt.Sprintf(mountUnit, mnt.Tag, mnt.Target)),
+		}
+		unitFiles = append(unitFiles, virtiofsAutomount, virtiofsMount)
+	}
+	return unitFiles
 }

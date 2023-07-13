@@ -4,9 +4,11 @@
 package machine
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -46,6 +48,7 @@ const (
 	// Starting indicated the vm is in the process of starting
 	Starting           Status = "starting"
 	DefaultMachineName string = "podman-machine-default"
+	apiUpTimeout              = 20 * time.Second
 )
 
 type RemoteConnectionType string
@@ -452,5 +455,30 @@ func NewVirtualization(artifact Artifact, compression ImageCompression, format I
 		artifact,
 		compression,
 		format,
+	}
+}
+
+func WaitAndPingAPI(sock string) {
+	client := http.Client{
+		Transport: &http.Transport{
+			DialContext: func(context.Context, string, string) (net.Conn, error) {
+				con, err := net.DialTimeout("unix", sock, apiUpTimeout)
+				if err != nil {
+					return nil, err
+				}
+				if err := con.SetDeadline(time.Now().Add(apiUpTimeout)); err != nil {
+					return nil, err
+				}
+				return con, nil
+			},
+		},
+	}
+
+	resp, err := client.Get("http://host/_ping")
+	if err == nil {
+		defer resp.Body.Close()
+	}
+	if err != nil || resp.StatusCode != 200 {
+		logrus.Warn("API socket failed ping test")
 	}
 }
