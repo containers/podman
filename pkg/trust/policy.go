@@ -14,8 +14,12 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/homedir"
 	"github.com/sirupsen/logrus"
 )
+
+// userPolicyFile is the path to the per user policy path.
+var userPolicyFile = filepath.FromSlash(".config/containers/policy.json")
 
 // policyContent is the overall structure of a policy.json file (= c/image/v5/signature.Policy)
 type policyContent struct {
@@ -54,14 +58,16 @@ type genericRepoMap map[string]json.RawMessage
 
 // DefaultPolicyPath returns a path to the default policy of the system.
 func DefaultPolicyPath(sys *types.SystemContext) string {
+	if sys != nil && sys.SignaturePolicyPath != "" {
+		return sys.SignaturePolicyPath
+	}
+	userPolicyFilePath := filepath.Join(homedir.Get(), userPolicyFile)
+	if _, err := os.Stat(userPolicyFilePath); err == nil {
+		return userPolicyFilePath
+	}
 	systemDefaultPolicyPath := config.DefaultSignaturePolicyPath
-	if sys != nil {
-		if sys.SignaturePolicyPath != "" {
-			return sys.SignaturePolicyPath
-		}
-		if sys.RootForImplicitAbsolutePaths != "" {
-			return filepath.Join(sys.RootForImplicitAbsolutePaths, systemDefaultPolicyPath)
-		}
+	if sys != nil && sys.RootForImplicitAbsolutePaths != "" {
+		return filepath.Join(sys.RootForImplicitAbsolutePaths, systemDefaultPolicyPath)
 	}
 	return systemDefaultPolicyPath
 }
