@@ -30,7 +30,7 @@ import (
 )
 
 var (
-	bindOptions = []string{"bind", "rprivate"}
+	bindOptions = []string{define.TypeBind, "rprivate"}
 )
 
 func (c *Container) mountSHM(shmOptions string) error {
@@ -39,7 +39,7 @@ func (c *Container) mountSHM(shmOptions string) error {
 		contextType = "rootcontext"
 	}
 
-	if err := unix.Mount("shm", c.config.ShmDir, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV,
+	if err := unix.Mount("shm", c.config.ShmDir, define.TypeTmpfs, unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV,
 		label.FormatMountLabelByType(shmOptions, c.config.MountLabel, contextType)); err != nil {
 		return fmt.Errorf("failed to mount shm tmpfs %q: %w", c.config.ShmDir, err)
 	}
@@ -225,8 +225,8 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 		}
 		tmpfsMnt := spec.Mount{
 			Destination: dest,
-			Type:        "tmpfs",
-			Source:      "tmpfs",
+			Type:        define.TypeTmpfs,
+			Source:      define.TypeTmpfs,
 			Options:     append(options, "tmpcopyup", shmSizeSystemdMntOpt),
 		}
 		g.AddMount(tmpfsMnt)
@@ -237,8 +237,8 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 		}
 		tmpfsMnt := spec.Mount{
 			Destination: dest,
-			Type:        "tmpfs",
-			Source:      "tmpfs",
+			Type:        define.TypeTmpfs,
+			Source:      define.TypeTmpfs,
 			Options:     append(options, "tmpcopyup", shmSizeSystemdMntOpt),
 		}
 		g.AddMount(tmpfsMnt)
@@ -271,9 +271,9 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 		} else {
 			systemdMnt = spec.Mount{
 				Destination: "/sys/fs/cgroup",
-				Type:        "bind",
+				Type:        define.TypeBind,
 				Source:      "/sys/fs/cgroup",
-				Options:     []string{"bind", "private", "rw"},
+				Options:     []string{define.TypeBind, "private", "rw"},
 			}
 		}
 		g.AddMount(systemdMnt)
@@ -282,7 +282,7 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 		if hasCgroupNs && !hasSystemdMount {
 			return errors.New("cgroup namespace is not supported with cgroup v1 and systemd mode")
 		}
-		mountOptions := []string{"bind", "rprivate"}
+		mountOptions := []string{define.TypeBind, "rprivate"}
 
 		if !hasSystemdMount {
 			skipMount := hasSystemdMount
@@ -311,7 +311,7 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 			if !skipMount {
 				systemdMnt := spec.Mount{
 					Destination: "/sys/fs/cgroup/systemd",
-					Type:        "bind",
+					Type:        define.TypeBind,
 					Source:      "/sys/fs/cgroup/systemd",
 					Options:     mountOptions,
 				}

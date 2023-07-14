@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/containers/podman/v4/libpod/define"
 )
 
 var (
@@ -131,7 +133,7 @@ func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string
 			foundCopyUp = true
 			// do not propagate notmpcopyup to the OCI runtime
 			continue
-		case "bind", "rbind":
+		case define.TypeBind, "rbind":
 			if isTmpfs {
 				return nil, fmt.Errorf("the 'bind' and 'rbind' options are not allowed with tmpfs mounts: %w", ErrBadMntOption)
 			}

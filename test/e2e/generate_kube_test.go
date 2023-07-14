@@ -1280,8 +1280,8 @@ USER test1`
 
 	It("podman generate kube on named volume with options", func() {
 		vol := "complex-named-volume"
-		volDevice := "tmpfs"
-		volType := "tmpfs"
+		volDevice := define.TypeTmpfs
+		volType := define.TypeTmpfs
 		volOpts := "nodev,noexec"
 
 		session := podmanTest.Podman([]string{"volume", "create", "--opt", "device=" + volDevice, "--opt", "type=" + volType, "--opt", "o=" + volOpts, vol})

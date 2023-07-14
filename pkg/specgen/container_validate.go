@@ -17,7 +17,7 @@ var (
 	// SdNotifyModeValues describes the only values that SdNotifyMode can be
 	SdNotifyModeValues = []string{define.SdNotifyModeContainer, define.SdNotifyModeConmon, define.SdNotifyModeIgnore}
 	// ImageVolumeModeValues describes the only values that ImageVolumeMode can be
-	ImageVolumeModeValues = []string{"ignore", "tmpfs", "anonymous"}
+	ImageVolumeModeValues = []string{"ignore", define.TypeTmpfs, "anonymous"}
 )
 
 func exclusiveOptions(opt1, opt2 string) error {

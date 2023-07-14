@@ -22,6 +22,7 @@ import (
 	netUtil "github.com/containers/common/libnetwork/util"
 	"github.com/containers/common/pkg/netns"
 	"github.com/containers/common/pkg/util"
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/lockfile"
@@ -180,7 +181,7 @@ func (r *RootlessNetNS) Do(toRun func() error) error {
 		// see: https://github.com/containers/podman/issues/10929
 		if strings.HasPrefix(resolvePath, "/run/systemd/resolve/") {
 			rsr := r.getPath("/run/systemd/resolve")
-			err = unix.Mount("", rsr, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV, "")
+			err = unix.Mount("", rsr, define.TypeTmpfs, unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV, "")
 			if err != nil {
 				return fmt.Errorf("failed to mount tmpfs on %q for rootless netns: %w", rsr, err)
 			}

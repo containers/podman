@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"github.com/containers/podman/v4/libpod/define"
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -65,6 +66,6 @@ var _ = Describe("Podman volume inspect", func() {
 		inspect := podmanTest.Podman([]string{"volume", "inspect", volName})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
-		Expect(inspect.OutputToString()).To(ContainSubstring("tmpfs"))
+		Expect(inspect.OutputToString()).To(ContainSubstring(define.TypeTmpfs))
 	})
 })

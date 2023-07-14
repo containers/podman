@@ -182,7 +182,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	if len(s.ImageVolumeMode) == 0 {
 		s.ImageVolumeMode = rtc.Engine.ImageVolumeMode
 	}
-	if s.ImageVolumeMode == "bind" {
+	if s.ImageVolumeMode == define.TypeBind {
 		s.ImageVolumeMode = "anonymous"
 	}
 
@@ -422,7 +422,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			mount := spec.Mount{
 				Destination: volume.MountPath,
 				Source:      volumeSource.Source,
-				Type:        "bind",
+				Type:        define.TypeBind,
 				Options:     options,
 			}
 			if len(volume.SubPath) > 0 {

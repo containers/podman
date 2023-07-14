@@ -102,7 +102,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 			},
 			spec.Mount{
 				Destination: "/dev/shm",
-				Type:        "tmpfs",
+				Type:        define.TypeTmpfs,
 				Source:      "shm",
 				Options:     []string{"notmpcopyup"},
 			},
