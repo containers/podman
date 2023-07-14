@@ -245,6 +245,16 @@ var _ = Describe("Podman healthcheck run", func() {
 		inspect = podmanTest.InspectContainer("hc")
 		Expect(inspect[0].State.Health).To(HaveField("Status", define.HealthCheckHealthy))
 
+		// Test that events generated have correct status (#19237)
+		events := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "event=health_status", "--since", "1m"})
+		events.WaitWithDefaultTimeout()
+		Expect(events).Should(Exit(0))
+		eventsOut := events.OutputToStringArray()
+		Expect(eventsOut).To(HaveLen(3))
+		Expect(eventsOut[0]).To(ContainSubstring("health_status=starting"))
+		Expect(eventsOut[1]).To(ContainSubstring("health_status=unhealthy"))
+		Expect(eventsOut[2]).To(ContainSubstring("health_status=healthy"))
+
 		// Test podman ps --filter health is working (#11687)
 		ps := podmanTest.Podman([]string{"ps", "--filter", "health=healthy"})
 		ps.WaitWithDefaultTimeout()
