@@ -92,7 +92,10 @@ func collectFileInfo(sourceDir string, idMappings *idtools.IDMappings) (*FileInf
 			return err
 		}
 
-		if s.Dev() != sourceStat.Dev() {
+		// Don't cross mount points. This ignores file mounts to avoid
+		// generating a diff which deletes all files following the
+		// mount.
+		if s.Dev() != sourceStat.Dev() && s.IsDir() {
 			return filepath.SkipDir
 		}
 

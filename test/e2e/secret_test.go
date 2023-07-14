@@ -63,9 +63,17 @@ var _ = Describe("Podman secret", func() {
 		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
 		Expect(err).ToNot(HaveOccurred())
 
-		session := podmanTest.Podman([]string{"secret", "create", "?!", secretFilePath})
+		badName := "foo/bar"
+		session := podmanTest.Podman([]string{"secret", "create", badName, secretFilePath})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(Equal(fmt.Sprintf("Error: secret name %q can not include '=', '/', ',', or the '\\0' (NULL) and be between 1 and 253 characters: invalid secret name", badName)))
+
+		badName = "foo=bar"
+		session = podmanTest.Podman([]string{"secret", "create", badName, secretFilePath})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(Equal(fmt.Sprintf("Error: secret name %q can not include '=', '/', ',', or the '\\0' (NULL) and be between 1 and 253 characters: invalid secret name", badName)))
 	})
 
 	It("podman secret inspect", func() {

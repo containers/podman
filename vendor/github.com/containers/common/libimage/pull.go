@@ -86,7 +86,7 @@ func (r *Runtime) Pull(ctx context.Context, name string, pullPolicy config.PullP
 		// Docker compat: strip off the tag iff name is tagged and digested
 		// (e.g., fedora:latest@sha256...).  In that case, the tag is stripped
 		// off and entirely ignored.  The digest is the sole source of truth.
-		normalizedName, normalizeError := normalizeTaggedDigestedString(name)
+		normalizedName, _, normalizeError := normalizeTaggedDigestedString(name)
 		if normalizeError != nil {
 			return nil, normalizeError
 		}

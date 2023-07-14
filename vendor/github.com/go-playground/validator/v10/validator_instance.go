@@ -53,6 +53,8 @@ var (
 	timeDurationType = reflect.TypeOf(time.Duration(0))
 	timeType         = reflect.TypeOf(time.Time{})
 
+	byteSliceType = reflect.TypeOf([]byte{})
+
 	defaultCField = &cField{namesEqual: true}
 )
 

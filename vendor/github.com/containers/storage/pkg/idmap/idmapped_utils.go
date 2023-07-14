@@ -8,74 +8,10 @@ import (
 	"os"
 	"runtime"
 	"syscall"
-	"unsafe"
 
 	"github.com/containers/storage/pkg/idtools"
 	"golang.org/x/sys/unix"
 )
-
-type attr struct {
-	attrSet     uint64
-	attrClr     uint64
-	propagation uint64
-	userNs      uint64
-}
-
-// openTree is a wrapper for the open_tree syscall
-func openTree(path string, flags int) (fd int, err error) {
-	var _p0 *byte
-
-	if _p0, err = syscall.BytePtrFromString(path); err != nil {
-		return 0, err
-	}
-
-	r, _, e1 := syscall.Syscall6(uintptr(unix.SYS_OPEN_TREE), uintptr(0), uintptr(unsafe.Pointer(_p0)),
-		uintptr(flags), 0, 0, 0)
-	if e1 != 0 {
-		err = e1
-	}
-	return int(r), err
-}
-
-// moveMount is a wrapper for the move_mount syscall.
-func moveMount(fdTree int, target string) (err error) {
-	var _p0, _p1 *byte
-
-	empty := ""
-
-	if _p0, err = syscall.BytePtrFromString(target); err != nil {
-		return err
-	}
-	if _p1, err = syscall.BytePtrFromString(empty); err != nil {
-		return err
-	}
-
-	flags := unix.MOVE_MOUNT_F_EMPTY_PATH
-
-	_, _, e1 := syscall.Syscall6(uintptr(unix.SYS_MOVE_MOUNT),
-		uintptr(fdTree), uintptr(unsafe.Pointer(_p1)),
-		0, uintptr(unsafe.Pointer(_p0)), uintptr(flags), 0)
-	if e1 != 0 {
-		err = e1
-	}
-	return
-}
-
-// mountSetAttr is a wrapper for the mount_setattr syscall
-func mountSetAttr(dfd int, path string, flags uint, attr *attr, size uint) (err error) {
-	var _p0 *byte
-
-	if _p0, err = syscall.BytePtrFromString(path); err != nil {
-		return err
-	}
-
-	_, _, e1 := syscall.Syscall6(uintptr(unix.SYS_MOUNT_SETATTR), uintptr(dfd), uintptr(unsafe.Pointer(_p0)),
-		uintptr(flags), uintptr(unsafe.Pointer(attr)), uintptr(size), 0)
-	if e1 != 0 {
-		err = e1
-	}
-	return
-}
 
 // CreateIDMappedMount creates a IDMapped bind mount from SOURCE to TARGET using the user namespace
 // for the PID process.
@@ -85,29 +21,26 @@ func CreateIDMappedMount(source, target string, pid int) error {
 	if err != nil {
 		return fmt.Errorf("unable to get user ns file descriptor for %q: %w", path, err)
 	}
-
-	var attr attr
-	attr.attrSet = unix.MOUNT_ATTR_IDMAP
-	attr.attrClr = 0
-	attr.propagation = 0
-	attr.userNs = uint64(userNsFile.Fd())
-
 	defer userNsFile.Close()
 
-	targetDirFd, err := openTree(source, unix.OPEN_TREE_CLONE)
+	targetDirFd, err := unix.OpenTree(0, source, unix.OPEN_TREE_CLONE)
 	if err != nil {
 		return err
 	}
 	defer unix.Close(targetDirFd)
 
-	if err := mountSetAttr(targetDirFd, "", unix.AT_EMPTY_PATH|unix.AT_RECURSIVE,
-		&attr, uint(unsafe.Sizeof(attr))); err != nil {
+	if err := unix.MountSetattr(targetDirFd, "", unix.AT_EMPTY_PATH|unix.AT_RECURSIVE,
+		&unix.MountAttr{
+			Attr_set:  unix.MOUNT_ATTR_IDMAP,
+			Userns_fd: uint64(userNsFile.Fd()),
+		}); err != nil {
 		return err
 	}
 	if err := os.Mkdir(target, 0o700); err != nil && !os.IsExist(err) {
 		return err
 	}
-	return moveMount(targetDirFd, target)
+
+	return unix.MoveMount(targetDirFd, "", 0, target, unix.MOVE_MOUNT_F_EMPTY_PATH)
 }
 
 // CreateUsernsProcess forks the current process and creates a user namespace using the specified

@@ -28,6 +28,7 @@ import (
 	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/klauspost/compress/zstd"
 	"github.com/klauspost/pgzip"
 	digest "github.com/opencontainers/go-digest"
@@ -41,6 +42,8 @@ const (
 	newFileFlags            = (unix.O_CREAT | unix.O_TRUNC | unix.O_EXCL | unix.O_WRONLY)
 	containersOverrideXattr = "user.containers.override_stat"
 	bigDataKey              = "zstd-chunked-manifest"
+	chunkedData             = "zstd-chunked-data"
+	chunkedLayerDataKey     = "zstd-chunked-layer-data"
 
 	fileTypeZstdChunked = iota
 	fileTypeEstargz
@@ -71,6 +74,11 @@ type chunkedDiffer struct {
 
 var xattrsToIgnore = map[string]interface{}{
 	"security.selinux": true,
+}
+
+// chunkedLayerData is used to store additional information about the layer
+type chunkedLayerData struct {
+	Format graphdriver.DifferOutputFormat `json:"format"`
 }
 
 func timeToTimespec(time *time.Time) (ts unix.Timespec) {
@@ -241,7 +249,7 @@ func copyFileFromOtherLayer(file *internal.FileMetadata, source string, name str
 
 	srcFile, err := openFileUnderRoot(name, srcDirfd, unix.O_RDONLY, 0)
 	if err != nil {
-		return false, nil, 0, fmt.Errorf("open source file under target rootfs: %w", err)
+		return false, nil, 0, fmt.Errorf("open source file under target rootfs (%s): %w", name, err)
 	}
 	defer srcFile.Close()
 
@@ -844,7 +852,14 @@ func openDestinationFile(dirfd int, metadata *internal.FileMetadata, options *ar
 	}, nil
 }
 
-func (d *destinationFile) Close() error {
+func (d *destinationFile) Close() (Err error) {
+	defer func() {
+		err := d.file.Close()
+		if Err == nil {
+			Err = err
+		}
+	}()
+
 	manifestChecksum, err := digest.Parse(d.metadata.Digest)
 	if err != nil {
 		return err
@@ -1317,7 +1332,39 @@ func (c *chunkedDiffer) findAndCopyFile(dirfd int, r *internal.FileMetadata, cop
 	return false, nil
 }
 
-func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions) (graphdriver.DriverWithDifferOutput, error) {
+func makeEntriesFlat(mergedEntries []internal.FileMetadata) ([]internal.FileMetadata, error) {
+	var new []internal.FileMetadata
+
+	hashes := make(map[string]string)
+	for i := range mergedEntries {
+		if mergedEntries[i].Type != TypeReg {
+			continue
+		}
+		if mergedEntries[i].Digest == "" {
+			if mergedEntries[i].Size != 0 {
+				return nil, fmt.Errorf("missing digest for %q", mergedEntries[i].Name)
+			}
+			continue
+		}
+		digest, err := digest.Parse(mergedEntries[i].Digest)
+		if err != nil {
+			return nil, err
+		}
+		d := digest.Encoded()
+
+		if hashes[d] != "" {
+			continue
+		}
+		hashes[d] = d
+
+		mergedEntries[i].Name = fmt.Sprintf("%s/%s", d[0:2], d[2:])
+
+		new = append(new, mergedEntries[i])
+	}
+	return new, nil
+}
+
+func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, differOpts *graphdriver.DifferOptions) (graphdriver.DriverWithDifferOutput, error) {
 	defer c.layersCache.release()
 	defer func() {
 		if c.zstdReader != nil {
@@ -1325,11 +1372,21 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions) (gra
 		}
 	}()
 
+	lcd := chunkedLayerData{
+		Format: differOpts.Format,
+	}
+
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
+	lcdBigData, err := json.Marshal(lcd)
+	if err != nil {
+		return graphdriver.DriverWithDifferOutput{}, err
+	}
 	output := graphdriver.DriverWithDifferOutput{
 		Differ:   c,
 		TarSplit: c.tarSplit,
 		BigData: map[string][]byte{
-			bigDataKey: c.manifest,
+			bigDataKey:          c.manifest,
+			chunkedLayerDataKey: lcdBigData,
 		},
 		TOCDigest: c.tocDigest,
 	}
@@ -1388,6 +1445,21 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions) (gra
 		return output, fmt.Errorf("cannot open %q: %w", dest, err)
 	}
 	defer unix.Close(dirfd)
+
+	if differOpts != nil && differOpts.Format == graphdriver.DifferOutputFormatFlat {
+		mergedEntries, err = makeEntriesFlat(mergedEntries)
+		if err != nil {
+			return output, err
+		}
+		createdDirs := make(map[string]struct{})
+		for _, e := range mergedEntries {
+			d := e.Name[0:2]
+			if _, found := createdDirs[d]; !found {
+				unix.Mkdirat(dirfd, d, 0o755)
+				createdDirs[d] = struct{}{}
+			}
+		}
+	}
 
 	// hardlinks can point to missing files.  So create them after all files
 	// are retrieved

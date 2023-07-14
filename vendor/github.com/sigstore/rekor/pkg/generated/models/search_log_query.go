@@ -260,6 +260,10 @@ func (m *SearchLogQuery) contextValidateEntries(ctx context.Context, formats str
 
 	for i := 0; i < len(m.Entries()); i++ {
 
+		if swag.IsZero(m.entriesField[i]) { // not required
+			return nil
+		}
+
 		if err := m.entriesField[i].ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("entries" + "." + strconv.Itoa(i))

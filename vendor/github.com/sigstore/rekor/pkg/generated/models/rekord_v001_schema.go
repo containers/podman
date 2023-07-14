@@ -126,6 +126,7 @@ func (m *RekordV001Schema) ContextValidate(ctx context.Context, formats strfmt.R
 func (m *RekordV001Schema) contextValidateData(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Data != nil {
+
 		if err := m.Data.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("data")
@@ -142,6 +143,7 @@ func (m *RekordV001Schema) contextValidateData(ctx context.Context, formats strf
 func (m *RekordV001Schema) contextValidateSignature(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Signature != nil {
+
 		if err := m.Signature.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("signature")
@@ -236,6 +238,11 @@ func (m *RekordV001SchemaData) ContextValidate(ctx context.Context, formats strf
 func (m *RekordV001SchemaData) contextValidateHash(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Hash != nil {
+
+		if swag.IsZero(m.Hash) { // not required
+			return nil
+		}
+
 		if err := m.Hash.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("data" + "." + "hash")
@@ -514,6 +521,7 @@ func (m *RekordV001SchemaSignature) ContextValidate(ctx context.Context, formats
 func (m *RekordV001SchemaSignature) contextValidatePublicKey(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.PublicKey != nil {
+
 		if err := m.PublicKey.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("signature" + "." + "publicKey")

@@ -133,6 +133,7 @@ func (m *TUFV001Schema) ContextValidate(ctx context.Context, formats strfmt.Regi
 func (m *TUFV001Schema) contextValidateMetadata(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Metadata != nil {
+
 		if err := m.Metadata.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("metadata")
@@ -149,6 +150,7 @@ func (m *TUFV001Schema) contextValidateMetadata(ctx context.Context, formats str
 func (m *TUFV001Schema) contextValidateRoot(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Root != nil {
+
 		if err := m.Root.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("root")
