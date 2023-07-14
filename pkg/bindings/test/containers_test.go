@@ -410,7 +410,7 @@ var _ = Describe("Podman containers ", func() {
 
 		// With bogus descriptors
 		_, err = containers.Top(bt.conn, cid, new(containers.TopOptions).WithDescriptors([]string{"Me,Neither"}))
-		Expect(err).ToNot(HaveOccurred())
+		Expect(err).To(HaveOccurred())
 	})
 
 	It("podman bogus container does not exist in local storage", func() {

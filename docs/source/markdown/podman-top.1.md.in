@@ -9,7 +9,14 @@ podman\-top - Display the running processes of a container
 **podman container top** [*options*] *container* [*format-descriptors*]
 
 ## DESCRIPTION
-Display the running processes of the container. The *format-descriptors* are ps (1) compatible AIX format descriptors but extended to print additional information, such as the seccomp mode or the effective capabilities of a given process. The descriptors can either be passed as separated arguments or as a single comma-separated argument. Note that options and or flags of ps(1) can also be specified; in this case, Podman falls back to executing ps with the specified arguments and flags in the container.  Please use the "h*" descriptors to extract host-related information.  For instance, `podman top $name hpid huser` to display the PID and user of the processes in the host context.
+Display the running processes of the container. The *format-descriptors* are ps (1) compatible AIX format
+descriptors but extended to print additional information, such as the seccomp mode or the effective capabilities
+of a given process. The descriptors can either be passed as separated arguments or as a single comma-separated
+argument. Note that options and or flags of ps(1) can also be specified; in this case, Podman falls back to
+executing ps(1) from the host with the specified arguments and flags in the container namespace. If the container
+has the `CAP_SYS_PTRACE` capability then we will execute ps(1) in the container so it must be installed there.
+Please use the "h*" descriptors to extract host-related information.  For instance, `podman top $name hpid huser`
+to display the PID and user of the processes in the host context.
 
 ## OPTIONS
 
@@ -90,7 +97,7 @@ PID   SECCOMP   COMMAND     %CPU
 8     filter    vi /etc/    0.000
 ```
 
-Podman falls back to executing ps(1) in the container if an unknown descriptor is specified.
+Podman falls back to executing ps(1) from the host in the container namespace if an unknown descriptor is specified.
 
 ```
 $ podman top -l -- aux

@@ -380,8 +380,6 @@ alt_build_task:
       - env:
             ALT_NAME: 'Windows Cross'
       - env:
-            ALT_NAME: 'Build Without CGO'
-      - env:
             ALT_NAME: 'Alt Arch. Cross'
     # This task cannot make use of the shared repo.tbz artifact.
     clone_script: *full_clone

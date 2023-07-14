@@ -451,13 +451,6 @@ local-cross: $(CROSS_BUILD_TARGETS) ## Cross compile podman binary for multiple 
 .PHONY: cross
 cross: local-cross
 
-.PHONY: build-no-cgo
-build-no-cgo:
-	BUILDTAGS="containers_image_openpgp exclude_graphdriver_btrfs \
-		exclude_graphdriver_devicemapper exclude_disk_quota" \
-	CGO_ENABLED=0 \
-	$(MAKE) all
-
 .PHONY: completions
 completions: podman podman-remote
 	# key = shell, value = completion filename

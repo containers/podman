@@ -88,7 +88,7 @@ var _ = Describe("Podman top", func() {
 	})
 
 	It("podman top with ps(1) options", func() {
-		session := podmanTest.Podman([]string{"run", "-d", ALPINE, "top", "-d", "2"})
+		session := podmanTest.Podman([]string{"run", "-d", fedoraMinimal, "sleep", "inf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -100,7 +100,18 @@ var _ = Describe("Podman top", func() {
 		result = podmanTest.Podman([]string{"top", session.OutputToString(), "ax -o args"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(result.OutputToStringArray()).To(Equal([]string{"COMMAND", "top -d 2"}))
+		Expect(result.OutputToStringArray()).To(Equal([]string{"COMMAND", "sleep inf"}))
+
+		// Now make sure we use ps in the container with CAP_SYS_PTRACE
+		session = podmanTest.Podman([]string{"run", "-d", "--cap-add=SYS_PTRACE", fedoraMinimal, "sleep", "inf"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// Because the image does not contain this must fail and we know we use the correct podman exec fallback.
+		exec := podmanTest.Podman([]string{"top", session.OutputToString(), "aux"})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).Should(Exit(125))
+		Expect(exec.ErrorToString()).Should(ContainSubstring("OCI runtime attempted to invoke a command that was not found"))
 	})
 
 	It("podman top with comma-separated options", func() {
