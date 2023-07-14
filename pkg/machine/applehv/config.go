@@ -1,5 +1,5 @@
-//go:build arm64 && darwin
-// +build arm64,darwin
+//go:build darwin
+// +build darwin
 
 package applehv
 
