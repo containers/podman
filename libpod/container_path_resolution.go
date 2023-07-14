@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/podman/v4/libpod/define"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -155,7 +156,7 @@ func isPathOnVolume(c *Container, containerPath string) bool {
 func findBindMount(c *Container, containerPath string) *specs.Mount {
 	cleanedPath := filepath.Clean(containerPath)
 	for _, m := range c.config.Spec.Mounts {
-		if m.Type != "bind" {
+		if m.Type != define.TypeBind {
 			continue
 		}
 		if cleanedPath == filepath.Clean(m.Destination) {

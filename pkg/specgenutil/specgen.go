@@ -552,7 +552,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	if len(s.ImageVolumeMode) == 0 {
 		s.ImageVolumeMode = rtc.Engine.ImageVolumeMode
 	}
-	if s.ImageVolumeMode == "bind" {
+	if s.ImageVolumeMode == define.TypeBind {
 		s.ImageVolumeMode = "anonymous"
 	}
 

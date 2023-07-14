@@ -101,7 +101,7 @@ func (v *Volume) mount() error {
 	}
 	switch volType {
 	case "":
-	case "bind":
+	case define.TypeBind:
 		mountArgs = append(mountArgs, "-o", volType)
 	default:
 		mountArgs = append(mountArgs, "-t", volType)

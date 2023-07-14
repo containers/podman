@@ -277,12 +277,12 @@ func (c *Container) GetMounts(namedVolumes []*ContainerNamedVolume, imageVolumes
 	for _, mount := range mounts {
 		// It's a mount.
 		// Is it a tmpfs? If so, discard.
-		if mount.Type == "tmpfs" {
+		if mount.Type == define.TypeTmpfs {
 			continue
 		}
 
 		mountStruct := define.InspectMount{}
-		mountStruct.Type = "bind"
+		mountStruct.Type = define.TypeBind
 		mountStruct.Source = mount.Source
 		mountStruct.Destination = mount.Destination
 
@@ -534,7 +534,7 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 		}
 	}
 	for _, mount := range mounts {
-		if mount.Type == "tmpfs" {
+		if mount.Type == define.TypeTmpfs {
 			tmpfs[mount.Destination] = strings.Join(mount.Options, ",")
 		} else {
 			// TODO - maybe we should parse for empty source/destination
