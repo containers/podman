@@ -28,10 +28,6 @@ var _ = Describe("Podman run memory", func() {
 	})
 
 	It("podman run memory-reservation test", func() {
-		if podmanTest.Host.Distribution == "ubuntu" {
-			Skip("Unable to perform test on Ubuntu distributions due to memory management")
-		}
-
 		var session *PodmanSessionIntegration
 
 		if CGROUPSV2 {

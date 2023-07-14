@@ -30,11 +30,6 @@ EOF
 }
 
 @test "podman buildx - basic test" {
-    run_podman info --format "{{.Store.GraphDriverName}}"
-    if [[ "$output" == "vfs" ]]; then
-        skip "Test not supported with VFS podman storage driver (#17520)"
-    fi
-
     rand_filename=$(random_string 20)
     rand_content=$(random_string 50)
 

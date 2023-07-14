@@ -88,7 +88,7 @@ load helpers.network
 
 # Issue #5466 - port-forwarding doesn't work with this option and -d
 @test "podman networking: port with --userns=keep-id for rootless or --uidmap=* for rootful" {
-    skip_if_cgroupsv1 "FIXME: #15025: run --uidmap fails on cgroups v1"
+    skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
     for cidr in "" "$(random_rfc1918_subnet).0/24"; do
         myport=$(random_free_port 52000-52999)
         if [[ -z $cidr ]]; then
@@ -771,7 +771,7 @@ EOF
 }
 
 @test "podman run /etc/* permissions" {
-    skip_if_cgroupsv1 "FIXME: #15025: run --uidmap fails on cgroups v1"
+    skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
     userns="--userns=keep-id"
     if ! is_rootless; then
         userns="--uidmap=0:1111111:65536 --gidmap=0:1111111:65536"

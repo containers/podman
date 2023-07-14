@@ -4884,7 +4884,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 	})
 
 	It("podman play kube with disabled cgroup", func() {
-		SkipIfRunc(podmanTest, "Test not supported with runc, see issue #17436")
+		SkipIfRunc(podmanTest, "Test not supported with runc (issue 17436, wontfix)")
 		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
 		// Disabled ipcns and cgroupfs in the config file
 		// Since shmsize (Inherit from infra container) cannot be set if ipcns is "host", we should remove the default value.
