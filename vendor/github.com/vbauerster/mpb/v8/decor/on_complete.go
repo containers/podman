@@ -1,29 +1,22 @@
 package decor
 
 var (
-	_ Decorator = (*onCompleteWrapper)(nil)
-	_ Wrapper   = (*onCompleteWrapper)(nil)
+	_ Decorator = onCompleteWrapper{}
+	_ Wrapper   = onCompleteWrapper{}
+	_ Decorator = onCompleteMetaWrapper{}
+	_ Wrapper   = onCompleteMetaWrapper{}
 )
 
-// OnComplete returns decorator, which wraps provided decorator with
-// sole purpose to display provided message on complete event.
+// OnComplete wrap decorator.
+// Displays provided message on complete event.
 //
 //	`decorator` Decorator to wrap
-//
-//	`message` message to display on complete event
+//	`message` message to display
 func OnComplete(decorator Decorator, message string) Decorator {
 	if decorator == nil {
 		return nil
 	}
-	d := &onCompleteWrapper{
-		Decorator: decorator,
-		msg:       message,
-	}
-	if md, ok := decorator.(*mergeDecorator); ok {
-		d.Decorator, md.Decorator = md.Decorator, d
-		return md
-	}
-	return d
+	return onCompleteWrapper{decorator, message}
 }
 
 type onCompleteWrapper struct {
@@ -31,13 +24,44 @@ type onCompleteWrapper struct {
 	msg string
 }
 
-func (d *onCompleteWrapper) Decor(s Statistics) string {
+func (d onCompleteWrapper) Decor(s Statistics) (string, int) {
 	if s.Completed {
-		return d.GetConf().FormatMsg(d.msg)
+		return d.Format(d.msg)
 	}
 	return d.Decorator.Decor(s)
 }
 
-func (d *onCompleteWrapper) Unwrap() Decorator {
+func (d onCompleteWrapper) Unwrap() Decorator {
+	return d.Decorator
+}
+
+// OnCompleteMeta wrap decorator.
+// Provided fn is supposed to wrap output of given decorator
+// with meta information like ANSI escape codes for example.
+// Primary usage intention is to set SGR display attributes.
+//
+//	`decorator` Decorator to wrap
+//	`fn` func to apply meta information
+func OnCompleteMeta(decorator Decorator, fn func(string) string) Decorator {
+	if decorator == nil {
+		return nil
+	}
+	return onCompleteMetaWrapper{decorator, fn}
+}
+
+type onCompleteMetaWrapper struct {
+	Decorator
+	fn func(string) string
+}
+
+func (d onCompleteMetaWrapper) Decor(s Statistics) (string, int) {
+	if s.Completed {
+		str, width := d.Decorator.Decor(s)
+		return d.fn(str), width
+	}
+	return d.Decorator.Decor(s)
+}
+
+func (d onCompleteMetaWrapper) Unwrap() Decorator {
 	return d.Decorator
 }
