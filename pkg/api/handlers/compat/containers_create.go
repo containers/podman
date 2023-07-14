@@ -414,7 +414,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 		Expose:            expose,
 		GroupAdd:          cc.HostConfig.GroupAdd,
 		Hostname:          cc.Config.Hostname,
-		ImageVolume:       "bind",
+		ImageVolume:       define.TypeBind,
 		Init:              init,
 		Interactive:       cc.Config.OpenStdin,
 		IPC:               string(cc.HostConfig.IpcMode),

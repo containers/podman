@@ -3289,7 +3289,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 		// only one will be mounted. Host path volumes take precedence.
 		ctrJSON := inspect.InspectContainerToJSON()
 		Expect(ctrJSON[0].Mounts).To(HaveLen(1))
-		Expect(ctrJSON[0].Mounts[0]).To(HaveField("Type", "bind"))
+		Expect(ctrJSON[0].Mounts[0]).To(HaveField("Type", define.TypeBind))
 
 	})
 
@@ -3617,8 +3617,8 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 
 	It("podman play kube persistentVolumeClaim", func() {
 		volName := "myvol"
-		volDevice := "tmpfs"
-		volType := "tmpfs"
+		volDevice := define.TypeTmpfs
+		volType := define.TypeTmpfs
 		volOpts := "nodev,noexec"
 
 		pvc := getPVC(withPVCName(volName),
@@ -3986,8 +3986,8 @@ invalid kube kind
 	It("podman play kube teardown with volume without force delete", func() {
 
 		volName := RandomString(12)
-		volDevice := "tmpfs"
-		volType := "tmpfs"
+		volDevice := define.TypeTmpfs
+		volType := define.TypeTmpfs
 		volOpts := "nodev,noexec"
 
 		pvc := getPVC(withPVCName(volName),
@@ -4018,8 +4018,8 @@ invalid kube kind
 	It("podman play kube teardown with volume force delete", func() {
 
 		volName := RandomString(12)
-		volDevice := "tmpfs"
-		volType := "tmpfs"
+		volDevice := define.TypeTmpfs
+		volType := define.TypeTmpfs
 		volOpts := "nodev,noexec"
 
 		pvc := getPVC(withPVCName(volName),
@@ -4050,8 +4050,8 @@ invalid kube kind
 	It("podman play kube after teardown with volume reuse", func() {
 
 		volName := RandomString(12)
-		volDevice := "tmpfs"
-		volType := "tmpfs"
+		volDevice := define.TypeTmpfs
+		volType := define.TypeTmpfs
 		volOpts := "nodev,noexec"
 
 		pvc := getPVC(withPVCName(volName),

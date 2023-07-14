@@ -66,7 +66,7 @@ func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name stri
 
 	ctrOpts := entities.ContainerCreateOptions{
 		// Inherited from infra containers
-		ImageVolume:      "bind",
+		ImageVolume:      define.TypeBind,
 		IsInfra:          false,
 		MemorySwappiness: -1,
 		ReadOnly:         true,
@@ -1150,7 +1150,7 @@ func (ic *ContainerEngine) importVolume(ctx context.Context, vol *libpod.Volume,
 	// Check if volume is using `local` driver and has mount options type other than tmpfs
 	if len(driver) == 0 || driver == define.VolumeDriverLocal {
 		if mountOptionType, ok := volumeOptions["type"]; ok {
-			if mountOptionType != "tmpfs" && !volumeMountStatus.Value {
+			if mountOptionType != define.TypeTmpfs && !volumeMountStatus.Value {
 				return fmt.Errorf("volume is using a driver %s and volume is not mounted on %s", driver, mountPoint)
 			}
 		}

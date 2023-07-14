@@ -247,7 +247,7 @@ func parseMountOptions(mountType string, args []string) (*spec.Mount, error) {
 			if mountType != define.TypeBind {
 				return nil, fmt.Errorf("%q option not supported for %q mount types", kv[0], mountType)
 			}
-			mnt.Options = append(mnt.Options, "bind")
+			mnt.Options = append(mnt.Options, define.TypeBind)
 		case "bind-propagation":
 			if mountType != define.TypeBind {
 				return nil, fmt.Errorf("%q option not supported for %q mount types", kv[0], mountType)
