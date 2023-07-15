@@ -829,13 +829,12 @@ func (e *fastEncoderDict) Reset(d *dict, singleBlock bool) {
 		}
 		if true {
 			end := e.maxMatchOff + int32(len(d.content)) - 8
-			for i := e.maxMatchOff; i < end; i += 3 {
+			for i := e.maxMatchOff; i < end; i += 2 {
 				const hashLog = tableBits
 
 				cv := load6432(d.content, i-e.maxMatchOff)
-				nextHash := hashLen(cv, hashLog, tableFastHashLen)      // 0 -> 5
-				nextHash1 := hashLen(cv>>8, hashLog, tableFastHashLen)  // 1 -> 6
-				nextHash2 := hashLen(cv>>16, hashLog, tableFastHashLen) // 2 -> 7
+				nextHash := hashLen(cv, hashLog, tableFastHashLen)     // 0 -> 6
+				nextHash1 := hashLen(cv>>8, hashLog, tableFastHashLen) // 1 -> 7
 				e.dictTable[nextHash] = tableEntry{
 					val:    uint32(cv),
 					offset: i,
@@ -843,10 +842,6 @@ func (e *fastEncoderDict) Reset(d *dict, singleBlock bool) {
 				e.dictTable[nextHash1] = tableEntry{
 					val:    uint32(cv >> 8),
 					offset: i + 1,
-				}
-				e.dictTable[nextHash2] = tableEntry{
-					val:    uint32(cv >> 16),
-					offset: i + 2,
 				}
 			}
 		}

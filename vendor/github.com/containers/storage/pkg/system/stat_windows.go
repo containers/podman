@@ -48,6 +48,10 @@ func (s StatT) Dev() uint64 {
 	return 0
 }
 
+func (s StatT) IsDir() bool {
+	return s.Mode().IsDir()
+}
+
 // Stat takes a path to a file and returns
 // a system.StatT type pertaining to that file.
 //

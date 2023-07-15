@@ -113,7 +113,7 @@ linters-settings:
       - name: constant-logical-expr
         disabled: false
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#context-as-argument
-      # TODO (#3372) reenable linter when it is compatible. https://github.com/golangci/golangci-lint/issues/3280
+      # TODO (#3372) re-enable linter when it is compatible. https://github.com/golangci/golangci-lint/issues/3280
       - name: context-as-argument
         disabled: true
         arguments:
