@@ -3,7 +3,6 @@ package mpb
 import (
 	"io"
 
-	"github.com/acarl005/stripansi"
 	"github.com/mattn/go-runewidth"
 	"github.com/vbauerster/mpb/v8/decor"
 	"github.com/vbauerster/mpb/v8/internal"
@@ -12,33 +11,32 @@ import (
 const (
 	iLbound = iota
 	iRbound
-	iFiller
 	iRefiller
+	iFiller
+	iTip
 	iPadding
 	components
 )
+
+var defaultBarStyle = [components]string{"[", "]", "+", "=", ">", "-"}
 
 // BarStyleComposer interface.
 type BarStyleComposer interface {
 	BarFillerBuilder
 	Lbound(string) BarStyleComposer
+	LboundMeta(func(string) string) BarStyleComposer
 	Rbound(string) BarStyleComposer
+	RboundMeta(func(string) string) BarStyleComposer
 	Filler(string) BarStyleComposer
+	FillerMeta(func(string) string) BarStyleComposer
 	Refiller(string) BarStyleComposer
+	RefillerMeta(func(string) string) BarStyleComposer
 	Padding(string) BarStyleComposer
-	TipOnComplete(string) BarStyleComposer
+	PaddingMeta(func(string) string) BarStyleComposer
 	Tip(frames ...string) BarStyleComposer
+	TipMeta(func(string) string) BarStyleComposer
+	TipOnComplete() BarStyleComposer
 	Reverse() BarStyleComposer
-}
-
-type bFiller struct {
-	rev        bool
-	components [components]*component
-	tip        struct {
-		count      uint
-		frames     []*component
-		onComplete *component
-	}
 }
 
 type component struct {
@@ -46,109 +44,176 @@ type component struct {
 	bytes []byte
 }
 
+type flushSection struct {
+	meta  func(io.Writer, []byte) error
+	bytes []byte
+}
+
+type bFiller struct {
+	components    [components]component
+	meta          [components]func(io.Writer, []byte) error
+	flush         func(io.Writer, ...flushSection) error
+	tipOnComplete bool
+	tip           struct {
+		frames []component
+		count  uint
+	}
+}
+
 type barStyle struct {
-	lbound        string
-	rbound        string
-	filler        string
-	refiller      string
-	padding       string
-	tipOnComplete string
+	style         [components]string
+	metaFuncs     [components]func(io.Writer, []byte) error
 	tipFrames     []string
+	tipOnComplete bool
 	rev           bool
 }
 
 // BarStyle constructs default bar style which can be altered via
 // BarStyleComposer interface.
 func BarStyle() BarStyleComposer {
-	return &barStyle{
-		lbound:    "[",
-		rbound:    "]",
-		filler:    "=",
-		refiller:  "+",
-		padding:   "-",
-		tipFrames: []string{">"},
+	bs := barStyle{
+		style:     defaultBarStyle,
+		tipFrames: []string{defaultBarStyle[iTip]},
 	}
+	for i := range bs.metaFuncs {
+		bs.metaFuncs[i] = defaultMeta
+	}
+	return bs
 }
 
-func (s *barStyle) Lbound(bound string) BarStyleComposer {
-	s.lbound = bound
+func (s barStyle) Lbound(bound string) BarStyleComposer {
+	s.style[iLbound] = bound
 	return s
 }
 
-func (s *barStyle) Rbound(bound string) BarStyleComposer {
-	s.rbound = bound
+func (s barStyle) LboundMeta(fn func(string) string) BarStyleComposer {
+	s.metaFuncs[iLbound] = makeMetaFunc(fn)
 	return s
 }
 
-func (s *barStyle) Filler(filler string) BarStyleComposer {
-	s.filler = filler
+func (s barStyle) Rbound(bound string) BarStyleComposer {
+	s.style[iRbound] = bound
 	return s
 }
 
-func (s *barStyle) Refiller(refiller string) BarStyleComposer {
-	s.refiller = refiller
+func (s barStyle) RboundMeta(fn func(string) string) BarStyleComposer {
+	s.metaFuncs[iRbound] = makeMetaFunc(fn)
 	return s
 }
 
-func (s *barStyle) Padding(padding string) BarStyleComposer {
-	s.padding = padding
+func (s barStyle) Filler(filler string) BarStyleComposer {
+	s.style[iFiller] = filler
 	return s
 }
 
-func (s *barStyle) TipOnComplete(tip string) BarStyleComposer {
-	s.tipOnComplete = tip
+func (s barStyle) FillerMeta(fn func(string) string) BarStyleComposer {
+	s.metaFuncs[iFiller] = makeMetaFunc(fn)
 	return s
 }
 
-func (s *barStyle) Tip(frames ...string) BarStyleComposer {
+func (s barStyle) Refiller(refiller string) BarStyleComposer {
+	s.style[iRefiller] = refiller
+	return s
+}
+
+func (s barStyle) RefillerMeta(fn func(string) string) BarStyleComposer {
+	s.metaFuncs[iRefiller] = makeMetaFunc(fn)
+	return s
+}
+
+func (s barStyle) Padding(padding string) BarStyleComposer {
+	s.style[iPadding] = padding
+	return s
+}
+
+func (s barStyle) PaddingMeta(fn func(string) string) BarStyleComposer {
+	s.metaFuncs[iPadding] = makeMetaFunc(fn)
+	return s
+}
+
+func (s barStyle) Tip(frames ...string) BarStyleComposer {
 	if len(frames) != 0 {
-		s.tipFrames = append(s.tipFrames[:0], frames...)
+		s.tipFrames = frames
 	}
 	return s
 }
 
-func (s *barStyle) Reverse() BarStyleComposer {
+func (s barStyle) TipMeta(fn func(string) string) BarStyleComposer {
+	s.metaFuncs[iTip] = makeMetaFunc(fn)
+	return s
+}
+
+func (s barStyle) TipOnComplete() BarStyleComposer {
+	s.tipOnComplete = true
+	return s
+}
+
+func (s barStyle) Reverse() BarStyleComposer {
 	s.rev = true
 	return s
 }
 
-func (s *barStyle) Build() BarFiller {
-	bf := &bFiller{rev: s.rev}
-	bf.components[iLbound] = &component{
-		width: runewidth.StringWidth(stripansi.Strip(s.lbound)),
-		bytes: []byte(s.lbound),
+func (s barStyle) Build() BarFiller {
+	bf := &bFiller{
+		meta:          s.metaFuncs,
+		tipOnComplete: s.tipOnComplete,
 	}
-	bf.components[iRbound] = &component{
-		width: runewidth.StringWidth(stripansi.Strip(s.rbound)),
-		bytes: []byte(s.rbound),
+	bf.components[iLbound] = component{
+		width: runewidth.StringWidth(s.style[iLbound]),
+		bytes: []byte(s.style[iLbound]),
 	}
-	bf.components[iFiller] = &component{
-		width: runewidth.StringWidth(stripansi.Strip(s.filler)),
-		bytes: []byte(s.filler),
+	bf.components[iRbound] = component{
+		width: runewidth.StringWidth(s.style[iRbound]),
+		bytes: []byte(s.style[iRbound]),
 	}
-	bf.components[iRefiller] = &component{
-		width: runewidth.StringWidth(stripansi.Strip(s.refiller)),
-		bytes: []byte(s.refiller),
+	bf.components[iFiller] = component{
+		width: runewidth.StringWidth(s.style[iFiller]),
+		bytes: []byte(s.style[iFiller]),
 	}
-	bf.components[iPadding] = &component{
-		width: runewidth.StringWidth(stripansi.Strip(s.padding)),
-		bytes: []byte(s.padding),
+	bf.components[iRefiller] = component{
+		width: runewidth.StringWidth(s.style[iRefiller]),
+		bytes: []byte(s.style[iRefiller]),
 	}
-	bf.tip.onComplete = &component{
-		width: runewidth.StringWidth(stripansi.Strip(s.tipOnComplete)),
-		bytes: []byte(s.tipOnComplete),
+	bf.components[iPadding] = component{
+		width: runewidth.StringWidth(s.style[iPadding]),
+		bytes: []byte(s.style[iPadding]),
 	}
-	bf.tip.frames = make([]*component, len(s.tipFrames))
+	bf.tip.frames = make([]component, len(s.tipFrames))
 	for i, t := range s.tipFrames {
-		bf.tip.frames[i] = &component{
-			width: runewidth.StringWidth(stripansi.Strip(t)),
+		bf.tip.frames[i] = component{
+			width: runewidth.StringWidth(t),
 			bytes: []byte(t),
+		}
+	}
+	if s.rev {
+		bf.flush = func(w io.Writer, sections ...flushSection) error {
+			for i := len(sections) - 1; i >= 0; i-- {
+				if s := sections[i]; len(s.bytes) != 0 {
+					err := s.meta(w, s.bytes)
+					if err != nil {
+						return err
+					}
+				}
+			}
+			return nil
+		}
+	} else {
+		bf.flush = func(w io.Writer, sections ...flushSection) error {
+			for _, s := range sections {
+				if len(s.bytes) != 0 {
+					err := s.meta(w, s.bytes)
+					if err != nil {
+						return err
+					}
+				}
+			}
+			return nil
 		}
 	}
 	return bf
 }
 
-func (s *bFiller) Fill(w io.Writer, stat decor.Statistics) (err error) {
+func (s *bFiller) Fill(w io.Writer, stat decor.Statistics) error {
 	width := internal.CheckRequestedWidth(stat.RequestedWidth, stat.AvailableWidth)
 	// don't count brackets as progress
 	width -= (s.components[iLbound].width + s.components[iRbound].width)
@@ -156,104 +221,71 @@ func (s *bFiller) Fill(w io.Writer, stat decor.Statistics) (err error) {
 		return nil
 	}
 
-	_, err = w.Write(s.components[iLbound].bytes)
+	err := s.meta[iLbound](w, s.components[iLbound].bytes)
 	if err != nil {
 		return err
 	}
 
 	if width == 0 {
-		_, err = w.Write(s.components[iRbound].bytes)
-		return err
+		return s.meta[iRbound](w, s.components[iRbound].bytes)
 	}
 
-	var filling [][]byte
-	var padding [][]byte
-	var tip *component
-	var filled int
-	var refWidth int
+	var tip component
+	var refilling, filling, padding []byte
+	var fillCount int
 	curWidth := int(internal.PercentageRound(stat.Total, stat.Current, uint(width)))
 
-	if stat.Completed {
-		tip = s.tip.onComplete
-	} else {
-		tip = s.tip.frames[s.tip.count%uint(len(s.tip.frames))]
-	}
-
-	if curWidth > 0 {
-		filling = append(filling, tip.bytes)
-		filled += tip.width
-		s.tip.count++
-	}
-
-	if stat.Refill > 0 {
-		refWidth = int(internal.PercentageRound(stat.Total, stat.Refill, uint(width)))
-		curWidth -= refWidth
-		refWidth += curWidth
-	}
-
-	for filled < curWidth {
-		if curWidth-filled >= s.components[iFiller].width {
-			filling = append(filling, s.components[iFiller].bytes)
-			if s.components[iFiller].width == 0 {
-				break
+	if curWidth != 0 {
+		if !stat.Completed || s.tipOnComplete {
+			tip = s.tip.frames[s.tip.count%uint(len(s.tip.frames))]
+			s.tip.count++
+			fillCount += tip.width
+		}
+		if stat.Refill != 0 {
+			refWidth := int(internal.PercentageRound(stat.Total, stat.Refill, uint(width)))
+			curWidth -= refWidth
+			refWidth += curWidth
+			for w := s.components[iFiller].width; curWidth-fillCount >= w; fillCount += w {
+				filling = append(filling, s.components[iFiller].bytes...)
 			}
-			filled += s.components[iFiller].width
+			for w := s.components[iRefiller].width; refWidth-fillCount >= w; fillCount += w {
+				refilling = append(refilling, s.components[iRefiller].bytes...)
+			}
 		} else {
-			filling = append(filling, []byte("…"))
-			filled++
+			for w := s.components[iFiller].width; curWidth-fillCount >= w; fillCount += w {
+				filling = append(filling, s.components[iFiller].bytes...)
+			}
 		}
 	}
 
-	for filled < refWidth {
-		if refWidth-filled >= s.components[iRefiller].width {
-			filling = append(filling, s.components[iRefiller].bytes)
-			if s.components[iRefiller].width == 0 {
-				break
-			}
-			filled += s.components[iRefiller].width
-		} else {
-			filling = append(filling, []byte("…"))
-			filled++
-		}
+	for w := s.components[iPadding].width; width-fillCount >= w; fillCount += w {
+		padding = append(padding, s.components[iPadding].bytes...)
 	}
 
-	padWidth := width - filled
-	for padWidth > 0 {
-		if padWidth >= s.components[iPadding].width {
-			padding = append(padding, s.components[iPadding].bytes)
-			if s.components[iPadding].width == 0 {
-				break
-			}
-			padWidth -= s.components[iPadding].width
-		} else {
-			padding = append(padding, []byte("…"))
-			padWidth--
-		}
+	for w := 1; width-fillCount >= w; fillCount += w {
+		padding = append(padding, "…"...)
 	}
 
-	if s.rev {
-		filling, padding = padding, filling
-	}
-	err = flush(w, filling, padding)
+	err = s.flush(w,
+		flushSection{s.meta[iRefiller], refilling},
+		flushSection{s.meta[iFiller], filling},
+		flushSection{s.meta[iTip], tip.bytes},
+		flushSection{s.meta[iPadding], padding},
+	)
 	if err != nil {
 		return err
 	}
-	_, err = w.Write(s.components[iRbound].bytes)
-	return err
+	return s.meta[iRbound](w, s.components[iRbound].bytes)
 }
 
-func flush(w io.Writer, filling, padding [][]byte) error {
-	for i := len(filling) - 1; i >= 0; i-- {
-		_, err := w.Write(filling[i])
-		if err != nil {
-			return err
-		}
+func makeMetaFunc(fn func(string) string) func(io.Writer, []byte) error {
+	return func(w io.Writer, p []byte) (err error) {
+		_, err = io.WriteString(w, fn(string(p)))
+		return err
 	}
-	for i := 0; i < len(padding); i++ {
-		_, err := w.Write(padding[i])
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+}
+
+func defaultMeta(w io.Writer, p []byte) (err error) {
+	_, err = w.Write(p)
+	return err
 }

@@ -15,11 +15,6 @@ func inspect(decorators []decor.Decorator) (dest []decor.Decorator) {
 		if decorator == nil {
 			continue
 		}
-		if d, ok := decorator.(interface {
-			PlaceHolders() []decor.Decorator
-		}); ok {
-			dest = append(dest, d.PlaceHolders()...)
-		}
 		dest = append(dest, decorator)
 	}
 	return
@@ -93,10 +88,10 @@ func BarFillerOnComplete(message string) BarOption {
 
 // BarFillerMiddleware provides a way to augment the underlying BarFiller.
 func BarFillerMiddleware(middle func(BarFiller) BarFiller) BarOption {
+	if middle == nil {
+		return nil
+	}
 	return func(s *bState) {
-		if middle == nil {
-			return
-		}
 		s.filler = middle(s.filler)
 	}
 }

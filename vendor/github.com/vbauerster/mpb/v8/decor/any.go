@@ -1,15 +1,14 @@
 package decor
 
-var _ Decorator = (*any)(nil)
+var _ Decorator = any{}
 
-// Any decorator displays text, that can be changed during decorator's
-// lifetime via provided DecorFunc.
+// Any decorator.
+// Converts DecorFunc into Decorator.
 //
 //	`fn` DecorFunc callback
-//
 //	`wcc` optional WC config
 func Any(fn DecorFunc, wcc ...WC) Decorator {
-	return &any{initWC(wcc...), fn}
+	return any{initWC(wcc...), fn}
 }
 
 type any struct {
@@ -17,6 +16,6 @@ type any struct {
 	fn DecorFunc
 }
 
-func (d *any) Decor(s Statistics) string {
-	return d.FormatMsg(d.fn(s))
+func (d any) Decor(s Statistics) (string, int) {
+	return d.Format(d.fn(s))
 }

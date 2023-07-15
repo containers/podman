@@ -29,11 +29,3 @@ type BarFillerFunc func(io.Writer, decor.Statistics) error
 func (f BarFillerFunc) Fill(w io.Writer, stat decor.Statistics) error {
 	return f(w, stat)
 }
-
-// BarFillerBuilderFunc is function type adapter to convert compatible
-// function into BarFillerBuilder interface.
-type BarFillerBuilderFunc func() BarFiller
-
-func (f BarFillerBuilderFunc) Build() BarFiller {
-	return f()
-}

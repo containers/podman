@@ -144,7 +144,13 @@ func (b *Bar) Current() int64 {
 // operation for example.
 func (b *Bar) SetRefill(amount int64) {
 	select {
-	case b.operateState <- func(s *bState) { s.refill = amount }:
+	case b.operateState <- func(s *bState) {
+		if amount < s.current {
+			s.refill = amount
+		} else {
+			s.refill = s.current
+		}
+	}:
 	case <-b.done:
 	}
 }
@@ -497,47 +503,30 @@ func (s *bState) draw(stat decor.Statistics) (io.Reader, error) {
 }
 
 func (s *bState) drawImpl(stat decor.Statistics) (io.Reader, error) {
-	decorFiller := func(buf *bytes.Buffer, decorators []decor.Decorator) (res struct {
-		width    int
-		truncate bool
-		err      error
-	}) {
-		res.width = stat.AvailableWidth
+	decorFiller := func(buf *bytes.Buffer, decorators []decor.Decorator) (err error) {
 		for _, d := range decorators {
-			str := d.Decor(stat)
-			if stat.AvailableWidth > 0 {
-				stat.AvailableWidth -= runewidth.StringWidth(stripansi.Strip(str))
-				if res.err == nil {
-					_, res.err = buf.WriteString(str)
-				}
+			// need to call Decor in any case becase of width synchronization
+			str, width := d.Decor(stat)
+			if err != nil {
+				continue
+			}
+			if w := stat.AvailableWidth - width; w >= 0 {
+				_, err = buf.WriteString(str)
+				stat.AvailableWidth = w
+			} else if stat.AvailableWidth > 0 {
+				trunc := runewidth.Truncate(stripansi.Strip(str), stat.AvailableWidth, "…")
+				_, err = buf.WriteString(trunc)
+				stat.AvailableWidth = 0
 			}
 		}
-		res.truncate = stat.AvailableWidth < 0
-		return res
+		return err
 	}
 
 	bufP, bufB, bufA := s.buffers[0], s.buffers[1], s.buffers[2]
 
-	resP := decorFiller(bufP, s.pDecorators)
-	resA := decorFiller(bufA, s.aDecorators)
-
-	for _, err := range []error{resP.err, resA.err} {
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if resP.truncate {
-		trunc := strings.NewReader(runewidth.Truncate(stripansi.Strip(bufP.String()), resP.width, "…"))
-		bufP.Reset()
-		bufA.Reset()
-		return trunc, nil
-	}
-
-	if resA.truncate {
-		trunc := strings.NewReader(runewidth.Truncate(stripansi.Strip(bufA.String()), resA.width, "…"))
-		bufA.Reset()
-		return io.MultiReader(bufP, trunc), nil
+	err := eitherError(decorFiller(bufP, s.pDecorators), decorFiller(bufA, s.aDecorators))
+	if err != nil {
+		return nil, err
 	}
 
 	if !s.trimSpace && stat.AvailableWidth >= 2 {
@@ -661,4 +650,13 @@ func unwrap(d decor.Decorator) decor.Decorator {
 
 func writeSpace(buf *bytes.Buffer) error {
 	return buf.WriteByte(' ')
+}
+
+func eitherError(errors ...error) error {
+	for _, err := range errors {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

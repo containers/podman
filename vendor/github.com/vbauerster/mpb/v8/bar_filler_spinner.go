@@ -1,10 +1,10 @@
 package mpb
 
 import (
+	"fmt"
 	"io"
 	"strings"
 
-	"github.com/acarl005/stripansi"
 	"github.com/mattn/go-runewidth"
 	"github.com/vbauerster/mpb/v8/decor"
 	"github.com/vbauerster/mpb/v8/internal"
@@ -15,74 +15,90 @@ const (
 	positionRight
 )
 
+var defaultSpinnerStyle = [...]string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+
 // SpinnerStyleComposer interface.
 type SpinnerStyleComposer interface {
 	BarFillerBuilder
 	PositionLeft() SpinnerStyleComposer
 	PositionRight() SpinnerStyleComposer
+	Meta(func(string) string) SpinnerStyleComposer
 }
 
 type sFiller struct {
-	count    uint
-	position uint
 	frames   []string
+	count    uint
+	meta     func(string) string
+	position func(string, int) string
 }
 
 type spinnerStyle struct {
 	position uint
 	frames   []string
+	meta     func(string) string
 }
 
 // SpinnerStyle constructs default spinner style which can be altered via
 // SpinnerStyleComposer interface.
 func SpinnerStyle(frames ...string) SpinnerStyleComposer {
-	ss := new(spinnerStyle)
+	ss := spinnerStyle{
+		meta: func(s string) string { return s },
+	}
 	if len(frames) != 0 {
-		ss.frames = append(ss.frames, frames...)
+		ss.frames = frames
 	} else {
-		ss.frames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+		ss.frames = defaultSpinnerStyle[:]
 	}
 	return ss
 }
 
-func (s *spinnerStyle) PositionLeft() SpinnerStyleComposer {
+func (s spinnerStyle) PositionLeft() SpinnerStyleComposer {
 	s.position = positionLeft
 	return s
 }
 
-func (s *spinnerStyle) PositionRight() SpinnerStyleComposer {
+func (s spinnerStyle) PositionRight() SpinnerStyleComposer {
 	s.position = positionRight
 	return s
 }
 
-func (s *spinnerStyle) Build() BarFiller {
+func (s spinnerStyle) Meta(fn func(string) string) SpinnerStyleComposer {
+	s.meta = fn
+	return s
+}
+
+func (s spinnerStyle) Build() BarFiller {
 	sf := &sFiller{
-		position: s.position,
-		frames:   s.frames,
+		frames: s.frames,
+		meta:   s.meta,
+	}
+	switch s.position {
+	case positionLeft:
+		sf.position = func(frame string, padWidth int) string {
+			return fmt.Sprint(frame, strings.Repeat(" ", padWidth))
+		}
+	case positionRight:
+		sf.position = func(frame string, padWidth int) string {
+			return fmt.Sprint(strings.Repeat(" ", padWidth), frame)
+		}
+	default:
+		sf.position = func(frame string, padWidth int) string {
+			return fmt.Sprint(strings.Repeat(" ", padWidth/2), frame, strings.Repeat(" ", padWidth/2+padWidth%2))
+		}
 	}
 	return sf
 }
 
-func (s *sFiller) Fill(w io.Writer, stat decor.Statistics) (err error) {
+func (s *sFiller) Fill(w io.Writer, stat decor.Statistics) error {
 	width := internal.CheckRequestedWidth(stat.RequestedWidth, stat.AvailableWidth)
-
 	frame := s.frames[s.count%uint(len(s.frames))]
-	frameWidth := runewidth.StringWidth(stripansi.Strip(frame))
+	frameWidth := runewidth.StringWidth(frame)
+	s.count++
 
 	if width < frameWidth {
 		return nil
 	}
 
-	rest := width - frameWidth
-	switch s.position {
-	case positionLeft:
-		_, err = io.WriteString(w, frame+strings.Repeat(" ", rest))
-	case positionRight:
-		_, err = io.WriteString(w, strings.Repeat(" ", rest)+frame)
-	default:
-		str := strings.Repeat(" ", rest/2) + frame + strings.Repeat(" ", rest/2+rest%2)
-		_, err = io.WriteString(w, str)
-	}
-	s.count++
+	_, err := io.WriteString(w, s.position(s.meta(frame), width-frameWidth))
 	return err
 }

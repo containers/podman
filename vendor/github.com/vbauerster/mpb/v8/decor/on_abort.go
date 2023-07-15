@@ -1,30 +1,23 @@
 package decor
 
 var (
-	_ Decorator = (*onAbortWrapper)(nil)
-	_ Wrapper   = (*onAbortWrapper)(nil)
+	_ Decorator = onAbortWrapper{}
+	_ Wrapper   = onAbortWrapper{}
+	_ Decorator = onAbortMetaWrapper{}
+	_ Wrapper   = onAbortMetaWrapper{}
 )
 
-// OnAbort returns decorator, which wraps provided decorator with sole
-// purpose to display provided message on abort event. It has no effect
-// if bar.Abort(drop bool) is called with true argument.
+// OnAbort wrap decorator.
+// Displays provided message on abort event.
+// Has no effect if bar.Abort(true) is called.
 //
 //	`decorator` Decorator to wrap
-//
-//	`message` message to display on abort event
+//	`message` message to display
 func OnAbort(decorator Decorator, message string) Decorator {
 	if decorator == nil {
 		return nil
 	}
-	d := &onAbortWrapper{
-		Decorator: decorator,
-		msg:       message,
-	}
-	if md, ok := decorator.(*mergeDecorator); ok {
-		d.Decorator, md.Decorator = md.Decorator, d
-		return md
-	}
-	return d
+	return onAbortWrapper{decorator, message}
 }
 
 type onAbortWrapper struct {
@@ -32,13 +25,44 @@ type onAbortWrapper struct {
 	msg string
 }
 
-func (d *onAbortWrapper) Decor(s Statistics) string {
+func (d onAbortWrapper) Decor(s Statistics) (string, int) {
 	if s.Aborted {
-		return d.GetConf().FormatMsg(d.msg)
+		return d.Format(d.msg)
 	}
 	return d.Decorator.Decor(s)
 }
 
-func (d *onAbortWrapper) Unwrap() Decorator {
+func (d onAbortWrapper) Unwrap() Decorator {
+	return d.Decorator
+}
+
+// OnAbortMeta wrap decorator.
+// Provided fn is supposed to wrap output of given decorator
+// with meta information like ANSI escape codes for example.
+// Primary usage intention is to set SGR display attributes.
+//
+//	`decorator` Decorator to wrap
+//	`fn` func to apply meta information
+func OnAbortMeta(decorator Decorator, fn func(string) string) Decorator {
+	if decorator == nil {
+		return nil
+	}
+	return onAbortMetaWrapper{decorator, fn}
+}
+
+type onAbortMetaWrapper struct {
+	Decorator
+	fn func(string) string
+}
+
+func (d onAbortMetaWrapper) Decor(s Statistics) (string, int) {
+	if s.Completed {
+		str, width := d.Decorator.Decor(s)
+		return d.fn(str), width
+	}
+	return d.Decorator.Decor(s)
+}
+
+func (d onAbortMetaWrapper) Unwrap() Decorator {
 	return d.Decorator
 }
