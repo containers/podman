@@ -136,6 +136,25 @@ func DownloadImage(d DistributionDownload) error {
 	return Decompress(d.Get().LocalPath, d.Get().LocalUncompressedFile)
 }
 
+func progressBar(prefix string, size int64, onComplete string) (*mpb.Progress, *mpb.Bar) {
+	p := mpb.New(
+		mpb.WithWidth(80), // Do not go below 80, see bug #17718
+		mpb.WithRefreshRate(180*time.Millisecond),
+	)
+
+	bar := p.AddBar(size,
+		mpb.BarFillerClearOnComplete(),
+		mpb.PrependDecorators(
+			decor.OnComplete(decor.Name(prefix), onComplete),
+		),
+		mpb.AppendDecorators(
+			decor.OnComplete(decor.CountersKibiByte("%.1f / %.1f"), ""),
+		),
+	)
+
+	return p, bar
+}
+
 // DownloadVMImage downloads a VM image from url to given path
 // with download status
 func DownloadVMImage(downloadURL *url2.URL, imageName string, localImagePath string) error {
@@ -166,20 +185,7 @@ func DownloadVMImage(downloadURL *url2.URL, imageName string, localImagePath str
 	prefix := "Downloading VM image: " + imageName
 	onComplete := prefix + ": done"
 
-	p := mpb.New(
-		mpb.WithWidth(80), // Do not go below 80, see bug #17718
-		mpb.WithRefreshRate(180*time.Millisecond),
-	)
-
-	bar := p.AddBar(size,
-		mpb.BarFillerClearOnComplete(),
-		mpb.PrependDecorators(
-			decor.OnComplete(decor.Name(prefix), onComplete),
-		),
-		mpb.AppendDecorators(
-			decor.OnComplete(decor.CountersKibiByte("%.1f / %.1f"), ""),
-		),
-	)
+	p, bar := progressBar(prefix, size, onComplete)
 
 	proxyReader := bar.ProxyReader(resp.Body)
 	defer func() {
