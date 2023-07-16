@@ -1,7 +1,6 @@
 package mpb
 
 import (
-	"fmt"
 	"io"
 	"strings"
 
@@ -75,15 +74,15 @@ func (s spinnerStyle) Build() BarFiller {
 	switch s.position {
 	case positionLeft:
 		sf.position = func(frame string, padWidth int) string {
-			return fmt.Sprint(frame, strings.Repeat(" ", padWidth))
+			return frame + strings.Repeat(" ", padWidth)
 		}
 	case positionRight:
 		sf.position = func(frame string, padWidth int) string {
-			return fmt.Sprint(strings.Repeat(" ", padWidth), frame)
+			return strings.Repeat(" ", padWidth) + frame
 		}
 	default:
 		sf.position = func(frame string, padWidth int) string {
-			return fmt.Sprint(strings.Repeat(" ", padWidth/2), frame, strings.Repeat(" ", padWidth/2+padWidth%2))
+			return strings.Repeat(" ", padWidth/2) + frame + strings.Repeat(" ", padWidth/2+padWidth%2)
 		}
 	}
 	return sf
