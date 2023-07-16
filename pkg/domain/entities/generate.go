@@ -29,6 +29,8 @@ type GenerateSystemdReport struct {
 
 // GenerateKubeOptions control the generation of Kubernetes YAML files.
 type GenerateKubeOptions struct {
+	// PodmanOnly - add podman-only reserved annotations in the generated YAML file (Cannot be used by Kubernetes)
+	PodmanOnly bool
 	// Service - generate YAML for a Kubernetes _service_ object.
 	Service bool
 	// Type - the k8s kind to be generated i.e Pod or Deployment

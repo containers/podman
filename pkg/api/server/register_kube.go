@@ -139,6 +139,11 @@ func (s *APIServer) registerKubeHandlers(r *mux.Router) error {
 	//    type: boolean
 	//    default: false
 	//    description: don't truncate annotations to the Kubernetes maximum length of 63 characters
+	//  - in: query
+	//    name: podmanOnly
+	//    type: boolean
+	//    default: false
+	//    description: add podman-only reserved annotations in generated YAML file (cannot be used by Kubernetes)
 	// produces:
 	// - text/vnd.yaml
 	// - application/json

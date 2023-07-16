@@ -4,6 +4,8 @@ package generate
 //
 //go:generate go run ../generator/generator.go KubeOptions
 type KubeOptions struct {
+	// PodmanOnly - add podman-only reserved annotations to generated YAML file (Cannot be used by Kubernetes)
+	PodmanOnly *bool
 	// Service - generate YAML for a Kubernetes _service_ object.
 	Service *bool
 	// Type - the k8s kind to be generated i.e Pod or Deployment
