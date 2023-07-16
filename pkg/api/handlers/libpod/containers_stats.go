@@ -34,9 +34,11 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		Containers []string `schema:"containers"`
 		Stream     bool     `schema:"stream"`
 		Interval   int      `schema:"interval"`
+		All        bool     `schema:"all"`
 	}{
 		Stream:   true,
 		Interval: 5,
+		All:      false,
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
@@ -50,6 +52,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 	statsOptions := entities.ContainerStatsOptions{
 		Stream:   query.Stream,
 		Interval: query.Interval,
+		All:      query.All,
 	}
 
 	// Stats will stop if the connection is closed.

@@ -120,6 +120,7 @@ func stats(cmd *cobra.Command, args []string) error {
 		Latest:   statsOptions.Latest,
 		Stream:   !statsOptions.NoStream,
 		Interval: statsOptions.Interval,
+		All:      statsOptions.All,
 	}
 	args = putils.RemoveSlash(args)
 	statsChan, err := registry.ContainerEngine().ContainerStats(registry.Context(), args, opts)

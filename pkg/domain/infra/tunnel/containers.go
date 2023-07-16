@@ -1049,7 +1049,7 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 	if options.Latest {
 		return nil, errors.New("latest is not supported for the remote client")
 	}
-	return containers.Stats(ic.ClientCtx, namesOrIds, new(containers.StatsOptions).WithStream(options.Stream).WithInterval(options.Interval))
+	return containers.Stats(ic.ClientCtx, namesOrIds, new(containers.StatsOptions).WithStream(options.Stream).WithInterval(options.Interval).WithAll(options.All))
 }
 
 // ShouldRestart reports back whether the container will restart.

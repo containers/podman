@@ -264,4 +264,38 @@ var _ = Describe("Podman stats", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(limit).To(BeNumerically("==", 100*1024*1024))
 	})
+
+	It("podman stats --all", func() {
+		runningContainersession := podmanTest.RunTopContainer("")
+		runningContainersession.WaitWithDefaultTimeout()
+		Expect(runningContainersession).Should(Exit(0))
+		runningCtrID := runningContainersession.OutputToString()[0:12]
+
+		createdContainerSession, _, _ := podmanTest.CreatePod(map[string][]string{
+			"--infra": {"true"},
+		})
+
+		createdContainerSession.WaitWithDefaultTimeout()
+		Expect(createdContainerSession).Should(Exit(0))
+
+		sessionAll := podmanTest.Podman([]string{"stats", "--no-stream", "--format", "{{.ID}}"})
+		sessionAll.WaitWithDefaultTimeout()
+		Expect(sessionAll).Should(Exit(0))
+		Expect(sessionAll.OutputToString()).Should(Equal(runningCtrID))
+
+		sessionAll = podmanTest.Podman([]string{"stats", "--no-stream", "--all=false", "--format", "{{.ID}}"})
+		sessionAll.WaitWithDefaultTimeout()
+		Expect(sessionAll).Should(Exit(0))
+		Expect(sessionAll.OutputToString()).Should(Equal(runningCtrID))
+
+		sessionAll = podmanTest.Podman([]string{"stats", "--all=true", "--no-stream", "--format", "{{.ID}}"})
+		sessionAll.WaitWithDefaultTimeout()
+		Expect(sessionAll).Should(Exit(0))
+		Expect(sessionAll.OutputToStringArray()).Should(HaveLen(2))
+
+		sessionAll = podmanTest.Podman([]string{"stats", "--all", "--no-stream", "--format", "{{.ID}}"})
+		sessionAll.WaitWithDefaultTimeout()
+		Expect(sessionAll).Should(Exit(0))
+		Expect(sessionAll.OutputToStringArray()).Should(HaveLen(2))
+	})
 })

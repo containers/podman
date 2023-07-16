@@ -17,6 +17,21 @@ func (o *StatsOptions) ToParams() (url.Values, error) {
 	return util.ToParams(o)
 }
 
+// WithAll set field All to given value
+func (o *StatsOptions) WithAll(value bool) *StatsOptions {
+	o.All = &value
+	return o
+}
+
+// GetAll returns value of field All
+func (o *StatsOptions) GetAll() bool {
+	if o.All == nil {
+		var z bool
+		return z
+	}
+	return *o.All
+}
+
 // WithStream set field Stream to given value
 func (o *StatsOptions) WithStream(value bool) *StatsOptions {
 	o.Stream = &value
