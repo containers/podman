@@ -22,8 +22,13 @@ load helpers
 
     # Specially defined situations: exec a dir, or no such command.
     # We don't check the full error message because runc & crun differ.
-    run_podman 126 exec $cid /etc
-    is "$output" ".*permission denied"  "podman exec /etc"
+    #
+    # UPDATE 2023-07-17 runc on RHEL8 (but not Debian) now says "is a dir"
+    # and exits 255 instead of 126 as it does everywhere else.
+    run_podman '?' exec $cid /etc
+    is "$output" ".*\(permission denied\|is a directory\)"  \
+       "podman exec /etc"
+    assert "$status" -ne 0 "exit status from 'exec /etc'"
     run_podman 127 exec $cid /no/such/command
     is "$output" ".*such file or dir"   "podman exec /no/such/command"
 
