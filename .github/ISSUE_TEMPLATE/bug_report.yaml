@@ -7,7 +7,7 @@ body:
       value: |
         Thanks for taking the time to fill out this bug report!
 
-        **NOTE** A large number of issues reported against Podman are often found to already be fixed in more current versions of the project.  Before reporting an issue, please verify the version you are running with `podman version` and compare it to the latest release documented on the top of Podman's [README.md](../README.md). If they differ, please update your version of Podman to the latest possible and retry your command before creating an issue.
+        **NOTE** A large number of issues reported against Podman are often found to already be fixed in more current versions of the project.  Before reporting an issue, please verify the version you are running with `podman version` and compare it to the latest release documented on the top of Podman's [README.md](https://github.com/containers/podman#readme). If they differ, please update your version of Podman to the latest possible and retry your command before creating an issue.
 
         Also, there is a running list of known issues in the [Podman Troubleshooting Guide](https://github.com/containers/podman/blob/main/troubleshooting.md), please reference that page before opening a new issue.
 
