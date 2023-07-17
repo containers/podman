@@ -2,48 +2,48 @@ package filters
 
 import (
 	"fmt"
-	"net/url"
-	"regexp"
 	"strings"
 
 	"github.com/containers/common/pkg/filters"
 	"github.com/containers/podman/v4/libpod"
+	"github.com/containers/podman/v4/pkg/util"
 )
 
-func GenerateVolumeFilters(filtersValues url.Values) ([]libpod.VolumeFilter, error) {
-	var vf []libpod.VolumeFilter
-	for filter, v := range filtersValues {
-		for _, val := range v {
-			switch filter {
-			case "name":
-				nameRegexp, err := regexp.Compile(val)
-				if err != nil {
-					return nil, err
+func GenerateVolumeFilters(filter string, filterValues []string) (libpod.VolumeFilter, error) {
+	switch filter {
+	case "name":
+		return func(v *libpod.Volume) bool {
+			return util.StringMatchRegexSlice(v.Name(), filterValues)
+		}, nil
+	case "driver":
+		return func(v *libpod.Volume) bool {
+			for _, val := range filterValues {
+				if v.Driver() == val {
+					return true
 				}
-				vf = append(vf, func(v *libpod.Volume) bool {
-					return nameRegexp.MatchString(v.Name())
-				})
-			case "driver":
-				driverVal := val
-				vf = append(vf, func(v *libpod.Volume) bool {
-					return v.Driver() == driverVal
-				})
-			case "scope":
-				scopeVal := val
-				vf = append(vf, func(v *libpod.Volume) bool {
-					return v.Scope() == scopeVal
-				})
-			case "label":
-				filter := val
-				vf = append(vf, func(v *libpod.Volume) bool {
-					return filters.MatchLabelFilters([]string{filter}, v.Labels())
-				})
-			case "label!":
-				filter := val
-				vf = append(vf, func(v *libpod.Volume) bool {
-					return !filters.MatchLabelFilters([]string{filter}, v.Labels())
-				})
-			case "opt":
+			}
+			return false
+		}, nil
+	case "scope":
+		return func(v *libpod.Volume) bool {
+			for _, val := range filterValues {
+				if v.Scope() == val {
+					return true
+				}
+			}
+			return false
+		}, nil
+	case "label":
+		return func(v *libpod.Volume) bool {
+			return filters.MatchLabelFilters(filterValues, v.Labels())
+		}, nil
+	case "label!":
+		return func(v *libpod.Volume) bool {
+			return !filters.MatchLabelFilters(filterValues, v.Labels())
+		}, nil
+	case "opt":
+		return func(v *libpod.Volume) bool {
+			for _, val := range filterValues {
 				filterArray := strings.SplitN(val, "=", 2)
 				filterKey := filterArray[0]
 				var filterVal string
@@ -52,82 +52,70 @@ func GenerateVolumeFilters(filtersValues url.Values) ([]libpod.VolumeFilter, err
 				} else {
 					filterVal = ""
 				}
-				vf = append(vf, func(v *libpod.Volume) bool {
-					for labelKey, labelValue := range v.Options() {
-						if labelKey == filterKey && (filterVal == "" || labelValue == filterVal) {
-							return true
-						}
+
+				for labelKey, labelValue := range v.Options() {
+					if labelKey == filterKey && (filterVal == "" || labelValue == filterVal) {
+						return true
 					}
-					return false
-				})
-			case "until":
-				f, err := createUntilFilterVolumeFunction(val)
-				if err != nil {
-					return nil, err
 				}
-				vf = append(vf, f)
-			case "dangling":
-				danglingVal := val
+			}
+			return false
+		}, nil
+	case "until":
+		return createUntilFilterVolumeFunction(filterValues)
+	case "dangling":
+		for _, val := range filterValues {
+			switch strings.ToLower(val) {
+			case "true", "1", "false", "0":
+			default:
+				return nil, fmt.Errorf("%q is not a valid value for the \"dangling\" filter - must be true or false", val)
+			}
+		}
+		return func(v *libpod.Volume) bool {
+			for _, val := range filterValues {
+				dangling, err := v.IsDangling()
+				if err != nil {
+					return false
+				}
+
 				invert := false
-				switch strings.ToLower(danglingVal) {
-				case "true", "1":
-					// Do nothing
+				switch strings.ToLower(val) {
 				case "false", "0":
 					// Dangling=false requires that we
 					// invert the result of IsDangling.
 					invert = true
-				default:
-					return nil, fmt.Errorf("%q is not a valid value for the \"dangling\" filter - must be true or false", danglingVal)
 				}
-				vf = append(vf, func(v *libpod.Volume) bool {
-					dangling, err := v.IsDangling()
-					if err != nil {
-						return false
-					}
-					if invert {
-						return !dangling
-					}
-					return dangling
-				})
-			default:
-				return nil, fmt.Errorf("%q is an invalid volume filter", filter)
+				if invert {
+					dangling = !dangling
+				}
+				if dangling {
+					return true
+				}
 			}
-		}
+			return false
+		}, nil
 	}
-	return vf, nil
+	return nil, fmt.Errorf("%q is an invalid volume filter", filter)
 }
 
-func GeneratePruneVolumeFilters(filtersValues url.Values) ([]libpod.VolumeFilter, error) {
-	var vf []libpod.VolumeFilter
-	for filter, v := range filtersValues {
-		for _, val := range v {
-			filterVal := val
-			switch filter {
-			case "label":
-				vf = append(vf, func(v *libpod.Volume) bool {
-					return filters.MatchLabelFilters([]string{filterVal}, v.Labels())
-				})
-			case "label!":
-				filter := val
-				vf = append(vf, func(v *libpod.Volume) bool {
-					return !filters.MatchLabelFilters([]string{filter}, v.Labels())
-				})
-			case "until":
-				f, err := createUntilFilterVolumeFunction(filterVal)
-				if err != nil {
-					return nil, err
-				}
-				vf = append(vf, f)
-			default:
-				return nil, fmt.Errorf("%q is an invalid volume filter", filter)
-			}
-		}
+func GeneratePruneVolumeFilters(filter string, filterValues []string) (libpod.VolumeFilter, error) {
+	switch filter {
+	case "label":
+		return func(v *libpod.Volume) bool {
+			return filters.MatchLabelFilters(filterValues, v.Labels())
+		}, nil
+	case "label!":
+		return func(v *libpod.Volume) bool {
+			return !filters.MatchLabelFilters(filterValues, v.Labels())
+		}, nil
+	case "until":
+		return createUntilFilterVolumeFunction(filterValues)
 	}
-	return vf, nil
+	return nil, fmt.Errorf("%q is an invalid volume filter", filter)
 }
 
-func createUntilFilterVolumeFunction(filter string) (libpod.VolumeFilter, error) {
-	until, err := filters.ComputeUntilTimestamp([]string{filter})
+func createUntilFilterVolumeFunction(filterValues []string) (libpod.VolumeFilter, error) {
+	until, err := filters.ComputeUntilTimestamp(filterValues)
 	if err != nil {
 		return nil, err
 	}

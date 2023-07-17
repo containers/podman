@@ -16,6 +16,11 @@ flag. Use the **--quiet** flag to print only the volume names.
 
 #### **--filter**, **-f**=*filter*
 
+Filter what volumes are shown in the output.
+Multiple filters can be given with multiple uses of the --filter flag.
+Filters with the same key work inclusive, with the only exception being `label`
+which is exclusive. Filters with different keys always work exclusive.
+
 Volumes can be filtered by the following attributes:
 
 | **Filter** | **Description**                                                                       |
