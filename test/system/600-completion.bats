@@ -309,6 +309,12 @@ function _check_no_suggestions() {
     # recurse for any subcommands.
     check_shell_completion
 
+    # check inspect with format flag
+    run_podman create --name inspect-$random_container_name $IMAGE
+    run_completion inspect inspect-$random_container_name -f \"{{.\"
+    arrOp=(${output//>/ })
+    is "${arrOp[0]}" ":6"
+
     # cleanup
     run_podman secret rm $random_secret_name
     rm -f $secret_file

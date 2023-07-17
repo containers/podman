@@ -82,7 +82,9 @@ the function or perhaps just a substring.
 Requirements
 ============
 
-The `jq` tool is needed for parsing JSON output.
+- The `jq` tool is needed for parsing JSON output.
+- The `bats` tool is needed for running tests.
+- The `skopeo` tool is needed for fetching remote images.
 
 
 Further Details

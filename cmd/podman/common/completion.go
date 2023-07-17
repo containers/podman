@@ -1183,37 +1183,9 @@ func AutocompleteFormat(o interface{}) func(cmd *cobra.Command, args []string, t
 		// special(expensive) flow for "podman inspect"
 		if cmd != nil && cmd.Name() == "inspect" && cmd.Parent() == cmd.Root() {
 			if len(args) == 0 {
-				return nil, cobra.ShellCompDirectiveNoFileComp
+				o = &define.InspectContainerData{}
 			} else {
-				found := false
-				// container logic
-				if containers, _ := getContainers(cmd, args[0], completeDefault); len(containers) > 0 {
-					o = &define.InspectContainerData{}
-					found = true
-				}
-
-				// image logic
-				if images, _ := getImages(cmd, args[0]); len(images) > 0 && !found {
-					o = &inspect.ImageData{}
-					found = true
-				}
-
-				// volume logic
-				if volumes, _ := getVolumes(cmd, args[0]); len(volumes) > 0 && !found {
-					o = &define.InspectVolumeData{}
-					found = true
-				}
-
-				// pod logic
-				if pods, _ := getPods(cmd, args[0], completeDefault); len(pods) > 0 && !found {
-					o = &entities.PodInspectReport{}
-					found = true
-				}
-
-				// network logic
-				if networks, _ := getNetworks(cmd, args[0], completeDefault); len(networks) > 0 && !found {
-					o = &types.Network{}
-				}
+				o = getEntityType(cmd, args, o)
 			}
 		}
 
@@ -1285,6 +1257,30 @@ func AutocompleteFormat(o interface{}) func(cmd *cobra.Command, args []string, t
 		}
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
+}
+
+func getEntityType(cmd *cobra.Command, args []string, o interface{}) interface{} {
+	// container logic
+	if containers, _ := getContainers(cmd, args[0], completeDefault); len(containers) > 0 {
+		return &define.InspectContainerData{}
+	}
+	// image logic
+	if images, _ := getImages(cmd, args[0]); len(images) > 0 {
+		return &inspect.ImageData{}
+	}
+	// volume logic
+	if volumes, _ := getVolumes(cmd, args[0]); len(volumes) > 0 {
+		return &define.InspectVolumeData{}
+	}
+	// pod logic
+	if pods, _ := getPods(cmd, args[0], completeDefault); len(pods) > 0 {
+		return &entities.PodInspectReport{}
+	}
+	// network logic
+	if networks, _ := getNetworks(cmd, args[0], completeDefault); len(networks) > 0 {
+		return &types.Network{}
+	}
+	return o
 }
 
 // actualReflectValue takes the value,
