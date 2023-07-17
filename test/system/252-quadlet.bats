@@ -628,6 +628,11 @@ EOF
 @test "quadlet - rootfs" {
     skip_if_no_selinux
     skip_if_rootless
+    run_podman info --format {{.Host.LogDriver}}
+    if [ "$output" != "journald" ]; then
+        skip "This test can only be run when the log driver is journald."
+    fi
+
     local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).container
     cat > $quadlet_file <<EOF
 [Container]
@@ -646,6 +651,11 @@ EOF
 
 @test "quadlet - selinux disable" {
     skip_if_no_selinux
+    run_podman info --format {{.Host.LogDriver}}
+    if [ "$output" != "journald" ]; then
+        skip "This test can only be run when the log driver is journald."
+    fi
+
     local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).container
     cat > $quadlet_file <<EOF
 [Container]
@@ -669,6 +679,11 @@ EOF
 
 @test "quadlet - selinux labels" {
     skip_if_no_selinux
+    run_podman info --format {{.Host.LogDriver}}
+    if [ "$output" != "journald" ]; then
+        skip "This test can only be run when the log driver is journald."
+    fi
+
     NAME=$(random_string)
     local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).container
     cat > $quadlet_file <<EOF
@@ -698,6 +713,11 @@ EOF
 }
 
 @test "quadlet - secret as environment variable" {
+    run_podman info --format {{.Host.LogDriver}}
+    if [ "$output" != "journald" ]; then
+        skip "This test can only be run when the log driver is journald."
+    fi
+
     create_secret
 
     local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).container
@@ -725,6 +745,11 @@ EOF
 }
 
 @test "quadlet - secret as a file" {
+    run_podman info --format {{.Host.LogDriver}}
+    if [ "$output" != "journald" ]; then
+        skip "This test can only be run when the log driver is journald."
+    fi
+
     create_secret
 
     local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).container
