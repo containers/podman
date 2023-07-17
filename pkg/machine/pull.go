@@ -151,6 +151,9 @@ func progressBar(prefix string, size int64, onComplete string) (*mpb.Progress, *
 			decor.OnComplete(decor.CountersKibiByte("%.1f / %.1f"), ""),
 		),
 	)
+	if size == 0 {
+		bar.SetTotal(0, true)
+	}
 
 	return p, bar
 }
