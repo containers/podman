@@ -60,8 +60,7 @@ func DefaultPolicyPath(sys *types.SystemContext) string {
 		return sys.SignaturePolicyPath
 	}
 
-	confDir, _ := homedir.GetConfigHome()
-	userPolicyFilePath := filepath.Join(confDir, filepath.FromSlash("containers/policy.json"))
+	userPolicyFilePath := filepath.Join(homedir.Get(), filepath.FromSlash(".config/containers/policy.json"))
 	_, err := os.Stat(userPolicyFilePath)
 	if err == nil {
 		return userPolicyFilePath
