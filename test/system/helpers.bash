@@ -1,5 +1,7 @@
 # -*- bash -*-
 
+# FIXME FIXME FIXME FIXME FIXME
+
 # Podman command to run; may be podman-remote
 PODMAN=${PODMAN:-podman}
 QUADLET=${QUADLET:-/usr/libexec/podman/quadlet}
