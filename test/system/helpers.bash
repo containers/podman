@@ -110,6 +110,21 @@ function _prefetch() {
     $cmd
 }
 
+
+# Wrapper for skopeo, because skopeo doesn't work rootless if $XDG is unset
+# (as it is in RHEL gating): it defaults to /run/containers/<uid>, which
+# of course is a root-only dir, hence fails with permission denied.
+# -- https://github.com/containers/skopeo/issues/823
+function skopeo() {
+    local xdg=${XDG_RUNTIME_DIR}
+    if [ -z "$xdg" ]; then
+        if is_rootless; then
+            xdg=/run/user/$(id -u)
+        fi
+    fi
+    XDG_RUNTIME_DIR=${xdg} command skopeo "$@"
+}
+
 # END   tools for fetching & caching test images
 ###############################################################################
 # BEGIN setup/teardown tools
