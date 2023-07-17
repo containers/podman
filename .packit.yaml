@@ -29,9 +29,6 @@ jobs:
     update_release: false
     dist_git_branches:
       - fedora-all
-    actions:
-        pre-sync:
-          - "bash rpm/update-spec-provides.sh"
 
   - job: koji_build
     trigger: commit
