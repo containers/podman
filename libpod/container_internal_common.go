@@ -1962,7 +1962,7 @@ func (c *Container) makeBindMounts() error {
 			case m.Destination == "/run/.containerenv":
 				hasRunContainerenv = true
 				break Loop
-			case m.Destination == "/run" && m.Source != define.TypeTmpfs:
+			case m.Destination == "/run" && m.Type != define.TypeTmpfs:
 				hasRunContainerenv = true
 				break Loop
 			}
