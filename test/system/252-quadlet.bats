@@ -897,4 +897,64 @@ EOF
    run_podman rmi $(pause_image)
 }
 
+@test "quadlet kube - Working Directory" {
+    yaml_source="$PODMAN_TMPDIR/basic_$(random_string).yaml"
+    local_path=local_path$(random_string)
+    pod_name=test_pod
+    container_name=test
+
+    cat >$yaml_source <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test
+  name: $pod_name
+spec:
+  containers:
+  - command:
+    - "sh"
+    args:
+    - "-c"
+    - "echo STARTED CONTAINER; top -b"
+    image: $IMAGE
+    name: $container_name
+    volumeMounts:
+    - mountPath: /test
+      name: test-volume
+  volumes:
+  - name: test-volume
+    hostPath:
+      # directory location on host
+      path: ./$local_path
+      # this field is optional
+      type: DirectoryOrCreate
+EOF
+
+    # Create the Quadlet file
+    local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).kube
+    cat > $quadlet_file <<EOF
+[Kube]
+Yaml=${yaml_source}
+SetWorkingDirectory=yaml
+EOF
+
+    run_quadlet "$quadlet_file"
+    service_setup $QUADLET_SERVICE_NAME
+
+    # Ensure we have output.
+    wait_for_output "STARTED CONTAINER" $pod_name-$container_name
+
+    run_podman container inspect  --format "{{.State.Status}}" $pod_name-$container_name
+    is "$output" "running" "container should be started by systemd and hence be running"
+
+    run_podman ps
+
+    run_podman exec $pod_name-$container_name /bin/sh -c "echo hello > /test/test.txt"
+    is $(cat $PODMAN_TMPDIR/$local_path/test.txt) "hello"
+
+    service_cleanup $QUADLET_SERVICE_NAME inactive
+    run_podman rmi $(pause_image)
+}
+
 # vim: filetype=sh

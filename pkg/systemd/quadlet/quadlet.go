@@ -35,6 +35,11 @@ const (
 	XVolumeGroup    = "X-Volume"
 )
 
+// Systemd Unit file keys
+const (
+	ServiceKeyWorkingDirectory = "WorkingDirectory"
+)
+
 // All the supported quadlet keys
 const (
 	KeyAddCapability         = "AddCapability"
@@ -103,6 +108,7 @@ const (
 	KeySecurityLabelNested   = "SecurityLabelNested"
 	KeySecurityLabelType     = "SecurityLabelType"
 	KeySecret                = "Secret"
+	KeySetWorkingDirectory   = "SetWorkingDirectory"
 	KeySysctl                = "Sysctl"
 	KeyTimezone              = "Timezone"
 	KeyTmpfs                 = "Tmpfs"
@@ -226,6 +232,7 @@ var (
 		KeyRemapUID:            true,
 		KeyRemapUIDSize:        true,
 		KeyRemapUsers:          true,
+		KeySetWorkingDirectory: true,
 		KeyUserNS:              true,
 		KeyYaml:                true,
 	}
@@ -1019,6 +1026,11 @@ func ConvertKube(kube *parser.UnitFile, names map[string]string, isUser bool) (*
 	execStop.add(yamlPath)
 	service.AddCmdline(ServiceGroup, "ExecStopPost", execStop.Args)
 
+	err = handleSetWorkingDirectory(kube, service)
+	if err != nil {
+		return nil, err
+	}
+
 	return service, nil
 }
 
@@ -1287,4 +1299,39 @@ func handlePodmanArgs(unitFile *parser.UnitFile, groupName string, podman *Podma
 	if len(podmanArgs) > 0 {
 		podman.add(podmanArgs...)
 	}
+}
+
+func handleSetWorkingDirectory(kube, serviceUnitFile *parser.UnitFile) error {
+	// If WorkingDirectory is already set in the Service section do not change it
+	workingDir, ok := kube.Lookup(ServiceGroup, ServiceKeyWorkingDirectory)
+	if ok && len(workingDir) > 0 {
+		return nil
+	}
+
+	setWorkingDirectory, ok := kube.Lookup(KubeGroup, KeySetWorkingDirectory)
+	if !ok || len(setWorkingDirectory) == 0 {
+		return nil
+	}
+
+	var relativeToFile string
+	switch strings.ToLower(setWorkingDirectory) {
+	case "yaml":
+		relativeToFile, ok = kube.Lookup(KubeGroup, KeyYaml)
+		if !ok {
+			return fmt.Errorf("no Yaml key specified")
+		}
+	case "unit":
+		relativeToFile = kube.Path
+	default:
+		return fmt.Errorf("unsupported value for %s: %s ", ServiceKeyWorkingDirectory, setWorkingDirectory)
+	}
+
+	fileInWorkingDir, err := getAbsolutePath(kube, relativeToFile)
+	if err != nil {
+		return err
+	}
+
+	serviceUnitFile.Add(ServiceGroup, ServiceKeyWorkingDirectory, filepath.Dir(fileInWorkingDir))
+
+	return nil
 }

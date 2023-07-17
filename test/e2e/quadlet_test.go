@@ -624,6 +624,10 @@ BOGUS=foo
 		Entry("Kube - User Remap Auto", "remap-auto.kube", 0, ""),
 		Entry("Kube - User Remap Manual", "remap-manual.kube", 1, "converting \"remap-manual.kube\": RemapUsers=manual is not supported"),
 		Entry("Syslog Identifier", "syslog.identifier.kube", 0, ""),
+		Entry("Kube - Working Directory YAML Absolute Path", "workingdir-yaml-abs.kube", 0, ""),
+		Entry("Kube - Working Directory YAML Relative Path", "workingdir-yaml-rel.kube", 0, ""),
+		Entry("Kube - Working Directory Unit", "workingdir-unit.kube", 0, ""),
+		Entry("Kube - Working Directory already in Service", "workingdir-service.kube", 0, ""),
 
 		Entry("Network - Basic", "basic.network", 0, ""),
 		Entry("Network - Disable DNS", "disable-dns.network", 0, ""),
