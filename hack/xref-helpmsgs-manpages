@@ -95,6 +95,13 @@ my %Format_Option_Is_Special = map { $_ => 1 } (
     'inspect',                                  # ambiguous (container/image)
  );
 
+# Do not cross-reference these.
+my %Skip_Subcommand = map { $_ => 1 } (
+    "help",                     # has no man page
+    "completion",               # internal (hidden) subcommand
+    "compose",                  # external tool, outside of our control
+);
+
 # END   user-customizable section
 ###############################################################################
 
@@ -279,8 +286,8 @@ sub xref_by_man {
 
             next if "@subcommand" eq 'system' && $k eq 'service';
 
-            # Special case: podman completion is a hidden command
-            next if $k eq 'completion';
+            # Special case for hidden or external commands
+            next if $Skip_Subcommand{$k};
 
             warn "$ME: 'podman @subcommand': $k in $man, but not --help\n";
             ++$Errs;
@@ -346,7 +353,7 @@ sub podman_help {
                 }
 
                 $help{$subcommand} = podman_help(@_, $subcommand)
-                    unless $subcommand eq 'help';       # 'help' not in man
+                    unless $Skip_Subcommand{$subcommand};
             }
         }
         elsif ($section eq 'options') {

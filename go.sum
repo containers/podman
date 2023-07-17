@@ -247,8 +247,8 @@ github.com/containernetworking/plugins v1.3.0 h1:QVNXMT6XloyMUoO2wUOqWTC1hWFV62Q
 github.com/containernetworking/plugins v1.3.0/go.mod h1:Pc2wcedTQQCVuROOOaLBPPxrEXqqXBFt3cZ+/yVg6l0=
 github.com/containers/buildah v1.31.1-0.20230722114901-5ece066f82c6 h1:K/S8SFQsnnNTF0Ws58SrBD9L0EuClzAG8Zp08d7+6AA=
 github.com/containers/buildah v1.31.1-0.20230722114901-5ece066f82c6/go.mod h1:0sptTFBBtSznLqoTh80DfvMOCNbdRsNRgVOKhBhrupA=
-github.com/containers/common v0.55.1-0.20230721175448-664d013a6ae2 h1:4B42HUIAghFGSqej5RADTNf0WlOBFiGGzmGjNa3Do78=
-github.com/containers/common v0.55.1-0.20230721175448-664d013a6ae2/go.mod h1:O/JSRY1dLfwgBxVvn3yJfKvF63KEjbNJcJAtjpNvO90=
+github.com/containers/common v0.55.1-0.20230724161016-2966c705a7a3 h1:0fHDAdLNfOs5AuBizE7TOECDA4gCLoCgE6geR3k/H78=
+github.com/containers/common v0.55.1-0.20230724161016-2966c705a7a3/go.mod h1:SUX+gHoElocPp664K79AEt+GGHwngBJLrKdwNIRW0tQ=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.26.1-0.20230721194716-30c87d4a5b8d h1:g6DFcXXEMd1OwSVtbrUolGzmkMNyQDyc4OKHOFxbNeE=
@@ -820,8 +820,8 @@ github.com/opencontainers/runtime-spec v1.0.2-0.20190207185410-29686dbc5559/go.m
 github.com/opencontainers/runtime-spec v1.0.2/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/runtime-spec v1.0.3-0.20200929063507-e6143ca7d51d/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
-github.com/opencontainers/runtime-spec v1.1.0-rc.3 h1:l04uafi6kxByhbxev7OWiuUv0LZxEsYUfDWZ6bztAuU=
-github.com/opencontainers/runtime-spec v1.1.0-rc.3/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
+github.com/opencontainers/runtime-spec v1.1.0 h1:HHUyrt9mwHUjtasSbXSMvs4cyFxh+Bll4AjJ9odEGpg=
+github.com/opencontainers/runtime-spec v1.1.0/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/runtime-tools v0.0.0-20181011054405-1d69bd0f9c39/go.mod h1:r3f7wjNzSs2extwzU3Y+6pKfobzPh+kKFJ3ofN+3nfs=
 github.com/opencontainers/runtime-tools v0.9.1-0.20230317050512-e931285f4b69 h1:NL4xDvl68WWqQ+8WPMM3l5PsZTxaT7Z4K3VSKDRuAGs=
 github.com/opencontainers/runtime-tools v0.9.1-0.20230317050512-e931285f4b69/go.mod h1:bNpfuSHA3DZRtD0TPWO8LzgtLpFPTVA/3jDkzD/OPyk=

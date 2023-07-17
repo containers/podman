@@ -17,6 +17,11 @@ function check_help() {
     local -A found
 
     for cmd in $(_podman_commands "$@"); do
+        # Skip the compose command which is calling `docker-compose --help`
+        # and hence won't match the assumptions made below.
+        if [[ "$cmd" == "compose" ]]; then
+            continue
+        fi
         # Human-readable podman command string, with multiple spaces collapsed
         command_string="podman $* $cmd"
         command_string=${command_string//  / }  # 'podman  x' -> 'podman x'
