@@ -18,9 +18,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// userPolicyFile is the path to the per user policy path.
-var userPolicyFile = filepath.FromSlash(".config/containers/policy.json")
-
 // policyContent is the overall structure of a policy.json file (= c/image/v5/signature.Policy)
 type policyContent struct {
 	Default    []repoContent     `json:"default"`
@@ -61,10 +58,17 @@ func DefaultPolicyPath(sys *types.SystemContext) string {
 	if sys != nil && sys.SignaturePolicyPath != "" {
 		return sys.SignaturePolicyPath
 	}
-	userPolicyFilePath := filepath.Join(homedir.Get(), userPolicyFile)
-	if _, err := os.Stat(userPolicyFilePath); err == nil {
+
+	confDir, _ := homedir.GetConfigHome()
+	userPolicyFilePath := filepath.Join(confDir, filepath.FromSlash("containers/policy.json"))
+	_, err := os.Stat(userPolicyFilePath)
+	if err == nil {
 		return userPolicyFilePath
 	}
+	if !os.IsNotExist(err) {
+		logrus.Warnf("Error trying to read local config file: %s", err.Error())
+	}
+
 	systemDefaultPolicyPath := config.DefaultSignaturePolicyPath
 	if sys != nil && sys.RootForImplicitAbsolutePaths != "" {
 		return filepath.Join(sys.RootForImplicitAbsolutePaths, systemDefaultPolicyPath)
