@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -65,7 +66,7 @@ func DefaultPolicyPath(sys *types.SystemContext) string {
 	if err == nil {
 		return userPolicyFilePath
 	}
-	if !os.IsNotExist(err) {
+	if !errors.Is(err, fs.ErrNotExist) {
 		logrus.Warnf("Error trying to read local config file: %s", err.Error())
 	}
 
