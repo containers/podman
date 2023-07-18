@@ -15,8 +15,8 @@ function start_time() {
 
 function setup() {
     skip_if_remote "quadlet tests are meaningless over remote"
-    skip_if_rootless_cgroupsv1 "Can't use --cgroups=split w/ CGv1 (#17456)"
-    skip_if_journald_unavailable "quadlet isn't really usable without journal"
+    skip_if_rootless_cgroupsv1 "Can't use --cgroups=split w/ CGv1 (issue 17456, wontfix)"
+    skip_if_journald_unavailable "Needed for RHEL. FIXME: we might be able to reenable a subset of tests."
 
     test -x "$QUADLET" || die "Cannot run quadlet tests without executable \$QUADLET ($QUADLET)"
 
@@ -451,16 +451,14 @@ EOF
     cat > $quadlet_file <<EOF
 [Container]
 Rootfs=/:O
-Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; top"
+Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; top -b"
 Notify=yes
 EOF
 
     run_quadlet "$quadlet_file"
     service_setup $QUADLET_SERVICE_NAME
 
-    # Ensure we have output. Output is synced via sd-notify (socat in Exec)
-    run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
-    is "$output" '.*STARTED CONTAINER.*'
+    wait_for_output "STARTED CONTAINER" $QUADLET_CONTAINER_NAME
 }
 
 @test "quadlet - selinux disable" {
@@ -470,15 +468,14 @@ EOF
 [Container]
 Image=$IMAGE
 SecurityLabelDisable=true
-Exec=sh -c "echo STARTED CONTAINER; top"
+Exec=sh -c "echo STARTED CONTAINER; top -b"
 EOF
 
     run_quadlet "$quadlet_file"
     service_setup $QUADLET_SERVICE_NAME
 
     # Ensure we have output. Output is synced via sd-notify (socat in Exec)
-    run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
-    is "$output" '.*STARTED CONTAINER.*'
+    wait_for_output "STARTED CONTAINER" $QUADLET_CONTAINER_NAME
 
     run_podman container inspect  --format "{{.ProcessLabel}}" $QUADLET_CONTAINER_NAME
     is "$output" "" "container should be started without specifying a Process Label"
@@ -497,15 +494,14 @@ Image=$IMAGE
 SecurityLabelType=spc_t
 SecurityLabelLevel=s0:c100,c200
 SecurityLabelFileType=container_ro_file_t
-Exec=sh -c "echo STARTED CONTAINER; top"
+Exec=sh -c "echo STARTED CONTAINER; top -b"
 EOF
 
     run_quadlet "$quadlet_file"
     service_setup $QUADLET_SERVICE_NAME
 
     # Ensure we have output. Output is synced via sd-notify (socat in Exec)
-    run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
-    is "$output" '.*STARTED CONTAINER.*'
+    wait_for_output "STARTED CONTAINER" $NAME
 
     run_podman container ps
     run_podman container inspect  --format "{{.ProcessLabel}}" $NAME
@@ -525,7 +521,7 @@ EOF
 ContainerName=$NAME
 Image=$IMAGE
 Secret=$SECRET_NAME,type=env,target=MYSECRET
-Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; top"
+Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; top -b"
 Notify=yes
 EOF
 
@@ -533,8 +529,7 @@ EOF
     service_setup $QUADLET_SERVICE_NAME
 
     # Ensure we have output. Output is synced via sd-notify (socat in Exec)
-    run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
-    is "$output" '.*STARTED CONTAINER.*'
+    wait_for_output "STARTED CONTAINER" $QUADLET_CONTAINER_NAME
 
     run_podman exec $QUADLET_CONTAINER_NAME /bin/sh -c "printenv MYSECRET"
     is "$output" $SECRET
@@ -552,7 +547,7 @@ EOF
 ContainerName=$NAME
 Image=$IMAGE
 Secret=$SECRET_NAME,type=mount,target=/root/secret
-Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; top"
+Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; top -b"
 Notify=yes
 EOF
 
@@ -560,8 +555,7 @@ EOF
     service_setup $QUADLET_SERVICE_NAME
 
     # Ensure we have output. Output is synced via sd-notify (socat in Exec)
-    run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
-    is "$output" '.*STARTED CONTAINER.*'
+    wait_for_output "STARTED CONTAINER" $QUADLET_CONTAINER_NAME
 
     run_podman exec $QUADLET_CONTAINER_NAME /bin/sh -c "cat /root/secret"
     is "$output" $SECRET
