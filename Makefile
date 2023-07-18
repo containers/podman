@@ -721,11 +721,11 @@ podman-release: podman-release-$(GOARCH).tar.gz  # Build all Linux binaries for 
 # calls along with careful manipulation of `$GOOS` and `$GOARCH`.
 
 podman-release-%.tar.gz: test/version/version
-	$(eval TMPDIR := $(shell mktemp -d podman_tmp_XXXX))
-	$(eval SUBDIR := podman-v$(call err_if_empty,RELEASE_NUMBER))
-	$(eval _DSTARGS := "DESTDIR=$(TMPDIR)/$(SUBDIR)" "PREFIX=$(RELEASE_PREFIX)")
+	$(eval tmpsubdir := $(shell mktemp -d podman_tmp_XXXX))
+	$(eval releasedir := podman-v$(call err_if_empty,RELEASE_NUMBER))
+	$(eval _dstargs := "DESTDIR=$(tmpsubdir)/$(releasedir)" "PREFIX=$(RELEASE_PREFIX)")
 	$(eval GOARCH := $*)
-	mkdir -p "$(call err_if_empty,TMPDIR)/$(SUBDIR)"
+	mkdir -p "$(call err_if_empty,tmpsubdir)/$(releasedir)"
 	$(MAKE) GOOS=$(GOOS) GOARCH=$(NATIVE_GOARCH) \
 		clean-binaries docs podman-remote-$(GOOS)-docs
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then \
@@ -734,19 +734,19 @@ podman-release-%.tar.gz: test/version/version
 	else \
 		$(MAKE) GOOS=$(GOOS) GOARCH=$(GOARCH) binaries; \
 	fi
-	$(MAKE) $(_DSTARGS) install.bin install.remote install.man install.systemd
-	tar -czvf $@ --xattrs -C "$(TMPDIR)" "./$(SUBDIR)"
+	$(MAKE) $(_dstargs) install.bin install.remote install.man install.systemd
+	tar -czvf $@ --xattrs -C "$(tmpsubdir)" "./$(releasedir)"
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then $(MAKE) clean-binaries; fi
-	-rm -rf "$(TMPDIR)"
+	-rm -rf "$(tmpsubdir)"
 
 podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$GOOS_$GOARCH, and docs. into an installation zip.
-	$(eval TMPDIR := $(shell mktemp -d podman_tmp_XXXX))
-	$(eval SUBDIR := podman-$(call err_if_empty,RELEASE_NUMBER))
-	$(eval _DSTARGS := "DESTDIR=$(TMPDIR)/$(SUBDIR)" "PREFIX=$(RELEASE_PREFIX)")
+	$(eval tmpsubdir := $(shell mktemp -d podman_tmp_XXXX))
+	$(eval releasedir := podman-$(call err_if_empty,RELEASE_NUMBER))
+	$(eval _dstargs := "DESTDIR=$(tmpsubdir)/$(releasedir)" "PREFIX=$(RELEASE_PREFIX)")
 	$(eval GOOS := $(firstword $(subst _, ,$*)))
 	$(eval GOARCH := $(lastword $(subst _, ,$*)))
 	$(eval _GOPLAT := GOOS=$(call err_if_empty,GOOS) GOARCH=$(call err_if_empty,GOARCH))
-	mkdir -p "$(call err_if_empty,TMPDIR)/$(SUBDIR)"
+	mkdir -p "$(call err_if_empty,tmpsubdir)/$(releasedir)"
 	$(MAKE) GOOS=$(GOOS) GOARCH=$(GOARCH) \
 		clean-binaries podman-remote-$(GOOS)-docs
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then \
@@ -761,13 +761,13 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 	if [[ "$(GOOS)" == "darwin" ]]; then \
 		$(MAKE) $(GOPLAT) podman-mac-helper;\
 	fi
-	cp -r ./docs/build/remote/$(GOOS) "$(TMPDIR)/$(SUBDIR)/docs/"
-	cp ./contrib/remote/containers.conf "$(TMPDIR)/$(SUBDIR)/"
-	$(MAKE) $(GOPLAT) $(_DSTARGS) SELINUXOPT="" install.remote
-	cd "$(TMPDIR)" && \
-		zip --recurse-paths "$(CURDIR)/$@" "./$(SUBDIR)"
+	cp -r ./docs/build/remote/$(GOOS) "$(tmpsubdir)/$(releasedir)/docs/"
+	cp ./contrib/remote/containers.conf "$(tmpsubdir)/$(releasedir)/"
+	$(MAKE) $(GOPLAT) $(_dstargs) SELINUXOPT="" install.remote
+	cd "$(tmpsubdir)" && \
+		zip --recurse-paths "$(CURDIR)/$@" "./$(releasedir)"
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then $(MAKE) clean-binaries; fi
-	-rm -rf "$(TMPDIR)"
+	-rm -rf "$(tmpsubdir)"
 
 # Checks out and builds win-sshproxy helper. See comment on GV_GITURL declaration
 .PHONY: win-gvproxy

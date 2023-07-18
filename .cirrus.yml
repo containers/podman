@@ -123,6 +123,8 @@ build_task:
               CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
               CI_DESIRED_RUNTIME: crun
               CI_DESIRED_NETWORK: cni
+              # Catch invalid "TMPDIR == /tmp" assumptions; PR #19281
+              TMPDIR: /var/tmp
         - env:
               <<: *sqliteenvvars
               DISTRO_NV: ${RAWHIDE_NAME}
