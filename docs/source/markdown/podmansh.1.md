@@ -10,7 +10,7 @@ podmansh - Execute login shell within the Podman `podmansh` container
 
 Execute a user shell within a container when the user logs into the system. The container that the users get added to can be defined via a Podman Quadlet file. This user only has access to volumes and capabilities configured into the Quadlet file.
 
-Administrators can create a Quadlet in /etc/containers/systemd/users, which systemd will start for all users when they log in. The administrator can create a specific Quadlet with the container name `podmansh`, then enable users to use the login shell /usr/bin/podmansh.  These user login shells are automatically executed inside  the `podmansh` container via Podman.	.
+Administrators can create a Quadlet in /etc/containers/systemd/users, which systemd will start for all users when they log in. The administrator can create a specific Quadlet with the container name `podmansh`, then enable users to use the login shell /usr/bin/podmansh.  These user login shells are automatically executed inside  the `podmansh` container via Podman.
 
 Optionally, the administrator can place Quadlet files in the /etc/containers/systemd/users/${UID} directory for a user. Only this UID will execute these Quadlet services when that user logs in.
 

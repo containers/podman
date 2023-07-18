@@ -150,7 +150,9 @@ func exec(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		if err := execWait(nameOrID, seconds); err != nil {
-			return err
+			if errors.Is(err, define.ErrCanceled) {
+				return fmt.Errorf("timed out waiting for container: %s", nameOrID)
+			}
 		}
 	}
 

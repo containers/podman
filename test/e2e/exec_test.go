@@ -554,7 +554,7 @@ RUN useradd -u 1000 auser`, fedoraMinimal)
 		session := podmanTest.Podman([]string{"exec", "--wait", "2", "1234"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(Equal("Error: cancelled by user"))
+		Expect(session.ErrorToString()).To(Equal("Error: timed out waiting for container: 1234"))
 	})
 
 	It("podman exec --wait 5 seconds for started container", func() {

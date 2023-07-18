@@ -137,7 +137,7 @@ load helpers
 
     # wait on bogus container
     run_podman 125 exec --wait 5 "bogus_container" echo hello
-    assert "$output" = "Error: cancelled by user"
+    assert "$output" = "Error: timed out waiting for container: bogus_container"
 
     run_podman create --name "wait_container" $IMAGE top
     run_podman 255 exec --wait 5 "wait_container" echo hello
