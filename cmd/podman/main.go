@@ -41,7 +41,10 @@ func main() {
 	if filepath.Base(os.Args[0]) == registry.PodmanSh ||
 		(len(os.Args[0]) > 0 && filepath.Base(os.Args[0][1:]) == registry.PodmanSh) {
 		shell := strings.TrimPrefix(os.Args[0], "-")
-		args := []string{shell, "exec", "-i", "--wait", "10"}
+
+		// The wait timeout will soon be made configurable via the
+		// upcoming `podmansh_timeout` option in containers.conf
+		args := []string{shell, "exec", "-i", "--wait", "30"}
 		if term.IsTerminal(0) || term.IsTerminal(1) || term.IsTerminal(2) {
 			args = append(args, "-t")
 		}
