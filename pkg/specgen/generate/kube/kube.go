@@ -361,6 +361,59 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	}
 	s.Annotations = annotations
 
+	if containerCIDFile, ok := opts.Annotations[define.InspectAnnotationCIDFile+"/"+opts.Container.Name]; ok {
+		s.Annotations[define.InspectAnnotationCIDFile] = containerCIDFile
+	}
+
+	if seccomp, ok := opts.Annotations[define.InspectAnnotationSeccomp+"/"+opts.Container.Name]; ok {
+		s.Annotations[define.InspectAnnotationSeccomp] = seccomp
+	}
+
+	if apparmor, ok := opts.Annotations[define.InspectAnnotationApparmor+"/"+opts.Container.Name]; ok {
+		s.Annotations[define.InspectAnnotationApparmor] = apparmor
+	}
+
+	if label, ok := opts.Annotations[define.InspectAnnotationLabel+"/"+opts.Container.Name]; ok {
+		if label == "nested" {
+			s.ContainerSecurityConfig.LabelNested = true
+		}
+		if !slices.Contains(s.ContainerSecurityConfig.SelinuxOpts, label) {
+			s.ContainerSecurityConfig.SelinuxOpts = append(s.ContainerSecurityConfig.SelinuxOpts, label)
+		}
+		s.Annotations[define.InspectAnnotationLabel] = strings.Join(s.ContainerSecurityConfig.SelinuxOpts, ",label=")
+	}
+
+	if autoremove, ok := opts.Annotations[define.InspectAnnotationAutoremove+"/"+opts.Container.Name]; ok {
+		autoremoveAsBool, err := strconv.ParseBool(autoremove)
+		if err != nil {
+			return nil, err
+		}
+		s.Remove = autoremoveAsBool
+		s.Annotations[define.InspectAnnotationAutoremove] = autoremove
+	}
+
+	if init, ok := opts.Annotations[define.InspectAnnotationInit+"/"+opts.Container.Name]; ok {
+		initAsBool, err := strconv.ParseBool(init)
+		if err != nil {
+			return nil, err
+		}
+
+		s.Init = initAsBool
+		s.Annotations[define.InspectAnnotationInit] = init
+	}
+
+	if publishAll, ok := opts.Annotations[define.InspectAnnotationPublishAll+"/"+opts.Container.Name]; ok {
+		if opts.IsInfra {
+			publishAllAsBool, err := strconv.ParseBool(publishAll)
+			if err != nil {
+				return nil, err
+			}
+			s.PublishExposedPorts = publishAllAsBool
+		}
+
+		s.Annotations[define.InspectAnnotationPublishAll] = publishAll
+	}
+
 	// Environment Variables
 	envs := map[string]string{}
 	for _, env := range imageData.Config.Env {

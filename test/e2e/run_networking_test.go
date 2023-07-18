@@ -417,7 +417,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(image[0].Config.ExposedPorts).To(HaveKey("2004-2005/tcp"))
 
 		containerName := "testcontainer"
-		session := podmanTest.Podman([]string{"create", "--name", containerName, imageName, "true"})
+		session := podmanTest.Podman([]string{"create", "--publish-all", "--name", containerName, imageName, "true"})
 		session.WaitWithDefaultTimeout()
 		inspectOut := podmanTest.InspectContainer(containerName)
 		Expect(inspectOut).To(HaveLen(1))
@@ -430,6 +430,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveKey("2003/tcp"))
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveKey("2004/tcp"))
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveKey("2005/tcp"))
+		Expect(inspectOut[0].HostConfig.PublishAllPorts).To(BeTrue())
 	})
 
 	It("podman run -p 127.0.0.1::8980/udp", func() {
