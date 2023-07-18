@@ -38,6 +38,8 @@
 - The `podman manifest push` command no longer requires a destination to be specified. If a destination is not provided, the source is used as the destination ([#18360](https://github.com/containers/podman/issues/18360)).
 - The `podman system reset` command now warns the user that the graphroot and runroot directories will be deleted ([#18349](https://github.com/containers/podman/issues/18349)), ([#18295](https://github.com/containers/podman/issues/18295)).
 - The `package` and `package-install` targets in Makefile have now been fixed and also renamed to `rpm` and `rpm-install` respectively for clarity ([#18817](https://github.com/containers/podman/issues/18817)).
+- The error message displayed on Podmansh timeout is now more appropriate.
+- The timeout for Podmansh has now been increased to 30 seconds.
 
 ### Quadlet
 - Quadlet now exits with a non-zero exit code when errors are found ([#18778](https://github.com/containers/podman/issues/18778)).
