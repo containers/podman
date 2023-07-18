@@ -129,7 +129,7 @@ Additionally the `macvlan` driver supports the `bclim` option:
 
 #### **--route**=*route*
 
-A static route in the format <destination in CIDR notation>,<gateway>,<route metric (optional)>. This route will be added to every container in this network. Only available with the netavark backend. It can be specified multiple times if more than one static route is desired.
+A static route in the format `<destination in CIDR notation>,<gateway>,<route metric (optional)>`. This route will be added to every container in this network. Only available with the netavark backend. It can be specified multiple times if more than one static route is desired.
 
 #### **--subnet**=*subnet*
 
