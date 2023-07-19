@@ -517,6 +517,8 @@ EOF
 
 @test "quadlet kube - basic" {
     # Create the YAMl file
+    pod_name="test_pod"
+    container_name="test"
     yaml_source="$PODMAN_TMPDIR/basic_$(random_string).yaml"
     cat >$yaml_source <<EOF
 apiVersion: v1
@@ -524,13 +526,16 @@ kind: Pod
 metadata:
   labels:
     app: test
-  name: test_pod
+  name: $pod_name
 spec:
   containers:
   - command:
-    - top
+    - "sh"
+    args:
+    - "-c"
+    - "echo STARTED CONTAINER; top -b"
     image: $IMAGE
-    name: test
+    name: $container_name
 EOF
 
     # Create the Quadlet file
@@ -543,9 +548,8 @@ EOF
     run_quadlet "$quadlet_file"
     service_setup $QUADLET_SERVICE_NAME
 
-    # Ensure we have output. Output is synced via sd-notify (socat in Exec)
-    run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
-    is "$output" '.*Started.*\.service.*'
+    # Ensure we have output.
+    wait_for_output "STARTED CONTAINER" $pod_name-$container_name
 
     run_podman container inspect  --format "{{.State.Status}}" test_pod-test
     is "$output" "running" "container should be started by systemd and hence be running"
@@ -572,6 +576,8 @@ EOF
     local network_name="foo"
 
     # Create the YAMl file
+    pod_name="test_pod"
+    container_name="test"
     yaml_source="$PODMAN_TMPDIR/basic_$(random_string).yaml"
     cat >$yaml_source <<EOF
 apiVersion: v1
@@ -579,13 +585,16 @@ kind: Pod
 metadata:
   labels:
     app: test
-  name: test_pod
+  name: $pod_name
 spec:
   containers:
   - command:
-    - top
+    - "sh"
+    args:
+    - "-c"
+    - "echo STARTED CONTAINER; top -b"
     image: $IMAGE
-    name: test
+    name: $container_name
 EOF
 
     # Create the Quadlet file
@@ -609,9 +618,8 @@ EOF
     # Network should exist
     run_podman network exists $network_name
 
-    # Ensure we have output. Output is synced via sd-notify (socat in Exec)
-    run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
-    assert "$output" =~ '.*Started.*\.service.*'
+    # Ensure we have output.
+    wait_for_output "STARTED CONTAINER" $pod_name-$container_name
 
     run_podman container inspect  --format "{{.State.Status}}" test_pod-test
     assert "$output" =~ "running" "container should be started by systemd and hence be running"
@@ -846,6 +854,8 @@ EOF
 }
 
 @test "quadlet - exit-code propagation" {
+   pod_name="test_pod"
+   container_name="ctr"
    exit_tests="
 all  | true  | 0   | inactive
 all  | false | 137 | failed
@@ -862,14 +872,17 @@ kind: Pod
 metadata:
   labels:
     app: test
-  name: test_pod
+  name: $pod_name
 spec:
   restartPolicy: Never
   containers:
-    - name: ctr
+    - name: $container_name
       image: $IMAGE
       command:
-      - $cmd
+      - "sh"
+      args:
+      - "-c"
+      - "echo STARTED CONTAINER; $cmd"
 EOF
        cat > $quadlet_file <<EOF
 [Kube]
@@ -885,9 +898,8 @@ EOF
 
       service_setup $QUADLET_SERVICE_NAME
 
-      # Ensure we have output. Output is synced via sd-notify (socat in Exec)
-      run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
-      is "$output" '.*Started.*\.service.*'
+      # Ensure we have output.
+      wait_for_output "STARTED CONTAINER" $pod_name-$container_name
 
       # Opportunistic test: confirm that the Propagation field got set.
       # This is racy, because the container is short-lived and quadlet
