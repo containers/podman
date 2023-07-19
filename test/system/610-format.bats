@@ -25,6 +25,8 @@ history           | $IMAGE
 image history     | $IMAGE
 image inspect     | $IMAGE
 container inspect | mycontainer
+inspect           | mycontainer
+
 
 volume inspect    | -a
 secret inspect    | mysecret

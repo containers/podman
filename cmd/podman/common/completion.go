@@ -19,6 +19,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/containers/podman/v4/pkg/inspect"
 	"github.com/containers/podman/v4/pkg/signal"
 	systemdDefine "github.com/containers/podman/v4/pkg/systemd/define"
 	"github.com/containers/podman/v4/pkg/util"
@@ -1178,6 +1179,16 @@ func AutocompleteFormat(o interface{}) func(cmd *cobra.Command, args []string, t
 		if strings.HasPrefix("json", toComplete) {
 			return []string{"json"}, cobra.ShellCompDirectiveNoFileComp
 		}
+
+		// special(expensive) flow for "podman inspect"
+		if cmd != nil && cmd.Name() == "inspect" && cmd.Parent() == cmd.Root() {
+			if len(args) == 0 {
+				o = &define.InspectContainerData{}
+			} else {
+				o = getEntityType(cmd, args, o)
+			}
+		}
+
 		// no input struct we cannot provide completion return nothing
 		if o == nil {
 			return nil, cobra.ShellCompDirectiveNoFileComp
@@ -1246,6 +1257,30 @@ func AutocompleteFormat(o interface{}) func(cmd *cobra.Command, args []string, t
 		}
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
+}
+
+func getEntityType(cmd *cobra.Command, args []string, o interface{}) interface{} {
+	// container logic
+	if containers, _ := getContainers(cmd, args[0], completeDefault); len(containers) > 0 {
+		return &define.InspectContainerData{}
+	}
+	// image logic
+	if images, _ := getImages(cmd, args[0]); len(images) > 0 {
+		return &inspect.ImageData{}
+	}
+	// volume logic
+	if volumes, _ := getVolumes(cmd, args[0]); len(volumes) > 0 {
+		return &define.InspectVolumeData{}
+	}
+	// pod logic
+	if pods, _ := getPods(cmd, args[0], completeDefault); len(pods) > 0 {
+		return &entities.PodInspectReport{}
+	}
+	// network logic
+	if networks, _ := getNetworks(cmd, args[0], completeDefault); len(networks) > 0 {
+		return &types.Network{}
+	}
+	return o
 }
 
 // actualReflectValue takes the value,

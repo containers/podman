@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
@@ -28,7 +27,7 @@ func AddInspectFlagSet(cmd *cobra.Command) *entities.InspectOptions {
 
 	formatFlagName := "format"
 	flags.StringVarP(&opts.Format, formatFlagName, "f", "json", "Format the output to a Go template or json")
-	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, completion.AutocompleteNone)
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(nil)) // passing nil as the type selection logic is in AutocompleteFormat function
 
 	typeFlagName := "type"
 	flags.StringVarP(&opts.Type, typeFlagName, "t", common.AllType, "Specify inspect-object type")

@@ -309,6 +309,25 @@ function _check_no_suggestions() {
     # recurse for any subcommands.
     check_shell_completion
 
+    # check inspect with format flag
+    run_completion inspect -f "{{."
+    assert "$output" =~ ".*^\{\{\.Args\}\}\$.*" "Defaulting to container type is completed"
+
+    run_completion inspect created-$random_container_name -f "{{."
+    assert "$output" =~ ".*^\{\{\.Args\}\}\$.*" "Container type is completed"
+
+    run_completion inspect $random_image_name -f "{{."
+    assert "$output" =~ ".*^\{\{\.Digest\}\}\$.*" "Image type is completed"
+
+    run_completion inspect $random_volume_name -f "{{."
+    assert "$output" =~ ".*^\{\{\.Anonymous\}\}\$.*" "Volume type is completed"
+
+    run_completion inspect created-$random_pod_name -f "{{."
+    assert "$output" =~ ".*^\{\{\.BlkioDeviceReadBps\}\}\$.*" "Pod type is completed"
+
+    run_completion inspect $random_network_name -f "{{."
+    assert "$output" =~ ".*^\{\{\.DNSEnabled\}\}\$.*" "Network type is completed"
+
     # cleanup
     run_podman secret rm $random_secret_name
     rm -f $secret_file
