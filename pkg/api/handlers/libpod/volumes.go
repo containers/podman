@@ -121,7 +121,7 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 
 	volumeFilters := []libpod.VolumeFilter{}
 	for filter, filterValues := range *filterMap {
-		filterFunc, err := filters.GenerateVolumeFilters(filter, filterValues)
+		filterFunc, err := filters.GenerateVolumeFilters(filter, filterValues, runtime)
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return
@@ -168,7 +168,7 @@ func pruneVolumesHelper(r *http.Request) ([]*reports.PruneReport, error) {
 	f := (url.Values)(*filterMap)
 	filterFuncs := []libpod.VolumeFilter{}
 	for filter, filterValues := range f {
-		filterFunc, err := filters.GeneratePruneVolumeFilters(filter, filterValues)
+		filterFunc, err := filters.GeneratePruneVolumeFilters(filter, filterValues, runtime)
 		if err != nil {
 			return nil, err
 		}

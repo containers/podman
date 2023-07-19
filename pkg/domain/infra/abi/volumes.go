@@ -124,7 +124,7 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 func (ic *ContainerEngine) VolumePrune(ctx context.Context, options entities.VolumePruneOptions) ([]*reports.PruneReport, error) {
 	funcs := []libpod.VolumeFilter{}
 	for filter, filterValues := range options.Filters {
-		filterFunc, err := filters.GenerateVolumeFilters(filter, filterValues)
+		filterFunc, err := filters.GenerateVolumeFilters(filter, filterValues, ic.Libpod)
 		if err != nil {
 			return nil, err
 		}
@@ -144,7 +144,7 @@ func (ic *ContainerEngine) pruneVolumesHelper(ctx context.Context, filterFuncs [
 func (ic *ContainerEngine) VolumeList(ctx context.Context, opts entities.VolumeListOptions) ([]*entities.VolumeListReport, error) {
 	volumeFilters := []libpod.VolumeFilter{}
 	for filter, value := range opts.Filter {
-		filterFunc, err := filters.GenerateVolumeFilters(filter, value)
+		filterFunc, err := filters.GenerateVolumeFilters(filter, value, ic.Libpod)
 		if err != nil {
 			return nil, err
 		}

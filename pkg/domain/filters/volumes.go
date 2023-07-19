@@ -3,14 +3,17 @@ package filters
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/containers/common/pkg/filters"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/util"
 )
 
-func GenerateVolumeFilters(filter string, filterValues []string) (libpod.VolumeFilter, error) {
+func GenerateVolumeFilters(filter string, filterValues []string, runtime *libpod.Runtime) (libpod.VolumeFilter, error) {
 	switch filter {
+	case "after", "since":
+		return createAfterFilterVolumeFunction(filterValues, runtime)
 	case "name":
 		return func(v *libpod.Volume) bool {
 			return util.StringMatchRegexSlice(v.Name(), filterValues)
@@ -98,8 +101,10 @@ func GenerateVolumeFilters(filter string, filterValues []string) (libpod.VolumeF
 	return nil, fmt.Errorf("%q is an invalid volume filter", filter)
 }
 
-func GeneratePruneVolumeFilters(filter string, filterValues []string) (libpod.VolumeFilter, error) {
+func GeneratePruneVolumeFilters(filter string, filterValues []string, runtime *libpod.Runtime) (libpod.VolumeFilter, error) {
 	switch filter {
+	case "after", "since":
+		return createAfterFilterVolumeFunction(filterValues, runtime)
 	case "label":
 		return func(v *libpod.Volume) bool {
 			return filters.MatchLabelFilters(filterValues, v.Labels())
@@ -124,5 +129,21 @@ func createUntilFilterVolumeFunction(filterValues []string) (libpod.VolumeFilter
 			return true
 		}
 		return false
+	}, nil
+}
+
+func createAfterFilterVolumeFunction(filterValues []string, runtime *libpod.Runtime) (libpod.VolumeFilter, error) {
+	var createTime time.Time
+	for _, filterValue := range filterValues {
+		vol, err := runtime.LookupVolume(filterValue)
+		if err != nil {
+			return nil, err
+		}
+		if createTime.IsZero() || createTime.After(vol.CreatedTime()) {
+			createTime = vol.CreatedTime()
+		}
+	}
+	return func(v *libpod.Volume) bool {
+		return createTime.Before(v.CreatedTime())
 	}, nil
 }
