@@ -751,9 +751,35 @@ EOF
     remove_secret $SECRET_NAME
 }
 
-@test "quadlet - volume path using specifier" {
-    local tmp_path=$(mktemp -d --tmpdir=$PODMAN_TMPDIR quadlet.volume.XXXXXX)
-    local tmp_dir=${tmp_path#/tmp/}
+@test "quadlet - volume path using systemd %T specifier" {
+    # "specifier" is systemd-speak for "replaceable fields"; see systemd.unit(5)
+    #
+    # Step 1: determine what systemd is using for %T. There does not
+    # seem to be any systemctly way to find this.
+    local service=get-percent-t.$(random_string 10).service
+    local unitfile=${UNIT_DIR}/$service
+    cat >$unitfile <<EOF
+[Unit]
+Description=Get the value of percent T
+
+[Service]
+ExecStart=/bin/bash -c "echo --==%T==--"
+EOF
+    systemctl daemon-reload
+    systemctl start $service
+    echo "$_LOG_PROMPT journalctl -u $service"
+    run journalctl -u $service
+    echo "$output"
+    percent_t=$(expr "$output" : ".* --==\(.*\)==--")
+    # Clean up. Don't bother to systemctl-reload, service_setup does that below.
+    rm -f $unitfile
+
+    # Sanity check: just make sure it's not "/"
+    assert "${#percent_t}" -ge 4 "sanity check: length of %T ($percent_t)"
+
+    # Step 2: Make a subdirectory in %T, and in there, a scratch file
+    local tmp_path=$(mktemp -d --tmpdir=${percent_t} quadlet.volume.XXXXXX)
+    local tmp_subdir=$(basename $tmp_path)
     local file_name="f$(random_string 10).txt"
     local file_content="data_$(random_string 15)"
     echo $file_content > $tmp_path/$file_name
@@ -762,7 +788,7 @@ EOF
     cat > $quadlet_file <<EOF
 [Container]
 Image=$IMAGE
-Volume=%T/$tmp_dir:/test_content:Z
+Volume=%T/$tmp_subdir:/test_content:Z
 Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; top"
 Notify=yes
 EOF
@@ -770,8 +796,8 @@ EOF
     run_quadlet "$quadlet_file"
     service_setup $QUADLET_SERVICE_NAME
 
-    run_podman exec $QUADLET_CONTAINER_NAME /bin/sh -c "cat /test_content/$file_name"
-    is "$output" $file_content
+    run_podman exec $QUADLET_CONTAINER_NAME cat /test_content/$file_name
+    is "$output" "$file_content" "contents of testfile in container volume"
 
     rm -rf $tmp_path
 }
