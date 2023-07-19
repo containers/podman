@@ -517,16 +517,17 @@ There is only one required key, `Yaml`, which defines the path to the Kubernetes
 
 Valid options for `[Kube]` are listed below:
 
-| **[Kube] options**                  | **podman kube play equivalent**             |
-| ----------------------------------- | ------------------------------------------------ |
-| AutoUpdate=registry                 | --annotation "io.containers.autoupdate=registry" |
-| ConfigMap=/tmp/config.map           | --config-map /tmp/config.map                     |
-| LogDriver=journald                  | --log-driver journald                            |
-| Network=host                        | --net host                                       |
-| PodmanArgs=\-\-annotation=key=value | --annotation=key=value                           |
-| PublishPort=59-60                   | --publish=59-60                                  |
-| UserNS=keep-id:uid=200,gid=210      | --userns keep-id:uid=200,gid=210                 |
-| Yaml=/tmp/kube.yaml                 | podman kube play /tmp/kube.yaml                  |
+| **[Kube] options**                  | **podman kube play equivalent**                                  |
+| ----------------------------------- | -----------------------------------------------------------------|
+| AutoUpdate=registry                 | --annotation "io.containers.autoupdate=registry"                 |
+| ConfigMap=/tmp/config.map           | --config-map /tmp/config.map                                     |
+| LogDriver=journald                  | --log-driver journald                                            |
+| Network=host                        | --net host                                                       |
+| PodmanArgs=\-\-annotation=key=value | --annotation=key=value                                           |
+| PublishPort=59-60                   | --publish=59-60                                                  |
+| SetWorkingDirectory=yaml            | Set `WorkingDirectory` of unit file to location of the YAML file |
+| UserNS=keep-id:uid=200,gid=210      | --userns keep-id:uid=200,gid=210                                 |
+| Yaml=/tmp/kube.yaml                 | podman kube play /tmp/kube.yaml                                  |
 
 Supported keys in the `[Kube]` section are:
 
@@ -608,6 +609,16 @@ in the Kubernetes YAML file. If the same container port and protocol is specifie
 entry from the unit file takes precedence
 
 This key can be listed multiple times.
+
+### `SetWorkingDirectory=`
+
+Set the `WorkingDirectory` field of the `Service` group of the Systemd service unit file.
+Used to allow `podman kube play` to correctly resolve relative paths.
+Supported values are `yaml` and `unit` to set the working directory to that of the YAML or Quadlet Unit file respectively.
+
+Alternatively, users can explicitly set the `WorkingDirectory` field of the `Service` group in the `.kube` file.
+Please note that if the `WorkingDirectory` field of the `Service` group is set,
+Quadlet will not set it even if `SetWorkingDirectory` is set
 
 ### `Unmask=`
 

@@ -1,0 +1,5 @@
+## assert-key-is-regex "Service" "WorkingDirectory" ".*/podman_test.*/quadlet"
+
+[Kube]
+Yaml=deployment.yml
+SetWorkingDirectory=unit
