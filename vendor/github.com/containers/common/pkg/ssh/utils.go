@@ -16,6 +16,10 @@ import (
 )
 
 func Validate(user *url.Userinfo, path string, port int, identity string) (*config.Destination, *url.URL, error) {
+	sock := ""
+	if strings.Contains(path, "/run") {
+		sock = strings.Split(path, "/run")[1]
+	}
 	// url.Parse NEEDS ssh://, if this ever fails or returns some nonsense, that is why.
 	uri, err := url.Parse(path)
 	if err != nil {
@@ -39,8 +43,15 @@ func Validate(user *url.Userinfo, path string, port int, identity string) (*conf
 		uri.User = user
 	}
 
+	uriStr := ""
+	if len(sock) > 0 {
+		uriStr = "ssh://" + uri.User.Username() + "@" + uri.Host + "/run" + sock
+	} else {
+		uriStr = "ssh://" + uri.User.Username() + "@" + uri.Host
+	}
+
 	dst := config.Destination{
-		URI: uri.String(),
+		URI: uriStr,
 	}
 
 	if len(identity) > 0 {

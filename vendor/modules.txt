@@ -157,7 +157,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.55.1-0.20230713173316-9e5d4a690901
+# github.com/containers/common v0.55.2
 ## explicit; go 1.18
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -322,7 +322,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.48.1-0.20230707125135-6dc2de36ca86
+# github.com/containers/storage v1.48.1-0.20230712181204-c929d2050e4c
 ## explicit; go 1.19
 github.com/containers/storage
 github.com/containers/storage/drivers

@@ -13,13 +13,13 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
 	github.com/containers/buildah v1.31.1-0.20230710135949-9c9a344b9874
-	github.com/containers/common v0.55.1-0.20230713173316-9e5d4a690901
+	github.com/containers/common v0.55.2
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.26.1
 	github.com/containers/libhvee v0.3.0
 	github.com/containers/ocicrypt v1.1.7
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.48.1-0.20230707125135-6dc2de36ca86
+	github.com/containers/storage v1.48.1-0.20230712181204-c929d2050e4c
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.4.3
 	github.com/crc-org/vfkit v0.1.1
