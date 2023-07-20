@@ -9,5 +9,5 @@ const (
 
 var (
 	// Mount potions for bind
-	BindOptions = []string{"bind"}
+	BindOptions = []string{TypeBind}
 )

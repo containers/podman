@@ -27,6 +27,7 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	v1 "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
 	"github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/api/resource"
+	"github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/util/intstr"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/specgen/generate"
 	systemdDefine "github.com/containers/podman/v4/pkg/systemd/define"
@@ -35,6 +36,7 @@ import (
 	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 	"sigs.k8s.io/yaml"
 )
 
@@ -182,7 +184,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	if len(s.ImageVolumeMode) == 0 {
 		s.ImageVolumeMode = rtc.Engine.ImageVolumeMode
 	}
-	if s.ImageVolumeMode == "bind" {
+	if s.ImageVolumeMode == define.TypeBind {
 		s.ImageVolumeMode = "anonymous"
 	}
 
@@ -422,7 +424,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			mount := spec.Mount{
 				Destination: volume.MountPath,
 				Source:      volumeSource.Source,
-				Type:        "bind",
+				Type:        define.TypeBind,
 				Options:     options,
 			}
 			if len(volume.SubPath) > 0 {
@@ -563,10 +565,11 @@ func parseMountPath(mountPath string, readOnly bool, propagationMode *v1.MountPr
 	return dest, opts, nil
 }
 
-func probeToHealthConfig(probe *v1.Probe) (*manifest.Schema2HealthConfig, error) {
+func probeToHealthConfig(probe *v1.Probe, containerPorts []v1.ContainerPort) (*manifest.Schema2HealthConfig, error) {
 	var commandString string
 	failureCmd := "exit 1"
 	probeHandler := probe.Handler
+	host := "localhost" // Kubernetes default is host IP, but with Podman currently we run inside the container
 
 	// configure healthcheck on the basis of Handler Actions.
 	switch {
@@ -583,7 +586,6 @@ func probeToHealthConfig(probe *v1.Probe) (*manifest.Schema2HealthConfig, error)
 		if probeHandler.HTTPGet.Scheme != "" {
 			uriScheme = probeHandler.HTTPGet.Scheme
 		}
-		host := "localhost" // Kubernetes default is host IP, but with Podman there is only one node
 		if probeHandler.HTTPGet.Host != "" {
 			host = probeHandler.HTTPGet.Host
 		}
@@ -591,11 +593,36 @@ func probeToHealthConfig(probe *v1.Probe) (*manifest.Schema2HealthConfig, error)
 		if probeHandler.HTTPGet.Path != "" {
 			path = probeHandler.HTTPGet.Path
 		}
-		commandString = fmt.Sprintf("curl -f %s://%s:%d%s || %s", uriScheme, host, probeHandler.HTTPGet.Port.IntValue(), path, failureCmd)
+		portNum, err := getPortNumber(probeHandler.HTTPGet.Port, containerPorts)
+		if err != nil {
+			return nil, err
+		}
+		commandString = fmt.Sprintf("curl -f %s://%s:%d%s || %s", uriScheme, host, portNum, path, failureCmd)
 	case probeHandler.TCPSocket != nil:
-		commandString = fmt.Sprintf("nc -z -v %s %d || %s", probeHandler.TCPSocket.Host, probeHandler.TCPSocket.Port.IntValue(), failureCmd)
+		portNum, err := getPortNumber(probeHandler.TCPSocket.Port, containerPorts)
+		if err != nil {
+			return nil, err
+		}
+		if probeHandler.TCPSocket.Host != "" {
+			host = probeHandler.TCPSocket.Host
+		}
+		commandString = fmt.Sprintf("nc -z -v %s %d || %s", host, portNum, failureCmd)
 	}
 	return makeHealthCheck(commandString, probe.PeriodSeconds, probe.FailureThreshold, probe.TimeoutSeconds, probe.InitialDelaySeconds)
+}
+
+func getPortNumber(port intstr.IntOrString, containerPorts []v1.ContainerPort) (int, error) {
+	var portNum int
+	if port.Type == intstr.String && port.IntValue() == 0 {
+		idx := slices.IndexFunc(containerPorts, func(cp v1.ContainerPort) bool { return cp.Name == port.String() })
+		if idx == -1 {
+			return 0, fmt.Errorf("unknown port: %s", port.String())
+		}
+		portNum = int(containerPorts[idx].ContainerPort)
+	} else {
+		portNum = port.IntValue()
+	}
+	return portNum, nil
 }
 
 func setupLivenessProbe(s *specgen.SpecGenerator, containerYAML v1.Container, restartPolicy string) error {
@@ -605,7 +632,7 @@ func setupLivenessProbe(s *specgen.SpecGenerator, containerYAML v1.Container, re
 	}
 	emptyHandler := v1.Handler{}
 	if containerYAML.LivenessProbe.Handler != emptyHandler {
-		s.HealthConfig, err = probeToHealthConfig(containerYAML.LivenessProbe)
+		s.HealthConfig, err = probeToHealthConfig(containerYAML.LivenessProbe, containerYAML.Ports)
 		if err != nil {
 			return err
 		}
@@ -624,7 +651,7 @@ func setupStartupProbe(s *specgen.SpecGenerator, containerYAML v1.Container, res
 	}
 	emptyHandler := v1.Handler{}
 	if containerYAML.StartupProbe.Handler != emptyHandler {
-		healthConfig, err := probeToHealthConfig(containerYAML.StartupProbe)
+		healthConfig, err := probeToHealthConfig(containerYAML.StartupProbe, containerYAML.Ports)
 		if err != nil {
 			return err
 		}

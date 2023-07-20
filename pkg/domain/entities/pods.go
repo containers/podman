@@ -312,7 +312,7 @@ type ContainerCreateOptions struct {
 func NewInfraContainerCreateOptions() ContainerCreateOptions {
 	options := ContainerCreateOptions{
 		IsInfra:          true,
-		ImageVolume:      "bind",
+		ImageVolume:      define.TypeBind,
 		MemorySwappiness: -1,
 	}
 	return options

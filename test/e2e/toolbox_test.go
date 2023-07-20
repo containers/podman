@@ -34,6 +34,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/containers/podman/v4/libpod/define"
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -301,7 +302,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 		var session *PodmanSessionIntegration
 
 		session = podmanTest.Podman([]string{"run", "--privileged", "--userns=keep-id", "--user", "root:root", ALPINE,
-			"mount", "-t", "tmpfs", "tmpfs", "/tmp"})
+			"mount", "-t", define.TypeTmpfs, define.TypeTmpfs, "/tmp"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 

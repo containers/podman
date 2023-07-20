@@ -78,7 +78,7 @@ func (r *Runtime) newVolume(ctx context.Context, noCreatePluginVolume bool, opti
 		for key, val := range volume.config.Options {
 			switch strings.ToLower(key) {
 			case "device":
-				if strings.ToLower(volume.config.Options["type"]) == "bind" {
+				if strings.ToLower(volume.config.Options["type"]) == define.TypeBind {
 					if _, err := os.Stat(val); err != nil {
 						return nil, fmt.Errorf("invalid volume option %s for driver 'local': %w", key, err)
 					}

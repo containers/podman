@@ -4,19 +4,27 @@
 ####> are applicable to all of those.
 #### **--userns**=*mode*
 
-Set the user namespace mode for the container. It defaults to the **PODMAN_USERNS** environment variable unless `--pod` is specified. An empty value ("") means user namespaces are disabled unless an explicit mapping is set with the **--uidmap** and **--gidmap** options.
+Set the user namespace mode for the container.
+
+If `--userns` is not set, the default value is determined as follows.
+- If `--pod` is set, `--userns` is ignored and the user namespace of the pod is used.
+- If the environment variable **PODMAN_USERNS** is set its value is used.
+- If `userns` is specified in `containers.conf` this value is used.
+- Otherwise, `--userns=host` is assumed.
+
+`--userns=""` (i.e., an empty string) is an alias for `--userns=host`.
 
 This option is incompatible with **--gidmap**, **--uidmap**, **--subuidname** and **--subgidname**.
 
 Rootless user --userns=Key mappings:
 
-Key       | Host User |  Container User
-----------|---------------|---------------------
-""        |$UID         |0 (Default User account mapped to root user in container.)
-keep-id   |$UID         |$UID (Map user account to same UID within container.)
-keep-id:uid=200,gid=210 |$UID| 200:210 (Map user account to specified UID, GID value within container.)
-auto      |$UID         | nil (Host User UID is not mapped into container.)
-nomap     |$UID         | nil (Host User UID is not mapped into container.)
+Key                     | Host User | Container User
+------------------------|-----------|---------------------
+auto                    | $UID      | nil (Host User UID is not mapped into container.)
+host                    | $UID      | 0 (Default User account mapped to root user in container.)
+keep-id                 | $UID      | $UID (Map user account to same UID within container.)
+keep-id:uid=200,gid=210 | $UID      | 200:210 (Map user account to specified UID, GID value within container.)
+nomap                   | $UID      | nil (Host User UID is not mapped into container.)
 
 Valid _mode_ values are:
 
@@ -40,7 +48,7 @@ Using `--userns=auto` when starting new containers does not work as long as any 
 
 **container:**_id_: join the user namespace of the specified container.
 
-**host**: run in the user namespace of the caller. The processes running in the container have the same privileges on the host as any other process launched by the calling user (default).
+**host** or **""** (empty string): run in the user namespace of the caller. The processes running in the container have the same privileges on the host as any other process launched by the calling user.
 
 **keep-id**: creates a user namespace where the current user's UID:GID are mapped to the same values in the container. For containers created by root, the current mapping is created into a new user namespace.
 

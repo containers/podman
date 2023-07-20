@@ -1,5 +1,6 @@
-//go:build !linux && !freebsd
-// +build !linux,!freebsd
+//go:build !(linux && cgo) && !freebsd
+// +build !linux !cgo
+// +build !freebsd
 
 package libpod
 

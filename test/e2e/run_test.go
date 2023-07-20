@@ -1260,7 +1260,7 @@ USER mail`, BB)
 		session := podmanTest.Podman([]string{"run", "--mount", "type=devpts,target=/foo/bar", fedoraMinimal, "stat", "-f", "-c%T", "/foo/bar"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring("devpts"))
+		Expect(session.OutputToString()).To(ContainSubstring(define.TypeDevpts))
 	})
 
 	It("podman run --mount type=devpts,target=/dev/pts with uid, gid and mode", func() {

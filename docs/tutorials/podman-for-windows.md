@@ -215,8 +215,8 @@ podman machine set --rootful
 To restore rootless execution, set rootful to false:
 
 ```
-Podman machine stop
-Podman machine set --rootful=false
+podman machine stop
+podman machine set --rootful=false
 ```
 
 Another case in which you may wish to use rootful execution is binding a port
@@ -406,7 +406,7 @@ your WSL system state and perform a manual WSL installation using the `wsl
 2. Disable WSL Features
    ```
    dism.exe /online /disable-feature /featurename:Microsoft-Windows-Subsystem-Linux /norestart
-   dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /norestart
+   dism.exe /online /disable-feature /featurename:VirtualMachinePlatform /norestart
    ```
 3. Reboot
 4. Run manual WSL install

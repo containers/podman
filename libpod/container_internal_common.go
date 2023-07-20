@@ -351,7 +351,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			}
 			switch o {
 			case "U":
-				if m.Type == "tmpfs" {
+				if m.Type == define.TypeTmpfs {
 					options = append(options, []string{fmt.Sprintf("uid=%d", execUser.Uid), fmt.Sprintf("gid=%d", execUser.Gid)}...)
 				} else {
 					// only chown on initial creation of container
@@ -581,7 +581,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 		// Runc and other runtimes may choke on them.
 		// Easy solution: use securejoin to do a scoped evaluation of
 		// the links, then trim off the mount prefix.
-		if m.Type == "tmpfs" {
+		if m.Type == define.TypeTmpfs {
 			finalPath, err := securejoin.SecureJoin(c.state.Mountpoint, m.Destination)
 			if err != nil {
 				return nil, nil, fmt.Errorf("resolving symlinks for mount destination %s: %w", m.Destination, err)
@@ -1598,10 +1598,10 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	if options.TargetFile != "" || options.CheckpointImageID != "" {
 		for dstPath, srcPath := range c.state.BindMounts {
 			newMount := spec.Mount{
-				Type:        "bind",
+				Type:        define.TypeBind,
 				Source:      srcPath,
 				Destination: dstPath,
-				Options:     []string{"bind", "private"},
+				Options:     []string{define.TypeBind, "private"},
 			}
 			if c.IsReadOnly() && dstPath != "/dev/shm" {
 				newMount.Options = append(newMount.Options, "ro", "nosuid", "noexec", "nodev")
@@ -1962,7 +1962,7 @@ func (c *Container) makeBindMounts() error {
 			case m.Destination == "/run/.containerenv":
 				hasRunContainerenv = true
 				break Loop
-			case m.Destination == "/run" && m.Source != "tmpfs":
+			case m.Destination == "/run" && m.Type != define.TypeTmpfs:
 				hasRunContainerenv = true
 				break Loop
 			}
