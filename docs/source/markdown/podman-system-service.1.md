@@ -66,9 +66,14 @@ To access the API service inside a container:
 - mount the socket as a volume
 - run the container with `--security-opt label=disable`
 
-Please note that the API grants full access to Podman's capabilities, and allows arbitrary code execution as the user running the API.
-We strongly recommend against making the API socket available via the network.
-The default configuration (a Unix socket with permissions set to only allow the user running Podman) is the most secure way of running the API.
+### Security
+
+Please note that the API grants full access to all Podman functionality, and thus allows arbitrary code execution as the user running the API, with no ability to limit or audit this access.
+The API's security model is built upon access via a Unix socket with access restricted via standard file permissions, ensuring that only the user running the service will be able to access it.
+We *strongly* recommend against making the API socket available via the network (IE, bindings the service to a *tcp* URL).
+Even access via Localhost carries risks - anyone with access to the system will be able to access the API.
+If remote access is required, we instead recommend forwarding the API socket via SSH, and limiting access on the remote machine to the greatest extent possible.
+If a *tcp* URL must be used, using the *--cors* option is recommended to improve security.
 
 ## OPTIONS
 
