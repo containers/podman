@@ -483,6 +483,17 @@ $(MANPAGES): %: %.md .install.md2man docdir
 #     like '[cgroups(7)](https://.....)'  -> just 'cgroups(7)';
 #  4. Remove HTML-ish stuff like '<sup>..</sup>' and '<a>..</a>'
 #  5. Replace "\" (backslash) at EOL with two spaces (no idea why)
+# Then two sanity checks:
+#  1. test for "included file options/blahblah"; this indicates a failure
+#     in the markdown-preprocess tool; and
+#  2. run 'man -l' against the generated man page, and check for tables
+#     with an empty right-hand column followed by an empty left-hand
+#     column on the next line. (Technically, on the next-next line,
+#     because the next line must be table borders). This is a horrible
+#     unmaintainable rats-nest of duplication, obscure grep options, and
+#     ASCII art. I (esm) believe the cost of releasing corrupt man pages
+#     is higher than the cost of carrying this kludge.
+#
 	@$(SED) -e 's/\((podman[^)]*\.md\(#.*\)\?)\)//g'    \
 	       -e 's/\[\(podman[^]]*\)\]/\1/g'              \
 	       -e 's/\[\([^]]*\)](http[^)]\+)/\1/g'         \
@@ -491,6 +502,9 @@ $(MANPAGES): %: %.md .install.md2man docdir
 	$(GOMD2MAN) -out $(subst source/markdown,build/man,$@)
 	@if grep 'included file options/' docs/build/man/*; then \
 		echo "FATAL: man pages must not contain ^^^^"; exit 1; \
+	fi
+	@if man -l $(subst source/markdown,build/man,$@) | grep -Pazoq '│\s+│\n\s+├─+┼─+┤\n\s+│\s+│'; then  \
+		echo "FATAL: $< has a too-long table column; use 'man -l $(subst source/markdown,build/man,$@)' and look for empty table cells."; exit 1; \
 	fi
 
 .PHONY: docdir
