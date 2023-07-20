@@ -5,6 +5,7 @@
 
 load helpers
 
+# bats test_tags=distro-integration
 @test "podman pause/unpause" {
     if is_rootless && ! is_cgroupsv2; then
         skip "'podman pause' (rootless) only works with cgroups v2"
@@ -58,6 +59,7 @@ load helpers
     run_podman 125 unpause $cname
 }
 
+# bats test_tags=distro-integration
 @test "podman unpause --all" {
     if is_rootless && ! is_cgroupsv2; then
         skip "'podman pause' (rootless) only works with cgroups v2"

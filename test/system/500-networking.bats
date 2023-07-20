@@ -449,6 +449,7 @@ load helpers.network
 }
 
 # Test for https://github.com/containers/podman/issues/10052
+# bats test_tags=distro-integration
 @test "podman network connect/disconnect with port forwarding" {
     random_1=$(random_string 30)
     HOST_PORT=$(random_free_port)

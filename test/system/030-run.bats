@@ -3,6 +3,7 @@
 load helpers
 load helpers.network
 
+# bats test_tags=distro-integration
 @test "podman run - basic tests" {
     rand=$(random_string 30)
 
@@ -296,6 +297,7 @@ echo $rand        |   0 | $rand
 }
 
 # #6829 : add username to /etc/passwd inside container if --userns=keep-id
+# bats test_tags=distro-integration
 @test "podman run : add username to /etc/passwd if --userns=keep-id" {
     skip_if_not_rootless "--userns=keep-id only works in rootless mode"
     # Default: always run as root
@@ -695,6 +697,7 @@ json-file | f
 # https://github.com/containers/podman/issues/9096
 # podman exec may truncate stdout/stderr; actually a bug in conmon:
 # https://github.com/containers/conmon/issues/236
+# bats test_tags=distro-integration
 @test "podman run - does not truncate or hang with big output" {
     # Size, in bytes, to dd and to expect in return
     char_count=700000
