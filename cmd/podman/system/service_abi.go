@@ -81,6 +81,12 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 				}
 			}
 		case "tcp":
+			// We want to check if the user is requesting a TCP address.
+			// If so, warn that this is insecure.
+			// Ignore errors here, the actual backend code will handle them
+			// better than we can here.
+			logrus.Warnf("Using the Podman API service with TCP sockets is not recommended, please see `podman system service` manpage for details")
+
 			host := uri.Host
 			if host == "" {
 				// For backward compatibility, support "tcp:<host>:<port>" and "tcp://<host>:<port>"
