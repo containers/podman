@@ -5,81 +5,19 @@ package lockfile
 
 import (
 	"os"
-	"sync"
 	"time"
+
+	"golang.org/x/sys/windows"
 )
 
-// createLockFileForPath returns a *LockFile object, possibly (depending on the platform)
-// working inter-process and associated with the specified path.
-//
-// This function will be called at most once for each path value within a single process.
-//
-// If ro, the lock is a read-write lock and the returned *LockFile should correspond to the
-// “lock for reading” (shared) operation; otherwise, the lock is either an exclusive lock,
-// or a read-write lock and *LockFile should correspond to the “lock for writing” (exclusive) operation.
-//
-// WARNING:
-// - The lock may or MAY NOT be inter-process.
-// - There may or MAY NOT be an actual object on the filesystem created for the specified path.
-// - Even if ro, the lock MAY be exclusive.
-func createLockFileForPath(path string, ro bool) (*LockFile, error) {
-	return &LockFile{locked: false}, nil
-}
+const (
+	reserved = 0
+	allBytes = ^uint32(0)
+)
 
-// *LockFile represents a file lock where the file is used to cache an
-// identifier of the last party that made changes to whatever's being protected
-// by the lock.
-//
-// It MUST NOT be created manually. Use GetLockFile or GetROLockFile instead.
-type LockFile struct {
-	mu     sync.Mutex
-	file   string
-	locked bool
-}
+type fileHandle windows.Handle
 
-// LastWrite is an opaque identifier of the last write to some *LockFile.
-// It can be used by users of a *LockFile to determine if the lock indicates changes
-// since the last check.
-// A default-initialized LastWrite never matches any last write, i.e. it always indicates changes.
-type LastWrite struct {
-	// Nothing: The Windows “implementation” does not actually track writes.
-}
-
-func (l *LockFile) Lock() {
-	l.mu.Lock()
-	l.locked = true
-}
-
-func (l *LockFile) RLock() {
-	l.mu.Lock()
-	l.locked = true
-}
-
-func (l *LockFile) Unlock() {
-	l.locked = false
-	l.mu.Unlock()
-}
-
-func (l *LockFile) AssertLocked() {
-	// DO NOT provide a variant that returns the value of l.locked.
-	//
-	// If the caller does not hold the lock, l.locked might nevertheless be true because another goroutine does hold it, and
-	// we can’t tell the difference.
-	//
-	// Hence, this “AssertLocked” method, which exists only for sanity checks.
-	if !l.locked {
-		panic("internal error: lock is not held by the expected owner")
-	}
-}
-
-func (l *LockFile) AssertLockedForWriting() {
-	// DO NOT provide a variant that returns the current lock state.
-	//
-	// The same caveats as for AssertLocked apply equally.
-	l.AssertLocked() // The current implementation does not distinguish between read and write locks.
-}
-
-// GetLastWrite() returns a LastWrite value corresponding to current state of the lock.
+// GetLastWrite returns a LastWrite value corresponding to current state of the lock.
 // This is typically called before (_not after_) loading the state when initializing a consumer
 // of the data protected by the lock.
 // During the lifetime of the consumer, the consumer should usually call ModifiedSince instead.
@@ -87,7 +25,18 @@ func (l *LockFile) AssertLockedForWriting() {
 // The caller must hold the lock (for reading or writing) before this function is called.
 func (l *LockFile) GetLastWrite() (LastWrite, error) {
 	l.AssertLocked()
-	return LastWrite{}, nil
+	contents := make([]byte, lastWriterIDSize)
+	ol := new(windows.Overlapped)
+	var n uint32
+	err := windows.ReadFile(windows.Handle(l.fd), contents, &n, ol)
+	if err != nil && err != windows.ERROR_HANDLE_EOF {
+		return LastWrite{}, err
+	}
+	// It is important to handle the partial read case, because
+	// the initial size of the lock file is zero, which is a valid
+	// state (no writes yet)
+	contents = contents[:n]
+	return newLastWriteFromData(contents), nil
 }
 
 // RecordWrite updates the lock with a new LastWrite value, and returns the new value.
@@ -102,51 +51,49 @@ func (l *LockFile) GetLastWrite() (LastWrite, error) {
 //
 // The caller must hold the lock for writing.
 func (l *LockFile) RecordWrite() (LastWrite, error) {
-	return LastWrite{}, nil
+	l.AssertLockedForWriting()
+	lw := newLastWrite()
+	lockContents := lw.serialize()
+	ol := new(windows.Overlapped)
+	var n uint32
+	err := windows.WriteFile(windows.Handle(l.fd), lockContents, &n, ol)
+	if err != nil {
+		return LastWrite{}, err
+	}
+	if int(n) != len(lockContents) {
+		return LastWrite{}, windows.ERROR_DISK_FULL
+	}
+	return lw, nil
 }
 
-// ModifiedSince checks if the lock has been changed since a provided LastWrite value,
-// and returns the one to record instead.
-//
-// If ModifiedSince reports no modification, the previous LastWrite value
-// is still valid and can continue to be used.
-//
-// If this function fails, the LastWriter value of the lock is indeterminate;
-// the caller should fail and keep using the previously-recorded LastWrite value,
-// so that it continues failing until the situation is resolved. Similarly,
-// it should only update the recorded LastWrite value after processing the update:
-//
-//	lw2, modified, err := state.lock.ModifiedSince(state.lastWrite)
-//	if err != nil { /* fail */ }
-//	state.lastWrite = lw2
-//	if modified {
-//		if err := reload(); err != nil { /* fail */ }
-//		state.lastWrite = lw2
-//	}
-//
-// The caller must hold the lock (for reading or writing).
-func (l *LockFile) ModifiedSince(previous LastWrite) (LastWrite, bool, error) {
-	return LastWrite{}, false, nil
-}
-
-// Deprecated: Use *LockFile.ModifiedSince.
-func (l *LockFile) Modified() (bool, error) {
-	return false, nil
-}
-
-// Deprecated: Use *LockFile.RecordWrite.
-func (l *LockFile) Touch() error {
-	return nil
-}
-
-func (l *LockFile) IsReadWrite() bool {
-	return false
-}
-
+// TouchedSince indicates if the lock file has been touched since the specified time
 func (l *LockFile) TouchedSince(when time.Time) bool {
 	stat, err := os.Stat(l.file)
 	if err != nil {
 		return true
 	}
 	return when.Before(stat.ModTime())
+}
+
+func openHandle(path string, mode int) (fileHandle, error) {
+	mode |= windows.O_CLOEXEC
+	fd, err := windows.Open(path, mode, windows.S_IWRITE)
+	return fileHandle(fd), err
+}
+
+func lockHandle(fd fileHandle, lType lockType) {
+	flags := 0
+	if lType != readLock {
+		flags = windows.LOCKFILE_EXCLUSIVE_LOCK
+	}
+	ol := new(windows.Overlapped)
+	if err := windows.LockFileEx(windows.Handle(fd), uint32(flags), reserved, allBytes, allBytes, ol); err != nil {
+		panic(err)
+	}
+}
+
+func unlockAndCloseHandle(fd fileHandle) {
+	ol := new(windows.Overlapped)
+	windows.UnlockFileEx(windows.Handle(fd), reserved, allBytes, allBytes, ol)
+	windows.Close(windows.Handle(fd))
 }
