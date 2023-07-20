@@ -41,11 +41,6 @@
 %global commit_plugins 18822f9a4fb35d1349eb256f4cd2bfd372474d84
 %global import_path_plugins %{container_base_path}/%{repo_plugins}
 
-# gvproxy
-%global repo_gvproxy gvisor-tap-vsock
-%global git_gvproxy %{container_base_url}/%{repo_gvproxy}
-%global commit_gvproxy 407efb5dcdb0f4445935f7360535800b60447544
-
 Name: podman
 %if %{defined copr_username}
 Epoch: 102
@@ -71,7 +66,6 @@ URL: https://%{name}.io/
 # All SourceN files fetched from upstream
 Source0: %{git0}/archive/v%{version}.tar.gz
 Source1: %{git_plugins}/archive/%{commit_plugins}/%{repo_plugins}-%{commit_plugins}.tar.gz
-Source2: %{git_gvproxy}/archive/%{commit_gvproxy}/%{repo_gvproxy}-%{commit_gvproxy}.tar.gz
 Provides: %{name}-manpages = %{epoch}:%{version}-%{release}
 BuildRequires: %{_bindir}/envsubst
 BuildRequires: %{_bindir}/go-md2man
@@ -104,7 +98,7 @@ BuildRequires: python3
 Requires: catatonit
 Requires: conmon >= 2:2.1.7-2
 Requires: containers-common-extra
-Recommends: %{name}-gvproxy = %{epoch}:%{version}-%{release}
+Recommends: %{name}-gvproxy
 Provides: %{name}-quadlet
 Obsoletes: %{name}-quadlet <= 5:4.4.0-1
 Provides: %{name}-quadlet = %{epoch}:%{version}-%{release}
@@ -174,7 +168,7 @@ connections as well.
 %package plugins
 Summary: Plugins for %{name}
 Requires: dnsmasq
-Recommends: %{name}-gvproxy = %{epoch}:%{version}-%{release}
+Recommends: %{name}-gvproxy
 
 %description plugins
 This plugin sets up the use of dnsmasq on a given CNI network so
@@ -183,15 +177,6 @@ the pod and its IP address are added to a network specific hosts file
 that dnsmasq will read in.  Similarly, when a pod
 is removed from the network, it will remove the entry from the hosts
 file.  Each CNI network will have its own dnsmasq instance.
-
-%package gvproxy
-Summary: Go replacement for libslirp and VPNKit
-
-%description gvproxy
-A replacement for libslirp and VPNKit, written in pure Go.
-It is based on the network stack of gVisor. Compared to libslirp,
-gvisor-tap-vsock brings a configurable DNS server and
-dynamic port forwarding.
 
 %package -n %{name}sh
 Summary: Confined login and user shell using %{name}
@@ -212,9 +197,6 @@ sed -i 's;@@PODMAN@@\;$(BINDIR);@@PODMAN@@\;%{_bindir};' Makefile
 
 # untar dnsname
 tar zxf %{SOURCE1}
-
-# untar %%{name}-gvproxy
-tar zxf %{SOURCE2}
 
 %build
 %set_build_flags
@@ -251,16 +233,10 @@ export BUILDTAGS="$BASEBUILDTAGS exclude_graphdriver_btrfs btrfs_noversion remot
 export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh)"
 %gobuild -o bin/quadlet ./cmd/quadlet
 
-# reset LDFLAGS for plugins and gvisor binaries
-LDFLAGS=''
-
-# build gvisor-tap-vsock binaries
-cd %{repo_gvproxy}-%{commit_gvproxy}
-%gobuild -o bin/gvproxy ./cmd/gvproxy
-%gobuild -o bin/gvforwarder ./cmd/vm
-cd ..
-
 %{__make} docs docker-docs
+
+# reset LDFLAGS for plugins binaries
+LDFLAGS=''
 
 # build dnsname the old way otherwise it fails on koji
 cd %{repo_plugins}-%{commit_plugins}
@@ -294,13 +270,6 @@ sed -i 's;%{buildroot};;g' %{buildroot}%{_bindir}/docker
 # install dnsname plugin
 cd %{repo_plugins}-%{commit_plugins}
 %{__make} PREFIX=%{_prefix} DESTDIR=%{buildroot} install
-cd ..
-
-# install gvproxy
-cd %{repo_gvproxy}-%{commit_gvproxy}
-install -dp %{buildroot}%{_libexecdir}/%{name}
-install -p -m0755 bin/gvproxy %{buildroot}%{_libexecdir}/%{name}
-install -p -m0755 bin/gvforwarder %{buildroot}%{_libexecdir}/%{name}
 cd ..
 
 # do not include docker and podman-remote man pages in main package
@@ -363,13 +332,6 @@ cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 %doc %{repo_plugins}-%{commit_plugins}/{README.md,README_PODMAN.md}
 %dir %{_libexecdir}/cni
 %{_libexecdir}/cni/dnsname
-
-%files gvproxy
-%license %{repo_gvproxy}-%{commit_gvproxy}/LICENSE
-%doc %{repo_gvproxy}-%{commit_gvproxy}/README.md
-%dir %{_libexecdir}/%{name}
-%{_libexecdir}/%{name}/gvproxy
-%{_libexecdir}/%{name}/gvforwarder
 
 %files -n %{name}sh
 %license LICENSE
