@@ -5,6 +5,7 @@
 
 load helpers
 
+# bats test_tags=distro-integration
 @test "podman test all namespaces" {
     # format is nsname | option name
     tests="
