@@ -28,6 +28,8 @@
 - Podman now supports a new option, `--out`, that allows redirection or suppression of STDOUT ([#18120](https://github.com/containers/podman/issues/18120)).
 
 ### Changes
+- The `podman system service` command now emits a warning when binding to a TCP socket. This is not a secure configuration and the Podman team recommends against using it.
+- The `podman top` command no longer depends on ps(1) being present in the container image and now uses the one from the host ([#19001](https://github.com/containers/podman/issues/19001)).
 - The `--filter id=xxx` option will now treat `xxx` as a CID prefix, and not as a regular expression ([#18471](https://github.com/containers/podman/issues/18471)).
 - The `--filter` option now requires multiple `--filter` flags to specify multiple filters. It will no longer support the comma syntax (`--filter label=a,label=b`).
 - The `slirp4netns` binary for will now be searched for in paths specified by the `helper_binaries_dir` option in `containers.conf` ([#18239](https://github.com/containers/podman/issues/18568)).
@@ -53,8 +55,10 @@
 - Quadlet now supports the `HostName` field, which sets the container's host name, in `.container` files ([#18486](https://github.com/containers/podman/issues/18486)).
 
 ### Bugfixes
-- Fixed a bug where the `podman machine start` command would fail with a 255 exit code. It now waits for systemd-user sessions to be up, and for SSH to be ready, addressing the flaky machine starts ([#17403](https://github.com/containers/podman/issues/#17403)).
+- Fixed a bug where the `podman machine start` command would fail with a 255 exit code. It now waits for systemd-user sessions to be up, and for SSH to be ready, addressing the flaky machine starts ([#17403](https://github.com/containers/podman/issues/17403)).
 - Fixed a bug where the `podman auto update` command did not correctly use authentication files when contacting container registries.
+- Fixed a bug where `--label` option to the `podman volume ls` command would return volumes that matched any of the filters, not all of them  ([#19219](https://github.com/containers/podman/issues/19219)).
+- Fixed a bug where the `podman kube play` command did not recognize containerPort names inside Kubernetes liveness probes. Now, liveness probes support both containerPort names as well as port numbers ([#18645](https://github.com/containers/podman/issues/18645)).
 - Fixed a bug where the `--dns` option to the `podman run` command was ignored for macvlan networks ([#19169](https://github.com/containers/podman/issues/19169)).
 - Fixed a bug in the `podman system service` command where setting LISTEN_FDS when listening on TCP would misbehave.
 - Fixed a bug where hostnames were not recognized as a network alias. Containers can now resolve other hostnames, in addition to their names ([#17370](https://github.com/containers/podman/issues/17370)).
