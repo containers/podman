@@ -44,7 +44,9 @@ For rootless containers, when administrators place Quadlet files in the
 Quadlet when the login session begins. If the administrator places a Quadlet
 file in the /etc/containers/systemd/users/${UID}/ directory, then only the
 user with the matching UID execute the Quadlet when the login
-session gets started.
+session gets started. For unit files placed in subdirectories within
+/etc/containers/systemd/user/${UID}/ and the other user unit search paths,
+Quadlet will recursively search and run the unit files present in these subdirectories.
 
 
 ### Enabling unit files

@@ -471,6 +471,28 @@ BOGUS=foo
 			Expect(session).Should(Exit(1))
 		})
 
+		It("Should scan and return output for files in subdirectories", func() {
+			dirName := "test_subdir"
+
+			err = CopyDirectory(filepath.Join("quadlet", dirName), quadletDir)
+
+			if err != nil {
+				GinkgoWriter.Println("error:", err)
+			}
+
+			session := podmanTest.Quadlet([]string{"-dryrun", "-user"}, quadletDir)
+			session.WaitWithDefaultTimeout()
+
+			current := session.OutputToStringArray()
+			expected := []string{
+				"---mysleep.service---",
+				"---mysleep_1.service---",
+				"---mysleep_2.service---",
+			}
+
+			Expect(current).To(ContainElements(expected))
+		})
+
 		It("Should parse a kube file and print it to stdout", func() {
 			fileName := "basic.kube"
 			testcase := loadQuadletTestcase(filepath.Join("quadlet", fileName))
