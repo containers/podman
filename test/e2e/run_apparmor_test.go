@@ -9,21 +9,28 @@ import (
 	"path/filepath"
 
 	"github.com/containers/common/pkg/apparmor"
+	"github.com/containers/podman/v4/pkg/rootless"
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	runcaa "github.com/opencontainers/runc/libcontainer/apparmor"
 )
 
 // wip
 func skipIfAppArmorEnabled() {
-	if apparmor.IsEnabled() {
+	if runcaa.IsEnabled() {
 		Skip("Apparmor is enabled")
 	}
 }
 func skipIfAppArmorDisabled() {
-	if !apparmor.IsEnabled() {
+	if !runcaa.IsEnabled() {
 		Skip("Apparmor is not enabled")
+	}
+}
+func skipIfRootless() {
+	if rootless.IsRootless() {
+		Skip("Running test without root")
 	}
 }
 
@@ -43,6 +50,8 @@ var _ = Describe("Podman run", func() {
 
 	It("podman run no apparmor --privileged", func() {
 		skipIfAppArmorDisabled()
+		// Root is required to use --privileged
+		skipIfRootless()
 		session := podmanTest.Podman([]string{"create", "--privileged", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -67,6 +76,8 @@ var _ = Describe("Podman run", func() {
 
 	It("podman run apparmor aa-test-profile", func() {
 		skipIfAppArmorDisabled()
+		// Root is required to load the AppArmor profile into the kernel with apparmor_parser
+		skipIfRootless()
 		aaProfile := `
 #include <tunables/global>
 profile aa-test-profile flags=(attach_disconnected,mediate_deleted) {
