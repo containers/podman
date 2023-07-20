@@ -12,8 +12,9 @@ function FetchPanel() {
     $ProgressPreference = 'SilentlyContinue'
     Invoke-WebRequest -UseBasicParsing -OutFile nuget.exe -ErrorAction Stop `
         -Uri https://dist.nuget.org/win-x86-commandline/latest/nuget.exe
-
-    .\nuget.exe install PanelSwWixExtension
+    # 3.3.3.224 generates invalid schema with RemoveFeature defaults.
+    # Lock the version to 211 until this issue is fixed (7/18/2023)
+    .\nuget.exe install PanelSwWixExtension -Version 3.3.3.211
     $code = $LASTEXITCODE
     Pop-Location
     if ($code -gt 0) {
