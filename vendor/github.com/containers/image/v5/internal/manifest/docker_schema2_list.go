@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	platform "github.com/containers/image/v5/internal/pkg/platform"
+	compression "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -57,11 +58,20 @@ func (list *Schema2ListPublic) Instances() []digest.Digest {
 func (list *Schema2ListPublic) Instance(instanceDigest digest.Digest) (ListUpdate, error) {
 	for _, manifest := range list.Manifests {
 		if manifest.Digest == instanceDigest {
-			return ListUpdate{
+			ret := ListUpdate{
 				Digest:    manifest.Digest,
 				Size:      manifest.Size,
 				MediaType: manifest.MediaType,
-			}, nil
+			}
+			ret.ReadOnly.CompressionAlgorithmNames = []string{compression.GzipAlgorithmName}
+			ret.ReadOnly.Platform = &imgspecv1.Platform{
+				OS:           manifest.Platform.OS,
+				Architecture: manifest.Platform.Architecture,
+				OSVersion:    manifest.Platform.OSVersion,
+				OSFeatures:   manifest.Platform.OSFeatures,
+				Variant:      manifest.Platform.Variant,
+			}
+			return ret, nil
 		}
 	}
 	return ListUpdate{}, fmt.Errorf("unable to find instance %s passed to Schema2List.Instances", instanceDigest)

@@ -132,30 +132,25 @@ type Options struct {
 // data shared across one or more images in a possible manifest list.
 // The owner must call close() when done.
 type copier struct {
-	dest                          private.ImageDestination
-	rawSource                     private.ImageSource
-	reportWriter                  io.Writer
-	progressOutput                io.Writer
-	progressInterval              time.Duration
-	progress                      chan types.ProgressProperties
+	policyContext *signature.PolicyContext
+	dest          private.ImageDestination
+	rawSource     private.ImageSource
+	options       *Options // never nil
+
+	reportWriter   io.Writer
+	progressOutput io.Writer
+
+	unparsedToplevel              *image.UnparsedImage // for rawSource
 	blobInfoCache                 internalblobinfocache.BlobInfoCache2
-	ociDecryptConfig              *encconfig.DecryptConfig
-	ociEncryptConfig              *encconfig.EncryptConfig
 	concurrentBlobCopiesSemaphore *semaphore.Weighted // Limits the amount of concurrently copied blobs
-	downloadForeignLayers         bool
-	signers                       []*signer.Signer // Signers to use to create new signatures for the image
-	signersToClose                []*signer.Signer // Signers that should be closed when this copier is destroyed.
+	signers                       []*signer.Signer    // Signers to use to create new signatures for the image
+	signersToClose                []*signer.Signer    // Signers that should be closed when this copier is destroyed.
 }
 
 // Image copies image from srcRef to destRef, using policyContext to validate
 // source image admissibility.  It returns the manifest which was written to
 // the new copy of the image.
 func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef, srcRef types.ImageReference, options *Options) (copiedManifest []byte, retErr error) {
-	// NOTE this function uses an output parameter for the error return value.
-	// Setting this and returning is the ideal way to return an error.
-	//
-	// the defers in this routine will wrap the error return with its own errors
-	// which can be valuable context in the middle of a multi-streamed copy.
 	if options == nil {
 		options = &Options{}
 	}
@@ -209,27 +204,27 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 	}
 
 	c := &copier{
-		dest:             dest,
-		rawSource:        rawSource,
-		reportWriter:     reportWriter,
-		progressOutput:   progressOutput,
-		progressInterval: options.ProgressInterval,
-		progress:         options.Progress,
+		policyContext: policyContext,
+		dest:          dest,
+		rawSource:     rawSource,
+		options:       options,
+
+		reportWriter:   reportWriter,
+		progressOutput: progressOutput,
+
+		unparsedToplevel: image.UnparsedInstance(rawSource, nil),
 		// FIXME? The cache is used for sources and destinations equally, but we only have a SourceCtx and DestinationCtx.
 		// For now, use DestinationCtx (because blob reuse changes the behavior of the destination side more); eventually
 		// we might want to add a separate CommonCtx — or would that be too confusing?
-		blobInfoCache:         internalblobinfocache.FromBlobInfoCache(blobinfocache.DefaultCache(options.DestinationCtx)),
-		ociDecryptConfig:      options.OciDecryptConfig,
-		ociEncryptConfig:      options.OciEncryptConfig,
-		downloadForeignLayers: options.DownloadForeignLayers,
+		blobInfoCache: internalblobinfocache.FromBlobInfoCache(blobinfocache.DefaultCache(options.DestinationCtx)),
 	}
 	defer c.close()
 
 	// Set the concurrentBlobCopiesSemaphore if we can copy layers in parallel.
 	if dest.HasThreadSafePutBlob() && rawSource.HasThreadSafeGetBlob() {
-		c.concurrentBlobCopiesSemaphore = options.ConcurrentBlobCopiesSemaphore
+		c.concurrentBlobCopiesSemaphore = c.options.ConcurrentBlobCopiesSemaphore
 		if c.concurrentBlobCopiesSemaphore == nil {
-			max := options.MaxParallelDownloads
+			max := c.options.MaxParallelDownloads
 			if max == 0 {
 				max = maxParallelDownloads
 			}
@@ -237,33 +232,34 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 		}
 	} else {
 		c.concurrentBlobCopiesSemaphore = semaphore.NewWeighted(int64(1))
-		if options.ConcurrentBlobCopiesSemaphore != nil {
-			if err := options.ConcurrentBlobCopiesSemaphore.Acquire(ctx, 1); err != nil {
+		if c.options.ConcurrentBlobCopiesSemaphore != nil {
+			if err := c.options.ConcurrentBlobCopiesSemaphore.Acquire(ctx, 1); err != nil {
 				return nil, fmt.Errorf("acquiring semaphore for concurrent blob copies: %w", err)
 			}
-			defer options.ConcurrentBlobCopiesSemaphore.Release(1)
+			defer c.options.ConcurrentBlobCopiesSemaphore.Release(1)
 		}
 	}
 
-	if err := c.setupSigners(options); err != nil {
+	if err := c.setupSigners(); err != nil {
 		return nil, err
 	}
 
-	unparsedToplevel := image.UnparsedInstance(rawSource, nil)
-	multiImage, err := isMultiImage(ctx, unparsedToplevel)
+	multiImage, err := isMultiImage(ctx, c.unparsedToplevel)
 	if err != nil {
 		return nil, fmt.Errorf("determining manifest MIME type for %s: %w", transports.ImageName(srcRef), err)
 	}
 
 	if !multiImage {
 		// The simple case: just copy a single image.
-		if copiedManifest, _, _, err = c.copySingleImage(ctx, policyContext, options, unparsedToplevel, unparsedToplevel, nil); err != nil {
+		single, err := c.copySingleImage(ctx, c.unparsedToplevel, nil, copySingleImageOptions{requireCompressionFormatMatch: false})
+		if err != nil {
 			return nil, err
 		}
-	} else if options.ImageListSelection == CopySystemImage {
+		copiedManifest = single.manifest
+	} else if c.options.ImageListSelection == CopySystemImage {
 		// This is a manifest list, and we weren't asked to copy multiple images.  Choose a single image that
 		// matches the current system to copy, and copy it.
-		mfest, manifestType, err := unparsedToplevel.Manifest(ctx)
+		mfest, manifestType, err := c.unparsedToplevel.Manifest(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("reading manifest for %s: %w", transports.ImageName(srcRef), err)
 		}
@@ -271,34 +267,35 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 		if err != nil {
 			return nil, fmt.Errorf("parsing primary manifest as list for %s: %w", transports.ImageName(srcRef), err)
 		}
-		instanceDigest, err := manifestList.ChooseInstanceByCompression(options.SourceCtx, options.PreferGzipInstances) // try to pick one that matches options.SourceCtx
+		instanceDigest, err := manifestList.ChooseInstanceByCompression(c.options.SourceCtx, c.options.PreferGzipInstances) // try to pick one that matches c.options.SourceCtx
 		if err != nil {
 			return nil, fmt.Errorf("choosing an image from manifest list %s: %w", transports.ImageName(srcRef), err)
 		}
 		logrus.Debugf("Source is a manifest list; copying (only) instance %s for current system", instanceDigest)
 		unparsedInstance := image.UnparsedInstance(rawSource, &instanceDigest)
-
-		if copiedManifest, _, _, err = c.copySingleImage(ctx, policyContext, options, unparsedToplevel, unparsedInstance, nil); err != nil {
+		single, err := c.copySingleImage(ctx, unparsedInstance, nil, copySingleImageOptions{requireCompressionFormatMatch: false})
+		if err != nil {
 			return nil, fmt.Errorf("copying system image from manifest list: %w", err)
 		}
-	} else { /* options.ImageListSelection == CopyAllImages or options.ImageListSelection == CopySpecificImages, */
+		copiedManifest = single.manifest
+	} else { /* c.options.ImageListSelection == CopyAllImages or c.options.ImageListSelection == CopySpecificImages, */
 		// If we were asked to copy multiple images and can't, that's an error.
 		if !supportsMultipleImages(c.dest) {
 			return nil, fmt.Errorf("copying multiple images: destination transport %q does not support copying multiple images as a group", destRef.Transport().Name())
 		}
 		// Copy some or all of the images.
-		switch options.ImageListSelection {
+		switch c.options.ImageListSelection {
 		case CopyAllImages:
 			logrus.Debugf("Source is a manifest list; copying all instances")
 		case CopySpecificImages:
 			logrus.Debugf("Source is a manifest list; copying some instances")
 		}
-		if copiedManifest, err = c.copyMultipleImages(ctx, policyContext, options, unparsedToplevel); err != nil {
+		if copiedManifest, err = c.copyMultipleImages(ctx); err != nil {
 			return nil, err
 		}
 	}
 
-	if err := c.dest.Commit(ctx, unparsedToplevel); err != nil {
+	if err := c.dest.Commit(ctx, c.unparsedToplevel); err != nil {
 		return nil, fmt.Errorf("committing the finished image: %w", err)
 	}
 

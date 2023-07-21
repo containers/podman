@@ -65,6 +65,10 @@ func newOpenshiftClient(ref openshiftReference) (*openshiftClient, error) {
 	}, nil
 }
 
+func (c *openshiftClient) close() {
+	c.httpClient.CloseIdleConnections()
+}
+
 // doRequest performs a correctly authenticated request to a specified path, and returns response body or an error object.
 func (c *openshiftClient) doRequest(ctx context.Context, method, path string, requestBody []byte) ([]byte, error) {
 	requestURL := *c.baseURL

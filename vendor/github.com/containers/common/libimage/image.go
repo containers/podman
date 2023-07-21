@@ -159,10 +159,9 @@ func (i *Image) Digests() []digest.Digest {
 
 // hasDigest returns whether the specified value matches any digest of the
 // image.
-func (i *Image) hasDigest(value string) bool {
-	// TODO: change the argument to a typed digest.Digest
+func (i *Image) hasDigest(wantedDigest digest.Digest) bool {
 	for _, d := range i.Digests() {
-		if string(d) == value {
+		if d == wantedDigest {
 			return true
 		}
 	}
@@ -686,24 +685,22 @@ func (i *Image) NamedRepoTags() ([]reference.Named, error) {
 	return repoTags, nil
 }
 
-// inRepoTags looks for the specified name/tag in the image's repo tags.  If
-// `ignoreTag` is set, only the repo must match and the tag is ignored.
-func (i *Image) inRepoTags(namedTagged reference.NamedTagged, ignoreTag bool) (reference.Named, error) {
+// referenceFuzzilyMatchingRepoAndTag checks if the image’s repo (and tag if requiredTag != "") matches a fuzzy short input,
+// and if so, returns the matching reference.
+//
+// DO NOT ADD ANY NEW USERS OF THIS SEMANTICS. Rely on existing libimage calls like LookupImage instead,
+// and handle unqualified the way it does (c/image/pkg/shortnames).
+func (i *Image) referenceFuzzilyMatchingRepoAndTag(requiredRepo reference.Named, requiredTag string) (reference.Named, error) {
 	repoTags, err := i.NamedRepoTags()
 	if err != nil {
 		return nil, err
 	}
 
-	name := namedTagged.Name()
-	tag := namedTagged.Tag()
+	name := requiredRepo.Name()
 	for _, r := range repoTags {
-		if !ignoreTag {
-			var repoTag string
+		if requiredTag != "" {
 			tagged, isTagged := r.(reference.NamedTagged)
-			if isTagged {
-				repoTag = tagged.Tag()
-			}
-			if !isTagged || tag != repoTag {
+			if !isTagged || tagged.Tag() != requiredTag {
 				continue
 			}
 		}

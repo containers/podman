@@ -34,7 +34,7 @@ type bpDecryptionStepData struct {
 // srcInfo is only used for error messages.
 // Returns data for other steps; the caller should eventually use updateCryptoOperation.
 func (ic *imageCopier) blobPipelineDecryptionStep(stream *sourceStream, srcInfo types.BlobInfo) (*bpDecryptionStepData, error) {
-	if !isOciEncrypted(stream.info.MediaType) || ic.c.ociDecryptConfig == nil {
+	if !isOciEncrypted(stream.info.MediaType) || ic.c.options.OciDecryptConfig == nil {
 		return &bpDecryptionStepData{
 			decrypting: false,
 		}, nil
@@ -47,7 +47,7 @@ func (ic *imageCopier) blobPipelineDecryptionStep(stream *sourceStream, srcInfo 
 	desc := imgspecv1.Descriptor{
 		Annotations: stream.info.Annotations,
 	}
-	reader, decryptedDigest, err := ocicrypt.DecryptLayer(ic.c.ociDecryptConfig, stream.reader, desc, false)
+	reader, decryptedDigest, err := ocicrypt.DecryptLayer(ic.c.options.OciDecryptConfig, stream.reader, desc, false)
 	if err != nil {
 		return nil, fmt.Errorf("decrypting layer %s: %w", srcInfo.Digest, err)
 	}
@@ -81,7 +81,7 @@ type bpEncryptionStepData struct {
 // Returns data for other steps; the caller should eventually call updateCryptoOperationAndAnnotations.
 func (ic *imageCopier) blobPipelineEncryptionStep(stream *sourceStream, toEncrypt bool, srcInfo types.BlobInfo,
 	decryptionStep *bpDecryptionStepData) (*bpEncryptionStepData, error) {
-	if !toEncrypt || isOciEncrypted(srcInfo.MediaType) || ic.c.ociEncryptConfig == nil {
+	if !toEncrypt || isOciEncrypted(srcInfo.MediaType) || ic.c.options.OciEncryptConfig == nil {
 		return &bpEncryptionStepData{
 			encrypting: false,
 		}, nil
@@ -101,7 +101,7 @@ func (ic *imageCopier) blobPipelineEncryptionStep(stream *sourceStream, toEncryp
 		Size:        srcInfo.Size,
 		Annotations: annotations,
 	}
-	reader, finalizer, err := ocicrypt.EncryptLayer(ic.c.ociEncryptConfig, stream.reader, desc)
+	reader, finalizer, err := ocicrypt.EncryptLayer(ic.c.options.OciEncryptConfig, stream.reader, desc)
 	if err != nil {
 		return nil, fmt.Errorf("encrypting blob %s: %w", srcInfo.Digest, err)
 	}

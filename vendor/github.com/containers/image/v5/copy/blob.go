@@ -83,12 +83,12 @@ func (ic *imageCopier) copyBlobFromStream(ctx context.Context, srcReader io.Read
 		return types.BlobInfo{}, err
 	}
 
-	// === Report progress using the ic.c.progress channel, if required.
-	if ic.c.progress != nil && ic.c.progressInterval > 0 {
+	// === Report progress using the ic.c.options.Progress channel, if required.
+	if ic.c.options.Progress != nil && ic.c.options.ProgressInterval > 0 {
 		progressReader := newProgressReader(
 			stream.reader,
-			ic.c.progress,
-			ic.c.progressInterval,
+			ic.c.options.Progress,
+			ic.c.options.ProgressInterval,
 			srcInfo,
 		)
 		defer progressReader.reportDone()

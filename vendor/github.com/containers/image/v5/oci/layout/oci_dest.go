@@ -172,6 +172,9 @@ func (d *ociImageDestination) PutBlobWithOptions(ctx context.Context, stream io.
 // If the blob has been successfully reused, returns (true, info, nil).
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
 func (d *ociImageDestination) TryReusingBlobWithOptions(ctx context.Context, info types.BlobInfo, options private.TryReusingBlobOptions) (bool, private.ReusedBlob, error) {
+	if !impl.OriginalBlobMatchesRequiredCompression(options) {
+		return false, private.ReusedBlob{}, nil
+	}
 	if info.Digest == "" {
 		return false, private.ReusedBlob{}, errors.New("Can not check for a blob with unknown digest")
 	}
