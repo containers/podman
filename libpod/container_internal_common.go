@@ -49,7 +49,7 @@ import (
 	"github.com/containers/storage/pkg/lockfile"
 	stypes "github.com/containers/storage/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
-	runcaa "github.com/opencontainers/runc/libcontainer/apparmor"
+	"github.com/opencontainers/runc/libcontainer/apparmor"
 	runcuser "github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -225,7 +225,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 
 	// Apply AppArmor checks and load the default profile if needed.
 	if profile := c.config.Spec.Process.ApparmorProfile; len(profile) > 0 {
-		if runcaa.IsEnabled() {
+		if apparmor.IsEnabled() {
 			g.SetProcessApparmorProfile(profile)
 		} else if profile != "unconfined" {
 			return nil, nil, fmt.Errorf("profile %q specified but AppArmor is disabled", profile)

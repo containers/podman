@@ -12,7 +12,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/util"
-	runcaa "github.com/opencontainers/runc/libcontainer/apparmor"
+	"github.com/opencontainers/runc/libcontainer/apparmor"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
@@ -61,7 +61,7 @@ func setLabelOpts(s *specgen.SpecGenerator, runtime *libpod.Runtime, pidConfig s
 
 func setupApparmor(s *specgen.SpecGenerator, rtc *config.Config, g *generate.Generator) error {
 	hasProfile := len(s.ApparmorProfile) > 0
-	if !runcaa.IsEnabled() {
+	if !apparmor.IsEnabled() {
 		if hasProfile && s.ApparmorProfile != "unconfined" {
 			return fmt.Errorf("apparmor profile %q specified, but Apparmor is not enabled on this system", s.ApparmorProfile)
 		}

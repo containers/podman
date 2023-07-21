@@ -50,8 +50,6 @@ var _ = Describe("Podman run", func() {
 
 	It("podman run no apparmor --privileged", func() {
 		skipIfAppArmorDisabled()
-		// Root is required to use --privileged
-		skipIfRootless()
 		session := podmanTest.Podman([]string{"create", "--privileged", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
