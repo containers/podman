@@ -246,24 +246,42 @@ On openSUSE Tumbleweed, install go via `zypper in go`, then run this command:
 The build steps for Buildah on SUSE / openSUSE are the same as for Fedora, above.
 
 
-### Ubuntu/Debian
+### Ubuntu
 
-In Ubuntu 22.10 (Karmic) or Debian 12 (Bookworm) you can use these commands:
+In Ubuntu jammy you can use these commands:
 
 ```
   sudo apt-get -y -qq update
-  sudo apt-get -y install bats btrfs-progs git go-md2man golang libapparmor-dev libglib2.0-dev libgpgme11-dev libseccomp-dev libselinux1-dev make skopeo
+  sudo apt-get -y install bats btrfs-progs git libapparmor-dev libglib2.0-dev libgpgme11-dev libseccomp-dev libselinux1-dev skopeo go-md2man make
+  sudo apt-get -y install golang-1.18
 ```
-
-Then to install Buildah follow the steps in this example:
+Then to install Buildah on Ubuntu follow the steps in this example:
 
 ```
-  git clone https://github.com/containers/buildah
-  cd buildah
-  make runc all SECURITYTAGS="apparmor seccomp"
+  mkdir ~/buildah
+  cd ~/buildah
+  export GOPATH=`pwd`
+  git clone https://github.com/containers/buildah ./src/github.com/containers/buildah
+  cd ./src/github.com/containers/buildah
+  PATH=/usr/lib/go-1.18/bin:$PATH make runc all SECURITYTAGS="apparmor seccomp"
   sudo make install install.runc
   buildah --help
 ```
+
+### Debian
+
+To install the required dependencies, you can use those commands, tested under Debian GNU/Linux amd64 9.3 (stretch):
+
+```
+gpg --recv-keys 0x018BA5AD9DF57A4448F0E6CF8BECF1637AD8C79D
+sudo gpg --export 0x018BA5AD9DF57A4448F0E6CF8BECF1637AD8C79D >> /usr/share/keyrings/projectatomic-ppa.gpg
+sudo echo 'deb [signed-by=/usr/share/keyrings/projectatomic-ppa.gpg] http://ppa.launchpad.net/projectatomic/ppa/ubuntu zesty main' > /etc/apt/sources.list.d/projectatomic-ppa.list
+sudo apt update
+sudo apt -y install -t stretch-backports golang
+sudo apt -y install bats btrfs-tools git libapparmor-dev libglib2.0-dev libgpgme11-dev libseccomp-dev libselinux1-dev skopeo-containers go-md2man
+```
+
+The build steps on Debian are otherwise the same as Ubuntu, above.
 
 ## Vendoring - Dependency Management
 
