@@ -16,7 +16,7 @@ require (
 	github.com/containers/common v0.55.1-0.20230713173316-9e5d4a690901
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.26.1
-	github.com/containers/libhvee v0.3.0
+	github.com/containers/libhvee v0.4.0
 	github.com/containers/ocicrypt v1.1.7
 	github.com/containers/psgo v1.8.0
 	github.com/containers/storage v1.48.1-0.20230707125135-6dc2de36ca86
