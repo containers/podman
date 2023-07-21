@@ -873,15 +873,13 @@ spec:
     - name: $container_name
       image: $IMAGE
       command:
-      - "sh"
-      args:
-      - "-c"
-      - "echo STARTED CONTAINER; $cmd"
+      - $cmd
 EOF
        cat > $quadlet_file <<EOF
 [Kube]
 Yaml=$yaml_file
 ExitCodePropagation=$exit_code_prop
+LogDriver=journald
 EOF
 
       run_quadlet "$quadlet_file"
@@ -892,8 +890,9 @@ EOF
 
       service_setup $QUADLET_SERVICE_NAME
 
-      # Ensure we have output.
-      wait_for_output "STARTED CONTAINER" $pod_name-$container_name
+      # Ensure we have output. Output is synced via sd-notify (socat in Exec)
+      run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
+      is "$output" '.*Started.*\.service.*'
 
       # Opportunistic test: confirm that the Propagation field got set.
       # This is racy, because the container is short-lived and quadlet
