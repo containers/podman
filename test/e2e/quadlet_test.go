@@ -594,6 +594,7 @@ BOGUS=foo
 		Entry("seccomp.container", "seccomp.container", 0, ""),
 		Entry("secrets.container", "secrets.container", 0, ""),
 		Entry("selinux.container", "selinux.container", 0, ""),
+		Entry("shmsize.container", "shmsize.container", 0, ""),
 		Entry("shortname.container", "shortname.container", 0, "Warning: shortname.container specifies the image \"shortname\" which not a fully qualified image name. This is not ideal for performance and security reasons. See the podman-pull manpage discussion of short-name-aliases.conf for details."),
 		Entry("sysctl.container", "sysctl.container", 0, ""),
 		Entry("timezone.container", "timezone.container", 0, ""),

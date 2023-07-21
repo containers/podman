@@ -132,6 +132,7 @@ Valid options for `[Container]` are listed below:
 | SecurityLabelLevel=s0:c1,c2    | --security-opt label=level:s0:c1,c2                  |
 | SecurityLabelNested=true       | --security-opt label=nested                          |
 | SecurityLabelType=spc_t        | --security-opt label=type:spc_t                      |
+| ShmSize=100m                   | --shm-size=100m                                      |
 | Sysctl=name=value              | --sysctl=name=value                                  |
 | Timezone=local                 | --tz local                                           |
 | Tmpfs=/work                    | --tmpfs /work                                        |
@@ -446,6 +447,12 @@ Set the label process type for the container processes.
 
 Use a Podman secret in the container either as a file or an environment variable.
 This is equivalent to the Podman `--secret` option and generally has the form `secret[,opt=opt ...]`
+
+### `ShmSize=`
+
+Size of /dev/shm.
+
+This is equivalent to the Podman `--shm-size` option and generally has the form `number[unit]`
 
 ### `Sysctl=`
 
