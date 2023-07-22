@@ -8,6 +8,7 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"unicode"
@@ -31,6 +32,10 @@ var (
 	isUserFlag  bool // True if run as quadlet-user-generator executable
 	dryRunFlag  bool // True if -dryrun is used
 	versionFlag bool // True if -version is used
+)
+
+const (
+	SystemUserDirLevel = 5
 )
 
 var (
@@ -103,28 +108,84 @@ func Debugf(format string, a ...interface{}) {
 func getUnitDirs(rootless bool) []string {
 	// Allow overriding source dir, this is mainly for the CI tests
 	unitDirsEnv := os.Getenv("QUADLET_UNIT_DIRS")
+	dirs := make([]string, 0)
+
 	if len(unitDirsEnv) > 0 {
-		return strings.Split(unitDirsEnv, ":")
+		for _, eachUnitDir := range strings.Split(unitDirsEnv, ":") {
+			if !filepath.IsAbs(eachUnitDir) {
+				Logf("%s not a valid file path", eachUnitDir)
+				return nil
+			}
+			dirs = appendSubPaths(dirs, eachUnitDir, false, nil)
+		}
+		return dirs
 	}
 
-	dirs := make([]string, 0)
 	if rootless {
 		configDir, err := os.UserConfigDir()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: %v", err)
 			return nil
 		}
-		dirs = append(dirs, path.Join(configDir, "containers/systemd"))
+		dirs = appendSubPaths(dirs, path.Join(configDir, "containers/systemd"), false, nil)
 		u, err := user.Current()
 		if err == nil {
-			dirs = append(dirs, filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid))
+			dirs = appendSubPaths(dirs, filepath.Join(quadlet.UnitDirAdmin, "users"), true, nonNumericFilter)
+			dirs = appendSubPaths(dirs, filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid), true, userLevelFilter)
 		} else {
 			fmt.Fprintf(os.Stderr, "Warning: %v", err)
 		}
 		return append(dirs, filepath.Join(quadlet.UnitDirAdmin, "users"))
 	}
-	dirs = append(dirs, quadlet.UnitDirAdmin)
-	return append(dirs, quadlet.UnitDirDistro)
+
+	dirs = appendSubPaths(dirs, quadlet.UnitDirAdmin, false, userLevelFilter)
+	return appendSubPaths(dirs, quadlet.UnitDirDistro, false, nil)
+}
+
+func appendSubPaths(dirs []string, path string, isUserFlag bool, filterPtr func(string, bool) bool) []string {
+	err := filepath.WalkDir(path, func(_path string, info os.DirEntry, err error) error {
+		if info == nil || info.IsDir() {
+			if filterPtr == nil || filterPtr(_path, isUserFlag) {
+				dirs = append(dirs, _path)
+			}
+		}
+		return err
+	})
+	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			Debugf("Error occurred walking sub directories %q: %s", path, err)
+		}
+	}
+	return dirs
+}
+
+func nonNumericFilter(_path string, isUserFlag bool) bool {
+	// when running in rootless, only recrusive walk directories that are non numeric
+	// ignore sub dirs under the user directory that may correspond to a user id
+	if strings.Contains(_path, filepath.Join(quadlet.UnitDirAdmin, "users")) {
+		listDirUserPathLevels := strings.Split(_path, string(os.PathSeparator))
+		if len(listDirUserPathLevels) > SystemUserDirLevel {
+			if !(regexp.MustCompile(`^[0-9]*$`).MatchString(listDirUserPathLevels[SystemUserDirLevel])) {
+				return true
+			}
+		}
+	} else {
+		return true
+	}
+	return false
+}
+
+func userLevelFilter(_path string, isUserFlag bool) bool {
+	// if quadlet generator is run rootless, do not recurse other user sub dirs
+	// if quadlet generator is run as root, ignore users sub dirs
+	if strings.Contains(_path, filepath.Join(quadlet.UnitDirAdmin, "users")) {
+		if isUserFlag {
+			return true
+		}
+	} else {
+		return true
+	}
+	return false
 }
 
 func isExtSupported(filename string) bool {

@@ -47,10 +47,9 @@ func TestIsUnambiguousName(t *testing.T) {
 }
 
 func TestUnitDirs(t *testing.T) {
-	rootDirs := []string{
-		quadlet.UnitDirAdmin,
-		quadlet.UnitDirDistro,
-	}
+	rootDirs := []string{}
+	rootDirs = appendSubPaths(rootDirs, quadlet.UnitDirAdmin, false, userLevelFilter)
+	rootDirs = appendSubPaths(rootDirs, quadlet.UnitDirDistro, false, userLevelFilter)
 	unitDirs := getUnitDirs(false)
 	assert.Equal(t, unitDirs, rootDirs, "rootful unit dirs should match")
 
@@ -59,11 +58,12 @@ func TestUnitDirs(t *testing.T) {
 	u, err := user.Current()
 	assert.Nil(t, err)
 
-	rootlessDirs := []string{
-		path.Join(configDir, "containers/systemd"),
-		filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid),
-		filepath.Join(quadlet.UnitDirAdmin, "users"),
-	}
+	rootlessDirs := []string{}
+
+	rootlessDirs = appendSubPaths(rootlessDirs, path.Join(configDir, "containers/systemd"), false, nil)
+	rootlessDirs = appendSubPaths(rootlessDirs, filepath.Join(quadlet.UnitDirAdmin, "users"), true, nonNumericFilter)
+	rootlessDirs = appendSubPaths(rootlessDirs, filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid), true, userLevelFilter)
+	rootlessDirs = append(rootlessDirs, filepath.Join(quadlet.UnitDirAdmin, "users"))
 
 	unitDirs = getUnitDirs(true)
 	assert.Equal(t, unitDirs, rootlessDirs, "rootless unit dirs should match")
