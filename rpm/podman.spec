@@ -355,7 +355,6 @@ cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 %{_datadir}/zsh/site-functions/_%{name}-remote
 
 %files tests
-%license LICENSE
 %{_datadir}/%{name}/test
 
 %files plugins
@@ -372,8 +371,6 @@ cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 %{_libexecdir}/%{name}/gvforwarder
 
 %files -n %{name}sh
-%license LICENSE
-%doc README.md CONTRIBUTING.md install.md transfer.md
 %{_bindir}/%{name}sh
 
 %changelog
