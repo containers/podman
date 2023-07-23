@@ -386,7 +386,7 @@ If the **CONTAINERS_CONF** environment variable is set, then its value is used f
 
 The mounts.conf file specifies volume mount directories that are automatically mounted inside containers when executing the `podman run` or `podman start` commands. Administrators can override the defaults file by creating `/etc/containers/mounts.conf`.
 
-When Podman runs in rootless mode, the file `$HOME/.config/containers/mounts.conf` overrides the default if it exists. Please refer to containers-mounts.conf(5) for further details.
+When Podman runs in rootless mode, the file `$HOME/.config/containers/mounts.conf` overrides the default if it exists. For details, see containers-mounts.conf(5).
 
 **policy.json** (`/etc/containers/policy.json`)
 
@@ -443,7 +443,7 @@ The Overlay file system (OverlayFS) is not supported with kernels prior to 5.12.
 
 The Network File System (NFS) and other distributed file systems (for example: Lustre, Spectrum Scale, the General Parallel File System (GPFS)) are not supported when running in rootless mode as these file systems do not understand user namespace.  However, rootless Podman can make use of an NFS Homedir by modifying the `$HOME/.config/containers/storage.conf` to have the `graphroot` option point to a directory stored on local (Non NFS) storage.
 
-For more information, please refer to the [Podman Troubleshooting Page](https://github.com/containers/podman/blob/main/troubleshooting.md).
+For more information, see the [Podman Troubleshooting Page](https://github.com/containers/podman/blob/main/troubleshooting.md).
 
 ## SEE ALSO
 **[containers-mounts.conf(5)](https://github.com/containers/common/blob/main/docs/containers-mounts.conf.5.md)**, **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**, **[containers-registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md)**, **[containers-storage.conf(5)](https://github.com/containers/storage/blob/main/docs/containers-storage.conf.5.md)**, **[buildah(1)](https://github.com/containers/buildah/blob/main/docs/buildah.1.md)**, **oci-hooks(5)**, **[containers-policy.json(5)](https://github.com/containers/image/blob/main/docs/containers-policy.json.5.md)**, **[crun(1)](https://github.com/containers/crun/blob/main/crun.1.md)**, **[runc(8)](https://github.com/opencontainers/runc/blob/main/man/runc.8.md)**, **[subuid(5)](https://www.unix.com/man-page/linux/5/subuid)**, **[subgid(5)](https://www.unix.com/man-page/linux/5/subgid)**, **[slirp4netns(1)](https://github.com/rootless-containers/slirp4netns/blob/master/slirp4netns.1.md)**, **[pasta(1)](https://passt.top/builds/latest/web/passt.1.html)**, **[conmon(8)](https://github.com/containers/conmon/blob/main/docs/conmon.8.md)**

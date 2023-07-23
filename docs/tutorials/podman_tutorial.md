@@ -13,7 +13,7 @@ root escalation is required.
 
 ## Installing Podman
 
-For installing or building Podman, please see the [installation instructions](https://podman.io/getting-started/installation).
+For installing or building Podman, see the [installation instructions](https://podman.io/getting-started/installation).
 
 ## Familiarizing yourself with Podman
 

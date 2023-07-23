@@ -19,11 +19,11 @@ or for all commands by changing the value for the "Default OCI runtime" in the `
 
 ### Installing Podman
 
-For installing Podman, please see the [installation instructions](https://podman.io/getting-started/installation).
+For installing Podman, see the [installation instructions](https://podman.io/getting-started/installation).
 
 ### Building Podman
 
-For building Podman, please see the [build instructions](https://podman.io/getting-started/installation#building-from-scratch).
+For building Podman, see the [build instructions](https://podman.io/getting-started/installation#building-from-scratch).
 
 ### Install `slirp4netns`
 

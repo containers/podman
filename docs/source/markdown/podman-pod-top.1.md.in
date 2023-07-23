@@ -21,7 +21,7 @@ of a given process. The descriptors can either be passed as separate arguments o
 
 ## FORMAT DESCRIPTORS
 
-Please refer to podman-top(1) for a full list of available descriptors.
+For a full list of available descriptors, see podman-top(1)
 
 ## EXAMPLES
 

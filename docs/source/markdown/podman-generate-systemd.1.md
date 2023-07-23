@@ -68,7 +68,7 @@ Use the name of the container for the start, stop, and description in the unit f
 
 This option yields unit files that do not expect containers and pods to exist.  Instead, new containers and pods are created based on their configuration files.  The unit files are created best effort and may need further editing; please review the generated files carefully before using them in production.
 
-Note that `--new` only works on containers and pods created directly via Podman (i.e., `podman [container] {create,run}` or `podman pod create`).  It does not work on containers or pods created via the REST API or via `podman kube play`.  For `podman kube play`, please use the `podman-kube@.service` systemd template instead.
+Note that `--new` only works on containers and pods created directly via Podman (i.e., `podman [container] {create,run}` or `podman pod create`).  It does not work on containers or pods created via the REST API or via `podman kube play`.  For `podman kube play`, use the `podman-kube@.service` systemd template instead.
 
 #### **--no-header**
 

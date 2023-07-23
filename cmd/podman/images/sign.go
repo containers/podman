@@ -57,7 +57,7 @@ func init() {
 
 func sign(cmd *cobra.Command, args []string) error {
 	if signOptions.SignBy == "" {
-		return errors.New("please provide an identity")
+		return errors.New("no identity provided")
 	}
 
 	var sigStoreDir string
