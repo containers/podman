@@ -350,7 +350,7 @@ func (c *Container) updateHealthStatus(status string) error {
 	return os.WriteFile(c.healthCheckLogPath(), newResults, 0700)
 }
 
-// isUnhealthy returns if the current health check status in unhealthy.
+// isUnhealthy returns true if the current health check status is unhealthy.
 func (c *Container) isUnhealthy() (bool, error) {
 	if !c.HasHealthCheck() {
 		return false, nil

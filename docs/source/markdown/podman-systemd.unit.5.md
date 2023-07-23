@@ -362,7 +362,7 @@ setuid and file capabilities.
 
 The rootfs to use for the container. Rootfs points to a directory on the system that contains the content to be run within the container. This option conflicts with the `Image` option.
 
-The format of the rootfs is the same as when passed to `podman run --rootfs`, so it supports ovelay mounts as well.
+The format of the rootfs is the same as when passed to `podman run --rootfs`, so it supports overlay mounts as well.
 
 Note: On SELinux systems, the rootfs needs the correct label, which is by default unconfined_u:object_r:container_file_t:s0.
 
@@ -380,7 +380,7 @@ of startup on its own.
 This key contains a list of arguments passed directly to the end of the `podman run` command
 in the generated file (right before the image name in the command line). It can be used to
 access Podman features otherwise unsupported by the generator. Since the generator is unaware
-of what unexpected interactions can be caused by these arguments, is not recommended to use
+of what unexpected interactions can be caused by these arguments, it is not recommended to use
 this option.
 
 The format of this is a space separated list of arguments, which can optionally be individually
@@ -545,7 +545,7 @@ Indicates whether containers will be auto-updated ([podman-auto-update(1)](podma
 
 ### `ConfigMap=`
 
-Pass the Kubernetes ConfigMap YAML at path to `podman kube play` via the `--configmap` argument.
+Pass the Kubernetes ConfigMap YAML path to `podman kube play` via the `--configmap` argument.
 Unlike the `configmap` argument, the value may contain only one path but
 it may be absolute or relative to the location of the unit file.
 

@@ -53,7 +53,7 @@ Sign the pushed images with a “simple signing” signature using the specified
 
 #### **--sign-by-sigstore**=*param-file***
 
-Add a sigstore signature based on further options specified in a containers sigstore signing parameter file *param-file*.
+Add a sigstore signature based on further options specified in a container's sigstore signing parameter file *param-file*.
 See containers-sigstore-signing-params.yaml(5) for details about the file format.
 
 #### **--sign-by-sigstore-private-key**=*path*

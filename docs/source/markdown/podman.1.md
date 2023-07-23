@@ -27,7 +27,7 @@ man pages.
 
 #### **--cgroup-manager**=*manager*
 
-The CGroup manager to use for container cgroups. Supported values are cgroupfs or systemd. Default is systemd unless overridden in the containers.conf file.
+The CGroup manager to use for container cgroups. Supported values are __cgroupfs__ or __systemd__. Default is _systemd_ unless overridden in the containers.conf file.
 
 Note: Setting this flag can cause certain commands to break when called on containers previously created by the other CGroup manager type.
 Note: CGroup manager is not supported in rootless mode when using CGroups Version V1.
@@ -86,7 +86,7 @@ This will override *imagestore* option in `containers-storage.conf(5)`, refer to
 
 #### **--log-level**=*level*
 
-Log messages at and above specified level: debug, info, warn, error, fatal or panic (default: "warn")
+Log messages at and above specified level: __debug__, __info__, __warn__, __error__, __fatal__ or __panic__ (default: _warn_)
 
 #### **--network-cmd-path**=*path*
 Path to the `slirp4netns(1)` command binary to use for setting up a slirp4netns network.

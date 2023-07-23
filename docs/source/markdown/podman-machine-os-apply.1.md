@@ -13,7 +13,7 @@ Apply machine OS changes from an OCI image.
 VM's that use OS's that use rpm-ostreee have the capability to rebase itself from the content of an OCI image.
 `podman machine image apply` takes an OCI image with container native ostree functionality and rebases itself on that image.
 
-By default, Podman machines on Mac and Linux use an rpm-ostree based distrubition (Fedora CoreOS).
+By default, Podman machines on Mac and Linux use an rpm-ostree based distribution (Fedora CoreOS).
 
 For more information, please see the [rpm-ostree docs](https://coreos.github.io/rpm-ostree/container/).
 

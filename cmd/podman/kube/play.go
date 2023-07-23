@@ -319,7 +319,7 @@ func play(cmd *cobra.Command, args []string) error {
 		// rerunning the same YAML file will cause an error and remove
 		// the previously created workload.
 		//
-		// teardown any containers, pods, and volumes that might have created before we hit the error
+		// teardown any containers, pods, and volumes that might have been created before we hit the error
 		// reader, err := readerFromArg(args[0])
 		// if err != nil {
 		// 	return err
