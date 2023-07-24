@@ -43,7 +43,7 @@ func (c *Container) Top(descriptors []string) ([]string, error) {
 	}
 
 	// Default to 'ps -ef' compatible descriptors
-	if len(descriptors) == 0 {
+	if len(strings.Join(descriptors, "")) == 0 {
 		descriptors = []string{"user", "pid", "ppid", "pcpu", "etime", "tty", "time", "args"}
 	}
 
