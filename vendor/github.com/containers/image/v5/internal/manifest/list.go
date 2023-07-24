@@ -68,6 +68,12 @@ type ListUpdate struct {
 	Digest    digest.Digest
 	Size      int64
 	MediaType string
+	// ReadOnly fields: may be set by Instance(), ignored by UpdateInstance()
+	ReadOnly struct {
+		Platform                  *imgspecv1.Platform
+		Annotations               map[string]string
+		CompressionAlgorithmNames []string
+	}
 }
 
 type ListOp int

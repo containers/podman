@@ -53,11 +53,15 @@ func (index *OCI1IndexPublic) Instances() []digest.Digest {
 func (index *OCI1IndexPublic) Instance(instanceDigest digest.Digest) (ListUpdate, error) {
 	for _, manifest := range index.Manifests {
 		if manifest.Digest == instanceDigest {
-			return ListUpdate{
+			ret := ListUpdate{
 				Digest:    manifest.Digest,
 				Size:      manifest.Size,
 				MediaType: manifest.MediaType,
-			}, nil
+			}
+			ret.ReadOnly.Platform = manifest.Platform
+			ret.ReadOnly.Annotations = manifest.Annotations
+			ret.ReadOnly.CompressionAlgorithmNames = annotationsToCompressionAlgorithmNames(manifest.Annotations)
+			return ret, nil
 		}
 	}
 	return ListUpdate{}, fmt.Errorf("unable to find instance %s in OCI1Index", instanceDigest)
@@ -78,14 +82,29 @@ func (index *OCI1IndexPublic) UpdateInstances(updates []ListUpdate) error {
 	return index.editInstances(editInstances)
 }
 
-func addCompressionAnnotations(compressionAlgorithms []compression.Algorithm, annotationsMap map[string]string) {
+func annotationsToCompressionAlgorithmNames(annotations map[string]string) []string {
+	result := make([]string, 0, 1)
+	if annotations[OCI1InstanceAnnotationCompressionZSTD] == OCI1InstanceAnnotationCompressionZSTDValue {
+		result = append(result, compression.ZstdAlgorithmName)
+	}
+	// No compression was detected, hence assume instance has default compression `Gzip`
+	if len(result) == 0 {
+		result = append(result, compression.GzipAlgorithmName)
+	}
+	return result
+}
+
+func addCompressionAnnotations(compressionAlgorithms []compression.Algorithm, annotationsMap *map[string]string) {
 	// TODO: This should also delete the algorithm if map already contains an algorithm and compressionAlgorithm
 	// list has a different algorithm. To do that, we would need to modify the callers to always provide a reliable
 	// and full compressionAlghorithms list.
+	if *annotationsMap == nil && len(compressionAlgorithms) > 0 {
+		*annotationsMap = map[string]string{}
+	}
 	for _, algo := range compressionAlgorithms {
 		switch algo.Name() {
 		case compression.ZstdAlgorithmName:
-			annotationsMap[OCI1InstanceAnnotationCompressionZSTD] = OCI1InstanceAnnotationCompressionZSTDValue
+			(*annotationsMap)[OCI1InstanceAnnotationCompressionZSTD] = OCI1InstanceAnnotationCompressionZSTDValue
 		default:
 			continue
 		}
@@ -130,13 +149,13 @@ func (index *OCI1IndexPublic) editInstances(editInstances []ListEdit) error {
 					maps.Copy(index.Manifests[targetIndex].Annotations, editInstance.UpdateAnnotations)
 				}
 			}
-			addCompressionAnnotations(editInstance.UpdateCompressionAlgorithms, index.Manifests[targetIndex].Annotations)
+			addCompressionAnnotations(editInstance.UpdateCompressionAlgorithms, &index.Manifests[targetIndex].Annotations)
 		case ListOpAdd:
 			annotations := map[string]string{}
 			if editInstance.AddAnnotations != nil {
 				annotations = maps.Clone(editInstance.AddAnnotations)
 			}
-			addCompressionAnnotations(editInstance.AddCompressionAlgorithms, annotations)
+			addCompressionAnnotations(editInstance.AddCompressionAlgorithms, &annotations)
 			addedEntries = append(addedEntries, imgspecv1.Descriptor{
 				MediaType:   editInstance.AddMediaType,
 				Size:        editInstance.AddSize,

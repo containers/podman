@@ -64,6 +64,9 @@ func (w *wrapped) PutBlobWithOptions(ctx context.Context, stream io.Reader, inpu
 // If the blob has been successfully reused, returns (true, info, nil).
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
 func (w *wrapped) TryReusingBlobWithOptions(ctx context.Context, info types.BlobInfo, options private.TryReusingBlobOptions) (bool, private.ReusedBlob, error) {
+	if options.RequiredCompression != nil {
+		return false, private.ReusedBlob{}, nil
+	}
 	reused, blob, err := w.TryReusingBlob(ctx, info, options.Cache, options.CanSubstitute)
 	if !reused || err != nil {
 		return reused, private.ReusedBlob{}, err

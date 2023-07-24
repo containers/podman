@@ -39,19 +39,20 @@ var (
 	OIDIssuerV2  = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 8}
 
 	// CI extensions
-	OIDBuildSignerURI                  = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 9}
-	OIDBuildSignerDigest               = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 10}
-	OIDRunnerEnvironment               = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 11}
-	OIDSourceRepositoryURI             = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 12}
-	OIDSourceRepositoryDigest          = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 13}
-	OIDSourceRepositoryRef             = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 14}
-	OIDSourceRepositoryIdentifier      = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 15}
-	OIDSourceRepositoryOwnerURI        = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 16}
-	OIDSourceRepositoryOwnerIdentifier = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 17}
-	OIDBuildConfigURI                  = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 18}
-	OIDBuildConfigDigest               = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 19}
-	OIDBuildTrigger                    = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 20}
-	OIDRunInvocationURI                = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 21}
+	OIDBuildSignerURI                      = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 9}
+	OIDBuildSignerDigest                   = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 10}
+	OIDRunnerEnvironment                   = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 11}
+	OIDSourceRepositoryURI                 = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 12}
+	OIDSourceRepositoryDigest              = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 13}
+	OIDSourceRepositoryRef                 = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 14}
+	OIDSourceRepositoryIdentifier          = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 15}
+	OIDSourceRepositoryOwnerURI            = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 16}
+	OIDSourceRepositoryOwnerIdentifier     = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 17}
+	OIDBuildConfigURI                      = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 18}
+	OIDBuildConfigDigest                   = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 19}
+	OIDBuildTrigger                        = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 20}
+	OIDRunInvocationURI                    = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 21}
+	OIDSourceRepositoryVisibilityAtSigning = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 22}
 )
 
 // Extensions contains all custom x509 extensions defined by Fulcio
@@ -128,6 +129,9 @@ type Extensions struct {
 
 	// Run Invocation URL to uniquely identify the build execution.
 	RunInvocationURI string // 1.3.6.1.4.1.57264.1.21
+
+	// Source repository visibility at the time of signing the certificate.
+	SourceRepositoryVisibilityAtSigning string // 1.3.6.1.4.1.57264.1.22
 }
 
 func (e Extensions) Render() ([]pkix.Extension, error) {
@@ -320,6 +324,16 @@ func (e Extensions) Render() ([]pkix.Extension, error) {
 			Value: val,
 		})
 	}
+	if e.SourceRepositoryVisibilityAtSigning != "" {
+		val, err := asn1.MarshalWithParams(e.SourceRepositoryVisibilityAtSigning, "utf8")
+		if err != nil {
+			return nil, err
+		}
+		exts = append(exts, pkix.Extension{
+			Id:    OIDSourceRepositoryVisibilityAtSigning,
+			Value: val,
+		})
+	}
 
 	return exts, nil
 }
@@ -397,6 +411,10 @@ func parseExtensions(ext []pkix.Extension) (Extensions, error) {
 			}
 		case e.Id.Equal(OIDRunInvocationURI):
 			if err := ParseDERString(e.Value, &out.RunInvocationURI); err != nil {
+				return Extensions{}, err
+			}
+		case e.Id.Equal(OIDSourceRepositoryVisibilityAtSigning):
+			if err := ParseDERString(e.Value, &out.SourceRepositoryVisibilityAtSigning); err != nil {
 				return Extensions{}, err
 			}
 		}

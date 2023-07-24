@@ -454,28 +454,20 @@ func (r *Runtime) lookupImageInDigestsAndRepoTags(name string, possiblyUnqualifi
 	if possiblyUnqualifiedNamedReference == nil {
 		return nil, "", fmt.Errorf("%s: %w", originalName, storage.ErrImageUnknown)
 	}
-
-	// In case of a digested reference, we strip off the digest and require
-	// any image matching the repo/tag to also match the specified digest.
-	var requiredDigest digest.Digest
-	digested, isDigested := possiblyUnqualifiedNamedReference.(reference.Digested)
-	if isDigested {
-		requiredDigest = digested.Digest()
-		possiblyUnqualifiedNamedReference = reference.TrimNamed(possiblyUnqualifiedNamedReference)
-		name = possiblyUnqualifiedNamedReference.String()
-	}
-
 	if !shortnames.IsShortName(name) {
 		return nil, "", fmt.Errorf("%s: %w", originalName, storage.ErrImageUnknown)
 	}
 
-	// Docker compat: make sure to add the "latest" tag if needed.  The tag
-	// will be ignored if we're looking for a digest match.
-	possiblyUnqualifiedNamedReference = reference.TagNameOnly(possiblyUnqualifiedNamedReference)
-	namedTagged, isNamedTagged := possiblyUnqualifiedNamedReference.(reference.NamedTagged)
-	if !isNamedTagged {
-		// NOTE: this should never happen since we already stripped off
-		// the digest.
+	var requiredDigest digest.Digest // or ""
+	var requiredTag string           // or ""
+
+	possiblyUnqualifiedNamedReference = reference.TagNameOnly(possiblyUnqualifiedNamedReference) // Docker compat: make sure to add the "latest" tag if needed.
+	if digested, ok := possiblyUnqualifiedNamedReference.(reference.Digested); ok {
+		requiredDigest = digested.Digest()
+		name = reference.TrimNamed(possiblyUnqualifiedNamedReference).String()
+	} else if namedTagged, ok := possiblyUnqualifiedNamedReference.(reference.NamedTagged); ok {
+		requiredTag = namedTagged.Tag()
+	} else { // This should never happen after the reference.TagNameOnly above.
 		return nil, "", fmt.Errorf("%s: %w (could not cast to tagged)", originalName, storage.ErrImageUnknown)
 	}
 
@@ -485,7 +477,7 @@ func (r *Runtime) lookupImageInDigestsAndRepoTags(name string, possiblyUnqualifi
 	}
 
 	for _, image := range allImages {
-		named, err := image.inRepoTags(namedTagged, isDigested)
+		named, err := image.referenceFuzzilyMatchingRepoAndTag(possiblyUnqualifiedNamedReference, requiredTag)
 		if err != nil {
 			return nil, "", err
 		}
@@ -497,8 +489,8 @@ func (r *Runtime) lookupImageInDigestsAndRepoTags(name string, possiblyUnqualifi
 			return nil, "", err
 		}
 		if img != nil {
-			if isDigested {
-				if !img.hasDigest(requiredDigest.String()) {
+			if requiredDigest != "" {
+				if !img.hasDigest(requiredDigest) {
 					continue
 				}
 				named = reference.TrimNamed(named)

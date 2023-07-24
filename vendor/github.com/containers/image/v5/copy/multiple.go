@@ -11,7 +11,6 @@ import (
 	"github.com/containers/image/v5/internal/image"
 	internalManifest "github.com/containers/image/v5/internal/manifest"
 	"github.com/containers/image/v5/manifest"
-	"github.com/containers/image/v5/signature"
 	digest "github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
@@ -48,10 +47,10 @@ func prepareInstanceCopies(instanceDigests []digest.Digest, options *Options) []
 }
 
 // copyMultipleImages copies some or all of an image list's instances, using
-// policyContext to validate source image admissibility.
-func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signature.PolicyContext, options *Options, unparsedToplevel *image.UnparsedImage) (copiedManifest []byte, retErr error) {
+// c.policyContext to validate source image admissibility.
+func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte, retErr error) {
 	// Parse the list and get a copy of the original value after it's re-encoded.
-	manifestList, manifestType, err := unparsedToplevel.Manifest(ctx)
+	manifestList, manifestType, err := c.unparsedToplevel.Manifest(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("reading manifest list: %w", err)
 	}
@@ -61,7 +60,7 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 	}
 	updatedList := originalList.CloneInternal()
 
-	sigs, err := c.sourceSignatures(ctx, unparsedToplevel, options,
+	sigs, err := c.sourceSignatures(ctx, c.unparsedToplevel,
 		"Getting image list signatures",
 		"Checking if image list destination supports signatures")
 	if err != nil {
@@ -94,12 +93,12 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 	if destIsDigestedReference {
 		cannotModifyManifestListReason = "Destination specifies a digest"
 	}
-	if options.PreserveDigests {
+	if c.options.PreserveDigests {
 		cannotModifyManifestListReason = "Instructed to preserve digests"
 	}
 
 	// Determine if we'll need to convert the manifest list to a different format.
-	forceListMIMEType := options.ForceManifestMIMEType
+	forceListMIMEType := c.options.ForceManifestMIMEType
 	switch forceListMIMEType {
 	case manifest.DockerV2Schema1MediaType, manifest.DockerV2Schema1SignedMediaType, manifest.DockerV2Schema2MediaType:
 		forceListMIMEType = manifest.DockerV2ListMediaType
@@ -119,7 +118,7 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 	// Copy each image, or just the ones we want to copy, in turn.
 	instanceDigests := updatedList.Instances()
 	instanceEdits := []internalManifest.ListEdit{}
-	instanceCopyList := prepareInstanceCopies(instanceDigests, options)
+	instanceCopyList := prepareInstanceCopies(instanceDigests, c.options)
 	c.Printf("Copying %d of %d images in list\n", len(instanceCopyList), len(instanceDigests))
 	for i, instance := range instanceCopyList {
 		// Update instances to be edited by their `ListOperation` and
@@ -129,17 +128,18 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 			logrus.Debugf("Copying instance %s (%d/%d)", instance.sourceDigest, i+1, len(instanceCopyList))
 			c.Printf("Copying image %s (%d/%d)\n", instance.sourceDigest, i+1, len(instanceCopyList))
 			unparsedInstance := image.UnparsedInstance(c.rawSource, &instanceCopyList[i].sourceDigest)
-			updatedManifest, updatedManifestType, updatedManifestDigest, err := c.copySingleImage(ctx, policyContext, options, unparsedToplevel, unparsedInstance, &instanceCopyList[i].sourceDigest)
+			updated, err := c.copySingleImage(ctx, unparsedInstance, &instanceCopyList[i].sourceDigest, copySingleImageOptions{requireCompressionFormatMatch: false})
 			if err != nil {
 				return nil, fmt.Errorf("copying image %d/%d from manifest list: %w", i+1, len(instanceCopyList), err)
 			}
 			// Record the result of a possible conversion here.
 			instanceEdits = append(instanceEdits, internalManifest.ListEdit{
-				ListOperation:   internalManifest.ListOpUpdate,
-				UpdateOldDigest: instance.sourceDigest,
-				UpdateDigest:    updatedManifestDigest,
-				UpdateSize:      int64(len(updatedManifest)),
-				UpdateMediaType: updatedManifestType})
+				ListOperation:               internalManifest.ListOpUpdate,
+				UpdateOldDigest:             instance.sourceDigest,
+				UpdateDigest:                updated.manifestDigest,
+				UpdateSize:                  int64(len(updated.manifest)),
+				UpdateCompressionAlgorithms: updated.compressionAlgorithms,
+				UpdateMediaType:             updated.manifestMIMEType})
 		default:
 			return nil, fmt.Errorf("copying image: invalid copy operation %d", instance.op)
 		}
@@ -204,7 +204,7 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 	}
 
 	// Sign the manifest list.
-	newSigs, err := c.createSignatures(ctx, manifestList, options.SignIdentity)
+	newSigs, err := c.createSignatures(ctx, manifestList, c.options.SignIdentity)
 	if err != nil {
 		return nil, err
 	}
