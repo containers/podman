@@ -71,6 +71,18 @@ Currently, only the `Alias`, `WantedBy` and `RequiredBy` keys are supported.
 words `WantedBy=other.service`, not `WantedBy=other.container`. The same is
 true for other kinds of dependencies, too, like `After=other.service`.
 
+### Debugging unit files
+
+After placing the unit file in one of the unit search paths (mentioned above), you can start it with
+`systemctl start {--user}`. If it fails with "Failed to start example.service: Unit example.service not found.",
+then it is possible that you used incorrect syntax or you used an option from a newer version of Podman
+Quadlet and the generator failed to create a service file.
+
+View the generated files and/or error messages with:
+```
+/usr/lib/systemd/system-generators/podman-system-generator {--user} --dryrun
+```
+
 ## Container units [Container]
 
 Container units are named with a `.container` extension and contain a `[Container]` section describing
