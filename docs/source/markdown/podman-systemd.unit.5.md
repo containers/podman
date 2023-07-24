@@ -83,6 +83,18 @@ View the generated files and/or error messages with:
 /usr/lib/systemd/system-generators/podman-system-generator {--user} --dryrun
 ```
 
+#### Debugging a limited set of unit files
+
+If you would like to debug a limited set of unit files, you can copy them to a separate directory and set the
+`QUADLET_UNIT_DIRS` environment variable to this directory when running the command below:
+
+```
+QUADLET_UNIT_DIRS=<Directory> /usr/lib/systemd/system-generators/podman-system-generator {--user} --dryrun
+```
+
+This will instruct quadlet to look for units in this directory instead of the common ones and by
+that limit the output to only the units you are debugging.
+
 ## Container units [Container]
 
 Container units are named with a `.container` extension and contain a `[Container]` section describing
