@@ -3,4 +3,4 @@ requests-mock~=1.9.3
 requests~=2.20.0
 setuptools~=50.3.2
 python-dateutil~=2.8.1
-PyYAML~=5.4.1
+PyYAML==6.0.1
