@@ -324,8 +324,6 @@ alt_build_task:
       - env:
             ALT_NAME: 'Build Without CGO'
       - env:
-            ALT_NAME: 'Test build RPM'
-      - env:
             ALT_NAME: 'Alt Arch. Cross'
     gopath_cache: *ro_gopath_cache
     clone_script: *noop  # Comes from cache

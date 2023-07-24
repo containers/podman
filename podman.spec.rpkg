@@ -12,8 +12,10 @@
 %global debug_package %{nil}
 %endif
 
-%if ! 0%{?gobuild:1}
-%define gobuild(o:) GO111MODULE=off go build -buildmode pie -compiler gc -tags="rpm_crashtraceback ${BUILDTAGS:-}" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '-Wl,-z,relro -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld '" -a -v -x %{?**};
+# RHEL 8's default %%gobuild macro doesn't account for the BUILDTAGS variable, so we
+# set it separately here and do not depend on RHEL 8's go-srpm-macros package.
+%if %{defined rhel} && 0%{?rhel} == 8
+%define gobuild(o:) go build -buildmode pie -compiler gc -tags="rpm_crashtraceback libtrust_openssl ${BUILDTAGS:-}" -ldflags "-linkmode=external -compressdwarf=false ${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '%__global_ldflags'" -a -v -x %{?**};
 %endif
 
 %global provider github
@@ -61,8 +63,10 @@ BuildRequires: glib2-devel
 BuildRequires: glibc-devel
 BuildRequires: glibc-static
 BuildRequires: git-core
-BuildRequires: go-md2man
+BuildRequires: %{_bindir}/go-md2man
+%if !%{defined gobuild}
 BuildRequires: go-rpm-macros
+%endif
 BuildRequires: gpgme-devel
 BuildRequires: libassuan-devel
 BuildRequires: libgpg-error-devel
@@ -176,7 +180,7 @@ ln -s vendor src
 LDFLAGS="-X %{import_path}/libpod/define.buildInfo=$(date +%s)"
 
 # build rootlessport first
-%gobuild -o bin/rootlessport %%{import_path}/cmd/rootlessport
+%gobuild -o bin/rootlessport %{import_path}/cmd/rootlessport
 
 # build %%{name}
 export BUILDTAGS="seccomp exclude_graphdriver_devicemapper $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) $(hack/libdm_tag.sh) $(hack/selinux_tag.sh) $(hack/systemd_tag.sh)"
