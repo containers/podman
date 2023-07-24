@@ -319,8 +319,6 @@ alt_build_task:
       - env:
             ALT_NAME: 'Build Without CGO'
       - env:
-            ALT_NAME: 'Test build RPM'
-      - env:
             ALT_NAME: 'Alt Arch. Cross'
     gopath_cache: *ro_gopath_cache
     clone_script: *noop  # Comes from cache
@@ -743,13 +741,6 @@ artifacts_task:
         - unzip gosrc.zip
         - cd $CIRRUS_WORKING_DIR
         - mv /tmp/alt/*.tar.gz ./
-        # Windows MSI filename has version number
-        - mkdir -p /tmp/win
-        - cd /tmp/win
-        - $CURL/Windows%20Cross/gosrc.zip
-        - unzip gosrc.zip
-        - cd $CIRRUS_WORKING_DIR
-        - mv /tmp/win/podman-remote*.zip /tmp/win/*.msi ./
     # Always show contents to assist in debugging
     always:
         contents_script: ls -1 $CIRRUS_WORKING_DIR
