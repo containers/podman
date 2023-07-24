@@ -33,7 +33,7 @@ func (r *Runtime) Log(ctx context.Context, containers []*Container, options *log
 	return nil
 }
 
-// ReadLog reads a containers log based on the input options and returns log lines over a channel.
+// ReadLog reads a container's log based on the input options and returns log lines over a channel.
 func (c *Container) ReadLog(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine, colorID int64) error {
 	switch c.LogDriver() {
 	case define.PassthroughLogging:

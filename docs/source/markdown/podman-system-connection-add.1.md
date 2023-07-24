@@ -13,7 +13,7 @@ Record ssh destination for remote podman service(s). The ssh destination is give
  - unix://path
  - tcp://hostname:port
 
-The user is prompted for the remote ssh login password or key file pass phrase as required. The `ssh-agent` is supported if it is running.
+The user is prompted for the remote ssh login password or key file passphrase as required. The `ssh-agent` is supported if it is running.
 
 ## OPTIONS
 

@@ -52,7 +52,7 @@ func getContainersAndInputByContext(contextWithConnection context.Context, all, 
 	for _, nameOrID := range namesOrIDs {
 		// First determine if the container exists by doing an inspect.
 		// Inspect takes supports names and IDs and let's us determine
-		// a containers full ID.
+		// a container's full ID.
 		inspectData, err := containers.Inspect(contextWithConnection, nameOrID, new(containers.InspectOptions).WithSize(false))
 		if err != nil {
 			if ignore && errorhandling.Contains(err, define.ErrNoSuchCtr) {
@@ -104,7 +104,7 @@ func getPodsByContext(contextWithConnection context.Context, all bool, namesOrID
 	for _, nameOrID := range namesOrIDs {
 		// First determine if the pod exists by doing an inspect.
 		// Inspect takes supports names and IDs and let's us determine
-		// a containers full ID.
+		// a container's full ID.
 		inspectData, err := pods.Inspect(contextWithConnection, nameOrID, nil)
 		if err != nil {
 			if errorhandling.Contains(err, define.ErrNoSuchPod) {

@@ -151,7 +151,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-diff(1)](podman-diff.1.md)               | Inspect changes on a container or image's filesystem.                       |
 | [podman-events(1)](podman-events.1.md)           | Monitor Podman events                                                       |
 | [podman-export(1)](podman-export.1.md)           | Export a container's filesystem contents as a tar archive.                  |
-| [podman-generate(1)](podman-generate.1.md)       | Generate structured data based for a containers and pods.                   |
+| [podman-generate(1)](podman-generate.1.md)       | Generate structured data based on containers and pods.                   |
 | [podman-healthcheck(1)](podman-healthcheck.1.md) | Manage healthchecks for containers                                          |
 | [podman-history(1)](podman-history.1.md)         | Show the history of an image.                                               |
 | [podman-image(1)](podman-image.1.md)             | Manage images.                                                              |

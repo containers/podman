@@ -23,7 +23,7 @@ import (
 )
 
 // convertPortMappings will remove the HostIP part from the ports when running inside podman machine.
-// This is need because a HostIP of 127.0.0.1 would now allow the gvproxy forwarder to reach to open ports.
+// This is needed because a HostIP of 127.0.0.1 would now allow the gvproxy forwarder to reach to open ports.
 // For machine the HostIP must only be used by gvproxy and never in the VM.
 func (c *Container) convertPortMappings() []types.PortMapping {
 	if !machine.IsGvProxyBased() || len(c.config.PortMappings) == 0 {
@@ -174,10 +174,10 @@ func (r *Runtime) reloadContainerNetwork(ctr *Container) (map[string]types.Statu
 
 	err := r.teardownNetwork(ctr)
 	if err != nil {
-		// teardownNetwork will error if the iptables rules do not exists and this is the case after
+		// teardownNetwork will error if the iptables rules do not exist and this is the case after
 		// a firewall reload. The purpose of network reload is to recreate the rules if they do
 		// not exists so we should not log this specific error as error. This would confuse users otherwise.
-		// iptables-legacy and iptables-nft will create different errors make sure to match both.
+		// iptables-legacy and iptables-nft will create different errors. Make sure to match both.
 		b, rerr := regexp.MatchString("Couldn't load target `CNI-[a-f0-9]{24}':No such file or directory|Chain 'CNI-[a-f0-9]{24}' does not exist", err.Error())
 		if rerr == nil && !b {
 			logrus.Error(err)

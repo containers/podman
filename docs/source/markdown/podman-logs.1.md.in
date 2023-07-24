@@ -68,7 +68,7 @@ podman logs -t --since 0 myserver
 1:M 07 Aug 14:10:09.056 # Server initialized
 ```
 
-To view a containers logs since a certain time:
+To view a container's logs since a certain time:
 ```
 podman logs -t --since 2017-08-07T10:10:09.055837383-04:00 myserver
 

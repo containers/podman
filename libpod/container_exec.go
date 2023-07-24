@@ -862,7 +862,7 @@ func (c *Container) cleanupExecBundle(sessionID string) (err error) {
 	return
 }
 
-// the path to a containers exec session bundle
+// the path to a container's exec session bundle
 func (c *Container) execBundlePath(sessionID string) string {
 	return filepath.Join(c.bundlePath(), sessionID)
 }

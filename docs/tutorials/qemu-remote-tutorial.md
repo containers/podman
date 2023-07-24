@@ -14,7 +14,7 @@ The officially supported and recommended way of running Podman on Windows is usi
 * Windows 10 Build 18362 or later (Build 19044/Version 21H2 or later recommended)
 * SSH client feature installed on the machine
 * Hyper-V acceleration should be operational on the machine
-* Direcroty `C:\qemu-remote\` will be used for storing needed assets
+* Directory `C:\qemu-remote\` will be used for storing needed assets
 * Port `57561` is free to use for ssh over a loopback interface
 
 ## Obtaining and installing

@@ -945,7 +945,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 		// Do a quick ping of the database to check if the container
 		// still exists.
 		if ok, _ := r.state.HasContainer(c.ID()); !ok {
-			// When the container has already been removed, the OCI runtime directory remain.
+			// When the container has already been removed, the OCI runtime directory remains.
 			if err := c.cleanupRuntime(ctx); err != nil {
 				retErr = fmt.Errorf("cleaning up container %s from OCI runtime: %w", c.ID(), err)
 				return

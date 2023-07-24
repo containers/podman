@@ -69,7 +69,7 @@ func (t ContainerStatus) String() string {
 	return "bad state"
 }
 
-// StringToContainerStatus converts a string representation of a containers
+// StringToContainerStatus converts a string representation of a container's
 // status into an actual container status type
 func StringToContainerStatus(status string) (ContainerStatus, error) {
 	switch status {

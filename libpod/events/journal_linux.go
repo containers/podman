@@ -226,9 +226,9 @@ func (e EventJournalD) String() string {
 	return Journald.String()
 }
 
-// GetNextEntry returns the next entry in the journal. If the end  of the
+// GetNextEntry returns the next entry in the journal. If the end of the
 // journal is reached and stream is not set or the current time is after
-// the until time this function return nil,nil.
+// the until time this function returns nil,nil.
 func GetNextEntry(ctx context.Context, j *sdjournal.Journal, stream bool, untilTime time.Time) (*sdjournal.JournalEntry, error) {
 	for {
 		select {

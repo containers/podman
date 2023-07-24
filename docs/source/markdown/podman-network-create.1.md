@@ -56,7 +56,7 @@ Note, trying to create a network with an existing name and different parameters 
 
 #### **--interface-name**=*name*
 
-This option maps the the *network_interface* option in the network config, see **podman network inspect**.
+This option maps the *network_interface* option in the network config, see **podman network inspect**.
 Depending on the driver, this can have different effects; for `bridge`, it uses the bridge interface name.
 For `macvlan` and `ipvlan`, it is the parent device on the host. It is the same as `--opt parent=...`.
 
