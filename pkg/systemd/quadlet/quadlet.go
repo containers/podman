@@ -55,6 +55,7 @@ const (
 	KeyEnvironmentFile       = "EnvironmentFile"
 	KeyEnvironmentHost       = "EnvironmentHost"
 	KeyExec                  = "Exec"
+	KeyExitCodePropagation   = "ExitCodePropagation"
 	KeyExposeHostPort        = "ExposeHostPort"
 	KeyGroup                 = "Group"
 	KeyHealthCmd             = "HealthCmd"
@@ -69,10 +70,9 @@ const (
 	KeyHealthStartupTimeout  = "HealthStartupTimeout"
 	KeyHealthTimeout         = "HealthTimeout"
 	KeyHostName              = "HostName"
-	KeyImage                 = "Image"
 	KeyIP                    = "IP"
 	KeyIP6                   = "IP6"
-	KeyExitCodePropagation   = "ExitCodePropagation"
+	KeyImage                 = "Image"
 	KeyLabel                 = "Label"
 	KeyLogDriver             = "LogDriver"
 	KeyMask                  = "Mask"
@@ -102,13 +102,14 @@ const (
 	KeyRootfs                = "Rootfs"
 	KeyRunInit               = "RunInit"
 	KeySeccompProfile        = "SeccompProfile"
+	KeySecret                = "Secret"
 	KeySecurityLabelDisable  = "SecurityLabelDisable"
 	KeySecurityLabelFileType = "SecurityLabelFileType"
 	KeySecurityLabelLevel    = "SecurityLabelLevel"
 	KeySecurityLabelNested   = "SecurityLabelNested"
 	KeySecurityLabelType     = "SecurityLabelType"
-	KeySecret                = "Secret"
 	KeySetWorkingDirectory   = "SetWorkingDirectory"
+	KeyShmSize               = "ShmSize"
 	KeySysctl                = "Sysctl"
 	KeyTimezone              = "Timezone"
 	KeyTmpfs                 = "Tmpfs"
@@ -179,6 +180,7 @@ var (
 		KeySecurityLabelLevel:    true,
 		KeySecurityLabelNested:   true,
 		KeySecurityLabelType:     true,
+		KeyShmSize:               true,
 		KeySysctl:                true,
 		KeyTimezone:              true,
 		KeyTmpfs:                 true,
@@ -491,6 +493,11 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 	addCaps := container.LookupAllStrv(ContainerGroup, KeyAddCapability)
 	for _, caps := range addCaps {
 		podman.addf("--cap-add=%s", strings.ToLower(caps))
+	}
+
+	shmSize, hasShmSize := container.Lookup(ContainerGroup, KeyShmSize)
+	if hasShmSize {
+		podman.addf("--shm-size=%s", shmSize)
 	}
 
 	sysctl := container.LookupAllStrv(ContainerGroup, KeySysctl)
