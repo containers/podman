@@ -13,7 +13,7 @@ Note: **N/A** means that the option cannot be supported in a single-node Podman 
 | imagePullSecrets                                    | no      |
 | enableServiceLinks                                  | no      |
 | os\.name                                            | no      |
-| volumes                                             | no      |
+| volumes                                             | ✅      |
 | nodeSelector                                        | N/A     |
 | nodeName                                            | N/A     |
 | affinity\.nodeAffinity                              | N/A     |
