@@ -136,10 +136,8 @@ func imagePull(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("tls-verify") {
 		pullOptions.SkipTLSVerify = types.NewOptionalBool(!pullOptions.TLSVerifyCLI)
 	}
-	if pullOptions.Authfile != "" {
-		if _, err := os.Stat(pullOptions.Authfile); err != nil {
-			return err
-		}
+	if err := auth.CheckAuthFile(pullOptions.Authfile); err != nil {
+		return err
 	}
 	platform, err := cmd.Flags().GetString("platform")
 	if err != nil {

@@ -1158,4 +1158,35 @@ EOF
     run_podman rm -f -t0 $ctr
 }
 
+@test "podman --authfile=/tmp/bogus " {
+    bogus=$PODMAN_TMPDIR/bogus-authfile
+    for command in "run" "create" "pull" "push" "manifest push" "manifest add" "container runlabel"; do
+        if is_remote -a $command -eq "container runlabel"; then
+           continue
+        fi
+        run_podman 125 $command --authfile=$bogus $IMAGE argument
+        is "$output" "Error: checking authfile: stat $bogus: no such file or directory" "$command should fail with not such file"
+    done
+
+    for command in "search" "manifest inspect" "logout" "image sign"; do
+        if is_remote -a $command -eq "image sign"; then
+           continue
+        fi
+
+        run_podman 125 $command --authfile=$bogus $IMAGE
+        is "$output" "Error: checking authfile: stat $bogus: no such file or directory" "$command should fail with not such file"
+    done
+
+    if !is_remote; then
+        for command in "auto-update"; do
+            run_podman 125 $command --authfile=$bogus
+            is "$output" "Error: checking authfile: stat $bogus: no such file or directory" "$command should fail with not such file"
+        done
+    fi
+
+    touch $PODMAN_TMPDIR/Containerfile
+    run_podman 125 build --authfile=$bogus $PODMAN_TMPDIR
+    is "$output" "Error: checking authfile: stat $bogus: no such file or directory" "build should fail with not such file"
+}
+
 # vim: filetype=sh

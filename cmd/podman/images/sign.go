@@ -56,6 +56,9 @@ func init() {
 }
 
 func sign(cmd *cobra.Command, args []string) error {
+	if err := auth.CheckAuthFile(signOptions.Authfile); err != nil {
+		return err
+	}
 	if signOptions.SignBy == "" {
 		return errors.New("please provide an identity")
 	}

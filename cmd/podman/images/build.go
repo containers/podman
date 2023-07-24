@@ -363,6 +363,10 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		}
 	}
 
+	if err := auth.CheckAuthFile(flags.Authfile); err != nil {
+		return nil, err
+	}
+
 	commonOpts, err := parse.CommonBuildOptions(c)
 	if err != nil {
 		return nil, err
@@ -396,12 +400,6 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 
 	if flags.PullNever || strings.EqualFold(strings.TrimSpace(flags.Pull), "never") {
 		pullPolicy = buildahDefine.PullNever
-	}
-
-	if c.Flag("authfile").Changed {
-		if err := auth.CheckAuthFile(flags.Authfile); err != nil {
-			return nil, err
-		}
 	}
 
 	var cleanTmpFile bool

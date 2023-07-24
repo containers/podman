@@ -217,10 +217,8 @@ func play(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("build") {
 		playOptions.Build = types.NewOptionalBool(playOptions.BuildCLI)
 	}
-	if playOptions.Authfile != "" {
-		if _, err := os.Stat(playOptions.Authfile); err != nil {
-			return err
-		}
+	if err := auth.CheckAuthFile(playOptions.Authfile); err != nil {
+		return err
 	}
 	if playOptions.ContextDir != "" && playOptions.Build != types.OptionalBoolTrue {
 		return errors.New("--build must be specified when using --context-dir option")

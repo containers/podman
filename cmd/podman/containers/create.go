@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/pkg/cli"
+	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/config"
 	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/image/v5/transports/alltransports"
@@ -154,6 +155,11 @@ func create(cmd *cobra.Command, args []string) error {
 		}
 		imageName = name
 	}
+
+	if err := auth.CheckAuthFile(cliVals.Authfile); err != nil {
+		return err
+	}
+
 	s := specgen.NewSpecGenerator(imageName, cliVals.RootFS)
 	if err := specgenutil.FillOutSpecGen(s, &cliVals, args); err != nil {
 		return err

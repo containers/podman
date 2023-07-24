@@ -138,10 +138,8 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 		searchOptions.SkipTLSVerify = types.NewOptionalBool(!searchOptions.TLSVerifyCLI)
 	}
 
-	if searchOptions.Authfile != "" {
-		if _, err := os.Stat(searchOptions.Authfile); err != nil {
-			return err
-		}
+	if err := auth.CheckAuthFile(searchOptions.Authfile); err != nil {
+		return err
 	}
 
 	if searchOptions.CredentialsCLI != "" {
