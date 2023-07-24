@@ -503,6 +503,13 @@ $(MANPAGES): %: %.md .install.md2man docdir
 	@if grep 'included file options/' docs/build/man/*; then \
 		echo "FATAL: man pages must not contain ^^^^"; exit 1; \
 	fi
+	@#
+	@# *** SUPER-IMPORTANT RHEL8 NOTE! THIS TEST WILL FAIL ON RHEL8! ***
+	@# *** As of 2023-07-24, RHEL-8.9 has go-md2man-2.00 which generates
+	@# *** corrupt tables. The bugs are fixed in 2.02, which will probably
+	@# *** never get into RHEL8, so the least-worst solution is simply
+	@# *** to remove the next few lines when building on RHEL8.
+	@# ***   See https://github.com/containers/podman/pull/18678
 	@if man -l $(subst source/markdown,build/man,$@) | grep -Pazoq '│\s+│\n\s+├─+┼─+┤\n\s+│\s+│'; then  \
 		echo "FATAL: $< has a too-long table column; use 'man -l $(subst source/markdown,build/man,$@)' and look for empty table cells."; exit 1; \
 	fi
