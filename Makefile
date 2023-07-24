@@ -145,7 +145,7 @@ override undefine GOBIN
 # This must never include the 'hack' directory
 export PATH := $(shell $(GO) env GOPATH)/bin:$(PATH)
 
-GOMD2MAN ?= $(shell command -v go-md2man || echo './test/tools/build/go-md2man')
+GOMD2MAN ?= ./test/tools/build/go-md2man
 
 CROSS_BUILD_TARGETS := \
 	bin/podman.cross.linux.amd64 \
@@ -954,7 +954,7 @@ install.tools: .install.golangci-lint ## Install needed tools
 .PHONY: .install.md2man
 .install.md2man:
 	if [ ! -x "$(GOMD2MAN)" ]; then \
-		$(MAKE) -C test/tools build/go-md2man ; \
+		$(MAKE) -C test/tools build/go-md2man GOOS=$(NATIVE_GOOS) GOARCH=$(NATIVE_GOARCH); \
 	fi
 
 .PHONY: .install.pre-commit
