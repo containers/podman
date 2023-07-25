@@ -67,6 +67,31 @@ type HyperVMachine struct {
 	LastUp time.Time
 }
 
+func (m *HyperVMachine) addSSHConnectionsToPodmanSocket(opts machine.InitOptions) error {
+	if len(opts.IgnitionPath) < 1 {
+		uri := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, fmt.Sprintf("/run/user/%d/podman/podman.sock", m.UID), strconv.Itoa(m.Port), m.RemoteUsername)
+		uriRoot := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, "/run/podman/podman.sock", strconv.Itoa(m.Port), "root")
+
+		uris := []url.URL{uri, uriRoot}
+		names := []string{m.Name, m.Name + "-root"}
+
+		// The first connection defined when connections is empty will become the default
+		// regardless of IsDefault, so order according to rootful
+		if opts.Rootful {
+			uris[0], names[0], uris[1], names[1] = uris[1], names[1], uris[0], names[0]
+		}
+
+		for i := 0; i < 2; i++ {
+			if err := machine.AddConnection(&uris[i], names[i], m.IdentityPath, opts.IsDefault && i == 0); err != nil {
+				return err
+			}
+		}
+	} else {
+		fmt.Println("An ignition path was provided.  No SSH connection was added to Podman")
+	}
+	return nil
+}
+
 func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	var (
 		key string
@@ -98,27 +123,10 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	}
 	m.Port = sshPort
 
-	if len(opts.IgnitionPath) < 1 {
-		uri := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, fmt.Sprintf("/run/user/%d/podman/podman.sock", m.UID), strconv.Itoa(m.Port), m.RemoteUsername)
-		uriRoot := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, "/run/podman/podman.sock", strconv.Itoa(m.Port), "root")
-
-		uris := []url.URL{uri, uriRoot}
-		names := []string{m.Name, m.Name + "-root"}
-
-		// The first connection defined when connections is empty will become the default
-		// regardless of IsDefault, so order according to rootful
-		if opts.Rootful {
-			uris[0], names[0], uris[1], names[1] = uris[1], names[1], uris[0], names[0]
-		}
-
-		for i := 0; i < 2; i++ {
-			if err := machine.AddConnection(&uris[i], names[i], m.IdentityPath, opts.IsDefault && i == 0); err != nil {
-				return false, err
-			}
-		}
-	} else {
-		fmt.Println("An ignition path was provided.  No SSH connection was added to Podman")
+	if err := m.addSSHConnectionsToPodmanSocket(opts); err != nil {
+		return false, err
 	}
+
 	if len(opts.IgnitionPath) < 1 {
 		var err error
 		key, err = machine.CreateSSHKeys(m.IdentityPath)
