@@ -323,6 +323,25 @@ func (m *HyperVMachine) Inspect() (*machine.InspectInfo, error) {
 	}, nil
 }
 
+func (m *HyperVMachine) collectFilesToDestroy(opts machine.RemoveOptions, diskPath *string) []string {
+	files := []string{}
+
+	if !opts.SaveKeys {
+		files = append(files, m.IdentityPath, m.IdentityPath+".pub")
+	}
+	if !opts.SaveIgnition {
+		files = append(files, m.IgnitionFile.GetPath())
+	}
+
+	if !opts.SaveImage {
+		*diskPath = m.ImagePath.GetPath()
+		files = append(files, *diskPath)
+	}
+
+	files = append(files, getVMConfigPath(m.ConfigPath.GetPath(), m.Name))
+	return files
+}
+
 func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, func() error, error) {
 	var (
 		files    []string
@@ -344,19 +363,8 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 	}
 
 	// Collect all the files that need to be destroyed
-	if !opts.SaveKeys {
-		files = append(files, m.IdentityPath, m.IdentityPath+".pub")
-	}
-	if !opts.SaveIgnition {
-		files = append(files, m.IgnitionFile.GetPath())
-	}
+	files = m.collectFilesToDestroy(opts, &diskPath)
 
-	if !opts.SaveImage {
-		diskPath = m.ImagePath.GetPath()
-		files = append(files, diskPath)
-	}
-
-	files = append(files, getVMConfigPath(m.ConfigPath.GetPath(), m.Name))
 	confirmationMessage := "\nThe following files will be deleted:\n\n"
 	for _, msg := range files {
 		confirmationMessage += msg + "\n"
