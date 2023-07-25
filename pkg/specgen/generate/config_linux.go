@@ -193,7 +193,7 @@ func ParseDevice(device string) (string, string, string, error) {
 		if IsValidDeviceMode(arr[1]) {
 			permissions = arr[1]
 		} else {
-			if arr[1][0] != '/' {
+			if len(arr[1]) > 0 && arr[1][0] != '/' {
 				return "", "", "", fmt.Errorf("invalid device mode: %s", arr[1])
 			}
 			dst = arr[1]
