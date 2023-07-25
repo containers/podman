@@ -353,6 +353,18 @@ func (m *HyperVMachine) removeFilesAndConnections(files []string) {
 	}
 }
 
+func (m *HyperVMachine) removeNetworkAndReadySocketsFromRegistry() {
+	// Remove the HVSOCK for networking
+	if err := m.NetworkHVSock.Remove(); err != nil {
+		logrus.Errorf("unable to remove registry entry for %s: %q", m.NetworkHVSock.KeyName, err)
+	}
+
+	// Remove the HVSOCK for events
+	if err := m.ReadyHVSock.Remove(); err != nil {
+		logrus.Errorf("unable to remove registry entry for %s: %q", m.ReadyHVSock.KeyName, err)
+	}
+}
+
 func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, func() error, error) {
 	var (
 		files    []string
@@ -384,16 +396,7 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 	confirmationMessage += "\n"
 	return confirmationMessage, func() error {
 		m.removeFilesAndConnections(files)
-
-		// Remove the HVSOCK for networking
-		if err := m.NetworkHVSock.Remove(); err != nil {
-			logrus.Errorf("unable to remove registry entry for %s: %q", m.NetworkHVSock.KeyName, err)
-		}
-
-		// Remove the HVSOCK for events
-		if err := m.ReadyHVSock.Remove(); err != nil {
-			logrus.Errorf("unable to remove registry entry for %s: %q", m.NetworkHVSock.KeyName, err)
-		}
+		m.removeNetworkAndReadySocketsFromRegistry()
 		return vm.Remove(diskPath)
 	}, nil
 }
