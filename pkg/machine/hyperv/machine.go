@@ -67,6 +67,21 @@ type HyperVMachine struct {
 	LastUp time.Time
 }
 
+func (m *HyperVMachine) addNetworkAndReadySocketsToRegistry() error {
+	// Add the network and ready sockets to the Windows registry
+	networkHVSock, err := NewHVSockRegistryEntry(m.Name, Network)
+	if err != nil {
+		return false, err
+	}
+	eventHVSocket, err := NewHVSockRegistryEntry(m.Name, Events)
+	if err != nil {
+		return false, err
+	}
+	m.NetworkHVSock = *networkHVSock
+	m.ReadyHVSock = *eventHVSocket
+	return nil
+}
+
 func (m *HyperVMachine) addSSHConnectionsToPodmanSocket(opts machine.InitOptions) error {
 	if len(opts.IgnitionPath) < 1 {
 		uri := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, fmt.Sprintf("/run/user/%d/podman/podman.sock", m.UID), strconv.Itoa(m.Port), m.RemoteUsername)
@@ -97,17 +112,10 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 		key string
 	)
 
-	// Add the network and ready sockets to the Windows registry
-	networkHVSock, err := NewHVSockRegistryEntry(m.Name, Network)
-	if err != nil {
+	if err := m.addNetworkAndReadySocketsToRegistry(); err != nil {
 		return false, err
 	}
-	eventHVSocket, err := NewHVSockRegistryEntry(m.Name, Events)
-	if err != nil {
-		return false, err
-	}
-	m.NetworkHVSock = *networkHVSock
-	m.ReadyHVSock = *eventHVSocket
+
 	m.IdentityPath = util.GetIdentityPath(m.Name)
 
 	// TODO This needs to be fixed in c-common
