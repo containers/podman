@@ -342,6 +342,17 @@ func (m *HyperVMachine) collectFilesToDestroy(opts machine.RemoveOptions, diskPa
 	return files
 }
 
+func (m *HyperVMachine) removeFilesAndConnections(files []string) {
+	for _, f := range files {
+		if err := os.Remove(f); err != nil && !errors.Is(err, os.ErrNotExist) {
+			logrus.Error(err)
+		}
+	}
+	if err := machine.RemoveConnections(m.Name, m.Name+"-root"); err != nil {
+		logrus.Error(err)
+	}
+}
+
 func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, func() error, error) {
 	var (
 		files    []string
@@ -372,14 +383,7 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 
 	confirmationMessage += "\n"
 	return confirmationMessage, func() error {
-		for _, f := range files {
-			if err := os.Remove(f); err != nil && !errors.Is(err, os.ErrNotExist) {
-				logrus.Error(err)
-			}
-		}
-		if err := machine.RemoveConnections(m.Name, m.Name+"-root"); err != nil {
-			logrus.Error(err)
-		}
+		m.removeFilesAndConnections(files)
 
 		// Remove the HVSOCK for networking
 		if err := m.NetworkHVSock.Remove(); err != nil {
