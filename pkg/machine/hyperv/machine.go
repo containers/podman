@@ -107,72 +107,7 @@ func (m *HyperVMachine) addSSHConnectionsToPodmanSocket(opts machine.InitOptions
 	return nil
 }
 
-func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
-	var (
-		key string
-	)
-
-	if err := m.addNetworkAndReadySocketsToRegistry(); err != nil {
-		return false, err
-	}
-
-	m.IdentityPath = util.GetIdentityPath(m.Name)
-
-	// TODO This needs to be fixed in c-common
-	m.RemoteUsername = "core"
-
-	if m.UID == 0 {
-		m.UID = 1000
-	}
-
-	sshPort, err := utils.GetRandomPort()
-	if err != nil {
-		return false, err
-	}
-	m.Port = sshPort
-
-	if err := m.addSSHConnectionsToPodmanSocket(opts); err != nil {
-		return false, err
-	}
-
-	if len(opts.IgnitionPath) < 1 {
-		var err error
-		key, err = machine.CreateSSHKeys(m.IdentityPath)
-		if err != nil {
-			return false, err
-		}
-	}
-
-	m.ResourceConfig = machine.ResourceConfig{
-		CPUs:     opts.CPUS,
-		DiskSize: opts.DiskSize,
-		Memory:   opts.Memory,
-	}
-
-	// If the user provides an ignition file, we need to
-	// copy it into the conf dir
-	if len(opts.IgnitionPath) > 0 {
-		inputIgnition, err := os.ReadFile(opts.IgnitionPath)
-		if err != nil {
-			return false, err
-		}
-		return false, os.WriteFile(m.IgnitionFile.GetPath(), inputIgnition, 0644)
-	}
-
-	// Write the JSON file for the second time.  First time was in NewMachine
-	if err := m.writeConfig(); err != nil {
-		return false, err
-	}
-
-	// c/common sets the default machine user for "windows" to be "user"; this
-	// is meant for the WSL implementation that does not use FCOS.  For FCOS,
-	// however, we want to use the DefaultIgnitionUserName which is currently
-	// "core"
-	user := opts.Username
-	if user == "user" {
-		user = machine.DefaultIgnitionUserName
-	}
-	// Write the ignition file
+func (m *HyperVMachine) writeIgnitionConfigFile(opts machine.InitOptions, user, key string) error {
 	ign := machine.DynamicIgnition{
 		Name:      user,
 		Key:       key,
@@ -184,7 +119,7 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	}
 
 	if err := ign.GenerateIgnitionConfig(); err != nil {
-		return false, err
+		return err
 	}
 
 	// ready is a unit file that sets up the virtual serial device
@@ -264,7 +199,76 @@ method=auto
 		},
 	})
 
-	if err := ign.Write(); err != nil {
+	return ign.Write()
+}
+
+func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
+	var (
+		key string
+	)
+
+	if err := m.addNetworkAndReadySocketsToRegistry(); err != nil {
+		return false, err
+	}
+
+	m.IdentityPath = util.GetIdentityPath(m.Name)
+
+	// TODO This needs to be fixed in c-common
+	m.RemoteUsername = "core"
+
+	if m.UID == 0 {
+		m.UID = 1000
+	}
+
+	sshPort, err := utils.GetRandomPort()
+	if err != nil {
+		return false, err
+	}
+	m.Port = sshPort
+
+	if err := m.addSSHConnectionsToPodmanSocket(opts); err != nil {
+		return false, err
+	}
+
+	if len(opts.IgnitionPath) < 1 {
+		var err error
+		key, err = machine.CreateSSHKeys(m.IdentityPath)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	m.ResourceConfig = machine.ResourceConfig{
+		CPUs:     opts.CPUS,
+		DiskSize: opts.DiskSize,
+		Memory:   opts.Memory,
+	}
+
+	// If the user provides an ignition file, we need to
+	// copy it into the conf dir
+	if len(opts.IgnitionPath) > 0 {
+		inputIgnition, err := os.ReadFile(opts.IgnitionPath)
+		if err != nil {
+			return false, err
+		}
+		return false, os.WriteFile(m.IgnitionFile.GetPath(), inputIgnition, 0644)
+	}
+
+	// Write the JSON file for the second time.  First time was in NewMachine
+	if err := m.writeConfig(); err != nil {
+		return false, err
+	}
+
+	// c/common sets the default machine user for "windows" to be "user"; this
+	// is meant for the WSL implementation that does not use FCOS.  For FCOS,
+	// however, we want to use the DefaultIgnitionUserName which is currently
+	// "core"
+	user := opts.Username
+	if user == "user" {
+		user = machine.DefaultIgnitionUserName
+	}
+	// Write the ignition file
+	if err := m.writeIgnitionConfigFile(opts, key, user); err != nil {
 		return false, err
 	}
 	// The ignition file has been written. We now need to
