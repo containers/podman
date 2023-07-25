@@ -15,7 +15,7 @@ VM's that use OS's that use rpm-ostreee have the capability to rebase itself fro
 
 By default, Podman machines on Mac and Linux use an rpm-ostree based distribution (Fedora CoreOS).
 
-For more information, please see the [rpm-ostree docs](https://coreos.github.io/rpm-ostree/container/).
+For more information, see the [rpm-ostree documentation](https://coreos.github.io/rpm-ostree/container/).
 
 The default machine name is `podman-machine-default`. If a machine name is not specified as an argument,
 then the OS changes will be applied to `podman-machine-default`.

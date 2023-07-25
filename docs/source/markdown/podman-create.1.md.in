@@ -518,7 +518,7 @@ run in detached mode (backgrounded), so Podman can exit but conmon continues to
 run.  Each container has their own instance of conmon. Conmon waits for the
 container to exit, gathers and saves the exit code, and then launches a Podman
 process to complete the container cleanup, by shutting down the network and
-storage.   For more information on conmon, please reference the conmon(8) man
+storage.   For more information about conmon, see the conmon(8) man
 page.
 
 ## FILES

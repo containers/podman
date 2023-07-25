@@ -148,7 +148,7 @@ The default is **false**.
 Replaces the ports that the *container* publishes, as configured during the
 initial *container* start, with a new set of port forwarding rules.
 
-For more details please see **[podman run --publish](podman-run.1.md#--publish)**.
+For more details, see **[podman run --publish](podman-run.1.md#--publish)**.
 
 #### **--tcp-established**
 
