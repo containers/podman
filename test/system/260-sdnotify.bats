@@ -184,6 +184,65 @@ READY=1"
     _stop_socat
 }
 
+# These tests can fail in dev. environment because of SELinux.
+# quick fix: chcon -t container_runtime_exec_t ./bin/podman
+@test "sdnotify : healthy" {
+    export NOTIFY_SOCKET=$PODMAN_TMPDIR/container.sock
+    _start_socat
+
+    wait_file="$PODMAN_TMPDIR/$(random_string).wait_for_me"
+    run_podman 125 create --sdnotify=healthy $IMAGE
+    is "$output" "Error: invalid argument: sdnotify policy \"healthy\" requires a healthcheck to be set"
+
+    # Create a container with a simple `/bin/true` healthcheck that we need to
+    # run manually.
+    ctr=$(random_string)
+    run_podman create --name $ctr     \
+            --health-cmd=/bin/true    \
+            --health-retries=1        \
+            --health-interval=disable \
+            --sdnotify=healthy        \
+            $IMAGE sleep infinity
+
+    # Start the container in the background which will block until the
+    # container turned healthy.  After that, create the wait_file which
+    # indicates that start has returned.
+    (timeout --foreground -v --kill=5 20 $PODMAN start $ctr && touch $wait_file) &
+
+    run_podman wait --condition=running $ctr
+
+    # Make sure that the MAINPID is set but without the READY message.
+    run_podman container inspect $ctr --format "{{.State.ConmonPid}}"
+    mainPID="$output"
+    # With container, READY=1 isn't necessarily the last message received;
+    # just look for it anywhere in received messages
+    run cat $_SOCAT_LOG
+    # The 'echo's help us debug failed runs
+    echo "socat log:"
+    echo "$output"
+
+    is "$output" "MAINPID=$mainPID" "Container is not healthy yet, so we only know the main PID"
+
+    # Now run the healthcheck and look for the READY message.
+    run_podman healthcheck run $ctr
+    is "$output" "" "output from 'podman healthcheck run'"
+
+    # Wait for start to return.  At that point the READY message must have been
+    # sent.
+    wait_for_file $wait_file
+    run cat $_SOCAT_LOG
+    echo "socat log:"
+    echo "$output"
+    is "$output" "MAINPID=$mainPID
+READY=1"
+
+    run_podman container inspect  --format "{{.State.Status}}" $ctr
+    is "$output" "running" "make sure container is still running"
+
+    run_podman rm -f -t0 $ctr
+    _stop_socat
+}
+
 @test "sdnotify : play kube - no policies" {
     # Create the YAMl file
     yaml_source="$PODMAN_TMPDIR/test.yaml"

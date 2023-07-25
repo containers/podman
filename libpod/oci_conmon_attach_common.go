@@ -4,6 +4,7 @@
 package libpod
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -86,7 +87,7 @@ func (r *ConmonOCIRuntime) Attach(c *Container, params *AttachOptions) error {
 	// If starting was requested, start the container and notify when that's
 	// done.
 	if params.Start {
-		if err := c.start(); err != nil {
+		if err := c.start(context.TODO()); err != nil {
 			return err
 		}
 		params.Started <- true
