@@ -605,6 +605,23 @@ func loadMacMachineFromJSON(fqConfigPath string, macMachine *HyperVMachine) erro
 	return json.Unmarshal(b, macMachine)
 }
 
+func getDevNullFiles() (*os.File, *os.File, error) {
+	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	dnw, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
+	if err != nil {
+		if e := dnr.Close(); e != nil {
+			err = e
+		}
+		return nil, nil, err
+	}
+
+	return dnr, dnw, nil
+}
+
 func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingState, error) {
 	var (
 		forwardSock string
@@ -616,11 +633,7 @@ func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingStat
 	}
 
 	attr := new(os.ProcAttr)
-	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
-	if err != nil {
-		return "", machine.NoForwarding, err
-	}
-	dnw, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
+	dnr, dnw, err := getDevNullFiles()
 	if err != nil {
 		return "", machine.NoForwarding, err
 	}
