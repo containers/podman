@@ -202,7 +202,7 @@ endif
 endif
 
 # win-sshproxy is checked out manually to keep from pulling in gvisor and it's transitive
-# dependencies. This is only used for the Windows installer task (podman.msi), which must
+# dependencies. This is only used for the Windows client archives, which must
 # include this lightweight helper binary.
 #
 GV_GITURL=https://github.com/containers/gvisor-tap-vsock.git
@@ -769,22 +769,6 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then $(MAKE) clean-binaries; fi
 	-rm -rf "$(TMPDIR)"
 
-podman.msi: test/version/version  ## Build podman-remote, package for installation on Windows
-	$(MAKE) podman-v$(call err_if_empty,RELEASE_NUMBER).msi
-	cp podman-v$(call err_if_empty,RELEASE_NUMBER).msi podman.msi
-
-podman-v%.msi: test/version/version
-# Passing explicitly OS and ARCH, because ARM is not supported by wixl https://gitlab.gnome.org/GNOME/msitools/-/blob/master/tools/wixl/builder.vala#L3
-	$(MAKE) GOOS=windows GOARCH=amd64 podman-remote-windows-docs
-	$(MAKE) GOOS=windows GOARCH=amd64 clean-binaries podman-remote podman-winpath win-gvproxy
-	$(eval DOCFILE := docs/build/remote/windows)
-	find $(DOCFILE) -print | \
-		wixl-heat --var var.ManSourceDir --component-group ManFiles \
-		--directory-ref INSTALLDIR --prefix $(DOCFILE)/ > \
-			$(DOCFILE)/pages.wsx
-	wixl -D VERSION=$(call err_if_empty,RELEASE_VERSION) -D ManSourceDir=$(DOCFILE) \
-		-o $@ contrib/msi/podman.wxs $(DOCFILE)/pages.wsx --arch x64
-
 # Checks out and builds win-sshproxy helper. See comment on GV_GITURL declaration
 .PHONY: win-gvproxy
 win-gvproxy: test/version/version
@@ -993,9 +977,7 @@ release-artifacts: clean-binaries
 	$(MAKE) podman-remote-static-linux_arm64
 	tar -cvzf podman-remote-static-linux_arm64.tar.gz bin/podman-remote-static-linux_arm64
 	mv podman-remote-static-linux*.tar.gz release/
-	$(MAKE) podman.msi
-	mv podman-v*.msi release/
-	cd release/; sha256sum *.zip *.tar.gz *.msi > shasums
+	cd release/; sha256sum *.zip *.tar.gz > shasums
 
 .PHONY: uninstall
 uninstall:
