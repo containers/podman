@@ -26,3 +26,7 @@ func getLibpodTmpDir() string {
 func getDefaultMachineVolumes() []string {
 	return []string{"$HOME:$HOME"}
 }
+
+func getDefaultComposeProviders() []string {
+	return defaultUnixComposeProviders
+}

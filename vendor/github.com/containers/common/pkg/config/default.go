@@ -87,6 +87,16 @@ var (
 	// should be set during link-time, if different packagers put their
 	// helper binary in a different location.
 	additionalHelperBinariesDir string
+
+	defaultUnixComposeProviders = []string{
+		"docker-compose",
+		"$HOME/.docker/cli-plugins/docker-compose",
+		"/usr/local/lib/docker/cli-plugins/docker-compose",
+		"/usr/local/libexec/docker/cli-plugins/docker-compose",
+		"/usr/lib/docker/cli-plugins/docker-compose",
+		"/usr/libexec/docker/cli-plugins/docker-compose",
+		"podman-compose",
+	}
 )
 
 // nolint:unparam
@@ -260,6 +270,8 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.EventsLogFileMaxSize = eventsLogMaxSize(DefaultEventsLogSizeMax)
 
 	c.CompatAPIEnforceDockerHub = true
+	c.ComposeProviders = getDefaultComposeProviders() // may vary across supported platforms
+	c.ComposeWarningLogs = true
 
 	if path, ok := os.LookupEnv("CONTAINERS_STORAGE_CONF"); ok {
 		if err := types.SetDefaultConfigFilePath(path); err != nil {
@@ -406,6 +418,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		"runsc",
 		"youki",
 		"krun",
+		"ocijail",
 	}
 	c.RuntimeSupportsNoCgroups = []string{"crun", "krun"}
 	c.RuntimeSupportsKVM = []string{"kata", "kata-runtime", "kata-qemu", "kata-fc", "krun"}

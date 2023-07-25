@@ -276,10 +276,11 @@ done
 # When rootless use a socket path accessible by the rootless user
 if is_rootless; then
     DOCKER_SOCK="$WORKDIR/docker.sock"
-    DOCKER_HOST="unix://$DOCKER_SOCK"
-    # export DOCKER_HOST docker-compose will use it
-    export DOCKER_HOST
 fi
+
+# export DOCKER_HOST docker-compose will use it
+DOCKER_HOST="unix://$DOCKER_SOCK"
+export DOCKER_HOST
 
 # Identify the tests to run. If called with args, use those as globs.
 tests_to_run=()
@@ -331,12 +332,12 @@ for t in "${tests_to_run[@]}"; do
             trap '. teardown.sh' 0
         fi
 
-        docker-compose up -d     &> $logfile
+        podman compose up -d     &> $logfile
         docker_compose_rc=$?
         if [[ $docker_compose_rc -ne 0 ]]; then
             _show_ok 0 "$testname - up" "[ok]" "status=$docker_compose_rc"
             sed -e 's/^/#  /' <$logfile
-            docker-compose down >>$logfile 2>&1      # No status check here
+            podman compose down >>$logfile 2>&1      # No status check here
             exit 1
         fi
         _show_ok 1 "$testname - up"
@@ -354,7 +355,7 @@ for t in "${tests_to_run[@]}"; do
         fi
 
         # Done. Clean up.
-        docker-compose down     &>> $logfile
+        podman compose down     &>> $logfile
         rc=$?
         if [[ $rc -eq 0 ]]; then
             _show_ok 1 "$testname - down"

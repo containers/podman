@@ -37,6 +37,11 @@ function check_shell_completion() {
 "
 
     for cmd in $(_podman_commands "$@"); do
+        # Skip the compose command which is calling `docker-compose --help`
+        # and hence won't match the assumptions made below.
+        if [[ "$cmd" == "compose" ]]; then
+            continue
+        fi
         # Human-readable podman command string, with multiple spaces collapsed
         name="podman"
         if is_remote; then

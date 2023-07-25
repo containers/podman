@@ -266,6 +266,17 @@ type EngineConfig struct {
 	// in containers-registries.conf(5).
 	CompatAPIEnforceDockerHub bool `toml:"compat_api_enforce_docker_hub,omitempty"`
 
+	// ComposeProviders specifies one or more external providers for the
+	// compose command.  The first found provider is used for execution.
+	// Can be an absolute and relative path or a (file) name.  Make sure to
+	// expand the return items via `os.ExpandEnv`.
+	ComposeProviders []string `toml:"compose_providers,omitempty"`
+
+	// ComposeWarningLogs emits logs on each invocation of the compose
+	// command indicating that an external compose provider is being
+	// executed.
+	ComposeWarningLogs bool `toml:"compose_warning_logs,omitempty"`
+
 	// DBBackend is the database backend to be used by Podman.
 	DBBackend string `toml:"database_backend,omitempty"`
 

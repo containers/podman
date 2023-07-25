@@ -49,3 +49,8 @@ func getLibpodTmpDir() string {
 func getDefaultMachineVolumes() []string {
 	return []string{}
 }
+
+func getDefaultComposeProviders() []string {
+	// Rely on os.LookPath to do the trick on Windows.
+	return []string{"docker-compose", "podman-compose"}
+}

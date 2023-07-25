@@ -78,6 +78,11 @@ function compare_usage() {
     local cmd="$1"
     local from_man="$2"
 
+    # Special case: this is an external call to docker
+    if [[ $cmd = "podman compose" ]] || [[ $cmd = "podmansh" ]]; then
+        return
+    fi
+
     # Sometimes in CI we run before podman gets built.
     test -x ../../../bin/podman || return
 
