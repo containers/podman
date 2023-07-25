@@ -204,7 +204,7 @@ Provides: %{name}-%{name}sh = %{epoch}:%{version}-%{release}
 capabilities specified in user quadlets.
 
 It is a symlink to %{_bindir}/%{name} and execs into the `%{name}sh` container
-when `%{_bindir}/%{name}sh is set as a login shell or set as os.Args[0].
+when `%{_bindir}/%{name}sh` is set as a login shell or set as os.Args[0].
 
 %prep
 %autosetup -Sgit -n %{name}-%{version}
@@ -355,7 +355,6 @@ cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 %{_datadir}/zsh/site-functions/_%{name}-remote
 
 %files tests
-%license LICENSE
 %{_datadir}/%{name}/test
 
 %files plugins
@@ -372,8 +371,6 @@ cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 %{_libexecdir}/%{name}/gvforwarder
 
 %files -n %{name}sh
-%license LICENSE
-%doc README.md CONTRIBUTING.md install.md transfer.md
 %{_bindir}/%{name}sh
 
 %changelog
