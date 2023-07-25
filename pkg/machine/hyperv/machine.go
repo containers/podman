@@ -202,6 +202,20 @@ method=auto
 	return ign.Write()
 }
 
+func (m *HyperVMachine) readAndSplitIgnition() error {
+	ignFile, err := m.IgnitionFile.Read()
+	if err != nil {
+		return err
+	}
+	reader := bytes.NewReader(ignFile)
+
+	vm, err := hypervctl.NewVirtualMachineManager().GetMachine(m.Name)
+	if err != nil {
+		return err
+	}
+	return vm.SplitAndAddIgnition("ignition.config.", reader)
+}
+
 func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	var (
 		key string
@@ -273,17 +287,7 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	}
 	// The ignition file has been written. We now need to
 	// read it so that we can put it into key-value pairs
-	ignFile, err := m.IgnitionFile.Read()
-	if err != nil {
-		return false, err
-	}
-	reader := bytes.NewReader(ignFile)
-
-	vm, err := hypervctl.NewVirtualMachineManager().GetMachine(m.Name)
-	if err != nil {
-		return false, err
-	}
-	err = vm.SplitAndAddIgnition("ignition.config.", reader)
+	err = m.readAndSplitIgnition()
 	return err == nil, err
 }
 
