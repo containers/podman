@@ -1241,7 +1241,7 @@ func (c *Container) start(ctx context.Context) error {
 		}
 	}
 
-	defer c.newContainerEvent(events.Start)
+	c.newContainerEvent(events.Start)
 
 	if err := c.save(); err != nil {
 		return err
