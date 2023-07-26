@@ -109,6 +109,18 @@ func (v AppleHVVirtualization) LoadVMByName(name string) (machine.VM, error) {
 	return m.loadFromFile()
 }
 
+// setVMFile creates a new machine file pointing to the given path and assigns
+// it to the destination
+func setVMFile(dest *machine.VMFile, path string) error {
+	filePath, err := machine.NewMachineFile(path, nil)
+	if err != nil {
+		return err
+	}
+
+	*dest = *filePath
+	return nil
+}
+
 func (v AppleHVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	m := MacMachine{Name: opts.Name}
 
@@ -117,22 +129,18 @@ func (v AppleHVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM,
 		return nil, err
 	}
 
-	configPath, err := machine.NewMachineFile(getVMConfigPath(configDir, opts.Name), nil)
-	if err != nil {
+	if err := setVMFile(&m.ConfigPath, getVMConfigPath(configDir, opts.Name)); err != nil {
 		return nil, err
 	}
-	m.ConfigPath = *configPath
 
 	dataDir, err := machine.GetDataDir(machine.AppleHvVirt)
 	if err != nil {
 		return nil, err
 	}
 
-	ignitionPath, err := machine.NewMachineFile(filepath.Join(configDir, m.Name)+".ign", nil)
-	if err != nil {
+	if err := setVMFile(&m.IgnitionFile, filepath.Join(configDir, m.Name)+".ign"); err != nil {
 		return nil, err
 	}
-	m.IgnitionFile = *ignitionPath
 
 	// Set creation time
 	m.Created = time.Now()
