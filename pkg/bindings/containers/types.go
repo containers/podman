@@ -208,6 +208,7 @@ type StartOptions struct {
 //
 //go:generate go run ../generator/generator.go StatsOptions
 type StatsOptions struct {
+	All      *bool
 	Stream   *bool
 	Interval *int
 }
