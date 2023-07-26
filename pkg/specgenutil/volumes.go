@@ -7,6 +7,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/parse"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/specgen"
@@ -26,9 +27,9 @@ var (
 // Does not handle image volumes, init, and --volumes-from flags.
 // Can also add tmpfs mounts from read-only tmpfs.
 // TODO: handle options parsing/processing via containers/storage/pkg/mount
-func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string) ([]spec.Mount, []*specgen.NamedVolume, []*specgen.OverlayVolume, []*specgen.ImageVolume, error) {
+func parseVolumes(rtc *config.Config, volumeFlag, mountFlag, tmpfsFlag []string) ([]spec.Mount, []*specgen.NamedVolume, []*specgen.OverlayVolume, []*specgen.ImageVolume, error) {
 	// Get mounts from the --mounts flag.
-	unifiedMounts, unifiedVolumes, unifiedImageVolumes, err := Mounts(mountFlag)
+	unifiedMounts, unifiedVolumes, unifiedImageVolumes, err := Mounts(mountFlag, rtc.Mounts())
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -166,71 +167,100 @@ func findMountType(input string) (mountType string, tokens []string, err error) 
 	return
 }
 
-// Mounts takes user-provided input from the --mount flag and creates OCI
-// spec mounts and Libpod named volumes.
+// Mounts takes user-provided input from the --mount flag as well as Mounts
+// specified in containers.conf and creates OCI spec mounts and Libpod named volumes.
 // podman run --mount type=bind,src=/etc/resolv.conf,target=/etc/resolv.conf ...
 // podman run --mount type=tmpfs,target=/dev/shm ...
 // podman run --mount type=volume,source=test-volume, ...
-func Mounts(mountFlag []string) (map[string]spec.Mount, map[string]*specgen.NamedVolume, map[string]*specgen.ImageVolume, error) {
+func Mounts(mountFlag []string, configMounts []string) (map[string]spec.Mount, map[string]*specgen.NamedVolume, map[string]*specgen.ImageVolume, error) {
 	finalMounts := make(map[string]spec.Mount)
 	finalNamedVolumes := make(map[string]*specgen.NamedVolume)
 	finalImageVolumes := make(map[string]*specgen.ImageVolume)
+	parseMounts := func(mounts []string, ignoreDup bool) error {
+		for _, mount := range mounts {
+			// TODO: Docker defaults to "volume" if no mount type is specified.
+			mountType, tokens, err := findMountType(mount)
+			if err != nil {
+				return err
+			}
+			switch mountType {
+			case define.TypeBind:
+				mount, err := getBindMount(tokens)
+				if err != nil {
+					return err
+				}
+				if _, ok := finalMounts[mount.Destination]; ok {
+					if ignoreDup {
+						continue
+					}
+					return fmt.Errorf("%v: %w", mount.Destination, specgen.ErrDuplicateDest)
+				}
+				finalMounts[mount.Destination] = mount
+			case define.TypeTmpfs:
+				mount, err := getTmpfsMount(tokens)
+				if err != nil {
+					return err
+				}
+				if _, ok := finalMounts[mount.Destination]; ok {
+					if ignoreDup {
+						continue
+					}
+					return fmt.Errorf("%v: %w", mount.Destination, specgen.ErrDuplicateDest)
+				}
+				finalMounts[mount.Destination] = mount
+			case define.TypeDevpts:
+				mount, err := getDevptsMount(tokens)
+				if err != nil {
+					return err
+				}
+				if _, ok := finalMounts[mount.Destination]; ok {
+					if ignoreDup {
+						continue
+					}
+					return fmt.Errorf("%v: %w", mount.Destination, specgen.ErrDuplicateDest)
+				}
+				finalMounts[mount.Destination] = mount
+			case "image":
+				volume, err := getImageVolume(tokens)
+				if err != nil {
+					return err
+				}
+				if _, ok := finalImageVolumes[volume.Destination]; ok {
+					if ignoreDup {
+						continue
+					}
+					return fmt.Errorf("%v: %w", volume.Destination, specgen.ErrDuplicateDest)
+				}
+				finalImageVolumes[volume.Destination] = volume
+			case "volume":
+				volume, err := getNamedVolume(tokens)
+				if err != nil {
+					return err
+				}
+				if _, ok := finalNamedVolumes[volume.Dest]; ok {
+					if ignoreDup {
+						continue
+					}
+					return fmt.Errorf("%v: %w", volume.Dest, specgen.ErrDuplicateDest)
+				}
+				finalNamedVolumes[volume.Dest] = volume
+			default:
+				return fmt.Errorf("invalid filesystem type %q", mountType)
+			}
+		}
+		return nil
+	}
 
-	for _, mount := range mountFlag {
-		// TODO: Docker defaults to "volume" if no mount type is specified.
-		mountType, tokens, err := findMountType(mount)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		switch mountType {
-		case define.TypeBind:
-			mount, err := getBindMount(tokens)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-			if _, ok := finalMounts[mount.Destination]; ok {
-				return nil, nil, nil, fmt.Errorf("%v: %w", mount.Destination, specgen.ErrDuplicateDest)
-			}
-			finalMounts[mount.Destination] = mount
-		case define.TypeTmpfs:
-			mount, err := getTmpfsMount(tokens)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-			if _, ok := finalMounts[mount.Destination]; ok {
-				return nil, nil, nil, fmt.Errorf("%v: %w", mount.Destination, specgen.ErrDuplicateDest)
-			}
-			finalMounts[mount.Destination] = mount
-		case define.TypeDevpts:
-			mount, err := getDevptsMount(tokens)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-			if _, ok := finalMounts[mount.Destination]; ok {
-				return nil, nil, nil, fmt.Errorf("%v: %w", mount.Destination, specgen.ErrDuplicateDest)
-			}
-			finalMounts[mount.Destination] = mount
-		case "image":
-			volume, err := getImageVolume(tokens)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-			if _, ok := finalImageVolumes[volume.Destination]; ok {
-				return nil, nil, nil, fmt.Errorf("%v: %w", volume.Destination, specgen.ErrDuplicateDest)
-			}
-			finalImageVolumes[volume.Destination] = volume
-		case "volume":
-			volume, err := getNamedVolume(tokens)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-			if _, ok := finalNamedVolumes[volume.Dest]; ok {
-				return nil, nil, nil, fmt.Errorf("%v: %w", volume.Dest, specgen.ErrDuplicateDest)
-			}
-			finalNamedVolumes[volume.Dest] = volume
-		default:
-			return nil, nil, nil, fmt.Errorf("invalid filesystem type %q", mountType)
-		}
+	// Parse mounts passed in from the user
+	if err := parseMounts(mountFlag, false); err != nil {
+		return nil, nil, nil, err
+	}
+
+	// If user specified a mount flag that conflicts with a containers.conf flag, then ignore
+	// the duplicate. This means that the parseing of containers.conf configMounts, should always
+	// happen second.
+	if err := parseMounts(configMounts, true); err != nil {
+		return nil, nil, nil, fmt.Errorf("parsing containers.conf mounts: %w", err)
 	}
 
 	return finalMounts, finalNamedVolumes, finalImageVolumes, nil
