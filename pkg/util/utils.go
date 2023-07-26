@@ -167,6 +167,17 @@ func StringMatchRegexSlice(s string, re []string) bool {
 	return false
 }
 
+// IndexOfStringInSlice returns the index if a string is in a slice, otherwise
+// it returns -1 if the string is not found
+func IndexOfStringInSlice(s string, sl []string) int {
+	for i := range sl {
+		if sl[i] == s {
+			return i
+		}
+	}
+	return -1
+}
+
 // ParseSignal parses and validates a signal name or number.
 func ParseSignal(rawSignal string) (syscall.Signal, error) {
 	// Strip off leading dash, to allow -1 or -HUP

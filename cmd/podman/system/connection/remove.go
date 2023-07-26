@@ -7,6 +7,7 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/system"
+	"github.com/containers/podman/v4/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -59,6 +60,13 @@ func rm(cmd *cobra.Command, args []string) error {
 			}
 		}
 		cfg.Engine.ActiveService = ""
+
+		// Clear all the connections in any existing farms
+		if cfg.Farms.List != nil {
+			for k := range cfg.Farms.List {
+				cfg.Farms.List[k] = []string{}
+			}
+		}
 		return cfg.Write()
 	}
 
@@ -72,6 +80,16 @@ func rm(cmd *cobra.Command, args []string) error {
 
 	if cfg.Engine.ActiveService == args[0] {
 		cfg.Engine.ActiveService = ""
+	}
+
+	// If there are existing farm, remove the deleted connection that might be part of a farm
+	if cfg.Farms.List != nil {
+		for k, v := range cfg.Farms.List {
+			index := util.IndexOfStringInSlice(args[0], v)
+			if index > -1 {
+				cfg.Farms.List[k] = append(v[:index], v[index+1:]...)
+			}
+		}
 	}
 
 	return cfg.Write()
