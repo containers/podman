@@ -1158,35 +1158,46 @@ EOF
     run_podman rm -f -t0 $ctr
 }
 
-@test "podman --authfile=/tmp/bogus " {
+@test "podman --authfile=nonexistent-path" {
+    # List of commands to be tested. These all share a common authfile check.
+    #
+    # Table format is:
+    #   podman command | arguments | '-' if it does not work with podman-remote
+    tests="
+auto-update          |                  | -
+build                | $PODMAN_TMPDIR   |
+container runlabel   | $IMAGE argument  | -
+create               | $IMAGE argument  |
+image sign           | $IMAGE           | -
+kube play            | argument         |
+logout               | $IMAGE           |
+manifest add         | $IMAGE argument  |
+manifest inspect     | $IMAGE           |
+manifest push        | $IMAGE argument  |
+pull                 | $IMAGE argument  |
+push                 | $IMAGE argument  |
+run                  | $IMAGE argument  |
+search               | $IMAGE           |
+"
+
     bogus=$PODMAN_TMPDIR/bogus-authfile
-    for command in "run" "create" "pull" "push" "manifest push" "manifest add" "container runlabel"; do
-        if is_remote -a $command -eq "container runlabel"; then
-           continue
-        fi
-        run_podman 125 $command --authfile=$bogus $IMAGE argument
-        is "$output" "Error: checking authfile: stat $bogus: no such file or directory" "$command should fail with not such file"
-    done
-
-    for command in "search" "manifest inspect" "logout" "image sign"; do
-        if is_remote -a $command -eq "image sign"; then
-           continue
-        fi
-
-        run_podman 125 $command --authfile=$bogus $IMAGE
-        is "$output" "Error: checking authfile: stat $bogus: no such file or directory" "$command should fail with not such file"
-    done
-
-    if !is_remote; then
-        for command in "auto-update"; do
-            run_podman 125 $command --authfile=$bogus
-            is "$output" "Error: checking authfile: stat $bogus: no such file or directory" "$command should fail with not such file"
-        done
-    fi
-
     touch $PODMAN_TMPDIR/Containerfile
-    run_podman 125 build --authfile=$bogus $PODMAN_TMPDIR
-    is "$output" "Error: checking authfile: stat $bogus: no such file or directory" "build should fail with not such file"
+
+    while read command args local_only;do
+        # skip commands that don't work in podman-remote
+        if [[ "$local_only" = "-" ]]; then
+            if is_remote; then
+                continue
+            fi
+        fi
+
+        # parse_table gives us '' (two single quotes) for empty columns
+        if [[ "$args" = "''" ]]; then args=;fi
+
+        run_podman 125 $command --authfile=$bogus $args
+        assert "$output" = "Error: checking authfile: stat $bogus: no such file or directory" \
+           "$command --authfile=nonexistent-path"
+    done < <(parse_table "$tests")
 }
 
 # vim: filetype=sh
