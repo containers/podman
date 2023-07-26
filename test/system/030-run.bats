@@ -1180,8 +1180,12 @@ run                  | $IMAGE argument  |
 search               | $IMAGE           |
 "
 
-    bogus=$PODMAN_TMPDIR/bogus-authfile
+    # Used in build test
     touch $PODMAN_TMPDIR/Containerfile
+
+    # Auth file that will never exist, and the expected podman error message
+    bogus=$PODMAN_TMPDIR/bogus-authfile
+    expect_err="Error: checking authfile: stat $bogus: no such file or directory"
 
     while read command args local_only;do
         # skip commands that don't work in podman-remote
@@ -1194,9 +1198,22 @@ search               | $IMAGE           |
         # parse_table gives us '' (two single quotes) for empty columns
         if [[ "$args" = "''" ]]; then args=;fi
 
+        # Test with --authfile
         run_podman 125 $command --authfile=$bogus $args
-        assert "$output" = "Error: checking authfile: stat $bogus: no such file or directory" \
-           "$command --authfile=nonexistent-path"
+        assert "$output" = "$expect_err" \
+               "$command --authfile=nonexistent-path"
+
+        # Test with environment variable (with one exception that ignores env)
+        if [[ "$command" != "build" ]]; then
+            REGISTRY_AUTH_FILE=$bogus run_podman 125 $command $args
+            assert "$output" = "$expect_err" \
+                   "$command with REGISTRY_AUTH_FILE=nonexistent-path"
+
+            # ...and confirm that command-line overrides env
+            REGISTRY_AUTH_FILE="${bogus}-superbogus" run_podman 125 $command --authfile=$bogus $args
+            assert "$output" = "$expect_err" \
+                   "$command with both REGISTRY_AUTH_FILE=nonexistent-path and --authfile"
+        fi
     done < <(parse_table "$tests")
 }
 
