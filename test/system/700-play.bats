@@ -724,3 +724,13 @@ spec:
 
     run_podman kube down $pod_file
 }
+
+@test "podman kube with --authfile=/tmp/bogus" {
+    TESTDIR=$PODMAN_TMPDIR/testdir
+    mkdir -p $TESTDIR
+    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+    bogus=$PODMAN_TMPDIR/bogus-authfile
+
+    run_podman 125 kube play --authfile=$bogus - < $PODMAN_TMPDIR/test.yaml
+    is "$output" "Error: checking authfile: stat $bogus: no such file or directory" "$command should fail with not such file"
+}

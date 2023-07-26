@@ -311,10 +311,11 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman create --authfile with nonexistent authfile", func() {
-		// FIXME (#18938): this test should fail but does not!
-		session := podmanTest.Podman([]string{"create", "--authfile", "/tmp/nonexistent", "--name=foo", ALPINE})
+		bogus := filepath.Join(podmanTest.TempDir, "bogus.conf")
+		session := podmanTest.Podman([]string{"create", "--authfile", bogus, "--name=foo", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(ContainSubstring("no such file or directory"))
 	})
 
 	It("podman create --signature-policy", func() {

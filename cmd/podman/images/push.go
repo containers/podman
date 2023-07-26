@@ -173,10 +173,8 @@ func imagePush(cmd *cobra.Command, args []string) error {
 		pushOptions.SkipTLSVerify = types.NewOptionalBool(!pushOptions.TLSVerifyCLI)
 	}
 
-	if pushOptions.Authfile != "" {
-		if _, err := os.Stat(pushOptions.Authfile); err != nil {
-			return err
-		}
+	if err := auth.CheckAuthFile(pushOptions.Authfile); err != nil {
+		return err
 	}
 
 	if pushOptions.CredentialsCLI != "" {

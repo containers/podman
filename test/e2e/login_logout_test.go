@@ -169,7 +169,7 @@ var _ = Describe("Podman login and logout", func() {
 		session = podmanTest.Podman([]string{"push", "--authfile", "/tmp/nonexistent", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(Equal("Error: stat /tmp/nonexistent: no such file or directory"))
+		Expect(session.ErrorToString()).To(Equal("Error: checking authfile: stat /tmp/nonexistent: no such file or directory"))
 
 		session = podmanTest.Podman([]string{"push", "--authfile", authFile, ALPINE, testImg})
 		session.WaitWithDefaultTimeout()

@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
@@ -114,10 +115,8 @@ func run(cmd *cobra.Command, args []string) error {
 		logrus.Warnf("The input device is not a TTY. The --tty and --interactive flags might not work properly")
 	}
 
-	if af := cliVals.Authfile; len(af) > 0 {
-		if _, err := os.Stat(af); err != nil {
-			return err
-		}
+	if err := auth.CheckAuthFile(cliVals.Authfile); err != nil {
+		return err
 	}
 
 	runOpts.CIDFile = cliVals.CIDFile

@@ -44,6 +44,9 @@ func init() {
 }
 
 func inspect(cmd *cobra.Command, args []string) error {
+	if err := auth.CheckAuthFile(inspectOptions.Authfile); err != nil {
+		return err
+	}
 	if cmd.Flags().Changed("tls-verify") {
 		inspectOptions.SkipTLSVerify = types.NewOptionalBool(!tlsVerifyCLI)
 	} else if cmd.Flags().Changed("insecure") {
