@@ -13,7 +13,7 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
 	github.com/containers/buildah v1.31.1-0.20230722114901-5ece066f82c6
-	github.com/containers/common v0.55.1-0.20230724161016-2966c705a7a3
+	github.com/containers/common v0.55.1-0.20230726131109-ff8298511408
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.26.1-0.20230721194716-30c87d4a5b8d
 	github.com/containers/libhvee v0.4.0
@@ -44,7 +44,7 @@ require (
 	github.com/moby/term v0.5.0
 	github.com/nxadm/tail v1.4.8
 	github.com/onsi/ginkgo/v2 v2.11.0
-	github.com/onsi/gomega v1.27.9
+	github.com/onsi/gomega v1.27.10
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc4
 	github.com/opencontainers/runc v1.1.8
