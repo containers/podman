@@ -723,6 +723,159 @@ spec:
 status: {}
 `
 
+var daemonSetYamlTemplate = `
+apiVersion: v1
+kind: DaemonSet
+metadata:
+  creationTimestamp: "2019-07-17T14:44:08Z"
+  name: {{ .Name }}
+  labels:
+    app: {{ .Name }}
+{{ with .Labels }}
+  {{ range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+  {{ end }}
+{{ end }}
+{{ with .Annotations }}
+  annotations:
+  {{ range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+  {{ end }}
+{{ end }}
+
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Name }}
+  template:
+  {{ with .PodTemplate }}
+    metadata:
+      labels:
+        app: {{ .Name }}
+        {{- with .Labels }}{{ range $key, $value := . }}
+        {{ $key }}: {{ $value }}
+        {{- end }}{{ end }}
+      {{- with .Annotations }}
+      annotations:
+      {{- range $key, $value := . }}
+        {{ $key }}: {{ $value }}
+      {{- end }}
+      {{- end }}
+    spec:
+      restartPolicy: {{ .RestartPolicy }}
+      hostname: {{ .Hostname }}
+      hostNetwork: {{ .HostNetwork }}
+      containers:
+    {{ with .Ctrs }}
+      {{ range . }}
+      - command:
+        {{ range .Cmd }}
+        - {{.}}
+        {{ end }}
+        args:
+        {{ range .Arg }}
+        - {{.}}
+        {{ end }}
+        env:
+        - name: HOSTNAME
+        {{ range .Env }}
+        - name: {{ .Name }}
+        {{ if (eq .ValueFrom "configmap") }}
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .RefName }}
+              key: {{ .RefKey }}
+              optional: {{ .Optional }}
+        {{ end }}
+        {{ if (eq .ValueFrom "secret") }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ .RefName }}
+              key: {{ .RefKey }}
+              optional: {{ .Optional }}
+        {{ end }}
+        {{ if (eq .ValueFrom "") }}
+          value: {{ .Value }}
+        {{ end }}
+        {{ end }}
+        {{ with .EnvFrom}}
+        envFrom:
+        {{ range . }}
+        {{ if (eq .From "configmap") }}
+        - configMapRef:
+            name: {{ .Name }}
+            optional: {{ .Optional }}
+        {{ end }}
+        {{ if (eq .From "secret") }}
+        - secretRef:
+            name: {{ .Name }}
+            optional: {{ .Optional }}
+        {{ end }}
+        {{ end }}
+        {{ end }}
+        image: {{ .Image }}
+        name: {{ .Name }}
+        imagePullPolicy: {{ .PullPolicy }}
+        {{- if or .CPURequest .CPULimit .MemoryRequest .MemoryLimit }}
+        resources:
+          {{- if or .CPURequest .MemoryRequest }}
+          requests:
+            {{if .CPURequest }}cpu: {{ .CPURequest }}{{ end }}
+            {{if .MemoryRequest }}memory: {{ .MemoryRequest }}{{ end }}
+          {{- end }}
+          {{- if or .CPULimit .MemoryLimit }}
+          limits:
+            {{if .CPULimit }}cpu: {{ .CPULimit }}{{ end }}
+            {{if .MemoryLimit }}memory: {{ .MemoryLimit }}{{ end }}
+          {{- end }}
+        {{- end }}
+        {{ if .SecurityContext }}
+        securityContext:
+          allowPrivilegeEscalation: true
+          {{ if .Caps }}
+          capabilities:
+            {{ with .CapAdd }}
+            add:
+              {{ range . }}
+              - {{.}}
+              {{ end }}
+            {{ end }}
+            {{ with .CapDrop }}
+            drop:
+              {{ range . }}
+              - {{.}}
+              {{ end }}
+            {{ end }}
+          {{ end }}
+          privileged: false
+          readOnlyRootFilesystem: false
+        workingDir: /
+        volumeMounts:
+        {{ if .VolumeMount }}
+        - name: {{.VolumeName}}
+          mountPath: {{ .VolumeMountPath }}
+          readonly: {{.VolumeReadOnly}}
+        {{ end }}
+        {{ end }}
+      {{ end }}
+    {{ end }}
+    {{ with .Volumes }}
+      volumes:
+      {{ range . }}
+      - name: {{ .Name }}
+        {{- if (eq .VolumeType "HostPath") }}
+        hostPath:
+          path: {{ .HostPath.Path }}
+          type: {{ .HostPath.Type }}
+        {{- end }}
+        {{- if (eq .VolumeType "PersistentVolumeClaim") }}
+        persistentVolumeClaim:
+          claimName: {{ .PersistentVolumeClaim.ClaimName }}
+        {{- end }}
+      {{ end }}
+    {{ end }}
+{{ end }}
+`
 var deploymentYamlTemplate = `
 apiVersion: v1
 kind: Deployment
@@ -1044,6 +1197,7 @@ var (
 	defaultCtrImage       = ALPINE
 	defaultPodName        = "testPod"
 	defaultVolName        = "testVol"
+	defaultDaemonSetName  = "testDaemonSet"
 	defaultDeploymentName = "testDeployment"
 	defaultConfigMapName  = "testConfigMap"
 	defaultSecretName     = "testSecret"
@@ -1065,6 +1219,8 @@ func getKubeYaml(kind string, object interface{}) (string, error) {
 		yamlTemplate = configMapYamlTemplate
 	case "pod":
 		yamlTemplate = podYamlTemplate
+	case "daemonset":
+		yamlTemplate = daemonSetYamlTemplate
 	case "deployment":
 		yamlTemplate = deploymentYamlTemplate
 	case "persistentVolumeClaim":
@@ -1356,6 +1512,29 @@ func withHostUsers(val bool) podOption {
 }
 
 // Deployment describes the options a kube yaml can be configured at deployment level
+type DaemonSet struct {
+	Name        string
+	Labels      map[string]string
+	Annotations map[string]string
+	PodTemplate *Pod
+}
+
+func getDaemonSet(options ...daemonSetOption) *DaemonSet {
+	d := DaemonSet{
+		Name:        defaultDaemonSetName,
+		Labels:      make(map[string]string),
+		Annotations: make(map[string]string),
+		PodTemplate: getPod(),
+	}
+	for _, option := range options {
+		option(&d)
+	}
+
+	return &d
+}
+
+type daemonSetOption func(*DaemonSet)
+
 type Deployment struct {
 	Name        string
 	Replicas    int32
@@ -1397,6 +1576,16 @@ func withReplicas(replicas int32) deploymentOption {
 	return func(d *Deployment) {
 		d.Replicas = replicas
 	}
+}
+
+// getPodNameInDeployment returns the Pod object
+// with just its name set, so that it can be passed around
+// and into getCtrNameInPod for ease of testing
+func getPodNameInDaemonSet(d *DaemonSet) Pod {
+	p := Pod{}
+	p.Name = fmt.Sprintf("%s-pod", d.Name)
+
+	return p
 }
 
 // getPodNameInDeployment returns the Pod object
@@ -2949,6 +3138,23 @@ spec:
 		Expect(ctr[0].Config.Labels).To(HaveKeyWithValue("key1", ContainSubstring("value1")))
 		Expect(ctr[0].Config.Labels).To(HaveKeyWithValue("key1", ContainSubstring("value1")))
 		Expect(ctr[0].Config).To(HaveField("StopSignal", uint(51)))
+	})
+
+	It("podman play kube daemonset sanity", func() {
+		daemonset := getDaemonSet()
+		err := generateKubeYaml("daemonset", daemonset, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		podName := getPodNameInDaemonSet(daemonset)
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podName), "--format", "'{{ .Config.Entrypoint }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		// yaml's command should override the image's Entrypoint
+		Expect(inspect.OutputToString()).To(ContainSubstring(strings.Join(defaultCtrCmd, " ")))
 	})
 
 	// Deployment related tests
