@@ -832,6 +832,24 @@ func AutocompleteInspect(cmd *cobra.Command, args []string, toComplete string) (
 	return suggestions, cobra.ShellCompDirectiveNoFileComp
 }
 
+func AutoCompleteFarms(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if !validCurrentCmdLine(cmd, args, toComplete) {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	suggestions := []string{}
+	cfg, err := config.ReadCustomConfig()
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	for k := range cfg.Farms.List {
+		suggestions = append(suggestions, k)
+	}
+
+	return suggestions, cobra.ShellCompDirectiveNoFileComp
+}
+
 // AutocompleteSystemConnections - Autocomplete system connections.
 func AutocompleteSystemConnections(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if !validCurrentCmdLine(cmd, args, toComplete) {
