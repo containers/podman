@@ -768,10 +768,11 @@ Description=Get the value of percent T
 ExecStart=/bin/bash -c "echo --==%T==--"
 EOF
     systemctl daemon-reload
-    systemctl start $service
+    systemctl --wait start $service
     echo "$_LOG_PROMPT journalctl -u $service"
     run journalctl -u $service
     echo "$output"
+    assert "$output" =~ " --==.*==--" "get-percent-T unit ran to completion"
     percent_t=$(expr "$output" : ".* --==\(.*\)==--")
     # Clean up. Don't bother to systemctl-reload, service_setup does that below.
     rm -f $unitfile
