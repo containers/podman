@@ -1545,7 +1545,7 @@ func AutocompleteLogLevel(cmd *cobra.Command, args []string, toComplete string) 
 // AutocompleteSDNotify - Autocomplete sdnotify options.
 // -> "container", "conmon", "ignore"
 func AutocompleteSDNotify(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	types := []string{define.SdNotifyModeContainer, define.SdNotifyModeContainer, define.SdNotifyModeIgnore}
+	types := []string{define.SdNotifyModeConmon, define.SdNotifyModeContainer, define.SdNotifyModeHealthy, define.SdNotifyModeIgnore}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 

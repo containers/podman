@@ -113,7 +113,7 @@ func (c *Container) Start(ctx context.Context, recursive bool) (finalErr error) 
 	}
 
 	// Start the container
-	return c.start()
+	return c.start(ctx)
 }
 
 // Update updates the given container.

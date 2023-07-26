@@ -14,8 +14,6 @@ var (
 	ErrInvalidSpecConfig = errors.New("invalid configuration")
 	// SystemDValues describes the only values that SystemD can be
 	SystemDValues = []string{"true", "false", "always"}
-	// SdNotifyModeValues describes the only values that SdNotifyMode can be
-	SdNotifyModeValues = []string{define.SdNotifyModeContainer, define.SdNotifyModeConmon, define.SdNotifyModeIgnore}
 	// ImageVolumeModeValues describes the only values that ImageVolumeMode can be
 	ImageVolumeModeValues = []string{"ignore", define.TypeTmpfs, "anonymous"}
 )

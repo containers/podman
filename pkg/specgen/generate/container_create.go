@@ -601,16 +601,23 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	}
 	options = append(options, libpod.WithRestartRetries(retries), libpod.WithRestartPolicy(restartPolicy))
 
+	healthCheckSet := false
 	if s.ContainerHealthCheckConfig.HealthConfig != nil {
 		options = append(options, libpod.WithHealthCheck(s.ContainerHealthCheckConfig.HealthConfig))
 		logrus.Debugf("New container has a health check")
+		healthCheckSet = true
 	}
 	if s.ContainerHealthCheckConfig.StartupHealthConfig != nil {
 		options = append(options, libpod.WithStartupHealthcheck(s.ContainerHealthCheckConfig.StartupHealthConfig))
+		healthCheckSet = true
 	}
 
 	if s.ContainerHealthCheckConfig.HealthCheckOnFailureAction != define.HealthCheckOnFailureActionNone {
 		options = append(options, libpod.WithHealthCheckOnFailureAction(s.ContainerHealthCheckConfig.HealthCheckOnFailureAction))
+	}
+
+	if s.SdNotifyMode == define.SdNotifyModeHealthy && !healthCheckSet {
+		return nil, fmt.Errorf("%w: sdnotify policy %q requires a healthcheck to be set", define.ErrInvalidArg, s.SdNotifyMode)
 	}
 
 	if len(s.Secrets) != 0 {

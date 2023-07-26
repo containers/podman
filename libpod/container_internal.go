@@ -308,7 +308,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 			return false, err
 		}
 	}
-	if err := c.start(); err != nil {
+	if err := c.start(ctx); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -1198,11 +1198,11 @@ func (c *Container) initAndStart(ctx context.Context) (retErr error) {
 	}
 
 	// Now start the container
-	return c.start()
+	return c.start(ctx)
 }
 
 // Internal, non-locking function to start a container
-func (c *Container) start() error {
+func (c *Container) start(ctx context.Context) error {
 	if c.config.Spec.Process != nil {
 		logrus.Debugf("Starting container %s with command %v", c.ID(), c.config.Spec.Process.Args)
 	}
@@ -1214,9 +1214,11 @@ func (c *Container) start() error {
 
 	c.state.State = define.ContainerStateRunning
 
+	// Unless being ignored, set the MAINPID to conmon.
 	if c.config.SdNotifyMode != define.SdNotifyModeIgnore {
 		payload := fmt.Sprintf("MAINPID=%d", c.state.ConmonPID)
 		if c.config.SdNotifyMode == define.SdNotifyModeConmon {
+			// Also send the READY message for the "conmon" policy.
 			payload += "\n"
 			payload += daemon.SdNotifyReady
 		}
@@ -1241,7 +1243,32 @@ func (c *Container) start() error {
 
 	defer c.newContainerEvent(events.Start)
 
-	return c.save()
+	if err := c.save(); err != nil {
+		return err
+	}
+
+	if c.config.SdNotifyMode != define.SdNotifyModeHealthy {
+		return nil
+	}
+
+	// Wait for the container to turn healthy before sending the READY
+	// message.  This implies that we need to unlock and re-lock the
+	// container.
+	if !c.batched {
+		c.lock.Unlock()
+		defer c.lock.Lock()
+	}
+
+	if _, err := c.WaitForConditionWithInterval(ctx, DefaultWaitInterval, define.HealthCheckHealthy); err != nil {
+		return err
+	}
+
+	if err := notifyproxy.SendMessage(c.config.SdNotifySocket, daemon.SdNotifyReady); err != nil {
+		logrus.Errorf("Sending READY message after turning healthy: %s", err.Error())
+	} else {
+		logrus.Debugf("Notify sent successfully")
+	}
+	return nil
 }
 
 // Internal, non-locking function to stop container
@@ -1487,7 +1514,7 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (retEr
 			return err
 		}
 	}
-	return c.start()
+	return c.start(ctx)
 }
 
 // mountStorage sets up the container's root filesystem
