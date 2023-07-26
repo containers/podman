@@ -194,6 +194,8 @@ func isExtSupported(filename string) bool {
 	return ok
 }
 
+var seen = make(map[string]struct{})
+
 func loadUnitsFromDir(sourcePath string) ([]*parser.UnitFile, error) {
 	var prevError error
 	files, err := os.ReadDir(sourcePath)
@@ -205,7 +207,6 @@ func loadUnitsFromDir(sourcePath string) ([]*parser.UnitFile, error) {
 	}
 
 	var units []*parser.UnitFile
-	var seen = make(map[string]struct{})
 
 	for _, file := range files {
 		name := file.Name()
