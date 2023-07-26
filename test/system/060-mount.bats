@@ -247,4 +247,43 @@ EOF
     buildah rm $external_cid
 }
 
+@test "podman volume globs" {
+    v1a=v1_$(random_string)
+    v1b=v1_$(random_string)
+    v2=v2_$(random_string)
+    vol1a=${PODMAN_TMPDIR}/$v1a
+    vol1b=${PODMAN_TMPDIR}/$v1b
+    vol2=${PODMAN_TMPDIR}/$v2
+    touch $vol1a $vol1b $vol2
+
+    # if volumes source and dest match then pass
+    run_podman run --rm --mount type=glob,src=${PODMAN_TMPDIR}/v1\*,ro $IMAGE ls $vol1a $vol1b
+    run_podman 1 run --rm --mount source=${PODMAN_TMPDIR}/v1\*,type=glob,ro $IMAGE ls $vol2
+    is "$output" ".*No such file or directory" "$vol2 should not be mounted in the container"
+
+    run_podman 125 run --rm --mount source=${PODMAN_TMPDIR}/v3\*,type=glob,ro $IMAGE ls $vol2
+    is "$output" "Error: no file paths matching glob \"${PODMAN_TMPDIR}/v3\*\"" "Glob does not match so should throw error"
+
+    run_podman 1 run --rm --mount source=${PODMAN_TMPDIR}/v2\*,type=glob,ro,Z $IMAGE touch $vol2
+    is "$output" "touch: $vol2: Read-only file system" "Mount should be read-only"
+
+    run_podman run --rm --mount source=${PODMAN_TMPDIR}/v2\*,type=glob,ro=false,Z $IMAGE touch $vol2
+
+    run_podman run --rm --mount type=glob,src=${PODMAN_TMPDIR}/v1\*,destination=/non/existing/directory,ro $IMAGE ls /non/existing/directory
+    is "$output" ".*$v1a" "podman images --inspect should include $v1a"
+    is "$output" ".*$v1b" "podman images --inspect should include $v1b"
+
+    run_podman create --rm --mount type=glob,src=${PODMAN_TMPDIR}/v1\*,ro $IMAGE ls $vol1a $vol1b
+    cid=$output
+    run_podman container inspect $output
+    is "$output" ".*$vol1a" "podman images --inspect should include $vol1a"
+    is "$output" ".*$vol1b" "podman images --inspect should include $vol1b"
+
+    run_podman 125 run --rm --mount source=${PODMAN_TMPDIR}/v2\*,type=bind,ro=false $IMAGE touch $vol2
+    is "$output" "Error: must set volume destination" "Bind mounts require destination"
+
+    run_podman 125 run --rm --mount source=${PODMAN_TMPDIR}/v2\*,destination=/tmp/foobar, ro=false $IMAGE touch $vol2
+    is "$output" "Error: invalid reference format" "Default mounts don not support globs"
+}
+
 # vim: filetype=sh

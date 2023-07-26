@@ -468,6 +468,12 @@ $ podman run --read-only -i -t fedora /bin/bash
 $ podman run --read-only --read-only-tmpfs=false --tmpfs /run -i -t fedora /bin/bash
 ```
 
+### Exposing shared libraries inside of container as read-only using a glob
+
+```
+$ podman run --mount type=glob,src=/usr/lib64/libnvidia\*,ro=true -i -t fedora /bin/bash
+```
+
 ### Exposing log messages from the container to the host's log
 
 Bind mount the _/dev/log_ directory to have messages that are logged in the container  show up in the host's

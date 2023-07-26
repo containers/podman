@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/containers/common/pkg/config"
@@ -18,7 +19,7 @@ import (
 var (
 	errOptionArg     = errors.New("must provide an argument for option")
 	errNoDest        = errors.New("must set volume destination")
-	errInvalidSyntax = errors.New("incorrect mount format: should be --mount type=<bind|tmpfs|volume>,[src=<host-dir|volume-name>,]target=<ctr-dir>[,options]")
+	errInvalidSyntax = errors.New("incorrect mount format: should be --mount type=<bind|glob|tmpfs|volume>,[src=<host-dir|volume-name>,]target=<ctr-dir>[,options]")
 )
 
 // Parse all volume-related options in the create config into a set of mounts
@@ -196,6 +197,20 @@ func Mounts(mountFlag []string, configMounts []string) (map[string]spec.Mount, m
 					return fmt.Errorf("%v: %w", mount.Destination, specgen.ErrDuplicateDest)
 				}
 				finalMounts[mount.Destination] = mount
+			case "glob":
+				mounts, err := getGlobMounts(tokens)
+				if err != nil {
+					return err
+				}
+				for _, mount := range mounts {
+					if _, ok := finalMounts[mount.Destination]; ok {
+						if ignoreDup {
+							continue
+						}
+						return fmt.Errorf("%v: %w", mount.Destination, specgen.ErrDuplicateDest)
+					}
+					finalMounts[mount.Destination] = mount
+				}
 			case define.TypeTmpfs:
 				mount, err := getTmpfsMount(tokens)
 				if err != nil {
@@ -438,10 +453,47 @@ func parseMountOptions(mountType string, args []string) (*spec.Mount, error) {
 			return nil, fmt.Errorf("%s: %w", kv[0], util.ErrBadMntOption)
 		}
 	}
-	if len(mnt.Destination) == 0 {
+	if mountType != "glob" && len(mnt.Destination) == 0 {
 		return nil, errNoDest
 	}
 	return &mnt, nil
+}
+
+// Parse glob mounts entry from the --mount flag.
+func getGlobMounts(args []string) ([]spec.Mount, error) {
+	mounts := []spec.Mount{}
+
+	mnt, err := parseMountOptions("glob", args)
+	if err != nil {
+		return nil, err
+	}
+
+	globs, err := filepath.Glob(mnt.Source)
+	if err != nil {
+		return nil, err
+	}
+	if len(globs) == 0 {
+		return nil, fmt.Errorf("no file paths matching glob %q", mnt.Source)
+	}
+
+	options, err := parse.ValidateVolumeOpts(mnt.Options)
+	if err != nil {
+		return nil, err
+	}
+	for _, src := range globs {
+		var newMount spec.Mount
+		newMount.Type = define.TypeBind
+		newMount.Options = options
+		newMount.Source = src
+		if len(mnt.Destination) == 0 {
+			newMount.Destination = src
+		} else {
+			newMount.Destination = filepath.Join(mnt.Destination, filepath.Base(src))
+		}
+		mounts = append(mounts, newMount)
+	}
+
+	return mounts, nil
 }
 
 // Parse a single bind mount entry from the --mount flag.

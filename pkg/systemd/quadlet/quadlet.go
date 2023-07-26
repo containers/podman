@@ -664,7 +664,7 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 			paramsMap[kv[0]] = kv[1]
 		}
 		if paramType, ok := paramsMap["type"]; ok {
-			if paramType == "volume" || paramType == "bind" {
+			if paramType == "volume" || paramType == "bind" || paramType == "glob" {
 				var err error
 				if paramSource, ok := paramsMap["source"]; ok {
 					paramsMap["source"], err = handleStorageSource(container, service, paramSource, names)
