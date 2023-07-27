@@ -193,19 +193,22 @@ $ systemctl --user start echo.socket
 Test the echo server with the program __socat__
 
 ```
-$ echo hello | socat - tcp4:127.0.0.1:3000
+$ echo hello | socat -t 30 - tcp4:127.0.0.1:3000
 hello
-$ echo hello | socat - tcp6:[::1]:3000
+$ echo hello | socat -t 30 - tcp6:[::1]:3000
 hello
-$ echo hello | socat - udp4:127.0.0.1:3000
+$ echo hello | socat -t 30 - udp4:127.0.0.1:3000
 hello
-$ echo hello | socat - udp6:[::1]:3000
+$ echo hello | socat -t 30 - udp6:[::1]:3000
 hello
-$ echo hello | socat - unix:$HOME/echo_stream_sock
+$ echo hello | socat -t 30 - unix:$HOME/echo_stream_sock
 hello
-$ echo hello | socat - VSOCK-CONNECT:1:3000
+$ echo hello | socat -t 30 - VSOCK-CONNECT:1:3000
 hello
 ```
+
+The option `-t 30` configures socat to use a timeout of 30 seconds when socat reads from the socket awaiting to get an EOF (End-Of-File).
+As the container image has already been pulled, such a long timeout is not really needed.
 
 The echo server works as expected. It replies _"hello"_ after receiving the text _"hello"_.
 
