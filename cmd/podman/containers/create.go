@@ -156,8 +156,10 @@ func create(cmd *cobra.Command, args []string) error {
 		imageName = name
 	}
 
-	if err := auth.CheckAuthFile(cliVals.Authfile); err != nil {
-		return err
+	if cmd.Flags().Changed("authfile") {
+		if err := auth.CheckAuthFile(cliVals.Authfile); err != nil {
+			return err
+		}
 	}
 
 	s := specgen.NewSpecGenerator(imageName, cliVals.RootFS)

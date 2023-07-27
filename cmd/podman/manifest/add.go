@@ -93,8 +93,10 @@ func init() {
 }
 
 func add(cmd *cobra.Command, args []string) error {
-	if err := auth.CheckAuthFile(manifestAddOpts.Authfile); err != nil {
-		return err
+	if cmd.Flags().Changed("authfile") {
+		if err := auth.CheckAuthFile(manifestAddOpts.Authfile); err != nil {
+			return err
+		}
 	}
 
 	if manifestAddOpts.CredentialsCLI != "" {

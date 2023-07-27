@@ -90,8 +90,10 @@ func runlabel(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("tls-verify") {
 		runlabelOptions.SkipTLSVerify = types.NewOptionalBool(!runlabelOptions.TLSVerifyCLI)
 	}
-	if err := auth.CheckAuthFile(runlabelOptions.Authfile); err != nil {
-		return err
+	if cmd.Flags().Changed("authfile") {
+		if err := auth.CheckAuthFile(runlabelOptions.Authfile); err != nil {
+			return err
+		}
 	}
 	return registry.ContainerEngine().ContainerRunlabel(context.Background(), strings.TrimPrefix(args[0], "/"), args[1], args[2:], runlabelOptions.ContainerRunlabelOptions)
 }
