@@ -27,6 +27,7 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage/pkg/ioutils"
+	"github.com/containers/storage/pkg/lockfile"
 	"github.com/digitalocean/go-qemu/qmp"
 	"github.com/sirupsen/logrus"
 )
@@ -75,6 +76,32 @@ type MachineVM struct {
 	Created time.Time
 	// LastUp contains the last recorded uptime
 	LastUp time.Time
+
+	// User at runtime for serializing write operations.
+	lock *lockfile.LockFile
+}
+
+func (v *MachineVM) setLock() error {
+	if v.lock != nil {
+		return nil
+	}
+
+	// FIXME: there's a painful amount of `GetConfDir` calls scattered
+	// across the code base.  This should be done once and stored
+	// somewhere instead.
+	vmConfigDir, err := machine.GetConfDir(vmtype)
+	if err != nil {
+		return err
+	}
+
+	lockPath := filepath.Join(vmConfigDir, v.Name+".lock")
+	lock, err := lockfile.GetLockFile(lockPath)
+	if err != nil {
+		return fmt.Errorf("creating lockfile for VM: %w", err)
+	}
+
+	v.lock = lock
+	return nil
 }
 
 type Monitor struct {
@@ -605,6 +632,23 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 
 	defaultBackoff := 500 * time.Millisecond
 	maxBackoffs := 6
+
+	if err := v.setLock(); err != nil {
+		return err
+	}
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
+	state, err := v.State(false)
+	if err != nil {
+		return err
+	}
+	switch state {
+	case machine.Starting:
+		return fmt.Errorf("cannot start VM %q: starting state indicates that a previous start has failed: please stop and restart the VM", v.Name)
+	case machine.Running:
+		return fmt.Errorf("cannot start VM %q: %w", v.Name, machine.ErrVMAlreadyRunning)
+	}
 
 	v.Starting = true
 	if err := v.writeConfig(); err != nil {

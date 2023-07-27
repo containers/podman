@@ -215,8 +215,9 @@ func (p *QEMUVirtualization) CheckExclusiveActiveVM() (bool, string, error) {
 	if err != nil {
 		return false, "", fmt.Errorf("checking VM active: %w", err)
 	}
+	// NOTE: Start() takes care of dealing with the "starting" state.
 	for _, vm := range vms {
-		if vm.Running || vm.Starting {
+		if vm.Running {
 			return true, vm.Name, nil
 		}
 	}
