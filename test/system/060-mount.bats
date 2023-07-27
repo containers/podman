@@ -284,6 +284,14 @@ EOF
 
     run_podman 125 run --rm --mount source=${PODMAN_TMPDIR}/v2\*,destination=/tmp/foobar, ro=false $IMAGE touch $vol2
     is "$output" "Error: invalid reference format" "Default mounts don not support globs"
+
+    mkdir $PODMAN_TMPDIR/foo1 $PODMAN_TMPDIR/foo2 $PODMAN_TMPDIR/foo3
+    touch $PODMAN_TMPDIR/foo1/bar $PODMAN_TMPDIR/foo2/bar $PODMAN_TMPDIR/foo3/bar
+    touch $PODMAN_TMPDIR/foo1/bar1 $PODMAN_TMPDIR/foo2/bar2 $PODMAN_TMPDIR/foo3/bar3
+    run_podman 125 run --rm --mount type=glob,source=${PODMAN_TMPDIR}/foo?/bar,destination=/tmp $IMAGE ls -l /tmp
+    is "$output" "Error: /tmp/bar: duplicate mount destination" "Should report conflict on destination directory"
+    run_podman run --rm --mount type=glob,source=${PODMAN_TMPDIR}/foo?/bar?,destination=/tmp,ro $IMAGE ls /tmp
+    is "$output" "bar1.*bar2.*bar3" "Should match multiple source files on single destination directory"
 }
 
 # vim: filetype=sh

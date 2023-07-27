@@ -32,7 +32,14 @@ Current supported mount TYPEs are **bind**, **devpts**, **glob**, **image**, **t
 
 	      · dst, destination, target: mount destination spec.
 
-	      Paths matching globs, are mounted on the destination directory with the identical name inside the container.
+	      When source globs are specified without the destination directory,
+              the files and directories are mounted with their complete path
+	      within the container. When the destination is specified, the
+	      files and directories matching the glob on the base file name
+	      on the destination directory are mounted. The option
+	      `type=glob,src=/foo*,destination=/tmp/bar` tells container engines
+	      to mount host files matching /foo* to the /tmp/bar/
+	      directory in the container.
 
        Options specific to volume:
 
