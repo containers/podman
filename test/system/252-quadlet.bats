@@ -176,6 +176,32 @@ EOF
     service_cleanup $QUADLET_SERVICE_NAME failed
 }
 
+@test "quadlet conflict names" {
+    # If two directories in the search have files with the same name, quadlet should
+    # only process the first name
+    dir1=$PODMAN_TMPDIR/$(random_string)
+    dir2=$PODMAN_TMPDIR/$(random_string)
+    local quadlet_file=basic_$(random_string).container
+    mkdir -p $dir1 $dir2
+
+    cat > $dir1/$quadlet_file <<EOF
+[Container]
+Image=$IMAGE
+Notify=yes
+EOF
+
+    cat > $dir2/$quadlet_file <<EOF
+[Container]
+Image=$IMAGE
+Notify=no
+EOF
+    QUADLET_UNIT_DIRS="$dir1:$dir2" run \
+                    timeout --foreground -v --kill=10 $PODMAN_TIMEOUT \
+                    $QUADLET --dryrun
+    assert "$output" =~ "Notify=yes" "quadlet should show Notify=yes"
+    assert "$output" !~ "Notify=no" "quadlet should not show Notify=no"
+}
+
 @test "quadlet - envvar" {
     local quadlet_file=$PODMAN_TMPDIR/envvar_$(random_string).container
     cat > $quadlet_file <<EOF
