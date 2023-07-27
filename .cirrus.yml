@@ -1151,7 +1151,7 @@ artifacts_task:
         - cd /tmp/win
         - $ARTCURL/Windows%20Cross/repo/repo.tbz
         - tar xjf repo.tbz
-        - mv ./podman-remote*.zip ./*.msi $CIRRUS_WORKING_DIR/
+        - mv ./podman-remote*.zip $CIRRUS_WORKING_DIR/
     osx_binaries_script:
         - mkdir -p /tmp/osx
         - cd /tmp/osx
