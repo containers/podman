@@ -156,7 +156,7 @@ func (t *tempDirOCIRef) deleteTempDir() error {
 // createOCIRef creates the oci reference of the image
 // If SystemContext.BigFilesTemporaryDir not "", overrides the temporary directory to use for storing big files
 func createOCIRef(sys *types.SystemContext, image string) (tempDirOCIRef, error) {
-	dir, err := tmpdir.MkDirBigFileTemp(sys, "oci")
+	dir, err := os.MkdirTemp(tmpdir.TemporaryDirectoryForBigFiles(sys), "oci")
 	if err != nil {
 		return tempDirOCIRef{}, fmt.Errorf("creating temp directory: %w", err)
 	}

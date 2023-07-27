@@ -519,12 +519,11 @@ func getPathToAuthWithOS(sys *types.SystemContext, goOS string) (authPath, bool,
 		if sys.LegacyFormatAuthFilePath != "" {
 			return authPath{path: sys.LegacyFormatAuthFilePath, legacyFormat: true}, true, nil
 		}
-		// Note: RootForImplicitAbsolutePaths should not affect paths starting with $HOME
-		if sys.RootForImplicitAbsolutePaths != "" && goOS == "linux" {
+		if sys.RootForImplicitAbsolutePaths != "" {
 			return newAuthPathDefault(filepath.Join(sys.RootForImplicitAbsolutePaths, fmt.Sprintf(defaultPerUIDPathFormat, os.Getuid()))), false, nil
 		}
 	}
-	if goOS != "linux" {
+	if goOS == "windows" || goOS == "darwin" {
 		return newAuthPathDefault(filepath.Join(homedir.Get(), nonLinuxAuthFilePath)), false, nil
 	}
 

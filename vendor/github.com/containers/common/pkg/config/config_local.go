@@ -11,7 +11,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/container-orchestrated-devices/container-device-interface/pkg/parser"
+	"github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	units "github.com/docker/go-units"
 )
 
@@ -58,7 +58,7 @@ func (c *EngineConfig) validatePaths() error {
 
 func (c *ContainersConfig) validateDevices() error {
 	for _, d := range c.Devices {
-		if parser.IsQualifiedName(d) {
+		if cdi.IsQualifiedName(d) {
 			continue
 		}
 		_, _, _, err := Device(d)
