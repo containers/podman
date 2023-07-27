@@ -1,3 +1,8 @@
+## 1.27.10
+
+### Fixes
+- fix: go 1.21 adding goroutine ID to creator+location (#685) [bdc7803]
+
 ## 1.27.9
 
 ### Fixes

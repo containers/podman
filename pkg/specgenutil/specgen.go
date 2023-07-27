@@ -714,7 +714,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 
 	// Only add read-only tmpfs mounts in case that we are read-only and the
 	// read-only tmpfs flag has been set.
-	mounts, volumes, overlayVolumes, imageVolumes, err := parseVolumes(c.Volume, c.Mount, c.TmpFS)
+	mounts, volumes, overlayVolumes, imageVolumes, err := parseVolumes(rtc, c.Volume, c.Mount, c.TmpFS)
 	if err != nil {
 		return err
 	}

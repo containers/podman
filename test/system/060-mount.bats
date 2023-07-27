@@ -173,6 +173,50 @@ load helpers
     run_podman rm -t 0 -f $cid
 }
 
+@test "podman mount containers.conf" {
+    skip_if_remote "remote does not support CONTAINERS_CONF*"
+
+    dest=/$(random_string 30)
+    tmpfile1=$PODMAN_TMPDIR/volume-test1
+    random1=$(random_string 30)
+    echo $random1 > $tmpfile1
+
+    tmpfile2=$PODMAN_TMPDIR/volume-test2
+    random2=$(random_string 30)
+    echo $random2 > $tmpfile2
+    bogus=$(random_string 10)
+
+    mountStr1=type=bind,src=$tmpfile1,destination=$dest,ro,Z
+    mountStr2=type=bind,src=$tmpfile2,destination=$dest,ro,Z
+    containersconf=$PODMAN_TMPDIR/containers.conf
+    cat >$containersconf <<EOF
+[containers]
+mounts=[ "$mountStr1", ]
+EOF
+    badcontainersconf=$PODMAN_TMPDIR/badcontainers.conf
+    cat >$badcontainersconf <<EOF
+[containers]
+mounts=[ "type=$bogus,src=$tmpfile2,destination=$dest,ro", ]
+EOF
+
+    run_podman 1 run $IMAGE cat $dest
+    is "$output" "cat: can't open '$dest': No such file or directory" "$dest does not exist"
+
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run $IMAGE cat $dest
+    is "$output" "$random1" "file should contain $random1"
+
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --mount $mountStr2 $IMAGE cat $dest
+    is "$output" "$random2" "overridden file should contain $random2"
+
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman 125 run --mount $mountStr1 --mount $mountStr2 $IMAGE cat $dest
+    is "$output" "Error: $dest: duplicate mount destination" "Should through duplicate destination error for $dest"
+
+    CONTAINERS_CONF_OVERRIDE="$badcontainersconf" run_podman 125 run $IMAGE cat $dest
+    is "$output" "Error: parsing containers.conf mounts: invalid filesystem type \"$bogus\"" "containers.conf should fail with bad mounts entry"
+
+    run_podman rm --all --force -t 0
+}
+
 @test "podman mount external container - basic test" {
     # Only works with root (FIXME: does it work with rootless + vfs?)
     skip_if_rootless "mount does not work rootless"

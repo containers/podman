@@ -185,6 +185,9 @@ type ContainersConfig struct {
 	// Containers logs default to truncated container ID as a tag.
 	LogTag string `toml:"log_tag,omitempty"`
 
+	// Mount to add to all containers
+	Mounts []string `toml:"mounts,omitempty"`
+
 	// NetNS indicates how to create a network namespace for the container
 	NetNS string `toml:"netns,omitempty"`
 
@@ -1021,17 +1024,7 @@ func (c *NetworkConfig) Validate() error {
 		}
 	}
 
-	if stringsEq(c.CNIPluginDirs, DefaultCNIPluginDirs) {
-		return nil
-	}
-
-	for _, pluginDir := range c.CNIPluginDirs {
-		if err := isDirectory(pluginDir); err == nil {
-			return nil
-		}
-	}
-
-	return fmt.Errorf("invalid cni_plugin_dirs: %s", strings.Join(c.CNIPluginDirs, ","))
+	return nil
 }
 
 // FindConmon iterates over (*Config).ConmonPath and returns the path
