@@ -1163,10 +1163,11 @@ EOF
     #
     # Table format is:
     #   podman command | arguments | '-' if it does not work with podman-remote
+    echo "from $IMAGE" > $PODMAN_TMPDIR/Containerfile
     tests="
 auto-update          |                  | -
 build                | $PODMAN_TMPDIR   |
-container runlabel   | $IMAGE argument  | -
+container runlabel   | run $IMAGE       | -
 create               | $IMAGE argument  |
 image sign           | $IMAGE           | -
 kube play            | argument         |
@@ -1176,7 +1177,7 @@ manifest inspect     | $IMAGE           |
 manifest push        | $IMAGE argument  |
 pull                 | $IMAGE argument  |
 push                 | $IMAGE argument  |
-run                  | $IMAGE argument  |
+run                  | $IMAGE false     |
 search               | $IMAGE           |
 "
 
@@ -1197,6 +1198,12 @@ search               | $IMAGE           |
         run_podman 125 $command --authfile=$bogus $args
         assert "$output" = "Error: checking authfile: stat $bogus: no such file or directory" \
            "$command --authfile=nonexistent-path"
+
+        if [[ "$command" != "logout" ]]; then
+           REGISTRY_AUTH_FILE=$bogus run_podman ? $command $args
+           assert "$output" !~ "checking authfile" \
+              "$command REGISTRY_AUTH_FILE=nonexistent-path"
+        fi
     done < <(parse_table "$tests")
 }
 

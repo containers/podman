@@ -68,8 +68,10 @@ func autoUpdate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("`%s` takes no arguments", cmd.CommandPath())
 	}
 
-	if err := auth.CheckAuthFile(autoUpdateOptions.Authfile); err != nil {
-		return err
+	if cmd.Flags().Changed("authfile") {
+		if err := auth.CheckAuthFile(autoUpdateOptions.Authfile); err != nil {
+			return err
+		}
 	}
 	if cmd.Flags().Changed("tls-verify") {
 		autoUpdateOptions.InsecureSkipTLSVerify = types.NewOptionalBool(!autoUpdateOptions.tlsVerify)

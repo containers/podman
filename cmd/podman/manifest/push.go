@@ -114,8 +114,10 @@ func init() {
 }
 
 func push(cmd *cobra.Command, args []string) error {
-	if err := auth.CheckAuthFile(manifestPushOpts.Authfile); err != nil {
-		return err
+	if cmd.Flags().Changed("authfile") {
+		if err := auth.CheckAuthFile(manifestPushOpts.Authfile); err != nil {
+			return err
+		}
 	}
 	listImageSpec := args[0]
 	destSpec := args[len(args)-1]
