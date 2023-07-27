@@ -443,6 +443,12 @@ $ podman create --name container3 --requires container1,container2 -t -i fedora 
 $ podman start --attach container3
 ```
 
+### Exposing shared libraries inside of container as read-only using a glob
+
+```
+$ podman create --mount type=glob,src=/usr/lib64/libnvidia\*,ro -i -t fedora /bin/bash
+```
+
 ### Configure keep supplemental groups for access to volume
 
 ```

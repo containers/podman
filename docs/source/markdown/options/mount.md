@@ -6,7 +6,7 @@
 
 Attach a filesystem mount to the container
 
-Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and **devpts**. <sup>[[1]](#Footnote1)</sup>
+Current supported mount TYPEs are **bind**, **devpts**, **glob**, **image**, **tmpfs** and **volume**. <sup>[[1]](#Footnote1)</sup>
 
        e.g.
 
@@ -15,6 +15,8 @@ Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and
        type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared
 
        type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared,U=true
+
+       type=glob,src=/usr/lib/libfoo*,destination=/usr/lib,ro=true
 
        type=volume,source=vol1,destination=/path/in/container,ro=true
 
@@ -26,9 +28,11 @@ Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and
 
        Common Options:
 
-	      · src, source: mount source spec for bind and volume. Mandatory for bind.
+	      · src, source: mount source spec for bind, glob, and volume. Mandatory for bind and glob.
 
 	      · dst, destination, target: mount destination spec.
+
+	      Paths matching globs, are mounted on the destination directory with the identical name inside the container.
 
        Options specific to volume:
 
@@ -47,7 +51,7 @@ Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and
 
 	      · rw, readwrite: true or false (default).
 
-       Options specific to bind:
+       Options specific to bind and glob:
 
 	      · ro, readonly: true or false (default).
 
