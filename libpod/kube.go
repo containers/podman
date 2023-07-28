@@ -738,7 +738,7 @@ func containerToV1Container(ctx context.Context, c *Container, getService bool) 
 	}
 
 	// NOTE: a privileged container mounts all of /dev/*.
-	if !c.Privileged() && len(c.config.Spec.Linux.Devices) > 0 {
+	if !c.Privileged() && c.config.Spec.Linux != nil && len(c.config.Spec.Linux.Devices) > 0 {
 		// TODO Enable when we can support devices and their names
 		kubeContainer.VolumeDevices = generateKubeVolumeDeviceFromLinuxDevice(c.config.Spec.Linux.Devices)
 		return kubeContainer, kubeVolumes, nil, annotations, fmt.Errorf("linux devices: %w", define.ErrNotImplemented)
@@ -1134,6 +1134,11 @@ func determineCapAddDropFromCapabilities(defaultCaps, containerCaps []string) *v
 }
 
 func (c *Container) capAddDrop(caps *specs.LinuxCapabilities) *v1.Capabilities {
+	// FreeBSD containers don't have caps so don't dereference if it's nil
+	if caps == nil {
+		return nil
+	}
+
 	// Combine all the container's capabilities into a slice
 	containerCaps := make([]string, 0, len(caps.Ambient)+len(caps.Bounding)+len(caps.Effective)+len(caps.Inheritable)+len(caps.Permitted))
 	containerCaps = append(containerCaps, caps.Ambient...)
