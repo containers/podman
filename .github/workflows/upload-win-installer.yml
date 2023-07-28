@@ -8,12 +8,38 @@ on:
       version:
         description: 'Release version to build and upload (e.g. "4.2.1")'
         required: true
+      dryrun:
+        description: 'Perform all the steps except uploading to the release page'
+        required: true
+        default: "true"  # 'choice' type requires string value
+        type: choice
+        options:
+          - "true"  # Must be quoted string, boolean value not supported.
+          - "false"
+
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
     env:
         FETCH_BASE_URL: ${{ github.server_url }}/${{ github.repository }}
     steps:
+    - name: Consolidate dryrun setting to always be true or false
+      id: actual_dryrun
+      run: |
+        # The 'release' trigger will not have a 'dryrun' input set. Handle
+        # this case in a readable/maintainable way.
+        $inputs_dryrun = "${{ inputs.dryrun }}"
+        if ($inputs_dryrun.Length -lt 1) {
+          Write-Output "dryrun=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        } else {
+          Write-Output "dryrun=${{ inputs.dryrun }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        }
+    - name: Dry Run Status
+      run: |
+        Write-Output "::notice::This workflow execution will be a dry-run: ${{ steps.actual_dryrun.outputs.dryrun }}"
     - name: Determine version
       id: getversion
       run: |
@@ -21,12 +47,14 @@ jobs:
         if ($version.Length -lt 1) {
           $version = "${{ github.event.release.tag_name }}"
           if ($version.Length -lt 1) {
-            Write-Host "Could not determine version!"
+            Write-Host "::error::Could not determine version!"
             Exit 1
           }
         }
-        Write-Output "::set-output name=version::$version"
+        Write-Output "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
     - uses: actions/checkout@v3
+      with:
+        ref: ${{steps.getversion.outputs.version}}
     - name: Check
       id: check
       run: |
@@ -34,20 +62,29 @@ jobs:
         .\check.ps1 ${{steps.getversion.outputs.version}}
         $code = $LASTEXITCODE
         if ($code -eq 2) {
-          Write-Output "::set-output name=already-exists::true"
+          Write-Output "already-exists=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           Pop-Location
           Exit 0
         }
-        Write-Output "UPLOAD_ASSET_NAME=$env:UPLOAD_ASSET_NAME" | Out-File -FilePath $env:GITHUB_ENV -Append
+        Write-Output "upload_asset_name=$env:UPLOAD_ASSET_NAME" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
         Pop-Location
         Exit $code
+    # The podman release process requires a cross-compile of the windows binaries be uploaded to
+    # the release page as a hard-coded filename.  If non-existent, this workflow will fail in
+    # non-obvious ways with a non-obvious error message.  Address that here.
+    - name: Confirm upload_asset_name is non-empty
+      if: ${{ steps.check.outputs.upload_asset_name == '' }}
+      run: |
+          Write-Output "::error::check.ps1 script failed to find manually uploaded podman-remote-release-windows_md64.zip github release asset for version ${{steps.getversion.outputs.version}}."
+          Exit 1
     - name: Set up Go
       uses: actions/setup-go@v4
-      if: steps.check.outputs.already-exists != 'true'
+      # N/B: already-exists may be an empty-string or "false", handle both cases.
+      if: steps.check.outputs.already-exists != 'true' || steps.actual_dryrun.outputs.dryrun == 'true'
       with:
         go-version: 1.18
     - name: Setup Signature Tooling
-      if: steps.Check.outputs.already-exists != 'true'
+      if: steps.Check.outputs.already-exists != 'true' || steps.actual_dryrun.outputs.dryrun == 'true'
       run: |
           dotnet tool install --global AzureSignTool --version 3.0.0
           echo "CERT_NAME=${{secrets.AZ_CERT_NAME}}" | Out-File -FilePath $env:GITHUB_ENV -Append
@@ -57,20 +94,29 @@ jobs:
           echo "CLIENT_SECRET=${{secrets.AZ_CLIENT_SECRET}}" | Out-File -FilePath $env:GITHUB_ENV -Append
     - name: Build
       id: build
-      if: steps.check.outputs.already-exists != 'true'
+      if: steps.check.outputs.already-exists != 'true' || steps.actual_dryrun.outputs.dryrun == 'true'
       run: |
         Push-Location contrib\win-installer
         .\build.ps1 ${{steps.getversion.outputs.version}} prod
         $code = $LASTEXITCODE
         if ($code -eq 2) {
-          Write-Output "::set-output name=artifact-missing::true"
+          Write-Output "artifact-missing=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           Pop-Location
           Exit 0
         }
         Pop-Location
         Exit $code
+    - name: Artifact
+      if: steps.check.outputs.already-exists != 'true' || steps.actual_dryrun.outputs.dryrun == 'true'
+      uses: actions/upload-artifact@v3
+      with:
+        name: installer
+        path: ${{ steps.check.outputs.upload_asset_name }}
     - name: Upload
-      if: steps.check.outputs.already-exists != 'true' && steps.build.outputs.artifact-missing != 'true'
+      if: >-
+        steps.actual_dryrun.outputs.dryrun == 'false' &&
+        steps.check.outputs.already-exists != 'true' &&
+        steps.build.outputs.artifact-missing != 'true'
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
@@ -79,7 +125,7 @@ jobs:
         if ($version[0] -ne "v") {
           $version = "v$version"
         }
-        gh release upload $version $ENV:UPLOAD_ASSET_NAME
+        gh release upload $version ${{ steps.check.outputs.upload_asset_name }}
         if ($LASTEXITCODE -ne 0) {
           .\check.ps1 $version
           if ($LASTEXITCODE -eq 2) {
