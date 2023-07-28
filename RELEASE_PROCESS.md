@@ -238,32 +238,6 @@ spelled with complete minutiae.
 
    1. In the directory where you downloaded the archives, run
       `sha256sum *.tar.gz *.zip > shasums` to generate SHA sums.
-   1. Build the Mac pkginstaller. Note that this needs to be built
-      on a Mac with the correct DevID signing credentials. The
-      installers will be built to `/contrib/pkginstaller/out`Add the
-      shasums of `podman-installer-macos-amd64.pkg` and
-      `podman-installer-macos-arm64.pkg` to the `shasums` file.
-      ```shell
-      $ git checkout vX.Y.Z
-
-      $ cd contrib/pkginstaller
-
-      $ make ARCH=amd64 \
-      CODESIGN_IDENTITY=$DevAppID  \
-      PRODUCTSIGN_IDENTITY=$DevInsID \
-      NOTARIZE_USERNAME=$AppleAcc \
-      NOTARIZE_PASSWORD=$AppleAccPwd \
-      NOTARIZE_TEAM=$DevTeam \
-      notarize
-
-      $ make ARCH=aarch64 \
-      CODESIGN_IDENTITY=$DevAppID  \
-      PRODUCTSIGN_IDENTITY=$DevInsID \
-      NOTARIZE_USERNAME=$AppleAcc \
-      NOTARIZE_PASSWORD=$AppleAccPwd \
-      NOTARIZE_TEAM=$DevTeam \
-      notarize
-      ```
    1. Go to `https://github.com/containers/podman/releases/tag/vX.Y.Z` and
       press the "Edit Release" button.  Change the name to the form `vX.Y.Z`
    1. If this is a release candidate be certain to click the pre-release
@@ -290,7 +264,7 @@ spelled with complete minutiae.
    1. Click the Publish button to make the release (or pre-release)
       available.
    1. Check the "Actions" tab, after the publish you should see a job
-      automatically launch to build the windows installer (named after
+      automatically launch to build the Windows installer and the Mac Installer (named after
       the release). There may be more than one running due to the multiple
       event states triggered, but this can be ignored, as any duplicates
       will gracefully back-off. The job takes 5-6 minutes to complete.
@@ -314,6 +288,21 @@ spelled with complete minutiae.
       ### *GUI Approach*
       1. Go to the "Actions" tab
       1. On the left pick the "Update Windows Installer" category
+      1. A blue box will appear above the job list with a right side drop
+         -down. Click the drop-down and specify the version number in the
+         dialog that appears
+
+      ## Manually Triggering Mac Installer Build & Upload
+
+      ### *CLI Approach*
+      1. Install the GitHub CLI (e.g. `sudo dnf install gh`)
+      1. Run (replacing below version number to release version)
+         ```
+         gh workflow run "Sign and Upload Mac Installer" -F version="v4.2.0"
+         ```
+      ### *GUI Approach*
+      1. Go to the "Actions" tab
+      1. On the left pick the "Sign and Upload Mac Installer" category
       1. A blue box will appear above the job list with a right side drop
          -down. Click the drop-down and specify the version number in the
          dialog that appears
