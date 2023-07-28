@@ -418,6 +418,12 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 	// The setting(s) that failed to be applied will have its errors returned in setErrors
 	var setErrors []error
 
+	if err := v.setLock(); err != nil {
+		return nil, err
+	}
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
 	state, err := v.State(false)
 	if err != nil {
 		return setErrors, err
@@ -936,8 +942,20 @@ func getVMPid(vmPidFile machine.VMFile) (int, error) {
 
 // Stop uses the qmp monitor to call a system_powerdown
 func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
-	var disconnected bool
+	if err := v.setLock(); err != nil {
+		return err
+	}
+	v.lock.Lock()
+	defer v.lock.Unlock()
 
+	if err := v.update(); err != nil {
+		return err
+	}
+	return v.stopLocked()
+}
+
+// stopLocked stops the machine and expects the caller to hold the machine's lock.
+func (v *MachineVM) stopLocked() error {
 	// check if the qmp socket is there. if not, qemu instance is gone
 	if _, err := os.Stat(v.QMPMonitor.Address.GetPath()); errors.Is(err, fs.ErrNotExist) {
 		// Right now it is NOT an error to stop a stopped machine
@@ -972,6 +990,7 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
 		return err
 	}
 
+	var disconnected bool
 	defer func() {
 		if !disconnected {
 			if err := qmpMonitor.Disconnect(); err != nil {
@@ -1132,6 +1151,12 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 		files []string
 	)
 
+	if err := v.setLock(); err != nil {
+		return "", nil, err
+	}
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
 	// cannot remove a running vm unless --force is used
 	state, err := v.State(false)
 	if err != nil {
@@ -1141,7 +1166,7 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 		if !opts.Force {
 			return "", nil, fmt.Errorf("running vm %q cannot be destroyed", v.Name)
 		}
-		err := v.Stop(v.Name, machine.StopOptions{})
+		err := v.stopLocked()
 		if err != nil {
 			return "", nil, err
 		}
