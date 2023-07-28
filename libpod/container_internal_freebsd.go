@@ -310,11 +310,35 @@ func (c *Container) getConmonPidFd() int {
 	return -1
 }
 
-func (c *Container) jailName() string {
-	if c.state.NetNS != "" {
-		return c.state.NetNS + "." + c.ID()
+func (c *Container) jailName() (string, error) {
+	// If this container is in a pod, get the vnet name from the
+	// corresponding infra container
+	var ic *Container
+	if c.config.Pod != "" && c.config.Pod != c.ID() {
+		// Get the pod from state
+		pod, err := c.runtime.state.Pod(c.config.Pod)
+		if err != nil {
+			return "", fmt.Errorf("cannot find infra container for pod %s: %w", c.config.Pod, err)
+		}
+		ic, err = pod.InfraContainer()
+		if err != nil {
+			return "", fmt.Errorf("getting infra container for pod %s: %w", pod.ID(), err)
+		}
+		if ic.ID() != c.ID() {
+			ic.lock.Lock()
+			defer ic.lock.Unlock()
+			if err := ic.syncContainer(); err != nil {
+				return "", err
+			}
+		}
 	} else {
-		return c.ID()
+		ic = c
+	}
+
+	if ic.state.NetNS != "" {
+		return ic.state.NetNS + "." + c.ID(), nil
+	} else {
+		return c.ID(), nil
 	}
 }
 

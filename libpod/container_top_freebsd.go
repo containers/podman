@@ -75,13 +75,18 @@ func (c *Container) Top(descriptors []string) ([]string, error) {
 		}
 	}
 
+	jailName, err := c.jailName()
+	if err != nil {
+		return nil, fmt.Errorf("getting jail name: %w", err)
+	}
+
 	args := []string{
 		"-J",
-		c.jailName(),
+		jailName,
 	}
 	args = append(args, psDescriptors...)
 
-	output, err := c.execPS(args)
+	output, err := execPS(args)
 	if err != nil {
 		return nil, fmt.Errorf("executing ps(1): %w", err)
 	}
@@ -89,7 +94,7 @@ func (c *Container) Top(descriptors []string) ([]string, error) {
 	return output, nil
 }
 
-func (c *Container) execPS(args []string) ([]string, error) {
+func execPS(args []string) ([]string, error) {
 	cmd := exec.Command("ps", args...)
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
