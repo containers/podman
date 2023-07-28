@@ -1097,6 +1097,18 @@ EOF
     run_podman rmi -f build_test
 }
 
+@test "podman build empty context dir" {
+    buildcontextdir=$PODMAN_TMPDIR/emptydir
+    mkdir -p $buildcontextdir
+    containerfile=$PODMAN_TMPDIR/Containerfile
+    echo FROM scratch >$containerfile
+
+    run_podman build -t build_test -f $containerfile $buildcontextdir
+    assert "$output" !~ "EOF" "output should not contain EOF error"
+
+    run_podman rmi -f build_test
+}
+
 function teardown() {
     # A timeout or other error in 'build' can leave behind stale images
     # that podman can't even see and which will cascade into subsequent
