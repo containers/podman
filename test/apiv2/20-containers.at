@@ -32,7 +32,10 @@ t POST "containers/foo/attach?logs=true&stream=false" 200 \
   $'\001\031'$mytext
 t POST "containers/foo/kill" 204
 
-podman run -v /tmp:/tmp $IMAGE true
+podman run --replace --name=foo -v /tmp:/tmp $IMAGE true
+# cannot kill non-running container
+t POST "containers/foo/kill" 409
+t POST "libpod/containers/foo/kill" 409
 
 t GET libpod/containers/json 200 length=0
 
