@@ -6,6 +6,7 @@
 
 load helpers
 
+# bats test_tags=distro-integration
 @test "podman build - basic test" {
     rand_filename=$(random_string 20)
     rand_content=$(random_string 50)
@@ -267,6 +268,7 @@ EOF
 }
 
 
+# bats test_tags=distro-integration
 @test "podman build - workdir, cmd, env, label" {
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir

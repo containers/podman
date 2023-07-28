@@ -5,6 +5,7 @@
 
 load helpers
 
+# bats test_tags=distro-integration
 @test "podman exec - basic test" {
     rand_filename=$(random_string 20)
     rand_content=$(random_string 50)
@@ -43,6 +44,7 @@ load helpers
     run_podman rm $cid
 }
 
+# bats test_tags=distro-integration
 @test "podman exec - leak check" {
     skip_if_remote "test is meaningless over remote"
 

@@ -23,6 +23,9 @@ $0 is a wrapper for invoking podman system tests.
                     runs only subtests within FILENAME-PATTERH whose names
                     match that string.
 
+   --tag=TAG      Passed on to bats as '--filter-tags TAG'
+                  As of 2023-07-26 the only tag used is 'distro-integration'
+
    -T             Passed on to bats, which will then show timing data
 
    --help         display usage message
@@ -83,6 +86,7 @@ for i;do
         --rootless) TEST_ROOT= ;;
         --remote)   REMOTE=remote ;;
         --ts|-T)    bats_opts+=("-T") ;;
+        --tag=*)    bats_filter=("--filter-tags" "$value") ;;
         */*.bats)   TESTS=$i ;;
         *)
             if [[ $i =~ : ]]; then
