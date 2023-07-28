@@ -243,6 +243,11 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(report) > 0 && report[0].Err != nil {
+		if errors.Is(report[0].Err, define.ErrCtrStateInvalid) ||
+			errors.Is(report[0].Err, define.ErrCtrStopped) {
+			utils.Error(w, http.StatusConflict, report[0].Err)
+			return
+		}
 		utils.InternalServerError(w, report[0].Err)
 		return
 	}
