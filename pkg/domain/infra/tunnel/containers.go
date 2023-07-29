@@ -182,7 +182,8 @@ func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []st
 	)
 	options := new(containers.RestartOptions)
 	if to := opts.Timeout; to != nil {
-		options.WithTimeout(int(*to))
+		timeout := util.ConvertTimeout(int(*to))
+		options.WithTimeout(int(timeout))
 	}
 	ctrs, rawInputs, err := getContainersAndInputByContext(ic.ClientCtx, opts.All, false, namesOrIds, opts.Filters)
 	if err != nil {

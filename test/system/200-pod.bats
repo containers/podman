@@ -465,7 +465,7 @@ EOF
     run_podman run --pod $podID $IMAGE true
     run_podman pod inspect $podID --format "{{.State}}"
     _ensure_pod_state $podID Exited
-    run_podman pod rm $podID
+    run_podman pod rm -t -1 -f $podID
 }
 
 @test "pod exit policies - play kube" {
@@ -560,7 +560,7 @@ io.max          | $lomajmin rbps=1048576 wbps=1048576 riops=max wiops=max
 @test "podman pod rm --force bogus" {
     run_podman 1 pod rm bogus
     is "$output" "Error: .*bogus.*: no such pod" "Should print error"
-    run_podman pod rm --force bogus
+    run_podman pod rm -t -1 --force bogus
     is "$output" "" "Should print no output"
 }
 

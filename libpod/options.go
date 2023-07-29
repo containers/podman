@@ -884,7 +884,6 @@ func WithTimeout(timeout uint) CtrCreateOption {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
-
 		ctr.config.Timeout = timeout
 
 		return nil

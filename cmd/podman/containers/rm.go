@@ -66,7 +66,7 @@ func rmFlags(cmd *cobra.Command) {
 	flags.BoolVarP(&rmOptions.Force, "force", "f", false, "Force removal of a running or unusable container")
 	flags.BoolVar(&rmOptions.Depend, "depend", false, "Remove container and all containers that depend on the selected container")
 	timeFlagName := "time"
-	flags.UintVarP(&stopTimeout, timeFlagName, "t", containerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
+	flags.IntVarP(&stopTimeout, timeFlagName, "t", int(containerConfig.Engine.StopTimeout), "Seconds to wait for stop before killing the container")
 	_ = cmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
 	flags.BoolVarP(&rmOptions.Volumes, "volumes", "v", false, "Remove anonymous volumes associated with the container")
 
@@ -105,7 +105,8 @@ func rm(cmd *cobra.Command, args []string) error {
 		if !rmOptions.Force {
 			return errors.New("--force option must be specified to use the --time option")
 		}
-		rmOptions.Timeout = &stopTimeout
+		timeout := uint(stopTimeout)
+		rmOptions.Timeout = &timeout
 	}
 	for _, cidFile := range rmCidFiles {
 		content, err := os.ReadFile(cidFile)

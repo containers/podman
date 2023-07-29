@@ -475,7 +475,7 @@ NeedsChown    | true
     test -e "$mountpoint/passwd"
 
     # Clean up
-    run_podman volume rm $myvolume
+    run_podman volume rm -t -1 --force $myvolume
 }
 
 @test "podman volume mount" {

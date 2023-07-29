@@ -34,7 +34,7 @@ var (
 
 var (
 	rmOptions   = entities.VolumeRmOptions{}
-	stopTimeout uint
+	stopTimeout int
 )
 
 func init() {
@@ -46,7 +46,7 @@ func init() {
 	flags.BoolVarP(&rmOptions.All, "all", "a", false, "Remove all volumes")
 	flags.BoolVarP(&rmOptions.Force, "force", "f", false, "Remove a volume by force, even if it is being used by a container")
 	timeFlagName := "time"
-	flags.UintVarP(&stopTimeout, timeFlagName, "t", containerConfig.Engine.StopTimeout, "Seconds to wait for running containers to stop before killing the container")
+	flags.IntVarP(&stopTimeout, timeFlagName, "t", int(containerConfig.Engine.StopTimeout), "Seconds to wait for running containers to stop before killing the container")
 	_ = rmCommand.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
 }
 
@@ -61,7 +61,8 @@ func rm(cmd *cobra.Command, args []string) error {
 		if !rmOptions.Force {
 			return errors.New("--force option must be specified to use the --time option")
 		}
-		rmOptions.Timeout = &stopTimeout
+		timeout := uint(stopTimeout)
+		rmOptions.Timeout = &timeout
 	}
 	responses, err := registry.ContainerEngine().VolumeRm(context.Background(), args, rmOptions)
 	if err != nil {
