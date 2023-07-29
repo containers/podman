@@ -384,7 +384,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			Destination: dstPath,
 			Options:     bindOptions,
 		}
-		if c.IsReadOnly() && dstPath != "/dev/shm" {
+		if c.IsReadOnly() && (dstPath != "/dev/shm" || !c.config.ReadWriteTmpfs) {
 			newMount.Options = append(newMount.Options, "ro", "nosuid", "noexec", "nodev")
 		}
 		if dstPath == "/dev/shm" && c.state.BindMounts["/dev/shm"] == c.config.ShmDir {
@@ -1603,7 +1603,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 				Destination: dstPath,
 				Options:     []string{define.TypeBind, "private"},
 			}
-			if c.IsReadOnly() && dstPath != "/dev/shm" {
+			if c.IsReadOnly() && (dstPath != "/dev/shm" || !c.config.ReadWriteTmpfs) {
 				newMount.Options = append(newMount.Options, "ro", "nosuid", "noexec", "nodev")
 			}
 			if dstPath == "/dev/shm" && c.state.BindMounts["/dev/shm"] == c.config.ShmDir {

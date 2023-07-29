@@ -723,6 +723,19 @@ func WithPrivileged(privileged bool) CtrCreateOption {
 	}
 }
 
+// WithReadWriteTmpfs sets up read-write tmpfs flag in the container runtime.
+// Only Used if containers are run in ReadOnly mode.
+func WithReadWriteTmpfs(readWriteTmpfs bool) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.ReadWriteTmpfs = readWriteTmpfs
+		return nil
+	}
+}
+
 // WithSecLabels sets the labels for SELinux.
 func WithSecLabels(labelOpts []string) CtrCreateOption {
 	return func(ctr *Container) error {

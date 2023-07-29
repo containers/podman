@@ -559,6 +559,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		}
 	}
 	options = append(options, libpod.WithPrivileged(s.Privileged))
+	options = append(options, libpod.WithReadWriteTmpfs(s.ReadWriteTmpfs))
 
 	// Get namespace related options
 	namespaceOpts, err := namespaceOptions(s, rt, pod, imageData)
