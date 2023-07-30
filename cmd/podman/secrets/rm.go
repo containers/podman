@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
@@ -29,6 +30,7 @@ func init() {
 	})
 	flags := rmCmd.Flags()
 	flags.BoolVarP(&rmOptions.All, "all", "a", false, "Remove all secrets")
+	flags.BoolVarP(&rmOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified secret is missing")
 }
 
 var (
@@ -50,6 +52,9 @@ func rm(cmd *cobra.Command, args []string) error {
 		if r.Err == nil {
 			fmt.Println(r.ID)
 		} else {
+			if rmOptions.Ignore && strings.Contains(r.Err.Error(), "no such secret") {
+				continue
+			}
 			errs = append(errs, r.Err)
 		}
 	}

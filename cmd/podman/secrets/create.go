@@ -23,8 +23,9 @@ var (
 		Long:  "Create a secret. Input can be a path to a file or \"-\" (read from stdin). Default driver is file (unencrypted).",
 		RunE:  create,
 		Args:  cobra.ExactArgs(2),
-		Example: `podman secret create mysecret /path/to/secret
-		printf "secretdata" | podman secret create mysecret -`,
+		Example: `
+podman secret create mysecret /path/to/secret
+printf "secretdata" | podman secret create mysecret -`,
 		ValidArgsFunction: common.AutocompleteSecretCreate,
 	}
 )

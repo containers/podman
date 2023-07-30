@@ -356,6 +356,15 @@ var _ = Describe("Podman secret", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(Equal(secrID))
+
+		session = podmanTest.Podman([]string{"secret", "rm", secrID})
+		session.WaitWitthDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal(secrID))
+
+		session = podmanTest.Podman([]string{"secret", "rm", "--ignore", secrID})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
 	})
 
 	It("podman secret with labels", func() {

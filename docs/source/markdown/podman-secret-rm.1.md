@@ -22,6 +22,10 @@ the old secret value still remains.
 
 Remove all existing secrets.
 
+#### **--ignore**, **-i**
+
+Ignore errors when specified secrets do not exist.
+
 #### **--help**
 
 Print usage statement.
