@@ -34,19 +34,19 @@ Valid placeholders for the Go template are listed below:
 |---------------------|--------------------------------------------------|
 | .AvgCPU             | Average CPU, full precision float                |
 | .AVGCPU             | Average CPU, formatted as a percent              |
-| .BlockInput         | Block Input                                      |
-| .BlockIO            | Block IO                                         |
-| .BlockOutput        | Block Output                                     |
+| .BlockInput         | Total data read from block device                |
+| .BlockIO            | Total data read/total data written to block device|
+| .BlockOutput        | Total data written to block device               |
 | .ContainerID        | Container ID, full (untruncated) hash            |
 | .ContainerStats ... | Nested structure, for experts only               |
 | .CPU                | Percent CPU, full precision float                |
 | .CPUNano            | CPU Usage, total, in nanoseconds                 |
-| .CPUPerc            | CPU percentage                                   |
+| .CPUPerc            | Percentage of CPU Used                           |
 | .CPUSystemNano      | CPU Usage, kernel, in nanoseconds                |
 | .Duration           | Same as CPUNano                                  |
 | .ID                 | Container ID, truncated                          |
 | .MemLimit           | Memory limit, in bytes                           |
-| .MemPerc            | Memory percentage                                |
+| .MemPerc            | Memory percentage used                           |
 | .MemUsage           | Memory usage                                     |
 | .MemUsageBytes      | Memory usage (IEC)                               |
 | .Name               | Container Name                                   |
