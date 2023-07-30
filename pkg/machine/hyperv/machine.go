@@ -67,21 +67,24 @@ type HyperVMachine struct {
 	LastUp time.Time
 }
 
+// addNetworkAndReadySocketsToRegistry adds the Network and Ready sockets to the
+// Windows registry
 func (m *HyperVMachine) addNetworkAndReadySocketsToRegistry() error {
-	// Add the network and ready sockets to the Windows registry
 	networkHVSock, err := NewHVSockRegistryEntry(m.Name, Network)
 	if err != nil {
-		return false, err
+		return err
 	}
 	eventHVSocket, err := NewHVSockRegistryEntry(m.Name, Events)
 	if err != nil {
-		return false, err
+		return err
 	}
 	m.NetworkHVSock = *networkHVSock
 	m.ReadyHVSock = *eventHVSocket
 	return nil
 }
 
+// addSSHConnectionsToPodmanSocket adds SSH connections to the podman socket if
+// no ignition path was provided
 func (m *HyperVMachine) addSSHConnectionsToPodmanSocket(opts machine.InitOptions) error {
 	if len(opts.IgnitionPath) < 1 {
 		uri := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, fmt.Sprintf("/run/user/%d/podman/podman.sock", m.UID), strconv.Itoa(m.Port), m.RemoteUsername)
@@ -107,6 +110,8 @@ func (m *HyperVMachine) addSSHConnectionsToPodmanSocket(opts machine.InitOptions
 	return nil
 }
 
+// writeIgnitionConfigFile generates the ignition config and writes it to the
+// filesystem
 func (m *HyperVMachine) writeIgnitionConfigFile(opts machine.InitOptions, user, key string) error {
 	ign := machine.DynamicIgnition{
 		Name:      user,
@@ -202,6 +207,7 @@ method=auto
 	return ign.Write()
 }
 
+// readAndSplitIgnition reads the ignition file and splits it into key:value pairs
 func (m *HyperVMachine) readAndSplitIgnition() error {
 	ignFile, err := m.IgnitionFile.Read()
 	if err != nil {
@@ -323,6 +329,7 @@ func (m *HyperVMachine) Inspect() (*machine.InspectInfo, error) {
 	}, nil
 }
 
+// collectFilesToDestroy retrieves the files that will be destroyed by `Remove`
 func (m *HyperVMachine) collectFilesToDestroy(opts machine.RemoveOptions, diskPath *string) []string {
 	files := []string{}
 
@@ -342,6 +349,8 @@ func (m *HyperVMachine) collectFilesToDestroy(opts machine.RemoveOptions, diskPa
 	return files
 }
 
+// removeFilesAndConnections removes any files and connections associated with
+// the machine during `Remove`
 func (m *HyperVMachine) removeFilesAndConnections(files []string) {
 	for _, f := range files {
 		if err := os.Remove(f); err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -353,6 +362,8 @@ func (m *HyperVMachine) removeFilesAndConnections(files []string) {
 	}
 }
 
+// removeNetworkAndReadySocketsFromRegistry removes the Network and Ready sockets
+// from the Windows Registry
 func (m *HyperVMachine) removeNetworkAndReadySocketsFromRegistry() {
 	// Remove the HVSOCK for networking
 	if err := m.NetworkHVSock.Remove(); err != nil {
@@ -605,6 +616,7 @@ func loadMacMachineFromJSON(fqConfigPath string, macMachine *HyperVMachine) erro
 	return json.Unmarshal(b, macMachine)
 }
 
+// getDevNullFiles returns pointers to Read-only and Write-only DevNull files
 func getDevNullFiles() (*os.File, *os.File, error) {
 	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
 	if err != nil {
