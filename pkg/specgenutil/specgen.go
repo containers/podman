@@ -193,7 +193,7 @@ func getMemoryLimits(c *entities.ContainerCreateOptions) (*specs.LinuxMemory, er
 	return memory, nil
 }
 
-func setNamespaces(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) error {
+func setNamespaces(rtc *config.Config, s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) error {
 	var err error
 
 	if c.PID != "" {
@@ -222,7 +222,11 @@ func setNamespaces(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions)
 	}
 	userns := c.UserNS
 	if userns == "" && c.Pod == "" {
-		userns = os.Getenv("PODMAN_USERNS")
+		if ns, ok := os.LookupEnv("PODMAN_USERNS"); ok {
+			userns = ns
+		} else {
+			userns = rtc.Containers.UserNS
+		}
 	}
 	// userns must be treated differently
 	if userns != "" {
@@ -234,6 +238,40 @@ func setNamespaces(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions)
 	if c.Net != nil {
 		s.NetNS = c.Net.Network
 	}
+
+	if s.IDMappings == nil {
+		userNS := namespaces.UsernsMode(s.UserNS.NSMode)
+		tempIDMap, err := util.ParseIDMapping(namespaces.UsernsMode(userns), []string{}, []string{}, "", "")
+		if err != nil {
+			return err
+		}
+		s.IDMappings, err = util.ParseIDMapping(userNS, c.UIDMap, c.GIDMap, c.SubUIDName, c.SubGIDName)
+		if err != nil {
+			return err
+		}
+		if len(s.IDMappings.GIDMap) == 0 {
+			s.IDMappings.AutoUserNsOpts.AdditionalGIDMappings = tempIDMap.AutoUserNsOpts.AdditionalGIDMappings
+			if s.UserNS.NSMode == specgen.NamespaceMode("auto") {
+				s.IDMappings.AutoUserNs = true
+			}
+		}
+		if len(s.IDMappings.UIDMap) == 0 {
+			s.IDMappings.AutoUserNsOpts.AdditionalUIDMappings = tempIDMap.AutoUserNsOpts.AdditionalUIDMappings
+			if s.UserNS.NSMode == specgen.NamespaceMode("auto") {
+				s.IDMappings.AutoUserNs = true
+			}
+		}
+		if tempIDMap.AutoUserNsOpts.Size != 0 {
+			s.IDMappings.AutoUserNsOpts.Size = tempIDMap.AutoUserNsOpts.Size
+		}
+		// If some mappings are specified, assume a private user namespace
+		if userNS.IsDefaultValue() && (!s.IDMappings.HostUIDMapping || !s.IDMappings.HostGIDMapping) {
+			s.UserNS.NSMode = specgen.Private
+		} else {
+			s.UserNS.NSMode = specgen.NamespaceMode(userNS)
+		}
+	}
+
 	return nil
 }
 
@@ -320,41 +358,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.StartupHealthConfig.Successes = int(c.StartupHCSuccesses)
 	}
 
-	if err := setNamespaces(s, c); err != nil {
+	if err := setNamespaces(rtc, s, c); err != nil {
 		return err
-	}
-
-	if s.IDMappings == nil {
-		userNS := namespaces.UsernsMode(s.UserNS.NSMode)
-		tempIDMap, err := util.ParseIDMapping(namespaces.UsernsMode(c.UserNS), []string{}, []string{}, "", "")
-		if err != nil {
-			return err
-		}
-		s.IDMappings, err = util.ParseIDMapping(userNS, c.UIDMap, c.GIDMap, c.SubUIDName, c.SubGIDName)
-		if err != nil {
-			return err
-		}
-		if len(s.IDMappings.GIDMap) == 0 {
-			s.IDMappings.AutoUserNsOpts.AdditionalGIDMappings = tempIDMap.AutoUserNsOpts.AdditionalGIDMappings
-			if s.UserNS.NSMode == specgen.NamespaceMode("auto") {
-				s.IDMappings.AutoUserNs = true
-			}
-		}
-		if len(s.IDMappings.UIDMap) == 0 {
-			s.IDMappings.AutoUserNsOpts.AdditionalUIDMappings = tempIDMap.AutoUserNsOpts.AdditionalUIDMappings
-			if s.UserNS.NSMode == specgen.NamespaceMode("auto") {
-				s.IDMappings.AutoUserNs = true
-			}
-		}
-		if tempIDMap.AutoUserNsOpts.Size != 0 {
-			s.IDMappings.AutoUserNsOpts.Size = tempIDMap.AutoUserNsOpts.Size
-		}
-		// If some mappings are specified, assume a private user namespace
-		if userNS.IsDefaultValue() && (!s.IDMappings.HostUIDMapping || !s.IDMappings.HostGIDMapping) {
-			s.UserNS.NSMode = specgen.Private
-		} else {
-			s.UserNS.NSMode = specgen.NamespaceMode(userNS)
-		}
 	}
 
 	if !s.Terminal {
