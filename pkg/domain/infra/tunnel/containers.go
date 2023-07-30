@@ -693,7 +693,12 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 		}
 	}
 	removeOptions := new(containers.RemoveOptions).WithVolumes(true).WithForce(false)
-	removeContainer := func(id string) {
+	removeContainer := func(id, CIDFile string) {
+		if CIDFile != "" {
+			if err := os.Remove(CIDFile); err != nil && !errors.Is(err, os.ErrNotExist) {
+				logrus.Warnf("Cleaning up CID file: %s", err)
+			}
+		}
 		reports, err := containers.Remove(ic.ClientCtx, id, removeOptions)
 		logIfRmError(id, err, reports)
 	}
@@ -722,7 +727,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 
 			if err != nil {
 				if ctr.AutoRemove {
-					removeContainer(ctr.ID)
+					removeContainer(ctr.ID, ctr.CIDFile)
 				}
 				report.ExitCode = define.ExitCode(report.Err)
 				report.Err = err
@@ -741,7 +746,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 					logrus.Errorf("Should restart: %v", shouldRestart)
 
 					if !shouldRestart && ctr.AutoRemove {
-						removeContainer(ctr.ID)
+						removeContainer(ctr.ID, ctr.CIDFile)
 					}
 				}()
 			}
@@ -827,7 +832,13 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	for _, w := range con.Warnings {
 		fmt.Fprintf(os.Stderr, "%s\n", w)
 	}
-	removeContainer := func(id string, force bool) error {
+	removeContainer := func(id, CIDFile string, force bool) error {
+		if CIDFile != "" {
+			if err := os.Remove(CIDFile); err != nil && !errors.Is(err, os.ErrNotExist) {
+				logrus.Warnf("Cleaning up CID file: %s", err)
+			}
+		}
+
 		removeOptions := new(containers.RemoveOptions).WithVolumes(true).WithForce(force)
 		reports, err := containers.Remove(ic.ClientCtx, id, removeOptions)
 		logIfRmError(id, err, reports)
@@ -837,7 +848,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	if opts.CIDFile != "" {
 		if err := util.CreateIDFile(opts.CIDFile, con.ID); err != nil {
 			// If you fail to create CIDFile then remove the container
-			_ = removeContainer(con.ID, true)
+			_ = removeContainer(con.ID, opts.CIDFile, true)
 			return nil, err
 		}
 	}
@@ -850,9 +861,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		if err != nil {
 			report.ExitCode = define.ExitCode(err)
 			if opts.Rm {
-				if rmErr := removeContainer(con.ID, true); rmErr != nil && !errors.Is(rmErr, define.ErrNoSuchCtr) {
-					logrus.Errorf("Container %s failed to be removed", con.ID)
-				}
+				_ = removeContainer(con.ID, opts.CIDFile, true)
 			}
 		}
 		return &report, err
@@ -873,7 +882,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 
 		report.ExitCode = define.ExitCode(err)
 		if opts.Rm {
-			_ = removeContainer(con.ID, false)
+			_ = removeContainer(con.ID, opts.CIDFile, false)
 		}
 		return &report, err
 	}
@@ -889,7 +898,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 			}
 
 			if !shouldRestart {
-				_ = removeContainer(con.ID, false)
+				_ = removeContainer(con.ID, opts.CIDFile, false)
 			}
 		}()
 	}

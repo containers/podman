@@ -20,6 +20,8 @@ type ListContainer struct {
 	Created time.Time
 	// Human-readable container creation time.
 	CreatedAt string
+	// CIDFile specified at creation time.
+	CIDFile string
 	// If container has exited/stopped
 	Exited bool
 	// Time container exited

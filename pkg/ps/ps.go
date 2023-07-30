@@ -237,10 +237,11 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 
 	ps := entities.ListContainer{
 		AutoRemove: ctr.AutoRemove(),
+		CIDFile:    conConfig.Spec.Annotations[define.InspectAnnotationCIDFile],
 		Command:    conConfig.Command,
 		Created:    conConfig.CreatedTime,
-		Exited:     exited,
 		ExitCode:   exitCode,
+		Exited:     exited,
 		ExitedAt:   exitedTime.Unix(),
 		ID:         conConfig.ID,
 		Image:      conConfig.RootfsImageName,
@@ -253,11 +254,11 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		Pid:        pid,
 		Pod:        conConfig.Pod,
 		Ports:      portMappings,
+		Restarts:   restartCount,
 		Size:       size,
 		StartedAt:  startedTime.Unix(),
 		State:      conState.String(),
 		Status:     healthStatus,
-		Restarts:   restartCount,
 	}
 	if opts.Pod && len(conConfig.Pod) > 0 {
 		podName, err := rt.GetPodName(conConfig.Pod)
