@@ -272,7 +272,7 @@ func Mounts(mountFlag []string, configMounts []string) (map[string]spec.Mount, m
 	}
 
 	// If user specified a mount flag that conflicts with a containers.conf flag, then ignore
-	// the duplicate. This means that the parseing of containers.conf configMounts, should always
+	// the duplicate. This means that the parsing of the containers.conf configMounts should always
 	// happen second.
 	if err := parseMounts(configMounts, true); err != nil {
 		return nil, nil, nil, fmt.Errorf("parsing containers.conf mounts: %w", err)

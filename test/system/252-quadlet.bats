@@ -16,7 +16,7 @@ function start_time() {
 function setup() {
     skip_if_remote "quadlet tests are meaningless over remote"
     skip_if_rootless_cgroupsv1 "Can't use --cgroups=split w/ CGv1 (issue 17456, wontfix)"
-    skip_if_journald_unavailable "Needed for RHEL. FIXME: we might be able to reenable a subset of tests."
+    skip_if_journald_unavailable "Needed for RHEL. FIXME: we might be able to re-enable a subset of tests."
 
     test -x "$QUADLET" || die "Cannot run quadlet tests without executable \$QUADLET ($QUADLET)"
 

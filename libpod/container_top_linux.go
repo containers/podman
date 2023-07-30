@@ -345,7 +345,7 @@ func (c *Container) execPS(psArgs []string) ([]string, bool, error) {
 	return stdout, retryContainerExec, err
 }
 
-// execPS executes ps(1) with the specified args in the container vie exec session.
+// execPS executes ps(1) with the specified args in the container via exec session.
 // This should be a bit safer then execPS() but it requires ps(1) to be installed in the container.
 func (c *Container) execPSinContainer(args []string) ([]string, error) {
 	rPipe, wPipe, err := os.Pipe()
