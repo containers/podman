@@ -520,7 +520,7 @@ func (m *HyperVMachine) loadFromFile() (*HyperVMachine, error) {
 	}
 	mm := HyperVMachine{}
 
-	if err := loadMacMachineFromJSON(jsonPath, &mm); err != nil {
+	if err := mm.loadHyperVMachineFromJSON(jsonPath); err != nil {
 		return nil, err
 	}
 	vmm := hypervctl.NewVirtualMachineManager()
@@ -555,7 +555,7 @@ func getVMConfigPath(configDir, vmName string) string {
 	return filepath.Join(configDir, fmt.Sprintf("%s.json", vmName))
 }
 
-func loadMacMachineFromJSON(fqConfigPath string, macMachine *HyperVMachine) error {
+func (m *HyperVMachine) loadHyperVMachineFromJSON(fqConfigPath string) error {
 	b, err := os.ReadFile(fqConfigPath)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -563,7 +563,7 @@ func loadMacMachineFromJSON(fqConfigPath string, macMachine *HyperVMachine) erro
 		}
 		return err
 	}
-	return json.Unmarshal(b, macMachine)
+	return json.Unmarshal(b, m)
 }
 
 func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingState, error) {

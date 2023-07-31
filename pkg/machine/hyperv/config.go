@@ -50,7 +50,7 @@ func (v HyperVVirtualization) IsValidVMName(name string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if err := loadMacMachineFromJSON(configDir, &mm); err != nil {
+	if err := mm.loadHyperVMachineFromJSON(configDir); err != nil {
 		return false, err
 	}
 	// The name is valid for the local filesystem
@@ -257,7 +257,7 @@ func (v HyperVVirtualization) loadFromLocalJson() ([]*HyperVMachine, error) {
 
 	for _, jsonFile := range jsonFiles {
 		mm := HyperVMachine{}
-		if err := loadMacMachineFromJSON(jsonFile, &mm); err != nil {
+		if err := mm.loadHyperVMachineFromJSON(jsonFile); err != nil {
 			return nil, err
 		}
 		if err != nil {
