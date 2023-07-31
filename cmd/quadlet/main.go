@@ -160,8 +160,8 @@ func appendSubPaths(dirs []string, path string, isUserFlag bool, filterPtr func(
 }
 
 func nonNumericFilter(_path string, isUserFlag bool) bool {
-	// when running in rootless, only recrusive walk directories that are non numeric
-	// ignore sub dirs under the user directory that may correspond to a user id
+	// when running in rootless, recursive walk directories that are non numeric
+	// ignore sub dirs under the `users` directory which correspond to a user id
 	if strings.Contains(_path, filepath.Join(quadlet.UnitDirAdmin, "users")) {
 		listDirUserPathLevels := strings.Split(_path, string(os.PathSeparator))
 		if len(listDirUserPathLevels) > SystemUserDirLevel {
