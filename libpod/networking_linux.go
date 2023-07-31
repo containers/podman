@@ -694,13 +694,14 @@ func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 	return netStats, err
 }
 
-func (c *Container) joinedNetworkNSPath() string {
+// joinedNetworkNSPath returns netns path and bool if netns was set
+func (c *Container) joinedNetworkNSPath() (string, bool) {
 	for _, namespace := range c.config.Spec.Linux.Namespaces {
 		if namespace.Type == specs.NetworkNamespace {
-			return namespace.Path
+			return namespace.Path, true
 		}
 	}
-	return ""
+	return "", false
 }
 
 func (c *Container) inspectJoinedNetworkNS(networkns string) (q types.StatusBlock, retErr error) {

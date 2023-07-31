@@ -834,9 +834,17 @@ EOF
         run_podman create --network=$network $IMAGE
         cid=${output}
         run_podman inspect --format '{{ .NetworkSettings.Networks }}' $cid
-        is "$output" "map\[$network:.*" "NeworkSettincs should contain one network named $network"
+        is "$output" "map\[$network:.*" "NeworkSettings should contain one network named $network"
+        run_podman inspect --format '{{ .NetworkSettings.SandboxKey }}' $cid
+        assert "$output" == "" "SandboxKey for network=$network should be empty when not running"
         run_podman rm $cid
     done
+
+    run_podman run -d --network=none $IMAGE top
+    cid=${output}
+    run_podman inspect --format '{{ .NetworkSettings.SandboxKey }}' $cid
+    assert "$output" =~ "^/proc/[0-9]+/ns/net\$" "SandboxKey for network=none when running"
+    run_podman rm -f -t0 $cid
 
     # Check with ns:/PATH
     if ! is_rootless; then
