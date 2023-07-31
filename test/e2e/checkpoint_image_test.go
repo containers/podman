@@ -16,7 +16,6 @@ import (
 var _ = Describe("Podman checkpoint", func() {
 
 	BeforeEach(func() {
-		SkipIfContainerized("FIXME: #15015. All checkpoint tests hang when containerized.")
 		SkipIfRootless("checkpoint not supported in rootless mode")
 		// Check if the runtime implements checkpointing. Currently only
 		// runc's checkpoint/restore implementation is supported.
