@@ -17,7 +17,7 @@ func ParseSlice(s []string) (map[string]string, error) {
 			continue
 		}
 
-		if err := parseEnv(env, e); err != nil {
+		if err := parseEnv(env, e, true); err != nil {
 			return nil, err
 		}
 	}
