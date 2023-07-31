@@ -254,8 +254,8 @@ func getContainerNetIO(ctr *Container) (*LinkStatistics64, error) {
 	return &LinkStatistics64{}, nil
 }
 
-func (c *Container) joinedNetworkNSPath() string {
-	return c.state.NetNS
+func (c *Container) joinedNetworkNSPath() (string, bool) {
+	return c.state.NetNS, false
 }
 
 func (c *Container) inspectJoinedNetworkNS(networkns string) (q types.StatusBlock, retErr error) {

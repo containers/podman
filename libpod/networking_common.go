@@ -249,7 +249,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	}
 
 	if c.state.NetNS == "" {
-		if networkNSPath := c.joinedNetworkNSPath(); networkNSPath != "" {
+		if networkNSPath, set := c.joinedNetworkNSPath(); networkNSPath != "" {
 			if result, err := c.inspectJoinedNetworkNS(networkNSPath); err == nil {
 				// fallback to dummy configuration
 				settings.InspectBasicNetworkConfig = resultToBasicNetworkConfig(result)
@@ -258,6 +258,12 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 				logrus.Errorf("Inspecting network namespace: %s of container %s: %v", networkNSPath, c.ID(), err)
 			}
 			return settings, nil
+		} else if set {
+			// network none case, if running allow user to join netns via sandbox key
+			// https://github.com/containers/podman/issues/16716
+			if c.state.PID > 0 {
+				settings.SandboxKey = fmt.Sprintf("/proc/%d/ns/net", c.state.PID)
+			}
 		}
 		// We can't do more if the network is down.
 		// We still want to make dummy configurations for each network
