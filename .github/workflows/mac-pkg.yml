@@ -70,7 +70,7 @@ jobs:
       if: steps.check.outputs.buildamd == 'true' || steps.check.outputs.buildarm == 'true'
       uses: actions/setup-go@v4
       with:
-        go-version: '1.18'
+        go-version: stable
     - name: Create Keychain
       if: steps.check.outputs.buildamd == 'true' || steps.check.outputs.buildarm == 'true'
       run: |

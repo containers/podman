@@ -45,7 +45,7 @@ jobs:
       uses: actions/setup-go@v4
       if: steps.check.outputs.already-exists != 'true'
       with:
-        go-version: 1.18
+        go-version: stable
     - name: Setup Signature Tooling
       if: steps.Check.outputs.already-exists != 'true'
       run: |
