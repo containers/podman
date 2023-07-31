@@ -1073,7 +1073,12 @@ EOF
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman 1 run --rm $IMAGE touch /testro
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm --read-only=false $IMAGE touch /testrw
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm $IMAGE touch /tmp/testrw
-    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman 1 run --rm --read-only-tmpfs=false $IMAGE touch /tmp/testro
+    for dir in /tmp /var/tmp /dev /dev/shm /run; do
+        CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman 1 run --rm --read-only-tmpfs=false $IMAGE touch $dir/testro
+        assert "$output" =~ "touch: $dir/testro: Read-only file system"
+        CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm --read-only-tmpfs=true $IMAGE touch $dir/testro
+        CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm --read-only=false $IMAGE touch $dir/testro
+    done
 }
 
 @test "podman run ulimit from containers.conf" {

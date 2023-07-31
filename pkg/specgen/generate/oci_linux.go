@@ -31,6 +31,15 @@ func setProcOpts(s *specgen.SpecGenerator, g *generate.Generator) {
 	}
 }
 
+func setDevOptsReadOnly(g *generate.Generator) {
+	for i := range g.Config.Mounts {
+		if g.Config.Mounts[i].Destination == "/dev" {
+			g.Config.Mounts[i].Options = append(g.Config.Mounts[i].Options, "ro")
+			return
+		}
+	}
+}
+
 // canMountSys is a best-effort heuristic to detect whether mounting a new sysfs is permitted in the container
 func canMountSys(isRootless, isNewUserns bool, s *specgen.SpecGenerator) bool {
 	if s.NetNS.IsHost() && (isRootless || isNewUserns) {
@@ -315,6 +324,9 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		g.SetProcessOOMScoreAdj(*s.OOMScoreAdj)
 	}
 	setProcOpts(s, &g)
+	if s.ReadOnlyFilesystem && !s.ReadWriteTmpfs {
+		setDevOptsReadOnly(&g)
+	}
 
 	return configSpec, nil
 }

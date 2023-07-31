@@ -434,6 +434,8 @@ type ContainerMiscConfig struct {
 	// MountAllDevices is an option to indicate whether a privileged container
 	// will mount all the host's devices
 	MountAllDevices bool `json:"mountAllDevices"`
+	// ReadWriteTmpfs indicates whether all tmpfs should be mounted readonly when in ReadOnly mode
+	ReadWriteTmpfs bool `json:"readWriteTmpfs"`
 }
 
 // InfraInherit contains the compatible options inheritable from the infra container
