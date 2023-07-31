@@ -41,7 +41,7 @@ Valid placeholders for the Go template are listed below:
 | .ContainerStats ... | Nested structure, for experts only               |
 | .CPU                | Percent CPU, full precision float                |
 | .CPUNano            | CPU Usage, total, in nanoseconds                 |
-| .CPUPerc            | Percentage of CPU Used                           |
+| .CPUPerc            | Percentage of CPU used                           |
 | .CPUSystemNano      | CPU Usage, kernel, in nanoseconds                |
 | .Duration           | Same as CPUNano                                  |
 | .ID                 | Container ID, truncated                          |
