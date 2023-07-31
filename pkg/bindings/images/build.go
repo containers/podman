@@ -675,9 +675,10 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 						}
 						defer p.Close()
 						_, err = p.Readdir(1)
-						if err != io.EOF {
+						if err == nil {
 							return nil // non empty root dir, need to return
-						} else if err != nil {
+						}
+						if err != io.EOF {
 							logrus.Errorf("While reading directory %v: %v", path, err)
 						}
 					}
