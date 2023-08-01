@@ -118,6 +118,8 @@ var _ = Describe("Podman Info", func() {
 		Expect(session).Should(Exit(0))
 		if IsRemote() {
 			Expect(session.OutputToString()).To(ContainSubstring("true"))
+		} else {
+			Expect(session.OutputToString()).To(ContainSubstring("false"))
 		}
 
 	})
