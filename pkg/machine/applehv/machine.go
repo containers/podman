@@ -360,22 +360,6 @@ func (m *MacMachine) collectFilesToDestroy(opts machine.RemoveOptions) []string 
 	return files
 }
 
-// removeFilesAndConnections removes any files and connections associated with
-// the machine during `Remove`
-func (m *MacMachine) removeFilesAndConnections(files []string) {
-	for _, f := range files {
-		if err := os.Remove(f); err != nil && !errors.Is(err, os.ErrNotExist) {
-			logrus.Error(err)
-		}
-	}
-	if err := machine.RemoveConnections(m.Name); err != nil {
-		logrus.Error(err)
-	}
-	if err := machine.RemoveConnections(m.Name + "-root"); err != nil {
-		logrus.Error(err)
-	}
-}
-
 func (m *MacMachine) Remove(name string, opts machine.RemoveOptions) (string, func() error, error) {
 	var (
 		files []string
@@ -404,7 +388,7 @@ func (m *MacMachine) Remove(name string, opts machine.RemoveOptions) (string, fu
 
 	confirmationMessage += "\n"
 	return confirmationMessage, func() error {
-		m.removeFilesAndConnections(files)
+		machine.RemoveFilesAndConnections(files, m.Name, m.Name+"-root")
 		// TODO We will need something like this for applehv too i think
 		/*
 			// Remove the HVSOCK for networking

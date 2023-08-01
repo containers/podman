@@ -1127,19 +1127,6 @@ func (v *MachineVM) removeQMPMonitorSocketAndVMPidFile() {
 	}
 }
 
-// removeFilesAndConnections removes any files and connections associated with
-// the machine during `Remove`
-func (v *MachineVM) removeFilesAndConnections(files []string) {
-	for _, f := range files {
-		if err := os.Remove(f); err != nil && !errors.Is(err, os.ErrNotExist) {
-			logrus.Error(err)
-		}
-	}
-	if err := machine.RemoveConnections(v.Name, v.Name+"-root"); err != nil {
-		logrus.Error(err)
-	}
-}
-
 // Remove deletes all the files associated with a machine including ssh keys, the image itself
 func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func() error, error) {
 	var (
@@ -1181,7 +1168,7 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 
 	confirmationMessage += "\n"
 	return confirmationMessage, func() error {
-		v.removeFilesAndConnections(files)
+		machine.RemoveFilesAndConnections(files, v.Name, v.Name+"-root")
 		return nil
 	}, nil
 }

@@ -328,19 +328,6 @@ func (m *HyperVMachine) collectFilesToDestroy(opts machine.RemoveOptions, diskPa
 	return files
 }
 
-// removeFilesAndConnections removes any files and connections associated with
-// the machine during `Remove`
-func (m *HyperVMachine) removeFilesAndConnections(files []string) {
-	for _, f := range files {
-		if err := os.Remove(f); err != nil && !errors.Is(err, os.ErrNotExist) {
-			logrus.Error(err)
-		}
-	}
-	if err := machine.RemoveConnections(m.Name, m.Name+"-root"); err != nil {
-		logrus.Error(err)
-	}
-}
-
 // removeNetworkAndReadySocketsFromRegistry removes the Network and Ready sockets
 // from the Windows Registry
 func (m *HyperVMachine) removeNetworkAndReadySocketsFromRegistry() {
@@ -385,7 +372,7 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 
 	confirmationMessage += "\n"
 	return confirmationMessage, func() error {
-		m.removeFilesAndConnections(files)
+		machine.RemoveFilesAndConnections(files, m.Name, m.Name+"-root")
 		m.removeNetworkAndReadySocketsFromRegistry()
 		return vm.Remove(diskPath)
 	}, nil
