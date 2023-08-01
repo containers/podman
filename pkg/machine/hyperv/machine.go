@@ -616,24 +616,6 @@ func (m *HyperVMachine) loadHyperVMachineFromJSON(fqConfigPath string) error {
 	return json.Unmarshal(b, m)
 }
 
-// getDevNullFiles returns pointers to Read-only and Write-only DevNull files
-func getDevNullFiles() (*os.File, *os.File, error) {
-	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	dnw, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
-	if err != nil {
-		if e := dnr.Close(); e != nil {
-			err = e
-		}
-		return nil, nil, err
-	}
-
-	return dnr, dnw, nil
-}
-
 func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingState, error) {
 	var (
 		forwardSock string
@@ -645,7 +627,7 @@ func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingStat
 	}
 
 	attr := new(os.ProcAttr)
-	dnr, dnw, err := getDevNullFiles()
+	dnr, dnw, err := machine.GetDevNullFiles()
 	if err != nil {
 		return "", machine.NoForwarding, err
 	}

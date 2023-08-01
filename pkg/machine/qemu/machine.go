@@ -629,24 +629,6 @@ func (v *MachineVM) connectToPodmanSocket(maxBackoffs int, backoff time.Duration
 	return
 }
 
-// getDevNullFiles returns pointers to Read-only and Write-only DevNull files
-func getDevNullFiles() (*os.File, *os.File, error) {
-	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	dnw, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
-	if err != nil {
-		if e := dnr.Close(); e != nil {
-			err = e
-		}
-		return nil, nil, err
-	}
-
-	return dnr, dnw, nil
-}
-
 // Start executes the qemu command line and forks it
 func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	var (
@@ -739,7 +721,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	}
 	defer fd.Close()
 
-	dnr, dnw, err := getDevNullFiles()
+	dnr, dnw, err := machine.GetDevNullFiles()
 	if err != nil {
 		return err
 	}
@@ -1336,7 +1318,7 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
 	}
 
 	attr := new(os.ProcAttr)
-	dnr, dnw, err := getDevNullFiles()
+	dnr, dnw, err := machine.GetDevNullFiles()
 	if err != nil {
 		return "", machine.NoForwarding, err
 	}
