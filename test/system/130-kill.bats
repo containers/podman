@@ -5,6 +5,7 @@
 
 load helpers
 
+# bats test_tags=distro-integration
 @test "podman kill - test signal handling in containers" {
 
     # Prepare for 'logs -f'

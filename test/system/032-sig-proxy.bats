@@ -5,6 +5,7 @@ load helpers.sig-proxy
 
 # Each of the tests below does some setup, then invokes the helper from helpers.sig-proxy.bash.
 
+# bats test_tags=distro-integration
 @test "podman sigproxy test: run" {
     # We're forced to use $PODMAN because run_podman cannot be backgrounded
     $PODMAN run -i --name c_run $IMAGE sh -c "$SLEEPLOOP" &
