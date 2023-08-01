@@ -692,20 +692,8 @@ func (m *HyperVMachine) writeConfig() error {
 }
 
 func (m *HyperVMachine) setRootful(rootful bool) error {
-	changeCon, err := machine.AnyConnectionDefault(m.Name, m.Name+"-root")
-	if err != nil {
+	if err := machine.SetRootful(rootful, m.Name, m.Name+"-root"); err != nil {
 		return err
-	}
-
-	if changeCon {
-		newDefault := m.Name
-		if rootful {
-			newDefault += "-root"
-		}
-		err := machine.ChangeDefault(newDefault)
-		if err != nil {
-			return err
-		}
 	}
 
 	m.HostUser.Modified = true

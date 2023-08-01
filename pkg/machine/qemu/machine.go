@@ -1607,20 +1607,8 @@ func (v *MachineVM) resizeDisk(diskSize uint64, oldSize uint64) error {
 }
 
 func (v *MachineVM) setRootful(rootful bool) error {
-	changeCon, err := machine.AnyConnectionDefault(v.Name, v.Name+"-root")
-	if err != nil {
+	if err := machine.SetRootful(rootful, v.Name, v.Name+"-root"); err != nil {
 		return err
-	}
-
-	if changeCon {
-		newDefault := v.Name
-		if rootful {
-			newDefault += "-root"
-		}
-		err := machine.ChangeDefault(newDefault)
-		if err != nil {
-			return err
-		}
 	}
 
 	v.HostUser.Modified = true

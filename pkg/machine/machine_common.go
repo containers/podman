@@ -122,3 +122,24 @@ func WaitAPIAndPrintInfo(forwardState APIForwardingState, name, helper, forwardS
 		}
 	}
 }
+
+// SetRootful modifies the machine's default connection to be either rootful or
+// rootless
+func SetRootful(rootful bool, name, rootfulName string) error {
+	changeCon, err := AnyConnectionDefault(name, rootfulName)
+	if err != nil {
+		return err
+	}
+
+	if changeCon {
+		newDefault := name
+		if rootful {
+			newDefault += "-root"
+		}
+		err := ChangeDefault(newDefault)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
