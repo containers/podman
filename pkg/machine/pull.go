@@ -385,3 +385,23 @@ func RemoveImageAfterExpire(dir string, expire time.Duration) error {
 	})
 	return err
 }
+
+// AcquireAlternateImage downloads the alternate image the user provided, which
+// can be a file path or URL
+func AcquireAlternateImage(name string, vmtype VMType, opts InitOptions) (*VMFile, error) {
+	g, err := NewGenericDownloader(vmtype, name, opts.ImagePath)
+	if err != nil {
+		return nil, err
+	}
+
+	imagePath, err := NewMachineFile(g.Get().LocalUncompressedFile, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := DownloadImage(g); err != nil {
+		return nil, err
+	}
+
+	return imagePath, nil
+}

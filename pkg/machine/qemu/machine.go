@@ -225,20 +225,11 @@ func (v *MachineVM) acquireVMImage(opts machine.InitOptions) error {
 		// The user has provided an alternate image which can be a file path
 		// or URL.
 		v.ImageStream = "custom"
-		g, err := machine.NewGenericDownloader(vmtype, v.Name, opts.ImagePath)
+		imagePath, err := machine.AcquireAlternateImage(v.Name, vmtype, opts)
 		if err != nil {
 			return err
 		}
-
-		imagePath, err := machine.NewMachineFile(g.Get().LocalUncompressedFile, nil)
-		if err != nil {
-			return err
-		}
-
 		v.ImagePath = *imagePath
-		if err := machine.DownloadImage(g); err != nil {
-			return err
-		}
 	}
 	return nil
 }
