@@ -24,7 +24,7 @@ require (
 	github.com/coreos/stream-metadata-go v0.4.3
 	github.com/crc-org/vfkit v0.1.1
 	github.com/cyphar/filepath-securejoin v0.2.3
-	github.com/digitalocean/go-qemu v0.0.0-20221209210016-f035778c97f7
+	github.com/digitalocean/go-qemu v0.0.0-20230711162256-2e3d0186973e
 	github.com/docker/distribution v2.8.2+incompatible
 	github.com/docker/docker v24.0.5+incompatible
 	github.com/docker/go-connections v0.4.1-0.20210727194412-58542c764a11
