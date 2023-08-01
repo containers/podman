@@ -28,6 +28,7 @@ import (
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/digitalocean/go-qemu/qmp"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 var (
@@ -597,6 +598,37 @@ func (v *MachineVM) connectToPodmanSocket(maxBackoffs int, backoff time.Duration
 	return
 }
 
+// qemuPid returns -1 or the PID of the running QEMU instance.
+func (v *MachineVM) qemuPid() (int, error) {
+	pidData, err := os.ReadFile(v.VMPidFilePath.GetPath())
+	if err != nil {
+		// The file may not yet exist on start or have already been
+		// cleaned up after stop, so we need to be defensive.
+		if errors.Is(err, os.ErrNotExist) {
+			return -1, nil
+		}
+		return -1, err
+	}
+	if len(pidData) == 0 {
+		return -1, nil
+	}
+
+	pid, err := strconv.Atoi(strings.TrimRight(string(pidData), "\n"))
+	if err != nil {
+		logrus.Warnf("Reading QEMU pidfile: %v", err)
+		return -1, nil
+	}
+
+	if err := unix.Kill(pid, 0); err != nil {
+		if err == unix.ESRCH {
+			return -1, nil
+		}
+		return -1, fmt.Errorf("pinging QEMU process: %w", err)
+	}
+
+	return pid, nil
+}
+
 // Start executes the qemu command line and forks it
 func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	var (
@@ -623,6 +655,16 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		return fmt.Errorf("cannot start VM %q: starting state indicates that a previous start has failed: please stop and restart the VM", v.Name)
 	case machine.Running:
 		return fmt.Errorf("cannot start VM %q: %w", v.Name, machine.ErrVMAlreadyRunning)
+	}
+
+	// If QEMU is running already, something went wrong and we cannot
+	// proceed.
+	qemuPid, err := v.qemuPid()
+	if err != nil {
+		return err
+	}
+	if qemuPid != -1 {
+		return fmt.Errorf("cannot start VM %q: another instance of %q is already running with process ID %d: please stop and restart the VM", v.Name, v.CmdLine[0], qemuPid)
 	}
 
 	v.Starting = true
@@ -940,7 +982,31 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
 	if err := v.update(); err != nil {
 		return err
 	}
-	return v.stopLocked()
+
+	stopErr := v.stopLocked()
+
+	// Make sure that the associated QEMU process gets killed in case it's
+	// still running (#16054).
+	qemuPid, err := v.qemuPid()
+	if err != nil {
+		if stopErr == nil {
+			return err
+		}
+		return fmt.Errorf("%w: %w", stopErr, err)
+	}
+
+	if qemuPid == -1 {
+		return stopErr
+	}
+
+	if err := unix.Kill(qemuPid, unix.SIGKILL); err != nil {
+		if stopErr == nil {
+			return err
+		}
+		return fmt.Errorf("%w: %w", stopErr, err)
+	}
+
+	return stopErr
 }
 
 // stopLocked stops the machine and expects the caller to hold the machine's lock.
