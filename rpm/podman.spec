@@ -7,11 +7,17 @@
 %global debug_package %{nil}
 %endif
 
-# RHEL 8's default %%gobuild macro doesn't account for the BUILDTAGS variable, so we
-# set it separately here and do not depend on RHEL 8's go-srpm-macros package.
-%if %{defined rhel} && 0%{?rhel} == 8
+# RHEL's default %%gobuild macro doesn't account for the BUILDTAGS variable, so we
+# set it separately here and do not depend on RHEL's go-[s]rpm-macros package
+# until that's fixed.
+# c9s bz: https://bugzilla.redhat.com/show_bug.cgi?id=2227328
+# c8s bz: https://bugzilla.redhat.com/show_bug.cgi?id=2227331
+%if %{defined rhel} && !%{defined eln}
 %define gobuild(o:) go build -buildmode pie -compiler gc -tags="rpm_crashtraceback libtrust_openssl ${BUILDTAGS:-}" -ldflags "-linkmode=external -compressdwarf=false ${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '%__global_ldflags'" -a -v -x %{?**};
+# python3 dep conditional for rhel8
+%if %{?rhel} == 8
 %define rhel8py3 1
+%endif
 %endif
 
 %global gomodulesmode GO111MODULE=on
@@ -23,6 +29,16 @@
 
 %if %{defined fedora}
 %define build_with_btrfs 1
+%endif
+
+# gvproxy doesn't currently build on rawhide because of go1.21.
+# It  can be included as a standalone package on copr.
+# It is currently open for review on bugzilla until which fedora releases can't
+# include it. Official rawhide should be able to fetch the last active build of
+# gvproxy, the min version requirement has been removed to allow it.
+# Ref: https://bugzilla.redhat.com/show_bug.cgi?id=2224434
+%if !%{defined copr_username} && 0%{?fedora} <= 37
+%define gvproxy_subpackage 1
 %endif
 
 %global container_base_path github.com/containers
@@ -41,10 +57,12 @@
 %global commit_plugins 18822f9a4fb35d1349eb256f4cd2bfd372474d84
 %global import_path_plugins %{container_base_path}/%{repo_plugins}
 
+%if %{defined gvproxy_subpackage}
 # gvproxy
 %global repo_gvproxy gvisor-tap-vsock
 %global git_gvproxy %{container_base_url}/%{repo_gvproxy}
 %global commit_gvproxy 407efb5dcdb0f4445935f7360535800b60447544
+%endif
 
 Name: podman
 %if %{defined copr_username}
@@ -71,7 +89,9 @@ URL: https://%{name}.io/
 # All SourceN files fetched from upstream
 Source0: %{git0}/archive/v%{version}.tar.gz
 Source1: %{git_plugins}/archive/%{commit_plugins}/%{repo_plugins}-%{commit_plugins}.tar.gz
+%if %{defined gvproxy_subpackage}
 Source2: %{git_gvproxy}/archive/%{commit_gvproxy}/%{repo_gvproxy}-%{commit_gvproxy}.tar.gz
+%endif
 Provides: %{name}-manpages = %{epoch}:%{version}-%{release}
 BuildRequires: %{_bindir}/envsubst
 BuildRequires: %{_bindir}/go-md2man
@@ -104,7 +124,11 @@ BuildRequires: python3
 Requires: catatonit
 Requires: conmon >= 2:2.1.7-2
 Requires: containers-common-extra
+%if %{defined gvproxy_subpackage}
 Recommends: %{name}-gvproxy = %{epoch}:%{version}-%{release}
+%else
+Recommends: %{name}-gvproxy
+%endif
 Provides: %{name}-quadlet
 Obsoletes: %{name}-quadlet <= 5:4.4.0-1
 Provides: %{name}-quadlet = %{epoch}:%{version}-%{release}
@@ -174,7 +198,11 @@ connections as well.
 %package plugins
 Summary: Plugins for %{name}
 Requires: dnsmasq
+%if %{defined gvproxy_subpackage}
 Recommends: %{name}-gvproxy = %{epoch}:%{version}-%{release}
+%else
+Recommends: %{name}-gvproxy
+%endif
 
 %description plugins
 This plugin sets up the use of dnsmasq on a given CNI network so
@@ -184,6 +212,7 @@ that dnsmasq will read in.  Similarly, when a pod
 is removed from the network, it will remove the entry from the hosts
 file.  Each CNI network will have its own dnsmasq instance.
 
+%if %{defined gvproxy_subpackage}
 %package gvproxy
 Summary: Go replacement for libslirp and VPNKit
 
@@ -192,6 +221,7 @@ A replacement for libslirp and VPNKit, written in pure Go.
 It is based on the network stack of gVisor. Compared to libslirp,
 gvisor-tap-vsock brings a configurable DNS server and
 dynamic port forwarding.
+%endif
 
 %package -n %{name}sh
 Summary: Confined login and user shell using %{name}
@@ -213,8 +243,10 @@ sed -i 's;@@PODMAN@@\;$(BINDIR);@@PODMAN@@\;%{_bindir};' Makefile
 # untar dnsname
 tar zxf %{SOURCE1}
 
+%if %{defined gvproxy_subpackage}
 # untar %%{name}-gvproxy
 tar zxf %{SOURCE2}
+%endif
 
 %build
 %set_build_flags
@@ -254,11 +286,13 @@ export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag
 # reset LDFLAGS for plugins and gvisor binaries
 LDFLAGS=''
 
+%if %{defined gvproxy_subpackage}
 # build gvisor-tap-vsock binaries
 cd %{repo_gvproxy}-%{commit_gvproxy}
 %gobuild -o bin/gvproxy ./cmd/gvproxy
 %gobuild -o bin/gvforwarder ./cmd/vm
 cd ..
+%endif
 
 %{__make} docs docker-docs
 
@@ -296,12 +330,14 @@ cd %{repo_plugins}-%{commit_plugins}
 %{__make} PREFIX=%{_prefix} DESTDIR=%{buildroot} install
 cd ..
 
+%if %{defined gvproxy_subpackage}
 # install gvproxy
 cd %{repo_gvproxy}-%{commit_gvproxy}
 install -dp %{buildroot}%{_libexecdir}/%{name}
 install -p -m0755 bin/gvproxy %{buildroot}%{_libexecdir}/%{name}
 install -p -m0755 bin/gvforwarder %{buildroot}%{_libexecdir}/%{name}
 cd ..
+%endif
 
 # do not include docker and podman-remote man pages in main package
 for file in `find %{buildroot}%{_mandir}/man[15] -type f | sed "s,%{buildroot},," | grep -v -e remote -e docker`; do
@@ -364,12 +400,14 @@ cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 %dir %{_libexecdir}/cni
 %{_libexecdir}/cni/dnsname
 
+%if %{defined gvproxy_subpackage}
 %files gvproxy
 %license %{repo_gvproxy}-%{commit_gvproxy}/LICENSE
 %doc %{repo_gvproxy}-%{commit_gvproxy}/README.md
 %dir %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/gvproxy
 %{_libexecdir}/%{name}/gvforwarder
+%endif
 
 %files -n %{name}sh
 %license LICENSE
