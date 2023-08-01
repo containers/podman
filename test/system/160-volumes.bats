@@ -327,15 +327,31 @@ EOF
     mkdir $myvoldir
     touch $myvoldir/myfile
 
+    containersconf=${PODMAN_TMPDIR}/containers.conf
+    cat >$containersconf <<EOF
+[containers]
+userns="keep-id"
+EOF
+
     # With keep-id
     run_podman run --rm -v $myvoldir:/vol:z --userns=keep-id $IMAGE \
-               stat -c "%u:%s" /vol/myfile
-    is "$output" "$(id -u):0" "with keep-id: stat(file in container) == my uid"
+               stat -c "%u:%g:%s" /vol/myfile
+    is "$output" "$(id -u):$(id -g):0" "with keep-id: stat(file in container) == my uid"
 
     # Without
     run_podman run --rm -v $myvoldir:/vol:z $IMAGE \
-               stat -c "%u:%s" /vol/myfile
-    is "$output" "0:0" "w/o keep-id: stat(file in container) == root"
+               stat -c "%u:%g:%s" /vol/myfile
+    is "$output" "0:0:0" "w/o keep-id: stat(file in container) == root"
+
+    # With keep-id from containers.conf
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm -v $myvoldir:/vol:z $IMAGE \
+               stat -c "%u:%g:%s" /vol/myfile
+    is "$output" "$(id -u):$(id -g):0" "with keep-id from containers.conf: stat(file in container) == my uid"
+
+    # With keep-id from containers.conf overriden with --userns=nomap
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm -v $myvoldir:/vol:z --userns=nomap $IMAGE \
+               stat -c "%u:%g:%s" /vol/myfile
+    is "$output" "65534:65534:0" "w/o overridden containers.conf keep-id->nomap: stat(file in container) == root"
 }
 
 
