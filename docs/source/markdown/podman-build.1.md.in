@@ -23,8 +23,10 @@ directory, Podman uses the Containerfile's parent directory as its build context
 
 Containerfiles ending with a ".in" suffix are preprocessed via CPP(1).  This
 can be useful to decompose Containerfiles into several reusable parts that can
-be used via CPP's **#include** directive.  Notice, a Containerfile.in file can
-still be used by other tools when manually preprocessing them via `cpp -E`.
+be used via CPP's **#include** directive. Containerfiles ending in .in are
+restricted to no comment lines unless they are CPP commands.
+Note, a Containerfile.in file can still be used by other tools when manually
+preprocessing them via `cpp -E`.
 
 When the URL is an archive, the contents of the URL is downloaded to a temporary
 location and extracted before execution.
