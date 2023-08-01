@@ -688,7 +688,15 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 	}
 
 	logrus.Debug("ready notification received")
-	m.waitAPIAndPrintInfo(forwardState, forwardSock, opts.NoInfo)
+	machine.WaitAPIAndPrintInfo(
+		forwardState,
+		m.Name,
+		findClaimHelper(),
+		forwardSock,
+		opts.NoInfo,
+		m.isIncompatible(),
+		m.Rootful,
+	)
 	return nil
 }
 
@@ -1072,72 +1080,6 @@ func (m *MacMachine) userGlobalSocketLink() (string, error) {
 	}
 	// User global socket is located in parent directory of machine dirs (one per user)
 	return filepath.Join(filepath.Dir(path), "podman.sock"), err
-}
-
-func (m *MacMachine) waitAPIAndPrintInfo(forwardState machine.APIForwardingState, forwardSock string, noInfo bool) {
-	suffix := ""
-	if m.Name != machine.DefaultMachineName {
-		suffix = " " + m.Name
-	}
-
-	if m.isIncompatible() {
-		fmt.Fprintf(os.Stderr, "\n!!! ACTION REQUIRED: INCOMPATIBLE MACHINE !!!\n")
-
-		fmt.Fprintf(os.Stderr, "\nThis machine was created by an older Podman release that is incompatible\n")
-		fmt.Fprintf(os.Stderr, "with this release of Podman. It has been started in a limited operational\n")
-		fmt.Fprintf(os.Stderr, "mode to allow you to copy any necessary files before recreating it. This\n")
-		fmt.Fprintf(os.Stderr, "can be accomplished with the following commands:\n\n")
-		fmt.Fprintf(os.Stderr, "\t# Login and copy desired files (Optional)\n")
-		fmt.Fprintf(os.Stderr, "\t# Podman machine ssh%s tar cvPf - /path/to/files > backup.tar\n\n", suffix)
-		fmt.Fprintf(os.Stderr, "\t# Recreate machine (DESTRUCTIVE!) \n")
-		fmt.Fprintf(os.Stderr, "\tpodman machine stop%s\n", suffix)
-		fmt.Fprintf(os.Stderr, "\tpodman machine rm -f%s\n", suffix)
-		fmt.Fprintf(os.Stderr, "\tpodman machine init --now%s\n\n", suffix)
-		fmt.Fprintf(os.Stderr, "\t# Copy back files (Optional)\n")
-		fmt.Fprintf(os.Stderr, "\t# cat backup.tar | podman machine ssh%s tar xvPf - \n\n", suffix)
-	}
-
-	if forwardState == machine.NoForwarding {
-		return
-	}
-
-	machine.WaitAndPingAPI(forwardSock)
-
-	if !noInfo {
-		if !m.Rootful {
-			fmt.Printf("\nThis machine is currently configured in rootless mode. If your containers\n")
-			fmt.Printf("require root permissions (e.g. ports < 1024), or if you run into compatibility\n")
-			fmt.Printf("issues with non-Podman clients, you can switch using the following command: \n")
-			fmt.Printf("\n\tpodman machine set --rootful%s\n\n", suffix)
-		}
-
-		fmt.Printf("API forwarding listening on: %s\n", forwardSock)
-		if forwardState == machine.DockerGlobal {
-			fmt.Printf("Docker API clients default to this address. You do not need to set DOCKER_HOST.\n\n")
-		} else {
-			stillString := "still "
-			switch forwardState {
-			case machine.NotInstalled:
-				fmt.Printf("\nThe system helper service is not installed; the default Docker API socket\n")
-				fmt.Printf("address can't be used by Podman. ")
-				if helper := findClaimHelper(); len(helper) > 0 {
-					fmt.Printf("If you would like to install it run the\nfollowing commands:\n")
-					fmt.Printf("\n\tsudo %s install\n", helper)
-					fmt.Printf("\tpodman machine stop%s; podman machine start%s\n\n", suffix, suffix)
-				}
-			case machine.MachineLocal:
-				fmt.Printf("\nAnother process was listening on the default Docker API socket address.\n")
-			case machine.ClaimUnsupported:
-				fallthrough
-			default:
-				stillString = ""
-			}
-
-			fmt.Printf("You can %sconnect Docker API clients by setting DOCKER_HOST using the\n", stillString)
-			fmt.Printf("following command in your terminal session:\n")
-			fmt.Printf("\n\texport DOCKER_HOST='unix://%s'\n\n", forwardSock)
-		}
-	}
 }
 
 func (m *MacMachine) isIncompatible() bool {
