@@ -215,7 +215,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.26.1-0.20230726142307-8c387a14f4ac
+# github.com/containers/image/v5 v5.26.1-0.20230801083106-fcf7f0e1712a
 ## explicit; go 1.18
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -399,7 +399,7 @@ github.com/crc-org/vfkit/pkg/config
 github.com/crc-org/vfkit/pkg/rest
 github.com/crc-org/vfkit/pkg/rest/define
 github.com/crc-org/vfkit/pkg/util
-# github.com/cyberphone/json-canonicalization v0.0.0-20230701045847-91eb5f1b7744
+# github.com/cyberphone/json-canonicalization v0.0.0-20230710064741-aa7fe85c7dbd
 ## explicit
 github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer
 # github.com/cyphar/filepath-securejoin v0.2.3
