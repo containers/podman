@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io/fs"
 	"net"
-	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -266,35 +265,6 @@ func (v *MachineVM) addMountsToVM(opts machine.InitOptions) error {
 	return nil
 }
 
-// addSSHConnectionsToPodmanSocket adds SSH connections to the podman socket if
-// no ignition path is provided
-func (v *MachineVM) addSSHConnectionsToPodmanSocket(opts machine.InitOptions) error {
-	// This kind of stinks but no other way around this r/n
-	if len(opts.IgnitionPath) > 0 {
-		fmt.Println("An ignition path was provided.  No SSH connection was added to Podman")
-		return nil
-	}
-
-	uri := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, fmt.Sprintf("/run/user/%d/podman/podman.sock", v.UID), strconv.Itoa(v.Port), v.RemoteUsername)
-	uriRoot := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
-
-	uris := []url.URL{uri, uriRoot}
-	names := []string{v.Name, v.Name + "-root"}
-
-	// The first connection defined when connections is empty will become the default
-	// regardless of IsDefault, so order according to rootful
-	if opts.Rootful {
-		uris[0], names[0], uris[1], names[1] = uris[1], names[1], uris[0], names[0]
-	}
-
-	for i := 0; i < 2; i++ {
-		if err := machine.AddConnection(&uris[i], names[i], v.IdentityPath, opts.IsDefault && i == 0); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // writeIgnitionConfigFile generates the ignition config and writes it to the
 // filesystem
 func (v *MachineVM) writeIgnitionConfigFile(opts machine.InitOptions, key string) error {
@@ -364,7 +334,15 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	// Add location of bootable image
 	v.CmdLine = append(v.CmdLine, "-drive", "if=virtio,file="+v.getImageFile())
 
-	if err := v.addSSHConnectionsToPodmanSocket(opts); err != nil {
+	err := machine.AddSSHConnectionsToPodmanSocket(
+		v.UID,
+		v.Port,
+		v.IdentityPath,
+		v.Name,
+		v.RemoteUsername,
+		opts,
+	)
+	if err != nil {
 		return false, err
 	}
 

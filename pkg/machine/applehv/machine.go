@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io/fs"
 	"net"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -169,34 +168,6 @@ func (m *MacMachine) addMountsToVM(opts machine.InitOptions, virtiofsMnts *[]mac
 	return nil
 }
 
-func (m *MacMachine) addSSHConnectionsToPodmanSocket(opts machine.InitOptions) error {
-	if len(opts.IgnitionPath) < 1 {
-		// TODO localhost needs to be restored here
-		uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", fmt.Sprintf("/run/user/%d/podman/podman.sock", m.UID), strconv.Itoa(m.Port), m.RemoteUsername)
-		uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(m.Port), "root")
-		identity := m.IdentityPath
-
-		uris := []url.URL{uri, uriRoot}
-		names := []string{m.Name, m.Name + "-root"}
-
-		// The first connection defined when connections is empty will become the default
-		// regardless of IsDefault, so order according to rootful
-		if opts.Rootful {
-			uris[0], names[0], uris[1], names[1] = uris[1], names[1], uris[0], names[0]
-		}
-
-		for i := 0; i < 2; i++ {
-			if err := machine.AddConnection(&uris[i], names[i], identity, opts.IsDefault && i == 0); err != nil {
-				return err
-			}
-		}
-	} else {
-		fmt.Println("An ignition path was provided.  No SSH connection was added to Podman")
-	}
-
-	return nil
-}
-
 // writeIgnitionConfigFile generates the ignition config and writes it to the filesystem
 func (m *MacMachine) writeIgnitionConfigFile(opts machine.InitOptions, key string, virtiofsMnts *[]machine.VirtIoFs) error {
 	// Write the ignition file
@@ -300,7 +271,15 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	if err := m.addSSHConnectionsToPodmanSocket(opts); err != nil {
+	err = machine.AddSSHConnectionsToPodmanSocket(
+		m.UID,
+		m.Port,
+		m.IdentityPath,
+		m.Name,
+		m.RemoteUsername,
+		opts,
+	)
+	if err != nil {
 		return false, err
 	}
 
