@@ -102,7 +102,7 @@ If you would like to debug a limited set of unit files, you can copy them to a s
 QUADLET_UNIT_DIRS=<Directory> /usr/lib/systemd/system-generators/podman-system-generator {--user} --dryrun
 ```
 
-This will instruct quadlet to look for units in this directory instead of the common ones and by
+This will instruct Quadlet to look for units in this directory instead of the common ones and by
 that limit the output to only the units you are debugging.
 
 ## Container units [Container]
@@ -580,7 +580,7 @@ Indicates whether containers will be auto-updated ([podman-auto-update(1)](podma
 
 * `registry`: Requires a fully-qualified image reference (e.g., quay.io/podman/stable:latest) to be used to create the container. This enforcement is necessary to know which images to actually check and pull. If an image ID was used, Podman does not know which image to check/pull anymore.
 
-* `local`: Tells Podman to compare the image a container is using to the image with its raw name in local storage. If an image is updated locally, Podman simply restarts the systemd unit executing the Kubernetes quadlet.
+* `local`: Tells Podman to compare the image a container is using to the image with its raw name in local storage. If an image is updated locally, Podman simply restarts the systemd unit executing the Kubernetes Quadlet.
 
 * `name/(local|registry)`: Tells Podman to perform the `local` or `registry` autoupdate on the specified container name.
 

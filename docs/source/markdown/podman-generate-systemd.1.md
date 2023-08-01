@@ -1,12 +1,16 @@
 % podman-generate-systemd 1
 
 ## NAME
-podman\-generate\-systemd - Generate systemd unit file(s) for a container or pod
+podman\-generate\-systemd - [DEPRECATED] Generate systemd unit file(s) for a container or pod
 
 ## SYNOPSIS
 **podman generate systemd** [*options*] *container|pod*
 
 ## DESCRIPTION
+DEPRECATED:
+Note: **podman generate systemd** is deprecated. We recommend using [Quadlet](podman-systemd.unit.5.md)
+files when running Podman containers or pods under systemd.
+
 **podman generate systemd** creates a systemd unit file that can be used to control a container or pod.
 By default, the command prints the content of the unit files to stdout.
 
@@ -306,7 +310,7 @@ CONTAINER ID  IMAGE                            COMMAND  CREATED        STATUS   
 bb310a0780ae  docker.io/library/alpine:latest  /bin/sh  3 minutes ago  Created                  busy_moser
 ```
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-container(1)](podman-container.1.md)**, **systemctl(1)**, **systemd.unit(5)**, **systemd.service(5)**, **[conmon(8)](https://github.com/containers/conmon/blob/main/docs/conmon.8.md)**
+**[podman(1)](podman.1.md)**, **[podman-container(1)](podman-container.1.md)**, **systemctl(1)**, **systemd.unit(5)**, **systemd.service(5)**, **[conmon(8)](https://github.com/containers/conmon/blob/main/docs/conmon.8.md)**, **[podman-systemd.unit(5)](podman-systemd.unit.5.md)**
 
 ## HISTORY
 April 2020, Updated details and added use case to use generated .service files as root and non-root, by Sujil Shah (sushah at redhat dot com)

@@ -468,4 +468,14 @@ $name stderr" "logs work with passthrough"
     rm -f $UNIT_DIR/$unit_name
 }
 
+@test "podman generate - systemd - DEPRECATED" {
+    run_podman generate systemd --help
+    is "$output" ".*[DEPRECATED] command:"
+    is "$output" ".*\[DEPRECATED\] Generate systemd units.*"
+    run_podman create --name test $IMAGE
+    run_podman generate systemd test >/dev/null
+    is "$output" ".*[DEPRECATED] command:"
+    run_podman generate --help
+    is "$output" ".*\[DEPRECATED\] Generate systemd units"
+}
 # vim: filetype=sh
