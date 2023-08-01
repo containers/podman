@@ -345,6 +345,7 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination strin
 	pushOptions.InsecureSkipTLSVerify = opts.SkipTLSVerify
 	pushOptions.Writer = opts.Writer
 	pushOptions.CompressionLevel = opts.CompressionLevel
+	pushOptions.AddCompression = opts.AddCompression
 
 	compressionFormat := opts.CompressionFormat
 	if compressionFormat == "" {

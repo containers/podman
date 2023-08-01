@@ -60,6 +60,13 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the manifest list
+	//  - in: query
+	//    name: addCompression
+	//    required: false
+	//    description: add existing instances with requested compression algorithms to manifest list
+	//    type: array
+	//    items:
+	//      type: string
 	//  - in: path
 	//    name: destination
 	//    type: string

@@ -333,13 +333,14 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 
 	query := struct {
-		All               bool   `schema:"all"`
-		CompressionFormat string `schema:"compressionFormat"`
-		CompressionLevel  *int   `schema:"compressionLevel"`
-		Format            string `schema:"format"`
-		RemoveSignatures  bool   `schema:"removeSignatures"`
-		TLSVerify         bool   `schema:"tlsVerify"`
-		Quiet             bool   `schema:"quiet"`
+		All               bool     `schema:"all"`
+		CompressionFormat string   `schema:"compressionFormat"`
+		CompressionLevel  *int     `schema:"compressionLevel"`
+		Format            string   `schema:"format"`
+		RemoveSignatures  bool     `schema:"removeSignatures"`
+		TLSVerify         bool     `schema:"tlsVerify"`
+		Quiet             bool     `schema:"quiet"`
+		AddCompression    []string `schema:"addCompression"`
 	}{
 		// Add defaults here once needed.
 		TLSVerify: true,
@@ -373,6 +374,7 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 	options := entities.ImagePushOptions{
 		All:               query.All,
 		Authfile:          authfile,
+		AddCompression:    query.AddCompression,
 		CompressionFormat: query.CompressionFormat,
 		CompressionLevel:  query.CompressionLevel,
 		Format:            query.Format,

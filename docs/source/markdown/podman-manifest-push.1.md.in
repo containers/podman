@@ -14,6 +14,17 @@ The list image's ID and the digest of the image's manifest.
 
 ## OPTIONS
 
+#### **--add-compression**=*compression*
+
+Makes sure that requested compression variant for each platform is added to the manifest list keeping original instance
+intact in the same manifest list. Supported values are (`gzip`, `zstd` and `zstd:chunked`). Following flag can be used
+multiple times.
+
+Note that `--compression-format` controls the compression format of each instance in the manifest list. `--add-compression`
+will add another variant for each instance in the list with the specified compressions. `--compression-format` gzip `--add-compression`
+zstd will push a manifest list with each instance being compressed with gzip plus an additional variant of each instance
+being compressed with zstd.
+
 #### **--all**
 
 Push the images mentioned in the manifest list or image index, in addition to
