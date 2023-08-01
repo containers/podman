@@ -99,7 +99,6 @@ default_sysctls = [
 #
 #env = [
 #  "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-#  "TERM=xterm",
 #]
 
 # Pass all host environment variables into the container.

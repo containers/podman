@@ -28,6 +28,12 @@ func (s *Set[E]) Add(v E) {
 	s.m[v] = struct{}{} // Possibly writing the same struct{}{} presence marker again.
 }
 
+func (s *Set[E]) AddSlice(slice []E) {
+	for _, v := range slice {
+		s.Add(v)
+	}
+}
+
 func (s *Set[E]) Delete(v E) {
 	delete(s.m, v)
 }
