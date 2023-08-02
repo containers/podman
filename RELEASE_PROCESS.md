@@ -219,8 +219,6 @@ spelled with complete minutiae.
       version to 0.  For example, after pushing the v2.2.0 release, *main*
       should be set to v2.3.0-dev.
    1. Create a "Bump to vX.Y.Z-dev" commit with these changes.
-   1. Bump the version number in `README.md` (still on on *main*)
-      to reflect the new release.  Commit these changes.
    1. Update `RELEASE_NOTES.md` on main. Commit these changes.
    1. Create a PR with the above commits, and oversee it's merging.
 
