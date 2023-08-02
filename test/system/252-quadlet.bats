@@ -784,6 +784,7 @@ EOF
     #
     # Step 1: determine what systemd is using for %T. There does not
     # seem to be any systemctly way to find this.
+    percent_t_file="${PODMAN_TMPDIR}/foo"
     local service=get-percent-t.$(random_string 10).service
     local unitfile=${UNIT_DIR}/$service
     cat >$unitfile <<EOF
@@ -791,15 +792,12 @@ EOF
 Description=Get the value of percent T
 
 [Service]
-ExecStart=/bin/bash -c "echo --==%T==--"
+ExecStart=/bin/bash -c "echo %T >$percent_t_file"
+Type=oneshot
 EOF
     systemctl daemon-reload
     systemctl --wait start $service
-    echo "$_LOG_PROMPT journalctl -u $service"
-    run journalctl -u $service
-    echo "$output"
-    assert "$output" =~ " --==.*==--" "get-percent-T unit ran to completion"
-    percent_t=$(expr "$output" : ".* --==\(.*\)==--")
+    percent_t=$(< $percent_t_file)
     # Clean up. Don't bother to systemctl-reload, service_setup does that below.
     rm -f $unitfile
 
