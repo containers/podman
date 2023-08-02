@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -63,7 +64,7 @@ func runFlags(cmd *cobra.Command) {
 
 	flags.SetNormalizeFunc(utils.AliasFlags)
 	flags.BoolVar(&runOpts.SigProxy, "sig-proxy", true, "Proxy received signals to the process")
-	flags.BoolVar(&runRmi, "rmi", false, "Remove container image unless used by other containers")
+	flags.BoolVar(&runRmi, "rmi", false, "Remove image unless used by other containers, implies --rm=true")
 
 	preserveFdsFlagName := "preserve-fds"
 	flags.UintVar(&runOpts.PreserveFDs, "preserve-fds", 0, "Pass a number of additional file descriptors into the container")
@@ -110,6 +111,12 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if runRmi {
+		if cmd.Flags().Changed("rm") && !cliVals.Rm {
+			return errors.New("the --rmi option does not work without --rm=true")
+		}
+		cliVals.Rm = true
+	}
 	// TODO: Breaking change should be made fatal in next major Release
 	if cliVals.TTY && cliVals.Interactive && !term.IsTerminal(int(os.Stdin.Fd())) {
 		logrus.Warnf("The input device is not a TTY. The --tty and --interactive flags might not work properly")
