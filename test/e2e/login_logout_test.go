@@ -273,10 +273,6 @@ var _ = Describe("Podman login and logout", func() {
 		setup.WaitWithDefaultTimeout()
 		defer os.RemoveAll(certDir)
 
-		// FIXME: #18405, podman-run barfs if $REGISTRY_AUTH_FILE missing
-		err = os.WriteFile(os.Getenv("REGISTRY_AUTH_FILE"), []byte(`{"auths": {}}`), 0600)
-		Expect(err).ToNot(HaveOccurred(), "touching authfile")
-
 		// N/B: This second registry container shares the same auth and cert dirs
 		//      as the registry started from BeforeEach().  Since this one starts
 		//      second, re-labeling the volumes should keep SELinux happy.
