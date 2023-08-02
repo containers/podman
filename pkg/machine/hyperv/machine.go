@@ -18,7 +18,6 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
-	"github.com/containers/storage/pkg/ioutils"
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
 )
@@ -673,22 +672,7 @@ func (m *HyperVMachine) forwardSocketPath() (*machine.VMFile, error) {
 
 func (m *HyperVMachine) writeConfig() error {
 	// Write the JSON file
-	opts := &ioutils.AtomicFileWriterOptions{ExplicitCommit: true}
-	w, err := ioutils.NewAtomicFileWriterWithOpts(m.ConfigPath.GetPath(), 0644, opts)
-	if err != nil {
-		return err
-	}
-	defer w.Close()
-
-	enc := json.NewEncoder(w)
-	enc.SetIndent("", " ")
-
-	if err := enc.Encode(m); err != nil {
-		return err
-	}
-
-	// Commit the changes to disk if no errors
-	return w.Commit()
+	return machine.WriteConfig(m.ConfigPath.Path, m)
 }
 
 func (m *HyperVMachine) setRootful(rootful bool) error {

@@ -22,7 +22,6 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/wsl/wutil"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage/pkg/homedir"
-	"github.com/containers/storage/pkg/ioutils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"
@@ -405,28 +404,7 @@ func downloadDistro(v *MachineVM, opts machine.InitOptions) error {
 }
 
 func (v *MachineVM) writeConfig() error {
-	const format = "could not write machine json config: %w"
-	jsonFile := v.ConfigPath
-
-	opts := &ioutils.AtomicFileWriterOptions{ExplicitCommit: true}
-	w, err := ioutils.NewAtomicFileWriterWithOpts(jsonFile, 0644, opts)
-	if err != nil {
-		return fmt.Errorf(format, err)
-	}
-	defer w.Close()
-
-	enc := json.NewEncoder(w)
-	enc.SetIndent("", " ")
-	if err := enc.Encode(v); err != nil {
-		return fmt.Errorf(format, err)
-	}
-
-	// Commit the changes to disk if no error has occurred
-	if err := w.Commit(); err != nil {
-		return fmt.Errorf(format, err)
-	}
-
-	return nil
+	return machine.WriteConfig(v.ConfigPath, v)
 }
 
 func setupConnections(v *MachineVM, opts machine.InitOptions) error {

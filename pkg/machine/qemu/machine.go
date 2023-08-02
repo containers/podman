@@ -25,7 +25,6 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/digitalocean/go-qemu/qmp"
 	"github.com/sirupsen/logrus"
@@ -1523,22 +1522,7 @@ func (v *MachineVM) writeConfig() error {
 		return err
 	}
 	// Write the JSON file
-	opts := &ioutils.AtomicFileWriterOptions{ExplicitCommit: true}
-	w, err := ioutils.NewAtomicFileWriterWithOpts(v.ConfigPath.GetPath(), 0644, opts)
-	if err != nil {
-		return err
-	}
-	defer w.Close()
-
-	enc := json.NewEncoder(w)
-	enc.SetIndent("", " ")
-
-	if err := enc.Encode(v); err != nil {
-		return err
-	}
-
-	// Commit the changes to disk if no errors
-	return w.Commit()
+	return machine.WriteConfig(v.ConfigPath.Path, v)
 }
 
 // getImageFile wrapper returns the path to the image used
