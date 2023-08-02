@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/containers/podman/v4/libpod/define"
 	. "github.com/containers/podman/v4/test/utils"
@@ -254,6 +255,8 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		wait.WaitWithDefaultTimeout()
 		Expect(wait).Should(Exit(0))
 
+		// Flake prevention: journalctl makes no timeliness guarantees.
+		time.Sleep(1 * time.Second)
 		cmd := exec.Command("journalctl", "--no-pager", "-o", "json", "--output-fields=CONTAINER_TAG", fmt.Sprintf("CONTAINER_ID_FULL=%s", cid))
 		out, err := cmd.CombinedOutput()
 		Expect(err).ToNot(HaveOccurred())

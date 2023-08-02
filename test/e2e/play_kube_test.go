@@ -2499,6 +2499,8 @@ var _ = Describe("Podman play kube", func() {
 		wait.WaitWithDefaultTimeout()
 		Expect(wait).Should(Exit(0))
 
+		// Flake prevention: journalctl makes no timeliness guarantees.
+		time.Sleep(1 * time.Second)
 		logs := podmanTest.Podman([]string{"logs", getCtrNameInPod(p)})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs).Should(Exit(0))
