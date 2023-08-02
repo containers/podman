@@ -70,6 +70,7 @@ Valid placeholders for the Go template are listed below:
 | **Placeholder**    | **Description**                              |
 |--------------------|----------------------------------------------|
 | .AutoRemove        | If true, containers are removed on exit      |
+| .CIDFile           | Container ID File                            |
 | .Command           | Quoted command used                          |
 | .Created           | Creation time for container, Y-M-D H:M:S     |
 | .CreatedAt         | Creation time for container (same as above)  |
