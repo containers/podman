@@ -29,6 +29,7 @@ func init() {
 	})
 	flags := rmCmd.Flags()
 	flags.BoolVarP(&rmOptions.All, "all", "a", false, "Remove all secrets")
+	flags.BoolVarP(&rmOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified secret is missing")
 }
 
 var (

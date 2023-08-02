@@ -336,6 +336,18 @@ var _ = Describe("Podman secret", func() {
 		Expect(session.OutputToStringArray()).To(HaveLen(1))
 	})
 
+	It("podman secret rm --ignore", func() {
+		remove := podmanTest.Podman([]string{"secret", "rm", "non-existent-secret"})
+		remove.WaitWithDefaultTimeout()
+		Expect(remove).Should(Not(Exit(0)))
+		Expect(remove.ErrorToString()).To(Equal("Error: no secret with name or id \"non-existent-secret\": no such secret"))
+
+		ignoreRm := podmanTest.Podman([]string{"secret", "rm", "--ignore", "non-existent-secret"})
+		ignoreRm.WaitWithDefaultTimeout()
+		Expect(ignoreRm).Should(Exit(0))
+		Expect(ignoreRm.ErrorToString()).To(BeEmpty())
+	})
+
 	It("podman secret creates from environment variable", func() {
 		// no env variable set, should fail
 		session := podmanTest.Podman([]string{"secret", "create", "--env", "a", "MYENVVAR"})

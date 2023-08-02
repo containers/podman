@@ -34,7 +34,8 @@ type SecretListReport struct {
 }
 
 type SecretRmOptions struct {
-	All bool
+	All    bool
+	Ignore bool
 }
 
 type SecretRmReport struct {

@@ -26,6 +26,9 @@ Remove all existing secrets.
 
 Print usage statement.
 
+#### **--ignore**, **-i**
+Ignore errors when specified secrets are not present.
+
 ## EXAMPLES
 
 ```
