@@ -28,33 +28,47 @@ The default is **false**.
 ### BASH
 `bash-completion` has to be installed on the system.
 
-To load the completion script into the current session run:\
-**source <(podman completion bash)**
+To load the completion script into the current session run:
+```
+source <(podman completion bash)
+```
 
-To make it available for all bash sessions run:\
-**podman completion -f /etc/bash_completion.d/podman bash**.
+To make it available for all bash sessions run:
+```
+podman completion -f /etc/bash_completion.d/podman bash
+```
 
 
 ### ZSH
 Shell completion needs to be already enabled in the environment. The following can be executed:\
-**echo "autoload -U compinit; compinit" >> ~/.zshrc**
+```
+echo "autoload -U compinit; compinit" >> ~/.zshrc
+```
 
 To make it available for all zsh sessions run:\
-**podman completion -f "${fpath[1]}/_podman" zsh**
+```
+podman completion -f "${fpath[1]}/_podman" zsh
+```
 
 Once the shell is reloaded the auto-completion works.
 
 
 ### FISH
 To load the completion script into the current session run:
-**podman completion fish | source**
+```
+podman completion fish | source
+```
 
 To make it available for all fish sessions run:
-**podman completion -f ~/.config/fish/completions/podman.fish fish**
+```
+podman completion -f ~/.config/fish/completions/podman.fish fish
+```
 
 ### POWERSHELL
 To load the completion script into the current session run:
-**podman.exe completion powershell | Out-String | Invoke-Expression**
+```
+podman.exe completion powershell | Out-String | Invoke-Expression
+```
 
 To make it available in all powershell sessions that a user has, write the
 completion output to a file and source that to the user's powershell profile.
