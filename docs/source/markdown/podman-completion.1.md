@@ -40,12 +40,12 @@ podman completion -f /etc/bash_completion.d/podman bash
 
 
 ### ZSH
-Shell completion needs to be already enabled in the environment. The following can be executed:\
+Shell completion needs to be already enabled in the environment. The following can be executed:
 ```
 echo "autoload -U compinit; compinit" >> ~/.zshrc
 ```
 
-To make it available for all zsh sessions run:\
+To make it available for all zsh sessions run:
 ```
 podman completion -f "${fpath[1]}/_podman" zsh
 ```
