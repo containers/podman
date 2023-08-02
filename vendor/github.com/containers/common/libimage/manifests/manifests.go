@@ -14,6 +14,7 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/signature/signer"
 	is "github.com/containers/image/v5/storage"
@@ -70,6 +71,7 @@ type PushOptions struct {
 	RemoveSignatures                 bool                  // true to discard signatures in images
 	ManifestType                     string                // the format to use when saving the list - possible options are oci, v2s1, and v2s2
 	SourceFilter                     LookupReferenceFunc   // filter the list source
+	AddCompression                   []string              // add existing instances with requested compression algorithms to manifest list
 }
 
 // Create creates a new list containing information about the specified image,
@@ -239,6 +241,10 @@ func (l *list) Push(ctx context.Context, dest types.ImageReference, options Push
 			return nil, "", err
 		}
 	}
+	compressionVariants, err := prepareAddWithCompression(options.AddCompression)
+	if err != nil {
+		return nil, "", err
+	}
 	copyOptions := &cp.Options{
 		ImageListSelection:               options.ImageListSelection,
 		Instances:                        options.Instances,
@@ -252,6 +258,7 @@ func (l *list) Push(ctx context.Context, dest types.ImageReference, options Push
 		SignBySigstorePrivateKeyFile:     options.SignBySigstorePrivateKeyFile,
 		SignSigstorePrivateKeyPassphrase: options.SignSigstorePrivateKeyPassphrase,
 		ForceManifestMIMEType:            singleImageManifestType,
+		EnsureCompressionVariantsExist:   compressionVariants,
 	}
 
 	// Copy whatever we were asked to copy.
@@ -264,6 +271,18 @@ func (l *list) Push(ctx context.Context, dest types.ImageReference, options Push
 		return nil, "", err
 	}
 	return nil, manifestDigest, nil
+}
+
+func prepareAddWithCompression(variants []string) ([]cp.OptionCompressionVariant, error) {
+	res := []cp.OptionCompressionVariant{}
+	for _, name := range variants {
+		algo, err := compression.AlgorithmByName(name)
+		if err != nil {
+			return nil, fmt.Errorf("requested algorithm %s is not supported for replication: %w", name, err)
+		}
+		res = append(res, cp.OptionCompressionVariant{Algorithm: algo})
+	}
+	return res, nil
 }
 
 // Add adds information about the specified image to the list, computing the

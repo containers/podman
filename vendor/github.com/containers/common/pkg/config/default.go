@@ -202,7 +202,6 @@ func DefaultConfig() (*Config, error) {
 			EnableLabeling:      selinuxEnabled(),
 			Env: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-				"TERM=xterm",
 			},
 			EnvHost:    false,
 			HTTPProxy:  true,

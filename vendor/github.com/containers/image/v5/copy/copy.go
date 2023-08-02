@@ -17,6 +17,7 @@ import (
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/blobinfocache"
+	compression "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/signature/signer"
 	"github.com/containers/image/v5/transports"
@@ -126,6 +127,21 @@ type Options struct {
 	// Download layer contents with "nondistributable" media types ("foreign" layers) and translate the layer media type
 	// to not indicate "nondistributable".
 	DownloadForeignLayers bool
+
+	// Contains slice of OptionCompressionVariant, where copy will ensure that for each platform
+	// in the manifest list, a variant with the requested compression will exist.
+	// Invalid when copying a non-multi-architecture image. That will probably
+	// change in the future.
+	EnsureCompressionVariantsExist []OptionCompressionVariant
+}
+
+// OptionCompressionVariant allows to supply information about
+// selected compression algorithm and compression level by the
+// end-user. Refer to EnsureCompressionVariantsExist to know
+// more about its usage.
+type OptionCompressionVariant struct {
+	Algorithm compression.Algorithm
+	Level     *int // Only used when we are creating a new image instance using the specified algorithm, not when the image already contains such an instance
 }
 
 // copier allows us to keep track of diffID values for blobs, and other
@@ -250,6 +266,9 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 	}
 
 	if !multiImage {
+		if len(options.EnsureCompressionVariantsExist) > 0 {
+			return nil, fmt.Errorf("EnsureCompressionVariantsExist is not implemented when not creating a multi-architecture image")
+		}
 		// The simple case: just copy a single image.
 		single, err := c.copySingleImage(ctx, c.unparsedToplevel, nil, copySingleImageOptions{requireCompressionFormatMatch: false})
 		if err != nil {
@@ -257,6 +276,9 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 		}
 		copiedManifest = single.manifest
 	} else if c.options.ImageListSelection == CopySystemImage {
+		if len(options.EnsureCompressionVariantsExist) > 0 {
+			return nil, fmt.Errorf("EnsureCompressionVariantsExist is not implemented when not creating a multi-architecture image")
+		}
 		// This is a manifest list, and we weren't asked to copy multiple images.  Choose a single image that
 		// matches the current system to copy, and copy it.
 		mfest, manifestType, err := c.unparsedToplevel.Manifest(ctx)

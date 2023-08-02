@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	// register all known transports
-	// NOTE: Make sure docs/containers-policy.json.5.md is updated when adding or updating
+	"github.com/containers/image/v5/transports"
+	"github.com/containers/image/v5/types"
+
+	// Register all known transports.
+	// NOTE: Make sure docs/containers-transports.5.md and docs/containers-policy.json.5.md are updated when adding or updating
 	// a transport.
 	_ "github.com/containers/image/v5/directory"
 	_ "github.com/containers/image/v5/docker"
@@ -15,11 +18,9 @@ import (
 	_ "github.com/containers/image/v5/openshift"
 	_ "github.com/containers/image/v5/sif"
 	_ "github.com/containers/image/v5/tarball"
-
+	// The docker-daemon transport is registeredy by docker_daemon*.go
 	// The ostree transport is registered by ostree*.go
 	// The storage transport is registered by storage*.go
-	"github.com/containers/image/v5/transports"
-	"github.com/containers/image/v5/types"
 )
 
 // ParseImageName converts a URL-like image name to a types.ImageReference.

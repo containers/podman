@@ -9,36 +9,10 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"syscall"
 
 	"github.com/container-orchestrated-devices/container-device-interface/pkg/parser"
 	units "github.com/docker/go-units"
 )
-
-// isDirectory tests whether the given path exists and is a directory. It
-// follows symlinks.
-func isDirectory(path string) error {
-	path, err := resolveHomeDir(path)
-	if err != nil {
-		return err
-	}
-
-	info, err := os.Stat(path)
-	if err != nil {
-		return err
-	}
-
-	if !info.Mode().IsDir() {
-		// Return a PathError to be consistent with os.Stat().
-		return &os.PathError{
-			Op:   "stat",
-			Path: path,
-			Err:  syscall.ENOTDIR,
-		}
-	}
-
-	return nil
-}
 
 func (c *EngineConfig) validatePaths() error {
 	// Relative paths can cause nasty bugs, because core paths we use could
