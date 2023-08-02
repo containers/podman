@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io/fs"
 	"net"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -100,18 +99,11 @@ func (m *MacMachine) acquireVMImage(opts machine.InitOptions, dataDir string) er
 		// The user has provided an alternate image which can be a file path
 		// or URL.
 		m.ImageStream = "custom"
-		g, err := machine.NewGenericDownloader(vmtype, m.Name, opts.ImagePath)
-		if err != nil {
-			return err
-		}
-		imagePath, err := machine.NewMachineFile(g.Get().LocalUncompressedFile, nil)
+		imagePath, err := machine.AcquireAlternateImage(m.Name, vmtype, opts)
 		if err != nil {
 			return err
 		}
 		m.ImagePath = *imagePath
-		if err := machine.DownloadImage(g); err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -172,34 +164,6 @@ func (m *MacMachine) addMountsToVM(opts machine.InitOptions, virtiofsMnts *[]mac
 		mounts = append(mounts, mnt.ToMount())
 	}
 	m.Mounts = mounts
-
-	return nil
-}
-
-func (m *MacMachine) addSSHConnectionsToPodmanSocket(opts machine.InitOptions) error {
-	if len(opts.IgnitionPath) < 1 {
-		// TODO localhost needs to be restored here
-		uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", fmt.Sprintf("/run/user/%d/podman/podman.sock", m.UID), strconv.Itoa(m.Port), m.RemoteUsername)
-		uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(m.Port), "root")
-		identity := m.IdentityPath
-
-		uris := []url.URL{uri, uriRoot}
-		names := []string{m.Name, m.Name + "-root"}
-
-		// The first connection defined when connections is empty will become the default
-		// regardless of IsDefault, so order according to rootful
-		if opts.Rootful {
-			uris[0], names[0], uris[1], names[1] = uris[1], names[1], uris[0], names[0]
-		}
-
-		for i := 0; i < 2; i++ {
-			if err := machine.AddConnection(&uris[i], names[i], identity, opts.IsDefault && i == 0); err != nil {
-				return err
-			}
-		}
-	} else {
-		fmt.Println("An ignition path was provided.  No SSH connection was added to Podman")
-	}
 
 	return nil
 }
@@ -307,7 +271,15 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	if err := m.addSSHConnectionsToPodmanSocket(opts); err != nil {
+	err = machine.AddSSHConnectionsToPodmanSocket(
+		m.UID,
+		m.Port,
+		m.IdentityPath,
+		m.Name,
+		m.RemoteUsername,
+		opts,
+	)
+	if err != nil {
 		return false, err
 	}
 
@@ -388,22 +360,6 @@ func (m *MacMachine) collectFilesToDestroy(opts machine.RemoveOptions) []string 
 	return files
 }
 
-// removeFilesAndConnections removes any files and connections associated with
-// the machine during `Remove`
-func (m *MacMachine) removeFilesAndConnections(files []string) {
-	for _, f := range files {
-		if err := os.Remove(f); err != nil && !errors.Is(err, os.ErrNotExist) {
-			logrus.Error(err)
-		}
-	}
-	if err := machine.RemoveConnections(m.Name); err != nil {
-		logrus.Error(err)
-	}
-	if err := machine.RemoveConnections(m.Name + "-root"); err != nil {
-		logrus.Error(err)
-	}
-}
-
 func (m *MacMachine) Remove(name string, opts machine.RemoveOptions) (string, func() error, error) {
 	var (
 		files []string
@@ -432,7 +388,7 @@ func (m *MacMachine) Remove(name string, opts machine.RemoveOptions) (string, fu
 
 	confirmationMessage += "\n"
 	return confirmationMessage, func() error {
-		m.removeFilesAndConnections(files)
+		machine.RemoveFilesAndConnections(files, m.Name, m.Name+"-root")
 		// TODO We will need something like this for applehv too i think
 		/*
 			// Remove the HVSOCK for networking
@@ -716,7 +672,15 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 	}
 
 	logrus.Debug("ready notification received")
-	m.waitAPIAndPrintInfo(forwardState, forwardSock, opts.NoInfo)
+	machine.WaitAPIAndPrintInfo(
+		forwardState,
+		m.Name,
+		findClaimHelper(),
+		forwardSock,
+		opts.NoInfo,
+		m.isIncompatible(),
+		m.Rootful,
+	)
 	return nil
 }
 
@@ -1100,72 +1064,6 @@ func (m *MacMachine) userGlobalSocketLink() (string, error) {
 	}
 	// User global socket is located in parent directory of machine dirs (one per user)
 	return filepath.Join(filepath.Dir(path), "podman.sock"), err
-}
-
-func (m *MacMachine) waitAPIAndPrintInfo(forwardState machine.APIForwardingState, forwardSock string, noInfo bool) {
-	suffix := ""
-	if m.Name != machine.DefaultMachineName {
-		suffix = " " + m.Name
-	}
-
-	if m.isIncompatible() {
-		fmt.Fprintf(os.Stderr, "\n!!! ACTION REQUIRED: INCOMPATIBLE MACHINE !!!\n")
-
-		fmt.Fprintf(os.Stderr, "\nThis machine was created by an older Podman release that is incompatible\n")
-		fmt.Fprintf(os.Stderr, "with this release of Podman. It has been started in a limited operational\n")
-		fmt.Fprintf(os.Stderr, "mode to allow you to copy any necessary files before recreating it. This\n")
-		fmt.Fprintf(os.Stderr, "can be accomplished with the following commands:\n\n")
-		fmt.Fprintf(os.Stderr, "\t# Login and copy desired files (Optional)\n")
-		fmt.Fprintf(os.Stderr, "\t# Podman machine ssh%s tar cvPf - /path/to/files > backup.tar\n\n", suffix)
-		fmt.Fprintf(os.Stderr, "\t# Recreate machine (DESTRUCTIVE!) \n")
-		fmt.Fprintf(os.Stderr, "\tpodman machine stop%s\n", suffix)
-		fmt.Fprintf(os.Stderr, "\tpodman machine rm -f%s\n", suffix)
-		fmt.Fprintf(os.Stderr, "\tpodman machine init --now%s\n\n", suffix)
-		fmt.Fprintf(os.Stderr, "\t# Copy back files (Optional)\n")
-		fmt.Fprintf(os.Stderr, "\t# cat backup.tar | podman machine ssh%s tar xvPf - \n\n", suffix)
-	}
-
-	if forwardState == machine.NoForwarding {
-		return
-	}
-
-	machine.WaitAndPingAPI(forwardSock)
-
-	if !noInfo {
-		if !m.Rootful {
-			fmt.Printf("\nThis machine is currently configured in rootless mode. If your containers\n")
-			fmt.Printf("require root permissions (e.g. ports < 1024), or if you run into compatibility\n")
-			fmt.Printf("issues with non-Podman clients, you can switch using the following command: \n")
-			fmt.Printf("\n\tpodman machine set --rootful%s\n\n", suffix)
-		}
-
-		fmt.Printf("API forwarding listening on: %s\n", forwardSock)
-		if forwardState == machine.DockerGlobal {
-			fmt.Printf("Docker API clients default to this address. You do not need to set DOCKER_HOST.\n\n")
-		} else {
-			stillString := "still "
-			switch forwardState {
-			case machine.NotInstalled:
-				fmt.Printf("\nThe system helper service is not installed; the default Docker API socket\n")
-				fmt.Printf("address can't be used by Podman. ")
-				if helper := findClaimHelper(); len(helper) > 0 {
-					fmt.Printf("If you would like to install it run the\nfollowing commands:\n")
-					fmt.Printf("\n\tsudo %s install\n", helper)
-					fmt.Printf("\tpodman machine stop%s; podman machine start%s\n\n", suffix, suffix)
-				}
-			case machine.MachineLocal:
-				fmt.Printf("\nAnother process was listening on the default Docker API socket address.\n")
-			case machine.ClaimUnsupported:
-				fallthrough
-			default:
-				stillString = ""
-			}
-
-			fmt.Printf("You can %sconnect Docker API clients by setting DOCKER_HOST using the\n", stillString)
-			fmt.Printf("following command in your terminal session:\n")
-			fmt.Printf("\n\texport DOCKER_HOST='unix://%s'\n\n", forwardSock)
-		}
-	}
 }
 
 func (m *MacMachine) isIncompatible() bool {

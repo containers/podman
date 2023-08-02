@@ -9,10 +9,8 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"github.com/containers/common/pkg/config"
@@ -20,7 +18,6 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
-	"github.com/containers/storage/pkg/ioutils"
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
 )
@@ -80,33 +77,6 @@ func (m *HyperVMachine) addNetworkAndReadySocketsToRegistry() error {
 	}
 	m.NetworkHVSock = *networkHVSock
 	m.ReadyHVSock = *eventHVSocket
-	return nil
-}
-
-// addSSHConnectionsToPodmanSocket adds SSH connections to the podman socket if
-// no ignition path was provided
-func (m *HyperVMachine) addSSHConnectionsToPodmanSocket(opts machine.InitOptions) error {
-	if len(opts.IgnitionPath) < 1 {
-		uri := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, fmt.Sprintf("/run/user/%d/podman/podman.sock", m.UID), strconv.Itoa(m.Port), m.RemoteUsername)
-		uriRoot := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, "/run/podman/podman.sock", strconv.Itoa(m.Port), "root")
-
-		uris := []url.URL{uri, uriRoot}
-		names := []string{m.Name, m.Name + "-root"}
-
-		// The first connection defined when connections is empty will become the default
-		// regardless of IsDefault, so order according to rootful
-		if opts.Rootful {
-			uris[0], names[0], uris[1], names[1] = uris[1], names[1], uris[0], names[0]
-		}
-
-		for i := 0; i < 2; i++ {
-			if err := machine.AddConnection(&uris[i], names[i], m.IdentityPath, opts.IsDefault && i == 0); err != nil {
-				return err
-			}
-		}
-	} else {
-		fmt.Println("An ignition path was provided.  No SSH connection was added to Podman")
-	}
 	return nil
 }
 
@@ -246,7 +216,15 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	}
 	m.Port = sshPort
 
-	if err := m.addSSHConnectionsToPodmanSocket(opts); err != nil {
+	err = machine.AddSSHConnectionsToPodmanSocket(
+		m.UID,
+		m.Port,
+		m.IdentityPath,
+		m.Name,
+		m.RemoteUsername,
+		opts,
+	)
+	if err != nil {
 		return false, err
 	}
 
@@ -349,19 +327,6 @@ func (m *HyperVMachine) collectFilesToDestroy(opts machine.RemoveOptions, diskPa
 	return files
 }
 
-// removeFilesAndConnections removes any files and connections associated with
-// the machine during `Remove`
-func (m *HyperVMachine) removeFilesAndConnections(files []string) {
-	for _, f := range files {
-		if err := os.Remove(f); err != nil && !errors.Is(err, os.ErrNotExist) {
-			logrus.Error(err)
-		}
-	}
-	if err := machine.RemoveConnections(m.Name, m.Name+"-root"); err != nil {
-		logrus.Error(err)
-	}
-}
-
 // removeNetworkAndReadySocketsFromRegistry removes the Network and Ready sockets
 // from the Windows Registry
 func (m *HyperVMachine) removeNetworkAndReadySocketsFromRegistry() {
@@ -406,7 +371,7 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 
 	confirmationMessage += "\n"
 	return confirmationMessage, func() error {
-		m.removeFilesAndConnections(files)
+		machine.RemoveFilesAndConnections(files, m.Name, m.Name+"-root")
 		m.removeNetworkAndReadySocketsFromRegistry()
 		return vm.Remove(diskPath)
 	}, nil
@@ -616,24 +581,6 @@ func (m *HyperVMachine) loadHyperVMachineFromJSON(fqConfigPath string) error {
 	return json.Unmarshal(b, m)
 }
 
-// getDevNullFiles returns pointers to Read-only and Write-only DevNull files
-func getDevNullFiles() (*os.File, *os.File, error) {
-	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	dnw, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
-	if err != nil {
-		if e := dnr.Close(); e != nil {
-			err = e
-		}
-		return nil, nil, err
-	}
-
-	return dnr, dnw, nil
-}
-
 func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingState, error) {
 	var (
 		forwardSock string
@@ -645,7 +592,7 @@ func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingStat
 	}
 
 	attr := new(os.ProcAttr)
-	dnr, dnw, err := getDevNullFiles()
+	dnr, dnw, err := machine.GetDevNullFiles()
 	if err != nil {
 		return "", machine.NoForwarding, err
 	}
@@ -725,39 +672,12 @@ func (m *HyperVMachine) forwardSocketPath() (*machine.VMFile, error) {
 
 func (m *HyperVMachine) writeConfig() error {
 	// Write the JSON file
-	opts := &ioutils.AtomicFileWriterOptions{ExplicitCommit: true}
-	w, err := ioutils.NewAtomicFileWriterWithOpts(m.ConfigPath.GetPath(), 0644, opts)
-	if err != nil {
-		return err
-	}
-	defer w.Close()
-
-	enc := json.NewEncoder(w)
-	enc.SetIndent("", " ")
-
-	if err := enc.Encode(m); err != nil {
-		return err
-	}
-
-	// Commit the changes to disk if no errors
-	return w.Commit()
+	return machine.WriteConfig(m.ConfigPath.Path, m)
 }
 
 func (m *HyperVMachine) setRootful(rootful bool) error {
-	changeCon, err := machine.AnyConnectionDefault(m.Name, m.Name+"-root")
-	if err != nil {
+	if err := machine.SetRootful(rootful, m.Name, m.Name+"-root"); err != nil {
 		return err
-	}
-
-	if changeCon {
-		newDefault := m.Name
-		if rootful {
-			newDefault += "-root"
-		}
-		err := machine.ChangeDefault(newDefault)
-		if err != nil {
-			return err
-		}
 	}
 
 	m.HostUser.Modified = true

@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io/fs"
 	"net"
-	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -26,7 +25,6 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/digitalocean/go-qemu/qmp"
 	"github.com/sirupsen/logrus"
@@ -225,20 +223,11 @@ func (v *MachineVM) acquireVMImage(opts machine.InitOptions) error {
 		// The user has provided an alternate image which can be a file path
 		// or URL.
 		v.ImageStream = "custom"
-		g, err := machine.NewGenericDownloader(vmtype, v.Name, opts.ImagePath)
+		imagePath, err := machine.AcquireAlternateImage(v.Name, vmtype, opts)
 		if err != nil {
 			return err
 		}
-
-		imagePath, err := machine.NewMachineFile(g.Get().LocalUncompressedFile, nil)
-		if err != nil {
-			return err
-		}
-
 		v.ImagePath = *imagePath
-		if err := machine.DownloadImage(g); err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -272,35 +261,6 @@ func (v *MachineVM) addMountsToVM(opts machine.InitOptions) error {
 		}
 	}
 	v.Mounts = mounts
-	return nil
-}
-
-// addSSHConnectionsToPodmanSocket adds SSH connections to the podman socket if
-// no ignition path is provided
-func (v *MachineVM) addSSHConnectionsToPodmanSocket(opts machine.InitOptions) error {
-	// This kind of stinks but no other way around this r/n
-	if len(opts.IgnitionPath) > 0 {
-		fmt.Println("An ignition path was provided.  No SSH connection was added to Podman")
-		return nil
-	}
-
-	uri := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, fmt.Sprintf("/run/user/%d/podman/podman.sock", v.UID), strconv.Itoa(v.Port), v.RemoteUsername)
-	uriRoot := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
-
-	uris := []url.URL{uri, uriRoot}
-	names := []string{v.Name, v.Name + "-root"}
-
-	// The first connection defined when connections is empty will become the default
-	// regardless of IsDefault, so order according to rootful
-	if opts.Rootful {
-		uris[0], names[0], uris[1], names[1] = uris[1], names[1], uris[0], names[0]
-	}
-
-	for i := 0; i < 2; i++ {
-		if err := machine.AddConnection(&uris[i], names[i], v.IdentityPath, opts.IsDefault && i == 0); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
@@ -373,7 +333,15 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	// Add location of bootable image
 	v.CmdLine = append(v.CmdLine, "-drive", "if=virtio,file="+v.getImageFile())
 
-	if err := v.addSSHConnectionsToPodmanSocket(opts); err != nil {
+	err := machine.AddSSHConnectionsToPodmanSocket(
+		v.UID,
+		v.Port,
+		v.IdentityPath,
+		v.Name,
+		v.RemoteUsername,
+		opts,
+	)
+	if err != nil {
 		return false, err
 	}
 
@@ -629,24 +597,6 @@ func (v *MachineVM) connectToPodmanSocket(maxBackoffs int, backoff time.Duration
 	return
 }
 
-// getDevNullFiles returns pointers to Read-only and Write-only DevNull files
-func getDevNullFiles() (*os.File, *os.File, error) {
-	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	dnw, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
-	if err != nil {
-		if e := dnr.Close(); e != nil {
-			err = e
-		}
-		return nil, nil, err
-	}
-
-	return dnr, dnw, nil
-}
-
 // Start executes the qemu command line and forks it
 func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	var (
@@ -739,7 +689,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	}
 	defer fd.Close()
 
-	dnr, dnw, err := getDevNullFiles()
+	dnr, dnw, err := machine.GetDevNullFiles()
 	if err != nil {
 		return err
 	}
@@ -804,7 +754,15 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	}
 
 	if len(v.Mounts) == 0 {
-		v.waitAPIAndPrintInfo(forwardState, forwardSock, opts.NoInfo)
+		machine.WaitAPIAndPrintInfo(
+			forwardState,
+			v.Name,
+			findClaimHelper(),
+			forwardSock,
+			opts.NoInfo,
+			v.isIncompatible(),
+			v.Rootful,
+		)
 		return nil
 	}
 
@@ -826,7 +784,15 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		return err
 	}
 
-	v.waitAPIAndPrintInfo(forwardState, forwardSock, opts.NoInfo)
+	machine.WaitAPIAndPrintInfo(
+		forwardState,
+		v.Name,
+		findClaimHelper(),
+		forwardSock,
+		opts.NoInfo,
+		v.isIncompatible(),
+		v.Rootful,
+	)
 	return nil
 }
 
@@ -1160,19 +1126,6 @@ func (v *MachineVM) removeQMPMonitorSocketAndVMPidFile() {
 	}
 }
 
-// removeFilesAndConnections removes any files and connections associated with
-// the machine during `Remove`
-func (v *MachineVM) removeFilesAndConnections(files []string) {
-	for _, f := range files {
-		if err := os.Remove(f); err != nil && !errors.Is(err, os.ErrNotExist) {
-			logrus.Error(err)
-		}
-	}
-	if err := machine.RemoveConnections(v.Name, v.Name+"-root"); err != nil {
-		logrus.Error(err)
-	}
-}
-
 // Remove deletes all the files associated with a machine including ssh keys, the image itself
 func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func() error, error) {
 	var (
@@ -1214,7 +1167,7 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 
 	confirmationMessage += "\n"
 	return confirmationMessage, func() error {
-		v.removeFilesAndConnections(files)
+		machine.RemoveFilesAndConnections(files, v.Name, v.Name+"-root")
 		return nil
 	}, nil
 }
@@ -1336,7 +1289,7 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
 	}
 
 	attr := new(os.ProcAttr)
-	dnr, dnw, err := getDevNullFiles()
+	dnr, dnw, err := machine.GetDevNullFiles()
 	if err != nil {
 		return "", machine.NoForwarding, err
 	}
@@ -1536,72 +1489,6 @@ func alreadyLinked(target string, link string) bool {
 	return err == nil && read == target
 }
 
-func (v *MachineVM) waitAPIAndPrintInfo(forwardState machine.APIForwardingState, forwardSock string, noInfo bool) {
-	suffix := ""
-	if v.Name != machine.DefaultMachineName {
-		suffix = " " + v.Name
-	}
-
-	if v.isIncompatible() {
-		fmt.Fprintf(os.Stderr, "\n!!! ACTION REQUIRED: INCOMPATIBLE MACHINE !!!\n")
-
-		fmt.Fprintf(os.Stderr, "\nThis machine was created by an older podman release that is incompatible\n")
-		fmt.Fprintf(os.Stderr, "with this release of podman. It has been started in a limited operational\n")
-		fmt.Fprintf(os.Stderr, "mode to allow you to copy any necessary files before recreating it. This\n")
-		fmt.Fprintf(os.Stderr, "can be accomplished with the following commands:\n\n")
-		fmt.Fprintf(os.Stderr, "\t# Login and copy desired files (Optional)\n")
-		fmt.Fprintf(os.Stderr, "\t# podman machine ssh%s tar cvPf - /path/to/files > backup.tar\n\n", suffix)
-		fmt.Fprintf(os.Stderr, "\t# Recreate machine (DESTRUCTIVE!) \n")
-		fmt.Fprintf(os.Stderr, "\tpodman machine stop%s\n", suffix)
-		fmt.Fprintf(os.Stderr, "\tpodman machine rm -f%s\n", suffix)
-		fmt.Fprintf(os.Stderr, "\tpodman machine init --now%s\n\n", suffix)
-		fmt.Fprintf(os.Stderr, "\t# Copy back files (Optional)\n")
-		fmt.Fprintf(os.Stderr, "\t# cat backup.tar | podman machine ssh%s tar xvPf - \n\n", suffix)
-	}
-
-	if forwardState == machine.NoForwarding {
-		return
-	}
-
-	machine.WaitAndPingAPI(forwardSock)
-
-	if !noInfo {
-		if !v.Rootful {
-			fmt.Printf("\nThis machine is currently configured in rootless mode. If your containers\n")
-			fmt.Printf("require root permissions (e.g. ports < 1024), or if you run into compatibility\n")
-			fmt.Printf("issues with non-podman clients, you can switch using the following command: \n")
-			fmt.Printf("\n\tpodman machine set --rootful%s\n\n", suffix)
-		}
-
-		fmt.Printf("API forwarding listening on: %s\n", forwardSock)
-		if forwardState == machine.DockerGlobal {
-			fmt.Printf("Docker API clients default to this address. You do not need to set DOCKER_HOST.\n\n")
-		} else {
-			stillString := "still "
-			switch forwardState {
-			case machine.NotInstalled:
-				fmt.Printf("\nThe system helper service is not installed; the default Docker API socket\n")
-				fmt.Printf("address can't be used by podman. ")
-				if helper := findClaimHelper(); len(helper) > 0 {
-					fmt.Printf("If you would like to install it run the\nfollowing commands:\n")
-					fmt.Printf("\n\tsudo %s install\n", helper)
-					fmt.Printf("\tpodman machine stop%s; podman machine start%s\n\n", suffix, suffix)
-				}
-			case machine.MachineLocal:
-				fmt.Printf("\nAnother process was listening on the default Docker API socket address.\n")
-			case machine.ClaimUnsupported:
-				fallthrough
-			default:
-				stillString = ""
-			}
-
-			fmt.Printf("You can %sconnect Docker API clients by setting DOCKER_HOST using the\n", stillString)
-			fmt.Printf("following command in your terminal session:\n")
-			fmt.Printf("\n\texport DOCKER_HOST='unix://%s'\n\n", forwardSock)
-		}
-	}
-}
-
 // update returns the content of the VM's
 // configuration file in json
 func (v *MachineVM) update() error {
@@ -1635,22 +1522,7 @@ func (v *MachineVM) writeConfig() error {
 		return err
 	}
 	// Write the JSON file
-	opts := &ioutils.AtomicFileWriterOptions{ExplicitCommit: true}
-	w, err := ioutils.NewAtomicFileWriterWithOpts(v.ConfigPath.GetPath(), 0644, opts)
-	if err != nil {
-		return err
-	}
-	defer w.Close()
-
-	enc := json.NewEncoder(w)
-	enc.SetIndent("", " ")
-
-	if err := enc.Encode(v); err != nil {
-		return err
-	}
-
-	// Commit the changes to disk if no errors
-	return w.Commit()
+	return machine.WriteConfig(v.ConfigPath.Path, v)
 }
 
 // getImageFile wrapper returns the path to the image used
@@ -1719,20 +1591,8 @@ func (v *MachineVM) resizeDisk(diskSize uint64, oldSize uint64) error {
 }
 
 func (v *MachineVM) setRootful(rootful bool) error {
-	changeCon, err := machine.AnyConnectionDefault(v.Name, v.Name+"-root")
-	if err != nil {
+	if err := machine.SetRootful(rootful, v.Name, v.Name+"-root"); err != nil {
 		return err
-	}
-
-	if changeCon {
-		newDefault := v.Name
-		if rootful {
-			newDefault += "-root"
-		}
-		err := machine.ChangeDefault(newDefault)
-		if err != nil {
-			return err
-		}
 	}
 
 	v.HostUser.Modified = true
