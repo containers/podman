@@ -42,14 +42,6 @@ registries = ['{{.Host}}:{{.Port}}']
 registries = []`
 	registryFileBadTmpl := template.Must(template.New("registryFileBad").Parse(badRegFileContents))
 
-	const regFileContents2 = `
-[registries.search]
-registries = ['{{.Host}}:{{.Port}}', '{{.Host}}:6000']
-
-[registries.insecure]
-registries = ['{{.Host}}:{{.Port}}']`
-	registryFileTwoTmpl := template.Must(template.New("registryFileTwo").Parse(regFileContents2))
-
 	It("podman search", func() {
 		search := podmanTest.Podman([]string{"search", "alpine"})
 		search.WaitWithDefaultTimeout()
@@ -371,63 +363,6 @@ registries = ['{{.Host}}:{{.Port}}']`
 		Expect(search).Should(Exit(125))
 		Expect(search.OutputToString()).Should(BeEmpty())
 		Expect(search.ErrorToString()).To(ContainSubstring("http: server gave HTTP response to HTTPS client"))
-
-		// cleanup
-		resetRegistriesConfigEnv()
-	})
-
-	It("podman search doesn't attempt HTTP if one registry is not listed as insecure", func() {
-		Skip("FIXME FIXME FIXME #18768: This test is a NOP")
-		if podmanTest.Host.Arch == "ppc64le" {
-			Skip("No registry image for ppc64le")
-		}
-		port1 := GetPort()
-		port2 := GetPort()
-		port3 := GetPort()
-		ep3 := endpoint{Port: fmt.Sprintf("%d", port3), Host: "localhost"}
-
-		registryLocal := podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%d", port1),
-			"--name", "registry7", REGISTRY_IMAGE})
-		registryLocal.WaitWithDefaultTimeout()
-		Expect(registryLocal).Should(Exit(0))
-
-		if !WaitContainerReady(podmanTest, "registry7", "listening on", 20, 1) {
-			Fail("Cannot start docker registry on port %s", port1)
-		}
-
-		registryLocal = podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%d:5000", port2), "--name", "registry8", REGISTRY_IMAGE})
-		registryLocal.WaitWithDefaultTimeout()
-		Expect(registryLocal).Should(Exit(0))
-
-		if !WaitContainerReady(podmanTest, "registry8", "listening on", 20, 1) {
-			Fail("Cannot start docker registry on port %s", port2)
-		}
-
-		err = podmanTest.RestoreArtifact(ALPINE)
-		Expect(err).ToNot(HaveOccurred())
-		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, fmt.Sprintf("localhost:%d/my-alpine", port2)})
-		push.WaitWithDefaultTimeout()
-		Expect(push).Should(Exit(0))
-
-		// registries.conf set up
-		var buffer bytes.Buffer
-		err = registryFileTwoTmpl.Execute(&buffer, ep3)
-		Expect(err).ToNot(HaveOccurred())
-		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
-		err = os.WriteFile(fmt.Sprintf("%s/registry8.conf", tempdir), buffer.Bytes(), 0644)
-		Expect(err).ToNot(HaveOccurred())
-
-		if IsRemote() {
-			podmanTest.RestartRemoteService()
-			defer podmanTest.RestartRemoteService()
-		}
-
-		search := podmanTest.Podman([]string{"search", "my-alpine"})
-		search.WaitWithDefaultTimeout()
-
-		Expect(search).Should(Exit(125))
-		Expect(search.OutputToString()).Should(BeEmpty())
-		Expect(search.ErrorToString()).To(ContainSubstring("error"))
 
 		// cleanup
 		resetRegistriesConfigEnv()
