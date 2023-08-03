@@ -5879,4 +5879,80 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(Equal(defaultUmask))
 	})
+
+	// podman play with infra name annotation
+	It("podman play kube test with infra name annotation set", func() {
+		infraName := "infra-ctr"
+		podName := "mypod"
+		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
+		pod := podmanTest.Podman([]string{"pod", "create", "--infra-name", infraName, podName})
+		pod.WaitWithDefaultTimeout()
+		Expect(pod).Should(Exit(0))
+
+		ctr := podmanTest.Podman([]string{"create", "--pod", podName, ALPINE, "top"})
+		ctr.WaitWithDefaultTimeout()
+		Expect(ctr).Should(Exit(0))
+
+		// Generate kube yaml and it should have the infra name annotation set
+		gen := podmanTest.Podman([]string{"kube", "generate", "-f", outputFile, podName})
+		gen.WaitWithDefaultTimeout()
+		Expect(gen).Should(Exit(0))
+		//  Remove the pod so it can be recreated via kube play
+		rm := podmanTest.Podman([]string{"pod", "rm", "-f", podName})
+		rm.WaitWithDefaultTimeout()
+		Expect(rm).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "play", outputFile})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		// Expect the number of containers created to be 2, infra, and regular container
+		numOfCtrs := podmanTest.NumberOfContainers()
+		Expect(numOfCtrs).To(Equal(2))
+
+		ps := podmanTest.Podman([]string{"ps", "--format", "{{.Names}}"})
+		ps.WaitWithDefaultTimeout()
+		Expect(ps).Should(Exit(0))
+		Expect(ps.OutputToString()).To(ContainSubstring(infraName))
+	})
+
+	// podman play with default infra name
+	It("podman play kube test with default infra name", func() {
+		podName := "mypod"
+		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
+		pod := podmanTest.Podman([]string{"pod", "create", podName})
+		pod.WaitWithDefaultTimeout()
+		Expect(pod).Should(Exit(0))
+
+		ctr := podmanTest.Podman([]string{"create", "--pod", podName, ALPINE, "top"})
+		ctr.WaitWithDefaultTimeout()
+		Expect(ctr).Should(Exit(0))
+
+		// Generate kube yaml and it should have the infra name annotation set
+		gen := podmanTest.Podman([]string{"kube", "generate", "-f", outputFile, podName})
+		gen.WaitWithDefaultTimeout()
+		Expect(gen).Should(Exit(0))
+		//  Remove the pod so it can be recreated via kube play
+		rm := podmanTest.Podman([]string{"pod", "rm", "-f", podName})
+		rm.WaitWithDefaultTimeout()
+		Expect(rm).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"play", "kube", outputFile})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		// Expect the number of containers created to be 2, infra, and regular container
+		numOfCtrs := podmanTest.NumberOfContainers()
+		Expect(numOfCtrs).To(Equal(2))
+
+		podPs := podmanTest.Podman([]string{"pod", "ps", "-q"})
+		podPs.WaitWithDefaultTimeout()
+		Expect(podPs).Should(Exit(0))
+		podID := podPs.OutputToString()
+
+		ps := podmanTest.Podman([]string{"ps", "--format", "{{.Names}}"})
+		ps.WaitWithDefaultTimeout()
+		Expect(ps).Should(Exit(0))
+		Expect(ps.OutputToString()).To(ContainSubstring(podID[:12] + "-infra"))
+	})
 })

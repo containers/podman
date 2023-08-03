@@ -1838,4 +1838,46 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationPublishAll+"/"+ctr, define.InspectResponseTrue))
 	})
+
+	It("podman generate kube on pod with --infra-name set", func() {
+		infraName := "infra-ctr"
+		podName := "test-pod"
+		podSession := podmanTest.Podman([]string{"pod", "create", "--infra-name", infraName, podName})
+		podSession.WaitWithDefaultTimeout()
+		Expect(podSession).Should(Exit(0))
+
+		session := podmanTest.Podman([]string{"create", "--pod", podName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pod.Annotations).To(HaveKeyWithValue(define.InfraNameAnnotation, infraName))
+	})
+
+	It("podman generate kube on pod without --infra-name set", func() {
+		podName := "test-pod"
+		podSession := podmanTest.Podman([]string{"pod", "create", podName})
+		podSession.WaitWithDefaultTimeout()
+		Expect(podSession).Should(Exit(0))
+
+		session := podmanTest.Podman([]string{"create", "--pod", podName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		// There should be no infra name annotation set if the --infra-name flag wasn't set during pod creation
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pod.Annotations).To(BeEmpty())
+	})
 })
