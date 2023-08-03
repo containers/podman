@@ -182,12 +182,16 @@ echo $rand        |   0 | $rand
 
     # Now try running with --rmi : it should succeed, but not remove the image
     run_podman run --rmi --rm $NONLOCAL_IMAGE /bin/true
+    is "$output" ".*image is in use by a container" "--rmi should warn that the image was not removed"
     run_podman image exists $NONLOCAL_IMAGE
 
     # Remove the stray container, and run one more time with --rmi.
     run_podman rm /keepme
-    run_podman run --rmi --rm $NONLOCAL_IMAGE /bin/true
+    run_podman run --rmi $NONLOCAL_IMAGE /bin/true
     run_podman 1 image exists $NONLOCAL_IMAGE
+
+    run_podman 125 run --rmi --rm=false $NONLOCAL_IMAGE /bin/true
+    is "$output" "Error: the --rmi option does not work without --rm=true" "--rmi should refuse to remove images when --rm=false set by user"
 }
 
 # 'run --conmon-pidfile --cid-file' makes sure we don't regress on these flags.
