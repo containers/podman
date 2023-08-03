@@ -269,7 +269,7 @@ remove_packaged_podman_files() {
     req_env_vars OS_RELEASE_ID
 
     # If any binaries are resident they could cause unexpected pollution
-    for unit in io.podman.service io.podman.socket
+    for unit in podman.socket podman-auto-update.timer
     do
         for state in enabled active
         do
