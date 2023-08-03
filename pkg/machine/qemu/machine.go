@@ -196,7 +196,7 @@ func migrateVM(configPath string, config []byte, vm *MachineVM) error {
 }
 
 // acquireVMImage determines if the image is already in a FCOS stream. If so,
-// retrives the image path of the uncompressed file. Otherwise, the user has
+// retrieves the image path of the uncompressed file. Otherwise, the user has
 // provided an alternative image, so we set the image path and download the image.
 func (v *MachineVM) acquireVMImage(opts machine.InitOptions) error {
 	switch opts.ImagePath {

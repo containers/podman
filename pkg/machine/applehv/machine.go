@@ -79,7 +79,7 @@ type MacMachine struct {
 }
 
 // acquireVMImage determines if the image is already in a FCOS stream. If so,
-// retrives the image path of the uncompressed file. Otherwise, the user has
+// retrieves the image path of the uncompressed file. Otherwise, the user has
 // provided an alternative image, so we set the image path and download the image.
 func (m *MacMachine) acquireVMImage(opts machine.InitOptions, dataDir string) error {
 	// Acquire the image
