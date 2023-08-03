@@ -348,7 +348,7 @@ EOF
                stat -c "%u:%g:%s" /vol/myfile
     is "$output" "$(id -u):$(id -g):0" "with keep-id from containers.conf: stat(file in container) == my uid"
 
-    # With keep-id from containers.conf overriden with --userns=nomap
+    # With keep-id from containers.conf overridden with --userns=nomap
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm -v $myvoldir:/vol:z --userns=nomap $IMAGE \
                stat -c "%u:%g:%s" /vol/myfile
     is "$output" "65534:65534:0" "w/o overridden containers.conf keep-id->nomap: stat(file in container) == root"

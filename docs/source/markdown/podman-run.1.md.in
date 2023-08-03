@@ -347,7 +347,7 @@ the container when it exits. The default is **false**.
 #### **--rmi**
 
 After exit of the container, remove the image unless another
-container is using it. Implies --rm=true on the new container. The default is *false*.
+container is using it. Implies --rm on the new container. The default is *false*.
 
 @@option rootfs
 

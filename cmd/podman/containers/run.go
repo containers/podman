@@ -64,7 +64,7 @@ func runFlags(cmd *cobra.Command) {
 
 	flags.SetNormalizeFunc(utils.AliasFlags)
 	flags.BoolVar(&runOpts.SigProxy, "sig-proxy", true, "Proxy received signals to the process")
-	flags.BoolVar(&runRmi, "rmi", false, "Remove image unless used by other containers, implies --rm=true")
+	flags.BoolVar(&runRmi, "rmi", false, "Remove image unless used by other containers, implies --rm")
 
 	preserveFdsFlagName := "preserve-fds"
 	flags.UintVar(&runOpts.PreserveFDs, "preserve-fds", 0, "Pass a number of additional file descriptors into the container")
@@ -113,7 +113,7 @@ func run(cmd *cobra.Command, args []string) error {
 
 	if runRmi {
 		if cmd.Flags().Changed("rm") && !cliVals.Rm {
-			return errors.New("the --rmi option does not work without --rm=true")
+			return errors.New("the --rmi option does not work without --rm")
 		}
 		cliVals.Rm = true
 	}

@@ -191,7 +191,7 @@ echo $rand        |   0 | $rand
     run_podman 1 image exists $NONLOCAL_IMAGE
 
     run_podman 125 run --rmi --rm=false $NONLOCAL_IMAGE /bin/true
-    is "$output" "Error: the --rmi option does not work without --rm=true" "--rmi should refuse to remove images when --rm=false set by user"
+    is "$output" "Error: the --rmi option does not work without --rm" "--rmi should refuse to remove images when --rm=false set by user"
 }
 
 # 'run --conmon-pidfile --cid-file' makes sure we don't regress on these flags.
