@@ -8,8 +8,18 @@ on:
       version:
         description: 'Release version to build and upload (e.g. "v4.2.1")'
         required: true
+      dryrun:
+        description: 'Perform all the steps except uploading to the release page'
+        required: true
+        default: "true"  # 'choice' type requires string value
+        type: choice
+        options:
+          - "true"  # Must be quoted string, boolean value not supported.
+          - "false"
+
 permissions:
   contents: write
+
 jobs:
   build:
     runs-on: macos-latest
@@ -26,10 +36,24 @@ jobs:
 
       KEYCHAIN_PWD: ${{ secrets.MACOS_CI_KEYCHAIN_PWD }}
     steps:
+    - name: Consolidate dryrun setting to always be true or false
+      id: actual_dryrun
+      run: |
+        # The 'release' trigger will not have a 'dryrun' input set. Handle
+        # this case in a readable/maintainable way.
+        if [[ -z "${{ inputs.dryrun }}" ]]
+        then
+          echo "dryrun=false" >> $GITHUB_OUTPUT
+        else
+          echo "dryrun=${{ inputs.dryrun }}" >> $GITHUB_OUTPUT
+        fi
+    - name: Dry Run Status
+      run: |
+        echo "::notice::This workflow execution will be a dry-run: ${{ steps.actual_dryrun.outputs.dryrun }}"
     - name: Determine Version
       id: getversion
       run: |
-        if [ -z "${{ inputs.version }}" ]
+        if [[ -z "${{ inputs.version }}" ]]
         then
               VERSION=${{ github.event.release.tag_name }}
         else
@@ -48,7 +72,7 @@ jobs:
         if [[ "$status" == "404" ]] ; then
           echo "buildarm=true" >> $GITHUB_OUTPUT
         else
-          echo "ARM installer already exists, skipping"
+          echo "::warning::ARM installer already exists, skipping"
           echo "buildarm=false" >> $GITHUB_OUTPUT
         fi
 
@@ -56,23 +80,31 @@ jobs:
         if [[ "$status" == "404" ]] ; then
           echo "buildamd=true" >> $GITHUB_OUTPUT
         else
-          echo "AMD installer already exists, skipping"
+          echo "::warning::AMD installer already exists, skipping"
           echo "buildamd=false" >> $GITHUB_OUTPUT
         fi
     - name: Checkout Version
-      # If no binaries need to be built, then there's no reason to Checkout
-      if: steps.check.outputs.buildamd == 'true' || steps.check.outputs.buildarm == 'true'
+      if: >-
+        steps.check.outputs.buildamd == 'true' ||
+        steps.check.outputs.buildarm == 'true' ||
+        steps.actual_dryrun.outputs.dryrun == 'true'
       uses: actions/checkout@v3
       with:
         ref: ${{steps.getversion.outputs.version}}
     - name: Set up Go
-      # If no binaries need to be built, then there's no reason to set up Go
-      if: steps.check.outputs.buildamd == 'true' || steps.check.outputs.buildarm == 'true'
+      # Conditional duplication sucks - GHA doesn't grok YAML anchors/aliases
+      if: >-
+        steps.check.outputs.buildamd == 'true' ||
+        steps.check.outputs.buildarm == 'true' ||
+        steps.actual_dryrun.outputs.dryrun == 'true'
       uses: actions/setup-go@v4
       with:
         go-version: stable
     - name: Create Keychain
-      if: steps.check.outputs.buildamd == 'true' || steps.check.outputs.buildarm == 'true'
+      if: >-
+        steps.check.outputs.buildamd == 'true' ||
+        steps.check.outputs.buildarm == 'true' ||
+        steps.actual_dryrun.outputs.dryrun == 'true'
       run: |
         echo $APPLICATION_CERTIFICATE | base64 --decode -o appcert.p12
         echo $INSTALLER_CERTIFICATE | base64 --decode -o instcert.p12
@@ -86,26 +118,32 @@ jobs:
 
         xcrun notarytool store-credentials "notarytool-profile" --apple-id "$NOTARIZE_USERNAME" --team-id "$NOTARIZE_TEAM" --password "$NOTARIZE_PASSWORD" &> /dev/null
     - name: Build and Sign ARM
-      if: steps.check.outputs.buildarm == 'true'
+      if: steps.check.outputs.buildarm == 'true' || steps.actual_dryrun.outputs.dryrun == 'true'
       working-directory: contrib/pkginstaller
       run: |
         make ARCH=aarch64 notarize &> /dev/null
         cd out && shasum -a 256 podman-installer-macos-arm64.pkg >> shasums
     - name: Build and Sign AMD
-      if: steps.check.outputs.buildamd == 'true'
+      if: steps.check.outputs.buildamd == 'true' || steps.actual_dryrun.outputs.dryrun == 'true'
       working-directory: contrib/pkginstaller
       run: |
         make ARCH=amd64 notarize &> /dev/null
         cd out && shasum -a 256 podman-installer-macos-amd64.pkg >> shasums
     - name: Artifact
-      if: steps.check.outputs.buildamd == 'true' || steps.check.outputs.buildarm == 'true'
+      if: >-
+        steps.check.outputs.buildamd == 'true' ||
+        steps.check.outputs.buildarm == 'true' ||
+        steps.actual_dryrun.outputs.dryrun == 'true'
       uses: actions/upload-artifact@v3
       with:
         name: installers
         path: |
           contrib/pkginstaller/out/podman-installer-macos-*.pkg
     - name: Upload to Release
-      if: steps.check.outputs.buildamd == 'true' || steps.check.outputs.buildarm == 'true'
+      if: >-
+        steps.actual_dryrun.outputs.dryrun == 'false' &&
+        (steps.check.outputs.buildamd == 'true' ||
+         steps.check.outputs.buildarm == 'true')
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
