@@ -15,7 +15,7 @@ require (
 	github.com/containers/buildah v1.31.1-0.20230722114901-5ece066f82c6
 	github.com/containers/common v0.55.1-0.20230801150045-44bfd82e3ed2
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.26.1-0.20230726142307-8c387a14f4ac
+	github.com/containers/image/v5 v5.26.1-0.20230801083106-fcf7f0e1712a
 	github.com/containers/libhvee v0.4.0
 	github.com/containers/ocicrypt v1.1.7
 	github.com/containers/psgo v1.8.0
@@ -90,7 +90,7 @@ require (
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/coreos/go-oidc/v3 v3.6.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
-	github.com/cyberphone/json-canonicalization v0.0.0-20230701045847-91eb5f1b7744 // indirect
+	github.com/cyberphone/json-canonicalization v0.0.0-20230710064741-aa7fe85c7dbd // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/digitalocean/go-libvirt v0.0.0-20220804181439-8648fbde413e // indirect
 	github.com/disiqueira/gotree/v3 v3.0.2 // indirect

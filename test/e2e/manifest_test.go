@@ -13,7 +13,27 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
+
+// Internal function to verify instance compression
+func verifyInstanceCompression(descriptor []imgspecv1.Descriptor, compression string, arch string) bool {
+	for _, instance := range descriptor {
+		if instance.Platform.Architecture != arch {
+			continue
+		}
+		if compression == "zstd" {
+			// if compression is zstd annotations must contain
+			val, ok := instance.Annotations["io.github.containers.compression.zstd"]
+			if ok && val == "true" {
+				return true
+			}
+		} else if len(instance.Annotations) == 0 {
+			return true
+		}
+	}
+	return false
+}
 
 var _ = Describe("Podman manifest", func() {
 
@@ -133,6 +153,63 @@ var _ = Describe("Podman manifest", func() {
 		session2.WaitWithDefaultTimeout()
 		Expect(session2).Should(Exit(0))
 		Expect(session2.OutputToString()).To(Equal(session.OutputToString()))
+	})
+
+	It("push with --add-compression", func() {
+		if podmanTest.Host.Arch == "ppc64le" {
+			Skip("No registry image for ppc64le")
+		}
+		if isRootless() {
+			err := podmanTest.RestoreArtifact(REGISTRY_IMAGE)
+			Expect(err).ToNot(HaveOccurred())
+		}
+		lock := GetPortLock("5000")
+		defer lock.Unlock()
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
+			Skip("Cannot start docker registry.")
+		}
+
+		session = podmanTest.Podman([]string{"build", "--platform", "linux/amd64", "-t", "imageone", "build/basicalpine"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"build", "--platform", "linux/arm64", "-t", "imagetwo", "build/basicalpine"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"manifest", "create", "foobar"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		session = podmanTest.Podman([]string{"manifest", "add", "foobar", "containers-storage:localhost/imageone:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		session = podmanTest.Podman([]string{"manifest", "add", "foobar", "containers-storage:localhost/imagetwo:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		push := podmanTest.Podman([]string{"manifest", "push", "--all", "--add-compression", "zstd", "--tls-verify=false", "--remove-signatures", "foobar", "localhost:5000/list"})
+		push.WaitWithDefaultTimeout()
+		Expect(push).Should(Exit(0))
+		output := push.ErrorToString()
+		// 4 images must be pushed two for gzip and two for zstd
+		Expect(output).To(ContainSubstring("Copying 4 images generated from 2 images in list"))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5000/list:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		var index imgspecv1.Index
+		inspectData := []byte(session.OutputToString())
+		err := json.Unmarshal(inspectData, &index)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(verifyInstanceCompression(index.Manifests, "zstd", "amd64")).Should(BeTrue())
+		Expect(verifyInstanceCompression(index.Manifests, "zstd", "arm64")).Should(BeTrue())
+		Expect(verifyInstanceCompression(index.Manifests, "gzip", "arm64")).Should(BeTrue())
+		Expect(verifyInstanceCompression(index.Manifests, "gzip", "amd64")).Should(BeTrue())
 	})
 
 	It("add --all", func() {

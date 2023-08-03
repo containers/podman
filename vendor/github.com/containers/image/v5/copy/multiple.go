@@ -122,6 +122,10 @@ func prepareInstanceCopies(list internalManifest.List, instanceDigests []digest.
 		if err != nil {
 			return res, fmt.Errorf("getting details for instance %s: %w", instanceDigest, err)
 		}
+		res = append(res, instanceCopy{
+			op:           instanceCopyCopy,
+			sourceDigest: instanceDigest,
+		})
 		platform := platformV1ToPlatformComparable(instanceDetails.ReadOnly.Platform)
 		compressionList := compressionsByPlatform[platform]
 		for _, compressionVariant := range options.EnsureCompressionVariantsExist {
@@ -137,10 +141,6 @@ func prepareInstanceCopies(list internalManifest.List, instanceDigests []digest.
 				compressionList.Add(compressionVariant.Algorithm.Name())
 			}
 		}
-		res = append(res, instanceCopy{
-			op:           instanceCopyCopy,
-			sourceDigest: instanceDigest,
-		})
 	}
 	return res, nil
 }

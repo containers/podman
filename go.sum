@@ -250,8 +250,8 @@ github.com/containers/common v0.55.1-0.20230801150045-44bfd82e3ed2 h1:E6OuqpGlvU
 github.com/containers/common v0.55.1-0.20230801150045-44bfd82e3ed2/go.mod h1:VlEW0hd11FqVMbWYYjuDCU1+IEqElPZO1RznrRHkxyQ=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
-github.com/containers/image/v5 v5.26.1-0.20230726142307-8c387a14f4ac h1:EQQX+EO+F30H9vJS6vfDXx83Z6OL1YNkO5LN36BtPnM=
-github.com/containers/image/v5 v5.26.1-0.20230726142307-8c387a14f4ac/go.mod h1:Zg7m6YHPZRl/wbUDZ6vt+yAyXAjAvALVUelmsIPpMcE=
+github.com/containers/image/v5 v5.26.1-0.20230801083106-fcf7f0e1712a h1:ZK6GNc7wWP9/CTQySx0TM9VN9p+og4Pfd3Y5aAHrwLk=
+github.com/containers/image/v5 v5.26.1-0.20230801083106-fcf7f0e1712a/go.mod h1:vsetwKSm1kQayKIWlN7SdGNu/KwcVCgnrhh4Z6Yb75s=
 github.com/containers/libhvee v0.4.0 h1:HGHIIExgP2PjwjHKKoQM3B+3qakNIZcmmkiAO4luAZE=
 github.com/containers/libhvee v0.4.0/go.mod h1:fyWDxNQccveTdE3Oe+QRuLbwF/iyV0hDxXqRX5Svlic=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 h1:Qzk5C6cYglewc+UyGf6lc8Mj2UaPTHy/iF2De0/77CA=
@@ -297,8 +297,8 @@ github.com/crc-org/vfkit v0.1.1/go.mod h1:vjZiHDacUi0iLosvwyLvqJvJXQhByzlLQbMkdI
 github.com/creack/pty v1.1.7/go.mod h1:lj5s0c3V2DBrqTV7llrYr5NG6My20zk30Fl46Y7DoTY=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/creack/pty v1.1.18 h1:n56/Zwd5o6whRC5PMGretI4IdRLlmBXYNjScPaBgsbY=
-github.com/cyberphone/json-canonicalization v0.0.0-20230701045847-91eb5f1b7744 h1:MqMnhqqfDsYF2bjxndKIqvISTIRBb1KCzrIwVzKJHe0=
-github.com/cyberphone/json-canonicalization v0.0.0-20230701045847-91eb5f1b7744/go.mod h1:uzvlm1mxhHkdfqitSA92i7Se+S9ksOn3a3qmv/kyOCw=
+github.com/cyberphone/json-canonicalization v0.0.0-20230710064741-aa7fe85c7dbd h1:0av0vtcjA8Hqv5gyWj79CLCFVwOOyBNWPjrfUWceMNg=
+github.com/cyberphone/json-canonicalization v0.0.0-20230710064741-aa7fe85c7dbd/go.mod h1:uzvlm1mxhHkdfqitSA92i7Se+S9ksOn3a3qmv/kyOCw=
 github.com/cyphar/filepath-securejoin v0.2.3 h1:YX6ebbZCZP7VkM3scTTokDgBL2TY741X51MTk3ycuNI=
 github.com/cyphar/filepath-securejoin v0.2.3/go.mod h1:aPGpWjXOXUn2NCNjFvBE6aRxGGx79pTxQpKOJNYHHl4=
 github.com/d2g/dhcp4 v0.0.0-20170904100407-a1d1b6c41b1c/go.mod h1:Ct2BUK8SB0YC1SMSibvLzxjeJLnrYEVLULFNiHY9YfQ=

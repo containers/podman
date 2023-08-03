@@ -56,6 +56,10 @@ func init() {
 	flags.StringVar(&manifestPushOpts.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	_ = pushCmd.RegisterFlagCompletionFunc(authfileFlagName, completion.AutocompleteDefault)
 
+	addCompressionFlagName := "add-compression"
+	flags.StringSliceVar(&manifestPushOpts.AddCompression, addCompressionFlagName, nil, "add instances with selected compression while pushing")
+	_ = pushCmd.RegisterFlagCompletionFunc(addCompressionFlagName, common.AutocompleteCompressionFormat)
+
 	certDirFlagName := "cert-dir"
 	flags.StringVar(&manifestPushOpts.CertDir, certDirFlagName, "", "use certificates at the specified path to access the registry")
 	_ = pushCmd.RegisterFlagCompletionFunc(certDirFlagName, completion.AutocompleteDefault)
