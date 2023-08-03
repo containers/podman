@@ -372,7 +372,6 @@ _EOF
     is "$output" bin "expect container within pod to run as the bin user"
     run_podman inspect --format "{{ .Config.Env }}" test_pod-test
     is "$output" ".*PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin.*" "expect PATH to be set"
-    is "$output" ".*TERM=xterm.*" "expect TERM to be set"
     is "$output" ".*container=podman.*" "expect container to be set"
 
     run_podman stop -a -t 0

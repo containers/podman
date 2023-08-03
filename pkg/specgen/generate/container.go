@@ -130,6 +130,12 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		defaultEnvs = envLib.Join(envLib.DefaultEnvVariables(), envLib.Join(defaultEnvs, envs))
 	}
 
+	// add default terminal to env if tty flag is set
+	_, ok := defaultEnvs["TERM"]
+	if s.Terminal && !ok {
+		defaultEnvs["TERM"] = "xterm"
+	}
+
 	for _, e := range s.EnvMerge {
 		processedWord, err := imagebuilder.ProcessWord(e, envLib.Slice(defaultEnvs))
 		if err != nil {

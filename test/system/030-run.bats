@@ -822,8 +822,17 @@ EOF
 
 @test "podman run defaultenv" {
     run_podman run --rm $IMAGE printenv
-    assert "$output" =~ "TERM=xterm" "env includes TERM"
+    assert "$output" !~ "TERM=" "env doesn't include TERM by default"
     assert "$output" =~ "container=podman" "env includes container=podman"
+
+    run_podman 1 run -t=false --rm $IMAGE printenv TERM
+    assert "$output" == "" "env doesn't include TERM"
+
+    run_podman run -t=true --rm $IMAGE printenv TERM    # uses CRLF terminators
+    assert "$output" == $'xterm\r' "env includes default TERM"
+
+    run_podman run -t=false -e TERM=foobar --rm $IMAGE printenv TERM
+    assert "$output" == "foobar" "env includes TERM"
 
     run_podman run --unsetenv=TERM --rm $IMAGE printenv
     assert "$output" =~ "container=podman" "env includes container=podman"
