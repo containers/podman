@@ -448,6 +448,10 @@ function teardown() {
 }
 
 @test "podman networking with pasta(1) - Local forwarder, IPv4" {
+    if [[ "$CIRRUS_CI" == "true" ]] && [[ "$DISTRO_NV" == "debian-13" ]]; then
+        skip "FIXME: Needs passt 0.0~git20230625.32660ce-1 or later in debian SID, unavailable 8-2023."
+    fi
+
     skip_if_no_ipv4 "IPv4 not routable on the host"
 
     run_podman run --dns 198.51.100.1 \
