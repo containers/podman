@@ -13,7 +13,7 @@ import (
 	"github.com/containers/storage/pkg/ioutils"
 )
 
-// getDevNullFiles returns pointers to Read-only and Write-only DevNull files
+// GetDevNullFiles returns pointers to Read-only and Write-only DevNull files
 func GetDevNullFiles() (*os.File, *os.File, error) {
 	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
 	if err != nil {
@@ -34,26 +34,26 @@ func GetDevNullFiles() (*os.File, *os.File, error) {
 // AddSSHConnectionsToPodmanSocket adds SSH connections to the podman socket if
 // no ignition path is provided
 func AddSSHConnectionsToPodmanSocket(uid, port int, identityPath, name, remoteUsername string, opts InitOptions) error {
-	if len(opts.IgnitionPath) < 1 {
-		uri := SSHRemoteConnection.MakeSSHURL(LocalhostIP, fmt.Sprintf("/run/user/%d/podman/podman.sock", uid), strconv.Itoa(port), remoteUsername)
-		uriRoot := SSHRemoteConnection.MakeSSHURL(LocalhostIP, "/run/podman/podman.sock", strconv.Itoa(port), "root")
-
-		uris := []url.URL{uri, uriRoot}
-		names := []string{name, name + "-root"}
-
-		// The first connection defined when connections is empty will become the default
-		// regardless of IsDefault, so order according to rootful
-		if opts.Rootful {
-			uris[0], names[0], uris[1], names[1] = uris[1], names[1], uris[0], names[0]
-		}
-
-		for i := 0; i < 2; i++ {
-			if err := AddConnection(&uris[i], names[i], identityPath, opts.IsDefault && i == 0); err != nil {
-				return err
-			}
-		}
-	} else {
+	if len(opts.IgnitionPath) > 0 {
 		fmt.Println("An ignition path was provided.  No SSH connection was added to Podman")
+		return nil
+	}
+	uri := SSHRemoteConnection.MakeSSHURL(LocalhostIP, fmt.Sprintf("/run/user/%d/podman/podman.sock", uid), strconv.Itoa(port), remoteUsername)
+	uriRoot := SSHRemoteConnection.MakeSSHURL(LocalhostIP, "/run/podman/podman.sock", strconv.Itoa(port), "root")
+
+	uris := []url.URL{uri, uriRoot}
+	names := []string{name, name + "-root"}
+
+	// The first connection defined when connections is empty will become the default
+	// regardless of IsDefault, so order according to rootful
+	if opts.Rootful {
+		uris[0], names[0], uris[1], names[1] = uris[1], names[1], uris[0], names[0]
+	}
+
+	for i := 0; i < 2; i++ {
+		if err := AddConnection(&uris[i], names[i], identityPath, opts.IsDefault && i == 0); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -62,25 +62,35 @@ func AddSSHConnectionsToPodmanSocket(uid, port int, identityPath, name, remoteUs
 // API socket
 func WaitAPIAndPrintInfo(forwardState APIForwardingState, name, helper, forwardSock string, noInfo, isIncompatible, rootful bool) {
 	suffix := ""
+	var fmtString string
+
 	if name != DefaultMachineName {
 		suffix = " " + name
 	}
 
 	if isIncompatible {
-		fmt.Fprintf(os.Stderr, "\n!!! ACTION REQUIRED: INCOMPATIBLE MACHINE !!!\n")
+		fmtString = `
+!!! ACTION REQUIRED: INCOMPATIBLE MACHINE !!!
 
-		fmt.Fprintf(os.Stderr, "\nThis machine was created by an older podman release that is incompatible\n")
-		fmt.Fprintf(os.Stderr, "with this release of podman. It has been started in a limited operational\n")
-		fmt.Fprintf(os.Stderr, "mode to allow you to copy any necessary files before recreating it. This\n")
-		fmt.Fprintf(os.Stderr, "can be accomplished with the following commands:\n\n")
-		fmt.Fprintf(os.Stderr, "\t# Login and copy desired files (Optional)\n")
-		fmt.Fprintf(os.Stderr, "\t# podman machine ssh%s tar cvPf - /path/to/files > backup.tar\n\n", suffix)
-		fmt.Fprintf(os.Stderr, "\t# Recreate machine (DESTRUCTIVE!) \n")
-		fmt.Fprintf(os.Stderr, "\tpodman machine stop%s\n", suffix)
-		fmt.Fprintf(os.Stderr, "\tpodman machine rm -f%s\n", suffix)
-		fmt.Fprintf(os.Stderr, "\tpodman machine init --now%s\n\n", suffix)
-		fmt.Fprintf(os.Stderr, "\t# Copy back files (Optional)\n")
-		fmt.Fprintf(os.Stderr, "\t# cat backup.tar | podman machine ssh%s tar xvPf - \n\n", suffix)
+This machine was created by an older podman release that is incompatible
+with this release of podman. It has been started in a limited operational
+mode to allow you to copy any necessary files before recreating it. This
+can be accomplished with the following commands:
+
+        # Login and copy desired files (Optional)
+        # podman machine ssh%[1]s tar cvPf - /path/to/files > backup.tar
+
+        # Recreate machine (DESTRUCTIVE!)
+        podman machine stop%[1]s
+        podman machine rm -f%[1]s
+        podman machine init --now%[1]s
+
+        # Copy back files (Optional)
+        # cat backup.tar | podman machine ssh%[1]s tar xvPf -
+
+`
+
+		fmt.Fprintf(os.Stderr, fmtString, suffix)
 	}
 
 	if forwardState == NoForwarding {
@@ -91,10 +101,16 @@ func WaitAPIAndPrintInfo(forwardState APIForwardingState, name, helper, forwardS
 
 	if !noInfo {
 		if !rootful {
-			fmt.Printf("\nThis machine is currently configured in rootless mode. If your containers\n")
-			fmt.Printf("require root permissions (e.g. ports < 1024), or if you run into compatibility\n")
-			fmt.Printf("issues with non-podman clients, you can switch using the following command: \n")
-			fmt.Printf("\n\tpodman machine set --rootful%s\n\n", suffix)
+			fmtString = `
+This machine is currently configured in rootless mode. If your containers
+require root permissions (e.g. ports < 1024), or if you run into compatibility
+issues with non-podman clients, you can switch using the following command:
+
+        podman machine set --rootful%s
+
+`
+
+			fmt.Printf(fmtString, suffix)
 		}
 
 		fmt.Printf("API forwarding listening on: %s\n", forwardSock)
@@ -104,12 +120,21 @@ func WaitAPIAndPrintInfo(forwardState APIForwardingState, name, helper, forwardS
 			stillString := "still "
 			switch forwardState {
 			case NotInstalled:
-				fmt.Printf("\nThe system helper service is not installed; the default Docker API socket\n")
-				fmt.Printf("address can't be used by podman. ")
-				if len(helper) > 0 {
-					fmt.Printf("If you would like to install it run the\nfollowing commands:\n")
-					fmt.Printf("\n\tsudo %s install\n", helper)
-					fmt.Printf("\tpodman machine stop%s; podman machine start%s\n\n", suffix, suffix)
+
+				fmtString = `
+The system helper service is not installed; the default Docker API socket
+address can't be used by podman. `
+
+				if len(helper) < 1 {
+					fmt.Print(fmtString)
+				} else {
+					fmtString += `If you would like to install it run the\nfollowing commands:
+
+        sudo %s install
+        podman machine stop%[1]s; podman machine start%[1]s
+
+                `
+					fmt.Printf(fmtString, helper, suffix)
 				}
 			case MachineLocal:
 				fmt.Printf("\nAnother process was listening on the default Docker API socket address.\n")
@@ -119,9 +144,14 @@ func WaitAPIAndPrintInfo(forwardState APIForwardingState, name, helper, forwardS
 				stillString = ""
 			}
 
-			fmt.Printf("You can %sconnect Docker API clients by setting DOCKER_HOST using the\n", stillString)
-			fmt.Printf("following command in your terminal session:\n")
-			fmt.Printf("\n\texport DOCKER_HOST='unix://%s'\n\n", forwardSock)
+			fmtString = `You can %sconnect Docker API clients by setting DOCKER_HOST using the
+following command in your terminal session:
+
+        export DOCKER_HOST='unix://%s'
+
+`
+
+			fmt.Printf(fmtString, stillString, forwardSock)
 		}
 	}
 }
