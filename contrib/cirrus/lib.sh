@@ -291,6 +291,9 @@ remove_packaged_podman_files() {
         LISTING_CMD="rpm -ql podman"
     fi
 
+    # delete the podman socket in case it has been created previously
+    rm -f $(podman info --format "{{.Host.RemoteSocket.Path}}")
+
     # yum/dnf/dpkg may list system directories, only remove files
     $LISTING_CMD | while read fullpath
     do
