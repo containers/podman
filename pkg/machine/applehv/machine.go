@@ -11,7 +11,6 @@ import (
 	"io/fs"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -692,34 +691,6 @@ func (m *MacMachine) State(_ bool) (machine.Status, error) {
 	return vmStatus, nil
 }
 
-// cleanupGVProxy finds the gvproxy process, kills it, and deletes the
-// pidfile
-func (m *MacMachine) cleanupGVProxy() {
-	gvPid, err := m.GvProxyPid.Read()
-	if err != nil {
-		logrus.Error(fmt.Errorf("unable to read gvproxy pid file %s: %v", m.GvProxyPid.GetPath(), err))
-		return
-	}
-	proxyPid, err := strconv.Atoi(string(gvPid))
-	if err != nil {
-		logrus.Error(fmt.Errorf("unable to convert pid to integer: %v", err))
-		return
-	}
-	proxyProc, err := os.FindProcess(proxyPid)
-	if proxyProc == nil && err != nil {
-		logrus.Error("unable to find process: %v", err)
-		return
-	}
-	if err := proxyProc.Kill(); err != nil {
-		logrus.Error("unable to kill gvproxy: %v", err)
-		return
-	}
-	// gvproxy does not clean up its pid file on exit
-	if err := m.GvProxyPid.Delete(); err != nil {
-		logrus.Error("unable to delete gvproxy pid file: %v", err)
-	}
-}
-
 func (m *MacMachine) Stop(name string, opts machine.StopOptions) error {
 	vmState, err := m.State(false)
 	if err != nil {
@@ -730,7 +701,11 @@ func (m *MacMachine) Stop(name string, opts machine.StopOptions) error {
 		return machine.ErrWrongState
 	}
 
-	defer m.cleanupGVProxy()
+	defer func() {
+		if err := machine.CleanupGVProxy(m.GvProxyPid); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	return m.Vfkit.stop(false, true)
 }
@@ -913,31 +888,6 @@ func (m *MacMachine) startHostNetworking(ioEater *os.File) (string, machine.APIF
 		return "", 0, fmt.Errorf("unable to execute: %q: %w", cmd, err)
 	}
 	return forwardSock, state, nil
-}
-
-// AppleHVSSH is a temporary function for applehv until we decide how the networking will work
-// for certain.
-func AppleHVSSH(username, identityPath, name string, sshPort int, inputArgs []string) error {
-	sshDestination := username + "@192.168.64.2"
-	port := strconv.Itoa(sshPort)
-
-	args := []string{"-i", identityPath, "-p", port, sshDestination,
-		"-o", "IdentitiesOnly=yes",
-		"-o", "StrictHostKeyChecking=no", "-o", "LogLevel=ERROR", "-o", "SetEnv=LC_ALL="}
-	if len(inputArgs) > 0 {
-		args = append(args, inputArgs...)
-	} else {
-		fmt.Printf("Connecting to vm %s. To close connection, use `~.` or `exit`\n", name)
-	}
-
-	cmd := exec.Command("ssh", args...)
-	logrus.Debugf("Executing: ssh %v\n", args)
-
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-
-	return cmd.Run()
 }
 
 func (m *MacMachine) setupAPIForwarding(cmd []string) ([]string, string, machine.APIForwardingState) {

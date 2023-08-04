@@ -62,6 +62,8 @@ type HyperVMachine struct {
 	Created time.Time
 	// LastUp contains the last recorded uptime
 	LastUp time.Time
+	// GVProxy will write its PID here
+	GvProxyPid machine.VMFile
 }
 
 // addNetworkAndReadySocketsToRegistry adds the Network and Ready sockets to the
@@ -510,7 +512,13 @@ func (m *HyperVMachine) Stop(name string, opts machine.StopOptions) error {
 	if vm.State() != hypervctl.Enabled {
 		return hypervctl.ErrMachineStateInvalid
 	}
+
+	if err := machine.CleanupGVProxy(m.GvProxyPid); err != nil {
+		logrus.Error(err)
+	}
+
 	return vm.Stop()
+
 }
 
 func (m *HyperVMachine) jsonConfigPath() (string, error) {
@@ -615,6 +623,7 @@ func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingStat
 	// Add the ssh port
 	cmd = append(cmd, []string{"-ssh-port", fmt.Sprintf("%d", m.Port)}...)
 	cmd = append(cmd, []string{"-listen", fmt.Sprintf("vsock://%s", m.NetworkHVSock.KeyName)}...)
+	cmd = append(cmd, "-pid-file", m.GvProxyPid.GetPath())
 
 	cmd, forwardSock, state = m.setupAPIForwarding(cmd)
 	if logrus.GetLevel() == logrus.DebugLevel {

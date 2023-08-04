@@ -115,6 +115,7 @@ func (v HyperVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, 
 	if err != nil {
 		return nil, err
 	}
+
 	m.ConfigPath = *configPath
 
 	ignitionPath, err := machine.NewMachineFile(filepath.Join(configDir, m.Name)+".ign", nil)
@@ -125,6 +126,18 @@ func (v HyperVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, 
 
 	// Set creation time
 	m.Created = time.Now()
+
+	dataDir, err := machine.GetDataDir(machine.HyperVVirt)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set the proxy pid file
+	gvProxyPid, err := machine.NewMachineFile(filepath.Join(dataDir, "gvproxy.pid"), nil)
+	if err != nil {
+		return nil, err
+	}
+	m.GvProxyPid = *gvProxyPid
 
 	// Acquire the image
 	imagePath, imageStream, err := v.acquireVMImage(opts)
