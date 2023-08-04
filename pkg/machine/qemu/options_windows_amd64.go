@@ -5,11 +5,9 @@ var (
 )
 
 func (v *MachineVM) addArchOptions(_ *setNewMachineCMDOpts) []string {
-	// "max" level is used, because "host" is not supported with "whpx" acceleration
-	// "vmx=off" disabled nested virtualization (not needed for podman)
-	// QEMU issue to track nested virtualization: https://gitlab.com/qemu-project/qemu/-/issues/628
-	// "monitor=off" needed to support hosts, which have mwait calls disabled in BIOS/UEFI
-	opts := []string{"-machine", "q35,accel=whpx:tcg", "-cpu", "max,vmx=off,monitor=off"}
+	// "qemu64" level is used, because "host" is not supported with "whpx" acceleration.
+	// It is a stable choice for running on bare metal and inside Hyper-V machine with nested virtualization.
+	opts := []string{"-machine", "q35,accel=whpx:tcg", "-cpu", "qemu64"}
 	return opts
 }
 
