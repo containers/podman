@@ -33,6 +33,13 @@ const (
 )
 
 var (
+	deprecation = `
+DEPRECATED command:
+It is recommended to use Quadlets for running containers and pods under systemd.
+
+Please refer to podman-systemd.unit(5) for details.
+`
+
 	envInput           []string
 	files              bool
 	format             string
@@ -42,11 +49,12 @@ var (
 	stopTimeout        uint
 	systemdOptions     = entities.GenerateSystemdOptions{}
 	systemdDescription = `Generate systemd units for a pod or container.
-  The generated units can later be controlled via systemctl(1).`
+  The generated units can later be controlled via systemctl(1).
+` + deprecation
 
 	systemdCmd = &cobra.Command{
 		Use:               "systemd [options] {CONTAINER|POD}",
-		Short:             "Generate systemd units",
+		Short:             "[DEPRECATED] Generate systemd units",
 		Long:              systemdDescription,
 		RunE:              systemd,
 		Args:              cobra.ExactArgs(1),
@@ -119,6 +127,7 @@ func init() {
 }
 
 func systemd(cmd *cobra.Command, args []string) error {
+	fmt.Fprint(os.Stderr, deprecation)
 	if cmd.Flags().Changed(restartPolicyFlagName) {
 		systemdOptions.RestartPolicy = &systemdRestart
 	}
