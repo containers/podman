@@ -39,7 +39,6 @@ Valid placeholders for the Go template are listed below:
 | .Default            | Is default machine                        |
 | .DiskSize           | Disk size of machine                      |
 | .IdentityPath       | Path to ssh identity file                 |
-| .LastUp             | Time machine was last up                  |
 | .LastUp             | Time since the VM was last run            |
 | .Memory             | Allocated memory for machine              |
 | .Name               | VM name                                   |
