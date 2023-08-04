@@ -266,7 +266,7 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 		user = machine.DefaultIgnitionUserName
 	}
 	// Write the ignition file
-	if err := m.writeIgnitionConfigFile(opts, key, user); err != nil {
+	if err := m.writeIgnitionConfigFile(opts, user, key); err != nil {
 		return false, err
 	}
 	// The ignition file has been written. We now need to
