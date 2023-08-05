@@ -8,13 +8,13 @@ set -eox pipefail
 
 PACKAGE=podman
 SPEC_FILE=$PACKAGE.spec
-GIT_DESCRIBE=$(git describe)
-VERSION=$(echo $GIT_DESCRIBE | sed -e 's/^v//' -e 's/-/~/g')
+VERSION=$(grep '^const RawVersion' ../version/rawversion/version.go | cut -d\" -f2)
+RPM_VERSION=$(echo $VERSION | sed -e 's/^v//' -e 's/-/~/g')
 
 # Update spec file to use local changes
-sed -i "s/^Version:.*/Version: $VERSION/" $SPEC_FILE
-sed -i "s/^Source0:.*/Source0: $PACKAGE-$GIT_DESCRIBE.tar.gz/" $SPEC_FILE
-sed -i "s/^%autosetup.*/%autosetup -Sgit -n %{name}-$GIT_DESCRIBE/" $SPEC_FILE
+sed -i "s/^Version:.*/Version: $RPM_VERSION/" $SPEC_FILE
+sed -i "s/^Source0:.*/Source0: $PACKAGE-$VERSION.tar.gz/" $SPEC_FILE
+sed -i "s/^%autosetup.*/%autosetup -Sgit -n %{name}-$VERSION/" $SPEC_FILE
 
 # Generate Source0 archive from HEAD
-(cd .. && git archive --format=tar.gz --prefix=$PACKAGE-$GIT_DESCRIBE/ HEAD -o rpm/$PACKAGE-$GIT_DESCRIBE.tar.gz)
+(cd .. && git archive --format=tar.gz --prefix=$PACKAGE-$VERSION/ HEAD -o rpm/$PACKAGE-$VERSION.tar.gz)
