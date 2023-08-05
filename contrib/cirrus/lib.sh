@@ -269,7 +269,7 @@ remove_packaged_podman_files() {
     req_env_vars OS_RELEASE_ID
 
     # If any binaries are resident they could cause unexpected pollution
-    for unit in io.podman.service io.podman.socket
+    for unit in podman.socket podman-auto-update.timer
     do
         for state in enabled active
         do
@@ -290,6 +290,9 @@ remove_packaged_podman_files() {
     else
         LISTING_CMD="rpm -ql podman"
     fi
+
+    # delete the podman socket in case it has been created previously
+    rm -f $(podman info --format "{{.Host.RemoteSocket.Path}}")
 
     # yum/dnf/dpkg may list system directories, only remove files
     $LISTING_CMD | while read fullpath

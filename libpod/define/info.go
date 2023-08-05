@@ -68,7 +68,7 @@ type HostInfo struct {
 // RemoteSocket describes information about the API socket
 type RemoteSocket struct {
 	Path   string `json:"path,omitempty"`
-	Exists bool   `json:"exists,omitempty"`
+	Exists bool   `json:"exists"`
 }
 
 // SlirpInfo describes the slirp executable that is being used
