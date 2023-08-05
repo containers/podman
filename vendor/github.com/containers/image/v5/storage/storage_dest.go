@@ -763,7 +763,7 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 	if len(layerBlobs) > 0 { // Can happen when using caches
 		prev := s.indexToStorageID[len(layerBlobs)-1]
 		if prev == nil {
-			return fmt.Errorf("Internal error: StorageImageDestination.Commit(): previous layer %d hasn't been committed (lastLayer == nil)", len(layerBlobs)-1)
+			return fmt.Errorf("Internal error: storageImageDestination.Commit(): previous layer %d hasn't been committed (lastLayer == nil)", len(layerBlobs)-1)
 		}
 		lastLayer = *prev
 	}
@@ -775,6 +775,78 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 		logrus.Debugf("setting image creation date to %s", inspect.Created)
 		options.CreationDate = *inspect.Created
 	}
+
+	// Set up to save the non-layer blobs as data items.  Since we only share layers, they should all be in files, so
+	// we just need to screen out the ones that are actually layers to get the list of non-layers.
+	dataBlobs := set.New[digest.Digest]()
+	for blob := range s.filenames {
+		dataBlobs.Add(blob)
+	}
+	for _, layerBlob := range layerBlobs {
+		dataBlobs.Delete(layerBlob.Digest)
+	}
+	for _, blob := range dataBlobs.Values() {
+		v, err := os.ReadFile(s.filenames[blob])
+		if err != nil {
+			return fmt.Errorf("copying non-layer blob %q to image: %w", blob, err)
+		}
+		options.BigData = append(options.BigData, storage.ImageBigDataOption{
+			Key:    blob.String(),
+			Data:   v,
+			Digest: digest.Canonical.FromBytes(v),
+		})
+	}
+	// Set up to save the unparsedToplevel's manifest if it differs from
+	// the per-platform one, which is saved below.
+	if len(toplevelManifest) != 0 && !bytes.Equal(toplevelManifest, s.manifest) {
+		manifestDigest, err := manifest.Digest(toplevelManifest)
+		if err != nil {
+			return fmt.Errorf("digesting top-level manifest: %w", err)
+		}
+		options.BigData = append(options.BigData, storage.ImageBigDataOption{
+			Key:    manifestBigDataKey(manifestDigest),
+			Data:   toplevelManifest,
+			Digest: manifestDigest,
+		})
+	}
+	// Set up to save the image's manifest.  Allow looking it up by digest by using the key convention defined by the Store.
+	// Record the manifest twice: using a digest-specific key to allow references to that specific digest instance,
+	// and using storage.ImageDigestBigDataKey for future users that don’t specify any digest and for compatibility with older readers.
+	options.BigData = append(options.BigData, storage.ImageBigDataOption{
+		Key:    manifestBigDataKey(s.manifestDigest),
+		Data:   s.manifest,
+		Digest: s.manifestDigest,
+	})
+	options.BigData = append(options.BigData, storage.ImageBigDataOption{
+		Key:    storage.ImageDigestBigDataKey,
+		Data:   s.manifest,
+		Digest: s.manifestDigest,
+	})
+	// Set up to save the signatures, if we have any.
+	if len(s.signatures) > 0 {
+		options.BigData = append(options.BigData, storage.ImageBigDataOption{
+			Key:    "signatures",
+			Data:   s.signatures,
+			Digest: digest.Canonical.FromBytes(s.signatures),
+		})
+	}
+	for instanceDigest, signatures := range s.signatureses {
+		options.BigData = append(options.BigData, storage.ImageBigDataOption{
+			Key:    signatureBigDataKey(instanceDigest),
+			Data:   signatures,
+			Digest: digest.Canonical.FromBytes(signatures),
+		})
+	}
+
+	// Set up to save our metadata.
+	metadata, err := json.Marshal(s)
+	if err != nil {
+		return fmt.Errorf("encoding metadata for image: %w", err)
+	}
+	if len(metadata) != 0 {
+		options.Metadata = string(metadata)
+	}
+
 	// Create the image record, pointing to the most-recently added layer.
 	intendedID := s.imageRef.id
 	if intendedID == "" {
@@ -797,8 +869,26 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 		}
 		logrus.Debugf("reusing image ID %q", img.ID)
 		oldNames = append(oldNames, img.Names...)
+		// set the data items and metadata on the already-present image
+		// FIXME: this _replaces_ any "signatures" blobs and their
+		// sizes (tracked in the metadata) which might have already
+		// been present with new values, when ideally we'd find a way
+		// to merge them since they all apply to the same image
+		for _, data := range options.BigData {
+			if err := s.imageRef.transport.store.SetImageBigData(img.ID, data.Key, data.Data, manifest.Digest); err != nil {
+				logrus.Debugf("error saving big data %q for image %q: %v", data.Key, img.ID, err)
+				return fmt.Errorf("saving big data %q for image %q: %w", data.Key, img.ID, err)
+			}
+		}
+		if options.Metadata != "" {
+			if err := s.imageRef.transport.store.SetMetadata(img.ID, options.Metadata); err != nil {
+				logrus.Debugf("error saving metadata for image %q: %v", img.ID, err)
+				return fmt.Errorf("saving metadata for image %q: %w", img.ID, err)
+			}
+			logrus.Debugf("saved image metadata %q", options.Metadata)
+		}
 	} else {
-		logrus.Debugf("created new image ID %q", img.ID)
+		logrus.Debugf("created new image ID %q with metadata %q", img.ID, options.Metadata)
 	}
 
 	// Clean up the unfinished image on any error.
@@ -813,78 +903,7 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 		}
 	}()
 
-	// Add the non-layer blobs as data items.  Since we only share layers, they should all be in files, so
-	// we just need to screen out the ones that are actually layers to get the list of non-layers.
-	dataBlobs := set.New[digest.Digest]()
-	for blob := range s.filenames {
-		dataBlobs.Add(blob)
-	}
-	for _, layerBlob := range layerBlobs {
-		dataBlobs.Delete(layerBlob.Digest)
-	}
-	for _, blob := range dataBlobs.Values() {
-		v, err := os.ReadFile(s.filenames[blob])
-		if err != nil {
-			return fmt.Errorf("copying non-layer blob %q to image: %w", blob, err)
-		}
-		if err := s.imageRef.transport.store.SetImageBigData(img.ID, blob.String(), v, manifest.Digest); err != nil {
-			logrus.Debugf("error saving big data %q for image %q: %v", blob.String(), img.ID, err)
-			return fmt.Errorf("saving big data %q for image %q: %w", blob.String(), img.ID, err)
-		}
-	}
-	// Save the unparsedToplevel's manifest if it differs from the per-platform one, which is saved below.
-	if len(toplevelManifest) != 0 && !bytes.Equal(toplevelManifest, s.manifest) {
-		manifestDigest, err := manifest.Digest(toplevelManifest)
-		if err != nil {
-			return fmt.Errorf("digesting top-level manifest: %w", err)
-		}
-		key := manifestBigDataKey(manifestDigest)
-		if err := s.imageRef.transport.store.SetImageBigData(img.ID, key, toplevelManifest, manifest.Digest); err != nil {
-			logrus.Debugf("error saving top-level manifest for image %q: %v", img.ID, err)
-			return fmt.Errorf("saving top-level manifest for image %q: %w", img.ID, err)
-		}
-	}
-	// Save the image's manifest.  Allow looking it up by digest by using the key convention defined by the Store.
-	// Record the manifest twice: using a digest-specific key to allow references to that specific digest instance,
-	// and using storage.ImageDigestBigDataKey for future users that don’t specify any digest and for compatibility with older readers.
-	key := manifestBigDataKey(s.manifestDigest)
-	if err := s.imageRef.transport.store.SetImageBigData(img.ID, key, s.manifest, manifest.Digest); err != nil {
-		logrus.Debugf("error saving manifest for image %q: %v", img.ID, err)
-		return fmt.Errorf("saving manifest for image %q: %w", img.ID, err)
-	}
-	key = storage.ImageDigestBigDataKey
-	if err := s.imageRef.transport.store.SetImageBigData(img.ID, key, s.manifest, manifest.Digest); err != nil {
-		logrus.Debugf("error saving manifest for image %q: %v", img.ID, err)
-		return fmt.Errorf("saving manifest for image %q: %w", img.ID, err)
-	}
-	// Save the signatures, if we have any.
-	if len(s.signatures) > 0 {
-		if err := s.imageRef.transport.store.SetImageBigData(img.ID, "signatures", s.signatures, manifest.Digest); err != nil {
-			logrus.Debugf("error saving signatures for image %q: %v", img.ID, err)
-			return fmt.Errorf("saving signatures for image %q: %w", img.ID, err)
-		}
-	}
-	for instanceDigest, signatures := range s.signatureses {
-		key := signatureBigDataKey(instanceDigest)
-		if err := s.imageRef.transport.store.SetImageBigData(img.ID, key, signatures, manifest.Digest); err != nil {
-			logrus.Debugf("error saving signatures for image %q: %v", img.ID, err)
-			return fmt.Errorf("saving signatures for image %q: %w", img.ID, err)
-		}
-	}
-	// Save our metadata.
-	metadata, err := json.Marshal(s)
-	if err != nil {
-		logrus.Debugf("error encoding metadata for image %q: %v", img.ID, err)
-		return fmt.Errorf("encoding metadata for image %q: %w", img.ID, err)
-	}
-	if len(metadata) != 0 {
-		if err = s.imageRef.transport.store.SetMetadata(img.ID, string(metadata)); err != nil {
-			logrus.Debugf("error saving metadata for image %q: %v", img.ID, err)
-			return fmt.Errorf("saving metadata for image %q: %w", img.ID, err)
-		}
-		logrus.Debugf("saved image metadata %q", string(metadata))
-	}
-	// Adds the reference's name on the image.  We don't need to worry about avoiding duplicate
+	// Add the reference's name on the image.  We don't need to worry about avoiding duplicate
 	// values because AddNames() will deduplicate the list that we pass to it.
 	if name := s.imageRef.DockerReference(); name != nil {
 		if err := s.imageRef.transport.store.AddNames(img.ID, []string{name.String()}); err != nil {
@@ -921,10 +940,7 @@ func (s *storageImageDestination) PutSignaturesWithFormat(ctx context.Context, s
 			return err
 		}
 		sizes = append(sizes, len(sig))
-		newblob := make([]byte, len(sigblob)+len(sig))
-		copy(newblob, sigblob)
-		copy(newblob[len(sigblob):], sig)
-		sigblob = newblob
+		sigblob = append(sigblob, sig...)
 	}
 	if instanceDigest == nil {
 		s.signatures = sigblob

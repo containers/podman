@@ -1,7 +1,6 @@
 file {
-  name: "github.com/containerd/cgroups/stats/v1/metrics.proto"
+  name: "github.com/containerd/cgroups/cgroup1/stats/metrics.proto"
   package: "io.containerd.cgroups.v1"
-  dependency: "gogoproto/gogo.proto"
   message_type {
     name: "Metrics"
     field {
@@ -26,9 +25,6 @@ file {
       label: LABEL_OPTIONAL
       type: TYPE_MESSAGE
       type_name: ".io.containerd.cgroups.v1.CPUStat"
-      options {
-        65004: "CPU"
-      }
       json_name: "cpu"
     }
     field {
@@ -175,9 +171,6 @@ file {
       number: 4
       label: LABEL_REPEATED
       type: TYPE_UINT64
-      options {
-        65004: "PerCPU"
-      }
       json_name: "perCpu"
     }
   }
@@ -219,9 +212,6 @@ file {
       number: 2
       label: LABEL_OPTIONAL
       type: TYPE_UINT64
-      options {
-        65004: "RSS"
-      }
       json_name: "rss"
     }
     field {
@@ -229,9 +219,6 @@ file {
       number: 3
       label: LABEL_OPTIONAL
       type: TYPE_UINT64
-      options {
-        65004: "RSSHuge"
-      }
       json_name: "rssHuge"
     }
     field {
@@ -344,9 +331,6 @@ file {
       number: 19
       label: LABEL_OPTIONAL
       type: TYPE_UINT64
-      options {
-        65004: "TotalRSS"
-      }
       json_name: "totalRss"
     }
     field {
@@ -354,9 +338,6 @@ file {
       number: 20
       label: LABEL_OPTIONAL
       type: TYPE_UINT64
-      options {
-        65004: "TotalRSSHuge"
-      }
       json_name: "totalRssHuge"
     }
     field {
@@ -473,9 +454,6 @@ file {
       label: LABEL_OPTIONAL
       type: TYPE_MESSAGE
       type_name: ".io.containerd.cgroups.v1.MemoryEntry"
-      options {
-        65004: "KernelTCP"
-      }
       json_name: "kernelTcp"
     }
   }
@@ -785,6 +763,9 @@ file {
       type: TYPE_UINT64
       json_name: "nrIoWait"
     }
+  }
+  options {
+    go_package: "github.com/containerd/cgroups/cgroup1/stats"
   }
   syntax: "proto3"
 }

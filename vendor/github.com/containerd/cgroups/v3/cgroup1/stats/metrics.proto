@@ -2,12 +2,12 @@ syntax = "proto3";
 
 package io.containerd.cgroups.v1;
 
-import "gogoproto/gogo.proto";
+option go_package = "github.com/containerd/cgroups/cgroup1/stats";
 
 message Metrics {
 	repeated HugetlbStat hugetlb = 1;
 	PidsStat pids = 2;
-	CPUStat cpu = 3 [(gogoproto.customname) = "CPU"];
+	CPUStat cpu = 3;
 	MemoryStat memory = 4;
 	BlkIOStat blkio = 5;
 	RdmaStat rdma = 6;
@@ -38,7 +38,7 @@ message CPUUsage {
 	uint64 total = 1;
 	uint64 kernel = 2;
 	uint64 user = 3;
-	repeated uint64 per_cpu = 4 [(gogoproto.customname) = "PerCPU"];
+	repeated uint64 per_cpu = 4;
 
 }
 
@@ -50,8 +50,8 @@ message Throttle {
 
 message MemoryStat {
 	uint64 cache = 1;
-	uint64 rss = 2 [(gogoproto.customname) = "RSS"];
-	uint64 rss_huge = 3 [(gogoproto.customname) = "RSSHuge"];
+	uint64 rss = 2;
+	uint64 rss_huge = 3;
 	uint64 mapped_file = 4;
 	uint64 dirty = 5;
 	uint64 writeback = 6;
@@ -67,8 +67,8 @@ message MemoryStat {
 	uint64 hierarchical_memory_limit = 16;
 	uint64 hierarchical_swap_limit = 17;
 	uint64 total_cache = 18;
-	uint64 total_rss = 19 [(gogoproto.customname) = "TotalRSS"];
-	uint64 total_rss_huge = 20 [(gogoproto.customname) = "TotalRSSHuge"];
+	uint64 total_rss = 19;
+	uint64 total_rss_huge = 20;
 	uint64 total_mapped_file = 21;
 	uint64 total_dirty = 22;
 	uint64 total_writeback = 23;
@@ -84,7 +84,7 @@ message MemoryStat {
 	MemoryEntry usage = 33;
 	MemoryEntry swap = 34;
 	MemoryEntry kernel = 35;
-	MemoryEntry kernel_tcp = 36 [(gogoproto.customname) = "KernelTCP"];
+	MemoryEntry kernel_tcp = 36;
 
 }
 

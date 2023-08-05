@@ -17,9 +17,8 @@ github.com/Microsoft/go-winio/internal/fs
 github.com/Microsoft/go-winio/internal/socket
 github.com/Microsoft/go-winio/internal/stringbuffer
 github.com/Microsoft/go-winio/pkg/guid
-github.com/Microsoft/go-winio/tools/mkwinsyscall
 github.com/Microsoft/go-winio/vhd
-# github.com/Microsoft/hcsshim v0.10.0-rc.8
+# github.com/Microsoft/hcsshim v0.10.0
 ## explicit; go 1.18
 github.com/Microsoft/hcsshim
 github.com/Microsoft/hcsshim/computestorage
@@ -106,9 +105,9 @@ github.com/container-orchestrated-devices/container-device-interface/internal/va
 github.com/container-orchestrated-devices/container-device-interface/pkg/cdi
 github.com/container-orchestrated-devices/container-device-interface/pkg/parser
 github.com/container-orchestrated-devices/container-device-interface/specs-go
-# github.com/containerd/cgroups v1.1.0
-## explicit; go 1.17
-github.com/containerd/cgroups/stats/v1
+# github.com/containerd/cgroups/v3 v3.0.2
+## explicit; go 1.18
+github.com/containerd/cgroups/v3/cgroup1/stats
 # github.com/containerd/containerd v1.7.3
 ## explicit; go 1.19
 github.com/containerd/containerd/errdefs
@@ -215,7 +214,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.26.1-0.20230801083106-fcf7f0e1712a
+# github.com/containers/image/v5 v5.26.1-0.20230801083106-fcf7f0e1712a => github.com/nalind/image/v5 v5.0.0-20230804205337-4f1bcfbe32bc
 ## explicit; go 1.18
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -322,7 +321,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.48.1-0.20230721123825-4a3a3019d765
+# github.com/containers/storage v1.48.1-0.20230728131509-c3da76fa3f63
 ## explicit; go 1.19
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -592,9 +591,7 @@ github.com/goccy/go-json/internal/runtime
 github.com/godbus/dbus/v5
 # github.com/gogo/protobuf v1.3.2
 ## explicit; go 1.15
-github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
-github.com/gogo/protobuf/protoc-gen-gogo/descriptor
 # github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 ## explicit
 github.com/golang/groupcache/lru
@@ -1062,7 +1059,7 @@ golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
-# golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df
+# golang.org/x/exp v0.0.0-20230801115018-d63ba01acd4b
 ## explicit; go 1.20
 golang.org/x/exp/constraints
 golang.org/x/exp/maps
@@ -1104,7 +1101,7 @@ golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
 golang.org/x/sys/windows/svc/eventlog
-# golang.org/x/term v0.10.0
+# golang.org/x/term v0.11.0
 ## explicit; go 1.17
 golang.org/x/term
 # golang.org/x/text v0.11.0
@@ -1270,3 +1267,4 @@ gopkg.in/yaml.v3
 ## explicit; go 1.12
 sigs.k8s.io/yaml
 # github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
+# github.com/containers/image/v5 => github.com/nalind/image/v5 v5.0.0-20230804205337-4f1bcfbe32bc
