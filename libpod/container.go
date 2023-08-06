@@ -1210,9 +1210,11 @@ func (c *Container) HostNetwork() bool {
 	if c.config.CreateNetNS || c.config.NetNsCtr != "" {
 		return false
 	}
-	for _, ns := range c.config.Spec.Linux.Namespaces {
-		if ns.Type == spec.NetworkNamespace {
-			return false
+	if c.config.Spec.Linux != nil {
+		for _, ns := range c.config.Spec.Linux.Namespaces {
+			if ns.Type == spec.NetworkNamespace {
+				return false
+			}
 		}
 	}
 	return true
