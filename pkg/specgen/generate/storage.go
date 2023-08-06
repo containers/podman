@@ -37,9 +37,16 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 	// Supersede from --volumes-from.
 	for dest, mount := range volFromMounts {
 		baseMounts[dest] = mount
+
+		// Necessary to ensure that mounts override image volumes
+		// Ref: https://github.com/containers/podman/issues/19529
+		delete(baseVolumes, dest)
 	}
 	for dest, volume := range volFromVolumes {
 		baseVolumes[dest] = volume
+
+		// I don't think this can happen, but best to be safe.
+		delete(baseMounts, dest)
 	}
 
 	// Need to make map forms of specgen mounts/volumes.

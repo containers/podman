@@ -1168,6 +1168,34 @@ USER mail`, BB)
 		Expect(session.OutputToString()).To(ContainSubstring("data"))
 	})
 
+	It("podman run --volumes-from flag mount conflicts with image volume", func() {
+		volPathOnHost := filepath.Join(podmanTest.TempDir, "myvol")
+		err := os.MkdirAll(volPathOnHost, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		imgName := "testimg"
+		volPath := "/myvol/mypath"
+		dockerfile := fmt.Sprintf(`FROM %s
+RUN mkdir -p %s
+VOLUME %s`, ALPINE, volPath, volPath)
+		podmanTest.BuildImage(dockerfile, imgName, "false")
+
+		ctr1 := "ctr1"
+		run1 := podmanTest.Podman([]string{"run", "-d", "-v", fmt.Sprintf("%s:%s:z", volPathOnHost, volPath), "--name", ctr1, ALPINE, "top"})
+		run1.WaitWithDefaultTimeout()
+		Expect(run1).Should(Exit(0))
+
+		testFile := "testfile1"
+		ctr1Exec := podmanTest.Podman([]string{"exec", "-t", ctr1, "touch", fmt.Sprintf("%s/%s", volPath, testFile)})
+		ctr1Exec.WaitWithDefaultTimeout()
+		Expect(ctr1Exec).Should(Exit(0))
+
+		run2 := podmanTest.Podman([]string{"run", "--volumes-from", ctr1, imgName, "ls", volPath})
+		run2.WaitWithDefaultTimeout()
+		Expect(run2).Should(Exit(0))
+		Expect(run2.OutputToString()).To(Equal(testFile))
+	})
+
 	It("podman run --volumes flag with multiple volumes", func() {
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
 		err := os.MkdirAll(vol1, 0755)
