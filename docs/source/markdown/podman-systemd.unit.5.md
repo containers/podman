@@ -693,6 +693,10 @@ a network file named `$NAME.network`, the generated Podman network is called `sy
 the generated service file is `$NAME-network.service`. The `NetworkName` option allows for
 overriding this default name with a user-provided one.
 
+Please note that stopping the corresponding service will not remove the podman network.
+In addition, updating an existing network is not supported.
+In order to update the network parameters you will first need to manually remove the podman network and then restart the service.
+
 Using network units allows containers to depend on networks being automatically pre-created. This is
 particularly interesting when using special options to control network creation, as Podman otherwise creates networks with the default options.
 
