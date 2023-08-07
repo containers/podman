@@ -118,7 +118,9 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: installer
-        path: ${{ steps.check.outputs.upload_asset_name }}
+        path: |
+          ${{ steps.check.outputs.upload_asset_name }}
+          .\contrib\win-installer\shasums
     - name: Upload
       if: >-
         steps.actual_dryrun.outputs.dryrun == 'false' &&

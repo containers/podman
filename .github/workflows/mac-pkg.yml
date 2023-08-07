@@ -139,6 +139,7 @@ jobs:
         name: installers
         path: |
           contrib/pkginstaller/out/podman-installer-macos-*.pkg
+          contrib/pkginstaller/out/shasums
     - name: Upload to Release
       if: >-
         steps.actual_dryrun.outputs.dryrun == 'false' &&
