@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version to build and upload (e.g. "4.2.1")'
+        description: 'Release version to build and upload (e.g. "v9.8.7")'
         required: true
       dryrun:
         description: 'Perform all the steps except uploading to the release page'
@@ -55,6 +55,13 @@ jobs:
     - uses: actions/checkout@v3
       with:
         ref: ${{steps.getversion.outputs.version}}
+    # This step is super-duper critical for the built/signed windows installer .exe file.
+    # It ensures the referenced $version github release page does NOT already contain
+    # this file.  Windows assigns a UUID to the installer at build time, it's assumed
+    # by windows that one release version == one UUID (always).  Breaking this assumption
+    # has some rather nasty side-effects in windows, such as possibly breaking 'uninstall'
+    # functionality.  For dry-runs, the .exe is saved in the workflow artifacts for a human
+    # to judge w/n (i.e. in some extreme case) it should be uploaded to the release page.
     - name: Check
       id: check
       run: |
@@ -111,7 +118,9 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: installer
-        path: ${{ steps.check.outputs.upload_asset_name }}
+        path: |
+          ${{ steps.check.outputs.upload_asset_name }}
+          .\contrib\win-installer\shasums
     - name: Upload
       if: >-
         steps.actual_dryrun.outputs.dryrun == 'false' &&
