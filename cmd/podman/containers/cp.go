@@ -386,6 +386,7 @@ func copyToContainer(container string, containerPath string, hostPath string) er
 
 		_, err = io.Copy(tmpFile, os.Stdin)
 		if err != nil {
+			_ = tmpFile.Close()
 			return err
 		}
 		if err = tmpFile.Close(); err != nil {
