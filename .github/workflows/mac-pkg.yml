@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version to build and upload (e.g. "v4.2.1")'
+        description: 'Release version to build and upload (e.g. "v9.8.7")'
         required: true
       dryrun:
         description: 'Perform all the steps except uploading to the release page'
