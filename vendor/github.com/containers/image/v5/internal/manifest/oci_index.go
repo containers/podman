@@ -170,8 +170,19 @@ func (index *OCI1IndexPublic) editInstances(editInstances []ListEdit) error {
 		index.Manifests = append(index.Manifests, addedEntries...)
 	}
 	if len(addedEntries) != 0 || updatedAnnotations {
-		slices.SortStableFunc(index.Manifests, func(a, b imgspecv1.Descriptor) bool {
-			return !instanceIsZstd(a) && instanceIsZstd(b)
+		slices.SortStableFunc(index.Manifests, func(a, b imgspecv1.Descriptor) int {
+			// FIXME? With Go 1.21 and cmp.Compare available, turn instanceIsZstd into an integer score that can be compared, and generalizes
+			// into more algorithms?
+			aZstd := instanceIsZstd(a)
+			bZstd := instanceIsZstd(b)
+			switch {
+			case aZstd == bZstd:
+				return 0
+			case !aZstd: // Implies bZstd
+				return -1
+			default: // aZstd && !bZstd
+				return 1
+			}
 		})
 	}
 	return nil

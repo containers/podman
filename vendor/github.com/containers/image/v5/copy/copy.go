@@ -133,6 +133,10 @@ type Options struct {
 	// Invalid when copying a non-multi-architecture image. That will probably
 	// change in the future.
 	EnsureCompressionVariantsExist []OptionCompressionVariant
+	// ForceCompressionFormat ensures that the compression algorithm set in
+	// DestinationCtx.CompressionFormat is used exclusively, and blobs of other
+	// compression algorithms are not reused.
+	ForceCompressionFormat bool
 }
 
 // OptionCompressionVariant allows to supply information about
@@ -161,6 +165,14 @@ type copier struct {
 	concurrentBlobCopiesSemaphore *semaphore.Weighted // Limits the amount of concurrently copied blobs
 	signers                       []*signer.Signer    // Signers to use to create new signatures for the image
 	signersToClose                []*signer.Signer    // Signers that should be closed when this copier is destroyed.
+}
+
+// Internal function to validate `requireCompressionFormatMatch` for copySingleImageOptions
+func shouldRequireCompressionFormatMatch(options *Options) (bool, error) {
+	if options.ForceCompressionFormat && (options.DestinationCtx == nil || options.DestinationCtx.CompressionFormat == nil) {
+		return false, fmt.Errorf("cannot use ForceCompressionFormat with undefined default compression format")
+	}
+	return options.ForceCompressionFormat, nil
 }
 
 // Image copies image from srcRef to destRef, using policyContext to validate
@@ -269,8 +281,12 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 		if len(options.EnsureCompressionVariantsExist) > 0 {
 			return nil, fmt.Errorf("EnsureCompressionVariantsExist is not implemented when not creating a multi-architecture image")
 		}
+		requireCompressionFormatMatch, err := shouldRequireCompressionFormatMatch(options)
+		if err != nil {
+			return nil, err
+		}
 		// The simple case: just copy a single image.
-		single, err := c.copySingleImage(ctx, c.unparsedToplevel, nil, copySingleImageOptions{requireCompressionFormatMatch: false})
+		single, err := c.copySingleImage(ctx, c.unparsedToplevel, nil, copySingleImageOptions{requireCompressionFormatMatch: requireCompressionFormatMatch})
 		if err != nil {
 			return nil, err
 		}
@@ -278,6 +294,10 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 	} else if c.options.ImageListSelection == CopySystemImage {
 		if len(options.EnsureCompressionVariantsExist) > 0 {
 			return nil, fmt.Errorf("EnsureCompressionVariantsExist is not implemented when not creating a multi-architecture image")
+		}
+		requireCompressionFormatMatch, err := shouldRequireCompressionFormatMatch(options)
+		if err != nil {
+			return nil, err
 		}
 		// This is a manifest list, and we weren't asked to copy multiple images.  Choose a single image that
 		// matches the current system to copy, and copy it.
@@ -295,7 +315,7 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 		}
 		logrus.Debugf("Source is a manifest list; copying (only) instance %s for current system", instanceDigest)
 		unparsedInstance := image.UnparsedInstance(rawSource, &instanceDigest)
-		single, err := c.copySingleImage(ctx, unparsedInstance, nil, copySingleImageOptions{requireCompressionFormatMatch: false})
+		single, err := c.copySingleImage(ctx, unparsedInstance, nil, copySingleImageOptions{requireCompressionFormatMatch: requireCompressionFormatMatch})
 		if err != nil {
 			return nil, fmt.Errorf("copying system image from manifest list: %w", err)
 		}

@@ -37,7 +37,10 @@ func (p *WSLVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, er
 
 	vm.ConfigPath = configPath
 	vm.ImagePath = opts.ImagePath
-	vm.RemoteUsername = opts.Username
+
+	// WSL uses a different username; here we hardcode it.
+	vm.RemoteUsername = "user"
+
 	vm.Created = time.Now()
 	vm.LastUp = vm.Created
 

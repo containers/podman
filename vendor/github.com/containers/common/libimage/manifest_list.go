@@ -461,6 +461,7 @@ func (m *ManifestList) Push(ctx context.Context, destination string, options *Ma
 		SignSigstorePrivateKeyPassphrase: options.SignSigstorePrivateKeyPassphrase,
 		RemoveSignatures:                 options.RemoveSignatures,
 		ManifestType:                     options.ManifestMIMEType,
+		ForceCompressionFormat:           options.ForceCompressionFormat,
 	}
 
 	_, d, err := m.list.Push(ctx, dest, pushOptions)

@@ -82,6 +82,7 @@ func (css *candidateSortState) Swap(i, j int) {
 func destructivelyPrioritizeReplacementCandidatesWithMax(cs []CandidateWithTime, primaryDigest, uncompressedDigest digest.Digest, maxCandidates int) []blobinfocache.BICReplacementCandidate2 {
 	// We don't need to use sort.Stable() because nanosecond timestamps are (presumably?) unique, so no two elements should
 	// compare equal.
+	// FIXME: Use slices.SortFunc after we update to Go 1.20 (Go 1.21?) and Time.Compare and cmp.Compare are available.
 	sort.Sort(&candidateSortState{
 		cs:                 cs,
 		primaryDigest:      primaryDigest,

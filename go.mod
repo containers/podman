@@ -13,9 +13,9 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
 	github.com/containers/buildah v1.31.1-0.20230722114901-5ece066f82c6
-	github.com/containers/common v0.55.1-0.20230808082859-b13df748a2b8
+	github.com/containers/common v0.55.1-0.20230811093040-524b4d5c12f9
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.26.1-0.20230801083106-fcf7f0e1712a
+	github.com/containers/image/v5 v5.26.1-0.20230807184415-3fb422379cfa
 	github.com/containers/libhvee v0.4.0
 	github.com/containers/ocicrypt v1.1.7
 	github.com/containers/psgo v1.8.0
@@ -62,7 +62,7 @@ require (
 	github.com/vbauerster/mpb/v8 v8.5.2
 	github.com/vishvananda/netlink v1.2.1-beta.2
 	go.etcd.io/bbolt v1.3.7
-	golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df
+	golang.org/x/exp v0.0.0-20230801115018-d63ba01acd4b
 	golang.org/x/net v0.14.0
 	golang.org/x/sync v0.3.0
 	golang.org/x/sys v0.11.0
@@ -185,7 +185,7 @@ require (
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/crypto v0.12.0 // indirect
 	golang.org/x/mod v0.11.0 // indirect
-	golang.org/x/oauth2 v0.10.0 // indirect
+	golang.org/x/oauth2 v0.11.0 // indirect
 	golang.org/x/tools v0.9.3 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230711160842-782d3b101e98 // indirect
