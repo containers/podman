@@ -33,7 +33,7 @@ env:
     DEBIAN_NAME: "debian-13"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20230726t191046z-f38f37d13"
+    IMAGE_SUFFIX: "c20230807t144831z-f38f37d13"
 
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
@@ -243,7 +243,7 @@ validate_task:
             <<: *stdenvars
             VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
             DISTRO_NV: ${FEDORA_NAME}
-        # FIXME: #18612 c20230726t191046z-f38f37d13 Python dependnecies
+        # FIXME: #18612 c20230807t144831z-f38f37d13 Python dependnecies
         # broken in rawhide image cause this task to fail.  Re-enable
         # check if fixed in next set of images.
         # - env:
