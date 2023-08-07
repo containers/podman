@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/common/libnetwork/etchosts"
 	"github.com/containers/storage/pkg/regexp"
 )
 
@@ -28,13 +29,16 @@ var (
 )
 
 // validateExtraHost validates that the specified string is a valid extrahost and returns it.
-// ExtraHost is in the form of name:ip where the ip has to be a valid ip (ipv4 or ipv6).
+// ExtraHost is in the form of name:ip where the ip has to be a valid ip (ipv4 or ipv6) or the special string HostGateway.
 // for add-host flag
 func ValidateExtraHost(val string) (string, error) {
 	// allow for IPv6 addresses in extra hosts by only splitting on first ":"
 	arr := strings.SplitN(val, ":", 2)
 	if len(arr) != 2 || len(arr[0]) == 0 {
 		return "", fmt.Errorf("bad format for add-host: %q", val)
+	}
+	if arr[1] == etchosts.HostGateway {
+		return val, nil
 	}
 	if _, err := validateIPAddress(arr[1]); err != nil {
 		return "", fmt.Errorf("invalid IP address in add-host: %q", arr[1])
