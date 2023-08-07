@@ -95,6 +95,13 @@ my %Format_Option_Is_Special = map { $_ => 1 } (
     'inspect',                                  # ambiguous (container/image)
  );
 
+# Hardcoded list of existing duplicate-except-for-case format codes,
+# with their associated subcommands. Let's not add any more.
+my %Format_Option_Dup_Allowed = (
+    'podman-images' => { '.id'     => 1 },
+    'podman-stats'  => { '.avgcpu' => 1, '.pids' => 1 },
+);
+
 # Do not cross-reference these.
 my %Skip_Subcommand = map { $_ => 1 } (
     "help",                     # has no man page
@@ -203,8 +210,7 @@ sub xref_by_help {
                 if ($k eq '--format' && ! ref($man->{$k})) {
                     warn "$ME: 'podman @subcommand': --format options are available through autocomplete, but are not documented in $man->{_path}\n";
 
-                    # FIXME: don't make this an error... yet.
-                    # ++$Errs;
+                    ++$Errs   unless "@subcommand" eq "inspect";
                     next OPTION;
                 }
 
@@ -491,6 +497,10 @@ sub podman_man {
                     warn "$ME: $subpath:$.: '$previous_subcmd' and '$subcmd' are out of order\n";
                     ++$Errs;
                 }
+                if ($previous_subcmd eq $subcmd) {
+                    warn "$ME: $subpath:$.: duplicate subcommand '$subcmd'\n";
+                    ++$Errs;
+                }
                 $previous_subcmd = $subcmd;
                 $man{$subcmd} = podman_man($link_name);
 
@@ -527,6 +537,10 @@ sub podman_man {
                     $man{$flag} = 1;
                     if ($flag lt $previous_flag && $is_first) {
                         warn "$ME: $subpath:$.: $flag should precede $previous_flag\n";
+                        ++$Errs;
+                    }
+                    if ($flag eq $previous_flag) {
+                        warn "$ME: $subpath:$.: flag '$flag' is a dup\n";
                         ++$Errs;
                     }
                     $previous_flag = $flag if $is_first;
@@ -607,9 +621,19 @@ sub podman_man {
                     # too many subformats to document individually.
                     $man{$previous_flag}{$format} = $etc || 1;
 
+                    # Sort order check, case-insensitive
                     if (lc($format) lt lc($previous_format)) {
                         warn "$ME: $subpath:$.: format specifier '$format' should precede '$previous_format'\n";
                         ++$Errs;
+                    }
+
+                    # Dup check, would've caught #19462.
+                    if (lc($format) eq lc($previous_format)) {
+                        # Sigh. Allow preexisting exceptions, but no new ones.
+                        unless ($Format_Option_Dup_Allowed{$command}{lc $format}) {
+                            warn "$ME: $subpath:$.: format specifier '$format' is a dup\n";
+                            ++$Errs;
+                        }
                     }
                     $previous_format = $format;
                 }
