@@ -69,9 +69,11 @@ PRE_COMMIT = $(shell command -v bin/venv/bin/pre-commit ~/.local/bin/pre-commit 
 ifeq ($(shell uname -s),FreeBSD)
 SED=gsed
 GREP=ggrep
+MAN_L=	mandoc
 else
 SED=sed
 GREP=grep
+MAN_L=	man -l
 endif
 
 # This isn't what we actually build; it's a superset, used for target
@@ -503,7 +505,7 @@ $(MANPAGES): %: %.md .install.md2man docdir
 	@if grep 'included file options/' docs/build/man/*; then \
 		echo "FATAL: man pages must not contain ^^^^"; exit 1; \
 	fi
-	@if man -l $(subst source/markdown,build/man,$@) | grep -Pazoq '│\s+│\n\s+├─+┼─+┤\n\s+│\s+│'; then  \
+	@if $(MAN_L) $(subst source/markdown,build/man,$@) | $(GREP) -Pazoq '│\s+│\n\s+├─+┼─+┤\n\s+│\s+│'; then  \
 		echo "FATAL: $< has a too-long table column; use 'man -l $(subst source/markdown,build/man,$@)' and look for empty table cells."; exit 1; \
 	fi
 
