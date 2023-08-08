@@ -57,10 +57,7 @@ func (r *ReverseReader) Read() (string, error) {
 	if err != nil && !errors.Is(err, io.EOF) {
 		return "", err
 	}
-	if int64(n) < r.readSize {
-		b = b[0:n]
-	}
 	// Move the offset one pagesize up
 	r.offset -= r.readSize
-	return string(b), nil
+	return string(b[:n]), nil
 }

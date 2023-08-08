@@ -85,86 +85,84 @@ func GetLogFile(path string, options *LogOptions) (*tail.Tail, []*LogLine, error
 
 func getTailLog(path string, tail int) ([]*LogLine, error) {
 	var (
-		nlls       []*LogLine
 		nllCounter int
 		leftover   string
-		partial    string
 		tailLog    []*LogLine
+		eof        bool
 	)
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 	rr, err := reversereader.NewReverseReader(f)
 	if err != nil {
 		return nil, err
 	}
 
-	inputs := make(chan []string)
-	go func() {
-		for {
-			s, err := rr.Read()
-			if err != nil {
-				if errors.Is(err, io.EOF) {
-					inputs <- []string{leftover}
-				} else {
-					logrus.Error(err)
-				}
-				close(inputs)
-				if err := f.Close(); err != nil {
-					logrus.Error(err)
-				}
-				break
-			}
-			line := strings.Split(s+leftover, "\n")
-			if len(line) > 1 {
-				inputs <- line[1:]
-			}
-			leftover = line[0]
-		}
-	}()
+	first := true
 
-	for i := range inputs {
-		// the incoming array is FIFO; we want FIFO so
-		// reverse the slice read order
-		for j := len(i) - 1; j >= 0; j-- {
-			// lines that are "" are junk
-			if len(i[j]) < 1 {
+	for {
+		s, err := rr.Read()
+		if err != nil {
+			if !errors.Is(err, io.EOF) {
+				return nil, fmt.Errorf("reverse log read: %w", err)
+			}
+			eof = true
+		}
+
+		lines := strings.Split(s+leftover, "\n")
+		// we read a chunk of data, so make sure to read the line in inverse order
+		for i := len(lines) - 1; i > 0; i-- {
+			// ignore empty lines
+			if lines[i] == "" {
 				continue
 			}
-			// read the content in reverse and add each nll until we have the same
-			// number of F type messages as the desired tail
-			nll, err := NewLogLine(i[j])
+			nll, err := NewLogLine(lines[i])
 			if err != nil {
 				return nil, err
 			}
-			nlls = append(nlls, nll)
-			if !nll.Partial() {
+			if !nll.Partial() || first {
 				nllCounter++
+				// Even if the last line is partial we need to count it as it will be printed as line.
+				// Because we read backwards the first line we read is the last line in the log.
+				first = false
 			}
+			// We explicitly need to check for more lines than tail because we have
+			// to read to next full line and must keep all partial lines
+			// https://github.com/containers/podman/issues/19545
+			if nllCounter > tail {
+				// because we add lines in the inverse order we must invert the slice in the end
+				return reverseLog(tailLog), nil
+			}
+			// only append after the return here because we do not want to include the next full line
+			tailLog = append(tailLog, nll)
 		}
-		// if we have enough log lines, we can hang up
-		if nllCounter >= tail {
-			break
-		}
-	}
+		leftover = lines[0]
 
-	// re-assemble the log lines and trim (if needed) to the
-	// tail length
-	for _, nll := range nlls {
-		if nll.Partial() {
-			partial += nll.Msg
-		} else {
-			nll.Msg += partial
-			// prepend because we need to reverse the order again to FIFO
-			tailLog = append([]*LogLine{nll}, tailLog...)
-			partial = ""
-		}
-		if len(tailLog) == tail {
-			break
+		// eof was reached
+		if eof {
+			// when we have still a line and do not have enough tail lines already
+			if leftover != "" && nllCounter < tail {
+				nll, err := NewLogLine(leftover)
+				if err != nil {
+					return nil, err
+				}
+				tailLog = append(tailLog, nll)
+			}
+			// because we add lines in the inverse order we must invert the slice in the end
+			return reverseLog(tailLog), nil
 		}
 	}
-	return tailLog, nil
+}
+
+// reverseLog reverse the log line slice, needed for tail as we read lines backwards but still
+// need to print them in the correct order at the end  so use that helper for it.
+func reverseLog(s []*LogLine) []*LogLine {
+	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+		s[i], s[j] = s[j], s[i]
+	}
+	return s
 }
 
 // getColor returns an ANSI escape code for color based on the colorID

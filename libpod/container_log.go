@@ -67,16 +67,6 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 		return fmt.Errorf("unable to read log file %s for %s : %w", c.ID(), c.LogPath(), err)
 	}
 	options.WaitGroup.Add(1)
-	if len(tailLog) > 0 {
-		for _, nll := range tailLog {
-			nll.CID = c.ID()
-			nll.CName = c.Name()
-			nll.ColorID = colorID
-			if nll.Since(options.Since) && nll.Until(options.Until) {
-				logChannel <- nll
-			}
-		}
-	}
 	go func() {
 		if options.Until.After(time.Now()) {
 			time.Sleep(time.Until(options.Until))
@@ -87,6 +77,14 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 	}()
 
 	go func() {
+		for _, nll := range tailLog {
+			nll.CID = c.ID()
+			nll.CName = c.Name()
+			nll.ColorID = colorID
+			if nll.Since(options.Since) && nll.Until(options.Until) {
+				logChannel <- nll
+			}
+		}
 		defer options.WaitGroup.Done()
 		var line *tail.Line
 		var ok bool
