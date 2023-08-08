@@ -55,7 +55,7 @@ func ScrubProcessParameters(s string) (string, error) {
 	}
 	pp.Environment = map[string]string{_scrubbedReplacement: _scrubbedReplacement}
 
-	b, err := encodeBuffer(bytes.NewBuffer(b[:0]), pp)
+	b, err := encode(pp)
 	if err != nil {
 		return "", err
 	}
