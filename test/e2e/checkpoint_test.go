@@ -341,8 +341,6 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint container with established tcp connections", func() {
-		// Broken on Ubuntu.
-		SkipIfNotFedora()
 		localRunString := getRunString([]string{REDIS_IMAGE})
 		session := podmanTest.Podman(localRunString)
 		session.WaitWithDefaultTimeout()
