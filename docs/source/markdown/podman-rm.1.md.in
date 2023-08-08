@@ -20,6 +20,8 @@ Remove all containers.  Can be used in conjunction with **-f** as well.
 
 @@option cidfile.read
 
+Command does not fail when *file* is missing and user specified --ignore.
+
 #### **--depend**
 
 Remove selected container and recursively remove all containers that depend on it.
