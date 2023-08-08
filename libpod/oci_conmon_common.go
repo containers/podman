@@ -1000,6 +1000,7 @@ func waitContainerStop(ctr *Container, timeout time.Duration) error {
 // Wait for a given PID to stop
 func waitPidStop(pid int, timeout time.Duration) error {
 	timer := time.NewTimer(timeout)
+	defer timer.Stop()
 	for {
 		select {
 		case <-timer.C:
