@@ -249,6 +249,22 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 			report.Pods = append(report.Pods, r.Pods...)
 			validKinds++
 			ranContainers = true
+		case "DaemonSet":
+			var daemonSetYAML v1apps.DaemonSet
+
+			if err := yaml.Unmarshal(document, &daemonSetYAML); err != nil {
+				return nil, fmt.Errorf("unable to read YAML as Kube DaemonSet: %w", err)
+			}
+
+			r, proxies, err := ic.playKubeDaemonSet(ctx, &daemonSetYAML, options, &ipIndex, configMaps, serviceContainer)
+			if err != nil {
+				return nil, err
+			}
+			notifyProxies = append(notifyProxies, proxies...)
+
+			report.Pods = append(report.Pods, r.Pods...)
+			validKinds++
+			ranContainers = true
 		case "Deployment":
 			var deploymentYAML v1apps.Deployment
 
@@ -364,6 +380,29 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 	}
 
 	return report, nil
+}
+
+func (ic *ContainerEngine) playKubeDaemonSet(ctx context.Context, daemonSetYAML *v1apps.DaemonSet, options entities.PlayKubeOptions, ipIndex *int, configMaps []v1.ConfigMap, serviceContainer *libpod.Container) (*entities.PlayKubeReport, []*notifyproxy.NotifyProxy, error) {
+	var (
+		daemonSetName string
+		podSpec       v1.PodTemplateSpec
+		report        entities.PlayKubeReport
+	)
+
+	daemonSetName = daemonSetYAML.ObjectMeta.Name
+	if daemonSetName == "" {
+		return nil, nil, errors.New("daemonSet does not have a name")
+	}
+	podSpec = daemonSetYAML.Spec.Template
+
+	podName := fmt.Sprintf("%s-pod", daemonSetName)
+	podReport, proxies, err := ic.playKubePod(ctx, podName, &podSpec, options, ipIndex, daemonSetYAML.Annotations, configMaps, serviceContainer)
+	if err != nil {
+		return nil, nil, fmt.Errorf("encountered while bringing up pod %s: %w", podName, err)
+	}
+	report.Pods = podReport.Pods
+
+	return &report, proxies, nil
 }
 
 func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAML *v1apps.Deployment, options entities.PlayKubeOptions, ipIndex *int, configMaps []v1.ConfigMap, serviceContainer *libpod.Container) (*entities.PlayKubeReport, []*notifyproxy.NotifyProxy, error) {
@@ -1249,7 +1288,7 @@ func sortKubeKinds(documentList [][]byte) ([][]byte, error) {
 		}
 
 		switch kind {
-		case "Pod", "Deployment":
+		case "Pod", "Deployment", "DaemonSet":
 			sortedDocumentList = append(sortedDocumentList, document)
 		default:
 			sortedDocumentList = append([][]byte{document}, sortedDocumentList...)
@@ -1354,6 +1393,15 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, opt
 					volumeNames = append(volumeNames, vs.Secret.SecretName)
 				}
 			}
+		case "DaemonSet":
+			var daemonSetYAML v1apps.DaemonSet
+
+			if err := yaml.Unmarshal(document, &daemonSetYAML); err != nil {
+				return nil, fmt.Errorf("unable to read YAML as Kube DaemonSet: %w", err)
+			}
+
+			podName := fmt.Sprintf("%s-pod", daemonSetYAML.Name)
+			podNames = append(podNames, podName)
 		case "Deployment":
 			var deploymentYAML v1apps.Deployment
 
