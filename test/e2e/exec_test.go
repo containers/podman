@@ -408,6 +408,7 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec cannot be invoked", func() {
+		SkipIfNotFedora("FIXME: #19552 fails on Debian SID w/ runc 1.1.5")
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(Exit(0))
