@@ -199,6 +199,17 @@ func GetDataDir(vmType VMType) (string, error) {
 	return dataDir, mkdirErr
 }
 
+// GetGLobalDataDir returns the root of all backends
+// for shared machine data.
+func GetGlobalDataDir() (string, error) {
+	dataDir, err := DataDirPrefix()
+	if err != nil {
+		return "", err
+	}
+
+	return dataDir, os.MkdirAll(dataDir, 0755)
+}
+
 // DataDirPrefix returns the path prefix for all machine data files
 func DataDirPrefix() (string, error) {
 	data, err := homedir.GetDataHome()

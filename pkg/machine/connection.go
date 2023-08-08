@@ -58,6 +58,21 @@ func AnyConnectionDefault(name ...string) (bool, error) {
 	return false, nil
 }
 
+func ChangeConnectionURI(name string, uri fmt.Stringer) error {
+	cfg, err := config.ReadCustomConfig()
+	if err != nil {
+		return err
+	}
+	dst, ok := cfg.Engine.ServiceDestinations[name]
+	if !ok {
+		return errors.New("connection not found")
+	}
+	dst.URI = uri.String()
+	cfg.Engine.ServiceDestinations[name] = dst
+
+	return cfg.Write()
+}
+
 func ChangeDefault(name string) error {
 	cfg, err := config.ReadCustomConfig()
 	if err != nil {

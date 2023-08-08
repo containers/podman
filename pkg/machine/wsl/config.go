@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/containers/podman/v4/pkg/machine"
-	"github.com/containers/podman/v4/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -55,7 +54,7 @@ func (p *WSLVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, er
 	}
 
 	// Add a random port for ssh
-	port, err := utils.GetRandomPort()
+	port, err := machine.AllocateMachinePort()
 	if err != nil {
 		return nil, err
 	}
