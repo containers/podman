@@ -265,7 +265,7 @@ Set custom DNS search domains to be used during the build.
 #### **--env**=*env[=value]*
 
 Add a value (e.g. env=*value*) to the built image.  Can be used multiple times.
-If neither `=` nor a `*value*` are specified, but *env* is set in the current
+If neither `=` nor a *value* are specified, but *env* is set in the current
 environment, the value from the current environment is added to the image.
 To remove an environment variable from the built image, use the `--unsetenv`
 option.
@@ -546,7 +546,7 @@ Valid _type_ values are:
 - **tar**: write the resulting files as a single tarball (.tar).
 
 If no type is specified, the value defaults to **local**.
-Alternatively, instead of a comma-separated sequence, the value of **--output** can be just a destination (in the `**dest** format) (e.g. `--output some-path`, `--output -`) where `--output some-path` is treated as if **type=local** and `--output -` is treated as if **type=tar**.
+Alternatively, instead of a comma-separated sequence, the value of **--output** can be just a destination (in the **dest** format) (e.g. `--output some-path`, `--output -`) where `--output some-path` is treated as if **type=local** and `--output -` is treated as if **type=tar**.
 
 #### **--pid**=*pid*
 
