@@ -478,7 +478,7 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 			return nil
 		}
 
-		if err := waitContainerStop(ctr, time.Duration(timeout)*time.Second); err != nil {
+		if err := waitContainerStop(ctr, time.Duration(util.ConvertTimeout(int(timeout)))*time.Second); err != nil {
 			logrus.Debugf("Timed out stopping container %s with %s, resorting to SIGKILL: %v", ctr.ID(), unix.SignalName(syscall.Signal(stopSignal)), err)
 			logrus.Warnf("StopSignal %s failed to stop container %s in %d seconds, resorting to SIGKILL", unix.SignalName(syscall.Signal(stopSignal)), ctr.Name(), timeout)
 		} else {

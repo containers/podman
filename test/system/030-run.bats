@@ -884,6 +884,9 @@ EOF
     run_podman inspect --format "{{ .HostConfig.LogConfig.Size }}" $cid
     is "$output" "${size}MB"
     run_podman rm -t 0 -f $cid
+
+    # Make sure run_podman tm -t supports -1 option
+    run_podman rm -t -1 -f $cid
 }
 
 @test "podman run --kernel-memory warning" {
@@ -1025,14 +1028,16 @@ $IMAGE--c_ok" \
     run_podman stop -t 0 $cid
 
     # Actual test for 15895: with --systemd, no ttyN devices are passed through
-    run_podman run --rm -d --privileged --systemd=always $IMAGE ./pause
+    run_podman run -d --privileged --systemd=always $IMAGE top
     cid="$output"
 
     run_podman exec $cid sh -c "find /dev -regex '/dev/tty[0-9].*' | wc -w"
     assert "$output" = "0" \
            "ls /dev/tty[0-9] with --systemd=always: should have no ttyN devices"
 
-    run_podman stop -t 0 $cid
+    # Make sure run_podman stop supports -1 option
+    run_podman stop -t -1 $cid
+    run_podman rm -t -1 -f $cid
 }
 
 @test "podman run --privileged as rootless will not mount /dev/tty\d+" {

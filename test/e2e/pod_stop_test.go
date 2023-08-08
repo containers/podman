@@ -47,7 +47,7 @@ var _ = Describe("Podman pod stop", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"pod", "stop", "--ignore", "test1", "bogus"})
+		session = podmanTest.Podman([]string{"pod", "stop", "-t", "-1", "--ignore", "test1", "bogus"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})

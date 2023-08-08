@@ -258,7 +258,7 @@ var _ = Describe("Podman start", func() {
 		Expect(env).To(ContainSubstring("HOME"))
 		Expect(env).ToNot(ContainSubstring(fmt.Sprintf("HOME=%s", home)))
 
-		session = podmanTest.Podman([]string{"restart", cid})
+		session = podmanTest.Podman([]string{"restart", "-t", "-1", cid})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 

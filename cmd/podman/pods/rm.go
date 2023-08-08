@@ -43,7 +43,7 @@ var (
   podman pod rm -f 860a4b23
   podman pod rm -f -a`,
 	}
-	stopTimeout uint
+	stopTimeout int
 )
 
 func init() {
@@ -62,7 +62,7 @@ func init() {
 	_ = rmCommand.RegisterFlagCompletionFunc(podIDFileFlagName, completion.AutocompleteDefault)
 
 	timeFlagName := "time"
-	flags.UintVarP(&stopTimeout, timeFlagName, "t", containerConfig.Engine.StopTimeout, "Seconds to wait for pod stop before killing the container")
+	flags.IntVarP(&stopTimeout, timeFlagName, "t", int(containerConfig.Engine.StopTimeout), "Seconds to wait for pod stop before killing the container")
 	_ = rmCommand.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
 
 	validate.AddLatestFlag(rmCommand, &rmOptions.Latest)
@@ -79,7 +79,8 @@ func rm(cmd *cobra.Command, args []string) error {
 		if !rmOptions.Force {
 			return errors.New("--force option must be specified to use the --time option")
 		}
-		rmOptions.Timeout = &stopTimeout
+		timeout := uint(stopTimeout)
+		rmOptions.Timeout = &timeout
 	}
 
 	errs = append(errs, removePods(args, rmOptions.PodRmOptions, true)...)

@@ -30,7 +30,7 @@ Print usage statement
 
 #### **--time**, **-t**=*seconds*
 
-Seconds to wait before forcibly stopping running containers that are using the specified volume. The --force option must be specified to use the --time option.
+Seconds to wait before forcibly stopping running containers that are using the specified volume. The --force option must be specified to use the --time option. Use -1 for infinite wait.
 
 ## EXAMPLES
 

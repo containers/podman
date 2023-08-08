@@ -52,7 +52,7 @@ var (
 		Filters: make(map[string][]string),
 	}
 	restartCidFiles = []string{}
-	restartTimeout  uint
+	restartTimeout  int
 )
 
 func restartFlags(cmd *cobra.Command) {
@@ -70,7 +70,7 @@ func restartFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePsFilters)
 
 	timeFlagName := "time"
-	flags.UintVarP(&restartTimeout, timeFlagName, "t", containerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
+	flags.IntVarP(&restartTimeout, timeFlagName, "t", int(containerConfig.Engine.StopTimeout), "Seconds to wait for stop before killing the container")
 	_ = cmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
 
 	if registry.IsRemote() {
@@ -102,7 +102,8 @@ func restart(cmd *cobra.Command, args []string) error {
 	args = utils.RemoveSlash(args)
 
 	if cmd.Flag("time").Changed {
-		restartOpts.Timeout = &restartTimeout
+		timeout := uint(restartTimeout)
+		restartOpts.Timeout = &timeout
 	}
 
 	for _, cidFile := range restartCidFiles {

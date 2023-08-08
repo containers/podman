@@ -27,7 +27,7 @@ var (
 		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: common.AutocompleteNetworks,
 	}
-	stopTimeout uint
+	stopTimeout int
 )
 
 var (
@@ -37,7 +37,7 @@ var (
 func networkRmFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&networkRmOptions.Force, "force", "f", false, "remove any containers using network")
 	timeFlagName := "time"
-	flags.UintVarP(&stopTimeout, timeFlagName, "t", containerConfig.Engine.StopTimeout, "Seconds to wait for running containers to stop before killing the container")
+	flags.IntVarP(&stopTimeout, timeFlagName, "t", int(containerConfig.Engine.StopTimeout), "Seconds to wait for running containers to stop before killing the container")
 	_ = networkrmCommand.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
 }
 
@@ -59,7 +59,8 @@ func networkRm(cmd *cobra.Command, args []string) error {
 		if !networkRmOptions.Force {
 			return errors.New("--force option must be specified to use the --time option")
 		}
-		networkRmOptions.Timeout = &stopTimeout
+		timeout := uint(stopTimeout)
+		networkRmOptions.Timeout = &timeout
 	}
 	responses, err := registry.ContainerEngine().NetworkRm(registry.Context(), args, networkRmOptions)
 	if err != nil {

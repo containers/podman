@@ -597,7 +597,7 @@ EOF
     run cat $YAML
     is "$output" ".*filetype: usr_t" "Generated YAML file should contain filetype usr_t"
     run_podman pod rm --force pod1
-    run_podman volume rm myvol --force
+    run_podman volume rm -t -1 myvol --force
 
     run_podman kube play $YAML
     if selinux_enabled; then

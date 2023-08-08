@@ -790,7 +790,7 @@ EOF
 @test "podman network rm --force bogus" {
     run_podman 1 network rm bogus
     is "$output" "Error: unable to find network with name or ID bogus: network not found" "Should print error"
-    run_podman network rm --force bogus
+    run_podman network rm -t -1 --force bogus
     is "$output" "" "Should print no output"
 }
 

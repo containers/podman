@@ -53,7 +53,7 @@ var (
 		Filters: make(map[string][]string),
 	}
 	stopCidFiles = []string{}
-	stopTimeout  uint
+	stopTimeout  int
 )
 
 func stopFlags(cmd *cobra.Command) {
@@ -67,7 +67,7 @@ func stopFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(cidfileFlagName, completion.AutocompleteDefault)
 
 	timeFlagName := "time"
-	flags.UintVarP(&stopTimeout, timeFlagName, "t", containerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
+	flags.IntVarP(&stopTimeout, timeFlagName, "t", int(containerConfig.Engine.StopTimeout), "Seconds to wait for stop before killing the container")
 	_ = cmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
 
 	filterFlagName := "filter"
@@ -104,7 +104,8 @@ func stop(cmd *cobra.Command, args []string) error {
 	args = utils.RemoveSlash(args)
 
 	if cmd.Flag("time").Changed {
-		stopOptions.Timeout = &stopTimeout
+		timeout := uint(stopTimeout)
+		stopOptions.Timeout = &timeout
 	}
 	for _, cidFile := range stopCidFiles {
 		content, err := os.ReadFile(cidFile)
