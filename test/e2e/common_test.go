@@ -817,10 +817,10 @@ func SkipOnOSVersion(os, version string) {
 	}
 }
 
-func SkipIfNotFedora() {
+func SkipIfNotFedora(reason string) {
 	info := GetHostDistributionInfo()
 	if info.Distribution != "fedora" {
-		Skip("Test can only run on Fedora")
+		Skip(reason)
 	}
 }
 
