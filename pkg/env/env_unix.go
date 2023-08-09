@@ -8,7 +8,7 @@ package env
 func ParseSlice(s []string) (map[string]string, error) {
 	env := make(map[string]string, len(s))
 	for _, e := range s {
-		if err := parseEnv(env, e, true); err != nil {
+		if err := parseEnvWithSlice(env, e); err != nil {
 			return nil, err
 		}
 	}
