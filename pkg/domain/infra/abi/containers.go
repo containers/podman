@@ -1229,10 +1229,7 @@ func (ic *ContainerEngine) ContainerLogs(ctx context.Context, namesOrIds []strin
 		WaitGroup:  &wg,
 	}
 
-	chSize := len(containers) * int(options.Tail)
-	if chSize <= 0 {
-		chSize = 1
-	}
+	chSize := len(containers)
 	logChannel := make(chan *logs.LogLine, chSize)
 
 	libpodContainers := make([]*libpod.Container, len(containers))
