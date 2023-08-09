@@ -31,7 +31,7 @@ type notReadOnly interface {
 	notReadOnly()
 }
 
-//// define types by adding methods
+// // define types by adding methods
 // hasPath
 func (p *sshFxpLstatPacket) getPath() string    { return p.Path }
 func (p *sshFxpStatPacket) getPath() string     { return p.Path }

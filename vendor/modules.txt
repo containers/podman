@@ -156,7 +156,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.55.1-0.20230811093040-524b4d5c12f9
+# github.com/containers/common v0.55.1-0.20230814161508-b70b0c49600e
 ## explicit; go 1.18
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -852,7 +852,7 @@ github.com/pelletier/go-toml/v2/unstable
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/pkg/sftp v1.13.5
+# github.com/pkg/sftp v1.13.6
 ## explicit; go 1.15
 github.com/pkg/sftp
 github.com/pkg/sftp/internal/encoding/ssh/filexfer

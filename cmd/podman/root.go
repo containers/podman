@@ -451,6 +451,14 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 		}
 		podmanConfig.Remote = true
 	} else {
+		// The --module's are actually used and parsed in
+		// `registry.PodmanConfig()`.  But we also need to expose them
+		// as a flag here to a) make sure that rootflags are aware of
+		// this flag and b) to have shell completions.
+		moduleFlagName := "module"
+		pFlags.StringSlice(moduleFlagName, nil, "Load the containers.conf(5) module")
+		_ = cmd.RegisterFlagCompletionFunc(moduleFlagName, common.AutocompleteContainersConfModules)
+
 		// A *hidden* flag to change the database backend.
 		pFlags.StringVar(&podmanConfig.ContainersConf.Engine.DBBackend, "db-backend", podmanConfig.ContainersConfDefaultsRO.Engine.DBBackend, "Database backend to use")
 

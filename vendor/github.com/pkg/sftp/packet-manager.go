@@ -40,7 +40,7 @@ func newPktMgr(sender packetSender) *packetManager {
 	return s
 }
 
-//// packet ordering
+// // packet ordering
 func (s *packetManager) newOrderID() uint32 {
 	s.packetCount++
 	return s.packetCount
@@ -89,7 +89,7 @@ func (o orderedPackets) Sort() {
 	})
 }
 
-//// packet registry
+// // packet registry
 // register incoming packets to be handled
 func (s *packetManager) incomingPacket(pkt orderedRequest) {
 	s.working.Add(1)

@@ -1,4 +1,4 @@
-package filexfer
+package sshfx
 
 // ExtensionPair defines the extension-pair type defined in draft-ietf-secsh-filexfer-13.
 // This type is backwards-compatible with how draft-ietf-secsh-filexfer-02 defines extensions.
@@ -29,15 +29,12 @@ func (e *ExtensionPair) MarshalBinary() ([]byte, error) {
 
 // UnmarshalFrom unmarshals an ExtensionPair from the given Buffer into e.
 func (e *ExtensionPair) UnmarshalFrom(buf *Buffer) (err error) {
-	if e.Name, err = buf.ConsumeString(); err != nil {
-		return err
+	*e = ExtensionPair{
+		Name: buf.ConsumeString(),
+		Data: buf.ConsumeString(),
 	}
 
-	if e.Data, err = buf.ConsumeString(); err != nil {
-		return err
-	}
-
-	return nil
+	return buf.Err
 }
 
 // UnmarshalBinary decodes the binary encoding of ExtensionPair into e.

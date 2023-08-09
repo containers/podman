@@ -1,4 +1,4 @@
-package filexfer
+package sshfx
 
 // InitPacket defines the SSH_FXP_INIT packet.
 type InitPacket struct {
@@ -33,8 +33,8 @@ func (p *InitPacket) MarshalBinary() ([]byte, error) {
 func (p *InitPacket) UnmarshalBinary(data []byte) (err error) {
 	buf := NewBuffer(data)
 
-	if p.Version, err = buf.ConsumeUint32(); err != nil {
-		return err
+	*p = InitPacket{
+		Version: buf.ConsumeUint32(),
 	}
 
 	for buf.Len() > 0 {
@@ -46,7 +46,7 @@ func (p *InitPacket) UnmarshalBinary(data []byte) (err error) {
 		p.Extensions = append(p.Extensions, &ext)
 	}
 
-	return nil
+	return buf.Err
 }
 
 // VersionPacket defines the SSH_FXP_VERSION packet.
@@ -82,8 +82,8 @@ func (p *VersionPacket) MarshalBinary() ([]byte, error) {
 func (p *VersionPacket) UnmarshalBinary(data []byte) (err error) {
 	buf := NewBuffer(data)
 
-	if p.Version, err = buf.ConsumeUint32(); err != nil {
-		return err
+	*p = VersionPacket{
+		Version: buf.ConsumeUint32(),
 	}
 
 	for buf.Len() > 0 {
