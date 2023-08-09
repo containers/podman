@@ -323,79 +323,90 @@ func Test_ParseFile(t *testing.T) {
 	}
 }
 
-func Test_parseEnv(t *testing.T) {
-	good := make(map[string]string)
-
-	type args struct {
-		env  map[string]string
-		line string
+func Test_parseEnvWithSlice(t *testing.T) {
+	type result struct {
+		key    string
+		value  string
+		hasErr bool
 	}
+
 	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
+		name string
+		line string
+		want result
 	}{
 		{
 			name: "Good",
-			args: args{
-				env:  good,
-				line: "apple=red",
+			line: "apple=red",
+			want: result{
+				key:   "apple",
+				value: "red",
 			},
-			wantErr: false,
 		},
 		{
-			name: "GoodNoValue",
-			args: args{
-				env:  good,
-				line: "apple=",
+			name: "NoValue",
+			line: "google=",
+			want: result{
+				key:   "google",
+				value: "",
 			},
-			wantErr: false,
 		},
 		{
-			name: "GoodNoKeyNoValue",
-			args: args{
-				env:  good,
-				line: "=",
+			name: "OnlyKey",
+			line: "redhat",
+			want: result{
+				key:   "redhat",
+				value: "",
 			},
-			wantErr: true,
 		},
 		{
-			name: "GoodOnlyKey",
-			args: args{
-				env:  good,
-				line: "apple",
+			name: "NoKey",
+			line: "=foobar",
+			want: result{
+				hasErr: true,
 			},
-			wantErr: false,
 		},
 		{
-			name: "BadNoKey",
-			args: args{
-				env:  good,
-				line: "=foobar",
+			name: "OnlyDelim",
+			line: "=",
+			want: result{
+				hasErr: true,
 			},
-			wantErr: true,
 		},
 		{
-			name: "BadOnlyDelim",
-			args: args{
-				env:  good,
-				line: "=",
+			name: "Has#",
+			line: "facebook=red#blue",
+			want: result{
+				key:   "facebook",
+				value: "red#blue",
 			},
-			wantErr: true,
+		},
+		{
+			name: "Has\\n",
+			// twitter="foo
+			// bar"
+			line: "twitter=\"foo\nbar\"",
+			want: result{
+				key:   "twitter",
+				value: `"foo` + "\n" + `bar"`,
+			},
 		},
 		{
 			name: "MultilineWithBackticksQuotes",
-			args: args{
-				env:  good,
-				line: "apple=`foo\nbar`",
+			line: "github=`First line\nlast line`",
+			want: result{
+				key:   "github",
+				value: "`First line\nlast line`",
 			},
-			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := parseEnv(tt.args.env, tt.args.line, true); (err != nil) != tt.wantErr {
-				t.Errorf("parseEnv() error = %v, wantErr %v", err, tt.wantErr)
+			envs := make(map[string]string)
+			if err := parseEnvWithSlice(envs, tt.line); (err != nil) != tt.want.hasErr {
+				t.Errorf("parseEnv() error = %v, want has Err %v", err, tt.want.hasErr)
+			} else if envs[tt.want.key] != tt.want.value {
+				t.Errorf("parseEnv() result = map[%v:%v], but got %v", tt.want.key, tt.want.value, envs)
 			}
 		})
 	}
