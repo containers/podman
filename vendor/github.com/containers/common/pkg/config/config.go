@@ -51,7 +51,7 @@ const (
 	BoltDBStateStore RuntimeStateStore = iota
 )
 
-var validImageVolumeModes = []string{"bind", "tmpfs", "ignore"}
+var validImageVolumeModes = []string{_typeBind, "tmpfs", "ignore"}
 
 // ProxyEnv is a list of Proxy Environment variables
 var ProxyEnv = []string{
