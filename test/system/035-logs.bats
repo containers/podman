@@ -398,15 +398,20 @@ $content--2.*" "logs --until -f on running container works"
     # Hand-craft a log file with partial lines and carriage returns
     run_podman inspect --format '{{.HostConfig.LogConfig.Path}}' $cname
     logpath="$output"
-    timestamp=$(awk '{print $1}' <"$logpath")
+    timestamp=$(head -n1 "$logpath" | awk '{print $1}')
     cr=$'\r'
     nl=$'\n'
-    cat >| $logpath <<EOF
+    # Delete, don't overwrite, in case conmon still has the fd open
+    rm -f $logpath
+    cat > $logpath <<EOF
 $timestamp stdout F podman1$cr
 $timestamp stdout P podman2
 $timestamp stdout F $cr
 $timestamp stdout F podman3$cr
 EOF
+
+    # FIXME: remove after 2024-01-01 if no more flakes seen.
+    cat -vET $logpath
 
     expect1="podman3${cr}"
     expect2="podman2${cr}${nl}podman3${cr}"
