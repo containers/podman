@@ -85,6 +85,13 @@ load helpers
 
     run_podman stop --ignore $name
     is "$output" "" "podman stop nonexistent container, with --ignore"
+
+    nosuchfile=$PODMAN_TMPDIR/no-such-file
+    run_podman 125 stop --cidfile=$nosuchfile
+    is "$output" "Error: reading CIDFile: open $nosuchfile: no such file or directory" "podman stop with missing cidfile, without --ignore"
+
+    run_podman stop --cidfile=$nosuchfile --ignore
+    is "$output" "" "podman stop with missing cidfile, with --ignore"
 }
 
 

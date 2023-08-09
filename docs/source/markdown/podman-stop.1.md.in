@@ -23,6 +23,8 @@ Stop all running containers.  This does not include paused containers.
 
 @@option cidfile.read
 
+Command does not fail when *file* is missing and user specified --ignore.
+
 #### **--filter**, **-f**=*filter*
 
 Filter what containers are going to be stopped.

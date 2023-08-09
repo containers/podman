@@ -2,6 +2,7 @@ package containers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -110,6 +111,9 @@ func stop(cmd *cobra.Command, args []string) error {
 	for _, cidFile := range stopCidFiles {
 		content, err := os.ReadFile(cidFile)
 		if err != nil {
+			if stopOptions.Ignore && errors.Is(err, os.ErrNotExist) {
+				continue
+			}
 			return fmt.Errorf("reading CIDFile: %w", err)
 		}
 		id := strings.Split(string(content), "\n")[0]
