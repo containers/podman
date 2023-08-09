@@ -1632,7 +1632,7 @@ func AutocompleteCheckpointCompressType(cmd *cobra.Command, args []string, toCom
 
 // AutocompleteCompressionFormat - Autocomplete compression-format type options.
 func AutocompleteCompressionFormat(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	types := []string{"gzip", "zstd", "zstd:chunked"}
+	types := []string{"gzip", "zstd"}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
