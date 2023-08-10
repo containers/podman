@@ -12,6 +12,9 @@ const (
 	// DefaultSignaturePolicyPath is the default value for the
 	// policy.json file.
 	DefaultSignaturePolicyPath = "/etc/containers/policy.json"
+
+	// Mount type for mounting host dir
+	_typeBind = "bind"
 )
 
 // podman remote clients on windows cannot use unshare.isRootless() to determine the configuration file locations.
