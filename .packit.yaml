@@ -16,6 +16,8 @@ jobs:
     targets:
       - fedora-all-x86_64
       - fedora-all-aarch64
+      - fedora-eln-x86_64
+      - fedora-eln-aarch64
       - centos-stream+epel-next-8-x86_64
       - centos-stream+epel-next-8-aarch64
       - centos-stream+epel-next-9-x86_64
