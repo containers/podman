@@ -19,7 +19,6 @@ import (
 	"github.com/docker/docker/api/types"
 
 	dockerNetwork "github.com/docker/docker/api/types/network"
-	"github.com/gorilla/schema"
 	"github.com/sirupsen/logrus"
 )
 
@@ -41,7 +40,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 	}{
 		scope: "local",
 	}
-	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	decoder := utils.GetDecoder(r)
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
@@ -315,7 +314,7 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 		// This is where you can override the golang default value for one of fields
 	}
 
-	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	decoder := utils.GetDecoder(r)
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return

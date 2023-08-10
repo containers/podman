@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"reflect"
+	"strings"
 	"syscall"
 	"time"
 
@@ -26,6 +27,18 @@ func NewAPIDecoder() *schema.Decoder {
 	var Signal syscall.Signal
 	d.RegisterConverter(Signal, convertSignal)
 	return d
+}
+
+func NewCompatAPIDecoder() *schema.Decoder {
+	dec := NewAPIDecoder()
+
+	// mimic behaviour of github.com/docker/docker/api/server/httputils.BoolValue()
+	dec.RegisterConverter(true, func(s string) reflect.Value {
+		s = strings.ToLower(strings.TrimSpace(s))
+		return reflect.ValueOf(!(s == "" || s == "0" || s == "no" || s == "false" || s == "none"))
+	})
+
+	return dec
 }
 
 // On client:

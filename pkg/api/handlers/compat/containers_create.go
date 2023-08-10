@@ -28,12 +28,11 @@ import (
 	"github.com/containers/podman/v4/pkg/specgenutil"
 	"github.com/containers/storage"
 	"github.com/docker/docker/api/types/mount"
-	"github.com/gorilla/schema"
 )
 
 func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	decoder := utils.GetDecoder(r)
 	query := struct {
 		Name     string `schema:"name"`
 		Platform string `schema:"platform"`

@@ -11,13 +11,12 @@ import (
 	"github.com/containers/podman/v4/pkg/api/handlers"
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v4/pkg/api/types"
-	"github.com/gorilla/schema"
 	"github.com/sirupsen/logrus"
 )
 
 func TopContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	decoder := utils.GetDecoder(r)
 
 	psArgs := "-ef"
 	if utils.IsLibpodRequest(r) {

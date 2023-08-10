@@ -12,12 +12,11 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/gorilla/schema"
 )
 
 func StopContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	decoder := utils.GetDecoder(r)
 	// Now use the ABI implementation to prevent us from having duplicate
 	// code.
 	containerEngine := abi.ContainerEngine{Libpod: runtime}

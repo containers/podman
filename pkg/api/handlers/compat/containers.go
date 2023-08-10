@@ -27,12 +27,11 @@ import (
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
-	"github.com/gorilla/schema"
 	"github.com/sirupsen/logrus"
 )
 
 func RemoveContainer(w http.ResponseWriter, r *http.Request) {
-	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	decoder := utils.GetDecoder(r)
 	query := struct {
 		Force         bool  `schema:"force"`
 		Ignore        bool  `schema:"ignore"`
@@ -99,7 +98,7 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 
 func ListContainers(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	decoder := utils.GetDecoder(r)
 	query := struct {
 		All   bool `schema:"all"`
 		Limit int  `schema:"limit"`
@@ -179,7 +178,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 
 func GetContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	decoder := utils.GetDecoder(r)
 	query := struct {
 		Size bool `schema:"size"`
 	}{
@@ -208,7 +207,7 @@ func GetContainer(w http.ResponseWriter, r *http.Request) {
 func KillContainer(w http.ResponseWriter, r *http.Request) {
 	// /{version}/containers/(name)/kill
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	decoder := utils.GetDecoder(r)
 	query := struct {
 		Signal string `schema:"signal"`
 	}{
@@ -627,7 +626,7 @@ func formatCapabilities(slice []string) {
 
 func RenameContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	decoder := utils.GetDecoder(r)
 
 	name := utils.GetName(r)
 	query := struct {

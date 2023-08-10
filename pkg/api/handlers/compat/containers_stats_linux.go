@@ -13,7 +13,6 @@ import (
 	api "github.com/containers/podman/v4/pkg/api/types"
 	"github.com/containers/storage/pkg/system"
 	docker "github.com/docker/docker/api/types"
-	"github.com/gorilla/schema"
 	runccgroups "github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/sirupsen/logrus"
 )
@@ -22,7 +21,7 @@ const DefaultStatsPeriod = 5 * time.Second
 
 func StatsContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	decoder := utils.GetDecoder(r)
 
 	query := struct {
 		Stream  bool `schema:"stream"`

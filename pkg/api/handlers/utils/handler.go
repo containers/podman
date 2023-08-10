@@ -13,8 +13,11 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/containers/podman/v4/version"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/schema"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
+
+	api "github.com/containers/podman/v4/pkg/api/types"
 )
 
 var (
@@ -187,4 +190,11 @@ func GetVar(r *http.Request, k string) string {
 // GetName extracts the name from the mux
 func GetName(r *http.Request) string {
 	return GetVar(r, "name")
+}
+
+func GetDecoder(r *http.Request) *schema.Decoder {
+	if IsLibpodRequest(r) {
+		return r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	}
+	return r.Context().Value(api.CompatDecoderKey).(*schema.Decoder)
 }

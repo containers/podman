@@ -7,4 +7,5 @@ const (
 	RuntimeKey
 	IdleTrackerKey
 	ConnKey
+	CompatDecoderKey
 )
