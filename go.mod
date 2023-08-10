@@ -13,13 +13,13 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
 	github.com/containers/buildah v1.31.1-0.20230722114901-5ece066f82c6
-	github.com/containers/common v0.55.1-0.20230801150045-44bfd82e3ed2
+	github.com/containers/common v0.55.1-0.20230808082859-b13df748a2b8
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.26.1-0.20230801083106-fcf7f0e1712a
 	github.com/containers/libhvee v0.4.0
 	github.com/containers/ocicrypt v1.1.7
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.48.1-0.20230721123825-4a3a3019d765
+	github.com/containers/storage v1.48.1-0.20230728131509-c3da76fa3f63
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.4.3
 	github.com/crc-org/vfkit v0.1.1
@@ -77,14 +77,14 @@ require (
 require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
-	github.com/Microsoft/hcsshim v0.10.0-rc.8 // indirect
+	github.com/Microsoft/hcsshim v0.10.0 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/bytedance/sonic v1.9.1 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
-	github.com/containerd/cgroups v1.1.0 // indirect
+	github.com/containerd/cgroups/v3 v3.0.2 // indirect
 	github.com/containerd/containerd v1.7.3 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.14.3 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect

@@ -107,6 +107,7 @@ my %Skip_Subcommand = map { $_ => 1 } (
     "help",                     # has no man page
     "completion",               # internal (hidden) subcommand
     "compose",                  # external tool, outside of our control
+    "farm",                # hidden subcommand till it is fully implemented - remove this once done
 );
 
 # END   user-customizable section

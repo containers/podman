@@ -11,6 +11,7 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/ssh"
+	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/system"
 	"github.com/sirupsen/logrus"
@@ -54,6 +55,7 @@ var (
 		Port     int
 		UDSPath  string
 		Default  bool
+		Farm     string
 	}{}
 )
 
@@ -75,6 +77,11 @@ func init() {
 	socketPathFlagName := "socket-path"
 	flags.StringVar(&cOpts.UDSPath, socketPathFlagName, "", "path to podman socket on remote host. (default '/run/podman/podman.sock' or '/run/user/{uid}/podman/podman.sock)")
 	_ = addCmd.RegisterFlagCompletionFunc(socketPathFlagName, completion.AutocompleteDefault)
+
+	farmFlagName := "farm"
+	flags.StringVarP(&cOpts.Farm, farmFlagName, "f", "", "Add the new connection to the given farm")
+	_ = addCmd.RegisterFlagCompletionFunc(farmFlagName, common.AutoCompleteFarms)
+	_ = flags.MarkHidden(farmFlagName)
 
 	flags.BoolVarP(&cOpts.Default, "default", "d", false, "Set connection to be default")
 
@@ -104,6 +111,7 @@ func add(cmd *cobra.Command, args []string) error {
 		Name:     args[0],
 		Socket:   cOpts.UDSPath,
 		Default:  cOpts.Default,
+		Farm:     cOpts.Farm,
 	}
 	dest := args[1]
 	if match, err := regexp.MatchString("^[A-Za-z][A-Za-z0-9+.-]*://", dest); err != nil {
@@ -194,6 +202,21 @@ func add(cmd *cobra.Command, args []string) error {
 		cfg.Engine.ActiveService = args[0]
 	} else {
 		cfg.Engine.ServiceDestinations[args[0]] = dst
+	}
+
+	if cOpts.Farm != "" {
+		if cfg.Farms.List == nil {
+			cfg.Farms.List = map[string][]string{
+				cOpts.Farm: {args[0]},
+			}
+			cfg.Farms.Default = cOpts.Farm
+		} else {
+			if val, ok := cfg.Farms.List[cOpts.Farm]; ok {
+				cfg.Farms.List[cOpts.Farm] = append(val, args[0])
+			} else {
+				cfg.Farms.List[cOpts.Farm] = []string{args[0]}
+			}
+		}
 	}
 	return cfg.Write()
 }

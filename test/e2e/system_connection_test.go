@@ -113,6 +113,109 @@ var _ = Describe("podman system connection", func() {
 			))
 		})
 
+		It("add to new farm", func() {
+			cfg, err := config.ReadCustomConfig()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(cfg.Farms.List).Should(BeEmpty())
+
+			cmd := []string{"system", "connection", "add",
+				"--default",
+				"--identity", "~/.ssh/id_rsa",
+				"--farm", "farm1",
+				"QA",
+				"ssh://root@podman.test:2222/run/podman/podman.sock",
+			}
+			session := podmanTest.Podman(cmd)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+			Expect(session.Out.Contents()).Should(BeEmpty())
+
+			cfg, err = config.ReadCustomConfig()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(cfg).Should(HaveActiveService("QA"))
+			Expect(cfg).Should(VerifyService(
+				"QA",
+				"ssh://root@podman.test:2222/run/podman/podman.sock",
+				"~/.ssh/id_rsa",
+			))
+			Expect(cfg.Farms.List).Should(HaveKeyWithValue("farm1", []string{"QA"}))
+		})
+
+		It("add to existing farm", func() {
+			// create empty farm
+			cmd := []string{"farm", "create", "empty-farm"}
+			session := podmanTest.Podman(cmd)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"empty-farm\" created"))
+
+			cfg, err := config.ReadCustomConfig()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(cfg.Farms.List).Should(HaveKeyWithValue("empty-farm", []string{}))
+
+			cmd = []string{"system", "connection", "add",
+				"--default",
+				"--identity", "~/.ssh/id_rsa",
+				"--farm", "empty-farm",
+				"QA",
+				"ssh://root@podman.test:2222/run/podman/podman.sock",
+			}
+			session = podmanTest.Podman(cmd)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+			Expect(session.Out.Contents()).Should(BeEmpty())
+
+			cfg, err = config.ReadCustomConfig()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(cfg).Should(HaveActiveService("QA"))
+			Expect(cfg).Should(VerifyService(
+				"QA",
+				"ssh://root@podman.test:2222/run/podman/podman.sock",
+				"~/.ssh/id_rsa",
+			))
+			Expect(cfg.Farms.List).Should(HaveKeyWithValue("empty-farm", []string{"QA"}))
+		})
+
+		It("removing connection should remove from farm also", func() {
+			cfg, err := config.ReadCustomConfig()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(cfg.Farms.List).Should(BeEmpty())
+
+			cmd := []string{"system", "connection", "add",
+				"--default",
+				"--identity", "~/.ssh/id_rsa",
+				"--farm", "farm1",
+				"QA",
+				"ssh://root@podman.test:2222/run/podman/podman.sock",
+			}
+			session := podmanTest.Podman(cmd)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+			Expect(session.Out.Contents()).Should(BeEmpty())
+
+			cfg, err = config.ReadCustomConfig()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(cfg).Should(HaveActiveService("QA"))
+			Expect(cfg).Should(VerifyService(
+				"QA",
+				"ssh://root@podman.test:2222/run/podman/podman.sock",
+				"~/.ssh/id_rsa",
+			))
+			Expect(cfg.Farms.List).Should(HaveKeyWithValue("farm1", []string{"QA"}))
+
+			// Remove the QA connection
+			session = podmanTest.Podman([]string{"system", "connection", "remove", "QA"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+			Expect(session.Out.Contents()).Should(BeEmpty())
+
+			cfg, err = config.ReadCustomConfig()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(cfg.Engine.ActiveService).Should(BeEmpty())
+			Expect(cfg.Engine.ServiceDestinations).Should(BeEmpty())
+			Expect(cfg.Farms.List).Should(HaveKeyWithValue("farm1", []string{}))
+		})
+
 		It("remove", func() {
 			session := podmanTest.Podman([]string{"system", "connection", "add",
 				"--default",

@@ -313,6 +313,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-attach(1)](podman-attach.1.md)           | Attach to a running container.                                              |
 | [podman-auto-update(1)](podman-auto-update.1.md) | Auto update containers according to their auto-update policy                |
 | [podman-build(1)](podman-build.1.md)             | Build a container image using a Containerfile.                              |
+| [podman-farm(1)](podman-farm.1.md)     | Farm out builds to machines running podman for different architectures        |
 | [podman-commit(1)](podman-commit.1.md)           | Create new image based on the changed container.                            |
 | [podman-completion(1)](podman-completion.1.md)   | Generate shell completion scripts                                           |
 | [podman-compose(1)](podman-compose.1.md)         | Run Compose workloads via an external compose provider.                     |

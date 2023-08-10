@@ -16,6 +16,7 @@ const (
 	HostContainersInternal = "host.containers.internal"
 	HostGateway            = "host-gateway"
 	localhost              = "localhost"
+	hostDockerInternal     = "host.docker.internal"
 )
 
 type HostEntries []HostEntry
@@ -119,7 +120,7 @@ func newHost(params *Params) error {
 	l2 := HostEntry{IP: "::1", Names: lh}
 	containerIPs = append(containerIPs, l1, l2)
 	if params.HostContainersInternalIP != "" {
-		e := HostEntry{IP: params.HostContainersInternalIP, Names: []string{HostContainersInternal}}
+		e := HostEntry{IP: params.HostContainersInternalIP, Names: []string{HostContainersInternal, hostDockerInternal}}
 		containerIPs = append(containerIPs, e)
 	}
 	containerIPs = append(containerIPs, params.ContainerIPs...)

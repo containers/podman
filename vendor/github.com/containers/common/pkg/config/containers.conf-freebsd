@@ -660,3 +660,11 @@ default_sysctls = [
 # TOML does not provide a way to end a table other than a further table being
 # defined, so every key hereafter will be part of [machine] and not the
 # main config.
+
+[farms]
+#
+# the default farm to use when farming out builds
+# default = ""
+#
+# map of existing farms
+#[farms.list]
