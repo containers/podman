@@ -1,5 +1,16 @@
 # Release Notes
 
+## 4.6.1
+### Quadlet
+- Quadlet now selects the first Quadlet file found when multiple Quadlets exist with the same name.
+
+### API
+- Fixed a bug in the container kill endpoint to correctly return 409 when a container is not running ([#19368](https://github.com/containers/podman/issues/19368)).
+
+### Misc
+- Updated Buildah to v1.31.2
+- Updated the containers/common library to v0.55.3
+
 ## 4.6.0
 ### Features
 - The `podman manifest inspect` command now supports the `--authfile` option, for authentication purposes.
