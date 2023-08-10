@@ -119,6 +119,61 @@ func (p *Pod) getInfraContainer() (*Container, error) {
 	return p.runtime.GetContainer(infraID)
 }
 
+func GenerateForKubeDaemonSet(ctx context.Context, pod *YAMLPod, options entities.GenerateKubeOptions) (*YAMLDaemonSet, error) {
+	// Restart policy for DaemonSets can only be set to Always
+	if !(pod.Spec.RestartPolicy == "" || pod.Spec.RestartPolicy == v1.RestartPolicyAlways) {
+		return nil, fmt.Errorf("k8s DaemonSets can only have restartPolicy set to Always")
+	}
+
+	// Error out if the user tries to set replica count
+	if options.Replicas > 1 {
+		return nil, fmt.Errorf("k8s DaemonSets don't allow setting replicas")
+	}
+
+	// Create label map that will be added to podSpec and DaemonSet metadata
+	// The matching label lets the daemonset know which pod to manage
+	appKey := "app"
+	matchLabels := map[string]string{appKey: pod.Name}
+	// Add the key:value (app:pod-name) to the podSpec labels
+	if pod.Labels == nil {
+		pod.Labels = matchLabels
+	} else {
+		pod.Labels[appKey] = pod.Name
+	}
+
+	depSpec := YAMLDaemonSetSpec{
+		DaemonSetSpec: v1.DaemonSetSpec{
+			Selector: &v12.LabelSelector{
+				MatchLabels: matchLabels,
+			},
+		},
+		Template: &YAMLPodTemplateSpec{
+			PodTemplateSpec: v1.PodTemplateSpec{
+				ObjectMeta: pod.ObjectMeta,
+			},
+			Spec: pod.Spec,
+		},
+	}
+
+	// Create the DaemonSet object
+	dep := YAMLDaemonSet{
+		DaemonSet: v1.DaemonSet{
+			ObjectMeta: v12.ObjectMeta{
+				Name:              pod.Name + "-daemonset",
+				CreationTimestamp: pod.CreationTimestamp,
+				Labels:            pod.Labels,
+			},
+			TypeMeta: v12.TypeMeta{
+				Kind:       "DaemonSet",
+				APIVersion: "apps/v1",
+			},
+		},
+		Spec: &depSpec,
+	}
+
+	return &dep, nil
+}
+
 // GenerateForKubeDeployment returns a YAMLDeployment from a YAMLPod that is then used to create a kubernetes Deployment
 // kind YAML.
 func GenerateForKubeDeployment(ctx context.Context, pod *YAMLPod, options entities.GenerateKubeOptions) (*YAMLDeployment, error) {
@@ -260,6 +315,28 @@ type YAMLDeploymentSpec struct {
 	v1.DeploymentSpec
 	Template *YAMLPodTemplateSpec   `json:"template,omitempty"`
 	Strategy *v1.DeploymentStrategy `json:"strategy,omitempty"`
+}
+
+// YAMLDaemonSetSpec represents the same k8s API core DeploymentSpec with a small
+// change and that is having Template as a pointer to YAMLPodTemplateSpec and Strategy
+// as a pointer to k8s API core DaemonSetStrategy.
+// Because Go doesn't omit empty struct and we want to omit Strategy and any fields in the Pod YAML
+// if it's empty.
+type YAMLDaemonSetSpec struct {
+	v1.DaemonSetSpec
+	Template *YAMLPodTemplateSpec        `json:"template,omitempty"`
+	Strategy *v1.DaemonSetUpdateStrategy `json:"strategy,omitempty"`
+}
+
+// YAMLDaemonSet represents the same k8s API core DaemonSet with a small change
+// and that is having Spec as a pointer to YAMLDaemonSetSpec and Status as a pointer to
+// k8s API core DaemonSetStatus.
+// Because Go doesn't omit empty struct and we want to omit Status and any fields in the DaemonSetSpec
+// if it's empty.
+type YAMLDaemonSet struct {
+	v1.DaemonSet
+	Spec   *YAMLDaemonSetSpec  `json:"spec,omitempty"`
+	Status *v1.DaemonSetStatus `json:"status,omitempty"`
 }
 
 // YAMLDeployment represents the same k8s API core Deployment with a small change
