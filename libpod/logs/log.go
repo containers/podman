@@ -83,6 +83,17 @@ func GetLogFile(path string, options *LogOptions) (*tail.Tail, []*LogLine, error
 	return t, logTail, err
 }
 
+func printFileToStderr(path string) {
+	f, err := os.Open(path)
+	if err != nil {
+		logrus.Errorf("failed to read file: %v", err)
+	}
+	_, err = io.Copy(os.Stderr, f)
+	if err != nil {
+		logrus.Errorf("failed to print file: %v", err)
+	}
+}
+
 func getTailLog(path string, tail int) ([]*LogLine, error) {
 	var (
 		nllCounter int
@@ -120,7 +131,8 @@ func getTailLog(path string, tail int) ([]*LogLine, error) {
 			}
 			nll, err := NewLogLine(lines[i])
 			if err != nil {
-				return nil, err
+				printFileToStderr(path)
+				return nil, fmt.Errorf("parse log line: %w", err)
 			}
 			if !nll.Partial() || first {
 				nllCounter++
@@ -146,7 +158,8 @@ func getTailLog(path string, tail int) ([]*LogLine, error) {
 			if leftover != "" && nllCounter < tail {
 				nll, err := NewLogLine(leftover)
 				if err != nil {
-					return nil, err
+					printFileToStderr(path)
+					return nil, fmt.Errorf("parse leftover log line: %w", err)
 				}
 				tailLog = append(tailLog, nll)
 			}
