@@ -310,7 +310,7 @@ spelled with complete minutiae.
          Highlight key features and important changes or fixes. Link to the GitHub release.
          Make sure the blog post is properly tagged with the Announcement, Release, and Podman tags,
          and any other appropriate tags.
-      1. Send an email to the podman and podman-desktop mailing lists.
+      1. For all releases, including patch releases and RC's, send an email to the podman and podman-desktop mailing lists.
          Link the to release blog and GitHub release.
       1. Tweet the release. Make a Mastodon post about the release.
       1. RC's can also be announced if needed.

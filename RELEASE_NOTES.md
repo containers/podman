@@ -1,5 +1,16 @@
 # Release Notes
 
+## 4.6.1
+### Quadlet
+- Quadlet now selects the first Quadlet file found when multiple Quadlets exist with the same name.
+
+### API
+- Fixed a bug in the container kill endpoint to correctly return 409 when a container is not running ([#19368](https://github.com/containers/podman/issues/19368)).
+
+### Misc
+- Updated Buildah to v1.31.2
+- Updated the containers/common library to v0.55.3
+
 ## 4.6.0
 ### Features
 - The `podman manifest inspect` command now supports the `--authfile` option, for authentication purposes.
@@ -28,6 +39,7 @@
 - Podman now supports a new option, `--out`, that allows redirection or suppression of STDOUT ([#18120](https://github.com/containers/podman/issues/18120)).
 
 ### Changes
+- When looking up an image by digest, the entire repository of the specified value is now considered. This aligns with Docker's behavior since v20.10.20. Previously, both the repository and the tag was ignored and Podman looked for an image with only a matching digest. Ignoring the name, repository, and tag of the specified value can lead to security issues and is considered harmful.
 - The `podman system service` command now emits a warning when binding to a TCP socket. This is not a secure configuration and the Podman team recommends against using it.
 - The `podman top` command no longer depends on ps(1) being present in the container image and now uses the one from the host ([#19001](https://github.com/containers/podman/issues/19001)).
 - The `--filter id=xxx` option will now treat `xxx` as a CID prefix, and not as a regular expression ([#18471](https://github.com/containers/podman/issues/18471)).
