@@ -581,9 +581,9 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	} else {
 		if _, found := r.URL.Query()["pull"]; found {
 			switch strings.ToLower(query.Pull) {
-			case "false":
+			case "0", "f", "false":
 				pullPolicy = buildahDefine.PullIfMissing
-			case "true":
+			case "on", "1", "t", "true":
 				pullPolicy = buildahDefine.PullAlways
 			default:
 				policyFromMap, foundPolicy := buildahDefine.PolicyMap[query.Pull]
