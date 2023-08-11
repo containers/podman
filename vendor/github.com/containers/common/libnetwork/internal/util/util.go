@@ -28,7 +28,9 @@ func GetBridgeInterfaceNames(n NetUtil) []string {
 func GetUsedNetworkNames(n NetUtil) []string {
 	names := make([]string, 0, n.Len())
 	n.ForEach(func(net types.Network) {
-		names = append(names, net.Name)
+		if net.Driver == types.BridgeNetworkDriver {
+			names = append(names, net.NetworkInterface)
+		}
 	})
 	return names
 }

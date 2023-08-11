@@ -415,8 +415,6 @@ type ManifestListPushOptions struct {
 	ImageListSelection imageCopy.ImageListSelection
 	// Use when selecting only specific imags.
 	Instances []digest.Digest
-	// Add existing instances with requested compression algorithms to manifest list
-	AddCompression []string
 }
 
 // Push pushes a manifest to the specified destination.
@@ -448,7 +446,6 @@ func (m *ManifestList) Push(ctx context.Context, destination string, options *Ma
 	defer copier.close()
 
 	pushOptions := manifests.PushOptions{
-		AddCompression:                   options.AddCompression,
 		Store:                            m.image.runtime.store,
 		SystemContext:                    copier.systemContext,
 		ImageListSelection:               options.ImageListSelection,
