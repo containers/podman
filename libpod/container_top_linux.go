@@ -297,19 +297,24 @@ func (c *Container) execPS(psArgs []string) ([]string, bool, error) {
 	if err != nil {
 		return nil, false, err
 	}
-	defer wPipe.Close()
 	defer rPipe.Close()
 
+	outErrChan := make(chan error)
 	stdout := []string{}
 	go func() {
+		defer close(outErrChan)
 		scanner := bufio.NewScanner(rPipe)
 		for scanner.Scan() {
 			stdout = append(stdout, scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			outErrChan <- err
 		}
 	}()
 
 	psPath, err := exec.LookPath("ps")
 	if err != nil {
+		wPipe.Close()
 		return nil, true, err
 	}
 	args := append([]string{podmanTopCommand, strconv.Itoa(c.state.PID), psPath}, psArgs...)
@@ -326,6 +331,7 @@ func (c *Container) execPS(psArgs []string) ([]string, bool, error) {
 
 	retryContainerExec := true
 	err = cmd.Run()
+	wPipe.Close()
 	if err != nil {
 		exitError := &exec.ExitError{}
 		if errors.As(err, &exitError) {
@@ -342,6 +348,10 @@ func (c *Container) execPS(psArgs []string) ([]string, bool, error) {
 			err = fmt.Errorf("could not reexec podman-top command: %w", err)
 		}
 	}
+
+	if err := <-outErrChan; err != nil {
+		return nil, retryContainerExec, fmt.Errorf("failed to read ps stdout: %w", err)
+	}
 	return stdout, retryContainerExec, err
 }
 
@@ -352,7 +362,6 @@ func (c *Container) execPSinContainer(args []string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer wPipe.Close()
 	defer rPipe.Close()
 
 	var errBuf bytes.Buffer
@@ -362,11 +371,16 @@ func (c *Container) execPSinContainer(args []string) ([]string, error) {
 	streams.AttachOutput = true
 	streams.AttachError = true
 
+	outErrChan := make(chan error)
 	stdout := []string{}
 	go func() {
+		defer close(outErrChan)
 		scanner := bufio.NewScanner(rPipe)
 		for scanner.Scan() {
 			stdout = append(stdout, scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			outErrChan <- err
 		}
 	}()
 
@@ -374,6 +388,7 @@ func (c *Container) execPSinContainer(args []string) ([]string, error) {
 	config := new(ExecConfig)
 	config.Command = cmd
 	ec, err := c.Exec(config, streams, nil)
+	wPipe.Close()
 	if err != nil {
 		return nil, err
 	} else if ec != 0 {
@@ -386,5 +401,8 @@ func (c *Container) execPSinContainer(args []string) ([]string, error) {
 		logrus.Debugf(errBuf.String())
 	}
 
+	if err := <-outErrChan; err != nil {
+		return nil, fmt.Errorf("failed to read ps stdout: %w", err)
+	}
 	return stdout, nil
 }
