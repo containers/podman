@@ -22,7 +22,7 @@ Interactively
 
 ```
 sudo useradd testuser
-sudo machinectl testuser@
+sudo machinectl shell testuser@
 podman pull docker.io/library/alpine
 /usr/bin/time -v podman --storage-driver=vfs run --rm docker.io/library/alpine /bin/true
 exit
