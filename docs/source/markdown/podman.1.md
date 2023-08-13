@@ -296,11 +296,12 @@ the exit codes follow the `chroot` standard, see below:
     126
 
   **127** Executing a _contained command_ and the _command_ cannot be found
+  
     $ podman run busybox foo; echo $?
     Error: container_linux.go:346: starting container process caused "exec: \"foo\": executable file not found in $PATH": OCI runtime error
     127
 
-  **Exit code** _contained command_ exit code
+  **Exit code** otherwise, `podman` returns the exit code of the _container command_
 
     $ podman run busybox /bin/sh -c 'exit 3'; echo $?
     3
