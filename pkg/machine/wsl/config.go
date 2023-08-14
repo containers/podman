@@ -38,8 +38,13 @@ func (p *WSLVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, er
 	vm.ConfigPath = configPath
 	vm.ImagePath = opts.ImagePath
 
-	// WSL uses a different username; here we hardcode it.
-	vm.RemoteUsername = "user"
+	// WSL historically uses a different username; translate "core" fcos default to
+	// legacy "user" default
+	if opts.Username == "" || opts.Username == "core" {
+		vm.RemoteUsername = "user"
+	} else {
+		vm.RemoteUsername = opts.Username
+	}
 
 	vm.Created = time.Now()
 	vm.LastUp = vm.Created
