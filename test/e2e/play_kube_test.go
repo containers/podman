@@ -5850,4 +5850,33 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal("true"))
 	})
+
+	It("podman kube play test with valid Umask value", func() {
+		defaultUmask := "0022"
+		ctrName := "ctr"
+		ctrNameInPod := "ctr-pod-ctr"
+		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
+
+		create := podmanTest.Podman([]string{"create", "-t", "--restart", "never", "--name", ctrName, ALPINE})
+		create.WaitWithDefaultTimeout()
+		Expect(create).Should(Exit(0))
+
+		generate := podmanTest.Podman([]string{"kube", "generate", "-f", outputFile, ctrName})
+		generate.WaitWithDefaultTimeout()
+		Expect(generate).Should(Exit(0))
+
+		play := podmanTest.Podman([]string{"kube", "play", outputFile})
+		play.WaitWithDefaultTimeout()
+		Expect(play).Should(Exit(0))
+
+		exec := podmanTest.Podman([]string{"exec", ctrNameInPod, "/bin/sh", "-c", "umask"})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).Should(Exit(0))
+		Expect(exec.OutputToString()).To(Equal(defaultUmask))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrNameInPod, "-f", "{{ .Config.Umask }}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(Equal(defaultUmask))
+	})
 })

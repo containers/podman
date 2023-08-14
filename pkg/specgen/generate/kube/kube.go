@@ -178,6 +178,10 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		return nil, err
 	}
 
+	if s.Umask == "" {
+		s.Umask = rtc.Umask()
+	}
+
 	if s.CgroupsMode == "" {
 		s.CgroupsMode = rtc.Cgroups()
 	}
