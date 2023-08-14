@@ -1047,7 +1047,8 @@ use it as the context. The Containerfile at the root of the repository is used
 and it only works if the GitHub repository is a dedicated repository.
 
 ```
-$ podman build https://github.com/scollier/purpletest
+$ podman build -t hello  https://github.com/containers/PodmanHello.git
+$ podman run hello
 ```
 
   Note: Github does not support using `git://` for performing `clone` operation due to recent changes in their security guidance (https://github.blog/2021-09-01-improving-git-protocol-security-github/). Use an `https://` URL if the source repository is hosted on Github.
