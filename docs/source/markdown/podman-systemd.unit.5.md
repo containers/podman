@@ -340,6 +340,10 @@ performance and robustness reasons.
 The format of the name is the same as when passed to `podman run`, so it supports e.g., using
 `:tag` or using digests guarantee a specific image version.
 
+Note: When a Quadlet is starting, Podman often pulls one more container images which may take a considerable amount of time.
+Systemd defaults service start time to 90 seconds, or fails the service. Pre-pulling the image or extending
+the systemd timeout time for the service using the *TimeoutStartSec* Service option can fix the problem.
+
 ### `IP=`
 
 Specify a static IPv4 address for the container, for example **10.88.64.128**.
@@ -444,6 +448,10 @@ This key can be listed multiple times.
 
 Set the image pull policy.
 This is equivalent to the Podman `--pull` option
+
+Note: When a Quadlet is starting, Podman often pulls one more container images which may take a considerable amount of time.
+Systemd defaults service start time to 90 seconds, or fails the service. Pre-pulling the image or extending
+the systemd timeout time for the service using the *TimeoutStartSec* Service option can fix the problem.
 
 ### `ReadOnly=` (defaults to `no`)
 
