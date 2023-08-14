@@ -235,7 +235,7 @@ response_headers=$(cat "$WORKDIR/curl.headers.out")
 like "$response_headers" ".*application/json.*" "header does not contain application/json"
 
 # Build api response header must contain Content-type: application/json
-t POST "build?dockerfile=containerfile&pull=never" $CONTAINERFILE_TAR application/json 200
+t POST "build?dockerfile=containerfile&pull=1" $CONTAINERFILE_TAR application/json 200
 response_headers=$(cat "$WORKDIR/curl.headers.out")
 like "$response_headers" ".*application/json.*" "header does not contain application/json"
 

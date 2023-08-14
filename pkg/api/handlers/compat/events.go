@@ -10,7 +10,6 @@ import (
 	api "github.com/containers/podman/v4/pkg/api/types"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/gorilla/schema"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 )
@@ -19,7 +18,7 @@ import (
 func GetEvents(w http.ResponseWriter, r *http.Request) {
 	var (
 		fromStart bool
-		decoder   = r.Context().Value(api.DecoderKey).(*schema.Decoder)
+		decoder   = utils.GetDecoder(r)
 		runtime   = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 		json      = jsoniter.ConfigCompatibleWithStandardLibrary // FIXME: this should happen on the package level
 	)

@@ -10,13 +10,12 @@ import (
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
 	"github.com/containers/podman/v4/pkg/api/server/idle"
 	api "github.com/containers/podman/v4/pkg/api/types"
-	"github.com/gorilla/schema"
 	"github.com/sirupsen/logrus"
 )
 
 func AttachContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	decoder := utils.GetDecoder(r)
 
 	query := struct {
 		DetachKeys string `schema:"detachKeys"`

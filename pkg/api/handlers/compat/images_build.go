@@ -27,7 +27,6 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/docker/docker/pkg/jsonmessage"
-	"github.com/gorilla/schema"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
@@ -121,7 +120,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		OSVersion               string   `schema:"osversion"`
 		OutputFormat            string   `schema:"outputformat"`
 		Platform                []string `schema:"platform"`
-		Pull                    string   `schema:"pull"`
+		Pull                    bool     `schema:"pull"`
 		PullPolicy              string   `schema:"pullpolicy"`
 		Quiet                   bool     `schema:"q"`
 		Registry                string   `schema:"registry"`
@@ -151,7 +150,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		SkipUnusedStages: true,
 	}
 
-	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	decoder := utils.GetDecoder(r)
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusBadRequest, err)
 		return
@@ -580,19 +579,8 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		pullPolicy = buildahDefine.PolicyMap[query.PullPolicy]
 	} else {
 		if _, found := r.URL.Query()["pull"]; found {
-			switch strings.ToLower(query.Pull) {
-			case "false":
-				pullPolicy = buildahDefine.PullIfMissing
-			case "true":
+			if query.Pull {
 				pullPolicy = buildahDefine.PullAlways
-			default:
-				policyFromMap, foundPolicy := buildahDefine.PolicyMap[query.Pull]
-				if foundPolicy {
-					pullPolicy = policyFromMap
-				} else {
-					utils.BadRequest(w, "pull", query.Pull, fmt.Errorf("invalid pull policy: %q", query.Pull))
-					return
-				}
 			}
 		}
 	}

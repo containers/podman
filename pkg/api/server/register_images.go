@@ -546,8 +546,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//      (As of version 1.xx)
 	//  - in: query
 	//    name: pull
-	//    type: string
-	//    default:
+	//    type: boolean
+	//    default: false
 	//    description: |
 	//      Attempt to pull the image even if an older image exists locally
 	//      (As of version 1.xx)
@@ -1453,8 +1453,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//      (As of version 1.xx)
 	//  - in: query
 	//    name: pull
-	//    type: string
-	//    default:
+	//    type: boolean
+	//    default: false
 	//    description: |
 	//      Attempt to pull the image even if an older image exists locally
 	//      (As of version 1.xx)

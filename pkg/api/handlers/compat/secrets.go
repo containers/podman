@@ -15,7 +15,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/gorilla/schema"
 )
 
 func ListSecrets(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +51,7 @@ func ListSecrets(w http.ResponseWriter, r *http.Request) {
 }
 
 func InspectSecret(w http.ResponseWriter, r *http.Request) {
-	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	decoder := utils.GetDecoder(r)
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
 	names := []string{name}
