@@ -99,6 +99,7 @@ default_sysctls = [
 #
 #env = [
 #  "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+#  "TERM=xterm",
 #]
 
 # Pass all host environment variables into the container.
@@ -306,7 +307,7 @@ default_sysctls = [
 #active_service = production
 
 # The compression format to use when pushing an image.
-# Valid options are: `gzip`, `zstd` and `zstd:chunked`.
+# Valid options are: `gzip` and `zstd`.
 #
 #compression_format = "gzip"
 
@@ -499,7 +500,7 @@ default_sysctls = [
 # List of the OCI runtimes that support --format=json. When json is supported
 # engine will use it for reporting nicer errors.
 #
-#runtime_supports_json = ["crun", "runc", "kata", "runsc", "youki", "krun", "ocijail"]
+#runtime_supports_json = ["crun", "runc", "kata", "runsc", "youki", "krun"]
 
 # List of the OCI runtimes that supports running containers with KVM Separation.
 #
@@ -660,11 +661,3 @@ default_sysctls = [
 # TOML does not provide a way to end a table other than a further table being
 # defined, so every key hereafter will be part of [machine] and not the
 # main config.
-
-[farms]
-#
-# the default farm to use when farming out builds
-# default = ""
-#
-# map of existing farms
-#[farms.list]

@@ -79,8 +79,6 @@ type Config struct {
 	Secrets SecretConfig `toml:"secrets"`
 	// ConfigMap section defines configurations for the configmaps management
 	ConfigMaps ConfigMapConfig `toml:"configmaps"`
-	// Farms defines configurations for the buildfarm farms
-	Farms FarmConfig `toml:"farms"`
 }
 
 // ContainersConfig represents the "containers" TOML config table
@@ -187,9 +185,6 @@ type ContainersConfig struct {
 	// Containers logs default to truncated container ID as a tag.
 	LogTag string `toml:"log_tag,omitempty"`
 
-	// Mount to add to all containers
-	Mounts []string `toml:"mounts,omitempty"`
-
 	// NetNS indicates how to create a network namespace for the container
 	NetNS string `toml:"netns,omitempty"`
 
@@ -270,17 +265,6 @@ type EngineConfig struct {
 	// ignore unqualified-search-registries and short-name aliases defined
 	// in containers-registries.conf(5).
 	CompatAPIEnforceDockerHub bool `toml:"compat_api_enforce_docker_hub,omitempty"`
-
-	// ComposeProviders specifies one or more external providers for the
-	// compose command.  The first found provider is used for execution.
-	// Can be an absolute and relative path or a (file) name.  Make sure to
-	// expand the return items via `os.ExpandEnv`.
-	ComposeProviders []string `toml:"compose_providers,omitempty"`
-
-	// ComposeWarningLogs emits logs on each invocation of the compose
-	// command indicating that an external compose provider is being
-	// executed.
-	ComposeWarningLogs bool `toml:"compose_warning_logs,omitempty"`
 
 	// DBBackend is the database backend to be used by Podman.
 	DBBackend string `toml:"database_backend,omitempty"`
@@ -529,11 +513,6 @@ type EngineConfig struct {
 
 	// CompressionLevel is the compression level used to compress image layers.
 	CompressionLevel *int `toml:"compression_level,omitempty"`
-
-	// PodmanshTimeout is the number of seconds to wait for podmansh logins.
-	// In other words, the timeout for the `podmansh` container to be in running
-	// state.
-	PodmanshTimeout uint `toml:"podmansh_timeout,omitempty,omitzero"`
 }
 
 // SetOptions contains a subset of options in a Config. It's used to indicate if
@@ -676,14 +655,6 @@ type MachineConfig struct {
 	Volumes []string `toml:"volumes"`
 	// Provider is the virtualization provider used to run podman-machine VM
 	Provider string `toml:"provider,omitempty"`
-}
-
-// FarmConfig represents the "farm" TOML config tabls
-type FarmConfig struct {
-	// Default is the default farm to be used when farming out builds
-	Default string `toml:"default,omitempty"`
-	// List is a map of farms created where key=farm-name and value=list of connections
-	List map[string][]string `toml:"list,omitempty"`
 }
 
 // Destination represents destination for remote service
@@ -1034,7 +1005,17 @@ func (c *NetworkConfig) Validate() error {
 		}
 	}
 
-	return nil
+	if stringsEq(c.CNIPluginDirs, DefaultCNIPluginDirs) {
+		return nil
+	}
+
+	for _, pluginDir := range c.CNIPluginDirs {
+		if err := isDirectory(pluginDir); err == nil {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("invalid cni_plugin_dirs: %s", strings.Join(c.CNIPluginDirs, ","))
 }
 
 // FindConmon iterates over (*Config).ConmonPath and returns the path
@@ -1178,6 +1159,27 @@ func IsValidDeviceMode(mode string) bool {
 	return true
 }
 
+// resolveHomeDir converts a path referencing the home directory via "~"
+// to an absolute path
+func resolveHomeDir(path string) (string, error) {
+	// check if the path references the home dir to avoid work
+	// don't use strings.HasPrefix(path, "~") as this doesn't match "~" alone
+	// use strings.HasPrefix(...) to not match "something/~/something"
+	if !(path == "~" || strings.HasPrefix(path, "~/")) {
+		// path does not reference home dir -> Nothing to do
+		return path, nil
+	}
+
+	// only get HomeDir when necessary
+	home, err := unshare.HomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	// replace the first "~" (start of path) with the HomeDir to resolve "~"
+	return strings.Replace(path, "~", home, 1), nil
+}
+
 func rootlessConfigPath() (string, error) {
 	if configHome := os.Getenv("XDG_CONFIG_HOME"); configHome != "" {
 		return filepath.Join(configHome, _configPath), nil
@@ -1188,6 +1190,20 @@ func rootlessConfigPath() (string, error) {
 	}
 
 	return filepath.Join(home, UserOverrideContainersConfig), nil
+}
+
+func stringsEq(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+
+	return true
 }
 
 var (
@@ -1250,10 +1266,6 @@ func ReadCustomConfig() (*Config, error) {
 		if !errors.Is(err, os.ErrNotExist) {
 			return nil, err
 		}
-	}
-	// Let's always initialize the farm list so it is never nil
-	if newConfig.Farms.List == nil {
-		newConfig.Farms.List = make(map[string][]string)
 	}
 	return newConfig, nil
 }

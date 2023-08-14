@@ -18,6 +18,7 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/compression"
 	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
+	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
 	digest "github.com/opencontainers/go-digest"
@@ -29,54 +30,40 @@ import (
 
 // imageCopier tracks state specific to a single image (possibly an item of a manifest list)
 type imageCopier struct {
-	c                             *copier
-	manifestUpdates               *types.ManifestUpdateOptions
-	src                           *image.SourcedImage
-	diffIDsAreNeeded              bool
-	cannotModifyManifestReason    string // The reason the manifest cannot be modified, or an empty string if it can
-	canSubstituteBlobs            bool
-	compressionFormat             *compressiontypes.Algorithm // Compression algorithm to use, if the user explicitly requested one, or nil.
-	compressionLevel              *int
-	requireCompressionFormatMatch bool
+	c                          *copier
+	manifestUpdates            *types.ManifestUpdateOptions
+	src                        *image.SourcedImage
+	diffIDsAreNeeded           bool
+	cannotModifyManifestReason string // The reason the manifest cannot be modified, or an empty string if it can
+	canSubstituteBlobs         bool
+	compressionFormat          *compressiontypes.Algorithm // Compression algorithm to use, if the user explicitly requested one, or nil.
+	compressionLevel           *int
+	ociEncryptLayers           *[]int
 }
 
-type copySingleImageOptions struct {
-	requireCompressionFormatMatch bool
-	compressionFormat             *compressiontypes.Algorithm // Compression algorithm to use, if the user explicitly requested one, or nil.
-	compressionLevel              *int
-}
-
-// copySingleImageResult carries data produced by copySingleImage
-type copySingleImageResult struct {
-	manifest              []byte
-	manifestMIMEType      string
-	manifestDigest        digest.Digest
-	compressionAlgorithms []compressiontypes.Algorithm
-}
-
-// copySingleImage copies a single (non-manifest-list) image unparsedImage, using c.policyContext to validate
+// copySingleImage copies a single (non-manifest-list) image unparsedImage, using policyContext to validate
 // source image admissibility.
-func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.UnparsedImage, targetInstance *digest.Digest, opts copySingleImageOptions) (copySingleImageResult, error) {
+func (c *copier) copySingleImage(ctx context.Context, policyContext *signature.PolicyContext, options *Options, unparsedToplevel, unparsedImage *image.UnparsedImage, targetInstance *digest.Digest) (retManifest []byte, retManifestType string, retManifestDigest digest.Digest, retErr error) {
 	// The caller is handling manifest lists; this could happen only if a manifest list contains a manifest list.
 	// Make sure we fail cleanly in such cases.
 	multiImage, err := isMultiImage(ctx, unparsedImage)
 	if err != nil {
 		// FIXME FIXME: How to name a reference for the sub-image?
-		return copySingleImageResult{}, fmt.Errorf("determining manifest MIME type for %s: %w", transports.ImageName(unparsedImage.Reference()), err)
+		return nil, "", "", fmt.Errorf("determining manifest MIME type for %s: %w", transports.ImageName(unparsedImage.Reference()), err)
 	}
 	if multiImage {
-		return copySingleImageResult{}, fmt.Errorf("Unexpectedly received a manifest list instead of a manifest for a single image")
+		return nil, "", "", fmt.Errorf("Unexpectedly received a manifest list instead of a manifest for a single image")
 	}
 
 	// Please keep this policy check BEFORE reading any other information about the image.
 	// (The multiImage check above only matches the MIME type, which we have received anyway.
 	// Actual parsing of anything should be deferred.)
-	if allowed, err := c.policyContext.IsRunningImageAllowed(ctx, unparsedImage); !allowed || err != nil { // Be paranoid and fail if either return value indicates so.
-		return copySingleImageResult{}, fmt.Errorf("Source image rejected: %w", err)
+	if allowed, err := policyContext.IsRunningImageAllowed(ctx, unparsedImage); !allowed || err != nil { // Be paranoid and fail if either return value indicates so.
+		return nil, "", "", fmt.Errorf("Source image rejected: %w", err)
 	}
-	src, err := image.FromUnparsedImage(ctx, c.options.SourceCtx, unparsedImage)
+	src, err := image.FromUnparsedImage(ctx, options.SourceCtx, unparsedImage)
 	if err != nil {
-		return copySingleImageResult{}, fmt.Errorf("initializing image from source %s: %w", transports.ImageName(c.rawSource.Reference()), err)
+		return nil, "", "", fmt.Errorf("initializing image from source %s: %w", transports.ImageName(c.rawSource.Reference()), err)
 	}
 
 	// If the destination is a digested reference, make a note of that, determine what digest value we're
@@ -88,33 +75,33 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 			destIsDigestedReference = true
 			matches, err := manifest.MatchesDigest(src.ManifestBlob, digested.Digest())
 			if err != nil {
-				return copySingleImageResult{}, fmt.Errorf("computing digest of source image's manifest: %w", err)
+				return nil, "", "", fmt.Errorf("computing digest of source image's manifest: %w", err)
 			}
 			if !matches {
-				manifestList, _, err := c.unparsedToplevel.Manifest(ctx)
+				manifestList, _, err := unparsedToplevel.Manifest(ctx)
 				if err != nil {
-					return copySingleImageResult{}, fmt.Errorf("reading manifest from source image: %w", err)
+					return nil, "", "", fmt.Errorf("reading manifest from source image: %w", err)
 				}
 				matches, err = manifest.MatchesDigest(manifestList, digested.Digest())
 				if err != nil {
-					return copySingleImageResult{}, fmt.Errorf("computing digest of source image's manifest: %w", err)
+					return nil, "", "", fmt.Errorf("computing digest of source image's manifest: %w", err)
 				}
 				if !matches {
-					return copySingleImageResult{}, errors.New("Digest of source image's manifest would not match destination reference")
+					return nil, "", "", errors.New("Digest of source image's manifest would not match destination reference")
 				}
 			}
 		}
 	}
 
-	if err := checkImageDestinationForCurrentRuntime(ctx, c.options.DestinationCtx, src, c.dest); err != nil {
-		return copySingleImageResult{}, err
+	if err := checkImageDestinationForCurrentRuntime(ctx, options.DestinationCtx, src, c.dest); err != nil {
+		return nil, "", "", err
 	}
 
-	sigs, err := c.sourceSignatures(ctx, src,
+	sigs, err := c.sourceSignatures(ctx, src, options,
 		"Getting image source signatures",
 		"Checking if image destination supports signatures")
 	if err != nil {
-		return copySingleImageResult{}, err
+		return nil, "", "", err
 	}
 
 	// Determine if we're allowed to modify the manifest.
@@ -127,7 +114,7 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 	if destIsDigestedReference {
 		cannotModifyManifestReason = "Destination specifies a digest"
 	}
-	if c.options.PreserveDigests {
+	if options.PreserveDigests {
 		cannotModifyManifestReason = "Instructed to preserve digests"
 	}
 
@@ -136,16 +123,13 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 		manifestUpdates: &types.ManifestUpdateOptions{InformationOnly: types.ManifestUpdateInformation{Destination: c.dest}},
 		src:             src,
 		// diffIDsAreNeeded is computed later
-		cannotModifyManifestReason:    cannotModifyManifestReason,
-		requireCompressionFormatMatch: opts.requireCompressionFormatMatch,
+		cannotModifyManifestReason: cannotModifyManifestReason,
+		ociEncryptLayers:           options.OciEncryptLayers,
 	}
-	if opts.compressionFormat != nil {
-		ic.compressionFormat = opts.compressionFormat
-		ic.compressionLevel = opts.compressionLevel
-	} else if c.options.DestinationCtx != nil {
+	if options.DestinationCtx != nil {
 		// Note that compressionFormat and compressionLevel can be nil.
-		ic.compressionFormat = c.options.DestinationCtx.CompressionFormat
-		ic.compressionLevel = c.options.DestinationCtx.CompressionLevel
+		ic.compressionFormat = options.DestinationCtx.CompressionFormat
+		ic.compressionLevel = options.DestinationCtx.CompressionLevel
 	}
 	// Decide whether we can substitute blobs with semantic equivalents:
 	// - Don’t do that if we can’t modify the manifest at all
@@ -158,20 +142,20 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 	ic.canSubstituteBlobs = ic.cannotModifyManifestReason == "" && len(c.signers) == 0
 
 	if err := ic.updateEmbeddedDockerReference(); err != nil {
-		return copySingleImageResult{}, err
+		return nil, "", "", err
 	}
 
-	destRequiresOciEncryption := (isEncrypted(src) && ic.c.options.OciDecryptConfig != nil) || c.options.OciEncryptLayers != nil
+	destRequiresOciEncryption := (isEncrypted(src) && ic.c.ociDecryptConfig != nil) || options.OciEncryptLayers != nil
 
 	manifestConversionPlan, err := determineManifestConversion(determineManifestConversionInputs{
 		srcMIMEType:                    ic.src.ManifestMIMEType,
 		destSupportedManifestMIMETypes: ic.c.dest.SupportedManifestMIMETypes(),
-		forceManifestMIMEType:          c.options.ForceManifestMIMEType,
+		forceManifestMIMEType:          options.ForceManifestMIMEType,
 		requiresOCIEncryption:          destRequiresOciEncryption,
 		cannotModifyManifestReason:     ic.cannotModifyManifestReason,
 	})
 	if err != nil {
-		return copySingleImageResult{}, err
+		return nil, "", "", err
 	}
 	// We set up this part of ic.manifestUpdates quite early, not just around the
 	// code that calls copyUpdatedConfigAndManifest, so that other parts of the copy code
@@ -185,28 +169,27 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 	ic.diffIDsAreNeeded = src.UpdatedImageNeedsLayerDiffIDs(*ic.manifestUpdates)
 
 	// If enabled, fetch and compare the destination's manifest. And as an optimization skip updating the destination iff equal
-	if c.options.OptimizeDestinationImageAlreadyExists {
+	if options.OptimizeDestinationImageAlreadyExists {
 		shouldUpdateSigs := len(sigs) > 0 || len(c.signers) != 0 // TODO: Consider allowing signatures updates only and skipping the image's layers/manifest copy if possible
 		noPendingManifestUpdates := ic.noPendingManifestUpdates()
 
-		logrus.Debugf("Checking if we can skip copying: has signatures=%t, OCI encryption=%t, no manifest updates=%t, compression match required for resuing blobs=%t", shouldUpdateSigs, destRequiresOciEncryption, noPendingManifestUpdates, opts.requireCompressionFormatMatch)
-		if !shouldUpdateSigs && !destRequiresOciEncryption && noPendingManifestUpdates && !ic.requireCompressionFormatMatch {
-			matchedResult, err := ic.compareImageDestinationManifestEqual(ctx, targetInstance)
+		logrus.Debugf("Checking if we can skip copying: has signatures=%t, OCI encryption=%t, no manifest updates=%t", shouldUpdateSigs, destRequiresOciEncryption, noPendingManifestUpdates)
+		if !shouldUpdateSigs && !destRequiresOciEncryption && noPendingManifestUpdates {
+			isSrcDestManifestEqual, retManifest, retManifestType, retManifestDigest, err := compareImageDestinationManifestEqual(ctx, options, src, targetInstance, c.dest)
 			if err != nil {
 				logrus.Warnf("Failed to compare destination image manifest: %v", err)
-				return copySingleImageResult{}, err
+				return nil, "", "", err
 			}
 
-			if matchedResult != nil {
+			if isSrcDestManifestEqual {
 				c.Printf("Skipping: image already present at destination\n")
-				return *matchedResult, nil
+				return retManifest, retManifestType, retManifestDigest, nil
 			}
 		}
 	}
 
-	compressionAlgos, err := ic.copyLayers(ctx)
-	if err != nil {
-		return copySingleImageResult{}, err
+	if err := ic.copyLayers(ctx); err != nil {
+		return nil, "", "", err
 	}
 
 	// With docker/distribution registries we do not know whether the registry accepts schema2 or schema1 only;
@@ -214,12 +197,8 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 	// without actually trying to upload something and getting a types.ManifestTypeRejectedError.
 	// So, try the preferred manifest MIME type with possibly-updated blob digests, media types, and sizes if
 	// we're altering how they're compressed.  If the process succeeds, fine…
-	manifestBytes, manifestDigest, err := ic.copyUpdatedConfigAndManifest(ctx, targetInstance)
-	wipResult := copySingleImageResult{
-		manifest:         manifestBytes,
-		manifestMIMEType: manifestConversionPlan.preferredMIMEType,
-		manifestDigest:   manifestDigest,
-	}
+	manifestBytes, retManifestDigest, err := ic.copyUpdatedConfigAndManifest(ctx, targetInstance)
+	retManifestType = manifestConversionPlan.preferredMIMEType
 	if err != nil {
 		logrus.Debugf("Writing manifest using preferred type %s failed: %v", manifestConversionPlan.preferredMIMEType, err)
 		// … if it fails, and the failure is either because the manifest is rejected by the registry, or
@@ -234,14 +213,14 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 			// We don’t have other options.
 			// In principle the code below would handle this as well, but the resulting  error message is fairly ugly.
 			// Don’t bother the user with MIME types if we have no choice.
-			return copySingleImageResult{}, err
+			return nil, "", "", err
 		}
 		// If the original MIME type is acceptable, determineManifestConversion always uses it as manifestConversionPlan.preferredMIMEType.
 		// So if we are here, we will definitely be trying to convert the manifest.
 		// With ic.cannotModifyManifestReason != "", that would just be a string of repeated failures for the same reason,
 		// so let’s bail out early and with a better error message.
 		if ic.cannotModifyManifestReason != "" {
-			return copySingleImageResult{}, fmt.Errorf("writing manifest failed and we cannot try conversions: %q: %w", cannotModifyManifestReason, err)
+			return nil, "", "", fmt.Errorf("writing manifest failed and we cannot try conversions: %q: %w", cannotModifyManifestReason, err)
 		}
 
 		// errs is a list of errors when trying various manifest types. Also serves as an "upload succeeded" flag when set to nil.
@@ -257,37 +236,34 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 			}
 
 			// We have successfully uploaded a manifest.
-			wipResult = copySingleImageResult{
-				manifest:         attemptedManifest,
-				manifestMIMEType: manifestMIMEType,
-				manifestDigest:   attemptedManifestDigest,
-			}
+			manifestBytes = attemptedManifest
+			retManifestDigest = attemptedManifestDigest
+			retManifestType = manifestMIMEType
 			errs = nil // Mark this as a success so that we don't abort below.
 			break
 		}
 		if errs != nil {
-			return copySingleImageResult{}, fmt.Errorf("Uploading manifest failed, attempted the following formats: %s", strings.Join(errs, ", "))
+			return nil, "", "", fmt.Errorf("Uploading manifest failed, attempted the following formats: %s", strings.Join(errs, ", "))
 		}
 	}
 	if targetInstance != nil {
-		targetInstance = &wipResult.manifestDigest
+		targetInstance = &retManifestDigest
 	}
 
-	newSigs, err := c.createSignatures(ctx, wipResult.manifest, c.options.SignIdentity)
+	newSigs, err := c.createSignatures(ctx, manifestBytes, options.SignIdentity)
 	if err != nil {
-		return copySingleImageResult{}, err
+		return nil, "", "", err
 	}
 	sigs = append(sigs, newSigs...)
 
 	if len(sigs) > 0 {
 		c.Printf("Storing signatures\n")
 		if err := c.dest.PutSignaturesWithFormat(ctx, sigs, targetInstance); err != nil {
-			return copySingleImageResult{}, fmt.Errorf("writing signatures: %w", err)
+			return nil, "", "", fmt.Errorf("writing signatures: %w", err)
 		}
 	}
-	wipResult.compressionAlgorithms = compressionAlgos
-	res := wipResult // We are done
-	return res, nil
+
+	return manifestBytes, retManifestType, retManifestDigest, nil
 }
 
 // checkImageDestinationForCurrentRuntime enforces dest.MustMatchRuntimeOS, if necessary.
@@ -347,69 +323,52 @@ func (ic *imageCopier) noPendingManifestUpdates() bool {
 	return reflect.DeepEqual(*ic.manifestUpdates, types.ManifestUpdateOptions{InformationOnly: ic.manifestUpdates.InformationOnly})
 }
 
-// compareImageDestinationManifestEqual compares the source and destination image manifests (reading the manifest from the
-// (possibly remote) destination). If they are equal, it returns a full copySingleImageResult, nil otherwise.
-func (ic *imageCopier) compareImageDestinationManifestEqual(ctx context.Context, targetInstance *digest.Digest) (*copySingleImageResult, error) {
-	srcManifestDigest, err := manifest.Digest(ic.src.ManifestBlob)
+// compareImageDestinationManifestEqual compares the `src` and `dest` image manifests (reading the manifest from the
+// (possibly remote) destination). Returning true and the destination's manifest, type and digest if they compare equal.
+func compareImageDestinationManifestEqual(ctx context.Context, options *Options, src *image.SourcedImage, targetInstance *digest.Digest, dest types.ImageDestination) (bool, []byte, string, digest.Digest, error) {
+	srcManifestDigest, err := manifest.Digest(src.ManifestBlob)
 	if err != nil {
-		return nil, fmt.Errorf("calculating manifest digest: %w", err)
+		return false, nil, "", "", fmt.Errorf("calculating manifest digest: %w", err)
 	}
 
-	destImageSource, err := ic.c.dest.Reference().NewImageSource(ctx, ic.c.options.DestinationCtx)
+	destImageSource, err := dest.Reference().NewImageSource(ctx, options.DestinationCtx)
 	if err != nil {
-		logrus.Debugf("Unable to create destination image %s source: %v", ic.c.dest.Reference(), err)
-		return nil, nil
+		logrus.Debugf("Unable to create destination image %s source: %v", dest.Reference(), err)
+		return false, nil, "", "", nil
 	}
-	defer destImageSource.Close()
 
 	destManifest, destManifestType, err := destImageSource.GetManifest(ctx, targetInstance)
 	if err != nil {
 		logrus.Debugf("Unable to get destination image %s/%s manifest: %v", destImageSource, targetInstance, err)
-		return nil, nil
+		return false, nil, "", "", nil
 	}
 
 	destManifestDigest, err := manifest.Digest(destManifest)
 	if err != nil {
-		return nil, fmt.Errorf("calculating manifest digest: %w", err)
+		return false, nil, "", "", fmt.Errorf("calculating manifest digest: %w", err)
 	}
 
 	logrus.Debugf("Comparing source and destination manifest digests: %v vs. %v", srcManifestDigest, destManifestDigest)
 	if srcManifestDigest != destManifestDigest {
-		return nil, nil
-	}
-
-	compressionAlgos := set.New[string]()
-	for _, srcInfo := range ic.src.LayerInfos() {
-		compression := compressionAlgorithmFromMIMEType(srcInfo)
-		compressionAlgos.Add(compression.Name())
-	}
-
-	algos, err := algorithmsByNames(compressionAlgos.Values())
-	if err != nil {
-		return nil, err
+		return false, nil, "", "", nil
 	}
 
 	// Destination and source manifests, types and digests should all be equivalent
-	return &copySingleImageResult{
-		manifest:              destManifest,
-		manifestMIMEType:      destManifestType,
-		manifestDigest:        srcManifestDigest,
-		compressionAlgorithms: algos,
-	}, nil
+	return true, destManifest, destManifestType, destManifestDigest, nil
 }
 
 // copyLayers copies layers from ic.src/ic.c.rawSource to dest, using and updating ic.manifestUpdates if necessary and ic.cannotModifyManifestReason == "".
-func (ic *imageCopier) copyLayers(ctx context.Context) ([]compressiontypes.Algorithm, error) {
+func (ic *imageCopier) copyLayers(ctx context.Context) error {
 	srcInfos := ic.src.LayerInfos()
 	numLayers := len(srcInfos)
 	updatedSrcInfos, err := ic.src.LayerInfosForCopy(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	srcInfosUpdated := false
 	if updatedSrcInfos != nil && !reflect.DeepEqual(srcInfos, updatedSrcInfos) {
 		if ic.cannotModifyManifestReason != "" {
-			return nil, fmt.Errorf("Copying this image would require changing layer representation, which we cannot do: %q", ic.cannotModifyManifestReason)
+			return fmt.Errorf("Copying this image would require changing layer representation, which we cannot do: %q", ic.cannotModifyManifestReason)
 		}
 		srcInfos = updatedSrcInfos
 		srcInfosUpdated = true
@@ -425,7 +384,7 @@ func (ic *imageCopier) copyLayers(ctx context.Context) ([]compressiontypes.Algor
 	// layer is empty.
 	man, err := manifest.FromBlob(ic.src.ManifestBlob, ic.src.ManifestMIMEType)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	manifestLayerInfos := man.LayerInfos()
 
@@ -437,7 +396,7 @@ func (ic *imageCopier) copyLayers(ctx context.Context) ([]compressiontypes.Algor
 		defer ic.c.concurrentBlobCopiesSemaphore.Release(1)
 		defer copyGroup.Done()
 		cld := copyLayerData{}
-		if !ic.c.options.DownloadForeignLayers && ic.c.dest.AcceptsForeignLayerURLs() && len(srcLayer.URLs) != 0 {
+		if !ic.c.downloadForeignLayers && ic.c.dest.AcceptsForeignLayerURLs() && len(srcLayer.URLs) != 0 {
 			// DiffIDs are, currently, needed only when converting from schema1.
 			// In which case src.LayerInfos will not have URLs because schema1
 			// does not support them.
@@ -456,10 +415,10 @@ func (ic *imageCopier) copyLayers(ctx context.Context) ([]compressiontypes.Algor
 	// Decide which layers to encrypt
 	layersToEncrypt := set.New[int]()
 	var encryptAll bool
-	if ic.c.options.OciEncryptLayers != nil {
-		encryptAll = len(*ic.c.options.OciEncryptLayers) == 0
+	if ic.ociEncryptLayers != nil {
+		encryptAll = len(*ic.ociEncryptLayers) == 0
 		totalLayers := len(srcInfos)
-		for _, l := range *ic.c.options.OciEncryptLayers {
+		for _, l := range *ic.ociEncryptLayers {
 			// if layer is negative, it is reverse indexed.
 			layersToEncrypt.Add((totalLayers + l) % totalLayers)
 		}
@@ -491,18 +450,14 @@ func (ic *imageCopier) copyLayers(ctx context.Context) ([]compressiontypes.Algor
 		// A call to copyGroup.Wait() is done at this point by the defer above.
 		return nil
 	}(); err != nil {
-		return nil, err
+		return err
 	}
 
-	compressionAlgos := set.New[string]()
 	destInfos := make([]types.BlobInfo, numLayers)
 	diffIDs := make([]digest.Digest, numLayers)
 	for i, cld := range data {
 		if cld.err != nil {
-			return nil, cld.err
-		}
-		if cld.destInfo.CompressionAlgorithm != nil {
-			compressionAlgos.Add(cld.destInfo.CompressionAlgorithm.Name())
+			return cld.err
 		}
 		destInfos[i] = cld.destInfo
 		diffIDs[i] = cld.diffID
@@ -517,11 +472,7 @@ func (ic *imageCopier) copyLayers(ctx context.Context) ([]compressiontypes.Algor
 	if srcInfosUpdated || layerDigestsDiffer(srcInfos, destInfos) {
 		ic.manifestUpdates.LayerInfos = destInfos
 	}
-	algos, err := algorithmsByNames(compressionAlgos.Values())
-	if err != nil {
-		return nil, err
-	}
-	return algos, nil
+	return nil
 }
 
 // layerDigestsDiffer returns true iff the digests in a and b differ (ignoring sizes and possible other fields)
@@ -626,19 +577,6 @@ type diffIDResult struct {
 	err    error
 }
 
-func compressionAlgorithmFromMIMEType(srcInfo types.BlobInfo) *compressiontypes.Algorithm {
-	// This MIME type → compression mapping belongs in manifest-specific code in our manifest
-	// package (but we should preferably replace/change UpdatedImage instead of productizing
-	// this workaround).
-	switch srcInfo.MediaType {
-	case manifest.DockerV2Schema2LayerMediaType, imgspecv1.MediaTypeImageLayerGzip:
-		return &compression.Gzip
-	case imgspecv1.MediaTypeImageLayerZstd:
-		return &compression.Zstd
-	}
-	return nil
-}
-
 // copyLayer copies a layer with srcInfo (with known Digest and Annotations and possibly known Size) in src to dest, perhaps (de/re/)compressing it,
 // and returns a complete blobInfo of the copied layer, and a value for LayerDiffIDs if diffIDIsNeeded
 // srcRef can be used as an additional hint to the destination during checking whether a layer can be reused but srcRef can be nil.
@@ -650,8 +588,17 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 	// which uses the compression information to compute the updated MediaType values.
 	// (Sadly UpdatedImage() is documented to not update MediaTypes from
 	//  ManifestUpdateOptions.LayerInfos[].MediaType, so we are doing it indirectly.)
+	//
+	// This MIME type → compression mapping belongs in manifest-specific code in our manifest
+	// package (but we should preferably replace/change UpdatedImage instead of productizing
+	// this workaround).
 	if srcInfo.CompressionAlgorithm == nil {
-		srcInfo.CompressionAlgorithm = compressionAlgorithmFromMIMEType(srcInfo)
+		switch srcInfo.MediaType {
+		case manifest.DockerV2Schema2LayerMediaType, imgspecv1.MediaTypeImageLayerGzip:
+			srcInfo.CompressionAlgorithm = &compression.Gzip
+		case imgspecv1.MediaTypeImageLayerZstd:
+			srcInfo.CompressionAlgorithm = &compression.Zstd
+		}
 	}
 
 	ic.c.printCopyInfo("blob", srcInfo)
@@ -661,7 +608,7 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 	// When encrypting to decrypting, only use the simple code path. We might be able to optimize more
 	// (e.g. if we know the DiffID of an encrypted compressed layer, it might not be necessary to pull, decrypt and decompress again),
 	// but it’s not trivially safe to do such things, so until someone takes the effort to make a comprehensive argument, let’s not.
-	encryptingOrDecrypting := toEncrypt || (isOciEncrypted(srcInfo.MediaType) && ic.c.options.OciDecryptConfig != nil)
+	encryptingOrDecrypting := toEncrypt || (isOciEncrypted(srcInfo.MediaType) && ic.c.ociDecryptConfig != nil)
 	canAvoidProcessingCompleteLayer := !diffIDIsNeeded && !encryptingOrDecrypting
 
 	// Don’t read the layer from the source if we already have the blob, and optimizations are acceptable.
@@ -676,20 +623,12 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 		// a failure when we eventually try to update the manifest with the digest and MIME type of the reused blob.
 		// Fixing that will probably require passing more information to TryReusingBlob() than the current version of
 		// the ImageDestination interface lets us pass in.
-		var requiredCompression *compressiontypes.Algorithm
-		var originalCompression *compressiontypes.Algorithm
-		if ic.requireCompressionFormatMatch {
-			requiredCompression = ic.compressionFormat
-			originalCompression = srcInfo.CompressionAlgorithm
-		}
 		reused, reusedBlob, err := ic.c.dest.TryReusingBlobWithOptions(ctx, srcInfo, private.TryReusingBlobOptions{
-			Cache:               ic.c.blobInfoCache,
-			CanSubstitute:       canSubstitute,
-			EmptyLayer:          emptyLayer,
-			LayerIndex:          &layerIndex,
-			SrcRef:              srcRef,
-			RequiredCompression: requiredCompression,
-			OriginalCompression: originalCompression,
+			Cache:         ic.c.blobInfoCache,
+			CanSubstitute: canSubstitute,
+			EmptyLayer:    emptyLayer,
+			LayerIndex:    &layerIndex,
+			SrcRef:        srcRef,
 		})
 		if err != nil {
 			return types.BlobInfo{}, "", fmt.Errorf("trying to reuse blob %s at destination: %w", srcInfo.Digest, err)
@@ -703,8 +642,8 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 			}()
 
 			// Throw an event that the layer has been skipped
-			if ic.c.options.Progress != nil && ic.c.options.ProgressInterval > 0 {
-				ic.c.options.Progress <- types.ProgressProperties{
+			if ic.c.progress != nil && ic.c.progressInterval > 0 {
+				ic.c.progress <- types.ProgressProperties{
 					Event:    types.ProgressEventSkipped,
 					Artifact: srcInfo,
 				}
@@ -878,17 +817,4 @@ func computeDiffID(stream io.Reader, decompressor compressiontypes.DecompressorF
 	}
 
 	return digest.Canonical.FromReader(stream)
-}
-
-// algorithmsByNames returns slice of Algorithms from slice of Algorithm Names
-func algorithmsByNames(names []string) ([]compressiontypes.Algorithm, error) {
-	result := []compressiontypes.Algorithm{}
-	for _, name := range names {
-		algo, err := compression.AlgorithmByName(name)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, algo)
-	}
-	return result, nil
 }

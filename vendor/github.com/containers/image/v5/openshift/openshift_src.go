@@ -60,15 +60,14 @@ func (s *openshiftImageSource) Reference() types.ImageReference {
 
 // Close removes resources associated with an initialized ImageSource, if any.
 func (s *openshiftImageSource) Close() error {
-	var err error
 	if s.docker != nil {
-		err = s.docker.Close()
+		err := s.docker.Close()
 		s.docker = nil
+
+		return err
 	}
 
-	s.client.close()
-
-	return err
+	return nil
 }
 
 // GetManifest returns the image's manifest along with its MIME type (which may be empty when it can't be determined but the manifest is available).

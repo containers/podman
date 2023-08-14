@@ -27,16 +27,7 @@ func queryPackageVersion(cmdArg ...string) string {
 		cmd := exec.Command(cmdArg[0], cmdArg[1:]...)
 		if outp, err := cmd.Output(); err == nil {
 			output = string(outp)
-			deb := false
-			if cmdArg[0] == "/usr/bin/dlocate" {
-				// can return multiple matches
-				l := strings.Split(output, "\n")
-				output = l[0]
-				deb = true
-			} else if cmdArg[0] == "/usr/bin/dpkg" {
-				deb = true
-			}
-			if deb {
+			if cmdArg[0] == "/usr/bin/dpkg" {
 				r := strings.Split(output, ": ")
 				queryFormat := `${Package}_${Version}_${Architecture}`
 				cmd = exec.Command("/usr/bin/dpkg-query", "-f", queryFormat, "-W", r[0])
@@ -56,14 +47,9 @@ func queryPackageVersion(cmdArg ...string) string {
 // Note: This function is copied from containers/podman libpod/util.go
 // Please see https://github.com/containers/common/pull/1460
 func PackageVersion(program string) string { // program is full path
-	_, err := os.Stat(program)
-	if err != nil {
-		return UnknownPackage
-	}
 	packagers := [][]string{
 		{"/usr/bin/rpm", "-q", "-f"},
-		{"/usr/bin/dlocate", "-F"},             // Debian, Ubuntu (quick)
-		{"/usr/bin/dpkg", "-S"},                // Debian, Ubuntu (slow)
+		{"/usr/bin/dpkg", "-S"},                // Debian, Ubuntu
 		{"/usr/bin/pacman", "-Qo"},             // Arch
 		{"/usr/bin/qfile", "-qv"},              // Gentoo (quick)
 		{"/usr/bin/equery", "b"},               // Gentoo (slow)

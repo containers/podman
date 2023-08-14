@@ -71,9 +71,7 @@ func (d *openshiftImageDestination) Reference() types.ImageReference {
 
 // Close removes resources associated with an initialized ImageDestination, if any.
 func (d *openshiftImageDestination) Close() error {
-	err := d.docker.Close()
-	d.client.close()
-	return err
+	return d.docker.Close()
 }
 
 func (d *openshiftImageDestination) SupportedManifestMIMETypes() []string {
