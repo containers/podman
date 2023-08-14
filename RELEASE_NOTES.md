@@ -39,6 +39,7 @@
 - Podman now supports a new option, `--out`, that allows redirection or suppression of STDOUT ([#18120](https://github.com/containers/podman/issues/18120)).
 
 ### Changes
+- When looking up an image by digest, the entire repository of the specified value is now considered. This aligns with Docker's behavior since v20.10.20. Previously, both the repository and the tag was ignored and Podman looked for an image with only a matching digest. Ignoring the name, repository, and tag of the specified value can lead to security issues and is considered harmful.
 - The `podman system service` command now emits a warning when binding to a TCP socket. This is not a secure configuration and the Podman team recommends against using it.
 - The `podman top` command no longer depends on ps(1) being present in the container image and now uses the one from the host ([#19001](https://github.com/containers/podman/issues/19001)).
 - The `--filter id=xxx` option will now treat `xxx` as a CID prefix, and not as a regular expression ([#18471](https://github.com/containers/podman/issues/18471)).
