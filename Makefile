@@ -160,6 +160,7 @@ CROSS_BUILD_TARGETS := \
 	bin/podman.cross.linux.mipsle \
 	bin/podman.cross.linux.mips64 \
 	bin/podman.cross.linux.mips64le \
+	bin/podman.cross.linux.riscv64 \
 	bin/podman.cross.freebsd.amd64 \
 	bin/podman.cross.freebsd.arm64
 
