@@ -5645,6 +5645,15 @@ spec:
 		Expect(inspectCtr1).Should(Exit(0))
 
 		Expect(inspectCtr2.OutputToString()).To(Equal(inspectCtr1.OutputToString()))
+
+		// Clean up; this should succeed, with a warning message
+		teardown := podmanTest.Podman([]string{"kube", "down", outputFile})
+		teardown.WaitWithDefaultTimeout()
+		Expect(teardown).Should(Exit(0))
+		// on remote, error msg only shows up on server log
+		if !IsRemote() {
+			Expect(teardown.ErrorToString()).To(ContainSubstring("volume is being used"))
+		}
 	})
 
 	It("podman kube play test with reserved autoremove annotation in yaml", func() {
