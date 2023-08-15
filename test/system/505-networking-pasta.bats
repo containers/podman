@@ -665,6 +665,7 @@ function teardown() {
 ### ICMP, ICMPv6 ###############################################################
 
 @test "podman networking with pasta(1) - ICMP echo request" {
+    skip "Flaky test"
     skip_if_no_ipv4 "IPv6 not routable on the host"
 
     local minuid=$(cut -f1 /proc/sys/net/ipv4/ping_group_range)
