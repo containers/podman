@@ -54,4 +54,34 @@ var _ = Describe("podman machine start", func() {
 		Expect(startSession).To(Exit(0))
 		Expect(startSession.outputToStringSlice()).To(HaveLen(1))
 	})
+
+	It("bad start name", func() {
+		i := startMachine{}
+		reallyLongName := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		session, err := mb.setName(reallyLongName).setCmd(&i).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(125))
+		Expect(session.errorToString()).To(ContainSubstring("VM does not exist"))
+	})
+
+	It("start machine already started", func() {
+		i := new(initMachine)
+		session, err := mb.setCmd(i.withImagePath(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+		s := new(startMachine)
+		startSession, err := mb.setCmd(s).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(startSession).To(Exit(0))
+
+		info, ec, err := mb.toQemuInspectInfo()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(ec).To(BeZero())
+		Expect(info[0].State).To(Equal(machine.Running))
+
+		startSession, err = mb.setCmd(s).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(startSession).To(Exit(125))
+		Expect(startSession.errorToString()).To(ContainSubstring("VM already running or starting"))
+	})
 })
