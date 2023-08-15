@@ -105,6 +105,8 @@ func getHostAndOsType() (string, string, string) {
 			ht = "x86_64"
 		case "ppc64le":
 			ht = "powerpc64le"
+		case "riscv64":
+			ht = "riscv64"
 		case "s390x":
 			ht = "s390x"
 		}
