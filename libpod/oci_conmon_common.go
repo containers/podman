@@ -1266,7 +1266,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	/* Wait for initial setup and fork, and reap child */
 	err = cmd.Wait()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("conmon failed: %w", err)
 	}
 
 	pid, err := readConmonPipeData(r.name, parentSyncPipe, ociLog)

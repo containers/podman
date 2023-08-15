@@ -585,19 +585,38 @@ var _ = Describe("Podman logs", func() {
 		Expect(logs.ErrorToString()).To(ContainSubstring("this container is using the 'none' log driver, cannot read logs: this container is not logging output"))
 	})
 
-	It("podman logs with non ASCII log tag fails without env", func() {
-		// Env won't be passed to the podman command by default, so it will be empty
-		logc := podmanTest.Podman([]string{"run", "--log-opt", "tag=\"äöüß\"", ALPINE, "echo", "podman"})
+	It("podman logs with non ASCII log tag fails without correct LANG", func() {
+		SkipIfJournaldUnavailable()
+		// need to set the LANG to something that does not support german umlaute to trigger the failure case
+		cleanup := setLangEnv("C")
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+		defer cleanup()
+		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "--log-opt", "tag=äöüß", ALPINE, "echo", "podman"})
 		logc.WaitWithDefaultTimeout()
-		Expect(logc).To(Not(Exit(0)))
+		Expect(logc).To(Exit(126))
+		if !IsRemote() {
+			// Error is only seen on local client
+			// Why does conmon log this to stdout? This must be fixed after https://github.com/containers/conmon/pull/447.
+			Expect(logc.OutputToString()).To(Equal("conmon: option parsing failed: Invalid byte sequence in conversion input"))
+		}
+		Expect(logc.ErrorToString()).To(ContainSubstring("conmon failed: exit status 1"))
 	})
 
-	It("podman logs with non ASCII log tag succeeds with env", func() {
-		env := append(os.Environ(), "LANG=en_US.UTF-8", "LC_ALL=")
-		logc := podmanTest.PodmanAsUser([]string{"run", "--log-opt", "tag=äöüß", ALPINE, "echo", "podman"}, 0, 0, "", env)
+	It("podman logs with non ASCII log tag succeeds with proper env", func() {
+		SkipIfJournaldUnavailable()
+		cleanup := setLangEnv("en_US.UTF-8")
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+		defer cleanup()
+		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "--log-opt", "tag=äöüß", ALPINE, "echo", "podman"})
 		logc.WaitWithDefaultTimeout()
 		Expect(logc).To(Exit(0))
+		Expect(logc.OutputToString()).To(Equal("podman"))
 	})
+
 	It("podman pod logs with container names", func() {
 		SkipIfRemote("Remote can only process one container at a time")
 		podName := "testPod"
@@ -653,3 +672,25 @@ var _ = Describe("Podman logs", func() {
 		}).Should(Succeed())
 	})
 })
+
+func setLangEnv(lang string) func() {
+	oldLang, okLang := os.LookupEnv("LANG")
+	oldLcAll, okLc := os.LookupEnv("LC_ALL")
+	err := os.Setenv("LANG", lang)
+	Expect(err).ToNot(HaveOccurred())
+	err = os.Setenv("LC_ALL", "")
+	Expect(err).ToNot(HaveOccurred())
+
+	return func() {
+		if okLang {
+			os.Setenv("LANG", oldLang)
+		} else {
+			os.Unsetenv("LANG")
+		}
+		if okLc {
+			os.Setenv("LC_ALL", oldLcAll)
+		} else {
+			os.Unsetenv("LC_ALL")
+		}
+	}
+}
