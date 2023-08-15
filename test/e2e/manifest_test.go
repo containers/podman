@@ -38,13 +38,12 @@ func verifyInstanceCompression(descriptor []imgspecv1.Descriptor, compression st
 var _ = Describe("Podman manifest", func() {
 
 	const (
-		imageList                      = "docker://registry.k8s.io/pause:3.1"
-		imageListInstance              = "docker://registry.k8s.io/pause@sha256:f365626a556e58189fc21d099fc64603db0f440bff07f77c740989515c544a39"
-		imageListARM64InstanceDigest   = "sha256:f365626a556e58189fc21d099fc64603db0f440bff07f77c740989515c544a39"
-		imageListAMD64InstanceDigest   = "sha256:59eec8837a4d942cc19a52b8c09ea75121acc38114a2c68b98983ce9356b8610"
-		imageListARMInstanceDigest     = "sha256:c84b0a3a07b628bc4d62e5047d0f8dff80f7c00979e1e28a821a033ecda8fe53"
-		imageListPPC64LEInstanceDigest = "sha256:bcf9771c0b505e68c65440474179592ffdfa98790eb54ffbf129969c5e429990"
-		imageListS390XInstanceDigest   = "sha256:882a20ee0df7399a445285361d38b711c299ca093af978217112c73803546d5e"
+		imageList                      = "docker://quay.io/libpod/testimage:00000004"
+		imageListInstance              = "docker://quay.io/libpod/testimage@sha256:1385ce282f3a959d0d6baf45636efe686c1e14c3e7240eb31907436f7bc531fa"
+		imageListARM64InstanceDigest   = "sha256:1385ce282f3a959d0d6baf45636efe686c1e14c3e7240eb31907436f7bc531fa"
+		imageListAMD64InstanceDigest   = "sha256:1462c8e885d567d534d82004656c764263f98deda813eb379689729658a133fb"
+		imageListPPC64LEInstanceDigest = "sha256:9b7c3300f5f7cfe94e3101a28d1f0a28728f8dbc854fb16dd545b7e5aa351785"
+		imageListS390XInstanceDigest   = "sha256:cb68b7bfd2f4f7d36006efbe3bef04b57a343e0839588476ca336d9ff9240dbf"
 	)
 
 	It("create w/o image and attempt push w/o dest", func() {
@@ -225,7 +224,6 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session.OutputToString()).To(
 			And(
 				ContainSubstring(imageListAMD64InstanceDigest),
-				ContainSubstring(imageListARMInstanceDigest),
 				ContainSubstring(imageListARM64InstanceDigest),
 				ContainSubstring(imageListPPC64LEInstanceDigest),
 				ContainSubstring(imageListS390XInstanceDigest),
@@ -304,7 +302,6 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session.OutputToString()).To(
 			And(
 				ContainSubstring(imageListAMD64InstanceDigest),
-				ContainSubstring(imageListARMInstanceDigest),
 				ContainSubstring(imageListPPC64LEInstanceDigest),
 				ContainSubstring(imageListS390XInstanceDigest),
 				Not(
@@ -355,7 +352,6 @@ var _ = Describe("Podman manifest", func() {
 		Expect(check.OutputToString()).To(
 			And(
 				ContainSubstring(strings.TrimPrefix(imageListAMD64InstanceDigest, prefix)),
-				ContainSubstring(strings.TrimPrefix(imageListARMInstanceDigest, prefix)),
 				ContainSubstring(strings.TrimPrefix(imageListPPC64LEInstanceDigest, prefix)),
 				ContainSubstring(strings.TrimPrefix(imageListS390XInstanceDigest, prefix)),
 				ContainSubstring(strings.TrimPrefix(imageListARM64InstanceDigest, prefix)),
@@ -389,7 +385,6 @@ var _ = Describe("Podman manifest", func() {
 		Expect(check.OutputToString()).To(
 			And(
 				ContainSubstring(strings.TrimPrefix(imageListAMD64InstanceDigest, prefix)),
-				ContainSubstring(strings.TrimPrefix(imageListARMInstanceDigest, prefix)),
 				ContainSubstring(strings.TrimPrefix(imageListPPC64LEInstanceDigest, prefix)),
 				ContainSubstring(strings.TrimPrefix(imageListS390XInstanceDigest, prefix)),
 				ContainSubstring(strings.TrimPrefix(imageListARM64InstanceDigest, prefix)),
