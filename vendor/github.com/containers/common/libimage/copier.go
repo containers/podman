@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -150,14 +151,19 @@ type CopyOptions struct {
 
 	// Additional tags when creating or copying a docker-archive.
 	dockerArchiveAdditionalTags []reference.NamedTagged
+
+	// If set it points to a NOTIFY_SOCKET the copier will use to extend
+	// the systemd timeout while copying.
+	extendTimeoutSocket string
 }
 
 // copier is an internal helper to conveniently copy images.
 type copier struct {
-	imageCopyOptions copy.Options
-	retryOptions     retry.Options
-	systemContext    *types.SystemContext
-	policyContext    *signature.PolicyContext
+	extendTimeoutSocket string
+	imageCopyOptions    copy.Options
+	retryOptions        retry.Options
+	systemContext       *types.SystemContext
+	policyContext       *signature.PolicyContext
 
 	sourceLookup      LookupReferenceFunc
 	destinationLookup LookupReferenceFunc
@@ -208,7 +214,7 @@ func getDockerAuthConfig(name, passwd, creds, idToken string) (*types.DockerAuth
 // counterparts of the specified system context.  Please make sure to call
 // `(*copier).close()`.
 func (r *Runtime) newCopier(options *CopyOptions) (*copier, error) {
-	c := copier{}
+	c := copier{extendTimeoutSocket: options.extendTimeoutSocket}
 	c.systemContext = r.systemContextCopy()
 
 	if options.SourceLookupReferenceFunc != nil {
@@ -332,6 +338,61 @@ func (c *copier) close() error {
 // manifest which may be used for digest computation.
 func (c *copier) copy(ctx context.Context, source, destination types.ImageReference) ([]byte, error) {
 	logrus.Debugf("Copying source image %s to destination image %s", source.StringWithinTransport(), destination.StringWithinTransport())
+
+	// Avoid running out of time when running inside a systemd unit by
+	// regularly increasing the timeout.
+	if c.extendTimeoutSocket != "" {
+		socketAddr := &net.UnixAddr{
+			Name: c.extendTimeoutSocket,
+			Net:  "unixgram",
+		}
+		conn, err := net.DialUnix(socketAddr.Net, nil, socketAddr)
+		if err != nil {
+			return nil, err
+		}
+		defer conn.Close()
+
+		numExtensions := 10
+		extension := 30 * time.Second
+		timerFrequency := 25 * time.Second // Fire the timer at a higher frequency to avoid a race
+		timer := time.NewTicker(timerFrequency)
+		socketCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		defer timer.Stop()
+
+		fmt.Fprintf(c.imageCopyOptions.ReportWriter, "Pulling image %s inside systemd: setting pull timeout to %s\n", source.DockerReference(), time.Duration(numExtensions)*extension)
+
+		// From `man systemd.service(5)`:
+		//
+		// "If a service of Type=notify/Type=notify-reload sends "EXTEND_TIMEOUT_USEC=...", this may cause
+		// the start time to be extended beyond TimeoutStartSec=. The first receipt of this message must
+		// occur before TimeoutStartSec= is exceeded, and once the start time has extended beyond
+		// TimeoutStartSec=, the service manager will allow the service to continue to start, provided the
+		// service repeats "EXTEND_TIMEOUT_USEC=..."  within the interval specified until the service startup
+		// status is finished by "READY=1"."
+		extendValue := []byte(fmt.Sprintf("EXTEND_TIMEOUT_USEC=%d", extension.Microseconds()))
+		extendTimeout := func() {
+			if _, err := conn.Write(extendValue); err != nil {
+				logrus.Errorf("Increasing EXTEND_TIMEOUT_USEC failed: %v", err)
+			}
+			numExtensions--
+		}
+
+		extendTimeout()
+		go func() {
+			for {
+				select {
+				case <-socketCtx.Done():
+					return
+				case <-timer.C:
+					if numExtensions == 0 {
+						return
+					}
+					extendTimeout()
+				}
+			}
+		}()
+	}
 
 	var err error
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -592,6 +593,9 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 		return nil
 	}
 
+	if socketPath, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
+		options.extendTimeoutSocket = socketPath
+	}
 	c, err := r.newCopier(&options.CopyOptions)
 	if err != nil {
 		return nil, err

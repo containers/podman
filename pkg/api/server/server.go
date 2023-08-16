@@ -167,7 +167,8 @@ func newServer(runtime *libpod.Runtime, listener net.Listener, opts entities.Ser
 
 // setupSystemd notifies systemd API service is ready
 // If the NOTIFY_SOCKET is set, communicate the PID and readiness, and unset INVOCATION_ID
-// so conmon and containers are in the correct cgroup.
+// so conmon and containers are in the correct cgroup.  Also unset NOTIFY_SOCKET
+// to avoid any further usage of the socket.
 func (s *APIServer) setupSystemd() {
 	if _, found := os.LookupEnv("NOTIFY_SOCKET"); !found {
 		return
@@ -176,13 +177,16 @@ func (s *APIServer) setupSystemd() {
 	payload := fmt.Sprintf("MAINPID=%d\n", os.Getpid())
 	payload += daemon.SdNotifyReady
 	if sent, err := daemon.SdNotify(true, payload); err != nil {
-		logrus.Error("API service failed to notify systemd of Conmon PID: " + err.Error())
+		logrus.Errorf("API service failed to notify systemd of Conmon PID: %v", err)
 	} else if !sent {
 		logrus.Warn("API service unable to successfully send SDNotify")
 	}
 
 	if err := os.Unsetenv("INVOCATION_ID"); err != nil {
-		logrus.Error("API service failed unsetting INVOCATION_ID: " + err.Error())
+		logrus.Errorf("API service failed unsetting INVOCATION_ID: %v", err)
+	}
+	if err := os.Unsetenv("NOTIFY_SOCKET"); err != nil {
+		logrus.Errorf("API service failed unsetting NOTIFY_SOCKET: %v", err)
 	}
 }
 
