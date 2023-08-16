@@ -192,6 +192,8 @@ func GetFcosArch() string {
 	switch runtime.GOARCH {
 	case "arm64":
 		arch = "aarch64"
+	case "riscv64":
+		arch = "riscv64"
 	default:
 		arch = "x86_64"
 	}
