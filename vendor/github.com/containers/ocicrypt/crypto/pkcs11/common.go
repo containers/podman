@@ -102,7 +102,7 @@ func GetDefaultModuleDirectories() []string {
 		"/usr/lib/softhsm/", // Debian,Ubuntu
 	}
 
-	// Debian directory: /usr/lib/(x86_64|aarch64|arm|powerpc64le|s390x)-linux-gnu/
+	// Debian directory: /usr/lib/(x86_64|aarch64|arm|powerpc64le|riscv64|s390x)-linux-gnu/
 	hosttype, ostype, q := getHostAndOsType()
 	if len(hosttype) > 0 {
 		dir := fmt.Sprintf("/usr/lib/%s-%s-%s/", hosttype, ostype, q)
