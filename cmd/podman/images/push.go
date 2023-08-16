@@ -102,6 +102,8 @@ func pushFlags(cmd *cobra.Command) {
 	flags.StringVar(&pushOptions.DigestFile, digestfileFlagName, "", "Write the digest of the pushed image to the specified file")
 	_ = cmd.RegisterFlagCompletionFunc(digestfileFlagName, completion.AutocompleteDefault)
 
+	flags.BoolVar(&pushOptions.ForceCompressionFormat, "force-compression", false, "Use the specified compression algorithm if the destination contains a differently-compressed variant already")
+
 	formatFlagName := "format"
 	flags.StringVarP(&pushOptions.Format, formatFlagName, "f", "", "Manifest type (oci, v2s2, or v2s1) to use in the destination (default is manifest type of source, with fallbacks)")
 	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteManifestFormat)

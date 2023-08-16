@@ -42,6 +42,10 @@ the list or index itself. (Default true)
 
 @@option digestfile
 
+#### **--force-compression**
+
+Use the specified compression algorithm even if the destination contains a differently-compressed variant already.
+
 #### **--format**, **-f**=*format*
 
 Manifest list type (oci or v2s2) to use when pushing the list (default is oci).

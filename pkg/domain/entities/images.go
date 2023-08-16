@@ -247,6 +247,10 @@ type ImagePushOptions struct {
 	//  If necessary, add clones of existing instances with requested compression algorithms to manifest list
 	// Note: Following option is only valid for `manifest push`
 	AddCompression []string
+	// ForceCompressionFormat ensures that the compression algorithm set in
+	// CompressionFormat is used exclusively, and blobs of other compression
+	// algorithms are not reused.
+	ForceCompressionFormat bool
 }
 
 // ImagePushReport is the response from pushing an image.

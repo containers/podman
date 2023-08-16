@@ -144,6 +144,10 @@ type PushOptions struct {
 	CompressionFormat *string
 	// CompressionLevel is the level to use for the compression of the blobs
 	CompressionLevel *int
+	// ForceCompressionFormat ensures that the compression algorithm set in
+	// CompressionFormat is used exclusively, and blobs of other compression
+	// algorithms are not reused.
+	ForceCompressionFormat *bool
 	// Add existing instances with requested compression algorithms to manifest list
 	AddCompression []string
 	// Manifest type of the pushed image

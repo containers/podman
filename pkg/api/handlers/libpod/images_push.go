@@ -25,14 +25,15 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	query := struct {
-		All               bool   `schema:"all"`
-		CompressionFormat string `schema:"compressionFormat"`
-		CompressionLevel  *int   `schema:"compressionLevel"`
-		Destination       string `schema:"destination"`
-		Format            string `schema:"format"`
-		RemoveSignatures  bool   `schema:"removeSignatures"`
-		TLSVerify         bool   `schema:"tlsVerify"`
-		Quiet             bool   `schema:"quiet"`
+		All                    bool   `schema:"all"`
+		CompressionFormat      string `schema:"compressionFormat"`
+		CompressionLevel       *int   `schema:"compressionLevel"`
+		ForceCompressionFormat bool   `schema:"forceCompressionFormat"`
+		Destination            string `schema:"destination"`
+		Format                 string `schema:"format"`
+		RemoveSignatures       bool   `schema:"removeSignatures"`
+		TLSVerify              bool   `schema:"tlsVerify"`
+		Quiet                  bool   `schema:"quiet"`
 	}{
 		TLSVerify: true,
 		// #14971: older versions did not sent *any* data, so we need
@@ -73,15 +74,16 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		password = authconf.Password
 	}
 	options := entities.ImagePushOptions{
-		All:               query.All,
-		Authfile:          authfile,
-		CompressionFormat: query.CompressionFormat,
-		CompressionLevel:  query.CompressionLevel,
-		Format:            query.Format,
-		Password:          password,
-		Quiet:             true,
-		RemoveSignatures:  query.RemoveSignatures,
-		Username:          username,
+		All:                    query.All,
+		Authfile:               authfile,
+		CompressionFormat:      query.CompressionFormat,
+		CompressionLevel:       query.CompressionLevel,
+		ForceCompressionFormat: query.ForceCompressionFormat,
+		Format:                 query.Format,
+		Password:               password,
+		Quiet:                  true,
+		RemoveSignatures:       query.RemoveSignatures,
+		Username:               username,
 	}
 
 	if _, found := r.URL.Query()["tlsVerify"]; found {

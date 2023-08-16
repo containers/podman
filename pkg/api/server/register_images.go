@@ -726,6 +726,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    type: string
 	//    description: Allows for pushing the image to a different destination than the image refers to.
 	//  - in: query
+	//    name: forceCompressionFormat
+	//    description: Use the specified compression algorithm if the destination contains a differently-compressed variant already.
+	//    type: boolean
+	//    default: false
+	//  - in: query
 	//    name: tlsVerify
 	//    description: Require TLS verification.
 	//    type: boolean
