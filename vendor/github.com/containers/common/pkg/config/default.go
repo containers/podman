@@ -157,9 +157,11 @@ const (
 	DefaultVolumePluginTimeout = 5
 )
 
-// DefaultConfig defines the default values from containers.conf.
-func DefaultConfig() (*Config, error) {
-	defaultEngineConfig, err := defaultConfigFromMemory()
+// defaultConfig returns Config with builtin defaults and minimal adjustments
+// to the current host only. It does not read any config files from the host or
+// the environment.
+func defaultConfig() (*Config, error) {
+	defaultEngineConfig, err := defaultEngineConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -266,9 +268,9 @@ func defaultFarmConfig() FarmConfig {
 	}
 }
 
-// defaultConfigFromMemory returns a default engine configuration. Note that the
+// defaultEngineConfig eturns a default engine configuration. Note that the
 // config is different for root and rootless. It also parses the storage.conf.
-func defaultConfigFromMemory() (*EngineConfig, error) {
+func defaultEngineConfig() (*EngineConfig, error) {
 	c := new(EngineConfig)
 	tmp, err := defaultTmpDir()
 	if err != nil {
@@ -652,4 +654,17 @@ func useUserConfigLocations() bool {
 	// NOTE: For now we want Windows to use system locations.
 	// GetRootlessUID == -1 on Windows, so exclude negative range
 	return unshare.GetRootlessUID() > 0
+}
+
+// getDefaultImage returns the default machine image stream
+// On Windows this refers to the Fedora major release number
+func getDefaultMachineImage() string {
+	return "testing"
+}
+
+// getDefaultMachineUser returns the user to use for rootless podman
+// This is only for the apple, hyperv, and qemu implementations.
+// WSL's user will be hardcoded in podman to "user"
+func getDefaultMachineUser() string {
+	return "core"
 }

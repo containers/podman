@@ -1,4 +1,4 @@
-package filexfer
+package sshfx
 
 // ClosePacket defines the SSH_FXP_CLOSE packet.
 type ClosePacket struct {
@@ -27,18 +27,18 @@ func (p *ClosePacket) MarshalPacket(reqid uint32, b []byte) (header, payload []b
 // UnmarshalPacketBody unmarshals the packet body from the given Buffer.
 // It is assumed that the uint32(request-id) has already been consumed.
 func (p *ClosePacket) UnmarshalPacketBody(buf *Buffer) (err error) {
-	if p.Handle, err = buf.ConsumeString(); err != nil {
-		return err
+	*p = ClosePacket{
+		Handle: buf.ConsumeString(),
 	}
 
-	return nil
+	return buf.Err
 }
 
 // ReadPacket defines the SSH_FXP_READ packet.
 type ReadPacket struct {
 	Handle string
 	Offset uint64
-	Len    uint32
+	Length uint32
 }
 
 // Type returns the SSH_FXP_xy value associated with this packet type.
@@ -58,7 +58,7 @@ func (p *ReadPacket) MarshalPacket(reqid uint32, b []byte) (header, payload []by
 	buf.StartPacket(PacketTypeRead, reqid)
 	buf.AppendString(p.Handle)
 	buf.AppendUint64(p.Offset)
-	buf.AppendUint32(p.Len)
+	buf.AppendUint32(p.Length)
 
 	return buf.Packet(payload)
 }
@@ -66,19 +66,13 @@ func (p *ReadPacket) MarshalPacket(reqid uint32, b []byte) (header, payload []by
 // UnmarshalPacketBody unmarshals the packet body from the given Buffer.
 // It is assumed that the uint32(request-id) has already been consumed.
 func (p *ReadPacket) UnmarshalPacketBody(buf *Buffer) (err error) {
-	if p.Handle, err = buf.ConsumeString(); err != nil {
-		return err
+	*p = ReadPacket{
+		Handle: buf.ConsumeString(),
+		Offset: buf.ConsumeUint64(),
+		Length: buf.ConsumeUint32(),
 	}
 
-	if p.Offset, err = buf.ConsumeUint64(); err != nil {
-		return err
-	}
-
-	if p.Len, err = buf.ConsumeUint32(); err != nil {
-		return err
-	}
-
-	return nil
+	return buf.Err
 }
 
 // WritePacket defines the SSH_FXP_WRITE packet.
@@ -121,26 +115,13 @@ func (p *WritePacket) MarshalPacket(reqid uint32, b []byte) (header, payload []b
 //
 // This means this _does not_ alias any of the data buffer that is passed in.
 func (p *WritePacket) UnmarshalPacketBody(buf *Buffer) (err error) {
-	if p.Handle, err = buf.ConsumeString(); err != nil {
-		return err
+	*p = WritePacket{
+		Handle: buf.ConsumeString(),
+		Offset: buf.ConsumeUint64(),
+		Data:   buf.ConsumeByteSliceCopy(p.Data),
 	}
 
-	if p.Offset, err = buf.ConsumeUint64(); err != nil {
-		return err
-	}
-
-	data, err := buf.ConsumeByteSlice()
-	if err != nil {
-		return err
-	}
-
-	if len(p.Data) < len(data) {
-		p.Data = make([]byte, len(data))
-	}
-
-	n := copy(p.Data, data)
-	p.Data = p.Data[:n]
-	return nil
+	return buf.Err
 }
 
 // FStatPacket defines the SSH_FXP_FSTAT packet.
@@ -170,11 +151,11 @@ func (p *FStatPacket) MarshalPacket(reqid uint32, b []byte) (header, payload []b
 // UnmarshalPacketBody unmarshals the packet body from the given Buffer.
 // It is assumed that the uint32(request-id) has already been consumed.
 func (p *FStatPacket) UnmarshalPacketBody(buf *Buffer) (err error) {
-	if p.Handle, err = buf.ConsumeString(); err != nil {
-		return err
+	*p = FStatPacket{
+		Handle: buf.ConsumeString(),
 	}
 
-	return nil
+	return buf.Err
 }
 
 // FSetstatPacket defines the SSH_FXP_FSETSTAT packet.
@@ -207,8 +188,8 @@ func (p *FSetstatPacket) MarshalPacket(reqid uint32, b []byte) (header, payload 
 // UnmarshalPacketBody unmarshals the packet body from the given Buffer.
 // It is assumed that the uint32(request-id) has already been consumed.
 func (p *FSetstatPacket) UnmarshalPacketBody(buf *Buffer) (err error) {
-	if p.Handle, err = buf.ConsumeString(); err != nil {
-		return err
+	*p = FSetstatPacket{
+		Handle: buf.ConsumeString(),
 	}
 
 	return p.Attrs.UnmarshalFrom(buf)
@@ -241,9 +222,9 @@ func (p *ReadDirPacket) MarshalPacket(reqid uint32, b []byte) (header, payload [
 // UnmarshalPacketBody unmarshals the packet body from the given Buffer.
 // It is assumed that the uint32(request-id) has already been consumed.
 func (p *ReadDirPacket) UnmarshalPacketBody(buf *Buffer) (err error) {
-	if p.Handle, err = buf.ConsumeString(); err != nil {
-		return err
+	*p = ReadDirPacket{
+		Handle: buf.ConsumeString(),
 	}
 
-	return nil
+	return buf.Err
 }

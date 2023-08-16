@@ -33,7 +33,7 @@ func ExecuteTransfer(src, dst string, parentFlags []string, quiet bool, sshMode 
 		return nil, nil, nil, nil, err
 	}
 
-	confR, err := config.NewConfig("") // create a hand made config for the remote engine since we might use remote and native at once
+	confR, err := config.New(nil) // create a hand made config for the remote engine since we might use remote and native at once
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("could not make config: %w", err)
 	}

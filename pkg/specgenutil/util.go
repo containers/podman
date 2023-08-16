@@ -304,6 +304,13 @@ func CreateExitCommandArgs(storageConfig storageTypes.StoreOptions, config *conf
 	if syslog {
 		command = append(command, "--syslog")
 	}
+
+	// Make sure that loaded containers.conf modules are passed down to the
+	// callback as well.
+	for _, module := range config.LoadedModules() {
+		command = append(command, "--module", module)
+	}
+
 	command = append(command, []string{"container", "cleanup"}...)
 
 	if rm {

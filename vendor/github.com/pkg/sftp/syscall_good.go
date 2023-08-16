@@ -1,4 +1,6 @@
-// +build !plan9,!windows
+//go:build !plan9 && !windows && (!js || !wasm)
+// +build !plan9
+// +build !windows
 // +build !js !wasm
 
 package sftp

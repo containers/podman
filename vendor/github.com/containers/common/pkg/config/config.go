@@ -3,14 +3,11 @@ package config
 import (
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"strings"
-	"sync"
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/common/libnetwork/types"
@@ -81,6 +78,8 @@ type Config struct {
 	ConfigMaps ConfigMapConfig `toml:"configmaps"`
 	// Farms defines configurations for the buildfarm farms
 	Farms FarmConfig `toml:"farms"`
+
+	loadedModules []string // only used at runtime to store which modules were loaded
 }
 
 // ContainersConfig represents the "containers" TOML config table
@@ -708,166 +707,6 @@ func (c *EngineConfig) ImagePlatformToRuntime(os string, arch string) string {
 	return c.OCIRuntime
 }
 
-// NewConfig creates a new Config. It starts with an empty config and, if
-// specified, merges the config at `userConfigPath` path.  Depending if we're
-// running as root or rootless, we then merge the system configuration followed
-// by merging the default config (hard-coded default in memory).
-// Note that the OCI runtime is hard-set to `crun` if we're running on a system
-// with cgroupv2v2. Other OCI runtimes are not yet supporting cgroupv2v2. This
-// might change in the future.
-func NewConfig(userConfigPath string) (*Config, error) {
-	// Generate the default config for the system
-	config, err := DefaultConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	// Now, gather the system configs and merge them as needed.
-	configs, err := systemConfigs()
-	if err != nil {
-		return nil, fmt.Errorf("finding config on system: %w", err)
-	}
-	for _, path := range configs {
-		// Merge changes in later configs with the previous configs.
-		// Each config file that specified fields, will override the
-		// previous fields.
-		if err = readConfigFromFile(path, config); err != nil {
-			return nil, fmt.Errorf("reading system config %q: %w", path, err)
-		}
-		logrus.Debugf("Merged system config %q", path)
-		logrus.Tracef("%+v", config)
-	}
-
-	// If the caller specified a config path to use, then we read it to
-	// override the system defaults.
-	if userConfigPath != "" {
-		var err error
-		// readConfigFromFile reads in container config in the specified
-		// file and then merge changes with the current default.
-		if err = readConfigFromFile(userConfigPath, config); err != nil {
-			return nil, fmt.Errorf("reading user config %q: %w", userConfigPath, err)
-		}
-		logrus.Debugf("Merged user config %q", userConfigPath)
-		logrus.Tracef("%+v", config)
-	}
-	config.addCAPPrefix()
-
-	if err := config.Validate(); err != nil {
-		return nil, err
-	}
-
-	if err := config.setupEnv(); err != nil {
-		return nil, err
-	}
-
-	return config, nil
-}
-
-// readConfigFromFile reads the specified config file at `path` and attempts to
-// unmarshal its content into a Config. The config param specifies the previous
-// default config. If the path, only specifies a few fields in the Toml file
-// the defaults from the config parameter will be used for all other fields.
-func readConfigFromFile(path string, config *Config) error {
-	logrus.Tracef("Reading configuration file %q", path)
-	meta, err := toml.DecodeFile(path, config)
-	if err != nil {
-		return fmt.Errorf("decode configuration %v: %w", path, err)
-	}
-	keys := meta.Undecoded()
-	if len(keys) > 0 {
-		logrus.Debugf("Failed to decode the keys %q from %q.", keys, path)
-	}
-
-	return nil
-}
-
-// addConfigs will search one level in the config dirPath for config files
-// If the dirPath does not exist, addConfigs will return nil
-func addConfigs(dirPath string, configs []string) ([]string, error) {
-	newConfigs := []string{}
-
-	err := filepath.WalkDir(dirPath,
-		// WalkFunc to read additional configs
-		func(path string, d fs.DirEntry, err error) error {
-			switch {
-			case err != nil:
-				// return error (could be a permission problem)
-				return err
-			case d.IsDir():
-				if path != dirPath {
-					// make sure to not recurse into sub-directories
-					return filepath.SkipDir
-				}
-				// ignore directories
-				return nil
-			default:
-				// only add *.conf files
-				if strings.HasSuffix(path, ".conf") {
-					newConfigs = append(newConfigs, path)
-				}
-				return nil
-			}
-		},
-	)
-	if errors.Is(err, os.ErrNotExist) {
-		err = nil
-	}
-	sort.Strings(newConfigs)
-	return append(configs, newConfigs...), err
-}
-
-// Returns the list of configuration files, if they exist in order of hierarchy.
-// The files are read in order and each new file can/will override previous
-// file settings.
-func systemConfigs() (configs []string, finalErr error) {
-	if path := os.Getenv("CONTAINERS_CONF_OVERRIDE"); path != "" {
-		if _, err := os.Stat(path); err != nil {
-			return nil, fmt.Errorf("CONTAINERS_CONF_OVERRIDE file: %w", err)
-		}
-		// Add the override config last to make sure it can override any
-		// previous settings.
-		defer func() {
-			if finalErr == nil {
-				configs = append(configs, path)
-			}
-		}()
-	}
-
-	if path := os.Getenv("CONTAINERS_CONF"); path != "" {
-		if _, err := os.Stat(path); err != nil {
-			return nil, fmt.Errorf("CONTAINERS_CONF file: %w", err)
-		}
-		return append(configs, path), nil
-	}
-	if _, err := os.Stat(DefaultContainersConfig); err == nil {
-		configs = append(configs, DefaultContainersConfig)
-	}
-	if _, err := os.Stat(OverrideContainersConfig); err == nil {
-		configs = append(configs, OverrideContainersConfig)
-	}
-
-	var err error
-	configs, err = addConfigs(OverrideContainersConfig+".d", configs)
-	if err != nil {
-		return nil, err
-	}
-
-	path, err := ifRootlessConfigPath()
-	if err != nil {
-		return nil, err
-	}
-	if path != "" {
-		if _, err := os.Stat(path); err == nil {
-			configs = append(configs, path)
-		}
-		configs, err = addConfigs(path+".d", configs)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return configs, nil
-}
-
 // CheckCgroupsAndAdjustConfig checks if we're running rootless with the systemd
 // cgroup manager. In case the user session isn't available, we're switching the
 // cgroup manager to cgroupfs.  Note, this only applies to rootless.
@@ -1190,37 +1029,6 @@ func rootlessConfigPath() (string, error) {
 	return filepath.Join(home, UserOverrideContainersConfig), nil
 }
 
-var (
-	configErr   error
-	configMutex sync.Mutex
-	config      *Config
-)
-
-// Default returns the default container config.
-// Configuration files will be read in the following files:
-// * /usr/share/containers/containers.conf
-// * /etc/containers/containers.conf
-// * $HOME/.config/containers/containers.conf # When run in rootless mode
-// Fields in latter files override defaults set in previous files and the
-// default config.
-// None of these files are required, and not all fields need to be specified
-// in each file, only the fields you want to override.
-// The system defaults container config files can be overwritten using the
-// CONTAINERS_CONF environment variable.  This is usually done for testing.
-func Default() (*Config, error) {
-	configMutex.Lock()
-	defer configMutex.Unlock()
-	if config != nil || configErr != nil {
-		return config, configErr
-	}
-	return defConfig()
-}
-
-func defConfig() (*Config, error) {
-	config, configErr = NewConfig("")
-	return config, configErr
-}
-
 func Path() string {
 	if path := os.Getenv("CONTAINERS_CONF"); path != "" {
 		return path
@@ -1289,9 +1097,7 @@ func (c *Config) Write() error {
 // This function is meant to be used for long-running processes that need to reload potential changes made to
 // the cached containers.conf files.
 func Reload() (*Config, error) {
-	configMutex.Lock()
-	defer configMutex.Unlock()
-	return defConfig()
+	return New(&Options{SetDefault: true})
 }
 
 func (c *Config) ActiveDestination() (uri, identity string, machine bool, err error) {

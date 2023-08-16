@@ -88,6 +88,12 @@ This will override *imagestore* option in `containers-storage.conf(5)`, refer to
 
 Log messages at and above specified level: __debug__, __info__, __warn__, __error__, __fatal__ or __panic__ (default: _warn_)
 
+#### **--module**=*path*
+
+Load the specified `containers.conf(5)` module.  Can be an absolute or relative path.  Please refer to `containers.conf(5)` for details.
+
+This feature is not supported on the remote client, including Mac and Windows (excluding WSL2) machines
+
 #### **--network-cmd-path**=*path*
 Path to the `slirp4netns(1)` command binary to use for setting up a slirp4netns network.
 If "" is used, then the binary will first be searched using the `helper_binaries_dir` option in `containers.conf`, and second using the `$PATH` environment variable.

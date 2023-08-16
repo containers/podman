@@ -11,6 +11,8 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 const (
@@ -39,19 +41,58 @@ var (
 )
 
 // PodmanConfig returns an entities.PodmanConfig built up from
-// environment and CLI
+// environment and CLI.
 func PodmanConfig() *entities.PodmanConfig {
 	podmanSync.Do(newPodmanConfig)
 	return &podmanOptions
 }
 
+// Return the index of os.Args where to start parsing CLI flags.
+// An index > 1 implies Podman is running in shell completion.
+func parseIndex() int {
+	// The shell completion logic will call a command called "__complete" or "__completeNoDesc"
+	// This command will always be the second argument
+	// To still parse --remote correctly in this case we have to set args offset to two in this case
+	if len(os.Args) > 1 && (os.Args[1] == cobra.ShellCompRequestCmd || os.Args[1] == cobra.ShellCompNoDescRequestCmd) {
+		return 2
+	}
+	return 1
+}
+
+// Return the containers.conf modules to load.
+func containersConfModules() ([]string, error) {
+	index := parseIndex()
+	if index > 1 {
+		// Do not load the modules during shell completion.
+		return nil, nil
+	}
+
+	var modules []string
+	fs := pflag.NewFlagSet("module", pflag.ContinueOnError)
+	fs.ParseErrorsWhitelist.UnknownFlags = true
+	fs.Usage = func() {}
+	fs.SetInterspersed(false)
+	fs.StringSliceVar(&modules, "module", nil, "")
+	fs.BoolP("help", "h", false, "") // Need a fake help flag to avoid the `pflag: help requested` error
+	return modules, fs.Parse(os.Args[index:])
+}
+
 func newPodmanConfig() {
+	modules, err := containersConfModules()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
+	}
+
 	if err := setXdgDirs(); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 
-	defaultConfig, err := config.Default()
+	defaultConfig, err := config.New(&config.Options{
+		SetDefault: true, // This makes sure that following calls to config.Default() return this config
+		Modules:    modules,
+	})
 	if err != nil {
 		fmt.Fprint(os.Stderr, "Failed to obtain podman configuration: "+err.Error())
 		os.Exit(1)

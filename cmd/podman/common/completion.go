@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -1538,6 +1539,38 @@ func AutocompleteWaitCondition(cmd *cobra.Command, args []string, toComplete str
 func AutocompleteCgroupManager(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	types := []string{config.CgroupfsCgroupsManager, config.SystemdCgroupsManager}
 	return types, cobra.ShellCompDirectiveNoFileComp
+}
+
+// AutocompleteContainersConfModules- Autocomplete containers.conf modules.
+func AutocompleteContainersConfModules(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	dirs, err := config.ModuleDirectories()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveDefault
+	}
+	var modules []string
+	for _, d := range dirs {
+		cleanedD := filepath.Clean(d)
+		moduleD := cleanedD + string(os.PathSeparator)
+		_ = filepath.Walk(d,
+			func(path string, f os.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+				moduleName := strings.TrimPrefix(path, moduleD)
+
+				if toComplete != "" && !strings.HasPrefix(moduleName, toComplete) {
+					return nil
+				}
+
+				if filepath.Clean(path) == cleanedD || f.IsDir() {
+					return nil
+				}
+
+				modules = append(modules, moduleName)
+				return nil
+			})
+	}
+	return modules, cobra.ShellCompDirectiveDefault
 }
 
 // AutocompleteEventBackend - Autocomplete event backend options.
