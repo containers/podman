@@ -67,6 +67,11 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//    type: array
 	//    items:
 	//      type: string
+	//  - in: query
+	//    name: forceCompressionFormat
+	//    description: Use the specified compression algorithm if the destination contains a differently-compressed variant already.
+	//    type: boolean
+	//    default: false
 	//  - in: path
 	//    name: destination
 	//    type: string

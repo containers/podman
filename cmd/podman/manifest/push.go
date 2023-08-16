@@ -72,6 +72,8 @@ func init() {
 	flags.StringVar(&manifestPushOpts.DigestFile, digestfileFlagName, "", "after copying the image, write the digest of the resulting digest to the file")
 	_ = pushCmd.RegisterFlagCompletionFunc(digestfileFlagName, completion.AutocompleteDefault)
 
+	flags.BoolVar(&manifestPushOpts.ForceCompressionFormat, "force-compression", false, "Use the specified compression algorithm if the destination contains a differently-compressed variant already")
+
 	formatFlagName := "format"
 	flags.StringVarP(&manifestPushOpts.Format, formatFlagName, "f", "", "manifest type (oci or v2s2) to attempt to use when pushing the manifest list (default is manifest type of source)")
 	_ = pushCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteManifestFormat)

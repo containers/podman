@@ -333,14 +333,15 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 
 	query := struct {
-		All               bool     `schema:"all"`
-		CompressionFormat string   `schema:"compressionFormat"`
-		CompressionLevel  *int     `schema:"compressionLevel"`
-		Format            string   `schema:"format"`
-		RemoveSignatures  bool     `schema:"removeSignatures"`
-		TLSVerify         bool     `schema:"tlsVerify"`
-		Quiet             bool     `schema:"quiet"`
-		AddCompression    []string `schema:"addCompression"`
+		All                    bool     `schema:"all"`
+		CompressionFormat      string   `schema:"compressionFormat"`
+		CompressionLevel       *int     `schema:"compressionLevel"`
+		ForceCompressionFormat bool     `schema:"forceCompressionFormat"`
+		Format                 string   `schema:"format"`
+		RemoveSignatures       bool     `schema:"removeSignatures"`
+		TLSVerify              bool     `schema:"tlsVerify"`
+		Quiet                  bool     `schema:"quiet"`
+		AddCompression         []string `schema:"addCompression"`
 	}{
 		// Add defaults here once needed.
 		TLSVerify: true,
@@ -372,16 +373,17 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 		password = authconf.Password
 	}
 	options := entities.ImagePushOptions{
-		All:               query.All,
-		Authfile:          authfile,
-		AddCompression:    query.AddCompression,
-		CompressionFormat: query.CompressionFormat,
-		CompressionLevel:  query.CompressionLevel,
-		Format:            query.Format,
-		Password:          password,
-		Quiet:             true,
-		RemoveSignatures:  query.RemoveSignatures,
-		Username:          username,
+		All:                    query.All,
+		Authfile:               authfile,
+		AddCompression:         query.AddCompression,
+		CompressionFormat:      query.CompressionFormat,
+		CompressionLevel:       query.CompressionLevel,
+		ForceCompressionFormat: query.ForceCompressionFormat,
+		Format:                 query.Format,
+		Password:               password,
+		Quiet:                  true,
+		RemoveSignatures:       query.RemoveSignatures,
+		Username:               username,
 	}
 	if sys := runtime.SystemContext(); sys != nil {
 		options.CertDir = sys.DockerCertPath

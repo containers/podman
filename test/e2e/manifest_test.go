@@ -154,7 +154,7 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session2.OutputToString()).To(Equal(session.OutputToString()))
 	})
 
-	It("push with --add-compression", func() {
+	It("push with --add-compression and --force-compression", func() {
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -209,6 +209,49 @@ var _ = Describe("Podman manifest", func() {
 		Expect(verifyInstanceCompression(index.Manifests, "zstd", "arm64")).Should(BeTrue())
 		Expect(verifyInstanceCompression(index.Manifests, "gzip", "arm64")).Should(BeTrue())
 		Expect(verifyInstanceCompression(index.Manifests, "gzip", "amd64")).Should(BeTrue())
+
+		// Note: Pushing again with --force-compression should produce the correct response the since blobs will be correctly force-pushed again.
+		push = podmanTest.Podman([]string{"manifest", "push", "--all", "--add-compression", "zstd", "--tls-verify=false", "--compression-format", "gzip", "--force-compression", "--remove-signatures", "foobar", "localhost:5000/list"})
+		push.WaitWithDefaultTimeout()
+		Expect(push).Should(Exit(0))
+		output = push.ErrorToString()
+		// 4 images must be pushed two for gzip and two for zstd
+		Expect(output).To(ContainSubstring("Copying 4 images generated from 2 images in list"))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5000/list:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		inspectData = []byte(session.OutputToString())
+		err = json.Unmarshal(inspectData, &index)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(verifyInstanceCompression(index.Manifests, "zstd", "amd64")).Should(BeTrue())
+		Expect(verifyInstanceCompression(index.Manifests, "zstd", "arm64")).Should(BeTrue())
+		Expect(verifyInstanceCompression(index.Manifests, "gzip", "arm64")).Should(BeTrue())
+		Expect(verifyInstanceCompression(index.Manifests, "gzip", "amd64")).Should(BeTrue())
+
+		// Note: Pushing again without --force-compression should produce in-correct/wrong result since blobs are already present in registry so they will be reused
+		// ignoring our compression priority ( this is expected behaviour of c/image and --force-compression is introduced to mitigate this behaviour ).
+		push = podmanTest.Podman([]string{"manifest", "push", "--all", "--add-compression", "zstd", "--tls-verify=false", "--remove-signatures", "foobar", "localhost:5000/list"})
+		push.WaitWithDefaultTimeout()
+		Expect(push).Should(Exit(0))
+		output = push.ErrorToString()
+		// 4 images must be pushed two for gzip and two for zstd
+		Expect(output).To(ContainSubstring("Copying 4 images generated from 2 images in list"))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5000/list:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		inspectData = []byte(session.OutputToString())
+		err = json.Unmarshal(inspectData, &index)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(verifyInstanceCompression(index.Manifests, "zstd", "amd64")).Should(BeTrue())
+		Expect(verifyInstanceCompression(index.Manifests, "zstd", "arm64")).Should(BeTrue())
+		// blobs of zstd will be wrongly reused for gzip instances without --force-compression
+		Expect(verifyInstanceCompression(index.Manifests, "gzip", "arm64")).Should(BeFalse())
+		// blobs of zstd will be wrongly reused for gzip instances without --force-compression
+		Expect(verifyInstanceCompression(index.Manifests, "gzip", "amd64")).Should(BeFalse())
 	})
 
 	It("add --all", func() {
