@@ -27,5 +27,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 		}
 	}
 
+	g.SetRootReadonly(s.ReadOnlyFilesystem)
+
 	return nil
 }
