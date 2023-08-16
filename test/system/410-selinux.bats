@@ -41,11 +41,13 @@ function check_label() {
 
 # FIXME #19376 - container-selinux broken -- bats test_tags=distro-integration
 @test "podman selinux: container with label=disable" {
+    skip "Requires unavailable version of container-selinux"
     check_label "--security-opt label=disable" "spc_t"
 }
 
 # FIXME #19376 - container-selinux broken -- bats test_tags=distro-integration
 @test "podman selinux: privileged container" {
+    skip "Requires unavailable version of container-selinux"
     check_label "--privileged --userns=host" "spc_t"
 }
 
@@ -70,6 +72,7 @@ function check_label() {
 
 # FIXME #19376 - container-selinux broken -- bats test_tags=distro-integration
 @test "podman selinux: pid=host" {
+    skip "Requires unavailable version of container-selinux"
     # FIXME this test fails when run rootless with runc:
     #   Error: container_linux.go:367: starting container process caused: process_linux.go:495: container init caused: readonly path /proc/asound: operation not permitted: OCI permission denied
     if is_rootless; then
