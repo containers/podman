@@ -20,7 +20,7 @@ var (
 	createCmd = &cobra.Command{
 		Use:   "create [options] NAME FILE|-",
 		Short: "Create a new secret",
-		Long:  "Create a secret. Input can be a path to a file or \"-\" (read from stdin). Default driver is file (unencrypted).",
+		Long:  "Create a secret. Input can be a path to a file or \"-\" (read from stdin). Secret drivers \"file\" (default), \"pass\", and \"shell\" are available.",
 		RunE:  create,
 		Args:  cobra.ExactArgs(2),
 		Example: `podman secret create mysecret /path/to/secret
