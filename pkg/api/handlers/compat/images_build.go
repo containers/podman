@@ -220,9 +220,11 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			var m = []string{}
 			if err := json.Unmarshal([]byte(query.Dockerfile), &m); err != nil {
 				// it's not json, assume just a string
-				m = []string{filepath.Join(contextDirectory, query.Dockerfile)}
+				m = []string{query.Dockerfile}
 			}
-			containerFiles = m
+			for _, containerfile := range m {
+				containerFiles = append(containerFiles, filepath.Join(contextDirectory, filepath.Clean(filepath.FromSlash(containerfile))))
+			}
 			dockerFileSet = true
 		}
 	}
