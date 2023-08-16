@@ -36,9 +36,9 @@ Create a Podman Quadlet file that looks something like one of the following.
 Fully locked down container, no access to host OS.
 
 ```
-# UID=$(id -u lockedu)
-# mkdir -p /etc/containers/systemd/users/${UID}
-# cat > /etc/containers/systemd/users/${UID}/podmansh.container << _EOF
+# USERID=$(id -u lockedu)
+# mkdir -p /etc/containers/systemd/users/${USERID}
+# cat > /etc/containers/systemd/users/${USERID}/podmansh.container << _EOF
 [Unit]
 Description=The podmansh container
 After=local-fs.target
@@ -64,9 +64,9 @@ Alternatively, while running as root, create a Quadlet where the user is allowed
 # useradd -s /usr/bin/podmansh confinedu
 # grep confinedu /etc/passwd
 confinedu:x:4009:4009::/home/confinedu:/usr/bin/podmansh
-# UID=$(id -u confinedu)
-# mkdir -p /etc/containers/systemd/users/${UID}
-# cat > /etc/containers/systemd/users/${UID}/podmansh.container << _EOF
+# USERID=$(id -u confinedu)
+# mkdir -p /etc/containers/systemd/users/${USERID}
+# cat > /etc/containers/systemd/users/${USERID}/podmansh.container << _EOF
 [Unit]
 Description=The podmansh container
 After=local-fs.target
@@ -95,9 +95,9 @@ Another example, while running as root, create a Quadlet where the users inside 
 # useradd -s /usr/bin/podmansh fullu
 # grep fullu /etc/passwd
 fullu:x:4010:4010::/home/fullu:/usr/bin/podmansh
-# UID=$(id -u fullu)
-# mkdir -p /etc/containers/systemd/users/${UID}
-# cat > /etc/containers/systemd/users/${UID}/podmansh.container << _EOF
+# USERID=$(id -u fullu)
+# mkdir -p /etc/containers/systemd/users/${USERID}
+# cat > /etc/containers/systemd/users/${USERID}/podmansh.container << _EOF
 [Unit]
 Description=The podmansh container
 After=local-fs.target
