@@ -203,9 +203,6 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 
 	m.IdentityPath = util.GetIdentityPath(m.Name)
 
-	// TODO This needs to be fixed in c-common
-	m.RemoteUsername = "core"
-
 	if m.UID == 0 {
 		m.UID = 1000
 	}

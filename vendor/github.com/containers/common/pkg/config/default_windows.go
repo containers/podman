@@ -5,12 +5,14 @@ import "os"
 // getDefaultImage returns the default machine image stream
 // On Windows this refers to the Fedora major release number
 func getDefaultMachineImage() string {
-	return "35"
+	return "testing"
 }
 
 // getDefaultMachineUser returns the user to use for rootless podman
+// This is only for the hyperv and qemu implementations.  WSL's user
+// will be hardcoded in podman to "user"
 func getDefaultMachineUser() string {
-	return "user"
+	return "core"
 }
 
 // isCgroup2UnifiedMode returns whether we are running in cgroup2 mode.

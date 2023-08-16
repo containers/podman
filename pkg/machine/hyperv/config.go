@@ -126,27 +126,15 @@ func (v HyperVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, 
 	// Set creation time
 	m.Created = time.Now()
 
-	dataDir, err := machine.GetDataDir(machine.HyperVVirt)
-	if err != nil {
-		return nil, err
-	}
-
 	// Acquire the image
-	// Until we are producing vhdx images in fcos, all images must be fed to us
-	// with --image-path.  We should, however, accept both a file or url
-	g, err := machine.NewGenericDownloader(machine.HyperVVirt, opts.Name, opts.ImagePath)
+	imagePath, imageStream, err := v.acquireVMImage(opts)
 	if err != nil {
 		return nil, err
 	}
 
-	imagePath, err := machine.NewMachineFile(g.Get().GetLocalUncompressedFile(dataDir), nil)
-	if err != nil {
-		return nil, err
-	}
+	// assign values to machine
 	m.ImagePath = *imagePath
-	if err := machine.DownloadImage(g); err != nil {
-		return nil, err
-	}
+	m.ImageStream = imageStream
 
 	config := hypervctl.HardwareConfig{
 		CPUs:     uint16(opts.CPUS),
@@ -170,6 +158,44 @@ func (v HyperVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, 
 		return nil, err
 	}
 	return v.LoadVMByName(opts.Name)
+}
+
+// acquireVMImage determines if the image is already in a FCOS stream. If so,
+// retrieves the image path of the uncompressed file. Otherwise, the user has
+// provided an alternative image, so we set the image path and download the image.
+func (v HyperVVirtualization) acquireVMImage(opts machine.InitOptions) (*machine.VMFile, string, error) {
+	imageStream := opts.ImagePath
+	var imagePath *machine.VMFile
+	switch opts.ImagePath {
+	// TODO these need to be re-typed as FCOSStreams
+	case machine.Testing.String(), machine.Next.String(), machine.Stable.String(), "":
+		// Get image as usual
+		vp := VirtualizationProvider()
+		dd, err := machine.NewFcosDownloader(machine.HyperVVirt, opts.Name, machine.FCOSStreamFromString(imageStream), vp)
+		if err != nil {
+			return nil, "", err
+		}
+
+		uncompressedFile, err := machine.NewMachineFile(dd.Get().LocalUncompressedFile, nil)
+		if err != nil {
+			return nil, "", err
+		}
+
+		imagePath = uncompressedFile
+		if err := machine.DownloadImage(dd); err != nil {
+			return nil, "", err
+		}
+	default:
+		// The user has provided an alternate image which can be a file path
+		// or URL.
+		imageStream = "custom"
+		altImagePath, err := machine.AcquireAlternateImage(opts.Name, vmtype, opts)
+		if err != nil {
+			return nil, "", err
+		}
+		imagePath = altImagePath
+	}
+	return imagePath, imageStream, nil
 }
 
 func (v HyperVVirtualization) RemoveAndCleanMachines() error {

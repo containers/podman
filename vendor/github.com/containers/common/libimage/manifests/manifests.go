@@ -72,6 +72,7 @@ type PushOptions struct {
 	ManifestType                     string                // the format to use when saving the list - possible options are oci, v2s1, and v2s2
 	SourceFilter                     LookupReferenceFunc   // filter the list source
 	AddCompression                   []string              // add existing instances with requested compression algorithms to manifest list
+	ForceCompressionFormat           bool                  // force push with requested compression ignoring the blobs which can be reused.
 }
 
 // Create creates a new list containing information about the specified image,
@@ -259,6 +260,7 @@ func (l *list) Push(ctx context.Context, dest types.ImageReference, options Push
 		SignSigstorePrivateKeyPassphrase: options.SignSigstorePrivateKeyPassphrase,
 		ForceManifestMIMEType:            singleImageManifestType,
 		EnsureCompressionVariantsExist:   compressionVariants,
+		ForceCompressionFormat:           options.ForceCompressionFormat,
 	}
 
 	// Copy whatever we were asked to copy.

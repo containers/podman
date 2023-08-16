@@ -333,3 +333,18 @@ func FCOSStreamFromString(s string) FCOSStream {
 	}
 	return Stable
 }
+
+func IsValidFCOSStreamString(s string) bool {
+	switch s {
+	case Testing.String():
+		fallthrough
+	case Next.String():
+		fallthrough
+	case PodmanTesting.String():
+		fallthrough
+	case Stable.String():
+		return true
+	}
+
+	return false
+}

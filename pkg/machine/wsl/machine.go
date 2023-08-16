@@ -388,7 +388,8 @@ func downloadDistro(v *MachineVM, opts machine.InitOptions) error {
 		err error
 	)
 
-	if _, e := strconv.Atoi(opts.ImagePath); e == nil {
+	// The default FCOS stream names are reserved indicators for the standard Fedora fetch
+	if machine.IsValidFCOSStreamString(opts.ImagePath) {
 		v.ImageStream = opts.ImagePath
 		dd, err = NewFedoraDownloader(vmtype, v.Name, opts.ImagePath)
 	} else {
