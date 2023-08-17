@@ -133,6 +133,7 @@ var _ = Describe("podman machine list", func() {
 		listSession2, err := mb.setCmd(list2).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(listSession2).To(Exit(0))
+		Expect(listSession2.outputToString()).To(BeValidJSON())
 
 		var listResponse []*entities.ListReporter
 		err = jsoniter.Unmarshal(listSession2.Bytes(), &listResponse)
