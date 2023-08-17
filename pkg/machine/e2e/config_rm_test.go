@@ -40,17 +40,17 @@ func (i *rmMachine) withForce() *rmMachine {
 	return i
 }
 
-func (i *rmMachine) withSaveIgnition() *rmMachine { //nolint:unused
+func (i *rmMachine) withSaveIgnition() *rmMachine {
 	i.saveIgnition = true
 	return i
 }
 
-func (i *rmMachine) withSaveImage() *rmMachine { //nolint:unused
+func (i *rmMachine) withSaveImage() *rmMachine {
 	i.saveImage = true
 	return i
 }
 
-func (i *rmMachine) withSaveKeys() *rmMachine { //nolint:unused
+func (i *rmMachine) withSaveKeys() *rmMachine {
 	i.saveKeys = true
 	return i
 }
