@@ -101,7 +101,7 @@ var _ = Describe("podman machine set", func() {
 		Expect(sshSession3.outputToString()).To(ContainSubstring("100 GiB"))
 	})
 
-	It("set rootful, docker sock change", func() {
+	It("set rootful with docker sock change", func() {
 		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
@@ -118,11 +118,54 @@ var _ = Describe("podman machine set", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(startSession).To(Exit(0))
 
+		inspect := new(inspectMachine)
+		inspect = inspect.withFormat("{{.Rootful}}")
+		inspectSession, err := mb.setName(name).setCmd(inspect).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(inspectSession).To(Exit(0))
+		Expect(inspectSession.outputToString()).To(Equal("true"))
+
 		ssh2 := sshMachine{}
 		sshSession2, err := mb.setName(name).setCmd(ssh2.withSSHCommand([]string{"readlink /var/run/docker.sock"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(sshSession2).To(Exit(0))
 		output := strings.TrimSpace(sshSession2.outputToString())
 		Expect(output).To(Equal("/run/podman/podman.sock"))
+	})
+
+	It("machine user mode networking should fail", func() {
+		// TODO: is only supported on windows
+
+		name := randomString()
+		i := new(initMachine)
+		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		set := setMachine{}
+		setSession, err := mb.setName(name).setCmd(set.withUserModeNetworking(true)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(setSession).To(Exit(125))
+	})
+
+	It("machine user mode networking should succeed on Windows", func() {
+		Skip("only on windows")
+		name := randomString()
+		i := new(initMachine)
+		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		set := setMachine{}
+		setSession, err := mb.setName(name).setCmd(set.withUserModeNetworking(true)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(setSession).To(Exit(0))
+
+		inspect := new(inspectMachine)
+		inspect = inspect.withFormat("{{.UserModeNetworking}}")
+		inspectSession, err := mb.setName(name).setCmd(inspect).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(inspectSession).To(Exit(0))
+		Expect(inspectSession.outputToString()).To(Equal("true"))
 	})
 })

@@ -6,6 +6,7 @@ package machine
 import (
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/registry"
@@ -77,6 +78,9 @@ func init() {
 	userModeNetFlagName := "user-mode-networking"
 	flags.BoolVar(&setFlags.UserModeNetworking, userModeNetFlagName, false, // defaults not-relevant due to use of Changed()
 		"Whether this machine should use user-mode networking, routing traffic through a host user-space process")
+	if runtime.GOOS != "windows" {
+		_ = flags.MarkHidden("user-mode-networking")
+	}
 }
 
 func setMachine(cmd *cobra.Command, args []string) error {
@@ -111,6 +115,9 @@ func setMachine(cmd *cobra.Command, args []string) error {
 		setOpts.DiskSize = &setFlags.DiskSize
 	}
 	if cmd.Flags().Changed("user-mode-networking") {
+		if runtime.GOOS != "windows" {
+			return fmt.Errorf("setting --user-mode-networking is not supported on %q platforms", runtime.GOOS)
+		}
 		setOpts.UserModeNetworking = &setFlags.UserModeNetworking
 	}
 
