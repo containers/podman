@@ -2834,7 +2834,7 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 
 	// Volumes owned by a volume driver are not chowned - we don't want to
 	// mess with a mount not managed by us.
-	if vol.state.NeedsChown && (!vol.UsesVolumeDriver() && vol.config.Driver != "image") {
+	if !vol.UsesVolumeDriver() && vol.config.Driver != "image" {
 		vol.state.NeedsChown = false
 
 		uid := int(c.config.Spec.Process.User.UID)
