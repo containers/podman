@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -200,4 +201,17 @@ func (matcher *ValidJSONMatcher) FailureMessage(actual interface{}) (message str
 
 func (matcher *ValidJSONMatcher) NegatedFailureMessage(actual interface{}) (message string) {
 	return format.Message(actual, "to _not_ be valid JSON")
+}
+
+func checkReason(reason string) {
+	if len(reason) < 5 {
+		panic("Test must specify a reason to skip")
+	}
+}
+
+func SkipIfNotWindows(reason string) {
+	checkReason(reason)
+	if runtime.GOOS != "windows" {
+		Skip("[not windows]: " + reason)
+	}
 }

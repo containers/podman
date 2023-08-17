@@ -19,16 +19,17 @@ type initMachine struct {
 	      --volume-driver string   Optional volume driver
 
 	*/
-	cpus         *uint
-	diskSize     *uint
-	ignitionPath string
-	username     string
-	imagePath    string
-	memory       *uint
-	now          bool
-	timezone     string
-	rootful      bool
-	volumes      []string
+	cpus               *uint
+	diskSize           *uint
+	ignitionPath       string
+	username           string
+	imagePath          string
+	memory             *uint
+	now                bool
+	timezone           string
+	rootful            bool
+	volumes            []string
+	userModeNetworking bool
 
 	cmd []string
 }
@@ -64,6 +65,9 @@ func (i *initMachine) buildCmd(m *machineTestBuilder) []string {
 	}
 	if i.rootful {
 		cmd = append(cmd, "--rootful")
+	}
+	if i.userModeNetworking {
+		cmd = append(cmd, "--user-mode-networking")
 	}
 	cmd = append(cmd, m.name)
 	i.cmd = cmd
@@ -116,5 +120,10 @@ func (i *initMachine) withVolume(v string) *initMachine {
 
 func (i *initMachine) withRootful(r bool) *initMachine {
 	i.rootful = r
+	return i
+}
+
+func (i *initMachine) withUserModeNetworking(r bool) *initMachine {
+	i.userModeNetworking = r
 	return i
 }

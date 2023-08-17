@@ -186,7 +186,7 @@ var _ = Describe("podman machine init", func() {
 
 	})
 
-	It("machine init rootful docker.sock check", func() {
+	It("machine init rootful with docker.sock check", func() {
 		i := initMachine{}
 		name := randomString()
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withRootful(true)).run()
@@ -198,11 +198,35 @@ var _ = Describe("podman machine init", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ssession).Should(Exit(0))
 
+		inspect := new(inspectMachine)
+		inspect = inspect.withFormat("{{.Rootful}}")
+		inspectSession, err := mb.setName(name).setCmd(inspect).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(inspectSession).To(Exit(0))
+		Expect(inspectSession.outputToString()).To(Equal("true"))
+
 		ssh2 := sshMachine{}
 		sshSession2, err := mb.setName(name).setCmd(ssh2.withSSHCommand([]string{"readlink /var/run/docker.sock"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(sshSession2).To(Exit(0))
 		output := strings.TrimSpace(sshSession2.outputToString())
 		Expect(output).To(Equal("/run/podman/podman.sock"))
+	})
+
+	It("init with user mode networking ", func() {
+		SkipIfNotWindows("setting user mode networking is only honored on Windows")
+
+		i := new(initMachine)
+		name := randomString()
+		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withUserModeNetworking(true)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		inspect := new(inspectMachine)
+		inspect = inspect.withFormat("{{.UserModeNetworking}}")
+		inspectSession, err := mb.setName(name).setCmd(inspect).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(inspectSession).To(Exit(0))
+		Expect(inspectSession.outputToString()).To(Equal("true"))
 	})
 })
