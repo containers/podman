@@ -338,6 +338,7 @@ func (m *MacMachine) Inspect() (*machine.InspectInfo, error) {
 		},
 		SSHConfig: m.SSHConfig,
 		State:     vmState,
+		Rootful:   m.Rootful,
 	}
 	return &ii, nil
 }
