@@ -1261,12 +1261,20 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		return 0, err
 	}
 	if err := r.moveConmonToCgroupAndSignal(ctr, cmd, parentStartPipe); err != nil {
-		return 0, err
+		// The child likely already exited in which case the cmd.Wait() below should return the proper error.
+		// EPIPE is expected if the child already exited so not worth to log and kill the process.
+		if !errors.Is(err, syscall.EPIPE) {
+			logrus.Errorf("Failed to signal conmon to start: %v", err)
+			if err := cmd.Process.Kill(); err != nil && !errors.Is(err, syscall.ESRCH) {
+				logrus.Errorf("Failed to kill conmon after error: %v", err)
+			}
+		}
 	}
+
 	/* Wait for initial setup and fork, and reap child */
 	err = cmd.Wait()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("conmon failed: %w", err)
 	}
 
 	pid, err := readConmonPipeData(r.name, parentSyncPipe, ociLog)
@@ -1309,6 +1317,9 @@ func (r *ConmonOCIRuntime) configureConmonEnv(runtimeDir string) []string {
 	var env []string
 	for _, e := range os.Environ() {
 		if strings.HasPrefix(e, "LC_") {
+			env = append(env, e)
+		}
+		if strings.HasPrefix(e, "LANG=") {
 			env = append(env, e)
 		}
 	}

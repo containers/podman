@@ -162,10 +162,7 @@ func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec
 	}
 
 	/* We set the cgroup, now the child can start creating children */
-	if err := writeConmonPipeData(startFd); err != nil {
-		return err
-	}
-	return nil
+	return writeConmonPipeData(startFd)
 }
 
 // GetLimits converts spec resource limits to cgroup consumable limits
