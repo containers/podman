@@ -303,6 +303,7 @@ func (m *HyperVMachine) Inspect() (*machine.InspectInfo, error) {
 		},
 		SSHConfig: m.SSHConfig,
 		State:     vm.State().String(),
+		Rootful:   m.Rootful,
 	}, nil
 }
 

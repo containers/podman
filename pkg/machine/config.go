@@ -151,6 +151,7 @@ type InspectInfo struct {
 	SSHConfig          SSHConfig
 	State              Status
 	UserModeNetworking bool
+	Rootful            bool
 }
 
 func (rc RemoteConnectionType) MakeSSHURL(host, path, port, userName string) url.URL {
