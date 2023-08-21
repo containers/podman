@@ -11,6 +11,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/parse"
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -211,8 +212,8 @@ func Mounts(mountFlag []string, configMounts []string) (map[string]spec.Mount, m
 					}
 					finalMounts[mount.Destination] = mount
 				}
-			case define.TypeTmpfs:
-				mount, err := getTmpfsMount(tokens)
+			case define.TypeTmpfs, define.TypeRamfs:
+				mount, err := parseMemoryMount(tokens, mountType)
 				if err != nil {
 					return err
 				}
@@ -282,7 +283,7 @@ func Mounts(mountFlag []string, configMounts []string) (map[string]spec.Mount, m
 }
 
 func parseMountOptions(mountType string, args []string) (*spec.Mount, error) {
-	var setTmpcopyup, setRORW, setSuid, setDev, setExec, setRelabel, setOwnership bool
+	var setTmpcopyup, setRORW, setSuid, setDev, setExec, setRelabel, setOwnership, setSwap bool
 
 	mnt := spec.Mount{}
 	for _, val := range args {
@@ -358,6 +359,15 @@ func parseMountOptions(mountType string, args []string) (*spec.Mount, error) {
 				return nil, fmt.Errorf("cannot pass 'nosuid' and 'suid' mnt.Options more than once: %w", errOptionArg)
 			}
 			setSuid = true
+			mnt.Options = append(mnt.Options, kv[0])
+		case "noswap":
+			if setSwap {
+				return nil, fmt.Errorf("cannot pass 'noswap' mnt.Options more than once: %w", errOptionArg)
+			}
+			if rootless.IsRootless() {
+				return nil, fmt.Errorf("the 'noswap' option is only allowed with rootful tmpfs mounts: %w", errOptionArg)
+			}
+			setSwap = true
 			mnt.Options = append(mnt.Options, kv[0])
 		case "relabel":
 			if setRelabel {
@@ -525,11 +535,11 @@ func getBindMount(args []string) (spec.Mount, error) {
 	return newMount, nil
 }
 
-// Parse a single tmpfs mount entry from the --mount flag
-func getTmpfsMount(args []string) (spec.Mount, error) {
+// Parse a single tmpfs/ramfs mount entry from the --mount flag
+func parseMemoryMount(args []string, mountType string) (spec.Mount, error) {
 	newMount := spec.Mount{
-		Type:   define.TypeTmpfs,
-		Source: define.TypeTmpfs,
+		Type:   mountType,
+		Source: mountType,
 	}
 
 	var err error

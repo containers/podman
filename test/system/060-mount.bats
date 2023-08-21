@@ -294,4 +294,18 @@ EOF
     is "$output" "bar1.*bar2.*bar3" "Should match multiple source files on single destination directory"
 }
 
+@test "podman mount noswap memory mounts" {
+    # if volumes source and dest match then pass
+    run_podman run --rm --mount type=ramfs,destination=${PODMAN_TMPDIR} $IMAGE stat -f -c "%T" ${PODMAN_TMPDIR}
+    is "$output" "ramfs" "ramfs mounted"
+
+    if is_rootless; then
+        run_podman 125 run --rm --mount type=tmpfs,destination=${PODMAN_TMPDIR},noswap  $IMAGE stat -f -c "%T" ${PODMAN_TMPDIR}
+        is "$output" "Error: the 'noswap' option is only allowed with rootful tmpfs mounts: must provide an argument for option" "noswap not supported in rootless mode"
+    else
+        run_podman run --rm --mount type=tmpfs,destination=${PODMAN_TMPDIR},noswap  $IMAGE sh -c "mount| grep ${PODMAN_TMPDIR}"
+        is "$output" ".*noswap" "tmpfs noswap mounted"
+    fi
+}
+
 # vim: filetype=sh
