@@ -216,6 +216,8 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 	return nil
 }
 
+// TODO (5.0): return the statistics per network interface
+// This would allow better compat with docker.
 func getContainerNetIO(ctr *Container) (*LinkStatistics64, error) {
 	if ctr.state.NetNS == "" {
 		// If NetNS is nil, it was set as none, and no netNS
@@ -224,8 +226,7 @@ func getContainerNetIO(ctr *Container) (*LinkStatistics64, error) {
 		return nil, nil
 	}
 
-	// FIXME get the interface from the container netstatus
-	cmd := exec.Command("jexec", ctr.state.NetNS, "netstat", "-bI", "eth0", "--libxo", "json")
+	cmd := exec.Command("jexec", ctr.state.NetNS, "netstat", "-bi", "--libxo", "json")
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, err
@@ -235,23 +236,29 @@ func getContainerNetIO(ctr *Container) (*LinkStatistics64, error) {
 		return nil, err
 	}
 
-	// Find the link stats
+	// Sum all the interface stats - in practice only Tx/TxBytes are needed
+	res := &LinkStatistics64{}
 	for _, ifaddr := range stats.Statistics.Interface {
+		// Each interface has two records, one for link-layer which has
+		// an MTU field and one for IP which doesn't. We only want the
+		// link-layer stats.
+		//
+		// It's not clear if we should include loopback stats here but
+		// if we move to per-interface stats in future, this can be
+		// reported separately.
 		if ifaddr.Mtu > 0 {
-			return &LinkStatistics64{
-				RxPackets:  ifaddr.ReceivedPackets,
-				TxPackets:  ifaddr.SentPackets,
-				RxBytes:    ifaddr.ReceivedBytes,
-				TxBytes:    ifaddr.SentBytes,
-				RxErrors:   ifaddr.ReceivedErrors,
-				TxErrors:   ifaddr.SentErrors,
-				RxDropped:  ifaddr.DroppedPackets,
-				Collisions: ifaddr.Collisions,
-			}, nil
+			res.RxPackets += ifaddr.ReceivedPackets
+			res.TxPackets += ifaddr.SentPackets
+			res.RxBytes += ifaddr.ReceivedBytes
+			res.TxBytes += ifaddr.SentBytes
+			res.RxErrors += ifaddr.ReceivedErrors
+			res.TxErrors += ifaddr.SentErrors
+			res.RxDropped += ifaddr.DroppedPackets
+			res.Collisions += ifaddr.Collisions
 		}
 	}
 
-	return &LinkStatistics64{}, nil
+	return res, nil
 }
 
 func (c *Container) joinedNetworkNSPath() (string, bool) {
