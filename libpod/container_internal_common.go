@@ -1953,16 +1953,22 @@ func (c *Container) makeBindMounts() error {
 		}
 	}
 
-	_, hasRunContainerenv := c.state.BindMounts["/run/.containerenv"]
+	runPath, err := c.getPlatformRunPath()
+	if err != nil {
+		return fmt.Errorf("cannot determine run directory for container: %w", err)
+	}
+	containerenvPath := filepath.Join(runPath, ".containerenv")
+
+	_, hasRunContainerenv := c.state.BindMounts[containerenvPath]
 	if !hasRunContainerenv {
 	Loop:
 		// check in the spec mounts
 		for _, m := range c.config.Spec.Mounts {
 			switch {
-			case m.Destination == "/run/.containerenv":
+			case m.Destination == containerenvPath:
 				hasRunContainerenv = true
 				break Loop
-			case m.Destination == "/run" && m.Type != define.TypeTmpfs:
+			case m.Destination == runPath && m.Type != define.TypeTmpfs:
 				hasRunContainerenv = true
 				break Loop
 			}
@@ -1988,11 +1994,11 @@ imageid=%q
 rootless=%d
 %s`, version.Version.String(), c.Name(), c.ID(), imageName, imageID, isRootless, containerenv)
 		}
-		containerenvPath, err := c.writeStringToRundir(".containerenv", containerenv)
+		containerenvHostPath, err := c.writeStringToRundir(".containerenv", containerenv)
 		if err != nil {
 			return fmt.Errorf("creating containerenv file for container %s: %w", c.ID(), err)
 		}
-		c.state.BindMounts["/run/.containerenv"] = containerenvPath
+		c.state.BindMounts[containerenvPath] = containerenvHostPath
 	}
 
 	// Add Subscription Mounts
@@ -2010,12 +2016,12 @@ rootless=%d
 	// creates the /run/secrets dir in the container where we mount as well.
 	if len(c.Secrets()) > 0 {
 		// create /run/secrets if subscriptions did not create
-		if err := c.createSecretMountDir(); err != nil {
+		if err := c.createSecretMountDir(runPath); err != nil {
 			return fmt.Errorf("creating secrets mount: %w", err)
 		}
 		for _, secret := range c.Secrets() {
 			secretFileName := secret.Name
-			base := "/run/secrets"
+			base := filepath.Join(runPath, "secrets")
 			if secret.Target != "" {
 				secretFileName = secret.Target
 				// If absolute path for target given remove base.
@@ -2797,7 +2803,7 @@ func (c *Container) cleanupOverlayMounts() error {
 }
 
 // Creates and mounts an empty dir to mount secrets into, if it does not already exist
-func (c *Container) createSecretMountDir() error {
+func (c *Container) createSecretMountDir(runPath string) error {
 	src := filepath.Join(c.state.RunDir, "/run/secrets")
 	_, err := os.Stat(src)
 	if os.IsNotExist(err) {
@@ -2810,7 +2816,7 @@ func (c *Container) createSecretMountDir() error {
 		if err := os.Chown(src, c.RootUID(), c.RootGID()); err != nil {
 			return err
 		}
-		c.state.BindMounts["/run/secrets"] = src
+		c.state.BindMounts[filepath.Join(runPath, "secrets")] = src
 		return nil
 	}
 

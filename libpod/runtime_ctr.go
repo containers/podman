@@ -424,6 +424,8 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		g.RemoveMount("/etc/hosts")
 		g.RemoveMount("/run/.containerenv")
 		g.RemoveMount("/run/secrets")
+		g.RemoveMount("/var/run/.containerenv")
+		g.RemoveMount("/var/run/secrets")
 
 		// Regenerate Cgroup paths so they don't point to the old
 		// container ID.

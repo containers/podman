@@ -365,3 +365,23 @@ func (c *Container) makePlatformMtabLink(etcInTheContainerFd, rootUID, rootGID i
 	// /etc/mtab does not exist on FreeBSD
 	return nil
 }
+
+func (c *Container) getPlatformRunPath() (string, error) {
+	// If we have a linux image, use "/run", otherwise use "/var/run" for
+	// consistency with FreeBSD path conventions.
+	runPath := "/var/run"
+	if c.config.RootfsImageID != "" {
+		image, _, err := c.runtime.libimageRuntime.LookupImage(c.config.RootfsImageID, nil)
+		if err != nil {
+			return "", err
+		}
+		inspectData, err := image.Inspect(nil, nil)
+		if err != nil {
+			return "", err
+		}
+		if inspectData.Os == "linux" {
+			runPath = "/run"
+		}
+	}
+	return runPath, nil
+}

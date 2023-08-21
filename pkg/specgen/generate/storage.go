@@ -176,7 +176,11 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 	}
 
 	if s.ReadWriteTmpfs {
-		baseMounts = addReadWriteTmpfsMounts(baseMounts, s.Volumes)
+		runPath, err := imageRunPath(ctx, img)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		baseMounts = addReadWriteTmpfsMounts(baseMounts, s.Volumes, runPath)
 	}
 
 	// Final step: maps to arrays
@@ -440,8 +444,8 @@ func InitFSMounts(mounts []spec.Mount) error {
 	return nil
 }
 
-func addReadWriteTmpfsMounts(mounts map[string]spec.Mount, volumes []*specgen.NamedVolume) map[string]spec.Mount {
-	readonlyTmpfs := []string{"/tmp", "/var/tmp", "/run"}
+func addReadWriteTmpfsMounts(mounts map[string]spec.Mount, volumes []*specgen.NamedVolume, runPath string) map[string]spec.Mount {
+	readonlyTmpfs := []string{"/tmp", "/var/tmp", runPath}
 	options := []string{"rw", "rprivate", "nosuid", "nodev", "tmpcopyup"}
 	for _, dest := range readonlyTmpfs {
 		if _, ok := mounts[dest]; ok {
@@ -458,7 +462,7 @@ func addReadWriteTmpfsMounts(mounts map[string]spec.Mount, volumes []*specgen.Na
 			Source:      define.TypeTmpfs,
 			Options:     options,
 		}
-		if dest != "/run" {
+		if dest != runPath {
 			mnt.Options = append(mnt.Options, "noexec")
 		}
 		mounts[dest] = mnt

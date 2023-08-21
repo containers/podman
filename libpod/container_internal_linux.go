@@ -801,3 +801,7 @@ func (c *Container) makePlatformMtabLink(etcInTheContainerFd, rootUID, rootGID i
 	}
 	return nil
 }
+
+func (c *Container) getPlatformRunPath() (string, error) {
+	return "/run", nil
+}
