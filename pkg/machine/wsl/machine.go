@@ -338,6 +338,12 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	v.Rootful = opts.Rootful
 	v.Version = currentMachineVersion
 
+	if v.UserModeNetworking {
+		if err := verifyWSLUserModeCompat(); err != nil {
+			return false, err
+		}
+	}
+
 	if err := downloadDistro(v, opts); err != nil {
 		return false, err
 	}
