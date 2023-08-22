@@ -150,11 +150,6 @@ case "$OS_RELEASE_ID" in
         # (Checked on 2023-08-08 and it's still too old: 1.1.5)
         # FIXME: please remove this once runc >= 1.2 makes it into debian.
         modprobe tun
-
-        # TODO: move this into image build process
-        # We need the "en_US.UTF-8" locale for the "podman logs with non ASCII log tag" tests
-        sed -i '/en_US.UTF-8/s/^#//g' /etc/locale.gen
-        locale-gen
         ;;
     fedora)
         if ((CONTAINER==0)); then
