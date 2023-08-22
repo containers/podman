@@ -206,6 +206,9 @@ EOF
     run_podman container inspect $service_container --format "{{.State.Running}}"
     is "$output" "true"
 
+    run_podman container inspect $service_container --format '{{.Config.StopTimeout}}'
+    is "$output" "10" "StopTimeout should be initialized to 10"
+
     # Stop the *main* container and make sure that
     #  1) The pod transitions to Exited
     #  2) The service container is stopped

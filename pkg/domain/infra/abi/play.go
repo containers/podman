@@ -65,6 +65,10 @@ func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name stri
 		return nil, fmt.Errorf("image for service container: %w", err)
 	}
 
+	rtc, err := ic.Libpod.GetConfigNoCopy()
+	if err != nil {
+		return nil, err
+	}
 	ctrOpts := entities.ContainerCreateOptions{
 		// Inherited from infra containers
 		ImageVolume:      define.TypeBind,
@@ -73,7 +77,8 @@ func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name stri
 		ReadOnly:         true,
 		ReadWriteTmpFS:   false,
 		// No need to spin up slirp etc.
-		Net: &entities.NetOptions{Network: specgen.Namespace{NSMode: specgen.NoNetwork}},
+		Net:         &entities.NetOptions{Network: specgen.Namespace{NSMode: specgen.NoNetwork}},
+		StopTimeout: rtc.Engine.StopTimeout,
 	}
 
 	// Create and fill out the runtime spec.
