@@ -476,7 +476,7 @@ none | false | false | 0
             run_podman container inspect --format '{{.KubeExitCodePropagation}}' $service_container
             is "$output" "$exit_code_prop" "service container has the expected policy set in its annotations"
             run_podman wait $service_container
-            is "$output" "$exit_code" "service container reflects expected exit code $exit_code (policy: $policy, cmd1: $cmd1, cmd2: $cmd2)"
+            is "$output" "$exit_code" "service container exit code (propagation: $exit_code_prop, policy: $service_policy, cmds: $cmd1 + $cmd2)"
             run_podman kube down $fname
         done
     done < <(parse_table "$exit_tests")
