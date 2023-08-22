@@ -19,7 +19,7 @@ require (
 	github.com/containers/libhvee v0.0.5
 	github.com/containers/ocicrypt v1.1.7
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.48.0
+	github.com/containers/storage v1.48.1
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.4.2
 	github.com/crc-org/vfkit v0.0.5-0.20230602131541-3d57f09010c9
