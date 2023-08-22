@@ -733,3 +733,31 @@ spec:
     run_podman 125 kube play --authfile=$bogus - < $PODMAN_TMPDIR/test.yaml
     is "$output" "Error: checking authfile: stat $bogus: no such file or directory" "$command should fail with not such file"
 }
+
+@test "podman kube play with umask from containers.conf" {
+    skip_if_remote "remote does not support CONTAINERS_CONF*"
+    YAML=$PODMAN_TMPDIR/test.yaml
+
+    containersConf=$PODMAN_TMPDIR/containers.conf
+    touch $containersConf
+    cat >$containersConf <<EOF
+[containers]
+umask = "0472"
+EOF
+
+    ctr="ctr"
+    ctrInPod="ctr-pod-ctr"
+
+    run_podman create --restart never --name $ctr $IMAGE sh -c "touch /umask-test;stat -c '%a' /umask-test"
+    run_podman kube generate -f $YAML $ctr
+    CONTAINERS_CONF_OVERRIDE="$containersConf" run_podman kube play $YAML
+    run_podman container inspect --format '{{ .Config.Umask }}' $ctrInPod
+    is "${output}" "0472"
+    # Confirm that umask actually takes effect
+    run_podman logs $ctrInPod
+    is "$output" "204" "stat() on created file"
+
+    run_podman kube down $YAML
+    run_podman pod rm -a
+    run_podman rm -a
+}
