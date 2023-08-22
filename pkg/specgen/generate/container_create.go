@@ -587,7 +587,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		retries       uint
 	)
 	// If the container is running in a pod, use the pod's restart policy for all the containers
-	if pod != nil && !s.IsInitContainer() {
+	if pod != nil && !s.IsInitContainer() && s.RestartPolicy == "" {
 		podConfig := pod.ConfigNoCopy()
 		if podConfig.RestartRetries != nil {
 			retries = *podConfig.RestartRetries

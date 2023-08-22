@@ -577,6 +577,21 @@ io.max          | $lomajmin rbps=1048576 wbps=1048576 riops=max wiops=max
     run_podman 1 pod exists $podname
 }
 
+@test "podman pod create restart tests" {
+    podname=pod$(random_string)
+
+    run_podman pod create --restart=on-failure --name $podname
+    run_podman create --name test-ctr --pod $podname $IMAGE
+    run_podman container inspect --format '{{ .HostConfig.RestartPolicy.Name }}' test-ctr
+    is "$output" "on-failure" "container inherits from pod"
+
+    run_podman create --replace --restart=always --name test-ctr --pod $podname $IMAGE
+    run_podman container inspect --format '{{ .HostConfig.RestartPolicy.Name }}' test-ctr
+    is "$output" "always" "container overrides restart policy from pod"
+
+    run_podman pod rm -f -a
+}
+
 # Helper used by pod ps --filter test. Creates one pod or container
 # with a UNIQUE two-character CID prefix.
 function thingy_with_unique_id() {
