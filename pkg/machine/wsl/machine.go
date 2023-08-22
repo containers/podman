@@ -138,9 +138,69 @@ Wants=network-online.target podman.socket
 ExecStart=/usr/bin/sleep infinity
 `
 
-const lingerSetup = `mkdir -p /home/[USER]/.config/systemd/[USER]/default.target.wants
-ln -fs /home/[USER]/.config/systemd/[USER]/linger-example.service \
-       /home/[USER]/.config/systemd/[USER]/default.target.wants/linger-example.service
+const lingerSetup = `mkdir -p /home/[USER]/.config/systemd/user/default.target.wants
+ln -fs /home/[USER]/.config/systemd/user/linger-example.service \
+       /home/[USER]/.config/systemd/user/default.target.wants/linger-example.service
+`
+
+const bindMountSystemService = `
+[Unit]
+Description=Bind mount for system podman sockets
+After=podman.socket
+
+[Service]
+RemainAfterExit=true
+Type=oneshot
+# Ensure user services can register sockets as well
+ExecStartPre=mkdir -p -m 777 /mnt/wsl/podman-sockets
+ExecStartPre=mkdir -p -m 777 /mnt/wsl/podman-sockets/%[1]s
+ExecStartPre=touch /mnt/wsl/podman-sockets/%[1]s/podman-root.sock
+ExecStart=mount --bind %%t/podman/podman.sock /mnt/wsl/podman-sockets/%[1]s/podman-root.sock
+ExecStop=umount /mnt/wsl/podman-sockets/%[1]s/podman-root.sock
+`
+
+const bindMountUserService = `
+[Unit]
+Description=Bind mount for user podman sockets
+After=podman.socket
+
+[Service]
+RemainAfterExit=true
+Type=oneshot
+# Consistency with system service (supports racing)
+ExecStartPre=mkdir -p -m 777 /mnt/wsl/podman-sockets
+ExecStartPre=mkdir -p -m 777 /mnt/wsl/podman-sockets/%[1]s
+ExecStartPre=touch /mnt/wsl/podman-sockets/%[1]s/podman-user.sock
+# Relies on /etc/fstab entry for user mounting
+ExecStart=mount /mnt/wsl/podman-sockets/%[1]s/podman-user.sock
+ExecStop=umount /mnt/wsl/podman-sockets/%[1]s/podman-user.sock
+`
+
+const bindMountFsTab = `/run/user/1000/podman/podman.sock /mnt/wsl/podman-sockets/%s/podman-user.sock none noauto,user,bind,defaults 0 0
+`
+const (
+	defaultTargetWants     = "default.target.wants"
+	userSystemdPath        = "/home/%[1]s/.config/systemd/user"
+	sysSystemdPath         = "/etc/systemd/system"
+	userSystemdWants       = userSystemdPath + "/" + defaultTargetWants
+	sysSystemdWants        = sysSystemdPath + "/" + defaultTargetWants
+	bindUnitFileName       = "podman-mnt-bindings.service"
+	bindUserUnitPath       = userSystemdPath + "/" + bindUnitFileName
+	bindUserUnitWant       = userSystemdWants + "/" + bindUnitFileName
+	bindSysUnitPath        = sysSystemdPath + "/" + bindUnitFileName
+	bindSysUnitWant        = sysSystemdWants + "/" + bindUnitFileName
+	podmanSocketDropin     = "podman.socket.d"
+	podmanSocketDropinPath = sysSystemdPath + "/" + podmanSocketDropin
+)
+
+const configBindServices = "mkdir -p " + userSystemdWants + " " + sysSystemdWants + " " + podmanSocketDropinPath + "\n" +
+	"ln -fs " + bindUserUnitPath + " " + bindUserUnitWant + "\n" +
+	"ln -fs " + bindSysUnitPath + " " + bindSysUnitWant + "\n"
+
+const overrideSocketGroup = `
+[Socket]
+SocketMode=0660
+SocketGroup=wheel
 `
 
 const proxyConfigSetup = `#!/bin/bash
@@ -553,7 +613,53 @@ func configureSystem(v *MachineVM, dist string) error {
 		return fmt.Errorf("could not create podman-machine file for guest OS: %w", err)
 	}
 
+	if err := configureBindMounts(dist, user); err != nil {
+		return err
+	}
+
 	return changeDistUserModeNetworking(dist, user, "", v.UserModeNetworking)
+}
+
+func configureBindMounts(dist string, user string) error {
+	if err := wslPipe(fmt.Sprintf(bindMountSystemService, dist), dist, "sh", "-c", "cat > /etc/systemd/system/podman-mnt-bindings.service"); err != nil {
+		return fmt.Errorf("could not create podman binding service file for guest OS: %w", err)
+	}
+
+	catUserService := "cat > " + getUserUnitPath(user)
+	if err := wslPipe(getBindMountUserService(dist), dist, "sh", "-c", catUserService); err != nil {
+		return fmt.Errorf("could not create podman binding user service file for guest OS: %w", err)
+	}
+
+	if err := wslPipe(getBindMountFsTab(dist), dist, "sh", "-c", "cat >> /etc/fstab"); err != nil {
+		return fmt.Errorf("could not create podman binding fstab entry for guest OS: %w", err)
+	}
+
+	if err := wslPipe(getConfigBindServicesScript(user), dist, "sh"); err != nil {
+		return fmt.Errorf("could not configure podman binding services for guest OS: %w", err)
+	}
+
+	catGroupDropin := fmt.Sprintf("cat > %s/%s", podmanSocketDropinPath, "10-group.conf")
+	if err := wslPipe(overrideSocketGroup, dist, "sh", "-c", catGroupDropin); err != nil {
+		return fmt.Errorf("could not configure podman socket group override: %w", err)
+	}
+
+	return nil
+}
+
+func getConfigBindServicesScript(user string) string {
+	return fmt.Sprintf(configBindServices, user)
+}
+
+func getBindMountUserService(dist string) string {
+	return fmt.Sprintf(bindMountUserService, dist)
+}
+
+func getUserUnitPath(user string) string {
+	return fmt.Sprintf(bindUserUnitPath, user)
+}
+
+func getBindMountFsTab(dist string) string {
+	return fmt.Sprintf(bindMountFsTab, dist)
 }
 
 func (v *MachineVM) setupPodmanDockerSock(dist string, rootful bool) error {
