@@ -32,7 +32,7 @@ env:
   # Number of days befor a closed issue/PR is be comment-locked.
   # Note: dessant/lock-threads will only process a max. of
   # 50 issues/PRs at a time.
-  CLOSED_DAYS: 1825
+  CLOSED_DAYS: 90
   # Pre-created issue/PR label to add (preferrably a bright color).
   # This is intended to direct a would-be commenter's actions.
   LOCKED_LABEL: 'locked - please file new issue/PR'
@@ -54,10 +54,6 @@ jobs:
           add-pr-labels: '${{env.LOCKED_LABEL}}'
           pr-lock-reason: 'resolved'
           log-output: true
-      # Test the failure-notification step functions on failure
-      - run: |
-          echo "::warning::Initiating job test-failure to prompt a human to verify this is working and some issues/PRs were locked."
-          false
       - if: failure()
         name: Send job failure notification e-mail
         uses: dawidd6/action-send-mail@v3.8.0
@@ -69,7 +65,4 @@ jobs:
           subject: Github workflow error on ${{github.repository}}
           to: rh.container.bot@gmail.com,podman-monitor@lists.podman.io
           from: ${{secrets.ACTION_MAIL_SENDER}}
-          body: |
-            Job test-failed - https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
-
-            Please verify some issues/PRs were locked, then revert the commit which added this check.
+          body: "Job failed: https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
