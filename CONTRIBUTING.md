@@ -21,6 +21,9 @@ to see if someone else has already reported it. If so, feel free to add
 your scenario, or additional information, to the discussion. Or simply
 "subscribe" to it to be notified when it is updated.
 
+Note: Older closed issues/PRs are automatically locked, if you have a similar
+problem please open a new issue instead of commenting.
+
 If you find a new issue with the project we'd love to hear about it! The most
 important aspect of a bug report is that it includes enough information for
 us to reproduce it. To make this easier, there are three types of issue
