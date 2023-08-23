@@ -278,4 +278,95 @@ LABEL marge=mom
 		Expect(inspectData[0].Config.Labels).To(Not(HaveKey("marge")))
 	})
 
+	var testYAMLForEnvExpand = `
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2021-08-05T17:55:51Z"
+  labels:
+    app: foobar
+  name: echo_pod
+spec:
+  containers:
+  - command:
+    - /bin/sh
+    - -c
+    - 'echo paren$(FOO) brace${FOO} dollardollarparen$$(FOO) interp$(FOO)olate'
+    env:
+    - name: PATH
+      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    - name: TERM
+      value: xterm
+    - name: container
+      value: podman
+    - name: FOO
+      value: BAR
+    image: foobar
+    name: foobar
+    resources: {}
+    securityContext:
+      allowPrivilegeEscalation: true
+      privileged: false
+      readOnlyRootFilesystem: false
+      seLinuxOptions: {}
+    tty: true
+    workingDir: /
+  restartPolicy: Never
+  dnsConfig: {}
+status: {}
+`
+	It("Check that command is expanded", func() {
+		// Setup
+		yamlDir := filepath.Join(tempdir, RandomString(12))
+		err := os.Mkdir(yamlDir, 0755)
+		Expect(err).ToNot(HaveOccurred(), "mkdir "+yamlDir)
+		err = writeYaml(testYAMLForEnvExpand, filepath.Join(yamlDir, "echo.yaml"))
+		Expect(err).ToNot(HaveOccurred())
+		app1Dir := filepath.Join(yamlDir, "foobar")
+		err = os.Mkdir(app1Dir, 0755)
+		Expect(err).ToNot(HaveOccurred())
+		err = writeYaml(playBuildFile+`ENV FOO foo-from-buildfile
+COPY FOO /bin/FOO
+`, filepath.Join(app1Dir, "Containerfile"))
+		Expect(err).ToNot(HaveOccurred())
+		// Write a file to be copied
+		err = writeYaml(copyFile, filepath.Join(app1Dir, "copyfile"))
+		Expect(err).ToNot(HaveOccurred())
+
+		// Shell expansion of $(FOO) in container needs executable FOO
+		err = writeYaml(`#!/bin/sh
+echo GOT-HERE
+`, filepath.Join(app1Dir, "FOO"))
+		Expect(err).ToNot(HaveOccurred())
+		err = os.Chmod(filepath.Join(app1Dir, "FOO"), 0555)
+		Expect(err).ToNot(HaveOccurred(), "chmod FOO")
+
+		os.Setenv("FOO", "make sure we use FOO from kube file, not env")
+		defer os.Unsetenv("FOO")
+
+		// Switch to temp dir and restore it afterwards
+		cwd, err := os.Getwd()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(os.Chdir(yamlDir)).To(Succeed())
+		defer func() { (Expect(os.Chdir(cwd)).To(BeNil())) }()
+
+		session := podmanTest.Podman([]string{"play", "kube", "echo.yaml"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		logs := podmanTest.Podman([]string{"logs", "echo_pod-foobar"})
+		logs.WaitWithDefaultTimeout()
+		Expect(logs).Should(Exit(0))
+		Expect(logs.OutputToString()).To(Equal("parenBAR braceBAR dollardollarparenGOT-HERE interpBARolate"))
+
+		inspect := podmanTest.Podman([]string{"container", "inspect", "echo_pod-foobar"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		inspectData := inspect.InspectContainerToJSON()
+		Expect(inspectData).ToNot(BeEmpty())
+
+		// dollar-paren are expanded by podman, never seen by container
+		Expect(inspectData[0].Args).To(HaveLen(2))
+		Expect(inspectData[0].Args[1]).To(Equal("echo parenBAR brace${FOO} dollardollarparen$(FOO) interpBARolate"))
+	})
 })

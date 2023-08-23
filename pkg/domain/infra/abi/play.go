@@ -36,6 +36,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 	yamlv3 "gopkg.in/yaml.v3"
+	"k8s.io/kubernetes/third_party/forked/golang/expansion"
 	"sigs.k8s.io/yaml"
 )
 
@@ -82,6 +83,7 @@ func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name stri
 	}
 	s.Name = name
 
+	expandForKube(s)
 	runtimeSpec, spec, opts, err := generate.MakeContainer(ctx, ic.Libpod, s, false, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating runtime spec for service container: %w", err)
@@ -786,6 +788,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		}
 
 		specGen.SdNotifyMode = define.SdNotifyModeIgnore
+		expandForKube(specGen)
 		rtSpec, spec, opts, err := generate.MakeContainer(ctx, ic.Libpod, specGen, false, nil)
 		if err != nil {
 			return nil, nil, err
@@ -854,6 +857,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		}
 
 		specGen.RawImageName = container.Image
+		expandForKube(specGen)
 		rtSpec, spec, opts, err := generate.MakeContainer(ctx, ic.Libpod, specGen, false, nil)
 		if err != nil {
 			return nil, nil, err
@@ -1573,4 +1577,14 @@ func getMountLabel(securityContext *v1.PodSecurityContext) (string, error) {
 		con["type"] = seopt.FileType
 	}
 	return con.Get(), nil
+}
+
+func expandForKube(s *specgen.SpecGenerator) {
+	mapping := expansion.MappingFuncFor(s.Env)
+	for i, subCmd := range s.Entrypoint {
+		s.Entrypoint[i] = expansion.Expand(subCmd, mapping)
+	}
+	for i, subCmd := range s.Command {
+		s.Command[i] = expansion.Expand(subCmd, mapping)
+	}
 }
