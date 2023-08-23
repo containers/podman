@@ -1,7 +1,7 @@
 //go:build (linux && !mips && !mipsle && !mips64 && !mips64le) || freebsd
 // +build linux,!mips,!mipsle,!mips64,!mips64le freebsd
 
-package util
+package copier
 
 import (
 	"syscall"
