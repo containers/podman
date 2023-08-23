@@ -489,6 +489,8 @@ none | false | false | 0
                  podman_exit=0
             fi
             run_podman $podman_exit kube play --service-exit-code-propagation="$exit_code_prop" --service-container $fname
+            # Make sure that there are no error logs (e.g., #19715)
+            assert "$output" !~ "error msg="
             run_podman container inspect --format '{{.KubeExitCodePropagation}}' $service_container
             is "$output" "$exit_code_prop" "service container has the expected policy set in its annotations"
             run_podman wait $service_container
