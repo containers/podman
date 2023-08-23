@@ -49,6 +49,8 @@ const registriesConf = `unqualified-search-registries=["docker.io"]
 
 const appendPort = `grep -q Port\ %d /etc/ssh/sshd_config || echo Port %d >> /etc/ssh/sshd_config`
 
+const changePort = `sed -E -i 's/^Port[[:space:]]+[0-9]+/Port %d/' /etc/ssh/sshd_config`
+
 const configServices = `ln -fs /usr/lib/systemd/system/sshd.service /etc/systemd/system/multi-user.target.wants/sshd.service
 ln -fs /usr/lib/systemd/system/podman.socket /etc/systemd/system/sockets.target.wants/podman.socket
 rm -f /etc/systemd/system/getty.target.wants/console-getty.service
@@ -414,18 +416,32 @@ func (v *MachineVM) writeConfig() error {
 	return machine.WriteConfig(v.ConfigPath, v)
 }
 
-func setupConnections(v *MachineVM, opts machine.InitOptions) error {
+func constructSSHUris(v *MachineVM) ([]url.URL, []string) {
 	uri := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, rootlessSock, strconv.Itoa(v.Port), v.RemoteUsername)
 	uriRoot := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, rootfulSock, strconv.Itoa(v.Port), "root")
 
 	uris := []url.URL{uri, uriRoot}
 	names := []string{v.Name, v.Name + "-root"}
 
+	return uris, names
+}
+
+func setupConnections(v *MachineVM, opts machine.InitOptions) error {
+	uris, names := constructSSHUris(v)
+
 	// The first connection defined when connections is empty will become the default
 	// regardless of IsDefault, so order according to rootful
 	if opts.Rootful {
 		uris[0], names[0], uris[1], names[1] = uris[1], names[1], uris[0], names[0]
 	}
+
+	// We need to prevent racing connection updates to containers.conf globally
+	// across all backends to prevent connection overwrites
+	flock, err := obtainGlobalConfigLock()
+	if err != nil {
+		return fmt.Errorf("could not obtain global lock: %w", err)
+	}
+	defer flock.unlock()
 
 	for i := 0; i < 2; i++ {
 		if err := machine.AddConnection(&uris[i], names[i], v.IdentityPath, opts.IsDefault && i == 0); err != nil {
@@ -998,6 +1014,13 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		return err
 	}
 
+	if !machine.IsLocalPortAvailable(v.Port) {
+		logrus.Warnf("SSH port conflict detected, reassigning a new port")
+		if err := v.reassignSshPort(); err != nil {
+			return err
+		}
+	}
+
 	// Startup user-mode networking if enabled
 	if err := v.startUserModeNetworking(); err != nil {
 		return err
@@ -1044,6 +1067,74 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 
 	_, _, err = v.updateTimeStamps(true)
 	return err
+}
+
+func obtainGlobalConfigLock() (*fileLock, error) {
+	lockDir, err := machine.GetGlobalDataDir()
+	if err != nil {
+		return nil, err
+	}
+
+	// Lock file needs to be above all backends
+	// TODO: This should be changed to a common.Config lock mechanism when available
+	return lockFile(filepath.Join(lockDir, "podman-config.lck"))
+}
+
+func (v *MachineVM) reassignSshPort() error {
+	dist := toDist(v.Name)
+	newPort, err := machine.AllocateMachinePort()
+	if err != nil {
+		return err
+	}
+
+	success := false
+	defer func() {
+		if !success {
+			if err := machine.ReleaseMachinePort(newPort); err != nil {
+				logrus.Warnf("could not release port allocation as part of failure rollback (%d): %w", newPort, err)
+			}
+		}
+	}()
+
+	// We need to prevent racing connection updates to containers.conf globally
+	// across all backends to prevent connection overwrites
+	flock, err := obtainGlobalConfigLock()
+	if err != nil {
+		return fmt.Errorf("could not obtain global lock: %w", err)
+	}
+	defer flock.unlock()
+
+	// Write a transient invalid port, to force a retry on failure
+	oldPort := v.Port
+	v.Port = 0
+	if err := v.writeConfig(); err != nil {
+		return err
+	}
+
+	if err := machine.ReleaseMachinePort(oldPort); err != nil {
+		logrus.Warnf("could not release current ssh port allocation (%d): %w", oldPort, err)
+	}
+
+	if err := wslInvoke(dist, "sh", "-c", fmt.Sprintf(changePort, newPort)); err != nil {
+		return fmt.Errorf("could not change SSH port for guest OS: %w", err)
+	}
+
+	v.Port = newPort
+	uris, names := constructSSHUris(v)
+	for i := 0; i < 2; i++ {
+		if err := machine.ChangeConnectionURI(names[i], &uris[i]); err != nil {
+			return err
+		}
+	}
+
+	// Write updated port back
+	if err := v.writeConfig(); err != nil {
+		return err
+	}
+
+	success = true
+
+	return nil
 }
 
 func findExecutablePeer(name string) (string, error) {
@@ -1366,6 +1457,10 @@ func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, fun
 				logrus.Error(err)
 			}
 		}
+		if err := machine.ReleaseMachinePort(v.Port); err != nil {
+			logrus.Warnf("could not release port allocation as part of removal (%d): %w", v.Port, err)
+		}
+
 		return nil
 	}, nil
 }
