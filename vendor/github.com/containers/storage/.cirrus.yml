@@ -23,7 +23,7 @@ env:
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
     # VM Image built in containers/automation_images
-    IMAGE_SUFFIX: "c20230614t132754z-f38f37d13"
+    IMAGE_SUFFIX: "c20230816t191118z-f38f37d13"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
 

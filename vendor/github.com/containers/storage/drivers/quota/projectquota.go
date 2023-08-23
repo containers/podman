@@ -58,6 +58,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sync"
 	"syscall"
 	"unsafe"
 
@@ -83,7 +84,7 @@ type Quota struct {
 type Control struct {
 	backingFsBlockDev string
 	nextProjectID     uint32
-	quotas            map[string]uint32
+	quotas            *sync.Map
 	basePath          string
 }
 
@@ -168,7 +169,7 @@ func NewControl(basePath string) (*Control, error) {
 	q := Control{
 		backingFsBlockDev: backingFsBlockDev,
 		nextProjectID:     minProjectID + 1,
-		quotas:            make(map[string]uint32),
+		quotas:            &sync.Map{},
 		basePath:          basePath,
 	}
 
@@ -191,7 +192,11 @@ func NewControl(basePath string) (*Control, error) {
 // SetQuota - assign a unique project id to directory and set the quota limits
 // for that project id
 func (q *Control) SetQuota(targetPath string, quota Quota) error {
-	projectID, ok := q.quotas[targetPath]
+	var projectID uint32
+	value, ok := q.quotas.Load(targetPath)
+	if ok {
+		projectID, ok = value.(uint32)
+	}
 	if !ok {
 		projectID = q.nextProjectID
 
@@ -203,7 +208,7 @@ func (q *Control) SetQuota(targetPath string, quota Quota) error {
 			return err
 		}
 
-		q.quotas[targetPath] = projectID
+		q.quotas.Store(targetPath, projectID)
 		q.nextProjectID++
 	}
 
@@ -217,7 +222,7 @@ func (q *Control) SetQuota(targetPath string, quota Quota) error {
 // ClearQuota removes the map entry in the quotas map for targetPath.
 // It does so to prevent the map leaking entries as directories are deleted.
 func (q *Control) ClearQuota(targetPath string) {
-	delete(q.quotas, targetPath)
+	q.quotas.Delete(targetPath)
 }
 
 // setProjectQuota - set the quota for project id on xfs block device
@@ -297,8 +302,11 @@ func (q *Control) GetDiskUsage(targetPath string, usage *directory.DiskUsage) er
 
 func (q *Control) fsDiskQuotaFromPath(targetPath string) (C.fs_disk_quota_t, error) {
 	var d C.fs_disk_quota_t
-
-	projectID, ok := q.quotas[targetPath]
+	var projectID uint32
+	value, ok := q.quotas.Load(targetPath)
+	if ok {
+		projectID, ok = value.(uint32)
+	}
 	if !ok {
 		return d, fmt.Errorf("quota not found for path : %s", targetPath)
 	}
@@ -380,7 +388,7 @@ func (q *Control) findNextProjectID() error {
 			return err
 		}
 		if projid > 0 {
-			q.quotas[path] = projid
+			q.quotas.Store(path, projid)
 		}
 		if q.nextProjectID <= projid {
 			q.nextProjectID = projid + 1
