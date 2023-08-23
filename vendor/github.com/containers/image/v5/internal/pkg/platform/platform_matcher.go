@@ -128,6 +128,10 @@ var compatibility = map[string][]string{
 // the most compatible platform is first.
 // If some option (arch, os, variant) is not present, a value from current platform is detected.
 func WantedPlatforms(ctx *types.SystemContext) ([]imgspecv1.Platform, error) {
+	// Note that this does not use Platform.OSFeatures and Platform.OSVersion at all.
+	// The fields are not specified by the OCI specification, as of version 1.1, usefully enough
+	// to be interoperable, anyway.
+
 	wantedArch := runtime.GOARCH
 	wantedVariant := ""
 	if ctx != nil && ctx.ArchitectureChoice != "" {

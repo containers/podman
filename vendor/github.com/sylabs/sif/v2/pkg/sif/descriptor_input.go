@@ -293,6 +293,15 @@ func NewDescriptorInput(t DataType, r io.Reader, opts ...DescriptorInputOpt) (De
 		dopts.alignment = 4096
 	}
 
+	// Accumulate hash for OCI blobs as they are written.
+	if t == DataOCIRootIndex || t == DataOCIBlob {
+		md := newOCIBlobDigest()
+
+		r = io.TeeReader(r, md.hasher)
+
+		dopts.md = md
+	}
+
 	for _, opt := range opts {
 		if err := opt(t, &dopts); err != nil {
 			return DescriptorInput{}, fmt.Errorf("%w", err)

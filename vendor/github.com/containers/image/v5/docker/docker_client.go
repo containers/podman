@@ -1,7 +1,6 @@
 package docker
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -19,6 +18,7 @@ import (
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/internal/iolimits"
+	"github.com/containers/image/v5/internal/set"
 	"github.com/containers/image/v5/internal/useragent"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/docker/config"
@@ -121,6 +121,9 @@ type dockerClient struct {
 	// Private state for detectProperties:
 	detectPropertiesOnce  sync.Once // detectPropertiesOnce is used to execute detectProperties() at most once.
 	detectPropertiesError error     // detectPropertiesError caches the initial error.
+	// Private state for logResponseWarnings
+	reportedWarningsLock sync.Mutex
+	reportedWarnings     *set.Set[string]
 }
 
 type authScope struct {
@@ -281,10 +284,11 @@ func newDockerClient(sys *types.SystemContext, registry, reference string) (*doc
 	}
 
 	return &dockerClient{
-		sys:             sys,
-		registry:        registry,
-		userAgent:       userAgent,
-		tlsClientConfig: tlsClientConfig,
+		sys:              sys,
+		registry:         registry,
+		userAgent:        userAgent,
+		tlsClientConfig:  tlsClientConfig,
+		reportedWarnings: set.New[string](),
 	}, nil
 }
 
@@ -624,7 +628,74 @@ func (c *dockerClient) makeRequestToResolvedURLOnce(ctx context.Context, method 
 	if err != nil {
 		return nil, err
 	}
+	if warnings := res.Header.Values("Warning"); len(warnings) != 0 {
+		c.logResponseWarnings(res, warnings)
+	}
 	return res, nil
+}
+
+// logResponseWarnings logs warningHeaders from res, if any.
+func (c *dockerClient) logResponseWarnings(res *http.Response, warningHeaders []string) {
+	c.reportedWarningsLock.Lock()
+	defer c.reportedWarningsLock.Unlock()
+
+	for _, header := range warningHeaders {
+		warningString := parseRegistryWarningHeader(header)
+		if warningString == "" {
+			logrus.Debugf("Ignored Warning: header from registry: %q", header)
+		} else {
+			if !c.reportedWarnings.Contains(warningString) {
+				c.reportedWarnings.Add(warningString)
+				// Note that reportedWarnings is based only on warningString, so that we don’t
+				// repeat the same warning for every request - but the warning includes the URL;
+				// so it may not be specific to that URL.
+				logrus.Warnf("Warning from registry (first encountered at %q): %q", res.Request.URL.Redacted(), warningString)
+			} else {
+				logrus.Debugf("Repeated warning from registry at %q: %q", res.Request.URL.Redacted(), warningString)
+			}
+		}
+	}
+}
+
+// parseRegistryWarningHeader parses a Warning: header per RFC 7234, limited to the warning
+// values allowed by opencontainers/distribution-spec.
+// It returns the warning string if the header has the expected format, or "" otherwise.
+func parseRegistryWarningHeader(header string) string {
+	const expectedPrefix = `299 - "`
+	const expectedSuffix = `"`
+
+	// warning-value = warn-code SP warn-agent SP warn-text	[ SP warn-date ]
+	// distribution-spec requires warn-code=299, warn-agent="-", warn-date missing
+	if !strings.HasPrefix(header, expectedPrefix) || !strings.HasSuffix(header, expectedSuffix) {
+		return ""
+	}
+	header = header[len(expectedPrefix) : len(header)-len(expectedSuffix)]
+
+	// ”Recipients that process the value of a quoted-string MUST handle a quoted-pair
+	// as if it were replaced by the octet following the backslash.”, so let’s do that…
+	res := strings.Builder{}
+	afterBackslash := false
+	for _, c := range []byte(header) { // []byte because escaping is defined in terms of bytes, not Unicode code points
+		switch {
+		case c == 0x7F || (c < ' ' && c != '\t'):
+			return "" // Control characters are forbidden
+		case afterBackslash:
+			res.WriteByte(c)
+			afterBackslash = false
+		case c == '"':
+			// This terminates the warn-text and warn-date, forbidden by distribution-spec, follows,
+			// or completely invalid input.
+			return ""
+		case c == '\\':
+			afterBackslash = true
+		default:
+			res.WriteByte(c)
+		}
+	}
+	if afterBackslash {
+		return ""
+	}
+	return res.String()
 }
 
 // we're using the challenges from the /v2/ ping response and not the one from the destination
@@ -1008,9 +1079,10 @@ func isManifestUnknownError(err error) bool {
 	if errors.As(err, &e) && e.ErrorCode() == errcode.ErrorCodeUnknown && e.Message == "Not Found" {
 		return true
 	}
-	// ALSO registry.redhat.io as of October 2022
+	// opencontainers/distribution-spec does not require the errcode.Error payloads to be used,
+	// but specifies that the HTTP status must be 404.
 	var unexpected *unexpectedHTTPResponseError
-	if errors.As(err, &unexpected) && unexpected.StatusCode == http.StatusNotFound && bytes.Contains(unexpected.Response, []byte("Not found")) {
+	if errors.As(err, &unexpected) && unexpected.StatusCode == http.StatusNotFound {
 		return true
 	}
 	return false
