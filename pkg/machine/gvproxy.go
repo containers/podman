@@ -2,7 +2,6 @@ package machine
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"syscall"
 	"time"
@@ -19,7 +18,7 @@ const (
 func backoffForProcess(pid int) error {
 	sleepInterval := sleepTime
 	for i := 0; i < loops; i++ {
-		proxyProc, err := os.FindProcess(pid)
+		proxyProc, err := findProcess(pid)
 		if proxyProc == nil && err != nil {
 			// process is killed, gone
 			return nil //nolint: nilerr
@@ -35,13 +34,16 @@ func backoffForProcess(pid int) error {
 // process to not exist.  if the sigterm does not end the process after an interval,
 // then sigkill is sent.  it also waits for the process to exit after the sigkill too.
 func waitOnProcess(processID int) error {
-	proxyProc, err := os.FindProcess(processID)
+	proxyProc, err := findProcess(processID)
 	if err != nil {
 		return err
 	}
 
 	// Try to kill the pid with sigterm
 	if err := proxyProc.Signal(syscall.SIGTERM); err != nil {
+		if err == syscall.ESRCH {
+			return nil
+		}
 		return err
 	}
 
@@ -50,14 +52,16 @@ func waitOnProcess(processID int) error {
 	}
 
 	// sigterm has not killed it yet, lets send a sigkill
-	proxyProc, err = os.FindProcess(processID)
+	proxyProc, err = findProcess(processID)
 	if proxyProc == nil && err != nil {
 		// process is killed, gone
 		return nil //nolint: nilerr
 	}
 	if err := proxyProc.Signal(syscall.SIGKILL); err != nil {
-		// lets assume it is dead in this case
-		return nil //nolint: nilerr
+		if err == syscall.ESRCH {
+			return nil
+		}
+		return err
 	}
 	return backoffForProcess(processID)
 }
@@ -72,8 +76,8 @@ func CleanupGVProxy(f VMFile) error {
 	if err != nil {
 		return fmt.Errorf("unable to convert pid to integer: %v", err)
 	}
-	if err := waitOnProcess(proxyPid); err == nil {
-		return nil
+	if err := waitOnProcess(proxyPid); err != nil {
+		return err
 	}
 	return f.Delete()
 }
