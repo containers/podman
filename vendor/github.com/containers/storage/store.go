@@ -1459,6 +1459,7 @@ func (s *store) PutLayer(id, parent string, names []string, mountLabel string, w
 	layerOptions := LayerOptions{
 		OriginalDigest:     options.OriginalDigest,
 		UncompressedDigest: options.UncompressedDigest,
+		Flags:              options.Flags,
 	}
 	if s.canUseShifting(uidMap, gidMap) {
 		layerOptions.IDMappingOptions = types.IDMappingOptions{HostUIDMapping: true, HostGIDMapping: true, UIDMap: nil, GIDMap: nil}

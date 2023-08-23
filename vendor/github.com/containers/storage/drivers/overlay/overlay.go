@@ -820,11 +820,17 @@ func (d *Driver) String() string {
 // Status returns current driver information in a two dimensional string array.
 // Output contains "Backing Filesystem" used in this implementation.
 func (d *Driver) Status() [][2]string {
+	supportsVolatile, err := d.getSupportsVolatile()
+	if err != nil {
+		supportsVolatile = false
+	}
 	return [][2]string{
 		{"Backing Filesystem", backingFs},
 		{"Supports d_type", strconv.FormatBool(d.supportsDType)},
 		{"Native Overlay Diff", strconv.FormatBool(!d.useNaiveDiff())},
 		{"Using metacopy", strconv.FormatBool(d.usingMetacopy)},
+		{"Supports shifting", strconv.FormatBool(d.SupportsShifting())},
+		{"Supports volatile", strconv.FormatBool(supportsVolatile)},
 	}
 }
 
@@ -1879,7 +1885,9 @@ func (d *Driver) Put(id string) error {
 	if !unmounted {
 		if err := unix.Unmount(mountpoint, unix.MNT_DETACH); err != nil && !os.IsNotExist(err) {
 			logrus.Debugf("Failed to unmount %s overlay: %s - %v", id, mountpoint, err)
-			return fmt.Errorf("unmounting %q: %w", mountpoint, err)
+			if !errors.Is(err, unix.EINVAL) {
+				return fmt.Errorf("unmounting %q: %w", mountpoint, err)
+			}
 		}
 	}
 
@@ -2162,7 +2170,7 @@ func (d *Driver) getLowerDiffPaths(id string) ([]string, error) {
 // and its parent and returns the size in bytes of the changes
 // relative to its base filesystem directory.
 func (d *Driver) DiffSize(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) (size int64, err error) {
-	if d.options.mountProgram == "" && (d.useNaiveDiff() || !d.isParent(id, parent)) {
+	if !d.isParent(id, parent) {
 		return d.naiveDiff.DiffSize(id, idMappings, parent, parentMappings, mountLabel)
 	}
 

@@ -675,8 +675,7 @@ func (d *Driver) Exists(id string) bool {
 
 // List all of the layers known to the driver.
 func (d *Driver) ListLayers() ([]string, error) {
-	subvolumesDir := filepath.Join(d.home, "subvolumes")
-	entries, err := os.ReadDir(subvolumesDir)
+	entries, err := os.ReadDir(d.subvolumesDir())
 	if err != nil {
 		return nil, err
 	}

@@ -19,7 +19,7 @@ require (
 	github.com/containers/libhvee v0.4.0
 	github.com/containers/ocicrypt v1.1.8
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.48.1-0.20230728131509-c3da76fa3f63
+	github.com/containers/storage v1.49.1-0.20230823084450-6902c2df7cca
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.4.3
 	github.com/crc-org/vfkit v0.1.1
@@ -47,7 +47,7 @@ require (
 	github.com/onsi/gomega v1.27.10
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc4
-	github.com/opencontainers/runc v1.1.8
+	github.com/opencontainers/runc v1.1.9
 	github.com/opencontainers/runtime-spec v1.1.0
 	github.com/opencontainers/runtime-tools v0.9.1-0.20230317050512-e931285f4b69
 	github.com/opencontainers/selinux v1.11.0

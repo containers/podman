@@ -164,26 +164,6 @@ func copyFileContent(srcFd int, destFile string, dirfd int, mode os.FileMode, us
 	return dstFile, st.Size(), nil
 }
 
-// GetTOCDigest returns the digest of the TOC as recorded in the annotations.
-// This is an experimental feature and may be changed/removed in the future.
-func GetTOCDigest(annotations map[string]string) (*digest.Digest, error) {
-	if contentDigest, ok := annotations[estargz.TOCJSONDigestAnnotation]; ok {
-		d, err := digest.Parse(contentDigest)
-		if err != nil {
-			return nil, err
-		}
-		return &d, nil
-	}
-	if contentDigest, ok := annotations[internal.ManifestChecksumKey]; ok {
-		d, err := digest.Parse(contentDigest)
-		if err != nil {
-			return nil, err
-		}
-		return &d, nil
-	}
-	return nil, nil
-}
-
 type seekableFile struct {
 	file *os.File
 }
