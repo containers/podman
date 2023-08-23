@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
+	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
@@ -1072,8 +1073,9 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 
 	if opts.Spec != nil && !reflect.ValueOf(opts.Spec).IsNil() {
 		// If this is a checkpoint image, restore it.
-		img, resolvedImageName := opts.Spec.GetImage()
-		if img != nil && resolvedImageName != "" {
+		img_, resolvedImageName := opts.Spec.GetImage()
+		if img_ != nil && resolvedImageName != "" {
+			img := img_.(*libimage.Image)
 			imgData, err := img.Inspect(ctx, nil)
 			if err != nil {
 				return nil, err

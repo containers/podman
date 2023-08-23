@@ -28,8 +28,10 @@ func getImageFromSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGen
 	}
 
 	// Image may already have been set in the generator.
-	image, resolvedName := s.GetImage()
-	if image != nil {
+	var image *libimage.Image
+	image_, resolvedName := s.GetImage()
+	if image_ != nil {
+		image = image_.(*libimage.Image)
 		inspectData, err := image.Inspect(ctx, nil)
 		if err != nil {
 			return nil, "", nil, err
