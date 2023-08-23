@@ -305,18 +305,18 @@ func checkImageDestinationForCurrentRuntime(ctx context.Context, sys *types.Syst
 		options := newOrderedSet()
 		match := false
 		for _, wantedPlatform := range wantedPlatforms {
-			// Waiting for https://github.com/opencontainers/image-spec/pull/777 :
-			// This currently can’t use image.MatchesPlatform because we don’t know what to use
-			// for image.Variant.
-			if wantedPlatform.OS == c.OS && wantedPlatform.Architecture == c.Architecture {
+			// For a transitional period, this might trigger warnings because the Variant
+			// field was added to OCI config only recently. If this turns out to be too noisy,
+			// revert this check to only look for (OS, Architecture).
+			if platform.MatchesPlatform(c.Platform, wantedPlatform) {
 				match = true
 				break
 			}
-			options.append(fmt.Sprintf("%s+%s", wantedPlatform.OS, wantedPlatform.Architecture))
+			options.append(fmt.Sprintf("%s+%s+%q", wantedPlatform.OS, wantedPlatform.Architecture, wantedPlatform.Variant))
 		}
 		if !match {
-			logrus.Infof("Image operating system mismatch: image uses OS %q+architecture %q, expecting one of %q",
-				c.OS, c.Architecture, strings.Join(options.list, ", "))
+			logrus.Infof("Image operating system mismatch: image uses OS %q+architecture %q+%q, expecting one of %q",
+				c.OS, c.Architecture, c.Variant, strings.Join(options.list, ", "))
 		}
 	}
 	return nil
@@ -460,8 +460,14 @@ func (ic *imageCopier) copyLayers(ctx context.Context) ([]compressiontypes.Algor
 		encryptAll = len(*ic.c.options.OciEncryptLayers) == 0
 		totalLayers := len(srcInfos)
 		for _, l := range *ic.c.options.OciEncryptLayers {
-			// if layer is negative, it is reverse indexed.
-			layersToEncrypt.Add((totalLayers + l) % totalLayers)
+			switch {
+			case l >= 0 && l < totalLayers:
+				layersToEncrypt.Add(l)
+			case l < 0 && l+totalLayers >= 0: // Implies (l + totalLayers) < totalLayers
+				layersToEncrypt.Add(l + totalLayers) // If l is negative, it is reverse indexed.
+			default:
+				return nil, fmt.Errorf("when choosing layers to encrypt, layer index %d out of range (%d layers exist)", l, totalLayers)
+			}
 		}
 
 		if encryptAll {

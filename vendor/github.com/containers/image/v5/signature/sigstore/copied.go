@@ -10,9 +10,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/secure-systems-lab/go-securesystemslib/encrypted"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
-	"github.com/theupdateframework/go-tuf/encrypted"
 )
 
 // The following code was copied from github.com/sigstore.

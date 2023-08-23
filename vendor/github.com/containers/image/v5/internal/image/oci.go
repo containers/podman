@@ -86,7 +86,7 @@ func (m *manifestOCI1) ConfigBlob(ctx context.Context) ([]byte, error) {
 // old image manifests work (docker v2s1 especially).
 func (m *manifestOCI1) OCIConfig(ctx context.Context) (*imgspecv1.Image, error) {
 	if m.m.Config.MediaType != imgspecv1.MediaTypeImageConfig {
-		return nil, internalManifest.NewNonImageArtifactError(m.m.Config.MediaType)
+		return nil, internalManifest.NewNonImageArtifactError(&m.m.Manifest)
 	}
 
 	cb, err := m.ConfigBlob(ctx)
@@ -200,7 +200,7 @@ func (m *manifestOCI1) convertToManifestSchema2Generic(ctx context.Context, opti
 // This does not change the state of the original manifestOCI1 object.
 func (m *manifestOCI1) convertToManifestSchema2(_ context.Context, _ *types.ManifestUpdateOptions) (*manifestSchema2, error) {
 	if m.m.Config.MediaType != imgspecv1.MediaTypeImageConfig {
-		return nil, internalManifest.NewNonImageArtifactError(m.m.Config.MediaType)
+		return nil, internalManifest.NewNonImageArtifactError(&m.m.Manifest)
 	}
 
 	// Create a copy of the descriptor.
@@ -244,7 +244,7 @@ func (m *manifestOCI1) convertToManifestSchema2(_ context.Context, _ *types.Mani
 // This does not change the state of the original manifestOCI1 object.
 func (m *manifestOCI1) convertToManifestSchema1(ctx context.Context, options *types.ManifestUpdateOptions) (genericManifest, error) {
 	if m.m.Config.MediaType != imgspecv1.MediaTypeImageConfig {
-		return nil, internalManifest.NewNonImageArtifactError(m.m.Config.MediaType)
+		return nil, internalManifest.NewNonImageArtifactError(&m.m.Manifest)
 	}
 
 	// We can't directly convert images to V1, but we can transitively convert via a V2 image

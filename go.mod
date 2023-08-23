@@ -15,7 +15,7 @@ require (
 	github.com/containers/buildah v1.31.1-0.20230722114901-5ece066f82c6
 	github.com/containers/common v0.55.1-0.20230830075933-12405381ff45
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.26.1-0.20230807184415-3fb422379cfa
+	github.com/containers/image/v5 v5.27.1-0.20230822172742-c1b06ce4f477
 	github.com/containers/libhvee v0.4.1-0.20230901141204-2bf793065cfd
 	github.com/containers/ocicrypt v1.1.8
 	github.com/containers/psgo v1.8.0
@@ -125,7 +125,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
-	github.com/google/go-containerregistry v0.15.2 // indirect
+	github.com/google/go-containerregistry v0.16.1 // indirect
 	github.com/google/go-intervals v0.0.2 // indirect
 	github.com/google/pprof v0.0.0-20230323073829-e72429f035bd // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -163,13 +163,14 @@ require (
 	github.com/proglottis/gpgme v0.1.3 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/seccomp/libseccomp-golang v0.10.0 // indirect
+	github.com/secure-systems-lab/go-securesystemslib v0.7.0 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/sigstore/fulcio v1.4.0 // indirect
 	github.com/sigstore/rekor v1.2.2 // indirect
-	github.com/sigstore/sigstore v1.7.1 // indirect
+	github.com/sigstore/sigstore v1.7.2 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20201008174630-78d3cae3a980 // indirect
-	github.com/sylabs/sif/v2 v2.11.5 // indirect
+	github.com/sylabs/sif/v2 v2.12.0 // indirect
 	github.com/tchap/go-patricia/v2 v2.3.1 // indirect
 	github.com/theupdateframework/go-tuf v0.5.2 // indirect
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
