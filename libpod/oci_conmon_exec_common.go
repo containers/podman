@@ -743,6 +743,14 @@ func (c *Container) prepareProcessExec(options *ExecOptions, env []string, sessi
 		pspec.User = processUser
 	}
 
+	if c.config.Umask != "" {
+		umask, err := c.umask()
+		if err != nil {
+			return nil, err
+		}
+		pspec.User.Umask = &umask
+	}
+
 	if err := c.setProcessCapabilitiesExec(options, user, execUser, pspec); err != nil {
 		return nil, err
 	}

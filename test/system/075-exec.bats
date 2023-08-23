@@ -148,4 +148,23 @@ load helpers
     run_podman rm -f wait_container
 }
 
+@test "podman run umask" {
+    test "$(podman_runtime)" == "crun" \
+        || skip "FIXME: runtime is $(podman_runtime); this test requires crun or runc 1.1.7 or newer which is not currently in debian"
+    umask="0724"
+    run_podman run --rm -q $IMAGE grep Umask /proc/self/status
+    is "$output" "Umask:.*0022" "default_umask should not be modified"
+
+    run_podman run -q --rm --umask $umask $IMAGE grep Umask /proc/self/status
+    is "$output" "Umask:.*$umask" "umask should be modified"
+    run_podman run -q -d --umask $umask $IMAGE sleep inf
+    cid=$output
+    run_podman exec $cid grep Umask /proc/self/status
+    is "$output" "Umask:.*$umask" "exec umask should match container umask"
+    run_podman exec $cid sh -c "touch /foo; stat -c '%a' /foo"
+    is "$output" "42" "umask should apply to newly created file"
+
+    run_podman rm -f -t0 $cid
+}
+
 # vim: filetype=sh
