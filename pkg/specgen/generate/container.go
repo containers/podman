@@ -68,11 +68,6 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		return nil, err
 	}
 	if inspectData != nil {
-		inspectData, err = newImage.Inspect(ctx, nil)
-		if err != nil {
-			return nil, err
-		}
-
 		if s.HealthConfig == nil {
 			// NOTE: the health check is only set for Docker images
 			// but inspect will take care of it.
