@@ -962,6 +962,7 @@ image_build_task: &image-build
             CTXDIR: contrib/podmanimage/testing
         - env:
             CTXDIR: contrib/podmanimage/stable
+            A_DEBUG: 1
     env:
         DISTRO_NV: "${FEDORA_NAME}"  # Required for repo cache extraction
         PODMAN_USERNAME: ENCRYPTED[b9f0f2550029dd2196e086d9dd6c2d1fec7e328630b15990d9bb610f9fcccb5baab8b64a8c3e72b0c1d0f5917cf65aa1]
