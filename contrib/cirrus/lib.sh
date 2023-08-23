@@ -101,9 +101,6 @@ PASSTHROUGH_ENV_ATSTART='CI|LANG|LC_|TEST'
 # List of envariable patterns which can match ANYWHERE in the name
 PASSTHROUGH_ENV_ANYWHERE='_NAME|_FQIN'
 
-# Combine into one
-PASSTHROUGH_ENV_RE="(^($PASSTHROUGH_ENV_EXACT)\$)|(^($PASSTHROUGH_ENV_ATSTART))|($PASSTHROUGH_ENV_ANYWHERE)"
-
 # Unsafe env. vars for display
 SECRET_ENV_RE='ACCOUNT|GC[EP]..|SSH|PASSWORD|SECRET|TOKEN'
 
@@ -118,20 +115,6 @@ set +a
 
 lilto() { err_retry 8 1000 "" "$@"; }  # just over 4 minutes max
 bigto() { err_retry 7 5670 "" "$@"; }  # 12 minutes max
-
-# Return a list of environment variables that should be passed through
-# to lower levels (tests in containers, or via ssh to rootless).
-# We return the variable names only, not their values. It is up to our
-# caller to reference values.
-passthrough_envars(){
-    local envname
-    warn "Will pass env. vars. matching the following regex:
-    $PASSTHROUGH_ENV_RE"
-    compgen -A variable | \
-        grep -Ev "SETUP_ENVIRONMENT" | \
-        grep -Ev "$SECRET_ENV_RE" | \
-        grep -E  "$PASSTHROUGH_ENV_RE"
-}
 
 setup_rootless() {
     req_env_vars GOPATH GOSRC SECRET_ENV_RE
