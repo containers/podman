@@ -662,8 +662,12 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 
 	ic.c.printCopyInfo("blob", srcInfo)
 
-	cachedDiffID := ic.c.blobInfoCache.UncompressedDigest(srcInfo.Digest) // May be ""
-	diffIDIsNeeded := ic.diffIDsAreNeeded && cachedDiffID == ""
+	diffIDIsNeeded := false
+	var cachedDiffID digest.Digest = ""
+	if ic.diffIDsAreNeeded {
+		cachedDiffID = ic.c.blobInfoCache.UncompressedDigest(srcInfo.Digest) // May be ""
+		diffIDIsNeeded = cachedDiffID == ""
+	}
 	// When encrypting to decrypting, only use the simple code path. We might be able to optimize more
 	// (e.g. if we know the DiffID of an encrypted compressed layer, it might not be necessary to pull, decrypt and decompress again),
 	// but it’s not trivially safe to do such things, so until someone takes the effort to make a comprehensive argument, let’s not.

@@ -286,7 +286,8 @@ func (d *bpCompressionStepData) recordValidatedDigestData(c *copier, uploadedInf
 	if d.uploadedCompressorName != "" && d.uploadedCompressorName != internalblobinfocache.UnknownCompression {
 		c.blobInfoCache.RecordDigestCompressorName(uploadedInfo.Digest, d.uploadedCompressorName)
 	}
-	if srcInfo.Digest != "" && d.srcCompressorName != "" && d.srcCompressorName != internalblobinfocache.UnknownCompression {
+	if srcInfo.Digest != "" && srcInfo.Digest != uploadedInfo.Digest &&
+		d.srcCompressorName != "" && d.srcCompressorName != internalblobinfocache.UnknownCompression {
 		c.blobInfoCache.RecordDigestCompressorName(srcInfo.Digest, d.srcCompressorName)
 	}
 	return nil
