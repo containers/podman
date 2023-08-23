@@ -20,6 +20,8 @@
 ### Variables & Definitions
 ###
 
+BUILDFLAGS := -mod=vendor
+
 # Default shell `/bin/sh` has different meanings depending on the platform.
 SHELL := $(shell command -v bash;)
 GO ?= go
@@ -311,10 +313,7 @@ build-all-new-commits:
 
 .PHONY: vendor
 vendor:
-	$(GO) mod tidy
-	$(GO) mod vendor
-	$(GO) mod verify
-
+	exit 0
 
 # We define *-in-container targets for the following make targets. This allow the targets to be run in a container.
 # Note that the PODMANCMD can also be overridden to allow a different container CLI to be used on systems where podman is not already available.
