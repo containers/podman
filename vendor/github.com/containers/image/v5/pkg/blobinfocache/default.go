@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/containers/image/v5/internal/rootless"
-	"github.com/containers/image/v5/pkg/blobinfocache/boltdb"
 	"github.com/containers/image/v5/pkg/blobinfocache/memory"
+	"github.com/containers/image/v5/pkg/blobinfocache/sqlite"
 	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 )
@@ -15,7 +15,7 @@ import (
 const (
 	// blobInfoCacheFilename is the file name used for blob info caches.
 	// If the format changes in an incompatible way, increase the version number.
-	blobInfoCacheFilename = "blob-info-cache-v1.boltdb"
+	blobInfoCacheFilename = "blob-info-cache-v1.sqlite"
 	// systemBlobInfoCacheDir is the directory containing the blob info cache (in blobInfocacheFilename) for root-running processes.
 	systemBlobInfoCacheDir = "/var/lib/containers/cache"
 )
@@ -57,10 +57,20 @@ func DefaultCache(sys *types.SystemContext) types.BlobInfoCache {
 	}
 	path := filepath.Join(dir, blobInfoCacheFilename)
 	if err := os.MkdirAll(dir, 0700); err != nil {
-		logrus.Debugf("Error creating parent directories for %s, using a memory-only cache: %v", blobInfoCacheFilename, err)
+		logrus.Debugf("Error creating parent directories for %s, using a memory-only cache: %v", path, err)
 		return memory.New()
 	}
 
-	logrus.Debugf("Using blob info cache at %s", path)
-	return boltdb.New(path)
+	// It might make sense to keep a single sqlite cache object, and a single initialized sqlite connection, open
+	// as global singleton, for the vast majority of callers who don’t override thde cache location.
+	// OTOH that would keep a file descriptor open forever, even for long-term callers who copy images rarely,
+	// and the performance benefit to this over using an Open()/Close() pair for a single image copy is < 10%.
+
+	cache, err := sqlite.New(path)
+	if err != nil {
+		logrus.Debugf("Error creating a SQLite blob info cache at %s, using a memory-only cache: %v", path, err)
+		return memory.New()
+	}
+	logrus.Debugf("Using SQLite blob info cache at %s", path)
+	return cache
 }

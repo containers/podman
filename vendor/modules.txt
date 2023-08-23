@@ -214,7 +214,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.27.1-0.20230822172742-c1b06ce4f477
+# github.com/containers/image/v5 v5.27.1-0.20230822172742-c1b06ce4f477 => github.com/mtrmac/image/v5 v5.0.0-20230822185446-f849d2053dea
 ## explicit; go 1.19
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -256,10 +256,10 @@ github.com/containers/image/v5/openshift
 github.com/containers/image/v5/ostree
 github.com/containers/image/v5/pkg/blobcache
 github.com/containers/image/v5/pkg/blobinfocache
-github.com/containers/image/v5/pkg/blobinfocache/boltdb
 github.com/containers/image/v5/pkg/blobinfocache/internal/prioritize
 github.com/containers/image/v5/pkg/blobinfocache/memory
 github.com/containers/image/v5/pkg/blobinfocache/none
+github.com/containers/image/v5/pkg/blobinfocache/sqlite
 github.com/containers/image/v5/pkg/cli
 github.com/containers/image/v5/pkg/cli/sigstore
 github.com/containers/image/v5/pkg/cli/sigstore/params
@@ -1271,3 +1271,4 @@ k8s.io/kubernetes/third_party/forked/golang/expansion
 ## explicit; go 1.12
 sigs.k8s.io/yaml
 # github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
+# github.com/containers/image/v5 => github.com/mtrmac/image/v5 v5.0.0-20230822185446-f849d2053dea

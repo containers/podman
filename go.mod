@@ -198,3 +198,5 @@ require (
 )
 
 replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
+
+replace github.com/containers/image/v5 => github.com/mtrmac/image/v5 v5.0.0-20230822185446-f849d2053dea
