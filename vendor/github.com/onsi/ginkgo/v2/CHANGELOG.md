@@ -1,3 +1,17 @@
+## 2.12.0
+
+### Features
+
+- feat: allow MustPassRepeatedly decorator to be set at suite level (#1266) [05de518]
+
+### Fixes
+
+- fix-errors-in-readme (#1244) [27c2f5d]
+
+### Maintenance
+
+Various chores/dependency bumps.
+
 ## 2.11.0
 
 In prior versions of Ginkgo specs the CLI filter flags (e.g. `--focus`, `--label-filter`) would _override_ any programmatic focus.  This behavior has proved surprising and confusing in at least the following ways:

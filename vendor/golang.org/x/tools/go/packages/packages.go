@@ -630,7 +630,7 @@ func newLoader(cfg *Config) *loader {
 	return ld
 }
 
-// refine connects the supplied packages into a graph and then adds type and
+// refine connects the supplied packages into a graph and then adds type
 // and syntax information as requested by the LoadMode.
 func (ld *loader) refine(response *driverResponse) ([]*Package, error) {
 	roots := response.Roots
@@ -1042,6 +1042,9 @@ func (ld *loader) loadPackage(lpkg *loaderPackage) {
 
 		Error: appendError,
 		Sizes: ld.sizes,
+	}
+	if lpkg.Module != nil && lpkg.Module.GoVersion != "" {
+		typesinternal.SetGoVersion(tc, "go"+lpkg.Module.GoVersion)
 	}
 	if (ld.Mode & typecheckCgo) != 0 {
 		if !typesinternal.SetUsesCgo(tc) {
