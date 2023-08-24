@@ -77,36 +77,6 @@ type MacMachine struct {
 	GvProxySock machine.VMFile
 }
 
-// acquireVMImage determines if the image is already in a FCOS stream. If so,
-// retrieves the image path of the uncompressed file. Otherwise, the user has
-// provided an alternative image, so we set the image path and download the image.
-func (m *MacMachine) acquireVMImage(opts machine.InitOptions, dataDir string) error {
-	// Acquire the image
-	switch opts.ImagePath {
-	case machine.Testing.String(), machine.Next.String(), machine.Stable.String(), "":
-		g, err := machine.NewGenericDownloader(vmtype, opts.Name, opts.ImagePath)
-		if err != nil {
-			return err
-		}
-
-		imagePath, err := machine.NewMachineFile(g.Get().GetLocalUncompressedFile(dataDir), nil)
-		if err != nil {
-			return err
-		}
-		m.ImagePath = *imagePath
-	default:
-		// The user has provided an alternate image which can be a file path
-		// or URL.
-		m.ImageStream = "custom"
-		imagePath, err := machine.AcquireAlternateImage(m.Name, vmtype, opts)
-		if err != nil {
-			return err
-		}
-		m.ImagePath = *imagePath
-	}
-	return nil
-}
-
 // setGVProxyInfo sets the VM's gvproxy pid and socket files
 func (m *MacMachine) setGVProxyInfo(runtimeDir string) error {
 	gvProxyPid, err := machine.NewMachineFile(filepath.Join(runtimeDir, "gvproxy.pid"), nil)
@@ -226,9 +196,19 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	if err := m.acquireVMImage(opts, dataDir); err != nil {
+	dl, err := VirtualizationProvider().NewDownload(m.Name)
+	if err != nil {
 		return false, err
 	}
+
+	imagePath, strm, err := dl.AcquireVMImage(opts.ImagePath)
+	if err != nil {
+		return false, err
+	}
+
+	// Set the values for imagePath and strm
+	m.ImagePath = *imagePath
+	m.ImageStream = strm.String()
 
 	logPath, err := machine.NewMachineFile(filepath.Join(dataDir, fmt.Sprintf("%s.log", m.Name)), nil)
 	if err != nil {

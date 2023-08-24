@@ -335,7 +335,7 @@ func (p *QEMUVirtualization) VMType() machine.VMType {
 
 func VirtualizationProvider() machine.VirtProvider {
 	return &QEMUVirtualization{
-		machine.NewVirtualization(machine.Qemu, machine.Xz, machine.Qcow),
+		machine.NewVirtualization(machine.Qemu, machine.Xz, machine.Qcow, vmtype),
 	}
 }
 
