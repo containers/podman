@@ -86,6 +86,14 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		Username:               username,
 	}
 
+	if _, found := r.URL.Query()["compressionFormat"]; found {
+		if _, foundForceCompression := r.URL.Query()["forceCompressionFormat"]; !foundForceCompression {
+			// If `compressionFormat` is set and no value for `forceCompressionFormat`
+			// is selected then default has to be `true`.
+			options.ForceCompressionFormat = true
+		}
+	}
+
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
 	}

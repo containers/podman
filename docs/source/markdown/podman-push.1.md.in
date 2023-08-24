@@ -70,11 +70,7 @@ Layer(s) to encrypt: 0-indexed layer indices with support for negative indexing 
 
 The [protocol:keyfile] specifies the encryption protocol, which can be JWE (RFC7516), PGP (RFC4880), and PKCS7 (RFC2315) and the key material required for image encryption. For instance, jwe:/path/to/key.pem or pgp:admin@example.com or pkcs7:/path/to/x509-file.
 
-#### **--force-compression**
-
-Use the specified compression algorithm even if the destination contains a differently-compressed variant already.
-Usually use for this flag arises when image is prior compressed and pushed using `--compression-format` with a different
-compression algorithm and user now needs to overwrite those blobs with a new compression algorithm on the remote registry.
+@@option force-compression
 
 #### **--format**, **-f**=*format*
 

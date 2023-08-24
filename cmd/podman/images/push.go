@@ -102,7 +102,7 @@ func pushFlags(cmd *cobra.Command) {
 	flags.StringVar(&pushOptions.DigestFile, digestfileFlagName, "", "Write the digest of the pushed image to the specified file")
 	_ = cmd.RegisterFlagCompletionFunc(digestfileFlagName, completion.AutocompleteDefault)
 
-	flags.BoolVar(&pushOptions.ForceCompressionFormat, "force-compression", false, "Use the specified compression algorithm if the destination contains a differently-compressed variant already")
+	flags.BoolVar(&pushOptions.ForceCompressionFormat, "force-compression", false, "Use the specified compression algorithm even if the destination contains a differently-compressed variant already")
 
 	formatFlagName := "format"
 	flags.StringVarP(&pushOptions.Format, formatFlagName, "f", "", "Manifest type (oci, v2s2, or v2s1) to use in the destination (default is manifest type of source, with fallbacks)")
@@ -214,6 +214,14 @@ func imagePush(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		pushOptions.CompressionLevel = &val
+	}
+
+	if cmd.Flags().Changed("compression-format") {
+		if !cmd.Flags().Changed("force-compression") {
+			// If `compression-format` is set and no value for `--force-compression`
+			// is selected then defaults to `true`.
+			pushOptions.ForceCompressionFormat = true
+		}
 	}
 
 	// Let's do all the remaining Yoga in the API to prevent us from scattering

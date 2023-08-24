@@ -230,9 +230,9 @@ var _ = Describe("Podman manifest", func() {
 		Expect(verifyInstanceCompression(index.Manifests, "gzip", "arm64")).Should(BeTrue())
 		Expect(verifyInstanceCompression(index.Manifests, "gzip", "amd64")).Should(BeTrue())
 
-		// Note: Pushing again without --force-compression should produce in-correct/wrong result since blobs are already present in registry so they will be reused
+		// Note: Pushing again with --force-compression=false should produce in-correct/wrong result since blobs are already present in registry so they will be reused
 		// ignoring our compression priority ( this is expected behaviour of c/image and --force-compression is introduced to mitigate this behaviour ).
-		push = podmanTest.Podman([]string{"manifest", "push", "--all", "--add-compression", "zstd", "--tls-verify=false", "--remove-signatures", "foobar", "localhost:5000/list"})
+		push = podmanTest.Podman([]string{"manifest", "push", "--all", "--add-compression", "zstd", "--force-compression=false", "--tls-verify=false", "--remove-signatures", "foobar", "localhost:5000/list"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
 		output = push.ErrorToString()

@@ -42,11 +42,7 @@ the list or index itself. (Default true)
 
 @@option digestfile
 
-#### **--force-compression**
-
-Use the specified compression algorithm even if the destination contains a differently-compressed variant already.
-Usually use for this flag arises when image is prior compressed and pushed using `--compression-format` with a different
-compression algorithm and user now needs to overwrite those blobs with a new compression algorithm on the remote registry.
+@@option force-compression
 
 #### **--format**, **-f**=*format*
 

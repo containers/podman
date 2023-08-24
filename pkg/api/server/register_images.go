@@ -727,7 +727,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    description: Allows for pushing the image to a different destination than the image refers to.
 	//  - in: query
 	//    name: forceCompressionFormat
-	//    description: Use the specified compression algorithm if the destination contains a differently-compressed variant already.
+	//    description: Enforce compressing the layers with the specified --compression and do not reuse differently compressed blobs on the registry.
 	//    type: boolean
 	//    default: false
 	//  - in: query
