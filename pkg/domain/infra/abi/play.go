@@ -802,7 +802,8 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		initContainers = append(initContainers, ctr)
 	}
 
-	var sdNotifyProxies []*notifyproxy.NotifyProxy // containers' sd-notify proxies
+	// Callers are expected to close the proxies
+	var sdNotifyProxies []*notifyproxy.NotifyProxy
 
 	for _, container := range podYAML.Spec.Containers {
 		// Error out if the same name is used for more than one container
@@ -915,11 +916,6 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		errors := make([]error, len(sdNotifyProxies))
 		for i := range sdNotifyProxies {
 			wg.Add(1)
-			defer func() {
-				if err := sdNotifyProxies[i].Close(); err != nil {
-					logrus.Errorf("Closing sdnotify proxy %q: %v", sdNotifyProxies[i].SocketPath(), err)
-				}
-			}()
 			go func(i int) {
 				err := sdNotifyProxies[i].Wait()
 				if err != nil {
