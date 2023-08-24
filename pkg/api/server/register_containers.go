@@ -1376,6 +1376,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//
 	//   When the TTY setting is disabled for the container,
 	//   the HTTP Content-Type header is set to application/vnd.docker.multiplexed-stream
+	//   (starting with v4.7.0, previously application/vnd.docker.raw-stream was always used)
 	//   and the stream over the hijacked connected is multiplexed to separate out
 	//   `stdout` and `stderr`. The stream consists of a series of frames, each
 	//   containing a header and a payload.

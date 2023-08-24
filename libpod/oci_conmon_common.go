@@ -614,7 +614,7 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 
 	hijackDone <- true
 
-	writeHijackHeader(req, httpBuf)
+	writeHijackHeader(req, httpBuf, isTerminal)
 
 	// Force a flush after the header is written.
 	if err := httpBuf.Flush(); err != nil {
