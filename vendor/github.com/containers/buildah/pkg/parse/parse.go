@@ -68,11 +68,6 @@ func RepoNamesToNamedReferences(destList []string) ([]reference.Named, error) {
 	return result, nil
 }
 
-// CleanCacheMount gets the cache parent created by `--mount=type=cache` and removes it.
-func CleanCacheMount() error {
-	return internalParse.CleanCacheMount()
-}
-
 // CommonBuildOptions parses the build options from the bud cli
 func CommonBuildOptions(c *cobra.Command) (*define.CommonBuildOptions, error) {
 	return CommonBuildOptionsFromFlagSet(c.Flags(), c.Flag)

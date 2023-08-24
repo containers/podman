@@ -19,7 +19,7 @@ import (
 	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/internal"
-	internalParse "github.com/containers/buildah/internal/parse"
+	"github.com/containers/buildah/internal/volumes"
 	"github.com/containers/buildah/pkg/overlay"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/util"
@@ -1253,7 +1253,7 @@ func checkIdsGreaterThan5(ids []specs.LinuxIDMapping) bool {
 // If this function succeeds and returns a non-nil *lockfile.LockFile, the caller must unlock it (when??).
 func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps, workDir string) (*specs.Mount, *lockfile.LockFile, error) {
 	var optionMounts []specs.Mount
-	mount, targetLock, err := internalParse.GetCacheMount(tokens, b.store, b.MountLabel, stageMountPoints, workDir)
+	mount, targetLock, err := volumes.GetCacheMount(tokens, b.store, b.MountLabel, stageMountPoints, workDir)
 	if err != nil {
 		return nil, nil, err
 	}
