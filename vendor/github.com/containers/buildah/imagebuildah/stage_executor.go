@@ -2016,6 +2016,19 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 	}
 	s.builder.ClearLabels()
 
+	if output == "" {
+		// If output is not set then we are committing
+		// an intermediate image, in such case we must
+		// honor layer labels if they are configured.
+		for _, labelString := range s.executor.layerLabels {
+			label := strings.SplitN(labelString, "=", 2)
+			if len(label) > 1 {
+				s.builder.SetLabel(label[0], label[1])
+			} else {
+				s.builder.SetLabel(label[0], "")
+			}
+		}
+	}
 	for k, v := range config.Labels {
 		s.builder.SetLabel(k, v)
 	}

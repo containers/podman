@@ -396,6 +396,11 @@ capabilities is a subset of the default list.
 If the specified capabilities are not in the default set, Podman prints an error
 message and runs the container with the default capabilities.
 
+#### **--layer-label**=*label[=value]*
+
+Add an intermediate image *label* (e.g. label=*value*) to the intermediate image metadata. It can be used multiple times.
+If *label* is named, but neither `=` nor a `value` is provided, then the *label* is set to an empty value.
+
 #### **--layers**
 
 Cache intermediate images during the build process (Default is `true`).

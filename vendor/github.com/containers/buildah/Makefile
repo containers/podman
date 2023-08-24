@@ -75,8 +75,7 @@ bin/buildah: $(SOURCES) cmd/buildah/*.go
 .PHONY: buildah
 buildah: bin/buildah
 
-# TODO: remove `grep -v loong64` from `ALL_CROSS_TARGETS` once go.etcd.io/bbolt 1.3.7 is out.
-ALL_CROSS_TARGETS := $(addprefix bin/buildah.,$(subst /,.,$(shell $(GO) tool dist list | grep -v loong64)))
+ALL_CROSS_TARGETS := $(addprefix bin/buildah.,$(subst /,.,$(shell $(GO) tool dist list)))
 LINUX_CROSS_TARGETS := $(filter bin/buildah.linux.%,$(ALL_CROSS_TARGETS))
 DARWIN_CROSS_TARGETS := $(filter bin/buildah.darwin.%,$(ALL_CROSS_TARGETS))
 WINDOWS_CROSS_TARGETS := $(addsuffix .exe,$(filter bin/buildah.windows.%,$(ALL_CROSS_TARGETS)))

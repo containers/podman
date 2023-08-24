@@ -383,6 +383,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		Isolation:               isolation,
 		Jobs:                    &iopts.Jobs,
 		Labels:                  iopts.Label,
+		LayerLabels:             iopts.LayerLabel,
 		Layers:                  layers,
 		LogFile:                 iopts.Logfile,
 		LogRusage:               iopts.LogRusage,

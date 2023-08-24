@@ -95,6 +95,10 @@ type PushOptions struct {
 	CompressionFormat *compression.Algorithm
 	// CompressionLevel specifies what compression level is used
 	CompressionLevel *int
+	// ForceCompressionFormat ensures that the compression algorithm set in
+	// CompressionFormat is used exclusively, and blobs of other compression
+	// algorithms are not reused.
+	ForceCompressionFormat bool
 }
 
 // Push copies the contents of the image to a new location.
@@ -110,6 +114,7 @@ func Push(ctx context.Context, image string, dest types.ImageReference, options 
 	libimageOptions.OciEncryptLayers = options.OciEncryptLayers
 	libimageOptions.CompressionFormat = options.CompressionFormat
 	libimageOptions.CompressionLevel = options.CompressionLevel
+	libimageOptions.ForceCompressionFormat = options.ForceCompressionFormat
 	libimageOptions.PolicyAllowStorage = true
 
 	if options.Quiet {

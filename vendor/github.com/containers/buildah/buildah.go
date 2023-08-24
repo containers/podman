@@ -433,6 +433,9 @@ func OpenBuilder(store storage.Store, container string) (*Builder, error) {
 	b.store = store
 	b.fixupConfig(nil)
 	b.setupLogger()
+	if b.CommonBuildOpts == nil {
+		b.CommonBuildOpts = &CommonBuildOptions{}
+	}
 	return b, nil
 }
 
@@ -469,6 +472,9 @@ func OpenBuilderByPath(store storage.Store, path string) (*Builder, error) {
 			b.store = store
 			b.fixupConfig(nil)
 			b.setupLogger()
+			if b.CommonBuildOpts == nil {
+				b.CommonBuildOpts = &CommonBuildOptions{}
+			}
 			return b, nil
 		}
 		if err != nil {
@@ -506,6 +512,9 @@ func OpenAllBuilders(store storage.Store) (builders []*Builder, err error) {
 			b.store = store
 			b.setupLogger()
 			b.fixupConfig(nil)
+			if b.CommonBuildOpts == nil {
+				b.CommonBuildOpts = &CommonBuildOptions{}
+			}
 			builders = append(builders, b)
 			continue
 		}

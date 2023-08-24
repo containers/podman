@@ -244,6 +244,8 @@ type BuildOptions struct {
 	Squash bool
 	// Labels metadata for an image
 	Labels []string
+	// LayerLabels metadata for an intermediate image
+	LayerLabels []string
 	// Annotation metadata for an image
 	Annotations []string
 	// OnBuild commands to be run by images based on this image
