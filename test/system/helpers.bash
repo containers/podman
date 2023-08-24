@@ -462,6 +462,32 @@ function wait_for_file() {
     die "Timed out waiting for $file"
 }
 
+###########################
+#  wait_for_file_content  #  Like wait_for_output, but with files (not ctrs)
+###########################
+function wait_for_file_content() {
+    local file=$1                       # The path to the file
+    local content=$2                    # What to expect in the file
+    local _timeout=${3:-5}              # Optional; default 5 seconds
+
+    while :; do
+        grep -q "$content" "$file" && return
+
+        test $_timeout -gt 0 || die "Timed out waiting for '$content' in $file"
+
+        _timeout=$(( $_timeout - 1 ))
+        sleep 1
+
+        # For debugging. Note that file does not necessarily exist yet.
+        if [[ -e "$file" ]]; then
+            echo "[ wait_for_file_content: retrying wait for '$content' in: ]"
+            sed -e 's/^/[ /' -e 's/$/ ]/' <"$file"
+        else
+            echo "[ wait_for_file_content: $file does not exist (yet) ]"
+        fi
+    done
+}
+
 # END   podman helpers
 ###############################################################################
 # BEGIN miscellaneous tools
