@@ -2,6 +2,11 @@
 
 # Changelog
 
+## v1.31.3 (2023-08-24)
+    [release-1.31] Bump c/common 0.55.4, c/image 5.26.2, c/storage 1.48.1
+    rpm: spdx compatible license field
+    RPM: fix buildtags
+
 ## v1.31.2 (2023-08-10)
     [release-1.31] Bump to v1.31.2
 
