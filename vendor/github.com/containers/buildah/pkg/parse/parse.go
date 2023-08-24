@@ -17,7 +17,7 @@ import (
 	"github.com/containerd/containerd/platforms"
 	"github.com/containers/buildah/define"
 	internalParse "github.com/containers/buildah/internal/parse"
-	internalUtil "github.com/containers/buildah/internal/util"
+	"github.com/containers/buildah/internal/tmpdir"
 	"github.com/containers/buildah/pkg/sshagent"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/parse"
@@ -992,7 +992,7 @@ func isValidDeviceMode(mode string) bool {
 }
 
 func GetTempDir() string {
-	return internalUtil.GetTempDir()
+	return tmpdir.GetTempDir()
 }
 
 // Secrets parses the --secret flag

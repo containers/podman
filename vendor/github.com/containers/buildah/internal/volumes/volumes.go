@@ -14,6 +14,7 @@ import (
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/internal"
 	internalParse "github.com/containers/buildah/internal/parse"
+	"github.com/containers/buildah/internal/tmpdir"
 	internalUtil "github.com/containers/buildah/internal/util"
 	"github.com/containers/common/pkg/parse"
 	"github.com/containers/image/v5/types"
@@ -50,7 +51,7 @@ var (
 
 // CacheParent returns a cache parent for --mount=type=cache
 func CacheParent() string {
-	return filepath.Join(internalUtil.GetTempDir(), buildahCacheDir+"-"+strconv.Itoa(unshare.GetRootlessUID()))
+	return filepath.Join(tmpdir.GetTempDir(), buildahCacheDir+"-"+strconv.Itoa(unshare.GetRootlessUID()))
 }
 
 // GetBindMount parses a single bind mount entry from the --mount flag.

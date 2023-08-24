@@ -18,6 +18,7 @@ import (
 	"github.com/containers/buildah/define"
 	buildahdocker "github.com/containers/buildah/docker"
 	"github.com/containers/buildah/internal"
+	"github.com/containers/buildah/internal/tmpdir"
 	internalUtil "github.com/containers/buildah/internal/util"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/rusage"
@@ -401,7 +402,7 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 							// additional context contains a tar file
 							// so download and explode tar to buildah
 							// temp and point context to that.
-							path, subdir, err := define.TempDirForURL(internalUtil.GetTempDir(), internal.BuildahExternalArtifactsDir, additionalBuildContext.Value)
+							path, subdir, err := define.TempDirForURL(tmpdir.GetTempDir(), internal.BuildahExternalArtifactsDir, additionalBuildContext.Value)
 							if err != nil {
 								return fmt.Errorf("unable to download context from external source %q: %w", additionalBuildContext.Value, err)
 							}
@@ -537,7 +538,7 @@ func (s *StageExecutor) runStageMountPoints(mountList []string) (map[string]inte
 									// additional context contains a tar file
 									// so download and explode tar to buildah
 									// temp and point context to that.
-									path, subdir, err := define.TempDirForURL(internalUtil.GetTempDir(), internal.BuildahExternalArtifactsDir, additionalBuildContext.Value)
+									path, subdir, err := define.TempDirForURL(tmpdir.GetTempDir(), internal.BuildahExternalArtifactsDir, additionalBuildContext.Value)
 									if err != nil {
 										return nil, fmt.Errorf("unable to download context from external source %q: %w", additionalBuildContext.Value, err)
 									}
