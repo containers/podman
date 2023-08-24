@@ -71,7 +71,7 @@ require (
 	google.golang.org/protobuf v1.31.0
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/kubernetes v1.28.0
+	k8s.io/kubernetes v1.28.1
 	sigs.k8s.io/yaml v1.3.0
 )
 
