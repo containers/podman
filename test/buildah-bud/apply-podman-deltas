@@ -290,6 +290,10 @@ skip_if_rootless_remote "FIXME: not sure if 17788 or some other bug" \
 skip "FIXME: 2023-06-13 buildah PR 4746 broke this test" \
      "bud with encrypted FROM image"
 
+# 2023-08-24 "hello" got removed from podman repo, tests were skipped
+skip "FIXME! Needs to be fixed on buildah side" \
+     "bud-github-context-with-branch-subdir-commit"
+
 # END   temporary workarounds that must be reevaluated periodically
 ###############################################################################
 
