@@ -1,0 +1,32 @@
+# reverse dependency test for https://github.com/cockpit-project/cockpit-podman/
+# if this fails in a non-obvious way, please contact the cockpit team in your PR for investigation:
+# @martinpitt, @jelly, @marusak
+enabled: false
+
+adjust+:
+  when: revdeps == yes
+  enabled: true
+
+discover:
+    how: fmf
+    url: https://github.com/cockpit-project/cockpit-podman
+    ref: "main"
+
+execute:
+    how: tmt
+
+# This has to duplicate cockpit-podman's plan structure; see https://github.com/teemtee/tmt/issues/1770
+/podman-system:
+    summary: Run cockpit-podman system tests
+    discover+:
+        test: /test/browser/system
+
+/podman-user:
+    summary: Run cockpit-podman user tests
+    discover+:
+        test: /test/browser/user
+
+/podman-misc:
+    summary: Run other cockpit-podman tests
+    discover+:
+        test: /test/browser/other
