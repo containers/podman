@@ -10,7 +10,6 @@ import (
 	"net/http"
 	url2 "net/url"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -40,7 +39,7 @@ const (
 
 	Qemu Artifact = iota
 	HyperV
-	Metal
+	AppleHV
 	None
 
 	Qcow ImageFormat = iota
@@ -61,8 +60,8 @@ func (a Artifact) String() string {
 	switch a {
 	case HyperV:
 		return "hyperv"
-	case Metal:
-		return "metal"
+	case AppleHV:
+		return "applehv"
 	}
 	return "qemu"
 }
@@ -74,7 +73,7 @@ func (imf ImageFormat) String() string {
 	case Tar:
 		return "tar.xz"
 	case Raw:
-		return "raw.xz"
+		return "raw.gz"
 	}
 	return "qcow2.xz"
 }
@@ -107,50 +106,12 @@ type FcosDownload struct {
 	Download
 }
 
-func NewFcosDownloader(vmType VMType, vmName string, imageStream FCOSStream, vp VirtProvider) (DistributionDownload, error) {
-	info, err := GetFCOSDownload(vp, imageStream)
-	if err != nil {
-		return nil, err
-	}
-	urlSplit := strings.Split(info.Location, "/")
-	imageName := urlSplit[len(urlSplit)-1]
-	url, err := url2.Parse(info.Location)
-	if err != nil {
-		return nil, err
-	}
-
-	cacheDir, err := GetCacheDir(vmType)
-	if err != nil {
-		return nil, err
-	}
-
-	fcd := FcosDownload{
-		Download: Download{
-			Arch:      GetFcosArch(),
-			Artifact:  Qemu,
-			CacheDir:  cacheDir,
-			Format:    Qcow,
-			ImageName: imageName,
-			LocalPath: filepath.Join(cacheDir, imageName),
-			Sha256sum: info.Sha256Sum,
-			URL:       url,
-			VMName:    vmName,
-		},
-	}
-	dataDir, err := GetDataDir(vmType)
-	if err != nil {
-		return nil, err
-	}
-	fcd.Download.LocalUncompressedFile = fcd.GetLocalUncompressedFile(dataDir)
-	return fcd, nil
-}
-
 func (f FcosDownload) Get() *Download {
 	return &f.Download
 }
 
 type FcosDownloadInfo struct {
-	CompressionType string
+	CompressionType ImageCompression
 	Location        string
 	Release         string
 	Sha256Sum       string
@@ -216,9 +177,8 @@ func getStreamURL(streamType FCOSStream) url2.URL {
 	return fedoracoreos.GetStreamURL(streamType.String())
 }
 
-// This should get Exported and stay put as it will apply to all fcos downloads
-// getFCOS parses fedoraCoreOS's stream and returns the image download URL and the release version
-func GetFCOSDownload(vp VirtProvider, imageStream FCOSStream) (*FcosDownloadInfo, error) {
+// GetFCOSDownload parses fedoraCoreOS's stream and returns the image download URL and the release version
+func (dl Download) GetFCOSDownload(imageStream FCOSStream) (*FcosDownloadInfo, error) {
 	var (
 		fcosstable stream.Stream
 		altMeta    release.Release
@@ -256,7 +216,7 @@ func GetFCOSDownload(vp VirtProvider, imageStream FCOSStream) (*FcosDownloadInfo
 		return &FcosDownloadInfo{
 			Location:        disk.Location,
 			Sha256Sum:       disk.Sha256,
-			CompressionType: vp.Compression().String(),
+			CompressionType: dl.CompressionType,
 		}, nil
 	}
 
@@ -271,17 +231,17 @@ func GetFCOSDownload(vp VirtProvider, imageStream FCOSStream) (*FcosDownloadInfo
 	if upstreamArtifacts == nil {
 		return nil, fmt.Errorf("unable to pull VM image: no artifact in stream")
 	}
-	upstreamArtifact, ok := upstreamArtifacts[vp.Artifact().String()]
+	upstreamArtifact, ok := upstreamArtifacts[dl.Artifact.String()]
 	if !ok {
-		return nil, fmt.Errorf("unable to pull VM image: no %s artifact in stream", vp.Artifact().String())
+		return nil, fmt.Errorf("unable to pull VM image: no %s artifact in stream", dl.Artifact.String())
 	}
 	formats := upstreamArtifact.Formats
 	if formats == nil {
 		return nil, fmt.Errorf("unable to pull VM image: no formats in stream")
 	}
-	formatType, ok := formats[vp.Format().String()]
+	formatType, ok := formats[dl.Format.String()]
 	if !ok {
-		return nil, fmt.Errorf("unable to pull VM image: no %s format in stream", vp.Format().String())
+		return nil, fmt.Errorf("unable to pull VM image: no %s format in stream", dl.Format.String())
 	}
 	disk := formatType.Disk
 	if disk == nil {
@@ -291,7 +251,7 @@ func GetFCOSDownload(vp VirtProvider, imageStream FCOSStream) (*FcosDownloadInfo
 		Location:        disk.Location,
 		Release:         upstreamArtifact.Release,
 		Sha256Sum:       disk.Sha256,
-		CompressionType: vp.Compression().String(),
+		CompressionType: dl.CompressionType,
 	}, nil
 }
 
@@ -307,6 +267,10 @@ const (
 	Stable
 	// Podman-Testing
 	PodmanTesting
+	// Unknown
+	UnknownStream
+	// Custom
+	CustomStream
 )
 
 // String is a helper func for fcos streams
@@ -318,20 +282,26 @@ func (st FCOSStream) String() string {
 		return "next"
 	case PodmanTesting:
 		return "podman-testing"
+	case Stable:
+		return "stable"
 	}
-	return "stable"
+	return "custom"
 }
 
-func FCOSStreamFromString(s string) FCOSStream {
+func FCOSStreamFromString(s string) (FCOSStream, error) {
 	switch s {
 	case Testing.String():
-		return Testing
+		return Testing, nil
 	case Next.String():
-		return Next
+		return Next, nil
 	case PodmanTesting.String():
-		return PodmanTesting
+		return PodmanTesting, nil
+	case Stable.String():
+		return Stable, nil
+	case CustomStream.String():
+		return CustomStream, nil
 	}
-	return Stable
+	return UnknownStream, fmt.Errorf("unknown fcos stream: %s", s)
 }
 
 func IsValidFCOSStreamString(s string) bool {
@@ -343,6 +313,8 @@ func IsValidFCOSStreamString(s string) bool {
 	case PodmanTesting.String():
 		fallthrough
 	case Stable.String():
+		return true
+	case CustomStream.String():
 		return true
 	}
 

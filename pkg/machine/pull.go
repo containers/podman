@@ -87,12 +87,12 @@ func supportedURL(path string) (url *url2.URL) {
 	}
 }
 
-func (d Download) GetLocalUncompressedFile(dataDir string) string {
-	compressedFilename := d.VMName + "_" + d.ImageName
+func (dl Download) GetLocalUncompressedFile(dataDir string) string {
+	compressedFilename := dl.VMName + "_" + dl.ImageName
 	extension := compressionFromFile(compressedFilename)
 	uncompressedFile := strings.TrimSuffix(compressedFilename, fmt.Sprintf(".%s", extension.String()))
-	d.LocalUncompressedFile = filepath.Join(dataDir, uncompressedFile)
-	return d.LocalUncompressedFile
+	dl.LocalUncompressedFile = filepath.Join(dataDir, uncompressedFile)
+	return dl.LocalUncompressedFile
 }
 
 func (g GenericDownload) Get() *Download {
@@ -388,8 +388,8 @@ func RemoveImageAfterExpire(dir string, expire time.Duration) error {
 
 // AcquireAlternateImage downloads the alternate image the user provided, which
 // can be a file path or URL
-func AcquireAlternateImage(name string, vmtype VMType, opts InitOptions) (*VMFile, error) {
-	g, err := NewGenericDownloader(vmtype, name, opts.ImagePath)
+func (dl Download) AcquireAlternateImage(inputPath string) (*VMFile, error) {
+	g, err := NewGenericDownloader(dl.VMKind, dl.VMName, inputPath)
 	if err != nil {
 		return nil, err
 	}

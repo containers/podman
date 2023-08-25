@@ -195,44 +195,6 @@ func migrateVM(configPath string, config []byte, vm *MachineVM) error {
 	return os.Remove(configPath + ".orig")
 }
 
-// acquireVMImage determines if the image is already in a FCOS stream. If so,
-// retrieves the image path of the uncompressed file. Otherwise, the user has
-// provided an alternative image, so we set the image path and download the image.
-func (v *MachineVM) acquireVMImage(opts machine.InitOptions) error {
-	switch opts.ImagePath {
-	// TODO these need to be re-typed as FCOSStreams
-	case machine.Testing.String(), machine.Next.String(), machine.Stable.String(), "":
-		// Get image as usual
-		v.ImageStream = opts.ImagePath
-		vp := VirtualizationProvider()
-
-		dd, err := machine.NewFcosDownloader(vmtype, v.Name, machine.FCOSStreamFromString(opts.ImagePath), vp)
-		if err != nil {
-			return err
-		}
-
-		uncompressedFile, err := machine.NewMachineFile(dd.Get().LocalUncompressedFile, nil)
-		if err != nil {
-			return err
-		}
-
-		v.ImagePath = *uncompressedFile
-		if err := machine.DownloadImage(dd); err != nil {
-			return err
-		}
-	default:
-		// The user has provided an alternate image which can be a file path
-		// or URL.
-		v.ImageStream = "custom"
-		imagePath, err := machine.AcquireAlternateImage(v.Name, vmtype, opts)
-		if err != nil {
-			return err
-		}
-		v.ImagePath = *imagePath
-	}
-	return nil
-}
-
 // addMountsToVM converts the volumes passed through the CLI into the specified
 // volume driver and adds them to the machine
 func (v *MachineVM) addMountsToVM(opts machine.InitOptions) error {
@@ -318,9 +280,19 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	v.IdentityPath = util.GetIdentityPath(v.Name)
 	v.Rootful = opts.Rootful
 
-	if err := v.acquireVMImage(opts); err != nil {
+	dl, err := VirtualizationProvider().NewDownload(v.Name)
+	if err != nil {
 		return false, err
 	}
+
+	imagePath, strm, err := dl.AcquireVMImage(opts.ImagePath)
+	if err != nil {
+		return false, err
+	}
+
+	// Assign values about the download
+	v.ImagePath = *imagePath
+	v.ImageStream = strm.String()
 
 	// Add arch specific options including image location
 	v.CmdLine = append(v.CmdLine, v.addArchOptions()...)
@@ -334,15 +306,14 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	// Add location of bootable image
 	v.CmdLine = append(v.CmdLine, "-drive", "if=virtio,file="+v.getImageFile())
 
-	err := machine.AddSSHConnectionsToPodmanSocket(
+	if err := machine.AddSSHConnectionsToPodmanSocket(
 		v.UID,
 		v.Port,
 		v.IdentityPath,
 		v.Name,
 		v.RemoteUsername,
 		opts,
-	)
-	if err != nil {
+	); err != nil {
 		return false, err
 	}
 

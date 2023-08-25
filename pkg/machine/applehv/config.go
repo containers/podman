@@ -34,7 +34,7 @@ type MMHardwareConfig struct {
 
 func VirtualizationProvider() machine.VirtProvider {
 	return &AppleHVVirtualization{
-		machine.NewVirtualization(machine.Metal, machine.Xz, machine.Raw),
+		machine.NewVirtualization(machine.AppleHV, machine.Xz, machine.Raw, vmtype),
 	}
 }
 

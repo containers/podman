@@ -19,7 +19,7 @@ type WSLVirtualization struct {
 
 func VirtualizationProvider() machine.VirtProvider {
 	return &WSLVirtualization{
-		machine.NewVirtualization(machine.None, machine.Xz, machine.Tar),
+		machine.NewVirtualization(machine.None, machine.Xz, machine.Tar, vmtype),
 	}
 }
 

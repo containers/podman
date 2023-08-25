@@ -62,16 +62,18 @@ var (
 type Download struct {
 	Arch                  string
 	Artifact              Artifact
-	CompressionType       string
 	CacheDir              string
+	CompressionType       ImageCompression
+	DataDir               string
 	Format                ImageFormat
 	ImageName             string
 	LocalPath             string
 	LocalUncompressedFile string
 	Sha256sum             string
-	URL                   *url.URL
-	VMName                string
 	Size                  int64
+	URL                   *url.URL
+	VMKind                VMType
+	VMName                string
 }
 
 type ListOptions struct{}
@@ -430,7 +432,7 @@ func ParseVMType(input string, emptyFallback VMType) (VMType, error) {
 	}
 }
 
-type VirtProvider interface {
+type VirtProvider interface { //nolint:interfacebloat
 	Artifact() Artifact
 	CheckExclusiveActiveVM() (bool, string, error)
 	Compression() ImageCompression
@@ -439,6 +441,7 @@ type VirtProvider interface {
 	List(opts ListOptions) ([]*ListResponse, error)
 	LoadVMByName(name string) (VM, error)
 	NewMachine(opts InitOptions) (VM, error)
+	NewDownload(vmName string) (Download, error)
 	RemoveAndCleanMachines() error
 	VMType() VMType
 }
@@ -447,6 +450,7 @@ type Virtualization struct {
 	artifact    Artifact
 	compression ImageCompression
 	format      ImageFormat
+	vmKind      VMType
 }
 
 func (p *Virtualization) Artifact() Artifact {
@@ -461,11 +465,38 @@ func (p *Virtualization) Format() ImageFormat {
 	return p.format
 }
 
-func NewVirtualization(artifact Artifact, compression ImageCompression, format ImageFormat) Virtualization {
+func (p *Virtualization) VMType() VMType {
+	return p.vmKind
+}
+
+func (p *Virtualization) NewDownload(vmName string) (Download, error) {
+	cacheDir, err := GetCacheDir(p.VMType())
+	if err != nil {
+		return Download{}, err
+	}
+
+	dataDir, err := GetDataDir(p.VMType())
+	if err != nil {
+		return Download{}, err
+	}
+
+	return Download{
+		Artifact:        p.Artifact(),
+		CacheDir:        cacheDir,
+		CompressionType: p.Compression(),
+		DataDir:         dataDir,
+		Format:          p.Format(),
+		VMKind:          p.VMType(),
+		VMName:          vmName,
+	}, nil
+}
+
+func NewVirtualization(artifact Artifact, compression ImageCompression, format ImageFormat, vmKind VMType) Virtualization {
 	return Virtualization{
 		artifact,
 		compression,
 		format,
+		vmKind,
 	}
 }
 
@@ -492,4 +523,77 @@ func WaitAndPingAPI(sock string) {
 	if err != nil || resp.StatusCode != 200 {
 		logrus.Warn("API socket failed ping test")
 	}
+}
+
+func (dl Download) NewFcosDownloader(imageStream FCOSStream) (DistributionDownload, error) {
+	info, err := dl.GetFCOSDownload(imageStream)
+	if err != nil {
+		return nil, err
+	}
+	urlSplit := strings.Split(info.Location, "/")
+	dl.ImageName = urlSplit[len(urlSplit)-1]
+	downloadURL, err := url.Parse(info.Location)
+	if err != nil {
+		return nil, err
+	}
+
+	// Complete the download struct
+	dl.Arch = GetFcosArch()
+	// This could be eliminated as a struct and be a generated()
+	dl.LocalPath = filepath.Join(dl.CacheDir, dl.ImageName)
+	dl.Sha256sum = info.Sha256Sum
+	dl.URL = downloadURL
+	fcd := FcosDownload{
+		Download: dl,
+	}
+	dataDir, err := GetDataDir(dl.VMKind)
+	if err != nil {
+		return nil, err
+	}
+	fcd.Download.LocalUncompressedFile = fcd.GetLocalUncompressedFile(dataDir)
+	return fcd, nil
+}
+
+// AcquireVMImage determines if the image is already in a FCOS stream. If so,
+// retrieves the image path of the uncompressed file. Otherwise, the user has
+// provided an alternative image, so we set the image path and download the image.
+func (dl Download) AcquireVMImage(imagePath string) (*VMFile, FCOSStream, error) {
+	var (
+		err           error
+		imageLocation *VMFile
+		fcosStream    FCOSStream
+	)
+	switch imagePath {
+	// TODO these need to be re-typed as FCOSStreams
+	case Testing.String(), Next.String(), Stable.String(), "":
+		// Get image as usual
+		fcosStream, err = FCOSStreamFromString(imagePath)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		dd, err := dl.NewFcosDownloader(fcosStream)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		imageLocation, err = NewMachineFile(dd.Get().LocalUncompressedFile, nil)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		if err := DownloadImage(dd); err != nil {
+			return nil, 0, err
+		}
+	default:
+		// The user has provided an alternate image which can be a file path
+		// or URL.
+		fcosStream = CustomStream
+		imgPath, err := dl.AcquireAlternateImage(imagePath)
+		if err != nil {
+			return nil, 0, err
+		}
+		imageLocation = imgPath
+	}
+	return imageLocation, fcosStream, nil
 }
