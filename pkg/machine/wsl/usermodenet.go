@@ -187,6 +187,10 @@ func (v *MachineVM) launchUserModeNetDist(exeFile string) error {
 }
 
 func installUserModeDist(dist string, imagePath string) error {
+	if err := verifyWSLUserModeCompat(); err != nil {
+		return err
+	}
+
 	exists, err := isWSLExist(userModeDist)
 	if err != nil {
 		return err
@@ -315,10 +319,6 @@ func (v *MachineVM) obtainUserModeNetLock() (*fileLock, error) {
 }
 
 func changeDistUserModeNetworking(dist string, user string, image string, enable bool) error {
-	if err := verifyWSLUserModeCompat(); err != nil {
-		return err
-	}
-
 	// Only install if user-mode is being enabled and there was an image path passed
 	if enable && len(image) > 0 {
 		if err := installUserModeDist(dist, image); err != nil {
