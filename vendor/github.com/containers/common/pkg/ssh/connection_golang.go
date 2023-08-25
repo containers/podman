@@ -64,19 +64,6 @@ func golangConnectionCreate(options ConnectionCreateOptions) error {
 	} else {
 		cfg.Engine.ServiceDestinations[options.Name] = *dst
 	}
-
-	// Create or update an existing farm with the connection being added
-	if options.Farm != "" {
-		if len(cfg.Farms.List) == 0 {
-			cfg.Farms.Default = options.Farm
-		}
-		if val, ok := cfg.Farms.List[options.Farm]; ok {
-			cfg.Farms.List[options.Farm] = append(val, options.Name)
-		} else {
-			cfg.Farms.List[options.Farm] = []string{options.Name}
-		}
-	}
-
 	return cfg.Write()
 }
 

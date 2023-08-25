@@ -17,6 +17,17 @@ func getDefaultCgroupsMode() string {
 	return "enabled"
 }
 
+// getDefaultMachineImage returns the default machine image stream
+// On Linux/Mac, this returns the FCOS stream
+func getDefaultMachineImage() string {
+	return "testing"
+}
+
+// getDefaultMachineUser returns the user to use for rootless podman
+func getDefaultMachineUser() string {
+	return "core"
+}
+
 // getDefaultProcessLimits returns the nproc for the current process in ulimits format
 // Note that nfile sometimes cannot be set to unlimited, and the limit is hardcoded
 // to (oldMaxSize) 1048576 (2^20), see: http://stackoverflow.com/a/1213069/1811501
@@ -62,8 +73,4 @@ func getLibpodTmpDir() string {
 // getDefaultMachineVolumes returns default mounted volumes (possibly with env vars, which will be expanded)
 func getDefaultMachineVolumes() []string {
 	return []string{"$HOME:$HOME"}
-}
-
-func getDefaultComposeProviders() []string {
-	return defaultUnixComposeProviders
 }

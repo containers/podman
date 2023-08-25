@@ -3,11 +3,14 @@ package config
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
+	"sync"
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/common/libnetwork/types"
@@ -76,10 +79,6 @@ type Config struct {
 	Secrets SecretConfig `toml:"secrets"`
 	// ConfigMap section defines configurations for the configmaps management
 	ConfigMaps ConfigMapConfig `toml:"configmaps"`
-	// Farms defines configurations for the buildfarm farms
-	Farms FarmConfig `toml:"farms"`
-
-	loadedModules []string // only used at runtime to store which modules were loaded
 }
 
 // ContainersConfig represents the "containers" TOML config table
@@ -186,9 +185,6 @@ type ContainersConfig struct {
 	// Containers logs default to truncated container ID as a tag.
 	LogTag string `toml:"log_tag,omitempty"`
 
-	// Mount to add to all containers
-	Mounts []string `toml:"mounts,omitempty"`
-
 	// NetNS indicates how to create a network namespace for the container
 	NetNS string `toml:"netns,omitempty"`
 
@@ -269,17 +265,6 @@ type EngineConfig struct {
 	// ignore unqualified-search-registries and short-name aliases defined
 	// in containers-registries.conf(5).
 	CompatAPIEnforceDockerHub bool `toml:"compat_api_enforce_docker_hub,omitempty"`
-
-	// ComposeProviders specifies one or more external providers for the
-	// compose command.  The first found provider is used for execution.
-	// Can be an absolute and relative path or a (file) name.  Make sure to
-	// expand the return items via `os.ExpandEnv`.
-	ComposeProviders []string `toml:"compose_providers,omitempty"`
-
-	// ComposeWarningLogs emits logs on each invocation of the compose
-	// command indicating that an external compose provider is being
-	// executed.
-	ComposeWarningLogs bool `toml:"compose_warning_logs,omitempty"`
 
 	// DBBackend is the database backend to be used by Podman.
 	DBBackend string `toml:"database_backend,omitempty"`
@@ -528,11 +513,6 @@ type EngineConfig struct {
 
 	// CompressionLevel is the compression level used to compress image layers.
 	CompressionLevel *int `toml:"compression_level,omitempty"`
-
-	// PodmanshTimeout is the number of seconds to wait for podmansh logins.
-	// In other words, the timeout for the `podmansh` container to be in running
-	// state.
-	PodmanshTimeout uint `toml:"podmansh_timeout,omitempty,omitzero"`
 }
 
 // SetOptions contains a subset of options in a Config. It's used to indicate if
@@ -677,14 +657,6 @@ type MachineConfig struct {
 	Provider string `toml:"provider,omitempty"`
 }
 
-// FarmConfig represents the "farm" TOML config tabls
-type FarmConfig struct {
-	// Default is the default farm to be used when farming out builds
-	Default string `toml:"default,omitempty"`
-	// List is a map of farms created where key=farm-name and value=list of connections
-	List map[string][]string `toml:"list,omitempty"`
-}
-
 // Destination represents destination for remote service
 type Destination struct {
 	// URI, required. Example: ssh://root@example.com:22/run/podman/podman.sock
@@ -705,6 +677,166 @@ func (c *EngineConfig) ImagePlatformToRuntime(os string, arch string) string {
 		return val
 	}
 	return c.OCIRuntime
+}
+
+// NewConfig creates a new Config. It starts with an empty config and, if
+// specified, merges the config at `userConfigPath` path.  Depending if we're
+// running as root or rootless, we then merge the system configuration followed
+// by merging the default config (hard-coded default in memory).
+// Note that the OCI runtime is hard-set to `crun` if we're running on a system
+// with cgroupv2v2. Other OCI runtimes are not yet supporting cgroupv2v2. This
+// might change in the future.
+func NewConfig(userConfigPath string) (*Config, error) {
+	// Generate the default config for the system
+	config, err := DefaultConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// Now, gather the system configs and merge them as needed.
+	configs, err := systemConfigs()
+	if err != nil {
+		return nil, fmt.Errorf("finding config on system: %w", err)
+	}
+	for _, path := range configs {
+		// Merge changes in later configs with the previous configs.
+		// Each config file that specified fields, will override the
+		// previous fields.
+		if err = readConfigFromFile(path, config); err != nil {
+			return nil, fmt.Errorf("reading system config %q: %w", path, err)
+		}
+		logrus.Debugf("Merged system config %q", path)
+		logrus.Tracef("%+v", config)
+	}
+
+	// If the caller specified a config path to use, then we read it to
+	// override the system defaults.
+	if userConfigPath != "" {
+		var err error
+		// readConfigFromFile reads in container config in the specified
+		// file and then merge changes with the current default.
+		if err = readConfigFromFile(userConfigPath, config); err != nil {
+			return nil, fmt.Errorf("reading user config %q: %w", userConfigPath, err)
+		}
+		logrus.Debugf("Merged user config %q", userConfigPath)
+		logrus.Tracef("%+v", config)
+	}
+	config.addCAPPrefix()
+
+	if err := config.Validate(); err != nil {
+		return nil, err
+	}
+
+	if err := config.setupEnv(); err != nil {
+		return nil, err
+	}
+
+	return config, nil
+}
+
+// readConfigFromFile reads the specified config file at `path` and attempts to
+// unmarshal its content into a Config. The config param specifies the previous
+// default config. If the path, only specifies a few fields in the Toml file
+// the defaults from the config parameter will be used for all other fields.
+func readConfigFromFile(path string, config *Config) error {
+	logrus.Tracef("Reading configuration file %q", path)
+	meta, err := toml.DecodeFile(path, config)
+	if err != nil {
+		return fmt.Errorf("decode configuration %v: %w", path, err)
+	}
+	keys := meta.Undecoded()
+	if len(keys) > 0 {
+		logrus.Debugf("Failed to decode the keys %q from %q.", keys, path)
+	}
+
+	return nil
+}
+
+// addConfigs will search one level in the config dirPath for config files
+// If the dirPath does not exist, addConfigs will return nil
+func addConfigs(dirPath string, configs []string) ([]string, error) {
+	newConfigs := []string{}
+
+	err := filepath.WalkDir(dirPath,
+		// WalkFunc to read additional configs
+		func(path string, d fs.DirEntry, err error) error {
+			switch {
+			case err != nil:
+				// return error (could be a permission problem)
+				return err
+			case d.IsDir():
+				if path != dirPath {
+					// make sure to not recurse into sub-directories
+					return filepath.SkipDir
+				}
+				// ignore directories
+				return nil
+			default:
+				// only add *.conf files
+				if strings.HasSuffix(path, ".conf") {
+					newConfigs = append(newConfigs, path)
+				}
+				return nil
+			}
+		},
+	)
+	if errors.Is(err, os.ErrNotExist) {
+		err = nil
+	}
+	sort.Strings(newConfigs)
+	return append(configs, newConfigs...), err
+}
+
+// Returns the list of configuration files, if they exist in order of hierarchy.
+// The files are read in order and each new file can/will override previous
+// file settings.
+func systemConfigs() (configs []string, finalErr error) {
+	if path := os.Getenv("CONTAINERS_CONF_OVERRIDE"); path != "" {
+		if _, err := os.Stat(path); err != nil {
+			return nil, fmt.Errorf("CONTAINERS_CONF_OVERRIDE file: %w", err)
+		}
+		// Add the override config last to make sure it can override any
+		// previous settings.
+		defer func() {
+			if finalErr == nil {
+				configs = append(configs, path)
+			}
+		}()
+	}
+
+	if path := os.Getenv("CONTAINERS_CONF"); path != "" {
+		if _, err := os.Stat(path); err != nil {
+			return nil, fmt.Errorf("CONTAINERS_CONF file: %w", err)
+		}
+		return append(configs, path), nil
+	}
+	if _, err := os.Stat(DefaultContainersConfig); err == nil {
+		configs = append(configs, DefaultContainersConfig)
+	}
+	if _, err := os.Stat(OverrideContainersConfig); err == nil {
+		configs = append(configs, OverrideContainersConfig)
+	}
+
+	var err error
+	configs, err = addConfigs(OverrideContainersConfig+".d", configs)
+	if err != nil {
+		return nil, err
+	}
+
+	path, err := ifRootlessConfigPath()
+	if err != nil {
+		return nil, err
+	}
+	if path != "" {
+		if _, err := os.Stat(path); err == nil {
+			configs = append(configs, path)
+		}
+		configs, err = addConfigs(path+".d", configs)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return configs, nil
 }
 
 // CheckCgroupsAndAdjustConfig checks if we're running rootless with the systemd
@@ -873,7 +1005,17 @@ func (c *NetworkConfig) Validate() error {
 		}
 	}
 
-	return nil
+	if stringsEq(c.CNIPluginDirs, DefaultCNIPluginDirs) {
+		return nil
+	}
+
+	for _, pluginDir := range c.CNIPluginDirs {
+		if err := isDirectory(pluginDir); err == nil {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("invalid cni_plugin_dirs: %s", strings.Join(c.CNIPluginDirs, ","))
 }
 
 // FindConmon iterates over (*Config).ConmonPath and returns the path
@@ -1017,6 +1159,27 @@ func IsValidDeviceMode(mode string) bool {
 	return true
 }
 
+// resolveHomeDir converts a path referencing the home directory via "~"
+// to an absolute path
+func resolveHomeDir(path string) (string, error) {
+	// check if the path references the home dir to avoid work
+	// don't use strings.HasPrefix(path, "~") as this doesn't match "~" alone
+	// use strings.HasPrefix(...) to not match "something/~/something"
+	if !(path == "~" || strings.HasPrefix(path, "~/")) {
+		// path does not reference home dir -> Nothing to do
+		return path, nil
+	}
+
+	// only get HomeDir when necessary
+	home, err := unshare.HomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	// replace the first "~" (start of path) with the HomeDir to resolve "~"
+	return strings.Replace(path, "~", home, 1), nil
+}
+
 func rootlessConfigPath() (string, error) {
 	if configHome := os.Getenv("XDG_CONFIG_HOME"); configHome != "" {
 		return filepath.Join(configHome, _configPath), nil
@@ -1027,6 +1190,51 @@ func rootlessConfigPath() (string, error) {
 	}
 
 	return filepath.Join(home, UserOverrideContainersConfig), nil
+}
+
+func stringsEq(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
+var (
+	configErr   error
+	configMutex sync.Mutex
+	config      *Config
+)
+
+// Default returns the default container config.
+// Configuration files will be read in the following files:
+// * /usr/share/containers/containers.conf
+// * /etc/containers/containers.conf
+// * $HOME/.config/containers/containers.conf # When run in rootless mode
+// Fields in latter files override defaults set in previous files and the
+// default config.
+// None of these files are required, and not all fields need to be specified
+// in each file, only the fields you want to override.
+// The system defaults container config files can be overwritten using the
+// CONTAINERS_CONF environment variable.  This is usually done for testing.
+func Default() (*Config, error) {
+	configMutex.Lock()
+	defer configMutex.Unlock()
+	if config != nil || configErr != nil {
+		return config, configErr
+	}
+	return defConfig()
+}
+
+func defConfig() (*Config, error) {
+	config, configErr = NewConfig("")
+	return config, configErr
 }
 
 func Path() string {
@@ -1058,10 +1266,6 @@ func ReadCustomConfig() (*Config, error) {
 		if !errors.Is(err, os.ErrNotExist) {
 			return nil, err
 		}
-	}
-	// Let's always initialize the farm list so it is never nil
-	if newConfig.Farms.List == nil {
-		newConfig.Farms.List = make(map[string][]string)
 	}
 	return newConfig, nil
 }
@@ -1097,7 +1301,9 @@ func (c *Config) Write() error {
 // This function is meant to be used for long-running processes that need to reload potential changes made to
 // the cached containers.conf files.
 func Reload() (*Config, error) {
-	return New(&Options{SetDefault: true})
+	configMutex.Lock()
+	defer configMutex.Unlock()
+	return defConfig()
 }
 
 func (c *Config) ActiveDestination() (uri, identity string, machine bool, err error) {

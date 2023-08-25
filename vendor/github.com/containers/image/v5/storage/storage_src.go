@@ -124,7 +124,7 @@ func (s *storageImageSource) GetBlob(ctx context.Context, info types.BlobInfo, c
 	}
 	defer rc.Close()
 
-	tmpFile, err := tmpdir.CreateBigFileTemp(s.systemContext, "")
+	tmpFile, err := os.CreateTemp(tmpdir.TemporaryDirectoryForBigFiles(s.systemContext), "")
 	if err != nil {
 		return nil, 0, err
 	}

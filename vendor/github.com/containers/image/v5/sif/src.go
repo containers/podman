@@ -73,7 +73,7 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, ref sifRefere
 		_ = sifImg.UnloadContainer()
 	}()
 
-	workDir, err := tmpdir.MkDirBigFileTemp(sys, "sif")
+	workDir, err := os.MkdirTemp(tmpdir.TemporaryDirectoryForBigFiles(sys), "sif")
 	if err != nil {
 		return nil, fmt.Errorf("creating temp directory: %w", err)
 	}
