@@ -671,6 +671,11 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		podSpec.PodSpecGen.InfraContainerSpec = specgen.NewSpecGenerator(infraImage, false)
 		podSpec.PodSpecGen.InfraContainerSpec.NetworkOptions = p.NetworkOptions
 		podSpec.PodSpecGen.InfraContainerSpec.SdNotifyMode = define.SdNotifyModeIgnore
+		// If the infraNameAnnotation is set in the yaml, use that as the infra container name
+		// If not, fall back to the default infra container name
+		if v, ok := podYAML.Annotations[define.InfraNameAnnotation]; ok {
+			podSpec.PodSpecGen.InfraContainerSpec.Name = v
+		}
 
 		err = specgenutil.FillOutSpecGen(podSpec.PodSpecGen.InfraContainerSpec, &infraOptions, []string{})
 		if err != nil {

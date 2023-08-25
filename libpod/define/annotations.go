@@ -145,6 +145,10 @@ const (
 	// of the init container.
 	InitContainerType = "io.podman.annotations.init.container.type"
 
+	// InfraNameAnnotation is used by generate and play kube when the infra container is set by the user during
+	// pod creation
+	InfraNameAnnotation = "io.podman.annotations.infra.name"
+
 	// UlimitAnnotation is used by kube play when playing a kube yaml to specify the ulimits
 	// of the container
 	UlimitAnnotation = "io.podman.annotations.ulimit"

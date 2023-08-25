@@ -28,6 +28,8 @@ Once completed, the correct permissions are in place to access the volume when t
 
 Note that the generated Kubernetes YAML file can be used to re-run the deployment via podman-play-kube(1).
 
+Note that if the pod being generated was created with the **--infra-name** flag set, then the generated kube yaml will have the **io.podman.annotations.infra.name** set where the value is the name of the infra container set by the user.
+
 ## OPTIONS
 
 #### **--filename**, **-f**=*filename*

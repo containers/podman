@@ -64,6 +64,7 @@ func (p *Pod) GenerateForKube(ctx context.Context, getService, useLongAnnotation
 	extraHost := make([]v1.HostAlias, 0)
 	hostNetwork := false
 	hostUsers := true
+	infraName := ""
 	if p.HasInfraContainer() {
 		infraContainer, err := p.getInfraContainer()
 		if err != nil {
@@ -90,8 +91,9 @@ func (p *Pod) GenerateForKube(ctx context.Context, getService, useLongAnnotation
 		}
 		hostNetwork = infraContainer.NetworkMode() == string(namespaces.NetworkMode(specgen.Host))
 		hostUsers = infraContainer.IDMappings().HostUIDMapping && infraContainer.IDMappings().HostGIDMapping
+		infraName = infraContainer.config.Name
 	}
-	pod, err := p.podWithContainers(ctx, allContainers, ports, hostNetwork, hostUsers, getService, useLongAnnotations, podmanOnly)
+	pod, err := p.podWithContainers(ctx, allContainers, ports, hostNetwork, hostUsers, getService, useLongAnnotations, podmanOnly, infraName)
 	if err != nil {
 		return nil, servicePorts, err
 	}
@@ -426,7 +428,7 @@ func containersToServicePorts(containers []v1.Container) ([]v1.ServicePort, erro
 	return sps, nil
 }
 
-func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, ports []v1.ContainerPort, hostNetwork, hostUsers, getService, useLongAnnotations, podmanOnly bool) (*v1.Pod, error) {
+func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, ports []v1.ContainerPort, hostNetwork, hostUsers, getService, useLongAnnotations, podmanOnly bool, infraName string) (*v1.Pod, error) {
 	deDupPodVolumes := make(map[string]*v1.Volume)
 	first := true
 	podContainers := make([]v1.Container, 0, len(containers))
@@ -511,6 +513,11 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				if options := infraDNS.Options; len(options) > 0 {
 					dnsInfo.Options = options
 				}
+			}
+			// If the infraName is not the podID-infra, that means the user set another infra name using
+			// --infra-name during pod creation
+			if infraName != "" && infraName != p.ID()[:12]+"-infra" {
+				podAnnotations[define.InfraNameAnnotation] = truncateKubeAnnotation(infraName, useLongAnnotations)
 			}
 		}
 	}

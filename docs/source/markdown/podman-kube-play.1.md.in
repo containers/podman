@@ -45,6 +45,8 @@ Note: The command `podman play kube` is an alias of `podman kube play`, and perf
 Note: The command `podman kube down` can be used to stop and remove pods or containers based on the same Kubernetes YAML used
 by `podman kube play` to create them.
 
+Note: To customize the name of the infra container created during `podman kube play`, use the **io.podman.annotations.infra.name** annotation in the pod definition. This annotation is automatically set when generating a kube yaml from a pod that was created with the `--infra-name` flag set.
+
 `Kubernetes PersistentVolumeClaims`
 
 A Kubernetes PersistentVolumeClaim represents a Podman named volume. Only the PersistentVolumeClaim name is required by Podman to create a volume. Kubernetes annotations can be used to make use of the available options for Podman volumes.
