@@ -477,11 +477,10 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	}
 
 	if c.config.Umask != "" {
-		decVal, err := strconv.ParseUint(c.config.Umask, 8, 32)
+		umask, err := c.umask()
 		if err != nil {
-			return nil, nil, fmt.Errorf("invalid Umask Value: %w", err)
+			return nil, nil, err
 		}
-		umask := uint32(decVal)
 		g.Config.Process.User.Umask = &umask
 	}
 
@@ -2930,4 +2929,12 @@ func (c *Container) ChangeHostPathOwnership(src string, recurse bool, uid, gid i
 		}
 	}
 	return chown.ChangeHostPathOwnership(src, recurse, uid, gid)
+}
+
+func (c *Container) umask() (uint32, error) {
+	decVal, err := strconv.ParseUint(c.config.Umask, 8, 32)
+	if err != nil {
+		return 0, fmt.Errorf("invalid Umask Value: %w", err)
+	}
+	return uint32(decVal), nil
 }
