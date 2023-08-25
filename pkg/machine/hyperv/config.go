@@ -106,6 +106,8 @@ func (v HyperVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, 
 		return nil, errors.New("must define --image-path for hyperv support")
 	}
 
+	m.RemoteUsername = opts.Username
+
 	configDir, err := machine.GetConfDir(machine.HyperVVirt)
 	if err != nil {
 		return nil, err

@@ -240,7 +240,7 @@ func (vm *VirtualMachine) Stop() error {
 	}
 
 	// Wait for vm to actually *be* down
-	for i := 0; i < 25; i++ {
+	for i := 0; i < 200; i++ {
 		refreshVM, err := vm.vmm.GetMachine(vm.ElementName)
 		if err != nil {
 			return err
