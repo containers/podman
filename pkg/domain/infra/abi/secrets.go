@@ -166,17 +166,10 @@ func (ic *ContainerEngine) SecretRm(ctx context.Context, nameOrIDs []string, opt
 	}
 	for _, nameOrID := range toRemove {
 		deletedID, err := manager.Delete(nameOrID)
-		if err == nil || strings.Contains(err.Error(), "no such secret") {
-			if !options.Ignore {
-				reports = append(reports, &entities.SecretRmReport{
-					Err: err,
-					ID:  deletedID,
-				})
-			}
+		if options.Ignore && errors.Is(err, secrets.ErrNoSuchSecret) {
 			continue
-		} else {
-			return nil, err
 		}
+		reports = append(reports, &entities.SecretRmReport{Err: err, ID: deletedID})
 	}
 
 	return reports, nil
