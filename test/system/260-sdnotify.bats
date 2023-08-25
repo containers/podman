@@ -126,16 +126,15 @@ function _assert_mainpid_is_conmon() {
     run_podman logs sdnotify_conmon_c
     is "$output" "READY" "\$NOTIFY_SOCKET in container"
 
-    # The 'echo's help us debug failed runs
-    wait_for_file $_SOCAT_LOG
-    run cat $_SOCAT_LOG
-    echo "socat log:"
-    echo "$output"
+    # loop-wait for the final READY line
+    wait_for_file_content $_SOCAT_LOG "READY=1"
 
-    is "$output" "MAINPID=$mainPID
+    # ...and confirm the entire file contents
+    logcontents="$(< $_SOCAT_LOG)"
+    assert "$logcontents" = "MAINPID=$mainPID
 READY=1" "sdnotify sent MAINPID and READY"
 
-    _assert_mainpid_is_conmon "$output"
+    _assert_mainpid_is_conmon "$logcontents"
 
     # Done. Stop container, clean up.
     run_podman rm -f -t0 $cid
@@ -164,25 +163,20 @@ READY=1" "sdnotify sent MAINPID and READY"
 
     run_podman container inspect $cid --format "{{.State.ConmonPid}}"
     mainPID="$output"
-    # With container, READY=1 isn't necessarily the last message received;
-    # just look for it anywhere in received messages
-    run cat $_SOCAT_LOG
-    # The 'echo's help us debug failed runs
-    echo "socat log:"
-    echo "$output"
 
-    is "$output" "MAINPID=$mainPID" "Container is not ready yet, so we only know the main PID"
+    # Container does not send READY=1 until our signal. Until then, there must
+    # be exactly one line in the log
+    wait_for_file_content $_SOCAT_LOG "MAINPID=$mainPID"
+    # ...and that line must contain the expected PID, nothing more
+    assert "$(< $_SOCAT_LOG)" = "MAINPID=$mainPID" "Container has started, but must not indicate READY yet"
 
     # Done. Tell container to stop itself, and clean up
     run_podman kill -s USR1 $cid
     run_podman wait $cid
 
-    wait_for_file $_SOCAT_LOG
-    run cat $_SOCAT_LOG
-    echo "socat log:"
-    echo "$output"
-    is "$output" "MAINPID=$mainPID
-READY=1"
+    wait_for_file_content $_SOCAT_LOG "READY=1"
+    assert "$(< $_SOCAT_LOG)" = "MAINPID=$mainPID
+READY=1" "Container log after ready signal"
 
     run_podman rm $cid
     _stop_socat
@@ -218,14 +212,12 @@ READY=1"
     # Make sure that the MAINPID is set but without the READY message.
     run_podman container inspect $ctr --format "{{.State.ConmonPid}}"
     mainPID="$output"
-    # With container, READY=1 isn't necessarily the last message received;
-    # just look for it anywhere in received messages
-    run cat $_SOCAT_LOG
-    # The 'echo's help us debug failed runs
-    echo "socat log:"
-    echo "$output"
 
-    is "$output" "MAINPID=$mainPID" "Container is not healthy yet, so we only know the main PID"
+    # Container does not send READY=1 until it runs a successful health check.
+    # Until then, there must be exactly one line in the log
+    wait_for_file_content $_SOCAT_LOG "MAINPID="
+    # ...and that line must contain the expected PID, nothing more
+    assert "$(< $_SOCAT_LOG)" = "MAINPID=$mainPID" "Container logs after start, prior to healthcheck run"
 
     # Now run the healthcheck and look for the READY message.
     run_podman healthcheck run $ctr
@@ -233,12 +225,9 @@ READY=1"
 
     # Wait for start to return.  At that point the READY message must have been
     # sent.
-    wait_for_file $wait_file
-    run cat $_SOCAT_LOG
-    echo "socat log:"
-    echo "$output"
-    is "$output" "MAINPID=$mainPID
-READY=1"
+    wait_for_file_content $_SOCAT_LOG "READY=1"
+    assert "$(< $_SOCAT_LOG)" = "MAINPID=$mainPID
+READY=1" "Container log after healthcheck run"
 
     run_podman container inspect  --format "{{.State.Status}}" $ctr
     is "$output" "running" "make sure container is still running"
@@ -302,13 +291,8 @@ EOF
     is "$output" "ignore
 ignore"
 
-    # The 'echo's help us debug failed runs
-    run cat $_SOCAT_LOG
-    echo "socat log:"
-    echo "$output"
-
-    # The "with policies" test below checks the MAINPID.
-    is "$output" "MAINPID=$main_pid
+    wait_for_file_content $_SOCAT_LOG "READY=1"
+    assert "$(< $_SOCAT_LOG)" = "MAINPID=$main_pid
 READY=1" "sdnotify sent MAINPID and READY"
 
     _stop_socat
@@ -409,18 +393,14 @@ ignore"
     run_podman container wait $container_a
     run_podman container inspect $container_a --format "{{.State.ExitCode}}"
     is "$output" "0" "container exited cleanly after sending READY message"
-    wait_for_file $_SOCAT_LOG
-    # The 'echo's help us debug failed runs
-    run cat $_SOCAT_LOG
-    echo "socat log:"
-    echo "$output"
 
-    is "$output" "MAINPID=.*
+    wait_for_file_content $_SOCAT_LOG "READY=1"
+    assert "$(< $_SOCAT_LOG)" =~ "MAINPID=.*
 READY=1" "sdnotify sent MAINPID and READY"
 
     # Make sure that Podman is the service's MainPID
-    main_pid=$(awk -F= '{print $2}' <<< ${lines[0]})
-    is "$(</proc/$main_pid/comm)" "podman" "podman is the service mainPID"
+    main_pid=$(head -n1 $_SOCAT_LOG | awk -F= '{print $2}')
+    is "$(</proc/$main_pid/comm)" "podman" "podman is the service mainPID ($main_pid)"
     _stop_socat
 
     # Clean up pod and pause image
