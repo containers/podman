@@ -321,21 +321,13 @@ func (d *dockerImageDestination) TryReusingBlobWithOptions(ctx context.Context, 
 		return false, private.ReusedBlob{}, errors.New("Can not check for a blob with unknown digest")
 	}
 
-	if impl.OriginalBlobMatchesRequiredCompression(options) {
-		// First, check whether the blob happens to already exist at the destination.
-		haveBlob, reusedInfo, err := d.tryReusingExactBlob(ctx, info, options.Cache)
-		if err != nil {
-			return false, private.ReusedBlob{}, err
-		}
-		if haveBlob {
-			return true, reusedInfo, nil
-		}
-	} else {
-		requiredCompression := "nil"
-		if options.OriginalCompression != nil {
-			requiredCompression = options.OriginalCompression.Name()
-		}
-		logrus.Debugf("Ignoring exact blob match case due to compression mismatch ( %s vs %s )", options.RequiredCompression.Name(), requiredCompression)
+	// First, check whether the blob happens to already exist at the destination.
+	haveBlob, reusedInfo, err := d.tryReusingExactBlob(ctx, info, options.Cache)
+	if err != nil {
+		return false, private.ReusedBlob{}, err
+	}
+	if haveBlob {
+		return true, reusedInfo, nil
 	}
 
 	// Then try reusing blobs from other locations.
@@ -344,19 +336,6 @@ func (d *dockerImageDestination) TryReusingBlobWithOptions(ctx context.Context, 
 		candidateRepo, err := parseBICLocationReference(candidate.Location)
 		if err != nil {
 			logrus.Debugf("Error parsing BlobInfoCache location reference: %s", err)
-			continue
-		}
-		compressionOperation, compressionAlgorithm, err := blobinfocache.OperationAndAlgorithmForCompressor(candidate.CompressorName)
-		if err != nil {
-			logrus.Debugf("OperationAndAlgorithmForCompressor Failed: %v", err)
-			continue
-		}
-		if !impl.BlobMatchesRequiredCompression(options, compressionAlgorithm) {
-			requiredCompression := "nil"
-			if compressionAlgorithm != nil {
-				requiredCompression = compressionAlgorithm.Name()
-			}
-			logrus.Debugf("Ignoring candidate blob %s as reuse candidate due to compression mismatch ( %s vs %s ) in %s", candidate.Digest.String(), options.RequiredCompression.Name(), requiredCompression, candidateRepo.Name())
 			continue
 		}
 		if candidate.CompressorName != blobinfocache.Uncompressed {
@@ -408,6 +387,12 @@ func (d *dockerImageDestination) TryReusingBlobWithOptions(ctx context.Context, 
 		}
 
 		options.Cache.RecordKnownLocation(d.ref.Transport(), bicTransportScope(d.ref), candidate.Digest, newBICLocationReference(d.ref))
+
+		compressionOperation, compressionAlgorithm, err := blobinfocache.OperationAndAlgorithmForCompressor(candidate.CompressorName)
+		if err != nil {
+			logrus.Debugf("... Failed: %v", err)
+			continue
+		}
 
 		return true, private.ReusedBlob{
 			Digest:               candidate.Digest,

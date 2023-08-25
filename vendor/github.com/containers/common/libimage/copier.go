@@ -49,10 +49,6 @@ type CopyOptions struct {
 	CompressionFormat *compression.Algorithm
 	// CompressionLevel specifies what compression level is used
 	CompressionLevel *int
-	// ForceCompressionFormat ensures that the compression algorithm set in
-	// CompressionFormat is used exclusively, and blobs of other compression
-	// algorithms are not reused.
-	ForceCompressionFormat bool
 
 	// containers-auth.json(5) file to use when authenticating against
 	// container registries.
@@ -298,7 +294,6 @@ func (r *Runtime) newCopier(options *CopyOptions) (*copier, error) {
 		c.imageCopyOptions.ProgressInterval = time.Second
 	}
 
-	c.imageCopyOptions.ForceCompressionFormat = options.ForceCompressionFormat
 	c.imageCopyOptions.ForceManifestMIMEType = options.ManifestMIMEType
 	c.imageCopyOptions.SourceCtx = c.systemContext
 	c.imageCopyOptions.DestinationCtx = c.systemContext

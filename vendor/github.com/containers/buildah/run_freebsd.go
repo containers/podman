@@ -17,7 +17,6 @@ import (
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/internal"
 	"github.com/containers/buildah/pkg/jail"
-	"github.com/containers/buildah/pkg/overlay"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/util"
 	"github.com/containers/common/libnetwork/resolvconf"
@@ -323,22 +322,13 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 	}
 
 	parseMount := func(mountType, host, container string, options []string) (specs.Mount, error) {
-		var foundrw, foundro, foundO bool
-		var upperDir string
+		var foundrw, foundro bool
 		for _, opt := range options {
 			switch opt {
 			case "rw":
 				foundrw = true
 			case "ro":
 				foundro = true
-			case "O":
-				foundO = true
-			}
-			if strings.HasPrefix(opt, "upperdir") {
-				splitOpt := strings.SplitN(opt, "=", 2)
-				if len(splitOpt) > 1 {
-					upperDir = splitOpt[1]
-				}
 			}
 		}
 		if !foundrw && !foundro {
@@ -346,30 +336,6 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 		}
 		if mountType == "bind" || mountType == "rbind" {
 			mountType = "nullfs"
-		}
-		if foundO {
-			containerDir, err := b.store.ContainerDirectory(b.ContainerID)
-			if err != nil {
-				return specs.Mount{}, err
-			}
-
-			contentDir, err := overlay.TempDir(containerDir, idMaps.rootUID, idMaps.rootGID)
-			if err != nil {
-				return specs.Mount{}, fmt.Errorf("failed to create TempDir in the %s directory: %w", containerDir, err)
-			}
-
-			overlayOpts := overlay.Options{
-				RootUID:                idMaps.rootUID,
-				RootGID:                idMaps.rootGID,
-				UpperDirOptionFragment: upperDir,
-				GraphOpts:              b.store.GraphOptions(),
-			}
-
-			overlayMount, err := overlay.MountWithOptions(contentDir, host, container, &overlayOpts)
-			if err == nil {
-				b.TempVolumes[contentDir] = true
-			}
-			return overlayMount, err
 		}
 		return specs.Mount{
 			Destination: container,

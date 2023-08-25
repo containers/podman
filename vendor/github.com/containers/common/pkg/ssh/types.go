@@ -24,7 +24,6 @@ type ConnectionCreateOptions struct {
 	Identity string
 	Socket   string
 	Default  bool
-	Farm     string
 }
 
 type ConnectionDialOptions struct {

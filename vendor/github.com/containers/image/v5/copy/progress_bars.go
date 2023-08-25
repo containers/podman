@@ -84,8 +84,6 @@ func (c *copier) createProgressBar(pool *mpb.Progress, partial bool, info types.
 				),
 				mpb.AppendDecorators(
 					decor.OnComplete(decor.CountersKibiByte("%.1f / %.1f"), ""),
-					decor.Name(" | "),
-					decor.OnComplete(decor.EwmaSpeed(decor.SizeB1024(0), "% .1f", 30), ""),
 				),
 			)
 		}
@@ -95,9 +93,6 @@ func (c *copier) createProgressBar(pool *mpb.Progress, partial bool, info types.
 			mpb.BarFillerClearOnComplete(),
 			mpb.PrependDecorators(
 				decor.OnComplete(decor.Name(prefix), onComplete),
-			),
-			mpb.AppendDecorators(
-				decor.OnComplete(decor.EwmaSpeed(decor.SizeB1024(0), "% .1f", 30), ""),
 			),
 		)
 	}
