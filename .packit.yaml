@@ -35,7 +35,8 @@ jobs:
     identifier: cockpit-revdeps
     trigger: pull_request
     targets:
-      - fedora-all
+      - fedora-latest-stable
+      - fedora-development
     tf_extra_params:
       environments:
         - artifacts:

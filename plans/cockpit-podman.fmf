@@ -15,6 +15,11 @@ discover:
 execute:
     how: tmt
 
+# not relevant for testing podman
+environment:
+    TEST_AUDIT_NO_SELINUX: 1
+    TEST_ALLOW_JOURNAL_MESSAGES: ".*"
+
 # This has to duplicate cockpit-podman's plan structure; see https://github.com/teemtee/tmt/issues/1770
 /podman-system:
     summary: Run cockpit-podman system tests
