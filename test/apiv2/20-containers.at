@@ -308,6 +308,7 @@ cid_top=$(jq -r '.Id' <<<"$output")
 t GET containers/${cid_top}/json 200 \
   .Config.Entrypoint[0]="top" \
   .Config.Cmd='[]' \
+  .Config.StopTimeout="10" \
   .Path="top" \
   .NetworkSettings.Networks.podman.NetworkID=podman
 t POST  containers/${cid_top}/start 204

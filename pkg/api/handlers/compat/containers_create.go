@@ -435,6 +435,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 		Rm:                cc.HostConfig.AutoRemove,
 		SecurityOpt:       cc.HostConfig.SecurityOpt,
 		StopSignal:        cc.Config.StopSignal,
+		StopTimeout:       rtc.Engine.StopTimeout, // podman default
 		StorageOpts:       stringMaptoArray(cc.HostConfig.StorageOpt),
 		Sysctl:            stringMaptoArray(cc.HostConfig.Sysctls),
 		Systemd:           "true", // podman default
