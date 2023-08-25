@@ -16,9 +16,9 @@ import (
 	"text/template"
 
 	"github.com/containers/common/pkg/config"
-	cmdMachine "github.com/containers/podman/v4/cmd/podman/machine"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/provider"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -155,7 +155,7 @@ func composeDockerHost() (string, error) {
 		return strings.TrimSuffix(connection.URI, parsedConnection.Path), nil
 	}
 
-	machineProvider, err := cmdMachine.GetSystemProvider()
+	machineProvider, err := provider.Get()
 	if err != nil {
 		return "", fmt.Errorf("getting machine provider: %w", err)
 	}

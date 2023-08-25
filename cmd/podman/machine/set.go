@@ -18,7 +18,7 @@ var (
 		Use:               "set [options] [NAME]",
 		Short:             "Set a virtual machine setting",
 		Long:              "Set an updatable virtual machine setting",
-		PersistentPreRunE: rootlessOnly,
+		PersistentPreRunE: machinePreRunE,
 		RunE:              setMachine,
 		Args:              cobra.MaximumNArgs(1),
 		Example:           `podman machine set --rootful=false`,
@@ -89,10 +89,7 @@ func setMachine(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 && len(args[0]) > 0 {
 		vmName = args[0]
 	}
-	provider, err := GetSystemProvider()
-	if err != nil {
-		return err
-	}
+
 	vm, err = provider.LoadVMByName(vmName)
 	if err != nil {
 		return err

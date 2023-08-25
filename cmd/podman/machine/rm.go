@@ -20,7 +20,7 @@ var (
 		Use:               "rm [options] [MACHINE]",
 		Short:             "Remove an existing machine",
 		Long:              "Remove a managed virtual machine ",
-		PersistentPreRunE: rootlessOnly,
+		PersistentPreRunE: machinePreRunE,
 		RunE:              rm,
 		Args:              cobra.MaximumNArgs(1),
 		Example:           `podman machine rm podman-machine-default`,
@@ -62,10 +62,6 @@ func rm(_ *cobra.Command, args []string) error {
 		vmName = args[0]
 	}
 
-	provider, err := GetSystemProvider()
-	if err != nil {
-		return err
-	}
 	vm, err = provider.LoadVMByName(vmName)
 	if err != nil {
 		return err

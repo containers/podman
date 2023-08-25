@@ -1,4 +1,6 @@
-package machine
+//go:build darwin && arm64
+
+package provider
 
 import (
 	"fmt"
@@ -6,12 +8,12 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine"
-	"github.com/containers/podman/v4/pkg/machine/hyperv"
-	"github.com/containers/podman/v4/pkg/machine/wsl"
+	"github.com/containers/podman/v4/pkg/machine/applehv"
+	"github.com/containers/podman/v4/pkg/machine/qemu"
 	"github.com/sirupsen/logrus"
 )
 
-func GetSystemProvider() (machine.VirtProvider, error) {
+func Get() (machine.VirtProvider, error) {
 	cfg, err := config.Default()
 	if err != nil {
 		return nil, err
@@ -20,17 +22,17 @@ func GetSystemProvider() (machine.VirtProvider, error) {
 	if providerOverride, found := os.LookupEnv("CONTAINERS_MACHINE_PROVIDER"); found {
 		provider = providerOverride
 	}
-	resolvedVMType, err := machine.ParseVMType(provider, machine.WSLVirt)
+	resolvedVMType, err := machine.ParseVMType(provider, machine.QemuVirt)
 	if err != nil {
 		return nil, err
 	}
 
 	logrus.Debugf("Using Podman machine with `%s` virtualization provider", resolvedVMType.String())
 	switch resolvedVMType {
-	case machine.WSLVirt:
-		return wsl.VirtualizationProvider(), nil
-	case machine.HyperVVirt:
-		return hyperv.VirtualizationProvider(), nil
+	case machine.QemuVirt:
+		return qemu.VirtualizationProvider(), nil
+	case machine.AppleHvVirt:
+		return applehv.VirtualizationProvider(), nil
 	default:
 		return nil, fmt.Errorf("unsupported virtualization provider: `%s`", resolvedVMType.String())
 	}

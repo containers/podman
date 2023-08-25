@@ -28,7 +28,7 @@ var (
 		Aliases:           []string{"ls"},
 		Short:             "List machines",
 		Long:              "List managed virtual machines.",
-		PersistentPreRunE: rootlessOnly,
+		PersistentPreRunE: machinePreRunE,
 		RunE:              list,
 		Args:              validate.NoArgs,
 		ValidArgsFunction: completion.AutocompleteNone,
@@ -66,10 +66,6 @@ func list(cmd *cobra.Command, args []string) error {
 		err          error
 	)
 
-	provider, err := GetSystemProvider()
-	if err != nil {
-		return err
-	}
 	listResponse, err = provider.List(opts)
 	if err != nil {
 		return fmt.Errorf("listing vms: %w", err)

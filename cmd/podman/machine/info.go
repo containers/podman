@@ -28,7 +28,7 @@ var (
 		Use:               "info [options]",
 		Short:             "Display machine host info",
 		Long:              infoDescription,
-		PersistentPreRunE: rootlessOnly,
+		PersistentPreRunE: machinePreRunE,
 		RunE:              info,
 		Args:              validate.NoArgs,
 		ValidArgsFunction: completion.AutocompleteNone,
@@ -101,10 +101,6 @@ func hostInfo() (*entities.MachineHostInfo, error) {
 	host.Arch = runtime.GOARCH
 	host.OS = runtime.GOOS
 
-	provider, err := GetSystemProvider()
-	if err != nil {
-		return nil, err
-	}
 	var listOpts machine.ListOptions
 	listResponse, err := provider.List(listOpts)
 	if err != nil {
