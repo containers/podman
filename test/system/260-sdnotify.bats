@@ -4,6 +4,8 @@
 #
 
 load helpers
+load helpers.network
+load helpers.registry
 
 # Shared throughout this module: PID of socat process, and path to its log
 _SOCAT_PID=
@@ -504,5 +506,86 @@ none | false | false | 0
     is "$output" "Error: unsupported exit-code propagation \"bogus\"" "error on unsupported exit-code propagation"
 
     run_podman rmi $(pause_image)
+}
+
+@test "podman pull - EXTEND_TIMEOUT_USEC" {
+    # Make sure that Podman extends the start timeout via DBUS when running
+    # inside a systemd unit (i.e., with NOTIFY_SOCKET set).  Extending the
+    # timout works by continuously sending EXTEND_TIMEOUT_USEC; Podman does
+    # this at most 10 times, adding up to ~5min.
+
+    image_on_local_registry=localhost:${PODMAN_LOGIN_REGISTRY_PORT}/name:tag
+    registry_flags="--tls-verify=false --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS}"
+    start_registry
+
+    export NOTIFY_SOCKET=$PODMAN_TMPDIR/notify.sock
+    _start_socat
+
+    run_podman push $registry_flags $IMAGE $image_on_local_registry
+    run_podman pull $registry_flags $image_on_local_registry
+    is "${lines[1]}" "Pulling image $image_on_local_registry inside systemd: setting pull timeout to 5m0s" "NOTIFY_SOCKET is passed to container"
+
+    run cat $_SOCAT_LOG
+    # The 'echo's help us debug failed runs
+    echo "socat log:"
+    echo "$output"
+    is "$output" "EXTEND_TIMEOUT_USEC=30000000"
+
+    run_podman rmi $image_on_local_registry
+    _stop_socat
+}
+
+@test "podman system service" {
+    # This test makes sure that podman-system-service uses the NOTIFY_SOCKET
+    # correctly and that it unsets it after sending the expected MAINPID and
+    # READY message by making sure no EXTEND_TIMEOUT_USEC is sent on pull.
+
+    # Start a local registry and pre-populate it with an image we'll pull later on.
+    image_on_local_registry=localhost:${PODMAN_LOGIN_REGISTRY_PORT}/name:tag
+    registry_flags="--tls-verify=false --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS}"
+    start_registry
+    run_podman push $registry_flags $IMAGE $image_on_local_registry
+
+    export NOTIFY_SOCKET=$PODMAN_TMPDIR/notify.sock
+    podman_socket="unix://$PODMAN_TMPDIR/podman.sock"
+    envfile=$PODMAN_TMPDIR/envfile
+    _start_socat
+
+    (timeout --foreground -v --kill=10 30 $PODMAN system service -t0 $podman_socket &)
+
+    wait_for_file $_SOCAT_LOG
+    local timeout=10
+    while [[ $timeout -gt 0 ]]; do
+        run cat $_SOCAT_LOG
+        # The 'echo's help us debug failed runs
+        echo "socat log:"
+        echo "$output"
+
+        if [[ "$output" =~ "READY=1" ]]; then
+            break
+        fi
+        timeout=$((timeout - 1))
+        assert $timeout -gt 0 "Timed out waiting for podman-system-service to send expected data over NOTIFY_SOCKET"
+        sleep 0.5
+    done
+
+    assert "$output" =~ "MAINPID=.*
+READY=1" "podman-system-service sends expected data over NOTIFY_SOCKET"
+    mainpid=${lines[0]:8}
+
+    # Now pull remotely and make sure that the service does _not_ extend the
+    # timeout; the NOTIFY_SOCKET should be unset at that point.
+    run_podman --url $podman_socket pull $registry_flags $image_on_local_registry
+
+    run cat $_SOCAT_LOG
+    # The 'echo's help us debug failed runs
+    echo "socat log:"
+    echo "$output"
+    assert "$output" !~ "EXTEND_TIMEOUT_USEC="
+
+    # Give the system-service 5sec to terminate before killing it.
+    /bin/kill --timeout 5000 KILL --signal TERM $mainpid
+    run_podman rmi $image_on_local_registry
+    _stop_socat
 }
 # vim: filetype=sh

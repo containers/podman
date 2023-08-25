@@ -246,8 +246,8 @@ github.com/containernetworking/plugins v1.3.0 h1:QVNXMT6XloyMUoO2wUOqWTC1hWFV62Q
 github.com/containernetworking/plugins v1.3.0/go.mod h1:Pc2wcedTQQCVuROOOaLBPPxrEXqqXBFt3cZ+/yVg6l0=
 github.com/containers/buildah v1.31.1-0.20230722114901-5ece066f82c6 h1:K/S8SFQsnnNTF0Ws58SrBD9L0EuClzAG8Zp08d7+6AA=
 github.com/containers/buildah v1.31.1-0.20230722114901-5ece066f82c6/go.mod h1:0sptTFBBtSznLqoTh80DfvMOCNbdRsNRgVOKhBhrupA=
-github.com/containers/common v0.55.1-0.20230816154734-519ed7fea9bd h1:fdpl099M/XfhB+yYACXFcW7Dsaz+1oHs57hF78SR9wI=
-github.com/containers/common v0.55.1-0.20230816154734-519ed7fea9bd/go.mod h1:wtIdVQKHf4U+UfIz9B1htNZqqEeMNysQOevHNiNrru0=
+github.com/containers/common v0.55.1-0.20230824140149-b27c2ba2b7e1 h1:MfMnYctOK+QlYQudW88avvOzU/kBVWdqs+w40inJeKM=
+github.com/containers/common v0.55.1-0.20230824140149-b27c2ba2b7e1/go.mod h1:1ZeaFdUqfLR9HE45ZacZwO3m4y5UOWP/DY9oZlTOYlI=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.26.1-0.20230807184415-3fb422379cfa h1:wDfVQtc6ik2MvsUmu/YRSyBAE5YUxdjcEDtuT1q2KDo=
@@ -637,8 +637,8 @@ github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANyt
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/j-keck/arping v0.0.0-20160618110441-2cf9dc699c56/go.mod h1:ymszkNOg6tORTn+6F6j+Jc8TOr5osrynvN6ivFWZ2GA=
-github.com/jinzhu/copier v0.3.5 h1:GlvfUwHk62RokgqVNvYsku0TATCF7bAHVwEXoBh3iJg=
-github.com/jinzhu/copier v0.3.5/go.mod h1:DfbEm0FYsaqBcKcFuvmOZb218JkPGtvSHsKg8S8hyyg=
+github.com/jinzhu/copier v0.4.0 h1:w3ciUoD19shMCRargcpm0cm91ytaBhDvuRpz1ODO/U8=
+github.com/jinzhu/copier v0.4.0/go.mod h1:DfbEm0FYsaqBcKcFuvmOZb218JkPGtvSHsKg8S8hyyg=
 github.com/jmespath/go-jmespath v0.0.0-20160202185014-0b12d6b521d8/go.mod h1:Nht3zPeWKUH0NzdCt2Blrr5ys8VGpn0CEB0cQHVjt7k=
 github.com/jmespath/go-jmespath v0.0.0-20160803190731-bd40a432e4c7/go.mod h1:Nht3zPeWKUH0NzdCt2Blrr5ys8VGpn0CEB0cQHVjt7k=
 github.com/jmhodges/clock v0.0.0-20160418191101-880ee4c33548 h1:dYTbLf4m0a5u0KLmPfB6mgxbcV7588bOCx79hxa5Sr4=
