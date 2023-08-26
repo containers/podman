@@ -64,8 +64,8 @@ Note: **N/A** means that the option cannot be supported in a single-node Podman 
 | securityContext\.seLinuxOptions\.role               | ✅      |
 | securityContext\.seLinuxOptions\.type               | ✅      |
 | securityContext\.seLinuxOptions\.user               | ✅      |
-| securityContext\.sysctls\.name                      | no      |
-| securityContext\.sysctls\.value                     | no      |
+| securityContext\.sysctls\.name                      | ✅      |
+| securityContext\.sysctls\.value                     | ✅      |
 | securityContext\.windowsOptions\.gmsaCredentialSpec | no      |
 | securityContext\.windowsOptions\.hostProcess        | no      |
 | securityContext\.windowsOptions\.runAsUserName      | no      |
