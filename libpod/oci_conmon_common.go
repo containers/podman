@@ -420,22 +420,6 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 
 	killCtr := func(signal uint) (bool, error) {
 		stderr, err := r.killContainer(ctr, signal, all, true)
-
-		// Before handling error from KillContainer, convert STDERR to a []string
-		// (one string per line of output) and print it, ignoring known OCI runtime
-		// errors that we don't care about
-		stderrLines := strings.Split(stderr.String(), "\n")
-		for _, line := range stderrLines {
-			if line == "" {
-				continue
-			}
-			if strings.Contains(line, "container not running") || strings.Contains(line, "open pidfd: No such process") || strings.Contains(line, "kill container: No such process") {
-				logrus.Debugf("Failure to kill container (already stopped?): logged %s", line)
-				continue
-			}
-			fmt.Fprintf(os.Stderr, "%s\n", line)
-		}
-
 		if err != nil {
 			// There's an inherent race with the cleanup process (see
 			// #16142, #17142). If the container has already been marked as
@@ -461,6 +445,16 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 
 			return false, err
 		}
+
+		// Before handling error from KillContainer, convert STDERR to a []string
+		// (one string per line of output) and print it.
+		stderrLines := strings.Split(stderr.String(), "\n")
+		for _, line := range stderrLines {
+			if line != "" {
+				fmt.Fprintf(os.Stderr, "%s\n", line)
+			}
+		}
+
 		return false, nil
 	}
 
