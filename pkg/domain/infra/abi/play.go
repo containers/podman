@@ -24,6 +24,7 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	v1apps "github.com/containers/podman/v4/pkg/k8s.io/api/apps/v1"
 	v1 "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
+	metav1 "github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/apis/meta/v1"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/specgen/generate"
 	"github.com/containers/podman/v4/pkg/specgen/generate/kube"
@@ -1261,13 +1262,37 @@ func splitMultiDocYAML(yamlContent []byte) ([][]byte, error) {
 			return nil, fmt.Errorf("multi doc yaml could not be split: %w", err)
 		}
 
-		if o != nil {
-			// back to bytes
-			document, err := yamlv3.Marshal(o)
-			if err != nil {
-				return nil, fmt.Errorf("individual doc yaml could not be marshalled: %w", err)
-			}
+		if o == nil {
+			continue
+		}
 
+		// back to bytes
+		document, err := yamlv3.Marshal(o)
+		if err != nil {
+			return nil, fmt.Errorf("individual doc yaml could not be marshalled: %w", err)
+		}
+
+		kind, err := getKubeKind(document)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't get object kind: %w", err)
+		}
+
+		// The items in a document of kind "List" are fully qualified resources
+		// So, they can be treated as separate documents
+		if kind == "List" {
+			var kubeList metav1.List
+			if err := yaml.Unmarshal(document, &kubeList); err != nil {
+				return nil, err
+			}
+			for _, item := range kubeList.Items {
+				itemDocument, err := yamlv3.Marshal(item)
+				if err != nil {
+					return nil, fmt.Errorf("individual doc yaml could not be marshalled: %w", err)
+				}
+
+				documentList = append(documentList, itemDocument)
+			}
+		} else {
 			documentList = append(documentList, document)
 		}
 	}

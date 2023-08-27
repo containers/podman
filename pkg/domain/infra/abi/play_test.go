@@ -246,6 +246,23 @@ kind: Pod
 			"multi doc yaml could not be split",
 			0,
 		},
+		{
+			"DocWithList",
+			`
+apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: Pod
+- apiVersion: v1
+  kind: Pod
+- apiVersion: v1
+  kind: Pod
+`,
+			false,
+			"",
+			3,
+		},
 	}
 
 	for _, test := range tests {

@@ -929,6 +929,18 @@ const (
 	CauseTypeResourceVersionTooLarge CauseType = "ResourceVersionTooLarge"
 )
 
+// List holds a list of objects, which may not be known by the server.
+type List struct {
+	TypeMeta `json:",inline"`
+	// Standard list metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+	// +optional
+	ListMeta `json:"metadata,omitempty"`
+
+	// List of objects
+	Items []interface{} `json:"items"`
+}
+
 // APIVersions lists the versions that are available, to allow clients to
 // discover the API at /api, which is the root path of the legacy v1 API.
 //
