@@ -1596,6 +1596,7 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
 		SSHConfig:          v.SSHConfig,
 		State:              state,
 		UserModeNetworking: true, // always true
+		Rootful:            v.Rootful,
 	}, nil
 }
 
