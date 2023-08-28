@@ -84,6 +84,63 @@ var _ = Describe("Podman push", func() {
 		Expect(foundZstdFile).To(BeTrue(), "found zstd file")
 	})
 
+	It("push test --force-compression", func() {
+		if podmanTest.Host.Arch == "ppc64le" {
+			Skip("No registry image for ppc64le")
+		}
+		if isRootless() {
+			err := podmanTest.RestoreArtifact(REGISTRY_IMAGE)
+			Expect(err).ToNot(HaveOccurred())
+		}
+		lock := GetPortLock("5000")
+		defer lock.Unlock()
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
+			Skip("Cannot start docker registry.")
+		}
+
+		session = podmanTest.Podman([]string{"build", "-t", "imageone", "build/basicalpine"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", "imageone", "localhost:5000/image"})
+		push.WaitWithDefaultTimeout()
+		Expect(push).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5000/image:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		output := session.OutputToString()
+		// Default compression is gzip and push with `--force-compression=false` no traces of `zstd` should be there.
+		Expect(output).ToNot(ContainSubstring("zstd"))
+
+		push = podmanTest.Podman([]string{"push", "--tls-verify=false", "--force-compression=false", "--compression-format", "zstd", "--remove-signatures", "imageone", "localhost:5000/image"})
+		push.WaitWithDefaultTimeout()
+		Expect(push).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5000/image:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		output = session.OutputToString()
+		// Although `--compression-format` is `zstd` but still no traces of `zstd` should be in image
+		// since blobs must be reused from last `gzip` image.
+		Expect(output).ToNot(ContainSubstring("zstd"))
+
+		push = podmanTest.Podman([]string{"push", "--tls-verify=false", "--compression-format", "zstd", "--force-compression", "--remove-signatures", "imageone", "localhost:5000/image"})
+		push.WaitWithDefaultTimeout()
+		Expect(push).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5000/image:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		output = session.OutputToString()
+		// Should contain `zstd` layer, substring `zstd` is enough to confirm in skopeo inspect output that `zstd` layer is present.
+		Expect(output).To(ContainSubstring("zstd"))
+	})
+
 	It("podman push to local registry", func() {
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")

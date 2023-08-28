@@ -346,6 +346,7 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination strin
 	pushOptions.Writer = opts.Writer
 	pushOptions.CompressionLevel = opts.CompressionLevel
 	pushOptions.AddCompression = opts.AddCompression
+	pushOptions.ForceCompressionFormat = opts.ForceCompressionFormat
 
 	compressionFormat := opts.CompressionFormat
 	if compressionFormat == "" {

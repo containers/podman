@@ -317,6 +317,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	pushOptions.OciEncryptConfig = options.OciEncryptConfig
 	pushOptions.OciEncryptLayers = options.OciEncryptLayers
 	pushOptions.CompressionLevel = options.CompressionLevel
+	pushOptions.ForceCompressionFormat = options.ForceCompressionFormat
 
 	compressionFormat := options.CompressionFormat
 	if compressionFormat == "" {
