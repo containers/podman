@@ -30,6 +30,21 @@ podman run --rm -d --replace --name foo $IMAGE sh -c "echo $mytext;sleep 42"
 # Looks like it is missing the required 0 bytes from the message, why?
 t POST "containers/foo/attach?logs=true&stream=false" 200 \
   $'\001\031'$mytext
+
+# check old docker header
+response_headers=$(cat "$WORKDIR/curl.headers.out")
+like "$response_headers" ".*Content-Type: application/vnd\.docker\.raw-stream.*" "vnd.docker.raw-stream docker v1.40"
+# check new vnd.docker.multiplexed-stream header
+t POST "/v1.42/containers/foo/attach?logs=true&stream=false" 200
+response_headers=$(cat "$WORKDIR/curl.headers.out")
+like "$response_headers" ".*Content-Type: application/vnd\.docker\.multiplexed-stream.*" "vnd.docker.multiplexed-stream docker v1.42"
+t POST "/v4.6.0/libpod/containers/foo/attach?logs=true&stream=false" 200
+response_headers=$(cat "$WORKDIR/curl.headers.out")
+like "$response_headers" ".*Content-Type: application/vnd\.docker\.raw-stream.*" "vnd.docker.raw-stream libpod v4.6.0"
+t POST "/v4.7.0/libpod/containers/foo/attach?logs=true&stream=false" 200
+response_headers=$(cat "$WORKDIR/curl.headers.out")
+like "$response_headers" ".*Content-Type: application/vnd\.docker\.multiplexed-stream.*" "vnd.docker.multiplexed-stream libpod v4.7.0"
+
 t POST "containers/foo/kill" 204
 
 podman run --replace --name=foo -v /tmp:/tmp $IMAGE true

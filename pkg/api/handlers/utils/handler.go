@@ -1,79 +1,34 @@
 package utils
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 	"unsafe"
 
 	"github.com/blang/semver/v4"
-	"github.com/containers/podman/v4/version"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 
+	"github.com/containers/podman/v4/pkg/api/handlers/utils/apiutil"
 	api "github.com/containers/podman/v4/pkg/api/types"
-)
-
-var (
-	// ErrVersionNotGiven returned when version not given by client
-	ErrVersionNotGiven = errors.New("version not given in URL path")
-	// ErrVersionNotSupported returned when given version is too old
-	ErrVersionNotSupported = errors.New("given version is not supported")
 )
 
 // IsLibpodRequest returns true if the request related to a libpod endpoint
 // (e.g., /v2/libpod/...).
 func IsLibpodRequest(r *http.Request) bool {
-	split := strings.Split(r.URL.String(), "/")
-	return len(split) >= 3 && split[2] == "libpod"
+	return apiutil.IsLibpodRequest(r)
 }
 
 // SupportedVersion validates that the version provided by client is included in the given condition
 // https://github.com/blang/semver#ranges provides the details for writing conditions
 // If a version is not given in URL path, ErrVersionNotGiven is returned
 func SupportedVersion(r *http.Request, condition string) (semver.Version, error) {
-	version := semver.Version{}
-	val, ok := mux.Vars(r)["version"]
-	if !ok {
-		return version, ErrVersionNotGiven
-	}
-	safeVal, err := url.PathUnescape(val)
-	if err != nil {
-		return version, fmt.Errorf("unable to unescape given API version: %q: %w", val, err)
-	}
-	version, err = semver.ParseTolerant(safeVal)
-	if err != nil {
-		return version, fmt.Errorf("unable to parse given API version: %q from %q: %w", safeVal, val, err)
-	}
-
-	inRange, err := semver.ParseRange(condition)
-	if err != nil {
-		return version, err
-	}
-
-	if inRange(version) {
-		return version, nil
-	}
-	return version, ErrVersionNotSupported
-}
-
-// SupportedVersionWithDefaults validates that the version provided by client valid is supported by server
-// minimal API version <= client path version <= maximum API version focused on the endpoint tree from URL
-func SupportedVersionWithDefaults(r *http.Request) (semver.Version, error) {
-	tree := version.Compat
-	if IsLibpodRequest(r) {
-		tree = version.Libpod
-	}
-
-	return SupportedVersion(r,
-		fmt.Sprintf(">=%s <=%s", version.APIVersion[tree][version.MinimalAPI].String(),
-			version.APIVersion[tree][version.CurrentAPI].String()))
+	return apiutil.SupportedVersion(r, condition)
 }
 
 // WriteResponse encodes the given value as JSON or string and renders it for http client

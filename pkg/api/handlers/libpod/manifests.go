@@ -17,6 +17,7 @@ import (
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/api/handlers"
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
+	"github.com/containers/podman/v4/pkg/api/handlers/utils/apiutil"
 	api "github.com/containers/podman/v4/pkg/api/types"
 	"github.com/containers/podman/v4/pkg/auth"
 	"github.com/containers/podman/v4/pkg/channel"
@@ -80,7 +81,7 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	status := http.StatusOK
-	if _, err := utils.SupportedVersion(r, "< 4.0.0"); err == utils.ErrVersionNotSupported {
+	if _, err := utils.SupportedVersion(r, "< 4.0.0"); err == apiutil.ErrVersionNotSupported {
 		status = http.StatusCreated
 	}
 

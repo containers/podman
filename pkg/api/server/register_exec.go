@@ -254,7 +254,9 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	// tags:
 	//   - exec
 	// summary: Start an exec instance
-	// description: Starts a previously set up exec instance. If detach is true, this endpoint returns immediately after starting the command. Otherwise, it sets up an interactive session with the command.
+	// description: |
+	//   Starts a previously set up exec instance. If detach is true, this endpoint returns immediately after starting the command.
+	//   Otherwise, it sets up an interactive session with the command. The stream format is the same as the attach endpoint.
 	// parameters:
 	//  - in: path
 	//    name: id

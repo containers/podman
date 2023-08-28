@@ -569,7 +569,7 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 	hijackDone <- true
 
 	// Write a header to let the client know what happened
-	writeHijackHeader(r, httpBuf)
+	writeHijackHeader(r, httpBuf, isTerminal)
 
 	// Force a flush after the header is written.
 	if err := httpBuf.Flush(); err != nil {

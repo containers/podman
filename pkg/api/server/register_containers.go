@@ -526,7 +526,12 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//   - containers (compat)
 	// summary: Attach to a container
-	// description: Hijacks the connection to forward the container's standard streams to the client.
+	// description: |
+	//   Attach to a container to read its output or send it input. You can attach
+	//   to the same container multiple times and you can reattach to containers
+	//   that have been detached.
+	//
+	//   It uses the same stream format as docker, see the libpod attach endpoint for a description of the format.
 	// parameters:
 	//  - in: path
 	//    name: name
@@ -964,7 +969,10 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//   - containers
 	// summary: Get container logs
-	// description: Get stdout and stderr logs from a container.
+	// description: |
+	//   Get stdout and stderr logs from a container.
+	//
+	//   The stream format is the same as described in the attach endpoint.
 	// parameters:
 	//  - in: path
 	//    name: name
@@ -1319,7 +1327,94 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//   - containers
 	// summary: Attach to a container
-	// description: Hijacks the connection to forward the container's standard streams to the client.
+	// description: |
+	//   Attach to a container to read its output or send it input. You can attach
+	//   to the same container multiple times and you can reattach to containers
+	//   that have been detached.
+	//
+	//   ### Hijacking
+	//
+	//   This endpoint hijacks the HTTP connection to transport `stdin`, `stdout`,
+	//   and `stderr` on the same socket.
+	//
+	//   This is the response from the service for an attach request:
+	//
+	//   ```
+	//   HTTP/1.1 200 OK
+	//   Content-Type: application/vnd.docker.raw-stream
+	//
+	//   [STREAM]
+	//   ```
+	//
+	//   After the headers and two new lines, the TCP connection can now be used
+	//   for raw, bidirectional communication between the client and server.
+	//
+	//   To inform potential proxies about connection hijacking, the client
+	//   can also optionally send connection upgrade headers.
+	//
+	//   For example, the client sends this request to upgrade the connection:
+	//
+	//   ```
+	//   POST /v4.6.0/libpod/containers/16253994b7c4/attach?stream=1&stdout=1 HTTP/1.1
+	//   Upgrade: tcp
+	//   Connection: Upgrade
+	//   ```
+	//
+	//   The service will respond with a `101 UPGRADED` response, and will
+	//   similarly follow with the raw stream:
+	//
+	//   ```
+	//   HTTP/1.1 101 UPGRADED
+	//   Content-Type: application/vnd.docker.raw-stream
+	//   Connection: Upgrade
+	//   Upgrade: tcp
+	//
+	//   [STREAM]
+	//   ```
+	//
+	//   ### Stream format
+	//
+	//   When the TTY setting is disabled for the container,
+	//   the HTTP Content-Type header is set to application/vnd.docker.multiplexed-stream
+	//   (starting with v4.7.0, previously application/vnd.docker.raw-stream was always used)
+	//   and the stream over the hijacked connected is multiplexed to separate out
+	//   `stdout` and `stderr`. The stream consists of a series of frames, each
+	//   containing a header and a payload.
+	//
+	//   The header contains the information about the output stream type and the size of
+	//   the payload.
+	//   It is encoded on the first eight bytes like this:
+	//
+	//   ```go
+	//   header := [8]byte{STREAM_TYPE, 0, 0, 0, SIZE1, SIZE2, SIZE3, SIZE4}
+	//   ```
+	//
+	//   `STREAM_TYPE` can be:
+	//
+	//   - 0: `stdin` (is written on `stdout`)
+	//   - 1: `stdout`
+	//   - 2: `stderr`
+	//
+	//   `SIZE1, SIZE2, SIZE3, SIZE4` are the four bytes of the `uint32` size
+	//   encoded as big endian.
+	//
+	//   Following the header is the payload, which contains the specified number of
+	//   bytes as written in the size.
+	//
+	//   The simplest way to implement this protocol is the following:
+	//
+	//   1. Read 8 bytes.
+	//   2. Choose `stdout` or `stderr` depending on the first byte.
+	//   3. Extract the frame size from the last four bytes.
+	//   4. Read the extracted size and output it on the correct output.
+	//   5. Goto 1.
+	//
+	//   ### Stream format when using a TTY
+	//
+	//   When the TTY setting is enabled for the container,
+	//   the stream is not multiplexed. The data exchanged over the hijacked
+	//   connection is simply the raw data from the process PTY and client's
+	//   `stdin`.
 	// parameters:
 	//  - in: path
 	//    name: name

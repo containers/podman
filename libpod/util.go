@@ -15,6 +15,7 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/pkg/api/handlers/utils/apiutil"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
@@ -182,22 +183,36 @@ func makeHTTPAttachHeader(stream byte, length uint32) []byte {
 
 // writeHijackHeader writes a header appropriate for the type of HTTP Hijack
 // that occurred in a hijacked HTTP connection used for attach.
-func writeHijackHeader(r *http.Request, conn io.Writer) {
+func writeHijackHeader(r *http.Request, conn io.Writer, tty bool) {
 	// AttachHeader is the literal header sent for upgraded/hijacked connections for
 	// attach, sourced from Docker at:
 	// https://raw.githubusercontent.com/moby/moby/b95fad8e51bd064be4f4e58a996924f343846c85/api/server/router/container/container_routes.go
 	// Using literally to ensure compatibility with existing clients.
+
+	// New docker API uses a different header for the non tty case.
+	// Lets do the same for libpod. Only do this for the new api versions to not break older clients.
+	header := "application/vnd.docker.raw-stream"
+	if !tty {
+		version := "4.7.0"
+		if !apiutil.IsLibpodRequest(r) {
+			version = "1.42.0" // docker only used two digest "1.42" but our semver lib needs the extra .0 to work
+		}
+		if _, err := apiutil.SupportedVersion(r, ">= "+version); err == nil {
+			header = "application/vnd.docker.multiplexed-stream"
+		}
+	}
+
 	c := r.Header.Get("Connection")
 	proto := r.Header.Get("Upgrade")
 	if len(proto) == 0 || !strings.EqualFold(c, "Upgrade") {
 		// OK - can't upgrade if not requested or protocol is not specified
 		fmt.Fprintf(conn,
-			"HTTP/1.1 200 OK\r\nContent-Type: application/vnd.docker.raw-stream\r\n\r\n")
+			"HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n", header)
 	} else {
 		// Upgraded
 		fmt.Fprintf(conn,
-			"HTTP/1.1 101 UPGRADED\r\nContent-Type: application/vnd.docker.raw-stream\r\nConnection: Upgrade\r\nUpgrade: %s\r\n\r\n",
-			proto)
+			"HTTP/1.1 101 UPGRADED\r\nContent-Type: %s\r\nConnection: Upgrade\r\nUpgrade: %s\r\n\r\n",
+			proto, header)
 	}
 }
 
