@@ -201,10 +201,15 @@ func (p *Progress) traverseBars(cb func(b *Bar) bool) {
 	}
 }
 
-// UpdateBarPriority same as *Bar.SetPriority(int).
-func (p *Progress) UpdateBarPriority(b *Bar, priority int) {
+// UpdateBarPriority either immediately or lazy.
+// With lazy flag order is updated after the next refresh cycle.
+// If you don't care about laziness just use *Bar.SetPriority(int).
+func (p *Progress) UpdateBarPriority(b *Bar, priority int, lazy bool) {
+	if b == nil {
+		return
+	}
 	select {
-	case p.operateState <- func(s *pState) { s.hm.fix(b, priority) }:
+	case p.operateState <- func(s *pState) { s.hm.fix(b, priority, lazy) }:
 	case <-p.done:
 	}
 }
