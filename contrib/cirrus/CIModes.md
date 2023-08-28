@@ -108,7 +108,7 @@ is removed.
 commit-change before Cirrus-CI will notice the draft-status update (i.e.
 pressing the re-run button **is not** good enough).
 
-### Intended Branch tasks (and Cirrus-cron jobs, except "multiarch"):
+### Intended Branch tasks (and Cirrus-cron jobs):
 + *build*
 + swagger
 + *alt_build*
@@ -121,11 +121,6 @@ pressing the re-run button **is not** good enough).
 + meta
 + success
 + artifacts
-
-### Intended for "multiarch" Cirrus-Cron (always a branch):
-+ image_build
-+ meta
-+ success
 
 ### Intended for new Tag tasks:
 + *build*
