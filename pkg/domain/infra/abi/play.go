@@ -1450,6 +1450,9 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, opt
 	for _, name := range podNames {
 		pod, err := ic.Libpod.LookupPod(name)
 		if err != nil {
+			if errors.Is(err, define.ErrNoSuchPod) {
+				continue
+			}
 			return nil, err
 		}
 		ctr, err := pod.ServiceContainer()
@@ -1463,23 +1466,23 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, opt
 	}
 
 	// Add the reports
-	reports.StopReport, err = ic.PodStop(ctx, podNames, entities.PodStopOptions{})
+	reports.StopReport, err = ic.PodStop(ctx, podNames, entities.PodStopOptions{Ignore: true})
 	if err != nil {
 		return nil, err
 	}
 
-	reports.RmReport, err = ic.PodRm(ctx, podNames, entities.PodRmOptions{})
+	reports.RmReport, err = ic.PodRm(ctx, podNames, entities.PodRmOptions{Ignore: true})
 	if err != nil {
 		return nil, err
 	}
 
-	reports.SecretRmReport, err = ic.SecretRm(ctx, secretNames, entities.SecretRmOptions{})
+	reports.SecretRmReport, err = ic.SecretRm(ctx, secretNames, entities.SecretRmOptions{Ignore: true})
 	if err != nil {
 		return nil, err
 	}
 
 	if options.Force {
-		reports.VolumeRmReport, err = ic.VolumeRm(ctx, volumeNames, entities.VolumeRmOptions{})
+		reports.VolumeRmReport, err = ic.VolumeRm(ctx, volumeNames, entities.VolumeRmOptions{Ignore: true})
 		if err != nil {
 			return nil, err
 		}

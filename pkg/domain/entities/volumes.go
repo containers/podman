@@ -30,6 +30,7 @@ type VolumeConfigResponse struct {
 type VolumeRmOptions struct {
 	All     bool
 	Force   bool
+	Ignore  bool
 	Timeout *uint
 }
 
