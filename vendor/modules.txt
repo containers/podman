@@ -108,7 +108,7 @@ github.com/container-orchestrated-devices/container-device-interface/specs-go
 # github.com/containerd/cgroups/v3 v3.0.2
 ## explicit; go 1.18
 github.com/containerd/cgroups/v3/cgroup1/stats
-# github.com/containerd/containerd v1.7.3
+# github.com/containerd/containerd v1.7.5
 ## explicit; go 1.19
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/log
@@ -156,7 +156,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.55.1-0.20230824140149-b27c2ba2b7e1
+# github.com/containers/common v0.55.1-0.20230828100250-07e4cdeb1499
 ## explicit; go 1.18
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
