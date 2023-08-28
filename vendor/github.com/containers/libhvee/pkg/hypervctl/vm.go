@@ -544,17 +544,6 @@ func (vm *VirtualMachine) remove() (int32, error) {
 		return -1, err
 	}
 
-	wmiInst, err := vm.fetchSystemSettingsInstance(srv)
-	if err != nil {
-		return -1, err
-	}
-	defer wmiInst.Close()
-
-	path, err := wmiInst.Path()
-	if err != nil {
-		return -1, err
-	}
-
 	vsms, err := srv.GetSingletonInstance("Msvm_VirtualSystemManagementService")
 	if err != nil {
 		return -1, err
@@ -562,15 +551,14 @@ func (vm *VirtualMachine) remove() (int32, error) {
 	defer vsms.Close()
 
 	var (
-		job             *wmiext.Instance
-		resultingSystem string
+		job *wmiext.Instance
 	)
+
 	// https://learn.microsoft.com/en-us/windows/win32/hyperv_v2/cim-virtualsystemmanagementservice-destroysystem
 	if err := vsms.BeginInvoke("DestroySystem").
-		In("AffectedSystem", path).
+		In("AffectedSystem", vm.Path()).
 		Execute().
 		Out("Job", &job).
-		Out("ResultingSystem", &resultingSystem).
 		Out("ReturnValue", &res).End(); err != nil {
 		return -1, err
 	}
@@ -583,21 +571,17 @@ func (vm *VirtualMachine) remove() (int32, error) {
 }
 
 func (vm *VirtualMachine) Remove(diskPath string) error {
-	res, err := vm.remove()
-	if err != nil {
+	if _, err := vm.remove(); err != nil {
 		return err
 	}
-	if DestroySystemResult(res) == VMDestroyCompletedwithNoError {
-		// Remove disk only if we were given one
-		if len(diskPath) > 0 {
-			if err := os.Remove(diskPath); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-	return fmt.Errorf("failed to destroy system %s: %s", vm.Name, DestroySystemResult(res).Reason())
 
+	// Remove disk only if we were given one
+	if len(diskPath) > 0 {
+		if err := os.Remove(diskPath); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (vm *VirtualMachine) State() EnabledState {
