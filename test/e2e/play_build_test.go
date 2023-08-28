@@ -350,16 +350,21 @@ echo GOT-HERE
 		Expect(os.Chdir(yamlDir)).To(Succeed())
 		defer func() { (Expect(os.Chdir(cwd)).To(BeNil())) }()
 
-		session := podmanTest.Podman([]string{"play", "kube", "echo.yaml"})
+		session := podmanTest.Podman([]string{"kube", "play", "echo.yaml"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		logs := podmanTest.Podman([]string{"logs", "echo_pod-foobar"})
+		cid := "echo_pod-foobar"
+		wait := podmanTest.Podman([]string{"wait", cid})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait).To(Exit(0))
+
+		logs := podmanTest.Podman([]string{"logs", cid})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs).Should(Exit(0))
 		Expect(logs.OutputToString()).To(Equal("parenBAR braceBAR dollardollarparenGOT-HERE interpBARolate"))
 
-		inspect := podmanTest.Podman([]string{"container", "inspect", "echo_pod-foobar"})
+		inspect := podmanTest.Podman([]string{"container", "inspect", cid})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		inspectData := inspect.InspectContainerToJSON()
