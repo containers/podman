@@ -3,6 +3,7 @@ package compat
 import (
 	"fmt"
 	"net/http"
+	"runtime"
 
 	"github.com/containers/buildah"
 )
@@ -18,6 +19,7 @@ func Ping(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Builder-Version", "")
 	w.Header().Set("Docker-Experimental", "true")
 	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("OSType", runtime.GOOS)
 	w.Header().Set("Pragma", "no-cache")
 
 	w.Header().Set("Libpod-Buildah-Version", buildah.Version)
