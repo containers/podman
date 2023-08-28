@@ -1190,6 +1190,34 @@ spec:
     - "sysctl kernel.msgmax"
 `
 
+var listPodAndConfigMap = `
+apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: test-list-configmap
+  data:
+    foo: bar
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: test-list-pod
+  spec:
+    containers:
+    - name: container
+      image: quay.io/libpod/alpine:latest
+      command: [ "/bin/sh", "-c", "env" ]
+      env:
+      - name: FOO
+        valueFrom:
+          configMapKeyRef:
+            name: test-list-configmap
+            key: foo
+    restartPolicy: Never
+`
+
 var (
 	defaultCtrName        = "testCtr"
 	defaultCtrCmd         = []string{"top"}
@@ -5947,5 +5975,20 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		ps.WaitWithDefaultTimeout()
 		Expect(ps).Should(Exit(0))
 		Expect(ps.OutputToString()).To(ContainSubstring(podID[:12] + "-infra"))
+	})
+
+	It("podman play kube support List kind", func() {
+		listYamlPathname := filepath.Join(podmanTest.TempDir, "list.yaml")
+		err = writeYaml(listPodAndConfigMap, listYamlPathname)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"play", "kube", listYamlPathname})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "test-list-pod-container", "--format", "'{{ .Config.Env }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(`FOO=bar`))
 	})
 })
