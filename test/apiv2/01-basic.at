@@ -11,6 +11,7 @@ t GET  /libpod/_ping 200 OK
 t HEAD /libpod/_ping 200
 
 t GET  _ping        200 OK
+like "$(<$WORKDIR/curl.headers.out)" $'.*\nOstype: ' "#19767 - undocumented part of docker API"
 t HEAD _ping        200
 t GET  libpod/_ping 200 OK
 t HEAD libpod/_ping 200
