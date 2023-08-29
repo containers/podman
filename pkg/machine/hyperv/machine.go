@@ -215,6 +215,7 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	}
 	m.Port = sshPort
 
+	m.RemoteUsername = opts.Username
 	err = machine.AddSSHConnectionsToPodmanSocket(
 		m.UID,
 		m.Port,
@@ -256,16 +257,8 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	// c/common sets the default machine user for "windows" to be "user"; this
-	// is meant for the WSL implementation that does not use FCOS.  For FCOS,
-	// however, we want to use the DefaultIgnitionUserName which is currently
-	// "core"
-	user := opts.Username
-	if user == "user" {
-		user = machine.DefaultIgnitionUserName
-	}
 	// Write the ignition file
-	if err := m.writeIgnitionConfigFile(opts, user, key); err != nil {
+	if err := m.writeIgnitionConfigFile(opts, m.RemoteUsername, key); err != nil {
 		return false, err
 	}
 	// The ignition file has been written. We now need to
