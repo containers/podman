@@ -131,7 +131,7 @@ Description=vsock_network
 After=NetworkManager.service
 
 [Service]
-ExecStart=/usr/libexec/podman/vm -preexisting -iface vsock0 -url vsock://2:%d/connect
+ExecStart=/usr/libexec/podman/gvforwader -preexisting -iface vsock0 -url vsock://2:%d/connect
 ExecStartPost=/usr/bin/nmcli c up vsock0
 
 [Install]
