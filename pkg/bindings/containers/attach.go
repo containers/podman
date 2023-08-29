@@ -296,11 +296,11 @@ func ResizeContainerTTY(ctx context.Context, nameOrID string, options *ResizeTTY
 }
 
 // ResizeExecTTY sets session's TTY height and width in characters
-func ResizeExecTTY(ctx context.Context, nameOrID string, options *ResizeExecTTYOptions) error {
+func ResizeExecTTY(ctx context.Context, sessionID string, options *ResizeExecTTYOptions) error {
 	if options == nil {
 		options = new(ResizeExecTTYOptions)
 	}
-	return resizeTTY(ctx, bindings.JoinURL("exec", nameOrID, "resize"), options.Height, options.Width)
+	return resizeTTY(ctx, bindings.JoinURL("exec", sessionID, "resize"), options.Height, options.Width)
 }
 
 // resizeTTY set size of TTY of container
