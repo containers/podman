@@ -1421,3 +1421,17 @@ ERRO[0002] did not get container create message from subprocess: EOF
 * Use the `crun` runtime by passing `--runtime /usr/bin/crun` to `podman build`.
 
 See also [Buildah issue 4228](https://github.com/containers/buildah/issues/4228) for a full discussion of the problem.
+
+### 42) podman-in-podman builds that are file I/0 intensive are very slow
+
+When using the `overlay` storage driver to do a nested `podman build` inside a running container, file I/O operations such as `COPY` of a large amount of data is very slow or can hang completely.
+
+#### Symptom
+
+Using the default `overlay` storage driver, a `COPY`, `ADD`, or an I/O intensive `RUN` line in a `Containerfile` that is run inside another container is very slow or hangs completely when running a `podman build` inside the running parent container.
+
+#### Solution
+
+This could be caused by the child container using `fuse-overlayfs` for writing to `/var/lib/containers/storage`. Writes can be slow with `fuse-overlayfs`. The solution is to use the native `overlay` filesystem by using a local directory on the host system as a volume to `/var/lib/containers/storage` like so: `podman run --privileged --rm -it -v ./nested_storage:/var/lib/containers/storage parent:latest`. Ensure that the base image of `parent:latest` in this example has no contents in `/var/lib/containers/storage` in the image itself for this to work. Once using the native volume, the nested container should not fall back to `fuse-overlayfs` to write files and the nested build will complete much faster.
+
+If you don't have access to the parent run process, such as in a CI environment, then the second option is to change the storage driver to `vfs` in the parent image by changing changing this line in your `storage.conf` file: `driver = "vfs"`. You may have to run `podman system reset` for this to take effect. You know it's changed when `podman info |grep graphDriverName` outputs `graphDriverName: vfs`. This method is slower performance than using the volume method above but is significantly faster than `fuse-overlayfs`
