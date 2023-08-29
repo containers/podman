@@ -85,9 +85,6 @@ aws_credentials: ENCRYPTED[4ca070bffe28eb9b27d63c568b52970dd46f119c3a83b8e443241
 build_task:
     alias: 'build'
     name: 'Build for $DISTRO_NV'
-    # Multiarch doesn't depend on buildability in this automation context
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: "$CIRRUS_CRON != 'multiarch'"
     gce_instance: &standardvm
         image_project: libpod-218412
         zone: "us-central1-a"
@@ -184,9 +181,6 @@ build_task:
 build_aarch64_task:
     alias: 'build_aarch64'
     name: 'Build for $DISTRO_NV'
-    # Multiarch doesn't depend on buildability in this automation context
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: "$CIRRUS_CRON != 'multiarch'"
     ec2_instance: &standard_build_ec2_aarch64
         image: ${VM_IMAGE_NAME}
         type: ${EC2_INST_TYPE}
@@ -329,11 +323,9 @@ bindings_task:
 swagger_task:
     name: "Test Swagger"
     alias: swagger
-    # Don't create task for [CI:BUILD] or multiarch builds
+    # Don't create task for [CI:BUILD]
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: >-
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
-        $CIRRUS_CRON != 'multiarch'
+    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
     depends_on:
         - build
     gce_instance: *standardvm
@@ -360,10 +352,9 @@ swagger_task:
 alt_build_task:
     name: "$ALT_NAME"
     alias: alt_build
-    # Don't create task for [CI:DOCS], multiarch or rhel-release builds
+    # Don't create task for [CI:DOCS], or rhel-release builds
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: &no_multiarch_rhel |
-        $CIRRUS_CRON != 'multiarch' &&
+    only_if: &no_rhel_release |
         $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
         $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
     depends_on:
@@ -392,8 +383,7 @@ alt_build_task:
 win_installer_task:
     name: "Verify Win Installer Build"
     alias: win_installer
-    # Don't run for multiarch container image cirrus-cron job.
-    only_if: *no_multiarch_rhel
+    only_if: *no_rhel_release
     depends_on:
       - alt_build
     windows_container:
@@ -413,7 +403,7 @@ osx_alt_build_task:
     name: "OSX Cross"
     alias: osx_alt_build
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *no_multiarch_rhel
+    only_if: *no_rhel_release
     depends_on:
         - build
     env:
@@ -448,10 +438,10 @@ osx_alt_build_task:
 freebsd_alt_build_task:
     name: "FreeBSD Cross"
     alias: freebsd_alt_build
+    # Only run on 'main' and PRs against 'main'
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: |
-      $CIRRUS_CRON != 'multiarch' &&
-      ($CIRRUS_BRANCH == 'main' || $CIRRUS_BASE_BRANCH == 'main')
+      $CIRRUS_BRANCH == 'main' || $CIRRUS_BASE_BRANCH == 'main'
     depends_on:
         - build
     env:
@@ -585,11 +575,10 @@ compose_test_task:
 windows_smoke_test_task:
     name: "Windows Smoke Test"
     alias: windows_smoke_test
-    # Only run for non-docs/copr PRs and non-multiarch branch builds
+    # Only run for non-docs/copr PRs and non-release branch builds
     # and never for tags.  Docs: ./contrib/cirrus/CIModes.md
     only_if: >-
         $CIRRUS_TAG == '' &&
-        $CIRRUS_CRON != 'multiarch' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
         $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
         $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
@@ -702,13 +691,12 @@ rootless_integration_test_task:
 podman_machine_task:
     name: *std_name_fmt
     alias: podman_machine
-    # Don't create task for tags, or if using [CI:DOCS], [CI:BUILD], multiarch
+    # Don't create task for tags, or if using [CI:DOCS], [CI:BUILD]
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: &not_tag_build_docs_multiarch >-
+    only_if: &not_tag_build_docs >-
         $CIRRUS_TAG == '' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
-        $CIRRUS_CRON != 'multiarch'
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
     depends_on:
         - build
         - local_integration_test
@@ -735,7 +723,7 @@ podman_machine_task:
 podman_machine_aarch64_task:
     name: *std_name_fmt
     alias: podman_machine_aarch64
-    only_if: *not_tag_build_docs_multiarch
+    only_if: *not_tag_build_docs
     depends_on:
         - build_aarch64
         - validate_aarch64
@@ -765,7 +753,7 @@ podman_machine_aarch64_task:
 local_system_test_task: &local_system_test_task
     name: *std_name_fmt
     alias: local_system_test
-    only_if: *not_tag_build_docs_multiarch
+    only_if: *not_tag_build_docs
     depends_on: *build_unit
     matrix: *platform_axis
     gce_instance: *standardvm
@@ -780,9 +768,9 @@ local_system_test_task: &local_system_test_task
 local_system_test_aarch64_task: &local_system_test_task_aarch64
     name: *std_name_fmt
     alias: local_system_test_aarch64
-    # Don't create task for tags, or if using [CI:DOCS], [CI:BUILD], multiarch
+    # Don't create task for tags, or if using [CI:DOCS], [CI:BUILD]
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_build_docs_multiarch
+    only_if: *not_tag_build_docs
     depends_on:
         - build_aarch64
         - unit_test
@@ -836,7 +824,7 @@ rootless_system_test_task:
     name: *std_name_fmt
     alias: rootless_system_test
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_build_docs_multiarch
+    only_if: *not_tag_build_docs
     depends_on: *build_unit
     matrix: *platform_axis
     gce_instance: *standardvm
@@ -852,7 +840,7 @@ minikube_test_task:
     name: *std_name_fmt
     alias: minikube_test
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_build_docs_multiarch
+    only_if: *not_tag_build_docs
     depends_on:
         - build
         - rootless_system_test
@@ -942,52 +930,6 @@ upgrade_test_task:
     always: *logs_artifacts
 
 
-image_build_task: &image-build
-    name: "Build multi-arch $CTXDIR"
-    alias: image_build
-    # Some of these container images take > 1h to build, limit
-    # this task to a specific Cirrus-Cron entry with this name.
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: $CIRRUS_CRON == 'multiarch'
-    timeout_in: 120m  # emulation is sssllllooooowwww
-    gce_instance:
-        <<: *standardvm
-        image_name: build-push-${IMAGE_SUFFIX}
-        # More muscle required for parallel multi-arch build
-        type: "n2-standard-4"
-    matrix:
-        - env:
-            CTXDIR: contrib/podmanimage/upstream
-        - env:
-            CTXDIR: contrib/podmanimage/testing
-        - env:
-            CTXDIR: contrib/podmanimage/stable
-    env:
-        DISTRO_NV: "${FEDORA_NAME}"  # Required for repo cache extraction
-        PODMAN_USERNAME: ENCRYPTED[b9f0f2550029dd2196e086d9dd6c2d1fec7e328630b15990d9bb610f9fcccb5baab8b64a8c3e72b0c1d0f5917cf65aa1]
-        PODMAN_PASSWORD: ENCRYPTED[e3444f6072853f0c8db7f964ead5e2204116af485469fa0de367f26b9316b460fd842a9882f552b9e9a83bbaf650d8b4]
-        CONTAINERS_USERNAME: ENCRYPTED[54a372d5f22f424173c114c6fb25c3214956cad323d5b285c7393a71041884ce96471d0ff733774e5dab9fa5a3c8795c]
-        CONTAINERS_PASSWORD: ENCRYPTED[4ecc3fb534935095a99fb1f2e320ac6bc87f3e7e186746e41cbcc4b5f5379a014b9fc8cc90e1f3d5abdbaf31580a4ab9]
-    main_script:
-        - set -a; source /etc/automation_environment; set +a
-        - main.sh $CIRRUS_REPO_CLONE_URL $CTXDIR
-
-
-test_image_build_task:
-    <<: *image-build
-    alias: test_image_build
-    # Allow this to run inside a PR w/ [CI:BUILD] only.
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: $CIRRUS_PR != '' && $CIRRUS_CHANGE_TITLE =~ '.*CI:BUILD.*'
-    # This takes a LONG time, only run when requested.  N/B: Any task
-    # made to depend on this one will block FOREVER unless triggered.
-    # DO NOT ADD THIS TASK AS DEPENDENCY FOR `success_task`.
-    trigger_type: manual
-    # Overwrite all 'env', don't push anything, just do the build.
-    env:
-        DRYRUN: 1
-
-
 # This task is critical.  It updates the "last-used by" timestamp stored
 # in metadata for all VM images.  This mechanism functions in tandem with
 # an out-of-band pruning operation to remove disused VM images.
@@ -1059,7 +1001,6 @@ success_task:
         - buildah_bud_test
         - rootless_buildah_bud_test
         - upgrade_test
-        - image_build
         - meta
     container: &smallcontainer
         image: ${CTR_FQIN}
@@ -1082,7 +1023,6 @@ artifacts_task:
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: >-
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CRON != 'multiarch' &&
         $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
         $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
     depends_on:
