@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/common/libimage"
+	"github.com/containers/common/libimage/define"
 	"github.com/containers/image/v5/manifest"
 	imageTypes "github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/pkg/auth"
@@ -110,7 +110,7 @@ func Inspect(ctx context.Context, name string, options *InspectOptions) (*manife
 // InspectListData returns a manifest list for a given name.
 // Contains exclusive field like `annotations` which is only
 // present in OCI spec and not in docker image spec.
-func InspectListData(ctx context.Context, name string, options *InspectOptions) (*libimage.ManifestListData, error) {
+func InspectListData(ctx context.Context, name string, options *InspectOptions) (*define.ManifestListData, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -141,7 +141,7 @@ func InspectListData(ctx context.Context, name string, options *InspectOptions) 
 	}
 	defer response.Body.Close()
 
-	var list libimage.ManifestListData
+	var list define.ManifestListData
 	return &list, response.Process(&list)
 }
 

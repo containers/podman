@@ -91,13 +91,14 @@ func (i *Image) isCorrupted(name string) error {
 		return err
 	}
 
-	if _, err := ref.NewImage(context.Background(), nil); err != nil {
+	img, err := ref.NewImage(context.Background(), nil)
+	if err != nil {
 		if name == "" {
 			name = i.ID()[:12]
 		}
 		return fmt.Errorf("Image %s exists in local storage but may be corrupted (remove the image to resolve the issue): %v", name, err)
 	}
-	return nil
+	return img.Close()
 }
 
 // Names returns associated names with the image which may be a mix of tags and
@@ -872,6 +873,7 @@ func (i *Image) hasDifferentDigestWithSystemContext(ctx context.Context, remoteR
 	if err != nil {
 		return false, err
 	}
+	defer remoteImg.Close()
 
 	rawManifest, rawManifestMIMEType, err := remoteImg.Manifest(ctx)
 	if err != nil {

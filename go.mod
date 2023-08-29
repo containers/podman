@@ -13,7 +13,7 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
 	github.com/containers/buildah v1.31.1-0.20230722114901-5ece066f82c6
-	github.com/containers/common v0.55.1-0.20230828100250-07e4cdeb1499
+	github.com/containers/common v0.55.1-0.20230829104013-4a76f1739d43
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.26.1-0.20230807184415-3fb422379cfa
 	github.com/containers/libhvee v0.4.1-0.20230816135538-b81ee3f10e1e
