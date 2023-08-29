@@ -230,6 +230,32 @@ var _ = Describe("Podman manifest", func() {
 		Expect(verifyInstanceCompression(index.Manifests, "gzip", "arm64")).Should(BeTrue())
 		Expect(verifyInstanceCompression(index.Manifests, "gzip", "amd64")).Should(BeTrue())
 
+		// same thing with add_compression from config file should work and without --add-compression flag in CLI
+		confFile := filepath.Join(podmanTest.TempDir, "containers.conf")
+		err = os.WriteFile(confFile, []byte(`[engine]
+add_compression = ["zstd"]`), 0o644)
+		Expect(err).ToNot(HaveOccurred())
+		os.Setenv("CONTAINERS_CONF", confFile)
+
+		push = podmanTest.Podman([]string{"manifest", "push", "--all", "--tls-verify=false", "--compression-format", "gzip", "--force-compression", "--remove-signatures", "foobar", "localhost:5000/list"})
+		push.WaitWithDefaultTimeout()
+		Expect(push).Should(Exit(0))
+		output = push.ErrorToString()
+		// 4 images must be pushed two for gzip and two for zstd
+		Expect(output).To(ContainSubstring("Copying 4 images generated from 2 images in list"))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5000/list:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		inspectData = []byte(session.OutputToString())
+		err = json.Unmarshal(inspectData, &index)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(verifyInstanceCompression(index.Manifests, "zstd", "amd64")).Should(BeTrue())
+		Expect(verifyInstanceCompression(index.Manifests, "zstd", "arm64")).Should(BeTrue())
+		Expect(verifyInstanceCompression(index.Manifests, "gzip", "arm64")).Should(BeTrue())
+		Expect(verifyInstanceCompression(index.Manifests, "gzip", "amd64")).Should(BeTrue())
+
 		// Note: Pushing again with --force-compression=false should produce in-correct/wrong result since blobs are already present in registry so they will be reused
 		// ignoring our compression priority ( this is expected behaviour of c/image and --force-compression is introduced to mitigate this behaviour ).
 		push = podmanTest.Podman([]string{"manifest", "push", "--all", "--add-compression", "zstd", "--force-compression=false", "--tls-verify=false", "--remove-signatures", "foobar", "localhost:5000/list"})
