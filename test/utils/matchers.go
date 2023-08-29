@@ -168,6 +168,57 @@ func (matcher *ExitMatcher) MatchMayChangeInTheFuture(actual interface{}) bool {
 	return true
 }
 
+// ExitCleanly asserts that a PodmanSession exits 0 and with no stderr
+func ExitCleanly() types.GomegaMatcher {
+	return &exitCleanlyMatcher{}
+}
+
+type exitCleanlyMatcher struct {
+	msg string
+}
+
+type podmanSession interface {
+	ExitCode() int
+	ErrorToString() string
+}
+
+func (matcher *exitCleanlyMatcher) Match(actual interface{}) (success bool, err error) {
+	session, ok := actual.(podmanSession)
+	if !ok {
+		return false, fmt.Errorf("ExitCleanly must be passed a PodmanSession; Got:\n %+v\n%q", actual, format.Object(actual, 1))
+	}
+
+	exitcode := session.ExitCode()
+	stderr := session.ErrorToString()
+	if exitcode != 0 {
+		matcher.msg = fmt.Sprintf("Command failed with exit status %d", exitcode)
+		if stderr != "" {
+			matcher.msg += ". See above for error message."
+		}
+		return false, nil
+	}
+
+	// FIXME: #19809, "failed to connect to syslog" warnings on f38
+	// FIXME: so, until that is fixed, don't check stderr if containerized
+	if !Containerized() {
+		if stderr != "" {
+			matcher.msg = fmt.Sprintf("Unexpected warnings seen on stderr: %q", stderr)
+			return false, nil
+		}
+	}
+
+	return true, nil
+}
+
+func (matcher *exitCleanlyMatcher) FailureMessage(_ interface{}) (message string) {
+	return matcher.msg
+}
+
+func (matcher *exitCleanlyMatcher) NegatedFailureMessage(_ interface{}) (message string) {
+	// FIXME - I see no situation in which we could ever want this?
+	return matcher.msg + " (NOT!)"
+}
+
 type ValidJSONMatcher struct {
 	types.GomegaMatcher
 }
