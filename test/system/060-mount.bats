@@ -25,7 +25,7 @@ load helpers
     run_podman mount --notruncate
     # FIXME: is it worth the effort to validate the CID ($1) ?
     reported_mountpoint=$(echo "$output" | awk '{print $2}')
-    is $reported_mountpoint $mount_path "mountpoint reported by 'podman mount'"
+    is "$reported_mountpoint" "$mount_path" "mountpoint reported by 'podman mount'"
 
     # umount, and make sure files are gone
     run_podman umount $c_name
@@ -237,7 +237,7 @@ EOF
     run_podman mount --notruncate
 
     reported_mountpoint=$(echo "$output" | awk '{print $2}')
-    is $reported_mountpoint $mount_path "mountpoint reported by 'podman mount'"
+    is "$reported_mountpoint" "$mount_path" "mountpoint reported by 'podman mount'"
 
     # umount, and make sure files are gone
     run_podman umount $external_cid

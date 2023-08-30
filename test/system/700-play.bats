@@ -722,7 +722,7 @@ spec:
     run_podman kube play --configmap=$configmap_file $pod_file
     run_podman wait test_pod-server
     run_podman logs test_pod-server
-    is $output "foo:bar"
+    is "$output" "foo:bar"
 
     run_podman kube down $pod_file
 }

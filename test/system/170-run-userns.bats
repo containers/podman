@@ -111,7 +111,7 @@ EOF
     echo ${secret_content} > ${secret_file}
     run_podman secret create ${test_name} ${secret_file}
     run_podman run --rm --secret=${test_name} --userns=auto:size=1000 $IMAGE cat /run/secrets/${test_name}
-    is ${output} ${secret_content} "Secrets should work with user namespace"
+    is "$output" "$secret_content" "Secrets should work with user namespace"
     run_podman secret rm ${test_name}
 }
 

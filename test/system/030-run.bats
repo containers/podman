@@ -1123,7 +1123,7 @@ EOF
     run_podman 125 create --name "$randomname/bad" $IMAGE
     run_podman create --name "/$randomname" $IMAGE
     run_podman ps -a --filter name="^/$randomname$" --format '{{ .Names }}'
-    is $output "$randomname" "Should be able to find container by name"
+    is "$output" "$randomname" "Should be able to find container by name"
     run_podman rm "/$randomname"
     run_podman 125 create --name "$randomname/" $IMAGE
 }
