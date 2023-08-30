@@ -31,7 +31,7 @@ on:
 
 env:
     # CSV listing of e-mail addresses for delivery failure or error notices
-    RCPTCSV: rh.container.bot@gmail.com,podman-monitor@lists.podman.io
+    RCPTCSV: podman-monitor@lists.podman.io
     # Filename for table of build-id to cron-name data
     # (must be in $GITHUB_WORKSPACE/artifacts/)
     ID_NAME_FILEPATH: './artifacts/id_name.txt'
