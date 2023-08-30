@@ -42,6 +42,7 @@ var (
 )
 
 func init() {
+	podmanConfig := registry.PodmanConfig()
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: pushCmd,
 		Parent:  manifestCmd,
@@ -57,7 +58,7 @@ func init() {
 	_ = pushCmd.RegisterFlagCompletionFunc(authfileFlagName, completion.AutocompleteDefault)
 
 	addCompressionFlagName := "add-compression"
-	flags.StringSliceVar(&manifestPushOpts.AddCompression, addCompressionFlagName, nil, "add instances with selected compression while pushing")
+	flags.StringSliceVar(&manifestPushOpts.AddCompression, addCompressionFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.AddCompression, "add instances with selected compression while pushing")
 	_ = pushCmd.RegisterFlagCompletionFunc(addCompressionFlagName, common.AutocompleteCompressionFormat)
 
 	certDirFlagName := "cert-dir"
