@@ -183,7 +183,7 @@ process in the container will belong to group `100000`, and files belonging
 to group `2000` in the host will appear as being owned by group `100000`
 inside the container.
 
-    podman run --group-add=keep-groups --gidmap="+100000:@2000" ...
+    podman run --group-add=keep-groups --gidmap="+g100000:@2000" ...
 
   `No subordinate UIDs`
 
