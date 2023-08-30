@@ -63,6 +63,6 @@ jobs:
           username: ${{secrets.ACTION_MAIL_USERNAME}}
           password: ${{secrets.ACTION_MAIL_PASSWORD}}
           subject: Github workflow error on ${{github.repository}}
-          to: rh.container.bot@gmail.com,podman-monitor@lists.podman.io
+          to: podman-monitor@lists.podman.io
           from: ${{secrets.ACTION_MAIL_SENDER}}
           body: "Job failed: https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
