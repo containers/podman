@@ -249,11 +249,7 @@ var _ = Describe("Podman load", func() {
 		load := podmanTest.Podman([]string{"load", "-i", outfile})
 		load.WaitWithDefaultTimeout()
 		Expect(load).Should(Exit(0))
-
-		result := podmanTest.Podman([]string{"images", "load:latest"})
-		result.WaitWithDefaultTimeout()
-		Expect(result.OutputToString()).To(Not(ContainSubstring("docker")))
-		Expect(result.OutputToString()).To(ContainSubstring("localhost"))
+		Expect(load.OutputToString()).To(ContainSubstring("Loaded image: sha256:"))
 	})
 
 	It("podman load xz compressed image", func() {
