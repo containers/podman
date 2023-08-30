@@ -131,7 +131,7 @@ Description=vsock_network
 After=NetworkManager.service
 
 [Service]
-ExecStart=/usr/libexec/podman/gvforwader -preexisting -iface vsock0 -url vsock://2:%d/connect
+ExecStart=/usr/libexec/podman/gvforwarder -preexisting -iface vsock0 -url vsock://2:%d/connect
 ExecStartPost=/usr/bin/nmcli c up vsock0
 
 [Install]
@@ -316,7 +316,7 @@ func (m *HyperVMachine) collectFilesToDestroy(opts machine.RemoveOptions, diskPa
 		files = append(files, *diskPath)
 	}
 
-	files = append(files, getVMConfigPath(m.ConfigPath.GetPath(), m.Name))
+	files = append(files, m.ConfigPath.GetPath())
 	return files
 }
 
@@ -354,6 +354,11 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 		}
 	}
 
+	vm, err = vmm.GetMachine(m.Name)
+	if err != nil {
+		return "", nil, err
+	}
+
 	// Collect all the files that need to be destroyed
 	files = m.collectFilesToDestroy(opts, &diskPath)
 
@@ -366,7 +371,7 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 	return confirmationMessage, func() error {
 		machine.RemoveFilesAndConnections(files, m.Name, m.Name+"-root")
 		m.removeNetworkAndReadySocketsFromRegistry()
-		return vm.Remove(diskPath)
+		return vm.Remove("")
 	}, nil
 }
 
@@ -503,7 +508,11 @@ func (m *HyperVMachine) Stop(name string, opts machine.StopOptions) error {
 	if err != nil {
 		return err
 	}
-	if vm.State() != hypervctl.Enabled {
+	vmState := vm.State()
+	if vm.State() == hypervctl.Disabled {
+		return nil
+	}
+	if vmState != hypervctl.Enabled { // more states could be provided as well
 		return hypervctl.ErrMachineStateInvalid
 	}
 

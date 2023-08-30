@@ -2,6 +2,7 @@ package machine
 
 import (
 	"fmt"
+	"runtime"
 	"strconv"
 	"syscall"
 	"time"
@@ -40,15 +41,17 @@ func waitOnProcess(processID int) error {
 	}
 
 	// Try to kill the pid with sigterm
-	if err := proxyProc.Signal(syscall.SIGTERM); err != nil {
-		if err == syscall.ESRCH {
+	if runtime.GOOS != "windows" { // FIXME: temporary work around because signals are lame in windows
+		if err := proxyProc.Signal(syscall.SIGTERM); err != nil {
+			if err == syscall.ESRCH {
+				return nil
+			}
+			return err
+		}
+
+		if err := backoffForProcess(processID); err == nil {
 			return nil
 		}
-		return err
-	}
-
-	if err := backoffForProcess(processID); err == nil {
-		return nil
 	}
 
 	// sigterm has not killed it yet, lets send a sigkill
