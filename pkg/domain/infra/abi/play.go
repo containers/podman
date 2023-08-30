@@ -33,6 +33,7 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
 	"github.com/coreos/go-systemd/v22/daemon"
+	"github.com/docker/distribution/reference"
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
@@ -992,12 +993,7 @@ func (ic *ContainerEngine) getImageAndLabelInfo(ctx context.Context, cwd string,
 		}
 		pulledImage = i
 	} else {
-		// NOTE: set the pull policy to "newer".  This will cover cases
-		// where the "latest" tag requires a pull and will also
-		// transparently handle "localhost/" prefixed files which *may*
-		// refer to a locally built image OR an image running a
-		// registry on localhost.
-		pullPolicy := config.PullPolicyNewer
+		pullPolicy := config.PullPolicyMissing
 		if len(container.ImagePullPolicy) > 0 {
 			// Make sure to lower the strings since K8s pull policy
 			// may be capitalized (see bugzilla.redhat.com/show_bug.cgi?id=1985905).
@@ -1005,6 +1001,14 @@ func (ic *ContainerEngine) getImageAndLabelInfo(ctx context.Context, cwd string,
 			pullPolicy, err = config.ParsePullPolicy(strings.ToLower(rawPolicy))
 			if err != nil {
 				return nil, nil, err
+			}
+		} else {
+			if named, err := reference.ParseNamed(container.Image); err == nil {
+				tagged, isTagged := named.(reference.NamedTagged)
+				if isTagged && tagged.Tag() == "latest" {
+					// Make sure to always pull the latest image in case it got updated.
+					pullPolicy = config.PullPolicyNewer
+				}
 			}
 		}
 		// This ensures the image is the image store

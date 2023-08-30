@@ -764,3 +764,26 @@ EOF
     run_podman pod rm -a
     run_podman rm -a
 }
+
+@test "podman kube play - pull policy" {
+    skip_if_remote "pull debug logs only work locally"
+
+    yaml_source="$PODMAN_TMPDIR/test.yaml"
+    _write_test_yaml command=true
+
+    # Exploit a debug message to make sure the expected pull policy is used
+    run_podman --debug kube play $yaml_source
+    assert "$output" =~ "Pulling image $IMAGE \(policy\: missing\)" "default pull policy is missing"
+    run_podman kube down $yaml_source
+
+    local_image="localhost/name:latest"
+    run_podman tag $IMAGE $local_image
+    rm $yaml_source
+    _write_test_yaml command=true image=$local_image
+
+    run_podman --debug kube play $yaml_source
+    assert "$output" =~ "Pulling image $local_image \(policy\: newer\)" "pull policy is set to newhen pulling latest tag"
+    run_podman kube down $yaml_source
+
+    run_podman rmi $local_image
+}
