@@ -221,6 +221,16 @@ Define or override a port definition in the YAML file.
 The lists of ports in the YAML file and the command line are merged. Matching is done by using the **containerPort** field.
 If **containerPort** exists in both the YAML file and the option, the latter takes precedence.
 
+#### **--publish-all**
+
+Setting this option to `true` will expose all ports to the host,
+even if only specified via **containerPort** in the K8 YAML.
+In terms of which port will be exposed, **--publish** has higher priority than **hostPort**, has higher priority than
+**containerPort**.
+
+If set to `false` (which is the default), only ports defined via **hostPort**
+or **--publish** are published on the host.
+
 #### **--quiet**, **-q**
 
 Suppress output information when pulling images
