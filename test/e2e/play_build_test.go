@@ -12,7 +12,6 @@ import (
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman play kube with build", func() {
@@ -51,12 +50,12 @@ status: {}
 `
 
 	var playBuildFile = `
-FROM quay.io/libpod/alpine_nginx:latest
+FROM ` + CITEST_IMAGE + `
 LABEL homer=dad
 COPY copyfile /copyfile
 `
 	var prebuiltImage = `
-FROM quay.io/libpod/alpine_nginx:latest
+FROM ` + CITEST_IMAGE + `
 LABEL marge=mom
 `
 
@@ -84,17 +83,17 @@ LABEL marge=mom
 		Expect(os.Chdir(yamlDir)).To(Succeed())
 		defer func() { (Expect(os.Chdir(cwd)).To(BeNil())) }()
 
-		session := podmanTest.Podman([]string{"play", "kube", "top.yaml"})
+		session := podmanTest.Podman([]string{"kube", "play", "top.yaml"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		exists := podmanTest.Podman([]string{"image", "exists", "foobar"})
 		exists.WaitWithDefaultTimeout()
-		Expect(exists).Should(Exit(0))
+		Expect(exists).Should(ExitCleanly())
 
 		inspect := podmanTest.Podman([]string{"container", "inspect", "top_pod-foobar"})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 		inspectData := inspect.InspectContainerToJSON()
 		Expect(inspectData).ToNot(BeEmpty())
 		Expect(inspectData[0].Config.Labels).To(HaveKeyWithValue("homer", "dad"))
@@ -121,17 +120,17 @@ LABEL marge=mom
 		Expect(os.Chdir(yamlDir)).To(Succeed())
 		defer func() { (Expect(os.Chdir(cwd)).To(BeNil())) }()
 
-		session := podmanTest.Podman([]string{"play", "kube", "top.yaml"})
+		session := podmanTest.Podman([]string{"kube", "play", "top.yaml"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		exists := podmanTest.Podman([]string{"image", "exists", "foobar"})
 		exists.WaitWithDefaultTimeout()
-		Expect(exists).Should(Exit(0))
+		Expect(exists).Should(ExitCleanly())
 
 		inspect := podmanTest.Podman([]string{"container", "inspect", "top_pod-foobar"})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 		inspectData := inspect.InspectContainerToJSON()
 		Expect(inspectData).ToNot(BeEmpty())
 		Expect(inspectData[0].Config.Labels).To(HaveKeyWithValue("homer", "dad"))
@@ -169,15 +168,15 @@ LABEL marge=mom
 		// Build the image into the local store
 		build := podmanTest.Podman([]string{"build", "-t", "foobar", "-f", "Containerfile"})
 		build.WaitWithDefaultTimeout()
-		Expect(build).Should(Exit(0))
+		Expect(build).Should(ExitCleanly())
 
-		session := podmanTest.Podman([]string{"play", "kube", "top.yaml"})
+		session := podmanTest.Podman([]string{"kube", "play", "top.yaml"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		inspect := podmanTest.Podman([]string{"container", "inspect", "top_pod-foobar"})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 		inspectData := inspect.InspectContainerToJSON()
 		Expect(inspectData).ToNot(BeEmpty())
 		Expect(inspectData[0].Config.Labels).To(Not(HaveKey("homer")))
@@ -216,15 +215,15 @@ LABEL marge=mom
 		// Build the image into the local store
 		build := podmanTest.Podman([]string{"build", "-t", "foobar", "-f", "Containerfile"})
 		build.WaitWithDefaultTimeout()
-		Expect(build).Should(Exit(0))
+		Expect(build).Should(ExitCleanly())
 
-		session := podmanTest.Podman([]string{"play", "kube", "--build=false", "top.yaml"})
+		session := podmanTest.Podman([]string{"kube", "play", "--build=false", "top.yaml"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		inspect := podmanTest.Podman([]string{"container", "inspect", "top_pod-foobar"})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 		inspectData := inspect.InspectContainerToJSON()
 		Expect(inspectData).ToNot(BeEmpty())
 		Expect(inspectData[0].Config.Labels).To(Not(HaveKey("homer")))
@@ -263,15 +262,15 @@ LABEL marge=mom
 		// Build the image into the local store
 		build := podmanTest.Podman([]string{"build", "-t", "foobar", "-f", "Containerfile"})
 		build.WaitWithDefaultTimeout()
-		Expect(build).Should(Exit(0))
+		Expect(build).Should(ExitCleanly())
 
-		session := podmanTest.Podman([]string{"play", "kube", "--build", "top.yaml"})
+		session := podmanTest.Podman([]string{"kube", "play", "--build", "top.yaml"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		inspect := podmanTest.Podman([]string{"container", "inspect", "top_pod-foobar"})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 		inspectData := inspect.InspectContainerToJSON()
 		Expect(inspectData).ToNot(BeEmpty())
 		Expect(inspectData[0].Config.Labels).To(HaveKeyWithValue("homer", "dad"))
@@ -352,21 +351,21 @@ echo GOT-HERE
 
 		session := podmanTest.Podman([]string{"kube", "play", "echo.yaml"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		cid := "echo_pod-foobar"
 		wait := podmanTest.Podman([]string{"wait", cid})
 		wait.WaitWithDefaultTimeout()
-		Expect(wait).To(Exit(0))
+		Expect(wait).To(ExitCleanly())
 
 		logs := podmanTest.Podman([]string{"logs", cid})
 		logs.WaitWithDefaultTimeout()
-		Expect(logs).Should(Exit(0))
+		Expect(logs).Should(ExitCleanly())
 		Expect(logs.OutputToString()).To(Equal("parenBAR braceBAR dollardollarparenGOT-HERE interpBARolate"))
 
 		inspect := podmanTest.Podman([]string{"container", "inspect", cid})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 		inspectData := inspect.InspectContainerToJSON()
 		Expect(inspectData).ToNot(BeEmpty())
 

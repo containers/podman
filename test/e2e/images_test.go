@@ -127,7 +127,7 @@ var _ = Describe("Podman images", func() {
 		retalpine := podmanTest.Podman([]string{"images", "-f", "reference=*lpine*"})
 		retalpine.WaitWithDefaultTimeout()
 		Expect(retalpine).Should(Exit(0))
-		Expect(retalpine.OutputToStringArray()).To(HaveLen(6))
+		Expect(retalpine.OutputToStringArray()).To(HaveLen(5))
 		Expect(retalpine.OutputToString()).To(ContainSubstring("alpine"))
 
 		retalpine = podmanTest.Podman([]string{"images", "-f", "reference=alpine"})
