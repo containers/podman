@@ -1,6 +1,13 @@
 package e2e_test
 
 import (
+	"io"
+	"net"
+	"net/http"
+	"net/url"
+	"os/exec"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -49,4 +56,65 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(rmCon).To(Exit(0))
 	})
 
+	It("Podman ops with port forwarding and gvproxy", func() {
+		name := randomString()
+		i := new(initMachine)
+		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withNow()).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		bm := basicMachine{}
+		runAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"run", "-dt", "-p", "62544:80", "quay.io/libpod/alpine_nginx"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(runAlp).To(Exit(0))
+		testHTTPServer("62544", false, "podman rulez")
+
+		out, err := exec.Command("pgrep", "gvproxy").Output()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(string(out)).ToNot(BeEmpty())
+
+		rmCon, err := mb.setCmd(bm.withPodmanCommand([]string{"rm", "-af"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(rmCon).To(Exit(0))
+		testHTTPServer("62544", true, "")
+
+		stop := new(stopMachine)
+		stopSession, err := mb.setCmd(stop).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(stopSession).To(Exit(0))
+
+		// gxproxy should exit after machine is stopped
+		_, err = exec.Command("pgrep", "gvproxy").Output()
+		Expect(err).To(HaveOccurred())
+	})
+
 })
+
+func testHTTPServer(port string, shouldErr bool, expectedResponse string) {
+	address := url.URL{
+		Scheme: "http",
+		Host:   net.JoinHostPort("localhost", port),
+	}
+
+	interval := 250 * time.Millisecond
+	var err error
+	var resp *http.Response
+	for i := 0; i < 6; i++ {
+		resp, err = http.Get(address.String())
+		if err != nil && shouldErr {
+			Expect(err.Error()).To(ContainSubstring(expectedResponse))
+			return
+		}
+		if err == nil {
+			defer resp.Body.Close()
+			break
+		}
+		time.Sleep(interval)
+		interval *= 2
+	}
+	Expect(err).ToNot(HaveOccurred())
+
+	body, err := io.ReadAll(resp.Body)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(string(body)).Should(Equal(expectedResponse))
+}
