@@ -56,6 +56,7 @@ master_doc = "index"
 # Configure smartquotes to only transform quotes and ellipses, not dashes
 smartquotes_action = "qe"
 
+locale_dirs = ["locale/"]
 
 # -- Options for HTML output -------------------------------------------------
 

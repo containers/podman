@@ -15,6 +15,7 @@ coverprofile
 **.DS_Store
 .gopathok
 .idea*
+*.mo
 .nfs*
 *.o
 *.orig
