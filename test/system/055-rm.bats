@@ -72,7 +72,7 @@ load helpers
     # the window for race conditions that led to #9479.
     run_podman run --rm -d $IMAGE sleep infinity
     local cid="$output"
-    run_podman rm -af
+    run_podman rm -af -t0
 
     # Check the OCI runtime directory has removed.
     is "$(ls $OCIDir | grep $cid)" "" "The OCI runtime directory should have been removed"

@@ -387,7 +387,9 @@ EOF
     tries=100
     while [[ ${#lines[*]} -gt 1 ]] && [[ $tries -gt 0 ]]; do
         # Prior to #18980, 'podman images' during rmi could fail with 'image not known'
-        run_podman images --format "{{.ID}} {{.Names}}"
+        # '0+w' reflects that we may see "Top layer not found" warnings.
+        # FIXME FIXME: find a way to check for any other warnings
+        run_podman 0+w images --format "{{.ID}} {{.Names}}"
         tries=$((tries - 1))
     done
 

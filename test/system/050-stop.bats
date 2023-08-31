@@ -9,8 +9,11 @@ load helpers
 
     # Run 'stop'. Time how long it takes.
     t0=$SECONDS
-    run_podman stop $cid
+    run_podman 0+w stop $cid
     t1=$SECONDS
+    if ! is_remote; then
+        assert "$output" =~ "StopSignal SIGTERM failed to stop container .*, resorting to SIGKILL"
+    fi
 
     # Confirm that container is stopped. Podman-remote unfortunately
     # cannot tell the difference between "stopped" and "exited", and
@@ -44,7 +47,10 @@ load helpers
     is "${lines[2]}" "c3--Up.*"  "podman ps shows running container (3)"
 
     # Stop -a
-    run_podman stop -a -t 1
+    run_podman 0+w stop -a -t 1
+    if ! is_remote; then
+        assert "$output" =~ "StopSignal SIGTERM failed to stop container .*, resorting to SIGKILL"
+    fi
 
     # Now podman ps (without -a) should show nothing.
     run_podman ps --format '{{.Names}}'
@@ -185,8 +191,10 @@ load helpers
 @test "podman stop -t 1 Generate warning" {
     skip_if_remote "warning only happens on server side"
     run_podman run --rm --name stopme -d $IMAGE sleep 100
-    run_podman stop -t 1 stopme
-    is "$output" ".*StopSignal SIGTERM failed to stop container stopme in 1 seconds, resorting to SIGKILL"  "stopping container should print warning"
+    run_podman 0+w stop -t 1 stopme
+    if ! is_remote; then
+        is "$output" ".*StopSignal SIGTERM failed to stop container stopme in 1 seconds, resorting to SIGKILL"  "stopping container should print warning"
+    fi
 }
 
 @test "podman stop --noout" {
@@ -204,7 +212,7 @@ load helpers
 
     run_podman run --rm -d --name rmstop $IMAGE sleep infinity
     local cid="$output"
-    run_podman stop rmstop
+    run_podman stop -t0 rmstop
 
     # Check the OCI runtime directory has removed.
     is "$(ls $OCIDir | grep $cid)" "" "The OCI runtime directory should have been removed"

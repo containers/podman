@@ -27,7 +27,10 @@ load helpers
     run_podman wait $cid_none_implicit $cid_none_explicit $cid_on_failure
 
     run_podman rm $cid_none_implicit $cid_none_explicit $cid_on_failure
-    run_podman stop -t 1 $cid_always
+    run_podman 0+w stop -t 1 $cid_always
+    if ! is_remote; then
+        assert "$output" =~ "StopSignal SIGTERM failed to stop container .*, resorting to SIGKILL"
+    fi
     run_podman rm $cid_always
 }
 
