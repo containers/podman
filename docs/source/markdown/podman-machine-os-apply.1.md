@@ -34,7 +34,7 @@ Restart VM after applying changes.
 
 ```
 $ podman machine os apply quay.io/podman_next
-$ podman machine os apply quay.io/podman_next podman-machine-defualt
+$ podman machine os apply quay.io/podman_next podman-machine-default
 ```
 
 ## SEE ALSO
