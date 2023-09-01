@@ -99,7 +99,7 @@ For blogs, release announcements and more, please checkout the [podman.io](https
 **[Installation notes](install.md)**
 Information on how to install Podman in your environment.
 
-**[OCI Hooks Support](pkg/hooks/README.md)**
+**[OCI Hooks Support](https://github.com/containers/common/blob/main/pkg/hooks/README.md)**
 Information on how Podman configures [OCI Hooks][spec-hooks] to run when launching a container.
 
 **[Podman API](https://docs.podman.io/en/latest/_static/api.html)**
