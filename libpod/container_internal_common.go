@@ -821,12 +821,12 @@ func lookupHostUser(name string) (*runcuser.ExecUser, error) {
 	if err != nil {
 		return &execUser, err
 	}
-	uid, err := strconv.ParseUint(u.Uid, 8, 32)
+	uid, err := strconv.ParseUint(u.Uid, 10, 32)
 	if err != nil {
 		return &execUser, err
 	}
 
-	gid, err := strconv.ParseUint(u.Gid, 8, 32)
+	gid, err := strconv.ParseUint(u.Gid, 10, 32)
 	if err != nil {
 		return &execUser, err
 	}
