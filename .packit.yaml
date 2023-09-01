@@ -6,7 +6,12 @@ specfile_path: rpm/podman.spec
 upstream_tag_template: v{version}
 
 srpm_build_deps:
+  - git-archive-all
   - make
+
+actions:
+  fix-spec-file:
+    - "bash .packit.sh"
 
 jobs:
   - job: copr_build

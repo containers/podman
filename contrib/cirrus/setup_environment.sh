@@ -412,6 +412,8 @@ case "$TEST_FLAVOR" in
     swagger)
         make .install.swagger
         ;;
+    #fcos_image_build)
+    #    ;;
     release) ;;
     *) die_unknown TEST_FLAVOR
 esac

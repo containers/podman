@@ -930,6 +930,22 @@ upgrade_test_task:
     always: *logs_artifacts
 
 
+      #fcos_image_build_task:
+    # Only a test. Does not push built images.
+    # Image push to quay will be handled by GHA in
+    # .github/workflows/fcos-podman-next-build.yml
+    #name: "Test Build FCOS image $CTXDIR"
+    #alias: fcos_image_build
+    #only_if: $CIRRUS_PR != '' && $CIRRUS_BASE_BRANCH == 'main' && $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
+    #env:
+    #    <<: *stdenvars
+    #    CTXDIR: contrib/podman-next/fcos-podmanimage
+    #    TEST_FLAVOR: "fcos_image_build"
+    #gce_instance: *standardvm
+    #setup_script: *setup
+    #main_script: *main
+
+
 # This task is critical.  It updates the "last-used by" timestamp stored
 # in metadata for all VM images.  This mechanism functions in tandem with
 # an out-of-band pruning operation to remove disused VM images.
@@ -1001,6 +1017,7 @@ success_task:
         - buildah_bud_test
         - rootless_buildah_bud_test
         - upgrade_test
+          #- fcos_image_build
         - meta
     container: &smallcontainer
         image: ${CTR_FQIN}
