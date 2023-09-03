@@ -209,7 +209,15 @@ func waitVMResult(res int32, service *wmiext.Service, job *wmiext.Instance, erro
 	return err
 }
 
+func (vm *VirtualMachine) StopWithForce() error {
+	return vm.stop(true)
+}
+
 func (vm *VirtualMachine) Stop() error {
+	return vm.stop(false)
+}
+
+func (vm *VirtualMachine) stop(force bool) error {
 	if !Enabled.equal(vm.EnabledState) {
 		return ErrMachineNotRunning
 	}
@@ -228,7 +236,7 @@ func (vm *VirtualMachine) Stop() error {
 	// https://learn.microsoft.com/en-us/windows/win32/hyperv_v2/msvm-shutdowncomponent-initiateshutdown
 	err = wmiInst.BeginInvoke("InitiateShutdown").
 		In("Reason", "User requested").
-		In("Force", false).
+		In("Force", force).
 		Execute().
 		Out("ReturnValue", &res).End()
 	if err != nil {
