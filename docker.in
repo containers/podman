@@ -1,4 +1,15 @@
 #!/bin/sh
 [ -e ${ETCDIR}/containers/nodocker ] || \
 echo "Emulate Docker CLI using podman. Create ${ETCDIR}/containers/nodocker to quiet msg." >&2
-exec ${BINDIR}/podman "$@"
+
+EXECUTABLE=${BINDIR}/podman
+if [ "$1" = "compose" ]; then
+        shift
+        EXECUTABLE="$(command -v docker-compose || command -v podman-compose)"
+        if ! [ -x "$EXECUTABLE" ]; then
+                echo 'Error: docker-compose or podman-compose is not installed.' >&2
+                exit 1
+        fi
+fi
+
+exec ${EXECUTABLE} "$@"
