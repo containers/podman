@@ -4,6 +4,7 @@
 package machine
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -35,6 +36,7 @@ var (
 // Flags which have a meaning when unspecified that differs from the flag default
 type InitOptionalFlags struct {
 	UserModeNetworking bool
+	GuestOSName        string
 }
 
 // maxMachineNameSize is set to thirty to limit huge machine names primarily
@@ -120,11 +122,15 @@ func init() {
 	userModeNetFlagName := "user-mode-networking"
 	flags.BoolVar(&initOptionalFlags.UserModeNetworking, userModeNetFlagName, false,
 		"Whether this machine should use user-mode networking, routing traffic through a host user-space process")
+
+	guestOSFlagName := "machine-os"
+	flags.StringVar(&initOptionalFlags.GuestOSName, guestOSFlagName, "linux", "Optional guest OS type")
 }
 
 func initMachine(cmd *cobra.Command, args []string) error {
 	var (
 		err error
+		ok  bool
 		vm  machine.VM
 	)
 
@@ -145,6 +151,11 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	// Process optional flags (flags where unspecified / nil has meaning )
 	if cmd.Flags().Changed("user-mode-networking") {
 		initOpts.UserModeNetworking = &initOptionalFlags.UserModeNetworking
+	}
+
+	initOpts.GuestOS, ok = machine.GuestOSNames[initOptionalFlags.GuestOSName]
+	if !ok {
+		return errors.New("invalid guest OS")
 	}
 
 	vm, err = provider.NewMachine(initOpts)

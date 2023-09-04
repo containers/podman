@@ -75,6 +75,8 @@ type MachineVM struct {
 	Created time.Time
 	// LastUp contains the last recorded uptime
 	LastUp time.Time
+	// Guest OS type
+	GuestOS machine.GuestOS
 
 	// User at runtime for serializing write operations.
 	lock *lockfile.LockFile
@@ -275,13 +277,14 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	)
 	v.IdentityPath = util.GetIdentityPath(v.Name)
 	v.Rootful = opts.Rootful
+	v.GuestOS = opts.GuestOS
 
 	dl, err := VirtualizationProvider().NewDownload(v.Name)
 	if err != nil {
 		return false, err
 	}
 
-	imagePath, strm, err := dl.AcquireVMImage(opts.ImagePath)
+	imagePath, strm, err := dl.AcquireVMImage(opts.ImagePath, opts.GuestOS)
 	if err != nil {
 		return false, err
 	}
