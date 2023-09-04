@@ -1019,6 +1019,12 @@ func (v *MachineVM) stopLocked() error {
 		return nil
 	}
 
+	// FreeBSD doesn't seem to respond to the power down events here, so prod it via SSH.
+	// This is probably a FreeBSD bug, so this work around can go away at some point.
+	if v.GuestOS == machine.FreeBSD {
+		return v.SSH("", machine.SSHOptions{Args: []string{"-q", "--", "/sbin/poweroff"}, Username: "root"})
+	}
+
 	qmpMonitor, err := qmp.NewSocketMonitor(v.QMPMonitor.Network, v.QMPMonitor.Address.GetPath(), v.QMPMonitor.Timeout)
 	if err != nil {
 		return err
