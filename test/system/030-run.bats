@@ -939,6 +939,17 @@ EOF
     is "$output" "$oomscore" "--oom-score-adj should override containers.conf"
 }
 
+# issue 19829
+@test "rootless podman clamps oom-score-adj if it is lower than the current one" {
+    skip_if_not_rootless
+    skip_if_remote
+    if grep -- -1000 /proc/self/oom_score_adj; then
+        skip "the current oom-score-adj is already -1000"
+    fi
+    run_podman run --oom-score-adj=-1000 --rm $IMAGE true
+    is "$output" ".*Requested oom_score_adj=.* is lower than the current one, changing to .*"
+}
+
 # CVE-2022-1227 : podman top joins container mount NS and uses nsenter from image
 @test "podman top does not use nsenter from image" {
     keepid="--userns=keep-id"

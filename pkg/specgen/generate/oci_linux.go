@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/containers/common/libimage"
@@ -16,6 +18,7 @@ import (
 	"github.com/containers/podman/v4/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -76,6 +79,25 @@ func getCgroupPermissions(unmask []string) string {
 		}
 	}
 	return ro
+}
+
+func maybeClampOOMScoreAdj(oomScoreValue int, isRootless bool) (int, error) {
+	if !isRootless {
+		return oomScoreValue, nil
+	}
+	v, err := os.ReadFile("/proc/self/oom_score_adj")
+	if err != nil {
+		return oomScoreValue, err
+	}
+	currentValue, err := strconv.Atoi(strings.TrimRight(string(v), "\n"))
+	if err != nil {
+		return oomScoreValue, err
+	}
+	if currentValue > oomScoreValue {
+		logrus.Warnf("Requested oom_score_adj=%d is lower than the current one, changing to %d", oomScoreValue, currentValue)
+		return currentValue, nil
+	}
+	return oomScoreValue, nil
 }
 
 // SpecGenToOCI returns the base configuration for the container.
@@ -321,7 +343,11 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	}
 
 	if s.OOMScoreAdj != nil {
-		g.SetProcessOOMScoreAdj(*s.OOMScoreAdj)
+		score, err := maybeClampOOMScoreAdj(*s.OOMScoreAdj, isRootless)
+		if err != nil {
+			return nil, err
+		}
+		g.SetProcessOOMScoreAdj(score)
 	}
 	setProcOpts(s, &g)
 	if s.ReadOnlyFilesystem && !s.ReadWriteTmpfs {
