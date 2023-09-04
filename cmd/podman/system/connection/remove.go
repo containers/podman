@@ -54,18 +54,14 @@ func rm(cmd *cobra.Command, args []string) error {
 	}
 
 	if rmOpts.All {
-		if cfg.Engine.ServiceDestinations != nil {
-			for k := range cfg.Engine.ServiceDestinations {
-				delete(cfg.Engine.ServiceDestinations, k)
-			}
+		for k := range cfg.Engine.ServiceDestinations {
+			delete(cfg.Engine.ServiceDestinations, k)
 		}
 		cfg.Engine.ActiveService = ""
 
 		// Clear all the connections in any existing farms
-		if cfg.Farms.List != nil {
-			for k := range cfg.Farms.List {
-				cfg.Farms.List[k] = []string{}
-			}
+		for k := range cfg.Farms.List {
+			cfg.Farms.List[k] = []string{}
 		}
 		return cfg.Write()
 	}
@@ -83,12 +79,10 @@ func rm(cmd *cobra.Command, args []string) error {
 	}
 
 	// If there are existing farm, remove the deleted connection that might be part of a farm
-	if cfg.Farms.List != nil {
-		for k, v := range cfg.Farms.List {
-			index := util.IndexOfStringInSlice(args[0], v)
-			if index > -1 {
-				cfg.Farms.List[k] = append(v[:index], v[index+1:]...)
-			}
+	for k, v := range cfg.Farms.List {
+		index := util.IndexOfStringInSlice(args[0], v)
+		if index > -1 {
+			cfg.Farms.List[k] = append(v[:index], v[index+1:]...)
 		}
 	}
 
