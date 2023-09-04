@@ -431,6 +431,22 @@ Delegate=memory pids cpu io
 		},
 	})
 
+	// Increase the number of inotify instances.
+	files = append(files, File{
+		Node: Node{
+			Group: GetNodeGrp("root"),
+			Path:  "/etc/sysctl.d/10-inotify-instances.conf",
+			User:  GetNodeUsr("root"),
+		},
+		FileEmbedded1: FileEmbedded1{
+			Append: nil,
+			Contents: Resource{
+				Source: EncodeDataURLPtr("fs.inotify.max_user_instances=524288\n"),
+			},
+			Mode: IntToPtr(0644),
+		},
+	})
+
 	// Issue #11489: make sure that we can inject a custom registries.conf
 	// file on the system level to force a single search registry.
 	// The remote client does not yet support prompting for short-name
