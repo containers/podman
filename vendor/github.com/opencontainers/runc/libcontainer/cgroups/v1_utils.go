@@ -236,27 +236,6 @@ func GetOwnCgroupPath(subsystem string) (string, error) {
 	return getCgroupPathHelper(subsystem, cgroup)
 }
 
-func GetInitCgroup(subsystem string) (string, error) {
-	if IsCgroup2UnifiedMode() {
-		return "", errUnified
-	}
-	cgroups, err := ParseCgroupFile("/proc/1/cgroup")
-	if err != nil {
-		return "", err
-	}
-
-	return getControllerPath(subsystem, cgroups)
-}
-
-func GetInitCgroupPath(subsystem string) (string, error) {
-	cgroup, err := GetInitCgroup(subsystem)
-	if err != nil {
-		return "", err
-	}
-
-	return getCgroupPathHelper(subsystem, cgroup)
-}
-
 func getCgroupPathHelper(subsystem, cgroup string) (string, error) {
 	mnt, root, err := FindCgroupMountpointAndRoot("", subsystem)
 	if err != nil {

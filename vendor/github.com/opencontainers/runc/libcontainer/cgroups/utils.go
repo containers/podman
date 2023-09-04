@@ -36,13 +36,13 @@ func IsCgroup2UnifiedMode() bool {
 		var st unix.Statfs_t
 		err := unix.Statfs(unifiedMountpoint, &st)
 		if err != nil {
+			level := logrus.WarnLevel
 			if os.IsNotExist(err) && userns.RunningInUserNS() {
-				// ignore the "not found" error if running in userns
-				logrus.WithError(err).Debugf("%s missing, assuming cgroup v1", unifiedMountpoint)
-				isUnified = false
-				return
+				// For rootless containers, sweep it under the rug.
+				level = logrus.DebugLevel
 			}
-			panic(fmt.Sprintf("cannot statfs cgroup root: %s", err))
+			logrus.StandardLogger().Logf(level,
+				"statfs %s: %v; assuming cgroup v1", unifiedMountpoint, err)
 		}
 		isUnified = st.Type == unix.CGROUP2_SUPER_MAGIC
 	})
@@ -162,8 +162,10 @@ func readProcsFile(dir string) ([]int, error) {
 
 // ParseCgroupFile parses the given cgroup file, typically /proc/self/cgroup
 // or /proc/<pid>/cgroup, into a map of subsystems to cgroup paths, e.g.
-//   "cpu": "/user.slice/user-1000.slice"
-//   "pids": "/user.slice/user-1000.slice"
+//
+//	"cpu": "/user.slice/user-1000.slice"
+//	"pids": "/user.slice/user-1000.slice"
+//
 // etc.
 //
 // Note that for cgroup v2 unified hierarchy, there are no per-controller
@@ -215,20 +217,9 @@ func PathExists(path string) bool {
 	return true
 }
 
-func EnterPid(cgroupPaths map[string]string, pid int) error {
-	for _, path := range cgroupPaths {
-		if PathExists(path) {
-			if err := WriteCgroupProc(path, pid); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
 func rmdir(path string) error {
 	err := unix.Rmdir(path)
-	if err == nil || err == unix.ENOENT { //nolint:errorlint // unix errors are bare
+	if err == nil || err == unix.ENOENT {
 		return nil
 	}
 	return &os.PathError{Op: "rmdir", Path: path, Err: err}

@@ -14,6 +14,7 @@ const (
 	NEWIPC    NamespaceType = "NEWIPC"
 	NEWUSER   NamespaceType = "NEWUSER"
 	NEWCGROUP NamespaceType = "NEWCGROUP"
+	NEWTIME   NamespaceType = "NEWTIME"
 )
 
 var (
@@ -38,6 +39,8 @@ func NsName(ns NamespaceType) string {
 		return "uts"
 	case NEWCGROUP:
 		return "cgroup"
+	case NEWTIME:
+		return "time"
 	}
 	return ""
 }
@@ -72,6 +75,7 @@ func NamespaceTypes() []NamespaceType {
 		NEWPID,
 		NEWNS,
 		NEWCGROUP,
+		NEWTIME,
 	}
 }
 

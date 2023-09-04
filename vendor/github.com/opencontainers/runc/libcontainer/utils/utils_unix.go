@@ -5,8 +5,10 @@ package utils
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"strconv"
+	"sync"
 
 	"golang.org/x/sys/unix"
 )
@@ -23,9 +25,38 @@ func EnsureProcHandle(fh *os.File) error {
 	return nil
 }
 
+var (
+	haveCloseRangeCloexecBool bool
+	haveCloseRangeCloexecOnce sync.Once
+)
+
+func haveCloseRangeCloexec() bool {
+	haveCloseRangeCloexecOnce.Do(func() {
+		// Make sure we're not closing a random file descriptor.
+		tmpFd, err := unix.FcntlInt(0, unix.F_DUPFD_CLOEXEC, 0)
+		if err != nil {
+			return
+		}
+		defer unix.Close(tmpFd)
+
+		err = unix.CloseRange(uint(tmpFd), uint(tmpFd), unix.CLOSE_RANGE_CLOEXEC)
+		// Any error means we cannot use close_range(CLOSE_RANGE_CLOEXEC).
+		// -ENOSYS and -EINVAL ultimately mean we don't have support, but any
+		// other potential error would imply that even the most basic close
+		// operation wouldn't work.
+		haveCloseRangeCloexecBool = err == nil
+	})
+	return haveCloseRangeCloexecBool
+}
+
 // CloseExecFrom applies O_CLOEXEC to all file descriptors currently open for
 // the process (except for those below the given fd value).
 func CloseExecFrom(minFd int) error {
+	if haveCloseRangeCloexec() {
+		err := unix.CloseRange(uint(minFd), math.MaxUint, unix.CLOSE_RANGE_CLOEXEC)
+		return os.NewSyscallError("close_range", err)
+	}
+
 	fdDir, err := os.Open("/proc/self/fd")
 	if err != nil {
 		return err
@@ -60,7 +91,7 @@ func CloseExecFrom(minFd int) error {
 }
 
 // NewSockPair returns a new unix socket pair
-func NewSockPair(name string) (parent *os.File, child *os.File, err error) {
+func NewSockPair(name string) (parent, child *os.File, err error) {
 	fds, err := unix.Socketpair(unix.AF_LOCAL, unix.SOCK_STREAM|unix.SOCK_CLOEXEC, 0)
 	if err != nil {
 		return nil, nil, err
