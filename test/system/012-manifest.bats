@@ -4,6 +4,15 @@ load helpers
 load helpers.network
 load helpers.registry
 
+function teardown() {
+    # Enumerate every one of the manifest names used everywhere below
+    echo "[ teardown - ignore 'image not known' errors below ]"
+    run_podman '?' manifest rm test:1.0 \
+               localhost:${PODMAN_LOGIN_REGISTRY_PORT}/test:1.0
+
+    basic_teardown
+}
+
 # Helper function for several of the tests which verifies compression.
 #
 #  Usage:  validate_instance_compression INDEX MANIFEST ARCH COMPRESSION
@@ -90,17 +99,15 @@ function validate_instance_compression {
 }
 
 @test "manifest list --add-compression with zstd" {
-    if ! type -p skopeo; then
-        skip "skopeo not available"
-    fi
     skip_if_remote "running a local registry doesn't work with podman-remote"
     start_registry
 
-    tmpdir=$PODMAN_TMPDIR/build-test
-    mkdir -p $tmpdir
-    dockerfile=$tmpdir/Dockerfile
+    # Using TARGETARCH gives us distinct images for each arch
+    dockerfile=$PODMAN_TMPDIR/Dockerfile
     cat >$dockerfile <<EOF
-FROM alpine
+FROM scratch
+ARG TARGETARCH
+COPY Dockerfile /i-am-\${TARGETARCH}
 EOF
     authfile=${PODMAN_LOGIN_WORKDIR}/auth-$(random_string 10).json
     run_podman login --tls-verify=false \
@@ -110,25 +117,34 @@ EOF
                localhost:${PODMAN_LOGIN_REGISTRY_PORT} <<<"${PODMAN_LOGIN_PASS}"
     is "$output" "Login Succeeded!" "output from podman login"
 
-  manifest1="localhost:${PODMAN_LOGIN_REGISTRY_PORT}/test:1.0"
-  run_podman build -t image1 --platform linux/amd64 -f $dockerfile
-  run_podman build -t image2 --platform linux/arm64 -f $dockerfile
+    # Build two images, different arches, and add each to one manifest list
+    local manifestlocal="test:1.0"
+    run_podman manifest create $manifestlocal
+    for arch in amd arm;do
+        # FIXME: --layers=false needed to work around #19860
+        run_podman build --layers=false -t image_$arch --platform linux/${arch}64 -f $dockerfile
+        run_podman manifest add $manifestlocal containers-storage:localhost/image_$arch:latest
+    done
 
-  run_podman manifest create foo
-  run_podman images -a
-  run_podman manifest add foo containers-storage:localhost/image1:latest
-  run_podman manifest add foo containers-storage:localhost/image2:latest
+    # (for debugging)
+    run_podman images -a
 
-  run_podman manifest push --authfile=$authfile --all --add-compression zstd --tls-verify=false foo $manifest1
+    # Push to local registry; the magic key here is --add-compression...
+    local manifestpushed="localhost:${PODMAN_LOGIN_REGISTRY_PORT}/test:1.0"
+    run_podman manifest push --authfile=$authfile --all --add-compression zstd --tls-verify=false $manifestlocal $manifestpushed
 
-  run skopeo inspect --authfile=$authfile --tls-verify=false --raw docker://$manifest1
-  echo $output
-  list="$output"
+    # ...and use skopeo to confirm that each component has the right settings
+    echo "$_LOG_PROMPT skopeo inspect ... $manifestpushed"
+    list=$(skopeo inspect --authfile=$authfile --tls-verify=false --raw docker://$manifestpushed)
+    jq . <<<"$list"
 
-  validate_instance_compression "0" "$list" "amd64" "gzip"
-  validate_instance_compression "1" "$list" "arm64" "gzip"
-  validate_instance_compression "2" "$list" "amd64" "zstd"
-  validate_instance_compression "3" "$list" "arm64" "zstd"
+    validate_instance_compression "0" "$list" "amd64" "gzip"
+    validate_instance_compression "1" "$list" "arm64" "gzip"
+    validate_instance_compression "2" "$list" "amd64" "zstd"
+    validate_instance_compression "3" "$list" "arm64" "zstd"
+
+    run_podman rmi image_amd image_arm
+    run_podman manifest rm $manifestlocal
 }
 
 # vim: filetype=sh
