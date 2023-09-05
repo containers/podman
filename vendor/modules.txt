@@ -1033,7 +1033,7 @@ go.opentelemetry.io/otel/trace
 # golang.org/x/arch v0.3.0
 ## explicit; go 1.17
 golang.org/x/arch/x86/x86asm
-# golang.org/x/crypto v0.12.0
+# golang.org/x/crypto v0.13.0
 ## explicit; go 1.17
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
@@ -1068,7 +1068,7 @@ golang.org/x/exp/slices
 ## explicit; go 1.17
 golang.org/x/mod/semver
 golang.org/x/mod/sumdb/note
-# golang.org/x/net v0.14.0
+# golang.org/x/net v0.15.0
 ## explicit; go 1.17
 golang.org/x/net/context
 golang.org/x/net/html
