@@ -251,6 +251,7 @@ function port_is_bound() {
     *"."*)
         grep -e "^[^:]*: $(ipv4_to_procfs "${address}"):${port}"    \
              -e "^[^:]*: $(ipv4_to_procfs "0.0.0.0"):${port}"       \
+             -e "^[^:]*: $(ipv4_to_procfs "127.0.0.1"):${port}"     \
              -q "/proc/net/${proto}"
         ;;
     *)
