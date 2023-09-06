@@ -125,7 +125,9 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 				capsRequiredRequested = strings.Split(val, ",")
 			}
 		}
-		if !s.Privileged && len(capsRequiredRequested) > 0 {
+		if !s.Privileged && len(capsRequiredRequested) == 1 && capsRequiredRequested[0] == "" {
+			caplist = []string{}
+		} else if !s.Privileged && len(capsRequiredRequested) > 0 {
 			// Pass capRequiredRequested in CapAdd field to normalize capabilities names
 			capsRequired, err := capabilities.MergeCapabilities(nil, capsRequiredRequested, nil)
 			if err != nil {
