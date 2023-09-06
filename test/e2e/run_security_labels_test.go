@@ -11,6 +11,23 @@ import (
 
 var _ = Describe("Podman generate kube", func() {
 
+	It("podman empty security labels", func() {
+		test1 := podmanTest.Podman([]string{"create", "--label", "io.containers.capabilities=", "--name", "test1", "alpine", "echo", "test1"})
+		test1.WaitWithDefaultTimeout()
+		Expect(test1).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "test1"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+
+		ctr := inspect.InspectContainerToJSON()
+		Expect(ctr[0].EffectiveCaps).To(BeNil())
+
+		test2 := podmanTest.Podman([]string{"run", "--label", "io.containers.capabilities=", "alpine", "grep", "^CapEff", "/proc/self/status"})
+		test2.WaitWithDefaultTimeout()
+		Expect(test2.OutputToString()).To(ContainSubstring("0000000000000000"))
+	})
+
 	It("podman security labels", func() {
 		test1 := podmanTest.Podman([]string{"create", "--label", "io.containers.capabilities=setuid,setgid", "--name", "test1", "alpine", "echo", "test1"})
 		test1.WaitWithDefaultTimeout()
