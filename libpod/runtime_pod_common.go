@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
 	"path/filepath"
 
 	"github.com/containers/common/pkg/cgroups"
@@ -14,6 +15,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/specgen"
+	"github.com/containers/podman/v4/utils"
 	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 )
@@ -198,6 +200,20 @@ func (p *Pod) removePodCgroup() error {
 		return nil
 	}
 	logrus.Debugf("Removing pod cgroup %s", p.state.CgroupPath)
+
+	cgroup, err := utils.GetOwnCgroup()
+	if err != nil {
+		return err
+	}
+
+	// if we are trying to delete a cgroup that is our ancestor, we need to move the
+	// current process out of it before the cgroup is destroyed.
+	if isSubDir(cgroup, string(filepath.Separator)+p.state.CgroupPath) {
+		parent := path.Dir(p.state.CgroupPath)
+		if err := utils.MoveUnderCgroup(parent, "cleanup", nil); err != nil {
+			return err
+		}
+	}
 
 	switch p.runtime.config.Engine.CgroupManager {
 	case config.SystemdCgroupsManager:
