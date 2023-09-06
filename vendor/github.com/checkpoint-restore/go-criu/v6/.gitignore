@@ -4,10 +4,14 @@ test/piggie/piggie
 test/phaul/phaul
 test/phaul/phaul.coverage
 test/loop/loop
+test/mmapper/mmapper
 test/crit/crit-test
 test/crit/test-imgs
+test/crit/crit-test.coverage
+test/.coverage/
 image
-scripts/*.h
-scripts/expected.go
-scripts/output.go
+scripts/magic-gen/*.h
+scripts/magic-gen/expected.go
+scripts/magic-gen/output.go
 crit/bin
+crit/test-imgs/

@@ -38,7 +38,7 @@ func (c *Criu) FeatureCheck(features *rpc.CriuFeatures) (*rpc.CriuFeatures, erro
 	}
 
 	if resp.GetType() != rpc.CriuReqType_FEATURE_CHECK {
-		return nil, fmt.Errorf("Unexpected CRIU RPC response")
+		return nil, fmt.Errorf("unexpected CRIU RPC response")
 	}
 
 	return features, nil

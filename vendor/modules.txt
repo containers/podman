@@ -83,11 +83,11 @@ github.com/bytedance/sonic/loader
 github.com/bytedance/sonic/option
 github.com/bytedance/sonic/unquote
 github.com/bytedance/sonic/utf8
-# github.com/checkpoint-restore/checkpointctl v0.1.0
+# github.com/checkpoint-restore/checkpointctl v1.0.0
 ## explicit; go 1.18
 github.com/checkpoint-restore/checkpointctl/lib
-# github.com/checkpoint-restore/go-criu/v6 v6.3.0
-## explicit; go 1.16
+# github.com/checkpoint-restore/go-criu/v6 v6.3.1-0.20230822084504-f3c069bb94de
+## explicit; go 1.18
 github.com/checkpoint-restore/go-criu/v6
 github.com/checkpoint-restore/go-criu/v6/rpc
 github.com/checkpoint-restore/go-criu/v6/stats

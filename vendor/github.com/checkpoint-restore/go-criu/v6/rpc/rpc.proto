@@ -52,6 +52,7 @@ enum criu_cg_mode {
 enum criu_network_lock_method {
 	IPTABLES = 	1;
 	NFTABLES = 	2;
+	SKIP =  	3;
 };
 
 enum criu_pre_dump_mode {
@@ -60,7 +61,8 @@ enum criu_pre_dump_mode {
 };
 
 message criu_opts {
-	required int32			images_dir_fd	= 1;
+	required int32			images_dir_fd	= 1 [default = -1];
+	optional string			images_dir	= 68; /* used only if images_dir_fd == -1 */
 	optional int32			pid		= 2; /* if not set on dump, will dump requesting process */
 
 	optional bool			leave_running	= 3;
@@ -138,6 +140,11 @@ message criu_opts {
 	optional string			lsm_mount_context	= 63;
 	optional criu_network_lock_method	network_lock		= 64 [default = IPTABLES];
 	optional bool			mntns_compat_mode	= 65;
+	optional bool			skip_file_rwx_check	= 66;
+	optional bool			unprivileged		= 67;
+	optional bool			leave_stopped		= 69;
+	optional bool			display_stats		= 70;
+	optional bool			log_to_stderr		= 71;
 /*	optional bool			check_mounts		= 128;	*/
 }
 
