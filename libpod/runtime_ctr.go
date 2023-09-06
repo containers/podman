@@ -916,12 +916,16 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 			}
 			ctrs, pods, err := r.removeContainer(ctx, dep, recursiveOpts)
 			for rmCtr, err := range ctrs {
-				removedCtrs[rmCtr] = err
+				if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
+					removedCtrs[rmCtr] = nil
+				} else {
+					removedCtrs[rmCtr] = err
+				}
 			}
 			for rmPod, err := range pods {
 				removedPods[rmPod] = err
 			}
-			if err != nil {
+			if err != nil && !errors.Is(err, define.ErrNoSuchCtr) && !errors.Is(err, define.ErrCtrRemoved) {
 				retErr = err
 				return
 			}
