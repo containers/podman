@@ -1,3 +1,4 @@
+//go:build !remote
 // +build !remote
 
 package system
@@ -61,6 +62,12 @@ WARNING! This will remove:
         - all pods
         - all images
         - all build cache`)
+        	info, _ := registry.ContainerEngine().Info(registry.Context())
+		// lets not hard fail in case of an error
+		if info != nil {
+			fmt.Printf("        - the graphRoot directory: %q\n", info.Store.GraphRoot)
+			fmt.Printf("        - the runRoot directory: %q\n", info.Store.RunRoot)
+		}
 		if len(listCtn) > 0 {
 			fmt.Println(`WARNING! The following external containers will be purged:`)
 			// print first 12 characters of ID and first configured name alias

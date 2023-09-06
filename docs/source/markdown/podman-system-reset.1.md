@@ -12,6 +12,8 @@ podman\-system\-reset - Reset storage back to initial state
 This command must be run **before** changing any of the following fields in the
 `containers.conf` or `storage.conf` files: `driver`, `static_dir`, `tmp_dir`
 or `volume_path`.
+It also removes the configured graphRoot and runRoot directories. Make sure
+these are not set to some important directory.
 
 `podman system reset` reads the current configuration and attempts to remove all
 of the relevant configurations. If the administrator modified the configuration files first,
