@@ -1028,6 +1028,19 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	shutdown.Inhibit()
 	defer shutdown.Uninhibit()
 
+	// If the container is part of a pod, make sure the pod cgroup is created before the container
+	// so the limits can be applied.
+	if c.PodID() != "" {
+		pod, err := c.runtime.LookupPod(c.PodID())
+		if err != nil {
+			return err
+		}
+
+		if _, err := c.runtime.platformMakePod(pod, &pod.config.ResourceLimits); err != nil {
+			return err
+		}
+	}
+
 	// With the spec complete, do an OCI create
 	if _, err = c.ociRuntime.CreateContainer(c, nil); err != nil {
 		return err
