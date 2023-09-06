@@ -58,8 +58,12 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 
 	pod.valid = true
 
-	if err := r.platformMakePod(pod, p); err != nil {
+	parentCgroup, err := r.platformMakePod(pod, p.ResourceLimits)
+	if err != nil {
 		return nil, err
+	}
+	if p.InfraContainerSpec != nil {
+		p.InfraContainerSpec.CgroupParent = parentCgroup
 	}
 
 	if !pod.HasInfraContainer() && pod.SharesNamespaces() {
