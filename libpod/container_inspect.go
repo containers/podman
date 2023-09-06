@@ -312,6 +312,10 @@ func (c *Container) GetSecurityOptions() []string {
 	if apparmor, ok := ctrSpec.Annotations[define.InspectAnnotationApparmor]; ok {
 		SecurityOpt = append(SecurityOpt, fmt.Sprintf("apparmor=%s", apparmor))
 	}
+	if c.config.Spec.Linux.MaskedPaths == nil {
+		SecurityOpt = append(SecurityOpt, "unmask=all")
+	}
+
 	return SecurityOpt
 }
 

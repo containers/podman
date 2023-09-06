@@ -1220,6 +1220,12 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, bool, error
 		scHasData = true
 		sc.ReadOnlyRootFilesystem = &ro
 	}
+	if c.config.Spec.Linux.MaskedPaths == nil {
+		scHasData = true
+		unmask := v1.UnmaskedProcMount
+		sc.ProcMount = &unmask
+	}
+
 	if c.User() != "" {
 		if !c.batched {
 			c.lock.Lock()
