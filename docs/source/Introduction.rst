@@ -4,14 +4,15 @@ Introduction
 ==================================
 Containers_ simplify the production, distribution, discoverability, and usage of applications with all of their dependencies and default configuration files. Users test drive or deploy a new application with one or two commands instead of following pages of installation instructions. Here's how to find your first `Container Image`_::
 
-    podman search busybox
+    podman search docker.io/busybox
 
 Output::
-
-    INDEX       NAME                                DESCRIPTION                                       STARS   OFFICIAL   AUTOMATED
-    docker.io   docker.io/library/busybox           Busybox base image.                               1882    [OK]
-    docker.io   docker.io/radial/busyboxplus        Full-chain, Internet enabled, busybox made f...   30                 [OK]
-    docker.io   docker.io/yauritux/busybox-curl     Busybox with CURL                                 8
+    NAME                                         DESCRIPTION
+    docker.io/library/busybox                    Busybox base image.
+    docker.io/rancher/busybox
+    docker.io/openebs/busybox-client
+    docker.io/antrea/busybox
+    docker.io/hugegraph/busybox                  test image
     ...
 
 The previous command returned a list of publicly available container images on DockerHub. These container images are easy to consume, but of differing levels of quality and maintenance. Let’s use the first one listed because it seems to be well maintained.
