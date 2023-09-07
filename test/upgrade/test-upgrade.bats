@@ -359,7 +359,7 @@ failed    | exited     | 17
 
 
 @test "stop and rm" {
-    run_podman stop myrunningcontainer
+    run_podman 0+w stop myrunningcontainer
     run_podman rm   myrunningcontainer
 }
 
