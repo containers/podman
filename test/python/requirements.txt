@@ -1,6 +1,6 @@
 docker~=6.1.0
 requests-mock~=1.11.0
 requests~=2.31.0
-setuptools~=68.1.0
+setuptools~=68.2.0
 python-dateutil~=2.8.1
 PyYAML~=6.0.0
