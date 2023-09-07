@@ -7,12 +7,16 @@ load helpers
     run_podman run -d $IMAGE sleep 60
     cid="$output"
 
-    # Run 'stop'. Time how long it takes.
+    # Run 'stop'. Time how long it takes. If local, require a warning.
+    local plusw="+w"
+    if is_remote; then
+        plusw=
+    fi
     t0=$SECONDS
-    run_podman 0+w stop $cid
+    run_podman 0$plusw stop $cid
     t1=$SECONDS
-    if ! is_remote; then
-        assert "$output" =~ "StopSignal SIGTERM failed to stop container .*, resorting to SIGKILL"
+    if [[ -n "$plusw" ]]; then
+        require_warning "StopSignal SIGTERM failed to stop container .*, resorting to SIGKILL"
     fi
 
     # Confirm that container is stopped. Podman-remote unfortunately
@@ -46,10 +50,14 @@ load helpers
     is "${lines[1]}" "c2--Up.*"  "podman ps shows running container (2)"
     is "${lines[2]}" "c3--Up.*"  "podman ps shows running container (3)"
 
-    # Stop -a
-    run_podman 0+w stop -a -t 1
-    if ! is_remote; then
-        assert "$output" =~ "StopSignal SIGTERM failed to stop container .*, resorting to SIGKILL"
+    # Stop -a. Local podman issues a warning, check for it.
+    local plusw="+w"
+    if is_remote; then
+        plusw=
+    fi
+    run_podman 0$plusw stop -a -t 1
+    if [[ -n "$plusw" ]]; then
+        require_warning "StopSignal SIGTERM failed to stop container .*, resorting to SIGKILL"
     fi
 
     # Now podman ps (without -a) should show nothing.
@@ -191,9 +199,14 @@ load helpers
 @test "podman stop -t 1 Generate warning" {
     skip_if_remote "warning only happens on server side"
     run_podman run --rm --name stopme -d $IMAGE sleep 100
-    run_podman 0+w stop -t 1 stopme
-    if ! is_remote; then
-        is "$output" ".*StopSignal SIGTERM failed to stop container stopme in 1 seconds, resorting to SIGKILL"  "stopping container should print warning"
+
+    local plusw="+w"
+    if is_remote; then
+        plusw=
+    fi
+    run_podman 0$plusw stop -t 1 stopme
+    if [[ -n "$plusw" ]]; then
+        require_warning ".*StopSignal SIGTERM failed to stop container stopme in 1 seconds, resorting to SIGKILL"
     fi
 }
 

@@ -913,6 +913,38 @@ function is() {
     false
 }
 
+####################
+#  allow_warnings  #  check cmd output for warning messages other than these
+####################
+#
+# HEADS UP: Operates on '$lines' array, so, must be invoked after run_podman
+#
+function allow_warnings() {
+    for line in "${lines[@]}"; do
+        if [[ "$line" =~ level=[we] ]]; then
+            local ok=
+            for pattern in "$@"; do
+                if [[ "$line" =~ $pattern ]]; then
+                   ok=ok
+                fi
+            done
+            if [[ -z "$ok" ]]; then
+                die "Unexpected warning/error in command results: $line"
+            fi
+        fi
+    done
+}
+
+#####################
+#  require_warning  #  Require the given message, but disallow any others
+#####################
+# Optional 2nd argument is a message to display if warning is missing
+function require_warning() {
+    local expect="$1"
+    local msg="${2:-Did not find expected warning/error message}"
+    assert "$output" =~ "$expect" "$msg"
+    allow_warnings "$expect"
+}
 
 ############
 #  dprint  #  conditional debug message
