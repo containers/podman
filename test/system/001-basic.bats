@@ -35,7 +35,7 @@ function setup() {
     run_podman -v
     is "$output" "podman.*version \+"               "'Version line' in output"
 
-    run_podman --config foobar version
+    run_podman 0+w --config foobar version
     is "$output" ".*The --config flag is ignored by Podman. Exists for Docker compatibility\+"		  "verify warning for --config option"
 }
 

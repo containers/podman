@@ -77,7 +77,7 @@ function _corrupt_image_test() {
         is "$output" "Error: locating item named \".*\" for image with ID \"$id\" (consider removing the image to resolve the issue): file does not exist.*"
 
         # Run the requested command. Confirm it succeeds, with suitable warnings
-        run_podman $*
+        run_podman 0+w $*
         is "$output" ".*Failed to determine parent of image.*ignoring the error" \
            "$* with missing $what_to_rm"
 

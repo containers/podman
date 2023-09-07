@@ -325,8 +325,11 @@ function timestamp() {
 #
 function run_podman() {
     # Number as first argument = expected exit code; default 0
-    expected_rc=0
+    # "0+[we]" = require success, but allow warnings/errors
+    local expected_rc=0
+    local allowed_levels="dit"
     case "$1" in
+        0\+[we]*)        allowed_levels+=$(expr "$1" : "^0+\([we]\+\)"); shift;;
         [0-9])           expected_rc=$1; shift;;
         [1-9][0-9])      expected_rc=$1; shift;;
         [12][0-9][0-9])  expected_rc=$1; shift;;
@@ -336,8 +339,8 @@ function run_podman() {
     # Remember command args, for possible use in later diagnostic messages
     MOST_RECENT_PODMAN_COMMAND="podman $*"
 
-    # stdout is only emitted upon error; this echo is to help a debugger
-    echo "$(timestamp) $_LOG_PROMPT $PODMAN $*"
+    # stdout is only emitted upon error; this printf is to help in debugging
+    printf "\n%s %s %s\n" "$(timestamp)" "$_LOG_PROMPT" "$*"
     # BATS hangs if a subprocess remains and keeps FD 3 open; this happens
     # if podman crashes unexpectedly without cleaning up subprocesses.
     run timeout --foreground -v --kill=10 $PODMAN_TIMEOUT $PODMAN $_PODMAN_TEST_OPTS "$@" 3>/dev/null
@@ -381,6 +384,28 @@ function run_podman() {
             die "exit code is $status; expected $expected_rc"
         fi
     fi
+
+    # Check for "level=<unexpected>" in output, because a successful command
+    # should never issue unwanted warnings or errors. The "0+w" convention
+    # (see top of function) allows our caller to indicate that warnings are
+    # expected, e.g., "podman stop" without -t0.
+    if [[ $status -eq 0 ]]; then
+        # FIXME: don't do this on Debian: runc is way, way too flaky:
+        # FIXME: #11784 - lstat /sys/fs/.../*.scope: ENOENT
+        # FIXME: #11785 - cannot toggle freezer: cgroups not configured
+        if [[ ! "${DISTRO_NV}" =~ debian ]]; then
+            # FIXME: All kube commands emit unpredictable errors:
+            #    "Storage for container <X> has been removed"
+            #    "no container with ID <X> found in database"
+            # These are level=error but we still get exit-status 0.
+            # Just skip all kube commands completely
+            if [[ ! "$*" =~ kube ]]; then
+                if [[ "$output" =~ level=[^${allowed_levels}] ]]; then
+                    die "Command succeeded, but issued unexpected warnings"
+                fi
+            fi
+        fi
+    fi
 }
 
 
@@ -413,7 +438,7 @@ function wait_for_output {
 
     t1=$(expr $SECONDS + $how_long)
     while [ $SECONDS -lt $t1 ]; do
-        run_podman logs $cid
+        run_podman 0+w logs $cid
         logs=$output
         if expr "$logs" : ".*$expect" >/dev/null; then
             return
@@ -426,7 +451,7 @@ function wait_for_output {
             exitcode=$output
 
             # One last chance: maybe the container exited just after logs cmd
-            run_podman logs $cid
+            run_podman 0+w logs $cid
             if expr "$logs" : ".*$expect" >/dev/null; then
                 return
             fi

@@ -81,7 +81,7 @@ function teardown() {
 
 
 @test "podman run --tty -i failure with no tty" {
-    run_podman run --tty -i --rm $IMAGE echo hello < /dev/null
+    run_podman 0+w run --tty -i --rm $IMAGE echo hello < /dev/null
     is "$output" ".*The input device is not a TTY.*" "-it _without_ a tty"
 
     CR=$'\r'

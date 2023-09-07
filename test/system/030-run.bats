@@ -181,7 +181,7 @@ echo $rand        |   0 | $rand
     run_podman image exists $NONLOCAL_IMAGE
 
     # Now try running with --rmi : it should succeed, but not remove the image
-    run_podman run --rmi --rm $NONLOCAL_IMAGE /bin/true
+    run_podman 0+e run --rmi --rm $NONLOCAL_IMAGE /bin/true
     is "$output" ".*image is in use by a container" "--rmi should warn that the image was not removed"
     run_podman image exists $NONLOCAL_IMAGE
 
@@ -229,7 +229,7 @@ echo $rand        |   0 | $rand
        "conmon pidfile (= PID $conmon_pid_from_file) points to conmon process"
 
     # All OK. Kill container.
-    run_podman rm -f $cid
+    run_podman rm -f -t0 $cid
     if [[ -e $cidfile ]]; then
         die "cidfile $cidfile should be removed along with container"
     fi
@@ -946,7 +946,7 @@ EOF
     if grep -- -1000 /proc/self/oom_score_adj; then
         skip "the current oom-score-adj is already -1000"
     fi
-    run_podman run --oom-score-adj=-1000 --rm $IMAGE true
+    run_podman 0+w run --oom-score-adj=-1000 --rm $IMAGE true
     is "$output" ".*Requested oom_score_adj=.* is lower than the current one, changing to .*"
 }
 
@@ -1058,7 +1058,12 @@ $IMAGE--c_ok" \
            "ls /dev/tty[0-9] with --systemd=always: should have no ttyN devices"
 
     # Make sure run_podman stop supports -1 option
-    run_podman stop -t -1 $cid
+    # FIXME: why is there no signal name here? Should be 'StopSignal XYZ'
+    # FIXME: do we really really mean to say FFFFFFFFFFFFFFFF here???
+    run_podman 0+w stop -t -1 $cid
+    if ! is_remote; then
+        assert "$output" =~ "StopSignal  failed to stop container .* in 18446744073709551615 seconds, resorting to SIGKILL" "stop -t -1 (negative one) issues warning"
+    fi
     run_podman rm -t -1 -f $cid
 }
 

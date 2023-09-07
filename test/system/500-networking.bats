@@ -82,8 +82,7 @@ load helpers.network
     is "$output" 'Error: failed to find published port "99/tcp"'
 
     # Clean up
-    run_podman stop -t 1 myweb
-    run_podman rm myweb
+    run_podman rm -f -t0 myweb
 }
 
 # Issue #5466 - port-forwarding doesn't work with this option and -d
@@ -630,7 +629,11 @@ load helpers.network
         run curl --retry 2 -s $SERVER/index.txt
         is "$output" "$random_1" "curl 127.0.0.1:/index.txt after auto restart"
 
-        run_podman restart $cid
+        run_podman 0+w restart $cid
+        if ! is_remote; then
+            assert "$output" =~ "StopSignal SIGTERM failed to stop container .* in 10 seconds, resorting to SIGKILL" "podman restart issues warning"
+        fi
+
         # Verify http contents again: curl from localhost
         # Use retry since it can take a moment until the new container is ready
         run curl --retry 2 -s $SERVER/index.txt

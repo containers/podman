@@ -61,7 +61,6 @@ load helpers
 
     is "$(check_exec_pid)" "" "there isn't any exec pid hash file leak"
 
-    run_podman stop --time 1 $cid
     run_podman rm -t 0 -f $cid
 }
 
