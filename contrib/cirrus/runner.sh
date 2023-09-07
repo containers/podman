@@ -80,7 +80,7 @@ function _run_sys() {
 }
 
 function _run_upgrade_test() {
-    _bail_if_test_can_be_skipped test/upgrade
+    _bail_if_test_can_be_skipped test/system test/upgrade
 
     bats test/upgrade |& logformatter
 }
@@ -408,7 +408,7 @@ _run_machine() {
 }
 
 # Optimization: will exit if the only PR diffs are under docs/ or tests/
-# with the exception of any given arguments. E.g., don't run e2e or upgrade
+# with the exception of any given arguments. E.g., don't run e2e or unit
 # or bud tests if the only PR changes are in test/system.
 function _bail_if_test_can_be_skipped() {
     local head base diffs
