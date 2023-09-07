@@ -462,9 +462,6 @@ func addReadWriteTmpfsMounts(mounts map[string]spec.Mount, volumes []*specgen.Na
 			Source:      define.TypeTmpfs,
 			Options:     options,
 		}
-		if dest != runPath {
-			mnt.Options = append(mnt.Options, "noexec")
-		}
 		mounts[dest] = mnt
 	}
 	return mounts
