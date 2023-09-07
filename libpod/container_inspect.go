@@ -140,6 +140,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 			CheckpointPath: runtimeInfo.CheckpointPath,
 			CheckpointLog:  runtimeInfo.CheckpointLog,
 			RestoreLog:     runtimeInfo.RestoreLog,
+			StoppedByUser:  c.state.StoppedByUser,
 		},
 		Image:                   config.RootfsImageID,
 		ImageName:               config.RootfsImageName,

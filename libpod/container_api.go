@@ -292,7 +292,7 @@ func (c *Container) Kill(signal uint) error {
 		return c.waitForConmonToExitAndSave()
 	}
 
-	return nil
+	return c.save()
 }
 
 // Attach attaches to a container.
