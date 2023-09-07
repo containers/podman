@@ -181,7 +181,7 @@ echo $rand        |   0 | $rand
     run_podman image exists $NONLOCAL_IMAGE
 
     # Now try running with --rmi : it should succeed, but not remove the image
-    run_podman 0+e run --rmi --rm $NONLOCAL_IMAGE /bin/true
+    run_podman 0+w run --rmi --rm $NONLOCAL_IMAGE /bin/true
     is "$output" ".*image is in use by a container" "--rmi should warn that the image was not removed"
     run_podman image exists $NONLOCAL_IMAGE
 
