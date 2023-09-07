@@ -145,12 +145,28 @@ load helpers
 @test "podman wait - exit codes" {
     random_name=$(random_string 10)
     run_podman create --name=$random_name $IMAGE /no/such/command
+    run_podman container inspect  --format "{{.State.StoppedByUser}}" $random_name
+    is "$output" "false" "container not marked to be stopped by a user"
     # Container never ran -> exit code == 0
     run_podman wait $random_name
     # Container did not start successfully -> exit code != 0
     run_podman 125 start $random_name
     # FIXME(#14873): while older Podmans return 0 on wait, Docker does not.
     run_podman wait $random_name
+}
+
+@test "podman kill - no restart" {
+    ctr=$(random_string 10)
+    run_podman run -d --restart=always --name=$ctr $IMAGE \
+        sh -c "trap 'exit 42' SIGTERM; echo READY; while :; do sleep 0.2; done"
+    run_podman container inspect  --format "{{.State.Status}}" $ctr
+    is "$output" "running" "make sure container is running"
+    # Send SIGTERM and make sure the container exits.
+    run_podman kill -s=TERM $ctr
+    run_podman wait $ctr
+    is "$output" "42" "container exits with 42 on receiving SIGTERM"
+    run_podman container inspect  --format "{{.State.StoppedByUser}}" $ctr
+    is "$output" "true" "container is marked to be stopped by a user"
 }
 
 # vim: filetype=sh
