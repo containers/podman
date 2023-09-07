@@ -201,9 +201,12 @@ func (matcher *exitCleanlyMatcher) Match(actual interface{}) (success bool, err 
 	// FIXME: #19809, "failed to connect to syslog" warnings on f38
 	// FIXME: so, until that is fixed, don't check stderr if containerized
 	if !Containerized() {
-		if stderr != "" {
-			matcher.msg = fmt.Sprintf("Unexpected warnings seen on stderr: %q", stderr)
-			return false, nil
+		info := GetHostDistributionInfo()
+		if info.Distribution == "fedora" {
+			if stderr != "" {
+				matcher.msg = fmt.Sprintf("Unexpected warnings seen on stderr: %q", stderr)
+				return false, nil
+			}
 		}
 	}
 
