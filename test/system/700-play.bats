@@ -281,7 +281,7 @@ EOF
     # will spin for indeterminate time.
     run_podman create --pod new:pod1         --restart=no --name test1 $IMAGE touch /testrw
     run_podman create --pod pod1 --read-only --restart=no --name test2 $IMAGE touch /testro
-    run_podman create --pod pod1 --read-only --restart=no --name test3 $IMAGE touch /tmp/testtmp
+    run_podman create --pod pod1 --read-only --restart=no --name test3 $IMAGE sh -c "echo "#!echo hi" > /tmp/testtmp; chmod +x /tmp/test/tmp; /tmp/testtmp"
 
     # Generate and run from yaml. (The "cat" is for debugging failures)
     run_podman kube generate pod1 -f $YAML
@@ -763,6 +763,18 @@ EOF
     run_podman kube down $YAML
     run_podman pod rm -a
     run_podman rm -a
+}
+
+@test "podman kube generate tmpfs on /tmp" {
+      KUBE=$PODMAN_TMPDIR/kube.yaml
+      run_podman create --name test $IMAGE sleep 100
+      run_podman kube generate test -f $KUBE
+      run_podman kube play $KUBE
+      run_podman exec test-pod-test sh -c "mount | grep /tmp"
+      assert "$output" !~ "noexec" "mounts on /tmp should not be noexec"
+      run_podman kube down $KUBE
+      run_podman pod rm -a -f -t 0
+      run_podman rm -a -f -t 0
 }
 
 @test "podman kube play - pull policy" {
