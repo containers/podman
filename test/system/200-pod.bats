@@ -71,6 +71,24 @@ function teardown() {
 }
 
 
+@test "podman pod create - custom volumes" {
+    skip_if_remote "CONTAINERS_CONF_OVERRIDE only affects server side"
+    image="i.do/not/exist:image"
+    tmpdir=$PODMAN_TMPDIR/pod-test
+    mkdir -p $tmpdir
+    containersconf=$tmpdir/containers.conf
+    cat >$containersconf <<EOF
+[containers]
+volumes = ["/tmp:/foobar"]
+EOF
+
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman pod create
+    podid="$output"
+
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman create --pod $podid $IMAGE grep foobar /proc/mounts
+}
+
+
 @test "podman pod create - custom infra image" {
     skip_if_remote "CONTAINERS_CONF_OVERRIDE only affects server side"
     image="i.do/not/exist:image"

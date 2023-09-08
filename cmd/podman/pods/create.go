@@ -62,6 +62,10 @@ func init() {
 	flags := createCommand.Flags()
 	flags.SetInterspersed(false)
 	common.DefineCreateDefaults(&infraOptions)
+	// these settings are not applicable to pod create since they are per-container
+	// and they will end up being duplicated for each container in the pod.
+	infraOptions.Volume = nil
+	infraOptions.Mount = nil
 	common.DefineCreateFlags(createCommand, &infraOptions, entities.InfraMode)
 	common.DefineNetFlags(createCommand)
 
