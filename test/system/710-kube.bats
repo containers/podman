@@ -74,6 +74,21 @@ status                           | =  | null
     run_podman rm $cname
 }
 
+@test "podman kube generate unmasked" {
+      KUBE=$PODMAN_TMPDIR/kube.yaml
+      run_podman create --name test --security-opt unmask=all $IMAGE
+      run_podman inspect --format '{{ .HostConfig.SecurityOpt }}' test
+      is "$output" "[unmask=all]" "Inspect should see unmask all"
+      run_podman kube generate test -f $KUBE
+      assert "$(< $KUBE)" =~ "procMount: Unmasked" "Generated kube yaml should have procMount unmasked"
+      run_podman kube play $KUBE
+      run_podman inspect --format '{{ .HostConfig.SecurityOpt }}' test-pod-test
+      is "$output" "[unmask=all]" "Inspect kube play container should see unmask all"
+      run_podman kube down $KUBE
+      run_podman pod rm -a
+      run_podman rm -a
+}
+
 @test "podman kube generate - pod" {
     local pname=p$(random_string 15)
     local cname1=c1$(random_string 15)

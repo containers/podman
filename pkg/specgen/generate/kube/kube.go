@@ -807,6 +807,10 @@ func setupSecurityContext(s *specgen.SpecGenerator, securityContext *v1.Security
 		s.NoNewPrivileges = !*securityContext.AllowPrivilegeEscalation
 	}
 
+	if securityContext.ProcMount != nil && *securityContext.ProcMount == v1.UnmaskedProcMount {
+		s.ContainerSecurityConfig.Unmask = append(s.ContainerSecurityConfig.Unmask, []string{"ALL"}...)
+	}
+
 	seopt := securityContext.SELinuxOptions
 	if seopt == nil {
 		seopt = podSecurityContext.SELinuxOptions
