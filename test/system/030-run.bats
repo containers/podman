@@ -1058,11 +1058,10 @@ $IMAGE--c_ok" \
            "ls /dev/tty[0-9] with --systemd=always: should have no ttyN devices"
 
     # Make sure run_podman stop supports -1 option
-    # FIXME: why is there no signal name here? Should be 'StopSignal XYZ'
     # FIXME: do we really really mean to say FFFFFFFFFFFFFFFF here???
     run_podman 0+w stop -t -1 $cid
     if ! is_remote; then
-        assert "$output" =~ "StopSignal  failed to stop container .* in 18446744073709551615 seconds, resorting to SIGKILL" "stop -t -1 (negative one) issues warning"
+        assert "$output" =~ "StopSignal \(37\) failed to stop container .* in 18446744073709551615 seconds, resorting to SIGKILL" "stop -t -1 (negative one) issues warning"
     fi
     run_podman rm -t -1 -f $cid
 }
