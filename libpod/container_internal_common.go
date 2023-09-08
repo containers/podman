@@ -644,7 +644,8 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 		for _, rlimit := range c.config.Spec.Process.Rlimits {
 			if rlimit.Type == "RLIMIT_NOFILE" {
 				nofileSet = true
-			} else if rlimit.Type == "RLIMIT_NPROC" {
+			}
+			if rlimit.Type == "RLIMIT_NPROC" {
 				nprocSet = true
 			}
 		}

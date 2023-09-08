@@ -1149,6 +1149,23 @@ EOF
     assert "$output" =~ " ${nofile2}  * ${nofile2}  * files"
 }
 
+@test "podman run ulimit with -1" {
+    max=unlimited
+    if is_rootless; then
+        run ulimit -c -H
+        max=$output
+    fi
+
+    run_podman run --ulimit core=-1:-1 --rm $IMAGE grep core /proc/self/limits
+    assert "$output" =~ " ${max}  * ${max}  * bytes"
+
+    run_podman run --ulimit core=1000:-1 --rm $IMAGE grep core /proc/self/limits
+    assert "$output" =~ " 1000  * ${max}  * bytes"
+
+    run_podman 125 run --ulimit core=-1:1000 --rm $IMAGE grep core /proc/self/limits
+    is "$output" "Error: ulimit option \"core=-1:1000\" requires name=SOFT:HARD, failed to be parsed: ulimit soft limit must be less than or equal to hard limit: soft: -1 (unlimited), hard: 1000"
+}
+
 @test "podman run bad --name" {
     randomname=$(random_string 30)
     run_podman 125 create --name "$randomname/bad" $IMAGE

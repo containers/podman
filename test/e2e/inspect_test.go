@@ -465,7 +465,7 @@ var _ = Describe("Podman inspect", func() {
 		Expect(inspect[0].NetworkSettings.Networks).To(HaveLen(1))
 	})
 
-	It("Container inspect with unlimited uilimits should be -1", func() {
+	It("Container inspect with unlimited ulimits should be -1", func() {
 		ctrName := "testctr"
 		session := podmanTest.Podman([]string{"run", "-d", "--ulimit", "core=-1:-1", "--name", ctrName, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
