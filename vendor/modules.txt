@@ -91,6 +91,8 @@ github.com/checkpoint-restore/checkpointctl/lib
 github.com/checkpoint-restore/go-criu/v6
 github.com/checkpoint-restore/go-criu/v6/rpc
 github.com/checkpoint-restore/go-criu/v6/stats
+# github.com/checkpoint-restore/go-criu/v7 v7.0.0
+## explicit; go 1.18
 # github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311
 ## explicit; go 1.15
 github.com/chenzhuoyu/base64x

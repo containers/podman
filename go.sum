@@ -127,6 +127,7 @@ github.com/checkpoint-restore/checkpointctl v0.1.0 h1:xa12IvEO9mtIltQ519h9sbwBNB
 github.com/checkpoint-restore/checkpointctl v0.1.0/go.mod h1:nK+iL+C5Sld3aybCOUt55XBEvwALi/WNTSadHUk+cZM=
 github.com/checkpoint-restore/go-criu/v6 v6.3.0 h1:mIdrSO2cPNWQY1truPg6uHLXyKHk3Z5Odx4wjKOASzA=
 github.com/checkpoint-restore/go-criu/v6 v6.3.0/go.mod h1:rrRTN/uSwY2X+BPRl/gkulo9gsKOSAeVp9/K2tv7xZI=
+github.com/checkpoint-restore/go-criu/v7 v7.0.0/go.mod h1:xD1v3cPww1QYpJR3+XTTdC8hYubPnptIPsT1daXhbr4=
 github.com/chenzhuoyu/base64x v0.0.0-20211019084208-fb5309c8db06/go.mod h1:DH46F32mSOjUmXrMHnKwZdA8wcEefY7UVqBKYGjpdQY=
 github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 h1:qSGYFH7+jGhDF8vLC+iwCD4WpbV1EBDSzWkJODFLams=
 github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311/go.mod h1:b583jCggY9gE99b6G5LEC39OIiVsWj+R97kbl5odCEk=
