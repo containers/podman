@@ -13,7 +13,7 @@ function retryInstall {
                 $pkg = @("--version", $Matches.2, $Matches.1)
             }
 
-            choco install -y $pkg
+            choco install -y --allow-downgrade $pkg
             if ($LASTEXITCODE -eq 0) {
                 break
             }
@@ -22,4 +22,6 @@ function retryInstall {
         }
     }
 }
+# Force mingw version 11.2 since later versions are incompatible
+# with CGO on some versions of golang
 retryInstall wixtoolset mingw@11.2 golang archiver

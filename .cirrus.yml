@@ -383,17 +383,23 @@ alt_build_task:
 win_installer_task:
     name: "Verify Win Installer Build"
     alias: win_installer
-    only_if: *no_rhel_release
+    only_if:
+      $CIRRUS_TAG == '' &&
+      $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
+      $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
     depends_on:
       - alt_build
-    windows_container:
-        image: cirrusci/windowsservercore:2019
+    ec2_instance:
+        image: "${WINDOWS_AMI}"
+        type: m5.large
+        region: us-east-1
+        platform: windows
     env:
         PATH: "${PATH};C:\\ProgramData\\chocolatey\\bin"
         CIRRUS_SHELL: powershell
         # Fake version, we are only testing the installer functions, so version doesn't matter
         WIN_INST_VER: 9.9.9
-        CIRRUS_WORKING_DIR: "${LOCALAPPDATA}\\Temp\\cirrus-ci-build"
+        CIRRUS_WORKING_DIR: "${LOCALAPPDATA}\\cirrus-ci-build"
     install_script: '.\contrib\cirrus\win-installer-install.ps1'
     main_script: '.\contrib\cirrus\win-installer-main.ps1'
 
