@@ -180,4 +180,61 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true" \
     run_podman system connection rm mysshconn
 }
 
+@test "podman-remote: non-default connection" {
+    # priority:
+    #   1. cli flags (--connection ,--url ,--context ,--host)
+    #   2. Env variables (CONTAINER_HOST and CONTAINER_CONNECTION)
+    #   3. ActiveService from containers.conf
+    #   4. RemoteURI
+
+    # setup
+    run_podman 0+w system connection add defaultconnection unix:///run/user/defaultconnection/podman/podman.sock
+    run_podman 0+w system connection add env-override unix:///run/user/env-override/podman/podman.sock
+    run_podman 0+w system connection add cli-override unix:///run/user/cli-override/podman/podman.sock
+
+    # Test priority of Env variables wrt cli flags
+    CONTAINER_CONNECTION=env-override _run_podman_remote 125 --connection=cli-override ps
+    assert "$output" =~ "/run/user/cli-override/podman/podman.sock" "test env variable CONTAINER_CONNECTION wrt --connection cli flag"
+
+    CONTAINER_HOST=foo://124.com _run_podman_remote 125 --connection=cli-override ps
+    assert "$output" =~ "/run/user/cli-override/podman/podman.sock" "test env variable CONTAINER_HOST wrt --connection cli flag"
+
+    CONTAINER_CONNECTION=env-override _run_podman_remote 125 --url=tcp://localhost ps
+    assert "$output" =~ "localhost" "test env variable CONTAINER_CONNECTION wrt --url cli flag"
+
+    CONTAINER_HOST=foo://124.com _run_podman_remote 125 --url=tcp://localhost ps
+    assert "$output" =~ "localhost" "test env variable CONTAINER_HOST wrt --url cli flag"
+
+    # Docker-compat
+    CONTAINER_CONNECTION=env-override _run_podman_remote 125 --context=cli-override ps
+    assert "$output" =~ "/run/user/cli-override/podman/podman.sock" "test env variable CONTAINER_CONNECTION wrt --context cli flag"
+
+    CONTAINER_HOST=foo://124.com _run_podman_remote 125 --context=cli-override ps
+    assert "$output" =~ "/run/user/cli-override/podman/podman.sock" "test env variable CONTAINER_HOST wrt --context cli flag"
+
+    CONTAINER_CONNECTION=env-override _run_podman_remote 125 --host=tcp://localhost ps
+    assert "$output" =~ "localhost" "test env variable CONTAINER_CONNECTION wrt --host cli flag"
+
+    CONTAINER_HOST=foo://124.com _run_podman_remote 125 --host=tcp://localhost ps
+    assert "$output" =~ "localhost" "test env variable CONTAINER_HOST wrt --host cli flag"
+
+    _run_podman_remote 125 --remote ps
+    assert "$output" =~ "/run/user/defaultconnection/podman/podman.sock" "test default connection"
+
+    CONTAINER_CONNECTION=env-override _run_podman_remote 125 --remote ps
+    assert "$output" =~ "/run/user/env-override/podman/podman.sock" "test env variable CONTAINER_CONNECTION wrt config"
+
+    CONTAINER_HOST=foo://124.com _run_podman_remote 125 --remote ps
+    assert "$output" =~ "foo" "test env variable CONTAINER_HOST wrt config"
+
+    # Clean up
+    run_podman system connection rm defaultconnection
+    run_podman system connection rm env-override
+    run_podman system connection rm cli-override
+
+    _run_podman_remote 125 --remote ps
+    assert "$output" =~ "/run/[a-z0-9/]*podman/podman.sock"\
+        "test absence of default connection"
+}
+
 # vim: filetype=sh
