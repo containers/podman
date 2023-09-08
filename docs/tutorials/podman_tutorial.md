@@ -18,10 +18,10 @@ For installing or building Podman, see the [installation instructions](https://p
 ## Familiarizing yourself with Podman
 
 ### Running a sample container
-This sample container will run a very basic httpd server that serves only its index
+This sample container will run a very basic httpd server (named basic_httpd) that serves only its index
 page.
 ```console
-podman run -dt -p 8080:8080/tcp -e HTTPD_VAR_RUN=/run/httpd -e HTTPD_MAIN_CONF_D_PATH=/etc/httpd/conf.d \
+podman run --name basic_httpd -dt -p 8080:8080/tcp -e HTTPD_VAR_RUN=/run/httpd -e HTTPD_MAIN_CONF_D_PATH=/etc/httpd/conf.d \
                   -e HTTPD_MAIN_CONF_PATH=/etc/httpd/conf \
                   -e HTTPD_CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/httpd/ \
                   registry.fedoraproject.org/f29/httpd /usr/bin/run-httpd
@@ -41,12 +41,10 @@ Note: If you add *-a* to the *ps* command, Podman will show all containers.
 You can "inspect" a running container for metadata and details about itself.  We can even use
 the inspect subcommand to see what IP address was assigned to the container. As the container is running in rootless mode, an IP address is not assigned and the value will be listed as "none" in the output from inspect.
 ```console
-podman inspect -l | grep IPAddress\":
+podman inspect basic_httpd | grep IPAddress\":
             "SecondaryIPAddresses": null,
             "IPAddress": "",
 ```
-
-Note: The -l or --latest option is a convenience argument for **latest container**. This option is not available with the remote Podman client; use the container name or ID instead.
 
 ### Testing the httpd server
 As we do not have the IP address of the container, we can test the network communication between the host
