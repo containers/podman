@@ -36,7 +36,10 @@ func NewImageEngine(facts *entities.PodmanConfig) (entities.ImageEngine, error) 
 	case entities.TunnelMode:
 		// TODO: look at me!
 		ctx, err := bindings.NewConnectionWithIdentity(context.Background(), facts.URI, facts.Identity, facts.MachineMode)
-		return &tunnel.ImageEngine{ClientCtx: ctx}, err
+		if err != nil {
+			return nil, fmt.Errorf("%w: %s", err, facts.URI)
+		}
+		return &tunnel.ImageEngine{ClientCtx: ctx}, nil
 	}
 	return nil, fmt.Errorf("runtime mode '%v' is not supported", facts.EngineMode)
 }
