@@ -47,7 +47,7 @@ func RunUnderSystemdScope(pid int, slice string, unitName string) error {
 		// On errors check if the cgroup already exists, if it does move the process there
 		if props, err := conn.GetUnitTypePropertiesContext(context.Background(), unitName, "Scope"); err == nil {
 			if cgroup, ok := props["ControlGroup"].(string); ok && cgroup != "" {
-				if err := moveUnderCgroup(cgroup, "", []uint32{uint32(pid)}); err == nil {
+				if err := MoveUnderCgroup(cgroup, "", []uint32{uint32(pid)}); err == nil {
 					return nil
 				}
 				// On errors return the original error message we got from StartTransientUnit.
@@ -107,13 +107,13 @@ func GetCgroupProcess(pid int) (string, error) {
 
 // MoveUnderCgroupSubtree moves the PID under a cgroup subtree.
 func MoveUnderCgroupSubtree(subtree string) error {
-	return moveUnderCgroup("", subtree, nil)
+	return MoveUnderCgroup("", subtree, nil)
 }
 
-// moveUnderCgroup moves a group of processes to a new cgroup.
+// MoveUnderCgroup moves a group of processes to a new cgroup.
 // If cgroup is the empty string, then the current calling process cgroup is used.
 // If processes is empty, then the processes from the current cgroup are moved.
-func moveUnderCgroup(cgroup, subtree string, processes []uint32) error {
+func MoveUnderCgroup(cgroup, subtree string, processes []uint32) error {
 	procFile := "/proc/self/cgroup"
 	f, err := os.Open(procFile)
 	if err != nil {
