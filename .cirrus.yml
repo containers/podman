@@ -369,7 +369,15 @@ alt_build_task:
       - env:
             ALT_NAME: 'Windows Cross'
       - env:
-            ALT_NAME: 'Alt Arch. Cross'
+            ALT_NAME: 'Alt Arch. x86 Cross'
+      - env:
+            ALT_NAME: 'Alt Arch. ARM Cross'
+      - env:
+            ALT_NAME: 'Alt Arch. MIPS Cross'
+      - env:
+            ALT_NAME: 'Alt Arch. MIPS64 Cross'
+      - env:
+            ALT_NAME: 'Alt Arch. Other Cross'
     # This task cannot make use of the shared repo.tbz artifact.
     clone_script: *full_clone
     setup_script: *setup
@@ -1067,10 +1075,34 @@ artifacts_task:
         - $ARTCURL/Build%20for%20${FEDORA_NAME}/repo/repo.tbz
         - tar xjf repo.tbz
         - cp ./bin/* $CIRRUS_WORKING_DIR/
-    alt_binaries_script:
+    alt_binaries_intel_script:
         - mkdir -p /tmp/alt
         - cd /tmp/alt
-        - $ARTCURL/Alt%20Arch.%20Cross/repo/repo.tbz
+        - $ARTCURL/Alt%20Arch.%20x86%20Cross/repo/repo.tbz
+        - tar xjf repo.tbz
+        - mv ./*.tar.gz $CIRRUS_WORKING_DIR/
+    alt_binaries_arm_script:
+        - mkdir -p /tmp/alt
+        - cd /tmp/alt
+        - $ARTCURL/Alt%20Arch.%20ARM%20Cross/repo/repo.tbz
+        - tar xjf repo.tbz
+        - mv ./*.tar.gz $CIRRUS_WORKING_DIR/
+    alt_binaries_mips_script:
+        - mkdir -p /tmp/alt
+        - cd /tmp/alt
+        - $ARTCURL/Alt%20Arch.%20MIPS%20Cross/repo/repo.tbz
+        - tar xjf repo.tbz
+        - mv ./*.tar.gz $CIRRUS_WORKING_DIR/
+    alt_binaries_mips64_script:
+        - mkdir -p /tmp/alt
+        - cd /tmp/alt
+        - $ARTCURL/Alt%20Arch.%20MIPS64%20Cross/repo/repo.tbz
+        - tar xjf repo.tbz
+        - mv ./*.tar.gz $CIRRUS_WORKING_DIR/
+    alt_binaries_other_script:
+        - mkdir -p /tmp/alt
+        - cd /tmp/alt
+        - $ARTCURL/Alt%20Arch.%20Other%20Cross/repo/repo.tbz
         - tar xjf repo.tbz
         - mv ./*.tar.gz $CIRRUS_WORKING_DIR/
     win_binaries_script:
