@@ -70,10 +70,7 @@ metadata:
 ...
 spec:
   containers:
-  - command:
-    - top
-    - name: container
-      value: podman
+  - name: container
     image: foobar
 ...
 ```
@@ -113,9 +110,7 @@ metadata:
   name: foobar
 spec:
   containers:
-  - command:
-    - top
-    name: container-1
+  - name: container-1
     image: foobar
     envFrom:
     - configMapRef:
@@ -145,9 +140,7 @@ metadata:
   name: foobar
 spec:
   containers:
-  - command:
-    - top
-    name: container-1
+  - name: container-1
     image: foobar
     env:
     - name: FOO
