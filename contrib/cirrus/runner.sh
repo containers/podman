@@ -278,26 +278,46 @@ function _run_altbuild() {
         *RPM*)
             make package
             ;;
-        Alt*Cross)
+        Alt*x86*Cross)
             arches=(\
                 amd64
-                ppc64le
+                386)
+            _build_altbuild_archs "${arches[@]}"
+            ;;
+        Alt*ARM*Cross)
+            arches=(\
                 arm
-                arm64
-                386
-                s390x
+                arm64)
+            _build_altbuild_archs "${arches[@]}"
+            ;;
+        Alt*Other*Cross)
+            arches=(\
+                ppc64le
+                s390x)
+            _build_altbuild_archs "${arches[@]}"
+            ;;
+        Alt*MIPS*Cross)
+            arches=(\
                 mips
-                mipsle
+                mipsle)
+            _build_altbuild_archs "${arches[@]}"
+            ;;
+        Alt*MIPS64*Cross*)
+            arches=(\
                 mips64
                 mips64le)
-            for arch in "${arches[@]}"; do
-                msg "Building release archive for $arch"
-                make podman-release-${arch}.tar.gz GOARCH=$arch
-            done
+            _build_altbuild_archs "${arches[@]}"
             ;;
         *)
             die "Unknown/Unsupported \$$ALT_NAME '$ALT_NAME'"
     esac
+}
+
+function _build_altbuild_archs() {
+    for arch in "$@"; do
+        msg "Building release archive for $arch"
+        make podman-release-${arch}.tar.gz GOARCH=$arch
+    done
 }
 
 function _run_release() {
