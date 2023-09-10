@@ -33,7 +33,7 @@ Note: **N/A** means that the option cannot be supported in a single-node Podman 
 | topologySpreadConstraints\.labelSelector            | N/A     |
 | topologySpreadConstraints\.minDomains               | N/A     |
 | restartPolicy                                       | ✅      |
-| terminationGracePeriod                              | no      |
+| terminationGracePeriodSeconds                       | ✅      |
 | activeDeadlineSeconds                               | no      |
 | readinessGates\.conditionType                       | no      |
 | hostname                                            | ✅      |
