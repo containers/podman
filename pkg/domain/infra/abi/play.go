@@ -855,6 +855,10 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			Volumes:            volumes,
 		}
 
+		if podYAML.Spec.TerminationGracePeriodSeconds != nil {
+			specgenOpts.TerminationGracePeriodSeconds = podYAML.Spec.TerminationGracePeriodSeconds
+		}
+
 		specGen, err := kube.ToSpecGen(ctx, &specgenOpts)
 		if err != nil {
 			return nil, nil, err

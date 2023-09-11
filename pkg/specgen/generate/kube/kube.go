@@ -168,6 +168,8 @@ type CtrSpecGenOptions struct {
 	InitContainerType string
 	// PodSecurityContext is the security context specified for the pod
 	PodSecurityContext *v1.PodSecurityContext
+	// TerminationGracePeriodSeconds is the grace period given to a container to stop before being forcefully killed
+	TerminationGracePeriodSeconds *int64
 }
 
 func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGenerator, error) {
@@ -582,6 +584,12 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	// stored as a label at container creation.
 	if unit := os.Getenv(systemdDefine.EnvVariable); unit != "" {
 		s.Labels[systemdDefine.EnvVariable] = unit
+	}
+
+	// Set the stopTimeout if terminationGracePeriodSeconds is set in the kube yaml
+	if opts.TerminationGracePeriodSeconds != nil {
+		timeout := uint(*opts.TerminationGracePeriodSeconds)
+		s.StopTimeout = &timeout
 	}
 
 	return s, nil

@@ -52,6 +52,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(pod.Spec.Containers[0].SecurityContext).To(BeNil())
 		Expect(pod.Spec.Containers[0].Env).To(BeNil())
 		Expect(pod).To(HaveField("Name", "top-pod"))
+		Expect(pod.Spec.TerminationGracePeriodSeconds).To(BeNil())
 
 		numContainers := 0
 		for range pod.Spec.Containers {
@@ -1879,5 +1880,26 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(pod.Annotations).To(BeEmpty())
+	})
+
+	It("podman generate kube on pod with --stop-timeout set for ctr", func() {
+		podName := "test-pod"
+		podSession := podmanTest.Podman([]string{"pod", "create", podName})
+		podSession.WaitWithDefaultTimeout()
+		Expect(podSession).Should(Exit(0))
+
+		session := podmanTest.Podman([]string{"create", "--pod", podName, "--stop-timeout", "20", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		// TerminationGracePeriodSeconds should be set to 20
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(int(*pod.Spec.TerminationGracePeriodSeconds)).To(Equal(20))
 	})
 })

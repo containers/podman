@@ -435,7 +435,10 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 	podInitCtrs := []v1.Container{}
 	podAnnotations := make(map[string]string)
 	dnsInfo := v1.PodDNSConfig{}
-	var hostname string
+	var (
+		hostname    string
+		stopTimeout *uint
+	)
 
 	// Let's sort the containers in order of created time
 	// This will ensure that the init containers are defined in the correct order in the kube yaml
@@ -461,6 +464,12 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				if !strings.Contains(ctr.ID(), ctr.Hostname()) && ctr.Hostname() != p.Name() {
 					hostname = ctr.Hostname()
 				}
+			}
+
+			// Pick the first container that has a stop-timeout set and use that value
+			// Ignore podman's default
+			if ctr.config.StopTimeout != util.DefaultContainerConfig().Engine.StopTimeout && stopTimeout == nil {
+				stopTimeout = &ctr.config.StopTimeout
 			}
 
 			ctr, volumes, _, annotations, err := containerToV1Container(ctx, ctr, getService)
@@ -536,10 +545,11 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 		&dnsInfo,
 		hostNetwork,
 		hostUsers,
-		hostname), nil
+		hostname,
+		stopTimeout), nil
 }
 
-func newPodObject(podName string, annotations map[string]string, initCtrs, containers []v1.Container, volumes []v1.Volume, dnsOptions *v1.PodDNSConfig, hostNetwork, hostUsers bool, hostname string) *v1.Pod {
+func newPodObject(podName string, annotations map[string]string, initCtrs, containers []v1.Container, volumes []v1.Volume, dnsOptions *v1.PodDNSConfig, hostNetwork, hostUsers bool, hostname string, stopTimeout *uint) *v1.Pod {
 	tm := v12.TypeMeta{
 		Kind:       "Pod",
 		APIVersion: "v1",
@@ -571,6 +581,10 @@ func newPodObject(podName string, annotations map[string]string, initCtrs, conta
 	if dnsOptions != nil && (len(dnsOptions.Nameservers)+len(dnsOptions.Searches)+len(dnsOptions.Options) > 0) {
 		ps.DNSConfig = dnsOptions
 	}
+	if stopTimeout != nil {
+		terminationGracePeriod := int64(*stopTimeout)
+		ps.TerminationGracePeriodSeconds = &terminationGracePeriod
+	}
 	p := v1.Pod{
 		TypeMeta:   tm,
 		ObjectMeta: om,
@@ -590,8 +604,11 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 	podDNS := v1.PodDNSConfig{}
 	kubeAnnotations := make(map[string]string)
 	ctrNames := make([]string, 0, len(ctrs))
-	var hostname string
-	var restartPolicy *string
+	var (
+		hostname      string
+		restartPolicy *string
+		stopTimeout   *uint
+	)
 	for _, ctr := range ctrs {
 		ctrNames = append(ctrNames, removeUnderscores(ctr.Name()))
 		for k, v := range ctr.config.Spec.Annotations {
@@ -614,6 +631,12 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 			if !strings.Contains(ctr.ID(), ctr.Hostname()) {
 				hostname = ctr.Hostname()
 			}
+		}
+
+		// Pick the first container that has a stop-timeout set and use that value
+		// Ignore podman's default
+		if ctr.config.StopTimeout != util.DefaultContainerConfig().Engine.StopTimeout && stopTimeout == nil {
+			stopTimeout = &ctr.config.StopTimeout
 		}
 
 		// Use the restart policy of the first non-init container
@@ -707,7 +730,8 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 		&podDNS,
 		hostNetwork,
 		hostUsers,
-		hostname)
+		hostname,
+		stopTimeout)
 
 	// Set the pod's restart policy
 	policy := ""
