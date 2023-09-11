@@ -242,7 +242,6 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 		// In the event of a restart, don't want to copy subscriptions over again as they already would exist in ctrDirOrFileOnHost
 		_, err = os.Stat(ctrDirOrFileOnHost)
 		if errors.Is(err, os.ErrNotExist) {
-
 			hostDirOrFile, err = resolveSymbolicLink(hostDirOrFile)
 			if err != nil {
 				return nil, err

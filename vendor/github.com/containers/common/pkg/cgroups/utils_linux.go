@@ -26,7 +26,7 @@ func WriteFile(dir, file, data string) error {
 	}
 	defer fd.Close()
 	for {
-		_, err := fd.Write([]byte(data))
+		_, err := fd.WriteString(data)
 		if errors.Is(err, unix.EINTR) {
 			logrus.Infof("interrupted while writing %s to %s", data, fd.Name())
 			continue
@@ -85,7 +85,6 @@ func OpenFile(dir, file string, flags int) (*os.File, error) {
 			Mode:    uint64(mode),
 		})
 	if err != nil {
-		fmt.Println("Error in openat")
 		return nil, err
 	}
 

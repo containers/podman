@@ -18,6 +18,13 @@ const (
 // of compression was applied to the blobs it keeps information about.
 type BlobInfoCache2 interface {
 	types.BlobInfoCache
+
+	// Open() sets up the cache for future accesses, potentially acquiring costly state. Each Open() must be paired with a Close().
+	// Note that public callers may call the types.BlobInfoCache operations without Open()/Close().
+	Open()
+	// Close destroys state created by Open().
+	Close()
+
 	// RecordDigestCompressorName records a compressor for the blob with the specified digest,
 	// or Uncompressed or UnknownCompression.
 	// WARNING: Only call this with LOCALLY VERIFIED data; don’t record a compressor for a

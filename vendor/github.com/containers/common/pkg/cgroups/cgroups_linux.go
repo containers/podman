@@ -269,7 +269,7 @@ func readFileByKeyAsUint64(path, key string) (uint64, error) {
 	for _, line := range strings.Split(string(content), "\n") {
 		fields := strings.SplitN(line, " ", 2)
 		if fields[0] == key {
-			v := cleanString(string(fields[1]))
+			v := cleanString(fields[1])
 			if v == "max" {
 				return math.MaxUint64, nil
 			}

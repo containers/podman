@@ -111,7 +111,6 @@ func (e *unexpectedDataTypeError) Error() string {
 }
 
 func (e *unexpectedDataTypeError) Is(target error) bool {
-	//nolint:errorlint // don't compare wrapped errors in Is()
 	t, ok := target.(*unexpectedDataTypeError)
 	if !ok {
 		return false
@@ -291,6 +290,15 @@ func NewDescriptorInput(t DataType, r io.Reader, opts ...DescriptorInputOpt) (De
 
 	if t == DataPartition {
 		dopts.alignment = 4096
+	}
+
+	// Accumulate hash for OCI blobs as they are written.
+	if t == DataOCIRootIndex || t == DataOCIBlob {
+		md := newOCIBlobDigest()
+
+		r = io.TeeReader(r, md.hasher)
+
+		dopts.md = md
 	}
 
 	for _, opt := range opts {

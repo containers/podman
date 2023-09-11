@@ -1113,7 +1113,7 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, disable
 	if err := idtools.MkdirAs(path.Join(workDirBase, "work"), 0o700, rootUID, rootGID); err != nil {
 		return err
 	}
-	if err := idtools.MkdirAs(path.Join(dir, "merged"), 0o700, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAs(path.Join(workDirBase, "merged"), 0o700, rootUID, rootGID); err != nil {
 		return err
 	}
 
@@ -1671,7 +1671,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		return "", err
 	}
 
-	mergedDir := path.Join(dir, "merged")
+	mergedDir := path.Join(workDirBase, "merged")
 	// Create the driver merged dir
 	if err := idtools.MkdirAs(mergedDir, 0o700, rootUID, rootGID); err != nil && !os.IsExist(err) {
 		return "", err

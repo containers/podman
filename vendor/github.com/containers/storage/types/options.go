@@ -179,6 +179,10 @@ func defaultStoreOptionsIsolated(rootless bool, rootlessUID int, storageConf str
 		storageOpts.RootlessStoragePath = storagePath
 	}
 
+	if storageOpts.ImageStore != "" && storageOpts.ImageStore == storageOpts.GraphRoot {
+		return storageOpts, fmt.Errorf("imagestore %s must either be not set or be a different than graphroot", storageOpts.ImageStore)
+	}
+
 	return storageOpts, nil
 }
 
