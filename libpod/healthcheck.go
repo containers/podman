@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/libpod/events"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -60,6 +61,7 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 		returnCode    int
 		inStartPeriod bool
 	)
+
 	hcCommand := c.HealthCheckConfig().Test
 	if isStartup {
 		logrus.Debugf("Running startup healthcheck for container %s", c.ID())
@@ -166,6 +168,13 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 	if err != nil {
 		return hcResult, "", fmt.Errorf("unable to update health check log %s for %s: %w", c.healthCheckLogPath(), c.ID(), err)
 	}
+
+	// Write HC event with appropriate status as the last thing before we
+	// return.
+	if hcResult == define.HealthCheckNotDefined || hcResult == define.HealthCheckInternalError {
+		return hcResult, logStatus, hcErr
+	}
+	c.newContainerEvent(events.HealthStatus)
 
 	return hcResult, logStatus, hcErr
 }
