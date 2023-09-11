@@ -638,10 +638,17 @@ USER bin`, BB)
 
 		currentOOMScoreAdj, err := os.ReadFile("/proc/self/oom_score_adj")
 		Expect(err).ToNot(HaveOccurred())
-		session = podmanTest.Podman([]string{"run", "--rm", fedoraMinimal, "cat", "/proc/self/oom_score_adj"})
+		name := "ctr-with-oom-score"
+		session = podmanTest.Podman([]string{"create", "--name", name, fedoraMinimal, "cat", "/proc/self/oom_score_adj"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(Equal(strings.TrimRight(string(currentOOMScoreAdj), "\n")))
+
+		for i := 0; i < 2; i++ {
+			session = podmanTest.Podman([]string{"start", "-a", name})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+			Expect(session.OutputToString()).To(Equal(strings.TrimRight(string(currentOOMScoreAdj), "\n")))
+		}
 	})
 
 	It("podman run limits host test", func() {
