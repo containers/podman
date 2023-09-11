@@ -24,6 +24,20 @@ function teardown() {
     is "$output" "Error: API Service endpoint scheme \"\" is not supported. Try tcp://myunix.sock or unix://myunix.sock"
 }
 
+@test "podman system service unix: without two slashes still works" {
+    skip_if_remote "podman system service unavailable over remote"
+    URL=unix:$PODMAN_TMPDIR/myunix.sock
+
+    systemd-run --unit=$SERVICE_NAME $PODMAN system service $URL --time=0
+    wait_for_file $PODMAN_TMPDIR/myunix.sock
+
+    run_podman --host $URL info --format '{{.Host.RemoteSocket.Path}}'
+    is "$output" "$URL" "RemoteSocket.Path using unix:"
+
+    systemctl stop $SERVICE_NAME
+    rm -f $PODMAN_TMPDIR/myunix.sock
+}
+
 @test "podman-system-service containers survive service stop" {
     skip_if_remote "podman system service unavailable over remote"
     local runtime=$(podman_runtime)
