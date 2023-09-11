@@ -707,4 +707,54 @@ function thingy_with_unique_id() {
     run_podman rm -f -a
 }
 
+
+@test "podman pod cleans cgroup and keeps limits" {
+    skip_if_remote "we cannot check cgroup settings"
+    skip_if_rootless_cgroupsv1 "rootless cannot use cgroups on v1"
+
+    for infra in true false; do
+        run_podman pod create --infra=$infra --memory=256M
+        podid="$output"
+        run_podman run -d --pod $podid $IMAGE top -d 2
+
+        run_podman pod inspect $podid
+        result=$(jq -r .CgroupPath <<< $output)
+        assert "$result" =~ "/" ".CgroupPath is a valid path"
+
+        if is_cgroupsv2; then
+           cgroup_path=/sys/fs/cgroup/$result
+        else
+           cgroup_path=/sys/fs/cgroup/memory/$result
+        fi
+
+        if test ! -e $cgroup_path; then
+            die "the cgroup $cgroup_path does not exist"
+        fi
+
+        run_podman pod stop -t 0 $podid
+        if test -e $cgroup_path; then
+            die "the cgroup $cgroup_path should not exist after pod stop"
+        fi
+
+        run_podman pod start $podid
+        if test ! -e $cgroup_path; then
+            die "the cgroup $cgroup_path does not exist"
+        fi
+
+        # validate that cgroup limits are in place after a restart
+        # issue #19175
+        if is_cgroupsv2; then
+           memory_limit_file=$cgroup_path/memory.max
+        else
+           memory_limit_file=$cgroup_path/memory.limit_in_bytes
+        fi
+        assert "$(< $memory_limit_file)" = "268435456" "Contents of $memory_limit_file"
+
+        run_podman pod rm -t 0 -f $podid
+        if test -e $cgroup_path; then
+            die "the cgroup $cgroup_path should not exist after pod rm"
+        fi
+    done
+}
+
 # vim: filetype=sh
