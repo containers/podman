@@ -119,6 +119,11 @@ func GeneratePodFilterFunc(filter string, filterValues []string, r *libpod.Runti
 			labels := p.Labels()
 			return filters.MatchLabelFilters(filterValues, labels)
 		}, nil
+	case "label!":
+		return func(p *libpod.Pod) bool {
+			labels := p.Labels()
+			return !filters.MatchLabelFilters(filterValues, labels)
+		}, nil
 	case "until":
 		return func(p *libpod.Pod) bool {
 			until, err := filters.ComputeUntilTimestamp(filterValues)

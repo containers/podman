@@ -409,6 +409,9 @@ t GET containers/json 200 \
 podman stop bar
 
 #compat api list containers sanity checks
+podman run -d --rm --name labelcontainer_with $ENV_WORKDIR_IMG top
+podman run -d --rm --name labelcontainer_without $IMAGE top
+
 t GET containers/json?filters='garb1age}' 500 \
     .cause="invalid character 'g' looking for beginning of value"
 t GET containers/json?filters='{"label":["testl' 500 \
@@ -436,7 +439,15 @@ t POST containers/prune?filters='{"label":["tes' 500 \
 t POST libpod/containers/prune?filters='{"label":["tes' 500 \
     .cause="unexpected end of JSON input"
 
-t GET libpod/containers/json?filters='{"label":["testlabel"]}' 200 length=0
+t GET libpod/containers/json?filters='{"label":["created_by"]}' 200 \
+  length=1 \
+  .[0].Names[0]="labelcontainer_with"
+t GET libpod/containers/json?filters='{"label!":["created_by"]}' 200 \
+  length=1 \
+  .[0].Names[0]="labelcontainer_without"
+t GET libpod/containers/json?filters='{"label!":["testlabel"]}' 200 length=2
+
+podman stop -t0 labelcontainer_with labelcontainer_without
 
 # libpod api: do not use list filters for prune
 t POST libpod/containers/prune?filters='{"name":["anyname"]}' 500 \

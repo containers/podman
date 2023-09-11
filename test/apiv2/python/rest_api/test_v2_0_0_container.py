@@ -22,10 +22,30 @@ class ContainerTestCase(APITestCase):
         obj = r.json()
         self.assertEqual(len(obj), 1)
 
-    def test_list_filters(self):
+    def test_list_filters_status(self):
         r = requests.get(
             self.podman_url
-            + "/v1.40/containers/json?filters%3D%7B%22status%22%3A%5B%22running%22%5D%7D"
+            + "/v1.40/containers/json?filters=%7B%22status%22%3A%5B%22running%22%5D%7D"
+        )
+        self.assertEqual(r.status_code, 200, r.text)
+        payload = r.json()
+        containerAmnt = len(payload)
+        self.assertGreater(containerAmnt, 0)
+
+    def test_list_filters_label(self):
+        r = requests.get(
+            self.podman_url
+            + "/v1.40/containers/json?filters=%7B%22label%22%3A%5B%22nonexistlabel%22%5D%7D"
+        )
+        self.assertEqual(r.status_code, 200, r.text)
+        payload = r.json()
+        containerAmnt = len(payload)
+        self.assertEqual(containerAmnt, 0)
+
+    def test_list_filters_label_not(self):
+        r = requests.get(
+            self.podman_url
+            + "/v1.40/containers/json?filters=%7B%22label%21%22%3A%5B%22nonexistlabel%22%5D%7D"
         )
         self.assertEqual(r.status_code, 200, r.text)
         payload = r.json()

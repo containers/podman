@@ -25,6 +25,10 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 		return func(c *libpod.Container) bool {
 			return filters.MatchLabelFilters(filterValues, c.Labels())
 		}, nil
+	case "label!":
+		return func(c *libpod.Container) bool {
+			return !filters.MatchLabelFilters(filterValues, c.Labels())
+		}, nil
 	case "name":
 		// we only have to match one name
 		return func(c *libpod.Container) bool {
