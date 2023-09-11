@@ -12,8 +12,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/Microsoft/go-winio"
 	"github.com/containers/common/pkg/config"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/libhvee/pkg/hypervctl"
@@ -67,6 +69,9 @@ type HyperVMachine struct {
 	LastUp time.Time
 	// GVProxy will write its PID here
 	GvProxyPid machine.VMFile
+	// MountVsocks contains the currently-active vsocks, mapped to the
+	// directory they should be mounted on.
+	MountVsocks map[string]uint64
 	// Used at runtime for serializing write operations
 	lock *lockfile.LockFile
 }
@@ -214,6 +219,31 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	callbackFuncs.Add(m.ImagePath.Delete)
 	callbackFuncs.Add(m.ConfigPath.Delete)
 	callbackFuncs.Add(m.unregisterMachine)
+
+	// Parsing here is confusing.
+	// Basically, we have two paths: a source path, on the Windows machine,
+	// with all that entails (drive letter, backslash separator, etc) and a
+	// dest path, in the Linux machine, normal Unix semantics. They are
+	// separated by a : character, with source path first, dest path second.
+	// So we split on :, first two parts are guaranteed to be Windows (the
+	// drive letter and file path), next one is Linux. Options, when we get
+	// around to those, would be another : after that.
+	// TODO: Need to support options here
+	for _, mount := range opts.Volumes {
+		newMount := machine.Mount{}
+
+		splitMount := strings.Split(mount, ":")
+		if len(splitMount) < 3 {
+			return false, fmt.Errorf("volumes must be specified as source:destination and must be absolute")
+		}
+		newMount.Target = splitMount[2]
+		newMount.Source = strings.Join(splitMount[:2], ":")
+		if len(splitMount) > 3 {
+			return false, fmt.Errorf("volume options are not presently supported on Hyper-V")
+		}
+
+		m.Mounts = append(m.Mounts, newMount)
+	}
 
 	if err = m.addNetworkAndReadySocketsToRegistry(); err != nil {
 		return false, err
@@ -403,7 +433,7 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 	vmm := hypervctl.NewVirtualMachineManager()
 	vm, err := vmm.GetMachine(m.Name)
 	if err != nil {
-		return "", nil, err
+		return "", nil, fmt.Errorf("getting virtual machine: %w", err)
 	}
 	// In hyperv, they call running 'enabled'
 	if vm.State() == hypervctl.Enabled {
@@ -412,13 +442,19 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 		}
 		// force stop bc we are destroying
 		if err := vm.StopWithForce(); err != nil {
-			return "", nil, err
+			return "", nil, fmt.Errorf("stopping virtual machine: %w", err)
+		}
+
+		// Update state on the VM by pulling its info again
+		vm, err = vmm.GetMachine(m.Name)
+		if err != nil {
+			return "", nil, fmt.Errorf("getting VM: %w", err)
 		}
 	}
 
-	vm, err = vmm.GetMachine(m.Name)
-	if err != nil {
-		return "", nil, err
+	// Tear down vsocks
+	if err := m.removeShares(); err != nil {
+		logrus.Errorf("Error removing vsock: %w", err)
 	}
 
 	// Collect all the files that need to be destroyed
@@ -433,7 +469,10 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 	return confirmationMessage, func() error {
 		machine.RemoveFilesAndConnections(files, m.Name, m.Name+"-root")
 		m.removeNetworkAndReadySocketsFromRegistry()
-		return vm.Remove("")
+		if err := vm.Remove(""); err != nil {
+			return fmt.Errorf("removing virtual machine: %w", err)
+		}
+		return nil
 	}, nil
 }
 
@@ -450,7 +489,7 @@ func (m *HyperVMachine) Set(name string, opts machine.SetOptions) ([]error, erro
 	// Considering this a hard return if we cannot lookup the machine
 	vm, err := vmm.GetMachine(m.Name)
 	if err != nil {
-		return setErrors, err
+		return setErrors, fmt.Errorf("getting machine: %w", err)
 	}
 	if vm.State() != hypervctl.Disabled {
 		return nil, errors.New("unable to change settings unless vm is stopped")
@@ -492,7 +531,7 @@ func (m *HyperVMachine) Set(name string, opts machine.SetOptions) ([]error, erro
 			}
 		})
 		if err != nil {
-			setErrors = append(setErrors, err)
+			setErrors = append(setErrors, fmt.Errorf("setting CPU and Memory for VM: %w", err))
 		}
 	}
 
@@ -525,6 +564,16 @@ func (m *HyperVMachine) Start(name string, opts machine.StartOptions) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
+	// Start 9p shares
+	shares, err := m.createShares()
+	if err != nil {
+		return err
+	}
+	m.MountVsocks = shares
+	if err := m.writeConfig(); err != nil {
+		return err
+	}
+
 	vmm := hypervctl.NewVirtualMachineManager()
 	vm, err := vmm.GetMachine(m.Name)
 	if err != nil {
@@ -555,6 +604,10 @@ func (m *HyperVMachine) Start(name string, opts machine.StartOptions) error {
 
 	// set starting back false now that we are running
 	m.Starting = false
+
+	if err := m.startShares(); err != nil {
+		return err
+	}
 
 	if m.HostUser.Modified {
 		if machine.UpdatePodmanDockerSockService(m, name, m.UID, m.Rootful) == nil {
@@ -591,7 +644,7 @@ func (m *HyperVMachine) Stop(name string, opts machine.StopOptions) error {
 	vmm := hypervctl.NewVirtualMachineManager()
 	vm, err := vmm.GetMachine(m.Name)
 	if err != nil {
-		return err
+		return fmt.Errorf("getting virtual machine: %w", err)
 	}
 	vmState := vm.State()
 	if vm.State() == hypervctl.Disabled {
@@ -606,7 +659,7 @@ func (m *HyperVMachine) Stop(name string, opts machine.StopOptions) error {
 	}
 
 	if err := vm.Stop(); err != nil {
-		return err
+		return fmt.Errorf("stopping virtual machine: %w", err)
 	}
 
 	// keep track of last up
@@ -696,21 +749,10 @@ func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingStat
 		return "", machine.NoForwarding, err
 	}
 
-	dnr, dnw, err := machine.GetDevNullFiles()
+	executable, err := os.Executable()
 	if err != nil {
-		return "", machine.NoForwarding, err
+		return "", 0, fmt.Errorf("unable to locate executable: %w", err)
 	}
-
-	defer func() {
-		if err := dnr.Close(); err != nil {
-			logrus.Error(err)
-		}
-	}()
-	defer func() {
-		if err := dnw.Close(); err != nil {
-			logrus.Error(err)
-		}
-	}()
 
 	gvproxyBinary, err := cfg.FindHelperBinary("gvproxy.exe", false)
 	if err != nil {
@@ -725,13 +767,58 @@ func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingStat
 	cmd, forwardSock, state = m.setupAPIForwarding(cmd)
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		cmd.Debug = true
-		logrus.Debug(cmd)
 	}
 
 	c := cmd.Cmd(gvproxyBinary)
+
+	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+		c.Stdout = os.Stdout
+		c.Stderr = os.Stderr
+	}
+
+	logrus.Debugf("Starting gvproxy with command: %s %v", gvproxyBinary, c.Args)
+
 	if err := c.Start(); err != nil {
 		return "", 0, fmt.Errorf("unable to execute: %s: %w", cmd.ToCmdline(), err)
 	}
+
+	logrus.Debugf("Got gvproxy PID as %d", c.Process.Pid)
+
+	if len(m.MountVsocks) == 0 {
+		return forwardSock, state, nil
+	}
+
+	// Start the 9p server in the background
+	args := []string{}
+	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+		args = append(args, "--log-level=debug")
+	}
+	args = append(args, "machine", "server9p")
+	for dir, vsock := range m.MountVsocks {
+		for _, mount := range m.Mounts {
+			if mount.Target == dir {
+				args = append(args, "--serve", fmt.Sprintf("%s:%s", mount.Source, winio.VsockServiceID(uint32(vsock)).String()))
+				break
+			}
+		}
+	}
+	args = append(args, fmt.Sprintf("%d", c.Process.Pid))
+
+	logrus.Debugf("Going to start 9p server using command: %s %v", executable, args)
+
+	fsCmd := exec.Command(executable, args...)
+
+	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+		fsCmd.Stdout = os.Stdout
+		fsCmd.Stderr = os.Stderr
+	}
+
+	if err := fsCmd.Start(); err != nil {
+		return "", 0, fmt.Errorf("unable to execute: %s %v: %w", executable, args, err)
+	}
+
+	logrus.Infof("Started podman 9p server as PID %d", fsCmd.Process.Pid)
+
 	return forwardSock, state, nil
 }
 
@@ -803,4 +890,89 @@ func (m *HyperVMachine) resizeDisk(newSize strongunits.GiB) error {
 
 func (m *HyperVMachine) isStarting() bool {
 	return m.Starting
+}
+
+func (m *HyperVMachine) createShares() (_ map[string]uint64, defErr error) {
+	toReturn := make(map[string]uint64)
+
+	for _, mount := range m.Mounts {
+		var vsock *HVSockRegistryEntry
+
+		vsockNum, ok := m.MountVsocks[mount.Target]
+		if ok {
+			// Ignore errors here, we'll just try and recreate the
+			// vsock below.
+			testVsock, err := LoadHVSockRegistryEntry(vsockNum)
+			if err == nil {
+				vsock = testVsock
+			}
+		}
+		if vsock == nil {
+			testVsock, err := NewHVSockRegistryEntry(m.Name, Fileserver)
+			if err != nil {
+				return nil, err
+			}
+			defer func() {
+				if defErr != nil {
+					if err := testVsock.Remove(); err != nil {
+						logrus.Errorf("Removing vsock: %v", err)
+					}
+				}
+			}()
+			vsock = testVsock
+		}
+
+		logrus.Debugf("Going to share directory %s via 9p on vsock %d", mount.Source, vsock.Port)
+
+		toReturn[mount.Target] = vsock.Port
+	}
+
+	return toReturn, nil
+}
+
+func (m *HyperVMachine) removeShares() error {
+	var removalErr error
+
+	for _, mount := range m.Mounts {
+		vsockNum, ok := m.MountVsocks[mount.Target]
+		if !ok {
+			// Mount doesn't have a valid vsock, no need to tear down
+			continue
+		}
+
+		vsock, err := LoadHVSockRegistryEntry(vsockNum)
+		if err != nil {
+			logrus.Debugf("Vsock %d for mountpoint %s does not have a valid registry entry, skipping removal", vsockNum, mount.Target)
+			continue
+		}
+
+		if err := vsock.Remove(); err != nil {
+			if removalErr != nil {
+				logrus.Errorf("Error removing vsock: %w", removalErr)
+			}
+			removalErr = fmt.Errorf("removing vsock %d for mountpoint %s: %w", vsockNum, mount.Target, err)
+		}
+	}
+
+	return removalErr
+}
+
+func (m *HyperVMachine) startShares() error {
+	for mountpoint, sockNum := range m.MountVsocks {
+		args := []string{"-q", "--", "sudo", "podman"}
+		if logrus.IsLevelEnabled(logrus.DebugLevel) {
+			args = append(args, "--log-level=debug")
+		}
+		args = append(args, "machine", "client9p", fmt.Sprintf("%d", sockNum), mountpoint)
+
+		sshOpts := machine.SSHOptions{
+			Args: args,
+		}
+
+		if err := m.SSH(m.Name, sshOpts); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

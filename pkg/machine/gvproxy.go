@@ -6,10 +6,12 @@ import (
 	"strconv"
 	"syscall"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
-	loops     = 5
+	loops     = 10
 	sleepTime = time.Millisecond * 1
 )
 
@@ -19,8 +21,10 @@ const (
 func backoffForProcess(pid int) error {
 	sleepInterval := sleepTime
 	for i := 0; i < loops; i++ {
+		logrus.Debugf("Sleeping for %d milliseconds", sleepInterval.Milliseconds())
 		proxyProc, err := findProcess(pid)
 		if proxyProc == nil && err != nil {
+			logrus.Debugf("Error opening process %d: %v", pid, err)
 			// process is killed, gone
 			return nil //nolint: nilerr
 		}
@@ -35,6 +39,8 @@ func backoffForProcess(pid int) error {
 // process to not exist.  if the sigterm does not end the process after an interval,
 // then sigkill is sent.  it also waits for the process to exit after the sigkill too.
 func waitOnProcess(processID int) error {
+	logrus.Infof("Going to stop gvproxy (PID %d)", processID)
+
 	proxyProc, err := findProcess(processID)
 	if err != nil {
 		return err
@@ -58,10 +64,12 @@ func waitOnProcess(processID int) error {
 	proxyProc, err = findProcess(processID)
 	if proxyProc == nil && err != nil {
 		// process is killed, gone
+		logrus.Debugf("Error opening gvproxy process: %v", err)
 		return nil //nolint: nilerr
 	}
 	if err := proxyProc.Signal(syscall.SIGKILL); err != nil {
 		if err == syscall.ESRCH {
+			logrus.Debugf("Gvproxy already dead, exiting cleanly")
 			return nil
 		}
 		return err

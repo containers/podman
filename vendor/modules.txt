@@ -678,6 +678,15 @@ github.com/hashicorp/go-multierror
 # github.com/hashicorp/go-retryablehttp v0.7.4
 ## explicit; go 1.13
 github.com/hashicorp/go-retryablehttp
+# github.com/hugelgupf/p9 v0.3.1-0.20230822151754-54f5c5530921
+## explicit; go 1.20
+github.com/hugelgupf/p9/fsimpl/localfs
+github.com/hugelgupf/p9/fsimpl/templatefs
+github.com/hugelgupf/p9/fsimpl/xattr
+github.com/hugelgupf/p9/internal
+github.com/hugelgupf/p9/linux
+github.com/hugelgupf/p9/p9
+github.com/hugelgupf/p9/vecnet
 # github.com/inconshreveable/mousetrap v1.1.0
 ## explicit; go 1.18
 github.com/inconshreveable/mousetrap
@@ -720,6 +729,9 @@ github.com/letsencrypt/boulder/goodkey
 github.com/letsencrypt/boulder/identifier
 github.com/letsencrypt/boulder/probs
 github.com/letsencrypt/boulder/revocation
+# github.com/linuxkit/virtsock v0.0.0-20220523201153-1a23e78aa7a2
+## explicit; go 1.17
+github.com/linuxkit/virtsock/pkg/hvsock
 # github.com/mailru/easyjson v0.7.7
 ## explicit; go 1.12
 github.com/mailru/easyjson/buffer
@@ -742,6 +754,12 @@ github.com/mattn/go-shellwords
 # github.com/mattn/go-sqlite3 v1.14.17
 ## explicit; go 1.16
 github.com/mattn/go-sqlite3
+# github.com/mdlayher/socket v0.4.1
+## explicit; go 1.20
+github.com/mdlayher/socket
+# github.com/mdlayher/vsock v1.2.1
+## explicit; go 1.20
+github.com/mdlayher/vsock
 # github.com/miekg/pkcs11 v1.1.1
 ## explicit; go 1.12
 github.com/miekg/pkcs11
@@ -993,6 +1011,9 @@ github.com/twitchyliquid64/golang-asm/objabi
 github.com/twitchyliquid64/golang-asm/src
 github.com/twitchyliquid64/golang-asm/sys
 github.com/twitchyliquid64/golang-asm/unsafeheader
+# github.com/u-root/uio v0.0.0-20230305220412-3e8cd9d6bf63
+## explicit; go 1.16
+github.com/u-root/uio/ulog
 # github.com/ugorji/go/codec v1.2.11
 ## explicit; go 1.11
 github.com/ugorji/go/codec
@@ -1107,6 +1128,7 @@ golang.org/x/mod/semver
 golang.org/x/mod/sumdb/note
 # golang.org/x/net v0.17.0
 ## explicit; go 1.17
+golang.org/x/net/bpf
 golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/html/atom
