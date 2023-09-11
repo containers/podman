@@ -634,6 +634,13 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	nprocSet := false
 	isRootless := rootless.IsRootless()
 	if isRootless {
+		if g.Config.Process != nil && g.Config.Process.OOMScoreAdj != nil {
+			var err error
+			*g.Config.Process.OOMScoreAdj, err = maybeClampOOMScoreAdj(*g.Config.Process.OOMScoreAdj)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
 		for _, rlimit := range c.config.Spec.Process.Rlimits {
 			if rlimit.Type == "RLIMIT_NOFILE" {
 				nofileSet = true
@@ -2924,4 +2931,20 @@ func (c *Container) ChangeHostPathOwnership(src string, recurse bool, uid, gid i
 		}
 	}
 	return chown.ChangeHostPathOwnership(src, recurse, uid, gid)
+}
+
+func maybeClampOOMScoreAdj(oomScoreValue int) (int, error) {
+	v, err := os.ReadFile("/proc/self/oom_score_adj")
+	if err != nil {
+		return oomScoreValue, err
+	}
+	currentValue, err := strconv.Atoi(strings.TrimRight(string(v), "\n"))
+	if err != nil {
+		return oomScoreValue, err
+	}
+	if currentValue > oomScoreValue {
+		logrus.Warnf("Requested oom_score_adj=%d is lower than the current one, changing to %d", oomScoreValue, currentValue)
+		return currentValue, nil
+	}
+	return oomScoreValue, nil
 }
