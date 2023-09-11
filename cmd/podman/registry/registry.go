@@ -12,8 +12,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// DefaultRootAPIAddress is the default address of the REST socket with unix: prefix
-const DefaultRootAPIAddress = "unix:" + DefaultRootAPIPath
+// DefaultRootAPIAddress is the default path of the REST socket with unix:// prefix
+const DefaultRootAPIAddress = "unix://" + DefaultRootAPIPath
 
 type CliCommand struct {
 	Command *cobra.Command
@@ -104,7 +104,7 @@ func DefaultAPIAddress() string {
 			logrus.Warnf("Failed to get rootless runtime dir for DefaultAPIAddress: %s", err)
 			return DefaultRootAPIAddress
 		}
-		return "unix:" + filepath.Join(xdg, "podman", "podman.sock")
+		return "unix://" + filepath.Join(xdg, "podman", "podman.sock")
 	}
 	return DefaultRootAPIAddress
 }
