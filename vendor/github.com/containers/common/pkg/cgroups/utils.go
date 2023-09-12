@@ -64,7 +64,7 @@ func GetSystemCPUUsage() (uint64, error) {
 		}
 		p := filepath.Join(cgroupRoot, file.Name(), "cpu.stat")
 
-		values, err := readCgroup2MapPath(p)
+		values, err := readCgroupMapPath(p)
 		if err != nil {
 			return 0, err
 		}
