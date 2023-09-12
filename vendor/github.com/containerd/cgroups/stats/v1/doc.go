@@ -14,4 +14,4 @@
    limitations under the License.
 */
 
-package stats
+package v1

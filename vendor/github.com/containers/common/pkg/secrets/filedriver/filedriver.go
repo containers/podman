@@ -150,7 +150,7 @@ func (d *Driver) getAllData() (map[string][]byte, error) {
 		return nil, err
 	}
 	secretData := new(map[string][]byte)
-	err = json.Unmarshal([]byte(byteValue), secretData)
+	err = json.Unmarshal(byteValue, secretData)
 	if err != nil {
 		return nil, err
 	}

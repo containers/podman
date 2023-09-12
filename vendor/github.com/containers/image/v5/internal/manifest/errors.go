@@ -1,6 +1,10 @@
 package manifest
 
-import "fmt"
+import (
+	"fmt"
+
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+)
 
 // FIXME: This is a duplicate of c/image/manifestDockerV2Schema2ConfigMediaType.
 // Deduplicate that, depending on outcome of https://github.com/containers/image/pull/1791 .
@@ -26,8 +30,20 @@ type NonImageArtifactError struct {
 	mimeType string
 }
 
-// NewNonImageArtifactError returns a NonImageArtifactError about an artifact with mimeType.
-func NewNonImageArtifactError(mimeType string) error {
+// NewNonImageArtifactError returns a NonImageArtifactError about an artifact manifest.
+//
+// This is typically called if manifest.Config.MediaType != imgspecv1.MediaTypeImageConfig .
+func NewNonImageArtifactError(manifest *imgspecv1.Manifest) error {
+	// Callers decide based on manifest.Config.MediaType that this is not an image;
+	// in that case manifest.ArtifactType can be optionally defined, and if it is, it is typically
+	// more relevant because config may be ~absent with imgspecv1.MediaTypeEmptyJSON.
+	//
+	// If ArtifactType and Config.MediaType are both defined and non-trivial, presumably
+	// ArtifactType is the “top-level” one, although that’s not defined by the spec.
+	mimeType := manifest.ArtifactType
+	if mimeType == "" {
+		mimeType = manifest.Config.MediaType
+	}
 	return NonImageArtifactError{mimeType: mimeType}
 }
 

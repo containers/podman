@@ -242,11 +242,13 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 
 		unparsedToplevel: image.UnparsedInstance(rawSource, nil),
 		// FIXME? The cache is used for sources and destinations equally, but we only have a SourceCtx and DestinationCtx.
-		// For now, use DestinationCtx (because blob reuse changes the behavior of the destination side more); eventually
-		// we might want to add a separate CommonCtx — or would that be too confusing?
+		// For now, use DestinationCtx (because blob reuse changes the behavior of the destination side more).
+		// Conceptually the cache settings should be in copy.Options instead.
 		blobInfoCache: internalblobinfocache.FromBlobInfoCache(blobinfocache.DefaultCache(options.DestinationCtx)),
 	}
 	defer c.close()
+	c.blobInfoCache.Open()
+	defer c.blobInfoCache.Close()
 
 	// Set the concurrentBlobCopiesSemaphore if we can copy layers in parallel.
 	if dest.HasThreadSafePutBlob() && rawSource.HasThreadSafeGetBlob() {

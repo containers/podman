@@ -145,7 +145,7 @@ func ParseScpArgs(options ConnectionScpOptions) (string, string, string, bool, e
 	if strings.Contains(localPath, "ssh://") {
 		localPath = strings.Split(localPath, "ssh://")[1]
 	}
-	remotePath := ""
+	var remotePath string
 	swap := false
 	if split := strings.Split(localPath, ":"); len(split) == 2 {
 		// save to remote, load to local

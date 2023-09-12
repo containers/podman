@@ -37,10 +37,6 @@ rootfs-conv/*
 deps/*
 out/*
 
-# protobuf files
-# only files at root of the repo, otherwise this will cause issues with vendoring
-/protobuf/*
-
 # test results
 test/results
 

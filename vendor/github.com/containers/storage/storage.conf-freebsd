@@ -22,6 +22,10 @@ runroot = "/var/run/containers/storage"
 # Primary Read/Write location of container storage
 graphroot = "/var/db/containers/storage"
 
+# Optional value for image storage location
+# If set, it must be different than graphroot.
+
+# imagestore = ""
 
 # Storage path for rootless users
 #

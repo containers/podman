@@ -367,6 +367,11 @@ func (d *dockerImageDestination) TryReusingBlobWithOptions(ctx context.Context, 
 
 		// Sanity checks:
 		if reference.Domain(candidateRepo) != reference.Domain(d.ref.ref) {
+			// OCI distribution spec 1.1 allows mounting blobs without specifying the source repo
+			// (the "from" parameter); in that case we might try to use these candidates as well.
+			//
+			// OTOH that would mean we can’t do the “blobExists” check, and if there is no match
+			// we could get an upload request that we would have to cancel.
 			logrus.Debugf("... Internal error: domain %s does not match destination %s", reference.Domain(candidateRepo), reference.Domain(d.ref.ref))
 			continue
 		}

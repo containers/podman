@@ -10,13 +10,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/common/pkg/util"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/pkg/docker/config"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
-	terminal "golang.org/x/term"
 )
 
 // ErrNewCredentialsInvalid means that the new user-provided credentials are
@@ -259,7 +259,7 @@ func getUserAndPass(opts *LoginOptions, password, userFromAuthFile string) (user
 		if err != nil {
 			return "", "", fmt.Errorf("reading username: %w", err)
 		}
-		// If the user just hit enter, use the displayed user from the
+		// If the user just hit enter, use the displayed user from
 		// the authentication file.  This allows to do a lazy
 		// `$ buildah login -p $NEW_PASSWORD` without specifying the
 		// user.
@@ -269,7 +269,7 @@ func getUserAndPass(opts *LoginOptions, password, userFromAuthFile string) (user
 	}
 	if password == "" {
 		fmt.Fprint(opts.Stdout, "Password: ")
-		pass, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+		pass, err := util.ReadPassword(int(os.Stdin.Fd()))
 		if err != nil {
 			return "", "", fmt.Errorf("reading password: %w", err)
 		}
@@ -336,7 +336,7 @@ func Logout(systemContext *types.SystemContext, opts *LogoutOptions, args []stri
 
 		authInvalid := docker.CheckAuth(context.Background(), systemContext, authConfig.Username, authConfig.Password, registry)
 		if authConfig.Username != "" && authConfig.Password != "" && authInvalid == nil {
-			fmt.Printf("Not logged into %s with current tool. Existing credentials were established via docker login. Please use docker logout instead.\n", key)
+			fmt.Printf("Not logged into %s with current tool. Existing credentials were established via docker login. Please use docker logout instead.\n", key) //nolint:forbidigo
 			return nil
 		}
 		return fmt.Errorf("not logged into %s", key)

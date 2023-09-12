@@ -30,7 +30,7 @@ func getDefaultProcessLimits() []string {
 		val := strings.TrimSuffix(string(dat), "\n")
 		max, err := strconv.ParseUint(val, 10, 64)
 		if err == nil {
-			rlim = unix.Rlimit{Cur: uint64(max), Max: uint64(max)}
+			rlim = unix.Rlimit{Cur: max, Max: max}
 		}
 	}
 	defaultLimits := []string{}

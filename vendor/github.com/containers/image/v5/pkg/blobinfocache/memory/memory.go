@@ -27,7 +27,7 @@ type cache struct {
 	uncompressedDigests   map[digest.Digest]digest.Digest
 	digestsByUncompressed map[digest.Digest]*set.Set[digest.Digest]                // stores a set of digests for each uncompressed digest
 	knownLocations        map[locationKey]map[types.BICLocationReference]time.Time // stores last known existence time for each location reference
-	compressors           map[digest.Digest]string                                 // stores a compressor name, or blobinfocache.Unknown, for each digest
+	compressors           map[digest.Digest]string                                 // stores a compressor name, or blobinfocache.Unknown (not blobinfocache.UnknownCompression), for each digest
 }
 
 // New returns a BlobInfoCache implementation which is in-memory only.
@@ -49,6 +49,15 @@ func new2() *cache {
 		knownLocations:        map[locationKey]map[types.BICLocationReference]time.Time{},
 		compressors:           map[digest.Digest]string{},
 	}
+}
+
+// Open() sets up the cache for future accesses, potentially acquiring costly state. Each Open() must be paired with a Close().
+// Note that public callers may call the types.BlobInfoCache operations without Open()/Close().
+func (mem *cache) Open() {
+}
+
+// Close destroys state created by Open().
+func (mem *cache) Close() {
 }
 
 // UncompressedDigest returns an uncompressed digest corresponding to anyDigest.
@@ -114,6 +123,9 @@ func (mem *cache) RecordKnownLocation(transport types.ImageTransport, scope type
 func (mem *cache) RecordDigestCompressorName(blobDigest digest.Digest, compressorName string) {
 	mem.mutex.Lock()
 	defer mem.mutex.Unlock()
+	if previous, ok := mem.compressors[blobDigest]; ok && previous != compressorName {
+		logrus.Warnf("Compressor for blob with digest %s previously recorded as %s, now %s", blobDigest, previous, compressorName)
+	}
 	if compressorName == blobinfocache.UnknownCompression {
 		delete(mem.compressors, blobDigest)
 		return

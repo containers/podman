@@ -165,7 +165,7 @@ func (ob *optionalIntValue) String() string {
 	if !ob.present {
 		return "" // If the value is not present, just return an empty string, any other value wouldn't make sense.
 	}
-	return strconv.Itoa(int(ob.value))
+	return strconv.Itoa(ob.value)
 }
 
 // Type returns the int's type.

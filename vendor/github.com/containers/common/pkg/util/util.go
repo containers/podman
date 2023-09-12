@@ -2,6 +2,7 @@ package util
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -18,6 +19,8 @@ import (
 const (
 	UnknownPackage = "Unknown"
 )
+
+var ErrInterrupt = errors.New("interrupted")
 
 // Note: This function is copied from containers/podman libpod/util.go
 // Please see https://github.com/containers/common/pull/1460
