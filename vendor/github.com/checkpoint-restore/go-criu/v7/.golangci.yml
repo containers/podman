@@ -4,6 +4,14 @@ linters:
     - performance
     - unused
     - format
+  disable:
+    - musttag
+  enable:
+    - whitespace
+    - misspell
+    - dupl
+    - gosimple
+    - stylecheck
 
 linters-settings:
   exhaustive:

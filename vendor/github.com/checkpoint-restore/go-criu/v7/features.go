@@ -3,7 +3,7 @@ package criu
 import (
 	"fmt"
 
-	"github.com/checkpoint-restore/go-criu/v6/rpc"
+	"github.com/checkpoint-restore/go-criu/v7/rpc"
 )
 
 // Feature checking in go-criu is based on the libcriu feature checking function.
@@ -38,7 +38,7 @@ func (c *Criu) FeatureCheck(features *rpc.CriuFeatures) (*rpc.CriuFeatures, erro
 	}
 
 	if resp.GetType() != rpc.CriuReqType_FEATURE_CHECK {
-		return nil, fmt.Errorf("Unexpected CRIU RPC response")
+		return nil, fmt.Errorf("unexpected CRIU RPC response")
 	}
 
 	return features, nil

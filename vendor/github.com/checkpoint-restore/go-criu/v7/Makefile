@@ -34,8 +34,12 @@ stats/stats.pb.go: stats/stats.proto
 	protoc --go_out=. --go_opt=M$^=stats/ $^
 
 vendor:
-	GO111MODULE=on $(GO) mod tidy
-	GO111MODULE=on $(GO) mod vendor
-	GO111MODULE=on $(GO) mod verify
+	$(GO) mod tidy
+	$(GO) mod vendor
+	$(GO) mod verify
 
-.PHONY: build test lint vendor coverage codecov
+clean:
+	$(MAKE) -C crit/ clean
+	$(MAKE) -C test/ clean
+
+.PHONY: build test lint vendor coverage codecov clean
