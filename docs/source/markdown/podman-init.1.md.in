@@ -13,7 +13,7 @@ Initialize one or more containers.
 You may use container IDs or names as input.
 Initializing a container performs all tasks necessary for starting the container (mounting filesystems, creating an OCI spec, initializing the container network) but does not start the container.
 If a container is not initialized, the `podman start` and `podman run` commands initialize it automatically prior to starting it.
-This command is intended to be used for inspecting or modifying the container's filesystem or OCI spec prior to starting it.
+This command is intended to be used for inspecting a container's filesystem or OCI spec prior to starting it.
 This can be used to inspect the container before it runs, or debug why a container is failing to run.
 
 ## OPTIONS
