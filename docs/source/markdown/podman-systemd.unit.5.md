@@ -128,6 +128,9 @@ Valid options for `[Container]` are listed below:
 | Annotation="YXZ"               | --annotation "XYZ"                                   |
 | AutoUpdate=registry            | --label "io.containers.autoupdate=registry"          |
 | ContainerName=name             | --name name                                          |
+| DNS=192.168.55.1               | --dns=192.168.55.1                                   |
+| DNSSearch=foo.com              | --dns-search=foo.com                                 |
+| DNSOption=ndots:1              | --dns-option=ndots:1                                 |
 | DropCapability=CAP             | --cap-drop=CAP                                       |
 | Environment=foo=bar            | --env foo=bar                                        |
 | EnvironmentFile=/tmp/env       | --env-file /tmp/env                                  |
@@ -222,6 +225,24 @@ Indicates whether the container will be auto-updated ([podman-auto-update(1)](po
 The (optional) name of the Podman container. If this is not specified, the default value
 of `systemd-%N` is used, which is the same as the service name but with a `systemd-`
 prefix to avoid conflicts with user-managed containers.
+
+### `DNS=`
+
+Set network-scoped DNS resolver/nameserver for containers in this network.
+
+This key can be listed multiple times.
+
+### `DNSOption=`
+
+Set custom DNS options.
+
+This key can be listed multiple times.
+
+### `DNSSearch=`
+
+Set custom DNS search domains. Use **DNSSearch=.** to remove the search domain.
+
+This key can be listed multiple times.
 
 ### `DropCapability=`
 
@@ -705,6 +726,7 @@ Valid options for `[Network]` are listed below:
 | **[Network] options**         | **podman network create equivalent** |
 |-------------------------------|--------------------------------------|
 | DisableDNS=true               | --disable-dns                        |
+| DNS=192.168.55.1              | --dns=192.168.55.1                   |
 | Driver=bridge                 | --driver bridge                      |
 | Gateway=192.168.55.3          | --gateway 192.168.55.3               |
 | Internal=true                 | --internal                           |
@@ -724,6 +746,12 @@ Supported keys in `[Network]` section are:
 If enabled, disables the DNS plugin for this network.
 
 This is equivalent to the Podman `--disable-dns` option
+
+### `DNS=`
+
+Set network-scoped DNS resolver/nameserver for containers in this network.
+
+This key can be listed multiple times.
 
 ### `Driver=` (defaults to `bridge`)
 

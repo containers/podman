@@ -50,6 +50,9 @@ const (
 	KeyContainerName         = "ContainerName"
 	KeyCopy                  = "Copy"
 	KeyDevice                = "Device"
+	KeyDNS                   = "DNS"
+	KeyDNSOption             = "DNSOption"
+	KeyDNSSearch             = "DNSSearch"
 	KeyDropCapability        = "DropCapability"
 	KeyEnvironment           = "Environment"
 	KeyEnvironmentFile       = "EnvironmentFile"
@@ -134,6 +137,9 @@ var (
 		KeyAnnotation:            true,
 		KeyAutoUpdate:            true,
 		KeyContainerName:         true,
+		KeyDNS:                   true,
+		KeyDNSOption:             true,
+		KeyDNSSearch:             true,
 		KeyDropCapability:        true,
 		KeyEnvironment:           true,
 		KeyEnvironmentFile:       true,
@@ -208,6 +214,7 @@ var (
 	// Supported keys in "Network" group
 	supportedNetworkKeys = map[string]bool{
 		KeyLabel:             true,
+		KeyDNS:               true,
 		KeyNetworkDisableDNS: true,
 		KeyNetworkDriver:     true,
 		KeyNetworkGateway:    true,
@@ -483,6 +490,21 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 		podman.add("--security-opt", fmt.Sprintf("seccomp=%s", seccompProfile))
 	}
 
+	dns := container.LookupAll(ContainerGroup, KeyDNS)
+	for _, ipAddr := range dns {
+		podman.addf("--dns=%s", ipAddr)
+	}
+
+	dnsOptions := container.LookupAll(ContainerGroup, KeyDNSOption)
+	for _, dnsOption := range dnsOptions {
+		podman.addf("--dns-option=%s", dnsOption)
+	}
+
+	dnsSearches := container.LookupAll(ContainerGroup, KeyDNSSearch)
+	for _, dnsSearch := range dnsSearches {
+		podman.addf("--dns-search=%s", dnsSearch)
+	}
+
 	dropCaps := container.LookupAllStrv(ContainerGroup, KeyDropCapability)
 
 	for _, caps := range dropCaps {
@@ -746,6 +768,11 @@ func ConvertNetwork(network *parser.UnitFile, name string) (*parser.UnitFile, st
 
 	if disableDNS := network.LookupBooleanWithDefault(NetworkGroup, KeyNetworkDisableDNS, false); disableDNS {
 		podman.add("--disable-dns")
+	}
+
+	dns := network.LookupAll(NetworkGroup, KeyDNS)
+	for _, ipAddr := range dns {
+		podman.addf("--dns=%s", ipAddr)
 	}
 
 	driver, ok := network.Lookup(NetworkGroup, KeyNetworkDriver)

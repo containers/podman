@@ -577,6 +577,9 @@ BOGUS=foo
 		Entry("capabilities2.container", "capabilities2.container", 0, ""),
 		Entry("devices.container", "devices.container", 0, ""),
 		Entry("disableselinux.container", "disableselinux.container", 0, ""),
+		Entry("dns-options.container", "dns-options.container", 0, ""),
+		Entry("dns-search.container", "dns-search.container", 0, ""),
+		Entry("dns.container", "dns.container", 0, ""),
 		Entry("env-file.container", "env-file.container", 0, ""),
 		Entry("env-host-false.container", "env-host-false.container", 0, ""),
 		Entry("env-host.container", "env-host.container", 0, ""),
@@ -654,6 +657,7 @@ BOGUS=foo
 
 		Entry("Network - Basic", "basic.network", 0, ""),
 		Entry("Network - Disable DNS", "disable-dns.network", 0, ""),
+		Entry("Network - DNS", "dns.network", 0, ""),
 		Entry("Network - Driver", "driver.network", 0, ""),
 		Entry("Network - Gateway not enough Subnet", "gateway.less-subnet.network", 1, "converting \"gateway.less-subnet.network\": cannot set more gateways than subnets"),
 		Entry("Network - Gateway without Subnet", "gateway.no-subnet.network", 1, "converting \"gateway.no-subnet.network\": cannot set gateway or range without subnet"),
