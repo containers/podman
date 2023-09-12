@@ -20,6 +20,8 @@ Systemd will automatically create the container when the user session is started
 
 Administrators can use volumes to expose specific host data from the host system to the user, without the user being exposed to other parts of the system.
 
+Timeout for podmansh can be set using the `podmansh_timeout` option in containers.conf.
+
 ## Setup
 Create user login session using useradd while running as root.
 
@@ -126,7 +128,7 @@ _EOF
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-exec(1)](podman-exec.1.md)**, **quadlet(5)**
+**[containers.conf(5)](containers.conf.5.md)**, **[podman(1)](podman.1.md)**, **[podman-exec(1)](podman-exec.1.md)**, **quadlet(5)**
 
 ## HISTORY
 May 2023, Originally compiled by Dan Walsh <dwalsh@redhat.com>

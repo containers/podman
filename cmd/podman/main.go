@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	_ "github.com/containers/podman/v4/cmd/podman/completion"
@@ -43,9 +44,7 @@ func main() {
 		(len(os.Args[0]) > 0 && filepath.Base(os.Args[0][1:]) == registry.PodmanSh) {
 		shell := strings.TrimPrefix(os.Args[0], "-")
 
-		// The wait timeout will soon be made configurable via the
-		// upcoming `podmansh_timeout` option in containers.conf
-		args := []string{shell, "exec", "-i", "--wait", "30"}
+		args := []string{shell, "exec", "-i", "--wait", strconv.FormatUint(uint64(registry.PodmanConfig().ContainersConfDefaultsRO.Engine.PodmanshTimeout), 10)}
 		if term.IsTerminal(0) || term.IsTerminal(1) || term.IsTerminal(2) {
 			args = append(args, "-t")
 		}
