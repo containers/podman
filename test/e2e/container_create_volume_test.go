@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
+	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 func buildDataVolumeImage(pTest *PodmanTestIntegration, image, data, dest string) {
@@ -40,7 +40,7 @@ func createContainersConfFile(pTest *PodmanTestIntegration) {
 func checkDataVolumeContainer(pTest *PodmanTestIntegration, image, cont, dest, data string) {
 	create := pTest.Podman([]string{"create", "--name", cont, image})
 	create.WaitWithDefaultTimeout()
-	Expect(create).Should(Exit(0))
+	Expect(create).Should(ExitCleanly())
 
 	inspect := pTest.InspectContainer(cont)
 	Expect(inspect).To(HaveLen(1))
@@ -51,7 +51,7 @@ func checkDataVolumeContainer(pTest *PodmanTestIntegration, image, cont, dest, d
 
 	volList := pTest.Podman([]string{"volume", "list", "--quiet"})
 	volList.WaitWithDefaultTimeout()
-	Expect(volList).Should(Exit(0))
+	Expect(volList).Should(ExitCleanly())
 	Expect(volList.OutputToStringArray()).To(HaveLen(1))
 	Expect(volList.OutputToStringArray()[0]).To(Equal(mntName))
 
@@ -98,6 +98,6 @@ var _ = Describe("Podman create data volume", func() {
 
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "echo"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 })
