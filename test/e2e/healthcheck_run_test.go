@@ -65,7 +65,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	It("podman healthcheck from image's config (not container config)", func() {
 		// Regression test for #12226: a health check may be defined in
 		// the container or the container-config of an image.
-		session := podmanTest.Podman([]string{"create", "--name", "hc", "quay.io/libpod/healthcheck:config-only", "ls"})
+		session := podmanTest.Podman([]string{"create", "-q", "--name", "hc", "quay.io/libpod/healthcheck:config-only", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		hc := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Config.Healthcheck}}", "hc"})
@@ -110,7 +110,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman healthcheck that should fail", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", "quay.io/libpod/badhealthcheck:latest"})
+		session := podmanTest.Podman([]string{"run", "-q", "-dt", "--name", "hc", "quay.io/libpod/badhealthcheck:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 

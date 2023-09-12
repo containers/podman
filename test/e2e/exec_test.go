@@ -312,7 +312,8 @@ var _ = Describe("Podman exec", func() {
 	It("podman exec terminal doesn't hang", FlakeAttempts(3), func() {
 		setup := podmanTest.Podman([]string{"run", "-dti", "--name", "test1", fedoraMinimal, "sleep", "+Inf"})
 		setup.WaitWithDefaultTimeout()
-		Expect(setup).Should(ExitCleanly())
+		Expect(setup).Should(Exit(0))
+		Expect(setup.ErrorToString()).To(ContainSubstring("The input device is not a TTY. The --tty and --interactive flags might not work properly"))
 
 		for i := 0; i < 5; i++ {
 			session := podmanTest.Podman([]string{"exec", "-ti", "test1", "true"})
@@ -453,7 +454,7 @@ var _ = Describe("Podman exec", func() {
 		Expect(ctr1).Should(ExitCleanly())
 
 		imgName := "img1"
-		commit := podmanTest.Podman([]string{"commit", ctrName1, imgName})
+		commit := podmanTest.Podman([]string{"commit", "-q", ctrName1, imgName})
 		commit.WaitWithDefaultTimeout()
 		Expect(commit).Should(ExitCleanly())
 
@@ -541,7 +542,7 @@ RUN useradd -u 1000 auser`, fedoraMinimal)
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring(secretsString))
 
-		session = podmanTest.Podman([]string{"commit", "secr", "foobar.com/test1-image:latest"})
+		session = podmanTest.Podman([]string{"commit", "-q", "secr", "foobar.com/test1-image:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 

@@ -8,6 +8,7 @@ import (
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 func setupContainersConfWithSystemConnections() {
@@ -181,8 +182,9 @@ var _ = Describe("podman farm", func() {
 			cmd = []string{"farm", "rm", "farm1", "nonexistent-farm"}
 			session = podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(ExitCleanly())
+			Expect(session).Should(Exit(0))
 			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"farm1\" deleted"))
+			Expect(session.ErrorToString()).Should(ContainSubstring("doesn't exist; nothing to remove"))
 
 			cfg, err = config.ReadCustomConfig()
 			Expect(err).ShouldNot(HaveOccurred())

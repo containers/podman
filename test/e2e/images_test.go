@@ -199,7 +199,7 @@ WORKDIR /test
 		// Prevent regressing on issue #7651: error parsing name that includes a digest
 		// component as if were a name that includes tag component.
 		digestPullAndList := func(noneTag bool) {
-			session := podmanTest.Podman([]string{"pull", ALPINEAMD64DIGEST})
+			session := podmanTest.Podman([]string{"pull", "-q", ALPINEAMD64DIGEST})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
 
@@ -217,7 +217,7 @@ WORKDIR /test
 		// the additional image store we're using.  Pull the same image by another name to
 		// copy an entry for the image into read-write storage so that the name can be
 		// attached to it.
-		session := podmanTest.Podman([]string{"pull", ALPINELISTTAG})
+		session := podmanTest.Podman([]string{"pull", "-q", ALPINELISTTAG})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		digestPullAndList(false)
