@@ -542,7 +542,7 @@ func (c *CgroupControl) Stat() (*cgroups.Stats, error) {
 	return &m, nil
 }
 
-func readCgroup2MapPath(path string) (map[string][]string, error) {
+func readCgroupMapPath(path string) (map[string][]string, error) {
 	ret := map[string][]string{}
 	f, err := os.Open(path)
 	if err != nil {
@@ -570,5 +570,5 @@ func readCgroup2MapPath(path string) (map[string][]string, error) {
 func readCgroup2MapFile(ctr *CgroupControl, name string) (map[string][]string, error) {
 	p := filepath.Join(cgroupRoot, ctr.config.Path, name)
 
-	return readCgroup2MapPath(p)
+	return readCgroupMapPath(p)
 }
