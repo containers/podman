@@ -11,7 +11,7 @@ import (
 
 //sys hcsImportLayer(layerPath string, sourceFolderPath string, layerData string) (hr error) = computestorage.HcsImportLayer?
 //sys hcsExportLayer(layerPath string, exportFolderPath string, layerData string, options string) (hr error) = computestorage.HcsExportLayer?
-//sys hcsDestroyLayer(layerPath string) (hr error) = computestorage.HcsDestoryLayer?
+//sys hcsDestroyLayer(layerPath string) (hr error) = computestorage.HcsDestroyLayer?
 //sys hcsSetupBaseOSLayer(layerPath string, handle windows.Handle, options string) (hr error) = computestorage.HcsSetupBaseOSLayer?
 //sys hcsInitializeWritableLayer(writableLayerPath string, layerData string, options string) (hr error) = computestorage.HcsInitializeWritableLayer?
 //sys hcsAttachLayerStorageFilter(layerPath string, layerData string) (hr error) = computestorage.HcsAttachLayerStorageFilter?

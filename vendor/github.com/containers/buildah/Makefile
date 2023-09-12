@@ -39,7 +39,7 @@ LIBSECCOMP_COMMIT := release-2.3
 
 EXTRA_LDFLAGS ?=
 BUILDAH_LDFLAGS := $(GO_LDFLAGS) '-X main.GitCommit=$(GIT_COMMIT) -X main.buildInfo=$(SOURCE_DATE_EPOCH) -X main.cniVersion=$(CNI_COMMIT) $(EXTRA_LDFLAGS)'
-SOURCES=*.go imagebuildah/*.go bind/*.go chroot/*.go copier/*.go define/*.go docker/*.go internal/parse/*.go internal/source/*.go internal/util/*.go manifests/*.go pkg/chrootuser/*.go pkg/cli/*.go pkg/completion/*.go pkg/formats/*.go pkg/overlay/*.go pkg/parse/*.go pkg/rusage/*.go pkg/sshagent/*.go pkg/umask/*.go pkg/util/*.go util/*.go
+SOURCES=*.go imagebuildah/*.go bind/*.go chroot/*.go copier/*.go define/*.go docker/*.go internal/mkcw/*.go internal/mkcw/types/*.go internal/parse/*.go internal/source/*.go internal/util/*.go manifests/*.go pkg/chrootuser/*.go pkg/cli/*.go pkg/completion/*.go pkg/formats/*.go pkg/overlay/*.go pkg/parse/*.go pkg/rusage/*.go pkg/sshagent/*.go pkg/umask/*.go pkg/util/*.go util/*.go
 
 LINTFLAGS ?=
 
@@ -69,14 +69,26 @@ static:
 	mkdir -p ./bin
 	cp -rfp ./result/bin/* ./bin/
 
-bin/buildah: $(SOURCES) cmd/buildah/*.go
+bin/buildah: $(SOURCES) cmd/buildah/*.go internal/mkcw/embed/entrypoint.gz
 	$(GO_BUILD) $(BUILDAH_LDFLAGS) $(GO_GCFLAGS) "$(GOGCFLAGS)" -o $@ $(BUILDFLAGS) ./cmd/buildah
+
+ifneq ($(shell as --version | grep x86_64),)
+internal/mkcw/embed/entrypoint: internal/mkcw/embed/entrypoint.s
+	$(AS) -o $(patsubst %.s,%.o,$^) $^
+	$(LD) -o $@ $(patsubst %.s,%.o,$^)
+	strip $@
+else
+.PHONY: internal/mkcw/embed/entrypoint
+endif
+
+internal/mkcw/embed/entrypoint.gz: internal/mkcw/embed/entrypoint
+	$(RM) $@
+	gzip -k $^
 
 .PHONY: buildah
 buildah: bin/buildah
 
-# TODO: remove `grep -v loong64` from `ALL_CROSS_TARGETS` once go.etcd.io/bbolt 1.3.7 is out.
-ALL_CROSS_TARGETS := $(addprefix bin/buildah.,$(subst /,.,$(shell $(GO) tool dist list | grep -v loong64)))
+ALL_CROSS_TARGETS := $(addprefix bin/buildah.,$(subst /,.,$(shell $(GO) tool dist list)))
 LINUX_CROSS_TARGETS := $(filter bin/buildah.linux.%,$(ALL_CROSS_TARGETS))
 DARWIN_CROSS_TARGETS := $(filter bin/buildah.darwin.%,$(ALL_CROSS_TARGETS))
 WINDOWS_CROSS_TARGETS := $(addsuffix .exe,$(filter bin/buildah.windows.%,$(ALL_CROSS_TARGETS)))

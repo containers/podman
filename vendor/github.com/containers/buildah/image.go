@@ -16,6 +16,7 @@ import (
 	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/docker"
+	"github.com/containers/buildah/internal/mkcw"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
@@ -69,6 +70,7 @@ type containerImageRef struct {
 	annotations           map[string]string
 	preferredManifestType string
 	squash                bool
+	confidentialWorkload  ConfidentialWorkloadOptions
 	omitHistory           bool
 	emptyLayer            bool
 	idMappingOptions      *define.IDMappingOptions
@@ -158,6 +160,52 @@ func computeLayerMIMEType(what string, layerCompression archive.Compression) (om
 	return omediaType, dmediaType, nil
 }
 
+// Extract the container's whole filesystem as a filesystem image, wrapped
+// in LUKS-compatible encryption.
+func (i *containerImageRef) extractConfidentialWorkloadFS(options ConfidentialWorkloadOptions) (io.ReadCloser, error) {
+	var image v1.Image
+	if err := json.Unmarshal(i.oconfig, &image); err != nil {
+		return nil, fmt.Errorf("recreating OCI configuration for %q: %w", i.containerID, err)
+	}
+	mountPoint, err := i.store.Mount(i.containerID, i.mountLabel)
+	if err != nil {
+		return nil, fmt.Errorf("mounting container %q: %w", i.containerID, err)
+	}
+	archiveOptions := mkcw.ArchiveOptions{
+		AttestationURL:           options.AttestationURL,
+		CPUs:                     options.CPUs,
+		Memory:                   options.Memory,
+		TempDir:                  options.TempDir,
+		TeeType:                  options.TeeType,
+		IgnoreAttestationErrors:  options.IgnoreAttestationErrors,
+		WorkloadID:               options.WorkloadID,
+		DiskEncryptionPassphrase: options.DiskEncryptionPassphrase,
+		Slop:                     options.Slop,
+		FirmwareLibrary:          options.FirmwareLibrary,
+	}
+	rc, _, err := mkcw.Archive(mountPoint, &image, archiveOptions)
+	if err != nil {
+		if _, err2 := i.store.Unmount(i.containerID, false); err2 != nil {
+			logrus.Debugf("unmounting container %q: %v", i.containerID, err2)
+		}
+		return nil, fmt.Errorf("converting rootfs %q: %w", i.containerID, err)
+	}
+	return ioutils.NewReadCloserWrapper(rc, func() error {
+		if err = rc.Close(); err != nil {
+			err = fmt.Errorf("closing tar archive of container %q: %w", i.containerID, err)
+		}
+		if _, err2 := i.store.Unmount(i.containerID, false); err == nil {
+			if err2 != nil {
+				err2 = fmt.Errorf("unmounting container %q: %w", i.containerID, err2)
+			}
+			err = err2
+		} else {
+			logrus.Debugf("unmounting container %q: %v", i.containerID, err2)
+		}
+		return err
+	}), nil
+}
+
 // Extract the container's whole filesystem as if it were a single layer.
 // Takes ExtractRootfsOptions as argument which allows caller to configure
 // preserve nature of setuid,setgid,sticky and extended attributes
@@ -221,7 +269,7 @@ func (i *containerImageRef) createConfigsAndManifests() (v1.Image, v1.Manifest, 
 	oimage.RootFS.DiffIDs = []digest.Digest{}
 	// Only clear the history if we're squashing, otherwise leave it be so that we can append
 	// entries to it.
-	if i.squash || i.omitHistory {
+	if i.confidentialWorkload.Convert || i.squash || i.omitHistory {
 		oimage.History = []v1.History{}
 	}
 
@@ -237,6 +285,24 @@ func (i *containerImageRef) createConfigsAndManifests() (v1.Image, v1.Manifest, 
 	}
 	// Always replace this value, since we're newer than our base image.
 	dimage.Created = created
+	// If we're producing a confidential workload, override the command and
+	// assorted other settings that aren't expected to work correctly.
+	if i.confidentialWorkload.Convert {
+		dimage.Config.Entrypoint = []string{"/entrypoint"}
+		oimage.Config.Entrypoint = []string{"/entrypoint"}
+		dimage.Config.Cmd = nil
+		oimage.Config.Cmd = nil
+		dimage.Config.User = ""
+		oimage.Config.User = ""
+		dimage.Config.WorkingDir = ""
+		oimage.Config.WorkingDir = ""
+		dimage.Config.Healthcheck = nil
+		dimage.Config.Shell = nil
+		dimage.Config.Volumes = nil
+		oimage.Config.Volumes = nil
+		dimage.Config.ExposedPorts = nil
+		oimage.Config.ExposedPorts = nil
+	}
 	// Clear the list of diffIDs, since we always repopulate it.
 	dimage.RootFS = &docker.V2S2RootFS{}
 	dimage.RootFS.Type = docker.TypeLayers
@@ -244,7 +310,7 @@ func (i *containerImageRef) createConfigsAndManifests() (v1.Image, v1.Manifest, 
 	// Only clear the history if we're squashing, otherwise leave it be so
 	// that we can append entries to it.  Clear the parent, too, we no
 	// longer include its layers and history.
-	if i.squash || i.omitHistory {
+	if i.confidentialWorkload.Convert || i.squash || i.omitHistory {
 		dimage.Parent = ""
 		dimage.History = []docker.V2S2History{}
 	}
@@ -296,7 +362,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	for layer != nil {
 		layers = append(append([]string{}, layerID), layers...)
 		layerID = layer.Parent
-		if layerID == "" || i.squash {
+		if layerID == "" || i.confidentialWorkload.Convert || i.squash {
 			err = nil
 			break
 		}
@@ -333,7 +399,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	blobLayers := make(map[digest.Digest]blobLayerInfo)
 	for _, layerID := range layers {
 		what := fmt.Sprintf("layer %q", layerID)
-		if i.squash {
+		if i.confidentialWorkload.Convert || i.squash {
 			what = fmt.Sprintf("container %q", i.containerID)
 		}
 		// The default layer media type assumes no compression.
@@ -351,7 +417,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		}
 		// If we already know the digest of the contents of parent
 		// layers, reuse their blobsums, diff IDs, and sizes.
-		if !i.squash && layerID != i.layerID && layer.UncompressedDigest != "" {
+		if !i.confidentialWorkload.Convert && !i.squash && layerID != i.layerID && layer.UncompressedDigest != "" {
 			layerBlobSum := layer.UncompressedDigest
 			layerBlobSize := layer.UncompressedSize
 			diffID := layer.UncompressedDigest
@@ -389,7 +455,13 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		}
 		var rc io.ReadCloser
 		var errChan chan error
-		if i.squash {
+		if i.confidentialWorkload.Convert {
+			// Convert the root filesystem into an encrypted disk image.
+			rc, err = i.extractConfidentialWorkloadFS(i.confidentialWorkload)
+			if err != nil {
+				return nil, err
+			}
+		} else if i.squash {
 			// Extract the root filesystem as a single layer.
 			rc, errChan, err = i.extractRootfs(ExtractRootfsOptions{})
 			if err != nil {
@@ -842,6 +914,7 @@ func (b *Builder) makeContainerImageRef(options CommitOptions) (*containerImageR
 		annotations:           b.Annotations(),
 		preferredManifestType: manifestType,
 		squash:                options.Squash,
+		confidentialWorkload:  options.ConfidentialWorkloadOptions,
 		omitHistory:           options.OmitHistory,
 		emptyLayer:            options.EmptyLayer && !options.Squash,
 		idMappingOptions:      &b.IDMappingOptions,

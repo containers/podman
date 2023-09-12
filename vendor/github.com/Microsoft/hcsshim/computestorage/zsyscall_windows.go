@@ -43,7 +43,7 @@ var (
 	modcomputestorage = windows.NewLazySystemDLL("computestorage.dll")
 
 	procHcsAttachLayerStorageFilter = modcomputestorage.NewProc("HcsAttachLayerStorageFilter")
-	procHcsDestoryLayer             = modcomputestorage.NewProc("HcsDestoryLayer")
+	procHcsDestroyLayer             = modcomputestorage.NewProc("HcsDestroyLayer")
 	procHcsDetachLayerStorageFilter = modcomputestorage.NewProc("HcsDetachLayerStorageFilter")
 	procHcsExportLayer              = modcomputestorage.NewProc("HcsExportLayer")
 	procHcsFormatWritableLayerVhd   = modcomputestorage.NewProc("HcsFormatWritableLayerVhd")
@@ -93,11 +93,11 @@ func hcsDestroyLayer(layerPath string) (hr error) {
 }
 
 func _hcsDestroyLayer(layerPath *uint16) (hr error) {
-	hr = procHcsDestoryLayer.Find()
+	hr = procHcsDestroyLayer.Find()
 	if hr != nil {
 		return
 	}
-	r0, _, _ := syscall.Syscall(procHcsDestoryLayer.Addr(), 1, uintptr(unsafe.Pointer(layerPath)), 0, 0)
+	r0, _, _ := syscall.Syscall(procHcsDestroyLayer.Addr(), 1, uintptr(unsafe.Pointer(layerPath)), 0, 0)
 	if int32(r0) < 0 {
 		if r0&0x1fff0000 == 0x00070000 {
 			r0 &= 0xffff

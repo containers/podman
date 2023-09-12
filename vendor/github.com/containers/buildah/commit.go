@@ -105,6 +105,10 @@ type CommitOptions struct {
 	// integers in the slice represent 0-indexed layer indices, with support for negative
 	// indexing. i.e. 0 is the first layer, -1 is the last (top-most) layer.
 	OciEncryptLayers *[]int
+	// ConfidentialWorkloadOptions is used to force the output image's rootfs to contain a
+	// LUKS-compatibly encrypted disk image (for use with krun) instead of the usual
+	// contents of a rootfs.
+	ConfidentialWorkloadOptions ConfidentialWorkloadOptions
 	// UnsetEnvs is a list of environments to not add to final image.
 	// Deprecated: use UnsetEnv() before committing instead.
 	UnsetEnvs []string

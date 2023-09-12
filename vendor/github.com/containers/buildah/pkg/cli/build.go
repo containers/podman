@@ -296,6 +296,13 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 			iopts.Quiet = true
 		}
 	}
+	var confidentialWorkloadOptions define.ConfidentialWorkloadOptions
+	if c.Flag("cw").Changed {
+		confidentialWorkloadOptions, err = parse.GetConfidentialWorkloadOptions(iopts.CWOptions)
+		if err != nil {
+			return options, nil, nil, err
+		}
+	}
 	var cacheTo []reference.Named
 	var cacheFrom []reference.Named
 	cacheTo = nil
@@ -364,6 +371,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		CacheTTL:                cacheTTL,
 		CNIConfigDir:            iopts.CNIConfigDir,
 		CNIPluginPath:           iopts.CNIPlugInPath,
+		ConfidentialWorkload:    confidentialWorkloadOptions,
 		CPPFlags:                iopts.CPPFlags,
 		CommonBuildOpts:         commonOpts,
 		Compression:             compression,
@@ -383,6 +391,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		Isolation:               isolation,
 		Jobs:                    &iopts.Jobs,
 		Labels:                  iopts.Label,
+		LayerLabels:             iopts.LayerLabel,
 		Layers:                  layers,
 		LogFile:                 iopts.Logfile,
 		LogRusage:               iopts.LogRusage,

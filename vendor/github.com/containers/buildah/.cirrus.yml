@@ -32,7 +32,7 @@ env:
     DEBIAN_NAME: "debian-13"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20230614t132754z-f38f37d13"
+    IMAGE_SUFFIX: "c20230816t191118z-f38f37d13"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
@@ -112,7 +112,6 @@ smoke_task:
 vendor_task:
     name: "Test Vendoring"
     alias: vendor
-    only_if: &not_multiarch $CIRRUS_CRON != 'multiarch'
 
     env:
         CIRRUS_WORKING_DIR: "/var/tmp/go/src/github.com/containers/buildah"
@@ -137,8 +136,7 @@ cross_build_task:
     name: "Cross Compile"
     alias: cross_build
     only_if: >-
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CRON != 'multiarch'
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
 
     osx_instance:
         image: ghcr.io/cirruslabs/macos-ventura-base:latest
@@ -160,8 +158,7 @@ unit_task:
     alias: unit
     only_if: &not_build_docs >-
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
-        $CIRRUS_CRON != 'multiarch'
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
     depends_on: &smoke_vendor_cross
       - smoke
       - vendor
@@ -322,52 +319,6 @@ in_podman_task:
         <<: *standardlogs
 
 
-image_build_task: &image-build
-    name: "Build multi-arch $FLAVOR"
-    alias: image_build
-    # Some of these container images take > 1h to build, limit
-    # this task to a specific Cirrus-Cron entry with this name.
-    only_if: $CIRRUS_CRON == 'multiarch'
-    depends_on:
-        - smoke
-    timeout_in: 120m  # emulation is sssllllooooowwww
-    gce_instance:
-        <<: *standardvm
-        image_name: build-push-${IMAGE_SUFFIX}
-        # More muscle required for parallel multi-arch build
-        type: "n2-standard-4"
-    matrix:
-        - env:
-            FLAVOR: upstream
-        - env:
-            FLAVOR: testing
-        - env:
-            FLAVOR: stable
-    env:
-        DISTRO_NV: "${FEDORA_NAME}"  # Required for repo cache extraction
-        BUILDAH_USERNAME: ENCRYPTED[70e1d4f026cba5d82fc067944baab10f7c71c64bb6b75fce4eeb5c106694b3bbc8e08f8a1b926d6e03e85cf4e21833bb]
-        BUILDAH_PASSWORD: ENCRYPTED[2dc7f4f623bfc856e1d5030df263b9e48ddab39abacea7a8bc714179c188df15fc0a5bb5d3414a24637d4e39aa51b7b5]
-        CONTAINERS_USERNAME: ENCRYPTED[88cd93c753f78d70e4beb5dbebd4402d682daf45793d7e0fe8b75b358f768e8734aef3f130ffb4ebca9bdea8d220a188]
-        CONTAINERS_PASSWORD: ENCRYPTED[886cf4cc126e50b2fd7f2792235a22bb79e4b81db43f803a6214a38d3fd6c04cd4e64570b562cb32b04e5fbc435404b6]
-    main_script:
-        - source /etc/automation_environment
-        - main.sh $CIRRUS_REPO_CLONE_URL contrib/buildahimage $FLAVOR
-
-
-test_image_build_task:
-    <<: *image-build
-    alias: test_image_build
-    # Allow this to run inside a PR w/ [CI:BUILD] only.
-    only_if: $CIRRUS_PR != '' && $CIRRUS_CHANGE_TITLE =~ '.*CI:BUILD.*'
-    # This takes a LONG time, only run when requested.  N/B: Any task
-    # made to depend on this one will block FOREVER unless triggered.
-    # DO NOT ADD THIS TASK AS DEPENDENCY FOR `success_task`.
-    trigger_type: manual
-    # Overwrite all 'env', don't push anything, just do the build.
-    env:
-        DRYRUN: 1
-
-
 # Status aggregator for all tests.  This task simply ensures a defined
 # set of tasks all passed, and allows confirming that based on the status
 # of this task.
@@ -384,7 +335,6 @@ success_task:
       - cross_build
       - integration
       - in_podman
-      - image_build
 
     container:
         image: "quay.io/libpod/alpine:latest"

@@ -107,6 +107,7 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 			GIDMap:         gidmap,
 		},
 		NetworkInterface: netInt,
+		CommonBuildOpts:  &CommonBuildOptions{},
 	}
 
 	if err := builder.initConfig(ctx, image, systemContext); err != nil {

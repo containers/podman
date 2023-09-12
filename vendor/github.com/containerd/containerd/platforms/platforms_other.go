@@ -28,3 +28,7 @@ func newDefaultMatcher(platform specs.Platform) Matcher {
 		Platform: Normalize(platform),
 	}
 }
+
+func GetWindowsOsVersion() string {
+	return ""
+}

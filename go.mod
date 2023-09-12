@@ -12,14 +12,14 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.6.1
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
-	github.com/containers/buildah v1.31.1-0.20230722114901-5ece066f82c6
-	github.com/containers/common v0.55.1-0.20230912125309-7fa3c55bd517
+	github.com/containers/buildah v1.31.1-0.20230914090547-70d8ab94953a
+	github.com/containers/common v0.56.0
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.27.1-0.20230911141411-81c35e010bab
+	github.com/containers/image/v5 v5.28.0
 	github.com/containers/libhvee v0.4.1-0.20230905135638-56fb23533417
 	github.com/containers/ocicrypt v1.1.8
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.50.0
+	github.com/containers/storage v1.50.2
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.4.3
 	github.com/crc-org/vfkit v0.1.1
@@ -78,17 +78,19 @@ require (
 require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
-	github.com/Microsoft/hcsshim v0.11.0 // indirect
+	github.com/Microsoft/hcsshim v0.12.0-rc.0 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
+	github.com/aead/serpent v0.0.0-20160714141033-fba169763ea6 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/bytedance/sonic v1.9.1 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
-	github.com/containerd/cgroups v1.1.0 // indirect
-	github.com/containerd/containerd v1.7.5 // indirect
+	github.com/containerd/cgroups/v3 v3.0.2 // indirect
+	github.com/containerd/containerd v1.7.6 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.14.3 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
+	github.com/containers/luksy v0.0.0-20230808154129-d2d74a56682f // indirect
 	github.com/coreos/go-oidc/v3 v3.6.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20230710064741-aa7fe85c7dbd // indirect
@@ -191,7 +193,7 @@ require (
 	golang.org/x/tools v0.12.1-0.20230815132531-74c255bcf846 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230711160842-782d3b101e98 // indirect
-	google.golang.org/grpc v1.56.2 // indirect
+	google.golang.org/grpc v1.57.0 // indirect
 	gopkg.in/go-jose/go-jose.v2 v2.6.1 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

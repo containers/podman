@@ -17,9 +17,8 @@ github.com/Microsoft/go-winio/internal/fs
 github.com/Microsoft/go-winio/internal/socket
 github.com/Microsoft/go-winio/internal/stringbuffer
 github.com/Microsoft/go-winio/pkg/guid
-github.com/Microsoft/go-winio/tools/mkwinsyscall
 github.com/Microsoft/go-winio/vhd
-# github.com/Microsoft/hcsshim v0.11.0
+# github.com/Microsoft/hcsshim v0.12.0-rc.0
 ## explicit; go 1.18
 github.com/Microsoft/hcsshim
 github.com/Microsoft/hcsshim/computestorage
@@ -52,6 +51,9 @@ github.com/VividCortex/ewma
 # github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 ## explicit
 github.com/acarl005/stripansi
+# github.com/aead/serpent v0.0.0-20160714141033-fba169763ea6
+## explicit
+github.com/aead/serpent
 # github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 ## explicit; go 1.13
 github.com/asaskevich/govalidator
@@ -106,10 +108,10 @@ github.com/container-orchestrated-devices/container-device-interface/internal/va
 github.com/container-orchestrated-devices/container-device-interface/pkg/cdi
 github.com/container-orchestrated-devices/container-device-interface/pkg/parser
 github.com/container-orchestrated-devices/container-device-interface/specs-go
-# github.com/containerd/cgroups v1.1.0
-## explicit; go 1.17
-github.com/containerd/cgroups/stats/v1
-# github.com/containerd/containerd v1.7.5
+# github.com/containerd/cgroups/v3 v3.0.2
+## explicit; go 1.18
+github.com/containerd/cgroups/v3/cgroup1/stats
+# github.com/containerd/containerd v1.7.6
 ## explicit; go 1.19
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/log
@@ -134,7 +136,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.3.0
 ## explicit; go 1.20
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.31.1-0.20230722114901-5ece066f82c6
+# github.com/containers/buildah v1.31.1-0.20230914090547-70d8ab94953a
 ## explicit; go 1.18
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -144,8 +146,12 @@ github.com/containers/buildah/define
 github.com/containers/buildah/docker
 github.com/containers/buildah/imagebuildah
 github.com/containers/buildah/internal
+github.com/containers/buildah/internal/mkcw
+github.com/containers/buildah/internal/mkcw/types
 github.com/containers/buildah/internal/parse
+github.com/containers/buildah/internal/tmpdir
 github.com/containers/buildah/internal/util
+github.com/containers/buildah/internal/volumes
 github.com/containers/buildah/pkg/blobcache
 github.com/containers/buildah/pkg/chrootuser
 github.com/containers/buildah/pkg/cli
@@ -156,8 +162,9 @@ github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
+github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.55.1-0.20230912125309-7fa3c55bd517
+# github.com/containers/common v0.56.0
 ## explicit; go 1.18
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -216,7 +223,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.27.1-0.20230911141411-81c35e010bab
+# github.com/containers/image/v5 v5.28.0
 ## explicit; go 1.19
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -296,6 +303,9 @@ github.com/containers/libhvee/pkg/wmiext
 # github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01
 ## explicit
 github.com/containers/libtrust
+# github.com/containers/luksy v0.0.0-20230808154129-d2d74a56682f
+## explicit; go 1.20
+github.com/containers/luksy
 # github.com/containers/ocicrypt v1.1.8
 ## explicit; go 1.20
 github.com/containers/ocicrypt
@@ -323,7 +333,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.50.0
+# github.com/containers/storage v1.50.2
 ## explicit; go 1.19
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -593,9 +603,7 @@ github.com/goccy/go-json/internal/runtime
 github.com/godbus/dbus/v5
 # github.com/gogo/protobuf v1.3.2
 ## explicit; go 1.15
-github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
-github.com/gogo/protobuf/protoc-gen-gogo/descriptor
 # github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 ## explicit
 github.com/golang/groupcache/lru
@@ -1044,6 +1052,8 @@ go.opentelemetry.io/otel/trace
 golang.org/x/arch/x86/x86asm
 # golang.org/x/crypto v0.13.0
 ## explicit; go 1.17
+golang.org/x/crypto/argon2
+golang.org/x/crypto/blake2b
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
 golang.org/x/crypto/chacha20
@@ -1061,6 +1071,7 @@ golang.org/x/crypto/openpgp/errors
 golang.org/x/crypto/openpgp/packet
 golang.org/x/crypto/openpgp/s2k
 golang.org/x/crypto/pbkdf2
+golang.org/x/crypto/ripemd160
 golang.org/x/crypto/salsa20/salsa
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
@@ -1068,6 +1079,8 @@ golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
+golang.org/x/crypto/twofish
+golang.org/x/crypto/xts
 # golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 ## explicit; go 1.20
 golang.org/x/exp/constraints
@@ -1167,7 +1180,7 @@ google.golang.org/appengine/urlfetch
 # google.golang.org/genproto/googleapis/rpc v0.0.0-20230711160842-782d3b101e98
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.56.2
+# google.golang.org/grpc v1.57.0
 ## explicit; go 1.17
 google.golang.org/grpc
 google.golang.org/grpc/attributes
