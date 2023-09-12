@@ -173,3 +173,15 @@ Note: **N/A** means that the option cannot be supported in a single-node Podman 
 | revisionHistoryLimit                    | no                                                    |
 | progressDeadlineSeconds                 | no                                                    |
 | paused                                  | no                                                    |
+
+## DaemonSet Fields
+
+| Field                                   | Support                                               |
+|-----------------------------------------|-------------------------------------------------------|
+| selector                                | ✅                                                    |
+| template                                | ✅                                                    |
+| minReadySeconds                         | no                                                    |
+| strategy\.type                          | no                                                    |
+| strategy\.rollingUpdate\.maxSurge       | no                                                    |
+| strategy\.rollingUpdate\.maxUnavailable | no                                                    |
+| revisionHistoryLimit                    | no                                                    |

@@ -46,7 +46,7 @@ var (
 	playOptions        = playKubeOptionsWrapper{}
 	playDescription    = `Reads in a structured file of Kubernetes YAML.
 
-  Creates pods or volumes based on the Kubernetes kind described in the YAML. Supported kinds are Pods, Deployments and PersistentVolumeClaims.`
+  Creates pods or volumes based on the Kubernetes kind described in the YAML. Supported kinds are Pods, Deployments, DaemonSets and PersistentVolumeClaims.`
 
 	playCmd = &cobra.Command{
 		Use:               "play [options] KUBEFILE|-",

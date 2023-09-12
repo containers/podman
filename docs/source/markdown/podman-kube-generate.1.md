@@ -30,6 +30,8 @@ Note that the generated Kubernetes YAML file can be used to re-run the deploymen
 
 Note that if the pod being generated was created with the **--infra-name** flag set, then the generated kube yaml will have the **io.podman.annotations.infra.name** set where the value is the name of the infra container set by the user.
 
+Also note that both Deployment and DaemonSet can only have `restartPolicy` set to `Always`.
+
 ## OPTIONS
 
 #### **--filename**, **-f**=*filename*
@@ -54,9 +56,9 @@ Note: this can only be set with the option `--type=deployment`.
 
 Generate a Kubernetes service object in addition to the Pods. Used to generate a Service specification for the corresponding Pod output. In particular, if the object has portmap bindings, the service specification includes a NodePort declaration to expose the service. A random port is assigned by Podman in the specification.
 
-#### **--type**, **-t**=*pod | deployment*
+#### **--type**, **-t**=*pod* | *deployment* | *daemonset*
 
-The Kubernetes kind to generate in the YAML file. Currently, the only supported Kubernetes specifications are `Pod` and `Deployment`. By default, the `Pod` specification is generated.
+The Kubernetes kind to generate in the YAML file. Currently, the only supported Kubernetes specifications are `Pod`, `Deployment` and `DaemonSet`. By default, the `Pod` specification is generated.
 
 ## EXAMPLES
 
