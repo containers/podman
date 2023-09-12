@@ -5,9 +5,9 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 // Each of these tests runs with a different GNUPGHOME; gpg-agent blows up
@@ -50,7 +50,7 @@ var _ = Describe("Podman image sign", Serial, func() {
 		Expect(err).ToNot(HaveOccurred())
 		session := podmanTest.Podman([]string{"image", "sign", "--directory", sigDir, "--sign-by", "foo@bar.com", "docker://library/alpine"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		_, err = os.Stat(filepath.Join(sigDir, "library"))
 		Expect(err).ToNot(HaveOccurred())
 	})
@@ -66,7 +66,7 @@ var _ = Describe("Podman image sign", Serial, func() {
 		Expect(err).ToNot(HaveOccurred())
 		session := podmanTest.Podman([]string{"image", "sign", "--all", "--directory", sigDir, "--sign-by", "foo@bar.com", "docker://library/alpine"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		fInfos, err := os.ReadDir(filepath.Join(sigDir, "library"))
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(fInfos)).To(BeNumerically(">", 1), "len(fInfos)")

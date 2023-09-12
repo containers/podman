@@ -6,7 +6,6 @@ import (
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman generate spec", func() {
@@ -25,22 +24,22 @@ var _ = Describe("Podman generate spec", func() {
 		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		session := podmanTest.Podman([]string{"create", "--cpus", "5", "--name", "specgen", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"generate", "spec", "--compact", "specgen"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman generate spec file", func() {
 		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		session := podmanTest.Podman([]string{"create", "--cpus", "5", "--name", "specgen", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"generate", "spec", "--filename", filepath.Join(tempdir, "out.json"), "specgen"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		path := filepath.Join(tempdir, "out.json")
 
@@ -54,10 +53,10 @@ var _ = Describe("Podman generate spec", func() {
 	It("generate spec pod", func() {
 		session := podmanTest.Podman([]string{"pod", "create", "--cpus", "5", "--name", "podspecgen"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"generate", "spec", "--compact", "podspecgen"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 })
