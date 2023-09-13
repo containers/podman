@@ -11,7 +11,7 @@ BUILD_TAGS[tunnel]="${BUILD_TAGS[default]},remote"
 declare -A SKIP_DIRS
 SKIP_DIRS[abi]=""
 # TODO: add "remote" build tag to pkg/api
-SKIP_DIRS[tunnel]="pkg/api"
+SKIP_DIRS[tunnel]="pkg/api,pkg/domain/infra/abi"
 
 [[ $1 == run ]] && shift
 

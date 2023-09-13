@@ -569,6 +569,8 @@ type SpecGenerator struct {
 	ContainerResourceConfig
 	ContainerHealthCheckConfig
 
+	//nolint:unused // this is needed for the local client but golangci-lint
+	// does not seems to happy when we test the remote stub
 	cacheLibImage
 }
 
