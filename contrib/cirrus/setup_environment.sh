@@ -364,8 +364,9 @@ case "$TEST_FLAVOR" in
         pip install --requirement $GOSRC/test/apiv2/python/requirements.txt
         ;&  # continue with next item
     compose)
-        make install.tools
-        dnf install -y podman-docker*
+        showrun make install.tools
+        showrun dnf remove -y gvisor-tap-vsock
+        showrun dnf install -y podman-docker*
         ;&  # continue with next item
     int)
         make .install.ginkgo
