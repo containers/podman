@@ -7,6 +7,8 @@ Show the API documentation for version:
 
 * `latest (main branch) <_static/api.html>`_
 
+* `version 4.6 <_static/api.html?version=v4.6>`_
+
 * `version 4.5 <_static/api.html?version=v4.5>`_
 
 * `version 4.4 <_static/api.html?version=v4.4>`_
