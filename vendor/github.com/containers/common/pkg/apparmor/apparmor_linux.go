@@ -201,12 +201,14 @@ func getAAParserVersion(apparmorParserPath string) (int, error) {
 	return parseAAParserVersion(output)
 }
 
+// parseAAParserVersion parses the given `apparmor_parser --version` output and
+// returns the major and minor version number as an integer.
 // parseAAParserVersion returns the major, minor, and patch version number as an integer.
 func parseAAParserVersion(output string) (int, error) {
         // output is in the form of the following:
         // AppArmor parser version 2.9.1
         // if not in the form 2.9.1, for example
-        // 4.0.0~alpha, then parse as 4.0.0
+        // 4.0.0~alpha2, then parse as 4.0.0
         // Copyright (C) 1999-2008 Novell Inc.
         // Copyright 2009-2012 Canonical Ltd.
         lines := strings.SplitN(output, "\n", 2)
