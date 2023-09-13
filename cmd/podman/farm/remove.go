@@ -67,7 +67,7 @@ func rm(cmd *cobra.Command, args []string) error {
 	deletedFarms := []string{}
 	for _, k := range args {
 		if _, ok := cfg.Farms.List[k]; !ok {
-			logrus.Warnf("farm %q doesn't exists; nothing to remove", k)
+			logrus.Warnf("farm %q doesn't exist; nothing to remove", k)
 			continue
 		}
 		delete(cfg.Farms.List, k)

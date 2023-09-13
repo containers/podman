@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -46,20 +47,20 @@ var _ = Describe("Podman Info", func() {
 	It("podman info --format GO template", func() {
 		session := podmanTest.Podman([]string{"info", "--format", "{{.Store.GraphRoot}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman info --format GO template", func() {
 		session := podmanTest.Podman([]string{"info", "--format", "{{.Registries}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("registry"))
 	})
 
 	It("podman info --format GO template plugins", func() {
 		session := podmanTest.Podman([]string{"info", "--format", "{{.Plugins}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("local"))
 		Expect(session.OutputToString()).To(ContainSubstring("journald"))
 		Expect(session.OutputToString()).To(ContainSubstring("bridge"))
@@ -101,12 +102,12 @@ var _ = Describe("Podman Info", func() {
 	It("check RemoteSocket ", func() {
 		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.RemoteSocket.Path}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(MatchRegexp("/run/.*podman.*sock"))
 
 		session = podmanTest.Podman([]string{"info", "--format", "{{.Host.ServiceIsRemote}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		if podmanTest.RemoteTest {
 			Expect(session.OutputToString()).To(Equal("true"))
 		} else {
@@ -115,7 +116,7 @@ var _ = Describe("Podman Info", func() {
 
 		session = podmanTest.Podman([]string{"info", "--format", "{{.Host.RemoteSocket.Exists}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		if IsRemote() {
 			Expect(session.OutputToString()).To(ContainSubstring("true"))
 		} else {
@@ -129,7 +130,7 @@ var _ = Describe("Podman Info", func() {
 		SkipIfRootlessCgroupsV1("Disable cgroups not supported on cgroupv1 for rootless users")
 		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.CgroupControllers}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(Exit(0))
+		Expect(session).To(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("memory"))
 		Expect(session.OutputToString()).To(ContainSubstring("pids"))
 	})
@@ -145,7 +146,7 @@ var _ = Describe("Podman Info", func() {
 		}
 		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.OCIRuntime.Name}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(Exit(0))
+		Expect(session).To(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal(want))
 	})
 
@@ -160,12 +161,12 @@ var _ = Describe("Podman Info", func() {
 		}
 		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.NetworkBackend}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(Exit(0))
+		Expect(session).To(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal(want))
 
 		session = podmanTest.Podman([]string{"info", "--format", "{{.Host.NetworkBackendInfo.Backend}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(Exit(0))
+		Expect(session).To(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal(want))
 	})
 
@@ -180,7 +181,7 @@ var _ = Describe("Podman Info", func() {
 		}
 		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.DatabaseBackend}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(Exit(0))
+		Expect(session).To(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal(want))
 	})
 
@@ -190,17 +191,17 @@ var _ = Describe("Podman Info", func() {
 		// no skips.
 		info1 := podmanTest.Podman([]string{"info", "--format", "{{ .Host.FreeLocks }}"})
 		info1.WaitWithDefaultTimeout()
-		Expect(info1).To(Exit(0))
+		Expect(info1).To(ExitCleanly())
 		free1, err := strconv.Atoi(info1.OutputToString())
 		Expect(err).To(Not(HaveOccurred()))
 
 		ctr := podmanTest.Podman([]string{"create", ALPINE, "top"})
 		ctr.WaitWithDefaultTimeout()
-		Expect(ctr).To(Exit(0))
+		Expect(ctr).To(ExitCleanly())
 
 		info2 := podmanTest.Podman([]string{"info", "--format", "{{ .Host.FreeLocks }}"})
 		info2.WaitWithDefaultTimeout()
-		Expect(info2).To(Exit(0))
+		Expect(info2).To(ExitCleanly())
 		free2, err := strconv.Atoi(info2.OutputToString())
 		Expect(err).To(Not(HaveOccurred()))
 
