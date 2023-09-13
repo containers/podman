@@ -201,47 +201,50 @@ func getAAParserVersion(apparmorParserPath string) (int, error) {
 	return parseAAParserVersion(output)
 }
 
-// parseAAParserVersion parses the given `apparmor_parser --version` output and
-// returns the major and minor version number as an integer.
+// parseAAParserVersion returns the major, minor, and patch version number as an integer.
 func parseAAParserVersion(output string) (int, error) {
-	// output is in the form of the following:
-	// AppArmor parser version 2.9.1
-	// Copyright (C) 1999-2008 Novell Inc.
-	// Copyright 2009-2012 Canonical Ltd.
-	lines := strings.SplitN(output, "\n", 2)
-	words := strings.Split(lines[0], " ")
-	version := words[len(words)-1]
+        // output is in the form of the following:
+        // AppArmor parser version 2.9.1
+        // if not in the form 2.9.1, for example
+        // 4.0.0~alpha, then parse as 4.0.0
+        // Copyright (C) 1999-2008 Novell Inc.
+        // Copyright 2009-2012 Canonical Ltd.
+        lines := strings.SplitN(output, "\n", 2)
+        words := strings.Split(lines[0], " ")
+        version := words[len(words)-1]
 
-	// split by major minor version
-	v := strings.Split(version, ".")
-	if len(v) == 0 || len(v) > 3 {
-		return -1, fmt.Errorf("parsing version failed for output: `%s`", output)
-	}
+        // Remove any characters after "~" if present
+        version = strings.Split(version, "~")[0]
 
-	// Default the versions to 0.
-	var majorVersion, minorVersion, patchLevel int
+        // Split by major minor version
+        v := strings.Split(version, ".")
+        if len(v) == 0 || len(v) > 3 {
+                return -1, fmt.Errorf("parsing version failed for output: `%s`", output)
+        }
 
-	majorVersion, err := strconv.Atoi(v[0])
-	if err != nil {
-		return -1, fmt.Errorf("convert AppArmor major version: %w", err)
-	}
+        // Default the versions to 0.
+        var majorVersion, minorVersion, patchLevel int
 
-	if len(v) > 1 {
-		minorVersion, err = strconv.Atoi(v[1])
-		if err != nil {
-			return -1, fmt.Errorf("convert AppArmor minor version: %w", err)
-		}
-	}
-	if len(v) > 2 {
-		patchLevel, err = strconv.Atoi(v[2])
-		if err != nil {
-			return -1, fmt.Errorf("convert AppArmor patch version: %w", err)
-		}
-	}
+        majorVersion, err := strconv.Atoi(v[0])
+        if err != nil {
+                return -1, fmt.Errorf("convert AppArmor major version: %w", err)
+		
+        if len(v) > 1 {
+                minorVersion, err = strconv.Atoi(v[1])
+                if err != nil {
+                        return -1, fmt.Errorf("convert AppArmor minor version: %w", err)
+                }
+        }
+        if len(v) > 2 {
+                patchLevel, err = strconv.Atoi(v[2])
+                if err != nil {
+                        return -1, fmt.Errorf("convert AppArmor patch version: %w", err)
+                }
+        }
 
-	// major*10^5 + minor*10^3 + patch*10^0
-	numericVersion := majorVersion*1e5 + minorVersion*1e3 + patchLevel
-	return numericVersion, nil
+        // major*10^5 + minor*10^3 + patch*10^0
+        numericVersion := majorVersion*1e5 + minorVersion*1e3 + patchLevel
+        return numericVersion, nil
 }
 
 // CheckProfileAndLoadDefault checks if the specified profile is loaded and
