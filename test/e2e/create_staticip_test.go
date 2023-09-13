@@ -21,7 +21,7 @@ var _ = Describe("Podman create with --ip flag", func() {
 		SkipIfRootless("--ip not supported without network in rootless mode")
 		result := podmanTest.Podman([]string{"create", "--name", "test", "--ip", "203.0.113.124", ALPINE, "ls"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 
 		result = podmanTest.Podman([]string{"start", "test"})
 		result.WaitWithDefaultTimeout()
@@ -36,11 +36,11 @@ var _ = Describe("Podman create with --ip flag", func() {
 		if isRootless() {
 			Expect(result).Should(Exit(125))
 		} else {
-			Expect(result).Should(Exit(0))
+			Expect(result).Should(ExitCleanly())
 
 			result = podmanTest.Podman([]string{"start", "-a", "test"})
 			result.WaitWithDefaultTimeout()
-			Expect(result).Should(Exit(0))
+			Expect(result).Should(ExitCleanly())
 			Expect(result.OutputToString()).To(ContainSubstring(ip + "/16"))
 		}
 	})
@@ -50,20 +50,20 @@ var _ = Describe("Podman create with --ip flag", func() {
 		ip := GetSafeIPAddress()
 		result := podmanTest.Podman([]string{"create", "--log-driver", "k8s-file", "--name", "test1", "--ip", ip, ALPINE, "sleep", "999"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		result = podmanTest.Podman([]string{"create", "--log-driver", "k8s-file", "--name", "test2", "--ip", ip, ALPINE, "ip", "addr"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		result = podmanTest.Podman([]string{"start", "test1"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 
 		// race prevention: wait until IP address is assigned and
 		// container is running.
 		for i := 0; i < 5; i++ {
 			result = podmanTest.Podman([]string{"inspect", "--format", "{{.State.Status}} {{.NetworkSettings.IPAddress}}", "test1"})
 			result.WaitWithDefaultTimeout()
-			Expect(result).Should(Exit(0))
+			Expect(result).Should(ExitCleanly())
 			if result.OutputToString() == "running "+ip {
 				break
 			}

@@ -269,7 +269,7 @@ func readFileByKeyAsUint64(path, key string) (uint64, error) {
 	for _, line := range strings.Split(string(content), "\n") {
 		fields := strings.SplitN(line, " ", 2)
 		if fields[0] == key {
-			v := cleanString(string(fields[1]))
+			v := cleanString(fields[1])
 			if v == "max" {
 				return math.MaxUint64, nil
 			}
@@ -542,7 +542,7 @@ func (c *CgroupControl) Stat() (*cgroups.Stats, error) {
 	return &m, nil
 }
 
-func readCgroup2MapPath(path string) (map[string][]string, error) {
+func readCgroupMapPath(path string) (map[string][]string, error) {
 	ret := map[string][]string{}
 	f, err := os.Open(path)
 	if err != nil {
@@ -570,5 +570,5 @@ func readCgroup2MapPath(path string) (map[string][]string, error) {
 func readCgroup2MapFile(ctr *CgroupControl, name string) (map[string][]string, error) {
 	p := filepath.Join(cgroupRoot, ctr.config.Path, name)
 
-	return readCgroup2MapPath(p)
+	return readCgroupMapPath(p)
 }

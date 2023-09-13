@@ -56,21 +56,21 @@ var _ = Describe("podman farm", func() {
 			cmd := []string{"farm", "create", "farm1", "QA", "QB"}
 			session := podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"farm1\" created"))
 
 			// create farm with only one system connection
 			cmd = []string{"farm", "create", "farm2", "QA"}
 			session = podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"farm2\" created"))
 
 			// create empty farm
 			cmd = []string{"farm", "create", "farm3"}
 			session = podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"farm3\" created"))
 
 			cfg, err := config.ReadCustomConfig()
@@ -84,7 +84,7 @@ var _ = Describe("podman farm", func() {
 			cmd = []string{"farm", "create", "farm3"}
 			session = podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Not(Exit(0)))
+			Expect(session).Should(Not(ExitCleanly()))
 		})
 
 		It("update existing farms", func() {
@@ -92,21 +92,21 @@ var _ = Describe("podman farm", func() {
 			cmd := []string{"farm", "create", "farm1", "QA", "QB"}
 			session := podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"farm1\" created"))
 
 			// create farm with only one system connection
 			cmd = []string{"farm", "create", "farm2", "QA"}
 			session = podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"farm2\" created"))
 
 			// create empty farm
 			cmd = []string{"farm", "create", "farm3"}
 			session = podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"farm3\" created"))
 
 			cfg, err := config.ReadCustomConfig()
@@ -120,21 +120,21 @@ var _ = Describe("podman farm", func() {
 			cmd = []string{"farm", "update", "--remove", "QA,QB", "farm1"}
 			session = podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"farm1\" updated"))
 
 			// update farm3 to add QA and QB connections to it
 			cmd = []string{"farm", "update", "--add", "QB", "farm3"}
 			session = podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"farm3\" updated"))
 
 			// update farm2 to be the default farm
 			cmd = []string{"farm", "update", "--default", "farm2"}
 			session = podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"farm2\" updated"))
 
 			cfg, err = config.ReadCustomConfig()
@@ -148,7 +148,7 @@ var _ = Describe("podman farm", func() {
 			cmd = []string{"farm", "update", "--default=false", "farm2"}
 			session = podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"farm2\" updated"))
 
 			cfg, err = config.ReadCustomConfig()
@@ -161,14 +161,14 @@ var _ = Describe("podman farm", func() {
 			cmd := []string{"farm", "create", "farm1", "QA", "QB"}
 			session := podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"farm1\" created"))
 
 			// create farm with only one system connection
 			cmd = []string{"farm", "create", "farm2", "QA"}
 			session = podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"farm2\" created"))
 
 			cfg, err := config.ReadCustomConfig()
@@ -184,6 +184,7 @@ var _ = Describe("podman farm", func() {
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
 			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"farm1\" deleted"))
+			Expect(session.ErrorToString()).Should(ContainSubstring("doesn't exist; nothing to remove"))
 
 			cfg, err = config.ReadCustomConfig()
 			Expect(err).ShouldNot(HaveOccurred())
@@ -195,7 +196,7 @@ var _ = Describe("podman farm", func() {
 			cmd = []string{"farm", "rm", "foo", "bar"}
 			session = podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Not(Exit(0)))
+			Expect(session).Should(Not(ExitCleanly()))
 		})
 
 		It("remove --all farms", func() {
@@ -203,14 +204,14 @@ var _ = Describe("podman farm", func() {
 			cmd := []string{"farm", "create", "farm1", "QA", "QB"}
 			session := podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"farm1\" created"))
 
 			// create farm with only one system connection
 			cmd = []string{"farm", "create", "farm2", "QA"}
 			session = podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"farm2\" created"))
 
 			cfg, err := config.ReadCustomConfig()
@@ -223,7 +224,7 @@ var _ = Describe("podman farm", func() {
 			cmd = []string{"farm", "rm", "--all"}
 			session = podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 			Expect(session.Out.Contents()).Should(ContainSubstring("All farms have been deleted"))
 
 			cfg, err = config.ReadCustomConfig()

@@ -321,9 +321,7 @@ func (c *Container) execStartAndAttach(sessionID string, streams *define.AttachS
 		return err
 	}
 
-	if isHealthcheck {
-		c.newContainerEvent(events.HealthStatus)
-	} else {
+	if !isHealthcheck {
 		c.newContainerEvent(events.Exec)
 	}
 

@@ -154,6 +154,9 @@ func (m *Schema1) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
 		// but (docker pull) ignores them in favor of computing DiffIDs from uncompressed data, except verifying the child->parent links and uniqueness.
 		// So, we don't bother recomputing the IDs in m.History.V1Compatibility.
 		m.FSLayers[(len(layerInfos)-1)-i].BlobSum = info.Digest
+		if info.CryptoOperation != types.PreserveOriginalCrypto {
+			return fmt.Errorf("encryption change (for layer %q) is not supported in schema1 manifests", info.Digest)
+		}
 	}
 	return nil
 }

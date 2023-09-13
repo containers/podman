@@ -247,6 +247,9 @@ func (m *Schema2) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
 		m.LayersDescriptors[i].Digest = info.Digest
 		m.LayersDescriptors[i].Size = info.Size
 		m.LayersDescriptors[i].URLs = info.URLs
+		if info.CryptoOperation != types.PreserveOriginalCrypto {
+			return fmt.Errorf("encryption change (for layer %q) is not supported in schema2 manifests", info.Digest)
+		}
 	}
 	return nil
 }

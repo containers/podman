@@ -5991,4 +5991,27 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring(`FOO=bar`))
 	})
+
+	It("podman kube play with TerminationGracePeriodSeconds set", func() {
+		ctrName := "ctr"
+		ctrNameInPod := "ctr-pod-ctr"
+		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
+
+		create := podmanTest.Podman([]string{"create", "--restart", "never", "--stop-timeout", "20", "--name", ctrName, ALPINE})
+		create.WaitWithDefaultTimeout()
+		Expect(create).Should(Exit(0))
+
+		generate := podmanTest.Podman([]string{"kube", "generate", "-f", outputFile, ctrName})
+		generate.WaitWithDefaultTimeout()
+		Expect(generate).Should(Exit(0))
+
+		play := podmanTest.Podman([]string{"kube", "play", outputFile})
+		play.WaitWithDefaultTimeout()
+		Expect(play).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrNameInPod, "-f", "{{ .Config.StopTimeout }}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(Equal("20"))
+	})
 })

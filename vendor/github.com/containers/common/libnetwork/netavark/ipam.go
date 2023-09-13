@@ -65,7 +65,7 @@ func (n *netavarkNetwork) openDB() (*bbolt.DB, error) {
 	return db, nil
 }
 
-// allocIPs will allocate ips for the the container. It will change the
+// allocIPs will allocate ips for the container. It will change the
 // NetworkOptions in place. When static ips are given it will validate
 // that these are free to use and will allocate them to the container.
 func (n *netavarkNetwork) allocIPs(opts *types.NetworkOptions) error {

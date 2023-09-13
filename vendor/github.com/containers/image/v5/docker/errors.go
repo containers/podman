@@ -47,7 +47,12 @@ func httpResponseToError(res *http.Response, context string) error {
 }
 
 // registryHTTPResponseToError creates a Go error from an HTTP error response of a docker/distribution
-// registry
+// registry.
+//
+// WARNING: The OCI distribution spec says
+// “A `4XX` response code from the registry MAY return a body in any format.”; but if it is
+// JSON, it MUST use the errcode.Error structure.
+// So, callers should primarily decide based on HTTP StatusCode, not based on error type here.
 func registryHTTPResponseToError(res *http.Response) error {
 	err := handleErrorResponse(res)
 	// len(errs) == 0 should never be returned by handleErrorResponse; if it does, we don't modify it and let the caller report it as is.

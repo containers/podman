@@ -198,16 +198,25 @@ func (matcher *exitCleanlyMatcher) Match(actual interface{}) (success bool, err 
 		return false, nil
 	}
 
-	// FIXME: #19809, "failed to connect to syslog" warnings on f38
-	// FIXME: so, until that is fixed, don't check stderr if containerized
-	if !Containerized() {
-		info := GetHostDistributionInfo()
-		if info.Distribution == "fedora" {
-			if stderr != "" {
-				matcher.msg = fmt.Sprintf("Unexpected warnings seen on stderr: %q", stderr)
-				return false, nil
-			}
-		}
+	// Exit status is 0. Now check for anything on stderr... except:
+
+	if Containerized() {
+		// FIXME: #19809, "failed to connect to syslog" warnings on f38
+		// FIXME: so, until that is fixed, don't check stderr if containerized
+		return true, nil
+	}
+
+	info := GetHostDistributionInfo()
+	if info.Distribution != "fedora" {
+		// runc on debian:
+		// FIXME: #11784 - lstat /sys/fs/.../*.scope: ENOENT
+		// FIXME: #11785 - cannot toggle freezer: cgroups not configured
+		return true, nil
+	}
+
+	if stderr != "" {
+		matcher.msg = fmt.Sprintf("Unexpected warnings seen on stderr: %q", stderr)
+		return false, nil
 	}
 
 	return true, nil

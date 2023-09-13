@@ -169,7 +169,7 @@ type ContainersConfig struct {
 	// InitPath is the path for init to run if the Init bool is enabled
 	InitPath string `toml:"init_path,omitempty"`
 
-	// IPCNS way to to create a ipc namespace for the container
+	// IPCNS way to create a ipc namespace for the container
 	IPCNS string `toml:"ipcns,omitempty"`
 
 	// LogDriver  for the container.  For example: k8s-file and journald
@@ -321,7 +321,7 @@ type EngineConfig struct {
 	// helper binaries.
 	HelperBinariesDir []string `toml:"helper_binaries_dir"`
 
-	// configuration files. When the same filename is present in in
+	// configuration files. When the same filename is present in
 	// multiple directories, the file in the directory listed last in
 	// this slice takes precedence.
 	HooksDir []string `toml:"hooks_dir,omitempty"`
@@ -740,14 +740,11 @@ func (c *Config) CheckCgroupsAndAdjustConfig() {
 }
 
 func (c *Config) addCAPPrefix() {
-	toCAPPrefixed := func(cap string) string {
-		if !strings.HasPrefix(strings.ToLower(cap), "cap_") {
-			return "CAP_" + strings.ToUpper(cap)
+	for i, val := range c.Containers.DefaultCapabilities {
+		if !strings.HasPrefix(strings.ToLower(val), "cap_") {
+			val = "CAP_" + strings.ToUpper(val)
 		}
-		return cap
-	}
-	for i, cap := range c.Containers.DefaultCapabilities {
-		c.Containers.DefaultCapabilities[i] = toCAPPrefixed(cap)
+		c.Containers.DefaultCapabilities[i] = val
 	}
 }
 

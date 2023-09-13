@@ -44,7 +44,7 @@ type netavarkNetwork struct {
 	// defaultsubnetPools contains the subnets which must be used to allocate a free subnet by network create
 	defaultsubnetPools []config.SubnetPool
 
-	// dnsBindPort is set the the port to pass to netavark for aardvark
+	// dnsBindPort is set the port to pass to netavark for aardvark
 	dnsBindPort uint16
 
 	// pluginDirs list of directories were netavark plugins are located
@@ -87,7 +87,7 @@ type InitConfig struct {
 	// DefaultsubnetPools contains the subnets which must be used to allocate a free subnet by network create
 	DefaultsubnetPools []config.SubnetPool
 
-	// DNSBindPort is set the the port to pass to netavark for aardvark
+	// DNSBindPort is set the port to pass to netavark for aardvark
 	DNSBindPort uint16
 
 	// PluginDirs list of directories were netavark plugins are located

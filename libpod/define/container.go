@@ -45,4 +45,6 @@ const (
 	K8sKindPod = "pod"
 	// A Deployment kube yaml spec
 	K8sKindDeployment = "deployment"
+	// A DaemonSet kube yaml spec
+	K8sKindDaemonSet = "daemonset"
 )

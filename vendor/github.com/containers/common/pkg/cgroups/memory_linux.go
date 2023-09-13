@@ -4,7 +4,9 @@
 package cgroups
 
 import (
+	"fmt"
 	"path/filepath"
+	"strconv"
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
@@ -63,8 +65,25 @@ func (c *linuxMemHandler) Stat(ctr *CgroupControl, m *cgroups.Stats) error {
 	} else {
 		memoryRoot = ctr.getCgroupv1Path(Memory)
 		limitFilename = "memory.limit_in_bytes"
-		if memUsage.Usage.Usage, err = readFileAsUint64(filepath.Join(memoryRoot, "memory.usage_in_bytes")); err != nil {
+
+		path := filepath.Join(memoryRoot, "memory.stat")
+		values, err := readCgroupMapPath(path)
+		if err != nil {
 			return err
+		}
+
+		// cgroup v1 does not have a single "anon" field, but we can calculate it
+		// from total_active_anon and total_inactive_anon
+		memUsage.Usage.Usage = 0
+		for _, key := range []string{"total_active_anon", "total_inactive_anon"} {
+			if _, found := values[key]; !found {
+				continue
+			}
+			res, err := strconv.ParseUint(values[key][0], 10, 64)
+			if err != nil {
+				return fmt.Errorf("parse %s from %s: %w", key, path, err)
+			}
+			memUsage.Usage.Usage += res
 		}
 	}
 

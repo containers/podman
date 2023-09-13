@@ -74,7 +74,6 @@ func IsErrorRetryable(err error) bool {
 	}
 
 	switch e := err.(type) {
-
 	case errcode.Error:
 		switch e.Code {
 		case errcode.ErrorCodeUnauthorized, errcode.ErrorCodeDenied,

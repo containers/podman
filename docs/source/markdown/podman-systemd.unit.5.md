@@ -125,7 +125,7 @@ Valid options for `[Container]` are listed below:
 |--------------------------------|------------------------------------------------------|
 | AddCapability=CAP              | --cap-add CAP                                        |
 | AddDevice=/dev/foo             | --device /dev/foo                                    |
-| Annotation="YXZ"               | --annotation "XYZ"                                   |
+| Annotation="XYZ"               | --annotation "XYZ"                                   |
 | AutoUpdate=registry            | --label "io.containers.autoupdate=registry"          |
 | ContainerName=name             | --name name                                          |
 | DNS=192.168.55.1               | --dns=192.168.55.1                                   |
@@ -144,16 +144,16 @@ Valid options for `[Container]` are listed below:
 | HealthRetries=5                | --health-retries=5                                   |
 | HealthStartPeriod=1m           | --health-start-period=period=1m                      |
 | HealthStartupCmd="command"     | --health-startup-cmd="command"                       |
-| HealthStartupInterval=1m       | --health-startup-interval=2m                         |
+| HealthStartupInterval=1m       | --health-startup-interval=1m                         |
 | HealthStartupRetries=8         | --health-startup-retries=8                           |
 | HealthStartupSuccess=2         | --health-startup-success=2                           |
 | HealthStartupTimeout=1m33s     | --health-startup-timeout=1m33s                       |
 | HealthTimeout=20s              | --health-timeout=20s                                 |
 | HostName=new-host-name         | --hostname="new-host-name"                           |
 | Image=ubi8                     | Image specification - ubi8                           |
-| IP=192.5.0.1                   | --ip 192.5.0.0                                       |
-| IP6=fd46:db93:aa76:ac37::10    | --ip6 2001:db8::1                                    |
-| Label="YXZ"                    | --label "XYZ"                                        |
+| IP=192.5.0.1                   | --ip 192.5.0.1                                       |
+| IP6=2001:db8::1                | --ip6 2001:db8::1                                    |
+| Label="XYZ"                    | --label "XYZ"                                        |
 | LogDriver=journald             | --log-driver journald                                |
 | Mount=type=...                 | --mount type=...                                     |
 | Network=host                   | --net host                                           |
@@ -733,7 +733,7 @@ Valid options for `[Network]` are listed below:
 | IPAMDriver=dhcp               | --ipam-driver dhcp                   |
 | IPRange=192.168.55.128/25     | --ip-range 192.168.55.128/25         |
 | IPv6=true                     | --ipv6                               |
-| Label="YXZ"                   | --label "XYZ"                        |
+| Label="XYZ"                   | --label "XYZ"                        |
 | NetworkName=foo               | podman network create foo            |
 | Options=isolate               | --opt isolate                        |
 | PodmanArgs=--dns=192.168.55.1 | --dns=192.168.55.1                   |
