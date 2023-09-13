@@ -37,7 +37,7 @@
 # include it. Official rawhide should be able to fetch the last active build of
 # gvproxy, the min version requirement has been removed to allow it.
 # Ref: https://bugzilla.redhat.com/show_bug.cgi?id=2224434
-%if !%{defined copr_username} && 0%{?fedora} <= 38
+%if !%{defined copr_username} && 0%{?fedora} <= 37
 %define gvproxy_subpackage 1
 %endif
 
@@ -129,6 +129,11 @@ Requires: containers-common-extra
 Recommends: %{name}-gvproxy = %{epoch}:%{version}-%{release}
 %else
 Recommends: %{name}-gvproxy
+%endif
+# gvforwarder subpackage exists only on f38 and higher as part of the
+# gvisor-tap-vsock package.
+%if %{defined fedora} && 0%{?fedora} >= 38
+Requires: gvisor-tap-vsock-gvforwarder
 %endif
 Provides: %{name}-quadlet
 Obsoletes: %{name}-quadlet <= 5:4.4.0-1
