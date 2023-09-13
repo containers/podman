@@ -217,6 +217,9 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		params.Set("apparmor", options.CommonBuildOpts.ApparmorProfile)
 	}
 
+	for _, layerLabel := range options.LayerLabels {
+		params.Add("layerLabel", layerLabel)
+	}
 	if options.Layers {
 		params.Set("layers", "1")
 	}

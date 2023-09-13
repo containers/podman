@@ -108,6 +108,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Jobs                    int      `schema:"jobs"`
 		LabelOpts               string   `schema:"labelopts"`
 		Labels                  string   `schema:"labels"`
+		LayerLabels             []string `schema:"layerLabel"`
 		Layers                  bool     `schema:"layers"`
 		LogRusage               bool     `schema:"rusage"`
 		Manifest                string   `schema:"manifest"`
@@ -686,6 +687,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Isolation:                      isolation,
 		Jobs:                           &jobs,
 		Labels:                         labels,
+		LayerLabels:                    query.LayerLabels,
 		Layers:                         query.Layers,
 		LogRusage:                      query.LogRusage,
 		Manifest:                       query.Manifest,

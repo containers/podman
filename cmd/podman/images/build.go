@@ -184,6 +184,7 @@ func buildFlags(cmd *cobra.Command) {
 		_ = flags.MarkHidden("compress")
 		_ = flags.MarkHidden("output")
 		_ = flags.MarkHidden("logsplit")
+		_ = flags.MarkHidden("cw")
 	}
 }
 
@@ -575,6 +576,14 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		}
 	}
 
+	var confidentialWorkloadOptions buildahDefine.ConfidentialWorkloadOptions
+	if c.Flag("cw").Changed {
+		confidentialWorkloadOptions, err = parse.GetConfidentialWorkloadOptions(flags.CWOptions)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	opts := buildahDefine.BuildOptions{
 		AddCapabilities:         flags.CapAdd,
 		AdditionalTags:          tags,
@@ -587,6 +596,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		CacheFrom:               cacheFrom,
 		CacheTo:                 cacheTo,
 		CacheTTL:                cacheTTL,
+		ConfidentialWorkload:    confidentialWorkloadOptions,
 		CommonBuildOpts:         commonOpts,
 		Compression:             compression,
 		ConfigureNetwork:        networkPolicy,
@@ -605,6 +615,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		Isolation:               isolation,
 		Jobs:                    &flags.Jobs,
 		Labels:                  flags.Label,
+		LayerLabels:             flags.LayerLabel,
 		Layers:                  flags.Layers,
 		LogRusage:               flags.LogRusage,
 		LogFile:                 flags.Logfile,

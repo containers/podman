@@ -1552,6 +1552,12 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//      JSON map of key, value pairs to set as labels on the new image
 	//      (As of version 1.xx)
 	//  - in: query
+	//    name: layerLabel
+	//    description: Add an intermediate image *label* (e.g. label=*value*) to the intermediate image metadata.
+	//    type: array
+	//    items:
+	//      type: string
+	//  - in: query
 	//    name: layers
 	//    type: boolean
 	//    default: true
