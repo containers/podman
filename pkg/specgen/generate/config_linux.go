@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package generate
 
 import (

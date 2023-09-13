@@ -1,5 +1,5 @@
-//go:build linux || ignore || freebsd
-// +build linux ignore freebsd
+//go:build !remote
+// +build !remote
 
 package generate
 
