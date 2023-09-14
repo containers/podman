@@ -118,6 +118,7 @@ const (
 	KeyTimezone              = "Timezone"
 	KeyTmpfs                 = "Tmpfs"
 	KeyType                  = "Type"
+	KeyUlimit                = "Ulimit"
 	KeyUnmask                = "Unmask"
 	KeyUser                  = "User"
 	KeyUserNS                = "UserNS"
@@ -192,6 +193,7 @@ var (
 		KeySysctl:                true,
 		KeyTimezone:              true,
 		KeyTmpfs:                 true,
+		KeyUlimit:                true,
 		KeyUnmask:                true,
 		KeyUser:                  true,
 		KeyUserNS:                true,
@@ -476,6 +478,11 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 	securityLabelLevel, ok := container.Lookup(ContainerGroup, KeySecurityLabelLevel)
 	if ok && len(securityLabelLevel) > 0 {
 		podman.add("--security-opt", fmt.Sprintf("label=level:%s", securityLabelLevel))
+	}
+
+	ulimit, ok := container.Lookup(ContainerGroup, KeyUlimit)
+	if ok && len(ulimit) > 0 {
+		podman.add("--ulimit", ulimit)
 	}
 
 	// But allow overrides with AddCapability

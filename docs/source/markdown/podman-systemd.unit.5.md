@@ -176,6 +176,7 @@ Valid options for `[Container]` are listed below:
 | Sysctl=name=value              | --sysctl=name=value                                  |
 | Timezone=local                 | --tz local                                           |
 | Tmpfs=/work                    | --tmpfs /work                                        |
+| Ulimit=nofile:1000:10000       | --ulimit nofile:1000:10000                           |
 | User=bin                       | --user bin                                           |
 | UserNS=keep-id:uid=200,gid=210 | --userns keep-id:uid=200,gid=210                     |
 | VolatileTmp=true               | --tmpfs /tmp                                         |
@@ -538,6 +539,10 @@ This key can be listed multiple times.
 ### `Timezone=` (if unset uses system-configured default)
 
 The timezone to run the container in.
+
+### `Ulimit=`
+
+Ulimit options. Sets the ulimits values inside of the container.
 
 ### `User=`
 
