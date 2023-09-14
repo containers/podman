@@ -6,7 +6,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containers/common/libimage"
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v4/libpod/define"
@@ -570,20 +569,9 @@ type SpecGenerator struct {
 	ContainerResourceConfig
 	ContainerHealthCheckConfig
 
-	image             *libimage.Image `json:"-"`
-	resolvedImageName string          `json:"-"`
-}
-
-// SetImage sets the associated for the generator.
-func (s *SpecGenerator) SetImage(image *libimage.Image, resolvedImageName string) {
-	s.image = image
-	s.resolvedImageName = resolvedImageName
-}
-
-// Image returns the associated image for the generator.
-// May be nil if no image has been set yet.
-func (s *SpecGenerator) GetImage() (*libimage.Image, string) {
-	return s.image, s.resolvedImageName
+	//nolint:unused // this is needed for the local client but golangci-lint
+	// does not seems to happy when we test the remote stub
+	cacheLibImage
 }
 
 func (s *SpecGenerator) IsInitContainer() bool {

@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/buildah/pkg/parse"
+	"github.com/containers/buildah/pkg/volumes"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
@@ -97,7 +97,7 @@ func reset(cmd *cobra.Command, args []string) {
 		logrus.Error(err)
 	}
 	// Clean build cache if any
-	err = parse.CleanCacheMount()
+	err = volumes.CleanCacheMount()
 	if err != nil {
 		logrus.Error(err)
 	}

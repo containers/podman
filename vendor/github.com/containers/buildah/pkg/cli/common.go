@@ -72,6 +72,7 @@ type BudResults struct {
 	From                string
 	Iidfile             string
 	Label               []string
+	LayerLabel          []string
 	Logfile             string
 	LogSplitByPlatform  bool
 	Manifest            string
@@ -106,6 +107,7 @@ type BudResults struct {
 	Envs                []string
 	OSFeatures          []string
 	OSVersion           string
+	CWOptions           string
 }
 
 // FromAndBugResults represents the results for common flags
@@ -216,6 +218,7 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.BoolVar(&flags.Compress, "compress", false, "this is a legacy option, which has no effect on the image")
 	fs.StringArrayVar(&flags.CPPFlags, "cpp-flag", []string{}, "set additional flag to pass to C preprocessor (cpp)")
 	fs.StringVar(&flags.Creds, "creds", "", "use `[username[:password]]` for accessing the registry")
+	fs.StringVarP(&flags.CWOptions, "cw", "", "", "confidential workload `options`")
 	fs.BoolVarP(&flags.DisableCompression, "disable-compression", "D", true, "don't compress layers by default")
 	fs.BoolVar(&flags.DisableContentTrust, "disable-content-trust", false, "this is a Docker specific option and is a NOOP")
 	fs.StringArrayVar(&flags.Envs, "env", []string{}, "set environment variable for the image")
@@ -226,6 +229,7 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.StringVar(&flags.Iidfile, "iidfile", "", "`file` to write the image ID to")
 	fs.IntVar(&flags.Jobs, "jobs", 1, "how many stages to run in parallel")
 	fs.StringArrayVar(&flags.Label, "label", []string{}, "set metadata for an image (default [])")
+	fs.StringArrayVar(&flags.LayerLabel, "layer-label", []string{}, "set metadata for an intermediate image (default [])")
 	fs.StringVar(&flags.Logfile, "logfile", "", "log to `file` instead of stdout/stderr")
 	fs.BoolVar(&flags.LogSplitByPlatform, "logsplit", false, "split logfile to different files for each platform")
 	fs.Int("loglevel", 0, "NO LONGER USED, flag ignored, and hidden")
@@ -297,6 +301,7 @@ func GetBudFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion["cert-dir"] = commonComp.AutocompleteDefault
 	flagCompletion["cpp-flag"] = commonComp.AutocompleteNone
 	flagCompletion["creds"] = commonComp.AutocompleteNone
+	flagCompletion["cw"] = commonComp.AutocompleteNone
 	flagCompletion["env"] = commonComp.AutocompleteNone
 	flagCompletion["file"] = commonComp.AutocompleteDefault
 	flagCompletion["format"] = commonComp.AutocompleteNone
@@ -306,6 +311,7 @@ func GetBudFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion["iidfile"] = commonComp.AutocompleteDefault
 	flagCompletion["jobs"] = commonComp.AutocompleteNone
 	flagCompletion["label"] = commonComp.AutocompleteNone
+	flagCompletion["layer-label"] = commonComp.AutocompleteNone
 	flagCompletion["logfile"] = commonComp.AutocompleteDefault
 	flagCompletion["manifest"] = commonComp.AutocompleteDefault
 	flagCompletion["os"] = commonComp.AutocompleteNone

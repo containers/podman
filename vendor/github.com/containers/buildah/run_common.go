@@ -26,8 +26,8 @@ import (
 	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/internal"
-	internalParse "github.com/containers/buildah/internal/parse"
 	internalUtil "github.com/containers/buildah/internal/util"
+	"github.com/containers/buildah/internal/volumes"
 	"github.com/containers/buildah/pkg/overlay"
 	"github.com/containers/buildah/pkg/sshagent"
 	"github.com/containers/buildah/util"
@@ -1358,7 +1358,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 	succeeded := false
 	defer func() {
 		if !succeeded {
-			internalParse.UnlockLockArray(mountArtifacts.TargetLocks)
+			volumes.UnlockLockArray(mountArtifacts.TargetLocks)
 		}
 	}()
 	// Add temporary copies of the contents of volume locations at the
@@ -1522,7 +1522,7 @@ func (b *Builder) runSetupRunMounts(mountPoint string, mounts []string, sources 
 	succeeded := false
 	defer func() {
 		if !succeeded {
-			internalParse.UnlockLockArray(targetLocks)
+			volumes.UnlockLockArray(targetLocks)
 		}
 	}()
 	for _, mount := range mounts {
@@ -1626,7 +1626,7 @@ func (b *Builder) getBindMount(tokens []string, context *imageTypes.SystemContex
 		return nil, "", errors.New("Context Directory for current run invocation is not configured")
 	}
 	var optionMounts []specs.Mount
-	mount, image, err := internalParse.GetBindMount(context, tokens, contextDir, b.store, b.MountLabel, stageMountPoints, workDir)
+	mount, image, err := volumes.GetBindMount(context, tokens, contextDir, b.store, b.MountLabel, stageMountPoints, workDir)
 	if err != nil {
 		return nil, image, err
 	}
@@ -1640,7 +1640,7 @@ func (b *Builder) getBindMount(tokens []string, context *imageTypes.SystemContex
 
 func (b *Builder) getTmpfsMount(tokens []string, idMaps IDMaps) (*specs.Mount, error) {
 	var optionMounts []specs.Mount
-	mount, err := internalParse.GetTmpfsMount(tokens)
+	mount, err := volumes.GetTmpfsMount(tokens)
 	if err != nil {
 		return nil, err
 	}
@@ -1953,7 +1953,7 @@ func (b *Builder) cleanupRunMounts(context *imageTypes.SystemContext, mountpoint
 		}
 	}
 	// unlock if any locked files from this RUN statement
-	internalParse.UnlockLockArray(artifacts.TargetLocks)
+	volumes.UnlockLockArray(artifacts.TargetLocks)
 	return prevErr
 }
 

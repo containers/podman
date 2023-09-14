@@ -72,8 +72,8 @@ func (r *baseLayerReader) walkUntilCancelled() error {
 		return err
 	}
 
-	utilityVMAbsPath := filepath.Join(r.root, utilityVMPath)
-	utilityVMFilesAbsPath := filepath.Join(r.root, utilityVMFilesPath)
+	utilityVMAbsPath := filepath.Join(r.root, UtilityVMPath)
+	utilityVMFilesAbsPath := filepath.Join(r.root, UtilityVMFilesPath)
 
 	// Ignore a UtilityVM without Files, that's not _really_ a UtiltyVM
 	if _, err = os.Lstat(utilityVMFilesAbsPath); err != nil {

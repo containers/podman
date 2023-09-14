@@ -100,6 +100,7 @@ type Executor struct {
 	iidfile                 string
 	squash                  bool
 	labels                  []string
+	layerLabels             []string
 	annotations             []string
 	layers                  bool
 	noHosts                 bool
@@ -115,6 +116,7 @@ type Executor struct {
 	groupAdd                []string
 	ignoreFile              string
 	args                    map[string]string
+	globalArgs              map[string]string
 	unusedArgs              map[string]struct{}
 	capabilities            []string
 	devices                 define.ContainerDevices
@@ -146,6 +148,7 @@ type Executor struct {
 	osVersion               string
 	osFeatures              []string
 	envs                    []string
+	confidentialWorkload    define.ConfidentialWorkloadOptions
 }
 
 type imageTypeAndHistoryAndDiffIDs struct {
@@ -263,6 +266,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		iidfile:                        options.IIDFile,
 		squash:                         options.Squash,
 		labels:                         append([]string{}, options.Labels...),
+		layerLabels:                    append([]string{}, options.LayerLabels...),
 		annotations:                    append([]string{}, options.Annotations...),
 		layers:                         options.Layers,
 		noHosts:                        options.CommonBuildOpts.NoHosts,
@@ -300,6 +304,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		osVersion:                      options.OSVersion,
 		osFeatures:                     append([]string{}, options.OSFeatures...),
 		envs:                           append([]string{}, options.Envs...),
+		confidentialWorkload:           options.ConfidentialWorkload,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr
@@ -313,6 +318,11 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 			exec.unusedArgs[arg] = struct{}{}
 		}
 	}
+	// Use this flag to collect all args declared before
+	// first stage and treat them as global args which is
+	// accessible to all stages.
+	foundFirstStage := false
+	globalArgs := make(map[string]string)
 	for _, line := range mainNode.Children {
 		node := line
 		for node != nil { // tokens on this line, though we only care about the first
@@ -324,12 +334,20 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 					// and value, or just an argument, since they can be
 					// separated by either "=" or whitespace.
 					list := strings.SplitN(arg.Value, "=", 2)
+					if !foundFirstStage {
+						if len(list) > 1 {
+							globalArgs[list[0]] = list[1]
+						}
+					}
 					delete(exec.unusedArgs, list[0])
 				}
+			case "FROM":
+				foundFirstStage = true
 			}
 			break
 		}
 	}
+	exec.globalArgs = globalArgs
 	return &exec, nil
 }
 
@@ -360,15 +378,11 @@ func (b *Executor) resolveNameToImageRef(output string) (types.ImageReference, e
 	if imageRef, err := alltransports.ParseImageName(output); err == nil {
 		return imageRef, nil
 	}
-	runtime, err := libimage.RuntimeFromStore(b.store, &libimage.RuntimeOptions{SystemContext: b.systemContext})
+	resolved, err := libimage.NormalizeName(output)
 	if err != nil {
 		return nil, err
 	}
-	resolved, err := runtime.ResolveName(output)
-	if err != nil {
-		return nil, err
-	}
-	imageRef, err := storageTransport.Transport.ParseStoreReference(b.store, resolved)
+	imageRef, err := storageTransport.Transport.ParseStoreReference(b.store, resolved.String())
 	if err == nil {
 		return imageRef, nil
 	}
@@ -621,6 +635,9 @@ func (b *Executor) warnOnUnsetBuildArgs(stages imagebuilder.Stages, dependencyMa
 							}
 						}
 						if _, isBuiltIn := builtinAllowedBuildArgs[argName]; isBuiltIn {
+							shouldWarn = false
+						}
+						if _, isGlobalArg := b.globalArgs[argName]; isGlobalArg {
 							shouldWarn = false
 						}
 						if shouldWarn {

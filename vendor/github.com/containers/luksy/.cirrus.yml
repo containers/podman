@@ -1,0 +1,16 @@
+docker_builder:
+    name: CI
+    env:
+        HOME: /root
+        DEBIAN_FRONTEND: noninteractive
+    setup_script: |
+        apt-get -q update
+        apt-get -q install -y bats cryptsetup golang
+        go version
+        make
+    unit_test_script:
+        go test -v -cover
+    defaults_script: |
+        bats -f defaults ./tests
+    aes_script: |
+        bats -f aes ./tests

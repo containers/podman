@@ -19,7 +19,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/buildah/util"
 	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/fileutils"
@@ -1141,7 +1140,7 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 	cb := func() error {
 		tw := tar.NewWriter(bulkWriter)
 		defer tw.Close()
-		hardlinkChecker := new(util.HardlinkChecker)
+		hardlinkChecker := new(hardlinkChecker)
 		itemsCopied := 0
 		for i, item := range queue {
 			// if we're not discarding the names of individual directories, keep track of this one
@@ -1353,7 +1352,7 @@ func handleRename(rename map[string]string, name string) string {
 	return name
 }
 
-func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath string, options GetOptions, tw *tar.Writer, hardlinkChecker *util.HardlinkChecker, idMappings *idtools.IDMappings) error {
+func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath string, options GetOptions, tw *tar.Writer, hardlinkChecker *hardlinkChecker, idMappings *idtools.IDMappings) error {
 	// build the header using the name provided
 	hdr, err := tar.FileInfoHeader(srcfi, symlinkTarget)
 	if err != nil {

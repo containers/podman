@@ -21,17 +21,31 @@ linters:
     # - unused
 
     - gofmt # whether code was gofmt-ed
+    - govet # enabled by default, but just to be sure
     - nolintlint # ill-formed or insufficient nolint directives
     - stylecheck # golint replacement
     - thelper #  test helpers without t.Helper()
 
 linters-settings:
+  govet:
+    enable-all: true
+    disable:
+      # struct order is often for Win32 compat
+      # also, ignore pointer bytes/GC issues for now until performance becomes an issue
+      - fieldalignment
+    check-shadowing: true
+
   stylecheck:
     # https://staticcheck.io/docs/checks
     checks: ["all"]
 
 issues:
   exclude-rules:
+    # err is very often shadowed in nested scopes
+    - linters:
+        - govet
+      text: '^shadow: declaration of "err" shadows declaration'
+
     # path is relative to module root, which is ./test/
     - path: cri-containerd
       linters:
@@ -132,6 +146,22 @@ issues:
       Text: "ST1003:"
 
     - path: internal\\hcserror\\
+      linters:
+        - stylecheck
+      Text: "ST1003:"
+
+    # v0 APIs are deprecated, but still retained for backwards compatability
+    - path: cmd\\ncproxy\\
+      linters:
+        - staticcheck
+      text: "^SA1019: .*(ncproxygrpc|nodenetsvc)[/]?v0"
+
+    - path: internal\\tools\\networkagent
+      linters:
+        - staticcheck
+      text: "^SA1019: .*nodenetsvc[/]?v0"
+
+    - path: internal\\vhdx\\info
       linters:
         - stylecheck
       Text: "ST1003:"

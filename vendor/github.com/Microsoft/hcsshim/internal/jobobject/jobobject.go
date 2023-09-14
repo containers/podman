@@ -167,7 +167,7 @@ func Create(ctx context.Context, options *Options) (_ *JobObject, err error) {
 //
 // Returns a JobObject structure and an error if there is one.
 func Open(ctx context.Context, options *Options) (_ *JobObject, err error) {
-	if options == nil || (options != nil && options.Name == "") {
+	if options == nil || options.Name == "" {
 		return nil, errors.New("no job object name specified to open")
 	}
 

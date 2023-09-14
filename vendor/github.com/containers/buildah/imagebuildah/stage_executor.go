@@ -18,6 +18,7 @@ import (
 	"github.com/containers/buildah/define"
 	buildahdocker "github.com/containers/buildah/docker"
 	"github.com/containers/buildah/internal"
+	"github.com/containers/buildah/internal/tmpdir"
 	internalUtil "github.com/containers/buildah/internal/util"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/rusage"
@@ -401,7 +402,7 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 							// additional context contains a tar file
 							// so download and explode tar to buildah
 							// temp and point context to that.
-							path, subdir, err := define.TempDirForURL(internalUtil.GetTempDir(), internal.BuildahExternalArtifactsDir, additionalBuildContext.Value)
+							path, subdir, err := define.TempDirForURL(tmpdir.GetTempDir(), internal.BuildahExternalArtifactsDir, additionalBuildContext.Value)
 							if err != nil {
 								return fmt.Errorf("unable to download context from external source %q: %w", additionalBuildContext.Value, err)
 							}
@@ -537,7 +538,7 @@ func (s *StageExecutor) runStageMountPoints(mountList []string) (map[string]inte
 									// additional context contains a tar file
 									// so download and explode tar to buildah
 									// temp and point context to that.
-									path, subdir, err := define.TempDirForURL(internalUtil.GetTempDir(), internal.BuildahExternalArtifactsDir, additionalBuildContext.Value)
+									path, subdir, err := define.TempDirForURL(tmpdir.GetTempDir(), internal.BuildahExternalArtifactsDir, additionalBuildContext.Value)
 									if err != nil {
 										return nil, fmt.Errorf("unable to download context from external source %q: %w", additionalBuildContext.Value, err)
 									}
@@ -1032,7 +1033,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			// squash the contents of the base image.  Whichever is
 			// the case, we need to commit() to create a new image.
 			logCommit(s.output, -1)
-			if imgID, ref, err = s.commit(ctx, s.getCreatedBy(nil, ""), false, s.output, s.executor.squash); err != nil {
+			if imgID, ref, err = s.commit(ctx, s.getCreatedBy(nil, ""), false, s.output, s.executor.squash, lastStage); err != nil {
 				return "", nil, fmt.Errorf("committing base container: %w", err)
 			}
 			// Generate build output if needed.
@@ -1045,7 +1046,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			// The image would be modified by the labels passed
 			// via the command line, so we need to commit.
 			logCommit(s.output, -1)
-			if imgID, ref, err = s.commit(ctx, s.getCreatedBy(stage.Node, ""), true, s.output, s.executor.squash); err != nil {
+			if imgID, ref, err = s.commit(ctx, s.getCreatedBy(stage.Node, ""), true, s.output, s.executor.squash, lastStage); err != nil {
 				return "", nil, err
 			}
 			// Generate build output if needed.
@@ -1193,7 +1194,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				// stage.
 				if lastStage || imageIsUsedLater {
 					logCommit(s.output, i)
-					imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), false, s.output, s.executor.squash)
+					imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), false, s.output, s.executor.squash, lastStage && lastInstruction)
 					if err != nil {
 						return "", nil, fmt.Errorf("committing container for step %+v: %w", *step, err)
 					}
@@ -1420,7 +1421,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			// because at this point we want to save history for
 			// layers even if its a squashed build so that they
 			// can be part of build-cache.
-			imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), !s.stepRequiresLayer(step), commitName, false)
+			imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), !s.stepRequiresLayer(step), commitName, false, lastStage && lastInstruction)
 			if err != nil {
 				return "", nil, fmt.Errorf("committing container for step %+v: %w", *step, err)
 			}
@@ -1454,7 +1455,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				// Create a squashed version of this image
 				// if we're supposed to create one and this
 				// is the last instruction of the last stage.
-				imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), !s.stepRequiresLayer(step), commitName, true)
+				imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), !s.stepRequiresLayer(step), commitName, true, lastStage && lastInstruction)
 				if err != nil {
 					return "", nil, fmt.Errorf("committing final squash step %+v: %w", *step, err)
 				}
@@ -1941,7 +1942,7 @@ func (s *StageExecutor) intermediateImageExists(ctx context.Context, currNode *p
 // commit writes the container's contents to an image, using a passed-in tag as
 // the name if there is one, generating a unique ID-based one otherwise.
 // or commit via any custom exporter if specified.
-func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer bool, output string, squash bool) (string, reference.Canonical, error) {
+func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer bool, output string, squash, finalInstruction bool) (string, reference.Canonical, error) {
 	ib := s.stage.Builder
 	var imageRef types.ImageReference
 	if output != "" {
@@ -2016,6 +2017,19 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 	}
 	s.builder.ClearLabels()
 
+	if output == "" {
+		// If output is not set then we are committing
+		// an intermediate image, in such case we must
+		// honor layer labels if they are configured.
+		for _, labelString := range s.executor.layerLabels {
+			label := strings.SplitN(labelString, "=", 2)
+			if len(label) > 1 {
+				s.builder.SetLabel(label[0], label[1])
+			} else {
+				s.builder.SetLabel(label[0], "")
+			}
+		}
+	}
 	for k, v := range config.Labels {
 		s.builder.SetLabel(k, v)
 	}
@@ -2055,6 +2069,9 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 		RetryDelay:            s.executor.retryPullPushDelay,
 		HistoryTimestamp:      s.executor.timestamp,
 		Manifest:              s.executor.manifest,
+	}
+	if finalInstruction {
+		options.ConfidentialWorkloadOptions = s.executor.confidentialWorkload
 	}
 	imgID, _, manifestDigest, err := s.builder.Commit(ctx, imageRef, options)
 	if err != nil {
