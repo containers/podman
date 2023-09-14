@@ -523,7 +523,8 @@ var _ = Describe("Podman network create", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "--internal", net})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)
-		Expect(nc).Should(ExitCleanly())
+		// Cannot ExitCleanly(): "dnsname and internal networks are incompatible"
+		Expect(nc).Should(Exit(0))
 		// Not performing this check on remote tests because it is a logrus error which does
 		// not come back via stderr on the remote client.
 		if !IsRemote() {

@@ -52,7 +52,8 @@ var _ = Describe("Podman network", func() {
 
 		session := podmanTest.Podman([]string{"network", "ls", "--filter", "driver=bridge"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		// Cannot ExitCleanly(): "stat ~/.config/.../*.conflist: ENOENT"
+		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(name))
 	})
 
@@ -494,12 +495,12 @@ var _ = Describe("Podman network", func() {
 
 		// Nginx is now running so no need to do a loop
 		// Test against the first alias
-		c2 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, NGINX_IMAGE, "curl", "web1"})
+		c2 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, NGINX_IMAGE, "curl", "-s", "web1"})
 		c2.WaitWithDefaultTimeout()
 		Expect(c2).Should(ExitCleanly())
 
 		// Test against the second alias
-		c3 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, NGINX_IMAGE, "curl", "web2"})
+		c3 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, NGINX_IMAGE, "curl", "-s", "web2"})
 		c3.WaitWithDefaultTimeout()
 		Expect(c3).Should(ExitCleanly())
 	})
@@ -511,7 +512,8 @@ var _ = Describe("Podman network", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "--macvlan", "lo", net})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)
-		Expect(nc).Should(ExitCleanly())
+		// Cannot ExitCleanly(): "The --macvlan option is deprecated..."
+		Expect(nc).Should(Exit(0))
 
 		nc = podmanTest.Podman([]string{"network", "rm", net})
 		nc.WaitWithDefaultTimeout()
