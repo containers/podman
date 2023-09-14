@@ -21,7 +21,7 @@ var _ = Describe("Podman network", func() {
 		netDir := filepath.Join(podmanTest.TempDir, "networks123")
 		session := podmanTest.Podman([]string{"--cni-config-dir", netDir, "network", "ls", "--noheading"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		// default network always exists
 		Expect(session.OutputToStringArray()).To(HaveLen(1))
 	})
@@ -32,7 +32,7 @@ var _ = Describe("Podman network", func() {
 
 		session := podmanTest.Podman([]string{"network", "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring(name))
 	})
 
@@ -42,7 +42,7 @@ var _ = Describe("Podman network", func() {
 
 		session := podmanTest.Podman([]string{"network", "ls", "--quiet"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring(name))
 	})
 
@@ -52,7 +52,7 @@ var _ = Describe("Podman network", func() {
 
 		session := podmanTest.Podman([]string{"network", "ls", "--filter", "driver=bridge"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring(name))
 	})
 
@@ -62,7 +62,7 @@ var _ = Describe("Podman network", func() {
 
 		session := podmanTest.Podman([]string{"network", "ls", "--filter", "driver=bridge", "--filter", "name=" + name})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring(name))
 	})
 
@@ -75,7 +75,7 @@ var _ = Describe("Podman network", func() {
 
 		session := podmanTest.Podman([]string{"network", "ls", "--filter", "name=" + name1, "--filter", "name=" + name2})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring(name1))
 		Expect(session.OutputToString()).To(ContainSubstring(name2))
 	})
@@ -87,23 +87,23 @@ var _ = Describe("Podman network", func() {
 		session := podmanTest.Podman([]string{"network", "create", "--label", label1, net1})
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net1)
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		net2 := "labelnet" + stringid.GenerateRandomID()
 		session = podmanTest.Podman([]string{"network", "create", "--label", label1, "--label", label2, net2})
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net2)
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"network", "ls", "--filter", "label=" + label1})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring(net1))
 		Expect(session.OutputToString()).To(ContainSubstring(net2))
 
 		session = podmanTest.Podman([]string{"network", "ls", "--filter", "label=" + label1, "--filter", "label=" + label2})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).ToNot(ContainSubstring(net1))
 		Expect(session.OutputToString()).To(ContainSubstring(net2))
 	})
@@ -113,7 +113,7 @@ var _ = Describe("Podman network", func() {
 		session := podmanTest.Podman([]string{"network", "create", net})
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"network", "ls", "--filter", "namr=ab"})
 		session.WaitWithDefaultTimeout()
@@ -127,7 +127,7 @@ var _ = Describe("Podman network", func() {
 
 		session := podmanTest.Podman([]string{"network", "ls", "--filter", "label=abc"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Not(ContainSubstring(name)))
 	})
 
@@ -137,12 +137,12 @@ var _ = Describe("Podman network", func() {
 
 		session := podmanTest.Podman([]string{"network", "ls", "--filter", "dangling=true"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring(name))
 
 		session = podmanTest.Podman([]string{"network", "ls", "--filter", "dangling=false"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).NotTo(ContainSubstring(name))
 
 		session = podmanTest.Podman([]string{"network", "ls", "--filter", "dangling=foo"})
@@ -158,35 +158,35 @@ var _ = Describe("Podman network", func() {
 		session := podmanTest.Podman([]string{"network", "create", net})
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		if podmanTest.NetworkBackend == Netavark {
 			// netavark uses a different algo for determining the id and it is not repeatable
 			getid := podmanTest.Podman([]string{"network", "inspect", net, "--format", "{{.ID}}"})
 			getid.WaitWithDefaultTimeout()
-			Expect(getid).Should(Exit(0))
+			Expect(getid).Should(ExitCleanly())
 			netID = getid.OutputToString()
 		}
 		// Tests Default Table Output
 		session = podmanTest.Podman([]string{"network", "ls", "--filter", "id=" + netID})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		expectedTable := "NETWORK ID NAME DRIVER"
 		Expect(session.OutputToString()).To(ContainSubstring(expectedTable))
 
 		session = podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}} {{.ID}}", "--filter", "id=" + netID})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring(net + " " + netID[:12]))
 
 		session = podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}} {{.ID}}", "--filter", "id=" + netID[:50], "--no-trunc"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring(net + " " + netID))
 
 		session = podmanTest.Podman([]string{"network", "inspect", netID[:40]})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring(net))
 
 		session = podmanTest.Podman([]string{"network", "inspect", netID[1:]})
@@ -196,7 +196,7 @@ var _ = Describe("Podman network", func() {
 
 		session = podmanTest.Podman([]string{"network", "rm", netID})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	rmFunc := func(rm string) {
@@ -213,16 +213,16 @@ var _ = Describe("Podman network", func() {
 
 			session := podmanTest.Podman([]string{"network", "ls", "--quiet"})
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 			Expect(session.OutputToString()).To(ContainSubstring(name))
 
 			rm := podmanTest.Podman([]string{"network", rm, name})
 			rm.WaitWithDefaultTimeout()
-			Expect(rm).Should(Exit(0))
+			Expect(rm).Should(ExitCleanly())
 
 			results := podmanTest.Podman([]string{"network", "ls", "--quiet"})
 			results.WaitWithDefaultTimeout()
-			Expect(results).Should(Exit(0))
+			Expect(results).Should(ExitCleanly())
 			Expect(results.OutputToString()).To(Not(ContainSubstring(name)))
 		})
 	}
@@ -247,7 +247,7 @@ var _ = Describe("Podman network", func() {
 		}
 		session := podmanTest.Podman(append([]string{"network", "inspect"}, expectedNetworks...))
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(BeValidJSON())
 	})
 
@@ -257,7 +257,7 @@ var _ = Describe("Podman network", func() {
 
 		session := podmanTest.Podman([]string{"network", "inspect", name, "--format", "{{.Driver}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("bridge"))
 	})
 
@@ -266,16 +266,16 @@ var _ = Describe("Podman network", func() {
 		network := podmanTest.Podman([]string{"network", "create", "--subnet", "10.50.50.0/24", netName})
 		network.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(netName)
-		Expect(network).Should(Exit(0))
+		Expect(network).Should(ExitCleanly())
 
 		ctrName := "testCtr"
 		container := podmanTest.Podman([]string{"run", "-dt", "--network", netName, "--name", ctrName, ALPINE, "top"})
 		container.WaitWithDefaultTimeout()
-		Expect(container).Should(Exit(0))
+		Expect(container).Should(ExitCleanly())
 
 		inspect := podmanTest.Podman([]string{"inspect", ctrName})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 		conData := inspect.InspectContainerToJSON()
 		Expect(conData).To(HaveLen(1))
 		Expect(conData[0].NetworkSettings.Networks).To(HaveLen(1))
@@ -288,7 +288,7 @@ var _ = Describe("Podman network", func() {
 		// Necessary to ensure the CNI network is removed cleanly
 		rmAll := podmanTest.Podman([]string{"rm", "-t", "0", "-f", ctrName})
 		rmAll.WaitWithDefaultTimeout()
-		Expect(rmAll).Should(Exit(0))
+		Expect(rmAll).Should(ExitCleanly())
 	})
 
 	It("podman inspect container two CNI networks (container not running)", func() {
@@ -296,22 +296,22 @@ var _ = Describe("Podman network", func() {
 		network1 := podmanTest.Podman([]string{"network", "create", netName1})
 		network1.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(netName1)
-		Expect(network1).Should(Exit(0))
+		Expect(network1).Should(ExitCleanly())
 
 		netName2 := "net2-" + stringid.GenerateRandomID()
 		network2 := podmanTest.Podman([]string{"network", "create", netName2})
 		network2.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(netName2)
-		Expect(network2).Should(Exit(0))
+		Expect(network2).Should(ExitCleanly())
 
 		ctrName := "testCtr"
 		container := podmanTest.Podman([]string{"create", "--network", fmt.Sprintf("%s,%s", netName1, netName2), "--name", ctrName, ALPINE, "top"})
 		container.WaitWithDefaultTimeout()
-		Expect(container).Should(Exit(0))
+		Expect(container).Should(ExitCleanly())
 
 		inspect := podmanTest.Podman([]string{"inspect", ctrName})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 		conData := inspect.InspectContainerToJSON()
 		Expect(conData).To(HaveLen(1))
 		Expect(conData[0].NetworkSettings.Networks).To(HaveLen(2))
@@ -325,7 +325,7 @@ var _ = Describe("Podman network", func() {
 		// Necessary to ensure the CNI network is removed cleanly
 		rmAll := podmanTest.Podman([]string{"rm", "-t", "0", "-f", ctrName})
 		rmAll.WaitWithDefaultTimeout()
-		Expect(rmAll).Should(Exit(0))
+		Expect(rmAll).Should(ExitCleanly())
 	})
 
 	It("podman inspect container two CNI networks", func() {
@@ -333,22 +333,22 @@ var _ = Describe("Podman network", func() {
 		network1 := podmanTest.Podman([]string{"network", "create", "--subnet", "10.50.51.0/25", netName1})
 		network1.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(netName1)
-		Expect(network1).Should(Exit(0))
+		Expect(network1).Should(ExitCleanly())
 
 		netName2 := "net2-" + stringid.GenerateRandomID()
 		network2 := podmanTest.Podman([]string{"network", "create", "--subnet", "10.50.51.128/26", netName2})
 		network2.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(netName2)
-		Expect(network2).Should(Exit(0))
+		Expect(network2).Should(ExitCleanly())
 
 		ctrName := "testCtr"
 		container := podmanTest.Podman([]string{"run", "-dt", "--network", fmt.Sprintf("%s,%s", netName1, netName2), "--name", ctrName, ALPINE, "top"})
 		container.WaitWithDefaultTimeout()
-		Expect(container).Should(Exit(0))
+		Expect(container).Should(ExitCleanly())
 
 		inspect := podmanTest.Podman([]string{"inspect", ctrName})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 		conData := inspect.InspectContainerToJSON()
 		Expect(conData).To(HaveLen(1))
 		Expect(conData[0].NetworkSettings.Networks).To(HaveLen(2))
@@ -366,7 +366,7 @@ var _ = Describe("Podman network", func() {
 		// Necessary to ensure the CNI network is removed cleanly
 		rmAll := podmanTest.Podman([]string{"rm", "-t", "0", "-f", ctrName})
 		rmAll.WaitWithDefaultTimeout()
-		Expect(rmAll).Should(Exit(0))
+		Expect(rmAll).Should(ExitCleanly())
 	})
 
 	It("podman network remove after disconnect when container initially created with the network", func() {
@@ -376,19 +376,19 @@ var _ = Describe("Podman network", func() {
 		session := podmanTest.Podman([]string{"network", "create", network})
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(network)
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"run", "--name", container, "--network", network, "-d", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"network", "disconnect", network, container})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"network", "rm", network})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman network remove bogus", func() {
@@ -402,16 +402,16 @@ var _ = Describe("Podman network", func() {
 		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(netName)
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"pod", "create", "--network", netName})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		podID := session.OutputToString()
 
 		session = podmanTest.Podman([]string{"create", "--pod", podID, ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"network", "rm", netName})
 		session.WaitWithDefaultTimeout()
@@ -419,7 +419,7 @@ var _ = Describe("Podman network", func() {
 
 		session = podmanTest.Podman([]string{"network", "rm", "-t", "0", "--force", netName})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		// check if pod is deleted
 		session = podmanTest.Podman([]string{"pod", "exists", podID})
@@ -429,7 +429,7 @@ var _ = Describe("Podman network", func() {
 		// check if net is deleted
 		session = podmanTest.Podman([]string{"network", "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Not(ContainSubstring(netName)))
 	})
 
@@ -438,17 +438,17 @@ var _ = Describe("Podman network", func() {
 		session := podmanTest.Podman([]string{"network", "create", netName1})
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(netName1)
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		netName2 := "net2-" + stringid.GenerateRandomID()
 		session = podmanTest.Podman([]string{"network", "create", netName2})
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(netName2)
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"network", "rm", netName1, netName2})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		lines := session.OutputToStringArray()
 		Expect(lines[0]).To(Equal(netName1))
 		Expect(lines[1]).To(Equal(netName2))
@@ -460,7 +460,7 @@ var _ = Describe("Podman network", func() {
 		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(netName)
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		interval := 250 * time.Millisecond
 		for i := 0; i < 6; i++ {
@@ -476,7 +476,7 @@ var _ = Describe("Podman network", func() {
 
 		top := podmanTest.Podman([]string{"run", "-dt", "--name=web", "--network=" + netName, "--network-alias=web1", "--network-alias=web2", NGINX_IMAGE})
 		top.WaitWithDefaultTimeout()
-		Expect(top).Should(Exit(0))
+		Expect(top).Should(ExitCleanly())
 		interval = 250 * time.Millisecond
 		// Wait for the nginx service to be running
 		for i := 0; i < 6; i++ {
@@ -496,12 +496,12 @@ var _ = Describe("Podman network", func() {
 		// Test against the first alias
 		c2 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, NGINX_IMAGE, "curl", "web1"})
 		c2.WaitWithDefaultTimeout()
-		Expect(c2).Should(Exit(0))
+		Expect(c2).Should(ExitCleanly())
 
 		// Test against the second alias
 		c3 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, NGINX_IMAGE, "curl", "web2"})
 		c3.WaitWithDefaultTimeout()
-		Expect(c3).Should(Exit(0))
+		Expect(c3).Should(ExitCleanly())
 	})
 
 	It("podman network create/remove macvlan", func() {
@@ -511,11 +511,11 @@ var _ = Describe("Podman network", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "--macvlan", "lo", net})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)
-		Expect(nc).Should(Exit(0))
+		Expect(nc).Should(ExitCleanly())
 
 		nc = podmanTest.Podman([]string{"network", "rm", net})
 		nc.WaitWithDefaultTimeout()
-		Expect(nc).Should(Exit(0))
+		Expect(nc).Should(ExitCleanly())
 	})
 
 	It("podman network create/remove macvlan as driver (-d) no device name", func() {
@@ -525,11 +525,11 @@ var _ = Describe("Podman network", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "-d", "macvlan", net})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)
-		Expect(nc).Should(Exit(0))
+		Expect(nc).Should(ExitCleanly())
 
 		inspect := podmanTest.Podman([]string{"network", "inspect", net})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 
 		// JSON the network configuration into something usable
 		var results []types.Network
@@ -542,7 +542,7 @@ var _ = Describe("Podman network", func() {
 
 		nc = podmanTest.Podman([]string{"network", "rm", net})
 		nc.WaitWithDefaultTimeout()
-		Expect(nc).Should(Exit(0))
+		Expect(nc).Should(ExitCleanly())
 	})
 
 	for _, opt := range []string{"-o=parent=lo", "--interface-name=lo"} {
@@ -554,11 +554,11 @@ var _ = Describe("Podman network", func() {
 			nc := podmanTest.Podman([]string{"network", "create", "-d", "macvlan", opt, net})
 			nc.WaitWithDefaultTimeout()
 			defer podmanTest.removeNetwork(net)
-			Expect(nc).Should(Exit(0))
+			Expect(nc).Should(ExitCleanly())
 
 			inspect := podmanTest.Podman([]string{"network", "inspect", net})
 			inspect.WaitWithDefaultTimeout()
-			Expect(inspect).Should(Exit(0))
+			Expect(inspect).Should(ExitCleanly())
 
 			var results []types.Network
 			err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
@@ -573,7 +573,7 @@ var _ = Describe("Podman network", func() {
 
 			nc = podmanTest.Podman([]string{"network", "rm", net})
 			nc.WaitWithDefaultTimeout()
-			Expect(nc).Should(Exit(0))
+			Expect(nc).Should(ExitCleanly())
 		})
 	}
 
@@ -584,11 +584,11 @@ var _ = Describe("Podman network", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "-d", "ipvlan", "-o", "parent=lo", net})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)
-		Expect(nc).Should(Exit(0))
+		Expect(nc).Should(ExitCleanly())
 
 		inspect := podmanTest.Podman([]string{"network", "inspect", net})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 
 		var results []types.Network
 		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
@@ -603,7 +603,7 @@ var _ = Describe("Podman network", func() {
 
 		nc = podmanTest.Podman([]string{"network", "rm", net})
 		nc.WaitWithDefaultTimeout()
-		Expect(nc).Should(Exit(0))
+		Expect(nc).Should(ExitCleanly())
 	})
 
 	It("podman network exists", func() {
@@ -611,11 +611,11 @@ var _ = Describe("Podman network", func() {
 		session := podmanTest.Podman([]string{"network", "create", net})
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"network", "exists", net})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"network", "exists", stringid.GenerateRandomID()})
 		session.WaitWithDefaultTimeout()
@@ -627,11 +627,11 @@ var _ = Describe("Podman network", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "-d", "macvlan", "-o", "parent=lo", "-o", "mtu=1500", "--gateway", "192.168.1.254", "--subnet", "192.168.1.0/24", net})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)
-		Expect(nc).Should(Exit(0))
+		Expect(nc).Should(ExitCleanly())
 
 		inspect := podmanTest.Podman([]string{"network", "inspect", net})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 
 		var results []types.Network
 		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
@@ -650,7 +650,7 @@ var _ = Describe("Podman network", func() {
 
 		nc = podmanTest.Podman([]string{"network", "rm", net})
 		nc.WaitWithDefaultTimeout()
-		Expect(nc).Should(Exit(0))
+		Expect(nc).Should(ExitCleanly())
 	})
 
 	It("podman network prune --filter", func() {
@@ -660,11 +660,11 @@ var _ = Describe("Podman network", func() {
 		nc := podmanTest.Podman([]string{"network", "create", net1})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net1)
-		Expect(nc).Should(Exit(0))
+		Expect(nc).Should(ExitCleanly())
 
 		list := podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}}"})
 		list.WaitWithDefaultTimeout()
-		Expect(list).Should(Exit(0))
+		Expect(list).Should(ExitCleanly())
 		Expect(list.OutputToStringArray()).Should(HaveLen(2))
 
 		Expect(list.OutputToStringArray()).Should(ContainElement(net1))
@@ -673,11 +673,11 @@ var _ = Describe("Podman network", func() {
 		// -f needed only to skip y/n question
 		prune := podmanTest.Podman([]string{"network", "prune", "-f", "--filter", "until=50"})
 		prune.WaitWithDefaultTimeout()
-		Expect(prune).Should(Exit(0))
+		Expect(prune).Should(ExitCleanly())
 
 		listAgain := podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}}"})
 		listAgain.WaitWithDefaultTimeout()
-		Expect(listAgain).Should(Exit(0))
+		Expect(listAgain).Should(ExitCleanly())
 		Expect(listAgain.OutputToStringArray()).Should(HaveLen(2))
 
 		Expect(listAgain.OutputToStringArray()).Should(ContainElement(net1))
@@ -686,11 +686,11 @@ var _ = Describe("Podman network", func() {
 		// -f needed only to skip y/n question
 		prune = podmanTest.Podman([]string{"network", "prune", "-f", "--filter", "until=5000000000000"})
 		prune.WaitWithDefaultTimeout()
-		Expect(prune).Should(Exit(0))
+		Expect(prune).Should(ExitCleanly())
 
 		listAgain = podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}}"})
 		listAgain.WaitWithDefaultTimeout()
-		Expect(listAgain).Should(Exit(0))
+		Expect(listAgain).Should(ExitCleanly())
 		Expect(listAgain.OutputToStringArray()).Should(HaveLen(1))
 
 		Expect(listAgain.OutputToStringArray()).ShouldNot(ContainElement(net1))
@@ -710,12 +710,12 @@ var _ = Describe("Podman network", func() {
 		nc := podmanTest.Podman([]string{"network", "create", net1})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net1)
-		Expect(nc).Should(Exit(0))
+		Expect(nc).Should(ExitCleanly())
 
 		nc2 := podmanTest.Podman([]string{"network", "create", net2})
 		nc2.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net2)
-		Expect(nc2).Should(Exit(0))
+		Expect(nc2).Should(ExitCleanly())
 
 		list := podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}}"})
 		list.WaitWithDefaultTimeout()
@@ -727,15 +727,15 @@ var _ = Describe("Podman network", func() {
 
 		session := podmanTest.Podman([]string{"run", "-dt", "--net", net2, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		prune := podmanTest.Podman([]string{"network", "prune", "-f"})
 		prune.WaitWithDefaultTimeout()
-		Expect(prune).Should(Exit(0))
+		Expect(prune).Should(ExitCleanly())
 
 		listAgain := podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}}"})
 		listAgain.WaitWithDefaultTimeout()
-		Expect(listAgain).Should(Exit(0))
+		Expect(listAgain).Should(ExitCleanly())
 		Expect(listAgain.OutputToStringArray()).Should(HaveLen(2))
 
 		Expect(listAgain.OutputToStringArray()).ShouldNot(ContainElement(net1))
