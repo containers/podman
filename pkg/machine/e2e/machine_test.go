@@ -44,6 +44,7 @@ func TestMachine(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+
 	testProvider, err := provider.Get()
 	if err != nil {
 		Fail("unable to create testProvider")
@@ -51,17 +52,15 @@ var _ = BeforeSuite(func() {
 
 	downloadLocation := os.Getenv("MACHINE_IMAGE")
 
-	dd, err := testProvider.NewDownload("")
-	if err != nil {
-		Fail("unable to create new download")
-	}
 	if len(downloadLocation) < 1 {
-		fcd, err := dd.GetFCOSDownload(defaultStream)
-		if err != nil {
-			Fail("unable to get virtual machine image")
+		downloadLocation = getDownloadLocation(testProvider)
+		// we cannot simply use OS here because hyperv uses fcos; so WSL is just
+		// special here
+		if testProvider.VMType() != machine.WSLVirt {
+			downloadLocation = getDownloadLocation(testProvider)
 		}
-		downloadLocation = fcd.Location
 	}
+
 	compressionExtension := fmt.Sprintf(".%s", testProvider.Compression().String())
 	suiteImageName = strings.TrimSuffix(path.Base(downloadLocation), compressionExtension)
 	fqImageName = filepath.Join(tmpDir, suiteImageName)
