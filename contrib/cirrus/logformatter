@@ -72,7 +72,7 @@ table.synopsis { border: none; border-collapse: collapse; margin-left: 2em; marg
 /* [It] is where the test happens but we don't need any special highlights */
 .ginkgo-it           { }
 
-/* Finall summary line at bottom */
+/* Final summary line at bottom */
 .ginkgo-final-success { background: #393; font-weight: bold; font-size: 150%; }
 .ginkgo-final-fail    { background: #f00; font-weight: bold; font-size: 150%; }
 

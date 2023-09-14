@@ -2,7 +2,7 @@
 
 # New home
 
-The contents of the hello iamge have been moved to a dedicated repository:
+The contents of the hello image have been moved to a dedicated repository:
 https://github.com/containers/PodmanHello
 
 # Warning

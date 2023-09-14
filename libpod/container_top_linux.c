@@ -33,7 +33,7 @@ set_argv (int pos, char *arg)
 /*
   We use cgo code here so we can fork then exec separately,
   this is done so we can mount proc after the fork because the pid namespace is
-  only active after spawning childs.
+  only active after spawning children.
 */
 void
 fork_exec_ps ()

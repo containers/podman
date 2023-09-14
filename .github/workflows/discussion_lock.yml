@@ -29,11 +29,11 @@ concurrency:
   group: lock
 
 env:
-  # Number of days befor a closed issue/PR is be comment-locked.
+  # Number of days before a closed issue/PR is be comment-locked.
   # Note: dessant/lock-threads will only process a max. of
   # 50 issues/PRs at a time.
   CLOSED_DAYS: 90
-  # Pre-created issue/PR label to add (preferrably a bright color).
+  # Pre-created issue/PR label to add (preferably a bright color).
   # This is intended to direct a would-be commenter's actions.
   LOCKED_LABEL: 'locked - please file new issue/PR'
 

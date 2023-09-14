@@ -491,7 +491,7 @@ none | false | false | 0
 @test "podman pull - EXTEND_TIMEOUT_USEC" {
     # Make sure that Podman extends the start timeout via DBUS when running
     # inside a systemd unit (i.e., with NOTIFY_SOCKET set).  Extending the
-    # timout works by continuously sending EXTEND_TIMEOUT_USEC; Podman does
+    # timeout works by continuously sending EXTEND_TIMEOUT_USEC; Podman does
     # this at most 10 times, adding up to ~5min.
 
     image_on_local_registry=localhost:${PODMAN_LOGIN_REGISTRY_PORT}/name:tag
