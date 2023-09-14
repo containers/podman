@@ -62,7 +62,7 @@ and GID on the host.
 The `:U` suffix tells Podman to use the correct host UID and GID based on the
 UID and GID within the <<container|pod>>, to change recursively the owner and
 group of the source volume. Chowning walks the file system under the volume and
-changes the UID/GID on each file, it the volume has thousands of inodes, this
+changes the UID/GID on each file. If the volume has thousands of inodes, this
 process takes a long time, delaying the start of the <<container|pod>>.
 
 **Warning** use with caution since this modifies the host filesystem.
@@ -119,9 +119,8 @@ content, any changes from previous <<container|pod>> executions no longer exist.
   One use case of the overlay mount is sharing the package cache from the
 host into the container to allow speeding up builds.
 
-  Note:
+  Note: The `O` flag conflicts with other options listed above.
 
-     - The `O` flag conflicts with other options listed above.
 Content mounted into the container is labeled with the private label.
        On SELinux systems, labels in the source directory must be readable
 by the <<|pod infra>> container label. Usually containers can read/execute `container_share_t`
