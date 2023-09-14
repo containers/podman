@@ -160,6 +160,7 @@ Valid options for `[Container]` are listed below:
 | NoNewPrivileges=true           | --security-opt no-new-privileges                     |
 | Rootfs=/var/lib/rootfs         | --rootfs /var/lib/rootfs                             |
 | Notify=true                    | --sdnotify container                                 |
+| PidsLimit=10000                | --pids-limit 10000                                   |
 | PodmanArgs=--add-host foobar   | --add-host foobar                                    |
 | PublishPort=50-59              | --publish 50-59                                      |
 | Pull=never                     | --pull=never                                         |
@@ -430,6 +431,11 @@ starts the child in the container. However, if the container application support
 [sd_notify](https://www.freedesktop.org/software/systemd/man/sd_notify.html), then setting
 `Notify` to true passes the notification details to the container allowing it to notify
 of startup on its own.
+
+### `PidsLimit=`
+
+Tune the container's pids limit.
+This is equivalent to the Podman `--pids-limit` option.
 
 ### `PodmanArgs=`
 

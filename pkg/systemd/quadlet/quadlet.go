@@ -94,6 +94,7 @@ const (
 	KeyNoNewPrivileges       = "NoNewPrivileges"
 	KeyNotify                = "Notify"
 	KeyOptions               = "Options"
+	KeyPidsLimit             = "PidsLimit"
 	KeyPodmanArgs            = "PodmanArgs"
 	KeyPublishPort           = "PublishPort"
 	KeyPull                  = "Pull"
@@ -169,6 +170,7 @@ var (
 		KeyNetwork:               true,
 		KeyNoNewPrivileges:       true,
 		KeyNotify:                true,
+		KeyPidsLimit:             true,
 		KeyPodmanArgs:            true,
 		KeyPublishPort:           true,
 		KeyPull:                  true,
@@ -456,18 +458,23 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 		podman.add("--security-opt", "label:nested")
 	}
 
-	securityLabelType, _ := container.Lookup(ContainerGroup, KeySecurityLabelType)
-	if len(securityLabelType) > 0 {
+	pidsLimit, ok := container.Lookup(ContainerGroup, KeyPidsLimit)
+	if ok && len(pidsLimit) > 0 {
+		podman.add("--pids-limit", pidsLimit)
+	}
+
+	securityLabelType, ok := container.Lookup(ContainerGroup, KeySecurityLabelType)
+	if ok && len(securityLabelType) > 0 {
 		podman.add("--security-opt", fmt.Sprintf("label=type:%s", securityLabelType))
 	}
 
-	securityLabelFileType, _ := container.Lookup(ContainerGroup, KeySecurityLabelFileType)
-	if len(securityLabelFileType) > 0 {
+	securityLabelFileType, ok := container.Lookup(ContainerGroup, KeySecurityLabelFileType)
+	if ok && len(securityLabelFileType) > 0 {
 		podman.add("--security-opt", fmt.Sprintf("label=filetype:%s", securityLabelFileType))
 	}
 
-	securityLabelLevel, _ := container.Lookup(ContainerGroup, KeySecurityLabelLevel)
-	if len(securityLabelLevel) > 0 {
+	securityLabelLevel, ok := container.Lookup(ContainerGroup, KeySecurityLabelLevel)
+	if ok && len(securityLabelLevel) > 0 {
 		podman.add("--security-opt", fmt.Sprintf("label=level:%s", securityLabelLevel))
 	}
 
