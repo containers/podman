@@ -7,8 +7,8 @@ require (
 	github.com/Microsoft/go-winio v0.6.1
 	github.com/blang/semver/v4 v4.0.0
 	github.com/buger/goterm v1.0.4
-	github.com/checkpoint-restore/checkpointctl v0.1.0
-	github.com/checkpoint-restore/go-criu/v6 v6.3.0
+	github.com/checkpoint-restore/checkpointctl v1.1.0
+	github.com/checkpoint-restore/go-criu/v7 v7.0.0
 	github.com/container-orchestrated-devices/container-device-interface v0.6.1
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0

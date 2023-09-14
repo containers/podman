@@ -3,7 +3,6 @@ package stats
 import (
 	"encoding/binary"
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -11,17 +10,17 @@ import (
 )
 
 func readStatisticsFile(imgDir *os.File, fileName string) (*StatsEntry, error) {
-	buf, err := ioutil.ReadFile(filepath.Join(imgDir.Name(), fileName))
+	buf, err := os.ReadFile(filepath.Join(imgDir.Name(), fileName))
 	if err != nil {
 		return nil, err
 	}
 
 	if binary.LittleEndian.Uint32(buf[PrimaryMagicOffset:SecondaryMagicOffset]) != ImgServiceMagic {
-		return nil, errors.New("Primary magic not found")
+		return nil, errors.New("primary magic not found")
 	}
 
 	if binary.LittleEndian.Uint32(buf[SecondaryMagicOffset:SizeOffset]) != StatsMagic {
-		return nil, errors.New("Secondary magic not found")
+		return nil, errors.New("secondary magic not found")
 	}
 
 	payloadSize := binary.LittleEndian.Uint32(buf[SizeOffset:PayloadOffset])

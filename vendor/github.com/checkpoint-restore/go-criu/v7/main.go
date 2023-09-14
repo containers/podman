@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/checkpoint-restore/go-criu/v6/rpc"
+	"github.com/checkpoint-restore/go-criu/v7/rpc"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -230,7 +230,7 @@ func (c *Criu) GetCriuVersion() (int, error) {
 	}
 
 	if resp.GetType() != rpc.CriuReqType_VERSION {
-		return 0, fmt.Errorf("Unexpected CRIU RPC response")
+		return 0, fmt.Errorf("unexpected CRIU RPC response")
 	}
 
 	version := int(*resp.GetVersion().MajorNumber) * 10000
