@@ -91,7 +91,14 @@ var _ = Describe("Podman manifest", func() {
 		// inspect manifest of single image
 		session = podmanTest.Podman([]string{"manifest", "inspect", "quay.io/libpod/busybox@sha256:6655df04a3df853b029a5fac8836035ac4fab117800c9a6c4b69341bb5306c3d"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		Expect(session).Should(Exit(0))
+		// yet another warning message that is not seen by remote client
+		stderr := session.ErrorToString()
+		if IsRemote() {
+			Expect(stderr).Should(Equal(""))
+		} else {
+			Expect(stderr).Should(ContainSubstring("The manifest type application/vnd.docker.distribution.manifest.v2+json is not a manifest list but a single image."))
+		}
 	})
 
 	It("add w/ inspect", func() {
@@ -172,11 +179,11 @@ var _ = Describe("Podman manifest", func() {
 			Skip("Cannot start docker registry.")
 		}
 
-		session = podmanTest.Podman([]string{"build", "--platform", "linux/amd64", "-t", "imageone", "build/basicalpine"})
+		session = podmanTest.Podman([]string{"build", "-q", "--platform", "linux/amd64", "-t", "imageone", "build/basicalpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"build", "--platform", "linux/arm64", "-t", "imagetwo", "build/basicalpine"})
+		session = podmanTest.Podman([]string{"build", "-q", "--platform", "linux/arm64", "-t", "imagetwo", "build/basicalpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -192,14 +199,14 @@ var _ = Describe("Podman manifest", func() {
 
 		push := podmanTest.Podman([]string{"manifest", "push", "--all", "--add-compression", "zstd", "--tls-verify=false", "--remove-signatures", "foobar", "localhost:5000/list"})
 		push.WaitWithDefaultTimeout()
-		Expect(push).Should(ExitCleanly())
+		Expect(push).Should(Exit(0))
 		output := push.ErrorToString()
 		// 4 images must be pushed two for gzip and two for zstd
 		Expect(output).To(ContainSubstring("Copying 4 images generated from 2 images in list"))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5000/list:latest"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		Expect(session).Should(Exit(0))
 		var index imgspecv1.Index
 		inspectData := []byte(session.OutputToString())
 		err := json.Unmarshal(inspectData, &index)
@@ -213,7 +220,7 @@ var _ = Describe("Podman manifest", func() {
 		// Note: Pushing again with --force-compression should produce the correct response the since blobs will be correctly force-pushed again.
 		push = podmanTest.Podman([]string{"manifest", "push", "--all", "--add-compression", "zstd", "--tls-verify=false", "--compression-format", "gzip", "--force-compression", "--remove-signatures", "foobar", "localhost:5000/list"})
 		push.WaitWithDefaultTimeout()
-		Expect(push).Should(ExitCleanly())
+		Expect(push).Should(Exit(0))
 		output = push.ErrorToString()
 		// 4 images must be pushed two for gzip and two for zstd
 		Expect(output).To(ContainSubstring("Copying 4 images generated from 2 images in list"))
@@ -239,7 +246,7 @@ add_compression = ["zstd"]`), 0o644)
 
 		push = podmanTest.Podman([]string{"manifest", "push", "--all", "--tls-verify=false", "--compression-format", "gzip", "--force-compression", "--remove-signatures", "foobar", "localhost:5000/list"})
 		push.WaitWithDefaultTimeout()
-		Expect(push).Should(ExitCleanly())
+		Expect(push).Should(Exit(0))
 		output = push.ErrorToString()
 		// 4 images must be pushed two for gzip and two for zstd
 		Expect(output).To(ContainSubstring("Copying 4 images generated from 2 images in list"))
@@ -260,7 +267,7 @@ add_compression = ["zstd"]`), 0o644)
 		// ignoring our compression priority ( this is expected behaviour of c/image and --force-compression is introduced to mitigate this behaviour ).
 		push = podmanTest.Podman([]string{"manifest", "push", "--all", "--add-compression", "zstd", "--force-compression=false", "--tls-verify=false", "--remove-signatures", "foobar", "localhost:5000/list"})
 		push.WaitWithDefaultTimeout()
-		Expect(push).Should(ExitCleanly())
+		Expect(push).Should(Exit(0))
 		output = push.ErrorToString()
 		// 4 images must be pushed two for gzip and two for zstd
 		Expect(output).To(ContainSubstring("Copying 4 images generated from 2 images in list"))
@@ -408,7 +415,7 @@ add_compression = ["zstd"]`), 0o644)
 		defer func() {
 			os.RemoveAll(dest)
 		}()
-		session = podmanTest.Podman([]string{"manifest", "push", "--all", "foo", "dir:" + dest})
+		session = podmanTest.Podman([]string{"manifest", "push", "-q", "--all", "foo", "dir:" + dest})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -441,7 +448,7 @@ add_compression = ["zstd"]`), 0o644)
 		defer func() {
 			os.RemoveAll(dest)
 		}()
-		session = podmanTest.Podman([]string{"push", "foo", "dir:" + dest})
+		session = podmanTest.Podman([]string{"push", "-q", "foo", "dir:" + dest})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		files, err := filepath.Glob(dest + string(os.PathSeparator) + "*")
@@ -462,16 +469,12 @@ add_compression = ["zstd"]`), 0o644)
 
 	It("push with compression-format and compression-level", func() {
 		SkipIfRemote("manifest push to dir not supported in remote mode")
-		session := podmanTest.Podman([]string{"pull", ALPINE})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		dockerfile := `FROM quay.io/libpod/alpine:latest
+		dockerfile := `FROM ` + CITEST_IMAGE + `
 RUN touch /file
 `
 		podmanTest.BuildImage(dockerfile, "localhost/test", "false")
 
-		session = podmanTest.Podman([]string{"manifest", "create", "foo"})
+		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -493,7 +496,7 @@ RUN touch /file
 		defer func() {
 			os.RemoveAll(dest)
 		}()
-		session = podmanTest.Podman([]string{"push", "--compression-format=zstd", "foo", "oci:" + dest})
+		session = podmanTest.Podman([]string{"push", "-q", "--compression-format=zstd", "foo", "oci:" + dest})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -540,7 +543,7 @@ RUN touch /file
 
 		session = podmanTest.Podman([]string{"push", "foo", "dir:" + dest})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		Expect(session).Should(Exit(0))
 		output := session.ErrorToString()
 		Expect(output).To(ContainSubstring("Writing manifest list to image destination"))
 		Expect(output).To(ContainSubstring("Storing list signatures"))
@@ -569,25 +572,21 @@ RUN touch /file
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"pull", ALPINE})
+		session = podmanTest.Podman([]string{"tag", CITEST_IMAGE, "localhost:" + registry.Port + "/citest:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"tag", ALPINE, "localhost:" + registry.Port + "/alpine:latest"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--creds=" + registry.User + ":" + registry.Password, "--format=v2s2", "localhost:" + registry.Port + "/alpine:latest"})
+		push := podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--creds=" + registry.User + ":" + registry.Password, "--format=v2s2", "localhost:" + registry.Port + "/citest:latest"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"manifest", "add", "--tls-verify=false", "--creds=" + registry.User + ":" + registry.Password, "foo", "localhost:" + registry.Port + "/alpine:latest"})
+		session = podmanTest.Podman([]string{"manifest", "add", "--tls-verify=false", "--creds=" + registry.User + ":" + registry.Password, "foo", "localhost:" + registry.Port + "/citest:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
 		push = podmanTest.Podman([]string{"manifest", "push", "--tls-verify=false", "--creds=" + registry.User + ":" + registry.Password, "foo", "localhost:" + registry.Port + "/credstest"})
 		push.WaitWithDefaultTimeout()
-		Expect(push).Should(ExitCleanly())
+		Expect(push).Should(Exit(0))
 		output := push.ErrorToString()
 		Expect(output).To(ContainSubstring("Copying blob "))
 		Expect(output).To(ContainSubstring("Copying config "))
@@ -599,7 +598,7 @@ RUN touch /file
 		Expect(push.ErrorToString()).To(ContainSubstring(": authentication required"))
 
 		// push --rm after pull image (#15033)
-		push = podmanTest.Podman([]string{"manifest", "push", "--rm", "--tls-verify=false", "--creds=" + registry.User + ":" + registry.Password, "foo", "localhost:" + registry.Port + "/rmtest"})
+		push = podmanTest.Podman([]string{"manifest", "push", "-q", "--rm", "--tls-verify=false", "--creds=" + registry.User + ":" + registry.Password, "foo", "localhost:" + registry.Port + "/rmtest"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(ExitCleanly())
 
@@ -613,7 +612,7 @@ RUN touch /file
 		session := podmanTest.Podman([]string{"manifest", "push", "badsrcvalue", "baddestvalue"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitWithError())
-		Expect(session.ErrorToString()).NotTo(BeEmpty())
+		Expect(session.ErrorToString()).To(ContainSubstring("retrieving local image from image name badsrcvalue: badsrcvalue: image not known"))
 	})
 
 	It("push --rm to local directory", func() {
@@ -630,7 +629,7 @@ RUN touch /file
 		defer func() {
 			os.RemoveAll(dest)
 		}()
-		session = podmanTest.Podman([]string{"manifest", "push", "--purge", "foo", "dir:" + dest})
+		session = podmanTest.Podman([]string{"manifest", "push", "-q", "--purge", "foo", "dir:" + dest})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"manifest", "push", "-p", "foo", "dir:" + dest})
@@ -643,7 +642,7 @@ RUN touch /file
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 
 		// push --rm after pull image (#15033)
-		session = podmanTest.Podman([]string{"pull", "quay.io/libpod/testdigest_v2s2"})
+		session = podmanTest.Podman([]string{"pull", "-q", "quay.io/libpod/testdigest_v2s2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -653,7 +652,7 @@ RUN touch /file
 		session = podmanTest.Podman([]string{"manifest", "add", "bar", "quay.io/libpod/testdigest_v2s2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		session = podmanTest.Podman([]string{"manifest", "push", "--rm", "bar", "dir:" + dest})
+		session = podmanTest.Podman([]string{"manifest", "push", "-q", "--rm", "bar", "dir:" + dest})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"images", "-q", "bar"})
@@ -687,7 +686,7 @@ RUN touch /file
 		manifestList := "manifestlist"
 		imageName := "quay.io/libpod/busybox"
 
-		session := podmanTest.Podman([]string{"pull", imageName})
+		session := podmanTest.Podman([]string{"pull", "-q", imageName})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 

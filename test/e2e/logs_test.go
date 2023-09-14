@@ -426,7 +426,7 @@ var _ = Describe("Podman logs", func() {
 			cname := "log-test"
 			logc := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", cname, ALPINE, "sh", "-c", "echo stdout; echo stderr >&2"})
 			logc.WaitWithDefaultTimeout()
-			Expect(logc).To(ExitCleanly())
+			Expect(logc).To(Exit(0))
 
 			wait := podmanTest.Podman([]string{"wait", cname})
 			wait.WaitWithDefaultTimeout()
@@ -435,7 +435,7 @@ var _ = Describe("Podman logs", func() {
 			Eventually(func(g Gomega) {
 				results := podmanTest.Podman([]string{"logs", cname})
 				results.WaitWithDefaultTimeout()
-				g.Expect(results).To(ExitCleanly())
+				g.Expect(results).To(Exit(0))
 				g.Expect(results.OutputToString()).To(Equal("stdout"))
 				g.Expect(results.ErrorToString()).To(Equal("stderr"))
 			}).WithTimeout(logTimeout).Should(Succeed())

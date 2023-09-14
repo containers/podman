@@ -53,14 +53,11 @@ var _ = Describe("Podman mount", func() {
 	})
 
 	It("podman unshare image podman mount", func() {
-		podmanTest.AddImageToRWStore(ALPINE)
-		setup := podmanTest.Podman([]string{"pull", ALPINE})
-		setup.WaitWithDefaultTimeout()
-		Expect(setup).Should(ExitCleanly())
+		podmanTest.AddImageToRWStore(CITEST_IMAGE)
 
-		// command: podman <options> unshare podman <options> image mount ALPINE
+		// command: podman <options> unshare podman <options> image mount IMAGE
 		args := []string{"unshare", podmanTest.PodmanBinary}
-		opts := podmanTest.PodmanMakeOptions([]string{"image", "mount", ALPINE}, false, false)
+		opts := podmanTest.PodmanMakeOptions([]string{"image", "mount", CITEST_IMAGE}, false, false)
 		args = append(args, opts...)
 
 		// image location is podmanTest.TempDir/... because "--root podmanTest.TempDir/..."
