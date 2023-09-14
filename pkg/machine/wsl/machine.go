@@ -1522,7 +1522,12 @@ func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, fun
 	var files []string
 
 	if v.isRunning() {
-		return "", nil, fmt.Errorf("running vm %q cannot be destroyed", v.Name)
+		if !opts.Force {
+			return "", nil, fmt.Errorf("running vm %q cannot be destroyed", v.Name)
+		}
+		if err := v.Stop(v.Name, machine.StopOptions{}); err != nil {
+			return "", nil, err
+		}
 	}
 
 	// Collect all the files that need to be destroyed
