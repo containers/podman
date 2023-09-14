@@ -4,7 +4,6 @@ import (
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman mount", func() {
@@ -17,7 +16,7 @@ var _ = Describe("Podman mount", func() {
 	It("podman mount", func() {
 		setup := podmanTest.Podman([]string{"create", ALPINE, "ls"})
 		setup.WaitWithDefaultTimeout()
-		Expect(setup).Should(Exit(0))
+		Expect(setup).Should(ExitCleanly())
 		cid := setup.OutputToString()
 
 		mount := podmanTest.Podman([]string{"mount", cid})
@@ -29,7 +28,7 @@ var _ = Describe("Podman mount", func() {
 	It("podman unshare podman mount", func() {
 		setup := podmanTest.Podman([]string{"create", ALPINE, "ls"})
 		setup.WaitWithDefaultTimeout()
-		Expect(setup).Should(Exit(0))
+		Expect(setup).Should(ExitCleanly())
 		cid := setup.OutputToString()
 
 		// command: podman <options> unshare podman <options> mount cid
@@ -41,7 +40,7 @@ var _ = Describe("Podman mount", func() {
 		// because "--root podmanTest.TempDir/..."
 		session := podmanTest.Podman(args)
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring(podmanTest.TempDir))
 	})
 
@@ -54,20 +53,17 @@ var _ = Describe("Podman mount", func() {
 	})
 
 	It("podman unshare image podman mount", func() {
-		podmanTest.AddImageToRWStore(ALPINE)
-		setup := podmanTest.Podman([]string{"pull", ALPINE})
-		setup.WaitWithDefaultTimeout()
-		Expect(setup).Should(Exit(0))
+		podmanTest.AddImageToRWStore(CITEST_IMAGE)
 
-		// command: podman <options> unshare podman <options> image mount ALPINE
+		// command: podman <options> unshare podman <options> image mount IMAGE
 		args := []string{"unshare", podmanTest.PodmanBinary}
-		opts := podmanTest.PodmanMakeOptions([]string{"image", "mount", ALPINE}, false, false)
+		opts := podmanTest.PodmanMakeOptions([]string{"image", "mount", CITEST_IMAGE}, false, false)
 		args = append(args, opts...)
 
 		// image location is podmanTest.TempDir/... because "--root podmanTest.TempDir/..."
 		session := podmanTest.Podman(args)
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring(podmanTest.TempDir))
 	})
 })
