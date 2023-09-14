@@ -368,7 +368,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 
 		// When the netns is not valid but the file exists we have to remove it first,
 		// https://github.com/containers/common/pull/1381 changed the behavior from
-		// NewNSWithName()so it will now error whe the file already exists.
+		// NewNSWithName()so it will now error when the file already exists.
 		// https://github.com/containers/podman/issues/17903#issuecomment-1494329622
 		if errors.As(err, &ns.NSPathNotNSErr{}) {
 			logrus.Infof("rootless netns is no longer valid: %v", err)
