@@ -17,10 +17,8 @@ func GetTempDir() string {
 		}
 		logrus.Warnf("ignoring TMPDIR from environment, evaluating it: %v", err)
 	}
-	containerConfig, err := config.Default()
-	if err != nil {
-		tmpdir, err := containerConfig.ImageCopyTmpDir()
-		if err != nil {
+	if containerConfig, err := config.Default(); err == nil {
+		if tmpdir, err := containerConfig.ImageCopyTmpDir(); err == nil {
 			return tmpdir
 		}
 	}

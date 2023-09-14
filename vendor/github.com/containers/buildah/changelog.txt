@@ -1,3 +1,87 @@
+- Changelog for v1.32.0 (2023-09-14)
+  * GetTmpDir is not using ImageCopyTmpdir correctly
+  * Run codespell on code
+  * Bump vendor containers/(common, storage, image)
+  * Cirrus: Remove multi-arch buildah image builds
+  * fix(deps): update module github.com/containerd/containerd to v1.7.6
+  * Split GetTempDir from internal/util
+  * Move most of internal/parse to internal/volumes
+  * copier: remove libimage dependency via util package
+  * Add some docs for `build --cw`, `commit --cw`, and `mkcw`
+  * Add `buildah mkcw`, add `--cw` to `buildah commit` and `buildah build`
+  * Make sure that pathnames picked up from the environment are absolute
+  * fix(deps): update module github.com/cyphar/filepath-securejoin to v0.2.4
+  * fix(deps): update module github.com/docker/docker to v24.0.6+incompatible
+  * Don't try to look up names when committing images
+  * fix(deps): update module golang.org/x/crypto to v0.13.0
+  * docs: use valid github repo
+  * fix(deps): update module golang.org/x/sys to v0.12.0
+  * vendor containers/common@12405381ff45
+  * push: --force-compression should be true with --compression-format
+  * Update module github.com/containerd/containerd to v1.7.5
+  * [skip-ci] Update tim-actions/commit-message-checker-with-regex action to v0.3.2
+  * docs: add reference to oci-hooks
+  * Support passing of ULimits as -1 to mean max
+  * GHA: Attempt to fix discussion_lock workflow
+  * Fixing the owner of the storage.conf.
+  * pkg/chrootuser: Ignore comments when parsing /etc/group on FreeBSD
+  * Use buildah repo rather then podman repo
+  * GHA: Closed issue/PR comment-lock test
+  * fix(deps): update module github.com/containers/storage to v1.49.0
+  * chore(deps): update dependency containers/automation_images to v20230816
+  * Replace troff code with markdown in buildah-{copy,add}.1.md
+  * [CI:BUILD] rpm: spdx compatible license field
+  * executor: build-arg warnings must honor global args
+  * fix(deps): update module github.com/containers/ocicrypt to v1.1.8
+  * chroot: `setSeccomp` add support for `ArchPARISC(64)` and `ArchRISCV64`
+  * make,cross: restore loong64
+  * Clear CommonBuildOpts when loading Builder status
+  * buildah/push/manifest-push: add support for --force-compression
+  * vendor: bump c/common to v0.55.1-0.20230811093040-524b4d5c12f9
+  * chore(deps): update dependency containers/automation_images to v20230809
+  * [CI:BUILD] RPM: fix buildtags
+  * fix(deps): update module github.com/opencontainers/runc to v1.1.9
+  * chore(deps): update dependency ubuntu to v22
+  * chore(deps): update dependency containers/automation_images to v20230807
+  * [CI:BUILD] Packit: add fedora-eln targets
+  * [CI:BUILD] RPM: build docs with vendored go-md2man
+  * packit: Build PRs into default packit COPRs
+  * Update install.md
+  * Update install.md changes current Debian stable version name
+  * fix(deps): update module golang.org/x/term to v0.11.0
+  * fix(deps): update module golang.org/x/crypto to v0.12.0
+  * tests: fix layer-label tests
+  * buildah: add --layer-label for setting labels on layers
+  * Cirrus: container/rootless env. var. passthrough
+  * Cirrus: Remove duplicate env. var. definitions
+  * fix(deps): update github.com/containers/storage digest to c3da76f
+  * Add a missing .Close() call on an ImageSource
+  * Create only a reference when that's all we need
+  * Add a missing .Close() call on an ImageDestination
+  * CI:BUILD] RPM: define gobuild macro for rhel/centos stream
+  * manifest/push: add support for --add-compression
+  * manifest/inspect: add support for tls-verify and authfile
+  * vendor: bump c/common to v0.55.1-0.20230727095721-647ed1d4d79a
+  * vendor: bump c/image to v5.26.1-0.20230726142307-8c387a14f4ac
+  * fix(deps): update module github.com/containerd/containerd to v1.7.3
+  * fix(deps): update module github.com/onsi/gomega to v1.27.10
+  * fix(deps): update module github.com/docker/docker to v24.0.5+incompatible
+  * fix(deps): update module github.com/containers/image/v5 to v5.26.1
+  * fix(deps): update module github.com/opencontainers/runtime-spec to v1.1.0
+  * Update vendor of containers/(storage,image,common)
+  * fix(deps): update module github.com/opencontainers/runc to v1.1.8
+  * [CI:BUILD] Packit: remove pre-sync action
+  * fix(deps): update module github.com/containers/common to v0.55.2
+  * [CI:BUILD] Packit: downstream task script needs GOPATH
+  * Vendor in containers/(common, image, storage)
+  * fix(deps): update module golang.org/x/term to v0.10.0
+  * [CI:BUILD] Packit: fix pre-sync action for downstream tasks
+  * contrib/buildahimage: set config correctly for rootless build user
+  * fix(deps): update module github.com/opencontainers/image-spec to v1.1.0-rc4
+  * Bump to v1.32.0-dev
+  * Update debian install instructions
+  * pkg/overlay: add limited support for FreeBSD
+
 - Changelog for v1.31.0 (2023-06-30)
   * Bump c/common to 0.55.1 and c/image to 5.26.1
   * Bump c/image to 5.26.0 and c/common to 0.54.0

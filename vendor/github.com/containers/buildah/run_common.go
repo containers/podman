@@ -1496,7 +1496,7 @@ func checkIfMountDestinationPreExists(root string, dest string) (bool, error) {
 		// We created exact path for globbing so it will
 		// return only one result.
 		if statResults[0].Error != "" && len(statResults[0].Globbed) == 0 {
-			// Path do not exsits.
+			// Path do not exist.
 			return false, nil
 		}
 		// Path exists.
