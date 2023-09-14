@@ -1,5 +1,18 @@
 # Release Notes
 
+## 4.6.2
+### Changes
+- Fixed a performance issue when calculating diff sizes in overlay. The `podman system df` command should see a significant performance improvement ([#19467](https://github.com/containers/podman/issues/19467)).
+
+### Bugfixes
+- Fixed a bug where containers in a pod would use pod the restart policy over the set container restart policy ([#19671](https://github.com/containers/podman/issues/19671)).
+
+### API
+- Fixed a bug in the Compat Build endpoint where the pull query parameter did not parse 0/1 as a boolean ([#17778](https://github.com/containers/podman/issues/17778)).
+
+### Misc
+- Updated the containers/storage library to v1.48.1
+
 ## 4.6.1
 ### Quadlet
 - Quadlet now selects the first Quadlet file found when multiple Quadlets exist with the same name.
