@@ -19,7 +19,7 @@ var (
 		Use:               "init [options] [NAME]",
 		Short:             "Initialize a virtual machine",
 		Long:              "Initialize a virtual machine",
-		PersistentPreRunE: rootlessOnly,
+		PersistentPreRunE: machinePreRunE,
 		RunE:              initMachine,
 		Args:              cobra.MaximumNArgs(1),
 		Example:           `podman machine init podman-machine-default`,
@@ -128,10 +128,6 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		vm  machine.VM
 	)
 
-	provider, err := GetSystemProvider()
-	if err != nil {
-		return err
-	}
 	initOpts.Name = defaultMachineName
 	if len(args) > 0 {
 		if len(args[0]) > maxMachineNameSize {

@@ -20,7 +20,7 @@ var (
 		Use:               "ssh [options] [NAME] [COMMAND [ARG ...]]",
 		Short:             "SSH into an existing machine",
 		Long:              "SSH into a managed virtual machine ",
-		PersistentPreRunE: rootlessOnly,
+		PersistentPreRunE: machinePreRunE,
 		RunE:              ssh,
 		Example: `podman machine ssh podman-machine-default
   podman machine ssh myvm echo hello`,
@@ -53,10 +53,6 @@ func ssh(cmd *cobra.Command, args []string) error {
 
 	// Set the VM to default
 	vmName := defaultMachineName
-	provider, err := GetSystemProvider()
-	if err != nil {
-		return err
-	}
 
 	// If len is greater than 0, it means we may have been
 	// provided the VM name.  If so, we check.  The VM name,

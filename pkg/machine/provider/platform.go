@@ -1,6 +1,6 @@
 //go:build (amd64 && !windows && amd64 && !darwin) || (arm64 && !windows && arm64 && !darwin) || (amd64 && darwin)
 
-package machine
+package provider
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func GetSystemProvider() (machine.VirtProvider, error) {
+func Get() (machine.VirtProvider, error) {
 	cfg, err := config.Default()
 	if err != nil {
 		return nil, err

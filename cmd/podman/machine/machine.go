@@ -17,6 +17,7 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/machine"
+	provider2 "github.com/containers/podman/v4/pkg/machine/provider"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -39,11 +40,23 @@ var (
 		RunE:               validate.SubCommandExists,
 	}
 )
+var (
+	provider machine.VirtProvider
+)
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: machineCmd,
 	})
+}
+
+func machinePreRunE(c *cobra.Command, args []string) error {
+	var err error
+	provider, err = provider2.Get()
+	if err != nil {
+		return err
+	}
+	return rootlessOnly(c, args)
 }
 
 // autocompleteMachineSSH - Autocomplete machine ssh command.
@@ -64,7 +77,7 @@ func autocompleteMachine(cmd *cobra.Command, args []string, toComplete string) (
 
 func getMachines(toComplete string) ([]string, cobra.ShellCompDirective) {
 	suggestions := []string{}
-	provider, err := GetSystemProvider()
+	provider, err := provider2.Get()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}

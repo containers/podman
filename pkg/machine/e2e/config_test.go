@@ -97,7 +97,7 @@ func newMB() (*machineTestBuilder, error) {
 	if err != nil {
 		return nil, err
 	}
-	mb.podmanBinary = filepath.Join(cwd, "../../../bin/podman-remote")
+	mb.podmanBinary = filepath.Join(cwd, podmanBinary)
 	if os.Getenv("PODMAN_BINARY") != "" {
 		mb.podmanBinary = os.Getenv("PODMAN_BINARY")
 	}

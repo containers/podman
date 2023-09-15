@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	machineconfig "github.com/containers/common/pkg/machine"
-	"github.com/containers/podman/v4/cmd/podman/machine"
 	pkgMachine "github.com/containers/podman/v4/pkg/machine"
 	pkgOS "github.com/containers/podman/v4/pkg/machine/os"
+	"github.com/containers/podman/v4/pkg/machine/provider"
 )
 
 type ManagerOpts struct {
@@ -48,11 +48,11 @@ func machineOSManager(opts ManagerOpts) (pkgOS.Manager, error) {
 	if opts.VMName == "" {
 		vmName = pkgMachine.DefaultMachineName
 	}
-	provider, err := machine.GetSystemProvider()
+	p, err := provider.Get()
 	if err != nil {
 		return nil, err
 	}
-	vm, err := provider.LoadVMByName(vmName)
+	vm, err := p.LoadVMByName(vmName)
 	if err != nil {
 		return nil, err
 	}
