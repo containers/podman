@@ -79,9 +79,11 @@ CIRRUS_REPO_NAME=${CIRRUS_REPO_NAME:-podman}
 # shellcheck disable=SC2154
 if [[ -z "$CIRRUS_BASE_SHA" ]] && [[ -z "$CIRRUS_TAG" ]]
 then  # Operating on a branch, or under `get_ci_vm.sh`
+    showrun echo "branch or get_ci_vm (CIRRUS_BASE_SHA and CIRRUS_TAG are unset)"
     CIRRUS_BASE_SHA=$(git rev-parse ${UPSTREAM_REMOTE:-origin}/$DEST_BRANCH)
 elif [[ -z "$CIRRUS_BASE_SHA" ]]
 then  # Operating on a tag
+    showrun echo "operating on tag"
     CIRRUS_BASE_SHA=$(git rev-parse HEAD)
 fi
 # The starting place for linting and code validation
@@ -164,8 +166,8 @@ setup_rootless() {
     ROOTLESS_UID=$rootless_uid
     rootless_gid=$((1500 + RANDOM % 5000))
     msg "creating $rootless_uid:$rootless_gid $ROOTLESS_USER user"
-    groupadd -g $rootless_gid $ROOTLESS_USER
-    useradd -g $rootless_gid -u $rootless_uid --no-user-group --create-home $ROOTLESS_USER
+    showrun groupadd -g $rootless_gid $ROOTLESS_USER
+    showrun useradd -g $rootless_gid -u $rootless_uid --no-user-group --create-home $ROOTLESS_USER
 
     echo "$ROOTLESS_USER ALL=(root) NOPASSWD: ALL" > /etc/sudoers.d/ci-rootless
 
@@ -174,8 +176,8 @@ setup_rootless() {
     msg "Creating ssh key pairs"
     [[ -r "$HOME/.ssh/id_rsa" ]] || \
         ssh-keygen -t rsa -P "" -f "$HOME/.ssh/id_rsa"
-    ssh-keygen -t ed25519 -P "" -f "/home/$ROOTLESS_USER/.ssh/id_ed25519"
-    ssh-keygen -t rsa -P "" -f "/home/$ROOTLESS_USER/.ssh/id_rsa"
+    showrun ssh-keygen -t ed25519 -P "" -f "/home/$ROOTLESS_USER/.ssh/id_ed25519"
+    showrun ssh-keygen -t rsa -P "" -f "/home/$ROOTLESS_USER/.ssh/id_rsa"
 
     msg "Set up authorized_keys"
     cat $HOME/.ssh/*.pub /home/$ROOTLESS_USER/.ssh/*.pub >> $HOME/.ssh/authorized_keys
@@ -231,17 +233,17 @@ use_cni() {
         [ -z "$(rpm -qa | grep $pkg)" ] && echo "$pkg not installed" || rpm -e --nodeps $pkg
     done
     msg "Installing default CNI configuration"
-    dnf install -y $PACKAGE_DOWNLOAD_DIR/podman-plugins*
+    showrun dnf install -y $PACKAGE_DOWNLOAD_DIR/podman-plugins*
     cd $GOSRC || exit 1
     rm -rvf /etc/cni/net.d
     mkdir -p /etc/cni/net.d
-    install -v -D -m 644 ./cni/87-podman-bridge.conflist \
+    showrun install -v -D -m 644 ./cni/87-podman-bridge.conflist \
         /etc/cni/net.d/
     # This config must always sort last in the list of networks (podman picks
     # first one as the default).  This config prevents allocation of network
     # address space used by default in google cloud.
     # https://cloud.google.com/vpc/docs/vpc#ip-ranges
-    install -v -D -m 644 $SCRIPT_BASE/99-do-not-use-google-subnets.conflist \
+    showrun install -v -D -m 644 $SCRIPT_BASE/99-do-not-use-google-subnets.conflist \
         /etc/cni/net.d/
 }
 
@@ -252,7 +254,7 @@ use_netavark() {
     echo "NETWORK_BACKEND=netavark" >> /etc/ci_environment
     export NETWORK_BACKEND=netavark  # needed for install_test_configs()
     msg "Removing any/all CNI configuration"
-    rm -rvf /etc/cni/net.d/*
+    showrun rm -rvf /etc/cni/net.d/*
     # N/B: The CNI packages are still installed and available. This is
     # on purpose, since CI needs to verify the selection mechanisms are
     # functional when both are available.
@@ -276,8 +278,8 @@ remove_packaged_podman_files() {
             if systemctl --quiet is-$state $unit
             then
                 echo "Warning: $unit found $state prior to packaged-file removal"
-                systemctl --quiet disable $unit || true
-                systemctl --quiet stop $unit || true
+                showrun systemctl --quiet disable $unit || true
+                showrun systemctl --quiet stop $unit || true
             fi
         done
     done
@@ -299,9 +301,11 @@ remove_packaged_podman_files() {
     do
         # Sub-directories may contain unrelated/valuable stuff
         if [[ -d "$fullpath" ]]; then continue; fi
-        ooe.sh rm -vf "$fullpath"
+        showrun ooe.sh rm -vf "$fullpath"
     done
 
     # Be super extra sure and careful vs performant and completely safe
     sync && echo 3 > /proc/sys/vm/drop_caches || true
 }
+
+showrun echo "finished"

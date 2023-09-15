@@ -12,6 +12,8 @@ set -e
 # shellcheck source=./contrib/cirrus/lib.sh
 source $(dirname $0)/lib.sh
 
+showrun echo "starting"
+
 die_unknown() {
     local var_name="$1"
     req_env_vars var_name
@@ -40,10 +42,10 @@ cp hack/podman-registry /bin
 
 # Some test operations & checks require a git "identity"
 _gc='git config --file /root/.gitconfig'
-$_gc user.email "TMcTestFace@example.com"
-$_gc user.name "Testy McTestface"
+showrun $_gc user.email "TMcTestFace@example.com"
+showrun $_gc user.name "Testy McTestface"
 # Bypass git safety/security checks when operating in a throwaway environment
-git config --system --add safe.directory $GOSRC
+showrun git config --system --add safe.directory $GOSRC
 
 # Ensure that all lower-level contexts and child-processes have
 # ready access to higher level orchestration (e.g Cirrus-CI)
@@ -82,6 +84,7 @@ mkdir -p /etc/containers/containers.conf.d
 # respectively.
 # **IMPORTANT**: $OCI_RUNTIME is a fakeout! It is used only in e2e tests.
 # For actual podman, as in system tests, we force runtime in containers.conf
+showrun echo "conditional check: CG_FS_TYPE [=$CG_FS_TYPE]"
 case "$CG_FS_TYPE" in
     tmpfs)
         if ((CONTAINER==0)); then
@@ -107,6 +110,7 @@ printf "[engine]\ndatabase_backend=\"$CI_DESIRED_DATABASE\"\n" > /etc/containers
 # does not defaults to using `vfs` as storage driver)
 # shellcheck disable=SC2154
 if [[ "$OS_RELEASE_ID" == "debian" ]]; then
+    showrun echo "conditional setup for debian"
     conf=/etc/containers/storage.conf
     if [[ -e $conf ]]; then
         die "FATAL! INTERNAL ERROR! Cannot override $conf"
@@ -116,6 +120,7 @@ if [[ "$OS_RELEASE_ID" == "debian" ]]; then
 fi
 
 if ((CONTAINER==0)); then  # Not yet running inside a container
+    showrun echo "conditional setup for CONTAINER == 0"
     # Discovered reemergence of BFQ scheduler bug in kernel 5.8.12-200
     # which causes a kernel panic when system is under heavy I/O load.
     # Disable the I/O scheduler (a.k.a. elevator) for all environments,
@@ -145,22 +150,24 @@ fi
 # Which distribution are we testing on.
 case "$OS_RELEASE_ID" in
     debian)
+        showrun echo "more conditional setup for debian"
         # FIXME 2023-04-11: workaround for runc regression causing failure
         # in system tests: "skipping device /dev/char/10:200 for systemd"
         # (Checked on 2023-08-08 and it's still too old: 1.1.5)
         # FIXME: please remove this once runc >= 1.2 makes it into debian.
-        modprobe tun
+        showrun modprobe tun
 
         # TODO: move this into image build process
         # We need the "en_US.UTF-8" locale for the "podman logs with non ASCII log tag" tests
-        sed -i '/en_US.UTF-8/s/^#//g' /etc/locale.gen
-        locale-gen
+        showrun sed -i '/en_US.UTF-8/s/^#//g' /etc/locale.gen
+        showrun locale-gen
         ;;
     fedora)
+        showrun echo "conditional setup for fedora"
         if ((CONTAINER==0)); then
             # All SELinux distros need this for systemd-in-a-container
             msg "Enabling container_manage_cgroup"
-            setsebool container_manage_cgroup true
+            showrun setsebool container_manage_cgroup true
         fi
         ;;
     *) die_unknown OS_RELEASE_ID
@@ -169,6 +176,7 @@ esac
 # Networking: force CNI or Netavark as requested in .cirrus.yml
 # (this variable is mandatory).
 # shellcheck disable=SC2154
+showrun echo "about to set up for CI_DESIRED_NETWORK [=$CI_DESIRED_NETWORK]"
 case "$CI_DESIRED_NETWORK" in
     netavark)   use_netavark ;;
     cni)        use_cni ;;
@@ -178,6 +186,7 @@ esac
 # Database: force SQLite or BoltDB as requested in .cirrus.yml.
 # If unset, will default to BoltDB.
 # shellcheck disable=SC2154
+showrun echo "about to set up for CI_DESIRED_DATABASE [=$CI_DESIRED_DATABASE]"
 case "$CI_DESIRED_DATABASE" in
     sqlite)
         warn "Forcing PODMAN_DB=sqlite"
@@ -197,6 +206,7 @@ esac
 
 # Required to be defined by caller: The environment where primary testing happens
 # shellcheck disable=SC2154
+showrun echo "about to set up for TEST_ENVIRON [=$TEST_ENVIRON]"
 case "$TEST_ENVIRON" in
     host)
         # The e2e tests wrongly guess `--cgroup-manager` option
@@ -244,6 +254,7 @@ case "$TEST_ENVIRON" in
 esac
 
 # Required to be defined by caller: Are we testing as root or a regular user
+showrun echo "about to set up for PRIV_NAME [=$PRIV_NAME]"
 case "$PRIV_NAME" in
     root)
         # shellcheck disable=SC2154
@@ -265,6 +276,7 @@ esac
 
 # shellcheck disable=SC2154
 if [[ -n "$ROOTLESS_USER" ]]; then
+    showrun echo "conditional setup for ROOTLESS_USER [=$ROOTLESS_USER]"
     echo "ROOTLESS_USER=$ROOTLESS_USER" >> /etc/ci_environment
     echo "ROOTLESS_UID=$ROOTLESS_UID" >> /etc/ci_environment
 fi
@@ -285,7 +297,7 @@ if ((CONTAINER==0)); then
     nsswitch=/etc/authselect/nsswitch.conf
     if [[ -e $nsswitch ]]; then
         if grep -q -E 'hosts:.*resolve' $nsswitch; then
-            msg "Disabling systemd-resolved"
+            showrun echo "Disabling systemd-resolved"
             sed -i -e 's/^\(hosts: *\).*/\1files dns myhostname/' $nsswitch
             systemctl stop systemd-resolved
             rm -f /etc/resolv.conf
@@ -322,46 +334,47 @@ esac
 
 # Required to be defined by caller: The primary type of testing that will be performed
 # shellcheck disable=SC2154
+showrun echo "about to set up for TEST_FLAVOR [=$TEST_FLAVOR]"
 case "$TEST_FLAVOR" in
     validate)
-        dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
+        showrun dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
         # For some reason, this is also needed for validation
-        make .install.pre-commit .install.gitvalidation
+        showrun make .install.pre-commit .install.gitvalidation
         ;;
     altbuild)
         # Defined in .cirrus.yml
         # shellcheck disable=SC2154
         if [[ "$ALT_NAME" =~ RPM ]]; then
-            bigto dnf install -y glibc-minimal-langpack go-rpm-macros rpkg rpm-build shadow-utils-subid-devel
+            showrun bigto dnf install -y glibc-minimal-langpack go-rpm-macros rpkg rpm-build shadow-utils-subid-devel
         fi
         ;;
     docker-py)
         remove_packaged_podman_files
-        make install PREFIX=/usr ETCDIR=/etc
+        showrun make install PREFIX=/usr ETCDIR=/etc
 
         msg "Installing previously downloaded/cached packages"
-        dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
+        showrun dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
         virtualenv .venv/docker-py
         source .venv/docker-py/bin/activate
-        pip install --upgrade pip
-        pip install --requirement $GOSRC/test/python/requirements.txt
+        showrun pip install --upgrade pip
+        showrun pip install --requirement $GOSRC/test/python/requirements.txt
         ;;
     build) make clean ;;
     unit)
-        make .install.ginkgo
+        showrun make .install.ginkgo
         ;;
     compose_v2)
-        dnf -y remove docker-compose
-        curl -SL https://github.com/docker/compose/releases/download/v2.2.3/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
-        chmod +x /usr/local/bin/docker-compose
+        showrun dnf -y remove docker-compose
+        showrun curl -SL https://github.com/docker/compose/releases/download/v2.2.3/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+        showrun chmod +x /usr/local/bin/docker-compose
         ;& # Continue with next item
     apiv2)
         msg "Installing previously downloaded/cached packages"
-        dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
+        showrun dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
         virtualenv .venv/requests
         source .venv/requests/bin/activate
-        pip install --upgrade pip
-        pip install --requirement $GOSRC/test/apiv2/python/requirements.txt
+        showrun pip install --upgrade pip
+        showrun pip install --requirement $GOSRC/test/apiv2/python/requirements.txt
         ;&  # continue with next item
     compose)
         showrun make install.tools
@@ -369,13 +382,14 @@ case "$TEST_FLAVOR" in
         showrun dnf install -y podman-docker*
         ;&  # continue with next item
     int)
-        make .install.ginkgo
+        showrun make .install.ginkgo
         ;&
     sys) ;&
     upgrade_test) ;&
     bud) ;&
     bindings) ;&
     endpoint)
+        showrun echo "Entering shared endpoint setup"
         # Use existing host bits when testing is to happen inside a container
         # since this script will run again in that environment.
         # shellcheck disable=SC2154
@@ -397,21 +411,21 @@ case "$TEST_FLAVOR" in
         install_test_configs
         ;;
     minikube)
-        dnf install -y $PACKAGE_DOWNLOAD_DIR/minikube-latest*
+        showrun dnf install -y $PACKAGE_DOWNLOAD_DIR/minikube-latest*
         remove_packaged_podman_files
-        make install.tools
-        make install PREFIX=/usr ETCDIR=/etc
-        minikube config set driver podman
+        showrun make install.tools
+        showrun make install PREFIX=/usr ETCDIR=/etc
+        showrun minikube config set driver podman
         install_test_configs
         ;;
     machine)
-        dnf install -y podman-gvproxy*
+        showrun dnf install -y podman-gvproxy*
         remove_packaged_podman_files
-        make install PREFIX=/usr ETCDIR=/etc
+        showrun make install PREFIX=/usr ETCDIR=/etc
         install_test_configs
         ;;
     swagger)
-        make .install.swagger
+        showrun make .install.swagger
         ;;
     #fcos_image_build)
     #    ;;
@@ -425,6 +439,7 @@ esac
 if [[ ! "$OS_RELEASE_ID" =~ "debian" ]] && \
    [[ "$CIRRUS_CHANGE_TITLE" =~ CI:NEXT ]]
 then
+    showrun echo "Entering setup for CI:NEXT"
     # shellcheck disable=SC2154
     if [[ "$CIRRUS_PR_DRAFT" != "true" ]]; then
         die "Magic 'CI:NEXT' string can only be used on DRAFT PRs"
@@ -448,3 +463,5 @@ echo -e "\n# End of global variable definitions" \
 
 msg "Global CI Environment vars.:"
 grep -Ev '^#' /etc/ci_environment | sort | indent
+
+showrun echo "finished"
