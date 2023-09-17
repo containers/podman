@@ -50,6 +50,7 @@ Valid filters are listed below:
 | id         | [ID] Container's ID (CID prefix match by default; accepts regex)                 |
 | name       | [Name] Container's name (accepts regex)                                          |
 | label      | [Key] or [Key=Value] Label assigned to a container                               |
+| label!     | [Key] or [Key=Value] Label NOT assigned to a container                           |
 | exited     | [Int] Container's exit code                                                      |
 | status     | [Status] Container's status: 'created', 'exited', 'paused', 'running', 'unknown' |
 | ancestor   | [ImageName] Image or descendant used to create container (accepts regex)         |
