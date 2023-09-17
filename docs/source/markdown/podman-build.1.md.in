@@ -764,7 +764,7 @@ Use --stdin to be able to interact from the terminal during the build.
 Specifies the name which is assigned to the resulting image if the build
 process completes successfully.
 If _imageName_ does not include a registry name, the registry name *localhost*
-is prepended to the image name.
+is prepended to the image name. Can be used multiple times.
 
 #### **--target**=*stageName*
 
