@@ -3,6 +3,8 @@
 package e2e_test
 
 import (
+	"os/exec"
+
 	"github.com/containers/podman/v4/pkg/machine"
 	. "github.com/onsi/ginkgo/v2"
 )
@@ -19,4 +21,9 @@ func getDownloadLocation(p machine.VirtProvider) string {
 	}
 
 	return fcd.Location
+}
+
+func pgrep(n string) (string, error) {
+	out, err := exec.Command("pgrep", "gvproxy").Output()
+	return string(out), err
 }
