@@ -179,7 +179,7 @@ it is not compatible with a traditional model where containers persist across re
 Default value for this is configured in `containers-storage.conf(5)`.
 
 #### **--url**=*value*
-URL to access Podman service (default from `containers.conf`, rootless `unix://run/user/$UID/podman/podman.sock` or as root `unix://run/podman/podman.sock`).
+URL to access Podman service (default from `containers.conf`, rootless `unix:///run/user/$UID/podman/podman.sock` or as root `unix:///run/podman/podman.sock`).
 Setting this option switches the **--remote** option to true.
 
  - `CONTAINER_HOST` is of the format `<schema>://[<user[:<password>]@]<host>[:<port>][<path>]`
@@ -199,13 +199,13 @@ URL value resolution precedence:
  - command line value
  - environment variable `CONTAINER_HOST`
  - `engine.service_destinations` table in containers.conf, excluding the /usr/share/containers directory
- - `unix://run/podman/podman.sock`
+ - `unix:///run/podman/podman.sock`
 
 Remote connections use local containers.conf for default.
 
 Some example URL values in valid formats:
- - unix://run/podman/podman.sock
- - unix://run/user/$UID/podman/podman.sock
+ - unix:///run/podman/podman.sock
+ - unix:///run/user/$UID/podman/podman.sock
  - ssh://notroot@localhost:22/run/user/$UID/podman/podman.sock
  - ssh://root@localhost:22/run/podman/podman.sock
  - tcp://localhost:34451

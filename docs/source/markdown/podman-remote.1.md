@@ -52,7 +52,7 @@ Log messages above specified level: debug, info, warn, error (default), fatal or
 
 #### **--url**=*value*
 
-URL to access Podman service (default from `containers.conf`, rootless "unix://run/user/$UID/podman/podman.sock" or as root "unix://run/podman/podman.sock).
+URL to access Podman service (default from `containers.conf`, rootless "unix:///run/user/$UID/podman/podman.sock" or as root "unix:///run/podman/podman.sock).
 
  - `CONTAINER_HOST` is of the format `<schema>://[<user[:<password>]@]<host>[:<port>][<path>]`
  - `CONTAINER_PROXY` is of the format `<socks5|socks5h>://[<user[:<password>]@]<host>[:<port>]`
@@ -73,13 +73,13 @@ URL value resolution precedence:
  - command line value
  - environment variable `CONTAINER_HOST`
  - `engine.service_destinations` table in containers.conf, excluding the /usr/share/containers directory
- - `unix://run/podman/podman.sock`
+ - `unix:///run/podman/podman.sock`
 
 Remote connections use local containers.conf for default.
 
 Some example URL values in valid formats:
- - unix://run/podman/podman.sock
- - unix://run/user/$UID/podman/podman.sock
+ - unix:///run/podman/podman.sock
+ - unix:///run/user/$UID/podman/podman.sock
  - ssh://notroot@localhost:22/run/user/$UID/podman/podman.sock
  - ssh://root@localhost:22/run/podman/podman.sock
  - tcp://localhost:34451

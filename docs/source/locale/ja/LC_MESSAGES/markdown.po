@@ -24256,8 +24256,8 @@ msgstr ""
 #: ../../source/markdown/podman-remote.1.md:56
 msgid ""
 "URL to access Podman service (default from `containers.conf`, rootless "
-"\"unix://run/user/$UID/podman/podman.sock\" or as root "
-"\"unix://run/podman/podman.sock)."
+"\"unix:///run/user/$UID/podman/podman.sock\" or as root "
+"\"unix:///run/podman/podman.sock)."
 msgstr ""
 
 #: ../../source/markdown/podman-remote.1.md:58
@@ -24358,7 +24358,7 @@ msgstr ""
 
 #: ../../source/markdown/podman-remote.1.md:77
 #: ../../source/markdown/podman.1.md:203
-msgid "`unix://run/podman/podman.sock`"
+msgid "`unix:///run/podman/podman.sock`"
 msgstr ""
 
 #: ../../source/markdown/podman-remote.1.md:79
@@ -24373,12 +24373,12 @@ msgstr ""
 
 #: ../../source/markdown/podman-remote.1.md:82
 #: ../../source/markdown/podman.1.md:208
-msgid "unix://run/podman/podman.sock"
+msgid "unix:///run/podman/podman.sock"
 msgstr ""
 
 #: ../../source/markdown/podman-remote.1.md:83
 #: ../../source/markdown/podman.1.md:209
-msgid "unix://run/user/$UID/podman/podman.sock"
+msgid "unix:///run/user/$UID/podman/podman.sock"
 msgstr ""
 
 #: ../../source/markdown/podman-remote.1.md:84
@@ -31567,8 +31567,8 @@ msgstr ""
 #: ../../source/markdown/podman.1.md:183
 msgid ""
 "URL to access Podman service (default from `containers.conf`, rootless "
-"`unix://run/user/$UID/podman/podman.sock` or as root "
-"`unix://run/podman/podman.sock`). Setting this option switches the "
+"`unix:///run/user/$UID/podman/podman.sock` or as root "
+"`unix:///run/podman/podman.sock`). Setting this option switches the "
 "**--remote** option to true."
 msgstr ""
 
