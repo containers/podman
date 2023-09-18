@@ -670,17 +670,13 @@ sub podman_man {
                 if ($line =~ /^\|\s+(\S+)\s+\|/) {
                     my $filter = $1;
 
-                    # Special-case transformation: some man pages use
-                    # asterisks, "*foo*", some don't. Ignore asterisks.
-                    $filter =~ tr/\*//d;
-
                     # (Garbage: these are just table column titles & dividers)
-                    next LINE if $filter eq 'Filter';
+                    next LINE if $filter =~ /^\**Filter\**$/;
                     next LINE if $filter =~ /---+/;
 
-                    # Another special case: treat slash-separated options
-                    # ("after/since") as identical, and require that each
-                    # be documented.
+                    # Special case: treat slash-separated options
+                    # ("after/since") as identical, and require that
+                    # each be documented.
                     for my $f (split '/', $filter) {
                         # Special case for negated options ("label!="): allow,
                         # but only immediately after the positive case.
