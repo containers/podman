@@ -26,6 +26,8 @@ Print usage statement
 $ podman tag 0e3bbc2 fedora:latest
 
 $ podman tag httpd myregistryhost:5000/fedora/httpd:v2
+
+$ podman tag mymariadb mycontainerregistry.io/namespace/mariadb:10 mycontainerregistry.io/namespace/mariadb:10.11 mycontainerregistry.io/namespace/mariadb:10.11.12
 ```
 
 
