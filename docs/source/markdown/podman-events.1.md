@@ -87,13 +87,16 @@ Setting `events_container_create_inspect_data=true` in containers.conf(5) instru
 
 Filter events that are displayed.  They must be in the format of "filter=value".  The following
 filters are supported:
- * container=name_or_id
- * event=event_status (described above)
- * image=name_or_id
- * label=key=value
- * pod=name_or_id
- * volume=name_or_id
- * type=event_type (described above)
+
+| **Filter** | **Description**                     |
+|------------|-------------------------------------|
+| container  | [Name or ID] Container's name or ID |
+| event      | event_status (described above)      |
+| image      | [Name or ID] Image name or ID       |
+| label      | [key=value] label                   |
+| pod        | [Name or ID] Pod name or ID         |
+| volume     | [Name or ID] Volume name or ID      |
+| type       | Event_type (described above)        |
 
 In the case where an ID is used, the ID may be in its full or shortened form.  The "die" event is mapped to "died" for Docker compatibility.
 

@@ -1436,6 +1436,7 @@ func AutocompleteEventFilter(cmd *cobra.Command, args []string, toComplete strin
 		"pod=":       func(s string) ([]string, cobra.ShellCompDirective) { return getPods(cmd, s, completeDefault) },
 		"volume=":    func(s string) ([]string, cobra.ShellCompDirective) { return getVolumes(cmd, s) },
 		"event=":     event,
+		"label=":     nil,
 		"type=":      eventTypes,
 	}
 	return completeKeyValues(toComplete, kv)
@@ -1644,6 +1645,7 @@ func AutocompletePodPsFilters(cmd *cobra.Command, args []string, toComplete stri
 			return []string{"stopped", "running",
 				"paused", "exited", "dead", "created", "degraded"}, cobra.ShellCompDirectiveNoFileComp
 		},
+		"until=": nil,
 	}
 	return completeKeyValues(toComplete, kv)
 }
@@ -1652,12 +1654,19 @@ func AutocompletePodPsFilters(cmd *cobra.Command, args []string, toComplete stri
 func AutocompleteImageFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	getImg := func(s string) ([]string, cobra.ShellCompDirective) { return getImages(cmd, s) }
 	kv := keyValueCompletion{
-		"before=":    getImg,
-		"dangling=":  getBoolCompletion,
-		"label=":     nil,
-		"readonly=":  getBoolCompletion,
-		"reference=": nil,
-		"since=":     getImg,
+		"after=":        getImg,
+		"before=":       getImg,
+		"containers=":   getBoolCompletion,
+		"dangling=":     getBoolCompletion,
+		"digest=":       nil,
+		"id=":           getImg,
+		"intermediate=": getBoolCompletion,
+		"label=":        nil,
+		"manifest=":     getImg,
+		"readonly=":     getBoolCompletion,
+		"reference=":    nil,
+		"since=":        getImg,
+		"until=":        nil,
 	}
 	return completeKeyValues(toComplete, kv)
 }
@@ -1674,6 +1683,7 @@ func AutocompletePruneFilters(cmd *cobra.Command, args []string, toComplete stri
 // AutocompleteNetworkFilters - Autocomplete network ls --filter options.
 func AutocompleteNetworkFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	kv := keyValueCompletion{
+		"dangling=": getBoolCompletion,
 		"driver=": func(_ string) ([]string, cobra.ShellCompDirective) {
 			return []string{types.BridgeNetworkDriver, types.MacVLANNetworkDriver, types.IPVLANNetworkDriver}, cobra.ShellCompDirectiveNoFileComp
 		},
@@ -1690,13 +1700,17 @@ func AutocompleteVolumeFilters(cmd *cobra.Command, args []string, toComplete str
 	local := func(_ string) ([]string, cobra.ShellCompDirective) {
 		return []string{"local"}, cobra.ShellCompDirectiveNoFileComp
 	}
+	getImg := func(s string) ([]string, cobra.ShellCompDirective) { return getImages(cmd, s) }
 	kv := keyValueCompletion{
+		"after=":    getImg,
 		"dangling=": getBoolCompletion,
 		"driver=":   local,
 		"label=":    nil,
 		"name=":     func(s string) ([]string, cobra.ShellCompDirective) { return getVolumes(cmd, s) },
 		"opt=":      nil,
 		"scope=":    local,
+		"since=":    getImg,
+		"until=":    nil,
 	}
 	return completeKeyValues(toComplete, kv)
 }
