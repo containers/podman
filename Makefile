@@ -637,7 +637,7 @@ remotesystem:
 	rc=0;\
 	if timeout -v 1 true; then \
 		SOCK_FILE=$(shell mktemp --dry-run --tmpdir podman_tmp_XXXX);\
-		export PODMAN_SOCKET=unix:$$SOCK_FILE; \
+		export PODMAN_SOCKET=unix://$$SOCK_FILE; \
 		./bin/podman system service --timeout=0 $$PODMAN_SOCKET > $(if $(PODMAN_SERVER_LOG),$(PODMAN_SERVER_LOG),/dev/null) 2>&1 & \
 		retry=5;\
 		while [ $$retry -ge 0 ]; do\

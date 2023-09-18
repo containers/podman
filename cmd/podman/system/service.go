@@ -140,7 +140,7 @@ func resolveAPIURI(uri []string) (string, error) {
 		if err := os.MkdirAll(filepath.Dir(socketPath), 0700); err != nil {
 			return "", err
 		}
-		return "unix:" + socketPath, nil
+		return "unix://" + socketPath, nil
 	default:
 		if err := os.MkdirAll(filepath.Dir(registry.DefaultRootAPIPath), 0700); err != nil {
 			return "", err

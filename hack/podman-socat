@@ -107,16 +107,16 @@ PODMAN_HOST="${TMPDIR}/podman/podman-socat.sock"
 SOCAT_HOST="${TMPDIR}/podman/podman.sock"
 
 cat <<-EOT
-Podman service running at unix:$SOCAT_HOST
+Podman service running at unix://$SOCAT_HOST
 See /tmp/podman-socat.log for API stream capture
 See /tmp/podman-service.log for service logging
 
-usage: sudo bin/podman-remote --url unix:$SOCAT_HOST images
+usage: sudo bin/podman-remote --url unix://$SOCAT_HOST images
 
 ^C to exit
 EOT
 
-$PODMAN system service --timeout=0 "unix:$PODMAN_HOST" >/tmp/podman-service.log 2>&1 &
+$PODMAN system service --timeout=0 "unix://$PODMAN_HOST" >/tmp/podman-service.log 2>&1 &
 REAP_PIDS=$!
 
 socat -v "UNIX-LISTEN:$SOCAT_HOST",fork,reuseaddr,unlink-early "UNIX-CONNECT:$PODMAN_HOST" >/tmp/podman-socat.log 2>&1

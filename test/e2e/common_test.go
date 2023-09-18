@@ -366,7 +366,7 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 			if err == nil {
 				lockFile.Close()
 				p.RemoteSocketLock = lockPath
-				p.RemoteSocket = fmt.Sprintf("unix:%s-%s.sock", pathPrefix, uuid)
+				p.RemoteSocket = fmt.Sprintf("unix://%s-%s.sock", pathPrefix, uuid)
 				break
 			}
 			tries++
