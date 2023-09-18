@@ -43,3 +43,17 @@ func extractTargetPath(paths []string) string {
 	}
 	return paths[0]
 }
+
+func sigKill(pid int) error {
+	return unix.Kill(pid, unix.SIGKILL)
+}
+
+func killIfFound(pid int) error {
+	if err := unix.Kill(pid, 0); err != nil {
+		if err == unix.ESRCH {
+			return nil
+		}
+		return err
+	}
+	return nil
+}

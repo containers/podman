@@ -50,3 +50,11 @@ func extractTargetPath(paths []string) string {
 	dedup := regexp.MustCompile(`//+`)
 	return dedup.ReplaceAllLiteralString("/"+target, "/")
 }
+
+func sigKill(pid int) error {
+	return nil
+}
+
+func killIfFound(pid int) error {
+	return nil
+}
