@@ -80,7 +80,7 @@ func containersConfModules() ([]string, error) {
 func newPodmanConfig() {
 	modules, err := containersConfModules()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
+		fmt.Fprintf(os.Stderr, "Error parsing containers.conf modules: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -94,7 +94,7 @@ func newPodmanConfig() {
 		Modules:    modules,
 	})
 	if err != nil {
-		fmt.Fprint(os.Stderr, "Failed to obtain podman configuration: "+err.Error())
+		fmt.Fprintf(os.Stderr, "Failed to obtain podman configuration: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -111,7 +111,7 @@ func newPodmanConfig() {
 			mode = entities.TunnelMode
 		}
 	default:
-		fmt.Fprintf(os.Stderr, "%s is not a supported OS", runtime.GOOS)
+		fmt.Fprintf(os.Stderr, "%s is not a supported OS\n", runtime.GOOS)
 		os.Exit(1)
 	}
 
