@@ -177,4 +177,19 @@ EOF
     assert "${lines[1]}" = "$m2" "completion finds module 2"
 }
 
+@test "podman --module - supported fields" {
+    skip_if_remote "--module is not supported for remote clients"
+
+    conf_tmp="$PODMAN_TMPDIR/test.conf"
+    cat > $conf_tmp <<EOF
+[containers]
+env_host=true
+EOF
+
+    # Make sure env_host variable is read
+    random_env_var="expected_env_var_$(random_string 15)"
+    FOO="$random_env_var" run_podman --module=$conf_tmp run --rm $IMAGE /bin/printenv FOO
+    is "$output" "$random_env_var" "--module should yield injecting host env vars into the container"
+}
+
 # vim: filetype=sh
