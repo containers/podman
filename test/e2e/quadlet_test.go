@@ -35,6 +35,8 @@ func loadQuadletTestcase(path string) *quadletTestcase {
 		service += "-volume"
 	case ".network":
 		service += "-network"
+	case ".image":
+		service += "-image"
 	}
 	service += ".service"
 
@@ -635,6 +637,8 @@ BOGUS=foo
 		Entry("name.volume", "name.volume", 0, ""),
 		Entry("podmanargs.volume", "podmanargs.volume", 0, ""),
 		Entry("uid.volume", "uid.volume", 0, ""),
+		Entry("image.volume", "image.volume", 0, ""),
+		Entry("image-no-image.volume", "image-no-image.volume", 1, "converting \"image-no-image.volume\": the key Image is mandatory when using the image driver"),
 
 		Entry("Absolute Path", "absolute.path.kube", 0, ""),
 		Entry("Basic kube", "basic.kube", 0, ""),
@@ -676,6 +680,19 @@ BOGUS=foo
 		Entry("Network - Subnets", "subnets.network", 0, ""),
 		Entry("Network - multiple subnet, gateway and range", "subnet-trio.multiple.network", 0, ""),
 		Entry("Network - subnet, gateway and range", "subnet-trio.network", 0, ""),
+
+		Entry("Image - Basic", "basic.image", 0, ""),
+		Entry("Image - No Image", "no-image.image", 1, "converting \"no-image.image\": no Image key specified"),
+		Entry("Image - Architecture", "arch.image", 0, ""),
+		Entry("Image - Auth File", "auth.image", 0, ""),
+		Entry("Image - Certificates", "certs.image", 0, ""),
+		Entry("Image - Credentials", "creds.image", 0, ""),
+		Entry("Image - Decryption Key", "decrypt.image", 0, ""),
+		Entry("Image - OS Key", "os.image", 0, ""),
+		Entry("Image - Variant Key", "variant.image", 0, ""),
+		Entry("Image - All Tags", "all-tags.image", 0, ""),
+		Entry("Image - TLS Verify", "tls-verify.image", 0, ""),
+		Entry("Image - Arch and OS", "arch-os.image", 0, ""),
 	)
 
 })

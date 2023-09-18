@@ -1,0 +1,8 @@
+## assert-podman-final-args localhost/imagename
+## assert-key-is "Unit" "RequiresMountsFor" "%t/containers"
+## assert-key-is "Service" "Type" "oneshot"
+## assert-key-is "Service" "RemainAfterExit" "yes"
+## assert-key-is "Service" "SyslogIdentifier" "%N"
+
+[Image]
+Image=localhost/imagename

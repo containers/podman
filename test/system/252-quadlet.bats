@@ -4,6 +4,8 @@
 #
 
 load helpers
+load helpers.network
+load helpers.registry
 load helpers.systemd
 
 UNIT_FILES=()
@@ -1011,6 +1013,128 @@ EOF
 
     service_cleanup $QUADLET_SERVICE_NAME inactive
     run_podman rmi $(pause_image)
+}
+
+@test "quadlet - image files" {
+    registry=localhost:${PODMAN_LOGIN_REGISTRY_PORT}
+    image_on_local_registry=$registry/quadlet_image_test:$(random_string)
+    authfile=$PODMAN_TMPDIR/authfile.json
+
+    # First, start the registry and populate the authfile that we can use for the test.
+    start_registry
+    run_podman login --authfile=$authfile \
+        --tls-verify=false \
+        --username ${PODMAN_LOGIN_USER} \
+        --password ${PODMAN_LOGIN_PASS} \
+        $registry
+
+    run_podman image tag $IMAGE $image_on_local_registry
+    run_podman image push --tls-verify=false --authfile=$authfile $image_on_local_registry
+
+    local image_for_test=$image_on_local_registry
+
+    # Remove the local image to make sure it will be pulled again
+    run_podman image rm --ignore $image_for_test
+
+    local quadlet_image_unit=image_test_$(random_string).image
+    local quadlet_image_file=$PODMAN_TMPDIR/$quadlet_image_unit
+    cat > $quadlet_image_file <<EOF
+[Image]
+Image=$image_for_test
+AuthFile=$authfile
+TLSVerify=false
+EOF
+
+    # Use the same directory for all quadlet files to make sure later steps access previous ones
+    local quadlet_tmpdir=$PODMAN_TMPDIR/quadlets
+    mkdir $quadlet_tmpdir
+
+    # Have quadlet create the systemd unit file for the image unit
+    run_quadlet "$quadlet_image_file" "$quadlet_tmpdir"
+    # Save the image service name since the variable will be overwritten
+    local image_service=$QUADLET_SERVICE_NAME
+
+    local quadlet_volume_unit=image_test_$(random_string).volume
+    local quadlet_volume_file=$PODMAN_TMPDIR/$quadlet_volume_unit
+    cat > $quadlet_volume_file <<EOF
+[Volume]
+Driver=image
+Image=$quadlet_image_unit
+EOF
+
+    # Have quadlet create the systemd unit file for the image unit
+    run_quadlet "$quadlet_volume_file" "$quadlet_tmpdir"
+    # Save the image service name since the variable will be overwritten
+    local volume_service=$QUADLET_SERVICE_NAME
+    local volume_name=systemd-$(basename $quadlet_volume_file .volume)
+
+    local quadlet_container_unit=image_test_$(random_string).container
+    local quadlet_container_file=$PODMAN_TMPDIR/$quadlet_container_unit
+    cat > $quadlet_container_file <<EOF
+[Container]
+Image=$quadlet_image_unit
+Volume=$quadlet_volume_unit:/vol
+Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; sleep inf"
+EOF
+
+    # Image should not exist
+    run_podman 1 image exists ${image_for_test}
+    # Volume should not exist
+    run_podman 1 volume exists ${volume_name}
+
+    # Have quadlet create the systemd unit file for the image unit
+    run_quadlet "$quadlet_container_file" "$quadlet_tmpdir"
+    local container_service=$QUADLET_SERVICE_NAME
+    local container_name=$QUADLET_CONTAINER_NAME
+
+    service_setup $container_service
+
+    # Image system unit should be active
+    run systemctl show --property=ActiveState "$image_service"
+    assert "$output" = "ActiveState=active" \
+           "quadlet - image files: image should be active via dependency but is not"
+
+    # Volume system unit should be active
+    run systemctl show --property=ActiveState "$volume_service"
+    assert "$output" = "ActiveState=active" \
+           "quadlet - image files: volume should be active via dependency but is not"
+
+    # Image should exist
+    run_podman image exists ${image_for_test}
+
+    # Volume should exist
+    run_podman volume exists ${volume_name}
+
+    # Verify that the volume was created correctly
+    run_podman volume inspect --format "{{ .Driver }}" $volume_name
+    assert "$output" = "image" \
+           "quadlet - image files: volume driver should be image"
+
+    run_podman volume inspect --format "{{ .Options.image }}" $volume_name
+    assert "$output" = "$image_for_test" \
+           "quadlet - image files: the image for the volume should be $image_for_test"
+
+    # Verify that the container mounts the volume
+    run_podman container inspect --format "{{(index .Mounts 0).Type}}" $container_name
+    assert "$output" = "volume" \
+           "quadlet - image files: container should be attached to a volume of type volume"
+
+    run_podman container inspect --format "{{(index .Mounts 0).Name}}" $container_name
+    assert "$output" = "$volume_name" \
+           "quadlet - image files: container should be attached to the volume named $volume_name"
+
+    run_podman exec $QUADLET_CONTAINER_NAME cat /home/podman/testimage-id
+    assert "$output" = $PODMAN_TEST_IMAGE_TAG \
+           "quadlet - image files: incorrect testimage-id '$output' in root"
+
+    run_podman exec $QUADLET_CONTAINER_NAME cat /vol/home/podman/testimage-id
+    assert "$output" = $PODMAN_TEST_IMAGE_TAG \
+            "quadlet - image files: incorrect testimage-id '$output' in bound volume"
+
+    # Shutdown the service and remove the volume
+    service_cleanup $container_service failed
+    run_podman volume rm $volume_name
+    run_podman image rm --ignore $image_for_test
 }
 
 # vim: filetype=sh

@@ -57,6 +57,8 @@ quadlet_to_service_name() {
         suffix="-volume"
     elif [ "$extension" == "network" ]; then
         suffix="-network"
+    elif [ "$extension" == "image" ]; then
+        suffix="-image"
     fi
 
     echo "$filename$suffix.service"

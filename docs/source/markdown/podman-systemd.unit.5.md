@@ -360,8 +360,13 @@ The image to run in the container.
 It is recommended to use a fully qualified image name rather than a short name, both for
 performance and robustness reasons.
 
-The format of the name is the same as when passed to `podman run`, so it supports e.g., using
-`:tag` or using digests guarantee a specific image version.
+The format of the name is the same as when passed to `podman pull`. So, it supports using
+`:tag` or digests to guarantee the specific image version.
+
+As a special case, if the `name` of the image ends with `.image`, Quadlet will use the image
+pulled by the corresponding `.image` file, and the generated systemd service contains
+a dependency on the `$name-image.service`.
+Note that the corresponding `.image` file must exist.
 
 ### `IP=`
 
@@ -626,7 +631,7 @@ This key may be used multiple times
 
 ### `ExitCodePropagation=`
 
-Control how the main PID of the systemd service should exit.  The following values are supported:
+Control how the main PID of the systemd service should exit. The following values are supported:
 - `all`: exit non-zero if all containers have failed (i.e., exited non-zero)
 - `any`: exit non-zero if any container has failed
 - `none`: exit zero and ignore failed containers
@@ -640,7 +645,7 @@ Equivalent to the Podman `--log-driver` option.
 
 ### `Mask=`
 
-Specify the paths to mask separated by a colon. `Mask=/path/1:/path/2`.  A masked path cannot be accessed inside the container.
+Specify the paths to mask separated by a colon. `Mask=/path/1:/path/2`. A masked path cannot be accessed inside the container.
 
 ### `Network=`
 
@@ -792,7 +797,7 @@ This is equivalent to the Podman `--ipam-driver` option
 
 ### `IPRange=`
 
-Allocate  container  IP  from a range. The range must be a either a complete subnet in CIDR notation or be
+Allocate container IP from a range. The range must be a either a complete subnet in CIDR notation or be
 in the `<startIP>-<endIP>` syntax which allows for a more flexible range compared to the CIDR subnet.
 The ip-range option must be used with a subnet option.
 
@@ -863,15 +868,17 @@ as Podman otherwise creates volumes with the default options.
 
 Valid options for `[Volume]` are listed below:
 
-| **[Volume] options**      | **podman volume create equivalent** |
-|---------------------------|-------------------------------------|
-| Device=tmpfs              | --opt device=tmpfs                  |
-| Copy=true                 | --opt copy                          |
-| Group=192                 | --opt group=192                     |
-| Label="foo=bar"           | --label "foo=bar"                   |
-| Options=XYZ               | --opt XYZ                           |
-| PodmanArgs=--driver=image | --driver=image                      |
-| VolumeName=foo            | podman volume create foo            |
+| **[Volume] options**                | **podman volume create equivalent**       |
+|-------------------------------------|-------------------------------------------|
+| Device=tmpfs                        | --opt device=tmpfs                        |
+| Driver=image                        | --driver=image                            |
+| Copy=true                           | --opt copy                                |
+| Group=192                           | --opt group=192                           |
+| Image=quay.io/centos/centos\:latest | --opt image=quay.io/centos/centos\:latest |
+| Label="foo=bar"                     | --label "foo=bar"                         |
+| Options=XYZ                         | --opt XYZ                                 |
+| PodmanArgs=--driver=image           | --driver=image                            |
+| VolumeName=foo                      | podman volume create foo                  |
 
 Supported keys in `[Volume]` section are:
 
@@ -884,9 +891,29 @@ volume on the first run.
 
 The path of a device which is mounted for the volume.
 
+### `Driver=`
+
+Specify the volume driver name. When set to `image`, the `Image` key must also be set.
+
+This is equivalent to the Podman `--driver` option.
+
 ### `Group=`
 
 The host (numeric) GID, or group name to use as the group for the volume
+
+### `Image=`
+
+Specifies the image the volume is based on when `Driver` is set to the `image`.
+It is recommended to use a fully qualified image name rather than a short name, both for
+performance and robustness reasons.
+
+The format of the name is the same as when passed to `podman pull`. So, it supports using
+`:tag` or digests to guarantee the specific image version.
+
+As a special case, if the `name` of the image ends with `.image`, Quadlet will use the image
+pulled by the corresponding `.image` file, and the generated systemd service contains
+a dependency on the `$name-image.service`.
+Note that the corresponding `.image` file must exist.
 
 ### `Label=`
 
@@ -925,6 +952,107 @@ The host (numeric) UID, or user name to use as the owner for the volume
 The (optional) name of the Podman volume. If this is not specified, the default value of
 `systemd-%N` is used, which is the same as the unit name but with a `systemd-` prefix to avoid
 conflicts with user-managed volumes.
+
+## Image units [Image]
+
+Image files are named with a `.image` extension and contain a section `[Image]` describing the
+container image pull command. The generated service is a one-time command that ensures that the image
+exists on the host, pulling it if needed.
+
+Using image units allows containers and volumes to depend on images being automatically pulled. This is
+particularly interesting when using special options to control image pulls.
+
+Valid options for `[Image]` are listed below:
+
+| **[Image] options**                 | **podman image pull equivalent**                |
+|-------------------------------------|-------------------------------------------------|
+| AllTags=true                        | --all-tags                                      |
+| Arch=aarch64                        | --arch=aarch64                                  |
+| AuthFile=/etc/registry/auth\.json   | --authfile=/etc/registry/auth\.json             |
+| CertDir=/etc/registery/certs        | --cert-dir=/etc/registery/certs                 |
+| Creds=myname\:mypassword            | --creds=myname\:mypassword                      |
+| DecryptionKey=/etc/registery\.key   | --decryption-key=/etc/registery\.key            |
+| Image=quay.io/centos/centos\:latest | podman image pull quay.io/centos/centos\:latest |
+| OS=windows                          | --os=windows                                    |
+| PodmanArgs=--os=linux               | --os=linux                                      |
+| TLSVerify=false                     | --tls-verify=false                              |
+| Variant=arm/v7                      | --variant=arm/v7                                |
+
+### `AllTags=`
+
+All tagged images in the repository are pulled.
+
+This is equivalent to the Podman `--all-tags` option.
+
+### `Arch=`
+
+Override the architecture, defaults to hosts, of the image to be pulled.
+
+This is equivalent to the Podman `--arch` option.
+
+### `AuthFile=`
+
+Path of the authentication file.
+
+This is equivalent to the Podman `--authfile` option.
+
+### `CertDir=`
+
+Use certificates at path (*.crt, *.cert, *.key) to connect to the registry.
+
+This is equivalent to the Podman `--cert-dir` option.
+
+### `Creds=`
+
+The `[username[:password]]` to use to authenticate with the registry, if required.
+
+This is equivalent to the Podman `--creds` option.
+
+### `DecryptionKey=`
+
+The `[key[:passphrase]]` to be used for decryption of images.
+
+This is equivalent to the Podman `--decryption-key` option.
+
+### `Image=`
+
+The image to pull.
+It is recommended to use a fully qualified image name rather than a short name, both for
+performance and robustness reasons.
+
+The format of the name is the same as when passed to `podman pull`. So, it supports using
+`:tag` or digests to guarantee the specific image version.
+
+### `OS=`
+
+Override the OS, defaults to hosts, of the image to be pulled.
+
+This is equivalent to the Podman `--os` option.
+
+### `PodmanArgs=`
+
+This key contains a list of arguments passed directly to the end of the `podman image pull` command
+in the generated file (right before the image name in the command line). It can be used to
+access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, it is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
+
+### `TLSVerify=`
+
+Require HTTPS and verification of certificates when contacting registries.
+
+This is equivalent to the Podman `--tls-verify` option.
+
+### `Variant=`
+
+Override the default architecture variant of the container image.
+
+This is equivalent to the Podman `--variant` option.
 
 ## EXAMPLES
 

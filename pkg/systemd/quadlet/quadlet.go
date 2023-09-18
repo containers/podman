@@ -29,10 +29,12 @@ const (
 	ServiceGroup    = "Service"
 	UnitGroup       = "Unit"
 	VolumeGroup     = "Volume"
+	ImageGroup      = "Image"
 	XContainerGroup = "X-Container"
 	XKubeGroup      = "X-Kube"
 	XNetworkGroup   = "X-Network"
 	XVolumeGroup    = "X-Volume"
+	XImageGroup     = "X-Image"
 )
 
 // Systemd Unit file keys
@@ -44,8 +46,14 @@ const (
 const (
 	KeyAddCapability         = "AddCapability"
 	KeyAddDevice             = "AddDevice"
+	KeyAllTags               = "AllTags"
 	KeyAnnotation            = "Annotation"
+	KeyArch                  = "Arch"
+	KeyAuthFile              = "AuthFile"
 	KeyAutoUpdate            = "AutoUpdate"
+	KeyCertDir               = "CertDir"
+	KeyCreds                 = "Creds"
+	KeyDecryptionKey         = "DecryptionKey"
 	KeyConfigMap             = "ConfigMap"
 	KeyContainerName         = "ContainerName"
 	KeyCopy                  = "Copy"
@@ -53,6 +61,7 @@ const (
 	KeyDNS                   = "DNS"
 	KeyDNSOption             = "DNSOption"
 	KeyDNSSearch             = "DNSSearch"
+	KeyDriver                = "Driver"
 	KeyDropCapability        = "DropCapability"
 	KeyEnvironment           = "Environment"
 	KeyEnvironmentFile       = "EnvironmentFile"
@@ -94,6 +103,7 @@ const (
 	KeyNoNewPrivileges       = "NoNewPrivileges"
 	KeyNotify                = "Notify"
 	KeyOptions               = "Options"
+	KeyOS                    = "OS"
 	KeyPidsLimit             = "PidsLimit"
 	KeyPodmanArgs            = "PodmanArgs"
 	KeyPublishPort           = "PublishPort"
@@ -116,12 +126,14 @@ const (
 	KeyShmSize               = "ShmSize"
 	KeySysctl                = "Sysctl"
 	KeyTimezone              = "Timezone"
+	KeyTLSVerify             = "TLSVerify"
 	KeyTmpfs                 = "Tmpfs"
 	KeyType                  = "Type"
 	KeyUlimit                = "Ulimit"
 	KeyUnmask                = "Unmask"
 	KeyUser                  = "User"
 	KeyUserNS                = "UserNS"
+	KeyVariant               = "Variant"
 	KeyVolatileTmp           = "VolatileTmp"
 	KeyVolume                = "Volume"
 	KeyVolumeName            = "VolumeName"
@@ -206,7 +218,9 @@ var (
 	supportedVolumeKeys = map[string]bool{
 		KeyCopy:       true,
 		KeyDevice:     true,
+		KeyDriver:     true,
 		KeyGroup:      true,
+		KeyImage:      true,
 		KeyLabel:      true,
 		KeyOptions:    true,
 		KeyPodmanArgs: true,
@@ -248,6 +262,21 @@ var (
 		KeySetWorkingDirectory: true,
 		KeyUserNS:              true,
 		KeyYaml:                true,
+	}
+
+	// Supported keys in "Image" group
+	supportedImageKeys = map[string]bool{
+		KeyAllTags:       true,
+		KeyArch:          true,
+		KeyAuthFile:      true,
+		KeyCertDir:       true,
+		KeyCreds:         true,
+		KeyDecryptionKey: true,
+		KeyImage:         true,
+		KeyOS:            true,
+		KeyPodmanArgs:    true,
+		KeyTLSVerify:     true,
+		KeyVariant:       true,
 	}
 )
 
@@ -347,6 +376,13 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 	}
 	if len(image) > 0 && len(rootfs) > 0 {
 		return nil, fmt.Errorf("the Image And Rootfs keys conflict can not be specified together")
+	}
+
+	if len(image) > 0 {
+		var err error
+		if image, err = handleImageSource(image, service, names); err != nil {
+			return nil, err
+		}
 	}
 
 	containerName, ok := container.Lookup(ContainerGroup, KeyContainerName)
@@ -860,7 +896,7 @@ func ConvertNetwork(network *parser.UnitFile, name string) (*parser.UnitFile, st
 // The original Volume group is kept around as X-Volume.
 // Also returns the canonical volume name, either auto-generated or user-defined via the VolumeName
 // key-value.
-func ConvertVolume(volume *parser.UnitFile, name string) (*parser.UnitFile, string, error) {
+func ConvertVolume(volume *parser.UnitFile, name string, names map[string]string) (*parser.UnitFile, string, error) {
 	service := volume.Dup()
 	service.Filename = replaceExtension(volume.Filename, ".service", "", "-volume")
 
@@ -884,60 +920,81 @@ func ConvertVolume(volume *parser.UnitFile, name string) (*parser.UnitFile, stri
 
 	podman := NewPodmanCmdline("volume", "create", "--ignore")
 
-	var opts strings.Builder
-	opts.WriteString("o=")
-
-	if volume.HasKey(VolumeGroup, "User") {
-		uid := volume.LookupUint32(VolumeGroup, "User", 0)
-		if opts.Len() > 2 {
-			opts.WriteString(",")
-		}
-		opts.WriteString(fmt.Sprintf("uid=%d", uid))
-	}
-
-	if volume.HasKey(VolumeGroup, "Group") {
-		gid := volume.LookupUint32(VolumeGroup, "Group", 0)
-		if opts.Len() > 2 {
-			opts.WriteString(",")
-		}
-		opts.WriteString(fmt.Sprintf("gid=%d", gid))
-	}
-
-	copy, ok := volume.LookupBoolean(VolumeGroup, KeyCopy)
+	driver, ok := volume.Lookup(VolumeGroup, KeyDriver)
 	if ok {
-		if copy {
-			podman.add("--opt", "copy")
-		} else {
-			podman.add("--opt", "nocopy")
+		podman.addf("--driver=%s", driver)
+	}
+
+	var opts strings.Builder
+
+	if driver == "image" {
+		opts.WriteString("image=")
+
+		imageName, ok := volume.Lookup(VolumeGroup, KeyImage)
+		if !ok {
+			return nil, "", fmt.Errorf("the key %s is mandatory when using the image driver", KeyImage)
 		}
-	}
-
-	devValid := false
-
-	dev, ok := volume.Lookup(VolumeGroup, KeyDevice)
-	if ok && len(dev) != 0 {
-		podman.add("--opt", fmt.Sprintf("device=%s", dev))
-		devValid = true
-	}
-
-	devType, ok := volume.Lookup(VolumeGroup, KeyType)
-	if ok && len(devType) != 0 {
-		if devValid {
-			podman.add("--opt", fmt.Sprintf("type=%s", devType))
-		} else {
-			return nil, "", fmt.Errorf("key Type can't be used without Device")
+		imageName, err := handleImageSource(imageName, service, names)
+		if err != nil {
+			return nil, "", err
 		}
-	}
 
-	mountOpts, ok := volume.Lookup(VolumeGroup, KeyOptions)
-	if ok && len(mountOpts) != 0 {
-		if devValid {
+		opts.WriteString(imageName)
+	} else {
+		opts.WriteString("o=")
+
+		if volume.HasKey(VolumeGroup, "User") {
+			uid := volume.LookupUint32(VolumeGroup, "User", 0)
 			if opts.Len() > 2 {
 				opts.WriteString(",")
 			}
-			opts.WriteString(mountOpts)
-		} else {
-			return nil, "", fmt.Errorf("key Options can't be used without Device")
+			opts.WriteString(fmt.Sprintf("uid=%d", uid))
+		}
+
+		if volume.HasKey(VolumeGroup, "Group") {
+			gid := volume.LookupUint32(VolumeGroup, "Group", 0)
+			if opts.Len() > 2 {
+				opts.WriteString(",")
+			}
+			opts.WriteString(fmt.Sprintf("gid=%d", gid))
+		}
+
+		copy, ok := volume.LookupBoolean(VolumeGroup, KeyCopy)
+		if ok {
+			if copy {
+				podman.add("--opt", "copy")
+			} else {
+				podman.add("--opt", "nocopy")
+			}
+		}
+
+		devValid := false
+
+		dev, ok := volume.Lookup(VolumeGroup, KeyDevice)
+		if ok && len(dev) != 0 {
+			podman.add("--opt", fmt.Sprintf("device=%s", dev))
+			devValid = true
+		}
+
+		devType, ok := volume.Lookup(VolumeGroup, KeyType)
+		if ok && len(devType) != 0 {
+			if devValid {
+				podman.add("--opt", fmt.Sprintf("type=%s", devType))
+			} else {
+				return nil, "", fmt.Errorf("key Type can't be used without Device")
+			}
+		}
+
+		mountOpts, ok := volume.Lookup(VolumeGroup, KeyOptions)
+		if ok && len(mountOpts) != 0 {
+			if devValid {
+				if opts.Len() > 2 {
+					opts.WriteString(",")
+				}
+				opts.WriteString(mountOpts)
+			} else {
+				return nil, "", fmt.Errorf("key Options can't be used without Device")
+			}
 		}
 	}
 
@@ -1080,6 +1137,70 @@ func ConvertKube(kube *parser.UnitFile, names map[string]string, isUser bool) (*
 	}
 
 	return service, nil
+}
+
+func ConvertImage(image *parser.UnitFile) (*parser.UnitFile, string, error) {
+	service := image.Dup()
+	service.Filename = replaceExtension(image.Filename, ".service", "", "-image")
+
+	if image.Path != "" {
+		service.Add(UnitGroup, "SourcePath", image.Path)
+	}
+
+	if err := checkForUnknownKeys(image, ImageGroup, supportedImageKeys); err != nil {
+		return nil, "", err
+	}
+
+	imageName, ok := image.Lookup(ImageGroup, KeyImage)
+	if !ok || len(imageName) == 0 {
+		return nil, "", fmt.Errorf("no Image key specified")
+	}
+
+	/* Rename old Network group to x-Network so that systemd ignores it */
+	service.RenameGroup(ImageGroup, XImageGroup)
+
+	// Need the containers filesystem mounted to start podman
+	service.Add(UnitGroup, "RequiresMountsFor", "%t/containers")
+
+	podman := NewPodmanCmdline("image", "pull")
+
+	stringKeys := map[string]string{
+		KeyArch:          "--arch",
+		KeyAuthFile:      "--authfile",
+		KeyCertDir:       "--cert-dir",
+		KeyCreds:         "--creds",
+		KeyDecryptionKey: "--decryption-key",
+		KeyOS:            "--os",
+		KeyVariant:       "--variant",
+	}
+
+	boolKeys := map[string]string{
+		KeyAllTags:   "--all-tags",
+		KeyTLSVerify: "--tls-verify",
+	}
+
+	for key, flag := range stringKeys {
+		lookupAndAddString(image, ImageGroup, key, flag, podman)
+	}
+
+	for key, flag := range boolKeys {
+		lookupAndAddBoolean(image, ImageGroup, key, flag, podman)
+	}
+
+	handlePodmanArgs(image, ImageGroup, podman)
+
+	podman.add(imageName)
+
+	service.AddCmdline(ServiceGroup, "ExecStart", podman.Args)
+
+	service.Setv(ServiceGroup,
+		"Type", "oneshot",
+		"RemainAfterExit", "yes",
+
+		// The default syslog identifier is the exec basename (podman) which isn't very useful here
+		"SyslogIdentifier", "%N")
+
+	return service, imageName, nil
 }
 
 func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline, isUser, supportManual bool) error {
@@ -1382,4 +1503,38 @@ func handleSetWorkingDirectory(kube, serviceUnitFile *parser.UnitFile) error {
 	serviceUnitFile.Add(ServiceGroup, ServiceKeyWorkingDirectory, filepath.Dir(fileInWorkingDir))
 
 	return nil
+}
+
+func lookupAndAddString(unit *parser.UnitFile, group, key, flag string, podman *PodmanCmdline) {
+	val, ok := unit.Lookup(group, key)
+	if ok && len(val) > 0 {
+		podman.addf("%s=%s", flag, val)
+	}
+}
+
+func lookupAndAddBoolean(unit *parser.UnitFile, group, key, flag string, podman *PodmanCmdline) {
+	val, ok := unit.LookupBoolean(group, key)
+	if ok {
+		podman.addBool(flag, val)
+	}
+}
+
+func handleImageSource(quadletImageName string, serviceUnitFile *parser.UnitFile, names map[string]string) (string, error) {
+	if strings.HasSuffix(quadletImageName, ".image") {
+		// since there is no default name conversion, the actual image name must exist in the names map
+		imageName, ok := names[quadletImageName]
+		if !ok {
+			return "", fmt.Errorf("requested Quadlet image %s was not found", imageName)
+		}
+
+		// the systemd unit name is $name-image.service
+		imageServiceName := replaceExtension(quadletImageName, ".service", "", "-image")
+
+		serviceUnitFile.Add(UnitGroup, "Requires", imageServiceName)
+		serviceUnitFile.Add(UnitGroup, "After", imageServiceName)
+
+		quadletImageName = imageName
+	}
+
+	return quadletImageName, nil
 }
