@@ -25,6 +25,13 @@ development efforts occur on the *main* branch.  Branches with a
 * You will announce the release on the proper platforms
   (i.e. Podman blog, Twitter, Mastodon Podman and Podman-Desktop mailing lists)
 
+# Prechecks
+
+Two days before actually cutting a release (including RCs), send an announcement to the
+[podman-desktop](mailto:podman-desktop@lists.podman.io)
+mailing list about the upcoming release. This will help the Podman Desktop team test and schedule
+their own new release.
+
 # Releases
 
 ## Major (***X***.y.z) release
@@ -38,7 +45,7 @@ tags before the final/official **major** version is tagged and released.
 ## Significant minor (x.**Y**.z) and patch (x.y.**Z**) releases
 
 Significant **minor** and **patch** level releases are normally
-branched from *main*, but there are occsaional exceptions.
+branched from *main*, but there are occasional exceptions.
 Additionally, these branches may be named with `-rhel` (or another)
 suffix to signify a specialized purpose.  For example, `-rhel` indicates
 a release intended for downstream *RHEL* consumption.
@@ -280,10 +287,10 @@ spelled with complete minutiae.
       ## Manually Triggering Windows Installer Build & Upload
 
       ### *CLI Approach*
-      1. Install the GitHub CLI (e.g. `sudo dnf install gh`)
+      1. Install the [GitHub CLI](https://github.com/cli/cli#installation)
       1. Run (replacing below version number to release version)
          ```
-         gh workflow run "Upload Windows Installer" -F version="4.2.0"
+         gh workflow run "Upload Windows Installer" -F version="v4.2.0"
          ```
       ### *GUI Approach*
       1. Go to the "Actions" tab
@@ -295,7 +302,7 @@ spelled with complete minutiae.
       ## Manually Triggering Mac Installer Build & Upload
 
       ### *CLI Approach*
-      1. Install the GitHub CLI (e.g. `sudo dnf install gh`)
+      1. Install the [GitHub CLI](https://github.com/cli/cli#installation)
       1. Run (replacing below version number to release version)
          ```
          gh workflow run "Sign and Upload Mac Installer" -F version="v4.2.0"
@@ -312,7 +319,7 @@ spelled with complete minutiae.
          Highlight key features and important changes or fixes. Link to the GitHub release.
          Make sure the blog post is properly tagged with the Announcement, Release, and Podman tags,
          and any other appropriate tags.
-      1. For all releases, including patch releases and RC's, send an email to the podman and podman-desktop mailing lists.
+      1. For all releases, including patch releases and RC's, send an email to the [podman](mailto:podman@lists.podman.io) and [podman-desktop](mailto:podman-desktop@lists.podman.io) mailing lists.
          Link the to release blog and GitHub release.
       1. Tweet the release. Make a Mastodon post about the release.
       1. RC's can also be announced if needed.
