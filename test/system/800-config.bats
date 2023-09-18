@@ -93,6 +93,10 @@ EOF
 annotations=['module=$random_data']
 EOF
 
+    run_podman 125 create --module=$conf_tmp -q $IMAGE
+    is "$output" "Error: unknown flag: --module
+See 'podman create --help'" "--module must be specified before the command"
+
     run_podman --module=$conf_tmp create -q $IMAGE
     cid="$output"
     run_podman container inspect $cid --format '{{index .Config.Annotations "module"}}'

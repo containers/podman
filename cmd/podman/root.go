@@ -456,7 +456,7 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 		// as a flag here to a) make sure that rootflags are aware of
 		// this flag and b) to have shell completions.
 		moduleFlagName := "module"
-		pFlags.StringSlice(moduleFlagName, nil, "Load the containers.conf(5) module")
+		lFlags.StringSlice(moduleFlagName, nil, "Load the containers.conf(5) module")
 		_ = cmd.RegisterFlagCompletionFunc(moduleFlagName, common.AutocompleteContainersConfModules)
 
 		// A *hidden* flag to change the database backend.

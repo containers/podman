@@ -92,7 +92,8 @@ Log messages at and above specified level: __debug__, __info__, __warn__, __erro
 
 Load the specified `containers.conf(5)` module.  Can be an absolute or relative path.  Please refer to `containers.conf(5)` for details.
 
-This feature is not supported on the remote client, including Mac and Windows (excluding WSL2) machines
+This flag is not supported on the remote client, including Mac and Windows (excluding WSL2) machines.
+Further note that the flag is a root-level flag and must be specified before any Podman sub-command.
 
 #### **--network-cmd-path**=*path*
 Path to the `slirp4netns(1)` command binary to use for setting up a slirp4netns network.
