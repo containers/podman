@@ -34,10 +34,10 @@ The *filters* argument format is of `key=value`. If there is more than one *filt
 
 Supported filters:
 
-| Filter             | Description                                                                 |
-| :----------------: | --------------------------------------------------------------------------- |
-| *label*            | Only remove containers and images, with (or without, in the case of label!=[...] is used) the specified labels.                  |
-| *until*            | Only remove containers and images created before given timestamp.           |
+| Filter | Description                                                                                                     |
+|:------:|-----------------------------------------------------------------------------------------------------------------|
+| label  | Only remove containers and images, with (or without, in the case of label!=[...] is used) the specified labels. |
+| until  | Only remove containers and images created before given timestamp.                                               |
 
 The `label` *filter* accepts two formats. One is the `label`=*key* or `label`=*key*=*value*, which removes containers and images with the specified labels. The other format is the `label!`=*key* or `label!`=*key*=*value*, which removes containers and images without the specified labels.
 
