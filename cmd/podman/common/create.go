@@ -140,7 +140,9 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		if !registry.IsRemote() {
 			createFlags.BoolVar(
 				&cf.EnvHost,
-				"env-host", false, "Use all current host environment variables in container",
+				"env-host",
+				podmanConfig.ContainersConfDefaultsRO.Containers.EnvHost,
+				"Use all current host environment variables in container",
 			)
 		}
 
