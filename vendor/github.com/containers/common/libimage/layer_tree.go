@@ -199,6 +199,17 @@ func (t *layerTree) children(ctx context.Context, parent *Image, all bool) ([]*I
 	if parent.TopLayer() == "" {
 		for i := range t.emptyImages {
 			empty := t.emptyImages[i]
+			isManifest, err := empty.IsManifestList(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if isManifest {
+				// If this is a manifest list and is already
+				// marked as empty then no instance can be
+				// selected from this list therefore its
+				// better to skip this.
+				continue
+			}
 			isParent, err := checkParent(empty)
 			if err != nil {
 				return nil, err
@@ -287,6 +298,17 @@ func (t *layerTree) parent(ctx context.Context, child *Image) (*Image, error) {
 	if child.TopLayer() == "" {
 		for _, empty := range t.emptyImages {
 			if childID == empty.ID() {
+				continue
+			}
+			isManifest, err := empty.IsManifestList(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if isManifest {
+				// If this is a manifest list and is already
+				// marked as empty then no instance can be
+				// selected from this list therefore its
+				// better to skip this.
 				continue
 			}
 			emptyOCI, err := t.toOCI(ctx, empty)

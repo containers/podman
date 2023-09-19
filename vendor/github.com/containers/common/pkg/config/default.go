@@ -268,7 +268,7 @@ func defaultFarmConfig() FarmConfig {
 	}
 }
 
-// defaultEngineConfig eturns a default engine configuration. Note that the
+// defaultEngineConfig returns a default engine configuration. Note that the
 // config is different for root and rootless. It also parses the storage.conf.
 func defaultEngineConfig() (*EngineConfig, error) {
 	c := new(EngineConfig)
