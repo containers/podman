@@ -427,8 +427,6 @@ case "$TEST_FLAVOR" in
     swagger)
         showrun make .install.swagger
         ;;
-    #fcos_image_build)
-    #    ;;
     release) ;;
     *) die_unknown TEST_FLAVOR
 esac

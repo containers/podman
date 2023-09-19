@@ -1,0 +1,31 @@
+# This workflow only runs a build test to check for buildability issues before
+# PR merge. No registry push occurs here.
+name: Build FCOS image with podman-next
+
+on:
+  pull_request:
+    branches:
+      - main
+
+env:
+  IMAGE_NAME: fcos
+  IMAGE_REGISTRY: quay.io/podman
+  COPR_OWNER: rhcontainerbot
+  COPR_PROJECT: podman-next
+
+jobs:
+  fcos-podman-next-image-build-prepush-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v4
+
+    - name: Build FCOS Image
+      id: build_image_test
+      # Ref: https://github.com/redhat-actions/buildah-build
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: ${{ github.sha }}
+        containerfiles: ./contrib/podman-next/fcos-podmanimage/Containerfile
