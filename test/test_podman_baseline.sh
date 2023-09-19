@@ -536,11 +536,10 @@ EOF
     else
         echo "failed"
     fi
-    #Expected to fail (as rootless)
     sudo -u "#1000" podman run --security-opt apparmor=$aaProfile docker.io/library/alpine:latest echo hello
     rc=$?
     echo -n "rootless with specified AppArmor profile: "
-    if [ $rc != 0 ]; then
+    if [ $rc == 0 ]; then
         echo "passed"
     else
         echo "failed"

@@ -29,7 +29,6 @@ import (
 	"github.com/containers/common/libnetwork/etchosts"
 	"github.com/containers/common/libnetwork/resolvconf"
 	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/chown"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/subscriptions"
@@ -50,6 +49,7 @@ import (
 	"github.com/containers/storage/pkg/lockfile"
 	stypes "github.com/containers/storage/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
+	"github.com/opencontainers/runc/libcontainer/apparmor"
 	runcuser "github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -224,12 +224,12 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	}
 
 	// Apply AppArmor checks and load the default profile if needed.
-	if len(c.config.Spec.Process.ApparmorProfile) > 0 {
-		updatedProfile, err := apparmor.CheckProfileAndLoadDefault(c.config.Spec.Process.ApparmorProfile)
-		if err != nil {
-			return nil, nil, err
+	if profile := c.config.Spec.Process.ApparmorProfile; len(profile) > 0 {
+		if apparmor.IsEnabled() {
+			g.SetProcessApparmorProfile(profile)
+		} else if profile != "unconfined" {
+			return nil, nil, fmt.Errorf("profile %q specified but AppArmor is disabled", profile)
 		}
-		g.SetProcessApparmorProfile(updatedProfile)
 	}
 
 	if err := c.makeBindMounts(); err != nil {

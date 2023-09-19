@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/containers/common/libimage"
-	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/common/pkg/config"
 	cutil "github.com/containers/common/pkg/util"
@@ -16,6 +15,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/util"
+	"github.com/opencontainers/runc/libcontainer/apparmor"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
