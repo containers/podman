@@ -424,7 +424,7 @@ var _ = Describe("Podman ps", func() {
 
 		session = podmanTest.Podman([]string{"ps", "-a", "--format", "{{.Size}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		Expect(session).Should(Exit(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("Size format requires --size option"))
 	})
 

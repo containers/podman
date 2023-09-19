@@ -184,7 +184,7 @@ var _ = Describe("Podman stop", func() {
 		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"stop", "--timeout", "1", "test5"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		Expect(session).Should(Exit(0))
 		warning := session.ErrorToString()
 		Expect(warning).To(ContainSubstring("StopSignal SIGTERM failed to stop container test5 in 1 seconds, resorting to SIGKILL"))
 	})

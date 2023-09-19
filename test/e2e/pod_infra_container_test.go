@@ -95,7 +95,7 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"run", "--pod", podID, fedoraMinimal, "curl", "-f", "localhost:80"})
+		session = podmanTest.Podman([]string{"run", "--pod", podID, fedoraMinimal, "curl", "-s", "-f", "localhost:80"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
