@@ -50,6 +50,7 @@ type PodmanConfig struct {
 	Syslog                   bool           // write logging information to syslog as well as the console
 	Trace                    bool           // Hidden: Trace execution
 	URI                      string         // URI to RESTful API Service
+	FarmNodeName             string         // Name of farm node
 
 	Runroot        string
 	ImageStore     string

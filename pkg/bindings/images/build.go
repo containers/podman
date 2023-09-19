@@ -19,6 +19,7 @@ import (
 
 	"github.com/containers/buildah/define"
 	"github.com/containers/image/v5/types"
+	ldefine "github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/auth"
 	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -500,6 +501,11 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		}
 	}
 
+	saveFormat := ldefine.OCIArchive
+	if options.OutputFormat == define.Dockerv2ImageManifest {
+		saveFormat = ldefine.V2s2Archive
+	}
+
 	// build secrets are usually absolute host path or relative to context dir on host
 	// in any case move secret to current context and ship the tar.
 	if secrets := options.CommonBuildOpts.Secrets; len(secrets) > 0 {
@@ -602,7 +608,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		// even when the server quit but it seems desirable to
 		// distinguish a proper build from a transient EOF.
 		case <-response.Request.Context().Done():
-			return &entities.BuildReport{ID: id}, nil
+			return &entities.BuildReport{ID: id, SaveFormat: saveFormat}, nil
 		default:
 			// non-blocking select
 		}
@@ -616,7 +622,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 			if errors.Is(err, io.EOF) && id != "" {
 				break
 			}
-			return &entities.BuildReport{ID: id}, fmt.Errorf("decoding stream: %w", err)
+			return &entities.BuildReport{ID: id, SaveFormat: saveFormat}, fmt.Errorf("decoding stream: %w", err)
 		}
 
 		switch {
@@ -629,12 +635,12 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		case s.Error != "":
 			// If there's an error, return directly.  The stream
 			// will be closed on return.
-			return &entities.BuildReport{ID: id}, errors.New(s.Error)
+			return &entities.BuildReport{ID: id, SaveFormat: saveFormat}, errors.New(s.Error)
 		default:
-			return &entities.BuildReport{ID: id}, errors.New("failed to parse build results stream, unexpected input")
+			return &entities.BuildReport{ID: id, SaveFormat: saveFormat}, errors.New("failed to parse build results stream, unexpected input")
 		}
 	}
-	return &entities.BuildReport{ID: id}, nil
+	return &entities.BuildReport{ID: id, SaveFormat: saveFormat}, nil
 }
 
 func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {

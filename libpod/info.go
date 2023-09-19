@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/util"
 	"github.com/containers/common/pkg/version"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
@@ -129,6 +130,11 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 		OS:                 runtime.GOOS,
 		SwapFree:           mi.SwapFree,
 		SwapTotal:          mi.SwapTotal,
+	}
+	platform := parse.DefaultPlatform()
+	pArr := strings.Split(platform, "/")
+	if len(pArr) == 3 {
+		info.Variant = pArr[2]
 	}
 	if err := r.setPlatformHostInfo(&info); err != nil {
 		return nil, err
