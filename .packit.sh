@@ -10,6 +10,9 @@ PACKAGE=podman
 # Set path to rpm spec file
 SPEC_FILE=rpm/$PACKAGE.spec
 
+# Get short sha
+SHORT_SHA=$(git rev-parse --short HEAD)
+
 # Get Version from HEAD
 VERSION=$(grep '^const RawVersion' version/rawversion/version.go | cut -d\" -f2)
 
@@ -36,3 +39,9 @@ sed -i "s/^Source0:.*.tar.gz/Source0: $PACKAGE-$VERSION.tar.gz/" $SPEC_FILE
 
 # Update setup macro to use the correct build dir
 sed -i "s/^%autosetup.*/%autosetup -Sgit -n %{name}-$VERSION/" $SPEC_FILE
+
+# podman --version should show short sha
+sed -i "s/^const RawVersion = \"$VERSION\"/const RawVersion = \"$VERSION-$SHORT_SHA\"/" version/rawversion/version.go
+
+# use ParseTolerant to allow short sha in version
+sed -i "s/^var Version.*/var Version, err = semver.ParseTolerant(rawversion.RawVersion)/" version/version.go
