@@ -7,7 +7,6 @@ import (
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("podman system df", func() {
@@ -15,30 +14,30 @@ var _ = Describe("podman system df", func() {
 	It("podman system df", func() {
 		session := podmanTest.Podman([]string{"create", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		// run two containers with volumes to create something in the volume
 		session = podmanTest.Podman([]string{"run", "-v", "data1:/data", "--name", "container1", BB, "sh", "-c", "echo test > /data/1"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"run", "-v", "data2:/data", "--name", "container2", BB, "sh", "-c", "echo test > /data/1"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		// remove one container, we keep the volume
 		session = podmanTest.Podman([]string{"rm", "container2"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"images", "-q"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		totImages := strconv.Itoa(len(session.OutputToStringArray()))
 
 		session = podmanTest.Podman([]string{"system", "df"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).To(HaveLen(4))
 		images := strings.Fields(session.OutputToStringArray()[1])
 		containers := strings.Fields(session.OutputToStringArray()[2])
@@ -50,10 +49,10 @@ var _ = Describe("podman system df", func() {
 
 		session = podmanTest.Podman([]string{"rm", "container1"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"system", "df"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		volumes = strings.Fields(session.OutputToStringArray()[3])
 		// percentages on volumes were being calculated incorrectly. Make sure we only report 100% and not above
 		Expect(volumes[6]).To(Equal("(100%)"), "percentage usage expected")
@@ -64,25 +63,25 @@ var _ = Describe("podman system df", func() {
 		podmanTest.AddImageToRWStore(ALPINE)
 		session := podmanTest.Podman([]string{"create", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"image", "untag", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"system", "df"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman system df --format \"{{ json . }}\"", func() {
 		session := podmanTest.Podman([]string{"create", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"system", "df", "--format", "{{ json . }}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("Size"))
 		Expect(session.OutputToString()).To(ContainSubstring("Reclaimable"))
 
@@ -103,11 +102,11 @@ var _ = Describe("podman system df", func() {
 	It("podman system df --format json", func() {
 		session := podmanTest.Podman([]string{"create", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"system", "df", "--format", "json"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("Size"))
 		Expect(session.OutputToString()).To(ContainSubstring("Reclaimable"))
 		Expect(session.OutputToString()).To(BeValidJSON())
