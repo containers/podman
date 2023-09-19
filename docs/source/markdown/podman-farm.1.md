@@ -7,7 +7,7 @@ podman\-farm - Farm out builds to machines running podman for different architec
 **podman farm** *subcommand*
 
 ## DESCRIPTION
-Farm out builds to machines running podman for different architectures.
+Farm out builds to machines running Podman for different architectures.
 
 Manage farms by creating, updating, and removing them.
 
