@@ -87,6 +87,7 @@ status                           | =  | null
       run_podman kube down $KUBE
       run_podman pod rm -a
       run_podman rm -a
+      run_podman rmi $(pause_image)
 }
 
 @test "podman kube generate - pod" {

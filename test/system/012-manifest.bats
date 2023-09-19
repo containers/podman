@@ -121,7 +121,7 @@ EOF
     local manifestlocal="test:1.0"
     run_podman manifest create $manifestlocal
     for arch in amd arm;do
-        # FIXME: --layers=false needed to work around #19860
+        # This leaves behind a <none>:<none> image that must be purged, below
         run_podman build -t image_$arch --platform linux/${arch}64 -f $dockerfile
         run_podman manifest add $manifestlocal containers-storage:localhost/image_$arch:latest
     done
@@ -145,6 +145,9 @@ EOF
 
     run_podman rmi image_amd image_arm
     run_podman manifest rm $manifestlocal
+
+    # Needed because the above build leaves a dangling <none>
+    run_podman image prune -f
 }
 
 # vim: filetype=sh

@@ -340,7 +340,7 @@ function run_podman() {
     MOST_RECENT_PODMAN_COMMAND="podman $*"
 
     # stdout is only emitted upon error; this printf is to help in debugging
-    printf "\n%s %s %s\n" "$(timestamp)" "$_LOG_PROMPT" "$*"
+    printf "\n%s %s %s %s\n" "$(timestamp)" "$_LOG_PROMPT" "$PODMAN" "$*"
     # BATS hangs if a subprocess remains and keeps FD 3 open; this happens
     # if podman crashes unexpectedly without cleaning up subprocesses.
     run timeout --foreground -v --kill=10 $PODMAN_TIMEOUT $PODMAN $_PODMAN_TEST_OPTS "$@" 3>/dev/null
