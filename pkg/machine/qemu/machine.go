@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/config"
+	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
@@ -1325,7 +1326,6 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
 		return "", machine.NoForwarding, err
 	}
 
-	attr := new(os.ProcAttr)
 	dnr, dnw, err := machine.GetDevNullFiles()
 	if err != nil {
 		return "", machine.NoForwarding, err
@@ -1334,11 +1334,10 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
 	defer dnr.Close()
 	defer dnw.Close()
 
-	attr.Files = []*os.File{dnr, dnw, dnw}
-	cmd := []string{binary}
-	cmd = append(cmd, []string{"-listen-qemu", fmt.Sprintf("unix://%s", v.QMPMonitor.Address.GetPath()), "-pid-file", v.PidFilePath.GetPath()}...)
-	// Add the ssh port
-	cmd = append(cmd, []string{"-ssh-port", fmt.Sprintf("%d", v.Port)}...)
+	cmd := gvproxy.NewGvproxyCommand()
+	cmd.AddQemuSocket(fmt.Sprintf("unix://%s", v.QMPMonitor.Address.GetPath()))
+	cmd.PidFile = v.PidFilePath.GetPath()
+	cmd.SSHPort = v.Port
 
 	var forwardSock string
 	var state machine.APIForwardingState
@@ -1346,18 +1345,20 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
 		cmd, forwardSock, state = v.setupAPIForwarding(cmd)
 	}
 
-	if logrus.GetLevel() == logrus.DebugLevel {
-		cmd = append(cmd, "--debug")
-		fmt.Println(cmd)
+	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+		cmd.Debug = true
+		logrus.Debug(cmd)
 	}
-	_, err = os.StartProcess(cmd[0], cmd, attr)
-	if err != nil {
-		return "", 0, fmt.Errorf("unable to execute: %q: %w", cmd, err)
+
+	c := cmd.Cmd(binary)
+	c.ExtraFiles = []*os.File{dnr, dnw, dnw}
+	if err := c.Start(); err != nil {
+		return "", 0, fmt.Errorf("unable to execute: %q: %w", cmd.ToCmdline(), err)
 	}
 	return forwardSock, state, nil
 }
 
-func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, machine.APIForwardingState) {
+func (v *MachineVM) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.GvproxyCommand, string, machine.APIForwardingState) {
 	socket, err := v.forwardSocketPath()
 
 	if err != nil {
@@ -1372,10 +1373,10 @@ func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, machine.
 		forwardUser = "root"
 	}
 
-	cmd = append(cmd, []string{"-forward-sock", socket.GetPath()}...)
-	cmd = append(cmd, []string{"-forward-dest", destSock}...)
-	cmd = append(cmd, []string{"-forward-user", forwardUser}...)
-	cmd = append(cmd, []string{"-forward-identity", v.IdentityPath}...)
+	cmd.AddForwardSock(socket.GetPath())
+	cmd.AddForwardDest(destSock)
+	cmd.AddForwardUser(forwardUser)
+	cmd.AddForwardIdentity(v.IdentityPath)
 
 	// The linking pattern is /var/run/docker.sock -> user global sock (link) -> machine sock (socket)
 	// This allows the helper to only have to maintain one constant target to the user, which can be

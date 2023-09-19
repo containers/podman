@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/config"
+	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/util"
@@ -803,21 +804,19 @@ func getVMInfos() ([]*machine.ListResponse, error) {
 // setupStartHostNetworkingCmd generates the cmd that will be used to start the
 // host networking. Includes the ssh port, gvproxy pid file, gvproxy socket, and
 // a debug flag depending on the logrus log level
-func (m *MacMachine) setupStartHostNetworkingCmd(gvProxyBinary, forwardSock string, state machine.APIForwardingState) []string {
-	cmd := []string{gvProxyBinary}
-	// Add the ssh port
-	cmd = append(cmd, []string{"-ssh-port", fmt.Sprintf("%d", m.Port)}...)
-	// Add pid file
-	cmd = append(cmd, "-pid-file", m.GvProxyPid.GetPath())
-	// Add vfkit proxy listen
-	cmd = append(cmd, "-listen-vfkit", fmt.Sprintf("unixgram://%s", m.GvProxySock.GetPath()))
-	cmd, forwardSock, state = m.setupAPIForwarding(cmd)
-	if logrus.GetLevel() == logrus.DebugLevel {
-		cmd = append(cmd, "--debug")
-		fmt.Println(cmd)
+func (m *MacMachine) setupStartHostNetworkingCmd() (gvproxy.GvproxyCommand, string, machine.APIForwardingState) {
+	cmd := gvproxy.NewGvproxyCommand()
+	cmd.SSHPort = m.Port
+	cmd.PidFile = m.GvProxyPid.GetPath()
+	cmd.AddVfkitSocket(fmt.Sprintf("unixgram://%s", m.GvProxySock.GetPath()))
+	cmd.Debug = logrus.IsLevelEnabled(logrus.DebugLevel)
+
+	cmd, forwardSock, state := m.setupAPIForwarding(cmd)
+	if cmd.Debug {
+		logrus.Debug(cmd.ToCmdline())
 	}
 
-	return cmd
+	return cmd, forwardSock, state
 }
 
 func (m *MacMachine) startHostNetworking(ioEater *os.File) (string, machine.APIForwardingState, error) {
@@ -855,23 +854,22 @@ func (m *MacMachine) startHostNetworking(ioEater *os.File) (string, machine.APIF
 		return "", machine.NoForwarding, err
 	}
 
-	attr := new(os.ProcAttr)
-	gvproxy, err := cfg.FindHelperBinary("gvproxy", false)
+	gvproxyBinary, err := cfg.FindHelperBinary("gvproxy", false)
 	if err != nil {
 		return "", 0, err
 	}
 
-	attr.Files = []*os.File{ioEater, ioEater, ioEater}
-	cmd := m.setupStartHostNetworkingCmd(gvproxy, forwardSock, state)
-
-	_, err = os.StartProcess(cmd[0], cmd, attr)
-	if err != nil {
-		return "", 0, fmt.Errorf("unable to execute: %q: %w", cmd, err)
+	cmd, forwardSock, state := m.setupStartHostNetworkingCmd()
+	c := cmd.Cmd(gvproxyBinary)
+	c.ExtraFiles = []*os.File{ioEater, ioEater, ioEater}
+	if err := c.Start(); err != nil {
+		return "", 0, fmt.Errorf("unable to execute: %q: %w", cmd.ToCmdline(), err)
 	}
+
 	return forwardSock, state, nil
 }
 
-func (m *MacMachine) setupAPIForwarding(cmd []string) ([]string, string, machine.APIForwardingState) {
+func (m *MacMachine) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.GvproxyCommand, string, machine.APIForwardingState) {
 	socket, err := m.forwardSocketPath()
 	if err != nil {
 		return cmd, "", machine.NoForwarding
@@ -885,10 +883,10 @@ func (m *MacMachine) setupAPIForwarding(cmd []string) ([]string, string, machine
 		forwardUser = "root"
 	}
 
-	cmd = append(cmd, []string{"-forward-sock", socket.GetPath()}...)
-	cmd = append(cmd, []string{"-forward-dest", destSock}...)
-	cmd = append(cmd, []string{"-forward-user", forwardUser}...)
-	cmd = append(cmd, []string{"-forward-identity", m.IdentityPath}...)
+	cmd.AddForwardSock(socket.GetPath())
+	cmd.AddForwardDest(destSock)
+	cmd.AddForwardUser(forwardUser)
+	cmd.AddForwardIdentity(m.IdentityPath)
 
 	link, err := m.userGlobalSocketLink()
 	if err != nil {

@@ -255,6 +255,8 @@ github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6J
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.28.0 h1:H4cWbdI88UA/mDb6SxMo3IxpmS1BSs/Kifvhwt9g048=
 github.com/containers/image/v5 v5.28.0/go.mod h1:9aPnNkwHNHgGl9VlQxXEshvmOJRbdRAc1rNDD6sP2eU=
+github.com/containers/gvisor-tap-vsock v0.7.1-0.20230907154503-507f56851e8b h1:1nH+VNnclNbAXwcsK2MkLT3gFWfbxasQOPBkj1DUmCI=
+github.com/containers/gvisor-tap-vsock v0.7.1-0.20230907154503-507f56851e8b/go.mod h1:n7xPNoTHhif+K4S9zZMUmBNUvt5tcLfkHlQHreTLomM=
 github.com/containers/libhvee v0.4.1-0.20230905135638-56fb23533417 h1:fr+j21PD+IYR6Kvlf2Zrm1x9oAjV12T2Vz3oZIGTusw=
 github.com/containers/libhvee v0.4.1-0.20230905135638-56fb23533417/go.mod h1:HiXu8GZyjzGjU834fROO00Ka/4B1IM8qxy/6q6x1f+4=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 h1:Qzk5C6cYglewc+UyGf6lc8Mj2UaPTHy/iF2De0/77CA=
