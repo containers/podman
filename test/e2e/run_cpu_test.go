@@ -122,7 +122,7 @@ var _ = Describe("Podman run cpu", func() {
 		SkipIfCgroupV1("testing options that only work in cgroup v2")
 		result := podmanTest.Podman([]string{"run", "--rm", "--cpu-rt-period=5000", ALPINE, "ls"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(ExitCleanly())
+		Expect(result).Should(Exit(0))
 		Expect(result.ErrorToString()).To(ContainSubstring("Realtime period not supported on cgroups V2 systems"))
 	})
 
@@ -130,7 +130,7 @@ var _ = Describe("Podman run cpu", func() {
 		SkipIfCgroupV1("testing options that only work in cgroup v2")
 		result := podmanTest.Podman([]string{"run", "--rm", "--cpu-rt-runtime=5000", ALPINE, "ls"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(ExitCleanly())
+		Expect(result).Should(Exit(0))
 		Expect(result.ErrorToString()).To(ContainSubstring("Realtime runtime not supported on cgroups V2 systems"))
 	})
 })
