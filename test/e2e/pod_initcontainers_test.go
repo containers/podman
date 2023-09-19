@@ -29,19 +29,19 @@ var _ = Describe("Podman init containers", func() {
 		// create a pod
 		topPod := podmanTest.Podman([]string{"create", "-t", "--pod", "new:foobar", ALPINE, "top"})
 		topPod.WaitWithDefaultTimeout()
-		Expect(topPod).Should(Exit(0))
+		Expect(topPod).Should(ExitCleanly())
 		// add an init container
 		session := podmanTest.Podman([]string{"create", "--init-ctr", "always", "--pod", "foobar", ALPINE, "date"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		// start a pod
 		start := podmanTest.Podman([]string{"pod", "start", "foobar"})
 		start.WaitWithDefaultTimeout()
-		Expect(start).Should(Exit(0))
+		Expect(start).Should(ExitCleanly())
 
 		inspect := podmanTest.Podman([]string{"pod", "inspect", "foobar"})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 		data := inspect.InspectPodToJSON()
 		Expect(data).To(HaveField("State", define.PodStateRunning))
 	})
@@ -50,7 +50,7 @@ var _ = Describe("Podman init containers", func() {
 		// create a running pod
 		topPod := podmanTest.Podman([]string{"run", "-dt", "--pod", "new:foobar", ALPINE, "top"})
 		topPod.WaitWithDefaultTimeout()
-		Expect(topPod).Should(Exit(0))
+		Expect(topPod).Should(ExitCleanly())
 		// adding init-ctr to running pod should fail
 		session := podmanTest.Podman([]string{"create", "--init-ctr", "always", "--pod", "foobar", ALPINE, "date"})
 		session.WaitWithDefaultTimeout()
@@ -62,16 +62,16 @@ var _ = Describe("Podman init containers", func() {
 		content := RandomString(16)
 		session := podmanTest.Podman([]string{"create", "--init-ctr", "always", "--pod", "new:foobar", ALPINE, "bin/sh", "-c", fmt.Sprintf("echo %s > %s", content, filename)})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		verify := podmanTest.Podman([]string{"create", "--pod", "foobar", "-t", ALPINE, "top"})
 		verify.WaitWithDefaultTimeout()
-		Expect(verify).Should(Exit(0))
+		Expect(verify).Should(ExitCleanly())
 		start := podmanTest.Podman([]string{"pod", "start", "foobar"})
 		start.WaitWithDefaultTimeout()
-		Expect(start).Should(Exit(0))
+		Expect(start).Should(ExitCleanly())
 		checkLog := podmanTest.Podman([]string{"exec", verify.OutputToString(), "cat", filename})
 		checkLog.WaitWithDefaultTimeout()
-		Expect(checkLog).Should(Exit(0))
+		Expect(checkLog).Should(ExitCleanly())
 		Expect(checkLog.OutputToString()).To(Equal(content))
 	})
 
@@ -81,13 +81,13 @@ var _ = Describe("Podman init containers", func() {
 		session := podmanTest.Podman([]string{"create", "--init-ctr", "once", "--pod", "new:foobar", ALPINE, "bin/sh", "-c", fmt.Sprintf("echo %s > %s", content, filename)})
 		session.WaitWithDefaultTimeout()
 		initContainerID := session.OutputToString()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		verify := podmanTest.Podman([]string{"create", "--pod", "foobar", "-t", ALPINE, "top"})
 		verify.WaitWithDefaultTimeout()
-		Expect(verify).Should(Exit(0))
+		Expect(verify).Should(ExitCleanly())
 		start := podmanTest.Podman([]string{"pod", "start", "foobar"})
 		start.WaitWithDefaultTimeout()
-		Expect(start).Should(Exit(0))
+		Expect(start).Should(ExitCleanly())
 		check := podmanTest.Podman([]string{"container", "exists", initContainerID})
 		check.WaitWithDefaultTimeout()
 		// Container was rm'd
@@ -96,10 +96,10 @@ var _ = Describe("Podman init containers", func() {
 		// Let's double check with a stop and start
 		stopPod := podmanTest.Podman([]string{"pod", "stop", "foobar"})
 		stopPod.WaitWithDefaultTimeout()
-		Expect(stopPod).Should(Exit(0))
+		Expect(stopPod).Should(ExitCleanly())
 		startPod := podmanTest.Podman([]string{"pod", "start", "foobar"})
 		startPod.WaitWithDefaultTimeout()
-		Expect(startPod).Should(Exit(0))
+		Expect(startPod).Should(ExitCleanly())
 
 		// Because no init was run, the file should not even exist
 		doubleCheck := podmanTest.Podman([]string{"exec", verify.OutputToString(), "cat", filename})
@@ -114,32 +114,32 @@ var _ = Describe("Podman init containers", func() {
 		// Write the date to a file
 		session := podmanTest.Podman([]string{"create", "--init-ctr", "always", "--pod", "new:foobar", fedoraMinimal, "bin/sh", "-c", "date +%T.%N > " + filename})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		verify := podmanTest.Podman([]string{"create", "--pod", "foobar", "-t", ALPINE, "top"})
 		verify.WaitWithDefaultTimeout()
-		Expect(verify).Should(Exit(0))
+		Expect(verify).Should(ExitCleanly())
 		start := podmanTest.Podman([]string{"pod", "start", "foobar"})
 		start.WaitWithDefaultTimeout()
-		Expect(start).Should(Exit(0))
+		Expect(start).Should(ExitCleanly())
 
 		// capture the date written
 		checkLog := podmanTest.Podman([]string{"exec", verify.OutputToString(), "cat", filename})
 		checkLog.WaitWithDefaultTimeout()
 		firstResult := checkLog.OutputToString()
-		Expect(checkLog).Should(Exit(0))
+		Expect(checkLog).Should(ExitCleanly())
 
 		// Stop and start the pod
 		stopPod := podmanTest.Podman([]string{"pod", "stop", "foobar"})
 		stopPod.WaitWithDefaultTimeout()
-		Expect(stopPod).Should(Exit(0))
+		Expect(stopPod).Should(ExitCleanly())
 		startPod := podmanTest.Podman([]string{"pod", "start", "foobar"})
 		startPod.WaitWithDefaultTimeout()
-		Expect(startPod).Should(Exit(0))
+		Expect(startPod).Should(ExitCleanly())
 
 		// Check the file again with exec
 		secondCheckLog := podmanTest.Podman([]string{"exec", verify.OutputToString(), "cat", filename})
 		secondCheckLog.WaitWithDefaultTimeout()
-		Expect(secondCheckLog).Should(Exit(0))
+		Expect(secondCheckLog).Should(ExitCleanly())
 
 		// Dates should not match
 		Expect(firstResult).ToNot(Equal(secondCheckLog.OutputToString()))

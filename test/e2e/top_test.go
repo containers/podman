@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/user"
 
+	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -34,44 +35,44 @@ var _ = Describe("Podman top", func() {
 	It("podman top on container", func() {
 		session := podmanTest.Podman([]string{"run", "--name", "test", "-d", ALPINE, "top", "-d", "2"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		result := podmanTest.Podman([]string{"top", "test"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		Expect(len(result.OutputToStringArray())).To(BeNumerically(">", 1))
 	})
 
 	It("podman container top on container", func() {
 		session := podmanTest.Podman([]string{"container", "run", "--name", "test", "-d", ALPINE, "top", "-d", "2"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		result := podmanTest.Podman([]string{"container", "top", "test"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		Expect(len(result.OutputToStringArray())).To(BeNumerically(">", 1))
 
 		// Just a smoke test since groups may change over time.
 		result = podmanTest.Podman([]string{"container", "top", "test", "groups", "hgroups"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		Expect(len(result.OutputToStringArray())).To(BeNumerically(">", 1))
 	})
 
 	It("podman top with options", func() {
 		session := podmanTest.Podman([]string{"run", "-d", ALPINE, "top", "-d", "2"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		result := podmanTest.Podman([]string{"top", session.OutputToString(), "pid", "%C", "args"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		Expect(len(result.OutputToStringArray())).To(BeNumerically(">", 1))
 
 		result = podmanTest.Podman([]string{"container", "top", session.OutputToString(), "uid"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		Expect(len(result.OutputToStringArray())).To(BeNumerically(">", 1))
 		Expect(result.OutputToStringArray()[1]).To(Equal("0"))
 
@@ -82,7 +83,7 @@ var _ = Describe("Podman top", func() {
 
 		result = podmanTest.Podman([]string{"container", "top", session.OutputToString(), "huid"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		Expect(len(result.OutputToStringArray())).To(BeNumerically(">", 1))
 		Expect(result.OutputToStringArray()[1]).To(Equal(user.Uid))
 	})
@@ -90,22 +91,22 @@ var _ = Describe("Podman top", func() {
 	It("podman top with ps(1) options", func() {
 		session := podmanTest.Podman([]string{"run", "-d", fedoraMinimal, "sleep", "inf"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		result := podmanTest.Podman([]string{"top", session.OutputToString(), "aux"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		Expect(len(result.OutputToStringArray())).To(BeNumerically(">", 1))
 
 		result = podmanTest.Podman([]string{"top", session.OutputToString(), "ax -o args"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		Expect(result.OutputToStringArray()).To(Equal([]string{"COMMAND", "sleep inf"}))
 
 		// Now make sure we use ps in the container with CAP_SYS_PTRACE
 		session = podmanTest.Podman([]string{"run", "-d", "--cap-add=SYS_PTRACE", fedoraMinimal, "sleep", "inf"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		// Because the image does not contain this must fail and we know we use the correct podman exec fallback.
 		exec := podmanTest.Podman([]string{"top", session.OutputToString(), "aux"})
@@ -117,18 +118,18 @@ var _ = Describe("Podman top", func() {
 	It("podman top with comma-separated options", func() {
 		session := podmanTest.Podman([]string{"run", "-d", ALPINE, "top", "-d", "2"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		result := podmanTest.Podman([]string{"top", session.OutputToString(), "user,pid,comm"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		Expect(len(result.OutputToStringArray())).To(BeNumerically(">", 1))
 	})
 
 	It("podman top on container invalid options", func() {
 		top := podmanTest.RunTopContainer("")
 		top.WaitWithDefaultTimeout()
-		Expect(top).Should(Exit(0))
+		Expect(top).Should(ExitCleanly())
 		cid := top.OutputToString()
 
 		// We need to pass -eo to force executing ps in the Alpine container.
@@ -143,12 +144,12 @@ var _ = Describe("Podman top", func() {
 	It("podman top on privileged container", func() {
 		session := podmanTest.Podman([]string{"run", "--privileged", "-d", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		cid := session.OutputToString()
 
 		result := podmanTest.Podman([]string{"top", cid, "capeff"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		Expect(result.OutputToStringArray()).To(Equal([]string{"EFFECTIVE CAPS", "full"}))
 	})
 })
