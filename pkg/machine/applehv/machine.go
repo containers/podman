@@ -353,7 +353,7 @@ func (m *MacMachine) Remove(name string, opts machine.RemoveOptions) (string, fu
 
 	if vmState == machine.Running {
 		if !opts.Force {
-			return "", nil, fmt.Errorf("invalid state: %s is running", m.Name)
+			return "", nil, &machine.ErrVMRunningCannotDestroyed{Name: m.Name}
 		}
 		if err := m.Vfkit.stop(true, true); err != nil {
 			return "", nil, err

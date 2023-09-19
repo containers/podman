@@ -1523,7 +1523,7 @@ func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, fun
 
 	if v.isRunning() {
 		if !opts.Force {
-			return "", nil, fmt.Errorf("running vm %q cannot be destroyed", v.Name)
+			return "", nil, &machine.ErrVMRunningCannotDestroyed{Name: v.Name}
 		}
 		if err := v.Stop(v.Name, machine.StopOptions{}); err != nil {
 			return "", nil, err
@@ -1631,14 +1631,14 @@ func (v *MachineVM) SSH(name string, opts machine.SSHOptions) error {
 	return cmd.Run()
 }
 
-func (vm *MachineVM) updateTimeStamps(updateLast bool) (time.Time, time.Time, error) {
+func (v *MachineVM) updateTimeStamps(updateLast bool) (time.Time, time.Time, error) {
 	var err error
 	if updateLast {
-		vm.LastUp = time.Now()
-		err = vm.writeConfig()
+		v.LastUp = time.Now()
+		err = v.writeConfig()
 	}
 
-	return vm.Created, vm.LastUp, err
+	return v.Created, v.LastUp, err
 }
 
 func getDiskSize(vm *MachineVM) uint64 {

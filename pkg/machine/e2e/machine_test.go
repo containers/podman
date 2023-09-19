@@ -130,6 +130,9 @@ func setup() (string, *machineTestBuilder) {
 	if _, err := io.Copy(n, f); err != nil {
 		Fail(fmt.Sprintf("failed to copy %ss to %s: %q", fqImageName, mb.imagePath, err))
 	}
+	if err := n.Close(); err != nil {
+		Fail(fmt.Sprintf("failed to close image copy handler: %q", err))
+	}
 	return homeDir, mb
 }
 

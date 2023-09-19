@@ -44,20 +44,23 @@ func (v HyperVVirtualization) CheckExclusiveActiveVM() (bool, string, error) {
 }
 
 func (v HyperVVirtualization) IsValidVMName(name string) (bool, error) {
-	// We check both the local filesystem and hyperv for the valid name
-	mm := HyperVMachine{Name: name}
-	configDir, err := machine.GetConfDir(v.VMType())
+	var found bool
+	vms, err := v.loadFromLocalJson()
 	if err != nil {
 		return false, err
 	}
-	if err := mm.loadHyperVMachineFromJSON(configDir); err != nil {
-		return false, err
+	for _, vm := range vms {
+		if vm.Name == name {
+			found = true
+			break
+		}
 	}
-	// The name is valid for the local filesystem
+	if !found {
+		return false, nil
+	}
 	if _, err := hypervctl.NewVirtualMachineManager().GetMachine(name); err != nil {
 		return false, err
 	}
-	// The lookup in hyperv worked, so it is also valid there
 	return true, nil
 }
 
@@ -159,7 +162,7 @@ func (v HyperVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, 
 		CPUs:     uint16(opts.CPUS),
 		DiskPath: imagePath.GetPath(),
 		DiskSize: opts.DiskSize,
-		Memory:   int32(opts.Memory),
+		Memory:   opts.Memory,
 	}
 
 	// Write the json configuration file which will be loaded by
