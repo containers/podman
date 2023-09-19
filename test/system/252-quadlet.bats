@@ -1016,25 +1016,11 @@ EOF
 }
 
 @test "quadlet - image files" {
-    registry=localhost:${PODMAN_LOGIN_REGISTRY_PORT}
-    image_on_local_registry=$registry/quadlet_image_test:$(random_string)
-    authfile=$PODMAN_TMPDIR/authfile.json
+    local quadlet_tmpdir=$PODMAN_TMPDIR/quadlets
 
-    # First, start the registry and populate the authfile that we can use for the test.
-    start_registry
-    run_podman login --authfile=$authfile \
-        --tls-verify=false \
-        --username ${PODMAN_LOGIN_USER} \
-        --password ${PODMAN_LOGIN_PASS} \
-        $registry
-
-    run_podman image tag $IMAGE $image_on_local_registry
-    run_podman image push --tls-verify=false --authfile=$authfile $image_on_local_registry
-
-    local image_for_test=$image_on_local_registry
-
-    # Remove the local image to make sure it will be pulled again
-    run_podman image rm --ignore $image_for_test
+    local registry=localhost:${PODMAN_LOGIN_REGISTRY_PORT}
+    local image_for_test=$registry/quadlet_image_test:$(random_string)
+    local authfile=$PODMAN_TMPDIR/authfile.json
 
     local quadlet_image_unit=image_test_$(random_string).image
     local quadlet_image_file=$PODMAN_TMPDIR/$quadlet_image_unit
@@ -1045,28 +1031,14 @@ AuthFile=$authfile
 TLSVerify=false
 EOF
 
-    # Use the same directory for all quadlet files to make sure later steps access previous ones
-    local quadlet_tmpdir=$PODMAN_TMPDIR/quadlets
-    mkdir $quadlet_tmpdir
-
-    # Have quadlet create the systemd unit file for the image unit
-    run_quadlet "$quadlet_image_file" "$quadlet_tmpdir"
-    # Save the image service name since the variable will be overwritten
-    local image_service=$QUADLET_SERVICE_NAME
-
     local quadlet_volume_unit=image_test_$(random_string).volume
     local quadlet_volume_file=$PODMAN_TMPDIR/$quadlet_volume_unit
+    local volume_name=systemd-$(basename $quadlet_volume_file .volume)
     cat > $quadlet_volume_file <<EOF
 [Volume]
 Driver=image
 Image=$quadlet_image_unit
 EOF
-
-    # Have quadlet create the systemd unit file for the image unit
-    run_quadlet "$quadlet_volume_file" "$quadlet_tmpdir"
-    # Save the image service name since the variable will be overwritten
-    local volume_service=$QUADLET_SERVICE_NAME
-    local volume_name=systemd-$(basename $quadlet_volume_file .volume)
 
     local quadlet_container_unit=image_test_$(random_string).container
     local quadlet_container_file=$PODMAN_TMPDIR/$quadlet_container_unit
@@ -1076,6 +1048,36 @@ Image=$quadlet_image_unit
 Volume=$quadlet_volume_unit:/vol
 Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; sleep inf"
 EOF
+
+    # In order to test image pull but without possible Network issues,
+    # this test uses an additional registry.
+    # Start the registry and populate the authfile that we can use for the test.
+    start_registry
+    run_podman login --authfile=$authfile \
+        --tls-verify=false \
+        --username ${PODMAN_LOGIN_USER} \
+        --password ${PODMAN_LOGIN_PASS} \
+        $registry
+
+    # Push the test image to the registry
+    run_podman image tag $IMAGE $image_for_test
+    run_podman image push --tls-verify=false --authfile=$authfile $image_for_test
+
+    # Remove the local image to make sure it will be pulled again
+    run_podman image rm --ignore $image_for_test
+
+    # Use the same directory for all quadlet files to make sure later steps access previous ones
+    mkdir $quadlet_tmpdir
+
+    # Have quadlet create the systemd unit file for the image unit
+    run_quadlet "$quadlet_image_file" "$quadlet_tmpdir"
+    # Save the image service name since the variable will be overwritten
+    local image_service=$QUADLET_SERVICE_NAME
+
+    # Have quadlet create the systemd unit file for the volume unit
+    run_quadlet "$quadlet_volume_file" "$quadlet_tmpdir"
+    # Save the image service name since the variable will be overwritten
+    local volume_service=$QUADLET_SERVICE_NAME
 
     # Image should not exist
     run_podman 1 image exists ${image_for_test}
@@ -1125,11 +1127,11 @@ EOF
 
     run_podman exec $QUADLET_CONTAINER_NAME cat /home/podman/testimage-id
     assert "$output" = $PODMAN_TEST_IMAGE_TAG \
-           "quadlet - image files: incorrect testimage-id '$output' in root"
+           "quadlet - image files: incorrect testimage-id in root"
 
     run_podman exec $QUADLET_CONTAINER_NAME cat /vol/home/podman/testimage-id
     assert "$output" = $PODMAN_TEST_IMAGE_TAG \
-            "quadlet - image files: incorrect testimage-id '$output' in bound volume"
+            "quadlet - image files: incorrect testimage-id in bound volume"
 
     # Shutdown the service and remove the volume
     service_cleanup $container_service failed
