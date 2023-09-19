@@ -29,7 +29,7 @@ var _ = Describe("Podman run cpu", func() {
 			result = podmanTest.Podman([]string{"run", "--rm", "--cpu-period=5000", ALPINE, "cat", "/sys/fs/cgroup/cpu/cpu.cfs_period_us"})
 		}
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		Expect(result.OutputToString()).To(ContainSubstring("5000"))
 	})
 
@@ -42,7 +42,7 @@ var _ = Describe("Podman run cpu", func() {
 			result = podmanTest.Podman([]string{"run", "--rm", "--cpu-quota=5000", ALPINE, "cat", "/sys/fs/cgroup/cpu/cpu.cfs_quota_us"})
 		}
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		Expect(result.OutputToString()).To(ContainSubstring("5000"))
 	})
 
@@ -50,17 +50,17 @@ var _ = Describe("Podman run cpu", func() {
 		if CGROUPSV2 {
 			result := podmanTest.Podman([]string{"run", "--rm", "--cpu-quota=5000", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/cpu.max"})
 			result.WaitWithDefaultTimeout()
-			Expect(result).Should(Exit(0))
+			Expect(result).Should(ExitCleanly())
 			Expect(result.OutputToString()).To(Equal("5000 100000"))
 		} else {
 			result := podmanTest.Podman([]string{"run", "--rm", "--cpus=0.5", ALPINE, "cat", "/sys/fs/cgroup/cpu/cpu.cfs_period_us"})
 			result.WaitWithDefaultTimeout()
-			Expect(result).Should(Exit(0))
+			Expect(result).Should(ExitCleanly())
 			Expect(result.OutputToString()).To(Equal("100000"))
 
 			result = podmanTest.Podman([]string{"run", "--rm", "--cpus=0.5", ALPINE, "cat", "/sys/fs/cgroup/cpu/cpu.cfs_quota_us"})
 			result.WaitWithDefaultTimeout()
-			Expect(result).Should(Exit(0))
+			Expect(result).Should(ExitCleanly())
 			Expect(result.OutputToString()).To(Equal("50000"))
 		}
 	})
@@ -70,12 +70,12 @@ var _ = Describe("Podman run cpu", func() {
 			// [2-262144] is mapped to [1-10000]
 			result := podmanTest.Podman([]string{"run", "--rm", "--cpu-shares=262144", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/cpu.weight"})
 			result.WaitWithDefaultTimeout()
-			Expect(result).Should(Exit(0))
+			Expect(result).Should(ExitCleanly())
 			Expect(result.OutputToString()).To(Equal("10000"))
 		} else {
 			result := podmanTest.Podman([]string{"run", "--rm", "-c", "2", ALPINE, "cat", "/sys/fs/cgroup/cpu/cpu.shares"})
 			result.WaitWithDefaultTimeout()
-			Expect(result).Should(Exit(0))
+			Expect(result).Should(ExitCleanly())
 			Expect(result.OutputToString()).To(Equal("2"))
 		}
 	})
@@ -89,7 +89,7 @@ var _ = Describe("Podman run cpu", func() {
 			result = podmanTest.Podman([]string{"run", "--rm", "--cpuset-cpus=0", ALPINE, "cat", "/sys/fs/cgroup/cpuset/cpuset.cpus"})
 		}
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		Expect(result.OutputToString()).To(Equal("0"))
 	})
 
@@ -102,7 +102,7 @@ var _ = Describe("Podman run cpu", func() {
 			result = podmanTest.Podman([]string{"run", "--rm", "--cpuset-mems=0", ALPINE, "cat", "/sys/fs/cgroup/cpuset/cpuset.mems"})
 		}
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		Expect(result.OutputToString()).To(Equal("0"))
 	})
 
@@ -122,7 +122,7 @@ var _ = Describe("Podman run cpu", func() {
 		SkipIfCgroupV1("testing options that only work in cgroup v2")
 		result := podmanTest.Podman([]string{"run", "--rm", "--cpu-rt-period=5000", ALPINE, "ls"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		Expect(result.ErrorToString()).To(ContainSubstring("Realtime period not supported on cgroups V2 systems"))
 	})
 
@@ -130,7 +130,7 @@ var _ = Describe("Podman run cpu", func() {
 		SkipIfCgroupV1("testing options that only work in cgroup v2")
 		result := podmanTest.Podman([]string{"run", "--rm", "--cpu-rt-runtime=5000", ALPINE, "ls"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		Expect(result.ErrorToString()).To(ContainSubstring("Realtime runtime not supported on cgroups V2 systems"))
 	})
 })

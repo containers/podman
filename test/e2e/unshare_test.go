@@ -3,6 +3,7 @@ package integration
 import (
 	"os"
 
+	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -13,7 +14,7 @@ import (
 func cleanupRootlessSlirp4netns(p *PodmanTestIntegration) {
 	session := p.Podman([]string{"run", "--network", "bridge", ALPINE, "true"})
 	session.WaitWithDefaultTimeout()
-	Expect(session).Should(Exit(0))
+	Expect(session).Should(ExitCleanly())
 }
 
 var _ = Describe("Podman unshare", func() {
@@ -32,7 +33,7 @@ var _ = Describe("Podman unshare", func() {
 		userNS, _ := os.Readlink("/proc/self/ns/user")
 		session := podmanTest.Podman([]string{"unshare", "readlink", "/proc/self/ns/user"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).ToNot(ContainSubstring(userNS))
 	})
 
@@ -41,7 +42,7 @@ var _ = Describe("Podman unshare", func() {
 		defer cleanupRootlessSlirp4netns(podmanTest)
 		session := podmanTest.Podman([]string{"unshare", "--rootless-netns", "ip", "addr"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("tap0"))
 	})
 
