@@ -541,8 +541,8 @@ default_sysctls = [
 #  [service_destinations.production]
 #     URI to access the Podman service
 #     Examples:
-#       rootless "unix://run/user/$UID/podman/podman.sock" (Default)
-#       rootful "unix://run/podman/podman.sock (Default)
+#       rootless "unix:///run/user/$UID/podman/podman.sock" (Default)
+#       rootful "unix:///run/podman/podman.sock (Default)
 #       remote rootless ssh://engineering.lab.company.com/run/user/1000/podman/podman.sock
 #       remote rootful ssh://root@10.10.1.136:22/run/podman/podman.sock
 #

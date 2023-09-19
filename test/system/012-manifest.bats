@@ -122,7 +122,7 @@ EOF
     run_podman manifest create $manifestlocal
     for arch in amd arm;do
         # FIXME: --layers=false needed to work around #19860
-        run_podman build --layers=false -t image_$arch --platform linux/${arch}64 -f $dockerfile
+        run_podman build -t image_$arch --platform linux/${arch}64 -f $dockerfile
         run_podman manifest add $manifestlocal containers-storage:localhost/image_$arch:latest
     done
 
