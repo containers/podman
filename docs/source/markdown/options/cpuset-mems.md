@@ -1,5 +1,5 @@
 ####> This option file is used in:
-####>   podman build, container clone, create, pod clone, pod create, run, update
+####>   podman build, container clone, create, farm build, pod clone, pod create, run, update
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--cpuset-mems**=*nodes*
