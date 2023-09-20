@@ -179,7 +179,7 @@ type exitCleanlyMatcher struct {
 
 type podmanSession interface {
 	ExitCode() int
-	ErrorToString() string
+	ErrContents() []byte
 }
 
 func (matcher *exitCleanlyMatcher) Match(actual interface{}) (success bool, err error) {
@@ -189,10 +189,10 @@ func (matcher *exitCleanlyMatcher) Match(actual interface{}) (success bool, err 
 	}
 
 	exitcode := session.ExitCode()
-	stderr := session.ErrorToString()
+	stderr := session.ErrContents()
 	if exitcode != 0 {
 		matcher.msg = fmt.Sprintf("Command failed with exit status %d", exitcode)
-		if stderr != "" {
+		if len(stderr) != 0 {
 			matcher.msg += ". See above for error message."
 		}
 		return false, nil
@@ -214,8 +214,8 @@ func (matcher *exitCleanlyMatcher) Match(actual interface{}) (success bool, err 
 		return true, nil
 	}
 
-	if stderr != "" {
-		matcher.msg = fmt.Sprintf("Unexpected warnings seen on stderr: %q", stderr)
+	if len(stderr) != 0 {
+		matcher.msg = fmt.Sprintf("Unexpected warnings seen on stderr: %q", string(stderr))
 		return false, nil
 	}
 
