@@ -1220,23 +1220,6 @@ func (c *Container) HostNetwork() bool {
 	return true
 }
 
-// ContainerState returns containerstate struct
-func (c *Container) ContainerState() (*ContainerState, error) {
-	if !c.batched {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-
-		if err := c.syncContainer(); err != nil {
-			return nil, err
-		}
-	}
-	returnConfig := new(ContainerState)
-	if err := JSONDeepCopy(c.state, returnConfig); err != nil {
-		return nil, fmt.Errorf("copying container %s state: %w", c.ID(), err)
-	}
-	return c.state, nil
-}
-
 // HasHealthCheck returns bool as to whether there is a health check
 // defined for the container
 func (c *Container) HasHealthCheck() bool {
