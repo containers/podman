@@ -1356,6 +1356,21 @@ func (d ContainerNetworkDescriptions) getInterfaceByName(networkName string) (st
 	return fmt.Sprintf("eth%d", val), exists
 }
 
+// GetNetworkStatus returns the current network status for this container.
+// This returns a map without deep copying which means this should only ever
+// be used as read only access, do not modify this status.
+func (c *Container) GetNetworkStatus() (map[string]types.StatusBlock, error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
+	}
+	return c.getNetworkStatus(), nil
+}
+
 // getNetworkStatus get the current network status from the state. If the container
 // still uses the old network status it is converted to the new format. This function
 // should be used instead of reading c.state.NetworkStatus directly.
