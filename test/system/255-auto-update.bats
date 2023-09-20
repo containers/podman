@@ -647,8 +647,10 @@ EOF
         --password ${PODMAN_LOGIN_PASS} \
         $registry
 
-    run_podman tag $IMAGE $image_on_local_registry
-    run_podman push --tls-verify=false --creds "${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS}" $image_on_local_registry
+    # Push the image to the registry and pull it down again to make sure we
+    # have the identical digest in the local storage
+    run_podman push --tls-verify=false --creds "${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS}" $IMAGE $image_on_local_registry
+    run_podman pull --tls-verify=false --creds "${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS}" $image_on_local_registry
 
     # Generate a systemd service with the "registry" auto-update policy running
     # "top" inside the image we just pushed to the local registry.
