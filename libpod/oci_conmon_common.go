@@ -23,8 +23,9 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/detach"
 	"github.com/containers/common/pkg/resize"
-	cutil "github.com/containers/common/pkg/util"
+	"github.com/containers/common/pkg/version"
 	conmonConfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/logs"
@@ -583,7 +584,7 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 	if detachKeys != nil {
 		detachString = *detachKeys
 	}
-	detach, err := processDetachKeys(detachString)
+	isDetach, err := processDetachKeys(detachString)
 	if err != nil {
 		return err
 	}
@@ -735,7 +736,7 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 	// Next, STDIN. Avoid entirely if attachStdin unset.
 	if attachStdin {
 		go func() {
-			_, err := cutil.CopyDetachable(conn, httpBuf, detach)
+			_, err := detach.Copy(conn, httpBuf, isDetach)
 			logrus.Debugf("STDIN copy completed")
 			stdinChan <- err
 		}()
@@ -943,8 +944,8 @@ func (r *ConmonOCIRuntime) ExitFilePath(ctr *Container) (string, error) {
 
 // RuntimeInfo provides information on the runtime.
 func (r *ConmonOCIRuntime) RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeInfo, error) {
-	runtimePackage := cutil.PackageVersion(r.path)
-	conmonPackage := cutil.PackageVersion(r.conmonPath)
+	runtimePackage := version.Package(r.path)
+	conmonPackage := version.Package(r.conmonPath)
 	runtimeVersion, err := r.getOCIRuntimeVersion()
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting version of OCI runtime %s: %w", r.name, err)

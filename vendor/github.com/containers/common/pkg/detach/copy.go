@@ -1,4 +1,4 @@
-package util
+package detach
 
 import (
 	"errors"
@@ -9,8 +9,8 @@ import (
 // the user.
 var ErrDetach = errors.New("detached from container")
 
-// CopyDetachable is similar to io.Copy but support a detach key sequence to break out.
-func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (written int64, err error) {
+// Copy is similar to io.Copy but support a detach key sequence to break out.
+func Copy(dst io.Writer, src io.Reader, keys []byte) (written int64, err error) {
 	buf := make([]byte, 32*1024)
 	for {
 		nr, er := src.Read(buf)
