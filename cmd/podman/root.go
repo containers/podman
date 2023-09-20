@@ -76,7 +76,6 @@ var (
 	dockerConfig    = ""
 	debug           bool
 
-	useSyslog      bool
 	requireCleanup = true
 
 	// Defaults for capturing/redirecting the command output since (the) cobra is
@@ -611,7 +610,7 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 		pFlags.StringArrayVar(&podmanConfig.RuntimeFlags, runtimeflagFlagName, []string{}, "add global flags for the container runtime")
 		_ = rootCmd.RegisterFlagCompletionFunc(runtimeflagFlagName, completion.AutocompleteNone)
 
-		pFlags.BoolVar(&useSyslog, "syslog", false, "Output logging information to syslog as well as the console (default false)")
+		pFlags.BoolVar(&podmanConfig.Syslog, "syslog", false, "Output logging information to syslog as well as the console (default false)")
 	}
 }
 

@@ -1261,4 +1261,18 @@ search               | $IMAGE           |
     done < <(parse_table "$tests")
 }
 
+@test "podman --syslog passed to conmon" {
+    skip_if_remote "--syslog is not supported for remote clients"
+    skip_if_journald_unavailable
+
+    run_podman run -d -q --syslog $IMAGE sleep infinity
+    cid="$output"
+
+    run_podman container inspect $cid --format "{{ .State.ConmonPid }}"
+    conmon_pid="$output"
+    is "$(< /proc/$conmon_pid/cmdline)" ".*--exit-command-arg--syslog.*" "conmon's exit-command has --syslog set"
+
+    run_podman rm -f -t0 $cid
+}
+
 # vim: filetype=sh
