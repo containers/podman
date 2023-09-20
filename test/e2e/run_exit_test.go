@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/containers/podman/v4/libpod/define"
+	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -32,7 +33,7 @@ var _ = Describe("Podman run exit", func() {
 	It("podman run exit 0", func() {
 		result := podmanTest.Podman([]string{"run", ALPINE, "ls"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 	})
 
 	It("podman run exit 50", func() {

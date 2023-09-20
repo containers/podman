@@ -9,7 +9,6 @@ import (
 	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman run with --ip flag", func() {
@@ -40,7 +39,7 @@ var _ = Describe("Podman run with --ip flag", func() {
 		ip := GetSafeIPAddress()
 		result := podmanTest.Podman([]string{"run", "--ip", ip, ALPINE, "ip", "addr"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		Expect(result.OutputToString()).To(ContainSubstring(ip + "/16"))
 	})
 
@@ -50,11 +49,11 @@ var _ = Describe("Podman run with --ip flag", func() {
 		net := podmanTest.Podman([]string{"network", "create", "--subnet", "fd46:db93:aa76:ac37::/64", netName})
 		net.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(netName)
-		Expect(net).To(Exit(0))
+		Expect(net).To(ExitCleanly())
 
 		result := podmanTest.Podman([]string{"run", "--network", netName, "--ip6", ipv6, ALPINE, "ip", "addr"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		Expect(result.OutputToString()).To(ContainSubstring(ipv6 + "/64"))
 	})
 
@@ -62,7 +61,7 @@ var _ = Describe("Podman run with --ip flag", func() {
 		ip := GetSafeIPAddress()
 		result := podmanTest.Podman([]string{"run", "--network", "bridge:ip=" + ip, ALPINE, "ip", "addr"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		Expect(result.OutputToString()).To(ContainSubstring(ip + "/16"))
 	})
 
@@ -72,7 +71,7 @@ var _ = Describe("Podman run with --ip flag", func() {
 		intName := "myeth"
 		result := podmanTest.Podman([]string{"run", "--network", "bridge:ip=" + ip + ",mac=" + mac + ",interface_name=" + intName, ALPINE, "ip", "addr"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		Expect(result.OutputToString()).To(ContainSubstring(ip + "/16"))
 		Expect(result.OutputToString()).To(ContainSubstring(mac))
 		Expect(result.OutputToString()).To(ContainSubstring(intName))
@@ -82,7 +81,7 @@ var _ = Describe("Podman run with --ip flag", func() {
 		ip := GetSafeIPAddress()
 		result := podmanTest.Podman([]string{"run", "-d", "--name", "nginx", "--ip", ip, NGINX_IMAGE})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 
 		// This test should not use a proxy
 		client := &http.Client{

@@ -1,6 +1,7 @@
 package integration
 
 import (
+	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -11,7 +12,7 @@ var _ = Describe("podman system dial-stdio", func() {
 	It("podman system dial-stdio help", func() {
 		session := podmanTest.Podman([]string{"system", "dial-stdio", "--help"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("Examples: podman system dial-stdio"))
 	})
 

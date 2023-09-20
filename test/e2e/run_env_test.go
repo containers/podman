@@ -3,6 +3,7 @@ package integration
 import (
 	"os"
 
+	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -13,40 +14,40 @@ var _ = Describe("Podman run", func() {
 	It("podman run environment test", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "printenv", "HOME"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("/root"))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--user", "2", ALPINE, "printenv", "HOME"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("/sbin"))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--env", "HOME=/foo", ALPINE, "printenv", "HOME"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("/foo"))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--env", "FOO=BAR,BAZ", ALPINE, "printenv", "FOO"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("BAR,BAZ"))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--env", "PATH=/bin", ALPINE, "printenv", "PATH"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("/bin"))
 
 		// Verify environ keys with spaces do not blow up podman command
 		os.Setenv("FOO BAR", "BAZ")
 		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "true"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		os.Unsetenv("FOO BAR")
 
 		os.Setenv("FOO", "BAR")
 		session = podmanTest.Podman([]string{"run", "--rm", "--env", "FOO", ALPINE, "printenv", "FOO"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("BAR"))
 		os.Unsetenv("FOO")
 
@@ -57,13 +58,13 @@ var _ = Describe("Podman run", func() {
 
 		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "printenv"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		// This currently does not work
 		// Re-enable when hostname is an env variable
 		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "sh", "-c", "printenv"})
 		session.Wait(10)
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("HOSTNAME"))
 	})
 
@@ -74,12 +75,12 @@ ENV hello=world
 		podmanTest.BuildImage(dockerfile, "test", "false")
 		session := podmanTest.Podman([]string{"run", "--rm", "--env-merge", "hello=${hello}-earth", "test", "env"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("world-earth"))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--env-merge", "foo=${bar}-earth", "test", "printenv", "foo"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal("-earth"))
 	})
 
@@ -93,12 +94,12 @@ ENV hello=world
 			Expect(session.ErrorToString()).To(ContainSubstring("unknown flag: --env-host"))
 			return
 		}
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("BAR"))
 
 		session = podmanTest.PodmanAsUser([]string{"run", "--rm", "--env", "FOO=BAR1", "--env-host", ALPINE, "/bin/printenv", "FOO"}, 0, 0, "", env)
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("BAR1"))
 		os.Unsetenv("FOO")
 	})
@@ -119,7 +120,7 @@ ENV hello=world
 		}
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "printenv", "http_proxy"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("1.2.3.4"))
 
 		session = podmanTest.Podman([]string{"run", "--http-proxy=false", ALPINE, "printenv", "http_proxy"})
@@ -129,12 +130,12 @@ ENV hello=world
 
 		session = podmanTest.Podman([]string{"run", "--env", "http_proxy=5.6.7.8", ALPINE, "printenv", "http_proxy"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("5.6.7.8"))
 
 		session = podmanTest.Podman([]string{"run", "--http-proxy=false", "--env", "http_proxy=5.6.7.8", ALPINE, "printenv", "http_proxy"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("5.6.7.8"))
 	})
 })

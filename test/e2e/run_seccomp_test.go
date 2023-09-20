@@ -10,16 +10,16 @@ import (
 var _ = Describe("Podman run", func() {
 
 	It("podman run --seccomp-policy default", func() {
-		session := podmanTest.Podman([]string{"run", "--seccomp-policy", "default", alpineSeccomp, "ls"})
+		session := podmanTest.Podman([]string{"run", "-q", "--seccomp-policy", "default", alpineSeccomp, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman run --seccomp-policy ''", func() {
 		// Empty string is interpreted as "default".
-		session := podmanTest.Podman([]string{"run", "--seccomp-policy", "", alpineSeccomp, "ls"})
+		session := podmanTest.Podman([]string{"run", "-q", "--seccomp-policy", "", alpineSeccomp, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman run --seccomp-policy invalid", func() {

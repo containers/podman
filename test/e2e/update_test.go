@@ -2,9 +2,9 @@ package integration
 
 import (
 	"github.com/containers/common/pkg/cgroupv2"
+	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman update", func() {
@@ -14,7 +14,7 @@ var _ = Describe("Podman update", func() {
 		SkipIfRootless("many of these handlers are not enabled while rootless in CI")
 		session := podmanTest.Podman([]string{"run", "-dt", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		ctrID := session.OutputToString()
 
@@ -32,48 +32,48 @@ var _ = Describe("Podman update", func() {
 
 		session = podmanTest.Podman(commonArgs)
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		// checking cpu quota from --cpus
 		session = podmanTest.Podman([]string{"exec", ctrID, "cat", "/sys/fs/cgroup/cpu/cpu.cfs_quota_us"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(ContainSubstring("500000"))
 
 		// checking cpuset-cpus
 		session = podmanTest.Podman([]string{"exec", ctrID, "cat", "/sys/fs/cgroup/cpuset/cpuset.cpus"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(Equal("0"))
 
 		// checking cpuset-mems
 		session = podmanTest.Podman([]string{"exec", ctrID, "cat", "/sys/fs/cgroup/cpuset/cpuset.mems"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(Equal("0"))
 
 		// checking memory limit
 		session = podmanTest.Podman([]string{"exec", ctrID, "cat", "/sys/fs/cgroup/memory/memory.limit_in_bytes"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(ContainSubstring("1073741824"))
 
 		// checking memory-swap
 		session = podmanTest.Podman([]string{"exec", ctrID, "cat", "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(ContainSubstring("2147483648"))
 
 		// checking cpu-shares
 		session = podmanTest.Podman([]string{"exec", ctrID, "cat", "/sys/fs/cgroup/cpu/cpu.shares"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(ContainSubstring("123"))
 
 		// checking pids-limit
 		session = podmanTest.Podman([]string{"exec", ctrID, "cat", "/sys/fs/cgroup/pids/pids.max"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(ContainSubstring("123"))
 
 	})
@@ -83,7 +83,7 @@ var _ = Describe("Podman update", func() {
 		SkipIfRootless("many of these handlers are not enabled while rootless in CI")
 		session := podmanTest.Podman([]string{"run", "-dt", "--pids-limit", "-1", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		ctrID := session.OutputToString()
 
@@ -94,14 +94,14 @@ var _ = Describe("Podman update", func() {
 
 		session = podmanTest.Podman(commonArgs)
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		ctrID = session.OutputToString()
 
 		// checking pids-limit was not changed after update when not specified as an option
 		session = podmanTest.Podman([]string{"exec", ctrID, "cat", "/sys/fs/cgroup/pids.max"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(ContainSubstring("max"))
 	})
 
@@ -110,7 +110,7 @@ var _ = Describe("Podman update", func() {
 		SkipIfRootless("many of these handlers are not enabled while rootless in CI")
 		session := podmanTest.Podman([]string{"run", "-dt", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		ctrID := session.OutputToString()
 
@@ -133,62 +133,62 @@ var _ = Describe("Podman update", func() {
 
 		session = podmanTest.Podman(commonArgs)
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		ctrID = session.OutputToString()
 
 		// checking cpu quota and period
 		session = podmanTest.Podman([]string{"exec", ctrID, "cat", "/sys/fs/cgroup/cpu.max"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(ContainSubstring("500000"))
 
 		// checking blkio weight
 		session = podmanTest.Podman([]string{"exec", ctrID, "cat", "/sys/fs/cgroup/io.bfq.weight"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(ContainSubstring("123"))
 
 		// checking device-read/write-bps/iops
 		session = podmanTest.Podman([]string{"exec", ctrID, "cat", "/sys/fs/cgroup/io.max"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(ContainSubstring("rbps=10485760 wbps=10485760 riops=1000 wiops=1000"))
 
 		// checking cpuset-cpus
 		session = podmanTest.Podman([]string{"exec", ctrID, "cat", "/sys/fs/cgroup/cpuset.cpus"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(Equal("0"))
 
 		// checking cpuset-mems
 		session = podmanTest.Podman([]string{"exec", ctrID, "cat", "/sys/fs/cgroup/cpuset.mems"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(Equal("0"))
 
 		// checking memory limit
 		session = podmanTest.Podman([]string{"exec", ctrID, "cat", "/sys/fs/cgroup/memory.max"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(ContainSubstring("1073741824"))
 
 		// checking memory-swap
 		session = podmanTest.Podman([]string{"exec", ctrID, "cat", "/sys/fs/cgroup/memory.swap.max"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(ContainSubstring("1073741824"))
 
 		// checking cpu-shares
 		session = podmanTest.Podman([]string{"exec", ctrID, "cat", "/sys/fs/cgroup/cpu.weight"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(ContainSubstring("5"))
 
 		// checking pids-limit
 		session = podmanTest.Podman([]string{"exec", ctrID, "cat", "/sys/fs/cgroup/pids.max"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(ContainSubstring("123"))
 	})
 
@@ -196,7 +196,7 @@ var _ = Describe("Podman update", func() {
 		SkipIfRootless("many of these handlers are not enabled while rootless in CI")
 		session := podmanTest.Podman([]string{"run", "-dt", "--cpus", "5", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{
 			"update",
@@ -205,7 +205,7 @@ var _ = Describe("Podman update", func() {
 		})
 
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		ctrID := session.OutputToString()
 
@@ -215,7 +215,7 @@ var _ = Describe("Podman update", func() {
 			session = podmanTest.Podman([]string{"exec", ctrID, "cat", "/sys/fs/cgroup/cpu/cpu.cfs_quota_us"})
 		}
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(ContainSubstring("500000"))
 	})
 })

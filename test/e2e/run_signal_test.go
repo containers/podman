@@ -12,7 +12,6 @@ import (
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 	"golang.org/x/sys/unix"
 )
 
@@ -108,7 +107,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 		// Kill with -9 to guarantee the container dies
 		killSession := podmanTest.Podman([]string{"kill", "-s", "9", "test2"})
 		killSession.WaitWithDefaultTimeout()
-		Expect(killSession).Should(Exit(0))
+		Expect(killSession).Should(ExitCleanly())
 
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
