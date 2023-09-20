@@ -253,10 +253,10 @@ github.com/containers/common v0.56.1-0.20230919073449-d1d9d38d8282 h1:GkMoKMmH4E
 github.com/containers/common v0.56.1-0.20230919073449-d1d9d38d8282/go.mod h1:NKWo6OWVItRwJjqu30vd4uFG3bBKUL9q+B38GNwY/bo=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
-github.com/containers/image/v5 v5.28.0 h1:H4cWbdI88UA/mDb6SxMo3IxpmS1BSs/Kifvhwt9g048=
-github.com/containers/image/v5 v5.28.0/go.mod h1:9aPnNkwHNHgGl9VlQxXEshvmOJRbdRAc1rNDD6sP2eU=
 github.com/containers/gvisor-tap-vsock v0.7.1-0.20230907154503-507f56851e8b h1:1nH+VNnclNbAXwcsK2MkLT3gFWfbxasQOPBkj1DUmCI=
 github.com/containers/gvisor-tap-vsock v0.7.1-0.20230907154503-507f56851e8b/go.mod h1:n7xPNoTHhif+K4S9zZMUmBNUvt5tcLfkHlQHreTLomM=
+github.com/containers/image/v5 v5.28.0 h1:H4cWbdI88UA/mDb6SxMo3IxpmS1BSs/Kifvhwt9g048=
+github.com/containers/image/v5 v5.28.0/go.mod h1:9aPnNkwHNHgGl9VlQxXEshvmOJRbdRAc1rNDD6sP2eU=
 github.com/containers/libhvee v0.4.1-0.20230905135638-56fb23533417 h1:fr+j21PD+IYR6Kvlf2Zrm1x9oAjV12T2Vz3oZIGTusw=
 github.com/containers/libhvee v0.4.1-0.20230905135638-56fb23533417/go.mod h1:HiXu8GZyjzGjU834fROO00Ka/4B1IM8qxy/6q6x1f+4=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 h1:Qzk5C6cYglewc+UyGf6lc8Mj2UaPTHy/iF2De0/77CA=
@@ -796,8 +796,8 @@ github.com/onsi/ginkgo v1.12.0/go.mod h1:oUhWkIvk5aDxtKvDDuw8gItl8pKl42LzjC9KZE0
 github.com/onsi/ginkgo v1.12.1/go.mod h1:zj2OWP4+oCPe1qIXoGWkgMRwljMUYCdkwsT2108oapk=
 github.com/onsi/ginkgo v1.16.4/go.mod h1:dX+/inL/fNMqNlz0e9LfyB9TswhZpCVdJM/Z6Vvnwo0=
 github.com/onsi/ginkgo/v2 v2.1.3/go.mod h1:vw5CSIxN1JObi/U8gcbwft7ZxR2dgaR70JSE3/PpL4c=
-github.com/onsi/ginkgo/v2 v2.12.0 h1:UIVDowFPwpg6yMUpPjGkYvf06K3RAiJXUhCxEwQVHRI=
-github.com/onsi/ginkgo/v2 v2.12.0/go.mod h1:ZNEzXISYlqpb8S36iN71ifqLi3vVD1rVJGvWRCJOUpQ=
+github.com/onsi/ginkgo/v2 v2.12.1 h1:uHNEO1RP2SpuZApSkel9nEh1/Mu+hmQe7Q+Pepg5OYA=
+github.com/onsi/ginkgo/v2 v2.12.1/go.mod h1:TE309ZR8s5FsKKpuB1YAQYBzCaAfUgatB/xlT/ETL/o=
 github.com/onsi/gomega v0.0.0-20151007035656-2152b45fa28a/go.mod h1:C1qb7wdrVGGVU+Z6iS04AVkA3Q65CEZX59MT0QO5uiA=
 github.com/onsi/gomega v0.0.0-20170829124025-dcabb60a477c/go.mod h1:C1qb7wdrVGGVU+Z6iS04AVkA3Q65CEZX59MT0QO5uiA=
 github.com/onsi/gomega v1.5.0/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
