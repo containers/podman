@@ -41,6 +41,9 @@ jobs:
   - job: tests
     identifier: cockpit-revdeps
     trigger: pull_request
+    notifications:
+      failure_comment:
+        message: "Cockpit tests failed for commit {commit_sha}. @martinpitt, @jelly, @mvollmer please check."
     targets:
       - fedora-latest-stable
       - fedora-development

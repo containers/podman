@@ -1,6 +1,6 @@
 # reverse dependency test for https://github.com/cockpit-project/cockpit-podman/
-# if this fails in a non-obvious way, please contact the cockpit team in your PR for investigation:
-# @martinpitt, @jelly, @marusak
+# packit should automatically notify the cockpit maintainers on failures.
+# For questions, please contact @martinpitt, @jelly, @mvollmer
 enabled: false
 
 adjust+:
