@@ -7,7 +7,7 @@
 ### Bugfixes
 - Fixed a bug where the HyperV provider for `podman machine` did not forward the API socket to the host machine.
 - Fixed a bug where improperly formatted annotations passed to `podman kube play` could cause Podman to panic.
-- Fixed a bug where `podman system reset` could fail if non-Podman containers (e.g. containers created by Buildaj) were present.
+- Fixed a bug where `podman system reset` could fail if non-Podman containers (e.g. containers created by Buildah) were present.
 
 ### Misc
 - Containers run in `podman machine` VMs now default to a PID limit of unlimited, instead of 2048.

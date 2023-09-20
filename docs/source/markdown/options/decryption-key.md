@@ -1,5 +1,5 @@
 ####> This option file is used in:
-####>   podman create, pull, run
+####>   podman build, create, farm build, pull, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--decryption-key**=*key[:passphrase]*
