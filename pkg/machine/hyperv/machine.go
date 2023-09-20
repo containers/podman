@@ -633,7 +633,6 @@ func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingStat
 	}
 
 	c := cmd.Cmd(gvproxyBinary)
-	c.ExtraFiles = []*os.File{dnr, dnw, dnw}
 	if err := c.Start(); err != nil {
 		return "", 0, fmt.Errorf("unable to execute: %q: %w", cmd, err)
 	}
