@@ -1220,23 +1220,6 @@ func (c *Container) HostNetwork() bool {
 	return true
 }
 
-// ContainerState returns containerstate struct
-func (c *Container) ContainerState() (*ContainerState, error) {
-	if !c.batched {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-
-		if err := c.syncContainer(); err != nil {
-			return nil, err
-		}
-	}
-	returnConfig := new(ContainerState)
-	if err := JSONDeepCopy(c.state, returnConfig); err != nil {
-		return nil, fmt.Errorf("copying container %s state: %w", c.ID(), err)
-	}
-	return c.state, nil
-}
-
 // HasHealthCheck returns bool as to whether there is a health check
 // defined for the container
 func (c *Container) HasHealthCheck() bool {
@@ -1354,6 +1337,21 @@ func (d ContainerNetworkDescriptions) getInterfaceByName(networkName string) (st
 		return "", exists
 	}
 	return fmt.Sprintf("eth%d", val), exists
+}
+
+// GetNetworkStatus returns the current network status for this container.
+// This returns a map without deep copying which means this should only ever
+// be used as read only access, do not modify this status.
+func (c *Container) GetNetworkStatus() (map[string]types.StatusBlock, error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
+	}
+	return c.getNetworkStatus(), nil
 }
 
 // getNetworkStatus get the current network status from the state. If the container
