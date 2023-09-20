@@ -25,7 +25,7 @@ func GeneratePodFilterFunc(filter string, filterValues []string, r *libpod.Runti
 				return false
 			}
 			for _, id := range ctrIds {
-				if util.FilterID(id, filterValues) {
+				if filters.FilterID(id, filterValues) {
 					return true
 				}
 			}
@@ -90,7 +90,7 @@ func GeneratePodFilterFunc(filter string, filterValues []string, r *libpod.Runti
 		}, nil
 	case "id":
 		return func(p *libpod.Pod) bool {
-			return util.FilterID(p.ID(), filterValues)
+			return filters.FilterID(p.ID(), filterValues)
 		}, nil
 	case "name":
 		return func(p *libpod.Pod) bool {

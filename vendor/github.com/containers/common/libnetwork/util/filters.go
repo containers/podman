@@ -38,7 +38,7 @@ func createFilterFuncs(key string, filterValues []string) (types.FilterFunc, err
 	case "id":
 		// matches part of one id
 		return func(net types.Network) bool {
-			return util.FilterID(net.ID, filterValues)
+			return filters.FilterID(net.ID, filterValues)
 		}, nil
 
 		// TODO: add dns enabled, internal filter

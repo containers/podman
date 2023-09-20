@@ -15,7 +15,7 @@ import (
 	"github.com/containers/common/libnetwork/internal/util"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
-	cutil "github.com/containers/common/pkg/util"
+	"github.com/containers/common/pkg/version"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/sirupsen/logrus"
@@ -341,8 +341,8 @@ func (n *netavarkNetwork) DefaultInterfaceName() string {
 // package version and program version.
 func (n *netavarkNetwork) NetworkInfo() types.NetworkInfo {
 	path := n.netavarkBinary
-	packageVersion := cutil.PackageVersion(path)
-	programVersion, err := cutil.ProgramVersion(path)
+	packageVersion := version.Package(path)
+	programVersion, err := version.Program(path)
 	if err != nil {
 		logrus.Infof("Failed to get the netavark version: %v", err)
 	}
@@ -354,8 +354,8 @@ func (n *netavarkNetwork) NetworkInfo() types.NetworkInfo {
 	}
 
 	dnsPath := n.aardvarkBinary
-	dnsPackage := cutil.PackageVersion(dnsPath)
-	dnsProgram, err := cutil.ProgramVersion(dnsPath)
+	dnsPackage := version.Package(dnsPath)
+	dnsProgram, err := version.Program(dnsPath)
 	if err != nil {
 		logrus.Infof("Failed to get the aardvark version: %v", err)
 	}

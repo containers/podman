@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/detach"
 	"github.com/containers/common/pkg/resize"
-	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/lookup"
@@ -606,7 +606,7 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 	if attachStdin {
 		go func() {
 			logrus.Debugf("Beginning STDIN copy")
-			_, err := cutil.CopyDetachable(conn, httpBuf, detachKeys)
+			_, err := detach.Copy(conn, httpBuf, detachKeys)
 			logrus.Debugf("STDIN copy completed")
 			stdinChan <- err
 		}()

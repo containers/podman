@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
+	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/timetype"
 )
 
@@ -131,6 +133,25 @@ func matchPattern(pattern string, value string) bool {
 		newName := strings.ReplaceAll(value, string(filepath.Separator), "|")
 		match, _ := filepath.Match(filter, newName)
 		return match
+	}
+	return false
+}
+
+// FilterID is a function used to compare an id against a set of ids, if the
+// input is hex we check if the prefix matches. Otherwise we assume it is a
+// regex and try to match that.
+// see https://github.com/containers/podman/issues/18471 for why we do this
+func FilterID(id string, filters []string) bool {
+	for _, want := range filters {
+		isRegex := types.NotHexRegex.MatchString(want)
+		if isRegex {
+			match, err := regexp.MatchString(want, id)
+			if err == nil && match {
+				return true
+			}
+		} else if strings.HasPrefix(id, strings.ToLower(want)) {
+			return true
+		}
 	}
 	return false
 }

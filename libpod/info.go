@@ -14,7 +14,7 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/pkg/util"
-	cutil "github.com/containers/common/pkg/util"
+	"github.com/containers/common/pkg/version"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/linkmode"
@@ -243,14 +243,14 @@ func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 	for _, o := range r.store.GraphOptions() {
 		split := strings.SplitN(o, "=", 2)
 		if strings.HasSuffix(split[0], "mount_program") {
-			version, err := cutil.ProgramVersion(split[1])
+			ver, err := version.Program(split[1])
 			if err != nil {
 				logrus.Warnf("Failed to retrieve program version for %s: %v", split[1], err)
 			}
 			program := map[string]interface{}{}
 			program["Executable"] = split[1]
-			program["Version"] = version
-			program["Package"] = cutil.PackageVersion(split[1])
+			program["Version"] = ver
+			program["Package"] = version.Package(split[1])
 			graphOptions[split[0]] = program
 		} else {
 			graphOptions[split[0]] = split[1]

@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/common/pkg/util"
+	passwd "github.com/containers/common/pkg/password"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/pkg/docker/config"
@@ -269,7 +269,7 @@ func getUserAndPass(opts *LoginOptions, password, userFromAuthFile string) (user
 	}
 	if password == "" {
 		fmt.Fprint(opts.Stdout, "Password: ")
-		pass, err := util.ReadPassword(int(os.Stdin.Fd()))
+		pass, err := passwd.Read(int(os.Stdin.Fd()))
 		if err != nil {
 			return "", "", fmt.Errorf("reading password: %w", err)
 		}
