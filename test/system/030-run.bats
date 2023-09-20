@@ -182,7 +182,8 @@ echo $rand        |   0 | $rand
 
     # Now try running with --rmi : it should succeed, but not remove the image
     run_podman 0+w run --rmi --rm $NONLOCAL_IMAGE /bin/true
-    is "$output" ".*image is in use by a container" "--rmi should warn that the image was not removed"
+    require_warning "image is in use by a container" \
+                    "--rmi should warn that the image was not removed"
     run_podman image exists $NONLOCAL_IMAGE
 
     # Remove the stray container, and run one more time with --rmi.
@@ -947,7 +948,7 @@ EOF
         skip "the current oom-score-adj is already -1000"
     fi
     run_podman 0+w run --oom-score-adj=-1000 --rm $IMAGE true
-    is "$output" ".*Requested oom_score_adj=.* is lower than the current one, changing to .*"
+    require_warning "Requested oom_score_adj=.* is lower than the current one, changing to "
 }
 
 # CVE-2022-1227 : podman top joins container mount NS and uses nsenter from image
@@ -1061,7 +1062,8 @@ $IMAGE--c_ok" \
     # FIXME: do we really really mean to say FFFFFFFFFFFFFFFF here???
     run_podman 0+w stop -t -1 $cid
     if ! is_remote; then
-        assert "$output" =~ "StopSignal \(37\) failed to stop container .* in 18446744073709551615 seconds, resorting to SIGKILL" "stop -t -1 (negative one) issues warning"
+        require_warning "StopSignal \(37\) failed to stop container .* in 18446744073709551615 seconds, resorting to SIGKILL" \
+                        "stop -t -1 (negative 1) issues warning"
     fi
     run_podman rm -t -1 -f $cid
 }

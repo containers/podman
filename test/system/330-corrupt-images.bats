@@ -76,10 +76,14 @@ function _corrupt_image_test() {
         run_podman 125 images
         is "$output" "Error: locating item named \".*\" for image with ID \"$id\" (consider removing the image to resolve the issue): file does not exist.*"
 
-        # Run the requested command. Confirm it succeeds, with suitable warnings
+        # Run the requested command. Confirm it succeeds, with suitable warnings.
         run_podman 0+w $*
-        is "$output" ".*Failed to determine parent of image.*ignoring the error" \
-           "$* with missing $what_to_rm"
+        # There are three different variations on the warnings, allow each...
+        allow_warnings "Failed to determine parent of image: .*, ignoring the error" \
+                       "Failed to determine if an image is a parent: .*, ignoring the error" \
+                       "Failed to determine if an image is a manifest list: .*, ignoring the error"
+        # ...but make sure we get at least one
+        require_warning "Failed to determine (parent|if an image is) .*, ignoring the error"
 
         run_podman images -a --noheading
         is "$output" "" "podman images -a, after $*, is empty"

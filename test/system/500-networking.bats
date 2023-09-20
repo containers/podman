@@ -631,7 +631,8 @@ load helpers.network
 
         run_podman 0+w restart $cid
         if ! is_remote; then
-            assert "$output" =~ "StopSignal SIGTERM failed to stop container .* in 10 seconds, resorting to SIGKILL" "podman restart issues warning"
+            require_warning "StopSignal SIGTERM failed to stop container .* in 10 seconds, resorting to SIGKILL" \
+                            "podman restart issues warning"
         fi
 
         # Verify http contents again: curl from localhost

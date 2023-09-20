@@ -80,7 +80,8 @@ function service_cleanup() {
     run_podman create --restart=always $IMAGE
     cid="$output"
     run_podman 0+w generate systemd $cid
-    is "$output" ".*Container $cid has restart policy .*always.* which can lead to issues on shutdown.*" "generate systemd emits warning"
+    require_warning "Container $cid has restart policy .*always.* which can lead to issues on shutdown" \
+                    "generate systemd emits warning"
     run_podman rm -f $cid
 
     cname=$(random_string)
