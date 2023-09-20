@@ -67,7 +67,9 @@ metadata:
 spec:
   containers:
     - name: myctr
-      image: quay.io/libpod/alpine_nginx:latest
+      image: ` + CITEST_IMAGE + `
+      command:
+        - top
       volumeMounts:
         - name: foo
           mountPath: /etc/foo
@@ -87,7 +89,9 @@ metadata:
 spec:
   containers:
     - name: myctr
-      image: quay.io/libpod/alpine_nginx:latest
+      image: ` + CITEST_IMAGE + `
+      command:
+        - top
       volumeMounts:
         - name: foo
           mountPath: /etc/foo
@@ -121,7 +125,9 @@ metadata:
 spec:
   containers:
     - name: myctr
-      image: quay.io/libpod/alpine_nginx:latest
+      image: ` + CITEST_IMAGE + `
+      command:
+        - top
       volumeMounts:
         - name: foo
           mountPath: /etc/foo
@@ -141,7 +147,9 @@ metadata:
 spec:
   containers:
     - name: myctr
-      image: quay.io/libpod/alpine_nginx:latest
+      image: ` + CITEST_IMAGE + `
+      command:
+        - top
       volumeMounts:
         - name: foo
           mountPath: /etc/foo
@@ -161,7 +169,9 @@ metadata:
 spec:
   containers:
     - name: myctr
-      image: quay.io/libpod/alpine_nginx:latest
+      image: ` + CITEST_IMAGE + `
+      command:
+        - top
       volumeMounts:
         - name: foo
           mountPath: /etc/foo
@@ -180,7 +190,9 @@ metadata:
 spec:
   containers:
     - name: myctr
-      image: quay.io/libpod/alpine_nginx:latest
+      image: ` + CITEST_IMAGE + `
+      command:
+        - top
       volumeMounts:
         - name: foo
           mountPath: /etc/foo
@@ -197,7 +209,7 @@ metadata:
   name: libpod-test
 spec:
   containers:
-  - image: quay.io/libpod/alpine_nginx:latest
+  - image: ` + CITEST_IMAGE + `
     command:
       - sleep
       - "3600"`
@@ -236,7 +248,7 @@ metadata:
 spec:
   containers:
   - name: podnameEqualsContainerNameYaml
-    image: quay.io/libpod/alpine:latest
+    image: ` + CITEST_IMAGE + `
 `
 
 var podWithoutAName = `
@@ -245,7 +257,7 @@ kind: Pod
 spec:
   containers:
   - name: podDoesntHaveAName
-    image: quay.io/libpod/alpine:latest
+    image: ` + CITEST_IMAGE + `
     ports:
     - containerPort: 80
 `
@@ -258,7 +270,7 @@ metadata:
 spec:
     containers:
     - name: testctr
-      image: quay.io/libpod/alpine_nginx:latest
+      image: ` + CITEST_IMAGE + `
       command:
         - sleep
         - inf
@@ -281,8 +293,8 @@ metadata:
   name: check-infra-image
 spec:
   containers:
-    - name: alpine
-      image: quay.io/libpod/alpine:latest
+    - name: testimage
+      image: ` + CITEST_IMAGE + `
       command:
         - sleep
         - 24h
@@ -296,8 +308,8 @@ metadata:
   name: testpod1
 spec:
   containers:
-    - name: alpine
-      image: quay.io/libpod/alpine:latest
+    - name: testimage
+      image: ` + CITEST_IMAGE + `
       volumeMounts:
         - name: mycm
           mountPath: /mycm
@@ -324,8 +336,8 @@ spec:
     env:
     - name: HOSTNAME
       value: label-pod
-    image: quay.io/libpod/alpine:latest
-    name: alpine
+    image: ` + CITEST_IMAGE + `
+    name: testimage
     resources: {}
     securityContext:
       allowPrivilegeEscalation: true
@@ -345,24 +357,24 @@ kind: Deployment
 metadata:
   name: liveness-probe
   labels:
-    app: alpine
+    app: testimage
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: alpine
+      app: testimage
   template:
     metadata:
       labels:
-        app: alpine
+        app: testimage
     spec:
       containers:
       - command:
         - top
         - -d
         - "1.5"
-        name: alpine
-        image: quay.io/libpod/alpine:latest
+        name: testimage
+        image: ` + CITEST_IMAGE + `
         livenessProbe:
           exec:
             command:
@@ -377,16 +389,16 @@ kind: Deployment
 metadata:
   name: liveness-unhealthy-probe
   labels:
-    app: alpine
+    app: testimage
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: alpine
+      app: testimage
   template:
     metadata:
       labels:
-        app: alpine
+        app: testimage
     spec:
       restartPolicy: Never
       containers:
@@ -394,8 +406,8 @@ spec:
         - top
         - -d
         - "1.5"
-        name: alpine
-        image: quay.io/libpod/alpine:latest
+        name: testimage
+        image: ` + CITEST_IMAGE + `
         livenessProbe:
           exec:
             command:
@@ -411,16 +423,16 @@ kind: Deployment
 metadata:
   name: startup-healthy-probe
   labels:
-    app: alpine
+    app: testimage
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: alpine
+      app: testimage
   template:
     metadata:
       labels:
-        app: alpine
+        app: testimage
     spec:
       restartPolicy: Never
       containers:
@@ -428,8 +440,8 @@ spec:
         - top
         - -d
         - "1.5"
-        name: alpine
-        image: quay.io/libpod/alpine:latest
+        name: testimage
+        image: ` + CITEST_IMAGE + `
         startupProbe:
           exec:
             command:
@@ -464,7 +476,7 @@ spec:
     env:
     - name: HOSTNAME
       value: label-pod
-    image: quay.io/libpod/alpine:latest
+    image: ` + CITEST_IMAGE + `
     name: test
     securityContext:
       allowPrivilegeEscalation: true
@@ -1039,7 +1051,8 @@ metadata:
 spec:
   containers:
   - name: nginx
-    image: quay.io/libpod/alpine_nginx:latest
+    image: ` + NGINX_IMAGE + `
+    imagePullPolicy: missing
 `
 
 var publishPortsPodWithContainerPort = `
@@ -1050,7 +1063,8 @@ metadata:
 spec:
   containers:
   - name: nginx
-    image: quay.io/libpod/alpine_nginx:latest
+    image: ` + NGINX_IMAGE + `
+    imagePullPolicy: missing
     ports:
     - containerPort: 80
 `
@@ -1063,7 +1077,8 @@ metadata:
 spec:
   containers:
   - name: nginx
-    image: quay.io/libpod/alpine_nginx:latest
+    image: ` + NGINX_IMAGE + `
+    imagePullPolicy: missing
     ports:
     - containerPort: 80
       hostPort: 19001
@@ -1077,7 +1092,7 @@ metadata:
 spec:
   containers:
   - name: udp-echo
-    image: quay.io/libpod/busybox:latest
+    image: ` + CITEST_IMAGE + `
     command:
     - "/bin/sh"
     - "-c"
@@ -1087,7 +1102,7 @@ spec:
       hostPort: 19009
       protocol: udp
   - name: tcp-echo
-    image: quay.io/libpod/busybox:latest
+    image: ` + CITEST_IMAGE + `
     command:
     - "/bin/sh"
     - "-c"
@@ -1102,13 +1117,13 @@ metadata:
 spec:
   containers:
   - name: udp-echo
-    image: quay.io/libpod/busybox:latest
+    image: ` + CITEST_IMAGE + `
     command:
     - "/bin/sh"
     - "-c"
     - "nc -ulk -p 19008 -e /bin/cat"
   - name: tcp-echo
-    image: quay.io/libpod/busybox:latest
+    image: ` + CITEST_IMAGE + `
     command:
     - "/bin/sh"
     - "-c"
@@ -1127,8 +1142,8 @@ metadata:
 spec:
   hostPID: true
   containers:
-  - name: alpine
-    image: quay.io/libpod/alpine:latest
+  - name: testimage
+    image: ` + CITEST_IMAGE + `
     command: ['sh', '-c', 'echo $$']
 `
 
@@ -1140,8 +1155,8 @@ metadata:
 spec:
   hostIPC: true
   containers:
-  - name: alpine
-    image: quay.io/libpod/alpine:latest
+  - name: testimage
+    image: ` + CITEST_IMAGE + `
     command: ['ls', '-l', '/proc/self/ns/ipc']
   restartPolicy: Never
 `
@@ -1159,8 +1174,8 @@ spec:
     - name: net.core.somaxconn
       value: "65535"
   containers:
-  - name: alpine
-    image: quay.io/libpod/alpine:latest
+  - name: testimage
+    image: ` + CITEST_IMAGE + `
     command:
     - "/bin/sh"
     - "-c"
@@ -1182,8 +1197,8 @@ spec:
       value: "65535"
   hostNetwork: true
   containers:
-  - name: alpine
-    image: quay.io/libpod/alpine:latest
+  - name: testimage
+    image: ` + CITEST_IMAGE + `
     command:
     - "/bin/sh"
     - "-c"
@@ -1207,7 +1222,7 @@ items:
   spec:
     containers:
     - name: container
-      image: quay.io/libpod/alpine:latest
+      image: ` + CITEST_IMAGE + `
       command: [ "/bin/sh", "-c", "env" ]
       env:
       - name: FOO
@@ -1222,7 +1237,7 @@ var (
 	defaultCtrName        = "testCtr"
 	defaultCtrCmd         = []string{"top"}
 	defaultCtrArg         = []string{"-d", "1.5"}
-	defaultCtrImage       = ALPINE
+	defaultCtrImage       = CITEST_IMAGE
 	defaultPodName        = "testPod"
 	defaultVolName        = "testVol"
 	defaultDaemonSetName  = "testDaemonSet"
@@ -1667,7 +1682,7 @@ func getCtr(options ...ctrOption) *Ctr {
 		Caps:            false,
 		CapAdd:          nil,
 		CapDrop:         nil,
-		PullPolicy:      "",
+		PullPolicy:      "missing",
 		HostIP:          "",
 		Port:            "",
 		VolumeMount:     false,
@@ -2271,7 +2286,7 @@ var _ = Describe("Podman kube play", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
-		inspect := podmanTest.Podman([]string{"inspect", "liveness-probe-pod-alpine", "--format", "'{{ .Config.Healthcheck }}'"})
+		inspect := podmanTest.Podman([]string{"inspect", "liveness-probe-pod-testimage", "--format", "'{{ .Config.Healthcheck }}'"})
 		inspect.WaitWithDefaultTimeout()
 		healthcheckcmd := inspect.OutputToString()
 		// check if CMD-SHELL based equivalent health check is added to container
@@ -2287,14 +2302,14 @@ var _ = Describe("Podman kube play", func() {
 		Expect(kube).Should(ExitCleanly())
 
 		time.Sleep(2 * time.Second)
-		hc := podmanTest.Podman([]string{"healthcheck", "run", "liveness-unhealthy-probe-pod-alpine"})
+		hc := podmanTest.Podman([]string{"healthcheck", "run", "liveness-unhealthy-probe-pod-testimage"})
 		hc.WaitWithDefaultTimeout()
 		hcoutput := hc.OutputToString()
 		Expect(hcoutput).To(ContainSubstring(define.HealthCheckUnhealthy))
 	})
 
 	It("support container startup probe", func() {
-		ctrName := "startup-healthy-probe-pod-alpine"
+		ctrName := "startup-healthy-probe-pod-testimage"
 		err := writeYaml(startupProbePodYaml, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -2408,7 +2423,7 @@ var _ = Describe("Podman kube play", func() {
 	// With annotation set to always
 	It("test with init containers and annotation set", func() {
 		// With the init container type annotation set to always
-		pod := getPod(withAnnotation("io.podman.annotations.init.container.type", "always"), withPodInitCtr(getCtr(withImage(ALPINE), withCmd([]string{"printenv", "container"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(ALPINE), withCmd([]string{"top"}))))
+		pod := getPod(withAnnotation("io.podman.annotations.init.container.type", "always"), withPodInitCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"printenv", "container"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"top"}))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -2449,7 +2464,7 @@ var _ = Describe("Podman kube play", func() {
 	// Using default init container type (once)
 	It("test with init container type set to default value", func() {
 		// Using the default init container type (once)
-		pod := getPod(withPodInitCtr(getCtr(withImage(ALPINE), withCmd([]string{"echo", "hello"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(ALPINE), withCmd([]string{"top"}))))
+		pod := getPod(withPodInitCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"echo", "hello"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"top"}))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -2862,7 +2877,7 @@ var _ = Describe("Podman kube play", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).To(ExitWithError())
 
-		p = getPod(withPodInitCtr(getCtr(withImage(ALPINE), withCmd([]string{"echo", "hello"}), withInitCtr(), withName("initctr"))), withCtr(getCtr(withImage(ALPINE), withName("initctr"), withCmd([]string{"top"}))))
+		p = getPod(withPodInitCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"echo", "hello"}), withInitCtr(), withName("initctr"))), withCtr(getCtr(withImage(CITEST_IMAGE), withName("initctr"), withCmd([]string{"top"}))))
 
 		err = generateKubeYaml("pod", p, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
@@ -3043,7 +3058,7 @@ var _ = Describe("Podman kube play", func() {
 
 		logs := podmanTest.Podman([]string{"logs", podName})
 		logs.WaitWithDefaultTimeout()
-		Expect(logs).Should(ExitCleanly())
+		Expect(logs).Should(Exit(0))
 		Expect(logs.ErrorToString()).To(ContainSubstring("Operation not permitted"))
 	})
 
@@ -3059,7 +3074,7 @@ var _ = Describe("Podman kube play", func() {
 	})
 
 	It("with pull policy of missing", func() {
-		ctr := getCtr(withPullPolicy("Missing"), withImage(BB))
+		ctr := getCtr(withPullPolicy("Missing"), withImage(CITEST_IMAGE))
 		err := generateKubeYaml("pod", getPod(withCtr(ctr)), kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -3091,7 +3106,8 @@ var _ = Describe("Podman kube play", func() {
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
+		// Cannot ExitCleanly() because pull output goes to stderr
+		Expect(kube).Should(Exit(0))
 
 		inspect = podmanTest.Podman([]string{"inspect", BB})
 		inspect.WaitWithDefaultTimeout()
@@ -3103,6 +3119,7 @@ var _ = Describe("Podman kube play", func() {
 		oldBB := "quay.io/libpod/busybox:1.30.1"
 		pull := podmanTest.Podman([]string{"pull", oldBB})
 		pull.WaitWithDefaultTimeout()
+		Expect(pull).Should(Exit(0))
 
 		tag := podmanTest.Podman([]string{"tag", oldBB, BB})
 		tag.WaitWithDefaultTimeout()
@@ -3116,13 +3133,14 @@ var _ = Describe("Podman kube play", func() {
 		inspect.WaitWithDefaultTimeout()
 		oldBBinspect := inspect.InspectImageJSON()
 
-		ctr := getCtr(withImage(BB))
+		ctr := getCtr(withImage(BB), withPullPolicy(""))
 		err := generateKubeYaml("pod", getPod(withCtr(ctr)), kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
+		// Cannot ExitCleanly() because pull output goes to stderr
+		Expect(kube).Should(Exit(0))
 
 		inspect = podmanTest.Podman([]string{"inspect", BB})
 		inspect.WaitWithDefaultTimeout()
@@ -3141,12 +3159,12 @@ spec:
   - image: demo
     name: demo_kube
 `
-		pull := podmanTest.Podman([]string{"create", "--workdir", "/etc", "--name", "newBB", "--label", "key1=value1", "alpine"})
+		pull := podmanTest.Podman([]string{"create", "--workdir", "/etc", "--name", "newBB", "--label", "key1=value1", CITEST_IMAGE})
 
 		pull.WaitWithDefaultTimeout()
 		Expect(pull).Should(ExitCleanly())
 
-		c := podmanTest.Podman([]string{"commit", "-c", "STOPSIGNAL=51", "newBB", "demo"})
+		c := podmanTest.Podman([]string{"commit", "-q", "-c", "STOPSIGNAL=51", "newBB", "demo"})
 		c.WaitWithDefaultTimeout()
 		Expect(c).Should(ExitCleanly())
 
@@ -3213,7 +3231,12 @@ spec:
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
+		Expect(kube).Should(Exit(0))
+		if IsRemote() {
+			Expect(kube.ErrorToString()).To(BeEmpty())
+		} else {
+			Expect(kube.ErrorToString()).To(ContainSubstring("Limiting replica count to 1, more than one replica is not supported by Podman"))
+		}
 
 		podName := getPodNameInDeployment(deployment)
 
@@ -3249,7 +3272,12 @@ spec:
 
 		kube := podmanTest.Podman(append(playArgs, kubeYaml))
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
+		Expect(kube).Should(Exit(0))
+		if IsRemote() {
+			Expect(kube.ErrorToString()).To(BeEmpty())
+		} else {
+			Expect(kube.ErrorToString()).To(ContainSubstring("Limiting replica count to 1, more than one replica is not supported by Podman"))
+		}
 
 		podName := getPodNameInDeployment(deployment)
 
@@ -3266,7 +3294,7 @@ spec:
 	})
 
 	It("with multiple networks", func() {
-		ctr := getCtr(withImage(ALPINE))
+		ctr := getCtr(withImage(CITEST_IMAGE))
 		pod := getPod(withCtr(ctr))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
@@ -3303,7 +3331,7 @@ spec:
 	It("test with network portbindings", func() {
 		ip := "127.0.0.100"
 		port := "8087"
-		ctr := getCtr(withHostIP(ip, port), withImage(BB))
+		ctr := getCtr(withHostIP(ip, port), withImage(CITEST_IMAGE))
 
 		pod := getPod(withCtr(ctr))
 		err := generateKubeYaml("pod", pod, kubeYaml)
@@ -3458,7 +3486,7 @@ spec:
 		Expect(err).ToNot(HaveOccurred())
 		f.Close()
 
-		ctr := getCtr(withVolumeMount(hostPathLocation, "", true), withImage(BB))
+		ctr := getCtr(withVolumeMount(hostPathLocation, "", true), withImage(CITEST_IMAGE))
 		pod := getPod(withVolume(getHostPathVolume("File", hostPathLocation)), withCtr(ctr))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
@@ -3498,7 +3526,7 @@ spec:
 		// Create container image with named volume
 		containerfile := fmt.Sprintf(`
 FROM  %s
-VOLUME %s`, ALPINE, hostPathDir+"/")
+VOLUME %s`, CITEST_IMAGE, hostPathDir+"/")
 
 		image := "podman-kube-test:podman"
 		podmanTest.BuildImage(containerfile, image, "false")
@@ -3532,7 +3560,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 	It("test with PersistentVolumeClaim volume", func() {
 		volumeName := "namedVolume"
 
-		ctr := getCtr(withVolumeMount("/test", "", false), withImage(BB))
+		ctr := getCtr(withVolumeMount("/test", "", false), withImage(CITEST_IMAGE))
 		pod := getPod(withVolume(getPersistentVolumeClaimVolume(volumeName)), withCtr(ctr))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
@@ -3555,7 +3583,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 		cmYaml, err := getKubeYaml("configmap", cm)
 		Expect(err).ToNot(HaveOccurred())
 
-		ctr := getCtr(withVolumeMount("/test", "", false), withImage(BB))
+		ctr := getCtr(withVolumeMount("/test", "", false), withImage(CITEST_IMAGE))
 		pod := getPod(withVolume(getConfigMapVolume(volumeName, []map[string]string{}, false)), withCtr(ctr))
 		podYaml, err := getKubeYaml("pod", pod)
 		Expect(err).ToNot(HaveOccurred())
@@ -3583,7 +3611,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 			"path": "BAR",
 		}}
 
-		ctr := getCtr(withVolumeMount("/test", "", false), withImage(BB))
+		ctr := getCtr(withVolumeMount("/test", "", false), withImage(CITEST_IMAGE))
 		pod := getPod(withVolume(getConfigMapVolume(volumeName, volumeContents, false)), withCtr(ctr))
 		podYaml, err := getKubeYaml("pod", pod)
 		Expect(err).ToNot(HaveOccurred())
@@ -3608,7 +3636,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 	It("with a missing optional ConfigMap volume", func() {
 		volumeName := "cmVol"
 
-		ctr := getCtr(withVolumeMount("/test", "", false), withImage(BB))
+		ctr := getCtr(withVolumeMount("/test", "", false), withImage(CITEST_IMAGE))
 		pod := getPod(withVolume(getConfigMapVolume(volumeName, []map[string]string{}, true)), withCtr(ctr))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
@@ -3622,8 +3650,8 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 		podName := "test-pod"
 		ctrName1 := "vol-test-ctr"
 		ctrName2 := "vol-test-ctr-2"
-		ctr1 := getCtr(withVolumeMount("/test-emptydir", "", false), withImage(BB), withName(ctrName1))
-		ctr2 := getCtr(withVolumeMount("/test-emptydir-2", "", false), withImage(BB), withName(ctrName2))
+		ctr1 := getCtr(withVolumeMount("/test-emptydir", "", false), withImage(CITEST_IMAGE), withName(ctrName1))
+		ctr2 := getCtr(withVolumeMount("/test-emptydir-2", "", false), withImage(CITEST_IMAGE), withName(ctrName2))
 		pod := getPod(withPodName(podName), withVolume(getEmptyDirVolume()), withCtr(ctr1), withCtr(ctr2))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
@@ -3668,7 +3696,12 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
+		Expect(kube).Should(Exit(0))
+		if IsRemote() {
+			Expect(kube.ErrorToString()).To(BeEmpty())
+		} else {
+			Expect(kube.ErrorToString()).To(ContainSubstring("Limiting replica count to 1, more than one replica is not supported by Podman"))
+		}
 
 		correctLabels := expectedLabelKey + ":" + expectedLabelValue
 		pod := getPodNameInDeployment(deployment)
@@ -3706,7 +3739,12 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
+		Expect(kube).Should(Exit(0))
+		if IsRemote() {
+			Expect(kube.ErrorToString()).To(BeEmpty())
+		} else {
+			Expect(kube.ErrorToString()).To(ContainSubstring("Limiting replica count to 1, more than one replica is not supported by Podman"))
+		}
 
 		pod := getPodNameInDeployment(deployment)
 		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&pod), "--format", `
@@ -4445,7 +4483,7 @@ invalid kube kind
 ENV JAVA_TOOL_OPTIONS=%q
 ENV OPENJ9_JAVA_OPTIONS=%q
 `,
-				ALPINE, javaToolOptions, openj9JavaOptions)
+				CITEST_IMAGE, javaToolOptions, openj9JavaOptions)
 
 			image := "podman-kube-test:env"
 			podmanTest.BuildImage(containerfile, image, "false")
@@ -4781,7 +4819,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			cmd := exec.Command(podmanTest.PodmanBinary, "unshare", "cat", "/proc/self/uid_map")
 			session, err := Start(cmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
-			Eventually(session, DefaultWaitTimeout).Should(ExitCleanly())
+			Eventually(session, DefaultWaitTimeout).Should(Exit(0))
 			initialUsernsConfig = session.Out.Contents()
 		}
 
@@ -4799,8 +4837,8 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		// the conversion to string is needed for better error messages
 		Expect(string(usernsInCtr.Out.Contents())).To(Equal(string(initialUsernsConfig)))
 
-		// PodmanNoCache is a workaround for https://github.com/containers/storage/issues/1232
-		kube = podmanTest.PodmanNoCache([]string{"kube", "play", "--replace", "--userns=auto", kubeYaml})
+		// -q necessary for ExitCleanly() because --replace pulls image
+		kube = podmanTest.Podman([]string{"kube", "play", "-q", "--replace", "--userns=auto", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -4809,7 +4847,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		Expect(usernsInCtr).Should(ExitCleanly())
 		Expect(string(usernsInCtr.Out.Contents())).To(Not(Equal(string(initialUsernsConfig))))
 
-		kube = podmanTest.PodmanNoCache([]string{"kube", "play", "--replace", "--userns=keep-id", kubeYaml})
+		kube = podmanTest.PodmanNoCache([]string{"kube", "play", "-q", "--replace", "--userns=keep-id", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -5062,7 +5100,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		secretYaml, err := getKubeYaml("secret", secret)
 		Expect(err).ToNot(HaveOccurred())
 
-		ctr := getCtr(withVolumeMount("/test", "", false), withImage(BB))
+		ctr := getCtr(withVolumeMount("/test", "", false), withImage(CITEST_IMAGE))
 		pod := getPod(withVolume(getSecretVolume(volumeName, []map[string]string{}, false)), withCtr(ctr))
 		podYaml, err := getKubeYaml("pod", pod)
 		Expect(err).ToNot(HaveOccurred())
@@ -5090,7 +5128,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			"path": "BAR",
 		}}
 
-		ctr := getCtr(withVolumeMount("/test", "", false), withImage(BB))
+		ctr := getCtr(withVolumeMount("/test", "", false), withImage(CITEST_IMAGE))
 		pod := getPod(withVolume(getSecretVolume(volumeName, volumeContents, false)), withCtr(ctr))
 		podYaml, err := getKubeYaml("pod", pod)
 		Expect(err).ToNot(HaveOccurred())
@@ -5201,7 +5239,7 @@ spec:
 		volumeCreate.WaitWithDefaultTimeout()
 		Expect(volumeCreate).Should(ExitCleanly())
 
-		session := podmanTest.Podman([]string{"run", "--volume", "testvol1:/data", ALPINE, "sh", "-c", "mkdir -p /data/testing/onlythis && touch /data/testing/onlythis/123.txt && echo hi >> /data/testing/onlythis/123.txt"})
+		session := podmanTest.Podman([]string{"run", "--volume", "testvol1:/data", CITEST_IMAGE, "sh", "-c", "mkdir -p /data/testing/onlythis && touch /data/testing/onlythis/123.txt && echo hi >> /data/testing/onlythis/123.txt"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -5260,7 +5298,7 @@ spec:
 		err = file.Close()
 		Expect(err).ToNot(HaveOccurred())
 
-		pod := getPod(withPodName("testpod"), withCtr(getCtr(withImage(ALPINE), withName("testctr"), withCmd([]string{"top"}), withVolumeMount("/var", "testing/onlythis", false))), withVolume(getHostPathVolume("DirectoryOrCreate", hostPathLocation)))
+		pod := getPod(withPodName("testpod"), withCtr(getCtr(withImage(CITEST_IMAGE), withName("testctr"), withCmd([]string{"top"}), withVolumeMount("/var", "testing/onlythis", false))), withVolume(getHostPathVolume("DirectoryOrCreate", hostPathLocation)))
 
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(Not(HaveOccurred()))
@@ -5279,7 +5317,7 @@ spec:
 		volumeCreate.WaitWithDefaultTimeout()
 		Expect(volumeCreate).Should(ExitCleanly())
 
-		session := podmanTest.Podman([]string{"run", "--volume", "testvol1:/data", ALPINE, "sh", "-c", "mkdir -p /data/testing && ln -s /etc /data/testing/onlythis"})
+		session := podmanTest.Podman([]string{"run", "--volume", "testvol1:/data", CITEST_IMAGE, "sh", "-c", "mkdir -p /data/testing && ln -s /etc /data/testing/onlythis"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -5314,7 +5352,7 @@ spec:
 		Expect(os.MkdirAll(filepath.Join(hostPathLocation, "testing"), 0755)).To(Succeed())
 		Expect(os.Symlink("/", filepath.Join(hostPathLocation, "testing", "symlink"))).To(Succeed())
 
-		pod := getPod(withPodName("testpod"), withCtr(getCtr(withImage(ALPINE), withName("testctr"), withCmd([]string{"top"}), withVolumeMount("/foo", "testing/symlink", false))), withVolume(getHostPathVolume("DirectoryOrCreate", hostPathLocation)))
+		pod := getPod(withPodName("testpod"), withCtr(getCtr(withImage(CITEST_IMAGE), withName("testctr"), withCmd([]string{"top"}), withVolumeMount("/foo", "testing/symlink", false))), withVolume(getHostPathVolume("DirectoryOrCreate", hostPathLocation)))
 
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(Not(HaveOccurred()))
@@ -5335,7 +5373,7 @@ spec:
 			"path": "BAR",
 		}}
 
-		ctr := getCtr(withPullPolicy("always"), withName("testctr"), withCmd([]string{"top"}), withVolumeMount("/etc/BAR", "BAR", false), withImage(ALPINE))
+		ctr := getCtr(withPullPolicy("always"), withName("testctr"), withCmd([]string{"top"}), withVolumeMount("/etc/BAR", "BAR", false), withImage(CITEST_IMAGE))
 		pod := getPod(withPodName("testpod"), withVolume(getConfigMapVolume(volumeName, volumeContents, false)), withCtr(ctr))
 
 		podYaml, err := getKubeYaml("pod", pod)
@@ -5471,7 +5509,7 @@ spec:
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
+		Expect(kube).Should(Exit(0))
 
 		// warnings are only propagated to local clients
 		if !IsRemote() {
@@ -5490,12 +5528,12 @@ spec:
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
-		logs := podmanTest.Podman([]string{"pod", "logs", "-c", "test-hostpid-alpine", "test-hostpid"})
+		logs := podmanTest.Podman([]string{"pod", "logs", "-c", "test-hostpid-testimage", "test-hostpid"})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs).Should(ExitCleanly())
 		Expect(logs.OutputToString()).To(Not(Equal("1")), "PID should never be 1 because of host pidns")
 
-		inspect := podmanTest.Podman([]string{"inspect", "test-hostpid-alpine", "--format", "{{ .HostConfig.PidMode }}"})
+		inspect := podmanTest.Podman([]string{"inspect", "test-hostpid-testimage", "--format", "{{ .HostConfig.PidMode }}"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(ExitCleanly())
 		Expect(inspect.OutputToString()).To(Equal("host"))
@@ -5509,11 +5547,11 @@ spec:
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
-		wait := podmanTest.Podman([]string{"wait", "test-hostipc-alpine"})
+		wait := podmanTest.Podman([]string{"wait", "test-hostipc-testimage"})
 		wait.WaitWithDefaultTimeout()
 		Expect(wait).Should(ExitCleanly())
 
-		inspect := podmanTest.Podman([]string{"inspect", "test-hostipc-alpine", "--format", "{{ .HostConfig.IpcMode }}"})
+		inspect := podmanTest.Podman([]string{"inspect", "test-hostipc-testimage", "--format", "{{ .HostConfig.IpcMode }}"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(ExitCleanly())
 		Expect(inspect.OutputToString()).To(Equal("host"))
@@ -5524,7 +5562,7 @@ spec:
 		fields := strings.Split(string(res), " ")
 		hostIpcNS := strings.TrimSuffix(fields[len(fields)-1], "\n")
 
-		logs := podmanTest.Podman([]string{"pod", "logs", "-c", "test-hostipc-alpine", "test-hostipc"})
+		logs := podmanTest.Podman([]string{"pod", "logs", "-c", "test-hostipc-testimage", "test-hostipc"})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs).Should(ExitCleanly())
 		fields = strings.Split(logs.OutputToString(), " ")
@@ -5536,7 +5574,7 @@ spec:
 	It("with ctrName should be in network alias", func() {
 		ctrName := "test-ctr"
 		ctrNameInKubePod := ctrName + "-pod-" + ctrName
-		session1 := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, ALPINE, "top"})
+		session1 := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, CITEST_IMAGE, "top"})
 		session1.WaitWithDefaultTimeout()
 		Expect(session1).Should(ExitCleanly())
 
@@ -5568,11 +5606,11 @@ spec:
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
-		wait := podmanTest.Podman([]string{"wait", "test-sysctl-alpine"})
+		wait := podmanTest.Podman([]string{"wait", "test-sysctl-testimage"})
 		wait.WaitWithDefaultTimeout()
 		Expect(wait).Should(ExitCleanly())
 
-		logs := podmanTest.Podman([]string{"pod", "logs", "-c", "test-sysctl-alpine", "test-sysctl"})
+		logs := podmanTest.Podman([]string{"pod", "logs", "-c", "test-sysctl-testimage", "test-sysctl"})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs).Should(ExitCleanly())
 		Expect(logs.OutputToString()).To(ContainSubstring("kernel.msgmax = 65535"))
@@ -5596,7 +5634,7 @@ spec:
 		err := os.MkdirAll(vol1, 0755)
 		Expect(err).ToNot(HaveOccurred())
 
-		session := podmanTest.Podman([]string{"run", "-v", vol1 + ":/tmp/foo:Z", "--name", ctrName, ALPINE})
+		session := podmanTest.Podman([]string{"run", "-v", vol1 + ":/tmp/foo:Z", "--name", ctrName, CITEST_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -5616,7 +5654,7 @@ spec:
 		err := os.MkdirAll(vol1, 0755)
 		Expect(err).ToNot(HaveOccurred())
 
-		session := podmanTest.Podman([]string{"run", "-v", vol1 + ":/tmp/foo:Z", "--name", ctrName, ALPINE})
+		session := podmanTest.Podman([]string{"run", "-v", vol1 + ":/tmp/foo:Z", "--name", ctrName, CITEST_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -5640,11 +5678,11 @@ spec:
 		err := os.MkdirAll(vol1, 0755)
 		Expect(err).ToNot(HaveOccurred())
 
-		session := podmanTest.Podman([]string{"create", "--name", ctr1, "-v", vol1, ALPINE})
+		session := podmanTest.Podman([]string{"create", "--name", ctr1, "-v", vol1, CITEST_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"create", "--volumes-from", ctr1, "--name", ctr2, ALPINE})
+		session = podmanTest.Podman([]string{"create", "--volumes-from", ctr1, "--name", ctr2, CITEST_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -5673,7 +5711,7 @@ spec:
 		ctrNameInKubePod := ctr + "-pod-" + ctr
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
 
-		session := podmanTest.Podman([]string{"create", "--rm", "--name", ctr, ALPINE})
+		session := podmanTest.Podman([]string{"create", "--rm", "--name", ctr, CITEST_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -5696,7 +5734,7 @@ spec:
 		ctrNameInKubePod := ctr + "-pod-" + ctr
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
 
-		session := podmanTest.Podman([]string{"create", "--privileged", "--name", ctr, ALPINE})
+		session := podmanTest.Podman([]string{"create", "--privileged", "--name", ctr, CITEST_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -5719,7 +5757,7 @@ spec:
 		ctrNameInKubePod := ctr + "-pod-" + ctr
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
 
-		session := podmanTest.Podman([]string{"create", "--init", "--name", ctr, ALPINE})
+		session := podmanTest.Podman([]string{"create", "--init", "--name", ctr, CITEST_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -5743,7 +5781,7 @@ spec:
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
 		cidFile := filepath.Join(podmanTest.TempDir, RandomString(10)+".txt")
 
-		session := podmanTest.Podman([]string{"create", "--cidfile", cidFile, "--name", ctr, ALPINE})
+		session := podmanTest.Podman([]string{"create", "--cidfile", cidFile, "--name", ctr, CITEST_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -5767,7 +5805,7 @@ spec:
 		ctrNameInKubePod := ctr + "-pod-" + ctr
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
 
-		session := podmanTest.Podman([]string{"create", "--security-opt", "seccomp=unconfined", "--name", ctr, ALPINE})
+		session := podmanTest.Podman([]string{"create", "--security-opt", "seccomp=unconfined", "--name", ctr, CITEST_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -5790,7 +5828,7 @@ spec:
 		ctrNameInKubePod := ctr + "-pod-" + ctr
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
 
-		session := podmanTest.Podman([]string{"create", "--security-opt", "apparmor=unconfined", "--name", ctr, ALPINE})
+		session := podmanTest.Podman([]string{"create", "--security-opt", "apparmor=unconfined", "--name", ctr, CITEST_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -5813,7 +5851,7 @@ spec:
 		ctrNameInKubePod := ctr + "-pod-" + ctr
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
 
-		session := podmanTest.Podman([]string{"create", "--security-opt", "label=level:s0", "--name", ctr, ALPINE})
+		session := podmanTest.Podman([]string{"create", "--security-opt", "label=level:s0", "--name", ctr, CITEST_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -5832,11 +5870,11 @@ spec:
 	})
 
 	It("test with reserved PublishAll annotation in yaml", func() {
-		podmanTest.AddImageToRWStore(ALPINE)
+		podmanTest.AddImageToRWStore(CITEST_IMAGE)
 		dockerfile := fmt.Sprintf(`FROM %s
 EXPOSE 2002
 EXPOSE 2001-2003
-EXPOSE 2004-2005/tcp`, ALPINE)
+EXPOSE 2004-2005/tcp`, CITEST_IMAGE)
 		imageName := "testimg"
 		podmanTest.BuildImage(dockerfile, imageName, "false")
 
@@ -5878,7 +5916,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		ctrNameInPod := "ctr-pod-ctr"
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
 
-		create := podmanTest.Podman([]string{"create", "-t", "--restart", "never", "--name", ctrName, ALPINE})
+		create := podmanTest.Podman([]string{"create", "-t", "--restart", "never", "--name", ctrName, CITEST_IMAGE, "top"})
 		create.WaitWithDefaultTimeout()
 		Expect(create).Should(ExitCleanly())
 
@@ -5910,7 +5948,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		pod.WaitWithDefaultTimeout()
 		Expect(pod).Should(ExitCleanly())
 
-		ctr := podmanTest.Podman([]string{"create", "--pod", podName, ALPINE, "top"})
+		ctr := podmanTest.Podman([]string{"create", "--pod", podName, CITEST_IMAGE, "top"})
 		ctr.WaitWithDefaultTimeout()
 		Expect(ctr).Should(ExitCleanly())
 
@@ -5945,7 +5983,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		pod.WaitWithDefaultTimeout()
 		Expect(pod).Should(ExitCleanly())
 
-		ctr := podmanTest.Podman([]string{"create", "--pod", podName, ALPINE, "top"})
+		ctr := podmanTest.Podman([]string{"create", "--pod", podName, CITEST_IMAGE, "top"})
 		ctr.WaitWithDefaultTimeout()
 		Expect(ctr).Should(ExitCleanly())
 
@@ -5997,7 +6035,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		ctrNameInPod := "ctr-pod-ctr"
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
 
-		create := podmanTest.Podman([]string{"create", "--restart", "never", "--stop-timeout", "20", "--name", ctrName, ALPINE})
+		create := podmanTest.Podman([]string{"create", "--restart", "never", "--stop-timeout", "20", "--name", ctrName, CITEST_IMAGE})
 		create.WaitWithDefaultTimeout()
 		Expect(create).Should(ExitCleanly())
 
