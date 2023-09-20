@@ -67,9 +67,9 @@ function setup() {
     run_podman --context=default version
 
     # This one must fail
-    run_podman 125 --context=swarm version
+    PODMAN=${PODMAN%%--url*} run_podman 125 --context=swarm version
     is "$output" \
-       "Error: failed to resolve active destination: \"swarm\" service destination not found" \
+       "Error: read cli flags: connection \"swarm\" not found" \
        "--context=swarm should fail"
 }
 
