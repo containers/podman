@@ -21,19 +21,19 @@ import (
 
 var _ = Describe("Podman kube generate", func() {
 
-	It("podman kube generate pod on bogus object", func() {
+	It("pod on bogus object", func() {
 		session := podmanTest.Podman([]string{"generate", "kube", "foobar"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 	})
 
-	It("podman kube generate service on bogus object", func() {
+	It("service on bogus object", func() {
 		session := podmanTest.Podman([]string{"kube", "generate", "-s", "foobar"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 	})
 
-	It("podman kube generate on container", func() {
+	It("on container", func() {
 		session := podmanTest.RunTopContainer("top")
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -61,12 +61,12 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(numContainers).To(Equal(1))
 	})
 
-	It("podman kube generate service on container with --security-opt level", func() {
+	It("service on container with --security-opt level", func() {
 		session := podmanTest.Podman([]string{"create", "--name", "test", "--security-opt", "label=level:s0:c100,c200", "alpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "test"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "test"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -76,12 +76,12 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(kube.OutputToString()).To(ContainSubstring("level: s0:c100,c200"))
 	})
 
-	It("podman generate service kube on container with --security-opt disable", func() {
+	It("service kube on container with --security-opt disable", func() {
 		session := podmanTest.Podman([]string{"create", "--name", "test-disable", "--security-opt", "label=disable", "alpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "test-disable"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "test-disable"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -92,7 +92,7 @@ var _ = Describe("Podman kube generate", func() {
 
 	})
 
-	It("podman generate service kube on container with --security-opt type", func() {
+	It("service kube on container with --security-opt type", func() {
 		session := podmanTest.Podman([]string{"create", "--name", "test", "--security-opt", "label=type:foo_bar_t", "alpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -107,7 +107,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(kube.OutputToString()).To(ContainSubstring("type: foo_bar_t"))
 	})
 
-	It("podman generate service kube on container - targetPort should match port name", func() {
+	It("service kube on container - targetPort should match port name", func() {
 		session := podmanTest.Podman([]string{"create", "--name", "test-ctr", "-p", "3890:3890", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -131,7 +131,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("podman generate kube on container with and without service", func() {
+	It("on container with and without service", func() {
 		session := podmanTest.Podman([]string{"create", "--name", "test-ctr", "-p", "3890:3890", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -168,7 +168,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(pod.Spec.Containers[0].Ports[0].HostPort).To(Equal(int32(3890)))
 	})
 
-	It("podman generate kube on pod", func() {
+	It("on pod", func() {
 		_, rc, _ := podmanTest.CreatePod(map[string][]string{"--name": {"toppod"}})
 		Expect(rc).To(Equal(0))
 
@@ -176,7 +176,7 @@ var _ = Describe("Podman kube generate", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "toppod"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "toppod"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -193,7 +193,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(numContainers).To(Equal(1))
 	})
 
-	It("podman generate kube multiple pods", func() {
+	It("multiple pods", func() {
 		pod1 := podmanTest.Podman([]string{"run", "-dt", "--pod", "new:pod1", ALPINE, "top"})
 		pod1.WaitWithDefaultTimeout()
 		Expect(pod1).Should(ExitCleanly())
@@ -210,7 +210,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(string(kube.Out.Contents())).To(ContainSubstring(`name: pod2`))
 	})
 
-	It("podman generate kube on pod with init containers", func() {
+	It("on pod with init containers", func() {
 		session := podmanTest.Podman([]string{"create", "--pod", "new:toppod", "--init-ctr", "always", ALPINE, "echo", "hello"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -244,7 +244,7 @@ var _ = Describe("Podman kube generate", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube = podmanTest.Podman([]string{"generate", "kube", "toppod-2"})
+		kube = podmanTest.Podman([]string{"kube", "generate", "toppod-2"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -269,7 +269,7 @@ var _ = Describe("Podman kube generate", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube = podmanTest.Podman([]string{"generate", "kube", "toppod-3"})
+		kube = podmanTest.Podman([]string{"kube", "generate", "toppod-3"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -282,7 +282,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(numContainers).To(Equal(1))
 	})
 
-	It("podman generate kube on pod with user namespace", func() {
+	It("on pod with user namespace", func() {
 		u, err := user.Current()
 		Expect(err).ToNot(HaveOccurred())
 		name := u.Username
@@ -304,7 +304,7 @@ var _ = Describe("Podman kube generate", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "testPod"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "testPod"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -315,7 +315,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(pod.Spec).To(HaveField("HostUsers", &expected))
 	})
 
-	It("podman generate kube on pod with host network", func() {
+	It("on pod with host network", func() {
 		podSession := podmanTest.Podman([]string{"pod", "create", "--name", "testHostNetwork", "--network", "host"})
 		podSession.WaitWithDefaultTimeout()
 		Expect(podSession).Should(ExitCleanly())
@@ -324,7 +324,7 @@ var _ = Describe("Podman kube generate", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "testHostNetwork"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "testHostNetwork"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -334,12 +334,12 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(pod.Spec).To(HaveField("HostNetwork", true))
 	})
 
-	It("podman generate kube on container with host network", func() {
+	It("on container with host network", func() {
 		session := podmanTest.RunTopContainerWithArgs("topcontainer", []string{"--network", "host"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "topcontainer"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "topcontainer"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -349,7 +349,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(pod.Spec).To(HaveField("HostNetwork", true))
 	})
 
-	It("podman generate kube on pod with hostAliases", func() {
+	It("on pod with hostAliases", func() {
 		podName := "testHost"
 		testIP := "127.0.0.1"
 		podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName,
@@ -369,7 +369,7 @@ var _ = Describe("Podman kube generate", func() {
 		ctr2Session.WaitWithDefaultTimeout()
 		Expect(ctr2Session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube := podmanTest.Podman([]string{"kube", "generate", podName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -381,7 +381,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(pod.Spec.HostAliases[1]).To(HaveField("IP", testIP))
 	})
 
-	It("podman generate kube with network sharing", func() {
+	It("with network sharing", func() {
 		// Expect error with default sharing options as Net namespace is shared
 		podName := "testPod"
 		podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName})
@@ -408,7 +408,7 @@ var _ = Describe("Podman kube generate", func() {
 		ctr2Session.WaitWithDefaultTimeout()
 		Expect(ctr2Session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube := podmanTest.Podman([]string{"kube", "generate", podName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -422,7 +422,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(pod.Spec.Containers[1].Ports[0].HostPort).To(Equal(int32(6000)))
 	})
 
-	It("podman generate kube with and without hostname", func() {
+	It("with and without hostname", func() {
 		// Expect error with default sharing options as UTS namespace is shared
 		podName := "testPod"
 		podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName})
@@ -473,7 +473,7 @@ var _ = Describe("Podman kube generate", func() {
 		ctr3Session.WaitWithDefaultTimeout()
 		Expect(ctr3Session).Should(ExitCleanly())
 
-		kube = podmanTest.Podman([]string{"generate", "kube", podName})
+		kube = podmanTest.Podman([]string{"kube", "generate", podName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -484,12 +484,12 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(pod.Spec.Hostname).To(BeEmpty())
 	})
 
-	It("podman generate service kube on pod", func() {
+	It("service kube on pod", func() {
 		session := podmanTest.Podman([]string{"create", "--pod", "new:test-pod", "-p", "4000:4000/udp", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "-s", "test-pod"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "-s", "test-pod"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -509,7 +509,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("podman generate kube on pod with restartPolicy set for container in a pod", func() {
+	It("on pod with restartPolicy set for container in a pod", func() {
 		//TODO: v5.0 - change/remove test once we block --restart on container when it is in a pod
 		// podName,  set,  expect
 		testSli := [][]string{
@@ -533,7 +533,7 @@ var _ = Describe("Podman kube generate", func() {
 			ctr1Session.WaitWithDefaultTimeout()
 			Expect(ctr1Session).Should(ExitCleanly())
 
-			kube := podmanTest.Podman([]string{"generate", "kube", podName})
+			kube := podmanTest.Podman([]string{"kube", "generate", podName})
 			kube.WaitWithDefaultTimeout()
 			Expect(kube).Should(ExitCleanly())
 
@@ -545,7 +545,7 @@ var _ = Describe("Podman kube generate", func() {
 		}
 	})
 
-	It("podman generate kube on pod with restartPolicy", func() {
+	It("on pod with restartPolicy", func() {
 		// podName,  set,  expect
 		testSli := [][]string{
 			{"testPod1", "", ""},
@@ -566,7 +566,7 @@ var _ = Describe("Podman kube generate", func() {
 			ctr1Session.WaitWithDefaultTimeout()
 			Expect(ctr1Session).Should(ExitCleanly())
 
-			kube := podmanTest.Podman([]string{"generate", "kube", podName})
+			kube := podmanTest.Podman([]string{"kube", "generate", podName})
 			kube.WaitWithDefaultTimeout()
 			Expect(kube).Should(ExitCleanly())
 
@@ -578,7 +578,7 @@ var _ = Describe("Podman kube generate", func() {
 		}
 	})
 
-	It("podman generate kube on ctr with restartPolicy", func() {
+	It("on ctr with restartPolicy", func() {
 		// podName,  set,  expect
 		testSli := [][]string{
 			{"", ""}, // some ctr created from cmdline, set it to "" and let k8s default it to Always
@@ -594,7 +594,7 @@ var _ = Describe("Podman kube generate", func() {
 			ctrSession.WaitWithDefaultTimeout()
 			Expect(ctrSession).Should(ExitCleanly())
 
-			kube := podmanTest.Podman([]string{"generate", "kube", ctrName})
+			kube := podmanTest.Podman([]string{"kube", "generate", ctrName})
 			kube.WaitWithDefaultTimeout()
 			Expect(kube).Should(ExitCleanly())
 
@@ -606,7 +606,7 @@ var _ = Describe("Podman kube generate", func() {
 		}
 	})
 
-	It("podman generate kube on pod with memory limit", func() {
+	It("on pod with memory limit", func() {
 		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		podName := "testMemoryLimit"
 		podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName})
@@ -632,7 +632,7 @@ var _ = Describe("Podman kube generate", func() {
 		}
 	})
 
-	It("podman generate kube on pod with cpu limit", func() {
+	It("on pod with cpu limit", func() {
 		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		podName := "testCpuLimit"
 		podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName})
@@ -651,7 +651,7 @@ var _ = Describe("Podman kube generate", func() {
 		ctr2Session.WaitWithDefaultTimeout()
 		Expect(ctr2Session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube := podmanTest.Podman([]string{"kube", "generate", podName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -665,7 +665,7 @@ var _ = Describe("Podman kube generate", func() {
 		}
 	})
 
-	It("podman generate kube on pod with ports", func() {
+	It("on pod with ports", func() {
 		podName := "test"
 
 		lock4 := GetPortLock("4000")
@@ -721,7 +721,7 @@ var _ = Describe("Podman kube generate", func() {
 		ctrWithUDP.WaitWithDefaultTimeout()
 		Expect(ctrWithUDP).Should(ExitCleanly())
 
-		kube = podmanTest.Podman([]string{"generate", "kube", "test-pod"})
+		kube = podmanTest.Podman([]string{"kube", "generate", "test-pod"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -735,7 +735,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(containers[0].Ports[0]).To(HaveField("Protocol", v1.ProtocolUDP))
 	})
 
-	It("podman generate and reimport kube on pod", func() {
+	It("generate and reimport kube on pod", func() {
 		podName := "toppod"
 		_, rc, _ := podmanTest.CreatePod(map[string][]string{"--name": {podName}})
 		Expect(rc).To(Equal(0))
@@ -749,7 +749,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(session2).Should(ExitCleanly())
 
 		outputFile := filepath.Join(podmanTest.RunRoot, "pod.yaml")
-		kube := podmanTest.Podman([]string{"generate", "kube", "-f", outputFile, podName})
+		kube := podmanTest.Podman([]string{"kube", "generate", "-f", outputFile, podName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -757,7 +757,7 @@ var _ = Describe("Podman kube generate", func() {
 		session3.WaitWithDefaultTimeout()
 		Expect(session3).Should(ExitCleanly())
 
-		session4 := podmanTest.Podman([]string{"play", "kube", outputFile})
+		session4 := podmanTest.Podman([]string{"kube", "play", outputFile})
 		session4.WaitWithDefaultTimeout()
 		Expect(session4).Should(ExitCleanly())
 
@@ -774,7 +774,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(psOut).To(ContainSubstring("test2"))
 	})
 
-	It("podman generate with user and reimport kube on pod", func() {
+	It("generate with user and reimport kube on pod", func() {
 		podName := "toppod"
 		_, rc, _ := podmanTest.CreatePod(map[string][]string{"--name": {podName}})
 		Expect(rc).To(Equal(0))
@@ -798,7 +798,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(session).Should(ExitCleanly())
 
 		podmanTest.AddImageToRWStore(ALPINE)
-		session = podmanTest.Podman([]string{"play", "kube", outputFile})
+		session = podmanTest.Podman([]string{"kube", "play", outputFile})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -809,7 +809,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(inspect1.OutputToString()).To(ContainSubstring(inspect.OutputToString()))
 	})
 
-	It("podman generate kube with volume", func() {
+	It("with volume", func() {
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
 		err := os.MkdirAll(vol1, 0755)
 		Expect(err).ToNot(HaveOccurred())
@@ -823,7 +823,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(session1).Should(ExitCleanly())
 
 		outputFile := filepath.Join(podmanTest.RunRoot, "pod.yaml")
-		kube := podmanTest.Podman([]string{"generate", "kube", "test1", "-f", outputFile})
+		kube := podmanTest.Podman([]string{"kube", "generate", "test1", "-f", outputFile})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -838,7 +838,7 @@ var _ = Describe("Podman kube generate", func() {
 		rm.WaitWithDefaultTimeout()
 		Expect(rm).Should(ExitCleanly())
 
-		play := podmanTest.Podman([]string{"play", "kube", outputFile})
+		play := podmanTest.Podman([]string{"kube", "play", outputFile})
 		play.WaitWithDefaultTimeout()
 		Expect(play).Should(ExitCleanly())
 
@@ -848,7 +848,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(inspect.OutputToString()).To(ContainSubstring(vol1))
 	})
 
-	It("podman generate kube when bind-mounting '/' and '/root' at the same time ", func() {
+	It("when bind-mounting '/' and '/root' at the same time ", func() {
 		// Fixes https://github.com/containers/podman/issues/9764
 
 		ctrName := "mount-root-ctr"
@@ -859,7 +859,7 @@ var _ = Describe("Podman kube generate", func() {
 		session1.WaitWithDefaultTimeout()
 		Expect(session1).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "mount-root-conflict"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "mount-root-conflict"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -871,7 +871,7 @@ var _ = Describe("Podman kube generate", func() {
 
 	})
 
-	It("podman generate kube with persistent volume claim", func() {
+	It("with persistent volume claim", func() {
 		vol := "vol-test-persistent-volume-claim"
 
 		// we need a container name because IDs don't persist after rm/play
@@ -883,7 +883,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(session).Should(ExitCleanly())
 
 		outputFile := filepath.Join(podmanTest.RunRoot, "pod.yaml")
-		kube := podmanTest.Podman([]string{"generate", "kube", "test1", "-f", outputFile})
+		kube := podmanTest.Podman([]string{"kube", "generate", "test1", "-f", outputFile})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -891,7 +891,7 @@ var _ = Describe("Podman kube generate", func() {
 		rm.WaitWithDefaultTimeout()
 		Expect(rm).Should(ExitCleanly())
 
-		play := podmanTest.Podman([]string{"play", "kube", outputFile})
+		play := podmanTest.Podman([]string{"kube", "play", outputFile})
 		play.WaitWithDefaultTimeout()
 		Expect(play).Should(ExitCleanly())
 
@@ -901,7 +901,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(inspect.OutputToString()).To(ContainSubstring(vol))
 	})
 
-	It("podman generate kube sharing pid namespace", func() {
+	It("sharing pid namespace", func() {
 		podName := "test"
 		podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--share", "pid"})
 		podSession.WaitWithDefaultTimeout()
@@ -920,7 +920,7 @@ var _ = Describe("Podman kube generate", func() {
 		rm.WaitWithDefaultTimeout()
 		Expect(rm).Should(ExitCleanly())
 
-		play := podmanTest.Podman([]string{"play", "kube", outputFile})
+		play := podmanTest.Podman([]string{"kube", "play", outputFile})
 		play.WaitWithDefaultTimeout()
 		Expect(play).Should(ExitCleanly())
 
@@ -930,7 +930,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(inspect.OutputToString()).To(ContainSubstring(`"pid"`))
 	})
 
-	It("podman generate kube with pods and containers", func() {
+	It("with pods and containers", func() {
 		pod1 := podmanTest.Podman([]string{"run", "-dt", "--pod", "new:pod1", ALPINE, "top"})
 		pod1.WaitWithDefaultTimeout()
 		Expect(pod1).Should(ExitCleanly())
@@ -939,12 +939,12 @@ var _ = Describe("Podman kube generate", func() {
 		pod2.WaitWithDefaultTimeout()
 		Expect(pod2).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "pod1", "top"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "pod1", "top"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 	})
 
-	It("podman generate kube with containers in a pod should fail", func() {
+	It("with containers in a pod should fail", func() {
 		pod1 := podmanTest.Podman([]string{"pod", "create", "--name", "pod1"})
 		pod1.WaitWithDefaultTimeout()
 		Expect(pod1).Should(ExitCleanly())
@@ -953,12 +953,12 @@ var _ = Describe("Podman kube generate", func() {
 		con.WaitWithDefaultTimeout()
 		Expect(con).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "top"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "top"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).To(ExitWithError())
 	})
 
-	It("podman generate kube with multiple containers", func() {
+	It("with multiple containers", func() {
 		con1 := podmanTest.Podman([]string{"run", "-dt", "--name", "con1", ALPINE, "top"})
 		con1.WaitWithDefaultTimeout()
 		Expect(con1).Should(ExitCleanly())
@@ -967,12 +967,12 @@ var _ = Describe("Podman kube generate", func() {
 		con2.WaitWithDefaultTimeout()
 		Expect(con2).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "con1", "con2"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "con1", "con2"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 	})
 
-	It("podman generate kube with containers in pods should fail", func() {
+	It("with containers in pods should fail", func() {
 		pod1 := podmanTest.Podman([]string{"run", "-dt", "--pod", "new:pod1", "--name", "top1", ALPINE, "top"})
 		pod1.WaitWithDefaultTimeout()
 		Expect(pod1).Should(ExitCleanly())
@@ -986,12 +986,12 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(kube).To(ExitWithError())
 	})
 
-	It("podman generate kube on a container with dns options", func() {
+	It("on a container with dns options", func() {
 		top := podmanTest.Podman([]string{"run", "-dt", "--name", "top", "--dns", "8.8.8.8", "--dns-search", "foobar.com", "--dns-option", "color:blue", ALPINE, "top"})
 		top.WaitWithDefaultTimeout()
 		Expect(top).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "top"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "top"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1007,7 +1007,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(pod.Spec.DNSConfig.Options[0]).To(HaveField("Value", &s))
 	})
 
-	It("podman generate kube multiple container dns servers and options are cumulative", func() {
+	It("multiple container dns servers and options are cumulative", func() {
 		top1 := podmanTest.Podman([]string{"run", "-dt", "--name", "top1", "--dns", "8.8.8.8", "--dns-search", "foobar.com", ALPINE, "top"})
 		top1.WaitWithDefaultTimeout()
 		Expect(top1).Should(ExitCleanly())
@@ -1016,7 +1016,7 @@ var _ = Describe("Podman kube generate", func() {
 		top2.WaitWithDefaultTimeout()
 		Expect(top2).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "top1", "top2"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "top1", "top2"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1030,7 +1030,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(pod.Spec.DNSConfig.Searches).To(ContainElement("homer.com"))
 	})
 
-	It("podman generate kube on a pod with dns options", func() {
+	It("on a pod with dns options", func() {
 		top := podmanTest.Podman([]string{"run", "--pod", "new:pod1", "-dt", "--name", "top", "--dns", "8.8.8.8", "--dns-search", "foobar.com", "--dns-opt", "color:blue", ALPINE, "top"})
 		top.WaitWithDefaultTimeout()
 		Expect(top).Should(ExitCleanly())
@@ -1051,12 +1051,12 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(pod.Spec.DNSConfig.Options[0]).To(HaveField("Value", &s))
 	})
 
-	It("podman generate kube - set entrypoint as command", func() {
+	It("- set entrypoint as command", func() {
 		session := podmanTest.Podman([]string{"create", "--pod", "new:testpod", "--entrypoint", "/bin/sleep", ALPINE, "10s"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "testpod"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "testpod"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1073,12 +1073,12 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(containers[0]).To(HaveField("Args", []string{"10s"}))
 	})
 
-	It("podman generate kube - use command from image unless explicitly set in the podman command", func() {
+	It("- use command from image unless explicitly set in the podman command", func() {
 		session := podmanTest.Podman([]string{"create", "--name", "test", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "test"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "test"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1112,7 +1112,7 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(containers[0]).To(HaveField("Command", cmd))
 	})
 
-	It("podman generate kube - use entrypoint from image unless --entrypoint is set", func() {
+	It("- use entrypoint from image unless --entrypoint is set", func() {
 		// Build an image with an entrypoint.
 		containerfile := `FROM quay.io/libpod/alpine:latest
 ENTRYPOINT ["sleep"]`
@@ -1130,7 +1130,7 @@ ENTRYPOINT ["sleep"]`
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "testpod"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "testpod"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1164,7 +1164,7 @@ ENTRYPOINT ["sleep"]`
 		Expect(containers[0]).To(HaveField("Args", []string{"hello"}))
 	})
 
-	It("podman generate kube - image has positive integer user set", func() {
+	It("- image has positive integer user set", func() {
 		// Build an image with user=1000.
 		containerfile := `FROM quay.io/libpod/alpine:latest
 USER 1000`
@@ -1182,7 +1182,7 @@ USER 1000`
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "testpod"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "testpod"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1197,12 +1197,12 @@ USER 1000`
 		Expect(containers[0]).To(HaveField("SecurityContext.RunAsNonRoot", &trueBool))
 	})
 
-	It("podman generate kube - --privileged container", func() {
+	It("- --privileged container", func() {
 		session := podmanTest.Podman([]string{"create", "--pod", "new:testpod", "--privileged", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "testpod"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "testpod"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1218,7 +1218,7 @@ USER 1000`
 		// Now make sure we can also `play` it.
 		kubeFile := filepath.Join(podmanTest.TempDir, "kube.yaml")
 
-		kube = podmanTest.Podman([]string{"generate", "kube", "testpod", "-f", kubeFile})
+		kube = podmanTest.Podman([]string{"kube", "generate", "testpod", "-f", kubeFile})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1227,12 +1227,12 @@ USER 1000`
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
-		kube = podmanTest.Podman([]string{"play", "kube", kubeFile})
+		kube = podmanTest.Podman([]string{"kube", "play", kubeFile})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 	})
 
-	It("podman generate kube based on user in container", func() {
+	It("based on user in container", func() {
 		// Build an image with an entrypoint.
 		containerfile := `FROM quay.io/libpod/alpine:latest
 RUN adduser -u 10001 -S test1
@@ -1251,7 +1251,7 @@ USER test1`
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "testpod"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "testpod"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1261,14 +1261,14 @@ USER test1`
 		Expect(pod.Spec.Containers[0].SecurityContext.RunAsUser).To(BeNil())
 	})
 
-	It("podman generate kube on named volume", func() {
+	It("on named volume", func() {
 		vol := "simple-named-volume"
 
 		session := podmanTest.Podman([]string{"volume", "create", vol})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", vol})
+		kube := podmanTest.Podman([]string{"kube", "generate", vol})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1280,7 +1280,7 @@ USER test1`
 		Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal("1Gi"))
 	})
 
-	It("podman generate kube on named volume with options", func() {
+	It("on named volume with options", func() {
 		vol := "complex-named-volume"
 		volDevice := define.TypeTmpfs
 		volType := define.TypeTmpfs
@@ -1290,7 +1290,7 @@ USER test1`
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", vol})
+		kube := podmanTest.Podman([]string{"kube", "generate", vol})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1313,12 +1313,12 @@ USER test1`
 		}
 	})
 
-	It("podman generate kube on container with auto update labels", func() {
+	It("on container with auto update labels", func() {
 		top := podmanTest.Podman([]string{"run", "-dt", "--name", "top", "--label", "io.containers.autoupdate=local", ALPINE, "top"})
 		top.WaitWithDefaultTimeout()
 		Expect(top).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "top"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "top"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1329,7 +1329,7 @@ USER test1`
 		Expect(pod.Annotations).To(HaveKeyWithValue("io.containers.autoupdate/top", "local"))
 	})
 
-	It("podman generate kube on pod with auto update labels in all containers", func() {
+	It("on pod with auto update labels in all containers", func() {
 		pod1 := podmanTest.Podman([]string{"pod", "create", "--name", "pod1"})
 		pod1.WaitWithDefaultTimeout()
 		Expect(pod1).Should(ExitCleanly())
@@ -1342,7 +1342,7 @@ USER test1`
 		top2.WaitWithDefaultTimeout()
 		Expect(top2).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "pod1"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "pod1"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1358,7 +1358,7 @@ USER test1`
 		}
 	})
 
-	It("podman generate kube can export env variables correctly", func() {
+	It("can export env variables correctly", func() {
 		// Fixes https://github.com/containers/podman/issues/12647
 		// PR https://github.com/containers/podman/pull/12648
 
@@ -1372,7 +1372,7 @@ USER test1`
 		session1.WaitWithDefaultTimeout()
 		Expect(session1).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube := podmanTest.Podman([]string{"kube", "generate", podName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1383,14 +1383,14 @@ USER test1`
 		Expect(pod.Spec.Containers[0].Env).To(HaveLen(2))
 	})
 
-	It("podman generate kube omit secret if empty", func() {
+	It("omit secret if empty", func() {
 		dir := GinkgoT().TempDir()
 
 		podCreate := podmanTest.Podman([]string{"run", "-d", "--pod", "new:" + "noSecretsPod", "--name", "noSecretsCtr", "--volume", dir + ":/foobar", ALPINE})
 		podCreate.WaitWithDefaultTimeout()
 		Expect(podCreate).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "noSecretsPod"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "noSecretsPod"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1403,7 +1403,7 @@ USER test1`
 		Expect(pod.Spec.Volumes[0].Secret).To(BeNil())
 	})
 
-	It("podman kube generate with default ulimits", func() {
+	It("with default ulimits", func() {
 		ctrName := "ulimit-ctr"
 		session := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, ALPINE, "sleep", "1000"})
 		session.WaitWithDefaultTimeout()
@@ -1422,7 +1422,7 @@ USER test1`
 		Expect(pod.Annotations).To(Not(HaveKey(define.UlimitAnnotation)))
 	})
 
-	It("podman generate & play kube with --ulimit set", func() {
+	It("with --ulimit set", func() {
 		ctrName := "ulimit-ctr"
 		ctrNameInKubePod := ctrName + "-pod-" + ctrName
 		session1 := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, "--ulimit", "nofile=1231:3123", ALPINE, "sleep", "1000"})
@@ -1458,7 +1458,7 @@ USER test1`
 		Expect(inspect.OutputToString()).To(ContainSubstring("3123"))
 	})
 
-	It("podman generate kube on pod with --type=deployment", func() {
+	It("on pod with --type=deployment", func() {
 		podName := "test-pod"
 		session := podmanTest.Podman([]string{"pod", "create", podName})
 		session.WaitWithDefaultTimeout()
@@ -1471,7 +1471,7 @@ USER test1`
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "--type", "deployment", podName})
+		kube := podmanTest.Podman([]string{"kube", "generate", "--type", "deployment", podName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1489,13 +1489,13 @@ USER test1`
 		Expect(numContainers).To(Equal(2))
 	})
 
-	It("podman generate kube on ctr with --type=deployment and --replicas=3", func() {
+	It("on ctr with --type=deployment and --replicas=3", func() {
 		ctrName := "test-ctr"
 		session := podmanTest.Podman([]string{"create", "--name", ctrName, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "--type", "deployment", "--replicas", "3", ctrName})
+		kube := podmanTest.Podman([]string{"kube", "generate", "--type", "deployment", "--replicas", "3", ctrName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1514,18 +1514,18 @@ USER test1`
 		Expect(numContainers).To(Equal(1))
 	})
 
-	It("podman generate kube on ctr with --type=pod and --replicas=3 should fail", func() {
+	It("on ctr with --type=pod and --replicas=3 should fail", func() {
 		ctrName := "test-ctr"
 		session := podmanTest.Podman([]string{"create", "--name", ctrName, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "--type", "pod", "--replicas", "3", ctrName})
+		kube := podmanTest.Podman([]string{"kube", "generate", "--type", "pod", "--replicas", "3", ctrName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(125))
 	})
 
-	It("podman generate kube on pod with --type=deployment and --restart=no should fail", func() {
+	It("on pod with --type=deployment and --restart=no should fail", func() {
 		podName := "test-pod"
 		session := podmanTest.Podman([]string{"pod", "create", "--restart", "no", podName})
 		session.WaitWithDefaultTimeout()
@@ -1535,12 +1535,12 @@ USER test1`
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "--type", "deployment", podName})
+		kube := podmanTest.Podman([]string{"kube", "generate", "--type", "deployment", podName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(125))
 	})
 
-	It("podman generate kube on pod with invalid name", func() {
+	It("on pod with invalid name", func() {
 		podName := "test_pod"
 		session := podmanTest.Podman([]string{"pod", "create", podName})
 		session.WaitWithDefaultTimeout()
@@ -1550,7 +1550,7 @@ USER test1`
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube := podmanTest.Podman([]string{"kube", "generate", podName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1562,7 +1562,7 @@ USER test1`
 		Expect(pod.Spec.Hostname).To(Equal(""))
 	})
 
-	It("podman kube generate --no-trunc on container with long annotation", func() {
+	It("--no-trunc on container with long annotation", func() {
 		ctrName := "demo"
 		vol1 := filepath.Join(podmanTest.TempDir, RandomString(99))
 		err := os.MkdirAll(vol1, 0755)
@@ -1584,7 +1584,7 @@ USER test1`
 		Expect(pod.Annotations).To(Not(HaveKeyWithValue(define.BindMountPrefix, vol1[:define.MaxKubeAnnotation])))
 	})
 
-	It("podman kube generate on container with long annotation", func() {
+	It("on container with long annotation", func() {
 		ctrName := "demo"
 		vol1 := filepath.Join(podmanTest.TempDir, RandomString(99))
 		err := os.MkdirAll(vol1, 0755)
@@ -1606,7 +1606,7 @@ USER test1`
 		Expect(pod.Annotations).To(Not(HaveKeyWithValue(define.BindMountPrefix, vol1+":Z")))
 	})
 
-	It("podman kube generate --no-trunc on pod with long annotation", func() {
+	It("--no-trunc on pod with long annotation", func() {
 		ctrName := "demoCtr"
 		podName := "demoPod"
 		vol1 := filepath.Join(podmanTest.TempDir, RandomString(99))
@@ -1633,7 +1633,7 @@ USER test1`
 		Expect(pod.Annotations).To(Not(HaveKeyWithValue(define.BindMountPrefix, vol1[:define.MaxKubeAnnotation])))
 	})
 
-	It("podman kube generate on pod with long annotation", func() {
+	It("on pod with long annotation", func() {
 		ctrName := "demoCtr"
 		podName := "demoPod"
 		vol1 := filepath.Join(podmanTest.TempDir, RandomString(99))
@@ -1660,7 +1660,7 @@ USER test1`
 		Expect(pod.Annotations).To(Not(HaveKeyWithValue(define.BindMountPrefix, vol1+":Z")))
 	})
 
-	It("podman kube generate --podman-only on container with --volumes-from", func() {
+	It("--podman-only on container with --volumes-from", func() {
 		ctr1 := "ctr1"
 		ctr2 := "ctr2"
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
@@ -1686,7 +1686,7 @@ USER test1`
 		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationVolumesFrom+"/"+ctr2, ctr1))
 	})
 
-	It("podman kube generate --podman-only on container with --rm", func() {
+	It("--podman-only on container with --rm", func() {
 		ctr := "ctr"
 
 		session := podmanTest.Podman([]string{"create", "--rm", "--name", ctr, ALPINE})
@@ -1703,7 +1703,7 @@ USER test1`
 		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationAutoremove+"/"+ctr, define.InspectResponseTrue))
 	})
 
-	It("podman kube generate --podman-only on container with --privileged", func() {
+	It("--podman-only on container with --privileged", func() {
 		ctr := "ctr"
 
 		session := podmanTest.Podman([]string{"create", "--privileged", "--name", ctr, ALPINE})
@@ -1720,7 +1720,7 @@ USER test1`
 		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationPrivileged+"/"+ctr, define.InspectResponseTrue))
 	})
 
-	It("podman kube generate --podman-only on container with --init", func() {
+	It("--podman-only on container with --init", func() {
 		ctr := "ctr"
 
 		session := podmanTest.Podman([]string{"create", "--init", "--name", ctr, ALPINE})
@@ -1737,7 +1737,7 @@ USER test1`
 		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationInit+"/"+ctr, define.InspectResponseTrue))
 	})
 
-	It("podman kube generate --podman-only on container with --cidfile", func() {
+	It("--podman-only on container with --cidfile", func() {
 		ctr := "ctr"
 		cidFile := filepath.Join(podmanTest.TempDir, RandomString(10)+".txt")
 
@@ -1755,7 +1755,7 @@ USER test1`
 		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationCIDFile+"/"+ctr, cidFile))
 	})
 
-	It("podman kube generate --podman-only on container with --security-opt seccomp=unconfined", func() {
+	It("--podman-only on container with --security-opt seccomp=unconfined", func() {
 		ctr := "ctr"
 
 		session := podmanTest.Podman([]string{"create", "--security-opt", "seccomp=unconfined", "--name", ctr, ALPINE})
@@ -1772,7 +1772,7 @@ USER test1`
 		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationSeccomp+"/"+ctr, "unconfined"))
 	})
 
-	It("podman kube generate --podman-only on container with --security-opt apparmor=unconfined", func() {
+	It("--podman-only on container with --security-opt apparmor=unconfined", func() {
 		ctr := "ctr"
 
 		session := podmanTest.Podman([]string{"create", "--security-opt", "apparmor=unconfined", "--name", ctr, ALPINE})
@@ -1789,7 +1789,7 @@ USER test1`
 		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationApparmor+"/"+ctr, "unconfined"))
 	})
 
-	It("podman kube generate --podman-only on container with --security-opt label=level:s0", func() {
+	It("--podman-only on container with --security-opt label=level:s0", func() {
 		ctr := "ctr"
 
 		session := podmanTest.Podman([]string{"create", "--security-opt", "label=level:s0", "--name", ctr, ALPINE})
@@ -1806,7 +1806,7 @@ USER test1`
 		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationLabel+"/"+ctr, "level:s0"))
 	})
 
-	It("podman kube generate --podman-only on container with --publish-all", func() {
+	It("--podman-only on container with --publish-all", func() {
 		podmanTest.AddImageToRWStore(ALPINE)
 		dockerfile := fmt.Sprintf(`FROM %s
 EXPOSE 2002
@@ -1840,7 +1840,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationPublishAll+"/"+ctr, define.InspectResponseTrue))
 	})
 
-	It("podman generate kube on pod with --infra-name set", func() {
+	It("on pod with --infra-name set", func() {
 		infraName := "infra-ctr"
 		podName := "test-pod"
 		podSession := podmanTest.Podman([]string{"pod", "create", "--infra-name", infraName, podName})
@@ -1851,7 +1851,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube := podmanTest.Podman([]string{"kube", "generate", podName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1861,7 +1861,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(pod.Annotations).To(HaveKeyWithValue(define.InfraNameAnnotation, infraName))
 	})
 
-	It("podman generate kube on pod without --infra-name set", func() {
+	It("on pod without --infra-name set", func() {
 		podName := "test-pod"
 		podSession := podmanTest.Podman([]string{"pod", "create", podName})
 		podSession.WaitWithDefaultTimeout()
@@ -1871,7 +1871,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube := podmanTest.Podman([]string{"kube", "generate", podName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1882,7 +1882,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(pod.Annotations).To(BeEmpty())
 	})
 
-	It("podman generate kube on pod with --stop-timeout set for ctr", func() {
+	It("on pod with --stop-timeout set for ctr", func() {
 		podName := "test-pod"
 		podSession := podmanTest.Podman([]string{"pod", "create", podName})
 		podSession.WaitWithDefaultTimeout()
@@ -1892,7 +1892,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube := podmanTest.Podman([]string{"kube", "generate", podName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1903,7 +1903,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(int(*pod.Spec.TerminationGracePeriodSeconds)).To(Equal(20))
 	})
 
-	It("podman generate kube on pod with --type=daemonset", func() {
+	It("on pod with --type=daemonset", func() {
 		podName := "test-pod"
 		session := podmanTest.Podman([]string{"pod", "create", podName})
 		session.WaitWithDefaultTimeout()
@@ -1916,7 +1916,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "--type", "daemonset", podName})
+		kube := podmanTest.Podman([]string{"kube", "generate", "--type", "daemonset", podName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -1929,19 +1929,19 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(dep.Spec.Template.Spec.Containers).To(HaveLen(2))
 	})
 
-	It("podman generate kube on ctr with --type=daemonset and --replicas=3 should fail", func() {
+	It("on ctr with --type=daemonset and --replicas=3 should fail", func() {
 		ctrName := "test-ctr"
 		session := podmanTest.Podman([]string{"create", "--name", ctrName, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "--type", "daemonset", "--replicas", "3", ctrName})
+		kube := podmanTest.Podman([]string{"kube", "generate", "--type", "daemonset", "--replicas", "3", ctrName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(125))
 		Expect(kube.ErrorToString()).To(ContainSubstring("--replicas can only be set when --type is set to deployment"))
 	})
 
-	It("podman generate kube on pod with --type=daemonset and --restart=no should fail", func() {
+	It("on pod with --type=daemonset and --restart=no should fail", func() {
 		podName := "test-pod"
 		session := podmanTest.Podman([]string{"pod", "create", "--restart", "no", podName})
 		session.WaitWithDefaultTimeout()
@@ -1951,7 +1951,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "--type", "daemonset", podName})
+		kube := podmanTest.Podman([]string{"kube", "generate", "--type", "daemonset", podName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(125))
 		Expect(kube.ErrorToString()).To(ContainSubstring("k8s DaemonSets can only have restartPolicy set to Always"))
