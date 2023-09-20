@@ -272,6 +272,11 @@ func (s *PodmanSession) OutputToStringArray() []string {
 	return results
 }
 
+// ErrContents returns raw session buffer
+func (s *PodmanSession) ErrContents() []byte {
+	return s.Err.Contents()
+}
+
 // ErrorToString formats session stderr to string
 func (s *PodmanSession) ErrorToString() string {
 	fields := strings.Fields(string(s.Err.Contents()))
