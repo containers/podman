@@ -7,12 +7,14 @@ FROM quay.io/fedora/fedora-coreos:stable
 ADD https://copr.fedorainfracloud.org/coprs/rhcontainerbot/podman-next/repo/fedora-rawhide/rhcontainerbot-podman-next-fedora-rawhide.repos /etc/yum.repos.d/rhcontainerbot-podman-next-fedora.repo
 ADD https://download.copr.fedorainfracloud.org/results/rhcontainerbot/podman-next/pubkey.gpg /etc/pki/rpm-gpg/rhcontainerbot-podman-next-fedora.gpg
 
-# Replace aardvark-dns, conmon, crun, netavark, podman, containers-common
+# Replace aardvark-dns, containers-common[-extra], crun, netavark, podman
+# Install crun-wasm and wasmedge-rt
 # Remove moby-engine, containerd, runc
 # Note: Currently does not result in a size reduction for the container image
 RUN rpm-ostree override replace --experimental --freeze \
     --from repo="copr:copr.fedorainfracloud.org:rhcontainerbot:podman-next" \
-    aardvark-dns crun netavark podman containers-common containers-common-extra && \
+    aardvark-dns containers-common containers-common-extra crun netavark podman && \
+    rpm-ostree install crun-wasm wasmedge-rt && \
     rpm-ostree override remove moby-engine containerd runc && \
     ostree container commit
 
