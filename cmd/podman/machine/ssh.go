@@ -100,10 +100,7 @@ func remoteConnectionUsername() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	dest, _, _, err := cfg.ActiveDestination()
-	if err != nil {
-		return "", err
-	}
+	dest := cfg.Engine.ServiceDestinations[cfg.Engine.ActiveService].URI
 	uri, err := url.Parse(dest)
 	if err != nil {
 		return "", err
