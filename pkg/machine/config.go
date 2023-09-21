@@ -46,7 +46,9 @@ const (
 	// Stopped indicates the vm has stopped.
 	Stopped Status = "stopped"
 	// Starting indicated the vm is in the process of starting
-	Starting           Status = "starting"
+	Starting Status = "starting"
+	// Unknown means the state is not known
+	Unknown            Status = "unknown"
 	DefaultMachineName string = "podman-machine-default"
 	apiUpTimeout              = 20 * time.Second
 )
