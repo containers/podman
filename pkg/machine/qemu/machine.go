@@ -29,7 +29,6 @@ import (
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/digitalocean/go-qemu/qmp"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
 )
 
 var (
@@ -590,15 +589,7 @@ func (v *MachineVM) qemuPid() (int, error) {
 		logrus.Warnf("Reading QEMU pidfile: %v", err)
 		return -1, nil
 	}
-
-	if err := unix.Kill(pid, 0); err != nil {
-		if err == unix.ESRCH {
-			return -1, nil
-		}
-		return -1, fmt.Errorf("pinging QEMU process: %w", err)
-	}
-
-	return pid, nil
+	return findProcess(pid)
 }
 
 // Start executes the qemu command line and forks it
@@ -971,7 +962,7 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
 		return stopErr
 	}
 
-	if err := unix.Kill(qemuPid, unix.SIGKILL); err != nil {
+	if err := sigKill(qemuPid); err != nil {
 		if stopErr == nil {
 			return err
 		}
