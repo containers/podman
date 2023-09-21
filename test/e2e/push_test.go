@@ -24,11 +24,11 @@ var _ = Describe("Podman push", func() {
 		SkipIfRemote("Remote push does not support containers-storage transport")
 		session := podmanTest.Podman([]string{"push", ALPINE, "containers-storage:busybox:test"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"rmi", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman push to dir", func() {
@@ -37,13 +37,13 @@ var _ = Describe("Podman push", func() {
 		session := podmanTest.Podman([]string{"push", "--remove-signatures", ALPINE,
 			fmt.Sprintf("dir:%s", bbdir)})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		bbdir = filepath.Join(podmanTest.TempDir, "busybox")
 		session = podmanTest.Podman([]string{"push", "--format", "oci", ALPINE,
 			fmt.Sprintf("dir:%s", bbdir)})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman push to oci with compression-format and compression-level", func() {
@@ -60,7 +60,7 @@ var _ = Describe("Podman push", func() {
 		session = podmanTest.Podman([]string{"push", "--compression-format=zstd", "--remove-signatures", ALPINE,
 			fmt.Sprintf("oci:%s", bbdir)})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		foundZstdFile := false
 
@@ -96,7 +96,7 @@ var _ = Describe("Podman push", func() {
 		defer lock.Unlock()
 		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
 			Skip("Cannot start docker registry.")
@@ -104,26 +104,26 @@ var _ = Describe("Podman push", func() {
 
 		session = podmanTest.Podman([]string{"build", "-t", "imageone", "build/basicalpine"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", "imageone", "localhost:5000/image"})
 		push.WaitWithDefaultTimeout()
-		Expect(push).Should(Exit(0))
+		Expect(push).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5000/image:latest"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		output := session.OutputToString()
 		// Default compression is gzip and push with `--force-compression=false` no traces of `zstd` should be there.
 		Expect(output).ToNot(ContainSubstring("zstd"))
 
 		push = podmanTest.Podman([]string{"push", "--tls-verify=false", "--force-compression=false", "--compression-format", "zstd", "--remove-signatures", "imageone", "localhost:5000/image"})
 		push.WaitWithDefaultTimeout()
-		Expect(push).Should(Exit(0))
+		Expect(push).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5000/image:latest"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		output = session.OutputToString()
 		// Although `--compression-format` is `zstd` but still no traces of `zstd` should be in image
 		// since blobs must be reused from last `gzip` image.
@@ -131,11 +131,11 @@ var _ = Describe("Podman push", func() {
 
 		push = podmanTest.Podman([]string{"push", "--tls-verify=false", "--compression-format", "zstd", "--force-compression", "--remove-signatures", "imageone", "localhost:5000/image"})
 		push.WaitWithDefaultTimeout()
-		Expect(push).Should(Exit(0))
+		Expect(push).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5000/image:latest"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		output = session.OutputToString()
 		// Should contain `zstd` layer, substring `zstd` is enough to confirm in skopeo inspect output that `zstd` layer is present.
 		Expect(output).To(ContainSubstring("zstd"))
@@ -153,7 +153,7 @@ var _ = Describe("Podman push", func() {
 		defer lock.Unlock()
 		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
 			Skip("Cannot start docker registry.")
@@ -161,12 +161,12 @@ var _ = Describe("Podman push", func() {
 
 		push := podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
 		push.WaitWithDefaultTimeout()
-		Expect(push).Should(Exit(0))
+		Expect(push).Should(ExitCleanly())
 		Expect(push.ErrorToString()).To(BeEmpty())
 
 		push = podmanTest.Podman([]string{"push", "--compression-format=gzip", "--compression-level=1", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
 		push.WaitWithDefaultTimeout()
-		Expect(push).Should(Exit(0))
+		Expect(push).Should(ExitCleanly())
 		output := push.ErrorToString()
 		Expect(output).To(ContainSubstring("Copying blob "))
 		Expect(output).To(ContainSubstring("Copying config "))
@@ -180,7 +180,7 @@ var _ = Describe("Podman push", func() {
 		if !IsRemote() { // Remote does not support --encryption-key
 			push = podmanTest.Podman([]string{"push", "--encryption-key", "jwe:" + publicKeyFileName, "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
 			push.WaitWithDefaultTimeout()
-			Expect(push).Should(Exit(0))
+			Expect(push).Should(ExitCleanly())
 		}
 
 		// Test --digestfile option
@@ -190,7 +190,7 @@ var _ = Describe("Podman push", func() {
 		fi, err := os.Lstat(digestFile)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(fi.Name()).To(Equal("digestfile.txt"))
-		Expect(push2).Should(Exit(0))
+		Expect(push2).Should(ExitCleanly())
 
 		if !IsRemote() { // Remote does not support signing
 			By("pushing and pulling with --sign-by-sigstore-private-key")
@@ -214,7 +214,7 @@ var _ = Describe("Podman push", func() {
 				// Verify that the policy rejects unsigned images
 				push := podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/sigstore-signed"})
 				push.WaitWithDefaultTimeout()
-				Expect(push).Should(Exit(0))
+				Expect(push).Should(ExitCleanly())
 				Expect(push.ErrorToString()).To(BeEmpty())
 
 				pull := podmanTest.Podman([]string{"pull", "-q", "--tls-verify=false", "--signature-policy", policyPath, "localhost:5000/sigstore-signed"})
@@ -225,18 +225,18 @@ var _ = Describe("Podman push", func() {
 				// Sign an image, and verify it is accepted.
 				push = podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", "--sign-by-sigstore-private-key", "testdata/sigstore-key.key", "--sign-passphrase-file", "testdata/sigstore-key.key.pass", ALPINE, "localhost:5000/sigstore-signed"})
 				push.WaitWithDefaultTimeout()
-				Expect(push).Should(Exit(0))
+				Expect(push).Should(ExitCleanly())
 				Expect(push.ErrorToString()).To(BeEmpty())
 
 				pull = podmanTest.Podman([]string{"pull", "-q", "--tls-verify=false", "--signature-policy", policyPath, "localhost:5000/sigstore-signed"})
 				pull.WaitWithDefaultTimeout()
-				Expect(pull).Should(Exit(0))
+				Expect(pull).Should(ExitCleanly())
 
 				By("pushing and pulling with --sign-by-sigstore")
 				// Verify that the policy rejects unsigned images
 				push = podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/sigstore-signed-params"})
 				push.WaitWithDefaultTimeout()
-				Expect(push).Should(Exit(0))
+				Expect(push).Should(ExitCleanly())
 				Expect(push.ErrorToString()).To(BeEmpty())
 
 				pull = podmanTest.Podman([]string{"pull", "--tls-verify=false", "--signature-policy", policyPath, "localhost:5000/sigstore-signed-params"})
@@ -247,12 +247,12 @@ var _ = Describe("Podman push", func() {
 				// Sign an image, and verify it is accepted.
 				push = podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", "--sign-by-sigstore", "testdata/sigstore-signing-params.yaml", ALPINE, "localhost:5000/sigstore-signed-params"})
 				push.WaitWithDefaultTimeout()
-				Expect(push).Should(Exit(0))
+				Expect(push).Should(ExitCleanly())
 				Expect(push.ErrorToString()).To(BeEmpty())
 
 				pull = podmanTest.Podman([]string{"pull", "--tls-verify=false", "--signature-policy", policyPath, "localhost:5000/sigstore-signed-params"})
 				pull.WaitWithDefaultTimeout()
-				Expect(pull).Should(Exit(0))
+				Expect(pull).Should(ExitCleanly())
 			}
 		}
 	})
@@ -263,12 +263,12 @@ var _ = Describe("Podman push", func() {
 
 		inspect := podmanTest.Podman([]string{"inspect", "--format={{.ID}}", ALPINE})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 		imageID := inspect.OutputToString()
 
 		push := podmanTest.Podman([]string{"push", "--signature-policy", denyAllPolicy, "-q", imageID, "dir:" + filepath.Join(podmanTest.TempDir, imageID)})
 		push.WaitWithDefaultTimeout()
-		Expect(push).Should(Exit(0))
+		Expect(push).Should(ExitCleanly())
 		Expect(push.ErrorToString()).To(BeEmpty())
 	})
 
@@ -291,7 +291,7 @@ var _ = Describe("Podman push", func() {
 		defer lock.Unlock()
 		htpasswd := SystemExec("htpasswd", []string{"-Bbn", "podmantest", "test"})
 		htpasswd.WaitWithDefaultTimeout()
-		Expect(htpasswd).Should(Exit(0))
+		Expect(htpasswd).Should(ExitCleanly())
 
 		f, err := os.Create(filepath.Join(authPath, "htpasswd"))
 		Expect(err).ToNot(HaveOccurred())
@@ -308,7 +308,7 @@ var _ = Describe("Podman push", func() {
 			"-v", strings.Join([]string{certPath, "/certs"}, ":"), "-e", "REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt",
 			"-e", "REGISTRY_HTTP_TLS_KEY=/certs/domain.key", REGISTRY_IMAGE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
 			Skip("Cannot start docker registry.")
@@ -324,11 +324,11 @@ var _ = Describe("Podman push", func() {
 
 		push = podmanTest.Podman([]string{"push", "--creds=podmantest:test", "--tls-verify=false", ALPINE, "localhost:5000/tlstest"})
 		push.WaitWithDefaultTimeout()
-		Expect(push).Should(Exit(0))
+		Expect(push).Should(ExitCleanly())
 		Expect(push.ErrorToString()).To(ContainSubstring("Writing manifest to image destination"))
 
 		setup := SystemExec("cp", []string{filepath.Join(certPath, "domain.crt"), "/etc/containers/certs.d/localhost:5000/ca.crt"})
-		Expect(setup).Should(Exit(0))
+		Expect(setup).Should(ExitCleanly())
 
 		push = podmanTest.Podman([]string{"push", "--creds=podmantest:wrongpasswd", ALPINE, "localhost:5000/credstest"})
 		push.WaitWithDefaultTimeout()
@@ -345,17 +345,17 @@ var _ = Describe("Podman push", func() {
 
 		push = podmanTest.Podman([]string{"push", "--creds=podmantest:test", ALPINE, "localhost:5000/defaultflags"})
 		push.WaitWithDefaultTimeout()
-		Expect(push).Should(Exit(0))
+		Expect(push).Should(ExitCleanly())
 		Expect(push.ErrorToString()).To(ContainSubstring("Writing manifest to image destination"))
 
 		// create and push manifest
 		session = podmanTest.Podman([]string{"manifest", "create", "localhost:5000/manifesttest"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"manifest", "push", "--creds=podmantest:test", "--tls-verify=false", "--all", "localhost:5000/manifesttest"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.ErrorToString()).To(ContainSubstring("Writing manifest list to image destination"))
 	})
 
@@ -371,11 +371,11 @@ var _ = Describe("Podman push", func() {
 
 		session := podmanTest.Podman([]string{"push", "--encryption-key", "jwe:" + publicKeyFileName, ALPINE, fmt.Sprintf("oci:%s", bbdir)})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"rmi", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman push to docker-archive", func() {
@@ -384,7 +384,7 @@ var _ = Describe("Podman push", func() {
 		session := podmanTest.Podman([]string{"push", ALPINE,
 			fmt.Sprintf("docker-archive:%s:latest", tarfn)})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman push to docker daemon", func() {
@@ -394,10 +394,10 @@ var _ = Describe("Podman push", func() {
 
 		if setup.LineInOutputContains("Active: inactive") {
 			setup = SystemExec("systemctl", []string{"start", "docker"})
-			Expect(setup).Should(Exit(0))
+			Expect(setup).Should(ExitCleanly())
 			defer func() {
 				stop := SystemExec("systemctl", []string{"stop", "docker"})
-				Expect(stop).Should(Exit(0))
+				Expect(stop).Should(ExitCleanly())
 			}()
 		} else if setup.ExitCode() != 0 {
 			Skip("Docker is not available")
@@ -405,14 +405,14 @@ var _ = Describe("Podman push", func() {
 
 		session := podmanTest.Podman([]string{"push", ALPINE, "docker-daemon:alpine:podmantest"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		check := SystemExec("docker", []string{"images", "--format", "{{.Repository}}:{{.Tag}}"})
-		Expect(check).Should(Exit(0))
+		Expect(check).Should(ExitCleanly())
 		Expect(check.OutputToString()).To(ContainSubstring("alpine:podmantest"))
 
 		clean := SystemExec("docker", []string{"rmi", "alpine:podmantest"})
-		Expect(clean).Should(Exit(0))
+		Expect(clean).Should(ExitCleanly())
 	})
 
 	It("podman push to oci-archive", func() {
@@ -421,7 +421,7 @@ var _ = Describe("Podman push", func() {
 		session := podmanTest.Podman([]string{"push", ALPINE,
 			fmt.Sprintf("oci-archive:%s:latest", tarfn)})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman push to docker-archive no reference", func() {
@@ -430,7 +430,7 @@ var _ = Describe("Podman push", func() {
 		session := podmanTest.Podman([]string{"push", ALPINE,
 			fmt.Sprintf("docker-archive:%s", tarfn)})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman push to oci-archive no reference", func() {
@@ -440,7 +440,7 @@ var _ = Describe("Podman push", func() {
 			fmt.Sprintf("oci-archive:%s", ociarc)})
 
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 })

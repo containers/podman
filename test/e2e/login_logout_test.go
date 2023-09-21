@@ -11,7 +11,6 @@ import (
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman login and logout", func() {
@@ -32,7 +31,7 @@ var _ = Describe("Podman login and logout", func() {
 
 		htpasswd := SystemExec("htpasswd", []string{"-Bbn", "podmantest", "test"})
 		htpasswd.WaitWithDefaultTimeout()
-		Expect(htpasswd).Should(Exit(0))
+		Expect(htpasswd).Should(ExitCleanly())
 
 		f, err := os.Create(filepath.Join(authPath, "htpasswd"))
 		Expect(err).ToNot(HaveOccurred())
@@ -65,7 +64,7 @@ var _ = Describe("Podman login and logout", func() {
 			"-v", strings.Join([]string{certPath, "/certs:Z"}, ":"), "-e", "REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt",
 			"-e", "REGISTRY_HTTP_TLS_KEY=/certs/domain.key", REGISTRY_IMAGE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
 			Skip("Cannot start docker registry.")
@@ -105,7 +104,7 @@ var _ = Describe("Podman login and logout", func() {
 
 		session := podmanTest.Podman([]string{"login", "-u", "podmantest", "-p", "test", server})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		// Confirm that file was created, with the desired credentials
 		auths := readAuthInfo(authFile)
@@ -115,11 +114,11 @@ var _ = Describe("Podman login and logout", func() {
 
 		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"logout", server})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
@@ -150,18 +149,18 @@ var _ = Describe("Podman login and logout", func() {
 
 		session := podmanTest.Podman([]string{"login", "-u", "podmantest", "-p", "test"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"logout"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman login and logout with flag --authfile", func() {
 		authFile := filepath.Join(podmanTest.TempDir, "auth.json")
 		session := podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test", "--authfile", authFile, server})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		readAuthInfo(authFile)
 
@@ -173,11 +172,11 @@ var _ = Describe("Podman login and logout", func() {
 
 		session = podmanTest.Podman([]string{"push", "--authfile", authFile, ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"run", "--authfile", authFile, testImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		// logout should fail with nonexistent authfile
 		session = podmanTest.Podman([]string{"logout", "--authfile", "/tmp/nonexistent", server})
@@ -187,7 +186,7 @@ var _ = Describe("Podman login and logout", func() {
 
 		session = podmanTest.Podman([]string{"logout", "--authfile", authFile, server})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman manifest with --authfile", func() {
@@ -196,13 +195,13 @@ var _ = Describe("Podman login and logout", func() {
 		authFile := filepath.Join(podmanTest.TempDir, "auth.json")
 		session := podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test", "--authfile", authFile, server})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		readAuthInfo(authFile)
 
 		session = podmanTest.Podman([]string{"manifest", "create", testImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"manifest", "push", testImg})
 		session.WaitWithDefaultTimeout()
@@ -211,12 +210,12 @@ var _ = Describe("Podman login and logout", func() {
 
 		session = podmanTest.Podman([]string{"manifest", "push", "--authfile", authFile, testImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		// Now remove the local manifest to trigger remote inspection
 		session = podmanTest.Podman([]string{"manifest", "rm", testImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"manifest", "inspect", testImg})
 		session.WaitWithDefaultTimeout()
@@ -225,21 +224,21 @@ var _ = Describe("Podman login and logout", func() {
 
 		session = podmanTest.Podman([]string{"manifest", "inspect", "--authfile", authFile, testImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman login and logout with --tls-verify", func() {
 		session := podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test", "--tls-verify=false", server})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"logout", server})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 	It("podman login and logout with --cert-dir", func() {
 		certDir := filepath.Join(podmanTest.TempDir, "certs")
@@ -251,15 +250,15 @@ var _ = Describe("Podman login and logout", func() {
 
 		session := podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test", "--cert-dir", certDir, server})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"push", "--cert-dir", certDir, ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"logout", server})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 	It("podman login and logout with multi registry", func() {
 		certDir := filepath.Join(os.Getenv("HOME"), ".config/containers/certs.d", "localhost:9001")
@@ -282,7 +281,7 @@ var _ = Describe("Podman login and logout", func() {
 			"-v", strings.Join([]string{certPath, "/certs:z"}, ":"), "-e", "REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt",
 			"-e", "REGISTRY_HTTP_TLS_KEY=/certs/domain.key", REGISTRY_IMAGE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		if !WaitContainerReady(podmanTest, "registry1", "listening on", 20, 1) {
 			Skip("Cannot start docker registry.")
@@ -290,11 +289,11 @@ var _ = Describe("Podman login and logout", func() {
 
 		session = podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test", server})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"push", ALPINE, "localhost:9001/test-alpine"})
 		session.WaitWithDefaultTimeout()
@@ -303,19 +302,19 @@ var _ = Describe("Podman login and logout", func() {
 
 		session = podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test", "localhost:9001"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"push", ALPINE, "localhost:9001/test-alpine"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"logout", server})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
@@ -324,15 +323,15 @@ var _ = Describe("Podman login and logout", func() {
 
 		session = podmanTest.Podman([]string{"push", ALPINE, "localhost:9001/test-alpine"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test", "localhost:9001"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"logout", "-a"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
@@ -357,7 +356,7 @@ var _ = Describe("Podman login and logout", func() {
 			testRepository,
 		})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		authInfo := readAuthInfo(authFile)
 		Expect(authInfo).To(HaveKey(testRepository))
@@ -368,7 +367,7 @@ var _ = Describe("Podman login and logout", func() {
 			testRepository,
 		})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		authInfo = readAuthInfo(authFile)
 		Expect(authInfo).NotTo(HaveKey(testRepository))
@@ -386,7 +385,7 @@ var _ = Describe("Podman login and logout", func() {
 			testTarget,
 		})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		authInfo := readAuthInfo(authFile)
 		Expect(authInfo).To(HaveKey(testTarget))
@@ -397,7 +396,7 @@ var _ = Describe("Podman login and logout", func() {
 			ALPINE, testTarget,
 		})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 	})
 
@@ -417,7 +416,7 @@ var _ = Describe("Podman login and logout", func() {
 				testRepo,
 			})
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 		}
 
 		authInfo := readAuthInfo(authFile)
@@ -430,7 +429,7 @@ var _ = Describe("Podman login and logout", func() {
 			ALPINE, testRepos[0] + "/test-image-alpine",
 		})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{
 			"logout",
@@ -438,7 +437,7 @@ var _ = Describe("Podman login and logout", func() {
 			testRepos[0],
 		})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{
 			"push",
@@ -446,7 +445,7 @@ var _ = Describe("Podman login and logout", func() {
 			ALPINE, testRepos[0] + "/test-image-alpine",
 		})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{
 			"logout",
@@ -454,7 +453,7 @@ var _ = Describe("Podman login and logout", func() {
 			testRepos[1],
 		})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		authInfo = readAuthInfo(authFile)
 		Expect(authInfo).NotTo(HaveKey(testRepos[0]))
@@ -476,7 +475,7 @@ var _ = Describe("Podman login and logout", func() {
 				invalidArg,
 			})
 			session.WaitWithDefaultTimeout()
-			Expect(session).To(Exit(0))
+			Expect(session).To(ExitCleanly())
 		}
 	})
 
@@ -504,7 +503,7 @@ var _ = Describe("Podman login and logout", func() {
 			ALPINE, server + "/test-image",
 		})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(Exit(0))
+		Expect(session).To(ExitCleanly())
 	})
 
 	It("podman login and logout with repository pull with wrong auth.json credentials", func() {
@@ -519,7 +518,7 @@ var _ = Describe("Podman login and logout", func() {
 			testTarget,
 		})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{
 			"push",
@@ -527,7 +526,7 @@ var _ = Describe("Podman login and logout", func() {
 			ALPINE, testTarget,
 		})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		// only `server + /podmantest` and `server` have the correct login data
 		err := os.WriteFile(authFile, []byte(fmt.Sprintf(`{"auths": {

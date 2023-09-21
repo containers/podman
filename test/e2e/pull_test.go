@@ -17,7 +17,7 @@ var _ = Describe("Podman pull", func() {
 	It("podman pull multiple images with/without tag/digest", func() {
 		session := podmanTest.Podman([]string{"pull", "busybox:musl", "alpine", "alpine:latest", "quay.io/libpod/cirros", "quay.io/libpod/testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"pull", "busybox:latest", "docker.io/library/ibetthisdoesnotexistfr:random", "alpine"})
 		session.WaitWithDefaultTimeout()
@@ -27,7 +27,7 @@ var _ = Describe("Podman pull", func() {
 
 		session = podmanTest.Podman([]string{"rmi", "busybox:musl", "alpine", "quay.io/libpod/cirros", "testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman pull bogus image", func() {
@@ -39,27 +39,27 @@ var _ = Describe("Podman pull", func() {
 	It("podman pull with tag --quiet", func() {
 		session := podmanTest.Podman([]string{"pull", "-q", "quay.io/libpod/testdigest_v2s2:20200210"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		quietOutput := session.OutputToString()
 
 		session = podmanTest.Podman([]string{"inspect", "testdigest_v2s2:20200210", "--format", "{{.ID}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal(quietOutput))
 
 		session = podmanTest.Podman([]string{"rmi", "testdigest_v2s2:20200210"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman pull without tag", func() {
 		session := podmanTest.Podman([]string{"pull", "quay.io/libpod/testdigest_v2s2"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"rmi", "testdigest_v2s2"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman pull and run on split imagestore", func() {
@@ -69,44 +69,44 @@ var _ = Describe("Podman pull", func() {
 		// Make alpine write-able
 		session := podmanTest.Podman([]string{"build", "--pull=never", "--tag", imgName, "build/basicalpine"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		tmpDir := filepath.Join(podmanTest.TempDir, "splitstore")
 		outfile := filepath.Join(podmanTest.TempDir, "image.tar")
 
 		save := podmanTest.Podman([]string{"save", "-o", outfile, "--format", "oci-archive", imgName})
 		save.WaitWithDefaultTimeout()
-		Expect(save).Should(Exit(0))
+		Expect(save).Should(ExitCleanly())
 
 		rmi := podmanTest.Podman([]string{"rmi", imgName})
 		rmi.WaitWithDefaultTimeout()
-		Expect(rmi).Should(Exit(0))
+		Expect(rmi).Should(ExitCleanly())
 
 		// load to splitstore
 		result := podmanTest.Podman([]string{"load", "--imagestore", tmpDir, "-q", "-i", outfile})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 
 		// tag busybox to busybox-test in graphroot since we can delete readonly busybox
 		session = podmanTest.Podman([]string{"tag", "quay.io/libpod/busybox:latest", "busybox-test"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"images", "--imagestore", tmpDir})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring(imgName))
 		Expect(session.OutputToString()).To(ContainSubstring("busybox-test"))
 
 		// Test deleting image in graphroot even when `--imagestore` is set
 		session = podmanTest.Podman([]string{"rmi", "--imagestore", tmpDir, "busybox-test"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		// Images without --imagestore should not contain alpine
 		session = podmanTest.Podman([]string{"images"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Not(ContainSubstring(imgName)))
 
 		// Set `imagestore` in `storage.conf` and container should run.
@@ -125,14 +125,14 @@ var _ = Describe("Podman pull", func() {
 		session = podmanTest.Podman([]string{"run", "--name", "test", "--rm",
 			imgName, "echo", "helloworld"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("helloworld"))
 	})
 
 	It("podman pull by digest", func() {
 		session := podmanTest.Podman([]string{"pull", "quay.io/libpod/testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		// Without a tag/digest the input is normalized with the "latest" tag, see #11964
 		session = podmanTest.Podman([]string{"rmi", "testdigest_v2s2"})
@@ -141,26 +141,26 @@ var _ = Describe("Podman pull", func() {
 
 		session = podmanTest.Podman([]string{"rmi", "testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman pull check all tags", func() {
 		session := podmanTest.Podman([]string{"pull", "--all-tags", "quay.io/libpod/testdigest_v2s2"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"images"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">=", 2), "Expected at least two images")
 
 		session = podmanTest.Podman([]string{"pull", "-a", "quay.io/libpod/testdigest_v2s2"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"images"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">=", 2), "Expected at least two images")
 	})
 
@@ -173,50 +173,50 @@ var _ = Describe("Podman pull", func() {
 	It("podman pull by digest (image list)", func() {
 		session := podmanTest.Podman([]string{"pull", "--arch=arm64", ALPINELISTDIGEST})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		// inspect using the digest of the list
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RepoTags}}", ALPINELISTDIGEST})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(string(session.Out.Contents())).To(HavePrefix("[]"))
 		// inspect using the digest of the list
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RepoDigests}}", ALPINELISTDIGEST})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTDIGEST))
 		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64DIGEST))
 		// inspect using the digest of the arch-specific image's manifest
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RepoTags}}", ALPINEARM64DIGEST})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(string(session.Out.Contents())).To(HavePrefix("[]"))
 		// inspect using the digest of the arch-specific image's manifest
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RepoDigests}}", ALPINEARM64DIGEST})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTDIGEST))
 		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64DIGEST))
 		// inspect using the image ID
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RepoTags}}", ALPINEARM64ID})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(string(session.Out.Contents())).To(HavePrefix("[]"))
 		// inspect using the image ID
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RepoDigests}}", ALPINEARM64ID})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTDIGEST))
 		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64DIGEST))
 		// remove using the digest of the list
 		session = podmanTest.Podman([]string{"rmi", ALPINELISTDIGEST})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman pull by instance digest (image list)", func() {
 		session := podmanTest.Podman([]string{"pull", "--arch=arm64", ALPINEARM64DIGEST})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		// inspect using the digest of the list
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RepoTags}}", ALPINELISTDIGEST})
 		session.WaitWithDefaultTimeout()
@@ -228,83 +228,83 @@ var _ = Describe("Podman pull", func() {
 		// inspect using the digest of the arch-specific image's manifest
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RepoTags}}", ALPINEARM64DIGEST})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(string(session.Out.Contents())).To(HavePrefix("[]"))
 		// inspect using the digest of the arch-specific image's manifest
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RepoDigests}}", ALPINEARM64DIGEST})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(string(session.Out.Contents())).To(Not(ContainSubstring(ALPINELISTDIGEST)))
 		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64DIGEST))
 		// inspect using the image ID
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RepoTags}}", ALPINEARM64ID})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(string(session.Out.Contents())).To(HavePrefix("[]"))
 		// inspect using the image ID
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RepoDigests}}", ALPINEARM64ID})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(string(session.Out.Contents())).To(Not(ContainSubstring(ALPINELISTDIGEST)))
 		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64DIGEST))
 		// remove using the digest of the instance
 		session = podmanTest.Podman([]string{"rmi", ALPINEARM64DIGEST})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman pull by tag (image list)", func() {
 		session := podmanTest.Podman([]string{"pull", "--arch=arm64", ALPINELISTTAG})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		// inspect using the tag we used for pulling
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RepoTags}}", ALPINELISTTAG})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTTAG))
 		// inspect using the tag we used for pulling
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RepoDigests}}", ALPINELISTTAG})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTDIGEST))
 		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64DIGEST))
 		// inspect using the digest of the list
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RepoTags}}", ALPINELISTDIGEST})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTTAG))
 		// inspect using the digest of the list
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RepoDigests}}", ALPINELISTDIGEST})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTDIGEST))
 		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64DIGEST))
 		// inspect using the digest of the arch-specific image's manifest
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RepoTags}}", ALPINEARM64DIGEST})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTTAG))
 		// inspect using the digest of the arch-specific image's manifest
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RepoDigests}}", ALPINEARM64DIGEST})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTDIGEST))
 		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64DIGEST))
 		// inspect using the image ID
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RepoTags}}", ALPINEARM64ID})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTTAG))
 		// inspect using the image ID
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RepoDigests}}", ALPINEARM64ID})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTDIGEST))
 		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64DIGEST))
 		// remove using the tag
 		session = podmanTest.Podman([]string{"rmi", ALPINELISTTAG})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman pull from docker-archive", func() {
@@ -315,16 +315,16 @@ var _ = Describe("Podman pull", func() {
 		session := podmanTest.Podman([]string{"save", "-o", tarfn, "cirros"})
 		session.WaitWithDefaultTimeout()
 
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"rmi", "cirros"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"pull", fmt.Sprintf("docker-archive:%s", tarfn)})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"rmi", "cirros"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		// Pulling a multi-image archive without further specifying
 		// which image _must_ error out. Pulling is restricted to one
@@ -339,19 +339,19 @@ var _ = Describe("Podman pull", func() {
 		// and index syntax.
 		session = podmanTest.Podman([]string{"pull", "docker-archive:./testdata/docker-two-images.tar.xz:@0"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"pull", "docker-archive:./testdata/docker-two-images.tar.xz:example.com/empty:latest"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"pull", "docker-archive:./testdata/docker-two-images.tar.xz:@1"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"pull", "docker-archive:./testdata/docker-two-images.tar.xz:example.com/empty/but:different"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		// Now check for some errors.
 		session = podmanTest.Podman([]string{"pull", "docker-archive:./testdata/docker-two-images.tar.xz:foo.com/does/not/exist:latest"})
@@ -375,16 +375,16 @@ var _ = Describe("Podman pull", func() {
 		session := podmanTest.Podman([]string{"save", "--format", "oci-archive", "-o", tarfn, "cirros"})
 		session.WaitWithDefaultTimeout()
 
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"rmi", "cirros"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"pull", fmt.Sprintf("oci-archive:%s", tarfn)})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"rmi", "cirros"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman pull from local directory", func() {
@@ -398,13 +398,13 @@ var _ = Describe("Podman pull", func() {
 
 		session := podmanTest.Podman([]string{"push", "cirros", imgPath})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"rmi", "cirros"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"run", imgPath, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		// Note that reference is not preserved in dir.
 		session = podmanTest.Podman([]string{"image", "exists", "cirros"})
 		session.WaitWithDefaultTimeout()
@@ -423,16 +423,16 @@ var _ = Describe("Podman pull", func() {
 
 		session := podmanTest.Podman([]string{"push", "cirros", imgPath})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"rmi", "cirros"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"pull", imgPath})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"image", "exists", imgName})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman pull + inspect from unqualified-search registry", func() {
@@ -456,7 +456,7 @@ var _ = Describe("Podman pull", func() {
 		getID := func(image string) string {
 			setup := podmanTest.Podman([]string{"image", "inspect", image})
 			setup.WaitWithDefaultTimeout()
-			Expect(setup).Should(Exit(0))
+			Expect(setup).Should(ExitCleanly())
 
 			data := setup.InspectImageJSON() // returns []inspect.ImageData
 			Expect(data).To(HaveLen(1))
@@ -466,11 +466,11 @@ var _ = Describe("Podman pull", func() {
 		untag := func(image string) {
 			setup := podmanTest.Podman([]string{"untag", image})
 			setup.WaitWithDefaultTimeout()
-			Expect(setup).Should(Exit(0))
+			Expect(setup).Should(ExitCleanly())
 
 			setup = podmanTest.Podman([]string{"image", "inspect", image})
 			setup.WaitWithDefaultTimeout()
-			Expect(setup).Should(Exit(0))
+			Expect(setup).Should(ExitCleanly())
 
 			data := setup.InspectImageJSON() // returns []inspect.ImageData
 			Expect(data).To(HaveLen(1))
@@ -480,10 +480,10 @@ var _ = Describe("Podman pull", func() {
 		tag := func(image, tag string) {
 			setup := podmanTest.Podman([]string{"tag", image, tag})
 			setup.WaitWithDefaultTimeout()
-			Expect(setup).Should(Exit(0))
+			Expect(setup).Should(ExitCleanly())
 			setup = podmanTest.Podman([]string{"image", "exists", tag})
 			setup.WaitWithDefaultTimeout()
-			Expect(setup).Should(Exit(0))
+			Expect(setup).Should(ExitCleanly())
 		}
 
 		image1 := getID(ALPINE)
@@ -524,7 +524,7 @@ var _ = Describe("Podman pull", func() {
 
 			setup := podmanTest.Podman([]string{"image", "inspect", name})
 			setup.WaitWithDefaultTimeout()
-			Expect(setup).Should(Exit(0))
+			Expect(setup).Should(ExitCleanly())
 
 			data := setup.InspectImageJSON() // returns []inspect.ImageData
 			Expect(data).To(HaveLen(1))
@@ -549,11 +549,11 @@ var _ = Describe("Podman pull", func() {
 
 		session = podmanTest.Podman([]string{"pull", "-q", "--platform=linux/arm64", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		setup := podmanTest.Podman([]string{"image", "inspect", session.OutputToString()})
 		setup.WaitWithDefaultTimeout()
-		Expect(setup).Should(Exit(0))
+		Expect(setup).Should(ExitCleanly())
 
 		data := setup.InspectImageJSON() // returns []inspect.ImageData
 		Expect(data).To(HaveLen(1))
@@ -576,11 +576,11 @@ var _ = Describe("Podman pull", func() {
 
 		session = podmanTest.Podman([]string{"pull", "-q", "--arch=arm64", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 
 		setup := podmanTest.Podman([]string{"image", "inspect", session.OutputToString()})
 		setup.WaitWithDefaultTimeout()
-		Expect(setup).Should(Exit(0))
+		Expect(setup).Should(ExitCleanly())
 
 		data := setup.InspectImageJSON() // returns []inspect.ImageData
 		Expect(data).To(HaveLen(1))
@@ -591,14 +591,14 @@ var _ = Describe("Podman pull", func() {
 	It("podman pull progress", func() {
 		session := podmanTest.Podman([]string{"pull", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		output := session.ErrorToString()
 		Expect(output).To(ContainSubstring("Getting image source signatures"))
 		Expect(output).To(ContainSubstring("Copying blob "))
 
 		session = podmanTest.Podman([]string{"pull", "-q", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitCleanly())
 		Expect(session.ErrorToString()).To(BeEmpty())
 	})
 
@@ -619,7 +619,7 @@ var _ = Describe("Podman pull", func() {
 
 			session = podmanTest.Podman([]string{"rmi", ALPINE})
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 
 			// Pulling encrypted image without key should fail
 			session = podmanTest.Podman([]string{"pull", imgPath})
@@ -634,10 +634,10 @@ var _ = Describe("Podman pull", func() {
 			// Pulling encrypted image with correct key should pass
 			session = podmanTest.Podman([]string{"pull", "--decryption-key", privateKeyFileName, imgPath})
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 			session = podmanTest.Podman([]string{"images"})
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 
 			return session
 		}
@@ -673,7 +673,7 @@ var _ = Describe("Podman pull", func() {
 			defer lock.Unlock()
 			session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
+			Expect(session).Should(ExitCleanly())
 
 			if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
 				Skip("Cannot start docker registry.")
