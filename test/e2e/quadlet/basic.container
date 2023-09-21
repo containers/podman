@@ -12,8 +12,8 @@
 ## assert-key-is "Service" "Type" "notify"
 ## assert-key-is "Service" "NotifyAccess" "all"
 ## assert-key-is "Service" "SyslogIdentifier" "%N"
-## assert-key-is-regex "Service" "ExecStopPost" "-.*/podman rm -f -i --cidfile=%t/%N.cid"
-## assert-key-is-regex "Service" "ExecStop" ".*/podman rm -f -i --cidfile=%t/%N.cid"
+## assert-key-is-regex "Service" "ExecStopPost" "-.*/podman rm -v -f -i --cidfile=%t/%N.cid"
+## assert-key-is-regex "Service" "ExecStop" ".*/podman rm -v -f -i --cidfile=%t/%N.cid"
 ## assert-key-is "Service" "Environment" "PODMAN_SYSTEMD_UNIT=%n"
 
 [Container]

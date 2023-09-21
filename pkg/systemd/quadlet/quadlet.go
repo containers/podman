@@ -413,12 +413,12 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 
 	// If conmon exited uncleanly it may not have removed the container, so
 	// force it, -i makes it ignore non-existing files.
-	service.Add(ServiceGroup, "ExecStop", podmanBinary()+" rm -f -i --cidfile=%t/%N.cid")
+	service.Add(ServiceGroup, "ExecStop", podmanBinary()+" rm -v -f -i --cidfile=%t/%N.cid")
 	// The ExecStopPost is needed when the main PID (i.e., conmon) gets killed.
 	// In that case, ExecStop is not executed but *Post only.  If both are
 	// fired in sequence, *Post will exit when detecting that the --cidfile
 	// has already been removed by the previous `rm`..
-	service.Add(ServiceGroup, "ExecStopPost", "-"+podmanBinary()+" rm -f -i --cidfile=%t/%N.cid")
+	service.Add(ServiceGroup, "ExecStopPost", "-"+podmanBinary()+" rm -v -f -i --cidfile=%t/%N.cid")
 
 	podman := NewPodmanCmdline("run")
 
