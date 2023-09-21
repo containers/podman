@@ -148,7 +148,7 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 
 	if fs.Changed("root") {
 		storageSet = true
-		storageOpts.GraphRoot = cfg.ContainersConf.Engine.StaticDir
+		storageOpts.GraphRoot = cfg.GraphRoot
 		storageOpts.GraphDriverOptions = []string{}
 	}
 	if fs.Changed("runroot") {
@@ -277,6 +277,10 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 
 	if cfg.Syslog {
 		options = append(options, libpod.WithSyslog())
+	}
+
+	if opts.config.ContainersConfDefaultsRO.Engine.StaticDir != "" {
+		options = append(options, libpod.WithStaticDir(opts.config.ContainersConfDefaultsRO.Engine.StaticDir))
 	}
 
 	// TODO flag to set CNI plugins dir?

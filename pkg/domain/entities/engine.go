@@ -58,4 +58,5 @@ type PodmanConfig struct {
 	SSHMode        string
 	MachineMode    bool
 	TransientStore bool
+	GraphRoot      string
 }

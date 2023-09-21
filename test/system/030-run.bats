@@ -1216,6 +1216,29 @@ EOF
     run_podman rm -f -t0 $ctr
 }
 
+@test "podman run - custom static_dir" {
+    # regression test for #19938 to make sure the cleanup process uses the same
+    # static_dir and writes the exit code.  If not, podman-run will run into
+    # it's 20 sec timeout waiting for the exit code to be written.
+
+    skip_if_remote "CONTAINERS_CONF_OVERRIDE redirect does not work on remote"
+    containersconf=$PODMAN_TMPDIR/containers.conf
+    static_dir=$PODMAN_TMPDIR/static_dir
+cat >$containersconf <<EOF
+[engine]
+static_dir="$static_dir"
+EOF
+    ctr=$(random_string)
+    CONTAINERS_CONF_OVERRIDE=$containersconf PODMAN_TIMEOUT=20 run_podman run --name=$ctr $IMAGE true
+    CONTAINERS_CONF_OVERRIDE=$containersconf PODMAN_TIMEOUT=20 run_podman inspect --format "{{.ID}}" $ctr
+    cid="$output"
+    # Since the container has been run with custom static_dir (where the libpod
+    # DB is stored), the default podman should not see it.
+    run_podman 1 container exists $ctr
+    run_podman 1 container exists $cid
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman rm -f -t0 $ctr
+}
+
 @test "podman --authfile=nonexistent-path" {
     # List of commands to be tested. These all share a common authfile check.
     #

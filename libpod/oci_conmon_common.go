@@ -1328,6 +1328,9 @@ func (r *ConmonOCIRuntime) configureConmonEnv(runtimeDir string) []string {
 	if conf, ok := os.LookupEnv("CONTAINERS_CONF"); ok {
 		env = append(env, fmt.Sprintf("CONTAINERS_CONF=%s", conf))
 	}
+	if conf, ok := os.LookupEnv("CONTAINERS_CONF_OVERRIDE"); ok {
+		env = append(env, fmt.Sprintf("CONTAINERS_CONF_OVERRIDE=%s", conf))
+	}
 	if conf, ok := os.LookupEnv("CONTAINERS_HELPER_BINARY_DIR"); ok {
 		env = append(env, fmt.Sprintf("CONTAINERS_HELPER_BINARY_DIR=%s", conf))
 	}
