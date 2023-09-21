@@ -19,8 +19,8 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
-	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/strongunits"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
@@ -123,7 +123,7 @@ func (m *MacMachine) setVfkitInfo(cfg *config.Config, readySocket machine.VMFile
 // addMountsToVM converts the volumes passed through the CLI to virtio-fs mounts
 // and adds them to the machine
 func (m *MacMachine) addMountsToVM(opts machine.InitOptions, virtiofsMnts *[]machine.VirtIoFs) error {
-	mounts := []machine.Mount{}
+	var mounts []machine.Mount
 	for _, volume := range opts.Volumes {
 		source, target, _, readOnly, err := machine.ParseVolumeFromPath(volume)
 		if err != nil {
@@ -264,7 +264,7 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 	}
 
 	// Until the disk resize can be fixed, we ignore it
-	if err := m.resizeDisk(opts.DiskSize); err != nil && !errors.Is(err, define.ErrNotImplemented) {
+	if err := m.resizeDisk(strongunits.GiB(opts.DiskSize)); err != nil {
 		return false, err
 	}
 
@@ -414,7 +414,7 @@ func (m *MacMachine) Set(name string, opts machine.SetOptions) ([]error, error) 
 			setErrors = append(setErrors, errors.New("new disk size smaller than existing disk size: cannot shrink disk size"))
 		} else {
 			m.DiskSize = *newSize
-			if err := m.resizeDisk(*opts.DiskSize); err != nil {
+			if err := m.resizeDisk(strongunits.GiB(*opts.DiskSize)); err != nil {
 				setErrors = append(setErrors, err)
 			}
 		}
@@ -944,15 +944,15 @@ func (m *MacMachine) forwardSocketPath() (*machine.VMFile, error) {
 	return machine.NewMachineFile(filepath.Join(path, sockName), &sockName)
 }
 
-func (m *MacMachine) resizeDisk(newSize uint64) error {
-	// TODO truncating is not enough; we may not be able to support resizing with raw image?
-	// Leaving for now but returning an unimplemented error
-
-	//if newSize < m.DiskSize {
-	//	return fmt.Errorf("invalid disk size %d: new disk must be larger than %dGB", newSize, m.DiskSize)
-	//}
-	//return os.Truncate(m.ImagePath.GetPath(), int64(newSize))
-	return define.ErrNotImplemented
+// resizeDisk uses os truncate to resize (only larger) a raw disk.  the input size
+// is assumed GiB
+func (m *MacMachine) resizeDisk(newSize strongunits.GiB) error {
+	if uint64(newSize) < m.DiskSize {
+		// TODO this error needs to be changed to the common error.  would do now but the PR for the common
+		// error has not merged
+		return fmt.Errorf("invalid disk size %d: new disk must be larger than %dGB", newSize, m.DiskSize)
+	}
+	return os.Truncate(m.ImagePath.GetPath(), int64(newSize.ToBytes()))
 }
 
 // isFirstBoot returns a bool reflecting if the machine has been booted before
