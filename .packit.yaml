@@ -16,8 +16,10 @@ actions:
 jobs:
   - job: copr_build
     trigger: pull_request
+    notifications:
+      failure_comment:
+        message: "Ephemeral COPR build failed. @containers/packit-build please check."
     enable_net: true
-    # keep in sync with https://copr.fedorainfracloud.org/coprs/rhcontainerbot/podman-next
     targets:
       - fedora-all-x86_64
       - fedora-all-aarch64
@@ -33,6 +35,9 @@ jobs:
   # Run on commit to main branch
   - job: copr_build
     trigger: commit
+    notifications:
+      failure_comment:
+        message: "podman-next COPR build failed. @containers/packit-build please check."
     branch: main
     owner: rhcontainerbot
     project: podman-next
