@@ -1165,6 +1165,10 @@ EOF
         # verify that the last /sys/fs/cgroup mount is read-only
         run_podman run --net=host --cgroupns=host --rm $IMAGE sh -c "grep ' / /sys/fs/cgroup ' /proc/self/mountinfo | tail -n 1"
         assert "$output" =~ "/sys/fs/cgroup ro"
+
+        # verify that it works also with a cgroupns
+        run_podman run --net=host --cgroupns=private --rm $IMAGE sh -c "grep ' / /sys/fs/cgroup ' /proc/self/mountinfo | tail -n 1"
+        assert "$output" =~ "/sys/fs/cgroup ro"
     fi
 }
 
