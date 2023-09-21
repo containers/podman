@@ -1259,19 +1259,26 @@ VOLUME %s`, ALPINE, volPath, volPath)
 	})
 
 	It("podman run findmnt shared", func() {
-		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
-		err := os.MkdirAll(vol1, 0755)
-		Expect(err).ToNot(HaveOccurred())
-		vol2 := filepath.Join(podmanTest.TempDir, "vol-test2")
-		err = os.MkdirAll(vol2, 0755)
+		vol := filepath.Join(podmanTest.TempDir, "vol-test")
+		err := os.MkdirAll(vol, 0755)
 		Expect(err).ToNot(HaveOccurred())
 
-		session := podmanTest.Podman([]string{"run", "--volume", vol1 + ":/myvol1:z", "--volume", vol2 + ":/myvol2:shared,z", fedoraMinimal, "findmnt", "-o", "TARGET,PROPAGATION"})
+		session := podmanTest.Podman([]string{"run", "--volume", vol + ":/myvol:z", fedoraMinimal, "findmnt", "-no", "PROPAGATION", "/myvol"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring("shared"))
-		// make sure it's only shared (and not 'shared,slave')
-		Expect(session.OutputToString()).To(Not(ContainSubstring("shared,")))
+		Expect(session.OutputToString()).To(Equal("private"))
+
+		session = podmanTest.Podman([]string{"run", "--volume", vol + ":/myvol:shared,z", fedoraMinimal, "findmnt", "-no", "PROPAGATION", "/myvol"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		if isRootless() {
+			// we need to relax the rootless test because it can be "shared" only when the user owns the outer mount namespace.
+			Expect(session.OutputToString()).To(ContainSubstring("shared"))
+		} else {
+			// make sure it's only shared (and not 'shared,*')
+			Expect(session.OutputToString()).To(Equal("shared"))
+		}
 	})
 
 	It("podman run --security-opts proc-opts=", func() {
