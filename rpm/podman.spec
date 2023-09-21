@@ -31,6 +31,10 @@
 %define build_with_btrfs 1
 %endif
 
+%if %{defined copr_username}
+%define copr_build 1
+%endif
+
 %global container_base_path github.com/containers
 %global container_base_url https://%{container_base_path}
 
@@ -48,7 +52,7 @@
 %global import_path_plugins %{container_base_path}/%{repo_plugins}
 
 Name: podman
-%if %{defined copr_username}
+%if %{defined copr_build}
 Epoch: 102
 %else
 Epoch: 5
@@ -202,6 +206,14 @@ when `%{_bindir}/%{name}sh` is set as a login shell or set as os.Args[0].
 %prep
 %autosetup -Sgit -n %{name}-%{version}
 sed -i 's;@@PODMAN@@\;$(BINDIR);@@PODMAN@@\;%{_bindir};' Makefile
+
+# These changes are only meant for copr builds
+%if %{defined copr_build}
+# podman --version should show short sha
+sed -i "s/^const RawVersion = .*/const RawVersion = \"##VERSION##-##SHORT_SHA##\"/" version/rawversion/version.go
+# use ParseTolerant to allow short sha in version
+sed -i "s/^var Version.*/var Version, err = semver.ParseTolerant(rawversion.RawVersion)/" version/version.go
+%endif
 
 # untar dnsname
 tar zxf %{SOURCE1}

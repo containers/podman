@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 # This script handles any custom processing of the spec file using the `fix-spec-file`
-# action in .packit.yaml.
+# action in .packit.yaml. These steps only work on copr builds, not on official
+# Fedora builds.
 
 set -eox pipefail
 
@@ -40,8 +41,8 @@ sed -i "s/^Source0:.*.tar.gz/Source0: $PACKAGE-$VERSION.tar.gz/" $SPEC_FILE
 # Update setup macro to use the correct build dir
 sed -i "s/^%autosetup.*/%autosetup -Sgit -n %{name}-$VERSION/" $SPEC_FILE
 
-# podman --version should show short sha
-sed -i "s/^const RawVersion = \"$VERSION\"/const RawVersion = \"$VERSION-$SHORT_SHA\"/" version/rawversion/version.go
-
-# use ParseTolerant to allow short sha in version
-sed -i "s/^var Version.*/var Version, err = semver.ParseTolerant(rawversion.RawVersion)/" version/version.go
+# Update relevant sed entries in spec file with the actual VERSION and SHORT_SHA
+# This allows podman --version to also show the SHORT_SHA along with the
+# VERSION
+sed -i "s/##VERSION##/$VERSION/" $SPEC_FILE
+sed -i "s/##SHORT_SHA##/$SHORT_SHA/" $SPEC_FILE
