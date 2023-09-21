@@ -5,7 +5,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os/exec"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -69,9 +68,9 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(runAlp).To(Exit(0))
 		testHTTPServer("62544", false, "podman rulez")
 
-		out, err := exec.Command("pgrep", "gvproxy").Output()
+		out, err := pgrep("gvproxy")
 		Expect(err).ToNot(HaveOccurred())
-		Expect(string(out)).ToNot(BeEmpty())
+		Expect(out).ToNot(BeEmpty())
 
 		rmCon, err := mb.setCmd(bm.withPodmanCommand([]string{"rm", "-af"})).run()
 		Expect(err).ToNot(HaveOccurred())
@@ -84,8 +83,8 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(stopSession).To(Exit(0))
 
 		// gxproxy should exit after machine is stopped
-		_, err = exec.Command("pgrep", "gvproxy").Output()
-		Expect(err).To(HaveOccurred())
+		out, _ = pgrep("gvproxy")
+		Expect(out).ToNot(ContainSubstring("gvproxy"))
 	})
 
 })

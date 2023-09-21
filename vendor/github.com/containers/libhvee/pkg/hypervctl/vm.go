@@ -326,13 +326,18 @@ func (vm *VirtualMachine) GetConfig(diskPath string) (*HyperVConfig, error) {
 		return nil, err
 	}
 	diskSize = uint64(diskPathInfo.Size())
+	mem := MemorySettings{}
+	if err := vm.getMemorySettings(&mem); err != nil {
+		return nil, err
+	}
 
 	config := HyperVConfig{
 		Hardware: HardwareConfig{
+			// TODO we could implement a getProcessorSettings like we did for memory
 			CPUs:     summary.NumberOfProcessors,
 			DiskPath: diskPath,
 			DiskSize: diskSize,
-			Memory:   summary.MemoryAvailable,
+			Memory:   mem.Limit,
 		},
 		Status: Statuses{
 			Created:  vm.InstallDate,
@@ -403,8 +408,8 @@ func (vmm *VirtualMachineManager) NewVirtualMachine(name string, config *Hardwar
 
 			// The API seems to require both of these even
 			// when not using dynamic memory
-			ms.Limit = uint64(config.Memory)
-			ms.VirtualQuantity = uint64(config.Memory)
+			ms.Limit = config.Memory
+			ms.VirtualQuantity = config.Memory
 		}).
 		PrepareProcessorSettings(func(ps *ProcessorSettings) {
 			ps.VirtualQuantity = uint64(config.CPUs) // 4 cores
@@ -468,6 +473,15 @@ func (vm *VirtualMachine) fetchExistingResourceSettings(service *wmiext.Service,
 	return service.FindFirstRelatedObject(path, resourceType, resourceSettings)
 }
 
+func (vm *VirtualMachine) getMemorySettings(m *MemorySettings) error {
+	service, err := wmiext.NewLocalService(HyperVNamespace)
+	if err != nil {
+		return err
+	}
+	defer service.Close()
+	return vm.fetchExistingResourceSettings(service, "Msvm_MemorySettingData", m)
+}
+
 // Update processor and/or mem
 func (vm *VirtualMachine) UpdateProcessorMemSettings(updateProcessor func(*ProcessorSettings), updateMemory func(*MemorySettings)) error {
 	service, err := wmiext.NewLocalService(HyperVNamespace)
@@ -496,8 +510,7 @@ func (vm *VirtualMachine) UpdateProcessorMemSettings(updateProcessor func(*Proce
 	}
 
 	if updateMemory != nil {
-		err = vm.fetchExistingResourceSettings(service, "Msvm_MemorySettingData", mem)
-		if err != nil {
+		if err := vm.getMemorySettings(mem); err != nil {
 			return err
 		}
 

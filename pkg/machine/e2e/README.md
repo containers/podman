@@ -1,6 +1,6 @@
 # Working README for running the machine tests
 
-
+Note: you must not have any machines defined before running tests
 ## Linux
 
 ### QEMU

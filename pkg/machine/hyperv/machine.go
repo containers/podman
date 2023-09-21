@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -17,9 +18,9 @@ import (
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/libhvee/pkg/hypervctl"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/strongunits"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
-	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
 )
 
@@ -253,13 +254,16 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, os.WriteFile(m.IgnitionFile.GetPath(), inputIgnition, 0644)
 	}
 
-	// Write the JSON file for the second time.  First time was in NewMachine
 	if err := m.writeConfig(); err != nil {
 		return false, err
 	}
 
 	// Write the ignition file
 	if err := m.writeIgnitionConfigFile(opts, m.RemoteUsername, key); err != nil {
+		return false, err
+	}
+
+	if err := m.resizeDisk(strongunits.GiB(opts.DiskSize)); err != nil {
 		return false, err
 	}
 	// The ignition file has been written. We now need to
@@ -284,16 +288,16 @@ func (m *HyperVMachine) Inspect() (*machine.InspectInfo, error) {
 		ConnectionInfo: machine.ConnectionConfig{},
 		Created:        m.Created,
 		Image: machine.ImageConfig{
-			IgnitionFile: machine.VMFile{},
+			IgnitionFile: m.IgnitionFile,
 			ImageStream:  "",
-			ImagePath:    machine.VMFile{},
+			ImagePath:    m.ImagePath,
 		},
 		LastUp: m.LastUp,
 		Name:   m.Name,
 		Resources: machine.ResourceConfig{
 			CPUs:     uint64(cfg.Hardware.CPUs),
 			DiskSize: 0,
-			Memory:   uint64(cfg.Hardware.Memory),
+			Memory:   cfg.Hardware.Memory,
 		},
 		SSHConfig: m.SSHConfig,
 		State:     vm.State().String(),
@@ -348,7 +352,7 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 	// In hyperv, they call running 'enabled'
 	if vm.State() == hypervctl.Enabled {
 		if !opts.Force {
-			return "", nil, hypervctl.ErrMachineStateInvalid
+			return "", nil, &machine.ErrVMRunningCannotDestroyed{Name: m.Name}
 		}
 		if err := vm.Stop(); err != nil {
 			return "", nil, err
@@ -399,7 +403,10 @@ func (m *HyperVMachine) Set(name string, opts machine.SetOptions) ([]error, erro
 		}
 	}
 	if opts.DiskSize != nil && m.DiskSize != *opts.DiskSize {
-		setErrors = append(setErrors, hypervctl.ErrNotImplemented)
+		newDiskSize := strongunits.GiB(*opts.DiskSize)
+		if err := m.resizeDisk(newDiskSize); err != nil {
+			setErrors = append(setErrors, err)
+		}
 	}
 	if opts.CPUs != nil && m.CPUs != *opts.CPUs {
 		m.CPUs = *opts.CPUs
@@ -545,6 +552,9 @@ func (m *HyperVMachine) loadFromFile() (*HyperVMachine, error) {
 	mm := HyperVMachine{}
 
 	if err := mm.loadHyperVMachineFromJSON(jsonPath); err != nil {
+		if errors.Is(err, machine.ErrNoSuchVM) {
+			return nil, &machine.ErrVMDoesNotExist{Name: m.Name}
+		}
 		return nil, err
 	}
 	vmm := hypervctl.NewVirtualMachineManager()
@@ -566,8 +576,6 @@ func (m *HyperVMachine) loadFromFile() (*HyperVMachine, error) {
 	if cfg.Hardware.Memory > 0 {
 		mm.Memory = uint64(cfg.Hardware.Memory)
 	}
-
-	mm.DiskSize = cfg.Hardware.DiskSize * units.MiB
 	mm.LastUp = cfg.Status.LastUp
 
 	return &mm, nil
@@ -583,7 +591,7 @@ func (m *HyperVMachine) loadHyperVMachineFromJSON(fqConfigPath string) error {
 	b, err := os.ReadFile(fqConfigPath)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return fmt.Errorf("%q: %w", fqConfigPath, machine.ErrNoSuchVM)
+			return machine.ErrNoSuchVM
 		}
 		return err
 	}
@@ -634,7 +642,7 @@ func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingStat
 
 	c := cmd.Cmd(gvproxyBinary)
 	if err := c.Start(); err != nil {
-		return "", 0, fmt.Errorf("unable to execute: %q: %w", cmd, err)
+		return "", 0, fmt.Errorf("unable to execute: %s: %w", cmd.ToCmdline(), err)
 	}
 	return forwardSock, state, nil
 }
@@ -689,5 +697,18 @@ func (m *HyperVMachine) setRootful(rootful bool) error {
 	}
 
 	m.HostUser.Modified = true
+	return nil
+}
+
+func (m *HyperVMachine) resizeDisk(newSize strongunits.GiB) error {
+	if m.DiskSize > uint64(newSize) {
+		return &machine.ErrNewDiskSizeTooSmall{OldSize: strongunits.ToGiB(strongunits.B(m.DiskSize)), NewSize: newSize}
+	}
+	resize := exec.Command("powershell", []string{"-command", fmt.Sprintf("Resize-VHD %s %d", m.ImagePath.GetPath(), newSize.ToBytes())}...)
+	resize.Stdout = os.Stdout
+	resize.Stderr = os.Stderr
+	if err := resize.Run(); err != nil {
+		return fmt.Errorf("resizing image: %q", err)
+	}
 	return nil
 }

@@ -1174,7 +1174,7 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 	}
 	if state == machine.Running {
 		if !opts.Force {
-			return "", nil, fmt.Errorf("running vm %q cannot be destroyed", v.Name)
+			return "", nil, &machine.ErrVMRunningCannotDestroyed{Name: v.Name}
 		}
 		err := v.stopLocked()
 		if err != nil {
