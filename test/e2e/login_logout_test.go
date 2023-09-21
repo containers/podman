@@ -112,7 +112,7 @@ var _ = Describe("Podman login and logout", func() {
 		// base64-encoded "podmantest:test"
 		Expect(auths[server]).To(HaveKeyWithValue("auth", "cG9kbWFudGVzdDp0ZXN0"))
 
-		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
+		session = podmanTest.Podman([]string{"push", "-q", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -120,7 +120,7 @@ var _ = Describe("Podman login and logout", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
+		session = podmanTest.Podman([]string{"push", "-q", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 		Expect(session.ErrorToString()).To(ContainSubstring(": authentication required"))
@@ -165,16 +165,16 @@ var _ = Describe("Podman login and logout", func() {
 		readAuthInfo(authFile)
 
 		// push should fail with nonexistent authfile
-		session = podmanTest.Podman([]string{"push", "--authfile", "/tmp/nonexistent", ALPINE, testImg})
+		session = podmanTest.Podman([]string{"push", "-q", "--authfile", "/tmp/nonexistent", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 		Expect(session.ErrorToString()).To(Equal("Error: checking authfile: stat /tmp/nonexistent: no such file or directory"))
 
-		session = podmanTest.Podman([]string{"push", "--authfile", authFile, ALPINE, testImg})
+		session = podmanTest.Podman([]string{"push", "-q", "--authfile", authFile, ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"run", "--authfile", authFile, testImg})
+		session = podmanTest.Podman([]string{"run", "-q", "--authfile", authFile, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -203,12 +203,12 @@ var _ = Describe("Podman login and logout", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"manifest", "push", testImg})
+		session = podmanTest.Podman([]string{"manifest", "push", "-q", testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 		Expect(session.ErrorToString()).To(ContainSubstring(": authentication required"))
 
-		session = podmanTest.Podman([]string{"manifest", "push", "--authfile", authFile, testImg})
+		session = podmanTest.Podman([]string{"manifest", "push", "-q", "--authfile", authFile, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -232,7 +232,7 @@ var _ = Describe("Podman login and logout", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
+		session = podmanTest.Podman([]string{"push", "-q", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -252,7 +252,7 @@ var _ = Describe("Podman login and logout", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"push", "--cert-dir", certDir, ALPINE, testImg})
+		session = podmanTest.Podman([]string{"push", "-q", "--cert-dir", certDir, ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -291,11 +291,11 @@ var _ = Describe("Podman login and logout", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
+		session = podmanTest.Podman([]string{"push", "-q", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"push", ALPINE, "localhost:9001/test-alpine"})
+		session = podmanTest.Podman([]string{"push", "-q", ALPINE, "localhost:9001/test-alpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 		Expect(session.ErrorToString()).To(ContainSubstring("/test-alpine: authentication required"))
@@ -304,11 +304,11 @@ var _ = Describe("Podman login and logout", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
+		session = podmanTest.Podman([]string{"push", "-q", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"push", ALPINE, "localhost:9001/test-alpine"})
+		session = podmanTest.Podman([]string{"push", "-q", ALPINE, "localhost:9001/test-alpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -316,12 +316,12 @@ var _ = Describe("Podman login and logout", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
+		session = podmanTest.Podman([]string{"push", "-q", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 		Expect(session.ErrorToString()).To(ContainSubstring("/test-alpine: authentication required"))
 
-		session = podmanTest.Podman([]string{"push", ALPINE, "localhost:9001/test-alpine"})
+		session = podmanTest.Podman([]string{"push", "-q", ALPINE, "localhost:9001/test-alpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -333,12 +333,12 @@ var _ = Describe("Podman login and logout", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
+		session = podmanTest.Podman([]string{"push", "-q", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 		Expect(session.ErrorToString()).To(ContainSubstring("/test-alpine: authentication required"))
 
-		session = podmanTest.Podman([]string{"push", ALPINE, "localhost:9001/test-alpine"})
+		session = podmanTest.Podman([]string{"push", "-q", ALPINE, "localhost:9001/test-alpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 		Expect(session.ErrorToString()).To(ContainSubstring("/test-alpine: authentication required"))
@@ -391,7 +391,7 @@ var _ = Describe("Podman login and logout", func() {
 		Expect(authInfo).To(HaveKey(testTarget))
 
 		session = podmanTest.Podman([]string{
-			"push",
+			"push", "-q",
 			"--authfile", authFile,
 			ALPINE, testTarget,
 		})
@@ -424,7 +424,7 @@ var _ = Describe("Podman login and logout", func() {
 		Expect(authInfo).To(HaveKey(testRepos[1]))
 
 		session := podmanTest.Podman([]string{
-			"push",
+			"push", "-q",
 			"--authfile", authFile,
 			ALPINE, testRepos[0] + "/test-image-alpine",
 		})
@@ -440,7 +440,7 @@ var _ = Describe("Podman login and logout", func() {
 		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{
-			"push",
+			"push", "-q",
 			"--authfile", authFile,
 			ALPINE, testRepos[0] + "/test-image-alpine",
 		})
@@ -489,7 +489,7 @@ var _ = Describe("Podman login and logout", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{
-			"push",
+			"push", "-q",
 			"--authfile", authFile,
 			ALPINE, server + "/podmantest/test-image",
 		})
@@ -498,7 +498,7 @@ var _ = Describe("Podman login and logout", func() {
 		Expect(session.ErrorToString()).To(ContainSubstring("/test-image: authentication required"))
 
 		session = podmanTest.Podman([]string{
-			"push",
+			"push", "-q",
 			"--authfile", authFile,
 			ALPINE, server + "/test-image",
 		})
@@ -521,7 +521,7 @@ var _ = Describe("Podman login and logout", func() {
 		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{
-			"push",
+			"push", "-q",
 			"--authfile", authFile,
 			ALPINE, testTarget,
 		})
@@ -537,7 +537,7 @@ var _ = Describe("Podman login and logout", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		session = podmanTest.Podman([]string{
-			"pull",
+			"pull", "-q",
 			"--authfile", authFile,
 			server + "/podmantest/test-alpine",
 		})
