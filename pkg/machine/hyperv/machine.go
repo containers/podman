@@ -283,6 +283,11 @@ func (m *HyperVMachine) Inspect() (*machine.InspectInfo, error) {
 		return nil, err
 	}
 
+	vmState, err := stateConversion(vm.State())
+	if err != nil {
+		return nil, err
+	}
+
 	return &machine.InspectInfo{
 		ConfigPath:     m.ConfigPath,
 		ConnectionInfo: machine.ConnectionConfig{},
@@ -300,7 +305,7 @@ func (m *HyperVMachine) Inspect() (*machine.InspectInfo, error) {
 			Memory:   cfg.Hardware.Memory,
 		},
 		SSHConfig: m.SSHConfig,
-		State:     vm.State().String(),
+		State:     string(vmState),
 		Rootful:   m.Rootful,
 	}, nil
 }

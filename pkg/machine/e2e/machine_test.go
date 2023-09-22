@@ -43,9 +43,11 @@ func TestMachine(t *testing.T) {
 	RunSpecs(t, "Podman Machine tests")
 }
 
-var _ = BeforeSuite(func() {
+var testProvider machine.VirtProvider
 
-	testProvider, err := provider.Get()
+var _ = BeforeSuite(func() {
+	var err error
+	testProvider, err = provider.Get()
 	if err != nil {
 		Fail("unable to create testProvider")
 	}

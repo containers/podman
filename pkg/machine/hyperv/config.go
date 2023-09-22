@@ -6,6 +6,7 @@ package hyperv
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -283,4 +284,16 @@ func handlePrevError(e, prevErr error) error {
 		logrus.Error(e)
 	}
 	return e
+}
+
+func stateConversion(s hypervctl.EnabledState) (machine.Status, error) {
+	switch s {
+	case hypervctl.Enabled:
+		return machine.Running, nil
+	case hypervctl.Disabled:
+		return machine.Stopped, nil
+	case hypervctl.Starting:
+		return machine.Starting, nil
+	}
+	return machine.Unknown, fmt.Errorf("unknown state: %q", s.String())
 }
