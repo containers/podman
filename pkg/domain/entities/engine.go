@@ -47,7 +47,7 @@ type PodmanConfig struct {
 	Remote                   bool           // Connection to Podman API Service will use RESTful API
 	RuntimePath              string         // --runtime flag will set Engine.RuntimePath
 	RuntimeFlags             []string       // global flags for the container runtime
-	Syslog                   bool           // write to StdOut and Syslog, not supported when tunneling
+	Syslog                   bool           // write logging information to syslog as well as the console
 	Trace                    bool           // Hidden: Trace execution
 	URI                      string         // URI to RESTful API Service
 
