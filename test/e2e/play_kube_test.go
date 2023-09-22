@@ -5704,6 +5704,11 @@ spec:
 		Expect(inspectCtr1).Should(ExitCleanly())
 
 		Expect(inspectCtr2.OutputToString()).To(Equal(inspectCtr1.OutputToString()))
+
+		// see https://github.com/containers/podman/pull/19637, we should not see any warning/errors here
+		podrm := podmanTest.Podman([]string{"kube", "down", outputFile})
+		podrm.WaitWithDefaultTimeout()
+		Expect(podrm).Should(ExitCleanly())
 	})
 
 	It("test with reserved autoremove annotation in yaml", func() {
