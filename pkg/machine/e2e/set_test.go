@@ -1,6 +1,7 @@
 package e2e_test
 
 import (
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -89,10 +90,14 @@ var _ = Describe("podman machine set", func() {
 		Expect(startSession).To(Exit(0))
 
 		ssh2 := sshMachine{}
+		cpus := runtime.NumCPU() / 2
+		if cpus == 0 {
+			cpus = 1
+		}
 		sshSession2, err := mb.setName(name).setCmd(ssh2.withSSHCommand([]string{"lscpu", "|", "grep", "\"CPU(s):\"", "|", "head", "-1"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(sshSession2).To(Exit(0))
-		Expect(sshSession2.outputToString()).To(ContainSubstring("1"))
+		Expect(sshSession2.outputToString()).To(ContainSubstring(strconv.Itoa(cpus)))
 
 		ssh3 := sshMachine{}
 		sshSession3, err := mb.setName(name).setCmd(ssh3.withSSHCommand([]string{"sudo", "fdisk", "-l", "|", "grep", "Disk"})).run()

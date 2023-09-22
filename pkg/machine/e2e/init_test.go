@@ -2,6 +2,7 @@ package e2e_test
 
 import (
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -26,6 +27,11 @@ var _ = Describe("podman machine init", func() {
 		teardown(originalHomeDir, testDir, mb)
 	})
 
+	cpus := runtime.NumCPU() / 2
+	if cpus == 0 {
+		cpus = 1
+	}
+
 	It("bad init name", func() {
 		i := initMachine{}
 		reallyLongName := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -42,11 +48,11 @@ var _ = Describe("podman machine init", func() {
 		inspectBefore, ec, err := mb.toQemuInspectInfo()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ec).To(BeZero())
-
 		Expect(inspectBefore).ToNot(BeEmpty())
+
 		testMachine := inspectBefore[0]
 		Expect(testMachine.Name).To(Equal(mb.names[0]))
-		Expect(testMachine.Resources.CPUs).To(Equal(uint64(1)))
+		Expect(testMachine.Resources.CPUs).To(Equal(uint64(cpus)))
 		Expect(testMachine.Resources.Memory).To(Equal(uint64(2048)))
 
 	})
@@ -91,7 +97,7 @@ var _ = Describe("podman machine init", func() {
 		Expect(inspectBefore).ToNot(BeEmpty())
 		testMachine := inspectBefore[0]
 		Expect(testMachine.Name).To(Equal(mb.names[0]))
-		Expect(testMachine.Resources.CPUs).To(Equal(uint64(1)))
+		Expect(testMachine.Resources.CPUs).To(Equal(uint64(cpus)))
 		Expect(testMachine.Resources.Memory).To(Equal(uint64(2048)))
 		Expect(testMachine.SSHConfig.RemoteUsername).To((Equal(remoteUsername)))
 
