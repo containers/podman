@@ -327,7 +327,9 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 			continue
 		}
 		if err := r.removeVolume(ctx, volume, false, timeout, false); err != nil {
-			if errors.Is(err, define.ErrNoSuchVolume) || errors.Is(err, define.ErrVolumeRemoved) {
+			// If the anonymous volume is still being used that means it was likely transferred
+			// to another container via --volumes-from so no need to log this as real error.
+			if errors.Is(err, define.ErrNoSuchVolume) || errors.Is(err, define.ErrVolumeRemoved) || errors.Is(err, define.ErrVolumeBeingUsed) {
 				continue
 			}
 			logrus.Errorf("Removing volume %s: %v", volName, err)
