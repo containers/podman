@@ -733,6 +733,9 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 		paramsMap := make(map[string]string, len(params))
 		for _, param := range params {
 			kv := strings.Split(param, "=")
+			if len(kv) != 2 {
+				return nil, fmt.Errorf(`invalid quadlet mount format: %q`, mount)
+			}
 			paramsMap[kv[0]] = kv[1]
 		}
 		if paramType, ok := paramsMap["type"]; ok {

@@ -591,6 +591,7 @@ BOGUS=foo
 		Entry("health.container", "health.container", 0, ""),
 		Entry("hostname.container", "hostname.container", 0, ""),
 		Entry("image.container", "image.container", 0, ""),
+		Entry("invalid-mount.container", "invalid-mount.container", 1, `converting "invalid-mount.container": invalid quadlet mount format: "/invalid:/mount:ro"`),
 		Entry("install.container", "install.container", 0, ""),
 		Entry("ip.container", "ip.container", 0, ""),
 		Entry("label.container", "label.container", 0, ""),

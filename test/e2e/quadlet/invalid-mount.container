@@ -1,0 +1,6 @@
+## assert-failed
+## assert-stderr-contains "invalid quadlet mount format"
+
+[Container]
+Image=localhost/imagename
+Mount=/invalid:/mount:ro
