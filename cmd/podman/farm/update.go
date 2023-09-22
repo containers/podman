@@ -8,6 +8,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
+	"github.com/containers/podman/v4/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -68,6 +69,10 @@ func farmUpdate(cmd *cobra.Command, args []string) error {
 		return errors.New("no farms are created at this time, there is nothing to update")
 	}
 
+	if _, ok := cfg.Farms.List[farmName]; !ok {
+		return fmt.Errorf("cannot update farm, %q farm doesn't exist", farmName)
+	}
+
 	if defChanged {
 		// Change the default to the given farm if --default=true
 		if updateOpts.Default {
@@ -85,12 +90,21 @@ func farmUpdate(cmd *cobra.Command, args []string) error {
 		}
 
 		for _, cRemove := range updateOpts.Remove {
-			delete(cMap, cRemove)
+			connections := cfg.Farms.List[farmName]
+			if util.StringInSlice(cRemove, connections) {
+				delete(cMap, cRemove)
+			} else {
+				return fmt.Errorf("cannot remove from farm, %q is not a connection in the farm", cRemove)
+			}
 		}
 
 		for _, cAdd := range updateOpts.Add {
-			if _, ok := cMap[cAdd]; !ok {
-				cMap[cAdd] = 0
+			if _, ok := cfg.Engine.ServiceDestinations[cAdd]; ok {
+				if _, ok := cMap[cAdd]; !ok {
+					cMap[cAdd] = 0
+				}
+			} else {
+				return fmt.Errorf("cannot add to farm, %q is not a system connection", cAdd)
 			}
 		}
 
