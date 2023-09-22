@@ -125,11 +125,12 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		}
 		g.AddMount(sysMnt)
 		g.RemoveMount("/sys/fs/cgroup")
+
 		sysFsCgroupMnt := spec.Mount{
 			Destination: "/sys/fs/cgroup",
-			Type:        define.TypeBind,
+			Type:        "cgroup",
 			Source:      "/sys/fs/cgroup",
-			Options:     []string{"rprivate", "nosuid", "noexec", "nodev", r, "rbind"},
+			Options:     []string{"rprivate", "nosuid", "noexec", "nodev", r},
 		}
 		g.AddMount(sysFsCgroupMnt)
 		if !s.Privileged && isRootless {
