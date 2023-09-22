@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	nettypes "github.com/containers/common/libnetwork/types"
@@ -250,8 +251,12 @@ func defaultSecretConfig() SecretConfig {
 
 // defaultMachineConfig returns the default machine configuration.
 func defaultMachineConfig() MachineConfig {
+	cpus := runtime.NumCPU() / 2
+	if cpus == 0 {
+		cpus = 1
+	}
 	return MachineConfig{
-		CPUs:     1,
+		CPUs:     uint64(cpus),
 		DiskSize: 100,
 		Image:    getDefaultMachineImage(),
 		Memory:   2048,

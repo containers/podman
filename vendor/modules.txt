@@ -164,7 +164,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.56.1-0.20230920110729-eb4ad859f309
+# github.com/containers/common v0.56.1-0.20230921141219-ad71784ad2fa
 ## explicit; go 1.18
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
