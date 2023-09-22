@@ -1100,34 +1100,6 @@ func Reload() (*Config, error) {
 	return New(&Options{SetDefault: true})
 }
 
-func (c *Config) ActiveDestination() (uri, identity string, machine bool, err error) {
-	if uri, found := os.LookupEnv("CONTAINER_HOST"); found {
-		if v, found := os.LookupEnv("CONTAINER_SSHKEY"); found {
-			identity = v
-		}
-		return uri, identity, false, nil
-	}
-	connEnv := os.Getenv("CONTAINER_CONNECTION")
-	switch {
-	case connEnv != "":
-		d, found := c.Engine.ServiceDestinations[connEnv]
-		if !found {
-			return "", "", false, fmt.Errorf("environment variable CONTAINER_CONNECTION=%q service destination not found", connEnv)
-		}
-		return d.URI, d.Identity, d.IsMachine, nil
-
-	case c.Engine.ActiveService != "":
-		d, found := c.Engine.ServiceDestinations[c.Engine.ActiveService]
-		if !found {
-			return "", "", false, fmt.Errorf("%q service destination not found", c.Engine.ActiveService)
-		}
-		return d.URI, d.Identity, d.IsMachine, nil
-	case c.Engine.RemoteURI != "":
-		return c.Engine.RemoteURI, c.Engine.RemoteIdentity, false, nil
-	}
-	return "", "", false, errors.New("no service destination configured")
-}
-
 var (
 	bindirFailed = false
 	bindirCached = ""
