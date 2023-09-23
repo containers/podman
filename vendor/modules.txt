@@ -226,7 +226,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/gvisor-tap-vsock v0.7.1-0.20230921084021-9298405740ad
+# github.com/containers/gvisor-tap-vsock v0.7.1-0.20230922151156-97028a6a6d6a
 ## explicit; go 1.20
 github.com/containers/gvisor-tap-vsock/pkg/types
 # github.com/containers/image/v5 v5.28.0
@@ -1154,7 +1154,7 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/tools v0.12.1-0.20230815132531-74c255bcf846
+# golang.org/x/tools v0.13.0
 ## explicit; go 1.18
 golang.org/x/tools/cmd/stringer
 golang.org/x/tools/go/ast/inspector
