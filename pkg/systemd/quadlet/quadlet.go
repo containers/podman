@@ -729,34 +729,7 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 
 	mounts := container.LookupAllArgs(ContainerGroup, KeyMount)
 	for _, mount := range mounts {
-		params := strings.Split(mount, ",")
-		paramsMap := make(map[string]string, len(params))
-		for _, param := range params {
-			kv := strings.Split(param, "=")
-			paramsMap[kv[0]] = kv[1]
-		}
-		if paramType, ok := paramsMap["type"]; ok {
-			if paramType == "volume" || paramType == "bind" || paramType == "glob" {
-				var err error
-				if paramSource, ok := paramsMap["source"]; ok {
-					paramsMap["source"], err = handleStorageSource(container, service, paramSource, names)
-				} else if paramSource, ok = paramsMap["src"]; ok {
-					paramsMap["src"], err = handleStorageSource(container, service, paramSource, names)
-				}
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-		paramsArray := make([]string, 0, len(params))
-		paramsArray = append(paramsArray, fmt.Sprintf("%s=%s", "type", paramsMap["type"]))
-		for k, v := range paramsMap {
-			if k != "type" {
-				paramsArray = append(paramsArray, fmt.Sprintf("%s=%s", k, v))
-			}
-		}
-		mountStr := strings.Join(paramsArray, ",")
-		podman.add("--mount", mountStr)
+		podman.add("--mount", mount)
 	}
 
 	handleHealth(container, ContainerGroup, podman)
