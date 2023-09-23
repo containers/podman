@@ -127,8 +127,11 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 				User:      GetNodeUsr("root"),
 			},
 			LinkEmbedded1: LinkEmbedded1{
-				Hard:   BoolToPtr(false),
-				Target: filepath.Join("/usr/share/zoneinfo", tz),
+				Hard: BoolToPtr(false),
+				// We always want this value in unix form (/path/to/something) because this is being
+				// set in the machine OS (always Linux).  However, filepath.join on windows will use a "\\"
+				// separator; therefore we use ToSlash to convert the path to unix style
+				Target: filepath.ToSlash(filepath.Join("/usr/share/zoneinfo", tz)),
 			},
 		}
 		ignStorage.Links = append(ignStorage.Links, tzLink)

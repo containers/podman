@@ -130,12 +130,11 @@ var _ = Describe("podman machine init", func() {
 		Expect(foundMemory).To(BeNumerically(">", 3800000))
 		Expect(foundMemory).To(BeNumerically("<", 4200000))
 
-		// TODO timezone setting is broken in FCOS rn.  It is either ignition or a change in fedora.
-		// sshTimezone := sshMachine{}
-		// timezoneSession, err := mb.setName(name).setCmd(sshTimezone.withSSHCommand([]string{"date"})).run()
-		// Expect(err).ToNot(HaveOccurred())
-		// Expect(timezoneSession).To(Exit(0))
-		// Expect(timezoneSession.outputToString()).To(ContainSubstring("HST"))
+		sshTimezone := sshMachine{}
+		timezoneSession, err := mb.setName(name).setCmd(sshTimezone.withSSHCommand([]string{"date"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(timezoneSession).To(Exit(0))
+		Expect(timezoneSession.outputToString()).To(ContainSubstring("HST"))
 	})
 
 	It("machine init with volume", func() {
