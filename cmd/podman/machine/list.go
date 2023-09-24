@@ -200,12 +200,12 @@ func toHumanFormat(vms []*machine.ListResponse) ([]*entities.ListReporter, error
 			response.Name = vm.Name
 		}
 		switch {
-		case vm.Running:
-			response.LastUp = "Currently running"
-			response.Running = true
 		case vm.Starting:
 			response.LastUp = "Currently starting"
 			response.Starting = true
+		case vm.Running:
+			response.LastUp = "Currently running"
+			response.Running = true
 		default:
 			response.LastUp = units.HumanDuration(time.Since(vm.LastUp)) + " ago"
 		}

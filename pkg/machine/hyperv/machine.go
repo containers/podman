@@ -478,6 +478,14 @@ func (m *HyperVMachine) Start(name string, opts machine.StartOptions) error {
 	if err != nil {
 		return fmt.Errorf("unable to start host networking: %q", err)
 	}
+
+	// The "starting" status from hyper v is a very small windows and not really
+	// the same as what we want.  so modeling starting behaviour after qemu
+	m.Starting = true
+	if err := m.writeConfig(); err != nil {
+		return fmt.Errorf("writing JSON file: %w", err)
+	}
+
 	if err := vm.Start(); err != nil {
 		return err
 	}
@@ -486,16 +494,18 @@ func (m *HyperVMachine) Start(name string, opts machine.StartOptions) error {
 		return err
 	}
 
+	// set starting back false now that we are running
+	m.Starting = false
+
 	if m.HostUser.Modified {
 		if machine.UpdatePodmanDockerSockService(m, name, m.UID, m.Rootful) == nil {
 			// Reset modification state if there are no errors, otherwise ignore errors
 			// which are already logged
 			m.HostUser.Modified = false
-			_ = m.writeConfig()
 		}
 	}
-
-	return nil
+	// Write the config with updated starting status and hostuser modification
+	return m.writeConfig()
 }
 
 func (m *HyperVMachine) State(_ bool) (machine.Status, error) {
@@ -716,4 +726,8 @@ func (m *HyperVMachine) resizeDisk(newSize strongunits.GiB) error {
 		return fmt.Errorf("resizing image: %q", err)
 	}
 	return nil
+}
+
+func (m *HyperVMachine) isStarting() bool {
+	return m.Starting
 }
