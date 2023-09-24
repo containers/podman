@@ -359,7 +359,8 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 		if !opts.Force {
 			return "", nil, &machine.ErrVMRunningCannotDestroyed{Name: m.Name}
 		}
-		if err := vm.Stop(); err != nil {
+		// force stop bc we are destroying
+		if err := vm.StopWithForce(); err != nil {
 			return "", nil, err
 		}
 	}
