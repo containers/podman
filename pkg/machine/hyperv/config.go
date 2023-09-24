@@ -212,11 +212,8 @@ func (v HyperVVirtualization) RemoveAndCleanMachines() error {
 			prevErr = handlePrevError(err, prevErr)
 		}
 
-		// If the VM is not stopped, we need to stop it
-		// TODO stop might not be enough if the state is dorked. we may need
-		// something like forceoff hard switch
 		if vm.State() != hypervctl.Disabled {
-			if err := vm.Stop(); err != nil {
+			if err := vm.StopWithForce(); err != nil {
 				prevErr = handlePrevError(err, prevErr)
 			}
 		}
