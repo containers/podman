@@ -156,7 +156,80 @@ var _ = Describe("podman farm", func() {
 			Expect(cfg.Farms.Default).Should(BeEmpty())
 		})
 
-		It("remove existing farms", func() {
+		It("update farm with non-existing connections", func() {
+			// create farm with multiple system connections
+			cmd := []string{"farm", "create", "farm1", "QA", "QB"}
+			session := podmanTest.Podman(cmd)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitCleanly())
+			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"farm1\" created"))
+
+			// create farm with only one system connection
+			cmd = []string{"farm", "create", "farm2", "QA"}
+			session = podmanTest.Podman(cmd)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitCleanly())
+			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"farm2\" created"))
+
+			cfg, err := config.ReadCustomConfig()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(cfg.Farms.Default).Should(Equal("farm1"))
+			Expect(cfg.Farms.List).Should(HaveKeyWithValue("farm1", []string{"QA", "QB"}))
+			Expect(cfg.Farms.List).Should(HaveKeyWithValue("farm2", []string{"QA"}))
+
+			// update farm1 to add no-node connection to it
+			cmd = []string{"farm", "update", "--add", "no-node", "farm1"}
+			session = podmanTest.Podman(cmd)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitWithError())
+
+			// update farm2 to remove node not in farm connections from it
+			cmd = []string{"farm", "update", "--remove", "QB", "farm2"}
+			session = podmanTest.Podman(cmd)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitWithError())
+
+			// read config again to ensure that nothing has changed
+			cfg, err = config.ReadCustomConfig()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(cfg.Farms.Default).Should(Equal("farm1"))
+			Expect(cfg.Farms.List).Should(HaveKeyWithValue("farm1", []string{"QA", "QB"}))
+			Expect(cfg.Farms.List).Should(HaveKeyWithValue("farm2", []string{"QA"}))
+		})
+
+		It("update non-existent farm", func() {
+			// create farm with multiple system connections
+			cmd := []string{"farm", "create", "farm1", "QA", "QB"}
+			session := podmanTest.Podman(cmd)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitCleanly())
+			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"farm1\" created"))
+
+			cfg, err := config.ReadCustomConfig()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(cfg.Farms.Default).Should(Equal("farm1"))
+			Expect(cfg.Farms.List).Should(HaveKeyWithValue("farm1", []string{"QA", "QB"}))
+
+			// update non-existent farm to add QA connection to it
+			cmd = []string{"farm", "update", "--add", "no-node", "non-existent"}
+			session = podmanTest.Podman(cmd)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitWithError())
+
+			// update non-existent farm to default
+			cmd = []string{"farm", "update", "--default", "non-existent"}
+			session = podmanTest.Podman(cmd)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitWithError())
+
+			// read config again and ensure nothing has changed
+			cfg, err = config.ReadCustomConfig()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(cfg.Farms.Default).Should(Equal("farm1"))
+			Expect(cfg.Farms.List).Should(HaveKeyWithValue("farm1", []string{"QA", "QB"}))
+		})
+
+		It("remove farms", func() {
 			// create farm with multiple system connections
 			cmd := []string{"farm", "create", "farm1", "QA", "QB"}
 			session := podmanTest.Podman(cmd)
