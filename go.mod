@@ -15,7 +15,7 @@ require (
 	github.com/containers/buildah v1.32.0
 	github.com/containers/common v0.56.1-0.20230920110729-eb4ad859f309
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/gvisor-tap-vsock v0.7.1-0.20230921084021-9298405740ad
+	github.com/containers/gvisor-tap-vsock v0.7.1-0.20230922151156-97028a6a6d6a
 	github.com/containers/image/v5 v5.28.0
 	github.com/containers/libhvee v0.4.1-0.20230920190832-6ab399cadb68
 	github.com/containers/ocicrypt v1.1.8
@@ -191,7 +191,7 @@ require (
 	golang.org/x/crypto v0.13.0 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/oauth2 v0.12.0 // indirect
-	golang.org/x/tools v0.12.1-0.20230815132531-74c255bcf846 // indirect
+	golang.org/x/tools v0.13.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230711160842-782d3b101e98 // indirect
 	google.golang.org/grpc v1.57.0 // indirect
