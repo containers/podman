@@ -84,7 +84,7 @@ func (v HyperVVirtualization) List(opts machine.ListOptions) ([]*machine.ListRes
 			CreatedAt:      mm.Created,
 			LastUp:         mm.LastUp,
 			Running:        vm.State() == hypervctl.Enabled,
-			Starting:       vm.IsStarting(),
+			Starting:       mm.isStarting(),
 			Stream:         mm.ImageStream,
 			VMType:         machine.HyperVVirt.String(),
 			CPUs:           mm.CPUs,
