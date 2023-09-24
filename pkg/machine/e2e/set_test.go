@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/podman/v4/pkg/machine"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -139,8 +140,9 @@ var _ = Describe("podman machine set", func() {
 	})
 
 	It("set user mode networking", func() {
-		SkipIfNotWindows("Setting user mode networking is only honored on Windows")
-
+		if testProvider.VMType() != machine.WSLVirt {
+			Skip("Test is only for WSL")
+		}
 		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
