@@ -333,6 +333,7 @@ swagger_task:
         <<: *stdenvars
         TEST_FLAVOR: swagger
         CTR_FQIN: 'quay.io/libpod/gcsupld:${IMAGE_SUFFIX}'
+        # N/B: Do not modify below items w/o update to references in .gitleaks/config.toml
         GCPJSON: ENCRYPTED[927dc01e755eaddb4242b0845cf86c9098d1e3dffac38c70aefb1487fd8b4fe6dd6ae627b3bffafaba70e2c63172664e]
         GCPNAME: ENCRYPTED[c145e9c16b6fb88d476944a454bf4c1ccc84bb4ecaca73bdd28bdacef0dfa7959ebc8171a27b2e4064d66093b2cdba49]
         GCPPROJECT: 'libpod-218412'
@@ -968,6 +969,7 @@ meta_task:
           ${WINDOWS_AMI}
         BUILDID: "${CIRRUS_BUILD_ID}"
         REPOREF: "${CIRRUS_REPO_NAME}"
+        # N/B: Do not modify below items w/o update to references in .gitleaks/config.toml
         AWSINI: ENCRYPTED[21b2db557171b11eb5abdbccae593f48c9caeba86dfcc4d4ff109edee9b4656ab6720a110dadfcd51e88cc59a71cc7af]
         GCPJSON: ENCRYPTED[3a198350077849c8df14b723c0f4c9fece9ebe6408d35982e7adf2105a33f8e0e166ed3ed614875a0887e1af2b8775f4]
         GCPNAME: ENCRYPTED[2f9738ef295a706f66a13891b40e8eaa92a89e0e87faf8bed66c41eca72bf76cfd190a6f2d0e8444c631fdf15ed32ef6]

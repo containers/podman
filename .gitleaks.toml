@@ -1,0 +1,55 @@
+# Options Ref:
+# https://github.com/gitleaks/gitleaks#configuration
+
+[extend]
+# useDefault will extend the base configuration with the default gitleaks config:
+# https://github.com/zricethezav/gitleaks/blob/master/config/gitleaks.toml
+useDefault = true
+
+[allowlist]
+description = "Global allow list"
+paths = [
+  '''^\.gitleaks.toml''',
+  '''^\.gitleaks/baseline\.json''',
+  '''^\.github/workflows/scan-secrets\.yml'''
+]
+
+# Any ENCRYPTED[blahblahblah] entries are only valid from a Cirrus-CI
+# execution context, but may appear in any file loadable by a starlark
+# script.  Though the actual strings are repo-specific and useless elsewhere.
+# This check is here simply to raise red-flags on new definitions or movements
+# of existing values.  Operationally, the actual leak-risk is only present
+# after Cirrus-CI decodes the value.
+[[rules]]
+id = "cirrus-ci_config-secrets"
+description = "Cirrus-CI Configuration Secret ID"
+regex = '''ENCRYPTED[\[][a-fA-F0-9]+\]'''
+
+# Any *_credentials items in .cirrus.yml should not appear in any other context.
+# Though Cirrus-CI restricts decoding of these values, this check is here to
+# raise red-flags on any new definitions or movements.
+[[rules]]
+id = "cirrus-ci_cloud-credentials"
+description = "Cirrus-CI Cloud service-account credentials"
+regex = '''(gcp|aws)_credentials'''
+
+# Changes to the scanning workflow trigger could be used to superficialy mask a negative result.
+[[rules]]
+id = "scan-secrets_trigger"
+description = "PR trigger change to secret-scanning workflow"
+regex = '''pull_request:'''
+path = '''.github/workflows/scan-secrets.yml'''
+
+##### Podman Repo. specific items #####
+
+[[rules]]
+id = "podman_envar_credentials"
+# From .cirrus.yml
+description = "Service-account and other credentials with limited/specific and restricted access."
+regex = '''GCPJSON|GCPNAME|AWSINI|GCPPROJECT'''
+
+[[rules]]
+id = "podman_github-action_secrets"
+description = "Managed secrets for github-action workflows."
+# From https://github.com/containers/podman/settings/secrets/actions
+regex = '''SECRET_CIRRUS_API_KEY|ACTION_MAIL_.+|AZ_.+|MACOS_.+|QUAY_PODMAN_.+'''

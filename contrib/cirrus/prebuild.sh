@@ -33,9 +33,21 @@ if grep -n ^$'\t' test/system/*; then
     die "Found leading tabs in system tests. Use spaces to indent, not tabs."
 fi
 
-# Defined by CI config.
+# Lookup 'env' dict. string value from key specified as argument from YAML file.
+get_env_key() {
+    local yaml
+    local script
+
+    yaml="$CIRRUS_WORKING_DIR/.github/workflows/scan-secrets.yml"
+    script="from yaml import safe_load; print(safe_load(open('$yaml'))['env']['$1'])"
+    python -c "$script"
+}
+
+# Only need to check CI-stuffs on a single build-task, there's only ever
+# one prior-fedora task so use that one.
+# Envars all defined by CI config.
 # shellcheck disable=SC2154
-if [[ "${DISTRO_NV}" =~ fedora ]]; then
+if [[ "${DISTRO_NV}" == "$PRIOR_FEDORA_NAME" ]]; then
     msg "Checking shell scripts"
     showrun ooe.sh dnf install -y ShellCheck  # small/quick addition
     showrun shellcheck --format=tty \
@@ -59,6 +71,25 @@ if [[ "${DISTRO_NV}" =~ fedora ]]; then
       export PREBUILD=1
       showrun bash ${CIRRUS_WORKING_DIR}/.github/actions/check_cirrus_cron/test.sh
     fi
+
+    # Note: This may detect leaks, but should not be considered authorative
+    # since any PR could modify the contents or arguments.  This check is
+    # simply here to...
+    msg "Checking GitLeaks functions with current CLI args, configuration, and baseline JSON"
+
+    brdepth=$(get_env_key 'brdepth')
+    glfqin=$(get_env_key 'glfqin')
+    glargs=$(get_env_key 'glargs')
+    showrun podman run --rm \
+        --security-opt=label=disable \
+        --userns=keep-id:uid=1000,gid=1000 \
+        -v $CIRRUS_WORKING_DIR:/subject:ro \
+        -v $CIRRUS_WORKING_DIR:/default:ro \
+        --tmpfs /report:rw,size=256k,mode=1777 \
+        $glfqin \
+        detect \
+        --log-opts=-$brdepth \
+        $glargs
 fi
 
 msg "Checking 3rd party network service connectivity"
