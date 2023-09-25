@@ -1,6 +1,8 @@
 package e2e_test
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -28,8 +30,9 @@ var _ = Describe("podman machine stop", func() {
 	})
 
 	It("Stop running machine", func() {
+		name := randomString()
 		i := new(initMachine)
-		session, err := mb.setCmd(i.withImagePath(mb.imagePath).withNow()).run()
+		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withNow()).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -42,5 +45,6 @@ var _ = Describe("podman machine stop", func() {
 		stopAgain, err := mb.setCmd(stop).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(stopAgain).To(Exit((0)))
+		Expect(stopAgain.outputToString()).To(ContainSubstring(fmt.Sprintf("Machine \"%s\" stopped successfully", name)))
 	})
 })

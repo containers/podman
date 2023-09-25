@@ -1421,7 +1421,7 @@ func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
 	}
 
 	if !wsl || !sysd {
-		return fmt.Errorf("%q is not running", v.Name)
+		return nil
 	}
 
 	// Stop user-mode networking if enabled
