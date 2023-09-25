@@ -156,7 +156,7 @@ var _ = Describe("Podman UserNS support", func() {
 		}
 
 		ctrName := "ctr-name"
-		session := podmanTest.Podman([]string{"run", "--userns=keep-id", "--user", "root:root", "-d", "--stop-signal", "9", "--name", ctrName, fedoraMinimal, "sleep", "600"})
+		session := podmanTest.Podman([]string{"run", "--userns=keep-id", "--user", "root:root", "-d", "--stop-signal", "9", "--name", ctrName, CITEST_IMAGE, "sleep", "600"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -165,7 +165,7 @@ var _ = Describe("Podman UserNS support", func() {
 		Expect(exec1).Should(ExitCleanly())
 		Expect(exec1.OutputToString()).To(ContainSubstring(userName))
 
-		exec2 := podmanTest.Podman([]string{"exec", ctrName, "useradd", "testuser"})
+		exec2 := podmanTest.Podman([]string{"exec", ctrName, "adduser", "-D", "testuser"})
 		exec2.WaitWithDefaultTimeout()
 		Expect(exec2).Should(ExitCleanly())
 	})
