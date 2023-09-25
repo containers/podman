@@ -298,10 +298,16 @@ func (m *MacMachine) Inspect() (*machine.InspectInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	podmanSocket, err := m.forwardSocketPath()
+	if err != nil {
+		return nil, err
+	}
+
 	ii := machine.InspectInfo{
 		ConfigPath: m.ConfigPath,
 		ConnectionInfo: machine.ConnectionConfig{
-			PodmanSocket: nil,
+			PodmanSocket: podmanSocket,
 			PodmanPipe:   nil,
 		},
 		Created: m.Created,
