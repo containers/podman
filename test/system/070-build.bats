@@ -24,6 +24,10 @@ EOF
     PODMAN_TIMEOUT=240 run_podman build -t build_test --format=docker $tmpdir
     is "$output" ".*COMMIT" "COMMIT seen in log"
 
+    # $IMAGE is preloaded, so we should never re-pull
+    assert "$output" !~ "Trying to pull" "Default pull policy should be 'missing'"
+    assert "$output" !~ "Writing manifest" "Default pull policy should be 'missing'"
+
     run_podman run --rm build_test cat /$rand_filename
     is "$output"   "$rand_content"   "reading generated file in image"
 
