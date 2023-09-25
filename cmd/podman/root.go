@@ -540,7 +540,7 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 		_ = pFlags.MarkHidden(networkBackendFlagName)
 
 		rootFlagName := "root"
-		pFlags.StringVar(&podmanConfig.ContainersConf.Engine.StaticDir, rootFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.StaticDir, "Path to the root directory in which data, including images, is stored")
+		pFlags.StringVar(&podmanConfig.GraphRoot, rootFlagName, "", "Path to the graph root directory where images, containers, etc. are stored")
 		_ = cmd.RegisterFlagCompletionFunc(rootFlagName, completion.AutocompleteDefault)
 
 		pFlags.StringVar(&podmanConfig.RegistriesConf, "registries-conf", "", "Path to a registries.conf to use for image processing")

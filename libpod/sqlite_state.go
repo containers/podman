@@ -54,6 +54,8 @@ func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 	basePath := runtime.storageConfig.GraphRoot
 	if runtime.storageConfig.TransientStore {
 		basePath = runtime.storageConfig.RunRoot
+	} else if !runtime.storageSet.StaticDirSet {
+		basePath = runtime.config.Engine.StaticDir
 	}
 
 	// c/storage is set up *after* the DB - so even though we use the c/s

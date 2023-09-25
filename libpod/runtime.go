@@ -311,11 +311,21 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		return fmt.Errorf("cannot perform system reset while renumbering locks: %w", define.ErrInvalidArg)
 	}
 
+	if runtime.config.Engine.StaticDir == "" {
+		runtime.config.Engine.StaticDir = filepath.Join(runtime.storageConfig.GraphRoot, "libpod")
+		runtime.storageSet.StaticDirSet = true
+	}
+
+	if runtime.config.Engine.VolumePath == "" {
+		runtime.config.Engine.VolumePath = filepath.Join(runtime.storageConfig.GraphRoot, "volumes")
+		runtime.storageSet.VolumePathSet = true
+	}
+
 	// Make the static files directory if it does not exist
 	if err := os.MkdirAll(runtime.config.Engine.StaticDir, 0700); err != nil {
 		// The directory is allowed to exist
 		if !errors.Is(err, os.ErrExist) {
-			return fmt.Errorf("creating runtime static files directory: %w", err)
+			return fmt.Errorf("creating runtime static files directory %q: %w", runtime.config.Engine.StaticDir, err)
 		}
 	}
 

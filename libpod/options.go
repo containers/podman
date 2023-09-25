@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -52,17 +51,6 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 		if config.GraphRoot != "" {
 			rt.storageConfig.GraphRoot = config.GraphRoot
 			rt.storageSet.GraphRootSet = true
-
-			// Also set libpod static dir, so we are a subdirectory
-			// of the c/storage store by default
-			rt.config.Engine.StaticDir = filepath.Join(config.GraphRoot, "libpod")
-			rt.storageSet.StaticDirSet = true
-
-			// Also set libpod volume path, so we are a subdirectory
-			// of the c/storage store by default
-			rt.config.Engine.VolumePath = filepath.Join(config.GraphRoot, "volumes")
-			rt.storageSet.VolumePathSet = true
-
 			setField = true
 		}
 
@@ -270,7 +258,6 @@ func WithStaticDir(dir string) RuntimeOption {
 		}
 
 		rt.config.Engine.StaticDir = dir
-		rt.config.Engine.StaticDirSet = true
 
 		return nil
 	}
@@ -372,7 +359,6 @@ func WithTmpDir(dir string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 		rt.config.Engine.TmpDir = dir
-		rt.config.Engine.TmpDirSet = true
 
 		return nil
 	}
@@ -457,7 +443,7 @@ func WithVolumePath(volPath string) RuntimeOption {
 		}
 
 		rt.config.Engine.VolumePath = volPath
-		rt.config.Engine.VolumePathSet = true
+		rt.storageSet.VolumePathSet = true
 
 		return nil
 	}
