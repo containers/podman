@@ -122,7 +122,7 @@ var _ = Describe("Podman images", func() {
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "reference=quay.io/libpod/*"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
-		Expect(result.OutputToStringArray()).To(HaveLen(8))
+		Expect(result.OutputToStringArray()).To(HaveLen(9))
 
 		retalpine := podmanTest.Podman([]string{"images", "-f", "reference=*lpine*"})
 		retalpine.WaitWithDefaultTimeout()

@@ -112,7 +112,7 @@ var _ = Describe("Podman init containers", func() {
 		filename := filepath.Join("/dev/shm", RandomString(12))
 
 		// Write the date to a file
-		session := podmanTest.Podman([]string{"create", "--init-ctr", "always", "--pod", "new:foobar", fedoraMinimal, "bin/sh", "-c", "date +%T.%N > " + filename})
+		session := podmanTest.Podman([]string{"create", "--init-ctr", "always", "--pod", "new:foobar", fedoraMinimal, "/bin/sh", "-c", "date +%T.%N > " + filename})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		verify := podmanTest.Podman([]string{"create", "--pod", "foobar", "-t", ALPINE, "top"})
