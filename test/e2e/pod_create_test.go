@@ -669,6 +669,10 @@ ENTRYPOINT ["sleep","99999"]
 		podCreate.WaitWithDefaultTimeout()
 		Expect(podCreate).Should(ExitCleanly())
 
+		// NOTE: we need to use a Fedora image here since the
+		// alpine/busybox versions are not capable of dealing with
+		// --userns=keep-id and will just error out when not running as
+		// "root"
 		ctrName := "ctr-name"
 		session := podmanTest.Podman([]string{"run", "--pod", podName, "-d", "--stop-signal", "9", "--name", ctrName, fedoraMinimal, "sleep", "600"})
 		session.WaitWithDefaultTimeout()

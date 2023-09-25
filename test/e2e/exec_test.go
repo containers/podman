@@ -345,11 +345,11 @@ var _ = Describe("Podman exec", func() {
 
 	It("podman exec with user only in container", func() {
 		testUser := "test123"
-		setup := podmanTest.Podman([]string{"run", "--name", "test1", "-d", fedoraMinimal, "sleep", "60"})
+		setup := podmanTest.Podman([]string{"run", "--name", "test1", "-d", CITEST_IMAGE, "sleep", "60"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(ExitCleanly())
 
-		session := podmanTest.Podman([]string{"exec", "test1", "useradd", testUser})
+		session := podmanTest.Podman([]string{"exec", "test1", "adduser", "-D", testUser})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 

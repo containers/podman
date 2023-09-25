@@ -858,13 +858,13 @@ VOLUME /test/`, ALPINE)
 	It("volume permissions after run", func() {
 		imgName := "testimg"
 		dockerfile := fmt.Sprintf(`FROM %s
-RUN useradd -m testuser -u 1005
-USER testuser`, fedoraMinimal)
+RUN adduser -D -u 1005 testuser
+USER testuser`, CITEST_IMAGE)
 		podmanTest.BuildImage(dockerfile, imgName, "false")
 
 		testString := "testuser testuser"
 
-		test1 := podmanTest.Podman([]string{"run", "-v", "testvol1:/test", imgName, "bash", "-c", "ls -al /test | grep -v root | grep -v total"})
+		test1 := podmanTest.Podman([]string{"run", "-v", "testvol1:/test", imgName, "sh", "-c", "ls -al /test | grep -v root | grep -v total"})
 		test1.WaitWithDefaultTimeout()
 		Expect(test1).Should(ExitCleanly())
 		Expect(test1.OutputToString()).To(ContainSubstring(testString))
@@ -874,7 +874,7 @@ USER testuser`, fedoraMinimal)
 		vol.WaitWithDefaultTimeout()
 		Expect(vol).Should(ExitCleanly())
 
-		test2 := podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:/test", volName), imgName, "bash", "-c", "ls -al /test | grep -v root | grep -v total"})
+		test2 := podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:/test", volName), imgName, "sh", "-c", "ls -al /test | grep -v root | grep -v total"})
 		test2.WaitWithDefaultTimeout()
 		Expect(test2).Should(ExitCleanly())
 		Expect(test2.OutputToString()).To(ContainSubstring(testString))
