@@ -88,7 +88,7 @@ jobs:
         steps.check.outputs.buildamd == 'true' ||
         steps.check.outputs.buildarm == 'true' ||
         steps.actual_dryrun.outputs.dryrun == 'true'
-      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4
+      uses: actions/checkout@v4
       with:
         ref: ${{steps.getversion.outputs.version}}
     - name: Set up Go

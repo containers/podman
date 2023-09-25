@@ -52,7 +52,7 @@ jobs:
           }
         }
         Write-Output "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-    - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4
+    - uses: actions/checkout@v4
       with:
         ref: ${{steps.getversion.outputs.version}}
     # This step is super-duper critical for the built/signed windows installer .exe file.
