@@ -23,7 +23,6 @@ LABEL RUN podman run --name NAME IMAGE`, ALPINE)
 var _ = Describe("podman container runlabel", func() {
 
 	BeforeEach(func() {
-		Skip("TEMPORARY: to not break git-bisect")
 		SkipIfRemote("runlabel is not supported for remote connections")
 	})
 

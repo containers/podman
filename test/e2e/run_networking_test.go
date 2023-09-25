@@ -20,10 +20,6 @@ import (
 
 var _ = Describe("Podman run networking", func() {
 
-	BeforeEach(func() {
-		Skip("TEMPORARY: to not break git-bisect")
-	})
-
 	hostname, _ := os.Hostname()
 
 	It("podman verify network scoped DNS server and also verify updating network dns server", func() {
@@ -591,8 +587,8 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 			ncListener.WaitWithDefaultTimeout()
 
 			Expect(session).Should(ExitCleanly())
-			Expect(ncListener).Should(ExitCleanly())
-			Expect(ncListener.ErrorToString()).To(ContainSubstring("127.0.0.1"))
+			Expect(ncListener).Should(Exit(0))
+			Expect(ncListener.ErrorToString()).To(ContainSubstring("Connection from 127.0.0.1"))
 		} else {
 			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, "-dt", ALPINE, "nc", "-w", "2", "10.0.2.2", fmt.Sprintf("%d", port)})
 			session.WaitWithDefaultTimeout()
@@ -621,8 +617,8 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 			ncListener.Wait(30)
 
 			Expect(session).Should(ExitCleanly())
-			Expect(ncListener).Should(ExitCleanly())
-			Expect(ncListener.ErrorToString()).To(ContainSubstring(ip.String()))
+			Expect(ncListener).Should(Exit(0))
+			Expect(ncListener.ErrorToString()).To(ContainSubstring("Connection from " + ip.String()))
 		} else {
 			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, ALPINE, "nc", "-w", "2", "10.0.2.2", fmt.Sprintf("%d", port)})
 			session.Wait(30)
@@ -662,7 +658,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		SkipIfRootless("sctp protocol only works as root")
 		session := podmanTest.Podman([]string{"--log-level=info", "run", "--name=test", "-p", "80/sctp", "-p", "81/sctp", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		Expect(session).Should(Exit(0))
 		// we can only check logrus on local podman
 		if !IsRemote() {
 			// check that the info message for sctp protocol is only displayed once
@@ -1101,6 +1097,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 	})
 
 	It("podman run check dns", func() {
+		SkipIfCNI(podmanTest)
 		pod := "testpod"
 		session := podmanTest.Podman([]string{"pod", "create", "--name", pod})
 		session.WaitWithDefaultTimeout()
@@ -1118,24 +1115,24 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"run", "--name", "con1", "--network", net, ALPINE, "nslookup", "con1"})
+		session = podmanTest.Podman([]string{"run", "--name", "con1", "--network", net, CITEST_IMAGE, "nslookup", "con1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"run", "--name", "con2", "--pod", pod, "--network", net, ALPINE, "nslookup", "con2"})
+		session = podmanTest.Podman([]string{"run", "--name", "con2", "--pod", pod, "--network", net, CITEST_IMAGE, "nslookup", "con2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"run", "--name", "con3", "--pod", pod2, ALPINE, "nslookup", "con1"})
+		session = podmanTest.Podman([]string{"run", "--name", "con3", "--pod", pod2, CITEST_IMAGE, "nslookup", "con1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(1))
-		Expect(session.ErrorToString()).To(ContainSubstring("can't resolve 'con1'"))
+		Expect(session.OutputToString()).To(ContainSubstring("server can't find con1.dns.podman: NXDOMAIN"))
 
-		session = podmanTest.Podman([]string{"run", "--name", "con4", "--network", net, ALPINE, "nslookup", pod2 + ".dns.podman"})
+		session = podmanTest.Podman([]string{"run", "--name", "con4", "--network", net, CITEST_IMAGE, "nslookup", pod2 + ".dns.podman"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"run", "--network", net, ALPINE, "nslookup", hostname})
+		session = podmanTest.Podman([]string{"run", "--network", net, CITEST_IMAGE, "nslookup", hostname})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 	})

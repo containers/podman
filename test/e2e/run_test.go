@@ -22,10 +22,6 @@ import (
 
 var _ = Describe("Podman run", func() {
 
-	BeforeEach(func() {
-		Skip("TEMPORARY: to not break git-bisect")
-	})
-
 	It("podman run a container based on local image", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
@@ -90,7 +86,7 @@ var _ = Describe("Podman run", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"build", "-f", "build/Containerfile.with-platform", "--platform", "linux/amd64,linux/arm64", "--manifest", "localhost/test:latest"})
+		session = podmanTest.Podman([]string{"build", "-q", "-f", "build/Containerfile.with-platform", "--platform", "linux/amd64,linux/arm64", "--manifest", "localhost/test:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -127,7 +123,8 @@ var _ = Describe("Podman run", func() {
 			Expect(session).To(ExitWithError())
 			Expect(session.ErrorToString()).To(ContainSubstring("unknown flag"))
 		} else {
-			Expect(session).Should(ExitCleanly())
+			Expect(session).Should(Exit(0))
+			Expect(session.ErrorToString()).To(ContainSubstring("Getting image source signatures"))
 		}
 	})
 
@@ -1509,14 +1506,16 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 		container := podmanTest.PodmanSystemdScope([]string{"run", "--rm", "--cgroups=split", ALPINE, "cat", "/proc/self/cgroup"})
 		container.WaitWithDefaultTimeout()
-		Expect(container).Should(ExitCleanly())
+		Expect(container).Should(Exit(0))
 		checkLines(container.OutputToStringArray())
+		Expect(container.ErrorToString()).To(ContainSubstring("Running scope as unit: "))
 
 		// check that --cgroups=split is honored also when a container runs in a pod
 		container = podmanTest.PodmanSystemdScope([]string{"run", "--rm", "--pod", "new:split-test-pod", "--cgroups=split", ALPINE, "cat", "/proc/self/cgroup"})
 		container.WaitWithDefaultTimeout()
-		Expect(container).Should(ExitCleanly())
+		Expect(container).Should(Exit(0))
 		checkLines(container.OutputToStringArray())
+		Expect(container.ErrorToString()).To(ContainSubstring("Running scope as unit: "))
 	})
 
 	It("podman run with cgroups=disabled runs without cgroups", func() {
@@ -1749,13 +1748,15 @@ WORKDIR /madethis`, BB)
 	It("podman run a container with log-level (lower case)", func() {
 		session := podmanTest.Podman([]string{"--log-level=info", "run", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		Expect(session).Should(Exit(0))
+		Expect(session.ErrorToString()).To(ContainSubstring(" level=info "))
 	})
 
 	It("podman run a container with log-level (upper case)", func() {
 		session := podmanTest.Podman([]string{"--log-level=INFO", "run", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		Expect(session).Should(Exit(0))
+		Expect(session.ErrorToString()).To(ContainSubstring(" level=info "))
 	})
 
 	It("podman run a container with --pull never should fail if no local store", func() {
@@ -1767,24 +1768,23 @@ WORKDIR /madethis`, BB)
 	It("podman run container with --pull missing and only pull once", func() {
 		session := podmanTest.Podman([]string{"run", "--pull", "missing", CIRROS_IMAGE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		Expect(session).Should(Exit(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull"))
 
 		session = podmanTest.Podman([]string{"run", "--pull", "missing", CIRROS_IMAGE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.ErrorToString()).ToNot(ContainSubstring("Trying to pull"))
 	})
 
 	It("podman run container with --pull missing should pull image multiple times", func() {
 		session := podmanTest.Podman([]string{"run", "--pull", "always", CIRROS_IMAGE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		Expect(session).Should(Exit(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull"))
 
 		session = podmanTest.Podman([]string{"run", "--pull", "always", CIRROS_IMAGE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		Expect(session).Should(Exit(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull"))
 	})
 
@@ -2095,7 +2095,7 @@ WORKDIR /madethis`, BB)
 
 		session = podmanTest.Podman([]string{"run", "--decryption-key", privateKeyFileName, imgPath})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		Expect(session).Should(Exit(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull"))
 	})
 
