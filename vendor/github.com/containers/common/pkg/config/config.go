@@ -561,24 +561,6 @@ type SetOptions struct {
 	// backwards compatibility with older versions of libpod for which we must
 	// query the database configuration. Not included in the on-disk config.
 	StorageConfigGraphDriverNameSet bool `toml:"-"`
-
-	// StaticDirSet indicates if the StaticDir has been explicitly set by the
-	// config or by the user. It's required to guarantee backwards compatibility
-	// with older versions of libpod for which we must query the database
-	// configuration. Not included in the on-disk config.
-	StaticDirSet bool `toml:"-"`
-
-	// VolumePathSet indicates if the VolumePath has been explicitly set by the
-	// config or by the user. It's required to guarantee backwards compatibility
-	// with older versions of libpod for which we must query the database
-	// configuration. Not included in the on-disk config.
-	VolumePathSet bool `toml:"-"`
-
-	// TmpDirSet indicates if the TmpDir has been explicitly set by the config
-	// or by the user. It's required to guarantee backwards compatibility with
-	// older versions of libpod for which we must query the database
-	// configuration. Not included in the on-disk config.
-	TmpDirSet bool `toml:"-"`
 }
 
 // NetworkConfig represents the "network" TOML config table

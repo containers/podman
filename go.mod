@@ -13,7 +13,7 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
 	github.com/containers/buildah v1.32.0
-	github.com/containers/common v0.56.1-0.20230920191016-f4e726d4b162
+	github.com/containers/common v0.56.1-0.20230922104122-56ed984ea383
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.1-0.20230922151156-97028a6a6d6a
 	github.com/containers/image/v5 v5.28.0
