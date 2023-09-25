@@ -65,11 +65,11 @@ func DefineBuildFlags(cmd *cobra.Command, buildOpts *BuildFlagsWrapper) {
 
 	// --pull flag
 	flag := budFlags.Lookup("pull")
-	if err := flag.Value.Set("true"); err != nil {
-		logrus.Errorf("Unable to set --pull to true: %v", err)
+	flag.DefValue = "missing"
+	if err := flag.Value.Set("missing"); err != nil {
+		logrus.Errorf("Unable to set --pull to 'missing': %v", err)
 	}
-	flag.DefValue = "true"
-	flag.Usage = "Always attempt to pull the image (errors are fatal)"
+	flag.Usage = `Pull image policy ("always/true"|"missing"|"never/false"|"newer")`
 	flags.AddFlagSet(&budFlags)
 
 	// Add the completion functions

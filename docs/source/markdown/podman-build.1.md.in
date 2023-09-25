@@ -653,7 +653,7 @@ the help of emulation provided by packages like `qemu-user-static`.
 
 #### **--pull**=*policy*
 
-Pull image policy. The default is **always**.
+Pull image policy. The default is **missing**.
 
 - **always**, **true**: Always pull the image and throw an error if the pull fails.
 - **missing**: Only pull the image when it does not exist in the local containers storage.  Throw an error if no image is found and the pull fails.
