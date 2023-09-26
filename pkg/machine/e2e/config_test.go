@@ -201,3 +201,19 @@ func (matcher *ValidJSONMatcher) FailureMessage(actual interface{}) (message str
 func (matcher *ValidJSONMatcher) NegatedFailureMessage(actual interface{}) (message string) {
 	return format.Message(actual, "to _not_ be valid JSON")
 }
+
+func skipIfVmtype(vmType machine.VMType, message string) {
+	if testProvider.VMType() == vmType {
+		Skip(message)
+	}
+}
+
+func skipIfNotVmtype(vmType machine.VMType, message string) {
+	if testProvider.VMType() != vmType {
+		Skip(message)
+	}
+}
+
+func skipIfWSL(message string) {
+	skipIfVmtype(machine.WSLVirt, message)
+}

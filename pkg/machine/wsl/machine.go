@@ -1082,7 +1082,7 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 	}
 
 	if opts.DiskSize != nil {
-		setErrors = append(setErrors, errors.New("changing Disk Size not supported for WSL machines"))
+		setErrors = append(setErrors, errors.New("changing disk size not supported for WSL machines"))
 	}
 
 	if opts.UserModeNetworking != nil && *opts.UserModeNetworking != v.UserModeNetworking {
@@ -1105,8 +1105,15 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 			v.UserModeNetworking = *opts.UserModeNetworking
 		}
 	}
+	err := v.writeConfig()
+	if err != nil {
+		setErrors = append(setErrors, err)
+	}
 
-	return setErrors, v.writeConfig()
+	if len(setErrors) > 0 {
+		return setErrors, setErrors[0]
+	}
+	return setErrors, nil
 }
 
 func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
