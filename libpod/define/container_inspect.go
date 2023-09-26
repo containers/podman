@@ -229,7 +229,6 @@ type InspectContainerState struct {
 	RestoreLog     string             `json:"RestoreLog,omitempty"`
 	Restored       bool               `json:"Restored,omitempty"`
 	StoppedByUser  bool               `json:"StoppedByUser,omitempty"`
-	IntelRdtClosID string             `json:"IntelRdtClosID,omitempty"`
 }
 
 // Healthcheck returns the HealthCheckResults. This is used for old podman compat
@@ -568,6 +567,9 @@ type InspectContainerHostConfig struct {
 	IOMaximumBandwidth uint64 `json:"IOMaximumBandwidth"`
 	// CgroupConf is the configuration for cgroup v2.
 	CgroupConf map[string]string `json:"CgroupConf"`
+	// IntelRdtClosID defines the Intel RDT CAT Class Of Service (COS) that
+	// all processes of the container should run in.
+	IntelRdtClosID string `json:"IntelRdtClosID,omitempty"`
 }
 
 // Address represents an IP address.

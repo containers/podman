@@ -84,7 +84,7 @@ var _ = Describe("Podman create", func() {
 		check := podmanTest.Podman([]string{"inspect", "rdt_test"})
 		check.WaitWithDefaultTimeout()
 		data := check.InspectContainerToJSON()
-		Expect(data[0].State.IntelRdtClosID).To(Equal("COS1"))
+		Expect(data[0].HostConfig.IntelRdtClosID).To(Equal("COS1"))
 	})
 
 	It("podman create adds annotation", func() {
