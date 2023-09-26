@@ -22,8 +22,8 @@ var (
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: common.AutoCompleteFarms,
 		Example: `podman farm update --add con1 farm1
-	podman update --remove con2 farm2
-	podman update --default farm3`,
+	podman farm update --remove con2 farm2
+	podman farm update --default farm3`,
 	}
 
 	// Temporary struct to hold cli values.
