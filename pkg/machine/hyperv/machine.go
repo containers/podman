@@ -95,6 +95,7 @@ func (m *HyperVMachine) writeIgnitionConfigFile(opts machine.InitOptions, user, 
 		TimeZone:  opts.TimeZone,
 		WritePath: m.IgnitionFile.GetPath(),
 		UID:       m.UID,
+		Rootful:   m.Rootful,
 	}
 
 	if err := ign.GenerateIgnitionConfig(); err != nil {
@@ -243,6 +244,7 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 		DiskSize: opts.DiskSize,
 		Memory:   opts.Memory,
 	}
+	m.Rootful = opts.Rootful
 
 	// If the user provides an ignition file, we need to
 	// copy it into the conf dir

@@ -174,10 +174,6 @@ var _ = Describe("podman machine init", func() {
 	})
 
 	It("machine init rootless docker.sock check", func() {
-		if testProvider.VMType() == machine.HyperVVirt {
-			//https://github.com/containers/podman/issues/20092
-			Skip("rootless is broken with hyperv")
-		}
 		i := initMachine{}
 		name := randomString()
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
