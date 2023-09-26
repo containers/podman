@@ -178,6 +178,26 @@ build_task:
             path: ./*-${STATS_LOGFILE_SFX}
             type: text/plain
 
+
+build_rpm_task:
+    alias: 'build_rpm'
+    name: 'Build RPM for $DISTRO_NV'
+    gce_instance: *standardvm
+    env:
+      <<: *stdenvars
+      TEST_FLAVOR: build_rpm
+    clone_script: *full_clone
+    prebuild_script: *prebuild
+    setup_script: *setup
+    postbuild_script: *postbuild
+    main_script: *main
+    # Cirrus-CI is very slow uploading one file at time, and the repo contains
+    # thousands of files.  Speed this up by archiving into tarball first.
+    repo_prep_script: *repo_prep
+    repo_artifacts: *repo_artifacts
+    always: *runner_stats
+
+
 build_aarch64_task:
     alias: 'build_aarch64'
     name: 'Build for $DISTRO_NV'
@@ -985,6 +1005,7 @@ success_task:
     # N/B: ALL tasks must be listed here, minus their '_task' suffix.
     depends_on:
         - build
+        - build_rpm
         - build_aarch64
         - validate
         - validate_aarch64
