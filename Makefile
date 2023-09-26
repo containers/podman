@@ -207,7 +207,6 @@ endif
 # win-sshproxy is checked out manually to keep from pulling in gvisor and it's transitive
 # dependencies. This is only used for the Windows client archives, which must
 # include this lightweight helper binary.
-#
 GV_GITURL=https://github.com/containers/gvisor-tap-vsock.git
 GV_SHA=db608827124caa71ba411cec8ea959bb942984fe
 

@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 
 # Targets
 function Podman-Remote{
-    New-Item  ./bin/windows -ItemType Directory -ea 0
+    New-Item -ItemType Directory -Force -Path "./bin/windows"
 
     $buildInfo = Get-Date -UFormat %s -Millisecond 0
     $buildInfo = "-X github.com/containers/podman/v4/libpod/define.buildInfo=$buildInfo "
@@ -28,6 +28,49 @@ function Local-Machine {
     Run-Command "./test/tools/build/ginkgo.exe -vv  --tags `"$remotetags`" -timeout=90m --trace --no-color $files pkg/machine/e2e/. "
 }
 
+# Expect starting directory to be /podman
+function Win-SSHProxy {
+    param (
+        [string]$Ref
+    );
+
+    # git is not installed by default on windows
+    # fail if git doesn't exist
+    Get-Command git -ErrorAction SilentlyContinue  | out-null
+    if(!$?){
+        Write-Host "Git not installed, cannot build Win-SSHProxy"
+        Exit 1
+    }
+
+    if (Test-Path ./tmp-gv) {
+        Remove-Item ./tmp-gv -Recurse -Force -Confirm:$false
+    }
+
+    $GV_GITURL = "https://github.com/containers/gvisor-tap-vsock.git"
+
+    New-Item  ./tmp-gv -ItemType Directory -ea 0
+    Push-Location ./tmp-gv
+    Run-Command "git init"
+    Run-Command "git remote add origin $GV_GITURL"
+    Run-Command "git fetch --depth 1 origin main"
+    Run-Command "git fetch --depth 1 --tags"
+    Run-Command "git checkout main"
+    if (-Not $Ref) {
+        Write-Host "empty"
+        $Ref = git describe --abbrev=0
+    }
+    Run-Command "git checkout $Ref"
+    Run-Command "go build -ldflags -H=windowsgui -o bin/win-sshproxy.exe ./cmd/win-sshproxy"
+    Run-Command "go build -ldflags -H=windowsgui -o bin/gvproxy.exe ./cmd/gvproxy"
+    Pop-Location
+
+    # Move location to ./bin/windows for packaging script and for Windows binary testing
+    New-Item -ItemType Directory -Force -Path "./bin/windows"
+    Copy-Item -Path "tmp-gv/bin/win-sshproxy.exe" -Destination "./bin/windows/"
+    Copy-Item -Path "tmp-gv/bin/gvproxy.exe" -Destination "./bin/windows/"
+    Remove-Item ./tmp-gv -Recurse -Force -Confirm:$false
+}
+
 # Helpers
 function Build-Ginkgo{
     if (Test-Path -Path ./test/tools/build/ginkgo.exe -PathType Leaf) {
@@ -48,10 +91,10 @@ function Git-Commit{
     }
     $commit = git rev-parse HEAD
     $dirty = git status --porcelain --untracked-files=no
-     if ($dirty){
+    if ($dirty){
         $commit = "$commit-dirty"
-     }
-     return $commit
+    }
+    return $commit
 }
 
 function Run-Command {
@@ -87,6 +130,12 @@ switch ($target) {
     }
     'clean' {
         Make-Clean
+    }
+    'win-sshproxy' {
+        if ($args.Count -gt 1) {
+            $ref = $args[1]
+        }
+        Win-SSHProxy -Ref $ref
     }
     default {
         Write-Host "Usage: " $MyInvocation.MyCommand.Name "<target> [options]"
