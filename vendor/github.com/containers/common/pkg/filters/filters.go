@@ -107,13 +107,7 @@ func PrepareFilters(r *http.Request) (map[string][]string, error) {
 func MatchLabelFilters(filterValues []string, labels map[string]string) bool {
 outer:
 	for _, filterValue := range filterValues {
-		filterArray := strings.SplitN(filterValue, "=", 2)
-		filterKey := filterArray[0]
-		if len(filterArray) > 1 {
-			filterValue = filterArray[1]
-		} else {
-			filterValue = ""
-		}
+		filterKey, filterValue := splitFilterValue(filterValue)
 		for labelKey, labelValue := range labels {
 			if filterValue == "" || labelValue == filterValue {
 				if labelKey == filterKey || matchPattern(filterKey, labelKey) {
@@ -124,6 +118,32 @@ outer:
 		return false
 	}
 	return true
+}
+
+// MatchNegatedLabelFilters matches negated labels and returns true if they are valid
+func MatchNegatedLabelFilters(filterValues []string, labels map[string]string) bool {
+	for _, filterValue := range filterValues {
+		filterKey, filterValue := splitFilterValue(filterValue)
+		for labelKey, labelValue := range labels {
+			if filterValue == "" || labelValue == filterValue {
+				if labelKey == filterKey || matchPattern(filterKey, labelKey) {
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
+func splitFilterValue(filterValue string) (string, string) {
+	filterArray := strings.SplitN(filterValue, "=", 2)
+	filterKey := filterArray[0]
+	if len(filterArray) > 1 {
+		filterValue = filterArray[1]
+	} else {
+		filterValue = ""
+	}
+	return filterKey, filterValue
 }
 
 func matchPattern(pattern string, value string) bool {
