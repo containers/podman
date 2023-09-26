@@ -370,6 +370,14 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"quiet", "q", false,
 			"Suppress output information when pulling images",
 		)
+		rdtClassFlagName := "rdt-class"
+		createFlags.StringVar(
+			&cf.IntelRdtClosID,
+			rdtClassFlagName, cf.IntelRdtClosID,
+			"Class of Service (COS) that the container should be assigned to",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(rdtClassFlagName, AutocompletePullOption)
+
 		createFlags.BoolVar(
 			&cf.ReadOnly,
 			"read-only", podmanConfig.ContainersConfDefaultsRO.Containers.ReadOnly,

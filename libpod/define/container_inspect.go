@@ -229,6 +229,7 @@ type InspectContainerState struct {
 	RestoreLog     string             `json:"RestoreLog,omitempty"`
 	Restored       bool               `json:"Restored,omitempty"`
 	StoppedByUser  bool               `json:"StoppedByUser,omitempty"`
+	IntelRdtClosID string             `json:"IntelRdtClosID,omitempty"`
 }
 
 // Healthcheck returns the HealthCheckResults. This is used for old podman compat

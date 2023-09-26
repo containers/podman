@@ -198,6 +198,13 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 		}
 	}
 
+	if ctrSpec.Linux.IntelRdt != nil {
+		if ctrSpec.Linux.IntelRdt.ClosID != "" {
+			// container is assigned to a ClosID
+			data.State.IntelRdtClosID = ctrSpec.Linux.IntelRdt.ClosID
+		}
+	}
+
 	networkConfig, err := c.getContainerNetworkInfo()
 	if err != nil {
 		return nil, err

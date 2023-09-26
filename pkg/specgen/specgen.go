@@ -514,6 +514,10 @@ type ContainerNetworkConfig struct {
 
 // ContainerResourceConfig contains information on container resource limits.
 type ContainerResourceConfig struct {
+	// IntelRdt defines the Intel RDT CAT Class of Service (COS) that all processes
+	// of the container should run in.
+	// Optional.
+	IntelRdt *spec.LinuxIntelRdt `json:"intelRdt,omitempty"`
 	// ResourceLimits are resource limits to apply to the container.,
 	// Can only be set as root on cgroups v1 systems, but can be set as
 	// rootless as well for cgroups v2.

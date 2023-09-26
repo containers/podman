@@ -224,6 +224,7 @@ type ContainerCreateOptions struct {
 	Init               bool
 	InitContainerType  string
 	InitPath           string
+	IntelRdtClosID     string
 	Interactive        bool
 	IPC                string
 	Label              []string
