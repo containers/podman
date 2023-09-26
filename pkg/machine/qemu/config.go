@@ -61,15 +61,22 @@ func (v *MachineVM) setQMPMonitorSocket() error {
 
 // setNewMachineCMD configure the CLI command that will be run to create the new
 // machine
-func (v *MachineVM) setNewMachineCMD(qemuBinary string, cmdOpts *setNewMachineCMDOpts) {
+func (v *MachineVM) setNewMachineCMD(qemuBinary string, cmdOpts *setNewMachineCMDOpts) error {
 	v.CmdLine = command.NewQemuBuilder(qemuBinary, v.addArchOptions(cmdOpts))
 	v.CmdLine.SetMemory(v.Memory)
 	v.CmdLine.SetCPUs(v.CPUs)
 	v.CmdLine.SetIgnitionFile(v.IgnitionFile)
 	v.CmdLine.SetQmpMonitor(v.QMPMonitor)
-	v.CmdLine.SetNetwork()
+	vlanSocket, err := machineSocket(v.Name, "vlan", "")
+	if err != nil {
+		return err
+	}
+	if err := v.CmdLine.SetNetwork(vlanSocket); err != nil {
+		return err
+	}
 	v.CmdLine.SetSerialPort(v.ReadySocket, v.VMPidFilePath, v.Name)
 	v.CmdLine.SetUSBHostPassthrough(v.USBs)
+	return nil
 }
 
 // NewMachine initializes an instance of a virtual machine based on the qemu
@@ -146,7 +153,9 @@ func (p *QEMUVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, e
 
 	// configure command to run
 	cmdOpts := setNewMachineCMDOpts{imageDir: dataDir}
-	vm.setNewMachineCMD(execPath, &cmdOpts)
+	if err := vm.setNewMachineCMD(execPath, &cmdOpts); err != nil {
+		return nil, err
+	}
 	return vm, nil
 }
 

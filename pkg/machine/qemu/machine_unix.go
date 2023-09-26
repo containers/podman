@@ -8,6 +8,7 @@ import (
 	"strings"
 	"syscall"
 
+	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v4/pkg/machine/define"
 	"golang.org/x/sys/unix"
 )
@@ -48,6 +49,10 @@ func checkProcessStatus(processHint string, pid int, stderrBuf *bytes.Buffer) er
 		// child exited
 		return fmt.Errorf("%s exited unexpectedly with exit code %d, stderr: %s", processHint, status.ExitStatus(), stderrBuf.String())
 	}
+	return nil
+}
+
+func forwardPipeArgs(cmd *gvproxy.GvproxyCommand, name string, destPath string, identityPath string, user string) error {
 	return nil
 }
 

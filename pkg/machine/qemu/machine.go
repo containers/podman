@@ -435,9 +435,9 @@ func (v *MachineVM) qemuPid() (int, error) {
 // Start executes the qemu command line and forks it
 func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	var (
-		conn           net.Conn
-		err            error
-		qemuSocketConn net.Conn
+		conn net.Conn
+		err  error
+		fd   *os.File
 	)
 
 	v.lock.Lock()
@@ -493,11 +493,6 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		logrus.Errorf("machine %q is incompatible with this release of podman and needs to be recreated, starting for recovery only", v.Name)
 	}
 
-	forwardSock, forwardState, _, err := v.startHostNetworking(&v.QMPMonitor.Address)
-	if err != nil {
-		return fmt.Errorf("unable to start host networking: %q", err)
-	}
-
 	rtPath, err := getRuntimeDir()
 	if err != nil {
 		return err
@@ -511,23 +506,44 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		}
 	}
 
-	// If the qemusocketpath exists and the vm is off/down, we should rm
-	// it before the dial as to avoid a segv
-	if err := v.QMPMonitor.Address.Delete(); err != nil {
-		return err
-	}
-
-	qemuSocketConn, err = sockets.DialSocketWithBackoffs(maxStartupBackoffs, baseBackoff, v.QMPMonitor.Address.Path)
+	vlanSocket, err := machineSocket(v.Name, "vlan", "")
 	if err != nil {
 		return fmt.Errorf("failed to connect to qemu monitor socket: %w", err)
 	}
-	defer qemuSocketConn.Close()
-
-	fd, err := qemuSocketConn.(*net.UnixConn).File()
+	err = vlanSocket.Delete()
 	if err != nil {
 		return err
 	}
-	defer fd.Close()
+	isFdVlanVM := false
+	for _, c := range v.CmdLine {
+		if c == command.FdVlanNetdev {
+			isFdVlanVM = true
+		}
+	}
+
+	forwardSock, forwardState, forwarderProcess, err := v.startHostNetworking(vlanSocket)
+	if err != nil {
+		return fmt.Errorf("unable to start host networking: %q", err)
+	}
+
+	if isFdVlanVM {
+		qemuSocketConn, err := sockets.DialSocketWithBackoffs(maxStartupBackoffs, baseBackoff, vlanSocket.GetPath())
+		if err != nil {
+			return err
+		}
+		defer qemuSocketConn.Close()
+
+		fd, err = qemuSocketConn.(*net.UnixConn).File()
+		if err != nil {
+			return err
+		}
+		defer fd.Close()
+	} else {
+		err := waitForVlanReady(forwarderProcess.Pid, vlanSocket.GetPath())
+		if err != nil {
+			return err
+		}
+	}
 
 	dnr, dnw, err := machine.GetDevNullFiles()
 	if err != nil {
@@ -634,6 +650,28 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		v.isIncompatible(),
 		v.Rootful,
 	)
+	return nil
+}
+
+func waitForVlanReady(pid int, vlanPath string) error {
+	time.Sleep(baseBackoff)
+	backoff := baseBackoff
+	for i := 0; i < maxStartupBackoffs; i++ {
+		if i > 0 {
+			time.Sleep(backoff)
+			backoff *= 2
+		}
+		// First need to verify that gvproxy is alive,
+		// because `.sock` file could belong to a different process
+		err := checkProcessStatus(machine.ForwarderBinaryName, pid, nil)
+		if err != nil {
+			return err
+		}
+		_, err = os.Stat(vlanPath)
+		if err == nil {
+			break
+		}
+	}
 	return nil
 }
 
@@ -892,23 +930,10 @@ func (v *MachineVM) stopLocked() error {
 
 // NewQMPMonitor creates the monitor subsection of our vm
 func NewQMPMonitor(network, name string, timeout time.Duration) (command.Monitor, error) {
-	rtDir, err := getRuntimeDir()
-	if err != nil {
-		return command.Monitor{}, err
-	}
-	if isRootful() {
-		rtDir = "/run"
-	}
-	rtDir = filepath.Join(rtDir, "podman")
-	if _, err := os.Stat(rtDir); errors.Is(err, fs.ErrNotExist) {
-		if err := os.MkdirAll(rtDir, 0755); err != nil {
-			return command.Monitor{}, err
-		}
-	}
 	if timeout == 0 {
 		timeout = defaultQMPTimeout
 	}
-	address, err := define.NewMachineFile(filepath.Join(rtDir, "qmp_"+name+".sock"), nil)
+	address, err := machineSocket(name, "qmp", "")
 	if err != nil {
 		return command.Monitor{}, err
 	}
@@ -918,6 +943,29 @@ func NewQMPMonitor(network, name string, timeout time.Duration) (command.Monitor
 		Timeout: timeout,
 	}
 	return monitor, nil
+}
+
+func machineSocket(name, prefix, suffix string) (*define.VMFile, error) {
+	rtDir, err := getRuntimeDir()
+	if err != nil {
+		return nil, err
+	}
+	if isRootful() {
+		rtDir = "/run"
+	}
+	rtDir = filepath.Join(rtDir, "podman")
+	if _, err := os.Stat(rtDir); errors.Is(err, fs.ErrNotExist) {
+		if err := os.MkdirAll(rtDir, 0755); err != nil {
+			return nil, err
+		}
+	}
+	if prefix != "" {
+		name = prefix + "_" + name
+	}
+	if suffix != "" {
+		name = name + "_" + suffix
+	}
+	return define.NewMachineFile(filepath.Join(rtDir, name+".sock"), nil)
 }
 
 // collectFilesToDestroy retrieves the files that will be destroyed by `Remove`
@@ -1165,10 +1213,10 @@ func (v *MachineVM) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.Gvpr
 		forwardUser = "root"
 	}
 
-	cmd.AddForwardSock(socket.GetPath())
-	cmd.AddForwardDest(destSock)
-	cmd.AddForwardUser(forwardUser)
-	cmd.AddForwardIdentity(v.IdentityPath)
+	err = forwardSocketArgs(&cmd, v.Name, socket.GetPath(), destSock, v.IdentityPath, forwardUser)
+	if err != nil {
+		return cmd, "", machine.NoForwarding
+	}
 
 	// The linking pattern is /var/run/docker.sock -> user global sock (link) -> machine sock (socket)
 	// This allows the helper to only have to maintain one constant target to the user, which can be
@@ -1406,6 +1454,18 @@ func (v *MachineVM) editCmdLine(flag string, value string) {
 	if !found {
 		v.CmdLine = append(v.CmdLine, []string{flag, value}...)
 	}
+}
+
+func forwardSocketArgs(cmd *gvproxy.GvproxyCommand, name string, path string, destPath string, identityPath string, user string) error {
+	err := forwardPipeArgs(cmd, name, destPath, identityPath, user)
+	if err != nil {
+		return err
+	}
+	cmd.AddForwardSock(path)
+	cmd.AddForwardDest(destPath)
+	cmd.AddForwardUser(user)
+	cmd.AddForwardIdentity(identityPath)
+	return nil
 }
 
 func isRootful() bool {

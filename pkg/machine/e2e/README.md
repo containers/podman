@@ -37,11 +37,21 @@ Note: To run specific test files, add the test files to the end of the winmake c
 1. `export MACHINE_IMAGE="https://fedorapeople.org/groups/podman/testing/applehv/arm64/fedora-coreos-38.20230925.dev.0-applehv.aarch64.raw.gz"`
 1. `make localmachine` (Add `FOCUS_FILE=basic_test.go` to only run basic test)
 
-### QEMU
+### QEMU (fd vlan)
 
 1. Install Podman and QEMU for MacOS bundle using latest release from https://github.com/containers/podman/releases
 1. `make podman-remote`
 1. `export CONTAINERS_MACHINE_PROVIDER="qemu"`
 1. Add bundled QEMU to path `export PATH=/opt/podman/qemu/bin:$PATH`
 1. Set search path to gvproxy from bundle `export CONTAINERS_HELPER_BINARY_DIR=/opt/podman/bin`
+1. `make localmachine` (Add `FOCUS_FILE=basic_test.go` to only run basic test)
+
+### QEMU (UNIX domain socket vlan)
+
+1. Install Podman and QEMU for MacOS bundle using latest release from https://github.com/containers/podman/releases
+1. `make podman-remote`
+1. `export CONTAINERS_MACHINE_PROVIDER="qemu"`
+1. Add bundled QEMU to path `export PATH=/opt/podman/qemu/bin:$PATH`
+1. Set search path to gvproxy from bundle `export CONTAINERS_HELPER_BINARY_DIR=/opt/podman/bin`
+1. `export CONTAINERS_USE_SOCKET_VLAN=true`
 1. `make localmachine` (Add `FOCUS_FILE=basic_test.go` to only run basic test)

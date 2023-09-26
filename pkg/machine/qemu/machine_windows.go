@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 
+	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/define"
 )
@@ -39,6 +40,18 @@ func checkProcessStatus(processHint string, pid int, stderrBuf *bytes.Buffer) er
 			return fmt.Errorf("%s exited unexpectedly, exit code: %d", processHint, exitCode)
 		}
 	}
+	return nil
+}
+
+func forwardPipeArgs(cmd *gvproxy.GvproxyCommand, name string, destPath string, identityPath string, user string) error {
+	machinePipe := toPipeName(name)
+	if !machine.PipeNameAvailable(machinePipe) {
+		return fmt.Errorf("could not start api proxy since expected pipe is not available: %s", machinePipe)
+	}
+	cmd.AddForwardSock(fmt.Sprintf("npipe:////./pipe/%s", machinePipe))
+	cmd.AddForwardDest(destPath)
+	cmd.AddForwardUser(user)
+	cmd.AddForwardIdentity(identityPath)
 	return nil
 }
 

@@ -2,6 +2,7 @@ package command
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,6 +13,11 @@ import (
 	"github.com/containers/common/libnetwork/etchosts"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine/define"
+)
+
+const (
+	FdVlanNetdev = "socket,id=vlan,fd=3"
+	vlanMac      = "5a:94:ef:e4:0c:ee"
 )
 
 // QemuCmd is an alias around a string slice to prevent the need to migrate the
@@ -47,10 +53,23 @@ func (q *QemuCmd) SetQmpMonitor(monitor Monitor) {
 }
 
 // SetNetwork adds a network device to the machine
-func (q *QemuCmd) SetNetwork() {
+func (q *QemuCmd) SetNetwork(vlanSocket *define.VMFile) error {
 	// Right now the mac address is hardcoded so that the host networking gives it a specific IP address.  This is
 	// why we can only run one vm at a time right now
-	*q = append(*q, "-netdev", "socket,id=vlan,fd=3", "-device", "virtio-net-pci,netdev=vlan,mac=5a:94:ef:e4:0c:ee")
+	if UseFdVLan() {
+		*q = append(*q, []string{"-netdev", FdVlanNetdev}...)
+	} else {
+		if vlanSocket == nil {
+			return errors.New("vlanSocket is undefined")
+		}
+		*q = append(*q, []string{"-netdev", socketVlanNetdev(vlanSocket.GetPath())}...)
+	}
+	*q = append(*q, []string{"-device", "virtio-net-pci,netdev=vlan,mac=" + vlanMac}...)
+	return nil
+}
+
+func socketVlanNetdev(path string) string {
+	return fmt.Sprintf("stream,id=vlan,server=off,addr.type=unix,addr.path=%s", path)
 }
 
 func (q *QemuCmd) SetUSBHostPassthrough(usbs []USBConfig) {
