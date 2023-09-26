@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega/gexec"
 )
 
-var _ = Describe("podman machine stop", func() {
+var _ = Describe("podman inspect stop", func() {
 	var (
 		mb      *machineTestBuilder
 		testDir string
@@ -65,7 +65,12 @@ var _ = Describe("podman machine stop", func() {
 		var inspectInfo []machine.InspectInfo
 		err = jsoniter.Unmarshal(inspectSession.Bytes(), &inspectInfo)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(inspectInfo[0].ConnectionInfo.PodmanSocket.GetPath()).To(HaveSuffix("podman.sock"))
+		switch testProvider.VMType() {
+		case machine.WSLVirt:
+			Expect(inspectInfo[0].ConnectionInfo.PodmanPipe.GetPath()).To(ContainSubstring("podman-"))
+		default:
+			Expect(inspectInfo[0].ConnectionInfo.PodmanSocket.GetPath()).To(HaveSuffix("podman.sock"))
+		}
 
 		inspect := new(inspectMachine)
 		inspect = inspect.withFormat("{{.Name}}")
