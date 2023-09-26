@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -263,7 +264,7 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	// Until the disk resize can be fixed, we ignore it
+	logrus.Debugf("resizing disk to %d GiB", opts.DiskSize)
 	if err := m.resizeDisk(strongunits.GiB(opts.DiskSize)); err != nil {
 		return false, err
 	}
@@ -952,7 +953,16 @@ func (m *MacMachine) resizeDisk(newSize strongunits.GiB) error {
 		// error has not merged
 		return fmt.Errorf("invalid disk size %d: new disk must be larger than %dGB", newSize, m.DiskSize)
 	}
-	return os.Truncate(m.ImagePath.GetPath(), int64(newSize.ToBytes()))
+	logrus.Debugf("resizing %s to %d bytes", m.ImagePath.GetPath(), newSize.ToBytes())
+	// seems like os.truncate() is not very performant with really large files
+	// so exec'ing out to the command truncate
+	size := fmt.Sprintf("%dG", newSize)
+	c := exec.Command("truncate", "-s", size, m.ImagePath.GetPath())
+	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+		c.Stderr = os.Stderr
+		c.Stdout = os.Stdout
+	}
+	return c.Run()
 }
 
 // isFirstBoot returns a bool reflecting if the machine has been booted before
