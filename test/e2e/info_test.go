@@ -216,6 +216,21 @@ var _ = Describe("Podman Info", func() {
 		Expect(session.ErrorToString()).To(Equal("Error: unsupported database backend: \"bogus\""))
 	})
 
+	It("Podman info: check desired storage driver", func() {
+		// defined in .cirrus.yml
+		want := os.Getenv("CI_DESIRED_STORAGE")
+		if want == "" {
+			if os.Getenv("CIRRUS_CI") == "" {
+				Skip("CI_DESIRED_STORAGE is not set--this is OK because we're not running under Cirrus")
+			}
+			Fail("CIRRUS_CI is set, but CI_DESIRED_STORAGE is not! See #20161")
+		}
+		session := podmanTest.Podman([]string{"info", "--format", "{{.Store.GraphDriverName}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitCleanly())
+		Expect(session.OutputToString()).To(Equal(want), ".Store.GraphDriverName from podman info")
+	})
+
 	It("Podman info: check lock count", Serial, func() {
 		// This should not run on architectures and OSes that use the file locks backend.
 		// Which, for now, is Linux + RISCV and FreeBSD, neither of which are in CI - so

@@ -1,10 +1,10 @@
 package integration
 
 var (
-	STORAGE_FS               = "vfs"                                                                                                                                                     //nolint:revive,stylecheck
-	STORAGE_OPTIONS          = "--storage-driver vfs"                                                                                                                                    //nolint:revive,stylecheck
-	ROOTLESS_STORAGE_FS      = "vfs"                                                                                                                                                     //nolint:revive,stylecheck
-	ROOTLESS_STORAGE_OPTIONS = "--storage-driver vfs"                                                                                                                                    //nolint:revive,stylecheck
+	STORAGE_FS               = "overlay"                                                                                                                                                 //nolint:revive,stylecheck
+	STORAGE_OPTIONS          = "--storage-driver overlay"                                                                                                                                //nolint:revive,stylecheck
+	ROOTLESS_STORAGE_FS      = "overlay"                                                                                                                                                 //nolint:revive,stylecheck
+	ROOTLESS_STORAGE_OPTIONS = "--storage-driver overlay"                                                                                                                                //nolint:revive,stylecheck
 	CACHE_IMAGES             = []string{ALPINE, BB, fedoraMinimal, NGINX_IMAGE, REDIS_IMAGE, REGISTRY_IMAGE, INFRA_IMAGE, CITEST_IMAGE, HEALTHCHECK_IMAGE, SYSTEMD_IMAGE, fedoraToolbox} //nolint:revive,stylecheck
 	NGINX_IMAGE              = "quay.io/libpod/alpine_nginx:latest"                                                                                                                      //nolint:revive,stylecheck
 	BB_GLIBC                 = "docker.io/library/busybox:glibc"                                                                                                                         //nolint:revive,stylecheck

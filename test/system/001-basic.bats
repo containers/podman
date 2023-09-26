@@ -54,6 +54,7 @@ function setup() {
         'Cgroups:{{.Host.CgroupsVersion}}+{{.Host.CgroupManager}}'
         'Net:{{.Host.NetworkBackend}}'
         'DB:{{.Host.DatabaseBackend}}'
+        'Store:{{.Store.GraphDriverName}}'
     )
     run_podman info --format "$(IFS='/' echo ${want[@]})"
     echo "# $output" >&3

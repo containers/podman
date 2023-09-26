@@ -109,22 +109,6 @@ esac
 #if [[ "${CI_DESIRED_DATABASE:-sqlite}" != "sqlite" ]]; then
 printf "[engine]\ndatabase_backend=\"$CI_DESIRED_DATABASE\"\n" > /etc/containers/containers.conf.d/92-db.conf
 
-# For debian envs pre-configure storage driver as overlay.
-# See: Discussion here https://github.com/containers/podman/pull/18510#discussion_r1189812306
-# for more details.
-# TODO: remove this once all CI VM have newer buildah version. (i.e where buildah
-# does not defaults to using `vfs` as storage driver)
-# shellcheck disable=SC2154
-if [[ "$OS_RELEASE_ID" == "debian" ]]; then
-    showrun echo "conditional setup for debian"
-    conf=/etc/containers/storage.conf
-    if [[ -e $conf ]]; then
-        die "FATAL! INTERNAL ERROR! Cannot override $conf"
-    fi
-    msg "Overriding $conf, setting overlay (was: $buildah_storage)"
-    printf '[storage]\ndriver = "overlay"\nrunroot = "/run/containers/storage"\ngraphroot = "/var/lib/containers/storage"\n' >$conf
-fi
-
 if ((CONTAINER==0)); then  # Not yet running inside a container
     showrun echo "conditional setup for CONTAINER == 0"
     # Discovered reemergence of BFQ scheduler bug in kernel 5.8.12-200
@@ -204,6 +188,26 @@ case "$CI_DESIRED_DATABASE" in
         die_unknown CI_DESIRED_DATABASE
         ;;
 esac
+
+# Force the requested storage driver for both system and e2e tests.
+# This is (sigh) different because e2e tests have their own special way
+# of ignoring system defaults.
+# shellcheck disable=SC2154
+showrun echo "Setting CI_DESIRED_STORAGE [=$CI_DESIRED_STORAGE] for *system* tests"
+conf=/etc/containers/storage.conf
+if [[ -e $conf ]]; then
+    die "FATAL! INTERNAL ERROR! Cannot override $conf"
+fi
+cat <<EOF >$conf
+[storage]
+driver = "$CI_DESIRED_STORAGE"
+runroot = "/run/containers/storage"
+graphroot = "/var/lib/containers/storage"
+EOF
+
+# shellcheck disable=SC2154
+showrun echo "Setting CI_DESIRED_STORAGE [=$CI_DESIRED_STORAGE] for *e2e* tests"
+echo "STORAGE_FS=$CI_DESIRED_STORAGE" >>/etc/ci_environment
 
 # Required to be defined by caller: The environment where primary testing happens
 # shellcheck disable=SC2154

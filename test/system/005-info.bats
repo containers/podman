@@ -117,6 +117,22 @@ host.slirp4netns.executable | $expr_path
     is "$db_backend" "$CI_DESIRED_DATABASE" "CI_DESIRED_DATABASE (from .cirrus.yml)"
 }
 
+@test "podman info - confirm desired storage driver" {
+    if [[ -z "$CI_DESIRED_STORAGE" ]]; then
+        # When running in Cirrus, CI_DESIRED_STORAGE *must* be defined
+        # in .cirrus.yml so we can double-check that all CI VMs are
+        # using overlay or vfs as desired.
+        if [[ -n "$CIRRUS_CI" ]]; then
+            die "CIRRUS_CI is set, but CI_DESIRED_STORAGE is not! See #20161"
+        fi
+
+        # Not running under Cirrus (e.g., gating tests, or dev laptop).
+        # Totally OK to skip this test.
+        skip "CI_DESIRED_STORAGE is unset--OK, because we're not in Cirrus"
+    fi
+
+    is "$(podman_storage_driver)" "$CI_DESIRED_STORAGE" "podman storage driver is not CI_DESIRED_STORAGE (from .cirrus.yml)"
+}
 
 # 2021-04-06 discussed in watercooler: RHEL must never use crun, even if
 # using cgroups v2.
@@ -163,7 +179,7 @@ host.slirp4netns.executable | $expr_path
 @test "podman --root PATH info - basic output" {
     if ! is_remote; then
         run_podman --storage-driver=vfs --root ${PODMAN_TMPDIR}/nothing-here-move-along info --format '{{ .Store.GraphOptions }}'
-        is "$output" "map\[\]" "'podman --root should reset Graphoptions to []"
+        is "$output" "map\[\]" "'podman --root should reset GraphOptions to []"
     fi
 }
 

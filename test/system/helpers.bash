@@ -553,6 +553,18 @@ function podman_runtime() {
     basename "${output:-[null]}"
 }
 
+# Returns the storage driver: 'overlay' or 'vfs'
+function podman_storage_driver() {
+    run_podman info --format '{{.Store.GraphDriverName}}' >/dev/null
+    # Should there ever be a new driver
+    case "$output" in
+        overlay) ;;
+        vfs)     ;;
+        *)       die "Unknown storage driver '$output'; if this is a new driver, please review uses of this function in tests." ;;
+    esac
+    echo "$output"
+}
+
 # rhbz#1895105: rootless journald is unavailable except to users in
 # certain magic groups; which our testuser account does not belong to
 # (intentional: that is the RHEL default, so that's the setup we test).
