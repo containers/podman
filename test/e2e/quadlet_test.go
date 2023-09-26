@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"encoding/csv"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -177,15 +178,24 @@ func (t *quadletTestcase) assertPodmanArgsRegex(args []string, unit *parser.Unit
 	return findSublistRegex(podmanArgs, args) != -1
 }
 
-func keyValueStringToMap(keyValueString, separator string) map[string]string {
+func keyValueStringToMap(keyValueString, separator string) (map[string]string, error) {
 	keyValMap := make(map[string]string)
-	keyVarList := strings.Split(keyValueString, separator)
-	for _, param := range keyVarList {
-		kv := strings.Split(param, "=")
-		keyValMap[kv[0]] = kv[1]
+	csvReader := csv.NewReader(strings.NewReader(keyValueString))
+	csvReader.Comma = []rune(separator)[0]
+	keyVarList, err := csvReader.ReadAll()
+	if err != nil {
+		return nil, err
+	}
+	for _, param := range keyVarList[0] {
+		val := ""
+		kv := strings.SplitN(param, "=", 2)
+		if len(kv) == 2 {
+			val = kv[1]
+		}
+		keyValMap[kv[0]] = val
 	}
 
-	return keyValMap
+	return keyValMap, nil
 }
 
 func keyValMapEqualRegex(expectedKeyValMap, actualKeyValMap map[string]string) bool {
@@ -208,7 +218,10 @@ func keyValMapEqualRegex(expectedKeyValMap, actualKeyValMap map[string]string) b
 func (t *quadletTestcase) assertPodmanArgsKeyVal(args []string, unit *parser.UnitFile, key string, allowRegex bool) bool {
 	podmanArgs, _ := unit.LookupLastArgs("Service", key)
 
-	expectedKeyValMap := keyValueStringToMap(args[2], args[1])
+	expectedKeyValMap, err := keyValueStringToMap(args[2], args[1])
+	if err != nil {
+		return false
+	}
 	argKeyLocation := 0
 	for {
 		subListLocation := findSublist(podmanArgs[argKeyLocation:], []string{args[0]})
@@ -217,7 +230,10 @@ func (t *quadletTestcase) assertPodmanArgsKeyVal(args []string, unit *parser.Uni
 		}
 
 		argKeyLocation += subListLocation
-		actualKeyValMap := keyValueStringToMap(podmanArgs[argKeyLocation+1], args[1])
+		actualKeyValMap, err := keyValueStringToMap(podmanArgs[argKeyLocation+1], args[1])
+		if err != nil {
+			break
+		}
 		if allowRegex {
 			if keyValMapEqualRegex(expectedKeyValMap, actualKeyValMap) {
 				return true
