@@ -681,7 +681,7 @@ func (m *MacMachine) Stop(name string, opts machine.StopOptions) error {
 	}
 
 	if vmState != machine.Running {
-		return machine.ErrWrongState
+		return nil
 	}
 
 	defer func() {
