@@ -1111,7 +1111,7 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 
 func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	if v.isRunning() {
-		return fmt.Errorf("%q is already running", name)
+		return machine.ErrVMAlreadyRunning
 	}
 
 	dist := toDist(name)
