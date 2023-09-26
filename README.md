@@ -201,4 +201,4 @@ Twitter:   @Podman_io
 ## Podman Former API (Varlink)
 Podman formerly offered a Varlink-based API for remote management of containers. However, this API
 was replaced by the REST API. Varlink support has been removed as of the 3.0 release.
-For more details, you can see [this blog](https://podman.io/blogs/2020/01/17/podman-new-api.html).
+For more details, you can see [this blog](https://github.com/containers/podman.io_old/blob/main/old/_posts/2020-01-17-podman-new-api.md). New REST API has been demonstrated with Python & bash in [this post](https://www.redhat.com/sysadmin/podman-python-bash).
