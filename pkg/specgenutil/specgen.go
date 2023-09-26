@@ -492,8 +492,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	}
 
 	// Intel RDT CAT
-	s.IntelRdt = &specs.LinuxIntelRdt{}
 	if c.IntelRdtClosID != "" {
+		s.IntelRdt = &specs.LinuxIntelRdt{}
 		s.IntelRdt.ClosID = c.IntelRdtClosID
 	}
 
