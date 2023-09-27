@@ -87,7 +87,7 @@ The following environment variables are supported by the test setup:
  - `QUADLET_BINARY`: path to the quadlet binary, defaults to `bin/quadlet` in the repository root.
  - `CONMON_BINARY`: path to th conmon binary, defaults to `/usr/libexec/podman/conmon`.
  - `OCI_RUNTIME`: which oci runtime to use, defaults to `crun`.
- - `NETWORK_BACKEND`: the network backend, either `cni` (default) or `netavark`.
+ - `NETWORK_BACKEND`: the network backend, either `netavark` (default) or `cni`.
  - `PODMAN_DB`: the database backend `boltdb` (default) or `sqlite`.
  - `PODMAN_TEST_IMAGE_CACHE_DIR`: path were the container images should be cached, defaults to `/tmp`.
 
