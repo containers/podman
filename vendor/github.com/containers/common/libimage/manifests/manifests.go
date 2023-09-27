@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -38,7 +37,7 @@ type LookupReferenceFunc func(ref types.ImageReference) (types.ImageReference, e
 
 // ErrListImageUnknown is returned when we attempt to create an image reference
 // for a List that has not yet been saved to an image.
-var ErrListImageUnknown = stderrors.New("unable to determine which image holds the manifest list")
+var ErrListImageUnknown = errors.New("unable to determine which image holds the manifest list")
 
 type list struct {
 	manifests.List
