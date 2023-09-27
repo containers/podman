@@ -513,6 +513,7 @@ BOGUS=foo
 			session := podmanTest.Quadlet([]string{"-dryrun"}, quadletDir)
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
+			Expect(session.ErrorToString()).To(ContainSubstring("Loading source unit file "))
 
 			current := session.OutputToStringArray()
 			expected := []string{

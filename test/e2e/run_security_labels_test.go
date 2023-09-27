@@ -47,6 +47,12 @@ var _ = Describe("Podman generate kube", func() {
 		test1 := podmanTest.Podman([]string{"create", "--label", "io.containers.capabilities=sys_admin", "--name", "test1", "alpine", "echo", "test1"})
 		test1.WaitWithDefaultTimeout()
 		Expect(test1).Should(Exit(0))
+		stderr := test1.ErrorToString()
+		if IsRemote() {
+			Expect(stderr).To(BeEmpty())
+		} else {
+			Expect(stderr).To(ContainSubstring("Capabilities requested by user or image are not allowed by default: \\\"CAP_SYS_ADMIN\\\""))
+		}
 
 		inspect := podmanTest.Podman([]string{"inspect", "test1"})
 		inspect.WaitWithDefaultTimeout()
@@ -75,6 +81,12 @@ var _ = Describe("Podman generate kube", func() {
 		test1 := podmanTest.Podman([]string{"create", "--cap-drop", "all", "--label", "io.containers.capabilities=sys_admin", "--name", "test1", "alpine", "echo", "test1"})
 		test1.WaitWithDefaultTimeout()
 		Expect(test1).Should(Exit(0))
+		stderr := test1.ErrorToString()
+		if IsRemote() {
+			Expect(stderr).To(BeEmpty())
+		} else {
+			Expect(stderr).To(ContainSubstring("Capabilities requested by user or image are not allowed by default: \\\"CAP_SYS_ADMIN\\\""))
+		}
 
 		inspect := podmanTest.Podman([]string{"inspect", "test1"})
 		inspect.WaitWithDefaultTimeout()
@@ -90,9 +102,9 @@ var _ = Describe("Podman generate kube", func() {
 		test1.WaitWithDefaultTimeout()
 		Expect(test1).Should(ExitCleanly())
 
-		commit := podmanTest.Podman([]string{"commit", "-c", "label=io.containers.capabilities=setgid,setuid", "test1", "image1"})
+		commit := podmanTest.Podman([]string{"commit", "-q", "-c", "label=io.containers.capabilities=setgid,setuid", "test1", "image1"})
 		commit.WaitWithDefaultTimeout()
-		Expect(commit).Should(Exit(0))
+		Expect(commit).Should(ExitCleanly())
 
 		image1 := podmanTest.Podman([]string{"create", "--name", "test2", "image1", "echo", "test1"})
 		image1.WaitWithDefaultTimeout()

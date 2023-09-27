@@ -199,7 +199,6 @@ registries = []`
 		// and the exit code will be 0
 		Expect(search).Should(ExitCleanly())
 		Expect(search.OutputToString()).Should(BeEmpty())
-		Expect(search.ErrorToString()).Should(BeEmpty())
 	})
 
 	It("podman search in local registry", func() {
@@ -220,9 +219,9 @@ registries = []`
 		err = podmanTest.RestoreArtifact(ALPINE)
 		Expect(err).ToNot(HaveOccurred())
 		image := fmt.Sprintf("%s/my-alpine", ep.Address())
-		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
+		push := podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", ALPINE, image})
 		push.WaitWithDefaultTimeout()
-		Expect(push).Should(Exit(0))
+		Expect(push).Should(ExitCleanly())
 		search := podmanTest.Podman([]string{"search", image, "--tls-verify=false"})
 		search.WaitWithDefaultTimeout()
 
@@ -256,9 +255,9 @@ registries = []`
 		err = podmanTest.RestoreArtifact(ALPINE)
 		Expect(err).ToNot(HaveOccurred())
 		image := fmt.Sprintf("%s/my-alpine", ep.Address())
-		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
+		push := podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", ALPINE, image})
 		push.WaitWithDefaultTimeout()
-		Expect(push).Should(Exit(0))
+		Expect(push).Should(ExitCleanly())
 
 		// registries.conf set up
 		var buffer bytes.Buffer
@@ -277,7 +276,6 @@ registries = []`
 
 		Expect(search).Should(ExitCleanly())
 		Expect(search.OutputToString()).To(ContainSubstring("my-alpine"))
-		Expect(search.ErrorToString()).Should(BeEmpty())
 
 		// cleanup
 		resetRegistriesConfigEnv()
@@ -301,9 +299,9 @@ registries = []`
 		err = podmanTest.RestoreArtifact(ALPINE)
 		Expect(err).ToNot(HaveOccurred())
 		image := fmt.Sprintf("%s/my-alpine", ep.Address())
-		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
+		push := podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", ALPINE, image})
 		push.WaitWithDefaultTimeout()
-		Expect(push).Should(Exit(0))
+		Expect(push).Should(ExitCleanly())
 
 		var buffer bytes.Buffer
 		err = registryFileTmpl.Execute(&buffer, ep)
@@ -341,9 +339,9 @@ registries = []`
 		err = podmanTest.RestoreArtifact(ALPINE)
 		Expect(err).ToNot(HaveOccurred())
 		image := fmt.Sprintf("%s/my-alpine", ep.Address())
-		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
+		push := podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", ALPINE, image})
 		push.WaitWithDefaultTimeout()
-		Expect(push).Should(Exit(0))
+		Expect(push).Should(ExitCleanly())
 
 		var buffer bytes.Buffer
 		err = registryFileBadTmpl.Execute(&buffer, ep)

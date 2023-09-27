@@ -71,6 +71,8 @@ var _ = Describe("podman system connection", func() {
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
 			Expect(session.Out.Contents()).Should(BeEmpty())
+			// stderr will probably warn (ENOENT or EACCESS) about socket
+			// but it's too unreliable to test for.
 
 			Expect(config.ReadCustomConfig()).Should(VerifyService(
 				"QA-UDS",

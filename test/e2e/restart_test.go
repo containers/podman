@@ -134,6 +134,12 @@ var _ = Describe("Podman restart", func() {
 		timeSince := time.Since(startTime)
 		Expect(timeSince).To(BeNumerically("<", 10*time.Second))
 		Expect(timeSince).To(BeNumerically(">", 2*time.Second))
+		stderr := session.ErrorToString()
+		if IsRemote() {
+			Expect(stderr).To(BeEmpty())
+		} else {
+			Expect(stderr).To(ContainSubstring("StopSignal SIGTERM failed to stop container test1 in 2 seconds, resorting to SIGKILL"))
+		}
 	})
 
 	It("podman restart --all", func() {
