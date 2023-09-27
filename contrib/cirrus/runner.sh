@@ -418,7 +418,7 @@ dotest() {
         |& logformatter
 }
 
-_run_machine() {
+_run_machine-linux() {
     # N/B: Can't use _bail_if_test_can_be_skipped here b/c content isn't under test/
     showrun make localmachine |& logformatter
 }

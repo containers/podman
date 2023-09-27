@@ -413,7 +413,7 @@ case "$TEST_FLAVOR" in
         showrun minikube config set driver podman
         install_test_configs
         ;;
-    machine)
+    machine-linux)
         showrun dnf install -y podman-gvproxy*
         remove_packaged_podman_files
         showrun make install PREFIX=/usr ETCDIR=/etc

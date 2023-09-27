@@ -1,39 +1,20 @@
-$ErrorActionPreference = 'Stop'
+#!/usr/bin/env powershell
 
-# Powershell doesn't exit after command failures
-# Note, due to a bug in cirrus that does not correctly evaluate exit
-# code, error conditions should always be thrown
-function CheckExit {
-    if ($LASTEXITCODE -ne 0) {
-        throw "Exit code failure = $LASTEXITCODE"
-    }
-}
+. $PSScriptRoot\win-lib.ps1
 
-# Drop global envs which have unix paths, defaults are fine
-Remove-Item Env:\GOPATH -ErrorAction:Ignore
-Remove-Item Env:\GOSRC -ErrorAction:Ignore
-Remove-Item Env:\GOCACHE -ErrorAction:Ignore
+Set-Location "$ENV:CIRRUS_WORKING_DIR\repo"
 
-mkdir tmp
-Set-Location tmp
-
-# Download and extract alt_build win release zip
-$url = "${ENV:ART_URL}/Windows%20Cross/repo/repo.tbz"
-Write-Output "URL: $url"
-# Arc requires extension to be "tbz2"
-curl.exe -L -o repo.tbz2 "$url"; CheckExit
-arc unarchive repo.tbz2 .; CheckExit
-Set-Location repo
-Expand-Archive -Path "podman-remote-release-windows_amd64.zip" `
-               -DestinationPath extracted
-Set-Location extracted
-$x = Get-ChildItem -Path bin -Recurse
-Set-Location $x
+Write-Host "Saving selection of CI env. vars."
+# Env. vars will not pass through win-sess-launch.ps1
+Get-ChildItem -Path "Env:\*" -include @("PATH", "Chocolatey*", "CIRRUS*", "TEST_*", "CI_*") `
+  | Export-CLIXML "$ENV:TEMP\envars.xml"
 
 # Recent versions of WSL are packaged as a Windows store app running in
 # an appX container, which is incompatible with non-interactive
 # session 0 execution (where the cirrus agent runs).
 # Run verification under an interactive session instead.
-powershell.exe -File "$PSScriptRoot\wsl-env-launch.ps1" `
-                     "$PSScriptRoot\win-podman-machine-verify.ps1"
-CheckExit
+Write-Host "Spawning new session to execute $PSScriptRoot\win-podman-machine-test.ps1"
+# Can't use Run-Command(), would need overly-complex nested quoting
+powershell.exe -File "$PSScriptRoot\win-sess-launch.ps1" `
+                     "$PSScriptRoot\win-podman-machine-test.ps1"
+Check-Exit

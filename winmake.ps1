@@ -1,4 +1,5 @@
-$ErrorActionPreference = 'Stop'
+
+. ./contrib/cirrus/win-lib.ps1
 
 # Targets
 function Podman-Remote{
@@ -68,26 +69,10 @@ function Git-Commit{
     return $commit
 }
 
-function Run-Command {
-    param (
-        [string] $command
-    )
-
-    Write-Host $command
-
-    Invoke-Expression $command
-    $result = $LASTEXITCODE
-    if ($result -ne 0) {
-        Write-Host "Command failed (exit: $result)"
-        Exit $result
-    }
-}
-
 # Init script
 $target = $args[0]
 
 $remotetags = "remote exclude_graphdriver_btrfs btrfs_noversion exclude_graphdriver_devicemapper containers_image_openpgp"
-$Env:GOOS = "windows"; $Env:GOARCH = "amd64"
 
 switch ($target) {
     {$_ -in '', 'podman-remote', 'podman'} {

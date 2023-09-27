@@ -1,52 +1,12 @@
- # Powershell doesn't exit after
- function CheckExit {
-    if ($LASTEXITCODE -ne 0) {
-        throw "Exit code = $LASTEXITCODE"
-    }
-}
-function DownloadFile {
-    param(
-        [Parameter(Mandatory)]
-        [string]$url,
-        [Parameter(Mandatory)]
-        [string]$file,
-        [Int]$retries=5,
-        [Int]$delay=8
-    )
-    $ProgressPreference = 'SilentlyContinue';
-    Write-Host "Downloading $url to $file"
-    For($i = 0;;) {
-        Try {
-            Invoke-WebRequest -UseBasicParsing -ErrorAction Stop -Uri $url -OutFile $file
-            Break
-        } Catch {
-            if (++$i -gt $retries) {
-                throw $_.Exception
-            }
-            Write-Host "Download failed - retrying:" $_.Exception.Response.StatusCode
-            Start-Sleep -Seconds $delay
-        }
-    }
-}
-# Drop global envs which have unix paths, defaults are fine
-Remove-Item Env:\GOPATH -ErrorAction:Ignore
-Remove-Item Env:\GOSRC -ErrorAction:Ignore
-Remove-Item Env:\GOCACHE -ErrorAction:Ignore
+#!/usr/bin/env powershell
 
-# Drop large known env variables (an env > 32k will break MSI/ICE validation)
-Remove-Item Env:\CIRRUS_COMMIT_MESSAGE -ErrorAction:Ignore
-Remove-Item Env:\CIRRUS_PR_BODY -ErrorAction:Ignore
+. $PSScriptRoot\win-lib.ps1
 
-Set-Location contrib\win-installer
-
-# Download and extract alt_build win release zip
-$url = "${ENV:ART_URL}/Windows Cross/repo/repo.tbz"
-# Arc requires extension to be "tbz2"
-DownloadFile "$url" "repo.tbz2"
-arc unarchive repo.tbz2 .; CheckExit
+Set-Location "$ENV:CIRRUS_WORKING_DIR\repo\contrib\win-installer"
 
 # Build Installer
-.\build.ps1 $Env:WIN_INST_VER dev repo; CheckExit
+# Note: consumes podman-remote-release-windows_amd64.zip from repo.tbz2
+Run-Command ".\build.ps1 $Env:WIN_INST_VER dev `"$ENV:CIRRUS_WORKING_DIR\repo`""
 
 # Run the installer silently and WSL install option disabled (prevent reboots, wsl requirements)
 # We need AllowOldWin=1 for server 2019 (cirrus image), can be dropped after server 2022
