@@ -226,7 +226,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/gvisor-tap-vsock v0.7.1-0.20230922151156-97028a6a6d6a
+# github.com/containers/gvisor-tap-vsock v0.7.1
 ## explicit; go 1.20
 github.com/containers/gvisor-tap-vsock/pkg/types
 # github.com/containers/image/v5 v5.28.0
