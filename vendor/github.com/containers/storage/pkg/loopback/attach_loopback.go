@@ -114,6 +114,16 @@ func openNextAvailableLoopback(index int, sparseName string, sparseFile *os.File
 // AttachLoopDevice attaches the given sparse file to the next
 // available loopback device. It returns an opened *os.File.
 func AttachLoopDevice(sparseName string) (loop *os.File, err error) {
+	return attachLoopDevice(sparseName, false)
+}
+
+// AttachLoopDeviceRO attaches the given sparse file opened read-only to
+// the next available loopback device. It returns an opened *os.File.
+func AttachLoopDeviceRO(sparseName string) (loop *os.File, err error) {
+	return attachLoopDevice(sparseName, true)
+}
+
+func attachLoopDevice(sparseName string, readonly bool) (loop *os.File, err error) {
 	// Try to retrieve the next available loopback device via syscall.
 	// If it fails, we discard error and start looping for a
 	// loopback from index 0.
@@ -122,8 +132,14 @@ func AttachLoopDevice(sparseName string) (loop *os.File, err error) {
 		logrus.Debugf("Error retrieving the next available loopback: %s", err)
 	}
 
+	var sparseFile *os.File
+
 	// OpenFile adds O_CLOEXEC
-	sparseFile, err := os.OpenFile(sparseName, os.O_RDWR, 0o644)
+	if readonly {
+		sparseFile, err = os.OpenFile(sparseName, os.O_RDONLY, 0o644)
+	} else {
+		sparseFile, err = os.OpenFile(sparseName, os.O_RDWR, 0o644)
+	}
 	if err != nil {
 		logrus.Errorf("Opening sparse file: %v", err)
 		return nil, ErrAttachLoopbackDevice

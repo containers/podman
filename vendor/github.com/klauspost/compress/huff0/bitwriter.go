@@ -94,10 +94,9 @@ func (b *bitWriter) flushAlign() {
 
 // close will write the alignment bit and write the final byte(s)
 // to the output.
-func (b *bitWriter) close() error {
+func (b *bitWriter) close() {
 	// End mark
 	b.addBits16Clean(1, 1)
 	// flush until next byte.
 	b.flushAlign()
-	return nil
 }

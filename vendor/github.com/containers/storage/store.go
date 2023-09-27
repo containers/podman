@@ -2666,34 +2666,23 @@ func (s *store) DeleteContainer(id string) error {
 		}
 
 		var wg multierror.Group
-		wg.Go(func() error { return s.containerStore.Delete(id) })
 
 		middleDir := s.graphDriverName + "-containers"
 
 		wg.Go(func() error {
 			gcpath := filepath.Join(s.GraphRoot(), middleDir, container.ID)
-			// attempt a simple rm -rf first
-			if err := os.RemoveAll(gcpath); err == nil {
-				return nil
-			}
-			// and if it fails get to the more complicated cleanup
 			return system.EnsureRemoveAll(gcpath)
 		})
 
 		wg.Go(func() error {
 			rcpath := filepath.Join(s.RunRoot(), middleDir, container.ID)
-			// attempt a simple rm -rf first
-			if err := os.RemoveAll(rcpath); err == nil {
-				return nil
-			}
-			// and if it fails get to the more complicated cleanup
 			return system.EnsureRemoveAll(rcpath)
 		})
 
 		if multierr := wg.Wait(); multierr != nil {
 			return multierr.ErrorOrNil()
 		}
-		return nil
+		return s.containerStore.Delete(id)
 	})
 }
 
