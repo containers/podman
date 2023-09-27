@@ -605,7 +605,6 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 	}
 
 	cmd.ExtraFiles = []*os.File{ioEater, ioEater, ioEater}
-	fmt.Println(cmd.Args)
 
 	readSocketBaseDir := filepath.Dir(m.ReadySocket.GetPath())
 	if err := os.MkdirAll(readSocketBaseDir, 0755); err != nil {
