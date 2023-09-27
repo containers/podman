@@ -5,18 +5,18 @@ This is example code, the production code has additional error checking and the 
 
 See items below for details on building, installing, contributing to Podman:
  - [Readme](README.md)
- - [Contributing](CONTRIBUTING.md)
- - [Podman Usage](transfer.md)
- - [Trouble Shooting](troubleshooting.md)
- - [Code Of Conduct](CODE-OF-CONDUCT.md)
+ - [Contributing](../../CONTRIBUTING.md)
+ - [Podman Usage](../../transfer.md)
+ - [Trouble Shooting](../../troubleshooting.md)
+ - [Code Of Conduct](../../CODE-OF-CONDUCT.md)
 
 ## Adding a new command `podman manifest`
 ```shell script
-$ mkdir -p $GOPATH/src/github.com/containers/podman/cmd/podmanV2/manifests
+$ mkdir -p $GOPATH/src/github.com/containers/podman/cmd/podman/manifest
 ```
-Create the file ```$GOPATH/src/github.com/containers/podman/cmd/podmanV2/manifests/manifest.go```
+Create the file ```$GOPATH/src/github.com/containers/podman/cmd/podman/manifest/manifest.go```
 ```go
-package manifests
+package manifest
 
 import (
     "github.com/containers/podman/cmd/podman/registry"
@@ -44,17 +44,17 @@ func init() {
     })
 }
 ```
-To "wire" in the `manifest` command, edit the file ```$GOPATH/src/github.com/containers/podman/cmd/podmanV2/main.go``` to add:
+To "wire" in the `manifest` command, edit the file ```$GOPATH/src/github.com/containers/podman/cmd/podman/main.go``` to add:
 ```go
 package main
 
-import	_ "github.com/containers/podman/cmd/podman/manifests"
+import	_ "github.com/containers/podman/cmd/podman/manifest"
 ```
 
-## Adding a new sub command `podman manifests list`
-Create the file ```$GOPATH/src/github.com/containers/podman/cmd/podmanV2/manifests/inspect.go```
+## Adding a new sub command `podman manifest list`
+Create the file ```$GOPATH/src/github.com/containers/podman/cmd/podman/manifest/inspect.go```
 ```go
-package manifests
+package manifest
 
 import (
     "github.com/containers/podman/cmd/podman/registry"
