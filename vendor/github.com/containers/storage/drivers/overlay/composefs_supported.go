@@ -166,7 +166,7 @@ func hasACL(path string) (bool, error) {
 
 func mountComposefsBlob(dataDir, mountPoint string) error {
 	blobFile := getComposefsBlob(dataDir)
-	loop, err := loopback.AttachLoopDevice(blobFile)
+	loop, err := loopback.AttachLoopDeviceRO(blobFile)
 	if err != nil {
 		return err
 	}
