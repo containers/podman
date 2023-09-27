@@ -94,9 +94,10 @@ func (vf *VfkitHelper) stop(force, wait bool) error {
 		if err := vf.stateChange(define.HardStop); err != nil {
 			return err
 		}
-	}
-	if err := vf.stateChange(define.Stop); err != nil {
-		return err
+	} else {
+		if err := vf.stateChange(define.Stop); err != nil {
+			return err
+		}
 	}
 	if !wait {
 		return nil
