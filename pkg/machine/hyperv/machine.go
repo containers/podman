@@ -290,10 +290,17 @@ func (m *HyperVMachine) Inspect() (*machine.InspectInfo, error) {
 		return nil, err
 	}
 
+	podmanSocket, err := m.forwardSocketPath()
+	if err != nil {
+		return nil, err
+	}
+
 	return &machine.InspectInfo{
-		ConfigPath:     m.ConfigPath,
-		ConnectionInfo: machine.ConnectionConfig{},
-		Created:        m.Created,
+		ConfigPath: m.ConfigPath,
+		ConnectionInfo: machine.ConnectionConfig{
+			PodmanSocket: podmanSocket,
+		},
+		Created: m.Created,
 		Image: machine.ImageConfig{
 			IgnitionFile: m.IgnitionFile,
 			ImageStream:  "",
