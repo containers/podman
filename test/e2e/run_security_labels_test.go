@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -14,11 +15,11 @@ var _ = Describe("Podman generate kube", func() {
 	It("podman empty security labels", func() {
 		test1 := podmanTest.Podman([]string{"create", "--label", "io.containers.capabilities=", "--name", "test1", "alpine", "echo", "test1"})
 		test1.WaitWithDefaultTimeout()
-		Expect(test1).Should(Exit(0))
+		Expect(test1).Should(ExitCleanly())
 
 		inspect := podmanTest.Podman([]string{"inspect", "test1"})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 
 		ctr := inspect.InspectContainerToJSON()
 		Expect(ctr[0].EffectiveCaps).To(BeNil())
@@ -31,11 +32,11 @@ var _ = Describe("Podman generate kube", func() {
 	It("podman security labels", func() {
 		test1 := podmanTest.Podman([]string{"create", "--label", "io.containers.capabilities=setuid,setgid", "--name", "test1", "alpine", "echo", "test1"})
 		test1.WaitWithDefaultTimeout()
-		Expect(test1).Should(Exit(0))
+		Expect(test1).Should(ExitCleanly())
 
 		inspect := podmanTest.Podman([]string{"inspect", "test1"})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 
 		ctr := inspect.InspectContainerToJSON()
 		caps := strings.Join(ctr[0].EffectiveCaps, ",")
@@ -49,7 +50,7 @@ var _ = Describe("Podman generate kube", func() {
 
 		inspect := podmanTest.Podman([]string{"inspect", "test1"})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 
 		ctr := inspect.InspectContainerToJSON()
 		caps := strings.Join(ctr[0].EffectiveCaps, ",")
@@ -59,11 +60,11 @@ var _ = Describe("Podman generate kube", func() {
 	It("podman --cap-add sys_admin security labels", func() {
 		test1 := podmanTest.Podman([]string{"create", "--cap-add", "SYS_ADMIN", "--label", "io.containers.capabilities=sys_admin", "--name", "test1", "alpine", "echo", "test1"})
 		test1.WaitWithDefaultTimeout()
-		Expect(test1).Should(Exit(0))
+		Expect(test1).Should(ExitCleanly())
 
 		inspect := podmanTest.Podman([]string{"inspect", "test1"})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 
 		ctr := inspect.InspectContainerToJSON()
 		caps := strings.Join(ctr[0].EffectiveCaps, ",")
@@ -77,7 +78,7 @@ var _ = Describe("Podman generate kube", func() {
 
 		inspect := podmanTest.Podman([]string{"inspect", "test1"})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 
 		ctr := inspect.InspectContainerToJSON()
 		caps := strings.Join(ctr[0].EffectiveCaps, ",")
@@ -87,7 +88,7 @@ var _ = Describe("Podman generate kube", func() {
 	It("podman security labels from image", func() {
 		test1 := podmanTest.Podman([]string{"create", "--name", "test1", "alpine", "echo", "test1"})
 		test1.WaitWithDefaultTimeout()
-		Expect(test1).Should(Exit(0))
+		Expect(test1).Should(ExitCleanly())
 
 		commit := podmanTest.Podman([]string{"commit", "-c", "label=io.containers.capabilities=setgid,setuid", "test1", "image1"})
 		commit.WaitWithDefaultTimeout()
@@ -95,11 +96,11 @@ var _ = Describe("Podman generate kube", func() {
 
 		image1 := podmanTest.Podman([]string{"create", "--name", "test2", "image1", "echo", "test1"})
 		image1.WaitWithDefaultTimeout()
-		Expect(image1).Should(Exit(0))
+		Expect(image1).Should(ExitCleanly())
 
 		inspect := podmanTest.Podman([]string{"inspect", "test2"})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 
 		ctr := inspect.InspectContainerToJSON()
 		caps := strings.Join(ctr[0].EffectiveCaps, ",")
@@ -110,11 +111,11 @@ var _ = Describe("Podman generate kube", func() {
 	It("podman --privileged security labels", func() {
 		pull := podmanTest.Podman([]string{"create", "--privileged", "--label", "io.containers.capabilities=setuid,setgid", "--name", "test1", "alpine", "echo", "test"})
 		pull.WaitWithDefaultTimeout()
-		Expect(pull).Should(Exit(0))
+		Expect(pull).Should(ExitCleanly())
 
 		inspect := podmanTest.Podman([]string{"inspect", "test1"})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 
 		ctr := inspect.InspectContainerToJSON()
 		caps := strings.Join(ctr[0].EffectiveCaps, ",")
@@ -132,11 +133,11 @@ LABEL io.containers.capabilities=chown,kill`, ALPINE)
 
 		test1 := podmanTest.Podman([]string{"create", "--name", "test1", image, "echo", "test1"})
 		test1.WaitWithDefaultTimeout()
-		Expect(test1).Should(Exit(0))
+		Expect(test1).Should(ExitCleanly())
 
 		inspect := podmanTest.Podman([]string{"inspect", "test1"})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(Exit(0))
+		Expect(inspect).Should(ExitCleanly())
 
 		ctr := inspect.InspectContainerToJSON()
 		caps := strings.Join(ctr[0].EffectiveCaps, ",")
