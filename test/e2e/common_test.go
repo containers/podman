@@ -291,17 +291,17 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		dbBackend = "sqlite"
 	}
 
-	networkBackend := CNI
-	networkConfigDir := "/etc/cni/net.d"
+	networkBackend := Netavark
+	networkConfigDir := "/etc/containers/networks"
 	if isRootless() {
-		networkConfigDir = filepath.Join(os.Getenv("HOME"), ".config/cni/net.d")
+		networkConfigDir = filepath.Join(root, "etc", "networks")
 	}
 
-	if strings.ToLower(os.Getenv("NETWORK_BACKEND")) == "netavark" {
-		networkBackend = Netavark
-		networkConfigDir = "/etc/containers/networks"
+	if strings.ToLower(os.Getenv("NETWORK_BACKEND")) == "cni" {
+		networkBackend = CNI
+		networkConfigDir = "/etc/cni/net.d"
 		if isRootless() {
-			networkConfigDir = filepath.Join(root, "etc", "networks")
+			networkConfigDir = filepath.Join(os.Getenv("HOME"), ".config/cni/net.d")
 		}
 	}
 

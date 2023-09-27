@@ -214,11 +214,9 @@ use_cni() {
         die "Testing debian w/ CNI networking currently not supported"
     fi
 
-    msg "Unsetting NETWORK_BACKEND for all subsequent environments."
-    echo "export -n NETWORK_BACKEND" >> /etc/ci_environment
-    echo "unset NETWORK_BACKEND" >> /etc/ci_environment
-    export -n NETWORK_BACKEND
-    unset NETWORK_BACKEND
+    msg "Forcing NETWORK_BACKEND=cni for all subsequent environments."
+    echo "NETWORK_BACKEND=cni" >> /etc/ci_environment
+    export NETWORK_BACKEND=cni
     # While it's possible a user may want both installed, for CNI CI testing
     # purposes we only care about backward-compatibility, not forward.
     # If both CNI & netavark are present, in some situations where --root
@@ -250,9 +248,11 @@ use_cni() {
 use_netavark() {
     req_env_vars OS_RELEASE_ID PRIOR_FEDORA_NAME DISTRO_NV
     local magickind repokind
-    msg "Forcing NETWORK_BACKEND=netavark for all subsequent environments."
-    echo "NETWORK_BACKEND=netavark" >> /etc/ci_environment
-    export NETWORK_BACKEND=netavark  # needed for install_test_configs()
+    msg "Unsetting NETWORK_BACKEND for all subsequent environments."
+    echo "export -n NETWORK_BACKEND" >> /etc/ci_environment
+    echo "unset NETWORK_BACKEND" >> /etc/ci_environment
+    export -n NETWORK_BACKEND
+    unset NETWORK_BACKEND
     msg "Removing any/all CNI configuration"
     showrun rm -rvf /etc/cni/net.d/*
     # N/B: The CNI packages are still installed and available. This is
