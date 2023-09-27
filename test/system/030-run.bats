@@ -1288,7 +1288,7 @@ search               | $IMAGE           |
     done < <(parse_table "$tests")
 }
 
-@test "podman --syslog passed to conmon" {
+@test "podman --syslog and environment passed to conmon" {
     skip_if_remote "--syslog is not supported for remote clients"
     skip_if_journald_unavailable
 
@@ -1298,6 +1298,7 @@ search               | $IMAGE           |
     run_podman container inspect $cid --format "{{ .State.ConmonPid }}"
     conmon_pid="$output"
     is "$(< /proc/$conmon_pid/cmdline)" ".*--exit-command-arg--syslog.*" "conmon's exit-command has --syslog set"
+    assert "$(< /proc/$conmon_pid/environ)" =~ "BATS_TEST_TMPDIR" "entire env is passed down to conmon (incl. BATS variables)"
 
     run_podman rm -f -t0 $cid
 }

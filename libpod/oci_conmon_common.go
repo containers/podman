@@ -35,7 +35,6 @@ import (
 	"github.com/containers/podman/v4/pkg/specgenutil"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
-	"github.com/containers/storage/pkg/homedir"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -1042,11 +1041,6 @@ func (r *ConmonOCIRuntime) getLogTag(ctr *Container) (string, error) {
 func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (int64, error) {
 	var stderrBuf bytes.Buffer
 
-	runtimeDir, err := util.GetRuntimeDir()
-	if err != nil {
-		return 0, err
-	}
-
 	parentSyncPipe, childSyncPipe, err := newPipe()
 	if err != nil {
 		return 0, fmt.Errorf("creating socket pair: %w", err)
@@ -1189,7 +1183,10 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	}
 
 	// 0, 1 and 2 are stdin, stdout and stderr
-	conmonEnv := r.configureConmonEnv(runtimeDir)
+	conmonEnv, err := r.configureConmonEnv()
+	if err != nil {
+		return 0, fmt.Errorf("configuring conmon env: %w", err)
+	}
 
 	var filesToClose []*os.File
 	if preserveFDs > 0 {
@@ -1251,7 +1248,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	if restoreOptions != nil {
 		runtimeRestoreStarted = time.Now()
 	}
-	err = startCommand(cmd, ctr)
+	err = cmd.Start()
 
 	// regardless of whether we errored or not, we no longer need the children pipes
 	childSyncPipe.Close()
@@ -1311,38 +1308,23 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 }
 
 // configureConmonEnv gets the environment values to add to conmon's exec struct
-// TODO this may want to be less hardcoded/more configurable in the future
-func (r *ConmonOCIRuntime) configureConmonEnv(runtimeDir string) []string {
-	var env []string
-	for _, e := range os.Environ() {
-		if strings.HasPrefix(e, "LC_") {
-			env = append(env, e)
+func (r *ConmonOCIRuntime) configureConmonEnv() ([]string, error) {
+	env := os.Environ()
+	res := make([]string, 0, len(env))
+	for _, v := range env {
+		if strings.HasPrefix(v, "NOTIFY_SOCKET=") {
+			// The NOTIFY_SOCKET must not leak into the environment.
+			continue
 		}
-		if strings.HasPrefix(e, "LANG=") {
-			env = append(env, e)
-		}
+		res = append(res, v)
 	}
-	if path, ok := os.LookupEnv("PATH"); ok {
-		env = append(env, fmt.Sprintf("PATH=%s", path))
-	}
-	if conf, ok := os.LookupEnv("CONTAINERS_CONF"); ok {
-		env = append(env, fmt.Sprintf("CONTAINERS_CONF=%s", conf))
-	}
-	if conf, ok := os.LookupEnv("CONTAINERS_CONF_OVERRIDE"); ok {
-		env = append(env, fmt.Sprintf("CONTAINERS_CONF_OVERRIDE=%s", conf))
-	}
-	if conf, ok := os.LookupEnv("CONTAINERS_HELPER_BINARY_DIR"); ok {
-		env = append(env, fmt.Sprintf("CONTAINERS_HELPER_BINARY_DIR=%s", conf))
-	}
-	env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
-	env = append(env, fmt.Sprintf("_CONTAINERS_USERNS_CONFIGURED=%s", os.Getenv("_CONTAINERS_USERNS_CONFIGURED")))
-	env = append(env, fmt.Sprintf("_CONTAINERS_ROOTLESS_UID=%s", os.Getenv("_CONTAINERS_ROOTLESS_UID")))
-	home := homedir.Get()
-	if home != "" {
-		env = append(env, fmt.Sprintf("HOME=%s", home))
+	runtimeDir, err := util.GetRuntimeDir()
+	if err != nil {
+		return nil, err
 	}
 
-	return env
+	res = append(res, "XDG_RUNTIME_DIR="+runtimeDir)
+	return res, nil
 }
 
 // sharedConmonArgs takes common arguments for exec and create/restore and formats them for the conmon CLI
@@ -1420,25 +1402,6 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		args = append(args, "--runtime-arg", "--cgroup-manager", "--runtime-arg", "disabled")
 	}
 	return args
-}
-
-func startCommand(cmd *exec.Cmd, ctr *Container) error {
-	// Make sure to unset the NOTIFY_SOCKET and reset it afterwards if needed.
-	switch ctr.config.SdNotifyMode {
-	case define.SdNotifyModeContainer, define.SdNotifyModeIgnore:
-		if prev := os.Getenv("NOTIFY_SOCKET"); prev != "" {
-			if err := os.Unsetenv("NOTIFY_SOCKET"); err != nil {
-				logrus.Warnf("Error unsetting NOTIFY_SOCKET %v", err)
-			}
-			defer func() {
-				if err := os.Setenv("NOTIFY_SOCKET", prev); err != nil {
-					logrus.Errorf("Resetting NOTIFY_SOCKET=%s", prev)
-				}
-			}()
-		}
-	}
-
-	return cmd.Start()
 }
 
 // newPipe creates a unix socket pair for communication.

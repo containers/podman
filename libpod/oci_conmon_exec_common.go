@@ -17,7 +17,6 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/lookup"
-	"github.com/containers/podman/v4/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -374,11 +373,6 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 		}
 	}()
 
-	runtimeDir, err := util.GetRuntimeDir()
-	if err != nil {
-		return nil, nil, err
-	}
-
 	finalEnv := make([]string, 0, len(options.Env))
 	for k, v := range options.Env {
 		finalEnv = append(finalEnv, fmt.Sprintf("%s=%s", k, v))
@@ -438,7 +432,10 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 	// 	}
 	// }
 
-	conmonEnv := r.configureConmonEnv(runtimeDir)
+	conmonEnv, err := r.configureConmonEnv()
+	if err != nil {
+		return nil, nil, fmt.Errorf("configuring conmon env: %w", err)
+	}
 
 	var filesToClose []*os.File
 	if options.PreserveFDs > 0 {
@@ -461,7 +458,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 		Setpgid: true,
 	}
 
-	err = startCommand(execCmd, c)
+	err = execCmd.Start()
 
 	// We don't need children pipes  on the parent side
 	errorhandling.CloseQuiet(childSyncPipe)
