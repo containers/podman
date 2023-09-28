@@ -84,10 +84,16 @@ var _ = Describe("podman machine list", func() {
 		session, err := mb.setCmd(i.withImagePath(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
+
+		l := new(listMachine)
+		listSession, err := mb.setCmd(l.withFormat("{{.LastUp}}")).run()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(listSession).To(Exit(0))
+		Expect(listSession.outputToString()).To(Equal("Never"))
+
 		s := new(startMachine)
 		startSession, err := mb.setCmd(s).runWithoutWait()
 		Expect(err).ToNot(HaveOccurred())
-		l := new(listMachine)
 		for i := 0; i < 30; i++ {
 			listSession, err := mb.setCmd(l).run()
 			Expect(listSession).To(Exit(0))
@@ -100,7 +106,7 @@ var _ = Describe("podman machine list", func() {
 			time.Sleep(3 * time.Second)
 		}
 		Expect(startSession).To(Exit(0))
-		listSession, err := mb.setCmd(l).run()
+		listSession, err = mb.setCmd(l).run()
 		Expect(listSession).To(Exit(0))
 		Expect(err).ToNot(HaveOccurred())
 		Expect(listSession.outputToString()).To(ContainSubstring("Currently running"))
