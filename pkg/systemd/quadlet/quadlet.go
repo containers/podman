@@ -1,12 +1,15 @@
 package quadlet
 
 import (
+	"bytes"
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/podman/v4/pkg/specgenutilexternal"
 	"github.com/containers/podman/v4/pkg/systemd/parser"
 	"github.com/containers/storage/pkg/regexp"
 )
@@ -729,33 +732,10 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 
 	mounts := container.LookupAllArgs(ContainerGroup, KeyMount)
 	for _, mount := range mounts {
-		params := strings.Split(mount, ",")
-		paramsMap := make(map[string]string, len(params))
-		for _, param := range params {
-			kv := strings.Split(param, "=")
-			paramsMap[kv[0]] = kv[1]
+		mountStr, err := resolveContainerMountParams(container, service, mount, names)
+		if err != nil {
+			return nil, err
 		}
-		if paramType, ok := paramsMap["type"]; ok {
-			if paramType == "volume" || paramType == "bind" || paramType == "glob" {
-				var err error
-				if paramSource, ok := paramsMap["source"]; ok {
-					paramsMap["source"], err = handleStorageSource(container, service, paramSource, names)
-				} else if paramSource, ok = paramsMap["src"]; ok {
-					paramsMap["src"], err = handleStorageSource(container, service, paramSource, names)
-				}
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-		paramsArray := make([]string, 0, len(params))
-		paramsArray = append(paramsArray, fmt.Sprintf("%s=%s", "type", paramsMap["type"]))
-		for k, v := range paramsMap {
-			if k != "type" {
-				paramsArray = append(paramsArray, fmt.Sprintf("%s=%s", k, v))
-			}
-		}
-		mountStr := strings.Join(paramsArray, ",")
 		podman.add("--mount", mountStr)
 	}
 
@@ -1537,4 +1517,57 @@ func handleImageSource(quadletImageName string, serviceUnitFile *parser.UnitFile
 	}
 
 	return quadletImageName, nil
+}
+
+func resolveContainerMountParams(containerUnitFile, serviceUnitFile *parser.UnitFile, mount string, names map[string]string) (string, error) {
+	mountType, tokens, err := specgenutilexternal.FindMountType(mount)
+	if err != nil {
+		return "", err
+	}
+
+	// Source resolution is required only for these types of mounts
+	if !(mountType == "volume" || mountType == "bind" || mountType == "glob") {
+		return mount, nil
+	}
+
+	sourceIndex := -1
+	originalSource := ""
+	for i, token := range tokens {
+		kv := strings.SplitN(token, "=", 2)
+		if kv[0] == "source" || kv[0] == "src" {
+			if len(kv) < 2 {
+				return "", fmt.Errorf("source parameter does not include a value")
+			}
+			sourceIndex = i
+			originalSource = kv[1]
+		}
+	}
+
+	resolvedSource, err := handleStorageSource(containerUnitFile, serviceUnitFile, originalSource, names)
+	if err != nil {
+		return "", err
+	}
+	tokens[sourceIndex] = fmt.Sprintf("source=%s", resolvedSource)
+
+	tokens = append([]string{fmt.Sprintf("type=%s", mountType)}, tokens...)
+
+	return convertToCSV(tokens)
+}
+
+func convertToCSV(s []string) (string, error) {
+	var buf bytes.Buffer
+	writer := csv.NewWriter(&buf)
+
+	err := writer.Write(s)
+	if err != nil {
+		return "", err
+	}
+	writer.Flush()
+
+	ret := buf.String()
+	if ret[len(ret)-1] == '\n' {
+		ret = ret[:len(ret)-1]
+	}
+
+	return ret, nil
 }

@@ -1,7 +1,6 @@
 package specgenutil
 
 import (
-	"encoding/csv"
 	"errors"
 	"fmt"
 	"path"
@@ -13,14 +12,14 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/specgen"
+	"github.com/containers/podman/v4/pkg/specgenutilexternal"
 	"github.com/containers/podman/v4/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 var (
-	errOptionArg     = errors.New("must provide an argument for option")
-	errNoDest        = errors.New("must set volume destination")
-	errInvalidSyntax = errors.New("incorrect mount format: should be --mount type=<bind|glob|tmpfs|volume>,[src=<host-dir|volume-name>,]target=<ctr-dir>[,options]")
+	errOptionArg = errors.New("must provide an argument for option")
+	errNoDest    = errors.New("must set volume destination")
 )
 
 // Parse all volume-related options in the create config into a set of mounts
@@ -140,35 +139,6 @@ func parseVolumes(rtc *config.Config, volumeFlag, mountFlag, tmpfsFlag []string)
 	return finalMounts, finalVolumes, finalOverlayVolume, finalImageVolumes, nil
 }
 
-// findMountType parses the input and extracts the type of the mount type and
-// the remaining non-type tokens.
-func findMountType(input string) (mountType string, tokens []string, err error) {
-	// Split by comma, iterate over the slice and look for
-	// "type=$mountType". Everything else is appended to tokens.
-	found := false
-	csvReader := csv.NewReader(strings.NewReader(input))
-	records, err := csvReader.ReadAll()
-	if err != nil {
-		return "", nil, err
-	}
-	if len(records) != 1 {
-		return "", nil, errInvalidSyntax
-	}
-	for _, s := range records[0] {
-		kv := strings.Split(s, "=")
-		if found || !(len(kv) == 2 && kv[0] == "type") {
-			tokens = append(tokens, s)
-			continue
-		}
-		mountType = kv[1]
-		found = true
-	}
-	if !found {
-		err = errInvalidSyntax
-	}
-	return
-}
-
 // Mounts takes user-provided input from the --mount flag as well as Mounts
 // specified in containers.conf and creates OCI spec mounts and Libpod named volumes.
 // podman run --mount type=bind,src=/etc/resolv.conf,target=/etc/resolv.conf ...
@@ -181,7 +151,7 @@ func Mounts(mountFlag []string, configMounts []string) (map[string]spec.Mount, m
 	parseMounts := func(mounts []string, ignoreDup bool) error {
 		for _, mount := range mounts {
 			// TODO: Docker defaults to "volume" if no mount type is specified.
-			mountType, tokens, err := findMountType(mount)
+			mountType, tokens, err := specgenutilexternal.FindMountType(mount)
 			if err != nil {
 				return err
 			}

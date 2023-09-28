@@ -2,9 +2,9 @@
 Image=localhost/imagename
 ## assert-podman-args-key-val "--mount" "," "type=bind,source=/path/on/host,destination=/path/in/container"
 Mount=type=bind,source=/path/on/host,destination=/path/in/container
-## assert-podman-args-key-val "--mount" "," "type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared"
+## assert-podman-args-key-val "--mount" "," "type=bind,source=/path/on/host,dst=/path/in/container,relabel=shared"
 Mount=type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared
-## assert-podman-args-key-val "--mount" "," "type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared,U=true"
+## assert-podman-args-key-val "--mount" "," "type=bind,source=/path/on/host,dst=/path/in/container,relabel=shared,U=true"
 Mount=type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared,U=true
 ## assert-podman-args-key-val "--mount" "," "type=volume,source=vol1,destination=/path/in/container,ro=true"
 Mount=type=volume,source=vol1,destination=/path/in/container,ro=true
@@ -20,3 +20,7 @@ Mount=type=image,source=fedora,destination=/fedora-image,rw=true
 Mount=type=devpts,destination=/dev/pts
 ## assert-podman-args-key-val-regex "--mount" "," "type=bind,source=.*/podman_test.*/quadlet/path/on/host,destination=/path/in/container"
 Mount=type=bind,source=./path/on/host,destination=/path/in/container
+## assert-podman-args-key-val "--mount" "," "type=volume,source=vol1,destination=/path/in/container,ro"
+Mount=type=volume,source=vol1,destination=/path/in/container,ro
+## assert-podman-args-key-val "--mount" "," "type=bind,source=/tmp,\"dst=/path,1\""
+Mount=type=bind,src=/tmp,\"dst=/path,1\"
