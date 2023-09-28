@@ -190,4 +190,34 @@ var _ = Describe("Podman volume prune", func() {
 		Expect(session.OutputToStringArray()).To(HaveLen(1))
 		Expect(session.OutputToStringArray()[0]).To(Equal(vol1))
 	})
+
+	It("podman volume prune with chained label!", func() {
+		foobar := podmanTest.Podman([]string{"volume", "create", "--label", "foobar", "foobar"})
+		foobar.WaitWithDefaultTimeout()
+		Expect(foobar).Should(ExitCleanly())
+
+		foo := podmanTest.Podman([]string{"volume", "create", "--label", "foo", "foo"})
+		foo.WaitWithDefaultTimeout()
+		Expect(foo).Should(ExitCleanly())
+
+		bar := podmanTest.Podman([]string{"volume", "create", "--label", "bar", "bar"})
+		bar.WaitWithDefaultTimeout()
+		Expect(bar).Should(ExitCleanly())
+
+		ls := podmanTest.Podman([]string{"volume", "list", "-q"})
+		ls.WaitWithDefaultTimeout()
+		Expect(ls).Should(ExitCleanly())
+		Expect(ls.OutputToStringArray()).To(HaveLen(3))
+
+		prune := podmanTest.Podman([]string{"volume", "prune", "--force", "--filter", "label!=foo", "--filter", "label!=foobar"})
+		prune.WaitWithDefaultTimeout()
+		Expect(prune).Should(ExitCleanly())
+
+		ls = podmanTest.Podman([]string{"volume", "list", "-q"})
+		ls.WaitWithDefaultTimeout()
+		Expect(ls).Should(ExitCleanly())
+		Expect(ls.OutputToStringArray()).To(HaveLen(2))
+		Expect(prune.OutputToStringArray()).To(HaveLen(1))
+		Expect(prune.OutputToString()).To(Equal("bar"))
+	})
 })

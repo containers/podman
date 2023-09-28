@@ -42,7 +42,7 @@ func GenerateVolumeFilters(filter string, filterValues []string, runtime *libpod
 		}, nil
 	case "label!":
 		return func(v *libpod.Volume) bool {
-			return !filters.MatchLabelFilters(filterValues, v.Labels())
+			return filters.MatchNegatedLabelFilters(filterValues, v.Labels())
 		}, nil
 	case "opt":
 		return func(v *libpod.Volume) bool {

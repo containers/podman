@@ -73,6 +73,30 @@ var _ = Describe("Podman prune", func() {
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
 	})
 
+	It("podman container prune with chained label!", func() {
+		foobar := podmanTest.Podman([]string{"create", "--label", "foobar", "--name", "foobar", ALPINE})
+		foobar.WaitWithDefaultTimeout()
+		Expect(foobar).Should(ExitCleanly())
+
+		foo := podmanTest.Podman([]string{"create", "--label", "foo", "--name", "foo", ALPINE})
+		foo.WaitWithDefaultTimeout()
+		Expect(foo).Should(ExitCleanly())
+
+		bar := podmanTest.Podman([]string{"create", "--label", "bar", "--name", "bar", ALPINE})
+		bar.WaitWithDefaultTimeout()
+		Expect(bar).Should(ExitCleanly())
+
+		Expect(podmanTest.NumberOfContainers()).To(Equal(3))
+
+		prune := podmanTest.Podman([]string{"container", "prune", "--force", "--filter", "label!=foo", "--filter", "label!=foobar"})
+		prune.WaitWithDefaultTimeout()
+		Expect(prune).Should(ExitCleanly())
+
+		Expect(podmanTest.NumberOfContainers()).To(Equal(2))
+		Expect(prune.OutputToStringArray()).To(HaveLen(1))
+		Expect(prune.OutputToString()).To(Equal(bar.OutputToString()))
+	})
+
 	It("podman image prune - remove only dangling images", func() {
 		session := podmanTest.Podman([]string{"images", "-a"})
 		session.WaitWithDefaultTimeout()

@@ -744,4 +744,49 @@ var _ = Describe("Podman network", func() {
 		Expect(listAgain.OutputToStringArray()).Should(ContainElement(net2))
 		Expect(listAgain.OutputToStringArray()).Should(ContainElement("podman"))
 	})
+
+	It("podman network prune with chained label!", func() {
+		useCustomNetworkDir(podmanTest, tempdir)
+		net := "macvlan" + stringid.GenerateRandomID()
+		net1 := net + "1"
+		net2 := net + "2"
+		net3 := net + "3"
+		nc := podmanTest.Podman([]string{"network", "create", "--label=foo", net1})
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(net1)
+		Expect(nc).Should(ExitCleanly())
+
+		nc2 := podmanTest.Podman([]string{"network", "create", "--label=bar", net2})
+		nc2.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(net2)
+		Expect(nc2).Should(ExitCleanly())
+
+		nc3 := podmanTest.Podman([]string{"network", "create", "--label=foobar", net3})
+		nc3.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(net3)
+		Expect(nc3).Should(ExitCleanly())
+
+		list := podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}}"})
+		list.WaitWithDefaultTimeout()
+		Expect(list.OutputToStringArray()).Should(HaveLen(4))
+
+		Expect(list.OutputToStringArray()).Should(ContainElement(net1))
+		Expect(list.OutputToStringArray()).Should(ContainElement(net2))
+		Expect(list.OutputToStringArray()).Should(ContainElement(net3))
+		Expect(list.OutputToStringArray()).Should(ContainElement("podman"))
+
+		prune := podmanTest.Podman([]string{"network", "prune", "-f", "--filter", "label!=foo", "--filter", "label!=foobar"})
+		prune.WaitWithDefaultTimeout()
+		Expect(prune).Should(ExitCleanly())
+
+		listAgain := podmanTest.Podman([]string{"network", "ls", "--format", "{{.Name}}"})
+		listAgain.WaitWithDefaultTimeout()
+		Expect(listAgain).Should(ExitCleanly())
+		Expect(listAgain.OutputToStringArray()).Should(HaveLen(3))
+
+		Expect(listAgain.OutputToStringArray()).Should(ContainElement(net1))
+		Expect(listAgain.OutputToStringArray()).ShouldNot(ContainElement(net2))
+		Expect(listAgain.OutputToStringArray()).Should(ContainElement(net3))
+		Expect(listAgain.OutputToStringArray()).Should(ContainElement("podman"))
+	})
 })
