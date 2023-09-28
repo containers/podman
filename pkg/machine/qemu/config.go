@@ -204,16 +204,7 @@ func getVMInfos() ([]*machine.ListResponse, error) {
 				return err
 			}
 			listEntry.Running = state == machine.Running
-
-			if !vm.LastUp.IsZero() { // this means we have already written a time to the config
-				listEntry.LastUp = vm.LastUp
-			} else { // else we just created the machine AKA last up = created time
-				listEntry.LastUp = vm.Created
-				vm.LastUp = listEntry.LastUp
-				if err := vm.writeConfig(); err != nil {
-					return err
-				}
-			}
+			listEntry.LastUp = vm.LastUp
 
 			listed = append(listed, listEntry)
 		}
