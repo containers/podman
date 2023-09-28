@@ -85,14 +85,14 @@ var _ = Describe("Systemd activate", func() {
 			"create", "--tty", "--name", containerName, "--entrypoint", "top",
 			ALPINE,
 		)
-		Expect(apiSession).Should(Exit(0))
+		Expect(apiSession).Should(testUtils.ExitCleanly())
 		defer podman("rm", "-f", containerName)
 
 		apiSession = podmanRemote("start", containerName)
-		Expect(apiSession).Should(Exit(0))
+		Expect(apiSession).Should(testUtils.ExitCleanly())
 
 		apiSession = podmanRemote("inspect", "--format={{.State.Running}}", containerName)
-		Expect(apiSession).Should(Exit(0))
+		Expect(apiSession).Should(testUtils.ExitCleanly())
 		Expect(apiSession.OutputToString()).To(Equal("true"))
 
 		// Emulate 'systemd stop podman.service'
@@ -101,7 +101,7 @@ var _ = Describe("Systemd activate", func() {
 		Eventually(activateSession).Should(Exit(0))
 
 		abiSession := podman("inspect", "--format={{.State.Running}}", containerName)
-		Expect(abiSession).To(Exit(0))
+		Expect(abiSession).To(testUtils.ExitCleanly())
 		Expect(abiSession.OutputToString()).To(Equal("true"))
 	})
 

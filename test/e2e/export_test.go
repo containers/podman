@@ -7,7 +7,6 @@ import (
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman export", func() {
@@ -19,7 +18,7 @@ var _ = Describe("Podman export", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "container.tar")
 		result := podmanTest.Podman([]string{"export", "-o", outfile, cid})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		_, err := os.Stat(outfile)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -34,7 +33,7 @@ var _ = Describe("Podman export", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "container.tar")
 		result := podmanTest.Podman([]string{"container", "export", "-o", outfile, cid})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0))
+		Expect(result).Should(ExitCleanly())
 		_, err := os.Stat(outfile)
 		Expect(err).ToNot(HaveOccurred())
 
