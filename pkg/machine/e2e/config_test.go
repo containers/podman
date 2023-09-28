@@ -203,17 +203,26 @@ func (matcher *ValidJSONMatcher) NegatedFailureMessage(actual interface{}) (mess
 }
 
 func skipIfVmtype(vmType machine.VMType, message string) {
-	if testProvider.VMType() == vmType {
+	if isVmtype(vmType) {
 		Skip(message)
 	}
 }
 
 func skipIfNotVmtype(vmType machine.VMType, message string) {
-	if testProvider.VMType() != vmType {
+	if !isVmtype(vmType) {
 		Skip(message)
 	}
 }
 
 func skipIfWSL(message string) {
 	skipIfVmtype(machine.WSLVirt, message)
+}
+
+func isVmtype(vmType machine.VMType) bool {
+	return testProvider.VMType() == vmType
+}
+
+// isWSL is a simple wrapper to determine if the testprovider is WSL
+func isWSL() bool {
+	return isVmtype(machine.WSLVirt)
 }
