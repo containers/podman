@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -201,7 +202,10 @@ func (n *cniNetwork) loadNetworks() error {
 
 		net, err := createNetworkFromCNIConfigList(conf, file)
 		if err != nil {
-			logrus.Errorf("CNI config list %s could not be converted to a libpod config, skipping: %v", file, err)
+			// ignore ENOENT as the config has been removed in the meantime so we can just ignore this case
+			if !errors.Is(err, fs.ErrNotExist) {
+				logrus.Errorf("CNI config list %s could not be converted to a libpod config, skipping: %v", file, err)
+			}
 			continue
 		}
 		logrus.Debugf("Successfully loaded network %s: %v", net.Name, net)
