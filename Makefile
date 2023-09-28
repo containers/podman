@@ -204,11 +204,9 @@ ifdef HOMEBREW_PREFIX
 endif
 endif
 
-# win-sshproxy is checked out manually to keep from pulling in gvisor and it's transitive
-# dependencies. This is only used for the Windows client archives, which must
-# include this lightweight helper binary.
-GV_GITURL=https://github.com/containers/gvisor-tap-vsock.git
-GV_SHA=db608827124caa71ba411cec8ea959bb942984fe
+# gvisor-tap-vsock version for gvproxy.exe and win-sshproxy.exe downloads
+# the upstream project ships pre-built binaries since version 0.7.1
+GV_VERSION=v0.7.1
 
 ###
 ### Primary entry-point targets
@@ -774,16 +772,9 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 # Checks out and builds win-sshproxy helper. See comment on GV_GITURL declaration
 .PHONY: win-gvproxy
 win-gvproxy: test/version/version
-	rm -rf tmp-gv; mkdir tmp-gv
-	(cd tmp-gv; \
-         git init; \
-         git remote add origin $(GV_GITURL); \
-         git fetch --depth 1 origin $(GV_SHA); \
-         git checkout FETCH_HEAD; make win-gvproxy win-sshproxy)
 	mkdir -p bin/windows/
-	cp tmp-gv/bin/win-sshproxy.exe bin/windows/
-	cp tmp-gv/bin/gvproxy.exe bin/windows/
-	rm -rf tmp-gv
+	curl -sSL -o bin/windows/gvproxy.exe --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GV_VERSION)/gvproxy-windowsgui.exe
+	curl -sSL -o bin/windows/win-sshproxy.exe --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GV_VERSION)/win-sshproxy.exe
 
 .PHONY: rpm
 rpm:  ## Build rpm packages
