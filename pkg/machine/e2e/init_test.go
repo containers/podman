@@ -52,9 +52,10 @@ var _ = Describe("podman machine init", func() {
 
 		testMachine := inspectBefore[0]
 		Expect(testMachine.Name).To(Equal(mb.names[0]))
-		Expect(testMachine.Resources.CPUs).To(Equal(uint64(cpus)))
-		Expect(testMachine.Resources.Memory).To(Equal(uint64(2048)))
-
+		if testProvider.VMType() != machine.WSLVirt { // WSL hardware specs are hardcoded
+			Expect(testMachine.Resources.CPUs).To(Equal(uint64(cpus)))
+			Expect(testMachine.Resources.Memory).To(Equal(uint64(2048)))
+		}
 	})
 
 	It("simple init with start", func() {
@@ -97,13 +98,16 @@ var _ = Describe("podman machine init", func() {
 		Expect(inspectBefore).ToNot(BeEmpty())
 		testMachine := inspectBefore[0]
 		Expect(testMachine.Name).To(Equal(mb.names[0]))
-		Expect(testMachine.Resources.CPUs).To(Equal(uint64(cpus)))
-		Expect(testMachine.Resources.Memory).To(Equal(uint64(2048)))
-		Expect(testMachine.SSHConfig.RemoteUsername).To((Equal(remoteUsername)))
+		if testProvider.VMType() != machine.WSLVirt { // memory and cpus something we cannot set with WSL
+			Expect(testMachine.Resources.CPUs).To(Equal(uint64(cpus)))
+			Expect(testMachine.Resources.Memory).To(Equal(uint64(2048)))
+		}
+		Expect(testMachine.SSHConfig.RemoteUsername).To(Equal(remoteUsername))
 
 	})
 
 	It("machine init with cpus, disk size, memory, timezone", func() {
+		skipIfWSL("setting hardware resource numbers and timezone are not supported on WSL")
 		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withCPUs(2).withDiskSize(102).withMemory(4096).withTimezone("Pacific/Honolulu")).run()
@@ -147,6 +151,7 @@ var _ = Describe("podman machine init", func() {
 		if testProvider.VMType() == machine.HyperVVirt {
 			Skip("volumes are not supported on hyperv yet")
 		}
+		skipIfWSL("WSL volumes are much different.  This test will not pass as is")
 
 		tmpDir, err := os.MkdirTemp("", "")
 		Expect(err).ToNot(HaveOccurred())
@@ -157,20 +162,15 @@ var _ = Describe("podman machine init", func() {
 
 		name := randomString()
 		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withVolume(mount)).run()
+		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withVolume(mount).withNow()).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
-		s := new(startMachine)
-		startSession, err := mb.setCmd(s).run()
+		ssh := sshMachine{}
+		sshSession, err := mb.setName(name).setCmd(ssh.withSSHCommand([]string{"ls /testmountdir"})).run()
 		Expect(err).ToNot(HaveOccurred())
-		Expect(startSession).To(Exit(0))
-
-		ssh2 := sshMachine{}
-		sshSession2, err := mb.setName(name).setCmd(ssh2.withSSHCommand([]string{"ls /testmountdir"})).run()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(sshSession2).To(Exit(0))
-		Expect(sshSession2.outputToString()).To(ContainSubstring("example"))
+		Expect(sshSession).To(Exit(0))
+		Expect(sshSession.outputToString()).To(ContainSubstring("example"))
 	})
 
 	It("machine init rootless docker.sock check", func() {
