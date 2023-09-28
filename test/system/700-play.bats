@@ -532,7 +532,7 @@ EOF
       image: $IMAGE
       ports:
         - name: hostp
-          containerPort: $HOST_PORT
+          hostPort: $HOST_PORT
 EOF
 
     run_podman kube play $PODMAN_TMPDIR/test.yaml

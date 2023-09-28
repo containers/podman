@@ -5425,13 +5425,24 @@ spec:
 		err := writeYaml(publishPortsPodWithContainerPort, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube := podmanTest.Podman([]string{"kube", "play", "--publish-all=true", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(125))
 		// The error message is printed only on local call
 		if !IsRemote() {
 			Expect(kube.OutputToString()).Should(ContainSubstring("rootlessport cannot expose privileged port 80"))
 		}
+	})
+
+	It("podman play kube should not publish containerPort by default", func() {
+		err := writeYaml(publishPortsPodWithContainerPort, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		testHTTPServer("80", true, "connection refused")
 	})
 
 	It("with privileged containers ports and publish in command line - curl should succeed", func() {

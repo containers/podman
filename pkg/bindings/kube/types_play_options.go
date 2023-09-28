@@ -333,6 +333,21 @@ func (o *PlayOptions) GetPublishPorts() []string {
 	return o.PublishPorts
 }
 
+// WithPublishAllPorts set field PublishAllPorts to given value
+func (o *PlayOptions) WithPublishAllPorts(value bool) *PlayOptions {
+	o.PublishAllPorts = &value
+	return o
+}
+
+// GetPublishAllPorts returns value of field PublishAllPorts
+func (o *PlayOptions) GetPublishAllPorts() bool {
+	if o.PublishAllPorts == nil {
+		var z bool
+		return z
+	}
+	return *o.PublishAllPorts
+}
+
 // WithWait set field Wait to given value
 func (o *PlayOptions) WithWait(value bool) *PlayOptions {
 	o.Wait = &value
