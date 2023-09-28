@@ -304,6 +304,8 @@ by having one container bind to localhost in the pod, and another connect to tha
 
 Suppress output information when pulling images
 
+@@option rdt-class
+
 @@option read-only
 
 @@option read-only-tmpfs

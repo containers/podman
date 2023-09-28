@@ -75,6 +75,18 @@ var _ = Describe("Podman create", func() {
 		Expect(session).Should(Exit(125))
 	})
 
+	It("podman create adds rdt-class", func() {
+		session := podmanTest.Podman([]string{"create", "--rdt-class", "COS1", "--name", "rdt_test", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		check := podmanTest.Podman([]string{"inspect", "rdt_test"})
+		check.WaitWithDefaultTimeout()
+		data := check.InspectContainerToJSON()
+		Expect(data[0].HostConfig.IntelRdtClosID).To(Equal("COS1"))
+	})
+
 	It("podman create adds annotation", func() {
 		session := podmanTest.Podman([]string{"create", "--annotation", "HELLO=WORLD", "--name", "annotate_test", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()

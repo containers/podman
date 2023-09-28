@@ -216,6 +216,12 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		g.AddAnnotation(key, val)
 	}
 
+	if s.IntelRdt != nil {
+		if s.IntelRdt.ClosID != "" {
+			g.SetLinuxIntelRdtClosID(s.IntelRdt.ClosID)
+		}
+	}
+
 	if s.ResourceLimits != nil {
 		out, err := json.Marshal(s.ResourceLimits)
 		if err != nil {

@@ -491,6 +491,12 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.Labels = labels
 	}
 
+	// Intel RDT CAT
+	if c.IntelRdtClosID != "" {
+		s.IntelRdt = &specs.LinuxIntelRdt{}
+		s.IntelRdt.ClosID = c.IntelRdtClosID
+	}
+
 	// ANNOTATIONS
 	annotations := make(map[string]string)
 

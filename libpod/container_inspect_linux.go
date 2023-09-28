@@ -21,8 +21,14 @@ func (c *Container) platformInspectContainerHostConfig(ctrSpec *spec.Spec, hostC
 	// there are things that require a major:minor to path translation.
 	var deviceNodes map[string]string
 
-	// Resource limits
 	if ctrSpec.Linux != nil {
+		if ctrSpec.Linux.IntelRdt != nil {
+			if ctrSpec.Linux.IntelRdt.ClosID != "" {
+				// container is assigned to a ClosID
+				hostConfig.IntelRdtClosID = ctrSpec.Linux.IntelRdt.ClosID
+			}
+		}
+		// Resource limits
 		if ctrSpec.Linux.Resources != nil {
 			if ctrSpec.Linux.Resources.CPU != nil {
 				if ctrSpec.Linux.Resources.CPU.Shares != nil {
