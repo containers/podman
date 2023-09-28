@@ -3,7 +3,6 @@ package integration
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -182,9 +181,6 @@ var _ = Describe("Podman stats", func() {
 
 	// Regression test for #8265
 	It("podman stats with custom memory limits", func() {
-		if strings.Contains(podmanTest.OCIRuntime, "crun") {
-			Skip("Test requires crun > 1.8.4")
-		}
 		// Run three containers. One with a memory limit.  Make sure
 		// that the limits are different and the limited one has a
 		// lower limit.
@@ -235,9 +231,6 @@ var _ = Describe("Podman stats", func() {
 	})
 
 	It("podman stats show cgroup memory limit", func() {
-		if strings.Contains(podmanTest.OCIRuntime, "crun") {
-			Skip("Test requires crun > 1.8.4")
-		}
 		ctrWithLimit := "with-limit"
 
 		session := podmanTest.Podman([]string{"run", "-d", "--name", ctrWithLimit, "--memory", "50m", ALPINE, "top"})
