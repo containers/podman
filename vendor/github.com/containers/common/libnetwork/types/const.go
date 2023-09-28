@@ -43,6 +43,7 @@ const (
 	MetricOption   = "metric"
 	NoDefaultRoute = "no_default_route"
 	BclimOption    = "bclim"
+	VRFOption      = "vrf"
 )
 
 type NetworkBackend string

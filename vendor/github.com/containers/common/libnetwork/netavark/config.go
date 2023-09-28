@@ -204,7 +204,10 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 				}
 				// rust only support "true" or "false" while go can parse 1 and 0 as well so we need to change it
 				newNetwork.Options[types.NoDefaultRoute] = strconv.FormatBool(val)
-
+			case types.VRFOption:
+				if len(value) == 0 {
+					return nil, errors.New("invalid vrf name")
+				}
 			default:
 				return nil, fmt.Errorf("unsupported bridge network option %s", key)
 			}

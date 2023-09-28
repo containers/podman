@@ -169,6 +169,17 @@ func (i *Image) hasDigest(wantedDigest digest.Digest) bool {
 	return false
 }
 
+// containsDigestPrefix returns whether the specified value matches any digest of the
+// image. It checks for the prefix and not a full match.
+func (i *Image) containsDigestPrefix(wantedDigestPrefix string) bool {
+	for _, d := range i.Digests() {
+		if strings.HasPrefix(d.String(), wantedDigestPrefix) {
+			return true
+		}
+	}
+	return false
+}
+
 // IsReadOnly returns whether the image is set read only.
 func (i *Image) IsReadOnly() bool {
 	return i.storageImage.ReadOnly
