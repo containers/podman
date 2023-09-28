@@ -115,6 +115,7 @@ Additionally the `bridge` driver supports the following options:
 - `isolate`: This option isolates networks by blocking traffic between those that have this option enabled.
 - `com.docker.network.bridge.name`: This option assigns the given name to the created Linux Bridge
 - `com.docker.network.driver.mtu`: Sets the Maximum Transmission Unit (MTU) and takes an integer value.
+- `vrf`: This option assigns a VRF to the bridge interface. It accepts the name of the VRF and defaults to none. Can only be used with the Netavark network backend.
 
 The `macvlan` and `ipvlan` driver support the following options:
 
