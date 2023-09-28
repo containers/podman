@@ -148,12 +148,16 @@ function basic_setup() {
     for line in "${lines[@]}"; do
         set $line
         echo "# setup(): removing stray external container $1 ($2)" >&3
-        run_podman '?' rm -f $1
+        run_podman '?' --log-level debug rm -f $1
         if [[ $status -ne 0 ]]; then
             echo "# [setup] $_LOG_PROMPT podman rm -f $1" >&3
             for errline in "${lines[@]}"; do
                 echo "# $errline" >&3
             done
+            echo "# PS OUTPUT" >&3
+            ps aux | while read i; do echo "# $i" >&3; done
+            echo "# MOUNTINFO" >&3
+            cat /proc/self/mountinfo | while read i; do echo "# $i" >&3; done
             # FIXME FIXME FIXME: temporary hack for #18831. If we see the
             # unmount/EINVAL flake, nothing will ever work again.
             if [[ $output =~ unmounting.*invalid ]]; then
