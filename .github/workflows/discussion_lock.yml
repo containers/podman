@@ -6,12 +6,7 @@ name: "Lock closed Issue/PR discussions"
 
 on:
   schedule:
-    # TODO: Put this back to once-per-day after the workflow is able
-    # to process through the enormous backlog.  Leaving it once-per-hour
-    # runs the risk of spamming podman-monitor should there be some flake
-    # or hiccup.
-    # - cron: '0 0 * * *'
-    - cron: '0 * * * *'
+    - cron: '0 0 * * *'
   # Allow re-use of this workflow by other repositories
   # Ref: https://docs.github.com/en/actions/using-workflows/reusing-workflows
   workflow_call:
