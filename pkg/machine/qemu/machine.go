@@ -1317,14 +1317,6 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
 		return "", machine.NoForwarding, err
 	}
 
-	dnr, dnw, err := machine.GetDevNullFiles()
-	if err != nil {
-		return "", machine.NoForwarding, err
-	}
-
-	defer dnr.Close()
-	defer dnw.Close()
-
 	cmd := gvproxy.NewGvproxyCommand()
 	cmd.AddQemuSocket(fmt.Sprintf("unix://%s", v.QMPMonitor.Address.GetPath()))
 	cmd.PidFile = v.PidFilePath.GetPath()
@@ -1342,7 +1334,6 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
 	}
 
 	c := cmd.Cmd(binary)
-	c.ExtraFiles = []*os.File{dnr, dnw, dnw}
 	if err := c.Start(); err != nil {
 		return "", 0, fmt.Errorf("unable to execute: %q: %w", cmd.ToCmdline(), err)
 	}
