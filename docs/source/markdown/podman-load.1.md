@@ -32,7 +32,7 @@ Print usage statement
 
 #### **--input**, **-i**=*input*
 
-Load the specified input file instead of from stdin.  The file can be on the local file system or on a server (e.g., https://server.com/archive.tar)
+Load the specified input file instead of from stdin.  The file can be on the local file system or on a server (e.g., https://server.com/archive.tar). Also supports loading in compressed files.
 
 The remote client, including Mac and Windows (excluding WSL2) machines, requires the use of this option.
 
@@ -45,7 +45,7 @@ Suppress the progress output
 ## EXAMPLES
 
 ```
-$ podman load --quiet -i fedora.tar
+$ podman load --quiet -i fedora.tar.gz
 ```
 
 ```
