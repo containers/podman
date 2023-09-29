@@ -25,6 +25,7 @@ const (
 	vfGpu          vmComponentKind = "virtiogpu"
 	vfInput        vmComponentKind = "virtioinput"
 	usbMassStorage vmComponentKind = "usbmassstorage"
+	rosetta        vmComponentKind = "rosetta"
 )
 
 type jsonKind struct {
@@ -110,6 +111,10 @@ func unmarshalDevice(rawMsg json.RawMessage) (VirtioDevice, error) {
 		dev = &newDevice
 	case vfFs:
 		var newDevice VirtioFs
+		err = json.Unmarshal(rawMsg, &newDevice)
+		dev = &newDevice
+	case rosetta:
+		var newDevice RosettaShare
 		err = json.Unmarshal(rawMsg, &newDevice)
 		dev = &newDevice
 	case vfRng:
@@ -250,6 +255,17 @@ func (dev *VirtioFs) MarshalJSON() ([]byte, error) {
 	return json.Marshal(devWithKind{
 		jsonKind: kind(vfFs),
 		VirtioFs: *dev,
+	})
+}
+
+func (dev *RosettaShare) MarshalJSON() ([]byte, error) {
+	type devWithKind struct {
+		jsonKind
+		RosettaShare
+	}
+	return json.Marshal(devWithKind{
+		jsonKind:     kind(rosetta),
+		RosettaShare: *dev,
 	})
 }
 
