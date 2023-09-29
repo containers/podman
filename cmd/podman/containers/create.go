@@ -203,7 +203,7 @@ func replaceContainer(name string) error {
 		Force:  true, // force stop & removal
 		Ignore: true, // ignore errors when a container doesn't exit
 	}
-	return removeContainers([]string{name}, rmOptions, false)
+	return removeContainers([]string{name}, rmOptions, false, true)
 }
 
 func createOrUpdateFlags(cmd *cobra.Command, vals *entities.ContainerCreateOptions) error {
