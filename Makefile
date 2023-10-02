@@ -53,7 +53,6 @@ BUILDTAGS ?= \
 	$(shell hack/apparmor_tag.sh) \
 	$(shell hack/btrfs_installed_tag.sh) \
 	$(shell hack/btrfs_tag.sh) \
-	$(shell hack/selinux_tag.sh) \
 	$(shell hack/systemd_tag.sh) \
 	$(shell hack/libsubid_tag.sh) \
 	exclude_graphdriver_devicemapper \
