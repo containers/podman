@@ -831,8 +831,8 @@ github.com/opencontainers/runtime-spec v1.1.1-0.20230823135140-4fec88fd00a4/go.m
 github.com/opencontainers/runtime-spec v1.1.1-0.20230922153023-c0e90434df2a h1:ekgJlqTI6efJ57J7tqvIOYtdPnJRe8MxUZHbZAC021Y=
 github.com/opencontainers/runtime-spec v1.1.1-0.20230922153023-c0e90434df2a/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/runtime-tools v0.0.0-20181011054405-1d69bd0f9c39/go.mod h1:r3f7wjNzSs2extwzU3Y+6pKfobzPh+kKFJ3ofN+3nfs=
-github.com/opencontainers/runtime-tools v0.9.1-0.20230317050512-e931285f4b69 h1:NL4xDvl68WWqQ+8WPMM3l5PsZTxaT7Z4K3VSKDRuAGs=
-github.com/opencontainers/runtime-tools v0.9.1-0.20230317050512-e931285f4b69/go.mod h1:bNpfuSHA3DZRtD0TPWO8LzgtLpFPTVA/3jDkzD/OPyk=
+github.com/opencontainers/runtime-tools v0.9.1-0.20230914150019-408c51e934dc h1:d2hUh5O6MRBvStV55MQ8we08t42zSTqBbscoQccWmMc=
+github.com/opencontainers/runtime-tools v0.9.1-0.20230914150019-408c51e934dc/go.mod h1:8tx1helyqhUC65McMm3x7HmOex8lO2/v9zPuxmKHurs=
 github.com/opencontainers/selinux v1.6.0/go.mod h1:VVGKuOLlE7v4PJyT6h7mNWvq1rzqiriPsEqVhc+svHE=
 github.com/opencontainers/selinux v1.8.0/go.mod h1:RScLhm78qiWa2gbVCcGkC7tCGdgk3ogry1nUQF8Evvo=
 github.com/opencontainers/selinux v1.8.2/go.mod h1:MUIHuUEvKB1wtJjQdOyYRgOnLD2xAPP8dBsCoU0KuF8=
