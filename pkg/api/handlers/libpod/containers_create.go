@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/specgen/generate"
 	"github.com/containers/podman/v4/pkg/specgenutil"
+	"github.com/containers/storage"
 )
 
 // CreateContainer takes a specgenerator and makes a container. It returns
@@ -60,12 +62,20 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 
 	warn, err := generate.CompleteSpec(r.Context(), runtime, &sg)
 	if err != nil {
+		if errors.Is(err, storage.ErrImageUnknown) {
+			utils.Error(w, http.StatusNotFound, fmt.Errorf("no such image: %w", err))
+			return
+		}
 		utils.InternalServerError(w, err)
 		return
 	}
 
 	rtSpec, spec, opts, err := generate.MakeContainer(r.Context(), runtime, &sg, false, nil)
 	if err != nil {
+		if errors.Is(err, storage.ErrImageUnknown) {
+			utils.Error(w, http.StatusNotFound, fmt.Errorf("no such image: %w", err))
+			return
+		}
 		utils.InternalServerError(w, err)
 		return
 	}
