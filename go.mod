@@ -13,7 +13,7 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
 	github.com/containers/buildah v1.32.0
-	github.com/containers/common v0.56.1-0.20230927174306-9342cdd82aa6
+	github.com/containers/common v0.56.1-0.20230929120646-4fd26cf84f19
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.1
 	github.com/containers/image/v5 v5.28.0
@@ -45,7 +45,7 @@ require (
 	github.com/moby/term v0.5.0
 	github.com/nxadm/tail v1.4.8
 	github.com/onsi/ginkgo/v2 v2.12.1
-	github.com/onsi/gomega v1.27.10
+	github.com/onsi/gomega v1.28.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc5
 	github.com/opencontainers/runc v1.1.9
