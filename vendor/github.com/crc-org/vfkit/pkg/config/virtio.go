@@ -17,12 +17,12 @@ const (
 	VirtioInputKeyboardDevice = "keyboard"
 
 	// Options for VirtioGPUResolution
-	VirtioGPUResolutionHeight = "height"
 	VirtioGPUResolutionWidth  = "width"
+	VirtioGPUResolutionHeight = "height"
 
 	// Default VirtioGPU Resolution
-	defaultVirtioGPUResolutionHeight = 800
-	defaultVirtioGPUResolutionWidth  = 600
+	defaultVirtioGPUResolutionWidth  = 800
+	defaultVirtioGPUResolutionHeight = 600
 )
 
 // VirtioInput configures an input device, such as a keyboard or pointing device
@@ -32,8 +32,8 @@ type VirtioInput struct {
 }
 
 type VirtioGPUResolution struct {
-	Height int `json:"height"`
 	Width  int `json:"width"`
+	Height int `json:"height"`
 }
 
 // VirtioGPU configures a GPU device, such as the host computer's display
@@ -61,10 +61,20 @@ type VirtioBlk struct {
 	DeviceIdentifier string
 }
 
+type DirectorySharingConfig struct {
+	MountTag string
+}
+
 // VirtioFs configures directory sharing between the guest and the host.
 type VirtioFs struct {
+	DirectorySharingConfig
 	SharedDir string
-	MountTag  string
+}
+
+// RosettaShare configures rosetta support in the guest to run Intel binaries on Apple CPUs
+type RosettaShare struct {
+	DirectorySharingConfig
+	InstallRosetta bool
 }
 
 // virtioRng configures a random number generator (RNG) device.
@@ -131,6 +141,8 @@ func deviceFromCmdLine(deviceOpts string) (VirtioDevice, error) {
 	}
 	var dev VirtioDevice
 	switch opts[0] {
+	case "rosetta":
+		dev = &RosettaShare{}
 	case "virtio-blk":
 		dev = virtioBlkNewEmpty()
 	case "virtio-fs":
@@ -268,15 +280,15 @@ func VirtioGPUNew() (VirtioDevice, error) {
 	return &VirtioGPU{
 		UsesGUI: false,
 		VirtioGPUResolution: VirtioGPUResolution{
-			Height: defaultVirtioGPUResolutionHeight,
 			Width:  defaultVirtioGPUResolutionWidth,
+			Height: defaultVirtioGPUResolutionHeight,
 		},
 	}, nil
 }
 
 func (dev *VirtioGPU) validate() error {
 	if dev.Height < 1 || dev.Width < 1 {
-		return fmt.Errorf("Invalid dimensions for virtio-gpu device resolution: %dx%d", dev.Height, dev.Width)
+		return fmt.Errorf("Invalid dimensions for virtio-gpu device resolution: %dx%d", dev.Width, dev.Height)
 	}
 
 	return nil
@@ -287,7 +299,7 @@ func (dev *VirtioGPU) ToCmdLine() ([]string, error) {
 		return nil, err
 	}
 
-	return []string{"--device", fmt.Sprintf("virtio-gpu,height=%d,width=%d", dev.Height, dev.Width)}, nil
+	return []string{"--device", fmt.Sprintf("virtio-gpu,width=%d,height=%d", dev.Width, dev.Height)}, nil
 }
 
 func (dev *VirtioGPU) FromOptions(options []option) error {
@@ -545,8 +557,10 @@ func (dev *VirtioVsock) FromOptions(options []option) error {
 // mounted in the VM using `mount -t virtiofs mountTag /some/dir`
 func VirtioFsNew(sharedDir string, mountTag string) (VirtioDevice, error) {
 	return &VirtioFs{
+		DirectorySharingConfig: DirectorySharingConfig{
+			MountTag: mountTag,
+		},
 		SharedDir: sharedDir,
-		MountTag:  mountTag,
 	}, nil
 }
 
@@ -570,6 +584,46 @@ func (dev *VirtioFs) FromOptions(options []option) error {
 			dev.MountTag = option.value
 		default:
 			return fmt.Errorf("Unknown option for virtio-fs devices: %s", option.key)
+		}
+	}
+	return nil
+}
+
+// RosettaShare creates a new rosetta share for running x86_64 binaries on M1 machines.
+// It will share a directory containing the linux rosetta binaries with the
+// virtual machine. This directory can be mounted in the VM using `mount -t
+// virtiofs mountTag /some/dir`
+func RosettaShareNew(mountTag string) (VirtioDevice, error) {
+	return &RosettaShare{
+		DirectorySharingConfig: DirectorySharingConfig{
+			MountTag: mountTag,
+		},
+	}, nil
+}
+
+func (dev *RosettaShare) ToCmdLine() ([]string, error) {
+	if dev.MountTag == "" {
+		return nil, fmt.Errorf("rosetta shares require a mount tag to be specified")
+	}
+	builder := strings.Builder{}
+	builder.WriteString("rosetta")
+	fmt.Fprintf(&builder, ",mountTag=%s", dev.MountTag)
+	if dev.InstallRosetta {
+		builder.WriteString(",install")
+	}
+
+	return []string{"--device", builder.String()}, nil
+}
+
+func (dev *RosettaShare) FromOptions(options []option) error {
+	for _, option := range options {
+		switch option.key {
+		case "mountTag":
+			dev.MountTag = option.value
+		case "install":
+			dev.InstallRosetta = true
+		default:
+			return fmt.Errorf("Unknown option for rosetta share: %s", option.key)
 		}
 	}
 	return nil

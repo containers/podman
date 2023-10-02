@@ -56,7 +56,9 @@ func getIgnitionVsockDevice(path string) (vfConfig.VirtioDevice, error) {
 
 func VirtIOFsToVFKitVirtIODevice(fs machine.VirtIoFs) vfConfig.VirtioFs {
 	return vfConfig.VirtioFs{
+		DirectorySharingConfig: vfConfig.DirectorySharingConfig{
+			MountTag: fs.Tag,
+		},
 		SharedDir: fs.Source,
-		MountTag:  fs.Tag,
 	}
 }
