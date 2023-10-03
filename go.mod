@@ -13,7 +13,7 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
 	github.com/containers/buildah v1.32.0
-	github.com/containers/common v0.56.1-0.20230929120646-4fd26cf84f19
+	github.com/containers/common v0.56.1-0.20231002091908-745eaa498509
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.1
 	github.com/containers/image/v5 v5.28.0
@@ -50,7 +50,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.0-rc5
 	github.com/opencontainers/runc v1.1.9
 	github.com/opencontainers/runtime-spec v1.1.1-0.20230922153023-c0e90434df2a
-	github.com/opencontainers/runtime-tools v0.9.1-0.20230317050512-e931285f4b69
+	github.com/opencontainers/runtime-tools v0.9.1-0.20230914150019-408c51e934dc
 	github.com/opencontainers/selinux v1.11.0
 	github.com/openshift/imagebuilder v1.2.5
 	github.com/rootless-containers/rootlesskit v1.1.1

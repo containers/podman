@@ -323,7 +323,7 @@ func createEnvCacheMap(env []string) map[string]int {
 //
 // Deprecated: Replace with:
 //
-//   Use generator.Config = config
+//	Use generator.Config = config
 func (g *Generator) SetSpec(config *rspec.Spec) {
 	g.Config = config
 }
