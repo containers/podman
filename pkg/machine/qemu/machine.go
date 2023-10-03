@@ -48,7 +48,7 @@ type MachineVM struct {
 	// ConfigPath is the path to the configuration file
 	ConfigPath machine.VMFile
 	// The command line representation of the qemu command
-	CmdLine []string
+	CmdLine QemuCmd
 	// HostUser contains info about host user
 	machine.HostUser
 	// ImageConfig describes the bootable image
@@ -215,11 +215,7 @@ func (v *MachineVM) addMountsToVM(opts machine.InitOptions) error {
 		target := extractTargetPath(paths)
 		readonly, securityModel := extractMountOptions(paths)
 		if volumeType == VolumeTypeVirtfs {
-			virtfsOptions := fmt.Sprintf("local,path=%s,mount_tag=%s,security_model=%s", source, tag, securityModel)
-			if readonly {
-				virtfsOptions += ",readonly"
-			}
-			v.CmdLine = append(v.CmdLine, []string{"-virtfs", virtfsOptions}...)
+			v.CmdLine.SetVirtfsMount(source, tag, securityModel, readonly)
 			mounts = append(mounts, machine.Mount{Type: MountType9p, Tag: tag, Source: source, Target: target, ReadOnly: readonly})
 		}
 	}
@@ -294,9 +290,6 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	v.ImagePath = *imagePath
 	v.ImageStream = strm.String()
 
-	// Add arch specific options including image location
-	v.CmdLine = append(v.CmdLine, v.addArchOptions()...)
-
 	if err := v.addMountsToVM(opts); err != nil {
 		return false, err
 	}
@@ -304,7 +297,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	v.UID = os.Getuid()
 
 	// Add location of bootable image
-	v.CmdLine = append(v.CmdLine, "-drive", "if=virtio,file="+v.getImageFile())
+	v.CmdLine.SetBootableImage(v.getImageFile())
 
 	if err := machine.AddSSHConnectionsToPodmanSocket(
 		v.UID,
@@ -706,12 +699,12 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	attr.Files = files
 	cmdLine := v.CmdLine
 
-	cmdLine = propagateHostEnv(cmdLine)
+	cmdLine.SetPropagatedHostEnvs()
 
 	// Disable graphic window when not in debug mode
 	// Done in start, so we're not suck with the debug level we used on init
 	if !logrus.IsLevelEnabled(logrus.DebugLevel) {
-		cmdLine = append(cmdLine, "-display", "none")
+		cmdLine.SetDisplay("none")
 	}
 
 	logrus.Debugf("qemu cmd: %v", cmdLine)
@@ -804,7 +797,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 // propagateHostEnv is here for providing the ability to propagate
 // proxy and SSL settings (e.g. HTTP_PROXY and others) on a start
 // and avoid a need of re-creating/re-initiating a VM
-func propagateHostEnv(cmdLine []string) []string {
+func propagateHostEnv(cmdLine QemuCmd) QemuCmd {
 	varsToPropagate := make([]string, 0)
 
 	for k, v := range machine.GetProxyVariables() {
