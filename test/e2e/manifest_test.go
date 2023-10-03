@@ -549,6 +549,18 @@ RUN touch /file
 		Expect(output).To(ContainSubstring("Storing list signatures"))
 	})
 
+	It("push must retry", func() {
+		SkipIfRemote("warning is not relayed in remote setup")
+		session := podmanTest.Podman([]string{"manifest", "create", "foo", imageList})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		push := podmanTest.Podman([]string{"manifest", "push", "--all", "--tls-verify=false", "--remove-signatures", "foo", "localhost:7000/bogus"})
+		push.WaitWithDefaultTimeout()
+		Expect(push).Should(Exit(125))
+		Expect(push.ErrorToString()).To(MatchRegexp("Copying blob.*Failed, retrying in 1s \\.\\.\\. \\(1/3\\).*Copying blob.*Failed, retrying in 2s"))
+	})
+
 	It("authenticated push", func() {
 		registryOptions := &podmanRegistry.Options{
 			PodmanPath: podmanTest.PodmanBinary,
