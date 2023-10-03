@@ -50,20 +50,13 @@ func IsWSLInstalled() bool {
 
 func IsWSLStoreVersionInstalled() bool {
 	cmd := SilentExecCmd("wsl", "--version")
-	out, err := cmd.StdoutPipe()
+	cmd.Stdout = nil
 	cmd.Stderr = nil
-	if err != nil {
-		return false
-	}
-	if err = cmd.Start(); err != nil {
-		return false
-	}
-	hasVersion := matchOutputLine(out, "WSL version:")
-	if err := cmd.Wait(); err != nil {
+	if err := cmd.Run(); err != nil {
 		return false
 	}
 
-	return hasVersion
+	return true
 }
 
 func matchOutputLine(output io.ReadCloser, match string) bool {
