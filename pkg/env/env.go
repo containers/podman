@@ -102,7 +102,7 @@ func ParseFile(path string) (_ map[string]string, err error) {
 
 	// replace all \r\n and \r with \n
 	text := strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(string(content))
-	if err := parseEnv(env, text); err != nil {
+	if err := parseEnv(env, text, false); err != nil {
 		return nil, err
 	}
 
@@ -110,13 +110,19 @@ func ParseFile(path string) (_ map[string]string, err error) {
 }
 
 // parseEnv parse the given content into env format
+// @param enforceMatch bool	"it throws an error if there is no match"
 //
-// @example: parseEnv(env, "#comment") => nil
-// @example: parseEnv(env, "") => nil
-// @example: parseEnv(env, "KEY=FOO") => nil
-// @example: parseEnv(env, "KEY") => nil
-func parseEnv(env map[string]string, content string) error {
+// @example: parseEnv(env, "#comment", true) => error("invalid variable: #comment")
+// @example: parseEnv(env, "#comment", false) => nil
+// @example: parseEnv(env, "", false) => nil
+// @example: parseEnv(env, "KEY=FOO", true) => nil
+// @example: parseEnv(env, "KEY", true) => nil
+func parseEnv(env map[string]string, content string, enforceMatch bool) error {
 	m := envMatch(content)
+
+	if len(m) == 0 && enforceMatch {
+		return fmt.Errorf("invalid variable: %q", content)
+	}
 
 	for _, match := range m {
 		key := match[1]
@@ -188,48 +194,4 @@ func envMatch(content string) [][]string {
 	}
 
 	return m
-}
-
-// parseEnvWithSlice parsing a set of Env variables from a slice of strings
-// because the majority of shell interpreters discard double quotes and single quotes,
-// for example: podman run -e K='V', when passed into a program, it will become: K=V.
-// This can lead to unexpected issues, as discussed in this link: https://github.com/containers/podman/pull/19096#issuecomment-1670164724.
-//
-// parseEnv method will discard all comments (#) that are not wrapped in quotation marks,
-// so it cannot be used to parse env variables obtained from the command line.
-//
-// @example: parseEnvWithSlice(env, "KEY=FOO") => KEY: FOO
-// @example: parseEnvWithSlice(env, "KEY") => KEY: ""
-// @example: parseEnvWithSlice(env, "KEY=") => KEY: ""
-// @example: parseEnvWithSlice(env, "KEY=FOO=BAR") => KEY: FOO=BAR
-// @example: parseEnvWithSlice(env, "KEY=FOO#BAR") => KEY: FOO#BAR
-func parseEnvWithSlice(env map[string]string, content string) error {
-	data := strings.SplitN(content, "=", 2)
-
-	// catch invalid variables such as "=" or "=A"
-	if data[0] == "" {
-		return fmt.Errorf("invalid variable: %q", content)
-	}
-	// trim the front of a variable, but nothing else
-	name := strings.TrimLeft(data[0], whiteSpaces)
-	if len(data) > 1 {
-		env[name] = data[1]
-	} else {
-		if strings.HasSuffix(name, "*") {
-			name = strings.TrimSuffix(name, "*")
-			for _, e := range os.Environ() {
-				part := strings.SplitN(e, "=", 2)
-				if len(part) < 2 {
-					continue
-				}
-				if strings.HasPrefix(part[0], name) {
-					env[part[0]] = part[1]
-				}
-			}
-		} else if val, ok := os.LookupEnv(name); ok {
-			// if only a pass-through variable is given, clean it up.
-			env[name] = val
-		}
-	}
-	return nil
 }
