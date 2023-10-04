@@ -109,7 +109,11 @@ BuildRequires: python3
 Requires: catatonit
 Requires: conmon >= 2:2.1.7-2
 Requires: containers-common-extra
+%if %{defined rhel} && !%{defined eln}
+Recommends: gvisor-tap-vsock-gvforwarder
+%else
 Requires: gvisor-tap-vsock-gvforwarder
+%endif
 Recommends: gvisor-tap-vsock
 Provides: %{name}-quadlet
 Obsoletes: %{name}-quadlet <= 5:4.4.0-1
