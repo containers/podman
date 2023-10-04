@@ -48,7 +48,16 @@ func FindDeviceNodes() (map[string]string, error) {
 
 		info, err := d.Info()
 		if err != nil {
-			return err
+			// Info() can return ErrNotExist if the file was deleted between the readdir and stat call.
+			// This race can happen and is no reason to log an ugly error. If this is a container device
+			// that is used the code later will print a proper error in such case.
+			// There also seem to be cases were ErrNotExist is always returned likely due a weird device
+			// state, e.g. removing a device forcefully. This can happen with iSCSI devices.
+			if !errors.Is(err, fs.ErrNotExist) {
+				logrus.Errorf("Failed to get device information for %s: %v", path, err)
+			}
+			// return nil here as we want to continue looking for more device and not stop the WalkDir()
+			return nil
 		}
 		// We are a device node. Get major/minor.
 		sysstat, ok := info.Sys().(*syscall.Stat_t)
