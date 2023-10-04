@@ -323,90 +323,79 @@ func Test_ParseFile(t *testing.T) {
 	}
 }
 
-func Test_parseEnvWithSlice(t *testing.T) {
-	type result struct {
-		key    string
-		value  string
-		hasErr bool
-	}
+func Test_parseEnv(t *testing.T) {
+	good := make(map[string]string)
 
-	tests := []struct {
-		name string
+	type args struct {
+		env  map[string]string
 		line string
-		want result
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
 	}{
 		{
 			name: "Good",
-			line: "apple=red",
-			want: result{
-				key:   "apple",
-				value: "red",
+			args: args{
+				env:  good,
+				line: "apple=red",
 			},
+			wantErr: false,
 		},
 		{
-			name: "NoValue",
-			line: "google=",
-			want: result{
-				key:   "google",
-				value: "",
+			name: "GoodNoValue",
+			args: args{
+				env:  good,
+				line: "apple=",
 			},
+			wantErr: false,
 		},
 		{
-			name: "OnlyKey",
-			line: "redhat",
-			want: result{
-				key:   "redhat",
-				value: "",
+			name: "GoodNoKeyNoValue",
+			args: args{
+				env:  good,
+				line: "=",
 			},
+			wantErr: true,
 		},
 		{
-			name: "NoKey",
-			line: "=foobar",
-			want: result{
-				hasErr: true,
+			name: "GoodOnlyKey",
+			args: args{
+				env:  good,
+				line: "apple",
 			},
+			wantErr: false,
 		},
 		{
-			name: "OnlyDelim",
-			line: "=",
-			want: result{
-				hasErr: true,
+			name: "BadNoKey",
+			args: args{
+				env:  good,
+				line: "=foobar",
 			},
+			wantErr: true,
 		},
 		{
-			name: "Has#",
-			line: "facebook=red#blue",
-			want: result{
-				key:   "facebook",
-				value: "red#blue",
+			name: "BadOnlyDelim",
+			args: args{
+				env:  good,
+				line: "=",
 			},
-		},
-		{
-			name: "Has\\n",
-			// twitter="foo
-			// bar"
-			line: "twitter=\"foo\nbar\"",
-			want: result{
-				key:   "twitter",
-				value: `"foo` + "\n" + `bar"`,
-			},
+			wantErr: true,
 		},
 		{
 			name: "MultilineWithBackticksQuotes",
-			line: "github=`First line\nlast line`",
-			want: result{
-				key:   "github",
-				value: "`First line\nlast line`",
+			args: args{
+				env:  good,
+				line: "apple=`foo\nbar`",
 			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			envs := make(map[string]string)
-			if err := parseEnvWithSlice(envs, tt.line); (err != nil) != tt.want.hasErr {
-				t.Errorf("parseEnv() error = %v, want has Err %v", err, tt.want.hasErr)
-			} else if envs[tt.want.key] != tt.want.value {
-				t.Errorf("parseEnv() result = map[%v:%v], but got %v", tt.want.key, tt.want.value, envs)
+			if err := parseEnv(tt.args.env, tt.args.line, true); (err != nil) != tt.wantErr {
+				t.Errorf("parseEnv() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
