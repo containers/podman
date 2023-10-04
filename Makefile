@@ -888,8 +888,8 @@ PODMAN_UNIT_FILES = contrib/systemd/auto-update/podman-auto-update.service \
 		    contrib/systemd/system/podman-restart.service \
 		    contrib/systemd/system/podman-kube@.service \
 		    contrib/systemd/system/podman-clean-transient.service \
-		    contrib/systemd/system/podman-firewalld-reload.service.in \
-		    contrib/systemd/system/podman-firewalld-restart.service.in
+		    contrib/systemd/system/podman-firewalld-reload.service \
+		    contrib/systemd/system/podman-firewalld-restart.service
 
 %.service: %.service.in
 	sed -e 's;@@PODMAN@@;$(BINDIR)/podman;g' $< >$@.tmp.$$ \
