@@ -401,7 +401,7 @@ func (c *Container) execStartAndAttach(sessionID string, streams *define.AttachS
 
 	logrus.Debugf("Container %s exec session %s completed with exit code %d", c.ID(), session.ID(), exitCode)
 
-	if err := justWriteExecExitCode(c, session.ID(), exitCode); err != nil {
+	if err := justWriteExecExitCode(c, session.ID(), exitCode, !isHealthcheck); err != nil {
 		if lastErr != nil {
 			logrus.Errorf("Container %s exec session %s error: %v", c.ID(), session.ID(), lastErr)
 		}
@@ -1114,7 +1114,7 @@ func writeExecExitCode(c *Container, sessionID string, exitCode int) error {
 		return fmt.Errorf("syncing container %s state to remove exec session %s: %w", c.ID(), sessionID, err)
 	}
 
-	return justWriteExecExitCode(c, sessionID, exitCode)
+	return justWriteExecExitCode(c, sessionID, exitCode, true)
 }
 
 func retrieveAndWriteExecExitCode(c *Container, sessionID string) error {
@@ -1123,12 +1123,14 @@ func retrieveAndWriteExecExitCode(c *Container, sessionID string) error {
 		return err
 	}
 
-	return justWriteExecExitCode(c, sessionID, exitCode)
+	return justWriteExecExitCode(c, sessionID, exitCode, true)
 }
 
-func justWriteExecExitCode(c *Container, sessionID string, exitCode int) error {
+func justWriteExecExitCode(c *Container, sessionID string, exitCode int, emitEvent bool) error {
 	// Write an event first
-	c.newExecDiedEvent(sessionID, exitCode)
+	if emitEvent {
+		c.newExecDiedEvent(sessionID, exitCode)
+	}
 
 	session, ok := c.state.ExecSessions[sessionID]
 	if !ok {
