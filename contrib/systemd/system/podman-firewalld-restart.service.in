@@ -1,0 +1,12 @@
+[Unit]
+Description=Redo podman NAT rules after firewalld starts or reloads
+Wants=dbus.service
+After=dbus.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/bash -c '/usr/bin/dbus-monitor --profile --system "type=signal,sender=org.freedesktop.DBus,path=/org/freedesktop/DBus,interface=org.freedesktop.DBus,member=NameAcquired,arg0=org.fedoraproject.FirewallD1" "type=signal,path=/org/fedoraproject/FirewallD1,interface=org.fedoraproject.FirewallD1,member=Reloaded" | sed -u "/^#/d" | while read -r type timestamp serial sender destination path interface member _junk; do if [[ $type = "#"* ]]; then continue; elif [[ $interface = org.freedesktop.DBus && $member = NameAcquired ]]; then echo "firewalld started"; @@PODMAN@@ network reload --all; elif [[ $interface = org.fedoraproject.FirewallD1 && $member = Reloaded ]]; then echo "firewalld reloaded"; @@PODMAN@@ network reload --all; fi; done'
+Restart=Always
+
+[Install]
+WantedBy=default.target

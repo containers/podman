@@ -1,0 +1,11 @@
+[Unit]
+Description=firewalld reload hook - run a hook script on firewalld reload
+Wants=dbus.service
+After=dbus.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/bash -c '/usr/bin/busctl monitor --system --match "interface=org.fedoraproject.FirewallD1,member=Reloaded" --match "interface=org.fedoraproject.FirewallD1,member=PropertiesChanged" | while read -r line ; do @@PODMAN@@ network reload --all ; done'
+
+[Install]
+WantedBy=multi-user.target

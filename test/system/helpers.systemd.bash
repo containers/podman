@@ -63,3 +63,19 @@ quadlet_to_service_name() {
 
     echo "$filename$suffix.service"
 }
+
+setup_firewalld_services() {
+    unit_names=("podman-firewalld-reload.service" "podman-firewalld-restart.service")
+
+    for unit_name in "${unit_names[@]}"; do
+        unit_file="contrib/systemd/system/${unit_name}"
+
+        if [[ -e $unit_file.in ]]; then
+            echo "# [Building & using $unit_name from source]" >&3
+            # Force regenerating unit file (existing one may have /usr/bin path)
+            rm -f "$unit_file"
+            BINDIR=$(dirname "$PODMAN") make "$unit_file"
+            cp "$unit_file" "$UNIT_DIR/$unit_name"
+        fi
+    done
+}

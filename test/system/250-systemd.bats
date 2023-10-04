@@ -479,4 +479,41 @@ $name stderr" "logs work with passthrough"
     run_podman generate --help
     is "$output" ".*\[DEPRECATED\] Generate systemd units"
 }
+
+@test "podman network reload on firewall-cmd --reload" {
+    setup_firewalld_services
+
+    systemctl daemon-reload
+
+    reload_service="podman-firewalld-reload.service"
+    systemctl start $reload_service
+    systemctl is-active $reload_service
+
+    restart_service="podman-firewalld-restart.service"
+    systemctl start $restart_service
+    systemctl is-active $restart_service
+
+    cname="testctr"
+    run_podman run -d --rm --name $cname fedora:latest sleep 10d
+
+    # reload firewalld
+    firewall-cmd --reload
+
+    # ensure the rules are present
+    fout=$(run firewall-cmd --zone=trusted --list-all | grep "sources")
+    assert "$fout" != "  sources: " # non-empty
+
+    # restart firewalld service
+    systemctl restart firewalld.service
+
+    # ensure the rules are still present
+    fout=$(run firewall-cmd --zone=trusted --list-all | grep "sources")
+    assert "$fout" != "  sources: " # non-empty
+
+    run_podman kill $cname
+    run_podman rm $cname
+
+    systemctl stop $reload_service
+    systemctl stop $restart_service
+}
 # vim: filetype=sh

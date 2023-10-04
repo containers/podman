@@ -887,7 +887,9 @@ PODMAN_UNIT_FILES = contrib/systemd/auto-update/podman-auto-update.service \
 		    contrib/systemd/system/podman.service \
 		    contrib/systemd/system/podman-restart.service \
 		    contrib/systemd/system/podman-kube@.service \
-		    contrib/systemd/system/podman-clean-transient.service
+		    contrib/systemd/system/podman-clean-transient.service \
+		    contrib/systemd/system/podman-firewalld-reload.service.in \
+		    contrib/systemd/system/podman-firewalld-restart.service.in
 
 %.service: %.service.in
 	sed -e 's;@@PODMAN@@;$(BINDIR)/podman;g' $< >$@.tmp.$$ \
@@ -902,6 +904,8 @@ install.systemd: $(PODMAN_UNIT_FILES)
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman.service ${DESTDIR}${USERSYSTEMDDIR}/podman.service
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-restart.service ${DESTDIR}${USERSYSTEMDDIR}/podman-restart.service
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-kube@.service ${DESTDIR}${USERSYSTEMDDIR}/podman-kube@.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-firewalld-reload.service ${DESTDIR}${USERSYSTEMDDIR}/podman-firewalld-reload.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-firewalld-restart.service ${DESTDIR}${USERSYSTEMDDIR}/podman-firewalld-restart.service
 	# System services
 	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/podman-auto-update.service ${DESTDIR}${SYSTEMDDIR}/podman-auto-update.service
 	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/podman-auto-update.timer ${DESTDIR}${SYSTEMDDIR}/podman-auto-update.timer
@@ -910,6 +914,8 @@ install.systemd: $(PODMAN_UNIT_FILES)
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-restart.service ${DESTDIR}${SYSTEMDDIR}/podman-restart.service
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-kube@.service ${DESTDIR}${SYSTEMDDIR}/podman-kube@.service
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-clean-transient.service ${DESTDIR}${SYSTEMDDIR}/podman-clean-transient.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-firewalld-reload.service ${DESTDIR}${SYSTEMDDIR}/podman-firewalld-reload.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-firewalld-restart.service ${DESTDIR}${SYSTEMDDIR}/podman-firewalld-restart.service
 	rm -f $(PODMAN_UNIT_FILES)
 else
 install.systemd:
