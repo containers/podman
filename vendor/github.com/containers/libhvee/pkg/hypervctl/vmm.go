@@ -24,7 +24,7 @@ func NewVirtualMachineManager() *VirtualMachineManager {
 }
 
 func (vmm *VirtualMachineManager) GetAll() ([]*VirtualMachine, error) {
-	const wql = "Select * From Msvm_ComputerSystem Where Caption = 'Virtual Machine'"
+	const wql = "Select * From Msvm_ComputerSystem Where Description = 'Microsoft Virtual Machine'"
 
 	var service *wmiext.Service
 	var err error
@@ -69,7 +69,7 @@ func (vmm *VirtualMachineManager) Exists(name string) (bool, error) {
 }
 
 func (*VirtualMachineManager) GetMachine(name string) (*VirtualMachine, error) {
-	const wql = "Select * From Msvm_ComputerSystem Where Caption = 'Virtual Machine' And ElementName='%s'"
+	const wql = "Select * From Msvm_ComputerSystem Where Description = 'Microsoft Virtual Machine' And ElementName='%s'"
 
 	vm := &VirtualMachine{}
 	var service *wmiext.Service
