@@ -348,7 +348,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		_ = cmd.RegisterFlagCompletionFunc(podIDFileFlagName, completion.AutocompleteDefault)
 		createFlags.BoolVar(
 			&cf.Privileged,
-			"privileged", false,
+			"privileged", podmanConfig.ContainersConfDefaultsRO.Containers.Privileged,
 			"Give extended privileges to container",
 		)
 		createFlags.BoolVarP(

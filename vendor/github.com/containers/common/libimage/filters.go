@@ -289,7 +289,7 @@ func filterReferences(r *Runtime, value string) filterFunc {
 			refString := ref.String() // FQN with tag/digest
 			candidates := []string{refString}
 
-			// Split the reference into 3 components (twice if diggested/tagged):
+			// Split the reference into 3 components (twice if digested/tagged):
 			// 1) Fully-qualified reference
 			// 2) Without domain
 			// 3) Without domain and path

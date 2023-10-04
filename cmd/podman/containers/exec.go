@@ -53,6 +53,7 @@ var (
 )
 
 func execFlags(cmd *cobra.Command) {
+	podmanConfig := registry.PodmanConfig()
 	flags := cmd.Flags()
 
 	flags.SetInterspersed(false)
@@ -71,7 +72,7 @@ func execFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(envFileFlagName, completion.AutocompleteDefault)
 
 	flags.BoolVarP(&execOpts.Interactive, "interactive", "i", false, "Keep STDIN open even if not attached")
-	flags.BoolVar(&execOpts.Privileged, "privileged", false, "Give the process extended Linux capabilities inside the container.  The default is false")
+	flags.BoolVar(&execOpts.Privileged, "privileged", podmanConfig.ContainersConfDefaultsRO.Containers.Privileged, "Give the process extended Linux capabilities inside the container.  The default is false")
 	flags.BoolVarP(&execOpts.Tty, "tty", "t", false, "Allocate a pseudo-TTY. The default is false")
 
 	userFlagName := "user"

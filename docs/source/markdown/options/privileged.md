@@ -16,5 +16,8 @@ mode (**--systemd=always**).
 A privileged container turns off the security features that isolate the
 container from the host. Dropped Capabilities, limited devices, read-only mount
 points, Apparmor/SELinux separation, and Seccomp filters are all disabled.
+Due to the disabled security features, the privileged field should almost never
+be set as containers can easily break out of confinement.
 
-Rootless containers cannot have more privileges than the account that launched them.
+Containers running in a user namespace (e.g., rootless containers) cannot have
+more privileges than the user that launched them.

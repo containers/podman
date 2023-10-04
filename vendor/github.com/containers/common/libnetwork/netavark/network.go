@@ -53,7 +53,7 @@ type netavarkNetwork struct {
 	// ipamDBPath is the path to the ip allocation bolt db
 	ipamDBPath string
 
-	// syslog describes whenever the netavark debbug output should be log to the syslog as well.
+	// syslog describes whenever the netavark debug output should be log to the syslog as well.
 	// This will use logrus to do so, make sure logrus is set up to log to the syslog.
 	syslog bool
 
@@ -93,7 +93,7 @@ type InitConfig struct {
 	// PluginDirs list of directories were netavark plugins are located
 	PluginDirs []string
 
-	// Syslog describes whenever the netavark debbug output should be log to the syslog as well.
+	// Syslog describes whenever the netavark debug output should be log to the syslog as well.
 	// This will use logrus to do so, make sure logrus is set up to log to the syslog.
 	Syslog bool
 }

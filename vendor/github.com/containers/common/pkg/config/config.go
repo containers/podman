@@ -213,6 +213,18 @@ type ContainersConfig struct {
 	// performance implications.
 	PrepareVolumeOnCreate bool `toml:"prepare_volume_on_create,omitempty"`
 
+	// Give extended privileges to all containers. A privileged container
+	// turns off the security features that isolate the container from the
+	// host. Dropped Capabilities, limited devices, read-only mount points,
+	// Apparmor/SELinux separation, and Seccomp filters are all disabled.
+	// Due to the disabled security features the privileged field should
+	// almost never be set as containers can easily break out of
+	// confinment.
+	//
+	// Containers running in a user namespace (e.g., rootless containers)
+	// cannot have more privileges than the user that launched them.
+	Privileged bool `toml:"privileged,omitempty"`
+
 	// ReadOnly causes engine to run all containers with root file system mounted read-only
 	ReadOnly bool `toml:"read_only,omitempty"`
 
@@ -662,7 +674,7 @@ type MachineConfig struct {
 	Provider string `toml:"provider,omitempty"`
 }
 
-// FarmConfig represents the "farm" TOML config tabls
+// FarmConfig represents the "farm" TOML config tables
 type FarmConfig struct {
 	// Default is the default farm to be used when farming out builds
 	Default string `toml:"default,omitempty"`

@@ -72,7 +72,7 @@ type CopyOptions struct {
 	// Default 3.
 	MaxRetries *uint
 	// RetryDelay used for the exponential back off of MaxRetries.
-	// Default 1 time.Scond.
+	// Default 1 time.Second.
 	RetryDelay *time.Duration
 	// ManifestMIMEType is the desired media type the image will be
 	// converted to if needed.  Note that it must contain the exact MIME
