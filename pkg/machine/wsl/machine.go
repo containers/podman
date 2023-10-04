@@ -56,6 +56,7 @@ ln -fs /usr/lib/systemd/system/podman.socket /etc/systemd/system/sockets.target.
 rm -f /etc/systemd/system/getty.target.wants/console-getty.service
 rm -f /etc/systemd/system/getty.target.wants/getty@tty1.service
 rm -f /etc/systemd/system/multi-user.target.wants/systemd-resolved.service
+rm -f /etc/systemd/system/sysinit.target.wants//systemd-resolved.service
 rm -f /etc/systemd/system/dbus-org.freedesktop.resolve1.service
 ln -fs /dev/null /etc/systemd/system/console-getty.service
 ln -fs /dev/null /etc/systemd/system/systemd-oomd.socket
