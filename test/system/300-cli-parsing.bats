@@ -154,18 +154,8 @@ EOF
                --env-file $envfile2                     \
                $IMAGE sh -c 'env -0 >/envresults'
 
-    # FIXME FIXME FIXME #19565, exceptions
-    #
-    # FIXME FIXME FIXME #19565, octothorpe not handled in envariable values
-    # FIXME FIXME FIXME:        this should be fixed, and the line below removed
-    expect[special]="bcd"
-
-    # FIXME FIXME FIXME #19565, what should multi-line strings be?
-    # FIXME FIXME FIXME:        For docker compat, this should be >>>"line1<<<
-    expect[withnl]=$'line1\nline2'
-
-    # FIXME FIXME FIXME uncomment this once octothorpe parsing is fixed
-    #expect[weird*na#me!]=$weirdname
+    expect[withnl]=$'"line1'
+    expect[weird*na#me!]=$weirdname
 
     _check_env $resultsfile
 }
