@@ -306,7 +306,7 @@ func GeneratePruneContainerFilterFuncs(filter string, filterValues []string, r *
 		}, nil
 	case "label!":
 		return func(c *libpod.Container) bool {
-			return !filters.MatchLabelFilters(filterValues, c.Labels())
+			return filters.MatchNegatedLabelFilters(filterValues, c.Labels())
 		}, nil
 	case "until":
 		return prepareUntilFilterFunc(filterValues)
