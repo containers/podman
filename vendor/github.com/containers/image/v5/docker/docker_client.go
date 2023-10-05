@@ -363,6 +363,8 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 	hostname := registry
 	if registry == dockerHostname {
 		hostname = dockerV1Hostname
+		// On docker.io if image is "library/foo", it's stored under "foo"
+		image = strings.TrimPrefix(image, "library/")
 	}
 
 	client, err := newDockerClient(sys, hostname, registry)
