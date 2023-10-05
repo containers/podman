@@ -69,6 +69,12 @@ chown [USER]:[USER] /home/[USER]/.config
 const sudoers = `%wheel        ALL=(ALL)       NOPASSWD: ALL
 `
 
+const bootstrap = `#!/bin/bash
+ps -ef | grep -v grep | grep -q systemd && exit 0
+nohup unshare --kill-child --fork --pid --mount --mount-proc --propagation shared /lib/systemd/systemd >/dev/null 2>&1 &
+sleep 0.1
+`
+
 const wslmotd = `
 You will be automatically entered into a nested process namespace where
 systemd is running. If you need to access the parent namespace, hit ctrl-d
@@ -76,13 +82,7 @@ or type exit. This also means to log out you need to exit twice.
 
 `
 
-const sysdpid = "SYSDPID=`ps --no-headers -C systemd --format exe,pid | grep -m 1 ^/usr/lib/systemd/systemd | awk '{print $2}'`"
-
-const bootstrap = "#!/bin/bash\n" + sysdpid + `
-[ -n "$SYSDPID" ] && exit 0
-nohup unshare --kill-child --fork --pid --mount --mount-proc --propagation shared /usr/lib/systemd/systemd >/dev/null 2>&1 &
-sleep 0.1
-`
+const sysdpid = "SYSDPID=`ps -eo cmd,pid | grep -m 1 ^/lib/systemd/systemd | awk '{print $2}'`"
 
 const profile = sysdpid + `
 if [ ! -z "$SYSDPID" ] && [ "$SYSDPID" != "1" ]; then
