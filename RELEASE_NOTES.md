@@ -1,5 +1,14 @@
 # Release Notes
 
+## 4.7.1
+### Bugfixes
+- Fixed a bug involving non-English locales of Windows where machine installs using user-mode networking were rejected due to erroneous version detection ([#20209](https://github.com/containers/podman/issues/20209)).
+- Fixed a regression in --env-file handling ([#19565](https://github.com/containers/podman/issues/19565)).
+- Fixed a bug where podman inspect would fail when stat'ing a device failed.
+
+### API
+- The network list compat API endpoint is now much faster ([#20035](https://github.com/containers/podman/issues/20035)).
+
 ## 4.7.0
 ### Security
 - Now the io.containers.capabilities LABEL in an image can be an empty string.
