@@ -574,5 +574,30 @@ EOF
     run_podman volume rm myvol --force
 }
 
+@test "podman volume create --ignore - do not chown" {
+    local user_id=2000
+    local group_id=2000
+    local volume_name=$(random_string)
+
+    # Create a volume and get its mount point
+    run_podman volume create --ignore ${volume_name}
+    run_podman volume inspect --format '{{.Mountpoint}}' $volume_name
+    mountpoint="$output"
+
+    # Run a container with the volume mounted
+    run_podman run --rm --user ${group_id}:${user_id} -v ${volume_name}:/vol $IMAGE
+
+    # Podman chowns the mount point according to the user used in the previous command
+    local original_owner=$(stat --format %g:%u ${mountpoint})
+
+    # Creating an existing volume with ignore should be a noop
+    run_podman volume create --ignore ${volume_name}
+
+    # Verify that the mountpoint was not chowned
+    owner=$(stat --format %g:%u ${mountpoint})
+    is "$owner" "${original_owner}" "The volume was chowned by podman volume create"
+
+    run_podman volume rm $volume_name --force
+}
 
 # vim: filetype=sh

@@ -133,14 +133,14 @@ func rm(cmd *cobra.Command, args []string) error {
 		rmOptions.Depend = true
 	}
 
-	return removeContainers(utils.RemoveSlash(args), rmOptions, true)
+	return removeContainers(utils.RemoveSlash(args), rmOptions, true, false)
 }
 
 // removeContainers will remove the specified containers (names or IDs).
 // Allows for sharing removal logic across commands. If setExit is set,
 // removeContainers will set the exit code according to the `podman-rm` man
 // page.
-func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit bool) error {
+func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit bool, quiet bool) error {
 	var errs utils.OutputErrors
 	responses, err := registry.ContainerEngine().ContainerRm(context.Background(), namesOrIDs, rmOptions)
 	if err != nil {
@@ -166,9 +166,13 @@ func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit
 			}
 			errs = append(errs, r.Err)
 		case r.RawInput != "":
-			fmt.Println(r.RawInput)
+			if !quiet {
+				fmt.Println(r.RawInput)
+			}
 		default:
-			fmt.Println(r.Id)
+			if !quiet {
+				fmt.Println(r.Id)
+			}
 		}
 	}
 	return errs.PrintErrors()

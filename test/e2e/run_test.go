@@ -1615,9 +1615,12 @@ VOLUME %s`, ALPINE, volPath, volPath)
 		// Run and replace 5 times in a row the "same" container.
 		ctrName := "testCtr"
 		for i := 0; i < 5; i++ {
-			session := podmanTest.Podman([]string{"run", "--detach", "--replace", "--name", ctrName, ALPINE, "/bin/sh"})
+			session := podmanTest.Podman([]string{"run", "--detach", "--replace", "--name", ctrName, ALPINE, "top"})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
+
+			// make sure Podman prints only one ID
+			Expect(session.OutputToString()).To(HaveLen(64))
 		}
 	})
 

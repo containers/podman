@@ -70,7 +70,6 @@ confinedu:x:4009:4009::/home/confinedu:/usr/bin/podmansh
 [Unit]
 Description=The podmansh container
 After=local-fs.target
-ExecStartPre=-/bin/mkdir -p %h/data
 
 [Container]
 Image=registry.fedoraproject.org/fedora

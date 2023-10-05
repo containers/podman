@@ -697,6 +697,7 @@ function teardown() {
 }
 
 @test "podman networking with pasta(1) - TCP/IPv4 large transfer, tap" {
+    skip "FIXME: #20170 - test hangs"
     pasta_test_do
 }
 

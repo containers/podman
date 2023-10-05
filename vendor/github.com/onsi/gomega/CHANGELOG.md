@@ -1,3 +1,18 @@
+## 1.28.0
+
+### Features
+- Add VerifyHost handler to ghttp (#698) [0b03b36]
+
+### Fixes
+- Read Body for Newer Responses in HaveHTTPBodyMatcher (#686) [18d6673]
+
+### Maintenance
+- Bump github.com/onsi/ginkgo/v2 from 2.11.0 to 2.12.0 (#693) [55a33f3]
+- Typo in matchers.go (#691) [de68e8f]
+- Bump commonmarker from 0.23.9 to 0.23.10 in /docs (#690) [ab17f5e]
+- chore: update test matrix for Go 1.21 (#689) [5069017]
+- Bump golang.org/x/net from 0.12.0 to 0.14.0 (#688) [babe25f]
+
 ## 1.27.10
 
 ### Fixes

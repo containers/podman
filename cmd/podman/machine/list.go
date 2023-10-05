@@ -206,6 +206,8 @@ func toHumanFormat(vms []*machine.ListResponse) ([]*entities.ListReporter, error
 		case vm.Running:
 			response.LastUp = "Currently running"
 			response.Running = true
+		case vm.LastUp.IsZero():
+			response.LastUp = "Never"
 		default:
 			response.LastUp = units.HumanDuration(time.Since(vm.LastUp)) + " ago"
 		}

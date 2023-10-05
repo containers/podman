@@ -17,12 +17,12 @@ import (
 
 func TestEditCmd(t *testing.T) {
 	vm := new(MachineVM)
-	vm.CmdLine = []string{"command", "-flag", "value"}
+	vm.CmdLine = QemuCmd{"command", "-flag", "value"}
 
 	vm.editCmdLine("-flag", "newvalue")
 	vm.editCmdLine("-anotherflag", "anothervalue")
 
-	require.Equal(t, vm.CmdLine, []string{"command", "-flag", "newvalue", "-anotherflag", "anothervalue"})
+	require.Equal(t, vm.CmdLine.Build(), []string{"command", "-flag", "newvalue", "-anotherflag", "anothervalue"})
 }
 
 func TestPropagateHostEnv(t *testing.T) {

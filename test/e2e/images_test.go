@@ -118,6 +118,32 @@ var _ = Describe("Podman images", func() {
 		Expect(session.OutputToStringArray()).To(HaveLen(2))
 	})
 
+	It("podman images filter by image ID", func() {
+		session := podmanTest.Podman([]string{"inspect", ALPINE, "--format", "{{.ID}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
+		imgID := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"images", "--noheading", "--filter", "id=" + imgID[:5]})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
+	})
+
+	It("podman images filter by image digest", func() {
+		session := podmanTest.Podman([]string{"inspect", ALPINE, "--format", "{{.Digest}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
+		imgDigest := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"images", "--noheading", "--filter", "digest=" + imgDigest[:10]})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
+	})
+
 	It("podman images filter reference", func() {
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "reference=quay.io/libpod/*"})
 		result.WaitWithDefaultTimeout()
@@ -193,6 +219,18 @@ WORKDIR /test
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0), "dangling image output: %q", result.OutputToString())
 		Expect(result.OutputToStringArray()).Should(BeEmpty(), "dangling image output: %q", result.OutputToString())
+	})
+
+	It("podman images filter intermediate", func() {
+		dockerfile := `FROM quay.io/libpod/alpine:latest
+		RUN touch /tmp/test.txt
+		RUN touch /tmp/test-2.txt
+`
+		podmanTest.BuildImage(dockerfile, "foobar.com/test-build", "true")
+		result := podmanTest.Podman([]string{"images", "--noheading", "--filter", "intermediate=true"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(ExitCleanly())
+		Expect(result.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman pull by digest and list --all", func() {

@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/containers/common/pkg/manifests"
+	"github.com/containers/common/pkg/retry"
 	"github.com/containers/common/pkg/supplemented"
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/docker/reference"
@@ -25,6 +27,10 @@ import (
 	digest "github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	defaultMaxRetries = 3
 )
 
 const instancesData = "instances.json"
@@ -72,6 +78,11 @@ type PushOptions struct {
 	SourceFilter                     LookupReferenceFunc   // filter the list source
 	AddCompression                   []string              // add existing instances with requested compression algorithms to manifest list
 	ForceCompressionFormat           bool                  // force push with requested compression ignoring the blobs which can be reused.
+	// Maximum number of retries with exponential backoff when facing
+	// transient network errors. Default 3.
+	MaxRetries *uint
+	// RetryDelay used for the exponential back off of MaxRetries.
+	RetryDelay *time.Duration
 }
 
 // Create creates a new list containing information about the specified image,
@@ -262,16 +273,31 @@ func (l *list) Push(ctx context.Context, dest types.ImageReference, options Push
 		ForceCompressionFormat:           options.ForceCompressionFormat,
 	}
 
+	retryOptions := retry.Options{}
+	retryOptions.MaxRetry = defaultMaxRetries
+	if options.MaxRetries != nil {
+		retryOptions.MaxRetry = int(*options.MaxRetries)
+	}
+	if options.RetryDelay != nil {
+		retryOptions.Delay = *options.RetryDelay
+	}
+
 	// Copy whatever we were asked to copy.
-	manifestBytes, err := cp.Image(ctx, policyContext, dest, src, copyOptions)
-	if err != nil {
-		return nil, "", err
+	var manifestDigest digest.Digest
+	f := func() error {
+		opts := copyOptions
+		var manifestBytes []byte
+		var digest digest.Digest
+		var err error
+		if manifestBytes, err = cp.Image(ctx, policyContext, dest, src, opts); err == nil {
+			if digest, err = manifest.Digest(manifestBytes); err == nil {
+				manifestDigest = digest
+			}
+		}
+		return err
 	}
-	manifestDigest, err := manifest.Digest(manifestBytes)
-	if err != nil {
-		return nil, "", err
-	}
-	return nil, manifestDigest, nil
+	err = retry.IfNecessary(ctx, f, &retryOptions)
+	return nil, manifestDigest, err
 }
 
 func prepareAddWithCompression(variants []string) ([]cp.OptionCompressionVariant, error) {

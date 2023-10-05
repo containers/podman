@@ -210,6 +210,12 @@ WantedBy=sysinit.target
 				Name:     "remove-moby.service",
 				Contents: &deMoby,
 			},
+			{
+				// Disable auto-updating of fcos images
+				// https://github.com/containers/podman/issues/20122
+				Enabled: BoolToPtr(false),
+				Name:    "zincati.service",
+			},
 		}}
 
 	// Only qemu has the qemu firmware environment setting

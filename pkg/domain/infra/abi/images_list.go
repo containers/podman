@@ -7,6 +7,7 @@ import (
 	"github.com/containers/common/libimage"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/containers/podman/v4/pkg/util"
 )
 
 func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions) ([]*entities.ImageSummary, error) {
@@ -14,7 +15,7 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 		Filters:     opts.Filter,
 		SetListData: true,
 	}
-	if !opts.All {
+	if !opts.All && !util.StringInSlice("intermediate=true", listImagesOptions.Filters) {
 		// Filter intermediate images unless we want to list *all*.
 		// NOTE: it's a positive filter, so `intermediate=false` means
 		// to display non-intermediate images.

@@ -46,7 +46,6 @@ func (p *WSLVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, er
 	}
 
 	vm.Created = time.Now()
-	vm.LastUp = vm.Created
 
 	// Default is false
 	if opts.UserModeNetworking != nil {

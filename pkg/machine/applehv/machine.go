@@ -543,7 +543,7 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 	defer ioEater.Close()
 
 	// TODO handle returns from startHostNetworking
-	forwardSock, forwardState, err := m.startHostNetworking(ioEater)
+	forwardSock, forwardState, err := m.startHostNetworking()
 	if err != nil {
 		return err
 	}
@@ -787,16 +787,7 @@ func getVMInfos() ([]*machine.ListResponse, error) {
 				return err
 			}
 			listEntry.Running = vmState == machine.Running
-
-			if !vm.LastUp.IsZero() { // this means we have already written a time to the config
-				listEntry.LastUp = vm.LastUp
-			} else { // else we just created the machine AKA last up = created time
-				listEntry.LastUp = vm.Created
-				vm.LastUp = listEntry.LastUp
-				if err := vm.writeConfig(); err != nil {
-					return err
-				}
-			}
+			listEntry.LastUp = vm.LastUp
 
 			listed = append(listed, listEntry)
 		}
@@ -825,7 +816,7 @@ func (m *MacMachine) setupStartHostNetworkingCmd() (gvproxy.GvproxyCommand, stri
 	return cmd, forwardSock, state
 }
 
-func (m *MacMachine) startHostNetworking(ioEater *os.File) (string, machine.APIForwardingState, error) {
+func (m *MacMachine) startHostNetworking() (string, machine.APIForwardingState, error) {
 	var (
 		forwardSock string
 		state       machine.APIForwardingState
@@ -867,7 +858,6 @@ func (m *MacMachine) startHostNetworking(ioEater *os.File) (string, machine.APIF
 
 	cmd, forwardSock, state := m.setupStartHostNetworkingCmd()
 	c := cmd.Cmd(gvproxyBinary)
-	c.ExtraFiles = []*os.File{ioEater, ioEater, ioEater}
 	if err := c.Start(); err != nil {
 		return "", 0, fmt.Errorf("unable to execute: %q: %w", cmd.ToCmdline(), err)
 	}

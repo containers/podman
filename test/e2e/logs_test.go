@@ -596,12 +596,13 @@ var _ = Describe("Podman logs", func() {
 		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "--log-opt", "tag=äöüß", ALPINE, "echo", "podman"})
 		logc.WaitWithDefaultTimeout()
 		Expect(logc).To(Exit(126))
+		// FIXME-2023-09-26: conmon <2.1.8 logs to stdout; clean this up once >=2.1.8 is universal
+		errmsg := logc.ErrorToString() + logc.OutputToString()
 		if !IsRemote() {
 			// Error is only seen on local client
-			// Why does conmon log this to stdout? This must be fixed after https://github.com/containers/conmon/pull/447.
-			Expect(logc.OutputToString()).To(Equal("conmon: option parsing failed: Invalid byte sequence in conversion input"))
+			Expect(errmsg).To(ContainSubstring("conmon: option parsing failed: Invalid byte sequence in conversion input"))
 		}
-		Expect(logc.ErrorToString()).To(ContainSubstring("conmon failed: exit status 1"))
+		Expect(errmsg).To(ContainSubstring("conmon failed: exit status 1"))
 	})
 
 	It("podman logs with non ASCII log tag succeeds with proper env", func() {
