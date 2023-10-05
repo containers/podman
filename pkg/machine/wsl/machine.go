@@ -391,6 +391,14 @@ func getLegacyLastStart(vm *MachineVM) time.Time {
 // Init writes the json configuration file to the filesystem for
 // other verbs (start, stop)
 func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
+	var (
+		err error
+	)
+	// cleanup half-baked files if init fails at any point
+	callbackFuncs := machine.InitCleanup()
+	defer callbackFuncs.CleanIfErr(&err)
+	go callbackFuncs.CleanOnSignal()
+
 	if cont, err := checkAndInstallWSL(opts); !cont {
 		appendOutputIfError(opts.ReExec, err)
 		return cont, err
@@ -402,20 +410,22 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	v.Version = currentMachineVersion
 
 	if v.UserModeNetworking {
-		if err := verifyWSLUserModeCompat(); err != nil {
+		if err = verifyWSLUserModeCompat(); err != nil {
 			return false, err
 		}
 	}
 
-	if err := downloadDistro(v, opts); err != nil {
+	if err = downloadDistro(v, opts); err != nil {
 		return false, err
 	}
+	callbackFuncs.Add(v.removeMachineImage)
 
 	const prompt = "Importing operating system into WSL (this may take a few minutes on a new WSL install)..."
 	dist, err := provisionWSLDist(v.Name, v.ImagePath, prompt)
 	if err != nil {
 		return false, err
 	}
+	callbackFuncs.Add(v.unprovisionWSL)
 
 	if v.UserModeNetworking {
 		if err = installUserModeDist(dist, v.ImagePath); err != nil {
@@ -436,19 +446,57 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	if err = createKeys(v, dist); err != nil {
 		return false, err
 	}
+	callbackFuncs.Add(v.removeSSHKeys)
 
 	// Cycle so that user change goes into effect
 	_ = terminateDist(dist)
 
-	if err := v.writeConfig(); err != nil {
+	if err = v.writeConfig(); err != nil {
 		return false, err
 	}
+	callbackFuncs.Add(v.removeMachineConfig)
 
-	if err := setupConnections(v, opts); err != nil {
+	if err = setupConnections(v, opts); err != nil {
 		return false, err
 	}
-
+	callbackFuncs.Add(v.removeSystemConnections)
 	return true, nil
+}
+
+func (v *MachineVM) unprovisionWSL() error {
+	if err := terminateDist(toDist(v.Name)); err != nil {
+		logrus.Error(err)
+	}
+	if err := unregisterDist(toDist(v.Name)); err != nil {
+		logrus.Error(err)
+	}
+
+	vmDataDir, err := machine.GetDataDir(vmtype)
+	if err != nil {
+		return err
+	}
+	distDir := filepath.Join(vmDataDir, "wsldist")
+	distTarget := filepath.Join(distDir, v.Name)
+	return machine.GuardedRemoveAll(distTarget)
+}
+
+func (v *MachineVM) removeMachineConfig() error {
+	return machine.GuardedRemoveAll(v.ConfigPath)
+}
+
+func (v *MachineVM) removeMachineImage() error {
+	return machine.GuardedRemoveAll(v.ImagePath)
+}
+
+func (v *MachineVM) removeSSHKeys() error {
+	if err := machine.GuardedRemoveAll(fmt.Sprintf("%s.pub", v.IdentityPath)); err != nil {
+		logrus.Error(err)
+	}
+	return machine.GuardedRemoveAll(v.IdentityPath)
+}
+
+func (v *MachineVM) removeSystemConnections() error {
+	return machine.RemoveConnections(v.Name, fmt.Sprintf("%s-root", v.Name))
 }
 
 func downloadDistro(v *MachineVM, opts machine.InitOptions) error {
@@ -1003,7 +1051,7 @@ func wslPipe(input string, dist string, arg ...string) error {
 }
 
 func wslCreateKeys(identityPath string, dist string) (string, error) {
-	return machine.CreateSSHKeysPrefix(identityPath, true, true, "wsl", "-u", "root", "-d", dist)
+	return machine.CreateSSHKeysPrefix(identityPath, true, false, "wsl", "-u", "root", "-d", dist)
 }
 
 func runCmdPassThrough(name string, arg ...string) error {

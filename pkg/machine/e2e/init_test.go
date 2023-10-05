@@ -232,7 +232,7 @@ var _ = Describe("podman machine init", func() {
 		Expect(output).To(Equal("/run/podman/podman.sock"))
 	})
 
-	It("init with user mode networking ", func() {
+	It("init with user mode networking", func() {
 		if testProvider.VMType() != machine.WSLVirt {
 			Skip("test is only supported by WSL")
 		}
@@ -248,5 +248,59 @@ var _ = Describe("podman machine init", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(inspectSession).To(Exit(0))
 		Expect(inspectSession.outputToString()).To(Equal("true"))
+	})
+
+	It("init should cleanup on failure", func() {
+		i := new(initMachine)
+		name := randomString()
+		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		inspect := new(inspectMachine)
+		inspect = inspect.withFormat("{{.ConfigPath.Path}}")
+		inspectSession, err := mb.setCmd(inspect).run()
+		Expect(err).ToNot(HaveOccurred())
+		cfgpth := inspectSession.outputToString()
+
+		inspect = inspect.withFormat("{{.Image.IgnitionFile.Path}}")
+		inspectSession, err = mb.setCmd(inspect).run()
+		Expect(err).ToNot(HaveOccurred())
+		ign := inspectSession.outputToString()
+
+		inspect = inspect.withFormat("{{.Image.ImagePath.Path}}")
+		inspectSession, err = mb.setCmd(inspect).run()
+		Expect(err).ToNot(HaveOccurred())
+		img := inspectSession.outputToString()
+
+		rm := rmMachine{}
+		removeSession, err := mb.setCmd(rm.withForce().withSaveKeys()).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(removeSession).To(Exit(0))
+
+		// Inspecting a non-existent machine should fail
+		// which means it is gone
+		_, ec, err := mb.toQemuInspectInfo()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(ec).To(Equal(125))
+
+		// Clashing keys - init fails
+		i = new(initMachine)
+		session, err = mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(125))
+
+		// ensure files created by init are cleaned up on init failure
+		_, err = os.Stat(img)
+		Expect(err).To(HaveOccurred())
+		_, err = os.Stat(cfgpth)
+		Expect(err).To(HaveOccurred())
+
+		// WSL does not use ignition
+		if testProvider.VMType() != machine.WSLVirt {
+			_, err = os.Stat(ign)
+			Expect(err).To(HaveOccurred())
+		}
 	})
 })
