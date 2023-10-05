@@ -321,5 +321,6 @@ spelled with complete minutiae.
          and any other appropriate tags.
       1. For all releases, including patch releases and RC's, send an email to the [podman](mailto:podman@lists.podman.io) and [podman-desktop](mailto:podman-desktop@lists.podman.io) mailing lists.
          Link the to release blog and GitHub release.
+      1. Update [LATEST_VERSION](https://github.com/containers/podman.io/blob/main/static/data/global.ts) on the Podman.io website.
       1. Tweet the release. Make a Mastodon post about the release.
       1. RC's can also be announced if needed.
