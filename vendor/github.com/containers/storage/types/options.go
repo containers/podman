@@ -220,9 +220,8 @@ type StoreOptions struct {
 	// GraphRoot is the filesystem path under which we will store the
 	// contents of layers, images, and containers.
 	GraphRoot string `json:"root,omitempty"`
-	// Image Store is the location of image store which is seperated from the
-	// container store. Usually this is not recommended unless users wants
-	// seperate store for image and containers.
+	// Image Store is the alternate location of image store if a location
+	// separate from the container store is required.
 	ImageStore string `json:"imagestore,omitempty"`
 	// RootlessStoragePath is the storage path for rootless users
 	// default $HOME/.local/share/containers/storage

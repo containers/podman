@@ -141,14 +141,27 @@ func mountOverlayFromMain() {
 	// the new value for the list of lowers, because it's shorter.
 	if lowerv != "" {
 		lowers := strings.Split(lowerv, ":")
-		for i := range lowers {
-			lowerFd, err := unix.Open(lowers[i], unix.O_RDONLY, 0)
+		var newLowers []string
+		dataOnly := false
+		for _, lowerPath := range lowers {
+			if lowerPath == "" {
+				dataOnly = true
+				continue
+			}
+			lowerFd, err := unix.Open(lowerPath, unix.O_RDONLY, 0)
 			if err != nil {
 				fatal(err)
 			}
-			lowers[i] = fmt.Sprintf("%d", lowerFd)
+			var lower string
+			if dataOnly {
+				lower = fmt.Sprintf(":%d", lowerFd)
+				dataOnly = false
+			} else {
+				lower = fmt.Sprintf("%d", lowerFd)
+			}
+			newLowers = append(newLowers, lower)
 		}
-		lowerv = strings.Join(lowers, ":")
+		lowerv = strings.Join(newLowers, ":")
 	}
 
 	// Reconstruct the Label field.
