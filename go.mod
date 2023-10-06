@@ -67,7 +67,7 @@ require (
 	golang.org/x/net v0.15.0
 	golang.org/x/sync v0.4.0
 	golang.org/x/sys v0.13.0
-	golang.org/x/term v0.12.0
+	golang.org/x/term v0.13.0
 	golang.org/x/text v0.13.0
 	google.golang.org/protobuf v1.31.0
 	gopkg.in/inf.v0 v0.9.1
