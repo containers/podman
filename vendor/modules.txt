@@ -301,7 +301,7 @@ github.com/containers/image/v5/transports
 github.com/containers/image/v5/transports/alltransports
 github.com/containers/image/v5/types
 github.com/containers/image/v5/version
-# github.com/containers/libhvee v0.4.1-0.20231002175221-e9b181166118
+# github.com/containers/libhvee v0.4.1-0.20231005205143-fcf1cc2543b3
 ## explicit; go 1.18
 github.com/containers/libhvee/pkg/hypervctl
 github.com/containers/libhvee/pkg/kvp/ginsu
