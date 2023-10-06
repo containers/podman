@@ -275,3 +275,36 @@ func supportsIdmappedLowerLayers(home string) (bool, error) {
 	}()
 	return true, nil
 }
+
+// supportsDataOnlyLayers checks if the kernel supports mounting a overlay file system
+// that uses data-only layers.
+func supportsDataOnlyLayers(home string) (bool, error) {
+	layerDir, err := os.MkdirTemp(home, "compat")
+	if err != nil {
+		return false, err
+	}
+	defer func() {
+		_ = os.RemoveAll(layerDir)
+	}()
+
+	mergedDir := filepath.Join(layerDir, "merged")
+	lowerDir := filepath.Join(layerDir, "lower")
+	lowerDirDataOnly := filepath.Join(layerDir, "lower-data")
+	upperDir := filepath.Join(layerDir, "upper")
+	workDir := filepath.Join(layerDir, "work")
+
+	_ = idtools.MkdirAs(mergedDir, 0o700, 0, 0)
+	_ = idtools.MkdirAs(lowerDir, 0o700, 0, 0)
+	_ = idtools.MkdirAs(lowerDirDataOnly, 0o700, 0, 0)
+	_ = idtools.MkdirAs(upperDir, 0o700, 0, 0)
+	_ = idtools.MkdirAs(workDir, 0o700, 0, 0)
+
+	opts := fmt.Sprintf("lowerdir=%s::%s,upperdir=%s,workdir=%s,metacopy=on", lowerDir, lowerDirDataOnly, upperDir, workDir)
+	flags := uintptr(0)
+	if err := unix.Mount("overlay", mergedDir, "overlay", flags, opts); err != nil {
+		return false, err
+	}
+	_ = unix.Unmount(mergedDir, unix.MNT_DETACH)
+
+	return true, nil
+}

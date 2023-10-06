@@ -1447,7 +1447,9 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	needsIDMapping := !disableShifting && len(options.UidMaps) > 0 && len(options.GidMaps) > 0 && d.options.mountProgram == ""
 
 	if len(optsList) == 0 {
-		optsList = strings.Split(d.options.mountOptions, ",")
+		if d.options.mountOptions != "" {
+			optsList = strings.Split(d.options.mountOptions, ",")
+		}
 	} else {
 		// If metacopy=on is present in d.options.mountOptions it must be present in the mount
 		// options otherwise the kernel refuses to follow the metacopy xattr.
@@ -1540,7 +1542,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		}
 	}()
 
-	maybeAddComposefsMount := func(lowerID string, i int) (string, error) {
+	maybeAddComposefsMount := func(lowerID string, i int, readWrite bool) (string, error) {
 		composefsBlob := d.getComposefsData(lowerID)
 		_, err = os.Stat(composefsBlob)
 		if err != nil {
@@ -1550,6 +1552,10 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			return "", err
 		}
 		logrus.Debugf("overlay: using composefs blob %s for lower %s", composefsBlob, lowerID)
+
+		if readWrite && i == 0 {
+			return "", fmt.Errorf("cannot mount a composefs layer as writeable")
+		}
 
 		dest := filepath.Join(composefsLayers, fmt.Sprintf("%d", i))
 		if err := os.MkdirAll(dest, 0o700); err != nil {
@@ -1571,7 +1577,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 
 	diffDir := path.Join(workDirBase, "diff")
 
-	if dest, err := maybeAddComposefsMount(id, 0); err != nil {
+	if dest, err := maybeAddComposefsMount(id, 0, readWrite); err != nil {
 		return "", err
 	} else if dest != "" {
 		diffDir = dest
@@ -1623,7 +1629,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			return "", err
 		}
 		lowerID := filepath.Base(filepath.Dir(linkContent))
-		composefsMount, err := maybeAddComposefsMount(lowerID, i+1)
+		composefsMount, err := maybeAddComposefsMount(lowerID, i+1, readWrite)
 		if err != nil {
 			return "", err
 		}
@@ -1654,8 +1660,6 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	if len(composeFsLayers) > 0 {
 		optsList = append(optsList, "metacopy=on", "redirect_dir=on")
 	}
-
-	absLowers = append(absLowers, composeFsLayers...)
 
 	if len(absLowers) == 0 {
 		absLowers = append(absLowers, path.Join(dir, "empty"))
@@ -1750,11 +1754,20 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		absLowers = newAbsDir
 	}
 
+	lowerDirs := strings.Join(absLowers, ":")
+	if len(composeFsLayers) > 0 {
+		composeFsLayersLowerDirs := strings.Join(composeFsLayers, "::")
+		lowerDirs = lowerDirs + "::" + composeFsLayersLowerDirs
+	}
+	// absLowers is not valid anymore now as we have added composeFsLayers to it, so prevent
+	// its usage.
+	absLowers = nil //nolint:ineffassign
+
 	var opts string
 	if readWrite {
-		opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(absLowers, ":"), diffDir, workdir)
+		opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", lowerDirs, diffDir, workdir)
 	} else {
-		opts = fmt.Sprintf("lowerdir=%s:%s", diffDir, strings.Join(absLowers, ":"))
+		opts = fmt.Sprintf("lowerdir=%s:%s", diffDir, lowerDirs)
 	}
 	if len(optsList) > 0 {
 		opts = fmt.Sprintf("%s,%s", opts, strings.Join(optsList, ","))
@@ -1798,9 +1811,9 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		if readWrite {
 			diffDir := path.Join(id, "diff")
 			workDir := path.Join(id, "work")
-			opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(absLowers, ":"), diffDir, workDir)
+			opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", lowerDirs, diffDir, workDir)
 		} else {
-			opts = fmt.Sprintf("lowerdir=%s:%s", diffDir, strings.Join(absLowers, ":"))
+			opts = fmt.Sprintf("lowerdir=%s:%s", diffDir, lowerDirs)
 		}
 		if len(optsList) > 0 {
 			opts = strings.Join(append([]string{opts}, optsList...), ",")
@@ -2007,11 +2020,34 @@ func (d *Driver) CleanupStagingDirectory(stagingDirectory string) error {
 	return os.RemoveAll(stagingDirectory)
 }
 
+func (d *Driver) supportsDataOnlyLayers() (bool, error) {
+	feature := "dataonly-layers"
+	overlayCacheResult, overlayCacheText, err := cachedFeatureCheck(d.runhome, feature)
+	if err == nil {
+		if overlayCacheResult {
+			logrus.Debugf("Cached value indicated that data-only layers for overlay are supported")
+			return true, nil
+		}
+		logrus.Debugf("Cached value indicated that data-only layers for overlay are not supported")
+		return false, errors.New(overlayCacheText)
+	}
+	supportsDataOnly, err := supportsDataOnlyLayers(d.home)
+	if err2 := cachedFeatureRecord(d.runhome, feature, supportsDataOnly, ""); err2 != nil {
+		return false, fmt.Errorf("recording overlay data-only layers support status: %w", err2)
+	}
+	return supportsDataOnly, err
+}
+
 func (d *Driver) useComposeFs() bool {
 	if !composeFsSupported() || unshare.IsRootless() {
 		return false
 	}
-	return true
+	supportsDataOnlyLayers, err := d.supportsDataOnlyLayers()
+	if err != nil {
+		logrus.Debugf("Check for data-only layers failed with: %v", err)
+		return false
+	}
+	return supportsDataOnlyLayers
 }
 
 // ApplyDiff applies the changes in the new layer using the specified function

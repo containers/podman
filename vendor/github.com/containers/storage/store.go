@@ -2666,34 +2666,23 @@ func (s *store) DeleteContainer(id string) error {
 		}
 
 		var wg multierror.Group
-		wg.Go(func() error { return s.containerStore.Delete(id) })
 
 		middleDir := s.graphDriverName + "-containers"
 
 		wg.Go(func() error {
 			gcpath := filepath.Join(s.GraphRoot(), middleDir, container.ID)
-			// attempt a simple rm -rf first
-			if err := os.RemoveAll(gcpath); err == nil {
-				return nil
-			}
-			// and if it fails get to the more complicated cleanup
 			return system.EnsureRemoveAll(gcpath)
 		})
 
 		wg.Go(func() error {
 			rcpath := filepath.Join(s.RunRoot(), middleDir, container.ID)
-			// attempt a simple rm -rf first
-			if err := os.RemoveAll(rcpath); err == nil {
-				return nil
-			}
-			// and if it fails get to the more complicated cleanup
 			return system.EnsureRemoveAll(rcpath)
 		})
 
 		if multierr := wg.Wait(); multierr != nil {
 			return multierr.ErrorOrNil()
 		}
-		return nil
+		return s.containerStore.Delete(id)
 	})
 }
 
@@ -3418,16 +3407,16 @@ func (s *store) Shutdown(force bool) ([]string, error) {
 		err = fmt.Errorf("a layer is mounted: %w", ErrLayerUsedByContainer)
 	}
 	if err == nil {
-		err = s.graphDriver.Cleanup()
 		// We don’t retain the lastWrite value, and treat this update as if someone else did the .Cleanup(),
 		// so that we reload after a .Shutdown() the same way other processes would.
 		// Shutdown() is basically an error path, so reliability is more important than performance.
 		if _, err2 := s.graphLock.RecordWrite(); err2 != nil {
-			if err == nil {
-				err = err2
-			} else {
-				err = fmt.Errorf("(graphLock.RecordWrite failed: %v) %w", err2, err)
-			}
+			err = fmt.Errorf("(graphLock.RecordWrite failed: %w", err2)
+		}
+		// Do the Cleanup() only after we are sure that the change was recorded with RecordWrite(), so that
+		// the next user picks it.
+		if err == nil {
+			err = s.graphDriver.Cleanup()
 		}
 	}
 	return mounted, err

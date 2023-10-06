@@ -93,7 +93,7 @@ func generateComposeFsBlob(toc []byte, composefsDir string) error {
 
 	fd, err := unix.Openat(unix.AT_FDCWD, destFile, unix.O_WRONLY|unix.O_CREAT|unix.O_TRUNC|unix.O_EXCL|unix.O_CLOEXEC, 0o644)
 	if err != nil {
-		return fmt.Errorf("failed to open output file: %w", err)
+		return fmt.Errorf("failed to open output file %q: %w", destFile, err)
 	}
 	outFd := os.NewFile(uintptr(fd), "outFd")
 
@@ -166,7 +166,7 @@ func hasACL(path string) (bool, error) {
 
 func mountComposefsBlob(dataDir, mountPoint string) error {
 	blobFile := getComposefsBlob(dataDir)
-	loop, err := loopback.AttachLoopDevice(blobFile)
+	loop, err := loopback.AttachLoopDeviceRO(blobFile)
 	if err != nil {
 		return err
 	}
