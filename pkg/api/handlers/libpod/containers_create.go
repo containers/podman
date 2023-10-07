@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/specgen/generate"
 	"github.com/containers/podman/v4/pkg/specgenutil"
+	"github.com/sirupsen/logrus"
 )
 
 // CreateContainer takes a specgenerator and makes a container. It returns
@@ -31,7 +32,8 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 			UseImageHosts: conf.Containers.NoHosts,
 		},
 		ContainerSecurityConfig: specgen.ContainerSecurityConfig{
-			Umask: conf.Containers.Umask,
+			Umask:      conf.Containers.Umask,
+			Privileged: conf.Containers.Privileged,
 		},
 	}
 
@@ -39,6 +41,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("decode(): %w", err))
 		return
 	}
+	logrus.Errorf("Privileged: %v", sg.ContainerSecurityConfig.Privileged)
 	if sg.Passwd == nil {
 		t := true
 		sg.Passwd = &t

@@ -188,12 +188,34 @@ EOF
     cat > $conf_tmp <<EOF
 [containers]
 env_host=true
+privileged=true
 EOF
 
-    # Make sure env_host variable is read
     random_env_var="expected_env_var_$(random_string 15)"
-    FOO="$random_env_var" run_podman --module=$conf_tmp run --rm $IMAGE /bin/printenv FOO
-    is "$output" "$random_env_var" "--module should yield injecting host env vars into the container"
+    FOO="$random_env_var" run_podman --module=$conf_tmp run -d --name=$cname $IMAGE top
+    cname="$output"
+
+    # Make sure `env_host` is read
+    run_podman container inspect $cname --format "{{.Config.Env}}"
+    assert "$output" =~ "FOO=$random_env_var" "--module should yield injecting host env vars into the container"
+
+    # Make sure `privileged` is read during container creation
+    run_podman container inspect $cname --format "{{.HostConfig.Privileged}}"
+    assert "$output" = "true" "--module should enable a privileged container"
+
+    run_podman rm -f -t0 $cname
+
+    # Make sure `privileged` is read during exec, which requires running a
+    # non-privileged container.
+    run_podman run -d $IMAGE top
+    cname="$output"
+
+    run_podman container exec $cname grep CapBnd /proc/self/status
+    non_privileged_caps="$output"
+    run_podman --module=$conf_tmp container exec $cname grep CapBnd /proc/self/status
+    assert "$output" != "$non_privileged_caps" "--module should enable a prvileged exec session"
+
+    run_podman rm -f -t0 $cname
 }
 
 # vim: filetype=sh
