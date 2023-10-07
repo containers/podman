@@ -1539,7 +1539,13 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 	var err error
 	// Container already mounted, nothing to do
 	if c.state.Mounted {
-		return c.state.Mountpoint, nil
+		mounted := true
+		if c.ensureState(define.ContainerStateExited) {
+			mounted, _ = mount.Mounted(c.state.Mountpoint)
+		}
+		if mounted {
+			return c.state.Mountpoint, nil
+		}
 	}
 
 	if !c.config.NoShm {
