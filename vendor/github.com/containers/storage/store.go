@@ -3411,7 +3411,7 @@ func (s *store) Shutdown(force bool) ([]string, error) {
 		// so that we reload after a .Shutdown() the same way other processes would.
 		// Shutdown() is basically an error path, so reliability is more important than performance.
 		if _, err2 := s.graphLock.RecordWrite(); err2 != nil {
-			err = fmt.Errorf("(graphLock.RecordWrite failed: %w", err2)
+			err = fmt.Errorf("graphLock.RecordWrite failed: %w", err2)
 		}
 		// Do the Cleanup() only after we are sure that the change was recorded with RecordWrite(), so that
 		// the next user picks it.
