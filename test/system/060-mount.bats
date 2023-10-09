@@ -321,4 +321,83 @@ EOF
     fi
 }
 
-# vim: filetype=sh
+@test "podman mount no-dereference" {
+    # Test how bind and glob-mounts behave with respect to relative (rel) and
+    # absolute (abs) symlinks.
+
+    if [ $(podman_runtime) != "crun" ]; then
+        # Requires crun >= 1.11.0
+        skip "only crun supports the no-dereference (copy-symlink) mount option"
+    fi
+
+    # One directory for testing relative symlinks, another for absolute ones.
+    rel_dir=$PODMAN_TMPDIR/rel-dir
+    abs_dir=$PODMAN_TMPDIR/abs-dir
+    mkdir $rel_dir $abs_dir
+
+    # Create random values to discrimate data in the rel/abs directory and the
+    # one from the image.
+    rel_random_host="rel_on_the_host_$(random_string 15)"
+    abs_random_host="abs_on_the_host_$(random_string 15)"
+    random_img="on_the_image_$(random_string 15)"
+
+    # Relative symlink
+    echo "$rel_random_host" > $rel_dir/data
+    ln -r -s $rel_dir/data $rel_dir/link
+    # Absolute symlink
+    echo "$abs_random_host" > $abs_dir/data
+    ln -s $abs_dir/data $abs_dir/link
+
+    dockerfile=$PODMAN_TMPDIR/Dockerfile
+    cat >$dockerfile <<EOF
+FROM $IMAGE
+RUN echo $random_img > /tmp/data
+EOF
+
+    img="localhost/preserve:symlinks"
+    run_podman build -t $img -f $dockerfile
+
+    link_path="/tmp/link"
+    create_path="/tmp/i/do/not/exist/link"
+
+    tests="
+0 | bind | $rel_dir/link | /tmp/link |  | /tmp/link | $rel_random_host | $link_path | bind mount relative symlink: mounts target from the host
+0 | bind | $abs_dir/link | /tmp/link |  | /tmp/link | $abs_random_host | $link_path | bind mount absolute symlink: mounts target from the host
+0 | glob | $rel_dir/lin* | /tmp/     |  | /tmp/link | $rel_random_host | $link_path | glob mount relative symlink: mounts target from the host
+0 | glob | $abs_dir/lin* | /tmp/     |  | /tmp/link | $abs_random_host | $link_path | glob mount absolute symlink: mounts target from the host
+0 | glob | $rel_dir/*    | /tmp/     |  | /tmp/link | $rel_random_host | $link_path | glob mount entire directory: mounts relative target from the host
+0 | glob | $abs_dir/*    | /tmp/     |  | /tmp/link | $abs_random_host | $link_path | glob mount entire directory: mounts absolute target from the host
+0 | bind | $rel_dir/link | /tmp/link | ,no-dereference | '/tmp/link' -> 'data' | $random_img      | $link_path | no_deref: bind mount relative symlink: points to file on the image
+0 | glob | $rel_dir/lin* | /tmp/     | ,no-dereference | '/tmp/link' -> 'data' | $random_img      | $link_path | no_deref: glob mount relative symlink: points to file on the image
+0 | bind | $rel_dir/     | /tmp/     | ,no-dereference | '/tmp/link' -> 'data' | $rel_random_host | $link_path | no_deref: bind mount the entire directory: preserves symlink automatically
+0 | glob | $rel_dir/*    | /tmp/     | ,no-dereference | '/tmp/link' -> 'data' | $rel_random_host | $link_path | no_deref: glob mount the entire directory: preserves symlink automatically
+1 | bind | $abs_dir/link | /tmp/link | ,no-dereference | '/tmp/link' -> '$abs_dir/data' | cat: can't open '/tmp/link': No such file or directory | $link_path | bind mount *preserved* absolute symlink: now points to a non-existent file on the container
+1 | glob | $abs_dir/lin* | /tmp/     | ,no-dereference | '/tmp/link' -> '$abs_dir/data' | cat: can't open '/tmp/link': No such file or directory | $link_path | glob mount *preserved* absolute symlink: now points to a non-existent file on the container
+0 | bind | $rel_dir/link | $create_path |  | $create_path | $rel_random_host | $create_path | bind mount relative symlink: creates dirs and mounts target from the host
+1 | bind | $rel_dir/link | $create_path | ,no-dereference | '$create_path' -> 'data' | cat: can't open '$create_path': No such file or directory | $create_path | no_deref: bind mount relative symlink: creates dirs and mounts target from the host
+"
+
+    while read exit_code mount_type mount_src mount_dst mount_opts line_0 line_1 path description; do
+        if [[ $mount_opts == "''" ]];then
+            unset mount_opts
+        fi
+        run_podman $exit_code run \
+            --mount type=$mount_type,src=$mount_src,dst=$mount_dst$mount_opts \
+            --rm --privileged $img sh -c "stat -c '%N' $path; cat $path"
+        assert "${lines[0]}" = "$line_0" "$description"
+        assert "${lines[1]}" = "$line_1" "$description"
+    done < <(parse_table "$tests")
+
+    # Make sure that it's presvered across starts and stops
+    run_podman create --mount type=glob,src=$rel_dir/*,dst=/tmp/,no-dereference --privileged $img sh -c "stat -c '%N' /tmp/link; cat /tmp/link"
+    cid="$output"
+    run_podman start -a $cid
+    assert "${lines[0]}" = "'/tmp/link' -> 'data'" "symlink is preserved"
+    assert "${lines[1]}" = "$rel_random_host"      "glob macthes symlink and host 'data' file"
+    run_podman start -a $cid
+    assert "${lines[0]}" = "'/tmp/link' -> 'data'" "symlink is preserved"
+    assert "${lines[1]}" = "$rel_random_host"      "glob macthes symlink and host 'data' file"
+    run_podman rm -f -t=0 $cid
+
+    run_podman rmi -f $img
+}
