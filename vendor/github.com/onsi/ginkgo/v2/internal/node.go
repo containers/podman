@@ -597,6 +597,12 @@ func (n Node) IsZero() bool {
 /* Nodes */
 type Nodes []Node
 
+func (n Nodes) Clone() Nodes {
+	nodes := make(Nodes, len(n))
+	copy(nodes, n)
+	return nodes
+}
+
 func (n Nodes) CopyAppend(nodes ...Node) Nodes {
 	numN := len(n)
 	out := make(Nodes, numN+len(nodes))
