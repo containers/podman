@@ -695,15 +695,19 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 					}
 					name = filepath.ToSlash(path)
 				}
-				excluded, err := pm.Matches(name) //nolint:staticcheck
-				if err != nil {
-					return fmt.Errorf("checking if %q is excluded: %w", name, err)
-				}
-				if excluded {
-					// Note: filepath.SkipDir is not possible to use given .dockerignore semantics.
-					// An exception to exclusions may include an excluded directory, therefore we
-					// are required to visit all files. :(
-					return nil
+				// If name is absolute path, then it has to be containerfile outside of build context.
+				// If not, we should check it for being excluded via pattern matcher.
+				if !filepath.IsAbs(name) {
+					excluded, err := pm.Matches(name) //nolint:staticcheck
+					if err != nil {
+						return fmt.Errorf("checking if %q is excluded: %w", name, err)
+					}
+					if excluded {
+						// Note: filepath.SkipDir is not possible to use given .dockerignore semantics.
+						// An exception to exclusions may include an excluded directory, therefore we
+						// are required to visit all files. :(
+						return nil
+					}
 				}
 				switch {
 				case dentry.Type().IsRegular(): // add file item
