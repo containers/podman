@@ -169,14 +169,26 @@ func (t *quadletTestcase) assertKeyContains(args []string, unit *parser.UnitFile
 	return ok && strings.Contains(realValue, value)
 }
 
-func (t *quadletTestcase) assertPodmanArgs(args []string, unit *parser.UnitFile, key string) bool {
+func (t *quadletTestcase) assertPodmanArgs(args []string, unit *parser.UnitFile, key string, allowRegex, globalOnly bool) bool {
 	podmanArgs, _ := unit.LookupLastArgs("Service", key)
-	return findSublist(podmanArgs, args) != -1
-}
+	if globalOnly {
+		podmanCmdLocation := findSublist(podmanArgs, []string{args[0]})
+		if podmanCmdLocation == -1 {
+			return false
+		}
 
-func (t *quadletTestcase) assertPodmanArgsRegex(args []string, unit *parser.UnitFile, key string) bool {
-	podmanArgs, _ := unit.LookupLastArgs("Service", key)
-	return findSublistRegex(podmanArgs, args) != -1
+		podmanArgs = podmanArgs[:podmanCmdLocation]
+		args = args[1:]
+	}
+
+	var location int
+	if allowRegex {
+		location = findSublistRegex(podmanArgs, args)
+	} else {
+		location = findSublist(podmanArgs, args)
+	}
+
+	return location != -1
 }
 
 func keyValueStringToMap(keyValueString, separator string) (map[string]string, error) {
@@ -216,8 +228,18 @@ func keyValMapEqualRegex(expectedKeyValMap, actualKeyValMap map[string]string) b
 	return true
 }
 
-func (t *quadletTestcase) assertPodmanArgsKeyVal(args []string, unit *parser.UnitFile, key string, allowRegex bool) bool {
+func (t *quadletTestcase) assertPodmanArgsKeyVal(args []string, unit *parser.UnitFile, key string, allowRegex, globalOnly bool) bool {
 	podmanArgs, _ := unit.LookupLastArgs("Service", key)
+
+	if globalOnly {
+		podmanCmdLocation := findSublist(podmanArgs, []string{args[0]})
+		if podmanCmdLocation == -1 {
+			return false
+		}
+
+		podmanArgs = podmanArgs[:podmanCmdLocation]
+		args = args[1:]
+	}
 
 	expectedKeyValMap, err := keyValueStringToMap(args[2], args[1])
 	if err != nil {
@@ -270,19 +292,35 @@ func (t *quadletTestcase) assertPodmanFinalArgsRegex(args []string, unit *parser
 }
 
 func (t *quadletTestcase) assertStartPodmanArgs(args []string, unit *parser.UnitFile) bool {
-	return t.assertPodmanArgs(args, unit, "ExecStart")
+	return t.assertPodmanArgs(args, unit, "ExecStart", false, false)
 }
 
 func (t *quadletTestcase) assertStartPodmanArgsRegex(args []string, unit *parser.UnitFile) bool {
-	return t.assertPodmanArgsRegex(args, unit, "ExecStart")
+	return t.assertPodmanArgs(args, unit, "ExecStart", true, false)
+}
+
+func (t *quadletTestcase) assertStartPodmanGlobalArgs(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgs(args, unit, "ExecStart", false, true)
+}
+
+func (t *quadletTestcase) assertStartPodmanGlobalArgsRegex(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgs(args, unit, "ExecStart", true, true)
 }
 
 func (t *quadletTestcase) assertStartPodmanArgsKeyVal(args []string, unit *parser.UnitFile) bool {
-	return t.assertPodmanArgsKeyVal(args, unit, "ExecStart", false)
+	return t.assertPodmanArgsKeyVal(args, unit, "ExecStart", false, false)
 }
 
 func (t *quadletTestcase) assertStartPodmanArgsKeyValRegex(args []string, unit *parser.UnitFile) bool {
-	return t.assertPodmanArgsKeyVal(args, unit, "ExecStart", true)
+	return t.assertPodmanArgsKeyVal(args, unit, "ExecStart", true, false)
+}
+
+func (t *quadletTestcase) assertStartPodmanGlobalArgsKeyVal(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgsKeyVal(args, unit, "ExecStart", false, true)
+}
+
+func (t *quadletTestcase) assertStartPodmanGlobalArgsKeyValRegex(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgsKeyVal(args, unit, "ExecStart", true, true)
 }
 
 func (t *quadletTestcase) assertStartPodmanFinalArgs(args []string, unit *parser.UnitFile) bool {
@@ -294,7 +332,11 @@ func (t *quadletTestcase) assertStartPodmanFinalArgsRegex(args []string, unit *p
 }
 
 func (t *quadletTestcase) assertStopPodmanArgs(args []string, unit *parser.UnitFile) bool {
-	return t.assertPodmanArgs(args, unit, "ExecStop")
+	return t.assertPodmanArgs(args, unit, "ExecStop", false, false)
+}
+
+func (t *quadletTestcase) assertStopPodmanGlobalArgs(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgs(args, unit, "ExecStop", false, true)
 }
 
 func (t *quadletTestcase) assertStopPodmanFinalArgs(args []string, unit *parser.UnitFile) bool {
@@ -305,8 +347,20 @@ func (t *quadletTestcase) assertStopPodmanFinalArgsRegex(args []string, unit *pa
 	return t.assertPodmanFinalArgsRegex(args, unit, "ExecStop")
 }
 
+func (t *quadletTestcase) assertStopPodmanArgsKeyVal(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgsKeyVal(args, unit, "ExecStop", false, false)
+}
+
+func (t *quadletTestcase) assertStopPodmanArgsKeyValRegex(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgsKeyVal(args, unit, "ExecStop", true, false)
+}
+
 func (t *quadletTestcase) assertStopPostPodmanArgs(args []string, unit *parser.UnitFile) bool {
-	return t.assertPodmanArgs(args, unit, "ExecStopPost")
+	return t.assertPodmanArgs(args, unit, "ExecStopPost", false, false)
+}
+
+func (t *quadletTestcase) assertStopPostPodmanGlobalArgs(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgs(args, unit, "ExecStopPost", false, true)
 }
 
 func (t *quadletTestcase) assertStopPostPodmanFinalArgs(args []string, unit *parser.UnitFile) bool {
@@ -315,6 +369,14 @@ func (t *quadletTestcase) assertStopPostPodmanFinalArgs(args []string, unit *par
 
 func (t *quadletTestcase) assertStopPostPodmanFinalArgsRegex(args []string, unit *parser.UnitFile) bool {
 	return t.assertPodmanFinalArgsRegex(args, unit, "ExecStopPost")
+}
+
+func (t *quadletTestcase) assertStopPostPodmanArgsKeyVal(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgsKeyVal(args, unit, "ExecStopPost", false, false)
+}
+
+func (t *quadletTestcase) assertStopPostPodmanArgsKeyValRegex(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgsKeyVal(args, unit, "ExecStopPost", true, false)
 }
 
 func (t *quadletTestcase) assertSymlink(args []string, unit *parser.UnitFile) bool {
@@ -366,6 +428,14 @@ func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, sessio
 		ok = t.assertStartPodmanArgsKeyVal(args, unit)
 	case "assert-podman-args-key-val-regex":
 		ok = t.assertStartPodmanArgsKeyValRegex(args, unit)
+	case "assert-podman-global-args":
+		ok = t.assertStartPodmanGlobalArgs(args, unit)
+	case "assert-podman-global-args-regex":
+		ok = t.assertStartPodmanGlobalArgsRegex(args, unit)
+	case "assert-podman-global-args-key-val":
+		ok = t.assertStartPodmanGlobalArgsKeyVal(args, unit)
+	case "assert-podman-global-args-key-val-regex":
+		ok = t.assertStartPodmanGlobalArgsKeyValRegex(args, unit)
 	case "assert-podman-final-args":
 		ok = t.assertStartPodmanFinalArgs(args, unit)
 	case "assert-podman-final-args-regex":
@@ -374,16 +444,28 @@ func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, sessio
 		ok = t.assertSymlink(args, unit)
 	case "assert-podman-stop-args":
 		ok = t.assertStopPodmanArgs(args, unit)
+	case "assert-podman-stop-global-args":
+		ok = t.assertStopPodmanGlobalArgs(args, unit)
 	case "assert-podman-stop-final-args":
 		ok = t.assertStopPodmanFinalArgs(args, unit)
 	case "assert-podman-stop-final-args-regex":
 		ok = t.assertStopPodmanFinalArgsRegex(args, unit)
+	case "assert-podman-stop-args-key-val":
+		ok = t.assertStopPodmanArgsKeyVal(args, unit)
+	case "assert-podman-stop-args-key-val-regex":
+		ok = t.assertStopPodmanArgsKeyValRegex(args, unit)
 	case "assert-podman-stop-post-args":
 		ok = t.assertStopPostPodmanArgs(args, unit)
+	case "assert-podman-stop-post-global-args":
+		ok = t.assertStopPostPodmanGlobalArgs(args, unit)
 	case "assert-podman-stop-post-final-args":
 		ok = t.assertStopPostPodmanFinalArgs(args, unit)
 	case "assert-podman-stop-post-final-args-regex":
 		ok = t.assertStopPostPodmanFinalArgsRegex(args, unit)
+	case "assert-podman-stop-post-args-key-val":
+		ok = t.assertStopPostPodmanArgsKeyVal(args, unit)
+	case "assert-podman-stop-post-args-key-val-regex":
+		ok = t.assertStopPostPodmanArgsKeyValRegex(args, unit)
 
 	default:
 		return fmt.Errorf("Unsupported assertion %s", op)
@@ -647,6 +729,8 @@ BOGUS=foo
 		Entry("user.container", "user.container", 0, ""),
 		Entry("volume.container", "volume.container", 0, ""),
 		Entry("workingdir.container", "workingdir.container", 0, ""),
+		Entry("Container - global args", "globalargs.container", 0, ""),
+		Entry("Container - Containers Conf Modules", "containersconfmodule.container", 0, ""),
 
 		Entry("basic.volume", "basic.volume", 0, ""),
 		Entry("device-copy.volume", "device-copy.volume", 0, ""),
@@ -657,6 +741,8 @@ BOGUS=foo
 		Entry("uid.volume", "uid.volume", 0, ""),
 		Entry("image.volume", "image.volume", 0, ""),
 		Entry("image-no-image.volume", "image-no-image.volume", 1, "converting \"image-no-image.volume\": the key Image is mandatory when using the image driver"),
+		Entry("Volume - global args", "globalargs.volume", 0, ""),
+		Entry("Volume - Containers Conf Modules", "containersconfmodule.volume", 0, ""),
 
 		Entry("Absolute Path", "absolute.path.kube", 0, ""),
 		Entry("Basic kube", "basic.kube", 0, ""),
@@ -676,6 +762,8 @@ BOGUS=foo
 		Entry("Kube - Working Directory YAML Relative Path", "workingdir-yaml-rel.kube", 0, ""),
 		Entry("Kube - Working Directory Unit", "workingdir-unit.kube", 0, ""),
 		Entry("Kube - Working Directory already in Service", "workingdir-service.kube", 0, ""),
+		Entry("Kube - global args", "globalargs.kube", 0, ""),
+		Entry("Kube - Containers Conf Modules", "containersconfmodule.kube", 0, ""),
 
 		Entry("Network - Basic", "basic.network", 0, ""),
 		Entry("Network - Disable DNS", "disable-dns.network", 0, ""),
@@ -698,6 +786,8 @@ BOGUS=foo
 		Entry("Network - Subnets", "subnets.network", 0, ""),
 		Entry("Network - multiple subnet, gateway and range", "subnet-trio.multiple.network", 0, ""),
 		Entry("Network - subnet, gateway and range", "subnet-trio.network", 0, ""),
+		Entry("Network - global args", "globalargs.network", 0, ""),
+		Entry("Network - Containers Conf Modules", "containersconfmodule.network", 0, ""),
 
 		Entry("Image - Basic", "basic.image", 0, ""),
 		Entry("Image - No Image", "no-image.image", 1, "converting \"no-image.image\": no Image key specified"),
@@ -711,6 +801,8 @@ BOGUS=foo
 		Entry("Image - All Tags", "all-tags.image", 0, ""),
 		Entry("Image - TLS Verify", "tls-verify.image", 0, ""),
 		Entry("Image - Arch and OS", "arch-os.image", 0, ""),
+		Entry("Image - global args", "globalargs.image", 0, ""),
+		Entry("Image - Containers Conf Modules", "containersconfmodule.image", 0, ""),
 	)
 
 })

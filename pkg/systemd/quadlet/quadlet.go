@@ -59,6 +59,7 @@ const (
 	KeyDecryptionKey         = "DecryptionKey"
 	KeyConfigMap             = "ConfigMap"
 	KeyContainerName         = "ContainerName"
+	KeyContainersConfModule  = "ContainersConfModule"
 	KeyCopy                  = "Copy"
 	KeyDevice                = "Device"
 	KeyDNS                   = "DNS"
@@ -72,6 +73,7 @@ const (
 	KeyExec                  = "Exec"
 	KeyExitCodePropagation   = "ExitCodePropagation"
 	KeyExposeHostPort        = "ExposeHostPort"
+	KeyGlobalArgs            = "GlobalArgs"
 	KeyGroup                 = "Group"
 	KeyHealthCmd             = "HealthCmd"
 	KeyHealthInterval        = "HealthInterval"
@@ -154,6 +156,7 @@ var (
 		KeyAnnotation:            true,
 		KeyAutoUpdate:            true,
 		KeyContainerName:         true,
+		KeyContainersConfModule:  true,
 		KeyDNS:                   true,
 		KeyDNSOption:             true,
 		KeyDNSSearch:             true,
@@ -163,6 +166,7 @@ var (
 		KeyEnvironmentHost:       true,
 		KeyExec:                  true,
 		KeyExposeHostPort:        true,
+		KeyGlobalArgs:            true,
 		KeyGroup:                 true,
 		KeyHealthCmd:             true,
 		KeyHealthInterval:        true,
@@ -219,67 +223,75 @@ var (
 
 	// Supported keys in "Volume" group
 	supportedVolumeKeys = map[string]bool{
-		KeyCopy:       true,
-		KeyDevice:     true,
-		KeyDriver:     true,
-		KeyGroup:      true,
-		KeyImage:      true,
-		KeyLabel:      true,
-		KeyOptions:    true,
-		KeyPodmanArgs: true,
-		KeyType:       true,
-		KeyUser:       true,
-		KeyVolumeName: true,
+		KeyContainersConfModule: true,
+		KeyCopy:                 true,
+		KeyDevice:               true,
+		KeyDriver:               true,
+		KeyGlobalArgs:           true,
+		KeyGroup:                true,
+		KeyImage:                true,
+		KeyLabel:                true,
+		KeyOptions:              true,
+		KeyPodmanArgs:           true,
+		KeyType:                 true,
+		KeyUser:                 true,
+		KeyVolumeName:           true,
 	}
 
 	// Supported keys in "Network" group
 	supportedNetworkKeys = map[string]bool{
-		KeyLabel:             true,
-		KeyDNS:               true,
-		KeyNetworkDisableDNS: true,
-		KeyNetworkDriver:     true,
-		KeyNetworkGateway:    true,
-		KeyNetworkIPAMDriver: true,
-		KeyNetworkIPRange:    true,
-		KeyNetworkIPv6:       true,
-		KeyNetworkInternal:   true,
-		KeyNetworkName:       true,
-		KeyNetworkOptions:    true,
-		KeyNetworkSubnet:     true,
-		KeyPodmanArgs:        true,
+		KeyLabel:                true,
+		KeyDNS:                  true,
+		KeyContainersConfModule: true,
+		KeyGlobalArgs:           true,
+		KeyNetworkDisableDNS:    true,
+		KeyNetworkDriver:        true,
+		KeyNetworkGateway:       true,
+		KeyNetworkIPAMDriver:    true,
+		KeyNetworkIPRange:       true,
+		KeyNetworkIPv6:          true,
+		KeyNetworkInternal:      true,
+		KeyNetworkName:          true,
+		KeyNetworkOptions:       true,
+		KeyNetworkSubnet:        true,
+		KeyPodmanArgs:           true,
 	}
 
 	// Supported keys in "Kube" group
 	supportedKubeKeys = map[string]bool{
-		KeyAutoUpdate:          true,
-		KeyConfigMap:           true,
-		KeyExitCodePropagation: true,
-		KeyLogDriver:           true,
-		KeyNetwork:             true,
-		KeyPodmanArgs:          true,
-		KeyPublishPort:         true,
-		KeyRemapGID:            true,
-		KeyRemapUID:            true,
-		KeyRemapUIDSize:        true,
-		KeyRemapUsers:          true,
-		KeySetWorkingDirectory: true,
-		KeyUserNS:              true,
-		KeyYaml:                true,
+		KeyAutoUpdate:           true,
+		KeyConfigMap:            true,
+		KeyContainersConfModule: true,
+		KeyExitCodePropagation:  true,
+		KeyGlobalArgs:           true,
+		KeyLogDriver:            true,
+		KeyNetwork:              true,
+		KeyPodmanArgs:           true,
+		KeyPublishPort:          true,
+		KeyRemapGID:             true,
+		KeyRemapUID:             true,
+		KeyRemapUIDSize:         true,
+		KeyRemapUsers:           true,
+		KeySetWorkingDirectory:  true,
+		KeyUserNS:               true,
+		KeyYaml:                 true,
 	}
 
 	// Supported keys in "Image" group
 	supportedImageKeys = map[string]bool{
-		KeyAllTags:       true,
-		KeyArch:          true,
-		KeyAuthFile:      true,
-		KeyCertDir:       true,
-		KeyCreds:         true,
-		KeyDecryptionKey: true,
-		KeyImage:         true,
-		KeyOS:            true,
-		KeyPodmanArgs:    true,
-		KeyTLSVerify:     true,
-		KeyVariant:       true,
+		KeyAllTags:              true,
+		KeyArch:                 true,
+		KeyAuthFile:             true,
+		KeyCertDir:              true,
+		KeyContainersConfModule: true,
+		KeyCreds:                true,
+		KeyDecryptionKey:        true,
+		KeyGlobalArgs:           true,
+		KeyImage:                true,
+		KeyOS:                   true,
+		KeyPodmanArgs:           true,
+		KeyTLSVerify:            true,
+		KeyVariant:              true,
 	}
 )
 
@@ -416,14 +428,19 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 
 	// If conmon exited uncleanly it may not have removed the container, so
 	// force it, -i makes it ignore non-existing files.
-	service.Add(ServiceGroup, "ExecStop", podmanBinary()+" rm -v -f -i --cidfile=%t/%N.cid")
+	serviceStopCmd := createBasePodmanCommand(container, ContainerGroup)
+	serviceStopCmd.add("rm", "-v", "-f", "-i", "--cidfile=%t/%N.cid")
+	service.AddCmdline(ServiceGroup, "ExecStop", serviceStopCmd.Args)
 	// The ExecStopPost is needed when the main PID (i.e., conmon) gets killed.
 	// In that case, ExecStop is not executed but *Post only.  If both are
 	// fired in sequence, *Post will exit when detecting that the --cidfile
 	// has already been removed by the previous `rm`..
-	service.Add(ServiceGroup, "ExecStopPost", "-"+podmanBinary()+" rm -v -f -i --cidfile=%t/%N.cid")
+	serviceStopCmd.Args[0] = fmt.Sprintf("-%s", serviceStopCmd.Args[0])
+	service.AddCmdline(ServiceGroup, "ExecStopPost", serviceStopCmd.Args)
 
-	podman := NewPodmanCmdline("run")
+	podman := createBasePodmanCommand(container, ContainerGroup)
+
+	podman.add("run")
 
 	podman.addf("--name=%s", containerName)
 
@@ -794,7 +811,9 @@ func ConvertNetwork(network *parser.UnitFile, name string) (*parser.UnitFile, st
 	// Need the containers filesystem mounted to start podman
 	service.Add(UnitGroup, "RequiresMountsFor", "%t/containers")
 
-	podman := NewPodmanCmdline("network", "create", "--ignore")
+	podman := createBasePodmanCommand(network, NetworkGroup)
+
+	podman.add("network", "create", "--ignore")
 
 	if disableDNS := network.LookupBooleanWithDefault(NetworkGroup, KeyNetworkDisableDNS, false); disableDNS {
 		podman.add("--disable-dns")
@@ -898,7 +917,9 @@ func ConvertVolume(volume *parser.UnitFile, name string, names map[string]string
 
 	labels := volume.LookupAllKeyVal(VolumeGroup, "Label")
 
-	podman := NewPodmanCmdline("volume", "create", "--ignore")
+	podman := createBasePodmanCommand(volume, VolumeGroup)
+
+	podman.add("volume", "create", "--ignore")
 
 	driver, ok := volume.Lookup(VolumeGroup, KeyDriver)
 	if ok {
@@ -1050,7 +1071,9 @@ func ConvertKube(kube *parser.UnitFile, names map[string]string, isUser bool) (*
 		service.Set(ServiceGroup, "SyslogIdentifier", "%N")
 	}
 
-	execStart := NewPodmanCmdline("kube", "play")
+	execStart := createBasePodmanCommand(kube, KubeGroup)
+
+	execStart.add("kube", "play")
 
 	execStart.add(
 		// Replace any previous container with the same name, not fail
@@ -1107,8 +1130,8 @@ func ConvertKube(kube *parser.UnitFile, names map[string]string, isUser bool) (*
 
 	// Use `ExecStopPost` to make sure cleanup happens even in case of
 	// errors; otherwise containers, pods, etc. would be left behind.
-	execStop := NewPodmanCmdline("kube", "down")
-	execStop.add(yamlPath)
+	execStop := createBasePodmanCommand(kube, KubeGroup)
+	execStop.add("kube", "down", yamlPath)
 	service.AddCmdline(ServiceGroup, "ExecStopPost", execStop.Args)
 
 	err = handleSetWorkingDirectory(kube, service)
@@ -1142,7 +1165,9 @@ func ConvertImage(image *parser.UnitFile) (*parser.UnitFile, string, error) {
 	// Need the containers filesystem mounted to start podman
 	service.Add(UnitGroup, "RequiresMountsFor", "%t/containers")
 
-	podman := NewPodmanCmdline("image", "pull")
+	podman := createBasePodmanCommand(image, ImageGroup)
+
+	podman.add("image", "pull")
 
 	stringKeys := map[string]string{
 		KeyArch:          "--arch",
@@ -1570,4 +1595,20 @@ func convertToCSV(s []string) (string, error) {
 	}
 
 	return ret, nil
+}
+
+func createBasePodmanCommand(unitFile *parser.UnitFile, groupName string) *PodmanCmdline {
+	podman := NewPodmanCmdline()
+
+	containersConfModules := unitFile.LookupAll(groupName, KeyContainersConfModule)
+	for _, containersConfModule := range containersConfModules {
+		podman.addf("--module=%s", containersConfModule)
+	}
+
+	globalArgs := unitFile.LookupAllArgs(groupName, KeyGlobalArgs)
+	if len(globalArgs) > 0 {
+		podman.add(globalArgs...)
+	}
+
+	return podman
 }

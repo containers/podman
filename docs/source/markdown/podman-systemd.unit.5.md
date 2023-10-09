@@ -121,67 +121,69 @@ There is only one required key, `Image`, which defines the container image the s
 
 Valid options for `[Container]` are listed below:
 
-| **[Container] options**        | **podman run equivalent**                            |
-|--------------------------------|------------------------------------------------------|
-| AddCapability=CAP              | --cap-add CAP                                        |
-| AddDevice=/dev/foo             | --device /dev/foo                                    |
-| Annotation="XYZ"               | --annotation "XYZ"                                   |
-| AutoUpdate=registry            | --label "io.containers.autoupdate=registry"          |
-| ContainerName=name             | --name name                                          |
-| DNS=192.168.55.1               | --dns=192.168.55.1                                   |
-| DNSSearch=foo.com              | --dns-search=foo.com                                 |
-| DNSOption=ndots:1              | --dns-option=ndots:1                                 |
-| DropCapability=CAP             | --cap-drop=CAP                                       |
-| Environment=foo=bar            | --env foo=bar                                        |
-| EnvironmentFile=/tmp/env       | --env-file /tmp/env                                  |
-| EnvironmentHost=true           | --env-host                                           |
-| Exec=/usr/bin/command          | Command after image specification - /usr/bin/command |
-| ExposeHostPort=50-59           | --expose 50-59                                       |
-| Group=1234                     | --user UID:1234                                      |
-| HealthCmd="/usr/bin/command"   | --health-cmd="/usr/bin/command"                      |
-| HealthInterval=2m              | --health-interval=2m                                 |
-| HealthOnFailure=kill           | --health-on-failure=kill                             |
-| HealthRetries=5                | --health-retries=5                                   |
-| HealthStartPeriod=1m           | --health-start-period=period=1m                      |
-| HealthStartupCmd="command"     | --health-startup-cmd="command"                       |
-| HealthStartupInterval=1m       | --health-startup-interval=1m                         |
-| HealthStartupRetries=8         | --health-startup-retries=8                           |
-| HealthStartupSuccess=2         | --health-startup-success=2                           |
-| HealthStartupTimeout=1m33s     | --health-startup-timeout=1m33s                       |
-| HealthTimeout=20s              | --health-timeout=20s                                 |
-| HostName=new-host-name         | --hostname="new-host-name"                           |
-| Image=ubi8                     | Image specification - ubi8                           |
-| IP=192.5.0.1                   | --ip 192.5.0.1                                       |
-| IP6=2001:db8::1                | --ip6 2001:db8::1                                    |
-| Label="XYZ"                    | --label "XYZ"                                        |
-| LogDriver=journald             | --log-driver journald                                |
-| Mount=type=...                 | --mount type=...                                     |
-| Network=host                   | --net host                                           |
-| NoNewPrivileges=true           | --security-opt no-new-privileges                     |
-| Rootfs=/var/lib/rootfs         | --rootfs /var/lib/rootfs                             |
-| Notify=true                    | --sdnotify container                                 |
-| PidsLimit=10000                | --pids-limit 10000                                   |
-| PodmanArgs=--add-host foobar   | --add-host foobar                                    |
-| PublishPort=50-59              | --publish 50-59                                      |
-| Pull=never                     | --pull=never                                         |
-| ReadOnly=true                  | --read-only                                          |
-| RunInit=true                   | --init                                               |
-| SeccompProfile=/tmp/s.json     | --security-opt seccomp=/tmp/s.json                   |
-| SecurityLabelDisable=true      | --security-opt label=disable                         |
-| SecurityLabelFileType=usr_t    | --security-opt label=filetype:usr_t                  |
-| SecurityLabelLevel=s0:c1,c2    | --security-opt label=level:s0:c1,c2                  |
-| SecurityLabelNested=true       | --security-opt label=nested                          |
-| SecurityLabelType=spc_t        | --security-opt label=type:spc_t                      |
-| ShmSize=100m                   | --shm-size=100m                                      |
-| Sysctl=name=value              | --sysctl=name=value                                  |
-| Timezone=local                 | --tz local                                           |
-| Tmpfs=/work                    | --tmpfs /work                                        |
-| Ulimit=nofile:1000:10000       | --ulimit nofile:1000:10000                           |
-| User=bin                       | --user bin                                           |
-| UserNS=keep-id:uid=200,gid=210 | --userns keep-id:uid=200,gid=210                     |
-| VolatileTmp=true               | --tmpfs /tmp                                         |
-| Volume=/source:/dest           | --volume /source:/dest                               |
-| WorkingDir=$HOME               | --workdir $HOME                                      |
+| **[Container] options**              | **podman run equivalent**                            |
+|--------------------------------------|------------------------------------------------------|
+| AddCapability=CAP                    | --cap-add CAP                                        |
+| AddDevice=/dev/foo                   | --device /dev/foo                                    |
+| Annotation="XYZ"                     | --annotation "XYZ"                                   |
+| AutoUpdate=registry                  | --label "io.containers.autoupdate=registry"          |
+| ContainerName=name                   | --name name                                          |
+| ContainersConfModule=/etc/nvd\.conf  | --module=/etc/nvd\.conf                              |
+| DNS=192.168.55.1                     | --dns=192.168.55.1                                   |
+| DNSSearch=foo.com                    | --dns-search=foo.com                                 |
+| DNSOption=ndots:1                    | --dns-option=ndots:1                                 |
+| DropCapability=CAP                   | --cap-drop=CAP                                       |
+| Environment=foo=bar                  | --env foo=bar                                        |
+| EnvironmentFile=/tmp/env             | --env-file /tmp/env                                  |
+| EnvironmentHost=true                 | --env-host                                           |
+| Exec=/usr/bin/command                | Command after image specification - /usr/bin/command |
+| ExposeHostPort=50-59                 | --expose 50-59                                       |
+| Group=1234                           | --user UID:1234                                      |
+| GlobalArgs=--log-level=debug         | --log-level=debug                                    |
+| HealthCmd="/usr/bin/command"         | --health-cmd="/usr/bin/command"                      |
+| HealthInterval=2m                    | --health-interval=2m                                 |
+| HealthOnFailure=kill                 | --health-on-failure=kill                             |
+| HealthRetries=5                      | --health-retries=5                                   |
+| HealthStartPeriod=1m                 | --health-start-period=period=1m                      |
+| HealthStartupCmd="command"           | --health-startup-cmd="command"                       |
+| HealthStartupInterval=1m             | --health-startup-interval=1m                         |
+| HealthStartupRetries=8               | --health-startup-retries=8                           |
+| HealthStartupSuccess=2               | --health-startup-success=2                           |
+| HealthStartupTimeout=1m33s           | --health-startup-timeout=1m33s                       |
+| HealthTimeout=20s                    | --health-timeout=20s                                 |
+| HostName=new-host-name               | --hostname="new-host-name"                           |
+| Image=ubi8                           | Image specification - ubi8                           |
+| IP=192.5.0.1                         | --ip 192.5.0.1                                       |
+| IP6=2001:db8::1                      | --ip6 2001:db8::1                                    |
+| Label="XYZ"                          | --label "XYZ"                                        |
+| LogDriver=journald                   | --log-driver journald                                |
+| Mount=type=...                       | --mount type=...                                     |
+| Network=host                         | --net host                                           |
+| NoNewPrivileges=true                 | --security-opt no-new-privileges                     |
+| Rootfs=/var/lib/rootfs               | --rootfs /var/lib/rootfs                             |
+| Notify=true                          | --sdnotify container                                 |
+| PidsLimit=10000                      | --pids-limit 10000                                   |
+| PodmanArgs=--add-host foobar         | --add-host foobar                                    |
+| PublishPort=50-59                    | --publish 50-59                                      |
+| Pull=never                           | --pull=never                                         |
+| ReadOnly=true                        | --read-only                                          |
+| RunInit=true                         | --init                                               |
+| SeccompProfile=/tmp/s.json           | --security-opt seccomp=/tmp/s.json                   |
+| SecurityLabelDisable=true            | --security-opt label=disable                         |
+| SecurityLabelFileType=usr_t          | --security-opt label=filetype:usr_t                  |
+| SecurityLabelLevel=s0:c1,c2          | --security-opt label=level:s0:c1,c2                  |
+| SecurityLabelNested=true             | --security-opt label=nested                          |
+| SecurityLabelType=spc_t              | --security-opt label=type:spc_t                      |
+| ShmSize=100m                         | --shm-size=100m                                      |
+| Sysctl=name=value                    | --sysctl=name=value                                  |
+| Timezone=local                       | --tz local                                           |
+| Tmpfs=/work                          | --tmpfs /work                                        |
+| Ulimit=nofile:1000:10000             | --ulimit nofile:1000:10000                           |
+| User=bin                             | --user bin                                           |
+| UserNS=keep-id:uid=200,gid=210       | --userns keep-id:uid=200,gid=210                     |
+| VolatileTmp=true                     | --tmpfs /tmp                                         |
+| Volume=/source:/dest                 | --volume /source:/dest                               |
+| WorkingDir=$HOME                     | --workdir $HOME                                      |
 
 Description of `[Container]` section are:
 
@@ -227,6 +229,12 @@ Indicates whether the container will be auto-updated ([podman-auto-update(1)](po
 The (optional) name of the Podman container. If this is not specified, the default value
 of `systemd-%N` is used, which is the same as the service name but with a `systemd-`
 prefix to avoid conflicts with user-managed containers.
+
+### `ContainersConfModule=`
+
+Load the specified containers.conf(5) module. Equivalent to the Podman `--module` option.
+
+This key can be listed multiple times.
 
 ### `DNS=`
 
@@ -283,6 +291,19 @@ default entry point of the container image is used. The format is the same as fo
 
 Exposes a port, or a range of ports (e.g. `50-59`), from the host to the container. Equivalent
 to the Podman `--expose` option.
+
+This key can be listed multiple times.
+
+### `GlobalArgs=`
+
+This key contains a list of arguments passed directly between `podman` and `run`
+in the generated file (right before the image name in the command line). It can be used to
+access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, it is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
 
 This key can be listed multiple times.
 
@@ -598,9 +619,11 @@ There is only one required key, `Yaml`, which defines the path to the Kubernetes
 Valid options for `[Kube]` are listed below:
 
 | **[Kube] options**                  | **podman kube play equivalent**                                  |
-| ----------------------------------- | -----------------------------------------------------------------|
+| ------------------------------------| -----------------------------------------------------------------|
 | AutoUpdate=registry                 | --annotation "io.containers.autoupdate=registry"                 |
 | ConfigMap=/tmp/config.map           | --config-map /tmp/config.map                                     |
+| ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                                          |
+| GlobalArgs=--log-level=debug        | --log-level=debug                                                |
 | LogDriver=journald                  | --log-driver journald                                            |
 | Network=host                        | --net host                                                       |
 | PodmanArgs=\-\-annotation=key=value | --annotation=key=value                                           |
@@ -629,6 +652,12 @@ it may be absolute or relative to the location of the unit file.
 
 This key may be used multiple times
 
+### `ContainersConfModule=`
+
+Load the specified containers.conf(5) module. Equivalent to the Podman `--module` option.
+
+This key can be listed multiple times.
+
 ### `ExitCodePropagation=`
 
 Control how the main PID of the systemd service should exit. The following values are supported:
@@ -637,6 +666,20 @@ Control how the main PID of the systemd service should exit. The following value
 - `none`: exit zero and ignore failed containers
 
 The current default value is `none`.
+
+### `GlobalArgs=`
+
+This key contains a list of arguments passed directly between `podman` and `kube`
+in the generated file (right before the image name in the command line). It can be used to
+access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, it is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
+
 
 ### `LogDriver=`
 
@@ -739,23 +782,31 @@ particularly interesting when using special options to control network creation,
 
 Valid options for `[Network]` are listed below:
 
-| **[Network] options**         | **podman network create equivalent** |
-|-------------------------------|--------------------------------------|
-| DisableDNS=true               | --disable-dns                        |
-| DNS=192.168.55.1              | --dns=192.168.55.1                   |
-| Driver=bridge                 | --driver bridge                      |
-| Gateway=192.168.55.3          | --gateway 192.168.55.3               |
-| Internal=true                 | --internal                           |
-| IPAMDriver=dhcp               | --ipam-driver dhcp                   |
-| IPRange=192.168.55.128/25     | --ip-range 192.168.55.128/25         |
-| IPv6=true                     | --ipv6                               |
-| Label="XYZ"                   | --label "XYZ"                        |
-| NetworkName=foo               | podman network create foo            |
-| Options=isolate               | --opt isolate                        |
-| PodmanArgs=--dns=192.168.55.1 | --dns=192.168.55.1                   |
-| Subnet=192.5.0.0/16           | --subnet 192.5.0.0/16                |
+| **[Network] options**               | **podman network create equivalent** |
+|-------------------------------------|--------------------------------------|
+| ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf              |
+| DisableDNS=true                     | --disable-dns                        |
+| DNS=192.168.55.1                    | --dns=192.168.55.1                   |
+| Driver=bridge                       | --driver bridge                      |
+| Gateway=192.168.55.3                | --gateway 192.168.55.3               |
+| GlobalArgs=--log-level=debug        | --log-level=debug                    |
+| Internal=true                       | --internal                           |
+| IPAMDriver=dhcp                     | --ipam-driver dhcp                   |
+| IPRange=192.168.55.128/25           | --ip-range 192.168.55.128/25         |
+| IPv6=true                           | --ipv6                               |
+| Label="XYZ"                         | --label "XYZ"                        |
+| NetworkName=foo                     | podman network create foo            |
+| Options=isolate                     | --opt isolate                        |
+| PodmanArgs=--dns=192.168.55.1       | --dns=192.168.55.1                   |
+| Subnet=192.5.0.0/16                 | --subnet 192.5.0.0/16                |
 
 Supported keys in `[Network]` section are:
+
+### `ContainersConfModule=`
+
+Load the specified containers.conf(5) module. Equivalent to the Podman `--module` option.
+
+This key can be listed multiple times.
 
 ### `DisableDNS=` (defaults to `no`)
 
@@ -780,6 +831,19 @@ This is equivalent to the Podman `--driver` option
 Define a gateway for the subnet. If you want to provide a gateway address, you must also provide a subnet option.
 
 This is equivalent to the Podman `--gateway` option
+
+This key can be listed multiple times.
+
+### `GlobalArgs=`
+
+This key contains a list of arguments passed directly between `podman` and `network`
+in the generated file (right before the image name in the command line). It can be used to
+access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, it is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
 
 This key can be listed multiple times.
 
@@ -870,9 +934,11 @@ Valid options for `[Volume]` are listed below:
 
 | **[Volume] options**                | **podman volume create equivalent**       |
 |-------------------------------------|-------------------------------------------|
+| ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                   |
+| Copy=true                           | --opt copy                                |
 | Device=tmpfs                        | --opt device=tmpfs                        |
 | Driver=image                        | --driver=image                            |
-| Copy=true                           | --opt copy                                |
+| GlobalArgs=--log-level=debug        | --log-level=debug                         |
 | Group=192                           | --opt group=192                           |
 | Image=quay.io/centos/centos\:latest | --opt image=quay.io/centos/centos\:latest |
 | Label="foo=bar"                     | --label "foo=bar"                         |
@@ -881,6 +947,12 @@ Valid options for `[Volume]` are listed below:
 | VolumeName=foo                      | podman volume create foo                  |
 
 Supported keys in `[Volume]` section are:
+
+### `ContainersConfModule=`
+
+Load the specified containers.conf(5) module. Equivalent to the Podman `--module` option.
+
+This key can be listed multiple times.
 
 ### `Copy=` (default to `yes`)
 
@@ -896,6 +968,19 @@ The path of a device which is mounted for the volume.
 Specify the volume driver name. When set to `image`, the `Image` key must also be set.
 
 This is equivalent to the Podman `--driver` option.
+
+### `GlobalArgs=`
+
+This key contains a list of arguments passed directly between `podman` and `volume`
+in the generated file (right before the image name in the command line). It can be used to
+access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, it is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
 
 ### `Group=`
 
@@ -970,8 +1055,10 @@ Valid options for `[Image]` are listed below:
 | Arch=aarch64                        | --arch=aarch64                                  |
 | AuthFile=/etc/registry/auth\.json   | --authfile=/etc/registry/auth\.json             |
 | CertDir=/etc/registery/certs        | --cert-dir=/etc/registery/certs                 |
+| ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                         |
 | Creds=myname\:mypassword            | --creds=myname\:mypassword                      |
 | DecryptionKey=/etc/registery\.key   | --decryption-key=/etc/registery\.key            |
+| GlobalArgs=--log-level=debug        | --log-level=debug                               |
 | Image=quay.io/centos/centos\:latest | podman image pull quay.io/centos/centos\:latest |
 | OS=windows                          | --os=windows                                    |
 | PodmanArgs=--os=linux               | --os=linux                                      |
@@ -1002,6 +1089,12 @@ Use certificates at path (*.crt, *.cert, *.key) to connect to the registry.
 
 This is equivalent to the Podman `--cert-dir` option.
 
+### `ContainersConfModule=`
+
+Load the specified containers.conf(5) module. Equivalent to the Podman `--module` option.
+
+This key can be listed multiple times.
+
 ### `Creds=`
 
 The `[username[:password]]` to use to authenticate with the registry, if required.
@@ -1013,6 +1106,19 @@ This is equivalent to the Podman `--creds` option.
 The `[key[:passphrase]]` to be used for decryption of images.
 
 This is equivalent to the Podman `--decryption-key` option.
+
+### `GlobalArgs=`
+
+This key contains a list of arguments passed directly between `podman` and `image`
+in the generated file (right before the image name in the command line). It can be used to
+access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, it is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
 
 ### `Image=`
 
