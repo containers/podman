@@ -1,3 +1,9 @@
+## 2.13.0
+
+### Features
+
+Add PreviewSpect() to enable programmatic preview access to the suite report (fixes #1225)
+
 ## 2.12.1
 
 ### Fixes
