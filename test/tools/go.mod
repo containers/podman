@@ -3,7 +3,7 @@ module github.com/containers/podman/test/tools
 go 1.18
 
 require (
-	github.com/cpuguy83/go-md2man/v2 v2.0.2
+	github.com/cpuguy83/go-md2man/v2 v2.0.3
 	github.com/onsi/ginkgo/v2 v2.13.0
 	github.com/vbatts/git-validation v1.2.0
 	golang.org/x/tools v0.14.0
