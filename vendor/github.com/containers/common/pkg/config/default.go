@@ -120,8 +120,6 @@ const (
 	CgroupfsCgroupsManager = "cgroupfs"
 	// DefaultApparmorProfile  specifies the default apparmor profile for the container.
 	DefaultApparmorProfile = apparmor.Profile
-	// DefaultDBBackend specifies the default database backend to be used by Podman.
-	DefaultDBBackend = DBBackendBoltDB
 	// DefaultHostsFile is the default path to the hosts file.
 	DefaultHostsFile = "/etc/hosts"
 	// SystemdCgroupsManager represents systemd native cgroup manager.
@@ -317,7 +315,6 @@ func defaultEngineConfig() (*EngineConfig, error) {
 	c.HooksDir = DefaultHooksDirs
 	c.ImageDefaultTransport = _defaultTransport
 	c.ImageVolumeMode = _defaultImageVolumeMode
-	c.StateType = BoltDBStateStore
 
 	c.ImageBuildFormat = "oci"
 
@@ -424,7 +421,6 @@ func defaultEngineConfig() (*EngineConfig, error) {
 		"/run/current-system/sw/bin/conmonrs",
 	}
 	c.PullPolicy = DefaultPullPolicy
-	c.DBBackend = stringBoltDB
 	c.RuntimeSupportsJSON = []string{
 		"crun",
 		"runc",
