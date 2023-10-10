@@ -49,6 +49,7 @@ const (
 
 // NewSqliteState creates a new SQLite-backed state database.
 func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
+	logrus.Info("Using sqlite as database backend")
 	state := new(SQLiteState)
 
 	basePath := runtime.storageConfig.GraphRoot
