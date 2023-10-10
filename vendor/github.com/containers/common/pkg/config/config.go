@@ -30,24 +30,6 @@ const (
 	bindirPrefix = "$BINDIR"
 )
 
-// RuntimeStateStore is a constant indicating which state store implementation
-// should be used by engine
-type RuntimeStateStore int
-
-const (
-	// InvalidStateStore is an invalid state store
-	InvalidStateStore RuntimeStateStore = iota
-	// InMemoryStateStore is an in-memory state that will not persist data
-	// on containers and pods between engine instances or after system
-	// reboot
-	InMemoryStateStore RuntimeStateStore = iota
-	// SQLiteStateStore is a state backed by a SQLite database
-	// It is presently disabled
-	SQLiteStateStore RuntimeStateStore = iota
-	// BoltDBStateStore is a state backed by a BoltDB database
-	BoltDBStateStore RuntimeStateStore = iota
-)
-
 var validImageVolumeModes = []string{_typeBind, "tmpfs", "ignore"}
 
 // ProxyEnv is a list of Proxy Environment variables
@@ -482,13 +464,6 @@ type EngineConfig struct {
 	// SDNotify tells container engine to allow containers to notify the host systemd of
 	// readiness using the SD_NOTIFY mechanism.
 	SDNotify bool `toml:"-"`
-
-	// StateType is the type of the backing state store. Avoid using multiple
-	// values for this with the same containers/storage configuration on the
-	// same system. Different state types do not interact, and each will see a
-	// separate set of containers, which may cause conflicts in
-	// containers/storage. As such this is not exposed via the config file.
-	StateType RuntimeStateStore `toml:"-"`
 
 	// ServiceTimeout is the number of seconds to wait without a connection
 	// before the `podman system service` times out and exits

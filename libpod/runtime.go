@@ -367,7 +367,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		}
 		runtime.state = state
 	default:
-		return fmt.Errorf("unrecognized state type passed (%v): %w", runtime.config.Engine.StateType, define.ErrInvalidArg)
+		return fmt.Errorf("unrecognized state type passed (%v): %w", backend, define.ErrInvalidArg)
 	}
 
 	// Grab config from the database so we can reset some defaults
