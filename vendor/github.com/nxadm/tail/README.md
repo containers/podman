@@ -1,12 +1,13 @@
-![ci](https://github.com/nxadm/tail/workflows/ci/badge.svg)[![Go Reference](https://pkg.go.dev/badge/github.com/nxadm/tail.svg)](https://pkg.go.dev/github.com/nxadm/tail)
-
+[![Go Reference](https://pkg.go.dev/badge/github.com/nxadm/tail.svg)](https://pkg.go.dev/github.com/nxadm/tail#section-documentation)
+![ci](https://github.com/nxadm/tail/workflows/ci/badge.svg)
+[![FreeBSD](https://api.cirrus-ci.com/github/nxadm/tail.svg)](https://cirrus-ci.com/github/nxadm/tail)
 # tail functionality in Go
 
 nxadm/tail provides a Go library that emulates the features of the BSD `tail`
 program. The library comes with full support for truncation/move detection as
 it is designed to work with log rotation tools. The library works on all
-operating systems supported by Go, including POSIX systems like Linux and
-*BSD, and MS Windows. Go 1.9 is the oldest compiler release supported.
+operating systems supported by Go, including POSIX systems like Linux, *BSD,
+MacOS, and MS Windows. Go 1.12 is the oldest compiler release supported.
 
 A simple example:
 
@@ -24,7 +25,7 @@ for line := range t.Lines {
 }
 ```
 
-See [API documentation](https://pkg.go.dev/github.com/nxadm/tail).
+See [API documentation](https://pkg.go.dev/github.com/nxadm/tail#section-documentation).
 
 ## Installing
 

@@ -1,7 +1,15 @@
+# Version v1.4.11
+* Bump fsnotify to v1.6.0. Should fix some issues.
+
+# Version v1.4.9
+* Bump fsnotify to v1.5.1 fixes issue #28, hpcloud/tail#90.
+* PR #27: "Add timeout to tests"by @kokes++. Also timeout on FreeBSD.
+* PR #29: "Use temp directory for tests, instead of relative" by @ches++.
+
 # Version v1.4.7-v1.4.8
 * Documentation updates.
 * Small linter cleanups.
-* Added example in test. 
+* Added example in test.
 
 # Version v1.4.6
 
