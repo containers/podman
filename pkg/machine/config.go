@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/containers/storage/pkg/homedir"
+	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
 )
 
@@ -135,6 +136,24 @@ type VM interface {
 	Start(name string, opts StartOptions) error
 	State(bypass bool) (Status, error)
 	Stop(name string, opts StopOptions) error
+}
+
+func GetLock(name string, vmtype VMType) (*lockfile.LockFile, error) {
+	// FIXME: there's a painful amount of `GetConfDir` calls scattered
+	// across the code base.  This should be done once and stored
+	// somewhere instead.
+	vmConfigDir, err := GetConfDir(vmtype)
+	if err != nil {
+		return nil, err
+	}
+
+	lockPath := filepath.Join(vmConfigDir, name+".lock")
+	lock, err := lockfile.GetLockFile(lockPath)
+	if err != nil {
+		return nil, fmt.Errorf("creating lockfile for VM: %w", err)
+	}
+
+	return lock, nil
 }
 
 type DistributionDownload interface {

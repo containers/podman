@@ -125,6 +125,12 @@ func (p *QEMUVirtualization) LoadVMByName(name string) (machine.VM, error) {
 		return nil, err
 	}
 
+	lock, err := machine.GetLock(vm.Name, vmtype)
+	if err != nil {
+		return nil, err
+	}
+	vm.lock = lock
+
 	return vm, nil
 }
 

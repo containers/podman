@@ -24,6 +24,7 @@ import (
 	"github.com/containers/podman/v4/pkg/strongunits"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
+	"github.com/containers/storage/pkg/lockfile"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
 	vfRest "github.com/crc-org/vfkit/pkg/rest"
 	"github.com/docker/go-units"
@@ -77,6 +78,9 @@ type MacMachine struct {
 	LogPath     machine.VMFile
 	GvProxyPid  machine.VMFile
 	GvProxySock machine.VMFile
+
+	// Used at runtime for serializing write operations
+	lock *lockfile.LockFile
 }
 
 // setGVProxyInfo sets the VM's gvproxy pid and socket files
@@ -353,6 +357,9 @@ func (m *MacMachine) Remove(name string, opts machine.RemoveOptions) (string, fu
 		files []string
 	)
 
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
 	vmState, err := m.Vfkit.state()
 	if err != nil {
 		return "", nil, err
@@ -403,6 +410,10 @@ func (m *MacMachine) writeConfig() error {
 
 func (m *MacMachine) Set(name string, opts machine.SetOptions) ([]error, error) {
 	var setErrors []error
+
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
 	vmState, err := m.State(false)
 	if err != nil {
 		return nil, err
@@ -526,6 +537,9 @@ func (m *MacMachine) addVolumesToVfKit() error {
 
 func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 	var ignitionSocket *machine.VMFile
+
+	m.lock.Lock()
+	defer m.lock.Unlock()
 
 	st, err := m.State(false)
 	if err != nil {
@@ -680,6 +694,9 @@ func (m *MacMachine) State(_ bool) (machine.Status, error) {
 }
 
 func (m *MacMachine) Stop(name string, opts machine.StopOptions) error {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
 	vmState, err := m.State(false)
 	if err != nil {
 		return err
@@ -718,6 +735,13 @@ func (m *MacMachine) loadFromFile() (*MacMachine, error) {
 	if err := loadMacMachineFromJSON(jsonPath, &mm); err != nil {
 		return nil, err
 	}
+
+	lock, err := machine.GetLock(mm.Name, vmtype)
+	if err != nil {
+		return nil, err
+	}
+	mm.lock = lock
+
 	return &mm, nil
 }
 

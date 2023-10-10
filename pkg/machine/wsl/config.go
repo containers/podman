@@ -71,6 +71,16 @@ func (p *WSLVirtualization) LoadVMByName(name string) (machine.VM, error) {
 	}
 
 	vm, err := readAndMigrate(configPath, name)
+	if err != nil {
+		return nil, err
+	}
+
+	lock, err := machine.GetLock(vm.Name, vmtype)
+	if err != nil {
+		return nil, err
+	}
+	vm.lock = lock
+
 	return vm, err
 }
 
