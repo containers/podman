@@ -33,7 +33,7 @@ env:
     DEBIAN_NAME: "debian-13"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20230928t004553z-f39f38d13"
+    IMAGE_SUFFIX: "c20231004t194547z-f39f38d13"
 
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
@@ -52,7 +52,7 @@ env:
     #### N/B: Required ALL of these are set for every single task.
     ####
     TEST_FLAVOR:             # int, sys, ext_svc, validate, automation, etc.
-    TEST_ENVIRON: host       # 'host', or 'container'
+    TEST_ENVIRON: host       # 'host', or 'container'.
     PODBIN_NAME: podman      # 'podman' or 'remote'
     PRIV_NAME: root          # 'root' or 'rootless'
     DISTRO_NV:               # any {PRIOR_,}{FEDORA,DEBIAN}_NAME value
@@ -367,6 +367,8 @@ alt_build_task:
       - env:
             ALT_NAME: 'Build Each Commit'
       - env:
+            # TODO: Replace with task using `winmake` to build
+            # binary and archive installation zip file.
             ALT_NAME: 'Windows Cross'
       - env:
             ALT_NAME: 'Alt Arch. x86 Cross'
@@ -397,19 +399,50 @@ win_installer_task:
       $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
     depends_on:
       - alt_build
-    ec2_instance:
+    ec2_instance: &windows
         image: "${WINDOWS_AMI}"
         type: m5.large
         region: us-east-1
         platform: windows
-    env:
-        PATH: "${PATH};C:\\ProgramData\\chocolatey\\bin"
+    env: &winenv
+        CIRRUS_WORKING_DIR: &wincwd "${LOCALAPPDATA}\\cirrus-ci-build"
         CIRRUS_SHELL: powershell
+        PATH: "${PATH};C:\\ProgramData\\chocolatey\\bin"
+        CI_DESIRED_DATABASE: ""
+        DISTRO_NV: "windows"
+        PRIV_NAME: "rootless"
         # Fake version, we are only testing the installer functions, so version doesn't matter
         WIN_INST_VER: 9.9.9
-        CIRRUS_WORKING_DIR: "${LOCALAPPDATA}\\cirrus-ci-build"
-    install_script: '.\contrib\cirrus\win-installer-install.ps1'
-    main_script: '.\contrib\cirrus\win-installer-main.ps1'
+    # It's HIGHLY desireable to use the same binary throughout CI.  Otherwise, if
+    # there's a toolchain or build-environment specific problem, it can be incredibly
+    # difficult (and non-obvious) to debug.
+    clone_script: &winclone |
+        $ErrorActionPreference = 'Stop'
+        $ProgressPreference = 'SilentlyContinue'
+        New-Item -ItemType Directory -Force -Path "$ENV:CIRRUS_WORKING_DIR"
+        Set-Location "$ENV:CIRRUS_WORKING_DIR"
+        $uri = "${ENV:ART_URL}/Windows Cross/repo/repo.tbz"
+        Write-Host "Downloading $uri"
+        For($i = 0;;) {
+            Try {
+                Invoke-WebRequest -UseBasicParsing -ErrorAction Stop -OutFile "repo.tbz2" `
+                  -Uri "$uri"
+                Break
+            } Catch {
+                if (++$i -gt 6) {
+                    throw $_.Exception
+                }
+                Write-Host "Download failed - retrying:" $_.Exception.Response.StatusCode
+                Start-Sleep -Seconds 10
+            }
+        }
+        arc unarchive repo.tbz2 .\
+        if ($LASTEXITCODE -ne 0) {
+            throw "Unarchive repo.tbz2 failed"
+            Exit 1
+        }
+        Get-ChildItem -Path .\repo
+    main_script: ".\\repo\\contrib\\cirrus\\win-installer-main.ps1"
 
 
 # Confirm building the remote client, natively on a Mac OS-X VM.
@@ -585,32 +618,6 @@ compose_test_task:
     always: *logs_artifacts
 
 
-# Execute the podman integration tests on all primary platforms and release
-windows_smoke_test_task:
-    name: "Windows Smoke Test"
-    alias: windows_smoke_test
-    # Only run for non-docs/copr PRs and non-release branch builds
-    # and never for tags.  Docs: ./contrib/cirrus/CIModes.md
-    only_if: >-
-        $CIRRUS_TAG == '' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
-        $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
-    depends_on:
-      - alt_build
-    ec2_instance:
-        image: "${WINDOWS_AMI}"
-        type: m5zn.metal
-        region: us-east-1
-        platform: windows
-    env:
-        PATH: "${PATH};C:\\ProgramData\\chocolatey\\bin"
-        CIRRUS_SHELL: powershell
-        # Fake version, we are only testing the installer functions, so version doesn't matter
-        CIRRUS_WORKING_DIR: "${LOCALAPPDATA}\\Temp\\cirrus-ci-build"
-    main_script: 'contrib/cirrus/win-podman-machine-main.ps1'
-
-
 # versions, as root, without involving the podman-remote client.
 local_integration_test_task: &local_integration_test_task
     # Integration-test task name convention:
@@ -723,7 +730,7 @@ podman_machine_task:
         region: us-east-1
     env:
       EC2_INST_TYPE: "m5zn.metal"  # Bare-metal instance is required
-      TEST_FLAVOR: "machine"
+      TEST_FLAVOR: "machine-linux"
       PRIV_NAME: "rootless"  # intended use-case
       DISTRO_NV: "${FEDORA_NAME}"
       VM_IMAGE_NAME: "${FEDORA_AMI}"
@@ -748,7 +755,7 @@ podman_machine_aarch64_task:
     ec2_instance:
         <<: *standard_build_ec2_aarch64
     env:
-        TEST_FLAVOR: "machine"
+        TEST_FLAVOR: "machine-linux"
         EC2_INST_TYPE: c6g.metal
         PRIV_NAME: "rootless"  # intended use-case
         DISTRO_NV: "${FEDORA_AARCH64_NAME}"
@@ -758,6 +765,41 @@ podman_machine_aarch64_task:
     setup_script: *setup
     main_script: *main
     always: *int_logs_artifacts
+
+
+podman_machine_windows_task:
+    name: *std_name_fmt
+    alias: podman_machine_windows
+    # TODO: These tests are new and mostly fail.  Disable all failures impacting overall CI status
+    # until the tests, scripts, and environment stabalize.
+    allow_failures: $CI == $CI
+    # Only run for non-docs/copr PRs and non-release branch builds
+    # and never for tags.  Docs: ./contrib/cirrus/CIModes.md
+    only_if: >-
+        $CIRRUS_TAG == '' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
+        $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
+        $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
+    depends_on:
+      - alt_build
+      - build
+      - win_installer
+      - local_integration_test
+      - remote_integration_test
+      - container_integration_test
+      - rootless_integration_test
+    ec2_instance:
+        <<: *windows
+        type: m5zn.metal
+        platform: windows
+    env: *winenv
+    matrix:
+      - env:
+          TEST_FLAVOR: "machine-wsl"
+      - env:
+          TEST_FLAVOR: "machine-hyperv"
+    clone_script: *winclone
+    main_script: ".\\repo\\contrib\\cirrus\\win-podman-machine-main.ps1"
 
 
 # Always run subsequent to integration tests.  While parallelism is lost
@@ -994,7 +1036,6 @@ success_task:
         - osx_alt_build
         - freebsd_alt_build
         - win_installer
-        - windows_smoke_test
         - docker-py_test
         - unit_test
         - apiv2_test
@@ -1005,6 +1046,7 @@ success_task:
         - rootless_integration_test
         - podman_machine
         - podman_machine_aarch64
+        - podman_machine_windows
         - local_system_test
         - local_system_test_aarch64
         - remote_system_test
