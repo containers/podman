@@ -1,12 +1,14 @@
 package utils
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/containers/common/libimage"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
 	storageTransport "github.com/containers/image/v5/storage"
@@ -16,6 +18,9 @@ import (
 	api "github.com/containers/podman/v4/pkg/api/types"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
+	"github.com/docker/distribution/registry/api/errcode"
+	"github.com/docker/docker/pkg/jsonmessage"
+	"github.com/sirupsen/logrus"
 )
 
 // NormalizeToDockerHub normalizes the specified nameOrID to Docker Hub if the
@@ -101,4 +106,101 @@ func GetImage(r *http.Request, name string) (*libimage.Image, error) {
 		return nil, err
 	}
 	return image, err
+}
+
+type pullResult struct {
+	images []*libimage.Image
+	err    error
+}
+
+func CompatPull(ctx context.Context, w http.ResponseWriter, runtime *libpod.Runtime, reference string, pullPolicy config.PullPolicy, pullOptions *libimage.PullOptions) {
+	progress := make(chan types.ProgressProperties)
+	pullOptions.Progress = progress
+
+	pullResChan := make(chan pullResult)
+	go func() {
+		pulledImages, err := runtime.LibimageRuntime().Pull(ctx, reference, pullPolicy, pullOptions)
+		pullResChan <- pullResult{images: pulledImages, err: err}
+	}()
+
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(true)
+
+	flush := func() {
+		if flusher, ok := w.(http.Flusher); ok {
+			flusher.Flush()
+		}
+	}
+
+	statusWritten := false
+	writeStatusCode := func(code int) {
+		if !statusWritten {
+			w.WriteHeader(code)
+			w.Header().Set("Content-Type", "application/json")
+			flush()
+			statusWritten = true
+		}
+	}
+
+loop: // break out of for/select infinite loop
+	for {
+		report := jsonmessage.JSONMessage{}
+		report.Progress = &jsonmessage.JSONProgress{}
+		select {
+		case e := <-progress:
+			writeStatusCode(http.StatusOK)
+			switch e.Event {
+			case types.ProgressEventNewArtifact:
+				report.Status = "Pulling fs layer"
+			case types.ProgressEventRead:
+				report.Status = "Downloading"
+				report.Progress.Current = int64(e.Offset)
+				report.Progress.Total = e.Artifact.Size
+				report.ProgressMessage = report.Progress.String()
+			case types.ProgressEventSkipped:
+				report.Status = "Already exists"
+			case types.ProgressEventDone:
+				report.Status = "Download complete"
+			}
+			report.ID = e.Artifact.Digest.Encoded()[0:12]
+			if err := enc.Encode(report); err != nil {
+				logrus.Warnf("Failed to json encode error %q", err.Error())
+			}
+			flush()
+		case pullRes := <-pullResChan:
+			err := pullRes.err
+			if err != nil {
+				var errcd errcode.ErrorCoder
+				if errors.As(err, &errcd) {
+					writeStatusCode(errcd.ErrorCode().Descriptor().HTTPStatusCode)
+				} else {
+					writeStatusCode(http.StatusInternalServerError)
+				}
+				msg := err.Error()
+				report.Error = &jsonmessage.JSONError{
+					Message: msg,
+				}
+				report.ErrorMessage = msg
+			} else {
+				pulledImages := pullRes.images
+				if len(pulledImages) > 0 {
+					img := pulledImages[0].ID()
+					report.Status = "Download complete"
+					report.ID = img[0:12]
+				} else {
+					msg := "internal error: no images pulled"
+					report.Error = &jsonmessage.JSONError{
+						Message: msg,
+					}
+					report.ErrorMessage = msg
+					writeStatusCode(http.StatusInternalServerError)
+				}
+			}
+			if err := enc.Encode(report); err != nil {
+				logrus.Warnf("Failed to json encode error %q", err.Error())
+			}
+			flush()
+			break loop // break out of for/select infinite loop
+		}
+	}
 }
