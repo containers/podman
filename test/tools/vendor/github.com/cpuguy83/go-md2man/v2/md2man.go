@@ -9,8 +9,10 @@ import (
 	"github.com/cpuguy83/go-md2man/v2/md2man"
 )
 
-var inFilePath = flag.String("in", "", "Path to file to be processed (default: stdin)")
-var outFilePath = flag.String("out", "", "Path to output processed file (default: stdout)")
+var (
+	inFilePath  = flag.String("in", "", "Path to file to be processed (default: stdin)")
+	outFilePath = flag.String("out", "", "Path to output processed file (default: stdout)")
+)
 
 func main() {
 	var err error
