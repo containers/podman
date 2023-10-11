@@ -1019,6 +1019,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     type: boolean
 	//     default: false
 	//   - in: query
+	//     name: compatMode
+	//     description: "Return the same JSON payload as the Docker-compat endpoint."
+	//     type: boolean
+	//     default: false
+	//   - in: query
 	//     name: Arch
 	//     description: Pull image for the specified architecture.
 	//     type: string
