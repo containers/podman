@@ -468,8 +468,6 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 
 	// Go through named volumes and add them.
 	// If they don't exist they will be created using basic options.
-	// Maintain an array of them - we need to lock them later.
-	ctrNamedVolumes := make([]*Volume, 0, len(ctr.config.NamedVolumes))
 	for _, vol := range ctr.config.NamedVolumes {
 		isAnonymous := false
 		if vol.Name == "" {
@@ -479,9 +477,8 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 			isAnonymous = true
 		} else {
 			// Check if it already exists
-			dbVol, err := r.state.Volume(vol.Name)
+			_, err := r.state.Volume(vol.Name)
 			if err == nil {
-				ctrNamedVolumes = append(ctrNamedVolumes, dbVol)
 				// The volume exists, we're good
 				continue
 			} else if !errors.Is(err, define.ErrNoSuchVolume) {
@@ -536,12 +533,10 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 			volOptions = append(volOptions, WithVolumeNoChown())
 		}
 
-		newVol, err := r.newVolume(ctx, false, volOptions...)
+		_, err = r.newVolume(ctx, false, volOptions...)
 		if err != nil {
 			return nil, fmt.Errorf("creating named volume %q: %w", vol.Name, err)
 		}
-
-		ctrNamedVolumes = append(ctrNamedVolumes, newVol)
 	}
 
 	switch ctr.config.LogDriver {
@@ -563,20 +558,6 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		ctr.config.Mounts = append(ctr.config.Mounts, ctr.config.ShmDir)
 	}
 
-	// Lock all named volumes we are adding ourself to, to ensure we can't
-	// use a volume being removed.
-	volsLocked := make(map[string]bool)
-	for _, namedVol := range ctrNamedVolumes {
-		toLock := namedVol
-		// Ensure that we don't double-lock a named volume that is used
-		// more than once.
-		if volsLocked[namedVol.Name()] {
-			continue
-		}
-		volsLocked[namedVol.Name()] = true
-		toLock.lock.Lock()
-		defer toLock.lock.Unlock()
-	}
 	// Add the container to the state
 	// TODO: May be worth looking into recovering from name/ID collisions here
 	if ctr.config.Pod != "" {
