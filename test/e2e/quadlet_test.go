@@ -764,6 +764,7 @@ BOGUS=foo
 		Entry("Kube - Working Directory already in Service", "workingdir-service.kube", 0, ""),
 		Entry("Kube - global args", "globalargs.kube", 0, ""),
 		Entry("Kube - Containers Conf Modules", "containersconfmodule.kube", 0, ""),
+		Entry("Kube - Service Type=oneshot", "oneshot.kube", 0, ""),
 
 		Entry("Network - Basic", "basic.network", 0, ""),
 		Entry("Network - Disable DNS", "disable-dns.network", 0, ""),

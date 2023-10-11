@@ -1063,9 +1063,17 @@ func ConvertKube(kube *parser.UnitFile, names map[string]string, isUser bool) (*
 	// Need the containers filesystem mounted to start podman
 	service.Add(UnitGroup, "RequiresMountsFor", "%t/containers")
 
-	service.Setv(ServiceGroup,
-		"Type", "notify",
-		"NotifyAccess", "all")
+	// Allow users to set the Service Type to oneshot to allow resources only kube yaml
+	serviceType, ok := service.Lookup(ServiceGroup, "Type")
+	if ok && serviceType != "notify" && serviceType != "oneshot" {
+		return nil, fmt.Errorf("invalid service Type '%s'", serviceType)
+	}
+
+	if serviceType != "oneshot" {
+		service.Setv(ServiceGroup,
+			"Type", "notify",
+			"NotifyAccess", "all")
+	}
 
 	if !kube.HasKey(ServiceGroup, "SyslogIdentifier") {
 		service.Set(ServiceGroup, "SyslogIdentifier", "%N")
