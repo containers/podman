@@ -28,14 +28,16 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		Reference  string `schema:"reference"`
-		OS         string `schema:"OS"`
-		Arch       string `schema:"Arch"`
-		Variant    string `schema:"Variant"`
-		TLSVerify  bool   `schema:"tlsVerify"`
 		AllTags    bool   `schema:"allTags"`
+		CompatMode bool   `schema:"compatMode"`
 		PullPolicy string `schema:"policy"`
 		Quiet      bool   `schema:"quiet"`
+		Reference  string `schema:"reference"`
+		TLSVerify  bool   `schema:"tlsVerify"`
+		// Platform fields below:
+		Arch    string `schema:"Arch"`
+		OS      string `schema:"OS"`
+		Variant string `schema:"Variant"`
 	}{
 		TLSVerify:  true,
 		PullPolicy: "always",
@@ -43,6 +45,11 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
+		return
+	}
+
+	if query.Quiet && query.CompatMode {
+		utils.InternalServerError(w, errors.New("'quiet' and 'compatMode' cannot be used simultaneously"))
 		return
 	}
 
@@ -101,6 +108,11 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 			report.ID = image.ID()
 		}
 		utils.WriteResponse(w, http.StatusOK, report)
+		return
+	}
+
+	if query.CompatMode {
+		utils.CompatPull(r.Context(), w, runtime, query.Reference, pullPolicy, pullOptions)
 		return
 	}
 

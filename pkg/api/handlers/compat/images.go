@@ -15,7 +15,6 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/filters"
 	"github.com/containers/image/v5/manifest"
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/api/handlers"
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
@@ -25,10 +24,8 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
-	"github.com/docker/distribution/registry/api/errcode"
 	docker "github.com/docker/docker/api/types"
 	dockerContainer "github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/go-connections/nat"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
@@ -253,11 +250,6 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-type pullResult struct {
-	images []*libimage.Image
-	err    error
-}
-
 func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	// 200 no error
 	// 404 repo does not exist or no read access
@@ -309,99 +301,7 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	progress := make(chan types.ProgressProperties)
-	pullOptions.Progress = progress
-
-	pullResChan := make(chan pullResult)
-	go func() {
-		pulledImages, err := runtime.LibimageRuntime().Pull(r.Context(), possiblyNormalizedName, config.PullPolicyAlways, pullOptions)
-		pullResChan <- pullResult{images: pulledImages, err: err}
-	}()
-
-	enc := json.NewEncoder(w)
-	enc.SetEscapeHTML(true)
-
-	flush := func() {
-		if flusher, ok := w.(http.Flusher); ok {
-			flusher.Flush()
-		}
-	}
-
-	statusWritten := false
-	writeStatusCode := func(code int) {
-		if !statusWritten {
-			w.WriteHeader(code)
-			w.Header().Set("Content-Type", "application/json")
-			flush()
-			statusWritten = true
-		}
-	}
-
-loop: // break out of for/select infinite loop
-	for {
-		report := jsonmessage.JSONMessage{}
-		report.Progress = &jsonmessage.JSONProgress{}
-		select {
-		case e := <-progress:
-			writeStatusCode(http.StatusOK)
-			switch e.Event {
-			case types.ProgressEventNewArtifact:
-				report.Status = "Pulling fs layer"
-			case types.ProgressEventRead:
-				report.Status = "Downloading"
-				report.Progress.Current = int64(e.Offset)
-				report.Progress.Total = e.Artifact.Size
-				report.ProgressMessage = report.Progress.String()
-			case types.ProgressEventSkipped:
-				report.Status = "Already exists"
-			case types.ProgressEventDone:
-				report.Status = "Download complete"
-			}
-			report.ID = e.Artifact.Digest.Encoded()[0:12]
-			if err := enc.Encode(report); err != nil {
-				logrus.Warnf("Failed to json encode error %q", err.Error())
-			}
-			flush()
-		case pullRes := <-pullResChan:
-			err := pullRes.err
-			if err != nil {
-				var errcd errcode.ErrorCoder
-				if errors.As(err, &errcd) {
-					writeStatusCode(errcd.ErrorCode().Descriptor().HTTPStatusCode)
-				} else {
-					writeStatusCode(http.StatusInternalServerError)
-				}
-				msg := err.Error()
-				report.Error = &jsonmessage.JSONError{
-					Message: msg,
-				}
-				report.ErrorMessage = msg
-			} else {
-				pulledImages := pullRes.images
-				if len(pulledImages) > 0 {
-					img := pulledImages[0].ID()
-					if utils.IsLibpodRequest(r) {
-						report.Status = "Pull complete"
-					} else {
-						report.Status = "Download complete"
-					}
-					report.ID = img[0:12]
-				} else {
-					msg := "internal error: no images pulled"
-					report.Error = &jsonmessage.JSONError{
-						Message: msg,
-					}
-					report.ErrorMessage = msg
-					writeStatusCode(http.StatusInternalServerError)
-				}
-			}
-			if err := enc.Encode(report); err != nil {
-				logrus.Warnf("Failed to json encode error %q", err.Error())
-			}
-			flush()
-			break loop // break out of for/select infinite loop
-		}
-	}
+	utils.CompatPull(r.Context(), w, runtime, possiblyNormalizedName, config.PullPolicyAlways, pullOptions)
 }
 
 func GetImage(w http.ResponseWriter, r *http.Request) {
