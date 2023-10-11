@@ -102,7 +102,7 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true" \
     # when invoking podman.
     _run_podman_remote 125 info
     is "$output" \
-       "Cannot connect to Podman. Please verify.*dial tcp.*connection refused" \
+       "OS: .*provider:.*Cannot connect to Podman. Please verify.*dial tcp.*connection refused" \
        "podman info, without active service"
 
     # Start service. Now podman info should work fine. The %%-remote*
