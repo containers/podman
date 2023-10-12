@@ -1067,10 +1067,10 @@ Valid options for `[Image]` are listed below:
 | AllTags=true                        | --all-tags                                      |
 | Arch=aarch64                        | --arch=aarch64                                  |
 | AuthFile=/etc/registry/auth\.json   | --authfile=/etc/registry/auth\.json             |
-| CertDir=/etc/registery/certs        | --cert-dir=/etc/registery/certs                 |
+| CertDir=/etc/registry/certs        | --cert-dir=/etc/registry/certs                   |
 | ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                         |
 | Creds=myname\:mypassword            | --creds=myname\:mypassword                      |
-| DecryptionKey=/etc/registery\.key   | --decryption-key=/etc/registery\.key            |
+| DecryptionKey=/etc/registry\.key   | --decryption-key=/etc/registry\.key              |
 | GlobalArgs=--log-level=debug        | --log-level=debug                               |
 | Image=quay.io/centos/centos\:latest | podman image pull quay.io/centos/centos\:latest |
 | OS=windows                          | --os=windows                                    |

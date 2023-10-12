@@ -47,7 +47,7 @@ var (
 var (
 	void struct{}
 	// Key: Extension
-	// Value: Processing order for resource naming dependecies
+	// Value: Processing order for resource naming dependencies
 	supportedExtensions = map[string]int{
 		".container": 3,
 		".volume":    2,
