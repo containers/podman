@@ -1181,8 +1181,9 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    default: 5
 	//  - in: query
 	//    name: ps_args
-	//    type: string
-	//    default:
+	//    type: array
+	//    items:
+	//       type: string
 	//    description: |
 	//      arguments to pass to ps such as aux.
 	// produces:
