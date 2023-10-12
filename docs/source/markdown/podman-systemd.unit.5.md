@@ -64,11 +64,12 @@ TimeoutStartSec=900
 By default, the `Type` field of the `Service` section of the Quadlet file does not need to be set.
 Quadlet will set it to `notify` for `.container` and `.kube` files and to `oneshot` for `.volume`, `.network` and `.image` files.
 
-However, the value may be explicitly set to `oneshot` for `.container` and `.kube` files when the no containers are expected
+However, `Type` may be explicitly set to `oneshot` for `.container` and `.kube` files when no containers are expected
 to run once `podman` exits.
 
 Examples for such cases:
-- `.container` file with an image that exit after their entrypoint has finished
+- `.container` file with an image that exits after their entrypoint has finished
+``
 - `.kube` file pointing to a Kubernetes Yaml file that does not define any containers. E.g. PVCs only
 
 ### Enabling unit files
