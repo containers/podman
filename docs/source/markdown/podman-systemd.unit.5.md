@@ -59,6 +59,19 @@ Adding the following snippet to a Quadlet file extends the systemd timeout to 15
 TimeoutStartSec=900
 ```
 
+### Service Type
+
+By default, the `Type` field of the `Service` section of the Quadlet file does not need to be set.
+Quadlet will set it to `notify` for `.container` and `.kube` files and to `oneshot` for `.volume`, `.network` and `.image` files.
+
+However, `Type` may be explicitly set to `oneshot` for `.container` and `.kube` files when no containers are expected
+to run once `podman` exits.
+
+Examples for such cases:
+- `.container` file with an image that exits after their entrypoint has finished
+``
+- `.kube` file pointing to a Kubernetes Yaml file that does not define any containers. E.g. PVCs only
+
 ### Enabling unit files
 
 The services created by Podman are considered transient by systemd, which means they don't have the same
