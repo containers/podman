@@ -80,29 +80,6 @@ type MachineVM struct {
 	lock *lockfile.LockFile
 }
 
-func (v *MachineVM) setLock() error {
-	if v.lock != nil {
-		return nil
-	}
-
-	// FIXME: there's a painful amount of `GetConfDir` calls scattered
-	// across the code base.  This should be done once and stored
-	// somewhere instead.
-	vmConfigDir, err := machine.GetConfDir(vmtype)
-	if err != nil {
-		return err
-	}
-
-	lockPath := filepath.Join(vmConfigDir, v.Name+".lock")
-	lock, err := lockfile.GetLockFile(lockPath)
-	if err != nil {
-		return fmt.Errorf("creating lockfile for VM: %w", err)
-	}
-
-	v.lock = lock
-	return nil
-}
-
 type Monitor struct {
 	//	Address portion of the qmp monitor (/tmp/tmp.sock)
 	Address machine.VMFile
@@ -360,9 +337,6 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 	// The setting(s) that failed to be applied will have its errors returned in setErrors
 	var setErrors []error
 
-	if err := v.setLock(); err != nil {
-		return nil, err
-	}
 	v.lock.Lock()
 	defer v.lock.Unlock()
 
@@ -596,9 +570,6 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	defaultBackoff := 500 * time.Millisecond
 	maxBackoffs := 6
 
-	if err := v.setLock(); err != nil {
-		return err
-	}
 	v.lock.Lock()
 	defer v.lock.Unlock()
 
@@ -929,9 +900,6 @@ func (v *MachineVM) VMPid() (int, error) {
 
 // Stop uses the qmp monitor to call a system_powerdown
 func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
-	if err := v.setLock(); err != nil {
-		return err
-	}
 	v.lock.Lock()
 	defer v.lock.Unlock()
 
@@ -1154,9 +1122,6 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 		files []string
 	)
 
-	if err := v.setLock(); err != nil {
-		return "", nil, err
-	}
 	v.lock.Lock()
 	defer v.lock.Unlock()
 

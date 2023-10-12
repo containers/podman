@@ -22,6 +22,7 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/wsl/wutil"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage/pkg/homedir"
+	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"
@@ -300,6 +301,8 @@ type MachineVM struct {
 	Version int
 	// Whether to use user-mode networking
 	UserModeNetworking bool
+	// Used at runtime for serializing write operations
+	lock *lockfile.LockFile
 }
 
 type ExitCodeError struct {
@@ -1061,6 +1064,9 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 	// The setting(s) that failed to be applied will have its errors returned in setErrors
 	var setErrors []error
 
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
 	if opts.Rootful != nil && v.Rootful != *opts.Rootful {
 		err := v.setRootful(*opts.Rootful)
 		if err != nil {
@@ -1118,6 +1124,9 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 }
 
 func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
 	if v.isRunning() {
 		return machine.ErrVMAlreadyRunning
 	}
@@ -1406,6 +1415,9 @@ func isSystemdRunning(dist string) (bool, error) {
 }
 
 func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
 	dist := toDist(v.Name)
 
 	wsl, err := isWSLRunning(dist)
@@ -1528,6 +1540,9 @@ func readWinProxyTid(v *MachineVM) (uint32, uint32, string, error) {
 //nolint:cyclop
 func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, func() error, error) {
 	var files []string
+
+	v.lock.Lock()
+	defer v.lock.Unlock()
 
 	if v.isRunning() {
 		if !opts.Force {

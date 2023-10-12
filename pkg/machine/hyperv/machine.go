@@ -21,6 +21,7 @@ import (
 	"github.com/containers/podman/v4/pkg/strongunits"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
+	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
 )
 
@@ -66,6 +67,8 @@ type HyperVMachine struct {
 	LastUp time.Time
 	// GVProxy will write its PID here
 	GvProxyPid machine.VMFile
+	// Used at runtime for serializing write operations
+	lock *lockfile.LockFile
 }
 
 // addNetworkAndReadySocketsToRegistry adds the Network and Ready sockets to the
@@ -358,6 +361,9 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 		files    []string
 		diskPath string
 	)
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
 	vmm := hypervctl.NewVirtualMachineManager()
 	vm, err := vmm.GetMachine(m.Name)
 	if err != nil {
@@ -400,6 +406,10 @@ func (m *HyperVMachine) Set(name string, opts machine.SetOptions) ([]error, erro
 		cpuChanged, memoryChanged bool
 		setErrors                 []error
 	)
+
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
 	vmm := hypervctl.NewVirtualMachineManager()
 	// Considering this a hard return if we cannot lookup the machine
 	vm, err := vmm.GetMachine(m.Name)
@@ -476,6 +486,9 @@ func (m *HyperVMachine) SSH(name string, opts machine.SSHOptions) error {
 }
 
 func (m *HyperVMachine) Start(name string, opts machine.StartOptions) error {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
 	vmm := hypervctl.NewVirtualMachineManager()
 	vm, err := vmm.GetMachine(m.Name)
 	if err != nil {
@@ -536,6 +549,9 @@ func (m *HyperVMachine) State(_ bool) (machine.Status, error) {
 }
 
 func (m *HyperVMachine) Stop(name string, opts machine.StopOptions) error {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
 	vmm := hypervctl.NewVirtualMachineManager()
 	vm, err := vmm.GetMachine(m.Name)
 	if err != nil {
@@ -582,6 +598,13 @@ func (m *HyperVMachine) loadFromFile() (*HyperVMachine, error) {
 		}
 		return nil, err
 	}
+
+	lock, err := machine.GetLock(mm.Name, vmtype)
+	if err != nil {
+		return nil, err
+	}
+	mm.lock = lock
+
 	vmm := hypervctl.NewVirtualMachineManager()
 	vm, err := vmm.GetMachine(m.Name)
 	if err != nil {
