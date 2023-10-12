@@ -15,7 +15,7 @@ Note: you must not have any machines defined before running tests
 1. $env:CONTAINERS_MACHINE_PROVIDER="hyperv"
 1. `./winmake localmachine`
 
-Note: To run specfic test files, add the test files to the end of the winmake command:
+Note: To run specific test files, add the test files to the end of the winmake command:
 
 `./winmake localmachine "basic_test.go start_test.go"`
 
@@ -24,7 +24,7 @@ Note: To run specfic test files, add the test files to the end of the winmake co
 1. Build and copy win-sshproxy into bin/
 1. `./winmake localmachine`
 
-Note: To run specfic test files, add the test files to the end of the winmake command:
+Note: To run specific test files, add the test files to the end of the winmake command:
 
 `./winmake localmachine "basic_test.go start_test.go"`
 

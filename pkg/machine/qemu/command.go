@@ -12,7 +12,7 @@ import (
 type QemuCmd []string
 
 // NewQemuBuilder creates a new QemuCmd object that we will build on top of,
-// starting with the qemu binary, architecture specific options, and propogated
+// starting with the qemu binary, architecture specific options, and propagated
 // proxy and SSL settings
 func NewQemuBuilder(binary string, options []string) QemuCmd {
 	q := QemuCmd{binary}
