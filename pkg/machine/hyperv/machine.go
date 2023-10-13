@@ -203,11 +203,25 @@ func (m *HyperVMachine) readAndSplitIgnition() error {
 func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	var (
 		key string
+		err error
 	)
 
-	if err := m.addNetworkAndReadySocketsToRegistry(); err != nil {
+	// cleanup half-baked files if init fails at any point
+	callbackFuncs := machine.InitCleanup()
+	defer callbackFuncs.CleanIfErr(&err)
+	go callbackFuncs.CleanOnSignal()
+
+	callbackFuncs.Add(m.ImagePath.Delete)
+	callbackFuncs.Add(m.ConfigPath.Delete)
+	callbackFuncs.Add(m.unregisterMachine)
+
+	if err = m.addNetworkAndReadySocketsToRegistry(); err != nil {
 		return false, err
 	}
+	callbackFuncs.Add(func() error {
+		m.removeNetworkAndReadySocketsFromRegistry()
+		return nil
+	})
 
 	m.IdentityPath = util.GetIdentityPath(m.Name)
 
@@ -233,13 +247,14 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	callbackFuncs.Add(m.removeSystemConnections)
 
 	if len(opts.IgnitionPath) < 1 {
-		var err error
 		key, err = machine.CreateSSHKeys(m.IdentityPath)
 		if err != nil {
 			return false, err
 		}
+		callbackFuncs.Add(m.removeSSHKeys)
 	}
 
 	m.ResourceConfig = machine.ResourceConfig{
@@ -258,6 +273,7 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 		}
 		return false, os.WriteFile(m.IgnitionFile.GetPath(), inputIgnition, 0644)
 	}
+	callbackFuncs.Add(m.IgnitionFile.Delete)
 
 	if err := m.writeConfig(); err != nil {
 		return false, err
@@ -268,13 +284,33 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	if err := m.resizeDisk(strongunits.GiB(opts.DiskSize)); err != nil {
+	if err = m.resizeDisk(strongunits.GiB(opts.DiskSize)); err != nil {
 		return false, err
 	}
 	// The ignition file has been written. We now need to
 	// read it so that we can put it into key-value pairs
 	err = m.readAndSplitIgnition()
 	return err == nil, err
+}
+
+func (m *HyperVMachine) unregisterMachine() error {
+	vmm := hypervctl.NewVirtualMachineManager()
+	vm, err := vmm.GetMachine(m.Name)
+	if err != nil {
+		logrus.Error(err)
+	}
+	return vm.Remove("")
+}
+
+func (m *HyperVMachine) removeSSHKeys() error {
+	if err := os.Remove(fmt.Sprintf("%s.pub", m.IdentityPath)); err != nil {
+		logrus.Error(err)
+	}
+	return os.Remove(m.IdentityPath)
+}
+
+func (m *HyperVMachine) removeSystemConnections() error {
+	return machine.RemoveConnections(m.Name, fmt.Sprintf("%s-root", m.Name))
 }
 
 func (m *HyperVMachine) Inspect() (*machine.InspectInfo, error) {

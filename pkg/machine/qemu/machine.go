@@ -249,7 +249,14 @@ RequiredBy=default.target
 func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	var (
 		key string
+		err error
 	)
+
+	// cleanup half-baked files if init fails at any point
+	callbackFuncs := machine.InitCleanup()
+	defer callbackFuncs.CleanIfErr(&err)
+	go callbackFuncs.CleanOnSignal()
+
 	v.IdentityPath = util.GetIdentityPath(v.Name)
 	v.Rootful = opts.Rootful
 
@@ -262,12 +269,13 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	callbackFuncs.Add(imagePath.Delete)
 
 	// Assign values about the download
 	v.ImagePath = *imagePath
 	v.ImageStream = strm.String()
 
-	if err := v.addMountsToVM(opts); err != nil {
+	if err = v.addMountsToVM(opts); err != nil {
 		return false, err
 	}
 
@@ -276,7 +284,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	// Add location of bootable image
 	v.CmdLine.SetBootableImage(v.getImageFile())
 
-	if err := machine.AddSSHConnectionsToPodmanSocket(
+	if err = machine.AddSSHConnectionsToPodmanSocket(
 		v.UID,
 		v.Port,
 		v.IdentityPath,
@@ -286,23 +294,25 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	); err != nil {
 		return false, err
 	}
+	callbackFuncs.Add(v.removeSystemConnections)
 
 	// Write the JSON file
-	if err := v.writeConfig(); err != nil {
+	if err = v.writeConfig(); err != nil {
 		return false, fmt.Errorf("writing JSON file: %w", err)
 	}
+	callbackFuncs.Add(v.ConfigPath.Delete)
 
 	// User has provided ignition file so keygen
 	// will be skipped.
 	if len(opts.IgnitionPath) < 1 {
-		var err error
 		key, err = machine.CreateSSHKeys(v.IdentityPath)
 		if err != nil {
 			return false, err
 		}
+		callbackFuncs.Add(v.removeSSHKeys)
 	}
 	// Run arch specific things that need to be done
-	if err := v.prepare(); err != nil {
+	if err = v.prepare(); err != nil {
 		return false, err
 	}
 	originalDiskSize, err := getDiskSize(v.getImageFile())
@@ -310,7 +320,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	if err := v.resizeDisk(opts.DiskSize, originalDiskSize>>(10*3)); err != nil {
+	if err = v.resizeDisk(opts.DiskSize, originalDiskSize>>(10*3)); err != nil {
 		return false, err
 	}
 
@@ -329,7 +339,20 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	}
 
 	err = v.writeIgnitionConfigFile(opts, key)
+	callbackFuncs.Add(v.IgnitionFile.Delete)
+
 	return err == nil, err
+}
+
+func (v *MachineVM) removeSSHKeys() error {
+	if err := os.Remove(fmt.Sprintf("%s.pub", v.IdentityPath)); err != nil {
+		logrus.Error(err)
+	}
+	return os.Remove(v.IdentityPath)
+}
+
+func (v *MachineVM) removeSystemConnections() error {
+	return machine.RemoveConnections(v.Name, fmt.Sprintf("%s-root", v.Name))
 }
 
 func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {

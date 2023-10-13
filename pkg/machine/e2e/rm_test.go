@@ -74,7 +74,6 @@ var _ = Describe("podman machine rm", func() {
 	})
 
 	It("machine rm --save-keys, --save-ignition, --save-image", func() {
-
 		i := new(initMachine)
 		session, err := mb.setCmd(i.withImagePath(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
@@ -120,6 +119,5 @@ var _ = Describe("podman machine rm", func() {
 		}
 		_, err = os.Stat(img)
 		Expect(err).ToNot(HaveOccurred())
-
 	})
 })

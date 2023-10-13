@@ -192,7 +192,15 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 	var (
 		key          string
 		virtiofsMnts []machine.VirtIoFs
+		err          error
 	)
+
+	// cleanup half-baked files if init fails at any point
+	callbackFuncs := machine.InitCleanup()
+	defer callbackFuncs.CleanIfErr(&err)
+	go callbackFuncs.CleanOnSignal()
+
+	callbackFuncs.Add(m.ConfigPath.Delete)
 	dataDir, err := machine.GetDataDir(machine.AppleHvVirt)
 	if err != nil {
 		return false, err
@@ -211,6 +219,7 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	callbackFuncs.Add(imagePath.Delete)
 
 	// Set the values for imagePath and strm
 	m.ImagePath = *imagePath
@@ -220,6 +229,8 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	callbackFuncs.Add(logPath.Delete)
+
 	m.LogPath = *logPath
 	runtimeDir, err := m.getRuntimeDir()
 	if err != nil {
@@ -232,11 +243,11 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 	}
 	m.ReadySocket = *readySocket
 
-	if err := m.setGVProxyInfo(runtimeDir); err != nil {
+	if err = m.setGVProxyInfo(runtimeDir); err != nil {
 		return false, err
 	}
 
-	if err := m.setVfkitInfo(cfg, m.ReadySocket); err != nil {
+	if err = m.setVfkitInfo(cfg, m.ReadySocket); err != nil {
 		return false, err
 	}
 
@@ -252,7 +263,7 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 	}
 	m.Port = sshPort
 
-	if err := m.addMountsToVM(opts, &virtiofsMnts); err != nil {
+	if err = m.addMountsToVM(opts, &virtiofsMnts); err != nil {
 		return false, err
 	}
 
@@ -267,22 +278,23 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	callbackFuncs.Add(m.removeSystemConnections)
 
 	logrus.Debugf("resizing disk to %d GiB", opts.DiskSize)
-	if err := m.resizeDisk(strongunits.GiB(opts.DiskSize)); err != nil {
+	if err = m.resizeDisk(strongunits.GiB(opts.DiskSize)); err != nil {
 		return false, err
 	}
 
-	if err := m.writeConfig(); err != nil {
+	if err = m.writeConfig(); err != nil {
 		return false, err
 	}
 
 	if len(opts.IgnitionPath) < 1 {
-		var err error
 		key, err = machine.CreateSSHKeys(m.IdentityPath)
 		if err != nil {
 			return false, err
 		}
+		callbackFuncs.Add(m.removeSSHKeys)
 	}
 
 	if len(opts.IgnitionPath) > 0 {
@@ -294,7 +306,20 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 	}
 	// TODO Ignition stuff goes here
 	err = m.writeIgnitionConfigFile(opts, key, &virtiofsMnts)
+	callbackFuncs.Add(m.IgnitionFile.Delete)
+
 	return err == nil, err
+}
+
+func (m *MacMachine) removeSSHKeys() error {
+	if err := os.Remove(fmt.Sprintf("%s.pub", m.IdentityPath)); err != nil {
+		logrus.Error(err)
+	}
+	return os.Remove(m.IdentityPath)
+}
+
+func (m *MacMachine) removeSystemConnections() error {
+	return machine.RemoveConnections(m.Name, fmt.Sprintf("%s-root", m.Name))
 }
 
 func (m *MacMachine) Inspect() (*machine.InspectInfo, error) {
