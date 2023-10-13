@@ -14,12 +14,12 @@ const (
 	start vmState = 2
 	// Stops the job temporarily. The intention is to subsequently restart the job with 'Start'. It might be possible to
 	// enter the 'Service' state while suspended. (This is job-specific.)
-	suspend vmState = 3
+	suspend vmState = 3 //nolint: unused
 	// Stops the job cleanly, saves data, preserves the state, and shuts down all underlying processes'
 	// in an orderly manner.
-	terminate vmState = 4
+	terminate vmState = 4 //nolint: unused
 	//Terminates the job immediately with no requirement to save data or preserve the state.
-	kill vmState = 5
+	kill vmState = 5 //nolint: unused
 )
 
 type EnabledState uint16

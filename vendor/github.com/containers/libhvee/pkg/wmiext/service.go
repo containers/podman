@@ -199,7 +199,7 @@ func (s *Service) GetObject(objectPath string) (instance *Instance, err error) {
 		uintptr(0),                             // [in]  IWbemContext     *pCtx,
 		uintptr(unsafe.Pointer(&pObject)),      // [out] IWbemClassObject **ppObject,
 		uintptr(0))                             // [out] IWbemCallResult  **ppCallResult)
-	if res < 0 {
+	if int(res) < 0 {
 		// returns WBEM_E_PROVIDER_NOT_FOUND when no entry found
 		return nil, ole.NewError(res)
 	}
@@ -239,7 +239,7 @@ func (s *Service) CreateInstanceEnum(className string) (*Enum, error) {
 		uintptr(flags),                     // [in]  long                 lFlags,
 		uintptr(0),                         // [in]  IWbemContext         *pCtx,
 		uintptr(unsafe.Pointer(&pEnum)))    // [out] IEnumWbemClassObject **ppEnum)
-	if res < 0 {
+	if int(res) < 0 {
 		return nil, ole.NewError(res)
 	}
 
@@ -277,7 +277,7 @@ func (s *Service) ExecMethod(className string, methodName string, inParams *Inst
 		uintptr(unsafe.Pointer(inParams.object)), // [in]  IWbemClassObject *pInParams,
 		uintptr(unsafe.Pointer(&outParams)),      // [out] IWbemClassObject **ppOutParams,
 		uintptr(0))                               // [out] IWbemCallResult  **ppCallResult)
-	if res < 0 {
+	if int(res) < 0 {
 		return nil, ole.NewError(res)
 	}
 

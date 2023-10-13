@@ -14,6 +14,7 @@ import (
 	"unsafe"
 
 	"github.com/go-ole/go-ole"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -353,7 +354,12 @@ func (i *Instance) GetAsAny(name string) (interface{}, CIMTYPE_ENUMERATION, WBEM
 	if err != nil {
 		return nil, cimType, flavor, err
 	}
-	defer variant.Clear()
+
+	defer func() {
+		if err := variant.Clear(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	// Since there is no type information only perform the stock conversion
 	result := convertToGenericValue(variant)
@@ -367,7 +373,11 @@ func (i *Instance) GetAsString(name string) (value string, err error) {
 	if err != nil || variant == nil {
 		return "", err
 	}
-	defer variant.Clear()
+	defer func() {
+		if err := variant.Clear(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	// TODO: replace with something better
 	return fmt.Sprintf("%v", convertToGenericValue(variant)), nil
@@ -449,7 +459,11 @@ func (i *Instance) Next() (done bool, name string, value interface{}, cimType CI
 	done, name, variant, cimType, flavor, err = i.NextAsVariant()
 
 	if err == nil && !done {
-		defer variant.Clear()
+		defer func() {
+			if err := variant.Clear(); err != nil {
+				logrus.Error(err)
+			}
+		}()
 		value = convertToGenericValue(variant)
 	}
 
@@ -475,7 +489,7 @@ func (i *Instance) NextAsVariant() (bool, string, *ole.VARIANT, CIMTYPE_ENUMERAT
 		uintptr(unsafe.Pointer(&variant)), // [out]           VARIANT *pVal,
 		uintptr(unsafe.Pointer(&cimType)), // [out, optional] CIMTYPE *pType,
 		uintptr(unsafe.Pointer(&flavor)))  // [out, optional] long    *plFlavor
-	if res < 0 {
+	if int(res) < 0 {
 		return false, "", nil, cimType, flavor, ole.NewError(res)
 	}
 
@@ -483,7 +497,11 @@ func (i *Instance) NextAsVariant() (bool, string, *ole.VARIANT, CIMTYPE_ENUMERAT
 		return true, "", nil, cimType, flavor, nil
 	}
 
-	defer ole.SysFreeString((*int16)(unsafe.Pointer(strName)))
+	defer func() {
+		if err := ole.SysFreeString((*int16)(unsafe.Pointer(strName))); err != nil {
+			logrus.Error(err)
+		}
+	}()
 	name := ole.BstrToString(strName)
 
 	return false, name, &variant, cimType, flavor, nil
@@ -501,7 +519,11 @@ func (i *Instance) GetAllProperties() (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	defer i.EndEnumeration()
+	defer func() {
+		if err := i.EndEnumeration(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	for {
 		var name string
