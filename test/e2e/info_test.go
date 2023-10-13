@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"runtime"
 	"strconv"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -239,5 +240,17 @@ var _ = Describe("Podman Info", func() {
 		// We do this by comparing the number of locks after (plus 1), to the number of locks before.
 		// Don't check absolute numbers because there is a decent chance of contamination, containers that were never removed properly, etc.
 		Expect(free1).To(Equal(free2 + 1))
+	})
+
+	It("Podman info: check for client information when no system service", func() {
+		// the output for this information is not really something we can marshall
+		want := runtime.GOOS + "/" + runtime.GOARCH
+		podmanTest.StopRemoteService()
+		SkipIfNotRemote("Specifically testing a failed remote connection")
+		info := podmanTest.Podman([]string{"info"})
+		info.WaitWithDefaultTimeout()
+		Expect(info.OutputToString()).To(ContainSubstring(want))
+		Expect(info).ToNot(ExitCleanly())
+		podmanTest.StartRemoteService() // Start service again so teardown runs clean
 	})
 })

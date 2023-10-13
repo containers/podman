@@ -24,6 +24,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"sigs.k8s.io/yaml"
 )
 
 // HelpTemplate is the help template for podman commands
@@ -296,6 +297,15 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 
 	// Prep the engines
 	if _, err := registry.NewImageEngine(cmd, args); err != nil {
+		// Note: this is gross, but it is the hand we are dealt
+		if registry.IsRemote() && errors.As(err, &bindings.ConnectError{}) && cmd.Name() == "info" && cmd.Parent() == cmd.Root() {
+			clientDesc, err := getClientInfo()
+			// we eat the error here. if this fails, they just don't any client info
+			if err == nil {
+				b, _ := yaml.Marshal(clientDesc)
+				fmt.Println(string(b))
+			}
+		}
 		return err
 	}
 	if _, err := registry.NewContainerEngine(cmd, args); err != nil {
