@@ -8,6 +8,7 @@ import (
 	"reflect"
 
 	"github.com/go-ole/go-ole"
+	"github.com/sirupsen/logrus"
 )
 
 type MethodExecutor struct {
@@ -61,7 +62,13 @@ func (e *MethodExecutor) Out(name string, value interface{}) *MethodExecutor {
 		if e.err != nil || variant == nil {
 			return e
 		}
-		defer variant.Clear()
+
+		defer func() {
+			if err := variant.Clear(); err != nil {
+				logrus.Error(err)
+			}
+		}()
+
 		if _, ok := value.(**Instance); ok && cimType == CIM_REFERENCE {
 			path := variant.ToString()
 			result, e.err = e.service.GetObject(path)

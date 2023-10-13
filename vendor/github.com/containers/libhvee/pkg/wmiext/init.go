@@ -107,7 +107,7 @@ func initSecurity() {
 		uintptr(0),                           // [in, optional] void                        *pAuthList,
 		uintptr(EOAC_NONE),                   // [in]           DWORD                       dwCapabilities,
 		uintptr(0))                           // [in, optional] void                        *pReserved3
-	if res < 0 {
+	if int(res) < 0 {
 		logrus.Errorf("Unable to initialize COM security: %s", ole.NewError(res).Error())
 	}
 }

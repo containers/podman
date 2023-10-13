@@ -306,11 +306,6 @@ func getService(_ *wmiext.Service) (*wmiext.Service, error) {
 	return wmiext.NewLocalService(HyperVNamespace)
 }
 
-func (vm *VirtualMachine) list() ([]*HyperVConfig, error) {
-
-	return nil, ErrNotImplemented
-}
-
 func (vm *VirtualMachine) GetConfig(diskPath string) (*HyperVConfig, error) {
 	var (
 		diskSize uint64
