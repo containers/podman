@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/containers/common/libimage/manifests"
+	"github.com/containers/common/libimage/platform"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/retry"
 	"github.com/containers/image/v5/copy"
@@ -239,7 +240,7 @@ func (r *Runtime) newCopier(options *CopyOptions) (*copier, error) {
 
 	c.systemContext.DockerArchiveAdditionalTags = options.dockerArchiveAdditionalTags
 
-	c.systemContext.OSChoice, c.systemContext.ArchitectureChoice, c.systemContext.VariantChoice = NormalizePlatform(options.OS, options.Architecture, options.Variant)
+	c.systemContext.OSChoice, c.systemContext.ArchitectureChoice, c.systemContext.VariantChoice = platform.Normalize(options.OS, options.Architecture, options.Variant)
 
 	if options.SignaturePolicyPath != "" {
 		c.systemContext.SignaturePolicyPath = options.SignaturePolicyPath
