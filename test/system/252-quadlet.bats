@@ -1139,4 +1139,111 @@ EOF
     run_podman image rm --ignore $image_for_test
 }
 
+@test "quadlet - kube oneshot" {
+    local quadlet_tmpdir=$PODMAN_TMPDIR/quadlets
+    local test_random_string=$(random_string)
+
+    local quadlet_kube_volume_name=test-volume_$test_random_string
+    local quadlet_kube_volume_yaml_file=$PODMAN_TMPDIR/volume_$test_random_string.yaml
+    cat > $quadlet_kube_volume_yaml_file <<EOF
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: $quadlet_kube_volume_name
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+EOF
+
+    local quadlet_kube_volume_unit_file=$PODMAN_TMPDIR/volume_$test_random_string.kube
+    cat > $quadlet_kube_volume_unit_file <<EOF
+[Kube]
+Yaml=$quadlet_kube_volume_yaml_file
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EOF
+
+    local pod_name="test_pod_$test_random_string"
+    local container_name="test"
+    local quadlet_kube_pod_yaml_file=$PODMAN_TMPDIR/pod_$test_random_string.yaml
+    cat > $quadlet_kube_pod_yaml_file <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test
+  name: $pod_name
+spec:
+  containers:
+  - command:
+    - "sh"
+    args:
+    - "-c"
+    - "echo STARTED CONTAINER; top -b"
+    image: $IMAGE
+    name: $container_name
+    volumeMounts:
+    - name: storage
+      mountPath: /mnt/storage
+  volumes:
+  - name: storage
+    persistentVolumeClaim:
+      claimName: $quadlet_kube_volume_name
+EOF
+
+    # Use the same directory for all quadlet files to make sure later steps access previous ones
+    mkdir $quadlet_tmpdir
+
+    # Have quadlet create the systemd unit file for the kube based volume unit
+    run_quadlet "$quadlet_kube_volume_unit_file" "$quadlet_tmpdir"
+    # Save the volume service name since the variable will be overwritten
+    local volume_service=$QUADLET_SERVICE_NAME
+
+    # Volume should not exist
+    run_podman 1 volume exists ${quadlet_kube_volume_name}
+
+    local quadlet_kube_pod_unit_file=$PODMAN_TMPDIR/pod_$test_random_string.kube
+    cat > $quadlet_kube_pod_unit_file <<EOF
+[Kube]
+Yaml=$quadlet_kube_pod_yaml_file
+
+[Unit]
+Requires=$volume_service
+After=$volume_service
+EOF
+
+    # Have quadlet create the systemd unit file for the pod unit
+    run_quadlet "$quadlet_kube_pod_unit_file" "$quadlet_tmpdir"
+    local pod_service=$QUADLET_SERVICE_NAME
+
+    service_setup $pod_service
+
+    # Volume system unit should be active
+    run systemctl show --property=ActiveState "$volume_service"
+    assert "$output" = "ActiveState=active" \
+           "quadlet - kube oneshot: volume should be active via dependency but is not"
+
+    # Volume should exist
+    run_podman volume exists ${quadlet_kube_volume_name}
+
+    run_podman container inspect --format "{{(index .Mounts 0).Type}}" $pod_name-$container_name
+    assert "$output" = "volume" \
+           "quadlet - kube oneshot: volume .Type"
+
+    run_podman container inspect --format "{{(index .Mounts 0).Name}}" $pod_name-$container_name
+    assert "$output" = "$quadlet_kube_volume_name" \
+           "quadlet - kube oneshot: volume .Name"
+
+    # Shutdown the service and remove the volume
+    service_cleanup $pod_service inactive
+    run_podman volume rm $quadlet_kube_volume_name
+    run_podman rmi --ignore $(pause_image)
+}
+
 # vim: filetype=sh

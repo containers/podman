@@ -67,6 +67,9 @@ Quadlet will set it to `notify` for `.container` and `.kube` files and to `onesh
 However, `Type` may be explicitly set to `oneshot` for `.container` and `.kube` files when no containers are expected
 to run once `podman` exits.
 
+When setting `Type=oneshot`, it is recommended to also set `RemainAfterExit=yes` to prevent the service state
+from becoming `inactive (dead)`
+
 Examples for such cases:
 - `.container` file with an image that exits after their entrypoint has finished
 ``
