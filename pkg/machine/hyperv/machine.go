@@ -772,8 +772,9 @@ func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingStat
 	c := cmd.Cmd(gvproxyBinary)
 
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
-		c.Stdout = os.Stdout
-		c.Stderr = os.Stderr
+		if err := logCommandToFile(c, "gvproxy.log"); err != nil {
+			return "", 0, err
+		}
 	}
 
 	logrus.Debugf("Starting gvproxy with command: %s %v", gvproxyBinary, c.Args)
@@ -809,8 +810,9 @@ func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingStat
 	fsCmd := exec.Command(executable, args...)
 
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
-		fsCmd.Stdout = os.Stdout
-		fsCmd.Stderr = os.Stderr
+		if err := logCommandToFile(fsCmd, "podman-machine-server9.log"); err != nil {
+			return "", 0, err
+		}
 	}
 
 	if err := fsCmd.Start(); err != nil {
@@ -820,6 +822,25 @@ func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingStat
 	logrus.Infof("Started podman 9p server as PID %d", fsCmd.Process.Pid)
 
 	return forwardSock, state, nil
+}
+
+func logCommandToFile(c *exec.Cmd, filename string) error {
+	dir, err := machine.GetDataDir(machine.HyperVVirt)
+	if err != nil {
+		return fmt.Errorf("obtain machine dir: %w", err)
+	}
+	path := filepath.Join(dir, filename)
+	logrus.Infof("Going to log to %s", path)
+	log, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("create log file: %w", err)
+	}
+	defer log.Close()
+
+	c.Stdout = log
+	c.Stderr = log
+
+	return nil
 }
 
 func (m *HyperVMachine) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.GvproxyCommand, string, machine.APIForwardingState) {

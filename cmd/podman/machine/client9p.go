@@ -106,16 +106,12 @@ func client9p(portNum uint32, mountPath string) error {
 		cmd := exec.Command("mount", "-t", "9p", "-o", "trans=fd,rfdno=3,wfdno=3,version=9p2000.L", "9p", mountPath)
 		cmd.ExtraFiles = []*os.File{vsock}
 
-		err := cmd.Run()
-		output, outErr := cmd.CombinedOutput()
-		switch {
-		case outErr != nil:
-			logrus.Errorf("Unable to obtain output of mount command: %v", err)
-		case err == nil:
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			err = fmt.Errorf("running mount: %w\nOutput: %s", err, string(output))
+		} else {
 			logrus.Debugf("Mount output: %s", string(output))
 			logrus.Infof("Mounted directory %s using 9p", mountPath)
-		default:
-			err = fmt.Errorf("running mount: %w\nOutput: %s", err, string(output))
 		}
 
 		errChan <- err
