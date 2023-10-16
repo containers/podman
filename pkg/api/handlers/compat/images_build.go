@@ -140,6 +140,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Timestamp               int64    `schema:"timestamp"`
 		Ulimits                 string   `schema:"ulimits"`
 		UnsetEnvs               []string `schema:"unsetenv"`
+		UnsetLabels             []string `schema:"unsetlabel"`
 		Volumes                 []string `schema:"volume"`
 	}{
 		Dockerfile:       "Dockerfile",
@@ -711,6 +712,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		SystemContext:                  systemContext,
 		Target:                         query.Target,
 		UnsetEnvs:                      query.UnsetEnvs,
+		UnsetLabels:                    query.UnsetLabels,
 	}
 
 	for _, platformSpec := range query.Platform {
