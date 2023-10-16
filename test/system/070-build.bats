@@ -219,8 +219,11 @@ FROM $IMAGE
 RUN echo $rand_content > /$rand_filename
 EOF
 
+    # "TMPDIR=relative-path" tests buildah PR #5084. Prior to that, podman failed in RUN:
+    #   error running container: checking permissions on "sub-tmp-dir/buildah2917655141": ENOENT
     cd $PODMAN_TMPDIR
-    run_podman build -t build_test -f ./reldir/Containerfile --format=docker $tmpdir
+    mkdir sub-tmp-dir
+    TMPDIR=sub-tmp-dir run_podman build -t build_test -f ./reldir/Containerfile --format=docker $tmpdir
     is "$output" ".*COMMIT" "COMMIT seen in log"
 
     run_podman run --rm build_test cat /$rand_filename
