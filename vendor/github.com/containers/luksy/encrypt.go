@@ -246,8 +246,8 @@ func EncryptV2(password []string, cipher string, payloadSectorSize int) ([]byte,
 		return nil, nil, -1, errors.New("internal error")
 	}
 	iterations := IterationsPBKDF2(tuningSalt, len(mkey), hasher)
-	timeCost := 1
-	threadsCost := 4
+	timeCost := 16
+	threadsCost := 16
 	memoryCost := MemoryCostArgon2(tuningSalt, len(mkey), timeCost, threadsCost)
 	priority := V2JSONKeyslotPriorityNormal
 	var stripes [][]byte

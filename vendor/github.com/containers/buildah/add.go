@@ -456,9 +456,11 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		// Iterate through every item that matched the glob.
 		itemsCopied := 0
 		for _, glob := range localSourceStat.Globbed {
-			rel, err := filepath.Rel(contextDir, glob)
-			if err != nil {
-				return fmt.Errorf("computing path of %q relative to %q: %w", glob, contextDir, err)
+			rel := glob
+			if filepath.IsAbs(glob) {
+				if rel, err = filepath.Rel(contextDir, glob); err != nil {
+					return fmt.Errorf("computing path of %q relative to %q: %w", glob, contextDir, err)
+				}
 			}
 			if strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
 				return fmt.Errorf("possible escaping context directory error: %q is outside of %q", glob, contextDir)

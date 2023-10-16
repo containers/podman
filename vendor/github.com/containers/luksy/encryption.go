@@ -417,7 +417,20 @@ func roundUpToMultiple(i, factor int) int {
 	if i < 0 {
 		return 0
 	}
+	if factor < 1 {
+		return i
+	}
 	return i + ((factor - (i % factor)) % factor)
+}
+
+func roundDownToMultiple(i, factor int) int {
+	if i < 0 {
+		return 0
+	}
+	if factor < 1 {
+		return i
+	}
+	return i - (i % factor)
 }
 
 func hasherByName(name string) (func() hash.Hash, error) {
@@ -436,13 +449,39 @@ func hasherByName(name string) (func() hash.Hash, error) {
 }
 
 type wrapper struct {
-	fn                 func(plaintext []byte) ([]byte, error)
-	blockSize          int
-	buf                []byte
-	buffered, consumed int
-	reader             io.Reader
-	eof                bool
-	writer             io.Writer
+	fn        func(plaintext []byte) ([]byte, error)
+	blockSize int
+	buf       []byte
+	buffered  int
+	processed int
+	reader    io.Reader
+	eof       bool
+	writer    io.Writer
+}
+
+func (w *wrapper) partialWrite() error {
+	if w.buffered-w.processed >= w.blockSize {
+		toProcess := roundDownToMultiple(w.buffered-w.processed, w.blockSize)
+		processed, err := w.fn(w.buf[w.processed : w.processed+toProcess])
+		if err != nil {
+			return err
+		}
+		nProcessed := copy(w.buf[w.processed:], processed)
+		w.processed += nProcessed
+	}
+	if w.processed >= w.blockSize {
+		nWritten, err := w.writer.Write(w.buf[:w.processed])
+		if err != nil {
+			return err
+		}
+		copy(w.buf, w.buf[nWritten:w.buffered])
+		w.buffered -= nWritten
+		w.processed -= nWritten
+		if w.processed != 0 {
+			return fmt.Errorf("short write: %d != %d", nWritten, nWritten+w.processed)
+		}
+	}
+	return nil
 }
 
 func (w *wrapper) Write(buf []byte) (int, error) {
@@ -451,19 +490,8 @@ func (w *wrapper) Write(buf []byte) (int, error) {
 		nBuffered := copy(w.buf[w.buffered:], buf[n:])
 		w.buffered += nBuffered
 		n += nBuffered
-		if w.buffered == len(w.buf) {
-			processed, err := w.fn(w.buf)
-			if err != nil {
-				return n, err
-			}
-			nWritten, err := w.writer.Write(processed)
-			if err != nil {
-				return n, err
-			}
-			w.buffered -= nWritten
-			if nWritten != len(processed) {
-				return n, fmt.Errorf("short write: %d != %d", nWritten, len(processed))
-			}
+		if err := w.partialWrite(); err != nil {
+			return n, err
 		}
 	}
 	return n, nil
@@ -472,66 +500,73 @@ func (w *wrapper) Write(buf []byte) (int, error) {
 func (w *wrapper) Read(buf []byte) (int, error) {
 	n := 0
 	for n < len(buf) {
-		nRead := copy(buf[n:], w.buf[w.consumed:])
-		w.consumed += nRead
-		n += nRead
-		if w.consumed == len(w.buf) && !w.eof {
-			nRead, err := w.reader.Read(w.buf)
-			w.eof = errors.Is(err, io.EOF)
-			if err != nil && !w.eof {
-				return n, err
+		if !w.eof {
+			nRead, err := w.reader.Read(w.buf[w.buffered:])
+			if err != nil {
+				if !errors.Is(err, io.EOF) {
+					w.buffered += nRead
+					return n, err
+				}
+				w.eof = true
 			}
-			if nRead != len(w.buf) && !w.eof {
-				return n, fmt.Errorf("short read: %d != %d", nRead, len(w.buf))
-			}
-			processed, err := w.fn(w.buf[:nRead])
+			w.buffered += nRead
+		}
+		if w.buffered == 0 && w.eof {
+			return n, io.EOF
+		}
+		if w.buffered-w.processed >= w.blockSize {
+			toProcess := roundDownToMultiple(w.buffered-w.processed, w.blockSize)
+			processed, err := w.fn(w.buf[w.processed : w.processed+toProcess])
 			if err != nil {
 				return n, err
 			}
-			w.buf = processed
-			w.consumed = 0
+			nProcessed := copy(w.buf[w.processed:], processed)
+			w.processed += nProcessed
+		}
+		nRead := copy(buf[n:], w.buf[:w.processed])
+		n += nRead
+		copy(w.buf, w.buf[nRead:w.buffered])
+		w.processed -= nRead
+		w.buffered -= nRead
+		if w.buffered-w.processed < w.blockSize {
+			break
 		}
 	}
-	var eof error
-	if w.consumed == len(w.buf) && w.eof {
-		eof = io.EOF
-	}
-	return n, eof
+	return n, nil
 }
 
 func (w *wrapper) Close() error {
 	if w.writer != nil {
 		if w.buffered%w.blockSize != 0 {
-			w.buffered += copy(w.buf[w.buffered:], make([]byte, roundUpToMultiple(w.buffered%w.blockSize, w.blockSize)))
+			nPadding := w.blockSize - w.buffered%w.blockSize
+			nWritten, err := w.Write(make([]byte, nPadding))
+			if err != nil {
+				return fmt.Errorf("flushing write: %v", err)
+			}
+			if nWritten < nPadding {
+				return fmt.Errorf("flushing write: %d != %d", nPadding, nWritten)
+			}
 		}
-		processed, err := w.fn(w.buf[:w.buffered])
-		if err != nil {
-			return err
-		}
-		nWritten, err := w.writer.Write(processed)
-		if err != nil {
-			return err
-		}
-		if nWritten != len(processed) {
-			return fmt.Errorf("short write: %d != %d", nWritten, len(processed))
-		}
-		w.buffered = 0
 	}
 	return nil
 }
 
 // EncryptWriter creates an io.WriteCloser which buffers writes through an
-// encryption function.  After writing a final block, the returned writer
-// should be closed.
+// encryption function, transforming and writing multiples of the blockSize.
+// After writing a final block, the returned writer should be closed.
+// If only a partial block has been written when Close() is called, a final
+// block with its length padded with zero bytes will be transformed and
+// written.
 func EncryptWriter(fn func(plaintext []byte) ([]byte, error), writer io.Writer, blockSize int) io.WriteCloser {
 	bufferSize := roundUpToMultiple(1024*1024, blockSize)
 	return &wrapper{fn: fn, blockSize: blockSize, buf: make([]byte, bufferSize), writer: writer}
 }
 
 // DecryptReader creates an io.ReadCloser which buffers reads through a
-// decryption function.  When data will no longer be read, the returned reader
-// should be closed.
+// decryption function, decrypting and returning multiples of the blockSize
+// until it reaches the end of the file.  When data will no longer be read, the
+// returned reader should be closed.
 func DecryptReader(fn func(ciphertext []byte) ([]byte, error), reader io.Reader, blockSize int) io.ReadCloser {
 	bufferSize := roundUpToMultiple(1024*1024, blockSize)
-	return &wrapper{fn: fn, blockSize: blockSize, buf: make([]byte, bufferSize), consumed: bufferSize, reader: reader}
+	return &wrapper{fn: fn, blockSize: blockSize, buf: make([]byte, bufferSize), reader: reader}
 }

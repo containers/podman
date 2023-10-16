@@ -3,13 +3,14 @@ docker_builder:
     env:
         HOME: /root
         DEBIAN_FRONTEND: noninteractive
+        CIRRUS_LOG_TIMESTAMP: true
     setup_script: |
         apt-get -q update
         apt-get -q install -y bats cryptsetup golang
         go version
         make
     unit_test_script:
-        go test -v -cover
+        go test -timeout 45m -v -cover
     defaults_script: |
         bats -f defaults ./tests
     aes_script: |

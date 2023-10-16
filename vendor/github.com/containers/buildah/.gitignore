@@ -10,3 +10,5 @@ Dockerfile*
 !/tests/conformance/**/Dockerfile*
 *.swp
 /result/
+internal/mkcw/embed/entrypoint.o
+internal/mkcw/embed/entrypoint

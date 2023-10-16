@@ -425,6 +425,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		Timestamp:               timestamp,
 		TransientMounts:         iopts.Volumes,
 		UnsetEnvs:               iopts.UnsetEnvs,
+		UnsetLabels:             iopts.UnsetLabels,
 	}
 	if iopts.Quiet {
 		options.ReportWriter = io.Discard
