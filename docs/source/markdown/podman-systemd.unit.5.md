@@ -1070,21 +1070,22 @@ particularly interesting when using special options to control image pulls.
 
 Valid options for `[Image]` are listed below:
 
-| **[Image] options**                 | **podman image pull equivalent**                |
-|-------------------------------------|-------------------------------------------------|
-| AllTags=true                        | --all-tags                                      |
-| Arch=aarch64                        | --arch=aarch64                                  |
-| AuthFile=/etc/registry/auth\.json   | --authfile=/etc/registry/auth\.json             |
-| CertDir=/etc/registry/certs        | --cert-dir=/etc/registry/certs                   |
-| ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                         |
-| Creds=myname\:mypassword            | --creds=myname\:mypassword                      |
-| DecryptionKey=/etc/registry\.key   | --decryption-key=/etc/registry\.key              |
-| GlobalArgs=--log-level=debug        | --log-level=debug                               |
-| Image=quay.io/centos/centos\:latest | podman image pull quay.io/centos/centos\:latest |
-| OS=windows                          | --os=windows                                    |
-| PodmanArgs=--os=linux               | --os=linux                                      |
-| TLSVerify=false                     | --tls-verify=false                              |
-| Variant=arm/v7                      | --variant=arm/v7                                |
+| **[Image] options**                    | **podman image pull equivalent**                 |
+|----------------------------------------|--------------------------------------------------|
+| AllTags=true                           | --all-tags                                       |
+| Arch=aarch64                           | --arch=aarch64                                   |
+| AuthFile=/etc/registry/auth\.json      | --authfile=/etc/registry/auth\.json              |
+| CertDir=/etc/registry/certs            | --cert-dir=/etc/registry/certs                   |
+| ContainersConfModule=/etc/nvd\.conf    | --module=/etc/nvd\.conf                          |
+| Creds=myname\:mypassword               | --creds=myname\:mypassword                       |
+| DecryptionKey=/etc/registry\.key       | --decryption-key=/etc/registry\.key              |
+| GlobalArgs=--log-level=debug           | --log-level=debug                                |
+| Image=quay\.io/centos/centos:latest    | podman image pull quay.io/centos/centos\:latest  |
+| ImageTag=quay\.io/centos/centos:latest | Use this name when resolving `.image` references |
+| OS=windows                             | --os=windows                                     |
+| PodmanArgs=--os=linux                  | --os=linux                                       |
+| TLSVerify=false                        | --tls-verify=false                               |
+| Variant=arm/v7                         | --variant=arm/v7                                 |
 
 ### `AllTags=`
 
@@ -1149,6 +1150,19 @@ performance and robustness reasons.
 
 The format of the name is the same as when passed to `podman pull`. So, it supports using
 `:tag` or digests to guarantee the specific image version.
+
+### `ImageTag=`
+
+Actual FQIN of the referenced `Image`.
+Only meaningful when source is a file or directory archive.
+
+For example, an image saved into a `docker-archive` with the following Podman command:
+
+`podman image save --format docker-archive --output /tmp/archive-file.tar quay.io/podman/stable:latest`
+
+requires setting
+- `Image=docker-archive:/tmp/archive-file.tar`
+- `ImageTag=quay.io/podman/stable:latest`
 
 ### `OS=`
 

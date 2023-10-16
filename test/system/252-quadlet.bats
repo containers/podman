@@ -1325,4 +1325,91 @@ EOF
     run_podman rmi --ignore $(pause_image)
 }
 
+@test "quadlet - image tag" {
+    local quadlet_tmpdir=$PODMAN_TMPDIR/quadlets
+    local archive_file=$PODMAN_TMPDIR/archive-file.tar
+    local image_for_test=localhost/quadlet_image_test:$(random_string)
+
+    local quadlet_image_unit=image_test_$(random_string).image
+    local quadlet_image_file=$PODMAN_TMPDIR/$quadlet_image_unit
+    cat > $quadlet_image_file <<EOF
+[Image]
+Image=docker-archive:$archive_file
+ImageTag=$image_for_test
+EOF
+
+    local quadlet_volume_unit=image_test_$(random_string).volume
+    local quadlet_volume_file=$PODMAN_TMPDIR/$quadlet_volume_unit
+    local volume_name=systemd-$(basename $quadlet_volume_file .volume)
+    cat > $quadlet_volume_file <<EOF
+[Volume]
+Driver=image
+Image=$quadlet_image_unit
+EOF
+
+    local quadlet_container_unit=image_test_$(random_string).container
+    local quadlet_container_file=$PODMAN_TMPDIR/$quadlet_container_unit
+    cat > $quadlet_container_file <<EOF
+[Container]
+Image=$IMAGE
+Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; sleep inf"
+Volume=$quadlet_volume_unit:/vol
+EOF
+
+    # Tag the image, save it into a file and remove it
+    run_podman image tag $IMAGE $image_for_test
+    run_podman image save --format docker-archive --output $archive_file $image_for_test
+    run_podman image rm $image_for_test
+
+    # Use the same directory for all quadlet files to make sure later steps access previous ones
+    mkdir $quadlet_tmpdir
+
+    # Have quadlet create the systemd unit file for the image unit
+    run_quadlet "$quadlet_image_file" "$quadlet_tmpdir"
+    # Save the image service name since the variable will be overwritten
+    local image_service=$QUADLET_SERVICE_NAME
+
+    # Have quadlet create the systemd unit file for the volume unit
+    run_quadlet "$quadlet_volume_file" "$quadlet_tmpdir"
+    # Save the image service name since the variable will be overwritten
+    local volume_service=$QUADLET_SERVICE_NAME
+
+    # Image should not exist
+    run_podman 1 image exists ${image_for_test}
+    # Volume should not exist
+    run_podman 1 volume exists ${volume_name}
+
+    # Have quadlet create the systemd unit file for the image unit
+    run_quadlet "$quadlet_container_file" "$quadlet_tmpdir"
+    local container_service=$QUADLET_SERVICE_NAME
+    local container_name=$QUADLET_CONTAINER_NAME
+
+    service_setup $container_service
+
+    # Image system unit should be active
+    run systemctl show --property=ActiveState "$image_service"
+    assert "$output" = "ActiveState=active" \
+           "quadlet - image tag: image service ActiveState"
+
+    # Volume system unit should be active
+    run systemctl show --property=ActiveState "$volume_service"
+    assert "$output" = "ActiveState=active" \
+           "quadlet - image tag: volume service ActiveState"
+
+    # Image should exist
+    run_podman image exists ${image_for_test}
+
+    # Volume should exist
+    run_podman volume exists ${volume_name}
+
+    run_podman exec $QUADLET_CONTAINER_NAME cat /vol/home/podman/testimage-id
+    assert "$output" = $PODMAN_TEST_IMAGE_TAG \
+            "quadlet - image files: incorrect testimage-id in bound volume"
+
+    # Shutdown the service and remove the image
+    service_cleanup $container_service failed
+    run_podman image rm --ignore $image_for_test
+    run_podman rmi --ignore $(pause_image)
+}
+
 # vim: filetype=sh
