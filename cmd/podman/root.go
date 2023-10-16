@@ -21,6 +21,7 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/parallel"
 	"github.com/containers/podman/v4/version"
+	"github.com/containers/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -626,7 +627,8 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 
 func formatError(err error) string {
 	var message string
-	if errors.Is(err, define.ErrOCIRuntime) {
+	switch {
+	case errors.Is(err, define.ErrOCIRuntime):
 		// OCIRuntimeErrors include the reason for the failure in the
 		// second to last message in the error chain.
 		message = fmt.Sprintf(
@@ -634,7 +636,9 @@ func formatError(err error) string {
 			define.ErrOCIRuntime.Error(),
 			strings.TrimSuffix(err.Error(), ": "+define.ErrOCIRuntime.Error()),
 		)
-	} else {
+	case errors.Is(err, storage.ErrDuplicateName):
+		message = fmt.Sprintf("Error: %s, or use --replace to instruct Podman to do so.", err.Error())
+	default:
 		if logrus.IsLevelEnabled(logrus.TraceLevel) {
 			message = fmt.Sprintf("Error: %+v", err)
 		} else {
