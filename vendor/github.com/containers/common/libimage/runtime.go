@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/common/libimage/define"
+	"github.com/containers/common/libimage/platform"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/pkg/shortnames"
@@ -184,7 +186,7 @@ type LookupImageOptions struct {
 	Variant string
 
 	// Controls the behavior when checking the platform of an image.
-	PlatformPolicy PlatformPolicy
+	PlatformPolicy define.PlatformPolicy
 
 	// If set, do not look for items/instances in the manifest list that
 	// match the current platform but return the manifest list as is.
@@ -283,7 +285,7 @@ func (r *Runtime) LookupImage(name string, options *LookupImageOptions) (*Image,
 		options.Variant = r.systemContext.VariantChoice
 	}
 	// Normalize platform to be OCI compatible (e.g., "aarch64" -> "arm64").
-	options.OS, options.Architecture, options.Variant = NormalizePlatform(options.OS, options.Architecture, options.Variant)
+	options.OS, options.Architecture, options.Variant = platform.Normalize(options.OS, options.Architecture, options.Variant)
 
 	// Second, try out the candidates as resolved by shortnames. This takes
 	// "localhost/" prefixed images into account as well.
@@ -435,9 +437,9 @@ func (r *Runtime) lookupImageInLocalStorage(name, candidate string, namedCandida
 			return nil, nil
 		}
 		switch options.PlatformPolicy {
-		case PlatformPolicyDefault:
+		case define.PlatformPolicyDefault:
 			logrus.Debugf("%v", matchError)
-		case PlatformPolicyWarn:
+		case define.PlatformPolicyWarn:
 			logrus.Warnf("%v", matchError)
 		}
 	}
