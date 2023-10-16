@@ -14,7 +14,6 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/sirupsen/logrus"
 )
@@ -118,10 +117,4 @@ func GetRootlessPauseProcessPidPath() (string, error) {
 	// We only want a single pause process per user, so we do not want to use
 	// the tmpdir which can be changed via --tmpdir.
 	return filepath.Join(runtimeDir, "libpod", "tmp", "pause.pid"), nil
-}
-
-// WaitForPIDExit waits for a PID to exit.
-// Not implemented for Linux at this time, only for Windows.
-func WaitForPIDExit(pid uint) error {
-	return define.ErrNotImplemented
 }

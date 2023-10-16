@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 
 	"github.com/containers/storage/pkg/homedir"
-	"golang.org/x/sys/windows"
 )
 
 var errNotImplemented = errors.New("not yet implemented")
@@ -44,36 +43,4 @@ func GetRuntimeDir() (string, error) {
 // GetRootlessConfigHomeDir returns the config home directory when running as non root
 func GetRootlessConfigHomeDir() (string, error) {
 	return "", errors.New("this function is not implemented for windows")
-}
-
-// Wait until the given PID exits. Returns nil if wait was successful, errors on
-// unexpected condition (IE, pid was not valid)
-func WaitForPIDExit(pid uint) error {
-	const PROCESS_ALL_ACCESS = 0x1F0FFF
-
-	// We need to turn the PID into a Windows handle.
-	// To do this we need Windows' OpenProcess func.
-	// To get that, we need to open the kernel32 DLL.
-	kernel32, err := windows.LoadDLL("kernel32.dll")
-	if err != nil {
-		return fmt.Errorf("loading kernel32 dll: %w", err)
-	}
-
-	openProc, err := kernel32.FindProc("OpenProcess")
-	if err != nil {
-		return fmt.Errorf("loading OpenProcess API: %w", err)
-	}
-
-	handle, _, err := openProc.Call(uintptr(PROCESS_ALL_ACCESS), uintptr(1), uintptr(pid))
-	if err != nil {
-		return fmt.Errorf("converting PID to handle: %w", err)
-	}
-
-	// We can now wait for the handle.
-	_, err = windows.WaitForSingleObject(windows.Handle(handle), 0)
-	if err != nil {
-		return fmt.Errorf("waiting for handle: %w", err)
-	}
-
-	return nil
 }

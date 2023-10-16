@@ -8,11 +8,12 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/fileserver"
-	"github.com/containers/podman/v4/pkg/util"
+	psutil "github.com/shirou/gopsutil/v3/process"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -78,9 +79,20 @@ func remoteDirServer(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Wait for the given PID to exit
-	if err := util.WaitForPIDExit(uint(pid)); err != nil {
-		return err
+	p, err := psutil.NewProcess(int32(pid))
+	if err != nil {
+		return fmt.Errorf("opening gvproxy PID: %w", err)
+	}
+	for {
+		running, err := p.IsRunning()
+		if err != nil {
+			return fmt.Errorf("checking is gvproxy is dead: %w", err)
+		}
+		if !running {
+			break
+		}
+
+		time.Sleep(1 * time.Second)
 	}
 
 	logrus.Infof("Exiting cleanly as PID %d has died", pid)
