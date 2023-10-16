@@ -393,6 +393,10 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		params.Add("unsetenv", uenv)
 	}
 
+	for _, ulabel := range options.UnsetLabels {
+		params.Add("unsetlabel", ulabel)
+	}
+
 	var (
 		headers http.Header
 	)

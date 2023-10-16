@@ -543,6 +543,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 		Target:                  flags.Target,
 		TransientMounts:         flags.Volumes,
 		UnsetEnvs:               flags.UnsetEnvs,
+		UnsetLabels:             flags.UnsetLabels,
 	}
 
 	if flags.IgnoreFile != "" {

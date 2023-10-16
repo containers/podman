@@ -1617,6 +1617,12 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    items:
 	//      type: string
 	//  - in: query
+	//    name: unsetlabel
+	//    description: Unset the image label, causing the label not to be inherited from the base image.
+	//    type: array
+	//    items:
+	//      type: string
+	//  - in: query
 	//    name: volume
 	//    description: Extra volumes that should be mounted in the build container.
 	//    type: array

@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/containers/buildah/internal/tmpdir"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
@@ -79,7 +80,7 @@ func (a *AgentServer) Serve(processLabel string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	serveDir, err := os.MkdirTemp("", ".buildah-ssh-sock")
+	serveDir, err := os.MkdirTemp(tmpdir.GetTempDir(), ".buildah-ssh-sock")
 	if err != nil {
 		return "", err
 	}

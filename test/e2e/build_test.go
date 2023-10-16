@@ -39,6 +39,22 @@ var _ = Describe("Podman build", func() {
 		Expect(session).Should(ExitCleanly())
 	})
 
+	It("podman build and remove basic alpine with TMPDIR as relative", func() {
+		// preserve TMPDIR if it was originally set
+		if cacheDir, found := os.LookupEnv("TMPDIR"); found {
+			defer os.Setenv("TMPDIR", cacheDir)
+			os.Unsetenv("TMPDIR")
+		} else {
+			defer os.Unsetenv("TMPDIR")
+		}
+		// Test case described here: https://github.com/containers/buildah/pull/5084
+		os.Setenv("TMPDIR", ".")
+		podmanTest.AddImageToRWStore(ALPINE)
+		session := podmanTest.Podman([]string{"build", "--pull-never", "build/basicrun"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+	})
+
 	It("podman build with a secret from file", func() {
 		session := podmanTest.Podman([]string{"build", "-f", "build/Containerfile.with-secret", "-t", "secret-test", "--secret", "id=mysecret,src=build/secret.txt", "build/"})
 		session.WaitWithDefaultTimeout()

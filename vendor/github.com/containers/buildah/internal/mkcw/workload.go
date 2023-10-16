@@ -35,7 +35,7 @@ const (
 	// SNP is a known trusted execution environment type: AMD-SNP
 	SNP = define.SNP
 	// krun looks for its configuration JSON directly in a disk image if the last twelve bytes
-	// of the disk image are this magic  value followed by a little-endian 64-bit
+	// of the disk image are this magic value followed by a little-endian 64-bit
 	// length-of-the-configuration
 	krunMagic = "KRUN"
 )

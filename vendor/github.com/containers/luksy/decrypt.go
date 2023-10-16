@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 
@@ -11,14 +12,23 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
+// ReaderAtSeekCloser is a combination of io.ReaderAt, io.Seeker, and io.Closer,
+// which is all we really need from an encrypted file.
+type ReaderAtSeekCloser interface {
+	io.ReaderAt
+	io.Seeker
+	io.Closer
+}
+
 // Decrypt attempts to verify the specified password using information from the
 // header and read from the specified file.
 //
 // Returns a function which will decrypt payload blocks in succession, the size
 // of chunks of data that the function expects, the offset in the file where
-// the payload begins, and the size of the payload.
-func (h V1Header) Decrypt(password string, f *os.File) (func([]byte) ([]byte, error), int, int64, int64, error) {
-	st, err := f.Stat()
+// the payload begins, and the size of the payload, assuming the payload runs
+// to the end of the file.
+func (h V1Header) Decrypt(password string, f ReaderAtSeekCloser) (func([]byte) ([]byte, error), int, int64, int64, error) {
+	size, err := f.Seek(0, io.SeekEnd)
 	if err != nil {
 		return nil, -1, -1, -1, err
 	}
@@ -70,7 +80,7 @@ func (h V1Header) Decrypt(password string, f *os.File) (func([]byte) ([]byte, er
 		}
 		if bytes.Equal(mkcandidateDerived, h.MKDigest()) {
 			payloadOffset := int64(h.PayloadOffset() * V1SectorSize)
-			return decryptStream, V1SectorSize, payloadOffset, st.Size() - payloadOffset, nil
+			return decryptStream, V1SectorSize, payloadOffset, size - payloadOffset, nil
 		}
 	}
 	if activeKeys == 0 {
@@ -84,8 +94,9 @@ func (h V1Header) Decrypt(password string, f *os.File) (func([]byte) ([]byte, er
 //
 // Returns a function which will decrypt payload blocks in succession, the size
 // of chunks of data that the function expects, the offset in the file where
-// the payload begins, and the size of the payload.
-func (h V2Header) Decrypt(password string, f *os.File, j V2JSON) (func([]byte) ([]byte, error), int, int64, int64, error) {
+// the payload begins, and the size of the payload, assuming the payload runs
+// to the end of the file.
+func (h V2Header) Decrypt(password string, f ReaderAtSeekCloser, j V2JSON) (func([]byte) ([]byte, error), int, int64, int64, error) {
 	foundDigests := 0
 	for d, digest := range j.Digests {
 		if digest.Type != "pbkdf2" {
@@ -117,11 +128,11 @@ func (h V2Header) Decrypt(password string, f *os.File, j V2JSON) (func([]byte) (
 			}
 			payloadOffset = tmp
 			if segment.Size == "dynamic" {
-				st, err := f.Stat()
+				size, err := f.Seek(0, io.SeekEnd)
 				if err != nil {
 					continue
 				}
-				payloadSize = st.Size() - payloadOffset
+				payloadSize = size - payloadOffset
 			} else {
 				payloadSize, err = strconv.ParseInt(segment.Size, 10, 64)
 				if err != nil {

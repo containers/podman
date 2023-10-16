@@ -17,6 +17,7 @@ import (
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/docker"
 	"github.com/containers/buildah/internal/mkcw"
+	"github.com/containers/buildah/internal/tmpdir"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
@@ -374,7 +375,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	logrus.Debugf("layer list: %q", layers)
 
 	// Make a temporary directory to hold blobs.
-	path, err := os.MkdirTemp(os.TempDir(), define.Package)
+	path, err := os.MkdirTemp(tmpdir.GetTempDir(), define.Package)
 	if err != nil {
 		return nil, fmt.Errorf("creating temporary directory to hold layer blobs: %w", err)
 	}

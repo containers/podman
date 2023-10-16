@@ -25,7 +25,7 @@ type SevWorkloadData struct {
 // SnpWorkloadData contains the required CPU generation name.
 // https://github.com/virtee/oci2cw/blob/1502d5be33c2fa82d49aaa95781bbab2aa932781/examples/tee-config-snp.json
 type SnpWorkloadData struct {
-	Generation string `json:"gen"` // "milan" (naples=1, rome=2, milan=3, genoa/bergamo=4)
+	Generation string `json:"gen"` // "milan" (naples=1, rome=2, milan=3, genoa/bergamo/siena=4, turin=5)
 }
 
 const (
