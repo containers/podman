@@ -699,7 +699,7 @@ This key can be listed multiple times.
 
 ### `KubeDownForce=`
 
-Remove all resources when calling `podman kube down`.
+Remove all resources including volumes when calling `podman kube down`.
 Equivalent to the Podman `--force` option.
 
 ### `LogDriver=`
