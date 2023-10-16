@@ -93,9 +93,9 @@ func WithAutoRefresh() ContainerOption {
 	}
 }
 
-// PopCompletedMode will pop completed bars to the top.
-// To stop rendering bar after it has been popped, use
-// mpb.BarRemoveOnComplete() option on that bar.
+// PopCompletedMode pop completed bars out of progress container.
+// In this mode completed bars get moved to the top and stop
+// participating in rendering cycle.
 func PopCompletedMode() ContainerOption {
 	return func(s *pState) {
 		s.popCompleted = true
