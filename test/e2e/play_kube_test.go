@@ -6256,4 +6256,85 @@ EXPOSE 2004-2005/tcp`, CITEST_IMAGE)
 		Expect(inspect).Should(ExitCleanly())
 		Expect(inspect.OutputToString()).To(Equal("20"))
 	})
+
+	It("hostname should be node name when hostNetwork=true", func() {
+		netYaml := `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod
+spec:
+  hostNetwork: true
+  hostname: blah
+  containers:
+    - name: alpine
+      image: alpine
+      command:
+        - sleep
+        - "100"
+`
+
+		err := writeYaml(netYaml, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(ExitCleanly())
+
+		// Get the name of the host
+		hostname, err := os.Hostname()
+		Expect(err).ToNot(HaveOccurred())
+
+		exec := podmanTest.Podman([]string{"exec", "test-pod-alpine", "hostname"})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).Should(ExitCleanly())
+		Expect(exec.OutputToString()).To(Equal(hostname))
+
+		// Check that the UTS namespace is set to host also
+		hostUts := SystemExec("ls", []string{"-l", "/proc/self/ns/uts"})
+		Expect(hostUts).Should(ExitCleanly())
+		arr := strings.Split(hostUts.OutputToString(), " ")
+		exec = podmanTest.Podman([]string{"exec", "test-pod-alpine", "ls", "-l", "/proc/self/ns/uts"})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).Should(ExitCleanly())
+		execArr := strings.Split(exec.OutputToString(), " ")
+		Expect(execArr[len(execArr)-1]).To(ContainSubstring(arr[len(arr)-1]))
+	})
+
+	It("hostname should be pod name when hostNetwork=false", func() {
+		netYaml := `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod
+spec:
+  containers:
+    - name: alpine
+      image: alpine
+      command:
+        - sleep
+        - "100"
+`
+
+		err := writeYaml(netYaml, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(ExitCleanly())
+
+		exec := podmanTest.Podman([]string{"exec", "test-pod-alpine", "hostname"})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).Should(ExitCleanly())
+		Expect(exec.OutputToString()).To(Equal("test-pod"))
+
+		// Check that the UTS namespace is set to host also
+		hostUts := SystemExec("ls", []string{"-l", "/proc/self/ns/uts"})
+		Expect(hostUts).Should(ExitCleanly())
+		arr := strings.Split(hostUts.OutputToString(), " ")
+		exec = podmanTest.Podman([]string{"exec", "test-pod-alpine", "ls", "-l", "/proc/self/ns/uts"})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).Should(ExitCleanly())
+		execArr := strings.Split(exec.OutputToString(), " ")
+		Expect(execArr[len(execArr)-1]).To(Not(ContainSubstring(arr[len(arr)-1])))
+	})
+
 })
