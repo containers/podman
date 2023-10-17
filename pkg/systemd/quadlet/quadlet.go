@@ -90,6 +90,7 @@ const (
 	KeyIP                    = "IP"
 	KeyIP6                   = "IP6"
 	KeyImage                 = "Image"
+	KeyKubeDownForce         = "KubeDownForce"
 	KeyLabel                 = "Label"
 	KeyLogDriver             = "LogDriver"
 	KeyMask                  = "Mask"
@@ -264,6 +265,7 @@ var (
 		KeyContainersConfModule: true,
 		KeyExitCodePropagation:  true,
 		KeyGlobalArgs:           true,
+		KeyKubeDownForce:        true,
 		KeyLogDriver:            true,
 		KeyNetwork:              true,
 		KeyPodmanArgs:           true,
@@ -1139,7 +1141,14 @@ func ConvertKube(kube *parser.UnitFile, names map[string]string, isUser bool) (*
 	// Use `ExecStopPost` to make sure cleanup happens even in case of
 	// errors; otherwise containers, pods, etc. would be left behind.
 	execStop := createBasePodmanCommand(kube, KubeGroup)
-	execStop.add("kube", "down", yamlPath)
+
+	execStop.add("kube", "down")
+
+	if kubeDownForce, ok := kube.LookupBoolean(KubeGroup, KeyKubeDownForce); ok {
+		execStop.addBool("--force", kubeDownForce)
+	}
+
+	execStop.add(yamlPath)
 	service.AddCmdline(ServiceGroup, "ExecStopPost", execStop.Args)
 
 	err = handleSetWorkingDirectory(kube, service)
