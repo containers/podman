@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/user"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -23,6 +25,11 @@ const (
 	UnitDirAdmin = "/etc/containers/systemd"
 	// Directory for global Quadlet files (distro owned)
 	UnitDirDistro = "/usr/share/containers/systemd"
+
+	// Directory for global Quadlet config (sysadmin owned)
+	ConfigPathAdmin = "/etc/containers/quadlet.conf"
+	// Directory for global Quadlet config (distro owned)
+	ConfigPathDistro = "/usr/share/containers/quadlet.conf"
 
 	// Names of commonly used systemd/quadlet group names
 	ContainerGroup  = "Container"
@@ -148,8 +155,19 @@ const (
 	KeyYaml                  = "Yaml"
 )
 
+const (
+	ConfigGroupMain = "Quadlet"
+
+	ConfigKeyDirs = "Dirs"
+)
+
+const (
+	SystemUserDirLevel = 5
+)
+
 var (
-	validPortRange = regexp.Delayed(`\d+(-\d+)?(/udp|/tcp)?$`)
+	validPortRange      = regexp.Delayed(`\d+(-\d+)?(/udp|/tcp)?$`)
+	numericStringRegexp = regexp.Delayed(`^[0-9]*$`)
 
 	// Supported keys in "Container" group
 	supportedContainerKeys = map[string]bool{
@@ -1634,4 +1652,125 @@ func createBasePodmanCommand(unitFile *parser.UnitFile, groupName string) *Podma
 	}
 
 	return podman
+}
+
+func nonNumericFilter(_path string, isUser bool) bool {
+	// when running in rootless, recursive walk directories that are non numeric
+	// ignore sub dirs under the `users` directory which correspond to a user id
+	if strings.Contains(_path, filepath.Join(UnitDirAdmin, "users")) {
+		listDirUserPathLevels := strings.Split(_path, string(os.PathSeparator))
+		if len(listDirUserPathLevels) > SystemUserDirLevel {
+			if !(numericStringRegexp.MatchString(listDirUserPathLevels[SystemUserDirLevel])) {
+				return true
+			}
+		}
+	} else {
+		return true
+	}
+	return false
+}
+
+func userLevelFilter(_path string, isUser bool) bool {
+	// if quadlet generator is run rootless, do not recurse other user sub dirs
+	// if quadlet generator is run as root, ignore users sub dirs
+	if strings.Contains(_path, filepath.Join(UnitDirAdmin, "users")) {
+		if isUser {
+			return true
+		}
+	} else {
+		return true
+	}
+	return false
+}
+
+// This returns the directories where we read quadlet .container and .volumes from
+// For system generators these are in /usr/share/containers/systemd (for distro files)
+// and /etc/containers/systemd (for sysadmin files).
+// For user generators these can live in /etc/containers/systemd/users, /etc/containers/systemd/users/$UID, and $XDG_CONFIG_HOME/containers/systemd
+func getUnitDirs(rootless bool) ([]string, error) {
+	// Allow overriding source dir, this is mainly for the CI tests
+	unitDirsEnv := os.Getenv("QUADLET_UNIT_DIRS")
+	dirs := make([]string, 0)
+
+	if len(unitDirsEnv) > 0 {
+		for _, eachUnitDir := range strings.Split(unitDirsEnv, ":") {
+			if !filepath.IsAbs(eachUnitDir) {
+				return nil, fmt.Errorf("%s not a valid file path", eachUnitDir)
+			}
+			dirs = appendSubPaths(dirs, eachUnitDir, false, nil)
+		}
+		return dirs, nil
+	}
+
+	if rootless {
+		if configDir, err := os.UserConfigDir(); err != nil {
+			dirs = appendSubPaths(dirs, path.Join(configDir, "containers/systemd"), false, nil)
+		}
+		if u, err := user.Current(); err != nil {
+			dirs = appendSubPaths(dirs, filepath.Join(UnitDirAdmin, "users"), true, nonNumericFilter)
+			dirs = appendSubPaths(dirs, filepath.Join(UnitDirAdmin, "users", u.Uid), true, userLevelFilter)
+		}
+		return append(dirs, filepath.Join(UnitDirAdmin, "users")), nil
+	}
+
+	dirs = appendSubPaths(dirs, UnitDirAdmin, false, userLevelFilter)
+	return appendSubPaths(dirs, UnitDirDistro, false, nil), nil
+}
+
+func defaultConfig(isUser bool) (*parser.UnitFile, error) {
+	cfg := parser.NewUnitFile()
+
+	dirs, err := getUnitDirs(isUser)
+	if err != nil {
+		return nil, err
+	}
+	for _, dir := range dirs {
+		cfg.Add(ConfigGroupMain, ConfigKeyDirs, dir)
+	}
+	return cfg, nil
+}
+
+func appendSubPaths(dirs []string, path string, isUser bool, filterPtr func(string, bool) bool) []string {
+	_ = filepath.WalkDir(path, func(_path string, info os.DirEntry, err error) error {
+		if info == nil || info.IsDir() {
+			if filterPtr == nil || filterPtr(_path, isUser) {
+				dirs = append(dirs, _path)
+			}
+		}
+		return err
+	})
+	return dirs
+}
+
+func LoadConfig(isUser bool, overridePath string) (*parser.UnitFile, error) {
+	cfg, err := defaultConfig(isUser)
+	if err != nil {
+		return nil, err
+	}
+
+	configFiles := make([]string, 0)
+	if overridePath != "" {
+		configFiles = append(configFiles, overridePath)
+	} else {
+		if isUser {
+			if configDir, err := os.UserConfigDir(); err != nil {
+				configFiles = append(configFiles, path.Join(configDir, "containers/quadlet.conf"))
+			}
+		} else {
+			configFiles = append(configFiles, ConfigPathDistro)
+			configFiles = append(configFiles, ConfigPathAdmin)
+		}
+	}
+
+	for _, configFile := range configFiles {
+		cfgFile, err := parser.ParseUnitFile(configFile)
+		if err != nil {
+			if !errors.Is(err, os.ErrNotExist) {
+				return nil, fmt.Errorf("Can't parse config file %s: %v", configFiles, err)
+			}
+		} else {
+			cfg.Merge(cfgFile)
+		}
+	}
+	return cfg, nil
 }
