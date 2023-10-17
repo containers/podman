@@ -152,13 +152,7 @@ func NewUnitFile() *UnitFile {
 	return f
 }
 
-// Load a unit file from disk, remembering the path and filename
-func ParseUnitFile(pathName string) (*UnitFile, error) {
-	data, e := os.ReadFile(pathName)
-	if e != nil {
-		return nil, e
-	}
-
+func ParseUnitFileWithData(pathName string, data []byte) (*UnitFile, error) {
 	f := NewUnitFile()
 	f.Path = pathName
 	f.Filename = path.Base(pathName)
@@ -168,6 +162,16 @@ func ParseUnitFile(pathName string) (*UnitFile, error) {
 	}
 
 	return f, nil
+}
+
+// Load a unit file from disk, remembering the path and filename
+func ParseUnitFile(pathName string) (*UnitFile, error) {
+	data, e := os.ReadFile(pathName)
+	if e != nil {
+		return nil, e
+	}
+
+	return ParseUnitFileWithData(pathName, data)
 }
 
 func (f *UnitFile) ensureGroup(groupName string) *unitGroup {
