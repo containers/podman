@@ -4,12 +4,13 @@
 package hyperv
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/Microsoft/go-winio"
+	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/windows/registry"
@@ -255,16 +256,18 @@ func (hv *HVSockRegistryEntry) Listen() error {
 			logrus.Error(err)
 		}
 	}()
-	conn, err := listener.Accept()
-	if err != nil {
-		return err
+
+	errChan := make(chan error)
+	connChan := make(chan net.Conn)
+	go machine.ListenAndWaitOnSocket(errChan, connChan, listener)
+	conn := <-connChan
+
+	if conn != nil {
+		defer func() {
+			if err := conn.Close(); err != nil {
+				logrus.Error(err)
+			}
+		}()
 	}
-	defer func() {
-		if err := conn.Close(); err != nil {
-			logrus.Error(err)
-		}
-	}()
-	// Right now we just listen for anything down the pipe (like qemu)
-	_, err = bufio.NewReader(conn).ReadString('\n')
-	return err
+	return <-errChan
 }

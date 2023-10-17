@@ -120,7 +120,12 @@ func (p *QEMUVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, e
 		return nil, err
 	}
 
-	if err := vm.setReadySocket(); err != nil {
+	runtimeDir, err := getRuntimeDir()
+	if err != nil {
+		return nil, err
+	}
+	symlink := vm.Name + "_ready.sock"
+	if err := machine.SetSocket(&vm.ReadySocket, machine.ReadySocketPath(runtimeDir+"/podman/", vm.Name), &symlink); err != nil {
 		return nil, err
 	}
 
