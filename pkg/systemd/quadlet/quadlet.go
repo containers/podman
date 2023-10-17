@@ -156,9 +156,12 @@ const (
 )
 
 const (
-	ConfigGroupMain = "Quadlet"
+	ConfigGroupMain      = "Quadlet"
+	ConfigGroupDirPrefix = "Dir "
 
-	ConfigKeyDirs = "Dirs"
+	ConfigKeyDirs              = "Dirs"
+	ConfigKeyRequireSignatures = "RequireSignatures"
+	ConfigKeyPublicKeyDirs     = "PublicKeyDirs"
 )
 
 const (
@@ -1652,6 +1655,10 @@ func createBasePodmanCommand(unitFile *parser.UnitFile, groupName string) *Podma
 	}
 
 	return podman
+}
+
+func ConfigGroupForDir(dir string) string {
+	return ConfigGroupDirPrefix + dir
 }
 
 func nonNumericFilter(_path string, isUser bool) bool {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/ed25519"
 	"errors"
 	"flag"
 	"fmt"
@@ -107,14 +108,41 @@ func isExtSupported(filename string) bool {
 
 var seen = make(map[string]struct{})
 
-func loadUnitsFromDir(sourcePath string) ([]*parser.UnitFile, error) {
-	var prevError error
+func loadUnitsFromDir(sourcePath string, cfg *parser.UnitFile) ([]*parser.UnitFile, error) {
+	dirGroup := quadlet.ConfigGroupForDir(sourcePath)
+
+	globalRequireSignatures := cfg.LookupBooleanWithDefault(quadlet.ConfigGroupMain, quadlet.ConfigKeyRequireSignatures, false)
+	requireSignatures := cfg.LookupBooleanWithDefault(dirGroup, quadlet.ConfigKeyRequireSignatures, globalRequireSignatures)
+
+	var keys []ed25519.PublicKey
+	if requireSignatures {
+		globalKeyDirs := cfg.LookupAllArgs(quadlet.ConfigGroupMain, quadlet.ConfigKeyPublicKeyDirs)
+		localKeyDirs := cfg.LookupAllArgs(dirGroup, quadlet.ConfigKeyPublicKeyDirs)
+		keyDirs := append(globalKeyDirs, localKeyDirs...)
+		var err error
+		keys, err = loadPublicKeysFromDirs(keyDirs)
+		if err != nil {
+			return nil, err
+		}
+		if len(keys) == 0 {
+			return nil, fmt.Errorf("No public keys found for dir %s", sourcePath)
+		}
+	}
+
 	files, err := os.ReadDir(sourcePath)
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
 			return nil, err
 		}
 		return []*parser.UnitFile{}, nil
+	}
+
+	var prevError error
+	reportError := func(err error) {
+		if prevError != nil {
+			err = fmt.Errorf("%s\n%s", prevError, err)
+		}
+		prevError = err
 	}
 
 	var units []*parser.UnitFile
@@ -126,15 +154,29 @@ func loadUnitsFromDir(sourcePath string) ([]*parser.UnitFile, error) {
 
 			Debugf("Loading source unit file %s", path)
 
-			if f, err := parser.ParseUnitFile(path); err != nil {
-				err = fmt.Errorf("error loading %q, %w", path, err)
-				if prevError != nil {
-					prevError = fmt.Errorf("%s\n%s", prevError, err)
-				}
-			} else {
-				seen[name] = void
-				units = append(units, f)
+			data, e := os.ReadFile(path)
+			if e != nil {
+				reportError(fmt.Errorf("error loading %q, %w", path, err))
+				continue
 			}
+
+			if requireSignatures {
+				err = validateSignatureFor(path, data, keys)
+				if err != nil {
+					reportError(err)
+					continue
+				}
+				Debugf("Validated file %s based on signature", path)
+			}
+
+			f, err := parser.ParseUnitFileWithData(path, data)
+			if err != nil {
+				reportError(fmt.Errorf("error loading %q, %w", path, err))
+				continue
+			}
+
+			seen[name] = void
+			units = append(units, f)
 		}
 	}
 
@@ -347,7 +389,7 @@ func process() error {
 
 	var units []*parser.UnitFile
 	for _, d := range sourcePaths {
-		if result, err := loadUnitsFromDir(d); err != nil {
+		if result, err := loadUnitsFromDir(d, cfg); err != nil {
 			reportError(err)
 		} else {
 			units = append(units, result...)
