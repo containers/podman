@@ -131,8 +131,11 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 	// If requested, add container init binary
 	if s.Init {
 		initPath := s.InitPath
-		if initPath == "" && rtc != nil {
-			initPath = rtc.Engine.InitPath
+		if initPath == "" {
+			initPath, err = rtc.FindInitBinary()
+			if err != nil {
+				return nil, nil, nil, fmt.Errorf("lookup init binary: %w", err)
+			}
 		}
 		initMount, err := addContainerInitBinary(s, initPath)
 		if err != nil {
