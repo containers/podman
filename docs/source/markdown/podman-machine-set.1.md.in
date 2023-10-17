@@ -43,11 +43,16 @@ container execution. This option updates the current podman
 remote connection default if it is currently pointing at the specified
 machine name (or `podman-machine-default` if no name is specified).
 
-@@option user-mode-networking
-
 Unlike [**podman system connection default**](podman-system-connection-default.1.md)
 this option makes the API socket, if available, forward to the rootful/rootless
 socket in the VM.
+
+Note that changing this option means that all the existing containers/images/volumes, etc...
+are no longer visible with the default connection/socket. This is because the root and rootless
+users in the VM are completely separated and do not share any storage. The data however is not
+lost and you can always change this option back or use the other connection to access it.
+
+@@option user-mode-networking
 
 ## EXAMPLES
 
