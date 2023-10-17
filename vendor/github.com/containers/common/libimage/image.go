@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containerd/containerd/platforms"
+	"github.com/containers/common/libimage/platform"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
 	storageTransport "github.com/containers/image/v5/storage"
@@ -1020,4 +1022,36 @@ func getImageID(ctx context.Context, src types.ImageReference, sys *types.System
 		return "", fmt.Errorf("getting config info: %w", err)
 	}
 	return "@" + imageDigest.Encoded(), nil
+}
+
+// Checks whether the image matches the specified platform.
+// Returns
+//   - 1) a matching error that can be used for logging (or returning) what does not match
+//   - 2) a bool indicating whether architecture, os or variant were set (some callers need that to decide whether they need to throw an error)
+//   - 3) a fatal error that occurred prior to check for matches (e.g., storage errors etc.)
+func (i *Image) matchesPlatform(ctx context.Context, os, arch, variant string) (error, bool, error) {
+	if err := i.isCorrupted(""); err != nil {
+		return err, false, nil
+	}
+	inspectInfo, err := i.inspectInfo(ctx)
+	if err != nil {
+		return nil, false, fmt.Errorf("inspecting image: %w", err)
+	}
+
+	customPlatform := len(os)+len(arch)+len(variant) != 0
+
+	expected, err := platforms.Parse(platform.ToString(os, arch, variant))
+	if err != nil {
+		return nil, false, fmt.Errorf("parsing host platform: %v", err)
+	}
+	fromImage, err := platforms.Parse(platform.ToString(inspectInfo.Os, inspectInfo.Architecture, inspectInfo.Variant))
+	if err != nil {
+		return nil, false, fmt.Errorf("parsing image platform: %v", err)
+	}
+
+	if platforms.NewMatcher(expected).Match(fromImage) {
+		return nil, customPlatform, nil
+	}
+
+	return fmt.Errorf("image platform (%s) does not match the expected platform (%s)", platforms.Format(fromImage), platforms.Format(expected)), customPlatform, nil
 }
