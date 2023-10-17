@@ -148,6 +148,11 @@ export PATH := $(shell $(GO) env GOPATH)/bin:$(PATH)
 
 GOMD2MAN ?= ./test/tools/build/go-md2man
 
+# There are many possibly unexpected places where podman is used.  For example
+# by OpenWRT for routers and other similar small "edge" devices.  Testing builds
+# for otherwise non-mainstream architectures ensures we catch platform-specific
+# toolchain shenanigans early, for example:
+# https://github.com/containers/podman/issues/8782
 CROSS_BUILD_TARGETS := \
 	bin/podman.cross.linux.amd64 \
 	bin/podman.cross.linux.ppc64le \
