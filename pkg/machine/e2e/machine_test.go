@@ -77,7 +77,11 @@ var _ = BeforeSuite(func() {
 				Fail(fmt.Sprintf("unable to download machine image: %q", err))
 			}
 			GinkgoWriter.Println("Download took: ", time.Since(now).String())
-			if err := machine.Decompress(fqImageName+compressionExtension, fqImageName); err != nil {
+			diskImage, err := machine.NewMachineFile(fqImageName+compressionExtension, nil)
+			if err != nil {
+				Fail(fmt.Sprintf("unable to create vmfile %q: %v", fqImageName+compressionExtension, err))
+			}
+			if err := machine.Decompress(diskImage, fqImageName); err != nil {
 				Fail(fmt.Sprintf("unable to decompress image file: %q", err))
 			}
 		} else {

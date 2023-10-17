@@ -585,6 +585,7 @@ func (dl Download) AcquireVMImage(imagePath string) (*VMFile, FCOSStream, error)
 		imageLocation *VMFile
 		fcosStream    FCOSStream
 	)
+
 	switch imagePath {
 	// TODO these need to be re-typed as FCOSStreams
 	case Testing.String(), Next.String(), Stable.String(), "":

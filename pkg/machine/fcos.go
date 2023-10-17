@@ -78,6 +78,18 @@ func (imf ImageFormat) String() string {
 	return "qcow2.xz"
 }
 
+func (imf ImageFormat) string() string {
+	switch imf {
+	case Vhdx:
+		return "vhdx"
+	case Tar:
+		return "tar"
+	case Raw:
+		return "raw"
+	}
+	return "qcow2"
+}
+
 func (c ImageCompression) String() string {
 	switch c {
 	case Gz:

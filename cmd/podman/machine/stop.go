@@ -38,6 +38,7 @@ func stop(cmd *cobra.Command, args []string) error {
 		err error
 		vm  machine.VM
 	)
+
 	vmName := defaultMachineName
 	if len(args) > 0 && len(args[0]) > 0 {
 		vmName = args[0]
