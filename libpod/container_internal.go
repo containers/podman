@@ -288,6 +288,17 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 			}
 		}
 	}()
+
+	// Now this is a bit of a mess, normally we try to reuse the netns but if a userns
+	// is used this is not possible as it must be owned by the userns which is created
+	// by the oci runtime. Thus we need to teardown the netns so that the runtime
+	// creates the users+netns and then we setup in completeNetworkSetup() again.
+	if c.config.PostConfigureNetNS {
+		if err := c.cleanupNetwork(); err != nil {
+			return false, err
+		}
+	}
+
 	if err := c.prepare(); err != nil {
 		return false, err
 	}
