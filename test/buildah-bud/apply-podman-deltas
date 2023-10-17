@@ -279,12 +279,6 @@ skip_if_rootless_remote "FIXME: not sure if 17788 or some other bug" \
                         "bud with Dockerfile from stdin tar" \
                         "build-with-network-test"
 
-# 2023-06-27 UPDATE: this seems to be fixed? Maybe we can remove this skip?
-# 2023-05-04 fails with:
-#   Error: creating build container: initializing source docker://debian:testing-slim: reading manifest testing-slim in quay.io/libpod/debian: manifest unknown
-#skip_if_remote "FIXME: 2023-05-04: new code, fails in podman-remote" \
-#               "bud-verify-if-we-dont-clean-prexisting-path"
-
 # 2023-06-27 confirmed this is still broken, main @ 3794d067e
 # 2023-06-13 buildah 4746 changed exit code & expected error message
 skip "FIXME: 2023-06-13 buildah PR 4746 broke this test" \
