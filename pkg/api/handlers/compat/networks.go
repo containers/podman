@@ -448,6 +448,10 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 			utils.Error(w, http.StatusNotFound, err)
 			return
 		}
+		if errors.Is(err, define.ErrNetworkConnected) {
+			utils.Error(w, http.StatusForbidden, err)
+			return
+		}
 		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}

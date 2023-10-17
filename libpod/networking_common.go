@@ -530,7 +530,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 
 	if err := c.runtime.state.NetworkConnect(c, netName, netOpts); err != nil {
 		// Docker compat: treat requests to attach already attached networks as a no-op, ignoring opts
-		if errors.Is(err, define.ErrNetworkConnected) && c.ensureState(define.ContainerStateConfigured) {
+		if errors.Is(err, define.ErrNetworkConnected) && !c.ensureState(define.ContainerStateRunning, define.ContainerStateCreated) {
 			return nil
 		}
 

@@ -218,4 +218,26 @@ t GET networks/$nid 200 .Name="network5" \
 # clean the network
 podman network rm -f network5
 
+#
+# Test connecting container to network when connection already exists
+#
+podman network create netcon
+podman create --network bridge --name c1 $IMAGE top
+
+# connect c1 to the network for the first time.
+t POST networks/netcon/connect Container=c1 200 OK
+# connect c1 to netcon again should not error
+t POST networks/netcon/connect Container=c1 200 OK
+
+# connect c1 to netcon here should error as the container is running and it is already connected
+podman start c1
+t POST networks/netcon/connect Container=c1 403 .cause="network is already connected"
+
+# connect c1 to netcon here should not error as container was stopped
+podman stop c1
+t POST networks/netcon/connect Container=c1 200 OK
+
+# cleanup
+podman network rm -f netcon
+
 # vim: filetype=sh
