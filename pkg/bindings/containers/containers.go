@@ -290,8 +290,10 @@ func Top(ctx context.Context, nameOrID string, options *TopOptions) ([]string, e
 	}
 	params := url.Values{}
 	if options.Changed("Descriptors") {
-		psArgs := strings.Join(options.GetDescriptors(), ",")
-		params.Add("ps_args", psArgs)
+		psArgs := options.GetDescriptors()
+		for _, arg := range psArgs {
+			params.Add("ps_args", arg)
+		}
 	}
 	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/containers/%s/top", params, nil, nameOrID)
 	if err != nil {

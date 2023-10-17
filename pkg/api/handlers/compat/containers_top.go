@@ -18,14 +18,14 @@ func TopContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := utils.GetDecoder(r)
 
-	psArgs := "-ef"
-	if utils.IsLibpodRequest(r) {
-		psArgs = ""
+	var psArgs []string
+	if !utils.IsLibpodRequest(r) {
+		psArgs = []string{"-ef"}
 	}
 	query := struct {
-		Delay  int    `schema:"delay"`
-		PsArgs string `schema:"ps_args"`
-		Stream bool   `schema:"stream"`
+		Delay  int      `schema:"delay"`
+		PsArgs []string `schema:"ps_args"`
+		Stream bool     `schema:"stream"`
 	}{
 		Delay:  5,
 		PsArgs: psArgs,
@@ -52,13 +52,22 @@ func TopContainer(w http.ResponseWriter, r *http.Request) {
 
 	encoder := json.NewEncoder(w)
 
+	args := query.PsArgs
+	if len(args) == 1 &&
+		utils.IsLibpodRequest(r) {
+		if _, err := utils.SupportedVersion(r, "< 4.8.0"); err == nil {
+			// Ugly workaround for older clients which used to send arguments comma separated.
+			args = strings.Split(args[0], ",")
+		}
+	}
+
 loop: // break out of for/select infinite` loop
 	for {
 		select {
 		case <-r.Context().Done():
 			break loop
 		default:
-			output, err := c.Top(strings.Split(query.PsArgs, ","))
+			output, err := c.Top(args)
 			if err != nil {
 				if !statusWritten {
 					utils.InternalServerError(w, err)

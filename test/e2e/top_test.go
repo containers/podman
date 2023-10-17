@@ -101,6 +101,10 @@ var _ = Describe("Podman top", func() {
 		result = podmanTest.Podman([]string{"top", session.OutputToString(), "ax -o args"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
+
+		result = podmanTest.Podman([]string{"top", session.OutputToString(), "ax", "-o", "args"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(ExitCleanly())
 		Expect(result.OutputToStringArray()).To(Equal([]string{"COMMAND", "sleep inf"}))
 
 		// Now make sure we use ps in the container with CAP_SYS_PTRACE
