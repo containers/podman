@@ -640,7 +640,7 @@ Valid options for `[Kube]` are listed below:
 | ConfigMap=/tmp/config.map           | --config-map /tmp/config.map                                     |
 | ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                                          |
 | GlobalArgs=--log-level=debug        | --log-level=debug                                                |
-| KubeDownForce=true                  | -force (for `podman kube down`)                                  |
+| KubeDownForce=true                  | --force (for `podman kube down`)                                 |
 | LogDriver=journald                  | --log-driver journald                                            |
 | Network=host                        | --net host                                                       |
 | PodmanArgs=\-\-annotation=key=value | --annotation=key=value                                           |
@@ -699,7 +699,7 @@ This key can be listed multiple times.
 
 ### `KubeDownForce=`
 
-Remove all resources including volumes when calling `podman kube down`.
+Remove all resources, including volumes, when calling `podman kube down`.
 Equivalent to the Podman `--force` option.
 
 ### `LogDriver=`
