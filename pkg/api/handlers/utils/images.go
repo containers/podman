@@ -16,6 +16,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/libpod"
 	api "github.com/containers/podman/v4/pkg/api/types"
+	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
 	"github.com/docker/distribution/registry/api/errcode"
@@ -141,6 +142,7 @@ func CompatPull(ctx context.Context, w http.ResponseWriter, runtime *libpod.Runt
 			statusWritten = true
 		}
 	}
+	progressSent := false
 
 loop: // break out of for/select infinite loop
 	for {
@@ -149,6 +151,7 @@ loop: // break out of for/select infinite loop
 		select {
 		case e := <-progress:
 			writeStatusCode(http.StatusOK)
+			progressSent = true
 			switch e.Event {
 			case types.ProgressEventNewArtifact:
 				report.Status = "Pulling fs layer"
@@ -196,8 +199,21 @@ loop: // break out of for/select infinite loop
 					writeStatusCode(http.StatusInternalServerError)
 				}
 			}
-			if err := enc.Encode(report); err != nil {
-				logrus.Warnf("Failed to json encode error %q", err.Error())
+
+			// We need to check if no progress was sent previously. In that case, we should only return the base error message.
+			// This is necessary for compatibility with the Docker API.
+			if err != nil && !progressSent {
+				msg := errorhandling.Cause(err).Error()
+				message := jsonmessage.JSONError{
+					Message: msg,
+				}
+				if err := enc.Encode(message); err != nil {
+					logrus.Warnf("Failed to json encode error %q", err.Error())
+				}
+			} else {
+				if err := enc.Encode(report); err != nil {
+					logrus.Warnf("Failed to json encode error %q", err.Error())
+				}
 			}
 			flush()
 			break loop // break out of for/select infinite loop

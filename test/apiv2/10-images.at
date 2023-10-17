@@ -96,6 +96,10 @@ for i in $iid ${iid:0:12} $PODMAN_TEST_IMAGE_NAME; do
     .[0].Comment=
 done
 
+# compat api pull image unauthorized message error
+t POST "/images/create?fromImage=quay.io/idonotexist/idonotexist:dummy" 401 \
+  .message="unauthorized: access to the requested resource is not authorized"
+
 # Export an image on the local
 t GET libpod/images/nonesuch/get 404
 t GET libpod/images/$iid/get?format=foo 500
