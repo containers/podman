@@ -20,6 +20,14 @@ type QEMUVirtualization struct {
 	machine.Virtualization
 }
 
+// setNewMachineCMDOpts are options needed to pass
+// into setting up the qemu command line.  long term, this need
+// should be eliminated
+// TODO Podman5
+type setNewMachineCMDOpts struct {
+	imageDir string
+}
+
 // findQEMUBinary locates and returns the QEMU binary
 func findQEMUBinary() (string, error) {
 	cfg, err := config.Default()
@@ -41,8 +49,8 @@ func (v *MachineVM) setQMPMonitorSocket() error {
 
 // setNewMachineCMD configure the CLI command that will be run to create the new
 // machine
-func (v *MachineVM) setNewMachineCMD(qemuBinary string) {
-	v.CmdLine = NewQemuBuilder(qemuBinary, v.addArchOptions())
+func (v *MachineVM) setNewMachineCMD(qemuBinary string, cmdOpts *setNewMachineCMDOpts) {
+	v.CmdLine = NewQemuBuilder(qemuBinary, v.addArchOptions(cmdOpts))
 	v.CmdLine.SetMemory(v.Memory)
 	v.CmdLine.SetCPUs(v.CPUs)
 	v.CmdLine.SetIgnitionFile(v.IgnitionFile)
@@ -61,6 +69,11 @@ func (p *QEMUVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, e
 	vm := new(MachineVM)
 	if len(opts.Name) > 0 {
 		vm.Name = opts.Name
+	}
+
+	dataDir, err := machine.GetDataDir(p.VMType())
+	if err != nil {
+		return nil, err
 	}
 
 	// set VM ignition file
@@ -112,7 +125,8 @@ func (p *QEMUVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, e
 	}
 
 	// configure command to run
-	vm.setNewMachineCMD(execPath)
+	cmdOpts := setNewMachineCMDOpts{imageDir: dataDir}
+	vm.setNewMachineCMD(execPath, &cmdOpts)
 	return vm, nil
 }
 

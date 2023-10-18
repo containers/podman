@@ -4,7 +4,7 @@ var (
 	QemuCommand = "qemu-system-x86_64"
 )
 
-func (v *MachineVM) addArchOptions() []string {
+func (v *MachineVM) addArchOptions(_ *setNewMachineCMDOpts) []string {
 	opts := []string{"-machine", "q35,accel=hvf:tcg", "-cpu", "host"}
 	return opts
 }
