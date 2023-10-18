@@ -867,6 +867,10 @@ func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrID string, o
 	}
 	ctr := containers[0]
 
+	if options.Tty {
+		util.ExecAddTERM(ctr.Env(), options.Envs)
+	}
+
 	execConfig, err := makeExecConfig(options, ic.Libpod)
 	if err != nil {
 		return ec, err

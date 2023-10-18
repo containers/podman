@@ -1219,3 +1219,20 @@ func ConvertTimeout(timeout int) uint {
 	}
 	return uint(timeout)
 }
+
+// ExecAddTERM when container does not have a TERM environment variable and
+// caller wants a tty, then leak the existing TERM environment into
+// the container.
+func ExecAddTERM(existingEnv []string, execEnvs map[string]string) {
+	if _, ok := execEnvs["TERM"]; ok {
+		return
+	}
+
+	for _, val := range existingEnv {
+		if strings.HasPrefix(val, "TERM=") {
+			return
+		}
+	}
+
+	execEnvs["TERM"] = "xterm"
+}
