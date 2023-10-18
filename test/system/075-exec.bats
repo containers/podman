@@ -166,6 +166,47 @@ load helpers
     run_podman rm -f -t0 $cid
 }
 
+@test "podman exec --tty" {
+    # Outer loops: different variations on the RUN container
+    for run_opt_t in "" "-t"; do
+        for run_term_env in "" "explicit_RUN_term"; do
+            local run_opt_env=
+            if [[ -n "$run_term_env" ]]; then
+                run_opt_env="--env=TERM=$run_term_env"
+            fi
+            run_podman run -d $run_opt_t $run_opt_env --name test $IMAGE top
+
+            # Inner loops: different variations on EXEC
+            for exec_opt_t in "" "-t"; do
+                for exec_term_env in "" "explicit_EXEC_term"; do
+                    # What to expect.
+                    local expected=
+                    # if -t is set anywhere, either run or exec, go with xterm
+                    if [[ -n "$run_opt_t$exec_opt_t" ]]; then
+                        expected="xterm"
+                    fi
+                    # ...unless overridden by explicit --env
+                    if [[ -n "$run_term_env$exec_term_env" ]]; then
+                        # (exec overrides run)
+                        expected="${exec_term_env:-$run_term_env}"
+                    fi
+
+                    local exec_opt_env=
+                    if [[ -n "$exec_term_env" ]]; then
+                        exec_opt_env="--env=TERM=$exec_term_env"
+                    fi
+
+                    local desc="run $run_opt_t $run_opt_env, exec $exec_opt_t $exec_opt_env"
+                    TERM=exec-term run_podman exec $exec_opt_t $exec_opt_env test sh -c 'echo -n $TERM'
+                    assert "$output" = "$expected" "$desc"
+                done
+            done
+
+            run_podman rm -f -t0 test
+        done
+    done
+}
+
 @test "podman exec - does not leak session IDs on invalid command" {
     skip_if_remote "FIXME FIXME FIXME: this should work on remote, but does not"
     run_podman run -d $IMAGE top

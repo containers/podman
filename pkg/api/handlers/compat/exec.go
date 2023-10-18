@@ -16,6 +16,7 @@ import (
 	api "github.com/containers/podman/v4/pkg/api/types"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/specgenutil"
+	"github.com/containers/podman/v4/pkg/util"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
@@ -58,6 +59,10 @@ func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
 	libpodConfig.WorkDir = input.WorkingDir
 	libpodConfig.Privileged = input.Privileged
 	libpodConfig.User = input.User
+
+	if input.Tty {
+		util.ExecAddTERM(ctr.Env(), libpodConfig.Environment)
+	}
 
 	// Make our exit command
 	storageConfig := runtime.StorageConfig()

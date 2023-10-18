@@ -713,6 +713,14 @@ func (c *Container) LinuxResources() *spec.LinuxResources {
 	return nil
 }
 
+// Env returns the default environment variables defined for the container
+func (c *Container) Env() []string {
+	if c.config.Spec != nil && c.config.Spec.Process != nil {
+		return c.config.Spec.Process.Env
+	}
+	return nil
+}
+
 // State Accessors
 // Require locking
 
