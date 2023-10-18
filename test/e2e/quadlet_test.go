@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -535,6 +536,118 @@ var _ = Describe("quadlet system generator", func() {
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
 			Expect(session.OutputToString()).To(Equal(version.Version.String()))
+		})
+	})
+
+	Describe("Converting quadlets with signatures", func() {
+		var (
+			configPath    string
+			keysDir       string
+			keyFile       string
+			sigFile       string
+			quadletPath   string
+			generatedPath string
+		)
+
+		BeforeEach(func() {
+			keysDir = filepath.Join(podmanTest.TempDir, "keys")
+			err = os.Mkdir(keysDir, os.ModePerm)
+			Expect(err).ToNot(HaveOccurred())
+
+			configPath = filepath.Join(podmanTest.TempDir, "quadlet.conf")
+			configData := fmt.Sprintf(`[Quadlet]
+RequireSignatures=true
+PublicKeyDirs=%s
+`, keysDir)
+			err = os.WriteFile(configPath, []byte(configData), 0644)
+			Expect(err).ToNot(HaveOccurred())
+
+			quadletfile := fmt.Sprintf(`[Container]
+Image=%s
+`, ALPINE)
+			quadletPath = filepath.Join(quadletDir, "basic.container")
+			err = os.WriteFile(quadletPath, []byte(quadletfile), 0644)
+			Expect(err).ToNot(HaveOccurred())
+
+			generatedPath = filepath.Join(generatedDir, "basic.service")
+
+			// Generate key pair
+			secretKey := filepath.Join(podmanTest.TempDir, "secret.key")
+			cmd := exec.Command("openssl", "genpkey", "-algorithm", "ed25519", "-outform", "PEM", "-out", secretKey)
+			_, err := cmd.Output()
+			Expect(err).ToNot(HaveOccurred())
+
+			// Extract public key to keysDir
+			keyFile = filepath.Join(keysDir, "public.key")
+			cmd = exec.Command("openssl", "pkey", "-in", secretKey, "-pubout", "-outform", "DER", "-out", keyFile)
+			_, err = cmd.Output()
+			Expect(err).ToNot(HaveOccurred())
+
+			// Sign quadlet file
+			sigFile = filepath.Join(quadletDir, "basic.container.sig")
+			cmd = exec.Command("openssl", "pkeyutl", "-sign", "-inkey", secretKey, "-rawin", "-in", quadletPath, "-out", sigFile)
+			_, err = cmd.Output()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("Should succeed if valid signature", func() {
+			session := podmanTest.Quadlet([]string{"--config-file", configPath, generatedDir}, quadletDir)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+
+			_, err := os.Stat(generatedPath)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("Should fail if file modified (invalid signature)", func() {
+			quadletfile := fmt.Sprintf(`[Container]
+Image=%s
+Annotation=org.modified.File=yes
+`, ALPINE)
+			quadletPath = filepath.Join(quadletDir, "basic.container")
+			err = os.WriteFile(quadletPath, []byte(quadletfile), 0644)
+			Expect(err).ToNot(HaveOccurred())
+
+			session := podmanTest.Quadlet([]string{"--config-file", configPath, generatedDir}, quadletDir)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(1))
+
+			current := session.ErrorToStringArray()
+			expected := fmt.Sprintf("No valid signature for %s", quadletPath)
+			Expect(current[0]).To(ContainSubstring(expected))
+
+			_, err := os.Stat(generatedPath)
+			Expect(err).To(MatchError(os.ErrNotExist))
+		})
+
+		It("Should fail if no public keys", func() {
+			os.Remove(keyFile)
+
+			session := podmanTest.Quadlet([]string{"--config-file", configPath, generatedDir}, quadletDir)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(1))
+
+			current := session.ErrorToStringArray()
+			expected := "No public keys found"
+			Expect(current[0]).To(ContainSubstring(expected))
+
+			_, err := os.Stat(generatedPath)
+			Expect(err).To(MatchError(os.ErrNotExist))
+		})
+
+		It("Should fail if no signature", func() {
+			os.Remove(sigFile)
+
+			session := podmanTest.Quadlet([]string{"--config-file", configPath, generatedDir}, quadletDir)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(1))
+
+			current := session.ErrorToStringArray()
+			expected := fmt.Sprintf("No signature for %s, but signatures are required", quadletPath)
+			Expect(current[0]).To(ContainSubstring(expected))
+
+			_, err := os.Stat(generatedPath)
+			Expect(err).To(MatchError(os.ErrNotExist))
 		})
 	})
 
