@@ -862,4 +862,44 @@ EOF
      fi
 }
 
+# Test for https://github.com/containers/podman/issues/18615
+@test "podman network cleanup --userns + --restart" {
+    skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
+    userns="--userns=keep-id"
+    if ! is_rootless; then
+        userns="--uidmap=0:1111111:65536 --gidmap=0:1111111:65536"
+    fi
+
+    local net1=a-$(random_string 10)
+    # use /29 subnet to limt available ip space, a 29 gives 5 useable addresses (6 - 1 for the gw)
+    local subnet="$(random_rfc1918_subnet).0/29"
+    run_podman network create --subnet $subnet $net1
+    local cname=con-$(random_string 10)
+
+    local netns_count=
+    if ! is_rootless; then
+        netns_count=$(ls /run/netns | wc -l)
+    fi
+
+    # This will cause 7 containers runs with the restart policy (one more than the on failure limit)
+    # Since they run sequentially they should run fine without allocating all ips.
+    run_podman 1 run --name $cname --network $net1 --restart on-failure:6 --userns keep-id $IMAGE false
+
+    # Previously this would fail as the container would run out of ips after 5 restarts.
+    run_podman inspect --format "{{.RestartCount}}" $cname
+    assert "$output" == "6" "RestartCount for failing container"
+
+    # Now make sure we can still run a contianer with free ips.
+    run_podman run --rm --network $net1 $IMAGE true
+
+    if ! is_rootless; then
+        # This is racy if other programs modify /run/netns while the test is running.
+        # However I think the risk is minimal and I think checking for this is important.
+        assert "$(ls /run/netns | wc -l)" == "$netns_count" "/run/netns has no leaked netns files"
+    fi
+
+    run_podman rm -f -t0 $cname
+    run_podman network rm $net1
+}
+
 # vim: filetype=sh
