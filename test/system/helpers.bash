@@ -339,11 +339,15 @@ function run_podman() {
     # Remember command args, for possible use in later diagnostic messages
     MOST_RECENT_PODMAN_COMMAND="podman $*"
 
-    # BATS treats 127 as a special case, so we need to silence it when 127 is the
-    # expected rc: https://bats-core.readthedocs.io/en/stable/warnings/BW01.html
-    silence127=""
-    if [ $expected_rc -eq 127 ]; then
-       silence127="-127"
+    # BATS >= 1.5.0 treats 127 as a special case, adding a big nasty warning
+    # at the end of the test run if any command exits thus. Silence it.
+    #   https://bats-core.readthedocs.io/en/stable/warnings/BW01.html
+    local silence127=
+    if [[ "$expected_rc" = "127" ]]; then
+        # We could use "-127", but that would cause BATS to fail if the
+        # command exits any other status -- and default BATS failure messages
+        # are much less helpful than the run_podman ones. "!" is more flexible.
+        silence127="!"
     fi
 
     # stdout is only emitted upon error; this printf is to help in debugging
