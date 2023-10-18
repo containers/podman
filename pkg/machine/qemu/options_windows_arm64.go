@@ -4,7 +4,7 @@ var (
 	QemuCommand = "qemu-system-aarch64w"
 )
 
-func (v *MachineVM) addArchOptions() []string {
+func (v *MachineVM) addArchOptions(_ *setNewMachineCMDOpts) []string {
 	// stub to fix compilation issues
 	opts := []string{}
 	return opts

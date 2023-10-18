@@ -4,7 +4,7 @@ var (
 	QemuCommand = "qemu-system-x86_64w"
 )
 
-func (v *MachineVM) addArchOptions() []string {
+func (v *MachineVM) addArchOptions(_ *setNewMachineCMDOpts) []string {
 	// "max" level is used, because "host" is not supported with "whpx" acceleration
 	// "vmx=off" disabled nested virtualization (not needed for podman)
 	// QEMU issue to track nested virtualization: https://gitlab.com/qemu-project/qemu/-/issues/628
