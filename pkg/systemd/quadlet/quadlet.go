@@ -90,6 +90,7 @@ const (
 	KeyIP                    = "IP"
 	KeyIP6                   = "IP6"
 	KeyImage                 = "Image"
+	KeyImageTag              = "ImageTag"
 	KeyKubeDownForce         = "KubeDownForce"
 	KeyLabel                 = "Label"
 	KeyLogDriver             = "LogDriver"
@@ -290,6 +291,7 @@ var (
 		KeyDecryptionKey:        true,
 		KeyGlobalArgs:           true,
 		KeyImage:                true,
+		KeyImageTag:             true,
 		KeyOS:                   true,
 		KeyPodmanArgs:           true,
 		KeyTLSVerify:            true,
@@ -1221,6 +1223,10 @@ func ConvertImage(image *parser.UnitFile) (*parser.UnitFile, string, error) {
 
 		// The default syslog identifier is the exec basename (podman) which isn't very useful here
 		"SyslogIdentifier", "%N")
+
+	if name, ok := image.Lookup(ImageGroup, KeyImageTag); ok && len(name) > 0 {
+		imageName = name
+	}
 
 	return service, imageName, nil
 }
