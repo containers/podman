@@ -166,4 +166,17 @@ load helpers
     run_podman rm -f -t0 $cid
 }
 
+@test "podman exec - does not leak session IDs on invalid command" {
+    run_podman run -d $IMAGE top
+    cid="$output"
+
+    for i in {1..3}; do
+        run_podman 127 exec $cid blahblah
+        run_podman 125 exec -d $cid blahblah
+    done
+
+    run_podman inspect --format "{{len .ExecIDs}}" $cid
+    assert "$output" = "0" ".ExecIDs must be empty"
+}
+
 # vim: filetype=sh

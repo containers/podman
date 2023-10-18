@@ -339,11 +339,18 @@ function run_podman() {
     # Remember command args, for possible use in later diagnostic messages
     MOST_RECENT_PODMAN_COMMAND="podman $*"
 
+    # BATS treats 127 as a special case, so we need to silence it when 127 is the
+    # expected rc: https://bats-core.readthedocs.io/en/stable/warnings/BW01.html
+    silence127=""
+    if [ $expected_rc -eq 127 ]; then
+       silence127="-127"
+    fi
+
     # stdout is only emitted upon error; this printf is to help in debugging
     printf "\n%s %s %s %s\n" "$(timestamp)" "$_LOG_PROMPT" "$PODMAN" "$*"
     # BATS hangs if a subprocess remains and keeps FD 3 open; this happens
     # if podman crashes unexpectedly without cleaning up subprocesses.
-    run timeout --foreground -v --kill=10 $PODMAN_TIMEOUT $PODMAN $_PODMAN_TEST_OPTS "$@" 3>/dev/null
+    run $silence127 timeout --foreground -v --kill=10 $PODMAN_TIMEOUT $PODMAN $_PODMAN_TEST_OPTS "$@" 3>/dev/null
     # without "quotes", multiple lines are glommed together into one
     if [ -n "$output" ]; then
         echo "$(timestamp) $output"
