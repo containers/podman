@@ -227,7 +227,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		options = append(options, libpod.WithHostUsers(s.HostUsers))
 	}
 
-	command, err := makeCommand(s, imageData, rtc)
+	command, err := makeCommand(s, imageData)
 	if err != nil {
 		return nil, nil, nil, err
 	}

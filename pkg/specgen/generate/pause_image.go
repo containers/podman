@@ -55,7 +55,7 @@ func buildPauseImage(rt *libpod.Runtime, rtConfig *config.Config) (string, error
 
 	// Also look into the path as some distributions install catatonit in
 	// /usr/bin.
-	catatonitPath, err := rtConfig.FindHelperBinary("catatonit", true)
+	catatonitPath, err := rtConfig.FindInitBinary()
 	if err != nil {
 		return "", fmt.Errorf("finding pause binary: %w", err)
 	}

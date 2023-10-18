@@ -30,6 +30,9 @@ const (
 
 	// _defaultImageVolumeMode is a mode to handle built-in image volumes.
 	_defaultImageVolumeMode = _typeBind
+
+	// defaultInitName is the default name of the init binary
+	defaultInitName = "catatonit"
 )
 
 var (
@@ -432,7 +435,6 @@ func defaultEngineConfig() (*EngineConfig, error) {
 	}
 	c.RuntimeSupportsNoCgroups = []string{"crun", "krun"}
 	c.RuntimeSupportsKVM = []string{"kata", "kata-runtime", "kata-qemu", "kata-fc", "krun"}
-	c.InitPath = DefaultInitPath
 	c.NoPivotRoot = false
 
 	c.InfraImage = DefaultInfraImage
@@ -538,11 +540,6 @@ func (c *Config) DNSOptions() []string {
 // Env returns the default additional environment variables to add to containers.
 func (c *Config) Env() []string {
 	return c.Containers.Env
-}
-
-// InitPath returns location where init program added to containers when users specify the --init flag.
-func (c *Config) InitPath() string {
-	return c.Containers.InitPath
 }
 
 // IPCNS returns the default IPC Namespace configuration to run containers with.

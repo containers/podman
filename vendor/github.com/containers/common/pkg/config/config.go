@@ -149,6 +149,8 @@ type ContainersConfig struct {
 	Init bool `toml:"init,omitempty"`
 
 	// InitPath is the path for init to run if the Init bool is enabled
+	//
+	// Deprecated: Do not use this field directly use conf.FindInitBinary() instead.
 	InitPath string `toml:"init_path,omitempty"`
 
 	// IPCNS way to create a ipc namespace for the container
@@ -351,6 +353,8 @@ type EngineConfig struct {
 	InfraImage string `toml:"infra_image,omitempty"`
 
 	// InitPath is the path to the container-init binary.
+	//
+	// Deprecated: Do not use this field directly use conf.FindInitBinary() instead.
 	InitPath string `toml:"init_path,omitempty"`
 
 	// KubeGenerateType sets the Kubernetes kind/specification to generate by default
@@ -1222,4 +1226,21 @@ func ValidateImageVolumeMode(mode string) error {
 	}
 
 	return fmt.Errorf("invalid image volume mode %q required value: %s", mode, strings.Join(validImageVolumeModes, ", "))
+}
+
+// FindInitBinary will return the path to the init binary (catatonit)
+func (c *Config) FindInitBinary() (string, error) {
+	// Sigh, for some reason we ended up with two InitPath field in containers.conf and
+	// both are used in podman so we have to keep supporting both to prevent regressions.
+	if c.Containers.InitPath != "" {
+		return c.Containers.InitPath, nil
+	}
+	if c.Engine.InitPath != "" {
+		return c.Engine.InitPath, nil
+	}
+	// keep old default working to guarantee backwards comapt
+	if _, err := os.Stat(DefaultInitPath); err == nil {
+		return DefaultInitPath, nil
+	}
+	return c.FindHelperBinary(defaultInitName, true)
 }
