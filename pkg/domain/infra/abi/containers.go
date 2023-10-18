@@ -904,6 +904,7 @@ func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID s
 
 	// TODO: we should try and retrieve exit code if this fails.
 	if err := ctr.ExecStart(id); err != nil {
+		_ = ctr.ExecRemove(id, true)
 		return "", err
 	}
 	return id, nil

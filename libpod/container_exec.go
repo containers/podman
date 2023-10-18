@@ -759,11 +759,19 @@ func (c *Container) Exec(config *ExecConfig, streams *define.AttachStreams, resi
 // Exec emulates the old Libpod exec API, providing a single call to create,
 // run, and remove an exec session. Returns exit code and error. Exit code is
 // not guaranteed to be set sanely if error is not nil.
-func (c *Container) exec(config *ExecConfig, streams *define.AttachStreams, resizeChan <-chan resize.TerminalSize, isHealthcheck bool) (int, error) {
+func (c *Container) exec(config *ExecConfig, streams *define.AttachStreams, resizeChan <-chan resize.TerminalSize, isHealthcheck bool) (exitCode int, retErr error) {
 	sessionID, err := c.ExecCreate(config)
 	if err != nil {
 		return -1, err
 	}
+	defer func() {
+		if err := c.ExecRemove(sessionID, false); err != nil {
+			if retErr == nil && !errors.Is(err, define.ErrNoSuchExecSession) {
+				exitCode = -1
+				retErr = err
+			}
+		}
+	}()
 
 	// Start resizing if we have a resize channel.
 	// This goroutine may likely leak, given that we cannot close it here.
@@ -813,15 +821,7 @@ func (c *Container) exec(config *ExecConfig, streams *define.AttachStreams, resi
 		}
 		return -1, err
 	}
-	exitCode := session.ExitCode
-	if err := c.ExecRemove(sessionID, false); err != nil {
-		if errors.Is(err, define.ErrNoSuchExecSession) {
-			return exitCode, nil
-		}
-		return -1, err
-	}
-
-	return exitCode, nil
+	return session.ExitCode, nil
 }
 
 // cleanupExecBundle cleanups an exec session after its done
