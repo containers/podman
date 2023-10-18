@@ -397,6 +397,11 @@ func (m *MacMachine) Remove(name string, opts machine.RemoveOptions) (string, fu
 		if err := m.Vfkit.stop(true, true); err != nil {
 			return "", nil, err
 		}
+		defer func() {
+			if err := machine.CleanupGVProxy(m.GvProxyPid); err != nil {
+				logrus.Error(err)
+			}
+		}()
 	}
 
 	files = m.collectFilesToDestroy(opts)
