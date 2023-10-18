@@ -470,11 +470,29 @@ t POST containers/prune?filters='{"network":["anynetwork"]}' 500 \
     .cause="network is an invalid filter"
 
 # Test CPU limit (NanoCPUs)
-t POST containers/create Image=$IMAGE HostConfig='{"NanoCpus":500000}' 201 \
-  .Id~[0-9a-f]\\{64\\}
+nanoCpu=500000
+if have_cgroupsv2; then
+    t POST containers/create Image=$IMAGE HostConfig='{"NanoCpus":500000}' 201 \
+      .Id~[0-9a-f]\\{64\\}
+else
+    if root; then
+      # cgroupsv1 rootful : NanoCpus needs to set more than 10000000
+      t POST containers/create Image=$IMAGE HostConfig='{"NanoCpus":500000}' 500 \
+        .cause="CPU cfs quota cannot be less than 1ms (i.e. 1000)"
+      t POST containers/create Image=$IMAGE HostConfig='{"NanoCpus":10000000}' 201 \
+        .Id~[0-9a-f]\\{64\\}
+      nanoCpu=10000000
+    else
+      # cgroupsv1 rootless : Resource limits that include NanoCPUs are not supported and ignored
+      t POST containers/create Image=$IMAGE HostConfig='{"NanoCpus":500000}' 201 \
+        .Id~[0-9a-f]\\{64\\}
+      nanoCpu=0
+    fi
+fi
+
 cid=$(jq -r '.Id' <<<"$output")
 t GET containers/$cid/json 200 \
-  .HostConfig.NanoCpus=500000
+  .HostConfig.NanoCpus=$nanoCpu
 
 t DELETE containers/$cid?v=true 204
 
