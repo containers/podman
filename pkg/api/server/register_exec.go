@@ -346,5 +346,39 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/internalError"
 	r.Handle(VersionedPath("/libpod/exec/{id}/json"), s.APIHandler(compat.ExecInspectHandler)).Methods(http.MethodGet)
+	// ................. .... ........................ ...... ExecRemoveLibpod
+	// ---
+	// tags:
+	//   - exec
+	// summary: Remove an exec instance
+	// description: |
+	//   Remove a previously set up exec instance. If force is true, the exec session is killed if it is still running.
+	// parameters:
+	//  - in: path
+	//    name: id
+	//    type: string
+	//    required: true
+	//    description: Exec instance ID
+	//  - in: body
+	//    name: control
+	//    description: Attributes for removal
+	//    schema:
+	//      type: object
+	//      properties:
+	//        Force:
+	//          type: boolean
+	//          description: Force removal of the session.
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     description: no error
+	//   404:
+	//     $ref: "#/responses/execSessionNotFound"
+	//   409:
+	//	   description: container is not running.
+	//   500:
+	//     $ref: "#/responses/internalError"
+	r.Handle(VersionedPath("/libpod/exec/{id}/remove"), s.APIHandler(compat.ExecRemoveHandler)).Methods(http.MethodPost)
 	return nil
 }

@@ -333,3 +333,10 @@ type CopyOptions struct {
 	// by the other type.
 	NoOverwriteDirNonDir *bool
 }
+
+// ExecRemoveOptions are optional options for removing an exec session
+//
+//go:generate go run ../generator/generator.go ExecRemoveOptions
+type ExecRemoveOptions struct {
+	Force *bool
+}

@@ -111,3 +111,41 @@ func ExecStart(ctx context.Context, sessionID string, options *ExecStartOptions)
 
 	return resp.Process(nil)
 }
+
+// ExecRemove removes a given exec session.
+func ExecRemove(ctx context.Context, sessionID string, options *ExecRemoveOptions) error {
+	if options == nil {
+		options = new(ExecRemoveOptions)
+	}
+	_ = options
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	logrus.Debugf("Removing exec session ID %q", sessionID)
+
+	// We force Detach to true
+	body := struct {
+		Force bool `json:"Force"`
+	}{
+		Force: false,
+	}
+
+	if options.Force != nil {
+		body.Force = *options.Force
+	}
+
+	bodyJSON, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+
+	resp, err := conn.DoRequest(ctx, bytes.NewReader(bodyJSON), http.MethodPost, "/exec/%s/remove", nil, nil, sessionID)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return resp.Process(nil)
+}
