@@ -22,10 +22,10 @@ load helpers
     mkdir -p $srcdir/subdir
     echo "${randomcontent[2]}" > $srcdir/subdir/dotfile.
 
-    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir; sleep infinity"
+    run_podman run -d --name destrunning --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir; sleep infinity"
 
     # Commit the image for testing non-running containers
-    run_podman commit -q cpcontainer
+    run_podman commit -q destrunning
     cpimage="$output"
 
     # format is: <id> | <destination arg to cp> | <full dest path> | <test name>
@@ -49,38 +49,36 @@ load helpers
 
     # RUNNING container
     while read id dest dest_fullname description; do
-        run_podman cp $srcdir/hostfile$id cpcontainer:$dest
-        run_podman exec cpcontainer cat $dest_fullname
+        run_podman cp $srcdir/hostfile$id destrunning:$dest
+        run_podman exec destrunning cat $dest_fullname
         is "$output" "${randomcontent[$id]}" "$description (cp -> ctr:$dest)"
     done < <(parse_table "$tests")
 
     # Dots are special for dirs not files.
-    run_podman cp $srcdir/subdir/dotfile. cpcontainer:/tmp
-    run_podman exec cpcontainer cat /tmp/dotfile.
+    run_podman cp $srcdir/subdir/dotfile. destrunning:/tmp
+    run_podman exec destrunning cat /tmp/dotfile.
     is "$output" "${randomcontent[2]}" "$description (cp -> ctr:$dest)"
 
     # Host path does not exist.
-    run_podman 125 cp $srcdir/IdoNotExist cpcontainer:/tmp
+    run_podman 125 cp $srcdir/IdoNotExist destrunning:/tmp
     is "$output" 'Error: ".*/IdoNotExist" could not be found on the host' \
        "copy nonexistent host path"
 
     # Container (parent) path does not exist.
-    run_podman 125 cp $srcdir/hostfile0 cpcontainer:/IdoNotExist/
-    is "$output" 'Error: "/IdoNotExist/" could not be found on container cpcontainer: no such file or directory' \
+    run_podman 125 cp $srcdir/hostfile0 destrunning:/IdoNotExist/
+    is "$output" 'Error: "/IdoNotExist/" could not be found on container destrunning: no such file or directory' \
        "copy into nonexistent path in container"
 
-    run_podman kill cpcontainer
-    run_podman rm -t 0 -f cpcontainer
+    run_podman rm -t 0 -f destrunning
 
     # CREATED container
     while read id dest dest_fullname description; do
-        run_podman create --name cpcontainer --workdir=/srv $cpimage sleep infinity
-        run_podman cp $srcdir/hostfile$id cpcontainer:$dest
-        run_podman start cpcontainer
-        run_podman exec cpcontainer cat $dest_fullname
+        run_podman create --name destcreated --workdir=/srv $cpimage sleep infinity
+        run_podman cp $srcdir/hostfile$id destcreated:$dest
+        run_podman start destcreated
+        run_podman exec destcreated cat $dest_fullname
         is "$output" "${randomcontent[$id]}" "$description (cp -> ctr:$dest)"
-        run_podman kill cpcontainer
-        run_podman rm -t 0 -f cpcontainer
+        run_podman rm -t 0 -f destcreated
     done < <(parse_table "$tests")
 
     run_podman rmi -f $cpimage
@@ -94,21 +92,19 @@ load helpers
     echo $content > $srcdir/file
 
     # RUNNING container
-    run_podman run -d --mount type=tmpfs,dst=/tmp --name cpcontainer $IMAGE sleep infinity
-    run_podman cp $srcdir/file cpcontainer:/tmp
-    run_podman exec cpcontainer cat /tmp/file
+    run_podman run -d --mount type=tmpfs,dst=/tmp --name destrunning $IMAGE sleep infinity
+    run_podman cp $srcdir/file destrunning:/tmp
+    run_podman exec destrunning cat /tmp/file
     is "$output" "${content}" "cp to running container's tmpfs"
-    run_podman kill cpcontainer
-    run_podman rm -t 0 -f cpcontainer
+    run_podman rm -t 0 -f destrunning
 
     # CREATED container (with copy up)
-    run_podman create --mount type=tmpfs,dst=/tmp --name cpcontainer $IMAGE sleep infinity
-    run_podman cp $srcdir/file cpcontainer:/tmp
-    run_podman start cpcontainer
-    run_podman exec cpcontainer cat /tmp/file
+    run_podman create --mount type=tmpfs,dst=/tmp --name destcreated $IMAGE sleep infinity
+    run_podman cp $srcdir/file destcreated:/tmp
+    run_podman start destcreated
+    run_podman exec destcreated cat /tmp/file
     is "$output" "${content}" "cp to created container's tmpfs"
-    run_podman kill cpcontainer
-    run_podman rm -t 0 -f cpcontainer
+    run_podman rm -t 0 -f destcreated
 }
 
 
@@ -121,12 +117,11 @@ load helpers
 
     keepid="--userns=keep-id"
     is_rootless || keepid=""
-    run_podman run --user=$userid ${keepid} -d --name cpcontainer $IMAGE sleep infinity
-    run_podman cp $srcdir/hostfile cpcontainer:/tmp/hostfile
-    run_podman exec cpcontainer stat -c "%u" /tmp/hostfile
+    run_podman run --user=$userid ${keepid} -d --name destrunning $IMAGE sleep infinity
+    run_podman cp $srcdir/hostfile destrunning:/tmp/hostfile
+    run_podman exec destrunning stat -c "%u" /tmp/hostfile
     is "$output" "$userid" "copied file is chowned to the container user"
-    run_podman kill cpcontainer
-    run_podman rm -t 0 -f cpcontainer
+    run_podman rm -t 0 -f destrunning
 }
 
 @test "podman cp (-a=false) file from host to container and check ownership" {
@@ -142,12 +137,11 @@ load helpers
 
     keepid="--userns=keep-id"
     is_rootless || keepid=""
-    run_podman run --user=$userid ${keepid} -d --name cpcontainer $IMAGE sleep infinity
-    run_podman cp -a=false - cpcontainer:/tmp/ < "${tmpdir}/a.tar"
-    run_podman exec cpcontainer stat -c "%u:%g" /tmp/a.txt
+    run_podman run --user=$userid ${keepid} -d --name destrunning $IMAGE sleep infinity
+    run_podman cp -a=false - destrunning:/tmp/ < "${tmpdir}/a.tar"
+    run_podman exec destrunning stat -c "%u:%g" /tmp/a.txt
     is "$output" "1042:1043" "copied file retains uid/gid from the tar"
-    run_podman kill cpcontainer
-    run_podman rm -t 0 -f cpcontainer
+    run_podman rm -t 0 -f destrunning
 }
 
 
@@ -163,7 +157,6 @@ load helpers
     run_podman run --pid=host -d --name cpcontainer $IMAGE sleep infinity
     run_podman cp $srcdir/hostfile cpcontainer:/tmp/hostfile
     run_podman cp cpcontainer:/tmp/hostfile $srcdir/hostfile1
-    run_podman kill cpcontainer
     run_podman rm -t 0 -f cpcontainer
 }
 
@@ -177,7 +170,7 @@ load helpers
         random-1-$(random_string 15)
         random-2-$(random_string 20)
     )
-    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir;
+    run_podman run -d --name srcrunning --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir;
          echo ${randomcontent[0]} > /tmp/containerfile;
          echo ${randomcontent[0]} > /tmp/dotfile.;
          echo ${randomcontent[1]} > /srv/containerfile1;
@@ -185,7 +178,7 @@ load helpers
          sleep infinity"
 
     # Commit the image for testing non-running containers
-    run_podman commit -q cpcontainer
+    run_podman commit -q srcrunning
     cpimage="$output"
 
     # format is: <id> | <source arg to cp> | <destination arg (appended to $srcdir) to cp> | <full dest path (appended to $srcdir)> | <test name>
@@ -205,25 +198,24 @@ load helpers
         if [[ $dest == "''" ]];then
             unset dest
         fi
-        run_podman cp cpcontainer:$src "$srcdir$dest"
+        run_podman cp srcrunning:$src "$srcdir$dest"
         is "$(< $srcdir$dest_fullname)" "${randomcontent[$id]}" "$description (cp ctr:$src to \$srcdir$dest)"
         rm $srcdir$dest_fullname
     done < <(parse_table "$tests")
-    run_podman kill cpcontainer
-    run_podman rm -t 0 -f cpcontainer
+    run_podman rm -t 0 -f srcrunning
 
     # Created container
-    run_podman create --name cpcontainer --workdir=/srv $cpimage
+    run_podman create --name srccreated --workdir=/srv $cpimage
     while read id src dest dest_fullname description; do
         # dest may be "''" for empty table cells
         if [[ $dest == "''" ]];then
             unset dest
         fi
-        run_podman cp cpcontainer:$src "$srcdir$dest"
+        run_podman cp srccreated:$src "$srcdir$dest"
         is "$(< $srcdir$dest_fullname)" "${randomcontent[$id]}" "$description (cp ctr:$src to \$srcdir$dest)"
         rm $srcdir$dest_fullname
     done < <(parse_table "$tests")
-    run_podman rm -t 0 -f cpcontainer
+    run_podman rm -t 0 -f srccreated
 
     run_podman rmi -f $cpimage
 }
@@ -237,7 +229,7 @@ load helpers
         random-2-$(random_string 20)
     )
 
-    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir;
+    run_podman run -d --name srcrunning --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir;
          echo ${randomcontent[0]} > /tmp/containerfile;
          echo ${randomcontent[0]} > /tmp/dotfile.;
          echo ${randomcontent[1]} > /srv/containerfile1;
@@ -245,13 +237,13 @@ load helpers
          sleep infinity"
 
     # Commit the image for testing non-running containers
-    run_podman commit -q cpcontainer
+    run_podman commit -q srcrunning
     cpimage="$output"
 
     # format is: <id> | <source arg to cp> | <destination arg (appended to $srcdir) to cp> | <full dest path (appended to $srcdir)> | <test name>
     tests="
-0 | /tmp/containerfile    |          | /containerfile  | /
-0 | /tmp/dotfile.         |          | /dotfile.       | /
+0 | /tmp/containerfile    | /        | /containerfile  | /
+0 | /tmp/dotfile.         | /        | /dotfile.       | /
 0 | /tmp/containerfile    | /        | /containerfile  | /
 0 | /tmp/containerfile    | /.       | /containerfile  | /.
 0 | /tmp/containerfile    | /newfile | /newfile        | /newfile
@@ -271,25 +263,24 @@ load helpers
         run_podman run -d $IMAGE sleep infinity
         destcontainer="$output"
         destcontainers+=($destcontainer)
-        run_podman cp cpcontainer:$src $destcontainer:"/$dest"
-        run_podman exec $destcontainer cat "/$dest_fullname"
-        is "$output" "${randomcontent[$id]}" "$description (cp ctr:$src to /$dest)"
+        run_podman cp srcrunning:$src $destcontainer:"$dest"
+        run_podman exec $destcontainer cat "$dest_fullname"
+        is "$output" "${randomcontent[$id]}" "$description (cp ctr:$src to $dest - RUNNING)"
 
         # To CREATED container
         run_podman create $IMAGE sleep infinity
         destcontainer="$output"
         destcontainers+=($destcontainer)
-        run_podman cp cpcontainer:$src $destcontainer:"/$dest"
+        run_podman cp srcrunning:$src $destcontainer:"$dest"
         run_podman start $destcontainer
-        run_podman exec $destcontainer cat "/$dest_fullname"
-        is "$output" "${randomcontent[$id]}" "$description (cp ctr:$src to /$dest)"
+        run_podman exec $destcontainer cat "$dest_fullname"
+        is "$output" "${randomcontent[$id]}" "$description (cp ctr:$src to $dest - CREATED)"
     done < <(parse_table "$tests")
-    run_podman kill cpcontainer ${destcontainers[@]}
-    run_podman rm -t 0 -f cpcontainer ${destcontainers[@]}
+    run_podman rm -t 0 -f srcrunning ${destcontainers[@]}
 
     # From CREATED container
     destcontainers=()
-    run_podman create --name cpcontainer --workdir=/srv $cpimage
+    run_podman create --name srccreated --workdir=/srv $cpimage
     while read id src dest dest_fullname description; do
         # dest may be "''" for empty table cells
         if [[ $dest == "''" ]];then
@@ -300,20 +291,19 @@ load helpers
         run_podman run -d $IMAGE sleep infinity
         destcontainer="$output"
         destcontainers+=($destcontainer)
-        run_podman cp cpcontainer:$src $destcontainer:"/$dest"
-        run_podman exec $destcontainer cat "/$dest_fullname"
-        is "$output" "${randomcontent[$id]}" "$description (cp ctr:$src to /$dest)"
+        run_podman cp srccreated:$src $destcontainer:"$dest"
+        run_podman exec $destcontainer cat "$dest_fullname"
+        is "$output" "${randomcontent[$id]}" "$description (cp ctr:$src to $dest)"
         # To CREATED container
         run_podman create $IMAGE sleep infinity
         destcontainer="$output"
         destcontainers+=($destcontainer)
-        run_podman cp cpcontainer:$src $destcontainer:"/$dest"
+        run_podman cp srccreated:$src $destcontainer:"$dest"
         run_podman start $destcontainer
-        run_podman exec $destcontainer cat "/$dest_fullname"
-        is "$output" "${randomcontent[$id]}" "$description (cp ctr:$src to /$dest)"
+        run_podman exec $destcontainer cat "$dest_fullname"
+        is "$output" "${randomcontent[$id]}" "$description (cp ctr:$src to $dest)"
     done < <(parse_table "$tests")
-    run_podman kill ${destcontainers[@]}
-    run_podman rm -t 0 -f cpcontainer ${destcontainers[@]}
+    run_podman rm -t 0 -f srccreated ${destcontainers[@]}
     run_podman rmi -f $cpimage
 }
 
@@ -333,10 +323,10 @@ load helpers
     mkdir -p $srcdir/dir.
     cp -r $srcdir/dir/* $srcdir/dir.
 
-    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir; sleep infinity"
+    run_podman run -d --name destrunning --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir; sleep infinity"
 
     # Commit the image for testing non-running containers
-    run_podman commit -q cpcontainer
+    run_podman commit -q destrunning
     cpimage="$output"
 
     # format is: <source arg to cp (appended to srcdir)> | <destination arg to cp> | <full dest path> | <test name>
@@ -354,38 +344,26 @@ load helpers
 
     # RUNNING container
     while read src dest dest_fullname description; do
-        # src may be "''" for empty table cells
-        if [[ $src == "''" ]];then
-            unset src
-        fi
-        run_podman cp $srcdir/$src cpcontainer:$dest
-        run_podman exec cpcontainer cat $dest_fullname/hostfile0 $dest_fullname/hostfile1
-        is "${lines[0]}" "${randomcontent[0]}" "$description (cp -> ctr:$dest)"
-        is "${lines[1]}" "${randomcontent[1]}" "$description (cp -> ctr:$dest)"
+        run_podman cp $srcdir/$src destrunning:$dest
+        run_podman exec destrunning cat $dest_fullname/hostfile0 $dest_fullname/hostfile1
+        is "$(echo $output)" "${randomcontent[*]}" "$description (cp -> ctr:$dest - RUNNING)"
     done < <(parse_table "$tests")
-    run_podman kill cpcontainer
-    run_podman rm -t 0 -f cpcontainer
+    run_podman rm -t 0 -f destrunning
 
     # CREATED container
     while read src dest dest_fullname description; do
-        # src may be "''" for empty table cells
-        if [[ $src == "''" ]];then
-            unset src
-        fi
-        run_podman create --name cpcontainer --workdir=/srv $cpimage sleep infinity
-        run_podman cp $srcdir/$src cpcontainer:$dest
-        run_podman start cpcontainer
-        run_podman exec cpcontainer cat $dest_fullname/hostfile0 $dest_fullname/hostfile1
-        is "${lines[0]}" "${randomcontent[0]}" "$description (cp -> ctr:$dest)"
-        is "${lines[1]}" "${randomcontent[1]}" "$description (cp -> ctr:$dest)"
-        run_podman kill cpcontainer
-        run_podman rm -t 0 -f cpcontainer
+        run_podman create --name destcreated --workdir=/srv $cpimage sleep infinity
+        run_podman cp $srcdir/$src destcreated:$dest
+        run_podman start destcreated
+        run_podman exec destcreated cat $dest_fullname/hostfile0 $dest_fullname/hostfile1
+        is "$(echo $output)" "${randomcontent[*]}" "$description (cp -> ctr:$dest - CREATED)"
+        run_podman rm -t 0 -f destcreated
     done < <(parse_table "$tests")
 
-    run_podman create --name cpcontainer --workdir=/srv $cpimage sleep infinity
-    run_podman 125 cp $srcdir cpcontainer:/etc/os-release
+    run_podman create --name destnotdir --workdir=/srv $cpimage sleep infinity
+    run_podman 125 cp $srcdir destnotdir:/etc/os-release
     is "$output" "Error: destination must be a directory when copying a directory" "cannot copy directory to file"
-    run_podman rm -t 0 -f cpcontainer
+    run_podman rm -t 0 -f destnotdir
 
     run_podman rmi -f $cpimage
 }
@@ -401,14 +379,14 @@ load helpers
         random-1-$(random_string 15)
     )
 
-    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir;
+    run_podman run -d --name srcrunning --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir;
          echo ${randomcontent[0]} > /srv/subdir/containerfile0; \
          echo ${randomcontent[1]} > /srv/subdir/containerfile1; \
          mkdir /tmp/subdir.; cp /srv/subdir/* /tmp/subdir./; \
          sleep infinity"
 
     # Commit the image for testing non-running containers
-    run_podman commit -q cpcontainer
+    run_podman commit -q srcrunning
     cpimage="$output"
 
     # format is: <source arg to cp (appended to /srv)> | <dest> | <full dest path> | <test name>
@@ -424,45 +402,38 @@ load helpers
 
     # RUNNING container
     while read src dest dest_fullname description; do
-        if [[ $src == "''" ]];then
-            unset src
-        fi
         if [[ $dest == "''" ]];then
             unset dest
         fi
         if [[ $dest_fullname == "''" ]];then
             unset dest_fullname
         fi
-        run_podman cp cpcontainer:$src $destdir$dest
-        is "$(< $destdir$dest_fullname/containerfile0)" "${randomcontent[0]}" "$description"
-        is "$(< $destdir$dest_fullname/containerfile1)" "${randomcontent[1]}" "$description"
+        run_podman cp srcrunning:$src $destdir$dest
+        is "$(< $destdir$dest_fullname/containerfile0)" "${randomcontent[0]}" "$description RUNNING (containerfile0)"
+        is "$(< $destdir$dest_fullname/containerfile1)" "${randomcontent[1]}" "$description RUNNING (containerfile1)"
         rm -rf ${destdir:?}/*
     done < <(parse_table "$tests")
-    run_podman kill cpcontainer
-    run_podman rm -t 0 -f cpcontainer
+    run_podman rm -t 0 -f srcrunning
 
     # CREATED container
-    run_podman create --name cpcontainer --workdir=/srv $cpimage
+    run_podman create --name srccreated --workdir=/srv $cpimage
     while read src dest dest_fullname description; do
-        if [[ $src == "''" ]];then
-            unset src
-        fi
         if [[ $dest == "''" ]];then
             unset dest
         fi
         if [[ $dest_fullname == "''" ]];then
             unset dest_fullname
         fi
-        run_podman cp cpcontainer:$src $destdir$dest
-        is "$(< $destdir$dest_fullname/containerfile0)" "${randomcontent[0]}" "$description"
-        is "$(< $destdir$dest_fullname/containerfile1)" "${randomcontent[1]}" "$description"
+        run_podman cp srccreated:$src $destdir$dest
+        is "$(< $destdir$dest_fullname/containerfile0)" "${randomcontent[0]}" "$description CREATED (containerfile0)"
+        is "$(< $destdir$dest_fullname/containerfile1)" "${randomcontent[1]}" "$description CREATED (containerfile1)"
         rm -rf ${destdir:?}/*
     done < <(parse_table "$tests")
 
     touch $destdir/testfile
-    run_podman 125 cp cpcontainer:/etc/ $destdir/testfile
+    run_podman 125 cp srccreated:/etc/ $destdir/testfile
     is "$output" "Error: destination must be a directory when copying a directory" "cannot copy directory to file"
-    run_podman rm -t 0 -f cpcontainer
+    run_podman rm -t 0 -f srccreated
 
     run_podman rmi -f $cpimage
 }
@@ -475,36 +446,30 @@ load helpers
         random-1-$(random_string 15)
     )
 
-    run_podman run -d --name cpcontainer --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir;
+    run_podman run -d --name srcrunning --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir;
          echo ${randomcontent[0]} > /srv/subdir/containerfile0; \
          echo ${randomcontent[1]} > /srv/subdir/containerfile1; \
          mkdir /tmp/subdir.; cp /srv/subdir/* /tmp/subdir./; \
          sleep infinity"
 
     # Commit the image for testing non-running containers
-    run_podman commit -q cpcontainer
+    run_podman commit -q srcrunning
     cpimage="$output"
 
     # format is: <source arg to cp (appended to /srv)> | <dest> | <full dest path> | <test name>
     tests="
-/srv          |         | /srv/subdir    | copy /srv
+/srv          | /       | /srv/subdir    | copy /srv
 /srv          | /newdir | /newdir/subdir | copy /srv to /newdir
-/srv/         |         | /srv/subdir    | copy /srv/
-/srv/.        |         | /subdir        | copy /srv/.
+/srv/         | /       | /srv/subdir    | copy /srv/
+/srv/.        | /       | /subdir        | copy /srv/.
 /srv/.        | /newdir | /newdir/subdir | copy /srv/. to /newdir
-/srv/subdir/. |         |                | copy /srv/subdir/.
-/tmp/subdir.  |         | /subdir.       | copy /tmp/subdir.
+/srv/subdir/. | /       |                | copy /srv/subdir/.
+/tmp/subdir.  | /       | /subdir.       | copy /tmp/subdir.
 "
 
     # From RUNNING container
     local -a destcontainers=()
     while read src dest dest_fullname description; do
-        if [[ $src == "''" ]];then
-            unset src
-        fi
-        if [[ $dest == "''" ]];then
-            unset dest
-        fi
         if [[ $dest_fullname == "''" ]];then
             unset dest_fullname
         fi
@@ -513,34 +478,25 @@ load helpers
         run_podman run -d $IMAGE sleep infinity
         destcontainer="$output"
         destcontainers+=($destcontainer)
-        run_podman cp cpcontainer:$src $destcontainer:"/$dest"
-        run_podman exec $destcontainer cat "/$dest_fullname/containerfile0" "/$dest_fullname/containerfile1"
-        is "$output" "${randomcontent[0]}
-${randomcontent[1]}" "$description"
+        run_podman cp srcrunning:$src $destcontainer:"$dest"
+        run_podman exec $destcontainer cat "$dest_fullname/containerfile0" "$dest_fullname/containerfile1"
+        is "$(echo $output)" "${randomcontent[*]}" "$description - from RUNNING to RUNNING"
 
         # To CREATED container
         run_podman create $IMAGE sleep infinity
         destcontainer="$output"
         destcontainers+=($destcontainer)
-        run_podman cp cpcontainer:$src $destcontainer:"/$dest"
+        run_podman cp srcrunning:$src $destcontainer:"$dest"
         run_podman start $destcontainer
-        run_podman exec $destcontainer cat "/$dest_fullname/containerfile0" "/$dest_fullname/containerfile1"
-        is "$output" "${randomcontent[0]}
-${randomcontent[1]}" "$description"
+        run_podman exec $destcontainer cat "$dest_fullname/containerfile0" "$dest_fullname/containerfile1"
+        is "$(echo $output)" "${randomcontent[*]}" "$description - from RUNNING to CREATED/STARTED"
     done < <(parse_table "$tests")
-    run_podman kill cpcontainer ${destcontainers[@]}
-    run_podman rm -t 0 -f cpcontainer ${destcontainers[@]}
+    run_podman rm -t 0 -f srcrunning ${destcontainers[@]}
 
     # From CREATED container
     destcontainers=()
-    run_podman create --name cpcontainer --workdir=/srv $cpimage
+    run_podman create --name srccreated --workdir=/srv $cpimage
     while read src dest dest_fullname description; do
-        if [[ $src == "''" ]];then
-            unset src
-        fi
-        if [[ $dest == "''" ]];then
-            unset dest
-        fi
         if [[ $dest_fullname == "''" ]];then
             unset dest_fullname
         fi
@@ -549,24 +505,21 @@ ${randomcontent[1]}" "$description"
         run_podman run -d $IMAGE sleep infinity
         destcontainer="$output"
         destcontainers+=($destcontainer)
-        run_podman cp cpcontainer:$src $destcontainer:"/$dest"
-        run_podman exec $destcontainer cat "/$dest_fullname/containerfile0" "/$dest_fullname/containerfile1"
-        is "$output" "${randomcontent[0]}
-${randomcontent[1]}" "$description"
+        run_podman cp srccreated:$src $destcontainer:"$dest"
+        run_podman exec $destcontainer cat "$dest_fullname/containerfile0" "$dest_fullname/containerfile1"
+        is "$(echo $output)" "${randomcontent[*]}" "$description - from CREATED to RUNNING"
 
         # To CREATED container
         run_podman create $IMAGE sleep infinity
         destcontainer="$output"
         destcontainers+=($destcontainer)
         run_podman start $destcontainer
-        run_podman cp cpcontainer:$src $destcontainer:"/$dest"
-        run_podman exec $destcontainer cat "/$dest_fullname/containerfile0" "/$dest_fullname/containerfile1"
-        is "$output" "${randomcontent[0]}
-${randomcontent[1]}" "$description"
+        run_podman cp srccreated:$src $destcontainer:"$dest"
+        run_podman exec $destcontainer cat "$dest_fullname/containerfile0" "$dest_fullname/containerfile1"
+        is "$(echo $output)" "${randomcontent[*]}" "$description - from CREATED to CREATED"
     done < <(parse_table "$tests")
 
-    run_podman kill ${destcontainers[@]}
-    run_podman rm -t 0 -f cpcontainer ${destcontainers[@]}
+    run_podman rm -t 0 -f srccreated ${destcontainers[@]}
     run_podman rmi -f $cpimage
 }
 
@@ -581,35 +534,34 @@ ${randomcontent[1]}" "$description"
         random-1-$(random_string 15)
     )
 
-    run_podman run -d --name cpcontainer $IMAGE sh -c "echo ${randomcontent[0]} > /tmp/containerfile0; \
+    run_podman run -d --name srcrunning $IMAGE sh -c "echo ${randomcontent[0]} > /tmp/containerfile0; \
          echo ${randomcontent[1]} > /tmp/containerfile1; \
          mkdir /tmp/sub && cd /tmp/sub && ln -s .. weirdlink; \
          sleep infinity"
 
     # Commit the image for testing non-running containers
-    run_podman commit -q cpcontainer
+    run_podman commit -q srcrunning
     cpimage="$output"
 
     # RUNNING container
     # NOTE: /dest does not exist yet but is expected to be created during copy
-    run_podman cp cpcontainer:/tmp/sub/weirdlink $destdir/dest
+    run_podman cp srcrunning:/tmp/sub/weirdlink $destdir/dest
     for i in 0 1; do
         assert "$(< $destdir/dest/containerfile$i)" = "${randomcontent[$i]}" \
                "eval symlink - running container - file $i/1"
     done
 
-    run_podman kill cpcontainer
-    run_podman rm -t 0 -f cpcontainer
+    run_podman rm -t 0 -f srcrunning
     rm -rf $srcdir/dest
 
     # CREATED container
-    run_podman create --name cpcontainer $cpimage
-    run_podman cp cpcontainer:/tmp/sub/weirdlink $destdir/dest
+    run_podman create --name srccreated $cpimage
+    run_podman cp srccreated:/tmp/sub/weirdlink $destdir/dest
     for i in 0 1; do
         assert "$(< $destdir/dest/containerfile$i)" = "${randomcontent[$i]}" \
                "eval symlink - created container - file $i/1"
     done
-    run_podman rm -t 0 -f cpcontainer
+    run_podman rm -t 0 -f srccreated
     run_podman rmi $cpimage
 }
 
@@ -790,13 +742,13 @@ ${randomcontent[1]}" "$description"
     # Copy file from host into container, into a file named 'x'
     # Note that the second has a trailing slash, implying a directory.
     # Since that destination directory doesn't exist, the cp will fail
-    run_podman cp --pause=false $srcdir/$rand_filename1 cpcontainer:/tmp/d1/x
+    run_podman cp $srcdir/$rand_filename1 cpcontainer:/tmp/d1/x
     is "$output" "" "output from podman cp 1"
 
-    run_podman 125 cp --pause=false $srcdir/$rand_filename2 cpcontainer:/tmp/d2/x/
+    run_podman 125 cp $srcdir/$rand_filename2 cpcontainer:/tmp/d2/x/
     is "$output" 'Error: "/tmp/d2/x/" could not be found on container cpcontainer: no such file or directory' "cp will not create nonexistent destination directory"
 
-    run_podman cp --pause=false $srcdir/$rand_filename3 cpcontainer:/tmp/d3/x
+    run_podman cp $srcdir/$rand_filename3 cpcontainer:/tmp/d3/x
     is "$output" "" "output from podman cp 3"
 
     # Read back.
@@ -814,7 +766,6 @@ ${randomcontent[1]}" "$description"
     run_podman exec cpcontainer cat /tmp/d3/x
     is "$output" "$rand_content3" "cp creates file named x"
 
-    run_podman kill cpcontainer
     run_podman rm -t 0 -f cpcontainer
 }
 
@@ -834,14 +785,13 @@ ${randomcontent[1]}" "$description"
     run_podman info --format '{{.Store.GraphRoot}}'
     graphroot=$output
 
-    # Create that directory in the container, and sleep (to keep container
-    # running, so we can exec into it). The trap/while is so podman-rm will
-    # run quickly instead of taking 10 seconds.
+    # Create that directory in the container, and keep container running
     run_podman run -d --name cpcontainer $IMAGE sh -c \
-               "mkdir -p $graphroot; trap 'exit 0' 15;while :;do sleep 0.5;done"
+               "mkdir -p $graphroot; echo READY; top"
+    wait_for_ready cpcontainer
 
     # Copy from host into container.
-    run_podman cp --pause=false $srcdir/$rand_filename cpcontainer:$graphroot/$rand_filename
+    run_podman cp $srcdir/$rand_filename cpcontainer:$graphroot/$rand_filename
 
     # ls, and confirm it's there.
     run_podman exec cpcontainer ls -l $graphroot/$rand_filename
@@ -852,7 +802,6 @@ ${randomcontent[1]}" "$description"
     run_podman exec cpcontainer cat $graphroot/$rand_filename
     is "$output" "$rand_content" "Contents of file copied into container"
 
-    run_podman kill cpcontainer
     run_podman rm -t 0 -f cpcontainer
 }
 
@@ -895,13 +844,12 @@ ${randomcontent[1]}" "$description"
     # Destination must be a directory (on an existing file).
     run_podman exec cpcontainer touch /tmp/file.txt
     run_podman 125 cp - cpcontainer:/tmp/file.txt < $tar_file
-    is "$output" 'Error: destination must be a directory when copying from stdin'
+    is "$output" 'Error: destination must be a directory when copying from stdin' "cp from stdin to existing file"
 
     # Destination must be a directory (on an absent path).
     run_podman 125 cp - cpcontainer:/tmp/IdoNotExist < $tar_file
-    is "$output" 'Error: destination must be a directory when copying from stdin'
+    is "$output" 'Error: destination must be a directory when copying from stdin' "cp from stdin to absent path"
 
-    run_podman kill cpcontainer
     run_podman rm -t 0 -f cpcontainer
 }
 
@@ -926,7 +874,7 @@ ${randomcontent[1]}" "$description"
     #
     # NOTE that we can't use run_podman because that uses the BATS 'run'
     # function which redirects stdout and stderr. Here we need to guarantee
-    # that podman's stdout is a pipe, not any other form of redirection.
+    # that podman's stdout is redirected cleanly with no artifacts.
 
     # Copy file.
     $PODMAN cp cpcontainer:/tmp/file.txt - > $srcdir/stdout.tar
@@ -942,10 +890,9 @@ ${randomcontent[1]}" "$description"
     $PODMAN cp cpcontainer:/tmp - > $srcdir/stdout.tar
 
     tar xvf $srcdir/stdout.tar -C $srcdir
-    is "$(< $srcdir/tmp/file.txt)" "$rand_content"
-    is "$(< $srcdir/tmp/empty.txt)" ""
+    is "$(< $srcdir/tmp/file.txt)" "$rand_content"  "file.txt contents"
+    is "$(< $srcdir/tmp/empty.txt)" ""              "empty.txt contents"
 
-    run_podman kill cpcontainer
     run_podman rm -t 0 -f cpcontainer
 }
 
@@ -963,7 +910,7 @@ ${randomcontent[1]}" "$description"
     fi
     run_podman cp --overwrite ctr-file:/tmp/foo ctr-dir:/tmp
     run_podman exec ctr-dir cat /tmp/foo
-    is "$output" "$rand_content_file"
+    is "$output" "$rand_content_file" "ctr-dir:/tmp/foo, after cp --overwrite, is a file"
 
     # reset the ctr-dir container
     run_podman exec ctr-dir sh -c "rm -rf /tmp/foo; mkdir /tmp/foo; echo '$rand_content_dir' > /tmp/foo/file.txt"
@@ -1042,11 +989,12 @@ ${randomcontent[1]}" "$description"
     fi
     run_podman cp --overwrite $hostdir/foo ctr-file:/tmp
     run_podman exec ctr-file cat /tmp/foo/file.txt
-    is "$output" "$rand_content_dir"
+    is "$output" "$rand_content_dir" "ctr-file:/tmp/foo/file.txt, after cp --overwrite"
 
     run_podman rm -t 0 -f ctr-file ctr-dir
 }
 
+# https://github.com/containers/podman/pull/16498
 @test "podman cp - dot notation - host to container" {
     srcdir=$PODMAN_TMPDIR/src
     mkdir -p $srcdir
@@ -1055,7 +1003,8 @@ ${randomcontent[1]}" "$description"
 
     run_podman run -d --name=test-ctr --rm $IMAGE sleep infinity
     run_podman cp $srcdir/test1. test-ctr:/tmp/foo
-    run_podman exec test-ctr stat /tmp/foo/file1
+    run_podman exec test-ctr /bin/ls -1 /tmp/foo/
+    assert "$output" = "file1" "ls ctr:/tmp/foo: only file1 exists, nothing more"
 
     run_podman rm -f -t0 test-ctr
 }
@@ -1066,10 +1015,8 @@ ${randomcontent[1]}" "$description"
 
     run_podman run -d --name=test-ctr --rm $IMAGE sh -c "mkdir -p /foo/test1. /foo/test2; touch /foo/test1./file1 /foo/test2/file2; sleep infinity"
     run_podman cp test-ctr:/foo/test1. $dstdir/foo
-    run stat $dstdir/foo/test1.
-    if [[ -e $dstdir/foo/test2 ]]; then
-        die "the test2 directory should not have been copied over"
-    fi
+    run /bin/ls -1 $dstdir/foo
+    assert "$output" = "file1" "ls [local]/foo: only file1 was copied, nothing more"
 
     run_podman rm -f -t0 test-ctr
 }
@@ -1079,8 +1026,8 @@ ${randomcontent[1]}" "$description"
     run_podman run -d --name=dest-ctr --rm $IMAGE sleep infinity
     run_podman cp src-ctr:/foo/test1. dest-ctr:/foo
 
-    run_podman exec dest-ctr find /foo
-    run_podman exec dest-ctr stat /foo/file1
+    run_podman exec dest-ctr /bin/ls -1 /foo
+    assert "$output" = "file1" "ls dest-ctr:/foo: only file1 exists, nothing more"
 
     run_podman rm -f -t0 src-ctr dest-ctr
 }
