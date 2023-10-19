@@ -16,6 +16,14 @@ This package provides various compression algorithms.
 
 # changelog
 
+* Sept 19th, 2023 - [v1.17.0](https://github.com/klauspost/compress/releases/tag/v1.17.0)
+	* Add experimental dictionary builder  https://github.com/klauspost/compress/pull/853
+	* Add xerial snappy read/writer https://github.com/klauspost/compress/pull/838
+	* flate: Add limited window compression https://github.com/klauspost/compress/pull/843
+	* s2: Do 2 overlapping match checks https://github.com/klauspost/compress/pull/839
+	* flate: Add amd64 assembly matchlen https://github.com/klauspost/compress/pull/837
+	* gzip: Copy bufio.Reader on Reset by @thatguystone in https://github.com/klauspost/compress/pull/860
+   
 * July 1st, 2023 - [v1.16.7](https://github.com/klauspost/compress/releases/tag/v1.16.7)
 	* zstd: Fix default level first dictionary encode https://github.com/klauspost/compress/pull/829
 	* s2: add GetBufferCapacity() method by @GiedriusS in https://github.com/klauspost/compress/pull/832
@@ -646,6 +654,7 @@ Here are other packages of good quality and pure Go (no cgo wrappers or autoconv
 * [github.com/ronanh/intcomp](https://github.com/ronanh/intcomp) - Integer compression.
 * [github.com/spenczar/fpc](https://github.com/spenczar/fpc) - Float compression.
 * [github.com/minio/zipindex](https://github.com/minio/zipindex) - External ZIP directory index.
+* [github.com/ybirader/pzip](https://github.com/ybirader/pzip) - Fast concurrent zip archiver and extractor.
 
 # license
 

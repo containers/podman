@@ -4,7 +4,6 @@
 package overlay
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -16,6 +15,7 @@ import (
 	"syscall"
 	"unsafe"
 
+	"github.com/containers/storage/pkg/chunked/dump"
 	"github.com/containers/storage/pkg/loopback"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -29,7 +29,7 @@ var (
 
 func getComposeFsHelper() (string, error) {
 	composeFsHelperOnce.Do(func() {
-		composeFsHelperPath, composeFsHelperErr = exec.LookPath("composefs-from-json")
+		composeFsHelperPath, composeFsHelperErr = exec.LookPath("mkcomposefs")
 	})
 	return composeFsHelperPath, composeFsHelperErr
 }
@@ -53,7 +53,23 @@ func enableVerity(description string, fd int) error {
 	return nil
 }
 
-func enableVerityRecursive(path string) error {
+type verityDigest struct {
+	Fsv unix.FsverityDigest
+	Buf [64]byte
+}
+
+func measureVerity(description string, fd int) (string, error) {
+	var digest verityDigest
+	digest.Fsv.Size = 64
+	_, _, e1 := syscall.Syscall(unix.SYS_IOCTL, uintptr(fd), uintptr(unix.FS_IOC_MEASURE_VERITY), uintptr(unsafe.Pointer(&digest)))
+	if e1 != 0 {
+		return "", fmt.Errorf("failed to measure verity for %q: %w", description, e1)
+	}
+	return fmt.Sprintf("%x", digest.Buf[:digest.Fsv.Size]), nil
+}
+
+func enableVerityRecursive(root string) (map[string]string, error) {
+	digests := make(map[string]string)
 	walkFn := func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -71,24 +87,42 @@ func enableVerityRecursive(path string) error {
 		if err := enableVerity(path, int(f.Fd())); err != nil {
 			return err
 		}
+
+		verity, err := measureVerity(path, int(f.Fd()))
+		if err != nil {
+			return err
+		}
+
+		relPath, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+
+		digests[relPath] = verity
 		return nil
 	}
-	return filepath.WalkDir(path, walkFn)
+	err := filepath.WalkDir(root, walkFn)
+	return digests, err
 }
 
 func getComposefsBlob(dataDir string) string {
 	return filepath.Join(dataDir, "composefs.blob")
 }
 
-func generateComposeFsBlob(toc []byte, composefsDir string) error {
+func generateComposeFsBlob(verityDigests map[string]string, toc interface{}, composefsDir string) error {
 	if err := os.MkdirAll(composefsDir, 0o700); err != nil {
+		return err
+	}
+
+	dumpReader, err := dump.GenerateDump(toc, verityDigests)
+	if err != nil {
 		return err
 	}
 
 	destFile := getComposefsBlob(composefsDir)
 	writerJson, err := getComposeFsHelper()
 	if err != nil {
-		return fmt.Errorf("failed to find composefs-from-json: %w", err)
+		return fmt.Errorf("failed to find mkcomposefs: %w", err)
 	}
 
 	fd, err := unix.Openat(unix.AT_FDCWD, destFile, unix.O_WRONLY|unix.O_CREAT|unix.O_TRUNC|unix.O_EXCL|unix.O_CLOEXEC, 0o644)
@@ -109,10 +143,10 @@ func generateComposeFsBlob(toc []byte, composefsDir string) error {
 		// a scope to close outFd before setting fsverity on the read-only fd.
 		defer outFd.Close()
 
-		cmd := exec.Command(writerJson, "--format=erofs", "--out=/proc/self/fd/3", "/proc/self/fd/0")
+		cmd := exec.Command(writerJson, "--from-file", "-", "/proc/self/fd/3")
 		cmd.ExtraFiles = []*os.File{outFd}
 		cmd.Stderr = os.Stderr
-		cmd.Stdin = bytes.NewReader(toc)
+		cmd.Stdin = dumpReader
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("failed to convert json to erofs: %w", err)
 		}

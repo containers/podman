@@ -82,7 +82,7 @@ const (
 	lowerFile  = "lower"
 	maxDepth   = 500
 
-	zstdChunkedManifest = "zstd-chunked-manifest"
+	tocArtifact = "toc"
 
 	// idLength represents the number of random characters
 	// which can be used to create the unique link identifier
@@ -1003,8 +1003,10 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, disable
 		}
 	}
 	if parent != "" {
-		parentBase, parentImageStore, _ := d.dir2(parent)
-		if parentImageStore != "" {
+		parentBase, parentImageStore, inAdditionalStore := d.dir2(parent)
+		// If parentBase path is additional image store, select the image contained in parentBase.
+		// See https://github.com/containers/podman/issues/19748
+		if parentImageStore != "" && !inAdditionalStore {
 			parentBase = parentImageStore
 		}
 		st, err := system.Stat(filepath.Join(parentBase, "diff"))
@@ -1079,12 +1081,13 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, disable
 	}
 
 	if parent != "" {
-		parentDir, parentImageStore, _ := d.dir2(parent)
-		base := parentDir
-		if parentImageStore != "" {
-			base = parentImageStore
+		parentBase, parentImageStore, inAdditionalStore := d.dir2(parent)
+		// If parentBase path is additional image store, select the image contained in parentBase.
+		// See https://github.com/containers/podman/issues/19748
+		if parentImageStore != "" && !inAdditionalStore {
+			parentBase = parentImageStore
 		}
-		st, err := system.Stat(filepath.Join(base, "diff"))
+		st, err := system.Stat(filepath.Join(parentBase, "diff"))
 		if err != nil {
 			return err
 		}
@@ -1526,14 +1529,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		defer cleanupFunc()
 	}
 
-	composefsLayers := filepath.Join(workDirBase, "composefs-layers")
-	if err := os.MkdirAll(composefsLayers, 0o700); err != nil {
-		return "", err
-	}
-
 	skipIDMappingLayers := make(map[string]string)
-
-	composeFsLayers := []string{}
 
 	composefsMounts := []string{}
 	defer func() {
@@ -1542,6 +1538,8 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		}
 	}()
 
+	composeFsLayers := []string{}
+	composeFsLayersDir := filepath.Join(workDirBase, "composefs-layers")
 	maybeAddComposefsMount := func(lowerID string, i int, readWrite bool) (string, error) {
 		composefsBlob := d.getComposefsData(lowerID)
 		_, err = os.Stat(composefsBlob)
@@ -1557,7 +1555,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			return "", fmt.Errorf("cannot mount a composefs layer as writeable")
 		}
 
-		dest := filepath.Join(composefsLayers, fmt.Sprintf("%d", i))
+		dest := filepath.Join(composeFsLayersDir, fmt.Sprintf("%d", i))
 		if err := os.MkdirAll(dest, 0o700); err != nil {
 			return "", err
 		}
@@ -2110,11 +2108,12 @@ func (d *Driver) ApplyDiffFromStagingDirectory(id, parent, stagingDirectory stri
 	if d.useComposeFs() {
 		// FIXME: move this logic into the differ so we don't have to open
 		// the file twice.
-		if err := enableVerityRecursive(stagingDirectory); err != nil && !errors.Is(err, unix.ENOTSUP) && !errors.Is(err, unix.ENOTTY) {
+		verityDigests, err := enableVerityRecursive(stagingDirectory)
+		if err != nil && !errors.Is(err, unix.ENOTSUP) && !errors.Is(err, unix.ENOTTY) {
 			logrus.Warningf("%s", err)
 		}
-		toc := diffOutput.BigData[zstdChunkedManifest]
-		if err := generateComposeFsBlob(toc, d.getComposefsData(id)); err != nil {
+		toc := diffOutput.Artifacts[tocArtifact]
+		if err := generateComposeFsBlob(verityDigests, toc, d.getComposefsData(id)); err != nil {
 			return err
 		}
 	}

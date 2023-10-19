@@ -26,6 +26,8 @@ import (
 const (
 	cacheKey     = "chunked-manifest-cache"
 	cacheVersion = 1
+
+	digestSha256Empty = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 )
 
 type metadata struct {
@@ -649,6 +651,9 @@ func unmarshalToc(manifest []byte) (*internal.TOC, error) {
 				default:
 					iter.Skip()
 				}
+			}
+			if m.Type == TypeReg && m.Size == 0 && m.Digest == "" {
+				m.Digest = digestSha256Empty
 			}
 			toc.Entries = append(toc.Entries, m)
 		}
