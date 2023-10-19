@@ -43,6 +43,9 @@ under the `[network]` section.
 The name of the plugin can then be used as driver to create a network for your plugin.
 The list of all supported drivers and plugins can be seen with `podman info --format {{.Plugins.Network}}`.
 
+Note that the `macvlan` and `ipvlan` drivers do not support port forwarding. Support for port forwarding
+with a plugin depends on the implementation of the plugin.
+
 #### **--gateway**=*ip*
 
 Define a gateway for the subnet. To provide a gateway address, a

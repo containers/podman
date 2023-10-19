@@ -21,3 +21,6 @@ Host port does not have to be specified (e.g. `podman run -p 127.0.0.1::80`).
 If it is not, the container port is randomly assigned a port on the host.
 
 Use **podman port** to see the actual mapping: `podman port $CONTAINER $CONTAINERPORT`.
+
+Note that the network drivers `macvlan` and `ipvlan` do not support port forwarding,
+it will have no effect on these networks.
