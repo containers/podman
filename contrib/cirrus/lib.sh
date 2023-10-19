@@ -112,6 +112,9 @@ CG_FS_TYPE="$(stat -f -c %T /sys/fs/cgroup)"
 # Set to 1 in all podman container images
 CONTAINER="${CONTAINER:-0}"
 
+# Without this, perl garbles "f39β" command-line args
+PERL_UNICODE=A
+
 # END Global export of all variables
 set +a
 
