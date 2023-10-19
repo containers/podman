@@ -209,3 +209,30 @@ func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	logrus.Debugf("Attach for container %s exec session %s completed successfully", sessionCtr.ID(), sessionID)
 }
+
+// ExecRemoveHandler removes a exec session.
+func ExecRemoveHandler(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+
+	sessionID := mux.Vars(r)["id"]
+
+	bodyParams := new(handlers.ExecRemoveConfig)
+
+	if err := json.NewDecoder(r.Body).Decode(&bodyParams); err != nil {
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to decode parameters for %s: %w", r.URL.String(), err))
+		return
+	}
+
+	sessionCtr, err := runtime.GetExecSessionContainer(sessionID)
+	if err != nil {
+		utils.Error(w, http.StatusNotFound, err)
+		return
+	}
+
+	logrus.Debugf("Removing exec session %s of container %s", sessionID, sessionCtr.ID())
+	if err := sessionCtr.ExecRemove(sessionID, bodyParams.Force); err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	logrus.Debugf("Removing exec session %s for container %s completed successfully", sessionID, sessionCtr.ID())
+}

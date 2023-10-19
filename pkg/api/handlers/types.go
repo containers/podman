@@ -161,3 +161,7 @@ type ExecStartConfig struct {
 	Height uint16 `json:"h"`
 	Width  uint16 `json:"w"`
 }
+
+type ExecRemoveConfig struct {
+	Force bool `json:"Force"`
+}
