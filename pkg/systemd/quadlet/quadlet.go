@@ -617,18 +617,8 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 		podman.add("--read-only-tmpfs=false")
 	}
 
-	hasUser := container.HasKey(ContainerGroup, KeyUser)
-	hasGroup := container.HasKey(ContainerGroup, KeyGroup)
-	if hasUser || hasGroup {
-		uid := container.LookupUint32(ContainerGroup, KeyUser, 0)
-		gid := container.LookupUint32(ContainerGroup, KeyGroup, 0)
-
-		podman.add("--user")
-		if hasGroup {
-			podman.addf("%d:%d", uid, gid)
-		} else {
-			podman.addf("%d", uid)
-		}
+	if err := handleUser(container, ContainerGroup, podman); err != nil {
+		return nil, err
 	}
 
 	if workdir, exists := container.Lookup(ContainerGroup, KeyWorkingDir); exists {
@@ -1229,6 +1219,30 @@ func ConvertImage(image *parser.UnitFile) (*parser.UnitFile, string, error) {
 	}
 
 	return service, imageName, nil
+}
+
+func handleUser(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline) error {
+	user, hasUser := unitFile.Lookup(groupName, KeyUser)
+	okUser := hasUser && len(user) > 0
+
+	group, hasGroup := unitFile.Lookup(groupName, KeyGroup)
+	okGroup := hasGroup && len(group) > 0
+
+	if !okUser {
+		if okGroup {
+			return fmt.Errorf("invalid Group set without User")
+		}
+		return nil
+	}
+
+	if !okGroup {
+		podman.add("--user", user)
+		return nil
+	}
+
+	podman.addf("--user=%s:%s", user, group)
+
+	return nil
 }
 
 func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline, isUser, supportManual bool) error {
