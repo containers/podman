@@ -76,7 +76,7 @@ stateDiagram-v2
     s2 --> container: socket inherited via exec
 ```
 
-This type of socket activation can be used in systemd services that are generated from container unit files (see [podman-systemd.unit(5)](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html)) or from the command [`podman generate systemd`](https://docs.podman.io/en/latest/markdown/podman-generate-systemd.1.html).
+This type of socket activation can be used in systemd services that are generated from container unit files (see [podman-systemd.unit(5)](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html)) (Note, quadlet requires the use of cgroup v2) or from the command [`podman generate systemd`](https://docs.podman.io/en/latest/markdown/podman-generate-systemd.1.html).
 The container must also support socket activation. Not all software daemons support socket activation
 but it's getting more popular. For instance Apache HTTP server, MariaDB, DBUS, PipeWire, Gunicorn, CUPS
 all have socket activation support.

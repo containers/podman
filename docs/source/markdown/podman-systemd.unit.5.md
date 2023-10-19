@@ -59,6 +59,8 @@ Adding the following snippet to a Quadlet file extends the systemd timeout to 15
 TimeoutStartSec=900
 ```
 
+Quadlet requires the use of cgroup v2, use `podman info --format {{.Host.CgroupsVersion}}` to check on the system.
+
 ### Service Type
 
 By default, the `Type` field of the `Service` section of the Quadlet file does not need to be set.
