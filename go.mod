@@ -20,7 +20,7 @@ require (
 	github.com/containers/libhvee v0.4.1-0.20231012183749-e51be96b4854
 	github.com/containers/ocicrypt v1.1.8
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.50.3-0.20231005200628-e21971a94abb
+	github.com/containers/storage v1.50.3-0.20231019074621-79aa304201ff
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.4.3
 	github.com/crc-org/vfkit v0.1.2-0.20230829083117-09e62065eb6e
@@ -139,7 +139,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
-	github.com/klauspost/compress v1.17.0 // indirect
+	github.com/klauspost/compress v1.17.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/kr/fs v0.1.0 // indirect
