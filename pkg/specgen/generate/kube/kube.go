@@ -69,6 +69,12 @@ func ToPodOpt(ctx context.Context, podName string, p entities.PodCreateOptions, 
 	}
 	if podYAML.Spec.HostNetwork {
 		p.Net.Network = specgen.Namespace{NSMode: "host"}
+		nodeHostName, err := os.Hostname()
+		if err != nil {
+			return p, err
+		}
+		p.Hostname = nodeHostName
+		p.Uts = "host"
 	}
 	if podYAML.Spec.HostAliases != nil {
 		if p.Net.NoHosts {
@@ -156,6 +162,8 @@ type CtrSpecGenOptions struct {
 	UserNSIsHost bool
 	// PidNSIsHost tells the container to use the host pidns
 	PidNSIsHost bool
+	// UtsNSIsHost tells the container to use the host utsns
+	UtsNSIsHost bool
 	// SecretManager to access the secrets
 	SecretsManager *secrets.SecretsManager
 	// LogDriver which should be used for the container
@@ -562,6 +570,9 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	}
 	if opts.IpcNSIsHost {
 		s.IpcNS.NSMode = specgen.Host
+	}
+	if opts.UtsNSIsHost {
+		s.UtsNS.NSMode = specgen.Host
 	}
 
 	// Add labels that come from kube

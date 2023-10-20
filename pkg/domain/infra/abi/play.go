@@ -789,6 +789,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			SecretsManager:     secretsManager,
 			UserNSIsHost:       p.Userns.IsHost(),
 			Volumes:            volumes,
+			UtsNSIsHost:        p.UtsNs.IsHost(),
 		}
 		specGen, err := kube.ToSpecGen(ctx, &specgenOpts)
 		if err != nil {
@@ -858,6 +859,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			SecretsManager:     secretsManager,
 			UserNSIsHost:       p.Userns.IsHost(),
 			Volumes:            volumes,
+			UtsNSIsHost:        p.UtsNs.IsHost(),
 		}
 
 		if podYAML.Spec.TerminationGracePeriodSeconds != nil {
