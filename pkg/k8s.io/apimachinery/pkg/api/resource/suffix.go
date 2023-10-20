@@ -24,7 +24,7 @@ type suffix string
 
 // suffixer can interpret and construct suffixes.
 type suffixer interface {
-	interpret(suffix) (base, exponent int32, fmt Format, ok bool)
+	interpret(suf suffix) (base, exponent int32, fmt Format, ok bool)
 	construct(base, exponent int32, fmt Format) (s suffix, ok bool)
 	constructBytes(base, exponent int32, fmt Format) (s []byte, ok bool)
 }
