@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"syscall"
 
 	"github.com/containers/podman/v4/pkg/rootless"
@@ -33,7 +34,7 @@ func GetRuntimeDir() (string, error) {
 			return
 		}
 
-		uid := fmt.Sprintf("%d", rootless.GetRootlessUID())
+		uid := strconv.Itoa(rootless.GetRootlessUID())
 		if runtimeDir == "" {
 			tmpDir := filepath.Join("/run", "user", uid)
 			if err := os.MkdirAll(tmpDir, 0700); err != nil {

@@ -1,10 +1,10 @@
 package file
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -58,7 +58,7 @@ func TestLockAndUnlock(t *testing.T) {
 	lslocks, err := exec.LookPath("lslocks")
 	if err == nil {
 		lockPath := l.getLockPath(lock)
-		out, err := exec.Command(lslocks, "--json", "-p", fmt.Sprintf("%d", os.Getpid())).CombinedOutput()
+		out, err := exec.Command(lslocks, "--json", "-p", strconv.Itoa(os.Getpid())).CombinedOutput()
 		assert.NoError(t, err)
 
 		assert.Contains(t, string(out), lockPath)

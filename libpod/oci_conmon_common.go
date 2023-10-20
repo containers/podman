@@ -375,9 +375,9 @@ func (r *ConmonOCIRuntime) killContainer(ctr *Container, signal uint, all, captu
 	var args []string
 	args = append(args, r.runtimeFlags...)
 	if all {
-		args = append(args, "kill", "--all", ctr.ID(), fmt.Sprintf("%d", signal))
+		args = append(args, "kill", "--all", ctr.ID(), strconv.FormatUint(uint64(signal), 10))
 	} else {
-		args = append(args, "kill", ctr.ID(), fmt.Sprintf("%d", signal))
+		args = append(args, "kill", ctr.ID(), strconv.FormatUint(uint64(signal), 10))
 	}
 	var (
 		stderr       io.Writer = os.Stderr
@@ -1128,7 +1128,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	}
 
 	if preserveFDs > 0 {
-		args = append(args, formatRuntimeOpts("--preserve-fds", fmt.Sprintf("%d", preserveFDs))...)
+		args = append(args, formatRuntimeOpts("--preserve-fds", strconv.FormatUint(uint64(preserveFDs), 10))...)
 	}
 
 	if restoreOptions != nil {
@@ -1388,7 +1388,7 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		size = ctr.config.LogSize
 	}
 	if size > 0 {
-		args = append(args, "--log-size-max", fmt.Sprintf("%v", size))
+		args = append(args, "--log-size-max", strconv.FormatInt(size, 10))
 	}
 
 	if ociLogPath != "" {

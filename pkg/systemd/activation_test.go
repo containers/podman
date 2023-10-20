@@ -1,8 +1,8 @@
 package systemd
 
 import (
-	"fmt"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,7 +18,7 @@ func TestSocketActivated(t *testing.T) {
 	assert.False(SocketActivated())
 
 	// same pid no fds
-	assert.NoError(os.Setenv("LISTEN_PID", fmt.Sprintf("%d", os.Getpid())))
+	assert.NoError(os.Setenv("LISTEN_PID", strconv.Itoa(os.Getpid())))
 	assert.NoError(os.Setenv("LISTEN_FDS", "0"))
 	assert.False(SocketActivated())
 

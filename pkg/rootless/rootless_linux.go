@@ -64,10 +64,10 @@ func IsRootless() bool {
 			if err := os.Setenv("_CONTAINERS_USERNS_CONFIGURED", "done"); err != nil {
 				logrus.Errorf("Failed to set environment variable %s as %s", "_CONTAINERS_USERNS_CONFIGURED", "done")
 			}
-			if err := os.Setenv("_CONTAINERS_ROOTLESS_UID", fmt.Sprintf("%d", rootlessUIDInit)); err != nil {
+			if err := os.Setenv("_CONTAINERS_ROOTLESS_UID", strconv.Itoa(rootlessUIDInit)); err != nil {
 				logrus.Errorf("Failed to set environment variable %s as %d", "_CONTAINERS_ROOTLESS_UID", rootlessUIDInit)
 			}
-			if err := os.Setenv("_CONTAINERS_ROOTLESS_GID", fmt.Sprintf("%d", rootlessGIDInit)); err != nil {
+			if err := os.Setenv("_CONTAINERS_ROOTLESS_GID", strconv.Itoa(rootlessGIDInit)); err != nil {
 				logrus.Errorf("Failed to set environment variable %s as %d", "_CONTAINERS_ROOTLESS_GID", rootlessGIDInit)
 			}
 		}
@@ -132,7 +132,7 @@ func tryMappingTool(uid bool, pid int, hostID int, mappings []idtools.IDMap) err
 		return append(l, strconv.Itoa(a), strconv.Itoa(b), strconv.Itoa(c))
 	}
 
-	args := []string{path, fmt.Sprintf("%d", pid)}
+	args := []string{path, strconv.Itoa(pid)}
 	args = appendTriplet(args, 0, hostID, 1)
 	for _, i := range mappings {
 		if hostID >= i.HostID && hostID < i.HostID+i.Size {

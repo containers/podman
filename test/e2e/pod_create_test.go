@@ -636,7 +636,7 @@ ENTRYPOINT ["sleep","99999"]
 		session := podmanTest.Podman([]string{"run", "--pod", podName, ALPINE, "id", "-u"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		uid := fmt.Sprintf("%d", os.Geteuid())
+		uid := strconv.Itoa(os.Geteuid())
 		Expect(session.OutputToString()).To(ContainSubstring(uid))
 
 		// Check passwd

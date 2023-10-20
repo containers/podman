@@ -547,7 +547,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	}
 
 	g.SetRootPath(c.state.Mountpoint)
-	g.AddAnnotation("org.opencontainers.image.stopSignal", fmt.Sprintf("%d", c.config.StopSignal))
+	g.AddAnnotation("org.opencontainers.image.stopSignal", strconv.FormatUint(uint64(c.config.StopSignal), 10))
 
 	if _, exists := g.Config.Annotations[annotations.ContainerManager]; !exists {
 		g.AddAnnotation(annotations.ContainerManager, annotations.ContainerManagerLibpod)
@@ -2599,11 +2599,11 @@ func (c *Container) generateUserPasswdEntry(addedUID int) (string, error) {
 	}
 
 	if c.config.PasswdEntry != "" {
-		entry := c.passwdEntry(fmt.Sprintf("%d", uid), fmt.Sprintf("%d", uid), fmt.Sprintf("%d", gid), "container user", c.WorkingDir())
+		entry := c.passwdEntry(strconv.FormatUint(uid, 10), strconv.FormatUint(uid, 10), strconv.FormatInt(int64(gid), 10), "container user", c.WorkingDir())
 		return entry, nil
 	}
 
-	u, err := user.LookupId(fmt.Sprintf("%d", uid))
+	u, err := user.LookupId(strconv.FormatUint(uid, 10))
 	if err == nil {
 		return fmt.Sprintf("%s:*:%d:%d:%s:%s:/bin/sh\n", u.Username, uid, gid, u.Name, c.WorkingDir()), nil
 	}

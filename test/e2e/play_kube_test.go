@@ -4957,7 +4957,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		usernsInCtr = podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "id", "-u"})
 		usernsInCtr.WaitWithDefaultTimeout()
 		Expect(usernsInCtr).Should(ExitCleanly())
-		uid := fmt.Sprintf("%d", os.Geteuid())
+		uid := strconv.Itoa(os.Geteuid())
 		Expect(string(usernsInCtr.Out.Contents())).To(ContainSubstring(uid))
 
 		kube = podmanTest.PodmanNoCache([]string{"kube", "play", "--replace", "--userns=keep-id:uid=10,gid=12", kubeYaml})

@@ -155,7 +155,7 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 			// before stopping the file logger (see #10675).
 			time.Sleep(watch.POLL_DURATION)
 			tailError := t.StopAtEOF()
-			if tailError != nil && fmt.Sprintf("%v", tailError) != "tail: stop at eof" {
+			if tailError != nil && tailError.Error() != "tail: stop at eof" {
 				logrus.Errorf("Stopping logger: %v", tailError)
 			}
 		}()

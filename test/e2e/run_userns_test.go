@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -61,7 +62,7 @@ var _ = Describe("Podman UserNS support", func() {
 		Expect(session).Should(ExitCleanly())
 		// `1024` is the default size or length of the range of user IDs
 		// that is mapped between the two user namespaces by --userns=auto.
-		Expect(session.OutputToString()).To(ContainSubstring(fmt.Sprintf("%d", storage.AutoUserNsMinSize)))
+		Expect(session.OutputToString()).To(ContainSubstring(strconv.Itoa(storage.AutoUserNsMinSize)))
 	})
 
 	It("podman uidmapping and gidmapping", func() {
@@ -116,7 +117,7 @@ var _ = Describe("Podman UserNS support", func() {
 		session.WaitWithDefaultTimeout()
 
 		Expect(session).Should(ExitCleanly())
-		uid := fmt.Sprintf("%d", os.Geteuid())
+		uid := strconv.Itoa(os.Geteuid())
 		Expect(session.OutputToString()).To(ContainSubstring(uid))
 
 		session = podmanTest.Podman([]string{"run", "--userns=keep-id:uid=10,gid=12", "alpine", "sh", "-c", "echo $(id -u):$(id -g)"})
