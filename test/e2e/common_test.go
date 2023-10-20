@@ -1239,7 +1239,7 @@ func GetPort() int {
 func ncz(port int) bool {
 	timeout := 500 * time.Millisecond
 	for i := 0; i < 5; i++ {
-		ncCmd := []string{"-z", "localhost", fmt.Sprintf("%d", port)}
+		ncCmd := []string{"-z", "localhost", strconv.Itoa(port)}
 		GinkgoWriter.Printf("Running: nc %s\n", strings.Join(ncCmd, " "))
 		check := SystemExec("nc", ncCmd)
 		if check.ExitCode() == 0 {

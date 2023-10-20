@@ -867,7 +867,7 @@ func setupSecurityContext(s *specgen.SpecGenerator, securityContext *v1.Security
 		runAsUser = podSecurityContext.RunAsUser
 	}
 	if runAsUser != nil {
-		s.User = fmt.Sprintf("%d", *runAsUser)
+		s.User = strconv.FormatInt(*runAsUser, 10)
 	}
 
 	runAsGroup := securityContext.RunAsGroup
@@ -881,7 +881,7 @@ func setupSecurityContext(s *specgen.SpecGenerator, securityContext *v1.Security
 		s.User = fmt.Sprintf("%s:%d", s.User, *runAsGroup)
 	}
 	for _, group := range podSecurityContext.SupplementalGroups {
-		s.Groups = append(s.Groups, fmt.Sprintf("%d", group))
+		s.Groups = append(s.Groups, strconv.FormatInt(group, 10))
 	}
 }
 

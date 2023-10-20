@@ -190,7 +190,7 @@ registries = []`
 		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
 			Fail("Cannot start docker registry on port %s", port)
 		}
-		ep := endpoint{Port: fmt.Sprintf("%d", port), Host: "localhost"}
+		ep := endpoint{Port: strconv.Itoa(port), Host: "localhost"}
 		search := podmanTest.Podman([]string{"search",
 			fmt.Sprintf("%s/fake/image:andtag", ep.Address()), "--tls-verify=false"})
 		search.WaitWithDefaultTimeout()
@@ -215,7 +215,7 @@ registries = []`
 		if !WaitContainerReady(podmanTest, "registry3", "listening on", 20, 1) {
 			Fail("Cannot start docker registry on port %s", port)
 		}
-		ep := endpoint{Port: fmt.Sprintf("%d", port), Host: "localhost"}
+		ep := endpoint{Port: strconv.Itoa(port), Host: "localhost"}
 		err = podmanTest.RestoreArtifact(ALPINE)
 		Expect(err).ToNot(HaveOccurred())
 		image := fmt.Sprintf("%s/my-alpine", ep.Address())
@@ -242,7 +242,7 @@ registries = []`
 		}
 
 		port := GetPort()
-		ep := endpoint{Port: fmt.Sprintf("%d", port), Host: "localhost"}
+		ep := endpoint{Port: strconv.Itoa(port), Host: "localhost"}
 		registry := podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%d:5000", port),
 			"--name", "registry4", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		registry.WaitWithDefaultTimeout()
@@ -286,7 +286,7 @@ registries = []`
 			Skip("No registry image for ppc64le")
 		}
 		port := GetPort()
-		ep := endpoint{Port: fmt.Sprintf("%d", port), Host: "localhost"}
+		ep := endpoint{Port: strconv.Itoa(port), Host: "localhost"}
 		registry := podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%d:5000", port),
 			"--name", "registry5", REGISTRY_IMAGE})
 		registry.WaitWithDefaultTimeout()
@@ -326,7 +326,7 @@ registries = []`
 			Skip("No registry image for ppc64le")
 		}
 		port := GetPort()
-		ep := endpoint{Port: fmt.Sprintf("%d", port), Host: "localhost"}
+		ep := endpoint{Port: strconv.Itoa(port), Host: "localhost"}
 		registry := podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%d:5000", port),
 			"--name", "registry6", REGISTRY_IMAGE})
 		registry.WaitWithDefaultTimeout()

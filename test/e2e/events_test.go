@@ -3,6 +3,7 @@ package integration
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -177,7 +178,7 @@ var _ = Describe("Podman events", func() {
 
 		// unix timestamp in 10 seconds
 		until := time.Now().Add(time.Second * 10).Unix()
-		result := podmanTest.Podman([]string{"events", "--since", "30s", "--until", fmt.Sprint(until)})
+		result := podmanTest.Podman([]string{"events", "--since", "30s", "--until", strconv.FormatInt(until, 10)})
 		result.Wait(11)
 		Expect(result).Should(ExitCleanly())
 		Expect(result.OutputToString()).To(ContainSubstring(name1))

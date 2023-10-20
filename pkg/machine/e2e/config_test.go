@@ -30,7 +30,7 @@ type machineCommand interface {
 }
 
 type MachineTestBuilder interface {
-	setName(string) *MachineTestBuilder
+	setName(name string) *MachineTestBuilder
 	setCmd(mc machineCommand) *MachineTestBuilder
 	setTimeout(duration time.Duration) *MachineTestBuilder
 	run() (*machineSession, error)

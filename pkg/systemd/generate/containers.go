@@ -500,7 +500,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 	}
 
 	if info.GenerateTimestamp {
-		info.TimeStamp = fmt.Sprintf("%v", time.Now().Format(time.UnixDate))
+		info.TimeStamp = time.Now().Format(time.UnixDate)
 	}
 	// Sort the slices to assure a deterministic output.
 	sort.Strings(info.BoundToServices)

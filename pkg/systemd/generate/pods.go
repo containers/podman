@@ -384,7 +384,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 	}
 
 	if info.GenerateTimestamp {
-		info.TimeStamp = fmt.Sprintf("%v", time.Now().Format(time.UnixDate))
+		info.TimeStamp = time.Now().Format(time.UnixDate)
 	}
 
 	// Sort the slices to assure a deterministic output.

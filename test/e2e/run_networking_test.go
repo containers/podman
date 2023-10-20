@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -494,9 +495,9 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(session).Should(ExitCleanly())
 		results := SystemExec("iptables", []string{"-t", "nat", "-nvL"})
 		Expect(results).Should(ExitCleanly())
-		Expect(results.OutputToString()).To(ContainSubstring(fmt.Sprintf("%d", port2)))
+		Expect(results.OutputToString()).To(ContainSubstring(strconv.Itoa(port2)))
 
-		ncBusy := SystemExec("nc", []string{"-l", "-p", fmt.Sprintf("%d", port1)})
+		ncBusy := SystemExec("nc", []string{"-l", "-p", strconv.Itoa(port1)})
 		Expect(ncBusy).To(ExitWithError())
 	})
 
@@ -507,7 +508,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		ncBusy := SystemExec("nc", []string{"-l", "-p", fmt.Sprintf("%d", port2)})
+		ncBusy := SystemExec("nc", []string{"-l", "-p", strconv.Itoa(port2)})
 		Expect(ncBusy).To(ExitWithError())
 	})
 
@@ -578,11 +579,11 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		slirp4netnsHelp := SystemExec("slirp4netns", []string{"--help"})
 		Expect(slirp4netnsHelp).Should(ExitCleanly())
 		networkConfiguration := "slirp4netns:outbound_addr=127.0.0.1,allow_host_loopback=true"
-		port := GetPort()
+		port := strconv.Itoa(GetPort())
 
 		if strings.Contains(slirp4netnsHelp.OutputToString(), "outbound-addr") {
-			ncListener := StartSystemExec("nc", []string{"-v", "-n", "-l", "-p", fmt.Sprintf("%d", port)})
-			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, "-dt", ALPINE, "nc", "-w", "2", "10.0.2.2", fmt.Sprintf("%d", port)})
+			ncListener := StartSystemExec("nc", []string{"-v", "-n", "-l", "-p", port})
+			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, "-dt", ALPINE, "nc", "-w", "2", "10.0.2.2", port})
 			session.WaitWithDefaultTimeout()
 			ncListener.WaitWithDefaultTimeout()
 
@@ -590,7 +591,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 			Expect(ncListener).Should(Exit(0))
 			Expect(ncListener.ErrorToString()).To(ContainSubstring("Connection from 127.0.0.1"))
 		} else {
-			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, "-dt", ALPINE, "nc", "-w", "2", "10.0.2.2", fmt.Sprintf("%d", port)})
+			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, "-dt", ALPINE, "nc", "-w", "2", "10.0.2.2", port})
 			session.WaitWithDefaultTimeout()
 			Expect(session).To(ExitWithError())
 			Expect(session.ErrorToString()).To(ContainSubstring("outbound_addr not supported"))
@@ -604,15 +605,15 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 
 		defer conn.Close()
 		ip := conn.LocalAddr().(*net.UDPAddr).IP
-		port := GetPort()
+		port := strconv.Itoa(GetPort())
 
 		slirp4netnsHelp := SystemExec("slirp4netns", []string{"--help"})
 		Expect(slirp4netnsHelp).Should(ExitCleanly())
 		networkConfiguration := fmt.Sprintf("slirp4netns:outbound_addr=%s,allow_host_loopback=true", ip.String())
 
 		if strings.Contains(slirp4netnsHelp.OutputToString(), "outbound-addr") {
-			ncListener := StartSystemExec("nc", []string{"-v", "-n", "-l", "-p", fmt.Sprintf("%d", port)})
-			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, ALPINE, "nc", "-w", "2", "10.0.2.2", fmt.Sprintf("%d", port)})
+			ncListener := StartSystemExec("nc", []string{"-v", "-n", "-l", "-p", port})
+			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, ALPINE, "nc", "-w", "2", "10.0.2.2", port})
 			session.Wait(30)
 			ncListener.Wait(30)
 
@@ -620,7 +621,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 			Expect(ncListener).Should(Exit(0))
 			Expect(ncListener.ErrorToString()).To(ContainSubstring("Connection from " + ip.String()))
 		} else {
-			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, ALPINE, "nc", "-w", "2", "10.0.2.2", fmt.Sprintf("%d", port)})
+			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, ALPINE, "nc", "-w", "2", "10.0.2.2", port})
 			session.Wait(30)
 			Expect(session).To(ExitWithError())
 			Expect(session.ErrorToString()).To(ContainSubstring("outbound_addr not supported"))

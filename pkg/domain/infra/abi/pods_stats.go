@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/libpod"
@@ -90,5 +91,5 @@ func pidsToString(pid uint64) string {
 		// If things go bazinga, return a safe value
 		return "--"
 	}
-	return fmt.Sprintf("%d", pid)
+	return strconv.FormatUint(pid, 10)
 }

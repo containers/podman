@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 
 	tm "github.com/buger/goterm"
 	"github.com/containers/common/pkg/completion"
@@ -222,7 +223,7 @@ func (s *containerStats) BlockIO() string {
 }
 
 func (s *containerStats) PIDS() string {
-	return fmt.Sprintf("%d", s.PIDs)
+	return strconv.FormatUint(s.PIDs, 10)
 }
 
 func (s *containerStats) MemUsage() string {

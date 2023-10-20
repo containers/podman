@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -387,7 +388,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 	args := r.sharedConmonArgs(c, sessionID, c.execBundlePath(sessionID), c.execPidPath(sessionID), c.execLogPath(sessionID), c.execExitFileDir(sessionID), ociLog, define.NoLogging, c.config.LogTag)
 
 	if options.PreserveFDs > 0 {
-		args = append(args, formatRuntimeOpts("--preserve-fds", fmt.Sprintf("%d", options.PreserveFDs))...)
+		args = append(args, formatRuntimeOpts("--preserve-fds", strconv.FormatUint(uint64(options.PreserveFDs), 10))...)
 	}
 
 	if options.Terminal {
@@ -410,7 +411,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 			args = append(args, []string{"--exit-command-arg", arg}...)
 		}
 		if options.ExitCommandDelay > 0 {
-			args = append(args, []string{"--exit-delay", fmt.Sprintf("%d", options.ExitCommandDelay)}...)
+			args = append(args, []string{"--exit-delay", strconv.FormatUint(uint64(options.ExitCommandDelay), 10)}...)
 		}
 	}
 

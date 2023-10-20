@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -433,7 +434,7 @@ var _ = Describe("Podman create", func() {
 		numCpus := 5
 		nanoCPUs := numCpus * 1000000000
 		ctrName := "testCtr"
-		session := podmanTest.Podman([]string{"create", "-t", "--cpus", fmt.Sprintf("%d", numCpus), "--name", ctrName, ALPINE, "/bin/sh"})
+		session := podmanTest.Podman([]string{"create", "-t", "--cpus", strconv.Itoa(numCpus), "--name", ctrName, ALPINE, "/bin/sh"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
