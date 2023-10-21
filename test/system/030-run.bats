@@ -1301,7 +1301,12 @@ search               | $IMAGE           |
     run_podman container inspect $cid --format "{{ .State.ConmonPid }}"
     conmon_pid="$output"
     is "$(< /proc/$conmon_pid/cmdline)" ".*--exit-command-arg--syslog.*" "conmon's exit-command has --syslog set"
-    assert "$(< /proc/$conmon_pid/environ)" =~ "BATS_TEST_TMPDIR" "entire env is passed down to conmon (incl. BATS variables)"
+    conmon_env="$(< /proc/$conmon_pid/environ)"
+    assert "$conmon_env" =~ "BATS_TEST_TMPDIR" "entire env is passed down to conmon (incl. BATS variables)"
+    assert "$conmon_env" !~ "NOTIFY_SOCKET=" "NOTIFY_SOCKET is not included (incl. BATS variables)"
+    if ! is_rootless; then
+        assert "$conmon_env" !~ "DBUS_SESSION_BUS_ADDRESS=" "DBUS_SESSION_BUS_ADDRESS is not included (incl. BATS variables)"
+    fi
 
     run_podman rm -f -t0 $cid
 }
