@@ -605,8 +605,13 @@ func (m *HyperVMachine) Stop(name string, opts machine.StopOptions) error {
 		logrus.Error(err)
 	}
 
-	return vm.Stop()
+	if err := vm.Stop(); err != nil {
+		return err
+	}
 
+	// keep track of last up
+	m.LastUp = time.Now()
+	return m.writeConfig()
 }
 
 func (m *HyperVMachine) jsonConfigPath() (string, error) {
@@ -660,7 +665,6 @@ func (m *HyperVMachine) loadFromFile() (*HyperVMachine, error) {
 	if cfg.Hardware.Memory > 0 {
 		mm.Memory = uint64(cfg.Hardware.Memory)
 	}
-	mm.LastUp = cfg.Status.LastUp
 
 	return &mm, nil
 }
