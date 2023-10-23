@@ -1942,9 +1942,12 @@ func (c *Container) cleanupStorage() error {
 		// error
 		// We still want to be able to kick the container out of the
 		// state
-		if errors.Is(err, storage.ErrNotAContainer) || errors.Is(err, storage.ErrContainerUnknown) || errors.Is(err, storage.ErrLayerNotMounted) {
-			logrus.Errorf("Storage for container %s has been removed", c.ID())
-		} else {
+		switch {
+		case errors.Is(err, storage.ErrLayerNotMounted):
+			logrus.Infof("Storage for container %s is not mounted: %v", c.ID(), err)
+		case errors.Is(err, storage.ErrNotAContainer) || errors.Is(err, storage.ErrContainerUnknown):
+			logrus.Warnf("Storage for container %s has been removed: %v", c.ID(), err)
+		default:
 			reportErrorf("cleaning up container %s storage: %w", c.ID(), err)
 		}
 	}
