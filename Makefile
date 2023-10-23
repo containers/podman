@@ -208,8 +208,9 @@ ifdef HOMEBREW_PREFIX
 endif
 endif
 
-# gvisor-tap-vsock version for gvproxy.exe and win-sshproxy.exe downloads
-# the upstream project ships pre-built binaries since version 0.7.1
+# Release version of containers/gvisor-tap-vsock to install.
+# For Darwin this is called gvproxy-darwin (must be renamed to 'gvproxy')
+# For Windows, this is both gvproxy.exe and win-sshproxy.exe
 GV_VERSION=v0.7.1
 
 ###
@@ -764,6 +765,7 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 	fi
 	if [[ "$(GOOS)" == "darwin" ]]; then \
 		$(MAKE) $(GOPLAT) podman-mac-helper;\
+		$(MAKE) $(GOPLAT) darwin-gvproxy; \
 	fi
 	cp -r ./docs/build/remote/$(GOOS) "$(tmpsubdir)/$(releasedir)/docs/"
 	cp ./contrib/remote/containers.conf "$(tmpsubdir)/$(releasedir)/"
@@ -773,12 +775,16 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then $(MAKE) clean-binaries; fi
 	-rm -rf "$(tmpsubdir)"
 
-# Checks out and builds win-sshproxy helper. See comment on GV_GITURL declaration
+# Downloads gvproxy and related helpers into binaries path
 .PHONY: win-gvproxy
-win-gvproxy: test/version/version
-	mkdir -p bin/windows/
-	curl -sSL -o bin/windows/gvproxy.exe --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GV_VERSION)/gvproxy-windowsgui.exe
-	curl -sSL -o bin/windows/win-sshproxy.exe --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GV_VERSION)/win-sshproxy.exe
+win-gvproxy: test/version/version $(SRCBINDIR)
+	curl -sSL -o $(SRCBINDIR)/gvproxy.exe --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GV_VERSION)/gvproxy-windowsgui.exe
+	curl -sSL -o $(SRCBINDIR)/win-sshproxy.exe --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GV_VERSION)/win-sshproxy.exe
+
+.PHONY: darwin-gvproxy
+darwin-gvproxy: test/version/version $(SRCBINDIR)
+	curl -sSL -o $(SRCBINDIR)/gvproxy --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GV_VERSION)/gvproxy-darwin
+	chmod +x $(SRCBINDIR)/gvproxy
 
 .PHONY: rpm
 rpm:  ## Build rpm packages
