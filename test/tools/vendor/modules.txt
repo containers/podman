@@ -2,6 +2,9 @@
 ## explicit; go 1.11
 github.com/cpuguy83/go-md2man/v2
 github.com/cpuguy83/go-md2man/v2/md2man
+# github.com/fatih/color v1.15.0
+## explicit; go 1.17
+github.com/fatih/color
 # github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572
 ## explicit; go 1.13
 github.com/go-task/slim-sprig
@@ -11,6 +14,15 @@ github.com/google/pprof/profile
 # github.com/hashicorp/go-version v1.3.0
 ## explicit
 github.com/hashicorp/go-version
+# github.com/magefile/mage v1.14.0
+## explicit; go 1.12
+github.com/magefile/mage/mg
+# github.com/mattn/go-colorable v0.1.13
+## explicit; go 1.15
+github.com/mattn/go-colorable
+# github.com/mattn/go-isatty v0.0.17
+## explicit; go 1.15
+github.com/mattn/go-isatty
 # github.com/onsi/ginkgo/v2 v2.13.0
 ## explicit; go 1.18
 github.com/onsi/ginkgo/v2/config
@@ -35,7 +47,7 @@ github.com/russross/blackfriday/v2
 # github.com/sirupsen/logrus v1.8.1
 ## explicit; go 1.13
 github.com/sirupsen/logrus
-# github.com/vbatts/git-validation v1.2.0
+# github.com/vbatts/git-validation v1.2.1
 ## explicit; go 1.12
 github.com/vbatts/git-validation
 github.com/vbatts/git-validation/git
