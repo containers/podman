@@ -235,12 +235,21 @@ t GET libpod/images/newrepo:v1/json 200 \
 # Commit a new image w/ full parameters
 cparam="repo=newrepo&tag=v2&comment=bar&author=eric"
 cparam="$cparam&format=docker&changes=CMD=/bin/foo"
-t POST "libpod/commit?container=${cid:0:12}&$cparam&pause=true" 200
-t GET libpod/images/newrepo:v2/json 200 \
-  .RepoTags[0]=localhost/newrepo:v2	\
-  .Author=eric \
-  .Comment=bar \
-  .Config.Cmd[-1]="/bin/foo"
+
+if root || have_cgroupsv2; then
+    t POST "libpod/commit?container=${cid:0:12}&$cparam&pause=true" 200
+    t GET libpod/images/newrepo:v2/json 200 \
+      .RepoTags[0]=localhost/newrepo:v2	\
+      .Author=eric \
+      .Comment=bar \
+      .Config.Cmd[-1]="/bin/foo"
+    t DELETE images/localhost/newrepo:v2?force=true 200
+else
+    # cgroupsv1 rootless : pause is not supported in cgroups v1 rootless
+    t POST "libpod/commit?container=${cid:0:12}&$cparam&pause=true" 500 \
+      .cause="this container does not have a cgroup" \
+      .message~".*pause containers on rootless containers with cgroup V1"
+fi
 
 # Create a container for testing the container initializing later
 podman create -t -i --name myctr $IMAGE ls
@@ -281,7 +290,6 @@ t GET containers/myctr/json 200 \
 
 t DELETE images/localhost/newrepo:latest?force=true 200
 t DELETE images/localhost/newrepo:v1?force=true 200
-t DELETE images/localhost/newrepo:v2?force=true 200
 t DELETE libpod/containers/$cid?force=true 200 .[0].Id=$cid
 t DELETE libpod/containers/myctr 200
 t DELETE libpod/containers/bogus 404
@@ -641,11 +649,14 @@ t GET containers/status-test/json 200 .State.Status="created"
 podman start status-test
 t GET containers/status-test/json 200 .State.Status="running"
 
-podman pause status-test
-t GET containers/status-test/json 200 .State.Status="paused"
+# cgroupsv1 rootless : pause and unpause are not supported in cgroups v1 rootless
+if root || have_cgroupsv2; then
+    podman pause status-test
+    t GET containers/status-test/json 200 .State.Status="paused"
 
-podman unpause status-test
-t GET containers/status-test/json 200 .State.Status="running"
+    podman unpause status-test
+    t GET containers/status-test/json 200 .State.Status="running"
+fi
 
 podman stop status-test &
 sleep 1
@@ -676,12 +687,20 @@ if root; then
   echo '{"Memory":{"Limit":500000}, "CPU":{"Shares":123}}' >${TMPD}/update.json
   t POST libpod/containers/updateCtr/update ${TMPD}/update.json 201
 
+  cgroupPath=/sys/fs/cgroup/cpu.weight
+  # 002 is the byte length
+  cpu_weight_expect=$'\001\0025'
+  if ! have_cgroupsv2; then
+    cgroupPath=/sys/fs/cgroup/cpu/cpu.shares
+    # 004 is the byte length
+    cpu_weight_expect=$'\001\004123'
+  fi
+
   # Verify
-  echo '{ "AttachStdout":true,"Cmd":["cat","/sys/fs/cgroup/cpu.weight"]}' >${TMPD}/exec.json
+  echo '{ "AttachStdout":true,"Cmd":["cat", "'$cgroupPath'"]}' >${TMPD}/exec.json
   t POST containers/updateCtr/exec ${TMPD}/exec.json 201 .Id~[0-9a-f]\\{64\\}
   eid=$(jq -r '.Id' <<<"$output")
-  # 002 is the byte length
-  t POST exec/$eid/start 200 $'\001\0025'
+  t POST exec/$eid/start 200 $cpu_weight_expect
 
   podman rm -f updateCtr
 fi
