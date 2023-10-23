@@ -55,7 +55,10 @@ The `o` option sets options for the mount, and is equivalent to the filesystem
 options (also `-o`) passed to **mount(8)** with the following exceptions:
 
   - The `o` option supports `uid` and `gid` options to set the UID and GID of the created volume that are not normally supported by **mount(8)**.
-  - The `o` option supports the `size` option to set the maximum size of the created volume, the `inodes` option to set the maximum number of inodes for the volume and `noquota` to completely disable quota support even for tracking of disk usage. Currently these flags are only supported on "xfs" file system mounted with the `prjquota` flag described in the **xfs_quota(8)** man page.
+  - The `o` option supports the `size` option to set the maximum size of the created volume, the `inodes` option to set the maximum number of inodes for the volume, and `noquota` to completely disable quota support even for tracking of disk usage.
+  The `size` option is supported on the "tmpfs" and "xfs[note]" file systems.
+  The `inodes` option is supported on the "xfs[note]" file systems.
+  Note: xfs filesystems must be mounted with the `prjquota` flag described in the **xfs_quota(8)** man page. Podman will throw an error if they're not.
   - The `o` option supports using volume options other than the UID/GID options with the **local** driver and requires root privileges.
   - The `o` options supports the `timeout` option which allows users to set a driver specific timeout in seconds before volume creation fails. For example, **--opt=o=timeout=10** sets a driver timeout of 10 seconds.
 
@@ -75,7 +78,7 @@ $ podman volume create
 
 $ podman volume create --label foo=bar myvol
 
-# podman volume create --opt device=tmpfs --opt type=tmpfs --opt o=nodev,noexec myvol
+# podman volume create --opt device=tmpfs --opt type=tmpfs --opt o=size=2M,nodev,noexec myvol
 
 # podman volume create --opt device=tmpfs --opt type=tmpfs --opt o=uid=1000,gid=1000 testvol
 
