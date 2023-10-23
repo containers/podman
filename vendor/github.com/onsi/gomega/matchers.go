@@ -381,7 +381,7 @@ func ContainElements(elements ...interface{}) types.GomegaMatcher {
 }
 
 // HaveEach succeeds if actual solely contains elements that match the passed in element.
-// Please note that if actual is empty, HaveEach always will succeed.
+// Please note that if actual is empty, HaveEach always will fail.
 // By default HaveEach() uses Equal() to perform the match, however a
 // matcher can be passed in instead:
 //
