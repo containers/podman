@@ -77,8 +77,8 @@ load helpers
 .*image tag $imageID $tag
 .*image untag $imageID $tag:latest
 .*image tag $imageID $tag
-.*image untag $imageID $IMAGE
 .*image untag $imageID $tag:latest
+.*image untag $imageID $IMAGE
 .*image remove $imageID $imageID" \
        "podman events"
 
@@ -90,8 +90,8 @@ load helpers
                      "tag--$tag"
                      "untag--$tag:latest"
                      "tag--$tag"
-                     "untag--$IMAGE"
                      "untag--$tag:latest"
+                     "untag--$IMAGE"
                      "remove--$imageID"
                      "loadfromarchive--$tarball"
                     )
