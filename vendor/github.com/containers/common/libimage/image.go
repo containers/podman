@@ -580,8 +580,7 @@ func (i *Image) Tag(name string) error {
 		defer i.runtime.writeEvent(&Event{ID: i.ID(), Name: name, Time: time.Now(), Type: EventTypeImageTag})
 	}
 
-	newNames := append(i.Names(), ref.String())
-	if err := i.runtime.store.SetNames(i.ID(), newNames); err != nil {
+	if err := i.runtime.store.AddNames(i.ID(), []string{ref.String()}); err != nil {
 		return err
 	}
 
@@ -605,7 +604,7 @@ func (i *Image) Untag(name string) error {
 
 	ref, err := NormalizeName(name)
 	if err != nil {
-		return fmt.Errorf("normalizing name %q: %w", name, err)
+		return err
 	}
 
 	// FIXME: this is breaking Podman CI but must be re-enabled once
@@ -620,26 +619,25 @@ func (i *Image) Untag(name string) error {
 
 	name = ref.String()
 
+	foundName := false
+	for _, n := range i.Names() {
+		if n == name {
+			foundName = true
+			break
+		}
+	}
+	// Return an error if the name is not found, the c/storage
+	// RemoveNames() API does not create one if no match is found.
+	if !foundName {
+		return fmt.Errorf("%s: %w", name, errTagUnknown)
+	}
+
 	logrus.Debugf("Untagging %q from image %s", ref.String(), i.ID())
 	if i.runtime.eventChannel != nil {
 		defer i.runtime.writeEvent(&Event{ID: i.ID(), Name: name, Time: time.Now(), Type: EventTypeImageUntag})
 	}
 
-	removedName := false
-	newNames := []string{}
-	for _, n := range i.Names() {
-		if n == name {
-			removedName = true
-			continue
-		}
-		newNames = append(newNames, n)
-	}
-
-	if !removedName {
-		return fmt.Errorf("%s: %w", name, errTagUnknown)
-	}
-
-	if err := i.runtime.store.SetNames(i.ID(), newNames); err != nil {
+	if err := i.runtime.store.RemoveNames(i.ID(), []string{name}); err != nil {
 		return err
 	}
 

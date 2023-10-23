@@ -503,7 +503,7 @@ none | false | false | 0
 
     run_podman push $registry_flags $IMAGE $image_on_local_registry
     run_podman pull $registry_flags $image_on_local_registry
-    is "${lines[1]}" "Pulling image $image_on_local_registry inside systemd: setting pull timeout to 5m0s" "NOTIFY_SOCKET is passed to container"
+    is "${lines[1]}" "Pulling image //$image_on_local_registry inside systemd: setting pull timeout to 5m0s" "NOTIFY_SOCKET is passed to container"
 
     run cat $_SOCAT_LOG
     # The 'echo's help us debug failed runs

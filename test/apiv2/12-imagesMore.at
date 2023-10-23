@@ -22,7 +22,7 @@ t POST "libpod/images/nonesuch/tag?repo=myrepo&tag=mytag" 404
 t POST "libpod/images/$IMAGE/tag?repo=localhost:$REGISTRY_PORT/myrepo&tag=mytag" 201
 
 t GET libpod/images/$IMAGE/json 200 \
-  .RepoTags[1]=localhost:$REGISTRY_PORT/myrepo:mytag
+  .RepoTags[0]=localhost:$REGISTRY_PORT/myrepo:mytag
 
 # Push to local registry...
 t POST "/v1.40/images/localhost:$REGISTRY_PORT/myrepo/push?tag=mytag" 500 \
