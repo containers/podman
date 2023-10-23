@@ -75,7 +75,6 @@ func SanitizeFilters(filtStr string) (filters []string) {
 //
 // Some `includes` rules have values assigned to them.
 // i.e. -run "dco,message_regexp='^JIRA-[0-9]+ [A-Z].*$'"
-//
 func FilterRules(rules []Rule, includes []string) []Rule {
 	ret := []Rule{}
 
@@ -83,7 +82,7 @@ func FilterRules(rules []Rule, includes []string) []Rule {
 		for i := range includes {
 			if strings.Contains(includes[i], "=") {
 				chunks := strings.SplitN(includes[i], "=", 2)
-				if strings.ToLower(r.Name) == strings.ToLower(chunks[0]) {
+				if strings.EqualFold(r.Name, chunks[0]) {
 					// for these rules, the Name won't be unique per se. There may be
 					// multiple "regexp=" with different values. We'll need to set the
 					// .Value = chunk[1] and ensure r is dup'ed so they don't clobber
@@ -93,7 +92,7 @@ func FilterRules(rules []Rule, includes []string) []Rule {
 					ret = append(ret, newR)
 				}
 			} else {
-				if strings.ToLower(r.Name) == strings.ToLower(includes[i]) {
+				if strings.EqualFold(r.Name, includes[i]) {
 					ret = append(ret, r)
 				}
 			}

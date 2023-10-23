@@ -102,6 +102,14 @@ vbatts@valse ~/src/vb/git-validation (master) $ GIT_CHECK_EXCLUDE="./vendor:./gi
 
 using the `GIT_CHECK_EXCLUDE` environment variable. Multiple paths should be separated by colon(`:`)
 
+## contributing
+
+When making a change, verify it with:
+
+```shell
+go run mage.go lint vet build test
+```
+
 ## Rules
 
 Default rules are added by registering them to the `validate` package.
