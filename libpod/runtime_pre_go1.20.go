@@ -1,7 +1,7 @@
 // In go 1.20 and later, the global RNG is automatically initialized.
 // Ref: https://pkg.go.dev/math/rand@go1.20#Seed
-//go:build !go1.20
-// +build !go1.20
+//go:build !go1.20 && !remote
+// +build !go1.20,!remote
 
 package libpod
 

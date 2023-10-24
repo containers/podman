@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/containers/buildah"
+	"github.com/containers/buildah/define"
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -344,7 +344,7 @@ RUN exit 5`, CITEST_IMAGE)
 		inspect := podmanTest.Podman([]string{"image", "inspect", "--format", "{{ index .Config.Labels }}", "test"})
 		inspect.WaitWithDefaultTimeout()
 		data := inspect.OutputToString()
-		Expect(data).To(ContainSubstring(buildah.Version))
+		Expect(data).To(ContainSubstring(define.Version))
 	})
 
 	It("podman build and check identity with always", func() {
@@ -357,7 +357,7 @@ RUN exit 5`, CITEST_IMAGE)
 		inspect := podmanTest.Podman([]string{"image", "inspect", "--format", "{{ index .Config.Labels }}", "test1"})
 		inspect.WaitWithDefaultTimeout()
 		data := inspect.OutputToString()
-		Expect(data).To(ContainSubstring(buildah.Version))
+		Expect(data).To(ContainSubstring(define.Version))
 
 		// with --pull-always
 		session = podmanTest.Podman([]string{"build", "-q", "--pull-always", "-f", "build/basicalpine/Containerfile.path", "--no-cache", "-t", "test2", "build/basicalpine"})
@@ -368,7 +368,7 @@ RUN exit 5`, CITEST_IMAGE)
 		inspect = podmanTest.Podman([]string{"image", "inspect", "--format", "{{ index .Config.Labels }}", "test2"})
 		inspect.WaitWithDefaultTimeout()
 		data = inspect.OutputToString()
-		Expect(data).To(ContainSubstring(buildah.Version))
+		Expect(data).To(ContainSubstring(define.Version))
 	})
 
 	It("podman-remote send correct path to copier", func() {
