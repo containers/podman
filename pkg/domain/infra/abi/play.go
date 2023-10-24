@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	buildahDefine "github.com/containers/buildah/define"
+	bparse "github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/libimage"
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
@@ -991,7 +992,11 @@ func (ic *ContainerEngine) getImageAndLabelInfo(ctx context.Context, cwd string,
 		buildOpts := new(buildahDefine.BuildOptions)
 		commonOpts := new(buildahDefine.CommonBuildOptions)
 		buildOpts.ConfigureNetwork = buildahDefine.NetworkDefault
-		buildOpts.Isolation = buildahDefine.IsolationChroot
+		isolation, err := bparse.IsolationOption("")
+		if err != nil {
+			return nil, nil, err
+		}
+		buildOpts.Isolation = isolation
 		buildOpts.CommonBuildOpts = commonOpts
 		buildOpts.Output = container.Image
 		buildOpts.ContextDirectory = filepath.Dir(buildFile)

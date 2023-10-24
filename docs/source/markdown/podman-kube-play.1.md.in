@@ -163,6 +163,8 @@ and as a result environment variable `FOO` is set to `bar` for container `contai
 
 Build images even if they are found in the local storage. Use `--build=false` to completely disable builds. (This option is not available with the remote Podman client)
 
+Note:  You  can also override the default isolation type by setting the BUILDAH_ISOLATION environment variable.  export BUILDAH_ISOLATION=oci. See podman-build.1.md for more information.
+
 @@option cert-dir
 
 #### **--configmap**=*path*
@@ -320,4 +322,4 @@ has been changed or altered.
 @@include ../../kubernetes_support.md
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-kube(1)](podman-kube.1.md)**, **[podman-kube-down(1)](podman-kube-down.1.md)**, **[podman-network-create(1)](podman-network-create.1.md)**, **[podman-kube-generate(1)](podman-kube-generate.1.md)**, **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**
+**[podman(1)](podman.1.md)**, **[podman-kube(1)](podman-kube.1.md)**, **[podman-kube-down(1)](podman-kube-down.1.md)**, **[podman-network-create(1)](podman-network-create.1.md)**, **[podman-kube-generate(1)](podman-kube-generate.1.md)**, **[podman-build(1)](podman-build.1.md)**, **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**
