@@ -412,9 +412,19 @@ func (p *PodmanTestIntegration) createArtifact(image string) {
 	destName := imageTarPath(image)
 	if _, err := os.Stat(destName); os.IsNotExist(err) {
 		GinkgoWriter.Printf("Caching %s at %s...\n", image, destName)
-		pull := p.PodmanNoCache([]string{"pull", image})
-		pull.Wait(440)
-		Expect(pull).Should(Exit(0))
+		for try := 0; try < 3; try++ {
+			pull := p.PodmanNoCache([]string{"pull", image})
+			pull.Wait(440)
+			if pull.ExitCode() == 0 {
+				break
+			}
+			if try == 2 {
+				Expect(pull).Should(Exit(0), "Failed after many retries")
+			}
+
+			GinkgoWriter.Println("Will wait and retry")
+			time.Sleep(time.Duration(try+1) * 5 * time.Second)
+		}
 
 		save := p.PodmanNoCache([]string{"save", "-o", destName, image})
 		save.Wait(90)
