@@ -374,7 +374,7 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 	fs.StringArrayVar(&flags.SecurityOpt, "security-opt", []string{}, "security options (default [])")
 	fs.StringVar(&flags.ShmSize, "shm-size", defaultContainerConfig.Containers.ShmSize, "size of '/dev/shm'. The format is `<number><unit>`.")
 	fs.StringSliceVar(&flags.Ulimit, "ulimit", defaultContainerConfig.Containers.DefaultUlimits, "ulimit options")
-	fs.StringArrayVarP(&flags.Volumes, "volume", "v", defaultContainerConfig.Containers.Volumes, "bind mount a volume into the container")
+	fs.StringArrayVarP(&flags.Volumes, "volume", "v", defaultContainerConfig.Volumes(), "bind mount a volume into the container")
 
 	// Add in the usernamespace and namespaceflags
 	usernsFlags := GetUserNSFlags(usernsResults)

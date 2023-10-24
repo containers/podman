@@ -139,7 +139,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.3.0
 ## explicit; go 1.20
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.32.1-0.20231016164031-ade05159a485
+# github.com/containers/buildah v1.32.1-0.20231024182922-ea815fea26a9
 ## explicit; go 1.18
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -167,8 +167,9 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.56.1-0.20231023143107-8d0bd259cb7c
+# github.com/containers/common v0.56.1-0.20231024140609-79773286b53a
 ## explicit; go 1.18
+github.com/containers/common/internal/attributedstring
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
 github.com/containers/common/libimage/filter

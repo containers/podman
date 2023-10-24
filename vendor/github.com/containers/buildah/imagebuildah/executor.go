@@ -188,7 +188,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 	}
 
 	transientMounts := []Mount{}
-	for _, volume := range append(defaultContainerConfig.Containers.Volumes, options.TransientMounts...) {
+	for _, volume := range append(defaultContainerConfig.Volumes(), options.TransientMounts...) {
 		mount, err := parse.Volume(volume)
 		if err != nil {
 			return nil, err

@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/containers/common/internal/attributedstring"
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/cgroupv2"
@@ -204,8 +205,8 @@ func defaultConfig() (*Config, error) {
 			Devices:             []string{},
 			EnableKeyring:       true,
 			EnableLabeling:      selinuxEnabled(),
-			Env: []string{
-				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+			Env: attributedstring.Slice{
+				Values: []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
 			},
 			EnvHost:    false,
 			HTTPProxy:  true,
@@ -214,7 +215,7 @@ func defaultConfig() (*Config, error) {
 			InitPath:   "",
 			LogDriver:  defaultLogDriver(),
 			LogSizeMax: DefaultLogSizeMax,
-			Mounts:     []string{},
+			Mounts:     attributedstring.Slice{},
 			NetNS:      "private",
 			NoHosts:    false,
 			PidNS:      "private",
@@ -224,7 +225,7 @@ func defaultConfig() (*Config, error) {
 			UTSNS:      "private",
 			Umask:      "0022",
 			UserNSSize: DefaultUserNSSize, // Deprecated
-			Volumes:    []string{},
+			Volumes:    attributedstring.Slice{},
 		},
 		Network: NetworkConfig{
 			DefaultNetwork:            "podman",
@@ -509,12 +510,12 @@ func (c *Config) Sysctls() []string {
 
 // Volumes returns the default set of volumes that should be mounted in containers.
 func (c *Config) Volumes() []string {
-	return c.Containers.Volumes
+	return c.Containers.Volumes.Get()
 }
 
 // Mounts returns the default set of mounts that should be mounted in containers.
 func (c *Config) Mounts() []string {
-	return c.Containers.Mounts
+	return c.Containers.Mounts.Get()
 }
 
 // Devices returns the default additional devices for containers.
@@ -539,7 +540,7 @@ func (c *Config) DNSOptions() []string {
 
 // Env returns the default additional environment variables to add to containers.
 func (c *Config) Env() []string {
-	return c.Containers.Env
+	return c.Containers.Env.Values
 }
 
 // IPCNS returns the default IPC Namespace configuration to run containers with.
