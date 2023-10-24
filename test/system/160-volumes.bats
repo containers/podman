@@ -431,11 +431,14 @@ EOF
 
 @test "podman volume type=tmpfs" {
     myvolume=myvol$(random_string)
-    run_podman volume create -o type=tmpfs -o device=tmpfs $myvolume
+    run_podman volume create -o type=tmpfs -o o=size=2M -o device=tmpfs $myvolume
     is "$output" "$myvolume" "should successfully create myvolume"
 
     run_podman run --rm -v $myvolume:/vol $IMAGE stat -f -c "%T" /vol
     is "$output" "tmpfs" "volume should be tmpfs"
+
+    run_podman run --rm -v $myvolume:/vol $IMAGE sh -c "mount| grep /vol"
+    is "$output" "tmpfs on /vol type tmpfs.*size=2048k.*" "size should be set to 2048k"
 }
 
 # Named volumes copyup

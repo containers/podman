@@ -179,28 +179,31 @@ func (r *Runtime) newVolume(ctx context.Context, noCreatePluginVolume bool, opti
 		if err := LabelVolumePath(fullVolPath, volume.config.MountLabel); err != nil {
 			return nil, err
 		}
-		if volume.config.DisableQuota {
+		switch {
+		case volume.config.DisableQuota:
 			if volume.config.Size > 0 || volume.config.Inodes > 0 {
 				return nil, errors.New("volume options size and inodes cannot be used without quota")
 			}
-		} else {
+		case volume.config.Options["type"] == define.TypeTmpfs:
+			// tmpfs only supports Size
+			if volume.config.Inodes > 0 {
+				return nil, errors.New("volume option inodes not supported on tmpfs filesystem")
+			}
+		case volume.config.Inodes > 0 || volume.config.Size > 0:
 			projectQuotaSupported := false
 			q, err := quota.NewControl(r.config.Engine.VolumePath)
 			if err == nil {
 				projectQuotaSupported = true
 			}
-			quota := quota.Quota{}
-			if volume.config.Size > 0 || volume.config.Inodes > 0 {
-				if !projectQuotaSupported {
-					return nil, errors.New("volume options size and inodes not supported. Filesystem does not support Project Quota")
-				}
-				quota.Size = volume.config.Size
-				quota.Inodes = volume.config.Inodes
+			if !projectQuotaSupported {
+				return nil, errors.New("volume options size and inodes not supported. Filesystem does not support Project Quota")
 			}
-			if projectQuotaSupported {
-				if err := q.SetQuota(fullVolPath, quota); err != nil {
-					return nil, fmt.Errorf("failed to set size quota size=%d inodes=%d for volume directory %q: %w", volume.config.Size, volume.config.Inodes, fullVolPath, err)
-				}
+			quota := quota.Quota{
+				Inodes: volume.config.Inodes,
+				Size:   volume.config.Size,
+			}
+			if err := q.SetQuota(fullVolPath, quota); err != nil {
+				return nil, fmt.Errorf("failed to set size quota size=%d inodes=%d for volume directory %q: %w", volume.config.Size, volume.config.Inodes, fullVolPath, err)
 			}
 		}
 
