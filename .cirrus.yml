@@ -33,7 +33,7 @@ m1_mac_test_task:
       # Default containers.conf helper_binaries_dir only searches global paths
       - mkdir -p $HOME/.config/containers
       - |
-        cat << EOF >> $HOME/.config/containers/containers.conf
+        cat << EOF > $HOME/.config/containers/containers.conf
         [engine]
         helper_binaries_dir=[
           "$CIRRUS_WORKING_DIR/bin/darwin",

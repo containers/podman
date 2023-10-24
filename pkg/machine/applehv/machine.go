@@ -608,6 +608,7 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 
 	// To start the VM, we need to call vfkit
 
+	logrus.Errorf("vfkit path is: %s", m.Vfkit.VfkitBinaryPath.Path)
 	cmd, err := m.Vfkit.VirtualMachine.Cmd(m.Vfkit.VfkitBinaryPath.Path)
 	if err != nil {
 		return err
@@ -645,10 +646,11 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 			return err
 		}
 		cmd.Args = append(cmd.Args, debugDevArgs...)
-		cmd.Args = append(cmd.Args, "--gui") // add command line switch to pop the gui open
+		//cmd.Args = append(cmd.Args, "--gui") // add command line switch to pop the gui open
 	}
 
 	cmd.ExtraFiles = []*os.File{ioEater, ioEater, ioEater}
+
 	logrus.Debugf("Running %s", cmd.Args)
 
 	readSocketBaseDir := filepath.Dir(m.ReadySocket.GetPath())
@@ -910,13 +912,29 @@ func (m *MacMachine) startHostNetworking() (string, machine.APIForwardingState, 
 	if err != nil {
 		return "", 0, err
 	}
-
+	logrus.Errorf("gvproxy binary being used is %q", gvproxyBinary)
 	cmd, forwardSock, state := m.setupStartHostNetworkingCmd()
 	c := cmd.Cmd(gvproxyBinary)
 	if err := c.Start(); err != nil {
 		return "", 0, fmt.Errorf("unable to execute: %q: %w", cmd.ToCmdline(), err)
 	}
 
+	// We need to wait and make sure gvproxy is in fact running
+	// before continuing
+	for i := 0; i < 10; i++ {
+		_, err := os.Stat(m.GvProxySock.GetPath())
+		if err == nil {
+			break
+		}
+		logrus.Debugf("gvproxy unixgram socket %q not found: %v", m.GvProxySock.GetPath(), err)
+		// Sleep for 1/2 second
+		time.Sleep(500 * time.Millisecond)
+	}
+	if err != nil {
+		// I guess we would also check the pidfile and look to see if it is running
+		// to?
+		return "", 0, fmt.Errorf("unable to verify gvproxy is running")
+	}
 	return forwardSock, state, nil
 }
 
@@ -1040,9 +1058,18 @@ func (m *MacMachine) getIgnitionSock() (*machine.VMFile, error) {
 func (m *MacMachine) getRuntimeDir() (string, error) {
 	tmpDir, ok := os.LookupEnv("TMPDIR")
 	if !ok {
+		logrus.Error("WE FOUND TMPDIR")
 		tmpDir = "/tmp"
 	}
-	return filepath.Join(tmpDir, "podman"), nil
+	rtd := filepath.Join(tmpDir, "podman")
+	logrus.Errorf("runtime dir is %s", rtd)
+	if _, err := os.Stat(rtd); err != nil {
+		logrus.Errorf("creating dir %q for runtimeDir", rtd)
+		if err := os.MkdirAll(rtd, 0755); err != nil {
+			return "", err
+		}
+	}
+	return rtd, nil
 }
 
 func (m *MacMachine) userGlobalSocketLink() (string, error) {

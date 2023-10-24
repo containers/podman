@@ -783,8 +783,9 @@ win-gvproxy: test/version/version $(SRCBINDIR)
 
 .PHONY: darwin-gvproxy
 darwin-gvproxy: test/version/version $(SRCBINDIR)
-	curl -sSL -o $(SRCBINDIR)/gvproxy --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GV_VERSION)/gvproxy-darwin
-	chmod +x $(SRCBINDIR)/gvproxy
+	#curl -sSL -o $(SRCBINDIR)/gvproxy --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GV_VERSION)/gvproxy-darwin
+	#chmod +x $(SRCBINDIR)/gvproxy
+	echo hello
 
 .PHONY: rpm
 rpm:  ## Build rpm packages
