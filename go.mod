@@ -12,8 +12,8 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.6.1
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
-	github.com/containers/buildah v1.32.1-0.20231016164031-ade05159a485
-	github.com/containers/common v0.56.1-0.20231023143107-8d0bd259cb7c
+	github.com/containers/buildah v1.32.1-0.20231024182922-ea815fea26a9
+	github.com/containers/common v0.56.1-0.20231024140609-79773286b53a
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.1
 	github.com/containers/image/v5 v5.28.0

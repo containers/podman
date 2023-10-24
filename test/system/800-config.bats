@@ -111,6 +111,37 @@ See 'podman create --help'" "--module must be specified before the command"
        "--module=ENOENT"
 }
 
+@test "podman --module - append arrays" {
+    skip_if_remote "--module is not supported for remote clients"
+
+    random_data="expected_annotation_$(random_string 15)"
+    conf1_tmp="$PODMAN_TMPDIR/test1.conf"
+    conf2_tmp="$PODMAN_TMPDIR/test2.conf"
+    conf2_off_tmp="$PODMAN_TMPDIR/test2_off.conf"
+    cat > $conf1_tmp <<EOF
+[containers]
+env=["A=CONF1",{append=true}]
+EOF
+    cat > $conf2_tmp <<EOF
+[containers]
+env=["B=CONF2"]
+EOF
+
+    cat > $conf2_off_tmp <<EOF
+[containers]
+env=["B=CONF2_OFF",{append=false}]
+EOF
+
+    # Once append is set, all subsequent loads (and the current) will be appended.
+    run_podman --module=$conf1_tmp --module=$conf2_tmp run --rm $IMAGE printenv A B
+    assert "$output" = "CONF1
+CONF2"
+
+    # When explicitly turned off, values are replaced/overriden again.
+    run_podman 1 --module=$conf1_tmp --module=$conf2_off_tmp run --rm $IMAGE printenv A B
+    assert "$output" = "CONF2_OFF"
+}
+
 @test "podman --module - XDG_CONFIG_HOME" {
     skip_if_remote "--module is not supported for remote clients"
     skip_if_not_rootless "loading a module from XDG_CONFIG_HOME requires rootless"

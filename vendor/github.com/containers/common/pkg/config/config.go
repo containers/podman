@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/containers/common/internal/attributedstring"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/common/pkg/util"
@@ -71,7 +72,7 @@ type ContainersConfig struct {
 	Devices []string `toml:"devices,omitempty"`
 
 	// Volumes to add to all containers
-	Volumes []string `toml:"volumes,omitempty"`
+	Volumes attributedstring.Slice `toml:"volumes,omitempty"`
 
 	// ApparmorProfile is the apparmor profile name which is used as the
 	// default for the runtime.
@@ -133,7 +134,7 @@ type ContainersConfig struct {
 	EnableLabeledUsers bool `toml:"label_users,omitempty"`
 
 	// Env is the environment variable list for container process.
-	Env []string `toml:"env,omitempty"`
+	Env attributedstring.Slice `toml:"env,omitempty"`
 
 	// EnvHost Pass all host environment variables into the container.
 	EnvHost bool `toml:"env_host,omitempty"`
@@ -171,7 +172,7 @@ type ContainersConfig struct {
 	LogTag string `toml:"log_tag,omitempty"`
 
 	// Mount to add to all containers
-	Mounts []string `toml:"mounts,omitempty"`
+	Mounts attributedstring.Slice `toml:"mounts,omitempty"`
 
 	// NetNS indicates how to create a network namespace for the container
 	NetNS string `toml:"netns,omitempty"`
@@ -907,7 +908,7 @@ func (c *Config) GetDefaultEnvEx(envHost, httpProxy bool) []string {
 			}
 		}
 	}
-	return append(env, c.Containers.Env...)
+	return append(env, c.Containers.Env.Get()...)
 }
 
 // Capabilities returns the capabilities parses the Add and Drop capability

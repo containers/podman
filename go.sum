@@ -249,10 +249,10 @@ github.com/containernetworking/plugins v0.8.6/go.mod h1:qnw5mN19D8fIwkqW7oHHYDHV
 github.com/containernetworking/plugins v0.9.1/go.mod h1:xP/idU2ldlzN6m4p5LmGiwRDjeJr6FLK6vuiUwoH7P8=
 github.com/containernetworking/plugins v1.3.0 h1:QVNXMT6XloyMUoO2wUOqWTC1hWFV62Q6mVDp5H1HnjM=
 github.com/containernetworking/plugins v1.3.0/go.mod h1:Pc2wcedTQQCVuROOOaLBPPxrEXqqXBFt3cZ+/yVg6l0=
-github.com/containers/buildah v1.32.1-0.20231016164031-ade05159a485 h1:RqgxHW2iP5QJ3aRahT+KGI2aGXVZeZHTeulmeZQV0y0=
-github.com/containers/buildah v1.32.1-0.20231016164031-ade05159a485/go.mod h1:gOMfotERP5Gz2pN+AnuM3ephId/YL9DmbOtVck6fWfE=
-github.com/containers/common v0.56.1-0.20231023143107-8d0bd259cb7c h1:+5wIm8TWi18iu/WZhF6T9x693nmfpP9yqyrKCreDOOU=
-github.com/containers/common v0.56.1-0.20231023143107-8d0bd259cb7c/go.mod h1:NGMoofxxOF8tno51JlwACw0HaUwaPS66h2N7CYJGFC0=
+github.com/containers/buildah v1.32.1-0.20231024182922-ea815fea26a9 h1:z8+hkCt6vFxvP7pdz69WSABkIZBNvdGBBMRLwE7UXpQ=
+github.com/containers/buildah v1.32.1-0.20231024182922-ea815fea26a9/go.mod h1:6SLsD6bQqppB1btFZSkdDHv2XxlXeqSyTUZsIroqssg=
+github.com/containers/common v0.56.1-0.20231024140609-79773286b53a h1:1baXG5fPFMWklhYamf88+1vF2D5PbB2yenSKd9xLwm8=
+github.com/containers/common v0.56.1-0.20231024140609-79773286b53a/go.mod h1:NGMoofxxOF8tno51JlwACw0HaUwaPS66h2N7CYJGFC0=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/gvisor-tap-vsock v0.7.1 h1:+Rc+sOPplrkQb/BUXeN0ug8TxjgyrIqo/9P/eNS2A4c=

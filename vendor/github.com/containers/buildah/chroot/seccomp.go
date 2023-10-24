@@ -13,6 +13,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const seccompAvailable = true
+
 // setSeccomp sets the seccomp filter for ourselves and any processes that we'll start.
 func setSeccomp(spec *specs.Spec) error {
 	logrus.Debugf("setting seccomp configuration")
