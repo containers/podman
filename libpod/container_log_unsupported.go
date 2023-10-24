@@ -1,4 +1,5 @@
-//go:build !linux || !systemd
+//go:build !remote && (!linux || !systemd)
+// +build !remote
 // +build !linux !systemd
 
 package libpod

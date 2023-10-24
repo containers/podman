@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 // SPDX-License-Identifier: Apache-2.0
 //
 // networking_pasta_linux.go - Start pasta(1) for user-mode connectivity

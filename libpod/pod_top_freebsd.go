@@ -1,5 +1,5 @@
-//go:build freebsd
-// +build freebsd
+//go:build !remote
+// +build !remote
 
 package libpod
 

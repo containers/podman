@@ -1,5 +1,5 @@
-//go:build linux || darwin
-// +build linux darwin
+//go:build !remote && linux
+// +build !remote,linux
 
 package libpod
 

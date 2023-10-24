@@ -1,5 +1,5 @@
-//go:build linux && cgo
-// +build linux,cgo
+//go:build !remote && linux && cgo
+// +build !remote,linux,cgo
 
 package libpod
 
