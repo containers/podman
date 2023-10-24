@@ -108,21 +108,28 @@ t POST libpod/pods/bar/stop?t=1 200 \
 
 t POST libpod/pods/bar/start 200
 
-t GET libpod/pods/stats?all=true 200
-is $(jq '. | length' <<<"$output") 3 "stats?all=true: number of records found"
+if root || have_cgroupsv2; then
+    t GET libpod/pods/stats?all=true 200
+    is $(jq '. | length' <<<"$output") 3 "stats?all=true: number of records found"
 
-t GET libpod/pods/stats?namesOrIDs=foo 200
-is $(jq '. | length' <<<"$output") 1 "stats?namesOrIDs=foo: number of records found"
+    t GET libpod/pods/stats?namesOrIDs=foo 200
+    is $(jq '. | length' <<<"$output") 1 "stats?namesOrIDs=foo: number of records found"
 
-t GET libpod/pods/stats?namesOrIDs=fakename 404 \
-  .cause="no such pod" \
-  .message="unable to get list of pods: no pod with name or ID fakename found: no such pod"
+    t GET libpod/pods/stats?namesOrIDs=fakename 404 \
+      .cause="no such pod" \
+      .message="unable to get list of pods: no pod with name or ID fakename found: no such pod"
 
-t GET "libpod/pods/stats?all=true&namesOrIDs=foo" 500 \
-  .cause="--all, --latest and arguments cannot be used together" \
-  .message="--all, --latest and arguments cannot be used together"
+    t GET "libpod/pods/stats?all=true&namesOrIDs=foo" 500 \
+      .cause="--all, --latest and arguments cannot be used together" \
+      .message="--all, --latest and arguments cannot be used together"
 
-t DELETE  libpod/pods/bar?force=true 200
+    t DELETE  libpod/pods/bar?force=true 200
+else
+    # Rootless cgroupsv1 : libpod/pods/stats is unsupported
+    t GET libpod/pods/stats?all=true 500 \
+      .cause="pod stats is not supported in rootless mode without cgroups v2" \
+      .message~"pod stats is not supported in rootless mode without cgroups v2"
+fi
 
 # test the fake name
 t GET libpod/pods/fakename/top 404 \
@@ -154,7 +161,10 @@ t DELETE  libpod/pods/foo 200
 t DELETE "libpod/pods/foo (pod has already been deleted)" 404
 
 # Expect this to time out
-APIV2_TEST_EXPECT_TIMEOUT=5 t GET "libpod/pods/stats?stream=true&delay=1" 999
+if root || have_cgroupsv2; then
+    # Rootless cgroupsv1 : libpod/pods/stats is unsupported
+    APIV2_TEST_EXPECT_TIMEOUT=5 t GET "libpod/pods/stats?stream=true&delay=1" 999
+fi
 
 podman pod create --name=specgen
 
