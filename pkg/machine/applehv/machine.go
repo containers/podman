@@ -608,6 +608,7 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 
 	// To start the VM, we need to call vfkit
 
+	logrus.Debugf("vfkit path is: %s", m.Vfkit.VfkitBinaryPath.Path)
 	cmd, err := m.Vfkit.VirtualMachine.Cmd(m.Vfkit.VfkitBinaryPath.Path)
 	if err != nil {
 		return err
@@ -910,12 +911,30 @@ func (m *MacMachine) startHostNetworking() (string, machine.APIForwardingState, 
 		return "", 0, err
 	}
 
+	logrus.Debugf("gvproxy binary being used: %s", gvproxyBinary)
+
 	cmd, forwardSock, state := m.setupStartHostNetworkingCmd()
 	c := cmd.Cmd(gvproxyBinary)
 	if err := c.Start(); err != nil {
 		return "", 0, fmt.Errorf("unable to execute: %q: %w", cmd.ToCmdline(), err)
 	}
 
+	// We need to wait and make sure gvproxy is in fact running
+	// before continuing
+	for i := 0; i < 10; i++ {
+		_, err := os.Stat(m.GvProxySock.GetPath())
+		if err == nil {
+			break
+		}
+		logrus.Debugf("gvproxy unixgram socket %q not found: %v", m.GvProxySock.GetPath(), err)
+		// Sleep for 1/2 second
+		time.Sleep(500 * time.Millisecond)
+	}
+	if err != nil {
+		// I guess we would also check the pidfile and look to see if it is running
+		// to?
+		return "", 0, fmt.Errorf("unable to verify gvproxy is running")
+	}
 	return forwardSock, state, nil
 }
 
@@ -1041,7 +1060,13 @@ func (m *MacMachine) getRuntimeDir() (string, error) {
 	if !ok {
 		tmpDir = "/tmp"
 	}
-	return filepath.Join(tmpDir, "podman"), nil
+	rtd := filepath.Join(tmpDir, "podman")
+	logrus.Debugf("creating runtimeDir: %s", rtd)
+	if err := os.MkdirAll(rtd, 0755); err != nil {
+		return "", err
+	}
+
+	return rtd, nil
 }
 
 func (m *MacMachine) userGlobalSocketLink() (string, error) {
