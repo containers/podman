@@ -485,9 +485,10 @@ _EOF
     SERVER=http://127.0.0.1:$HOST_PORT
 
     run_podman run -d --name myyaml -p "$HOST_PORT:80" \
-    -v $PODMAN_TMPDIR/test.yaml:/var/www/testpod.yaml:Z \
-    -w /var/www \
-    $IMAGE /bin/busybox-extras httpd -f -p 80
+               -v $PODMAN_TMPDIR/test.yaml:/var/www/testpod.yaml:Z \
+               -w /var/www \
+               $IMAGE /bin/busybox-extras httpd -f -p 80
+    wait_for_port 127.0.0.1 $HOST_PORT
 
     run_podman kube play $SERVER/testpod.yaml
     run_podman inspect test_pod-test --format "{{.State.Running}}"

@@ -241,6 +241,13 @@ function port_is_bound() {
         local proto="tcp"
     fi
 
+    # /proc/net/tcp is insufficient: it does not show some rootless ports.
+    # ss does, so check it first.
+    run ss -${proto:0:1}nlH sport = $port
+    if [[ -n "$output" ]]; then
+        return
+    fi
+
     port=$(printf %04X ${port})
     case "${address}" in
     *":"*)

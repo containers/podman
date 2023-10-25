@@ -59,9 +59,9 @@ load helpers.network
     is "$output" "$random_2" "exec cat index2.txt"
 
     # Verify http contents: curl from localhost
-    run curl -s $SERVER/index.txt
+    run curl -s -S $SERVER/index.txt
     is "$output" "$random_1" "curl 127.0.0.1:/index.txt"
-    run curl -s $SERVER/index2.txt
+    run curl -s -S $SERVER/index2.txt
     is "$output" "$random_2" "curl 127.0.0.1:/index2.txt"
 
     # Verify http contents: wget from a second container
@@ -303,7 +303,7 @@ load helpers.network
     mac1="$output"
 
     # Verify http contents: curl from localhost
-    run curl -s $SERVER/index.txt
+    run curl -s -S $SERVER/index.txt
     is "$output" "$random_1" "curl 127.0.0.1:/index.txt"
 
     # rootless cannot modify iptables
@@ -369,7 +369,7 @@ load helpers.network
     is "$output" "$mac2" "MAC address changed after podman network reload ($netname2)"
 
     # check that we can still curl
-    run curl -s $SERVER/index.txt
+    run curl -s -S $SERVER/index.txt
     is "$output" "$random_1" "curl 127.0.0.1:/index.txt"
 
     # clean up the container
@@ -481,9 +481,10 @@ load helpers.network
             $IMAGE /bin/busybox-extras httpd -f -p 80
     cid=$output
 
-    # Verify http contents: curl from localhost
-    run curl --max-time 3 -s $SERVER/index.txt
-    is "$output" "$random_1" "curl 127.0.0.1:/index.txt"
+    # Verify http contents: curl from localhost. This is the first time
+    # connecting, so, allow retries until httpd starts.
+    run curl --retry 2 --retry-connrefused -s $SERVER/index.txt
+    is "$output" "$random_1" "curl $SERVER/index.txt"
 
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
     ip="$output"
@@ -505,8 +506,9 @@ load helpers.network
     run_podman exec $cid cat /etc/hosts
     assert "$output" !~ "$ip" "IP ($ip) should no longer be in /etc/hosts"
 
-    # check that we cannot curl (timeout after 3 sec)
-    run curl --max-time 3 -s $SERVER/index.txt
+    # check that we cannot curl (timeout after 3 sec). Fails with inconsistent
+    # curl exit codes, so, just check for nonzero.
+    run curl --max-time 3 -s -S $SERVER/index.txt
     assert $status -ne 0 \
            "curl did not fail, it should have timed out or failed with non zero exit code"
 
@@ -514,7 +516,7 @@ load helpers.network
     is "$output" "" "Output should be empty (no errors)"
 
     # curl should work again
-    run curl --max-time 3 -s $SERVER/index.txt
+    run curl --max-time 3 -s -S $SERVER/index.txt
     is "$output" "$random_1" "curl 127.0.0.1:/index.txt should work again"
 
     # check that we have a new ip and mac
@@ -555,14 +557,14 @@ load helpers.network
     is "$output" "[${cid:0:12} $hostname]" "short container id and hostname in network2 aliases"
 
     # curl should work
-    run curl --max-time 3 -s $SERVER/index.txt
+    run curl --max-time 3 -s -S $SERVER/index.txt
     is "$output" "$random_1" "curl 127.0.0.1:/index.txt should work"
 
     # disconnect the first network
     run_podman network disconnect $netname $cid
 
     # curl should still work
-    run curl --max-time 3 -s $SERVER/index.txt
+    run curl --max-time 3 -s -S $SERVER/index.txt
     is "$output" "$random_1" "curl 127.0.0.1:/index.txt should still work"
 
     # clean up
@@ -626,19 +628,26 @@ load helpers.network
 
         # Verify http contents again: curl from localhost
         # Use retry since it can take a moment until the new container is ready
-        run curl --retry 2 -s $SERVER/index.txt
-        is "$output" "$random_1" "curl 127.0.0.1:/index.txt after auto restart"
+        local curlcmd="curl --retry 2 --retry-connrefused -s $SERVER/index.txt"
+        echo "$_LOG_PROMPT $curlcmd"
+        run $curlcmd
+        echo "$output"
+        assert "$status" == 0 "curl exit status"
+        assert "$output" = "$random_1" "curl $SERVER/index.txt after auto restart"
 
-        run_podman 0+w restart $cid
+        run_podman 0+w restart -t1 $cid
         if ! is_remote; then
-            require_warning "StopSignal SIGTERM failed to stop container .* in 10 seconds, resorting to SIGKILL" \
+            require_warning "StopSignal SIGTERM failed to stop container .* in 1 seconds, resorting to SIGKILL" \
                             "podman restart issues warning"
         fi
 
         # Verify http contents again: curl from localhost
         # Use retry since it can take a moment until the new container is ready
-        run curl --retry 2 -s $SERVER/index.txt
-        is "$output" "$random_1" "curl 127.0.0.1:/index.txt after podman restart"
+        echo "$_LOG_PROMPT $curlcmd"
+        run $curlcmd
+        echo "$output"
+        assert "$status" == 0 "curl exit status"
+        assert "$output" = "$random_1" "curl $SERVER/index.txt after podman restart"
 
         run_podman rm -t 0 -f $cid
     done
