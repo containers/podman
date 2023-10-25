@@ -134,6 +134,10 @@ GINKGO ?= ./test/tools/build/ginkgo
 # ginkgo json output is only useful in CI, not on developer runs
 GINKGO_JSON ?= $(if $(CI),--json-report ginkgo-e2e.json,)
 
+# Allow control over some Ginkgo parameters
+GINKGO_FLAKE_ATTEMPTS ?= 3
+GINKGO_NO_COLOR ?= y
+
 # Conditional required to produce empty-output if binary not built yet.
 RELEASE_VERSION = $(shell if test -x test/version/version; then test/version/version; fi)
 RELEASE_NUMBER = $(shell echo "$(call err_if_empty,RELEASE_VERSION)" | sed -e 's/^v\(.*\)/\1/')
@@ -596,7 +600,8 @@ test: localunit localintegration remoteintegration localsystem remotesystem  ## 
 .PHONY: ginkgo-run
 ginkgo-run: .install.ginkgo
 	$(GINKGO) version
-	$(GINKGO) -vv $(TESTFLAGS) --tags "$(TAGS) remote" $(GINKGOTIMEOUT) --flake-attempts 3 --trace --no-color \
+	$(GINKGO) -vv $(TESTFLAGS) --tags "$(TAGS) remote" $(GINKGOTIMEOUT) --flake-attempts $(GINKGO_FLAKE_ATTEMPTS) \
+		--trace $(if $(findstring y,$(GINKGO_NO_COLOR)),--no-color,) \
 		$(GINKGO_JSON) $(if $(findstring y,$(GINKGO_PARALLEL)),-p,) $(if $(FOCUS),--focus "$(FOCUS)",) \
 		$(if $(FOCUS_FILE),--focus-file "$(FOCUS_FILE)",) $(GINKGOWHAT) $(HACK)
 
