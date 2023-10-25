@@ -121,7 +121,7 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, ref dockerRef
 // The caller must call .Close() on the returned ImageSource.
 func newImageSourceAttempt(ctx context.Context, sys *types.SystemContext, logicalRef dockerReference, pullSource sysregistriesv2.PullSource,
 	registryConfig *registryConfiguration) (*dockerImageSource, error) {
-	physicalRef, err := newReference(pullSource.Reference)
+	physicalRef, err := newReference(pullSource.Reference, false)
 	if err != nil {
 		return nil, err
 	}
@@ -212,6 +212,10 @@ func (s *dockerImageSource) fetchManifest(ctx context.Context, tagOrDigest strin
 func (s *dockerImageSource) ensureManifestIsLoaded(ctx context.Context) error {
 	if s.cachedManifest != nil {
 		return nil
+	}
+
+	if s.physicalRef.isUnknownDigest {
+		return fmt.Errorf("Docker reference without ta or digest is not supported for ensuring manifest is loaded")
 	}
 
 	reference, err := s.physicalRef.tagOrDigest()

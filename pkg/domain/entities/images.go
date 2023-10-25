@@ -251,6 +251,9 @@ type ImagePushOptions struct {
 	// CompressionFormat is used exclusively, and blobs of other compression
 	// algorithms are not reused.
 	ForceCompressionFormat bool
+	// PushUntagged will push the image and save it at the destination with just a digest
+	// It will not add any tag to it
+	PushUntagged bool
 }
 
 // ImagePushReport is the response from pushing an image.

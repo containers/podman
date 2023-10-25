@@ -7,6 +7,7 @@ import (
 	"github.com/containers/buildah/pkg/cli"
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
+	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
@@ -145,6 +146,9 @@ func pushFlags(cmd *cobra.Command) {
 	flags.IntSliceVar(&pushOptions.EncryptLayers, encryptLayersFlagName, nil, "Layers to encrypt, 0-indexed layer indices with support for negative indexing (e.g. 0 is the first layer, -1 is the last layer). If not defined, will encrypt all layers if encryption-key flag is specified")
 	_ = cmd.RegisterFlagCompletionFunc(encryptLayersFlagName, completion.AutocompleteDefault)
 
+	flags.BoolVar(&pushOptions.PushUntagged, "untagged", false, "Push image without any tag")
+	_ = flags.MarkHidden("untagged")
+
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("cert-dir")
 		_ = flags.MarkHidden("compress")
@@ -222,6 +226,10 @@ func imagePush(cmd *cobra.Command, args []string) error {
 			// is selected then defaults to `true`.
 			pushOptions.ForceCompressionFormat = true
 		}
+	}
+
+	if pushOptions.PushUntagged {
+		destination = destination + docker.UnknownDigestSuffix
 	}
 
 	// Let's do all the remaining Yoga in the API to prevent us from scattering

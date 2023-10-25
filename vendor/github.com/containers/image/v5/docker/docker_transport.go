@@ -12,6 +12,8 @@ import (
 	"github.com/containers/image/v5/types"
 )
 
+const UnknownDigestSuffix = "@@unknown-digest@@"
+
 func init() {
 	transports.Register(Transport)
 }
@@ -43,7 +45,8 @@ func (t dockerTransport) ValidatePolicyConfigurationScope(scope string) error {
 
 // dockerReference is an ImageReference for Docker images.
 type dockerReference struct {
-	ref reference.Named // By construction we know that !reference.IsNameOnly(ref)
+	ref             reference.Named // By construction we know that !reference.IsNameOnly(ref)
+	isUnknownDigest bool
 }
 
 // ParseReference converts a string, which should not start with the ImageTransport.Name prefix, into an Docker ImageReference.
@@ -51,22 +54,42 @@ func ParseReference(refString string) (types.ImageReference, error) {
 	if !strings.HasPrefix(refString, "//") {
 		return nil, fmt.Errorf("docker: image reference %s does not start with //", refString)
 	}
+	// Check if ref has UnknownDigestSuffix suffixed to it
+	unknownDigest := false
+	if strings.HasSuffix(refString, UnknownDigestSuffix) {
+		unknownDigest = true
+		refString = strings.TrimSuffix(refString, UnknownDigestSuffix)
+	}
 	ref, err := reference.ParseNormalizedNamed(strings.TrimPrefix(refString, "//"))
 	if err != nil {
 		return nil, err
 	}
+
+	if unknownDigest {
+		if !reference.IsNameOnly(ref) {
+			return nil, fmt.Errorf("DockerReference %q has unknown digest set but it contains either a tag or digest", ref.Name())
+		}
+		return NewReferenceUnknownDigest(ref)
+	}
+
 	ref = reference.TagNameOnly(ref)
 	return NewReference(ref)
 }
 
 // NewReference returns a Docker reference for a named reference. The reference must satisfy !reference.IsNameOnly().
 func NewReference(ref reference.Named) (types.ImageReference, error) {
-	return newReference(ref)
+	return newReference(ref, false)
+}
+
+// NewReferenceUnknownDigest returns a Docker reference for a named reference taking into account
+// the value of unknownDigest. The reference doesn't have to satisfy !reference.IsNameOnly()
+func NewReferenceUnknownDigest(ref reference.Named) (types.ImageReference, error) {
+	return newReference(ref, true)
 }
 
 // newReference returns a dockerReference for a named reference.
-func newReference(ref reference.Named) (dockerReference, error) {
-	if reference.IsNameOnly(ref) {
+func newReference(ref reference.Named, unknownDigest bool) (dockerReference, error) {
+	if (reference.IsNameOnly(ref) && !unknownDigest) || (!reference.IsNameOnly(ref) && unknownDigest) {
 		return dockerReference{}, fmt.Errorf("Docker reference %s has neither a tag nor a digest", reference.FamiliarString(ref))
 	}
 	// A github.com/distribution/reference value can have a tag and a digest at the same time!
@@ -81,7 +104,8 @@ func newReference(ref reference.Named) (dockerReference, error) {
 	}
 
 	return dockerReference{
-		ref: ref,
+		ref:             ref,
+		isUnknownDigest: unknownDigest,
 	}, nil
 }
 
@@ -113,6 +137,9 @@ func (ref dockerReference) DockerReference() reference.Named {
 // not required/guaranteed that it will be a valid input to Transport().ParseReference().
 // Returns "" if configuration identities for these references are not supported.
 func (ref dockerReference) PolicyConfigurationIdentity() string {
+	if ref.isUnknownDigest {
+		return ref.ref.Name()
+	}
 	res, err := policyconfiguration.DockerReferenceIdentity(ref.ref)
 	if res == "" || err != nil { // Coverage: Should never happen, NewReference above should refuse values which could cause a failure.
 		panic(fmt.Sprintf("Internal inconsistency: policyconfiguration.DockerReferenceIdentity returned %#v, %v", res, err))
@@ -141,6 +168,9 @@ func (ref dockerReference) NewImage(ctx context.Context, sys *types.SystemContex
 // NewImageSource returns a types.ImageSource for this reference.
 // The caller must call .Close() on the returned ImageSource.
 func (ref dockerReference) NewImageSource(ctx context.Context, sys *types.SystemContext) (types.ImageSource, error) {
+	if ref.isUnknownDigest {
+		return nil, fmt.Errorf("Docker reference without a tag or digest is not supported for NewImageSource")
+	}
 	return newImageSource(ctx, sys, ref)
 }
 
@@ -152,6 +182,9 @@ func (ref dockerReference) NewImageDestination(ctx context.Context, sys *types.S
 
 // DeleteImage deletes the named image from the registry, if supported.
 func (ref dockerReference) DeleteImage(ctx context.Context, sys *types.SystemContext) error {
+	if ref.isUnknownDigest {
+		return fmt.Errorf("Docker reference without a tag or digest cannot be deleted")
+	}
 	return deleteImage(ctx, sys, ref)
 }
 
