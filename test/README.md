@@ -126,6 +126,13 @@ Alternatively you can use the `FOCUS` option which maps to `--focus`, again see 
 make localintegration FOCUS="podman inspect bogus pod"
 ```
 
+### Controlling Ginkgo parameters
+You can control some of the parameters passed to Ginkgo
+
+- Disable parallel tests by setting `GINKGO_PARALLEL=n`
+- Set flake retry count (default 3) to one by setting `GINKGO_FLAKE_ATTEMPTS=1`
+- Produce colorful tests report by setting `GINKGO_NO_COLOR=n`
+
 # System tests
 System tests are used for testing the *podman* CLI in the context of a complete system. It
 requires that *podman*, all dependencies, and configurations are in place.  The intention of
