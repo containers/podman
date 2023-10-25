@@ -56,7 +56,18 @@ func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOption
 	}
 
 	if !opts.All {
-		pruneOptions.Filters = append(pruneOptions.Filters, "dangling=true")
+		// Issue #20469: Docker clients handle the --all flag on the
+		// client side by setting the dangling filter directly.
+		alreadySet := false
+		for _, filter := range pruneOptions.Filters {
+			if strings.HasPrefix(filter, "dangling=") {
+				alreadySet = true
+				break
+			}
+		}
+		if !alreadySet {
+			pruneOptions.Filters = append(pruneOptions.Filters, "dangling=true")
+		}
 	}
 	if opts.External {
 		pruneOptions.Filters = append(pruneOptions.Filters, "containers=external")
