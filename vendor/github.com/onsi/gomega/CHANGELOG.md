@@ -1,3 +1,8 @@
+## 1.29.0
+
+### Features
+- MatchError can now take an optional func(error) bool + description [2b39142]
+
 ## 1.28.1
 
 ### Maintenance
