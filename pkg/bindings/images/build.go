@@ -431,6 +431,11 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 
 	dontexcludes := []string{"!Dockerfile", "!Containerfile", "!.dockerignore", "!.containerignore"}
 	for _, c := range containerFiles {
+		// Don not add path to containerfile if it is a URL
+		if strings.HasPrefix(c, "http://") || strings.HasPrefix(c, "https://") {
+			newContainerFiles = append(newContainerFiles, c)
+			continue
+		}
 		if c == "/dev/stdin" {
 			content, err := io.ReadAll(os.Stdin)
 			if err != nil {
