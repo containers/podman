@@ -185,6 +185,7 @@ Valid options for `[Container]` are listed below:
 | PublishPort=50-59                    | --publish 50-59                                      |
 | Pull=never                           | --pull=never                                         |
 | ReadOnly=true                        | --read-only                                          |
+| ReadOnlyTmpfs=true                   | --read-only-tmpfs                                    |
 | RunInit=true                         | --init                                               |
 | SeccompProfile=/tmp/s.json           | --security-opt seccomp=/tmp/s.json                   |
 | SecurityLabelDisable=true            | --security-opt label=disable                         |
@@ -199,7 +200,6 @@ Valid options for `[Container]` are listed below:
 | Ulimit=nofile:1000:10000             | --ulimit nofile:1000:10000                           |
 | User=bin                             | --user bin                                           |
 | UserNS=keep-id:uid=200,gid=210       | --userns keep-id:uid=200,gid=210                     |
-| VolatileTmp=true                     | --tmpfs /tmp                                         |
 | Volume=/source:/dest                 | --volume /source:/dest                               |
 | WorkingDir=$HOME                     | --workdir $HOME                                      |
 
@@ -521,6 +521,10 @@ This is equivalent to the Podman `--pull` option
 
 If enabled, makes the image read-only.
 
+### `ReadOnlyTmpfs=` (defaults to `yes`)
+
+If ReadOnly is set to `yes`, mount a read-write tmpfs on /dev, /dev/shm, /run, /tmp, and /var/tmp.
+
 ### `RunInit=` (default to `no`)
 
 If enabled, the container has a minimal init process inside the
@@ -597,12 +601,6 @@ which can be modified with `UserNS`, but if that is not specified, this UID is a
 
 Set the user namespace mode for the container. This is equivalent to the Podman `--userns` option and
 generally has the form `MODE[:OPTIONS,...]`.
-
-### `VolatileTmp=` (defaults to `no`)
-
-If enabled, the container has a fresh tmpfs mounted on `/tmp`.
-
-**NOTE:** Podman automatically copies any content from the image onto the tmpfs
 
 ### `Volume=`
 
