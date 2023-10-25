@@ -19,8 +19,7 @@ var (
 var (
 	// Temporary struct to hold cli values.
 	farmOpts = struct {
-		Farm  string
-		Local bool
+		Farm string
 	}{}
 )
 
@@ -40,10 +39,4 @@ func init() {
 		defaultFarm = podmanConfig.ContainersConfDefaultsRO.Farms.Default
 	}
 	flags.StringVarP(&farmOpts.Farm, farmFlagName, "f", defaultFarm, "Farm to use for builds")
-
-	localFlagName := "local"
-	// Default for local is true and hide this flag for the remote use case
-	if !registry.IsRemote() {
-		flags.BoolVarP(&farmOpts.Local, localFlagName, "l", true, "Build image on local machine including on farm nodes")
-	}
 }

@@ -74,7 +74,7 @@ func init() {
 }
 
 func buildFlags(cmd *cobra.Command) {
-	common.DefineBuildFlags(cmd, &buildOpts)
+	common.DefineBuildFlags(cmd, &buildOpts, false)
 }
 
 // build executes the build command.

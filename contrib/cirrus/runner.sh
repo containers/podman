@@ -126,6 +126,12 @@ function _run_minikube() {
     showrun bats test/minikube |& logformatter
 }
 
+function _run_farm() {
+    _bail_if_test_can_be_skipped test/farm test/system
+    msg "Testing podman farm."
+    showrun bats test/farm |& logformatter
+}
+
 exec_container() {
     local var_val
     local cmd

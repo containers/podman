@@ -910,6 +910,24 @@ minikube_test_task:
     main_script: *main
     always: *logs_artifacts
 
+farm_test_task:
+    name: *std_name_fmt
+    alias: farm_test
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: *not_tag_build_docs
+    depends_on:
+        - build
+        - rootless_system_test
+    gce_instance: *standardvm
+    env:
+        <<: *stdenvars
+        TEST_FLAVOR: farm
+        PRIV_NAME: rootless
+    clone_script: *get_gosrc
+    setup_script: *setup
+    main_script: *main
+    always: *logs_artifacts
+
 buildah_bud_test_task:
     name: *std_name_fmt
     alias: buildah_bud_test
@@ -1054,6 +1072,7 @@ success_task:
         - rootless_system_test
         - rootless_remote_system_test
         - minikube_test
+        - farm_test
         - buildah_bud_test
         - rootless_buildah_bud_test
         - upgrade_test

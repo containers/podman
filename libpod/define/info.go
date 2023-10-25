@@ -62,6 +62,7 @@ type HostInfo struct {
 	SwapFree  int64  `json:"swapFree"`
 	SwapTotal int64  `json:"swapTotal"`
 	Uptime    string `json:"uptime"`
+	Variant   string `json:"variant"`
 	Linkmode  string `json:"linkmode"`
 }
 

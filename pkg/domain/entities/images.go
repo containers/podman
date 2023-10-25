@@ -478,3 +478,33 @@ type ImageUnmountReport struct {
 	Err error
 	Id  string //nolint:revive,stylecheck
 }
+
+const (
+	LocalFarmImageBuilderName   = "(local)"
+	LocalFarmImageBuilderDriver = "local"
+)
+
+// FarmInspectReport describes the response from farm inspect
+type FarmInspectReport struct {
+	NativePlatforms   []string
+	EmulatedPlatforms []string
+	OS                string
+	Arch              string
+	Variant           string
+}
+
+// PullToFileOptions are the options for pulling the images from farm
+// nodes into a dir
+type PullToFileOptions struct {
+	ImageID    string
+	SaveFormat string
+	SaveFile   string
+}
+
+// PullToLocalOptions are the options for pulling the images from farm
+// nodes into containers-storage
+type PullToLocalOptions struct {
+	ImageID     string
+	SaveFormat  string
+	Destination ImageEngine
+}

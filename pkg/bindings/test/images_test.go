@@ -9,6 +9,7 @@ import (
 	"time"
 
 	podmanRegistry "github.com/containers/podman/v4/hack/podman-registry-go"
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/containers/podman/v4/pkg/bindings/containers"
 	"github.com/containers/podman/v4/pkg/bindings/images"
@@ -409,7 +410,8 @@ var _ = Describe("Podman images", func() {
 		results, err := images.Build(bt.conn, []string{"fixture/Containerfile"}, entities.BuildOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		Expect(*results).To(MatchFields(IgnoreMissing, Fields{
-			"ID": Not(BeEmpty()),
+			"ID":         Not(BeEmpty()),
+			"SaveFormat": ContainSubstring(define.OCIArchive),
 		}))
 	})
 })
