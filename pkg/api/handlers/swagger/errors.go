@@ -28,6 +28,13 @@ type networkNotFound struct {
 	Body errorhandling.ErrorModel
 }
 
+// Network is already connected and container is running or transitioning to the running state ('initialized')
+// swagger:response
+type networkConnectedError struct {
+	// in:body
+	Body errorhandling.ErrorModel
+}
+
 // No such exec instance
 // swagger:response
 type execSessionNotFound struct {

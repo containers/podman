@@ -125,7 +125,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// tags:
 	//  - networks (compat)
 	// summary: Connect container to network
-	// description: Connect a container to a network.  This endpoint is current a no-op
+	// description: Connect a container to a network
 	// produces:
 	// - application/json
 	// parameters:
@@ -144,6 +144,8 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//     description: OK
 	//   400:
 	//     $ref: "#/responses/badParamError"
+	//   403:
+	//     $ref: "#/responses/networkConnectedError"
 	//   500:
 	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/networks/{name}/connect"), s.APIHandler(compat.Connect)).Methods(http.MethodPost)
@@ -153,7 +155,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// tags:
 	//  - networks (compat)
 	// summary: Disconnect container from network
-	// description: Disconnect a container from a network.  This endpoint is current a no-op
+	// description: Disconnect a container from a network
 	// produces:
 	// - application/json
 	// parameters:
