@@ -228,44 +228,50 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 
 	podmanConfig := registry.PodmanConfig()
 
-	// Currently it is only possible to restore a container with the same runtime
-	// as used for checkpointing. It should be possible to make crun and runc
-	// compatible to restore a container with another runtime then checkpointed.
-	// Currently that does not work.
-	// To make it easier for users we will look into the checkpoint archive and
-	// set the runtime to the one used during checkpointing.
-	if !registry.IsRemote() && cmd.Name() == "restore" {
-		if cmd.Flag("import").Changed {
-			runtime, err := crutils.CRGetRuntimeFromArchive(cmd.Flag("import").Value.String())
-			if err != nil {
-				return fmt.Errorf(
-					"failed extracting runtime information from %s: %w",
-					cmd.Flag("import").Value.String(), err,
-				)
-			}
+	if !registry.IsRemote() {
+		if cmd.Flag("hooks-dir").Changed {
+			podmanConfig.ContainersConf.Engine.HooksDir.Set(podmanConfig.HooksDir)
+		}
 
-			runtimeFlag := cmd.Root().Flag("runtime")
-			if runtimeFlag == nil {
-				return errors.New("failed to load --runtime flag")
-			}
-
-			if !runtimeFlag.Changed {
-				// If the user did not select a runtime, this takes the one from
-				// the checkpoint archives and tells Podman to use it for the restore.
-				if err := runtimeFlag.Value.Set(*runtime); err != nil {
-					return err
+		// Currently it is only possible to restore a container with the same runtime
+		// as used for checkpointing. It should be possible to make crun and runc
+		// compatible to restore a container with another runtime then checkpointed.
+		// Currently that does not work.
+		// To make it easier for users we will look into the checkpoint archive and
+		// set the runtime to the one used during checkpointing.
+		if cmd.Name() == "restore" {
+			if cmd.Flag("import").Changed {
+				runtime, err := crutils.CRGetRuntimeFromArchive(cmd.Flag("import").Value.String())
+				if err != nil {
+					return fmt.Errorf(
+						"failed extracting runtime information from %s: %w",
+						cmd.Flag("import").Value.String(), err,
+					)
 				}
-				runtimeFlag.Changed = true
-				logrus.Debugf("Checkpoint was created using '%s'. Restore will use the same runtime", *runtime)
-			} else if podmanConfig.RuntimePath != *runtime {
-				// If the user selected a runtime on the command-line this checks if
-				// it is the same then during checkpointing and errors out if not.
-				return fmt.Errorf(
-					"checkpoint archive %s was created with runtime '%s' and cannot be restored with runtime '%s'",
-					cmd.Flag("import").Value.String(),
-					*runtime,
-					podmanConfig.RuntimePath,
-				)
+
+				runtimeFlag := cmd.Root().Flag("runtime")
+				if runtimeFlag == nil {
+					return errors.New("failed to load --runtime flag")
+				}
+
+				if !runtimeFlag.Changed {
+					// If the user did not select a runtime, this takes the one from
+					// the checkpoint archives and tells Podman to use it for the restore.
+					if err := runtimeFlag.Value.Set(*runtime); err != nil {
+						return err
+					}
+					runtimeFlag.Changed = true
+					logrus.Debugf("Checkpoint was created using '%s'. Restore will use the same runtime", *runtime)
+				} else if podmanConfig.RuntimePath != *runtime {
+					// If the user selected a runtime on the command-line this checks if
+					// it is the same then during checkpointing and errors out if not.
+					return fmt.Errorf(
+						"checkpoint archive %s was created with runtime '%s' and cannot be restored with runtime '%s'",
+						cmd.Flag("import").Value.String(),
+						*runtime,
+						podmanConfig.RuntimePath,
+					)
+				}
 			}
 		}
 	}
@@ -534,7 +540,7 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 		_ = cmd.RegisterFlagCompletionFunc(eventsBackendFlagName, common.AutocompleteEventBackend)
 
 		hooksDirFlagName := "hooks-dir"
-		pFlags.StringSliceVar(&podmanConfig.ContainersConf.Engine.HooksDir, hooksDirFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.HooksDir, "Set the OCI hooks directory path (may be set multiple times)")
+		pFlags.StringSliceVar(&podmanConfig.HooksDir, hooksDirFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.HooksDir.Get(), "Set the OCI hooks directory path (may be set multiple times)")
 		_ = cmd.RegisterFlagCompletionFunc(hooksDirFlagName, completion.AutocompleteDefault)
 
 		pFlags.IntVar(&podmanConfig.MaxWorks, "max-workers", (runtime.NumCPU()*3)+1, "The maximum number of workers for parallel operations")

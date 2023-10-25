@@ -23,12 +23,22 @@ type Slice struct { // A "mixed-type array" in TOML.
 	}
 }
 
+// NewSlice creates a new slice with the specified values.
+func NewSlice(values []string) Slice {
+	return Slice{Values: values}
+}
+
 // Get returns the Slice values or an empty string slice.
 func (a *Slice) Get() []string {
 	if a.Values == nil {
 		return []string{}
 	}
 	return a.Values
+}
+
+// Set overrides the values of the Slice.
+func (a *Slice) Set(values []string) {
+	a.Values = values
 }
 
 // UnmarshalTOML is the custom unmarshal method for Slice.

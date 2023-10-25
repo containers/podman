@@ -62,8 +62,8 @@ func (b *Builder) addResolvConf(rdir string, chownOpts *idtools.IDPair, dnsServe
 		return "", fmt.Errorf("failed to get config: %w", err)
 	}
 
-	nameservers := make([]string, 0, len(defaultConfig.Containers.DNSServers)+len(dnsServers))
-	nameservers = append(nameservers, defaultConfig.Containers.DNSServers...)
+	nameservers := make([]string, 0, len(defaultConfig.Containers.DNSServers.Get())+len(dnsServers))
+	nameservers = append(nameservers, defaultConfig.Containers.DNSServers.Get()...)
 	nameservers = append(nameservers, dnsServers...)
 
 	keepHostServers := false
@@ -79,12 +79,12 @@ func (b *Builder) addResolvConf(rdir string, chownOpts *idtools.IDPair, dnsServe
 		}
 	}
 
-	searches := make([]string, 0, len(defaultConfig.Containers.DNSSearches)+len(dnsSearch))
-	searches = append(searches, defaultConfig.Containers.DNSSearches...)
+	searches := make([]string, 0, len(defaultConfig.Containers.DNSSearches.Get())+len(dnsSearch))
+	searches = append(searches, defaultConfig.Containers.DNSSearches.Get()...)
 	searches = append(searches, dnsSearch...)
 
-	options := make([]string, 0, len(defaultConfig.Containers.DNSOptions)+len(dnsOptions))
-	options = append(options, defaultConfig.Containers.DNSOptions...)
+	options := make([]string, 0, len(defaultConfig.Containers.DNSOptions.Get())+len(dnsOptions))
+	options = append(options, defaultConfig.Containers.DNSOptions.Get()...)
 	options = append(options, dnsOptions...)
 
 	cfile := filepath.Join(rdir, "resolv.conf")
@@ -344,7 +344,7 @@ func getNetworkInterface(store storage.Store, cniConfDir, cniPluginPath string) 
 	}
 	if len(cniPluginPath) > 0 {
 		plugins := strings.Split(cniPluginPath, string(os.PathListSeparator))
-		newconf.Network.CNIPluginDirs = plugins
+		newconf.Network.CNIPluginDirs.Set(plugins)
 	}
 
 	_, netInt, err := network.NetworkBackend(store, &newconf, false)
@@ -421,15 +421,6 @@ func waitForSync(pipeR *os.File) error {
 	b := make([]byte, 16)
 	_, err := pipeR.Read(b)
 	return err
-}
-
-func contains(volumes []string, v string) bool {
-	for _, i := range volumes {
-		if i == v {
-			return true
-		}
-	}
-	return false
 }
 
 func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs []string, spec *specs.Spec, bundlePath, containerName string,

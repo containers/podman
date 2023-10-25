@@ -58,7 +58,7 @@ func init() {
 	_ = pushCmd.RegisterFlagCompletionFunc(authfileFlagName, completion.AutocompleteDefault)
 
 	addCompressionFlagName := "add-compression"
-	flags.StringSliceVar(&manifestPushOpts.AddCompression, addCompressionFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.AddCompression, "add instances with selected compression while pushing")
+	flags.StringSliceVar(&manifestPushOpts.AddCompression, addCompressionFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.AddCompression.Get(), "add instances with selected compression while pushing")
 	_ = pushCmd.RegisterFlagCompletionFunc(addCompressionFlagName, common.AutocompleteCompressionFormat)
 
 	certDirFlagName := "cert-dir"

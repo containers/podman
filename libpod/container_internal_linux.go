@@ -635,8 +635,8 @@ func (c *Container) addSlirp4netnsDNS(nameservers []string) []string {
 func (c *Container) isSlirp4netnsIPv6() bool {
 	if c.config.NetMode.IsSlirp4netns() {
 		extraOptions := c.config.NetworkOptions[slirp4netns.BinaryName]
-		options := make([]string, 0, len(c.runtime.config.Engine.NetworkCmdOptions)+len(extraOptions))
-		options = append(options, c.runtime.config.Engine.NetworkCmdOptions...)
+		options := make([]string, 0, len(c.runtime.config.Engine.NetworkCmdOptions.Get())+len(extraOptions))
+		options = append(options, c.runtime.config.Engine.NetworkCmdOptions.Get()...)
 		options = append(options, extraOptions...)
 
 		// loop backwards as the last argument wins and we can exit early

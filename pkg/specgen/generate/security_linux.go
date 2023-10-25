@@ -98,7 +98,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 			return err
 		}
 	} else {
-		mergedCaps, err := capabilities.MergeCapabilities(rtc.Containers.DefaultCapabilities, s.CapAdd, s.CapDrop)
+		mergedCaps, err := capabilities.MergeCapabilities(rtc.Containers.DefaultCapabilities.Get(), s.CapAdd, s.CapDrop)
 		if err != nil {
 			return err
 		}

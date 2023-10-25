@@ -139,7 +139,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.3.0
 ## explicit; go 1.20
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.32.1-0.20231024182922-ea815fea26a9
+# github.com/containers/buildah v1.32.1-0.20231026190652-11e3b2132761
 ## explicit; go 1.18
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -167,7 +167,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.56.1-0.20231024140609-79773286b53a
+# github.com/containers/common v0.56.1-0.20231026130642-78e0a90c7c2f
 ## explicit; go 1.18
 github.com/containers/common/internal/attributedstring
 github.com/containers/common/libimage
@@ -1298,7 +1298,8 @@ gopkg.in/yaml.v3
 # k8s.io/kubernetes v1.28.3
 ## explicit; go 1.20
 k8s.io/kubernetes/third_party/forked/golang/expansion
-# sigs.k8s.io/yaml v1.3.0
+# sigs.k8s.io/yaml v1.4.0
 ## explicit; go 1.12
 sigs.k8s.io/yaml
+sigs.k8s.io/yaml/goyaml.v2
 # github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20230904132852-a0466dd76f23
