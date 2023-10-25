@@ -1509,6 +1509,8 @@ func checkIfMountDestinationPreExists(root string, dest string) (bool, error) {
 //
 // If this function succeeds, the caller must unlock runMountArtifacts.TargetLocks (when??)
 func (b *Builder) runSetupRunMounts(mountPoint string, mounts []string, sources runMountInfo, idMaps IDMaps) ([]specs.Mount, *runMountArtifacts, error) {
+	// If `type` is not set default to TypeBind
+	mountType := define.TypeBind
 	mountTargets := make([]string, 0, 10)
 	tmpFiles := make([]string, 0, len(mounts))
 	mountImages := make([]string, 0, 10)
@@ -1530,10 +1532,6 @@ func (b *Builder) runSetupRunMounts(mountPoint string, mounts []string, sources 
 		var agent *sshagent.AgentServer
 		var tl *lockfile.LockFile
 		tokens := strings.Split(mount, ",")
-
-		// If `type` is not set default to TypeBind
-		mountType := define.TypeBind
-
 		for _, field := range tokens {
 			if strings.HasPrefix(field, "type=") {
 				kv := strings.Split(field, "=")

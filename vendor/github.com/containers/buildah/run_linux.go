@@ -19,7 +19,6 @@ import (
 	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/internal"
-	"github.com/containers/buildah/internal/tmpdir"
 	"github.com/containers/buildah/internal/volumes"
 	"github.com/containers/buildah/pkg/overlay"
 	"github.com/containers/buildah/pkg/parse"
@@ -72,7 +71,7 @@ func setChildProcess() error {
 
 // Run runs the specified command in the container's root filesystem.
 func (b *Builder) Run(command []string, options RunOptions) error {
-	p, err := os.MkdirTemp(tmpdir.GetTempDir(), define.Package)
+	p, err := os.MkdirTemp("", define.Package)
 	if err != nil {
 		return err
 	}
@@ -500,7 +499,7 @@ func setupSlirp4netnsNetwork(config *config.Config, netns, cid string, options [
 		Mask: res.Subnet.Mask,
 	}}
 	netStatus := map[string]nettypes.StatusBlock{
-		slirp4netns.BinaryName: {
+		slirp4netns.BinaryName: nettypes.StatusBlock{
 			Interfaces: map[string]nettypes.NetInterface{
 				"tap0": {
 					Subnets: []nettypes.NetAddress{{IPNet: subnet}},
@@ -542,7 +541,7 @@ func setupPasta(config *config.Config, netns string, options []string) (func(), 
 		Mask: net.IPv4Mask(255, 255, 255, 0),
 	}}
 	netStatus := map[string]nettypes.StatusBlock{
-		slirp4netns.BinaryName: {
+		slirp4netns.BinaryName: nettypes.StatusBlock{
 			Interfaces: map[string]nettypes.NetInterface{
 				"tap0": {
 					Subnets: []nettypes.NetAddress{{IPNet: subnet}},

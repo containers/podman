@@ -8,7 +8,6 @@ import (
 
 	"github.com/containers/buildah/define"
 	"github.com/containers/common/libimage"
-	lplatform "github.com/containers/common/libimage/platform"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
@@ -42,7 +41,7 @@ func LookupImage(ctx *types.SystemContext, store storage.Store, image string) (*
 // Wrapper around libimage.NormalizePlatform to return and consume
 // v1.Platform instead of independent os, arch and variant.
 func NormalizePlatform(platform v1.Platform) v1.Platform {
-	os, arch, variant := lplatform.Normalize(platform.OS, platform.Architecture, platform.Variant)
+	os, arch, variant := libimage.NormalizePlatform(platform.OS, platform.Architecture, platform.Variant)
 	return v1.Platform{
 		OS:           os,
 		Architecture: arch,
