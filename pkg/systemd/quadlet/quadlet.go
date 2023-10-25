@@ -116,6 +116,7 @@ const (
 	KeyPublishPort           = "PublishPort"
 	KeyPull                  = "Pull"
 	KeyReadOnly              = "ReadOnly"
+	KeyReadOnlyTmpfs         = "ReadOnlyTmpfs"
 	KeyRemapGID              = "RemapGid"
 	KeyRemapUID              = "RemapUid"
 	KeyRemapUIDSize          = "RemapUidSize"
@@ -197,6 +198,7 @@ var (
 		KeyPublishPort:           true,
 		KeyPull:                  true,
 		KeyReadOnly:              true,
+		KeyReadOnlyTmpfs:         true,
 		KeyRemapGID:              true,
 		KeyRemapUID:              true,
 		KeyRemapUIDSize:          true,
@@ -606,15 +608,13 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 		podman.addBool("--read-only", readOnly)
 	}
 
+	if readOnlyTmpfs, ok := container.LookupBoolean(ContainerGroup, KeyReadOnlyTmpfs); ok {
+		podman.addBool("--read-only-tmpfs", readOnlyTmpfs)
+	}
+
 	volatileTmp := container.LookupBooleanWithDefault(ContainerGroup, KeyVolatileTmp, false)
-	if volatileTmp {
-		/* Read only mode already has a tmpfs by default */
-		if !readOnly {
-			podman.add("--tmpfs", "/tmp:rw,size=512M,mode=1777")
-		}
-	} else if readOnly {
-		/* !volatileTmp, disable the default tmpfs from --read-only */
-		podman.add("--read-only-tmpfs=false")
+	if volatileTmp && !readOnly {
+		podman.add("--tmpfs", "/tmp:rw,size=512M,mode=1777")
 	}
 
 	if err := handleUser(container, ContainerGroup, podman); err != nil {
