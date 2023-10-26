@@ -1233,7 +1233,7 @@ func GetPort() int {
 		// Random port within that range
 		port := portMin + rng.Intn((portMax-portMin)/nProcs)*nProcs + myProc
 
-		used, err := net.Listen("tcp", "localhost:"+strconv.Itoa(port))
+		used, err := net.Listen("tcp", "0.0.0.0:"+strconv.Itoa(port))
 		if err == nil {
 			// it's open. Return it.
 			err = used.Close()
@@ -1242,7 +1242,7 @@ func GetPort() int {
 		}
 	}
 
-	Fail(fmt.Sprintf("unable to get free port: %v", err))
+	Fail(fmt.Sprintf("unable to get free port in range %d-%d", portMin, portMax))
 	return 0 // notreached
 }
 
