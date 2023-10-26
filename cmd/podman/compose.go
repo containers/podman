@@ -40,10 +40,6 @@ If you want to change the default behavior or have a custom installation path fo
 	Annotations:        map[string]string{registry.ParentNSRequired: ""}, // don't join user NS for SSH to work correctly
 }
 
-const (
-	pipePrefix = "npipe:////./pipe/"
-)
-
 func init() {
 	// NOTE: we need to fully disable flag parsing and manually parse the
 	// flags in composeMain. cobra's FParseErrWhitelist will strip off
@@ -191,11 +187,11 @@ func composeDockerHost() (string, error) {
 		if info.State != machine.Running {
 			return "", fmt.Errorf("machine %s is not running but in state %s", item.Name, info.State)
 		}
-		if item.VMType == "wsl" {
+		if machineProvider.VMType() == machine.WSLVirt {
 			if info.ConnectionInfo.PodmanPipe == nil {
 				return "", errors.New("pipe of machine is not set")
 			}
-			return strings.Replace(info.ConnectionInfo.PodmanPipe.Path, `\\.\pipe\`, pipePrefix, 1), nil
+			return strings.Replace(info.ConnectionInfo.PodmanPipe.Path, `\\.\pipe\`, "npipe:////./pipe/", 1), nil
 		}
 		if info.ConnectionInfo.PodmanSocket == nil {
 			return "", errors.New("socket of machine is not set")
