@@ -126,11 +126,13 @@ function random_rfc1918_subnet() {
     local retries=1024
 
     while [ "$retries" -gt 0 ];do
-        local cidr=172.$(( 16 + $RANDOM % 16 )).$(( $RANDOM & 255 ))
+        # 172.16.0.0 -> 172.31.255.255
+        local n1=172
+        local n2=$(( 16 + $RANDOM & 15 ))
+        local n3=$(( $RANDOM & 255 ))
 
-        in_use=$(ip route list | grep -F $cidr)
-        if [ -z "$in_use" ]; then
-            echo "$cidr"
+        if ! subnet_in_use $n1 $n2 $n3; then
+            echo "$n1.$n2.$n3"
             return
         fi
 
@@ -138,6 +140,69 @@ function random_rfc1918_subnet() {
     done
 
     die "Could not find a random not-in-use rfc1918 subnet"
+}
+
+# subnet_in_use() - true if subnet already routed on host
+function subnet_in_use() {
+    local subnet_script=${PODMAN_TMPDIR-/var/tmp}/subnet-in-use
+    rm -f $subnet_script
+
+    # This would be a nightmare to do in bash. ipcalc, ipcalc-ng, sipcalc
+    # would be nice but are unavailable some environments (cough RHEL).
+    # Likewise python/perl netmask modules. So, use bare-bones perl.
+    cat >$subnet_script <<"EOF"
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+# 3 octets, in binary: 172.16.x -> 1010 1100 0000 1000 xxxx xxxx ...
+my $subnet_to_check = sprintf("%08b%08b%08b", @ARGV);
+
+my $found = 0;
+
+# Input is "ip route list", one or more lines like '10.0.0.0/8 via ...'
+while (<STDIN>) {
+    # Only interested in x.x.x.x/n lines
+    if (m!^([\d.]+)/(\d+)!) {
+        my ($ip, $bits) = ($1, $2);
+
+        # Our caller has /24 granularity, so treat /30 on host as /24.
+        $bits = 24 if $bits > 24;
+
+        # Temporary: entire subnet as binary string. 4 octets, split,
+        # then represented as a 32-bit binary string.
+        my $net = sprintf("%08b%08b%08b%08b", split(/\./, $ip));
+
+        # Now truncate those 32 bits down to the route's netmask size.
+        # This is the actual subnet range in use on the host.
+        my $net_truncated = sprintf("%.*s", $bits, $net);
+
+        # Desired subnet is in use if it matches a host route prefix
+#        print STDERR "--- $subnet_to_check in $net_truncated (@ARGV in $ip/$bits)\n";
+        $found = 1 if $subnet_to_check =~ /^$net_truncated/;
+    }
+}
+
+# Convert to shell exit status (0 = success)
+exit !$found;
+EOF
+
+    chmod 755 $subnet_script
+
+    # This runs 'ip route list', converts x.x.x.x/n to its binary prefix,
+    # then checks if our desired subnet matches that prefix (i.e. is in
+    # that range). Existing routes with size greater than 24 are
+    # normalized to /24 because that's the granularity of our
+    # random_rfc1918_subnet code.
+    #
+    # Contrived examples:
+    #    127.0.0.0/1   -> 0
+    #    128.0.0.0/1   -> 1
+    #    10.0.0.0/8    -> 00001010
+    #
+    # I'm so sorry for the ugliness.
+    ip route list | $subnet_script $*
 }
 
 # ipv4_get_route_default() - Print first default IPv4 route reported by netlink

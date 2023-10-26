@@ -18,6 +18,10 @@ die() {
 testnum=0
 rc=0
 
+# Possibly used by the code we're testing
+PODMAN_TMPDIR=$(mktemp -d --tmpdir=${TMPDIR:-/tmp} podman_helper_tests.XXXXXX)
+trap 'rm -rf $PODMAN_TMPDIR' 0
+
 ###############################################################################
 # BEGIN test the parse_table helper
 
@@ -241,6 +245,42 @@ while read shortform expect; do
 done < <(parse_table "$table")
 
 # END   ipv6_to_procfs
+###############################################################################
+# BEGIN subnet_in_use  ...  because that's complicated
+
+# Override ip command
+function ip() {
+    echo "default foo"
+    echo "192.168.0.0/16"
+    echo "172.17.2.3/30"
+    echo "172.128.0.0/9"
+}
+
+# x.y.z | result (1 = in use, 0 = not in use - opposite of exit code)
+table="
+172 |   0 |   0  | 0
+172 |   0 | 255  | 0
+172 |   1 |   1  | 0
+172 |   1 |   2  | 0
+172 |   1 |   3  | 0
+172 |  17 |   1  | 0
+172 |  17 |   2  | 1
+172 |  17 |   3  | 0
+172 | 127 |   0  | 0
+172 | 128 |   0  | 1
+172 | 255 |   2  | 1
+192 | 168 |   1  | 1
+"
+
+while read n1 n2 n3 expect; do
+    subnet_in_use $n1 $n2 $n3
+    actual=$?
+    check_result "$((1 - $actual))" "$expect" "subnet_in_use $n1.$n2.$n3"
+done < <(parse_table "$table")
+
+unset -f ip
+
+# END   subnet_in_use
 ###############################################################################
 # BEGIN check_assert
 #
