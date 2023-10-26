@@ -7,6 +7,7 @@ Containers_ simplify the production, distribution, discoverability, and usage of
     podman search docker.io/busybox
 
 Output::
+
     NAME                                         DESCRIPTION
     docker.io/library/busybox                    Busybox base image.
     docker.io/rancher/busybox
