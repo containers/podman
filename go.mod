@@ -62,7 +62,7 @@ require (
 	github.com/ulikunitz/xz v0.5.11
 	github.com/vbauerster/mpb/v8 v8.6.2
 	github.com/vishvananda/netlink v1.2.1-beta.2
-	go.etcd.io/bbolt v1.3.7
+	go.etcd.io/bbolt v1.3.8
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	golang.org/x/net v0.17.0
 	golang.org/x/sync v0.4.0
