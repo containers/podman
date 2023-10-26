@@ -104,7 +104,6 @@ type BudResults struct {
 	LogRusage           bool
 	RusageLogFile       string
 	UnsetEnvs           []string
-	UnsetLabels         []string
 	Envs                []string
 	OSFeatures          []string
 	OSVersion           string
@@ -284,7 +283,6 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.BoolVar(&flags.TLSVerify, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
 	fs.String("variant", "", "override the `variant` of the specified image")
 	fs.StringSliceVar(&flags.UnsetEnvs, "unsetenv", nil, "unset environment variable from final image")
-	fs.StringSliceVar(&flags.UnsetLabels, "unsetlabel", nil, "unset label when inheriting labels from base image")
 	return fs
 }
 
@@ -330,7 +328,6 @@ func GetBudFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion["target"] = commonComp.AutocompleteNone
 	flagCompletion["timestamp"] = commonComp.AutocompleteNone
 	flagCompletion["unsetenv"] = commonComp.AutocompleteNone
-	flagCompletion["unsetlabel"] = commonComp.AutocompleteNone
 	flagCompletion["variant"] = commonComp.AutocompleteNone
 	return flagCompletion
 }
@@ -374,7 +371,7 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 	fs.StringArrayVar(&flags.SecurityOpt, "security-opt", []string{}, "security options (default [])")
 	fs.StringVar(&flags.ShmSize, "shm-size", defaultContainerConfig.Containers.ShmSize, "size of '/dev/shm'. The format is `<number><unit>`.")
 	fs.StringSliceVar(&flags.Ulimit, "ulimit", defaultContainerConfig.Containers.DefaultUlimits, "ulimit options")
-	fs.StringArrayVarP(&flags.Volumes, "volume", "v", defaultContainerConfig.Volumes(), "bind mount a volume into the container")
+	fs.StringArrayVarP(&flags.Volumes, "volume", "v", defaultContainerConfig.Containers.Volumes, "bind mount a volume into the container")
 
 	// Add in the usernamespace and namespaceflags
 	usernsFlags := GetUserNSFlags(usernsResults)

@@ -2,6 +2,10 @@
 
 # Changelog
 
+## v1.32.1 (2023-10-23)
+
+    chroot.setupChrootBindMounts: pay more attention to flags
+
 ## v1.32.0 (2023-09-14)
 
     GetTmpDir is not using ImageCopyTmpdir correctly
