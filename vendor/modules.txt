@@ -1020,7 +1020,7 @@ github.com/vishvananda/netlink/nl
 # github.com/vishvananda/netns v0.0.4
 ## explicit; go 1.17
 github.com/vishvananda/netns
-# go.etcd.io/bbolt v1.3.7
+# go.etcd.io/bbolt v1.3.8
 ## explicit; go 1.17
 go.etcd.io/bbolt
 # go.mongodb.org/mongo-driver v1.11.3
