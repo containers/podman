@@ -109,6 +109,12 @@ func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name stri
 	// via the `sdNotifyAnnotation` annotation in the K8s YAML.
 	opts = append(opts, libpod.WithSdNotifyMode(define.SdNotifyModeIgnore))
 
+	if options.Replace {
+		if _, err := ic.ContainerRm(ctx, []string{spec.Name}, entities.RmOptions{Force: true, Ignore: true}); err != nil {
+			return nil, err
+		}
+	}
+
 	// Create a new libpod container based on the spec.
 	ctr, err := ic.Libpod.NewContainer(ctx, runtimeSpec, spec, false, opts...)
 	if err != nil {
@@ -813,6 +819,12 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			return nil, nil, err
 		}
 		opts = append(opts, libpod.WithSdNotifyMode(define.SdNotifyModeIgnore))
+		if options.Replace {
+			if _, err := ic.ContainerRm(ctx, []string{spec.Name}, entities.RmOptions{Force: true, Ignore: true}); err != nil {
+				return nil, nil, err
+			}
+		}
+
 		ctr, err := generate.ExecuteCreate(ctx, ic.Libpod, rtSpec, spec, false, opts...)
 		if err != nil {
 			return nil, nil, err
@@ -911,6 +923,12 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			}
 			sdNotifyProxies = append(sdNotifyProxies, proxy)
 			opts = append(opts, libpod.WithSdNotifySocket(proxy.SocketPath()))
+		}
+
+		if options.Replace {
+			if _, err := ic.ContainerRm(ctx, []string{spec.Name}, entities.RmOptions{Force: true, Ignore: true}); err != nil {
+				return nil, nil, err
+			}
 		}
 
 		ctr, err := generate.ExecuteCreate(ctx, ic.Libpod, rtSpec, spec, false, opts...)
@@ -1516,7 +1534,7 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, opt
 		return nil, err
 	}
 
-	reports.RmReport, err = ic.PodRm(ctx, podNames, entities.PodRmOptions{Ignore: true})
+	reports.RmReport, err = ic.PodRm(ctx, podNames, entities.PodRmOptions{Ignore: true, Force: true})
 	if err != nil {
 		return nil, err
 	}

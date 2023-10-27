@@ -258,6 +258,21 @@ func (o *PlayOptions) GetLogOptions() []string {
 	return *o.LogOptions
 }
 
+// WithReplace set field Replace to given value
+func (o *PlayOptions) WithReplace(value bool) *PlayOptions {
+	o.Replace = &value
+	return o
+}
+
+// GetReplace returns value of field Replace
+func (o *PlayOptions) GetReplace() bool {
+	if o.Replace == nil {
+		var z bool
+		return z
+	}
+	return *o.Replace
+}
+
 // WithStart set field Start to given value
 func (o *PlayOptions) WithStart(value bool) *PlayOptions {
 	o.Start = &value
