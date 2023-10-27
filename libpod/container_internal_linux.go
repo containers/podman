@@ -807,7 +807,7 @@ func (c *Container) getPlatformRunPath() (string, error) {
 }
 
 func (c *Container) addMaskedPaths(g *generate.Generator) {
-	if !c.config.Privileged {
+	if !c.config.Privileged && g.Config != nil && g.Config.Linux != nil && len(g.Config.Linux.MaskedPaths) > 0 {
 		g.AddLinuxMaskedPaths("/sys/devices/virtual/powercap")
 	}
 }
