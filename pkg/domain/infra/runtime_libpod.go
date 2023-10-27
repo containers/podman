@@ -265,7 +265,7 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 		options = append(options, libpod.WithDefaultMountsFile(cfg.ContainersConf.Containers.DefaultMountsFile))
 	}
 	if fs.Changed("hooks-dir") {
-		options = append(options, libpod.WithHooksDir(cfg.ContainersConf.Engine.HooksDir...))
+		options = append(options, libpod.WithHooksDir(cfg.ContainersConf.Engine.HooksDir.Get()...))
 	}
 	if fs.Changed("registries-conf") {
 		options = append(options, libpod.WithRegistriesConf(cfg.RegistriesConf))

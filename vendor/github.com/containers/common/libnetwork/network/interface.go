@@ -81,7 +81,7 @@ func NetworkBackend(store storage.Store, conf *config.Config, syslog bool) (type
 			NetworkRunDir:      runDir,
 			NetavarkBinary:     netavarkBin,
 			AardvarkBinary:     aardvarkBin,
-			PluginDirs:         conf.Network.NetavarkPluginDirs,
+			PluginDirs:         conf.Network.NetavarkPluginDirs.Get(),
 			DefaultNetwork:     conf.Network.DefaultNetwork,
 			DefaultSubnet:      conf.Network.DefaultSubnet,
 			DefaultsubnetPools: conf.Network.DefaultSubnetPools,
@@ -181,7 +181,7 @@ func getCniInterface(conf *config.Config) (types.ContainerNetwork, error) {
 	}
 	return cni.NewCNINetworkInterface(&cni.InitConfig{
 		CNIConfigDir:       confDir,
-		CNIPluginDirs:      conf.Network.CNIPluginDirs,
+		CNIPluginDirs:      conf.Network.CNIPluginDirs.Get(),
 		RunDir:             conf.Engine.TmpDir,
 		DefaultNetwork:     conf.Network.DefaultNetwork,
 		DefaultSubnet:      conf.Network.DefaultSubnet,

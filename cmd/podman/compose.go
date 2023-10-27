@@ -81,7 +81,7 @@ func composeProvider() (string, error) {
 		return value, nil
 	}
 
-	candidates := registry.PodmanConfig().ContainersConfDefaultsRO.Engine.ComposeProviders
+	candidates := registry.PodmanConfig().ContainersConfDefaultsRO.Engine.ComposeProviders.Get()
 	if len(candidates) == 0 {
 		return "", errors.New("no compose provider specified, please refer to `man podman-compose` for details")
 	}

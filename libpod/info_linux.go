@@ -46,7 +46,7 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 	info.IDMappings = define.IDMappings{}
 	info.Security = define.SecurityInfo{
 		AppArmorEnabled:     apparmor.IsEnabled(),
-		DefaultCapabilities: strings.Join(r.config.Containers.DefaultCapabilities, ","),
+		DefaultCapabilities: strings.Join(r.config.Containers.DefaultCapabilities.Get(), ","),
 		Rootless:            rootless.IsRootless(),
 		SECCOMPEnabled:      seccomp.IsEnabled(),
 		SECCOMPProfilePath:  seccompProfilePath,

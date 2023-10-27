@@ -254,7 +254,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 
 	if !s.Privileged {
 		// add default devices from containers.conf
-		for _, device := range rtc.Containers.Devices {
+		for _, device := range rtc.Containers.Devices.Get() {
 			if err = DevicesFromPath(&g, device); err != nil {
 				return nil, err
 			}

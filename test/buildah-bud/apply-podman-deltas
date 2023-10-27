@@ -185,6 +185,10 @@ skip "argument-order incompatible with podman" \
 skip "podman-build fails with 'context must be a directory'" \
      "bud with specified context should succeed if context contains existing Dockerfile"
 
+# See https://github.com/containers/podman/pull/20483#issuecomment-1782683979
+skip "does not pass in Podman CI: needs investigation" \
+     "bud with --no-hostname"
+
 ###############################################################################
 # BEGIN tests which are skipped because they make no sense under podman-remote
 

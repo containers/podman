@@ -12,8 +12,8 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.6.1
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
-	github.com/containers/buildah v1.32.1-0.20231024182922-ea815fea26a9
-	github.com/containers/common v0.56.1-0.20231024140609-79773286b53a
+	github.com/containers/buildah v1.32.1-0.20231026190652-11e3b2132761
+	github.com/containers/common v0.56.1-0.20231026130642-78e0a90c7c2f
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.1
 	github.com/containers/image/v5 v5.28.0
@@ -73,7 +73,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/kubernetes v1.28.3
-	sigs.k8s.io/yaml v1.3.0
+	sigs.k8s.io/yaml v1.4.0
 )
 
 require (

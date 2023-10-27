@@ -249,10 +249,10 @@ github.com/containernetworking/plugins v0.8.6/go.mod h1:qnw5mN19D8fIwkqW7oHHYDHV
 github.com/containernetworking/plugins v0.9.1/go.mod h1:xP/idU2ldlzN6m4p5LmGiwRDjeJr6FLK6vuiUwoH7P8=
 github.com/containernetworking/plugins v1.3.0 h1:QVNXMT6XloyMUoO2wUOqWTC1hWFV62Q6mVDp5H1HnjM=
 github.com/containernetworking/plugins v1.3.0/go.mod h1:Pc2wcedTQQCVuROOOaLBPPxrEXqqXBFt3cZ+/yVg6l0=
-github.com/containers/buildah v1.32.1-0.20231024182922-ea815fea26a9 h1:z8+hkCt6vFxvP7pdz69WSABkIZBNvdGBBMRLwE7UXpQ=
-github.com/containers/buildah v1.32.1-0.20231024182922-ea815fea26a9/go.mod h1:6SLsD6bQqppB1btFZSkdDHv2XxlXeqSyTUZsIroqssg=
-github.com/containers/common v0.56.1-0.20231024140609-79773286b53a h1:1baXG5fPFMWklhYamf88+1vF2D5PbB2yenSKd9xLwm8=
-github.com/containers/common v0.56.1-0.20231024140609-79773286b53a/go.mod h1:NGMoofxxOF8tno51JlwACw0HaUwaPS66h2N7CYJGFC0=
+github.com/containers/buildah v1.32.1-0.20231026190652-11e3b2132761 h1:MNE9Yk+sw3GhHGRIXQHqx4V3P9L2MVHrZITD107DDB4=
+github.com/containers/buildah v1.32.1-0.20231026190652-11e3b2132761/go.mod h1:78sIy+6IjdfQWXfPUZyDqysufB/vhgz9SGLrLQ2k0KU=
+github.com/containers/common v0.56.1-0.20231026130642-78e0a90c7c2f h1:dLevs+iNkMVt8kedSIymqTifYbsliivg/o31Zt0kkvk=
+github.com/containers/common v0.56.1-0.20231026130642-78e0a90c7c2f/go.mod h1:pkkR/vqGja5F21okcBLwA2fiA1Hi7V2achYf9DId3X8=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/gvisor-tap-vsock v0.7.1 h1:+Rc+sOPplrkQb/BUXeN0ug8TxjgyrIqo/9P/eNS2A4c=
@@ -1606,5 +1606,5 @@ sigs.k8s.io/structured-merge-diff/v4 v4.0.3/go.mod h1:bJZC9H9iH24zzfZ/41RGcq60oK
 sigs.k8s.io/structured-merge-diff/v4 v4.2.3 h1:PRbqxJClWWYMNV1dhaG4NsibJbArud9kFxnAMREiWFE=
 sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=
 sigs.k8s.io/yaml v1.2.0/go.mod h1:yfXDCHCao9+ENCvLSE62v9VSji2MKu5jeNfTrofGhJc=
-sigs.k8s.io/yaml v1.3.0 h1:a2VclLzOGrwOHDiV8EfBGhvjHvP46CtW5j6POvhYGGo=
-sigs.k8s.io/yaml v1.3.0/go.mod h1:GeOyir5tyXNByN85N/dRIT9es5UQNerPYEKK56eTBm8=
+sigs.k8s.io/yaml v1.4.0 h1:Mk1wCc2gy/F0THH0TAp1QYyJNzRm2KCLy3o5ASXVI5E=
+sigs.k8s.io/yaml v1.4.0/go.mod h1:Ejl7/uTz7PSA4eKMyQCUTnhZYNmLIl+5c2lQPGR2BPY=

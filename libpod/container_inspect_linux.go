@@ -149,7 +149,7 @@ func (c *Container) platformInspectContainerHostConfig(ctrSpec *spec.Spec, hostC
 		// Max an O(1) lookup table for default bounding caps.
 		boundingCaps := make(map[string]bool)
 		if !hostConfig.Privileged {
-			for _, cap := range c.runtime.config.Containers.DefaultCapabilities {
+			for _, cap := range c.runtime.config.Containers.DefaultCapabilities.Get() {
 				boundingCaps[cap] = true
 			}
 		} else {

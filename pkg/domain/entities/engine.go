@@ -40,17 +40,18 @@ type PodmanConfig struct {
 	ConmonPath               string         // --conmon flag will set Engine.ConmonPath
 	CPUProfile               string         // Hidden: Should CPU profile be taken
 	EngineMode               EngineMode     // ABI or Tunneling mode
-	Identity                 string         // ssh identity for connecting to server
-	MaxWorks                 int            // maximum number of parallel threads
-	MemoryProfile            string         // Hidden: Should memory profile be taken
-	RegistriesConf           string         // allows for specifying a custom registries.conf
-	Remote                   bool           // Connection to Podman API Service will use RESTful API
-	RuntimePath              string         // --runtime flag will set Engine.RuntimePath
-	RuntimeFlags             []string       // global flags for the container runtime
-	Syslog                   bool           // write logging information to syslog as well as the console
-	Trace                    bool           // Hidden: Trace execution
-	URI                      string         // URI to RESTful API Service
-	FarmNodeName             string         // Name of farm node
+	HooksDir                 []string
+	Identity                 string   // ssh identity for connecting to server
+	MaxWorks                 int      // maximum number of parallel threads
+	MemoryProfile            string   // Hidden: Should memory profile be taken
+	RegistriesConf           string   // allows for specifying a custom registries.conf
+	Remote                   bool     // Connection to Podman API Service will use RESTful API
+	RuntimePath              string   // --runtime flag will set Engine.RuntimePath
+	RuntimeFlags             []string // global flags for the container runtime
+	Syslog                   bool     // write logging information to syslog as well as the console
+	Trace                    bool     // Hidden: Trace execution
+	URI                      string   // URI to RESTful API Service
+	FarmNodeName             string   // Name of farm node
 
 	Runroot        string
 	ImageStore     string

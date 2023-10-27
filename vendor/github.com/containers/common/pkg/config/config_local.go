@@ -31,7 +31,7 @@ func (c *EngineConfig) validatePaths() error {
 }
 
 func (c *ContainersConfig) validateDevices() error {
-	for _, d := range c.Devices {
+	for _, d := range c.Devices.Get() {
 		if parser.IsQualifiedName(d) {
 			continue
 		}
@@ -44,7 +44,7 @@ func (c *ContainersConfig) validateDevices() error {
 }
 
 func (c *ContainersConfig) validateUlimits() error {
-	for _, u := range c.DefaultUlimits {
+	for _, u := range c.DefaultUlimits.Get() {
 		ul, err := units.ParseUlimit(u)
 		if err != nil {
 			return fmt.Errorf("unrecognized ulimit %s: %w", u, err)

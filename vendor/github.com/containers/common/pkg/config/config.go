@@ -69,7 +69,7 @@ type Config struct {
 // containers global options for containers tools
 type ContainersConfig struct {
 	// Devices to add to all containers
-	Devices []string `toml:"devices,omitempty"`
+	Devices attributedstring.Slice `toml:"devices,omitempty"`
 
 	// Volumes to add to all containers
 	Volumes attributedstring.Slice `toml:"volumes,omitempty"`
@@ -79,7 +79,7 @@ type ContainersConfig struct {
 	ApparmorProfile string `toml:"apparmor_profile,omitempty"`
 
 	// Annotation to add to all containers
-	Annotations []string `toml:"annotations,omitempty"`
+	Annotations attributedstring.Slice `toml:"annotations,omitempty"`
 
 	// BaseHostsFile is the path to a hosts file, the entries from this file
 	// are added to the containers hosts file. As special value "image" is
@@ -96,28 +96,28 @@ type ContainersConfig struct {
 
 	// CgroupConf entries specifies a list of cgroup files to write to and their values. For example
 	// "memory.high=1073741824" sets the memory.high limit to 1GB.
-	CgroupConf []string `toml:"cgroup_conf,omitempty"`
+	CgroupConf attributedstring.Slice `toml:"cgroup_conf,omitempty"`
 
 	// Capabilities to add to all containers.
-	DefaultCapabilities []string `toml:"default_capabilities,omitempty"`
+	DefaultCapabilities attributedstring.Slice `toml:"default_capabilities,omitempty"`
 
 	// Sysctls to add to all containers.
-	DefaultSysctls []string `toml:"default_sysctls,omitempty"`
+	DefaultSysctls attributedstring.Slice `toml:"default_sysctls,omitempty"`
 
 	// DefaultUlimits specifies the default ulimits to apply to containers
-	DefaultUlimits []string `toml:"default_ulimits,omitempty"`
+	DefaultUlimits attributedstring.Slice `toml:"default_ulimits,omitempty"`
 
 	// DefaultMountsFile is the path to the default mounts file for testing
 	DefaultMountsFile string `toml:"-"`
 
 	// DNSServers set default DNS servers.
-	DNSServers []string `toml:"dns_servers,omitempty"`
+	DNSServers attributedstring.Slice `toml:"dns_servers,omitempty"`
 
 	// DNSOptions set default DNS options.
-	DNSOptions []string `toml:"dns_options,omitempty"`
+	DNSOptions attributedstring.Slice `toml:"dns_options,omitempty"`
 
 	// DNSSearches set default DNS search domains.
-	DNSSearches []string `toml:"dns_searches,omitempty"`
+	DNSSearches attributedstring.Slice `toml:"dns_searches,omitempty"`
 
 	// EnableKeyring tells the container engines whether to create
 	// a kernel keyring for use within the container
@@ -251,15 +251,15 @@ type EngineConfig struct {
 
 	// ConmonEnvVars are environment variables to pass to the Conmon binary
 	// when it is launched.
-	ConmonEnvVars []string `toml:"conmon_env_vars,omitempty"`
+	ConmonEnvVars attributedstring.Slice `toml:"conmon_env_vars,omitempty"`
 
 	// ConmonPath is the path to the Conmon binary used for managing containers.
 	// The first path pointing to a valid file will be used.
-	ConmonPath []string `toml:"conmon_path,omitempty"`
+	ConmonPath attributedstring.Slice `toml:"conmon_path,omitempty"`
 
 	// ConmonRsPath is the path to the Conmon-rs binary used for managing containers.
 	// The first path pointing to a valid file will be used.
-	ConmonRsPath []string `toml:"conmonrs_path,omitempty"`
+	ConmonRsPath attributedstring.Slice `toml:"conmonrs_path,omitempty"`
 
 	// CompatAPIEnforceDockerHub enforces using docker.io for completing
 	// short names in Podman's compatibility REST API.  Note that this will
@@ -271,7 +271,7 @@ type EngineConfig struct {
 	// compose command.  The first found provider is used for execution.
 	// Can be an absolute and relative path or a (file) name.  Make sure to
 	// expand the return items via `os.ExpandEnv`.
-	ComposeProviders []string `toml:"compose_providers,omitempty"`
+	ComposeProviders attributedstring.Slice `toml:"compose_providers,omitempty"`
 
 	// ComposeWarningLogs emits logs on each invocation of the compose
 	// command indicating that an external compose provider is being
@@ -294,7 +294,7 @@ type EngineConfig struct {
 	EnablePortReservation bool `toml:"enable_port_reservation,omitempty"`
 
 	// Environment variables to be used when running the container engine (e.g., Podman, Buildah). For example "http_proxy=internal.proxy.company.com"
-	Env []string `toml:"env,omitempty"`
+	Env attributedstring.Slice `toml:"env,omitempty"`
 
 	// EventsLogFilePath is where the events log is stored.
 	EventsLogFilePath string `toml:"events_logfile_path,omitempty"`
@@ -316,12 +316,12 @@ type EngineConfig struct {
 
 	// HelperBinariesDir is a list of directories which are used to search for
 	// helper binaries.
-	HelperBinariesDir []string `toml:"helper_binaries_dir"`
+	HelperBinariesDir attributedstring.Slice `toml:"helper_binaries_dir,omitempty"`
 
 	// configuration files. When the same filename is present in
 	// multiple directories, the file in the directory listed last in
 	// this slice takes precedence.
-	HooksDir []string `toml:"hooks_dir,omitempty"`
+	HooksDir attributedstring.Slice `toml:"hooks_dir,omitempty"`
 
 	// ImageBuildFormat (DEPRECATED) indicates the default image format to
 	// building container images. Should use ImageDefaultFormat
@@ -388,7 +388,7 @@ type EngineConfig struct {
 
 	// NetworkCmdOptions is the default options to pass to the slirp4netns binary.
 	// For example "allow_host_loopback=true"
-	NetworkCmdOptions []string `toml:"network_cmd_options,omitempty"`
+	NetworkCmdOptions attributedstring.Slice `toml:"network_cmd_options,omitempty"`
 
 	// NoPivotRoot sets whether to set no-pivot-root in the OCI runtime.
 	NoPivotRoot bool `toml:"no_pivot_root,omitempty"`
@@ -428,7 +428,7 @@ type EngineConfig struct {
 	ActiveService string `toml:"active_service,omitempty"`
 
 	// Add existing instances with requested compression algorithms to manifest list
-	AddCompression []string `toml:"add_compression,omitempty"`
+	AddCompression attributedstring.Slice `toml:"add_compression,omitempty"`
 
 	// ServiceDestinations mapped by service Names
 	ServiceDestinations map[string]Destination `toml:"service_destinations,omitempty"`
@@ -440,19 +440,19 @@ type EngineConfig struct {
 	// The first path pointing to a valid file will be used This is used only
 	// when there are no OCIRuntime/OCIRuntimes defined.  It is used only to be
 	// backward compatible with older versions of Podman.
-	RuntimePath []string `toml:"runtime_path,omitempty"`
+	RuntimePath attributedstring.Slice `toml:"runtime_path,omitempty"`
 
 	// RuntimeSupportsJSON is the list of the OCI runtimes that support
 	// --format=json.
-	RuntimeSupportsJSON []string `toml:"runtime_supports_json,omitempty"`
+	RuntimeSupportsJSON attributedstring.Slice `toml:"runtime_supports_json,omitempty"`
 
 	// RuntimeSupportsNoCgroups is a list of OCI runtimes that support
 	// running containers without CGroups.
-	RuntimeSupportsNoCgroups []string `toml:"runtime_supports_nocgroup,omitempty"`
+	RuntimeSupportsNoCgroups attributedstring.Slice `toml:"runtime_supports_nocgroup,omitempty"`
 
 	// RuntimeSupportsKVM is a list of OCI runtimes that support
 	// KVM separation for containers.
-	RuntimeSupportsKVM []string `toml:"runtime_supports_kvm,omitempty"`
+	RuntimeSupportsKVM attributedstring.Slice `toml:"runtime_supports_kvm,omitempty"`
 
 	// SetOptions contains a subset of config options. It's used to indicate if
 	// a given option has either been set by the user or by the parsed
@@ -562,10 +562,10 @@ type NetworkConfig struct {
 	NetworkBackend string `toml:"network_backend,omitempty"`
 
 	// CNIPluginDirs is where CNI plugin binaries are stored.
-	CNIPluginDirs []string `toml:"cni_plugin_dirs,omitempty"`
+	CNIPluginDirs attributedstring.Slice `toml:"cni_plugin_dirs,omitempty"`
 
 	// NetavarkPluginDirs is a list of directories which contain netavark plugins.
-	NetavarkPluginDirs []string `toml:"netavark_plugin_dirs,omitempty"`
+	NetavarkPluginDirs attributedstring.Slice `toml:"netavark_plugin_dirs,omitempty"`
 
 	// DefaultNetwork is the network name of the default network
 	// to attach pods to.
@@ -598,7 +598,7 @@ type NetworkConfig struct {
 
 	// PastaOptions contains a default list of pasta(1) options that should
 	// be used when running pasta.
-	PastaOptions []string `toml:"pasta_options,omitempty"`
+	PastaOptions attributedstring.Slice `toml:"pasta_options,omitempty"`
 }
 
 type SubnetPool struct {
@@ -649,7 +649,7 @@ type MachineConfig struct {
 	// User to use for rootless podman when init-ing a podman machine VM
 	User string `toml:"user,omitempty"`
 	// Volumes are host directories mounted into the VM by default.
-	Volumes []string `toml:"volumes"`
+	Volumes attributedstring.Slice `toml:"volumes,omitempty"`
 	// Provider is the virtualization provider used to run podman-machine VM
 	Provider string `toml:"provider,omitempty"`
 }
@@ -714,12 +714,15 @@ func (c *Config) CheckCgroupsAndAdjustConfig() {
 }
 
 func (c *Config) addCAPPrefix() {
-	for i, val := range c.Containers.DefaultCapabilities {
+	caps := c.Containers.DefaultCapabilities.Get()
+	newCaps := make([]string, 0, len(caps))
+	for _, val := range caps {
 		if !strings.HasPrefix(strings.ToLower(val), "cap_") {
 			val = "CAP_" + strings.ToUpper(val)
 		}
-		c.Containers.DefaultCapabilities[i] = val
+		newCaps = append(newCaps, val)
 	}
+	c.Containers.DefaultCapabilities.Set(newCaps)
 }
 
 // Validate is the main entry point for library configuration validation.
@@ -854,7 +857,7 @@ func (c *NetworkConfig) Validate() error {
 // to first (version) matching conmon binary. If non is found, we try
 // to do a path lookup of "conmon".
 func (c *Config) FindConmon() (string, error) {
-	return findConmonPath(c.Engine.ConmonPath, "conmon")
+	return findConmonPath(c.Engine.ConmonPath.Get(), "conmon")
 }
 
 func findConmonPath(paths []string, binaryName string) (string, error) {
@@ -884,7 +887,7 @@ func findConmonPath(paths []string, binaryName string) (string, error) {
 // to first (version) matching conmonrs binary. If non is found, we try
 // to do a path lookup of "conmonrs".
 func (c *Config) FindConmonRs() (string, error) {
-	return findConmonPath(c.Engine.ConmonRsPath, "conmonrs")
+	return findConmonPath(c.Engine.ConmonRsPath.Get(), "conmonrs")
 }
 
 // GetDefaultEnv returns the environment variables for the container.
@@ -921,7 +924,7 @@ func (c *Config) Capabilities(user string, addCapabilities, dropCapabilities []s
 		return true
 	}
 
-	defaultCapabilities := c.Containers.DefaultCapabilities
+	defaultCapabilities := c.Containers.DefaultCapabilities.Get()
 	if userNotRoot(user) {
 		defaultCapabilities = []string{}
 	}
@@ -1102,7 +1105,7 @@ func findBindir() string {
 // FindHelperBinary will search the given binary name in the configured directories.
 // If searchPATH is set to true it will also search in $PATH.
 func (c *Config) FindHelperBinary(name string, searchPATH bool) (string, error) {
-	dirList := c.Engine.HelperBinariesDir
+	dirList := c.Engine.HelperBinariesDir.Get()
 	bindirPath := ""
 	bindirSearched := false
 
@@ -1143,7 +1146,7 @@ func (c *Config) FindHelperBinary(name string, searchPATH bool) (string, error) 
 		return exec.LookPath(name)
 	}
 	configHint := "To resolve this error, set the helper_binaries_dir key in the `[engine]` section of containers.conf to the directory containing your helper binaries."
-	if len(c.Engine.HelperBinariesDir) == 0 {
+	if len(c.Engine.HelperBinariesDir.Get()) == 0 {
 		return "", fmt.Errorf("could not find %q because there are no helper binary directories configured.  %s", name, configHint)
 	}
 	return "", fmt.Errorf("could not find %q in one of %v.  %s", name, c.Engine.HelperBinariesDir, configHint)
@@ -1170,7 +1173,7 @@ func (c *Config) ImageCopyTmpDir() (string, error) {
 
 // setupEnv sets the environment variables for the engine
 func (c *Config) setupEnv() error {
-	for _, env := range c.Engine.Env {
+	for _, env := range c.Engine.Env.Get() {
 		splitEnv := strings.SplitN(env, "=", 2)
 		if len(splitEnv) != 2 {
 			logrus.Warnf("invalid environment variable for engine %s, valid configuration is KEY=value pair", env)

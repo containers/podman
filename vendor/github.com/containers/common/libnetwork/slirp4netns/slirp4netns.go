@@ -124,8 +124,8 @@ func checkSlirpFlags(path string) (*slirpFeatures, error) {
 }
 
 func parseNetworkOptions(config *config.Config, extraOptions []string) (*networkOptions, error) {
-	options := make([]string, 0, len(config.Engine.NetworkCmdOptions)+len(extraOptions))
-	options = append(options, config.Engine.NetworkCmdOptions...)
+	options := make([]string, 0, len(config.Engine.NetworkCmdOptions.Get())+len(extraOptions))
+	options = append(options, config.Engine.NetworkCmdOptions.Get()...)
 	options = append(options, extraOptions...)
 	opts := &networkOptions{
 		// overwrite defaults

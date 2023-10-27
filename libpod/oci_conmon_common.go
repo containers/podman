@@ -80,16 +80,16 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	}
 
 	// Make lookup tables for runtime support
-	supportsJSON := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsJSON))
-	supportsNoCgroups := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsNoCgroups))
-	supportsKVM := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsKVM))
-	for _, r := range runtimeCfg.Engine.RuntimeSupportsJSON {
+	supportsJSON := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsJSON.Get()))
+	supportsNoCgroups := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsNoCgroups.Get()))
+	supportsKVM := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsKVM.Get()))
+	for _, r := range runtimeCfg.Engine.RuntimeSupportsJSON.Get() {
 		supportsJSON[r] = true
 	}
-	for _, r := range runtimeCfg.Engine.RuntimeSupportsNoCgroups {
+	for _, r := range runtimeCfg.Engine.RuntimeSupportsNoCgroups.Get() {
 		supportsNoCgroups[r] = true
 	}
-	for _, r := range runtimeCfg.Engine.RuntimeSupportsKVM {
+	for _, r := range runtimeCfg.Engine.RuntimeSupportsKVM.Get() {
 		supportsKVM[r] = true
 	}
 
@@ -98,7 +98,7 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	runtime.conmonPath = conmonPath
 	runtime.runtimeFlags = runtimeFlags
 
-	runtime.conmonEnv = runtimeCfg.Engine.ConmonEnvVars
+	runtime.conmonEnv = runtimeCfg.Engine.ConmonEnvVars.Get()
 	runtime.tmpDir = runtimeCfg.Engine.TmpDir
 	runtime.logSizeMax = runtimeCfg.Containers.LogSizeMax
 	runtime.noPivot = runtimeCfg.Engine.NoPivotRoot

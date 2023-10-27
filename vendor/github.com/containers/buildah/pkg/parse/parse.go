@@ -104,6 +104,7 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 		}
 	}
 
+	noHostname, _ := flags.GetBool("no-hostname")
 	noHosts, _ := flags.GetBool("no-hosts")
 
 	addHost, _ := flags.GetStringSlice("add-host")
@@ -183,6 +184,7 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 		IdentityLabel: types.NewOptionalBool(identityLabel),
 		Memory:        memoryLimit,
 		MemorySwap:    memorySwap,
+		NoHostname:    noHostname,
 		NoHosts:       noHosts,
 		OmitHistory:   omitHistory,
 		ShmSize:       findFlagFunc("shm-size").Value.String(),

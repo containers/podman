@@ -64,6 +64,9 @@ type CommonBuildOptions struct {
 	LabelOpts []string
 	// MemorySwap limits the amount of memory and swap together.
 	MemorySwap int64
+	// NoHostname tells the builder not to create /etc/hostname content when running
+	// containers.
+	NoHostname bool
 	// NoHosts tells the builder not to create /etc/hosts content when running
 	// containers.
 	NoHosts bool
