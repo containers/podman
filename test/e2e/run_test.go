@@ -414,6 +414,29 @@ var _ = Describe("Podman run", func() {
 		Expect(session.OutputToString()).To(Not(BeEmpty()))
 	})
 
+	It("podman run powercap is masked", func() {
+		Skip("CI VMs do not have access to powercap")
+
+		testCtr1 := "testctr"
+		run := podmanTest.Podman([]string{"run", "-d", "--name", testCtr1, ALPINE, "top"})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(ExitCleanly())
+
+		exec := podmanTest.Podman([]string{"exec", "-ti", testCtr1, "ls", "/sys/devices/virtual/powercap"})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).To(ExitWithError())
+
+		testCtr2 := "testctr2"
+		run2 := podmanTest.Podman([]string{"run", "-d", "--privileged", "--name", testCtr2, ALPINE, "top"})
+		run2.WaitWithDefaultTimeout()
+		Expect(run2).Should(ExitCleanly())
+
+		exec2 := podmanTest.Podman([]string{"exec", "-ti", testCtr2, "ls", "/sys/devices/virtual/powercap"})
+		exec2.WaitWithDefaultTimeout()
+		Expect(exec2).Should(ExitCleanly())
+		Expect(exec2.OutputToString()).Should(Not(BeEmpty()))
+	})
+
 	It("podman run security-opt unmask on /sys/fs/cgroup", func() {
 
 		SkipIfCgroupV1("podman umask on /sys/fs/cgroup will fail with cgroups V1")
