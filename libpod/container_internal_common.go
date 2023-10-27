@@ -679,6 +679,8 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 		}
 	}
 
+	c.addMaskedPaths(&g)
+
 	return g.Config, cleanupFunc, nil
 }
 

@@ -385,3 +385,7 @@ func (c *Container) getPlatformRunPath() (string, error) {
 	}
 	return runPath, nil
 }
+
+func (c *Container) addMaskedPaths(g *generate.Generator) {
+	// There are currently no FreeBSD-specific masked paths
+}
