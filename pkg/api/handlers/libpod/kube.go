@@ -20,19 +20,19 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
 		Annotations      map[string]string `schema:"annotations"`
-		Network          []string          `schema:"network"`
-		TLSVerify        bool              `schema:"tlsVerify"`
 		LogDriver        string            `schema:"logDriver"`
 		LogOptions       []string          `schema:"logOptions"`
+		Network          []string          `schema:"network"`
+		NoHosts          bool              `schema:"noHosts"`
+		NoTrunc          bool              `schema:"noTrunc"`
+		PublishPorts     []string          `schema:"publishPorts"`
+		ServiceContainer bool              `schema:"serviceContainer"`
 		Start            bool              `schema:"start"`
 		StaticIPs        []string          `schema:"staticIPs"`
 		StaticMACs       []string          `schema:"staticMACs"`
-		NoHosts          bool              `schema:"noHosts"`
+		TLSVerify        bool              `schema:"tlsVerify"`
 		Userns           string            `schema:"userns"`
-		PublishPorts     []string          `schema:"publishPorts"`
-		NoTrunc          bool              `schema:"noTrunc"`
 		Wait             bool              `schema:"wait"`
-		ServiceContainer bool              `schema:"serviceContainer"`
 	}{
 		TLSVerify: true,
 		Start:     true,
@@ -89,21 +89,21 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 	options := entities.PlayKubeOptions{
 		Annotations:        query.Annotations,
 		Authfile:           authfile,
-		Username:           username,
-		Password:           password,
-		Networks:           query.Network,
-		NoHosts:            query.NoHosts,
-		Quiet:              true,
+		IsRemote:           true,
 		LogDriver:          logDriver,
 		LogOptions:         query.LogOptions,
+		Networks:           query.Network,
+		NoHosts:            query.NoHosts,
+		Password:           password,
+		PublishPorts:       query.PublishPorts,
+		Quiet:              true,
+		ServiceContainer:   query.ServiceContainer,
 		StaticIPs:          staticIPs,
 		StaticMACs:         staticMACs,
-		IsRemote:           true,
-		Userns:             query.Userns,
-		PublishPorts:       query.PublishPorts,
-		Wait:               query.Wait,
-		ServiceContainer:   query.ServiceContainer,
 		UseLongAnnotations: query.NoTrunc,
+		Username:           username,
+		Userns:             query.Userns,
+		Wait:               query.Wait,
 	}
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
