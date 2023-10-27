@@ -184,11 +184,17 @@ func composeDockerHost() (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("inspecting machine: %w", err)
 		}
-		if info.ConnectionInfo.PodmanSocket == nil {
-			return "", errors.New("socket of machine is not set")
-		}
 		if info.State != machine.Running {
 			return "", fmt.Errorf("machine %s is not running but in state %s", item.Name, info.State)
+		}
+		if machineProvider.VMType() == machine.WSLVirt {
+			if info.ConnectionInfo.PodmanPipe == nil {
+				return "", errors.New("pipe of machine is not set")
+			}
+			return strings.Replace(info.ConnectionInfo.PodmanPipe.Path, `\\.\pipe\`, "npipe:////./pipe/", 1), nil
+		}
+		if info.ConnectionInfo.PodmanSocket == nil {
+			return "", errors.New("socket of machine is not set")
 		}
 		return "unix://" + info.ConnectionInfo.PodmanSocket.Path, nil
 	}
