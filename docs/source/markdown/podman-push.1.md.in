@@ -40,6 +40,9 @@ $ sudo podman push myimage docker-daemon:docker.io/library/myimage:33
 
 # Push to a tarball in the OCI format
 $ podman push myimage oci-archive:/tmp/myimage
+
+# Push to a directory, with a relative path, in the OCI format with another tag
+$ podman push myimage oci:directory:tag
 ```
 
 ## OPTIONS
