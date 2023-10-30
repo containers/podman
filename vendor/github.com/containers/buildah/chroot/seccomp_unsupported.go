@@ -9,6 +9,8 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
+const seccompAvailable = false
+
 func setSeccomp(spec *specs.Spec) error {
 	if spec.Linux.Seccomp != nil {
 		return errors.New("configured a seccomp filter without seccomp support?")
