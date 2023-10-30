@@ -411,6 +411,27 @@ _EOF
     run_podman rmi -f userimage:latest
 }
 
+# Ocassionaly a remnant storage container is left behind which causes
+# podman play kube --replace to fail. This tests created a conflicting
+# storage container name using buildah to make sure --replace, still
+# functions proplery by removing the storage container.
+@test "podman kube play --replace external storage" {
+    TESTDIR=$PODMAN_TMPDIR/testdir
+    mkdir -p $TESTDIR
+    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+    run_podman play kube $PODMAN_TMPDIR/test.yaml
+    # Force removal of container
+    run_podman rm --force -t0 test_pod-test
+    # Create external container using buildah with same name
+    buildah from --name test_pod-test $IMAGE
+    # --replace deletes the buildah container and replace it with new one
+    run_podman play kube --replace $PODMAN_TMPDIR/test.yaml
+
+    run_podman stop -a -t 0
+    run_podman pod rm -t 0 -f test_pod
+    run_podman rmi -f userimage:latest
+}
+
 @test "podman kube --annotation" {
     TESTDIR=$PODMAN_TMPDIR/testdir
     RANDOMSTRING=$(random_string 15)

@@ -42,6 +42,8 @@ type PlayOptions struct {
 	LogDriver *string
 	// LogOptions for the container. For example: journald
 	LogOptions *[]string
+	// Replace - replace existing pods and containers
+	Replace *bool
 	// Start - don't start the pod if false
 	Start *bool
 	// NoTrunc - use annotations that were not truncated to the

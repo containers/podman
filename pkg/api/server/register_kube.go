@@ -17,30 +17,52 @@ func (s *APIServer) registerKubeHandlers(r *mux.Router) error {
 	// description: Create and run pods based on a Kubernetes YAML file (pod or service kind).
 	// parameters:
 	//  - in: query
+	//    name: logDriver
+	//    type: string
+	//    description: Logging driver for the containers in the pod.
+	//  - in: query
+	//    name: logOptions
+	//    type: array
+	//    description: logging driver options
+	//    items:
+	//         type: string
+	//  - in: query
 	//    name: network
 	//    type: array
 	//    description: USe the network mode or specify an array of networks.
 	//    items:
 	//      type: string
 	//  - in: query
-	//    name: tlsVerify
+	//    name: noHosts
 	//    type: boolean
-	//    default: true
-	//    description: Require HTTPS and verify signatures when contacting registries.
+	//    default: false
+	//    description: do not setup /etc/hosts file in container
 	//  - in: query
-	//    name: logDriver
-	//    type: string
-	//    description: Logging driver for the containers in the pod.
-	//  - in: query
-	//    name: start
+	//    name: noTrunc
 	//    type: boolean
-	//    default: true
-	//    description: Start the pod after creating it.
+	//    default: false
+	//    description: use annotations that are not truncated to the Kubernetes maximum length of 63 characters
+	//  - in: query
+	//    name: publishPorts
+	//    type: array
+	//    description: publish a container's port, or a range of ports, to the host
+	//    items:
+	//         type: string
+	//  - in: query
+	//    name: replace
+	//    type: boolean
+	//    default: false
+	//    description: replace existing pods and containers
 	//  - in: query
 	//    name: serviceContainer
 	//    type: boolean
 	//    default: false
 	//    description: Starts a service container before all pods.
+	//  - in: query
+	//    name: start
+	//    type: boolean
+	//    default: true
+	//    description: Start the pod after creating it.
 	//  - in: query
 	//    name: staticIPs
 	//    type: array
@@ -54,19 +76,19 @@ func (s *APIServer) registerKubeHandlers(r *mux.Router) error {
 	//    items:
 	//      type: string
 	//  - in: query
-	//    name: wait
+	//    name: tlsVerify
 	//    type: boolean
-	//    default: false
-	//    description: Clean up all objects created when a SIGTERM is received or pods exit.
-	//  - in: query
-	//    name: noTrunc
-	//    type: boolean
-	//    default: false
-	//    description: use annotations that are not truncated to the Kubernetes maximum length of 63 characters
+	//    default: true
+	//    description: Require HTTPS and verify signatures when contacting registries.
 	//  - in: query
 	//    name: userns
 	//    type: string
 	//    description: Set the user namespace mode for the pods.
+	//  - in: query
+	//    name: wait
+	//    type: boolean
+	//    default: false
+	//    description: Clean up all objects created when a SIGTERM is received or pods exit.
 	//  - in: body
 	//    name: request
 	//    description: Kubernetes YAML file.
