@@ -202,7 +202,7 @@ func (r *Runtime) reset(ctx context.Context) error {
 			prevError = err
 		}
 	}
-	runtimeDir, err := util.GetRuntimeDir()
+	runtimeDir, err := util.GetRootlessRuntimeDir()
 	if err != nil {
 		return err
 	}

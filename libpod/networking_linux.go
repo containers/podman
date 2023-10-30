@@ -82,7 +82,7 @@ func (r *RootlessNetNS) Do(toRun func() error) error {
 			return fmt.Errorf("cannot create a new mount namespace: %w", err)
 		}
 
-		xdgRuntimeDir, err := util.GetRuntimeDir()
+		xdgRuntimeDir, err := util.GetRootlessRuntimeDir()
 		if err != nil {
 			return fmt.Errorf("could not get runtime directory: %w", err)
 		}

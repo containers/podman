@@ -134,7 +134,7 @@ func SetXdgDirs() error {
 
 	if runtimeDir == "" {
 		var err error
-		runtimeDir, err = util.GetRuntimeDir()
+		runtimeDir, err = util.GetRootlessRuntimeDir()
 		if err != nil {
 			return err
 		}

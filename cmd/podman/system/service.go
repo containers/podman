@@ -130,7 +130,7 @@ func resolveAPIURI(uri []string) (string, error) {
 		logrus.Info("Using systemd socket activation to determine API endpoint")
 		return "", nil
 	case rootless.IsRootless():
-		xdg, err := util.GetRuntimeDir()
+		xdg, err := util.GetRootlessRuntimeDir()
 		if err != nil {
 			return "", err
 		}

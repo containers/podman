@@ -134,7 +134,7 @@ func setXdgDirs() error {
 
 	// Set up XDG_RUNTIME_DIR
 	if _, found := os.LookupEnv("XDG_RUNTIME_DIR"); !found {
-		dir, err := util.GetRuntimeDir()
+		dir, err := util.GetRootlessRuntimeDir()
 		if err != nil {
 			return err
 		}

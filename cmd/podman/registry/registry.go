@@ -99,7 +99,7 @@ func GetContext() context.Context {
 
 func DefaultAPIAddress() string {
 	if rootless.IsRootless() {
-		xdg, err := util.GetRuntimeDir()
+		xdg, err := util.GetRootlessRuntimeDir()
 		if err != nil {
 			logrus.Warnf("Failed to get rootless runtime dir for DefaultAPIAddress: %s", err)
 			return DefaultRootAPIAddress

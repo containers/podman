@@ -13,7 +13,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -919,13 +918,6 @@ func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []strin
 	}
 	return &options, nil
 }
-
-var (
-	rootlessConfigHomeDirOnce sync.Once
-	rootlessConfigHomeDir     string
-	rootlessRuntimeDirOnce    sync.Once
-	rootlessRuntimeDir        string
-)
 
 type tomlOptionsConfig struct {
 	MountProgram string `toml:"mount_program"`

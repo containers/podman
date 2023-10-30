@@ -36,7 +36,7 @@ func (ic *ContainerEngine) Info(ctx context.Context) (*define.Info, error) {
 	// service may be run with another URI.
 	if ic.Libpod.RemoteURI() == "" {
 		xdg := defaultRunPath
-		if path, err := util.GetRuntimeDir(); err != nil {
+		if path, err := util.GetRootlessRuntimeDir(); err != nil {
 			// Info is as good as we can guess...
 			return info, err
 		} else if path != "" {

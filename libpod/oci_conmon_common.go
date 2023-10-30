@@ -209,7 +209,7 @@ func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *Conta
 // status, but will instead only check for the existence of the conmon exit file
 // and update state to stopped if it exists.
 func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
-	runtimeDir, err := util.GetRuntimeDir()
+	runtimeDir, err := util.GetRootlessRuntimeDir()
 	if err != nil {
 		return err
 	}
@@ -290,7 +290,7 @@ func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
 // Sets time the container was started, but does not save it.
 func (r *ConmonOCIRuntime) StartContainer(ctr *Container) error {
 	// TODO: streams should probably *not* be our STDIN/OUT/ERR - redirect to buffers?
-	runtimeDir, err := util.GetRuntimeDir()
+	runtimeDir, err := util.GetRootlessRuntimeDir()
 	if err != nil {
 		return err
 	}
@@ -309,7 +309,7 @@ func (r *ConmonOCIRuntime) StartContainer(ctr *Container) error {
 
 // UpdateContainer updates the given container's cgroup configuration
 func (r *ConmonOCIRuntime) UpdateContainer(ctr *Container, resources *spec.LinuxResources) error {
-	runtimeDir, err := util.GetRuntimeDir()
+	runtimeDir, err := util.GetRootlessRuntimeDir()
 	if err != nil {
 		return err
 	}
@@ -368,7 +368,7 @@ func (r *ConmonOCIRuntime) KillContainer(ctr *Container, signal uint, all bool) 
 // *bytes.buffer and returned; otherwise, it is set to os.Stderr.
 func (r *ConmonOCIRuntime) killContainer(ctr *Container, signal uint, all, captureStderr bool) (*bytes.Buffer, error) {
 	logrus.Debugf("Sending signal %d to container %s", signal, ctr.ID())
-	runtimeDir, err := util.GetRuntimeDir()
+	runtimeDir, err := util.GetRootlessRuntimeDir()
 	if err != nil {
 		return nil, err
 	}
@@ -504,7 +504,7 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 
 // DeleteContainer deletes a container from the OCI runtime.
 func (r *ConmonOCIRuntime) DeleteContainer(ctr *Container) error {
-	runtimeDir, err := util.GetRuntimeDir()
+	runtimeDir, err := util.GetRootlessRuntimeDir()
 	if err != nil {
 		return err
 	}
@@ -514,7 +514,7 @@ func (r *ConmonOCIRuntime) DeleteContainer(ctr *Container) error {
 
 // PauseContainer pauses the given container.
 func (r *ConmonOCIRuntime) PauseContainer(ctr *Container) error {
-	runtimeDir, err := util.GetRuntimeDir()
+	runtimeDir, err := util.GetRootlessRuntimeDir()
 	if err != nil {
 		return err
 	}
@@ -524,7 +524,7 @@ func (r *ConmonOCIRuntime) PauseContainer(ctr *Container) error {
 
 // UnpauseContainer unpauses the given container.
 func (r *ConmonOCIRuntime) UnpauseContainer(ctr *Container) error {
-	runtimeDir, err := util.GetRuntimeDir()
+	runtimeDir, err := util.GetRootlessRuntimeDir()
 	if err != nil {
 		return err
 	}
@@ -851,7 +851,7 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 	args = append(args, ctr.ID())
 	logrus.Debugf("the args to checkpoint: %s %s", r.path, strings.Join(args, " "))
 
-	runtimeDir, err := util.GetRuntimeDir()
+	runtimeDir, err := util.GetRootlessRuntimeDir()
 	if err != nil {
 		return 0, err
 	}
@@ -1324,7 +1324,7 @@ func (r *ConmonOCIRuntime) configureConmonEnv() ([]string, error) {
 		}
 		res = append(res, v)
 	}
-	runtimeDir, err := util.GetRuntimeDir()
+	runtimeDir, err := util.GetRootlessRuntimeDir()
 	if err != nil {
 		return nil, err
 	}
