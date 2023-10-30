@@ -1311,4 +1311,29 @@ search               | $IMAGE           |
     run_podman rm -f -t0 $cid
 }
 
+@test "podman create container with conflicting name" {
+    local cname="$(random_string 10 | tr A-Z a-z)"
+    local output_msg_ext="^Error: .*: the container name \"$cname\" is already in use by .* You have to remove that container to be able to reuse that name: that name is already in use by an external entity, or use --replace to instruct Podman to do so."
+    local output_msg="^Error: .*: the container name \"$cname\" is already in use by .* You have to remove that container to be able to reuse that name: that name is already in use, or use --replace to instruct Podman to do so."
+    if is_remote; then
+        output_msg_ext="^Error: .*: the container name \"$cname\" is already in use by .* You have to remove that container to be able to reuse that name: that name is already in use by an external entity"
+        output_msg="^Error: .*: the container name \"$cname\" is already in use by .* You have to remove that container to be able to reuse that name: that name is already in use"
+    fi
+
+    # external container
+    buildah from --name $cname scratch
+
+    run_podman 125 create --name $cname $IMAGE
+    assert "$output" =~ "$output_msg_ext" "Trying to create two containers with same name"
+
+    run_podman container rm $cname
+
+    run_podman --noout create --name $cname $IMAGE
+
+    run_podman 125 create --name $cname $IMAGE
+    assert "$output" =~ "$output_msg" "Trying to create two containers with same name"
+
+    run_podman container rm $cname
+}
+
 # vim: filetype=sh

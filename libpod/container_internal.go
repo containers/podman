@@ -510,6 +510,11 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		}
 	}
 	if containerInfoErr != nil {
+		if errors.Is(containerInfoErr, storage.ErrDuplicateName) {
+			if _, err := c.runtime.LookupContainer(c.config.Name); errors.Is(err, define.ErrNoSuchCtr) {
+				return fmt.Errorf("creating container storage: %w by an external entity", containerInfoErr)
+			}
+		}
 		return fmt.Errorf("creating container storage: %w", containerInfoErr)
 	}
 
