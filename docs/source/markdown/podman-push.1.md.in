@@ -28,7 +28,11 @@ $ podman push docker://quay.io/podman/stable
 
 # Push to a container registry with another tag
 $ podman push myimage quay.io/username/myimage
+```
 
+**podman push** can also be used as an alternative to **podman save**.  For example:
+
+```
 # Push to a local directory
 $ podman push myimage dir:/tmp/myimage
 
@@ -41,8 +45,8 @@ $ sudo podman push myimage docker-daemon:docker.io/library/myimage:33
 # Push to a tarball in the OCI format
 $ podman push myimage oci-archive:/tmp/myimage
 
-# Push to a directory, with a relative path, in the OCI format with another tag
-$ podman push myimage oci:directory:tag
+# Push to a directory in the OCI format with an explicitly specified tag
+$ podman push myimage oci:/tmp/myimage:tag
 ```
 
 ## OPTIONS
