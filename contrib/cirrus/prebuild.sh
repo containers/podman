@@ -77,12 +77,25 @@ if [[ "${DISTRO_NV}" == "$PRIOR_FEDORA_NAME" ]]; then
     # simply here to...
     msg "Checking GitLeaks functions with current CLI args, configuration, and baseline JSON"
 
+    # TODO: Workaround for GHA Environment, duplicate here for consistency.
+    # Replace with `--userns=keep-id:uid=1000,gid=1000` w/ newer podman in GHA environment.
+    declare -a workaround_args
+    workaround_args=(\
+      --user 1000:1000
+      --uidmap 0:1:1000
+      --uidmap 1000:0:1
+      --uidmap 1001:1001:64536
+      --gidmap 0:1:1000
+      --gidmap 1000:0:1
+      --gidmap 1001:1001:64536
+    )
+
     brdepth=$(get_env_key 'brdepth')
     glfqin=$(get_env_key 'glfqin')
     glargs=$(get_env_key 'glargs')
     showrun podman run --rm \
         --security-opt=label=disable \
-        --userns=keep-id:uid=1000,gid=1000 \
+        "${workaround_args[@]}" \
         -v $CIRRUS_WORKING_DIR:/subject:ro \
         -v $CIRRUS_WORKING_DIR:/default:ro \
         --tmpfs /report:rw,size=256k,mode=1777 \
