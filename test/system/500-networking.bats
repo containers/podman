@@ -911,4 +911,15 @@ EOF
     run_podman network rm $net1
 }
 
+# Issue #20448 - /etc/hostname with --uts=host must show "uname -n"
+@test "podman --uts=host must use 'uname -n' for /etc/hostname" {
+    run_podman info --format '{{.Host.Hostname}}'
+    hostname="$output"
+    run_podman run --rm --uts=host $IMAGE cat /etc/hostname
+    assert "$output" = $hostname "/etc/hostname with --uts=host must be equal to 'uname -n'"
+
+    run_podman run --rm --net=host --uts=host $IMAGE cat /etc/hostname
+    assert "$output" = $hostname "/etc/hostname with --uts=host --net=host must be equal to 'uname -n'"
+}
+
 # vim: filetype=sh
