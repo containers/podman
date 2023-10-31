@@ -64,9 +64,6 @@ type CommonBuildOptions struct {
 	LabelOpts []string
 	// MemorySwap limits the amount of memory and swap together.
 	MemorySwap int64
-	// NoHostname tells the builder not to create /etc/hostname content when running
-	// containers.
-	NoHostname bool
 	// NoHosts tells the builder not to create /etc/hosts content when running
 	// containers.
 	NoHosts bool
@@ -321,8 +318,6 @@ type BuildOptions struct {
 	AllPlatforms bool
 	// UnsetEnvs is a list of environments to not add to final image.
 	UnsetEnvs []string
-	// UnsetLabels is a list of labels to not add to final image from base image.
-	UnsetLabels []string
 	// Envs is a list of environment variables to set in the final image.
 	Envs []string
 	// OSFeatures specifies operating system features the image requires.

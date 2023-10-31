@@ -62,8 +62,8 @@ func (b *Builder) addResolvConf(rdir string, chownOpts *idtools.IDPair, dnsServe
 		return "", fmt.Errorf("failed to get config: %w", err)
 	}
 
-	nameservers := make([]string, 0, len(defaultConfig.Containers.DNSServers.Get())+len(dnsServers))
-	nameservers = append(nameservers, defaultConfig.Containers.DNSServers.Get()...)
+	nameservers := make([]string, 0, len(defaultConfig.Containers.DNSServers)+len(dnsServers))
+	nameservers = append(nameservers, defaultConfig.Containers.DNSServers...)
 	nameservers = append(nameservers, dnsServers...)
 
 	keepHostServers := false
@@ -79,12 +79,12 @@ func (b *Builder) addResolvConf(rdir string, chownOpts *idtools.IDPair, dnsServe
 		}
 	}
 
-	searches := make([]string, 0, len(defaultConfig.Containers.DNSSearches.Get())+len(dnsSearch))
-	searches = append(searches, defaultConfig.Containers.DNSSearches.Get()...)
+	searches := make([]string, 0, len(defaultConfig.Containers.DNSSearches)+len(dnsSearch))
+	searches = append(searches, defaultConfig.Containers.DNSSearches...)
 	searches = append(searches, dnsSearch...)
 
-	options := make([]string, 0, len(defaultConfig.Containers.DNSOptions.Get())+len(dnsOptions))
-	options = append(options, defaultConfig.Containers.DNSOptions.Get()...)
+	options := make([]string, 0, len(defaultConfig.Containers.DNSOptions)+len(dnsOptions))
+	options = append(options, defaultConfig.Containers.DNSOptions...)
 	options = append(options, dnsOptions...)
 
 	cfile := filepath.Join(rdir, "resolv.conf")
@@ -344,7 +344,7 @@ func getNetworkInterface(store storage.Store, cniConfDir, cniPluginPath string) 
 	}
 	if len(cniPluginPath) > 0 {
 		plugins := strings.Split(cniPluginPath, string(os.PathListSeparator))
-		newconf.Network.CNIPluginDirs.Set(plugins)
+		newconf.Network.CNIPluginDirs = plugins
 	}
 
 	_, netInt, err := network.NetworkBackend(store, &newconf, false)
@@ -421,6 +421,15 @@ func waitForSync(pipeR *os.File) error {
 	b := make([]byte, 16)
 	_, err := pipeR.Read(b)
 	return err
+}
+
+func contains(volumes []string, v string) bool {
+	for _, i := range volumes {
+		if i == v {
+			return true
+		}
+	}
+	return false
 }
 
 func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs []string, spec *specs.Spec, bundlePath, containerName string,
@@ -1500,6 +1509,8 @@ func checkIfMountDestinationPreExists(root string, dest string) (bool, error) {
 //
 // If this function succeeds, the caller must unlock runMountArtifacts.TargetLocks (when??)
 func (b *Builder) runSetupRunMounts(mountPoint string, mounts []string, sources runMountInfo, idMaps IDMaps) ([]specs.Mount, *runMountArtifacts, error) {
+	// If `type` is not set default to TypeBind
+	mountType := define.TypeBind
 	mountTargets := make([]string, 0, 10)
 	tmpFiles := make([]string, 0, len(mounts))
 	mountImages := make([]string, 0, 10)
@@ -1521,10 +1532,6 @@ func (b *Builder) runSetupRunMounts(mountPoint string, mounts []string, sources 
 		var agent *sshagent.AgentServer
 		var tl *lockfile.LockFile
 		tokens := strings.Split(mount, ",")
-
-		// If `type` is not set default to TypeBind
-		mountType := define.TypeBind
-
 		for _, field := range tokens {
 			if strings.HasPrefix(field, "type=") {
 				kv := strings.Split(field, "=")

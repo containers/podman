@@ -19,7 +19,6 @@ import (
 	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/internal"
-	"github.com/containers/buildah/internal/tmpdir"
 	"github.com/containers/buildah/internal/volumes"
 	"github.com/containers/buildah/pkg/overlay"
 	"github.com/containers/buildah/pkg/parse"
@@ -35,7 +34,6 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/hooks"
 	hooksExec "github.com/containers/common/pkg/hooks/exec"
-	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/lockfile"
@@ -73,7 +71,7 @@ func setChildProcess() error {
 
 // Run runs the specified command in the container's root filesystem.
 func (b *Builder) Run(command []string, options RunOptions) error {
-	p, err := os.MkdirTemp(tmpdir.GetTempDir(), define.Package)
+	p, err := os.MkdirTemp("", define.Package)
 	if err != nil {
 		return err
 	}
@@ -262,7 +260,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	rootIDPair := &idtools.IDPair{UID: int(rootUID), GID: int(rootGID)}
 
 	hostFile := ""
-	if !options.NoHosts && !cutil.StringInSlice(config.DefaultHostsFile, volumes) && options.ConfigureNetwork != define.NetworkDisabled {
+	if !options.NoHosts && !contains(volumes, config.DefaultHostsFile) && options.ConfigureNetwork != define.NetworkDisabled {
 		hostFile, err = b.generateHosts(path, rootIDPair, mountPoint, spec)
 		if err != nil {
 			return err
@@ -270,16 +268,19 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		bindFiles[config.DefaultHostsFile] = hostFile
 	}
 
-	if !options.NoHostname && !(cutil.StringInSlice("/etc/hostname", volumes)) {
-		hostFile, err := b.generateHostname(path, spec.Hostname, rootIDPair)
-		if err != nil {
-			return err
+	// generate /etc/hostname if the user intentionally did not override
+	if !(contains(volumes, "/etc/hostname")) {
+		if _, ok := bindFiles["/etc/hostname"]; !ok {
+			hostFile, err := b.generateHostname(path, spec.Hostname, rootIDPair)
+			if err != nil {
+				return err
+			}
+			// Bind /etc/hostname
+			bindFiles["/etc/hostname"] = hostFile
 		}
-		// Bind /etc/hostname
-		bindFiles["/etc/hostname"] = hostFile
 	}
 
-	if !cutil.StringInSlice(resolvconf.DefaultResolvConf, volumes) && options.ConfigureNetwork != define.NetworkDisabled && !(len(b.CommonBuildOpts.DNSServers) == 1 && strings.ToLower(b.CommonBuildOpts.DNSServers[0]) == "none") {
+	if !contains(volumes, resolvconf.DefaultResolvConf) && options.ConfigureNetwork != define.NetworkDisabled && !(len(b.CommonBuildOpts.DNSServers) == 1 && strings.ToLower(b.CommonBuildOpts.DNSServers[0]) == "none") {
 		resolvFile, err := b.addResolvConf(path, rootIDPair, b.CommonBuildOpts.DNSServers, b.CommonBuildOpts.DNSSearch, b.CommonBuildOpts.DNSOptions, spec.Linux.Namespaces)
 		if err != nil {
 			return err
@@ -463,7 +464,7 @@ func addCommonOptsToSpec(commonOpts *define.CommonBuildOptions, g *generate.Gene
 		return fmt.Errorf("failed to get container config: %w", err)
 	}
 	// Other process resource limits
-	if err := addRlimits(commonOpts.Ulimit, g, defaultContainerConfig.Containers.DefaultUlimits.Get()); err != nil {
+	if err := addRlimits(commonOpts.Ulimit, g, defaultContainerConfig.Containers.DefaultUlimits); err != nil {
 		return err
 	}
 
@@ -498,7 +499,7 @@ func setupSlirp4netnsNetwork(config *config.Config, netns, cid string, options [
 		Mask: res.Subnet.Mask,
 	}}
 	netStatus := map[string]nettypes.StatusBlock{
-		slirp4netns.BinaryName: {
+		slirp4netns.BinaryName: nettypes.StatusBlock{
 			Interfaces: map[string]nettypes.NetInterface{
 				"tap0": {
 					Subnets: []nettypes.NetAddress{{IPNet: subnet}},
@@ -540,7 +541,7 @@ func setupPasta(config *config.Config, netns string, options []string) (func(), 
 		Mask: net.IPv4Mask(255, 255, 255, 0),
 	}}
 	netStatus := map[string]nettypes.StatusBlock{
-		slirp4netns.BinaryName: {
+		slirp4netns.BinaryName: nettypes.StatusBlock{
 			Interfaces: map[string]nettypes.NetInterface{
 				"tap0": {
 					Subnets: []nettypes.NetAddress{{IPNet: subnet}},
@@ -1035,6 +1036,7 @@ func setupMaskedPaths(g *generate.Generator) {
 		"/sys/firmware",
 		"/sys/fs/selinux",
 		"/sys/dev",
+		"/sys/devices/virtual/powercap",
 	} {
 		g.AddLinuxMaskedPaths(mp)
 	}

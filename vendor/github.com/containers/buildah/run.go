@@ -86,9 +86,7 @@ type RunOptions struct {
 	Runtime string
 	// Args adds global arguments for the runtime.
 	Args []string
-	// NoHostname won't create new /etc/hostname file
-	NoHostname bool
-	// NoHosts won't create new /etc/hosts file
+	// NoHosts use the images /etc/hosts file
 	NoHosts bool
 	// NoPivot adds the --no-pivot runtime flag.
 	NoPivot bool

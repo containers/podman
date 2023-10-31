@@ -103,7 +103,6 @@ type Executor struct {
 	layerLabels             []string
 	annotations             []string
 	layers                  bool
-	noHostname              bool
 	noHosts                 bool
 	useCache                bool
 	removeIntermediateCtrs  bool
@@ -143,7 +142,6 @@ type Executor struct {
 	sshsources              map[string]*sshagent.Source
 	logPrefix               string
 	unsetEnvs               []string
-	unsetLabels             []string
 	processLabel            string // Shares processLabel of first stage container with containers of other stages in same build
 	mountLabel              string // Shares mountLabel of first stage container with containers of other stages in same build
 	buildOutput             string // Specifies instructions for any custom build output
@@ -180,7 +178,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 	}
 
 	devices := define.ContainerDevices{}
-	for _, device := range append(defaultContainerConfig.Containers.Devices.Get(), options.Devices...) {
+	for _, device := range append(defaultContainerConfig.Containers.Devices, options.Devices...) {
 		dev, err := parse.DeviceFromPath(device)
 		if err != nil {
 			return nil, err
@@ -189,7 +187,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 	}
 
 	transientMounts := []Mount{}
-	for _, volume := range append(defaultContainerConfig.Volumes(), options.TransientMounts...) {
+	for _, volume := range append(defaultContainerConfig.Containers.Volumes, options.TransientMounts...) {
 		mount, err := parse.Volume(volume)
 		if err != nil {
 			return nil, err
@@ -271,7 +269,6 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		layerLabels:                    append([]string{}, options.LayerLabels...),
 		annotations:                    append([]string{}, options.Annotations...),
 		layers:                         options.Layers,
-		noHostname:                     options.CommonBuildOpts.NoHostname,
 		noHosts:                        options.CommonBuildOpts.NoHosts,
 		useCache:                       !options.NoCache,
 		removeIntermediateCtrs:         options.RemoveIntermediateCtrs,
@@ -303,7 +300,6 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		sshsources:                     sshsources,
 		logPrefix:                      logPrefix,
 		unsetEnvs:                      append([]string{}, options.UnsetEnvs...),
-		unsetLabels:                    append([]string{}, options.UnsetLabels...),
 		buildOutput:                    options.BuildOutput,
 		osVersion:                      options.OSVersion,
 		osFeatures:                     append([]string{}, options.OSFeatures...),
@@ -472,14 +468,14 @@ func (b *Executor) getImageTypeAndHistoryAndDiffIDs(ctx context.Context, imageID
 	return manifestFormat, oci.History, oci.RootFS.DiffIDs, nil
 }
 
-func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageExecutor, stages imagebuilder.Stages, stageIndex int) (imageID string, ref reference.Canonical, onlyBaseImage bool, err error) {
+func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageExecutor, stages imagebuilder.Stages, stageIndex int) (imageID string, ref reference.Canonical, err error) {
 	stage := stages[stageIndex]
 	ib := stage.Builder
 	node := stage.Node
 	base, err := ib.From(node)
 	if err != nil {
 		logrus.Debugf("buildStage(node.Children=%#v)", node.Children)
-		return "", nil, false, err
+		return "", nil, err
 	}
 
 	// If this is the last stage, then the image that we produce at
@@ -510,7 +506,7 @@ func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageE
 			if len(labelLine) > 0 {
 				additionalNode, err := imagebuilder.ParseDockerfile(strings.NewReader("LABEL" + labelLine + "\n"))
 				if err != nil {
-					return "", nil, false, fmt.Errorf("while adding additional LABEL step: %w", err)
+					return "", nil, fmt.Errorf("while adding additional LABEL step: %w", err)
 				}
 				stage.Node.Children = append(stage.Node.Children, additionalNode.Children...)
 			}
@@ -529,13 +525,13 @@ func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageE
 				value := env[1]
 				envLine += fmt.Sprintf(" %q=%q", key, value)
 			} else {
-				return "", nil, false, fmt.Errorf("BUG: unresolved environment variable: %q", key)
+				return "", nil, fmt.Errorf("BUG: unresolved environment variable: %q", key)
 			}
 		}
 		if len(envLine) > 0 {
 			additionalNode, err := imagebuilder.ParseDockerfile(strings.NewReader("ENV" + envLine + "\n"))
 			if err != nil {
-				return "", nil, false, fmt.Errorf("while adding additional ENV step: %w", err)
+				return "", nil, fmt.Errorf("while adding additional ENV step: %w", err)
 			}
 			// make this the first instruction in the stage after its FROM instruction
 			stage.Node.Children = append(additionalNode.Children, stage.Node.Children...)
@@ -576,8 +572,8 @@ func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageE
 	}
 
 	// Build this stage.
-	if imageID, ref, onlyBaseImage, err = stageExecutor.Execute(ctx, base); err != nil {
-		return "", nil, onlyBaseImage, err
+	if imageID, ref, err = stageExecutor.Execute(ctx, base); err != nil {
+		return "", nil, err
 	}
 
 	// The stage succeeded, so remove its build container if we're
@@ -590,7 +586,7 @@ func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageE
 		b.stagesLock.Unlock()
 	}
 
-	return imageID, ref, onlyBaseImage, nil
+	return imageID, ref, nil
 }
 
 type stageDependencyInfo struct {
@@ -882,11 +878,10 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	b.warnOnUnsetBuildArgs(stages, dependencyMap, b.args)
 
 	type Result struct {
-		Index         int
-		ImageID       string
-		OnlyBaseImage bool
-		Ref           reference.Canonical
-		Error         error
+		Index   int
+		ImageID string
+		Ref     reference.Canonical
+		Error   error
 	}
 
 	ch := make(chan Result, len(stages))
@@ -946,23 +941,21 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 						return
 					}
 				}
-				stageID, stageRef, stageOnlyBaseImage, stageErr := b.buildStage(ctx, cleanupStages, stages, index)
+				stageID, stageRef, stageErr := b.buildStage(ctx, cleanupStages, stages, index)
 				if stageErr != nil {
 					cancel = true
 					ch <- Result{
-						Index:         index,
-						Error:         stageErr,
-						OnlyBaseImage: stageOnlyBaseImage,
+						Index: index,
+						Error: stageErr,
 					}
 					return
 				}
 
 				ch <- Result{
-					Index:         index,
-					ImageID:       stageID,
-					Ref:           stageRef,
-					OnlyBaseImage: stageOnlyBaseImage,
-					Error:         nil,
+					Index:   index,
+					ImageID: stageID,
+					Ref:     stageRef,
+					Error:   nil,
 				}
 			}()
 		}
@@ -992,9 +985,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 			// We're not populating the cache with intermediate
 			// images, so add this one to the list of images that
 			// we'll remove later.
-			// Only remove intermediate image is `--layers` is not provided
-			// or following stage was not only a base image ( i.e a different image ).
-			if !b.layers && !r.OnlyBaseImage {
+			if !b.layers {
 				cleanupImages = append(cleanupImages, r.ImageID)
 			}
 		}

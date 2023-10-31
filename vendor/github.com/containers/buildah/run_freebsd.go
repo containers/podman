@@ -16,7 +16,6 @@ import (
 	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/internal"
-	"github.com/containers/buildah/internal/tmpdir"
 	"github.com/containers/buildah/pkg/jail"
 	"github.com/containers/buildah/pkg/overlay"
 	"github.com/containers/buildah/pkg/parse"
@@ -25,7 +24,6 @@ import (
 	"github.com/containers/common/libnetwork/resolvconf"
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
-	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/stringid"
@@ -74,7 +72,7 @@ func setChildProcess() error {
 }
 
 func (b *Builder) Run(command []string, options RunOptions) error {
-	p, err := os.MkdirTemp(tmpdir.GetTempDir(), define.Package)
+	p, err := os.MkdirTemp("", Package)
 	if err != nil {
 		return err
 	}
@@ -199,7 +197,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	rootIDPair := &idtools.IDPair{UID: int(rootUID), GID: int(rootGID)}
 
 	hostFile := ""
-	if !options.NoHosts && !cutil.StringInSlice(config.DefaultHostsFile, volumes) && options.ConfigureNetwork != define.NetworkDisabled {
+	if !options.NoHosts && !contains(volumes, config.DefaultHostsFile) && options.ConfigureNetwork != define.NetworkDisabled {
 		hostFile, err = b.generateHosts(path, rootIDPair, mountPoint, spec)
 		if err != nil {
 			return err
@@ -207,7 +205,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		bindFiles[config.DefaultHostsFile] = hostFile
 	}
 
-	if !cutil.StringInSlice(resolvconf.DefaultResolvConf, volumes) && options.ConfigureNetwork != define.NetworkDisabled && !(len(b.CommonBuildOpts.DNSServers) == 1 && strings.ToLower(b.CommonBuildOpts.DNSServers[0]) == "none") {
+	if !contains(volumes, resolvconf.DefaultResolvConf) && options.ConfigureNetwork != define.NetworkDisabled && !(len(b.CommonBuildOpts.DNSServers) == 1 && strings.ToLower(b.CommonBuildOpts.DNSServers[0]) == "none") {
 		resolvFile, err := b.addResolvConf(path, rootIDPair, b.CommonBuildOpts.DNSServers, b.CommonBuildOpts.DNSSearch, b.CommonBuildOpts.DNSOptions, nil)
 		if err != nil {
 			return err
@@ -299,7 +297,7 @@ func addCommonOptsToSpec(commonOpts *define.CommonBuildOptions, g *generate.Gene
 		return fmt.Errorf("failed to get container config: %w", err)
 	}
 	// Other process resource limits
-	if err := addRlimits(commonOpts.Ulimit, g, defaultContainerConfig.Containers.DefaultUlimits.Get()); err != nil {
+	if err := addRlimits(commonOpts.Ulimit, g, defaultContainerConfig.Containers.DefaultUlimits); err != nil {
 		return err
 	}
 
