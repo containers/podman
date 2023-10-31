@@ -240,7 +240,8 @@ function pasta_test_do() {
         local connect="${proto_upper}${ip_ver}:[${addr}]:${one_port}"
         [ "${proto}" = "udp" ] && connect="${connect},shut-null"
 
-        (while sleep ${delay} && ! socat -u "OPEN:${XFER_FILE}" "${connect}"; do :
+        local retries=10
+        (while sleep ${delay} && test $((retries--)) -gt 0 && ! timeout --foreground -v --kill=5 90 socat -u "OPEN:${XFER_FILE}" "${connect}"; do :
          done) &
     done
 
