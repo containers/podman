@@ -1,5 +1,13 @@
 # Release Notes
 
+## 4.7.2
+### Security
+- Fixed [GHSA-jq35-85cj-fj4p](https://github.com/moby/moby/security/advisories/GHSA-jq35-85cj-fj4p).
+
+### Bugfixes
+- WSL: Fixed `podman compose` command.
+- Fixed a bug in `podman compose` to try all configured providers before throwing an error ([#20502](https://github.com/containers/podman/issues/20502)).
+
 ## 4.7.1
 ### Bugfixes
 - Fixed a bug involving non-English locales of Windows where machine installs using user-mode networking were rejected due to erroneous version detection ([#20209](https://github.com/containers/podman/issues/20209)).
