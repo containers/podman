@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/Microsoft/go-winio"
@@ -36,6 +37,8 @@ const (
 	Network HVSockPurpose = iota
 	// Events implies the sock is used for notification (like "Ready")
 	Events
+	// Fileserver implies that the sock is used for serving files from host to VM
+	Fileserver
 )
 
 func (hv HVSockPurpose) string() string {
@@ -44,6 +47,8 @@ func (hv HVSockPurpose) string() string {
 		return "Network"
 	case Events:
 		return "Events"
+	case Fileserver:
+		return "Fileserver"
 	}
 	return ""
 }
@@ -58,6 +63,8 @@ func toHVSockPurpose(p string) (HVSockPurpose, error) {
 		return Network, nil
 	case "Events":
 		return Events, nil
+	case "Fileserver":
+		return Fileserver, nil
 	}
 	return 0, fmt.Errorf("unknown hvsockpurpose: %s", p)
 }
@@ -239,14 +246,24 @@ func LoadHVSockRegistryEntry(port uint64) (*HVSockRegistryEntry, error) {
 	}, nil
 }
 
-// Listen is used on the windows side to listen for anything to come
-// over the hvsock as a signal the vm is booted
-func (hv *HVSockRegistryEntry) Listen() error {
+// Listener returns a net.Listener for the given HvSock.
+func (hv *HVSockRegistryEntry) Listener() (net.Listener, error) {
 	n := winio.HvsockAddr{
 		VMID:      winio.HvsockGUIDWildcard(), // When listening on the host side, use equiv of 0.0.0.0
 		ServiceID: winio.VsockServiceID(uint32(hv.Port)),
 	}
 	listener, err := winio.ListenHvsock(&n)
+	if err != nil {
+		return nil, err
+	}
+
+	return listener, nil
+}
+
+// Listen is used on the windows side to listen for anything to come
+// over the hvsock as a signal the vm is booted
+func (hv *HVSockRegistryEntry) Listen() error {
+	listener, err := hv.Listener()
 	if err != nil {
 		return err
 	}
