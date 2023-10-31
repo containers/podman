@@ -165,7 +165,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 
 	commitImage, err := ctr.Commit(r.Context(), destImage, options)
 	if err != nil && !strings.Contains(err.Error(), "is not running") {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("CommitFailure: %w", err))
+		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 	utils.WriteResponse(w, http.StatusCreated, entities.IDResponse{ID: commitImage.ID()})

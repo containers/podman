@@ -92,6 +92,21 @@ func (o *CommitOptions) GetPause() bool {
 	return *o.Pause
 }
 
+// WithStream set field Stream to given value
+func (o *CommitOptions) WithStream(value bool) *CommitOptions {
+	o.Stream = &value
+	return o
+}
+
+// GetStream returns value of field Stream
+func (o *CommitOptions) GetStream() bool {
+	if o.Stream == nil {
+		var z bool
+		return z
+	}
+	return *o.Stream
+}
+
 // WithSquash set field Squash to given value
 func (o *CommitOptions) WithSquash(value bool) *CommitOptions {
 	o.Squash = &value

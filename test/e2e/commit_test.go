@@ -18,22 +18,37 @@ var _ = Describe("Podman commit", func() {
 		Expect(ec).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 
-		session := podmanTest.Podman([]string{"commit", "test1", "foobar.com/test1-image:latest"})
+		session := podmanTest.Podman([]string{"commit", "test1", "--change", "BOGUS=foo", "foobar.com/test1-image:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(Equal("Error: invalid change \"BOGUS=foo\" - invalid instruction BOGUS"))
+
+		session = podmanTest.Podman([]string{"commit", "test1", "foobar.com/test1-image:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		if !IsRemote() {
-			messages := session.ErrorToString()
-			Expect(messages).To(ContainSubstring("Getting image source signatures"))
-			Expect(messages).To(ContainSubstring("Copying blob"))
-			Expect(messages).To(ContainSubstring("Writing manifest to image destination"))
-			Expect(messages).To(Not(ContainSubstring("level=")), "Unexpected logrus messages in stderr")
-		}
+		messages := session.ErrorToString()
+		Expect(messages).To(ContainSubstring("Getting image source signatures"))
+		Expect(messages).To(ContainSubstring("Copying blob"))
+		Expect(messages).To(ContainSubstring("Writing manifest to image destination"))
+		Expect(messages).To(Not(ContainSubstring("level=")), "Unexpected logrus messages in stderr")
 
 		check := podmanTest.Podman([]string{"inspect", "foobar.com/test1-image:latest"})
 		check.WaitWithDefaultTimeout()
 		data := check.InspectImageJSON()
 		Expect(data[0].RepoTags).To(ContainElement("foobar.com/test1-image:latest"))
+
+		// commit second time with --quiet, should not write to stderr
+		session = podmanTest.Podman([]string{"commit", "--quiet", "test1", "foobar.com/test1-image:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.ErrorToString()).To(BeEmpty())
+
+		// commit second time with --quiet, should not write to stderr
+		session = podmanTest.Podman([]string{"commit", "--quiet", "bogus", "foobar.com/test1-image:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(Equal("Error: no container with name or ID \"bogus\" found: no such container"))
 	})
 
 	It("podman commit single letter container", func() {

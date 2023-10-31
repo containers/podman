@@ -27,6 +27,7 @@ import (
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/regexp"
+	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/go-units"
 	"github.com/hashicorp/go-multierror"
 	jsoniter "github.com/json-iterator/go"
@@ -39,6 +40,14 @@ type devino struct {
 }
 
 var iidRegex = regexp.Delayed(`^[0-9a-f]{12}`)
+
+type BuildResponse struct {
+	Stream string                 `json:"stream,omitempty"`
+	Error  *jsonmessage.JSONError `json:"errorDetail,omitempty"`
+	// NOTE: `error` is being deprecated check https://github.com/moby/moby/blob/master/pkg/jsonmessage/jsonmessage.go#L148
+	ErrorMessage string          `json:"error,omitempty"` // deprecate this slowly
+	Aux          json.RawMessage `json:"aux,omitempty"`
+}
 
 // Build creates an image using a containerfile reference
 func Build(ctx context.Context, containerFiles []string, options entities.BuildOptions) (*entities.BuildReport, error) {
@@ -603,11 +612,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 
 	var id string
 	for {
-		var s struct {
-			Stream string `json:"stream,omitempty"`
-			Error  string `json:"error,omitempty"`
-		}
-
+		var s BuildResponse
 		select {
 		// FIXME(vrothberg): it seems we always hit the EOF case below,
 		// even when the server quit but it seems desirable to
@@ -637,10 +642,10 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 			if iidRegex.Match(raw) {
 				id = strings.TrimSuffix(s.Stream, "\n")
 			}
-		case s.Error != "":
+		case s.Error != nil:
 			// If there's an error, return directly.  The stream
 			// will be closed on return.
-			return &entities.BuildReport{ID: id, SaveFormat: saveFormat}, errors.New(s.Error)
+			return &entities.BuildReport{ID: id, SaveFormat: saveFormat}, errors.New(s.Error.Message)
 		default:
 			return &entities.BuildReport{ID: id, SaveFormat: saveFormat}, errors.New("failed to parse build results stream, unexpected input")
 		}

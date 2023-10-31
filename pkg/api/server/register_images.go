@@ -1281,25 +1281,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    description: the name or ID of a container
 	//    required: true
 	//  - in: query
-	//    name: repo
-	//    type: string
-	//    description: the repository name for the created image
-	//  - in: query
-	//    name: tag
-	//    type: string
-	//    description: tag name for the created image
-	//  - in: query
-	//    name: comment
-	//    type: string
-	//    description: commit message
-	//  - in: query
 	//    name: author
 	//    type: string
 	//    description: author of the image
-	//  - in: query
-	//    name: pause
-	//    type: boolean
-	//    description: pause the container before committing it
 	//  - in: query
 	//    name: changes
 	//    description: instructions to apply while committing in Dockerfile format (i.e. "CMD=/bin/foo")
@@ -1307,9 +1291,33 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    items:
 	//       type: string
 	//  - in: query
+	//    name: comment
+	//    type: string
+	//    description: commit message
+	//  - in: query
 	//    name: format
 	//    type: string
 	//    description: format of the image manifest and metadata (default "oci")
+	//  - in: query
+	//    name: pause
+	//    type: boolean
+	//    description: pause the container before committing it
+	//  - in: query
+	//    name: squash
+	//    type: boolean
+	//    description: squash the container before committing it
+	//  - in: query
+	//    name: repo
+	//    type: string
+	//    description: the repository name for the created image
+	//  - in: query
+	//    name: stream
+	//    type: boolean
+	//    description: output from commit process
+	//  - in: query
+	//    name: tag
+	//    type: string
+	//    description: tag name for the created image
 	// produces:
 	// - application/json
 	// responses:

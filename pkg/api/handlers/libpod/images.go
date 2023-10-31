@@ -1,6 +1,8 @@
 package libpod
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -18,6 +20,8 @@ import (
 	"github.com/containers/podman/v4/pkg/api/handlers"
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v4/pkg/api/types"
+	"github.com/containers/podman/v4/pkg/bindings/images"
+	"github.com/containers/podman/v4/pkg/channel"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
@@ -30,7 +34,9 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/gorilla/schema"
+	"github.com/sirupsen/logrus"
 )
 
 // Commit
@@ -442,6 +448,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		Pause     bool     `schema:"pause"`
 		Squash    bool     `schema:"squash"`
 		Repo      string   `schema:"repo"`
+		Stream    bool     `schema:"stream"`
 		Tag       string   `schema:"tag"`
 	}{
 		Format: "oci",
@@ -480,7 +487,6 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		SystemContext:         sc,
 		PreferredManifestType: mimeType,
 	}
-
 	if len(query.Tag) > 0 {
 		tag = query.Tag
 	}
@@ -498,12 +504,80 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 	if len(query.Repo) > 0 {
 		destImage = fmt.Sprintf("%s:%s", query.Repo, tag)
 	}
-	commitImage, err := ctr.Commit(r.Context(), destImage, options)
-	if err != nil && !strings.Contains(err.Error(), "is not running") {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("CommitFailure: %w", err))
+
+	if !query.Stream {
+		commitImage, err := ctr.Commit(r.Context(), destImage, options)
+		if err != nil && !strings.Contains(err.Error(), "is not running") {
+			utils.Error(w, http.StatusInternalServerError, err)
+			return
+		}
+		utils.WriteResponse(w, http.StatusOK, entities.IDResponse{ID: commitImage.ID()})
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, entities.IDResponse{ID: commitImage.ID()})
+
+	// Channels all mux'ed in select{} below to follow API commit protocol
+	stdout := channel.NewWriter(make(chan []byte))
+	defer stdout.Close()
+	// Channels all mux'ed in select{} below to follow API commit protocol
+	options.CommitOptions.ReportWriter = stdout
+	var (
+		commitImage *libimage.Image
+		commitErr   error
+	)
+	runCtx, cancel := context.WithCancel(r.Context())
+	go func() {
+		defer cancel()
+		commitImage, commitErr = ctr.Commit(r.Context(), destImage, options)
+	}()
+
+	flush := func() {
+		if flusher, ok := w.(http.Flusher); ok {
+			flusher.Flush()
+		}
+	}
+
+	enc := json.NewEncoder(w)
+
+	statusWritten := false
+	writeStatusCode := func(code int) {
+		if !statusWritten {
+			w.WriteHeader(code)
+			w.Header().Set("Content-Type", "application/json")
+			flush()
+			statusWritten = true
+		}
+	}
+
+	for {
+		m := images.BuildResponse{}
+
+		select {
+		case e := <-stdout.Chan():
+			writeStatusCode(http.StatusOK)
+			m.Stream = string(e)
+			if err := enc.Encode(m); err != nil {
+				logrus.Errorf("%v", err)
+			}
+			flush()
+		case <-runCtx.Done():
+			if commitErr != nil {
+				m.Error = &jsonmessage.JSONError{
+					Message: commitErr.Error(),
+				}
+			} else {
+				m.Stream = commitImage.ID()
+			}
+			if err := enc.Encode(m); err != nil {
+				logrus.Errorf("%v", err)
+			}
+			flush()
+			return
+		case <-r.Context().Done():
+			cancel()
+			logrus.Infof("Client disconnect reported for commit")
+			return
+		}
+	}
 }
 
 func UntagImage(w http.ResponseWriter, r *http.Request) {
