@@ -224,8 +224,14 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 				// it's not json, assume just a string
 				m = []string{query.Dockerfile}
 			}
+
 			for _, containerfile := range m {
-				containerFiles = append(containerFiles, filepath.Join(contextDirectory, filepath.Clean(filepath.FromSlash(containerfile))))
+				// Add path to containerfile iff it is not URL
+				if !(strings.HasPrefix(containerfile, "http://") || strings.HasPrefix(containerfile, "https://")) {
+					containerfile = filepath.Join(contextDirectory,
+						filepath.Clean(filepath.FromSlash(containerfile)))
+				}
+				containerFiles = append(containerFiles, containerfile)
 			}
 			dockerFileSet = true
 		}

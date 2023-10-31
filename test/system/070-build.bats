@@ -1135,6 +1135,12 @@ EOF
     run_podman rmi -f build_test
 }
 
+@test "podman build --file=https" {
+    run_podman build -t build_test --file=https://raw.githubusercontent.com/containers/podman/main/test/build/from-scratch/Dockerfile $PODMAN_TMPDIR
+
+    run_podman rmi -f build_test
+}
+
 function teardown() {
     # A timeout or other error in 'build' can leave behind stale images
     # that podman can't even see and which will cascade into subsequent
