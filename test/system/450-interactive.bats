@@ -56,7 +56,14 @@ function teardown() {
     CR=$'\r'
 
     # ...and make sure stty under podman reads that.
+    # This flakes often ("stty: standard input"), so, retry.
     run_podman run -it --name mystty $IMAGE stty size <$PODMAN_TEST_PTY
+    if [[ "$output" =~ stty ]]; then
+        echo "# stty flaked, retrying: $output" >&3
+        run_podman rm -f mystty
+        sleep 1
+        run_podman run -it --name mystty $IMAGE stty size <$PODMAN_TEST_PTY
+    fi
     is "$output" "$rows $cols$CR" "stty under podman run reads the correct dimensions"
 
     run_podman rm -t 0 -f mystty
