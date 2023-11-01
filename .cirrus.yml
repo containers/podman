@@ -55,14 +55,15 @@ m1_mac_test_task:
       - make podman-mac-helper
     smoke_script:
       - vfkit --version
-      - timeout --preserve-status --foreground --kill-after 1m 10m ./bin/darwin/podman --log-level=debug machine init --image-path $MACHINE_IMAGE --now
+      - timeout --preserve-status --foreground --kill-after 1m 10m ./bin/darwin/podman --log-level=debug machine init --image-path $MACHINE_IMAGE
+      - timeout --preserve-status --foreground --kill-after 1m 10m ./bin/darwin/podman --log-level=debug machine start
       - timeout --preserve-status --foreground --kill-after 10s 2m ./bin/darwin/podman run -i --rm quay.io/libpod/alpine:latest echo HelloWorld
       # FIXME: https://github.com/containers/podman/issues/20516
       -  ./bin/darwin/podman --log-level=debug machine rm --force || true
     post_smoke_cleanup_script: *mac_cleanup
     e2e_script:
       # TODO: Can this please be a make target?
-      - ./test/tools/build/ginkgo -vv --tags "$GINKGO_TAGS" -timeout=90m --trace --no-color --focus-file "basic_test.go" pkg/machine/e2e/.
+      - DEBUG_MACHINE=1 ./test/tools/build/ginkgo -vv --tags "$GINKGO_TAGS" -timeout=90m --trace --no-color --focus-file "basic_test.go" pkg/machine/e2e/.
     always:
       # Try not to leave any leaked processes or useless temp files lying around forever.
       task_cleanup_script: *mac_cleanup
