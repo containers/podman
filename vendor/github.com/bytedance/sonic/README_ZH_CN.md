@@ -6,8 +6,8 @@
 
 ## 依赖
 
-- Go 1.15~1.20
-- Linux/MacOS/Windows
+- Go 1.16~1.21
+- Linux / MacOS / Windows（需要 Go1.17 以上）
 - Amd64 架构
 
 ## 特色
@@ -79,13 +79,17 @@ BenchmarkSetOne_Jsoniter-16                            79475 ns/op         163.8
 BenchmarkSetOne_Parallel_Sonic-16                      850.9 ns/op       15305.31 MB/s        1584 B/op         17 allocs/op
 BenchmarkSetOne_Parallel_Sjson-16                      18194 ns/op         715.77 MB/s       52247 B/op          9 allocs/op
 BenchmarkSetOne_Parallel_Jsoniter-16                   33560 ns/op         388.05 MB/s       45892 B/op        964 allocs/op
+BenchmarkLoadNode/LoadAll()-16                         11384 ns/op        1143.93 MB/s        6307 B/op         25 allocs/op
+BenchmarkLoadNode_Parallel/LoadAll()-16                 5493 ns/op        2370.68 MB/s        7145 B/op         25 allocs/op
+BenchmarkLoadNode/Interface()-16                       17722 ns/op         734.85 MB/s       13323 B/op         88 allocs/op
+BenchmarkLoadNode_Parallel/Interface()-16              10330 ns/op        1260.70 MB/s       15178 B/op         88 allocs/op
 ```
 - [小型](https://github.com/bytedance/sonic/blob/main/testdata/small.go) (400B, 11 个键, 3 层)
 ![small benchmarks](./docs/imgs/bench-small.png)
 - [大型](https://github.com/bytedance/sonic/blob/main/testdata/twitter.json) (635kB, 10000+ 个键, 6 层)
 ![large benchmarks](./docs/imgs/bench-large.png)
 
-要查看基准测试代码，请参阅 [bench.sh](https://github.com/bytedance/sonic/blob/main/bench.sh) 。
+要查看基准测试代码，请参阅 [bench.sh](https://github.com/bytedance/sonic/blob/main/scripts/bench.sh) 。
 
 ## 工作原理
 
@@ -298,6 +302,41 @@ println(string(buf) == string(exp)) // true
 - 迭代： `Values()`, `Properties()`, `ForEach()`, `SortKeys()`
 - 修改： `Set()`, `SetByIndex()`, `Add()`
 
+### `Ast.Visitor`
+Sonic 提供了一个高级的 API 用于直接全量解析 JSON 到非标准容器里 (既不是 `struct` 也不是 `map[string]interface{}`) 且不需要借助任何中间表示 (`ast.Node` 或 `interface{}`)。举个例子，你可能定义了下述的类型，它们看起来像 `interface{}`，但实际上并不是：
+```go
+type UserNode interface {}
+
+// the following types implement the UserNode interface.
+type (
+    UserNull    struct{}
+    UserBool    struct{ Value bool }
+    UserInt64   struct{ Value int64 }
+    UserFloat64 struct{ Value float64 }
+    UserString  struct{ Value string }
+    UserObject  struct{ Value map[string]UserNode }
+    UserArray   struct{ Value []UserNode }
+)
+```
+Sonic 提供了下述的 API 来返回 **“对 JSON AST 的前序遍历”**。`ast.Visitor` 是一个 SAX 风格的接口，这在某些 C++ 的 JSON 解析库中被使用到。你需要自己实现一个 `ast.Visitor`，将它传递给 `ast.Preorder()` 方法。在你的实现中你可以使用自定义的类型来表示 JSON 的值。在你的 `ast.Visitor` 中，可能需要有一个 O(n) 空间复杂度的容器（比如说栈）来记录 object / array 的层级。
+```go
+func Preorder(str string, visitor Visitor, opts *VisitorOptions) error
+
+type Visitor interface {
+    OnNull() error
+    OnBool(v bool) error
+    OnString(v string) error
+    OnInt64(v int64, n json.Number) error
+    OnFloat64(v float64, n json.Number) error
+    OnObjectBegin(capacity int) error
+    OnObjectKey(key string) error
+    OnObjectEnd() error
+    OnArrayBegin(capacity int) error
+    OnArrayEnd() error
+}
+```
+详细用法参看 [ast/visitor.go](https://github.com/bytedance/sonic/blob/main/ast/visitor.go)，我们还为 `UserNode` 实现了一个示例 `ast.Visitor`，你可以在 [ast/visitor_test.go](https://github.com/bytedance/sonic/blob/main/ast/visitor_test.go) 中找到它。
+
 ## 兼容性
 由于开发高性能代码的困难性， Sonic **不**保证对所有环境的支持。对于在不同环境中使用 Sonic 构建应用程序的开发者，我们有以下建议：
 
@@ -327,7 +366,7 @@ func init() {
     err := sonic.Pretouch(reflect.TypeOf(v))
 
     // with more CompileOption...
-    err := sonic.Pretouch(reflect.TypeOf(v), 
+    err := sonic.Pretouch(reflect.TypeOf(v),
         // If the type is too deep nesting (nesting depth > option.DefaultMaxInlineDepth),
         // you can set compile recursive loops in Pretouch for better stability in JIT.
         option.WithCompileRecursiveDepth(loop),
@@ -376,6 +415,15 @@ go someFunc(user)
 - 使用 `Interface()` / `Map()` 意味着 sonic 必须解析所有的底层值，而 `ast.Node` 可以**按需解析**它们。
 
 **注意**：由于 `ast.Node` 的惰性加载设计，其**不能**直接保证并发安全性，但你可以调用 `Node.Load()` / `Node.LoadAll()` 来实现并发安全。尽管可能会带来性能损失，但仍比转换成 `map` 或 `interface{}` 更为高效。
+
+### 使用 `ast.Node` 还是 `ast.Visitor`？
+对于泛型数据的解析，`ast.Node` 在大多数场景上应该能够满足你的需求。
+
+然而，`ast.Node` 是一种针对部分解析 JSON 而设计的泛型容器，它包含一些特殊设计，比如惰性加载，如果你希望像 `Unmarshal()` 那样直接解析整个 JSON，这些设计可能并不合适。尽管 `ast.Node` 相较于 `map` 或 `interface{}` 来说是更好的一种泛型容器，但它毕竟也是一种中间表示，如果你的最终类型是自定义的，你还得在解析完成后将上述类型转化成你自定义的类型。
+
+在上述场景中，如果想要有更极致的性能，`ast.Visitor` 会是更好的选择。它采用和 `Unmarshal()` 类似的形式解析 JSON，并且你可以直接使用你的最终类型去表示 JSON AST，而不需要经过额外的任何中间表示。
+
+但是，`ast.Visitor` 并不是一个很易用的 API。你可能需要写大量的代码去实现自己的 `ast.Visitor`，并且需要在解析过程中仔细维护树的层级。如果你决定要使用这个 API，请先仔细阅读 [ast/visitor.go](https://github.com/bytedance/sonic/blob/main/ast/visitor.go) 中的注释。
 
 ## 社区
 

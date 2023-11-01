@@ -261,13 +261,19 @@ func asUint(param string) uint64 {
 	return i
 }
 
-// asFloat returns the parameter as a float64
+// asFloat64 returns the parameter as a float64
 // or panics if it can't convert
-func asFloat(param string) float64 {
-
+func asFloat64(param string) float64 {
 	i, err := strconv.ParseFloat(param, 64)
 	panicIf(err)
+	return i
+}
 
+// asFloat64 returns the parameter as a float64
+// or panics if it can't convert
+func asFloat32(param string) float64 {
+	i, err := strconv.ParseFloat(param, 32)
+	panicIf(err)
 	return i
 }
 

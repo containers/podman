@@ -42,6 +42,13 @@ const (
     _SUB_BUCKETSIZE = _BUCKETSIZE / _SUBBUCKETS
 )
 
+// Note: This list must match the list in runtime/symtab.go.
+const (
+	FuncFlag_TOPFRAME = 1 << iota
+	FuncFlag_SPWRITE
+	FuncFlag_ASM
+)
+
 // PCDATA and FUNCDATA table indexes.
 //
 // See funcdata.h and $GROOT/src/cmd/internal/objabi/funcdata.go.
@@ -141,4 +148,98 @@ func funcNameParts(name string) (string, string, string) {
         return name, "", ""
     }
     return name[:i], "[...]", name[j+1:]
+}
+
+
+// func name table format: 
+//   nameOff[0] -> namePartA namePartB namePartC \x00 
+//   nameOff[1] -> namePartA namePartB namePartC \x00
+//  ...
+func makeFuncnameTab(funcs []Func) (tab []byte, offs []int32) {
+    offs = make([]int32, len(funcs))
+    offset := 1
+    tab = []byte{0}
+
+    for i, f := range funcs {
+        offs[i] = int32(offset)
+
+        a, b, c := funcNameParts(f.Name)
+        tab = append(tab, a...)
+        tab = append(tab, b...)
+        tab = append(tab, c...)
+        tab = append(tab, 0)
+        offset += len(a) + len(b) + len(c) + 1
+    }
+
+    return
+}
+
+// CU table format:
+//  cuOffsets[0] -> filetabOffset[0] filetabOffset[1] ... filetabOffset[len(CUs[0].fileNames)-1]
+//  cuOffsets[1] -> filetabOffset[len(CUs[0].fileNames)] ... filetabOffset[len(CUs[0].fileNames) + len(CUs[1].fileNames)-1]
+//  ...
+//
+// file name table format:
+//  filetabOffset[0] -> CUs[0].fileNames[0] \x00
+//  ...
+//  filetabOffset[len(CUs[0]-1)] -> CUs[0].fileNames[len(CUs[0].fileNames)-1] \x00
+//  ...
+//  filetabOffset[SUM(CUs,fileNames)-1] -> CUs[len(CU)-1].fileNames[len(CUs[len(CU)-1].fileNames)-1] \x00
+func makeFilenametab(cus []compilationUnit) (cutab []uint32, filetab []byte, cuOffsets []uint32) {
+    cuOffsets = make([]uint32, len(cus))
+    cuOffset := 0
+    fileOffset := 0
+
+    for i, cu := range cus {
+        cuOffsets[i] = uint32(cuOffset)
+
+        for _, name := range cu.fileNames {
+            cutab = append(cutab, uint32(fileOffset))
+
+            fileOffset += len(name) + 1
+            filetab = append(filetab, name...)
+            filetab = append(filetab, 0)
+        }
+
+        cuOffset += len(cu.fileNames)
+    }
+
+    return
+}
+
+func writeFuncdata(out *[]byte, funcs []Func) (fstart int, funcdataOffs [][]uint32) {
+    fstart = len(*out)
+    *out = append(*out, byte(0))
+    offs := uint32(1)
+
+    funcdataOffs = make([][]uint32, len(funcs))
+    for i, f := range funcs {
+
+        var writer = func(fd encoding.BinaryMarshaler) {
+            var ab []byte
+            var err error
+            if fd != nil {
+                ab, err = fd.MarshalBinary()
+                if err != nil {
+                    panic(err)
+                }
+                funcdataOffs[i] = append(funcdataOffs[i], offs)
+            } else {
+                ab = []byte{0}
+                funcdataOffs[i] = append(funcdataOffs[i], _INVALID_FUNCDATA_OFFSET)
+            }
+            *out = append(*out, ab...)
+            offs += uint32(len(ab))
+        }
+
+        writer(f.ArgsPointerMaps)
+        writer(f.LocalsPointerMaps)
+        writer(f.StackObjects)
+        writer(f.InlTree)
+        writer(f.OpenCodedDeferInfo)
+        writer(f.ArgInfo)
+        writer(f.ArgLiveInfo)
+        writer(f.WrapInfo)
+    }
+    return 
 }

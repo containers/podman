@@ -71,7 +71,7 @@ func (self Encoding) Encode(out []byte, src []byte) {
 //
 // It will also update the length of out.
 func (self Encoding) EncodeUnsafe(out *[]byte, src []byte) {
-    __b64encode(out, &src, int(self) | archFlags)
+    b64encode(out, &src, int(self) | archFlags)
 }
 
 // EncodeToString returns the base64 encoding of src.
@@ -120,7 +120,7 @@ func (self Encoding) Decode(out []byte, src []byte) (int, error) {
 //
 // It will also update the length of out.
 func (self Encoding) DecodeUnsafe(out *[]byte, src []byte) (int, error) {
-    if n := __b64decode(out, mem2addr(src), len(src), int(self) | archFlags); n >= 0 {
+    if n := b64decode(out, mem2addr(src), len(src), int(self) | archFlags); n >= 0 {
         return n, nil
     } else {
         return 0, base64.CorruptInputError(-n - 1)
@@ -147,11 +147,5 @@ func (self Encoding) DecodedLen(n int) int {
         return n / 4 * 3
     } else {
         return n * 6 / 8
-    }
-}
-
-func init() {
-    if hasAVX2() {
-        archFlags = _MODE_AVX2
     }
 }

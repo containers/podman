@@ -16,6 +16,10 @@
 
 package loader
 
+import (
+    `encoding/binary`
+)
+
 const (
     _N_PCDATA   = 4
 
@@ -49,40 +53,16 @@ const (
 
 var emptyByte byte
 
-func encodeValue(v int) []byte {
-    return encodeVariant(toZigzag(v))
-}
-
-func toZigzag(v int) int {
-    return (v << 1) ^ (v >> 31)
-}
-
-func encodeVariant(v int) []byte {
-    var u int
-    var r []byte
-
-    /* split every 7 bits */
-    for v > 127 {
-        u = v & 0x7f
-        v = v >> 7
-        r = append(r, byte(u) | 0x80)
-    }
-
-    /* check for last one */
-    if v == 0 {
-        return r
-    }
-
-    /* add the last one */
-    r = append(r, byte(v))
-    return r
-}
-
+// Pcvalue is the program count corresponding to the value Val
+//   WARN: we use relative value here (to function entry)
 type Pcvalue struct {
-    PC  uint32 // PC offset from func entry
-    Val int32
+    PC  uint32 // program count relative to function entry
+    Val int32  // value relative to the value in function entry
 }
 
+// Pcdata represents pc->value mapping table.
+//   WARN: we use ** [Pcdata[i].PC, Pcdata[i+1].PC) **
+//   as the range where the Pcdata[i].Val is effective.
 type Pcdata []Pcvalue
 
 // see https://docs.google.com/document/d/1lyPIbmsYbXnpNj57a261hgOYVpNRcgydurVQIyZOz_o/pub
@@ -90,11 +70,24 @@ func (self Pcdata) MarshalBinary() (data []byte, err error) {
     // delta value always starts from -1
     sv := int32(_PCDATA_START_VAL)
     sp := uint32(0)
+    buf := make([]byte, binary.MaxVarintLen32)
     for _, v := range self {
-        data = append(data, encodeVariant(toZigzag(int(v.Val - sv)))...)
-        data = append(data, encodeVariant(int(v.PC - sp))...)
+        if v.PC < sp {
+            panic("PC must be in ascending order!")
+        }
+        dp := uint64(v.PC - sp)
+        dv := int64(v.Val - sv)
+        if dv == 0 || dp == 0 {
+            continue
+        }
+        n := binary.PutVarint(buf, dv)
+        data = append(data, buf[:n]...)
+        n2 := binary.PutUvarint(buf, dp)
+        data = append(data, buf[:n2]...)
         sp = v.PC
         sv = v.Val
     }
+    // put 0 to indicate ends
+    data = append(data, 0)
     return
 }

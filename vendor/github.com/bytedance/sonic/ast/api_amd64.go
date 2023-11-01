@@ -1,4 +1,4 @@
-// +build amd64,go1.15,!go1.21
+// +build amd64,go1.16,!go1.22
 
 /*
  * Copyright 2022 ByteDance Inc.
@@ -87,7 +87,13 @@ func encodeBase64(src []byte) string {
 
 func (self *Parser) decodeValue() (val types.JsonState) {
     sv := (*rt.GoString)(unsafe.Pointer(&self.s))
-    self.p = native.Value(sv.Ptr, sv.Len, self.p, &val, 0)
+    flag := types.F_USE_NUMBER
+    if self.dbuf != nil {
+        flag = 0
+        val.Dbuf = self.dbuf
+        val.Dcap = types.MaxDigitNums
+    }
+    self.p = native.Value(sv.Ptr, sv.Len, self.p, &val, uint64(flag))
     return
 }
 

@@ -79,19 +79,20 @@ type internalValidationFuncWrapper struct {
 
 // Validate contains the validator settings and cache
 type Validate struct {
-	tagName          string
-	pool             *sync.Pool
-	hasCustomFuncs   bool
-	hasTagNameFunc   bool
-	tagNameFunc      TagNameFunc
-	structLevelFuncs map[reflect.Type]StructLevelFuncCtx
-	customFuncs      map[reflect.Type]CustomTypeFunc
-	aliases          map[string]string
-	validations      map[string]internalValidationFuncWrapper
-	transTagFunc     map[ut.Translator]map[string]TranslationFunc // map[<locale>]map[<tag>]TranslationFunc
-	rules            map[reflect.Type]map[string]string
-	tagCache         *tagCache
-	structCache      *structCache
+	tagName               string
+	pool                  *sync.Pool
+	tagNameFunc           TagNameFunc
+	structLevelFuncs      map[reflect.Type]StructLevelFuncCtx
+	customFuncs           map[reflect.Type]CustomTypeFunc
+	aliases               map[string]string
+	validations           map[string]internalValidationFuncWrapper
+	transTagFunc          map[ut.Translator]map[string]TranslationFunc // map[<locale>]map[<tag>]TranslationFunc
+	rules                 map[reflect.Type]map[string]string
+	tagCache              *tagCache
+	structCache           *structCache
+	hasCustomFuncs        bool
+	hasTagNameFunc        bool
+	requiredStructEnabled bool
 }
 
 // New returns a new instance of 'validate' with sane defaults.
@@ -99,7 +100,7 @@ type Validate struct {
 // It caches information about your struct and validations,
 // in essence only parsing your validation tags once per struct type.
 // Using multiple instances neglects the benefit of caching.
-func New() *Validate {
+func New(options ...Option) *Validate {
 
 	tc := new(tagCache)
 	tc.m.Store(make(map[string]*cTag))
@@ -146,6 +147,9 @@ func New() *Validate {
 		},
 	}
 
+	for _, o := range options {
+		o(v)
+	}
 	return v
 }
 

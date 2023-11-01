@@ -82,23 +82,23 @@ func makemap_small() unsafe.Pointer
 
 //go:linkname mapassign runtime.mapassign
 //goland:noinspection GoUnusedParameter
-func mapassign(t *rt.GoType, h unsafe.Pointer, k unsafe.Pointer) unsafe.Pointer
+func mapassign(t *rt.GoMapType, h unsafe.Pointer, k unsafe.Pointer) unsafe.Pointer
 
 //go:linkname mapassign_fast32 runtime.mapassign_fast32
 //goland:noinspection GoUnusedParameter
-func mapassign_fast32(t *rt.GoType, h unsafe.Pointer, k uint32) unsafe.Pointer
+func mapassign_fast32(t *rt.GoMapType, h unsafe.Pointer, k uint32) unsafe.Pointer
 
 //go:linkname mapassign_fast64 runtime.mapassign_fast64
 //goland:noinspection GoUnusedParameter
-func mapassign_fast64(t *rt.GoType, h unsafe.Pointer, k uint64) unsafe.Pointer
+func mapassign_fast64(t *rt.GoMapType, h unsafe.Pointer, k uint64) unsafe.Pointer
 
 //go:linkname mapassign_fast64ptr runtime.mapassign_fast64ptr
 //goland:noinspection GoUnusedParameter
-func mapassign_fast64ptr(t *rt.GoType, h unsafe.Pointer, k unsafe.Pointer) unsafe.Pointer
+func mapassign_fast64ptr(t *rt.GoMapType, h unsafe.Pointer, k unsafe.Pointer) unsafe.Pointer
 
 //go:linkname mapassign_faststr runtime.mapassign_faststr
 //goland:noinspection GoUnusedParameter
-func mapassign_faststr(t *rt.GoType, h unsafe.Pointer, s string) unsafe.Pointer
+func mapassign_faststr(t *rt.GoMapType, h unsafe.Pointer, s string) unsafe.Pointer
 
 //go:nosplit
 //go:linkname memclrHasPointers runtime.memclrHasPointers
