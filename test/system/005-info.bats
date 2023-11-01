@@ -176,25 +176,39 @@ host.slirp4netns.executable | $expr_path
 
     containersConf=$PODMAN_TMPDIR/containers.conf
     cat >$containersConf <<EOF
-[engine]
-database_backend = "boltdb"
+[containers]
+env = [ "CONF1=conf1" ]
+
+[engine.volume_plugins]
+volplugin1  = "This is not actually used or seen anywhere"
 EOF
 
     overrideConf=$PODMAN_TMPDIR/override.conf
     cat >$overrideConf <<EOF
-[engine]
-database_backend = "sqlite"
+[containers]
+env = [ "CONF2=conf2" ]
+
+[engine.volume_plugins]
+volplugin2  = "This is not actually used or seen anywhere, either"
 EOF
 
-    CONTAINERS_CONF="$containersConf" run_podman info --format "{{ .Host.DatabaseBackend }}"
-    is "$output" "boltdb"
+    CONTAINERS_CONF="$containersConf" run_podman 1 run --rm $IMAGE printenv CONF1 CONF2
+    is "$output" "conf1" "with CONTAINERS_CONF only"
 
-    CONTAINERS_CONF_OVERRIDE=$overrideConf run_podman info --format "{{ .Host.DatabaseBackend }}"
-    is "$output" "sqlite"
+    CONTAINERS_CONF_OVERRIDE=$overrideConf run_podman 1 run --rm $IMAGE printenv CONF1 CONF2
+    is "$output" "conf2" "with CONTAINERS_CONF_OVERRIDE only"
 
-    # CONTAINERS_CONF will be overridden by _OVERRIDE
-    CONTAINERS_CONF=$containersConf CONTAINERS_CONF_OVERRIDE=$overrideConf run_podman info --format "{{ .Host.DatabaseBackend }}"
-    is "$output" "sqlite"
+    # CONTAINERS_CONF will be overridden by _OVERRIDE. env is overridden, not merged.
+    CONTAINERS_CONF=$containersConf CONTAINERS_CONF_OVERRIDE=$overrideConf run_podman 1 run --rm $IMAGE printenv CONF1 CONF2
+    is "$output" "conf2" "with both CONTAINERS_CONF and CONTAINERS_CONF_OVERRIDE"
+
+    # Merge test: each of those conf files defines a distinct volume plugin.
+    # Confirm that we see both. 'info' outputs in random order, so we need to
+    # do two tests.
+    CONTAINERS_CONF=$containersConf CONTAINERS_CONF_OVERRIDE=$overrideConf run_podman info --format '{{.Plugins.Volume}}'
+    assert "$output" =~ "volplugin1" "CONTAINERS_CONF_OVERRIDE does not clobber volume_plugins from CONTAINERS_CONF"
+    assert "$output" =~ "volplugin2" "volume_plugins seen from CONTAINERS_CONF_OVERRIDE"
+
 }
 
 # vim: filetype=sh

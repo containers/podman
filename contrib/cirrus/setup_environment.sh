@@ -100,7 +100,13 @@ case "$CG_FS_TYPE" in
 esac
 
 # Force the requested database backend without having to use command-line args
+# As of #20318 (2023-10-10) sqlite is the default, but for complicated reasons
+# we still (2023-11-01) have to explicitly create a containers.conf. See
+# comments in #20559.
+# FIXME: some day, when new CI VMs are in place with podman >= 4.8 installed
+# from RPM, un-comment the 'if' below. That will confirm that sqlite is default.
 # shellcheck disable=SC2154
+#if [[ "${CI_DESIRED_DATABASE:-sqlite}" != "sqlite" ]]; then
 printf "[engine]\ndatabase_backend=\"$CI_DESIRED_DATABASE\"\n" > /etc/containers/containers.conf.d/92-db.conf
 
 # For debian envs pre-configure storage driver as overlay.
@@ -179,7 +185,7 @@ case "$CI_DESIRED_NETWORK" in
 esac
 
 # Database: force SQLite or BoltDB as requested in .cirrus.yml.
-# If unset, will default to BoltDB.
+# If unset, will default to SQLite.
 # shellcheck disable=SC2154
 showrun echo "about to set up for CI_DESIRED_DATABASE [=$CI_DESIRED_DATABASE]"
 case "$CI_DESIRED_DATABASE" in

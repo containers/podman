@@ -58,7 +58,7 @@ env:
     DISTRO_NV:               # any {PRIOR_,}{FEDORA,DEBIAN}_NAME value
     VM_IMAGE_NAME:           # One of the "Google-cloud VM Images" (above)
     CTR_FQIN:                # One of the "Container FQIN's" (above)
-    CI_DESIRED_DATABASE: boltdb # One of "", "sqlite", "boltdb"
+    CI_DESIRED_DATABASE: sqlite # 'sqlite' or 'boltdb'
 
     # Curl-command prefix for downloading task artifacts, simply add the
     # the url-encoded task name, artifact name, and path as a suffix.
@@ -104,30 +104,21 @@ build_task:
               # ID for re-use of build output
               CI_DESIRED_RUNTIME: crun
               CI_DESIRED_NETWORK: netavark
-              CI_DESIRED_DATABASE: boltdb
-        - env: &sqliteenvvars
-              DISTRO_NV: ${FEDORA_NAME}
-              # Not used here, is used in other tasks
-              VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-              # ID for re-use of build output
-              CI_DESIRED_RUNTIME: crun
-              CI_DESIRED_NETWORK: netavark
-              CI_DESIRED_DATABASE: sqlite
-        - env: &priorfedora_envvars
+        - env:
               DISTRO_NV: ${PRIOR_FEDORA_NAME}
               VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
               CI_DESIRED_RUNTIME: crun
               CI_DESIRED_NETWORK: cni
+              CI_DESIRED_DATABASE: boltdb
               # Catch invalid "TMPDIR == /tmp" assumptions; PR #19281
               TMPDIR: /var/tmp
         - env:
-              <<: *sqliteenvvars
+              <<: *stdenvars
               DISTRO_NV: ${RAWHIDE_NAME}
               VM_IMAGE_NAME: ${RAWHIDE_CACHE_IMAGE_NAME}
               CTR_FQIN: ""
-        - env: &debian_envvars
+        - env:
               DISTRO_NV: ${DEBIAN_NAME}
               VM_IMAGE_NAME: ${DEBIAN_CACHE_IMAGE_NAME}
               CI_DESIRED_RUNTIME: runc
@@ -409,7 +400,6 @@ win_installer_task:
         CIRRUS_WORKING_DIR: &wincwd "${LOCALAPPDATA}\\cirrus-ci-build"
         CIRRUS_SHELL: powershell
         PATH: "${PATH};C:\\ProgramData\\chocolatey\\bin"
-        CI_DESIRED_DATABASE: ""
         DISTRO_NV: "windows"
         PRIV_NAME: "rootless"
         # Fake version, we are only testing the installer functions, so version doesn't matter
@@ -680,6 +670,7 @@ container_integration_test_task:
               CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
               CI_DESIRED_RUNTIME: crun
               CI_DESIRED_NETWORK: cni
+              CI_DESIRED_DATABASE: boltdb
     gce_instance: *standardvm
     timeout_in: 50m
     env:
@@ -999,6 +990,8 @@ upgrade_test_task:
         TEST_FLAVOR: upgrade_test
         DISTRO_NV: ${FEDORA_NAME}
         VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
+        # FIXME: remove this once we have VMs with podman >= 4.8
+        CI_DESIRED_DATABASE: boltdb
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
