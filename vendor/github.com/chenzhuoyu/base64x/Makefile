@@ -19,10 +19,11 @@ NATIVE_SRC += $(wildcard native/*.c)
 all: native_amd64.s
 
 clean:
-	rm -vf native_amd64.s output/*.s
+	rm -vf native_text_amd64.go native_subr_amd64.go output/*.s
 
 native_amd64.s: ${NATIVE_SRC} ${NATIVE_ASM} native_amd64.go
 	mkdir -p output
 	clang ${CFLAGS} -S -o output/native.s native/native.c
-	python3 tools/asm2asm/asm2asm.py native_amd64.s output/native.s ${NATIVE_ASM}
-	asmfmt -w native_amd64.s
+	python3 tools/asm2asm/asm2asm.py -r native_amd64.go output/native.s ${NATIVE_ASM}
+	awk '{gsub(/Text__native_entry__/, "text__native_entry__")}1' native_text_amd64.go > native_text_amd64.go.tmp && mv native_text_amd64.go.tmp native_text_amd64.go
+	awk '{gsub(/Funcs/, "funcs")}1' native_subr_amd64.go > native_subr_amd64.go.tmp && mv native_subr_amd64.go.tmp native_subr_amd64.go

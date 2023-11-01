@@ -93,8 +93,10 @@ func encodeJsonMarshaler(buf *[]byte, val json.Marshaler, opt Options) error {
         if opt & CompactMarshaler != 0 {
             return compact(buf, ret)
         }
-        if ok, s := Valid(ret); !ok {
-            return error_marshaler(ret, s)
+        if opt & NoValidateJSONMarshaler == 0 {
+            if ok, s := Valid(ret); !ok {
+                return error_marshaler(ret, s)
+            }
         }
         *buf = append(*buf, ret...)
         return nil

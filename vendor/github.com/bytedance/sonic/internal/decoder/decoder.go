@@ -30,14 +30,14 @@ import (
 )
 
 const (
-    _F_use_int64 = iota
-    _F_use_number
-    _F_disable_urc
-    _F_disable_unknown
-    _F_copy_string
-    _F_validate_string
+    _F_use_int64       = 0
+    _F_disable_urc     = 2
+    _F_disable_unknown = 3
+    _F_copy_string     = 4
 
-    _F_allow_control = 31
+    _F_use_number      = types.B_USE_NUMBER
+    _F_validate_string = types.B_VALIDATE_STRING
+    _F_allow_control   = types.B_ALLOW_CONTROL
 )
 
 type Options uint64

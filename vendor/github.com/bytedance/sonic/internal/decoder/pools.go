@@ -29,7 +29,7 @@ const (
     _MinSlice = 2
     _MaxStack = 4096 // 4k slots
     _MaxStackBytes = _MaxStack * _PtrBytes
-    _MaxDigitNums = 800  // used in atof fallback algorithm
+    _MaxDigitNums = types.MaxDigitNums  // used in atof fallback algorithm
 )
 
 const (

@@ -5,8 +5,8 @@ English | [中文](README_ZH_CN.md)
 A blazingly fast JSON serializing &amp; deserializing library, accelerated by JIT (just-in-time compiling) and SIMD (single-instruction-multiple-data).
 
 ## Requirement
-- Go 1.15~1.20
-- Linux/MacOS/Windows
+- Go 1.16~1.21
+- Linux / MacOS / Windows(need go1.17 above)
 - Amd64 ARCH
 
 ## Features
@@ -76,13 +76,17 @@ BenchmarkSetOne_Jsoniter-16                            79475 ns/op         163.8
 BenchmarkSetOne_Parallel_Sonic-16                      850.9 ns/op       15305.31 MB/s        1584 B/op         17 allocs/op
 BenchmarkSetOne_Parallel_Sjson-16                      18194 ns/op         715.77 MB/s       52247 B/op          9 allocs/op
 BenchmarkSetOne_Parallel_Jsoniter-16                   33560 ns/op         388.05 MB/s       45892 B/op        964 allocs/op
+BenchmarkLoadNode/LoadAll()-16                         11384 ns/op        1143.93 MB/s        6307 B/op         25 allocs/op
+BenchmarkLoadNode_Parallel/LoadAll()-16                 5493 ns/op        2370.68 MB/s        7145 B/op         25 allocs/op
+BenchmarkLoadNode/Interface()-16                       17722 ns/op         734.85 MB/s       13323 B/op         88 allocs/op
+BenchmarkLoadNode_Parallel/Interface()-16              10330 ns/op        1260.70 MB/s       15178 B/op         88 allocs/op
 ```
 - [Small](https://github.com/bytedance/sonic/blob/main/testdata/small.go) (400B, 11 keys, 3 layers)
 ![small benchmarks](./docs/imgs/bench-small.png)
 - [Large](https://github.com/bytedance/sonic/blob/main/testdata/twitter.json) (635KB, 10000+ key, 6 layers)
 ![large benchmarks](./docs/imgs/bench-large.png)
 
-See [bench.sh](https://github.com/bytedance/sonic/blob/main/bench.sh) for benchmark codes.
+See [bench.sh](https://github.com/bytedance/sonic/blob/main/scripts/bench.sh) for benchmark codes.
 
 ## How it works
 See [INTRODUCTION.md](./docs/INTRODUCTION.md).
@@ -282,6 +286,42 @@ println(string(buf) == string(exp)) // true
 - iteration: `Values()`, `Properties()`, `ForEach()`, `SortKeys()`
 - modification: `Set()`, `SetByIndex()`, `Add()`
 
+### Ast.Visitor
+Sonic provides an advanced API for fully parsing JSON into non-standard types (neither `struct` not `map[string]interface{}`) without using any intermediate representation (`ast.Node` or `interface{}`). For example, you might have the following types which are like `interface{}` but actually not `interface{}`:
+```go
+type UserNode interface {}
+
+// the following types implement the UserNode interface.
+type (
+    UserNull    struct{}
+    UserBool    struct{ Value bool }
+    UserInt64   struct{ Value int64 }
+    UserFloat64 struct{ Value float64 }
+    UserString  struct{ Value string }
+    UserObject  struct{ Value map[string]UserNode }
+    UserArray   struct{ Value []UserNode }
+)
+```
+Sonic provides the following API to return **the preorder traversal of a JSON AST**. The `ast.Visitor` is a SAX style interface which is used in some C++ JSON library. You should implement `ast.Visitor` by yourself and pass it to `ast.Preorder()` method. In your visitor you can make your custom types to represent JSON values. There may be an O(n) space container (such as stack) in your visitor to record the object / array hierarchy.
+```go
+func Preorder(str string, visitor Visitor, opts *VisitorOptions) error
+
+type Visitor interface {
+    OnNull() error
+    OnBool(v bool) error
+    OnString(v string) error
+    OnInt64(v int64, n json.Number) error
+    OnFloat64(v float64, n json.Number) error
+    OnObjectBegin(capacity int) error
+    OnObjectKey(key string) error
+    OnObjectEnd() error
+    OnArrayBegin(capacity int) error
+    OnArrayEnd() error
+}
+```
+
+See [ast/visitor.go](https://github.com/bytedance/sonic/blob/main/ast/visitor.go) for detailed usage. We also implement a demo visitor for `UserNode` in [ast/visitor_test.go](https://github.com/bytedance/sonic/blob/main/ast/visitor_test.go).
+
 ## Compatibility
 Sonic **DOES NOT** ensure to support all environments, due to the difficulty of developing high-performance codes. For developers who use sonic to build their applications in different environments, we have the following suggestions:
 
@@ -311,7 +351,7 @@ func init() {
     err := sonic.Pretouch(reflect.TypeOf(v))
 
     // with more CompileOption...
-    err := sonic.Pretouch(reflect.TypeOf(v), 
+    err := sonic.Pretouch(reflect.TypeOf(v),
         // If the type is too deep nesting (nesting depth > option.DefaultMaxInlineDepth),
         // you can set compile recursive loops in Pretouch for better stability in JIT.
         option.WithCompileRecursiveDepth(loop),
@@ -357,6 +397,15 @@ Why? Because `ast.Node` stores its children using `array`:
 - Using `Interface()`/`Map()` means Sonic must parse all the underlying values, while `ast.Node` can parse them **on demand**.
 
 **CAUTION:** `ast.Node` **DOESN'T** ensure concurrent security directly, due to its **lazy-load** design. However, you can call `Node.Load()`/`Node.LoadAll()` to achieve that, which may bring performance reduction while it still works faster than converting to `map` or `interface{}`
+
+### Ast.Node or Ast.Visitor?
+For generic data, `ast.Node` should be enough for your needs in most cases.
+
+However, `ast.Node` is designed for partially processing JSON string. It has some special designs such as lazy-load which might not be suitable for directly parsing the whole JSON string like `Unmarshal()`. Although `ast.Node` is better then `map` or `interface{}`, it's also a kind of intermediate representation after all if your final types are customized and you have to convert the above types to your custom types after parsing.
+
+For better performance, in previous case the `ast.Visitor` will be the better choice. It performs JSON decoding like `Unmarshal()` and you can directly use your final types to represents a JSON AST without any intermediate representations.
+
+But `ast.Visitor` is not a very handy API. You might need to write a lot of code to implement your visitor and carefully maintain the tree hierarchy during decoding. Please read the comments in [ast/visitor.go](https://github.com/bytedance/sonic/blob/main/ast/visitor.go) carefully if you decide to use this API.
 
 ## Community
 Sonic is a subproject of [CloudWeGo](https://www.cloudwego.io/). We are committed to building a cloud native ecosystem.

@@ -21,8 +21,9 @@ import (
     `io`
     `sync`
 
-    `github.com/bytedance/sonic/option`
+    `github.com/bytedance/sonic/internal/native`
     `github.com/bytedance/sonic/internal/native/types`
+    `github.com/bytedance/sonic/option`
 )
 
 var (
@@ -71,6 +72,7 @@ func (self *StreamDecoder) Decode(val interface{}) (err error) {
     
     var first = true
     var repeat = true
+
 read_more:
     for {
         l := len(buf)
@@ -97,11 +99,20 @@ read_more:
     l := len(buf)
     if l > 0 {
         self.Decoder.Reset(string(buf))
+
+        var x int
+        if ret := native.SkipOneFast(&self.s, &x); ret < 0 {
+            if repeat {
+                goto read_more
+            } else {
+                err = SyntaxError{x, self.s, types.ParsingError(-ret), ""}
+                self.err = err
+                return
+            }
+        }
+
         err = self.Decoder.Decode(val)
         if err != nil {
-            if repeat && self.repeatable(err) {
-                goto read_more
-            }
             self.err = err
         }
 

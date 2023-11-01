@@ -44,35 +44,12 @@ func (self SyntaxError) Description() string {
 }
 
 func (self SyntaxError) description() string {
-    i := 16
-    p := self.Pos - i
-    q := self.Pos + i
-
     /* check for empty source */
     if self.Src == "" {
         return fmt.Sprintf("no sources available: %#v", self)
     }
 
-    /* prevent slicing before the beginning */
-    if p < 0 {
-        p, q, i = 0, q - p, i + p
-    }
-
-    /* prevent slicing beyond the end */
-    if n := len(self.Src); q > n {
-        n = q - n
-        q = len(self.Src)
-
-        /* move the left bound if possible */
-        if p > n {
-            i += n
-            p -= n
-        }
-    }
-
-    /* left and right length */
-    x := clamp_zero(i)
-    y := clamp_zero(q - p - i - 1)
+    p, x, q, y := calcBounds(len(self.Src), self.Pos)
 
     /* compose the error description */
     return fmt.Sprintf(
@@ -83,6 +60,39 @@ func (self SyntaxError) description() string {
         strings.Repeat(".", x),
         strings.Repeat(".", y),
     )
+}
+
+func calcBounds(size int, pos int) (lbound int, lwidth int, rbound int, rwidth int) {
+    if pos >= size || pos < 0 {
+        return 0, 0, size, 0
+    }
+
+    i := 16
+    lbound = pos - i
+    rbound = pos + i
+
+    /* prevent slicing before the beginning */
+    if lbound < 0 {
+        lbound, rbound, i = 0, rbound - lbound, i + lbound
+    }
+
+    /* prevent slicing beyond the end */
+    if n := size; rbound > n {
+        n = rbound - n
+        rbound = size
+
+        /* move the left bound if possible */
+        if lbound > n {
+            i += n
+            lbound -= n
+        }
+    }
+
+    /* left and right length */
+    lwidth = clamp_zero(i)
+    rwidth = clamp_zero(rbound - lbound - i - 1)
+
+    return
 }
 
 func (self SyntaxError) Message() string {
@@ -107,16 +117,19 @@ var stackOverflow = &json.UnsupportedValueError {
     Value : reflect.ValueOf("..."),
 }
 
-//go:nosplit
 func error_wrap(src string, pos int, code types.ParsingError) error {
-    return SyntaxError {
+    return *error_wrap_heap(src, pos, code)
+}
+
+//go:noinline
+func error_wrap_heap(src string, pos int, code types.ParsingError) *SyntaxError {
+    return &SyntaxError {
         Pos  : pos,
         Src  : src,
         Code : code,
     }
 }
 
-//go:nosplit
 func error_type(vt *rt.GoType) error {
     return &json.UnmarshalTypeError{Type: vt.Pack()}
 }
@@ -158,7 +171,6 @@ func (self MismatchTypeError) Description() string {
     return fmt.Sprintf("Mismatch type %s with value %s %s", self.Type.String(), swithchJSONType(self.Src, self.Pos), se.description())
 }
 
-//go:nosplit
 func error_mismatch(src string, pos int, vt *rt.GoType) error {
     return &MismatchTypeError {
         Pos  : pos,
@@ -167,12 +179,10 @@ func error_mismatch(src string, pos int, vt *rt.GoType) error {
     }
 }
 
-//go:nosplit
 func error_field(name string) error {
     return errors.New("json: unknown field " + strconv.Quote(name))
 }
 
-//go:nosplit
 func error_value(value string, vtype reflect.Type) error {
     return &json.UnmarshalTypeError {
         Type  : vtype,

@@ -1,4 +1,4 @@
-// +build !amd64 go1.21
+// +build !amd64 !go1.16 go1.22
 
 /*
 * Copyright 2023 ByteDance Inc.
@@ -27,6 +27,10 @@ import (
     `github.com/bytedance/sonic/option`
 )
 
+func init() {
+    println("WARNING: sonic only supports Go1.16~1.20 && CPU amd64, but your environment is not suitable")
+}
+
 // Options is a set of encoding options.
 type Options uint64
 
@@ -37,6 +41,7 @@ const (
     bitNoQuoteTextMarshaler
     bitNoNullSliceOrMap
     bitValidateString
+    bitNoValidateJSONMarshaler
 
     // used for recursive compile
     bitPointerValue = 63
@@ -68,6 +73,10 @@ const (
     // ValidateString indicates that encoder should validate the input string
     // before encoding it into JSON.
     ValidateString       Options = 1 << bitValidateString
+
+    // NoValidateJSONMarshaler indicates that the encoder should not validate the output string
+    // after encoding the JSONMarshaler to JSON.
+    NoValidateJSONMarshaler Options = 1 << bitNoValidateJSONMarshaler
   
     // CompatibleWithStd is used to be compatible with std encoder.
     CompatibleWithStd Options = SortMapKeys | EscapeHTML | CompactMarshaler
@@ -109,6 +118,15 @@ func (self *Encoder) SetValidateString(f bool) {
         self.Opts |= ValidateString
     } else {
         self.Opts &= ^ValidateString
+    }
+}
+
+// SetNoValidateJSONMarshaler specifies if option NoValidateJSONMarshaler opens
+func (self *Encoder) SetNoValidateJSONMarshaler(f bool) {
+    if f {
+        self.Opts |= NoValidateJSONMarshaler
+    } else {
+        self.Opts &= ^NoValidateJSONMarshaler
     }
 }
 
@@ -212,23 +230,12 @@ func Valid(data []byte) (ok bool, start int) {
 }
 
 // StreamEncoder uses io.Writer as 
-type StreamEncoder struct {
-   w io.Writer
-   Encoder
-}
+type StreamEncoder = json.Encoder
 
 // NewStreamEncoder adapts to encoding/json.NewDecoder API.
 //
 // NewStreamEncoder returns a new encoder that write to w.
 func NewStreamEncoder(w io.Writer) *StreamEncoder {
-   return &StreamEncoder{w: w}
+   return json.NewEncoder(w)
 }
 
-// Encode encodes interface{} as JSON to io.Writer
-func (enc *StreamEncoder) Encode(val interface{}) (err error) {
-   jenc := json.NewEncoder(enc.w)
-   jenc.SetEscapeHTML((enc.Opts & EscapeHTML) != 0)
-   jenc.SetIndent(enc.prefix, enc.indent)
-   err = jenc.Encode(val)
-   return err
-}

@@ -19,6 +19,7 @@ package types
 import (
     `fmt`
     `sync`
+    `unsafe`
 )
 
 type ValueType int
@@ -46,15 +47,23 @@ const (
 )
 
 const (
+    // for native.Unquote() flags
     B_DOUBLE_UNQUOTE  = 0
     B_UNICODE_REPLACE = 1
+
+    // for native.Value() flags
+    B_USE_NUMBER      = 1
     B_VALIDATE_STRING = 5
+    B_ALLOW_CONTROL   = 31
 )
 
 const (
     F_DOUBLE_UNQUOTE  = 1 << B_DOUBLE_UNQUOTE
     F_UNICODE_REPLACE = 1 << B_UNICODE_REPLACE
+
+    F_USE_NUMBER      = 1 << B_USE_NUMBER
     F_VALIDATE_STRING = 1 << B_VALIDATE_STRING
+    F_ALLOW_CONTROL   = 1 << B_ALLOW_CONTROL
 )
 
 const (
@@ -136,3 +145,18 @@ func FreeStateMachine(fsm *StateMachine) {
     stackPool.Put(fsm)
 }
 
+const MaxDigitNums = 800
+
+var digitPool = sync.Pool{
+    New: func() interface{} {
+        return (*byte)(unsafe.Pointer(&[MaxDigitNums]byte{}))
+    },
+}
+
+func NewDbuf() *byte {
+    return digitPool.Get().(*byte)
+}
+
+func FreeDbuf(p *byte) {
+    digitPool.Put(p)
+}

@@ -1,4 +1,4 @@
-// +build amd64,go1.15,!go1.21
+// +build amd64,go1.16,!go1.22
 
 /*
  * Copyright 2021 ByteDance Inc.
@@ -57,6 +57,9 @@ func (cfg Config) Froze() API {
     }
     if cfg.ValidateString {
         api.encoderOpts |= encoder.ValidateString
+    }
+    if cfg.NoValidateJSONMarshaler {
+        api.encoderOpts |= encoder.NoValidateJSONMarshaler
     }
 
     // configure decoder options:
@@ -139,23 +142,23 @@ func (cfg frozenConfig) Valid(data []byte) bool {
 // Opts are the compile options, for example, "option.WithCompileRecursiveDepth" is
 // a compile option to set the depth of recursive compile for the nested struct type.
 func Pretouch(vt reflect.Type, opts ...option.CompileOption) error {
-	if err := encoder.Pretouch(vt, opts...); err != nil {
-	    return err
-	} 
-	if err := decoder.Pretouch(vt, opts...); err != nil {
-		return err
-	}
-	// to pretouch the corresponding pointer type as well
-	if vt.Kind() == reflect.Ptr {
-		vt = vt.Elem()
-	} else {
-		vt = reflect.PtrTo(vt)
-	}
-	if err := encoder.Pretouch(vt, opts...); err != nil {
-	    return err
-	} 
-	if err := decoder.Pretouch(vt, opts...); err != nil {
-		return err
-	}
-	return nil
+    if err := encoder.Pretouch(vt, opts...); err != nil {
+        return err
+    } 
+    if err := decoder.Pretouch(vt, opts...); err != nil {
+        return err
+    }
+    // to pretouch the corresponding pointer type as well
+    if vt.Kind() == reflect.Ptr {
+        vt = vt.Elem()
+    } else {
+        vt = reflect.PtrTo(vt)
+    }
+    if err := encoder.Pretouch(vt, opts...); err != nil {
+        return err
+    } 
+    if err := decoder.Pretouch(vt, opts...); err != nil {
+        return err
+    }
+    return nil
 }

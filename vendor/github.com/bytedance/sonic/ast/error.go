@@ -8,6 +8,33 @@ import (
     `github.com/bytedance/sonic/internal/native/types`
 )
 
+
+func newError(err types.ParsingError, msg string) *Node {
+    return &Node{
+        t: V_ERROR,
+        l: uint(err),
+        p: unsafe.Pointer(&msg),
+    }
+}
+
+// Error returns error message if the node is invalid
+func (self Node) Error() string {
+    if self.t != V_ERROR {
+        return ""
+    } else {
+        return *(*string)(self.p)
+    } 
+}
+
+func newSyntaxError(err SyntaxError) *Node {
+    msg := err.Description()
+    return &Node{
+        t: V_ERROR,
+        l: uint(err.Code),
+        p: unsafe.Pointer(&msg),
+    }
+}
+
 func (self *Parser) syntaxError(err types.ParsingError) SyntaxError {
     return SyntaxError{
         Pos : self.p,
@@ -16,12 +43,17 @@ func (self *Parser) syntaxError(err types.ParsingError) SyntaxError {
     }
 }
 
-func newSyntaxError(err SyntaxError) *Node {
-    msg := err.Description()
-    return &Node{
-        t: V_ERROR,
-        v: int64(err.Code),
-        p: unsafe.Pointer(&msg),
+func unwrapError(err error) *Node {
+    if se, ok := err.(*Node); ok {
+        return se
+    }else if sse, ok := err.(Node); ok {
+        return &sse
+    } else {
+        msg := err.Error()
+        return &Node{
+            t: V_ERROR,
+            p: unsafe.Pointer(&msg),
+        }
     }
 }
 

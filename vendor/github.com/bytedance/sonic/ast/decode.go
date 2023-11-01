@@ -220,7 +220,7 @@ func decodeFloat64(src string, pos int) (ret int, v float64, err error) {
     return ret, v, nil
 }
 
-func decodeValue(src string, pos int) (ret int, v types.JsonState) {
+func decodeValue(src string, pos int, skipnum bool) (ret int, v types.JsonState) {
     pos = skipBlank(src, pos)
     if pos < 0 {
         return pos, types.JsonState{Vt: types.ValueType(pos)}
@@ -256,20 +256,30 @@ func decodeValue(src string, pos int) (ret int, v types.JsonState) {
         }
         return ret, types.JsonState{Vt: types.V_FALSE}
     case '-', '+', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-        var iv int64
-        ret, iv, _ = decodeInt64(src, pos)
-        if ret >= 0 {
-            return ret, types.JsonState{Vt: types.V_INTEGER, Iv: iv, Ep: pos}
-        } else if ret != -int(types.ERR_INVALID_NUMBER_FMT) {
-            return ret, types.JsonState{Vt: types.ValueType(ret)}
-        }
-        var fv float64
-        ret, fv, _ = decodeFloat64(src, pos)
-        if ret >= 0 {
-            return ret, types.JsonState{Vt: types.V_DOUBLE, Dv: fv, Ep: pos}
+        if skipnum {
+            ret = skipNumber(src, pos)
+            if ret >= 0 {
+                return ret, types.JsonState{Vt: types.V_DOUBLE, Iv: 0, Ep: pos}
+            } else {
+                return ret, types.JsonState{Vt: types.ValueType(ret)}
+            }
         } else {
-            return ret, types.JsonState{Vt: types.ValueType(ret)}
+            var iv int64
+            ret, iv, _ = decodeInt64(src, pos)
+            if ret >= 0 {
+                return ret, types.JsonState{Vt: types.V_INTEGER, Iv: iv, Ep: pos}
+            } else if ret != -int(types.ERR_INVALID_NUMBER_FMT) {
+                return ret, types.JsonState{Vt: types.ValueType(ret)}
+            }
+            var fv float64
+            ret, fv, _ = decodeFloat64(src, pos)
+            if ret >= 0 {
+                return ret, types.JsonState{Vt: types.V_DOUBLE, Dv: fv, Ep: pos}
+            } else {
+                return ret, types.JsonState{Vt: types.ValueType(ret)}
+            }
         }
+        
     default:
         return -int(types.ERR_INVALID_CHAR), types.JsonState{Vt:-types.ValueType(types.ERR_INVALID_CHAR)}
     }
