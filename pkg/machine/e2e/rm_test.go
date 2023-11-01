@@ -32,8 +32,9 @@ var _ = Describe("podman machine rm", func() {
 	})
 
 	It("Remove machine", func() {
+		name := randomString()
 		i := new(initMachine)
-		session, err := mb.setCmd(i.withImagePath(mb.imagePath)).run()
+		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 		rm := rmMachine{}
@@ -46,6 +47,12 @@ var _ = Describe("podman machine rm", func() {
 		_, ec, err := mb.toQemuInspectInfo()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ec).To(Equal(125))
+
+		// Removing non-existent machine should fail
+		removeSession2, err := mb.setCmd(rm.withForce()).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(removeSession2).To(Exit(125))
+		Expect(removeSession2.errorToString()).To(ContainSubstring(fmt.Sprintf("%s: VM does not exist", name)))
 	})
 
 	It("Remove running machine", func() {
