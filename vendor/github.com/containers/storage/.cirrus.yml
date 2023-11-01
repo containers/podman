@@ -17,13 +17,13 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ###
-    FEDORA_NAME: "fedora-38"
+    FEDORA_NAME: "fedora-39ß"
     DEBIAN_NAME: "debian-13"
 
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
     # VM Image built in containers/automation_images
-    IMAGE_SUFFIX: "c20230816t191118z-f38f37d13"
+    IMAGE_SUFFIX: "c20231004t194547z-f39f38d13"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
 
@@ -113,8 +113,6 @@ debian_testing_task: &debian_testing
             TEST_DRIVER: "fuse-overlay-whiteout"
         - env:
             TEST_DRIVER: "btrfs"
-        - env:
-            TEST_DRIVER: "zfs"
 
 
 lint_task:

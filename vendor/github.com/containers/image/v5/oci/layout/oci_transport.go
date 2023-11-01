@@ -160,48 +160,56 @@ func (ref ociReference) NewImage(ctx context.Context, sys *types.SystemContext) 
 // getIndex returns a pointer to the index references by this ociReference. If an error occurs opening an index nil is returned together
 // with an error.
 func (ref ociReference) getIndex() (*imgspecv1.Index, error) {
-	indexJSON, err := os.Open(ref.indexPath())
-	if err != nil {
-		return nil, err
-	}
-	defer indexJSON.Close()
-
-	index := &imgspecv1.Index{}
-	if err := json.NewDecoder(indexJSON).Decode(index); err != nil {
-		return nil, err
-	}
-	return index, nil
+	return parseIndex(ref.indexPath())
 }
 
-func (ref ociReference) getManifestDescriptor() (imgspecv1.Descriptor, error) {
+func parseIndex(path string) (*imgspecv1.Index, error) {
+	return parseJSON[imgspecv1.Index](path)
+}
+
+func parseJSON[T any](path string) (*T, error) {
+	content, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer content.Close()
+
+	obj := new(T)
+	if err := json.NewDecoder(content).Decode(obj); err != nil {
+		return nil, err
+	}
+	return obj, nil
+}
+
+func (ref ociReference) getManifestDescriptor() (imgspecv1.Descriptor, int, error) {
 	index, err := ref.getIndex()
 	if err != nil {
-		return imgspecv1.Descriptor{}, err
+		return imgspecv1.Descriptor{}, -1, err
 	}
 
 	if ref.image == "" {
 		// return manifest if only one image is in the oci directory
 		if len(index.Manifests) != 1 {
 			// ask user to choose image when more than one image in the oci directory
-			return imgspecv1.Descriptor{}, ErrMoreThanOneImage
+			return imgspecv1.Descriptor{}, -1, ErrMoreThanOneImage
 		}
-		return index.Manifests[0], nil
+		return index.Manifests[0], 0, nil
 	} else {
 		// if image specified, look through all manifests for a match
 		var unsupportedMIMETypes []string
-		for _, md := range index.Manifests {
+		for i, md := range index.Manifests {
 			if refName, ok := md.Annotations[imgspecv1.AnnotationRefName]; ok && refName == ref.image {
 				if md.MediaType == imgspecv1.MediaTypeImageManifest || md.MediaType == imgspecv1.MediaTypeImageIndex {
-					return md, nil
+					return md, i, nil
 				}
 				unsupportedMIMETypes = append(unsupportedMIMETypes, md.MediaType)
 			}
 		}
 		if len(unsupportedMIMETypes) != 0 {
-			return imgspecv1.Descriptor{}, fmt.Errorf("reference %q matches unsupported manifest MIME types %q", ref.image, unsupportedMIMETypes)
+			return imgspecv1.Descriptor{}, -1, fmt.Errorf("reference %q matches unsupported manifest MIME types %q", ref.image, unsupportedMIMETypes)
 		}
 	}
-	return imgspecv1.Descriptor{}, ImageNotFoundError{ref}
+	return imgspecv1.Descriptor{}, -1, ImageNotFoundError{ref}
 }
 
 // LoadManifestDescriptor loads the manifest descriptor to be used to retrieve the image name
@@ -211,7 +219,8 @@ func LoadManifestDescriptor(imgRef types.ImageReference) (imgspecv1.Descriptor, 
 	if !ok {
 		return imgspecv1.Descriptor{}, errors.New("error typecasting, need type ociRef")
 	}
-	return ociRef.getManifestDescriptor()
+	md, _, err := ociRef.getManifestDescriptor()
+	return md, err
 }
 
 // NewImageSource returns a types.ImageSource for this reference.
@@ -226,19 +235,14 @@ func (ref ociReference) NewImageDestination(ctx context.Context, sys *types.Syst
 	return newImageDestination(sys, ref)
 }
 
-// DeleteImage deletes the named image from the registry, if supported.
-func (ref ociReference) DeleteImage(ctx context.Context, sys *types.SystemContext) error {
-	return errors.New("Deleting images not implemented for oci: images")
-}
-
 // ociLayoutPath returns a path for the oci-layout within a directory using OCI conventions.
 func (ref ociReference) ociLayoutPath() string {
-	return filepath.Join(ref.dir, "oci-layout")
+	return filepath.Join(ref.dir, imgspecv1.ImageLayoutFile)
 }
 
 // indexPath returns a path for the index.json within a directory using OCI conventions.
 func (ref ociReference) indexPath() string {
-	return filepath.Join(ref.dir, "index.json")
+	return filepath.Join(ref.dir, imgspecv1.ImageIndexFile)
 }
 
 // blobPath returns a path for a blob within a directory using OCI image-layout conventions.
@@ -246,9 +250,11 @@ func (ref ociReference) blobPath(digest digest.Digest, sharedBlobDir string) (st
 	if err := digest.Validate(); err != nil {
 		return "", fmt.Errorf("unexpected digest reference %s: %w", digest, err)
 	}
-	blobDir := filepath.Join(ref.dir, "blobs")
+	var blobDir string
 	if sharedBlobDir != "" {
 		blobDir = sharedBlobDir
+	} else {
+		blobDir = filepath.Join(ref.dir, imgspecv1.ImageBlobsDir)
 	}
 	return filepath.Join(blobDir, digest.Algorithm().String(), digest.Hex()), nil
 }

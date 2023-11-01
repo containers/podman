@@ -24,6 +24,7 @@ import (
 
 	"github.com/docker/distribution/registry/api/errcode"
 	dockerChallenge "github.com/docker/distribution/registry/client/auth/challenge"
+	"golang.org/x/exp/slices"
 )
 
 // errNoErrorsInBody is returned when an HTTP response body parses to an empty
@@ -105,7 +106,7 @@ func makeErrorList(err error) []error {
 }
 
 func mergeErrors(err1, err2 error) error {
-	return errcode.Errors(append(makeErrorList(err1), makeErrorList(err2)...))
+	return errcode.Errors(append(slices.Clone(makeErrorList(err1)), makeErrorList(err2)...))
 }
 
 // handleErrorResponse returns error parsed from HTTP response for an

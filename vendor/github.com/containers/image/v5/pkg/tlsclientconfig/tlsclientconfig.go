@@ -66,7 +66,7 @@ func SetupCertificates(dir string, tlsc *tls.Config) error {
 			if err != nil {
 				return err
 			}
-			tlsc.Certificates = append(tlsc.Certificates, cert)
+			tlsc.Certificates = append(slices.Clone(tlsc.Certificates), cert)
 		}
 		if strings.HasSuffix(f.Name(), ".key") {
 			keyName := f.Name()

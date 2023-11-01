@@ -60,7 +60,7 @@ func newImageSource(sys *types.SystemContext, ref ociReference) (private.ImageSo
 
 	client := &http.Client{}
 	client.Transport = tr
-	descriptor, err := ref.getManifestDescriptor()
+	descriptor, _, err := ref.getManifestDescriptor()
 	if err != nil {
 		return nil, err
 	}

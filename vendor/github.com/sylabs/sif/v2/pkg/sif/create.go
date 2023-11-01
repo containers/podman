@@ -8,6 +8,7 @@
 package sif
 
 import (
+	"encoding"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -321,51 +322,6 @@ func CreateContainerAtPath(path string, opts ...CreateOpt) (*FileImage, error) {
 	return f, nil
 }
 
-func zeroData(fimg *FileImage, descr *rawDescriptor) error {
-	// first, move to data object offset
-	if _, err := fimg.rw.Seek(descr.Offset, io.SeekStart); err != nil {
-		return err
-	}
-
-	var zero [4096]byte
-	n := descr.Size
-	upbound := int64(4096)
-	for {
-		if n < 4096 {
-			upbound = n
-		}
-
-		if _, err := fimg.rw.Write(zero[:upbound]); err != nil {
-			return err
-		}
-		n -= 4096
-		if n <= 0 {
-			break
-		}
-	}
-
-	return nil
-}
-
-func resetDescriptor(fimg *FileImage, index int) error {
-	// If we remove the primary partition, set the global header Arch field to HdrArchUnknown
-	// to indicate that the SIF file doesn't include a primary partition and no dependency
-	// on any architecture exists.
-	if fimg.rds[index].isPartitionOfType(PartPrimSys) {
-		fimg.h.Arch = hdrArchUnknown
-	}
-
-	offset := fimg.h.DescriptorsOffset + int64(index)*int64(binary.Size(fimg.rds[0]))
-
-	// first, move to descriptor offset
-	if _, err := fimg.rw.Seek(offset, io.SeekStart); err != nil {
-		return err
-	}
-
-	var emptyDesc rawDescriptor
-	return binary.Write(fimg.rw, binary.LittleEndian, emptyDesc)
-}
-
 // addOpts accumulates object add options.
 type addOpts struct {
 	t time.Time
@@ -445,6 +401,26 @@ func (f *FileImage) isLast(d *rawDescriptor) bool {
 	})
 
 	return isLast
+}
+
+// zeroReader is an io.Reader that returns a stream of zero-bytes.
+type zeroReader struct{}
+
+func (zeroReader) Read(b []byte) (int, error) {
+	for i := range b {
+		b[i] = 0
+	}
+	return len(b), nil
+}
+
+// zero overwrites the data object described by d with a stream of zero bytes.
+func (f *FileImage) zero(d *rawDescriptor) error {
+	if _, err := f.rw.Seek(d.Offset, io.SeekStart); err != nil {
+		return err
+	}
+
+	_, err := io.CopyN(f.rw, zeroReader{}, d.Size)
+	return err
 }
 
 // truncateAt truncates f at the start of the padded data object described by d.
@@ -530,7 +506,7 @@ func (f *FileImage) DeleteObject(id uint32, opts ...DeleteOpt) error {
 	}
 
 	if do.zero {
-		if err := zeroData(f, d); err != nil {
+		if err := f.zero(d); err != nil {
 			return fmt.Errorf("%w", err)
 		}
 	}
@@ -546,15 +522,17 @@ func (f *FileImage) DeleteObject(id uint32, opts ...DeleteOpt) error {
 	f.h.DescriptorsFree++
 	f.h.ModifiedAt = do.t.Unix()
 
-	index := 0
-	for i, od := range f.rds {
-		if od.ID == id {
-			index = i
-			break
-		}
+	// If we remove the primary partition, set the global header Arch field to HdrArchUnknown
+	// to indicate that the SIF file doesn't include a primary partition and no dependency
+	// on any architecture exists.
+	if d.isPartitionOfType(PartPrimSys) {
+		f.h.Arch = hdrArchUnknown
 	}
 
-	if err := resetDescriptor(f, index); err != nil {
+	// Reset rawDescripter with empty struct
+	*d = rawDescriptor{}
+
+	if err := f.writeDescriptors(); err != nil {
 		return fmt.Errorf("%w", err)
 	}
 
@@ -668,6 +646,48 @@ func (f *FileImage) SetPrimPart(id uint32, opts ...SetOpt) error {
 	}
 
 	f.h.Arch = p.Arch
+	f.h.ModifiedAt = so.t.Unix()
+
+	if err := f.writeHeader(); err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
+	return nil
+}
+
+// SetMetadata sets the metadata of the data object with id to md, according to opts.
+//
+// By default, the image/object modification times are set to the current time for
+// non-deterministic images, and unset otherwise. To override this, consider using
+// OptSetDeterministic or OptSetWithTime.
+func (f *FileImage) SetMetadata(id uint32, md encoding.BinaryMarshaler, opts ...SetOpt) error {
+	so := setOpts{}
+
+	if !f.isDeterministic() {
+		so.t = time.Now()
+	}
+
+	for _, opt := range opts {
+		if err := opt(&so); err != nil {
+			return fmt.Errorf("%w", err)
+		}
+	}
+
+	rd, err := f.getDescriptor(WithID(id))
+	if err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
+	if err := rd.setExtra(md); err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
+	rd.ModifiedAt = so.t.Unix()
+
+	if err := f.writeDescriptors(); err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
 	f.h.ModifiedAt = so.t.Unix()
 
 	if err := f.writeHeader(); err != nil {

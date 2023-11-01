@@ -70,7 +70,7 @@ func (d *bpDecryptionStepData) updateCryptoOperation(operation *types.LayerCrypt
 	}
 }
 
-// bpdData contains data that the copy pipeline needs about the encryption step.
+// bpEncryptionStepData contains data that the copy pipeline needs about the encryption step.
 type bpEncryptionStepData struct {
 	encrypting bool // We are actually encrypting the stream
 	finalizer  ocicrypt.EncryptLayerFinalizer

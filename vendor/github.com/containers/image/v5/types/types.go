@@ -445,7 +445,7 @@ type ImageCloser interface {
 	Close() error
 }
 
-// ManifestUpdateOptions is a way to pass named optional arguments to Image.UpdatedManifest
+// ManifestUpdateOptions is a way to pass named optional arguments to Image.UpdatedImage
 type ManifestUpdateOptions struct {
 	LayerInfos              []BlobInfo // Complete BlobInfos (size+digest+urls+annotations) which should replace the originals, in order (the root layer first, and then successive layered layers). BlobInfos' MediaType fields are ignored.
 	EmbeddedDockerReference reference.Named
@@ -457,7 +457,7 @@ type ManifestUpdateOptions struct {
 // ManifestUpdateInformation is a component of ManifestUpdateOptions, named here
 // only to make writing struct literals possible.
 type ManifestUpdateInformation struct {
-	Destination  ImageDestination // and yes, UpdatedManifest may write to Destination (see the schema2 → schema1 conversion logic in image/docker_schema2.go)
+	Destination  ImageDestination // and yes, UpdatedImage may write to Destination (see the schema2 → schema1 conversion logic in image/docker_schema2.go)
 	LayerInfos   []BlobInfo       // Complete BlobInfos (size+digest) which have been uploaded, in order (the root layer first, and then successive layered layers)
 	LayerDiffIDs []digest.Digest  // Digest values for the _uncompressed_ contents of the blobs which have been uploaded, in the same order.
 }

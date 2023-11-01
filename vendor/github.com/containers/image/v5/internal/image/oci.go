@@ -196,14 +196,12 @@ func (m *manifestOCI1) convertToManifestSchema2Generic(ctx context.Context, opti
 	return m.convertToManifestSchema2(ctx, options)
 }
 
-// prepareLayerDecryptEditsIfNecessary checks if options requires layer decryptions.
+// layerEditsOfOCIOnlyFeatures checks if options requires some layer edits to be done before converting to a Docker format.
 // If not, it returns (nil, nil).
 // If decryption is required, it returns a set of edits to provide to OCI1.UpdateLayerInfos,
 // and edits *options to not try decryption again.
-func (m *manifestOCI1) prepareLayerDecryptEditsIfNecessary(options *types.ManifestUpdateOptions) ([]types.BlobInfo, error) {
-	if options == nil || !slices.ContainsFunc(options.LayerInfos, func(info types.BlobInfo) bool {
-		return info.CryptoOperation == types.Decrypt
-	}) {
+func (m *manifestOCI1) layerEditsOfOCIOnlyFeatures(options *types.ManifestUpdateOptions) ([]types.BlobInfo, error) {
+	if options == nil || options.LayerInfos == nil {
 		return nil, nil
 	}
 
@@ -212,19 +210,35 @@ func (m *manifestOCI1) prepareLayerDecryptEditsIfNecessary(options *types.Manife
 		return nil, fmt.Errorf("preparing to decrypt before conversion: %d layers vs. %d layer edits", len(originalInfos), len(options.LayerInfos))
 	}
 
-	res := slices.Clone(originalInfos) // Start with a full copy so that we don't forget to copy anything: use the current data in full unless we intentionaly deviate.
-	updatedEdits := slices.Clone(options.LayerInfos)
-	for i, info := range options.LayerInfos {
-		if info.CryptoOperation == types.Decrypt {
-			res[i].CryptoOperation = types.Decrypt
-			updatedEdits[i].CryptoOperation = types.PreserveOriginalCrypto // Don't try to decrypt in a schema[12] manifest later, that would fail.
+	ociOnlyEdits := slices.Clone(originalInfos) // Start with a full copy so that we don't forget to copy anything: use the current data in full unless we intentionally deviate.
+	laterEdits := slices.Clone(options.LayerInfos)
+	needsOCIOnlyEdits := false
+	for i, edit := range options.LayerInfos {
+		// Unless determined otherwise, don't do any compression-related MIME type conversions. m.LayerInfos() should not set these edit instructions, but be explicit.
+		ociOnlyEdits[i].CompressionOperation = types.PreserveOriginal
+		ociOnlyEdits[i].CompressionAlgorithm = nil
+
+		if edit.CryptoOperation == types.Decrypt {
+			needsOCIOnlyEdits = true // Encrypted types must be removed before conversion because they can’t be represented in Docker schemas
+			ociOnlyEdits[i].CryptoOperation = types.Decrypt
+			laterEdits[i].CryptoOperation = types.PreserveOriginalCrypto // Don't try to decrypt in a schema[12] manifest later, that would fail.
 		}
-		// Don't do any compression-related MIME type conversions. m.LayerInfos() should not set these edit instructions, but be explicit.
-		res[i].CompressionOperation = types.PreserveOriginal
-		res[i].CompressionAlgorithm = nil
+
+		if originalInfos[i].MediaType == imgspecv1.MediaTypeImageLayerZstd ||
+			originalInfos[i].MediaType == imgspecv1.MediaTypeImageLayerNonDistributableZstd { //nolint:staticcheck // NonDistributable layers are deprecated, but we want to continue to support manipulating pre-existing images.
+			needsOCIOnlyEdits = true // Zstd MIME types must be removed before conversion because they can’t be represented in Docker schemas.
+			ociOnlyEdits[i].CompressionOperation = edit.CompressionOperation
+			ociOnlyEdits[i].CompressionAlgorithm = edit.CompressionAlgorithm
+			laterEdits[i].CompressionOperation = types.PreserveOriginal
+			laterEdits[i].CompressionAlgorithm = nil
+		}
 	}
-	options.LayerInfos = updatedEdits
-	return res, nil
+	if !needsOCIOnlyEdits {
+		return nil, nil
+	}
+
+	options.LayerInfos = laterEdits
+	return ociOnlyEdits, nil
 }
 
 // convertToManifestSchema2 returns a genericManifest implementation converted to manifest.DockerV2Schema2MediaType.
@@ -238,15 +252,15 @@ func (m *manifestOCI1) convertToManifestSchema2(_ context.Context, options *type
 
 	// Mostly we first make a format conversion, and _afterwards_ do layer edits. But first we need to do the layer edits
 	// which remove OCI-specific features, because trying to convert those layers would fail.
-	// So, do the layer updates for decryption.
+	// So, do the layer updates for decryption, and for conversions from Zstd.
 	ociManifest := m.m
-	layerDecryptEdits, err := m.prepareLayerDecryptEditsIfNecessary(options)
+	ociOnlyEdits, err := m.layerEditsOfOCIOnlyFeatures(options)
 	if err != nil {
 		return nil, err
 	}
-	if layerDecryptEdits != nil {
+	if ociOnlyEdits != nil {
 		ociManifest = manifest.OCI1Clone(ociManifest)
-		if err := ociManifest.UpdateLayerInfos(layerDecryptEdits); err != nil {
+		if err := ociManifest.UpdateLayerInfos(ociOnlyEdits); err != nil {
 			return nil, err
 		}
 	}
@@ -275,9 +289,8 @@ func (m *manifestOCI1) convertToManifestSchema2(_ context.Context, options *type
 			layers[idx].MediaType = manifest.DockerV2Schema2LayerMediaType
 		case imgspecv1.MediaTypeImageLayerZstd:
 			return nil, fmt.Errorf("Error during manifest conversion: %q: zstd compression is not supported for docker images", layers[idx].MediaType)
-			// FIXME: s/Zsdt/Zstd/ after ocicrypt with https://github.com/containers/ocicrypt/pull/91 is released
 		case ociencspec.MediaTypeLayerEnc, ociencspec.MediaTypeLayerGzipEnc, ociencspec.MediaTypeLayerZstdEnc,
-			ociencspec.MediaTypeLayerNonDistributableEnc, ociencspec.MediaTypeLayerNonDistributableGzipEnc, ociencspec.MediaTypeLayerNonDistributableZsdtEnc:
+			ociencspec.MediaTypeLayerNonDistributableEnc, ociencspec.MediaTypeLayerNonDistributableGzipEnc, ociencspec.MediaTypeLayerNonDistributableZstdEnc:
 			return nil, fmt.Errorf("during manifest conversion: encrypted layers (%q) are not supported in docker images", layers[idx].MediaType)
 		default:
 			return nil, fmt.Errorf("Unknown media type during manifest conversion: %q", layers[idx].MediaType)
