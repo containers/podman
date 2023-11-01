@@ -345,8 +345,8 @@ github.com/docker/docker-credential-helpers v0.6.3/go.mod h1:WRaJzqw3CTB9bk10avu
 github.com/docker/docker-credential-helpers v0.8.0 h1:YQFtbBQb4VrpoPxhFuzEBPQ9E16qz5SpHLS+uswaCp8=
 github.com/docker/docker-credential-helpers v0.8.0/go.mod h1:UGFXcuoQ5TxPiB54nHOZ32AWRqQdECoh/Mg0AlEYb40=
 github.com/docker/go-connections v0.4.0/go.mod h1:Gbd7IOopHjR8Iph03tsViu4nIes5XhDvyHbTtUxmeec=
-github.com/docker/go-connections v0.4.1-0.20210727194412-58542c764a11 h1:IPrmumsT9t5BS7XcPhgsCTlkWbYg80SEXUzDpReaU6Y=
-github.com/docker/go-connections v0.4.1-0.20210727194412-58542c764a11/go.mod h1:a6bNUGTbQBsY6VRHTr4h/rkOXjl244DyRD0tx3fgq4Q=
+github.com/docker/go-connections v0.4.1-0.20231031175723-0b8c1f4e07a0 h1:dPD5pdqsujF9jz2NQMQCDzrBSAF3M6kIxmfU98IOp9c=
+github.com/docker/go-connections v0.4.1-0.20231031175723-0b8c1f4e07a0/go.mod h1:a6bNUGTbQBsY6VRHTr4h/rkOXjl244DyRD0tx3fgq4Q=
 github.com/docker/go-events v0.0.0-20170721190031-9461782956ad/go.mod h1:Uw6UezgYA44ePAFQYUehOuCzmy5zmg/+nl2ZfMWGkpA=
 github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c/go.mod h1:Uw6UezgYA44ePAFQYUehOuCzmy5zmg/+nl2ZfMWGkpA=
 github.com/docker/go-metrics v0.0.0-20180209012529-399ea8c73916/go.mod h1:/u0gXw0Gay3ceNrsHubL3BtdOL2fHf93USgMTe0W5dI=
