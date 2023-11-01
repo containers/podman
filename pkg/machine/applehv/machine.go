@@ -761,9 +761,9 @@ func (m *MacMachine) loadFromFile() (*MacMachine, error) {
 	if err != nil {
 		return nil, err
 	}
-	mm := MacMachine{}
 
-	if err := loadMacMachineFromJSON(jsonPath, &mm); err != nil {
+	mm, err := loadMacMachineFromJSON(jsonPath)
+	if err != nil {
 		return nil, err
 	}
 
@@ -773,18 +773,23 @@ func (m *MacMachine) loadFromFile() (*MacMachine, error) {
 	}
 	mm.lock = lock
 
-	return &mm, nil
+	return mm, nil
 }
 
-func loadMacMachineFromJSON(fqConfigPath string, macMachine *MacMachine) error {
+func loadMacMachineFromJSON(fqConfigPath string) (*MacMachine, error) {
 	b, err := os.ReadFile(fqConfigPath)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return fmt.Errorf("%q: %w", fqConfigPath, machine.ErrNoSuchVM)
+			name := strings.TrimSuffix(filepath.Base(fqConfigPath), ".json")
+			return nil, fmt.Errorf("%s: %w", name, machine.ErrNoSuchVM)
 		}
-		return err
+		return nil, err
 	}
-	return json.Unmarshal(b, macMachine)
+	mm := new(MacMachine)
+	if err := json.Unmarshal(b, mm); err != nil {
+		return nil, err
+	}
+	return mm, nil
 }
 
 func (m *MacMachine) jsonConfigPath() (string, error) {
