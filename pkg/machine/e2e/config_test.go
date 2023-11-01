@@ -120,6 +120,11 @@ func (m *machineTestBuilder) setCmd(mc machineCommand) *machineTestBuilder {
 		m.names = append(m.names, m.name)
 	}
 	m.cmd = mc.buildCmd(m)
+       if val, hasEnv := os.LookupEnv("DEBUG_MACHINE"); hasEnv {
+               if val == "1" {
+                       m.cmd = append([]string{"--log-level", "debug"}, m.cmd...)
+               }
+       }
 	return m
 }
 

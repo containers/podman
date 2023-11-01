@@ -30,9 +30,14 @@ var _ = Describe("run basic podman commands", func() {
 		// so skip it on cirrus envs and where CIRRUS_CI isn't set.
 		name := randomString()
 		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withNow()).run()
+               session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
+
+               s := new(startMachine)
+               start, err := mb.setName(name).setCmd(s).run()
+               Expect(err).ToNot(HaveOccurred())
+               Expect(start).To(Exit(0))
 
 		bm := basicMachine{}
 		imgs, err := mb.setCmd(bm.withPodmanCommand([]string{"images", "-q"})).run()
