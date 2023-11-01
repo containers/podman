@@ -11,10 +11,7 @@ import (
 	"time"
 )
 
-const (
-	defaultTimeout        = 10 * time.Second
-	maxUnixSocketPathSize = len(syscall.RawSockaddrUnix{}.Path)
-)
+const maxUnixSocketPathSize = len(syscall.RawSockaddrUnix{}.Path)
 
 func configureUnixTransport(tr *http.Transport, proto, addr string) error {
 	if len(addr) > maxUnixSocketPathSize {
