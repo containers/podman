@@ -1,6 +1,7 @@
 package e2e_test
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	"github.com/sirupsen/logrus"
 )
 
 var _ = Describe("podman machine init", func() {
@@ -37,6 +39,25 @@ var _ = Describe("podman machine init", func() {
 		session, err := mb.setName(reallyLongName).setCmd(&i).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(125))
+
+		badName := "foobar"
+		bm := basicMachine{}
+		sysConn, err := mb.setCmd(bm.withPodmanCommand([]string{"system", "connection", "add", badName, "tcp://localhost:8000"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		defer func() {
+			if _, rmErr := mb.setCmd(bm.withPodmanCommand([]string{"system", "connection", "rm", badName})).run(); rmErr != nil {
+				logrus.Error(rmErr)
+			}
+		}()
+		Expect(sysConn).To(Exit(0))
+
+		bi := new(initMachine)
+		want := fmt.Sprintf("system connection \"%s\" already exists", badName)
+		badInit, berr := mb.setName(badName).setCmd(bi.withImagePath(mb.imagePath)).run()
+		Expect(berr).ToNot(HaveOccurred())
+		Expect(badInit).To(Exit(125))
+		Expect(badInit.errorToString()).To(ContainSubstring(want))
+
 	})
 	It("simple init", func() {
 		i := new(initMachine)
