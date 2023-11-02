@@ -22,6 +22,7 @@ import (
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v4/pkg/api/types"
 	"github.com/containers/podman/v4/pkg/auth"
+	"github.com/containers/podman/v4/pkg/bindings/images"
 	"github.com/containers/podman/v4/pkg/channel"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
@@ -781,14 +782,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	var stepErrors []string
 
 	for {
-		type BuildResponse struct {
-			Stream string                 `json:"stream,omitempty"`
-			Error  *jsonmessage.JSONError `json:"errorDetail,omitempty"`
-			// NOTE: `error` is being deprecated check https://github.com/moby/moby/blob/master/pkg/jsonmessage/jsonmessage.go#L148
-			ErrorMessage string          `json:"error,omitempty"` // deprecate this slowly
-			Aux          json.RawMessage `json:"aux,omitempty"`
-		}
-		m := BuildResponse{}
+		m := images.BuildResponse{}
 
 		select {
 		case e := <-stdout.Chan():
@@ -818,7 +812,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			// output all step errors irrespective of quiet
 			// flag.
 			for _, stepError := range stepErrors {
-				t := BuildResponse{}
+				t := images.BuildResponse{}
 				t.Stream = stepError
 				if err := enc.Encode(t); err != nil {
 					stderr.Write([]byte(err.Error()))
@@ -827,7 +821,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			}
 			m.ErrorMessage = string(e)
 			m.Error = &jsonmessage.JSONError{
-				Message: m.ErrorMessage,
+				Message: string(e),
 			}
 			if err := enc.Encode(m); err != nil {
 				logrus.Warnf("Failed to json encode error %v", err)
