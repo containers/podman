@@ -1,4 +1,4 @@
-package machine
+package ocipull
 
 import (
 	"archive/tar"
@@ -11,7 +11,8 @@ import (
 
 	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/podman/v4/pkg/machine/ocipull"
+	diskcompression "github.com/containers/podman/v4/pkg/machine/compression"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,7 +39,7 @@ func NewOCIDir(ctx context.Context, inputDir, machineImageDir, vmName string) *L
 }
 
 func (l *LocalBlobDir) Pull() error {
-	localBlob, err := ocipull.GetLocalBlob(l.ctx, l.DiskEndpoint())
+	localBlob, err := GetLocalBlob(l.ctx, l.DiskEndpoint())
 	if err != nil {
 		return err
 	}
@@ -46,15 +47,15 @@ func (l *LocalBlobDir) Pull() error {
 	return nil
 }
 
-func (l *LocalBlobDir) Decompress(compressedFile *VMFile) (*VMFile, error) {
+func (l *LocalBlobDir) Decompress(compressedFile *define.VMFile) (*define.VMFile, error) {
 	finalName := finalFQImagePathName(l.vmName, l.imageName)
-	if err := Decompress(compressedFile, finalName); err != nil {
+	if err := diskcompression.Decompress(compressedFile, finalName); err != nil {
 		return nil, err
 	}
-	return NewMachineFile(finalName, nil)
+	return define.NewMachineFile(finalName, nil)
 }
 
-func (l *LocalBlobDir) Unpack() (*VMFile, error) {
+func (l *LocalBlobDir) Unpack() (*define.VMFile, error) {
 	tbPath := localOCIDiskImageDir(l.blobDirPath, l.blob)
 	unPackedFile, err := unpackOCIDir(tbPath, l.machineImageDir)
 	if err != nil {

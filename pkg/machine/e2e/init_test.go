@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -188,7 +189,7 @@ var _ = Describe("podman machine init", func() {
 		_, err = os.CreateTemp(tmpDir, "example")
 		Expect(err).ToNot(HaveOccurred())
 		mount := tmpDir + ":/testmountdir"
-		defer func() { _ = machine.GuardedRemoveAll(tmpDir) }()
+		defer func() { _ = utils.GuardedRemoveAll(tmpDir) }()
 
 		name := randomString()
 		i := new(initMachine)

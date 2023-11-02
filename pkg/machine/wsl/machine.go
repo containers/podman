@@ -19,8 +19,10 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/machine/wsl/wutil"
 	"github.com/containers/podman/v4/pkg/util"
+	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
@@ -480,22 +482,22 @@ func (v *MachineVM) unprovisionWSL() error {
 	}
 	distDir := filepath.Join(vmDataDir, "wsldist")
 	distTarget := filepath.Join(distDir, v.Name)
-	return machine.GuardedRemoveAll(distTarget)
+	return utils.GuardedRemoveAll(distTarget)
 }
 
 func (v *MachineVM) removeMachineConfig() error {
-	return machine.GuardedRemoveAll(v.ConfigPath)
+	return utils.GuardedRemoveAll(v.ConfigPath)
 }
 
 func (v *MachineVM) removeMachineImage() error {
-	return machine.GuardedRemoveAll(v.ImagePath)
+	return utils.GuardedRemoveAll(v.ImagePath)
 }
 
 func (v *MachineVM) removeSSHKeys() error {
-	if err := machine.GuardedRemoveAll(fmt.Sprintf("%s.pub", v.IdentityPath)); err != nil {
+	if err := utils.GuardedRemoveAll(fmt.Sprintf("%s.pub", v.IdentityPath)); err != nil {
 		logrus.Error(err)
 	}
-	return machine.GuardedRemoveAll(v.IdentityPath)
+	return utils.GuardedRemoveAll(v.IdentityPath)
 }
 
 func (v *MachineVM) removeSystemConnections() error {
@@ -1635,7 +1637,7 @@ func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, fun
 			logrus.Error(err)
 		}
 		for _, f := range files {
-			if err := machine.GuardedRemoveAll(f); err != nil {
+			if err := utils.GuardedRemoveAll(f); err != nil {
 				logrus.Error(err)
 			}
 		}
@@ -1804,15 +1806,15 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
 
 	connInfo := new(machine.ConnectionConfig)
 	machinePipe := toDist(v.Name)
-	connInfo.PodmanPipe = &machine.VMFile{Path: `\\.\pipe\` + machinePipe}
+	connInfo.PodmanPipe = &define.VMFile{Path: `\\.\pipe\` + machinePipe}
 
 	created, lastUp, _ := v.updateTimeStamps(state == machine.Running)
 	return &machine.InspectInfo{
-		ConfigPath:     machine.VMFile{Path: v.ConfigPath},
+		ConfigPath:     define.VMFile{Path: v.ConfigPath},
 		ConnectionInfo: *connInfo,
 		Created:        created,
 		Image: machine.ImageConfig{
-			ImagePath:   machine.VMFile{Path: v.ImagePath},
+			ImagePath:   define.VMFile{Path: v.ImagePath},
 			ImageStream: v.ImageStream,
 		},
 		LastUp:             lastUp,

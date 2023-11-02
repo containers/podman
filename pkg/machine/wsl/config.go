@@ -10,6 +10,9 @@ import (
 	"time"
 
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/compression"
+	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,7 +22,7 @@ type WSLVirtualization struct {
 
 func VirtualizationProvider() machine.VirtProvider {
 	return &WSLVirtualization{
-		machine.NewVirtualization(machine.None, machine.Xz, machine.Tar, vmtype),
+		machine.NewVirtualization(define.None, compression.Xz, define.Tar, vmtype),
 	}
 }
 
@@ -196,7 +199,7 @@ func (p *WSLVirtualization) RemoveAndCleanMachines() error {
 		}
 		prevErr = err
 	} else {
-		err := machine.GuardedRemoveAll(dataDir)
+		err := utils.GuardedRemoveAll(dataDir)
 		if err != nil {
 			if prevErr != nil {
 				logrus.Error(prevErr)
@@ -213,7 +216,7 @@ func (p *WSLVirtualization) RemoveAndCleanMachines() error {
 		}
 		prevErr = err
 	} else {
-		err := machine.GuardedRemoveAll(confDir)
+		err := utils.GuardedRemoveAll(confDir)
 		if err != nil {
 			if prevErr != nil {
 				logrus.Error(prevErr)

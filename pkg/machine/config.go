@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/podman/v4/pkg/machine/compression"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
@@ -64,11 +66,11 @@ var (
 
 type Download struct {
 	Arch                  string
-	Artifact              Artifact
+	Artifact              define.Artifact
 	CacheDir              string
-	CompressionType       ImageCompression
+	CompressionType       compression.ImageCompression
 	DataDir               string
-	Format                ImageFormat
+	Format                define.ImageFormat
 	ImageName             string
 	LocalPath             string
 	LocalUncompressedFile string
@@ -162,7 +164,7 @@ type DistributionDownload interface {
 	CleanCache() error
 }
 type InspectInfo struct {
-	ConfigPath         VMFile
+	ConfigPath         define.VMFile
 	ConnectionInfo     ConnectionConfig
 	Created            time.Time
 	Image              ImageConfig
@@ -269,15 +271,6 @@ func ConfDirPrefix() (string, error) {
 	return confDir, nil
 }
 
-// GuardedRemoveAll functions much like os.RemoveAll but
-// will not delete certain catastrophic paths.
-func GuardedRemoveAll(path string) error {
-	if path == "" || path == "/" {
-		return fmt.Errorf("refusing to recursively delete `%s`", path)
-	}
-	return os.RemoveAll(path)
-}
-
 // ResourceConfig describes physical attributes of the machine
 type ResourceConfig struct {
 	// CPUs to be assigned to the VM
@@ -286,77 +279,6 @@ type ResourceConfig struct {
 	DiskSize uint64
 	// Memory in megabytes assigned to the vm
 	Memory uint64
-}
-
-const maxSocketPathLength int = 103
-
-type VMFile struct {
-	// Path is the fully qualified path to a file
-	Path string
-	// Symlink is a shortened version of Path by using
-	// a symlink
-	Symlink *string `json:"symlink,omitempty"`
-}
-
-// GetPath returns the working path for a machinefile.  it returns
-// the symlink unless one does not exist
-func (m *VMFile) GetPath() string {
-	if m.Symlink == nil {
-		return m.Path
-	}
-	return *m.Symlink
-}
-
-// Delete removes the machinefile symlink (if it exists) and
-// the actual path
-func (m *VMFile) Delete() error {
-	if m.Symlink != nil {
-		if err := os.Remove(*m.Symlink); err != nil && !errors.Is(err, os.ErrNotExist) {
-			logrus.Errorf("unable to remove symlink %q", *m.Symlink)
-		}
-	}
-	if err := os.Remove(m.Path); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return err
-	}
-	return nil
-}
-
-// Read the contents of a given file and return in []bytes
-func (m *VMFile) Read() ([]byte, error) {
-	return os.ReadFile(m.GetPath())
-}
-
-// NewMachineFile is a constructor for VMFile
-func NewMachineFile(path string, symlink *string) (*VMFile, error) {
-	if len(path) < 1 {
-		return nil, errors.New("invalid machine file path")
-	}
-	if symlink != nil && len(*symlink) < 1 {
-		return nil, errors.New("invalid symlink path")
-	}
-	mf := VMFile{Path: path}
-	if symlink != nil && len(path) > maxSocketPathLength {
-		if err := mf.makeSymlink(symlink); err != nil && !errors.Is(err, os.ErrExist) {
-			return nil, err
-		}
-	}
-	return &mf, nil
-}
-
-// makeSymlink for macOS creates a symlink in $HOME/.podman/
-// for a machinefile like a socket
-func (m *VMFile) makeSymlink(symlink *string) error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-	sl := filepath.Join(homeDir, ".podman", *symlink)
-	// make the symlink dir and throw away if it already exists
-	if err := os.MkdirAll(filepath.Dir(sl), 0700); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return err
-	}
-	m.Symlink = &sl
-	return os.Symlink(m.Path, sl)
 }
 
 type Mount struct {
@@ -371,11 +293,11 @@ type Mount struct {
 type ImageConfig struct {
 	// IgnitionFile is the path to the filesystem where the
 	// ignition file was written (if needs one)
-	IgnitionFile VMFile `json:"IgnitionFilePath"`
+	IgnitionFile define.VMFile `json:"IgnitionFilePath"`
 	// ImageStream is the update stream for the image
 	ImageStream string
 	// ImageFile is the fq path to
-	ImagePath VMFile `json:"ImagePath"`
+	ImagePath define.VMFile `json:"ImagePath"`
 }
 
 // HostUser describes the host user
@@ -401,9 +323,9 @@ type SSHConfig struct {
 // ConnectionConfig contains connections like sockets, etc.
 type ConnectionConfig struct {
 	// PodmanSocket is the exported podman service socket
-	PodmanSocket *VMFile `json:"PodmanSocket"`
+	PodmanSocket *define.VMFile `json:"PodmanSocket"`
 	// PodmanPipe is the exported podman service named pipe (Windows hosts only)
-	PodmanPipe *VMFile `json:"PodmanPipe"`
+	PodmanPipe *define.VMFile `json:"PodmanPipe"`
 }
 
 type VMType int64
@@ -455,10 +377,10 @@ func ParseVMType(input string, emptyFallback VMType) (VMType, error) {
 }
 
 type VirtProvider interface { //nolint:interfacebloat
-	Artifact() Artifact
+	Artifact() define.Artifact
 	CheckExclusiveActiveVM() (bool, string, error)
-	Compression() ImageCompression
-	Format() ImageFormat
+	Compression() compression.ImageCompression
+	Format() define.ImageFormat
 	IsValidVMName(name string) (bool, error)
 	List(opts ListOptions) ([]*ListResponse, error)
 	LoadVMByName(name string) (VM, error)
@@ -469,21 +391,21 @@ type VirtProvider interface { //nolint:interfacebloat
 }
 
 type Virtualization struct {
-	artifact    Artifact
-	compression ImageCompression
-	format      ImageFormat
+	artifact    define.Artifact
+	compression compression.ImageCompression
+	format      define.ImageFormat
 	vmKind      VMType
 }
 
-func (p *Virtualization) Artifact() Artifact {
+func (p *Virtualization) Artifact() define.Artifact {
 	return p.artifact
 }
 
-func (p *Virtualization) Compression() ImageCompression {
+func (p *Virtualization) Compression() compression.ImageCompression {
 	return p.compression
 }
 
-func (p *Virtualization) Format() ImageFormat {
+func (p *Virtualization) Format() define.ImageFormat {
 	return p.format
 }
 
@@ -513,7 +435,7 @@ func (p *Virtualization) NewDownload(vmName string) (Download, error) {
 	}, nil
 }
 
-func NewVirtualization(artifact Artifact, compression ImageCompression, format ImageFormat, vmKind VMType) Virtualization {
+func NewVirtualization(artifact define.Artifact, compression compression.ImageCompression, format define.ImageFormat, vmKind VMType) Virtualization {
 	return Virtualization{
 		artifact,
 		compression,
@@ -579,10 +501,10 @@ func (dl Download) NewFcosDownloader(imageStream FCOSStream) (DistributionDownlo
 // AcquireVMImage determines if the image is already in a FCOS stream. If so,
 // retrieves the image path of the uncompressed file. Otherwise, the user has
 // provided an alternative image, so we set the image path and download the image.
-func (dl Download) AcquireVMImage(imagePath string) (*VMFile, FCOSStream, error) {
+func (dl Download) AcquireVMImage(imagePath string) (*define.VMFile, FCOSStream, error) {
 	var (
 		err           error
-		imageLocation *VMFile
+		imageLocation *define.VMFile
 		fcosStream    FCOSStream
 	)
 
@@ -600,7 +522,7 @@ func (dl Download) AcquireVMImage(imagePath string) (*VMFile, FCOSStream, error)
 			return nil, 0, err
 		}
 
-		imageLocation, err = NewMachineFile(dd.Get().LocalUncompressedFile, nil)
+		imageLocation, err = define.NewMachineFile(dd.Get().LocalUncompressedFile, nil)
 		if err != nil {
 			return nil, 0, err
 		}

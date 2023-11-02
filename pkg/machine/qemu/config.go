@@ -11,6 +11,8 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/compression"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/utils"
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
@@ -77,14 +79,14 @@ func (p *QEMUVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, e
 	}
 
 	// set VM ignition file
-	ignitionFile, err := machine.NewMachineFile(filepath.Join(vmConfigDir, vm.Name+".ign"), nil)
+	ignitionFile, err := define.NewMachineFile(filepath.Join(vmConfigDir, vm.Name+".ign"), nil)
 	if err != nil {
 		return nil, err
 	}
 	vm.IgnitionFile = *ignitionFile
 
 	// set VM image file
-	imagePath, err := machine.NewMachineFile(opts.ImagePath, nil)
+	imagePath, err := define.NewMachineFile(opts.ImagePath, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -299,7 +301,7 @@ func (p *QEMUVirtualization) RemoveAndCleanMachines() error {
 		}
 		prevErr = err
 	} else {
-		err := machine.GuardedRemoveAll(dataDir)
+		err := utils.GuardedRemoveAll(dataDir)
 		if err != nil {
 			if prevErr != nil {
 				logrus.Error(prevErr)
@@ -316,7 +318,7 @@ func (p *QEMUVirtualization) RemoveAndCleanMachines() error {
 		}
 		prevErr = err
 	} else {
-		err := machine.GuardedRemoveAll(confDir)
+		err := utils.GuardedRemoveAll(confDir)
 		if err != nil {
 			if prevErr != nil {
 				logrus.Error(prevErr)
@@ -333,7 +335,7 @@ func (p *QEMUVirtualization) VMType() machine.VMType {
 
 func VirtualizationProvider() machine.VirtProvider {
 	return &QEMUVirtualization{
-		machine.NewVirtualization(machine.Qemu, machine.Xz, machine.Qcow, vmtype),
+		machine.NewVirtualization(define.Qemu, compression.Xz, define.Qcow, vmtype),
 	}
 }
 

@@ -7,12 +7,14 @@ import (
 	"net"
 	"path/filepath"
 	"time"
+
+	"github.com/containers/podman/v4/pkg/machine/define"
 )
 
 // SetSocket creates a new machine file for the socket and assigns it to
 // `socketLoc`
-func SetSocket(socketLoc *VMFile, path string, symlink *string) error {
-	socket, err := NewMachineFile(path, symlink)
+func SetSocket(socketLoc *define.VMFile, path string, symlink *string) error {
+	socket, err := define.NewMachineFile(path, symlink)
 	if err != nil {
 		return err
 	}

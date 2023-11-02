@@ -20,6 +20,7 @@ import (
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/libhvee/pkg/hypervctl"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/strongunits"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
@@ -44,7 +45,7 @@ const (
 
 type HyperVMachine struct {
 	// ConfigPath is the fully qualified path to the configuration file
-	ConfigPath machine.VMFile
+	ConfigPath define.VMFile
 	// HostUser contains info about host user
 	machine.HostUser
 	// ImageConfig describes the bootable image
@@ -68,7 +69,7 @@ type HyperVMachine struct {
 	// LastUp contains the last recorded uptime
 	LastUp time.Time
 	// GVProxy will write its PID here
-	GvProxyPid machine.VMFile
+	GvProxyPid define.VMFile
 	// MountVsocks contains the currently-active vsocks, mapped to the
 	// directory they should be mounted on.
 	MountVsocks map[string]uint64
@@ -873,13 +874,13 @@ func (m *HyperVMachine) dockerSock() (string, error) {
 	return filepath.Join(dd, "podman.sock"), nil
 }
 
-func (m *HyperVMachine) forwardSocketPath() (*machine.VMFile, error) {
+func (m *HyperVMachine) forwardSocketPath() (*define.VMFile, error) {
 	sockName := "podman.sock"
 	path, err := machine.GetDataDir(machine.HyperVVirt)
 	if err != nil {
 		return nil, fmt.Errorf("Resolving data dir: %s", err.Error())
 	}
-	return machine.NewMachineFile(filepath.Join(path, sockName), &sockName)
+	return define.NewMachineFile(filepath.Join(path, sockName), &sockName)
 }
 
 func (m *HyperVMachine) writeConfig() error {

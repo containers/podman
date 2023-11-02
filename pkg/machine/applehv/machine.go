@@ -20,6 +20,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/strongunits"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
@@ -45,13 +46,13 @@ const (
 type VfkitHelper struct {
 	LogLevel        logrus.Level
 	Endpoint        string
-	VfkitBinaryPath *machine.VMFile
+	VfkitBinaryPath *define.VMFile
 	VirtualMachine  *vfConfig.VirtualMachine
 }
 
 type MacMachine struct {
 	// ConfigPath is the fully qualified path to the configuration file
-	ConfigPath machine.VMFile
+	ConfigPath define.VMFile
 	// HostUser contains info about host user
 	machine.HostUser
 	// ImageConfig describes the bootable image
@@ -61,7 +62,7 @@ type MacMachine struct {
 	// Name of VM
 	Name string
 	// ReadySocket tells host when vm is booted
-	ReadySocket machine.VMFile
+	ReadySocket define.VMFile
 	// ResourceConfig is physical attrs of the VM
 	machine.ResourceConfig
 	// SSHConfig for accessing the remote vm
@@ -74,9 +75,9 @@ type MacMachine struct {
 	LastUp time.Time
 	// The VFKit endpoint where we can interact with the VM
 	Vfkit       VfkitHelper
-	LogPath     machine.VMFile
-	GvProxyPid  machine.VMFile
-	GvProxySock machine.VMFile
+	LogPath     define.VMFile
+	GvProxyPid  define.VMFile
+	GvProxySock define.VMFile
 
 	// Used at runtime for serializing write operations
 	lock *lockfile.LockFile
@@ -84,7 +85,7 @@ type MacMachine struct {
 
 // setGVProxyInfo sets the VM's gvproxy pid and socket files
 func (m *MacMachine) setGVProxyInfo(runtimeDir string) error {
-	gvProxyPid, err := machine.NewMachineFile(filepath.Join(runtimeDir, "gvproxy.pid"), nil)
+	gvProxyPid, err := define.NewMachineFile(filepath.Join(runtimeDir, "gvproxy.pid"), nil)
 	if err != nil {
 		return err
 	}
@@ -95,7 +96,7 @@ func (m *MacMachine) setGVProxyInfo(runtimeDir string) error {
 
 // setVfkitInfo stores the default devices, sets the vfkit endpoint, and
 // locates/stores the path to the binary
-func (m *MacMachine) setVfkitInfo(cfg *config.Config, readySocket machine.VMFile) error {
+func (m *MacMachine) setVfkitInfo(cfg *config.Config, readySocket define.VMFile) error {
 	defaultDevices, err := getDefaultDevices(m.ImagePath.GetPath(), m.LogPath.GetPath(), readySocket.GetPath())
 	if err != nil {
 		return err
@@ -105,7 +106,7 @@ func (m *MacMachine) setVfkitInfo(cfg *config.Config, readySocket machine.VMFile
 	if err != nil {
 		return err
 	}
-	vfkitBinaryPath, err := machine.NewMachineFile(vfkitPath, nil)
+	vfkitBinaryPath, err := define.NewMachineFile(vfkitPath, nil)
 	if err != nil {
 		return err
 	}
@@ -217,7 +218,7 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 	m.ImagePath = *imagePath
 	m.ImageStream = strm.String()
 
-	logPath, err := machine.NewMachineFile(filepath.Join(dataDir, fmt.Sprintf("%s.log", m.Name)), nil)
+	logPath, err := define.NewMachineFile(filepath.Join(dataDir, fmt.Sprintf("%s.log", m.Name)), nil)
 	if err != nil {
 		return false, err
 	}
@@ -490,7 +491,7 @@ func (m *MacMachine) SSH(name string, opts machine.SSHOptions) error {
 
 // deleteIgnitionSocket retrieves the ignition socket, deletes it, and returns a
 // pointer to the `VMFile`
-func (m *MacMachine) deleteIgnitionSocket() (*machine.VMFile, error) {
+func (m *MacMachine) deleteIgnitionSocket() (*define.VMFile, error) {
 	ignitionSocket, err := m.getIgnitionSock()
 	if err != nil {
 		return nil, err
@@ -556,7 +557,7 @@ func (m *MacMachine) addVolumesToVfKit() error {
 }
 
 func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
-	var ignitionSocket *machine.VMFile
+	var ignitionSocket *define.VMFile
 
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -996,13 +997,13 @@ func (m *MacMachine) dockerSock() (string, error) {
 	return filepath.Join(dd, "podman.sock"), nil
 }
 
-func (m *MacMachine) forwardSocketPath() (*machine.VMFile, error) {
+func (m *MacMachine) forwardSocketPath() (*define.VMFile, error) {
 	sockName := "podman.sock"
 	path, err := machine.GetDataDir(machine.AppleHvVirt)
 	if err != nil {
 		return nil, fmt.Errorf("Resolving data dir: %s", err.Error())
 	}
-	return machine.NewMachineFile(filepath.Join(path, sockName), &sockName)
+	return define.NewMachineFile(filepath.Join(path, sockName), &sockName)
 }
 
 // resizeDisk uses os truncate to resize (only larger) a raw disk.  the input size
@@ -1034,7 +1035,7 @@ func (m *MacMachine) isFirstBoot() (bool, error) {
 	return m.LastUp == never, nil
 }
 
-func (m *MacMachine) getIgnitionSock() (*machine.VMFile, error) {
+func (m *MacMachine) getIgnitionSock() (*define.VMFile, error) {
 	dataDir, err := machine.GetDataDir(machine.AppleHvVirt)
 	if err != nil {
 		return nil, err
@@ -1044,7 +1045,7 @@ func (m *MacMachine) getIgnitionSock() (*machine.VMFile, error) {
 			return nil, err
 		}
 	}
-	return machine.NewMachineFile(filepath.Join(dataDir, ignitionSocketName), nil)
+	return define.NewMachineFile(filepath.Join(dataDir, ignitionSocketName), nil)
 }
 
 func (m *MacMachine) getRuntimeDir() (string, error) {

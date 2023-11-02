@@ -10,12 +10,15 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/godbus/dbus/v5"
 	"github.com/sirupsen/logrus"
+	"github.com/vbauerster/mpb/v8"
+	"github.com/vbauerster/mpb/v8/decor"
 )
 
 // ExecCmd executes a command with args and returns its output as a string along
@@ -241,4 +244,35 @@ func MaybeMoveToSubCgroup() error {
 		}
 	})
 	return maybeMoveToSubCgroupSyncErr
+}
+
+// GuardedRemoveAll functions much like os.RemoveAll but
+// will not delete certain catastrophic paths.
+func GuardedRemoveAll(path string) error {
+	if path == "" || path == "/" {
+		return fmt.Errorf("refusing to recursively delete `%s`", path)
+	}
+	return os.RemoveAll(path)
+}
+
+func ProgressBar(prefix string, size int64, onComplete string) (*mpb.Progress, *mpb.Bar) {
+	p := mpb.New(
+		mpb.WithWidth(80), // Do not go below 80, see bug #17718
+		mpb.WithRefreshRate(180*time.Millisecond),
+	)
+
+	bar := p.AddBar(size,
+		mpb.BarFillerClearOnComplete(),
+		mpb.PrependDecorators(
+			decor.OnComplete(decor.Name(prefix), onComplete),
+		),
+		mpb.AppendDecorators(
+			decor.OnComplete(decor.CountersKibiByte("%.1f / %.1f"), ""),
+		),
+	)
+	if size == 0 {
+		bar.SetTotal(0, true)
+	}
+
+	return p, bar
 }

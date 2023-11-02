@@ -1,4 +1,4 @@
-package machine
+package ocipull
 
 import (
 	"context"
@@ -8,7 +8,9 @@ import (
 	"strings"
 
 	"github.com/containers/image/v5/types"
-	"github.com/containers/podman/v4/pkg/machine/ocipull"
+	"github.com/containers/podman/v4/pkg/machine/compression"
+	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/utils"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 )
@@ -18,14 +20,14 @@ type Versioned struct {
 	blobDirPath     string
 	cacheDir        string
 	ctx             context.Context
-	imageFormat     ImageFormat
+	imageFormat     define.ImageFormat
 	imageName       string
 	machineImageDir string
 	machineVersion  *OSVersion
 	vmName          string
 }
 
-func newVersioned(ctx context.Context, machineImageDir, vmName string) (*Versioned, error) {
+func NewVersioned(ctx context.Context, machineImageDir, vmName string) (*Versioned, error) {
 	imageCacheDir := filepath.Join(machineImageDir, "cache")
 	if err := os.MkdirAll(imageCacheDir, 0777); err != nil {
 		return nil, err
@@ -47,7 +49,7 @@ func (d *Versioned) versionedOCICacheDir() string {
 }
 
 func (d *Versioned) identifyImageNameFromOCIDir() (string, error) {
-	imageManifest, err := ocipull.ReadImageManifestFromOCIPath(d.ctx, d.versionedOCICacheDir())
+	imageManifest, err := ReadImageManifestFromOCIPath(d.ctx, d.versionedOCICacheDir())
 	if err != nil {
 		return "", err
 	}
@@ -61,7 +63,7 @@ func (d *Versioned) identifyImageNameFromOCIDir() (string, error) {
 func (d *Versioned) pull(path string) error {
 	fmt.Printf("Pulling %s\n", d.DiskEndpoint())
 	logrus.Debugf("pulling %s to %s", d.DiskEndpoint(), path)
-	return ocipull.Pull(d.ctx, d.DiskEndpoint(), path, ocipull.PullOptions{})
+	return Pull(d.ctx, d.DiskEndpoint(), path, PullOptions{})
 }
 
 func (d *Versioned) Pull() error {
@@ -72,7 +74,7 @@ func (d *Versioned) Pull() error {
 		remoteDescriptor *v1.Descriptor
 	)
 
-	remoteDiskImage := d.machineVersion.diskImage(Qcow)
+	remoteDiskImage := d.machineVersion.diskImage(define.Qcow)
 	logrus.Debugf("podman disk image name: %s", remoteDiskImage)
 
 	// is there a valid oci dir in our cache
@@ -80,12 +82,12 @@ func (d *Versioned) Pull() error {
 
 	if hasCache {
 		logrus.Debug("checking remote registry")
-		remoteDescriptor, err = ocipull.GetRemoteDescriptor(d.ctx, remoteDiskImage)
+		remoteDescriptor, err = GetRemoteDescriptor(d.ctx, remoteDiskImage)
 		if err != nil {
 			return err
 		}
 		logrus.Debugf("working with local cache: %s", d.versionedOCICacheDir())
-		localBlob, err = ocipull.GetLocalBlob(d.ctx, d.versionedOCICacheDir())
+		localBlob, err = GetLocalBlob(d.ctx, d.versionedOCICacheDir())
 		if err != nil {
 			return err
 		}
@@ -97,7 +99,7 @@ func (d *Versioned) Pull() error {
 	}
 	if !hasCache || isUpdatable {
 		if hasCache {
-			if err := GuardedRemoveAll(d.versionedOCICacheDir()); err != nil {
+			if err := utils.GuardedRemoveAll(d.versionedOCICacheDir()); err != nil {
 				return err
 			}
 		}
@@ -113,7 +115,7 @@ func (d *Versioned) Pull() error {
 	d.imageName = imageName
 
 	if localBlob == nil {
-		localBlob, err = ocipull.GetLocalBlob(d.ctx, d.versionedOCICacheDir())
+		localBlob, err = GetLocalBlob(d.ctx, d.versionedOCICacheDir())
 		if err != nil {
 			return err
 		}
@@ -124,7 +126,7 @@ func (d *Versioned) Pull() error {
 	return nil
 }
 
-func (d *Versioned) Unpack() (*VMFile, error) {
+func (d *Versioned) Unpack() (*define.VMFile, error) {
 	tbPath := localOCIDiskImageDir(d.blobDirPath, d.blob)
 	unpackedFile, err := unpackOCIDir(tbPath, d.machineImageDir)
 	if err != nil {
@@ -134,14 +136,14 @@ func (d *Versioned) Unpack() (*VMFile, error) {
 	return unpackedFile, nil
 }
 
-func (d *Versioned) Decompress(compressedFile *VMFile) (*VMFile, error) {
-	imageCompression := compressionFromFile(d.imageName)
+func (d *Versioned) Decompress(compressedFile *define.VMFile) (*define.VMFile, error) {
+	imageCompression := compression.KindFromFile(d.imageName)
 	strippedImageName := strings.TrimSuffix(d.imageName, fmt.Sprintf(".%s", imageCompression.String()))
 	finalName := finalFQImagePathName(d.vmName, strippedImageName)
-	if err := Decompress(compressedFile, finalName); err != nil {
+	if err := compression.Decompress(compressedFile, finalName); err != nil {
 		return nil, err
 	}
-	return NewMachineFile(finalName, nil)
+	return define.NewMachineFile(finalName, nil)
 }
 
 func (d *Versioned) localOCIDiskImageDir(localBlob *types.BlobInfo) string {

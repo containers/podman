@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
 )
 
 // QemuCmd is an alias around a string slice to prevent the need to migrate the
@@ -30,7 +30,7 @@ func (q *QemuCmd) SetCPUs(c uint64) {
 }
 
 // SetIgnitionFile specifies the machine's ignition file
-func (q *QemuCmd) SetIgnitionFile(file machine.VMFile) {
+func (q *QemuCmd) SetIgnitionFile(file define.VMFile) {
 	*q = append(*q, "-fw_cfg", "name=opt/com.coreos/config,file="+file.GetPath())
 }
 
@@ -47,7 +47,7 @@ func (q *QemuCmd) SetNetwork() {
 }
 
 // SetSerialPort adds a serial port to the machine for readiness
-func (q *QemuCmd) SetSerialPort(readySocket, vmPidFile machine.VMFile, name string) {
+func (q *QemuCmd) SetSerialPort(readySocket, vmPidFile define.VMFile, name string) {
 	*q = append(*q,
 		"-device", "virtio-serial",
 		// qemu needs to establish the long name; other connections can use the symlink'd

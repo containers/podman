@@ -14,6 +14,8 @@ import (
 
 	"github.com/containers/libhvee/pkg/hypervctl"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/compression"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
 )
@@ -24,7 +26,7 @@ type HyperVVirtualization struct {
 
 func VirtualizationProvider() machine.VirtProvider {
 	return &HyperVVirtualization{
-		machine.NewVirtualization(machine.HyperV, machine.Zip, machine.Vhdx, vmtype),
+		machine.NewVirtualization(define.HyperV, compression.Zip, define.Vhdx, vmtype),
 	}
 }
 
@@ -117,14 +119,14 @@ func (v HyperVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, 
 		return nil, err
 	}
 
-	configPath, err := machine.NewMachineFile(getVMConfigPath(configDir, opts.Name), nil)
+	configPath, err := define.NewMachineFile(getVMConfigPath(configDir, opts.Name), nil)
 	if err != nil {
 		return nil, err
 	}
 
 	m.ConfigPath = *configPath
 
-	ignitionPath, err := machine.NewMachineFile(filepath.Join(configDir, m.Name)+".ign", nil)
+	ignitionPath, err := define.NewMachineFile(filepath.Join(configDir, m.Name)+".ign", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +141,7 @@ func (v HyperVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, 
 	}
 
 	// Set the proxy pid file
-	gvProxyPid, err := machine.NewMachineFile(filepath.Join(dataDir, "gvproxy.pid"), nil)
+	gvProxyPid, err := define.NewMachineFile(filepath.Join(dataDir, "gvproxy.pid"), nil)
 	if err != nil {
 		return nil, err
 	}
