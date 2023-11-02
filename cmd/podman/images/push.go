@@ -129,13 +129,13 @@ func pushFlags(cmd *cobra.Command) {
 
 	flags.BoolVar(&pushOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 
-	compressionFormat := "compression-format"
-	flags.StringVar(&pushOptions.CompressionFormat, compressionFormat, "", "compression format to use")
-	_ = cmd.RegisterFlagCompletionFunc(compressionFormat, common.AutocompleteCompressionFormat)
+	compFormat := "compression-format"
+	flags.StringVar(&pushOptions.CompressionFormat, compFormat, compressionFormat(), "compression format to use")
+	_ = cmd.RegisterFlagCompletionFunc(compFormat, common.AutocompleteCompressionFormat)
 
-	compressionLevel := "compression-level"
-	flags.Int(compressionLevel, 0, "compression level to use")
-	_ = cmd.RegisterFlagCompletionFunc(compressionLevel, completion.AutocompleteNone)
+	compLevel := "compression-level"
+	flags.Int(compLevel, compressionLevel(), "compression level to use")
+	_ = cmd.RegisterFlagCompletionFunc(compLevel, completion.AutocompleteNone)
 
 	encryptionKeysFlagName := "encryption-key"
 	flags.StringSliceVar(&pushOptions.EncryptionKeys, encryptionKeysFlagName, nil, "Key with the encryption protocol to use to encrypt the image (e.g. jwe:/path/to/key.pem)")
@@ -238,4 +238,20 @@ func imagePush(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+func compressionFormat() string {
+	if registry.IsRemote() {
+		return ""
+	}
+
+	return containerConfig.ContainersConfDefaultsRO.Engine.CompressionFormat
+}
+
+func compressionLevel() int {
+	if registry.IsRemote() || containerConfig.ContainersConfDefaultsRO.Engine.CompressionLevel == nil {
+		return 0
+	}
+
+	return *containerConfig.ContainersConfDefaultsRO.Engine.CompressionLevel
 }
