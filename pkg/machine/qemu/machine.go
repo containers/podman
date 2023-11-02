@@ -75,6 +75,8 @@ type MachineVM struct {
 	Created time.Time
 	// LastUp contains the last recorded uptime
 	LastUp time.Time
+	// Guest OS type
+	GuestOS machine.GuestOS
 
 	// User at runtime for serializing write operations.
 	lock *lockfile.LockFile
@@ -259,13 +261,14 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 
 	v.IdentityPath = util.GetIdentityPath(v.Name)
 	v.Rootful = opts.Rootful
+	v.GuestOS = opts.GuestOS
 
 	dl, err := VirtualizationProvider().NewDownload(v.Name)
 	if err != nil {
 		return false, err
 	}
 
-	imagePath, strm, err := dl.AcquireVMImage(opts.ImagePath)
+	imagePath, strm, err := dl.AcquireVMImage(opts.ImagePath, opts.GuestOS)
 	if err != nil {
 		return false, err
 	}
@@ -414,6 +417,61 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 	return setErrors, nil
 }
 
+// Mount a single shared filesystem in a Linux guest VM
+func (v *MachineVM) mountVolumesToVMLinux(name string, mount machine.Mount) error {
+	// create mountpoint directory if it doesn't exist
+	// because / is immutable, we have to monkey around with permissions
+	// if we dont mount in /home or /mnt
+	args := []string{"-q", "--"}
+	if !strings.HasPrefix(mount.Target, "/home") && !strings.HasPrefix(mount.Target, "/mnt") {
+		args = append(args, "sudo", "chattr", "-i", "/", ";")
+	}
+	args = append(args, "sudo", "mkdir", "-p", mount.Target)
+	if !strings.HasPrefix(mount.Target, "/home") && !strings.HasPrefix(mount.Target, "/mnt") {
+		args = append(args, ";", "sudo", "chattr", "+i", "/", ";")
+	}
+	err := v.SSH(name, machine.SSHOptions{Args: args})
+	if err != nil {
+		return err
+	}
+	switch mount.Type {
+	case MountType9p:
+		mountOptions := []string{"-t", "9p"}
+		mountOptions = append(mountOptions, []string{"-o", "trans=virtio", mount.Tag, mount.Target}...)
+		mountOptions = append(mountOptions, []string{"-o", "version=9p2000.L,msize=131072"}...)
+		if mount.ReadOnly {
+			mountOptions = append(mountOptions, []string{"-o", "ro"}...)
+		}
+		return v.SSH(name, machine.SSHOptions{Args: append([]string{"-q", "--", "sudo", "mount"}, mountOptions...)})
+	default:
+		return fmt.Errorf("unknown mount type: %s", mount.Type)
+	}
+}
+
+// Mount a single shared filesystem in a Linux guest VM
+func (v *MachineVM) mountVolumesToVMFreeBSD(name string, mount machine.Mount) error {
+	// FreeBSD doesn't support rootless operations.  For now, we will ssh in as
+	// root and mount the host filesystems
+
+	// Create mountpoint directory if it doesn't exist
+	args := []string{"-q", "--"}
+	args = append(args, "mkdir", "-p", mount.Target)
+	err := v.SSH(name, machine.SSHOptions{Args: args, Username: "root"})
+	if err != nil {
+		return err
+	}
+	switch mount.Type {
+	case MountType9p:
+		mountOptions := []string{"-t", "p9fs", mount.Tag, mount.Target}
+		if mount.ReadOnly {
+			mountOptions = append(mountOptions, []string{"-o", "ro"}...)
+		}
+		return v.SSH(name, machine.SSHOptions{Args: append([]string{"-q", "--", "mount"}, mountOptions...), Username: "root"})
+	default:
+		return fmt.Errorf("unknown mount type: %s", mount.Type)
+	}
+}
+
 // mountVolumesToVM iterates through the machine's volumes and mounts them to the
 // machine
 func (v *MachineVM) mountVolumesToVM(opts machine.StartOptions, name string) error {
@@ -421,35 +479,15 @@ func (v *MachineVM) mountVolumesToVM(opts machine.StartOptions, name string) err
 		if !opts.Quiet {
 			fmt.Printf("Mounting volume... %s:%s\n", mount.Source, mount.Target)
 		}
-		// create mountpoint directory if it doesn't exist
-		// because / is immutable, we have to monkey around with permissions
-		// if we dont mount in /home or /mnt
-		args := []string{"-q", "--"}
-		if !strings.HasPrefix(mount.Target, "/home") && !strings.HasPrefix(mount.Target, "/mnt") {
-			args = append(args, "sudo", "chattr", "-i", "/", ";")
+		var err error
+		switch v.GuestOS {
+		case machine.Linux:
+			err = v.mountVolumesToVMLinux(name, mount)
+		case machine.FreeBSD:
+			err = v.mountVolumesToVMFreeBSD(name, mount)
 		}
-		args = append(args, "sudo", "mkdir", "-p", mount.Target)
-		if !strings.HasPrefix(mount.Target, "/home") && !strings.HasPrefix(mount.Target, "/mnt") {
-			args = append(args, ";", "sudo", "chattr", "+i", "/", ";")
-		}
-		err := v.SSH(name, machine.SSHOptions{Args: args})
 		if err != nil {
 			return err
-		}
-		switch mount.Type {
-		case MountType9p:
-			mountOptions := []string{"-t", "9p"}
-			mountOptions = append(mountOptions, []string{"-o", "trans=virtio", mount.Tag, mount.Target}...)
-			mountOptions = append(mountOptions, []string{"-o", "version=9p2000.L,msize=131072"}...)
-			if mount.ReadOnly {
-				mountOptions = append(mountOptions, []string{"-o", "ro"}...)
-			}
-			err = v.SSH(name, machine.SSHOptions{Args: append([]string{"-q", "--", "sudo", "mount"}, mountOptions...)})
-			if err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("unknown mount type: %s", mount.Type)
 		}
 	}
 	return nil
@@ -970,6 +1008,12 @@ func (v *MachineVM) stopLocked() error {
 			}
 		}
 		return nil
+	}
+
+	// FreeBSD doesn't seem to respond to the power down events here, so prod it via SSH.
+	// This is probably a FreeBSD bug, so this work around can go away at some point.
+	if v.GuestOS == machine.FreeBSD {
+		return v.SSH("", machine.SSHOptions{Args: []string{"-q", "--", "/sbin/poweroff"}, Username: "root"})
 	}
 
 	qmpMonitor, err := qmp.NewSocketMonitor(v.QMPMonitor.Network, v.QMPMonitor.Address.GetPath(), v.QMPMonitor.Timeout)

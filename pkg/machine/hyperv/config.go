@@ -150,7 +150,7 @@ func (v HyperVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, 
 		return nil, err
 	}
 	// Acquire the image
-	imagePath, imageStream, err := dl.AcquireVMImage(opts.ImagePath)
+	imagePath, imageStream, err := dl.AcquireVMImage(opts.ImagePath, opts.GuestOS)
 	if err != nil {
 		return nil, err
 	}

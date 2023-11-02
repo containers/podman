@@ -5,6 +5,7 @@ package machine
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -18,6 +19,44 @@ import (
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
+)
+
+type GuestOS uint32
+
+const (
+	Linux GuestOS = iota
+	FreeBSD
+)
+
+func (os *GuestOS) UnmarshalJSON(b []byte) error {
+	var s string
+	// If we're loading from an old version, assume Linux
+	if err := json.Unmarshal(b, &s); err != nil {
+		*os = Linux
+		//lint:ignore nilerr Error is handled by assuming Linux for backwards compatibility.
+		return nil
+	}
+	var ok bool
+	*os, ok = GuestOSNames[s]
+	if ok {
+		return nil
+	}
+	return errors.New("invalid guest OS name")
+}
+
+func (os GuestOS) MarshalJSON() ([]byte, error) {
+	reverseMap := make(map[GuestOS]string)
+	for k, v := range GuestOSNames {
+		reverseMap[v] = k
+	}
+	return json.Marshal(reverseMap[os])
+}
+
+var (
+	GuestOSNames = map[string]GuestOS{
+		"linux":   Linux,
+		"freebsd": FreeBSD,
+	}
 )
 
 type InitOptions struct {
@@ -37,6 +76,7 @@ type InitOptions struct {
 	Rootful            bool
 	UID                string // uid of the user that called machine
 	UserModeNetworking *bool  // nil = use backend/system default, false = disable, true = enable
+	GuestOS            GuestOS
 }
 
 type Status = string
@@ -579,7 +619,7 @@ func (dl Download) NewFcosDownloader(imageStream FCOSStream) (DistributionDownlo
 // AcquireVMImage determines if the image is already in a FCOS stream. If so,
 // retrieves the image path of the uncompressed file. Otherwise, the user has
 // provided an alternative image, so we set the image path and download the image.
-func (dl Download) AcquireVMImage(imagePath string) (*VMFile, FCOSStream, error) {
+func (dl Download) AcquireVMImage(imagePath string, guestOS GuestOS) (*VMFile, FCOSStream, error) {
 	var (
 		err           error
 		imageLocation *VMFile
@@ -588,6 +628,9 @@ func (dl Download) AcquireVMImage(imagePath string) (*VMFile, FCOSStream, error)
 	switch imagePath {
 	// TODO these need to be re-typed as FCOSStreams
 	case Testing.String(), Next.String(), Stable.String(), "":
+		if guestOS != Linux {
+			return nil, 0, errors.New("only Linux images can be downloaded automatically, you must provide your own image")
+		}
 		// Get image as usual
 		fcosStream, err = FCOSStreamFromString(imagePath)
 		if err != nil {

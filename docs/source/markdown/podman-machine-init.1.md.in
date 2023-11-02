@@ -79,6 +79,13 @@ Fully qualified path or URL to the VM image.
 Can also be set to `testing`, `next`, or `stable` to pull down default image.
 Defaults to `testing`.
 
+#### **--machine-os**
+
+Operating system for the virtual machine.
+This can be `linux` or `freebsd`.
+Only Linux images can be fetched automatically, if you wish to use a FreeBSD guest then you must provide your own image, configured as Podman         expects, with `--image-path`.
+FreeBSD guests are not supported by the Podman project and are not currently expected to work with any virtual machine provider except for QEMU.
+
 #### **--memory**, **-m**=*number*
 
 Memory (in MiB). Note: 1024MiB = 1GiB.

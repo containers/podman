@@ -215,7 +215,7 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	imagePath, strm, err := dl.AcquireVMImage(opts.ImagePath)
+	imagePath, strm, err := dl.AcquireVMImage(opts.ImagePath, opts.GuestOS)
 	if err != nil {
 		return false, err
 	}
