@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/opencontainers/runc/libcontainer/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -89,7 +90,7 @@ func prepareOpenat2() error {
 		})
 		if err != nil {
 			prepErr = &os.PathError{Op: "openat2", Path: cgroupfsDir, Err: err}
-			if err != unix.ENOSYS {
+			if err != unix.ENOSYS { //nolint:errorlint // unix errors are bare
 				logrus.Warnf("falling back to securejoin: %s", prepErr)
 			} else {
 				logrus.Debug("openat2 not available, falling back to securejoin")
@@ -122,7 +123,7 @@ func openFile(dir, file string, flags int) (*os.File, error) {
 		flags |= os.O_TRUNC | os.O_CREATE
 		mode = 0o600
 	}
-	path := path.Join(dir, file)
+	path := path.Join(dir, utils.CleanPath(file))
 	if prepareOpenat2() != nil {
 		return openFallback(path, flags, mode)
 	}
