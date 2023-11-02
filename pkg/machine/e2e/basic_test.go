@@ -58,7 +58,7 @@ var _ = Describe("run basic podman commands", func() {
 		rmCon, err := mb.setCmd(bm.withPodmanCommand([]string{"rm", "-a"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(rmCon).To(Exit(0))
-	})
+	}, SpecTimeout(time.Minute*15))
 
 	It("Podman ops with port forwarding and gvproxy", func() {
 		name := randomString()
