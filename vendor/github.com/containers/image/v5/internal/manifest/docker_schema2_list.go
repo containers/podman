@@ -133,7 +133,9 @@ func (index *Schema2ListPublic) editInstances(editInstances []ListEdit) error {
 		}
 	}
 	if len(addedEntries) != 0 {
-		index.Manifests = append(index.Manifests, addedEntries...)
+		// slices.Clone() here to ensure a private backing array;
+		// an external caller could have manually created Schema2ListPublic with a slice with extra capacity.
+		index.Manifests = append(slices.Clone(index.Manifests), addedEntries...)
 	}
 	return nil
 }

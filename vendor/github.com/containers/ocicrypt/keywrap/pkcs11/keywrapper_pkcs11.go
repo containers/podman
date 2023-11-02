@@ -41,7 +41,11 @@ func NewKeyWrapper() keywrap.KeyWrapper {
 // WrapKeys wraps the session key for recpients and encrypts the optsData, which
 // describe the symmetric key used for encrypting the layer
 func (kw *pkcs11KeyWrapper) WrapKeys(ec *config.EncryptConfig, optsData []byte) ([]byte, error) {
-	pkcs11Recipients, err := addPubKeys(&ec.DecryptConfig, append(ec.Parameters["pkcs11-pubkeys"], ec.Parameters["pkcs11-yamls"]...))
+	// append({}, ...) allocates a fresh backing array, and that's necessary to guarantee concurrent calls to WrapKeys (as in c/image/copy.Image)
+	// can't race writing to the same backing array.
+	pubKeys := append([][]byte{}, ec.Parameters["pkcs11-pubkeys"]...) // In Go 1.21, slices.Clone(ec.Parameters["pkcs11-pubkeys"])
+	pubKeys = append(pubKeys, ec.Parameters["pkcs11-yamls"]...)
+	pkcs11Recipients, err := addPubKeys(&ec.DecryptConfig, pubKeys)
 	if err != nil {
 		return nil, err
 	}

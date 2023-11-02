@@ -26,7 +26,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/theupdateframework/go-tuf/encrypted"
+	"github.com/secure-systems-lab/go-securesystemslib/encrypted"
 )
 
 const (

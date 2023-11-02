@@ -10,6 +10,7 @@ import (
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	digest "github.com/opencontainers/go-digest"
@@ -282,4 +283,30 @@ func (s storageReference) NewImageSource(ctx context.Context, sys *types.SystemC
 
 func (s storageReference) NewImageDestination(ctx context.Context, sys *types.SystemContext) (types.ImageDestination, error) {
 	return newImageDestination(sys, s)
+}
+
+// ResolveReference finds the underlying storage image for a storage.Transport reference.
+// It returns that image, and an updated reference which can be used to refer back to the _same_
+// image again.
+//
+// This matters if the input reference contains a tagged name; the destination of the tag can
+// move in local storage. The updated reference returned by this function contains the resolved
+// image ID, so later uses of that updated reference will either continue to refer to the same
+// image, or fail.
+//
+// Note that it _is_ possible for the later uses to fail, either because the image was removed
+// completely, or because the name used in the reference was untaged (even if the underlying image
+// ID still exists in local storage).
+func ResolveReference(ref types.ImageReference) (types.ImageReference, *storage.Image, error) {
+	sref, ok := ref.(*storageReference)
+	if !ok {
+		return nil, nil, fmt.Errorf("trying to resolve a non-%s: reference %q", Transport.Name(),
+			transports.ImageName(ref))
+	}
+	clone := *sref // A shallow copy we can update
+	img, err := clone.resolveImage(nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	return clone, img, nil
 }

@@ -167,7 +167,9 @@ func (index *OCI1IndexPublic) editInstances(editInstances []ListEdit) error {
 		}
 	}
 	if len(addedEntries) != 0 {
-		index.Manifests = append(index.Manifests, addedEntries...)
+		// slices.Clone() here to ensure the slice uses a private backing array;
+		// an external caller could have manually created OCI1IndexPublic with a slice with extra capacity.
+		index.Manifests = append(slices.Clone(index.Manifests), addedEntries...)
 	}
 	if len(addedEntries) != 0 || updatedAnnotations {
 		slices.SortStableFunc(index.Manifests, func(a, b imgspecv1.Descriptor) int {
@@ -220,7 +222,7 @@ func (ic instanceCandidate) isPreferredOver(other *instanceCandidate, preferGzip
 	case ic.manifestPosition != other.manifestPosition:
 		return ic.manifestPosition < other.manifestPosition
 	}
-	panic("internal error: invalid comparision between two candidates") // This should not be reachable because in all calls we make, the two candidates differ at least in manifestPosition.
+	panic("internal error: invalid comparison between two candidates") // This should not be reachable because in all calls we make, the two candidates differ at least in manifestPosition.
 }
 
 // chooseInstance is a private equivalent to ChooseInstanceByCompression,

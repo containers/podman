@@ -955,14 +955,8 @@ func Unpack(decompressedArchive io.Reader, dest string, options *TarOptions) err
 	if options.ForceMask != nil {
 		// if ForceMask is in place, make sure lchown is disabled.
 		doChown = false
-		uid, gid, mode, err := GetFileOwner(dest)
-		if err == nil {
-			value := fmt.Sprintf("%d:%d:0%o", uid, gid, mode)
-			if err := system.Lsetxattr(dest, idtools.ContainersOverrideXattr, []byte(value), 0); err != nil {
-				return err
-			}
-		}
 	}
+	var rootHdr *tar.Header
 
 	// Iterate through the files in the archive.
 loop:
@@ -1006,6 +1000,9 @@ loop:
 		rel, err := filepath.Rel(dest, path)
 		if err != nil {
 			return err
+		}
+		if rel == "." {
+			rootHdr = hdr
 		}
 		if strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
 			return breakoutError(fmt.Errorf("%q is outside of %q", hdr.Name, dest))
@@ -1080,6 +1077,14 @@ loop:
 			return err
 		}
 	}
+
+	if options.ForceMask != nil && rootHdr != nil {
+		value := fmt.Sprintf("%d:%d:0%o", rootHdr.Uid, rootHdr.Gid, rootHdr.Mode)
+		if err := system.Lsetxattr(dest, idtools.ContainersOverrideXattr, []byte(value), 0); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

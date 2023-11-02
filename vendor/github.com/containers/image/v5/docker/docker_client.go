@@ -363,6 +363,11 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 	hostname := registry
 	if registry == dockerHostname {
 		hostname = dockerV1Hostname
+		// A search term of library/foo does not find the library/foo image on the docker.io servers,
+		// which is surprising - and that Docker is modifying the search term client-side this same way,
+		// and it seems convenient to do the same thing.
+		// Read more here: https://github.com/containers/image/pull/2133#issue-1928524334
+		image = strings.TrimPrefix(image, "library/")
 	}
 
 	client, err := newDockerClient(sys, hostname, registry)

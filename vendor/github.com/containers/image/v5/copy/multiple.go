@@ -340,7 +340,7 @@ func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte,
 	if err != nil {
 		return nil, err
 	}
-	sigs = append(sigs, newSigs...)
+	sigs = append(slices.Clone(sigs), newSigs...)
 
 	c.Printf("Storing list signatures\n")
 	if err := c.dest.PutSignaturesWithFormat(ctx, sigs, nil); err != nil {

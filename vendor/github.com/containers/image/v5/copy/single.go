@@ -277,7 +277,7 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 	if err != nil {
 		return copySingleImageResult{}, err
 	}
-	sigs = append(sigs, newSigs...)
+	sigs = append(slices.Clone(sigs), newSigs...)
 
 	if len(sigs) > 0 {
 		c.Printf("Storing signatures\n")
@@ -380,8 +380,9 @@ func (ic *imageCopier) compareImageDestinationManifestEqual(ctx context.Context,
 
 	compressionAlgos := set.New[string]()
 	for _, srcInfo := range ic.src.LayerInfos() {
-		compression := compressionAlgorithmFromMIMEType(srcInfo)
-		compressionAlgos.Add(compression.Name())
+		if c := compressionAlgorithmFromMIMEType(srcInfo); c != nil {
+			compressionAlgos.Add(c.Name())
+		}
 	}
 
 	algos, err := algorithmsByNames(compressionAlgos.Values())
@@ -743,7 +744,9 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 			uploadedBlob, err := ic.c.dest.PutBlobPartial(ctx, &proxy, srcInfo, ic.c.blobInfoCache)
 			if err == nil {
 				if srcInfo.Size != -1 {
-					bar.SetRefill(srcInfo.Size - bar.Current())
+					refill := srcInfo.Size - bar.Current()
+					bar.SetCurrent(srcInfo.Size)
+					bar.SetRefill(refill)
 				}
 				bar.mark100PercentComplete()
 				hideProgressBar = false
