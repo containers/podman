@@ -346,17 +346,18 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		}
 	}
 
-	if len(c.HealthCmd) > 0 {
-		if c.NoHealthCheck {
+	switch {
+	case c.NoHealthCheck:
+		if len(c.HealthCmd) > 0 {
 			return errors.New("cannot specify both --no-healthcheck and --health-cmd")
 		}
-		s.HealthConfig, err = makeHealthCheckFromCli(c.HealthCmd, c.HealthInterval, c.HealthRetries, c.HealthTimeout, c.HealthStartPeriod, false)
-		if err != nil {
-			return err
-		}
-	} else if c.NoHealthCheck {
 		s.HealthConfig = &manifest.Schema2HealthConfig{
 			Test: []string{"NONE"},
+		}
+	case s.HealthConfig != nil || len(c.HealthCmd) > 0:
+		s.HealthConfig, err = makeHealthCheckFromCli(s.HealthConfig, c.HealthCmd, c.HealthInterval, c.HealthRetries, c.HealthTimeout, c.HealthStartPeriod, false)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -366,6 +367,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	}
 	s.HealthCheckOnFailureAction = onFailureAction
 
+	fmt.Println("DAN1", s.HealthConfig, c.HealthCmd, c.HealthInterval)
 	if c.StartupHCCmd != "" {
 		if c.NoHealthCheck {
 			return errors.New("cannot specify both --no-healthcheck and --health-startup-cmd")
@@ -373,7 +375,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		// The hardcoded "1s" will be discarded, as the startup
 		// healthcheck does not have a period. So just hardcode
 		// something that parses correctly.
-		tmpHcConfig, err := makeHealthCheckFromCli(c.StartupHCCmd, c.StartupHCInterval, c.StartupHCRetries, c.StartupHCTimeout, "1s", true)
+		tmpHcConfig, err := makeHealthCheckFromCli(s.HealthConfig, c.StartupHCCmd, c.StartupHCInterval, c.StartupHCRetries, c.StartupHCTimeout, "1s", true)
 		if err != nil {
 			return err
 		}
@@ -921,7 +923,24 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	return nil
 }
 
-func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, startPeriod string, isStartup bool) (*manifest.Schema2HealthConfig, error) {
+func makeHealthCheckFromCli(hc *manifest.Schema2HealthConfig, inCmd, interval string, retries uint, timeout, startPeriod string, isStartup bool) (*manifest.Schema2HealthConfig, error) {
+	newHC := false
+	if hc == nil {
+		newHC = true
+		hc = &manifest.Schema2HealthConfig{}
+		if interval == "" {
+			interval = define.DefaultHealthCheckInterval
+		}
+		if timeout == "" {
+			timeout = define.DefaultHealthCheckTimeout
+		}
+		if startPeriod == "" {
+			startPeriod = define.DefaultHealthCheckStartPeriod
+		}
+		if retries == 0 {
+			retries = define.DefaultHealthCheckRetries
+		}
+	}
 	cmdArr := []string{}
 	isArr := true
 	err := json.Unmarshal([]byte(inCmd), &cmdArr) // array unmarshalling
@@ -931,67 +950,75 @@ func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, start
 	}
 	// Every healthcheck requires a command
 	if len(cmdArr) == 0 {
-		return nil, errors.New("must define a healthcheck command for all healthchecks")
-	}
-
-	var concat string
-	if strings.ToUpper(cmdArr[0]) == define.HealthConfigTestCmd || strings.ToUpper(cmdArr[0]) == define.HealthConfigTestNone { // this is for compat, we are already split properly for most compat cases
-		cmdArr = strings.Fields(inCmd)
-	} else if strings.ToUpper(cmdArr[0]) != define.HealthConfigTestCmdShell { // this is for podman side of things, won't contain the keywords
-		if isArr && len(cmdArr) > 1 { // an array of consecutive commands
-			cmdArr = append([]string{define.HealthConfigTestCmd}, cmdArr...)
-		} else { // one singular command
-			if len(cmdArr) == 1 {
-				concat = cmdArr[0]
-			} else {
-				concat = strings.Join(cmdArr[0:], " ")
-			}
-			cmdArr = append([]string{define.HealthConfigTestCmdShell}, concat)
+		if hc == nil {
+			return nil, errors.New("must define a healthcheck command for all healthchecks")
 		}
+	} else {
+		var concat string
+		if strings.ToUpper(cmdArr[0]) == define.HealthConfigTestCmd || strings.ToUpper(cmdArr[0]) == define.HealthConfigTestNone { // this is for compat, we are already split properly for most compat cases
+			cmdArr = strings.Fields(inCmd)
+		} else if strings.ToUpper(cmdArr[0]) != define.HealthConfigTestCmdShell { // this is for podman side of things, won't contain the keywords
+			if isArr && len(cmdArr) > 1 { // an array of consecutive commands
+				cmdArr = append([]string{define.HealthConfigTestCmd}, cmdArr...)
+			} else { // one singular command
+				if len(cmdArr) == 1 {
+					concat = cmdArr[0]
+				} else {
+					concat = strings.Join(cmdArr[0:], " ")
+				}
+				cmdArr = append([]string{define.HealthConfigTestCmdShell}, concat)
+			}
+		}
+
+		if strings.ToUpper(cmdArr[0]) == define.HealthConfigTestNone { // if specified to remove healtcheck
+			cmdArr = []string{define.HealthConfigTestNone}
+		}
+		// healthcheck is by default an array, so we simply pass the user input
+		hc.Test = cmdArr
 	}
 
-	if strings.ToUpper(cmdArr[0]) == define.HealthConfigTestNone { // if specified to remove healtcheck
-		cmdArr = []string{define.HealthConfigTestNone}
+	if newHC || interval != define.DefaultHealthCheckInterval {
+		if interval == "disable" {
+			interval = "0"
+		}
+		intervalDuration, err := time.ParseDuration(interval)
+		if err != nil {
+			return nil, fmt.Errorf("invalid healthcheck-interval: %w", err)
+		}
+
+		hc.Interval = intervalDuration
 	}
 
-	// healthcheck is by default an array, so we simply pass the user input
-	hc := manifest.Schema2HealthConfig{
-		Test: cmdArr,
+	if newHC || retries > 0 {
+		if retries < 1 && !isStartup {
+			return nil, errors.New("healthcheck-retries must be greater than 0")
+		}
+		hc.Retries = int(retries)
 	}
 
-	if interval == "disable" {
-		interval = "0"
-	}
-	intervalDuration, err := time.ParseDuration(interval)
-	if err != nil {
-		return nil, fmt.Errorf("invalid healthcheck-interval: %w", err)
+	if newHC || timeout != define.DefaultHealthCheckTimeout {
+		timeoutDuration, err := time.ParseDuration(timeout)
+		if err != nil {
+			return nil, fmt.Errorf("invalid healthcheck-timeout: %w", err)
+		}
+		if timeoutDuration < time.Duration(1) {
+			return nil, errors.New("healthcheck-timeout must be at least 1 second")
+		}
+		hc.Timeout = timeoutDuration
 	}
 
-	hc.Interval = intervalDuration
+	if newHC || startPeriod != define.DefaultHealthCheckTimeout {
+		startPeriodDuration, err := time.ParseDuration(startPeriod)
+		if err != nil {
+			return nil, fmt.Errorf("invalid healthcheck-start-period: %w", err)
+		}
+		if startPeriodDuration < time.Duration(0) {
+			return nil, errors.New("healthcheck-start-period must be 0 seconds or greater")
+		}
+		hc.StartPeriod = startPeriodDuration
+	}
 
-	if retries < 1 && !isStartup {
-		return nil, errors.New("healthcheck-retries must be greater than 0")
-	}
-	hc.Retries = int(retries)
-	timeoutDuration, err := time.ParseDuration(timeout)
-	if err != nil {
-		return nil, fmt.Errorf("invalid healthcheck-timeout: %w", err)
-	}
-	if timeoutDuration < time.Duration(1) {
-		return nil, errors.New("healthcheck-timeout must be at least 1 second")
-	}
-	hc.Timeout = timeoutDuration
-
-	startPeriodDuration, err := time.ParseDuration(startPeriod)
-	if err != nil {
-		return nil, fmt.Errorf("invalid healthcheck-start-period: %w", err)
-	}
-	if startPeriodDuration < time.Duration(0) {
-		return nil, errors.New("healthcheck-start-period must be 0 seconds or greater")
-	}
-	hc.StartPeriod = startPeriodDuration
-
-	return &hc, nil
+	return hc, nil
 }
 
 func parseWeightDevices(weightDevs []string) (map[string]specs.LinuxWeightDevice, error) {

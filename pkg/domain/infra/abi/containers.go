@@ -1678,6 +1678,11 @@ func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts enti
 		}
 	}
 
+	if !ctrCloneOpts.CreateOpts.NoHealthCheck {
+		if err := spec.InitHealthCheck(ctx); err != nil {
+			return nil, err
+		}
+	}
 	err = specgenutil.FillOutSpecGen(spec, &ctrCloneOpts.CreateOpts, []string{})
 	if err != nil {
 		return nil, err

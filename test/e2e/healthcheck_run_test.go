@@ -40,6 +40,32 @@ var _ = Describe("Podman healthcheck run", func() {
 		Expect(hc.OutputToString()).To(Not(ContainSubstring("starting")))
 	})
 
+	FIt("podman image override", func() {
+		session := podmanTest.Podman([]string{"create", "--name", "hc", HEALTHCHECK_IMAGE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		hc := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Config.Healthcheck.Retries}} {{.Config.Healthcheck.Interval}} {{.Config.Healthcheck.StartPeriod}} {{.Config.Healthcheck.Timeout}}", "hc"})
+		hc.WaitWithDefaultTimeout()
+		Expect(hc).Should(ExitCleanly())
+		Expect(hc.OutputToString()).To(Equal("0 1m0s 0s 3s"))
+
+		session = podmanTest.Podman([]string{"create", "--replace", "--health-interval=5s", "--name", "hc", HEALTHCHECK_IMAGE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		hc = podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Config.Healthcheck.Retries}} {{.Config.Healthcheck.Interval}} {{.Config.Healthcheck.StartPeriod}} {{.Config.Healthcheck.Timeout}}", "hc"})
+		hc.WaitWithDefaultTimeout()
+		Expect(hc).Should(ExitCleanly())
+		Expect(hc.OutputToString()).To(Equal("0 5s 0s 3s"))
+
+		session = podmanTest.Podman([]string{"create", "--replace", "--health-retries=10", "--health-interval=2s", "--health-start-period=4s", "--health-timeout=8s", "--name", "hc", HEALTHCHECK_IMAGE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		hc = podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Config.Healthcheck.Retries}} {{.Config.Healthcheck.Interval}} {{.Config.Healthcheck.StartPeriod}} {{.Config.Healthcheck.Timeout}}", "hc"})
+		hc.WaitWithDefaultTimeout()
+		Expect(hc).Should(ExitCleanly())
+		Expect(hc.OutputToString()).To(Equal("10 2s 4s 8s"))
+	})
+
 	It("podman run healthcheck and logs should contain healthcheck output", func() {
 		session := podmanTest.Podman([]string{"run", "--name", "test-logs", "-dt", "--health-interval", "1s", "--health-cmd", "echo working", "busybox", "sleep", "3600"})
 		session.WaitWithDefaultTimeout()

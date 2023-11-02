@@ -110,6 +110,12 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sg := specgen.NewSpecGenerator(imgNameOrID, cliOpts.RootFS)
+	if !cliOpts.NoHealthCheck {
+		if err := sg.InitHealthCheck(r.Context()); err != nil {
+			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("make cli opts(): %w", err))
+			return
+		}
+	}
 	if err := specgenutil.FillOutSpecGen(sg, cliOpts, args); err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("fill out specgen: %w", err))
 		return
