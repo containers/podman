@@ -10,8 +10,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/container-orchestrated-devices/container-device-interface/pkg/parser"
 	units "github.com/docker/go-units"
+	"tags.cncf.io/container-device-interface/pkg/parser"
 )
 
 func (c *EngineConfig) validatePaths() error {

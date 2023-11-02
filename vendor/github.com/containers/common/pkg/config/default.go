@@ -37,6 +37,30 @@ const (
 )
 
 var (
+	DefaultMaskedPaths = []string{
+		"/proc/acpi",
+		"/proc/kcore",
+		"/proc/keys",
+		"/proc/latency_stats",
+		"/proc/sched_debug",
+		"/proc/scsi",
+		"/proc/timer_list",
+		"/proc/timer_stats",
+		"/sys/dev/block",
+		"/sys/devices/virtual/powercap",
+		"/sys/firmware",
+		"/sys/fs/selinux",
+	}
+
+	DefaultReadOnlyPaths = []string{
+		"/proc/asound",
+		"/proc/bus",
+		"/proc/fs",
+		"/proc/irq",
+		"/proc/sys",
+		"/proc/sysrq-trigger",
+	}
+
 	// DefaultInfraImage is the default image to run as infrastructure containers in pods.
 	DefaultInfraImage = ""
 	// DefaultRootlessSHMLockPath is the default path for rootless SHM locks.

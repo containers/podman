@@ -26,7 +26,7 @@ func RunUnderSystemdScope(pid int, slice string, unitName string) error {
 	var err error
 
 	if rootless.IsRootless() {
-		conn, err = cgroups.GetUserConnection(rootless.GetRootlessUID())
+		conn, err = cgroups.UserConnection(rootless.GetRootlessUID())
 		if err != nil {
 			return err
 		}

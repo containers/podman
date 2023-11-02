@@ -115,7 +115,7 @@ github.com/container-orchestrated-devices/container-device-interface/specs-go
 # github.com/containerd/cgroups/v3 v3.0.2
 ## explicit; go 1.18
 github.com/containerd/cgroups/v3/cgroup1/stats
-# github.com/containerd/containerd v1.7.7
+# github.com/containerd/containerd v1.7.8
 ## explicit; go 1.19
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/log
@@ -171,7 +171,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.56.1-0.20231026130642-78e0a90c7c2f
+# github.com/containers/common v0.56.1-0.20231102181045-6a67921ec5ce
 ## explicit; go 1.18
 github.com/containers/common/internal/attributedstring
 github.com/containers/common/libimage
@@ -1353,4 +1353,7 @@ k8s.io/kubernetes/third_party/forked/golang/expansion
 ## explicit; go 1.12
 sigs.k8s.io/yaml
 sigs.k8s.io/yaml/goyaml.v2
+# tags.cncf.io/container-device-interface v0.6.2
+## explicit; go 1.19
+tags.cncf.io/container-device-interface/pkg/parser
 # github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20230904132852-a0466dd76f23

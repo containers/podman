@@ -195,8 +195,8 @@ github.com/containerd/containerd v1.5.0-beta.4/go.mod h1:GmdgZd2zA2GYIBZ0w09Zvgq
 github.com/containerd/containerd v1.5.0-rc.0/go.mod h1:V/IXoMqNGgBlabz3tHD2TWDoTJseu1FGOKuoA4nNb2s=
 github.com/containerd/containerd v1.5.1/go.mod h1:0DOxVqwDy2iZvrZp2JUx/E+hS0UNTVn7dJnIOwtYR4g=
 github.com/containerd/containerd v1.5.7/go.mod h1:gyvv6+ugqY25TiXxcZC3L5yOeYgEw0QMhscqVp1AR9c=
-github.com/containerd/containerd v1.7.7 h1:QOC2K4A42RQpcrZyptP6z9EJZnlHfHJUfZrAAHe15q4=
-github.com/containerd/containerd v1.7.7/go.mod h1:3c4XZv6VeT9qgf9GMTxNTMFxGJrGpI2vz1yk4ye+YY8=
+github.com/containerd/containerd v1.7.8 h1:RkwgOW3AVUT3H/dyT0W03Dc8AzlpMG65lX48KftOFSM=
+github.com/containerd/containerd v1.7.8/go.mod h1:L/Hn9qylJtUFT7cPeM0Sr3fATj+WjHwRQ0lyrYk3OPY=
 github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc/go.mod h1:GL3xCUCBDV3CZiTSEKksMWbLE66hEyuu9qyDOOqM47Y=
 github.com/containerd/continuity v0.0.0-20190815185530-f2a389ac0a02/go.mod h1:GL3xCUCBDV3CZiTSEKksMWbLE66hEyuu9qyDOOqM47Y=
 github.com/containerd/continuity v0.0.0-20191127005431-f65d91d395eb/go.mod h1:GL3xCUCBDV3CZiTSEKksMWbLE66hEyuu9qyDOOqM47Y=
@@ -256,8 +256,8 @@ github.com/containernetworking/plugins v1.3.0 h1:QVNXMT6XloyMUoO2wUOqWTC1hWFV62Q
 github.com/containernetworking/plugins v1.3.0/go.mod h1:Pc2wcedTQQCVuROOOaLBPPxrEXqqXBFt3cZ+/yVg6l0=
 github.com/containers/buildah v1.32.1-0.20231026190652-11e3b2132761 h1:MNE9Yk+sw3GhHGRIXQHqx4V3P9L2MVHrZITD107DDB4=
 github.com/containers/buildah v1.32.1-0.20231026190652-11e3b2132761/go.mod h1:78sIy+6IjdfQWXfPUZyDqysufB/vhgz9SGLrLQ2k0KU=
-github.com/containers/common v0.56.1-0.20231026130642-78e0a90c7c2f h1:dLevs+iNkMVt8kedSIymqTifYbsliivg/o31Zt0kkvk=
-github.com/containers/common v0.56.1-0.20231026130642-78e0a90c7c2f/go.mod h1:pkkR/vqGja5F21okcBLwA2fiA1Hi7V2achYf9DId3X8=
+github.com/containers/common v0.56.1-0.20231102181045-6a67921ec5ce h1:b0NLsUl+hvPYPiAlP7VJrSHJZDQbZgUa3i+JfwMv4To=
+github.com/containers/common v0.56.1-0.20231102181045-6a67921ec5ce/go.mod h1:EOB29rKXAeQcUU8JQ9MjbYkyPfcNpAZ7s3Ar59PU0YE=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/gvisor-tap-vsock v0.7.1 h1:+Rc+sOPplrkQb/BUXeN0ug8TxjgyrIqo/9P/eNS2A4c=
@@ -1654,3 +1654,5 @@ sigs.k8s.io/yaml v1.2.0/go.mod h1:yfXDCHCao9+ENCvLSE62v9VSji2MKu5jeNfTrofGhJc=
 sigs.k8s.io/yaml v1.4.0 h1:Mk1wCc2gy/F0THH0TAp1QYyJNzRm2KCLy3o5ASXVI5E=
 sigs.k8s.io/yaml v1.4.0/go.mod h1:Ejl7/uTz7PSA4eKMyQCUTnhZYNmLIl+5c2lQPGR2BPY=
 src.elv.sh v0.16.0-rc1.0.20220116211855-fda62502ad7f h1:pjVeIo9Ba6K1Wy+rlwX91zT7A+xGEmxiNRBdN04gDTQ=
+tags.cncf.io/container-device-interface v0.6.2 h1:dThE6dtp/93ZDGhqaED2Pu374SOeUkBfuvkLuiTdwzg=
+tags.cncf.io/container-device-interface v0.6.2/go.mod h1:Shusyhjs1A5Na/kqPVLL0KqnHQHuunol9LFeUNkuGVE=
