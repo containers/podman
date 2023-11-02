@@ -94,7 +94,7 @@ func composeProvider() (string, error) {
 			logrus.Debugf("Found compose provider %q", path)
 			return path, nil
 		}
-		logrus.Debugf("Error looking up compose provider %q: %v", path, err)
+		logrus.Debugf("Error looking up compose provider %q: %v", candidate, err)
 		lookupErrors = append(lookupErrors, err)
 	}
 
