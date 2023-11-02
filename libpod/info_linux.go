@@ -36,7 +36,7 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 	}
 
 	// Get Map of all available controllers
-	availableControllers, err := cgroups.GetAvailableControllers(nil, unified)
+	availableControllers, err := cgroups.AvailableControllers(nil, unified)
 	if err != nil {
 		return fmt.Errorf("getting available cgroup controllers: %w", err)
 	}

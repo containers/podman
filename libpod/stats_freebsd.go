@@ -6,10 +6,8 @@ package libpod
 import (
 	"fmt"
 	"math"
-	"strings"
 	"time"
 
-	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rctl"
 	"github.com/containers/storage/pkg/system"
@@ -142,18 +140,6 @@ func calculateCPUPercent(currentCPU, previousCPU, now, previousSystem uint64) fl
 		cpuPercent = (cpuDelta / systemDelta) * 100
 	}
 	return cpuPercent
-}
-
-func calculateBlockIO(stats *cgroups.Metrics) (read uint64, write uint64) {
-	for _, blkIOEntry := range stats.Blkio.IoServiceBytesRecursive {
-		switch strings.ToLower(blkIOEntry.Op) {
-		case "read":
-			read += blkIOEntry.Value
-		case "write":
-			write += blkIOEntry.Value
-		}
-	}
-	return
 }
 
 func getOnlineCPUs(container *Container) (int, error) {

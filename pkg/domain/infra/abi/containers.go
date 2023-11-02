@@ -1584,9 +1584,6 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 					if queryAll && (errors.Is(err, define.ErrCtrRemoved) || errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrStateInvalid)) {
 						continue
 					}
-					if errors.Is(err, cgroups.ErrCgroupV1Rootless) {
-						err = cgroups.ErrCgroupV1Rootless
-					}
 					return nil, err
 				}
 

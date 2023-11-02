@@ -10,3 +10,7 @@ import (
 func (r *Runtime) platformMakePod(pod *Pod, resourceLimits *spec.LinuxResources) (string, error) {
 	return "", nil
 }
+
+func (p *Pod) removePodCgroup() error {
+	return nil
+}

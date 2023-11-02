@@ -104,8 +104,8 @@ func ReadFile(dir, file string) (string, error) {
 	return buf.String(), err
 }
 
-// GetBlkioFiles gets the proper files for blkio weights
-func GetBlkioFiles(cgroupPath string) (wtFile, wtDevFile string) {
+// BlkioFiles gets the proper files for blkio weights
+func BlkioFiles(cgroupPath string) (wtFile, wtDevFile string) {
 	var weightFile string
 	var weightDeviceFile string
 	// in this important since runc keeps these variables private, they won't be set
