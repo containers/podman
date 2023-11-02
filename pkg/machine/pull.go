@@ -6,6 +6,7 @@ package machine
 import (
 	"archive/zip"
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -133,7 +134,11 @@ func DownloadImage(d DistributionDownload) error {
 			}
 		}()
 	}
-	return Decompress(d.Get().LocalPath, d.Get().LocalUncompressedFile)
+	localPath, err := NewMachineFile(d.Get().LocalPath, nil)
+	if err != nil {
+		return err
+	}
+	return Decompress(localPath, d.Get().LocalUncompressedFile)
 }
 
 func progressBar(prefix string, size int64, onComplete string) (*mpb.Progress, *mpb.Bar) {
@@ -205,17 +210,17 @@ func DownloadVMImage(downloadURL *url2.URL, imageName string, localImagePath str
 	return nil
 }
 
-func Decompress(localPath, uncompressedPath string) error {
+func Decompress(localPath *VMFile, uncompressedPath string) error {
 	var isZip bool
 	uncompressedFileWriter, err := os.OpenFile(uncompressedPath, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
 		return err
 	}
-	sourceFile, err := os.ReadFile(localPath)
+	sourceFile, err := localPath.Read()
 	if err != nil {
 		return err
 	}
-	if strings.HasSuffix(localPath, ".zip") {
+	if strings.HasSuffix(localPath.GetPath(), ".zip") {
 		isZip = true
 	}
 	prefix := "Copying uncompressed file"
@@ -225,12 +230,12 @@ func Decompress(localPath, uncompressedPath string) error {
 	}
 	prefix += ": " + filepath.Base(uncompressedPath)
 	if compressionType == archive.Xz {
-		return decompressXZ(prefix, localPath, uncompressedFileWriter)
+		return decompressXZ(prefix, localPath.GetPath(), uncompressedFileWriter)
 	}
 	if isZip && runtime.GOOS == "windows" {
-		return decompressZip(prefix, localPath, uncompressedFileWriter)
+		return decompressZip(prefix, localPath.GetPath(), uncompressedFileWriter)
 	}
-	return decompressEverythingElse(prefix, localPath, uncompressedFileWriter)
+	return decompressEverythingElse(prefix, localPath.GetPath(), uncompressedFileWriter)
 }
 
 // Will error out if file without .Xz already exists
@@ -404,4 +409,76 @@ func (dl Download) AcquireAlternateImage(inputPath string) (*VMFile, error) {
 	}
 
 	return imagePath, nil
+}
+
+func isOci(input string) (bool, *OCIKind, error) {
+	inputURL, err := url2.Parse(input)
+	if err != nil {
+		return false, nil, err
+	}
+	switch inputURL.Scheme {
+	case OCIDir.String():
+		return true, &OCIDir, nil
+	case OCIRegistry.String():
+		return true, &OCIRegistry, nil
+	}
+	return false, nil, nil
+}
+
+func Pull(input, machineName string, vp VirtProvider) (*VMFile, FCOSStream, error) {
+	var (
+		disk Disker
+	)
+
+	ociBased, ociScheme, err := isOci(input)
+	if err != nil {
+		return nil, 0, err
+	}
+	if !ociBased {
+		// Business as usual
+		dl, err := vp.NewDownload(machineName)
+		if err != nil {
+			return nil, 0, err
+		}
+		return dl.AcquireVMImage(input)
+	}
+	oopts := OCIOpts{
+		Scheme: ociScheme,
+	}
+	dataDir, err := GetDataDir(vp.VMType())
+	if err != nil {
+		return nil, 0, err
+	}
+	if ociScheme.IsOCIDir() {
+		strippedOCIDir := StripOCIReference(input)
+		oopts.Dir = &strippedOCIDir
+		disk = NewOCIDir(context.Background(), input, dataDir, machineName)
+	} else {
+		// a use of a containers image type here might be
+		// tighter
+		strippedInput := strings.TrimPrefix(input, "docker://")
+		// this is the next piece of work
+		if len(strippedInput) > 0 {
+			return nil, 0, errors.New("image names are not supported yet")
+		}
+		disk, err = newVersioned(context.Background(), dataDir, machineName)
+		if err != nil {
+			return nil, 0, err
+		}
+	}
+	if err := disk.Pull(); err != nil {
+		return nil, 0, err
+	}
+	unpacked, err := disk.Unpack()
+	if err != nil {
+		return nil, 0, err
+	}
+	defer func() {
+		logrus.Debugf("cleaning up %q", unpacked.GetPath())
+		if err := unpacked.Delete(); err != nil {
+			logrus.Errorf("unable to delete local compressed file %q:%v", unpacked.GetPath(), err)
+		}
+	}()
+	imagePath, err := disk.Decompress(unpacked)
+	return imagePath, UnknownStream, err
 }

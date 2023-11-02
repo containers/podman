@@ -260,15 +260,12 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	v.IdentityPath = util.GetIdentityPath(v.Name)
 	v.Rootful = opts.Rootful
 
-	dl, err := VirtualizationProvider().NewDownload(v.Name)
+	imagePath, strm, err := machine.Pull(opts.ImagePath, opts.Name, VirtualizationProvider())
 	if err != nil {
 		return false, err
 	}
 
-	imagePath, strm, err := dl.AcquireVMImage(opts.ImagePath)
-	if err != nil {
-		return false, err
-	}
+	//  By this time, image should be had and uncompressed
 	callbackFuncs.Add(imagePath.Delete)
 
 	// Assign values about the download
