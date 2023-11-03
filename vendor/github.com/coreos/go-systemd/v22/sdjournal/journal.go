@@ -59,7 +59,7 @@ package sdjournal
 // void
 // my_sd_journal_close(void *f, sd_journal *j)
 // {
-//   int (*sd_journal_close)(sd_journal *);
+//   void (*sd_journal_close)(sd_journal *);
 //
 //   sd_journal_close = f;
 //   sd_journal_close(j);
@@ -104,7 +104,7 @@ package sdjournal
 // void
 // my_sd_journal_flush_matches(void *f, sd_journal *j)
 // {
-//   int (*sd_journal_flush_matches)(sd_journal *);
+//   void (*sd_journal_flush_matches)(sd_journal *);
 //
 //   sd_journal_flush_matches = f;
 //   sd_journal_flush_matches(j);
