@@ -133,7 +133,8 @@ func migrateVM(configPath string, config []byte, vm *MachineVM) error {
 	}
 
 	// setReadySocket will stick the entry into the new struct
-	if err := vm.setReadySocket(); err != nil {
+	symlink := vm.Name + "_ready.sock"
+	if err := machine.SetSocket(&vm.ReadySocket, machine.ReadySocketPath(socketPath+"/podman/", vm.Name), &symlink); err != nil {
 		return err
 	}
 
@@ -510,52 +511,6 @@ func runStartVMCommand(cmd *exec.Cmd) error {
 	return nil
 }
 
-// connectToQMPMonitorSocket attempts to connect to the QMP Monitor Socket after
-// `maxBackoffs` attempts
-func (v *MachineVM) connectToQMPMonitorSocket(maxBackoffs int, backoff time.Duration) (conn net.Conn, err error) {
-	for i := 0; i < maxBackoffs; i++ {
-		if i > 0 {
-			time.Sleep(backoff)
-			backoff *= 2
-		}
-		conn, err = net.Dial("unix", v.QMPMonitor.Address.Path)
-		if err == nil {
-			break
-		}
-	}
-	return
-}
-
-// connectToPodmanSocket attempts to connect to the podman socket after
-// `maxBackoffs` attempts.
-func (v *MachineVM) connectToPodmanSocket(maxBackoffs int, backoff time.Duration, qemuPID int, errBuf *bytes.Buffer) (conn net.Conn, dialErr error) {
-	socketPath, err := getRuntimeDir()
-	if err != nil {
-		return nil, err
-	}
-
-	// The socket is not made until the qemu process is running so here
-	// we do a backoff waiting for it.  Once we have a conn, we break and
-	// then wait to read it.
-	for i := 0; i < maxBackoffs; i++ {
-		if i > 0 {
-			time.Sleep(backoff)
-			backoff *= 2
-		}
-		conn, dialErr = net.Dial("unix", filepath.Join(socketPath, "podman", v.Name+"_ready.sock"))
-		if dialErr == nil {
-			break
-		}
-		// check if qemu is still alive
-		err := checkProcessStatus("qemu", qemuPID, errBuf)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return
-}
-
 // qemuPid returns -1 or the PID of the running QEMU instance.
 func (v *MachineVM) qemuPid() (int, error) {
 	pidData, err := os.ReadFile(v.VMPidFilePath.GetPath())
@@ -666,7 +621,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		return err
 	}
 
-	qemuSocketConn, err = v.connectToQMPMonitorSocket(maxBackoffs, defaultBackoff)
+	qemuSocketConn, err = machine.DialSocketWithBackoffs(maxBackoffs, defaultBackoff, v.QMPMonitor.Address.Path)
 	if err != nil {
 		return err
 	}
@@ -721,7 +676,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		fmt.Println("Waiting for VM ...")
 	}
 
-	conn, err = v.connectToPodmanSocket(maxBackoffs, defaultBackoff, cmd.Process.Pid, stderrBuf)
+	conn, err = machine.DialSocketWithBackoffsAndProcCheck(maxBackoffs, defaultBackoff, v.ReadySocket.GetPath(), checkProcessStatus, "qemu", cmd.Process.Pid, stderrBuf)
 	if err != nil {
 		return err
 	}
@@ -1416,20 +1371,6 @@ func (v *MachineVM) setConfigPath() error {
 		return err
 	}
 	v.ConfigPath = *configPath
-	return nil
-}
-
-func (v *MachineVM) setReadySocket() error {
-	readySocketName := v.Name + "_ready.sock"
-	rtPath, err := getRuntimeDir()
-	if err != nil {
-		return err
-	}
-	virtualSocketPath, err := machine.NewMachineFile(filepath.Join(rtPath, "podman", readySocketName), &readySocketName)
-	if err != nil {
-		return err
-	}
-	v.ReadySocket = *virtualSocketPath
 	return nil
 }
 

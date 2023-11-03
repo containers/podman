@@ -4,7 +4,6 @@
 package applehv
 
 import (
-	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -89,16 +88,9 @@ func (m *MacMachine) setGVProxyInfo(runtimeDir string) error {
 	if err != nil {
 		return err
 	}
-
-	gvProxySock, err := machine.NewMachineFile(filepath.Join(runtimeDir, "gvproxy.sock"), nil)
-	if err != nil {
-		return err
-	}
-
 	m.GvProxyPid = *gvProxyPid
-	m.GvProxySock = *gvProxySock
 
-	return nil
+	return machine.SetSocket(&m.GvProxySock, filepath.Join(runtimeDir, "gvproxy.sock"), nil)
 }
 
 // setVfkitInfo stores the default devices, sets the vfkit endpoint, and
@@ -237,11 +229,9 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	readySocket, err := machine.NewMachineFile(filepath.Join(runtimeDir, fmt.Sprintf("%s_ready.sock", m.Name)), nil)
-	if err != nil {
+	if err := machine.SetSocket(&m.ReadySocket, machine.ReadySocketPath(runtimeDir, m.Name), nil); err != nil {
 		return false, err
 	}
-	m.ReadySocket = *readySocket
 
 	if err = m.setGVProxyInfo(runtimeDir); err != nil {
 		return false, err
@@ -680,25 +670,22 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 	logrus.Debug("waiting for ready notification")
 	var conn net.Conn
 	readyChan := make(chan error)
-	go func() {
-		conn, err = readyListen.Accept()
-		if err != nil {
-			logrus.Error(err)
-		}
-		_, err = bufio.NewReader(conn).ReadString('\n')
-		readyChan <- err
-	}()
+	connChan := make(chan net.Conn)
+	go machine.ListenAndWaitOnSocket(readyChan, connChan, readyListen)
 
 	if err := cmd.Start(); err != nil {
 		return err
 	}
 
 	err = <-readyChan
-	defer func() {
-		if closeErr := conn.Close(); closeErr != nil {
-			logrus.Error(closeErr)
-		}
-	}()
+	conn = <-connChan
+	if conn != nil {
+		defer func() {
+			if closeErr := conn.Close(); closeErr != nil {
+				logrus.Error(closeErr)
+			}
+		}()
+	}
 	if err != nil {
 		return err
 	}
