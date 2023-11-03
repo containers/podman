@@ -441,12 +441,24 @@ RUN find /test`, CITEST_IMAGE)
 	It("podman remote build must not allow symlink for ignore files", func() {
 		// Create a random file where symlink must be resolved
 		// but build should not be able to access it.
-		f, err := os.Create(filepath.Join("/tmp", "private_file"))
+		privateFile := filepath.Join("/tmp", "private_file")
+		f, err := os.Create(privateFile)
 		Expect(err).ToNot(HaveOccurred())
 		// Mark hello to be ignored in outerfile, but it should not be ignored.
 		_, err = f.WriteString("hello\n")
 		Expect(err).ToNot(HaveOccurred())
 		defer f.Close()
+
+		// Create .dockerignore which is a symlink to /tmp/private_file.
+		currentDir, err := os.Getwd()
+		Expect(err).ToNot(HaveOccurred())
+		ignoreFile := filepath.Join(currentDir, "build/containerignore-symlink/.dockerignore")
+		err = os.Symlink(privateFile, ignoreFile)
+		Expect(err).ToNot(HaveOccurred())
+		// Remove created .dockerignore for this test when test ends.
+		defer func() {
+			os.Remove(ignoreFile)
+		}()
 
 		if IsRemote() {
 			podmanTest.StopRemoteService()
