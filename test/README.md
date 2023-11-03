@@ -88,7 +88,7 @@ The following environment variables are supported by the test setup:
  - `CONMON_BINARY`: path to th conmon binary, defaults to `/usr/libexec/podman/conmon`.
  - `OCI_RUNTIME`: which oci runtime to use, defaults to `crun`.
  - `NETWORK_BACKEND`: the network backend, either `netavark` (default) or `cni`.
- - `PODMAN_DB`: the database backend `boltdb` (default) or `sqlite`.
+ - `PODMAN_DB`: the database backend `sqlite` (default) or `boltdb`.
  - `PODMAN_TEST_IMAGE_CACHE_DIR`: path were the container images should be cached, defaults to `/tmp`.
 
 ### Running a single file of integration tests
