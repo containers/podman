@@ -15,8 +15,10 @@ If no options are provided, Podman assigns a free subnet and name for the networ
 
 Upon completion of creating the network, Podman displays the name of the newly added network.
 
-NOTE: The support for the network name "pasta" is deprecated and will be removed in the next major
-release because it is used as a special network mode in **podman run/create --network**.
+NOTE: The support for "pasta" as network *name* value is deprecated and will not be accepted in the next major
+Podman version 5.0, because it is used as a special network mode in **podman run/create --network**.
+The CNI backend is also deprecated and will also be removed in the next major Podman version 5.0, in preference
+of Netavark, see **[podman-network(1)](podman-network.1.md)** on how to change the backend.
 
 ## OPTIONS
 #### **--disable-dns**
@@ -87,7 +89,9 @@ ipam driver automatically based on the network driver.
 
 Valid values are:
 
- - `dhcp`: IP addresses are assigned from a dhcp server on the network. This driver is not yet supported with netavark. For CNI the *dhcp* plugin needs to be activated before.
+ - `dhcp`: IP addresses are assigned from a dhcp server on the network. When using the netavark backend
+  the `netavark-dhcp-proxy.socket` must be enabled in order to start the dhcp-proxy when a container is
+  started, for CNI use the `cni-dhcp.socket` unit instead.
  - `host-local`: IP addresses are assigned locally.
  - `none`: No ip addresses are assigned to the interfaces.
 
