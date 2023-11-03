@@ -78,15 +78,15 @@ mode to allow you to copy any necessary files before recreating it. This
 can be accomplished with the following commands:
 
         # Login and copy desired files (Optional)
-        # podman machine ssh%[2]s tar cvPf - /path/to/files > backup.tar
+        # podman machine ssh%[1]s tar cvPf - /path/to/files > backup.tar
 
         # Recreate machine (DESTRUCTIVE!)
-        podman machine stop%[2]s
-        podman machine rm -f%[2]s
-        podman machine init --now%[2]s
+        podman machine stop%[1]s
+        podman machine rm -f%[1]s
+        podman machine init --now%[1]s
 
         # Copy back files (Optional)
-        # cat backup.tar | podman machine ssh%[2]s tar xvPf -
+        # cat backup.tar | podman machine ssh%[1]s tar xvPf -
 
 `
 
