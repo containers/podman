@@ -21,7 +21,7 @@ require (
 	github.com/containers/ocicrypt v1.1.9
 	github.com/containers/psgo v1.8.0
 	github.com/containers/storage v1.50.3-0.20231101112703-6e72f11598fb
-	github.com/coreos/go-systemd/v22 v22.5.0
+	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/coreos/stream-metadata-go v0.4.3
 	github.com/crc-org/vfkit v0.1.2-0.20231030102423-f3c783d34420
 	github.com/cyphar/filepath-securejoin v0.2.4
