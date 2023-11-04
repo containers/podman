@@ -42,6 +42,7 @@ var (
 		RunE:              imagePull,
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman pull imageName
+  podman pull --userns=keep-id registry.access.redhat.com/ubi9::9.2,
   podman pull fedora:latest`,
 	}
 
@@ -92,6 +93,13 @@ func pullFlags(cmd *cobra.Command) {
 	osFlagName := "os"
 	flags.StringVar(&pullOptions.OS, osFlagName, "", "Use `OS` instead of the running OS for choosing images")
 	_ = cmd.RegisterFlagCompletionFunc(osFlagName, completion.AutocompleteOS)
+
+	usernsFlagName := "userns"
+	flags.StringVar(
+		&pullOptions.UserNS,
+		usernsFlagName, utils.DefaultUserNS(),
+		"User namespace to use",
+	)
 
 	variantFlagName := "variant"
 	flags.StringVar(&pullOptions.Variant, variantFlagName, "", "Use VARIANT instead of the running architecture variant for choosing images")

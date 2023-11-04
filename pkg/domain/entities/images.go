@@ -149,6 +149,8 @@ type ImagePullOptions struct {
 	OS string
 	// Variant will overwrite the local variant for image pulls.
 	Variant string
+	// UserNS to pull the image into.
+	UserNS string
 	// Quiet can be specified to suppress pull progress when pulling.  Ignored
 	// for remote calls.
 	Quiet bool
