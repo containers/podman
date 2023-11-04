@@ -10,6 +10,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
+	"github.com/containers/podman/v4/pkg/util"
 )
 
 // IsDir returns true if the specified path refers to a directory.
@@ -147,4 +148,17 @@ func RemoveSlash(input []string) []string {
 		output = append(output, strings.TrimPrefix(in, "/"))
 	}
 	return output
+}
+
+func DefaultUserNS() string {
+	if userns, ok := os.LookupEnv("PODMAN_USERNS"); ok {
+		return userns
+	}
+
+	if registry.IsRemote() {
+		return ""
+	}
+
+	containerConfig := util.DefaultContainerConfig()
+	return containerConfig.Containers.UserNS
 }

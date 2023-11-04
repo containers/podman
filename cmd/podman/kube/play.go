@@ -133,7 +133,7 @@ func playFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(logOptFlagName, common.AutocompleteLogOpt)
 
 	usernsFlagName := "userns"
-	flags.StringVar(&playOptions.Userns, usernsFlagName, os.Getenv("PODMAN_USERNS"),
+	flags.StringVar(&playOptions.Userns, usernsFlagName, utils.DefaultUserNS(),
 		"User namespace to use",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(usernsFlagName, common.AutocompleteUserNamespace)

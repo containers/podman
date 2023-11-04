@@ -1,12 +1,11 @@
 package common
 
 import (
-	"os"
-
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
 	commonFlag "github.com/containers/common/pkg/flag"
 	"github.com/containers/podman/v4/cmd/podman/registry"
+	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/spf13/cobra"
@@ -710,7 +709,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 
 		usernsFlagName := "userns"
 		createFlags.String(
-			usernsFlagName, os.Getenv("PODMAN_USERNS"),
+			usernsFlagName, utils.DefaultUserNS(),
 			"User namespace to use",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(usernsFlagName, AutocompleteUserNamespace)
