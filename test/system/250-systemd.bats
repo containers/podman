@@ -46,8 +46,7 @@ function service_setup() {
     run systemctl enable "$SERVICE_NAME"
     assert $status -eq 0 "Error enabling systemd unit $SERVICE_NAME: $output"
 
-    run systemctl start "$SERVICE_NAME"
-    assert $status -eq 0 "Error starting systemd unit $SERVICE_NAME: $output"
+    systemctl_start "$SERVICE_NAME"
 
     run systemctl status "$SERVICE_NAME"
     assert $status -eq 0 "systemctl status $SERVICE_NAME: $output"
@@ -230,8 +229,7 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     systemctl daemon-reload
 
     INSTANCE="$SERVICE_NAME@1.service"
-    run systemctl start "$INSTANCE"
-    assert $status -eq 0 "Error starting systemd unit $INSTANCE: $output"
+    systemctl_start "$INSTANCE"
 
     run systemctl status "$INSTANCE"
     assert $status -eq 0 "systemctl status $INSTANCE: $output"
@@ -401,7 +399,7 @@ EOF
 
     # Dispatch the YAML file
     service_name="podman-kube@$(systemd-escape $yaml_source).service"
-    systemctl start $service_name
+    systemctl_start $service_name
     systemctl is-active $service_name
 
     # Make sure that Podman is the service's MainPID
@@ -456,7 +454,7 @@ $name stderr" "logs work with passthrough"
 
     # Now stop and start the service again.
     systemctl stop $service_name
-    systemctl start $service_name
+    systemctl_start $service_name
     systemctl is-active $service_name
     run_podman container inspect $service_container --format "{{.State.Running}}"
     is "$output" "true"
