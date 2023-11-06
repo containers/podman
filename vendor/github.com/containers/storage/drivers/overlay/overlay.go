@@ -507,6 +507,8 @@ func parseOptions(options []string) (*overlayOptions, error) {
 			}
 			for _, store := range strings.Split(val, ",") {
 				store = filepath.Clean(store)
+				intialStore := store
+				store := strings.Split(store, "|")[0]
 				if !filepath.IsAbs(store) {
 					return nil, fmt.Errorf("overlay: image path %q is not absolute.  Can not be relative", store)
 				}
@@ -517,7 +519,7 @@ func parseOptions(options []string) (*overlayOptions, error) {
 				if !st.IsDir() {
 					return nil, fmt.Errorf("overlay: image path %q must be a directory", store)
 				}
-				o.imageStores = append(o.imageStores, store)
+				o.imageStores = append(o.imageStores, intialStore)
 			}
 		case "additionallayerstore":
 			logrus.Debugf("overlay: additionallayerstore=%s", val)
@@ -1210,6 +1212,7 @@ func (d *Driver) dir2(id string) (string, string, bool) {
 	}
 	if _, err := os.Stat(newpath); err != nil {
 		for _, p := range d.AdditionalImageStores() {
+			p = strings.Split(p, "|")[0]
 			l := path.Join(p, d.name, id)
 			_, err = os.Stat(l)
 			if err == nil {
@@ -1592,6 +1595,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		newpath := path.Join(d.home, l)
 		if st, err := os.Stat(newpath); err != nil {
 			for _, p := range d.AdditionalImageStores() {
+				p = strings.Split(p, "|")[0]
 				lower = path.Join(p, d.name, l)
 				if st2, err2 := os.Stat(lower); err2 == nil {
 					if !permsKnown {

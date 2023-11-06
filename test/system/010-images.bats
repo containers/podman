@@ -344,7 +344,7 @@ Deleted: $pauseID"
 driver="overlay"
 
 [storage.options]
-additionalimagestores = [ "$imstore/root" ]
+additionalimagestores = [ "$imstore/root|NO_REUSE" ]
 EOF
 
     skopeo copy containers-storage:$IMAGE \
