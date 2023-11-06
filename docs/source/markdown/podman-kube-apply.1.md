@@ -1,4 +1,5 @@
--% podman-kube-apply(1)
+% podman-kube-apply 1
+
 ## NAME
 podman-kube-apply - Apply Kubernetes YAML based on containers, pods, or volumes to a Kubernetes cluster
 
