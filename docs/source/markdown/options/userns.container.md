@@ -30,9 +30,11 @@ Valid _mode_ values are:
 
 **auto**[:_OPTIONS,..._]: automatically create a unique user namespace.
 
-The `--userns=auto` flag requires that the user name __containers__ be specified in the /etc/subuid and /etc/subgid files, with an unused range of subordinate user IDs that Podman containers are allowed to allocate. See subuid(5).
+* `rootful mode`: The `--userns=auto` flag requires that the user name __containers__ be specified in the /etc/subuid and /etc/subgid files, with an unused range of subordinate user IDs that Podman containers are allowed to allocate.
 
-Example: `containers:2147483647:2147483648`.
+  	   Example: `containers:2147483647:2147483648`.
+
+* `rootless mode`: The users range from the /etc/subuid and /etc/subgid files will be used. Note running a single container without using --userns=auto will use the entire range of UIDs and not allow further subdividing. See subuid(5).
 
 Podman allocates unique ranges of UIDs and GIDs from the `containers` subordinate user IDs. The size of the ranges is based on the number of UIDs required in the image. The number of UIDs and GIDs can be overridden with the `size` option.
 
