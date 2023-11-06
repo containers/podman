@@ -249,4 +249,22 @@ EOF
     run_podman rm -f -t0 $cname
 }
 
+@test "podman push CONTAINERS_CONF" {
+    skip_if_remote "containers.conf does not effect client side of --remote"
+
+    CONTAINERS_CONF=/dev/null run_podman push --help
+    assert "$output" =~ "--compression-format string.*compression format to use \(default \"gzip\"\)" "containers.conf should set default to gzip"
+    assert "$output" !~ "compression level to use \(default" "containers.conf should not set default compressionlevel"
+
+    conf_tmp="$PODMAN_TMPDIR/containers.conf"
+    cat >$conf_tmp <<EOF
+[engine]
+compression_format="zstd:chunked"
+compression_level=1
+EOF
+    CONTAINERS_CONF="$conf_tmp" run_podman push --help
+    assert "$output" =~ "--compression-format string.*compression format to use \(default \"zstd:chunked\"\)" "containers.conf should set default to zstd:chunked"
+    assert "$output" =~ "--compression-level int.*compression level to use \(default 1\)" "containers.conf should set default compressionlevel to 1"
+}
+
 # vim: filetype=sh
