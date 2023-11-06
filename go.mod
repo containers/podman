@@ -9,7 +9,6 @@ require (
 	github.com/buger/goterm v1.0.4
 	github.com/checkpoint-restore/checkpointctl v1.1.0
 	github.com/checkpoint-restore/go-criu/v7 v7.0.0
-	github.com/container-orchestrated-devices/container-device-interface v0.6.1
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
 	github.com/containers/buildah v1.32.1-0.20231026190652-11e3b2132761
@@ -78,6 +77,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/kubernetes v1.28.3
 	sigs.k8s.io/yaml v1.4.0
+	tags.cncf.io/container-device-interface v0.6.2
 )
 
 require (
@@ -212,7 +212,7 @@ require (
 	gopkg.in/go-jose/go-jose.v2 v2.6.1 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	tags.cncf.io/container-device-interface v0.6.2 // indirect
+	tags.cncf.io/container-device-interface/specs-go v0.6.0 // indirect
 )
 
 replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20230904132852-a0466dd76f23

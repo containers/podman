@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/container-orchestrated-devices/container-device-interface/pkg/parser"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/libnetwork/pasta"
 	"github.com/containers/common/libnetwork/slirp4netns"
@@ -26,6 +25,7 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
+	"tags.cncf.io/container-device-interface/pkg/parser"
 )
 
 // MakeContainer creates a container based on the SpecGenerator.
