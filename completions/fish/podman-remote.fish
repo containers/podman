@@ -79,7 +79,7 @@ function __podman_remote_clear_perform_completion_once_result
     __podman_remote_debug ""
     __podman_remote_debug "========= clearing previously set __podman_remote_perform_completion_once_result variable =========="
     set --erase __podman_remote_perform_completion_once_result
-    __podman_remote_debug "Succesfully erased the variable __podman_remote_perform_completion_once_result"
+    __podman_remote_debug "Successfully erased the variable __podman_remote_perform_completion_once_result"
 end
 
 function __podman_remote_requires_order_preservation

@@ -10,7 +10,7 @@ filter __podman_escapeStringWithSpecialChars {
     $_ -replace '\s|#|@|\$|;|,|''|\{|\}|\(|\)|"|`|\||<|>|&','`$&'
 }
 
-[scriptblock]$__podmanCompleterBlock = {
+[scriptblock]${__podmanCompleterBlock} = {
     param(
             $WordToComplete,
             $CommandAst,
@@ -85,7 +85,7 @@ filter __podman_escapeStringWithSpecialChars {
 
     __podman_debug "Calling $RequestComp"
     # First disable ActiveHelp which is not supported for Powershell
-    $env:PODMAN_ACTIVE_HELP=0
+    ${env:PODMAN_ACTIVE_HELP}=0
 
     #call the command store the output in $out and redirect stderr and stdout to null
     # $Out is an array contains each line per element
@@ -242,6 +242,6 @@ filter __podman_escapeStringWithSpecialChars {
     }
 }
 
-Register-ArgumentCompleter -CommandName 'podman' -ScriptBlock $__podmanCompleterBlock
+Register-ArgumentCompleter -CommandName 'podman' -ScriptBlock ${__podmanCompleterBlock}
 
 # This file is generated with "podman completion"; see: podman-completion(1)
