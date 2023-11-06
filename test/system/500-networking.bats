@@ -880,7 +880,7 @@ EOF
     fi
 
     local net1=a-$(random_string 10)
-    # use /29 subnet to limt available ip space, a 29 gives 5 useable addresses (6 - 1 for the gw)
+    # use /29 subnet to limt available ip space, a 29 gives 5 usable addresses (6 - 1 for the gw)
     local subnet="$(random_rfc1918_subnet).0/29"
     run_podman network create --subnet $subnet $net1
     local cname=con-$(random_string 10)
@@ -898,7 +898,7 @@ EOF
     run_podman inspect --format "{{.RestartCount}}" $cname
     assert "$output" == "6" "RestartCount for failing container"
 
-    # Now make sure we can still run a contianer with free ips.
+    # Now make sure we can still run a container with free ips.
     run_podman run --rm --network $net1 $IMAGE true
 
     if ! is_rootless; then

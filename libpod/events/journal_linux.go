@@ -75,7 +75,7 @@ func (e EventJournalD) Write(ee Event) error {
 		m["PODMAN_NAME"] = ee.Name
 	}
 
-	// starting with commmit 7e6e267329 we set LogLevel=notice for the systemd healthcheck unit
+	// starting with commit 7e6e267329 we set LogLevel=notice for the systemd healthcheck unit
 	// This so it doesn't log the started/stopped unit messages al the time which spam the
 	// journal if a small interval is used. That however broke the healthcheck event as it no
 	// longer showed up in podman events when running as root as we only send the event on info

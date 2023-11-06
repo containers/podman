@@ -31,7 +31,7 @@ func (ir *ImageEngine) fetchInfo(_ context.Context) (os, arch, variant string, n
 	platform := strings.SplitN(nativePlatform, "/", 3)
 	switch len(platform) {
 	case 0, 1:
-		return "", "", "", nil, nil, fmt.Errorf("unparseable default platform %q", nativePlatform)
+		return "", "", "", nil, nil, fmt.Errorf("unparsable default platform %q", nativePlatform)
 	case 2:
 		os, arch = platform[0], platform[1]
 	case 3:

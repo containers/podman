@@ -411,7 +411,7 @@ _EOF
     run_podman rmi -f userimage:latest
 }
 
-# Ocassionaly a remnant storage container is left behind which causes
+# Occasionally a remnant storage container is left behind which causes
 # podman play kube --replace to fail. This tests created a conflicting
 # storage container name using buildah to make sure --replace, still
 # functions proplery by removing the storage container.
