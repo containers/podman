@@ -131,7 +131,7 @@ address can't be used by podman. `
 					fmtString += `If you would like to install it, run the following commands:
 
         sudo %s install
-        podman machine stop%[1]s; podman machine start%[1]s
+        podman machine stop%[2]s; podman machine start%[2]s
 
                 `
 					fmt.Printf(fmtString, helper, suffix)
