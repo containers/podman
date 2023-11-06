@@ -135,11 +135,6 @@ function skopeo() {
 
 # Setup helper: establish a test environment with exactly the images needed
 function basic_setup() {
-    # FIXME FIXME FIXME: remove if #17216 is fixed. See below also.
-    if [[ -e "${BATS_SUITE_TMPDIR}/forget-it" ]]; then
-        skip "everything is hosed, no point in going on"
-    fi
-
     # Clean up all containers
     run_podman rm -t 0 --all --force --ignore
 
@@ -154,11 +149,6 @@ function basic_setup() {
             for errline in "${lines[@]}"; do
                 echo "# $errline" >&3
             done
-            # FIXME FIXME FIXME: temporary hack for #18831. If we see the
-            # unmount/EINVAL flake, nothing will ever work again.
-            if [[ $output =~ unmounting.*invalid ]]; then
-                touch "${BATS_SUITE_TMPDIR}/forget-it"
-            fi
         fi
     done
 
@@ -169,22 +159,6 @@ function basic_setup() {
     # Image loads are slow.
     found_needed_image=
     run_podman '?' images --all --format '{{.Repository}}:{{.Tag}} {{.ID}}'
-    # FIXME FIXME FIXME: temporary hack for #17216. If we see the unlinkat-busy
-    # flake, nothing will ever work again.
-    if [[ $status -ne 0 ]]; then
-        if [[ "$output" =~ unlinkat.*busy ]]; then
-            # Signal (see above) to skip all subsequent tests.
-            touch "${BATS_SUITE_TMPDIR}/forget-it"
-            # Gather some debugging info, then fail
-            echo "$_LOG_PROMPT ps auxww --forest"
-            ps auxww --forest
-            echo "$_LOG_PROMPT mount"
-            mount
-            echo "$_LOG_PROMPT lsof /var/lib/containers"
-            lsof /var/lib/containers
-            false
-        fi
-    fi
 
     for line in "${lines[@]}"; do
         set $line
@@ -223,6 +197,10 @@ function basic_setup() {
 
     # In the unlikely event that a test runs is() before a run_podman()
     MOST_RECENT_PODMAN_COMMAND=
+
+    # Test filenames must match ###-name.bats; use "[###] " as prefix
+    run expr "$BATS_TEST_FILENAME" : "^.*/\([0-9]\{3\}\)-[^/]\+\.bats\$"
+    BATS_TEST_NAME_PREFIX="[${output}] "
 }
 
 # Basic teardown: remove all pods and containers
