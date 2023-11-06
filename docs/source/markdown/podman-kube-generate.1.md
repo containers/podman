@@ -1,4 +1,5 @@
--% podman-kube-generate(1)
+% podman-kube-generate 1
+
 ## NAME
 podman-kube-generate - Generate Kubernetes YAML based on containers, pods or volumes
 
