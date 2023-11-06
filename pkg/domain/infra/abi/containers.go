@@ -1192,7 +1192,8 @@ func (ic *ContainerEngine) GetContainerExitCode(ctx context.Context, ctr *libpod
 	exitCode, err := ctr.Wait(ctx)
 	if err != nil {
 		logrus.Errorf("Waiting for container %s: %v", ctr.ID(), err)
-		return define.ExecErrorCodeNotFound
+		intExitCode := int(define.ExecErrorCodeNotFound)
+		return intExitCode
 	}
 	return int(exitCode)
 }

@@ -773,7 +773,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 					logrus.Errorf("Cannot get exit code: %v", err)
 					report.ExitCode = define.ExecErrorCodeNotFound
 				} else {
-					report.ExitCode = event.ContainerExitCode
+					report.ExitCode = *event.ContainerExitCode
 				}
 			} else {
 				report.ExitCode = int(exitCode)
@@ -962,7 +962,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		return &report, nil //nolint: nilerr
 	}
 
-	report.ExitCode = lastEvent.ContainerExitCode
+	report.ExitCode = *lastEvent.ContainerExitCode
 	return &report, err
 }
 

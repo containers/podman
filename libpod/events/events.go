@@ -69,6 +69,9 @@ func (e *Event) ToJSONString() (string, error) {
 
 // ToHumanReadable returns human-readable event as a formatted string
 func (e *Event) ToHumanReadable(truncate bool) string {
+	if e == nil {
+		return ""
+	}
 	var humanFormat string
 	id := e.ID
 	if truncate {

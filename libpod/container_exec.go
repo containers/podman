@@ -820,7 +820,7 @@ func (c *Container) exec(config *ExecConfig, streams *define.AttachStreams, resi
 			if err != nil {
 				return -1, fmt.Errorf("retrieving exec session %s exit code: %w", sessionID, err)
 			}
-			return diedEvent.ContainerExitCode, nil
+			return *diedEvent.ContainerExitCode, nil
 		}
 		return -1, err
 	}
