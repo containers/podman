@@ -106,7 +106,7 @@ var _ = Describe("Podman push", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		push := podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", "imageone", "localhost:5000/image"})
+		push := podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--compression-format", "zstd", "--remove-signatures", "imageone", "localhost:5000/image"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(ExitCleanly())
 
@@ -115,31 +115,31 @@ var _ = Describe("Podman push", func() {
 		skopeo.WaitWithDefaultTimeout()
 		Expect(skopeo).Should(ExitCleanly())
 		output := skopeo.OutputToString()
-		// Default compression is gzip and push with `--force-compression=false` no traces of `zstd` should be there.
-		Expect(output).ToNot(ContainSubstring("zstd"))
-
-		push = podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--force-compression=false", "--compression-format", "zstd", "--remove-signatures", "imageone", "localhost:5000/image"})
-		push.WaitWithDefaultTimeout()
-		Expect(push).Should(ExitCleanly())
-
-		skopeo = SystemExec("skopeo", skopeoInspect)
-		skopeo.WaitWithDefaultTimeout()
-		Expect(skopeo).Should(ExitCleanly())
-		output = skopeo.OutputToString()
-		// Although `--compression-format` is `zstd` but still no traces of `zstd` should be in image
-		// since blobs must be reused from last `gzip` image.
-		Expect(output).ToNot(ContainSubstring("zstd"))
-
-		push = podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--compression-format", "zstd", "--force-compression", "--remove-signatures", "imageone", "localhost:5000/image"})
-		push.WaitWithDefaultTimeout()
-		Expect(push).Should(ExitCleanly())
-
-		skopeo = SystemExec("skopeo", skopeoInspect)
-		skopeo.WaitWithDefaultTimeout()
-		Expect(skopeo).Should(ExitCleanly())
-		output = skopeo.OutputToString()
-		// Should contain `zstd` layer, substring `zstd` is enough to confirm in skopeo inspect output that `zstd` layer is present.
+		// Original compression is zstd and push with `--force-compression=false` no traces of `gzip` should be there.
 		Expect(output).To(ContainSubstring("zstd"))
+
+		push = podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--force-compression=false", "--compression-format", "gzip", "--remove-signatures", "imageone", "localhost:5000/image"})
+		push.WaitWithDefaultTimeout()
+		Expect(push).Should(ExitCleanly())
+
+		skopeo = SystemExec("skopeo", skopeoInspect)
+		skopeo.WaitWithDefaultTimeout()
+		Expect(skopeo).Should(ExitCleanly())
+		output = skopeo.OutputToString()
+		// Although `--compression-format` is `gzip` but still no traces of `gzip` should be in image
+		// since blobs must be reused from last `zstd` image.
+		Expect(output).To(ContainSubstring("zstd"))
+
+		push = podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--compression-format", "gzip", "--force-compression", "--remove-signatures", "imageone", "localhost:5000/image"})
+		push.WaitWithDefaultTimeout()
+		Expect(push).Should(ExitCleanly())
+
+		skopeo = SystemExec("skopeo", skopeoInspect)
+		skopeo.WaitWithDefaultTimeout()
+		Expect(skopeo).Should(ExitCleanly())
+		output = skopeo.OutputToString()
+		// Should contain `gzip` layer, substring `` is enough to confirm in skopeo inspect output that `zstd` layer is present.
+		Expect(output).ToNot(ContainSubstring("zstd"))
 	})
 
 	It("podman push to local registry", func() {
