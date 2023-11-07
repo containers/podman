@@ -214,12 +214,12 @@ func loadUnitsFromDir(sourcePath string) ([]*parser.UnitFile, error) {
 	for _, file := range files {
 		name := file.Name()
 		if _, ok := seen[name]; !ok && isExtSupported(name) {
-			path := path.Join(sourcePath, name)
+			namedSourcePath := path.Join(sourcePath, name)
 
-			Debugf("Loading source unit file %s", path)
+			Debugf("Loading source unit file %s", namedSourcePath)
 
-			if f, err := parser.ParseUnitFile(path); err != nil {
-				err = fmt.Errorf("error loading %q, %w", path, err)
+			if f, err := parser.ParseUnitFile(namedSourcePath); err != nil {
+				err = fmt.Errorf("error loading %q, %w", namedSourcePath, err)
 				if prevError != nil {
 					prevError = fmt.Errorf("%s\n%s", prevError, err)
 				}

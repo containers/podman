@@ -260,7 +260,7 @@ func GetKeepIDMapping(opts *namespaces.KeepIDUserNsOptions) (*stypes.IDMappingOp
 	options.UIDMap, options.GIDMap = nil, nil
 
 	if len(uids) > 0 {
-		options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: min(uid, maxUID)})
+		options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: minimum(uid, maxUID)})
 	}
 	options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid, HostID: 0, Size: 1})
 	if maxUID > uid {
@@ -268,7 +268,7 @@ func GetKeepIDMapping(opts *namespaces.KeepIDUserNsOptions) (*stypes.IDMappingOp
 	}
 
 	if len(gids) > 0 {
-		options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: min(gid, maxGID)})
+		options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: minimum(gid, maxGID)})
 	}
 	options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid, HostID: 0, Size: 1})
 	if maxGID > gid {
@@ -448,14 +448,14 @@ func parseTriple(spec []string, parentMapping []ruser.IDMap, mapSetting string) 
 	return mappings, flags, nil
 }
 
-func min(a, b int) int {
+func minimum(a, b int) int {
 	if a < b {
 		return a
 	}
 	return b
 }
 
-func max(a, b int) int {
+func maximum(a, b int) int {
 	if a > b {
 		return a
 	}
@@ -493,8 +493,8 @@ func breakInsert(mapping []idtools.IDMap, extension idtools.IDMap) (result []idt
 			range1Start = -1
 		} else {
 			// clip limits removal to mapPiece
-			range1End = min(range1End, mapPieceEnd)
-			range1Start = max(range1Start, mapPieceStart)
+			range1End = minimum(range1End, mapPieceEnd)
+			range1Start = maximum(range1Start, mapPieceStart)
 		}
 
 		if range2End < mapPieceStart || range2Start >= mapPieceEnd {
@@ -503,8 +503,8 @@ func breakInsert(mapping []idtools.IDMap, extension idtools.IDMap) (result []idt
 			range2Start = -1
 		} else {
 			// clip limits removal to mapPiece
-			range2End = min(range2End, mapPieceEnd)
-			range2Start = max(range2Start, mapPieceStart)
+			range2End = minimum(range2End, mapPieceEnd)
+			range2Start = maximum(range2Start, mapPieceStart)
 		}
 
 		// If there is nothing to remove, append the original and continue:
@@ -530,7 +530,7 @@ func breakInsert(mapping []idtools.IDMap, extension idtools.IDMap) (result []idt
 			}
 			// If there is overlap, merge them:
 			if range1End >= range2Start {
-				range1End = max(range1End, range2End)
+				range1End = maximum(range1End, range2End)
 				range2Start = -1
 				range2End = -1
 			}
@@ -621,7 +621,7 @@ func getAvailableIDRanges(fullRanges, usedRanges [][2]int) (availableRanges [][2
 			case currentIDToProcess == nextUsedID:
 				// currentIDToProcess and all ids until nextUsedIDEnd are used
 				// Advance currentIDToProcess
-				currentIDToProcess = min(fullRange[1], nextUsedIDEnd)
+				currentIDToProcess = minimum(fullRange[1], nextUsedIDEnd)
 			default: // currentIDToProcess > nextUsedID
 				// Increment nextUsedID so it is >= currentIDToProcess
 				// Go to next used block if this one is all behind:
@@ -636,7 +636,7 @@ func getAvailableIDRanges(fullRanges, usedRanges [][2]int) (availableRanges [][2
 					}
 					continue
 				} else { // currentIDToProcess < nextUsedIDEnd
-					currentIDToProcess = min(fullRange[1], nextUsedIDEnd)
+					currentIDToProcess = minimum(fullRange[1], nextUsedIDEnd)
 				}
 			}
 		}
@@ -686,7 +686,7 @@ func fillIDMap(idmap []idtools.IDMap, availableRanges [][2]int) (output []idtool
 		// While there are available IDs to map and unassigned
 		// container ids, map the available ids:
 		for nextCid < mapPiece.ContainerID && nextAvailHid != -1 {
-			size := min(mapPiece.ContainerID-nextCid, availableRanges[i][1]-nextAvailHid)
+			size := minimum(mapPiece.ContainerID-nextCid, availableRanges[i][1]-nextAvailHid)
 			output = append(output, idtools.IDMap{
 				ContainerID: nextCid,
 				HostID:      nextAvailHid,
@@ -941,19 +941,19 @@ type tomlConfig struct {
 }
 
 func getTomlStorage(storeOptions *stypes.StoreOptions) *tomlConfig {
-	config := new(tomlConfig)
+	c := new(tomlConfig)
 
-	config.Storage.Driver = storeOptions.GraphDriverName
-	config.Storage.RunRoot = storeOptions.RunRoot
-	config.Storage.GraphRoot = storeOptions.GraphRoot
+	c.Storage.Driver = storeOptions.GraphDriverName
+	c.Storage.RunRoot = storeOptions.RunRoot
+	c.Storage.GraphRoot = storeOptions.GraphRoot
 	for _, i := range storeOptions.GraphDriverOptions {
 		s := strings.SplitN(i, "=", 2)
 		if s[0] == "overlay.mount_program" && len(s) == 2 {
-			config.Storage.Options.MountProgram = s[1]
+			c.Storage.Options.MountProgram = s[1]
 		}
 	}
 
-	return config
+	return c
 }
 
 // WriteStorageConfigFile writes the configuration to a file

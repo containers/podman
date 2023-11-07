@@ -35,11 +35,11 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 	case "name":
 		// we only have to match one name
 		return func(c *libpod.Container) bool {
-			var filters []string
+			var ctrFilters []string
 			for _, f := range filterValues {
-				filters = append(filters, strings.ReplaceAll(f, "/", ""))
+				ctrFilters = append(ctrFilters, strings.ReplaceAll(f, "/", ""))
 			}
-			return util.StringMatchRegexSlice(c.Name(), filters)
+			return util.StringMatchRegexSlice(c.Name(), ctrFilters)
 		}, nil
 	case "exited":
 		var exitCodes []int32

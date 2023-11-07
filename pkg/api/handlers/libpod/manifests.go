@@ -81,7 +81,7 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	status := http.StatusOK
-	if _, err := utils.SupportedVersion(r, "< 4.0.0"); err == apiutil.ErrVersionNotSupported {
+	if _, err := utils.SupportedVersion(r, "< 4.0.0"); errors.Is(err, apiutil.ErrVersionNotSupported) {
 		status = http.StatusCreated
 	}
 
@@ -318,12 +318,12 @@ func ManifestPushV3(w http.ResponseWriter, r *http.Request) {
 		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
 	}
 	imageEngine := abi.ImageEngine{Libpod: runtime}
-	digest, err := imageEngine.ManifestPush(r.Context(), source, query.Destination, options)
+	pushedDigest, err := imageEngine.ManifestPush(r.Context(), source, query.Destination, options)
 	if err != nil {
 		utils.Error(w, http.StatusBadRequest, fmt.Errorf("pushing image %q: %w", query.Destination, err))
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, entities.IDResponse{ID: digest})
+	utils.WriteResponse(w, http.StatusOK, entities.IDResponse{ID: pushedDigest})
 }
 
 // ManifestPush push image to registry
@@ -405,12 +405,12 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 
 	// Let's keep thing simple when running in quiet mode and push directly.
 	if query.Quiet {
-		digest, err := imageEngine.ManifestPush(r.Context(), source, destination, options)
+		pushedDigest, err := imageEngine.ManifestPush(r.Context(), source, destination, options)
 		if err != nil {
 			utils.Error(w, http.StatusBadRequest, fmt.Errorf("pushing image %q: %w", destination, err))
 			return
 		}
-		utils.WriteResponse(w, http.StatusOK, entities.ManifestPushReport{ID: digest})
+		utils.WriteResponse(w, http.StatusOK, entities.ManifestPushReport{ID: pushedDigest})
 		return
 	}
 
@@ -419,11 +419,11 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 	options.Writer = writer
 
 	pushCtx, pushCancel := context.WithCancel(r.Context())
-	var digest string
+	var d string
 	var pushError error
 	go func() {
 		defer pushCancel()
-		digest, pushError = imageEngine.ManifestPush(pushCtx, source, destination, options)
+		d, pushError = imageEngine.ManifestPush(pushCtx, source, destination, options)
 	}()
 
 	flush := func() {
@@ -451,7 +451,7 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 			if pushError != nil {
 				report.Error = pushError.Error()
 			} else {
-				report.ID = digest
+				report.ID = d
 			}
 			if err := enc.Encode(report); err != nil {
 				logrus.Warnf("Failed to encode json: %v", err)

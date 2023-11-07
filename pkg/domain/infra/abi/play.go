@@ -955,7 +955,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		// Wait for each proxy to receive a READY message. Use a wait
 		// group to prevent the potential for ABBA kinds of deadlocks.
 		var wg sync.WaitGroup
-		errors := make([]error, len(sdNotifyProxies))
+		pkErrors := make([]error, len(sdNotifyProxies))
 		for i := range sdNotifyProxies {
 			wg.Add(1)
 			go func(i int) {
@@ -963,12 +963,12 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 				if err != nil {
 					err = fmt.Errorf("waiting for sd-notify proxy: %w", err)
 				}
-				errors[i] = err
+				pkErrors[i] = err
 				wg.Done()
 			}(i)
 		}
 		wg.Wait()
-		for _, err := range errors {
+		for _, err := range pkErrors {
 			if err != nil {
 				// Close all proxies on error.
 				for _, proxy := range sdNotifyProxies {

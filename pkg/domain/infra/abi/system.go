@@ -395,7 +395,7 @@ func unshareEnv(graphroot, runroot string) []string {
 }
 
 func (ic *ContainerEngine) Unshare(ctx context.Context, args []string, options entities.SystemUnshareOptions) error {
-	unshare := func() error {
+	u := func() error {
 		cmd := exec.Command(args[0], args[1:]...)
 		cmd.Env = unshareEnv(ic.Libpod.StorageConfig().GraphRoot, ic.Libpod.StorageConfig().RunRoot)
 		cmd.Stdin = os.Stdin
@@ -409,15 +409,15 @@ func (ic *ContainerEngine) Unshare(ctx context.Context, args []string, options e
 		if err != nil {
 			return err
 		}
-		// Make sure to unlock, unshare can run for a long time.
+		// Make sure to unlock, u can run for a long time.
 		rootlessNetNS.Lock.Unlock()
-		// We do not want to clean up the netns after unshare.
+		// We do not want to clean up the netns after u.
 		// The problem is that we cannot know if we need to clean up and
-		// secondly unshare should allow user to set up the namespace with
+		// secondly u should allow user to set up the namespace with
 		// special things, e.g. potentially macvlan or something like that.
-		return rootlessNetNS.Do(unshare)
+		return rootlessNetNS.Do(u)
 	}
-	return unshare()
+	return u()
 }
 
 func (ic ContainerEngine) Version(ctx context.Context) (*entities.SystemVersionReport, error) {

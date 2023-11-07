@@ -49,16 +49,16 @@ func newLocalManifestListBuilder(listName string, localEngine entities.ImageEngi
 // Build retrieves images from the build reports and assembles them into a
 // manifest list in local container storage.
 func (l *listLocal) build(ctx context.Context, images map[entities.BuildReport]entities.ImageEngine) (string, error) {
-	manifest := l.listName
+	namedManifest := l.listName
 	exists, err := l.localEngine.ManifestExists(ctx, l.listName)
 	if err != nil {
 		return "", err
 	}
 	// Create list if it doesn't exist
 	if !exists.Value {
-		manifest, err = l.localEngine.ManifestCreate(ctx, l.listName, []string{}, entities.ManifestCreateOptions{})
+		namedManifest, err = l.localEngine.ManifestCreate(ctx, l.listName, []string{}, entities.ManifestCreateOptions{})
 		if err != nil {
-			return "", fmt.Errorf("creating manifest list %q: %w", l.listName, err)
+			return "", fmt.Errorf("creating namedManifest list %q: %w", l.listName, err)
 		}
 	}
 
@@ -119,19 +119,19 @@ func (l *listLocal) build(ctx context.Context, images map[entities.BuildReport]e
 
 	// Clear the list in the event it already existed
 	if exists.Value {
-		_, err = l.localEngine.ManifestListClear(ctx, manifest)
+		_, err = l.localEngine.ManifestListClear(ctx, namedManifest)
 		if err != nil {
-			return "", fmt.Errorf("error clearing list %q", manifest)
+			return "", fmt.Errorf("error clearing list %q", namedManifest)
 		}
 	}
 
 	// Add the images to the list
-	listID, err := l.localEngine.ManifestAdd(ctx, manifest, refs, entities.ManifestAddOptions{})
+	listID, err := l.localEngine.ManifestAdd(ctx, namedManifest, refs, entities.ManifestAddOptions{})
 	if err != nil {
 		return "", fmt.Errorf("adding images %q to list: %w", refs, err)
 	}
 
-	// Write the manifest list's ID file if we're expected to
+	// Write the namedManifest list's ID file if we're expected to
 	if l.options.iidFile != "" {
 		if err := os.WriteFile(l.options.iidFile, []byte("sha256:"+listID), 0644); err != nil {
 			return "", err

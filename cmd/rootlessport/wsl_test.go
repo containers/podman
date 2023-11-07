@@ -59,9 +59,9 @@ func TestDualStackSplit(t *testing.T) {
 }
 
 func verifySplit(t *testing.T, data SpecData) {
-	machine := machine.GetMachineMarker()
-	oldEnable, oldType := machine.Enabled, machine.Type
-	machine.Enabled, machine.Type = len(data.mach) > 0, data.mach
+	marker := machine.GetMachineMarker()
+	oldEnable, oldType := marker.Enabled, marker.Type
+	marker.Enabled, marker.Type = len(data.mach) > 0, data.mach
 
 	source := port.Spec{
 		Proto:      data.sourceProto,
@@ -85,5 +85,5 @@ func verifySplit(t *testing.T, data SpecData) {
 		assert.Equal(t, second, specs[1])
 	}
 
-	machine.Enabled, machine.Type = oldEnable, oldType
+	marker.Enabled, marker.Type = oldEnable, oldType
 }

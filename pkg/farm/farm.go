@@ -349,10 +349,10 @@ func (f *Farm) Build(ctx context.Context, schedule Schedule, options entities.Bu
 		if len(p) > 2 {
 			rawVariant = p[2]
 		}
-		os, arch, variant := lplatform.Normalize(rawOS, rawArch, rawVariant)
+		normalizedOs, arch, variant := lplatform.Normalize(rawOS, rawArch, rawVariant)
 		jobs.Store(builderName, job{
 			platform: platform,
-			os:       os,
+			os:       normalizedOs,
 			arch:     arch,
 			variant:  variant,
 			builder:  builder,

@@ -918,13 +918,13 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 
 	// Check that the container's in a good state to be removed.
 	if c.ensureState(define.ContainerStateRunning, define.ContainerStateStopping) {
-		time := c.StopTimeout()
+		stopTimeout := c.StopTimeout()
 		if opts.Timeout != nil {
-			time = *opts.Timeout
+			stopTimeout = *opts.Timeout
 		}
 		// Ignore ErrConmonDead - we couldn't retrieve the container's
 		// exit code properly, but it's still stopped.
-		if err := c.stop(time); err != nil && !errors.Is(err, define.ErrConmonDead) {
+		if err := c.stop(stopTimeout); err != nil && !errors.Is(err, define.ErrConmonDead) {
 			retErr = fmt.Errorf("cannot remove container %s as it could not be stopped: %w", c.ID(), err)
 			return
 		}
@@ -1364,8 +1364,8 @@ func (r *Runtime) PruneContainers(filterFuncs []ContainerFilter) ([]*reports.Pru
 			preports = append(preports, report)
 			continue
 		}
-		var time *uint
-		err = r.RemoveContainer(context.Background(), c, false, false, time)
+		var t *uint
+		err = r.RemoveContainer(context.Background(), c, false, false, t)
 		if err != nil {
 			report.Err = err
 		} else {
@@ -1440,7 +1440,7 @@ func (r *Runtime) StorageContainers() ([]storage.Container, error) {
 	retCtrs := []storage.Container{}
 	for _, container := range storeContainers {
 		exists, err := r.state.HasContainer(container.ID)
-		if err != nil && err != define.ErrNoSuchCtr {
+		if err != nil && !errors.Is(err, define.ErrNoSuchCtr) {
 			return nil, fmt.Errorf("failed to check if %s container exists in database: %w", container.ID, err)
 		}
 		if exists {

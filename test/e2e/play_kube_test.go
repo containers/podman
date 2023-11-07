@@ -2040,14 +2040,14 @@ func testPodWithSecret(podmanTest *PodmanTestIntegration, podYamlString, fileNam
 	}
 	Expect(kube).Should(ExitCleanly())
 
-	exec := podmanTest.Podman([]string{"exec", "mypod-myctr", "cat", "/etc/foo/username"})
-	exec.WaitWithDefaultTimeout()
+	execSession := podmanTest.Podman([]string{"execSession", "mypod-myctr", "cat", "/etc/foo/username"})
+	execSession.WaitWithDefaultTimeout()
 	if exists {
-		Expect(exec).Should(ExitCleanly())
+		Expect(execSession).Should(ExitCleanly())
 		username, _ := base64.StdEncoding.DecodeString("dXNlcg==")
-		Expect(exec.OutputToString()).Should(ContainSubstring(string(username)))
+		Expect(execSession.OutputToString()).Should(ContainSubstring(string(username)))
 	} else {
-		Expect(exec).Should(Exit(-1))
+		Expect(execSession).Should(Exit(-1))
 	}
 
 	podRm := podmanTest.Podman([]string{"pod", "rm", "-f", "mypod"})

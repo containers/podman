@@ -225,16 +225,16 @@ func buildListTagsJSON(searchReport []entities.ImageSearchReport) []listEntryTag
 	entries := make([]listEntryTag, 0)
 
 ReportLoop:
-	for _, report := range searchReport {
+	for _, imageSearchReport := range searchReport {
 		for idx, entry := range entries {
-			if entry.Name == report.Name {
-				entries[idx].Tags = append(entries[idx].Tags, report.Tag)
+			if entry.Name == imageSearchReport.Name {
+				entries[idx].Tags = append(entries[idx].Tags, imageSearchReport.Tag)
 				continue ReportLoop
 			}
 		}
 		newElem := listEntryTag{
-			report.Name,
-			[]string{report.Tag},
+			imageSearchReport.Name,
+			[]string{imageSearchReport.Tag},
 		}
 
 		entries = append(entries, newElem)

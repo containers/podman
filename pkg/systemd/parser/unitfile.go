@@ -191,11 +191,11 @@ func (f *UnitFile) merge(source *UnitFile) {
 
 // Create a copy of the unit file, copies filename but not path
 func (f *UnitFile) Dup() *UnitFile {
-	copy := NewUnitFile()
+	unitFile := NewUnitFile()
 
-	copy.merge(f)
-	copy.Filename = f.Filename
-	return copy
+	unitFile.merge(f)
+	unitFile.Filename = f.Filename
+	return unitFile
 }
 
 func lineIsComment(line string) bool {
@@ -708,12 +708,12 @@ func (f *UnitFile) LookupUID(groupName string, key string, defaultValue uint32) 
 		return uint32(intVal), nil
 	}
 
-	user, err := user.Lookup(v)
+	lookupUser, err := user.Lookup(v)
 	if err != nil {
 		return 0, err
 	}
 
-	intVal, err = strconv.ParseInt(user.Uid, 10, 64)
+	intVal, err = strconv.ParseInt(lookupUser.Uid, 10, 64)
 	if err != nil {
 		return 0, err
 	}

@@ -287,7 +287,7 @@ func play(cmd *cobra.Command, args []string) error {
 	var teardownReader *bytes.Reader
 	if playOptions.Wait {
 		// Stop the shutdown signal handler so we can actually clean up after a SIGTERM or interrupt
-		if err := shutdown.Stop(); err != nil && err != shutdown.ErrNotStarted {
+		if err := shutdown.Stop(); err != nil && !errors.Is(err, shutdown.ErrNotStarted) {
 			return err
 		}
 		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)

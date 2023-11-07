@@ -195,16 +195,16 @@ func AddPolicyEntries(policyPath string, input AddPolicyEntriesInput) error {
 		if len(pubkeysfile) == 0 {
 			return errors.New("at least one public key must be defined for type 'signedBy'")
 		}
-		for _, filepath := range pubkeysfile {
-			newReposContent = append(newReposContent, repoContent{Type: trustType, KeyType: "GPGKeys", KeyPath: filepath})
+		for _, fp := range pubkeysfile {
+			newReposContent = append(newReposContent, repoContent{Type: trustType, KeyType: "GPGKeys", KeyPath: fp})
 		}
 
 	case "sigstoreSigned":
 		if len(pubkeysfile) == 0 {
 			return errors.New("at least one public key must be defined for type 'sigstoreSigned'")
 		}
-		for _, filepath := range pubkeysfile {
-			newReposContent = append(newReposContent, repoContent{Type: trustType, KeyPath: filepath})
+		for _, fp := range pubkeysfile {
+			newReposContent = append(newReposContent, repoContent{Type: trustType, KeyPath: fp})
 		}
 
 	default:

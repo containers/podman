@@ -207,20 +207,20 @@ func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []stri
 	if err != nil {
 		return nil, err
 	}
-	reports := make([]*entities.PauseUnpauseReport, 0, len(containers))
+	unpauseReports := make([]*entities.PauseUnpauseReport, 0, len(containers))
 	for _, c := range containers {
 		err := c.Pause()
 		if err != nil && options.All && errors.Is(err, define.ErrCtrStateInvalid) {
 			logrus.Debugf("Container %s is not running", c.ID())
 			continue
 		}
-		reports = append(reports, &entities.PauseUnpauseReport{
+		unpauseReports = append(unpauseReports, &entities.PauseUnpauseReport{
 			Id:       c.ID(),
 			Err:      err,
 			RawInput: c.rawInput,
 		})
 	}
-	return reports, nil
+	return unpauseReports, nil
 }
 
 func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
@@ -228,20 +228,20 @@ func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []st
 	if err != nil {
 		return nil, err
 	}
-	reports := make([]*entities.PauseUnpauseReport, 0, len(containers))
+	unpauseReports := make([]*entities.PauseUnpauseReport, 0, len(containers))
 	for _, c := range containers {
 		err := c.Unpause()
 		if err != nil && options.All && errors.Is(err, define.ErrCtrStateInvalid) {
 			logrus.Debugf("Container %s is not paused", c.ID())
 			continue
 		}
-		reports = append(reports, &entities.PauseUnpauseReport{
+		unpauseReports = append(unpauseReports, &entities.PauseUnpauseReport{
 			Id:       c.ID(),
 			Err:      err,
 			RawInput: c.rawInput,
 		})
 	}
-	return reports, nil
+	return unpauseReports, nil
 }
 func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []string, options entities.StopOptions) ([]*entities.StopReport, error) {
 	containers, err := getContainers(ic.Libpod,
@@ -302,15 +302,15 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 	if err != nil {
 		return nil, err
 	}
-	reports := make([]*entities.StopReport, 0, len(errMap))
+	stopReports := make([]*entities.StopReport, 0, len(errMap))
 	for ctr, err := range errMap {
 		report := new(entities.StopReport)
 		report.Id = ctr.ID()
 		report.RawInput = idToRawInput[ctr.ID()]
 		report.Err = err
-		reports = append(reports, report)
+		stopReports = append(stopReports, report)
 	}
-	return reports, nil
+	return stopReports, nil
 }
 
 func (ic *ContainerEngine) ContainerPrune(ctx context.Context, options entities.ContainerPruneOptions) ([]*reports.PruneReport, error) {
@@ -336,20 +336,20 @@ func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []strin
 		return nil, err
 	}
 
-	reports := make([]*entities.KillReport, 0, len(containers))
+	killReports := make([]*entities.KillReport, 0, len(containers))
 	for _, con := range containers {
 		err := con.Kill(uint(sig))
 		if options.All && errors.Is(err, define.ErrCtrStateInvalid) {
 			logrus.Debugf("Container %s is not running", con.ID())
 			continue
 		}
-		reports = append(reports, &entities.KillReport{
+		killReports = append(killReports, &entities.KillReport{
 			Id:       con.ID(),
 			Err:      err,
 			RawInput: con.rawInput,
 		})
 	}
-	return reports, nil
+	return killReports, nil
 }
 
 func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []string, options entities.RestartOptions) ([]*entities.RestartReport, error) {
@@ -364,19 +364,19 @@ func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []st
 		return nil, err
 	}
 
-	reports := make([]*entities.RestartReport, 0, len(containers))
+	restartReports := make([]*entities.RestartReport, 0, len(containers))
 	for _, c := range containers {
 		timeout := c.StopTimeout()
 		if options.Timeout != nil {
 			timeout = *options.Timeout
 		}
-		reports = append(reports, &entities.RestartReport{
+		restartReports = append(restartReports, &entities.RestartReport{
 			Id:       c.ID(),
 			Err:      c.RestartWithTimeout(ctx, timeout),
 			RawInput: c.rawInput,
 		})
 	}
-	return reports, nil
+	return restartReports, nil
 }
 
 //nolint:unparam
@@ -503,8 +503,8 @@ func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []st
 		}, nil, nil
 	}
 	var (
-		reports = make([]*entities.ContainerInspectReport, 0, len(namesOrIds))
-		errs    = []error{}
+		inspectReports = make([]*entities.ContainerInspectReport, 0, len(namesOrIds))
+		errs           = []error{}
 	)
 	for _, name := range namesOrIds {
 		ctr, err := ic.Libpod.LookupContainer(name)
@@ -529,9 +529,9 @@ func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []st
 			return nil, nil, err
 		}
 
-		reports = append(reports, &entities.ContainerInspectReport{InspectContainerData: inspect})
+		inspectReports = append(inspectReports, &entities.ContainerInspectReport{InspectContainerData: inspect})
 	}
-	return reports, errs, nil
+	return inspectReports, errs, nil
 }
 
 func (ic *ContainerEngine) ContainerTop(ctx context.Context, options entities.TopOptions) (*entities.StringSliceReport, error) {
@@ -632,10 +632,10 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		return nil, err
 	}
 
-	reports := make([]*entities.CheckpointReport, 0, len(containers))
+	checkpointReports := make([]*entities.CheckpointReport, 0, len(containers))
 	for _, c := range containers {
 		criuStatistics, runtimeCheckpointDuration, err := c.Checkpoint(ctx, checkOpts)
-		reports = append(reports, &entities.CheckpointReport{
+		checkpointReports = append(checkpointReports, &entities.CheckpointReport{
 			Err:             err,
 			Id:              c.ID(),
 			RawInput:        c.rawInput,
@@ -643,7 +643,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 			CRIUStatistics:  criuStatistics,
 		})
 	}
-	return reports, nil
+	return checkpointReports, nil
 }
 
 func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []string, options entities.RestoreOptions) ([]*entities.RestoreReport, error) {
@@ -731,10 +731,10 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		return nil, err
 	}
 
-	reports := make([]*entities.RestoreReport, 0, len(ctrs))
+	restoreReports := make([]*entities.RestoreReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		criuStatistics, runtimeRestoreDuration, err := c.Restore(ctx, restoreOptions)
-		reports = append(reports, &entities.RestoreReport{
+		restoreReports = append(restoreReports, &entities.RestoreReport{
 			Err:             err,
 			Id:              c.ID(),
 			RawInput:        idToRawInput[c.ID()],
@@ -744,12 +744,12 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 	}
 
 	for _, importErr := range checkpointImageImportErrors {
-		reports = append(reports, &entities.RestoreReport{
+		restoreReports = append(restoreReports, &entities.RestoreReport{
 			Err: importErr,
 		})
 	}
 
-	return reports, nil
+	return restoreReports, nil
 }
 
 func (ic *ContainerEngine) ContainerCreate(ctx context.Context, s *specgen.SpecGenerator) (*entities.ContainerCreateReport, error) {
@@ -915,7 +915,7 @@ func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID s
 }
 
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
-	reports := []*entities.ContainerStartReport{}
+	startReports := []*entities.ContainerStartReport{}
 	var exitCode = define.ExecErrorCodeGeneric
 	containers, err := getContainers(ic.Libpod, getContainersOptions{all: options.All, latest: options.Latest, names: namesOrIds, filters: options.Filters})
 	if err != nil {
@@ -935,38 +935,38 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			if errors.Is(err, define.ErrDetach) {
 				// User manually detached
 				// Exit cleanly immediately
-				reports = append(reports, &entities.ContainerStartReport{
+				startReports = append(startReports, &entities.ContainerStartReport{
 					Id:       ctr.ID(),
 					RawInput: ctr.rawInput,
 					Err:      nil,
 					ExitCode: 0,
 				})
-				return reports, nil
+				return startReports, nil
 			}
 
 			if errors.Is(err, define.ErrWillDeadlock) {
 				logrus.Debugf("Deadlock error: %v", err)
-				reports = append(reports, &entities.ContainerStartReport{
+				startReports = append(startReports, &entities.ContainerStartReport{
 					Id:       ctr.ID(),
 					RawInput: ctr.rawInput,
 					Err:      err,
 					ExitCode: define.ExitCode(err),
 				})
-				return reports, fmt.Errorf("attempting to start container %s would cause a deadlock; please run 'podman system renumber' to resolve", ctr.ID())
+				return startReports, fmt.Errorf("attempting to start container %s would cause a deadlock; please run 'podman system renumber' to resolve", ctr.ID())
 			}
 
 			if ctrRunning {
-				reports = append(reports, &entities.ContainerStartReport{
+				startReports = append(startReports, &entities.ContainerStartReport{
 					Id:       ctr.ID(),
 					RawInput: ctr.rawInput,
 					Err:      nil,
 					ExitCode: 0,
 				})
-				return reports, err
+				return startReports, err
 			}
 
 			if err != nil {
-				reports = append(reports, &entities.ContainerStartReport{
+				startReports = append(startReports, &entities.ContainerStartReport{
 					Id:       ctr.ID(),
 					RawInput: ctr.rawInput,
 					Err:      err,
@@ -977,17 +977,17 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 						logrus.Errorf("Removing container %s: %v", ctr.ID(), err)
 					}
 				}
-				return reports, fmt.Errorf("unable to start container %s: %w", ctr.ID(), err)
+				return startReports, fmt.Errorf("unable to start container %s: %w", ctr.ID(), err)
 			}
 
 			exitCode = ic.GetContainerExitCode(ctx, ctr.Container)
-			reports = append(reports, &entities.ContainerStartReport{
+			startReports = append(startReports, &entities.ContainerStartReport{
 				Id:       ctr.ID(),
 				RawInput: ctr.rawInput,
 				Err:      err,
 				ExitCode: exitCode,
 			})
-			return reports, nil
+			return startReports, nil
 		} // end attach
 
 		// Start the container if it's not running already.
@@ -1003,11 +1003,11 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				report.Err = err
 				if errors.Is(err, define.ErrWillDeadlock) {
 					report.Err = fmt.Errorf("please run 'podman system renumber' to resolve deadlocks: %w", err)
-					reports = append(reports, report)
+					startReports = append(startReports, report)
 					continue
 				}
 				report.Err = fmt.Errorf("unable to start container %q: %w", ctr.ID(), err)
-				reports = append(reports, report)
+				startReports = append(startReports, report)
 				if ctr.AutoRemove() {
 					if _, _, err := ic.removeContainer(ctx, ctr.Container, entities.RmOptions{}); err != nil {
 						logrus.Errorf("Removing container %s: %v", ctr.ID(), err)
@@ -1016,10 +1016,10 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				continue
 			}
 			report.ExitCode = 0
-			reports = append(reports, report)
+			startReports = append(startReports, report)
 		}
 	}
-	return reports, nil
+	return startReports, nil
 }
 
 func (ic *ContainerEngine) ContainerList(ctx context.Context, options entities.ContainerListOptions) ([]entities.ListContainer, error) {
@@ -1263,7 +1263,7 @@ func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []st
 	if err != nil {
 		return nil, err
 	}
-	reports := []*entities.ContainerCleanupReport{}
+	cleanupReports := []*entities.ContainerCleanupReport{}
 	for _, ctr := range containers {
 		var err error
 		report := entities.ContainerCleanupReport{Id: ctr.ID(), RawInput: ctr.rawInput}
@@ -1301,9 +1301,9 @@ func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []st
 			report.RmiErr = errorhandling.JoinErrors(rmErrors)
 		}
 
-		reports = append(reports, &report)
+		cleanupReports = append(cleanupReports, &report)
 	}
-	return reports, nil
+	return cleanupReports, nil
 }
 
 func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []string, options entities.ContainerInitOptions) ([]*entities.ContainerInitReport, error) {
@@ -1311,7 +1311,7 @@ func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []strin
 	if err != nil {
 		return nil, err
 	}
-	reports := make([]*entities.ContainerInitReport, 0, len(containers))
+	initReports := make([]*entities.ContainerInitReport, 0, len(containers))
 	for _, ctr := range containers {
 		report := entities.ContainerInitReport{Id: ctr.ID(), RawInput: ctr.rawInput}
 		err := ctr.Init(ctx, ctr.PodID() != "")
@@ -1321,9 +1321,9 @@ func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []strin
 			err = nil
 		}
 		report.Err = err
-		reports = append(reports, &report)
+		initReports = append(initReports, &report)
 	}
-	return reports, nil
+	return initReports, nil
 }
 
 func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []string, options entities.ContainerMountOptions) ([]*entities.ContainerMountReport, error) {
@@ -1342,7 +1342,7 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 			os.Exit(ret)
 		}
 	}
-	reports := []*entities.ContainerMountReport{}
+	mountReports := []*entities.ContainerMountReport{}
 	// Attempt to mount named containers directly from storage,
 	// this will fail and code will fall through to removing the container from libpod.`
 	names := []string{}
@@ -1351,7 +1351,7 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 		if report.Path, report.Err = ic.Libpod.MountStorageContainer(ctr); report.Err != nil {
 			names = append(names, ctr)
 		} else {
-			reports = append(reports, &report)
+			mountReports = append(mountReports, &report)
 		}
 	}
 
@@ -1362,10 +1362,10 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 	for _, ctr := range containers {
 		report := entities.ContainerMountReport{Id: ctr.ID()}
 		report.Path, report.Err = ctr.Mount()
-		reports = append(reports, &report)
+		mountReports = append(mountReports, &report)
 	}
-	if len(reports) > 0 {
-		return reports, nil
+	if len(mountReports) > 0 {
+		return mountReports, nil
 	}
 
 	storageCtrs, err := ic.Libpod.StorageContainers()
@@ -1384,7 +1384,7 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 			name = sctr.Names[0]
 		}
 		if mounted {
-			reports = append(reports, &entities.ContainerMountReport{
+			mountReports = append(mountReports, &entities.ContainerMountReport{
 				Id:   sctr.ID,
 				Name: name,
 				Path: path,
@@ -1404,7 +1404,7 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 		}
 
 		if mounted {
-			reports = append(reports, &entities.ContainerMountReport{
+			mountReports = append(mountReports, &entities.ContainerMountReport{
 				Id:   ctr.ID(),
 				Name: ctr.Name(),
 				Path: path,
@@ -1412,11 +1412,11 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 		}
 	}
 
-	return reports, nil
+	return mountReports, nil
 }
 
 func (ic *ContainerEngine) ContainerUnmount(ctx context.Context, nameOrIDs []string, options entities.ContainerUnmountOptions) ([]*entities.ContainerUnmountReport, error) {
-	reports := []*entities.ContainerUnmountReport{}
+	unmountReports := []*entities.ContainerUnmountReport{}
 	names := []string{}
 	if options.All {
 		storageCtrs, err := ic.Libpod.StorageContainers()
@@ -1429,10 +1429,10 @@ func (ic *ContainerEngine) ContainerUnmount(ctx context.Context, nameOrIDs []str
 				report := entities.ContainerUnmountReport{Id: sctr.ID}
 				if _, report.Err = ic.Libpod.UnmountStorageContainer(sctr.ID, options.Force); report.Err != nil {
 					if !errors.Is(report.Err, define.ErrCtrExists) {
-						reports = append(reports, &report)
+						unmountReports = append(unmountReports, &report)
 					}
 				} else {
-					reports = append(reports, &report)
+					unmountReports = append(unmountReports, &report)
 				}
 			}
 		}
@@ -1442,7 +1442,7 @@ func (ic *ContainerEngine) ContainerUnmount(ctx context.Context, nameOrIDs []str
 		if _, report.Err = ic.Libpod.UnmountStorageContainer(ctr, options.Force); report.Err != nil {
 			names = append(names, ctr)
 		} else {
-			reports = append(reports, &report)
+			unmountReports = append(unmountReports, &report)
 		}
 	}
 	containers, err := getContainers(ic.Libpod, getContainersOptions{all: options.All, latest: options.Latest, names: names})
@@ -1468,9 +1468,9 @@ func (ic *ContainerEngine) ContainerUnmount(ctx context.Context, nameOrIDs []str
 			}
 			report.Err = fmt.Errorf("unmounting container %s: %w", ctr.ID(), err)
 		}
-		reports = append(reports, &report)
+		unmountReports = append(unmountReports, &report)
 	}
-	return reports, nil
+	return unmountReports, nil
 }
 
 // GetConfig returns a copy of the configuration used by the runtime
@@ -1483,7 +1483,7 @@ func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrID string, o
 	if err != nil {
 		return nil, err
 	}
-	reports := []*entities.ContainerPortReport{}
+	portReports := []*entities.ContainerPortReport{}
 	for _, con := range containers {
 		state, err := con.State()
 		if err != nil {
@@ -1497,13 +1497,13 @@ func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrID string, o
 			return nil, err
 		}
 		if len(portmappings) > 0 {
-			reports = append(reports, &entities.ContainerPortReport{
+			portReports = append(portReports, &entities.ContainerPortReport{
 				Id:    con.ID(),
 				Ports: portmappings,
 			})
 		}
 	}
-	return reports, nil
+	return portReports, nil
 }
 
 // Shutdown Libpod engine
@@ -1716,8 +1716,8 @@ func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts enti
 	}
 
 	if ctrCloneOpts.Destroy {
-		var time *uint
-		err = ic.Libpod.RemoveContainer(context.Background(), c, ctrCloneOpts.Force, false, time)
+		var t *uint
+		err = ic.Libpod.RemoveContainer(context.Background(), c, ctrCloneOpts.Force, false, t)
 		if err != nil {
 			return nil, err
 		}

@@ -723,13 +723,13 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, platformSpec := range query.Platform {
-		os, arch, variant, err := parse.Platform(platformSpec)
+		platformOS, arch, variant, err := parse.Platform(platformSpec)
 		if err != nil {
 			utils.BadRequest(w, "platform", platformSpec, err)
 			return
 		}
 		buildOptions.Platforms = append(buildOptions.Platforms, struct{ OS, Arch, Variant string }{
-			OS:      os,
+			OS:      platformOS,
 			Arch:    arch,
 			Variant: variant,
 		})

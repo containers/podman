@@ -343,7 +343,7 @@ func imageDataToImageInspect(ctx context.Context, l *libimage.Image) (*handlers.
 	}
 
 	// TODO: many fields in Config still need wiring
-	config := dockerContainer.Config{
+	c := dockerContainer.Config{
 		User:         info.User,
 		ExposedPorts: ports,
 		Env:          info.Config.Env,
@@ -377,7 +377,7 @@ func imageDataToImageInspect(ctx context.Context, l *libimage.Image) (*handlers.
 		Architecture:    info.Architecture,
 		Author:          info.Author,
 		Comment:         info.Comment,
-		Config:          &config,
+		Config:          &c,
 		ContainerConfig: cc,
 		Created:         l.Created().Format(time.RFC3339Nano),
 		DockerVersion:   info.Version,

@@ -148,9 +148,9 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 
 	It("add capabilities", func() {
 		SkipIfRootlessCgroupsV1("Not supported for rootless + CGroupsV1")
-		cap := podmanTest.Podman([]string{"run", ALPINE, "grep", "CapEff", "/proc/self/status"})
-		cap.WaitWithDefaultTimeout()
-		Expect(cap).Should(ExitCleanly())
+		capSession := podmanTest.Podman([]string{"run", ALPINE, "grep", "CapEff", "/proc/self/status"})
+		capSession.WaitWithDefaultTimeout()
+		Expect(capSession).Should(ExitCleanly())
 
 		os.Setenv("CONTAINERS_CONF", "config/containers-ns.conf")
 		if IsRemote() {
@@ -159,7 +159,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		session := podmanTest.Podman([]string{"run", BB, "grep", "CapEff", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).ToNot(Equal(cap.OutputToString()))
+		Expect(session.OutputToString()).ToNot(Equal(capSession.OutputToString()))
 	})
 
 	It("regular capabilities", func() {

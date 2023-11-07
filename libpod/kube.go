@@ -238,21 +238,21 @@ func GenerateForKubeDeployment(ctx context.Context, pod *YAMLPod, options entiti
 
 // GenerateForKube generates a v1.PersistentVolumeClaim from a libpod volume.
 func (v *Volume) GenerateForKube() *v1.PersistentVolumeClaim {
-	annotations := make(map[string]string)
-	annotations[util.VolumeDriverAnnotation] = v.Driver()
+	genKubeAnnotation := make(map[string]string)
+	genKubeAnnotation[util.VolumeDriverAnnotation] = v.Driver()
 
 	for k, v := range v.Options() {
 		switch k {
 		case "o":
-			annotations[util.VolumeMountOptsAnnotation] = v
+			genKubeAnnotation[util.VolumeMountOptsAnnotation] = v
 		case "device":
-			annotations[util.VolumeDeviceAnnotation] = v
+			genKubeAnnotation[util.VolumeDeviceAnnotation] = v
 		case "type":
-			annotations[util.VolumeTypeAnnotation] = v
+			genKubeAnnotation[util.VolumeTypeAnnotation] = v
 		case "UID":
-			annotations[util.VolumeUIDAnnotation] = v
+			genKubeAnnotation[util.VolumeUIDAnnotation] = v
 		case "GID":
-			annotations[util.VolumeGIDAnnotation] = v
+			genKubeAnnotation[util.VolumeGIDAnnotation] = v
 		}
 	}
 
@@ -264,7 +264,7 @@ func (v *Volume) GenerateForKube() *v1.PersistentVolumeClaim {
 		ObjectMeta: v12.ObjectMeta{
 			Name:              v.Name(),
 			Labels:            v.Labels(),
-			Annotations:       annotations,
+			Annotations:       genKubeAnnotation,
 			CreationTimestamp: v12.Now(),
 		},
 		Spec: v1.PersistentVolumeClaimSpec{
@@ -552,11 +552,11 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				stopTimeout = &ctr.config.StopTimeout
 			}
 
-			ctr, volumes, _, annotations, err := containerToV1Container(ctx, ctr, getService)
+			ctr, volumes, _, ctrAnnotations, err := containerToV1Container(ctx, ctr, getService)
 			if err != nil {
 				return nil, err
 			}
-			for k, v := range annotations {
+			for k, v := range ctrAnnotations {
 				podAnnotations[define.BindMountPrefix] = truncateKubeAnnotation(k+":"+v, useLongAnnotations)
 			}
 			// Since port bindings for the pod are handled by the
@@ -698,7 +698,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 			kubeAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = truncateKubeAnnotation(v, useLongAnnotations)
 		}
 
-		// Convert auto-update labels into kube annotations
+		// Convert auto-update labels into kube ctrAnnotations
 		for k, v := range getAutoUpdateAnnotations(ctr.Name(), ctr.Labels(), useLongAnnotations) {
 			kubeAnnotations[k] = truncateKubeAnnotation(v, useLongAnnotations)
 		}
@@ -748,11 +748,11 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 		if !(ctr.IDMappings().HostUIDMapping && ctr.IDMappings().HostGIDMapping) {
 			hostUsers = false
 		}
-		kubeCtr, kubeVols, ctrDNS, annotations, err := containerToV1Container(ctx, ctr, getService)
+		kubeCtr, kubeVols, ctrDNS, ctrAnnotations, err := containerToV1Container(ctx, ctr, getService)
 		if err != nil {
 			return nil, err
 		}
-		for k, v := range annotations {
+		for k, v := range ctrAnnotations {
 			kubeAnnotations[define.BindMountPrefix] = truncateKubeAnnotation(k+":"+v, useLongAnnotations)
 		}
 		if isInit {
@@ -842,17 +842,17 @@ func getPodRestartPolicy(policy string) v1.RestartPolicy {
 func containerToV1Container(ctx context.Context, c *Container, getService bool) (v1.Container, []v1.Volume, *v1.PodDNSConfig, map[string]string, error) {
 	kubeContainer := v1.Container{}
 	kubeVolumes := []v1.Volume{}
-	annotations := make(map[string]string)
+	ctrAnnotations := make(map[string]string)
 	kubeSec, hasSecData, err := generateKubeSecurityContext(c)
 	if err != nil {
-		return kubeContainer, kubeVolumes, nil, annotations, err
+		return kubeContainer, kubeVolumes, nil, ctrAnnotations, err
 	}
 
 	// NOTE: a privileged container mounts all of /dev/*.
 	if !c.Privileged() && c.config.Spec.Linux != nil && len(c.config.Spec.Linux.Devices) > 0 {
 		// TODO Enable when we can support devices and their names
 		kubeContainer.VolumeDevices = generateKubeVolumeDeviceFromLinuxDevice(c.config.Spec.Linux.Devices)
-		return kubeContainer, kubeVolumes, nil, annotations, fmt.Errorf("linux devices: %w", define.ErrNotImplemented)
+		return kubeContainer, kubeVolumes, nil, ctrAnnotations, fmt.Errorf("linux devices: %w", define.ErrNotImplemented)
 	}
 
 	if len(c.config.UserVolumes) > 0 {
@@ -860,18 +860,18 @@ func containerToV1Container(ctx context.Context, c *Container, getService bool) 
 		if err != nil {
 			return kubeContainer, kubeVolumes, nil, nil, err
 		}
-		annotations = localAnnotations
+		ctrAnnotations = localAnnotations
 		kubeContainer.VolumeMounts = volumeMounts
 		kubeVolumes = append(kubeVolumes, volumes...)
 	}
 
 	portmappings, err := c.PortMappings()
 	if err != nil {
-		return kubeContainer, kubeVolumes, nil, annotations, err
+		return kubeContainer, kubeVolumes, nil, ctrAnnotations, err
 	}
 	ports, err := portMappingToContainerPort(portmappings, getService)
 	if err != nil {
-		return kubeContainer, kubeVolumes, nil, annotations, err
+		return kubeContainer, kubeVolumes, nil, ctrAnnotations, err
 	}
 
 	// Handle command and arguments.
@@ -902,11 +902,11 @@ func containerToV1Container(ctx context.Context, c *Container, getService bool) 
 	kubeContainer.Stdin = c.Stdin()
 	img, _, err := c.runtime.libimageRuntime.LookupImage(image, nil)
 	if err != nil {
-		return kubeContainer, kubeVolumes, nil, annotations, fmt.Errorf("looking up image %q of container %q: %w", image, c.ID(), err)
+		return kubeContainer, kubeVolumes, nil, ctrAnnotations, fmt.Errorf("looking up image %q of container %q: %w", image, c.ID(), err)
 	}
 	imgData, err := img.Inspect(ctx, nil)
 	if err != nil {
-		return kubeContainer, kubeVolumes, nil, annotations, err
+		return kubeContainer, kubeVolumes, nil, ctrAnnotations, err
 	}
 	// If the user doesn't set a command/entrypoint when creating the container with podman and
 	// is using the image command or entrypoint from the image, don't add it to the generated kube yaml
@@ -931,7 +931,7 @@ func containerToV1Container(ctx context.Context, c *Container, getService bool) 
 
 	envVariables, err := libpodEnvVarsToKubeEnvVars(c.config.Spec.Process.Env, imgData.Config.Env)
 	if err != nil {
-		return kubeContainer, kubeVolumes, nil, annotations, err
+		return kubeContainer, kubeVolumes, nil, ctrAnnotations, err
 	}
 	kubeContainer.Env = envVariables
 
@@ -1011,7 +1011,7 @@ func containerToV1Container(ctx context.Context, c *Container, getService bool) 
 		}
 		dns.Options = dnsOptions
 	}
-	return kubeContainer, kubeVolumes, &dns, annotations, nil
+	return kubeContainer, kubeVolumes, &dns, ctrAnnotations, nil
 }
 
 // portMappingToContainerPort takes a portmapping and converts
@@ -1084,19 +1084,19 @@ func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, []v1.Volume
 	namedVolumes, mounts := c.SortUserVolumes(c.config.Spec)
 	vms := make([]v1.VolumeMount, 0, len(mounts))
 	vos := make([]v1.Volume, 0, len(mounts))
-	annotations := make(map[string]string)
+	mountAnnotations := make(map[string]string)
 
 	var suffix string
 	for index, m := range mounts {
 		for _, opt := range m.Options {
 			if opt == "Z" || opt == "z" {
-				annotations[m.Source] = opt
+				mountAnnotations[m.Source] = opt
 				break
 			}
 		}
 		vm, vo, err := generateKubeVolumeMount(m)
 		if err != nil {
-			return vms, vos, annotations, err
+			return vms, vos, mountAnnotations, err
 		}
 		// Name will be the same, so use the index as suffix
 		suffix = fmt.Sprintf("-%d", index)
@@ -1110,7 +1110,7 @@ func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, []v1.Volume
 		vms = append(vms, vm)
 		vos = append(vos, vo)
 	}
-	return vms, vos, annotations, nil
+	return vms, vos, mountAnnotations, nil
 }
 
 // generateKubePersistentVolumeClaim converts a ContainerNamedVolume to a Kubernetes PersistentVolumeClaim
@@ -1390,17 +1390,17 @@ func removeUnderscores(s string) string {
 // and returns them as kube annotations
 func getAutoUpdateAnnotations(ctrName string, ctrLabels map[string]string, useLongAnnotations bool) map[string]string {
 	autoUpdateLabel := "io.containers.autoupdate"
-	annotations := make(map[string]string)
+	a := make(map[string]string)
 
 	ctrName = removeUnderscores(ctrName)
 	for k, v := range ctrLabels {
 		if strings.Contains(k, autoUpdateLabel) {
 			// since labels can variate between containers within a pod, they will be
-			// identified with the container name when converted into kube annotations
+			// identified with the container name when converted into kube a
 			kc := fmt.Sprintf("%s/%s", k, ctrName)
-			annotations[kc] = truncateKubeAnnotation(v, useLongAnnotations)
+			a[kc] = truncateKubeAnnotation(v, useLongAnnotations)
 		}
 	}
 
-	return annotations
+	return a
 }

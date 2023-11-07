@@ -160,7 +160,7 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 			logrus.Debugf("Copying STDIN to socket")
 
 			_, err := detach.Copy(socket, stdin, detachKeysInBytes)
-			if err != nil && err != define.ErrDetach {
+			if err != nil && !errors.Is(err, define.ErrDetach) {
 				logrus.Errorf("Failed to write input to service: %v", err)
 			}
 			if err == nil {

@@ -13,7 +13,6 @@ podman-image-sign.1.md
 podman-image-trust.1.md
 podman-images.1.md
 podman-init.1.md
-podman-init.1.md
 podman-inspect.1.md
 podman-kill.1.md
 podman-kube-play.1.md
@@ -34,7 +33,6 @@ podman-network-reload.1.md
 podman-pause.1.md
 podman-pod-clone.1.md
 podman-pod-create.1.md
-podman-pod-inspect.1.md
 podman-pod-inspect.1.md
 podman-pod-kill.1.md
 podman-pod-logs.1.md

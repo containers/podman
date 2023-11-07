@@ -158,12 +158,12 @@ func parseEnvOrLabelFile(envOrLabel map[string]string, filename, configType stri
 
 // ValidURL checks a string urlStr is a url or not
 func ValidURL(urlStr string) error {
-	url, err := url.ParseRequestURI(urlStr)
+	parsedURL, err := url.ParseRequestURI(urlStr)
 	if err != nil {
-		return fmt.Errorf("invalid url %q: %w", urlStr, err)
+		return fmt.Errorf("invalid parsedURL %q: %w", urlStr, err)
 	}
-	if url.Scheme == "" {
-		return fmt.Errorf("invalid url %q: missing scheme", urlStr)
+	if parsedURL.Scheme == "" {
+		return fmt.Errorf("invalid parsedURL %q: missing scheme", urlStr)
 	}
 	return nil
 }

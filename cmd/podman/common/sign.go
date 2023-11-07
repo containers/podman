@@ -40,7 +40,7 @@ func PrepareSigning(pushOpts *entities.ImagePushOptions,
 	pushOpts.SignSigstorePrivateKeyPassphrase = []byte(passphrase)
 	cleanup := signingCleanup{}
 	if signBySigstoreParamFile != "" {
-		signer, err := sigstore.NewSignerFromParameterFile(signBySigstoreParamFile, &sigstore.Options{
+		sigSigner, err := sigstore.NewSignerFromParameterFile(signBySigstoreParamFile, &sigstore.Options{
 			PrivateKeyPassphrasePrompt: cli.ReadPassphraseFile,
 			Stdin:                      os.Stdin,
 			Stdout:                     os.Stdout,
@@ -48,8 +48,8 @@ func PrepareSigning(pushOpts *entities.ImagePushOptions,
 		if err != nil {
 			return nil, err
 		}
-		pushOpts.Signers = append(pushOpts.Signers, signer)
-		cleanup.signers = append(cleanup.signers, signer)
+		pushOpts.Signers = append(pushOpts.Signers, sigSigner)
+		cleanup.signers = append(cleanup.signers, sigSigner)
 	}
 	return cleanup.cleanup, nil
 }

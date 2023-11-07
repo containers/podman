@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -217,7 +218,7 @@ func (s *APIServer) Serve() error {
 	s.setupSystemd()
 	go func() {
 		err := s.Server.Serve(s.Listener)
-		if err != nil && err != http.ErrServerClosed {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errChan <- fmt.Errorf("failed to start API service: %w", err)
 			return
 		}
@@ -251,7 +252,7 @@ func (s *APIServer) setupPprof() {
 		router.PathPrefix("/debug/pprof/").HandlerFunc(pprof.Index)
 
 		err := http.ListenAndServe(s.PProfAddr, router)
-		if err != nil && err != http.ErrServerClosed {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logrus.Warnf("pprof service failed: %v", err)
 		}
 	}()
@@ -281,7 +282,7 @@ func (s *APIServer) Shutdown(halt bool) error {
 			defer cancel()
 
 			err := s.Server.Shutdown(ctx)
-			if err != nil && err != context.Canceled && err != http.ErrServerClosed {
+			if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, http.ErrServerClosed) {
 				logrus.Error("Failed to cleanly shutdown API service: " + err.Error())
 			}
 		}()

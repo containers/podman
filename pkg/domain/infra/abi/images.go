@@ -58,10 +58,10 @@ func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOption
 
 	if !opts.All {
 		// Issue #20469: Docker clients handle the --all flag on the
-		// client side by setting the dangling filter directly.
+		// client side by setting the dangling imageFilter directly.
 		alreadySet := false
-		for _, filter := range pruneOptions.Filters {
-			if strings.HasPrefix(filter, "dangling=") {
+		for _, imageFilter := range pruneOptions.Filters {
+			if strings.HasPrefix(imageFilter, "dangling=") {
 				alreadySet = true
 				break
 			}
@@ -270,7 +270,7 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 }
 
 func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts entities.InspectOptions) ([]*entities.ImageInspectReport, []error, error) {
-	reports := []*entities.ImageInspectReport{}
+	inspectReports := []*entities.ImageInspectReport{}
 	errs := []error{}
 
 	inspectOptions := &libimage.InspectOptions{WithParent: true, WithSize: true}
@@ -290,9 +290,9 @@ func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts en
 		if err := domainUtils.DeepCopy(&report, result); err != nil {
 			return nil, nil, err
 		}
-		reports = append(reports, &report)
+		inspectReports = append(inspectReports, &report)
 	}
-	return reports, errs, nil
+	return inspectReports, errs, nil
 }
 
 func (ir *ImageEngine) Push(ctx context.Context, source string, destination string, options entities.ImagePushOptions) (*entities.ImagePushReport, error) {
@@ -334,11 +334,11 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 
 	compressionFormat := options.CompressionFormat
 	if compressionFormat == "" {
-		config, err := ir.Libpod.GetConfigNoCopy()
+		configNoCopy, err := ir.Libpod.GetConfigNoCopy()
 		if err != nil {
 			return nil, err
 		}
-		compressionFormat = config.Engine.CompressionFormat
+		compressionFormat = configNoCopy.Engine.CompressionFormat
 	}
 	if compressionFormat != "" {
 		algo, err := compression.AlgorithmByName(compressionFormat)
@@ -349,11 +349,11 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	}
 
 	if pushOptions.CompressionLevel == nil {
-		config, err := ir.Libpod.GetConfigNoCopy()
+		configNoCopy, err := ir.Libpod.GetConfigNoCopy()
 		if err != nil {
 			return nil, err
 		}
-		pushOptions.CompressionLevel = config.Engine.CompressionLevel
+		pushOptions.CompressionLevel = configNoCopy.Engine.CompressionLevel
 	}
 
 	if !options.Quiet && pushOptions.Writer == nil {
@@ -475,7 +475,7 @@ func (ir *ImageEngine) Import(ctx context.Context, options entities.ImageImportO
 
 // Search for images using term and filters
 func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.ImageSearchOptions) ([]entities.ImageSearchReport, error) {
-	filter, err := filter.ParseSearchFilter(opts.Filters)
+	searchFilter, err := filter.ParseSearchFilter(opts.Filters)
 	if err != nil {
 		return nil, err
 	}
@@ -486,7 +486,7 @@ func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.Im
 		Username:              opts.Username,
 		Password:              opts.Password,
 		IdentityToken:         opts.IdentityToken,
-		Filter:                *filter,
+		Filter:                *searchFilter,
 		Limit:                 opts.Limit,
 		NoTrunc:               true,
 		InsecureSkipTLSVerify: opts.SkipTLSVerify,
@@ -501,18 +501,18 @@ func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.Im
 	// Convert from image.SearchResults to entities.ImageSearchReport. We don't
 	// want to leak any low-level packages into the remote client, which
 	// requires converting.
-	reports := make([]entities.ImageSearchReport, len(searchResults))
+	searchReports := make([]entities.ImageSearchReport, len(searchResults))
 	for i := range searchResults {
-		reports[i].Index = searchResults[i].Index
-		reports[i].Name = searchResults[i].Name
-		reports[i].Description = searchResults[i].Description
-		reports[i].Stars = searchResults[i].Stars
-		reports[i].Official = searchResults[i].Official
-		reports[i].Automated = searchResults[i].Automated
-		reports[i].Tag = searchResults[i].Tag
+		searchReports[i].Index = searchResults[i].Index
+		searchReports[i].Name = searchResults[i].Name
+		searchReports[i].Description = searchResults[i].Description
+		searchReports[i].Stars = searchResults[i].Stars
+		searchReports[i].Official = searchResults[i].Official
+		searchReports[i].Automated = searchResults[i].Automated
+		searchReports[i].Tag = searchResults[i].Tag
 	}
 
-	return reports, nil
+	return searchReports, nil
 }
 
 // Config returns a copy of the configuration used by the runtime
@@ -697,8 +697,8 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 				}
 				instanceDigests := list.Instances()
 				for _, instanceDigest := range instanceDigests {
-					digest := instanceDigest
-					man, _, err := rawSource.GetManifest(ctx, &digest)
+					d := instanceDigest
+					man, _, err := rawSource.GetManifest(ctx, &d)
 					if err != nil {
 						return err
 					}

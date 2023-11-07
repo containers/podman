@@ -416,8 +416,8 @@ func ParseNetworkFlag(networks []string, pastaNetworkNameExists bool) (Namespace
 		if len(parts) == 1 {
 			// Assume we have been given a comma separated list of networks for backwards compat.
 			networkList := strings.Split(ns, ",")
-			for _, net := range networkList {
-				podmanNetworks[net] = types.PerNetworkOptions{}
+			for _, network := range networkList {
+				podmanNetworks[network] = types.PerNetworkOptions{}
 			}
 		} else {
 			if parts[0] == "" {

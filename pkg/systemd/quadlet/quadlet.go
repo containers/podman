@@ -954,10 +954,10 @@ func ConvertVolume(volume *parser.UnitFile, name string, names map[string]string
 			opts.WriteString(fmt.Sprintf("gid=%d", gid))
 		}
 
-		copy, ok := volume.LookupBoolean(VolumeGroup, KeyCopy)
+		cp, ok := volume.LookupBoolean(VolumeGroup, KeyCopy)
 		if ok {
-			if copy {
-				podman.add("--opt", "copy")
+			if cp {
+				podman.add("--opt", "cp")
 			} else {
 				podman.add("--opt", "nocopy")
 			}

@@ -306,13 +306,13 @@ func getVolumesFrom(volumesFrom []string, runtime *libpod.Runtime) (map[string]s
 			userVolumes[dest] = false
 		}
 
-		// Now we get the container's spec and loop through its volumes
+		// Now we get the container's s and loop through its volumes
 		// and append them in if we can find them.
-		spec := ctr.ConfigNoCopy().Spec
-		if spec == nil {
-			return nil, nil, fmt.Errorf("retrieving container %s spec for volumes-from", ctr.ID())
+		s := ctr.ConfigNoCopy().Spec
+		if s == nil {
+			return nil, nil, fmt.Errorf("retrieving container %s s for volumes-from", ctr.ID())
 		}
-		for _, mnt := range spec.Mounts {
+		for _, mnt := range s.Mounts {
 			if mnt.Type != define.TypeBind {
 				continue
 			}
@@ -330,9 +330,9 @@ func getVolumesFrom(volumesFrom []string, runtime *libpod.Runtime) (map[string]s
 			}
 		}
 
-		// We're done with the spec mounts. Add named volumes.
+		// We're done with the s mounts. Add named volumes.
 		// Add these unconditionally - none of them are automatically
-		// part of the container, as some spec mounts are.
+		// part of the container, as some s mounts are.
 		namedVolumes := ctr.NamedVolumes()
 		for _, namedVol := range namedVolumes {
 			if _, exists := userVolumes[namedVol.Dest]; exists {

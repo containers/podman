@@ -55,7 +55,7 @@ func Prune(ctx context.Context, options *PruneOptions) ([]*reports.PruneReport, 
 	if options == nil {
 		options = new(PruneOptions)
 	}
-	var reports []*reports.PruneReport
+	var pruneReports []*reports.PruneReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func Prune(ctx context.Context, options *PruneOptions) ([]*reports.PruneReport, 
 	}
 	defer response.Body.Close()
 
-	return reports, response.Process(&reports)
+	return pruneReports, response.Process(&pruneReports)
 }
 
 // Remove removes a container from local storage.  The force bool designates
@@ -82,22 +82,22 @@ func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) ([]*re
 	if options == nil {
 		options = new(RemoveOptions)
 	}
-	var reports []*reports.RmReport
+	var rmReports []*reports.RmReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
-		return reports, err
+		return rmReports, err
 	}
 	params, err := options.ToParams()
 	if err != nil {
-		return reports, err
+		return rmReports, err
 	}
 	response, err := conn.DoRequest(ctx, nil, http.MethodDelete, "/containers/%s", params, nil, nameOrID)
 	if err != nil {
-		return reports, err
+		return rmReports, err
 	}
 	defer response.Body.Close()
 
-	return reports, response.Process(&reports)
+	return rmReports, response.Process(&rmReports)
 }
 
 // Inspect returns low level information about a Container.  The nameOrID can be a container name

@@ -312,14 +312,14 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
         );`
 
 	var (
-		os, staticDir, tmpDir, graphRoot, runRoot, graphDriver, volumePath string
-		runtimeOS                                                          = goruntime.GOOS
-		runtimeStaticDir                                                   = filepath.Clean(s.runtime.config.Engine.StaticDir)
-		runtimeTmpDir                                                      = filepath.Clean(s.runtime.config.Engine.TmpDir)
-		runtimeGraphRoot                                                   = filepath.Clean(s.runtime.StorageConfig().GraphRoot)
-		runtimeRunRoot                                                     = filepath.Clean(s.runtime.StorageConfig().RunRoot)
-		runtimeGraphDriver                                                 = s.runtime.StorageConfig().GraphDriverName
-		runtimeVolumePath                                                  = filepath.Clean(s.runtime.config.Engine.VolumePath)
+		dbOS, staticDir, tmpDir, graphRoot, runRoot, graphDriver, volumePath string
+		runtimeOS                                                            = goruntime.GOOS
+		runtimeStaticDir                                                     = filepath.Clean(s.runtime.config.Engine.StaticDir)
+		runtimeTmpDir                                                        = filepath.Clean(s.runtime.config.Engine.TmpDir)
+		runtimeGraphRoot                                                     = filepath.Clean(s.runtime.StorageConfig().GraphRoot)
+		runtimeRunRoot                                                       = filepath.Clean(s.runtime.StorageConfig().RunRoot)
+		runtimeGraphDriver                                                   = s.runtime.StorageConfig().GraphDriverName
+		runtimeVolumePath                                                    = filepath.Clean(s.runtime.config.Engine.VolumePath)
 	)
 
 	// Some fields may be empty, indicating they are set to the default.
@@ -356,7 +356,7 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 
 	row := tx.QueryRow("SELECT Os, StaticDir, TmpDir, GraphRoot, RunRoot, GraphDriver, VolumeDir FROM DBConfig;")
 
-	if err := row.Scan(&os, &staticDir, &tmpDir, &graphRoot, &runRoot, &graphDriver, &volumePath); err != nil {
+	if err := row.Scan(&dbOS, &staticDir, &tmpDir, &graphRoot, &runRoot, &graphDriver, &volumePath); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			if _, err := tx.Exec(createRow, 1, schemaVersion, runtimeOS,
 				runtimeStaticDir, runtimeTmpDir, runtimeGraphRoot,
@@ -386,7 +386,7 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 		return nil
 	}
 
-	if err := checkField("os", os, runtimeOS); err != nil {
+	if err := checkField("dbOS", dbOS, runtimeOS); err != nil {
 		return err
 	}
 	if err := checkField("static dir", staticDir, runtimeStaticDir); err != nil {

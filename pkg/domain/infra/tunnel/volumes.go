@@ -29,24 +29,24 @@ func (ic *ContainerEngine) VolumeRm(ctx context.Context, namesOrIds []string, op
 			namesOrIds = append(namesOrIds, v.Name)
 		}
 	}
-	reports := make([]*entities.VolumeRmReport, 0, len(namesOrIds))
+	rmReports := make([]*entities.VolumeRmReport, 0, len(namesOrIds))
 	for _, id := range namesOrIds {
 		options := new(volumes.RemoveOptions).WithForce(opts.Force)
 		if opts.Timeout != nil {
 			options = options.WithTimeout(*opts.Timeout)
 		}
-		reports = append(reports, &entities.VolumeRmReport{
+		rmReports = append(rmReports, &entities.VolumeRmReport{
 			Err: volumes.Remove(ic.ClientCtx, id, options),
 			Id:  id,
 		})
 	}
-	return reports, nil
+	return rmReports, nil
 }
 
 func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []string, opts entities.InspectOptions) ([]*entities.VolumeInspectReport, []error, error) {
 	var (
-		reports = make([]*entities.VolumeInspectReport, 0, len(namesOrIds))
-		errs    = []error{}
+		inspectReports = make([]*entities.VolumeInspectReport, 0, len(namesOrIds))
+		errs           = []error{}
 	)
 	if opts.All {
 		vols, err := volumes.List(ic.ClientCtx, nil)
@@ -70,9 +70,9 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 			}
 			return nil, nil, err
 		}
-		reports = append(reports, &entities.VolumeInspectReport{VolumeConfigResponse: data})
+		inspectReports = append(inspectReports, &entities.VolumeInspectReport{VolumeConfigResponse: data})
 	}
-	return reports, errs, nil
+	return inspectReports, errs, nil
 }
 
 func (ic *ContainerEngine) VolumePrune(ctx context.Context, opts entities.VolumePruneOptions) ([]*reports.PruneReport, error) {

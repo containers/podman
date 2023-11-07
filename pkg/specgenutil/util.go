@@ -56,13 +56,13 @@ func CreateExpose(expose []string) (map[uint16]string, error) {
 		}
 
 		// Check for a range
-		start, len, err := parseAndValidateRange(splitProto[0])
+		start, rangeLen, err := parseAndValidateRange(splitProto[0])
 		if err != nil {
 			return nil, err
 		}
 
 		var index uint16
-		for index = 0; index < len; index++ {
+		for index = 0; index < rangeLen; index++ {
 			portNum := start + index
 			protocols, ok := toReturn[portNum]
 			if !ok {

@@ -36,8 +36,8 @@ func (ir *ImageEngine) Remove(ctx context.Context, imagesArg []string, opts enti
 
 func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions) ([]*entities.ImageSummary, error) {
 	filters := make(map[string][]string, len(opts.Filter))
-	for _, filter := range opts.Filter {
-		f := strings.Split(filter, "=")
+	for _, listFilter := range opts.Filter {
+		f := strings.Split(listFilter, "=")
 		filters[f[0]] = f[1:]
 	}
 	options := new(images.ListOptions).WithAll(opts.All).WithFilters(filters)
@@ -94,16 +94,16 @@ func (ir *ImageEngine) History(ctx context.Context, nameOrID string, opts entiti
 
 func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOptions) ([]*reports.PruneReport, error) {
 	filters := make(map[string][]string, len(opts.Filter))
-	for _, filter := range opts.Filter {
-		f := strings.Split(filter, "=")
+	for _, pruneFilter := range opts.Filter {
+		f := strings.Split(pruneFilter, "=")
 		filters[f[0]] = f[1:]
 	}
 	options := new(images.PruneOptions).WithAll(opts.All).WithFilters(filters).WithExternal(opts.External)
-	reports, err := images.Prune(ir.ClientCtx, options)
+	pruneReports, err := images.Prune(ir.ClientCtx, options)
 	if err != nil {
 		return nil, err
 	}
-	return reports, nil
+	return pruneReports, nil
 }
 
 func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, opts entities.ImagePullOptions) (*entities.ImagePullReport, error) {
@@ -191,7 +191,7 @@ func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string
 
 func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts entities.InspectOptions) ([]*entities.ImageInspectReport, []error, error) {
 	options := new(images.GetOptions).WithSize(opts.Size)
-	reports := []*entities.ImageInspectReport{}
+	inspectReports := []*entities.ImageInspectReport{}
 	errs := []error{}
 	for _, i := range namesOrIDs {
 		r, err := images.GetImage(ir.ClientCtx, i, options)
@@ -206,9 +206,9 @@ func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts en
 			}
 			return nil, nil, err
 		}
-		reports = append(reports, r)
+		inspectReports = append(inspectReports, r)
 	}
-	return reports, errs, nil
+	return inspectReports, errs, nil
 }
 
 func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions) (*entities.ImageLoadReport, error) {

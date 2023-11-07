@@ -161,7 +161,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 	}
 	list := make([]*handlers.Container, 0, len(containers))
 	for _, ctnr := range containers {
-		api, err := LibpodToContainer(ctnr, query.Size)
+		apiCtr, err := LibpodToContainer(ctnr, query.Size)
 		if err != nil {
 			if errors.Is(err, define.ErrNoSuchCtr) {
 				// container was removed between the initial fetch of the list and conversion
@@ -171,7 +171,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 			utils.InternalServerError(w, err)
 			return
 		}
-		list = append(list, api)
+		list = append(list, apiCtr)
 	}
 	utils.WriteResponse(w, http.StatusOK, list)
 }
@@ -196,12 +196,12 @@ func GetContainer(w http.ResponseWriter, r *http.Request) {
 		utils.ContainerNotFound(w, name, err)
 		return
 	}
-	api, err := LibpodToContainerJSON(ctnr, query.Size)
+	containerJSON, err := LibpodToContainerJSON(ctnr, query.Size)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, api)
+	utils.WriteResponse(w, http.StatusOK, containerJSON)
 }
 
 func KillContainer(w http.ResponseWriter, r *http.Request) {

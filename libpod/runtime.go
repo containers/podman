@@ -718,14 +718,14 @@ func (r *Runtime) GetConfig() (*config.Config, error) {
 		return nil, err
 	}
 
-	config := new(config.Config)
+	c := new(config.Config)
 
 	// Copy so the caller won't be able to modify the actual config
-	if err := JSONDeepCopy(rtConfig, config); err != nil {
+	if err := JSONDeepCopy(rtConfig, c); err != nil {
 		return nil, fmt.Errorf("copying config: %w", err)
 	}
 
-	return config, nil
+	return c, nil
 }
 
 // libimageEventsMap translates a libimage event type to a libpod event status.
@@ -1112,12 +1112,12 @@ func (r *Runtime) Reload() error {
 
 // reloadContainersConf reloads the containers.conf
 func (r *Runtime) reloadContainersConf() error {
-	config, err := config.Reload()
+	c, err := config.Reload()
 	if err != nil {
 		return err
 	}
-	r.config = config
-	logrus.Infof("Applied new containers configuration: %v", config)
+	r.config = c
+	logrus.Infof("Applied new containers configuration: %v", c)
 	return nil
 }
 

@@ -150,12 +150,12 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 }
 
 func PruneVolumes(w http.ResponseWriter, r *http.Request) {
-	reports, err := pruneVolumesHelper(r)
+	pruneReports, err := pruneVolumesHelper(r)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, reports)
+	utils.WriteResponse(w, http.StatusOK, pruneReports)
 }
 
 func pruneVolumesHelper(r *http.Request) ([]*reports.PruneReport, error) {
@@ -175,11 +175,11 @@ func pruneVolumesHelper(r *http.Request) ([]*reports.PruneReport, error) {
 		filterFuncs = append(filterFuncs, filterFunc)
 	}
 
-	reports, err := runtime.PruneVolumes(r.Context(), filterFuncs)
+	pruneReports, err := runtime.PruneVolumes(r.Context(), filterFuncs)
 	if err != nil {
 		return nil, err
 	}
-	return reports, nil
+	return pruneReports, nil
 }
 
 func RemoveVolume(w http.ResponseWriter, r *http.Request) {

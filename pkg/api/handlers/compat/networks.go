@@ -81,7 +81,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name, changed := normalizeNetworkName(runtime, utils.GetName(r))
-	net, err := runtime.Network().NetworkInspect(name)
+	network, err := runtime.Network().NetworkInspect(name)
 	if err != nil {
 		utils.NetworkNotFound(w, name, err)
 		return
@@ -91,7 +91,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	report := convertLibpodNetworktoDockerNetwork(runtime, statuses, &net, changed)
+	report := convertLibpodNetworktoDockerNetwork(runtime, statuses, &network, changed)
 	utils.WriteResponse(w, http.StatusOK, report)
 }
 
@@ -198,8 +198,8 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	reports := make([]*types.NetworkResource, 0, len(nets))
-	for _, net := range nets {
-		report := convertLibpodNetworktoDockerNetwork(runtime, statuses, &net, true)
+	for _, network := range nets {
+		report := convertLibpodNetworktoDockerNetwork(runtime, statuses, &network, true)
 		reports = append(reports, report)
 	}
 	utils.WriteResponse(w, http.StatusOK, reports)
@@ -282,17 +282,17 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 				s.Gateway = gw
 			}
 			if len(conf.IPRange) > 0 {
-				_, net, err := net.ParseCIDR(conf.IPRange)
+				_, n, err := net.ParseCIDR(conf.IPRange)
 				if err != nil {
 					utils.InternalServerError(w, fmt.Errorf("failed to parse ip range: %w", err))
 					return
 				}
-				startIP, err := netutil.FirstIPInSubnet(net)
+				startIP, err := netutil.FirstIPInSubnet(n)
 				if err != nil {
 					utils.InternalServerError(w, fmt.Errorf("failed to get first ip in range: %w", err))
 					return
 				}
-				lastIP, err := netutil.LastIPInSubnet(net)
+				lastIP, err := netutil.LastIPInSubnet(n)
 				if err != nil {
 					utils.InternalServerError(w, fmt.Errorf("failed to get last ip in range: %w", err))
 					return

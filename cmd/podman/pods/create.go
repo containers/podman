@@ -222,13 +222,13 @@ func create(cmd *cobra.Command, args []string) error {
 	if createOptions.Cpus > float64(numCPU) {
 		createOptions.Cpus = float64(numCPU)
 	}
-	copy := infraOptions.CPUSetCPUs
+	cp := infraOptions.CPUSetCPUs
 	cpuSet := infraOptions.CPUS
 	if cpuSet == 0 {
 		cpuSet = float64(numCPU)
 	}
-	ret, err := parsers.ParseUintList(copy)
-	copy = ""
+	ret, err := parsers.ParseUintList(cp)
+	cp = ""
 	if err != nil {
 		return fmt.Errorf("could not parse list: %w", err)
 	}
@@ -242,18 +242,18 @@ func create(cmd *cobra.Command, args []string) error {
 	for ind, core := range vals {
 		switch {
 		case core > int(cpuSet):
-			if copy == "" {
-				copy = "0-" + strconv.Itoa(int(cpuSet))
-				infraOptions.CPUSetCPUs = copy
+			if cp == "" {
+				cp = "0-" + strconv.Itoa(int(cpuSet))
+				infraOptions.CPUSetCPUs = cp
 				break
 			} else {
-				infraOptions.CPUSetCPUs = copy
+				infraOptions.CPUSetCPUs = cp
 				break
 			}
 		case ind != 0:
-			copy += "," + strconv.Itoa(core)
+			cp += "," + strconv.Itoa(core)
 		default:
-			copy = "" + strconv.Itoa(core)
+			cp = "" + strconv.Itoa(core)
 		}
 	}
 	createOptions.Cpus = infraOptions.CPUS

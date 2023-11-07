@@ -144,8 +144,8 @@ var _ = Describe("Podman privileged container tests", func() {
 			Skip("Kernel is not new enough to test this feature")
 		}
 
-		cap := SystemExec("grep", []string{"NoNewPrivs", "/proc/self/status"})
-		if cap.ExitCode() != 0 {
+		systemExec := SystemExec("grep", []string{"NoNewPrivs", "/proc/self/status"})
+		if systemExec.ExitCode() != 0 {
 			Skip("Can't determine NoNewPrivs")
 		}
 

@@ -905,24 +905,24 @@ func k8sSecretFromSecretManager(name string, secretsManager *secrets.SecretsMana
 		return nil, err
 	}
 
-	var secrets map[string][]byte
-	if err := json.Unmarshal(inputSecret, &secrets); err != nil {
-		secrets = make(map[string][]byte)
+	var s map[string][]byte
+	if err := json.Unmarshal(inputSecret, &s); err != nil {
+		s = make(map[string][]byte)
 		var secret v1.Secret
 		if err := yaml.Unmarshal(inputSecret, &secret); err != nil {
 			return nil, fmt.Errorf("secret %v is not valid JSON/YAML: %v", name, err)
 		}
 
 		for key, val := range secret.Data {
-			secrets[key] = val
+			s[key] = val
 		}
 
 		for key, val := range secret.StringData {
-			secrets[key] = []byte(val)
+			s[key] = []byte(val)
 		}
 	}
 
-	return secrets, nil
+	return s, nil
 }
 
 // envVarsFrom returns all key-value pairs as env vars from a configMap or secret that matches the envFrom setting of a container
