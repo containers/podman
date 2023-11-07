@@ -27,6 +27,10 @@ Remove the cached credentials for all registries in the auth file
 
 @@option authfile
 
+#### **--compat-auth-file**=*path*
+
+Instead of updating the default credentials file, update the one at *path*, and use a Docker-compatible format.
+
 #### **--help**, **-h**
 
 Print usage statement
