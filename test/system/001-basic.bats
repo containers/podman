@@ -8,7 +8,8 @@ load helpers.network
 
 # Override standard setup! We don't yet trust podman-images or podman-rm
 function setup() {
-    :
+    # Makes test logs easier to read
+    BATS_TEST_NAME_PREFIX="[001] "
 }
 
 #### DO NOT ADD ANY TESTS HERE! ADD NEW TESTS AT BOTTOM!
