@@ -96,6 +96,11 @@ host.slirp4netns.executable | $expr_path
 }
 
 @test "podman info - confirm desired database" {
+    # Always run this and preserve its value. We will check again in 999-*.bats
+    run_podman info --format '{{.Host.DatabaseBackend}}'
+    db_backend="$output"
+    echo "$db_backend" > $BATS_SUITE_TMPDIR/db-backend
+
     if [[ -z "$CI_DESIRED_DATABASE" ]]; then
         # When running in Cirrus, CI_DESIRED_DATABASE *must* be defined
         # in .cirrus.yml so we can double-check that all CI VMs are
@@ -109,8 +114,7 @@ host.slirp4netns.executable | $expr_path
         skip "CI_DESIRED_DATABASE is unset--OK, because we're not in Cirrus"
     fi
 
-    run_podman info --format '{{.Host.DatabaseBackend}}'
-    is "$output" "$CI_DESIRED_DATABASE" "CI_DESIRED_DATABASE (from .cirrus.yml)"
+    is "$db_backend" "$CI_DESIRED_DATABASE" "CI_DESIRED_DATABASE (from .cirrus.yml)"
 }
 
 
