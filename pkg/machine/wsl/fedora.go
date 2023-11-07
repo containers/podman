@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
 )
 
 const (
@@ -43,9 +44,9 @@ func NewFedoraDownloader(vmType machine.VMType, vmName, releaseStream string) (m
 	f := FedoraDownload{
 		Download: machine.Download{
 			Arch:      machine.GetFcosArch(),
-			Artifact:  machine.None,
+			Artifact:  define.None,
 			CacheDir:  cacheDir,
-			Format:    machine.Tar,
+			Format:    define.Tar,
 			ImageName: imageName,
 			LocalPath: filepath.Join(cacheDir, imageName),
 			URL:       downloadURL,

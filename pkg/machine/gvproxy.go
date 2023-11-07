@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/podman/v4/pkg/machine/define"
 	psutil "github.com/shirou/gopsutil/v3/process"
 	"github.com/sirupsen/logrus"
 )
@@ -82,7 +83,7 @@ func waitOnProcess(processID int) error {
 }
 
 // CleanupGVProxy reads the --pid-file for gvproxy attempts to stop it
-func CleanupGVProxy(f VMFile) error {
+func CleanupGVProxy(f define.VMFile) error {
 	gvPid, err := f.Read()
 	if err != nil {
 		return fmt.Errorf("unable to read gvproxy pid file %s: %v", f.GetPath(), err)

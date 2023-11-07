@@ -11,9 +11,10 @@ import (
 	url2 "net/url"
 	"os"
 	"runtime"
-	"strings"
 	"time"
 
+	"github.com/containers/podman/v4/pkg/machine/compression"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/coreos/stream-metadata-go/fedoracoreos"
 	"github.com/coreos/stream-metadata-go/release"
 	"github.com/coreos/stream-metadata-go/stream"
@@ -21,31 +22,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type ImageCompression int64
-type Artifact int64
-type ImageFormat int64
-
 const (
 	// Used for testing the latest podman in fcos
 	// special builds
 	podmanTesting     = "podman-testing"
 	PodmanTestingHost = "fedorapeople.org"
 	PodmanTestingURL  = "groups/podman/testing"
-
-	Xz ImageCompression = iota
-	Zip
-	Gz
-	Bz2
-
-	Qemu Artifact = iota
-	HyperV
-	AppleHV
-	None
-
-	Qcow ImageFormat = iota
-	Vhdx
-	Tar
-	Raw
 )
 
 //
@@ -56,64 +38,6 @@ const (
 // typed strongly
 //
 
-func (a Artifact) String() string {
-	switch a {
-	case HyperV:
-		return "hyperv"
-	case AppleHV:
-		return "applehv"
-	}
-	return "qemu"
-}
-
-func (imf ImageFormat) String() string {
-	switch imf {
-	case Vhdx:
-		return "vhdx.zip"
-	case Tar:
-		return "tar.xz"
-	case Raw:
-		return "raw.gz"
-	}
-	return "qcow2.xz"
-}
-
-func (imf ImageFormat) string() string {
-	switch imf {
-	case Vhdx:
-		return "vhdx"
-	case Tar:
-		return "tar"
-	case Raw:
-		return "raw"
-	}
-	return "qcow2"
-}
-
-func (c ImageCompression) String() string {
-	switch c {
-	case Gz:
-		return "gz"
-	case Zip:
-		return "zip"
-	case Bz2:
-		return "bz2"
-	}
-	return "xz"
-}
-
-func compressionFromFile(path string) ImageCompression {
-	switch {
-	case strings.HasSuffix(path, Bz2.String()):
-		return Bz2
-	case strings.HasSuffix(path, Gz.String()):
-		return Gz
-	case strings.HasSuffix(path, Zip.String()):
-		return Zip
-	}
-	return Xz
-}
-
 type FcosDownload struct {
 	Download
 }
@@ -123,7 +47,7 @@ func (f FcosDownload) Get() *Download {
 }
 
 type FcosDownloadInfo struct {
-	CompressionType ImageCompression
+	CompressionType compression.ImageCompression
 	Location        string
 	Release         string
 	Sha256Sum       string
@@ -219,7 +143,7 @@ func (dl Download) GetFCOSDownload(imageStream FCOSStream) (*FcosDownloadInfo, e
 		if !ok {
 			return nil, fmt.Errorf("unable to pull VM image: no targetArch in stream")
 		}
-		qcow2, ok := arches.Media.Qemu.Artifacts[Qcow.String()]
+		qcow2, ok := arches.Media.Qemu.Artifacts[define.Qcow.KindWithCompression()]
 		if !ok {
 			return nil, fmt.Errorf("unable to pull VM image: no qcow2.xz format in stream")
 		}
@@ -251,9 +175,9 @@ func (dl Download) GetFCOSDownload(imageStream FCOSStream) (*FcosDownloadInfo, e
 	if formats == nil {
 		return nil, fmt.Errorf("unable to pull VM image: no formats in stream")
 	}
-	formatType, ok := formats[dl.Format.String()]
+	formatType, ok := formats[dl.Format.KindWithCompression()]
 	if !ok {
-		return nil, fmt.Errorf("unable to pull VM image: no %s format in stream", dl.Format.String())
+		return nil, fmt.Errorf("unable to pull VM image: no %s format in stream", dl.Format.KindWithCompression())
 	}
 	disk := formatType.Disk
 	if disk == nil {

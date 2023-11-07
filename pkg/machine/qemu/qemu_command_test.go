@@ -7,22 +7,22 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestQemuCmd(t *testing.T) {
-	ignFile, err := machine.NewMachineFile(t.TempDir()+"demo-ignition-file.ign", nil)
+	ignFile, err := define.NewMachineFile(t.TempDir()+"demo-ignition-file.ign", nil)
 	assert.NoError(t, err)
 
-	machineAddrFile, err := machine.NewMachineFile(t.TempDir()+"tmp.sock", nil)
+	machineAddrFile, err := define.NewMachineFile(t.TempDir()+"tmp.sock", nil)
 	assert.NoError(t, err)
 
-	readySocket, err := machine.NewMachineFile(t.TempDir()+"readySocket.sock", nil)
+	readySocket, err := define.NewMachineFile(t.TempDir()+"readySocket.sock", nil)
 	assert.NoError(t, err)
 
-	vmPidFile, err := machine.NewMachineFile(t.TempDir()+"vmpidfile.pid", nil)
+	vmPidFile, err := define.NewMachineFile(t.TempDir()+"vmpidfile.pid", nil)
 	assert.NoError(t, err)
 
 	monitor := Monitor{

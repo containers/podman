@@ -12,7 +12,10 @@ import (
 	"time"
 
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/compression"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/machine/provider"
+	"github.com/containers/podman/v4/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -77,11 +80,11 @@ var _ = BeforeSuite(func() {
 				Fail(fmt.Sprintf("unable to download machine image: %q", err))
 			}
 			GinkgoWriter.Println("Download took: ", time.Since(now).String())
-			diskImage, err := machine.NewMachineFile(fqImageName+compressionExtension, nil)
+			diskImage, err := define.NewMachineFile(fqImageName+compressionExtension, nil)
 			if err != nil {
 				Fail(fmt.Sprintf("unable to create vmfile %q: %v", fqImageName+compressionExtension, err))
 			}
-			if err := machine.Decompress(diskImage, fqImageName); err != nil {
+			if err := compression.Decompress(diskImage, fqImageName); err != nil {
 				Fail(fmt.Sprintf("unable to decompress image file: %q", err))
 			}
 		} else {
@@ -149,7 +152,7 @@ func teardown(origHomeDir string, testDir string, mb *machineTestBuilder) {
 			GinkgoWriter.Printf("error occurred rm'ing machine: %q\n", err)
 		}
 	}
-	if err := machine.GuardedRemoveAll(testDir); err != nil {
+	if err := utils.GuardedRemoveAll(testDir); err != nil {
 		Fail(fmt.Sprintf("failed to remove test dir: %q", err))
 	}
 	// this needs to be last in teardown

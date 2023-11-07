@@ -24,6 +24,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage/pkg/lockfile"
@@ -46,7 +47,7 @@ const (
 
 type MachineVM struct {
 	// ConfigPath is the path to the configuration file
-	ConfigPath machine.VMFile
+	ConfigPath define.VMFile
 	// The command line representation of the qemu command
 	CmdLine QemuCmd
 	// HostUser contains info about host user
@@ -58,13 +59,13 @@ type MachineVM struct {
 	// Name of VM
 	Name string
 	// PidFilePath is the where the Proxy PID file lives
-	PidFilePath machine.VMFile
+	PidFilePath define.VMFile
 	// VMPidFilePath is the where the VM PID file lives
-	VMPidFilePath machine.VMFile
+	VMPidFilePath define.VMFile
 	// QMPMonitor is the qemu monitor object for sending commands
 	QMPMonitor Monitor
 	// ReadySocket tells host when vm is booted
-	ReadySocket machine.VMFile
+	ReadySocket define.VMFile
 	// ResourceConfig is physical attrs of the VM
 	machine.ResourceConfig
 	// SSHConfig for accessing the remote vm
@@ -82,7 +83,7 @@ type MachineVM struct {
 
 type Monitor struct {
 	//	Address portion of the qmp monitor (/tmp/tmp.sock)
-	Address machine.VMFile
+	Address define.VMFile
 	// Network portion of the qmp monitor (unix)
 	Network string
 	// Timeout in seconds for qmp monitor transactions
@@ -105,9 +106,9 @@ func migrateVM(configPath string, config []byte, vm *MachineVM) error {
 		return err
 	}
 
-	pidFilePath := machine.VMFile{Path: pidFile}
+	pidFilePath := define.VMFile{Path: pidFile}
 	qmpMonitor := Monitor{
-		Address: machine.VMFile{Path: old.QMPMonitor.Address},
+		Address: define.VMFile{Path: old.QMPMonitor.Address},
 		Network: old.QMPMonitor.Network,
 		Timeout: old.QMPMonitor.Timeout,
 	}
@@ -116,18 +117,18 @@ func migrateVM(configPath string, config []byte, vm *MachineVM) error {
 		return err
 	}
 	virtualSocketPath := filepath.Join(socketPath, "podman", vm.Name+"_ready.sock")
-	readySocket := machine.VMFile{Path: virtualSocketPath}
+	readySocket := define.VMFile{Path: virtualSocketPath}
 
 	vm.HostUser = machine.HostUser{}
 	vm.ImageConfig = machine.ImageConfig{}
 	vm.ResourceConfig = machine.ResourceConfig{}
 	vm.SSHConfig = machine.SSHConfig{}
 
-	ignitionFilePath, err := machine.NewMachineFile(old.IgnitionFilePath, nil)
+	ignitionFilePath, err := define.NewMachineFile(old.IgnitionFilePath, nil)
 	if err != nil {
 		return err
 	}
-	imagePath, err := machine.NewMachineFile(old.ImagePath, nil)
+	imagePath, err := define.NewMachineFile(old.ImagePath, nil)
 	if err != nil {
 		return err
 	}
@@ -1030,7 +1031,7 @@ func NewQMPMonitor(network, name string, timeout time.Duration) (Monitor, error)
 	if timeout == 0 {
 		timeout = defaultQMPTimeout
 	}
-	address, err := machine.NewMachineFile(filepath.Join(rtDir, "qmp_"+name+".sock"), nil)
+	address, err := define.NewMachineFile(filepath.Join(rtDir, "qmp_"+name+".sock"), nil)
 	if err != nil {
 		return Monitor{}, err
 	}
@@ -1350,14 +1351,14 @@ func (v *MachineVM) userGlobalSocketLink() (string, error) {
 	return filepath.Join(filepath.Dir(path), "podman.sock"), err
 }
 
-func (v *MachineVM) forwardSocketPath() (*machine.VMFile, error) {
+func (v *MachineVM) forwardSocketPath() (*define.VMFile, error) {
 	sockName := "podman.sock"
 	path, err := machine.GetDataDir(machine.QemuVirt)
 	if err != nil {
 		logrus.Errorf("Resolving data dir: %s", err.Error())
 		return nil, err
 	}
-	return machine.NewMachineFile(filepath.Join(path, sockName), &sockName)
+	return define.NewMachineFile(filepath.Join(path, sockName), &sockName)
 }
 
 func (v *MachineVM) setConfigPath() error {
@@ -1366,7 +1367,7 @@ func (v *MachineVM) setConfigPath() error {
 		return err
 	}
 
-	configPath, err := machine.NewMachineFile(filepath.Join(vmConfigDir, v.Name)+".json", nil)
+	configPath, err := define.NewMachineFile(filepath.Join(vmConfigDir, v.Name)+".json", nil)
 	if err != nil {
 		return err
 	}
@@ -1385,11 +1386,11 @@ func (v *MachineVM) setPIDSocket() error {
 	socketDir := filepath.Join(rtPath, "podman")
 	vmPidFileName := fmt.Sprintf("%s_vm.pid", v.Name)
 	proxyPidFileName := fmt.Sprintf("%s_proxy.pid", v.Name)
-	vmPidFilePath, err := machine.NewMachineFile(filepath.Join(socketDir, vmPidFileName), &vmPidFileName)
+	vmPidFilePath, err := define.NewMachineFile(filepath.Join(socketDir, vmPidFileName), &vmPidFileName)
 	if err != nil {
 		return err
 	}
-	proxyPidFilePath, err := machine.NewMachineFile(filepath.Join(socketDir, proxyPidFileName), &proxyPidFileName)
+	proxyPidFilePath, err := define.NewMachineFile(filepath.Join(socketDir, proxyPidFileName), &proxyPidFileName)
 	if err != nil {
 		return err
 	}

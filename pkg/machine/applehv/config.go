@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/compression"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
 	"github.com/docker/go-units"
 	"golang.org/x/sys/unix"
@@ -34,7 +36,7 @@ type MMHardwareConfig struct {
 
 func VirtualizationProvider() machine.VirtProvider {
 	return &AppleHVVirtualization{
-		machine.NewVirtualization(machine.AppleHV, machine.Xz, machine.Raw, vmtype),
+		machine.NewVirtualization(define.AppleHV, compression.Xz, define.Raw, vmtype),
 	}
 }
 
@@ -116,7 +118,7 @@ func (v AppleHVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM,
 		return nil, err
 	}
 
-	configPath, err := machine.NewMachineFile(getVMConfigPath(configDir, opts.Name), nil)
+	configPath, err := define.NewMachineFile(getVMConfigPath(configDir, opts.Name), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +129,7 @@ func (v AppleHVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM,
 		return nil, err
 	}
 
-	ignitionPath, err := machine.NewMachineFile(filepath.Join(configDir, m.Name)+".ign", nil)
+	ignitionPath, err := define.NewMachineFile(filepath.Join(configDir, m.Name)+".ign", nil)
 	if err != nil {
 		return nil, err
 	}

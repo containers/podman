@@ -4,8 +4,6 @@
 package machine
 
 import (
-	"archive/zip"
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -13,18 +11,15 @@ import (
 	"net/http"
 	url2 "net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
-	"github.com/containers/image/v5/pkg/compression"
-	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/podman/v4/pkg/machine/compression"
+	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/machine/ocipull"
+	"github.com/containers/podman/v4/utils"
 	"github.com/sirupsen/logrus"
-	"github.com/ulikunitz/xz"
-	"github.com/vbauerster/mpb/v8"
-	"github.com/vbauerster/mpb/v8/decor"
 )
 
 // GenericDownload is used when a user provides a URL
@@ -90,7 +85,7 @@ func supportedURL(path string) (url *url2.URL) {
 
 func (dl Download) GetLocalUncompressedFile(dataDir string) string {
 	compressedFilename := dl.VMName + "_" + dl.ImageName
-	extension := compressionFromFile(compressedFilename)
+	extension := compression.KindFromFile(compressedFilename)
 	uncompressedFile := strings.TrimSuffix(compressedFilename, fmt.Sprintf(".%s", extension.String()))
 	dl.LocalUncompressedFile = filepath.Join(dataDir, uncompressedFile)
 	return dl.LocalUncompressedFile
@@ -134,33 +129,11 @@ func DownloadImage(d DistributionDownload) error {
 			}
 		}()
 	}
-	localPath, err := NewMachineFile(d.Get().LocalPath, nil)
+	localPath, err := define.NewMachineFile(d.Get().LocalPath, nil)
 	if err != nil {
 		return err
 	}
-	return Decompress(localPath, d.Get().LocalUncompressedFile)
-}
-
-func progressBar(prefix string, size int64, onComplete string) (*mpb.Progress, *mpb.Bar) {
-	p := mpb.New(
-		mpb.WithWidth(80), // Do not go below 80, see bug #17718
-		mpb.WithRefreshRate(180*time.Millisecond),
-	)
-
-	bar := p.AddBar(size,
-		mpb.BarFillerClearOnComplete(),
-		mpb.PrependDecorators(
-			decor.OnComplete(decor.Name(prefix), onComplete),
-		),
-		mpb.AppendDecorators(
-			decor.OnComplete(decor.CountersKibiByte("%.1f / %.1f"), ""),
-		),
-	)
-	if size == 0 {
-		bar.SetTotal(0, true)
-	}
-
-	return p, bar
+	return compression.Decompress(localPath, d.Get().LocalUncompressedFile)
 }
 
 // DownloadVMImage downloads a VM image from url to given path
@@ -193,7 +166,7 @@ func DownloadVMImage(downloadURL *url2.URL, imageName string, localImagePath str
 	prefix := "Downloading VM image: " + imageName
 	onComplete := prefix + ": done"
 
-	p, bar := progressBar(prefix, size, onComplete)
+	p, bar := utils.ProgressBar(prefix, size, onComplete)
 
 	proxyReader := bar.ProxyReader(resp.Body)
 	defer func() {
@@ -208,170 +181,6 @@ func DownloadVMImage(downloadURL *url2.URL, imageName string, localImagePath str
 
 	p.Wait()
 	return nil
-}
-
-func Decompress(localPath *VMFile, uncompressedPath string) error {
-	var isZip bool
-	uncompressedFileWriter, err := os.OpenFile(uncompressedPath, os.O_CREATE|os.O_RDWR, 0600)
-	if err != nil {
-		return err
-	}
-	sourceFile, err := localPath.Read()
-	if err != nil {
-		return err
-	}
-	if strings.HasSuffix(localPath.GetPath(), ".zip") {
-		isZip = true
-	}
-	prefix := "Copying uncompressed file"
-	compressionType := archive.DetectCompression(sourceFile)
-	if compressionType != archive.Uncompressed || isZip {
-		prefix = "Extracting compressed file"
-	}
-	prefix += ": " + filepath.Base(uncompressedPath)
-	if compressionType == archive.Xz {
-		return decompressXZ(prefix, localPath.GetPath(), uncompressedFileWriter)
-	}
-	if isZip && runtime.GOOS == "windows" {
-		return decompressZip(prefix, localPath.GetPath(), uncompressedFileWriter)
-	}
-	return decompressEverythingElse(prefix, localPath.GetPath(), uncompressedFileWriter)
-}
-
-// Will error out if file without .Xz already exists
-// Maybe extracting then renaming is a good idea here..
-// depends on Xz: not pre-installed on mac, so it becomes a brew dependency
-func decompressXZ(prefix string, src string, output io.WriteCloser) error {
-	var read io.Reader
-	var cmd *exec.Cmd
-
-	stat, err := os.Stat(src)
-	if err != nil {
-		return err
-	}
-	file, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	p, bar := progressBar(prefix, stat.Size(), prefix+": done")
-	proxyReader := bar.ProxyReader(file)
-	defer func() {
-		if err := proxyReader.Close(); err != nil {
-			logrus.Error(err)
-		}
-	}()
-
-	// Prefer Xz utils for fastest performance, fallback to go xi2 impl
-	if _, err := exec.LookPath("xz"); err == nil {
-		cmd = exec.Command("xz", "-d", "-c")
-		cmd.Stdin = proxyReader
-		read, err = cmd.StdoutPipe()
-		if err != nil {
-			return err
-		}
-		cmd.Stderr = os.Stderr
-	} else {
-		// This XZ implementation is reliant on buffering. It is also 3x+ slower than XZ utils.
-		// Consider replacing with a faster implementation (e.g. xi2) if podman machine is
-		// updated with a larger image for the distribution base.
-		buf := bufio.NewReader(proxyReader)
-		read, err = xz.NewReader(buf)
-		if err != nil {
-			return err
-		}
-	}
-
-	done := make(chan bool)
-	go func() {
-		if _, err := io.Copy(output, read); err != nil {
-			logrus.Error(err)
-		}
-		output.Close()
-		done <- true
-	}()
-
-	if cmd != nil {
-		err := cmd.Start()
-		if err != nil {
-			return err
-		}
-		p.Wait()
-		return cmd.Wait()
-	}
-	<-done
-	p.Wait()
-	return nil
-}
-
-func decompressEverythingElse(prefix string, src string, output io.WriteCloser) error {
-	stat, err := os.Stat(src)
-	if err != nil {
-		return err
-	}
-	f, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	p, bar := progressBar(prefix, stat.Size(), prefix+": done")
-	proxyReader := bar.ProxyReader(f)
-	defer func() {
-		if err := proxyReader.Close(); err != nil {
-			logrus.Error(err)
-		}
-	}()
-	uncompressStream, _, err := compression.AutoDecompress(proxyReader)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := uncompressStream.Close(); err != nil {
-			logrus.Error(err)
-		}
-		if err := output.Close(); err != nil {
-			logrus.Error(err)
-		}
-	}()
-
-	_, err = io.Copy(output, uncompressStream)
-	p.Wait()
-	return err
-}
-
-func decompressZip(prefix string, src string, output io.WriteCloser) error {
-	zipReader, err := zip.OpenReader(src)
-	if err != nil {
-		return err
-	}
-	if len(zipReader.File) != 1 {
-		return errors.New("machine image files should consist of a single compressed file")
-	}
-	f, err := zipReader.File[0].Open()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := f.Close(); err != nil {
-			logrus.Error(err)
-		}
-	}()
-	defer func() {
-		if err := output.Close(); err != nil {
-			logrus.Error(err)
-		}
-	}()
-	size := int64(zipReader.File[0].CompressedSize64)
-	p, bar := progressBar(prefix, size, prefix+": done")
-	proxyReader := bar.ProxyReader(f)
-	defer func() {
-		if err := proxyReader.Close(); err != nil {
-			logrus.Error(err)
-		}
-	}()
-	_, err = io.Copy(output, proxyReader)
-	p.Wait()
-	return err
 }
 
 func RemoveImageAfterExpire(dir string, expire time.Duration) error {
@@ -393,13 +202,13 @@ func RemoveImageAfterExpire(dir string, expire time.Duration) error {
 
 // AcquireAlternateImage downloads the alternate image the user provided, which
 // can be a file path or URL
-func (dl Download) AcquireAlternateImage(inputPath string) (*VMFile, error) {
+func (dl Download) AcquireAlternateImage(inputPath string) (*define.VMFile, error) {
 	g, err := NewGenericDownloader(dl.VMKind, dl.VMName, inputPath)
 	if err != nil {
 		return nil, err
 	}
 
-	imagePath, err := NewMachineFile(g.Get().LocalUncompressedFile, nil)
+	imagePath, err := define.NewMachineFile(g.Get().LocalUncompressedFile, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -411,23 +220,23 @@ func (dl Download) AcquireAlternateImage(inputPath string) (*VMFile, error) {
 	return imagePath, nil
 }
 
-func isOci(input string) (bool, *OCIKind, error) {
+func isOci(input string) (bool, *ocipull.OCIKind, error) {
 	inputURL, err := url2.Parse(input)
 	if err != nil {
 		return false, nil, err
 	}
 	switch inputURL.Scheme {
-	case OCIDir.String():
-		return true, &OCIDir, nil
-	case OCIRegistry.String():
-		return true, &OCIRegistry, nil
+	case ocipull.OCIDir.String():
+		return true, &ocipull.OCIDir, nil
+	case ocipull.OCIRegistry.String():
+		return true, &ocipull.OCIRegistry, nil
 	}
 	return false, nil, nil
 }
 
-func Pull(input, machineName string, vp VirtProvider) (*VMFile, FCOSStream, error) {
+func Pull(input, machineName string, vp VirtProvider) (*define.VMFile, FCOSStream, error) {
 	var (
-		disk Disker
+		disk ocipull.Disker
 	)
 
 	ociBased, ociScheme, err := isOci(input)
@@ -442,7 +251,7 @@ func Pull(input, machineName string, vp VirtProvider) (*VMFile, FCOSStream, erro
 		}
 		return dl.AcquireVMImage(input)
 	}
-	oopts := OCIOpts{
+	oopts := ocipull.OCIOpts{
 		Scheme: ociScheme,
 	}
 	dataDir, err := GetDataDir(vp.VMType())
@@ -450,9 +259,9 @@ func Pull(input, machineName string, vp VirtProvider) (*VMFile, FCOSStream, erro
 		return nil, 0, err
 	}
 	if ociScheme.IsOCIDir() {
-		strippedOCIDir := StripOCIReference(input)
+		strippedOCIDir := ocipull.StripOCIReference(input)
 		oopts.Dir = &strippedOCIDir
-		disk = NewOCIDir(context.Background(), input, dataDir, machineName)
+		disk = ocipull.NewOCIDir(context.Background(), input, dataDir, machineName)
 	} else {
 		// a use of a containers image type here might be
 		// tighter
@@ -461,7 +270,7 @@ func Pull(input, machineName string, vp VirtProvider) (*VMFile, FCOSStream, erro
 		if len(strippedInput) > 0 {
 			return nil, 0, errors.New("image names are not supported yet")
 		}
-		disk, err = newVersioned(context.Background(), dataDir, machineName)
+		disk, err = ocipull.NewVersioned(context.Background(), dataDir, machineName)
 		if err != nil {
 			return nil, 0, err
 		}

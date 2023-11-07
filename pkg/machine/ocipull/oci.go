@@ -1,4 +1,4 @@
-package machine
+package ocipull
 
 import (
 	"fmt"
@@ -6,14 +6,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/image/v5/types"
-
+	"github.com/blang/semver/v4"
 	"github.com/containers/image/v5/pkg/compression"
+	"github.com/containers/image/v5/types"
+	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/version"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/sirupsen/logrus"
-
-	"github.com/blang/semver/v4"
-	"github.com/containers/podman/v4/version"
 )
 
 // quay.io/libpod/podman-machine-images:4.6
@@ -30,9 +29,9 @@ type OSVersion struct {
 
 type Disker interface {
 	Pull() error
-	Decompress(compressedFile *VMFile) (*VMFile, error)
+	Decompress(compressedFile *define.VMFile) (*define.VMFile, error)
 	DiskEndpoint() string
-	Unpack() (*VMFile, error)
+	Unpack() (*define.VMFile, error)
 }
 
 type OCIOpts struct {
@@ -81,11 +80,11 @@ func (o *OSVersion) majorMinor() string {
 	return fmt.Sprintf("%d.%d", o.Major, o.Minor)
 }
 
-func (o *OSVersion) diskImage(diskFlavor ImageFormat) string {
-	return fmt.Sprintf("%s/%s/%s:%s-%s", registry, repo, diskImages, o.majorMinor(), diskFlavor.string())
+func (o *OSVersion) diskImage(diskFlavor define.ImageFormat) string {
+	return fmt.Sprintf("%s/%s/%s:%s-%s", registry, repo, diskImages, o.majorMinor(), diskFlavor.Kind())
 }
 
-func unpackOCIDir(ociTb, machineImageDir string) (*VMFile, error) {
+func unpackOCIDir(ociTb, machineImageDir string) (*define.VMFile, error) {
 	imageFileName, err := findTarComponent(ociTb)
 	if err != nil {
 		return nil, err
@@ -121,7 +120,7 @@ func unpackOCIDir(ociTb, machineImageDir string) (*VMFile, error) {
 		return nil, err
 	}
 
-	return NewMachineFile(unpackedFileName, nil)
+	return define.NewMachineFile(unpackedFileName, nil)
 }
 
 func localOCIDiskImageDir(blobDirPath string, localBlob *types.BlobInfo) string {
