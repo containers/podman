@@ -22,7 +22,7 @@ import (
 var originalHomeDir = os.Getenv("HOME")
 
 const (
-	defaultTimeout time.Duration = 90 * time.Second
+	defaultTimeout = 90 * time.Second
 )
 
 type machineCommand interface {

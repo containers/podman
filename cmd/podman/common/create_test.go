@@ -39,11 +39,11 @@ func TestPodOptions(t *testing.T) {
 							areEqual = podField.Interface().([]string)[i] == w
 						}
 					case reflect.String:
-						areEqual = (podField.String() == containerField.String())
+						areEqual = podField.String() == containerField.String()
 					case reflect.Bool:
-						areEqual = (podField.Bool() == containerField.Bool())
+						areEqual = podField.Bool() == containerField.Bool()
 					case reflect.Ptr:
-						areEqual = (reflect.DeepEqual(podField.Elem().Interface(), containerField.Elem().Interface()))
+						areEqual = reflect.DeepEqual(podField.Elem().Interface(), containerField.Elem().Interface())
 					}
 				}
 				assert.True(t, areEqual)

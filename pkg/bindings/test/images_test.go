@@ -112,7 +112,7 @@ var _ = Describe("Podman images", func() {
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		// Start a container with alpine image
-		var top string = "top"
+		var top = "top"
 		_, err = bt.RunTopContainer(&top, nil)
 		Expect(err).ToNot(HaveOccurred())
 		// we should now have a container called "top" running

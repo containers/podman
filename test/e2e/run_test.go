@@ -1584,7 +1584,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 		curCgroupsBytes, err := os.ReadFile("/proc/self/cgroup")
 		Expect(err).ToNot(HaveOccurred())
-		var curCgroups string = string(curCgroupsBytes)
+		var curCgroups = string(curCgroupsBytes)
 		GinkgoWriter.Printf("Output:\n%s\n", curCgroups)
 		Expect(curCgroups).To(Not(Equal("")))
 
@@ -1601,7 +1601,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 		ctrCgroupsBytes, err := os.ReadFile(fmt.Sprintf("/proc/%d/cgroup", pid))
 		Expect(err).ToNot(HaveOccurred())
-		var ctrCgroups string = string(ctrCgroupsBytes)
+		var ctrCgroups = string(ctrCgroupsBytes)
 		GinkgoWriter.Printf("Output\n:%s\n", ctrCgroups)
 		Expect(curCgroups).To(Not(Equal(ctrCgroups)))
 	})

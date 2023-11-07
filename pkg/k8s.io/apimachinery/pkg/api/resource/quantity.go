@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"strings"
 
-	inf "gopkg.in/inf.v0"
+	"gopkg.in/inf.v0"
 )
 
 // Quantity is a fixed-point representation of a number.

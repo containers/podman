@@ -40,7 +40,7 @@ func (ir *ImageEngine) fetchInfo(_ context.Context) (os, arch, variant string, n
 	os, arch, variant = lplatform.Normalize(os, arch, variant)
 	nativePlatform = os + "/" + arch
 	if variant != "" {
-		nativePlatform += ("/" + variant)
+		nativePlatform += "/" + variant
 	}
 	emulatedPlatforms = emulation.Registered()
 	return os, arch, variant, append([]string{}, nativePlatform), emulatedPlatforms, nil

@@ -424,7 +424,7 @@ var _ = Describe("Podman pod create", func() {
 			session = podmanTest.Podman([]string{"pod", "inspect", "--format", "{{.NumContainers}}", session.OutputToString()})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
-			Expect(session.OutputToString()).Should((Equal("0")))
+			Expect(session.OutputToString()).Should(Equal("0"))
 		})
 	}
 

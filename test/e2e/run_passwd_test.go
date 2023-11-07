@@ -116,7 +116,7 @@ USER 1000`, ALPINE)
 		run = podmanTest.Podman([]string{"run", "--passwd=false", "--user", "1234:1234", ALPINE, "cat", "/etc/passwd"})
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(ExitCleanly())
-		Expect(run.OutputToString()).NotTo((ContainSubstring("1234:1234")))
+		Expect(run.OutputToString()).NotTo(ContainSubstring("1234:1234"))
 	})
 
 	It("podman run --passwd-entry flag", func() {

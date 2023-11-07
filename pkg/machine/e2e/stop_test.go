@@ -46,7 +46,7 @@ var _ = Describe("podman machine stop", func() {
 		// Stopping it again should not result in an error
 		stopAgain, err := mb.setCmd(stop).run()
 		Expect(err).ToNot(HaveOccurred())
-		Expect(stopAgain).To(Exit((0)))
+		Expect(stopAgain).To(Exit(0))
 		Expect(stopAgain.outputToString()).To(ContainSubstring(fmt.Sprintf("Machine \"%s\" stopped successfully", name)))
 
 		// Stopping a machine should update the last up time

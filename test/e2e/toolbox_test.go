@@ -182,11 +182,11 @@ var _ = Describe("Toolbox-specific testing", func() {
 		SkipIfNotRootless("only meaningful when run rootless")
 		var session *PodmanSessionIntegration
 
-		var username string = "testuser"
-		var homeDir string = "/home/testuser"
-		var shell string = "/bin/sh"
-		var uid string = "1001"
-		var gid string = "1001"
+		var username = "testuser"
+		var homeDir = "/home/testuser"
+		var shell = "/bin/sh"
+		var uid = "1001"
+		var gid = "1001"
 
 		useradd := fmt.Sprintf("useradd --home-dir %s --shell %s --uid %s %s",
 			homeDir, shell, uid, username)
@@ -222,8 +222,8 @@ var _ = Describe("Toolbox-specific testing", func() {
 		SkipIfNotRootless("only meaningful when run rootless")
 		var session *PodmanSessionIntegration
 
-		var groupName string = "testgroup"
-		var gid string = "1001"
+		var groupName = "testgroup"
+		var gid = "1001"
 
 		groupadd := fmt.Sprintf("groupadd --gid %s %s", gid, groupName)
 
@@ -252,15 +252,15 @@ var _ = Describe("Toolbox-specific testing", func() {
 	It("podman create --userns=keep-id - entrypoint - modifying existing user with usermod - add to new group, change home/shell/uid", func() {
 		SkipIfNotRootless("only meaningful when run rootless")
 		var session *PodmanSessionIntegration
-		var badHomeDir string = "/home/badtestuser"
-		var badShell string = "/bin/sh"
-		var badUID string = "1001"
-		var username string = "testuser"
-		var homeDir string = "/home/testuser"
-		var shell string = "/bin/bash"
-		var uid string = "1411"
-		var groupName string = "testgroup"
-		var gid string = "1422"
+		var badHomeDir = "/home/badtestuser"
+		var badShell = "/bin/sh"
+		var badUID = "1001"
+		var username = "testuser"
+		var homeDir = "/home/testuser"
+		var shell = "/bin/bash"
+		var uid = "1411"
+		var groupName = "testgroup"
+		var gid = "1422"
 
 		// The use of bad* in the name of variables does not imply the invocation
 		// of useradd should fail The user is supposed to be created successfully

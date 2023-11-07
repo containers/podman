@@ -120,7 +120,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 
 	filterFuncs := make([]libpod.ContainerFilter, 0, len(*filterMap))
 	all := query.All || query.Limit > 0
-	if len((*filterMap)) > 0 {
+	if len(*filterMap) > 0 {
 		for k, v := range *filterMap {
 			generatedFunc, err := filters.GenerateContainerFilterFuncs(k, v, runtime)
 			if err != nil {

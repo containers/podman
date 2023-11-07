@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
-	define "github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/libpod/define"
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
