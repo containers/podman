@@ -261,6 +261,10 @@ func Parse(rwc io.Reader) (*Result, error) {
 	currentLine := 0
 	root := &Node{StartLine: -1}
 	scanner := bufio.NewScanner(rwc)
+	buf := []byte{}
+	// containerfile may contain large lines,
+	// allocate 2MB for such use-cases.
+	scanner.Buffer(buf, 2048*1024)
 	warnings := []string{}
 
 	var err error
@@ -310,6 +314,10 @@ func Parse(rwc io.Reader) (*Result, error) {
 			return nil, err
 		}
 		root.AddChild(child, startLine, currentLine)
+	}
+
+	if scannerErr := scanner.Err(); scannerErr != nil {
+		return nil, scannerErr
 	}
 
 	if len(warnings) > 0 {

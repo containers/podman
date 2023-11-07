@@ -16,6 +16,7 @@ import (
 	"github.com/containers/image/v5/pkg/docker/config"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/homedir"
 	"github.com/sirupsen/logrus"
 )
 
@@ -39,33 +40,46 @@ func (e ErrNewCredentialsInvalid) Unwrap() error {
 // GetDefaultAuthFile returns env value REGISTRY_AUTH_FILE as default
 // --authfile path used in multiple --authfile flag definitions
 // Will fail over to DOCKER_CONFIG if REGISTRY_AUTH_FILE environment is not set
+//
+// WARNINGS:
+//   - In almost all invocations, expect this function to return ""; so it can not be used
+//     for directly accessing the file.
+//   - Use this only for commands that _read_ credentials, not write them.
+//     The path may refer to github.com/containers auth.json, or to Docker config.json,
+//     and the distinction is lost; writing auth.json data to config.json may not be consumable by Docker,
+//     or it may overwrite and discard unrelated Docker configuration set by the user.
 func GetDefaultAuthFile() string {
+	// Keep this in sync with the default logic in systemContextWithOptions!
+
 	if authfile := os.Getenv("REGISTRY_AUTH_FILE"); authfile != "" {
 		return authfile
 	}
+	// This pre-existing behavior is not conceptually consistent:
+	// If users have a ~/.docker/config.json in the default path, and no environment variable
+	// set, we read auth.json first, falling back to config.json;
+	// but if DOCKER_CONFIG is set, we read only config.json in that path, and we don’t read auth.json at all.
 	if authEnv := os.Getenv("DOCKER_CONFIG"); authEnv != "" {
 		return filepath.Join(authEnv, "config.json")
 	}
 	return ""
 }
 
-// CheckAuthFile validates filepath given by --authfile
-// used by command has --authfile flag
-func CheckAuthFile(authfile string) error {
-	if authfile == "" {
+// CheckAuthFile validates a path option, failing if the option is set but the referenced file is not accessible.
+func CheckAuthFile(pathOption string) error {
+	if pathOption == "" {
 		return nil
 	}
-	if _, err := os.Stat(authfile); err != nil {
-		return fmt.Errorf("checking authfile: %w", err)
+	if _, err := os.Stat(pathOption); err != nil {
+		return fmt.Errorf("credential file is not accessible: %w", err)
 	}
 	return nil
 }
 
 // systemContextWithOptions returns a version of sys
-// updated with authFile and certDir values (if they are not "").
+// updated with authFile, dockerCompatAuthFile and certDir values (if they are not "").
 // NOTE: this is a shallow copy that can be used and updated, but may share
 // data with the original parameter.
-func systemContextWithOptions(sys *types.SystemContext, authFile, certDir string) *types.SystemContext {
+func systemContextWithOptions(sys *types.SystemContext, authFile, dockerCompatAuthFile, certDir string) (*types.SystemContext, error) {
 	if sys != nil {
 		sysCopy := *sys
 		sys = &sysCopy
@@ -73,24 +87,50 @@ func systemContextWithOptions(sys *types.SystemContext, authFile, certDir string
 		sys = &types.SystemContext{}
 	}
 
-	if authFile != "" {
+	defaultDockerConfigPath := filepath.Join(homedir.Get(), ".docker", "config.json")
+	switch {
+	case authFile != "" && dockerCompatAuthFile != "":
+		return nil, errors.New("options for paths to the credential file and to the Docker-compatible credential file can not be set simultaneously")
+	case authFile != "":
+		if authFile == defaultDockerConfigPath {
+			logrus.Warn("saving credentials to ~/.docker/config.json, but not using Docker-compatible file format")
+		}
 		sys.AuthFilePath = authFile
+	case dockerCompatAuthFile != "":
+		sys.DockerCompatAuthFilePath = dockerCompatAuthFile
+	default:
+		// Keep this in sync with GetDefaultAuthFile()!
+		//
+		// Note that c/image does not natively implement the REGISTRY_AUTH_FILE
+		// variable, so not all callers look for credentials in this location.
+		if authFileVar := os.Getenv("REGISTRY_AUTH_FILE"); authFileVar != "" {
+			if authFileVar == defaultDockerConfigPath {
+				logrus.Warn("$REGISTRY_AUTH_FILE points to ~/.docker/config.json, but the file format is not fully compatible; use the Docker-compatible file path option instead")
+			}
+			sys.AuthFilePath = authFileVar
+		} else if dockerConfig := os.Getenv("DOCKER_CONFIG"); dockerConfig != "" {
+			// This preserves pre-existing _inconsistent_ behavior:
+			// If the Docker configuration exists in the default ~/.docker/config.json location,
+			// we DO NOT write to it; instead, we update auth.json in the default path.
+			// Only if the user explicitly sets DOCKER_CONFIG, we write to that config.json.
+			sys.DockerCompatAuthFilePath = filepath.Join(dockerConfig, "config.json")
+		}
 	}
 	if certDir != "" {
 		sys.DockerCertPath = certDir
 	}
-	return sys
+	return sys, nil
 }
 
 // Login implements a “log in” command with the provided opts and args
 // reading the password from opts.Stdin or the options in opts.
 func Login(ctx context.Context, systemContext *types.SystemContext, opts *LoginOptions, args []string) error {
-	systemContext = systemContextWithOptions(systemContext, opts.AuthFile, opts.CertDir)
+	systemContext, err := systemContextWithOptions(systemContext, opts.AuthFile, opts.DockerCompatAuthFile, opts.CertDir)
+	if err != nil {
+		return err
+	}
 
-	var (
-		key, registry string
-		err           error
-	)
+	var key, registry string
 	switch len(args) {
 	case 0:
 		if !opts.AcceptUnspecifiedRegistry {
@@ -284,7 +324,13 @@ func Logout(systemContext *types.SystemContext, opts *LogoutOptions, args []stri
 	if err := CheckAuthFile(opts.AuthFile); err != nil {
 		return err
 	}
-	systemContext = systemContextWithOptions(systemContext, opts.AuthFile, "")
+	if err := CheckAuthFile(opts.DockerCompatAuthFile); err != nil {
+		return err
+	}
+	systemContext, err := systemContextWithOptions(systemContext, opts.AuthFile, opts.DockerCompatAuthFile, "")
+	if err != nil {
+		return err
+	}
 
 	if opts.All {
 		if len(args) != 0 {
@@ -297,10 +343,7 @@ func Logout(systemContext *types.SystemContext, opts *LogoutOptions, args []stri
 		return nil
 	}
 
-	var (
-		key, registry string
-		err           error
-	)
+	var key, registry string
 	switch len(args) {
 	case 0:
 		if !opts.AcceptUnspecifiedRegistry {

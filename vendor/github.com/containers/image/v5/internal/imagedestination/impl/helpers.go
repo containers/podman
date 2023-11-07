@@ -12,6 +12,11 @@ func BlobMatchesRequiredCompression(options private.TryReusingBlobOptions, candi
 	if options.RequiredCompression == nil {
 		return true // no requirement imposed
 	}
+	if options.RequiredCompression.Name() == compression.ZstdChunkedAlgorithmName {
+		// HACK: Never match when the caller asks for zstd:chunked, because we don’t record the annotations required to use the chunked blobs.
+		// The caller must re-compress to build those annotations.
+		return false
+	}
 	return candidateCompression != nil && (options.RequiredCompression.Name() == candidateCompression.Name())
 }
 

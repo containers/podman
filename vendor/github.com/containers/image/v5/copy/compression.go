@@ -284,11 +284,24 @@ func (d *bpCompressionStepData) recordValidatedDigestData(c *copier, uploadedInf
 		}
 	}
 	if d.uploadedCompressorName != "" && d.uploadedCompressorName != internalblobinfocache.UnknownCompression {
-		c.blobInfoCache.RecordDigestCompressorName(uploadedInfo.Digest, d.uploadedCompressorName)
+		if d.uploadedCompressorName != compressiontypes.ZstdChunkedAlgorithmName {
+			// HACK: Don’t record zstd:chunked algorithms.
+			// There is already a similar hack in internal/imagedestination/impl/helpers.BlobMatchesRequiredCompression,
+			// and that one prevents reusing zstd:chunked blobs, so recording the algorithm here would be mostly harmless.
+			//
+			// We skip that here anyway to work around the inability of blobPipelineDetectCompressionStep to differentiate
+			// between zstd and zstd:chunked; so we could, in varying situations over time, call RecordDigestCompressorName
+			// with the same digest and both ZstdAlgorithmName and ZstdChunkedAlgorithmName , which causes warnings about
+			// inconsistent data to be logged.
+			c.blobInfoCache.RecordDigestCompressorName(uploadedInfo.Digest, d.uploadedCompressorName)
+		}
 	}
 	if srcInfo.Digest != "" && srcInfo.Digest != uploadedInfo.Digest &&
 		d.srcCompressorName != "" && d.srcCompressorName != internalblobinfocache.UnknownCompression {
-		c.blobInfoCache.RecordDigestCompressorName(srcInfo.Digest, d.srcCompressorName)
+		if d.srcCompressorName != compressiontypes.ZstdChunkedAlgorithmName {
+			// HACK: Don’t record zstd:chunked algorithms, see above.
+			c.blobInfoCache.RecordDigestCompressorName(srcInfo.Digest, d.srcCompressorName)
+		}
 	}
 	return nil
 }

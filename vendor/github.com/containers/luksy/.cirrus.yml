@@ -9,8 +9,23 @@ docker_builder:
         apt-get -q install -y bats cryptsetup golang
         go version
         make
-    unit_test_script:
+    unit_test_script: |
         go test -timeout 45m -v -cover
+        case $(go env GOARCH) in
+        amd64)
+          otherarch=386;;
+        arm64)
+          otherarch=arm;;
+        mips64)
+          otherarch=mips;;
+        mips64le)
+          otherarch=mipsle;;
+        esac
+        if test -n "$otherarch" ; then
+          echo running unit tests again with GOARCH=$otherarch
+          GOARCH=$otherarch go test -timeout 45m -v -cover
+        fi
+        :
     defaults_script: |
         bats -f defaults ./tests
     aes_script: |

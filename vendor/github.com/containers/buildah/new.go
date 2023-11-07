@@ -140,7 +140,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 
 	systemContext := getSystemContext(store, options.SystemContext, options.SignaturePolicyPath)
 
-	if options.FromImage != "" && options.FromImage != "scratch" {
+	if options.FromImage != "" && options.FromImage != BaseImageFakeName {
 		imageRuntime, err := libimage.RuntimeFromStore(store, &libimage.RuntimeOptions{SystemContext: systemContext})
 		if err != nil {
 			return nil, err

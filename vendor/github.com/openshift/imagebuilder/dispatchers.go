@@ -137,6 +137,7 @@ func add(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 	}
 	var chown string
 	var chmod string
+	var checksum string
 	last := len(args) - 1
 	dest := makeAbsolute(args[last], b.RunConfig.WorkingDir)
 	filteredUserArgs := make(map[string]string)
@@ -160,11 +161,19 @@ func add(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 			if err != nil {
 				return err
 			}
+		case strings.HasPrefix(arg, "--checksum="):
+			checksum = strings.TrimPrefix(arg, "--checksum=")
 		default:
-			return fmt.Errorf("ADD only supports the --chmod=<permissions> and the --chown=<uid:gid> flag")
+			return fmt.Errorf("ADD only supports the --chmod=<permissions>, --chown=<uid:gid>, and --checksum=<checksum> flags")
 		}
 	}
-	b.PendingCopies = append(b.PendingCopies, Copy{Src: args[0:last], Dest: dest, Download: true, Chown: chown, Chmod: chmod})
+	b.PendingCopies = append(b.PendingCopies, Copy{
+		Src:      args[0:last],
+		Dest:     dest,
+		Download: true,
+		Chown:    chown,
+		Chmod:    chmod,
+		Checksum: checksum})
 	return nil
 }
 

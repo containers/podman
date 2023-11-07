@@ -160,6 +160,20 @@ func (r *Request) SetBody(rawBody interface{}) error {
 	}
 	r.body = bodyReader
 	r.ContentLength = contentLength
+	if bodyReader != nil {
+		r.GetBody = func() (io.ReadCloser, error) {
+			body, err := bodyReader()
+			if err != nil {
+				return nil, err
+			}
+			if rc, ok := body.(io.ReadCloser); ok {
+				return rc, nil
+			}
+			return io.NopCloser(body), nil
+		}
+	} else {
+		r.GetBody = func() (io.ReadCloser, error) { return http.NoBody, nil }
+	}
 	return nil
 }
 
@@ -302,18 +316,19 @@ func NewRequest(method, url string, rawBody interface{}) (*Request, error) {
 // The context controls the entire lifetime of a request and its response:
 // obtaining a connection, sending the request, and reading the response headers and body.
 func NewRequestWithContext(ctx context.Context, method, url string, rawBody interface{}) (*Request, error) {
-	bodyReader, contentLength, err := getBodyReaderAndContentLength(rawBody)
-	if err != nil {
-		return nil, err
-	}
-
 	httpReq, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
 		return nil, err
 	}
-	httpReq.ContentLength = contentLength
 
-	return &Request{body: bodyReader, Request: httpReq}, nil
+	req := &Request{
+		Request: httpReq,
+	}
+	if err := req.SetBody(rawBody); err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
 // Logger interface allows to use other loggers than

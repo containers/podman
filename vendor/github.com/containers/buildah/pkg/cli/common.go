@@ -196,7 +196,7 @@ func GetNameSpaceFlagsCompletions() commonComp.FlagCompletions {
 func GetLayerFlags(flags *LayerResults) pflag.FlagSet {
 	fs := pflag.FlagSet{}
 	fs.BoolVar(&flags.ForceRm, "force-rm", false, "always remove intermediate containers after a build, even if the build is unsuccessful.")
-	fs.BoolVar(&flags.Layers, "layers", UseLayers(), "cache intermediate layers during build. Use BUILDAH_LAYERS environment variable to override.")
+	fs.BoolVar(&flags.Layers, "layers", UseLayers(), "use intermediate layers during build. Use BUILDAH_LAYERS environment variable to override.")
 	return fs
 }
 
@@ -276,7 +276,7 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 		panic(fmt.Sprintf("error marking the signature-policy flag as hidden: %v", err))
 	}
 	fs.BoolVar(&flags.SkipUnusedStages, "skip-unused-stages", true, "skips stages in multi-stage builds which do not affect the final target")
-	fs.BoolVar(&flags.Squash, "squash", false, "squash newly built layers into a single new layer")
+	fs.BoolVar(&flags.Squash, "squash", false, "squash all image layers into a single layer")
 	fs.StringArrayVar(&flags.SSH, "ssh", []string{}, "SSH agent socket or keys to expose to the build. (format: default|<id>[=<socket>|<key>[,<key>]])")
 	fs.BoolVar(&flags.Stdin, "stdin", false, "pass stdin into containers")
 	fs.StringArrayVarP(&flags.Tag, "tag", "t", []string{}, "tagged `name` to apply to the built image")
@@ -371,7 +371,7 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 	fs.StringVar(&flags.RetryDelay, "retry-delay", PullPushRetryDelay.String(), "delay between retries in case of push/pull failures")
 	fs.String("arch", runtime.GOARCH, "set the ARCH of the image to the provided value instead of the architecture of the host")
 	fs.String("os", runtime.GOOS, "prefer `OS` instead of the running OS when pulling images")
-	fs.StringSlice("platform", []string{parse.DefaultPlatform()}, "set the OS/ARCH/VARIANT of the image to the provided value instead of the current operating system and architecture of the host (for example `linux/arm`)")
+	fs.StringSlice("platform", []string{parse.DefaultPlatform()}, "set the `OS/ARCH[/VARIANT]` of the image to the provided value instead of the current operating system and architecture of the host (for example \"linux/arm\")")
 	fs.String("variant", "", "override the `variant` of the specified image")
 	fs.StringArrayVar(&flags.SecurityOpt, "security-opt", []string{}, "security options (default [])")
 	fs.StringVar(&flags.ShmSize, "shm-size", defaultContainerConfig.Containers.ShmSize, "size of '/dev/shm'. The format is `<number><unit>`.")
