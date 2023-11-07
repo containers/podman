@@ -1076,13 +1076,20 @@ func (m *MacMachine) isIncompatible() bool {
 }
 
 func generateSystemDFilesForVirtiofsMounts(mounts []machine.VirtIoFs) []machine.Unit {
-	var unitFiles []machine.Unit
+	// mounting in fcos with virtiofs is a bit of a dance.  we need a unit file for the mount, a unit file
+	// for automatic mounting on boot, and a "preparatory" service file that disables FCOS security, performs
+	// the mkdir of the mount point, and then re-enables security.  This must be done for each mount.
 
+	var unitFiles []machine.Unit
 	for _, mnt := range mounts {
+		// Here we are looping the mounts and for each mount, we are adding two unit files
+		// for virtiofs.  One unit file is the mount itself and the second is to automount it
+		// on boot.
 		autoMountUnit := `[Automount]
 Where=%s
 [Install]
 WantedBy=multi-user.target
+
 [Unit]
 Description=Mount virtiofs volume %s
 `
@@ -1090,9 +1097,10 @@ Description=Mount virtiofs volume %s
 What=%s
 Where=%s
 Type=virtiofs
-[Install]
-WantedBy=multi-user.target`
 
+[Install]
+WantedBy=multi-user.target
+`
 		virtiofsAutomount := machine.Unit{
 			Enabled:  machine.BoolToPtr(true),
 			Name:     fmt.Sprintf("%s.automount", mnt.Tag),
@@ -1103,7 +1111,38 @@ WantedBy=multi-user.target`
 			Name:     fmt.Sprintf("%s.mount", mnt.Tag),
 			Contents: machine.StrToPtr(fmt.Sprintf(mountUnit, mnt.Tag, mnt.Target)),
 		}
-		unitFiles = append(unitFiles, virtiofsAutomount, virtiofsMount)
+
+		// This "unit" simulates something like systemctl enable virtiofs-mount-prepare@
+		enablePrep := machine.Unit{
+			Enabled: machine.BoolToPtr(true),
+			Name:    fmt.Sprintf("virtiofs-mount-prepare@%s.service", mnt.Tag),
+		}
+
+		unitFiles = append(unitFiles, virtiofsAutomount, virtiofsMount, enablePrep)
 	}
+
+	// mount prep is a way to workaround the FCOS limitation of creating directories
+	// at the rootfs / and then mounting to them.
+	mountPrep := `
+[Unit]
+Description=Allow virtios to mount to /
+DefaultDependencies=no
+ConditionPathExists=!%f
+
+[Service]
+Type=oneshot
+ExecStartPre=chattr -i /
+ExecStart=mkdir -p '%f'
+ExecStopPost=chattr +i /
+
+[Install]
+WantedBy=remote-fs.target
+`
+	virtioFSChattr := machine.Unit{
+		Contents: machine.StrToPtr(mountPrep),
+		Name:     "virtiofs-mount-prepare@.service",
+	}
+	unitFiles = append(unitFiles, virtioFSChattr)
+
 	return unitFiles
 }
