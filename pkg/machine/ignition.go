@@ -14,6 +14,7 @@ import (
 
 	"github.com/containers/common/libnetwork/etchosts"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/sirupsen/logrus"
 )
 
@@ -693,4 +694,66 @@ func GetPodmanDockerTmpConfig(uid int, rootful bool, newline bool) string {
 	}
 
 	return fmt.Sprintf("L+  /run/docker.sock   -    -    -     -   %s%s", podmanSock, suffix)
+}
+
+// SetIgnitionFile creates a new Machine File for the machine's ignition file
+// and assignes the handle to `loc`
+func SetIgnitionFile(loc *define.VMFile, vmtype VMType, vmName string) error {
+	vmConfigDir, err := GetConfDir(vmtype)
+	if err != nil {
+		return err
+	}
+
+	ignitionFile, err := define.NewMachineFile(filepath.Join(vmConfigDir, vmName+".ign"), nil)
+	if err != nil {
+		return err
+	}
+
+	*loc = *ignitionFile
+	return nil
+}
+
+type IgnitionBuilder struct {
+	dynamicIgnition DynamicIgnition
+	units           []Unit
+}
+
+// NewIgnitionBuilder generates a new IgnitionBuilder type using the
+// base `DynamicIgnition` object
+func NewIgnitionBuilder(dynamicIgnition DynamicIgnition) IgnitionBuilder {
+	return IgnitionBuilder{
+		dynamicIgnition,
+		[]Unit{},
+	}
+}
+
+// GenerateIgnitionConfig generates the ignition config
+func (i *IgnitionBuilder) GenerateIgnitionConfig() error {
+	return i.dynamicIgnition.GenerateIgnitionConfig()
+}
+
+// WithUnit adds systemd units to the internal `DynamicIgnition` config
+func (i *IgnitionBuilder) WithUnit(units ...Unit) {
+	i.dynamicIgnition.Cfg.Systemd.Units = append(i.dynamicIgnition.Cfg.Systemd.Units, units...)
+}
+
+// WithFile adds storage files to the internal `DynamicIgnition` config
+func (i *IgnitionBuilder) WithFile(files ...File) {
+	i.dynamicIgnition.Cfg.Storage.Files = append(i.dynamicIgnition.Cfg.Storage.Files, files...)
+}
+
+// BuildWithIgnitionFile copies the provided ignition file into the internal
+// `DynamicIgnition` write path
+func (i *IgnitionBuilder) BuildWithIgnitionFile(ignPath string) error {
+	inputIgnition, err := os.ReadFile(ignPath)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(i.dynamicIgnition.WritePath, inputIgnition, 0644)
+}
+
+// Build writes the internal `DynamicIgnition` config to its write path
+func (i *IgnitionBuilder) Build() error {
+	return i.dynamicIgnition.Write()
 }

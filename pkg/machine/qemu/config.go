@@ -64,10 +64,6 @@ func (v *MachineVM) setNewMachineCMD(qemuBinary string, cmdOpts *setNewMachineCM
 // NewMachine initializes an instance of a virtual machine based on the qemu
 // virtualization.
 func (p *QEMUVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, error) {
-	vmConfigDir, err := machine.GetConfDir(vmtype)
-	if err != nil {
-		return nil, err
-	}
 	vm := new(MachineVM)
 	if len(opts.Name) > 0 {
 		vm.Name = opts.Name
@@ -79,11 +75,9 @@ func (p *QEMUVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, e
 	}
 
 	// set VM ignition file
-	ignitionFile, err := define.NewMachineFile(filepath.Join(vmConfigDir, vm.Name+".ign"), nil)
-	if err != nil {
+	if err := machine.SetIgnitionFile(&vm.IgnitionFile, vmtype, vm.Name); err != nil {
 		return nil, err
 	}
-	vm.IgnitionFile = *ignitionFile
 
 	// set VM image file
 	imagePath, err := define.NewMachineFile(opts.ImagePath, nil)

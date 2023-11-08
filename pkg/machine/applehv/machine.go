@@ -50,6 +50,22 @@ type VfkitHelper struct {
 	VirtualMachine  *vfConfig.VirtualMachine
 }
 
+// appleHVReadyUnit is a unit file that sets up the virtual serial device
+// where when the VM is done configuring, it will send an ack
+// so a listening host knows it can begin interacting with it
+const appleHVReadyUnit = `[Unit]
+Requires=dev-virtio\\x2dports-%s.device
+After=remove-moby.service sshd.socket sshd.service
+OnFailure=emergency.target
+OnFailureJobMode=isolate
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c '/usr/bin/echo Ready | socat - VSOCK-CONNECT:2:1025'
+[Install]
+RequiredBy=default.target
+`
+
 type MacMachine struct {
 	// ConfigPath is the fully qualified path to the configuration file
 	ConfigPath define.VMFile
@@ -134,51 +150,6 @@ func (m *MacMachine) addMountsToVM(opts machine.InitOptions, virtiofsMnts *[]mac
 	m.Mounts = mounts
 
 	return nil
-}
-
-// writeIgnitionConfigFile generates the ignition config and writes it to the filesystem
-func (m *MacMachine) writeIgnitionConfigFile(opts machine.InitOptions, key string, virtiofsMnts *[]machine.VirtIoFs) error {
-	// Write the ignition file
-	ign := machine.DynamicIgnition{
-		Name:      opts.Username,
-		Key:       key,
-		VMName:    m.Name,
-		VMType:    machine.AppleHvVirt,
-		TimeZone:  opts.TimeZone,
-		WritePath: m.IgnitionFile.GetPath(),
-		UID:       m.UID,
-		Rootful:   m.Rootful,
-	}
-
-	if err := ign.GenerateIgnitionConfig(); err != nil {
-		return err
-	}
-
-	// ready is a unit file that sets up the virtual serial device
-	// where when the VM is done configuring, it will send an ack
-	// so a listening host knows it can being interacting with it
-	ready := `[Unit]
-		Requires=dev-virtio\\x2dports-%s.device
-		After=remove-moby.service sshd.socket sshd.service
-		OnFailure=emergency.target
-		OnFailureJobMode=isolate
-		[Service]
-		Type=oneshot
-		RemainAfterExit=yes
-		ExecStart=/bin/sh -c '/usr/bin/echo Ready | socat - VSOCK-CONNECT:2:1025'
-		[Install]
-		RequiredBy=default.target
-		`
-	readyUnit := machine.Unit{
-		Enabled:  machine.BoolToPtr(true),
-		Name:     "ready.service",
-		Contents: machine.StrToPtr(fmt.Sprintf(ready, "vsock")),
-	}
-	virtiofsUnits := generateSystemDFilesForVirtiofsMounts(*virtiofsMnts)
-	ign.Cfg.Systemd.Units = append(ign.Cfg.Systemd.Units, readyUnit)
-	ign.Cfg.Systemd.Units = append(ign.Cfg.Systemd.Units, virtiofsUnits...)
-
-	return ign.Write()
 }
 
 func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
@@ -280,6 +251,17 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
+	builder := machine.NewIgnitionBuilder(machine.DynamicIgnition{
+		Name:      opts.Username,
+		Key:       key,
+		VMName:    m.Name,
+		VMType:    machine.AppleHvVirt,
+		TimeZone:  opts.TimeZone,
+		WritePath: m.IgnitionFile.GetPath(),
+		UID:       m.UID,
+		Rootful:   m.Rootful,
+	})
+
 	if len(opts.IgnitionPath) < 1 {
 		key, err = machine.CreateSSHKeys(m.IdentityPath)
 		if err != nil {
@@ -289,14 +271,22 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 	}
 
 	if len(opts.IgnitionPath) > 0 {
-		inputIgnition, err := os.ReadFile(opts.IgnitionPath)
-		if err != nil {
-			return false, err
-		}
-		return false, os.WriteFile(m.IgnitionFile.GetPath(), inputIgnition, 0644)
+		return false, builder.BuildWithIgnitionFile(opts.IgnitionPath)
 	}
+
+	if err := builder.GenerateIgnitionConfig(); err != nil {
+		return false, err
+	}
+
+	builder.WithUnit(machine.Unit{
+		Enabled:  machine.BoolToPtr(true),
+		Name:     "ready.service",
+		Contents: machine.StrToPtr(fmt.Sprintf(appleHVReadyUnit, "vsock")),
+	})
+	builder.WithUnit(generateSystemDFilesForVirtiofsMounts(virtiofsMnts)...)
+
 	// TODO Ignition stuff goes here
-	err = m.writeIgnitionConfigFile(opts, key, &virtiofsMnts)
+	err = builder.Build()
 	callbackFuncs.Add(m.IgnitionFile.Delete)
 
 	return err == nil, err
