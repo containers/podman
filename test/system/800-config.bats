@@ -137,7 +137,7 @@ EOF
     assert "$output" = "CONF1
 CONF2"
 
-    # When explicitly turned off, values are replaced/overriden again.
+    # When explicitly turned off, values are replaced/overridden again.
     run_podman 1 --module=$conf1_tmp --module=$conf2_off_tmp run --rm $IMAGE printenv A B
     assert "$output" = "CONF2_OFF"
 }

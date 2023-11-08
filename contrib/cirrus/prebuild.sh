@@ -72,7 +72,7 @@ if [[ "${DISTRO_NV}" == "$PRIOR_FEDORA_NAME" ]]; then
       showrun bash ${CIRRUS_WORKING_DIR}/.github/actions/check_cirrus_cron/test.sh
     fi
 
-    # Note: This may detect leaks, but should not be considered authorative
+    # Note: This may detect leaks, but should not be considered authoritative
     # since any PR could modify the contents or arguments.  This check is
     # simply here to...
     msg "Checking GitLeaks functions with current CLI args, configuration, and baseline JSON"
