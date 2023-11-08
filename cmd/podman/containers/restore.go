@@ -123,7 +123,7 @@ func restore(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	notImport := (!restoreOptions.CheckpointImage && restoreOptions.Import == "")
+	notImport := !restoreOptions.CheckpointImage && restoreOptions.Import == ""
 
 	if notImport && restoreOptions.ImportPrevious != "" {
 		return fmt.Errorf("--import-previous can only be used with image or --import")

@@ -12,7 +12,7 @@ import (
 	"github.com/containers/podman/v4/libpod/driver"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage/types"
-	units "github.com/docker/go-units"
+	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )

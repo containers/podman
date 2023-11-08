@@ -3820,11 +3820,11 @@ spec:
 		podmanTest.CgroupManager = "systemd"
 
 		var (
-			numReplicas           int32  = 3
-			expectedCPURequest    string = "100m"
-			expectedCPULimit      string = "200m"
-			expectedMemoryRequest string = "10000000"
-			expectedMemoryLimit   string = "20000000"
+			numReplicas           int32 = 3
+			expectedCPURequest          = "100m"
+			expectedCPULimit            = "200m"
+			expectedMemoryRequest       = "10000000"
+			expectedMemoryLimit         = "20000000"
 		)
 
 		expectedCPUQuota := milliCPUToQuota(expectedCPULimit)
@@ -3869,7 +3869,7 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		podmanTest.CgroupManager = "systemd"
 
 		var (
-			expectedCPULimit string = "1"
+			expectedCPULimit = "1"
 		)
 
 		deployment := getDeployment(

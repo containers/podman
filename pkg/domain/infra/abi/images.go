@@ -845,7 +845,7 @@ func transferRootful(source entities.ImageScpOptions, dest entities.ImageScpOpti
 	if err != nil {
 		return err
 	}
-	out, err := execTransferPodman(uLoad, loadCommand, (len(dest.Tag) > 0))
+	out, err := execTransferPodman(uLoad, loadCommand, len(dest.Tag) > 0)
 	if err != nil {
 		return err
 	}

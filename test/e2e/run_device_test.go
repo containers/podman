@@ -94,7 +94,7 @@ var _ = Describe("Podman run device", func() {
 		// verify --privileged is required
 		session2 := podmanTest.Podman([]string{"run", ALPINE, "test", "-c", "/dev/kmsg"})
 		session2.WaitWithDefaultTimeout()
-		Expect(session2).Should((Exit(1)))
+		Expect(session2).Should(Exit(1))
 	})
 
 	It("podman run CDI device test", func() {

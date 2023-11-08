@@ -25,7 +25,7 @@ func TestMain(m *testing.M) {
 }
 
 const (
-	defaultStream machine.FCOSStream = machine.Testing
+	defaultStream = machine.Testing
 )
 
 var (

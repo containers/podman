@@ -7,7 +7,7 @@ import (
 
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
-	units "github.com/docker/go-units"
+	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
 )
 

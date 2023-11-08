@@ -20,7 +20,7 @@ import (
 	"math/big"
 	"strconv"
 
-	inf "gopkg.in/inf.v0"
+	"gopkg.in/inf.v0"
 )
 
 // Scale is used for getting and setting the base-10 scaled value.

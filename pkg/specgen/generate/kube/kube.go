@@ -589,7 +589,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	}
 
 	if ro := opts.ReadOnly; ro != itypes.OptionalBoolUndefined {
-		s.ReadOnlyFilesystem = (ro == itypes.OptionalBoolTrue)
+		s.ReadOnlyFilesystem = ro == itypes.OptionalBoolTrue
 	}
 	// This should default to true for kubernetes yaml
 	s.ReadWriteTmpfs = true
@@ -785,7 +785,7 @@ func makeHealthCheck(inCmd string, interval int32, retries int32, timeout int32,
 		// kubernetes interval defaults to 10 sec and cannot be less than 1
 		interval = 10
 	}
-	hc.Interval = (time.Duration(interval) * time.Second)
+	hc.Interval = time.Duration(interval) * time.Second
 	if retries < 1 {
 		// kubernetes retries defaults to 3
 		retries = 3
@@ -795,13 +795,13 @@ func makeHealthCheck(inCmd string, interval int32, retries int32, timeout int32,
 		// kubernetes timeout defaults to 1
 		timeout = 1
 	}
-	timeoutDuration := (time.Duration(timeout) * time.Second)
+	timeoutDuration := time.Duration(timeout) * time.Second
 	if timeoutDuration < time.Duration(1) {
 		return nil, errors.New("healthcheck-timeout must be at least 1 second")
 	}
 	hc.Timeout = timeoutDuration
 
-	startPeriodDuration := (time.Duration(startPeriod) * time.Second)
+	startPeriodDuration := time.Duration(startPeriod) * time.Second
 	if startPeriodDuration < time.Duration(0) {
 		return nil, errors.New("healthcheck-start-period must be 0 seconds or greater")
 	}

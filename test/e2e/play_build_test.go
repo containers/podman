@@ -81,7 +81,7 @@ LABEL marge=mom
 		cwd, err := os.Getwd()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(os.Chdir(yamlDir)).To(Succeed())
-		defer func() { (Expect(os.Chdir(cwd)).To(BeNil())) }()
+		defer func() { Expect(os.Chdir(cwd)).To(Succeed()) }()
 
 		session := podmanTest.Podman([]string{"kube", "play", "top.yaml"})
 		session.WaitWithDefaultTimeout()
@@ -118,7 +118,7 @@ LABEL marge=mom
 		cwd, err := os.Getwd()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(os.Chdir(yamlDir)).To(Succeed())
-		defer func() { (Expect(os.Chdir(cwd)).To(BeNil())) }()
+		defer func() { Expect(os.Chdir(cwd)).To(Succeed()) }()
 
 		session := podmanTest.Podman([]string{"kube", "play", "top.yaml"})
 		session.WaitWithDefaultTimeout()
@@ -163,7 +163,7 @@ LABEL marge=mom
 		cwd, err := os.Getwd()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(os.Chdir(yamlDir)).To(Succeed())
-		defer func() { (Expect(os.Chdir(cwd)).To(BeNil())) }()
+		defer func() { Expect(os.Chdir(cwd)).To(Succeed()) }()
 
 		// Build the image into the local store
 		build := podmanTest.Podman([]string{"build", "-t", "foobar", "-f", "Containerfile"})
@@ -210,7 +210,7 @@ LABEL marge=mom
 		cwd, err := os.Getwd()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(os.Chdir(yamlDir)).To(Succeed())
-		defer func() { (Expect(os.Chdir(cwd)).To(BeNil())) }()
+		defer func() { Expect(os.Chdir(cwd)).To(Succeed()) }()
 
 		// Build the image into the local store
 		build := podmanTest.Podman([]string{"build", "-t", "foobar", "-f", "Containerfile"})
@@ -257,7 +257,7 @@ LABEL marge=mom
 		cwd, err := os.Getwd()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(os.Chdir(yamlDir)).To(Succeed())
-		defer func() { (Expect(os.Chdir(cwd)).To(BeNil())) }()
+		defer func() { Expect(os.Chdir(cwd)).To(Succeed()) }()
 
 		// Build the image into the local store
 		build := podmanTest.Podman([]string{"build", "-t", "foobar", "-f", "Containerfile"})
@@ -347,7 +347,7 @@ echo GOT-HERE
 		cwd, err := os.Getwd()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(os.Chdir(yamlDir)).To(Succeed())
-		defer func() { (Expect(os.Chdir(cwd)).To(BeNil())) }()
+		defer func() { Expect(os.Chdir(cwd)).To(Succeed()) }()
 
 		session := podmanTest.Podman([]string{"kube", "play", "echo.yaml"})
 		session.WaitWithDefaultTimeout()

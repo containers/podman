@@ -207,7 +207,7 @@ func (s *containerStats) AVGCPU() string {
 }
 
 func (s *containerStats) Up() string {
-	return (s.UpTime.String())
+	return s.UpTime.String()
 }
 
 func (s *containerStats) MemPerc() string {

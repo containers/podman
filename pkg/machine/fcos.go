@@ -18,7 +18,7 @@ import (
 	"github.com/coreos/stream-metadata-go/fedoracoreos"
 	"github.com/coreos/stream-metadata-go/release"
 	"github.com/coreos/stream-metadata-go/stream"
-	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 )
 
