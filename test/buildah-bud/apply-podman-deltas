@@ -159,8 +159,8 @@ errmsg "no contents in .*" \
        "Error: context must be a directory: .*" \
        "bud with specified context should fail if context contains empty Dockerfile"
 
-errmsg "checking authfile: stat /tmp/nonexistent: no such file or directory" \
-       "Error: checking authfile: stat /tmp/nonexistent: no such file or directory" \
+errmsg "credential file is not accessible: stat /tmp/nonexistent: no such file or directory" \
+       "Error: credential file is not accessible: stat /tmp/nonexistent: no such file or directory" \
        "bud with Containerfile should fail with nonexistent authfile"
 
 errmsg "cannot find Containerfile or Dockerfile" \
