@@ -235,6 +235,8 @@ CGO_CFLAGS=$(echo $CGO_CFLAGS | sed 's/-specs=\/usr\/lib\/rpm\/redhat\/redhat-an
 export CGO_CFLAGS+=" -m64 -mtune=generic -fcf-protection=full"
 %endif
 
+export GOPROXY=direct
+
 LDFLAGS="-X %{ld_libpod}/define.buildInfo=$(date +%s) \
          -X %{ld_libpod}/config._installPrefix=%{_prefix} \
          -X %{ld_libpod}/config._etcDir=%{_sysconfdir} \
