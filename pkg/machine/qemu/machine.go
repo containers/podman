@@ -401,6 +401,14 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 		}
 	}
 
+	if opts.USBs != nil {
+		if usbConfigs, err := parseUSBs(*opts.USBs); err != nil {
+			setErrors = append(setErrors, fmt.Errorf("failed to set usb: %w", err))
+		} else {
+			v.USBs = usbConfigs
+		}
+	}
+
 	err = v.writeConfig()
 	if err != nil {
 		setErrors = append(setErrors, err)

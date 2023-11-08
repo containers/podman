@@ -104,6 +104,20 @@ means to use the timezone of the machine host.
 The timezone setting is not used with WSL.  WSL automatically sets the timezone to the same
 as the host Windows operating system.
 
+#### **--usb**=*bus=number,devnum=number* or *vendor=hexadecimal,product=hexadecimal*
+
+Assign a USB device from the host to the VM via USB passthrough.
+Only supported for QEMU Machines.
+
+The device needs to have proper permissions in order to be passed to the machine. This
+means the device needs to be under your user group.
+
+Note that using bus and device number are simpler but the values can change every boot
+or when the device is unplugged.
+
+When specifying a USB using vendor and product ID's, if more than one device has the
+same vendor and product ID, the first available device is assigned.
+
 @@option user-mode-networking
 
 #### **--username**
@@ -160,6 +174,8 @@ $ podman machine init --rootful
 $ podman machine init --disk-size 50
 $ podman machine init --memory=1024 myvm
 $ podman machine init -v /Users:/mnt/Users
+$ podman machine init --usb vendor=13d3,product=5406
+$ podman machine init --usb bus=1,devnum=3
 ```
 
 ## SEE ALSO

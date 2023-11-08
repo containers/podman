@@ -458,6 +458,9 @@ func (m *MacMachine) Set(name string, opts machine.SetOptions) ([]error, error) 
 			}
 		}
 	}
+	if opts.USBs != nil {
+		setErrors = append(setErrors, errors.New("changing USBs not supported for applehv machines"))
+	}
 
 	// Write the machine config to the filesystem
 	err = m.writeConfig()

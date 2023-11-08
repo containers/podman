@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/define"
 )
 
@@ -44,6 +45,24 @@ func (q *QemuCmd) SetNetwork() {
 	// Right now the mac address is hardcoded so that the host networking gives it a specific IP address.  This is
 	// why we can only run one vm at a time right now
 	*q = append(*q, "-netdev", "socket,id=vlan,fd=3", "-device", "virtio-net-pci,netdev=vlan,mac=5a:94:ef:e4:0c:ee")
+}
+
+// SetNetwork adds a network device to the machine
+func (q *QemuCmd) SetUSBHostPassthrough(usbs []machine.USBConfig) {
+	if len(usbs) == 0 {
+		return
+	}
+	// Add xhci usb emulation first and then each usb device
+	*q = append(*q, "-device", "qemu-xhci")
+	for _, usb := range usbs {
+		var dev string
+		if usb.Bus != "" && usb.DevNumber != "" {
+			dev = fmt.Sprintf("usb-host,hostbus=%s,hostaddr=%s", usb.Bus, usb.DevNumber)
+		} else {
+			dev = fmt.Sprintf("usb-host,vendorid=%d,productid=%d", usb.Vendor, usb.Product)
+		}
+		*q = append(*q, "-device", dev)
+	}
 }
 
 // SetSerialPort adds a serial port to the machine for readiness

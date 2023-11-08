@@ -518,6 +518,10 @@ func (m *HyperVMachine) Set(name string, opts machine.SetOptions) ([]error, erro
 		memoryChanged = true
 	}
 
+	if opts.USBs != nil {
+		setErrors = append(setErrors, errors.New("changing USBs not supported for hyperv machines"))
+	}
+
 	if cpuChanged || memoryChanged {
 		err := vm.UpdateProcessorMemSettings(func(ps *hypervctl.ProcessorSettings) {
 			if cpuChanged {

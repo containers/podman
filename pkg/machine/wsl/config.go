@@ -4,6 +4,7 @@
 package wsl
 
 import (
+	"fmt"
 	"io/fs"
 	"path/filepath"
 	"strings"
@@ -29,6 +30,9 @@ func VirtualizationProvider() machine.VirtProvider {
 // NewMachine initializes an instance of a wsl machine
 func (p *WSLVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	vm := new(MachineVM)
+	if len(opts.USBs) > 0 {
+		return nil, fmt.Errorf("USB host passtrough not supported for WSL machines")
+	}
 	if len(opts.Name) > 0 {
 		vm.Name = opts.Name
 	}
