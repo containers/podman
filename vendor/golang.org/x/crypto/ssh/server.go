@@ -64,6 +64,13 @@ type ServerConfig struct {
 	// Config contains configuration shared between client and server.
 	Config
 
+	// PublicKeyAuthAlgorithms specifies the supported client public key
+	// authentication algorithms. Note that this should not include certificate
+	// types since those use the underlying algorithm. This list is sent to the
+	// client if it supports the server-sig-algs extension. Order is irrelevant.
+	// If unspecified then a default set of algorithms is used.
+	PublicKeyAuthAlgorithms []string
+
 	hostKeys []Signer
 
 	// NoClientAuth is true if clients are allowed to connect without
@@ -200,6 +207,15 @@ func NewServerConn(c net.Conn, config *ServerConfig) (*ServerConn, <-chan NewCha
 	fullConf.SetDefaults()
 	if fullConf.MaxAuthTries == 0 {
 		fullConf.MaxAuthTries = 6
+	}
+	if len(fullConf.PublicKeyAuthAlgorithms) == 0 {
+		fullConf.PublicKeyAuthAlgorithms = supportedPubKeyAuthAlgos
+	} else {
+		for _, algo := range fullConf.PublicKeyAuthAlgorithms {
+			if !contains(supportedPubKeyAuthAlgos, algo) {
+				return nil, nil, nil, fmt.Errorf("ssh: unsupported public key authentication algorithm %s", algo)
+			}
+		}
 	}
 	// Check if the config contains any unsupported key exchanges
 	for _, kex := range fullConf.KeyExchanges {
@@ -524,7 +540,7 @@ userAuthLoop:
 				return nil, parseError(msgUserAuthRequest)
 			}
 			algo := string(algoBytes)
-			if !contains(supportedPubKeyAuthAlgos, underlyingAlgo(algo)) {
+			if !contains(config.PublicKeyAuthAlgorithms, underlyingAlgo(algo)) {
 				authErr = fmt.Errorf("ssh: algorithm %q not accepted", algo)
 				break
 			}
@@ -591,7 +607,7 @@ userAuthLoop:
 				// algorithm name that corresponds to algo with
 				// sig.Format.  This is usually the same, but
 				// for certs, the names differ.
-				if !contains(supportedPubKeyAuthAlgos, sig.Format) {
+				if !contains(config.PublicKeyAuthAlgorithms, sig.Format) {
 					authErr = fmt.Errorf("ssh: algorithm %q not accepted", sig.Format)
 					break
 				}
