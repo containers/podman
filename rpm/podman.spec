@@ -48,7 +48,7 @@
 # dnsname
 %global repo_plugins dnsname
 %global git_plugins %{container_base_url}/%{repo_plugins}
-%global commit_plugins 18822f9a4fb35d1349eb256f4cd2bfd372474d84
+%global commit_plugins 6685f68dbc13a95b73b9394b304927c6f518021c
 %global import_path_plugins %{container_base_path}/%{repo_plugins}
 
 Name: podman
