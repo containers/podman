@@ -113,6 +113,7 @@ function _push_search_test() {
     destname=ok-$(random_string 10 | tr A-Z a-z)-ok
     # Use command-line credentials
     run_podman push --tls-verify=$1 \
+               --compression-format gzip \
                --format docker \
                --cert-dir ${PODMAN_LOGIN_WORKDIR}/trusted-registry-cert-dir \
                --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS} \
