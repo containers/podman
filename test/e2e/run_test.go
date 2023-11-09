@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -190,7 +189,7 @@ var _ = Describe("Podman run", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("/etc/hosts"))
 	})
 
-	It("podman create pod with name in /etc/hosts", func() {
+	It("podman run --name X --hostname Y, both X and Y in /etc/hosts", func() {
 		name := "test_container"
 		hostname := "test_hostname"
 		session := podmanTest.Podman([]string{"run", "--rm", "--name", name, "--hostname", hostname, ALPINE, "cat", "/etc/hosts"})
@@ -201,31 +200,46 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run a container based on remote image", func() {
-		// Changing session to rsession
-		rsession := podmanTest.Podman([]string{"run", "-dt", ALPINE, "ls"})
-		rsession.WaitWithDefaultTimeout()
-		Expect(rsession).Should(ExitCleanly())
+		// Pick any image that is not in our cache
+		session := podmanTest.Podman([]string{"run", "-dt", BB_GLIBC, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull " + BB_GLIBC))
+		Expect(session.ErrorToString()).To(ContainSubstring("Writing manifest to image destination"))
 
-		lock := GetPortLock("5000")
+	})
+
+	It("podman run --tls-verify", func() {
+		// 5000 is marked insecure in registries.conf, so --tls-verify=false
+		// is a NOP. Pick any other port.
+		port := "5050"
+		lock := GetPortLock(port)
 		defer lock.Unlock()
-		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", port + ":5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
 		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
-			Skip("Cannot start docker registry.")
+			Fail("Cannot start docker registry.")
 		}
 
-		run := podmanTest.Podman([]string{"run", "--tls-verify=false", ALPINE})
-		run.WaitWithDefaultTimeout()
-		Expect(run).Should(ExitCleanly())
-		Expect(podmanTest.NumberOfContainers()).To(Equal(3))
+		pushedImage := "localhost:" + port + "/pushed" + strings.ToLower(RandomString(5)) + ":" + RandomString(8)
+		push := podmanTest.Podman([]string{"push", "--tls-verify=false", ALPINE, pushedImage})
+		push.WaitWithDefaultTimeout()
+		Expect(push).To(Exit(0))
+		Expect(push.ErrorToString()).To(ContainSubstring("Writing manifest to image destination"))
 
-		// Now registries.conf will be consulted where localhost:5000
-		// is set to be insecure.
-		run = podmanTest.Podman([]string{"run", ALPINE})
+		run := podmanTest.Podman([]string{"run", pushedImage, "date"})
 		run.WaitWithDefaultTimeout()
-		Expect(run).Should(ExitCleanly())
+		Expect(run).Should(Exit(125))
+		Expect(run.ErrorToString()).To(ContainSubstring("pinging container registry localhost:" + port))
+		Expect(run.ErrorToString()).To(ContainSubstring("http: server gave HTTP response to HTTPS client"))
+
+		run = podmanTest.Podman([]string{"run", "--tls-verify=false", pushedImage, "echo", "got here"})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+		Expect(run.OutputToString()).To(Equal("got here"))
+		Expect(run.ErrorToString()).To(ContainSubstring("Trying to pull " + pushedImage))
 	})
 
 	It("podman run a container with a --rootfs", func() {
@@ -267,14 +281,10 @@ var _ = Describe("Podman run", func() {
 		Expect(stdoutLines).Should(HaveLen(1))
 		Expect(stdoutLines[0]).Should(Equal(uniqueString))
 
-		SkipIfRemote("External overlay only work locally")
-		if os.Getenv("container") != "" {
-			Skip("Overlay mounts not supported when running in a container")
-		}
-		if isRootless() {
-			if _, err := exec.LookPath("fuse-overlayfs"); err != nil {
-				Skip("Fuse-Overlayfs required for rootless overlay mount test")
-			}
+		// The rest of these tests only work locally and not containerized
+		if IsRemote() || os.Getenv("container") != "" {
+			GinkgoWriter.Println("Bypassing subsequent tests due to remote or container environment")
+			return
 		}
 		// Test --rootfs with an external overlay
 		// use --rm to remove container and confirm if we did not leak anything
@@ -282,12 +292,14 @@ var _ = Describe("Podman run", func() {
 			"--rootfs", rootfs + ":O", "cat", testFilePath})
 		osession.WaitWithDefaultTimeout()
 		Expect(osession).Should(ExitCleanly())
+		Expect(osession.OutputToString()).To(Equal(uniqueString))
 
 		// Test podman start stop with overlay
 		osession = podmanTest.Podman([]string{"run", "--name", "overlay-foo", "--security-opt", "label=disable",
 			"--rootfs", rootfs + ":O", "echo", "hello"})
 		osession.WaitWithDefaultTimeout()
 		Expect(osession).Should(ExitCleanly())
+		Expect(osession.OutputToString()).To(Equal("hello"))
 
 		osession = podmanTest.Podman([]string{"stop", "overlay-foo"})
 		osession.WaitWithDefaultTimeout()
@@ -304,11 +316,11 @@ var _ = Describe("Podman run", func() {
 		Expect(osession).Should(ExitCleanly())
 
 		// Test --rootfs with an external overlay with --uidmap
-		osession = podmanTest.Podman([]string{"run", "--uidmap", "0:1000:1000", "--rm", "--security-opt", "label=disable",
-			"--rootfs", rootfs + ":O", "echo", "hello"})
+		osession = podmanTest.Podman([]string{"run", "--uidmap", "0:1234:5678", "--rm", "--security-opt", "label=disable",
+			"--rootfs", rootfs + ":O", "cat", "/proc/self/uid_map"})
 		osession.WaitWithDefaultTimeout()
 		Expect(osession).Should(ExitCleanly())
-		Expect(osession.OutputToString()).To(Equal("hello"))
+		Expect(osession.OutputToString()).To(Equal("0 1234 5678"))
 	})
 
 	It("podman run a container with --init", func() {
@@ -597,10 +609,12 @@ var _ = Describe("Podman run", func() {
 
 		if isRootless() {
 			if os.Getenv("SKIP_USERNS") != "" {
-				Skip("Skip userns tests.")
+				GinkgoWriter.Println("Bypassing subsequent tests due to $SKIP_USERNS")
+				return
 			}
 			if _, err := os.Stat("/proc/self/uid_map"); err != nil {
-				Skip("User namespaces not supported.")
+				GinkgoWriter.Println("Bypassing subsequent tests due to no /proc/self/uid_map")
+				return
 			}
 			session = podmanTest.Podman([]string{"run", "--userns=keep-id", "--cap-add=DAC_OVERRIDE", "--rm", ALPINE, "grep", "CapAmb", "/proc/self/status"})
 			session.WaitWithDefaultTimeout()
@@ -2092,10 +2106,6 @@ WORKDIR /madethis`, BB)
 
 		podmanTest.AddImageToRWStore(ALPINE)
 
-		if isRootless() {
-			err := podmanTest.RestoreArtifact(REGISTRY_IMAGE)
-			Expect(err).ToNot(HaveOccurred())
-		}
 		lock := GetPortLock("5000")
 		defer lock.Unlock()
 		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
@@ -2103,7 +2113,7 @@ WORKDIR /madethis`, BB)
 		Expect(session).Should(ExitCleanly())
 
 		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
-			Skip("Cannot start docker registry.")
+			Fail("Cannot start docker registry.")
 		}
 
 		bitSize := 1024
@@ -2119,10 +2129,19 @@ WORKDIR /madethis`, BB)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
+		// Must fail without --decryption-key
+		// NOTE: --tls-verify=false not needed, because localhost:5000 is in registries.conf
+		session = podmanTest.Podman([]string{"run", imgPath})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull " + imgPath))
+		Expect(session.ErrorToString()).To(ContainSubstring("invalid tar header"))
+
+		// With
 		session = podmanTest.Podman([]string{"run", "--decryption-key", privateKeyFileName, imgPath})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull"))
+		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull " + imgPath))
 	})
 
 	It("podman run --shm-size-systemd", func() {
