@@ -669,24 +669,14 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 	}
 
 	logrus.Debug("waiting for ready notification")
-	var conn net.Conn
 	readyChan := make(chan error)
-	connChan := make(chan net.Conn)
-	go machine.ListenAndWaitOnSocket(readyChan, connChan, readyListen)
+	go machine.ListenAndWaitOnSocket(readyChan, readyListen)
 
 	if err := cmd.Start(); err != nil {
 		return err
 	}
 
 	err = <-readyChan
-	conn = <-connChan
-	if conn != nil {
-		defer func() {
-			if closeErr := conn.Close(); closeErr != nil {
-				logrus.Error(closeErr)
-			}
-		}()
-	}
 	if err != nil {
 		return err
 	}

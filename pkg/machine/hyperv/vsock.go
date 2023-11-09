@@ -274,16 +274,7 @@ func (hv *HVSockRegistryEntry) Listen() error {
 	}()
 
 	errChan := make(chan error)
-	connChan := make(chan net.Conn)
-	go machine.ListenAndWaitOnSocket(errChan, connChan, listener)
-	conn := <-connChan
+	go machine.ListenAndWaitOnSocket(errChan, listener)
 
-	if conn != nil {
-		defer func() {
-			if err := conn.Close(); err != nil {
-				logrus.Error(err)
-			}
-		}()
-	}
 	return <-errChan
 }

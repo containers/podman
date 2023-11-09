@@ -30,16 +30,20 @@ func ReadySocketPath(runtimeDir, machineName string) string {
 // ListenAndWaitOnSocket waits for a new connection to the listener and sends
 // any error back through the channel. ListenAndWaitOnSocket is intended to be
 // used as a goroutine
-func ListenAndWaitOnSocket(errChan chan<- error, connChan chan<- net.Conn, listener net.Listener) {
+func ListenAndWaitOnSocket(errChan chan<- error, listener net.Listener) {
 	conn, err := listener.Accept()
 	if err != nil {
 		errChan <- err
-		connChan <- nil
 		return
 	}
 	_, err = bufio.NewReader(conn).ReadString('\n')
+
+	if closeErr := conn.Close(); closeErr != nil {
+		errChan <- closeErr
+		return
+	}
+
 	errChan <- err
-	connChan <- conn
 }
 
 // DialSocketWithBackoffs attempts to connect to the socket in maxBackoffs attempts
