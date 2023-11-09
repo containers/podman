@@ -13,7 +13,6 @@ import (
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/cgroupv2"
-	"github.com/containers/common/pkg/util"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/containers/storage/types"
@@ -196,7 +195,9 @@ func defaultConfig() (*Config, error) {
 	}
 
 	defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
-	if useUserConfigLocations() {
+	// NOTE: For now we want Windows to use system locations.
+	// GetRootlessUID == -1 on Windows, so exclude negative range
+	if unshare.GetRootlessUID() > 0 {
 		configHome, err := homedir.GetConfigHome()
 		if err != nil {
 			return nil, err
@@ -320,7 +321,7 @@ func defaultEngineConfig() (*EngineConfig, error) {
 			return nil, err
 		}
 	}
-	storeOpts, err := types.DefaultStoreOptions(useUserConfigLocations(), unshare.GetRootlessUID())
+	storeOpts, err := types.DefaultStoreOptions()
 	if err != nil {
 		return nil, err
 	}
@@ -480,11 +481,14 @@ func defaultEngineConfig() (*EngineConfig, error) {
 }
 
 func defaultTmpDir() (string, error) {
-	if !useUserConfigLocations() {
+	// NOTE: For now we want Windows to use system locations.
+	// GetRootlessUID == -1 on Windows, so exclude negative range
+	rootless := unshare.GetRootlessUID() > 0
+	if !rootless {
 		return getLibpodTmpDir(), nil
 	}
 
-	runtimeDir, err := util.GetRuntimeDir()
+	runtimeDir, err := homedir.GetRuntimeDir()
 	if err != nil {
 		return "", err
 	}
@@ -667,12 +671,6 @@ func getDefaultSSHConfig() string {
 	}
 	dirname := homedir.Get()
 	return filepath.Join(dirname, ".ssh", "config")
-}
-
-func useUserConfigLocations() bool {
-	// NOTE: For now we want Windows to use system locations.
-	// GetRootlessUID == -1 on Windows, so exclude negative range
-	return unshare.GetRootlessUID() > 0
 }
 
 // getDefaultImage returns the default machine image stream

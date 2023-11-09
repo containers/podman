@@ -2,161 +2,14 @@ package types
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/containers/storage/pkg/homedir"
-	"github.com/containers/storage/pkg/system"
 	"github.com/sirupsen/logrus"
 )
-
-// GetRootlessRuntimeDir returns the runtime directory when running as non root
-func GetRootlessRuntimeDir(rootlessUID int) (string, error) {
-	path, err := getRootlessRuntimeDir(rootlessUID)
-	if err != nil {
-		return "", err
-	}
-	path = filepath.Join(path, "containers")
-	if err := os.MkdirAll(path, 0o700); err != nil {
-		return "", fmt.Errorf("unable to make rootless runtime: %w", err)
-	}
-	return path, nil
-}
-
-type rootlessRuntimeDirEnvironment interface {
-	getProcCommandFile() string
-	getRunUserDir() string
-	getTmpPerUserDir() string
-
-	homeDirGetRuntimeDir() (string, error)
-	systemLstat(string) (*system.StatT, error)
-	homedirGet() string
-}
-
-type rootlessRuntimeDirEnvironmentImplementation struct {
-	procCommandFile string
-	runUserDir      string
-	tmpPerUserDir   string
-}
-
-func (env rootlessRuntimeDirEnvironmentImplementation) getProcCommandFile() string {
-	return env.procCommandFile
-}
-
-func (env rootlessRuntimeDirEnvironmentImplementation) getRunUserDir() string {
-	return env.runUserDir
-}
-
-func (env rootlessRuntimeDirEnvironmentImplementation) getTmpPerUserDir() string {
-	return env.tmpPerUserDir
-}
-
-func (rootlessRuntimeDirEnvironmentImplementation) homeDirGetRuntimeDir() (string, error) {
-	return homedir.GetRuntimeDir()
-}
-
-func (rootlessRuntimeDirEnvironmentImplementation) systemLstat(path string) (*system.StatT, error) {
-	return system.Lstat(path)
-}
-
-func (rootlessRuntimeDirEnvironmentImplementation) homedirGet() string {
-	return homedir.Get()
-}
-
-func isRootlessRuntimeDirOwner(dir string, env rootlessRuntimeDirEnvironment) bool {
-	st, err := env.systemLstat(dir)
-	return err == nil && int(st.UID()) == os.Getuid() && st.Mode()&0o700 == 0o700 && st.Mode()&0o066 == 0o000
-}
-
-// getRootlessRuntimeDirIsolated is an internal implementation detail of getRootlessRuntimeDir to allow testing.
-// Everyone but the tests this is intended for should only call getRootlessRuntimeDir, never this function.
-func getRootlessRuntimeDirIsolated(env rootlessRuntimeDirEnvironment) (string, error) {
-	runtimeDir, err := env.homeDirGetRuntimeDir()
-	if err == nil {
-		return runtimeDir, nil
-	}
-
-	initCommand, err := os.ReadFile(env.getProcCommandFile())
-	if err != nil || string(initCommand) == "systemd" {
-		runUserDir := env.getRunUserDir()
-		if isRootlessRuntimeDirOwner(runUserDir, env) {
-			return runUserDir, nil
-		}
-	}
-
-	tmpPerUserDir := env.getTmpPerUserDir()
-	if tmpPerUserDir != "" {
-		if _, err := env.systemLstat(tmpPerUserDir); os.IsNotExist(err) {
-			if err := os.Mkdir(tmpPerUserDir, 0o700); err != nil {
-				logrus.Errorf("Failed to create temp directory for user: %v", err)
-			} else {
-				return tmpPerUserDir, nil
-			}
-		} else if isRootlessRuntimeDirOwner(tmpPerUserDir, env) {
-			return tmpPerUserDir, nil
-		}
-	}
-
-	homeDir := env.homedirGet()
-	if homeDir == "" {
-		return "", errors.New("neither XDG_RUNTIME_DIR nor temp dir nor HOME was set non-empty")
-	}
-	resolvedHomeDir, err := filepath.EvalSymlinks(homeDir)
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(resolvedHomeDir, "rundir"), nil
-}
-
-func getRootlessRuntimeDir(rootlessUID int) (string, error) {
-	return getRootlessRuntimeDirIsolated(
-		rootlessRuntimeDirEnvironmentImplementation{
-			"/proc/1/comm",
-			fmt.Sprintf("/run/user/%d", rootlessUID),
-			fmt.Sprintf("%s/containers-user-%d", os.TempDir(), rootlessUID),
-		},
-	)
-}
-
-// getRootlessDirInfo returns the parent path of where the storage for containers and
-// volumes will be in rootless mode
-func getRootlessDirInfo(rootlessUID int) (string, string, error) {
-	rootlessRuntime, err := GetRootlessRuntimeDir(rootlessUID)
-	if err != nil {
-		return "", "", err
-	}
-
-	dataDir, err := homedir.GetDataHome()
-	if err == nil {
-		return dataDir, rootlessRuntime, nil
-	}
-
-	home := homedir.Get()
-	if home == "" {
-		return "", "", fmt.Errorf("neither XDG_DATA_HOME nor HOME was set non-empty: %w", err)
-	}
-	// runc doesn't like symlinks in the rootfs path, and at least
-	// on CoreOS /home is a symlink to /var/home, so resolve any symlink.
-	resolvedHome, err := filepath.EvalSymlinks(home)
-	if err != nil {
-		return "", "", err
-	}
-	dataDir = filepath.Join(resolvedHome, ".local", "share")
-
-	return dataDir, rootlessRuntime, nil
-}
-
-func getRootlessUID() int {
-	uidEnv := os.Getenv("_CONTAINERS_ROOTLESS_UID")
-	if uidEnv != "" {
-		u, _ := strconv.Atoi(uidEnv)
-		return u
-	}
-	return os.Geteuid()
-}
 
 func expandEnvPath(path string, rootlessUID int) (string, error) {
 	var err error
@@ -169,7 +22,7 @@ func expandEnvPath(path string, rootlessUID int) (string, error) {
 	return newpath, nil
 }
 
-func DefaultConfigFile(rootless bool) (string, error) {
+func DefaultConfigFile() (string, error) {
 	if defaultConfigFileSet {
 		return defaultConfigFile, nil
 	}
@@ -177,7 +30,7 @@ func DefaultConfigFile(rootless bool) (string, error) {
 	if path, ok := os.LookupEnv(storageConfEnv); ok {
 		return path, nil
 	}
-	if !rootless {
+	if !usePerUserStorage() {
 		if _, err := os.Stat(defaultOverrideConfigFile); err == nil {
 			return defaultOverrideConfigFile, nil
 		}

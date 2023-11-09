@@ -30,7 +30,7 @@ import (
 	"sync"
 
 	"github.com/containernetworking/plugins/pkg/ns"
-	"github.com/containers/common/pkg/util"
+	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -40,7 +40,7 @@ import (
 // rootless, it needs to be at a location writable by user.
 func GetNSRunDir() (string, error) {
 	if unshare.IsRootless() {
-		rootlessDir, err := util.GetRuntimeDir()
+		rootlessDir, err := homedir.GetRuntimeDir()
 		if err != nil {
 			return "", err
 		}
