@@ -262,8 +262,8 @@ github.com/containers/gvisor-tap-vsock v0.7.1 h1:+Rc+sOPplrkQb/BUXeN0ug8TxjgyrIq
 github.com/containers/gvisor-tap-vsock v0.7.1/go.mod h1:WSSsjcuYZkvP8i0J+Ht3LF8yvysn3krD5zxQ74wz7y0=
 github.com/containers/image/v5 v5.28.1-0.20231101173728-373c52a9466f h1:x79xiC/Zs7yRzCWCT/fuf8J8LALTzVHzGT9T0HEx9FQ=
 github.com/containers/image/v5 v5.28.1-0.20231101173728-373c52a9466f/go.mod h1:7+h9aIQgB6YzWxFzKAAYQ0CQZS0ks/bc+FMZQTJFoN8=
-github.com/containers/libhvee v0.4.1-0.20231012183749-e51be96b4854 h1:9pHtBDAO1ZE0Cwhn3rfp7CfqpfeaYllG2o6wuDdxsa8=
-github.com/containers/libhvee v0.4.1-0.20231012183749-e51be96b4854/go.mod h1:3lTcwI2g7qe8Ekgk9hdDxQeT9KrqXPilQvxJfIJp8TQ=
+github.com/containers/libhvee v0.4.1-0.20231106202301-9651e31ae734 h1:R6e4nMpxUWRTn+QoiS1dnWL3qa0hpFb2+8/ltKtSnWE=
+github.com/containers/libhvee v0.4.1-0.20231106202301-9651e31ae734/go.mod h1:3lTcwI2g7qe8Ekgk9hdDxQeT9KrqXPilQvxJfIJp8TQ=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 h1:Qzk5C6cYglewc+UyGf6lc8Mj2UaPTHy/iF2De0/77CA=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
 github.com/containers/luksy v0.0.0-20230912175440-6df88cb7f0dd h1:NbQ782+jynau+ySnK8qBGyLstgiaLOAjoJWrwSLovGc=

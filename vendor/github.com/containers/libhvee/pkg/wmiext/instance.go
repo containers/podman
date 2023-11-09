@@ -497,11 +497,7 @@ func (i *Instance) NextAsVariant() (bool, string, *ole.VARIANT, CIMTYPE_ENUMERAT
 		return true, "", nil, cimType, flavor, nil
 	}
 
-	defer func() {
-		if err := ole.SysFreeString((*int16)(unsafe.Pointer(strName))); err != nil {
-			logrus.Error(err)
-		}
-	}()
+	defer ole.SysFreeString((*int16)(unsafe.Pointer(strName))) //nolint:errcheck
 	name := ole.BstrToString(strName)
 
 	return false, name, &variant, cimType, flavor, nil
