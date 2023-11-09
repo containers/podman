@@ -20,6 +20,7 @@ import (
 	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
+	chunkedToc "github.com/containers/storage/pkg/chunked/toc"
 	digest "github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
@@ -693,6 +694,13 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 			requiredCompression = ic.compressionFormat
 			originalCompression = srcInfo.CompressionAlgorithm
 		}
+
+		// Check if we have a chunked layer in storage that's based on that blob.  These layers are stored by their TOC digest.
+		tocDigest, err := chunkedToc.GetTOCDigest(srcInfo.Annotations)
+		if err != nil {
+			return types.BlobInfo{}, "", err
+		}
+
 		reused, reusedBlob, err := ic.c.dest.TryReusingBlobWithOptions(ctx, srcInfo, private.TryReusingBlobOptions{
 			Cache:               ic.c.blobInfoCache,
 			CanSubstitute:       canSubstitute,
@@ -701,6 +709,7 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 			SrcRef:              srcRef,
 			RequiredCompression: requiredCompression,
 			OriginalCompression: originalCompression,
+			TOCDigest:           tocDigest,
 		})
 		if err != nil {
 			return types.BlobInfo{}, "", fmt.Errorf("trying to reuse blob %s at destination: %w", srcInfo.Digest, err)

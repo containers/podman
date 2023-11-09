@@ -1,3 +1,9 @@
+## 0.7.5 (Nov 8, 2023)
+
+BUG FIXES
+
+- client: fixes an issue where the request body is not preserved on temporary redirects or re-established HTTP/2 connections [GH-207]
+
 ## 0.7.4 (Jun 6, 2023)
 
 BUG FIXES

@@ -261,6 +261,11 @@ func (d *bpCompressionStepData) updateCompressionEdits(operation *types.LayerCom
 // This must ONLY be called if all data has been validated by OUR code, and is not coming from third parties.
 func (d *bpCompressionStepData) recordValidatedDigestData(c *copier, uploadedInfo types.BlobInfo, srcInfo types.BlobInfo,
 	encryptionStep *bpEncryptionStepData, decryptionStep *bpDecryptionStepData) error {
+
+	if d.uploadedCompressorName == compressiontypes.ZstdChunkedAlgorithmName {
+		// HACK: Never record zstd:chunked in the blob info cache, because we don’t know how to handle it yet.
+		return nil
+	}
 	// Don’t record any associations that involve encrypted data. This is a bit crude,
 	// some blob substitutions (replacing pulls of encrypted data with local reuse of known decryption outcomes)
 	// might be safe, but it’s not trivially obvious, so let’s be conservative for now.

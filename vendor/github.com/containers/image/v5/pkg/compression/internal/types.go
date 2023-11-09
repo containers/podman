@@ -10,25 +10,28 @@ type CompressorFunc func(io.Writer, map[string]string, *int) (io.WriteCloser, er
 // The caller must call Close() on the decompressed stream (even if the compressed input stream does not need closing!).
 type DecompressorFunc func(io.Reader) (io.ReadCloser, error)
 
+// CanDecompressFunc returns true if the given stream can be decompressed using the specified algorithm.
+type CanDecompressFunc func([]byte) bool
+
 // Algorithm is a compression algorithm that can be used for CompressStream.
 type Algorithm struct {
-	name         string
-	mime         string
-	prefix       []byte // Initial bytes of a stream compressed using this algorithm, or empty to disable detection.
-	decompressor DecompressorFunc
-	compressor   CompressorFunc
+	name          string
+	mime          string
+	decompressor  DecompressorFunc
+	compressor    CompressorFunc
+	canDecompress CanDecompressFunc
 }
 
 // NewAlgorithm creates an Algorithm instance.
 // This function exists so that Algorithm instances can only be created by code that
 // is allowed to import this internal subpackage.
-func NewAlgorithm(name, mime string, prefix []byte, decompressor DecompressorFunc, compressor CompressorFunc) Algorithm {
+func NewAlgorithm(name, mime string, decompressor DecompressorFunc, compressor CompressorFunc, canDecompress CanDecompressFunc) Algorithm {
 	return Algorithm{
-		name:         name,
-		mime:         mime,
-		prefix:       prefix,
-		decompressor: decompressor,
-		compressor:   compressor,
+		name:          name,
+		mime:          mime,
+		decompressor:  decompressor,
+		compressor:    compressor,
+		canDecompress: canDecompress,
 	}
 }
 
@@ -57,9 +60,10 @@ func AlgorithmDecompressor(algo Algorithm) DecompressorFunc {
 	return algo.decompressor
 }
 
-// AlgorithmPrefix returns the prefix field of algo.
+// AlgorithmCanDecompress returns the canDecompress field of algo.
+// using the specified algorithm.
 // This is a function instead of a public method so that it is only callable by code
 // that is allowed to import this internal subpackage.
-func AlgorithmPrefix(algo Algorithm) []byte {
-	return algo.prefix
+func AlgorithmCanDecompress(algo Algorithm) CanDecompressFunc {
+	return algo.canDecompress
 }

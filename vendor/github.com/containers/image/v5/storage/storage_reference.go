@@ -102,6 +102,8 @@ func multiArchImageMatchesSystemContext(store storage.Store, img *storage.Image,
 
 // Resolve the reference's name to an image ID in the store, if there's already
 // one present with the same name or ID, and return the image.
+//
+// Returns an error matching ErrNoSuchImage if an image matching ref was not found.
 func (s *storageReference) resolveImage(sys *types.SystemContext) (*storage.Image, error) {
 	var loadedImage *storage.Image
 	if s.id == "" && s.named != nil {
@@ -297,6 +299,8 @@ func (s storageReference) NewImageDestination(ctx context.Context, sys *types.Sy
 // Note that it _is_ possible for the later uses to fail, either because the image was removed
 // completely, or because the name used in the reference was untaged (even if the underlying image
 // ID still exists in local storage).
+//
+// Returns an error matching ErrNoSuchImage if an image matching ref was not found.
 func ResolveReference(ref types.ImageReference) (types.ImageReference, *storage.Image, error) {
 	sref, ok := ref.(*storageReference)
 	if !ok {

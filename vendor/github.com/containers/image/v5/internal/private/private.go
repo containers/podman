@@ -117,6 +117,7 @@ type TryReusingBlobOptions struct {
 	EmptyLayer          bool                   // True if the blob is an "empty"/"throwaway" layer, and may not necessarily be physically represented.
 	LayerIndex          *int                   // If the blob is a layer, a zero-based index of the layer within the image; nil otherwise.
 	SrcRef              reference.Named        // A reference to the source image that contains the input blob.
+	TOCDigest           *digest.Digest          // If specified, the blob can be looked up in the destination also by its TOC digest.
 }
 
 // ReusedBlob is information about a blob reused in a destination.

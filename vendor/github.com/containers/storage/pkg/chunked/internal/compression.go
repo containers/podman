@@ -203,6 +203,22 @@ func WriteZstdChunkedManifest(dest io.Writer, outMetadata map[string]string, off
 
 func ZstdWriterWithLevel(dest io.Writer, level int) (*zstd.Encoder, error) {
 	el := zstd.EncoderLevelFromZstd(level)
+
+	// Append an empty frame at the beginning of the stream, and a
+	// skippable frame with the content "zstd:chunked".
+	// This is helpful to understand whether the file is a
+	// zstd:chunked one or it is a plain zstd file.
+	enc, err := zstd.NewWriter(dest, zstd.WithZeroFrames(true), zstd.WithEncoderLevel(el))
+	if err != nil {
+		return nil, err
+	}
+	if err := enc.Close(); err != nil {
+		return nil, err
+	}
+	if err := appendZstdSkippableFrame(dest, []byte("zstd:chunked")); err != nil {
+		return nil, err
+	}
+
 	return zstd.NewWriter(dest, zstd.WithEncoderLevel(el))
 }
 

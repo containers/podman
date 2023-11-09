@@ -42,6 +42,10 @@ type storageImageSource struct {
 	getBlobMutex    sync.Mutex              // Mutex to sync state for parallel GetBlob executions
 	SignatureSizes  []int                   `json:"signature-sizes,omitempty"`  // List of sizes of each signature slice
 	SignaturesSizes map[digest.Digest][]int `json:"signatures-sizes,omitempty"` // List of sizes of each signature slice
+
+	// fromDigestToTOC converts from a layer diffID returned by LayerInfosForCopy to the TOC digest.  The TOC digest
+	// must be used for lookups in the underyling storage.
+	fromDigestToTOC map[digest.Digest]digest.Digest
 }
 
 // newImageSource sets up an image for reading.
@@ -65,6 +69,7 @@ func newImageSource(sys *types.SystemContext, imageRef storageReference) (*stora
 		layerPosition:   make(map[digest.Digest]int),
 		SignatureSizes:  []int{},
 		SignaturesSizes: make(map[digest.Digest][]int),
+		fromDigestToTOC: make(map[digest.Digest]digest.Digest),
 	}
 	image.Compat = impl.AddCompat(image)
 	if img.Metadata != "" {
@@ -91,6 +96,15 @@ func (s *storageImageSource) Close() error {
 func (s *storageImageSource) GetBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache) (rc io.ReadCloser, n int64, err error) {
 	// We need a valid digest value.
 	digest := info.Digest
+
+	// If the digest was overriden by LayerInfosForCopy, then we need to use the TOC digest
+	// to retrieve it from the storage.
+	s.getBlobMutex.Lock()
+	if v, ok := s.fromDigestToTOC[digest]; ok {
+		digest = v
+	}
+	s.getBlobMutex.Unlock()
+
 	err = digest.Validate()
 	if err != nil {
 		return nil, 0, err
@@ -273,8 +287,23 @@ func (s *storageImageSource) LayerInfosForCopy(ctx context.Context, instanceDige
 		if layer.UncompressedSize < 0 {
 			return nil, fmt.Errorf("uncompressed size for layer %q is unknown", layerID)
 		}
+
+		blobDigest := layer.UncompressedDigest
+
+		if layer.Flags != nil {
+			if v, ok := layer.Flags[storage.ExpectedLayerDiffIDFlag]; ok {
+				if expectedDigest, ok := v.(string); ok {
+					// if the layer is stored by its TOC, report the expected diffID as the layer Digest
+					// but store the TOC digest so we can later retrieve it from the storage.
+					blobDigest = digest.Digest(expectedDigest)
+					s.getBlobMutex.Lock()
+					s.fromDigestToTOC[blobDigest] = layer.UncompressedDigest
+					s.getBlobMutex.Unlock()
+				}
+			}
+		}
 		blobInfo := types.BlobInfo{
-			Digest:    layer.UncompressedDigest,
+			Digest:    blobDigest,
 			Size:      layer.UncompressedSize,
 			MediaType: uncompressedLayerType,
 		}

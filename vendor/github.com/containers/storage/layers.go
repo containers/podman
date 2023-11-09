@@ -41,6 +41,8 @@ const (
 	// in readers (which, for implementation reasons, gives other writers the opportunity to create more inconsistent state)
 	// until we just give up.
 	maxLayerStoreCleanupIterations = 3
+	// ExpectedLayerDiffIDFlag stores the expected layer id once the tarball is reconstructed.
+	ExpectedLayerDiffIDFlag = "expected-layer-diff-id"
 )
 
 type layerLocations uint8
@@ -2387,6 +2389,9 @@ func (r *layerStore) ApplyDiffFromStagingDirectory(id, stagingDirectory string, 
 			MountLabel: layer.MountLabel,
 		}
 	}
+
+	expectedDiffID := diffOutput.UncompressedDigest
+
 	err := ddriver.ApplyDiffFromStagingDirectory(layer.ID, layer.Parent, stagingDirectory, diffOutput, options)
 	if err != nil {
 		return err
@@ -2396,6 +2401,12 @@ func (r *layerStore) ApplyDiffFromStagingDirectory(id, stagingDirectory string, 
 	layer.UncompressedDigest = diffOutput.UncompressedDigest
 	layer.UncompressedSize = diffOutput.Size
 	layer.Metadata = diffOutput.Metadata
+	if expectedDiffID != "" {
+		if layer.Flags == nil {
+			layer.Flags = make(map[string]interface{})
+		}
+		layer.Flags[ExpectedLayerDiffIDFlag] = expectedDiffID
+	}
 	if len(diffOutput.TarSplit) != 0 {
 		tsdata := bytes.Buffer{}
 		compressor, err := pgzip.NewWriterLevel(&tsdata, pgzip.BestSpeed)
