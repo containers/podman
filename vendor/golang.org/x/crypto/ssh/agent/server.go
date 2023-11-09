@@ -208,7 +208,7 @@ func parseConstraints(constraints []byte) (lifetimeSecs uint32, confirmBeforeUse
 		case agentConstrainConfirm:
 			confirmBeforeUse = true
 			constraints = constraints[1:]
-		case agentConstrainExtension:
+		case agentConstrainExtension, agentConstrainExtensionV00:
 			var msg constrainExtensionAgentMsg
 			if err = ssh.Unmarshal(constraints, &msg); err != nil {
 				return 0, false, nil, err
