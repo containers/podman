@@ -43,6 +43,58 @@ const (
 	apiUpTimeout         = 20 * time.Second
 )
 
+// hyperVReadyUnit is a unit file that sets up the virtual serial device
+// where when the VM is done configuring, it will send an ack
+// so a listening host knows it can begin interacting with it
+//
+// VSOCK-CONNECT:2 <- shortcut to connect to the hostvm
+const hyperVReadyUnit = `[Unit]
+After=remove-moby.service sshd.socket sshd.service
+After=systemd-user-sessions.service
+OnFailure=emergency.target
+OnFailureJobMode=isolate
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c '/usr/bin/echo Ready | socat - VSOCK-CONNECT:2:%d'
+[Install]
+RequiredBy=default.target
+`
+
+// hyperVVsockNetUnit is a systemd unit file that calls the vm helper utility
+// needed to take traffic from a network vsock0 device to the actual vsock
+// and onto the host
+const hyperVVsockNetUnit = `
+[Unit]
+Description=vsock_network
+After=NetworkManager.service
+
+[Service]
+ExecStart=/usr/libexec/podman/gvforwarder -preexisting -iface vsock0 -url vsock://2:%d/connect
+ExecStartPost=/usr/bin/nmcli c up vsock0
+
+[Install]
+WantedBy=multi-user.target
+`
+
+const hyperVVsockNMConnection = `
+[connection]
+id=vsock0
+type=tun
+interface-name=vsock0
+
+[tun]
+mode=2
+
+[802-3-ethernet]
+cloned-mac-address=5A:94:EF:E4:0C:EE
+
+[ipv4]
+method=auto
+
+[proxy]
+`
+
 type HyperVMachine struct {
 	// ConfigPath is the fully qualified path to the configuration file
 	ConfigPath define.VMFile
@@ -91,104 +143,6 @@ func (m *HyperVMachine) addNetworkAndReadySocketsToRegistry() error {
 	m.NetworkHVSock = *networkHVSock
 	m.ReadyHVSock = *eventHVSocket
 	return nil
-}
-
-// writeIgnitionConfigFile generates the ignition config and writes it to the
-// filesystem
-func (m *HyperVMachine) writeIgnitionConfigFile(opts machine.InitOptions, user, key string) error {
-	ign := machine.DynamicIgnition{
-		Name:      user,
-		Key:       key,
-		VMName:    m.Name,
-		VMType:    machine.HyperVVirt,
-		TimeZone:  opts.TimeZone,
-		WritePath: m.IgnitionFile.GetPath(),
-		UID:       m.UID,
-		Rootful:   m.Rootful,
-	}
-
-	if err := ign.GenerateIgnitionConfig(); err != nil {
-		return err
-	}
-
-	// ready is a unit file that sets up the virtual serial device
-	// where when the VM is done configuring, it will send an ack
-	// so a listening host knows it can being interacting with it
-	//
-	// VSOCK-CONNECT:2 <- shortcut to connect to the hostvm
-	ready := `[Unit]
-After=remove-moby.service sshd.socket sshd.service
-After=systemd-user-sessions.service
-OnFailure=emergency.target
-OnFailureJobMode=isolate
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/bin/sh -c '/usr/bin/echo Ready | socat - VSOCK-CONNECT:2:%d'
-[Install]
-RequiredBy=default.target
-`
-	readyUnit := machine.Unit{
-		Enabled:  machine.BoolToPtr(true),
-		Name:     "ready.service",
-		Contents: machine.StrToPtr(fmt.Sprintf(ready, m.ReadyHVSock.Port)),
-	}
-
-	// userNetwork is a systemd unit file that calls the vm helpoer utility
-	// needed to take traffic from a network vsock0 device to the actual vsock
-	// and onto the host
-	userNetwork := `
-[Unit]
-Description=vsock_network
-After=NetworkManager.service
-
-[Service]
-ExecStart=/usr/libexec/podman/gvforwarder -preexisting -iface vsock0 -url vsock://2:%d/connect
-ExecStartPost=/usr/bin/nmcli c up vsock0
-
-[Install]
-WantedBy=multi-user.target
-`
-	vsockNetUnit := machine.Unit{
-		Contents: machine.StrToPtr(fmt.Sprintf(userNetwork, m.NetworkHVSock.Port)),
-		Enabled:  machine.BoolToPtr(true),
-		Name:     "vsock-network.service",
-	}
-
-	ign.Cfg.Systemd.Units = append(ign.Cfg.Systemd.Units, readyUnit, vsockNetUnit)
-
-	vSockNMConnection := `
-[connection]
-id=vsock0
-type=tun
-interface-name=vsock0
-
-[tun]
-mode=2
-
-[802-3-ethernet]
-cloned-mac-address=5A:94:EF:E4:0C:EE
-
-[ipv4]
-method=auto
-
-[proxy]
-`
-
-	ign.Cfg.Storage.Files = append(ign.Cfg.Storage.Files, machine.File{
-		Node: machine.Node{
-			Path: "/etc/NetworkManager/system-connections/vsock0.nmconnection",
-		},
-		FileEmbedded1: machine.FileEmbedded1{
-			Append: nil,
-			Contents: machine.Resource{
-				Source: machine.EncodeDataURLPtr(vSockNMConnection),
-			},
-			Mode: machine.IntToPtr(0600),
-		},
-	})
-
-	return ign.Write()
 }
 
 // readAndSplitIgnition reads the ignition file and splits it into key:value pairs
@@ -295,14 +249,21 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	}
 	m.Rootful = opts.Rootful
 
+	builder := machine.NewIgnitionBuilder(machine.DynamicIgnition{
+		Name:      m.RemoteUsername,
+		Key:       key,
+		VMName:    m.Name,
+		VMType:    machine.HyperVVirt,
+		TimeZone:  opts.TimeZone,
+		WritePath: m.IgnitionFile.GetPath(),
+		UID:       m.UID,
+		Rootful:   m.Rootful,
+	})
+
 	// If the user provides an ignition file, we need to
 	// copy it into the conf dir
 	if len(opts.IgnitionPath) > 0 {
-		inputIgnition, err := os.ReadFile(opts.IgnitionPath)
-		if err != nil {
-			return false, err
-		}
-		return false, os.WriteFile(m.IgnitionFile.GetPath(), inputIgnition, 0644)
+		return false, builder.BuildWithIgnitionFile(opts.IgnitionPath)
 	}
 	callbackFuncs.Add(m.IgnitionFile.Delete)
 
@@ -310,8 +271,36 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	// Write the ignition file
-	if err := m.writeIgnitionConfigFile(opts, m.RemoteUsername, key); err != nil {
+	if err := builder.GenerateIgnitionConfig(); err != nil {
+		return false, err
+	}
+
+	builder.WithUnit(machine.Unit{
+		Enabled:  machine.BoolToPtr(true),
+		Name:     "ready.service",
+		Contents: machine.StrToPtr(fmt.Sprintf(hyperVReadyUnit, m.ReadyHVSock.Port)),
+	})
+
+	builder.WithUnit(machine.Unit{
+		Contents: machine.StrToPtr(fmt.Sprintf(hyperVVsockNetUnit, m.NetworkHVSock.Port)),
+		Enabled:  machine.BoolToPtr(true),
+		Name:     "vsock-network.service",
+	})
+
+	builder.WithFile(machine.File{
+		Node: machine.Node{
+			Path: "/etc/NetworkManager/system-connections/vsock0.nmconnection",
+		},
+		FileEmbedded1: machine.FileEmbedded1{
+			Append: nil,
+			Contents: machine.Resource{
+				Source: machine.EncodeDataURLPtr(hyperVVsockNMConnection),
+			},
+			Mode: machine.IntToPtr(0600),
+		},
+	})
+
+	if err := builder.Build(); err != nil {
 		return false, err
 	}
 

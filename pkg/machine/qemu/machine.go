@@ -45,6 +45,23 @@ const (
 	dockerConnectTimeout = 5 * time.Second
 )
 
+// qemuReadyUnit is a unit file that sets up the virtual serial device
+// where when the VM is done configuring, it will send an ack
+// so a listening host tknows it can begin interacting with it
+const qemuReadyUnit = `[Unit]
+Requires=dev-virtio\\x2dports-%s.device
+After=remove-moby.service sshd.socket sshd.service
+After=systemd-user-sessions.service
+OnFailure=emergency.target
+OnFailureJobMode=isolate
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c '/usr/bin/echo Ready >/dev/%s'
+[Install]
+RequiredBy=default.target
+`
+
 type MachineVM struct {
 	// ConfigPath is the path to the configuration file
 	ConfigPath define.VMFile
@@ -202,50 +219,6 @@ func (v *MachineVM) addMountsToVM(opts machine.InitOptions) error {
 	return nil
 }
 
-// writeIgnitionConfigFile generates the ignition config and writes it to the
-// filesystem
-func (v *MachineVM) writeIgnitionConfigFile(opts machine.InitOptions, key string) error {
-	ign := &machine.DynamicIgnition{
-		Name:      opts.Username,
-		Key:       key,
-		VMName:    v.Name,
-		VMType:    machine.QemuVirt,
-		TimeZone:  opts.TimeZone,
-		WritePath: v.getIgnitionFile(),
-		UID:       v.UID,
-		Rootful:   v.Rootful,
-	}
-
-	if err := ign.GenerateIgnitionConfig(); err != nil {
-		return err
-	}
-
-	// ready is a unit file that sets up the virtual serial device
-	// where when the VM is done configuring, it will send an ack
-	// so a listening host knows it can being interacting with it
-	ready := `[Unit]
-Requires=dev-virtio\\x2dports-%s.device
-After=remove-moby.service sshd.socket sshd.service
-After=systemd-user-sessions.service
-OnFailure=emergency.target
-OnFailureJobMode=isolate
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/bin/sh -c '/usr/bin/echo Ready >/dev/%s'
-[Install]
-RequiredBy=default.target
-`
-	readyUnit := machine.Unit{
-		Enabled:  machine.BoolToPtr(true),
-		Name:     "ready.service",
-		Contents: machine.StrToPtr(fmt.Sprintf(ready, "vport1p1", "vport1p1")),
-	}
-	ign.Cfg.Systemd.Units = append(ign.Cfg.Systemd.Units, readyUnit)
-
-	return ign.Write()
-}
-
 // Init writes the json configuration file to the filesystem for
 // other verbs (start, stop)
 func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
@@ -327,17 +300,35 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		logrus.Warn("ignoring init option to disable user-mode networking: this mode is not supported by the QEMU backend")
 	}
 
+	builder := machine.NewIgnitionBuilder(machine.DynamicIgnition{
+		Name:      opts.Username,
+		Key:       key,
+		VMName:    v.Name,
+		VMType:    machine.QemuVirt,
+		TimeZone:  opts.TimeZone,
+		WritePath: v.getIgnitionFile(),
+		UID:       v.UID,
+		Rootful:   v.Rootful,
+	})
+
 	// If the user provides an ignition file, we need to
 	// copy it into the conf dir
 	if len(opts.IgnitionPath) > 0 {
-		inputIgnition, err := os.ReadFile(opts.IgnitionPath)
-		if err != nil {
-			return false, err
-		}
-		return false, os.WriteFile(v.getIgnitionFile(), inputIgnition, 0644)
+		return false, builder.BuildWithIgnitionFile(opts.IgnitionPath)
 	}
 
-	err = v.writeIgnitionConfigFile(opts, key)
+	if err := builder.GenerateIgnitionConfig(); err != nil {
+		return false, err
+	}
+
+	readyUnit := machine.Unit{
+		Enabled:  machine.BoolToPtr(true),
+		Name:     "ready.service",
+		Contents: machine.StrToPtr(fmt.Sprintf(qemuReadyUnit, "vport1p1", "vport1p1")),
+	}
+	builder.WithUnit(readyUnit)
+
+	err = builder.Build()
 	callbackFuncs.Add(v.IgnitionFile.Delete)
 
 	return err == nil, err
