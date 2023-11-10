@@ -164,6 +164,7 @@ type ContainerStatReport struct {
 type CommitOptions struct {
 	Author         string
 	Changes        []string
+	Config         []byte
 	Format         string
 	ImageName      string
 	IncludeVolumes bool

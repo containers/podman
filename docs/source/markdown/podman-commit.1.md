@@ -36,6 +36,13 @@ Apply the following possible instructions to the created image:
 
 Can be set multiple times.
 
+#### **--config**=*ConfigBlobFile*
+
+Merge the container configuration from the specified file into the configuration for the image
+as it is being committed. The file contents should be a JSON-encoded version of
+a Schema2Config structure, which is defined at
+https://github.com/containers/image/blob/v5.29.0/manifest/docker_schema2.go#L67.
+
 #### **--format**, **-f**=**oci** | *docker*
 
 Set the format of the image manifest and metadata.  The currently supported formats are **oci** and *docker*.\
