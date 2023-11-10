@@ -400,7 +400,7 @@ func createPodIfNecessary(cmd *cobra.Command, s *specgen.SpecGenerator, netOpts 
 	var err error
 	uns := specgen.Namespace{NSMode: specgen.Default}
 	if cliVals.UserNS != "" {
-		uns, err = specgen.ParseNamespace(cliVals.UserNS)
+		uns, err = specgen.ParseUserNamespace(cliVals.UserNS)
 		if err != nil {
 			return err
 		}
