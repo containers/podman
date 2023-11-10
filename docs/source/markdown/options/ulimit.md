@@ -11,6 +11,9 @@ Ulimit options. Sets the ulimits values inside of the container.
 $ podman run --ulimit nofile=1024:1024 --rm ubi9 ulimit -n
 1024
 
+Set -1 for the soft or hard limit to set the limit to the maximum limit of the current
+process. In rootful mode this is often unlimited.
+
 Use **host** to copy the current configuration from the host.
 
 Don't use nproc with the ulimit flag as Linux uses nproc to set the

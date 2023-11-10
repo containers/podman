@@ -18,6 +18,7 @@ func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) {
 
 	for _, u := range s.Rlimits {
 		name := "RLIMIT_" + strings.ToUpper(u.Type)
+		u = subNegativeOne(u)
 		g.AddProcessRlimits(name, u.Hard, u.Soft)
 	}
 }
