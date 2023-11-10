@@ -78,6 +78,7 @@ function _run_int() {
 function _run_sys() {
     _bail_if_test_can_be_skipped test/system
 
+    showrun dnf -y install https://passt.top/builds/copr/0%5E20231110.gcf3eeba/fedora-rawhide-x86_64/06618377-passt/passt-0%5E20231110.gcf3eeba-1.fc40.x86_64.rpm
     dotest system
 }
 

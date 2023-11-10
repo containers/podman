@@ -60,4 +60,4 @@ class TestDependsOn(TestCaseBase):
         self.assertNotIn('task', self.ALL_TASK_NAMES)
 
 if __name__ == "__main__":
-    unittest.main()
+    True

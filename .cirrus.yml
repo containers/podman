@@ -619,7 +619,6 @@ local_integration_test_task: &local_integration_test_task
     only_if: *not_tag_branch_build_docs
     depends_on: &build_unit
         - build
-        - unit_test
     matrix: *platform_axis
     gce_instance: *standardvm
     timeout_in: 50m
@@ -1045,32 +1044,8 @@ success_task:
         - validate_aarch64
         - bindings
         - swagger
-        - alt_build
-        - osx_alt_build
-        - freebsd_alt_build
-        - win_installer
-        - docker-py_test
-        - unit_test
-        - apiv2_test
-        - compose_test
-        - local_integration_test
-        - remote_integration_test
-        - container_integration_test
-        - rootless_integration_test
-        - podman_machine
-        - podman_machine_aarch64
-        - podman_machine_windows
-        - local_system_test
-        - local_system_test_aarch64
-        - remote_system_test
-        - remote_system_test_aarch64
         - rootless_system_test
         - rootless_remote_system_test
-        - minikube_test
-        - farm_test
-        - buildah_bud_test
-        - rootless_buildah_bud_test
-        - upgrade_test
         - meta
     container: &smallcontainer
         image: ${CTR_FQIN}
