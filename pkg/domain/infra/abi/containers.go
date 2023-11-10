@@ -1,6 +1,7 @@
 package abi
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -17,6 +18,7 @@ import (
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/logs"
+	"github.com/containers/podman/v4/pkg/api/handlers"
 	"github.com/containers/podman/v4/pkg/checkpoint"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
@@ -581,18 +583,29 @@ func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrID string,
 	}
 
 	sc := ic.Libpod.SystemContext()
+	var changes []string
+	if len(options.Changes) > 0 {
+		changes = handlers.DecodeChanges(options.Changes)
+	}
+	var overrideConfig *manifest.Schema2Config
+	if len(options.Config) > 0 {
+		if overrideConfig, err = DecodeOverrideConfig(bytes.NewReader(options.Config)); err != nil {
+			return nil, err
+		}
+	}
 	coptions := buildah.CommitOptions{
 		SignaturePolicyPath:   rtc.Engine.SignaturePolicyPath,
 		ReportWriter:          options.Writer,
 		SystemContext:         sc,
 		PreferredManifestType: mimeType,
+		OverrideConfig:        overrideConfig,
 	}
 	opts := libpod.ContainerCommitOptions{
 		CommitOptions:  coptions,
 		Pause:          options.Pause,
 		IncludeVolumes: options.IncludeVolumes,
 		Message:        options.Message,
-		Changes:        options.Changes,
+		Changes:        changes,
 		Author:         options.Author,
 		Squash:         options.Squash,
 	}
