@@ -21,7 +21,7 @@ var _ = Describe("Podman commit", func() {
 		session := podmanTest.Podman([]string{"commit", "test1", "--change", "BOGUS=foo", "foobar.com/test1-image:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(Equal("Error: invalid change \"BOGUS=foo\" - invalid instruction BOGUS"))
+		Expect(session.ErrorToString()).To(HaveSuffix(`applying changes: processing change "BOGUS foo": did not understand change instruction "BOGUS foo"`))
 
 		session = podmanTest.Podman([]string{"commit", "test1", "foobar.com/test1-image:latest"})
 		session.WaitWithDefaultTimeout()
@@ -125,6 +125,45 @@ var _ = Describe("Podman commit", func() {
 		check.WaitWithDefaultTimeout()
 		inspectResults := check.InspectImageJSON()
 		Expect(inspectResults[0].Labels).To(HaveKeyWithValue("image", "blue"))
+	})
+
+	It("podman commit container with --config flag", func() {
+		test := podmanTest.Podman([]string{"run", "--name", "test1", "-d", ALPINE, "ls"})
+		test.WaitWithDefaultTimeout()
+		Expect(test).Should(ExitCleanly())
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		configFile, err := os.CreateTemp(podmanTest.TempDir, "")
+		Expect(err).Should(Succeed())
+		_, err = configFile.WriteString(`{"Labels":{"image":"green"}}`)
+		Expect(err).Should(Succeed())
+		configFile.Close()
+
+		session := podmanTest.Podman([]string{"commit", "-q", "--config", configFile.Name(), "test1", "foobar.com/test1-image:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		check := podmanTest.Podman([]string{"inspect", "foobar.com/test1-image:latest"})
+		check.WaitWithDefaultTimeout()
+		inspectResults := check.InspectImageJSON()
+		Expect(inspectResults[0].Labels).To(HaveKeyWithValue("image", "green"))
+	})
+
+	It("podman commit container with --config pointing to trash", func() {
+		test := podmanTest.Podman([]string{"run", "--name", "test1", "-d", ALPINE, "ls"})
+		test.WaitWithDefaultTimeout()
+		Expect(test).Should(ExitCleanly())
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		configFile, err := os.CreateTemp(podmanTest.TempDir, "")
+		Expect(err).Should(Succeed())
+		_, err = configFile.WriteString("this is not valid JSON\n")
+		Expect(err).Should(Succeed())
+		configFile.Close()
+
+		session := podmanTest.Podman([]string{"commit", "-q", "--config", configFile.Name(), "test1", "foobar.com/test1-image:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Not(ExitCleanly()))
 	})
 
 	It("podman commit container with --squash", func() {

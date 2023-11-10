@@ -33,7 +33,11 @@ func Commit(ctx context.Context, nameOrID string, options *CommitOptions) (entit
 		return entities.IDResponse{}, err
 	}
 	params.Set("container", nameOrID)
-	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/commit", params, nil)
+	var requestBody io.Reader
+	if options.Config != nil {
+		requestBody = *options.Config
+	}
+	response, err := conn.DoRequest(ctx, requestBody, http.MethodPost, "/commit", params, nil)
 	if err != nil {
 		return id, err
 	}

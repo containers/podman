@@ -1,6 +1,7 @@
 package tunnel
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -346,7 +347,15 @@ func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrID string,
 			return nil, fmt.Errorf("invalid image name %q", opts.ImageName)
 		}
 	}
-	options := new(containers.CommitOptions).WithAuthor(opts.Author).WithChanges(opts.Changes).WithComment(opts.Message).WithSquash(opts.Squash).WithStream(!opts.Quiet)
+	var changes []string
+	if len(opts.Changes) > 0 {
+		changes = handlers.DecodeChanges(opts.Changes)
+	}
+	var configReader io.Reader
+	if len(opts.Config) > 0 {
+		configReader = bytes.NewReader(opts.Config)
+	}
+	options := new(containers.CommitOptions).WithAuthor(opts.Author).WithChanges(changes).WithComment(opts.Message).WithConfig(configReader).WithSquash(opts.Squash).WithStream(!opts.Quiet)
 	options.WithFormat(opts.Format).WithPause(opts.Pause).WithRepo(repo).WithTag(tag)
 	response, err := containers.Commit(ic.ClientCtx, nameOrID, options)
 	if err != nil {

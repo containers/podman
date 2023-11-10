@@ -2,7 +2,6 @@ package compat
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -133,18 +132,17 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		PreferredManifestType: manifest.DockerV2Schema2MediaType,
 	}
 
-	input := handlers.CreateContainerConfig{}
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
-		return
-	}
-
 	options.Message = query.Comment
 	options.Author = query.Author
 	options.Pause = query.Pause
 	options.Squash = query.Squash
-	for _, change := range query.Changes {
-		options.Changes = append(options.Changes, strings.Split(change, "\n")...)
+	options.Changes = handlers.DecodeChanges(query.Changes)
+	if r.Body != nil {
+		defer r.Body.Close()
+		if options.CommitOptions.OverrideConfig, err = abi.DecodeOverrideConfig(r.Body); err != nil {
+			utils.Error(w, http.StatusBadRequest, err)
+			return
+		}
 	}
 	ctr, err := runtime.LookupContainer(query.Container)
 	if err != nil {
