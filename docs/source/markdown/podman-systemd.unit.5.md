@@ -25,6 +25,9 @@ Podman supports starting containers (and creating volumes) via systemd by using 
 [systemd generator](https://www.freedesktop.org/software/systemd/man/systemd.generator.html).
 These files are read during boot (and when `systemctl daemon-reload` is run) and generate
 corresponding regular systemd service unit files. Both system and user systemd units are supported.
+All options and tables available in standard systemd unit files are supported. For example, options defined in
+the [Service] table and [Install] tables pass directly to systemd and are handled by it.
+See systemd.unit(5) man page for more information.
 
 The Podman generator reads the search paths above and reads files with the extensions `.container`
 `.volume` and `*.kube`, and for each file generates a similarly named `.service` file. Be aware that
@@ -1219,6 +1222,8 @@ Exec=sleep 60
 Restart=always
 # Extend Timeout to allow time to pull the image
 TimeoutStartSec=900
+# ExecStartPre flag and other systemd commands can go here, see systemd.unit(5) man page.
+ExecStartPre=/usr/share/mincontainer/setup.sh
 
 [Install]
 # Start by default on boot
@@ -1263,3 +1268,4 @@ Label=org.test.Key=value
 **[podman-run(1)](podman-run.1.md)**,
 **[podman-network-create(1)](podman-network-create.1.md)**,
 **[podman-auto-update(1)](podman-auto-update.1.md)**
+**[systemd.unit(5)]**
