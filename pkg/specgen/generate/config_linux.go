@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
@@ -93,34 +94,14 @@ func DevicesFromPath(g *generate.Generator, devicePath string) error {
 }
 
 func BlockAccessToKernelFilesystems(privileged, pidModeIsHost bool, mask, unmask []string, g *generate.Generator) {
-	defaultMaskPaths := []string{"/proc/acpi",
-		"/proc/kcore",
-		"/proc/keys",
-		"/proc/latency_stats",
-		"/proc/timer_list",
-		"/proc/timer_stats",
-		"/proc/sched_debug",
-		"/proc/scsi",
-		"/sys/firmware",
-		"/sys/fs/selinux",
-		"/sys/dev/block",
-	}
-
 	if !privileged {
-		for _, mp := range defaultMaskPaths {
+		for _, mp := range config.DefaultMaskedPaths {
 			// check that the path to mask is not in the list of paths to unmask
 			if shouldMask(mp, unmask) {
 				g.AddLinuxMaskedPaths(mp)
 			}
 		}
-		for _, rp := range []string{
-			"/proc/asound",
-			"/proc/bus",
-			"/proc/fs",
-			"/proc/irq",
-			"/proc/sys",
-			"/proc/sysrq-trigger",
-		} {
+		for _, rp := range config.DefaultReadOnlyPaths {
 			if shouldMask(rp, unmask) {
 				g.AddLinuxReadonlyPaths(rp)
 			}
