@@ -114,6 +114,7 @@ function _push_search_test() {
     # Use command-line credentials
     run_podman push --tls-verify=$1 \
                --format docker \
+               --compression-format gzip \
                --cert-dir ${PODMAN_LOGIN_WORKDIR}/trusted-registry-cert-dir \
                --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS} \
                $IMAGE localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname

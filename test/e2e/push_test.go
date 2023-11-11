@@ -106,7 +106,7 @@ var _ = Describe("Podman push", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		push := podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", "imageone", "localhost:5000/image"})
+		push := podmanTest.Podman([]string{"push", "--compression-format", "gzip", "-q", "--tls-verify=false", "--remove-signatures", "imageone", "localhost:5000/image"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(ExitCleanly())
 

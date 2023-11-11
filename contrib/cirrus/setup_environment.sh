@@ -122,7 +122,11 @@ if [[ "$OS_RELEASE_ID" == "debian" ]]; then
         die "FATAL! INTERNAL ERROR! Cannot override $conf"
     fi
     msg "Overriding $conf, setting overlay (was: $buildah_storage)"
-    printf '[storage]\ndriver = "overlay"\nrunroot = "/run/containers/storage"\ngraphroot = "/var/lib/containers/storage"\n' >$conf
+    printf '[storage]\ndriver = "overlay"\nrunroot = "/run/containers/storage"\ngraphroot = "/var/lib/containers/storage"\npull_options={enable_partial_images = "true", use_hard_links = "false", ostree_repos=""}\n' >$conf
+else
+    # Test turning on zstd:chunked compression
+    sed -e 's/^pull_options.*=.*/pull_options = {enable_partial_images = \"true\", use_hard_links = \"false\", ostree_repos=""}/' \
+        /usr/share/containers/storage.conf > /etc/containers/storage.conf
 fi
 
 if ((CONTAINER==0)); then  # Not yet running inside a container
@@ -464,3 +468,9 @@ msg "Global CI Environment vars.:"
 grep -Ev '^#' /etc/ci_environment | sort | indent
 
 showrun echo "finished"
+
+mkdir -p /etc/containers/containers.conf.d
+cat > /etc/containers/containers.conf.d/override-default-compression.conf <<EOF
+[engine]
+compression_format = "zstd:chunked"
+EOF

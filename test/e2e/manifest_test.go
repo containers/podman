@@ -588,7 +588,7 @@ RUN touch /file
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		push := podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--creds=" + registry.User + ":" + registry.Password, "--format=v2s2", "localhost:" + registry.Port + "/citest:latest"})
+		push := podmanTest.Podman([]string{"push", "-q", "--compression-format", "gzip", "--tls-verify=false", "--creds=" + registry.User + ":" + registry.Password, "--format=v2s2", "localhost:" + registry.Port + "/citest:latest"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(ExitCleanly())
 

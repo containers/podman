@@ -1059,8 +1059,15 @@ EOF
         --password ${PODMAN_LOGIN_PASS} \
         $registry
 
+    # Make a test image.
+    # FIXME FIXME FIXME! The ideal way to make this would be 'podman tag $IMAGE'
+    # but that fails catastrophically on f41 rawhide:
+    #    Error during manifest conversion: "application/vnd.oci.image.layer.v1.tar+zstd": zstd compression is not supported for docker images
+    # (Fails in the "image tag" test below, not in this one)
+    run_podman run --name foo $IMAGE true
+    run_podman container commit -q foo $image_for_test
+    run_podman rm foo
     # Push the test image to the registry
-    run_podman image tag $IMAGE $image_for_test
     run_podman image push --tls-verify=false --authfile=$authfile $image_for_test
 
     # Remove the local image to make sure it will be pulled again

@@ -163,7 +163,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.56.1-0.20231102181045-6a67921ec5ce
+# github.com/containers/common v0.56.1-0.20231109132637-27b88889f60a
 ## explicit; go 1.18
 github.com/containers/common/internal/attributedstring
 github.com/containers/common/libimage
@@ -230,7 +230,7 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.7.1
 ## explicit; go 1.20
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/image/v5 v5.28.1-0.20231101173728-373c52a9466f
+# github.com/containers/image/v5 v5.28.1-0.20231109204731-c951e83ea931
 ## explicit; go 1.19
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -418,7 +418,7 @@ github.com/crc-org/vfkit/pkg/config
 github.com/crc-org/vfkit/pkg/rest
 github.com/crc-org/vfkit/pkg/rest/define
 github.com/crc-org/vfkit/pkg/util
-# github.com/cyberphone/json-canonicalization v0.0.0-20230710064741-aa7fe85c7dbd
+# github.com/cyberphone/json-canonicalization v0.0.0-20231011164504-785e29786b46
 ## explicit
 github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer
 # github.com/cyphar/filepath-securejoin v0.2.4
@@ -672,7 +672,7 @@ github.com/hashicorp/go-cleanhttp
 # github.com/hashicorp/go-multierror v1.1.1
 ## explicit; go 1.13
 github.com/hashicorp/go-multierror
-# github.com/hashicorp/go-retryablehttp v0.7.4
+# github.com/hashicorp/go-retryablehttp v0.7.5
 ## explicit; go 1.13
 github.com/hashicorp/go-retryablehttp
 # github.com/hugelgupf/p9 v0.3.1-0.20230822151754-54f5c5530921
@@ -1162,7 +1162,7 @@ golang.org/x/net/internal/socks
 golang.org/x/net/internal/timeseries
 golang.org/x/net/proxy
 golang.org/x/net/trace
-# golang.org/x/oauth2 v0.13.0
+# golang.org/x/oauth2 v0.14.0
 ## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
