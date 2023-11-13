@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.3
-	github.com/onsi/ginkgo/v2 v2.13.0
+	github.com/onsi/ginkgo/v2 v2.13.1
 	github.com/vbatts/git-validation v1.2.1
 	golang.org/x/tools v0.15.0
 )
