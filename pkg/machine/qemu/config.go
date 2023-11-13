@@ -86,18 +86,10 @@ func parseUSBs(usbs []string) ([]machine.USBConfig, error) {
 			return configs, fmt.Errorf("usb: fail to parse: missing '=': %s", str)
 		}
 
-		option := ""
-		if (left[0] == "bus" && right[0] == "devnum") ||
-			(right[0] == "bus" && left[0] == "devnum") {
-			option = "bus_devnum"
-		}
-		if (left[0] == "vendor" && right[0] == "product") ||
-			(right[0] == "vendor" && left[0] == "product") {
-			option = "vendor_product"
-		}
+		option := left[0] + "_" + right[0]
 
 		switch option {
-		case "bus_devnum":
+		case "bus_devnum", "devnum_bus":
 			bus, devnumber := left[1], right[1]
 			if right[0] == "bus" {
 				bus, devnumber = devnumber, bus
@@ -107,7 +99,7 @@ func parseUSBs(usbs []string) ([]machine.USBConfig, error) {
 				Bus:       bus,
 				DevNumber: devnumber,
 			})
-		case "vendor_product":
+		case "vendor_product", "product_vendor":
 			vendorStr, productStr := left[1], right[1]
 			if right[0] == "vendor" {
 				vendorStr, productStr = productStr, vendorStr
@@ -115,12 +107,12 @@ func parseUSBs(usbs []string) ([]machine.USBConfig, error) {
 
 			vendor, err := strconv.ParseInt(vendorStr, 16, 0)
 			if err != nil {
-				return configs, fmt.Errorf("fail to convert vendor of %s: %s", str, err)
+				return configs, fmt.Errorf("usb: fail to convert vendor of %s: %s", str, err)
 			}
 
 			product, err := strconv.ParseInt(productStr, 16, 0)
 			if err != nil {
-				return configs, fmt.Errorf("fail to convert product of %s: %s", str, err)
+				return configs, fmt.Errorf("usb: fail to convert product of %s: %s", str, err)
 			}
 
 			configs = append(configs, machine.USBConfig{
