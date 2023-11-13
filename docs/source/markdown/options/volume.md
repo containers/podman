@@ -86,7 +86,7 @@ on each file, if the volume has thousands of inodes, this process takes a
 long time, delaying the start of the <<container|pod>>. If the volume
 was previously relabeled with the `z` option, Podman is optimized to not relabel
 a second time. If files are moved into the volume, then the labels can be
-manually change with the `chcon -R container_file_t PATH` command.
+manually change with the `chcon -Rt container_file_t PATH` command.
 
 Note: Do not relabel system files and directories. Relabeling system content
 might cause other confined services on the machine to fail.  For these types
