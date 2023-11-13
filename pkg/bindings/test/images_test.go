@@ -350,7 +350,7 @@ var _ = Describe("Podman images", func() {
 		}
 
 		//	Search with a fqdn
-		reports, err = images.Search(bt.conn, "quay.io/libpod/alpine_nginx", nil)
+		reports, err = images.Search(bt.conn, "quay.io/podman/stable", nil)
 		Expect(err).ToNot(HaveOccurred(), "Error in images.Search()")
 		Expect(reports).ToNot(BeEmpty())
 	})
