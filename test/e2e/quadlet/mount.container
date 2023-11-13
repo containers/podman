@@ -24,3 +24,5 @@ Mount=type=bind,source=./path/on/host,destination=/path/in/container
 Mount=type=volume,source=vol1,destination=/path/in/container,ro
 ## assert-podman-args-key-val "--mount" "," "type=bind,source=/tmp,\"dst=/path,1\""
 Mount=type=bind,src=/tmp,\"dst=/path,1\"
+## assert-podman-args-key-val-regex "--mount" "," "type=bind,source=.*/podman_test.*/quadlet/src,destination=/dst/,idmap=uids=12-34-1;gids=56-78-1"
+Mount=type=bind,source=./src/,destination=/dst/,idmap=uids=12-34-1;gids=56-78-1
