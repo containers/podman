@@ -37,6 +37,7 @@ type SetFlags struct {
 	Memory             uint64
 	Rootful            bool
 	UserModeNetworking bool
+	USBs               []string
 }
 
 func init() {
@@ -74,6 +75,13 @@ func init() {
 	)
 	_ = setCmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
 
+	usbFlagName := "usb"
+	flags.StringArrayVarP(
+		&setFlags.USBs,
+		usbFlagName, "", []string{},
+		"USBs bus=$1,devnum=$2 or vendor=$1,product=$2")
+	_ = setCmd.RegisterFlagCompletionFunc(usbFlagName, completion.AutocompleteNone)
+
 	userModeNetFlagName := "user-mode-networking"
 	flags.BoolVar(&setFlags.UserModeNetworking, userModeNetFlagName, false, // defaults not-relevant due to use of Changed()
 		"Whether this machine should use user-mode networking, routing traffic through a host user-space process")
@@ -109,6 +117,9 @@ func setMachine(cmd *cobra.Command, args []string) error {
 	}
 	if cmd.Flags().Changed("user-mode-networking") {
 		setOpts.UserModeNetworking = &setFlags.UserModeNetworking
+	}
+	if cmd.Flags().Changed("usb") {
+		setOpts.USBs = &setFlags.USBs
 	}
 
 	setErrs, lasterr := vm.Set(vmName, setOpts)

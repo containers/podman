@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -59,6 +60,78 @@ func (v *MachineVM) setNewMachineCMD(qemuBinary string, cmdOpts *setNewMachineCM
 	v.CmdLine.SetQmpMonitor(v.QMPMonitor)
 	v.CmdLine.SetNetwork()
 	v.CmdLine.SetSerialPort(v.ReadySocket, v.VMPidFilePath, v.Name)
+	v.CmdLine.SetUSBHostPassthrough(v.USBs)
+}
+
+func parseUSBs(usbs []string) ([]machine.USBConfig, error) {
+	configs := []machine.USBConfig{}
+	for _, str := range usbs {
+		if str == "" {
+			// Ignore --usb="" as it can be used to reset USBConfigs
+			continue
+		}
+
+		vals := strings.Split(str, ",")
+		if len(vals) != 2 {
+			return configs, fmt.Errorf("usb: fail to parse: missing ',': %s", str)
+		}
+
+		left := strings.Split(vals[0], "=")
+		if len(left) != 2 {
+			return configs, fmt.Errorf("usb: fail to parse: missing '=': %s", str)
+		}
+
+		right := strings.Split(vals[1], "=")
+		if len(right) != 2 {
+			return configs, fmt.Errorf("usb: fail to parse: missing '=': %s", str)
+		}
+
+		option := ""
+		if (left[0] == "bus" && right[0] == "devnum") ||
+			(right[0] == "bus" && left[0] == "devnum") {
+			option = "bus_devnum"
+		}
+		if (left[0] == "vendor" && right[0] == "product") ||
+			(right[0] == "vendor" && left[0] == "product") {
+			option = "vendor_product"
+		}
+
+		switch option {
+		case "bus_devnum":
+			bus, devnumber := left[1], right[1]
+			if right[0] == "bus" {
+				bus, devnumber = devnumber, bus
+			}
+
+			configs = append(configs, machine.USBConfig{
+				Bus:       bus,
+				DevNumber: devnumber,
+			})
+		case "vendor_product":
+			vendorStr, productStr := left[1], right[1]
+			if right[0] == "vendor" {
+				vendorStr, productStr = productStr, vendorStr
+			}
+
+			vendor, err := strconv.ParseInt(vendorStr, 16, 0)
+			if err != nil {
+				return configs, fmt.Errorf("fail to convert vendor of %s: %s", str, err)
+			}
+
+			product, err := strconv.ParseInt(productStr, 16, 0)
+			if err != nil {
+				return configs, fmt.Errorf("fail to convert product of %s: %s", str, err)
+			}
+
+			configs = append(configs, machine.USBConfig{
+				Vendor:  int(vendor),
+				Product: int(product),
+			})
+		default:
+			return configs, fmt.Errorf("usb: fail to parse: %s", str)
+		}
+	}
+	return configs, nil
 }
 
 // NewMachine initializes an instance of a virtual machine based on the qemu
@@ -98,6 +171,9 @@ func (p *QEMUVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, e
 	vm.CPUs = opts.CPUS
 	vm.Memory = opts.Memory
 	vm.DiskSize = opts.DiskSize
+	if vm.USBs, err = parseUSBs(opts.USBs); err != nil {
+		return nil, err
+	}
 
 	vm.Created = time.Now()
 

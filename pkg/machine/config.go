@@ -39,6 +39,7 @@ type InitOptions struct {
 	Rootful            bool
 	UID                string // uid of the user that called machine
 	UserModeNetworking *bool  // nil = use backend/system default, false = disable, true = enable
+	USBs               []string
 }
 
 type Status = string
@@ -106,6 +107,7 @@ type SetOptions struct {
 	Memory             *uint64
 	Rootful            *bool
 	UserModeNetworking *bool
+	USBs               *[]string
 }
 
 type SSHOptions struct {
@@ -271,6 +273,13 @@ func ConfDirPrefix() (string, error) {
 	return confDir, nil
 }
 
+type USBConfig struct {
+	Bus       string
+	DevNumber string
+	Vendor    int
+	Product   int
+}
+
 // ResourceConfig describes physical attributes of the machine
 type ResourceConfig struct {
 	// CPUs to be assigned to the VM
@@ -279,6 +288,8 @@ type ResourceConfig struct {
 	DiskSize uint64
 	// Memory in megabytes assigned to the vm
 	Memory uint64
+	// Usbs
+	USBs []USBConfig
 }
 
 type Mount struct {

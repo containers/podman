@@ -52,6 +52,20 @@ are no longer visible with the default connection/socket. This is because the ro
 users in the VM are completely separated and do not share any storage. The data however is not
 lost and you can always change this option back or use the other connection to access it.
 
+#### **--usb**=*bus=number,devnum=number* or *vendor=hexadecimal,product=hexadecimal* or *""*
+
+Assign a USB device from the host to the VM.
+Only supported for QEMU Machines.
+
+The device needs to be present when the VM starts.
+The device needs to have proper permissions in order to be assign to podman machine.
+
+Use an empty string to remove all previously set USB devices.
+
+Note that using bus and device number are simpler but the values can change every boot or when the
+device is unplugged. Using vendor and product might lead to collision in the case of multiple
+devices with the same vendor product value, the first available device is assigned.
+
 @@option user-mode-networking
 
 ## EXAMPLES

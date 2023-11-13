@@ -107,6 +107,11 @@ func init() {
 	flags.StringArrayVarP(&initOpts.Volumes, VolumeFlagName, "v", cfg.ContainersConfDefaultsRO.Machine.Volumes.Get(), "Volumes to mount, source:target")
 	_ = initCmd.RegisterFlagCompletionFunc(VolumeFlagName, completion.AutocompleteDefault)
 
+	USBFlagName := "usb"
+	flags.StringArrayVarP(&initOpts.USBs, USBFlagName, "", []string{},
+		"USB Host passthrough: bus=$1,devnum=$2 or vendor=$1,product=$2")
+	_ = initCmd.RegisterFlagCompletionFunc(USBFlagName, completion.AutocompleteDefault)
+
 	VolumeDriverFlagName := "volume-driver"
 	flags.StringVar(&initOpts.VolumeDriver, VolumeDriverFlagName, "", "Optional volume driver")
 	_ = initCmd.RegisterFlagCompletionFunc(VolumeDriverFlagName, completion.AutocompleteDefault)

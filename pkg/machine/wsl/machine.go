@@ -1135,7 +1135,10 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 
 	if opts.Memory != nil {
 		setErrors = append(setErrors, errors.New("changing memory not supported for WSL machines"))
+	}
 
+	if opts.USBs != nil {
+		setErrors = append(setErrors, errors.New("changing USBs not supported for WSL machines"))
 	}
 
 	if opts.DiskSize != nil {
