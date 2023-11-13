@@ -58,7 +58,7 @@ Valid placeholders for the Go template are listed below:
 | .PIDS               | Number of PIDs (yes, we know it's a dup)         |
 | .SystemNano         | Current system datetime, nanoseconds since epoch |
 | .Up                 | Duration (CPUNano), in human-readable form       |
-| .UpTime             | Same as UpTime                                   |
+| .UpTime             | Same as Up                                   |
 
 [1] Cgroups V1 only
 
