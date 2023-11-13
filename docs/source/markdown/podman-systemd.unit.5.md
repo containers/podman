@@ -159,6 +159,7 @@ Valid options for `[Container]` are listed below:
 | EnvironmentHost=true                 | --env-host                                           |
 | Exec=/usr/bin/command                | Command after image specification - /usr/bin/command |
 | ExposeHostPort=50-59                 | --expose 50-59                                       |
+| GIDMap=0:10000:10                    | --gidmap=0:10000:10                                  |
 | Group=1234                           | --user UID:1234                                      |
 | GlobalArgs=--log-level=debug         | --log-level=debug                                    |
 | HealthCmd="/usr/bin/command"         | --health-cmd="/usr/bin/command"                      |
@@ -197,9 +198,12 @@ Valid options for `[Container]` are listed below:
 | SecurityLabelNested=true             | --security-opt label=nested                          |
 | SecurityLabelType=spc_t              | --security-opt label=type:spc_t                      |
 | ShmSize=100m                         | --shm-size=100m                                      |
+| SubGIDMap=gtest                      | --subgidname=gtest                                   |
+| SubUIDMap=utest                      | --subuidname=utest                                   |
 | Sysctl=name=value                    | --sysctl=name=value                                  |
 | Timezone=local                       | --tz local                                           |
 | Tmpfs=/work                          | --tmpfs /work                                        |
+| UIDMap=0:10000:10                    | --uidmap=0:10000:10                                  |
 | Ulimit=nofile:1000:10000             | --ulimit nofile:1000:10000                           |
 | User=bin                             | --user bin                                           |
 | UserNS=keep-id:uid=200,gid=210       | --userns keep-id:uid=200,gid=210                     |
@@ -312,6 +316,13 @@ default entry point of the container image is used. The format is the same as fo
 
 Exposes a port, or a range of ports (e.g. `50-59`), from the host to the container. Equivalent
 to the Podman `--expose` option.
+
+This key can be listed multiple times.
+
+### `GIDMap=`
+
+Run the container in a new user namespace using the supplied GID mapping.
+Equivalent to the Podman `--gidmap` option.
 
 This key can be listed multiple times.
 
@@ -569,6 +580,16 @@ Size of /dev/shm.
 
 This is equivalent to the Podman `--shm-size` option and generally has the form `number[unit]`
 
+### `SubGIDMap=`
+
+Run the container in a new user namespace using the map with name in the /etc/subgid file.
+Equivalent to the Podman `--subgidname` option.
+
+### `SubUIDMap=`
+
+Run the container in a new user namespace using the map with name in the /etc/subuid file.
+Equivalent to the Podman `--subuidname` option.
+
 ### `Sysctl=`
 
 Configures namespaced kernel parameters for the container. The format is `Sysctl=name=value`.
@@ -590,6 +611,13 @@ This key can be listed multiple times.
 ### `Timezone=` (if unset uses system-configured default)
 
 The timezone to run the container in.
+
+### `UIDMap=`
+
+Run the container in a new user namespace using the supplied UID mapping.
+Equivalent to the Podman `--uidmap` option.
+
+This key can be listed multiple times.
 
 ### `Ulimit=`
 
