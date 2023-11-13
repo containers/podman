@@ -304,11 +304,22 @@ func (computeSystem *System) WaitError() error {
 	return computeSystem.waitError
 }
 
-// Wait synchronously waits for the compute system to shutdown or terminate. If
-// the compute system has already exited returns the previous error (if any).
+// Wait synchronously waits for the compute system to shutdown or terminate.
+// If the compute system has already exited returns the previous error (if any).
 func (computeSystem *System) Wait() error {
-	<-computeSystem.WaitChannel()
-	return computeSystem.WaitError()
+	return computeSystem.WaitCtx(context.Background())
+}
+
+// WaitCtx synchronously waits for the compute system to shutdown or terminate, or the context to be cancelled.
+//
+// See [System.Wait] for more information.
+func (computeSystem *System) WaitCtx(ctx context.Context) error {
+	select {
+	case <-computeSystem.WaitChannel():
+		return computeSystem.WaitError()
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 // stopped returns true if the compute system stopped.
@@ -735,9 +746,17 @@ func (computeSystem *System) OpenProcess(ctx context.Context, pid int) (*Process
 }
 
 // Close cleans up any state associated with the compute system but does not terminate or wait for it.
-func (computeSystem *System) Close() (err error) {
+func (computeSystem *System) Close() error {
+	return computeSystem.CloseCtx(context.Background())
+}
+
+// CloseCtx is similar to [System.Close], but accepts a context.
+//
+// The context is used for all operations, including waits, so timeouts/cancellations may prevent
+// proper system cleanup.
+func (computeSystem *System) CloseCtx(ctx context.Context) (err error) {
 	operation := "hcs::System::Close"
-	ctx, span := oc.StartSpan(context.Background(), operation)
+	ctx, span := oc.StartSpan(ctx, operation)
 	defer span.End()
 	defer func() { oc.SetSpanStatus(span, err) }()
 	span.AddAttributes(trace.StringAttribute("cid", computeSystem.id))

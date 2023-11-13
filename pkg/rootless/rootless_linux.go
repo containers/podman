@@ -45,6 +45,23 @@ const (
 	numSig = 65 // max number of signals
 )
 
+func init() {
+	rootlessUIDInit := int(C.rootless_uid())
+	rootlessGIDInit := int(C.rootless_gid())
+	if rootlessUIDInit != 0 {
+		// we need this if we joined the user+mount namespace from the C code.
+		if err := os.Setenv("_CONTAINERS_USERNS_CONFIGURED", "done"); err != nil {
+			logrus.Errorf("Failed to set environment variable %s as %s", "_CONTAINERS_USERNS_CONFIGURED", "done")
+		}
+		if err := os.Setenv("_CONTAINERS_ROOTLESS_UID", strconv.Itoa(rootlessUIDInit)); err != nil {
+			logrus.Errorf("Failed to set environment variable %s as %d", "_CONTAINERS_ROOTLESS_UID", rootlessUIDInit)
+		}
+		if err := os.Setenv("_CONTAINERS_ROOTLESS_GID", strconv.Itoa(rootlessGIDInit)); err != nil {
+			logrus.Errorf("Failed to set environment variable %s as %d", "_CONTAINERS_ROOTLESS_GID", rootlessGIDInit)
+		}
+	}
+}
+
 func runInUser() error {
 	return os.Setenv("_CONTAINERS_USERNS_CONFIGURED", "done")
 }
@@ -56,60 +73,21 @@ var (
 
 // IsRootless tells us if we are running in rootless mode
 func IsRootless() bool {
-	isRootlessOnce.Do(func() {
-		rootlessUIDInit := int(C.rootless_uid())
-		rootlessGIDInit := int(C.rootless_gid())
-		if rootlessUIDInit != 0 {
-			// This happens if we joined the user+mount namespace as part of
-			if err := os.Setenv("_CONTAINERS_USERNS_CONFIGURED", "done"); err != nil {
-				logrus.Errorf("Failed to set environment variable %s as %s", "_CONTAINERS_USERNS_CONFIGURED", "done")
-			}
-			if err := os.Setenv("_CONTAINERS_ROOTLESS_UID", strconv.Itoa(rootlessUIDInit)); err != nil {
-				logrus.Errorf("Failed to set environment variable %s as %d", "_CONTAINERS_ROOTLESS_UID", rootlessUIDInit)
-			}
-			if err := os.Setenv("_CONTAINERS_ROOTLESS_GID", strconv.Itoa(rootlessGIDInit)); err != nil {
-				logrus.Errorf("Failed to set environment variable %s as %d", "_CONTAINERS_ROOTLESS_GID", rootlessGIDInit)
-			}
-		}
-		isRootless = os.Geteuid() != 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != ""
-		if !isRootless {
-			hasCapSysAdmin, err := unshare.HasCapSysAdmin()
-			if err != nil {
-				logrus.Warnf("Failed to read CAP_SYS_ADMIN presence for the current process")
-			}
-			if err == nil && !hasCapSysAdmin {
-				isRootless = true
-			}
-		}
-	})
-	return isRootless
+	// unshare.IsRootless() is used to check if a user namespace is required.
+	// Here we need to make sure that nested podman instances act
+	// as if they have root privileges and pick paths on the host
+	// that would normally be used for root.
+	return unshare.IsRootless() && unshare.GetRootlessUID() > 0
 }
 
 // GetRootlessUID returns the UID of the user in the parent userNS
 func GetRootlessUID() int {
-	uidEnv := os.Getenv("_CONTAINERS_ROOTLESS_UID")
-	if uidEnv != "" {
-		u, _ := strconv.Atoi(uidEnv)
-		return u
-	}
-	return os.Geteuid()
+	return unshare.GetRootlessUID()
 }
 
 // GetRootlessGID returns the GID of the user in the parent userNS
 func GetRootlessGID() int {
-	gidEnv := os.Getenv("_CONTAINERS_ROOTLESS_GID")
-	if gidEnv != "" {
-		u, _ := strconv.Atoi(gidEnv)
-		return u
-	}
-
-	/* If the _CONTAINERS_ROOTLESS_UID is set, assume the gid==uid.  */
-	uidEnv := os.Getenv("_CONTAINERS_ROOTLESS_UID")
-	if uidEnv != "" {
-		u, _ := strconv.Atoi(uidEnv)
-		return u
-	}
-	return os.Getegid()
+	return unshare.GetRootlessGID()
 }
 
 func tryMappingTool(uid bool, pid int, hostID int, mappings []idtools.IDMap) error {
