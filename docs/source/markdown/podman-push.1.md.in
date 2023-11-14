@@ -30,7 +30,7 @@ $ podman push docker://quay.io/podman/stable
 $ podman push myimage quay.io/username/myimage
 ```
 
-**podman push** can also be used as an alternative to **podman save**.  For example:
+**podman push** can also be an alternative to **podman save**.  For instance, the following push commands save the image at the specified destination.
 
 ```
 # Push to a local directory

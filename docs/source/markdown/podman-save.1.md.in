@@ -41,7 +41,7 @@ An image format to produce, one of:
 | **oci-dir**        | A directory using the OCI Image Format                                       |
 | **docker-dir**     | **dir** transport (see **containers-transports(5)**) with v2s2 manifest type |
 
-If **oci-archive** or **oci-dir** saves an image specified by name, then it will save it in the OCI Image with the same name (i.e. an **org.opencontainers.image.ref.name** annotation will be written).  If **oci-archive** or **oci-dir** saves an image specified by hash, the image will not be given a name in the saved image, which may make using the resulting image with tools that expect named images difficult.
+If **oci-archive** or **oci-dir** saves an image specified by name, then it will save it in the OCI Image with the same name (i.e., an **org.opencontainers.image.ref.name** annotation will be written).  If **oci-archive** or **oci-dir** saves an image specified by hash, the image will not be given a name in the saved image, which may make using the resulting image with tools that expect named images difficult.
 
 To explicity specify the name to be used in the saved image, use the **oci-archive:** or **oci::** schemes with **[podman-push(1)](podman-push.1.md)** instead.  For example:
 
