@@ -22,6 +22,7 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/machine/hyperv/vsock"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/containers/podman/v4/pkg/strongunits"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
@@ -32,7 +33,7 @@ import (
 
 var (
 	// vmtype refers to qemu (vs libvirt, krun, etc).
-	vmtype = machine.HyperVVirt
+	vmtype = define.HyperVVirt
 )
 
 const (
@@ -251,11 +252,11 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	}
 	m.Rootful = opts.Rootful
 
-	builder := machine.NewIgnitionBuilder(machine.DynamicIgnition{
+	builder := ignition.NewIgnitionBuilder(ignition.DynamicIgnition{
 		Name:      m.RemoteUsername,
 		Key:       key,
 		VMName:    m.Name,
-		VMType:    machine.HyperVVirt,
+		VMType:    define.HyperVVirt,
 		TimeZone:  opts.TimeZone,
 		WritePath: m.IgnitionFile.GetPath(),
 		UID:       m.UID,
@@ -277,28 +278,28 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	builder.WithUnit(machine.Unit{
-		Enabled:  machine.BoolToPtr(true),
+	builder.WithUnit(ignition.Unit{
+		Enabled:  ignition.BoolToPtr(true),
 		Name:     "ready.service",
-		Contents: machine.StrToPtr(fmt.Sprintf(hyperVReadyUnit, m.ReadyHVSock.Port)),
+		Contents: ignition.StrToPtr(fmt.Sprintf(hyperVReadyUnit, m.ReadyHVSock.Port)),
 	})
 
-	builder.WithUnit(machine.Unit{
-		Contents: machine.StrToPtr(fmt.Sprintf(hyperVVsockNetUnit, m.NetworkHVSock.Port)),
-		Enabled:  machine.BoolToPtr(true),
+	builder.WithUnit(ignition.Unit{
+		Contents: ignition.StrToPtr(fmt.Sprintf(hyperVVsockNetUnit, m.NetworkHVSock.Port)),
+		Enabled:  ignition.BoolToPtr(true),
 		Name:     "vsock-network.service",
 	})
 
-	builder.WithFile(machine.File{
-		Node: machine.Node{
+	builder.WithFile(ignition.File{
+		Node: ignition.Node{
 			Path: "/etc/NetworkManager/system-connections/vsock0.nmconnection",
 		},
-		FileEmbedded1: machine.FileEmbedded1{
+		FileEmbedded1: ignition.FileEmbedded1{
 			Append: nil,
-			Contents: machine.Resource{
-				Source: machine.EncodeDataURLPtr(hyperVVsockNMConnection),
+			Contents: ignition.Resource{
+				Source: ignition.EncodeDataURLPtr(hyperVVsockNMConnection),
 			},
-			Mode: machine.IntToPtr(0600),
+			Mode: ignition.IntToPtr(0600),
 		},
 	})
 
@@ -679,7 +680,7 @@ func (m *HyperVMachine) Stop(name string, opts machine.StopOptions) error {
 }
 
 func (m *HyperVMachine) jsonConfigPath() (string, error) {
-	configDir, err := machine.GetConfDir(machine.HyperVVirt)
+	configDir, err := machine.GetConfDir(define.HyperVVirt)
 	if err != nil {
 		return "", err
 	}
@@ -836,7 +837,7 @@ func (m *HyperVMachine) startHostNetworking() (int32, string, machine.APIForward
 }
 
 func logCommandToFile(c *exec.Cmd, filename string) error {
-	dir, err := machine.GetDataDir(machine.HyperVVirt)
+	dir, err := machine.GetDataDir(define.HyperVVirt)
 	if err != nil {
 		return fmt.Errorf("obtain machine dir: %w", err)
 	}
@@ -877,7 +878,7 @@ func (m *HyperVMachine) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.
 }
 
 func (m *HyperVMachine) dockerSock() (string, error) {
-	dd, err := machine.GetDataDir(machine.HyperVVirt)
+	dd, err := machine.GetDataDir(define.HyperVVirt)
 	if err != nil {
 		return "", err
 	}
@@ -886,7 +887,7 @@ func (m *HyperVMachine) dockerSock() (string, error) {
 
 func (m *HyperVMachine) forwardSocketPath() (*define.VMFile, error) {
 	sockName := "podman.sock"
-	path, err := machine.GetDataDir(machine.HyperVVirt)
+	path, err := machine.GetDataDir(define.HyperVVirt)
 	if err != nil {
 		return nil, fmt.Errorf("Resolving data dir: %s", err.Error())
 	}

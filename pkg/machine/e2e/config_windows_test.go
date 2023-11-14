@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/machine/wsl"
 	. "github.com/onsi/ginkgo/v2"
 )
@@ -13,10 +14,10 @@ import (
 const podmanBinary = "../../../bin/windows/podman.exe"
 
 func getDownloadLocation(p machine.VirtProvider) string {
-	if p.VMType() == machine.HyperVVirt {
+	if p.VMType() == define.HyperVVirt {
 		return getFCOSDownloadLocation(p)
 	}
-	fd, err := wsl.NewFedoraDownloader(machine.WSLVirt, "", defaultStream.String())
+	fd, err := wsl.NewFedoraDownloader(define.WSLVirt, "", defaultStream.String())
 	if err != nil {
 		Fail("unable to get WSL virtual image")
 	}

@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/compression"
 	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v4/pkg/machine/ignition"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
 	"github.com/docker/go-units"
 	"golang.org/x/sys/unix"
@@ -55,7 +56,7 @@ func (v AppleHVVirtualization) CheckExclusiveActiveVM() (bool, string, error) {
 }
 
 func (v AppleHVVirtualization) IsValidVMName(name string) (bool, error) {
-	configDir, err := machine.GetConfDir(machine.AppleHvVirt)
+	configDir, err := machine.GetConfDir(define.AppleHvVirt)
 	if err != nil {
 		return false, err
 	}
@@ -93,7 +94,7 @@ func (v AppleHVVirtualization) List(opts machine.ListOptions) ([]*machine.ListRe
 			Running:        vmState == define.Running,
 			Starting:       vmState == define.Starting,
 			Stream:         mm.ImageStream,
-			VMType:         machine.AppleHvVirt.String(),
+			VMType:         define.AppleHvVirt.String(),
 			CPUs:           mm.CPUs,
 			Memory:         mm.Memory * units.MiB,
 			DiskSize:       mm.DiskSize * units.GiB,
@@ -118,7 +119,7 @@ func (v AppleHVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM,
 		return nil, fmt.Errorf("USB host passthrough is not supported for applehv machines")
 	}
 
-	configDir, err := machine.GetConfDir(machine.AppleHvVirt)
+	configDir, err := machine.GetConfDir(define.AppleHvVirt)
 	if err != nil {
 		return nil, err
 	}
@@ -129,12 +130,12 @@ func (v AppleHVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM,
 	}
 	m.ConfigPath = *configPath
 
-	dataDir, err := machine.GetDataDir(machine.AppleHvVirt)
+	dataDir, err := machine.GetDataDir(define.AppleHvVirt)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := machine.SetIgnitionFile(&m.IgnitionFile, vmtype, m.Name); err != nil {
+	if err := ignition.SetIgnitionFile(&m.IgnitionFile, vmtype, m.Name, configDir); err != nil {
 		return nil, err
 	}
 
@@ -161,7 +162,7 @@ func (v AppleHVVirtualization) RemoveAndCleanMachines() error {
 	return machine.ErrNotImplemented
 }
 
-func (v AppleHVVirtualization) VMType() machine.VMType {
+func (v AppleHVVirtualization) VMType() define.VMType {
 	return vmtype
 }
 

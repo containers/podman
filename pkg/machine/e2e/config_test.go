@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo/v2"
@@ -210,29 +211,29 @@ func (matcher *ValidJSONMatcher) NegatedFailureMessage(actual interface{}) (mess
 	return format.Message(actual, "to _not_ be valid JSON")
 }
 
-func skipIfVmtype(vmType machine.VMType, message string) {
+func skipIfVmtype(vmType define.VMType, message string) {
 	if isVmtype(vmType) {
 		Skip(message)
 	}
 }
 
-func skipIfNotVmtype(vmType machine.VMType, message string) {
+func skipIfNotVmtype(vmType define.VMType, message string) {
 	if !isVmtype(vmType) {
 		Skip(message)
 	}
 }
 
 func skipIfWSL(message string) {
-	skipIfVmtype(machine.WSLVirt, message)
+	skipIfVmtype(define.WSLVirt, message)
 }
 
-func isVmtype(vmType machine.VMType) bool {
+func isVmtype(vmType define.VMType) bool {
 	return testProvider.VMType() == vmType
 }
 
 // isWSL is a simple wrapper to determine if the testprovider is WSL
 func isWSL() bool {
-	return isVmtype(machine.WSLVirt)
+	return isVmtype(define.WSLVirt)
 }
 
 func getFCOSDownloadLocation(p machine.VirtProvider) string {

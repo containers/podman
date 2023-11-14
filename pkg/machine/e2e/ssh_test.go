@@ -1,7 +1,7 @@
 package e2e_test
 
 import (
-	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -44,7 +44,7 @@ var _ = Describe("podman machine ssh", func() {
 	})
 
 	It("ssh to running machine and check os-type", func() {
-		wsl := testProvider.VMType() == machine.WSLVirt
+		wsl := testProvider.VMType() == define.WSLVirt
 		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withNow()).run()

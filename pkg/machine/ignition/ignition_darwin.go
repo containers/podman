@@ -1,6 +1,6 @@
 //go:build darwin
 
-package machine
+package ignition
 
 import (
 	"os"

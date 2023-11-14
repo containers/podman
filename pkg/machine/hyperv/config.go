@@ -15,6 +15,7 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/compression"
 	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
 )
@@ -97,7 +98,7 @@ func (v HyperVVirtualization) List(opts machine.ListOptions) ([]*machine.ListRes
 			Running:        vm.State() == hypervctl.Enabled,
 			Starting:       mm.isStarting(),
 			Stream:         mm.ImageStream,
-			VMType:         machine.HyperVVirt.String(),
+			VMType:         define.HyperVVirt.String(),
 			CPUs:           mm.CPUs,
 			Memory:         mm.Memory * units.MiB,
 			DiskSize:       mm.DiskSize * units.GiB,
@@ -126,7 +127,7 @@ func (v HyperVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, 
 
 	m.RemoteUsername = opts.Username
 
-	configDir, err := machine.GetConfDir(machine.HyperVVirt)
+	configDir, err := machine.GetConfDir(define.HyperVVirt)
 	if err != nil {
 		return nil, err
 	}
@@ -138,14 +139,14 @@ func (v HyperVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, 
 
 	m.ConfigPath = *configPath
 
-	if err := machine.SetIgnitionFile(&m.IgnitionFile, vmtype, m.Name); err != nil {
+	if err := ignition.SetIgnitionFile(&m.IgnitionFile, vmtype, m.Name, configDir); err != nil {
 		return nil, err
 	}
 
 	// Set creation time
 	m.Created = time.Now()
 
-	dataDir, err := machine.GetDataDir(machine.HyperVVirt)
+	dataDir, err := machine.GetDataDir(define.HyperVVirt)
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +251,7 @@ func (v HyperVVirtualization) RemoveAndCleanMachines() error {
 	return prevErr
 }
 
-func (v HyperVVirtualization) VMType() machine.VMType {
+func (v HyperVVirtualization) VMType() define.VMType {
 	return vmtype
 }
 

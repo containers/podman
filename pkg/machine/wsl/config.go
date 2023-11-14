@@ -230,6 +230,6 @@ func (p *WSLVirtualization) RemoveAndCleanMachines() error {
 	return prevErr
 }
 
-func (p *WSLVirtualization) VMType() machine.VMType {
+func (p *WSLVirtualization) VMType() define.VMType {
 	return vmtype
 }

@@ -1,6 +1,6 @@
 //go:build amd64 || arm64
 
-package machine
+package ignition
 
 import (
 	"encoding/json"
@@ -25,6 +25,7 @@ import (
 
 const (
 	PodmanDockerTmpConfPath = "/etc/tmpfiles.d/podman-docker.conf"
+	DefaultIgnitionUserName = "core"
 )
 
 // Convenience function to convert int to ptr
@@ -56,7 +57,7 @@ type DynamicIgnition struct {
 	TimeZone  string
 	UID       int
 	VMName    string
-	VMType    VMType
+	VMType    define.VMType
 	WritePath string
 	Cfg       Config
 	Rootful   bool
@@ -215,7 +216,7 @@ WantedBy=sysinit.target
 		}}
 
 	// Only qemu has the qemu firmware environment setting
-	if ign.VMType == QemuVirt {
+	if ign.VMType == define.QemuVirt {
 		qemuUnit := Unit{
 			Enabled:  BoolToPtr(true),
 			Name:     "envset-fwcfg.service",
@@ -295,7 +296,7 @@ func getDirs(usrName string) []Directory {
 	return dirs
 }
 
-func getFiles(usrName string, uid int, rootful bool, vmtype VMType) []File {
+func getFiles(usrName string, uid int, rootful bool, vmtype define.VMType) []File {
 	files := make([]File, 0)
 
 	lingerExample := `[Unit]
@@ -676,12 +677,7 @@ func GetPodmanDockerTmpConfig(uid int, rootful bool, newline bool) string {
 
 // SetIgnitionFile creates a new Machine File for the machine's ignition file
 // and assignes the handle to `loc`
-func SetIgnitionFile(loc *define.VMFile, vmtype VMType, vmName string) error {
-	vmConfigDir, err := GetConfDir(vmtype)
-	if err != nil {
-		return err
-	}
-
+func SetIgnitionFile(loc *define.VMFile, vmtype define.VMType, vmName, vmConfigDir string) error {
 	ignitionFile, err := define.NewMachineFile(filepath.Join(vmConfigDir, vmName+".ign"), nil)
 	if err != nil {
 		return err

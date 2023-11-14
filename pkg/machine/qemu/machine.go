@@ -23,6 +23,7 @@ import (
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/containers/podman/v4/pkg/machine/qemu/command"
 	"github.com/containers/podman/v4/pkg/machine/sockets"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
@@ -36,7 +37,7 @@ import (
 var (
 	// vmtype refers to qemu (vs libvirt, krun, etc).
 	// Could this be moved into  Provider
-	vmtype = machine.QemuVirt
+	vmtype = define.QemuVirt
 )
 
 const (
@@ -208,11 +209,11 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		logrus.Warn("ignoring init option to disable user-mode networking: this mode is not supported by the QEMU backend")
 	}
 
-	builder := machine.NewIgnitionBuilder(machine.DynamicIgnition{
+	builder := ignition.NewIgnitionBuilder(ignition.DynamicIgnition{
 		Name:      opts.Username,
 		Key:       key,
 		VMName:    v.Name,
-		VMType:    machine.QemuVirt,
+		VMType:    define.QemuVirt,
 		TimeZone:  opts.TimeZone,
 		WritePath: v.getIgnitionFile(),
 		UID:       v.UID,
@@ -229,10 +230,10 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	readyUnit := machine.Unit{
-		Enabled:  machine.BoolToPtr(true),
+	readyUnit := ignition.Unit{
+		Enabled:  ignition.BoolToPtr(true),
 		Name:     "ready.service",
-		Contents: machine.StrToPtr(fmt.Sprintf(qemuReadyUnit, "vport1p1", "vport1p1")),
+		Contents: ignition.StrToPtr(fmt.Sprintf(qemuReadyUnit, "vport1p1", "vport1p1")),
 	}
 	builder.WithUnit(readyUnit)
 
@@ -1222,7 +1223,7 @@ func (v *MachineVM) isIncompatible() bool {
 }
 
 func (v *MachineVM) userGlobalSocketLink() (string, error) {
-	path, err := machine.GetDataDir(machine.QemuVirt)
+	path, err := machine.GetDataDir(define.QemuVirt)
 	if err != nil {
 		logrus.Errorf("Resolving data dir: %s", err.Error())
 		return "", err
@@ -1233,7 +1234,7 @@ func (v *MachineVM) userGlobalSocketLink() (string, error) {
 
 func (v *MachineVM) forwardSocketPath() (*define.VMFile, error) {
 	sockName := "podman.sock"
-	path, err := machine.GetDataDir(machine.QemuVirt)
+	path, err := machine.GetDataDir(define.QemuVirt)
 	if err != nil {
 		logrus.Errorf("Resolving data dir: %s", err.Error())
 		return nil, err

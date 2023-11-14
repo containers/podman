@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -76,7 +76,7 @@ var _ = Describe("podman machine set", func() {
 	})
 
 	It("wsl cannot change disk, memory, processor", func() {
-		skipIfNotVmtype(machine.WSLVirt, "tests are only for WSL provider")
+		skipIfNotVmtype(define.WSLVirt, "tests are only for WSL provider")
 		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
@@ -168,7 +168,7 @@ var _ = Describe("podman machine set", func() {
 	})
 
 	It("set user mode networking", func() {
-		if testProvider.VMType() != machine.WSLVirt {
+		if testProvider.VMType() != define.WSLVirt {
 			Skip("Test is only for WSL")
 		}
 		name := randomString()
