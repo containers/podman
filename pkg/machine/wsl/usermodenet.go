@@ -4,6 +4,7 @@
 package wsl
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -320,7 +321,10 @@ func (v *MachineVM) obtainUserModeNetLock() (*fileLock, error) {
 
 func changeDistUserModeNetworking(dist string, user string, image string, enable bool) error {
 	// Only install if user-mode is being enabled and there was an image path passed
-	if enable && len(image) > 0 {
+	if enable {
+		if len(image) <= 0 {
+			return errors.New("existing machine configuration is corrupt, no image is defined")
+		}
 		if err := installUserModeDist(dist, image); err != nil {
 			return err
 		}
