@@ -251,6 +251,14 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
+	if len(opts.IgnitionPath) < 1 {
+		key, err = machine.CreateSSHKeys(m.IdentityPath)
+		if err != nil {
+			return false, err
+		}
+		callbackFuncs.Add(m.removeSSHKeys)
+	}
+
 	builder := machine.NewIgnitionBuilder(machine.DynamicIgnition{
 		Name:      opts.Username,
 		Key:       key,
@@ -261,14 +269,6 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		UID:       m.UID,
 		Rootful:   m.Rootful,
 	})
-
-	if len(opts.IgnitionPath) < 1 {
-		key, err = machine.CreateSSHKeys(m.IdentityPath)
-		if err != nil {
-			return false, err
-		}
-		callbackFuncs.Add(m.removeSSHKeys)
-	}
 
 	if len(opts.IgnitionPath) > 0 {
 		return false, builder.BuildWithIgnitionFile(opts.IgnitionPath)
