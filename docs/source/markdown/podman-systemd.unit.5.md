@@ -6,7 +6,7 @@ podman\-systemd.unit - systemd units using Podman Quadlet
 
 ## SYNOPSIS
 
-*name*.container, *name*.volume, *name*.network, `*.kube`
+*name*.container, *name*.volume, *name*.network, *name*.kube *name*.image
 
 ### Podman unit search path
 
@@ -18,6 +18,11 @@ podman\-systemd.unit - systemd units using Podman Quadlet
  * $XDG_CONFIG_HOME/containers/systemd/ or ~/.config/containers/systemd/
  * /etc/containers/systemd/users/$(UID)
  * /etc/containers/systemd/users/
+
+### Using symbolic links
+
+Quadlet supports using symbolic links for the base of the search paths.
+Symbolic links below the search paths are not supported.
 
 ## DESCRIPTION
 

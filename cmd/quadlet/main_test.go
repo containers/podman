@@ -79,4 +79,22 @@ func TestUnitDirs(t *testing.T) {
 
 	unitDirs = getUnitDirs(true)
 	assert.Equal(t, unitDirs, []string{name}, "rootless should use environment variable")
+
+	symLinkTestBaseDir, err := os.MkdirTemp("", "podman-symlinktest")
+	assert.Nil(t, err)
+	// remove the temporary directory at the end of the program
+	defer os.RemoveAll(symLinkTestBaseDir)
+
+	actualDir := filepath.Join(symLinkTestBaseDir, "actual")
+	err = os.Mkdir(actualDir, 0755)
+	assert.Nil(t, err)
+	innerDir := filepath.Join(actualDir, "inner")
+	err = os.Mkdir(innerDir, 0755)
+	assert.Nil(t, err)
+	symlink := filepath.Join(symLinkTestBaseDir, "symlink")
+	err = os.Symlink(actualDir, symlink)
+	assert.Nil(t, err)
+	t.Setenv("QUADLET_UNIT_DIRS", actualDir)
+	unitDirs = getUnitDirs(true)
+	assert.Equal(t, unitDirs, []string{actualDir, innerDir}, "directory resolution should follow symlink")
 }

@@ -146,7 +146,16 @@ func getUnitDirs(rootless bool) []string {
 }
 
 func appendSubPaths(dirs []string, path string, isUserFlag bool, filterPtr func(string, bool) bool) []string {
-	err := filepath.WalkDir(path, func(_path string, info os.DirEntry, err error) error {
+	resolvedPath, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		Debugf("Error occurred resolving path %q: %s", path, err)
+		// Despite the failure add the path to the list for logging purposes
+		// This is the equivalent of adding the path when info==nil below
+		dirs = append(dirs, path)
+		return dirs
+	}
+
+	err = filepath.WalkDir(resolvedPath, func(_path string, info os.DirEntry, err error) error {
 		if info == nil || info.IsDir() {
 			if filterPtr == nil || filterPtr(_path, isUserFlag) {
 				dirs = append(dirs, _path)
