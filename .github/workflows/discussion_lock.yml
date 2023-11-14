@@ -46,7 +46,7 @@ jobs:
       pull-requests: write
     steps:
       # Ref: https://github.com/dessant/lock-threads#usage
-      - uses: dessant/lock-threads@v4
+      - uses: dessant/lock-threads@v5
         with:
           issue-inactive-days: '${{env.CLOSED_DAYS}}'
           pr-inactive-days: '${{env.CLOSED_DAYS}}'
