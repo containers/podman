@@ -184,24 +184,35 @@ GOOS ?= $(call err_if_empty,NATIVE_GOOS)
 # Default to the native architecture type
 NATIVE_GOARCH := $(shell env -u GOARCH $(GO) env GOARCH)
 GOARCH ?= $(NATIVE_GOARCH)
+
+# SRCBINDIR is where the compiled binaries will go.
+#
+# DEFAULTBIN is the default binary target on this platform: what you want
+# when you type 'make' or 'make podman'.
+#
+# REMOTEBIN is the remote client. Might be the same as DEFAULTBIN, on
+# platforms where there is no native podman.
+SRCBINDIR  := bin
+DEFAULTBIN := podman
+REMOTEBIN  := podman-remote
+
 ifeq ($(call err_if_empty,GOOS),windows)
-BINSFX := .exe
 SRCBINDIR := bin/windows
+DEFAULTBIN := podman.exe
+REMOTEBIN  := $(DEFAULTBIN)
 CGO_ENABLED := 0
 else ifeq ($(GOOS),darwin)
-BINSFX :=
 SRCBINDIR := bin/darwin
+REMOTEBIN  := $(DEFAULTBIN)
 CGO_ENABLED := 0
 else ifeq ($(GOOS),freebsd)
-BINSFX := -remote
-SRCBINDIR := bin
 RELEASE_PREFIX = /usr/local
-else
-BINSFX := -remote
-SRCBINDIR := bin
+else ifneq ($(GOOS),linux)
+$(warning Unsupported platform GOOS=$(GOOS))
+@exit 1
 endif
 # Necessary for nested-$(MAKE) calls and docs/remote-docs.sh
-export GOOS GOARCH CGO_ENABLED BINSFX SRCBINDIR
+export GOOS GOARCH CGO_ENABLED SRCBINDIR DEFAULTBIN REMOTEBIN
 
 # Need to use CGO for mDNS resolution, but cross builds need CGO disabled
 # See https://github.com/golang/go/issues/12524 for details
@@ -340,6 +351,7 @@ $(IN_CONTAINER): %-in-container:
 ### Primary binary-build targets
 ###
 
+# This builds actual genuine podman. Target is only valid on Linux & FreeBSD.
 # Make sure to warn in case we're building without the systemd buildtag.
 bin/podman: $(SOURCES) go.mod go.sum
 ifeq (,$(findstring systemd,$(BUILDTAGS)))
@@ -357,8 +369,10 @@ endif
 $(SRCBINDIR):
 	mkdir -p $(SRCBINDIR)
 
+# This builds the **podman-remote client**! Always **-remote**, on every platform,
+# even if it's not actually called "podman-remote".
 # '|' is to ignore SRCBINDIR mtime; see: info make 'Types of Prerequisites'
-$(SRCBINDIR)/podman$(BINSFX): $(SOURCES) go.mod go.sum | $(SRCBINDIR)
+$(SRCBINDIR)/$(REMOTEBIN): $(SOURCES) go.mod go.sum | $(SRCBINDIR)
 	$(GOCMD) build \
 		$(BUILDFLAGS) \
 		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' \
@@ -375,12 +389,14 @@ $(SRCBINDIR)/podman-remote-static-linux_amd64 $(SRCBINDIR)/podman-remote-static-
 		-tags "${REMOTETAGS}" \
 		-o $@ ./cmd/podman
 
+# This redirects 'make podman' to the right target on any platform.
+# (This may not actually be the same as bin/podman, e.g. on Mac/PC)
 .PHONY: podman
-podman: bin/podman
+podman: $(SRCBINDIR)/$(DEFAULTBIN)
 
 # This will map to the right thing on Linux, Windows, and Mac.
 .PHONY: podman-remote
-podman-remote: $(SRCBINDIR)/podman$(BINSFX)
+podman-remote: $(SRCBINDIR)/$(REMOTEBIN)
 
 $(SRCBINDIR)/quadlet: $(SOURCES) go.mod go.sum
 	$(GOCMD) build \
@@ -520,8 +536,13 @@ docdir:
 	mkdir -p docs/build/man
 
 .PHONY: docs
+ifeq ($(GOOS),darwin)
+docs:
+	@echo "make docs does not work on macintosh"
+else
 docs: $(MANPAGES) ## Generate documentation
 	@ln -sf $(CURDIR)/docs/source/markdown/links/* docs/build/man/
+endif
 
 # docs/remote-docs.sh requires a locally executable 'podman-remote' binary
 # in addition to the target-architecture binary (if different). That's
@@ -812,8 +833,8 @@ install.catatonit:
 .PHONY: install.remote
 install.remote:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
-	install ${SELINUXOPT} -m 755 $(SRCBINDIR)/podman$(BINSFX) \
-		$(DESTDIR)$(BINDIR)/podman$(BINSFX)
+	install ${SELINUXOPT} -m 755 $(SRCBINDIR)/$(REMOTEBIN) \
+		$(DESTDIR)$(BINDIR)/$(REMOTEBIN)
 	test "${GOOS}" != "windows" || \
 		install -m 755 $(SRCBINDIR)/win-sshproxy.exe $(DESTDIR)$(BINDIR)
 	test "${GOOS}" != "windows" || \
