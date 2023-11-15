@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -99,6 +100,13 @@ func newMB() (*machineTestBuilder, error) {
 	mb.podmanBinary = filepath.Join(cwd, podmanBinary)
 	if os.Getenv("PODMAN_BINARY") != "" {
 		mb.podmanBinary = os.Getenv("PODMAN_BINARY")
+	}
+	if os.Getenv("MACHINE_TEST_TIMEOUT") != "" {
+		seconds, err := strconv.Atoi(os.Getenv("MACHINE_TEST_TIMEOUT"))
+		if err != nil {
+			return nil, err
+		}
+		mb.timeout = time.Duration(seconds) * time.Second
 	}
 	return &mb, nil
 }
