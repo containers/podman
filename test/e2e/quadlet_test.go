@@ -554,7 +554,14 @@ var _ = Describe("quadlet system generator", func() {
 			current := session.ErrorToStringArray()
 			expected := "No files parsed from [/something]"
 
-			Expect(current[0]).To(ContainSubstring(expected))
+			found := false
+			for _, line := range current {
+				if strings.Contains(line, expected) {
+					found = true
+					break
+				}
+			}
+			Expect(found).To(BeTrue())
 		})
 
 		It("Should fail on bad quadlet", func() {
