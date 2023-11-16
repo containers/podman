@@ -73,6 +73,7 @@ const (
 	KeyExec                  = "Exec"
 	KeyExitCodePropagation   = "ExitCodePropagation"
 	KeyExposeHostPort        = "ExposeHostPort"
+	KeyGIDMap                = "GIDMap"
 	KeyGlobalArgs            = "GlobalArgs"
 	KeyGroup                 = "Group"
 	KeyHealthCmd             = "HealthCmd"
@@ -132,11 +133,14 @@ const (
 	KeySecurityLabelType     = "SecurityLabelType"
 	KeySetWorkingDirectory   = "SetWorkingDirectory"
 	KeyShmSize               = "ShmSize"
+	KeySubGIDMap             = "SubGIDMap"
+	KeySubUIDMap             = "SubUIDMap"
 	KeySysctl                = "Sysctl"
 	KeyTimezone              = "Timezone"
 	KeyTLSVerify             = "TLSVerify"
 	KeyTmpfs                 = "Tmpfs"
 	KeyType                  = "Type"
+	KeyUIDMap                = "UIDMap"
 	KeyUlimit                = "Ulimit"
 	KeyUnmask                = "Unmask"
 	KeyUser                  = "User"
@@ -169,6 +173,7 @@ var (
 		KeyEnvironmentHost:       true,
 		KeyExec:                  true,
 		KeyExposeHostPort:        true,
+		KeyGIDMap:                true,
 		KeyGlobalArgs:            true,
 		KeyGroup:                 true,
 		KeyHealthCmd:             true,
@@ -213,9 +218,12 @@ var (
 		KeySecurityLabelNested:   true,
 		KeySecurityLabelType:     true,
 		KeyShmSize:               true,
+		KeySubGIDMap:             true,
+		KeySubUIDMap:             true,
 		KeySysctl:                true,
 		KeyTimezone:              true,
 		KeyTmpfs:                 true,
+		KeyUIDMap:                true,
 		KeyUlimit:                true,
 		KeyUnmask:                true,
 		KeyUser:                  true,
@@ -625,11 +633,9 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 		podman.addf("-w=%s", workdir)
 	}
 
-	if err := handleUserRemap(container, ContainerGroup, podman, isUser, true); err != nil {
+	if err := handleUserMappings(container, ContainerGroup, podman, isUser, true); err != nil {
 		return nil, err
 	}
-
-	handleUserNS(container, ContainerGroup, podman)
 
 	tmpfsValues := container.LookupAll(ContainerGroup, KeyTmpfs)
 	for _, tmpfs := range tmpfsValues {
@@ -1091,11 +1097,9 @@ func ConvertKube(kube *parser.UnitFile, names map[string]string, isUser bool) (*
 
 	handleLogDriver(kube, KubeGroup, execStart)
 
-	if err := handleUserRemap(kube, KubeGroup, execStart, isUser, false); err != nil {
+	if err := handleUserMappings(kube, KubeGroup, execStart, isUser, false); err != nil {
 		return nil, err
 	}
-
-	handleUserNS(kube, KubeGroup, execStart)
 
 	addNetworks(kube, KubeGroup, service, names, execStart)
 
@@ -1245,12 +1249,50 @@ func handleUser(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdli
 	return nil
 }
 
-func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline, isUser, supportManual bool) error {
-	// ignore Remap keys if UserNS is set
+func handleUserMappings(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline, isUser, supportManual bool) error {
+	mappingsDefined := false
+
 	if userns, ok := unitFile.Lookup(groupName, KeyUserNS); ok && len(userns) > 0 {
+		podman.add("--userns", userns)
+		mappingsDefined = true
+	}
+
+	uidMaps := unitFile.LookupAllStrv(groupName, KeyUIDMap)
+	mappingsDefined = mappingsDefined || len(uidMaps) > 0
+	for _, uidMap := range uidMaps {
+		podman.addf("--uidmap=%s", uidMap)
+	}
+
+	gidMaps := unitFile.LookupAllStrv(groupName, KeyGIDMap)
+	mappingsDefined = mappingsDefined || len(gidMaps) > 0
+	for _, gidMap := range gidMaps {
+		podman.addf("--gidmap=%s", gidMap)
+	}
+
+	if subUIDMap, ok := unitFile.Lookup(groupName, KeySubUIDMap); ok && len(subUIDMap) > 0 {
+		podman.add("--subuidname", subUIDMap)
+		mappingsDefined = true
+	}
+
+	if subGIDMap, ok := unitFile.Lookup(groupName, KeySubGIDMap); ok && len(subGIDMap) > 0 {
+		podman.add("--subgidname", subGIDMap)
+		mappingsDefined = true
+	}
+
+	if mappingsDefined {
+		_, hasRemapUID := unitFile.Lookup(groupName, KeyRemapUID)
+		_, hasRemapGID := unitFile.Lookup(groupName, KeyRemapGID)
+		_, RemapUsers := unitFile.LookupLast(groupName, KeyRemapUsers)
+		if hasRemapUID || hasRemapGID || RemapUsers {
+			return fmt.Errorf("deprecated Remap keys are set along with explicit mapping keys")
+		}
 		return nil
 	}
 
+	return handleUserRemap(unitFile, groupName, podman, isUser, supportManual)
+}
+
+func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline, isUser, supportManual bool) error {
 	uidMaps := unitFile.LookupAllStrv(groupName, KeyRemapUID)
 	gidMaps := unitFile.LookupAllStrv(groupName, KeyRemapGID)
 	remapUsers, _ := unitFile.LookupLast(groupName, KeyRemapUsers)
@@ -1313,12 +1355,6 @@ func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *Podman
 	}
 
 	return nil
-}
-
-func handleUserNS(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline) {
-	if userns, ok := unitFile.Lookup(groupName, KeyUserNS); ok && len(userns) > 0 {
-		podman.add("--userns", userns)
-	}
 }
 
 func addNetworks(quadletUnitFile *parser.UnitFile, groupName string, serviceUnitFile *parser.UnitFile, names map[string]string, podman *PodmanCmdline) {
