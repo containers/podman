@@ -47,23 +47,6 @@ const (
 	dockerConnectTimeout = 5 * time.Second
 )
 
-// qemuReadyUnit is a unit file that sets up the virtual serial device
-// where when the VM is done configuring, it will send an ack
-// so a listening host tknows it can begin interacting with it
-const qemuReadyUnit = `[Unit]
-Requires=dev-virtio\\x2dports-%s.device
-After=remove-moby.service sshd.socket sshd.service
-After=systemd-user-sessions.service
-OnFailure=emergency.target
-OnFailureJobMode=isolate
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/bin/sh -c '/usr/bin/echo Ready >/dev/%s'
-[Install]
-RequiredBy=default.target
-`
-
 type MachineVM struct {
 	// ConfigPath is the path to the configuration file
 	ConfigPath define.VMFile
@@ -230,10 +213,14 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
+	readyUnitFile, err := createReadyUnitFile()
+	if err != nil {
+		return false, err
+	}
 	readyUnit := ignition.Unit{
 		Enabled:  ignition.BoolToPtr(true),
 		Name:     "ready.service",
-		Contents: ignition.StrToPtr(fmt.Sprintf(qemuReadyUnit, "vport1p1", "vport1p1")),
+		Contents: ignition.StrToPtr(readyUnitFile),
 	}
 	builder.WithUnit(readyUnit)
 
@@ -241,6 +228,14 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	callbackFuncs.Add(v.IgnitionFile.Delete)
 
 	return err == nil, err
+}
+
+func createReadyUnitFile() (string, error) {
+	readyUnit := ignition.DefaultReadyUnitFile()
+	readyUnit.Add("Unit", "Requires", "dev-virtio\\x2dports-vport1p1.device")
+	readyUnit.Add("Unit", "After", "systemd-user-sessions.service")
+	readyUnit.Add("Service", "ExecStart", "/bin/sh -c '/usr/bin/echo Ready >/dev/vport1p1'")
+	return readyUnit.ToString()
 }
 
 func (v *MachineVM) removeSSHKeys() error {

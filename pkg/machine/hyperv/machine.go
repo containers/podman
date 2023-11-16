@@ -24,6 +24,7 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/containers/podman/v4/pkg/strongunits"
+	"github.com/containers/podman/v4/pkg/systemd/parser"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/lockfile"
@@ -45,40 +46,6 @@ const (
 	dockerConnectTimeout = 5 * time.Second
 	apiUpTimeout         = 20 * time.Second
 )
-
-// hyperVReadyUnit is a unit file that sets up the virtual serial device
-// where when the VM is done configuring, it will send an ack
-// so a listening host knows it can begin interacting with it
-//
-// VSOCK-CONNECT:2 <- shortcut to connect to the hostvm
-const hyperVReadyUnit = `[Unit]
-After=remove-moby.service sshd.socket sshd.service
-After=systemd-user-sessions.service
-OnFailure=emergency.target
-OnFailureJobMode=isolate
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/bin/sh -c '/usr/bin/echo Ready | socat - VSOCK-CONNECT:2:%d'
-[Install]
-RequiredBy=default.target
-`
-
-// hyperVVsockNetUnit is a systemd unit file that calls the vm helper utility
-// needed to take traffic from a network vsock0 device to the actual vsock
-// and onto the host
-const hyperVVsockNetUnit = `
-[Unit]
-Description=vsock_network
-After=NetworkManager.service
-
-[Service]
-ExecStart=/usr/libexec/podman/gvforwarder -preexisting -iface vsock0 -url vsock://2:%d/connect
-ExecStartPost=/usr/bin/nmcli c up vsock0
-
-[Install]
-WantedBy=multi-user.target
-`
 
 const hyperVVsockNMConnection = `
 [connection]
@@ -278,14 +245,24 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
+	readyUnitFile, err := createReadyUnit(m.ReadyHVSock.Port)
+	if err != nil {
+		return false, err
+	}
+
 	builder.WithUnit(ignition.Unit{
 		Enabled:  ignition.BoolToPtr(true),
 		Name:     "ready.service",
-		Contents: ignition.StrToPtr(fmt.Sprintf(hyperVReadyUnit, m.ReadyHVSock.Port)),
+		Contents: ignition.StrToPtr(readyUnitFile),
 	})
 
+	netUnitFile, err := createNetworkUnit(m.NetworkHVSock.Port)
+	if err != nil {
+		return false, err
+	}
+
 	builder.WithUnit(ignition.Unit{
-		Contents: ignition.StrToPtr(fmt.Sprintf(hyperVVsockNetUnit, m.NetworkHVSock.Port)),
+		Contents: ignition.StrToPtr(netUnitFile),
 		Enabled:  ignition.BoolToPtr(true),
 		Name:     "vsock-network.service",
 	})
@@ -314,6 +291,23 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	// read it so that we can put it into key-value pairs
 	err = m.readAndSplitIgnition()
 	return err == nil, err
+}
+
+func createReadyUnit(readyPort uint64) (string, error) {
+	readyUnit := ignition.DefaultReadyUnitFile()
+	readyUnit.Add("Unit", "After", "systemd-user-sessions.service")
+	readyUnit.Add("Service", "ExecStart", fmt.Sprintf("/bin/sh -c '/usr/bin/echo Ready | socat - VSOCK-CONNECT:2:%d'", readyPort))
+	return readyUnit.ToString()
+}
+
+func createNetworkUnit(netPort uint64) (string, error) {
+	netUnit := parser.NewUnitFile()
+	netUnit.Add("Unit", "Description", "vsock_network")
+	netUnit.Add("Unit", "After", "NetworkManager.service")
+	netUnit.Add("Service", "ExecStart", fmt.Sprintf("/usr/libexec/podman/gvforwarder -preexisting -iface vsock0 -url vsock://2:%d/connect", netPort))
+	netUnit.Add("Service", "ExecStartPost", "/usr/bin/nmcli c up vsock0")
+	netUnit.Add("Install", "WantedBy", "multi-user.target")
+	return netUnit.ToString()
 }
 
 func (m *HyperVMachine) unregisterMachine() error {
