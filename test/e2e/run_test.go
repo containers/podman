@@ -1545,14 +1545,18 @@ VOLUME %s`, ALPINE, volPath, volPath)
 		container.WaitWithDefaultTimeout()
 		Expect(container).Should(Exit(0))
 		checkLines(container.OutputToStringArray())
-		Expect(container.ErrorToString()).To(ContainSubstring("Running scope as unit: "))
+		Expect(container.ErrorToString()).To(Or(
+			ContainSubstring("Running scope as unit: "), // systemd <  255
+			ContainSubstring("Running as unit: ")))      // systemd >= 255
 
 		// check that --cgroups=split is honored also when a container runs in a pod
 		container = podmanTest.PodmanSystemdScope([]string{"run", "--rm", "--pod", "new:split-test-pod", "--cgroups=split", ALPINE, "cat", "/proc/self/cgroup"})
 		container.WaitWithDefaultTimeout()
 		Expect(container).Should(Exit(0))
 		checkLines(container.OutputToStringArray())
-		Expect(container.ErrorToString()).To(ContainSubstring("Running scope as unit: "))
+		Expect(container.ErrorToString()).To(Or(
+			ContainSubstring("Running scope as unit: "), // systemd <  255
+			ContainSubstring("Running as unit: ")))      // systemd >= 255
 	})
 
 	It("podman run with cgroups=disabled runs without cgroups", func() {
