@@ -6,6 +6,8 @@ package hypervctl
 import (
 	"errors"
 	"fmt"
+
+	"github.com/containers/libhvee/pkg/wmiext"
 )
 
 // VM State errors
@@ -154,4 +156,19 @@ func translateModifyError(code int) error {
 	}
 
 	return &modifyResourceError{code, message}
+}
+
+var (
+	ErrHyperVNamespaceMissing = errors.New("HyperV namespace not found, is HyperV enabled?")
+)
+
+func translateCommonHyperVWmiError(wmiError error) error {
+	if werr, ok := wmiError.(*wmiext.WmiError); ok {
+		switch werr.Code() {
+		case wmiext.WBEM_E_INVALID_NAMESPACE:
+			return ErrHyperVNamespaceMissing
+		}
+	}
+
+	return wmiError
 }

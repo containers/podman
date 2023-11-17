@@ -90,7 +90,7 @@ func (builder *SystemSettingsBuilder) Build() (*SystemSettings, error) {
 		return nil, err
 	}
 
-	if service, err = wmiext.NewLocalService(HyperVNamespace); err != nil {
+	if service, err = NewLocalHyperVService(); err != nil {
 		return nil, err
 	}
 	defer service.Close()

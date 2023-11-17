@@ -68,7 +68,7 @@ func (p *SyntheticEthernetPortSettings) DefineEthernetPortConnection(switchName 
 
 	var service *wmiext.Service
 	var err error
-	if service, err = wmiext.NewLocalService(HyperVNamespace); err != nil {
+	if service, err = NewLocalHyperVService(); err != nil {
 		return nil, err
 	}
 	defer service.Close()
