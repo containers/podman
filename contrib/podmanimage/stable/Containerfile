@@ -41,6 +41,9 @@ RUN sed -e 's|^#mount_program|mount_program|g' \
            /usr/share/containers/storage.conf \
            > /etc/containers/storage.conf
 
+# Setup internal Podman to pass subscriptions down from host to internal container
+RUN printf '/run/secrets/etc-pki-entitlement:/run/secrets/etc-pki-entitlement\n/run/secrets/rhsm:/run/secrets/rhsm\n' > /etc/containers/mounts.conf
+
 # Note VOLUME options must always happen after the chown call above
 # RUN commands can not modify existing volumes
 VOLUME /var/lib/containers
