@@ -473,6 +473,7 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 		options := buildah.AddAndCopyOptions{
 			Chmod:             copy.Chmod,
 			Chown:             copy.Chown,
+			Checksum:          copy.Checksum,
 			PreserveOwnership: preserveOwnership,
 			ContextDir:        contextDir,
 			Excludes:          copyExcludes,
@@ -1040,57 +1041,34 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 
 	if len(children) == 0 {
 		// There are no steps.
-		if s.builder.FromImageID == "" || s.executor.squash {
+		if s.builder.FromImageID == "" || s.executor.squash || s.executor.confidentialWorkload.Convert || len(s.executor.labels) > 0 || len(s.executor.annotations) > 0 || len(s.executor.unsetEnvs) > 0 || len(s.executor.unsetLabels) > 0 {
 			// We either don't have a base image, or we need to
-			// squash the contents of the base image.  Whichever is
-			// the case, we need to commit() to create a new image.
+			// transform the contents of the base image, or we need
+			// to make some changes to just the config blob.  Whichever
+			// is the case, we need to commit() to create a new image.
 			logCommit(s.output, -1)
-			emptyLayer := false
-			if s.builder.FromImageID == "" {
-				// No base image means there's nothing to put in a
-				// layer, so don't create one.
-				emptyLayer = true
-			}
+			// No base image means there's nothing to put in a
+			// layer, so don't create one.
+			emptyLayer := (s.builder.FromImageID == "")
 			if imgID, ref, err = s.commit(ctx, s.getCreatedBy(nil, ""), emptyLayer, s.output, s.executor.squash, lastStage); err != nil {
 				return "", nil, false, fmt.Errorf("committing base container: %w", err)
 			}
-			// Generate build output if needed.
-			if canGenerateBuildOutput {
-				if err := s.generateBuildOutput(buildOutputOption); err != nil {
-					return "", nil, false, err
-				}
-			}
-		} else if len(s.executor.labels) > 0 || len(s.executor.annotations) > 0 {
-			// The image would be modified by the labels passed
-			// via the command line, so we need to commit.
-			logCommit(s.output, -1)
-			if imgID, ref, err = s.commit(ctx, s.getCreatedBy(stage.Node, ""), true, s.output, s.executor.squash, lastStage); err != nil {
-				return "", nil, false, err
-			}
-			// Generate build output if needed.
-			if canGenerateBuildOutput {
-				if err := s.generateBuildOutput(buildOutputOption); err != nil {
-					return "", nil, false, err
-				}
-			}
 		} else {
-			// We don't need to squash the base image, and the
-			// image wouldn't be modified by the command line
-			// options, so just reuse the base image.
+			// We don't need to squash or otherwise transform the
+			// base image, and the image wouldn't be modified by
+			// the command line options, so just reuse the base
+			// image.
 			logCommit(s.output, -1)
 			if imgID, ref, err = s.tagExistingImage(ctx, s.builder.FromImageID, s.output); err != nil {
 				return "", nil, onlyBaseImage, err
 			}
 			onlyBaseImage = true
-			// If we have reached this point then our build is just performing a tag
-			// and it contains no steps or instructions (i.e Containerfile only contains
-			// `FROM <imagename> and nothing else so we will never end up committing this
-			// but instead just re-tag image. For such use-cases if `-o` or `--output` was
-			// specified honor that and export the contents of the current build anyways.
-			if canGenerateBuildOutput {
-				if err := s.generateBuildOutput(buildOutputOption); err != nil {
-					return "", nil, onlyBaseImage, err
-				}
+		}
+		// Generate build output from the new image, or the preexisting
+		// one if we didn't actually do anything, if needed.
+		if canGenerateBuildOutput {
+			if err := s.generateBuildOutput(buildOutputOption); err != nil {
+				return "", nil, onlyBaseImage, err
 			}
 		}
 		logImageID(imgID)
@@ -1118,13 +1096,13 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			if command == "COPY" && (flag == "--chmod" || flag == "--chown" || flag == "--from") {
 				return "", nil, false, fmt.Errorf("COPY only supports the --chmod=<permissions> --chown=<uid:gid> and the --from=<image|stage> flags")
 			}
-			if command == "ADD" && (flag == "--chmod" || flag == "--chown") {
-				return "", nil, false, fmt.Errorf("ADD only supports the --chmod=<permissions> and the --chown=<uid:gid> flags")
+			if command == "ADD" && (flag == "--chmod" || flag == "--chown" || flag == "--checksum") {
+				return "", nil, false, fmt.Errorf("ADD only supports the --chmod=<permissions>, --chown=<uid:gid>, and --checksum=<checksum> flags")
 			}
 			if strings.Contains(flag, "--from") && command == "COPY" {
 				arr := strings.Split(flag, "=")
 				if len(arr) != 2 {
-					return "", nil, false, fmt.Errorf("%s: invalid --from flag, should be --from=<name|stage>", command)
+					return "", nil, false, fmt.Errorf("%s: invalid --from flag %q, should be --from=<name|stage>", command, flag)
 				}
 				// If arr[1] has an argument within it, resolve it to its
 				// value.  Otherwise just return the value found.
@@ -1415,7 +1393,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		}
 
 		// Note: If the build has squash, we must try to re-use as many layers as possible if cache is found.
-		// So only perform commit if its the lastInstruction of lastStage.
+		// So only perform commit if it's the lastInstruction of lastStage.
 		if cacheID != "" {
 			logCacheHit(cacheID)
 			// A suitable cached image was found, so we can just
@@ -1439,7 +1417,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			// While committing we always set squash to false here
 			// because at this point we want to save history for
 			// layers even if its a squashed build so that they
-			// can be part of build-cache.
+			// can be part of the build cache.
 			imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), !s.stepRequiresLayer(step), commitName, false, lastStage && lastInstruction)
 			if err != nil {
 				return "", nil, false, fmt.Errorf("committing container for step %+v: %w", *step, err)
@@ -1470,7 +1448,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		}
 
 		if lastInstruction && lastStage {
-			if s.executor.squash {
+			if s.executor.squash || s.executor.confidentialWorkload.Convert {
 				// Create a squashed version of this image
 				// if we're supposed to create one and this
 				// is the last instruction of the last stage.
@@ -1531,6 +1509,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			}
 		}
 	}
+
 	return imgID, ref, onlyBaseImage, nil
 }
 
@@ -1752,7 +1731,7 @@ func (s *StageExecutor) tagExistingImage(ctx context.Context, cacheID, output st
 	if err != nil {
 		return "", nil, fmt.Errorf("computing digest of manifest for image %q: %w", cacheID, err)
 	}
-	img, err := is.Transport.GetStoreImage(s.executor.store, dest)
+	_, img, err := is.ResolveReference(dest)
 	if err != nil {
 		return "", nil, fmt.Errorf("locating new copy of image %q (i.e., %q): %w", cacheID, transports.ImageName(dest), err)
 	}

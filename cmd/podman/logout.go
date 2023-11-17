@@ -48,9 +48,7 @@ func init() {
 
 // Implementation of podman-logout.
 func logout(cmd *cobra.Command, args []string) error {
-	sysCtx := &types.SystemContext{
-		AuthFilePath: logoutOptions.AuthFile,
-	}
+	sysCtx := &types.SystemContext{}
 	setRegistriesConfPath(sysCtx)
 	return auth.Logout(sysCtx, &logoutOptions, args)
 }

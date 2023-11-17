@@ -172,7 +172,7 @@ var _ = Describe("Podman pull", func() {
 		session := podmanTest.Podman([]string{"pull", "-q", "--authfile", "/tmp/nonexistent", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(Equal("Error: checking authfile: stat /tmp/nonexistent: no such file or directory"))
+		Expect(session.ErrorToString()).To(Equal("Error: credential file is not accessible: stat /tmp/nonexistent: no such file or directory"))
 	})
 
 	It("podman pull by digest (image list)", func() {

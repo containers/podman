@@ -286,6 +286,18 @@ func (i *containerImageRef) createConfigsAndManifests() (v1.Image, v1.Manifest, 
 	}
 	// Always replace this value, since we're newer than our base image.
 	dimage.Created = created
+	// Clear the list of diffIDs, since we always repopulate it.
+	dimage.RootFS = &docker.V2S2RootFS{}
+	dimage.RootFS.Type = docker.TypeLayers
+	dimage.RootFS.DiffIDs = []digest.Digest{}
+	// Only clear the history if we're squashing, otherwise leave it be so
+	// that we can append entries to it.  Clear the parent, too, we no
+	// longer include its layers and history.
+	if i.confidentialWorkload.Convert || i.squash || i.omitHistory {
+		dimage.Parent = ""
+		dimage.History = []docker.V2S2History{}
+	}
+
 	// If we're producing a confidential workload, override the command and
 	// assorted other settings that aren't expected to work correctly.
 	if i.confidentialWorkload.Convert {
@@ -303,17 +315,6 @@ func (i *containerImageRef) createConfigsAndManifests() (v1.Image, v1.Manifest, 
 		oimage.Config.Volumes = nil
 		dimage.Config.ExposedPorts = nil
 		oimage.Config.ExposedPorts = nil
-	}
-	// Clear the list of diffIDs, since we always repopulate it.
-	dimage.RootFS = &docker.V2S2RootFS{}
-	dimage.RootFS.Type = docker.TypeLayers
-	dimage.RootFS.DiffIDs = []digest.Digest{}
-	// Only clear the history if we're squashing, otherwise leave it be so
-	// that we can append entries to it.  Clear the parent, too, we no
-	// longer include its layers and history.
-	if i.confidentialWorkload.Convert || i.squash || i.omitHistory {
-		dimage.Parent = ""
-		dimage.History = []docker.V2S2History{}
 	}
 
 	// Build empty manifests.  The Layers lists will be populated later.

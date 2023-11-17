@@ -32,6 +32,10 @@ For more details about format and configurations of the auth.json file, see cont
 
 @@option cert-dir
 
+#### **--compat-auth-file**=*path*
+
+Instead of updating the default credentials file, update the one at *path*, and use a Docker-compatible format.
+
 #### **--get-login**
 
 Return the logged-in user for the registry.  Return error if no login is found.

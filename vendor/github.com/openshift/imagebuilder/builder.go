@@ -29,8 +29,9 @@ type Copy struct {
 	Download bool
 	// If set, the owner:group for the destination.  This value is passed
 	// to the executor for handling.
-	Chown string
-	Chmod string
+	Chown    string
+	Chmod    string
+	Checksum string
 }
 
 // Run defines a run operation required in the container.
@@ -78,7 +79,7 @@ func (logExecutor) EnsureContainerPathAs(path, user string, mode *os.FileMode) e
 
 func (logExecutor) Copy(excludes []string, copies ...Copy) error {
 	for _, c := range copies {
-		log.Printf("COPY %v -> %s (from:%s download:%t), chown: %s, chmod %s", c.Src, c.Dest, c.From, c.Download, c.Chown, c.Chmod)
+		log.Printf("COPY %v -> %s (from:%s download:%t), chown: %s, chmod %s, checksum: %s", c.Src, c.Dest, c.From, c.Download, c.Chown, c.Chmod, c.Checksum)
 	}
 	return nil
 }

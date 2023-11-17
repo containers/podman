@@ -96,8 +96,6 @@ func login(cmd *cobra.Command, args []string) error {
 	}
 
 	sysCtx := &types.SystemContext{
-		AuthFilePath:                loginOptions.AuthFile,
-		DockerCertPath:              loginOptions.CertDir,
 		DockerInsecureSkipTLSVerify: skipTLS,
 	}
 	setRegistriesConfPath(sysCtx)

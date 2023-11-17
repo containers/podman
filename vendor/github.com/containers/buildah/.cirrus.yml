@@ -27,8 +27,8 @@ env:
     ####
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
-    FEDORA_NAME: "fedora-38"
-    PRIOR_FEDORA_NAME: "fedora-37"
+    FEDORA_NAME: "fedora-39β"
+    PRIOR_FEDORA_NAME: "fedora-38"
     DEBIAN_NAME: "debian-13"
 
     # Image identifiers
@@ -120,7 +120,7 @@ vendor_task:
 
     # Runs within Cirrus's "community cluster"
     container:
-        image: docker.io/library/golang:1.18
+        image: docker.io/library/golang:1.20
         cpu: 1
         memory: 1
 

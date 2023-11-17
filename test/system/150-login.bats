@@ -80,6 +80,17 @@ function setup() {
     is "$output" "{}" "credentials removed from $authfile"
 }
 
+@test "podman login inconsistent authfiles" {
+    ambiguous_file=${PODMAN_LOGIN_WORKDIR}/ambiguous-auth.json
+    echo '{}' > $ambiguous_file # To make sure we are not hitting the “file not found” path
+
+    run_podman 125 login --authfile "$ambiguous_file" --compat-auth-file "$ambiguous_file" localhost:5000
+    assert "$output" =~ "Error: options for paths to the credential file and to the Docker-compatible credential file can not be set simultaneously"
+
+    run_podman 125 logout --authfile "$ambiguous_file" --compat-auth-file "$ambiguous_file" localhost:5000
+    assert "$output" =~ "Error: options for paths to the credential file and to the Docker-compatible credential file can not be set simultaneously"
+}
+
 # Some push tests
 @test "podman push fail" {
 

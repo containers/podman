@@ -762,7 +762,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 							b.fromOverride = ""
 						}
 						base := child.Next.Value
-						if base != "scratch" {
+						if base != "" && base != buildah.BaseImageFakeName {
 							if replaceBuildContext, ok := b.additionalBuildContexts[child.Next.Value]; ok {
 								if replaceBuildContext.IsImage {
 									child.Next.Value = replaceBuildContext.Value
@@ -1018,7 +1018,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	if dest, err := b.resolveNameToImageRef(b.output); err == nil {
 		switch dest.Transport().Name() {
 		case storageTransport.Transport.Name():
-			img, err := storageTransport.Transport.GetStoreImage(b.store, dest)
+			_, img, err := storageTransport.ResolveReference(dest)
 			if err != nil {
 				return imageID, ref, fmt.Errorf("locating just-written image %q: %w", transports.ImageName(dest), err)
 			}
@@ -1029,7 +1029,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 				logrus.Debugf("assigned names %v to image %q", img.Names, img.ID)
 			}
 			// Report back the caller the tags applied, if any.
-			img, err = storageTransport.Transport.GetStoreImage(b.store, dest)
+			_, img, err = storageTransport.ResolveReference(dest)
 			if err != nil {
 				return imageID, ref, fmt.Errorf("locating just-written image %q: %w", transports.ImageName(dest), err)
 			}

@@ -168,7 +168,7 @@ var _ = Describe("Podman login and logout", func() {
 		session = podmanTest.Podman([]string{"push", "-q", "--authfile", "/tmp/nonexistent", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(Equal("Error: checking authfile: stat /tmp/nonexistent: no such file or directory"))
+		Expect(session.ErrorToString()).To(Equal("Error: credential file is not accessible: stat /tmp/nonexistent: no such file or directory"))
 
 		session = podmanTest.Podman([]string{"push", "-q", "--authfile", authFile, ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
@@ -182,11 +182,50 @@ var _ = Describe("Podman login and logout", func() {
 		session = podmanTest.Podman([]string{"logout", "--authfile", "/tmp/nonexistent", server})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(Equal("Error: checking authfile: stat /tmp/nonexistent: no such file or directory"))
+		Expect(session.ErrorToString()).To(Equal("Error: credential file is not accessible: stat /tmp/nonexistent: no such file or directory"))
 
 		session = podmanTest.Podman([]string{"logout", "--authfile", authFile, server})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
+	})
+
+	It("podman login and logout --compat-auth-file flag handling", func() {
+		// A minimal smoke test
+		compatAuthFile := filepath.Join(podmanTest.TempDir, "config.json")
+		session := podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test", "--compat-auth-file", compatAuthFile, server})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		readAuthInfo(compatAuthFile)
+
+		session = podmanTest.Podman([]string{"logout", "--compat-auth-file", compatAuthFile, server})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// logout should fail with nonexistent authfile
+		session = podmanTest.Podman([]string{"logout", "--compat-auth-file", "/tmp/nonexistent", server})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(Equal("Error: credential file is not accessible: stat /tmp/nonexistent: no such file or directory"))
+
+		// inconsistent command line flags are rejected
+		// Pre-create the files to make sure we are not hitting the “file not found” path
+		authFile := filepath.Join(podmanTest.TempDir, "auth.json")
+		err := os.WriteFile(authFile, []byte("{}"), 0o700)
+		Expect(err).ToNot(HaveOccurred())
+		err = os.WriteFile(compatAuthFile, []byte("{}"), 0o700)
+		Expect(err).ToNot(HaveOccurred())
+
+		session = podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test",
+			"--authfile", authFile, "--compat-auth-file", compatAuthFile, server})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(Equal("Error: options for paths to the credential file and to the Docker-compatible credential file can not be set simultaneously"))
+
+		session = podmanTest.Podman([]string{"logout", "--authfile", authFile, "--compat-auth-file", compatAuthFile, server})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(Equal("Error: options for paths to the credential file and to the Docker-compatible credential file can not be set simultaneously"))
 	})
 
 	It("podman manifest with --authfile", func() {

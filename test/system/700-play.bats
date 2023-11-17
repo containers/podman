@@ -756,7 +756,7 @@ spec:
     bogus=$PODMAN_TMPDIR/bogus-authfile
 
     run_podman 125 kube play --authfile=$bogus - < $PODMAN_TMPDIR/test.yaml
-    is "$output" "Error: checking authfile: stat $bogus: no such file or directory" "$command should fail with not such file"
+    is "$output" "Error: credential file is not accessible: stat $bogus: no such file or directory" "$command should fail with not such file"
 }
 
 @test "podman kube play with umask from containers.conf" {

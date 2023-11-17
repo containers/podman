@@ -40,7 +40,7 @@ func memoryCostArgon2(salt []byte, keyLen, timeCost, threadsCost int, kdf func([
 		if d < time.Second/10 {
 			memoryCost *= 2
 		} else {
-			return memoryCost * int(time.Second) / int(d)
+			return memoryCost * int(float64(time.Second)/float64(d))
 		}
 	}
 	return memoryCost

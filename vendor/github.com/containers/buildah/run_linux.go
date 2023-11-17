@@ -773,20 +773,6 @@ func setupNamespaces(logger *logrus.Logger, g *generate.Generator, namespaceOpti
 		if err := addSysctl([]string{"net"}); err != nil {
 			return false, "", false, err
 		}
-		for name, val := range define.DefaultNetworkSysctl {
-			// Check that the sysctl we are adding is actually supported
-			// by the kernel
-			p := filepath.Join("/proc/sys", strings.Replace(name, ".", "/", -1))
-			_, err := os.Stat(p)
-			if err != nil && !errors.Is(err, os.ErrNotExist) {
-				return false, "", false, err
-			}
-			if err == nil {
-				g.AddLinuxSysctl(name, val)
-			} else {
-				logger.Warnf("ignoring sysctl %s since %s doesn't exist", name, p)
-			}
-		}
 	}
 	return configureNetwork, networkString, configureUTS, nil
 }
@@ -1023,32 +1009,13 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 }
 
 func setupMaskedPaths(g *generate.Generator) {
-	for _, mp := range []string{
-		"/proc/acpi",
-		"/proc/kcore",
-		"/proc/keys",
-		"/proc/latency_stats",
-		"/proc/timer_list",
-		"/proc/timer_stats",
-		"/proc/sched_debug",
-		"/proc/scsi",
-		"/sys/firmware",
-		"/sys/fs/selinux",
-		"/sys/dev",
-	} {
+	for _, mp := range config.DefaultMaskedPaths {
 		g.AddLinuxMaskedPaths(mp)
 	}
 }
 
 func setupReadOnlyPaths(g *generate.Generator) {
-	for _, rp := range []string{
-		"/proc/asound",
-		"/proc/bus",
-		"/proc/fs",
-		"/proc/irq",
-		"/proc/sys",
-		"/proc/sysrq-trigger",
-	} {
+	for _, rp := range config.DefaultReadOnlyPaths {
 		g.AddLinuxReadonlyPaths(rp)
 	}
 }

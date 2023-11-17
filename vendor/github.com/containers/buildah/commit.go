@@ -3,7 +3,6 @@ package buildah
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -22,7 +21,6 @@ import (
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
-	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/stringid"
 	digest "github.com/opencontainers/go-digest"
@@ -358,7 +356,7 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 	if len(options.AdditionalTags) > 0 {
 		switch dest.Transport().Name() {
 		case is.Transport.Name():
-			img, err := is.Transport.GetStoreImage(b.store, dest)
+			_, img, err := is.ResolveReference(dest)
 			if err != nil {
 				return imgID, nil, "", fmt.Errorf("locating just-written image %q: %w", transports.ImageName(dest), err)
 			}
@@ -371,11 +369,12 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 		}
 	}
 
-	img, err := is.Transport.GetStoreImage(b.store, dest)
-	if err != nil && !errors.Is(err, storage.ErrImageUnknown) {
-		return imgID, nil, "", fmt.Errorf("locating image %q in local storage: %w", transports.ImageName(dest), err)
-	}
-	if err == nil {
+	if dest.Transport().Name() == is.Transport.Name() {
+		dest2, img, err := is.ResolveReference(dest)
+		if err != nil {
+			return imgID, nil, "", fmt.Errorf("locating image %q in local storage: %w", transports.ImageName(dest), err)
+		}
+		dest = dest2
 		imgID = img.ID
 		toPruneNames := make([]string, 0, len(img.Names))
 		for _, name := range img.Names {
@@ -388,11 +387,6 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 				return imgID, nil, "", fmt.Errorf("failed to remove temporary name from image %q: %w", imgID, err)
 			}
 			logrus.Debugf("removing %v from assigned names to image %q", nameToRemove, img.ID)
-			dest2, err := is.Transport.ParseStoreReference(b.store, "@"+imgID)
-			if err != nil {
-				return imgID, nil, "", fmt.Errorf("creating unnamed destination reference for image: %w", err)
-			}
-			dest = dest2
 		}
 		if options.IIDFile != "" {
 			if err = os.WriteFile(options.IIDFile, []byte("sha256:"+img.ID), 0644); err != nil {

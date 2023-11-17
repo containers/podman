@@ -519,13 +519,9 @@ func DefaultPlatform() string {
 // Platform separates the platform string into os, arch and variant,
 // accepting any of $arch, $os/$arch, or $os/$arch/$variant.
 func Platform(platform string) (os, arch, variant string, err error) {
-	if platform == "local" || platform == "" || platform == "/" {
+	platform = strings.Trim(platform, "/")
+	if platform == "local" || platform == "" {
 		return Platform(DefaultPlatform())
-	}
-	if platform[len(platform)-1] == '/' || platform[0] == '/' {
-		// If --platform string has format as `some/plat/string/`
-		// or `/some/plat/string` make it `some/plat/string`
-		platform = strings.Trim(platform, "/")
 	}
 	platformSpec, err := platforms.Parse(platform)
 	if err != nil {
@@ -638,6 +634,11 @@ func GetBuildOutput(buildOutput string) (define.BuildOutputOption, error) {
 	return define.BuildOutputOption{Path: path, IsDir: isDir, IsStdout: isStdout}, nil
 }
 
+// TeeType parses a string value and returns a TeeType
+func TeeType(teeType string) define.TeeType {
+	return define.TeeType(strings.ToLower(teeType))
+}
+
 // GetConfidentialWorkloadOptions parses a confidential workload settings
 // argument, which controls both whether or not we produce an image that
 // expects to be run using krun, and how we handle things like encrypting
@@ -651,7 +652,7 @@ func GetConfidentialWorkloadOptions(arg string) (define.ConfidentialWorkloadOpti
 		var err error
 		switch {
 		case strings.HasPrefix(option, "type="):
-			options.TeeType = define.TeeType(strings.ToLower(strings.TrimPrefix(option, "type=")))
+			options.TeeType = TeeType(strings.TrimPrefix(option, "type="))
 			switch options.TeeType {
 			case define.SEV, define.SNP, mkcwtypes.SEV_NO_ES:
 			default:
@@ -1069,6 +1070,7 @@ func isValidDeviceMode(mode string) bool {
 	return true
 }
 
+// GetTempDir returns the path of the preferred temporary directory on the host.
 func GetTempDir() string {
 	return tmpdir.GetTempDir()
 }
