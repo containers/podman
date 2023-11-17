@@ -88,7 +88,7 @@ func registryHTTPResponseToError(res *http.Response) error {
 			response = response[:50] + "..."
 		}
 		// %.0w makes e visible to error.Unwrap() without including any text
-		err = fmt.Errorf("StatusCode: %d, %s%.0w", e.StatusCode, response, e)
+		err = fmt.Errorf("StatusCode: %d, %q%.0w", e.StatusCode, response, e)
 	case errcode.Error:
 		// e.Error() is fmt.Sprintf("%s: %s", e.Code.Error(), e.Message, which is usually
 		// rather redundant. So reword it without using e.Code.Error() if e.Message is the default.

@@ -594,6 +594,10 @@ type SystemContext struct {
 	// this field is ignored if `AuthFilePath` is set (we favor the newer format);
 	// only reading of this data is supported;
 	LegacyFormatAuthFilePath string
+	// If set, a path to a Docker-compatible "config.json" file containing credentials; and no other files are processed.
+	// This must not be set if AuthFilePath is set.
+	// Only credentials and credential helpers in this file apre processed, not any other configuration in this file.
+	DockerCompatAuthFilePath string
 	// If not "", overrides the use of platform.GOARCH when choosing an image or verifying architecture match.
 	ArchitectureChoice string
 	// If not "", overrides the use of platform.GOOS when choosing an image or verifying OS match.
