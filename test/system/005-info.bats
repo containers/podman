@@ -178,8 +178,13 @@ host.slirp4netns.executable | $expr_path
 @test "CONTAINERS_CONF_OVERRIDE" {
     skip_if_remote "remote does not support CONTAINERS_CONF*"
 
+    # Need to include runtime because it's runc in debian CI,
+    # and crun 1.11.1 barfs with "read from sync socket"
     containersConf=$PODMAN_TMPDIR/containers.conf
     cat >$containersConf <<EOF
+[engine]
+runtime="$(podman_runtime)"
+
 [containers]
 env = [ "CONF1=conf1" ]
 

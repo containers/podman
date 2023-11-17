@@ -448,10 +448,6 @@ function teardown() {
 }
 
 @test "Local forwarder, IPv4" {
-    if [[ "$CIRRUS_CI" == "true" ]] && [[ "$DISTRO_NV" == "debian-13" ]]; then
-        skip "FIXME: Needs passt 0.0~git20230625.32660ce-1 or later in debian SID, unavailable 8-2023."
-    fi
-
     skip_if_no_ipv4 "IPv4 not routable on the host"
 
     run_podman run --dns 198.51.100.1 \
@@ -697,7 +693,7 @@ function teardown() {
 }
 
 @test "TCP/IPv4 large transfer, tap" {
-    skip "FIXME: #20170 - test hangs"
+    skip "FIXME: #20170 - needs passt >= 2023-11-10"
     pasta_test_do
 }
 
