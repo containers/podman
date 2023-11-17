@@ -7,6 +7,7 @@ import (
 
 	"github.com/openshift/imagebuilder/dockerfile/command"
 	"github.com/openshift/imagebuilder/dockerfile/parser"
+	buildkitparser "github.com/moby/buildkit/frontend/dockerfile/parser"
 )
 
 // ParseDockerfile parses the provided stream as a canonical Dockerfile
@@ -34,14 +35,10 @@ var replaceEnvAllowed = map[string]bool{
 
 // Certain commands are allowed to have their args split into more
 // words after env var replacements. Meaning:
-//
-//	ENV foo="123 456"
-//	EXPOSE $foo
-//
+//   ENV foo="123 456"
+//   EXPOSE $foo
 // should result in the same thing as:
-//
-//	EXPOSE 123 456
-//
+//   EXPOSE 123 456
 // and not treat "123 456" as a single word.
 // Note that: EXPOSE "$foo" and EXPOSE $foo are not the same thing.
 // Quotes will cause it to still be treated as single word.
@@ -59,6 +56,7 @@ type Step struct {
 	Flags    []string
 	Attrs    map[string]bool
 	Message  string
+	Heredocs   []buildkitparser.Heredoc
 	Original string
 }
 
@@ -78,6 +76,7 @@ type Step struct {
 // deal with that, at least until it becomes more of a general concern with new
 // features.
 func (b *Step) Resolve(ast *parser.Node) error {
+	b.Heredocs = ast.Heredocs
 	cmd := ast.Value
 	upperCasedCmd := strings.ToUpper(cmd)
 
