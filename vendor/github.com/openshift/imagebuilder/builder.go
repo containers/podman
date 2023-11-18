@@ -13,6 +13,7 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 
+	buildkitparser "github.com/moby/buildkit/frontend/dockerfile/parser"
 	"github.com/openshift/imagebuilder/dockerfile/command"
 	"github.com/openshift/imagebuilder/dockerfile/parser"
 )
@@ -32,6 +33,17 @@ type Copy struct {
 	Chown    string
 	Chmod    string
 	Checksum string
+	// Additional files which need to be created by executor for this
+	// instruction.
+	Files []File
+}
+
+// File defines if any additional file needs to be created
+// by the executor instruction so that specified command
+// can execute/copy the created file inside the build container.
+type File struct {
+	Name string // Name of the new file.
+	Data string // Content of the file.
 }
 
 // Run defines a run operation required in the container.
@@ -42,6 +54,9 @@ type Run struct {
 	Mounts []string
 	// Network specifies the network mode to run the container with
 	Network string
+	// Additional files which need to be created by executor for this
+	// instruction.
+	Files []File
 }
 
 type Executor interface {
@@ -395,7 +410,7 @@ func (b *Builder) Run(step *Step, exec Executor, noRunsRemaining bool) error {
 	if !ok {
 		return exec.UnrecognizedInstruction(step)
 	}
-	if err := fn(b, step.Args, step.Attrs, step.Flags, step.Original); err != nil {
+	if err := fn(b, step.Args, step.Attrs, step.Flags, step.Original, step.Heredocs); err != nil {
 		return err
 	}
 
@@ -575,7 +590,7 @@ func SplitBy(node *parser.Node, value string) []*parser.Node {
 }
 
 // StepFunc is invoked with the result of a resolved step.
-type StepFunc func(*Builder, []string, map[string]bool, []string, string) error
+type StepFunc func(*Builder, []string, map[string]bool, []string, string, []buildkitparser.Heredoc) error
 
 var evaluateTable = map[string]StepFunc{
 	command.Env:         env,

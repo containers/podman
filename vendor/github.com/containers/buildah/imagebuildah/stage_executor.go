@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -35,6 +36,7 @@ import (
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/unshare"
 	docker "github.com/fsouza/go-dockerclient"
+	buildkitparser "github.com/moby/buildkit/frontend/dockerfile/parser"
 	digest "github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -348,6 +350,11 @@ func (s *StageExecutor) volumeCacheRestore() error {
 // imagebuilder tells us the instruction was "ADD" and not "COPY".
 func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) error {
 	s.builder.ContentDigester.Restart()
+	return s.performCopy(excludes, copies...)
+}
+
+func (s *StageExecutor) performCopy(excludes []string, copies ...imagebuilder.Copy) error {
+	copiesExtend := []imagebuilder.Copy{}
 	for _, copy := range copies {
 		if err := s.volumeCacheInvalidate(copy.Dest); err != nil {
 			return err
@@ -362,7 +369,61 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 		stripSetgid := false
 		preserveOwnership := false
 		contextDir := s.executor.contextDir
-		if len(copy.From) > 0 {
+		// If we are copying files via heredoc syntax, then
+		// its time to create these temporary files on host
+		// and copy these to container
+		if len(copy.Files) > 0 {
+			// If we are copying files from heredoc syntax, there
+			// maybe regular files from context as well so split and
+			// process them differently
+			if len(copy.Src) > len(copy.Files) {
+				regularSources := []string{}
+				for _, src := range copy.Src {
+					// If this source is not a heredoc, then it is a regular file from
+					// build context or from another stage (`--from=`) so treat this differently.
+					if !strings.HasPrefix(src, "<<") {
+						regularSources = append(regularSources, src)
+					}
+				}
+				copyEntry := copy
+				// Remove heredoc if any, since we are already processing them
+				// so create new entry with sources containing regular files
+				// only, since regular files can have different context then
+				// heredoc files.
+				copyEntry.Files = nil
+				copyEntry.Src = regularSources
+				copiesExtend = append(copiesExtend, copyEntry)
+			}
+			copySources := []string{}
+			for _, file := range copy.Files {
+				data := file.Data
+				// remove first break line added while parsing heredoc
+				data = strings.TrimPrefix(data, "\n")
+				// add breakline when heredoc ends for docker compat
+				data = data + "\n"
+				tmpFile, err := os.Create(filepath.Join(parse.GetTempDir(), path.Base(filepath.ToSlash(file.Name))))
+				if err != nil {
+					return fmt.Errorf("unable to create tmp file for COPY instruction at %q: %w", parse.GetTempDir(), err)
+				}
+				err = tmpFile.Chmod(0644) // 644 is consistent with buildkit
+				if err != nil {
+					tmpFile.Close()
+					return fmt.Errorf("unable to chmod tmp file created for COPY instruction at %q: %w", tmpFile.Name(), err)
+				}
+				defer os.Remove(tmpFile.Name())
+				_, err = tmpFile.WriteString(data)
+				if err != nil {
+					tmpFile.Close()
+					return fmt.Errorf("unable to write contents of heredoc file at %q: %w", tmpFile.Name(), err)
+				}
+				copySources = append(copySources, filepath.Base(tmpFile.Name()))
+				tmpFile.Close()
+			}
+			contextDir = parse.GetTempDir()
+			copy.Src = copySources
+		}
+
+		if len(copy.From) > 0 && len(copy.Files) == 0 {
 			// If from has an argument within it, resolve it to its
 			// value.  Otherwise just return the value found.
 			from, fromErr := imagebuilder.ProcessWord(copy.From, s.stage.Builder.Arguments())
@@ -486,6 +547,13 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 			return err
 		}
 	}
+	if len(copiesExtend) > 0 {
+		// If we found heredocs and regularfiles together
+		// in same statement then we produced new copies to
+		// process regular files separately since they need
+		// different context.
+		return s.performCopy(excludes, copiesExtend...)
+	}
 	return nil
 }
 
@@ -591,10 +659,59 @@ func (s *StageExecutor) runStageMountPoints(mountList []string) (map[string]inte
 	return stageMountPoints, nil
 }
 
+func (s *StageExecutor) createNeededHeredocMountsForRun(files []imagebuilder.File) ([]Mount, error) {
+	mountResult := []Mount{}
+	for _, file := range files {
+		f, err := os.CreateTemp(parse.GetTempDir(), "buildahheredoc")
+		if err != nil {
+			return nil, err
+		}
+		if _, err := f.WriteString(file.Data); err != nil {
+			f.Close()
+			return nil, err
+		}
+		err = f.Chmod(0755)
+		if err != nil {
+			f.Close()
+			return nil, err
+		}
+		// dest path is same as buildkit for compat
+		dest := filepath.Join("/dev/pipes/", filepath.Base(f.Name()))
+		mount := Mount{Destination: dest, Type: define.TypeBind, Source: f.Name(), Options: append(define.BindOptions, "rprivate", "z", "Z")}
+		mountResult = append(mountResult, mount)
+		f.Close()
+	}
+	return mountResult, nil
+}
+
 // Run executes a RUN instruction using the stage's current working container
 // as a root directory.
 func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 	logrus.Debugf("RUN %#v, %#v", run, config)
+	args := run.Args
+	heredocMounts := []Mount{}
+	if len(run.Files) > 0 {
+		if heredoc := buildkitparser.MustParseHeredoc(args[0]); heredoc != nil {
+			if strings.HasPrefix(run.Files[0].Data, "#!") || strings.HasPrefix(run.Files[0].Data, "\n#!") {
+				// This is a single heredoc with a shebang, so create a file
+				// and run it.
+				heredocMount, err := s.createNeededHeredocMountsForRun(run.Files)
+				if err != nil {
+					return err
+				}
+				args = []string{heredocMount[0].Destination}
+				heredocMounts = append(heredocMounts, heredocMount...)
+			} else {
+				args = []string{run.Files[0].Data}
+			}
+		} else {
+			full := args[0]
+			for _, file := range run.Files {
+				full += file.Data + "\n" + file.Name
+			}
+			args = []string{full}
+		}
+	}
 	stageMountPoints, err := s.runStageMountPoints(run.Mounts)
 	if err != nil {
 		return err
@@ -658,7 +775,6 @@ func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 		options.ConfigureNetwork = buildah.NetworkDisabled
 	}
 
-	args := run.Args
 	if run.Shell {
 		if len(config.Shell) > 0 && s.builder.Format == define.Dockerv2ImageManifest {
 			args = append(config.Shell, args...)
@@ -671,6 +787,9 @@ func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 		return err
 	}
 	options.Mounts = append(options.Mounts, mounts...)
+	if len(heredocMounts) > 0 {
+		options.Mounts = append(options.Mounts, heredocMounts...)
+	}
 	err = s.builder.Run(args, options)
 	if err2 := s.volumeCacheRestore(); err2 != nil {
 		if err == nil {
