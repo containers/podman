@@ -106,7 +106,7 @@ func (s *SystemSettings) AddScsiController() (*ScsiControllerSettings, error) {
 func (s *SystemSettings) createSystemResourceInternal(settings interface{}, resourceType string, cb func()) error {
 	var service *wmiext.Service
 	var err error
-	if service, err = wmiext.NewLocalService(HyperVNamespace); err != nil {
+	if service, err = NewLocalHyperVService(); err != nil {
 		return err
 	}
 	defer service.Close()
@@ -186,7 +186,7 @@ func addResource(service *wmiext.Service, systemSettingPath string, resourceSett
 func (s *SystemSettings) GetVM() (*VirtualMachine, error) {
 	var service *wmiext.Service
 	var err error
-	if service, err = wmiext.NewLocalService(HyperVNamespace); err != nil {
+	if service, err = NewLocalHyperVService(); err != nil {
 		return nil, err
 	}
 	defer service.Close()

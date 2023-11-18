@@ -151,7 +151,7 @@ func (i *Instance) SpawnInstance() (instance *Instance, err error) {
 		uintptr(0),                           // [in]  long             lFlags,
 		uintptr(unsafe.Pointer(&newUnknown))) // [out] IWbemClassObject **ppNewInstance)
 	if res != 0 {
-		return nil, ole.NewError(res)
+		return nil, NewWmiError(res)
 	}
 
 	return newInstance(newUnknown, i.service), nil
@@ -168,7 +168,7 @@ func (i *Instance) CloneInstance() (*Instance, error) {
 		uintptr(unsafe.Pointer(classObj)), // IWbemClassObject ptr
 		uintptr(unsafe.Pointer(&cloned)))  // [out] IWbemClassObject **ppCopy)
 	if ret != 0 {
-		return nil, ole.NewError(ret)
+		return nil, NewWmiError(ret)
 	}
 
 	return newInstance(cloned, i.service), nil
@@ -260,7 +260,7 @@ func (i *Instance) Put(name string, value interface{}) (err error) {
 		uintptr(unsafe.Pointer(&variant)), // [in] VARIANT *pVal,
 		uintptr(0))                        // [in] CIMTYPE Type)
 	if res != 0 {
-		return ole.NewError(res)
+		return NewWmiError(res)
 	}
 
 	_ = variant.Clear()
@@ -444,7 +444,7 @@ func (i *Instance) GetAsVariant(name string) (*ole.VARIANT, CIMTYPE_ENUMERATION,
 		uintptr(unsafe.Pointer(&cimType)), // [out, optional] CIMTYPE *pType,
 		uintptr(unsafe.Pointer(&flavor)))  // [out, optional] long    *plFlavor)
 	if res != 0 {
-		return nil, 0, 0, ole.NewError(res)
+		return nil, 0, 0, NewWmiError(res)
 	}
 
 	return &variant, cimType, flavor, nil
@@ -490,7 +490,7 @@ func (i *Instance) NextAsVariant() (bool, string, *ole.VARIANT, CIMTYPE_ENUMERAT
 		uintptr(unsafe.Pointer(&cimType)), // [out, optional] CIMTYPE *pType,
 		uintptr(unsafe.Pointer(&flavor)))  // [out, optional] long    *plFlavor
 	if int(res) < 0 {
-		return false, "", nil, cimType, flavor, ole.NewError(res)
+		return false, "", nil, cimType, flavor, NewWmiError(res)
 	}
 
 	if res == WBEM_S_NO_MORE_DATA {
@@ -556,7 +556,7 @@ func (i *Instance) GetMethodParameters(method string) (*Instance, error) {
 		uintptr(unsafe.Pointer(&inSignature)), // [out] IWbemClassObject **ppInSignature,
 		uintptr(0))                            // [out] IWbemClassObject **ppOutSignature)
 	if res != 0 {
-		return nil, ole.NewError(res)
+		return nil, NewWmiError(res)
 	}
 
 	return newInstance(inSignature, i.service), nil
@@ -612,7 +612,7 @@ func (i *Instance) BeginEnumeration() error {
 		uintptr(unsafe.Pointer(classObj)), // IWbemClassObject ptr,
 		uintptr(0))                        // [in] long lEnumFlags) // 0 = defaults
 	if result != 0 {
-		return ole.NewError(result)
+		return NewWmiError(result)
 	}
 
 	return nil
@@ -626,7 +626,7 @@ func (i *Instance) EndEnumeration() error {
 		i.vTable.EndEnumeration,           // IWbemClassObject::EndEnumeration(
 		uintptr(unsafe.Pointer(i.object))) // IWbemClassObject ptr)
 	if res != 0 {
-		return ole.NewError(res)
+		return NewWmiError(res)
 	}
 
 	return nil
