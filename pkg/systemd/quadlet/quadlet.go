@@ -496,10 +496,13 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 	if serviceType != "oneshot" {
 		// If we're not in oneshot mode always use some form of sd-notify, normally via conmon,
 		// but we also allow passing it to the container by setting Notify=yes
-		notify := container.LookupBooleanWithDefault(ContainerGroup, KeyNotify, false)
-		if notify {
+		notify, ok := container.Lookup(ContainerGroup, KeyNotify)
+		switch {
+		case ok && strings.EqualFold(notify, "healthy"):
+			podman.add("--sdnotify=healthy")
+		case container.LookupBooleanWithDefault(ContainerGroup, KeyNotify, false):
 			podman.add("--sdnotify=container")
-		} else {
+		default:
 			podman.add("--sdnotify=conmon")
 		}
 		service.Setv(ServiceGroup,
