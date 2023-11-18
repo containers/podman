@@ -77,9 +77,14 @@ EOF
     assert "${lines[0]}" = "${lines[5]}" "devnum( / ) = devnum( /[etc )"
     assert "${lines[0]}" = "${lines[7]}" "devnum( / ) = devnum( /etc )"
     assert "${lines[6]}" = "${lines[8]}" "devnum( /[etc/foo, ) = devnum( /etc/bar] )"
-    # ...then, each volume should be different
-    assert "${lines[0]}" != "${lines[3]}" "devnum( / ) != devnum( volume0 )"
-    assert "${lines[0]}" != "${lines[6]}" "devnum( / ) != devnum( volume1 )"
+    # ...then, check volumes; these differ between overlay and vfs.
+    # Under Overlay (usual case), these will be different. On VFS, they're the same.
+    local op="!="
+    if [[ "$(podman_storage_driver)" == "vfs" ]]; then
+        op="="
+    fi
+    assert "${lines[0]}" $op "${lines[3]}" "devnum( / ) $op devnum( volume0 )"
+    assert "${lines[0]}" $op "${lines[6]}" "devnum( / ) $op devnum( volume1 )"
 
     # FIXME: is this expected? I thought /a/b/c and /[etc/foo, would differ
     assert "${lines[3]}" = "${lines[6]}" "devnum( volume0 ) = devnum( volume1 )"

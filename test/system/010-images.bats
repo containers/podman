@@ -337,28 +337,34 @@ Deleted: $pauseID"
 @test "podman pull image with additional store" {
     skip_if_remote "only works on local"
 
+    # overlay or vfs
+    local storagedriver="$(podman_storage_driver)"
+
     local imstore=$PODMAN_TMPDIR/imagestore
     local sconf=$PODMAN_TMPDIR/storage.conf
     cat >$sconf <<EOF
 [storage]
-driver="overlay"
+driver="$storagedriver"
 
 [storage.options]
 additionalimagestores = [ "$imstore/root" ]
 EOF
 
     skopeo copy containers-storage:$IMAGE \
-           containers-storage:\[overlay@$imstore/root+$imstore/runroot\]$IMAGE
+           containers-storage:\[${storagedriver}@${imstore}/root+${imstore}/runroot\]$IMAGE
 
+    # IMPORTANT! Use -2/-1 indices, not 0/1, because $SYSTEMD_IMAGE may be
+    # present in store, and if it is it will precede $IMAGE.
     CONTAINERS_STORAGE_CONF=$sconf run_podman images -a -n --format "{{.Repository}}:{{.Tag}} {{.ReadOnly}}"
-    is "${lines[0]}" "$IMAGE false" "image from readonly store"
-    is "${lines[1]}" "$IMAGE true" "image from readwrite store"
+    assert "${#lines[*]}" -ge 2 "at least 2 lines from 'podman images'"
+    is "${lines[-2]}" "$IMAGE false" "image from readonly store"
+    is "${lines[-1]}" "$IMAGE true" "image from readwrite store"
 
     CONTAINERS_STORAGE_CONF=$sconf run_podman images -a -n --format "{{.Id}}"
-    id=${lines[0]}
+    id=${lines[-1]}
 
     CONTAINERS_STORAGE_CONF=$sconf run_podman pull -q $IMAGE
-    is "$output" "$id" "Should only print one line"
+    is "$output" "$id" "pull -q $IMAGE, using storage.conf"
 
     run_podman --root $imstore/root rmi --all
 }

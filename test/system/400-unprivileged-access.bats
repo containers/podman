@@ -50,6 +50,15 @@ if chmod +w "$path"; then
     die "Able to chmod $path"
 fi
 
+EOF
+
+    # Under overlay, and presumably any future storage drivers, we
+    # should never be able to read or write $path.
+    #
+    # Under VFS, though, if podman has *ever* been run with --uidmap,
+    # all images become world-accessible. So don't bother checking.
+    if [[ $(podman_storage_driver) != "vfs" ]]; then
+        cat >>$test_script <<EOF
 if [ -d "$path" ]; then
     if ls "$path" >/dev/null; then
         die "Able to run 'ls $path' without error"
@@ -67,8 +76,9 @@ else
     fi
 fi
 
-exit 0
 EOF
+    fi
+    echo "exit 0" >>$test_script
     chmod 755 $PODMAN_TMPDIR $test_script
 
     # get podman image and container storage directories

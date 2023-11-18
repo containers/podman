@@ -29,8 +29,18 @@ load helpers
 
     # umount, and make sure files are gone
     run_podman umount $c_name
-    if [ -e "$mount_path/$f_path" ]; then
-        die "Mounted file exists even after umount: $mount_path/$f_path"
+    if [[ -e "$mount_path/$f_path" ]]; then
+        # With vfs, umount is a NOP: the path always exists as long as the
+        # container exists. But with overlay, umount should truly remove.
+        if [[ "$(podman_storage_driver)" != "vfs" ]]; then
+            die "Mounted file exists even after umount: $mount_path/$f_path"
+        fi
+    fi
+
+    # Remove the container. Now even with vfs the file must be gone.
+    run_podman rm $c_name
+    if [[ -e "$mount_path/$f_path" ]]; then
+        die "Mounted file exists even after container rm: $mount_path/$f_path"
     fi
 }
 
@@ -242,7 +252,10 @@ EOF
     # umount, and make sure files are gone
     run_podman umount $external_cid
     if [ -d "$mount_path" ]; then
-        die "'podman umount' did not umount"
+        # Under VFS, mountpoint always exists even despite umount
+        if [[ "$(podman_storage_driver)" != "vfs" ]]; then
+            die "'podman umount' did not umount $mount_path"
+        fi
     fi
     buildah rm $external_cid
 }
