@@ -113,7 +113,7 @@ func safeArrayDestroy(safearray *ole.SafeArray) (err error) {
 	ret, _, _ := procSafeArrayDestroy.Call(uintptr(unsafe.Pointer(safearray)))
 
 	if ret != 0 {
-		return ole.NewError(ret)
+		return NewWmiError(ret)
 	}
 
 	return nil
@@ -127,7 +127,7 @@ func safeArrayPutElement(safearray *ole.SafeArray, index int64, element uintptr)
 		element)
 
 	if ret != 0 {
-		return ole.NewError(ret)
+		return NewWmiError(ret)
 	}
 
 	return nil
@@ -141,7 +141,7 @@ func safeArrayGetElement(safearray *ole.SafeArray, index int64, element unsafe.P
 		uintptr(element))
 
 	if ret != 0 {
-		return ole.NewError(ret)
+		return NewWmiError(ret)
 	}
 
 	return nil

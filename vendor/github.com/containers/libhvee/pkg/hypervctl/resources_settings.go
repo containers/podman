@@ -53,7 +53,7 @@ func (s *ResourceSettings) Path() string {
 func createResourceSettingGeneric(settings interface{}, resourceType string) (string, error) {
 	var service *wmiext.Service
 	var err error
-	if service, err = wmiext.NewLocalService(HyperVNamespace); err != nil {
+	if service, err = NewLocalHyperVService(); err != nil {
 		return "", err
 	}
 
@@ -84,7 +84,7 @@ func createResourceSettingGeneric(settings interface{}, resourceType string) (st
 func populateDefaults(subType string, settings interface{}) error {
 	var service *wmiext.Service
 	var err error
-	if service, err = wmiext.NewLocalService(HyperVNamespace); err != nil {
+	if service, err = NewLocalHyperVService(); err != nil {
 		return err
 	}
 	defer service.Close()

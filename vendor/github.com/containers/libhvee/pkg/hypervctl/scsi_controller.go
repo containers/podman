@@ -42,7 +42,7 @@ func (c *ScsiControllerSettings) AddSyntheticDvdDrive(slot uint) (*SyntheticDvdD
 func (c *ScsiControllerSettings) createSyntheticDriveInternal(slot uint, settings driveAssociation, resourceType string) error {
 	var service *wmiext.Service
 	var err error
-	if service, err = wmiext.NewLocalService(HyperVNamespace); err != nil {
+	if service, err = NewLocalHyperVService(); err != nil {
 		return err
 	}
 	defer service.Close()

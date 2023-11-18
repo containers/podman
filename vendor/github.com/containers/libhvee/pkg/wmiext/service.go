@@ -90,7 +90,7 @@ func connectService(namespace string) (*Service, error) {
 		uintptr(unsafe.Pointer(&service)))       // [out] IWbemServices **ppNamespace)
 
 	if res != 0 {
-		return nil, ole.NewError(res)
+		return nil, NewWmiError(res)
 	}
 
 	if err = CoSetProxyBlanket(service); err != nil {
@@ -123,7 +123,7 @@ func CoSetProxyBlanket(service *ole.IUnknown) (err error) {
 		uintptr(EOAC_NONE))                   // [in]      DWORD                    dwCapabilities)
 
 	if res != 0 {
-		return ole.NewError(res)
+		return NewWmiError(res)
 	}
 
 	return nil
@@ -169,7 +169,7 @@ func (s *Service) ExecQuery(wqlQuery string) (*Enum, error) {
 		uintptr(0),                         // [in] IWbemContext         *pCtx,
 		uintptr(unsafe.Pointer(&pEnum)))    // [out] IEnumWbemClassObject **ppEnum)
 	if hres != 0 {
-		return nil, ole.NewError(hres)
+		return nil, NewWmiError(hres)
 	}
 
 	if err = CoSetProxyBlanket(pEnum); err != nil {
@@ -201,7 +201,7 @@ func (s *Service) GetObject(objectPath string) (instance *Instance, err error) {
 		uintptr(0))                             // [out] IWbemCallResult  **ppCallResult)
 	if int(res) < 0 {
 		// returns WBEM_E_PROVIDER_NOT_FOUND when no entry found
-		return nil, ole.NewError(res)
+		return nil, NewWmiError(res)
 	}
 
 	return newInstance(pObject, s), nil
@@ -240,7 +240,7 @@ func (s *Service) CreateInstanceEnum(className string) (*Enum, error) {
 		uintptr(0),                         // [in]  IWbemContext         *pCtx,
 		uintptr(unsafe.Pointer(&pEnum)))    // [out] IEnumWbemClassObject **ppEnum)
 	if int(res) < 0 {
-		return nil, ole.NewError(res)
+		return nil, NewWmiError(res)
 	}
 
 	if err = CoSetProxyBlanket(pEnum); err != nil {
@@ -278,7 +278,7 @@ func (s *Service) ExecMethod(className string, methodName string, inParams *Inst
 		uintptr(unsafe.Pointer(&outParams)),      // [out] IWbemClassObject **ppOutParams,
 		uintptr(0))                               // [out] IWbemCallResult  **ppCallResult)
 	if int(res) < 0 {
-		return nil, ole.NewError(res)
+		return nil, NewWmiError(res)
 	}
 
 	return newInstance(outParams, s), nil
