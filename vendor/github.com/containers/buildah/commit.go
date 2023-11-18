@@ -110,6 +110,14 @@ type CommitOptions struct {
 	// UnsetEnvs is a list of environments to not add to final image.
 	// Deprecated: use UnsetEnv() before committing instead.
 	UnsetEnvs []string
+	// OverrideConfig is an optional Schema2Config which can override parts
+	// of the working container's configuration for the image that is being
+	// committed.
+	OverrideConfig *manifest.Schema2Config
+	// OverrideChanges is a slice of Dockerfile-style instructions to make
+	// to the configuration of the image that is being committed, after
+	// OverrideConfig is applied.
+	OverrideChanges []string
 }
 
 var (
