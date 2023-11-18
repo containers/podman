@@ -140,6 +140,12 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		}
 		initOpts.Name = args[0]
 	}
+
+	// The vmtype names need to be reserved and cannot be used for podman machine names
+	if _, err := machine.ParseVMType(initOpts.Name, machine.UnknownVirt); err == nil {
+		return fmt.Errorf("cannot use %q for a machine name", initOpts.Name)
+	}
+
 	if _, err := provider.LoadVMByName(initOpts.Name); err == nil {
 		return fmt.Errorf("%s: %w", initOpts.Name, machine.ErrVMAlreadyExists)
 	}

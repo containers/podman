@@ -346,6 +346,7 @@ const (
 	WSLVirt
 	AppleHvVirt
 	HyperVVirt
+	UnknownVirt
 )
 
 func (v VMType) String() string {
@@ -383,7 +384,7 @@ func ParseVMType(input string, emptyFallback VMType) (VMType, error) {
 	case "":
 		return emptyFallback, nil
 	default:
-		return QemuVirt, fmt.Errorf("unknown VMType `%s`", input)
+		return UnknownVirt, fmt.Errorf("unknown VMType `%s`", input)
 	}
 }
 

@@ -41,6 +41,12 @@ var _ = Describe("podman machine init", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(125))
 
+		reservedName := initMachine{}
+		reservedNameSession, err := mb.setName(testProvider.VMType().String()).setCmd(&reservedName).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(reservedNameSession).To(Exit(125))
+		Expect(reservedNameSession.errorToString()).To(ContainSubstring(fmt.Sprintf("cannot use %q", testProvider.VMType().String())))
+
 		badName := "foobar"
 		bm := basicMachine{}
 		sysConn, err := mb.setCmd(bm.withPodmanCommand([]string{"system", "connection", "add", badName, "tcp://localhost:8000"})).run()
