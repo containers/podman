@@ -2,6 +2,12 @@
 
 # Changelog
 
+## v1.33.1 (2023-11-18)
+
+    fix(deps): update module github.com/moby/buildkit to v0.11.4 [security]
+    test,heredoc: use fedora instead of docker.io/library/python:latest
+    Bump to v1.33.1-dev
+
 ## v1.33.0 (2023-11-17)
 
     Never omit layers for emptyLayer instructions when squashing/cwing
