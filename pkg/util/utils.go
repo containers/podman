@@ -830,6 +830,162 @@ func sortAndMergeConsecutiveMappings(idmap []idtools.IDMap) (finalIDMap []idtool
 	return finalIDMap
 }
 
+// Extension of idTools.parseAutoTriple that parses idmap triples.
+// The triple should be a length 3 string array, containing:
+// - Flags and ContainerID
+// - HostID
+// - Size
+//
+// parseAutoTriple returns the parsed mapping and any possible error.
+// If the error is not-nil, the mapping is not well-defined.
+//
+// idTools.parseAutoTriple is extended here with the following enhancements:
+//
+// HostID @ syntax:
+// =================
+// HostID may use the "@" syntax: The "101001:@1001:1" mapping
+// means "take the 1001 id from the parent namespace and map it to 101001"
+func parseAutoTriple(spec []string, parentMapping []ruser.IDMap, mapSetting string) (mappings []idtools.IDMap, err error) {
+	if len(spec[0]) == 0 {
+		return mappings, fmt.Errorf("invalid empty container id at %s map: %v", mapSetting, spec)
+	}
+	var cids, hids, sizes []uint64
+	var cid, hid uint64
+	var hidIsParent bool
+	// Parse the container ID, which must be an integer:
+	cid, err = strconv.ParseUint(spec[0][0:], 10, 32)
+	if err != nil {
+		return mappings, fmt.Errorf("parsing id map value %q: %w", spec[0], err)
+	}
+	// Parse the host id, which may be integer or @<integer>
+	if len(spec[1]) == 0 {
+		return mappings, fmt.Errorf("invalid empty host id at %s map: %v", mapSetting, spec)
+	}
+	if spec[1][0] != '@' {
+		hidIsParent = false
+		hid, err = strconv.ParseUint(spec[1], 10, 32)
+	} else {
+		// Parse @<id>, where <id> is an integer corresponding to the parent mapping
+		hidIsParent = true
+		hid, err = strconv.ParseUint(spec[1][1:], 10, 32)
+	}
+	if err != nil {
+		return mappings, fmt.Errorf("parsing id map value %q: %w", spec[1], err)
+	}
+	// Parse the size of the mapping, which must be an integer
+	sz, err := strconv.ParseUint(spec[2], 10, 32)
+	if err != nil {
+		return mappings, fmt.Errorf("parsing id map value %q: %w", spec[2], err)
+	}
+
+	if hidIsParent {
+		for i := uint64(0); i < sz; i++ {
+			cids = append(cids, cid+i)
+			mappedID, err := mapIDwithMapping(hid+i, parentMapping, mapSetting)
+			if err != nil {
+				return mappings, err
+			}
+			hids = append(hids, mappedID)
+			sizes = append(sizes, 1)
+		}
+	} else {
+		cids = []uint64{cid}
+		hids = []uint64{hid}
+		sizes = []uint64{sz}
+	}
+
+	// Avoid possible integer overflow on 32bit builds
+	if bits.UintSize == 32 {
+		for i := range cids {
+			if cids[i] > math.MaxInt32 || hids[i] > math.MaxInt32 || sizes[i] > math.MaxInt32 {
+				return mappings, fmt.Errorf("initializing ID mappings: %s setting is malformed expected [\"[+ug]uint32:[@]uint32[:uint32]\"] : %q", mapSetting, spec)
+			}
+		}
+	}
+	for i := range cids {
+		mappings = append(mappings, idtools.IDMap{
+			ContainerID: int(cids[i]),
+			HostID:      int(hids[i]),
+			Size:        int(sizes[i]),
+		})
+	}
+	return mappings, nil
+}
+
+// Extension of idTools.ParseIDMap that parses idmap triples from string.
+// This extension accepts additional flags that control how the mapping is done
+func parseAutoIDMap(mapSpec string, mapSetting string, parentMapping []ruser.IDMap) (idmap []idtools.IDMap, err error) {
+	stdErr := fmt.Errorf("initializing ID mappings: %s setting is malformed expected [\"uint32:[@]uint32[:uint32]\"] : %q", mapSetting, mapSpec)
+	idSpec := strings.Split(mapSpec, ":")
+	// if it's a length-2 list assume the size is 1:
+	if len(idSpec) == 2 {
+		idSpec = append(idSpec, "1")
+	}
+	if len(idSpec) != 3 {
+		return nil, stdErr
+	}
+	// Parse this mapping:
+	mappings, err := parseAutoTriple(idSpec, parentMapping, mapSetting)
+	if err != nil {
+		return nil, err
+	}
+	idmap = sortAndMergeConsecutiveMappings(mappings)
+	return idmap, nil
+}
+
+// GetAutoOptions returns an AutoUserNsOptions with the settings to automatically set up
+// a user namespace.
+func GetAutoOptions(n namespaces.UsernsMode) (*stypes.AutoUserNsOptions, error) {
+	parts := strings.SplitN(string(n), ":", 2)
+	if parts[0] != "auto" {
+		return nil, fmt.Errorf("wrong user namespace mode")
+	}
+	options := stypes.AutoUserNsOptions{}
+	if len(parts) == 1 {
+		return &options, nil
+	}
+
+	parentUIDMap, parentGIDMap, err := rootless.GetAvailableIDMaps()
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			// The kernel-provided files only exist if user namespaces are supported
+			logrus.Debugf("User or group ID mappings not available: %s", err)
+		} else {
+			return nil, err
+		}
+	}
+
+	for _, o := range strings.Split(parts[1], ",") {
+		v := strings.SplitN(o, "=", 2)
+		if len(v) != 2 {
+			return nil, fmt.Errorf("invalid option specified: %q", o)
+		}
+		switch v[0] {
+		case "size":
+			s, err := strconv.ParseUint(v[1], 10, 32)
+			if err != nil {
+				return nil, err
+			}
+			options.Size = uint32(s)
+		case "uidmapping":
+			mapping, err := parseAutoIDMap(v[1], "UID", parentUIDMap)
+			if err != nil {
+				return nil, err
+			}
+			options.AdditionalUIDMappings = append(options.AdditionalUIDMappings, mapping...)
+		case "gidmapping":
+			mapping, err := parseAutoIDMap(v[1], "GID", parentGIDMap)
+			if err != nil {
+				return nil, err
+			}
+			options.AdditionalGIDMappings = append(options.AdditionalGIDMappings, mapping...)
+		default:
+			return nil, fmt.Errorf("unknown option specified: %q", v[0])
+		}
+	}
+	return &options, nil
+}
+
 // ParseIDMapping takes idmappings and subuid and subgid maps and returns a storage mapping
 func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []string, subUIDMap, subGIDMap string) (*stypes.IDMappingOptions, error) {
 	options := stypes.IDMappingOptions{
@@ -842,7 +998,7 @@ func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []strin
 		options.HostUIDMapping = false
 		options.HostGIDMapping = false
 		options.AutoUserNs = true
-		opts, err := mode.GetAutoOptions()
+		opts, err := GetAutoOptions(mode)
 		if err != nil {
 			return nil, err
 		}

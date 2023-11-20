@@ -48,6 +48,10 @@ Using `--userns=auto` when starting new containers does not work as long as any 
   - *size*=_SIZE_: to specify an explicit size for the automatic user namespace. e.g. `--userns=auto:size=8192`. If `size` is not specified, `auto` estimates a size for the user namespace.
   - *uidmapping*=_CONTAINER\_UID:HOST\_UID:SIZE_: to force a UID mapping to be present in the user namespace.
 
+The host UID and GID in *gidmapping* and *uidmapping* can optionally be prefixed with the `@` symbol.
+In this case, podman will look up the intermediate ID corresponding to host ID and it will map the found intermediate ID to the container id.
+For details see **--uidmap**.
+
 **container:**_id_: join the user namespace of the specified container.
 
 **host** or **""** (empty string): run in the user namespace of the caller. The processes running in the container have the same privileges on the host as any other process launched by the calling user.

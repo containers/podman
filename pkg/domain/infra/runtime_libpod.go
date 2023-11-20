@@ -282,7 +282,7 @@ func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []strin
 		options.HostUIDMapping = false
 		options.HostGIDMapping = false
 		options.AutoUserNs = true
-		opts, err := mode.GetAutoOptions()
+		opts, err := util.GetAutoOptions(mode)
 		if err != nil {
 			return nil, err
 		}
