@@ -19,7 +19,7 @@ t HEAD libpod/_ping 200
 for i in /version version; do
     t GET  $i      200                               \
       .Components[0].Name="Podman Engine"            \
-      .Components[0].Details.APIVersion~4[0-9.-]\\+  \
+      .Components[0].Details.APIVersion~5[0-9.-]\\+  \
       .Components[0].Details.MinAPIVersion=4.0.0     \
       .Components[0].Details.Os=linux                \
       .ApiVersion=1.41                               \
