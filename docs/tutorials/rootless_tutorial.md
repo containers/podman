@@ -98,22 +98,32 @@ Once the Administrator has completed the setup on the machine and then the confi
 
 ### User Configuration Files
 
-The Podman configuration files for root reside in `/usr/share/containers` with overrides in `/etc/containers`.  In the rootless environment they reside in `${XDG_CONFIG_HOME}/containers` (usually `~/.config/containers`) and are owned by each individual user.
+The Podman configuration files for root reside in `/usr/share/containers` with overrides in `/etc/containers`.  In the rootless environment they reside in `${XDG_CONFIG_HOME}/containers` and are owned by each individual user.
+
+Note: in environments without `XDG` environment variables, Podman internally sets the following defaults:
+
+- `$XDG_CONFIG_HOME` = `$HOME/.config`
+- `$XDG_DATA_HOME` = `$HOME/.local/share`
+- `$XDG_RUNTIME_DIR` =
+  - `/run/user/$UID` on `systemd` environments
+  - `$TMPDIR/podman-run-$UID` otherwise
 
 The three main configuration files are [containers.conf](https://github.com/containers/common/blob/main/docs/containers.conf.5.md), [storage.conf](https://github.com/containers/storage/blob/main/docs/containers-storage.conf.5.md) and [registries.conf](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md). The user can modify these files as they wish.
 
 #### containers.conf
 Podman reads
+
 1. `/usr/share/containers/containers.conf`
 2. `/etc/containers/containers.conf`
-3. `${XDG_CONFIG_HOME}/containers.conf`
+3. `${XDG_CONFIG_HOME}/containers/containers.conf`
 
 if they exist, in that order. Each file can override the previous for particular fields.
 
 #### storage.conf
 For `storage.conf` the order is
+
 1. `/etc/containers/storage.conf`
-2. `${XDG_CONFIG_HOME}/storage.conf`
+2. `${XDG_CONFIG_HOME}/containers/storage.conf`
 
 In rootless Podman, certain fields in `/etc/containers/storage.conf` are ignored. These fields are:
 ```
@@ -130,13 +140,14 @@ In rootless Podman these fields default to
 graphroot="${XDG_DATA_HOME}/containers/storage"
 runroot="${XDG_RUNTIME_DIR}/containers"
 ```
-[$XDG_RUNTIME_DIR](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html#variables) defaults on most systems to `/run/user/$UID`.
+[\$XDG_RUNTIME_DIR](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html#variables) defaults on most systems to `/run/user/$UID`.
 
 #### registries
 Registry configuration is read in this order
+
 1. `/etc/containers/registries.conf`
 2. `/etc/containers/registries.d/*`
-3. `${XDG_CONFIG_HOME}/registries.conf`
+3. `${XDG_CONFIG_HOME}/containers/registries.conf`
 
 The files in the home directory should be used to configure rootless Podman for personal needs. These files are not created by default. Users can copy the files from `/usr/share/containers` or `/etc/containers` and modify them.
 
