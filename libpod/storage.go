@@ -97,10 +97,7 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 			return ContainerInfo{}, err
 		}
 
-		// Update the image name and ID.
-		if imageName == "" && len(img.Names) > 0 {
-			imageName = img.Names[0]
-		}
+		// Update the image ID.
 		imageID = img.ID
 	}
 
