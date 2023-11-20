@@ -80,10 +80,6 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 		if err != nil {
 			return ContainerInfo{}, err
 		}
-		_, img, err := istorage.ResolveReference(ref)
-		if err != nil {
-			return ContainerInfo{}, err
-		}
 		// Pull out a copy of the image's configuration.
 		image, err := ref.NewImage(ctx, systemContext)
 		if err != nil {
@@ -96,9 +92,6 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 		if err != nil {
 			return ContainerInfo{}, err
 		}
-
-		// Update the image ID.
-		imageID = img.ID
 	}
 
 	// Build metadata to store with the container.
