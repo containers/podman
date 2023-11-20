@@ -71,12 +71,11 @@ func (metadata *RuntimeContainerMetadata) SetMountLabel(mountLabel string) {
 func (r *storageService) CreateContainerStorage(ctx context.Context, systemContext *types.SystemContext, imageName, imageID, containerName, containerID string, options storage.ContainerOptions) (_ ContainerInfo, retErr error) {
 	var imageConfig *v1.Image
 	if imageName != "" {
-		var ref types.ImageReference
 		if containerName == "" {
 			return ContainerInfo{}, define.ErrEmptyID
 		}
 		// Check if we have the specified image.
-		ref, err := istorage.Transport.ParseStoreReference(r.store, imageID)
+		ref, err := istorage.Transport.NewStoreReference(r.store, nil, imageID)
 		if err != nil {
 			return ContainerInfo{}, err
 		}
