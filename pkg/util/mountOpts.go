@@ -28,7 +28,7 @@ type defaultMountOptions struct {
 // The sourcePath variable, if not empty, contains a bind mount source.
 func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string, error) {
 	var (
-		foundWrite, foundSize, foundProp, foundMode, foundExec, foundSuid, foundDev, foundCopyUp, foundBind, foundZ, foundU, foundOverlay, foundIdmap, foundCopy, foundNoSwap bool
+		foundWrite, foundSize, foundProp, foundMode, foundExec, foundSuid, foundDev, foundCopyUp, foundBind, foundZ, foundU, foundOverlay, foundIdmap, foundCopy, foundNoSwap, foundNoDereference bool
 	)
 
 	newOptions := make([]string, 0, len(options))
@@ -148,6 +148,11 @@ func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string
 			foundNoSwap = true
 			newOptions = append(newOptions, opt)
 			continue
+		case "no-dereference":
+			if foundNoDereference {
+				return nil, fmt.Errorf("the 'no-dereference' option can only be set once: %w", ErrDupeMntOption)
+			}
+			foundNoDereference = true
 		case define.TypeBind, "rbind":
 			if isTmpfs {
 				return nil, fmt.Errorf("the 'bind' and 'rbind' options are not allowed with tmpfs mounts: %w", ErrBadMntOption)

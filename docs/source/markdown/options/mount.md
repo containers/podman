@@ -75,6 +75,8 @@ Current supported mount TYPEs are **bind**, **devpts**, **glob**, **image**, **r
 
 	      . U, chown: true or false (default). Change recursively the owner and group of the source volume based on the UID and GID of the container.
 
+	      . no-dereference: do not dereference symlinks but copy the link source into the mount destination.
+
        Options specific to tmpfs and ramfs:
 
 	      · ro, readonly: true or false (default).

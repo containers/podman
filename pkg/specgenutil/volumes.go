@@ -355,7 +355,7 @@ func parseMountOptions(mountType string, args []string) (*spec.Mount, error) {
 			default:
 				return nil, fmt.Errorf("%s mount option must be 'private' or 'shared': %w", kv[0], util.ErrBadMntOption)
 			}
-		case "shared", "rshared", "private", "rprivate", "slave", "rslave", "unbindable", "runbindable", "Z", "z":
+		case "shared", "rshared", "private", "rprivate", "slave", "rslave", "unbindable", "runbindable", "Z", "z", "no-dereference":
 			mnt.Options = append(mnt.Options, kv[0])
 		case "src", "source":
 			if mountType == define.TypeTmpfs {

@@ -366,7 +366,11 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 				if err := c.relabel(m.Source, c.MountLabel(), label.IsShared(o)); err != nil {
 					return nil, nil, err
 				}
-
+			case "no-dereference":
+				// crun calls the option `copy-symlink`.
+				// Podman decided for --no-dereference as many
+				// bin-utils tools (e..g, touch, chown, cp) do.
+				options = append(options, "copy-symlink")
 			default:
 				options = append(options, o)
 			}
