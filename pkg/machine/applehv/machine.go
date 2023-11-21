@@ -4,6 +4,7 @@
 package applehv
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -669,9 +670,36 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 		return err
 	}
 
-	err = <-readyChan
-	if err != nil {
-		return err
+	processErrChan := make(chan error)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() {
+		defer close(processErrChan)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+			if err := checkProcessRunning("vfkit", cmd.Process.Pid); err != nil {
+				processErrChan <- err
+				return
+			}
+			// lets poll status every half second
+			time.Sleep(500 * time.Millisecond)
+		}
+	}()
+
+	// wait for either socket or to be ready or process to have exited
+	select {
+	case err := <-processErrChan:
+		if err != nil {
+			return err
+		}
+	case err := <-readyChan:
+		if err != nil {
+			return err
+		}
 	}
 
 	logrus.Debug("ready notification received")
@@ -902,6 +930,10 @@ func (m *MacMachine) startHostNetworking() (string, machine.APIForwardingState, 
 		if err == nil {
 			break
 		}
+		if err := checkProcessRunning("gvproxy", c.Process.Pid); err != nil {
+			// gvproxy is no longer running
+			return "", 0, err
+		}
 		logrus.Debugf("gvproxy unixgram socket %q not found: %v", m.GvProxySock.GetPath(), err)
 		// Sleep for 1/2 second
 		time.Sleep(500 * time.Millisecond)
@@ -912,6 +944,21 @@ func (m *MacMachine) startHostNetworking() (string, machine.APIForwardingState, 
 		return "", 0, fmt.Errorf("unable to verify gvproxy is running")
 	}
 	return forwardSock, state, nil
+}
+
+// checkProcessRunning checks non blocking if the pid exited
+// returns nil if process is running otherwise an error if not
+func checkProcessRunning(processName string, pid int) error {
+	var status syscall.WaitStatus
+	pid, err := syscall.Wait4(pid, &status, syscall.WNOHANG, nil)
+	if err != nil {
+		return fmt.Errorf("failed to read %s process status: %w", processName, err)
+	}
+	if pid > 0 {
+		// child exited
+		return fmt.Errorf("%s exited unexpectedly with exit code %d", processName, status.ExitStatus())
+	}
+	return nil
 }
 
 func (m *MacMachine) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.GvproxyCommand, string, machine.APIForwardingState) {
