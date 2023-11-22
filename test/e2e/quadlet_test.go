@@ -712,6 +712,7 @@ BOGUS=foo
 		Entry("network.quadlet.container", "network.quadlet.container", 0, ""),
 		Entry("noimage.container", "noimage.container", 1, "converting \"noimage.container\": no Image or Rootfs key specified"),
 		Entry("notify.container", "notify.container", 0, ""),
+		Entry("notify-healthy.container", "notify-healthy.container", 0, ""),
 		Entry("oneshot.container", "oneshot.container", 0, ""),
 		Entry("other-sections.container", "other-sections.container", 0, ""),
 		Entry("podmanargs.container", "podmanargs.container", 0, ""),

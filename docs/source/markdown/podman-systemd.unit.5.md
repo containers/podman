@@ -496,6 +496,10 @@ starts the child in the container. However, if the container application support
 `Notify` to true passes the notification details to the container allowing it to notify
 of startup on its own.
 
+In addition, setting `Notify` to `healthy` will postpone startup notifications until such time as
+the container is marked healthy, as determined by Podman healthchecks. Note that this requires
+setting up a container healthcheck, see the `HealthCmd` option for more.
+
 ### `PidsLimit=`
 
 Tune the container's pids limit.
