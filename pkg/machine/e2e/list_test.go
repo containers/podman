@@ -94,7 +94,9 @@ var _ = Describe("podman machine list", func() {
 		s := new(startMachine)
 		startSession, err := mb.setCmd(s).runWithoutWait()
 		Expect(err).ToNot(HaveOccurred())
-		for i := 0; i < 30; i++ {
+		wait := 3
+		retries := (int)(mb.timeout/time.Second) / wait
+		for i := 0; i < retries; i++ {
 			listSession, err := mb.setCmd(l).run()
 			Expect(listSession).To(Exit(0))
 			Expect(err).ToNot(HaveOccurred())
@@ -103,7 +105,7 @@ var _ = Describe("podman machine list", func() {
 			} else {
 				break
 			}
-			time.Sleep(3 * time.Second)
+			time.Sleep(time.Duration(wait) * time.Second)
 		}
 		Expect(startSession).To(Exit(0))
 		listSession, err = mb.setCmd(l).run()
