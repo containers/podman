@@ -48,6 +48,13 @@ t POST   libpod/kube/play $YAML 200 \
   .Pods[0].ContainerErrors=null \
   .Pods[0].Containers[0]~[0-9a-f]\\{64\\}
 
+t POST   libpod/kube/play $YAML 500
+
+t POST   'libpod/kube/play?replace=true' $YAML 200 \
+  .Pods[0].ID~[0-9a-f]\\{64\\} \
+  .Pods[0].ContainerErrors=null \
+  .Pods[0].Containers[0]~[0-9a-f]\\{64\\}
+
 t DELETE libpod/kube/play $YAML 200 \
   .StopReport[0].Id~[0-9a-f]\\{64\\} \
   .RmReport[0].Id~[0-9a-f]\\{64\\}
