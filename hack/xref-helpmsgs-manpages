@@ -85,7 +85,7 @@ for my $line (split "\n", $Format_Exceptions) {
 # added, with a --format option that does not autocomplete '{{.',
 # let's make sure it gets extra eyeballs.
 my %Format_Option_Is_Special = map { $_ => 1 } (
-    'build',  'image build',                    # oci | docker
+    'build',  'farm build', 'image build',      # oci | docker
     'commit', 'container commit',               #  "  "  " "
     'diff',   'container diff', 'image diff',   # only supports "json"
     'generate systemd',                         #  "    "  "      "
