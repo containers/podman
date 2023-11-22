@@ -19,6 +19,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	// defaultQMPTimeout is the timeout duration for the
+	// qmp monitor interactions.
+	defaultQMPTimeout = 2 * time.Second
+)
+
 type QEMUVirtualization struct {
 	machine.Virtualization
 }
@@ -238,14 +244,8 @@ func getVMInfos() ([]*machine.ListResponse, error) {
 			if err != nil {
 				return err
 			}
-			err = json.Unmarshal(b, vm)
-			if err != nil {
-				// Checking if the file did not unmarshal because it is using
-				// the deprecated config file format.
-				migrateErr := migrateVM(fullPath, b, vm)
-				if migrateErr != nil {
-					return migrateErr
-				}
+			if err = json.Unmarshal(b, vm); err != nil {
+				return err
 			}
 			listEntry := new(machine.ListResponse)
 
@@ -400,53 +400,3 @@ func VirtualizationProvider() machine.VirtProvider {
 		machine.NewVirtualization(define.Qemu, compression.Xz, define.Qcow, vmtype),
 	}
 }
-
-// Deprecated: MachineVMV1 is being deprecated in favor a more flexible and informative
-// structure
-type MachineVMV1 struct {
-	// CPUs to be assigned to the VM
-	CPUs uint64
-	// The command line representation of the qemu command
-	CmdLine []string
-	// Mounts is the list of remote filesystems to mount
-	Mounts []machine.Mount
-	// IdentityPath is the fq path to the ssh priv key
-	IdentityPath string
-	// IgnitionFilePath is the fq path to the .ign file
-	IgnitionFilePath string
-	// ImageStream is the update stream for the image
-	ImageStream string
-	// ImagePath is the fq path to
-	ImagePath string
-	// Memory in megabytes assigned to the vm
-	Memory uint64
-	// Disk size in gigabytes assigned to the vm
-	DiskSize uint64
-	// Name of the vm
-	Name string
-	// SSH port for user networking
-	Port int
-	// QMPMonitor is the qemu monitor object for sending commands
-	QMPMonitor Monitorv1
-	// RemoteUsername of the vm user
-	RemoteUsername string
-	// Whether this machine should run in a rootful or rootless manner
-	Rootful bool
-	// UID is the numerical id of the user that called machine
-	UID int
-}
-
-type Monitorv1 struct {
-	//	Address portion of the qmp monitor (/tmp/tmp.sock)
-	Address string
-	// Network portion of the qmp monitor (unix)
-	Network string
-	// Timeout in seconds for qmp monitor transactions
-	Timeout time.Duration
-}
-
-var (
-	// defaultQMPTimeout is the timeout duration for the
-	// qmp monitor interactions.
-	defaultQMPTimeout = 2 * time.Second
-)
