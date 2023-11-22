@@ -4,6 +4,7 @@
 package libpod
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -146,7 +147,7 @@ func LabelVolumePath(path, mountLabel string) error {
 	}
 
 	if err := lvpRelabel(path, mountLabel, true); err != nil {
-		if err == syscall.ENOTSUP {
+		if errors.Is(err, unix.ENOTSUP) {
 			logrus.Debugf("Labeling not supported on %q", path)
 		} else {
 			return fmt.Errorf("setting selinux label for %s to %q as shared: %w", path, mountLabel, err)

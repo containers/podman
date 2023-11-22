@@ -355,4 +355,31 @@ EOF
     is "$output" "$user:system_r:container_t:$level" "Confined with role override label Correctly"
 }
 
+@test "podman selinux: check unsupported relabel" {
+    skip_if_no_selinux
+    skip_if_rootless
+
+    LABEL="system_u:object_r:tmp_t:s0"
+    RELABEL="system_u:object_r:container_file_t:s0"
+    tmpdir=$PODMAN_TMPDIR/vol
+    mkdir -p $tmpdir
+
+    mount --type tmpfs -o "context=\"$LABEL\"" tmpfs $tmpdir
+
+    run ls -dZ ${tmpdir}
+    is "$output" "${LABEL} ${tmpdir}" "No Relabel Correctly"
+    run_podman run --rm -v $tmpdir:/test:z --privileged $IMAGE true
+    run ls -dZ $tmpdir
+    is "$output" "${LABEL} $tmpdir" "Ignored shared relabel Correctly"
+
+    run_podman run --rm -v $tmpdir:/test:Z --privileged $IMAGE true
+    run ls -dZ $tmpdir
+    is "$output" "${LABEL} $tmpdir" "Ignored private relabel Correctly"}
+    umount $tmpdir
+
+    run_podman run --rm -v $tmpdir:/test:z --privileged $IMAGE true
+    run ls -dZ $tmpdir
+    is "$output" "${RELABEL} $tmpdir" "Ignored private relabel Correctly"}
+}
+
 # vim: filetype=sh

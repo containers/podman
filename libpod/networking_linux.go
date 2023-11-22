@@ -440,7 +440,10 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 		// this is important, otherwise the iptables command will fail
 		err = label.Relabel(runDir, "system_u:object_r:iptables_var_run_t:s0", false)
 		if err != nil {
-			return nil, fmt.Errorf("could not create relabel rootless-netns run directory: %w", err)
+			if !errors.Is(err, unix.ENOTSUP) {
+				return nil, fmt.Errorf("could not create relabel rootless-netns run directory: %w", err)
+			}
+			logrus.Debugf("Labeling not supported on %q", runDir)
 		}
 		// create systemd run directory
 		err = os.MkdirAll(filepath.Join(runDir, "systemd"), 0700)
