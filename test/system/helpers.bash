@@ -201,6 +201,34 @@ function basic_setup() {
     # Test filenames must match ###-name.bats; use "[###] " as prefix
     run expr "$BATS_TEST_FILENAME" : "^.*/\([0-9]\{3\}\)-[^/]\+\.bats\$"
     BATS_TEST_NAME_PREFIX="[${output}] "
+
+    # By default, assert() and die() cause an immediate test failure.
+    # Under special circumstances (usually long test loops), tests
+    # can call defer-assertion-failures() to continue going, the
+    # idea being that a large number of failures can show patterns.
+    ASSERTION_FAILURES=
+    immediate-assertion-failures
+}
+
+function immediate-assertion-failures() {
+    function bail-now() {
+        # "false" does not apply to "bail now"! It means "nonzero exit",
+        # which BATS interprets as "yes, bail immediately".
+        false
+    }
+
+    # Any backlog?
+    if [[ -n "$ASSERTION_FAILURES" ]]; then
+        local n=${#ASSERTION_FAILURES}
+        ASSERTION_FAILURES=
+        die "$n test assertions failed. Search for 'FAIL:' above this line." >&2
+    fi
+}
+
+function defer-assertion-failures() {
+    function bail-now() {
+        ASSERTION_FAILURES+="!"
+    }
 }
 
 # Basic teardown: remove all pods and containers
@@ -237,6 +265,7 @@ function basic_teardown() {
     done
 
     command rm -rf $PODMAN_TMPDIR
+    immediate-assertion-failures
 }
 
 
@@ -745,7 +774,7 @@ function die() {
     echo "#/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"  >&2
     echo "#| FAIL: $*"                                           >&2
     echo "#\\^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" >&2
-    false
+    bail-now
 }
 
 ############
@@ -861,7 +890,7 @@ function assert() {
         printf "#|         > %s%s\n" "$ws" "$line"                >&2
     done
     printf "#\\^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n"   >&2
-    false
+    bail-now
 }
 
 ########
@@ -911,7 +940,7 @@ function is() {
         printf "#|         > '%s'\n" "$line"                   >&2
     done
     printf "#\\^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n" >&2
-    false
+    bail-now
 }
 
 ####################

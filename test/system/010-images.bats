@@ -26,10 +26,12 @@ load helpers
 {{.Labels.created_at}}   | 20[0-9-]\\\+T[0-9:]\\\+Z
 "
 
-    parse_table "$tests" | while read fmt expect; do
+    defer-assertion-failures
+
+    while read fmt expect; do
         run_podman images --format "$fmt"
         is "$output" "$expect" "podman images --format '$fmt'"
-    done
+    done < <(parse_table "$tests")
 
     run_podman images --format "{{.ID}}" --no-trunc
     is "$output" "sha256:[0-9a-f]\\{64\\}\$" "podman images --no-trunc"
@@ -49,12 +51,11 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
 
     run_podman images -a --format json
 
-    parse_table "$tests" | while read field expect; do
+    while read field expect; do
         actual=$(echo "$output" | jq -r ".[0].$field")
         dprint "# actual=<$actual> expect=<$expect}>"
         is "$actual" "$expect" "jq .$field"
-    done
-
+    done < <(parse_table "$tests")
 }
 
 @test "podman images - history output" {

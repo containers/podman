@@ -21,6 +21,8 @@ echo $rand        |   0 | $rand
 /etc              | 126 | $err_no_exec_dir
 "
 
+    defer-assertion-failures
+
     tests_run=0
     while read cmd expected_rc expected_output; do
         if [ "$expected_output" = "''" ]; then expected_output=""; fi
@@ -389,6 +391,9 @@ journald  | -
 k8s-file  | y
 json-file | f
 "
+
+    defer-assertion-failures
+
     while read driver do_check; do
         msg=$(random_string 15)
         run_podman run --name myctr --log-driver $driver $IMAGE echo $msg
@@ -1284,6 +1289,8 @@ search               | $IMAGE           |
 
     bogus=$PODMAN_TMPDIR/bogus-authfile
     touch $PODMAN_TMPDIR/Containerfile
+
+    defer-assertion-failures
 
     while read command args local_only;do
         # skip commands that don't work in podman-remote

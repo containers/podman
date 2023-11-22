@@ -167,6 +167,9 @@ load helpers
 }
 
 @test "podman exec --tty" {
+    # Run all tests, report failures at end
+    defer-assertion-failures
+
     # Outer loops: different variations on the RUN container
     for run_opt_t in "" "-t"; do
         for run_term_env in "" "explicit_RUN_term"; do

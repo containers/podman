@@ -47,6 +47,8 @@ load helpers
 0 | subdir               | /srv/subdir/hostfile0 | copy to workdir/subdir
 "
 
+    defer-assertion-failures
+
     # RUNNING container
     while read id dest dest_fullname description; do
         run_podman cp $srcdir/hostfile$id destrunning:$dest
@@ -192,6 +194,8 @@ load helpers
 2 | subdir/containerfile2 | /        | /containerfile2 | copy from workdir/subdir (rel path) to srcdir
 "
 
+    defer-assertion-failures
+
     # RUNNING container
     while read id src dest dest_fullname description; do
         # dest may be "''" for empty table cells
@@ -250,6 +254,8 @@ load helpers
 1 | containerfile1        | /        | /containerfile1 | copy from workdir (rel path) to /
 2 | subdir/containerfile2 | /        | /containerfile2 | copy from workdir/subdir (rel path) to /
 "
+
+    defer-assertion-failures
 
     # From RUNNING container
     local -a destcontainers=()
@@ -342,6 +348,8 @@ load helpers
  dir/.     | /newdir3 | /newdir3/sub | copy dir/. to newdir3
 "
 
+    defer-assertion-failures
+
     # RUNNING container
     while read src dest dest_fullname description; do
         run_podman cp $srcdir/$src destrunning:$dest
@@ -399,6 +407,8 @@ load helpers
 /srv/subdir/. |         |                | copy /srv/subdir/.
 /tmp/subdir.  |         | /subdir.       | copy /tmp/subdir.
 "
+
+    defer-assertion-failures
 
     # RUNNING container
     while read src dest dest_fullname description; do
@@ -466,6 +476,8 @@ load helpers
 /srv/subdir/. | /       |                | copy /srv/subdir/.
 /tmp/subdir.  | /       | /subdir.       | copy /tmp/subdir.
 "
+
+    defer-assertion-failures
 
     # From RUNNING container
     local -a destcontainers=()
