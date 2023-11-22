@@ -1,5 +1,5 @@
 ####> This option file is used in:
-####>   podman build, container runlabel, kube play, manifest add, manifest push, pull, push, search
+####>   podman build, container runlabel, farm build, kube play, manifest add, manifest push, pull, push, search
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--creds**=*[username[:password]]*

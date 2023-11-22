@@ -1,5 +1,5 @@
 ####> This option file is used in:
-####>   podman create, run
+####>   podman build, create, farm build, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--group-add**=*group* | *keep-groups*
