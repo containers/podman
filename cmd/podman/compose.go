@@ -19,6 +19,7 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/machine/provider"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -184,7 +185,7 @@ func composeDockerHost() (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("inspecting machine: %w", err)
 		}
-		if info.State != machine.Running {
+		if info.State != define.Running {
 			return "", fmt.Errorf("machine %s is not running but in state %s", item.Name, info.State)
 		}
 		if machineProvider.VMType() == machine.WSLVirt {

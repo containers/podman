@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +13,9 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/compression"
 	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/machine/qemu/command"
+	"github.com/containers/podman/v4/pkg/machine/sockets"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/utils"
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
@@ -59,7 +61,7 @@ func (v *MachineVM) setQMPMonitorSocket() error {
 // setNewMachineCMD configure the CLI command that will be run to create the new
 // machine
 func (v *MachineVM) setNewMachineCMD(qemuBinary string, cmdOpts *setNewMachineCMDOpts) {
-	v.CmdLine = NewQemuBuilder(qemuBinary, v.addArchOptions(cmdOpts))
+	v.CmdLine = command.NewQemuBuilder(qemuBinary, v.addArchOptions(cmdOpts))
 	v.CmdLine.SetMemory(v.Memory)
 	v.CmdLine.SetCPUs(v.CPUs)
 	v.CmdLine.SetIgnitionFile(v.IgnitionFile)
@@ -67,69 +69,6 @@ func (v *MachineVM) setNewMachineCMD(qemuBinary string, cmdOpts *setNewMachineCM
 	v.CmdLine.SetNetwork()
 	v.CmdLine.SetSerialPort(v.ReadySocket, v.VMPidFilePath, v.Name)
 	v.CmdLine.SetUSBHostPassthrough(v.USBs)
-}
-
-func parseUSBs(usbs []string) ([]machine.USBConfig, error) {
-	configs := []machine.USBConfig{}
-	for _, str := range usbs {
-		if str == "" {
-			// Ignore --usb="" as it can be used to reset USBConfigs
-			continue
-		}
-
-		vals := strings.Split(str, ",")
-		if len(vals) != 2 {
-			return configs, fmt.Errorf("usb: fail to parse: missing ',': %s", str)
-		}
-
-		left := strings.Split(vals[0], "=")
-		if len(left) != 2 {
-			return configs, fmt.Errorf("usb: fail to parse: missing '=': %s", str)
-		}
-
-		right := strings.Split(vals[1], "=")
-		if len(right) != 2 {
-			return configs, fmt.Errorf("usb: fail to parse: missing '=': %s", str)
-		}
-
-		option := left[0] + "_" + right[0]
-
-		switch option {
-		case "bus_devnum", "devnum_bus":
-			bus, devnumber := left[1], right[1]
-			if right[0] == "bus" {
-				bus, devnumber = devnumber, bus
-			}
-
-			configs = append(configs, machine.USBConfig{
-				Bus:       bus,
-				DevNumber: devnumber,
-			})
-		case "vendor_product", "product_vendor":
-			vendorStr, productStr := left[1], right[1]
-			if right[0] == "vendor" {
-				vendorStr, productStr = productStr, vendorStr
-			}
-
-			vendor, err := strconv.ParseInt(vendorStr, 16, 0)
-			if err != nil {
-				return configs, fmt.Errorf("usb: fail to convert vendor of %s: %s", str, err)
-			}
-
-			product, err := strconv.ParseInt(productStr, 16, 0)
-			if err != nil {
-				return configs, fmt.Errorf("usb: fail to convert product of %s: %s", str, err)
-			}
-
-			configs = append(configs, machine.USBConfig{
-				Vendor:  int(vendor),
-				Product: int(product),
-			})
-		default:
-			return configs, fmt.Errorf("usb: fail to parse: %s", str)
-		}
-	}
-	return configs, nil
 }
 
 // NewMachine initializes an instance of a virtual machine based on the qemu
@@ -169,7 +108,7 @@ func (p *QEMUVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, e
 	vm.CPUs = opts.CPUS
 	vm.Memory = opts.Memory
 	vm.DiskSize = opts.DiskSize
-	if vm.USBs, err = parseUSBs(opts.USBs); err != nil {
+	if vm.USBs, err = command.ParseUSBs(opts.USBs); err != nil {
 		return nil, err
 	}
 
@@ -195,7 +134,7 @@ func (p *QEMUVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, e
 		return nil, err
 	}
 	symlink := vm.Name + "_ready.sock"
-	if err := machine.SetSocket(&vm.ReadySocket, machine.ReadySocketPath(runtimeDir+"/podman/", vm.Name), &symlink); err != nil {
+	if err := sockets.SetSocket(&vm.ReadySocket, sockets.ReadySocketPath(runtimeDir+"/podman/", vm.Name), &symlink); err != nil {
 		return nil, err
 	}
 
@@ -209,7 +148,7 @@ func (p *QEMUVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, e
 // and returns a vm instance
 func (p *QEMUVirtualization) LoadVMByName(name string) (machine.VM, error) {
 	vm := &MachineVM{Name: name}
-	vm.HostUser = machine.HostUser{UID: -1} // posix reserves -1, so use it to signify undefined
+	vm.HostUser = vmconfigs.HostUser{UID: -1} // posix reserves -1, so use it to signify undefined
 	if err := vm.update(); err != nil {
 		return nil, err
 	}
@@ -274,7 +213,7 @@ func getVMInfos() ([]*machine.ListResponse, error) {
 			if err != nil {
 				return err
 			}
-			listEntry.Running = state == machine.Running
+			listEntry.Running = state == define.Running
 			listEntry.LastUp = vm.LastUp
 
 			listed = append(listed, listEntry)

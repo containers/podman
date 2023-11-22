@@ -18,6 +18,7 @@ import (
 	"github.com/containers/common/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/compression"
 	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
@@ -43,17 +44,7 @@ type InitOptions struct {
 	USBs               []string
 }
 
-type Status = string
-
 const (
-	// Running indicates the qemu vm is running.
-	Running Status = "running"
-	// Stopped indicates the vm has stopped.
-	Stopped Status = "stopped"
-	// Starting indicated the vm is in the process of starting
-	Starting Status = "starting"
-	// Unknown means the state is not known
-	Unknown            Status = "unknown"
 	DefaultMachineName string = "podman-machine-default"
 	apiUpTimeout              = 20 * time.Second
 )
@@ -139,7 +130,7 @@ type VM interface {
 	Set(name string, opts SetOptions) ([]error, error)
 	SSH(name string, opts SSHOptions) error
 	Start(name string, opts StartOptions) error
-	State(bypass bool) (Status, error)
+	State(bypass bool) (define.Status, error)
 	Stop(name string, opts StopOptions) error
 }
 
@@ -173,9 +164,9 @@ type InspectInfo struct {
 	Image              ImageConfig
 	LastUp             time.Time
 	Name               string
-	Resources          ResourceConfig
-	SSHConfig          SSHConfig
-	State              Status
+	Resources          vmconfigs.ResourceConfig
+	SSHConfig          vmconfigs.SSHConfig
+	State              define.Status
 	UserModeNetworking bool
 	Rootful            bool
 }
@@ -274,33 +265,6 @@ func ConfDirPrefix() (string, error) {
 	return confDir, nil
 }
 
-type USBConfig struct {
-	Bus       string
-	DevNumber string
-	Vendor    int
-	Product   int
-}
-
-// ResourceConfig describes physical attributes of the machine
-type ResourceConfig struct {
-	// CPUs to be assigned to the VM
-	CPUs uint64
-	// Disk size in gigabytes assigned to the vm
-	DiskSize uint64
-	// Memory in megabytes assigned to the vm
-	Memory uint64
-	// Usbs
-	USBs []USBConfig
-}
-
-type Mount struct {
-	ReadOnly bool
-	Source   string
-	Tag      string
-	Target   string
-	Type     string
-}
-
 // ImageConfig describes the bootable image for the VM
 type ImageConfig struct {
 	// IgnitionFile is the path to the filesystem where the
@@ -310,26 +274,6 @@ type ImageConfig struct {
 	ImageStream string
 	// ImageFile is the fq path to
 	ImagePath define.VMFile `json:"ImagePath"`
-}
-
-// HostUser describes the host user
-type HostUser struct {
-	// Whether this machine should run in a rootful or rootless manner
-	Rootful bool
-	// UID is the numerical id of the user that called machine
-	UID int
-	// Whether one of these fields has changed and actions should be taken
-	Modified bool `json:"HostUserModified"`
-}
-
-// SSHConfig contains remote access information for SSH
-type SSHConfig struct {
-	// IdentityPath is the fq path to the ssh priv key
-	IdentityPath string
-	// SSH port for user networking
-	Port int
-	// RemoteUsername of the vm user
-	RemoteUsername string
 }
 
 // ConnectionConfig contains connections like sockets, etc.

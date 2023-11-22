@@ -20,6 +20,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/pkg/machine/wsl/wutil"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
@@ -298,7 +299,7 @@ type MachineVM struct {
 	// Whether this machine should run in a rootful or rootless manner
 	Rootful bool
 	// SSH identity, username, etc
-	machine.SSHConfig
+	vmconfigs.SSHConfig
 	// machine version
 	Version int
 	// Whether to use user-mode networking
@@ -1526,12 +1527,12 @@ func unregisterDist(dist string) error {
 	return cmd.Run()
 }
 
-func (v *MachineVM) State(bypass bool) (machine.Status, error) {
+func (v *MachineVM) State(bypass bool) (define.Status, error) {
 	if v.isRunning() {
-		return machine.Running, nil
+		return define.Running, nil
 	}
 
-	return machine.Stopped, nil
+	return define.Stopped, nil
 }
 
 func stopWinProxy(v *MachineVM) error {
@@ -1808,7 +1809,7 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
 	machinePipe := toDist(v.Name)
 	connInfo.PodmanPipe = &define.VMFile{Path: `\\.\pipe\` + machinePipe}
 
-	created, lastUp, _ := v.updateTimeStamps(state == machine.Running)
+	created, lastUp, _ := v.updateTimeStamps(state == define.Running)
 	return &machine.InspectInfo{
 		ConfigPath:     define.VMFile{Path: v.ConfigPath},
 		ConnectionInfo: *connInfo,
@@ -1827,7 +1828,7 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
 	}, nil
 }
 
-func (v *MachineVM) getResources() (resources machine.ResourceConfig) {
+func (v *MachineVM) getResources() (resources vmconfigs.ResourceConfig) {
 	resources.CPUs, _ = getCPUs(v)
 	resources.Memory, _ = getMem(v)
 	resources.DiskSize = getDiskSize(v)

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -108,7 +109,7 @@ var _ = Describe("podman machine init", func() {
 		Expect(ec).To(BeZero())
 		Expect(inspectBefore).ToNot(BeEmpty())
 		Expect(inspectAfter).ToNot(BeEmpty())
-		Expect(inspectAfter[0].State).To(Equal(machine.Running))
+		Expect(inspectAfter[0].State).To(Equal(define.Running))
 
 		if isWSL() { // WSL does not use FCOS
 			return

@@ -10,10 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 
-	"github.com/containers/common/libnetwork/etchosts"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/sirupsen/logrus"
 )
@@ -28,7 +25,6 @@ import (
 */
 
 const (
-	UserCertsTargetPath     = "/etc/containers/certs.d"
 	PodmanDockerTmpConfPath = "/etc/tmpfiles.d/podman-docker.conf"
 )
 
@@ -615,7 +611,7 @@ func prepareCertFile(path string, name string) (File, error) {
 		return File{}, err
 	}
 
-	targetPath := filepath.Join(UserCertsTargetPath, name)
+	targetPath := filepath.Join(define.UserCertsTargetPath, name)
 
 	logrus.Debugf("Copying cert file from '%s' to '%s'.", path, targetPath)
 
@@ -634,22 +630,6 @@ func prepareCertFile(path string, name string) (File, error) {
 		},
 	}
 	return file, nil
-}
-
-func GetProxyVariables() map[string]string {
-	proxyOpts := make(map[string]string)
-	for _, variable := range config.ProxyEnv {
-		if value, ok := os.LookupEnv(variable); ok {
-			if value == "" {
-				continue
-			}
-
-			v := strings.ReplaceAll(value, "127.0.0.1", etchosts.HostContainersInternal)
-			v = strings.ReplaceAll(v, "localhost", etchosts.HostContainersInternal)
-			proxyOpts[variable] = v
-		}
-	}
-	return proxyOpts
 }
 
 func getLinks(usrName string) []Link {

@@ -1,14 +1,16 @@
 //go:build darwin
 // +build darwin
 
-package applehv
+package vfkit
 
 import (
 	"errors"
 	"fmt"
 
-	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
 )
+
+type Endpoint string
 
 // VZMachineState is what the restful service in vfkit will return
 type VZMachineState string
@@ -26,14 +28,14 @@ const (
 	VZMachineStateStopping VZMachineState = "VirtualMachineStateStopping"
 )
 
-func ToMachineStatus(val string) (machine.Status, error) {
+func ToMachineStatus(val string) (define.Status, error) {
 	switch val {
 	case string(VZMachineStateRunning), string(VZMachineStatePausing), string(VZMachineStateResuming), string(VZMachineStateStopping), string(VZMachineStatePaused):
-		return machine.Running, nil
+		return define.Running, nil
 	case string(VZMachineStateStopped):
-		return machine.Stopped, nil
+		return define.Stopped, nil
 	case string(VZMachineStateStarting):
-		return machine.Starting, nil
+		return define.Starting, nil
 	case string(VZMachineStateError):
 		return "", errors.New("machine is in error state")
 	}
