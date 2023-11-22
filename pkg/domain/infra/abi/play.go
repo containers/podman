@@ -714,6 +714,11 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		podSpec.PodSpecGen.ServiceContainerID = serviceContainer.ID()
 	}
 
+	if options.Replace {
+		if _, err := ic.PodRm(ctx, []string{podName}, entities.PodRmOptions{Force: true, Ignore: true}); err != nil {
+			return nil, nil, fmt.Errorf("replacing pod %v: %w", podName, err)
+		}
+	}
 	// Create the Pod
 	pod, err := generate.MakePod(&podSpec, ic.Libpod)
 	if err != nil {
