@@ -209,7 +209,7 @@ Valid options for `[Container]` are listed below:
 | Timezone=local                       | --tz local                                           |
 | Tmpfs=/work                          | --tmpfs /work                                        |
 | UIDMap=0:10000:10                    | --uidmap=0:10000:10                                  |
-| Ulimit=nofile:1000:10000             | --ulimit nofile:1000:10000                           |
+| Ulimit=nofile=1000:10000             | --ulimit nofile=1000:10000                           |
 | User=bin                             | --user bin                                           |
 | UserNS=keep-id:uid=200,gid=210       | --userns keep-id:uid=200,gid=210                     |
 | Volume=/source:/dest                 | --volume /source:/dest                               |
