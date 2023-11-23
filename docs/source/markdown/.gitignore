@@ -9,6 +9,7 @@ podman-container-runlabel.1.md
 podman-create.1.md
 podman-diff.1.md
 podman-exec.1.md
+podman-farm-build.1.md
 podman-image-sign.1.md
 podman-image-trust.1.md
 podman-images.1.md
