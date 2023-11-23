@@ -2,8 +2,8 @@
 
 ## 4.8.0
 ### Features
-- A new command, `podman farm build`, has been added, which sends out builds to nodes defined in the farm, builds the images on the farm nodes, and pulls them back to the local machine to create a manifest list.
 - Podman machine now supports HyperV as a provider on Windows. This option can be set via the `CONTAINERS_MACHINE_PROVIDER` environment variable, or via containers.conf. HyperV requires Powershell to be run as Admin. Note that running WSL and HyperV machines at the same time is not supported.
+- The `podman build` command now supports Containerfiles with heredoc syntax.
 - The `podman login` and `podman logout` commands now support a new option, `--compat-auth-file`, which allows for editing Docker-compatible config files ([#18617](https://github.com/containers/podman/issues/18617)).
 - The `podman machine init` and `podman machine set` commands now support a new option, `--usb`, which sets allows USB passthrough for the QEMU provider ([#16707](https://github.com/containers/podman/issues/16707)).
 - The `--ulimit` option now supports setting -1 to indicate the maximum limit allowed for the current process ([#19319](https://github.com/containers/podman/issues/19319)).
