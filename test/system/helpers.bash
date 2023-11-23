@@ -1139,5 +1139,33 @@ function sleep_to_next_second() {
     sleep 0.$(printf '%04d' $((10000 - 10#$(date +%4N))))
 }
 
+function wait_for_command_output() {
+    local cmd="$1"
+    local want="$2"
+    local tries=20
+    local sleep_delay=0.5
+
+    case "${#*}" in
+        2) ;;
+        4) tries="$3"
+           sleep_delay="$4"
+           ;;
+        *) die "Internal error: 'wait_for_command_output' requires two or four arguments" ;;
+    esac
+
+    while [[ $tries -gt 0 ]]; do
+        echo "$_LOG_PROMPT $cmd"
+        run $cmd
+        echo "$output"
+        if [[ "$output" = "$want" ]]; then
+            return
+        fi
+
+        sleep $sleep_delay
+        tries=$((tries - 1))
+    done
+    die "Timed out waiting for '$cmd' to return '$want'"
+}
+
 # END   miscellaneous tools
 ###############################################################################

@@ -1412,4 +1412,62 @@ EOF
     run_podman rmi --ignore $(pause_image)
 }
 
+@test "quadlet - pod simple" {
+    local quadlet_tmpdir=$PODMAN_TMPDIR/quadlets
+
+    local test_pod_name=pod_test_$(random_string)
+    local quadlet_pod_unit=$test_pod_name.pod
+    local quadlet_pod_file=$PODMAN_TMPDIR/$quadlet_pod_unit
+    cat > $quadlet_pod_file <<EOF
+[Pod]
+PodName=$test_pod_name
+EOF
+
+    local quadlet_container_unit=pod_test_$(random_string).container
+    local quadlet_container_file=$PODMAN_TMPDIR/$quadlet_container_unit
+    cat > $quadlet_container_file <<EOF
+[Container]
+Image=$IMAGE
+Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; sleep inf"
+Pod=$quadlet_pod_unit
+EOF
+
+    # Use the same directory for all quadlet files to make sure later steps access previous ones
+    mkdir $quadlet_tmpdir
+
+    # Have quadlet create the systemd unit file for the pod unit
+    run_quadlet "$quadlet_pod_file" "$quadlet_tmpdir"
+    # Save the pod service name since the variable will be overwritten
+    local pod_service=$QUADLET_SERVICE_NAME
+
+    # Have quadlet create the systemd unit file for the container unit
+    run_quadlet "$quadlet_container_file" "$quadlet_tmpdir"
+    local container_service=$QUADLET_SERVICE_NAME
+    local container_name=$QUADLET_CONTAINER_NAME
+
+    # Start the pod service
+    service_setup $pod_service
+
+    # Pod should exist
+    run_podman pod exists ${test_pod_name}
+
+    # Wait for systemd to activate the container service
+    wait_for_command_output "systemctl show --property=ActiveState $container_service" "ActiveState=active"
+
+    # Container should exist
+    run_podman container exists ${container_name}
+
+    # Shutdown the service
+    service_cleanup $pod_service inactive
+
+    # The service of the container should be active
+    run systemctl show --property=ActiveState "$container_service"
+    assert "ActiveState=failed" \
+           "quadlet - pod base: container service ActiveState"
+
+    # Container should not exist
+    run_podman 1 container exists ${container_name}
+
+    run_podman rmi $(pause_image)
+}
 # vim: filetype=sh

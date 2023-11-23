@@ -1,0 +1,4 @@
+## assert-podman-pre-args "--name=test-pod"
+
+[Pod]
+PodName=test-pod

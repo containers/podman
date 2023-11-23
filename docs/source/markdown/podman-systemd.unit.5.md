@@ -6,7 +6,7 @@ podman\-systemd.unit - systemd units using Podman Quadlet
 
 ## SYNOPSIS
 
-*name*.container, *name*.volume, *name*.network, *name*.kube *name*.image
+*name*.container, *name*.volume, *name*.network, *name*.kube *name*.image, *name*.pod
 
 ### Podman unit search path
 
@@ -35,12 +35,10 @@ the [Service] table and [Install] tables pass directly to systemd and are handle
 See systemd.unit(5) man page for more information.
 
 The Podman generator reads the search paths above and reads files with the extensions `.container`
-`.volume` and `*.kube`, and for each file generates a similarly named `.service` file. Be aware that
+`.volume`, `.network`, `.pod` and `.kube`, and for each file generates a similarly named `.service` file. Be aware that
 existing vendor services (i.e., in `/usr/`) are replaced if they have the same name. The generated unit files can
 be started and managed with `systemctl` like any other systemd service. `systemctl {--user} list-unit-files`
 lists existing unit files on the system.
-
-Files with the `.network` extension are only read if they are mentioned in a `.container` file. See the `Network=` key.
 
 The Podman files use the same format as [regular systemd unit files](https://www.freedesktop.org/software/systemd/man/systemd.syntax.html).
 Each file type has a custom section (for example, `[Container]`) that is handled by Podman, and all
@@ -72,7 +70,8 @@ Quadlet requires the use of cgroup v2, use `podman info --format {{.Host.Cgroups
 ### Service Type
 
 By default, the `Type` field of the `Service` section of the Quadlet file does not need to be set.
-Quadlet will set it to `notify` for `.container` and `.kube` files and to `oneshot` for `.volume`, `.network` and `.image` files.
+Quadlet will set it to `notify` for `.container` and `.kube` files,
+`forking` for `.pod` files, and `oneshot` for `.volume`, `.network` and `.image` files.
 
 However, `Type` may be explicitly set to `oneshot` for `.container` and `.kube` files when no containers are expected
 to run once `podman` exits.
@@ -190,6 +189,7 @@ Valid options for `[Container]` are listed below:
 | Rootfs=/var/lib/rootfs               | --rootfs /var/lib/rootfs                             |
 | Notify=true                          | --sdnotify container                                 |
 | PidsLimit=10000                      | --pids-limit 10000                                   |
+| Pod=pod-name                         | --pod=pod-name                                       |
 | PodmanArgs=--add-host foobar         | --add-host foobar                                    |
 | PublishPort=50-59                    | --publish 50-59                                      |
 | Pull=never                           | --pull=never                                         |
@@ -501,6 +501,14 @@ of startup on its own.
 Tune the container's pids limit.
 This is equivalent to the Podman `--pids-limit` option.
 
+### `Pod=`
+
+Specify a Quadlet `.pod` unit to link the container to.
+The value must take the form of `<name>.pod` and the `.pod` unit must exist.
+
+Quadlet will add all the necessary parameters to link between the container and the pod and between their corresponding services.
+
+
 ### `PodmanArgs=`
 
 This key contains a list of arguments passed directly to the end of the `podman run` command
@@ -657,6 +665,69 @@ This key can be listed multiple times.
 Working directory inside the container.
 
 The default working directory for running binaries within a container is the root directory (/). The image developer can set a different default with the WORKDIR instruction. This option overrides the working directory by using the -w option.
+
+## Pod units [Pod]
+
+Pod units are named with a `.pod` extension and contain a `[Pod]` section describing
+the pod that is created and run as a service. The resulting service file contains a line like
+`ExecStartPre=podman pod create …`, and most of the keys in this section control the command-line
+options passed to Podman.
+
+By default, the Podman pod has the same name as the unit, but with a `systemd-` prefix, i.e.
+a `$name.pod` file creates a `$name-pod.service` unit and a `systemd-$name` Podman pod. The
+`PodName` option allows for overriding this default name with a user-provided one.
+
+Valid options for `[Container]` are listed below:
+
+| **[Pod] options**                   | **podman container create equivalent** |
+|-------------------------------------|----------------------------------------|
+| ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                |
+| GlobalArgs=--log-level=debug        | --log-level=debug                      |
+| PodmanArgs=\-\-cpus=2               | --cpus=2                               |
+| PodName=name                        | --name=name                            |
+
+Supported keys in the `[Pod]` section are:
+
+### `ContainersConfModule=`
+
+Load the specified containers.conf(5) module. Equivalent to the Podman `--module` option.
+
+This key can be listed multiple times.
+
+### `GlobalArgs=`
+
+This key contains a list of arguments passed directly between `podman` and `kube`
+in the generated file (right before the image name in the command line). It can be used to
+access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, it is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
+
+### `PodmanArgs=`
+
+This key contains a list of arguments passed directly to the end of the `podman kube play` command
+in the generated file (right before the path to the yaml file in the command line). It can be used to
+access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
+
+### `PodName=`
+
+The (optional) name of the Podman pod. If this is not specified, the default value
+of `systemd-%N` is used, which is the same as the service name but with a `systemd-`
+prefix to avoid conflicts with user-managed containers.
+
+Please note that pods and containers cannot have the same name.
+So, if PodName is set, it must not conflict with any container.
 
 ## Kube units [Kube]
 
@@ -1293,6 +1364,22 @@ Subnet=172.16.0.0/24
 Gateway=172.16.0.1
 IPRange=172.16.0.0/28
 Label=org.test.Key=value
+```
+
+Example for Container in a Pod:
+
+`test.pod`
+```
+[Pod]
+PodName=test
+```
+
+`centos.container`
+```
+[Container]
+Image=quay.io/centos/centos:latest
+Exec=sh -c "sleep inf"
+Pod=test.pod
 ```
 
 ## SEE ALSO
