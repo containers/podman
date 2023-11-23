@@ -869,7 +869,7 @@ func (c *Container) mountNotifySocket(g generate.Generator) error {
 			return fmt.Errorf("unable to create notify %q dir: %w", notifyDir, err)
 		}
 	}
-	if err := label.Relabel(notifyDir, c.MountLabel(), true); err != nil {
+	if err := c.relabel(notifyDir, c.MountLabel(), true); err != nil {
 		return fmt.Errorf("relabel failed %q: %w", notifyDir, err)
 	}
 	logrus.Debugf("Add bindmount notify %q dir", notifyDir)
@@ -2288,7 +2288,7 @@ func (c *Container) bindMountRootFile(source, dest string) error {
 	if err := os.Chown(source, c.RootUID(), c.RootGID()); err != nil {
 		return err
 	}
-	if err := label.Relabel(source, c.MountLabel(), false); err != nil {
+	if err := c.relabel(source, c.MountLabel(), false); err != nil {
 		return err
 	}
 
@@ -2824,7 +2824,7 @@ func (c *Container) createSecretMountDir(runPath string) error {
 		if err := umask.MkdirAllIgnoreUmask(src, os.FileMode(0o755)); err != nil {
 			return err
 		}
-		if err := label.Relabel(src, c.config.MountLabel, false); err != nil {
+		if err := c.relabel(src, c.config.MountLabel, false); err != nil {
 			return err
 		}
 		if err := os.Chown(src, c.RootUID(), c.RootGID()); err != nil {
@@ -2927,7 +2927,12 @@ func (c *Container) relabel(src, mountLabel string, shared bool) error {
 			return nil
 		}
 	}
-	return label.Relabel(src, mountLabel, shared)
+	err := label.Relabel(src, mountLabel, shared)
+	if errors.Is(err, unix.ENOTSUP) {
+		logrus.Debugf("Labeling not supported on %q", src)
+		return nil
+	}
+	return err
 }
 
 func (c *Container) ChangeHostPathOwnership(src string, recurse bool, uid, gid int) error {
