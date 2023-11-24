@@ -115,8 +115,6 @@ type Runtime struct {
 	// mechanism to read and write even logs
 	eventer events.Eventer
 
-	// noStore indicates whether we need to interact with a store or not
-	noStore bool
 	// secretsManager manages secrets
 	secretsManager *secrets.SecretsManager
 }
@@ -350,9 +348,6 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	}
 	runtime.conmonPath = cPath
 
-	if runtime.noStore && runtime.doReset {
-		return fmt.Errorf("cannot perform system reset if runtime is not creating a store: %w", define.ErrInvalidArg)
-	}
 	if runtime.doReset && runtime.doRenumber {
 		return fmt.Errorf("cannot perform system reset while renumbering locks: %w", define.ErrInvalidArg)
 	}
@@ -462,8 +457,6 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	var store storage.Store
 	if needsUserns {
 		logrus.Debug("Not configuring container store")
-	} else if runtime.noStore {
-		logrus.Debug("No store required. Not opening container store.")
 	} else if err := runtime.configureStore(); err != nil {
 		// Make a best-effort attempt to clean up if performing a
 		// storage reset.

@@ -37,7 +37,6 @@ type engineOpts struct {
 	name     string
 	renumber bool
 	migrate  bool
-	noStore  bool
 	withFDS  bool
 	reset    bool
 	config   *entities.PodmanConfig
@@ -49,7 +48,6 @@ func GetRuntimeMigrate(ctx context.Context, fs *flag.FlagSet, cfg *entities.Podm
 		name:     newRuntime,
 		renumber: false,
 		migrate:  true,
-		noStore:  false,
 		withFDS:  true,
 		reset:    false,
 		config:   cfg,
@@ -61,7 +59,6 @@ func GetRuntimeDisableFDs(ctx context.Context, fs *flag.FlagSet, cfg *entities.P
 	return getRuntime(ctx, fs, &engineOpts{
 		renumber: false,
 		migrate:  false,
-		noStore:  false,
 		withFDS:  false,
 		reset:    false,
 		config:   cfg,
@@ -73,7 +70,6 @@ func GetRuntimeRenumber(ctx context.Context, fs *flag.FlagSet, cfg *entities.Pod
 	return getRuntime(ctx, fs, &engineOpts{
 		renumber: true,
 		migrate:  false,
-		noStore:  false,
 		withFDS:  true,
 		reset:    false,
 		config:   cfg,
@@ -86,7 +82,6 @@ func GetRuntime(ctx context.Context, flags *flag.FlagSet, cfg *entities.PodmanCo
 		runtimeLib, runtimeErr = getRuntime(ctx, flags, &engineOpts{
 			renumber: false,
 			migrate:  false,
-			noStore:  false,
 			withFDS:  true,
 			reset:    false,
 			config:   cfg,
@@ -95,23 +90,10 @@ func GetRuntime(ctx context.Context, flags *flag.FlagSet, cfg *entities.PodmanCo
 	return runtimeLib, runtimeErr
 }
 
-// GetRuntimeNoStore generates a new libpod runtime configured by command line options
-func GetRuntimeNoStore(ctx context.Context, fs *flag.FlagSet, cfg *entities.PodmanConfig) (*libpod.Runtime, error) {
-	return getRuntime(ctx, fs, &engineOpts{
-		renumber: false,
-		migrate:  false,
-		noStore:  true,
-		withFDS:  true,
-		reset:    false,
-		config:   cfg,
-	})
-}
-
 func GetRuntimeReset(ctx context.Context, fs *flag.FlagSet, cfg *entities.PodmanConfig) (*libpod.Runtime, error) {
 	return getRuntime(ctx, fs, &engineOpts{
 		renumber: false,
 		migrate:  false,
-		noStore:  false,
 		withFDS:  true,
 		reset:    true,
 		config:   cfg,
@@ -208,9 +190,6 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 		options = append(options, libpod.WithStorageConfig(storageOpts))
 	}
 
-	if !storageSet && opts.noStore {
-		options = append(options, libpod.WithNoStore())
-	}
 	// TODO CLI flags for image config?
 	// TODO CLI flag for signature policy?
 
