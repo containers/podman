@@ -365,15 +365,6 @@ func WithTmpDir(dir string) RuntimeOption {
 	}
 }
 
-// WithNoStore sets a bool on the runtime that we do not need
-// any containers storage.
-func WithNoStore() RuntimeOption {
-	return func(rt *Runtime) error {
-		rt.noStore = true
-		return nil
-	}
-}
-
 // WithNoPivotRoot sets the runtime to use MS_MOVE instead of PIVOT_ROOT when
 // starting containers.
 func WithNoPivotRoot() RuntimeOption {
