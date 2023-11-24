@@ -150,7 +150,7 @@ func resolveEventSock() ([]string, error) {
 }
 
 func eventSockDir() (string, error) {
-	xdg, err := util.GetRuntimeDir()
+	xdg, err := util.GetRootlessRuntimeDir()
 	if err != nil {
 		return "", err
 	}

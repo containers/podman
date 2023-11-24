@@ -7,7 +7,7 @@
 
 A Go package for managing the registration, marshaling, and unmarshaling of encoded types.
 
-This package helps when types are sent over a GRPC API and marshaled as a [protobuf.Any](https://github.com/gogo/protobuf/blob/master/protobuf/google/protobuf/any.proto).
+This package helps when types are sent over a ttrpc/GRPC API and marshaled as a protobuf [Any](https://pkg.go.dev/google.golang.org/protobuf@v1.27.1/types/known/anypb#Any)
 
 ## Project details
 

@@ -9,5 +9,5 @@ func getRuntimeDir() (string, error) {
 	if !rootless.IsRootless() {
 		return "/run", nil
 	}
-	return util.GetRuntimeDir()
+	return util.GetRootlessRuntimeDir()
 }

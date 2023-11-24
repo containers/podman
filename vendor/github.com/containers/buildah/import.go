@@ -22,7 +22,7 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 		return nil, errors.New("Internal error: imageID is empty in importBuilderDataFromImage")
 	}
 
-	storeopts, err := storage.DefaultStoreOptions(false, 0)
+	storeopts, err := storage.DefaultStoreOptions()
 	if err != nil {
 		return nil, err
 	}

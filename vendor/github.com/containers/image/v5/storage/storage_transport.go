@@ -213,7 +213,7 @@ func (s *storageTransport) GetStore() (storage.Store, error) {
 	// Return the transport's previously-set store.  If we don't have one
 	// of those, initialize one now.
 	if s.store == nil {
-		options, err := storage.DefaultStoreOptionsAutoDetectUID()
+		options, err := storage.DefaultStoreOptions()
 		if err != nil {
 			return nil, err
 		}

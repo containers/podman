@@ -7,12 +7,16 @@ package homedir
 // NOTE: this package has originally been copied from github.com/docker/docker.
 
 import (
-	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"sync"
+	"syscall"
 
 	"github.com/containers/storage/pkg/unshare"
+	"github.com/sirupsen/logrus"
 )
 
 // Key returns the env var name for the user's home dir based on
@@ -38,18 +42,6 @@ func Get() string {
 // in the native shell of the platform running on.
 func GetShortcutString() string {
 	return "~"
-}
-
-// GetRuntimeDir returns XDG_RUNTIME_DIR.
-// XDG_RUNTIME_DIR is typically configured via pam_systemd.
-// GetRuntimeDir returns non-nil error if XDG_RUNTIME_DIR is not set.
-//
-// See also https://standards.freedesktop.org/basedir-spec/latest/ar01s03.html
-func GetRuntimeDir() (string, error) {
-	if xdgRuntimeDir := os.Getenv("XDG_RUNTIME_DIR"); xdgRuntimeDir != "" {
-		return filepath.EvalSymlinks(xdgRuntimeDir)
-	}
-	return "", errors.New("could not get XDG_RUNTIME_DIR")
 }
 
 // StickRuntimeDirContents sets the sticky bit on files that are under
@@ -93,4 +85,96 @@ func stick(f string) error {
 	m := st.Mode()
 	m |= os.ModeSticky
 	return os.Chmod(f, m)
+}
+
+var (
+	rootlessConfigHomeDirError error
+	rootlessConfigHomeDirOnce  sync.Once
+	rootlessConfigHomeDir      string
+	rootlessRuntimeDirOnce     sync.Once
+	rootlessRuntimeDir         string
+)
+
+// isWriteableOnlyByOwner checks that the specified permission mask allows write
+// access only to the owner.
+func isWriteableOnlyByOwner(perm os.FileMode) bool {
+	return (perm & 0o722) == 0o700
+}
+
+// GetConfigHome returns XDG_CONFIG_HOME.
+// GetConfigHome returns $HOME/.config and nil error if XDG_CONFIG_HOME is not set.
+//
+// See also https://standards.freedesktop.org/basedir-spec/latest/ar01s03.html
+func GetConfigHome() (string, error) {
+	rootlessConfigHomeDirOnce.Do(func() {
+		cfgHomeDir := os.Getenv("XDG_CONFIG_HOME")
+		if cfgHomeDir == "" {
+			home := Get()
+			resolvedHome, err := filepath.EvalSymlinks(home)
+			if err != nil {
+				rootlessConfigHomeDirError = fmt.Errorf("cannot resolve %s: %w", home, err)
+				return
+			}
+			tmpDir := filepath.Join(resolvedHome, ".config")
+			_ = os.MkdirAll(tmpDir, 0o700)
+			st, err := os.Stat(tmpDir)
+			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && isWriteableOnlyByOwner(st.Mode().Perm()) {
+				cfgHomeDir = tmpDir
+			} else {
+				rootlessConfigHomeDirError = fmt.Errorf("path %q exists and it is not writeable only by the current user", tmpDir)
+				return
+			}
+		}
+		rootlessConfigHomeDir = cfgHomeDir
+	})
+
+	return rootlessConfigHomeDir, rootlessConfigHomeDirError
+}
+
+// GetRuntimeDir returns a directory suitable to store runtime files.
+// The function will try to use the XDG_RUNTIME_DIR env variable if it is set.
+// XDG_RUNTIME_DIR is typically configured via pam_systemd.
+// If XDG_RUNTIME_DIR is not set, GetRuntimeDir will try to find a suitable
+// directory for the current user.
+//
+// See also https://standards.freedesktop.org/basedir-spec/latest/ar01s03.html
+func GetRuntimeDir() (string, error) {
+	var rootlessRuntimeDirError error
+
+	rootlessRuntimeDirOnce.Do(func() {
+		runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
+
+		if runtimeDir != "" {
+			rootlessRuntimeDir, rootlessRuntimeDirError = filepath.EvalSymlinks(runtimeDir)
+			return
+		}
+
+		uid := strconv.Itoa(unshare.GetRootlessUID())
+		if runtimeDir == "" {
+			tmpDir := filepath.Join("/run", "user", uid)
+			if err := os.MkdirAll(tmpDir, 0o700); err != nil {
+				logrus.Debug(err)
+			}
+			st, err := os.Lstat(tmpDir)
+			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && isWriteableOnlyByOwner(st.Mode().Perm()) {
+				runtimeDir = tmpDir
+			}
+		}
+		if runtimeDir == "" {
+			tmpDir := filepath.Join(os.TempDir(), fmt.Sprintf("storage-run-%s", uid))
+			if err := os.MkdirAll(tmpDir, 0o700); err != nil {
+				logrus.Debug(err)
+			}
+			st, err := os.Lstat(tmpDir)
+			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && isWriteableOnlyByOwner(st.Mode().Perm()) {
+				runtimeDir = tmpDir
+			} else {
+				rootlessRuntimeDirError = fmt.Errorf("path %q exists and it is not writeable only by the current user", tmpDir)
+				return
+			}
+		}
+		rootlessRuntimeDir = runtimeDir
+	})
+
+	return rootlessRuntimeDir, rootlessRuntimeDirError
 }

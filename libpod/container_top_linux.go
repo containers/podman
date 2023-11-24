@@ -328,7 +328,7 @@ func (c *Container) execPS(psArgs []string) ([]string, bool, error) {
 	cmd.Stdout = wPipe
 	cmd.Stderr = &errBuf
 	// nil means use current env so explicitly unset all, to not leak any sensitive env vars
-	cmd.Env = []string{}
+	cmd.Env = []string{fmt.Sprintf("HOME=%s", os.Getenv("HOME"))}
 
 	retryContainerExec := true
 	err = cmd.Run()

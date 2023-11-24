@@ -254,7 +254,7 @@ func convertTarToZstdChunked(destDirectory string, blobSize int64, iss ImageSour
 
 // GetDiffer returns a differ than can be used with ApplyDiffWithDiffer.
 func GetDiffer(ctx context.Context, store storage.Store, blobSize int64, annotations map[string]string, iss ImageSourceSeekable) (graphdriver.Differ, error) {
-	storeOpts, err := types.DefaultStoreOptionsAutoDetectUID()
+	storeOpts, err := types.DefaultStoreOptions()
 	if err != nil {
 		return nil, err
 	}
