@@ -172,7 +172,7 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *define.AttachSt
 	// Attach to the container before starting it
 	go func() {
 		// Start resizing
-		if c.LogDriver() != define.PassthroughLogging {
+		if c.LogDriver() != define.PassthroughLogging && c.LogDriver() != define.PassthroughTTYLogging {
 			registerResizeFunc(resize, c.bundlePath())
 		}
 
@@ -304,6 +304,9 @@ func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-
 	if c.LogDriver() == define.PassthroughLogging {
 		return fmt.Errorf("this container is using the 'passthrough' log driver, cannot attach: %w", define.ErrNoLogs)
 	}
+	if c.LogDriver() == define.PassthroughTTYLogging {
+		return fmt.Errorf("this container is using the 'passthrough-tty' log driver, cannot attach: %w", define.ErrNoLogs)
+	}
 	if !c.batched {
 		c.lock.Lock()
 		if err := c.syncContainer(); err != nil {
@@ -336,7 +339,7 @@ func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-
 	}
 
 	// Start resizing
-	if c.LogDriver() != define.PassthroughLogging {
+	if c.LogDriver() != define.PassthroughLogging && c.LogDriver() != define.PassthroughTTYLogging {
 		registerResizeFunc(resize, c.bundlePath())
 	}
 

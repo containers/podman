@@ -102,4 +102,24 @@ function teardown() {
     is "$output" "hello$CR" "-i=false: no warning"
 }
 
+
+@test "podman run -l passthrough-tty" {
+    skip_if_remote
+
+    # Requires conmon 2.1.10 or greater
+    want=2.1.10
+    run_podman info --format '{{.Host.Conmon.Path}}'
+    conmon_path="$output"
+    conmon_version=$($conmon_path --version | sed -ne 's/^.* version //p')
+    if ! printf "%s\n%s\n" "$want" "$conmon_version" | sort --check=quiet --version-sort; then
+        skip "need conmon >= $want; have $conmon_version"
+    fi
+
+    run tty <$PODMAN_TEST_PTY
+    expected_tty="$output"
+
+    run_podman run -v/dev:/dev --log-driver=passthrough-tty $IMAGE tty <$PODMAN_TEST_PTY
+    is "$output" "$expected_tty" "passthrough-tty: tty matches"
+}
+
 # vim: filetype=sh
