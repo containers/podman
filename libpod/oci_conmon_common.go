@@ -23,6 +23,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/detach"
 	"github.com/containers/common/pkg/resize"
@@ -1099,7 +1100,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	}
 
 	if ctr.config.CgroupsMode == cgroupSplit {
-		if err := utils.MoveUnderCgroupSubtree("runtime"); err != nil {
+		if err := cgroups.MoveUnderCgroupSubtree("runtime"); err != nil {
 			return 0, err
 		}
 	}

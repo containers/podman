@@ -26,8 +26,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/containernetworking/cni/pkg/invoke"
 	"github.com/containernetworking/cni/pkg/version"
@@ -78,6 +80,16 @@ func (e *cniExec) ExecPlugin(ctx context.Context, pluginPath string, stdinData [
 	// To fix this we should also unset XDG_RUNTIME_DIR for the cni plugins as rootful.
 	if !unshare.IsRootless() {
 		c.Env = append(c.Env, "XDG_RUNTIME_DIR=")
+	}
+
+	// The CNI plugins need access to iptables in $PATH. As it turns out debian doesn't put
+	// /usr/sbin in $PATH for rootless users. This will break rootless networking completely.
+	// We might break existing users and we cannot expect everyone to change their $PATH so
+	// let's add /usr/sbin to $PATH ourselves.
+	path := os.Getenv("PATH")
+	if !strings.Contains(path, "/usr/sbin") {
+		path += ":/usr/sbin"
+		c.Env = append(c.Env, "PATH="+path)
 	}
 
 	err := c.Run()

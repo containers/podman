@@ -18,7 +18,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra"
 	"github.com/containers/podman/v4/pkg/rootless"
-	"github.com/containers/podman/v4/utils"
 	"github.com/coreos/go-systemd/v22/activation"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -131,7 +130,7 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 		logrus.Warnf("Running 'system service' in rootless mode without cgroup v2, containers won't survive a 'system service' restart")
 	}
 
-	if err := utils.MaybeMoveToSubCgroup(); err != nil {
+	if err := cgroups.MaybeMoveToSubCgroup(); err != nil {
 		// it is a best effort operation, so just print the
 		// error for debugging purposes.
 		logrus.Debugf("Could not move to subcgroup: %v", err)

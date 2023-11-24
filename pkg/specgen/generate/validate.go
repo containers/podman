@@ -14,7 +14,6 @@ import (
 	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/specgen"
-	"github.com/containers/podman/v4/utils"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -179,7 +178,7 @@ func verifyContainerResourcesCgroupV2(s *specgen.SpecGenerator) ([]string, error
 
 	// Memory checks
 	if s.ResourceLimits.Memory != nil && s.ResourceLimits.Memory.Swap != nil {
-		own, err := utils.GetOwnCgroup()
+		own, err := cgroups.GetOwnCgroup()
 		if err != nil {
 			return warnings, err
 		}

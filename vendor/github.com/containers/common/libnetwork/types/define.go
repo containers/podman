@@ -18,6 +18,9 @@ var (
 	// exists.
 	ErrNetworkExists = errors.New("network already exists")
 
+	// ErrNotRootlessNetns indicates the rootless netns can only be used as root
+	ErrNotRootlessNetns = errors.New("rootless netns cannot be used as root")
+
 	// NameRegex is a regular expression to validate names.
 	// This must NOT be changed.
 	NameRegex = regexp.Delayed("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")

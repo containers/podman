@@ -4,6 +4,7 @@
 package cgroups
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/configs"
@@ -142,4 +144,172 @@ func SetBlkioThrottle(res *configs.Resources, cgroupPath string) error {
 		}
 	}
 	return nil
+}
+
+// Code below was moved from podman/utils/utils_supported.go and should properly better
+// integrated here as some parts may be redundant.
+
+func getCgroupProcess(procFile string, allowRoot bool) (string, error) {
+	f, err := os.Open(procFile)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	cgroup := ""
+	for scanner.Scan() {
+		line := scanner.Text()
+		parts := strings.SplitN(line, ":", 3)
+		if len(parts) != 3 {
+			return "", fmt.Errorf("cannot parse cgroup line %q", line)
+		}
+		if strings.HasPrefix(line, "0::") {
+			cgroup = line[3:]
+			break
+		}
+		if len(parts[2]) > len(cgroup) {
+			cgroup = parts[2]
+		}
+	}
+	if len(cgroup) == 0 || (!allowRoot && cgroup == "/") {
+		return "", fmt.Errorf("could not find cgroup mount in %q", procFile)
+	}
+	return cgroup, nil
+}
+
+// GetOwnCgroup returns the cgroup for the current process.
+func GetOwnCgroup() (string, error) {
+	return getCgroupProcess("/proc/self/cgroup", true)
+}
+
+func GetOwnCgroupDisallowRoot() (string, error) {
+	return getCgroupProcess("/proc/self/cgroup", false)
+}
+
+// GetCgroupProcess returns the cgroup for the specified process process.
+func GetCgroupProcess(pid int) (string, error) {
+	return getCgroupProcess(fmt.Sprintf("/proc/%d/cgroup", pid), true)
+}
+
+// MoveUnderCgroupSubtree moves the PID under a cgroup subtree.
+func MoveUnderCgroupSubtree(subtree string) error {
+	return MoveUnderCgroup("", subtree, nil)
+}
+
+// MoveUnderCgroup moves a group of processes to a new cgroup.
+// If cgroup is the empty string, then the current calling process cgroup is used.
+// If processes is empty, then the processes from the current cgroup are moved.
+func MoveUnderCgroup(cgroup, subtree string, processes []uint32) error {
+	procFile := "/proc/self/cgroup"
+	f, err := os.Open(procFile)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	unifiedMode, err := IsCgroup2UnifiedMode()
+	if err != nil {
+		return err
+	}
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		parts := strings.SplitN(line, ":", 3)
+		if len(parts) != 3 {
+			return fmt.Errorf("cannot parse cgroup line %q", line)
+		}
+
+		// root cgroup, skip it
+		if parts[2] == "/" && !(unifiedMode && parts[1] == "") {
+			continue
+		}
+
+		cgroupRoot := "/sys/fs/cgroup"
+		// Special case the unified mount on hybrid cgroup and named hierarchies.
+		// This works on Fedora 31, but we should really parse the mounts to see
+		// where the cgroup hierarchy is mounted.
+		if parts[1] == "" && !unifiedMode {
+			// If it is not using unified mode, the cgroup v2 hierarchy is
+			// usually mounted under /sys/fs/cgroup/unified
+			cgroupRoot = filepath.Join(cgroupRoot, "unified")
+
+			// Ignore the unified mount if it doesn't exist
+			if _, err := os.Stat(cgroupRoot); err != nil && os.IsNotExist(err) {
+				continue
+			}
+		} else if parts[1] != "" {
+			// Assume the controller is mounted at /sys/fs/cgroup/$CONTROLLER.
+			controller := strings.TrimPrefix(parts[1], "name=")
+			cgroupRoot = filepath.Join(cgroupRoot, controller)
+		}
+
+		parentCgroup := cgroup
+		if parentCgroup == "" {
+			parentCgroup = parts[2]
+		}
+		newCgroup := filepath.Join(cgroupRoot, parentCgroup, subtree)
+		if err := os.MkdirAll(newCgroup, 0o755); err != nil && !os.IsExist(err) {
+			return err
+		}
+
+		f, err := os.OpenFile(filepath.Join(newCgroup, "cgroup.procs"), os.O_RDWR, 0o755)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		if len(processes) > 0 {
+			for _, pid := range processes {
+				if _, err := f.WriteString(fmt.Sprintf("%d\n", pid)); err != nil {
+					logrus.Debugf("Cannot move process %d to cgroup %q: %v", pid, newCgroup, err)
+				}
+			}
+		} else {
+			processesData, err := os.ReadFile(filepath.Join(cgroupRoot, parts[2], "cgroup.procs"))
+			if err != nil {
+				return err
+			}
+			for _, pid := range bytes.Split(processesData, []byte("\n")) {
+				if len(pid) == 0 {
+					continue
+				}
+				if _, err := f.Write(pid); err != nil {
+					logrus.Debugf("Cannot move process %s to cgroup %q: %v", string(pid), newCgroup, err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+var (
+	maybeMoveToSubCgroupSync    sync.Once
+	maybeMoveToSubCgroupSyncErr error
+)
+
+// MaybeMoveToSubCgroup moves the current process in a sub cgroup when
+// it is running in the root cgroup on a system that uses cgroupv2.
+func MaybeMoveToSubCgroup() error {
+	maybeMoveToSubCgroupSync.Do(func() {
+		unifiedMode, err := IsCgroup2UnifiedMode()
+		if err != nil {
+			maybeMoveToSubCgroupSyncErr = err
+			return
+		}
+		if !unifiedMode {
+			maybeMoveToSubCgroupSyncErr = nil
+			return
+		}
+		cgroup, err := GetOwnCgroup()
+		if err != nil {
+			maybeMoveToSubCgroupSyncErr = err
+			return
+		}
+		if cgroup == "/" {
+			maybeMoveToSubCgroupSyncErr = MoveUnderCgroupSubtree("init")
+		}
+	})
+	return maybeMoveToSubCgroupSyncErr
 }

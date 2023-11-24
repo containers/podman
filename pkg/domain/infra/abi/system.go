@@ -11,12 +11,12 @@ import (
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/systemd"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/unshare"
@@ -67,11 +67,11 @@ func (ic *ContainerEngine) Info(ctx context.Context) (*define.Info, error) {
 }
 
 func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) error {
-	runsUnderSystemd := utils.RunsOnSystemd()
+	runsUnderSystemd := systemd.RunsOnSystemd()
 	if !runsUnderSystemd {
 		isPid1 := os.Getpid() == 1
 		if _, found := os.LookupEnv("container"); isPid1 || found {
-			if err := utils.MaybeMoveToSubCgroup(); err != nil {
+			if err := cgroups.MaybeMoveToSubCgroup(); err != nil {
 				// it is a best effort operation, so just print the
 				// error for debugging purposes.
 				logrus.Debugf("Could not move to subcgroup: %v", err)
@@ -101,7 +101,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) 
 			}
 			unitName := fmt.Sprintf("podman-%d.scope", os.Getpid())
 			if runsUnderSystemd || conf.Engine.CgroupManager == config.SystemdCgroupsManager {
-				if err := utils.RunUnderSystemdScope(os.Getpid(), "user.slice", unitName); err != nil {
+				if err := systemd.RunUnderSystemdScope(os.Getpid(), "user.slice", unitName); err != nil {
 					logrus.Debugf("Failed to add podman to systemd sandbox cgroup: %v", err)
 				}
 			}
@@ -142,7 +142,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) 
 	} else {
 		became, ret, err = rootless.BecomeRootInUserNS(pausePidPath)
 		if err == nil {
-			utils.MovePauseProcessToScope(pausePidPath)
+			systemd.MovePauseProcessToScope(pausePidPath)
 		}
 	}
 	if err != nil {
@@ -406,17 +406,7 @@ func (ic *ContainerEngine) Unshare(ctx context.Context, args []string, options e
 	}
 
 	if options.RootlessNetNS {
-		rootlessNetNS, err := ic.Libpod.GetRootlessNetNs(true)
-		if err != nil {
-			return err
-		}
-		// Make sure to unlock, unshare can run for a long time.
-		rootlessNetNS.Lock.Unlock()
-		// We do not want to clean up the netns after unshare.
-		// The problem is that we cannot know if we need to clean up and
-		// secondly unshare should allow user to set up the namespace with
-		// special things, e.g. potentially macvlan or something like that.
-		return rootlessNetNS.Do(unshare)
+		return ic.Libpod.Network().RunInRootlessNetns(unshare)
 	}
 	return unshare()
 }

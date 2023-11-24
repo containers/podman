@@ -13,7 +13,6 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
-	"github.com/containers/podman/v4/utils"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
@@ -97,7 +96,7 @@ func (p *Pod) removePodCgroup() error {
 	}
 	logrus.Debugf("Removing pod cgroup %s", p.state.CgroupPath)
 
-	cgroup, err := utils.GetOwnCgroup()
+	cgroup, err := cgroups.GetOwnCgroup()
 	if err != nil {
 		return err
 	}
@@ -106,7 +105,7 @@ func (p *Pod) removePodCgroup() error {
 	// current process out of it before the cgroup is destroyed.
 	if isSubDir(cgroup, string(filepath.Separator)+p.state.CgroupPath) {
 		parent := path.Dir(p.state.CgroupPath)
-		if err := utils.MoveUnderCgroup(parent, "cleanup", nil); err != nil {
+		if err := cgroups.MoveUnderCgroup(parent, "cleanup", nil); err != nil {
 			return err
 		}
 	}

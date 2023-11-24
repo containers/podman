@@ -21,7 +21,6 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
-	"github.com/containers/podman/v4/utils"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -390,7 +389,7 @@ func (c *Container) getOCICgroupPath() (string, error) {
 	case c.config.NoCgroups:
 		return "", nil
 	case c.config.CgroupsMode == cgroupSplit:
-		selfCgroup, err := utils.GetOwnCgroupDisallowRoot()
+		selfCgroup, err := cgroups.GetOwnCgroupDisallowRoot()
 		if err != nil {
 			return "", err
 		}
