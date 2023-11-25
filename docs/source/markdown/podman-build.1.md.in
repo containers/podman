@@ -41,9 +41,9 @@ NOTE: `podman build` uses code sourced from the `Buildah` project to build
 container images.  This `Buildah` code creates `Buildah` containers for the
 `RUN` options in container storage. In certain situations, when the
 `podman build` crashes or users kill the `podman build` process, these external
-containers can be left in container storage. Use the `podman ps --all --storage`
+containers can be left in container storage. Use the `podman ps --external`
 command to see these containers. External containers can be removed with the
-`podman rm --storage` command.
+`podman rm --force` command.
 
 `podman buildx build` command is an alias of `podman build`.  Not all `buildx build` features are available in Podman. The `buildx build` option is provided for scripting compatibility.
 
