@@ -156,11 +156,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 
 	containerName := Package + "-" + filepath.Base(path)
 	if configureNetwork {
-		if jail.NeedVnetJail() {
-			g.AddAnnotation("org.freebsd.parentJail", containerName+"-vnet")
-		} else {
-			g.AddAnnotation("org.freebsd.jail.vnet", "new")
-		}
+		g.AddAnnotation("org.freebsd.parentJail", containerName+"-vnet")
 	}
 
 	homeDir, err := b.configureUIDGID(g, mountPoint, options)
@@ -251,11 +247,9 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 
 	defer b.cleanupTempVolumes()
 
-	// If we are creating a network, make the vnet here so that we can
-	// execute the OCI runtime inside it. For FreeBSD-13.3 and later, we can
-	// configure the container network settings from outside the jail, which
-	// removes the need for a separate jail to manage the vnet.
-	if configureNetwork && jail.NeedVnetJail() {
+	// If we are creating a network, make the vnet here so that we
+	// can execute the OCI runtime inside it.
+	if configureNetwork {
 		mynetns := containerName + "-vnet"
 
 		jconf := jail.NewConfig()
@@ -432,12 +426,7 @@ func (b *Builder) runConfigureNetwork(pid int, isolation define.Isolation, optio
 	}
 	logrus.Debugf("configureNetworks: %v", configureNetworks)
 
-	var mynetns string
-	if jail.NeedVnetJail() {
-		mynetns = containerName + "-vnet"
-	} else {
-		mynetns = containerName
-	}
+	mynetns := containerName + "-vnet"
 
 	networks := make(map[string]nettypes.PerNetworkOptions, len(configureNetworks))
 	for i, network := range configureNetworks {

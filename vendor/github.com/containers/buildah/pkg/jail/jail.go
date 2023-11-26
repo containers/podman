@@ -4,13 +4,10 @@
 package jail
 
 import (
-	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"unsafe"
 
-	"github.com/containers/buildah/pkg/util"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -30,11 +27,6 @@ const (
 type config struct {
 	params map[string]interface{}
 }
-
-var (
-	needVnetJailOnce sync.Once
-	needVnetJail     bool
-)
 
 func NewConfig() *config {
 	return &config{
@@ -185,48 +177,4 @@ func (j *jail) Set(jconf *config) error {
 	jconf.Set("jid", j.jid)
 	_, err := jailSet(jconf, JAIL_UPDATE)
 	return err
-}
-
-// Return true if its necessary to have a separate jail to own the vnet.  For
-// FreeBSD 13.3 and later, we don't need a separate vnet jail since it is
-// possible to configure the network without either attaching to the container's
-// jail or trusting the ifconfig and route utilities in the container. If for
-// any reason, we fail to parse the OS version, we default to returning true.
-func NeedVnetJail() bool {
-	needVnetJailOnce.Do(func() {
-		needVnetJail = true
-		version, err := util.ReadKernelVersion()
-		if err != nil {
-			logrus.Errorf("failed to determine OS version: %v", err)
-			return
-		}
-		// Expected formats "<major>.<minor>-<RELEASE|STABLE|CURRENT>" optionally
-		// followed by "-<patchlevel>"
-		parts := strings.Split(string(version), "-")
-		if len(parts) < 2 {
-			logrus.Errorf("unexpected OS version: %s", version)
-			return
-		}
-		ver := strings.Split(parts[0], ".")
-		if len(parts) != 2 {
-			logrus.Errorf("unexpected OS version: %s", version)
-			return
-		}
-
-		// FreeBSD 13.3 and later have support for 'ifconfig -j' and 'route -j'
-		major, err := strconv.Atoi(ver[0])
-		if err != nil {
-			logrus.Errorf("unexpected OS version: %s", version)
-			return
-		}
-		minor, err := strconv.Atoi(ver[1])
-		if err != nil {
-			logrus.Errorf("unexpected OS version: %s", version)
-			return
-		}
-		if major > 13 || (major == 13 && minor > 2) {
-			needVnetJail = false
-		}
-	})
-	return needVnetJail
 }

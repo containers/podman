@@ -73,16 +73,17 @@ bin/buildah: $(SOURCES) cmd/buildah/*.go internal/mkcw/embed/entrypoint.gz
 	$(GO_BUILD) $(BUILDAH_LDFLAGS) $(GO_GCFLAGS) "$(GOGCFLAGS)" -o $@ $(BUILDFLAGS) ./cmd/buildah
 
 ifneq ($(shell as --version | grep x86_64),)
-internal/mkcw/embed/entrypoint.gz: internal/mkcw/embed/entrypoint
-	$(RM) $@
-	gzip -k $^
-
 internal/mkcw/embed/entrypoint: internal/mkcw/embed/entrypoint.s
 	$(AS) -o $(patsubst %.s,%.o,$^) $^
 	$(LD) -o $@ $(patsubst %.s,%.o,$^)
 	strip $@
+else
+.PHONY: internal/mkcw/embed/entrypoint
 endif
 
+internal/mkcw/embed/entrypoint.gz: internal/mkcw/embed/entrypoint
+	$(RM) $@
+	gzip -k $^
 
 .PHONY: buildah
 buildah: bin/buildah
