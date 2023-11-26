@@ -2,6 +2,13 @@
 
 # Changelog
 
+## v1.33.2 (2023-11-22)
+
+    Update minimum to golang 1.20
+    fix(deps): update module github.com/fsouza/go-dockerclient to v1.10.0
+    fix(deps): update module github.com/moby/buildkit to v0.12.3
+    Bump to v1.33.2-dev
+
 ## v1.33.1 (2023-11-18)
 
     fix(deps): update module github.com/moby/buildkit to v0.11.4 [security]
