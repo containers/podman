@@ -45,12 +45,6 @@
 # %%{name}
 %global git0 %{container_base_url}/%{name}
 
-# dnsname
-%global repo_plugins dnsname
-%global git_plugins %{container_base_url}/%{repo_plugins}
-%global commit_plugins 18822f9a4fb35d1349eb256f4cd2bfd372474d84
-%global import_path_plugins %{container_base_path}/%{repo_plugins}
-
 Name: podman
 %if %{defined copr_build}
 Epoch: 102
@@ -76,7 +70,6 @@ Summary: Manage Pods, Containers and Container Images
 URL: https://%{name}.io/
 # All SourceN files fetched from upstream
 Source0: %{git0}/archive/v%{version_no_tilde}.tar.gz
-Source1: %{git_plugins}/archive/%{commit_plugins}/%{repo_plugins}-%{commit_plugins}.tar.gz
 Provides: %{name}-manpages = %{epoch}:%{version}-%{release}
 BuildRequires: %{_bindir}/envsubst
 %if %{defined build_with_btrfs}
@@ -181,19 +174,6 @@ run %{name}-remote in production.
 manage pods, containers and container images. %{name}-remote supports ssh
 connections as well.
 
-%package plugins
-Summary: Plugins for %{name}
-Requires: dnsmasq
-Recommends: gvisor-tap-vsock
-
-%description plugins
-This plugin sets up the use of dnsmasq on a given CNI network so
-that Pods can resolve each other by name.  When configured,
-the pod and its IP address are added to a network specific hosts file
-that dnsmasq will read in.  Similarly, when a pod
-is removed from the network, it will remove the entry from the hosts
-file.  Each CNI network will have its own dnsmasq instance.
-
 %package -n %{name}sh
 Summary: Confined login and user shell using %{name}
 Requires: %{name} = %{epoch}:%{version}-%{release}
@@ -218,9 +198,6 @@ sed -i "s/^const RawVersion = .*/const RawVersion = \"##VERSION##-##SHORT_SHA##\
 # use ParseTolerant to allow short sha in version
 sed -i "s/^var Version.*/var Version, err = semver.ParseTolerant(rawversion.RawVersion)/" version/version.go
 %endif
-
-# untar dnsname
-tar zxf %{SOURCE1}
 
 %build
 %set_build_flags
@@ -264,19 +241,6 @@ LDFLAGS=''
 
 %{__make} docs docker-docs
 
-# build dnsname the old way otherwise it fails on koji
-cd %{repo_plugins}-%{commit_plugins}
-mkdir _build
-cd _build
-mkdir -p src/%{container_base_path}
-ln -s ../../../../ src/%{import_path_plugins}
-cd ..
-ln -s vendor src
-export GOPATH=$(pwd)/_build:$(pwd)
-%define gomodulesmode GO111MODULE=off
-%gobuild -o bin/dnsname %{import_path_plugins}/plugins/meta/dnsname
-cd ..
-
 %install
 install -dp %{buildroot}%{_unitdir}
 PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{_sysconfdir} \
@@ -292,11 +256,6 @@ PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{_sysc
 %endif
 
 sed -i 's;%{buildroot};;g' %{buildroot}%{_bindir}/docker
-
-# install dnsname plugin
-cd %{repo_plugins}-%{commit_plugins}
-%{__make} PREFIX=%{_prefix} DESTDIR=%{buildroot} install
-cd ..
 
 # do not include docker and podman-remote man pages in main package
 for file in `find %{buildroot}%{_mandir}/man[15] -type f | sed "s,%{buildroot},," | grep -v -e remote -e docker`; do
@@ -351,12 +310,6 @@ cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 
 %files tests
 %{_datadir}/%{name}/test
-
-%files plugins
-%license %{repo_plugins}-%{commit_plugins}/LICENSE
-%doc %{repo_plugins}-%{commit_plugins}/{README.md,README_PODMAN.md}
-%dir %{_libexecdir}/cni
-%{_libexecdir}/cni/dnsname
 
 %files -n %{name}sh
 %{_bindir}/%{name}sh
