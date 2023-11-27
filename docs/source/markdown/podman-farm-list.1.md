@@ -13,7 +13,7 @@ List all the existing farms.
 
 ## OPTIONS
 
-#### **--format**, **-f**=*format*
+#### **--format**=*format*
 
 Change the default output format.  This can be of a supported type like 'json' or a Go template.
 Valid placeholders for the Go template listed below:

@@ -19,6 +19,8 @@ If no farm is specified, the build will be sent out to all the nodes that `podma
 
 ## OPTIONS
 
+@@option add-host
+
 @@option annotation.image
 
 @@option authfile
@@ -121,7 +123,7 @@ It does not affect _/etc/resolv.conf_ in the final image.
 
 @@option layers
 
-#### **--local**
+#### **--local**, **-l**
 
 Build image on local machine as well as on farm nodes.
 
@@ -134,6 +136,8 @@ Build image on local machine as well as on farm nodes.
 @@option network.image
 
 @@option no-cache
+
+@@option no-hostname
 
 @@option no-hosts
 
