@@ -17,6 +17,13 @@
 - The `podman kube play` command now supports a new option, `--publish-all`, which exposes all containerPorts on the host.
 - The --filter option now supports `label!=`, which filters for containers without the specified label.
 
+### Upcoming Deprecations
+- We are beginning development on Podman 5.0, which will include a number of breaking changes and deprecations. We are still finalizing what will be done, but a preliminary list is below. Please note that none of these changes are present in Podman 4.8; this is a preview of upcoming changes.
+- Podman 5.0 will deprecate the BoltDB database backend. Exact details on the transition to SQLite are still being decided - expect more news here soon.
+- The containers.conf configuration file will be broken up into multiple separate files, ensuring that it will never be rewritten by Podman.
+- Support for the CNI network backend and Cgroups V1 are being deprecated and gated by build tags. They will not be enabled in Podman builds by default.
+- A variety of small breaking changes to the REST API are planned, both to improve Docker compatibility and to better support `containers.conf` settings when creating and managing containers.
+
 ### Changes
 - Podman now defaults to sqlite as its database backend. For backwards compatibility, if a boltdb database already exists on the system, Podman will continue using it.
 - RHEL Subscriptions from the host now flow through to quay.io/podman/* images.
