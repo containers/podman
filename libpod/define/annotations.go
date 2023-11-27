@@ -153,6 +153,10 @@ const (
 	// of the container
 	UlimitAnnotation = "io.podman.annotations.ulimit"
 
+	// KubeHealthCheckAnnotation is used by kube play to tell podman that any health checks should follow
+	// the k8s behavior of waiting for the intialDelaySeconds to be over before updating the status
+	KubeHealthCheckAnnotation = "io.podman.annotations.kube.health.check"
+
 	// MaxKubeAnnotation is the max length of annotations allowed by Kubernetes.
 	MaxKubeAnnotation = 63
 )

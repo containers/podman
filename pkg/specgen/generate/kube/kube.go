@@ -431,6 +431,8 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		s.Annotations[define.InspectAnnotationPublishAll] = publishAll
 	}
 
+	s.Annotations[define.KubeHealthCheckAnnotation] = "true"
+
 	// Environment Variables
 	envs := map[string]string{}
 	for _, env := range imageData.Config.Env {
