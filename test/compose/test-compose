@@ -173,14 +173,6 @@ function test_port() {
 
     if [ $curl_rc -ne 0 ]; then
         _show_ok 0 "$testname - curl (port $port) failed with status $curl_rc"
-        echo "# podman ps -a:"
-        $PODMAN_BIN --storage-driver=vfs --root $WORKDIR/root --runroot $WORKDIR/runroot ps -a
-        if type -p ss; then
-            echo "# ss -tulpn:"
-            ss -tulpn
-            echo "# podman unshare --rootless-cni ss -tulpn:"
-            $PODMAN_BIN --storage-driver=vfs --root $WORKDIR/root --runroot $WORKDIR/runroot unshare --rootless-cni ss -tulpn
-        fi
         echo "# cat $WORKDIR/server.log:"
         cat $WORKDIR/server.log
         echo "# cat $logfile:"
