@@ -167,7 +167,7 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 	}
 
 	hcl := newHealthCheckLog(timeStart, timeEnd, returnCode, eventLog)
-	logStatus, err := c.updateHealthCheckLog(hcl, inStartPeriod)
+	logStatus, err := c.updateHealthCheckLog(hcl, inStartPeriod, isStartup)
 	if err != nil {
 		return hcResult, "", fmt.Errorf("unable to update health check log %s for %s: %w", c.healthCheckLogPath(), c.ID(), err)
 	}
@@ -375,9 +375,16 @@ func (c *Container) isUnhealthy() (bool, error) {
 }
 
 // UpdateHealthCheckLog parses the health check results and writes the log
-func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, inStartPeriod bool) (string, error) {
+func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, inStartPeriod, isStartup bool) (string, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
+
+	// If we are playing a kube yaml then let's honor the start period time for
+	// both failing and succeeding cases to match kube behavior.
+	// So don't update the health check log till the start period is over
+	if _, ok := c.config.Spec.Annotations[define.KubeHealthCheckAnnotation]; ok && inStartPeriod && !isStartup {
+		return "", nil
+	}
 
 	healthCheck, err := c.getHealthCheckLog()
 	if err != nil {
