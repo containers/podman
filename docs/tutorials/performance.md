@@ -65,6 +65,24 @@ The following storage drivers are listed from fastest to slowest:
 2. fuse-overlayfs
 3. vfs
 
+There is one notable exception to this speed ranking.
+Creating a container takes significantly longer with _native overlayfs_ than _fuse-overlayfs_
+when these conditions are all met:
+
+* rootless Podman is used
+* a modified UID/GID mapping is used
+* _native overlayfs_ is used
+* no container has yet been created with the specified container image and UID/GID mapping
+
+Runtime speed is not affected. Only __podman create__ and the container creation phases of
+__podman run__ and __podman build__ are affected.
+For more details, see [GitHub comment](https://github.com/containers/podman/issues/16541#issuecomment-1352790422).
+Command-line options that modify the UID/GID mapping are for example __--userns__, __--uidmap__ and __--gidmap__.
+The command-line option `--userns auto` is particularly affected by this performance penalty,
+because different UID/GID mappings could potentially be used on each invocation. For other uses of
+__--userns__, __--uidmap__ and __--gidmap__ the performance penalty is a one-time cost
+that only occurs the first time the command is run.
+
 Using native overlayfs as an unprivileged user is only available for Podman version >= 3.1 on a Linux kernel version >= 5.12.
 
 To show the current storage driver
