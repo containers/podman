@@ -100,11 +100,11 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search image with description", func() {
-		search := podmanTest.Podman([]string{"search", "quay.io/libpod/whalesay"})
+		search := podmanTest.Podman([]string{"search", "quay.io/podman/stable"})
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Equal(0))
 		output := string(search.Out.Contents())
-		match, _ := regexp.MatchString(`(?m)^quay.io\s+quay.io/libpod/whalesay\s+Static image used for automated testing.+$`, output)
+		match, _ := regexp.MatchString(`(?m)quay.io/podman/stable\s+.*PODMAN logo`, output)
 		Expect(match).To(BeTrue())
 	})
 
