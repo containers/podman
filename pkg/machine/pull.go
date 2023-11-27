@@ -270,7 +270,7 @@ func Pull(input, machineName string, vp VirtProvider) (*define.VMFile, FCOSStrea
 		if len(strippedInput) > 0 {
 			return nil, 0, errors.New("image names are not supported yet")
 		}
-		disk, err = ocipull.NewVersioned(context.Background(), dataDir, machineName)
+		disk, err = ocipull.NewVersioned(context.Background(), dataDir, machineName, vp.VMType().String())
 		if err != nil {
 			return nil, 0, err
 		}

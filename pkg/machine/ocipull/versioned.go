@@ -20,20 +20,20 @@ type Versioned struct {
 	blobDirPath     string
 	cacheDir        string
 	ctx             context.Context
-	imageFormat     define.ImageFormat
 	imageName       string
 	machineImageDir string
 	machineVersion  *OSVersion
 	vmName          string
+	vmType          string
 }
 
-func NewVersioned(ctx context.Context, machineImageDir, vmName string) (*Versioned, error) {
+func NewVersioned(ctx context.Context, machineImageDir, vmName string, vmType string) (*Versioned, error) {
 	imageCacheDir := filepath.Join(machineImageDir, "cache")
 	if err := os.MkdirAll(imageCacheDir, 0777); err != nil {
 		return nil, err
 	}
 	o := getVersion()
-	return &Versioned{ctx: ctx, cacheDir: imageCacheDir, machineImageDir: machineImageDir, machineVersion: o, vmName: vmName}, nil
+	return &Versioned{ctx: ctx, cacheDir: imageCacheDir, machineImageDir: machineImageDir, machineVersion: o, vmName: vmName, vmType: vmType}, nil
 }
 
 func (d *Versioned) LocalBlob() *types.BlobInfo {
@@ -41,7 +41,7 @@ func (d *Versioned) LocalBlob() *types.BlobInfo {
 }
 
 func (d *Versioned) DiskEndpoint() string {
-	return d.machineVersion.diskImage(d.imageFormat)
+	return d.machineVersion.diskImage(d.vmType)
 }
 
 func (d *Versioned) versionedOCICacheDir() string {
@@ -74,7 +74,7 @@ func (d *Versioned) Pull() error {
 		remoteDescriptor *v1.Descriptor
 	)
 
-	remoteDiskImage := d.machineVersion.diskImage(define.Qcow)
+	remoteDiskImage := d.machineVersion.diskImage(d.vmType)
 	logrus.Debugf("podman disk image name: %s", remoteDiskImage)
 
 	// is there a valid oci dir in our cache

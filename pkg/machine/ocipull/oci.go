@@ -67,12 +67,6 @@ func StripOCIReference(input string) string {
 
 func getVersion() *OSVersion {
 	v := version.Version
-
-	// OVERRIDES FOR DEV ONLY
-	v.Minor = 6
-	v.Pre = nil
-	// OVERRIDES FOR DEV ONLY
-
 	return &OSVersion{&v}
 }
 
@@ -80,8 +74,8 @@ func (o *OSVersion) majorMinor() string {
 	return fmt.Sprintf("%d.%d", o.Major, o.Minor)
 }
 
-func (o *OSVersion) diskImage(diskFlavor define.ImageFormat) string {
-	return fmt.Sprintf("%s/%s/%s:%s-%s", registry, repo, diskImages, o.majorMinor(), diskFlavor.Kind())
+func (o *OSVersion) diskImage(vmType string) string {
+	return fmt.Sprintf("%s/%s/%s:%s-%s", registry, repo, diskImages, o.majorMinor(), vmType)
 }
 
 func unpackOCIDir(ociTb, machineImageDir string) (*define.VMFile, error) {
