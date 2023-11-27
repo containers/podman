@@ -85,12 +85,11 @@
 - The Compat Network List endpoint should see a significant performance improvement ([#20035](https://github.com/containers/podman/issues/20035)).
 
 ### Misc
-- Updated Buildah to v1.33.1
+- Updated Buildah to v1.33.2
 - Updated the containers/storage library to v1.51.0
 - Updated the containers/image library to v5.29.0
 - Updated the containers/common library to v0.57.0
 - Updated the containers/libhvee library to v0.5.0
-- Updated the Mac pkginstaller QEMU to v8.0.0
 - Podman Machine now runs with gvproxy v0.7.1
 
 ## 4.7.2
