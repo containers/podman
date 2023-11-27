@@ -511,7 +511,7 @@ type streamOptions struct {
 func chooseError(ctx context.Context, err error) error {
 	select {
 	case <-ctx.Done():
-		return ctx.Err()
+		return context.Cause(ctx)
 	default:
 		return err
 	}
