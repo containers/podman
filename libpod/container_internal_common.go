@@ -795,7 +795,7 @@ func (c *Container) resolveWorkDir() error {
 	if err != nil {
 		return fmt.Errorf("looking up %s inside of the container %s: %w", c.User(), c.ID(), err)
 	}
-	if err := os.Chown(resolvedWorkdir, int(uid), int(gid)); err != nil {
+	if err := idtools.SafeChown(resolvedWorkdir, int(uid), int(gid)); err != nil {
 		return fmt.Errorf("chowning container %s workdir to container root: %w", c.ID(), err)
 	}
 
@@ -1820,7 +1820,7 @@ func (c *Container) mountIntoRootDirs(mountName string, mountPath string) error 
 
 // Make standard bind mounts to include in the container
 func (c *Container) makeBindMounts() error {
-	if err := os.Chown(c.state.RunDir, c.RootUID(), c.RootGID()); err != nil {
+	if err := idtools.SafeChown(c.state.RunDir, c.RootUID(), c.RootGID()); err != nil {
 		return fmt.Errorf("cannot chown run directory: %w", err)
 	}
 
@@ -2285,7 +2285,7 @@ func (c *Container) addHosts() error {
 // It will also add the path to the container bind mount map.
 // source is the path on the host, dest is the path in the container.
 func (c *Container) bindMountRootFile(source, dest string) error {
-	if err := os.Chown(source, c.RootUID(), c.RootGID()); err != nil {
+	if err := idtools.SafeChown(source, c.RootUID(), c.RootGID()); err != nil {
 		return err
 	}
 	if err := c.relabel(source, c.MountLabel(), false); err != nil {
@@ -2827,7 +2827,7 @@ func (c *Container) createSecretMountDir(runPath string) error {
 		if err := c.relabel(src, c.config.MountLabel, false); err != nil {
 			return err
 		}
-		if err := os.Chown(src, c.RootUID(), c.RootGID()); err != nil {
+		if err := idtools.SafeChown(src, c.RootUID(), c.RootGID()); err != nil {
 			return err
 		}
 		c.state.BindMounts[filepath.Join(runPath, "secrets")] = src
@@ -2886,7 +2886,7 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 			return err
 		}
 
-		if err := os.Lchown(mountPoint, uid, gid); err != nil {
+		if err := idtools.SafeLchown(mountPoint, uid, gid); err != nil {
 			return err
 		}
 
@@ -2895,7 +2895,7 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 		st, err := os.Lstat(filepath.Join(c.state.Mountpoint, v.Dest))
 		if err == nil {
 			if stat, ok := st.Sys().(*syscall.Stat_t); ok {
-				if err := os.Lchown(mountPoint, int(stat.Uid), int(stat.Gid)); err != nil {
+				if err := idtools.SafeLchown(mountPoint, int(stat.Uid), int(stat.Gid)); err != nil {
 					return err
 				}
 			}

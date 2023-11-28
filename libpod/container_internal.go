@@ -535,11 +535,11 @@ func (c *Container) setupStorage(ctx context.Context) error {
 	c.state.RunDir = containerInfo.RunDir
 
 	if len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0 {
-		if err := os.Chown(containerInfo.RunDir, c.RootUID(), c.RootGID()); err != nil {
+		if err := idtools.SafeChown(containerInfo.RunDir, c.RootUID(), c.RootGID()); err != nil {
 			return err
 		}
 
-		if err := os.Chown(containerInfo.Dir, c.RootUID(), c.RootGID()); err != nil {
+		if err := idtools.SafeChown(containerInfo.Dir, c.RootUID(), c.RootGID()); err != nil {
 			return err
 		}
 	}
@@ -681,7 +681,7 @@ func (c *Container) refresh() error {
 		if err := os.MkdirAll(root, 0755); err != nil {
 			return fmt.Errorf("creating userNS tmpdir for container %s: %w", c.ID(), err)
 		}
-		if err := os.Chown(root, c.RootUID(), c.RootGID()); err != nil {
+		if err := idtools.SafeChown(root, c.RootUID(), c.RootGID()); err != nil {
 			return err
 		}
 	}
@@ -1578,7 +1578,7 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 			if err := c.mountSHM(shmOptions); err != nil {
 				return "", err
 			}
-			if err := os.Chown(c.config.ShmDir, c.RootUID(), c.RootGID()); err != nil {
+			if err := idtools.SafeChown(c.config.ShmDir, c.RootUID(), c.RootGID()); err != nil {
 				return "", fmt.Errorf("failed to chown %s: %w", c.config.ShmDir, err)
 			}
 			defer func() {
@@ -2325,7 +2325,7 @@ func (c *Container) mount() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("resolving storage path for container %s: %w", c.ID(), err)
 	}
-	if err := os.Chown(mountPoint, c.RootUID(), c.RootGID()); err != nil {
+	if err := idtools.SafeChown(mountPoint, c.RootUID(), c.RootGID()); err != nil {
 		return "", fmt.Errorf("cannot chown %s to %d:%d: %w", mountPoint, c.RootUID(), c.RootGID(), err)
 	}
 	return mountPoint, nil
@@ -2508,7 +2508,7 @@ func (c *Container) extractSecretToCtrStorage(secr *ContainerSecret) error {
 	if err != nil {
 		return fmt.Errorf("unable to create %s: %w", secretFile, err)
 	}
-	if err := os.Lchown(secretFile, int(hostUID), int(hostGID)); err != nil {
+	if err := idtools.SafeLchown(secretFile, int(hostUID), int(hostGID)); err != nil {
 		return err
 	}
 	if err := os.Chmod(secretFile, os.FileMode(secr.Mode)); err != nil {
