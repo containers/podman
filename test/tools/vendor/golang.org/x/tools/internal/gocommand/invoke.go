@@ -13,6 +13,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"reflect"
 	"regexp"
 	"runtime"
@@ -20,8 +21,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	exec "golang.org/x/sys/execabs"
 
 	"golang.org/x/tools/internal/event"
 	"golang.org/x/tools/internal/event/keys"
