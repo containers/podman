@@ -77,6 +77,7 @@ func TarToFilesystem(source string, tarball *os.File) error {
 	if err != nil {
 		return err
 	}
+	defer tb.Close()
 	_, err = io.Copy(tarball, tb)
 	if err != nil {
 		return err
@@ -98,6 +99,7 @@ func TarChrootToFilesystem(source string, tarball *os.File) error {
 	if err != nil {
 		return err
 	}
+	defer tb.Close()
 	_, err = io.Copy(tarball, tb)
 	if err != nil {
 		return err
