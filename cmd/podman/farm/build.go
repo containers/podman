@@ -19,6 +19,7 @@ type buildOptions struct {
 	buildOptions common.BuildFlagsWrapper
 	local        bool
 	platforms    []string
+	farm         string
 }
 
 var (
@@ -55,6 +56,16 @@ func init() {
 	buildCommand.PersistentFlags().StringSliceVar(&buildOpts.platforms, platformsFlag, nil, "Build only on farm nodes that match the given platforms")
 
 	common.DefineBuildFlags(buildCommand, &buildOpts.buildOptions, true)
+
+	podmanConfig := registry.PodmanConfig()
+
+	farmFlagName := "farm"
+	// If remote, don't read the client's containers.conf file
+	defaultFarm := ""
+	if !registry.IsRemote() {
+		defaultFarm = podmanConfig.ContainersConfDefaultsRO.Farms.Default
+	}
+	flags.StringVar(&buildOpts.farm, farmFlagName, defaultFarm, "Farm to use for builds")
 }
 
 func build(cmd *cobra.Command, args []string) error {
@@ -98,8 +109,8 @@ func build(cmd *cobra.Command, args []string) error {
 	}
 
 	defaultFarm := cfg.Farms.Default
-	if farmCmd.Flags().Changed("farm") {
-		f, err := farmCmd.Flags().GetString("farm")
+	if cmd.Flags().Changed("farm") {
+		f, err := cmd.Flags().GetString("farm")
 		if err != nil {
 			return err
 		}
