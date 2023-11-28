@@ -77,6 +77,14 @@ func (c *Container) newContainerEventWithInspectData(status events.Status, inspe
 		e.HealthStatus = containerHealthStatus
 	}
 
+	if status == events.Remove {
+		exitCode, err := c.runtime.state.GetContainerExitCode(c.ID())
+		if err == nil {
+			intExitCode := int(exitCode)
+			e.ContainerExitCode = &intExitCode
+		}
+	}
+
 	return c.runtime.eventer.Write(e)
 }
 
@@ -88,7 +96,8 @@ func (c *Container) newContainerExitedEvent(exitCode int32) {
 	e.Image = c.config.RootfsImageName
 	e.Type = events.Container
 	e.PodID = c.PodID()
-	e.ContainerExitCode = int(exitCode)
+	intExitCode := int(exitCode)
+	e.ContainerExitCode = &intExitCode
 
 	e.Details = events.Details{
 		ID:         e.ID,
@@ -107,7 +116,8 @@ func (c *Container) newExecDiedEvent(sessionID string, exitCode int) {
 	e.Name = c.Name()
 	e.Image = c.config.RootfsImageName
 	e.Type = events.Container
-	e.ContainerExitCode = exitCode
+	intExitCode := exitCode
+	e.ContainerExitCode = &intExitCode
 	e.Attributes = make(map[string]string)
 	e.Attributes["execID"] = sessionID
 

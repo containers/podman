@@ -19,9 +19,13 @@ type Event struct {
 
 // ConvertToLibpodEvent converts an entities event to a libpod one.
 func ConvertToLibpodEvent(e Event) *libpodEvents.Event {
-	exitCode, err := strconv.Atoi(e.Actor.Attributes["containerExitCode"])
-	if err != nil {
-		return nil
+	var exitCode int
+	if ec, ok := e.Actor.Attributes["containerExitCode"]; ok {
+		var err error
+		exitCode, err = strconv.Atoi(ec)
+		if err != nil {
+			return nil
+		}
 	}
 	status, err := libpodEvents.StringToStatus(e.Action)
 	if err != nil {
@@ -39,7 +43,7 @@ func ConvertToLibpodEvent(e Event) *libpodEvents.Event {
 	delete(details, "name")
 	delete(details, "containerExitCode")
 	return &libpodEvents.Event{
-		ContainerExitCode: exitCode,
+		ContainerExitCode: &exitCode,
 		ID:                e.Actor.ID,
 		Image:             image,
 		Name:              name,
@@ -62,7 +66,9 @@ func ConvertToEntitiesEvent(e libpodEvents.Event) *Event {
 	}
 	attributes["image"] = e.Image
 	attributes["name"] = e.Name
-	attributes["containerExitCode"] = strconv.Itoa(e.ContainerExitCode)
+	if e.ContainerExitCode != nil {
+		attributes["containerExitCode"] = strconv.Itoa(*e.ContainerExitCode)
+	}
 	attributes["podId"] = e.PodID
 	message := dockerEvents.Message{
 		// Compatibility with clients that still look for deprecated API elements

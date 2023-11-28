@@ -238,7 +238,10 @@ func waitNextExit(ctx context.Context, containerName string) (int32, error) {
 
 	evt, ok := <-eventChannel
 	if ok {
-		return int32(evt.ContainerExitCode), nil
+		if evt.ContainerExitCode != nil {
+			return int32(*evt.ContainerExitCode), nil
+		}
+		return -1, nil
 	}
 	// if ok == false then containerEngine.Events() has exited
 	// it may happen if request was canceled (e.g. client closed connection prematurely) or

@@ -936,8 +936,7 @@ func (s *SQLiteState) GetContainerExitCode(id string) (int32, error) {
 	}
 
 	row := s.conn.QueryRow("SELECT ExitCode FROM ContainerExitCode WHERE ID=?;", id)
-
-	var exitCode int32
+	var exitCode int32 = -1
 	if err := row.Scan(&exitCode); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return -1, fmt.Errorf("getting exit code of container %s from DB: %w", id, define.ErrNoSuchExitCode)

@@ -48,8 +48,8 @@ func (e EventJournalD) Write(ee Event) error {
 		m["PODMAN_IMAGE"] = ee.Image
 		m["PODMAN_NAME"] = ee.Name
 		m["PODMAN_ID"] = ee.ID
-		if ee.ContainerExitCode != 0 {
-			m["PODMAN_EXIT_CODE"] = strconv.Itoa(ee.ContainerExitCode)
+		if ee.ContainerExitCode != nil {
+			m["PODMAN_EXIT_CODE"] = strconv.Itoa(*ee.ContainerExitCode)
 		}
 		if ee.PodID != "" {
 			m["PODMAN_POD_ID"] = ee.PodID
@@ -206,7 +206,7 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {
 			if err != nil {
 				logrus.Errorf("Parsing event exit code %s", code)
 			} else {
-				newEvent.ContainerExitCode = intCode
+				newEvent.ContainerExitCode = &intCode
 			}
 		}
 
