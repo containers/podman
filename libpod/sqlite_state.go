@@ -1702,6 +1702,10 @@ func (s *SQLiteState) RemovePodContainers(pod *Pod) (defErr error) {
 		return err
 	}
 
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing pod containers %s removal transaction: %w", pod.ID(), err)
+	}
+
 	return nil
 }
 
