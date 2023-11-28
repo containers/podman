@@ -18,6 +18,9 @@ container cleanup | --all          | --exec=foo
 container cleanup | --exec=foo     | --rmi                  | foo
 "
 
+    # Run all tests, continue even if any fail
+    defer-assertion-failures
+
     # FIXME: parse_table is what does all the work, giving us test cases.
     while read subcommands opt1 opt2 args; do
         opt1_name=${opt1%=*}

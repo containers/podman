@@ -23,6 +23,8 @@ runRoot:
 cgroupManager: \\\(systemd\\\|cgroupfs\\\)
 cgroupVersion: v[12]
 "
+    defer-assertion-failures
+
     while read expect; do
         is "$output" ".*$expect" "output includes '$expect'"
     done < <(parse_table "$expected_keys")
@@ -52,11 +54,13 @@ store.imageStore.number   | 1
 host.slirp4netns.executable | $expr_path
 "
 
-    parse_table "$tests" | while read field expect; do
+    defer-assertion-failures
+
+    while read field expect; do
         actual=$(echo "$output" | jq -r ".$field")
         dprint "# actual=<$actual> expect=<$expect>"
         is "$actual" "$expect" "jq .$field"
-    done
+    done < <(parse_table "$tests")
 }
 
 @test "podman info - confirm desired runtime" {
