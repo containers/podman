@@ -373,10 +373,6 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 		return fmt.Errorf("retrieving DB config: %w", err)
 	}
 
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("committing database validation row: %w", err)
-	}
-
 	checkField := func(fieldName, dbVal, ourVal string) error {
 		if dbVal != ourVal {
 			return fmt.Errorf("database %s %q does not match our %s %q: %w", fieldName, dbVal, fieldName, ourVal, define.ErrDBBadConfig)
@@ -406,6 +402,12 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 	if err := checkField("volume path", volumePath, runtimeVolumePath); err != nil {
 		return err
 	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing database validation row: %w", err)
+	}
+	// Do not return any error after the commit call because the defer will
+	// try to roll back the transaction which results in an logged error.
 
 	return nil
 }
