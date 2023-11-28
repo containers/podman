@@ -83,7 +83,7 @@ Current supported mount TYPEs are **bind**, **devpts**, **glob**, **image**, **r
 
 	      · tmpfs-size: Size of the tmpfs/ramfs mount in bytes. Unlimited by default in Linux.
 
-	      · tmpfs-mode: File mode of the tmpfs/ramfs in octal. (e.g. 700 or 0700.) Defaults to 1777 in Linux.
+	      · tmpfs-mode: File mode of the tmpfs/ramfs in octal (e.g. 700 or 0700.).
 
 	      · tmpcopyup: Enable copyup from the image directory at the same location to the tmpfs/ramfs. Used by default.
 
