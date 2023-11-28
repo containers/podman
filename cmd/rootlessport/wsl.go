@@ -12,7 +12,7 @@ import (
 func splitDualStackSpecIfWsl(spec rkport.Spec) []rkport.Spec {
 	specs := []rkport.Spec{spec}
 	protocol := spec.Proto
-	if machine.MachineHostType() != machine.Wsl || strings.HasSuffix(protocol, "4") || strings.HasSuffix(protocol, "6") {
+	if machine.HostType() != machine.Wsl || strings.HasSuffix(protocol, "4") || strings.HasSuffix(protocol, "6") {
 		return specs
 	}
 

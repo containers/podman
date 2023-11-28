@@ -7,7 +7,7 @@ import (
 )
 
 func shouldResolveWinPaths() bool {
-	return machine.MachineHostType() == "wsl"
+	return machine.HostType() == "wsl"
 }
 
 func shouldResolveUnixWinVariant(path string) bool {

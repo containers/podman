@@ -100,7 +100,7 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 
 	ignStorage := Storage{
 		Directories: getDirs(ign.Name),
-		Files:       getFiles(ign.Name, ign.UID, ign.Rootful),
+		Files:       getFiles(ign.Name, ign.UID, ign.Rootful, ign.VMType),
 		Links:       getLinks(ign.Name),
 	}
 
@@ -300,7 +300,7 @@ func getDirs(usrName string) []Directory {
 	return dirs
 }
 
-func getFiles(usrName string, uid int, rootful bool) []File {
+func getFiles(usrName string, uid int, rootful bool, vmtype VMType) []File {
 	files := make([]File, 0)
 
 	lingerExample := `[Unit]
@@ -434,8 +434,7 @@ Delegate=memory pids cpu io
 		FileEmbedded1: FileEmbedded1{
 			Append: nil,
 			Contents: Resource{
-				// TODO this should be fixed for all vmtypes
-				Source: EncodeDataURLPtr("qemu\n"),
+				Source: EncodeDataURLPtr(fmt.Sprintf("%s\n", vmtype.String())),
 			},
 			Mode: IntToPtr(0644),
 		},

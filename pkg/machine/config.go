@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/compression"
 	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/storage/pkg/homedir"
@@ -352,13 +353,13 @@ const (
 func (v VMType) String() string {
 	switch v {
 	case WSLVirt:
-		return "wsl"
+		return machine.Wsl
 	case AppleHvVirt:
-		return "applehv"
+		return machine.AppleHV
 	case HyperVVirt:
-		return "hyperv"
+		return machine.HyperV
 	}
-	return "qemu"
+	return machine.Qemu
 }
 
 type APIForwardingState int

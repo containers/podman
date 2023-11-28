@@ -12,7 +12,7 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
 	github.com/containers/buildah v1.33.2-0.20231121195905-d1a1c53c8e1c
-	github.com/containers/common v0.57.1-0.20231121115347-e2da7bec2245
+	github.com/containers/common v0.57.1-0.20231127171932-3cec82a37105
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.1
 	github.com/containers/image/v5 v5.29.1-0.20231120202631-293b00ba7166
@@ -69,8 +69,8 @@ require (
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 	golang.org/x/net v0.18.0
 	golang.org/x/sync v0.5.0
-	golang.org/x/sys v0.14.0
-	golang.org/x/term v0.14.0
+	golang.org/x/sys v0.15.0
+	golang.org/x/term v0.15.0
 	golang.org/x/text v0.14.0
 	google.golang.org/protobuf v1.31.0
 	gopkg.in/inf.v0 v0.9.1
