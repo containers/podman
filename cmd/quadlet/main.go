@@ -54,6 +54,7 @@ var (
 		".kube":      3,
 		".network":   2,
 		".image":     1,
+		".pod":       4,
 	}
 )
 
@@ -389,6 +390,23 @@ func warnIfAmbiguousName(unit *parser.UnitFile, group string) {
 	}
 }
 
+func generatePodsInfoMap(units []*parser.UnitFile) map[string]*quadlet.PodInfo {
+	podsInfoMap := make(map[string]*quadlet.PodInfo)
+	for _, unit := range units {
+		if !strings.HasSuffix(unit.Filename, ".pod") {
+			continue
+		}
+
+		serviceName := quadlet.GetPodServiceName(unit)
+		podsInfoMap[unit.Filename] = &quadlet.PodInfo{
+			ServiceName: serviceName,
+			Containers:  make([]string, 0),
+		}
+	}
+
+	return podsInfoMap
+}
+
 func main() {
 	if err := process(); err != nil {
 		Logf("%s", err.Error())
@@ -478,6 +496,9 @@ func process() error {
 		return getOrder(i) < getOrder(j)
 	})
 
+	// Generate the PodsInfoMap to allow containers to link to their pods and add themselves to the pod's containers list
+	podsInfoMap := generatePodsInfoMap(units)
+
 	// A map of network/volume unit file-names, against their calculated names, as needed by Podman.
 	var resourceNames = make(map[string]string)
 
@@ -489,7 +510,7 @@ func process() error {
 		switch {
 		case strings.HasSuffix(unit.Filename, ".container"):
 			warnIfAmbiguousName(unit, quadlet.ContainerGroup)
-			service, err = quadlet.ConvertContainer(unit, resourceNames, isUserFlag)
+			service, err = quadlet.ConvertContainer(unit, resourceNames, isUserFlag, podsInfoMap)
 		case strings.HasSuffix(unit.Filename, ".volume"):
 			warnIfAmbiguousName(unit, quadlet.VolumeGroup)
 			service, name, err = quadlet.ConvertVolume(unit, unit.Filename, resourceNames)
@@ -500,6 +521,8 @@ func process() error {
 		case strings.HasSuffix(unit.Filename, ".image"):
 			warnIfAmbiguousName(unit, quadlet.ImageGroup)
 			service, name, err = quadlet.ConvertImage(unit)
+		case strings.HasSuffix(unit.Filename, ".pod"):
+			service, err = quadlet.ConvertPod(unit, unit.Filename, podsInfoMap)
 		default:
 			Logf("Unsupported file type %q", unit.Filename)
 			continue

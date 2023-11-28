@@ -39,6 +39,8 @@ func loadQuadletTestcase(path string) *quadletTestcase {
 		service += "-network"
 	case ".image":
 		service += "-image"
+	case ".pod":
+		service += "-pod"
 	}
 	service += ".service"
 
@@ -331,6 +333,46 @@ func (t *quadletTestcase) assertStartPodmanFinalArgsRegex(args []string, unit *p
 	return t.assertPodmanFinalArgsRegex(args, unit, "ExecStart")
 }
 
+func (t *quadletTestcase) assertStartPrePodmanArgs(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgs(args, unit, "ExecStartPre", false, false)
+}
+
+func (t *quadletTestcase) assertStartPrePodmanArgsRegex(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgs(args, unit, "ExecStartPre", true, false)
+}
+
+func (t *quadletTestcase) assertStartPrePodmanGlobalArgs(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgs(args, unit, "ExecStartPre", false, true)
+}
+
+func (t *quadletTestcase) assertStartPrePodmanGlobalArgsRegex(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgs(args, unit, "ExecStartPre", true, true)
+}
+
+func (t *quadletTestcase) assertStartPrePodmanArgsKeyVal(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgsKeyVal(args, unit, "ExecStartPre", false, false)
+}
+
+func (t *quadletTestcase) assertStartPrePodmanArgsKeyValRegex(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgsKeyVal(args, unit, "ExecStartPre", true, false)
+}
+
+func (t *quadletTestcase) assertStartPrePodmanGlobalArgsKeyVal(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgsKeyVal(args, unit, "ExecStartPre", false, true)
+}
+
+func (t *quadletTestcase) assertStartPrePodmanGlobalArgsKeyValRegex(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgsKeyVal(args, unit, "ExecStartPre", true, true)
+}
+
+func (t *quadletTestcase) assertStartPrePodmanFinalArgs(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanFinalArgs(args, unit, "ExecStartPre")
+}
+
+func (t *quadletTestcase) assertStartPrePodmanFinalArgsRegex(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanFinalArgsRegex(args, unit, "ExecStartPre")
+}
+
 func (t *quadletTestcase) assertStopPodmanArgs(args []string, unit *parser.UnitFile) bool {
 	return t.assertPodmanArgs(args, unit, "ExecStop", false, false)
 }
@@ -440,6 +482,26 @@ func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, sessio
 		ok = t.assertStartPodmanFinalArgs(args, unit)
 	case "assert-podman-final-args-regex":
 		ok = t.assertStartPodmanFinalArgsRegex(args, unit)
+	case "assert-podman-pre-args":
+		ok = t.assertStartPrePodmanArgs(args, unit)
+	case "assert-podman-pre-args-regex":
+		ok = t.assertStartPrePodmanArgsRegex(args, unit)
+	case "assert-podman-pre-args-key-val":
+		ok = t.assertStartPrePodmanArgsKeyVal(args, unit)
+	case "assert-podman-pre-args-key-val-regex":
+		ok = t.assertStartPrePodmanArgsKeyValRegex(args, unit)
+	case "assert-podman-pre-global-args":
+		ok = t.assertStartPrePodmanGlobalArgs(args, unit)
+	case "assert-podman-pre-global-args-regex":
+		ok = t.assertStartPrePodmanGlobalArgsRegex(args, unit)
+	case "assert-podman-pre-global-args-key-val":
+		ok = t.assertStartPrePodmanGlobalArgsKeyVal(args, unit)
+	case "assert-podman-pre-global-args-key-val-regex":
+		ok = t.assertStartPrePodmanGlobalArgsKeyValRegex(args, unit)
+	case "assert-podman-pre-final-args":
+		ok = t.assertStartPrePodmanFinalArgs(args, unit)
+	case "assert-podman-pre-final-args-regex":
+		ok = t.assertStartPrePodmanFinalArgsRegex(args, unit)
 	case "assert-symlink":
 		ok = t.assertSymlink(args, unit)
 	case "assert-podman-stop-args":
@@ -715,6 +777,8 @@ BOGUS=foo
 		Entry("notify-healthy.container", "notify-healthy.container", 0, ""),
 		Entry("oneshot.container", "oneshot.container", 0, ""),
 		Entry("other-sections.container", "other-sections.container", 0, ""),
+		Entry("pod.non-quadlet.container", "pod.non-quadlet.container", 1, "converting \"pod.non-quadlet.container\": pod test-pod is not Quadlet based"),
+		Entry("pod.not-found.container", "pod.not-found.container", 1, "converting \"pod.not-found.container\": quadlet pod unit not-found.pod does not exist"),
 		Entry("podmanargs.container", "podmanargs.container", 0, ""),
 		Entry("ports.container", "ports.container", 0, ""),
 		Entry("ports_ipv6.container", "ports_ipv6.container", 0, ""),
@@ -822,6 +886,10 @@ BOGUS=foo
 		Entry("Image - Arch and OS", "arch-os.image", 0, ""),
 		Entry("Image - global args", "globalargs.image", 0, ""),
 		Entry("Image - Containers Conf Modules", "containersconfmodule.image", 0, ""),
+
+		Entry("basic.pod", "basic.pod", 0, ""),
+		Entry("name.pod", "name.pod", 0, ""),
+		Entry("podmanargs.pod", "podmanargs.pod", 0, ""),
 	)
 
 })

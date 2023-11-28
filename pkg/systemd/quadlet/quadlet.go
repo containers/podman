@@ -29,6 +29,7 @@ const (
 	InstallGroup    = "Install"
 	KubeGroup       = "Kube"
 	NetworkGroup    = "Network"
+	PodGroup        = "Pod"
 	ServiceGroup    = "Service"
 	UnitGroup       = "Unit"
 	VolumeGroup     = "Volume"
@@ -36,6 +37,7 @@ const (
 	XContainerGroup = "X-Container"
 	XKubeGroup      = "X-Kube"
 	XNetworkGroup   = "X-Network"
+	XPodGroup       = "X-Pod"
 	XVolumeGroup    = "X-Volume"
 	XImageGroup     = "X-Image"
 )
@@ -114,6 +116,8 @@ const (
 	KeyOS                    = "OS"
 	KeyPidsLimit             = "PidsLimit"
 	KeyPodmanArgs            = "PodmanArgs"
+	KeyPodName               = "PodName"
+	KeyPod                   = "Pod"
 	KeyPublishPort           = "PublishPort"
 	KeyPull                  = "Pull"
 	KeyReadOnly              = "ReadOnly"
@@ -152,6 +156,11 @@ const (
 	KeyWorkingDir            = "WorkingDir"
 	KeyYaml                  = "Yaml"
 )
+
+type PodInfo struct {
+	ServiceName string
+	Containers  []string
+}
 
 var (
 	validPortRange = regexp.Delayed(`\d+(-\d+)?(/udp|/tcp)?$`)
@@ -199,6 +208,7 @@ var (
 		KeyNoNewPrivileges:       true,
 		KeyNotify:                true,
 		KeyPidsLimit:             true,
+		KeyPod:                   true,
 		KeyPodmanArgs:            true,
 		KeyPublishPort:           true,
 		KeyPull:                  true,
@@ -307,6 +317,13 @@ var (
 		KeyTLSVerify:            true,
 		KeyVariant:              true,
 	}
+
+	supportedPodKeys = map[string]bool{
+		KeyContainersConfModule: true,
+		KeyGlobalArgs:           true,
+		KeyPodmanArgs:           true,
+		KeyPodName:              true,
+	}
 )
 
 func replaceExtension(name string, extension string, extraPrefix string, extraSuffix string) string {
@@ -382,7 +399,7 @@ func usernsOpts(kind string, opts []string) string {
 // service file (unit file with Service group) based on the options in the
 // Container group.
 // The original Container group is kept around as X-Container.
-func ConvertContainer(container *parser.UnitFile, names map[string]string, isUser bool) (*parser.UnitFile, error) {
+func ConvertContainer(container *parser.UnitFile, names map[string]string, isUser bool, podsInfoMap map[string]*PodInfo) (*parser.UnitFile, error) {
 	service := container.Dup()
 	service.Filename = replaceExtension(container.Filename, ".service", "", "")
 
@@ -768,6 +785,10 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 	pull, ok := container.Lookup(ContainerGroup, KeyPull)
 	if ok && len(pull) > 0 {
 		podman.add("--pull", pull)
+	}
+
+	if err := handlePod(container, service, ContainerGroup, podsInfoMap, podman); err != nil {
+		return nil, err
 	}
 
 	handlePodmanArgs(container, ContainerGroup, podman)
@@ -1226,6 +1247,95 @@ func ConvertImage(image *parser.UnitFile) (*parser.UnitFile, string, error) {
 	}
 
 	return service, imageName, nil
+}
+
+func GetPodServiceName(podUnit *parser.UnitFile) string {
+	return replaceExtension(podUnit.Filename, "", "", "-pod")
+}
+
+func ConvertPod(podUnit *parser.UnitFile, name string, podsInfoMap map[string]*PodInfo) (*parser.UnitFile, error) {
+	podInfo, ok := podsInfoMap[podUnit.Filename]
+	if !ok {
+		return nil, fmt.Errorf("internal error while processing pod %s", podUnit.Filename)
+	}
+
+	service := podUnit.Dup()
+	service.Filename = replaceExtension(podInfo.ServiceName, ".service", "", "")
+
+	if podUnit.Path != "" {
+		service.Add(UnitGroup, "SourcePath", podUnit.Path)
+	}
+
+	if err := checkForUnknownKeys(podUnit, PodGroup, supportedPodKeys); err != nil {
+		return nil, err
+	}
+
+	// Derive pod name from unit name (with added prefix), or use user-provided name.
+	podName, ok := podUnit.Lookup(PodGroup, KeyPodName)
+	if !ok || len(podName) == 0 {
+		podName = replaceExtension(name, "", "systemd-", "")
+	}
+
+	/* Rename old Pod group to x-Pod so that systemd ignores it */
+	service.RenameGroup(PodGroup, XPodGroup)
+
+	// Need the containers filesystem mounted to start podman
+	service.Add(UnitGroup, "RequiresMountsFor", "%t/containers")
+
+	for _, containerService := range podInfo.Containers {
+		service.Add(UnitGroup, "Wants", containerService)
+		service.Add(UnitGroup, "Before", containerService)
+	}
+
+	if !podUnit.HasKey(ServiceGroup, "SyslogIdentifier") {
+		service.Set(ServiceGroup, "SyslogIdentifier", "%N")
+	}
+
+	execStart := createBasePodmanCommand(podUnit, PodGroup)
+	execStart.add("pod", "start", "--pod-id-file=%t/%N.pod-id")
+	service.AddCmdline(ServiceGroup, "ExecStart", execStart.Args)
+
+	execStop := createBasePodmanCommand(podUnit, PodGroup)
+	execStop.add("pod", "stop")
+	execStop.add(
+		"--pod-id-file=%t/%N.pod-id",
+		"--ignore",
+		"--time=10",
+	)
+	service.AddCmdline(ServiceGroup, "ExecStop", execStop.Args)
+
+	execStopPost := createBasePodmanCommand(podUnit, PodGroup)
+	execStopPost.add("pod", "rm")
+	execStopPost.add(
+		"--pod-id-file=%t/%N.pod-id",
+		"--ignore",
+		"--force",
+	)
+	service.AddCmdline(ServiceGroup, "ExecStopPost", execStopPost.Args)
+
+	execStartPre := createBasePodmanCommand(podUnit, PodGroup)
+	execStartPre.add("pod", "create")
+	execStartPre.add(
+		"--infra-conmon-pidfile=%t/%N.pid",
+		"--pod-id-file=%t/%N.pod-id",
+		"--exit-policy=stop",
+		"--replace",
+	)
+
+	execStartPre.addf("--name=%s", podName)
+
+	handlePodmanArgs(podUnit, PodGroup, execStartPre)
+
+	service.AddCmdline(ServiceGroup, "ExecStartPre", execStartPre.Args)
+
+	service.Setv(ServiceGroup,
+		"Environment", "PODMAN_SYSTEMD_UNIT=%n",
+		"Type", "forking",
+		"Restart", "on-failure",
+		"PIDFile", "%t/%N.pid",
+	)
+
+	return service, nil
 }
 
 func handleUser(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline) error {
@@ -1687,4 +1797,27 @@ func createBasePodmanCommand(unitFile *parser.UnitFile, groupName string) *Podma
 	}
 
 	return podman
+}
+
+func handlePod(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName string, podsInfoMap map[string]*PodInfo, podman *PodmanCmdline) error {
+	pod, ok := quadletUnitFile.Lookup(groupName, KeyPod)
+	if ok && len(pod) > 0 {
+		if !strings.HasSuffix(pod, ".pod") {
+			return fmt.Errorf("pod %s is not Quadlet based", pod)
+		}
+
+		podInfo, ok := podsInfoMap[pod]
+		if !ok {
+			return fmt.Errorf("quadlet pod unit %s does not exist", pod)
+		}
+
+		podman.add("--pod-id-file", fmt.Sprintf("%%t/%s.pod-id", podInfo.ServiceName))
+
+		podServiceName := fmt.Sprintf("%s.service", podInfo.ServiceName)
+		serviceUnitFile.Add(UnitGroup, "BindsTo", podServiceName)
+		serviceUnitFile.Add(UnitGroup, "After", podServiceName)
+
+		podInfo.Containers = append(podInfo.Containers, serviceUnitFile.Filename)
+	}
+	return nil
 }
