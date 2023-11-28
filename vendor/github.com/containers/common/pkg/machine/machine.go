@@ -9,10 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TODO: change name to MachineMarker since package is already called machine
-//
-//nolint:revive
-type MachineMarker struct {
+type Marker struct {
 	Enabled bool
 	Type    string
 }
@@ -21,11 +18,13 @@ const (
 	markerFile = "/etc/containers/podman-machine"
 	Wsl        = "wsl"
 	Qemu       = "qemu"
+	AppleHV    = "applehv"
+	HyperV     = "hyperv"
 )
 
 var (
-	markerSync    sync.Once
-	machineMarker *MachineMarker
+	markerSync sync.Once
+	marker     *Marker
 )
 
 func loadMachineMarker(file string) {
@@ -39,7 +38,7 @@ func loadMachineMarker(file string) {
 		kind = strings.TrimSpace(string(content))
 	}
 
-	machineMarker = &MachineMarker{enabled, kind}
+	marker = &Marker{enabled, kind}
 }
 
 func isLegacyConfigSet() bool {
@@ -57,20 +56,17 @@ func IsPodmanMachine() bool {
 	return GetMachineMarker().Enabled
 }
 
-// TODO: change name to HostType since package is already called machine
-//
-//nolint:revive
-func MachineHostType() string {
+func HostType() string {
 	return GetMachineMarker().Type
 }
 
 func IsGvProxyBased() bool {
-	return IsPodmanMachine() && MachineHostType() != Wsl
+	return IsPodmanMachine() && HostType() != Wsl
 }
 
-func GetMachineMarker() *MachineMarker {
+func GetMachineMarker() *Marker {
 	markerSync.Do(func() {
 		loadMachineMarker(markerFile)
 	})
-	return machineMarker
+	return marker
 }
