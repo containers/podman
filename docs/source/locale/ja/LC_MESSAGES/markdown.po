@@ -19280,7 +19280,7 @@ msgstr ""
 
 #: ../../source/markdown/podman-manifest-push.1.md:123
 #: ../../source/markdown/podman-push.1.md:161
-msgid "**--sign-by-sigstore**=*param-file***"
+msgid "**--sign-by-sigstore**=*param-file*"
 msgstr ""
 
 #: ../../source/markdown/podman-manifest-push.1.md:125
