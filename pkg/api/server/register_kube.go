@@ -17,6 +17,10 @@ func (s *APIServer) registerKubeHandlers(r *mux.Router) error {
 	// description: Create and run pods based on a Kubernetes YAML file (pod or service kind).
 	// parameters:
 	//  - in: query
+	//    name: annotations
+	//    type: string
+	//    description: JSON encoded value of annotations (a map[string]string).
+	//  - in: query
 	//    name: logDriver
 	//    type: string
 	//    description: Logging driver for the containers in the pod.
