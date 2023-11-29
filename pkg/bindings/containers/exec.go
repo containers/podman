@@ -118,7 +118,7 @@ func ExecRemove(ctx context.Context, sessionID string, options *ExecRemoveOption
 	// The exec remove endpoint was added in 4.8.
 	if v.Major < 4 || (v.Major == 4 && v.Minor < 8) {
 		// Do no call this endpoint as it will not be supported on the server and throw an "NOT FOUND" error.
-		return nil
+		return bindings.NewAPIVersionError("/exec/{id}/remove", v, "4.8.0")
 	}
 	if options == nil {
 		options = new(ExecRemoveOptions)
