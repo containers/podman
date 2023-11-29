@@ -62,11 +62,17 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
+		ctrName := "test"
 		bm := basicMachine{}
-		runAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"run", "-dt", "-p", "62544:80", "quay.io/libpod/alpine_nginx"})).run()
+		runAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"run", "-dt", "--name", ctrName, "-p", "62544:80", "quay.io/libpod/alpine_nginx"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(runAlp).To(Exit(0))
 		testHTTPServer("62544", false, "podman rulez")
+
+		// Test exec in machine scenario: https://github.com/containers/podman/issues/20821
+		exec, err := mb.setCmd(bm.withPodmanCommand([]string{"exec", ctrName, "true"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(exec).To(Exit(0))
 
 		out, err := pgrep("gvproxy")
 		Expect(err).ToNot(HaveOccurred())
