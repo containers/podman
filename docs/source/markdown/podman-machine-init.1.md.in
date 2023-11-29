@@ -15,8 +15,8 @@ then the new machine will be named `podman-machine-default`.
 
 Rootless only.
 
-Podman on MacOS and Windows requires a virtual machine. This is because containers are Linux -
-containers do not run on any other OS because containers' core functionality are
+Podman on MacOS and Windows requires a virtual machine. This is because containers are Linux-based
+and do not run on any other OS because containers' core functionality are
 tied to the Linux kernel. Podman machine must be used to manage MacOS and Windows machines,
 but can be optionally used on Linux.
 
@@ -28,27 +28,6 @@ By default, the VM distribution is [Fedora CoreOS](https://getfedora.org/en/core
 WSL which is based on a custom Fedora image.  While Fedora CoreOS upgrades come out every 14 days, the automatic
 update mechanism Zincata is disabled by Podman machine.
 
-To check if there is an upgrade available for your machine os, you can run the following command:
-
-```
-$ podman machine ssh 'sudo rpm-ostree upgrade --check'
-
-```
-If an update is available, you can rerun the above command and remove the `--check` and your operating system will
-be updated.  After updating, you must stop and start your machine with `podman machine stop && podman machine start` for
-it to take effect.
-
-Note: Updating as described above can result in version mismatches between Podman on the host and Podman in the
-machine.  Executing `podman info` should reveal versions of both.  A configuration where the Podman host and machine
-mismatch are unsupported.
-
-For more information on updates and advanced configuration,
-see the Fedora CoreOS documentation about [auto-updates](https://docs.fedoraproject.org/en-US/fedora-coreos/auto-updates/) and [update strategies](https://coreos.github.io/zincati/usage/updates-strategy/).
-
-
-
-
-Fedora CoreOS upgrades come out every 14 days and are detected and installed automatically. The VM is rebooted during the upgrade.
 For more information on updates and advanced configuration,
 see the Fedora CoreOS documentation about [auto-updates](https://docs.fedoraproject.org/en-US/fedora-coreos/auto-updates/) and [update strategies](https://coreos.github.io/zincati/usage/updates-strategy/).
 
