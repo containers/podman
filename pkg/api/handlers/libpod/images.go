@@ -27,7 +27,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	domainUtils "github.com/containers/podman/v4/pkg/domain/utils"
 	"github.com/containers/podman/v4/pkg/errorhandling"
-	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 	utils2 "github.com/containers/podman/v4/utils"
 	"github.com/containers/storage"
@@ -330,10 +329,7 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tarOptions := &archive.TarOptions{
-		ChownOpts: &idtools.IDPair{
-			UID: rootless.GetRootlessUID(),
-			GID: rootless.GetRootlessGID(),
-		},
+		ChownOpts: &idtools.IDPair{UID: 0, GID: 0},
 	}
 	tar, err := chrootarchive.Tar(output, tarOptions, output)
 	if err != nil {

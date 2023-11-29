@@ -336,7 +336,7 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 		return err
 	}
 
-	return archive.Untar(f, opts.Output, nil)
+	return archive.Untar(f, opts.Output, &archive.TarOptions{NoLchown: true})
 }
 
 func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.ImageSearchOptions) ([]entities.ImageSearchReport, error) {
