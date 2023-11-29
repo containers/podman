@@ -21,7 +21,7 @@ require (
 	github.com/containers/psgo v1.8.0
 	github.com/containers/storage v1.51.1-0.20231120144510-2cf61989a5bc
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
-	github.com/coreos/stream-metadata-go v0.4.3
+	github.com/coreos/stream-metadata-go v0.4.4
 	github.com/crc-org/vfkit v0.5.0
 	github.com/cyphar/filepath-securejoin v0.2.4
 	github.com/digitalocean/go-qemu v0.0.0-20230711162256-2e3d0186973e
