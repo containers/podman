@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/cgroups"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod/define"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
@@ -369,6 +370,36 @@ var _ = Describe("Podman run", func() {
 		}
 		return jsonFile
 	}
+
+	It("podman run default mask test", func() {
+		session := podmanTest.Podman([]string{"run", "-d", "--name=maskCtr", ALPINE, "sleep", "200"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		for _, mask := range config.DefaultMaskedPaths {
+			if st, err := os.Stat(mask); err == nil {
+				if st.IsDir() {
+					session = podmanTest.Podman([]string{"exec", "maskCtr", "ls", mask})
+					session.WaitWithDefaultTimeout()
+					Expect(session).Should(ExitCleanly())
+					Expect(session.OutputToString()).To(BeEmpty())
+				} else {
+					session = podmanTest.Podman([]string{"exec", "maskCtr", "cat", mask})
+					session.WaitWithDefaultTimeout()
+					// Call can fail with permission denied, ignoring error or Not exist.
+					// key factor is there is no information leak
+					Expect(session.OutputToString()).To(BeEmpty())
+				}
+			}
+		}
+		for _, mask := range config.DefaultReadOnlyPaths {
+			if _, err := os.Stat(mask); err == nil {
+				session = podmanTest.Podman([]string{"exec", "maskCtr", "touch", mask})
+				session.WaitWithDefaultTimeout()
+				Expect(session).Should(Exit(1))
+				Expect(session.ErrorToString()).To(Equal(fmt.Sprintf("touch: %s: Read-only file system", mask)))
+			}
+		}
+	})
 
 	It("podman run mask and unmask path test", func() {
 		session := podmanTest.Podman([]string{"run", "-d", "--name=maskCtr1", "--security-opt", "unmask=ALL", "--security-opt", "mask=/proc/acpi", ALPINE, "sleep", "200"})
