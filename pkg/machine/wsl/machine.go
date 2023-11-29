@@ -1591,9 +1591,6 @@ func readWinProxyTid(v *MachineVM) (uint32, uint32, string, error) {
 func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, func() error, error) {
 	var files []string
 
-	v.lock.Lock()
-	defer v.lock.Unlock()
-
 	if v.isRunning() {
 		if !opts.Force {
 			return "", nil, &machine.ErrVMRunningCannotDestroyed{Name: v.Name}
@@ -1602,6 +1599,9 @@ func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, fun
 			return "", nil, err
 		}
 	}
+
+	v.lock.Lock()
+	defer v.lock.Unlock()
 
 	// Collect all the files that need to be destroyed
 	if !opts.SaveKeys {
