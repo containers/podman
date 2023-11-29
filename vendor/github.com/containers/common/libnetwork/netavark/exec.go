@@ -86,6 +86,9 @@ func (n *netavarkNetwork) execNetavark(args []string, needPlugin bool, stdin, re
 	if n.dnsBindPort != 0 {
 		env = append(env, "NETAVARK_DNS_PORT="+strconv.Itoa(int(n.dnsBindPort)))
 	}
+	if n.firewallDriver != "" {
+		env = append(env, "NETAVARK_FW="+n.firewallDriver)
+	}
 	return n.execBinary(n.netavarkBinary, append(n.getCommonNetavarkOptions(needPlugin), args...), stdin, result, env)
 }
 

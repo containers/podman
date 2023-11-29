@@ -567,6 +567,9 @@ type NetworkConfig struct {
 	// NetavarkPluginDirs is a list of directories which contain netavark plugins.
 	NetavarkPluginDirs attributedstring.Slice `toml:"netavark_plugin_dirs,omitempty"`
 
+	// FirewallDriver is the firewall driver to be used
+	FirewallDriver string `toml:"firewall_driver,omitempty"`
+
 	// DefaultNetwork is the network name of the default network
 	// to attach pods to.
 	DefaultNetwork string `toml:"default_network,omitempty"`
