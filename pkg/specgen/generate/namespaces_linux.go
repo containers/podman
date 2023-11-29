@@ -159,3 +159,7 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 
 	return nil
 }
+
+func needPostConfigureNetNS(s *specgen.SpecGenerator) bool {
+	return !s.UserNS.IsHost()
+}
