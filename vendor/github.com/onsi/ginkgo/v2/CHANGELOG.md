@@ -1,3 +1,9 @@
+## 2.13.2
+
+### Fixes
+- Fix file handler leak (#1309) [e2e81c8]
+- Avoid allocations with `(*regexp.Regexp).MatchString` (#1302) [3b2a2a7]
+
 ## 2.13.1
 
 ### Fixes
