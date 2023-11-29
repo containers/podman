@@ -243,6 +243,67 @@ func loadUnitsFromDir(sourcePath string) ([]*parser.UnitFile, error) {
 	return units, prevError
 }
 
+func loadUnitDropins(unit *parser.UnitFile, sourcePaths []string) error {
+	var prevError error
+	reportError := func(err error) {
+		if prevError != nil {
+			err = fmt.Errorf("%s\n%s", prevError, err)
+		}
+		prevError = err
+	}
+
+	var dropinPaths = make(map[string]string)
+	for _, sourcePath := range sourcePaths {
+		dropinDir := path.Join(sourcePath, unit.Filename+".d")
+
+		dropinFiles, err := os.ReadDir(dropinDir)
+		if err != nil {
+			if !errors.Is(err, os.ErrNotExist) {
+				reportError(fmt.Errorf("error reading directory %q, %w", dropinDir, err))
+			}
+
+			continue
+		}
+
+		for _, dropinFile := range dropinFiles {
+			dropinName := dropinFile.Name()
+			if filepath.Ext(dropinName) != ".conf" {
+				continue // Only *.conf supported
+			}
+
+			if _, ok := dropinPaths[dropinName]; ok {
+				continue // We already saw this name
+			}
+
+			dropinPaths[dropinName] = path.Join(dropinDir, dropinName)
+		}
+	}
+
+	dropinFiles := make([]string, len(dropinPaths))
+	i := 0
+	for k := range dropinPaths {
+		dropinFiles[i] = k
+		i++
+	}
+
+	// Merge in alpha-numerical order
+	sort.Strings(dropinFiles)
+
+	for _, dropinFile := range dropinFiles {
+		dropinPath := dropinPaths[dropinFile]
+
+		Debugf("Loading source drop-in file %s", dropinPath)
+
+		if f, err := parser.ParseUnitFile(dropinPath); err != nil {
+			reportError(fmt.Errorf("error loading %q, %w", dropinPath, err))
+		} else {
+			unit.Merge(f)
+		}
+	}
+
+	return prevError
+}
+
 func generateServiceFile(service *parser.UnitFile) error {
 	Debugf("writing %q", service.Path)
 
@@ -472,6 +533,12 @@ func process() error {
 		// had nothing to do
 		Debugf("No files parsed from %s", sourcePaths)
 		return prevError
+	}
+
+	for _, unit := range units {
+		if err := loadUnitDropins(unit, sourcePaths); err != nil {
+			reportError(err)
+		}
 	}
 
 	if !dryRunFlag {

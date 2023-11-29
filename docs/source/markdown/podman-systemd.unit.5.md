@@ -45,6 +45,13 @@ Each file type has a custom section (for example, `[Container]`) that is handled
 other sections are passed on untouched, allowing the use of any normal systemd configuration options
 like dependencies or cgroup limits.
 
+The source files also support drop-ins in the same [way systemd does](https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html).
+For a given source file (say `foo.container`), the corresponding `.d`directory (in this
+case `foo.container.d`) will be scanned for files with a `.conf` extension that are merged into
+the base file in alphabetical order. The format of these drop-in files is the same as the base file.
+This is useful to alter or add configuration settings for a unit, without having to modify unit
+files.
+
 For rootless containers, when administrators place Quadlet files in the
 /etc/containers/systemd/users directory, all users' sessions execute the
 Quadlet when the login session begins. If the administrator places a Quadlet

@@ -182,7 +182,7 @@ func (f *UnitFile) ensureGroup(groupName string) *unitGroup {
 	return g
 }
 
-func (f *UnitFile) merge(source *UnitFile) {
+func (f *UnitFile) Merge(source *UnitFile) {
 	for _, srcGroup := range source.groups {
 		group := f.ensureGroup(srcGroup.name)
 		group.merge(srcGroup)
@@ -193,7 +193,7 @@ func (f *UnitFile) merge(source *UnitFile) {
 func (f *UnitFile) Dup() *UnitFile {
 	copy := NewUnitFile()
 
-	copy.merge(f)
+	copy.Merge(f)
 	copy.Filename = f.Filename
 	return copy
 }
