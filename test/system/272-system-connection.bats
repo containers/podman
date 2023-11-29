@@ -187,6 +187,10 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true" \
     #   3. ActiveService from containers.conf
     #   4. RemoteURI
 
+    # Prerequisite check: there must be no defined system connections
+    run_podman system connection ls -q
+    assert "$output" = "" "This test requires an empty list of system connections"
+
     # setup
     run_podman 0+w system connection add defaultconnection unix:///run/user/defaultconnection/podman/podman.sock
     run_podman 0+w system connection add env-override unix:///run/user/env-override/podman/podman.sock
@@ -232,9 +236,20 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true" \
     run_podman system connection rm env-override
     run_podman system connection rm cli-override
 
-    _run_podman_remote 125 --remote ps
-    assert "$output" =~ "/run/[a-z0-9/]*podman/podman.sock"\
-        "test absence of default connection"
+    # With all system connections removed, test the default connection.
+    # This only works in upstream CI, where we run with a nonstandard socket.
+    # In gating we use the default /run/...
+    run_podman info --format '{{.Host.RemoteSocket.Path}}'
+    local sock="$output"
+    if [[ "$sock" =~ //run/ ]]; then
+        _run_podman_remote --remote info --format '{{.Host.RemoteSocket.Path}}'
+        assert "$output" = "$sock" "podman-remote is using default socket path"
+    else
+        # Nonstandard socket
+        _run_podman_remote 125 --remote ps
+        assert "$output" =~ "/run/[a-z0-9/]*podman/podman.sock"\
+               "test absence of default connection"
+    fi
 }
 
 # vim: filetype=sh

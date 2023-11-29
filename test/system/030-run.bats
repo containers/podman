@@ -1159,6 +1159,9 @@ EOF
     if is_rootless; then
         run ulimit -c -H
         max=$output
+        if [[ "$max" != "unlimited" ]] && [[ $max -lt 1000 ]]; then
+            skip "ulimit -c == $max, test requires >= 1000"
+        fi
     fi
 
     run_podman run --ulimit core=-1:-1 --rm $IMAGE grep core /proc/self/limits
