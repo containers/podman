@@ -664,6 +664,16 @@ BOGUS=foo
 			err = os.WriteFile(filepath.Join(quadletDir, fileName), testcase.data, 0644)
 			Expect(err).ToNot(HaveOccurred())
 
+			// Also copy any extra snippets
+			dotdDir := filepath.Join("quadlet", fileName+".d")
+			if s, err := os.Stat(dotdDir); err == nil && s.IsDir() {
+				dotdDirDest := filepath.Join(quadletDir, fileName+".d")
+				err = os.Mkdir(dotdDirDest, os.ModePerm)
+				Expect(err).ToNot(HaveOccurred())
+				err = CopyDirectory(dotdDir, dotdDirDest)
+				Expect(err).ToNot(HaveOccurred())
+			}
+
 			// Run quadlet to convert the file
 			session := podmanTest.Quadlet([]string{"--user", "--no-kmsg-log", generatedDir}, quadletDir)
 			session.WaitWithDefaultTimeout()
@@ -748,6 +758,8 @@ BOGUS=foo
 		Entry("workingdir.container", "workingdir.container", 0, ""),
 		Entry("Container - global args", "globalargs.container", 0, ""),
 		Entry("Container - Containers Conf Modules", "containersconfmodule.container", 0, ""),
+		Entry("merged.container", "merged.container", 0, ""),
+		Entry("merged-override.container", "merged-override.container", 0, ""),
 
 		Entry("basic.volume", "basic.volume", 0, ""),
 		Entry("device-copy.volume", "device-copy.volume", 0, ""),
