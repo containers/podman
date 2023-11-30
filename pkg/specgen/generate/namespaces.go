@@ -296,7 +296,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 		toReturn = append(toReturn, libpod.WithCgroupsMode(s.CgroupsMode))
 	}
 
-	postConfigureNetNS := !s.UserNS.IsHost()
+	postConfigureNetNS := needPostConfigureNetNS(s)
 
 	switch s.NetNS.NSMode {
 	case specgen.FromPod:

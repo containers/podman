@@ -194,15 +194,18 @@ func openDirectory(path string) (fd int, err error) {
 
 func (c *Container) addNetworkNamespace(g *generate.Generator) error {
 	if c.config.CreateNetNS {
-		if c.state.NetNS == "" {
-			// This should not happen since network setup
-			// errors should be propagated correctly from
-			// (*Runtime).createNetNS. Check for it anyway
-			// since it caused nil pointer dereferences in
-			// the past (see #16333).
-			return fmt.Errorf("Inconsistent state: c.config.CreateNetNS is set but c.state.NetNS is nil")
+		// If PostConfigureNetNS is set (which is true on FreeBSD 13.3
+		// and later), we can manage a container's network settings
+		// without an extra parent jail to own the vnew.
+		//
+		// In this case, the OCI runtime creates a new vnet for the
+		// container jail, otherwise it creates the container jail as a
+		// child of the jail owning the vnet.
+		if c.config.PostConfigureNetNS {
+			g.AddAnnotation("org.freebsd.jail.vnet", "new")
+		} else {
+			g.AddAnnotation("org.freebsd.parentJail", c.state.NetNS)
 		}
-		g.AddAnnotation("org.freebsd.parentJail", c.state.NetNS)
 	}
 	return nil
 }

@@ -109,10 +109,14 @@ func getSlirp4netnsIP(subnet *net.IPNet) (*net.IP, error) {
 	return nil, errors.New("not implemented GetSlirp4netnsIP")
 }
 
-// While there is code in container_internal.go which calls this, in
-// my testing network creation always seems to go through createNetNS.
+// This is called after the container's jail is created but before its
+// started. We can use this to initialise the container's vnet when we don't
+// have a separate vnet jail (which is the case in FreeBSD 13.3 and later).
 func (r *Runtime) setupNetNS(ctr *Container) error {
-	return errors.New("not implemented (*Runtime) setupNetNS")
+	networkStatus, err := r.configureNetNS(ctr, ctr.ID())
+	ctr.state.NetNS = ctr.ID()
+	ctr.state.NetworkStatus = networkStatus
+	return err
 }
 
 // Create and configure a new network namespace for a container
@@ -197,22 +201,24 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 	}
 
 	if ctr.state.NetNS != "" {
-		// Rather than destroying the jail immediately, reset the
-		// persist flag so that it will live until the container is
-		// done.
-		netjail, err := jail.FindByName(ctr.state.NetNS)
-		if err != nil {
-			return fmt.Errorf("finding network jail %s: %w", ctr.state.NetNS, err)
+		// If PostConfigureNetNS is false, then we are running with a
+		// separate vnet jail so we need to clean that up now.
+		if !ctr.config.PostConfigureNetNS {
+			// Rather than destroying the jail immediately, reset the
+			// persist flag so that it will live until the container is
+			// done.
+			netjail, err := jail.FindByName(ctr.state.NetNS)
+			if err != nil {
+				return fmt.Errorf("finding network jail %s: %w", ctr.state.NetNS, err)
+			}
+			jconf := jail.NewConfig()
+			jconf.Set("persist", false)
+			if err := netjail.Set(jconf); err != nil {
+				return fmt.Errorf("releasing network jail %s: %w", ctr.state.NetNS, err)
+			}
 		}
-		jconf := jail.NewConfig()
-		jconf.Set("persist", false)
-		if err := netjail.Set(jconf); err != nil {
-			return fmt.Errorf("releasing network jail %s: %w", ctr.state.NetNS, err)
-		}
-
 		ctr.state.NetNS = ""
 	}
-
 	return nil
 }
 
@@ -226,10 +232,18 @@ func getContainerNetIO(ctr *Container) (*LinkStatistics64, error) {
 		return nil, nil
 	}
 
-	cmd := exec.Command("jexec", ctr.state.NetNS, "netstat", "-bi", "--libxo", "json")
+	// First try running 'netstat -j' - this lets us retrieve stats from
+	// containers which don't have a separate vnet jail.
+	cmd := exec.Command("netstat", "-j", ctr.state.NetNS, "-bi", "--libxo", "json")
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, err
+		// Fall back to using jexec so that this still works on 13.2
+		// which does not have the -j flag.
+		cmd := exec.Command("jexec", ctr.state.NetNS, "netstat", "-bi", "--libxo", "json")
+		out, err = cmd.Output()
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to read network stats: %v", err)
 	}
 	stats := Netstat{}
 	if err := jdec.Unmarshal(out, &stats); err != nil {
