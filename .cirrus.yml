@@ -1114,7 +1114,8 @@ success_task:
         # TODO: issue #20548; These tests are new and mostly fail.
         # Ignore status until tests, scripts, and/or environment stabalize.
         # - podman_machine_windows
-        - podman_machine_mac
+        # TODO: Issue #20853; Tests mostly fail then timeout after an hour.
+        # - podman_machine_mac
         - local_system_test
         - local_system_test_aarch64
         - remote_system_test
