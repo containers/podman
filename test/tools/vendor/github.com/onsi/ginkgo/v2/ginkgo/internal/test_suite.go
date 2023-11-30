@@ -226,7 +226,7 @@ func suitesInDir(dir string, recurse bool) TestSuites {
 	files, _ := os.ReadDir(dir)
 	re := regexp.MustCompile(`^[^._].*_test\.go$`)
 	for _, file := range files {
-		if !file.IsDir() && re.Match([]byte(file.Name())) {
+		if !file.IsDir() && re.MatchString(file.Name()) {
 			suite := TestSuite{
 				Path:        relPath(dir),
 				PackageName: packageNameForSuite(dir),
@@ -241,7 +241,7 @@ func suitesInDir(dir string, recurse bool) TestSuites {
 	if recurse {
 		re = regexp.MustCompile(`^[._]`)
 		for _, file := range files {
-			if file.IsDir() && !re.Match([]byte(file.Name())) {
+			if file.IsDir() && !re.MatchString(file.Name()) {
 				suites = append(suites, suitesInDir(dir+"/"+file.Name(), recurse)...)
 			}
 		}
@@ -272,7 +272,7 @@ func filesHaveGinkgoSuite(dir string, files []os.DirEntry) bool {
 	reGinkgo := regexp.MustCompile(`package ginkgo|\/ginkgo"|\/ginkgo\/v2"|\/ginkgo\/v2/dsl/`)
 
 	for _, file := range files {
-		if !file.IsDir() && reTestFile.Match([]byte(file.Name())) {
+		if !file.IsDir() && reTestFile.MatchString(file.Name()) {
 			contents, _ := os.ReadFile(dir + "/" + file.Name())
 			if reGinkgo.Match(contents) {
 				return true
