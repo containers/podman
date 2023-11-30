@@ -764,9 +764,6 @@ podman_machine_aarch64_task:
 podman_machine_windows_task:
     name: *std_name_fmt
     alias: podman_machine_windows
-    # TODO: These tests are new and mostly fail.  Disable all failures impacting overall CI status
-    # until the tests, scripts, and environment stabalize.
-    allow_failures: $CI == $CI
     # Only run for non-docs/copr PRs and non-release branch builds
     # and never for tags.  Docs: ./contrib/cirrus/CIModes.md
     only_if: >-
@@ -1061,7 +1058,9 @@ success_task:
         - rootless_integration_test
         - podman_machine
         - podman_machine_aarch64
-        - podman_machine_windows
+        # TODO: issue #20548; These tests are new and mostly fail.
+        # Ignore status until tests, scripts, and/or environment stabalize.
+        # - podman_machine_windows
         - local_system_test
         - local_system_test_aarch64
         - remote_system_test
