@@ -63,6 +63,11 @@ jobs:
           org.opencontainers.image.description=FCOS image with rpms from rhcontainerbot/podman-next copr
           org.opencontainers.image.revision=${{ github.sha }}
 
+    # TODO: Build qemu and vhdx images with cosa
+    # Is that doable here itself?
+    # 1. Clone cosa
+    # 2. cosa fetch
+    # 3. cosa build qcow, hyperv
 
     - name: Echo Outputs
       run: |
