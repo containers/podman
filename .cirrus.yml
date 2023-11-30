@@ -823,6 +823,7 @@ local_system_test_aarch64_task: &local_system_test_task_aarch64
     only_if: *not_tag_build_docs
     depends_on:
         - build_aarch64
+        - validate_aarch64
         - unit_test
     ec2_instance: *standard_build_ec2_aarch64
     env:
