@@ -4,9 +4,8 @@
 ####> are applicable to all of those.
 #### **--volume**, **-v**=*[HOST-DIR:CONTAINER-DIR[:OPTIONS]]*
 
-Create a bind mount. Specifying the `-v /HOST-DIR:/CONTAINER-DIR` option, Podman
-bind mounts `/HOST-DIR` from the host to `/CONTAINER-DIR` in the Podman
-container.
+Mount a host directory into containers when executing RUN instructions during
+the build.
 
 The `OPTIONS` are a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>
 
@@ -17,12 +16,9 @@ The `OPTIONS` are a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup
 
 The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The `HOST-DIR`
 must be an absolute path as well. Podman bind-mounts the `HOST-DIR` to the
-specified path. For example, when specifying the host path `/foo`,
-Podman copies the contents of `/foo` to the container filesystem on the host
-and bind mounts that into the container.
+specified path when processing RUN instructions.
 
-You can specify multiple  **-v** options to mount one or more mounts to a
-container.
+You can specify multiple  **-v** options to mount one or more mounts.
 
 You can add the `:ro` or `:rw` suffix to a volume to mount it read-only or
 read-write mode, respectively. By default, the volumes are mounted read-write.
