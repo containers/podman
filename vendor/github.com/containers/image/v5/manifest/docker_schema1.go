@@ -10,6 +10,7 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/internal/manifest"
 	"github.com/containers/image/v5/internal/set"
+	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/regexp"
 	"github.com/docker/docker/api/types/versions"
@@ -142,6 +143,15 @@ func (m *Schema1) LayerInfos() []LayerInfo {
 	return layers
 }
 
+const fakeSchema1MIMEType = DockerV2Schema2LayerMediaType // Used only in schema1CompressionMIMETypeSets
+var schema1CompressionMIMETypeSets = []compressionMIMETypeSet{
+	{
+		mtsUncompressed:                    fakeSchema1MIMEType,
+		compressiontypes.GzipAlgorithmName: fakeSchema1MIMEType,
+		compressiontypes.ZstdAlgorithmName: mtsUnsupportedMIMEType,
+	},
+}
+
 // UpdateLayerInfos replaces the original layers with the specified BlobInfos (size+digest+urls), in order (the root layer first, and then successive layered layers)
 func (m *Schema1) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
 	// Our LayerInfos includes empty layers (where m.ExtractedV1Compatibility[].ThrowAway), so expect them to be included here as well.
@@ -150,6 +160,11 @@ func (m *Schema1) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
 	}
 	m.FSLayers = make([]Schema1FSLayers, len(layerInfos))
 	for i, info := range layerInfos {
+		// There are no MIME types in schema1, but we do a “conversion” here to reject unsupported compression algorithms,
+		// in a way that is consistent with the other schema implementations.
+		if _, err := updatedMIMEType(schema1CompressionMIMETypeSets, fakeSchema1MIMEType, info); err != nil {
+			return fmt.Errorf("preparing updated manifest, layer %q: %w", info.Digest, err)
+		}
 		// (docker push) sets up m.ExtractedV1Compatibility[].{Id,Parent} based on values of info.Digest,
 		// but (docker pull) ignores them in favor of computing DiffIDs from uncompressed data, except verifying the child->parent links and uniqueness.
 		// So, we don't bother recomputing the IDs in m.History.V1Compatibility.

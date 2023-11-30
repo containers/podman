@@ -12,14 +12,14 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
 	github.com/containers/buildah v1.33.2-0.20231121195905-d1a1c53c8e1c
-	github.com/containers/common v0.57.1-0.20231129142626-3b9abaa8806f
+	github.com/containers/common v0.57.1-0.20231130092720-630c929caef9
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.1
-	github.com/containers/image/v5 v5.29.1-0.20231120202631-293b00ba7166
+	github.com/containers/image/v5 v5.29.1-0.20231130112833-c43036d4fc96
 	github.com/containers/libhvee v0.5.0
 	github.com/containers/ocicrypt v1.1.9
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.51.1-0.20231120144510-2cf61989a5bc
+	github.com/containers/storage v1.51.1-0.20231129190156-7d0a0a320f8a
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/coreos/stream-metadata-go v0.4.3
 	github.com/crc-org/vfkit v0.5.0
@@ -93,7 +93,7 @@ require (
 	github.com/chenzhuoyu/iasm v0.9.0 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/containerd/cgroups/v3 v3.0.2 // indirect
-	github.com/containerd/containerd v1.7.9 // indirect
+	github.com/containerd/containerd v1.7.10 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.15.1 // indirect
 	github.com/containerd/typeurl/v2 v2.1.1 // indirect
@@ -206,7 +206,7 @@ require (
 	golang.org/x/arch v0.5.0 // indirect
 	golang.org/x/crypto v0.16.0 // indirect
 	golang.org/x/mod v0.13.0 // indirect
-	golang.org/x/oauth2 v0.14.0 // indirect
+	golang.org/x/oauth2 v0.15.0 // indirect
 	golang.org/x/tools v0.14.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230920204549-e6e6cdab5c13 // indirect

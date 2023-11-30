@@ -3,6 +3,7 @@ package manifest
 import (
 	"encoding/json"
 
+	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/libtrust"
 	digest "github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -14,7 +15,7 @@ import (
 const (
 	// DockerV2Schema1MediaType MIME type represents Docker manifest schema 1
 	DockerV2Schema1MediaType = "application/vnd.docker.distribution.manifest.v1+json"
-	// DockerV2Schema1MediaType MIME type represents Docker manifest schema 1 with a JWS signature
+	// DockerV2Schema1SignedMediaType MIME type represents Docker manifest schema 1 with a JWS signature
 	DockerV2Schema1SignedMediaType = "application/vnd.docker.distribution.manifest.v1+prettyjws"
 	// DockerV2Schema2MediaType MIME type represents Docker manifest schema 2
 	DockerV2Schema2MediaType = "application/vnd.docker.distribution.manifest.v2+json"
@@ -163,5 +164,28 @@ func NormalizedMIMEType(input string) string {
 		// redirected to a content distribution
 		// network which is configured that way. See https://bugzilla.redhat.com/show_bug.cgi?id=1389442
 		return DockerV2Schema1SignedMediaType
+	}
+}
+
+// CompressionAlgorithmIsUniversallySupported returns true if MIMETypeSupportsCompressionAlgorithm(mimeType, algo) returns true for all mimeType values.
+func CompressionAlgorithmIsUniversallySupported(algo compressiontypes.Algorithm) bool {
+	switch algo.Name() { // Should this use InternalUnstableUndocumentedMIMEQuestionMark() ?
+	case compressiontypes.GzipAlgorithmName:
+		return true
+	default:
+		return false
+	}
+}
+
+// MIMETypeSupportsCompressionAlgorithm returns true if mimeType can represent algo.
+func MIMETypeSupportsCompressionAlgorithm(mimeType string, algo compressiontypes.Algorithm) bool {
+	if CompressionAlgorithmIsUniversallySupported(algo) {
+		return true
+	}
+	switch algo.Name() { // Should this use InternalUnstableUndocumentedMIMEQuestionMark() ?
+	case compressiontypes.ZstdAlgorithmName, compressiontypes.ZstdChunkedAlgorithmName:
+		return mimeType == imgspecv1.MediaTypeImageManifest
+	default: // Includes Bzip2AlgorithmName and XzAlgorithmName, which are defined names but are not supported anywhere
+		return false
 	}
 }

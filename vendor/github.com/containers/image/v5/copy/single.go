@@ -167,6 +167,7 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 		srcMIMEType:                    ic.src.ManifestMIMEType,
 		destSupportedManifestMIMETypes: ic.c.dest.SupportedManifestMIMETypes(),
 		forceManifestMIMEType:          c.options.ForceManifestMIMEType,
+		requestedCompressionFormat:     ic.compressionFormat,
 		requiresOCIEncryption:          destRequiresOciEncryption,
 		cannotModifyManifestReason:     ic.cannotModifyManifestReason,
 	})

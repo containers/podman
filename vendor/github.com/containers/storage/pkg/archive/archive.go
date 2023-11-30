@@ -534,6 +534,10 @@ func (ta *tarAppender) addTarFile(path, name string) error {
 	if ta.ChownOpts != nil {
 		hdr.Uid = ta.ChownOpts.UID
 		hdr.Gid = ta.ChownOpts.GID
+		// Don’t expose the user names from the local system; they probably don’t match the ta.ChownOpts value anyway,
+		// and they unnecessarily give recipients of the tar file potentially private data.
+		hdr.Uname = ""
+		hdr.Gname = ""
 	}
 
 	maybeTruncateHeaderModTime(hdr)

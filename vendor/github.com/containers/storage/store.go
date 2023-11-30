@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	// register all of the built-in drivers
@@ -961,6 +962,10 @@ func (s *store) load() error {
 		} else {
 			ris, err = newROImageStore(gipath)
 			if err != nil {
+				if errors.Is(err, syscall.EROFS) {
+					logrus.Debugf("Ignoring creation of lockfiles on read-only file systems %q, %v", gipath, err)
+					continue
+				}
 				return err
 			}
 		}
