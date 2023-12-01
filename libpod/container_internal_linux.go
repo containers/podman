@@ -811,3 +811,16 @@ func (c *Container) addMaskedPaths(g *generate.Generator) {
 		g.AddLinuxMaskedPaths("/sys/devices/virtual/powercap")
 	}
 }
+
+func (c *Container) hasPrivateUTS() bool {
+	privateUTS := false
+	if c.config.Spec.Linux != nil {
+		for _, ns := range c.config.Spec.Linux.Namespaces {
+			if ns.Type == spec.UTSNamespace {
+				privateUTS = true
+				break
+			}
+		}
+	}
+	return privateUTS
+}
