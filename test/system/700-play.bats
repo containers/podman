@@ -821,3 +821,109 @@ EOF
 
     run_podman rmi $local_image
 }
+
+@test "podman kube play healthcheck should wait initialDelaySeconds before updating status (healthy)" {
+    fname="$PODMAN_TMPDIR/play_kube_healthy_$(random_string 6).yaml"
+    echo "
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+  name: liveness-exec
+spec:
+  containers:
+  - name: liveness
+    image: $IMAGE
+    args:
+    - /bin/sh
+    - -c
+    - touch /tmp/healthy && sleep 100
+    livenessProbe:
+      exec:
+        command:
+        - cat
+        - /tmp/healthy
+      initialDelaySeconds: 3
+      failureThreshold: 1
+      periodSeconds: 1
+" > $fname
+
+    run_podman kube play $fname
+    ctrName="liveness-exec-liveness"
+
+    # Keep checking status. For the first 2 seconds it must be 'starting'
+    t0=$SECONDS
+    while [[ $SECONDS -le $((t0 + 2)) ]]; do
+        run_podman inspect $ctrName --format "1-{{.State.Health.Status}}"
+        assert "$output" == "1-starting" "Health.Status at $((SECONDS - t0))"
+        sleep 0.5
+    done
+
+    # After 3 seconds it may take another second to go healthy. Wait.
+    t0=$SECONDS
+    while [[ $SECONDS -le $((t0 + 3)) ]]; do
+        run_podman inspect $ctrName --format "2-{{.State.Health.Status}}"
+        if [[ "$output" = "2-healthy" ]]; then
+            break;
+        fi
+        sleep 0.5
+    done
+    assert $output == "2-healthy" "After 3 seconds"
+
+    run_podman kube down $fname
+    run_podman pod rm -a
+    run_podman rm -a
+}
+
+@test "podman kube play healthcheck should wait initialDelaySeconds before updating status (unhealthy)" {
+    fname="$PODMAN_TMPDIR/play_kube_unhealthy_$(random_string 6).yaml"
+    echo "
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+  name: liveness-exec
+spec:
+  containers:
+  - name: liveness
+    image: $IMAGE
+    args:
+    - /bin/sh
+    - -c
+    - touch /tmp/healthy && sleep 100
+    livenessProbe:
+      exec:
+        command:
+        - cat
+        - /tmp/randomfile
+      initialDelaySeconds: 3
+      failureThreshold: 1
+      periodSeconds: 1
+" > $fname
+
+    run_podman kube play $fname
+    ctrName="liveness-exec-liveness"
+
+    # Keep checking status. For the first 2 seconds it must be 'starting'
+    t0=$SECONDS
+    while [[ $SECONDS -le $((t0 + 2)) ]]; do
+        run_podman inspect $ctrName --format "1-{{.State.Health.Status}}"
+        assert "$output" == "1-starting" "Health.Status at $((SECONDS - t0))"
+        sleep 0.5
+    done
+
+    # After 3 seconds it may take another second to go unhealthy. Wait.
+    t0=$SECONDS
+    while [[ $SECONDS -le $((t0 + 3)) ]]; do
+        run_podman inspect $ctrName --format "2-{{.State.Health.Status}}"
+        if [[ "$output" = "2-unhealthy" ]]; then
+            break;
+        fi
+        sleep 0.5
+    done
+    assert $output == "2-unhealthy" "After 3 seconds"
+
+    run_podman kube down $fname
+    run_podman pod rm -a
+    run_podman rm -a
+}
