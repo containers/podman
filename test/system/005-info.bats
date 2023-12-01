@@ -187,6 +187,21 @@ host.slirp4netns.executable | $expr_path
     fi
 }
 
+@test "rootless podman with symlinked $HOME" {
+    # This is only needed as rootless, but we don't have a skip_if_root
+    # And it will not hurt to run as root.
+    skip_if_remote "path validation is only done in libpod, does not effect remote"
+
+    new_home=$PODMAN_TMPDIR/home
+
+    ln -s /home $new_home
+
+    # Just need the command to run cleanly
+    HOME=$PODMAN_TMPDIR/$HOME run_podman info
+
+    rm $new_home
+}
+
 @test "podman --root PATH --volumepath info - basic output" {
     volumePath=${PODMAN_TMPDIR}/volumesGoHere
     if ! is_remote; then
