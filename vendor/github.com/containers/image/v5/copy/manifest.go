@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"strings"
 
+	internalManifest "github.com/containers/image/v5/internal/manifest"
 	"github.com/containers/image/v5/internal/set"
 	"github.com/containers/image/v5/manifest"
+	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/types"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
@@ -19,8 +21,8 @@ import (
 // Include v2s1 signed but not v2s1 unsigned, because docker/distribution requires a signature even if the unsigned MIME type is used.
 var preferredManifestMIMETypes = []string{manifest.DockerV2Schema2MediaType, manifest.DockerV2Schema1SignedMediaType}
 
-// ociEncryptionMIMETypes lists manifest MIME types that are known to support OCI encryption.
-var ociEncryptionMIMETypes = []string{v1.MediaTypeImageManifest}
+// allManifestMIMETypes lists all possible manifest MIME types.
+var allManifestMIMETypes = []string{v1.MediaTypeImageManifest, manifest.DockerV2Schema2MediaType, manifest.DockerV2Schema1SignedMediaType, manifest.DockerV2Schema1MediaType}
 
 // orderedSet is a list of strings (MIME types or platform descriptors in our case), with each string appearing at most once.
 type orderedSet struct {
@@ -51,9 +53,10 @@ type determineManifestConversionInputs struct {
 
 	destSupportedManifestMIMETypes []string // MIME types supported by the destination, per types.ImageDestination.SupportedManifestMIMETypes()
 
-	forceManifestMIMEType      string // User’s choice of forced manifest MIME type
-	requiresOCIEncryption      bool   // Restrict to manifest formats that can support OCI encryption
-	cannotModifyManifestReason string // The reason the manifest cannot be modified, or an empty string if it can
+	forceManifestMIMEType      string                      // User’s choice of forced manifest MIME type
+	requestedCompressionFormat *compressiontypes.Algorithm // Compression algorithm to use, if the user _explictily_ requested one.
+	requiresOCIEncryption      bool                        // Restrict to manifest formats that can support OCI encryption
+	cannotModifyManifestReason string                      // The reason the manifest cannot be modified, or an empty string if it can
 }
 
 // manifestConversionPlan contains the decisions made by determineManifestConversion.
@@ -80,41 +83,74 @@ func determineManifestConversion(in determineManifestConversionInputs) (manifest
 		destSupportedManifestMIMETypes = []string{in.forceManifestMIMEType}
 	}
 
+	restrictiveCompressionRequired := in.requestedCompressionFormat != nil && !internalManifest.CompressionAlgorithmIsUniversallySupported(*in.requestedCompressionFormat)
 	if len(destSupportedManifestMIMETypes) == 0 {
-		if !in.requiresOCIEncryption || manifest.MIMETypeSupportsEncryption(srcType) {
+		if (!in.requiresOCIEncryption || manifest.MIMETypeSupportsEncryption(srcType)) &&
+			(!restrictiveCompressionRequired || internalManifest.MIMETypeSupportsCompressionAlgorithm(srcType, *in.requestedCompressionFormat)) {
 			return manifestConversionPlan{ // Anything goes; just use the original as is, do not try any conversions.
 				preferredMIMEType:       srcType,
 				otherMIMETypeCandidates: []string{},
 			}, nil
 		}
-		destSupportedManifestMIMETypes = ociEncryptionMIMETypes
+		destSupportedManifestMIMETypes = allManifestMIMETypes
 	}
 	supportedByDest := set.New[string]()
 	for _, t := range destSupportedManifestMIMETypes {
-		if !in.requiresOCIEncryption || manifest.MIMETypeSupportsEncryption(t) {
-			supportedByDest.Add(t)
+		if in.requiresOCIEncryption && !manifest.MIMETypeSupportsEncryption(t) {
+			continue
 		}
+		if restrictiveCompressionRequired && !internalManifest.MIMETypeSupportsCompressionAlgorithm(t, *in.requestedCompressionFormat) {
+			continue
+		}
+		supportedByDest.Add(t)
 	}
 	if supportedByDest.Empty() {
-		if len(destSupportedManifestMIMETypes) == 0 { // Coverage: This should never happen, empty values were replaced by ociEncryptionMIMETypes
+		if len(destSupportedManifestMIMETypes) == 0 { // Coverage: This should never happen, empty values were replaced by allManifestMIMETypes
 			return manifestConversionPlan{}, errors.New("internal error: destSupportedManifestMIMETypes is empty")
 		}
-		// We know, and have verified, that destSupportedManifestMIMETypes is not empty, so encryption must have been involved.
-		if !in.requiresOCIEncryption { // Coverage: This should never happen, destSupportedManifestMIMETypes was not empty, so we should have filtered for encryption.
-			return manifestConversionPlan{}, errors.New("internal error: supportedByDest is empty but destSupportedManifestMIMETypes is not, and not encrypting")
-		}
+		// We know, and have verified, that destSupportedManifestMIMETypes is not empty, so some filtering of supported MIME types must have been involved.
+
 		// destSupportedManifestMIMETypes has three possible origins:
 		if in.forceManifestMIMEType != "" { // 1. forceManifestType specified
-			return manifestConversionPlan{}, fmt.Errorf("encryption required together with format %s, which does not support encryption",
-				in.forceManifestMIMEType)
+			switch {
+			case in.requiresOCIEncryption && restrictiveCompressionRequired:
+				return manifestConversionPlan{}, fmt.Errorf("compression using %s, and encryption, required together with format %s, which does not support both",
+					in.requestedCompressionFormat.Name(), in.forceManifestMIMEType)
+			case in.requiresOCIEncryption:
+				return manifestConversionPlan{}, fmt.Errorf("encryption required together with format %s, which does not support encryption",
+					in.forceManifestMIMEType)
+			case restrictiveCompressionRequired:
+				return manifestConversionPlan{}, fmt.Errorf("compression using %s required together with format %s, which does not support it",
+					in.requestedCompressionFormat.Name(), in.forceManifestMIMEType)
+			default:
+				return manifestConversionPlan{}, errors.New("internal error: forceManifestMIMEType was rejected for an unknown reason")
+			}
 		}
-		if len(in.destSupportedManifestMIMETypes) == 0 { // 2. destination accepts anything and we have chosen ociEncryptionMIMETypes
-			// Coverage: This should never happen, ociEncryptionMIMETypes all support encryption
-			return manifestConversionPlan{}, errors.New("internal error: in.destSupportedManifestMIMETypes is empty but supportedByDest is empty as well")
+		if len(in.destSupportedManifestMIMETypes) == 0 { // 2. destination accepts anything and we have chosen allManifestTypes
+			if !restrictiveCompressionRequired {
+				// Coverage: This should never happen.
+				// If we have not rejected for encryption reasons, we must have rejected due to encryption, but
+				// allManifestTypes includes OCI, which supports encryption.
+				return manifestConversionPlan{}, errors.New("internal error: in.destSupportedManifestMIMETypes is empty but supportedByDest is empty as well")
+			}
+			// This can legitimately happen when the user asks for completely unsupported formats like Bzip2 or Xz.
+			return manifestConversionPlan{}, fmt.Errorf("compression using %s required, but none of the known manifest formats support it", in.requestedCompressionFormat.Name())
 		}
-		// 3. destination does not support encryption.
-		return manifestConversionPlan{}, fmt.Errorf("encryption required but the destination only supports MIME types [%s], none of which support encryption",
-			strings.Join(destSupportedManifestMIMETypes, ", "))
+		// 3. destination accepts a restricted list of mime types
+		destMIMEList := strings.Join(destSupportedManifestMIMETypes, ", ")
+		switch {
+		case in.requiresOCIEncryption && restrictiveCompressionRequired:
+			return manifestConversionPlan{}, fmt.Errorf("compression using %s, and encryption, required but the destination only supports MIME types [%s], none of which support both",
+				in.requestedCompressionFormat.Name(), destMIMEList)
+		case in.requiresOCIEncryption:
+			return manifestConversionPlan{}, fmt.Errorf("encryption required but the destination only supports MIME types [%s], none of which support encryption",
+				destMIMEList)
+		case restrictiveCompressionRequired:
+			return manifestConversionPlan{}, fmt.Errorf("compression using %s required but the destination only supports MIME types [%s], none of which support it",
+				in.requestedCompressionFormat.Name(), destMIMEList)
+		default: // Coverage: This should never happen, we only filter for in.requiresOCIEncryption || restrictiveCompressionRequired
+			return manifestConversionPlan{}, errors.New("internal error: supportedByDest is empty but destSupportedManifestMIMETypes is not, and we are neither encrypting nor requiring a restrictive compression algorithm")
+		}
 	}
 
 	// destSupportedManifestMIMETypes is a static guess; a particular registry may still only support a subset of the types.
@@ -156,7 +192,7 @@ func determineManifestConversion(in determineManifestConversionInputs) (manifest
 	}
 
 	logrus.Debugf("Manifest has MIME type %s, ordered candidate list [%s]", srcType, strings.Join(prioritizedTypes.list, ", "))
-	if len(prioritizedTypes.list) == 0 { // Coverage: destSupportedManifestMIMETypes and supportedByDest, which is a subset, is not empty (or we would have exited  above), so this should never happen.
+	if len(prioritizedTypes.list) == 0 { // Coverage: destSupportedManifestMIMETypes and supportedByDest, which is a subset, is not empty (or we would have exited above), so this should never happen.
 		return manifestConversionPlan{}, errors.New("Internal error: no candidate MIME types")
 	}
 	res := manifestConversionPlan{

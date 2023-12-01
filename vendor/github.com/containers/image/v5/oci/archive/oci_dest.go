@@ -13,6 +13,7 @@ import (
 	"github.com/containers/image/v5/internal/signature"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/idtools"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 )
@@ -169,10 +170,15 @@ func (d *ociArchiveImageDestination) Commit(ctx context.Context, unparsedTopleve
 // tar converts the directory at src and saves it to dst
 func tarDirectory(src, dst string) error {
 	// input is a stream of bytes from the archive of the directory at path
-	input, err := archive.Tar(src, archive.Uncompressed)
+	input, err := archive.TarWithOptions(src, &archive.TarOptions{
+		Compression: archive.Uncompressed,
+		// Don’t include the data about the user account this code is running under.
+		ChownOpts: &idtools.IDPair{UID: 0, GID: 0},
+	})
 	if err != nil {
 		return fmt.Errorf("retrieving stream of bytes from %q: %w", src, err)
 	}
+	defer input.Close()
 
 	// creates the tar file
 	outFile, err := os.Create(dst)
