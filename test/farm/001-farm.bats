@@ -17,7 +17,7 @@ load helpers.bash
     empty_farm="empty-farm"
     # create an empty farm
     run_podman farm create $empty_farm
-    run_podman farm --farm $empty_farm build -t $iname $PODMAN_TMPDIR
+    run_podman farm build --farm $empty_farm -t $iname $PODMAN_TMPDIR
     assert "$output" =~ "Local builder ready"
 
     # get the system architecture

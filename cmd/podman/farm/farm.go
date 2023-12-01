@@ -16,27 +16,9 @@ var (
 	}
 )
 
-var (
-	// Temporary struct to hold cli values.
-	farmOpts = struct {
-		Farm string
-	}{}
-)
-
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: farmCmd,
 	})
 	farmCmd.Hidden = true
-
-	flags := farmCmd.Flags()
-	podmanConfig := registry.PodmanConfig()
-
-	farmFlagName := "farm"
-	// If remote, don't read the client's containers.conf file
-	defaultFarm := ""
-	if !registry.IsRemote() {
-		defaultFarm = podmanConfig.ContainersConfDefaultsRO.Farms.Default
-	}
-	flags.StringVarP(&farmOpts.Farm, farmFlagName, "f", defaultFarm, "Farm to use for builds")
 }
