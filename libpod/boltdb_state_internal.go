@@ -4,7 +4,9 @@
 package libpod
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -94,6 +96,7 @@ type dbConfigValidation struct {
 	runtimeValue string
 	key          []byte
 	defaultValue string
+	isPath       bool
 }
 
 // Check if the configuration of the database is compatible with the
@@ -112,42 +115,49 @@ func checkRuntimeConfig(db *bolt.DB, rt *Runtime) error {
 			runtime.GOOS,
 			osKey,
 			runtime.GOOS,
+			false,
 		},
 		{
 			"libpod root directory (staticdir)",
 			filepath.Clean(rt.config.Engine.StaticDir),
 			staticDirKey,
 			"",
+			true,
 		},
 		{
 			"libpod temporary files directory (tmpdir)",
 			filepath.Clean(rt.config.Engine.TmpDir),
 			tmpDirKey,
 			"",
+			true,
 		},
 		{
 			"storage temporary directory (runroot)",
 			filepath.Clean(rt.StorageConfig().RunRoot),
 			runRootKey,
 			storeOpts.RunRoot,
+			true,
 		},
 		{
 			"storage graph root directory (graphroot)",
 			filepath.Clean(rt.StorageConfig().GraphRoot),
 			graphRootKey,
 			storeOpts.GraphRoot,
+			true,
 		},
 		{
 			"storage graph driver",
 			rt.StorageConfig().GraphDriverName,
 			graphDriverKey,
 			storeOpts.GraphDriverName,
+			false,
 		},
 		{
 			"volume path",
 			rt.config.Engine.VolumePath,
 			volPathKey,
 			"",
+			true,
 		},
 	}
 
@@ -222,22 +232,45 @@ func readOnlyValidateConfig(bucket *bolt.Bucket, toCheck dbConfigValidation) (bo
 	}
 
 	dbValue := string(keyBytes)
+	ourValue := toCheck.runtimeValue
 
-	if toCheck.runtimeValue != dbValue {
+	// Tolerate symlinks when possible - most relevant for OStree systems
+	// and rootless containers, where we want to put containers in /home,
+	// which is symlinked to /var/home.
+	if toCheck.isPath {
+		if dbValue != "" {
+			// Ignore ENOENT on both, on a fresh system some paths
+			// may not exist this early in Libpod init.
+			dbVal, err := filepath.EvalSymlinks(dbValue)
+			if err != nil && !errors.Is(err, fs.ErrNotExist) {
+				return false, fmt.Errorf("evaluating symlinks on DB %s path %q: %w", toCheck.name, dbValue, err)
+			}
+			dbValue = dbVal
+		}
+		if ourValue != "" {
+			ourVal, err := filepath.EvalSymlinks(ourValue)
+			if err != nil && !errors.Is(err, fs.ErrNotExist) {
+				return false, fmt.Errorf("evaluating symlinks on configured %s path %q: %w", toCheck.name, ourValue, err)
+			}
+			ourValue = ourVal
+		}
+	}
+
+	if ourValue != dbValue {
 		// If the runtime value is the empty string and default is not,
 		// check against default.
-		if toCheck.runtimeValue == "" && toCheck.defaultValue != "" && dbValue == toCheck.defaultValue {
+		if ourValue == "" && toCheck.defaultValue != "" && dbValue == toCheck.defaultValue {
 			return true, nil
 		}
 
 		// If the DB value is the empty string, check that the runtime
 		// value is the default.
-		if dbValue == "" && toCheck.defaultValue != "" && toCheck.runtimeValue == toCheck.defaultValue {
+		if dbValue == "" && toCheck.defaultValue != "" && ourValue == toCheck.defaultValue {
 			return true, nil
 		}
 
 		return true, fmt.Errorf("database %s %q does not match our %s %q: %w",
-			toCheck.name, dbValue, toCheck.name, toCheck.runtimeValue, define.ErrDBBadConfig)
+			toCheck.name, dbValue, toCheck.name, ourValue, define.ErrDBBadConfig)
 	}
 
 	return true, nil
