@@ -688,15 +688,7 @@ func (c *Container) Hostname() string {
 
 	// if the container is not running in a private UTS namespace,
 	// return the host's hostname.
-	privateUTS := false
-	if c.config.Spec.Linux != nil {
-		for _, ns := range c.config.Spec.Linux.Namespaces {
-			if ns.Type == spec.UTSNamespace {
-				privateUTS = true
-				break
-			}
-		}
-	}
+	privateUTS := c.hasPrivateUTS()
 	if !privateUTS {
 		hostname, err := os.Hostname()
 		if err == nil {
