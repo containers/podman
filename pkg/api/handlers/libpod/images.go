@@ -483,6 +483,13 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		SystemContext:         sc,
 		PreferredManifestType: mimeType,
 	}
+	if r.Body != nil {
+		defer r.Body.Close()
+		if options.CommitOptions.OverrideConfig, err = abi.DecodeOverrideConfig(r.Body); err != nil {
+			utils.Error(w, http.StatusBadRequest, err)
+			return
+		}
+	}
 	if len(query.Tag) > 0 {
 		tag = query.Tag
 	}
@@ -490,7 +497,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 	options.Author = query.Author
 	options.Pause = query.Pause
 	options.Squash = query.Squash
-	options.Changes = query.Changes
+	options.Changes = handlers.DecodeChanges(query.Changes)
 	ctr, err := runtime.LookupContainer(query.Container)
 	if err != nil {
 		utils.Error(w, http.StatusNotFound, err)
