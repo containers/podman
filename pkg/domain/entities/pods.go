@@ -250,6 +250,7 @@ type ContainerCreateOptions struct {
 	PodIDFile          string
 	Personality        string
 	PreserveFDs        uint
+	PreserveFD         []uint
 	Privileged         bool
 	PublishAll         bool
 	Pull               string

@@ -202,6 +202,9 @@ type ExecOptions struct {
 	// to 0, 1, 2) that will be passed to the executed process. The total FDs
 	// passed will be 3 + PreserveFDs.
 	PreserveFDs uint
+	// PreserveFD is a list of additional file descriptors (in addition
+	// to 0, 1, 2) that will be passed to the executed process.
+	PreserveFD []uint
 	// DetachKeys is a set of keys that, when pressed in sequence, will
 	// detach from the container.
 	// If not provided, the default keys will be used.

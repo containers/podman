@@ -355,6 +355,10 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		options = append(options, libpod.WithPreserveFDs(s.PreserveFDs))
 	}
 
+	if s.PreserveFD != nil {
+		options = append(options, libpod.WithPreserveFD(s.PreserveFD))
+	}
+
 	if s.Stdin {
 		options = append(options, libpod.WithStdin())
 	}

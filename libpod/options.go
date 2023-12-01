@@ -1555,6 +1555,18 @@ func WithPreserveFDs(fd uint) CtrCreateOption {
 	}
 }
 
+// WithPreserveFD forwards from the process running Libpod into the container
+// the given list of extra FDs to the created container
+func WithPreserveFD(fds []uint) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.PreserveFD = fds
+		return nil
+	}
+}
+
 // WithCreateCommand adds the full command plus arguments of the current
 // process to the container config.
 func WithCreateCommand(cmd []string) CtrCreateOption {

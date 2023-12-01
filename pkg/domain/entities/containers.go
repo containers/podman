@@ -297,6 +297,7 @@ type ExecOptions struct {
 	Interactive bool
 	Latest      bool
 	PreserveFDs uint
+	PreserveFD  []uint
 	Privileged  bool
 	Tty         bool
 	User        string
@@ -360,6 +361,7 @@ type ContainerRunOptions struct {
 	InputStream  *os.File
 	OutputStream *os.File
 	PreserveFDs  uint
+	PreserveFD   []uint
 	Rm           bool
 	SigProxy     bool
 	Spec         *specgen.SpecGenerator
