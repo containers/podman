@@ -184,6 +184,9 @@ func add(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 		switch {
 		case strings.HasPrefix(arg, "--chown="):
 			chown = strings.TrimPrefix(arg, "--chown=")
+			if chown == "" {
+				return fmt.Errorf("no value specified for --chown=")
+			}
 		case strings.HasPrefix(arg, "--chmod="):
 			chmod = strings.TrimPrefix(arg, "--chmod=")
 			err = checkChmodConversion(chmod)
@@ -192,6 +195,9 @@ func add(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 			}
 		case strings.HasPrefix(arg, "--checksum="):
 			checksum = strings.TrimPrefix(arg, "--checksum=")
+			if checksum == "" {
+				return fmt.Errorf("no value specified for --checksum=")
+			}
 		default:
 			return fmt.Errorf("ADD only supports the --chmod=<permissions>, --chown=<uid:gid>, and --checksum=<checksum> flags")
 		}
@@ -232,6 +238,9 @@ func dispatchCopy(b *Builder, args []string, attributes map[string]bool, flagArg
 		switch {
 		case strings.HasPrefix(arg, "--chown="):
 			chown = strings.TrimPrefix(arg, "--chown=")
+			if chown == "" {
+				return fmt.Errorf("no value specified for --chown=")
+			}
 		case strings.HasPrefix(arg, "--chmod="):
 			chmod = strings.TrimPrefix(arg, "--chmod=")
 			err = checkChmodConversion(chmod)
@@ -240,6 +249,9 @@ func dispatchCopy(b *Builder, args []string, attributes map[string]bool, flagArg
 			}
 		case strings.HasPrefix(arg, "--from="):
 			from = strings.TrimPrefix(arg, "--from=")
+			if from == "" {
+				return fmt.Errorf("no value specified for --from=")
+			}
 		default:
 			return fmt.Errorf("COPY only supports the --chmod=<permissions> --chown=<uid:gid> and the --from=<image|stage> flags")
 		}
@@ -302,6 +314,9 @@ func from(b *Builder, args []string, attributes map[string]bool, flagArgs []stri
 		switch {
 		case strings.HasPrefix(arg, "--platform="):
 			platformString := strings.TrimPrefix(arg, "--platform=")
+			if platformString == "" {
+				return fmt.Errorf("no value specified for --platform=")
+			}
 			b.Platform = platformString
 		default:
 			return fmt.Errorf("FROM only supports the --platform flag")
@@ -393,9 +408,15 @@ func run(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 		switch {
 		case strings.HasPrefix(arg, "--mount="):
 			mount := strings.TrimPrefix(arg, "--mount=")
+			if mount == "" {
+				return fmt.Errorf("no value specified for --mount=")
+			}
 			mounts = append(mounts, mount)
 		case strings.HasPrefix(arg, "--network="):
 			network = strings.TrimPrefix(arg, "--network=")
+			if network == "" {
+				return fmt.Errorf("no value specified for --network=")
+			}
 		default:
 			return fmt.Errorf("RUN only supports the --mount and --network flag")
 		}
