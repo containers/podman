@@ -17,6 +17,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/api/handlers"
+	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/containers/podman/v4/pkg/bindings/containers"
 	"github.com/containers/podman/v4/pkg/bindings/images"
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -588,6 +589,11 @@ func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrID string, o
 	}
 	defer func() {
 		if err := containers.ExecRemove(ic.ClientCtx, sessionID, nil); err != nil {
+			apiErr := new(bindings.APIVersionError)
+			if errors.As(err, &apiErr) {
+				// if the API is to old do not throw an error
+				return
+			}
 			if retErr == nil {
 				exitCode = -1
 				retErr = err
