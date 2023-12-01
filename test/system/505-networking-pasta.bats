@@ -254,10 +254,6 @@ function pasta_test_do() {
     assert "${output}" = "${expect}" "Mismatch between data sent and received"
 }
 
-function teardown() {
-    rm -f "${XFER_FILE}"
-}
-
 ### Addresses ##################################################################
 
 @test "IPv4 default address assignment" {

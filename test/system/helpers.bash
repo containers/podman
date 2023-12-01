@@ -210,10 +210,20 @@ function basic_setup() {
     immediate-assertion-failures
 }
 
+# bail-now is how we terminate a test upon assertion failure.
+# By default, and the vast majority of the time, it just triggers
+# immediate test termination; but see defer-assertion-failures, below.
+function bail-now() {
+    # "false" does not apply to "bail now"! It means "nonzero exit",
+    # which BATS interprets as "yes, bail immediately".
+    false
+}
+
+# Invoked on teardown: will terminate immediately if there have been
+# any deferred test failures; otherwise will reset back to immediate
+# test termination on future assertions.
 function immediate-assertion-failures() {
     function bail-now() {
-        # "false" does not apply to "bail now"! It means "nonzero exit",
-        # which BATS interprets as "yes, bail immediately".
         false
     }
 
@@ -225,6 +235,9 @@ function immediate-assertion-failures() {
     fi
 }
 
+# Used in special test circumstances--typically multi-condition loops--to
+# continue going even on assertion failures. The test will fail afterward,
+# usually in teardown. This can be useful to show failure patterns.
 function defer-assertion-failures() {
     function bail-now() {
         ASSERTION_FAILURES+="!"
