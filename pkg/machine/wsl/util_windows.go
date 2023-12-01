@@ -68,7 +68,6 @@ const (
 	TOKEN_QUERY                     = 0x0008
 	SE_PRIVILEGE_ENABLED            = 0x00000002
 	SE_ERR_ACCESSDENIED             = 0x05
-	WM_QUIT                         = 0x12
 )
 
 func winVersionAtLeast(major uint, minor uint, build uint) bool {
@@ -337,10 +336,4 @@ func buildCommandArgs(elevate bool) string {
 		}
 	}
 	return strings.Join(args, " ")
-}
-
-func sendQuit(tid uint32) {
-	user32 := syscall.NewLazyDLL("user32.dll")
-	postMessage := user32.NewProc("PostThreadMessageW")
-	postMessage.Call(uintptr(tid), WM_QUIT, 0, 0)
 }
