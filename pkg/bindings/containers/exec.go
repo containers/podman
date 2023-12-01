@@ -114,10 +114,15 @@ func ExecStart(ctx context.Context, sessionID string, options *ExecStartOptions)
 
 // ExecRemove removes a given exec session.
 func ExecRemove(ctx context.Context, sessionID string, options *ExecRemoveOptions) error {
+	v := bindings.ServiceVersion(ctx)
+	// The exec remove endpoint was added in 4.8.
+	if v.Major < 4 || (v.Major == 4 && v.Minor < 8) {
+		// Do no call this endpoint as it will not be supported on the server and throw an "NOT FOUND" error.
+		return bindings.NewAPIVersionError("/exec/{id}/remove", v, "4.8.0")
+	}
 	if options == nil {
 		options = new(ExecRemoveOptions)
 	}
-	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
