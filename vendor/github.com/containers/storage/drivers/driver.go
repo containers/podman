@@ -52,8 +52,8 @@ type MountOpts struct {
 	// Mount label is the MAC Labels to assign to mount point (SELINUX)
 	MountLabel string
 	// UidMaps & GidMaps are the User Namespace mappings to be assigned to content in the mount point
-	UidMaps []idtools.IDMap //nolint: golint,revive
-	GidMaps []idtools.IDMap //nolint: golint
+	UidMaps []idtools.IDMap //nolint: revive,golint
+	GidMaps []idtools.IDMap //nolint: revive,golint
 	Options []string
 
 	// Volatile specifies whether the container storage can be optimized
@@ -223,7 +223,7 @@ type CapabilityDriver interface {
 	Capabilities() Capabilities
 }
 
-// AdditionalLayer reprents a layer that is stored in the additional layer store
+// AdditionalLayer represents a layer that is stored in the additional layer store
 // This API is experimental and can be changed without bumping the major version number.
 type AdditionalLayer interface {
 	// CreateAs creates a new layer from this additional layer

@@ -506,10 +506,13 @@ type Store interface {
 	// GetDigestLock returns digest-specific Locker.
 	GetDigestLock(digest.Digest) (Locker, error)
 
-	// LayerFromAdditionalLayerStore searches layers from the additional layer store and
-	// returns the object for handling this. Note that this hasn't been stored to this store
-	// yet so this needs to be done through PutAs method.
-	// Releasing AdditionalLayer handler is caller's responsibility.
+	// LayerFromAdditionalLayerStore searches the additional layer store and returns an object
+	// which can create a layer with the specified digest associated with the specified image
+	// reference. Note that this hasn't been stored to this store yet: the actual creation of
+	// a usable layer is done by calling the returned object's PutAs() method.  After creating
+	// a layer, the caller must then call the object's Release() method to free any temporary
+	// resources which were allocated for the object by this method or the object's PutAs()
+	// method.
 	// This API is experimental and can be changed without bumping the major version number.
 	LookupAdditionalLayer(d digest.Digest, imageref string) (AdditionalLayer, error)
 
@@ -519,7 +522,7 @@ type Store interface {
 	GarbageCollect() error
 }
 
-// AdditionalLayer reprents a layer that is contained in the additional layer store
+// AdditionalLayer represents a layer that is contained in the additional layer store
 // This API is experimental and can be changed without bumping the major version number.
 type AdditionalLayer interface {
 	// PutAs creates layer based on this handler, using diff contents from the additional
@@ -562,6 +565,17 @@ type LayerOptions struct {
 	UncompressedDigest digest.Digest
 	// True is the layer info can be treated as volatile
 	Volatile bool
+	// BigData is a set of items which should be stored with the layer.
+	BigData []LayerBigDataOption
+	// Flags is a set of named flags and their values to store with the layer.
+	// Currently these can only be set when the layer record is created, but that
+	// could change in the future.
+	Flags map[string]interface{}
+}
+
+type LayerBigDataOption struct {
+	Key  string
+	Data io.Reader
 }
 
 // ImageOptions is used for passing options to a Store's CreateImage() method.
@@ -570,6 +584,26 @@ type ImageOptions struct {
 	// created when CreateImage() was called, recording CreationDate instead.
 	CreationDate time.Time
 	// Digest is a hard-coded digest value that we can use to look up the image.  It is optional.
+	Digest digest.Digest
+	// Digests is a list of digest values of the image's manifests, and
+	// possibly a manually-specified value, that we can use to locate the
+	// image.  If Digest is set, its value is also in this list.
+	Digests []digest.Digest
+	// Metadata is caller-specified metadata associated with the layer.
+	Metadata string
+	// BigData is a set of items which should be stored with the image.
+	BigData []ImageBigDataOption
+	// NamesHistory is used for guessing for what this image was named when a container was created based
+	// on it, but it no longer has any names.
+	NamesHistory []string
+	// Flags is a set of named flags and their values to store with the image.  Currently these can only
+	// be set when the image record is created, but that could change in the future.
+	Flags map[string]interface{}
+}
+
+type ImageBigDataOption struct {
+	Key    string
+	Data   []byte
 	Digest digest.Digest
 }
 
@@ -580,11 +614,23 @@ type ContainerOptions struct {
 	// container's layer will inherit settings from the image's top layer
 	// or, if it is not being created based on an image, the Store object.
 	types.IDMappingOptions
-	LabelOpts  []string
+	LabelOpts []string
+	// Flags is a set of named flags and their values to store with the container.
+	// Currently these can only be set when the container record is created, but that
+	// could change in the future.
 	Flags      map[string]interface{}
 	MountOpts  []string
 	Volatile   bool
 	StorageOpt map[string]string
+	// Metadata is caller-specified metadata associated with the container.
+	Metadata string
+	// BigData is a set of items which should be stored for the container.
+	BigData []ContainerBigDataOption
+}
+
+type ContainerBigDataOption struct {
+	Key  string
+	Data []byte
 }
 
 type store struct {
@@ -820,7 +866,7 @@ func (s *store) GIDMap() []idtools.IDMap {
 	return copyIDMap(s.gidMap)
 }
 
-// This must only be called when constructing store; it writes to fields that are assumed to be constant after constrution.
+// This must only be called when constructing store; it writes to fields that are assumed to be constant after construction.
 func (s *store) load() error {
 	var driver drivers.Driver
 	if err := func() error { // A scope for defer
@@ -1221,7 +1267,7 @@ func canUseShifting(store rwLayerStore, uidmap, gidmap []idtools.IDMap) bool {
 	return true
 }
 
-func (s *store) PutLayer(id, parent string, names []string, mountLabel string, writeable bool, options *LayerOptions, diff io.Reader) (*Layer, int64, error) {
+func (s *store) PutLayer(id, parent string, names []string, mountLabel string, writeable bool, lOptions *LayerOptions, diff io.Reader) (*Layer, int64, error) {
 	var parentLayer *Layer
 	rlstore, rlstores, err := s.bothLayerStoreKinds()
 	if err != nil {
@@ -1235,8 +1281,11 @@ func (s *store) PutLayer(id, parent string, names []string, mountLabel string, w
 		return nil, -1, err
 	}
 	defer s.containerStore.stopWriting()
-	if options == nil {
-		options = &LayerOptions{}
+	var options LayerOptions
+	if lOptions != nil {
+		options = *lOptions
+		options.BigData = copyLayerBigDataOptionSlice(lOptions.BigData)
+		options.Flags = copyStringInterfaceMap(lOptions.Flags)
 	}
 	if options.HostUIDMapping {
 		options.UIDMap = nil
@@ -1303,7 +1352,7 @@ func (s *store) PutLayer(id, parent string, names []string, mountLabel string, w
 			GIDMap:         copyIDMap(gidMap),
 		}
 	}
-	return rlstore.Put(id, parentLayer, names, mountLabel, nil, &layerOptions, writeable, nil, diff)
+	return rlstore.create(id, parentLayer, names, mountLabel, nil, &layerOptions, writeable, diff)
 }
 
 func (s *store) CreateLayer(id, parent string, names []string, mountLabel string, writeable bool, options *LayerOptions) (*Layer, error) {
@@ -1311,7 +1360,7 @@ func (s *store) CreateLayer(id, parent string, names []string, mountLabel string
 	return layer, err
 }
 
-func (s *store) CreateImage(id string, names []string, layer, metadata string, options *ImageOptions) (*Image, error) {
+func (s *store) CreateImage(id string, names []string, layer, metadata string, iOptions *ImageOptions) (*Image, error) {
 	if layer != "" {
 		layerStores, err := s.allLayerStores()
 		if err != nil {
@@ -1335,17 +1384,90 @@ func (s *store) CreateImage(id string, names []string, layer, metadata string, o
 		layer = ilayer.ID
 	}
 
-	var res *Image
-	err := s.writeToImageStore(func() error {
-		creationDate := time.Now().UTC()
-		if options != nil && !options.CreationDate.IsZero() {
-			creationDate = options.CreationDate
-		}
+	var options ImageOptions
+	var namesToAddAfterCreating []string
 
-		var err error
-		res, err = s.imageStore.Create(id, names, layer, metadata, creationDate, options.Digest)
-		return err
-	})
+	if err := s.imageStore.startWriting(); err != nil {
+		return nil, err
+	}
+	defer s.imageStore.stopWriting()
+
+	// Check if the ID refers to an image in a read-only store -- we want
+	// to allow images in read-only stores to have their names changed, so
+	// if we find one, merge the new values in with what we know about the
+	// image that's already there.
+	if id != "" {
+		for _, is := range s.roImageStores {
+			store := is
+			if err := store.startReading(); err != nil {
+				return nil, err
+			}
+			defer store.stopReading()
+			if i, err := store.Get(id); err == nil {
+				// set information about this image in "options"
+				options = ImageOptions{
+					Metadata:     i.Metadata,
+					CreationDate: i.Created,
+					Digest:       i.Digest,
+					Digests:      copyDigestSlice(i.Digests),
+					NamesHistory: copyStringSlice(i.NamesHistory),
+				}
+				for _, key := range i.BigDataNames {
+					data, err := store.BigData(id, key)
+					if err != nil {
+						return nil, err
+					}
+					dataDigest, err := store.BigDataDigest(id, key)
+					if err != nil {
+						return nil, err
+					}
+					options.BigData = append(options.BigData, ImageBigDataOption{
+						Key:    key,
+						Data:   data,
+						Digest: dataDigest,
+					})
+				}
+				namesToAddAfterCreating = dedupeStrings(append(append([]string{}, i.Names...), names...))
+				break
+			}
+		}
+	}
+
+	// merge any passed-in options into "options" as best we can
+	if iOptions != nil {
+		if !iOptions.CreationDate.IsZero() {
+			options.CreationDate = iOptions.CreationDate
+		}
+		if iOptions.Digest != "" {
+			options.Digest = iOptions.Digest
+		}
+		options.Digests = append(options.Digests, copyDigestSlice(iOptions.Digests)...)
+		if iOptions.Metadata != "" {
+			options.Metadata = iOptions.Metadata
+		}
+		options.BigData = append(options.BigData, copyImageBigDataOptionSlice(iOptions.BigData)...)
+		options.NamesHistory = append(options.NamesHistory, copyStringSlice(iOptions.NamesHistory)...)
+		if options.Flags == nil {
+			options.Flags = make(map[string]interface{})
+		}
+		for k, v := range iOptions.Flags {
+			options.Flags[k] = v
+		}
+	}
+
+	if options.CreationDate.IsZero() {
+		options.CreationDate = time.Now().UTC()
+	}
+	if metadata != "" {
+		options.Metadata = metadata
+	}
+
+	res, err := s.imageStore.create(id, names, layer, options)
+	if err == nil && len(namesToAddAfterCreating) > 0 {
+		// set any names we pulled up from an additional image store, now that we won't be
+		// triggering a duplicate names error
+		err = s.imageStore.updateNames(res.ID, namesToAddAfterCreating, addNames)
+	}
 	return res, err
 }
 
@@ -1426,26 +1548,22 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore roImageStore, rlst
 	// mappings, and register it as an alternate top layer in the image.
 	var layerOptions LayerOptions
 	if canUseShifting(rlstore, options.UIDMap, options.GIDMap) {
-		layerOptions = LayerOptions{
-			IDMappingOptions: types.IDMappingOptions{
-				HostUIDMapping: true,
-				HostGIDMapping: true,
-				UIDMap:         nil,
-				GIDMap:         nil,
-			},
+		layerOptions.IDMappingOptions = types.IDMappingOptions{
+			HostUIDMapping: true,
+			HostGIDMapping: true,
+			UIDMap:         nil,
+			GIDMap:         nil,
 		}
 	} else {
-		layerOptions = LayerOptions{
-			IDMappingOptions: types.IDMappingOptions{
-				HostUIDMapping: options.HostUIDMapping,
-				HostGIDMapping: options.HostGIDMapping,
-				UIDMap:         copyIDMap(options.UIDMap),
-				GIDMap:         copyIDMap(options.GIDMap),
-			},
+		layerOptions.IDMappingOptions = types.IDMappingOptions{
+			HostUIDMapping: options.HostUIDMapping,
+			HostGIDMapping: options.HostGIDMapping,
+			UIDMap:         copyIDMap(options.UIDMap),
+			GIDMap:         copyIDMap(options.GIDMap),
 		}
 	}
 	layerOptions.TemplateLayer = layer.ID
-	mappedLayer, _, err := rlstore.Put("", parentLayer, nil, layer.MountLabel, nil, &layerOptions, false, nil, nil)
+	mappedLayer, _, err := rlstore.create("", parentLayer, nil, layer.MountLabel, nil, &layerOptions, false, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating an ID-mapped copy of layer %q: %w", layer.ID, err)
 	}
@@ -1459,9 +1577,17 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore roImageStore, rlst
 	return mappedLayer, nil
 }
 
-func (s *store) CreateContainer(id string, names []string, image, layer, metadata string, options *ContainerOptions) (*Container, error) {
-	if options == nil {
-		options = &ContainerOptions{}
+func (s *store) CreateContainer(id string, names []string, image, layer, metadata string, cOptions *ContainerOptions) (*Container, error) {
+	var options ContainerOptions
+	if cOptions != nil {
+		options = *cOptions
+		options.IDMappingOptions.UIDMap = copyIDMap(cOptions.IDMappingOptions.UIDMap)
+		options.IDMappingOptions.GIDMap = copyIDMap(cOptions.IDMappingOptions.GIDMap)
+		options.LabelOpts = copyStringSlice(cOptions.LabelOpts)
+		options.Flags = copyStringInterfaceMap(cOptions.Flags)
+		options.MountOpts = copyStringSlice(cOptions.MountOpts)
+		options.StorageOpt = copyStringStringMap(cOptions.StorageOpt)
+		options.BigData = copyContainerBigDataOptionSlice(cOptions.BigData)
 	}
 	if options.HostUIDMapping {
 		options.UIDMap = nil
@@ -1469,6 +1595,7 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 	if options.HostGIDMapping {
 		options.GIDMap = nil
 	}
+	options.Metadata = metadata
 	rlstore, lstores, err := s.bothLayerStoreKinds() // lstores will be locked read-only if image != ""
 	if err != nil {
 		return nil, err
@@ -1574,22 +1701,19 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		Volatile: options.Volatile || s.transientStore,
 	}
 	if canUseShifting(rlstore, uidMap, gidMap) {
-		layerOptions.IDMappingOptions =
-			types.IDMappingOptions{
-				HostUIDMapping: true,
-				HostGIDMapping: true,
-				UIDMap:         nil,
-				GIDMap:         nil,
-			}
+		layerOptions.IDMappingOptions = types.IDMappingOptions{
+			HostUIDMapping: true,
+			HostGIDMapping: true,
+			UIDMap:         nil,
+			GIDMap:         nil,
+		}
 	} else {
-		layerOptions.IDMappingOptions =
-			types.IDMappingOptions{
-				HostUIDMapping: idMappingsOptions.HostUIDMapping,
-				HostGIDMapping: idMappingsOptions.HostGIDMapping,
-				UIDMap:         copyIDMap(uidMap),
-				GIDMap:         copyIDMap(gidMap),
-			}
-
+		layerOptions.IDMappingOptions = types.IDMappingOptions{
+			HostUIDMapping: idMappingsOptions.HostUIDMapping,
+			HostGIDMapping: idMappingsOptions.HostGIDMapping,
+			UIDMap:         copyIDMap(uidMap),
+			GIDMap:         copyIDMap(gidMap),
+		}
 	}
 	if options.Flags == nil {
 		options.Flags = make(map[string]interface{})
@@ -1610,7 +1734,7 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		options.Flags[mountLabelFlag] = mountLabel
 	}
 
-	clayer, err := rlstore.Create(layer, imageTopLayer, nil, mlabel, options.StorageOpt, layerOptions, true)
+	clayer, _, err := rlstore.create(layer, imageTopLayer, nil, mlabel, options.StorageOpt, layerOptions, true, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1630,7 +1754,7 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 			GIDMap:         copyIDMap(options.GIDMap),
 		}
 		var err error
-		container, err = s.containerStore.Create(id, names, imageID, layer, metadata, options)
+		container, err = s.containerStore.create(id, names, imageID, layer, &options)
 		if err != nil || container == nil {
 			if err2 := rlstore.Delete(layer); err2 != nil {
 				if err == nil {
@@ -2070,13 +2194,25 @@ func (s *store) Exists(id string) bool {
 	return s.containerStore.Exists(id)
 }
 
-func dedupeNames(names []string) []string {
-	seen := make(map[string]bool)
+func dedupeStrings(names []string) []string {
+	seen := make(map[string]struct{})
 	deduped := make([]string, 0, len(names))
 	for _, name := range names {
 		if _, wasSeen := seen[name]; !wasSeen {
-			seen[name] = true
+			seen[name] = struct{}{}
 			deduped = append(deduped, name)
+		}
+	}
+	return deduped
+}
+
+func dedupeDigests(digests []digest.Digest) []digest.Digest {
+	seen := make(map[digest.Digest]struct{})
+	deduped := make([]digest.Digest, 0, len(digests))
+	for _, d := range digests {
+		if _, wasSeen := seen[d]; !wasSeen {
+			seen[d] = struct{}{}
+			deduped = append(deduped, d)
 		}
 	}
 	return deduped
@@ -2096,7 +2232,7 @@ func (s *store) RemoveNames(id string, names []string) error {
 }
 
 func (s *store) updateNames(id string, names []string, op updateNameOperation) error {
-	deduped := dedupeNames(names)
+	deduped := dedupeStrings(names)
 
 	layerFound := false
 	if err := s.writeToLayerStore(func(rlstore rwLayerStore) error {
@@ -2117,7 +2253,8 @@ func (s *store) updateNames(id string, names []string, op updateNameOperation) e
 		return s.imageStore.updateNames(id, deduped, op)
 	}
 
-	// Check is id refers to a RO Store
+	// Check if the id refers to a read-only image store -- we want to allow images in
+	// read-only stores to have their names changed.
 	for _, is := range s.roImageStores {
 		store := is
 		if err := store.startReading(); err != nil {
@@ -2125,12 +2262,36 @@ func (s *store) updateNames(id string, names []string, op updateNameOperation) e
 		}
 		defer store.stopReading()
 		if i, err := store.Get(id); err == nil {
-			if len(deduped) > 1 {
-				// Do not want to create image name in R/W storage
-				deduped = deduped[1:]
+			// "pull up" the image so that we can change its names list
+			options := ImageOptions{
+				CreationDate: i.Created,
+				Digest:       i.Digest,
+				Digests:      copyDigestSlice(i.Digests),
+				Metadata:     i.Metadata,
+				NamesHistory: copyStringSlice(i.NamesHistory),
+				Flags:        copyStringInterfaceMap(i.Flags),
 			}
-			_, err := s.imageStore.Create(id, deduped, i.TopLayer, i.Metadata, i.Created, i.Digest)
-			return err
+			for _, key := range i.BigDataNames {
+				data, err := store.BigData(id, key)
+				if err != nil {
+					return err
+				}
+				dataDigest, err := store.BigDataDigest(id, key)
+				if err != nil {
+					return err
+				}
+				options.BigData = append(options.BigData, ImageBigDataOption{
+					Key:    key,
+					Data:   data,
+					Digest: dataDigest,
+				})
+			}
+			_, err = s.imageStore.create(id, i.Names, i.TopLayer, options)
+			if err != nil {
+				return err
+			}
+			// now make the changes to the writeable image record's names list
+			return s.imageStore.updateNames(id, deduped, op)
 		}
 	}
 
@@ -2962,6 +3123,16 @@ func (s *store) Image(id string) (*Image, error) {
 	if done, err := s.readAllImageStores(func(store roImageStore) (bool, error) {
 		image, err := store.Get(id)
 		if err == nil {
+			if store != s.imageStore {
+				// found it in a read-only store - readAllImageStores() still has the writeable store locked for reading
+				if _, localErr := s.imageStore.Get(image.ID); localErr == nil {
+					// if the lookup key was a name, and we found the image in a read-only
+					// store, but we have an entry with the same ID in the read-write store,
+					// then the name was removed when we duplicated the image's
+					// record into writable storage, so we should ignore this entry
+					return false, nil
+				}
+			}
 			res = image
 			return true, nil
 		}
@@ -3247,6 +3418,14 @@ func copyStringDigestMap(m map[string]digest.Digest) map[string]digest.Digest {
 	return ret
 }
 
+func copyStringStringMap(m map[string]string) map[string]string {
+	ret := make(map[string]string, len(m))
+	for k, v := range m {
+		ret[k] = v
+	}
+	return ret
+}
+
 func copyDigestSlice(slice []digest.Digest) []digest.Digest {
 	if len(slice) == 0 {
 		return nil
@@ -3262,6 +3441,31 @@ func copyStringInterfaceMap(m map[string]interface{}) map[string]interface{} {
 	ret := make(map[string]interface{}, len(m))
 	for k, v := range m {
 		ret[k] = v
+	}
+	return ret
+}
+
+func copyLayerBigDataOptionSlice(slice []LayerBigDataOption) []LayerBigDataOption {
+	ret := make([]LayerBigDataOption, len(slice))
+	copy(ret, slice)
+	return ret
+}
+
+func copyImageBigDataOptionSlice(slice []ImageBigDataOption) []ImageBigDataOption {
+	ret := make([]ImageBigDataOption, len(slice))
+	for i := range slice {
+		ret[i].Key = slice[i].Key
+		ret[i].Data = append([]byte{}, slice[i].Data...)
+		ret[i].Digest = slice[i].Digest
+	}
+	return ret
+}
+
+func copyContainerBigDataOptionSlice(slice []ContainerBigDataOption) []ContainerBigDataOption {
+	ret := make([]ContainerBigDataOption, len(slice))
+	for i := range slice {
+		ret[i].Key = slice[i].Key
+		ret[i].Data = append([]byte{}, slice[i].Data...)
 	}
 	return ret
 }
@@ -3341,7 +3545,14 @@ func (s *store) GarbageCollect() error {
 		return s.containerStore.GarbageCollect()
 	})
 
-	moreErr := s.writeToLayerStore(func(rlstore rwLayerStore) error {
+	moreErr := s.writeToImageStore(func() error {
+		return s.imageStore.GarbageCollect()
+	})
+	if firstErr == nil {
+		firstErr = moreErr
+	}
+
+	moreErr = s.writeToLayerStore(func(rlstore rwLayerStore) error {
 		return rlstore.GarbageCollect()
 	})
 	if firstErr == nil {

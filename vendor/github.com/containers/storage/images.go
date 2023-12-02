@@ -14,6 +14,7 @@ import (
 	"github.com/containers/storage/pkg/stringutils"
 	"github.com/containers/storage/pkg/truncindex"
 	digest "github.com/opencontainers/go-digest"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -136,10 +137,10 @@ type rwImageStore interface {
 	// stopWriting releases locks obtained by startWriting.
 	stopWriting()
 
-	// Create creates an image that has a specified ID (or a random one) and
+	// create creates an image that has a specified ID (or a random one) and
 	// optional names, using the specified layer as its topmost (hopefully
 	// read-only) layer.  That layer can be referenced by multiple images.
-	Create(id string, names []string, layer, metadata string, created time.Time, searchableDigest digest.Digest) (*Image, error)
+	create(id string, names []string, layer string, options ImageOptions) (*Image, error)
 
 	// updateNames modifies names associated with an image based on (op, names).
 	// The values are expected to be valid normalized
@@ -151,6 +152,9 @@ type rwImageStore interface {
 
 	addMappedTopLayer(id, layer string) error
 	removeMappedTopLayer(id, layer string) error
+
+	// Clean up unreferenced per-image data.
+	GarbageCollect() error
 
 	// Wipe removes records of all images.
 	Wipe() error
@@ -394,6 +398,41 @@ func (r *imageStore) Images() ([]Image, error) {
 		images[i] = *copyImage(r.images[i])
 	}
 	return images, nil
+}
+
+// This looks for datadirs in the store directory that are not referenced
+// by the json file and removes it. These can happen in the case of unclean
+// shutdowns.
+// Requires startReading or startWriting.
+func (r *imageStore) GarbageCollect() error {
+	entries, err := os.ReadDir(r.dir)
+	if err != nil {
+		// Unexpected, don't try any GC
+		return err
+	}
+
+	for _, entry := range entries {
+		id := entry.Name()
+		// Does it look like a datadir directory?
+		if !entry.IsDir() || stringid.ValidateID(id) != nil {
+			continue
+		}
+
+		// Should the id be there?
+		if r.byid[id] != nil {
+			continue
+		}
+
+		// Otherwise remove datadir
+		logrus.Debugf("removing %q", filepath.Join(r.dir, id))
+		moreErr := os.RemoveAll(filepath.Join(r.dir, id))
+		// Propagate first error
+		if moreErr != nil && err == nil {
+			err = moreErr
+		}
+	}
+
+	return err
 }
 
 func (r *imageStore) imagespath() string {
@@ -649,7 +688,7 @@ func (r *imageStore) SetFlag(id string, flag string, value interface{}) error {
 }
 
 // Requires startWriting.
-func (r *imageStore) Create(id string, names []string, layer, metadata string, created time.Time, searchableDigest digest.Digest) (image *Image, err error) {
+func (r *imageStore) create(id string, names []string, layer string, options ImageOptions) (image *Image, err error) {
 	if !r.lockfile.IsReadWrite() {
 		return nil, fmt.Errorf("not allowed to create new images at %q: %w", r.imagespath(), ErrStoreIsReadOnly)
 	}
@@ -664,36 +703,38 @@ func (r *imageStore) Create(id string, names []string, layer, metadata string, c
 	if _, idInUse := r.byid[id]; idInUse {
 		return nil, fmt.Errorf("an image with ID %q already exists: %w", id, ErrDuplicateID)
 	}
-	names = dedupeNames(names)
+	names = dedupeStrings(names)
 	for _, name := range names {
 		if image, nameInUse := r.byname[name]; nameInUse {
 			return nil, fmt.Errorf("image name %q is already associated with image %q: %w", name, image.ID, ErrDuplicateName)
 		}
 	}
-	if created.IsZero() {
-		created = time.Now().UTC()
-	}
-
 	image = &Image{
 		ID:             id,
-		Digest:         searchableDigest,
-		Digests:        nil,
+		Digest:         options.Digest,
+		Digests:        dedupeDigests(options.Digests),
 		Names:          names,
+		NamesHistory:   copyStringSlice(options.NamesHistory),
 		TopLayer:       layer,
-		Metadata:       metadata,
+		Metadata:       options.Metadata,
 		BigDataNames:   []string{},
 		BigDataSizes:   make(map[string]int64),
 		BigDataDigests: make(map[string]digest.Digest),
-		Created:        created,
-		Flags:          make(map[string]interface{}),
+		Created:        options.CreationDate,
+		Flags:          copyStringInterfaceMap(options.Flags),
+	}
+	if image.Created.IsZero() {
+		image.Created = time.Now().UTC()
 	}
 	err = image.recomputeDigests()
 	if err != nil {
 		return nil, fmt.Errorf("validating digests for new image: %w", err)
 	}
 	r.images = append(r.images, image)
-	// This can only fail on duplicate IDs, which shouldn’t happen — and in that case the index is already in the desired state anyway.
-	// Implementing recovery from an unlikely and unimportant failure here would be too risky.
+	// This can only fail on duplicate IDs, which shouldn’t happen — and in
+	// that case the index is already in the desired state anyway.
+	// Implementing recovery from an unlikely and unimportant failure here
+	// would be too risky.
 	_ = r.idindex.Add(id)
 	r.byid[id] = image
 	for _, name := range names {
@@ -703,7 +744,28 @@ func (r *imageStore) Create(id string, names []string, layer, metadata string, c
 		list := r.bydigest[digest]
 		r.bydigest[digest] = append(list, image)
 	}
+	defer func() {
+		if err != nil {
+			// now that the in-memory structures know about the new
+			// record, we can use regular Delete() to clean up if
+			// anything breaks from here on out
+			if e := r.Delete(id); e != nil {
+				logrus.Debugf("while cleaning up partially-created image %q we failed to create: %v", id, e)
+			}
+		}
+	}()
 	err = r.Save()
+	if err != nil {
+		return nil, err
+	}
+	for _, item := range options.BigData {
+		if item.Digest == "" {
+			item.Digest = digest.Canonical.FromBytes(item.Data)
+		}
+		if err = r.setBigData(image, item.Key, item.Data, item.Digest); err != nil {
+			return nil, err
+		}
+	}
 	image = copyImage(image)
 	return image, err
 }
@@ -758,7 +820,7 @@ func (r *imageStore) removeName(image *Image, name string) {
 
 // The caller must hold r.inProcessLock for writing.
 func (i *Image) addNameToHistory(name string) {
-	i.NamesHistory = dedupeNames(append([]string{name}, i.NamesHistory...))
+	i.NamesHistory = dedupeStrings(append([]string{name}, i.NamesHistory...))
 }
 
 // Requires startWriting.
@@ -926,9 +988,6 @@ func imageSliceWithoutValue(slice []*Image, value *Image) []*Image {
 
 // Requires startWriting.
 func (r *imageStore) SetBigData(id, key string, data []byte, digestManifest func([]byte) (digest.Digest, error)) error {
-	if key == "" {
-		return fmt.Errorf("can't set empty name for image big data item: %w", ErrInvalidBigDataName)
-	}
 	if !r.lockfile.IsReadWrite() {
 		return fmt.Errorf("not allowed to save data items associated with images at %q: %w", r.imagespath(), ErrStoreIsReadOnly)
 	}
@@ -936,10 +995,7 @@ func (r *imageStore) SetBigData(id, key string, data []byte, digestManifest func
 	if !ok {
 		return fmt.Errorf("locating image with ID %q: %w", id, ErrImageUnknown)
 	}
-	err := os.MkdirAll(r.datadir(image.ID), 0700)
-	if err != nil {
-		return err
-	}
+	var err error
 	var newDigest digest.Digest
 	if bigDataNameIsManifest(key) {
 		if digestManifest == nil {
@@ -950,6 +1006,18 @@ func (r *imageStore) SetBigData(id, key string, data []byte, digestManifest func
 		}
 	} else {
 		newDigest = digest.Canonical.FromBytes(data)
+	}
+	return r.setBigData(image, key, data, newDigest)
+}
+
+// Requires startWriting.
+func (r *imageStore) setBigData(image *Image, key string, data []byte, newDigest digest.Digest) error {
+	if key == "" {
+		return fmt.Errorf("can't set empty name for image big data item: %w", ErrInvalidBigDataName)
+	}
+	err := os.MkdirAll(r.datadir(image.ID), 0700)
+	if err != nil {
+		return err
 	}
 	err = ioutils.AtomicWriteFile(r.datapath(image.ID, key), data, 0600)
 	if err == nil {
