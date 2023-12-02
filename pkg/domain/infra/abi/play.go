@@ -509,7 +509,11 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	}
 
 	if options.Userns == "" {
-		options.Userns = "host"
+		if v, ok := annotations[define.UserNsAnnotation]; ok {
+			options.Userns = v
+		} else {
+			options.Userns = "host"
+		}
 		if podYAML.Spec.HostUsers != nil && !*podYAML.Spec.HostUsers {
 			options.Userns = "auto"
 		}
