@@ -1260,7 +1260,7 @@ func ConvertPod(podUnit *parser.UnitFile, name string, podsInfoMap map[string]*P
 	}
 
 	service := podUnit.Dup()
-	service.Filename = replaceExtension(podInfo.ServiceName, ".service", "", "")
+	service.Filename = fmt.Sprintf("%s.service", podInfo.ServiceName)
 
 	if podUnit.Path != "" {
 		service.Add(UnitGroup, "SourcePath", podUnit.Path)
