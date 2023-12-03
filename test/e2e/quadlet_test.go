@@ -904,6 +904,7 @@ BOGUS=foo
 		Entry("network.pod", "network.pod", 0, ""),
 		Entry("network-quadlet.pod", "network.quadlet.pod", 0, ""),
 		Entry("podmanargs.pod", "podmanargs.pod", 0, ""),
+		Entry("volume.pod", "volume.pod", 0, ""),
 	)
 
 })

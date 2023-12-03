@@ -697,6 +697,7 @@ Valid options for `[Container]` are listed below:
 | Network=host                        | --network host                         |
 | PodmanArgs=\-\-cpus=2               | --cpus=2                               |
 | PodName=name                        | --name=name                            |
+| Volume=/source:/dest                | --volume /source:/dest                 |
 
 Supported keys in the `[Pod]` section are:
 
@@ -753,6 +754,20 @@ prefix to avoid conflicts with user-managed containers.
 
 Please note that pods and containers cannot have the same name.
 So, if PodName is set, it must not conflict with any container.
+
+### `Volume=`
+
+Mount a volume in the pod. This is equivalent to the Podman `--volume` option, and
+generally has the form `[[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]`.
+
+If `SOURCE-VOLUME` starts with `.`, Quadlet resolves the path relative to the location of the unit file.
+
+As a special case, if `SOURCE-VOLUME` ends with `.volume`, Quadlet will look for the corresponding `.volume` Quadlet unit.
+If found, Quadlet will use the name of the Volume set in the Unit, otherwise, `systemd-$name` is used.
+The generated systemd service contains a dependency on the service unit generated for that `.volume` unit,
+or on `$name-volume.service` if the `.volume` unit is not found
+
+This key can be listed multiple times.
 
 ## Kube units [Kube]
 
