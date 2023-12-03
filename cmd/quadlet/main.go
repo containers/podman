@@ -589,7 +589,7 @@ func process() error {
 			warnIfAmbiguousName(unit, quadlet.ImageGroup)
 			service, name, err = quadlet.ConvertImage(unit)
 		case strings.HasSuffix(unit.Filename, ".pod"):
-			service, err = quadlet.ConvertPod(unit, unit.Filename, podsInfoMap)
+			service, err = quadlet.ConvertPod(unit, unit.Filename, podsInfoMap, resourceNames)
 		default:
 			Logf("Unsupported file type %q", unit.Filename)
 			continue

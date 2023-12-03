@@ -321,6 +321,7 @@ var (
 	supportedPodKeys = map[string]bool{
 		KeyContainersConfModule: true,
 		KeyGlobalArgs:           true,
+		KeyNetwork:              true,
 		KeyPodmanArgs:           true,
 		KeyPodName:              true,
 	}
@@ -1253,7 +1254,7 @@ func GetPodServiceName(podUnit *parser.UnitFile) string {
 	return replaceExtension(podUnit.Filename, "", "", "-pod")
 }
 
-func ConvertPod(podUnit *parser.UnitFile, name string, podsInfoMap map[string]*PodInfo) (*parser.UnitFile, error) {
+func ConvertPod(podUnit *parser.UnitFile, name string, podsInfoMap map[string]*PodInfo, names map[string]string) (*parser.UnitFile, error) {
 	podInfo, ok := podsInfoMap[podUnit.Filename]
 	if !ok {
 		return nil, fmt.Errorf("internal error while processing pod %s", podUnit.Filename)
@@ -1321,6 +1322,8 @@ func ConvertPod(podUnit *parser.UnitFile, name string, podsInfoMap map[string]*P
 		"--exit-policy=stop",
 		"--replace",
 	)
+
+	addNetworks(podUnit, PodGroup, service, names, execStartPre)
 
 	execStartPre.addf("--name=%s", podName)
 

@@ -694,6 +694,7 @@ Valid options for `[Container]` are listed below:
 |-------------------------------------|----------------------------------------|
 | ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                |
 | GlobalArgs=--log-level=debug        | --log-level=debug                      |
+| Network=host                        | --network host                         |
 | PodmanArgs=\-\-cpus=2               | --cpus=2                               |
 | PodName=name                        | --name=name                            |
 
@@ -715,6 +716,19 @@ this option.
 
 The format of this is a space separated list of arguments, which can optionally be individually
 escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
+
+### `Network=`
+
+Specify a custom network for the pod.
+This has the same format as the `--network` option to `podman pod create`.
+For example, use `host` to use the host network in the pod, or `none` to not set up networking in the pod.
+
+As a special case, if the `name` of the network ends with `.network`, Quadlet will look for the corresponding `.network` Quadlet unit.
+If found, Quadlet will use the name of the Network set in the Unit, otherwise, `systemd-$name` is used.
+The generated systemd service contains a dependency on the service unit generated for that `.network` unit,
+or on `$name-network.service` if the `.network` unit is not found
 
 This key can be listed multiple times.
 
