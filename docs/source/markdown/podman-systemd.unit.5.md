@@ -341,8 +341,7 @@ This key can be listed multiple times.
 ### `GlobalArgs=`
 
 This key contains a list of arguments passed directly between `podman` and `run`
-in the generated file (right before the image name in the command line). It can be used to
-access Podman features otherwise unsupported by the generator. Since the generator is unaware
+in the generated file. It can be used to access Podman features otherwise unsupported by the generator. Since the generator is unaware
 of what unexpected interactions can be caused by these arguments, it is not recommended to use
 this option.
 
@@ -688,7 +687,7 @@ By default, the Podman pod has the same name as the unit, but with a `systemd-` 
 a `$name.pod` file creates a `$name-pod.service` unit and a `systemd-$name` Podman pod. The
 `PodName` option allows for overriding this default name with a user-provided one.
 
-Valid options for `[Container]` are listed below:
+Valid options for `[Pod]` are listed below:
 
 | **[Pod] options**                   | **podman container create equivalent** |
 |-------------------------------------|----------------------------------------|
@@ -707,9 +706,8 @@ This key can be listed multiple times.
 
 ### `GlobalArgs=`
 
-This key contains a list of arguments passed directly between `podman` and `kube`
-in the generated file (right before the image name in the command line). It can be used to
-access Podman features otherwise unsupported by the generator. Since the generator is unaware
+This key contains a list of arguments passed directly between `podman` and `pod`
+in the generated file. It can be used to access Podman features otherwise unsupported by the generator. Since the generator is unaware
 of what unexpected interactions can be caused by these arguments, it is not recommended to use
 this option.
 
@@ -720,9 +718,8 @@ This key can be listed multiple times.
 
 ### `PodmanArgs=`
 
-This key contains a list of arguments passed directly to the end of the `podman kube play` command
-in the generated file (right before the path to the yaml file in the command line). It can be used to
-access Podman features otherwise unsupported by the generator. Since the generator is unaware
+This key contains a list of arguments passed directly to the end of the `podman pod create` command
+in the generated file. It can be used to access Podman features otherwise unsupported by the generator. Since the generator is unaware
 of what unexpected interactions can be caused by these arguments, is not recommended to use
 this option.
 
@@ -805,8 +802,7 @@ The current default value is `none`.
 ### `GlobalArgs=`
 
 This key contains a list of arguments passed directly between `podman` and `kube`
-in the generated file (right before the image name in the command line). It can be used to
-access Podman features otherwise unsupported by the generator. Since the generator is unaware
+in the generated file. It can be used to access Podman features otherwise unsupported by the generator. Since the generator is unaware
 of what unexpected interactions can be caused by these arguments, it is not recommended to use
 this option.
 
@@ -976,8 +972,7 @@ This key can be listed multiple times.
 ### `GlobalArgs=`
 
 This key contains a list of arguments passed directly between `podman` and `network`
-in the generated file (right before the image name in the command line). It can be used to
-access Podman features otherwise unsupported by the generator. Since the generator is unaware
+in the generated file. It can be used to access Podman features otherwise unsupported by the generator. Since the generator is unaware
 of what unexpected interactions can be caused by these arguments, it is not recommended to use
 this option.
 
@@ -1111,8 +1106,7 @@ This is equivalent to the Podman `--driver` option.
 ### `GlobalArgs=`
 
 This key contains a list of arguments passed directly between `podman` and `volume`
-in the generated file (right before the image name in the command line). It can be used to
-access Podman features otherwise unsupported by the generator. Since the generator is unaware
+in the generated file. It can be used to access Podman features otherwise unsupported by the generator. Since the generator is unaware
 of what unexpected interactions can be caused by these arguments, it is not recommended to use
 this option.
 
@@ -1153,7 +1147,7 @@ The mount options to use for a filesystem as used by the **mount(8)** command `-
 ### `PodmanArgs=`
 
 This key contains a list of arguments passed directly to the end of the `podman volume create` command
-in the generated file (right before the name of the network in the command line). It can be used to
+in the generated file (right before the name of the volume in the command line). It can be used to
 access Podman features otherwise unsupported by the generator. Since the generator is unaware
 of what unexpected interactions can be caused by these arguments, is not recommended to use
 this option.
@@ -1250,8 +1244,7 @@ This is equivalent to the Podman `--decryption-key` option.
 ### `GlobalArgs=`
 
 This key contains a list of arguments passed directly between `podman` and `image`
-in the generated file (right before the image name in the command line). It can be used to
-access Podman features otherwise unsupported by the generator. Since the generator is unaware
+in the generated file. It can be used to access Podman features otherwise unsupported by the generator. Since the generator is unaware
 of what unexpected interactions can be caused by these arguments, it is not recommended to use
 this option.
 
