@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	goruntime "runtime"
@@ -316,14 +317,14 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
         );`
 
 	var (
-		os, staticDir, tmpDir, graphRoot, runRoot, graphDriver, volumePath string
-		runtimeOS                                                          = goruntime.GOOS
-		runtimeStaticDir                                                   = filepath.Clean(s.runtime.config.Engine.StaticDir)
-		runtimeTmpDir                                                      = filepath.Clean(s.runtime.config.Engine.TmpDir)
-		runtimeGraphRoot                                                   = filepath.Clean(s.runtime.StorageConfig().GraphRoot)
-		runtimeRunRoot                                                     = filepath.Clean(s.runtime.StorageConfig().RunRoot)
-		runtimeGraphDriver                                                 = s.runtime.StorageConfig().GraphDriverName
-		runtimeVolumePath                                                  = filepath.Clean(s.runtime.config.Engine.VolumePath)
+		dbOS, staticDir, tmpDir, graphRoot, runRoot, graphDriver, volumePath string
+		runtimeOS                                                            = goruntime.GOOS
+		runtimeStaticDir                                                     = filepath.Clean(s.runtime.config.Engine.StaticDir)
+		runtimeTmpDir                                                        = filepath.Clean(s.runtime.config.Engine.TmpDir)
+		runtimeGraphRoot                                                     = filepath.Clean(s.runtime.StorageConfig().GraphRoot)
+		runtimeRunRoot                                                       = filepath.Clean(s.runtime.StorageConfig().RunRoot)
+		runtimeGraphDriver                                                   = s.runtime.StorageConfig().GraphDriverName
+		runtimeVolumePath                                                    = filepath.Clean(s.runtime.config.Engine.VolumePath)
 	)
 
 	// Some fields may be empty, indicating they are set to the default.
@@ -360,7 +361,7 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 
 	row := tx.QueryRow("SELECT Os, StaticDir, TmpDir, GraphRoot, RunRoot, GraphDriver, VolumeDir FROM DBConfig;")
 
-	if err := row.Scan(&os, &staticDir, &tmpDir, &graphRoot, &runRoot, &graphDriver, &volumePath); err != nil {
+	if err := row.Scan(&dbOS, &staticDir, &tmpDir, &graphRoot, &runRoot, &graphDriver, &volumePath); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			if _, err := tx.Exec(createRow, 1, schemaVersion, runtimeOS,
 				runtimeStaticDir, runtimeTmpDir, runtimeGraphRoot,
@@ -378,7 +379,26 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 		return fmt.Errorf("retrieving DB config: %w", err)
 	}
 
-	checkField := func(fieldName, dbVal, ourVal string) error {
+	checkField := func(fieldName, dbVal, ourVal string, isPath bool) error {
+		if isPath {
+			// Evaluate symlinks. Ignore ENOENT. No guarantee all
+			// directories exist this early in Libpod init.
+			if dbVal != "" {
+				dbValClean, err := filepath.EvalSymlinks(dbVal)
+				if err != nil && !errors.Is(err, fs.ErrNotExist) {
+					return fmt.Errorf("cannot evaluate symlinks on DB %s path %q: %w", fieldName, dbVal, err)
+				}
+				dbVal = dbValClean
+			}
+			if ourVal != "" {
+				ourValClean, err := filepath.EvalSymlinks(ourVal)
+				if err != nil && !errors.Is(err, fs.ErrNotExist) {
+					return fmt.Errorf("cannot evaluate symlinks on our %s path %q: %w", fieldName, ourVal, err)
+				}
+				ourVal = ourValClean
+			}
+		}
+
 		if dbVal != ourVal {
 			return fmt.Errorf("database %s %q does not match our %s %q: %w", fieldName, dbVal, fieldName, ourVal, define.ErrDBBadConfig)
 		}
@@ -386,25 +406,25 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 		return nil
 	}
 
-	if err := checkField("os", os, runtimeOS); err != nil {
+	if err := checkField("os", dbOS, runtimeOS, false); err != nil {
 		return err
 	}
-	if err := checkField("static dir", staticDir, runtimeStaticDir); err != nil {
+	if err := checkField("static dir", staticDir, runtimeStaticDir, true); err != nil {
 		return err
 	}
-	if err := checkField("tmp dir", tmpDir, runtimeTmpDir); err != nil {
+	if err := checkField("tmp dir", tmpDir, runtimeTmpDir, true); err != nil {
 		return err
 	}
-	if err := checkField("graph root", graphRoot, runtimeGraphRoot); err != nil {
+	if err := checkField("graph root", graphRoot, runtimeGraphRoot, true); err != nil {
 		return err
 	}
-	if err := checkField("run root", runRoot, runtimeRunRoot); err != nil {
+	if err := checkField("run root", runRoot, runtimeRunRoot, true); err != nil {
 		return err
 	}
-	if err := checkField("graph driver", graphDriver, runtimeGraphDriver); err != nil {
+	if err := checkField("graph driver", graphDriver, runtimeGraphDriver, false); err != nil {
 		return err
 	}
-	if err := checkField("volume path", volumePath, runtimeVolumePath); err != nil {
+	if err := checkField("volume path", volumePath, runtimeVolumePath, true); err != nil {
 		return err
 	}
 
