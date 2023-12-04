@@ -321,8 +321,10 @@ var (
 	supportedPodKeys = map[string]bool{
 		KeyContainersConfModule: true,
 		KeyGlobalArgs:           true,
+		KeyNetwork:              true,
 		KeyPodmanArgs:           true,
 		KeyPodName:              true,
+		KeyVolume:               true,
 	}
 )
 
@@ -666,37 +668,8 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 		podman.add("--tmpfs", tmpfs)
 	}
 
-	volumes := container.LookupAll(ContainerGroup, KeyVolume)
-	for _, volume := range volumes {
-		parts := strings.SplitN(volume, ":", 3)
-
-		source := ""
-		var dest string
-		options := ""
-		if len(parts) >= 2 {
-			source = parts[0]
-			dest = parts[1]
-		} else {
-			dest = parts[0]
-		}
-		if len(parts) >= 3 {
-			options = ":" + parts[2]
-		}
-
-		if source != "" {
-			var err error
-			source, err = handleStorageSource(container, service, source, names)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		podman.add("-v")
-		if source == "" {
-			podman.add(dest)
-		} else {
-			podman.addf("%s:%s%s", source, dest, options)
-		}
+	if err := addVolumes(container, service, ContainerGroup, names, podman); err != nil {
+		return nil, err
 	}
 
 	update, ok := container.Lookup(ContainerGroup, KeyAutoUpdate)
@@ -1253,14 +1226,14 @@ func GetPodServiceName(podUnit *parser.UnitFile) string {
 	return replaceExtension(podUnit.Filename, "", "", "-pod")
 }
 
-func ConvertPod(podUnit *parser.UnitFile, name string, podsInfoMap map[string]*PodInfo) (*parser.UnitFile, error) {
+func ConvertPod(podUnit *parser.UnitFile, name string, podsInfoMap map[string]*PodInfo, names map[string]string) (*parser.UnitFile, error) {
 	podInfo, ok := podsInfoMap[podUnit.Filename]
 	if !ok {
 		return nil, fmt.Errorf("internal error while processing pod %s", podUnit.Filename)
 	}
 
 	service := podUnit.Dup()
-	service.Filename = replaceExtension(podInfo.ServiceName, ".service", "", "")
+	service.Filename = fmt.Sprintf("%s.service", podInfo.ServiceName)
 
 	if podUnit.Path != "" {
 		service.Add(UnitGroup, "SourcePath", podUnit.Path)
@@ -1321,6 +1294,12 @@ func ConvertPod(podUnit *parser.UnitFile, name string, podsInfoMap map[string]*P
 		"--exit-policy=stop",
 		"--replace",
 	)
+
+	addNetworks(podUnit, PodGroup, service, names, execStartPre)
+
+	if err := addVolumes(podUnit, service, PodGroup, names, execStartPre); err != nil {
+		return nil, err
+	}
 
 	execStartPre.addf("--name=%s", podName)
 
@@ -1819,5 +1798,42 @@ func handlePod(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName stri
 
 		podInfo.Containers = append(podInfo.Containers, serviceUnitFile.Filename)
 	}
+	return nil
+}
+
+func addVolumes(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName string, names map[string]string, podman *PodmanCmdline) error {
+	volumes := quadletUnitFile.LookupAll(groupName, KeyVolume)
+	for _, volume := range volumes {
+		parts := strings.SplitN(volume, ":", 3)
+
+		source := ""
+		var dest string
+		options := ""
+		if len(parts) >= 2 {
+			source = parts[0]
+			dest = parts[1]
+		} else {
+			dest = parts[0]
+		}
+		if len(parts) >= 3 {
+			options = ":" + parts[2]
+		}
+
+		if source != "" {
+			var err error
+			source, err = handleStorageSource(quadletUnitFile, serviceUnitFile, source, names)
+			if err != nil {
+				return err
+			}
+		}
+
+		podman.add("-v")
+		if source == "" {
+			podman.add(dest)
+		} else {
+			podman.addf("%s:%s%s", source, dest, options)
+		}
+	}
+
 	return nil
 }

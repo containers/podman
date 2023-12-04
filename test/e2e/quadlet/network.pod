@@ -1,0 +1,4 @@
+## assert-podman-pre-args "--network=host"
+
+[Pod]
+Network=host
