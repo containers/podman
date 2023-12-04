@@ -190,6 +190,7 @@ Valid options for `[Container]` are listed below:
 | IP6=2001:db8::1                      | --ip6 2001:db8::1                                    |
 | Label="XYZ"                          | --label "XYZ"                                        |
 | LogDriver=journald                   | --log-driver journald                                |
+| Mask=/proc/sys/foo\:/proc/sys/bar    | --security-opt mask=/proc/sys/foo:/proc/sys/bar      |
 | Mount=type=...                       | --mount type=...                                     |
 | Network=host                         | --net host                                           |
 | NoNewPrivileges=true                 | --security-opt no-new-privileges                     |
@@ -217,6 +218,7 @@ Valid options for `[Container]` are listed below:
 | Tmpfs=/work                          | --tmpfs /work                                        |
 | UIDMap=0:10000:10                    | --uidmap=0:10000:10                                  |
 | Ulimit=nofile=1000:10000             | --ulimit nofile=1000:10000                           |
+| Unmask=ALL                           | --security-opt unmask=ALL                            |
 | User=bin                             | --user bin                                           |
 | UserNS=keep-id:uid=200,gid=210       | --userns keep-id:uid=200,gid=210                     |
 | Volume=/source:/dest                 | --volume /source:/dest                               |
@@ -454,6 +456,10 @@ This key can be listed multiple times.
 Set the log-driver used by Podman when running the container.
 Equivalent to the Podman `--log-driver` option.
 
+### `Mask=`
+
+Specify the paths to mask separated by a colon. `Mask=/path/1:/path/2`. A masked path cannot be accessed inside the container.
+
 ### `Mount=`
 
 Attach a filesystem mount to the container.
@@ -646,6 +652,16 @@ This key can be listed multiple times.
 
 Ulimit options. Sets the ulimits values inside of the container.
 
+### `Unmask=`
+
+Specify the paths to unmask separated by a colon. unmask=ALL or /path/1:/path/2, or shell expanded paths (/proc/*):
+
+If set to `ALL`, Podman will unmask all the paths that are masked or made read-only by default.
+
+The default masked paths are /proc/acpi, /proc/kcore, /proc/keys, /proc/latency_stats, /proc/sched_debug, /proc/scsi, /proc/timer_list, /proc/timer_stats, /sys/firmware, and /sys/fs/selinux.
+
+The default paths that are read-only are /proc/asound, /proc/bus, /proc/fs, /proc/irq, /proc/sys, /proc/sysrq-trigger, /sys/fs/cgroup.
+
 ### `User=`
 
 The (numeric) UID to run as inside the container. This does not need to match the UID on the host,
@@ -821,10 +837,6 @@ Equivalent to the Podman `--force` option.
 Set the log-driver Podman uses when running the container.
 Equivalent to the Podman `--log-driver` option.
 
-### `Mask=`
-
-Specify the paths to mask separated by a colon. `Mask=/path/1:/path/2`. A masked path cannot be accessed inside the container.
-
 ### `Network=`
 
 Specify a custom network for the container. This has the same format as the `--network` option
@@ -877,16 +889,6 @@ Supported values are `yaml` and `unit` to set the working directory to that of t
 Alternatively, users can explicitly set the `WorkingDirectory` field of the `Service` group in the `.kube` file.
 Please note that if the `WorkingDirectory` field of the `Service` group is set,
 Quadlet will not set it even if `SetWorkingDirectory` is set
-
-### `Unmask=`
-
-Specify the paths to unmask separated by a colon. unmask=ALL or /path/1:/path/2, or shell expanded paths (/proc/*):
-
-If set to `ALL`, Podman will unmask all the paths that are masked or made read-only by default.
-
-The default masked paths are /proc/acpi, /proc/kcore, /proc/keys, /proc/latency_stats, /proc/sched_debug, /proc/scsi, /proc/timer_list, /proc/timer_stats, /sys/firmware, and /sys/fs/selinux.
-
-The default paths that are read-only are /proc/asound, /proc/bus, /proc/fs, /proc/irq, /proc/sys, /proc/sysrq-trigger, /sys/fs/cgroup.
 
 ### `UserNS=`
 
