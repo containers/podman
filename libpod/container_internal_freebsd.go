@@ -389,3 +389,10 @@ func (c *Container) getPlatformRunPath() (string, error) {
 func (c *Container) addMaskedPaths(g *generate.Generator) {
 	// There are currently no FreeBSD-specific masked paths
 }
+
+func (c *Container) hasPrivateUTS() bool {
+	// Currently we always use a private UTS namespace on FreeBSD. This
+	// should be optional but needs a FreeBSD section in the OCI runtime
+	// specification.
+	return true
+}
