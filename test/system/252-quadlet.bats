@@ -91,10 +91,7 @@ function service_setup() {
         local activestate="inactive"
     fi
 
-    echo "$_LOG_PROMPT systemctl $startargs start $service"
-    run systemctl $startargs start "$service"
-    echo "$output"
-    assert $status -eq 0 "Error starting systemd unit $service"
+    systemctl_start $startargs "$service"
 
     # FIXME FIXME FIXME: this is racy with short-lived containers!
     echo "$_LOG_PROMPT systemctl status $service"
@@ -798,7 +795,7 @@ ExecStart=/bin/bash -c "echo %T >$percent_t_file"
 Type=oneshot
 EOF
     systemctl daemon-reload
-    systemctl --wait start $service
+    systemctl_start --wait $service
     percent_t=$(< $percent_t_file)
     # Clean up. Don't bother to systemctl-reload, service_setup does that below.
     rm -f $unitfile
