@@ -147,7 +147,8 @@ function like() {
 function _show_ok() {
     local ok=$1
     # Exec tests include control characters; filter them out
-    local testname=$(tr -d \\012 <<<"$2"|cat -vT)
+    # Also filter out timestamps, to get consistent test names in logs
+    local testname=$(tr -d \\012 <<<"$2"|sed -e 's/since=[0-9.]\+/since=(T)/'|cat -vT)
 
     # If output is a tty, colorize pass/fail
     local red=

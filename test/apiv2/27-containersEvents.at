@@ -8,7 +8,7 @@ podman pull $IMAGE &>/dev/null
 # Ensure clean slate
 podman rm -a -f &>/dev/null
 
-START=$(date +%s)
+START=$(date +%s.%N)
 
 podman run --rm $IMAGE false || true
 
