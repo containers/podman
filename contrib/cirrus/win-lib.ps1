@@ -51,7 +51,7 @@ function Check-Exit {
         # https://learn.microsoft.com/en-us/dotnet/api/system.management.automation.callstackframe
         $caller = (Get-PSCallStack)[1]
         Write-Host "Exit code = '$result' from $($caller.ScriptName):$($caller.ScriptLineNumber)"
-        Exit $result
+        Throw "Non-zero exit code"
     }
 }
 
