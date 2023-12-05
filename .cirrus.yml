@@ -446,19 +446,25 @@ osx_alt_build_task:
     only_if: *no_rhel_release
     depends_on:
         - build
-    env:
-        DISTRO_NV: macos-ventura
-        VM_IMAGE_NAME: ghcr.io/cirruslabs/${DISTRO_NV}-base:latest
-        CTR_FQIN: notused
-        # OSX platform variation prevents this being included in alt_build_task
-        TEST_FLAVOR: "altbuild"
-        ALT_NAME: 'OSX Cross'
-    osx_instance:
-        image: $VM_IMAGE_NAME
-    setup_script:
-        - brew install go
-        - brew install go-md2man
-        - go version
+    persistent_worker: &mac_pw
+        labels:
+            os: darwin
+            arch: arm64
+    env: &mac_env
+        CIRRUS_SHELL: "/bin/bash"  # sh is the default
+        CIRRUS_WORKING_DIR: "$HOME/ci/task-${CIRRUS_TASK_ID}"  # Isolation: $HOME will be set to "ci" dir.
+        # Prevent cache-pollution fron one task to the next.
+        GOPATH: "$CIRRUS_WORKING_DIR/.go"
+        GOCACHE: "$CIRRUS_WORKING_DIR/.go/cache"
+        GOENV: "$CIRRUS_WORKING_DIR/.go/support"
+        GOSRC: "$HOME/ci/task-${CIRRUS_TASK_ID}"
+    # This host is/was shared with potentially many other CI tasks.
+    # The previous task may have been canceled or aborted.
+    prep_script: &mac_cleanup "contrib/cirrus/mac_cleanup.sh"
+    basic_build_script:
+        - make .install.ginkgo
+        - make podman-remote
+        - make podman-mac-helper
     build_amd64_script:
         - make podman-remote-release-darwin_amd64.zip
     build_arm64_script:
@@ -467,11 +473,13 @@ osx_alt_build_task:
         - cd contrib/pkginstaller
         - make ARCH=amd64 NO_CODESIGN=1 pkginstaller
         - make ARCH=aarch64 NO_CODESIGN=1 pkginstaller
-    # This task cannot make use of the shared repo.tbz artifact and must
-    # produce a new repo.tbz artifact for consumption by 'artifacts' task.
+    # Produce a new repo.tbz artifact for consumption by dependent tasks.
     repo_prep_script: *repo_prep
     repo_artifacts: *repo_artifacts
-    always: *runner_stats
+    # This host is/was shared with potentially many other CI tasks.
+    # Ensure nothing is left running while waiting for the next task.
+    always:
+        task_cleanup_script: *mac_cleanup
 
 
 # Build freebsd release natively on a FreeBSD VM.
@@ -793,6 +801,50 @@ podman_machine_windows_task:
     main_script: ".\\repo\\contrib\\cirrus\\win-podman-machine-main.ps1"
 
 
+podman_machine_mac_task:
+    name: *std_name_fmt
+    alias: podman_machine_mac
+    only_if: *no_rhel_release
+    depends_on:
+      - osx_alt_build
+      - local_integration_test
+      - remote_integration_test
+      - container_integration_test
+      - rootless_integration_test
+    persistent_worker: *mac_pw
+    env:
+        <<: *mac_env
+        # Consumed by podman-machine ginkgo tests
+        CONTAINERS_MACHINE_PROVIDER: "applehv"
+        # TODO: Should not require a special image, for now it does.
+        # Simply remove the line below when a mac image is GA.
+        MACHINE_IMAGE: "https://fedorapeople.org/groups/podman/testing/applehv/arm64/fedora-coreos-38.20230925.dev.0-applehv.aarch64.raw.gz"
+        # Values necessary to populate std_name_fmt alias
+        TEST_FLAVOR: "machine-mac"
+        DISTRO_NV: "darwin"
+        PRIV_NAME: "rootless"  # intended use-case
+    clone_script:  # artifacts from osx_alt_build_task
+        - mkdir -p $CIRRUS_WORKING_DIR
+        - cd $CIRRUS_WORKING_DIR
+        - $ARTCURL/OSX%20Cross/repo/repo.tbz
+        - tar xjf repo.tbz
+    # This host is/was shared with potentially many other CI tasks.
+    # The previous task may have been canceled or aborted.
+    prep_script: *mac_cleanup
+    setup_script: "contrib/cirrus/mac_setup.sh"
+    env_script: "contrib/cirrus/mac_env.sh"
+    # TODO: Timeout bumped b/c initial image download (~5min) and VM
+    #       resize (~2min) causes test-timeout (90s default).  Should
+    #       tests deal with this internally?
+    smoke_test_script:
+        - MACHINE_TEST_TIMEOUT=500 make localmachine FOCUS_FILE="basic_test.go"
+    test_script:
+        - make localmachine
+    # This host is/was shared with potentially many other CI tasks.
+    # Ensure nothing is left running while waiting for the next task.
+    always:
+        task_cleanup_script: *mac_cleanup
+
 # Always run subsequent to integration tests.  While parallelism is lost
 # with runtime, debugging system-test failures can be more challenging
 # for some golang developers.  Otherwise the following tasks run across
@@ -1062,6 +1114,8 @@ success_task:
         # TODO: issue #20548; These tests are new and mostly fail.
         # Ignore status until tests, scripts, and/or environment stabalize.
         # - podman_machine_windows
+        # TODO: Issue #20853; Tests mostly fail then timeout after an hour.
+        # - podman_machine_mac
         - local_system_test
         - local_system_test_aarch64
         - remote_system_test

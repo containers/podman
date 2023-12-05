@@ -624,8 +624,8 @@ localintegration: test-binaries ginkgo
 remoteintegration: test-binaries ginkgo-remote
 
 .PHONY: localmachine
-localmachine: test-binaries .install.ginkgo
-	$(MAKE) ginkgo-run GINKGO_PARALLEL=n GINKGOWHAT=pkg/machine/e2e/. HACK=
+localmachine:
+	$(MAKE) ginkgo-run GINKGO_PARALLEL=n TAGS="$(REMOTETAGS)" GINKGO_FLAKE_ATTEMPTS=0 FOCUS_FILE=$(FOCUS_FILE) GINKGOWHAT=pkg/machine/e2e/. HACK=
 
 .PHONY: localsystem
 localsystem:
