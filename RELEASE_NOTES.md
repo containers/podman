@@ -1,5 +1,14 @@
 # Release Notes
 
+## 4.8.1
+### Bugfixes
+- Fixed a bug on Windows (WSL) where wsl.conf/resolv.conf was not restored when user-mode networking was disabled after being enabled ([#20625](https://github.com/containers/podman/issues/20625)).
+- Fixed a bug where currently if user specifies `podman kube play --replace`, the pod is removed on the client side, not the server side ([#20705](https://github.com/containers/podman/discussions/20705)).
+- Fixed a bug where `podman machine rm -f` would cause a deadlock when running with WSL.
+- Fixed `database is locked` errors with the new sqlite database backend ([#20809](https://github.com/containers/podman/issues/20809)).
+- Fixed a bug where `podman-remote exec` would fail if the server API version is older than 4.8.0 ([#20821](https://github.com/containers/podman/issues/20821)).
+- Fixed a bug where Podman would not run any command on systems with a symlinked $HOME ([#20872](https://github.com/containers/podman/issues/20872)).
+
 ## 4.8.0
 ### Features
 - Podman machine now supports HyperV as a provider on Windows. This option can be set via the `CONTAINERS_MACHINE_PROVIDER` environment variable, or via containers.conf. HyperV requires Powershell to be run as Admin. Note that running WSL and HyperV machines at the same time is not supported.
