@@ -1467,22 +1467,4 @@ EOF
 
     run_podman rmi $(pause_image)
 }
-@test "quadlet - entrypoint" {
- local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).container
-    cat > $quadlet_file <<EOF
-[Container]
-Image=$IMAGE
-Entrypoint=top
-EOF
-
-    run_quadlet "$quadlet_file"
-    service_setup $QUADLET_SERVICE_NAME
-
-    # Create a container based on that
-    run_podman container inspect  --format '{{index .Args}}' $QUADLET_CONTAINER_NAME
-    is "$output" "[top]"
-
-    service_cleanup $QUADLET_SERVICE_NAME failed
-}
-
 # vim: filetype=sh

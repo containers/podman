@@ -765,6 +765,7 @@ BOGUS=foo
 		Entry("env-host-false.container", "env-host-false.container", 0, ""),
 		Entry("env-host.container", "env-host.container", 0, ""),
 		Entry("env.container", "env.container", 0, ""),
+		Entry("entrypoint.container", "entrypoint.container", 0, ""),
 		Entry("escapes.container", "escapes.container", 0, ""),
 		Entry("exec.container", "exec.container", 0, ""),
 		Entry("health.container", "health.container", 0, ""),
