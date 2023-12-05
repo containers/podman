@@ -39,6 +39,8 @@ Note: When playing a kube YAML with init containers, the init container is creat
 
 Note: *hostPath* volume types created by kube play is given an SELinux shared label (z), bind mounts are not relabeled (use `chcon -t container_file_t -R <directory>`).
 
+Note: To set userns of a pod, use the **io.podman.annotations.userns** annotation in the pod/deployment definition. This can be overridden with the `--userns` flag.
+
 Note: If the `:latest` tag is used, Podman attempts to pull the image from a registry. If the image was built locally with Podman or Buildah, it has `localhost` as the domain, in that case, Podman uses the image from the local store even if it has the `:latest` tag.
 
 Note: The command `podman play kube` is an alias of `podman kube play`, and performs the same function.
