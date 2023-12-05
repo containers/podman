@@ -168,6 +168,7 @@ Valid options for `[Container]` are listed below:
 | Environment=foo=bar                  | --env foo=bar                                        |
 | EnvironmentFile=/tmp/env             | --env-file /tmp/env                                  |
 | EnvironmentHost=true                 | --env-host                                           |
+| Entrypoint=/foo.sh                   | --entrypoint=/foo.sh                                 |
 | Exec=/usr/bin/command                | Command after image specification - /usr/bin/command |
 | ExposeHostPort=50-59                 | --expose 50-59                                       |
 | GIDMap=0:10000:10                    | --gidmap=0:10000:10                                  |
@@ -319,6 +320,12 @@ This key may be used multiple times, and the order persists when passed to `podm
 ### `EnvironmentHost=`
 
 Use the host environment inside of the container.
+
+#### `Entrypoint=`
+
+Override the default ENTRYPOINT from the image.
+Equivalent to the Podman `--entrypoint` option.
+Specify multi option commands in the form of a json string.
 
 ### `Exec=`
 
