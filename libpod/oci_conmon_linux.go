@@ -326,3 +326,7 @@ func GetLimits(resource *spec.LinuxResources) (runcconfig.Resources, error) {
 	final.Unified = resource.Unified
 	return *final, nil
 }
+
+func moveToRuntimeCgroup() error {
+	return cgroups.MoveUnderCgroupSubtree("runtime")
+}
