@@ -220,8 +220,7 @@ var _ = Describe("Podman prune", func() {
 		session = podmanTest.Podman([]string{"pod", "start", podid1})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-
-		session = podmanTest.Podman([]string{"pod", "stop", podid1})
+		session = podmanTest.Podman([]string{"pod", "stop", "-t0", podid1})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -294,8 +293,7 @@ var _ = Describe("Podman prune", func() {
 		session = podmanTest.Podman([]string{"pod", "start", podid1})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-
-		session = podmanTest.Podman([]string{"pod", "stop", podid1})
+		session = podmanTest.Podman([]string{"pod", "stop", "-t0", podid1})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -327,8 +325,7 @@ var _ = Describe("Podman prune", func() {
 		session = podmanTest.Podman([]string{"pod", "start", podid1})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-
-		session = podmanTest.Podman([]string{"pod", "stop", podid1})
+		session = podmanTest.Podman([]string{"pod", "stop", "-t0", podid1})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
