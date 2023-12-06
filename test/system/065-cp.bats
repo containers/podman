@@ -22,7 +22,8 @@ load helpers
     mkdir -p $srcdir/subdir
     echo "${randomcontent[2]}" > $srcdir/subdir/dotfile.
 
-    run_podman run -d --name destrunning --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir; sleep infinity"
+    run_podman run -d --name destrunning --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir; echo READY; sleep infinity"
+    wait_for_ready destrunning
 
     # Commit the image for testing non-running containers
     run_podman commit -q destrunning
@@ -177,7 +178,9 @@ load helpers
          echo ${randomcontent[0]} > /tmp/dotfile.;
          echo ${randomcontent[1]} > /srv/containerfile1;
          echo ${randomcontent[2]} > /srv/subdir/containerfile2;
+         echo READY;
          sleep infinity"
+    wait_for_ready srcrunning
 
     # Commit the image for testing non-running containers
     run_podman commit -q srcrunning
@@ -238,7 +241,9 @@ load helpers
          echo ${randomcontent[0]} > /tmp/dotfile.;
          echo ${randomcontent[1]} > /srv/containerfile1;
          echo ${randomcontent[2]} > /srv/subdir/containerfile2;
+         echo READY;
          sleep infinity"
+    wait_for_ready srcrunning
 
     # Commit the image for testing non-running containers
     run_podman commit -q srcrunning
@@ -329,7 +334,8 @@ load helpers
     mkdir -p $srcdir/dir.
     cp -r $srcdir/dir/* $srcdir/dir.
 
-    run_podman run -d --name destrunning --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir; sleep infinity"
+    run_podman run -d --name destrunning --workdir=/srv $IMAGE sh -c "mkdir /srv/subdir; echo READY;sleep infinity"
+    wait_for_ready destrunning
 
     # Commit the image for testing non-running containers
     run_podman commit -q destrunning
@@ -391,7 +397,9 @@ load helpers
          echo ${randomcontent[0]} > /srv/subdir/containerfile0; \
          echo ${randomcontent[1]} > /srv/subdir/containerfile1; \
          mkdir /tmp/subdir.; cp /srv/subdir/* /tmp/subdir./; \
+         echo READY;
          sleep infinity"
+    wait_for_ready srcrunning
 
     # Commit the image for testing non-running containers
     run_podman commit -q srcrunning
@@ -460,7 +468,9 @@ load helpers
          echo ${randomcontent[0]} > /srv/subdir/containerfile0; \
          echo ${randomcontent[1]} > /srv/subdir/containerfile1; \
          mkdir /tmp/subdir.; cp /srv/subdir/* /tmp/subdir./; \
+         echo READY;
          sleep infinity"
+    wait_for_ready srcrunning
 
     # Commit the image for testing non-running containers
     run_podman commit -q srcrunning
@@ -549,7 +559,9 @@ load helpers
     run_podman run -d --name srcrunning $IMAGE sh -c "echo ${randomcontent[0]} > /tmp/containerfile0; \
          echo ${randomcontent[1]} > /tmp/containerfile1; \
          mkdir /tmp/sub && cd /tmp/sub && ln -s .. weirdlink; \
+         echo READY;
          sleep infinity"
+    wait_for_ready srcrunning
 
     # Commit the image for testing non-running containers
     run_podman commit -q srcrunning
@@ -749,7 +761,8 @@ load helpers
                sh -c "mkdir /tmp/d1;ln -s /tmp/nonesuch1 /tmp/d1/x;
                       mkdir /tmp/d2;ln -s /tmp/nonesuch2 /tmp/d2/x;
                       mkdir /tmp/d3;
-                      trap 'exit 0' 15;while :;do sleep 0.5;done"
+                      trap 'exit 0' 15;echo READY;while :;do sleep 0.5;done"
+    wait_for_ready cpcontainer
 
     # Copy file from host into container, into a file named 'x'
     # Note that the second has a trailing slash, implying a directory.
@@ -912,8 +925,10 @@ load helpers
     rand_content_file=$(random_string 50)
     rand_content_dir=$(random_string 50)
 
-    run_podman run -d --name ctr-file $IMAGE sh -c "echo '$rand_content_file' > /tmp/foo; sleep infinity"
-    run_podman run -d --name ctr-dir  $IMAGE sh -c "mkdir /tmp/foo; echo '$rand_content_dir' > /tmp/foo/file.txt; sleep infinity"
+    run_podman run -d --name ctr-file $IMAGE sh -c "echo '$rand_content_file' > /tmp/foo; echo READY; sleep infinity"
+    run_podman run -d --name ctr-dir  $IMAGE sh -c "mkdir /tmp/foo; echo '$rand_content_dir' > /tmp/foo/file.txt; echo READY; sleep infinity"
+    wait_for_ready ctr-file
+    wait_for_ready ctr-dir
 
     # overwrite a directory with a file
     run_podman 125 cp ctr-file:/tmp/foo ctr-dir:/tmp
@@ -946,8 +961,10 @@ load helpers
     rand_content_file=$(random_string 50)
     rand_content_dir=$(random_string 50)
 
-    run_podman run -d --name ctr-file $IMAGE sh -c "echo '$rand_content_file' > /tmp/foo; sleep infinity"
-    run_podman run -d --name ctr-dir  $IMAGE sh -c "mkdir /tmp/foo; echo '$rand_content_dir' > /tmp/foo/file.txt; sleep infinity"
+    run_podman run -d --name ctr-file $IMAGE sh -c "echo '$rand_content_file' > /tmp/foo; echo READY; sleep infinity"
+    run_podman run -d --name ctr-dir  $IMAGE sh -c "mkdir /tmp/foo; echo '$rand_content_dir' > /tmp/foo/file.txt; echo READY; sleep infinity"
+    wait_for_ready ctr-file
+    wait_for_ready ctr-dir
 
     # overwrite a directory with a file
     mkdir $hostdir/foo
@@ -978,8 +995,10 @@ load helpers
     rand_content_file=$(random_string 50)
     rand_content_dir=$(random_string 50)
 
-    run_podman run -d --name ctr-dir  $IMAGE sh -c "mkdir /tmp/foo; sleep infinity"
-    run_podman run -d --name ctr-file $IMAGE sh -c "touch /tmp/foo; sleep infinity"
+    run_podman run -d --name ctr-dir  $IMAGE sh -c "mkdir /tmp/foo; echo READY; sleep infinity"
+    run_podman run -d --name ctr-file $IMAGE sh -c "touch /tmp/foo; echo READY; sleep infinity"
+    wait_for_ready ctr-dir
+    wait_for_ready ctr-file
 
     # overwrite a directory with a file
     echo "$rand_content_file" > $hostdir/foo
@@ -1025,7 +1044,9 @@ load helpers
     dstdir=$PODMAN_TMPDIR/dst
     mkdir -p $dstdir
 
-    run_podman run -d --name=test-ctr --rm $IMAGE sh -c "mkdir -p /foo/test1. /foo/test2; touch /foo/test1./file1 /foo/test2/file2; sleep infinity"
+    run_podman run -d --name=test-ctr --rm $IMAGE sh -c "mkdir -p /foo/test1. /foo/test2; touch /foo/test1./file1 /foo/test2/file2; echo READY;sleep infinity"
+    wait_for_ready test-ctr
+
     run_podman cp test-ctr:/foo/test1. $dstdir/foo
     run /bin/ls -1 $dstdir/foo
     assert "$output" = "file1" "ls [local]/foo: only file1 was copied, nothing more"
@@ -1034,7 +1055,9 @@ load helpers
 }
 
 @test "podman cp - dot notation - container to container" {
-    run_podman run -d --name=src-ctr --rm $IMAGE sh -c "mkdir -p /foo/test1. /foo/test2; touch /foo/test1./file1 /foo/test2/file2; sleep infinity"
+    run_podman run -d --name=src-ctr --rm $IMAGE sh -c "mkdir -p /foo/test1. /foo/test2; touch /foo/test1./file1 /foo/test2/file2; echo READY;sleep infinity"
+    wait_for_ready src-ctr
+
     run_podman run -d --name=dest-ctr --rm $IMAGE sleep infinity
     run_podman cp src-ctr:/foo/test1. dest-ctr:/foo
 
