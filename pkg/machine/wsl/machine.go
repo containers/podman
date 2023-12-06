@@ -671,7 +671,7 @@ func configureSystem(v *MachineVM, dist string) error {
 		return err
 	}
 
-	return changeDistUserModeNetworking(dist, user, "", v.UserModeNetworking)
+	return changeDistUserModeNetworking(dist, user, v.ImagePath, v.UserModeNetworking)
 }
 
 func configureBindMounts(dist string, user string) error {
