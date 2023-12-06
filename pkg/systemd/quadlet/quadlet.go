@@ -72,6 +72,7 @@ const (
 	KeyEnvironment           = "Environment"
 	KeyEnvironmentFile       = "EnvironmentFile"
 	KeyEnvironmentHost       = "EnvironmentHost"
+	KeyEntrypoint            = "Entrypoint"
 	KeyExec                  = "Exec"
 	KeyExitCodePropagation   = "ExitCodePropagation"
 	KeyExposeHostPort        = "ExposeHostPort"
@@ -180,6 +181,7 @@ var (
 		KeyEnvironment:           true,
 		KeyEnvironmentFile:       true,
 		KeyEnvironmentHost:       true,
+		KeyEntrypoint:            true,
 		KeyExec:                  true,
 		KeyExposeHostPort:        true,
 		KeyGIDMap:                true,
@@ -626,6 +628,11 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 	shmSize, hasShmSize := container.Lookup(ContainerGroup, KeyShmSize)
 	if hasShmSize {
 		podman.addf("--shm-size=%s", shmSize)
+	}
+
+	entrypoint, hasEntrypoint := container.Lookup(ContainerGroup, KeyEntrypoint)
+	if hasEntrypoint {
+		podman.addf("--entrypoint=%s", entrypoint)
 	}
 
 	sysctl := container.LookupAllStrv(ContainerGroup, KeySysctl)
