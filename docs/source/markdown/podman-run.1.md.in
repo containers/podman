@@ -308,6 +308,8 @@ This is used to override the Podman provided user setup in favor of entrypoint c
 
 @@option pod-id-file.container
 
+@@option preserve-fd
+
 @@option preserve-fds
 
 @@option privileged

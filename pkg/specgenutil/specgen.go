@@ -838,8 +838,16 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	if len(s.Name) == 0 || len(c.Name) != 0 {
 		s.Name = c.Name
 	}
+
+	if c.PreserveFDs != 0 && c.PreserveFD != nil {
+		return errors.New("cannot specify both --preserve-fds and --preserve-fd")
+	}
+
 	if s.PreserveFDs == 0 || c.PreserveFDs != 0 {
 		s.PreserveFDs = c.PreserveFDs
+	}
+	if s.PreserveFD == nil || c.PreserveFD != nil {
+		s.PreserveFD = c.PreserveFD
 	}
 
 	if s.OOMScoreAdj == nil || c.OOMScoreAdj != nil {

@@ -83,6 +83,10 @@ func execFlags(cmd *cobra.Command) {
 	flags.UintVar(&execOpts.PreserveFDs, preserveFdsFlagName, 0, "Pass N additional file descriptors to the container")
 	_ = cmd.RegisterFlagCompletionFunc(preserveFdsFlagName, completion.AutocompleteNone)
 
+	preserveFdFlagName := "preserve-fd"
+	flags.UintSliceVar(&execOpts.PreserveFD, preserveFdFlagName, nil, "Pass a list of additional file descriptors to the container")
+	_ = cmd.RegisterFlagCompletionFunc(preserveFdFlagName, completion.AutocompleteNone)
+
 	workdirFlagName := "workdir"
 	flags.StringVarP(&execOpts.WorkDir, workdirFlagName, "w", "", "Working directory inside the container")
 	_ = cmd.RegisterFlagCompletionFunc(workdirFlagName, completion.AutocompleteDefault)
@@ -138,6 +142,12 @@ func exec(cmd *cobra.Command, args []string) error {
 	}
 
 	execOpts.Envs = envLib.Join(execOpts.Envs, cliEnv)
+
+	for _, fd := range execOpts.PreserveFD {
+		if !rootless.IsFdInherited(int(fd)) {
+			return fmt.Errorf("file descriptor %d is not available - the preserve-fd option requires that file descriptors must be passed", fd)
+		}
+	}
 
 	for fd := 3; fd < int(3+execOpts.PreserveFDs); fd++ {
 		if !rootless.IsFdInherited(fd) {

@@ -822,6 +822,7 @@ func makeExecConfig(options entities.ExecOptions, rt *libpod.Runtime) (*libpod.E
 	execConfig.WorkDir = options.WorkDir
 	execConfig.DetachKeys = &options.DetachKeys
 	execConfig.PreserveFDs = options.PreserveFDs
+	execConfig.PreserveFD = options.PreserveFD
 	execConfig.AttachStdin = options.Interactive
 
 	// Make an exit command
@@ -871,6 +872,7 @@ func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrID string, o
 	if err != nil {
 		return ec, err
 	}
+
 	containers, err := getContainers(ic.Libpod, getContainersOptions{latest: options.Latest, names: []string{nameOrID}})
 	if err != nil {
 		return ec, err

@@ -180,6 +180,11 @@ type ContainerBasicConfig struct {
 	// set tags as `json:"-"` for not supported remote
 	// Optional.
 	PreserveFDs uint `json:"-"`
+	// PreserveFD is a list of additional file descriptors (in addition
+	// to 0, 1, 2) that will be passed to the executed process.
+	// set tags as `json:"-"` for not supported remote
+	// Optional.
+	PreserveFD []uint `json:"-"`
 	// Timezone is the timezone inside the container.
 	// Local means it has the same timezone as the host machine
 	// Optional.

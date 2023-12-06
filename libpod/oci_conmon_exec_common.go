@@ -391,8 +391,13 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 
 	args := r.sharedConmonArgs(c, sessionID, c.execBundlePath(sessionID), c.execPidPath(sessionID), c.execLogPath(sessionID), c.execExitFileDir(sessionID), ociLog, define.NoLogging, c.config.LogTag)
 
-	if options.PreserveFDs > 0 {
-		args = append(args, formatRuntimeOpts("--preserve-fds", strconv.FormatUint(uint64(options.PreserveFDs), 10))...)
+	preserveFDs, filesToClose, extraFiles, err := getPreserveFdExtraFiles(options.PreserveFD, options.PreserveFDs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if preserveFDs > 0 {
+		args = append(args, formatRuntimeOpts("--preserve-fds", strconv.FormatUint(uint64(preserveFDs), 10))...)
 	}
 
 	if options.Terminal {
@@ -442,19 +447,12 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 		return nil, nil, fmt.Errorf("configuring conmon env: %w", err)
 	}
 
-	var filesToClose []*os.File
-	if options.PreserveFDs > 0 {
-		for fd := 3; fd < int(3+options.PreserveFDs); fd++ {
-			f := os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd))
-			filesToClose = append(filesToClose, f)
-			execCmd.ExtraFiles = append(execCmd.ExtraFiles, f)
-		}
-	}
+	execCmd.ExtraFiles = extraFiles
 
 	// we don't want to step on users fds they asked to preserve
 	// Since 0-2 are used for stdio, start the fds we pass in at preserveFDs+3
 	execCmd.Env = r.conmonEnv
-	execCmd.Env = append(execCmd.Env, fmt.Sprintf("_OCI_SYNCPIPE=%d", options.PreserveFDs+3), fmt.Sprintf("_OCI_STARTPIPE=%d", options.PreserveFDs+4), fmt.Sprintf("_OCI_ATTACHPIPE=%d", options.PreserveFDs+5))
+	execCmd.Env = append(execCmd.Env, fmt.Sprintf("_OCI_SYNCPIPE=%d", preserveFDs+3), fmt.Sprintf("_OCI_STARTPIPE=%d", preserveFDs+4), fmt.Sprintf("_OCI_ATTACHPIPE=%d", preserveFDs+5))
 	execCmd.Env = append(execCmd.Env, conmonEnv...)
 
 	execCmd.ExtraFiles = append(execCmd.ExtraFiles, childSyncPipe, childStartPipe, childAttachPipe)

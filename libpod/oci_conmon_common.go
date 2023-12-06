@@ -1038,6 +1038,39 @@ func (r *ConmonOCIRuntime) getLogTag(ctr *Container) (string, error) {
 	return b.String(), nil
 }
 
+func getPreserveFdExtraFiles(preserveFD []uint, preserveFDs uint) (uint, []*os.File, []*os.File, error) {
+	var filesToClose []*os.File
+	var extraFiles []*os.File
+
+	preserveFDsMap := make(map[uint]struct{})
+	for _, i := range preserveFD {
+		if i < 3 {
+			return 0, nil, nil, fmt.Errorf("cannot preserve FD %d, consider using the passthrough log-driver to pass STDIO streams into the container: %w", i, define.ErrInvalidArg)
+		}
+		if i-2 > preserveFDs {
+			// preserveFDs is the number of FDs above 2 to keep around.
+			// e.g. if the user specified FD=3, then preserveFDs must be 1.
+			preserveFDs = i - 2
+		}
+		preserveFDsMap[i] = struct{}{}
+	}
+
+	if preserveFDs > 0 {
+		for fd := 3; fd < int(3+preserveFDs); fd++ {
+			if len(preserveFDsMap) > 0 {
+				if _, ok := preserveFDsMap[uint(fd)]; !ok {
+					extraFiles = append(extraFiles, nil)
+					continue
+				}
+			}
+			f := os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd))
+			filesToClose = append(filesToClose, f)
+			extraFiles = append(extraFiles, f)
+		}
+	}
+	return preserveFDs, filesToClose, extraFiles, nil
+}
+
 // createOCIContainer generates this container's main conmon instance and prepares it for starting
 func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (int64, error) {
 	var stderrBuf bytes.Buffer
@@ -1114,10 +1147,11 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		args = append(args, []string{"--exit-command-arg", arg}...)
 	}
 
-	// Pass down the LISTEN_* environment (see #10443).
 	preserveFDs := ctr.config.PreserveFDs
+
+	// Pass down the LISTEN_* environment (see #10443).
 	if val := os.Getenv("LISTEN_FDS"); val != "" {
-		if ctr.config.PreserveFDs > 0 {
+		if preserveFDs > 0 || len(ctr.config.PreserveFD) > 0 {
 			logrus.Warnf("Ignoring LISTEN_FDS to preserve custom user-specified FDs")
 		} else {
 			fds, err := strconv.Atoi(val)
@@ -1128,6 +1162,10 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		}
 	}
 
+	preserveFDs, filesToClose, extraFiles, err := getPreserveFdExtraFiles(ctr.config.PreserveFD, preserveFDs)
+	if err != nil {
+		return 0, err
+	}
 	if preserveFDs > 0 {
 		args = append(args, formatRuntimeOpts("--preserve-fds", strconv.FormatUint(uint64(preserveFDs), 10))...)
 	}
@@ -1189,14 +1227,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		return 0, fmt.Errorf("configuring conmon env: %w", err)
 	}
 
-	var filesToClose []*os.File
-	if preserveFDs > 0 {
-		for fd := 3; fd < int(3+preserveFDs); fd++ {
-			f := os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd))
-			filesToClose = append(filesToClose, f)
-			cmd.ExtraFiles = append(cmd.ExtraFiles, f)
-		}
-	}
+	cmd.ExtraFiles = extraFiles
 
 	cmd.Env = r.conmonEnv
 	// we don't want to step on users fds they asked to preserve

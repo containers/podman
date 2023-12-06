@@ -223,4 +223,26 @@ load helpers
     assert "$output" = "0" ".ExecIDs must be empty"
 }
 
+# 'exec --preserve-fd' passes a list of additional file descriptors into the container
+@test "podman exec --preserve-fd" {
+    skip_if_remote "preserve-fd is meaningless over remote"
+
+    runtime=$(podman_runtime)
+    if [[ $runtime != "crun" ]]; then
+        skip "runtime is $runtime; preserve-fd requires crun"
+    fi
+
+    run_podman run -d $IMAGE top
+    cid="$output"
+
+    content=$(random_string 20)
+    echo "$content" > $PODMAN_TMPDIR/tempfile
+
+    # /proc/self/fd will have 0 1 2, possibly 3 & 4, but no 2-digit fds other than 40
+    run_podman exec --preserve-fd=9,40 $cid sh -c '/bin/ls -C -w999 /proc/self/fd; cat <&9; cat <&40' 9<<<"fd9" 10</dev/null 40<$PODMAN_TMPDIR/tempfile
+    assert "${lines[0]}" !~ [123][0-9] "/proc/self/fd must not contain 10-39"
+    assert "${lines[1]}" = "fd9"       "cat from fd 9"
+    assert "${lines[2]}" = "$content"  "cat from fd 40"
+}
+
 # vim: filetype=sh
