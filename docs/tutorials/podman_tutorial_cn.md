@@ -23,10 +23,7 @@ Podman是由libpod库提供一个实用的程序，可以被用于创建和管�
 这个示例容器会运行一个简单的只有主页的 httpd 服务器。
 
 ```console
-podman run -dt -p 8080:8080/tcp -e HTTPD_VAR_RUN=/run/httpd -e HTTPD_MAIN_CONF_D_PATH=/etc/httpd/conf.d \
-                  -e HTTPD_MAIN_CONF_PATH=/etc/httpd/conf \
-                  -e HTTPD_CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/httpd/ \
-                  registry.fedoraproject.org/f29/httpd /usr/bin/run-httpd
+podman run --name basic_httpd -dt -p 8080:80/tcp docker.io/nginx
 ```
 
 因为命令中的 *-d* 参数表明容器以 "detached" 模式运行，所以 Podman 会在容器运行后打印容器的 ID。
