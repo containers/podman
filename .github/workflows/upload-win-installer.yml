@@ -85,7 +85,7 @@ jobs:
           Write-Output "::error::check.ps1 script failed to find manually uploaded podman-remote-release-windows_md64.zip github release asset for version ${{steps.getversion.outputs.version}}."
           Exit 1
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       # N/B: already-exists may be an empty-string or "false", handle both cases.
       if: steps.check.outputs.already-exists != 'true' || steps.actual_dryrun.outputs.dryrun == 'true'
       with:

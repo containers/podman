@@ -97,7 +97,7 @@ jobs:
         steps.check.outputs.buildamd == 'true' ||
         steps.check.outputs.buildarm == 'true' ||
         steps.actual_dryrun.outputs.dryrun == 'true'
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version: stable
     - name: Create Keychain
