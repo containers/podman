@@ -182,8 +182,10 @@ function _log_test_since() {
     before=$(date --iso-8601=seconds)
     run_podman run --log-driver=$driver -d --name test $IMAGE sh -c \
         "echo $s_before; trap 'echo $s_after; exit' SIGTERM; while :; do sleep 0.1; done"
+    wait_for_output "$s_before" test
 
     # sleep a second to make sure the date is after the first echo
+    # (We could instead use iso-8601=ns but seconds feels more real-world)
     sleep 1
     after=$(date --iso-8601=seconds)
     run_podman stop test
