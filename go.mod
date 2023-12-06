@@ -51,7 +51,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc5
 	github.com/opencontainers/runc v1.1.10
-	github.com/opencontainers/runtime-spec v1.1.1-0.20230922153023-c0e90434df2a
+	github.com/opencontainers/runtime-spec v1.1.1-0.20230823135140-4fec88fd00a4
 	github.com/opencontainers/runtime-tools v0.9.1-0.20230914150019-408c51e934dc
 	github.com/opencontainers/selinux v1.11.0
 	github.com/openshift/imagebuilder v1.2.6-0.20231127234745-ef2a5fe47510
