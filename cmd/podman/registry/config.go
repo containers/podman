@@ -72,7 +72,7 @@ func containersConfModules() ([]string, error) {
 	fs.ParseErrorsWhitelist.UnknownFlags = true
 	fs.Usage = func() {}
 	fs.SetInterspersed(false)
-	fs.StringSliceVar(&modules, "module", nil, "")
+	fs.StringArrayVar(&modules, "module", nil, "")
 	fs.BoolP("help", "h", false, "") // Need a fake help flag to avoid the `pflag: help requested` error
 	return modules, fs.Parse(os.Args[index:])
 }
