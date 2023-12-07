@@ -717,7 +717,7 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman create --chrootdirs functionality test", func() {
-		session := podmanTest.Podman([]string{"create", "-t", "--chrootdirs", "/var/local/qwerty", ALPINE, "/bin/cat"})
+		session := podmanTest.Podman([]string{"create", "-t", "--chrootdirs", "/var/local/qwerty,withcomma", ALPINE, "/bin/cat"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		ctrID := session.OutputToString()
@@ -726,7 +726,7 @@ var _ = Describe("Podman create", func() {
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(ExitCleanly())
 
-		setup = podmanTest.Podman([]string{"exec", ctrID, "cmp", "/etc/resolv.conf", "/var/local/qwerty/etc/resolv.conf"})
+		setup = podmanTest.Podman([]string{"exec", ctrID, "cmp", "/etc/resolv.conf", "/var/local/qwerty,withcomma/etc/resolv.conf"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(ExitCleanly())
 	})

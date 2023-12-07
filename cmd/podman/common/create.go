@@ -595,7 +595,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		_ = cmd.RegisterFlagCompletionFunc(pidFileFlagName, completion.AutocompleteDefault)
 
 		chrootDirsFlagName := "chrootdirs"
-		createFlags.StringSliceVar(
+		createFlags.StringArrayVar(
 			&cf.ChrootDirs,
 			chrootDirsFlagName, []string{},
 			"Chroot directories inside the container",
