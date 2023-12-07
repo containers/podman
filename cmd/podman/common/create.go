@@ -994,7 +994,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 	_ = cmd.RegisterFlagCompletionFunc(blkioWeightFlagName, completion.AutocompleteNone)
 
 	blkioWeightDeviceFlagName := "blkio-weight-device"
-	createFlags.StringSliceVar(
+	createFlags.StringArrayVar(
 		&cf.BlkIOWeightDevice,
 		blkioWeightDeviceFlagName, []string{},
 		"Block IO weight (relative device weight, format: `DEVICE_NAME:WEIGHT`)",
