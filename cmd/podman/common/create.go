@@ -772,7 +772,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		_ = cmd.RegisterFlagCompletionFunc(labelFlagName, completion.AutocompleteNone)
 
 		labelFileFlagName := "label-file"
-		createFlags.StringSliceVar(
+		createFlags.StringArrayVar(
 			&cf.LabelFile,
 			labelFileFlagName, []string{},
 			"Read in a line delimited file of labels",
