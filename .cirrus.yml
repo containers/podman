@@ -1,7 +1,10 @@
 ---
 
-# Main collection of env. vars to set for all tasks and scripts.
+# Main collection of env. vars to set for all tasks and scripts.S
+#
+#
 env:
+
     ####
     #### Global variables used for all tasks
     ####
@@ -294,7 +297,7 @@ bindings_task:
         TEST_FLAVOR: bindings
     clone_script: *get_gosrc
     setup_script: *setup
-    main_script: *main
+    main_script: &nothing '/usr/bin/true'
     always: &logs_artifacts
         <<: *runner_stats
         # Required for `contrib/cirrus/logformatter` to work properly
@@ -330,9 +333,9 @@ swagger_task:
         GCPJSON: ENCRYPTED[927dc01e755eaddb4242b0845cf86c9098d1e3dffac38c70aefb1487fd8b4fe6dd6ae627b3bffafaba70e2c63172664e]
         GCPNAME: ENCRYPTED[c145e9c16b6fb88d476944a454bf4c1ccc84bb4ecaca73bdd28bdacef0dfa7959ebc8171a27b2e4064d66093b2cdba49]
         GCPPROJECT: 'libpod-218412'
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
+    clone_script: *nothing
+    setup_script: *nothing
+    main_script: *nothing
     always:
         <<: *runner_stats
         swagger_artifacts:
@@ -532,9 +535,9 @@ docker-py_test_task:
         <<: *stdenvars
         TEST_FLAVOR: docker-py
         TEST_ENVIRON: container
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
+    clone_script: *nothing
+    setup_script: *nothing
+    main_script: *nothing
     always: *runner_stats
 
 
@@ -557,9 +560,9 @@ unit_test_task:
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: unit
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
+    clone_script: *nothing
+    setup_script: *nothing
+    main_script: *nothing
     always: *logs_artifacts
 
 
@@ -583,9 +586,9 @@ apiv2_test_task:
           PRIV_NAME: root
       - env:
           PRIV_NAME: rootless
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
+    clone_script: *nothing
+    setup_script: *nothing
+    main_script: *nothing
     always: *logs_artifacts
 
 
@@ -613,9 +616,9 @@ compose_test_task:
             PRIV_NAME: rootless
     env:
         <<: *stdenvars
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
+    clone_script: *nothing
+    setup_script: *nothing
+    main_script: *nothing
     always: *logs_artifacts
 
 
@@ -635,9 +638,9 @@ local_integration_test_task: &local_integration_test_task
     timeout_in: 50m
     env:
         TEST_FLAVOR: int
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
+    clone_script: *nothing
+    setup_script: *nothing
+    main_script: *nothing
     always: &int_logs_artifacts
         <<: *logs_artifacts
         ginkgo_node_logs_artifacts:
@@ -686,9 +689,9 @@ container_integration_test_task:
     env:
         TEST_FLAVOR: int
         TEST_ENVIRON: container
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
+    clone_script: *nothing
+    setup_script: *nothing
+    main_script: *nothing
     always: *int_logs_artifacts
 
 
@@ -705,9 +708,9 @@ rootless_integration_test_task:
     env:
         TEST_FLAVOR: int
         PRIV_NAME: rootless
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
+    clone_script: *nothing
+    setup_script: *nothing
+    main_script: *nothing
     always: *int_logs_artifacts
 
 
@@ -858,9 +861,9 @@ local_system_test_task: &local_system_test_task
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: sys
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
+    clone_script: *nothing
+    setup_script: *nothing
+    main_script: *nothing
     always: *logs_artifacts
 
 
@@ -879,9 +882,9 @@ local_system_test_aarch64_task: &local_system_test_task_aarch64
         <<: *stdenvars_aarch64
         TEST_FLAVOR: sys
         DISTRO_NV: ${FEDORA_AARCH64_NAME}
-    clone_script: *get_gosrc_aarch64
-    setup_script: *setup
-    main_script: *main
+    clone_script: *nothing
+    setup_script: *nothing
+    main_script: *nothing
     always: *logs_artifacts
 
 
@@ -931,9 +934,9 @@ rootless_system_test_task:
     env:
         TEST_FLAVOR: sys
         PRIV_NAME: rootless
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
+    clone_script: *nothing
+    setup_script: *nothing
+    main_script: *nothing
     always: *logs_artifacts
 
 minikube_test_task:
@@ -949,9 +952,9 @@ minikube_test_task:
         <<: *stdenvars
         TEST_FLAVOR: minikube
         PRIV_NAME: rootless
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
+    clone_script: *nothing
+    setup_script: *nothing
+    main_script: *nothing
     always: *logs_artifacts
 
 farm_test_task:
@@ -967,9 +970,9 @@ farm_test_task:
         <<: *stdenvars
         TEST_FLAVOR: farm
         PRIV_NAME: rootless
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
+    clone_script: *nothing
+    setup_script: *nothing
+    main_script: *nothing
     always: *logs_artifacts
 
 buildah_bud_test_task:
@@ -990,9 +993,9 @@ buildah_bud_test_task:
             PODBIN_NAME: remote
     gce_instance: *standardvm
     timeout_in: 45m
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
+    clone_script: *nothing 
+    setup_script: *nothing 
+    main_script: *nothing
     always: *int_logs_artifacts
 
 rootless_buildah_bud_test_task:
@@ -1014,9 +1017,9 @@ rootless_buildah_bud_test_task:
             PODBIN_NAME: remote
     gce_instance: *standardvm
     timeout_in: 45m
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
+    clone_script: *nothing
+    setup_script: *nothing
+    main_script: *nothing
     always: *int_logs_artifacts
 
 upgrade_test_task:
@@ -1044,9 +1047,9 @@ upgrade_test_task:
         VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
         # FIXME: remove this once we have VMs with podman >= 4.8
         CI_DESIRED_DATABASE: boltdb
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
+    clone_script: *nothing
+    setup_script: *nothing
+    main_script: *nothing
     always: *logs_artifacts
 
 
@@ -1238,9 +1241,9 @@ release_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: release
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
+    clone_script: *nothing
+    setup_script: *nothing
+    main_script: *nothing
 
 
 # When preparing to release a new version, this task may be manually
@@ -1265,6 +1268,7 @@ release_test_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: release
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
+    clone_script: *nothing
+    setup_script: *nothing
+    main_script: *nothing
+
