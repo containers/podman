@@ -196,7 +196,7 @@ EOF
     fi
 
     # Same, with --env-file
-    local envfile="$PODMAN_TMPDIR/envfile-in-1"
+    local envfile="$PODMAN_TMPDIR/envfile-in-1,withcomma"
     cat >$envfile <<EOF
 $prefix*
 NOT*DEFINED

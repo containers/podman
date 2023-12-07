@@ -147,7 +147,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		}
 
 		envFileFlagName := "env-file"
-		createFlags.StringSliceVar(
+		createFlags.StringArrayVar(
 			&cf.EnvFile,
 			envFileFlagName, []string{},
 			"Read in a file of environment variables",
