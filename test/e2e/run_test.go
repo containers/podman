@@ -916,7 +916,7 @@ USER bin`, BB)
 
 	It("podman test hooks", func() {
 		SkipIfRemote("--hooks-dir does not work with remote")
-		hooksDir := tempdir + "/hooks"
+		hooksDir := tempdir + "/hooks,withcomma"
 		err := os.Mkdir(hooksDir, 0755)
 		Expect(err).ToNot(HaveOccurred())
 		hookJSONPath := filepath.Join(hooksDir, "checkhooks.json")
