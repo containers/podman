@@ -372,27 +372,42 @@ sub tweak_cirrus_test_order {
             # of the treadmill PR. Here we switch Cirrus task dependencies
             # such that bud tests run as early as possible.
             if ($current_task =~ /buildah_bud_test/) {
-                # Buildah bud, both root and rootless, now depend on validate
+                # Buildah bud now depends only on validate...
                 $line = "${indent}validate";
             }
             elsif ($2 eq 'validate' && $current_task ne 'success') {
-                # Other tests that relied on validate, now rely on
-                # rootless bud tests instead. The point of the treadmill PR
-                # is to run the bud tests, then rootless bud tests, and
-                # only then, if everything passes, run normal tests.
-                # (Reason: bud tests are the only ones likely to fail,
-                # and we want to see failures early).
-                $line = "${indent}rootless_buildah_bud_test";
+                # ...and all other tests that relied on validate now rely on
+                # bud tests instead. The point of the treadmill PR is to
+                # run the bud tests and only then, if everything passes,
+                # run normal tests. (Reason: bud tests are the only ones
+                # likely to fail on a buildah revendor, and we want to see
+                # failures early).
+                $line = "${indent}buildah_bud_test";
             }
         }
         else {
             undef $in_depend;
 
-            # Rootless tests normally run only on nightly treadmill, but
-            # we really should run them here too. Remove the 'only' clause.
-            if ($current_task eq 'rootless_buildah_bud_test') {
-                if ($line =~ /^\s+only_if:.*treadmill/) {
-                    next;
+            # FIXME THIS IS HORRIBLE!
+            # Add rootless jobs to the buildah bud test matrix.
+            # This is incredibly fragile; it relies on the fact
+            # (true as of 2023-12-07) that the "matrix" yaml lines
+            # are formatted just so and are followed immediately
+            # by a "gce_instance" line.
+            #
+            # Since Ed is the only one who ever runs this script,
+            # he is expected to notice if this ever changes, and
+            # to fix it.
+            if ($current_task eq 'buildah_bud_test') {
+                if ($line =~ /^(\s+)gce_instance:/) {
+                    print { $out } <<'END_ROOTLESS_BUD';
+        - env:
+            PODBIN_NAME: podman
+            PRIV_NAME: rootless
+        - env:
+            PODBIN_NAME: remote
+            PRIV_NAME: rootless
+END_ROOTLESS_BUD
                 }
             }
         }

@@ -995,30 +995,6 @@ buildah_bud_test_task:
     main_script: *main
     always: *int_logs_artifacts
 
-rootless_buildah_bud_test_task:
-    name: *std_name_fmt
-    alias: rootless_buildah_bud_test
-    # Please keep this as-is: the buildah treadmill (#13808) relies on it.
-    only_if: $CIRRUS_CRON == 'treadmill'
-    depends_on:
-        - build
-        - rootless_integration_test
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: bud
-        PRIV_NAME: rootless
-    matrix:
-        - env:
-            PODBIN_NAME: podman
-        - env:
-            PODBIN_NAME: remote
-    gce_instance: *standardvm
-    timeout_in: 45m
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always: *int_logs_artifacts
-
 upgrade_test_task:
     name: "Upgrade test: from $PODMAN_UPGRADE_FROM"
     alias: upgrade_test
@@ -1125,7 +1101,6 @@ success_task:
         - minikube_test
         - farm_test
         - buildah_bud_test
-        - rootless_buildah_bud_test
         - upgrade_test
         - meta
     container: &smallcontainer
