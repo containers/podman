@@ -611,7 +611,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		_ = cmd.RegisterFlagCompletionFunc(groupEntryName, completion.AutocompleteNone)
 
 		decryptionKeysFlagName := "decryption-key"
-		createFlags.StringSliceVar(
+		createFlags.StringArrayVar(
 			&cf.DecryptionKeys,
 			decryptionKeysFlagName, []string{},
 			"Key needed to decrypt the image (e.g. /path/to/key.pem)",
