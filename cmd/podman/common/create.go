@@ -898,7 +898,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 	}
 	if mode == entities.CreateMode || mode == entities.UpdateMode {
 		deviceReadIopsFlagName := "device-read-iops"
-		createFlags.StringSliceVar(
+		createFlags.StringArrayVar(
 			&cf.DeviceReadIOPs,
 			deviceReadIopsFlagName, []string{},
 			"Limit read rate (IO per second) from a device (e.g. --device-read-iops=/dev/sda:1000)",
@@ -906,7 +906,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		_ = cmd.RegisterFlagCompletionFunc(deviceReadIopsFlagName, completion.AutocompleteDefault)
 
 		deviceWriteIopsFlagName := "device-write-iops"
-		createFlags.StringSliceVar(
+		createFlags.StringArrayVar(
 			&cf.DeviceWriteIOPs,
 			deviceWriteIopsFlagName, []string{},
 			"Limit write rate (IO per second) to a device (e.g. --device-write-iops=/dev/sda:1000)",
