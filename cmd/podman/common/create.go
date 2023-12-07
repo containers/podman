@@ -33,7 +33,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 
 	if mode == entities.CreateMode { // regular create flags
 		annotationFlagName := "annotation"
-		createFlags.StringSliceVar(
+		createFlags.StringArrayVar(
 			&cf.Annotation,
 			annotationFlagName, []string{},
 			"Add annotations to container (key=value)",
