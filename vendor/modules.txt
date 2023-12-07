@@ -344,7 +344,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.51.1-0.20231129190156-7d0a0a320f8a
+# github.com/containers/storage v1.51.1-0.20231205203947-fe005407c7d5
 ## explicit; go 1.19
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -700,7 +700,7 @@ github.com/josharian/intern
 # github.com/json-iterator/go v1.1.12
 ## explicit; go 1.12
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.17.3
+# github.com/klauspost/compress v1.17.4
 ## explicit; go 1.19
 github.com/klauspost/compress
 github.com/klauspost/compress/flate

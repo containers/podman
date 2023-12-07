@@ -73,6 +73,13 @@ type ApplyDiffOpts struct {
 	ForceMask         *os.FileMode
 }
 
+// ApplyDiffWithDifferOpts contains optional arguments for ApplyDiffWithDiffer methods.
+type ApplyDiffWithDifferOpts struct {
+	ApplyDiffOpts
+
+	Flags map[string]interface{}
+}
+
 // InitFunc initializes the storage driver.
 type InitFunc func(homedir string, options Options) (Driver, error)
 
@@ -223,9 +230,9 @@ type DriverWithDiffer interface {
 	Driver
 	// ApplyDiffWithDiffer applies the changes using the callback function.
 	// If id is empty, then a staging directory is created.  The staging directory is guaranteed to be usable with ApplyDiffFromStagingDirectory.
-	ApplyDiffWithDiffer(id, parent string, options *ApplyDiffOpts, differ Differ) (output DriverWithDifferOutput, err error)
+	ApplyDiffWithDiffer(id, parent string, options *ApplyDiffWithDifferOpts, differ Differ) (output DriverWithDifferOutput, err error)
 	// ApplyDiffFromStagingDirectory applies the changes using the specified staging directory.
-	ApplyDiffFromStagingDirectory(id, parent, stagingDirectory string, diffOutput *DriverWithDifferOutput, options *ApplyDiffOpts) error
+	ApplyDiffFromStagingDirectory(id, parent, stagingDirectory string, diffOutput *DriverWithDifferOutput, options *ApplyDiffWithDifferOpts) error
 	// CleanupStagingDirectory cleanups the staging directory.  It can be used to cleanup the staging directory on errors
 	CleanupStagingDirectory(stagingDirectory string) error
 	// DifferTarget gets the location where files are stored for the layer.
