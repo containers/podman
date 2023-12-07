@@ -814,7 +814,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		_ = cmd.RegisterFlagCompletionFunc(volumeFlagName, AutocompleteVolumeFlag)
 
 		deviceFlagName := "device"
-		createFlags.StringSliceVar(
+		createFlags.StringArrayVar(
 			&cf.Devices,
 			deviceFlagName, devices(),
 			"Add a host device to the container",
