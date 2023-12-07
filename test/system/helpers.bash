@@ -442,7 +442,7 @@ function run_podman() {
 
 # Wait for certain output from a container, indicating that it's ready.
 function wait_for_output {
-    local sleep_delay=5
+    local sleep_delay=1
     local how_long=$PODMAN_TIMEOUT
     local expect=
     local cid=
