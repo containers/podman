@@ -282,7 +282,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		_ = cmd.RegisterFlagCompletionFunc(logDriverFlagName, AutocompleteLogDriver)
 
 		logOptFlagName := "log-opt"
-		createFlags.StringSliceVar(
+		createFlags.StringArrayVar(
 			&cf.LogOptions,
 			logOptFlagName, []string{},
 			"Logging driver options",
