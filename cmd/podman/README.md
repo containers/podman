@@ -109,3 +109,11 @@ The complete set can be found in the `validate` package, here are some examples:
     created := validate.ChoiceValue(&opts.Sort, "command", "created", "id", "image", "names", "runningfor", "size", "status")
     flags.Var(created, "sort", "Sort output by: "+created.Choices())
     ```
+
+## Adding CLI flags
+
+When adding adding a new cli option that accepts a string array, there are two options to choose from: `StringSlice()` and `StringArray()`.
+They differ slightly in their behavior: `StringSlice()` allows the values to be comma separated so `--opt v1,v2 --opt v3` results in
+`[]string{"v1", "v2", "v3"}`, while `StringArray()`  would result in `[]string{"v1,v2", "v3"}`. Thus it is impossible to use values with comma in `StringSlice()`, which makes it unsuitable for flags that accept arbitrary values such as file paths as example. Also, because `StringSlice()` uses the csv lib to parse the values, it has special escaping rules for things like quotes, see https://github.com/containers/podman/issues/20064 for an example of how complicated things can get because of this.
+Thus use `StringSlice()` only when the option accepts predefined values that do not contain special characters, for example `--cap-add` and `--cap-drop` are a good example for this. Using `--cap-add NET_ADMIN,NET_RAW` is equal to `--cap-add NET_ADMIN --cap-add NET_RAW` so it is better suited to save some typing for users.
+When in doubt always choose `StringArray()` over `StringSlice()`.
