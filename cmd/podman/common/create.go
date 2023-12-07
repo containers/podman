@@ -970,7 +970,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 	_ = cmd.RegisterFlagCompletionFunc(memorySwapFlagName, completion.AutocompleteNone)
 
 	deviceReadBpsFlagName := "device-read-bps"
-	createFlags.StringSliceVar(
+	createFlags.StringArrayVar(
 		&cf.DeviceReadBPs,
 		deviceReadBpsFlagName, []string{},
 		"Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb)",
@@ -978,7 +978,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 	_ = cmd.RegisterFlagCompletionFunc(deviceReadBpsFlagName, completion.AutocompleteDefault)
 
 	deviceWriteBpsFlagName := "device-write-bps"
-	createFlags.StringSliceVar(
+	createFlags.StringArrayVar(
 		&cf.DeviceWriteBPs,
 		deviceWriteBpsFlagName, []string{},
 		"Limit write rate (bytes per second) to a device (e.g. --device-write-bps=/dev/sda:1mb)",
