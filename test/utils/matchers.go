@@ -199,13 +199,6 @@ func (matcher *exitCleanlyMatcher) Match(actual interface{}) (success bool, err 
 	}
 
 	// Exit status is 0. Now check for anything on stderr... except:
-
-	if Containerized() {
-		// FIXME: #19809, "failed to connect to syslog" warnings on f38
-		// FIXME: so, until that is fixed, don't check stderr if containerized
-		return true, nil
-	}
-
 	info := GetHostDistributionInfo()
 	if info.Distribution != "fedora" {
 		// runc on debian:

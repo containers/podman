@@ -148,14 +148,21 @@ load helpers
 }
 
 @test "podman run umask" {
-    test "$(podman_runtime)" == "crun" \
-        || skip "FIXME: runtime is $(podman_runtime); this test requires crun or runc 1.1.7 or newer which is not currently in debian"
     umask="0724"
     run_podman run --rm -q $IMAGE grep Umask /proc/self/status
     is "$output" "Umask:.*0022" "default_umask should not be modified"
 
     run_podman run -q --rm --umask $umask $IMAGE grep Umask /proc/self/status
     is "$output" "Umask:.*$umask" "umask should be modified"
+
+    # FIXME: even in December 2023, exec test fails with Debian runc (1.1.10).
+    # And even if we some day get a fixed version on Debian, these tests have
+    # to pass on RHEL, and we have no control over runc version there.
+    if [[ "$(podman_runtime)" == "runc" ]]; then
+        echo "# Passed run test; skipping exec because runtime != crun" >&3
+        return
+    fi
+
     run_podman run -q -d --umask $umask $IMAGE sleep inf
     cid=$output
     run_podman exec $cid grep Umask /proc/self/status
