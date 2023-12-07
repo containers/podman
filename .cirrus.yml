@@ -286,7 +286,8 @@ bindings_task:
     only_if: >-
         $CIRRUS_PR != '' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*'
     depends_on:
         - build
     gce_instance: *standardvm
@@ -319,7 +320,9 @@ swagger_task:
     alias: swagger
     # Don't create task for [CI:BUILD]
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
+    only_if: |
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*'
     depends_on:
         - build
     gce_instance: *standardvm
@@ -490,7 +493,8 @@ freebsd_alt_build_task:
     # Only run on 'main' and PRs against 'main'
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: |
-      $CIRRUS_BRANCH == 'main' || $CIRRUS_BASE_BRANCH == 'main'
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*' &&
+        ( $CIRRUS_BRANCH == 'main' || $CIRRUS_BASE_BRANCH == 'main' )
     depends_on:
         - build
     env:
@@ -518,13 +522,14 @@ freebsd_alt_build_task:
 docker-py_test_task:
     name: Docker-py Compat.
     alias: docker-py_test
-    # Don't create task for tags, branches, or PRs w/ [CI:DOCS] or [CI:BUILD]
+    # Don't create task for tags, branches, or PRs w/ [CI:<magic>]
     # N/B: for PRs $CIRRUS_BRANCH == 'pull/<number>'
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: &not_tag_branch_build_docs >-
+    only_if: &not_tag_branch_build_docs_machine >-
         $CIRRUS_PR != '' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*'
 
     depends_on:
         - build
@@ -544,7 +549,7 @@ unit_test_task:
     name: "Unit tests on $DISTRO_NV"
     alias: unit_test
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs
+    only_if: *not_tag_branch_build_docs_machine
     depends_on:
         - build
         - validate
@@ -568,7 +573,7 @@ apiv2_test_task:
     name: "APIv2 test on $DISTRO_NV ($PRIV_NAME)"
     alias: apiv2_test
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs
+    only_if: *not_tag_branch_build_docs_machine
     depends_on:
         - build
         - validate
@@ -594,7 +599,7 @@ compose_test_task:
     name: "$TEST_FLAVOR test on $DISTRO_NV ($PRIV_NAME)"
     alias: compose_test
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs
+    only_if: *not_tag_branch_build_docs_machine
     depends_on:
         - build
         - validate
@@ -627,7 +632,7 @@ local_integration_test_task: &local_integration_test_task
     name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON ${CI_DESIRED_DATABASE}"
     alias: local_integration_test
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs
+    only_if: *not_tag_branch_build_docs_machine
     depends_on: &build_unit
         - build
         - unit_test
@@ -666,7 +671,7 @@ container_integration_test_task:
     name: *std_name_fmt
     alias: container_integration_test
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs
+    only_if: *not_tag_branch_build_docs_machine
     depends_on: *build_unit
     matrix: &fedora_vm_axis
         - env:
@@ -698,7 +703,7 @@ rootless_integration_test_task:
     name: *std_name_fmt
     alias: rootless_integration_test
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs
+    only_if: *not_tag_branch_build_docs_machine
     depends_on: *build_unit
     matrix: *platform_axis
     gce_instance: *standardvm
@@ -715,14 +720,15 @@ rootless_integration_test_task:
 podman_machine_task:
     name: *std_name_fmt
     alias: podman_machine
-    # Don't create task for tags, or if using [CI:DOCS], [CI:BUILD]
+    # Only run for PRs and never [CI:DOCS] or [CI:BUILD]
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: &not_tag_build_docs >-
-        $CIRRUS_TAG == '' &&
+    only_if: &not_tag_branch_build_docs >-
+        $CIRRUS_PR != '' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
     depends_on:
         - build
+        - validate
         - local_integration_test
         - remote_integration_test
         - container_integration_test
@@ -747,7 +753,7 @@ podman_machine_task:
 podman_machine_aarch64_task:
     name: *std_name_fmt
     alias: podman_machine_aarch64
-    only_if: *not_tag_build_docs
+    only_if: *not_tag_branch_build_docs
     depends_on:
         - build_aarch64
         - validate_aarch64
@@ -775,11 +781,7 @@ podman_machine_windows_task:
     alias: podman_machine_windows
     # Only run for non-docs/copr PRs and non-release branch builds
     # and never for tags.  Docs: ./contrib/cirrus/CIModes.md
-    only_if: >-
-        $CIRRUS_TAG == '' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
-        $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
+    only_if: *not_tag_branch_build_docs
     depends_on:
       - alt_build
       - build
@@ -805,7 +807,7 @@ podman_machine_windows_task:
 podman_machine_mac_task:
     name: *std_name_fmt
     alias: podman_machine_mac
-    only_if: *no_rhel_release
+    only_if: *not_tag_branch_build_docs
     depends_on:
       - osx_alt_build
       - local_integration_test
@@ -853,7 +855,13 @@ podman_machine_mac_task:
 local_system_test_task: &local_system_test_task
     name: *std_name_fmt
     alias: local_system_test
-    only_if: *not_tag_build_docs
+    # Don't create task for tags, or if using [CI:*] magic
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: &not_tag_magic >-
+        $CIRRUS_TAG == '' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*'
     depends_on: *build_unit
     matrix: *platform_axis
     gce_instance: *standardvm
@@ -870,7 +878,7 @@ local_system_test_aarch64_task: &local_system_test_task_aarch64
     alias: local_system_test_aarch64
     # Don't create task for tags, or if using [CI:DOCS], [CI:BUILD]
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_build_docs
+    only_if: *not_tag_magic
     depends_on:
         - build_aarch64
         - validate_aarch64
@@ -925,7 +933,7 @@ rootless_system_test_task:
     name: *std_name_fmt
     alias: rootless_system_test
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_build_docs
+    only_if: *not_tag_magic
     depends_on: *build_unit
     matrix: *platform_axis
     gce_instance: *standardvm
@@ -941,7 +949,7 @@ minikube_test_task:
     name: *std_name_fmt
     alias: minikube_test
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_build_docs
+    only_if: *not_tag_magic
     depends_on:
         - build
         - rootless_system_test
@@ -959,7 +967,7 @@ farm_test_task:
     name: *std_name_fmt
     alias: farm_test
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_build_docs
+    only_if: *not_tag_magic
     depends_on:
         - build
         - rootless_system_test
@@ -977,7 +985,7 @@ buildah_bud_test_task:
     name: *std_name_fmt
     alias: buildah_bud_test
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs
+    only_if: *not_tag_magic
     depends_on:
         - build
         - local_integration_test
@@ -1000,7 +1008,7 @@ upgrade_test_task:
     name: "Upgrade test: from $PODMAN_UPGRADE_FROM"
     alias: upgrade_test
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs
+    only_if: *not_tag_magic
     depends_on:
         - build
         - local_system_test
@@ -1114,7 +1122,12 @@ success_task:
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
         TEST_ENVIRON: container
     clone_script: *noop
-    script: *noop
+    script: |
+        if [[ "$CIRRUS_CHANGE_TITLE" =~ CI:MACHINE ]] && [[ -n "$CIRRUS_PR" ]]; then
+            echo "Error: Risk of untested change merge."
+            echo "Please remove [CI:MACHINE] from title."
+            exit 1
+        fi
 
 # WARNING: Most of the artifacts captured here are also have their
 # permalinks present in the `DOWNLOADS.md` file.  Any changes made
