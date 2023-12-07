@@ -338,7 +338,8 @@ func defaultEngineConfig() (*EngineConfig, error) {
 
 	c.HelperBinariesDir.Set(defaultHelperBinariesDir)
 	if additionalHelperBinariesDir != "" {
-		c.HelperBinariesDir.Set(append(c.HelperBinariesDir.Get(), additionalHelperBinariesDir))
+		// Prioritize addtionalHelperBinariesDir over defaults.
+		c.HelperBinariesDir.Set(append([]string{additionalHelperBinariesDir}, c.HelperBinariesDir.Get()...))
 	}
 	c.HooksDir.Set(DefaultHooksDirs)
 	c.ImageDefaultTransport = _defaultTransport
