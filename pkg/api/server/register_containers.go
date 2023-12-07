@@ -71,21 +71,21 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    name: filters
 	//    type: string
 	//    description: |
-	//       Returns a list of containers.
-	//        - ancestor=(<image-name>[:<tag>], <image id>, or <image@digest>)
-	//        - before=(<container id> or <container name>)
-	//        - expose=(<port>[/<proto>]|<startport-endport>/[<proto>])
-	//        - exited=<int> containers with exit code of <int>
-	//        - health=(starting|healthy|unhealthy|none)
-	//        - id=<ID> a container's ID
-	//        - is-task=(true|false)
-	//        - label=key or label="key=value" of a container label
-	//        - name=<name> a container's name
-	//        - network=(<network id> or <network name>)
-	//        - publish=(<port>[/<proto>]|<startport-endport>/[<proto>])
-	//        - since=(<container id> or <container name>)
-	//        - status=(created|restarting|running|removing|paused|exited|dead)
-	//        - volume=(<volume name> or <mount point destination>)
+	//        A JSON encoded value of the filters (a `map[string][]string`) to process on the containers list. Available filters:
+	//        - `ancestor`=(`<image-name>[:<tag>]`, `<image id>`, or `<image@digest>`)
+	//        - `before`=(`<container id>` or `<container name>`)
+	//        - `expose`=(`<port>[/<proto>]` or `<startport-endport>/[<proto>]`)
+	//        - `exited=<int>` containers with exit code of `<int>`
+	//        - `health`=(`starting`, `healthy`, `unhealthy` or `none`)
+	//        - `id=<ID>` a container's ID
+	//        - `is-task`=(`true` or `false`)
+	//        - `label`=(`key` or `"key=value"`) of a container label
+	//        - `name=<name>` a container's name
+	//        - `network`=(`<network id>` or `<network name>`)
+	//        - `publish`=(`<port>[/<proto>]` or `<startport-endport>/[<proto>]`)
+	//        - `since`=(`<container id>` or `<container name>`)
+	//        - `status`=(`created`, `restarting`, `running`, `removing`, `paused`, `exited` or `dead`)
+	//        - `volume`=(`<volume name>` or `<mount point destination>`)
 	// produces:
 	// - application/json
 	// responses:
