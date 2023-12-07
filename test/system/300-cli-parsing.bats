@@ -213,4 +213,40 @@ EOF
 }
 
 
+@test "podman create --label-file" {
+    declare -A expect=(
+        [simple]="abc"
+        [special]="bcd#e!f|g hij=lmnop"
+        [withquotes]='"withquotes"'
+        [withsinglequotes]="'withsingle'"
+    )
+
+    # Write two files, so we confirm that podman can accept multiple values
+    # and that the second will override the first
+    local labelfile1="$PODMAN_TMPDIR/label-file1,withcomma"
+    local labelfile2="$PODMAN_TMPDIR/label-file2"
+
+        cat >$labelfile1 <<EOF
+simple=value1
+
+# Comments ignored
+EOF
+
+    for v in "${!expect[@]}"; do
+        echo "$v=${expect[$v]}" >>$labelfile2
+    done
+
+    run_podman create --rm --name testctr --label-file $labelfile1  \
+               --label-file $labelfile2 $IMAGE
+
+    for v in "${!expect[@]}"; do
+        run_podman inspect testctr --format "{{index .Config.Labels \"$v\"}}"
+        assert "$output" == "${expect[$v]}" "label $v"
+    done
+
+    run_podman rm testctr
+}
+
+
+
 # vim: filetype=sh
