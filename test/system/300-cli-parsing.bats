@@ -100,7 +100,7 @@ function _check_env {
 }
 
 
-@test "podman run --env-file" {
+@test "podman run/exec --env-file" {
     declare -A expect=(
         [simple]="abc"
         [special]="bcd#e!f|g hij=lmnop"
@@ -116,7 +116,7 @@ function _check_env {
 
     # Write two files, so we confirm that podman can accept multiple values
     # and that the second will override the first
-    local envfile1="$PODMAN_TMPDIR/envfile-in-1"
+    local envfile1="$PODMAN_TMPDIR/envfile-in-1,withcomma"
     local envfile2="$PODMAN_TMPDIR/envfile-in-2"
     cat >$envfile1 <<EOF
 infile2=this is set in env-file-1 and should be overridden in env-file-2
@@ -158,6 +158,19 @@ EOF
     expect[weird*na#me!]=$weirdname
 
     _check_env $resultsfile
+
+    # Now check the same with podman exec
+    run_podman run -d --name testctr        \
+            -v "$resultsfile:/envresults:Z" \
+            $IMAGE top
+
+    run_podman exec --env-file $envfile1 \
+            --env-file $envfile2 testctr \
+            sh -c 'env -0 >/envresults'
+
+    _check_env $resultsfile
+
+    run_podman rm -f -t0 testctr
 }
 
 # Obscure feature: '--env FOO*' will pass all env starting with FOO
