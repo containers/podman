@@ -699,7 +699,7 @@ spec:
 }
 
 @test "podman kube play with configmaps" {
-    configmap_file=${PODMAN_TMPDIR}/play_kube_configmap_configmaps$(random_string 6).yaml
+    configmap_file=${PODMAN_TMPDIR}/play_kube_configmap_configmaps$(random_string 6),withcomma.yaml
     echo "
 ---
 apiVersion: v1
