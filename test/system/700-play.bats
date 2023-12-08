@@ -435,11 +435,14 @@ _EOF
 @test "podman kube --annotation" {
     TESTDIR=$PODMAN_TMPDIR/testdir
     RANDOMSTRING=$(random_string 15)
+    ANNOTATION_WITH_COMMA="comma,$(random_string 5)"
     mkdir -p $TESTDIR
     echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
-    run_podman kube play --annotation "name=$RANDOMSTRING" $PODMAN_TMPDIR/test.yaml
+    run_podman kube play --annotation "name=$RANDOMSTRING"  \
+        --annotation "anno=$ANNOTATION_WITH_COMMA" $PODMAN_TMPDIR/test.yaml
     run_podman inspect --format "{{ .Config.Annotations }}" test_pod-test
     is "$output" ".*name:$RANDOMSTRING" "Annotation should be added to pod"
+    is "$output" ".*anno:$ANNOTATION_WITH_COMMA" "Annotation with comma should be added to pod"
 
     run_podman stop -a -t 0
     run_podman pod rm -t 0 -f test_pod

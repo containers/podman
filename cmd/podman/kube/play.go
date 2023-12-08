@@ -98,7 +98,7 @@ func playFlags(cmd *cobra.Command) {
 	flags.SetNormalizeFunc(utils.AliasFlags)
 
 	annotationFlagName := "annotation"
-	flags.StringSliceVar(
+	flags.StringArrayVar(
 		&playOptions.annotations,
 		annotationFlagName, []string{},
 		"Add annotations to pods (key=value)",
