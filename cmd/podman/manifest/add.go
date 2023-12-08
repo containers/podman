@@ -48,7 +48,7 @@ func init() {
 	flags.BoolVar(&manifestAddOpts.All, "all", false, "add all of the list's images if the image is a list")
 
 	annotationFlagName := "annotation"
-	flags.StringSliceVar(&manifestAddOpts.Annotation, annotationFlagName, nil, "set an `annotation` for the specified image")
+	flags.StringArrayVar(&manifestAddOpts.Annotation, annotationFlagName, nil, "set an `annotation` for the specified image")
 	_ = addCmd.RegisterFlagCompletionFunc(annotationFlagName, completion.AutocompleteNone)
 
 	archFlagName := "arch"

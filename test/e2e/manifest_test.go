@@ -314,7 +314,7 @@ add_compression = ["zstd"]`), 0o644)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
 		Expect(session.ErrorToString()).To(ContainSubstring("no value given for annotation"))
-		session = podmanTest.Podman([]string{"manifest", "add", "--annotation", "hoge=fuga", "foo", imageList})
+		session = podmanTest.Podman([]string{"manifest", "add", "--annotation", "hoge=fuga", "--annotation", "key=val,withcomma", "foo", imageList})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"manifest", "inspect", "foo"})
@@ -324,7 +324,7 @@ add_compression = ["zstd"]`), 0o644)
 		var inspect define.ManifestListData
 		err := json.Unmarshal(session.Out.Contents(), &inspect)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(inspect.Manifests[0].Annotations).To(Equal(map[string]string{"hoge": "fuga"}))
+		Expect(inspect.Manifests[0].Annotations).To(Equal(map[string]string{"hoge": "fuga", "key": "val,withcomma"}))
 	})
 
 	It("add --os", func() {
