@@ -124,7 +124,7 @@ func playFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(logDriverFlagName, common.AutocompleteLogDriver)
 
 	logOptFlagName := "log-opt"
-	flags.StringSliceVar(
+	flags.StringArrayVar(
 		&playOptions.LogOptions,
 		logOptFlagName, []string{},
 		"Logging driver options",

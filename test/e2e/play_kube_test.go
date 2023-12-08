@@ -4886,7 +4886,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml, "--log-driver", "journald", "--log-opt", "tag={{.ImageName}}"})
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml, "--log-driver", "journald", "--log-opt", "tag={{.ImageName}},withcomma"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -4897,7 +4897,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod)})
 		inspect.WaitWithDefaultTimeout()
 		Expect(start).Should(ExitCleanly())
-		Expect((inspect.InspectContainerToJSON()[0]).HostConfig.LogConfig.Tag).To(Equal("{{.ImageName}}"))
+		Expect((inspect.InspectContainerToJSON()[0]).HostConfig.LogConfig.Tag).To(Equal("{{.ImageName}},withcomma"))
 	})
 
 	It("using a user namespace", func() {
