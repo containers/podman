@@ -112,7 +112,7 @@ func (v HyperVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, 
 		return nil, errors.New("must define --image-path for hyperv support")
 	}
 	if len(opts.USBs) > 0 {
-		return nil, fmt.Errorf("USB host passtrough not supported for hyperv machines")
+		return nil, fmt.Errorf("USB host passthrough is not supported for hyperv machines")
 	}
 
 	m.RemoteUsername = opts.Username

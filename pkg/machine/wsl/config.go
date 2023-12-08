@@ -31,7 +31,7 @@ func VirtualizationProvider() machine.VirtProvider {
 func (p *WSLVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	vm := new(MachineVM)
 	if len(opts.USBs) > 0 {
-		return nil, fmt.Errorf("USB host passtrough not supported for WSL machines")
+		return nil, fmt.Errorf("USB host passthrough is not supported for WSL machines")
 	}
 	if len(opts.Name) > 0 {
 		vm.Name = opts.Name
