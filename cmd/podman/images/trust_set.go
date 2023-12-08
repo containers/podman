@@ -41,7 +41,7 @@ func init() {
 	_ = setFlags.MarkHidden("policypath")
 
 	pubkeysfileFlagName := "pubkeysfile"
-	setFlags.StringSliceVarP(&setOptions.PubKeysFile, pubkeysfileFlagName, "f", []string{}, `Path of installed public key(s) to trust for TARGET.
+	setFlags.StringArrayVarP(&setOptions.PubKeysFile, pubkeysfileFlagName, "f", []string{}, `Path of installed public key(s) to trust for TARGET.
 Absolute path to keys is added to policy.json. May
 used multiple times to define multiple public keys.
 File(s) must exist before using this command`)
