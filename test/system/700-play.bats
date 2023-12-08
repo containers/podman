@@ -444,6 +444,10 @@ _EOF
     is "$output" ".*name:$RANDOMSTRING" "Annotation should be added to pod"
     is "$output" ".*anno:$ANNOTATION_WITH_COMMA" "Annotation with comma should be added to pod"
 
+    # invalid annotation
+    run_podman 125 kube play --annotation "val" $PODMAN_TMPDIR/test.yaml
+    assert "$output" == "Error: annotation \"val\" must include an '=' sign" "invalid annotation error"
+
     run_podman stop -a -t 0
     run_podman pod rm -t 0 -f test_pod
 }
