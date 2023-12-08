@@ -21,10 +21,7 @@ For installing or building Podman, see the [installation instructions](https://p
 This sample container will run a very basic httpd server (named basic_httpd) that serves only its index
 page.
 ```console
-podman run --name basic_httpd -dt -p 8080:8080/tcp -e HTTPD_VAR_RUN=/run/httpd -e HTTPD_MAIN_CONF_D_PATH=/etc/httpd/conf.d \
-                  -e HTTPD_MAIN_CONF_PATH=/etc/httpd/conf \
-                  -e HTTPD_CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/httpd/ \
-                  registry.fedoraproject.org/f29/httpd /usr/bin/run-httpd
+podman run --name basic_httpd -dt -p 8080:80/tcp docker.io/nginx
 ```
 Because the container is being run in detached mode, represented by the *-d* in the `podman run` command, Podman
 will print the container ID after it has run. Note that we use port forwarding to be able to
