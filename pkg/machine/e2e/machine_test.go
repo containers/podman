@@ -61,9 +61,6 @@ var _ = BeforeSuite(func() {
 		downloadLocation = getDownloadLocation(testProvider)
 		// we cannot simply use OS here because hyperv uses fcos; so WSL is just
 		// special here
-		if testProvider.VMType() != machine.WSLVirt {
-			downloadLocation = getDownloadLocation(testProvider)
-		}
 	}
 
 	compressionExtension := fmt.Sprintf(".%s", testProvider.Compression().String())

@@ -12,7 +12,10 @@ import (
 
 const podmanBinary = "../../../bin/windows/podman.exe"
 
-func getDownloadLocation(_ machine.VirtProvider) string {
+func getDownloadLocation(p machine.VirtProvider) string {
+	if p.VMType() == machine.HyperVVirt {
+		return getFCOSDownloadLocation(p)
+	}
 	fd, err := wsl.NewFedoraDownloader(machine.WSLVirt, "", defaultStream.String())
 	if err != nil {
 		Fail("unable to get WSL virtual image")

@@ -33,7 +33,8 @@ env:
     DEBIAN_NAME: "debian-13"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20231116t174419z-f39f38d13"
+    IMAGE_SUFFIX: "c20231206t225809z-f39f38d13"
+
 
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"

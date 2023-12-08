@@ -234,3 +234,17 @@ func isVmtype(vmType machine.VMType) bool {
 func isWSL() bool {
 	return isVmtype(machine.WSLVirt)
 }
+
+func getFCOSDownloadLocation(p machine.VirtProvider) string {
+	dd, err := p.NewDownload("")
+	if err != nil {
+		Fail("unable to create new download")
+	}
+
+	fcd, err := dd.GetFCOSDownload(defaultStream)
+	if err != nil {
+		Fail("unable to get virtual machine image")
+	}
+
+	return fcd.Location
+}
