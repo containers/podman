@@ -13,8 +13,8 @@ ADD https://download.copr.fedorainfracloud.org/results/rhcontainerbot/podman-nex
 # Note: Currently does not result in a size reduction for the container image
 RUN rpm-ostree override replace --experimental --freeze \
     --from repo="copr:copr.fedorainfracloud.org:rhcontainerbot:podman-next" \
-    aardvark-dns containers-common containers-common-extra crun netavark podman && \
-    rpm-ostree install crun-wasm wasmedge-rt && \
+    aardvark-dns containers-common containers-common-extra crun crun-wasm netavark podman && \
+    rpm-ostree install wasmedge-rt && \
     rpm-ostree override remove moby-engine containerd runc && \
     ostree container commit
 
