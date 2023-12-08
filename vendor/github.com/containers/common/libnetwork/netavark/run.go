@@ -72,12 +72,24 @@ func (n *netavarkNetwork) Setup(namespacePath string, options types.SetupOptions
 	}
 
 	result := map[string]types.StatusBlock{}
-	err = n.execNetavark([]string{"setup", namespacePath}, needPlugin, netavarkOpts, &result)
-	if err != nil {
-		// lets dealloc ips to prevent leaking
-		if err := n.deallocIPs(&options.NetworkOptions); err != nil {
-			logrus.Error(err)
+	setup := func() error {
+		err := n.execNetavark([]string{"setup", namespacePath}, needPlugin, netavarkOpts, &result)
+		if err != nil {
+			// lets dealloc ips to prevent leaking
+			if err := n.deallocIPs(&options.NetworkOptions); err != nil {
+				logrus.Error(err)
+			}
+			return err
 		}
+		return nil
+	}
+
+	if n.rootlessNetns != nil {
+		err = n.rootlessNetns.Setup(len(options.Networks), setup)
+	} else {
+		err = setup()
+	}
+	if err != nil {
 		return nil, err
 	}
 
@@ -112,7 +124,16 @@ func (n *netavarkNetwork) Teardown(namespacePath string, options types.TeardownO
 		return fmt.Errorf("failed to convert net opts: %w", err)
 	}
 
-	retErr := n.execNetavark([]string{"teardown", namespacePath}, needPlugin, netavarkOpts, nil)
+	var retErr error
+	teardown := func() error {
+		return n.execNetavark([]string{"teardown", namespacePath}, needPlugin, netavarkOpts, nil)
+	}
+
+	if n.rootlessNetns != nil {
+		retErr = n.rootlessNetns.Teardown(len(options.Networks), teardown)
+	} else {
+		retErr = teardown()
+	}
 
 	// when netavark returned an error we still free the used ips
 	// otherwise we could end up in a state where block the ips forever
@@ -159,4 +180,11 @@ func (n *netavarkNetwork) convertNetOpts(opts types.NetworkOptions) (*netavarkOp
 		}
 	}
 	return &netavarkOptions, needsPlugin, nil
+}
+
+func (n *netavarkNetwork) RunInRootlessNetns(toRun func() error) error {
+	if n.rootlessNetns == nil {
+		return types.ErrNotRootlessNetns
+	}
+	return n.rootlessNetns.Run(n.lock, toRun)
 }

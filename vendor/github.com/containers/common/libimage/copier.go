@@ -364,11 +364,13 @@ func (c *copier) copy(ctx context.Context, source, destination types.ImageRefere
 		defer cancel()
 		defer timer.Stop()
 
-		fmt.Fprintf(c.imageCopyOptions.ReportWriter,
-			"Pulling image %s inside systemd: setting pull timeout to %s\n",
-			source.StringWithinTransport(),
-			time.Duration(numExtensions)*extension,
-		)
+		if c.imageCopyOptions.ReportWriter != nil {
+			fmt.Fprintf(c.imageCopyOptions.ReportWriter,
+				"Pulling image %s inside systemd: setting pull timeout to %s\n",
+				source.StringWithinTransport(),
+				time.Duration(numExtensions)*extension,
+			)
+		}
 
 		// From `man systemd.service(5)`:
 		//

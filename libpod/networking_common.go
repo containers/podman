@@ -65,24 +65,7 @@ func (c *Container) getNetworkOptions(networkOpts map[string]types.PerNetworkOpt
 // setUpNetwork will set up the networks, on error it will also tear down the cni
 // networks. If rootless it will join/create the rootless network namespace.
 func (r *Runtime) setUpNetwork(ns string, opts types.NetworkOptions) (map[string]types.StatusBlock, error) {
-	rootlessNetNS, err := r.GetRootlessNetNs(true)
-	if err != nil {
-		return nil, err
-	}
-	var results map[string]types.StatusBlock
-	setUpPod := func() error {
-		results, err = r.network.Setup(ns, types.SetupOptions{NetworkOptions: opts})
-		return err
-	}
-	// rootlessNetNS is nil if we are root
-	if rootlessNetNS != nil {
-		// execute the setup in the rootless net ns
-		err = rootlessNetNS.Do(setUpPod)
-		rootlessNetNS.Lock.Unlock()
-	} else {
-		err = setUpPod()
-	}
-	return results, err
+	return r.network.Setup(ns, types.SetupOptions{NetworkOptions: opts})
 }
 
 // getNetworkPodName return the pod name (hostname) used by dns backend.
@@ -100,29 +83,7 @@ func getNetworkPodName(c *Container) string {
 // Tear down a container's network configuration and joins the
 // rootless net ns as rootless user
 func (r *Runtime) teardownNetworkBackend(ns string, opts types.NetworkOptions) error {
-	rootlessNetNS, err := r.GetRootlessNetNs(false)
-	if err != nil {
-		return err
-	}
-	tearDownPod := func() error {
-		if err := r.network.Teardown(ns, types.TeardownOptions{NetworkOptions: opts}); err != nil {
-			return fmt.Errorf("tearing down network namespace configuration for container %s: %w", opts.ContainerID, err)
-		}
-		return nil
-	}
-
-	// rootlessNetNS is nil if we are root
-	if rootlessNetNS != nil {
-		// execute the network setup in the rootless net ns
-		err = rootlessNetNS.Do(tearDownPod)
-		if cerr := rootlessNetNS.Cleanup(r); cerr != nil {
-			logrus.WithError(cerr).Error("failed to clean up rootless netns")
-		}
-		rootlessNetNS.Lock.Unlock()
-	} else {
-		err = tearDownPod()
-	}
-	return err
+	return r.network.Teardown(ns, types.TeardownOptions{NetworkOptions: opts})
 }
 
 // Tear down a container's network backend configuration, but do not tear down the

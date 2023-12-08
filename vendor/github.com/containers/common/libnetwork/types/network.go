@@ -27,6 +27,10 @@ type ContainerNetwork interface {
 	// Teardown will teardown the container network namespace.
 	Teardown(namespacePath string, options TeardownOptions) error
 
+	// RunInRootlessNetns is used to run the given function in the rootless netns.
+	// Only used as rootless and should return an error as root.
+	RunInRootlessNetns(toRun func() error) error
+
 	// Drivers will return the list of supported network drivers
 	// for this interface.
 	Drivers() []string

@@ -28,3 +28,7 @@ func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec
 	}
 	return nil
 }
+
+func moveToRuntimeCgroup() error {
+	return errors.New("moveToRuntimeCgroup not supported on freebsd")
+}

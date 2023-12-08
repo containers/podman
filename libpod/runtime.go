@@ -25,6 +25,7 @@ import (
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/secrets"
+	systemdCommon "github.com/containers/common/pkg/systemd"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
@@ -36,7 +37,6 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/systemd"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/unshare"
@@ -608,7 +608,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 			if became {
 				// Check if the pause process was created.  If it was created, then
 				// move it to its own systemd scope.
-				utils.MovePauseProcessToScope(pausePid)
+				systemdCommon.MovePauseProcessToScope(pausePid)
 
 				// gocritic complains because defer is not run on os.Exit()
 				// However this is fine because the lock is released anyway when the process exits
