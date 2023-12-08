@@ -114,7 +114,7 @@ func (v AppleHVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM,
 	m := MacMachine{Name: opts.Name}
 
 	if len(opts.USBs) > 0 {
-		return nil, fmt.Errorf("USB host passtrough not supported for applehv machines")
+		return nil, fmt.Errorf("USB host passthrough is not supported for applehv machines")
 	}
 
 	configDir, err := machine.GetConfDir(machine.AppleHvVirt)
