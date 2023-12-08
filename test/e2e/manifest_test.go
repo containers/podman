@@ -347,7 +347,7 @@ add_compression = ["zstd"]`), 0o644)
 		session = podmanTest.Podman([]string{"manifest", "add", "foo", imageListInstance})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		session = podmanTest.Podman([]string{"manifest", "annotate", "--annotation", "hello=world", "--arch", "bar", "foo", imageListARM64InstanceDigest})
+		session = podmanTest.Podman([]string{"manifest", "annotate", "--annotation", "hello=world,withcomma", "--arch", "bar", "foo", imageListARM64InstanceDigest})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"manifest", "inspect", "foo"})
@@ -355,7 +355,7 @@ add_compression = ["zstd"]`), 0o644)
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring(`"architecture": "bar"`))
 		// Check added annotation
-		Expect(session.OutputToString()).To(ContainSubstring(`"hello": "world"`))
+		Expect(session.OutputToString()).To(ContainSubstring(`"hello": "world,withcomma"`))
 	})
 
 	It("remove digest", func() {
