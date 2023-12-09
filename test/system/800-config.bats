@@ -104,8 +104,8 @@ See 'podman create --help'" "--module must be specified before the command"
 
     run_podman rm -f $cid
 
-    # Nonexistent module path
-    nonesuch=${PODMAN_TMPDIR}/nonexistent
+    # Nonexistent module path with comma
+    nonesuch=${PODMAN_TMPDIR}/nonexistent,withcomma
     run_podman 1 --module=$nonesuch sdfsdfdsf
     is "$output" "Failed to obtain podman configuration: could not resolve module \"$nonesuch\": stat $nonesuch: no such file or directory" \
        "--module=ENOENT"

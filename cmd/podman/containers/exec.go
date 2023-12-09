@@ -68,7 +68,7 @@ func execFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(envFlagName, completion.AutocompleteNone)
 
 	envFileFlagName := "env-file"
-	flags.StringSliceVar(&envFile, envFileFlagName, []string{}, "Read in a file of environment variables")
+	flags.StringArrayVar(&envFile, envFileFlagName, []string{}, "Read in a file of environment variables")
 	_ = cmd.RegisterFlagCompletionFunc(envFileFlagName, completion.AutocompleteDefault)
 
 	flags.BoolVarP(&execOpts.Interactive, "interactive", "i", false, "Keep STDIN open even if not attached")

@@ -536,7 +536,7 @@ var _ = Describe("Podman logs", func() {
 
 	It("using journald for container with container tag", func() {
 		SkipIfJournaldUnavailable()
-		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "--log-opt=tag={{.ImageName}}", "-d", ALPINE, "sh", "-c", "echo podman; sleep 0.1; echo podman; sleep 0.1; echo podman"})
+		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "--log-opt=tag={{.ImageName}},withcomma", "-d", ALPINE, "sh", "-c", "echo podman; sleep 0.1; echo podman; sleep 0.1; echo podman"})
 		logc.WaitWithDefaultTimeout()
 		Expect(logc).To(ExitCleanly())
 		cid := logc.OutputToString()
@@ -549,7 +549,7 @@ var _ = Describe("Podman logs", func() {
 			cmd := exec.Command("journalctl", "--no-pager", "-o", "json", "--output-fields=CONTAINER_TAG", fmt.Sprintf("CONTAINER_ID_FULL=%s", cid))
 			out, err := cmd.CombinedOutput()
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(string(out)).To(ContainSubstring("alpine"))
+			g.Expect(string(out)).To(ContainSubstring(ALPINE + ",withcomma"))
 		}).Should(Succeed())
 	})
 
