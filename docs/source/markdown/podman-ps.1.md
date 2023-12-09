@@ -90,7 +90,7 @@ Valid placeholders for the Go template are listed below:
 | .Networks          | Show all networks connected to the container |
 | .Pid               | Process ID on host system                    |
 | .Pod               | Pod the container is associated with (SHA)   |
-| .PodName           | Seems to be empty no matter what             |
+| .PodName           | PodName of the container                     |
 | .Ports             | Exposed ports                                |
 | .Restarts          | Display the container restart count          |
 | .RunningFor        | Time elapsed since container was started     |
