@@ -1251,6 +1251,11 @@ EOF
     run_podman run --uidmap=0:1000:10000 --rm --rootfs "$romount:idmap=uids=0-1001-10000;gids=0-1002-10000" stat -c %u:%g /bin
     is "$output" "1:2"
 
+    touch $romount/testfile
+    chown 2000:2000 $romount/testfile
+    run_podman run --uidmap=0:1000:2 --rm --rootfs "$romount:idmap=uids=@2000-1-1;gids=@2000-1-1" stat -c %u:%g /testfile
+    is "$output" "1:1"
+
     rm -rf $romount
 }
 
