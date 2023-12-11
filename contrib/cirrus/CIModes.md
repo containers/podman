@@ -86,7 +86,25 @@ of this document, it's not possible to override the behavior of `$CIRRUS_PR`.
 + *alt_build*
 + osx_alt_build
 + freebsd_alt_build
-+ test_image_build
++ meta
++ success
++ artifacts
+
+### Intended `[CI:MACHINE]` PR Tasks:
+
+If and only if the PR is in **draft-mode**, run only the following
+tasks.  The draft-mode check is necessary to remove the risk of
+merging a change that affects the untested aspects of podman.
+
++ *build*
++ validate
++ *alt_build*
++ win_installer
++ osx_alt_build
++ podman_machine_task
++ podman_machine_aarch64_task
++ podman_machine_windows_task
++ podman_machine_mac_task
 + meta
 + success
 + artifacts
