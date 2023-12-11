@@ -80,6 +80,7 @@ var _ = Describe("podman machine list", func() {
 	})
 
 	It("list machine: check if running while starting", func() {
+		skipIfWSL("the below logic does not work on WSL.  #20978")
 		i := new(initMachine)
 		session, err := mb.setCmd(i.withImagePath(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
@@ -91,6 +92,8 @@ var _ = Describe("podman machine list", func() {
 		Expect(listSession).To(Exit(0))
 		Expect(listSession.outputToString()).To(Equal("Never"))
 
+		// The logic in this test stanza is seemingly invalid on WSL.
+		// issue #20978 reflects this change
 		s := new(startMachine)
 		startSession, err := mb.setCmd(s).runWithoutWait()
 		Expect(err).ToNot(HaveOccurred())

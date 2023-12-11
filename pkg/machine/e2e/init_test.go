@@ -79,7 +79,7 @@ var _ = Describe("podman machine init", func() {
 
 		testMachine := inspectBefore[0]
 		Expect(testMachine.Name).To(Equal(mb.names[0]))
-		if testProvider.VMType() == machine.WSLVirt { // WSL hardware specs are hardcoded
+		if testProvider.VMType() != machine.WSLVirt { // WSL hardware specs are hardcoded
 			Expect(testMachine.Resources.CPUs).To(Equal(uint64(cpus)))
 			Expect(testMachine.Resources.Memory).To(Equal(uint64(2048)))
 		}
