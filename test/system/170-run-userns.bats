@@ -150,6 +150,7 @@ EOF
 
 @test "podman userns=auto with id mapping" {
     skip_if_not_rootless
+    skip_if_remote
     run_podman unshare awk '{if(NR == 2){print $2}}' /proc/self/uid_map
     first_id=$output
     mapping=1:@$first_id:1
