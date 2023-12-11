@@ -1412,4 +1412,70 @@ EOF
     run_podman rmi --ignore $(pause_image)
 }
 
+# This test reproduces https://github.com/containers/podman/issues/20432
+# In order to reproduce the issue, the image in the FROM must no be available locally
+# and must not have a tag. The first forces Pull and the second the resolution where the crash occurs
+# Using a local registry does not work since kube play does not pass the autofile and tls-verify flags to the build
+@test "quadlet - kube build from unavailable image with no tag" {
+    local quadlet_tmpdir=$PODMAN_TMPDIR/quadlets
+
+    local untagged_image=quay.io/libpod/busybox
+    local built_image=test_image
+    local yaml_dir=$quadlet_tmpdir/$built_image
+    local build_dir=$yaml_dir/$built_image
+
+    # Use the same directory for all quadlet files to make sure later steps access previous ones
+    mkdir -p $build_dir
+
+    container_file_path=$build_dir/Containerfile
+    cat >$container_file_path << EOF
+FROM $untagged_image
+EOF
+
+    # Create the YAMl file
+    pod_name="test_pod"
+    container_name="test"
+    yaml_source="$yaml_dir/build_$(random_string).yaml"
+    cat >$yaml_source <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test
+  name: $pod_name
+spec:
+  containers:
+  - command:
+    - "sh"
+    args:
+    - "-c"
+    - "echo STARTED CONTAINER; sleep inf"
+    image: $built_image
+    name: $container_name
+EOF
+
+    # Create the Quadlet file
+    local quadlet_file=$quadlet_tmpdir/build_$(random_string).kube
+    cat > $quadlet_file <<EOF
+[Kube]
+Yaml=${yaml_source}
+PodmanArgs=--build
+SetWorkingDirectory=yaml
+EOF
+
+    # Make sure the tagged image is not locally available
+    run_podman rmi -i $untagged_image:latest
+
+    run_quadlet "$quadlet_file"
+    service_setup $QUADLET_SERVICE_NAME
+
+    # Ensure we have output.
+    wait_for_output "STARTED CONTAINER" $pod_name-$container_name
+
+    run_podman container inspect  --format "{{.State.Status}}" test_pod-test
+    is "$output" "running" "container should be started by systemd and hence be running"
+
+    service_cleanup $QUADLET_SERVICE_NAME inactive
+    run_podman rmi $untagged_image:latest $built_image $(pause_image)
+}
 # vim: filetype=sh

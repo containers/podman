@@ -1,5 +1,13 @@
 # Release Notes
 
+## 4.8.2
+### Bugfixes
+- Fixed a bug in the MacOS pkginstaller where Podman machine was using a different QEMU binary than the one installed using the installer, if it existed on the system ([#20808](https://github.com/containers/podman/issues/20808)).
+- Fixed a bug on Windows (WSL) with the first-time install of user-mode networking when using the init command, as opposed to set ([#20921](https://github.com/containers/podman/issues/20921)).
+
+### Quadlet
+- Fixed a bug where Kube image build failed when starting service with missing image ([#20432](https://github.com/containers/podman/issues/20432)).
+
 ## 4.8.1
 ### Bugfixes
 - Fixed a bug on Windows (WSL) where wsl.conf/resolv.conf was not restored when user-mode networking was disabled after being enabled ([#20625](https://github.com/containers/podman/issues/20625)).
