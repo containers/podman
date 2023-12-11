@@ -147,3 +147,12 @@ EOF
     is "${output}" "$user" "Container should run as the current user"
     run_podman rmi -f $(pause_image)
 }
+
+@test "podman userns=auto with id mapping" {
+    skip_if_not_rootless
+    run_podman unshare awk '{if(NR == 2){print $2}}' /proc/self/uid_map
+    first_id=$output
+    mapping=1:@$first_id:1
+    run_podman run --rm --userns=auto:uidmapping=$mapping $IMAGE awk '{if($1 == 1){print $2}}' /proc/self/uid_map
+    assert "$output" == 1
+}

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-
-	"github.com/containers/storage/types"
 )
 
 const (
@@ -120,48 +118,6 @@ func (n UsernsMode) IsAuto() bool {
 // IsDefaultValue indicates whether the user namespace has the default value.
 func (n UsernsMode) IsDefaultValue() bool {
 	return n == "" || n == defaultType
-}
-
-// GetAutoOptions returns an AutoUserNsOptions with the settings to automatically set up
-// a user namespace.
-func (n UsernsMode) GetAutoOptions() (*types.AutoUserNsOptions, error) {
-	parts := strings.SplitN(string(n), ":", 2)
-	if parts[0] != "auto" {
-		return nil, fmt.Errorf("wrong user namespace mode")
-	}
-	options := types.AutoUserNsOptions{}
-	if len(parts) == 1 {
-		return &options, nil
-	}
-	for _, o := range strings.Split(parts[1], ",") {
-		v := strings.SplitN(o, "=", 2)
-		if len(v) != 2 {
-			return nil, fmt.Errorf("invalid option specified: %q", o)
-		}
-		switch v[0] {
-		case "size":
-			s, err := strconv.ParseUint(v[1], 10, 32)
-			if err != nil {
-				return nil, err
-			}
-			options.Size = uint32(s)
-		case "uidmapping":
-			mapping, err := types.ParseIDMapping([]string{v[1]}, nil, "", "")
-			if err != nil {
-				return nil, err
-			}
-			options.AdditionalUIDMappings = append(options.AdditionalUIDMappings, mapping.UIDMap...)
-		case "gidmapping":
-			mapping, err := types.ParseIDMapping(nil, []string{v[1]}, "", "")
-			if err != nil {
-				return nil, err
-			}
-			options.AdditionalGIDMappings = append(options.AdditionalGIDMappings, mapping.GIDMap...)
-		default:
-			return nil, fmt.Errorf("unknown option specified: %q", v[0])
-		}
-	}
-	return &options, nil
 }
 
 // GetKeepIDOptions returns a KeepIDUserNsOptions with the settings to keepIDmatically set up

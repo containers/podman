@@ -391,6 +391,42 @@ func TestParseIDMapUserGroupFlags(t *testing.T) {
 	assert.Equal(t, expectedResultGroup, result)
 }
 
+func TestParseAutoIDMap(t *testing.T) {
+	result, err := parseAutoIDMap("3:4:5", "UID", []ruser.IDMap{})
+	assert.Equal(t, err, nil)
+	assert.Equal(t, result, []idtools.IDMap{
+		{
+			ContainerID: 3,
+			HostID:      4,
+			Size:        5,
+		},
+	})
+}
+
+func TestParseAutoIDMapRelative(t *testing.T) {
+	parentMapping := []ruser.IDMap{
+		{
+			ID:       0,
+			ParentID: 1000,
+			Count:    1,
+		},
+		{
+			ID:       1,
+			ParentID: 100000,
+			Count:    65536,
+		},
+	}
+	result, err := parseAutoIDMap("100:@100000:1", "UID", parentMapping)
+	assert.Equal(t, err, nil)
+	assert.Equal(t, result, []idtools.IDMap{
+		{
+			ContainerID: 100,
+			HostID:      1,
+			Size:        1,
+		},
+	})
+}
+
 func TestFillIDMap(t *testing.T) {
 	availableRanges := [][2]int{{0, 10}, {10000, 20000}}
 	idmap := []idtools.IDMap{
