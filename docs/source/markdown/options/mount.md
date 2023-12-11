@@ -6,7 +6,7 @@
 
 Attach a filesystem mount to the container
 
-Current supported mount TYPEs are **bind**, **devpts**, **glob**, **image**, **ramfs**, **tmpfs** and **volume**. <sup>[[1]](#Footnote1)</sup>
+Current supported mount TYPEs are **bind**, **devpts**, **glob**, **image**, **ramfs**, **tmpfs** and **volume**.
 
        e.g.
        type=bind,source=/path/on/host,destination=/path/in/container
@@ -65,7 +65,7 @@ Current supported mount TYPEs are **bind**, **devpts**, **glob**, **image**, **r
 
 	      · ro, readonly: true or false (default).
 
-	      · bind-propagation: shared, slave, private, unbindable, rshared, rslave, runbindable, or rprivate(default). See also mount(2).
+	      · bind-propagation: shared, slave, private, unbindable, rshared, rslave, runbindable, or rprivate(default). See also mount(2). <sup>[[1]](#Footnote1)</sup>
 
 	      . bind-nonrecursive: do not set up a recursive bind mount. By default it is recursive.
 

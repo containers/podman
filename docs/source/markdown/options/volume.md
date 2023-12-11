@@ -15,7 +15,7 @@ the `podman rm --volumes` command.
 
 (Note when using the remote client, including Mac and Windows (excluding WSL2) machines, the volumes are mounted from the remote server, not necessarily the client machine.)
 
-The _OPTIONS_ is a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>
+The _OPTIONS_ is a comma-separated list and can be:
 
 * **rw**|**ro**
 * **z**|**Z**
@@ -26,7 +26,7 @@ The _OPTIONS_ is a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>
 * [**no**]**exec**
 * [**no**]**suid**
 * [**r**]**bind**
-* [**r**]**shared**|[**r**]**slave**|[**r**]**private**[**r**]**unbindable**
+* [**r**]**shared**|[**r**]**slave**|[**r**]**private**[**r**]**unbindable** <sup>[[1]](#Footnote1)</sup>
 * **idmap**[=**options**]
 
 The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The volume
@@ -135,9 +135,9 @@ By default bind mounted volumes are `private`. That means any mounts done
 inside the <<container|pod>> is not visible on host and vice versa. One can change
 this behavior by specifying a volume mount propagation property. Making a
 volume shared mounts done under that volume inside the <<container|pod>> is
-visible on host and vice versa. Making a volume **slave** enables only one
+visible on host and vice versa. Making a volume **slave**<sup>[[1]](#Footnote1)</sup> enables only one
 way mount propagation and that is mounts done on host under that volume
-is visible inside container but not the other way around. <sup>[[1]](#Footnote1)</sup>
+is visible inside container but not the other way around.
 
 To control mount propagation property of a volume one can use the [**r**]**shared**,
 [**r**]**slave**, [**r**]**private** or the [**r**]**unbindable** propagation flag.

@@ -7,12 +7,12 @@
 Mount a host directory into containers when executing RUN instructions during
 the build.
 
-The `OPTIONS` are a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>
+The `OPTIONS` are a comma-separated list and can be:
 
    * [rw|ro]
    * [z|Z|O]
    * [U]
-   * [`[r]shared`|`[r]slave`|`[r]private`]
+   * [`[r]shared`|`[r]slave`|`[r]private`] <sup>[[1]](#Footnote1)</sup>
 
 The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The `HOST-DIR`
 must be an absolute path as well. Podman bind-mounts the `HOST-DIR` to the
