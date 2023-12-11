@@ -601,3 +601,31 @@ func WriteRSAKeyPair(fileName string, bitSize int) (string, string, error) {
 
 	return publicKeyFileName, privateKeyFileName, nil
 }
+
+// Check a compression type for a file
+func CheckCompressionType(fileName string) (string, error) {
+	file, err := os.Open(fileName)
+
+	if err != nil {
+		return "", err
+	}
+
+	defer file.Close()
+
+	buff := make([]byte, 512)
+
+	_, err = file.Read(buff)
+
+	if err != nil {
+		return "", err
+	}
+
+	switch string(buff[:3]) {
+	case "\x28\xb5\x2f":
+		return "zstd", nil
+	case "\x1f\x8b\x08":
+		return "gzip", nil
+	default:
+		return "none", nil
+	}
+}

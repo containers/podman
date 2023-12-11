@@ -387,6 +387,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 	options.WithPreCheckpoint(opts.PreCheckPoint)
 	options.WithLeaveRunning(opts.LeaveRunning)
 	options.WithWithPrevious(opts.WithPrevious)
+	options.WithCompression(opts.Compression)
 
 	if opts.All {
 		allCtrs, err := getContainersByContext(ic.ClientCtx, true, false, []string{})

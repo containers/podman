@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/storage/pkg/archive"
 )
 
 // LogOptions describe finer control of log content or
@@ -61,6 +62,7 @@ type CheckpointOptions struct {
 	PrintStats     *bool
 	PreCheckpoint  *bool
 	WithPrevious   *bool
+	Compression    *archive.Compression
 	FileLocks      *bool
 }
 

@@ -561,6 +561,12 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
 
+		// Check the compression type of the exported file with checkpoint
+		// it should be "zstd"
+		compressionType, err := CheckCompressionType(fileName)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(compressionType).To(ContainSubstring("zstd"))
+
 		// Restore container
 		result = podmanTest.Podman([]string{"container", "restore", "-i", fileName})
 		result.WaitWithDefaultTimeout()
@@ -579,6 +585,12 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(result.OutputToString()).To(ContainSubstring(cid))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+
+		// Check the compression type of the exported file with checkpoint
+		// it should be "zstd"
+		compressionType, err = CheckCompressionType(fileName)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(compressionType).To(ContainSubstring("zstd"))
 
 		// Restore container
 		result = podmanTest.Podman([]string{"container", "restore", "-i", fileName})
@@ -599,6 +611,12 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
 
+		// Check the compression type of the exported file with checkpoint
+		// it should be "none"
+		compressionType, err = CheckCompressionType(fileName)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(compressionType).To(ContainSubstring("none"))
+
 		// Restore container
 		result = podmanTest.Podman([]string{"container", "restore", "-i", fileName})
 		result.WaitWithDefaultTimeout()
@@ -617,6 +635,12 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(result.OutputToString()).To(ContainSubstring(cid))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+
+		// Check the compression type of the exported file with checkpoint
+		// it should be "gzip"
+		compressionType, err = CheckCompressionType(fileName)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(compressionType).To(ContainSubstring("gzip"))
 
 		// Restore container
 		result = podmanTest.Podman([]string{"container", "restore", "-i", fileName})

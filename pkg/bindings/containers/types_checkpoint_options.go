@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"github.com/containers/podman/v4/pkg/bindings/internal/util"
+	"github.com/containers/storage/pkg/archive"
 )
 
 // Changed returns true if named field has been set
@@ -150,6 +151,21 @@ func (o *CheckpointOptions) GetWithPrevious() bool {
 		return z
 	}
 	return *o.WithPrevious
+}
+
+// WithCompression set field Compression to given value
+func (o *CheckpointOptions) WithCompression(value archive.Compression) *CheckpointOptions {
+	o.Compression = &value
+	return o
+}
+
+// GetCompression returns value of field Compression
+func (o *CheckpointOptions) GetCompression() archive.Compression {
+	if o.Compression == nil {
+		var z archive.Compression
+		return z
+	}
+	return *o.Compression
 }
 
 // WithFileLocks set field FileLocks to given value
