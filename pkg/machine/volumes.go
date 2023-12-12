@@ -2,6 +2,8 @@ package machine
 
 import (
 	"strings"
+
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 )
 
 type Volume interface {
@@ -37,8 +39,8 @@ func (v VirtIoFs) unitName() string {
 	return unit
 }
 
-func (v VirtIoFs) ToMount() Mount {
-	return Mount{
+func (v VirtIoFs) ToMount() vmconfigs.Mount {
+	return vmconfigs.Mount{
 		ReadOnly: v.ReadOnly,
 		Source:   v.Source,
 		Tag:      v.Tag,

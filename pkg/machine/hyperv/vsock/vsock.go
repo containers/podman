@@ -1,7 +1,7 @@
 //go:build windows
 // +build windows
 
-package hyperv
+package vsock
 
 import (
 	"errors"
@@ -9,8 +9,9 @@ import (
 	"net"
 	"strings"
 
+	"github.com/containers/podman/v4/pkg/machine/sockets"
+
 	"github.com/Microsoft/go-winio"
-	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/windows/registry"
@@ -274,7 +275,7 @@ func (hv *HVSockRegistryEntry) Listen() error {
 	}()
 
 	errChan := make(chan error)
-	go machine.ListenAndWaitOnSocket(errChan, listener)
+	go sockets.ListenAndWaitOnSocket(errChan, listener)
 
 	return <-errChan
 }

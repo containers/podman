@@ -6,7 +6,6 @@ package qemu
 import (
 	"bufio"
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,6 +24,9 @@ import (
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/machine/qemu/command"
+	"github.com/containers/podman/v4/pkg/machine/sockets"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage/pkg/lockfile"
@@ -66,13 +68,13 @@ type MachineVM struct {
 	// ConfigPath is the path to the configuration file
 	ConfigPath define.VMFile
 	// The command line representation of the qemu command
-	CmdLine QemuCmd
+	CmdLine command.QemuCmd
 	// HostUser contains info about host user
-	machine.HostUser
+	vmconfigs.HostUser
 	// ImageConfig describes the bootable image
 	machine.ImageConfig
 	// Mounts is the list of remote filesystems to mount
-	Mounts []machine.Mount
+	Mounts []vmconfigs.Mount
 	// Name of VM
 	Name string
 	// PidFilePath is the where the Proxy PID file lives
@@ -80,13 +82,13 @@ type MachineVM struct {
 	// VMPidFilePath is the where the VM PID file lives
 	VMPidFilePath define.VMFile
 	// QMPMonitor is the qemu monitor object for sending commands
-	QMPMonitor Monitor
+	QMPMonitor command.Monitor
 	// ReadySocket tells host when vm is booted
 	ReadySocket define.VMFile
 	// ResourceConfig is physical attrs of the VM
-	machine.ResourceConfig
+	vmconfigs.ResourceConfig
 	// SSHConfig for accessing the remote vm
-	machine.SSHConfig
+	vmconfigs.SSHConfig
 	// Starting tells us whether the machine is running or if we have just dialed it to start it
 	Starting bool
 	// Created contains the original created time instead of querying the file mod time
@@ -96,15 +98,6 @@ type MachineVM struct {
 
 	// User at runtime for serializing write operations.
 	lock *lockfile.LockFile
-}
-
-type Monitor struct {
-	//	Address portion of the qmp monitor (/tmp/tmp.sock)
-	Address define.VMFile
-	// Network portion of the qmp monitor (unix)
-	Network string
-	// Timeout in seconds for qmp monitor transactions
-	Timeout time.Duration
 }
 
 // addMountsToVM converts the volumes passed through the CLI into the specified
@@ -119,7 +112,7 @@ func (v *MachineVM) addMountsToVM(opts machine.InitOptions) error {
 		return fmt.Errorf("unknown volume driver: %s", opts.VolumeDriver)
 	}
 
-	mounts := []machine.Mount{}
+	mounts := []vmconfigs.Mount{}
 	for i, volume := range opts.Volumes {
 		tag := fmt.Sprintf("vol%d", i)
 		paths := pathsFromVolume(volume)
@@ -128,7 +121,7 @@ func (v *MachineVM) addMountsToVM(opts machine.InitOptions) error {
 		readonly, securityModel := extractMountOptions(paths)
 		if volumeType == VolumeTypeVirtfs {
 			v.CmdLine.SetVirtfsMount(source, tag, securityModel, readonly)
-			mounts = append(mounts, machine.Mount{Type: MountType9p, Tag: tag, Source: source, Target: target, ReadOnly: readonly})
+			mounts = append(mounts, vmconfigs.Mount{Type: MountType9p, Tag: tag, Source: source, Target: target, ReadOnly: readonly})
 		}
 	}
 	v.Mounts = mounts
@@ -274,7 +267,7 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 		return setErrors, err
 	}
 
-	if state == machine.Running {
+	if state == define.Running {
 		suffix := ""
 		if v.Name != machine.DefaultMachineName {
 			suffix = " " + v.Name
@@ -309,7 +302,7 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 	}
 
 	if opts.USBs != nil {
-		if usbConfigs, err := parseUSBs(*opts.USBs); err != nil {
+		if usbConfigs, err := command.ParseUSBs(*opts.USBs); err != nil {
 			setErrors = append(setErrors, fmt.Errorf("failed to set usb: %w", err))
 		} else {
 			v.USBs = usbConfigs
@@ -381,7 +374,7 @@ func (v *MachineVM) conductVMReadinessCheck(name string, maxBackoffs int, backof
 		if err != nil {
 			return false, nil, err
 		}
-		if state == machine.Running && v.isListening() {
+		if state == define.Running && v.isListening() {
 			// Also make sure that SSH is up and running.  The
 			// ready service's dependencies don't fully make sure
 			// that clients can SSH into the machine immediately
@@ -469,9 +462,9 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		return err
 	}
 	switch state {
-	case machine.Starting:
+	case define.Starting:
 		return fmt.Errorf("cannot start VM %q: starting state indicates that a previous start has failed: please stop and restart the VM", v.Name)
-	case machine.Running:
+	case define.Running:
 		return fmt.Errorf("cannot start VM %q: %w", v.Name, machine.ErrVMAlreadyRunning)
 	}
 
@@ -537,7 +530,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		return err
 	}
 
-	qemuSocketConn, err = machine.DialSocketWithBackoffs(maxBackoffs, defaultBackoff, v.QMPMonitor.Address.Path)
+	qemuSocketConn, err = sockets.DialSocketWithBackoffs(maxBackoffs, defaultBackoff, v.QMPMonitor.Address.Path)
 	if err != nil {
 		return err
 	}
@@ -592,7 +585,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		fmt.Println("Waiting for VM ...")
 	}
 
-	conn, err = machine.DialSocketWithBackoffsAndProcCheck(maxBackoffs, defaultBackoff, v.ReadySocket.GetPath(), checkProcessStatus, "qemu", cmd.Process.Pid, stderrBuf)
+	conn, err = sockets.DialSocketWithBackoffsAndProcCheck(maxBackoffs, defaultBackoff, v.ReadySocket.GetPath(), checkProcessStatus, "qemu", cmd.Process.Pid, stderrBuf)
 	if err != nil {
 		return err
 	}
@@ -656,36 +649,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	return nil
 }
 
-// propagateHostEnv is here for providing the ability to propagate
-// proxy and SSL settings (e.g. HTTP_PROXY and others) on a start
-// and avoid a need of re-creating/re-initiating a VM
-func propagateHostEnv(cmdLine QemuCmd) QemuCmd {
-	varsToPropagate := make([]string, 0)
-
-	for k, v := range machine.GetProxyVariables() {
-		varsToPropagate = append(varsToPropagate, fmt.Sprintf("%s=%q", k, v))
-	}
-
-	if sslCertFile, ok := os.LookupEnv("SSL_CERT_FILE"); ok {
-		pathInVM := filepath.Join(machine.UserCertsTargetPath, filepath.Base(sslCertFile))
-		varsToPropagate = append(varsToPropagate, fmt.Sprintf("%s=%q", "SSL_CERT_FILE", pathInVM))
-	}
-
-	if _, ok := os.LookupEnv("SSL_CERT_DIR"); ok {
-		varsToPropagate = append(varsToPropagate, fmt.Sprintf("%s=%q", "SSL_CERT_DIR", machine.UserCertsTargetPath))
-	}
-
-	if len(varsToPropagate) > 0 {
-		prefix := "name=opt/com.coreos/environment,string="
-		envVarsJoined := strings.Join(varsToPropagate, "|")
-		fwCfgArg := prefix + base64.StdEncoding.EncodeToString([]byte(envVarsJoined))
-		return append(cmdLine, "-fw_cfg", fwCfgArg)
-	}
-
-	return cmdLine
-}
-
-func (v *MachineVM) checkStatus(monitor *qmp.SocketMonitor) (machine.Status, error) {
+func (v *MachineVM) checkStatus(monitor *qmp.SocketMonitor) (define.Status, error) {
 	// this is the format returned from the monitor
 	// {"return": {"status": "running", "singlestep": false, "running": true}}
 
@@ -712,17 +676,17 @@ func (v *MachineVM) checkStatus(monitor *qmp.SocketMonitor) (machine.Status, err
 	b, err := monitor.Run(input)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return machine.Stopped, nil
+			return define.Stopped, nil
 		}
 		return "", err
 	}
 	if err := json.Unmarshal(b, &response); err != nil {
 		return "", err
 	}
-	if response.Response.Status == machine.Running {
-		return machine.Running, nil
+	if response.Response.Status == define.Running {
+		return define.Running, nil
 	}
-	return machine.Stopped, nil
+	return define.Stopped, nil
 }
 
 // waitForMachineToStop waits for the machine to stop running
@@ -734,7 +698,7 @@ func (v *MachineVM) waitForMachineToStop() error {
 		if err != nil {
 			return err
 		}
-		if state != machine.Running {
+		if state != define.Running {
 			break
 		}
 		time.Sleep(waitInternal)
@@ -929,10 +893,10 @@ func (v *MachineVM) stopLocked() error {
 }
 
 // NewQMPMonitor creates the monitor subsection of our vm
-func NewQMPMonitor(network, name string, timeout time.Duration) (Monitor, error) {
+func NewQMPMonitor(network, name string, timeout time.Duration) (command.Monitor, error) {
 	rtDir, err := getRuntimeDir()
 	if err != nil {
-		return Monitor{}, err
+		return command.Monitor{}, err
 	}
 	if isRootful() {
 		rtDir = "/run"
@@ -940,7 +904,7 @@ func NewQMPMonitor(network, name string, timeout time.Duration) (Monitor, error)
 	rtDir = filepath.Join(rtDir, "podman")
 	if _, err := os.Stat(rtDir); errors.Is(err, fs.ErrNotExist) {
 		if err := os.MkdirAll(rtDir, 0755); err != nil {
-			return Monitor{}, err
+			return command.Monitor{}, err
 		}
 	}
 	if timeout == 0 {
@@ -948,9 +912,9 @@ func NewQMPMonitor(network, name string, timeout time.Duration) (Monitor, error)
 	}
 	address, err := define.NewMachineFile(filepath.Join(rtDir, "qmp_"+name+".sock"), nil)
 	if err != nil {
-		return Monitor{}, err
+		return command.Monitor{}, err
 	}
-	monitor := Monitor{
+	monitor := command.Monitor{
 		Network: network,
 		Address: *address,
 		Timeout: timeout,
@@ -1021,7 +985,7 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 	if err != nil {
 		return "", nil, err
 	}
-	if state == machine.Running {
+	if state == define.Running {
 		if !opts.Force {
 			return "", nil, &machine.ErrVMRunningCannotDestroyed{Name: v.Name}
 		}
@@ -1050,7 +1014,7 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 	}, nil
 }
 
-func (v *MachineVM) State(bypass bool) (machine.Status, error) {
+func (v *MachineVM) State(bypass bool) (define.Status, error) {
 	// Check if qmp socket path exists
 	if _, err := os.Stat(v.QMPMonitor.Address.GetPath()); errors.Is(err, fs.ErrNotExist) {
 		return "", nil
@@ -1061,7 +1025,7 @@ func (v *MachineVM) State(bypass bool) (machine.Status, error) {
 	}
 	// Check if we can dial it
 	if v.Starting && !bypass {
-		return machine.Starting, nil
+		return define.Starting, nil
 	}
 	monitor, err := qmp.NewSocketMonitor(v.QMPMonitor.Network, v.QMPMonitor.Address.GetPath(), v.QMPMonitor.Timeout)
 	if err != nil {
@@ -1069,7 +1033,7 @@ func (v *MachineVM) State(bypass bool) (machine.Status, error) {
 		// it can appear as though the machine state is not stopped.  Check for ECONNREFUSED
 		// almost assures us that the vm is stopped.
 		if errors.Is(err, syscall.ECONNREFUSED) {
-			return machine.Stopped, nil
+			return define.Stopped, nil
 		}
 		return "", err
 	}
@@ -1102,7 +1066,7 @@ func (v *MachineVM) SSH(_ string, opts machine.SSHOptions) error {
 	if err != nil {
 		return err
 	}
-	if state != machine.Running {
+	if state != define.Running {
 		return fmt.Errorf("vm %q is not running", v.Name)
 	}
 

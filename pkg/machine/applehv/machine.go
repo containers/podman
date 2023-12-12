@@ -21,7 +21,10 @@ import (
 	"github.com/containers/common/pkg/config"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/applehv/vfkit"
 	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/machine/sockets"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/pkg/strongunits"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
@@ -43,14 +46,6 @@ const (
 	apiUpTimeout         = 20 * time.Second
 )
 
-// VfkitHelper describes the use of vfkit: cmdline and endpoint
-type VfkitHelper struct {
-	LogLevel        logrus.Level
-	Endpoint        string
-	VfkitBinaryPath *define.VMFile
-	VirtualMachine  *vfConfig.VirtualMachine
-}
-
 // appleHVReadyUnit is a unit file that sets up the virtual serial device
 // where when the VM is done configuring, it will send an ack
 // so a listening host knows it can begin interacting with it
@@ -71,19 +66,19 @@ type MacMachine struct {
 	// ConfigPath is the fully qualified path to the configuration file
 	ConfigPath define.VMFile
 	// HostUser contains info about host user
-	machine.HostUser
+	vmconfigs.HostUser
 	// ImageConfig describes the bootable image
 	machine.ImageConfig
 	// Mounts is the list of remote filesystems to mount
-	Mounts []machine.Mount
+	Mounts []vmconfigs.Mount
 	// Name of VM
 	Name string
 	// ReadySocket tells host when vm is booted
 	ReadySocket define.VMFile
 	// ResourceConfig is physical attrs of the VM
-	machine.ResourceConfig
+	vmconfigs.ResourceConfig
 	// SSHConfig for accessing the remote vm
-	machine.SSHConfig
+	vmconfigs.SSHConfig
 	// Starting tells us whether the machine is running or if we have just dialed it to start it
 	Starting bool
 	// Created contains the original created time instead of querying the file mod time
@@ -91,7 +86,7 @@ type MacMachine struct {
 	// LastUp contains the last recorded uptime
 	LastUp time.Time
 	// The VFKit endpoint where we can interact with the VM
-	Vfkit       VfkitHelper
+	Vfkit       vfkit.VfkitHelper
 	LogPath     define.VMFile
 	GvProxyPid  define.VMFile
 	GvProxySock define.VMFile
@@ -108,7 +103,7 @@ func (m *MacMachine) setGVProxyInfo(runtimeDir string) error {
 	}
 	m.GvProxyPid = *gvProxyPid
 
-	return machine.SetSocket(&m.GvProxySock, filepath.Join(runtimeDir, "gvproxy.sock"), nil)
+	return sockets.SetSocket(&m.GvProxySock, filepath.Join(runtimeDir, "gvproxy.sock"), nil)
 }
 
 // setVfkitInfo stores the default devices, sets the vfkit endpoint, and
@@ -138,7 +133,7 @@ func (m *MacMachine) setVfkitInfo(cfg *config.Config, readySocket define.VMFile)
 // addMountsToVM converts the volumes passed through the CLI to virtio-fs mounts
 // and adds them to the machine
 func (m *MacMachine) addMountsToVM(opts machine.InitOptions, virtiofsMnts *[]machine.VirtIoFs) error {
-	var mounts []machine.Mount
+	var mounts []vmconfigs.Mount
 	for _, volume := range opts.Volumes {
 		source, target, _, readOnly, err := machine.ParseVolumeFromPath(volume)
 		if err != nil {
@@ -202,7 +197,7 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	if err := machine.SetSocket(&m.ReadySocket, machine.ReadySocketPath(runtimeDir, m.Name), nil); err != nil {
+	if err := sockets.SetSocket(&m.ReadySocket, sockets.ReadySocketPath(runtimeDir, m.Name), nil); err != nil {
 		return false, err
 	}
 
@@ -305,7 +300,7 @@ func (m *MacMachine) removeSystemConnections() error {
 }
 
 func (m *MacMachine) Inspect() (*machine.InspectInfo, error) {
-	vmState, err := m.Vfkit.state()
+	vmState, err := m.Vfkit.State()
 	if err != nil {
 		return nil, err
 	}
@@ -329,7 +324,7 @@ func (m *MacMachine) Inspect() (*machine.InspectInfo, error) {
 		},
 		LastUp: m.LastUp,
 		Name:   m.Name,
-		Resources: machine.ResourceConfig{
+		Resources: vmconfigs.ResourceConfig{
 			CPUs:     m.CPUs,
 			DiskSize: m.DiskSize,
 			Memory:   m.Memory,
@@ -367,16 +362,16 @@ func (m *MacMachine) Remove(name string, opts machine.RemoveOptions) (string, fu
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	vmState, err := m.Vfkit.state()
+	vmState, err := m.Vfkit.State()
 	if err != nil {
 		return "", nil, err
 	}
 
-	if vmState == machine.Running {
+	if vmState == define.Running {
 		if !opts.Force {
 			return "", nil, &machine.ErrVMRunningCannotDestroyed{Name: m.Name}
 		}
-		if err := m.Vfkit.stop(true, true); err != nil {
+		if err := m.Vfkit.Stop(true, true); err != nil {
 			return "", nil, err
 		}
 		defer func() {
@@ -430,7 +425,7 @@ func (m *MacMachine) Set(name string, opts machine.SetOptions) ([]error, error) 
 	if err != nil {
 		return nil, err
 	}
-	if vmState != machine.Stopped {
+	if vmState != define.Stopped {
 		return nil, machine.ErrWrongState
 	}
 	if cpus := opts.CPUs; cpus != nil {
@@ -473,7 +468,7 @@ func (m *MacMachine) SSH(name string, opts machine.SSHOptions) error {
 	if err != nil {
 		return err
 	}
-	if st != machine.Running {
+	if st != define.Running {
 		return fmt.Errorf("vm %q is not running", m.Name)
 	}
 	username := opts.Username
@@ -561,7 +556,7 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 		return err
 	}
 
-	if st == machine.Running {
+	if st == define.Running {
 		return machine.ErrVMAlreadyRunning
 	}
 
@@ -664,7 +659,7 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 
 	logrus.Debug("waiting for ready notification")
 	readyChan := make(chan error)
-	go machine.ListenAndWaitOnSocket(readyChan, readyListen)
+	go sockets.ListenAndWaitOnSocket(readyChan, readyListen)
 
 	if err := cmd.Start(); err != nil {
 		return err
@@ -715,8 +710,8 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 	return nil
 }
 
-func (m *MacMachine) State(_ bool) (machine.Status, error) {
-	vmStatus, err := m.Vfkit.state()
+func (m *MacMachine) State(_ bool) (define.Status, error) {
+	vmStatus, err := m.Vfkit.State()
 	if err != nil {
 		return "", err
 	}
@@ -732,7 +727,7 @@ func (m *MacMachine) Stop(name string, opts machine.StopOptions) error {
 		return err
 	}
 
-	if vmState != machine.Running {
+	if vmState != define.Running {
 		return nil
 	}
 
@@ -742,7 +737,7 @@ func (m *MacMachine) Stop(name string, opts machine.StopOptions) error {
 		}
 	}()
 
-	return m.Vfkit.stop(false, true)
+	return m.Vfkit.Stop(false, true)
 }
 
 // getVMConfigPath is a simple wrapper for getting the fully-qualified
@@ -845,7 +840,7 @@ func getVMInfos() ([]*machine.ListResponse, error) {
 			if err != nil {
 				return err
 			}
-			listEntry.Running = vmState == machine.Running
+			listEntry.Running = vmState == define.Running
 			listEntry.LastUp = vm.LastUp
 
 			listed = append(listed, listEntry)

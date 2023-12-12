@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/compression"
 	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
 	"github.com/docker/go-units"
 	"golang.org/x/sys/unix"
@@ -76,10 +77,10 @@ func (v AppleHVVirtualization) List(opts machine.ListOptions) ([]*machine.ListRe
 	}
 
 	for _, mm := range mms {
-		vmState, err := mm.Vfkit.state()
+		vmState, err := mm.Vfkit.State()
 		if err != nil {
 			if errors.Is(err, unix.ECONNREFUSED) {
-				vmState = machine.Stopped
+				vmState = define.Stopped
 			} else {
 				return nil, err
 			}
@@ -89,8 +90,8 @@ func (v AppleHVVirtualization) List(opts machine.ListOptions) ([]*machine.ListRe
 			Name:           mm.Name,
 			CreatedAt:      mm.Created,
 			LastUp:         mm.LastUp,
-			Running:        vmState == machine.Running,
-			Starting:       vmState == machine.Starting,
+			Running:        vmState == define.Running,
+			Starting:       vmState == define.Starting,
 			Stream:         mm.ImageStream,
 			VMType:         machine.AppleHvVirt.String(),
 			CPUs:           mm.CPUs,
@@ -140,7 +141,7 @@ func (v AppleHVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM,
 	// Set creation time
 	m.Created = time.Now()
 
-	m.ResourceConfig = machine.ResourceConfig{
+	m.ResourceConfig = vmconfigs.ResourceConfig{
 		CPUs:     opts.CPUS,
 		DiskSize: opts.DiskSize,
 		// Diskpath will be needed

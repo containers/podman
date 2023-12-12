@@ -1,7 +1,7 @@
 //go:build darwin
 // +build darwin
 
-package applehv
+package vfkit
 
 import (
 	"bytes"
@@ -12,13 +12,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/containers/podman/v4/pkg/machine"
-	"github.com/crc-org/vfkit/pkg/rest/define"
+	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/crc-org/vfkit/pkg/config"
+	rest "github.com/crc-org/vfkit/pkg/rest/define"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
-
-type Endpoint string
 
 const (
 	inspect = "/vm/inspect"
@@ -45,8 +44,8 @@ func (vf *VfkitHelper) post(endpoint string, payload io.Reader) (*http.Response,
 }
 
 // getRawState asks vfkit for virtual machine state unmodified (see state())
-func (vf *VfkitHelper) getRawState() (machine.Status, error) {
-	var response define.VMState
+func (vf *VfkitHelper) getRawState() (define.Status, error) {
+	var response rest.VMState
 	endPoint := vf.Endpoint + state
 	serverResponse, err := vf.get(endPoint, nil)
 	if err != nil {
@@ -60,25 +59,24 @@ func (vf *VfkitHelper) getRawState() (machine.Status, error) {
 		return "", err
 	}
 	return ToMachineStatus(response.State)
-
 }
 
 // state asks vfkit for the virtual machine state. in case the vfkit
 // service is not responding, we assume the service is not running
 // and return a stopped status
-func (vf *VfkitHelper) state() (machine.Status, error) {
+func (vf *VfkitHelper) State() (define.Status, error) {
 	vmState, err := vf.getRawState()
 	if err == nil {
 		return vmState, err
 	}
 	if errors.Is(err, unix.ECONNREFUSED) {
-		return machine.Stopped, nil
+		return define.Stopped, nil
 	}
 	return "", err
 }
 
-func (vf *VfkitHelper) stateChange(newState define.StateChange) error {
-	b, err := json.Marshal(define.VMState{State: string(newState)})
+func (vf *VfkitHelper) stateChange(newState rest.StateChange) error {
+	b, err := json.Marshal(rest.VMState{State: string(newState)})
 	if err != nil {
 		return err
 	}
@@ -87,15 +85,15 @@ func (vf *VfkitHelper) stateChange(newState define.StateChange) error {
 	return err
 }
 
-func (vf *VfkitHelper) stop(force, wait bool) error {
+func (vf *VfkitHelper) Stop(force, wait bool) error {
 	waitDuration := time.Millisecond * 10
 	// TODO Add ability to wait until stopped
 	if force {
-		if err := vf.stateChange(define.HardStop); err != nil {
+		if err := vf.stateChange(rest.HardStop); err != nil {
 			return err
 		}
 	} else {
-		if err := vf.stateChange(define.Stop); err != nil {
+		if err := vf.stateChange(rest.Stop); err != nil {
 			return err
 		}
 	}
@@ -115,4 +113,12 @@ func (vf *VfkitHelper) stop(force, wait bool) error {
 		time.Sleep(waitDuration)
 	}
 	return waitErr
+}
+
+// VfkitHelper describes the use of vfkit: cmdline and endpoint
+type VfkitHelper struct {
+	LogLevel        logrus.Level
+	Endpoint        string
+	VfkitBinaryPath *define.VMFile
+	VirtualMachine  *config.VirtualMachine
 }

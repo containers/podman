@@ -21,6 +21,8 @@ import (
 	"github.com/containers/libhvee/pkg/hypervctl"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/machine/hyperv/vsock"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/pkg/strongunits"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
@@ -99,21 +101,21 @@ type HyperVMachine struct {
 	// ConfigPath is the fully qualified path to the configuration file
 	ConfigPath define.VMFile
 	// HostUser contains info about host user
-	machine.HostUser
+	vmconfigs.HostUser
 	// ImageConfig describes the bootable image
 	machine.ImageConfig
 	// Mounts is the list of remote filesystems to mount
-	Mounts []machine.Mount
+	Mounts []vmconfigs.Mount
 	// Name of VM
 	Name string
 	// NetworkVSock is for the user networking
-	NetworkHVSock HVSockRegistryEntry
+	NetworkHVSock vsock.HVSockRegistryEntry
 	// ReadySocket tells host when vm is booted
-	ReadyHVSock HVSockRegistryEntry
+	ReadyHVSock vsock.HVSockRegistryEntry
 	// ResourceConfig is physical attrs of the VM
-	machine.ResourceConfig
+	vmconfigs.ResourceConfig
 	// SSHConfig for accessing the remote vm
-	machine.SSHConfig
+	vmconfigs.SSHConfig
 	// Starting tells us whether the machine is running or if we have just dialed it to start it
 	Starting bool
 	// Created contains the original created time instead of querying the file mod time
@@ -132,11 +134,11 @@ type HyperVMachine struct {
 // addNetworkAndReadySocketsToRegistry adds the Network and Ready sockets to the
 // Windows registry
 func (m *HyperVMachine) addNetworkAndReadySocketsToRegistry() error {
-	networkHVSock, err := NewHVSockRegistryEntry(m.Name, Network)
+	networkHVSock, err := vsock.NewHVSockRegistryEntry(m.Name, vsock.Network)
 	if err != nil {
 		return err
 	}
-	eventHVSocket, err := NewHVSockRegistryEntry(m.Name, Events)
+	eventHVSocket, err := vsock.NewHVSockRegistryEntry(m.Name, vsock.Events)
 	if err != nil {
 		return err
 	}
@@ -185,7 +187,7 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	// around to those, would be another : after that.
 	// TODO: Need to support options here
 	for _, mount := range opts.Volumes {
-		newMount := machine.Mount{}
+		newMount := vmconfigs.Mount{}
 
 		splitMount := strings.Split(mount, ":")
 		if len(splitMount) < 3 {
@@ -242,7 +244,7 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 		callbackFuncs.Add(m.removeSSHKeys)
 	}
 
-	m.ResourceConfig = machine.ResourceConfig{
+	m.ResourceConfig = vmconfigs.ResourceConfig{
 		CPUs:     opts.CPUS,
 		DiskSize: opts.DiskSize,
 		Memory:   opts.Memory,
@@ -367,7 +369,7 @@ func (m *HyperVMachine) Inspect() (*machine.InspectInfo, error) {
 		},
 		LastUp: m.LastUp,
 		Name:   m.Name,
-		Resources: machine.ResourceConfig{
+		Resources: vmconfigs.ResourceConfig{
 			CPUs:     uint64(cfg.Hardware.CPUs),
 			DiskSize: 0,
 			Memory:   cfg.Hardware.Memory,
@@ -543,7 +545,7 @@ func (m *HyperVMachine) SSH(name string, opts machine.SSHOptions) error {
 	if err != nil {
 		return err
 	}
-	if state != machine.Running {
+	if state != define.Running {
 		return fmt.Errorf("vm %q is not running", m.Name)
 	}
 
@@ -614,21 +616,21 @@ func (m *HyperVMachine) Start(name string, opts machine.StartOptions) error {
 	return m.writeConfig()
 }
 
-func (m *HyperVMachine) State(_ bool) (machine.Status, error) {
+func (m *HyperVMachine) State(_ bool) (define.Status, error) {
 	vmm := hypervctl.NewVirtualMachineManager()
 	vm, err := vmm.GetMachine(m.Name)
 	if err != nil {
 		return "", err
 	}
 	if vm.IsStarting() {
-		return machine.Starting, nil
+		return define.Starting, nil
 	}
 	if vm.State() == hypervctl.Enabled {
-		return machine.Running, nil
+		return define.Running, nil
 	}
 	// Following QEMU pattern here where only three
 	// states seem valid
-	return machine.Stopped, nil
+	return define.Stopped, nil
 }
 
 func (m *HyperVMachine) Stop(name string, opts machine.StopOptions) error {
@@ -911,19 +913,19 @@ func (m *HyperVMachine) createShares() (_ map[string]uint64, defErr error) {
 	toReturn := make(map[string]uint64)
 
 	for _, mount := range m.Mounts {
-		var vsock *HVSockRegistryEntry
+		var hvSock *vsock.HVSockRegistryEntry
 
 		vsockNum, ok := m.MountVsocks[mount.Target]
 		if ok {
 			// Ignore errors here, we'll just try and recreate the
 			// vsock below.
-			testVsock, err := LoadHVSockRegistryEntry(vsockNum)
+			testVsock, err := vsock.LoadHVSockRegistryEntry(vsockNum)
 			if err == nil {
-				vsock = testVsock
+				hvSock = testVsock
 			}
 		}
-		if vsock == nil {
-			testVsock, err := NewHVSockRegistryEntry(m.Name, Fileserver)
+		if hvSock == nil {
+			testVsock, err := vsock.NewHVSockRegistryEntry(m.Name, vsock.Fileserver)
 			if err != nil {
 				return nil, err
 			}
@@ -934,12 +936,12 @@ func (m *HyperVMachine) createShares() (_ map[string]uint64, defErr error) {
 					}
 				}
 			}()
-			vsock = testVsock
+			hvSock = testVsock
 		}
 
-		logrus.Debugf("Going to share directory %s via 9p on vsock %d", mount.Source, vsock.Port)
+		logrus.Debugf("Going to share directory %s via 9p on vsock %d", mount.Source, hvSock.Port)
 
-		toReturn[mount.Target] = vsock.Port
+		toReturn[mount.Target] = hvSock.Port
 	}
 
 	return toReturn, nil
@@ -955,7 +957,7 @@ func (m *HyperVMachine) removeShares() error {
 			continue
 		}
 
-		vsock, err := LoadHVSockRegistryEntry(vsockNum)
+		vsock, err := vsock.LoadHVSockRegistryEntry(vsockNum)
 		if err != nil {
 			logrus.Debugf("Vsock %d for mountpoint %s does not have a valid registry entry, skipping removal", vsockNum, mount.Target)
 			continue

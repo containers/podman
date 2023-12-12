@@ -1,7 +1,7 @@
 package e2e_test
 
 import (
-	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -32,7 +32,7 @@ var _ = Describe("podman machine start", func() {
 		info, ec, err := mb.toQemuInspectInfo()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ec).To(BeZero())
-		Expect(info[0].State).To(Equal(machine.Running))
+		Expect(info[0].State).To(Equal(define.Running))
 
 		stop := new(stopMachine)
 		stopSession, err := mb.setCmd(stop).run()
@@ -77,7 +77,7 @@ var _ = Describe("podman machine start", func() {
 		info, ec, err := mb.toQemuInspectInfo()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ec).To(BeZero())
-		Expect(info[0].State).To(Equal(machine.Running))
+		Expect(info[0].State).To(Equal(define.Running))
 
 		startSession, err = mb.setCmd(s).run()
 		Expect(err).ToNot(HaveOccurred())
