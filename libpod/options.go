@@ -2373,6 +2373,19 @@ func WithGroupEntry(groupEntry string) CtrCreateOption {
 	}
 }
 
+// WithBaseHostsFile sets the option to copy /etc/hosts file.
+func WithBaseHostsFile(baseHostsFile string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.BaseHostsFile = baseHostsFile
+
+		return nil
+	}
+}
+
 // WithMountAllDevices sets the option to mount all of a privileged container's
 // host devices
 func WithMountAllDevices() CtrCreateOption {

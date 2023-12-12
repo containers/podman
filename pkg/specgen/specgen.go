@@ -507,6 +507,13 @@ type ContainerNetworkConfig struct {
 	// specgen is stable so we can not change this right now.
 	// TODO (5.0): change to pointer
 	UseImageHosts bool `json:"use_image_hosts"`
+	// BaseHostsFile is the path to a hosts file, the entries from this file
+	// are added to the containers hosts file. As special value "image" is
+	// allowed which uses the /etc/hosts file from within the image and "none"
+	// which uses no base file at all. If it is empty we should default
+	// to the base_hosts_file configuration in containers.conf.
+	// Optional.
+	BaseHostsFile string `json:"base_hosts_file,omitempty"`
 	// HostAdd is a set of hosts which will be added to the container's
 	// /etc/hosts file.
 	// Conflicts with UseImageHosts.
