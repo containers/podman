@@ -39,6 +39,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const UnknownDigestSuffix = docker.UnknownDigestSuffix
+
 func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.BoolReport, error) {
 	exists, err := ir.Libpod.LibimageRuntime().Exists(nameOrID)
 	if err != nil {
