@@ -186,6 +186,59 @@ func Must(uuid UUID, err error) UUID {
 	return uuid
 }
 
+// Validate returns an error if s is not a properly formatted UUID in one of the following formats:
+//   xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+//   urn:uuid:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+//   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+//   {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
+// It returns an error if the format is invalid, otherwise nil.
+func Validate(s string) error {
+	switch len(s) {
+	// Standard UUID format
+	case 36:
+
+	// UUID with "urn:uuid:" prefix
+	case 36 + 9:
+		if !strings.EqualFold(s[:9], "urn:uuid:") {
+			return fmt.Errorf("invalid urn prefix: %q", s[:9])
+		}
+		s = s[9:]
+
+	// UUID enclosed in braces
+	case 36 + 2:
+		if s[0] != '{' || s[len(s)-1] != '}' {
+			return fmt.Errorf("invalid bracketed UUID format")
+		}
+		s = s[1 : len(s)-1]
+
+	// UUID without hyphens
+	case 32:
+		for i := 0; i < len(s); i += 2 {
+			_, ok := xtob(s[i], s[i+1])
+			if !ok {
+				return errors.New("invalid UUID format")
+			}
+		}
+
+	default:
+		return invalidLengthError{len(s)}
+	}
+
+	// Check for standard UUID format
+	if len(s) == 36 {
+		if s[8] != '-' || s[13] != '-' || s[18] != '-' || s[23] != '-' {
+			return errors.New("invalid UUID format")
+		}
+		for _, x := range []int{0, 2, 4, 6, 9, 11, 14, 16, 19, 21, 24, 26, 28, 30, 32, 34} {
+			if _, ok := xtob(s[x], s[x+1]); !ok {
+				return errors.New("invalid UUID format")
+			}
+		}
+	}
+
+	return nil
+}
+
 // String returns the string form of uuid, xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 // , or "" if uuid is invalid.
 func (uuid UUID) String() string {
