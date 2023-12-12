@@ -25,6 +25,7 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/lockfile"
+	psutil "github.com/shirou/gopsutil/v3/process"
 	"github.com/sirupsen/logrus"
 )
 
@@ -576,7 +577,7 @@ func (m *HyperVMachine) Start(name string, opts machine.StartOptions) error {
 	if vm.State() != hypervctl.Disabled {
 		return hypervctl.ErrMachineStateInvalid
 	}
-	_, _, err = m.startHostNetworking()
+	gvproxyPid, _, _, err := m.startHostNetworking()
 	if err != nil {
 		return fmt.Errorf("unable to start host networking: %q", err)
 	}
@@ -599,10 +600,6 @@ func (m *HyperVMachine) Start(name string, opts machine.StartOptions) error {
 	// set starting back false now that we are running
 	m.Starting = false
 
-	if err := m.startShares(); err != nil {
-		return err
-	}
-
 	if m.HostUser.Modified {
 		if machine.UpdatePodmanDockerSockService(m, name, m.UID, m.Rootful) == nil {
 			// Reset modification state if there are no errors, otherwise ignore errors
@@ -610,8 +607,27 @@ func (m *HyperVMachine) Start(name string, opts machine.StartOptions) error {
 			m.HostUser.Modified = false
 		}
 	}
+
 	// Write the config with updated starting status and hostuser modification
-	return m.writeConfig()
+	if err := m.writeConfig(); err != nil {
+		return err
+	}
+
+	// Check if gvproxy is still running.
+	// Do this *after* we write config, so we have still recorded that the
+	// VM is actually running - to ensure that stopping the machine works as
+	// expected.
+	_, err = psutil.NewProcess(gvproxyPid)
+	if err != nil {
+		return fmt.Errorf("gvproxy appears to have stopped (PID %d): %w", gvproxyPid, err)
+	}
+
+	// Finalize starting shares after we are confident gvproxy is still alive.
+	if err := m.startShares(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (m *HyperVMachine) State(_ bool) (machine.Status, error) {
@@ -733,24 +749,24 @@ func (m *HyperVMachine) loadHyperVMachineFromJSON(fqConfigPath string) error {
 	return json.Unmarshal(b, m)
 }
 
-func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingState, error) {
+func (m *HyperVMachine) startHostNetworking() (int32, string, machine.APIForwardingState, error) {
 	var (
 		forwardSock string
 		state       machine.APIForwardingState
 	)
 	cfg, err := config.Default()
 	if err != nil {
-		return "", machine.NoForwarding, err
+		return -1, "", machine.NoForwarding, err
 	}
 
 	executable, err := os.Executable()
 	if err != nil {
-		return "", 0, fmt.Errorf("unable to locate executable: %w", err)
+		return -1, "", 0, fmt.Errorf("unable to locate executable: %w", err)
 	}
 
 	gvproxyBinary, err := cfg.FindHelperBinary("gvproxy.exe", false)
 	if err != nil {
-		return "", 0, err
+		return -1, "", 0, err
 	}
 
 	cmd := gvproxy.NewGvproxyCommand()
@@ -767,20 +783,20 @@ func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingStat
 
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		if err := logCommandToFile(c, "gvproxy.log"); err != nil {
-			return "", 0, err
+			return -1, "", 0, err
 		}
 	}
 
 	logrus.Debugf("Starting gvproxy with command: %s %v", gvproxyBinary, c.Args)
 
 	if err := c.Start(); err != nil {
-		return "", 0, fmt.Errorf("unable to execute: %s: %w", cmd.ToCmdline(), err)
+		return -1, "", 0, fmt.Errorf("unable to execute: %s: %w", cmd.ToCmdline(), err)
 	}
 
 	logrus.Debugf("Got gvproxy PID as %d", c.Process.Pid)
 
 	if len(m.MountVsocks) == 0 {
-		return forwardSock, state, nil
+		return int32(c.Process.Pid), forwardSock, state, nil
 	}
 
 	// Start the 9p server in the background
@@ -805,17 +821,17 @@ func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingStat
 
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		if err := logCommandToFile(fsCmd, "podman-machine-server9.log"); err != nil {
-			return "", 0, err
+			return -1, "", 0, err
 		}
 	}
 
 	if err := fsCmd.Start(); err != nil {
-		return "", 0, fmt.Errorf("unable to execute: %s %v: %w", executable, args, err)
+		return -1, "", 0, fmt.Errorf("unable to execute: %s %v: %w", executable, args, err)
 	}
 
 	logrus.Infof("Started podman 9p server as PID %d", fsCmd.Process.Pid)
 
-	return forwardSock, state, nil
+	return int32(c.Process.Pid), forwardSock, state, nil
 }
 
 func logCommandToFile(c *exec.Cmd, filename string) error {
