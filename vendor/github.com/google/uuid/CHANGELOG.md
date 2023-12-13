@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/google/uuid/compare/v1.4.0...v1.5.0) (2023-12-12)
+
+
+### Features
+
+* Validate UUID without creating new UUID ([#141](https://github.com/google/uuid/issues/141)) ([9ee7366](https://github.com/google/uuid/commit/9ee7366e66c9ad96bab89139418a713dc584ae29))
+
 ## [1.4.0](https://github.com/google/uuid/compare/v1.3.1...v1.4.0) (2023-10-26)
 
 
