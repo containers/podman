@@ -32,13 +32,23 @@ func VirtualizationProvider() machine.VirtProvider {
 
 func (v HyperVVirtualization) CheckExclusiveActiveVM() (bool, string, error) {
 	vmm := hypervctl.NewVirtualMachineManager()
-	// Use of GetAll is OK here because we do not want to use the same name
-	// as something already *actually* configured in hyperv
-	vms, err := vmm.GetAll()
+
+	// Get all the VMs on disk (json files)
+	onDiskVMs, err := v.loadFromLocalJson()
 	if err != nil {
 		return false, "", err
 	}
-	for _, vm := range vms {
+	for _, onDiskVM := range onDiskVMs {
+		// lookup if the vm exists in hyperv
+		exists, vm, err := vmm.GetMachineExists(onDiskVM.Name)
+		if err != nil {
+			return false, "", err
+		}
+		// hyperv does not know about it, move on
+		if !exists { // hot path
+			// TODO should we logrus this to show we found a JSON with no hyperv vm ?
+			continue
+		}
 		if vm.IsStarting() || vm.State() == hypervctl.Enabled {
 			return true, vm.ElementName, nil
 		}
