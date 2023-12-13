@@ -607,6 +607,20 @@ function podman_storage_driver() {
     echo "$output"
 }
 
+# Given a (scratch) directory path, returns a set of command-line options
+# for running an isolated podman that will not step on system podman. Set:
+#  - rootdir, so we don't clobber real images or storage;
+#  - tmpdir, so we use an isolated DB; and
+#  - runroot, out of an abundance of paranoia
+function podman_isolation_opts() {
+    local path=${1?podman_isolation_opts: missing PATH arg}
+
+    for opt in root runroot tmpdir;do
+        mkdir -p $path/$opt
+        echo " --$opt $path/$opt"
+    done
+}
+
 # rhbz#1895105: rootless journald is unavailable except to users in
 # certain magic groups; which our testuser account does not belong to
 # (intentional: that is the RHEL default, so that's the setup we test).

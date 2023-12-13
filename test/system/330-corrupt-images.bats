@@ -17,14 +17,17 @@ PODMAN_CORRUPT_TEST_IMAGE_CANONICAL_FQIN=quay.io/libpod/alpine@sha256:634a8f35b5
 PODMAN_CORRUPT_TEST_IMAGE_TAGGED_FQIN=${PODMAN_CORRUPT_TEST_IMAGE_CANONICAL_FQIN%%@sha256:*}:test
 PODMAN_CORRUPT_TEST_IMAGE_ID=961769676411f082461f9ef46626dd7a2d1e2b2a38e6a44364bcbecf51e66dd4
 
-# All tests in this file (and ONLY in this file) run with a custom rootdir
 function setup() {
     skip_if_remote "none of these tests run under podman-remote"
-    _PODMAN_TEST_OPTS="--storage-driver=vfs --root ${PODMAN_CORRUPT_TEST_WORKDIR}/root"
+
+    # DANGER! This completely changes the behavior of run_podman,
+    # forcing it to use a quarantined directory. Make certain that
+    # it gets unset in teardown.
+    _PODMAN_TEST_OPTS="--storage-driver=vfs $(podman_isolation_opts ${PODMAN_CORRUPT_TEST_WORKDIR})"
 }
 
 function teardown() {
-    # No other tests should ever run with this custom rootdir
+    # No other tests should ever run with these scratch options
     unset _PODMAN_TEST_OPTS
 
     is_remote && return

@@ -19,6 +19,14 @@ unset REGISTRY_AUTH_FILE
 function start_registry() {
     if [[ -d "$PODMAN_LOGIN_WORKDIR/auth" ]]; then
         # Already started
+
+        # Fixes very obscure corner case in root system tests:
+        #  1) we run 150-login tests, starting a registry; then
+        #  2) run 500-network, which runs iptables -F; then
+        #  3) run 700-play, the "private" test, which needs the
+        #     already-started registry, but its port is now DROPped,
+        #     so the test times out trying to talk to registry
+        run_podman --storage-driver vfs $(podman_isolation_opts ${PODMAN_LOGIN_WORKDIR}) network reload --all
         return
     fi
 
@@ -28,10 +36,8 @@ function start_registry() {
     # Registry image; copy of docker.io, but on our own registry
     local REGISTRY_IMAGE="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/registry:2.8"
 
-    # Pull registry image, but into a separate container storage
-    mkdir ${PODMAN_LOGIN_WORKDIR}/root
-    mkdir ${PODMAN_LOGIN_WORKDIR}/runroot
-    PODMAN_LOGIN_ARGS="--storage-driver vfs --root ${PODMAN_LOGIN_WORKDIR}/root --runroot ${PODMAN_LOGIN_WORKDIR}/runroot"
+    # Pull registry image, but into a separate container storage and DB and everything
+    PODMAN_LOGIN_ARGS="--storage-driver vfs $(podman_isolation_opts ${PODMAN_LOGIN_WORKDIR})"
     # _prefetch() will retry twice on network error, and will also use
     # a pre-cached image if present (helpful on dev workstation, not in CI).
     _PODMAN_TEST_OPTS="${PODMAN_LOGIN_ARGS}" _prefetch $REGISTRY_IMAGE
@@ -86,14 +92,9 @@ function stop_registry() {
         skip "[leaving registry running by request]"
     fi
 
-    run_podman --storage-driver vfs                      \
-               --root    ${PODMAN_LOGIN_WORKDIR}/root    \
-               --runroot ${PODMAN_LOGIN_WORKDIR}/runroot \
-               rm -f -t0 registry
-    run_podman --storage-driver vfs                      \
-               --root    ${PODMAN_LOGIN_WORKDIR}/root    \
-               --runroot ${PODMAN_LOGIN_WORKDIR}/runroot \
-               rmi -a -f
+    opts="--storage-driver vfs $(podman_isolation_opts ${PODMAN_LOGIN_WORKDIR})"
+    run_podman $opts rm -f -t0 registry
+    run_podman $opts rmi -a -f
 
     # By default, clean up
     if [ -z "${PODMAN_TEST_KEEP_LOGIN_WORKDIR}" ]; then
