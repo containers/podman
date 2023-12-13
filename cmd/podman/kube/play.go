@@ -98,7 +98,7 @@ func playFlags(cmd *cobra.Command) {
 	flags.SetNormalizeFunc(utils.AliasFlags)
 
 	annotationFlagName := "annotation"
-	flags.StringSliceVar(
+	flags.StringArrayVar(
 		&playOptions.annotations,
 		annotationFlagName, []string{},
 		"Add annotations to pods (key=value)",
@@ -124,7 +124,7 @@ func playFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(logDriverFlagName, common.AutocompleteLogDriver)
 
 	logOptFlagName := "log-opt"
-	flags.StringSliceVar(
+	flags.StringArrayVar(
 		&playOptions.LogOptions,
 		logOptFlagName, []string{},
 		"Logging driver options",
@@ -165,7 +165,7 @@ func playFlags(cmd *cobra.Command) {
 	flags.BoolVarP(&playOptions.Wait, waitFlagName, "w", false, "Clean up all objects created when a SIGTERM is received or pods exit")
 
 	configmapFlagName := "configmap"
-	flags.StringSliceVar(&playOptions.ConfigMaps, configmapFlagName, []string{}, "`Pathname` of a YAML file containing a kubernetes configmap")
+	flags.StringArrayVar(&playOptions.ConfigMaps, configmapFlagName, []string{}, "`Pathname` of a YAML file containing a kubernetes configmap")
 	_ = cmd.RegisterFlagCompletionFunc(configmapFlagName, completion.AutocompleteDefault)
 
 	noTruncFlagName := "no-trunc"
@@ -239,7 +239,7 @@ func play(cmd *cobra.Command, args []string) error {
 
 	for _, annotation := range playOptions.annotations {
 		splitN := strings.SplitN(annotation, "=", 2)
-		if len(splitN) > 2 {
+		if len(splitN) != 2 {
 			return fmt.Errorf("annotation %q must include an '=' sign", annotation)
 		}
 		if playOptions.Annotations == nil {

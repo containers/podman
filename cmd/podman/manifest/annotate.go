@@ -31,7 +31,7 @@ func init() {
 	flags := annotateCmd.Flags()
 
 	annotationFlagName := "annotation"
-	flags.StringSliceVar(&manifestAnnotateOpts.Annotation, annotationFlagName, nil, "set an `annotation` for the specified image")
+	flags.StringArrayVar(&manifestAnnotateOpts.Annotation, annotationFlagName, nil, "set an `annotation` for the specified image")
 	_ = annotateCmd.RegisterFlagCompletionFunc(annotationFlagName, completion.AutocompleteNone)
 
 	archFlagName := "arch"

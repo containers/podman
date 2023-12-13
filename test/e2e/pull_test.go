@@ -612,7 +612,7 @@ var _ = Describe("Podman pull", func() {
 
 		decryptionTestHelper := func(imgPath string) *PodmanSessionIntegration {
 			bitSize := 1024
-			keyFileName := filepath.Join(podmanTest.TempDir, "key")
+			keyFileName := filepath.Join(podmanTest.TempDir, "key,withcomma")
 			publicKeyFileName, privateKeyFileName, err := WriteRSAKeyPair(keyFileName, bitSize)
 			Expect(err).ToNot(HaveOccurred())
 

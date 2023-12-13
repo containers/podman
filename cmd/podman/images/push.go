@@ -138,7 +138,7 @@ func pushFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(compLevel, completion.AutocompleteNone)
 
 	encryptionKeysFlagName := "encryption-key"
-	flags.StringSliceVar(&pushOptions.EncryptionKeys, encryptionKeysFlagName, nil, "Key with the encryption protocol to use to encrypt the image (e.g. jwe:/path/to/key.pem)")
+	flags.StringArrayVar(&pushOptions.EncryptionKeys, encryptionKeysFlagName, nil, "Key with the encryption protocol to use to encrypt the image (e.g. jwe:/path/to/key.pem)")
 	_ = cmd.RegisterFlagCompletionFunc(encryptionKeysFlagName, completion.AutocompleteDefault)
 
 	encryptLayersFlagName := "encrypt-layer"
