@@ -794,6 +794,7 @@ BOGUS=foo
 		Entry("ports.container", "ports.container", 0, ""),
 		Entry("ports_ipv6.container", "ports_ipv6.container", 0, ""),
 		Entry("pull.container", "pull.container", 0, ""),
+		Entry("quotes.container", "quotes.container", 0, ""),
 		Entry("readonly.container", "readonly.container", 0, ""),
 		Entry("readonly-tmpfs.container", "readonly-tmpfs.container", 0, ""),
 		Entry("readonly-notmpfs.container", "readonly-notmpfs.container", 0, ""),

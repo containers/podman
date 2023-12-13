@@ -611,7 +611,7 @@ func (f *UnitFile) Lookup(groupName string, key string) (string, bool) {
 		return "", false
 	}
 
-	return strings.TrimRightFunc(v, unicode.IsSpace), true
+	return strings.Trim(strings.TrimRightFunc(v, unicode.IsSpace), "\""), true
 }
 
 // Lookup the last instance of a key and convert the value to a bool
