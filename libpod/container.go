@@ -13,8 +13,6 @@ import (
 	"strings"
 	"time"
 
-	types040 "github.com/containernetworking/cni/pkg/types/040"
-	"github.com/containers/common/libnetwork/cni"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/secrets"
@@ -176,13 +174,6 @@ type ContainerState struct {
 	LegacyExecSessions map[string]*legacyExecSession `json:"execSessions,omitempty"`
 	// NetNS is the path or name of the NetNS
 	NetNS string `json:"netns,omitempty"`
-	// NetworkStatusOld contains the configuration results for all networks
-	// the pod is attached to. Only populated if we created a network
-	// namespace for the container, and the network namespace is currently
-	// active.
-	// These are DEPRECATED and will be removed in a future release.
-	// This field is only used for backwarts compatibility.
-	NetworkStatusOld []*types040.Result `json:"networkResults,omitempty"`
 	// NetworkStatus contains the network Status for all networks
 	// the container is attached to. Only populated if we created a network
 	// namespace for the container, and the network namespace is currently
@@ -1374,39 +1365,10 @@ func (c *Container) GetNetworkStatus() (map[string]types.StatusBlock, error) {
 	return c.getNetworkStatus(), nil
 }
 
-// getNetworkStatus get the current network status from the state. If the container
-// still uses the old network status it is converted to the new format. This function
+// getNetworkStatus get the current network status from the state. This function
 // should be used instead of reading c.state.NetworkStatus directly.
 func (c *Container) getNetworkStatus() map[string]types.StatusBlock {
-	if c.state.NetworkStatus != nil {
-		return c.state.NetworkStatus
-	}
-	if c.state.NetworkStatusOld != nil {
-		networks, err := c.networks()
-		if err != nil {
-			return nil
-		}
-		if len(networks) != len(c.state.NetworkStatusOld) {
-			return nil
-		}
-		result := make(map[string]types.StatusBlock, len(c.state.NetworkStatusOld))
-		i := 0
-		// Note: NetworkStatusOld does not contain the network names so we get them extra
-		// We cannot guarantee the same order but after a state refresh it should work
-		for netName := range networks {
-			status, err := cni.CNIResultToStatus(c.state.NetworkStatusOld[i])
-			if err != nil {
-				return nil
-			}
-			result[netName] = status
-			i++
-		}
-		c.state.NetworkStatus = result
-		_ = c.save()
-
-		return result
-	}
-	return nil
+	return c.state.NetworkStatus
 }
 
 func (c *Container) NamespaceMode(ns spec.LinuxNamespaceType, ctrSpec *spec.Spec) string {

@@ -176,7 +176,6 @@ func (c *Container) cleanupNetwork() error {
 
 	c.state.NetNS = ""
 	c.state.NetworkStatus = nil
-	c.state.NetworkStatusOld = nil
 
 	if c.valid {
 		return c.save()

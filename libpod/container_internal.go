@@ -643,7 +643,6 @@ func resetContainerState(state *ContainerState) {
 	state.StartupHCFailureCount = 0
 	state.NetNS = ""
 	state.NetworkStatus = nil
-	state.NetworkStatusOld = nil
 }
 
 // Refresh refreshes the container's state after a restart.
@@ -694,7 +693,6 @@ func (c *Container) refresh() error {
 	c.lock = lock
 
 	c.state.NetworkStatus = nil
-	c.state.NetworkStatusOld = nil
 
 	// Rewrite the config if necessary.
 	// Podman 4.0 uses a new port format in the config.

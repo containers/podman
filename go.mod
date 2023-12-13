@@ -9,7 +9,6 @@ require (
 	github.com/buger/goterm v1.0.4
 	github.com/checkpoint-restore/checkpointctl v1.1.0
 	github.com/checkpoint-restore/go-criu/v7 v7.0.0
-	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.4.0
 	github.com/containers/buildah v1.33.2-0.20231121195905-d1a1c53c8e1c
 	github.com/containers/common v0.57.1-0.20231206135104-b647eb3a5eea
@@ -97,6 +96,7 @@ require (
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.15.1 // indirect
 	github.com/containerd/typeurl/v2 v2.1.1 // indirect
+	github.com/containernetworking/cni v1.1.2 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/containers/luksy v0.0.0-20231030195837-b5a7f79da98b // indirect
 	github.com/coreos/go-oidc/v3 v3.7.0 // indirect
