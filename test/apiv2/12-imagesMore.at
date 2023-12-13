@@ -43,8 +43,23 @@ s1=$(jq -r .status <<<"${lines[1]}")
 like "$s1" "mytag: digest: sha256:[0-9a-f]\{64\} size: [0-9]\+" \
      "Push to local registry: second status line"
 
+# Push to local registry using the libpod endpoint with quiet=false...
+# First create a new tag for the image to push
+t POST "libpod/images/$IMAGE/tag?repo=localhost:$REGISTRY_PORT/myrepo&tag=quiet-false" 201
+
+t POST "libpod/images/localhost:$REGISTRY_PORT/myrepo:quiet-false/push?tlsVerify=false&quiet=false" 200
+
+# ...and check output. We can't use our built-in checks because this output
+# is a sequence of JSON objects, i.e., individual ones, not in a JSON array.
+# The lines themselves are valid JSON, but taken together they are not.
+readarray lines <<<"$output"
+s0=$(jq -r .manifestdigest <<<"${lines[-1]}")
+like "$s0" "sha256:[0-9a-f]\{64\}" \
+   "Push to local registry: last line in push report"
+
 # Untag the image
 t POST "libpod/images/$iid/untag?repo=localhost:$REGISTRY_PORT/myrepo&tag=mytag" 201
+t POST "libpod/images/$iid/untag?repo=localhost:$REGISTRY_PORT/myrepo&tag=quiet-false" 201
 
 # Try to push non-existing image
 t POST "images/localhost:$REGISTRY_PORT/idonotexist/push?tlsVerify=false" 404
