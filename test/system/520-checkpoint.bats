@@ -117,13 +117,8 @@ function teardown() {
 @test "podman checkpoint --export, with volumes" {
     skip_if_remote "Test uses --root/--runroot, which are N/A over remote"
 
-    # Create a root in tempdir. We will run a container here.
-    local p_root=${PODMAN_TMPDIR}/testroot/root
-    local p_runroot=${PODMAN_TMPDIR}/testroot/runroot
-    mkdir -p $p_root $p_runroot
-
     # To avoid network pull, copy $IMAGE straight to temp root
-    local p_opts="--root $p_root --runroot $p_runroot --events-backend file"
+    local p_opts="$(podman_isolation_opts ${PODMAN_TMPDIR}) --events-backend file"
     run_podman         save -o $PODMAN_TMPDIR/image.tar $IMAGE
     run_podman $p_opts load -i $PODMAN_TMPDIR/image.tar
 

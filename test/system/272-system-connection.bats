@@ -108,8 +108,7 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true" \
     # Start service. Now podman info should work fine. The %%-remote*
     # converts "podman-remote --opts" to just "podman", which is what
     # we need for the server.
-    ${PODMAN%%-remote*} --root ${PODMAN_TMPDIR}/root \
-                        --runroot ${PODMAN_TMPDIR}/runroot \
+    ${PODMAN%%-remote*} $(podman_isolation_opts ${PODMAN_TMPDIR}) \
                         system service -t 99 tcp://localhost:$_SERVICE_PORT &
     _SERVICE_PID=$!
     # Wait for the port and the podman-service to be ready.
