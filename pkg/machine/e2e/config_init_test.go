@@ -35,13 +35,15 @@ type initMachine struct {
 }
 
 func (i *initMachine) buildCmd(m *machineTestBuilder) []string {
+	diskSize := defaultDiskSize
 	cmd := []string{"machine", "init"}
 	if i.cpus != nil {
 		cmd = append(cmd, "--cpus", strconv.Itoa(int(*i.cpus)))
 	}
 	if i.diskSize != nil {
-		cmd = append(cmd, "--disk-size", strconv.Itoa(int(*i.diskSize)))
+		diskSize = *i.diskSize
 	}
+	cmd = append(cmd, "--disk-size", strconv.Itoa(int(diskSize)))
 	if l := len(i.ignitionPath); l > 0 {
 		cmd = append(cmd, "--ignition-path", i.ignitionPath)
 	}

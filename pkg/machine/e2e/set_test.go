@@ -1,6 +1,7 @@
 package e2e_test
 
 import (
+	"fmt"
 	"runtime"
 	"strconv"
 	"strings"
@@ -131,7 +132,7 @@ var _ = Describe("podman machine set", func() {
 		sshSession3, err := mb.setName(name).setCmd(ssh3.withSSHCommand([]string{"sudo", "fdisk", "-l", "|", "grep", "Disk"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(sshSession3).To(Exit(0))
-		Expect(sshSession3.outputToString()).To(ContainSubstring("100 GiB"))
+		Expect(sshSession3.outputToString()).To(ContainSubstring(fmt.Sprintf("%d GiB", defaultDiskSize)))
 	})
 
 	It("set rootful with docker sock change", func() {
