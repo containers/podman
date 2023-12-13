@@ -25,7 +25,8 @@ func TestMain(m *testing.M) {
 }
 
 const (
-	defaultStream = machine.Testing
+	defaultStream        = machine.Testing
+	defaultDiskSize uint = 11
 )
 
 var (
