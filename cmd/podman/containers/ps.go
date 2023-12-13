@@ -189,6 +189,11 @@ func ps(cmd *cobra.Command, _ []string) error {
 	if err := checkFlags(cmd); err != nil {
 		return err
 	}
+
+	if !listOpts.Pod {
+		listOpts.Pod = strings.Contains(listOpts.Format, ".PodName")
+	}
+
 	for _, f := range filters {
 		split := strings.SplitN(f, "=", 2)
 		if len(split) == 1 {
@@ -334,6 +339,11 @@ func (l psReporter) ImageID() string {
 		return l.ListContainer.ImageID[0:12]
 	}
 	return l.ListContainer.ImageID
+}
+
+// Labels returns a map of the pod's labels
+func (l psReporter) Label(name string) string {
+	return l.ListContainer.Labels[name]
 }
 
 // ID returns the ID of the container

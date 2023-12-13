@@ -194,6 +194,41 @@ EOF
     is "${#lines[@]}" "1" "storage container has been removed"
 }
 
+@test "podman ps --format label" {
+    rand_value=$(random_string 10)
 
+    run_podman run -d --label mylabel=$rand_value $IMAGE sleep inf
+    cid=$output
+    is "$cid" "[0-9a-f]\{64\}$"
+
+    run_podman ps --format '{{ .Label "mylabel" }}'
+    is "$output" "$rand_value"
+
+    run_podman rm -t 0 -f $cid
+}
+
+@test "podman pod ps --format label" {
+    rand_value=$(random_string 10)
+
+    run_podman pod create --label mylabel=${rand_value} test
+
+    run_podman pod ps --format '{{ .Label "mylabel" }}'
+    is "$output" "$rand_value"
+
+    run_podman pod rm -t 0 -f test
+}
+
+@test "podman ps --format PodName" {
+    rand_value=$(random_string 10)
+
+    run_podman run -d --pod new:${rand_value} --label mylabel=$rand_value $IMAGE sleep inf
+    cid=$output
+    is "$cid" "[0-9a-f]\{64\}$"
+
+    run_podman ps --format '{{ .PodName }}'
+    is "$output" ".*$rand_value"
+
+    run_podman rm -t 0 -f $cid
+}
 
 # vim: filetype=sh
