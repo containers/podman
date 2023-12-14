@@ -12,6 +12,8 @@ import (
 
 const podmanBinary = "../../../bin/windows/podman.exe"
 
+var gvproxyBinaryName string = "gvproxy.exe"
+
 func getDownloadLocation(p machine.VirtProvider) string {
 	if p.VMType() == machine.HyperVVirt {
 		return getFCOSDownloadLocation(p)
@@ -33,7 +35,9 @@ func pgrep(n string) (string, error) {
 	}
 	strOut := string(out)
 	// in pgrep, if no running process is found, it exits 1 and the output is zilch
-	if strings.Contains(strOut, "INFO: No tasks are running which match the specified search") {
+	// also, originally in windows, the following substring had an append of "search" but it looks
+	// like some windows implementations use "criteria".  removed the append all-together
+	if strings.Contains(strOut, "INFO: No tasks are running which match the specified") {
 		return "", fmt.Errorf("no task found")
 	}
 	return strOut, nil

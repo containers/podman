@@ -224,9 +224,9 @@ func (v HyperVVirtualization) RemoveAndCleanMachines() error {
 		if err != nil {
 			prevErr = handlePrevError(err, prevErr)
 		}
-
+		// using the mm stop so gvproxy will also be torn down
 		if vm.State() != hypervctl.Disabled {
-			if err := vm.StopWithForce(); err != nil {
+			if err := mm.stop(vm, true); err != nil {
 				prevErr = handlePrevError(err, prevErr)
 			}
 		}

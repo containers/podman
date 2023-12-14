@@ -434,8 +434,8 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 			return "", nil, &machine.ErrVMRunningCannotDestroyed{Name: m.Name}
 		}
 		// force stop bc we are destroying
-		if err := vm.StopWithForce(); err != nil {
-			return "", nil, fmt.Errorf("stopping virtual machine: %w", err)
+		if err := m.stop(vm, true); err != nil {
+			return "", nil, err
 		}
 
 		// Update state on the VM by pulling its info again
@@ -649,29 +649,39 @@ func (m *HyperVMachine) State(_ bool) (define.Status, error) {
 	return define.Stopped, nil
 }
 
-func (m *HyperVMachine) Stop(name string, opts machine.StopOptions) error {
+func (m *HyperVMachine) Stop(name string, _ machine.StopOptions) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-
 	vmm := hypervctl.NewVirtualMachineManager()
 	vm, err := vmm.GetMachine(m.Name)
 	if err != nil {
 		return fmt.Errorf("getting virtual machine: %w", err)
 	}
+	return m.stop(vm, false)
+}
+
+// stop turns a machine off with optional bool for force stop.  the machine should be locked
+// by the caller
+func (m *HyperVMachine) stop(vm *hypervctl.VirtualMachine, hardStop bool) error {
 	vmState := vm.State()
 	if vm.State() == hypervctl.Disabled {
 		return nil
 	}
-	if vmState != hypervctl.Enabled { // more states could be provided as well
-		return hypervctl.ErrMachineStateInvalid
-	}
-
 	if err := machine.CleanupGVProxy(m.GvProxyPid); err != nil {
 		logrus.Error(err)
 	}
 
-	if err := vm.Stop(); err != nil {
-		return fmt.Errorf("stopping virtual machine: %w", err)
+	// the vm is not disabled (stopped) and not enabled (running), we need to use
+	// force stop here
+	if vmState != hypervctl.Enabled || hardStop {
+		if err := vm.StopWithForce(); err != nil {
+			return err
+		}
+	} else {
+		// the vm is just regular old enabled (running)
+		if err := vm.Stop(); err != nil {
+			return fmt.Errorf("stopping virtual machine: %w", err)
+		}
 	}
 
 	// keep track of last up

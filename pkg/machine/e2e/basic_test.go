@@ -53,6 +53,21 @@ var _ = Describe("run basic podman commands", func() {
 		rmCon, err := mb.setCmd(bm.withPodmanCommand([]string{"rm", "-a"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(rmCon).To(Exit(0))
+
+		// make sure gvproxy is running
+		before, beforeErr := pgrep(gvproxyBinaryName)
+		Expect(beforeErr).ToNot(HaveOccurred())
+		Expect(before).To(ContainSubstring(gvproxyBinaryName))
+
+		rm := rmMachine{}
+		removeSession, err := mb.setCmd(rm.withForce()).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(removeSession).To(Exit(0))
+
+		// Make sure machine rm -f stopped gvproxy
+		after, afterError := pgrep(gvproxyBinaryName)
+		Expect(afterError).To(HaveOccurred())
+		Expect(after).ToNot(ContainSubstring(gvproxyBinaryName))
 	})
 
 	It("Podman ops with port forwarding and gvproxy", func() {
@@ -74,7 +89,8 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(exec).To(Exit(0))
 
-		out, err := pgrep("gvproxy")
+		// make sure gvproxy is running
+		out, err := pgrep(gvproxyBinaryName)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(out).ToNot(BeEmpty())
 
@@ -89,8 +105,8 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(stopSession).To(Exit(0))
 
 		// gxproxy should exit after machine is stopped
-		out, _ = pgrep("gvproxy")
-		Expect(out).ToNot(ContainSubstring("gvproxy"))
+		out, _ = pgrep(gvproxyBinaryName)
+		Expect(out).ToNot(ContainSubstring(gvproxyBinaryName))
 	})
 
 })

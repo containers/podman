@@ -8,6 +8,8 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 )
 
+var gvproxyBinaryName string = "gvproxy"
+
 func getDownloadLocation(p machine.VirtProvider) string {
 	return getFCOSDownloadLocation(p)
 }
