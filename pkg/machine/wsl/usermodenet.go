@@ -29,6 +29,8 @@ fi
 if [[ ! $ROUTE =~ default\ via ]]; then
 	exit 3
 fi
+# auto-correct previous installs of known bad image v39.0.3
+chmod 755 /usr/local/bin/vm
 nohup /usr/local/bin/vm -iface podman-usermode -stop-if-exist ignore -url "stdio:$GVPROXY?listen-stdio=accept" > /var/log/vm.log 2> /var/log/vm.err  < /dev/null &
 echo $! > $STATE/vm.pid
 sleep 1
