@@ -164,6 +164,7 @@ func runWrapper(podmanBinary string, cmdArgs []string, timeout time.Duration, wa
 	}
 	GinkgoWriter.Println(podmanBinary + " " + strings.Join(cmdArgs, " "))
 	c := exec.Command(podmanBinary, cmdArgs...)
+	c.Stdin = nil
 	session, err := Start(c, GinkgoWriter, GinkgoWriter)
 	if err != nil {
 		Fail(fmt.Sprintf("Unable to start session: %q", err))

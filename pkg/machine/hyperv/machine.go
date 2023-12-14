@@ -775,6 +775,8 @@ func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingStat
 
 	logrus.Debugf("Starting gvproxy with command: %s %v", gvproxyBinary, c.Args)
 
+	c.Stdin = nil
+
 	if err := c.Start(); err != nil {
 		return "", 0, fmt.Errorf("unable to execute: %s: %w", cmd.ToCmdline(), err)
 	}
@@ -810,6 +812,8 @@ func (m *HyperVMachine) startHostNetworking() (string, machine.APIForwardingStat
 			return "", 0, err
 		}
 	}
+
+	fsCmd.Stdin = nil
 
 	if err := fsCmd.Start(); err != nil {
 		return "", 0, fmt.Errorf("unable to execute: %s %v: %w", executable, args, err)
