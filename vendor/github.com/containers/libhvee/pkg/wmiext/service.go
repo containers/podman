@@ -299,7 +299,7 @@ func (s *Service) FindFirstInstance(wql string) (*Instance, error) {
 	}
 
 	if instance == nil {
-		return nil, errors.New("no results found")
+		return nil, ErrNoResults
 	}
 
 	return instance, nil

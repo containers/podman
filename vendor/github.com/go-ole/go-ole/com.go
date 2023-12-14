@@ -11,6 +11,7 @@ import (
 var (
 	procCoInitialize            = modole32.NewProc("CoInitialize")
 	procCoInitializeEx          = modole32.NewProc("CoInitializeEx")
+	procCoInitializeSecurity    = modole32.NewProc("CoInitializeSecurity")
 	procCoUninitialize          = modole32.NewProc("CoUninitialize")
 	procCoCreateInstance        = modole32.NewProc("CoCreateInstance")
 	procCoTaskMemFree           = modole32.NewProc("CoTaskMemFree")
@@ -36,6 +37,9 @@ var (
 	procGetMessageW      = moduser32.NewProc("GetMessageW")
 	procDispatchMessageW = moduser32.NewProc("DispatchMessageW")
 )
+
+// This is to enable calling COM Security initialization multiple times
+var bSecurityInit bool = false
 
 // coInitialize initializes COM library on current thread.
 //
@@ -68,6 +72,35 @@ func coInitializeEx(coinit uint32) (err error) {
 	return
 }
 
+// coInitializeSecurity: Registers security and sets the default security values
+// for the process.
+func coInitializeSecurity(cAuthSvc int32,
+	dwAuthnLevel uint32,
+	dwImpLevel uint32,
+	dwCapabilities uint32) (err error) {
+	// Check COM Security initialization has done previously
+	if !bSecurityInit {
+		// https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-coinitializesecurity
+		hr, _, _ := procCoInitializeSecurity.Call(
+			uintptr(0),              // Allow *all* VSS writers to communicate back!
+			uintptr(cAuthSvc),       // Default COM authentication service
+			uintptr(0),              // Default COM authorization service
+			uintptr(0),              // Reserved parameter
+			uintptr(dwAuthnLevel),   // Strongest COM authentication level
+			uintptr(dwImpLevel),     // Minimal impersonation abilities
+			uintptr(0),              // Default COM authentication settings
+			uintptr(dwCapabilities), // Cloaking
+			uintptr(0))              // eserved parameter
+		if hr != 0 {
+			err = NewError(hr)
+		} else {
+			// COM Security initialization done make global flag true.
+			bSecurityInit = true
+		}
+	}
+	return
+}
+
 // CoInitialize initializes COM library on current thread.
 //
 // MSDN documentation suggests that this function should not be called. Call
@@ -94,6 +127,15 @@ func CoInitializeEx(p uintptr, coinit uint32) (err error) {
 // CoUninitialize uninitializes COM Library.
 func CoUninitialize() {
 	procCoUninitialize.Call()
+}
+
+// CoInitializeSecurity: Registers security and sets the default security values
+// for the process.
+func CoInitializeSecurity(cAuthSvc int32,
+	dwAuthnLevel uint32,
+	dwImpLevel uint32,
+	dwCapabilities uint32) (err error) {
+	return coInitializeSecurity(cAuthSvc, dwAuthnLevel, dwImpLevel, dwCapabilities)
 }
 
 // CoTaskMemFree frees memory pointer.
