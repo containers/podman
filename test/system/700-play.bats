@@ -5,6 +5,7 @@
 
 load helpers
 load helpers.network
+load helpers.registry
 
 # This is a long ugly way to clean up pods and remove the pause image
 function teardown() {
@@ -933,4 +934,47 @@ spec:
     run_podman kube down $fname
     run_podman pod rm -a
     run_podman rm -a
+}
+
+@test "podman play --build private registry" {
+    skip_if_remote "--build is not supported in context remote"
+
+    local registry=localhost:${PODMAN_LOGIN_REGISTRY_PORT}
+    local from_image=$registry/quadlet_image_test:$(random_string)
+    local authfile=$PODMAN_TMPDIR/authfile.json
+
+    mkdir -p $PODMAN_TMPDIR/userimage
+    cat > $PODMAN_TMPDIR/userimage/Containerfile << _EOF
+from $from_image
+USER bin
+_EOF
+
+    # Start the registry and populate the authfile that we can use for the test.
+    start_registry
+    run_podman login --authfile=$authfile \
+        --tls-verify=false \
+        --username ${PODMAN_LOGIN_USER} \
+        --password ${PODMAN_LOGIN_PASS} \
+        $registry
+
+    # Push the test image to the registry
+    run_podman image tag $IMAGE $from_image
+    run_podman image push --tls-verify=false --authfile=$authfile $from_image
+
+    # Remove the local image to make sure it will be pulled again
+    run_podman image rm --ignore $from_image
+
+    _write_test_yaml command=id image=userimage
+    run_podman 125 play kube --build --start=false $PODMAN_TMPDIR/test.yaml
+    assert "$output" "=~" \
+        "Error: short-name resolution enforced but cannot prompt without a TTY|Resolving \"userimage\" using unqualified-search registries" \
+        "The error message does match any of the expected ones"
+
+    run_podman play kube --replace --context-dir=$PODMAN_TMPDIR --tls-verify=false --authfile=$authfile --build --start=false $PODMAN_TMPDIR/test.yaml
+    run_podman inspect --format "{{ .Config.User }}" test_pod-test
+    is "$output" bin "expect container within pod to run as the bin user"
+
+    run_podman stop -a -t 0
+    run_podman pod rm -t 0 -f test_pod
+    run_podman rmi -f userimage:latest $from_image
 }

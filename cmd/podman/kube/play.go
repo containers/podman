@@ -12,6 +12,7 @@ import (
 	"strings"
 	"syscall"
 
+	buildahParse "github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/image/v5/types"
@@ -219,6 +220,13 @@ func play(cmd *cobra.Command, args []string) error {
 	}
 	if cmd.Flags().Changed("build") {
 		playOptions.Build = types.NewOptionalBool(playOptions.BuildCLI)
+		if playOptions.Build == types.OptionalBoolTrue {
+			systemContext, err := buildahParse.SystemContextFromOptions(cmd)
+			if err != nil {
+				return err
+			}
+			playOptions.SystemContext = systemContext
+		}
 	}
 	if cmd.Flags().Changed("authfile") {
 		if err := auth.CheckAuthFile(playOptions.Authfile); err != nil {

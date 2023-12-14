@@ -1025,6 +1025,7 @@ func (ic *ContainerEngine) getImageAndLabelInfo(ctx context.Context, cwd string,
 		}
 		buildOpts.Isolation = isolation
 		buildOpts.CommonBuildOpts = commonOpts
+		buildOpts.SystemContext = options.SystemContext
 		buildOpts.Output = container.Image
 		buildOpts.ContextDirectory = filepath.Dir(buildFile)
 		buildOpts.ReportWriter = writer
