@@ -1,6 +1,7 @@
 package wmiext
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -156,6 +157,11 @@ const (
 
 var (
 	wmiModule syscall.Handle
+)
+
+// VM Lookup errors
+var (
+	ErrNoResults = errors.New("no results found")
 )
 
 func init() {

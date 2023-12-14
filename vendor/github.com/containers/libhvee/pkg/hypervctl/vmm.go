@@ -4,6 +4,7 @@
 package hypervctl
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/containers/libhvee/pkg/wmiext"
@@ -88,7 +89,25 @@ func (vmm *VirtualMachineManager) Exists(name string) (bool, error) {
 	return false, nil
 }
 
+// GetMachine is a stub to lookup and get settings for a VM
 func (vmm *VirtualMachineManager) GetMachine(name string) (*VirtualMachine, error) {
+	return vmm.getMachine(name)
+}
+
+// GetMachineExists looks for a machine defined in hyperv and returns it if it exists
+func (vmm *VirtualMachineManager) GetMachineExists(name string) (bool, *VirtualMachine, error) {
+	vm, err := vmm.getMachine(name)
+	if err != nil {
+		if errors.Is(err, wmiext.ErrNoResults) {
+			return false, nil, nil
+		}
+		return false, nil, err
+	}
+	return true, vm, nil
+}
+
+// getMachine looks up a single VM by name
+func (vmm *VirtualMachineManager) getMachine(name string) (*VirtualMachine, error) {
 	const wql = "Select * From Msvm_VirtualSystemSettingData Where VirtualSystemType = 'Microsoft:Hyper-V:System:Realized' And ElementName='%s'"
 
 	vm := &VirtualMachine{}
@@ -108,6 +127,9 @@ func (vmm *VirtualMachineManager) GetMachine(name string) (*VirtualMachine, erro
 
 	settings, err := service.FindFirstInstance(fmt.Sprintf(wql, name))
 	if err != nil {
+		if errors.Is(err, wmiext.ErrNoResults) {
+			return nil, err
+		}
 		return vm, fmt.Errorf("could not find virtual machine %q: %w", name, err)
 	}
 	defer settings.Close()

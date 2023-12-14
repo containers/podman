@@ -99,7 +99,7 @@ func (v *VARIANT) Value() interface{} {
 	case VT_DISPATCH:
 		return v.ToIDispatch()
 	case VT_BOOL:
-		return v.Val != 0
+		return (v.Val & 0xffff) != 0
 	}
 	return nil
 }
