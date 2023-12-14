@@ -90,7 +90,7 @@ Valid placeholders for the Go template are listed below:
 | .Id             | Image ID (full SHA)                                        |
 | .IsDangling     | Is image dangling? (true/false)                            |
 | .IsReadOnly     | Is unage read-only? (true/false)                           |
-| .Labels         | map[] of labels                                            |
+| .Labels ...     | map[] of labels                                            |
 | .Names          | Image FQIN                                                 |
 | .ParentId       | Full SHA of parent image ID, or null (string)              |
 | .ReadOnly       | Same as .IsReadOnly                                        |

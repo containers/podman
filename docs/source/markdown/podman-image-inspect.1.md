@@ -21,18 +21,18 @@ Valid placeholders for the Go template are listed below:
 
 | **Placeholder**      | **Description**                                    |
 | -----------------    | ------------------                                 |
-| .Annotations         | Annotation information included in the image       |
+| .Annotations ...     | Annotation information included in the image       |
 | .Architecture        | Architecture of software in the image              |
 | .Author              | Image author                                       |
 | .Comment             | Image comment                                      |
 | .Config ...          | Structure with config info                         |
-| .Created             | Image creation time (string, ISO3601)              |
+| .Created ...         | Image creation time (string, ISO3601)              |
 | .Digest              | Image digest (sha256:+64-char hash)                |
 | .GraphDriver ...     | Structure for the graph driver info                |
 | .HealthCheck ...     | Structure for the health check info                |
 | .History             | History information stored in image                |
 | .ID                  | Image ID (full 64-char hash)                       |
-| .Labels              | Label information included in the image            |
+| .Labels ...          | Label information included in the image            |
 | .ManifestType        | Manifest type of the image                         |
 | .NamesHistory        | Name history information stored in image           |
 | .Os                  | Operating system of software in the image          |

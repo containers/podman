@@ -125,8 +125,15 @@ $mclone = clone($man);
 delete $mclone->{"auto-update"}{"--format"};
 # --format is documented, but without a table
 $mclone->{container}{list}{"--format"} = 1;
+# --format is documented, with a table, but entries are wrong
+$mclone->{events}{"--format"}{".Attributes"} = 0;
+$mclone->{events}{"--format"}{".Image"} = '...';
+$mclone->{events}{"--format"}{".Status"} = 1;
+$hclone->{events}{"--format"}{".Status"} = '...';
+$mclone->{events}{"--format"}{".ToHumanReadable"} = 3;
+$mclone->{ps}{"--format"}{".Label"} = 0;
 # --format is documented, with a table, but one entry missing
-delete $mclone->{events}{"--format"}{".HealthStatus"};
+delete $mclone->{events}{"--format"}{".Type"};
 
 # -l option is not documented
 delete $mclone->{pod}{inspect}{"-l"};
@@ -144,10 +151,15 @@ test_xref("xref_by_help() injection", $hclone, $mclone,
           [
               "'podman auto-update --help' lists '--format', which is not in podman-auto-update.1.md",
               "'podman container list': --format options are available through autocomplete, but are not documented in podman-ps.1.md",
-              "'podman events --format <TAB>' lists '.HealthStatus', which is not in podman-events.1.md",
+              "'podman events --format {{.Attributes' is a nested structure. Please add '...' to man page.",
+              "'podman events --format {{.Image' is a simple value, not a nested structure. Please remove '...' from man page.",
+              "'podman events --format {{.Status' is a nested structure, but the man page documents it as a function?!?",
+              "'podman events --format {{.ToHumanReadable' is a function that calls for 1 args; the man page lists 3. Please fix the man page.",
+              "'podman events --format <TAB>' lists '.Type', which is not in podman-events.1.md",
               "'podman  --help' lists 'new-command-in-help', which is not in podman.1.md",
               "'podman partlydocumented' is not documented in man pages!",
               "'podman pod inspect --help' lists '-l', which is not in podman-pod-inspect.1.md",
+              "'podman ps --format {{.Label' is a function that calls for 1 args. Please investigate what those are, then add them to the man page. E.g., '.Label *bool*' or '.Label *path* *bool*'",
               "'podman secret --help' lists 'subcommand-in-help', which is not in podman-secret.1.md",
           ],
           [],
@@ -307,11 +319,16 @@ sed('podman-image-inspect.1.md', sub {
             $line = $line . $line;
         }
 
+        $line =~ s/^\|\s+\.Parent\s+\|/| .Parent BAD-ARG |/;
+        $line =~ s/^\|\s+\.Size\s+\|/| .Size *arg1* arg2 |/;
+
         return $line;
     },
 
     "podman-image-inspect.1.md:NNN: format specifier '.Digest' should precede '.GraphDriver'",
     "podman-image-inspect.1.md:NNN: format specifier '.ID' is a dup",
+    "podman-image-inspect.1.md:NNN: unknown args 'BAD-ARG' for '.Parent'. Valid args are '...' for nested structs or, for functions, one or more asterisk-wrapped argument names.",
+    "podman-image-inspect.1.md:NNN: unknown args '*arg1* arg2' for '.Size'. Valid args are '...' for nested structs or, for functions, one or more asterisk-wrapped argument names.",
 );
 
 

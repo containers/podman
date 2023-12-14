@@ -74,7 +74,7 @@ Valid placeholders for the Go template are listed below:
 | .AutoRemove        | If true, containers are removed on exit      |
 | .CIDFile           | Container ID File                            |
 | .Command           | Quoted command used                          |
-| .Created           | Creation time for container, Y-M-D H:M:S     |
+| .Created ...       | Creation time for container, Y-M-D H:M:S     |
 | .CreatedAt         | Creation time for container (same as above)  |
 | .CreatedHuman      | Creation time, relative                      |
 | .ExitCode          | Container exit code                          |
@@ -84,7 +84,8 @@ Valid placeholders for the Go template are listed below:
 | .Image             | Image Name/ID                                |
 | .ImageID           | Image ID                                     |
 | .IsInfra           | "true" if infra container                    |
-| .Labels            | All the labels assigned to the container     |
+| .Label *string*    | Specified label of the container             |
+| .Labels ...        | All the labels assigned to the container     |
 | .Mounts            | Volumes mounted in the container             |
 | .Names             | Name of container                            |
 | .Networks          | Show all networks connected to the container |

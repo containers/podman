@@ -34,7 +34,7 @@ Valid placeholders for the Go template are listed below:
 | .CPUShares           | CPU Shares                                  |
 | .CreateCgroup        | Whether cgroup was created                  |
 | .CreateCommand       | Create command                              |
-| .Created             | Time when the pod was created               |
+| .Created ...         | Time when the pod was created               |
 | .CreateInfra         | Whether infrastructure created              |
 | .Devices             | Devices                                     |
 | .ExitPolicy          | Exit policy                                 |
@@ -43,7 +43,7 @@ Valid placeholders for the Go template are listed below:
 | .InfraConfig ...     | Infra config (contains further fields)      |
 | .InfraContainerID    | Pod infrastructure ID                       |
 | .InspectPodData ...  | Nested structure, for experts only          |
-| .Labels              | Pod labels                                  |
+| .Labels ...          | Pod labels                                  |
 | .LockNumber          | Number of the pod's Libpod lock             |
 | .MemoryLimit         | Memory limit, bytes                         |
 | .MemorySwap          | Memory swap limit, in bytes                 |
