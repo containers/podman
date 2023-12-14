@@ -78,10 +78,6 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) 
 		}
 	}
 
-	if !rootless.IsRootless() {
-		return nil
-	}
-
 	// do it only after podman has already re-execed and running with uid==0.
 	hasCapSysAdmin, err := unshare.HasCapSysAdmin()
 	if err != nil {
