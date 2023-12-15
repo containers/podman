@@ -7,12 +7,12 @@
 Mount a host directory into containers when executing RUN instructions during
 the build.
 
-The `OPTIONS` are a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>
+The `OPTIONS` are a comma-separated list and can be one or more of:
 
    * [rw|ro]
    * [z|Z|O]
    * [U]
-   * [`[r]shared`|`[r]slave`|`[r]private`]
+   * [`[r]shared`|`[r]slave`|`[r]private`]<sup>[[1]](#Footnote1)</sup>
 
 The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The `HOST-DIR`
 must be an absolute path as well. Podman bind-mounts the `HOST-DIR` to the
@@ -24,7 +24,7 @@ You can add the `:ro` or `:rw` suffix to a volume to mount it read-only or
 read-write mode, respectively. By default, the volumes are mounted read-write.
 See examples.
 
-  `Chowning Volume Mounts`
+`Chowning Volume Mounts`
 
 By default, Podman does not change the owner and group of source volume
 directories mounted. When running using user namespaces, the UID and GID inside
@@ -36,7 +36,7 @@ the source volume.
 
 **Warning** use with caution since this modifies the host filesystem.
 
-  `Labeling Volume Mounts`
+`Labeling Volume Mounts`
 
 Labeling systems like SELinux require that proper labels are placed on volume
 content mounted into a container. Without a label, the security system might
@@ -57,11 +57,11 @@ of containers, disabling SELinux separation is recommended.  The option
 `--security-opt label=disable` disables SELinux separation for the container.
 For example, if a user wanted to volume mount their entire home directory into the build containers, they need to disable SELinux separation.
 
-	   $ podman build --security-opt label=disable -v $HOME:/home/user .
+    $ podman build --security-opt label=disable -v $HOME:/home/user .
 
-  `Overlay Volume Mounts`
+`Overlay Volume Mounts`
 
-   The `:O` flag tells Podman to mount the directory from the host as a
+The `:O` flag tells Podman to mount the directory from the host as a
 temporary storage using the Overlay file system. The `RUN` command containers
 are allowed to modify contents within the mountpoint and are stored in the
 container storage in a separate directory.  In Overlay FS terms the source
@@ -69,23 +69,23 @@ directory is the lower, and the container storage directory is the
 upper. Modifications to the mount point are destroyed when the `RUN` command
 finishes executing, similar to a tmpfs mount point.
 
-  Any subsequent execution of `RUN` commands sees the original source directory
+Any subsequent execution of `RUN` commands sees the original source directory
 content, any changes from previous RUN commands no longer exists.
 
-  One use case of the `overlay` mount is sharing the package cache from the
+One use case of the `overlay` mount is sharing the package cache from the
 host into the container to allow speeding up builds.
 
-  Note:
+Note:
 
-     - Overlay mounts are not currently supported in rootless mode.
-     - The `O` flag is not allowed to be specified with the `Z` or `z` flags.
-Content mounted into the container is labeled with the private label.
-       On SELinux systems, labels in the source directory needs to be readable
-by the container label. If not, SELinux container separation must be disabled
-for the container to work.
-     - Modification of the directory volume mounted into the container with an
-overlay mount can cause unexpected failures. Do not modify the directory until
-the container finishes running.
+- Overlay mounts are not currently supported in rootless mode.
+- The `O` flag is not allowed to be specified with the `Z` or `z` flags.
+  Content mounted into the container is labeled with the private label.
+  On SELinux systems, labels in the source directory needs to be readable
+  by the container label. If not, SELinux container separation must be disabled
+  for the container to work.
+- Modification of the directory volume mounted into the container with an
+  overlay mount can cause unexpected failures. Do not modify the directory until
+  the container finishes running.
 
 By default bind mounted volumes are `private`. That means any mounts done
 inside containers are not be visible on the host and vice versa. This behavior

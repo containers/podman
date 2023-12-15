@@ -15,7 +15,7 @@ the `podman rm --volumes` command.
 
 (Note when using the remote client, including Mac and Windows (excluding WSL2) machines, the volumes are mounted from the remote server, not necessarily the client machine.)
 
-The _OPTIONS_ is a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>
+The _OPTIONS_ is a comma-separated list and can be one or more of:
 
 * **rw**|**ro**
 * **z**|**Z**
@@ -26,7 +26,7 @@ The _OPTIONS_ is a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>
 * [**no**]**exec**
 * [**no**]**suid**
 * [**r**]**bind**
-* [**r**]**shared**|[**r**]**slave**|[**r**]**private**[**r**]**unbindable**
+* [**r**]**shared**|[**r**]**slave**|[**r**]**private**[**r**]**unbindable** <sup>[[1]](#Footnote1)</sup>
 * **idmap**[=**options**]
 
 The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The volume
@@ -46,13 +46,13 @@ option and the `podman rm --volumes` command.
 Specify multiple **-v** options to mount one or more volumes into a
 <<container|pod>>.
 
-  `Write Protected Volume Mounts`
+`Write Protected Volume Mounts`
 
 Add **:ro** or **:rw** option to mount a volume in read-only or
 read-write mode, respectively. By default, the volumes are mounted read-write.
 See examples.
 
-  `Chowning Volume Mounts`
+`Chowning Volume Mounts`
 
 By default, Podman does not change the owner and group of source volume
 directories mounted into containers. If a <<container|pod>> is created in a new
@@ -67,7 +67,7 @@ process takes a long time, delaying the start of the <<container|pod>>.
 
 **Warning** use with caution since this modifies the host filesystem.
 
-  `Labeling Volume Mounts`
+`Labeling Volume Mounts`
 
 Labeling systems like SELinux require that proper labels are placed on volume
 content mounted into a <<container|pod>>. Without a label, the security system
@@ -95,11 +95,11 @@ of containers we recommend disabling SELinux separation.  The option
 For example if a user wanted to volume mount their entire home directory into a
 <<container|pod>>, they need to disable SELinux separation.
 
-	   $ podman <<fullsubcommand>> --security-opt label=disable -v $HOME:/home/user fedora touch /home/user/file
+    $ podman <<fullsubcommand>> --security-opt label=disable -v $HOME:/home/user fedora touch /home/user/file
 
-  `Overlay Volume Mounts`
+`Overlay Volume Mounts`
 
-   The `:O` flag tells Podman to mount the directory from the host as a
+The `:O` flag tells Podman to mount the directory from the host as a
 temporary storage using the `overlay file system`. The <<container|pod>> processes
 can modify content within the mountpoint which is stored in the
 container storage in a separate directory. In overlay terms, the source
@@ -113,31 +113,33 @@ For advanced users, the **overlay** option also supports custom non-volatile
 remove it on lifecycle completion.
 Example **:O,upperdir=/some/upper,workdir=/some/work**
 
-  Subsequent executions of the container sees the original source directory
+Subsequent executions of the container sees the original source directory
 content, any changes from previous <<container|pod>> executions no longer exist.
 
-  One use case of the overlay mount is sharing the package cache from the
+One use case of the overlay mount is sharing the package cache from the
 host into the container to allow speeding up builds.
 
-  Note: The `O` flag conflicts with other options listed above.
+Note: The `O` flag conflicts with other options listed above.
 
 Content mounted into the container is labeled with the private label.
-       On SELinux systems, labels in the source directory must be readable
+On SELinux systems, labels in the source directory must be readable
 by the <<|pod infra>> container label. Usually containers can read/execute `container_share_t`
 and can read/write `container_file_t`. If unable to change the labels on a
 source volume, SELinux container separation must be disabled for the <<|pod or infra>> container
 to work.
-     - Do not modify the source directory mounted into the <<container|pod>> with an overlay mount, it can cause unexpected failures. Only modify the directory after the container finishes running.
 
-  `Mounts propagation`
+Do not modify the source directory mounted into the <<container|pod>> with an overlay mount,
+it can cause unexpected failures. Only modify the directory after the container finishes running.
 
-By default bind mounted volumes are `private`. That means any mounts done
-inside the <<container|pod>> is not visible on host and vice versa. One can change
-this behavior by specifying a volume mount propagation property. Making a
-volume shared mounts done under that volume inside the <<container|pod>> is
-visible on host and vice versa. Making a volume **slave** enables only one
-way mount propagation and that is mounts done on host under that volume
-is visible inside container but not the other way around. <sup>[[1]](#Footnote1)</sup>
+`Mounts propagation`
+
+By default, bind-mounted volumes are `private`. That means any mounts done
+inside the <<container|pod>> are not visible on the host and vice versa.
+One can change this behavior by specifying a volume mount propagation property.
+When a volume is `shared`, mounts done under that volume inside the <<container|pod>>
+are visible on host and vice versa. Making a volume **slave**<sup>[[1]](#Footnote1)</sup>
+enables only one-way mount propagation: mounts done on the host under that volume
+are visible inside the container but not the other way around.
 
 To control mount propagation property of a volume one can use the [**r**]**shared**,
 [**r**]**slave**, [**r**]**private** or the [**r**]**unbindable** propagation flag.
@@ -191,7 +193,7 @@ _/foo_, then use **mount --make-shared /** to convert _/_ into a shared mount.
 Note: if the user only has access rights via a group, accessing the volume
 from inside a rootless <<container|pod>> fails.
 
- `Idmapped mount`
+`Idmapped mount`
 
 If `idmap` is specified, create an idmapped mount to the target user
 namespace in the container. The idmap option supports a custom mapping

@@ -15,10 +15,11 @@ Valid _mode_ values are:
   - **mac=MAC**: Specify a static mac address for this container.
   - **interface_name**: Specify a name for the created network interface inside the container.
 
-    For example to set a static ipv4 address and a static mac address, use `--network bridge:ip=10.88.0.10,mac=44:33:22:11:00:99`.
+  For example, to set a static ipv4 address and a static mac address, use `--network bridge:ip=10.88.0.10,mac=44:33:22:11:00:99`.
 
 - \<network name or ID\>[:OPTIONS,...]: Connect to a user-defined network; this is the network name or ID from a network created by **[podman network create](podman-network-create.1.md)**. Using the network name implies the bridge network mode. It is possible to specify the same options described under the bridge mode above. Use the **--network** option multiple times to specify additional networks.
-For backwards compatibility it is also possible to specify networks comma separated on the first **--network** argument, however this prevents you from using the options described under the bridge section above.
+
+  For backwards compatibility it is also possible to specify comma-separated networks on the first **--network** argument, however this prevents you from using the options described under the bridge section above.
 - **none**: Create a network namespace for the container but do not configure network interfaces for it, thus the container has no network connectivity.
 - **container:**_id_: Reuse another container's network stack.
 - **host**: Do not create a network namespace, the container uses the host's network. Note: The host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
