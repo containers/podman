@@ -508,8 +508,17 @@ func (p *PodmanTestIntegration) RunTopContainerWithArgs(name string, args []stri
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
 	podmanArgs = append(podmanArgs, args...)
-	podmanArgs = append(podmanArgs, "-d", ALPINE, "top")
-	return p.Podman(podmanArgs)
+	podmanArgs = append(podmanArgs, "-d", ALPINE, "top", "-b")
+	session := p.Podman(podmanArgs)
+	session.WaitWithDefaultTimeout()
+	Expect(session).To(ExitCleanly())
+	cid := session.OutputToString()
+	// Output indicates that top is running, which means it's safe
+	// for our caller to invoke `podman stop`
+	if !WaitContainerReady(p, cid, "Mem:", 20, 1) {
+		Fail("Could not start a top container")
+	}
+	return session
 }
 
 // RunLsContainer runs a simple container in the background that
