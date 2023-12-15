@@ -75,7 +75,7 @@ $ podman save -o oci-alpine.tar --format oci-archive alpine
 ```
 
 ```
-$ podman save --compress --format oci-dir -o alp-dir alpine
+$ podman save --compress --format docker-dir -o alp-dir alpine
 Getting image source signatures
 Copying blob sha256:2fdfe1cd78c20d05774f0919be19bc1a3e4729bce219968e4188e7e0f1af679d
  1.97 MB / 1.97 MB [========================================================] 0s
