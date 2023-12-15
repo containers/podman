@@ -102,6 +102,11 @@ func setup() (string, *machineTestBuilder) {
 	if err := os.MkdirAll(filepath.Join(homeDir, ".ssh"), 0700); err != nil {
 		Fail(fmt.Sprintf("failed to create ssh dir: %q", err))
 	}
+	cConfDir := filepath.Join(homeDir, "containers")
+	if err := os.MkdirAll(cConfDir, 0755); err != nil {
+		Fail(fmt.Sprintf("failed to create %q: %s", cConfDir, err.Error()))
+	}
+
 	sshConfig, err := os.Create(filepath.Join(homeDir, ".ssh", "config"))
 	if err != nil {
 		Fail(fmt.Sprintf("failed to create ssh config: %q", err))
@@ -115,12 +120,44 @@ func setup() (string, *machineTestBuilder) {
 	if err := os.Setenv("HOME", homeDir); err != nil {
 		Fail("failed to set home dir")
 	}
-	if err := os.Setenv("XDG_RUNTIME_DIR", homeDir); err != nil {
-		Fail("failed to set xdg_runtime dir")
+
+	fmt.Println("Set HOME to:", homeDir)
+	if err := os.Setenv("USERPROFILE", homeDir); err != nil {
+		Fail("failed to set USERPROFILE dir")
 	}
+
+	fmt.Println("Set USERPROFILE to:", homeDir)
+
+	if err := os.Setenv("XDG_RUNTIME_DIR", homeDir); err != nil {
+		Fail("failed to set xdg_runtime_dir")
+	}
+
+	if err := os.Setenv("XDG_CONFIG_HOME", homeDir); err != nil {
+		Fail("failed to set xdg_CONFIG_HOME")
+	}
+
+	fmt.Println("Set XDG_CONFIG_HOME to ", homeDir)
+
+	cConf := filepath.Join(cConfDir, "containers.conf")
+	cc, err := os.Create(cConf)
+	if err != nil {
+		Fail("failed to create test container.conf")
+	}
+
+	if err := cc.Close(); err != nil {
+		Fail(fmt.Sprintf("unable to close file %q: %s", cConf, err.Error()))
+	}
+
+	if err := os.Setenv("CONTAINERS_CONF", cConf); err != nil {
+		Fail("failed to set CONTAINERS_CONF environment var")
+	}
+
+	fmt.Println("set CONTAINERS_CONF to ", cConf)
+
 	if err := os.Unsetenv("SSH_AUTH_SOCK"); err != nil {
 		Fail("unable to unset SSH_AUTH_SOCK")
 	}
+
 	mb, err := newMB()
 	if err != nil {
 		Fail(fmt.Sprintf("failed to create machine test: %q", err))
@@ -140,6 +177,7 @@ func setup() (string, *machineTestBuilder) {
 	if err := n.Close(); err != nil {
 		Fail(fmt.Sprintf("failed to close image copy handler: %q", err))
 	}
+
 	return homeDir, mb
 }
 
@@ -157,4 +195,19 @@ func teardown(origHomeDir string, testDir string, mb *machineTestBuilder) {
 	if err := os.Setenv("HOME", origHomeDir); err != nil {
 		Fail("failed to set home dir")
 	}
+}
+
+// dumpDebug is called after each test and can be used to display useful debug information
+// about the environment
+func dumpDebug(mb *machineTestBuilder, testDir string, sr SpecReport) {
+	if !sr.Failed() {
+		return
+	}
+	fmt.Println("///////// DEBUG FOR FAILURE")
+	fmt.Println("test dir was: ", testDir)
+	debugMachine := basicMachine{}
+	// List connections
+	_, _ = mb.setCmd(debugMachine.withPodmanCommand([]string{"system", "connection", "ls"})).run()
+	// List machines
+	_, _ = mb.setCmd(debugMachine.withPodmanCommand([]string{"machine", "ls"})).run()
 }

@@ -27,6 +27,7 @@ var _ = Describe("podman machine init", func() {
 		testDir, mb = setup()
 	})
 	AfterEach(func() {
+		dumpDebug(mb, testDir, CurrentSpecReport())
 		teardown(originalHomeDir, testDir, mb)
 	})
 

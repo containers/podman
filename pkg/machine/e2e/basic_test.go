@@ -22,6 +22,7 @@ var _ = Describe("run basic podman commands", func() {
 		testDir, mb = setup()
 	})
 	AfterEach(func() {
+		dumpDebug(mb, testDir, CurrentSpecReport())
 		teardown(originalHomeDir, testDir, mb)
 	})
 
