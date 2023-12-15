@@ -21,7 +21,6 @@ package sqlite3
 #cgo CFLAGS: -DSQLITE_DEFAULT_WAL_SYNCHRONOUS=1
 #cgo CFLAGS: -DSQLITE_ENABLE_UPDATE_DELETE_LIMIT
 #cgo CFLAGS: -Wno-deprecated-declarations
-#cgo linux,!android CFLAGS: -DHAVE_PREAD64=1 -DHAVE_PWRITE64=1
 #cgo openbsd CFLAGS: -I/usr/local/include
 #cgo openbsd LDFLAGS: -L/usr/local/lib
 #ifndef USE_LIBSQLITE3
@@ -46,6 +45,18 @@ package sqlite3
 
 #ifndef SQLITE_DETERMINISTIC
 # define SQLITE_DETERMINISTIC 0
+#endif
+
+#if defined(HAVE_PREAD64) && defined(HAVE_PWRITE64)
+# undef USE_PREAD
+# undef USE_PWRITE
+# define USE_PREAD64 1
+# define USE_PWRITE64 1
+#elif defined(HAVE_PREAD) && defined(HAVE_PWRITE)
+# undef USE_PREAD
+# undef USE_PWRITE
+# define USE_PREAD64 1
+# define USE_PWRITE64 1
 #endif
 
 static int
