@@ -719,6 +719,7 @@ Valid options for `[Pod]` are listed below:
 | Network=host                        | --network host                         |
 | PodmanArgs=\-\-cpus=2               | --cpus=2                               |
 | PodName=name                        | --name=name                            |
+| PublishPort=50-59                   | --publish 50-59                        |
 | Volume=/source:/dest                | --volume /source:/dest                 |
 
 Supported keys in the `[Pod]` section are:
@@ -774,6 +775,23 @@ prefix to avoid conflicts with user-managed containers.
 
 Please note that pods and containers cannot have the same name.
 So, if PodName is set, it must not conflict with any container.
+
+### `PublishPort=`
+
+Exposes a port, or a range of ports (e.g. `50-59`), from the pod to the host. Equivalent
+to the Podman `--publish` option. The format is similar to the Podman options, which is of
+the form `ip:hostPort:containerPort`, `ip::containerPort`, `hostPort:containerPort` or
+`containerPort`, where the number of host and container ports must be the same (in the case
+of a range).
+
+If the IP is set to 0.0.0.0 or not set at all, the port is bound on all IPv4 addresses on
+the host; use [::] for IPv6.
+
+Note that not listing a host port means that Podman automatically selects one, and it
+may be different for each invocation of service. This makes that a less useful option. The
+allocated port can be found with the `podman port` command.
+
+This key can be listed multiple times.
 
 ### `Volume=`
 
