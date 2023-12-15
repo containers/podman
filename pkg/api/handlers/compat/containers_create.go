@@ -116,6 +116,8 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	// moby always create the working directory
 	sg.CreateWorkingDir = true
+	// moby doesn't inherit /etc/hosts from host
+	sg.BaseHostsFile = "none"
 
 	ic := abi.ContainerEngine{Libpod: runtime}
 	report, err := ic.ContainerCreate(r.Context(), sg)

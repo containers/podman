@@ -2267,7 +2267,14 @@ func (c *Container) addHosts() error {
 	if err != nil {
 		return fmt.Errorf("failed to get container ip host entries: %w", err)
 	}
-	baseHostFile, err := etchosts.GetBaseHostFile(c.runtime.config.Containers.BaseHostsFile, c.state.Mountpoint)
+
+	// Consider container level BaseHostsFile configuration first.
+	// If it is empty, fallback to containers.conf level configuration.
+	baseHostsFileConf := c.config.BaseHostsFile
+	if baseHostsFileConf == "" {
+		baseHostsFileConf = c.runtime.config.Containers.BaseHostsFile
+	}
+	baseHostFile, err := etchosts.GetBaseHostFile(baseHostsFileConf, c.state.Mountpoint)
 	if err != nil {
 		return err
 	}

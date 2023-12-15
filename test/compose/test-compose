@@ -207,7 +207,7 @@ function start_service() {
 
     $PODMAN_BIN \
         --log-level debug \
-	--storage-driver=vfs \
+        --storage-driver=vfs \
         --root $WORKDIR/root \
         --runroot $WORKDIR/runroot \
         --cgroup-manager=systemd \
