@@ -815,6 +815,7 @@ BOGUS=foo
 		Entry("subidmapping-with-remap.container", "subidmapping-with-remap.container", 1, "converting \"subidmapping-with-remap.container\": deprecated Remap keys are set along with explicit mapping keys"),
 		Entry("sysctl.container", "sysctl.container", 0, ""),
 		Entry("timezone.container", "timezone.container", 0, ""),
+		Entry("ulimit.container", "ulimit.container", 0, ""),
 		Entry("unmask.container", "unmask.container", 0, ""),
 		Entry("user.container", "user.container", 0, ""),
 		Entry("userns.container", "userns.container", 0, ""),
