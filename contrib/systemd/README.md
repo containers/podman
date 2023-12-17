@@ -11,7 +11,10 @@
 Assuming the status messages show no errors, the libpod service is ready to respond to the APIv2 on the unix domain socket `/run/podman/podman.sock`
 
 ### podman.service
-You can refer to [this example](https://github.com/containers/podman/blob/main/contrib/systemd/system/podman.service) for a sample podman.service file.
+You can refer to [this example](https://github.com/containers/podman/blob/main/contrib/systemd/system/podman.service.in) for a sample podman.service file.
+
+Note: replace `@@PODMAN@@` with path to podman binary, such as `/usr/bin/podman`
+
 ### podman.socket
 You can refer to [this example](https://github.com/containers/podman/blob/main/contrib/systemd/system/podman.socket) for a sample podman.socket file.
 
@@ -24,9 +27,3 @@ You can refer to [this example](https://github.com/containers/podman/blob/main/c
  1. `systemctl --user status podman.socket podman.service`
 
 Assuming the status messages show no errors, the libpod service is ready to respond to the APIv2 on the unix domain socket `/run/user/$(id -u)/podman/podman.sock`
-
-### podman.service
-You can refer to [this example](https://github.com/containers/podman/blob/main/contrib/systemd/user/podman.service) for a rootless podman.service file.
-
-### podman.socket
-You can refer to [this example](https://github.com/containers/podman/blob/main/contrib/systemd/user/podman.socket) for a rootless podman.socket file.
