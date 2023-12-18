@@ -659,6 +659,8 @@ This key can be listed multiple times.
 
 Ulimit options. Sets the ulimits values inside of the container.
 
+This key can be listed multiple times.
+
 ### `Unmask=`
 
 Specify the paths to unmask separated by a colon. unmask=ALL or /path/1:/path/2, or shell expanded paths (/proc/*):

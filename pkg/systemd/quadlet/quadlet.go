@@ -574,8 +574,8 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 		podman.add("--security-opt", fmt.Sprintf("label=level:%s", securityLabelLevel))
 	}
 
-	ulimit, ok := container.Lookup(ContainerGroup, KeyUlimit)
-	if ok && len(ulimit) > 0 {
+	ulimits := container.LookupAll(ContainerGroup, KeyUlimit)
+	for _, ulimit := range ulimits {
 		podman.add("--ulimit", ulimit)
 	}
 
