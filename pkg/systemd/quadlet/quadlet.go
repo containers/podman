@@ -324,8 +324,9 @@ var (
 		KeyContainersConfModule: true,
 		KeyGlobalArgs:           true,
 		KeyNetwork:              true,
-		KeyPodmanArgs:           true,
 		KeyPodName:              true,
+		KeyPodmanArgs:           true,
+		KeyPublishPort:          true,
 		KeyVolume:               true,
 	}
 )
@@ -1301,6 +1302,10 @@ func ConvertPod(podUnit *parser.UnitFile, name string, podsInfoMap map[string]*P
 		"--exit-policy=stop",
 		"--replace",
 	)
+
+	if err := handlePublishPorts(podUnit, PodGroup, execStartPre); err != nil {
+		return nil, err
+	}
 
 	addNetworks(podUnit, PodGroup, service, names, execStartPre)
 
