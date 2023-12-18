@@ -2,6 +2,7 @@
 #
 # Usage: test-compose [testname]
 #
+set -Eu
 ME=$(basename $0)
 
 ###############################################################################
@@ -240,7 +241,10 @@ function podman() {
         --runroot $WORKDIR/runroot \
         --network-config-dir $WORKDIR/cni \
         "$@")
+    rc=$?
+
     echo -n "$output" >>$WORKDIR/output.log
+    return $rc
 }
 
 ###################
@@ -300,8 +304,8 @@ for t in "${tests_to_run[@]}"; do
     testdir="$(dirname $t)"
     testname="$(basename $testdir)"
 
-    if [ -e $test_dir/SKIP ]; then
-        reason="$(<$test_dir/SKIP)"
+    if [ -e $testdir/SKIP ]; then
+        reason="$(<$testdir/SKIP)"
         if [ -n "$reason" ]; then
             reason=" - $reason"
         fi
@@ -315,13 +319,21 @@ for t in "${tests_to_run[@]}"; do
     (
         cd $testdir || die "Cannot cd $testdir"
 
+        if [ -e teardown.sh ]; then
+            trap 'teardown' EXIT
+            function teardown() {
+                trap '_show_ok 0 "$testname - teardown" "[ok]" "[error]"' ERR
+                . teardown.sh
+                trap - ERR
+            }
+        fi
+
         # setup file may be used for creating temporary directories/files.
         # We source it so that envariables defined in it will get back to us.
         if [ -e setup.sh ]; then
+            trap '_show_ok 0 "$testname - setup" "[ok]" "[error]"' ERR
             . setup.sh
-        fi
-        if [ -e teardown.sh ]; then
-            trap '. teardown.sh' 0
+            trap - ERR
         fi
 
         podman compose up -d     &> $logfile
@@ -337,11 +349,13 @@ for t in "${tests_to_run[@]}"; do
         # Run tests. This is likely to be a series of 'test_port' checks
         # but may also include podman commands to inspect labels, state
         if [ -e tests.sh ]; then
+            trap '_show_ok 0 "$testname - tests" "[ok]" "[error]"' ERR
             . tests.sh
+            trap - ERR
         fi
         # FIXME: if any tests fail, try 'podman logs' on container?
 
-        if [ -n "$COMPOSE_WAIT" ]; then
+        if [ -n "${COMPOSE_WAIT:-}" ]; then
             echo -n "Pausing due to \$COMPOSE_WAIT. Press ENTER to continue: "
             read keepgoing
         fi
@@ -379,8 +393,8 @@ done
 test_count=$(<$testcounter_file)
 failure_count=$(<$failures_file)
 
-if [ -z "$PODMAN_TESTS_KEEP_WORKDIR" ]; then
-     if ! is_rootless; then
+if [ -z "${PODMAN_TESTS_KEEP_WORKDIR:-}" ]; then
+    if ! is_rootless; then
         rm -rf $WORKDIR
     else
         $PODMAN_BIN unshare rm -rf $WORKDIR
