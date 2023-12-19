@@ -28,7 +28,7 @@ type wrapped struct {
 //
 // NOTE: The returned API MUST NOT be a public interface (it can be either just a struct
 // with public methods, or perhaps a private interface), so that we can add methods
-// without breaking any external implementors of a public interface.
+// without breaking any external implementers of a public interface.
 func FromPublic(dest types.ImageDestination) private.ImageDestination {
 	if dest2, ok := dest.(private.ImageDestination); ok {
 		return dest2

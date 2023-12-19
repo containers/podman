@@ -8,7 +8,9 @@
 // a stringifier for the Type to enable easier debugging when working with BSON.
 package bsontype // import "go.mongodb.org/mongo-driver/bson/bsontype"
 
-// These constants uniquely refer to each BSON type.
+// BSON element types as described in https://bsonspec.org/spec.html.
+//
+// Deprecated: Use bson.Type* constants instead.
 const (
 	Double           Type = 0x01
 	String           Type = 0x02
@@ -31,7 +33,12 @@ const (
 	Decimal128       Type = 0x13
 	MinKey           Type = 0xFF
 	MaxKey           Type = 0x7F
+)
 
+// BSON binary element subtypes as described in https://bsonspec.org/spec.html.
+//
+// Deprecated: Use the bson.TypeBinary* constants instead.
+const (
 	BinaryGeneric     byte = 0x00
 	BinaryFunction    byte = 0x01
 	BinaryBinaryOld   byte = 0x02
@@ -40,6 +47,7 @@ const (
 	BinaryMD5         byte = 0x05
 	BinaryEncrypted   byte = 0x06
 	BinaryColumn      byte = 0x07
+	BinarySensitive   byte = 0x08
 	BinaryUserDefined byte = 0x80
 )
 
@@ -93,5 +101,16 @@ func (bt Type) String() string {
 		return "max key"
 	default:
 		return "invalid"
+	}
+}
+
+// IsValid will return true if the Type is valid.
+func (bt Type) IsValid() bool {
+	switch bt {
+	case Double, String, EmbeddedDocument, Array, Binary, Undefined, ObjectID, Boolean, DateTime, Null, Regex,
+		DBPointer, JavaScript, Symbol, CodeWithScope, Int32, Timestamp, Int64, Decimal128, MinKey, MaxKey:
+		return true
+	default:
+		return false
 	}
 }

@@ -15,26 +15,38 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
-// StringCodec is the Codec used for struct values.
+// StringCodec is the Codec used for string values.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// StringCodec registered.
 type StringCodec struct {
+	// DecodeObjectIDAsHex specifies if object IDs should be decoded as their hex representation.
+	// If false, a string made from the raw object ID bytes will be used. Defaults to true.
+	//
+	// Deprecated: Decoding object IDs as raw bytes will not be supported in Go Driver 2.0.
 	DecodeObjectIDAsHex bool
 }
 
 var (
 	defaultStringCodec = NewStringCodec()
 
-	_ ValueCodec  = defaultStringCodec
+	// Assert that defaultStringCodec satisfies the typeDecoder interface, which allows it to be
+	// used by collection type decoders (e.g. map, slice, etc) to set individual values in a
+	// collection.
 	_ typeDecoder = defaultStringCodec
 )
 
 // NewStringCodec returns a StringCodec with options opts.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// StringCodec registered.
 func NewStringCodec(opts ...*bsonoptions.StringCodecOptions) *StringCodec {
 	stringOpt := bsonoptions.MergeStringCodecOptions(opts...)
 	return &StringCodec{*stringOpt.DecodeObjectIDAsHex}
 }
 
 // EncodeValue is the ValueEncoder for string types.
-func (sc *StringCodec) EncodeValue(ectx EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (sc *StringCodec) EncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if val.Kind() != reflect.String {
 		return ValueEncoderError{
 			Name:     "StringEncodeValue",
@@ -46,7 +58,7 @@ func (sc *StringCodec) EncodeValue(ectx EncodeContext, vw bsonrw.ValueWriter, va
 	return vw.WriteString(val.String())
 }
 
-func (sc *StringCodec) decodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (sc *StringCodec) decodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t.Kind() != reflect.String {
 		return emptyValue, ValueDecoderError{
 			Name:     "StringDecodeValue",
@@ -71,6 +83,7 @@ func (sc *StringCodec) decodeType(dc DecodeContext, vr bsonrw.ValueReader, t ref
 		if sc.DecodeObjectIDAsHex {
 			str = oid.Hex()
 		} else {
+			// TODO(GODRIVER-2796): Return an error here instead of decoding to a garbled string.
 			byteArray := [12]byte(oid)
 			str = string(byteArray[:])
 		}

@@ -9,6 +9,7 @@ import (
 	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/types"
 	ociencspec "github.com/containers/ocicrypt/spec"
+	chunkedToc "github.com/containers/storage/pkg/chunked/toc"
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -235,7 +236,7 @@ func (m *OCI1) Inspect(configGetter func(types.BlobInfo) ([]byte, error)) (*type
 }
 
 // ImageID computes an ID which can uniquely identify this image by its contents.
-func (m *OCI1) ImageID([]digest.Digest) (string, error) {
+func (m *OCI1) ImageID(diffIDs []digest.Digest) (string, error) {
 	// The way m.Config.Digest “uniquely identifies” an image is
 	// by containing RootFS.DiffIDs, which identify the layers of the image.
 	// For non-image artifacts, the we can’t expect the config to change
@@ -259,7 +260,42 @@ func (m *OCI1) ImageID([]digest.Digest) (string, error) {
 	if err := m.Config.Digest.Validate(); err != nil {
 		return "", err
 	}
+
+	// If there is any layer that is using partial content, we calculate the image ID
+	// in a different way since the diffID cannot be validated as for regular pulled images.
+	for _, layer := range m.Layers {
+		toc, err := chunkedToc.GetTOCDigest(layer.Annotations)
+		if err != nil {
+			return "", fmt.Errorf("error looking up annotation for layer %q: %w", layer.Digest, err)
+		}
+		if toc != nil {
+			return m.calculateImageIDForPartialImage(diffIDs)
+		}
+	}
+
 	return m.Config.Digest.Hex(), nil
+}
+
+func (m *OCI1) calculateImageIDForPartialImage(diffIDs []digest.Digest) (string, error) {
+	newID := digest.Canonical.Digester()
+	for i, layer := range m.Layers {
+		diffID := diffIDs[i]
+		_, err := newID.Hash().Write([]byte(diffID.Hex()))
+		if err != nil {
+			return "", fmt.Errorf("error writing diffID %q: %w", diffID, err)
+		}
+		toc, err := chunkedToc.GetTOCDigest(layer.Annotations)
+		if err != nil {
+			return "", fmt.Errorf("error looking up annotation for layer %q: %w", layer.Digest, err)
+		}
+		if toc != nil {
+			_, err = newID.Hash().Write([]byte(toc.Hex()))
+			if err != nil {
+				return "", fmt.Errorf("error writing TOC %q: %w", toc, err)
+			}
+		}
+	}
+	return newID.Digest().Hex(), nil
 }
 
 // CanChangeLayerCompression returns true if we can compress/decompress layers with mimeType in the current image
