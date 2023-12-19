@@ -9,6 +9,7 @@ use utf8;
 
 use strict;
 use warnings;
+use FindBin;
 
 (our $ME = $0) =~ s|.*/||;
 our $VERSION = '0.1';
@@ -23,17 +24,17 @@ $| = 1;
 # BEGIN user-customizable section
 
 # Path to podman executable
-my $Default_Podman = './bin/podman';
+my $Default_Podman = "$FindBin::Bin/../bin/podman";
 my $PODMAN = $ENV{PODMAN} || $Default_Podman;
 
 # Path to all doc files, including .rst and (down one level) markdown
-my $Docs_Path = 'docs/source';
+our $Docs_Path = 'docs/source';
 
 # Path to podman markdown source files (of the form podman-*.1.md)
-my $Markdown_Path = "$Docs_Path/markdown";
+our $Markdown_Path = "$Docs_Path/markdown";
 
 # Global error count
-my $Errs = 0;
+our $Errs = 0;
 
 # Table of exceptions for documenting fields in '--format {{.Foo}}'
 #
@@ -112,10 +113,6 @@ my %Skip_Subcommand = map { $_ => 1 } (
 
 # END   user-customizable section
 ###############################################################################
-
-use FindBin;
-
-###############################################################################
 # BEGIN boilerplate args checking, usage messages
 
 sub usage {
@@ -180,6 +177,9 @@ sub main {
     # Fetch command-line arguments.  Barf if too many.
     die "$ME: Too many arguments; try $ME --help\n"                 if @ARGV;
 
+    chdir "$FindBin::Bin/.."
+        or die "$ME: FATAL: Cannot cd $FindBin::Bin/..: $!";
+
     my $help = podman_help();
     my $man  = podman_man('podman');
     my $rst  = podman_rst();
@@ -216,9 +216,12 @@ sub xref_by_help {
                 # autocompletion that looks like a Go template, but those
                 # template options aren't documented in the man pages.
                 if ($k eq '--format' && ! ref($man->{$k})) {
-                    warn "$ME: 'podman @subcommand': --format options are available through autocomplete, but are not documented in $man->{_path}\n";
-
-                    ++$Errs   unless "@subcommand" eq "inspect";
+                    # "podman inspect" tries to autodetect if it's being run
+                    # on an image or container. It cannot sanely be documented.
+                    unless ("@subcommand" eq "inspect") {
+                        warn "$ME: 'podman @subcommand': --format options are available through autocomplete, but are not documented in $man->{_path}\n";
+                        ++$Errs;
+                    }
                     next OPTION;
                 }
 
@@ -243,7 +246,7 @@ sub xref_by_help {
             # The usual case is "podman ... --help"...
             my $what = '--help';
             # ...but for *options* (e.g. --filter), we're checking command completion
-            $what = '<TAB>' if $subcommand[-1] =~ /^--/;
+            $what = '<TAB>' if @subcommand && $subcommand[-1] =~ /^--/;
             warn "$ME: 'podman @subcommand $what' lists '$k', which is not in $man\n";
             ++$Errs;
         }
@@ -309,7 +312,7 @@ sub xref_by_man {
 
             # It's not always --help, sometimes we check <TAB> completion
             my $what = '--help';
-            $what = 'command completion' if $subcommand[-1] =~ /^--/;
+            $what = 'command completion' if @subcommand && $subcommand[-1] =~ /^--/;
             warn "$ME: 'podman @subcommand': '$k' in $man, but not in $what\n";
             ++$Errs;
         }
@@ -460,12 +463,11 @@ sub podman_help {
 sub podman_man {
     my $command = shift;
     my $subpath = "$Markdown_Path/$command.1.md";
-    my $manpath = "$FindBin::Bin/../$subpath";
     print "** $subpath \n"                              if $debug;
 
     my %man = (_path => $subpath);
-    open my $fh, '<', $manpath
-        or die "$ME: Cannot read $manpath: $!\n";
+    open my $fh, '<', $subpath
+        or die "$ME: Cannot read $subpath: $!\n";
     my $section = '';
     my @most_recent_flags;
     my $previous_subcmd = '';
