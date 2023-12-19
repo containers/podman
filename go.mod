@@ -62,7 +62,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	github.com/ulikunitz/xz v0.5.11
-	github.com/vbauerster/mpb/v8 v8.7.0
+	github.com/vbauerster/mpb/v8 v8.7.1
 	github.com/vishvananda/netlink v1.2.1-beta.2
 	go.etcd.io/bbolt v1.3.8
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d

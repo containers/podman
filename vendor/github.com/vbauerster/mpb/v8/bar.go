@@ -429,13 +429,11 @@ func (b *Bar) render(tw int) {
 				return
 			}
 		}
-		frame := &renderFrame{
-			rows:         rows,
-			shutdown:     s.shutdown,
-			rmOnComplete: s.rmOnComplete,
-			noPop:        s.noPop,
-		}
+		frame := &renderFrame{rows: rows}
 		if s.completed || s.aborted {
+			frame.shutdown = s.shutdown
+			frame.rmOnComplete = s.rmOnComplete
+			frame.noPop = s.noPop
 			// post increment makes sure OnComplete decorators are rendered
 			s.shutdown++
 		}
@@ -460,12 +458,15 @@ func (b *Bar) triggerCompletion(s *bState) {
 }
 
 func (b *Bar) tryEarlyRefresh(renderReq chan<- time.Time) {
-	var anyOtherRunning bool
+	var otherRunning int
 	b.container.traverseBars(func(bar *Bar) bool {
-		anyOtherRunning = b != bar && bar.IsRunning()
-		return anyOtherRunning
+		if b != bar && bar.IsRunning() {
+			otherRunning++
+			return false // stop traverse
+		}
+		return true // continue traverse
 	})
-	if !anyOtherRunning {
+	if otherRunning == 0 {
 		for {
 			select {
 			case renderReq <- time.Now():

@@ -68,14 +68,17 @@ func NewWithContext(ctx context.Context, options ...ContainerOption) *Progress {
 		ctx = context.Background()
 	}
 	ctx, cancel := context.WithCancel(ctx)
+	delayRC := make(chan struct{}, 1)
+	delayRC <- struct{}{}
 	s := &pState{
 		ctx:         ctx,
 		hm:          make(heapManager),
 		dropS:       make(chan struct{}),
 		dropD:       make(chan struct{}),
 		renderReq:   make(chan time.Time),
-		refreshRate: defaultRefreshRate,
 		popPriority: math.MinInt32,
+		refreshRate: defaultRefreshRate,
+		delayRC:     delayRC,
 		queueBars:   make(map[*Bar]*Bar),
 		output:      os.Stdout,
 		debugOut:    io.Discard,
@@ -191,7 +194,7 @@ func (p *Progress) traverseBars(cb func(b *Bar) bool) {
 	select {
 	case p.operateState <- func(s *pState) { s.hm.iter(iter, drop) }:
 		for b := range iter {
-			if cb(b) {
+			if !cb(b) {
 				close(drop)
 				break
 			}
@@ -258,34 +261,52 @@ func (p *Progress) Shutdown() {
 
 func (p *Progress) serve(s *pState, cw *cwriter.Writer) {
 	defer p.pwg.Done()
-	render := func() error { return s.render(cw) }
 	var err error
+	w := cwriter.New(io.Discard)
+	renderReq := s.renderReq
+	operateState := p.operateState
+	interceptIO := p.interceptIO
 
 	for {
 		select {
-		case op := <-p.operateState:
+		case <-s.delayRC:
+			w, cw = cw, nil
+			s.delayRC = nil
+		case op := <-operateState:
 			op(s)
-		case fn := <-p.interceptIO:
-			fn(cw)
-		case <-s.renderReq:
-			e := render()
-			if e != nil {
+		case fn := <-interceptIO:
+			fn(w)
+		case <-renderReq:
+			err = s.render(w)
+			if err != nil {
+				// (*pState).(autoRefreshListener|manualRefreshListener) may block
+				// if not launching following short lived goroutine
+				go func() {
+					for {
+						select {
+						case <-s.renderReq:
+						case <-p.done:
+							return
+						}
+					}
+				}()
 				p.cancel() // cancel all bars
-				render = func() error { return nil }
-				err = e
+				renderReq = nil
+				operateState = nil
+				interceptIO = nil
 			}
 		case <-p.done:
-			update := make(chan bool)
-			for s.autoRefresh && err == nil {
-				s.hm.state(update)
-				if <-update {
-					err = render()
-				} else {
-					break
-				}
-			}
 			if err != nil {
 				_, _ = fmt.Fprintln(s.debugOut, err.Error())
+			} else if s.autoRefresh {
+				update := make(chan bool)
+				for i := 0; i == 0 || <-update; i++ {
+					if err := s.render(w); err != nil {
+						_, _ = fmt.Fprintln(s.debugOut, err.Error())
+						break
+					}
+					s.hm.state(update)
+				}
 			}
 			s.hm.end(s.shutdownNotifier)
 			return
@@ -293,10 +314,7 @@ func (p *Progress) serve(s *pState, cw *cwriter.Writer) {
 	}
 }
 
-func (s pState) autoRefreshListener(done chan struct{}) {
-	if s.delayRC != nil {
-		<-s.delayRC
-	}
+func (s *pState) autoRefreshListener(done chan struct{}) {
 	ticker := time.NewTicker(s.refreshRate)
 	defer ticker.Stop()
 	for {
@@ -310,7 +328,7 @@ func (s pState) autoRefreshListener(done chan struct{}) {
 	}
 }
 
-func (s pState) manualRefreshListener(done chan struct{}) {
+func (s *pState) manualRefreshListener(done chan struct{}) {
 	for {
 		select {
 		case x := <-s.manualRC:
@@ -342,9 +360,9 @@ func (s *pState) render(cw *cwriter.Writer) (err error) {
 		if s.reqWidth > 0 {
 			width = s.reqWidth
 		} else {
-			width = 100
+			width = 80
 		}
-		height = 100
+		height = width
 	}
 
 	for b := range iter {
@@ -420,7 +438,7 @@ func (s *pState) flush(cw *cwriter.Writer, height int) error {
 	return cw.Flush(len(rows) - popCount)
 }
 
-func (s pState) push(wg *sync.WaitGroup, b *Bar, sync bool) {
+func (s *pState) push(wg *sync.WaitGroup, b *Bar, sync bool) {
 	s.hm.push(b, sync)
 	wg.Done()
 }
