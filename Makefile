@@ -332,7 +332,7 @@ $(IN_CONTAINER): %-in-container:
 	$(PODMANCMD) run --rm --env HOME=/root \
 		-v $(CURDIR):/src -w /src \
 		--security-opt label=disable \
-		docker.io/library/golang:1.18 \
+		docker.io/library/golang:1.20 \
 		make $(*)
 
 
