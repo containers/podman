@@ -439,7 +439,11 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 	containerName, ok := container.Lookup(ContainerGroup, KeyContainerName)
 	if !ok || len(containerName) == 0 {
 		// By default, We want to name the container by the service name
-		containerName = "systemd-%N"
+		if strings.Contains(container.Filename, "@") {
+			containerName = "systemd-%P_%I"
+		} else {
+			containerName = "systemd-%N"
+		}
 	}
 
 	// Set PODMAN_SYSTEMD_UNIT so that podman auto-update can restart the service.
