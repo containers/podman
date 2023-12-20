@@ -513,6 +513,11 @@ json-file | f
     assert "$output" == "../usr/share/zoneinfo/Europe/Berlin" "localtime is linked correctly"
 }
 
+@test "podman run --tz with zoneinfo and custom TZDIR env" {
+    # Setting the timezone should fail because it does not exist
+    TZDIR="$PODMAN_TMPDIR/zoneinfo" run_podman 127 run --rm --tz Europe/Berlin "$SYSTEMD_IMAGE"
+}
+
 # run with --runtime should preserve the named runtime
 @test "podman run : full path to --runtime is preserved" {
     skip_if_remote "podman-remote does not support --runtime option"

@@ -1708,6 +1708,14 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 	tz := c.Timezone()
 	if tz != "" {
 		timezonePath := filepath.Join("/usr/share/zoneinfo", tz)
+
+		// Allow using TZDIR per:
+		// https://sourceware.org/git/?p=glibc.git;a=blob;f=time/tzfile.c;h=8a923d0cccc927a106dc3e3c641be310893bab4e;hb=HEAD#l149
+		tzdir := os.Getenv("TZDIR")
+		if tzdir != "" {
+			timezonePath = filepath.Join(tzdir, tz)
+		}
+
 		if tz == "local" {
 			timezonePath, err = filepath.EvalSymlinks("/etc/localtime")
 			if err != nil {
