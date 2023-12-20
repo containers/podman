@@ -254,10 +254,22 @@ func loadUnitDropins(unit *parser.UnitFile, sourcePaths []string) error {
 		prevError = err
 	}
 
-	var dropinPaths = make(map[string]string)
-	for _, sourcePath := range sourcePaths {
-		dropinDir := path.Join(sourcePath, unit.Filename+".d")
+	dropinDirs := []string{}
 
+	for _, sourcePath := range sourcePaths {
+		dropinDirs = append(dropinDirs, path.Join(sourcePath, unit.Filename+".d"))
+	}
+
+	// For instantiated templates, also look in the non-instanced template dropin dirs
+	templateBase, templateInstance := unit.GetTemplateParts()
+	if templateBase != "" && templateInstance != "" {
+		for _, sourcePath := range sourcePaths {
+			dropinDirs = append(dropinDirs, path.Join(sourcePath, templateBase+".d"))
+		}
+	}
+
+	var dropinPaths = make(map[string]string)
+	for _, dropinDir := range dropinDirs {
 		dropinFiles, err := os.ReadDir(dropinDir)
 		if err != nil {
 			if !errors.Is(err, os.ErrNotExist) {
