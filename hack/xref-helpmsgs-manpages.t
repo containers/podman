@@ -15,7 +15,7 @@ use FindBin;
 use Test::More;
 use Test::Differences;
 
-plan tests => 9;
+plan tests => 10;
 
 require_ok "$FindBin::Bin/xref-helpmsgs-manpages";
 
@@ -40,9 +40,10 @@ my @warnings_seen;
 $SIG{__WARN__} = sub {
     my $msg = shift;
     chomp $msg;
-    $msg =~ s/^xref-\S+?:\s+//;
-    $msg =~ s|\s+$doc_path/| |g;
-    push @warnings_seen, $msg;
+    $msg =~ s/^xref-\S+?:\s+//;         # strip "$ME: "
+    $msg =~ s!(^|\s+)$doc_path/!$1!g;   # strip "doc/source/markdown"
+    $msg =~ s!:\d+:!:NNN:!;             # file line numbers can change
+   push @warnings_seen, $msg;
 };
 
 # When we get errors (hopefully only when adding new functionality
@@ -157,10 +158,221 @@ test_xref("xref_by_help() injection", $hclone, $mclone,
 # BEGIN fault injection tests on podman_man()
 #
 # This function has a ton of sanity checks. To test them we need to
-# perform minor surgery on lots of .md files.
+# perform minor surgery on lots of .md files: reordering lines,
+# adding inconsistencies.
 #
-# FIXME: TBD. This PR has grown big enough as it is.
 
+# Ordered list of the warnings we expect to see
+my @expect_warnings;
+
+# Helper function: given a filename and a function, reads filename
+# line by line, invoking filter on each line and writing out the
+# results.
+sub sed {
+    my $path   = shift;                 # in: filename (something.md)
+    my $action = shift;                 # in: filter function
+
+    # The rest of our arguments are the warnings introduced into this man page
+    push @expect_warnings, @_;
+
+    open my $fh_in, '<', "$doc_path/$path"
+        or die "Cannot read $doc_path/$path: $!";
+    my $tmpfile = "$doc_path/$path.tmp.$$";
+    open my $fh_out, '>', $tmpfile
+        or die "Cannot create $doc_path/$tmpfile: $!";
+
+    while (my $line = <$fh_in>) {
+        # This is what does all the magic
+        print { $fh_out } $action->($line);
+    }
+    close $fh_in;
+    close $fh_out
+        or die "Error writing $doc_path/$tmpfile: $!";
+    rename "$tmpfile" => "$doc_path/$path"
+        or die "Could not rename $doc_path/$tmpfile: $!";
+}
+
+# Start filtering.
+
+# podman-attach is a deliberate choice here: it also serves as the man page
+# for podman-container-attach. Prior to 2023-12-20 we would read the file
+# twice, issuing two warnings, which is anti-helpful. Here we confirm that
+# the dup-removing code works.
+sed('podman-attach.1.md', sub {
+        my $line = shift;
+        $line =~ s/^(%\s+podman)-(attach\s+1)/$1 $2/;
+        $line;
+    },
+
+    "podman-attach.1.md:NNN: wrong title line '% podman attach 1'; should be '% podman-attach 1'",
+);
+
+
+# Tests for broken command-line options
+# IMPORTANT NOTE: podman-exec precedes podman-container (below),
+# because podman-exec.1.md is actually read while podman-container.1.md
+# is still processing; so these messages are printed earlier:
+#   podman-container.1.md  -> list of subcommands -> exec -> read -exec.1.md
+# Sorry for the confusion.
+sed('podman-exec.1.md', sub {
+        my $line = shift;
+
+        if ($line =~ /^#### \*\*--env\*\*/) {
+            $line = $line . "\ndup dup dup\n\n" . $line;
+        }
+        elsif ($line =~ /^#### \*\*--privileged/) {
+            $line = "#### \*\*--put-me-back-in-order\*\*\n\nbogus option\n\n" . $line;
+        }
+        elsif ($line =~ /^#### \*\*--tty\*\*/) {
+            chomp $line;
+            $line .= " xyz\n";
+        }
+        elsif ($line =~ /^#### \*\*--workdir\*\*/) {
+            $line = <<"END_FOO";
+#### **--workdir**=*dir*, **-w**
+
+blah blah bogus description
+
+#### **--yucca**=*cactus*|*starch*|*both*
+
+blah blah
+
+#### **--zydeco**=*true* | *false*
+
+END_FOO
+        }
+
+        return $line;
+    },
+
+    "podman-exec.1.md:NNN: flag '--env' is a dup",
+    "podman-exec.1.md:NNN: --privileged should precede --put-me-back-in-order",
+    "podman-exec.1.md:NNN: could not parse ' xyz' in option description",
+    "podman-exec.1.md:NNN: please rewrite as ', **-w**=*dir*'",
+    "podman-exec.1.md:NNN: values must be space-separated: '=*cactus*|*starch*|*both*'",
+    "podman-exec.1.md:NNN: Do not enumerate true/false for boolean-only options",
+);
+
+
+# Tests for subcommands in a table
+sed('podman-container.1.md', sub {
+        my $line = shift;
+
+        # "podman container diff": force an out-of-order error
+        state $diff;
+        if ($line =~ /^\|\s+diff\s+\|/) {
+            $diff = $line;
+            return '';
+        }
+        if ($diff) {
+            $line .= $diff;
+            $diff = undef;
+        }
+
+        # "podman init": force a duplicate-command error
+        if ($line =~ /^\|\s+init\s+\|/) {
+            $line .= $line;
+        }
+
+        # "podman container port": force a wrong-man-page error
+        if ($line =~ /^\|\s+port\s+\|/) {
+            $line =~ s/-port\.1\.md/-top.1.md/;
+        }
+
+        return $line;
+    },
+
+    "podman-container.1.md:NNN: 'exec' and 'diff' are out of order",
+    "podman-container.1.md:NNN: duplicate subcommand 'init'",
+    # FIXME: this is not technically correct; it could be the other way around.
+    "podman-container.1.md:NNN: 'podman-port' should be 'podman-top' in '[podman-port(1)](podman-top.1.md)'",
+);
+
+
+# Tests for --format specifiers in a table
+sed('podman-image-inspect.1.md', sub {
+        my $line = shift;
+
+        state $digest;
+        if ($line =~ /^\|\s+\.Digest\s+\|/) {
+            $digest = $line;
+            return '';
+        }
+        if ($digest) {
+            $line .= $digest;
+            $digest = undef;
+        }
+
+        if ($line =~ /^\|\s+\.ID\s+\|/) {
+            $line = $line . $line;
+        }
+
+        return $line;
+    },
+
+    "podman-image-inspect.1.md:NNN: format specifier '.Digest' should precede '.GraphDriver'",
+    "podman-image-inspect.1.md:NNN: format specifier '.ID' is a dup",
+);
+
+
+# Tests for SEE ALSO section
+sed('podman-version.1.md', sub {
+        my $line = shift;
+
+        if ($line =~ /^## SEE ALSO/) {
+            $line .= "**foo**,**bar**"
+                . ", **baz**baz**"
+                . ", missingstars"
+                . ", **[podman-info(1)](podman-cp.1.md)**"
+                . ", **[podman-foo(1)](podman-wait.1.md)**"
+                . ", **[podman-x](podman-bar.1.md)**"
+                . ", **podman-logs(1)**"
+                . ", **podman-image-rm(1)**"
+                . ", **sdfsdf**"
+                . "\n";
+        }
+
+        return $line;
+    },
+
+    "podman-version.1.md:NNN: please add space after comma: '**foo**,**bar**'",
+    "podman-version.1.md:NNN: invalid token 'baz**baz'",
+    "podman-version.1.md:NNN: 'missingstars' should be bracketed by '**'",
+    "podman-version.1.md:NNN: inconsistent link podman-info(1) -> podman-cp.1.md, expected podman-info.1.md",
+    "podman-version.1.md:NNN: invalid link podman-foo(1) -> podman-wait.1.md",
+    "podman-version.1.md:NNN: could not parse 'podman-x' as 'manpage(N)'",
+    "podman-version.1.md:NNN: 'podman-logs(1)' should be '[podman-logs(1)](podman-logs.1.md)'",
+    "podman-version.1.md:NNN: 'podman-image-rm(1)' refers to a command alias; please use the canonical command name instead",
+    "podman-version.1.md:NNN: invalid token 'sdfsdf'"
+);
+
+
+# Tests for --filter specifiers
+sed('podman-volume-prune.1.md', sub {
+        my $line = shift;
+
+        if ($line =~ /^\|\s+driver\s+\|/) {
+            $line = "| name! | sdfsdf |\n" . $line;
+        }
+        if ($line =~ /^\|\s+opt\s+\|/) {
+            $line .= $line;
+        }
+
+        return $line;
+    },
+
+    "podman-volume-prune.1.md:NNN: filter 'name!' only allowed immediately after its positive",
+    "podman-volume-prune.1.md:NNN: filter specifier 'opt' is a dup",
+);
+
+# DONE with fault injection. Reread man pages and verify warnings.
+@warnings_seen = ();
+{
+    no warnings 'once';
+    %LibPod::CI::XrefHelpmsgsManpages::Man_Seen = ();
+}
+$man = LibPod::CI::XrefHelpmsgsManpages::podman_man('podman');
+eq_or_diff_text \@warnings_seen, \@expect_warnings, "podman_man() with faults";
 
 # END   fault injection tests on podman_man()
 ###############################################################################

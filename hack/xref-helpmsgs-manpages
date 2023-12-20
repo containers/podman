@@ -9,6 +9,7 @@ use utf8;
 
 use strict;
 use warnings;
+use Clone                       qw(clone);
 use FindBin;
 
 (our $ME = $0) =~ s|.*/||;
@@ -460,12 +461,25 @@ sub podman_help {
 ################
 #  podman_man  #  Parse contents of podman-*.1.md
 ################
+our %Man_Seen;
 sub podman_man {
     my $command = shift;
     my $subpath = "$Markdown_Path/$command.1.md";
     print "** $subpath \n"                              if $debug;
 
     my %man = (_path => $subpath);
+
+    # We often get called multiple times on the same man page,
+    # because (e.g.) podman-container-list == podman-ps. It's the
+    # same man page text, though, and we don't know which subcommand
+    # we're being called for, so there's nothing to be gained by
+    # rereading the man page or by dumping yet more warnings
+    # at the user. So, keep a cache of what we've done.
+    if (my $seen = $Man_Seen{$subpath}) {
+        return clone($seen);
+    }
+    $Man_Seen{$subpath} = \%man;
+
     open my $fh, '<', $subpath
         or die "$ME: Cannot read $subpath: $!\n";
     my $section = '';
@@ -515,7 +529,7 @@ sub podman_man {
             if ($line =~ /^\|\s*\[podman-(\S+?)\(\d\)\]/) {
                 # $1 will be changed by recursion _*BEFORE*_ left-hand assignment
                 my $subcmd = $1;
-                $man{$subcmd} = podman_man("podman-$1");
+                $man{$subcmd} = podman_man("podman-$subcmd");
             }
 
             # In podman-<subcommand>.1.md
