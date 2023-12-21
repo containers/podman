@@ -2787,38 +2787,6 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 	return passwdPath, groupPath, nil
 }
 
-func (c *Container) copyTimezoneFile(zonePath string) (string, error) {
-	localtimeCopy := filepath.Join(c.state.RunDir, "localtime")
-	file, err := os.Stat(zonePath)
-	if err != nil {
-		return "", err
-	}
-	if file.IsDir() {
-		return "", errors.New("invalid timezone: is a directory")
-	}
-	src, err := os.Open(zonePath)
-	if err != nil {
-		return "", err
-	}
-	defer src.Close()
-	dest, err := os.Create(localtimeCopy)
-	if err != nil {
-		return "", err
-	}
-	defer dest.Close()
-	_, err = io.Copy(dest, src)
-	if err != nil {
-		return "", err
-	}
-	if err := c.relabel(localtimeCopy, c.config.MountLabel, false); err != nil {
-		return "", err
-	}
-	if err := dest.Chown(c.RootUID(), c.RootGID()); err != nil {
-		return "", err
-	}
-	return localtimeCopy, err
-}
-
 func (c *Container) cleanupOverlayMounts() error {
 	return overlay.CleanupContent(c.config.StaticDir)
 }
