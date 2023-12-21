@@ -67,6 +67,13 @@ func (c *ContainersConfig) validateTZ() error {
 		"/etc/zoneinfo",
 	}
 
+	// Allow using TZDIR per:
+	// https://sourceware.org/git/?p=glibc.git;a=blob;f=time/tzfile.c;h=8a923d0cccc927a106dc3e3c641be310893bab4e;hb=HEAD#l149
+	tzdir := os.Getenv("TZDIR")
+	if tzdir != "" {
+		lookupPaths = append(lookupPaths, tzdir)
+	}
+
 	for _, paths := range lookupPaths {
 		zonePath := filepath.Join(paths, c.TZ)
 		if _, err := os.Stat(zonePath); err == nil {
