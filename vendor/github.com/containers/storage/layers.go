@@ -1016,7 +1016,7 @@ func (r *layerStore) saveMounts() error {
 	return r.loadMounts()
 }
 
-func (s *store) newLayerStore(rundir string, layerdir string, driver drivers.Driver, transient bool) (rwLayerStore, error) {
+func (s *store) newLayerStore(rundir string, layerdir string, driver drivers.Driver, transient, readonly bool) (rwLayerStore, error) {
 	if err := os.MkdirAll(rundir, 0o700); err != nil {
 		return nil, err
 	}
@@ -1028,7 +1028,14 @@ func (s *store) newLayerStore(rundir string, layerdir string, driver drivers.Dri
 	// layers.json might be used externally as a read-only layer (using e.g.
 	// additionalimagestores), and that would look for the lockfile in the
 	// same directory
-	lockFile, err := lockfile.GetLockFile(filepath.Join(layerdir, "layers.lock"))
+	var lockFile *lockfile.LockFile
+	var err error
+
+	if readonly {
+		lockFile, err = lockfile.GetROLockFile(filepath.Join(layerdir, "layers.lock"))
+	} else {
+		lockFile, err = lockfile.GetLockFile(filepath.Join(layerdir, "layers.lock"))
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -1056,10 +1063,17 @@ func (s *store) newLayerStore(rundir string, layerdir string, driver drivers.Dri
 
 		driver: driver,
 	}
-	if err := rlstore.startWritingWithReload(false); err != nil {
-		return nil, err
+	if readonly {
+		if err := rlstore.startReadingWithReload(false); err != nil {
+			return nil, err
+		}
+		defer rlstore.stopReading()
+	} else {
+		if err := rlstore.startWritingWithReload(false); err != nil {
+			return nil, err
+		}
+		defer rlstore.stopWriting()
 	}
-	defer rlstore.stopWriting()
 	lw, err := rlstore.lockfile.GetLastWrite()
 	if err != nil {
 		return nil, err
@@ -1067,42 +1081,6 @@ func (s *store) newLayerStore(rundir string, layerdir string, driver drivers.Dri
 	rlstore.lastWrite = lw
 	// rlstore.mountsLastWrite is initialized inside rlstore.load().
 	if _, err := rlstore.load(true); err != nil {
-		return nil, err
-	}
-	return &rlstore, nil
-}
-
-func newROLayerStore(rundir string, layerdir string, driver drivers.Driver) (roLayerStore, error) {
-	lockfile, err := lockfile.GetROLockFile(filepath.Join(layerdir, "layers.lock"))
-	if err != nil {
-		return nil, err
-	}
-	rlstore := layerStore{
-		lockfile:       lockfile,
-		mountsLockfile: nil,
-		rundir:         rundir,
-		jsonPath: [numLayerLocationIndex]string{
-			filepath.Join(layerdir, "layers.json"),
-			filepath.Join(layerdir, "volatile-layers.json"),
-		},
-		layerdir: layerdir,
-
-		byid:    make(map[string]*Layer),
-		byname:  make(map[string]*Layer),
-		bymount: make(map[string]*Layer),
-
-		driver: driver,
-	}
-	if err := rlstore.startReadingWithReload(false); err != nil {
-		return nil, err
-	}
-	defer rlstore.stopReading()
-	lw, err := rlstore.lockfile.GetLastWrite()
-	if err != nil {
-		return nil, err
-	}
-	rlstore.lastWrite = lw
-	if _, err := rlstore.load(false); err != nil {
 		return nil, err
 	}
 	return &rlstore, nil
@@ -2034,9 +2012,16 @@ func (s *simpleGetCloser) Close() error {
 // LOCKING BUG: See the comments in layerStore.Diff
 func (r *layerStore) newFileGetter(id string) (drivers.FileGetCloser, error) {
 	if getter, ok := r.driver.(drivers.DiffGetterDriver); ok {
-		return getter.DiffGetter(id)
+		fgc, err := getter.DiffGetter(id)
+		if err != nil {
+			return nil, err
+		}
+		if fgc != nil {
+			return fgc, nil
+		}
 	}
-	path, err := r.Mount(id, drivers.MountOpts{})
+
+	path, err := r.Mount(id, drivers.MountOpts{Options: []string{"ro"}})
 	if err != nil {
 		return nil, err
 	}

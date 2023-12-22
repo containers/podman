@@ -1,5 +1,5 @@
-//go:build linux && composefs && cgo
-// +build linux,composefs,cgo
+//go:build linux && cgo
+// +build linux,cgo
 
 package overlay
 
@@ -32,11 +32,6 @@ func getComposeFsHelper() (string, error) {
 		composeFsHelperPath, composeFsHelperErr = exec.LookPath("mkcomposefs")
 	})
 	return composeFsHelperPath, composeFsHelperErr
-}
-
-func composeFsSupported() bool {
-	_, err := getComposeFsHelper()
-	return err == nil
 }
 
 func enableVerity(description string, fd int) error {

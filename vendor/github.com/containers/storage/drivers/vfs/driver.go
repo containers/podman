@@ -31,8 +31,9 @@ func init() {
 func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) {
 	d := &Driver{
 		name:       "vfs",
-		homes:      []string{home},
+		homes:      []string{filepath.Dir(home)},
 		idMappings: idtools.NewIDMappingsFromMaps(options.UIDMaps, options.GIDMaps),
+		imageStore: options.ImageStore,
 	}
 
 	rootIDs := d.idMappings.RootPair()
@@ -62,12 +63,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 			return nil, fmt.Errorf("vfs driver does not support %s options", key)
 		}
 	}
-	// If --imagestore is provided, lets add writable graphRoot
-	// to vfs's additional image store, as it is done for
-	// `overlay` driver.
-	if options.ImageStore != "" {
-		d.homes = append(d.homes, options.ImageStore)
-	}
+
 	d.updater = graphdriver.NewNaiveLayerIDMapUpdater(d)
 	d.naiveDiff = graphdriver.NewNaiveDiffDriver(d, d.updater)
 
@@ -85,6 +81,7 @@ type Driver struct {
 	ignoreChownErrors bool
 	naiveDiff         graphdriver.DiffDriver
 	updater           graphdriver.LayerIDMapUpdater
+	imageStore        string
 }
 
 func (d *Driver) String() string {
@@ -158,8 +155,10 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool
 		idMappings = opts.IDMappings
 	}
 
-	dir := d.dir(id)
+	dir := d.dir2(id, ro)
+
 	rootIDs := idMappings.RootPair()
+
 	if err := idtools.MkdirAllAndChown(filepath.Dir(dir), 0o700, rootIDs); err != nil {
 		return err
 	}
@@ -204,18 +203,33 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool
 	return nil
 }
 
-func (d *Driver) dir(id string) string {
-	for i, home := range d.homes {
-		if i > 0 {
-			home = filepath.Join(home, d.String())
+func (d *Driver) dir2(id string, useImageStore bool) string {
+	var homedir string
+
+	if useImageStore && d.imageStore != "" {
+		homedir = d.imageStore
+	} else {
+		homedir = d.homes[0]
+	}
+	newpath := filepath.Join(homedir, d.String(), "dir", filepath.Base(id))
+	if _, err := os.Stat(newpath); err != nil {
+		additionalHomes := d.homes[1:]
+		if d.imageStore != "" {
+			additionalHomes = append(additionalHomes, d.imageStore)
 		}
-		candidate := filepath.Join(home, "dir", filepath.Base(id))
-		fi, err := os.Stat(candidate)
-		if err == nil && fi.IsDir() {
-			return candidate
+		for _, home := range additionalHomes {
+			candidate := filepath.Join(home, d.String(), "dir", filepath.Base(id))
+			fi, err := os.Stat(candidate)
+			if err == nil && fi.IsDir() {
+				return candidate
+			}
 		}
 	}
-	return filepath.Join(d.homes[0], "dir", filepath.Base(id))
+	return newpath
+}
+
+func (d *Driver) dir(id string) string {
+	return d.dir2(id, false)
 }
 
 // Remove deletes the content from the directory for a given id.
@@ -263,7 +277,7 @@ func (d *Driver) Exists(id string) bool {
 
 // List layers (not including additional image stores)
 func (d *Driver) ListLayers() ([]string, error) {
-	entries, err := os.ReadDir(filepath.Join(d.homes[0], "dir"))
+	entries, err := os.ReadDir(filepath.Join(d.homes[0], d.name, "dir"))
 	if err != nil {
 		return nil, err
 	}

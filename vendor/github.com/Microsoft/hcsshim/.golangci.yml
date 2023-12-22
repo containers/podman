@@ -20,6 +20,7 @@ linters:
     # - typecheck
     # - unused
 
+    - errorlint # error wrapping (eg, not using `errors.Is`, using `%s` instead of `%w` in `fmt.Errorf`)
     - gofmt # whether code was gofmt-ed
     - govet # enabled by default, but just to be sure
     - nolintlint # ill-formed or insufficient nolint directives
@@ -52,6 +53,12 @@ issues:
         - stylecheck
       text: "^ST1003: should not use underscores in package names$"
       source: "^package cri_containerd$"
+
+    # don't bother with propper error wrapping in test code
+    - path: cri-containerd
+      linters:
+        - errorlint
+      text: "non-wrapping format verb for fmt.Errorf"
 
     # This repo has a LOT of generated schema files, operating system bindings, and other
     # things that ST1003 from stylecheck won't like (screaming case Windows api constants for example).

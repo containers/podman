@@ -94,7 +94,7 @@ func getStMode(mode uint32, typ string) (uint32, error) {
 }
 
 func dumpNode(out io.Writer, links map[string]int, verityDigests map[string]string, entry *internal.FileMetadata) error {
-	path := entry.Name
+	path := strings.TrimRight(entry.Name, "/")
 	if path == "" {
 		path = "/"
 	} else if path[0] != '/' {
