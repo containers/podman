@@ -57,7 +57,7 @@ func Create(ctx context.Context, name string, images []string, options *CreateOp
 }
 
 // Exists returns true if a given manifest list exists
-func Exists(ctx context.Context, name string, options *ExistsOptions) (bool, error) {
+func Exists(ctx context.Context, name string, _ *ExistsOptions) (bool, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return false, err

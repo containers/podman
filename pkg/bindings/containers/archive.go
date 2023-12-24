@@ -56,6 +56,9 @@ func CopyFromArchive(ctx context.Context, nameOrID string, path string, reader i
 
 // CopyFromArchiveWithOptions copy files into container
 func CopyFromArchiveWithOptions(ctx context.Context, nameOrID string, path string, reader io.Reader, options *CopyOptions) (entities.ContainerCopyFunc, error) {
+	if options == nil {
+		options = new(CopyOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err

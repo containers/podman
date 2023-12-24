@@ -19,7 +19,7 @@ import (
 
 // Exists a lightweight way to determine if an image exists in local storage.  It returns a
 // boolean response.
-func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool, error) {
+func Exists(ctx context.Context, nameOrID string, _ *ExistsOptions) (bool, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return false, err
@@ -105,11 +105,7 @@ func Tree(ctx context.Context, nameOrID string, options *TreeOptions) (*entities
 }
 
 // History returns the parent layers of an image.
-func History(ctx context.Context, nameOrID string, options *HistoryOptions) ([]*types.HistoryResponse, error) {
-	if options == nil {
-		options = new(HistoryOptions)
-	}
-	_ = options
+func History(ctx context.Context, nameOrID string, _ *HistoryOptions) ([]*types.HistoryResponse, error) {
 	var history []*types.HistoryResponse
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
@@ -196,11 +192,7 @@ func Prune(ctx context.Context, options *PruneOptions) ([]*reports.PruneReport, 
 }
 
 // Tag adds an additional name to locally-stored image. Both the tag and repo parameters are required.
-func Tag(ctx context.Context, nameOrID, tag, repo string, options *TagOptions) error {
-	if options == nil {
-		options = new(TagOptions)
-	}
-	_ = options
+func Tag(ctx context.Context, nameOrID, tag, repo string, _ *TagOptions) error {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
@@ -218,11 +210,7 @@ func Tag(ctx context.Context, nameOrID, tag, repo string, options *TagOptions) e
 }
 
 // Untag removes a name from locally-stored image. Both the tag and repo parameters are required.
-func Untag(ctx context.Context, nameOrID, tag, repo string, options *UntagOptions) error {
-	if options == nil {
-		options = new(UntagOptions)
-	}
-	_ = options
+func Untag(ctx context.Context, nameOrID, tag, repo string, _ *UntagOptions) error {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
