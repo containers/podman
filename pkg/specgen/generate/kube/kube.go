@@ -488,7 +488,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 				// Make sure the z/Z option is not already there (from editing the YAML)
 				if k == define.BindMountPrefix {
 					lastIndex := strings.LastIndex(v, ":")
-					if v[:lastIndex] == volumeSource.Source && !cutil.StringInSlice("z", options) && !cutil.StringInSlice("Z", options) {
+					if lastIndex != -1 && v[:lastIndex] == volumeSource.Source && !cutil.StringInSlice("z", options) && !cutil.StringInSlice("Z", options) {
 						options = append(options, v[lastIndex+1:])
 					}
 				}
