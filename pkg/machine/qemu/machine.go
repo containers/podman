@@ -347,7 +347,7 @@ func (v *MachineVM) mountVolumesToVM(opts machine.StartOptions, name string) err
 		case MountType9p:
 			mountOptions := []string{"-t", "9p"}
 			mountOptions = append(mountOptions, []string{"-o", "trans=virtio", mount.Tag, mount.Target}...)
-			mountOptions = append(mountOptions, []string{"-o", "version=9p2000.L,msize=131072"}...)
+			mountOptions = append(mountOptions, []string{"-o", "version=9p2000.L,msize=131072,cache=mmap"}...)
 			if mount.ReadOnly {
 				mountOptions = append(mountOptions, []string{"-o", "ro"}...)
 			}
