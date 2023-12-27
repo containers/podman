@@ -400,7 +400,10 @@ func persistentPostRunE(cmd *cobra.Command, args []string) error {
 
 func configHook() {
 	if dockerConfig != "" {
-		logrus.Warn("The --config flag is ignored by Podman. Exists for Docker compatibility")
+		if err := os.Setenv("DOCKER_CONFIG", dockerConfig); err != nil {
+			fmt.Fprintf(os.Stderr, "cannot set DOCKER_CONFIG=%s: %s", dockerConfig, err.Error())
+			os.Exit(1)
+		}
 	}
 }
 
@@ -476,8 +479,10 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 	lFlags.StringVarP(&podmanConfig.URI, "host", "H", podmanConfig.URI, "Used for Docker compatibility")
 	_ = lFlags.MarkHidden("host")
 
-	lFlags.StringVar(&dockerConfig, "config", "", "Ignored for Docker compatibility")
-	_ = lFlags.MarkHidden("config")
+	configFlagName := "config"
+	lFlags.StringVar(&dockerConfig, "config", "", "Location of authentication config file")
+	_ = cmd.RegisterFlagCompletionFunc(configFlagName, completion.AutocompleteDefault)
+
 	// Context option added just for compatibility with DockerCLI.
 	lFlags.String("context", "default", "Name of the context to use to connect to the daemon (This flag is a NOOP and provided solely for scripting compatibility.)")
 	_ = lFlags.MarkHidden("context")

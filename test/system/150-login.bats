@@ -91,6 +91,38 @@ function setup() {
     assert "$output" =~ "Error: options for paths to the credential file and to the Docker-compatible credential file can not be set simultaneously"
 }
 
+@test "podman login - check with --config global option" {
+    dockerconfig=${PODMAN_LOGIN_WORKDIR}/docker
+    rm -rf $dockerconfig
+
+    registry=localhost:${PODMAN_LOGIN_REGISTRY_PORT}
+
+    run_podman --config $dockerconfig login \
+        --tls-verify=false \
+        --username ${PODMAN_LOGIN_USER} \
+        --password ${PODMAN_LOGIN_PASS} \
+        $registry
+
+    # Confirm that config file now exists
+    test -e $dockerconfig/config.json || \
+        die "podman login did not create config $dockerconfig/config.json"
+
+    # Special bracket form needed because of colon in host:port
+    run jq -r ".[\"auths\"][\"$registry\"][\"auth\"]" <$dockerconfig/config.json
+    is "$status" "0" "jq from $dockerconfig/config.json"
+
+    expect_userpass="${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS}"
+    actual_userpass=$(base64 -d <<<"$output")
+    is "$actual_userpass" "$expect_userpass" "credentials stored in $dockerconfig/config.json"
+
+    # Now log out and make sure credentials are removed
+    run_podman --config $dockerconfig logout $registry
+
+    run jq -r '.auths' <$dockerconfig/config.json
+    is "$status" "0" "jq from $dockerconfig/config.json"
+    is "$output" "{}" "credentials removed from $dockerconfig/config.json"
+}
+
 # Some push tests
 @test "podman push fail" {
 
