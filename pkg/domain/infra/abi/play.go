@@ -166,8 +166,10 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 		return nil, err
 	}
 
+	expandedContent := os.ExpandEnv(string(content))
+
 	// split yaml document
-	documentList, err := splitMultiDocYAML(content)
+	documentList, err := splitMultiDocYAML([]byte(expandedContent))
 	if err != nil {
 		return nil, err
 	}

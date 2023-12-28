@@ -1236,6 +1236,17 @@ items:
     restartPolicy: Never
 `
 
+var podWithEnvVariablesInterpolation = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: foo
+spec:
+  containers:
+  - name: bar
+    image: ${IMAGE}
+`
+
 var (
 	defaultCtrName        = "testCtr"
 	defaultCtrCmd         = []string{"top"}
@@ -6337,4 +6348,20 @@ spec:
 		Expect(execArr[len(execArr)-1]).To(Not(ContainSubstring(arr[len(arr)-1])))
 	})
 
+	It("support environment variables interpolation", func() {
+		os.Setenv("IMAGE", CITEST_IMAGE)
+
+		err := writeYaml(podWithEnvVariablesInterpolation, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(ExitCleanly())
+
+		inspect := podmanTest.Podman([]string{"inspect", "foo-bar", "--format", "'{{ .ImageName }}'"})
+		inspect.WaitWithDefaultTimeout()
+
+		imageName := inspect.OutputToString()
+		Expect(imageName).To(ContainSubstring(CITEST_IMAGE))
+	})
 })
