@@ -27,6 +27,7 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 		NoTrunc          bool              `schema:"noTrunc"`
 		Replace          bool              `schema:"replace"`
 		PublishPorts     []string          `schema:"publishPorts"`
+		PublishAllPorts  bool              `schema:"publishAllPorts"`
 		ServiceContainer bool              `schema:"serviceContainer"`
 		Start            bool              `schema:"start"`
 		StaticIPs        []string          `schema:"staticIPs"`
@@ -97,6 +98,7 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 		NoHosts:            query.NoHosts,
 		Password:           password,
 		PublishPorts:       query.PublishPorts,
+		PublishAllPorts:    query.PublishAllPorts,
 		Quiet:              true,
 		Replace:            query.Replace,
 		ServiceContainer:   query.ServiceContainer,
