@@ -33,6 +33,7 @@ WantedBy=default.target
 	It("podman start container by systemd", func() {
 		SkipIfRemote("cannot create unit file on remote host")
 		SkipIfContainerized("test does not have systemd as pid 1")
+		SkipIfJournaldUnavailable()
 
 		dashWhat := "--system"
 		unitDir := "/run/systemd/system"
