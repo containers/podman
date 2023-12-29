@@ -851,17 +851,21 @@ type journaldTests struct {
 
 var journald journaldTests
 
-func SkipIfJournaldUnavailable() {
+// Check if journalctl is unavailable
+func checkAvailableJournald() {
 	f := func() {
 		journald.journaldSkip = false
 
-		// Check if journalctl is unavailable
 		cmd := exec.Command("journalctl", "-n", "1")
 		if err := cmd.Run(); err != nil {
 			journald.journaldSkip = true
 		}
 	}
 	journald.journaldOnce.Do(f)
+}
+
+func SkipIfJournaldUnavailable() {
+	checkAvailableJournald()
 
 	// In container, journalctl does not return an error even if
 	// journald is unavailable
