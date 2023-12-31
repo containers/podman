@@ -378,12 +378,23 @@ func nextLine(data string, afterPos int) (string, string) {
 	return data, ""
 }
 
+func trimSpacesFromLines(data string) string {
+	lines := strings.Split(data, "\n")
+	for i, line := range lines {
+		lines[i] = strings.TrimSpace(line)
+	}
+	return strings.Join(lines, "\n")
+}
+
 // Parse an already loaded unit file (in the form of a string)
 func (f *UnitFile) Parse(data string) error {
 	p := &UnitFileParser{
 		file:   f,
 		lineNr: 1,
 	}
+
+	data = trimSpacesFromLines(data)
+
 	for len(data) > 0 {
 		origdata := data
 		nLines := 1
