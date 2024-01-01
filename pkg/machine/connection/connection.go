@@ -1,10 +1,12 @@
 //go:build amd64 || arm64
 
-package machine
+package connection
 
 import (
 	"errors"
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 
 	"github.com/containers/common/pkg/config"
@@ -116,4 +118,29 @@ func RemoveFilesAndConnections(files []string, names ...string) {
 	if err := RemoveConnections(names...); err != nil {
 		logrus.Error(err)
 	}
+}
+
+type RemoteConnectionType string
+
+var SSHRemoteConnection RemoteConnectionType = "ssh"
+
+// MakeSSHURL
+func (rc RemoteConnectionType) MakeSSHURL(host, path, port, userName string) url.URL {
+	// TODO Should this function have input verification?
+	userInfo := url.User(userName)
+	uri := url.URL{
+		Scheme:     "ssh",
+		Opaque:     "",
+		User:       userInfo,
+		Host:       host,
+		Path:       path,
+		RawPath:    "",
+		ForceQuery: false,
+		RawQuery:   "",
+		Fragment:   "",
+	}
+	if len(port) > 0 {
+		uri.Host = net.JoinHostPort(uri.Hostname(), port)
+	}
+	return uri
 }

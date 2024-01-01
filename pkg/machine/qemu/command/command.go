@@ -2,7 +2,9 @@ package command
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -12,6 +14,12 @@ import (
 	"github.com/containers/common/libnetwork/etchosts"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine/define"
+)
+
+// defaultQMPTimeout is the timeout duration for the
+// qmp monitor interactions.
+var (
+	defaultQMPTimeout = 2 * time.Second
 )
 
 // QemuCmd is an alias around a string slice to prevent the need to migrate the
@@ -233,4 +241,23 @@ type Monitor struct {
 	Network string
 	// Timeout in seconds for qmp monitor transactions
 	Timeout time.Duration
+}
+
+// NewQMPMonitor creates the monitor subsection of our vm
+func NewQMPMonitor(name, machineRuntimeDir string) (Monitor, error) {
+	if _, err := os.Stat(machineRuntimeDir); errors.Is(err, fs.ErrNotExist) {
+		if err := os.MkdirAll(machineRuntimeDir, 0755); err != nil {
+			return Monitor{}, err
+		}
+	}
+	address, err := define.NewMachineFile(filepath.Join(machineRuntimeDir, "qmp_"+name+".sock"), nil)
+	if err != nil {
+		return Monitor{}, err
+	}
+	monitor := Monitor{
+		Network: "unix",
+		Address: *address,
+		Timeout: defaultQMPTimeout,
+	}
+	return monitor, nil
 }
