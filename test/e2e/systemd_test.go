@@ -64,8 +64,11 @@ WantedBy=default.target
 		start := SystemExec("systemctl", []string{dashWhat, "start", serviceName})
 		Expect(start).Should(ExitCleanly())
 
-		logs := SystemExec("journalctl", []string{dashWhat, "-n", "20", "-u", serviceName})
-		Expect(logs).Should(ExitCleanly())
+		checkAvailableJournald()
+		if !journald.journaldSkip {
+			logs := SystemExec("journalctl", []string{dashWhat, "-n", "20", "-u", serviceName})
+			Expect(logs).Should(ExitCleanly())
+		}
 
 		status := SystemExec("systemctl", []string{dashWhat, "status", serviceName})
 		Expect(status.OutputToString()).To(ContainSubstring("active (running)"))
