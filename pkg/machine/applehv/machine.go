@@ -21,6 +21,7 @@ import (
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/applehv/vfkit"
+	"github.com/containers/podman/v4/pkg/machine/connection"
 	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/containers/podman/v4/pkg/machine/sockets"
@@ -129,7 +130,7 @@ func (m *MacMachine) setVfkitInfo(cfg *config.Config, readySocket define.VMFile)
 
 // addMountsToVM converts the volumes passed through the CLI to virtio-fs mounts
 // and adds them to the machine
-func (m *MacMachine) addMountsToVM(opts machine.InitOptions, virtiofsMnts *[]machine.VirtIoFs) error {
+func (m *MacMachine) addMountsToVM(opts define.InitOptions, virtiofsMnts *[]machine.VirtIoFs) error {
 	var mounts []vmconfigs.Mount
 	for _, volume := range opts.Volumes {
 		source, target, _, readOnly, err := machine.ParseVolumeFromPath(volume)
@@ -145,7 +146,7 @@ func (m *MacMachine) addMountsToVM(opts machine.InitOptions, virtiofsMnts *[]mac
 	return nil
 }
 
-func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
+func (m *MacMachine) Init(opts define.InitOptions) (bool, error) {
 	var (
 		key          string
 		virtiofsMnts []machine.VirtIoFs
@@ -225,7 +226,7 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	err = machine.AddSSHConnectionsToPodmanSocket(
+	err = connection.AddSSHConnectionsToPodmanSocket(
 		m.UID,
 		m.Port,
 		m.IdentityPath,
@@ -294,7 +295,7 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 }
 
 func (m *MacMachine) removeSystemConnections() error {
-	return machine.RemoveConnections(m.Name, fmt.Sprintf("%s-root", m.Name))
+	return connection.RemoveConnections(m.Name, fmt.Sprintf("%s-root", m.Name))
 }
 
 func (m *MacMachine) Inspect() (*machine.InspectInfo, error) {
@@ -385,7 +386,7 @@ func (m *MacMachine) Remove(name string, opts machine.RemoveOptions) (string, fu
 
 	confirmationMessage += "\n"
 	return confirmationMessage, func() error {
-		machine.RemoveFilesAndConnections(files, m.Name, m.Name+"-root")
+		connection.RemoveFilesAndConnections(files, m.Name, m.Name+"-root")
 		// TODO We will need something like this for applehv too i think
 		/*
 			// Remove the HVSOCK for networking

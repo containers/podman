@@ -19,6 +19,7 @@ import (
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/libhvee/pkg/hypervctl"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/connection"
 	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/machine/hyperv/vsock"
 	"github.com/containers/podman/v4/pkg/machine/ignition"
@@ -129,7 +130,7 @@ func (m *HyperVMachine) readAndSplitIgnition() error {
 	return vm.SplitAndAddIgnition("ignition.config.", reader)
 }
 
-func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
+func (m *HyperVMachine) Init(opts define.InitOptions) (bool, error) {
 	var (
 		key string
 		err error
@@ -192,7 +193,7 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	m.Port = sshPort
 
 	m.RemoteUsername = opts.Username
-	err = machine.AddSSHConnectionsToPodmanSocket(
+	err = connection.AddSSHConnectionsToPodmanSocket(
 		m.UID,
 		m.Port,
 		m.IdentityPath,
@@ -315,7 +316,7 @@ func (m *HyperVMachine) unregisterMachine() error {
 }
 
 func (m *HyperVMachine) removeSystemConnections() error {
-	return machine.RemoveConnections(m.Name, fmt.Sprintf("%s-root", m.Name))
+	return connection.RemoveConnections(m.Name, fmt.Sprintf("%s-root", m.Name))
 }
 
 func (m *HyperVMachine) Inspect() (*machine.InspectInfo, error) {
@@ -441,7 +442,7 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 
 	confirmationMessage += "\n"
 	return confirmationMessage, func() error {
-		machine.RemoveFilesAndConnections(files, m.Name, m.Name+"-root")
+		connection.RemoveFilesAndConnections(files, m.Name, m.Name+"-root")
 		m.removeNetworkAndReadySocketsFromRegistry()
 		if err := vm.Remove(""); err != nil {
 			return fmt.Errorf("removing virtual machine: %w", err)

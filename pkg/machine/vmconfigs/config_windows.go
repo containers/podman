@@ -19,3 +19,7 @@ type WSLConfig struct {
 // Stubs
 type QEMUConfig struct{}
 type AppleHVConfig struct{}
+
+func getHostUID() int {
+	return 1000
+}

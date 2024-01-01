@@ -116,7 +116,7 @@ func (v HyperVVirtualization) LoadVMByName(name string) (machine.VM, error) {
 	return m.loadFromFile()
 }
 
-func (v HyperVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, error) {
+func (v HyperVVirtualization) NewMachine(opts define.InitOptions) (machine.VM, error) {
 	m := HyperVMachine{Name: opts.Name}
 	if len(opts.ImagePath) < 1 {
 		return nil, errors.New("must define --image-path for hyperv support")
