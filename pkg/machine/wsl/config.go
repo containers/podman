@@ -27,7 +27,7 @@ func VirtualizationProvider() machine.VirtProvider {
 }
 
 // NewMachine initializes an instance of a wsl machine
-func (p *WSLVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, error) {
+func (p *WSLVirtualization) NewMachine(opts define.InitOptions) (machine.VM, error) {
 	vm := new(MachineVM)
 	if len(opts.USBs) > 0 {
 		return nil, fmt.Errorf("USB host passthrough is not supported for WSL machines")

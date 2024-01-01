@@ -11,8 +11,6 @@ import (
 	"github.com/containers/storage/pkg/lockfile"
 )
 
-type aThing struct{}
-
 type MachineConfig struct {
 	// Common stuff
 	Created      time.Time
@@ -32,6 +30,8 @@ type MachineConfig struct {
 	// Image stuff
 	imageDescription machineImage //nolint:unused
 
+	ImagePath *define.VMFile // Temporary only until a proper image struct is worked out
+
 	// Provider stuff
 	AppleHypervisor  *AppleHVConfig `json:",omitempty"`
 	QEMUHypervisor   *QEMUConfig    `json:",omitempty"`
@@ -39,11 +39,14 @@ type MachineConfig struct {
 	WSLHypervisor    *WSLConfig     `json:",omitempty"`
 
 	lock *lockfile.LockFile //nolint:unused
+
+	// configPath can be used for reading, writing, removing
+	configPath *define.VMFile
 }
 
 // MachineImage describes a podman machine image
 type MachineImage struct {
-	OCI  *ociMachineImage
+	OCI  *OCIMachineImage
 	FCOS *fcosMachineImage
 }
 
@@ -63,7 +66,7 @@ type machineImage interface { //nolint:unused
 	path() string
 }
 
-type ociMachineImage struct {
+type OCIMachineImage struct {
 	// registry
 	// TODO JSON serial/deserial will write string to disk
 	// but in code it is a types.ImageReference
@@ -72,11 +75,11 @@ type ociMachineImage struct {
 	FQImageReference string
 }
 
-func (o ociMachineImage) path() string {
+func (o OCIMachineImage) path() string {
 	return ""
 }
 
-func (o ociMachineImage) download() error {
+func (o OCIMachineImage) download() error {
 	return nil
 }
 
@@ -93,6 +96,13 @@ func (f fcosMachineImage) download() error {
 func (f fcosMachineImage) path() string {
 	return ""
 }
+
+type VMStubber interface {
+	CreateVM(opts define.CreateVMOpts, mc *MachineConfig) error
+	VMType() define.VMType
+	GetHyperVisorVMs() ([]string, error)
+}
+type aThing struct{}
 
 // HostUser describes the host user
 type HostUser struct {

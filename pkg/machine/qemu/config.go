@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
+
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/compression"
@@ -16,7 +18,6 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/containers/podman/v4/pkg/machine/qemu/command"
 	"github.com/containers/podman/v4/pkg/machine/sockets"
-	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/utils"
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
@@ -51,7 +52,7 @@ func findQEMUBinary() (string, error) {
 
 // setQMPMonitorSocket sets the virtual machine's QMP Monitor socket
 func (v *MachineVM) setQMPMonitorSocket() error {
-	monitor, err := NewQMPMonitor("unix", v.Name, defaultQMPTimeout)
+	monitor, err := newQMPMonitor("unix", v.Name, defaultQMPTimeout)
 	if err != nil {
 		return err
 	}
@@ -74,7 +75,7 @@ func (v *MachineVM) setNewMachineCMD(qemuBinary string, cmdOpts *setNewMachineCM
 
 // NewMachine initializes an instance of a virtual machine based on the qemu
 // virtualization.
-func (p *QEMUVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, error) {
+func (p *QEMUVirtualization) NewMachine(opts define.InitOptions) (machine.VM, error) {
 	vm := new(MachineVM)
 	if len(opts.Name) > 0 {
 		vm.Name = opts.Name
@@ -159,7 +160,7 @@ func (p *QEMUVirtualization) LoadVMByName(name string) (machine.VM, error) {
 		return nil, err
 	}
 
-	lock, err := machine.GetLock(vm.Name, vmtype)
+	lock, err := machine.GetLock(vm.Name, vmtype) //nolint:staticcheck
 	if err != nil {
 		return nil, err
 	}
