@@ -26,7 +26,7 @@ var (
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
 
-	initOpts           = machine.InitOptions{}
+	initOpts           = define.InitOptions{}
 	initOptionalFlags  = InitOptionalFlags{}
 	defaultMachineName = machine.DefaultMachineName
 	now                bool
@@ -187,6 +187,20 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		// Finished = *,     err != nil  -  Exit with an error message
 		return err
 	}
+
+	// The following is for enabling podman machine approach
+	/*
+		s := new(p5qemu.QEMUStubber)
+		mc, err := p5.Init(initOpts, s)
+		if err != nil {
+			return err
+		}
+
+		// TODO callback needed for the configuration file
+		if err := mc.Write(); err != nil {
+			return err
+		}
+	*/
 	newMachineEvent(events.Init, events.Event{Name: initOpts.Name})
 	fmt.Println("Machine init complete")
 
