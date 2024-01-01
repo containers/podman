@@ -65,6 +65,15 @@ func list(cmd *cobra.Command, args []string) error {
 		err          error
 	)
 
+	// Podman 5 development
+	/*
+		s := new(p5qemu.QEMUStubber)
+		if err := p5.List([]vmconfigs.VMStubber{s}); err != nil {
+			return err
+		}
+
+	*/
+
 	listResponse, err = provider.List(opts)
 	if err != nil {
 		return fmt.Errorf("listing vms: %w", err)
