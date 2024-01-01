@@ -112,7 +112,7 @@ func (v AppleHVVirtualization) LoadVMByName(name string) (machine.VM, error) {
 	return m.loadFromFile()
 }
 
-func (v AppleHVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, error) {
+func (v AppleHVVirtualization) NewMachine(opts define.InitOptions) (machine.VM, error) {
 	m := MacMachine{Name: opts.Name}
 
 	if len(opts.USBs) > 0 {

@@ -22,36 +22,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type InitOptions struct {
-	CPUS               uint64
-	DiskSize           uint64
-	IgnitionPath       string
-	ImagePath          string
-	Volumes            []string
-	VolumeDriver       string
-	IsDefault          bool
-	Memory             uint64
-	Name               string
-	TimeZone           string
-	URI                url.URL
-	Username           string
-	ReExec             bool
-	Rootful            bool
-	UID                string // uid of the user that called machine
-	UserModeNetworking *bool  // nil = use backend/system default, false = disable, true = enable
-	USBs               []string
-}
-
 const (
 	DefaultMachineName string = "podman-machine-default"
 	apiUpTimeout              = 20 * time.Second
 )
 
-type RemoteConnectionType string
-
 var (
-	SSHRemoteConnection RemoteConnectionType = "ssh"
-	ForwarderBinaryName                      = "gvproxy"
+	DefaultIgnitionUserName = "core"
+	ForwarderBinaryName     = "gvproxy"
 )
 
 type Download struct {
@@ -120,7 +98,7 @@ type RemoveOptions struct {
 type InspectOptions struct{}
 
 type VM interface {
-	Init(opts InitOptions) (bool, error)
+	Init(opts define.InitOptions) (bool, error)
 	Inspect() (*InspectInfo, error)
 	Remove(name string, opts RemoveOptions) (string, func() error, error)
 	Set(name string, opts SetOptions) ([]error, error)
@@ -128,24 +106,6 @@ type VM interface {
 	Start(name string, opts StartOptions) error
 	State(bypass bool) (define.Status, error)
 	Stop(name string, opts StopOptions) error
-}
-
-func GetLock(name string, vmtype define.VMType) (*lockfile.LockFile, error) {
-	// FIXME: there's a painful amount of `GetConfDir` calls scattered
-	// across the code base.  This should be done once and stored
-	// somewhere instead.
-	vmConfigDir, err := GetConfDir(vmtype)
-	if err != nil {
-		return nil, err
-	}
-
-	lockPath := filepath.Join(vmConfigDir, name+".lock")
-	lock, err := lockfile.GetLockFile(lockPath)
-	if err != nil {
-		return nil, fmt.Errorf("creating lockfile for VM: %w", err)
-	}
-
-	return lock, nil
 }
 
 type DistributionDownload interface {
@@ -165,26 +125,6 @@ type InspectInfo struct {
 	State              define.Status
 	UserModeNetworking bool
 	Rootful            bool
-}
-
-func (rc RemoteConnectionType) MakeSSHURL(host, path, port, userName string) url.URL {
-	// TODO Should this function have input verification?
-	userInfo := url.User(userName)
-	uri := url.URL{
-		Scheme:     "ssh",
-		Opaque:     "",
-		User:       userInfo,
-		Host:       host,
-		Path:       path,
-		RawPath:    "",
-		ForceQuery: false,
-		RawQuery:   "",
-		Fragment:   "",
-	}
-	if len(port) > 0 {
-		uri.Host = net.JoinHostPort(uri.Hostname(), port)
-	}
-	return uri
 }
 
 // GetCacheDir returns the dir where VM images are downloaded into when pulled
@@ -224,6 +164,26 @@ func GetGlobalDataDir() (string, error) {
 	}
 
 	return dataDir, os.MkdirAll(dataDir, 0755)
+}
+
+func GetMachineDirs(vmType define.VMType) (*define.MachineDirs, error) {
+	rtDir, err := getRuntimeDir()
+	if err != nil {
+		return nil, err
+	}
+
+	rtDir = filepath.Join(rtDir, "podman")
+	configDir, err := GetConfDir(vmType)
+	if err != nil {
+		return nil, err
+	}
+	dataDir, err := GetDataDir(vmType)
+	dirs := define.MachineDirs{
+		ConfigDir:  configDir,
+		DataDir:    dataDir,
+		RuntimeDir: rtDir,
+	}
+	return &dirs, err
 }
 
 // DataDirPrefix returns the path prefix for all machine data files
@@ -298,7 +258,7 @@ type VirtProvider interface { //nolint:interfacebloat
 	IsValidVMName(name string) (bool, error)
 	List(opts ListOptions) ([]*ListResponse, error)
 	LoadVMByName(name string) (VM, error)
-	NewMachine(opts InitOptions) (VM, error)
+	NewMachine(opts define.InitOptions) (VM, error)
 	NewDownload(vmName string) (Download, error)
 	RemoveAndCleanMachines() error
 	VMType() define.VMType
@@ -455,4 +415,23 @@ func (dl Download) AcquireVMImage(imagePath string) (*define.VMFile, FCOSStream,
 		imageLocation = imgPath
 	}
 	return imageLocation, fcosStream, nil
+}
+
+// Deprecated: GetLock
+func GetLock(name string, vmtype define.VMType) (*lockfile.LockFile, error) {
+	// FIXME: there's a painful amount of `GetConfDir` calls scattered
+	// across the code base.  This should be done once and stored
+	// somewhere instead.
+	vmConfigDir, err := GetConfDir(vmtype)
+	if err != nil {
+		return nil, err
+	}
+
+	lockPath := filepath.Join(vmConfigDir, name+".lock")
+	lock, err := lockfile.GetLockFile(lockPath)
+	if err != nil {
+		return nil, fmt.Errorf("creating lockfile for VM: %w", err)
+	}
+
+	return lock, nil
 }

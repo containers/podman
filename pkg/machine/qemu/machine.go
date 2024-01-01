@@ -22,6 +22,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/connection"
 	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/containers/podman/v4/pkg/machine/qemu/command"
@@ -85,7 +86,7 @@ type MachineVM struct {
 
 // addMountsToVM converts the volumes passed through the CLI into the specified
 // volume driver and adds them to the machine
-func (v *MachineVM) addMountsToVM(opts machine.InitOptions) error {
+func (v *MachineVM) addMountsToVM(opts define.InitOptions) error {
 	var volumeType string
 	switch opts.VolumeDriver {
 	// "" is the default volume driver
@@ -113,7 +114,7 @@ func (v *MachineVM) addMountsToVM(opts machine.InitOptions) error {
 
 // Init writes the json configuration file to the filesystem for
 // other verbs (start, stop)
-func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
+func (v *MachineVM) Init(opts define.InitOptions) (bool, error) {
 	var (
 		key string
 		err error
@@ -148,7 +149,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	// Add location of bootable image
 	v.CmdLine.SetBootableImage(v.getImageFile())
 
-	if err = machine.AddSSHConnectionsToPodmanSocket(
+	if err = connection.AddSSHConnectionsToPodmanSocket(
 		v.UID,
 		v.Port,
 		v.IdentityPath,
@@ -239,7 +240,7 @@ func createReadyUnitFile() (string, error) {
 }
 
 func (v *MachineVM) removeSystemConnections() error {
-	return machine.RemoveConnections(v.Name, fmt.Sprintf("%s-root", v.Name))
+	return connection.RemoveConnections(v.Name, fmt.Sprintf("%s-root", v.Name))
 }
 
 func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
@@ -882,8 +883,8 @@ func (v *MachineVM) stopLocked() error {
 	return nil
 }
 
-// NewQMPMonitor creates the monitor subsection of our vm
-func NewQMPMonitor(network, name string, timeout time.Duration) (command.Monitor, error) {
+// Deprecated: newQMPMonitor creates the monitor subsection of our vm
+func newQMPMonitor(network, name string, timeout time.Duration) (command.Monitor, error) {
 	rtDir, err := getRuntimeDir()
 	if err != nil {
 		return command.Monitor{}, err
@@ -996,7 +997,7 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 
 	confirmationMessage += "\n"
 	return confirmationMessage, func() error {
-		machine.RemoveFilesAndConnections(files, v.Name, v.Name+"-root")
+		connection.RemoveFilesAndConnections(files, v.Name, v.Name+"-root")
 		return nil
 	}, nil
 }
