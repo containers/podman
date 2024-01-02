@@ -582,6 +582,27 @@ spec:
     {{ end }}
     image: {{ .Image }}
     name: {{ .Name }}
+{{ if .RestartPolicy }}
+    restartPolicy: {{ .RestartPolicy }}
+    {{ if .StartupProbe }}
+    startupProbe:
+      exec:
+        command:
+        {{ range .StartupProbe.Cmd }}
+        - {{.}}
+        {{ end }}
+    {{ if .StartupProbe.TimeoutSeconds }}
+      timeoutSeconds: {{ .StartupProbe.TimeoutSeconds }}
+    {{ end }}
+    {{ end }}
+{{ end }}
+
+{{ if .VolumeMount }}
+    volumeMounts:
+    - name: {{.VolumeName}}
+      mountPath: {{ .VolumeMountPath }}
+      readonly: {{.VolumeReadOnly}}
+{{ end }}
   {{ end }}
 {{ end }}
 {{ if .SecurityContext }}
@@ -1644,6 +1665,40 @@ func getPodNameInDeployment(d *Deployment) Pod {
 	return p
 }
 
+// HealthcheckProbe describes the options for a health check probe
+type HealthCheckProbe struct {
+	Cmd                 []string
+	InitialDelaySeconds int
+	PeriodSeconds       int
+	TimeoutSeconds      int
+}
+
+func getHealthCheckProbe(options ...healthProbeOption) *HealthCheckProbe {
+	probe := HealthCheckProbe{
+		InitialDelaySeconds: 1,
+		PeriodSeconds:       1,
+	}
+
+	for _, option := range options {
+		option(&probe)
+	}
+	return &probe
+}
+
+type healthProbeOption func(*HealthCheckProbe)
+
+func WithHealthCheckCommand(cmd []string) healthProbeOption {
+	return func(h *HealthCheckProbe) {
+		h.Cmd = cmd
+	}
+}
+
+func WithHeathCheckTimeout(timeout int) healthProbeOption {
+	return func(h *HealthCheckProbe) {
+		h.TimeoutSeconds = timeout
+	}
+}
+
 // Ctr describes the options a kube yaml can be configured at container level
 type Ctr struct {
 	Name            string
@@ -1669,8 +1724,10 @@ type Ctr struct {
 	Env             []Env
 	EnvFrom         []EnvFrom
 	InitCtrType     string
+	RestartPolicy   string
 	RunAsUser       string
 	RunAsGroup      string
+	StartupProbe    *HealthCheckProbe
 }
 
 // getCtr takes a list of ctrOptions and returns a Ctr with sane defaults
@@ -1714,6 +1771,18 @@ func withName(name string) ctrOption {
 func withInitCtr() ctrOption {
 	return func(c *Ctr) {
 		c.InitCtrType = define.AlwaysInitContainer
+	}
+}
+
+func withRestartableInitCtr() ctrOption {
+	return func(c *Ctr) {
+		c.RestartPolicy = string(v1.RestartPolicyAlways)
+	}
+}
+
+func withStartupProbe(probe *HealthCheckProbe) ctrOption {
+	return func(c *Ctr) {
+		c.StartupProbe = probe
 	}
 }
 
@@ -2496,6 +2565,84 @@ var _ = Describe("Podman kube play", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(ExitCleanly())
 		Expect(inspect.OutputToString()).To(ContainSubstring("running"))
+	})
+
+	// If always restart init container didn't define define startup probe, it is started immediately and the Pod is starting regular container
+	It("test with always restart init container without startup probe started immediately", func() {
+		pod := getPod(withPodInitCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"top"}), withRestartableInitCtr(), withName("sidecar-container"))), withCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"top"}))))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(ExitCleanly())
+
+		// Expect the number of containers created to be 3, infra, restartable init container and regular container
+		numOfCtrs := podmanTest.NumberOfContainers()
+		Expect(numOfCtrs).To(Equal(3))
+
+		// Regular container should be in running state
+		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{.State.Status}}", "testPod-" + defaultCtrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		Expect(inspect.OutputToString()).To(ContainSubstring("running"))
+
+		// Init container should keep running
+		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{.State.Status}}", "testPod-" + "sidecar-container"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		Expect(inspect.OutputToString()).To(ContainSubstring("running"))
+
+	})
+
+	// For a Pod with [initContainer1, restartableInitContainer, initContainer2, regularContainer], the containers shouldbe started in sequence. And regular container started after
+	// start probe of restartableInitContainer finished
+	It("init container started in sequence", func() {
+		startupProbe := getHealthCheckProbe(WithHealthCheckCommand([]string{"sh", "-c", "echo 'sidecar'>>/test/startUpSequence"}), WithHeathCheckTimeout(3))
+		initContainer1 := withPodInitCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"sh", "-c", "echo 'init-test1'>>/test/startUpSequence"}), withInitCtr(), withName("init-test1"), withVolumeMount("/test", "", false)))
+		restartableInitConatiner := withPodInitCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"top"}), withRestartableInitCtr(), withName("sidecar-container"), withStartupProbe(startupProbe), withVolumeMount("/test", "", false)))
+		initContainer2 := withPodInitCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"sh", "-c", "echo 'init-test2'>>/test/startUpSequence"}), withInitCtr(), withName("init-test2"), withVolumeMount("/test", "", false)))
+
+		pod := getPod(initContainer1, restartableInitConatiner, initContainer2, withCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"top"}), withVolumeMount("/test", "", false))), withVolume(getEmptyDirVolume()))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(ExitCleanly())
+
+		// Expect the number of containers created to be 3, infra, restartable init container and regular container
+		numOfCtrs := podmanTest.NumberOfContainers()
+		Expect(numOfCtrs).To(Equal(3))
+
+		// Init container should keep running
+		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{.State.Status}}", "testPod-" + "sidecar-container"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		Expect(inspect.OutputToString()).To(ContainSubstring("running"))
+
+		// Regular container should be in running state
+		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{.State.Status}}", getCtrNameInPod(pod)})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		Expect(inspect.OutputToString()).To(ContainSubstring("running"))
+
+		// Init container started in correct sequence
+		inspect = podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "cat", "/test/startUpSequence"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		Expect(inspect.OutputToString()).To(Equal("init-test1 sidecar init-test2"))
+
+		// Regular container started after restartable init container
+		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{.State.StartedAt}}", "testPod-" + "sidecar-container"})
+		inspect.WaitWithDefaultTimeout()
+		startOfRestartableInitContainer, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", inspect.OutputToString())
+		Expect(err).ToNot(HaveOccurred())
+		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{.State.StartedAt}}", getCtrNameInPod(pod)})
+		inspect.WaitWithDefaultTimeout()
+		startOfRegularContainer, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", inspect.OutputToString())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(startOfRestartableInitContainer).To(BeTemporally("<", startOfRegularContainer))
 	})
 
 	// If you supply only args for a Container, the default Entrypoint defined in the Docker image is run with the args that you supplied.

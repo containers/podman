@@ -768,10 +768,14 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			return nil, nil, fmt.Errorf("the pod %q is invalid; duplicate container name %q detected", podName, initCtr.Name)
 		}
 		ctrNames[initCtr.Name] = ""
-		// Init containers cannot have either of lifecycle, livenessProbe, readinessProbe, or startupProbe set
-		if initCtr.Lifecycle != nil || initCtr.LivenessProbe != nil || initCtr.ReadinessProbe != nil || initCtr.StartupProbe != nil {
-			return nil, nil, fmt.Errorf("cannot create an init container that has either of lifecycle, livenessProbe, readinessProbe, or startupProbe set")
+
+		if initCtr.RestartPolicy == nil || *initCtr.RestartPolicy != v1.ContainerRestartPolicyAlways {
+			// Non-restartable init containers cannot have either of lifecycle, livenessProbe, readinessProbe, or startupProbe set
+			if initCtr.Lifecycle != nil || initCtr.LivenessProbe != nil || initCtr.ReadinessProbe != nil || initCtr.StartupProbe != nil {
+				return nil, nil, fmt.Errorf("cannot create an init container that has either of lifecycle, livenessProbe, readinessProbe, or startupProbe set")
+			}
 		}
+
 		pulledImage, labels, err := ic.getImageAndLabelInfo(ctx, cwd, annotations, writer, initCtr, options)
 		if err != nil {
 			return nil, nil, err
@@ -780,9 +784,19 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		for k, v := range podSpec.PodSpecGen.Labels { // add podYAML labels
 			labels[k] = v
 		}
-		initCtrType := annotations[define.InitContainerType]
-		if initCtrType == "" {
-			initCtrType = define.OneShotInitContainer
+
+		// Supporting native sidecar container. Check https://kubernetes.io/blog/2023/08/25/native-sidecar-containers/
+		var initCtrType string
+		var restartPolicy string
+		if initCtr.RestartPolicy != nil && *initCtr.RestartPolicy == v1.ContainerRestartPolicyAlways {
+			restartPolicy = define.RestartPolicyAlways
+			initCtrType = define.AlwaysInitContainer
+		} else {
+			restartPolicy = define.RestartPolicyNo
+			initCtrType = annotations[define.InitContainerType]
+			if initCtrType == "" {
+				initCtrType = define.OneShotInitContainer
+			}
 		}
 
 		specgenOpts := kube.CtrSpecGenOptions{
@@ -800,7 +814,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			PodName:            podName,
 			PodSecurityContext: podYAML.Spec.SecurityContext,
 			ReadOnly:           readOnly,
-			RestartPolicy:      define.RestartPolicyNo,
+			RestartPolicy:      restartPolicy,
 			SeccompPaths:       seccompPaths,
 			SecretsManager:     secretsManager,
 			UserNSIsHost:       p.Userns.IsHost(),

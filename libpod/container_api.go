@@ -557,6 +557,50 @@ func (c *Container) Wait(ctx context.Context) (int32, error) {
 	return c.WaitForExit(ctx, DefaultWaitInterval)
 }
 
+// WaitForStartupProbeSuccess blocks until the container startupProbe success
+func (c *Container) WaitForStartupProbeSuccess(ctx context.Context, pollInterval time.Duration) error {
+	if !c.valid {
+		return define.ErrCtrRemoved
+	}
+
+	// Return immediately if StartupHealthCheckConfig is not defined
+	if c.config.StartupHealthCheckConfig == nil {
+		return nil
+	}
+
+	var (
+		startupPass bool
+		err         error
+	)
+
+	// If startupHC already passed, return immediately
+	if startupPass, err = c.StartupHCPassed(); err != nil {
+		return err
+	} else if startupPass {
+		return nil
+	}
+
+	// polling for startupHc result
+	for {
+		if _, _, err := c.runHealthCheck(ctx, true); err != nil {
+			return err
+		}
+		if startupPass, err = c.StartupHCPassed(); err != nil {
+			return err
+		} else if startupPass {
+			return nil
+		}
+
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("waiting for exit code of container %s canceled", c.ID())
+		default:
+			time.Sleep(pollInterval)
+			continue
+		}
+	}
+}
+
 // WaitForExit blocks until the container exits and returns its exit code. The
 // argument is the interval at which checks the container's status.
 func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration) (int32, error) {
