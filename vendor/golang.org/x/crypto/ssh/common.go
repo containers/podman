@@ -127,6 +127,14 @@ func isRSA(algo string) bool {
 	return contains(algos, underlyingAlgo(algo))
 }
 
+func isRSACert(algo string) bool {
+	_, ok := certKeyAlgoNames[algo]
+	if !ok {
+		return false
+	}
+	return isRSA(algo)
+}
+
 // supportedPubKeyAuthAlgos specifies the supported client public key
 // authentication algorithms. Note that this doesn't include certificate types
 // since those use the underlying algorithm. This list is sent to the client if
