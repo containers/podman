@@ -26,18 +26,15 @@ env:
     ####
     FEDORA_NAME: "fedora-36"
     PRIOR_FEDORA_NAME: "fedora-35"
-    UBUNTU_NAME: "ubuntu-2110"
 
     # Google-cloud VM Images
     IMAGE_SUFFIX: "c4955393725038592"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
 
     # Container FQIN's
     FEDORA_CONTAINER_FQIN: "quay.io/libpod/fedora_podman:${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CONTAINER_FQIN: "quay.io/libpod/prior-fedora_podman:${IMAGE_SUFFIX}"
-    UBUNTU_CONTAINER_FQIN: "quay.io/libpod/ubuntu_podman:${IMAGE_SUFFIX}"
 
     ####
     #### Control variables that determine what to run and how to run it.
@@ -47,7 +44,7 @@ env:
     TEST_ENVIRON: host       # 'host', or 'container'
     PODBIN_NAME: podman      # 'podman' or 'remote'
     PRIV_NAME: root          # 'root' or 'rootless'
-    DISTRO_NV:               # any {PRIOR_,}{FEDORA,UBUNTU}_NAME value
+    DISTRO_NV:               # any {PRIOR_,}FEDORA_NAME value
     VM_IMAGE_NAME:           # One of the "Google-cloud VM Images" (above)
     CTR_FQIN:                # One of the "Container FQIN's" (above)
 
@@ -157,11 +154,6 @@ build_task:
         #      VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
         #      CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
         #      _BUILD_CACHE_HANDLE: ${PRIOR_FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
-        - env: &ubuntu_envvars
-              DISTRO_NV: ${UBUNTU_NAME}
-              VM_IMAGE_NAME: ${UBUNTU_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${UBUNTU_CONTAINER_FQIN}
-              _BUILD_CACHE_HANDLE: ${UBUNTU_NAME}-build-${CIRRUS_BUILD_ID}
     env:
         TEST_FLAVOR: build
     # Ref: https://cirrus-ci.org/guide/writing-tasks/#cache-instruction
@@ -361,7 +353,6 @@ unit_test_task:
     matrix:
         - env: *stdenvars
         #- env: *priorfedora_envvars
-        - env: *ubuntu_envvars
         # Special-case: Rootless on latest Fedora (standard) VM
         - name: "Rootless unit on $DISTRO_NV"
           env:
@@ -663,7 +654,6 @@ meta_task:
         IMGNAMES: >-
             ${FEDORA_CACHE_IMAGE_NAME}
             ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-            ${UBUNTU_CACHE_IMAGE_NAME}
         BUILDID: "${CIRRUS_BUILD_ID}"
         REPOREF: "${CIRRUS_REPO_NAME}"
         GCPJSON: ENCRYPTED[3a198350077849c8df14b723c0f4c9fece9ebe6408d35982e7adf2105a33f8e0e166ed3ed614875a0887e1af2b8775f4]
