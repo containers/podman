@@ -16,6 +16,7 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/containers/common/pkg/ssh"
 	"github.com/containers/podman/v5/version"
+	"github.com/kevinburke/ssh_config"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/proxy"
 )
@@ -149,6 +150,7 @@ func sshClient(_url *url.URL, uri string, identity string, machine bool) (Connec
 	connection := Connection{
 		URI: _url,
 	}
+	userinfo := _url.User
 	port := 22
 	if _url.Port() != "" {
 		port, err = strconv.Atoi(_url.Port())
@@ -156,10 +158,44 @@ func sshClient(_url *url.URL, uri string, identity string, machine bool) (Connec
 			return connection, err
 		}
 	}
+	// ssh_config
+	alias := _url.Hostname()
+	cfg := ssh_config.DefaultUserSettings
+	found := false
+	if val := cfg.Get(alias, "User"); val != "" {
+		userinfo = url.User(val)
+		found = true
+	}
+	if val := cfg.Get(alias, "Hostname"); val != "" {
+		uri = val
+		found = true
+	}
+	if val := cfg.Get(alias, "Port"); val != "" {
+		if val != ssh_config.Default("Port") {
+			port, err = strconv.Atoi(val)
+			if err != nil {
+				return connection, fmt.Errorf("port is not an int: %s: %w", val, err)
+			}
+			found = true
+		}
+	}
+	if val := cfg.Get(alias, "IdentityFile"); val != "" {
+		if val != ssh_config.Default("IdentityFile") {
+			identity = strings.Trim(val, "\"")
+			found = true
+		}
+	}
+	if found {
+		logrus.Debugf("ssh_config alias found: %s", alias)
+		logrus.Debugf("  User: %s", userinfo.Username())
+		logrus.Debugf("  Hostname: %s", uri)
+		logrus.Debugf("  Port: %d", port)
+		logrus.Debugf("  IdentityFile: %q", identity)
+	}
 	conn, err := ssh.Dial(&ssh.ConnectionDialOptions{
 		Host:                        uri,
 		Identity:                    identity,
-		User:                        _url.User,
+		User:                        userinfo,
 		Port:                        port,
 		InsecureIsMachineConnection: machine,
 	}, ssh.GolangMode)
