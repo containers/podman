@@ -5,14 +5,11 @@ package cpu
 
 import (
 	"context"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/shirou/gopsutil/v3/internal/common"
 )
-
-var whiteSpaces = regexp.MustCompile(`\s+`)
 
 func TimesWithContext(ctx context.Context, percpu bool) ([]TimesStat, error) {
 	if percpu {
@@ -28,8 +25,8 @@ func TimesWithContext(ctx context.Context, percpu bool) ([]TimesStat, error) {
 		}
 
 		ret := TimesStat{CPU: "cpu-total"}
-		h := whiteSpaces.Split(lines[len(lines)-3], -1) // headers
-		v := whiteSpaces.Split(lines[len(lines)-2], -1) // values
+		h := strings.Fields(lines[len(lines)-3]) // headers
+		v := strings.Fields(lines[len(lines)-2]) // values
 		for i, header := range h {
 			if t, err := strconv.ParseFloat(v[i], 64); err == nil {
 				switch header {
@@ -58,14 +55,14 @@ func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
 	ret := InfoStat{}
 	for _, line := range strings.Split(string(out), "\n") {
 		if strings.HasPrefix(line, "Number Of Processors:") {
-			p := whiteSpaces.Split(line, 4)
+			p := strings.Fields(line)
 			if len(p) > 3 {
 				if t, err := strconv.ParseUint(p[3], 10, 64); err == nil {
 					ret.Cores = int32(t)
 				}
 			}
 		} else if strings.HasPrefix(line, "Processor Clock Speed:") {
-			p := whiteSpaces.Split(line, 5)
+			p := strings.Fields(line)
 			if len(p) > 4 {
 				if t, err := strconv.ParseFloat(p[3], 64); err == nil {
 					switch strings.ToUpper(p[4]) {
