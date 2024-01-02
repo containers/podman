@@ -1,9 +1,9 @@
 package registry
 
 import (
+	"errors"
 	"testing"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,11 +18,11 @@ func TestStartAndStopMultipleRegistries(t *testing.T) {
 	}
 
 	// Start registries.
-	var errors *multierror.Error
+	var errs error
 	for i := 0; i < 3; i++ {
 		reg, err := StartWithOptions(registryOptions)
 		if err != nil {
-			errors = multierror.Append(errors, err)
+			errs = errors.Join(errs, err)
 			continue
 		}
 		assert.True(t, len(reg.Image) > 0)
@@ -35,10 +35,10 @@ func TestStartAndStopMultipleRegistries(t *testing.T) {
 	// Stop registries.
 	for _, reg := range registries {
 		// Make sure we can stop it properly.
-		errors = multierror.Append(errors, reg.Stop())
+		errs = errors.Join(errs, reg.Stop())
 		// Stopping an already stopped registry is fine as well.
-		errors = multierror.Append(errors, reg.Stop())
+		errs = errors.Join(errs, reg.Stop())
 	}
 
-	require.NoError(t, errors.ErrorOrNil())
+	require.NoError(t, errs)
 }

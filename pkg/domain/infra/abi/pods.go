@@ -380,8 +380,8 @@ func (ic *ContainerEngine) PodClone(ctx context.Context, podClone entities.PodCl
 		_, err = ic.Libpod.RemovePod(ctx, p, true, true, timeout)
 		if err != nil {
 			// TODO: Possibly should handle case where containers
-			// failed to remove - maybe compact the errors into a
-			// multierror and return that?
+			// failed to remove - maybe compact the errors with
+			// errors.Join and return that?
 			return &entities.PodCloneReport{Id: pod.ID()}, err
 		}
 	}

@@ -13,7 +13,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/parse"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/hashicorp/go-multierror"
 	"github.com/spf13/cobra"
 )
 
@@ -135,7 +134,7 @@ func importCon(cmd *cobra.Command, args []string) error {
 		importOpts.SourceIsURL = true
 	}
 	if errFileName != nil && errURL != nil {
-		return multierror.Append(errFileName, errURL)
+		return errors.Join(errFileName, errURL)
 	}
 
 	importOpts.Source = source

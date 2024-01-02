@@ -12,7 +12,6 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/specgen"
-	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 )
 
@@ -162,13 +161,13 @@ func (r *Runtime) removeMalformedPod(ctx context.Context, p *Pod, ctrs []*Contai
 
 	// So, technically, no containers have been *removed*.
 	// They're still in the DB.
-	// So just return nil for removed containers. Squash all the errors into
-	// a multierror so we don't lose them.
+	// So just return nil for removed containers. Squash all the errors
+	// with errors.Join so we don't lose them.
 	if errored {
 		var allErrors error
 		for ctr, err := range removedCtrs {
 			if err != nil {
-				allErrors = multierror.Append(allErrors, fmt.Errorf("removing container %s: %w", ctr, err))
+				allErrors = errors.Join(allErrors, fmt.Errorf("removing container %s", ctr), err)
 			}
 		}
 		return nil, fmt.Errorf("no containers were removed due to the following errors: %w", allErrors)

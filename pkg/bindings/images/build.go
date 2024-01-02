@@ -29,7 +29,6 @@ import (
 	"github.com/containers/storage/pkg/regexp"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/go-units"
-	"github.com/hashicorp/go-multierror"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 )
@@ -667,7 +666,7 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 	gw := gzip.NewWriter(pw)
 	tw := tar.NewWriter(gw)
 
-	var merr *multierror.Error
+	var merr error
 	go func() {
 		defer pw.Close()
 		defer gw.Close()
@@ -677,7 +676,7 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 			source, err := filepath.Abs(src)
 			if err != nil {
 				logrus.Errorf("Cannot stat one of source context: %v", err)
-				merr = multierror.Append(merr, err)
+				merr = errors.Join(merr, err)
 				return
 			}
 			err = filepath.WalkDir(source, func(path string, dentry fs.DirEntry, err error) error {
@@ -805,13 +804,13 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 				} // skip other than file,folder and symlinks
 				return nil
 			})
-			merr = multierror.Append(merr, err)
+			merr = errors.Join(merr, err)
 		}
 	}()
 	rc := ioutils.NewReadCloserWrapper(pr, func() error {
 		if merr != nil {
-			merr = multierror.Append(merr, pr.Close())
-			return merr.ErrorOrNil()
+			merr = errors.Join(merr, pr.Close())
+			return merr
 		}
 		return pr.Close()
 	})

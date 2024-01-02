@@ -135,18 +135,18 @@ func (f *Farm) Status(ctx context.Context) (map[string]error, error) {
 // collects their results, continuing until it finishes visiting every node or
 // a function call returns true as its first return value.
 func (f *Farm) forEach(ctx context.Context, fn func(context.Context, string, entities.ImageEngine) (bool, error)) error {
-	var merr *multierror.Error
+	var merr error
 	for name, engine := range f.builders {
 		stop, err := fn(ctx, name, engine)
 		if err != nil {
-			merr = multierror.Append(merr, fmt.Errorf("%s: %w", engine.FarmNodeName(ctx), err))
+			merr = errors.Join(merr, fmt.Errorf("%s", engine.FarmNodeName(ctx)), err)
 		}
 		if stop {
 			break
 		}
 	}
 
-	return merr.ErrorOrNil()
+	return merr
 }
 
 // NativePlatforms returns a list of the set of platforms for which the farm
