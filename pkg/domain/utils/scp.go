@@ -406,8 +406,8 @@ func GetServiceInformation(sshInfo *entities.ImageScpConnections, cliConnections
 	var urlS string
 	var iden string
 	for i, val := range cliConnections {
-		splitEnv := strings.SplitN(val, "::", 2)
-		sshInfo.Connections = append(sshInfo.Connections, splitEnv[0])
+		connection, _, _ := strings.Cut(val, "::")
+		sshInfo.Connections = append(sshInfo.Connections, connection)
 		conn, found := cfg.Engine.ServiceDestinations[sshInfo.Connections[i]]
 		if found {
 			urlS = conn.URI

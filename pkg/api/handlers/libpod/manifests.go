@@ -489,12 +489,12 @@ func ManifestModify(w http.ResponseWriter, r *http.Request) {
 		}
 		annotations := make(map[string]string)
 		for _, annotationSpec := range body.ManifestAddOptions.Annotation {
-			spec := strings.SplitN(annotationSpec, "=", 2)
-			if len(spec) != 2 {
-				utils.Error(w, http.StatusBadRequest, fmt.Errorf("no value given for annotation %q", spec[0]))
+			key, val, hasVal := strings.Cut(annotationSpec, "=")
+			if !hasVal {
+				utils.Error(w, http.StatusBadRequest, fmt.Errorf("no value given for annotation %q", key))
 				return
 			}
-			annotations[spec[0]] = spec[1]
+			annotations[key] = val
 		}
 		body.ManifestAddOptions.Annotations = envLib.Join(body.ManifestAddOptions.Annotations, annotations)
 		body.ManifestAddOptions.Annotation = nil

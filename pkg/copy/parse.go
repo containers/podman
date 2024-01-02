@@ -40,9 +40,9 @@ func parseUserInput(input string) (container string, path string) {
 		return
 	}
 
-	if spl := strings.SplitN(path, ":", 2); len(spl) == 2 {
-		container = spl[0]
-		path = spl[1]
+	if parsedContainer, parsedPath, ok := strings.Cut(path, ":"); ok {
+		container = parsedContainer
+		path = parsedPath
 	}
 	return
 }

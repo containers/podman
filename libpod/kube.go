@@ -73,13 +73,13 @@ func (p *Pod) GenerateForKube(ctx context.Context, getService, useLongAnnotation
 			return nil, servicePorts, err
 		}
 		for _, host := range infraContainer.config.ContainerNetworkConfig.HostAdd {
-			hostSli := strings.SplitN(host, ":", 2)
-			if len(hostSli) != 2 {
+			hostname, ip, hasIP := strings.Cut(host, ":")
+			if !hasIP {
 				return nil, servicePorts, errors.New("invalid hostAdd")
 			}
 			extraHost = append(extraHost, v1.HostAlias{
-				IP:        hostSli[1],
-				Hostnames: []string{hostSli[0]},
+				IP:        ip,
+				Hostnames: []string{hostname},
 			})
 		}
 		ports, err = portMappingToContainerPort(infraContainer.config.PortMappings, getService)
@@ -1001,10 +1001,10 @@ func containerToV1Container(ctx context.Context, c *Container, getService bool) 
 		dnsOptions := make([]v1.PodDNSConfigOption, 0)
 		for _, option := range options {
 			// the option can be "k:v" or just "k", no delimiter is required
-			opts := strings.SplitN(option, ":", 2)
+			name, value, _ := strings.Cut(option, ":")
 			dnsOpt := v1.PodDNSConfigOption{
-				Name:  opts[0],
-				Value: &opts[1],
+				Name:  name,
+				Value: &value,
 			}
 			dnsOptions = append(dnsOptions, dnsOpt)
 		}
@@ -1055,23 +1055,23 @@ func libpodEnvVarsToKubeEnvVars(envs []string, imageEnvs []string) ([]v1.EnvVar,
 	envVars := make([]v1.EnvVar, 0, len(envs))
 	imageMap := make(map[string]string, len(imageEnvs))
 	for _, ie := range imageEnvs {
-		split := strings.SplitN(ie, "=", 2)
-		imageMap[split[0]] = split[1]
+		key, val, _ := strings.Cut(ie, "=")
+		imageMap[key] = val
 	}
 	for _, e := range envs {
-		split := strings.SplitN(e, "=", 2)
-		if len(split) != 2 {
+		envName, envValue, hasValue := strings.Cut(e, "=")
+		if !hasValue {
 			return envVars, fmt.Errorf("environment variable %s is malformed; should be key=value", e)
 		}
-		if defaultEnv[split[0]] == split[1] {
+		if defaultEnv[envName] == envValue {
 			continue
 		}
-		if imageMap[split[0]] == split[1] {
+		if imageMap[envName] == envValue {
 			continue
 		}
 		ev := v1.EnvVar{
-			Name:  split[0],
-			Value: split[1],
+			Name:  envName,
+			Value: envValue,
 		}
 		envVars = append(envVars, ev)
 	}
@@ -1286,25 +1286,22 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, bool, error
 	var selinuxOpts v1.SELinuxOptions
 	selinuxHasData := false
 	for _, label := range strings.Split(c.config.Spec.Annotations[define.InspectAnnotationLabel], ",label=") {
-		opts := strings.SplitN(label, ":", 2)
-		switch len(opts) {
-		case 2:
-			switch opts[0] {
+		opt, val, hasVal := strings.Cut(label, ":")
+		if hasVal {
+			switch opt {
 			case "filetype":
-				selinuxOpts.FileType = opts[1]
+				selinuxOpts.FileType = val
 				selinuxHasData = true
 			case "type":
-				selinuxOpts.Type = opts[1]
+				selinuxOpts.Type = val
 				selinuxHasData = true
 			case "level":
-				selinuxOpts.Level = opts[1]
+				selinuxOpts.Level = val
 				selinuxHasData = true
 			}
-		case 1:
-			if opts[0] == "disable" {
-				selinuxOpts.Type = "spc_t"
-				selinuxHasData = true
-			}
+		} else if opt == "disable" {
+			selinuxOpts.Type = "spc_t"
+			selinuxHasData = true
 		}
 	}
 	if selinuxHasData {

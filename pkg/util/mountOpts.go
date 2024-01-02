@@ -34,7 +34,7 @@ func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string
 	newOptions := make([]string, 0, len(options))
 	for _, opt := range options {
 		// Some options have parameters - size, mode
-		splitOpt := strings.SplitN(opt, "=", 2)
+		key, _, _ := strings.Cut(opt, "=")
 
 		// add advanced options such as upperdir=/path and workdir=/path, when overlay is specified
 		if foundOverlay {
@@ -47,11 +47,11 @@ func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string
 				continue
 			}
 		}
-		if strings.HasPrefix(splitOpt[0], "subpath") {
+		if strings.HasPrefix(key, "subpath") {
 			newOptions = append(newOptions, opt)
 			continue
 		}
-		if strings.HasPrefix(splitOpt[0], "idmap") {
+		if strings.HasPrefix(key, "idmap") {
 			if foundIdmap {
 				return nil, fmt.Errorf("the 'idmap' option can only be set once: %w", ErrDupeMntOption)
 			}
@@ -60,7 +60,7 @@ func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string
 			continue
 		}
 
-		switch splitOpt[0] {
+		switch key {
 		case "copy", "nocopy":
 			if foundCopy {
 				return nil, fmt.Errorf("only one of 'nocopy' and 'copy' can be used: %w", ErrDupeMntOption)
@@ -210,13 +210,13 @@ func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string
 }
 
 func ParseDriverOpts(option string) (string, string, error) {
-	token := strings.SplitN(option, "=", 2)
-	if len(token) != 2 {
+	_, val, hasVal := strings.Cut(option, "=")
+	if !hasVal {
 		return "", "", fmt.Errorf("cannot parse driver opts: %w", ErrBadMntOption)
 	}
-	opt := strings.SplitN(token[1], "=", 2)
-	if len(opt) != 2 {
+	optKey, optVal, hasOptVal := strings.Cut(val, "=")
+	if !hasOptVal {
 		return "", "", fmt.Errorf("cannot parse driver opts: %w", ErrBadMntOption)
 	}
-	return opt[0], opt[1], nil
+	return optKey, optVal, nil
 }

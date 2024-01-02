@@ -1118,10 +1118,10 @@ func ConvertKube(kube *parser.UnitFile, names map[string]string, isUser bool) (*
 	for _, update := range updateMaps {
 		annotation := fmt.Sprintf("--annotation=%s", autoUpdateLabel)
 		updateType := update
-		val := strings.SplitN(update, "/", 2)
-		if len(val) == 2 {
-			annotation = annotation + "/" + val[0]
-			updateType = val[1]
+		annoValue, typ, hasSlash := strings.Cut(update, "/")
+		if hasSlash {
+			annotation = annotation + "/" + annoValue
+			updateType = typ
 		}
 		execStart.addf("%s=%s", annotation, updateType)
 	}
@@ -1741,13 +1741,13 @@ func resolveContainerMountParams(containerUnitFile, serviceUnitFile *parser.Unit
 	sourceIndex := -1
 	originalSource := ""
 	for i, token := range tokens {
-		kv := strings.SplitN(token, "=", 2)
-		if kv[0] == "source" || kv[0] == "src" {
-			if len(kv) < 2 {
+		key, val, hasVal := strings.Cut(token, "=")
+		if key == "source" || key == "src" {
+			if !hasVal {
 				return "", fmt.Errorf("source parameter does not include a value")
 			}
 			sourceIndex = i
-			originalSource = kv[1]
+			originalSource = val
 		}
 	}
 

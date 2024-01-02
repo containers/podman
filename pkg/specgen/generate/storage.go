@@ -262,9 +262,9 @@ func getVolumesFrom(volumesFrom []string, runtime *libpod.Runtime) (map[string]s
 	for _, volume := range volumesFrom {
 		var options []string
 
-		splitVol := strings.SplitN(volume, ":", 2)
-		if len(splitVol) == 2 {
-			splitOpts := strings.Split(splitVol[1], ",")
+		idOrName, volOpts, hasVolOpts := strings.Cut(volume, ":")
+		if hasVolOpts {
+			splitOpts := strings.Split(volOpts, ",")
 			setRORW := false
 			setZ := false
 			for _, opt := range splitOpts {
@@ -286,9 +286,9 @@ func getVolumesFrom(volumesFrom []string, runtime *libpod.Runtime) (map[string]s
 			options = splitOpts
 		}
 
-		ctr, err := runtime.LookupContainer(splitVol[0])
+		ctr, err := runtime.LookupContainer(idOrName)
 		if err != nil {
-			return nil, nil, fmt.Errorf("looking up container %q for volumes-from: %w", splitVol[0], err)
+			return nil, nil, fmt.Errorf("looking up container %q for volumes-from: %w", idOrName, err)
 		}
 
 		logrus.Debugf("Adding volumes from container %s", ctr.ID())

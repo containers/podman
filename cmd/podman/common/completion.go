@@ -423,9 +423,9 @@ func prefixSlice(pre string, slice []string) []string {
 
 func suffixCompSlice(suf string, slice []string) []string {
 	for i := range slice {
-		split := strings.SplitN(slice[i], "\t", 2)
-		if len(split) > 1 {
-			slice[i] = split[0] + suf + "\t" + split[1]
+		key, val, hasVal := strings.Cut(slice[i], "\t")
+		if hasVal {
+			slice[i] = key + suf + "\t" + val
 		} else {
 			slice[i] += suf
 		}
@@ -878,10 +878,10 @@ func AutocompleteScp(cmd *cobra.Command, args []string, toComplete string) ([]st
 	}
 	switch len(args) {
 	case 0:
-		split := strings.SplitN(toComplete, "::", 2)
-		if len(split) > 1 {
-			imageSuggestions, _ := getImages(cmd, split[1])
-			return prefixSlice(split[0]+"::", imageSuggestions), cobra.ShellCompDirectiveNoFileComp
+		prefix, imagesToComplete, isImages := strings.Cut(toComplete, "::")
+		if isImages {
+			imageSuggestions, _ := getImages(cmd, imagesToComplete)
+			return prefixSlice(prefix+"::", imageSuggestions), cobra.ShellCompDirectiveNoFileComp
 		}
 		connectionSuggestions, _ := AutocompleteSystemConnections(cmd, args, toComplete)
 		imageSuggestions, _ := getImages(cmd, toComplete)
@@ -893,9 +893,9 @@ func AutocompleteScp(cmd *cobra.Command, args []string, toComplete string) ([]st
 		}
 		return totalSuggestions, directive
 	case 1:
-		split := strings.SplitN(args[0], "::", 2)
-		if len(split) > 1 {
-			if len(split[1]) > 0 {
+		_, imagesToComplete, isImages := strings.Cut(args[0], "::")
+		if isImages {
+			if len(imagesToComplete) > 0 {
 				return nil, cobra.ShellCompDirectiveNoFileComp
 			}
 			imageSuggestions, _ := getImages(cmd, toComplete)
@@ -1076,7 +1076,7 @@ func AutocompleteUserFlag(cmd *cobra.Command, args []string, toComplete string) 
 
 		var groups []string
 		scanner := bufio.NewScanner(file)
-		user := strings.SplitN(toComplete, ":", 2)[0]
+		user, _, _ := strings.Cut(toComplete, ":")
 		for scanner.Scan() {
 			entries := strings.SplitN(scanner.Text(), ":", 4)
 			groups = append(groups, user+":"+entries[0])

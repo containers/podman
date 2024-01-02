@@ -209,12 +209,11 @@ var _ = SynchronizedAfterSuite(func() {
 			scanner := bufio.NewScanner(f)
 			for scanner.Scan() {
 				text := scanner.Text()
-				timing := strings.SplitN(text, "\t\t", 2)
-				if len(timing) != 2 {
+				name, durationString, ok := strings.Cut(text, "\t\t")
+				if !ok {
 					Fail(fmt.Sprintf("incorrect timing line: %q", text))
 				}
-				name := timing[0]
-				duration, err := strconv.ParseFloat(timing[1], 64)
+				duration, err := strconv.ParseFloat(durationString, 64)
 				Expect(err).ToNot(HaveOccurred(), "failed to parse float from timings file")
 				testTimings = append(testTimings, testResult{name: name, length: duration})
 			}

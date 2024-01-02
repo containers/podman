@@ -75,8 +75,8 @@ func TestPropagateHostEnv(t *testing.T) {
 	// envs looks like: {"BAR": "bar", "FOO": "foo"}
 	envs := make(map[string]string)
 	for _, env := range envsRawArr {
-		item := strings.SplitN(env, "=", 2)
-		envs[item[0]] = strings.Trim(item[1], "\"")
+		key, value, _ := strings.Cut(env, "=")
+		envs[key] = strings.Trim(value, "\"")
 	}
 
 	for key, test := range tests {

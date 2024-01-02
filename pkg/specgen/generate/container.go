@@ -236,13 +236,8 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		}
 	}
 
-	for _, v := range rtc.Containers.Annotations.Get() {
-		split := strings.SplitN(v, "=", 2)
-		k := split[0]
-		v := ""
-		if len(split) == 2 {
-			v = split[1]
-		}
+	for _, annotation := range rtc.Containers.Annotations.Get() {
+		k, v, _ := strings.Cut(annotation, "=")
 		annotations[k] = v
 	}
 	// now pass in the values from client
@@ -356,9 +351,9 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 		if conf.Spec.Process != nil && conf.Spec.Process.Env != nil {
 			env := make(map[string]string)
 			for _, entry := range conf.Spec.Process.Env {
-				split := strings.SplitN(entry, "=", 2)
-				if len(split) == 2 {
-					env[split[0]] = split[1]
+				key, val, hasVal := strings.Cut(entry, "=")
+				if hasVal {
+					env[key] = val
 				}
 			}
 			specg.Env = env

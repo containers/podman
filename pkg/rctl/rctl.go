@@ -31,9 +31,8 @@ func GetRacct(filter string) (map[string]uint64, error) {
 	entries := strings.Split(string(buf[:len]), ",")
 	res := make(map[string]uint64)
 	for _, entry := range entries {
-		kv := strings.SplitN(entry, "=", 2)
-		key := kv[0]
-		val, err := strconv.ParseUint(kv[1], 10, 0)
+		key, valstr, _ := strings.Cut(entry, "=")
+		val, err := strconv.ParseUint(valstr, 10, 0)
 		if err != nil {
 			logrus.Warnf("unexpected rctl entry, ignoring: %s", entry)
 		}

@@ -49,12 +49,12 @@ func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	libpodConfig.Environment = make(map[string]string)
 	for _, envStr := range input.Env {
-		split := strings.SplitN(envStr, "=", 2)
-		if len(split) != 2 {
+		key, val, hasVal := strings.Cut(envStr, "=")
+		if !hasVal {
 			utils.Error(w, http.StatusBadRequest, fmt.Errorf("environment variable %q badly formed, must be key=value", envStr))
 			return
 		}
-		libpodConfig.Environment[split[0]] = split[1]
+		libpodConfig.Environment[key] = val
 	}
 	libpodConfig.WorkDir = input.WorkingDir
 	libpodConfig.Privileged = input.Privileged

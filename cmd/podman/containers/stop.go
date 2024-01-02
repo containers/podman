@@ -119,11 +119,11 @@ func stop(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, f := range filters {
-		split := strings.SplitN(f, "=", 2)
-		if len(split) < 2 {
+		fname, filter, hasFilter := strings.Cut(f, "=")
+		if !hasFilter {
 			return fmt.Errorf("invalid filter %q", f)
 		}
-		stopOptions.Filters[split[0]] = append(stopOptions.Filters[split[0]], split[1])
+		stopOptions.Filters[fname] = append(stopOptions.Filters[fname], filter)
 	}
 
 	responses, err := registry.ContainerEngine().ContainerStop(context.Background(), args, stopOptions)

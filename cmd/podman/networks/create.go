@@ -245,16 +245,16 @@ func parseRoute(routeStr string) (*types.Route, error) {
 }
 
 func parseRange(iprange string) (*types.LeaseRange, error) {
-	split := strings.SplitN(iprange, "-", 2)
-	if len(split) > 1 {
+	startIPString, endIPString, hasDash := strings.Cut(iprange, "-")
+	if hasDash {
 		// range contains dash so assume form is start-end
-		start := net.ParseIP(split[0])
+		start := net.ParseIP(startIPString)
 		if start == nil {
-			return nil, fmt.Errorf("range start ip %q is not a ip address", split[0])
+			return nil, fmt.Errorf("range start ip %q is not a ip address", startIPString)
 		}
-		end := net.ParseIP(split[1])
+		end := net.ParseIP(endIPString)
 		if end == nil {
-			return nil, fmt.Errorf("range end ip %q is not a ip address", split[1])
+			return nil, fmt.Errorf("range end ip %q is not a ip address", endIPString)
 		}
 		return &types.LeaseRange{
 			StartIP: start,

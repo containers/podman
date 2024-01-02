@@ -261,15 +261,15 @@ func translateDest(path string) (string, error) {
 	if path == "" {
 		return "", nil
 	}
-	split := strings.SplitN(path, "=", 2)
-	if len(split) == 1 {
-		return split[0], nil
+	key, val, hasVal := strings.Cut(path, "=")
+	if !hasVal {
+		return key, nil
 	}
-	if split[0] != "host" {
-		return "", fmt.Errorf("\"host\" is requited for --docker option")
+	if key != "host" {
+		return "", fmt.Errorf("\"host\" is required for --docker option")
 	}
 	// "host=tcp://myserver:2376,ca=~/ca-file,cert=~/cert-file,key=~/key-file"
-	vals := strings.Split(split[1], ",")
+	vals := strings.Split(val, ",")
 	if len(vals) > 1 {
 		return "", fmt.Errorf("--docker additional options %q not supported", strings.Join(vals[1:], ","))
 	}

@@ -55,14 +55,8 @@ func init() {
 // Helper function to determine the username/password passed
 // in the creds string.  It could be either or both.
 func parseCreds(creds string) (string, string) {
-	if creds == "" {
-		return "", ""
-	}
-	up := strings.SplitN(creds, ":", 2)
-	if len(up) == 1 {
-		return up[0], ""
-	}
-	return up[0], up[1]
+	username, password, _ := strings.Cut(creds, ":")
+	return username, password
 }
 
 // Takes build context and validates `.containerignore` or `.dockerignore`
@@ -918,12 +912,12 @@ func parseAutoIDMap(mapSpec string, mapSetting string, parentMapping []ruser.IDM
 // GetAutoOptions returns an AutoUserNsOptions with the settings to automatically set up
 // a user namespace.
 func GetAutoOptions(n namespaces.UsernsMode) (*stypes.AutoUserNsOptions, error) {
-	parts := strings.SplitN(string(n), ":", 2)
-	if parts[0] != "auto" {
+	mode, opts, hasOpts := strings.Cut(string(n), ":")
+	if mode != "auto" {
 		return nil, fmt.Errorf("wrong user namespace mode")
 	}
 	options := stypes.AutoUserNsOptions{}
-	if len(parts) == 1 {
+	if !hasOpts {
 		return &options, nil
 	}
 
@@ -937,32 +931,32 @@ func GetAutoOptions(n namespaces.UsernsMode) (*stypes.AutoUserNsOptions, error) 
 		}
 	}
 
-	for _, o := range strings.Split(parts[1], ",") {
-		v := strings.SplitN(o, "=", 2)
-		if len(v) != 2 {
+	for _, o := range strings.Split(opts, ",") {
+		key, val, hasVal := strings.Cut(o, "=")
+		if !hasVal {
 			return nil, fmt.Errorf("invalid option specified: %q", o)
 		}
-		switch v[0] {
+		switch key {
 		case "size":
-			s, err := strconv.ParseUint(v[1], 10, 32)
+			s, err := strconv.ParseUint(val, 10, 32)
 			if err != nil {
 				return nil, err
 			}
 			options.Size = uint32(s)
 		case "uidmapping":
-			mapping, err := parseAutoIDMap(v[1], "UID", parentUIDMap)
+			mapping, err := parseAutoIDMap(val, "UID", parentUIDMap)
 			if err != nil {
 				return nil, err
 			}
 			options.AdditionalUIDMappings = append(options.AdditionalUIDMappings, mapping...)
 		case "gidmapping":
-			mapping, err := parseAutoIDMap(v[1], "GID", parentGIDMap)
+			mapping, err := parseAutoIDMap(val, "GID", parentGIDMap)
 			if err != nil {
 				return nil, err
 			}
 			options.AdditionalGIDMappings = append(options.AdditionalGIDMappings, mapping...)
 		default:
-			return nil, fmt.Errorf("unknown option specified: %q", v[0])
+			return nil, fmt.Errorf("unknown option specified: %q", key)
 		}
 	}
 	return &options, nil
@@ -1077,9 +1071,9 @@ func getTomlStorage(storeOptions *stypes.StoreOptions) *tomlConfig {
 	config.Storage.RunRoot = storeOptions.RunRoot
 	config.Storage.GraphRoot = storeOptions.GraphRoot
 	for _, i := range storeOptions.GraphDriverOptions {
-		s := strings.SplitN(i, "=", 2)
-		if s[0] == "overlay.mount_program" && len(s) == 2 {
-			config.Storage.Options.MountProgram = s[1]
+		program, hasPrefix := strings.CutPrefix(i, "overlay.mount_program=")
+		if hasPrefix {
+			config.Storage.Options.MountProgram = program
 		}
 	}
 

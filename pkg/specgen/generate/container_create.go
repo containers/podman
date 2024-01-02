@@ -54,12 +54,12 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 			s.ResourceLimits.Unified = make(map[string]string)
 		}
 		for _, cgroupConf := range rtc.Containers.CgroupConf.Get() {
-			cgr := strings.SplitN(cgroupConf, "=", 2)
-			if len(cgr) != 2 {
-				return nil, nil, nil, fmt.Errorf("CgroupConf %q from containers.conf invalid, must be name=value", cgr)
+			key, val, hasVal := strings.Cut(cgroupConf, "=")
+			if !hasVal {
+				return nil, nil, nil, fmt.Errorf("CgroupConf %s from containers.conf invalid, must be name=value", cgroupConf)
 			}
-			if _, ok := s.ResourceLimits.Unified[cgr[0]]; !ok {
-				s.ResourceLimits.Unified[cgr[0]] = cgr[1]
+			if _, ok := s.ResourceLimits.Unified[key]; !ok {
+				s.ResourceLimits.Unified[key] = val
 			}
 		}
 	}

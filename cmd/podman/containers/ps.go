@@ -195,11 +195,11 @@ func ps(cmd *cobra.Command, _ []string) error {
 	}
 
 	for _, f := range filters {
-		split := strings.SplitN(f, "=", 2)
-		if len(split) == 1 {
+		fname, filter, hasFilter := strings.Cut(f, "=")
+		if !hasFilter {
 			return fmt.Errorf("invalid filter %q", f)
 		}
-		listOpts.Filters[split[0]] = append(listOpts.Filters[split[0]], split[1])
+		listOpts.Filters[fname] = append(listOpts.Filters[fname], filter)
 	}
 	listContainers, err := getResponses()
 	if err != nil {

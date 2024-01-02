@@ -202,12 +202,8 @@ func keyValueStringToMap(keyValueString, separator string) (map[string]string, e
 		return nil, err
 	}
 	for _, param := range keyVarList[0] {
-		val := ""
-		kv := strings.SplitN(param, "=", 2)
-		if len(kv) == 2 {
-			val = kv[1]
-		}
-		keyValMap[kv[0]] = val
+		key, val, _ := strings.Cut(param, "=")
+		keyValMap[key] = val
 	}
 
 	return keyValMap, nil

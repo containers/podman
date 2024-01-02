@@ -49,14 +49,7 @@ func GenerateVolumeFilters(filter string, filterValues []string, runtime *libpod
 	case "opt":
 		return func(v *libpod.Volume) bool {
 			for _, val := range filterValues {
-				filterArray := strings.SplitN(val, "=", 2)
-				filterKey := filterArray[0]
-				var filterVal string
-				if len(filterArray) > 1 {
-					filterVal = filterArray[1]
-				} else {
-					filterVal = ""
-				}
+				filterKey, filterVal, _ := strings.Cut(val, "=")
 
 				for labelKey, labelValue := range v.Options() {
 					if labelKey == filterKey && (filterVal == "" || labelValue == filterVal) {

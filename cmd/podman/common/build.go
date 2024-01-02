@@ -333,15 +333,15 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 	}
 	if c.Flag("build-arg").Changed {
 		for _, arg := range flags.BuildArg {
-			av := strings.SplitN(arg, "=", 2)
-			if len(av) > 1 {
-				args[av[0]] = av[1]
+			key, val, hasVal := strings.Cut(arg, "=")
+			if hasVal {
+				args[key] = val
 			} else {
 				// check if the env is set in the local environment and use that value if it is
-				if val, present := os.LookupEnv(av[0]); present {
-					args[av[0]] = val
+				if val, present := os.LookupEnv(key); present {
+					args[key] = val
 				} else {
-					delete(args, av[0])
+					delete(args, key)
 				}
 			}
 		}
@@ -450,15 +450,15 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 	additionalBuildContext := make(map[string]*buildahDefine.AdditionalBuildContext)
 	if c.Flag("build-context").Changed {
 		for _, contextString := range flags.BuildContext {
-			av := strings.SplitN(contextString, "=", 2)
-			if len(av) > 1 {
-				parseAdditionalBuildContext, err := parse.GetAdditionalBuildContext(av[1])
+			key, val, hasVal := strings.Cut(contextString, "=")
+			if hasVal {
+				parseAdditionalBuildContext, err := parse.GetAdditionalBuildContext(val)
 				if err != nil {
 					return nil, fmt.Errorf("while parsing additional build context: %w", err)
 				}
-				additionalBuildContext[av[0]] = &parseAdditionalBuildContext
+				additionalBuildContext[key] = &parseAdditionalBuildContext
 			} else {
-				return nil, fmt.Errorf("while parsing additional build context: %q, accepts value in the form of key=value", av)
+				return nil, fmt.Errorf("while parsing additional build context: %s, accepts value in the form of key=value", contextString)
 			}
 		}
 	}

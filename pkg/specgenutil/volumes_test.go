@@ -13,41 +13,41 @@ func Test_validChownFlag(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "U true",
+			name: "lower-case true",
 			args: args{
-				flag: "U=true",
+				flag: "true",
 			},
 			want:    true,
 			wantErr: false,
 		},
 		{
-			name: "U true case does not matter",
+			name: "case-insensitive true",
 			args: args{
-				flag: "u=True",
+				flag: "True",
 			},
 			want:    true,
 			wantErr: false,
 		},
 		{
-			name: "U is false",
+			name: "lower-case false",
 			args: args{
-				flag: "U=false",
+				flag: "false",
 			},
 			want:    false,
 			wantErr: false,
 		},
 		{
-			name: "chown should also work",
+			name: "case-insensitive false",
 			args: args{
-				flag: "chown=true",
+				flag: "falsE",
 			},
-			want:    true,
+			want:    false,
 			wantErr: false,
 		},
 		{
 			name: "garbage value should fail",
 			args: args{
-				flag: "U=foobar",
+				flag: "foobar",
 			},
 			want:    false,
 			wantErr: true,

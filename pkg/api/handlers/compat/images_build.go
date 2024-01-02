@@ -330,15 +330,15 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			if len(secretOpt) > 0 {
 				modifiedOpt := []string{}
 				for _, token := range secretOpt {
-					arr := strings.SplitN(token, "=", 2)
-					if len(arr) > 1 {
-						if arr[0] == "src" {
+					key, val, hasVal := strings.Cut(token, "=")
+					if hasVal {
+						if key == "src" {
 							/* move secret away from contextDir */
 							/* to make sure we dont accidentally commit temporary secrets to image*/
 							builderDirectory, _ := filepath.Split(contextDirectory)
 							// following path is outside build context
-							newSecretPath := filepath.Join(builderDirectory, arr[1])
-							oldSecretPath := filepath.Join(contextDirectory, arr[1])
+							newSecretPath := filepath.Join(builderDirectory, val)
+							oldSecretPath := filepath.Join(contextDirectory, val)
 							err := os.Rename(oldSecretPath, newSecretPath)
 							if err != nil {
 								utils.BadRequest(w, "secrets", query.Secrets, err)
@@ -551,19 +551,19 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 					utils.BadRequest(w, "securityopt", query.SecurityOpt, errors.New("no-new-privileges is not supported"))
 					return
 				}
-				con := strings.SplitN(opt, "=", 2)
-				if len(con) != 2 {
+				name, value, hasValue := strings.Cut(opt, "=")
+				if !hasValue {
 					utils.BadRequest(w, "securityopt", query.SecurityOpt, fmt.Errorf("invalid --security-opt name=value pair: %q", opt))
 					return
 				}
 
-				switch con[0] {
+				switch name {
 				case "label":
-					labelOpts = append(labelOpts, con[1])
+					labelOpts = append(labelOpts, value)
 				case "apparmor":
-					apparmor = con[1]
+					apparmor = value
 				case "seccomp":
-					seccomp = con[1]
+					seccomp = value
 				default:
 					utils.BadRequest(w, "securityopt", query.SecurityOpt, fmt.Errorf("invalid --security-opt 2: %q", opt))
 					return
