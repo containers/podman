@@ -776,6 +776,7 @@ BOGUS=foo
 		Entry("install.container", "install.container", 0, ""),
 		Entry("ip.container", "ip.container", 0, ""),
 		Entry("label.container", "label.container", 0, ""),
+		Entry("line-continuation-whitespace.container", "line-continuation-whitespace.container", 0, ""),
 		Entry("logdriver.container", "logdriver.container", 0, ""),
 		Entry("mask.container", "mask.container", 0, ""),
 		Entry("mount.container", "mount.container", 0, ""),
