@@ -23,6 +23,8 @@ func IOCounters(pernic bool) ([]IOCountersStat, error) {
 	return IOCountersWithContext(context.Background(), pernic)
 }
 
+var kstatSplit = regexp.MustCompile(`[:\s]+`)
+
 func IOCountersWithContext(ctx context.Context, pernic bool) ([]IOCountersStat, error) {
 	// collect all the net class's links with below statistics
 	filterstr := "/^(?!vnic)/::phys:/^rbytes64$|^ipackets64$|^idrops64$|^ierrors$|^obytes64$|^opackets64$|^odrops64$|^oerrors$/"
@@ -47,9 +49,8 @@ func IOCountersWithContext(ctx context.Context, pernic bool) ([]IOCountersStat, 
 	odrops64arr := make(map[string]uint64)
 	oerrorsarr := make(map[string]uint64)
 
-	re := regexp.MustCompile(`[:\s]+`)
 	for _, line := range lines {
-		fields := re.Split(line, -1)
+		fields := kstatSplit.Split(line, -1)
 		interfaceName := fields[0]
 		instance := fields[1]
 		switch fields[3] {

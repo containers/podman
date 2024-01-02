@@ -5,14 +5,11 @@ package mem
 
 import (
 	"context"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/shirou/gopsutil/v3/internal/common"
 )
-
-var whiteSpaces = regexp.MustCompile(`\s+`)
 
 func VirtualMemoryWithContext(ctx context.Context) (*VirtualMemoryStat, error) {
 	vmem, swap, err := callSVMon(ctx)
@@ -49,7 +46,7 @@ func callSVMon(ctx context.Context) (*VirtualMemoryStat, *SwapMemoryStat, error)
 	swap := &SwapMemoryStat{}
 	for _, line := range strings.Split(string(out), "\n") {
 		if strings.HasPrefix(line, "memory") {
-			p := whiteSpaces.Split(line, 7)
+			p := strings.Fields(line)
 			if len(p) > 2 {
 				if t, err := strconv.ParseUint(p[1], 10, 64); err == nil {
 					vmem.Total = t * pagesize
@@ -65,7 +62,7 @@ func callSVMon(ctx context.Context) (*VirtualMemoryStat, *SwapMemoryStat, error)
 				}
 			}
 		} else if strings.HasPrefix(line, "pg space") {
-			p := whiteSpaces.Split(line, 4)
+			p := strings.Fields(line)
 			if len(p) > 3 {
 				if t, err := strconv.ParseUint(p[2], 10, 64); err == nil {
 					swap.Total = t * pagesize
