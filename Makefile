@@ -264,7 +264,7 @@ help: ## (Default) Print listing of key targets with their descriptions
 ###
 
 .PHONY: .gitvalidation
-.gitvalidation:
+.gitvalidation: .install.gitvalidation
 	@echo "Validating vs commit '$(call err_if_empty,EPOCH_TEST_COMMIT)'"
 	GIT_CHECK_EXCLUDE="./vendor:./test/tools/vendor:docs/make.bat:test/buildah-bud/buildah-tests.diff:test/e2e/quadlet/remap-keep-id2.container" ./test/tools/build/git-validation -run short-subject -range $(EPOCH_TEST_COMMIT)..$(HEAD)
 
