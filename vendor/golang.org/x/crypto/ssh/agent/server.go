@@ -7,6 +7,7 @@ package agent
 import (
 	"crypto/dsa"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rsa"
 	"encoding/binary"
@@ -16,7 +17,6 @@ import (
 	"log"
 	"math/big"
 
-	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -208,7 +208,7 @@ func parseConstraints(constraints []byte) (lifetimeSecs uint32, confirmBeforeUse
 		case agentConstrainConfirm:
 			confirmBeforeUse = true
 			constraints = constraints[1:]
-		case agentConstrainExtension:
+		case agentConstrainExtension, agentConstrainExtensionV00:
 			var msg constrainExtensionAgentMsg
 			if err = ssh.Unmarshal(constraints, &msg); err != nil {
 				return 0, false, nil, err
