@@ -147,7 +147,7 @@ func GetDiffer(ctx context.Context, store storage.Store, blobSize int64, annotat
 }
 
 func makeZstdChunkedDiffer(ctx context.Context, store storage.Store, blobSize int64, annotations map[string]string, iss ImageSourceSeekable) (*chunkedDiffer, error) {
-	manifest, tocOffset, err := readZstdChunkedManifest(iss, blobSize, annotations)
+	manifest, tocOffset, err := readZstdChunkedManifest(ctx, iss, blobSize, annotations)
 	if err != nil {
 		return nil, fmt.Errorf("read zstd:chunked manifest: %w", err)
 	}
@@ -279,6 +279,7 @@ func canDedupFileWithHardLink(file *internal.FileMetadata, fd int, s os.FileInfo
 func findFileInOSTreeRepos(file *internal.FileMetadata, ostreeRepos []string, dirfd int, useHardLinks bool) (bool, *os.File, int64, error) {
 	digest, err := digest.Parse(file.Digest)
 	if err != nil {
+		logrus.Debugf("could not parse digest: %v", err)
 		return false, nil, 0, nil
 	}
 	payloadLink := digest.Encoded() + ".payload-link"
@@ -297,6 +298,7 @@ func findFileInOSTreeRepos(file *internal.FileMetadata, ostreeRepos []string, di
 		}
 		fd, err := unix.Open(sourceFile, unix.O_RDONLY|unix.O_NONBLOCK, 0)
 		if err != nil {
+			logrus.Debugf("could not open sourceFile %s: %v", sourceFile, err)
 			return false, nil, 0, nil
 		}
 		f := os.NewFile(uintptr(fd), "fd")
@@ -309,6 +311,7 @@ func findFileInOSTreeRepos(file *internal.FileMetadata, ostreeRepos []string, di
 
 		dstFile, written, err := copyFileContent(fd, file.Name, dirfd, 0, useHardLinks)
 		if err != nil {
+			logrus.Debugf("could not copyFileContent: %v", err)
 			return false, nil, 0, nil
 		}
 		return true, dstFile, written, nil
@@ -503,7 +506,7 @@ func openFileUnderRootFallback(dirfd int, name string, flags uint64, mode os.Fil
 
 	hasNoFollow := (flags & unix.O_NOFOLLOW) != 0
 
-	fd := -1
+	var fd int
 	// If O_NOFOLLOW is specified in the flags, then resolve only the parent directory and use the
 	// last component as the path to openat().
 	if hasNoFollow {
@@ -1180,7 +1183,7 @@ func (d whiteoutHandler) Mknod(path string, mode uint32, dev int) error {
 
 func checkChownErr(err error, name string, uid, gid int) error {
 	if errors.Is(err, syscall.EINVAL) {
-		return fmt.Errorf("potentially insufficient UIDs or GIDs available in user namespace (requested %d:%d for %s): Check /etc/subuid and /etc/subgid if configured locally and run podman-system-migrate: %w", uid, gid, name, err)
+		return fmt.Errorf(`potentially insufficient UIDs or GIDs available in user namespace (requested %d:%d for %s): Check /etc/subuid and /etc/subgid if configured locally and run "podman system migrate": %w`, uid, gid, name, err)
 	}
 	return err
 }
@@ -1302,10 +1305,13 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions) (gra
 
 	var missingParts []missingPart
 
-	mergedEntries, err := c.mergeTocEntries(c.fileType, toc.Entries)
+	mergedEntries, totalSize, err := c.mergeTocEntries(c.fileType, toc.Entries)
 	if err != nil {
 		return output, err
 	}
+
+	output.Size = totalSize
+
 	if err := maybeDoIDRemap(mergedEntries, options); err != nil {
 		return output, err
 	}
@@ -1589,7 +1595,9 @@ func mustSkipFile(fileType compressedFileType, e internal.FileMetadata) bool {
 	return false
 }
 
-func (c *chunkedDiffer) mergeTocEntries(fileType compressedFileType, entries []internal.FileMetadata) ([]internal.FileMetadata, error) {
+func (c *chunkedDiffer) mergeTocEntries(fileType compressedFileType, entries []internal.FileMetadata) ([]internal.FileMetadata, int64, error) {
+	var totalFilesSize int64
+
 	countNextChunks := func(start int) int {
 		count := 0
 		for _, e := range entries[start:] {
@@ -1618,8 +1626,11 @@ func (c *chunkedDiffer) mergeTocEntries(fileType compressedFileType, entries []i
 		if mustSkipFile(fileType, e) {
 			continue
 		}
+
+		totalFilesSize += e.Size
+
 		if e.Type == TypeChunk {
-			return nil, fmt.Errorf("chunk type without a regular file")
+			return nil, -1, fmt.Errorf("chunk type without a regular file")
 		}
 
 		if e.Type == TypeReg {
@@ -1652,7 +1663,7 @@ func (c *chunkedDiffer) mergeTocEntries(fileType compressedFileType, entries []i
 			lastChunkOffset = mergedEntries[i].Chunks[j].Offset
 		}
 	}
-	return mergedEntries, nil
+	return mergedEntries, totalFilesSize, nil
 }
 
 // validateChunkChecksum checks if the file at $root/$path[offset:chunk.ChunkSize] has the

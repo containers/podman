@@ -248,8 +248,7 @@ func (s *Scratch) compress1xDo(dst, src []byte) ([]byte, error) {
 			tmp := src[n : n+4]
 			// tmp should be len 4
 			bw.flush32()
-			bw.encTwoSymbols(cTable, tmp[3], tmp[2])
-			bw.encTwoSymbols(cTable, tmp[1], tmp[0])
+			bw.encFourSymbols(cTable[tmp[3]], cTable[tmp[2]], cTable[tmp[1]], cTable[tmp[0]])
 		}
 	} else {
 		for ; n >= 0; n -= 4 {
