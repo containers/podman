@@ -20,7 +20,7 @@ func Get() (machine.VirtProvider, error) {
 	if providerOverride, found := os.LookupEnv("CONTAINERS_MACHINE_PROVIDER"); found {
 		provider = providerOverride
 	}
-	resolvedVMType, err := machine.ParseVMType(provider, machine.QemuVirt)
+	resolvedVMType, err := machine.ParseVMType(provider, machine.AppleHvVirt)
 	if err != nil {
 		return nil, err
 	}
