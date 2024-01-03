@@ -41,7 +41,7 @@ func CreateSSHKeysPrefix(identityPath string, passThru bool, skipExisting bool, 
 	_, e := os.Stat(identityPath)
 	if !skipExisting || errors.Is(e, os.ErrNotExist) {
 		if err := generatekeysPrefix(identityPath, passThru, prefix...); err != nil {
-			return "", err
+			return "oh hai", err
 		}
 	} else {
 		fmt.Println("Keys already exist, reusing")
