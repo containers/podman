@@ -36,6 +36,20 @@ The binary will be located in bin/
 $ ls -l bin/
 ```
 
+### Using gvproxy from homebrew, with podman from git
+
+Recent podman builds depend on a `gvproxy` binary which comes from [containers/gvisor-tap-vsock](https://github.com/containers/gvisor-tap-vsock).  A common development scenario may be using the podman desktop app as a baseline, with a development
+binary of `podman` you build from git.  To ensure that the podman you build here can find the gvproxy installed from podman desktop, use:
+
+`make podman-remote HELPER_BINARIES_DIR=/opt/podman/bin`
+
+(Also note that because the `Makefile` rules do not correctly invalidate the binary when this variable changes,
+ so if you already have a build you'll need to `rm bin/darwin/podman` first if you have an existing build).
+
+Alternatively, you can set `helper_binaries_dir=` in `~/.config/containers/containers.conf`.
+
+### Building docs
+
 If you would like to build the docs associated with Podman on macOS:
 ```
 $ make podman-remote-darwin-docs
