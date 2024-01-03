@@ -53,6 +53,10 @@ func (s *APIServer) registerKubeHandlers(r *mux.Router) error {
 	//    items:
 	//         type: string
 	//  - in: query
+	//    name: publishAllPorts
+	//    type: boolean
+	//    description: Whether to publish all ports defined in the K8S YAML file (containerPort, hostPort), if false only hostPort will be published
+	//  - in: query
 	//    name: replace
 	//    type: boolean
 	//    default: false

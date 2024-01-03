@@ -5644,6 +5644,18 @@ spec:
 		testHTTPServer("19003", false, "podman rulez")
 	})
 
+	It("podman play kube should publish containerPort with --publish-all", func() {
+		SkipIfRootless("rootlessport can't expose privileged port 80")
+		err := writeYaml(publishPortsPodWithContainerPort, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", "--publish-all=true", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		testHTTPServer("80", false, "podman rulez")
+	})
+
 	It("with Host Ports - curl should succeed", func() {
 		err := writeYaml(publishPortsPodWithContainerHostPort, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
