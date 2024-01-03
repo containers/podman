@@ -65,6 +65,8 @@ type MacMachine struct {
 	Mounts []vmconfigs.Mount
 	// Name of VM
 	Name string
+	// SerialConsolePath references the saved serial console path
+	SerialConsolePath define.VMFile
 	// ReadySocket tells host when vm is booted
 	ReadySocket define.VMFile
 	// ResourceConfig is physical attrs of the VM
@@ -348,6 +350,7 @@ func (m *MacMachine) collectFilesToDestroy(opts machine.RemoveOptions) []string 
 	}
 
 	files = append(files, m.ConfigPath.GetPath())
+	files = append(files, m.SerialConsolePath.GetPath())
 	return files
 }
 
@@ -556,6 +559,12 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 	if st == define.Running {
 		return machine.ErrVMAlreadyRunning
 	}
+
+	serialDevice, err := vfConfig.VirtioSerialNew(m.SerialConsolePath.Path)
+	if err != nil {
+		return err
+	}
+	m.Vfkit.VirtualMachine.Devices = append(m.Vfkit.VirtualMachine.Devices, serialDevice)
 
 	ioEater, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
 	if err != nil {

@@ -66,6 +66,7 @@ func (v *MachineVM) setNewMachineCMD(qemuBinary string, cmdOpts *setNewMachineCM
 	v.CmdLine.SetMemory(v.Memory)
 	v.CmdLine.SetCPUs(v.CPUs)
 	v.CmdLine.SetIgnitionFile(v.IgnitionFile)
+	v.CmdLine.SetSerialConsole(v.SerialConsolePath)
 	v.CmdLine.SetQmpMonitor(v.QMPMonitor)
 	v.CmdLine.SetNetwork()
 	v.CmdLine.SetSerialPort(v.ReadySocket, v.VMPidFilePath, v.Name)
@@ -123,6 +124,10 @@ func (p *QEMUVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, e
 	// find QEMU binary
 	execPath, err := findQEMUBinary()
 	if err != nil {
+		return nil, err
+	}
+
+	if err := vm.setSerialConsolePath(); err != nil {
 		return nil, err
 	}
 

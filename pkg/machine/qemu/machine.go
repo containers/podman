@@ -61,6 +61,8 @@ type MachineVM struct {
 	Name string
 	// PidFilePath is the where the Proxy PID file lives
 	PidFilePath define.VMFile
+	// SerialConsolePath references the saved serial console path
+	SerialConsolePath define.VMFile
 	// VMPidFilePath is the where the VM PID file lives
 	VMPidFilePath define.VMFile
 	// QMPMonitor is the qemu monitor object for sending commands
@@ -924,6 +926,7 @@ func (v *MachineVM) collectFilesToDestroy(opts machine.RemoveOptions) ([]string,
 	if !opts.SaveImage {
 		files = append(files, v.getImageFile())
 	}
+	files = append(files, v.SerialConsolePath.Path)
 	socketPath, err := v.forwardSocketPath()
 	if err != nil {
 		return nil, err
@@ -1240,6 +1243,20 @@ func (v *MachineVM) setConfigPath() error {
 		return err
 	}
 	v.ConfigPath = *configPath
+	return nil
+}
+
+func (v *MachineVM) setSerialConsolePath() error {
+	vmConfigDir, err := machine.GetConfDir(vmtype)
+	if err != nil {
+		return err
+	}
+
+	configPath, err := define.NewMachineFile(filepath.Join(vmConfigDir, v.Name)+".console", nil)
+	if err != nil {
+		return err
+	}
+	v.SerialConsolePath = *configPath
 	return nil
 }
 

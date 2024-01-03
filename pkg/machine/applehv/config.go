@@ -135,6 +135,12 @@ func (v AppleHVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM,
 		return nil, err
 	}
 
+	serialPath, err := define.NewMachineFile(filepath.Join(dataDir, fmt.Sprintf("%s.console", opts.Name)), nil)
+	if err != nil {
+		return nil, err
+	}
+	m.SerialConsolePath = *serialPath
+
 	if err := ignition.SetIgnitionFile(&m.IgnitionFile, vmtype, m.Name, configDir); err != nil {
 		return nil, err
 	}

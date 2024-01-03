@@ -46,6 +46,11 @@ func (q *QemuCmd) SetQmpMonitor(monitor Monitor) {
 	*q = append(*q, "-qmp", monitor.Network+":"+monitor.Address.GetPath()+",server=on,wait=off")
 }
 
+// SetSerialConsole writes the default serial console to the target file
+func (q *QemuCmd) SetSerialConsole(console define.VMFile) {
+	*q = append(*q, "-chardev", "file,id=seriallog,path="+console.Path, "-serial", "chardev:seriallog")
+}
+
 // SetNetwork adds a network device to the machine
 func (q *QemuCmd) SetNetwork() {
 	// Right now the mac address is hardcoded so that the host networking gives it a specific IP address.  This is
