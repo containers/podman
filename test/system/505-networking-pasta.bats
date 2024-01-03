@@ -689,7 +689,6 @@ function pasta_test_do() {
 }
 
 @test "TCP/IPv4 large transfer, tap" {
-    skip "FIXME: #20170 - needs passt >= 2023-11-10"
     pasta_test_do
 }
 
