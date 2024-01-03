@@ -212,6 +212,7 @@ Valid options for `[Container]` are listed below:
 | SecurityLabelNested=true             | --security-opt label=nested                          |
 | SecurityLabelType=spc_t              | --security-opt label=type:spc_t                      |
 | ShmSize=100m                         | --shm-size=100m                                      |
+| StopTimeout=20                       | --stop-timeout=20                                    |
 | SubGIDMap=gtest                      | --subgidname=gtest                                   |
 | SubUIDMap=utest                      | --subuidname=utest                                   |
 | Sysctl=name=value                    | --sysctl=name=value                                  |
@@ -615,6 +616,14 @@ This is equivalent to the Podman `--secret` option and generally has the form `s
 Size of /dev/shm.
 
 This is equivalent to the Podman `--shm-size` option and generally has the form `number[unit]`
+
+### `StopTimeout=`
+
+Seconds to wait before forcibly stopping the container.
+
+Note, this value should be lower than the actual systemd unit timeout to make sure the podman rm command is not killed by systemd.
+
+This is equivalent to the Podman `--stop-timeout` option
 
 ### `SubGIDMap=`
 
