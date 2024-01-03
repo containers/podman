@@ -3,3 +3,6 @@
 kind/api-change:
   - changed-files:
     - any-glob-to-any-file: pkg/api/**
+area/machine:
+  - changed-files:
+    - any-glob-to-any-file: pkg/machine/**
