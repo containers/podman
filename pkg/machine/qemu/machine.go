@@ -484,6 +484,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	}
 	doneStarting := func() {
 		v.Starting = false
+		logrus.Debug("done starting")
 		if err := v.writeConfig(); err != nil {
 			logrus.Errorf("Writing JSON file: %v", err)
 		}
@@ -532,7 +533,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 
 	qemuSocketConn, err = sockets.DialSocketWithBackoffs(maxBackoffs, defaultBackoff, v.QMPMonitor.Address.Path)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to connect to qemu monitor socket: %w", err)
 	}
 	defer qemuSocketConn.Close()
 
@@ -579,6 +580,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	if err := runStartVMCommand(cmd); err != nil {
 		return err
 	}
+	logrus.Debugf("Started qemu pid %d", cmd.Process.Pid)
 	defer cmd.Process.Release() //nolint:errcheck
 
 	if !opts.Quiet {
