@@ -1173,7 +1173,13 @@ var _ = Describe("Podman checkpoint", func() {
 
 			// As the container has been started with '--rm' it will be completely
 			// cleaned up after checkpointing.
-			Expect(result).To(ExitCleanly())
+			// #11784 (closed wontfix): runc warns "lstat /sys/.../machine.slice/...: ENOENT"
+			// so we can't use ExitCleanly()
+			if podmanTest.OCIRuntime == "runc" {
+				Expect(result).To(Exit(0))
+			} else {
+				Expect(result).To(ExitCleanly())
+			}
 			Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 			Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 
@@ -1254,7 +1260,13 @@ var _ = Describe("Podman checkpoint", func() {
 				result.OutputToString(),
 			})
 			result.WaitWithDefaultTimeout()
-			Expect(result).To(ExitCleanly())
+			// #11784 (closed wontfix): runc warns "lstat /sys/.../machine.slice/...: ENOENT"
+			// so we can't use ExitCleanly()
+			if podmanTest.OCIRuntime == "runc" {
+				Expect(result).To(Exit(0))
+			} else {
+				Expect(result).To(ExitCleanly())
+			}
 			Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 			Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 
