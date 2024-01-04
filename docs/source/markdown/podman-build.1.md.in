@@ -474,7 +474,7 @@ $ podman build -t hello  https://github.com/containers/PodmanHello.git
 $ podman run hello
 ```
 
-  Note: Github does not support using `git://` for performing `clone` operation due to recent changes in their security guidance (https://github.blog/2021-09-01-improving-git-protocol-security-github/). Use an `https://` URL if the source repository is hosted on Github.
+  Note: GitHub does not support using `git://` for performing `clone` operation due to recent changes in their security guidance (https://github.blog/2021-09-01-improving-git-protocol-security-github/). Use an `https://` URL if the source repository is hosted on GitHub.
 
 #### Building an image using a URL to an archive
 

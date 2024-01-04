@@ -33,7 +33,7 @@ Print results with a Go template.
 | .Name               | Name of the machine                                                   |
 | .Resources ...      | Resources used by the machine                                         |
 | .Rootful            | Whether the machine prefers rootful or rootless container execution   |
-| .SSHConfig ...      | SSH configuration info for communitating with machine                 |
+| .SSHConfig ...      | SSH configuration info for communicating with machine                 |
 | .State ...          | Machine state                                                         |
 | .UserModeNetworking | Whether this machine uses user-mode networking                        |
 
