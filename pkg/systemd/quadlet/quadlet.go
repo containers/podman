@@ -138,6 +138,7 @@ const (
 	KeySecurityLabelType     = "SecurityLabelType"
 	KeySetWorkingDirectory   = "SetWorkingDirectory"
 	KeyShmSize               = "ShmSize"
+	KeyStopTimeout           = "StopTimeout"
 	KeySubGIDMap             = "SubGIDMap"
 	KeySubUIDMap             = "SubUIDMap"
 	KeySysctl                = "Sysctl"
@@ -230,6 +231,7 @@ var (
 		KeySecurityLabelNested:   true,
 		KeySecurityLabelType:     true,
 		KeyShmSize:               true,
+		KeyStopTimeout:           true,
 		KeySubGIDMap:             true,
 		KeySubUIDMap:             true,
 		KeySysctl:                true,
@@ -770,6 +772,10 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 
 	if err := handlePod(container, service, ContainerGroup, podsInfoMap, podman); err != nil {
 		return nil, err
+	}
+
+	if stopTimeout, ok := container.Lookup(ContainerGroup, KeyStopTimeout); ok && len(stopTimeout) > 0 {
+		podman.add("--stop-timeout", stopTimeout)
 	}
 
 	handlePodmanArgs(container, ContainerGroup, podman)
