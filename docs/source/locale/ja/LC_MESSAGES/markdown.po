@@ -1745,7 +1745,7 @@ msgstr ""
 msgid ""
 "Local directory – e.g. --build-context project2=../path/to/project2/src "
 "(This option is not available with the remote Podman client. On Podman "
-"machine setup (i.e macOS and Winows) path must exists on the machine VM)"
+"machine setup (i.e macOS and Windows) path must exists on the machine VM)"
 msgstr ""
 
 #: ../../source/markdown/podman-build.1.md:130
@@ -3782,7 +3782,7 @@ msgstr ""
 
 #: ../../source/markdown/podman-build.1.md:884
 msgid ""
-"Adds global flags for the container rutime. To list the supported flags, "
+"Adds global flags for the container runtime. To list the supported flags, "
 "please consult the manpages of the selected container runtime."
 msgstr ""
 
@@ -4484,10 +4484,10 @@ msgstr ""
 
 #: ../../source/markdown/podman-build.1.md:1332
 msgid ""
-"Note: Github does not support using `git://` for performing `clone` "
+"Note: GitHub does not support using `git://` for performing `clone` "
 "operation due to recent changes in their security guidance "
 "(https://github.blog/2021-09-01-improving-git-protocol-security-github/)."
-" Use an `https://` URL if the source repository is hosted on Github."
+" Use an `https://` URL if the source repository is hosted on GitHub."
 msgstr ""
 
 #: ../../source/markdown/podman-build.1.md:1334
@@ -18197,7 +18197,7 @@ msgid ".SSHConfig ..."
 msgstr ""
 
 #: ../../source/markdown/podman-machine-inspect.1.md:1
-msgid "SSH configuration info for communitating with machine"
+msgid "SSH configuration info for communicating with machine"
 msgstr ""
 
 #: ../../source/markdown/podman-machine-inspect.1.md:1

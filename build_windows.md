@@ -15,7 +15,7 @@ this distribution and will have to be manually added after this installation com
 Pandoc could be installed from https://pandoc.org/installing.html When performing the Pandoc installation one, has to choose the option
 "Install for all users" (to put the binaries into "Program Files" directory).
 
-## Install WiX Toolset v3 (is preinstalled in Github runner)
+## Install WiX Toolset v3 (is preinstalled in GitHub runner)
 The latest release of the WiX Toolset can be obtained from https://wixtoolset.org/docs/wix3/.  Installing it into a clean VM might require
 an additional installation of .NET Framework 3.5 in advance
 ([instructions for adding .NET Framework 3.5 via enabling the Windows feature](https://learn.microsoft.com/en-us/dotnet/framework/install/dotnet-35-windows#enable-the-net-framework-35-in-control-panel))

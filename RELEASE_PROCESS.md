@@ -231,7 +231,7 @@ spelled with complete minutiae.
    1. Update `RELEASE_NOTES.md` on main. Commit these changes.
    1. Create a PR with the above commits, and oversee it's merging.
 
-1. Create Github Release entry and upload assets
+1. Create GitHub Release entry and upload assets
 
    1. Return to the Cirrus-CI Build page for the new release tag, confirm
       (or wait for) it to complete, re-running any failed tasks as appropriate.

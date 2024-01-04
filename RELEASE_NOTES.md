@@ -284,7 +284,7 @@
 - Fixed a bug in podman-remote logs to correctly display errors reported by the server.
 - Fixed a bug to correctly tear down the network stack again when an error happened during the setup.
 - Fixed a bug in the remote API exec inspect call to correctly display updated information, e.g. when the exec process died ([#18424](https://github.com/containers/podman/issues/18424)).
-- Fixed a bug so that podman save on windows can now write to stdout by default ([#18147](https://github.com/containers/podman/issues/18147)).
+- Fixed a bug so that podman save on Windows can now write to stdout by default ([#18147](https://github.com/containers/podman/issues/18147)).
 - Fixed a bug where podman machine rm with the qemu backend now correctly removes the machine connection after the confirmation message not before ([#18330](https://github.com/containers/podman/issues/18330)).
 - Fixed a problem where podman machine connections would try to connect to the ipv6 localhost ipv6 (::1) ([#16470](https://github.com/containers/podman/issues/16470)).
 
@@ -640,7 +640,7 @@
 - Fixed a bug where the `--filter "{{.Config.Healthcheck}}"` option to `podman image inspect` did not print the image's configured healthcheck ([#14661](https://github.com/containers/podman/issues/14661)).
 - Fixed a bug where the `podman volume create -o timeout=` option could be specified even when no volume plugin was in use.
 - Fixed a bug where the `podman rmi` command did not emit `untag` events when removing tagged images ([#15485](https://github.com/containers/podman/issues/15485)).
-- Fixed a bug where API forwarding with `podman machine` VMs on windows could sometimes fail because the pipe was not created in time ([#14811](https://github.com/containers/podman/issues/14811)).
+- Fixed a bug where API forwarding with `podman machine` VMs on Windows could sometimes fail because the pipe was not created in time ([#14811](https://github.com/containers/podman/issues/14811)).
 - Fixed a bug where the `podman pod rm` command could error if removal of a container in the pod was interrupted by a reboot.
 - Fixed a bug where the `exited` and `exec died` events for containers did not include the container's labels ([#15617](https://github.com/containers/podman/issues/15617)).
 - Fixed a bug where running Systemd containers on a system not using Systemd as PID 1 could fail ([#15647](https://github.com/containers/podman/issues/15647)).
@@ -716,7 +716,7 @@
 
 ## 4.2.0
 ### Features
-- Podman now supports the Gitlab Runner (using the Docker executor), allowing its use in Gitlab CI/CD pipelines.
+- Podman now supports the GitLab Runner (using the Docker executor), allowing its use in GitLab CI/CD pipelines.
 - A new command has been added, `podman pod clone`, to create a copy of an existing pod. It supports several options, including `--start` to start the new pod, `--destroy` to remove the original pod, and `--name` to change the name of the new pod ([#12843](https://github.com/containers/podman/issues/12843)).
 - A new command has been added, `podman volume reload`, to sync changes in state between Podman's database and any configured volume plugins ([#14207](https://github.com/containers/podman/issues/14207)).
 - A new command has been added, `podman machine info`, which displays information about the host and the versions of various machine components.
@@ -791,7 +791,7 @@
 - Fixed a bug where Podman Machine VMs with proxy variables could not be started more than once ([#14636](https://github.com/containers/podman/issues/14636) and [#14837](https://github.com/containers/podman/issues/14837)).
 - Fixed a bug where containers created using the Podman API would, when the Podman API service was managed by systemd, be killed when the API service was stopped ([BZ 2052697](https://bugzilla.redhat.com/show_bug.cgi?id=2052697)).
 - Fixed a bug where the `podman -h` command did not show help output.
-- Fixed a bug where the `podman wait` command (and the associated REST API endpoint) could return before a container had fully exited, breaking some tools like the Gitlab Runner.
+- Fixed a bug where the `podman wait` command (and the associated REST API endpoint) could return before a container had fully exited, breaking some tools like the GitLab Runner.
 - Fixed a bug where healthchecks generated `exec` events, instead of `health_status` events ([#13493](https://github.com/containers/podman/issues/13493)).
 - Fixed a bug where the `podman pod ps` command could return an error when run at the same time as `podman pod rm` ([#14736](https://github.com/containers/podman/issues/14736)).
 - Fixed a bug where the `podman systemd df` command incorrectly calculated reclaimable storage for volumes ([#13516](https://github.com/containers/podman/issues/13516)).
@@ -1219,7 +1219,7 @@
 - Numerous small changes have been made to ensure that the API matches its Swagger documentation
 
 ### Misc
-- The Windows installer MSI distributed through Github releases no longer supports 32-bit systems, as Podman is built only for 64-bit machines.
+- The Windows installer MSI distributed through GitHub releases no longer supports 32-bit systems, as Podman is built only for 64-bit machines.
 - Updated Buildah to v1.24.0
 - Updated the containers/image library to v5.19.0
 - Updated the containers/storage library to v1.38.1
