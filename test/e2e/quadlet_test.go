@@ -639,6 +639,7 @@ BOGUS=foo
 			session := podmanTest.Quadlet([]string{"-dryrun"}, podmanTest.TempDir)
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(1))
+			Expect(session.ErrorToString()).To(ContainSubstring("converting \"bogus.container\": unsupported key 'BOGUS' in group 'Container' in " + quadletfilePath))
 		})
 
 		It("Should scan and return output for files in subdirectories", func() {
