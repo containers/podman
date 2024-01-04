@@ -41,6 +41,8 @@ Note: the pod implements devices by storing the initial configuration passed by 
 
 @@option gidmap.pod
 
+@@option gpus
+
 #### **--help**, **-h**
 
 Print usage statement.

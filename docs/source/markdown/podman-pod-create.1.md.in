@@ -80,6 +80,8 @@ Set the exit policy of the pod when the last container exits.  Supported policie
 
 @@option gidmap.pod
 
+@@option gpus
+
 #### **--help**, **-h**
 
 Print usage statement.
