@@ -19,8 +19,8 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/define"
-	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/pkg/machine/ignition"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/pkg/machine/wsl/wutil"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
@@ -411,7 +411,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	}
 
 	_ = setupWslProxyEnv()
-	v.IdentityPath = util.GetIdentityPath(v.Name)
+	v.IdentityPath = util.GetIdentityPath(define.DefaultIdentityName)
 	v.Rootful = opts.Rootful
 	v.Version = currentMachineVersion
 
@@ -452,7 +452,6 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	if err = createKeys(v, dist); err != nil {
 		return false, err
 	}
-	callbackFuncs.Add(v.removeSSHKeys)
 
 	// Cycle so that user change goes into effect
 	_ = terminateDist(dist)
@@ -492,13 +491,6 @@ func (v *MachineVM) removeMachineConfig() error {
 
 func (v *MachineVM) removeMachineImage() error {
 	return utils.GuardedRemoveAll(v.ImagePath)
-}
-
-func (v *MachineVM) removeSSHKeys() error {
-	if err := utils.GuardedRemoveAll(fmt.Sprintf("%s.pub", v.IdentityPath)); err != nil {
-		logrus.Error(err)
-	}
-	return utils.GuardedRemoveAll(v.IdentityPath)
 }
 
 func (v *MachineVM) removeSystemConnections() error {
@@ -1057,7 +1049,7 @@ func wslPipe(input string, dist string, arg ...string) error {
 }
 
 func wslCreateKeys(identityPath string, dist string) (string, error) {
-	return machine.CreateSSHKeysPrefix(identityPath, true, false, "wsl", "-u", "root", "-d", dist)
+	return machine.CreateSSHKeysPrefix(identityPath, true, true, "wsl", "-u", "root", "-d", dist)
 }
 
 func runCmdPassThrough(name string, arg ...string) error {
@@ -1605,9 +1597,6 @@ func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, fun
 	defer v.lock.Unlock()
 
 	// Collect all the files that need to be destroyed
-	if !opts.SaveKeys {
-		files = append(files, v.IdentityPath, v.IdentityPath+".pub")
-	}
 	if !opts.SaveImage {
 		files = append(files, v.ImagePath)
 	}

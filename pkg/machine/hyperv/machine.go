@@ -21,8 +21,8 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/machine/hyperv/vsock"
-	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/pkg/machine/ignition"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/pkg/strongunits"
 	"github.com/containers/podman/v4/pkg/systemd/parser"
 	"github.com/containers/podman/v4/pkg/util"
@@ -178,7 +178,7 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 		return nil
 	})
 
-	m.IdentityPath = util.GetIdentityPath(m.Name)
+	m.IdentityPath = util.GetIdentityPath(define.DefaultIdentityName)
 
 	if m.UID == 0 {
 		m.UID = 1000
@@ -205,11 +205,10 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	callbackFuncs.Add(m.removeSystemConnections)
 
 	if len(opts.IgnitionPath) < 1 {
-		key, err = machine.CreateSSHKeys(m.IdentityPath)
+		key, err = machine.GetSSHKeys(m.IdentityPath)
 		if err != nil {
 			return false, err
 		}
-		callbackFuncs.Add(m.removeSSHKeys)
 	}
 
 	m.ResourceConfig = vmconfigs.ResourceConfig{
@@ -319,13 +318,6 @@ func (m *HyperVMachine) unregisterMachine() error {
 	return vm.Remove("")
 }
 
-func (m *HyperVMachine) removeSSHKeys() error {
-	if err := os.Remove(fmt.Sprintf("%s.pub", m.IdentityPath)); err != nil {
-		logrus.Error(err)
-	}
-	return os.Remove(m.IdentityPath)
-}
-
 func (m *HyperVMachine) removeSystemConnections() error {
 	return machine.RemoveConnections(m.Name, fmt.Sprintf("%s-root", m.Name))
 }
@@ -378,10 +370,6 @@ func (m *HyperVMachine) Inspect() (*machine.InspectInfo, error) {
 // collectFilesToDestroy retrieves the files that will be destroyed by `Remove`
 func (m *HyperVMachine) collectFilesToDestroy(opts machine.RemoveOptions, diskPath *string) []string {
 	files := []string{}
-
-	if !opts.SaveKeys {
-		files = append(files, m.IdentityPath, m.IdentityPath+".pub")
-	}
 	if !opts.SaveIgnition {
 		files = append(files, m.IgnitionFile.GetPath())
 	}

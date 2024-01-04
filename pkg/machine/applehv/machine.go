@@ -22,9 +22,9 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/applehv/vfkit"
 	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/containers/podman/v4/pkg/machine/sockets"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
-    "github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/containers/podman/v4/pkg/strongunits"
 	"github.com/containers/podman/v4/pkg/systemd/parser"
 	"github.com/containers/podman/v4/pkg/util"
@@ -202,7 +202,7 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	m.IdentityPath = util.GetIdentityPath(m.Name)
+	m.IdentityPath = util.GetIdentityPath(define.DefaultIdentityName)
 	m.Rootful = opts.Rootful
 	m.RemoteUsername = opts.Username
 
@@ -241,11 +241,10 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 	}
 
 	if len(opts.IgnitionPath) < 1 {
-		key, err = machine.CreateSSHKeys(m.IdentityPath)
+		key, err = machine.GetSSHKeys(m.IdentityPath)
 		if err != nil {
 			return false, err
 		}
-		callbackFuncs.Add(m.removeSSHKeys)
 	}
 
 	builder := ignition.NewIgnitionBuilder(ignition.DynamicIgnition{
@@ -293,13 +292,6 @@ func createReadyUnitFile() (string, error) {
 	return readyUnit.ToString()
 }
 
-func (m *MacMachine) removeSSHKeys() error {
-	if err := os.Remove(fmt.Sprintf("%s.pub", m.IdentityPath)); err != nil {
-		logrus.Error(err)
-	}
-	return os.Remove(m.IdentityPath)
-}
-
 func (m *MacMachine) removeSystemConnections() error {
 	return machine.RemoveConnections(m.Name, fmt.Sprintf("%s-root", m.Name))
 }
@@ -344,9 +336,6 @@ func (m *MacMachine) Inspect() (*machine.InspectInfo, error) {
 // collectFilesToDestroy retrieves the files that will be destroyed by `Remove`
 func (m *MacMachine) collectFilesToDestroy(opts machine.RemoveOptions) []string {
 	files := []string{}
-	if !opts.SaveKeys {
-		files = append(files, m.IdentityPath, m.IdentityPath+".pub")
-	}
 	if !opts.SaveIgnition {
 		files = append(files, m.IgnitionFile.GetPath())
 	}

@@ -18478,10 +18478,6 @@ msgstr ""
 msgid "Do not delete the VM image."
 msgstr ""
 
-#: ../../source/markdown/podman-machine-rm.1.md:43
-msgid "**--save-keys**"
-msgstr ""
-
 #: ../../source/markdown/podman-machine-rm.1.md:45
 msgid ""
 "Do not delete the SSH keys for the VM.  The system connection is always "

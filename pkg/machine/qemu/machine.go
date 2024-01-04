@@ -124,7 +124,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	defer callbackFuncs.CleanIfErr(&err)
 	go callbackFuncs.CleanOnSignal()
 
-	v.IdentityPath = util.GetIdentityPath(v.Name)
+	v.IdentityPath = util.GetIdentityPath(define.DefaultIdentityName)
 	v.Rootful = opts.Rootful
 
 	imagePath, strm, err := machine.Pull(opts.ImagePath, opts.Name, VirtualizationProvider())
@@ -169,11 +169,10 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	// User has provided ignition file so keygen
 	// will be skipped.
 	if len(opts.IgnitionPath) < 1 {
-		key, err = machine.CreateSSHKeys(v.IdentityPath)
+		key, err = machine.GetSSHKeys(v.IdentityPath)
 		if err != nil {
 			return false, err
 		}
-		callbackFuncs.Add(v.removeSSHKeys)
 	}
 	// Run arch specific things that need to be done
 	if err = v.prepare(); err != nil {
@@ -236,13 +235,6 @@ func createReadyUnitFile() (string, error) {
 	readyUnit.Add("Unit", "After", "systemd-user-sessions.service")
 	readyUnit.Add("Service", "ExecStart", "/bin/sh -c '/usr/bin/echo Ready >/dev/vport1p1'")
 	return readyUnit.ToString()
-}
-
-func (v *MachineVM) removeSSHKeys() error {
-	if err := os.Remove(fmt.Sprintf("%s.pub", v.IdentityPath)); err != nil {
-		logrus.Error(err)
-	}
-	return os.Remove(v.IdentityPath)
 }
 
 func (v *MachineVM) removeSystemConnections() error {
@@ -923,9 +915,6 @@ func NewQMPMonitor(network, name string, timeout time.Duration) (command.Monitor
 func (v *MachineVM) collectFilesToDestroy(opts machine.RemoveOptions) ([]string, error) {
 	files := []string{}
 	// Collect all the files that need to be destroyed
-	if !opts.SaveKeys {
-		files = append(files, v.IdentityPath, v.IdentityPath+".pub")
-	}
 	if !opts.SaveIgnition {
 		files = append(files, v.getIgnitionFile())
 	}
@@ -968,7 +957,7 @@ func (v *MachineVM) removeQMPMonitorSocketAndVMPidFile() {
 	}
 }
 
-// Remove deletes all the files associated with a machine including ssh keys, the image itself
+// Remove deletes all the files associated with a machine including the image itself
 func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func() error, error) {
 	var (
 		files []string

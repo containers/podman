@@ -303,7 +303,7 @@ var _ = Describe("podman machine init", func() {
 		img := inspectSession.outputToString()
 
 		rm := rmMachine{}
-		removeSession, err := mb.setCmd(rm.withForce().withSaveKeys()).run()
+		removeSession, err := mb.setCmd(rm.withForce()).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(removeSession).To(Exit(0))
 
