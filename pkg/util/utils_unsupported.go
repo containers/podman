@@ -1,5 +1,4 @@
 //go:build darwin || windows || freebsd
-// +build darwin windows freebsd
 
 package util
 

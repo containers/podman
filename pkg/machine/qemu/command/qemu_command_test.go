@@ -1,5 +1,4 @@
 //go:build (amd64 && !windows) || (arm64 && !windows)
-// +build amd64,!windows arm64,!windows
 
 package command
 

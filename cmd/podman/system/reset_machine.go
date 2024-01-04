@@ -1,5 +1,4 @@
 //go:build (amd64 && !remote) || (arm64 && !remote)
-// +build amd64,!remote arm64,!remote
 
 package system
 

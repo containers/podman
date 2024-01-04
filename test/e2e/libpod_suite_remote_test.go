@@ -1,5 +1,4 @@
 //go:build remote_testing
-// +build remote_testing
 
 package integration
 
