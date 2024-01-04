@@ -1,6 +1,6 @@
 //go:build amd64 || arm64
 
-package machine
+package ignition
 
 /*
 	This file was taken from https://github.com/coreos/ignition/blob/master/config/v3_2/types/schema.go in an effort to

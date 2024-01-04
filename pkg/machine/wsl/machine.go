@@ -20,6 +20,7 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/containers/podman/v4/pkg/machine/wsl/wutil"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
@@ -32,7 +33,7 @@ import (
 
 var (
 	// vmtype refers to qemu (vs libvirt, krun, etc)
-	vmtype = machine.WSLVirt
+	vmtype = define.WSLVirt
 )
 
 const (
@@ -717,9 +718,9 @@ func getBindMountFsTab(dist string) string {
 }
 
 func (v *MachineVM) setupPodmanDockerSock(dist string, rootful bool) error {
-	content := machine.GetPodmanDockerTmpConfig(1000, rootful, true)
+	content := ignition.GetPodmanDockerTmpConfig(1000, rootful, true)
 
-	if err := wslPipe(content, dist, "sh", "-c", "cat > "+machine.PodmanDockerTmpConfPath); err != nil {
+	if err := wslPipe(content, dist, "sh", "-c", "cat > "+ignition.PodmanDockerTmpConfPath); err != nil {
 		return fmt.Errorf("could not create internal docker sock conf: %w", err)
 	}
 

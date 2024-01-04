@@ -2,6 +2,7 @@ package e2e_test
 
 import (
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	jsoniter "github.com/json-iterator/go"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -66,7 +67,7 @@ var _ = Describe("podman inspect stop", func() {
 		err = jsoniter.Unmarshal(inspectSession.Bytes(), &inspectInfo)
 		Expect(err).ToNot(HaveOccurred())
 		switch testProvider.VMType() {
-		case machine.WSLVirt:
+		case define.WSLVirt:
 			Expect(inspectInfo[0].ConnectionInfo.PodmanPipe.GetPath()).To(ContainSubstring("podman-"))
 		default:
 			Expect(inspectInfo[0].ConnectionInfo.PodmanSocket.GetPath()).To(HaveSuffix("podman.sock"))

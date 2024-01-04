@@ -5,12 +5,13 @@ package machine
 import (
 	"fmt"
 
+	"github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/sirupsen/logrus"
 )
 
 func UpdatePodmanDockerSockService(vm VM, name string, uid int, rootful bool) error {
-	content := GetPodmanDockerTmpConfig(uid, rootful, false)
-	command := fmt.Sprintf("'echo %q > %s'", content, PodmanDockerTmpConfPath)
+	content := ignition.GetPodmanDockerTmpConfig(uid, rootful, false)
+	command := fmt.Sprintf("'echo %q > %s'", content, ignition.PodmanDockerTmpConfPath)
 	args := []string{"sudo", "bash", "-c", command}
 	if err := vm.SSH(name, SSHOptions{Args: args}); err != nil {
 		logrus.Warnf("Could not not update internal docker sock config")

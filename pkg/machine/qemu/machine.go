@@ -23,6 +23,7 @@ import (
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/containers/podman/v4/pkg/machine/qemu/command"
 	"github.com/containers/podman/v4/pkg/machine/sockets"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
@@ -36,7 +37,7 @@ import (
 var (
 	// vmtype refers to qemu (vs libvirt, krun, etc).
 	// Could this be moved into  Provider
-	vmtype = machine.QemuVirt
+	vmtype = define.QemuVirt
 )
 
 const (
@@ -45,23 +46,6 @@ const (
 	dockerSock           = "/var/run/docker.sock"
 	dockerConnectTimeout = 5 * time.Second
 )
-
-// qemuReadyUnit is a unit file that sets up the virtual serial device
-// where when the VM is done configuring, it will send an ack
-// so a listening host tknows it can begin interacting with it
-const qemuReadyUnit = `[Unit]
-Requires=dev-virtio\\x2dports-%s.device
-After=remove-moby.service sshd.socket sshd.service
-After=systemd-user-sessions.service
-OnFailure=emergency.target
-OnFailureJobMode=isolate
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/bin/sh -c '/usr/bin/echo Ready >/dev/%s'
-[Install]
-RequiredBy=default.target
-`
 
 type MachineVM struct {
 	// ConfigPath is the path to the configuration file
@@ -208,11 +192,11 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		logrus.Warn("ignoring init option to disable user-mode networking: this mode is not supported by the QEMU backend")
 	}
 
-	builder := machine.NewIgnitionBuilder(machine.DynamicIgnition{
+	builder := ignition.NewIgnitionBuilder(ignition.DynamicIgnition{
 		Name:      opts.Username,
 		Key:       key,
 		VMName:    v.Name,
-		VMType:    machine.QemuVirt,
+		VMType:    define.QemuVirt,
 		TimeZone:  opts.TimeZone,
 		WritePath: v.getIgnitionFile(),
 		UID:       v.UID,
@@ -229,10 +213,14 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	readyUnit := machine.Unit{
-		Enabled:  machine.BoolToPtr(true),
+	readyUnitFile, err := createReadyUnitFile()
+	if err != nil {
+		return false, err
+	}
+	readyUnit := ignition.Unit{
+		Enabled:  ignition.BoolToPtr(true),
 		Name:     "ready.service",
-		Contents: machine.StrToPtr(fmt.Sprintf(qemuReadyUnit, "vport1p1", "vport1p1")),
+		Contents: ignition.StrToPtr(readyUnitFile),
 	}
 	builder.WithUnit(readyUnit)
 
@@ -240,6 +228,14 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	callbackFuncs.Add(v.IgnitionFile.Delete)
 
 	return err == nil, err
+}
+
+func createReadyUnitFile() (string, error) {
+	readyUnit := ignition.DefaultReadyUnitFile()
+	readyUnit.Add("Unit", "Requires", "dev-virtio\\x2dports-vport1p1.device")
+	readyUnit.Add("Unit", "After", "systemd-user-sessions.service")
+	readyUnit.Add("Service", "ExecStart", "/bin/sh -c '/usr/bin/echo Ready >/dev/vport1p1'")
+	return readyUnit.ToString()
 }
 
 func (v *MachineVM) removeSSHKeys() error {
@@ -1222,7 +1218,7 @@ func (v *MachineVM) isIncompatible() bool {
 }
 
 func (v *MachineVM) userGlobalSocketLink() (string, error) {
-	path, err := machine.GetDataDir(machine.QemuVirt)
+	path, err := machine.GetDataDir(define.QemuVirt)
 	if err != nil {
 		logrus.Errorf("Resolving data dir: %s", err.Error())
 		return "", err
@@ -1233,7 +1229,7 @@ func (v *MachineVM) userGlobalSocketLink() (string, error) {
 
 func (v *MachineVM) forwardSocketPath() (*define.VMFile, error) {
 	sockName := "podman.sock"
-	path, err := machine.GetDataDir(machine.QemuVirt)
+	path, err := machine.GetDataDir(define.QemuVirt)
 	if err != nil {
 		logrus.Errorf("Resolving data dir: %s", err.Error())
 		return nil, err

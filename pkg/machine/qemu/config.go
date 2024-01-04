@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/compression"
 	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/containers/podman/v4/pkg/machine/qemu/command"
 	"github.com/containers/podman/v4/pkg/machine/sockets"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
@@ -84,8 +85,13 @@ func (p *QEMUVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, e
 		return nil, err
 	}
 
+	confDir, err := machine.GetConfDir(vmtype)
+	if err != nil {
+		return nil, err
+	}
+
 	// set VM ignition file
-	if err := machine.SetIgnitionFile(&vm.IgnitionFile, vmtype, vm.Name); err != nil {
+	if err := ignition.SetIgnitionFile(&vm.IgnitionFile, vmtype, vm.Name, confDir); err != nil {
 		return nil, err
 	}
 
@@ -330,7 +336,7 @@ func (p *QEMUVirtualization) RemoveAndCleanMachines() error {
 	return prevErr
 }
 
-func (p *QEMUVirtualization) VMType() machine.VMType {
+func (p *QEMUVirtualization) VMType() define.VMType {
 	return vmtype
 }
 

@@ -1,6 +1,6 @@
 //go:build windows
 
-package machine
+package ignition
 
 func getLocalTimeZone() (string, error) {
 	return "", nil

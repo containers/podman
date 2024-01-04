@@ -1,6 +1,6 @@
 //go:build amd64 || arm64
 
-package machine
+package ignition
 
 import (
 	"encoding/json"
@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 
 	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/systemd/parser"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,6 +26,7 @@ import (
 
 const (
 	PodmanDockerTmpConfPath = "/etc/tmpfiles.d/podman-docker.conf"
+	DefaultIgnitionUserName = "core"
 )
 
 // Convenience function to convert int to ptr
@@ -56,7 +58,7 @@ type DynamicIgnition struct {
 	TimeZone  string
 	UID       int
 	VMName    string
-	VMType    VMType
+	VMType    define.VMType
 	WritePath string
 	Cfg       Config
 	Rootful   bool
@@ -133,23 +135,24 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 		ignStorage.Links = append(ignStorage.Links, tzLink)
 	}
 
-	deMoby := `[Unit]
-Description=Remove moby-engine
-# Run once for the machine
-After=systemd-machine-id-commit.service
-Before=zincati.service
-ConditionPathExists=!/var/lib/%N.stamp
+	deMoby := parser.NewUnitFile()
+	deMoby.Add("Unit", "Description", "Remove moby-engine")
+	deMoby.Add("Unit", "After", "systemd-machine-id-commit.service")
+	deMoby.Add("Unit", "Before", "zincati.service")
+	deMoby.Add("Unit", "ConditionPathExists", "!/var/lib/%N.stamp")
 
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/usr/bin/rpm-ostree override remove moby-engine
-ExecStart=/usr/bin/rpm-ostree ex apply-live --allow-replacement
-ExecStartPost=/bin/touch /var/lib/%N.stamp
+	deMoby.Add("Service", "Type", "oneshot")
+	deMoby.Add("Service", "RemainAfterExit", "yes")
+	deMoby.Add("Service", "ExecStart", "/usr/bin/rpm-ostree override remove moby-engine")
+	deMoby.Add("Service", "ExecStart", "/usr/bin/rpm-ostree ex apply-live --allow-replacement")
+	deMoby.Add("Service", "ExecStartPost", "/bin/touch /var/lib/%N.stamp")
 
-[Install]
-WantedBy=default.target
-`
+	deMoby.Add("Install", "WantedBy", "default.target")
+	deMobyFile, err := deMoby.ToString()
+	if err != nil {
+		return err
+	}
+
 	// This service gets environment variables that are provided
 	// through qemu fw_cfg and then sets them into systemd/system.conf.d,
 	// profile.d and environment.d files
@@ -157,34 +160,39 @@ WantedBy=default.target
 	// Currently, it is used for propagating
 	// proxy settings e.g. HTTP_PROXY and others, on a start avoiding
 	// a need of re-creating/re-initiating a VM
-	envset := `[Unit]
-Description=Environment setter from QEMU FW_CFG
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-Environment=FWCFGRAW=/sys/firmware/qemu_fw_cfg/by_name/opt/com.coreos/environment/raw
-Environment=SYSTEMD_CONF=/etc/systemd/system.conf.d/default-env.conf
-Environment=ENVD_CONF=/etc/environment.d/default-env.conf
-Environment=PROFILE_CONF=/etc/profile.d/default-env.sh
-ExecStart=/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} &&\
-	echo "[Manager]\n#Got from QEMU FW_CFG\nDefaultEnvironment=$(/usr/bin/base64 -d ${FWCFGRAW} | sed -e "s+|+ +g")\n" > ${SYSTEMD_CONF} ||\
-	echo "[Manager]\n#Got nothing from QEMU FW_CFG\n#DefaultEnvironment=\n" > ${SYSTEMD_CONF}'
-ExecStart=/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
-	echo "#Got from QEMU FW_CFG"> ${ENVD_CONF};\
-	IFS="|";\
-	for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
-		echo "$iprxy" >> ${ENVD_CONF}; done ) || \
-	echo "#Got nothing from QEMU FW_CFG"> ${ENVD_CONF}'
-ExecStart=/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
-	echo "#Got from QEMU FW_CFG"> ${PROFILE_CONF};\
-	IFS="|";\
-	for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
-		echo "export $iprxy" >> ${PROFILE_CONF}; done ) || \
-	echo "#Got nothing from QEMU FW_CFG"> ${PROFILE_CONF}'
-ExecStartPost=/usr/bin/systemctl daemon-reload
-[Install]
-WantedBy=sysinit.target
-`
+
+	envset := parser.NewUnitFile()
+	envset.Add("Unit", "Description", "Environment setter from QEMU FW_CFG")
+
+	envset.Add("Service", "Type", "oneshot")
+	envset.Add("Service", "RemainAfterExit", "yes")
+	envset.Add("Service", "Environment", "FWCFGRAW=/sys/firmware/qemu_fw_cfg/by_name/opt/com.coreos/environment/raw")
+	envset.Add("Service", "Environment", "SYSTEMD_CONF=/etc/systemd/system.conf.d/default-env.conf")
+	envset.Add("Service", "Environment", "ENVD_CONF=/etc/environment.d/default-env.conf")
+	envset.Add("Service", "Environment", "PROFILE_CONF=/etc/profile.d/default-env.sh")
+	envset.Add("Service", "ExecStart", `/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} &&\
+        echo "[Manager]\n#Got from QEMU FW_CFG\nDefaultEnvironment=$(/usr/bin/base64 -d ${FWCFGRAW} | sed -e "s+|+ +g")\n" > ${SYSTEMD_CONF} ||\
+        echo "[Manager]\n#Got nothing from QEMU FW_CFG\n#DefaultEnvironment=\n" > ${SYSTEMD_CONF}'`)
+	envset.Add("Service", "ExecStart", `/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
+        echo "#Got from QEMU FW_CFG"> ${ENVD_CONF};\
+        IFS="|";\
+        for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
+            echo "$iprxy" >> ${ENVD_CONF}; done ) || \
+        echo "#Got nothing from QEMU FW_CFG"> ${ENVD_CONF}'`)
+	envset.Add("Service", "ExecStart", `/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
+        echo "#Got from QEMU FW_CFG"> ${PROFILE_CONF};\
+        IFS="|";\
+        for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
+            echo "export $iprxy" >> ${PROFILE_CONF}; done ) || \
+        echo "#Got nothing from QEMU FW_CFG"> ${PROFILE_CONF}'`)
+	envset.Add("Service", "ExecStartPost", "/usr/bin/systemctl daemon-reload")
+
+	envset.Add("Install", "WantedBy", "sysinit.target")
+	envsetFile, err := envset.ToString()
+	if err != nil {
+		return err
+	}
+
 	ignSystemd := Systemd{
 		Units: []Unit{
 			{
@@ -204,7 +212,7 @@ WantedBy=sysinit.target
 			{
 				Enabled:  BoolToPtr(true),
 				Name:     "remove-moby.service",
-				Contents: &deMoby,
+				Contents: &deMobyFile,
 			},
 			{
 				// Disable auto-updating of fcos images
@@ -215,11 +223,11 @@ WantedBy=sysinit.target
 		}}
 
 	// Only qemu has the qemu firmware environment setting
-	if ign.VMType == QemuVirt {
+	if ign.VMType == define.QemuVirt {
 		qemuUnit := Unit{
 			Enabled:  BoolToPtr(true),
 			Name:     "envset-fwcfg.service",
-			Contents: &envset,
+			Contents: &envsetFile,
 		}
 		ignSystemd.Units = append(ignSystemd.Units, qemuUnit)
 	}
@@ -295,16 +303,19 @@ func getDirs(usrName string) []Directory {
 	return dirs
 }
 
-func getFiles(usrName string, uid int, rootful bool, vmtype VMType) []File {
+func getFiles(usrName string, uid int, rootful bool, vmtype define.VMType) []File {
 	files := make([]File, 0)
 
-	lingerExample := `[Unit]
-Description=A systemd user unit demo
-After=network-online.target
-Wants=network-online.target podman.socket
-[Service]
-ExecStart=/usr/bin/sleep infinity
-`
+	lingerExample := parser.NewUnitFile()
+	lingerExample.Add("Unit", "Description", "A systemd user unit demo")
+	lingerExample.Add("Unit", "After", "network-online.target")
+	lingerExample.Add("Unit", "Wants", "network-online.target podman.socket")
+	lingerExample.Add("Service", "ExecStart", "/usr/bin/sleep infinity")
+	lingerExampleFile, err := lingerExample.ToString()
+	if err != nil {
+		logrus.Warnf(err.Error())
+	}
+
 	containers := `[containers]
 netns="bridge"
 `
@@ -335,7 +346,7 @@ Delegate=memory pids cpu io
 		FileEmbedded1: FileEmbedded1{
 			Append: nil,
 			Contents: Resource{
-				Source: EncodeDataURLPtr(lingerExample),
+				Source: EncodeDataURLPtr(lingerExampleFile),
 			},
 			Mode: IntToPtr(0744),
 		},
@@ -676,12 +687,7 @@ func GetPodmanDockerTmpConfig(uid int, rootful bool, newline bool) string {
 
 // SetIgnitionFile creates a new Machine File for the machine's ignition file
 // and assignes the handle to `loc`
-func SetIgnitionFile(loc *define.VMFile, vmtype VMType, vmName string) error {
-	vmConfigDir, err := GetConfDir(vmtype)
-	if err != nil {
-		return err
-	}
-
+func SetIgnitionFile(loc *define.VMFile, vmtype define.VMType, vmName, vmConfigDir string) error {
 	ignitionFile, err := define.NewMachineFile(filepath.Join(vmConfigDir, vmName+".ign"), nil)
 	if err != nil {
 		return err
@@ -734,4 +740,15 @@ func (i *IgnitionBuilder) BuildWithIgnitionFile(ignPath string) error {
 // Build writes the internal `DynamicIgnition` config to its write path
 func (i *IgnitionBuilder) Build() error {
 	return i.dynamicIgnition.Write()
+}
+
+func DefaultReadyUnitFile() parser.UnitFile {
+	u := parser.NewUnitFile()
+	u.Add("Unit", "After", "remove-moby.service sshd.socket sshd.service")
+	u.Add("Unit", "OnFailure", "emergency.target")
+	u.Add("Unit", "OnFailureJobMode", "isolate")
+	u.Add("Service", "Type", "oneshot")
+	u.Add("Service", "RemainAfterExit", "yes")
+	u.Add("Install", "RequiredBy", "default.target")
+	return *u
 }

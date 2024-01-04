@@ -24,7 +24,9 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/machine/sockets"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
+    "github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/containers/podman/v4/pkg/strongunits"
+	"github.com/containers/podman/v4/pkg/systemd/parser"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/lockfile"
@@ -36,7 +38,7 @@ import (
 
 var (
 	// vmtype refers to qemu (vs libvirt, krun, etc).
-	vmtype = machine.AppleHvVirt
+	vmtype = define.AppleHvVirt
 )
 
 const (
@@ -45,21 +47,13 @@ const (
 	apiUpTimeout         = 20 * time.Second
 )
 
-// appleHVReadyUnit is a unit file that sets up the virtual serial device
-// where when the VM is done configuring, it will send an ack
-// so a listening host knows it can begin interacting with it
-const appleHVReadyUnit = `[Unit]
-Requires=dev-virtio\\x2dports-%s.device
-After=remove-moby.service sshd.socket sshd.service
-OnFailure=emergency.target
-OnFailureJobMode=isolate
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/bin/sh -c '/usr/bin/echo Ready | socat - VSOCK-CONNECT:2:1025'
-[Install]
-RequiredBy=default.target
-`
+// VfkitHelper describes the use of vfkit: cmdline and endpoint
+type VfkitHelper struct {
+	LogLevel        logrus.Level
+	Endpoint        string
+	VfkitBinaryPath *define.VMFile
+	VirtualMachine  *vfConfig.VirtualMachine
+}
 
 type MacMachine struct {
 	// ConfigPath is the fully qualified path to the configuration file
@@ -160,7 +154,7 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 	go callbackFuncs.CleanOnSignal()
 
 	callbackFuncs.Add(m.ConfigPath.Delete)
-	dataDir, err := machine.GetDataDir(machine.AppleHvVirt)
+	dataDir, err := machine.GetDataDir(define.AppleHvVirt)
 	if err != nil {
 		return false, err
 	}
@@ -254,11 +248,11 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		callbackFuncs.Add(m.removeSSHKeys)
 	}
 
-	builder := machine.NewIgnitionBuilder(machine.DynamicIgnition{
+	builder := ignition.NewIgnitionBuilder(ignition.DynamicIgnition{
 		Name:      opts.Username,
 		Key:       key,
 		VMName:    m.Name,
-		VMType:    machine.AppleHvVirt,
+		VMType:    define.AppleHvVirt,
 		TimeZone:  opts.TimeZone,
 		WritePath: m.IgnitionFile.GetPath(),
 		UID:       m.UID,
@@ -273,10 +267,15 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	builder.WithUnit(machine.Unit{
-		Enabled:  machine.BoolToPtr(true),
+	readyUnitFile, err := createReadyUnitFile()
+	if err != nil {
+		return false, err
+	}
+
+	builder.WithUnit(ignition.Unit{
+		Enabled:  ignition.BoolToPtr(true),
 		Name:     "ready.service",
-		Contents: machine.StrToPtr(fmt.Sprintf(appleHVReadyUnit, "vsock")),
+		Contents: ignition.StrToPtr(readyUnitFile),
 	})
 	builder.WithUnit(generateSystemDFilesForVirtiofsMounts(virtiofsMnts)...)
 
@@ -285,6 +284,13 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 	callbackFuncs.Add(m.IgnitionFile.Delete)
 
 	return err == nil, err
+}
+
+func createReadyUnitFile() (string, error) {
+	readyUnit := ignition.DefaultReadyUnitFile()
+	readyUnit.Add("Unit", "Requires", "dev-virtio\\x2dports-vsock.device")
+	readyUnit.Add("Service", "ExecStart", "/bin/sh -c '/usr/bin/echo Ready | socat - VSOCK-CONNECT:2:1025'")
+	return readyUnit.ToString()
 }
 
 func (m *MacMachine) removeSSHKeys() error {
@@ -786,7 +792,7 @@ func loadMacMachineFromJSON(fqConfigPath string) (*MacMachine, error) {
 }
 
 func (m *MacMachine) jsonConfigPath() (string, error) {
-	configDir, err := machine.GetConfDir(machine.AppleHvVirt)
+	configDir, err := machine.GetConfDir(define.AppleHvVirt)
 	if err != nil {
 		return "", err
 	}
@@ -817,7 +823,7 @@ func getVMInfos() ([]*machine.ListResponse, error) {
 
 			listEntry.Name = vm.Name
 			listEntry.Stream = vm.ImageStream
-			listEntry.VMType = machine.AppleHvVirt.String()
+			listEntry.VMType = define.AppleHvVirt.String()
 			listEntry.CPUs = vm.CPUs
 			listEntry.Memory = vm.Memory * units.MiB
 			listEntry.DiskSize = vm.DiskSize * units.GiB
@@ -1014,7 +1020,7 @@ func (m *MacMachine) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.Gvp
 }
 
 func (m *MacMachine) dockerSock() (string, error) {
-	dd, err := machine.GetDataDir(machine.AppleHvVirt)
+	dd, err := machine.GetDataDir(define.AppleHvVirt)
 	if err != nil {
 		return "", err
 	}
@@ -1023,7 +1029,7 @@ func (m *MacMachine) dockerSock() (string, error) {
 
 func (m *MacMachine) forwardSocketPath() (*define.VMFile, error) {
 	sockName := "podman.sock"
-	path, err := machine.GetDataDir(machine.AppleHvVirt)
+	path, err := machine.GetDataDir(define.AppleHvVirt)
 	if err != nil {
 		return nil, fmt.Errorf("Resolving data dir: %s", err.Error())
 	}
@@ -1060,7 +1066,7 @@ func (m *MacMachine) isFirstBoot() (bool, error) {
 }
 
 func (m *MacMachine) getIgnitionSock() (*define.VMFile, error) {
-	dataDir, err := machine.GetDataDir(machine.AppleHvVirt)
+	dataDir, err := machine.GetDataDir(define.AppleHvVirt)
 	if err != nil {
 		return nil, err
 	}
@@ -1087,7 +1093,7 @@ func (m *MacMachine) getRuntimeDir() (string, error) {
 }
 
 func (m *MacMachine) userGlobalSocketLink() (string, error) {
-	path, err := machine.GetDataDir(machine.AppleHvVirt)
+	path, err := machine.GetDataDir(define.AppleHvVirt)
 	if err != nil {
 		logrus.Errorf("Resolving data dir: %s", err.Error())
 		return "", err
@@ -1100,46 +1106,49 @@ func (m *MacMachine) isIncompatible() bool {
 	return m.UID == -1
 }
 
-func generateSystemDFilesForVirtiofsMounts(mounts []machine.VirtIoFs) []machine.Unit {
+func generateSystemDFilesForVirtiofsMounts(mounts []machine.VirtIoFs) []ignition.Unit {
 	// mounting in fcos with virtiofs is a bit of a dance.  we need a unit file for the mount, a unit file
 	// for automatic mounting on boot, and a "preparatory" service file that disables FCOS security, performs
 	// the mkdir of the mount point, and then re-enables security.  This must be done for each mount.
 
-	var unitFiles []machine.Unit
+	var unitFiles []ignition.Unit
 	for _, mnt := range mounts {
 		// Here we are looping the mounts and for each mount, we are adding two unit files
 		// for virtiofs.  One unit file is the mount itself and the second is to automount it
 		// on boot.
-		autoMountUnit := `[Automount]
-Where=%s
-[Install]
-WantedBy=multi-user.target
-
-[Unit]
-Description=Mount virtiofs volume %s
-`
-		mountUnit := `[Mount]
-What=%s
-Where=%s
-Type=virtiofs
-
-[Install]
-WantedBy=multi-user.target
-`
-		virtiofsAutomount := machine.Unit{
-			Enabled:  machine.BoolToPtr(true),
-			Name:     fmt.Sprintf("%s.automount", mnt.Tag),
-			Contents: machine.StrToPtr(fmt.Sprintf(autoMountUnit, mnt.Target, mnt.Target)),
+		autoMountUnit := parser.NewUnitFile()
+		autoMountUnit.Add("Automount", "Where", "%s")
+		autoMountUnit.Add("Install", "WantedBy", "multi-user.target")
+		autoMountUnit.Add("Unit", "Description", "Mount virtiofs volume %s")
+		autoMountUnitFile, err := autoMountUnit.ToString()
+		if err != nil {
+			logrus.Warnf(err.Error())
 		}
-		virtiofsMount := machine.Unit{
-			Enabled:  machine.BoolToPtr(true),
+
+		mountUnit := parser.NewUnitFile()
+		mountUnit.Add("Mount", "What", "%s")
+		mountUnit.Add("Mount", "Where", "%s")
+		mountUnit.Add("Mount", "Type", "virtiofs")
+		mountUnit.Add("Install", "WantedBy", "multi-user.target")
+		mountUnitFile, err := mountUnit.ToString()
+		if err != nil {
+			logrus.Warnf(err.Error())
+		}
+
+		virtiofsAutomount := ignition.Unit{
+			Enabled:  ignition.BoolToPtr(true),
+			Name:     fmt.Sprintf("%s.automount", mnt.Tag),
+			Contents: ignition.StrToPtr(fmt.Sprintf(autoMountUnitFile, mnt.Target, mnt.Target)),
+		}
+		virtiofsMount := ignition.Unit{
+			Enabled:  ignition.BoolToPtr(true),
 			Name:     fmt.Sprintf("%s.mount", mnt.Tag),
-			Contents: machine.StrToPtr(fmt.Sprintf(mountUnit, mnt.Tag, mnt.Target)),
+			Contents: ignition.StrToPtr(fmt.Sprintf(mountUnitFile, mnt.Tag, mnt.Target)),
 		}
 
 		// This "unit" simulates something like systemctl enable virtiofs-mount-prepare@
-		enablePrep := machine.Unit{
-			Enabled: machine.BoolToPtr(true),
+		enablePrep := ignition.Unit{
+			Enabled: ignition.BoolToPtr(true),
 			Name:    fmt.Sprintf("virtiofs-mount-prepare@%s.service", mnt.Tag),
 		}
 
@@ -1148,23 +1157,24 @@ WantedBy=multi-user.target
 
 	// mount prep is a way to workaround the FCOS limitation of creating directories
 	// at the rootfs / and then mounting to them.
-	mountPrep := `
-[Unit]
-Description=Allow virtios to mount to /
-DefaultDependencies=no
-ConditionPathExists=!%f
+	mountPrep := parser.NewUnitFile()
+	mountPrep.Add("Unit", "Description", "Allow virtios to mount to /")
+	mountPrep.Add("Unit", "DefaultDependencies", "no")
+	mountPrep.Add("Unit", "ConditionPathExists", "!%f")
 
-[Service]
-Type=oneshot
-ExecStartPre=chattr -i /
-ExecStart=mkdir -p '%f'
-ExecStopPost=chattr +i /
+	mountPrep.Add("Service", "Type", "oneshot")
+	mountPrep.Add("Service", "ExecStartPre", "chattr -i /")
+	mountPrep.Add("Service", "ExecStart", "mkdir -p '%f'")
+	mountPrep.Add("Service", "ExecStopPost", "chattr +i /")
 
-[Install]
-WantedBy=remote-fs.target
-`
-	virtioFSChattr := machine.Unit{
-		Contents: machine.StrToPtr(mountPrep),
+	mountPrep.Add("Install", "WantedBy", "remote-fs.target")
+	mountPrepFile, err := mountPrep.ToString()
+	if err != nil {
+		logrus.Warnf(err.Error())
+	}
+
+	virtioFSChattr := ignition.Unit{
+		Contents: ignition.StrToPtr(mountPrepFile),
 		Name:     "virtiofs-mount-prepare@.service",
 	}
 	unitFiles = append(unitFiles, virtioFSChattr)

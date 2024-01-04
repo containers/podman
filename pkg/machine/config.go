@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/common/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/compression"
 	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
@@ -51,9 +50,8 @@ const (
 type RemoteConnectionType string
 
 var (
-	SSHRemoteConnection     RemoteConnectionType = "ssh"
-	DefaultIgnitionUserName                      = "core"
-	ForwarderBinaryName                          = "gvproxy"
+	SSHRemoteConnection RemoteConnectionType = "ssh"
+	ForwarderBinaryName                      = "gvproxy"
 )
 
 type Download struct {
@@ -69,7 +67,7 @@ type Download struct {
 	Sha256sum             string
 	Size                  int64
 	URL                   *url.URL
-	VMKind                VMType
+	VMKind                define.VMType
 	VMName                string
 }
 
@@ -133,7 +131,7 @@ type VM interface {
 	Stop(name string, opts StopOptions) error
 }
 
-func GetLock(name string, vmtype VMType) (*lockfile.LockFile, error) {
+func GetLock(name string, vmtype define.VMType) (*lockfile.LockFile, error) {
 	// FIXME: there's a painful amount of `GetConfDir` calls scattered
 	// across the code base.  This should be done once and stored
 	// somewhere instead.
@@ -191,7 +189,7 @@ func (rc RemoteConnectionType) MakeSSHURL(host, path, port, userName string) url
 }
 
 // GetCacheDir returns the dir where VM images are downloaded into when pulled
-func GetCacheDir(vmType VMType) (string, error) {
+func GetCacheDir(vmType define.VMType) (string, error) {
 	dataDir, err := GetDataDir(vmType)
 	if err != nil {
 		return "", err
@@ -205,7 +203,7 @@ func GetCacheDir(vmType VMType) (string, error) {
 
 // GetDataDir returns the filepath where vm images should
 // live for podman-machine.
-func GetDataDir(vmType VMType) (string, error) {
+func GetDataDir(vmType define.VMType) (string, error) {
 	dataDirPrefix, err := DataDirPrefix()
 	if err != nil {
 		return "", err
@@ -241,7 +239,7 @@ func DataDirPrefix() (string, error) {
 
 // GetConfigDir returns the filepath to where configuration
 // files for podman-machine should live
-func GetConfDir(vmType VMType) (string, error) {
+func GetConfDir(vmType define.VMType) (string, error) {
 	confDirPrefix, err := ConfDirPrefix()
 	if err != nil {
 		return "", err
@@ -283,28 +281,6 @@ type ConnectionConfig struct {
 	PodmanPipe *define.VMFile `json:"PodmanPipe"`
 }
 
-type VMType int64
-
-const (
-	QemuVirt VMType = iota
-	WSLVirt
-	AppleHvVirt
-	HyperVVirt
-	UnknownVirt
-)
-
-func (v VMType) String() string {
-	switch v {
-	case WSLVirt:
-		return machine.Wsl
-	case AppleHvVirt:
-		return machine.AppleHV
-	case HyperVVirt:
-		return machine.HyperV
-	}
-	return machine.Qemu
-}
-
 type APIForwardingState int
 
 const (
@@ -314,23 +290,6 @@ const (
 	MachineLocal
 	DockerGlobal
 )
-
-func ParseVMType(input string, emptyFallback VMType) (VMType, error) {
-	switch strings.TrimSpace(strings.ToLower(input)) {
-	case "qemu":
-		return QemuVirt, nil
-	case "wsl":
-		return WSLVirt, nil
-	case "applehv":
-		return AppleHvVirt, nil
-	case "hyperv":
-		return HyperVVirt, nil
-	case "":
-		return emptyFallback, nil
-	default:
-		return UnknownVirt, fmt.Errorf("unknown VMType `%s`", input)
-	}
-}
 
 type VirtProvider interface { //nolint:interfacebloat
 	Artifact() define.Artifact
@@ -343,14 +302,14 @@ type VirtProvider interface { //nolint:interfacebloat
 	NewMachine(opts InitOptions) (VM, error)
 	NewDownload(vmName string) (Download, error)
 	RemoveAndCleanMachines() error
-	VMType() VMType
+	VMType() define.VMType
 }
 
 type Virtualization struct {
 	artifact    define.Artifact
 	compression compression.ImageCompression
 	format      define.ImageFormat
-	vmKind      VMType
+	vmKind      define.VMType
 }
 
 func (p *Virtualization) Artifact() define.Artifact {
@@ -365,7 +324,7 @@ func (p *Virtualization) Format() define.ImageFormat {
 	return p.format
 }
 
-func (p *Virtualization) VMType() VMType {
+func (p *Virtualization) VMType() define.VMType {
 	return p.vmKind
 }
 
@@ -391,7 +350,7 @@ func (p *Virtualization) NewDownload(vmName string) (Download, error) {
 	}, nil
 }
 
-func NewVirtualization(artifact define.Artifact, compression compression.ImageCompression, format define.ImageFormat, vmKind VMType) Virtualization {
+func NewVirtualization(artifact define.Artifact, compression compression.ImageCompression, format define.ImageFormat, vmKind define.VMType) Virtualization {
 	return Virtualization{
 		artifact,
 		compression,

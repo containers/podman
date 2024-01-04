@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -120,7 +120,7 @@ var _ = Describe("podman machine rm", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		// WSL does not use ignition
-		if testProvider.VMType() != machine.WSLVirt {
+		if testProvider.VMType() != define.WSLVirt {
 			_, err = os.Stat(ign)
 			Expect(err).ToNot(HaveOccurred())
 		}

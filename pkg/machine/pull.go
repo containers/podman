@@ -28,7 +28,7 @@ type GenericDownload struct {
 }
 
 // NewGenericDownloader is used when the disk image is provided by the user
-func NewGenericDownloader(vmType VMType, vmName, pullPath string) (DistributionDownload, error) {
+func NewGenericDownloader(vmType define.VMType, vmName, pullPath string) (DistributionDownload, error) {
 	var (
 		imageName string
 	)

@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/spf13/cobra"
 )
 
@@ -141,7 +142,7 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	}
 
 	// The vmtype names need to be reserved and cannot be used for podman machine names
-	if _, err := machine.ParseVMType(initOpts.Name, machine.UnknownVirt); err == nil {
+	if _, err := define.ParseVMType(initOpts.Name, define.UnknownVirt); err == nil {
 		return fmt.Errorf("cannot use %q for a machine name", initOpts.Name)
 	}
 

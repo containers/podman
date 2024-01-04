@@ -27,7 +27,7 @@ type FedoraDownload struct {
 	machine.Download
 }
 
-func NewFedoraDownloader(vmType machine.VMType, vmName, releaseStream string) (machine.DistributionDownload, error) {
+func NewFedoraDownloader(vmType define.VMType, vmName, releaseStream string) (machine.DistributionDownload, error) {
 	downloadURL, version, arch, size, err := getFedoraDownload()
 	if err != nil {
 		return nil, err
