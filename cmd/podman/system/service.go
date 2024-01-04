@@ -1,6 +1,4 @@
 //go:build (linux || freebsd) && !remote
-// +build linux freebsd
-// +build !remote
 
 package system
 

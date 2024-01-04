@@ -1,5 +1,4 @@
 //go:build aix || darwin || dragonfly || freebsd || netbsd || openbsd || solaris || zos
-// +build aix darwin dragonfly freebsd netbsd openbsd solaris zos
 
 // Signal handling for Linux only.
 package signal

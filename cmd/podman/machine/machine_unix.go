@@ -1,5 +1,4 @@
 //go:build linux || aix || android || darwin || dragonfly || freebsd || hurd || illumos || ios || netbsd || openbsd || solaris
-// +build linux aix android darwin dragonfly freebsd hurd illumos ios netbsd openbsd solaris
 
 package machine
 

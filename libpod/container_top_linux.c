@@ -1,5 +1,5 @@
 //go:build !remote
-// +build !remote
+
 
 #define _GNU_SOURCE
 #include <errno.h>
