@@ -27,7 +27,6 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/pkg/strongunits"
 	"github.com/containers/podman/v4/pkg/systemd/parser"
-	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/lockfile"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
@@ -202,7 +201,10 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	m.IdentityPath = util.GetIdentityPath(define.DefaultIdentityName)
+	m.IdentityPath, err = machine.GetSSHIdentityPath(define.DefaultIdentityName)
+	if err != nil {
+		return false, err
+	}
 	m.Rootful = opts.Rootful
 	m.RemoteUsername = opts.Username
 

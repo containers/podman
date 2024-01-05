@@ -261,6 +261,15 @@ func ConfDirPrefix() (string, error) {
 	return confDir, nil
 }
 
+// GetSSHIdentityPath returns the path to the expected SSH private key
+func GetSSHIdentityPath(name string) (string, error) {
+	datadir, err := GetGlobalDataDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(datadir, name), nil
+}
+
 // ImageConfig describes the bootable image for the VM
 type ImageConfig struct {
 	// IgnitionFile is the path to the filesystem where the

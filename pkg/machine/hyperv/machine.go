@@ -25,7 +25,6 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/pkg/strongunits"
 	"github.com/containers/podman/v4/pkg/systemd/parser"
-	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/lockfile"
 	psutil "github.com/shirou/gopsutil/v3/process"
@@ -178,8 +177,10 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 		return nil
 	})
 
-	m.IdentityPath = util.GetIdentityPath(define.DefaultIdentityName)
-
+	m.IdentityPath, err = machine.GetSSHIdentityPath(define.DefaultIdentityName)
+	if err != nil {
+		return false, err
+	}
 	if m.UID == 0 {
 		m.UID = 1000
 	}

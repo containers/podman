@@ -26,7 +26,6 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/signal"
 	"github.com/containers/storage/pkg/directory"
-	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/idtools"
 	stypes "github.com/containers/storage/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
@@ -1181,10 +1180,6 @@ func ExitCode(err error) int {
 	}
 
 	return 126
-}
-
-func GetIdentityPath(name string) string {
-	return filepath.Join(homedir.Get(), ".local", "share", "containers", "podman", "machine", name)
 }
 
 func Tmpdir() string {
