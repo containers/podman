@@ -15,6 +15,7 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/compression"
 	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/machine/provider"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -47,7 +48,7 @@ func TestMachine(t *testing.T) {
 	RunSpecs(t, "Podman Machine tests")
 }
 
-var testProvider machine.VirtProvider
+var testProvider vmconfigs.VMStubber
 
 var _ = BeforeSuite(func() {
 	var err error
@@ -57,14 +58,21 @@ var _ = BeforeSuite(func() {
 	}
 
 	downloadLocation := os.Getenv("MACHINE_IMAGE")
-
-	if len(downloadLocation) < 1 {
-		downloadLocation = getDownloadLocation(testProvider)
-		// we cannot simply use OS here because hyperv uses fcos; so WSL is just
-		// special here
+	if downloadLocation == "" {
+		downloadLocation, err = GetDownload()
+		if err != nil {
+			Fail("unable to derive download disk from fedora coreos")
+		}
 	}
 
-	compressionExtension := fmt.Sprintf(".%s", testProvider.Compression().String())
+	if downloadLocation == "" {
+		Fail("machine tests require a file reference to a disk image right now")
+	}
+
+	// TODO Fix or remove - this only works for qemu rn
+	// compressionExtension := fmt.Sprintf(".%s", testProvider.Compression().String())
+	compressionExtension := ".xz"
+
 	suiteImageName = strings.TrimSuffix(path.Base(downloadLocation), compressionExtension)
 	fqImageName = filepath.Join(tmpDir, suiteImageName)
 	if _, err := os.Stat(fqImageName); err != nil {
@@ -89,6 +97,7 @@ var _ = BeforeSuite(func() {
 			Fail(fmt.Sprintf("unable to check for cache image: %q", err))
 		}
 	}
+
 })
 
 var _ = SynchronizedAfterSuite(func() {}, func() {})

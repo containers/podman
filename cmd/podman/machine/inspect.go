@@ -10,6 +10,8 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/qemu"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/spf13/cobra"
 )
 
@@ -46,23 +48,55 @@ func inspect(cmd *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)
+	s := new(qemu.QEMUStubber)
+	dirs, err := machine.GetMachineDirs(s.VMType())
+	if err != nil {
+		return err
+	}
 	if len(args) < 1 {
 		args = append(args, defaultMachineName)
 	}
-	vms := make([]machine.InspectInfo, 0, len(args))
 
-	for _, vmName := range args {
-		vm, err := provider.LoadVMByName(vmName)
+	vms := make([]machine.InspectInfo, 0, len(args))
+	for _, name := range args {
+		mc, err := vmconfigs.LoadMachineByName(name, dirs)
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
-		ii, err := vm.Inspect()
+
+		state, err := s.State(mc, false)
 		if err != nil {
-			errs = append(errs, err)
-			continue
+			return err
 		}
-		vms = append(vms, *ii)
+		ignFile, err := mc.IgnitionFile()
+		if err != nil {
+			return err
+		}
+
+		ii := machine.InspectInfo{
+			// TODO I dont think this is useful
+			ConfigPath: *dirs.ConfigDir,
+			// TODO Fill this out
+			ConnectionInfo: machine.ConnectionConfig{},
+			Created:        mc.Created,
+			// TODO This is no longer applicable; we dont care about the provenance
+			// of the image
+			Image: machine.ImageConfig{
+				IgnitionFile: *ignFile,
+				ImagePath:    *mc.ImagePath,
+			},
+			LastUp:             mc.LastUp,
+			Name:               mc.Name,
+			Resources:          mc.Resources,
+			SSHConfig:          mc.SSH,
+			State:              state,
+			UserModeNetworking: false,
+			// TODO I think this should be the HostUser
+			Rootful: mc.HostUser.Rootful,
+		}
+
+		vms = append(vms, ii)
 	}
 
 	switch {

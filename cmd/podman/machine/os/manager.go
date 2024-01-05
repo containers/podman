@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
+
 	machineconfig "github.com/containers/common/pkg/machine"
 	pkgMachine "github.com/containers/podman/v4/pkg/machine"
 	pkgOS "github.com/containers/podman/v4/pkg/machine/os"
@@ -21,13 +23,13 @@ type ManagerOpts struct {
 }
 
 // NewOSManager creates a new OSManager depending on the mode of the call
-func NewOSManager(opts ManagerOpts) (pkgOS.Manager, error) {
+func NewOSManager(opts ManagerOpts, p vmconfigs.VMStubber) (pkgOS.Manager, error) {
 	// If a VM name is specified, then we know that we are not inside a
 	// Podman VM, but rather outside of it.
 	if machineconfig.IsPodmanMachine() && opts.VMName == "" {
 		return guestOSManager()
 	}
-	return machineOSManager(opts)
+	return machineOSManager(opts, p)
 }
 
 // guestOSManager returns an OSmanager for inside-VM operations
@@ -42,7 +44,7 @@ func guestOSManager() (pkgOS.Manager, error) {
 }
 
 // machineOSManager returns an os manager that manages outside the VM.
-func machineOSManager(opts ManagerOpts) (pkgOS.Manager, error) {
+func machineOSManager(opts ManagerOpts, _ vmconfigs.VMStubber) (pkgOS.Manager, error) {
 	vmName := opts.VMName
 	if opts.VMName == "" {
 		vmName = pkgMachine.DefaultMachineName
@@ -51,15 +53,20 @@ func machineOSManager(opts ManagerOpts) (pkgOS.Manager, error) {
 	if err != nil {
 		return nil, err
 	}
-	vm, err := p.LoadVMByName(vmName)
+	dirs, err := pkgMachine.GetMachineDirs(p.VMType())
+	if err != nil {
+		return nil, err
+	}
+	mc, err := vmconfigs.LoadMachineByName(vmName, dirs)
 	if err != nil {
 		return nil, err
 	}
 	return &pkgOS.MachineOS{
-		VM:      vm,
-		Args:    opts.CLIArgs,
-		VMName:  vmName,
-		Restart: opts.Restart,
+		VM:       mc,
+		Provider: p,
+		Args:     opts.CLIArgs,
+		VMName:   vmName,
+		Restart:  opts.Restart,
 	}, nil
 }
 
