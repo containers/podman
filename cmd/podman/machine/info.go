@@ -16,8 +16,11 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/machine"
+	machineDefine "github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/machine/qemu"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/yaml"
+	"gopkg.in/yaml.v2"
 )
 
 var infoDescription = `Display information pertaining to the machine host.`
@@ -90,7 +93,6 @@ func info(cmd *cobra.Command, args []string) error {
 		}
 		fmt.Println(string(b))
 	}
-
 	return nil
 }
 
@@ -100,13 +102,19 @@ func hostInfo() (*entities.MachineHostInfo, error) {
 	host.Arch = runtime.GOARCH
 	host.OS = runtime.GOOS
 
-	var listOpts machine.ListOptions
-	listResponse, err := provider.List(listOpts)
+	// TODO This is temporary
+	s := new(qemu.QEMUStubber)
+
+	dirs, err := machine.GetMachineDirs(s.VMType())
+	if err != nil {
+		return nil, err
+	}
+	mcs, err := vmconfigs.LoadMachinesInDir(dirs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get machines %w", err)
 	}
 
-	host.NumberOfMachines = len(listResponse)
+	host.NumberOfMachines = len(mcs)
 
 	cfg, err := config.ReadCustomConfig()
 	if err != nil {
@@ -115,13 +123,18 @@ func hostInfo() (*entities.MachineHostInfo, error) {
 
 	// Default state of machine is stopped
 	host.MachineState = "Stopped"
-	for _, vm := range listResponse {
+	for _, vm := range mcs {
 		// Set default machine if found
 		if vm.Name == cfg.Engine.ActiveService {
 			host.DefaultMachine = vm.Name
 		}
 		// If machine is running or starting, it is automatically the current machine
-		if vm.Running {
+		state, err := s.State(vm, false)
+		if err != nil {
+			return nil, err
+		}
+
+		if state == machineDefine.Running {
 			host.CurrentMachine = vm.Name
 			host.MachineState = "Running"
 		} else if vm.Starting {
@@ -139,19 +152,10 @@ func hostInfo() (*entities.MachineHostInfo, error) {
 		}
 	}
 
-	host.VMType = provider.VMType().String()
+	host.VMType = s.VMType().String()
 
-	dataDir, err := machine.GetDataDir(provider.VMType())
-	if err != nil {
-		return nil, fmt.Errorf("failed to get machine image dir")
-	}
-	host.MachineImageDir = dataDir
-
-	confDir, err := machine.GetConfDir(provider.VMType())
-	if err != nil {
-		return nil, fmt.Errorf("failed to get machine config dir %w", err)
-	}
-	host.MachineConfigDir = confDir
+	host.MachineImageDir = dirs.DataDir.GetPath()
+	host.MachineConfigDir = dirs.ConfigDir.GetPath()
 
 	eventsDir, err := eventSockDir()
 	if err != nil {

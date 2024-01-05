@@ -6,11 +6,15 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/containers/podman/v4/pkg/machine/define"
+
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/qemu"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/spf13/cobra"
 )
 
@@ -43,22 +47,37 @@ func init() {
 	_ = sshCmd.RegisterFlagCompletionFunc(usernameFlagName, completion.AutocompleteNone)
 }
 
+// TODO Remember that this changed upstream and needs to updated as such!
+
 func ssh(cmd *cobra.Command, args []string) error {
 	var (
 		err     error
+		mc      *vmconfigs.MachineConfig
 		validVM bool
-		vm      machine.VM
 	)
+
+	// TODO Temporary
+	q := new(qemu.QEMUStubber)
+	dirs, err := machine.GetMachineDirs(q.VMType())
+	if err != nil {
+		return err
+	}
 
 	// Set the VM to default
 	vmName := defaultMachineName
-
 	// If len is greater than 0, it means we may have been
 	// provided the VM name.  If so, we check.  The VM name,
 	// if provided, must be in args[0].
 	if len(args) > 0 {
-		// Ignore the error, See https://github.com/containers/podman/issues/21183#issuecomment-1879713572
-		validVM, _ = provider.IsValidVMName(args[0])
+		// note: previous incantations of this up by a specific name
+		// and errors were ignored.  this error is not ignored because
+		// it implies podman cannot read its machine files, which is bad
+		machines, err := vmconfigs.LoadMachinesInDir(dirs)
+		if err != nil {
+			return err
+		}
+
+		mc, validVM = machines[args[0]]
 		if validVM {
 			vmName = args[0]
 		} else {
@@ -76,9 +95,12 @@ func ssh(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	vm, err = provider.LoadVMByName(vmName)
-	if err != nil {
-		return fmt.Errorf("vm %s not found: %w", vmName, err)
+	// If the machine config was not loaded earlier, we load it now
+	if mc == nil {
+		mc, err = vmconfigs.LoadMachineByName(vmName, dirs)
+		if err != nil {
+			return fmt.Errorf("vm %s not found: %w", vmName, err)
+		}
 	}
 
 	if !validVM && sshOpts.Username == "" {
@@ -88,7 +110,20 @@ func ssh(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	err = vm.SSH(vmName, sshOpts)
+	state, err := q.State(mc, false)
+	if err != nil {
+		return err
+	}
+	if state != define.Running {
+		return fmt.Errorf("vm %q is not running", mc.Name)
+	}
+
+	username := sshOpts.Username
+	if username == "" {
+		username = mc.SSH.RemoteUsername
+	}
+
+	err = machine.CommonSSH(username, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, sshOpts.Args)
 	return utils.HandleOSExecError(err)
 }
 

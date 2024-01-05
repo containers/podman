@@ -62,7 +62,7 @@ func TestPropagateHostEnv(t *testing.T) {
 		t.Setenv(key, item.value)
 	}
 
-	cmdLine := propagateHostEnv(make([]string, 0))
+	cmdLine := PropagateHostEnv(make([]string, 0))
 
 	assert.Len(t, cmdLine, 2)
 	assert.Equal(t, "-fw_cfg", cmdLine[0])

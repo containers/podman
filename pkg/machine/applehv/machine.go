@@ -365,7 +365,7 @@ func (m *MacMachine) Remove(name string, opts machine.RemoveOptions) (string, fu
 
 	if vmState == define.Running {
 		if !opts.Force {
-			return "", nil, &machine.ErrVMRunningCannotDestroyed{Name: m.Name}
+			return "", nil, &define.ErrVMRunningCannotDestroyed{Name: m.Name}
 		}
 		if err := m.Vfkit.Stop(true, true); err != nil {
 			return "", nil, err
@@ -431,7 +431,7 @@ func (m *MacMachine) Set(name string, opts machine.SetOptions) ([]error, error) 
 		return nil, err
 	}
 	if vmState != define.Stopped {
-		return nil, machine.ErrWrongState
+		return nil, define.ErrWrongState
 	}
 	if cpus := opts.CPUs; cpus != nil {
 		m.CPUs = *cpus
@@ -570,7 +570,7 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 	}
 
 	if st == define.Running {
-		return machine.ErrVMAlreadyRunning
+		return define.ErrVMAlreadyRunning
 	}
 
 	if _, err := m.getRuntimeDir(); err != nil {
@@ -800,7 +800,7 @@ func loadMacMachineFromJSON(fqConfigPath string) (*MacMachine, error) {
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			name := strings.TrimSuffix(filepath.Base(fqConfigPath), ".json")
-			return nil, fmt.Errorf("%s: %w", name, machine.ErrNoSuchVM)
+			return nil, fmt.Errorf("%s: %w", name, define.ErrNoSuchVM)
 		}
 		return nil, err
 	}
