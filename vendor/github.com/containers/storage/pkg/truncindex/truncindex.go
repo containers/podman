@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/tchap/go-patricia/patricia"
+	"github.com/tchap/go-patricia/v2/patricia"
 )
 
 var (

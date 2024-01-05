@@ -7,7 +7,7 @@ import (
 )
 
 // Regexp is a wrapper struct used for wrapping MustCompile regex expressions
-// used as global variables. Using this stucture helps speed the startup time
+// used as global variables. Using this structure helps speed the startup time
 // of apps that want to use global regex variables. This library initializes them on
 // first use as opposed to the start of the executable.
 type Regexp struct {

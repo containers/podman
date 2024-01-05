@@ -32,12 +32,36 @@ func (d *dict) ID() uint32 {
 	return d.id
 }
 
-// DictContentSize returns the dictionary content size or 0 if d is nil.
-func (d *dict) DictContentSize() int {
+// ContentSize returns the dictionary content size or 0 if d is nil.
+func (d *dict) ContentSize() int {
 	if d == nil {
 		return 0
 	}
 	return len(d.content)
+}
+
+// Content returns the dictionary content.
+func (d *dict) Content() []byte {
+	if d == nil {
+		return nil
+	}
+	return d.content
+}
+
+// Offsets returns the initial offsets.
+func (d *dict) Offsets() [3]int {
+	if d == nil {
+		return [3]int{}
+	}
+	return d.offsets
+}
+
+// LitEncoder returns the literal encoder.
+func (d *dict) LitEncoder() *huff0.Scratch {
+	if d == nil {
+		return nil
+	}
+	return d.litEnc
 }
 
 // Load a dictionary as described in
@@ -64,7 +88,7 @@ func loadDict(b []byte) (*dict, error) {
 	var err error
 	d.litEnc, b, err = huff0.ReadTable(b[8:], nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("loading literal table: %w", err)
 	}
 	d.litEnc.Reuse = huff0.ReusePolicyMust
 
@@ -121,4 +145,17 @@ func loadDict(b []byte) (*dict, error) {
 	}
 
 	return &d, nil
+}
+
+// InspectDictionary loads a zstd dictionary and provides functions to inspect the content.
+func InspectDictionary(b []byte) (interface {
+	ID() uint32
+	ContentSize() int
+	Content() []byte
+	Offsets() [3]int
+	LitEncoder() *huff0.Scratch
+}, error) {
+	initPredefined()
+	d, err := loadDict(b)
+	return d, err
 }
