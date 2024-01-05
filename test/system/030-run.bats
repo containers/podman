@@ -1382,4 +1382,16 @@ search               | $IMAGE           |
     run_podman container rm $cname
 }
 
+# https://issues.redhat.com/browse/RHEL-14469
+@test "podman run - /run must not be world-writable in systemd containers" {
+    run_podman run -d --rm $SYSTEMD_IMAGE /usr/sbin/init
+    cid=$output
+
+    # runc has always been 755; crun < 1.11 was 777
+    run_podman exec $cid stat -c '%a' /run
+    assert "$output" = "755" "stat /run"
+
+    run_podman rm -f -t0 $cid
+}
+
 # vim: filetype=sh
