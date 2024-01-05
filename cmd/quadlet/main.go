@@ -230,7 +230,9 @@ func loadUnitsFromDir(sourcePath string) ([]*parser.UnitFile, error) {
 
 			if f, err := parser.ParseUnitFile(path); err != nil {
 				err = fmt.Errorf("error loading %q, %w", path, err)
-				if prevError != nil {
+				if prevError == nil {
+					prevError = err
+				} else {
 					prevError = fmt.Errorf("%s\n%s", prevError, err)
 				}
 			} else {
