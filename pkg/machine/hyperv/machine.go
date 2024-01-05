@@ -413,7 +413,7 @@ func (m *HyperVMachine) Remove(_ string, opts machine.RemoveOptions) (string, fu
 	// In hyperv, they call running 'enabled'
 	if vm.State() == hypervctl.Enabled {
 		if !opts.Force {
-			return "", nil, &machine.ErrVMRunningCannotDestroyed{Name: m.Name}
+			return "", nil, &define.ErrVMRunningCannotDestroyed{Name: m.Name}
 		}
 		// force stop bc we are destroying
 		if err := vm.StopWithForce(); err != nil {
@@ -694,8 +694,8 @@ func (m *HyperVMachine) loadFromFile() (*HyperVMachine, error) {
 	mm := HyperVMachine{}
 
 	if err := mm.loadHyperVMachineFromJSON(jsonPath); err != nil {
-		if errors.Is(err, machine.ErrNoSuchVM) {
-			return nil, &machine.ErrVMDoesNotExist{Name: m.Name}
+		if errors.Is(err, define.ErrNoSuchVM) {
+			return nil, &define.ErrVMDoesNotExist{Name: m.Name}
 		}
 		return nil, err
 	}
@@ -739,7 +739,7 @@ func (m *HyperVMachine) loadHyperVMachineFromJSON(fqConfigPath string) error {
 	b, err := os.ReadFile(fqConfigPath)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return machine.ErrNoSuchVM
+			return define.ErrNoSuchVM
 		}
 		return err
 	}
@@ -905,7 +905,7 @@ func (m *HyperVMachine) setRootful(rootful bool) error {
 
 func (m *HyperVMachine) resizeDisk(newSize strongunits.GiB) error {
 	if m.DiskSize > uint64(newSize) {
-		return &machine.ErrNewDiskSizeTooSmall{OldSize: strongunits.ToGiB(strongunits.B(m.DiskSize)), NewSize: newSize}
+		return &define.ErrNewDiskSizeTooSmall{OldSize: strongunits.ToGiB(strongunits.B(m.DiskSize)), NewSize: newSize}
 	}
 	resize := exec.Command("powershell", []string{"-command", fmt.Sprintf("Resize-VHD %s %d", m.ImagePath.GetPath(), newSize.ToBytes())}...)
 	resize.Stdout = os.Stdout
