@@ -213,7 +213,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	readyUnitFile, err := createReadyUnitFile()
+	readyUnitFile, err := ignition.CreateReadyUnitFile(define.QemuVirt, nil)
 	if err != nil {
 		return false, err
 	}
@@ -228,14 +228,6 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	callbackFuncs.Add(v.IgnitionFile.Delete)
 
 	return err == nil, err
-}
-
-func createReadyUnitFile() (string, error) {
-	readyUnit := ignition.DefaultReadyUnitFile()
-	readyUnit.Add("Unit", "Requires", "dev-virtio\\x2dports-vport1p1.device")
-	readyUnit.Add("Unit", "After", "systemd-user-sessions.service")
-	readyUnit.Add("Service", "ExecStart", "/bin/sh -c '/usr/bin/echo Ready >/dev/vport1p1'")
-	return readyUnit.ToString()
 }
 
 func (v *MachineVM) removeSystemConnections() error {

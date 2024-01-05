@@ -267,7 +267,7 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	readyUnitFile, err := createReadyUnitFile()
+	readyUnitFile, err := ignition.CreateReadyUnitFile(define.AppleHvVirt, nil)
 	if err != nil {
 		return false, err
 	}
@@ -284,13 +284,6 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 	callbackFuncs.Add(m.IgnitionFile.Delete)
 
 	return err == nil, err
-}
-
-func createReadyUnitFile() (string, error) {
-	readyUnit := ignition.DefaultReadyUnitFile()
-	readyUnit.Add("Unit", "Requires", "dev-virtio\\x2dports-vsock.device")
-	readyUnit.Add("Service", "ExecStart", "/bin/sh -c '/usr/bin/echo Ready | socat - VSOCK-CONNECT:2:1025'")
-	return readyUnit.ToString()
 }
 
 func (m *MacMachine) removeSystemConnections() error {
