@@ -86,6 +86,7 @@ var _ = Describe("podman machine start", func() {
 		Expect(startSession).To(Exit(125))
 		Expect(startSession.errorToString()).To(ContainSubstring("VM already running or starting"))
 	})
+
 	It("start only starts specified machine", func() {
 		i := initMachine{}
 		startme := randomString()
