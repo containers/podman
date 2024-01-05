@@ -259,7 +259,8 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 	})
 
 	if len(opts.IgnitionPath) > 0 {
-		return false, builder.BuildWithIgnitionFile(opts.IgnitionPath)
+		err = builder.BuildWithIgnitionFile(opts.IgnitionPath)
+		return false, err
 	}
 
 	if err := builder.GenerateIgnitionConfig(); err != nil {

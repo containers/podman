@@ -313,20 +313,21 @@ var _ = Describe("podman machine init", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ec).To(Equal(125))
 
-		// Clashing keys - init fails
-		i = new(initMachine)
-		session, err = mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(session).To(Exit(125))
-
-		// ensure files created by init are cleaned up on init failure
-		_, err = os.Stat(img)
-		Expect(err).To(HaveOccurred())
-		_, err = os.Stat(cfgpth)
-		Expect(err).To(HaveOccurred())
-
 		// WSL does not use ignition
 		if testProvider.VMType() != define.WSLVirt {
+			// Bad ignition path - init fails
+			i = new(initMachine)
+			i.ignitionPath = "/bad/path"
+			session, err = mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(session).To(Exit(125))
+
+			// ensure files created by init are cleaned up on init failure
+			_, err = os.Stat(img)
+			Expect(err).To(HaveOccurred())
+			_, err = os.Stat(cfgpth)
+			Expect(err).To(HaveOccurred())
+
 			_, err = os.Stat(ign)
 			Expect(err).To(HaveOccurred())
 		}

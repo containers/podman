@@ -205,7 +205,8 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	// If the user provides an ignition file, we need to
 	// copy it into the conf dir
 	if len(opts.IgnitionPath) > 0 {
-		return false, builder.BuildWithIgnitionFile(opts.IgnitionPath)
+		err = builder.BuildWithIgnitionFile(opts.IgnitionPath)
+		return false, err
 	}
 
 	if err := builder.GenerateIgnitionConfig(); err != nil {
