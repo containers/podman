@@ -1,4 +1,4 @@
-package machine
+package define
 
 import (
 	"errors"

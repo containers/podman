@@ -3,13 +3,15 @@ package vmconfigs
 import (
 	"os"
 
+	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/machine/qemu/command"
 )
 
 type QEMUConfig struct {
-	Command command.QemuCmd
 	// QMPMonitor is the qemu monitor object for sending commands
 	QMPMonitor command.Monitor
+	// QEMUPidPath is where to write the PID for QEMU when running
+	QEMUPidPath *define.VMFile
 }
 
 // Stubs

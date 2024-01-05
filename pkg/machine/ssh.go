@@ -11,6 +11,7 @@ import (
 
 // CommonSSH is a common function for ssh'ing to a podman machine using system-connections
 // and a port
+// TODO This should probably be taught about an machineconfig to reduce input
 func CommonSSH(username, identityPath, name string, sshPort int, inputArgs []string) error {
 	sshDestination := username + "@localhost"
 	port := strconv.Itoa(sshPort)

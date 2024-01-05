@@ -9,6 +9,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/containers/podman/v4/pkg/machine/p5"
+	"github.com/containers/podman/v4/pkg/machine/qemu"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
+
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/report"
@@ -60,23 +64,14 @@ func init() {
 
 func list(cmd *cobra.Command, args []string) error {
 	var (
-		opts         machine.ListOptions
-		listResponse []*machine.ListResponse
-		err          error
+		opts machine.ListOptions
+		err  error
 	)
 
-	// Podman 5 development
-	/*
-		s := new(p5qemu.QEMUStubber)
-		if err := p5.List([]vmconfigs.VMStubber{s}); err != nil {
-			return err
-		}
-
-	*/
-
-	listResponse, err = provider.List(opts)
+	s := new(qemu.QEMUStubber)
+	listResponse, err := p5.List([]vmconfigs.VMStubber{s}, opts)
 	if err != nil {
-		return fmt.Errorf("listing vms: %w", err)
+		return err
 	}
 
 	// Sort by last run

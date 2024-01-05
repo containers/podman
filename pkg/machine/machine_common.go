@@ -31,37 +31,12 @@ func GetDevNullFiles() (*os.File, *os.File, error) {
 
 // WaitAPIAndPrintInfo prints info about the machine and does a ping test on the
 // API socket
-func WaitAPIAndPrintInfo(forwardState APIForwardingState, name, helper, forwardSock string, noInfo, isIncompatible, rootful bool) {
+func WaitAPIAndPrintInfo(forwardState APIForwardingState, name, helper, forwardSock string, noInfo, rootful bool) {
 	suffix := ""
 	var fmtString string
 
 	if name != DefaultMachineName {
 		suffix = " " + name
-	}
-
-	if isIncompatible {
-		fmtString = `
-!!! ACTION REQUIRED: INCOMPATIBLE MACHINE !!!
-
-This machine was created by an older podman release that is incompatible
-with this release of podman. It has been started in a limited operational
-mode to allow you to copy any necessary files before recreating it. This
-can be accomplished with the following commands:
-
-        # Login and copy desired files (Optional)
-        # podman machine ssh%[1]s tar cvPf - /path/to/files > backup.tar
-
-        # Recreate machine (DESTRUCTIVE!)
-        podman machine stop%[1]s
-        podman machine rm -f%[1]s
-        podman machine init --now%[1]s
-
-        # Copy back files (Optional)
-        # cat backup.tar | podman machine ssh%[1]s tar xvPf -
-
-`
-
-		fmt.Fprintf(os.Stderr, fmtString, suffix)
 	}
 
 	if forwardState == NoForwarding {

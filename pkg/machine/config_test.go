@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/containers/podman/v4/pkg/machine/connection"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRemoteConnectionType_MakeSSHURL(t *testing.T) {

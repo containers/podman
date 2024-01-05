@@ -159,7 +159,7 @@ func (v AppleHVVirtualization) NewMachine(opts define.InitOptions) (machine.VM, 
 
 func (v AppleHVVirtualization) RemoveAndCleanMachines() error {
 	// This can be implemented when host networking is completed.
-	return machine.ErrNotImplemented
+	return define.ErrNotImplemented
 }
 
 func (v AppleHVVirtualization) VMType() define.VMType {

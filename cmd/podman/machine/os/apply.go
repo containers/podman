@@ -8,6 +8,7 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/machine/os"
+	"github.com/containers/podman/v4/pkg/machine/qemu"
 	"github.com/spf13/cobra"
 )
 
@@ -47,7 +48,11 @@ func apply(cmd *cobra.Command, args []string) error {
 		CLIArgs: args,
 		Restart: restart,
 	}
-	osManager, err := NewOSManager(managerOpts)
+
+	// TODO This is temporary
+	s := new(qemu.QEMUStubber)
+
+	osManager, err := NewOSManager(managerOpts, s)
 	if err != nil {
 		return err
 	}

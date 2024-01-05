@@ -4,11 +4,13 @@ package machine
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/qemu"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v4/pkg/strongunits"
 	"github.com/spf13/cobra"
 )
 
@@ -88,8 +90,9 @@ func init() {
 
 func setMachine(cmd *cobra.Command, args []string) error {
 	var (
-		vm  machine.VM
-		err error
+		err                error
+		newCPUs, newMemory *uint64
+		newDiskSize        *strongunits.GiB
 	)
 
 	vmName := defaultMachineName
@@ -97,34 +100,51 @@ func setMachine(cmd *cobra.Command, args []string) error {
 		vmName = args[0]
 	}
 
-	vm, err = provider.LoadVMByName(vmName)
+	provider := new(qemu.QEMUStubber)
+	dirs, err := machine.GetMachineDirs(provider.VMType())
+	if err != nil {
+		return err
+	}
+
+	mc, err := vmconfigs.LoadMachineByName(vmName, dirs)
 	if err != nil {
 		return err
 	}
 
 	if cmd.Flags().Changed("rootful") {
-		setOpts.Rootful = &setFlags.Rootful
+		mc.HostUser.Rootful = setFlags.Rootful
 	}
 	if cmd.Flags().Changed("cpus") {
-		setOpts.CPUs = &setFlags.CPUs
+		mc.Resources.CPUs = setFlags.CPUs
+		newCPUs = &mc.Resources.CPUs
 	}
 	if cmd.Flags().Changed("memory") {
-		setOpts.Memory = &setFlags.Memory
+		mc.Resources.Memory = setFlags.Memory
+		newMemory = &mc.Resources.Memory
 	}
 	if cmd.Flags().Changed("disk-size") {
-		setOpts.DiskSize = &setFlags.DiskSize
+		if setFlags.DiskSize <= mc.Resources.DiskSize {
+			return fmt.Errorf("new disk size must be larger than %d GB", mc.Resources.DiskSize)
+		}
+		mc.Resources.DiskSize = setFlags.DiskSize
+		newDiskSizeGB := strongunits.GiB(setFlags.DiskSize)
+		newDiskSize = &newDiskSizeGB
 	}
 	if cmd.Flags().Changed("user-mode-networking") {
+		// TODO This needs help
 		setOpts.UserModeNetworking = &setFlags.UserModeNetworking
 	}
 	if cmd.Flags().Changed("usb") {
+		// TODO This needs help
 		setOpts.USBs = &setFlags.USBs
 	}
 
-	setErrs, lasterr := vm.Set(vmName, setOpts)
-	for _, err := range setErrs {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+	// At this point, we have the known changed information, etc
+	// Walk through changes to the providers if they need them
+	if err := provider.SetProviderAttrs(mc, newCPUs, newMemory, newDiskSize); err != nil {
+		return err
 	}
 
-	return lasterr
+	// Update the configuration file last if everything earlier worked
+	return mc.Write()
 }

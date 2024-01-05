@@ -364,10 +364,10 @@ alt_build_task:
     matrix:
       - env:
             ALT_NAME: 'Build Each Commit'
-      - env:
-            # TODO: Replace with task using `winmake` to build
-            # binary and archive installation zip file.
-            ALT_NAME: 'Windows Cross'
+              #- env:
+              #      # TODO: Replace with task using `winmake` to build
+              #      # binary and archive installation zip file.
+              #      ALT_NAME: 'Windows Cross'
       - env:
             ALT_NAME: 'Alt Arch. x86 Cross'
       - env:
@@ -388,135 +388,135 @@ alt_build_task:
     always: *runner_stats
 
 
-win_installer_task:
-    name: "Verify Win Installer Build"
-    alias: win_installer
-    only_if:
-      $CIRRUS_TAG == '' &&
-      $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
-      $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
-    depends_on:
-      - alt_build
-    ec2_instance: &windows
-        image: "${WINDOWS_AMI}"
-        type: m5.large
-        region: us-east-1
-        platform: windows
-    env: &winenv
-        CIRRUS_WORKING_DIR: &wincwd "${LOCALAPPDATA}\\cirrus-ci-build"
-        CIRRUS_SHELL: powershell
-        PATH: "${PATH};C:\\ProgramData\\chocolatey\\bin"
-        DISTRO_NV: "windows"
-        PRIV_NAME: "rootless"
-        # Fake version, we are only testing the installer functions, so version doesn't matter
-        WIN_INST_VER: 9.9.9
-    # It's HIGHLY desireable to use the same binary throughout CI.  Otherwise, if
-    # there's a toolchain or build-environment specific problem, it can be incredibly
-    # difficult (and non-obvious) to debug.
-    clone_script: &winclone |
-        $ErrorActionPreference = 'Stop'
-        $ProgressPreference = 'SilentlyContinue'
-        New-Item -ItemType Directory -Force -Path "$ENV:CIRRUS_WORKING_DIR"
-        Set-Location "$ENV:CIRRUS_WORKING_DIR"
-        $uri = "${ENV:ART_URL}/Windows Cross/repo/repo.tbz"
-        Write-Host "Downloading $uri"
-        For($i = 0;;) {
-            Try {
-                Invoke-WebRequest -UseBasicParsing -ErrorAction Stop -OutFile "repo.tbz2" `
-                  -Uri "$uri"
-                Break
-            } Catch {
-                if (++$i -gt 6) {
-                    throw $_.Exception
-                }
-                Write-Host "Download failed - retrying:" $_.Exception.Response.StatusCode
-                Start-Sleep -Seconds 10
-            }
-        }
-        arc unarchive repo.tbz2 .\
-        if ($LASTEXITCODE -ne 0) {
-            throw "Unarchive repo.tbz2 failed"
-            Exit 1
-        }
-        Get-ChildItem -Path .\repo
-    main_script: ".\\repo\\contrib\\cirrus\\win-installer-main.ps1"
+      #win_installer_task:
+      #    name: "Verify Win Installer Build"
+      #    alias: win_installer
+      #    only_if:
+      #      $CIRRUS_TAG == '' &&
+      #      $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
+      #      $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
+      #    depends_on:
+      #      - alt_build
+      #    ec2_instance: &windows
+      #        image: "${WINDOWS_AMI}"
+      #        type: m5.large
+      #        region: us-east-1
+      #        platform: windows
+      #    env: &winenv
+      #        CIRRUS_WORKING_DIR: &wincwd "${LOCALAPPDATA}\\cirrus-ci-build"
+      #        CIRRUS_SHELL: powershell
+      #        PATH: "${PATH};C:\\ProgramData\\chocolatey\\bin"
+      #        DISTRO_NV: "windows"
+      #        PRIV_NAME: "rootless"
+      #        # Fake version, we are only testing the installer functions, so version doesn't matter
+      #        WIN_INST_VER: 9.9.9
+      #    # It's HIGHLY desireable to use the same binary throughout CI.  Otherwise, if
+      #    # there's a toolchain or build-environment specific problem, it can be incredibly
+      #    # difficult (and non-obvious) to debug.
+      #    clone_script: &winclone |
+      #        $ErrorActionPreference = 'Stop'
+      #        $ProgressPreference = 'SilentlyContinue'
+      #        New-Item -ItemType Directory -Force -Path "$ENV:CIRRUS_WORKING_DIR"
+      #        Set-Location "$ENV:CIRRUS_WORKING_DIR"
+      #        $uri = "${ENV:ART_URL}/Windows Cross/repo/repo.tbz"
+      #        Write-Host "Downloading $uri"
+      #        For($i = 0;;) {
+      #            Try {
+      #                Invoke-WebRequest -UseBasicParsing -ErrorAction Stop -OutFile "repo.tbz2" `
+      #                  -Uri "$uri"
+      #                Break
+      #            } Catch {
+      #                if (++$i -gt 6) {
+      #                    throw $_.Exception
+      #                }
+      #                Write-Host "Download failed - retrying:" $_.Exception.Response.StatusCode
+      #                Start-Sleep -Seconds 10
+      #            }
+      #        }
+      #        arc unarchive repo.tbz2 .\
+      #        if ($LASTEXITCODE -ne 0) {
+      #            throw "Unarchive repo.tbz2 failed"
+      #            Exit 1
+      #        }
+      #        Get-ChildItem -Path .\repo
+      #    main_script: ".\\repo\\contrib\\cirrus\\win-installer-main.ps1"
 
 
 # Confirm building the remote client, natively on a Mac OS-X VM.
-osx_alt_build_task:
-    name: "OSX Cross"
-    alias: osx_alt_build
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *no_rhel_release
-    depends_on:
-        - build
-    persistent_worker: &mac_pw
-        labels:
-            os: darwin
-            arch: arm64
-            purpose: prod
-    env: &mac_env
-        CIRRUS_SHELL: "/bin/bash"  # sh is the default
-        CIRRUS_WORKING_DIR: "$HOME/ci/task-${CIRRUS_TASK_ID}"  # Isolation: $HOME will be set to "ci" dir.
-        # Prevent cache-pollution fron one task to the next.
-        GOPATH: "$CIRRUS_WORKING_DIR/.go"
-        GOCACHE: "$CIRRUS_WORKING_DIR/.go/cache"
-        GOENV: "$CIRRUS_WORKING_DIR/.go/support"
-        GOSRC: "$HOME/ci/task-${CIRRUS_TASK_ID}"
-    # This host is/was shared with potentially many other CI tasks.
-    # The previous task may have been canceled or aborted.
-    prep_script: &mac_cleanup "contrib/cirrus/mac_cleanup.sh"
-    basic_build_script:
-        - make .install.ginkgo
-        - make podman-remote
-        - make podman-mac-helper
-    build_amd64_script:
-        - make podman-remote-release-darwin_amd64.zip
-    build_arm64_script:
-        - make podman-remote-release-darwin_arm64.zip
-    build_pkginstaller_script:
-        - cd contrib/pkginstaller
-        - make ARCH=amd64 NO_CODESIGN=1 pkginstaller
-        - make ARCH=aarch64 NO_CODESIGN=1 pkginstaller
-    # Produce a new repo.tbz artifact for consumption by dependent tasks.
-    repo_prep_script: *repo_prep
-    repo_artifacts: *repo_artifacts
-    # This host is/was shared with potentially many other CI tasks.
-    # Ensure nothing is left running while waiting for the next task.
-    always:
-        task_cleanup_script: *mac_cleanup
+#osx_alt_build_task:
+#    name: "OSX Cross"
+#    alias: osx_alt_build
+#    # Docs: ./contrib/cirrus/CIModes.md
+#    only_if: *no_rhel_release
+#    depends_on:
+#        - build
+#    persistent_worker: &mac_pw
+#        labels:
+#            os: darwin
+#            arch: arm64
+#            purpose: prod
+#    env: &mac_env
+#        CIRRUS_SHELL: "/bin/bash"  # sh is the default
+#        CIRRUS_WORKING_DIR: "$HOME/ci/task-${CIRRUS_TASK_ID}"  # Isolation: $HOME will be set to "ci" dir.
+#        # Prevent cache-pollution fron one task to the next.
+#        GOPATH: "$CIRRUS_WORKING_DIR/.go"
+#        GOCACHE: "$CIRRUS_WORKING_DIR/.go/cache"
+#        GOENV: "$CIRRUS_WORKING_DIR/.go/support"
+#        GOSRC: "$HOME/ci/task-${CIRRUS_TASK_ID}"
+#    # This host is/was shared with potentially many other CI tasks.
+#    # The previous task may have been canceled or aborted.
+#    prep_script: &mac_cleanup "contrib/cirrus/mac_cleanup.sh"
+#    basic_build_script:
+#        - make .install.ginkgo
+#        - make podman-remote
+#        - make podman-mac-helper
+#    build_amd64_script:
+#        - make podman-remote-release-darwin_amd64.zip
+#    build_arm64_script:
+#        - make podman-remote-release-darwin_arm64.zip
+#    build_pkginstaller_script:
+#        - cd contrib/pkginstaller
+#        - make ARCH=amd64 NO_CODESIGN=1 pkginstaller
+#        - make ARCH=aarch64 NO_CODESIGN=1 pkginstaller
+#    # Produce a new repo.tbz artifact for consumption by dependent tasks.
+#    repo_prep_script: *repo_prep
+#    repo_artifacts: *repo_artifacts
+#    # This host is/was shared with potentially many other CI tasks.
+#    # Ensure nothing is left running while waiting for the next task.
+#    always:
+#        task_cleanup_script: *mac_cleanup
 
 
 # Build freebsd release natively on a FreeBSD VM.
-freebsd_alt_build_task:
-    name: "FreeBSD Cross"
-    alias: freebsd_alt_build
-    # Only run on 'main' and PRs against 'main'
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: |
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*' &&
-        ( $CIRRUS_BRANCH == 'main' || $CIRRUS_BASE_BRANCH == 'main' )
-    depends_on:
-        - build
-    env:
-        <<: *stdenvars
-        # Functional FreeBSD builds must be built natively since they depend on CGO
-        DISTRO_NV: freebsd-13
-        VM_IMAGE_NAME: notyet
-        CTR_FQIN: notyet
-        CIRRUS_SHELL: "/bin/sh"
-        TEST_FLAVOR: "altbuild"
-        ALT_NAME: 'FreeBSD Cross'
-    freebsd_instance:
-        image_family: freebsd-13-2
-    setup_script:
-        - pkg install -y gpgme bash go-md2man gmake gsed gnugrep go pkgconf
-    build_amd64_script:
-        - gmake podman-release
-    # This task cannot make use of the shared repo.tbz artifact and must
-    # produce a new repo.tbz artifact for consumption by 'artifacts' task.
-    repo_prep_script: *repo_prep
-    repo_artifacts: *repo_artifacts
+#freebsd_alt_build_task:
+#    name: "FreeBSD Cross"
+#    alias: freebsd_alt_build
+#    # Only run on 'main' and PRs against 'main'
+#    # Docs: ./contrib/cirrus/CIModes.md
+#    only_if: |
+#        $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*' &&
+#        ( $CIRRUS_BRANCH == 'main' || $CIRRUS_BASE_BRANCH == 'main' )
+#    depends_on:
+#        - build
+#    env:
+#        <<: *stdenvars
+#        # Functional FreeBSD builds must be built natively since they depend on CGO
+#        DISTRO_NV: freebsd-13
+#        VM_IMAGE_NAME: notyet
+#        CTR_FQIN: notyet
+#        CIRRUS_SHELL: "/bin/sh"
+#        TEST_FLAVOR: "altbuild"
+#        ALT_NAME: 'FreeBSD Cross'
+#    freebsd_instance:
+#        image_family: freebsd-13-2
+#    setup_script:
+#        - pkg install -y gpgme bash go-md2man gmake gsed gnugrep go pkgconf
+#    build_amd64_script:
+#        - gmake podman-release
+#    # This task cannot make use of the shared repo.tbz artifact and must
+#    # produce a new repo.tbz artifact for consumption by 'artifacts' task.
+#    repo_prep_script: *repo_prep
+#    repo_artifacts: *repo_artifacts
 
 
 # Verify podman is compatible with the docker python-module.
@@ -777,77 +777,77 @@ podman_machine_aarch64_task:
     always: *int_logs_artifacts
 
 
-podman_machine_windows_task:
-    name: *std_name_fmt
-    alias: podman_machine_windows
-    # Only run for non-docs/copr PRs and non-release branch builds
-    # and never for tags.  Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs
-    depends_on:
-      - alt_build
-      - build
-      - win_installer
-      - local_integration_test
-      - remote_integration_test
-      - container_integration_test
-      - rootless_integration_test
-    ec2_instance:
-        <<: *windows
-        type: m5zn.metal
-        platform: windows
-    env: *winenv
-    matrix:
-      - env:
-          TEST_FLAVOR: "machine-wsl"
-      - env:
-          TEST_FLAVOR: "machine-hyperv"
-    clone_script: *winclone
-    main_script: ".\\repo\\contrib\\cirrus\\win-podman-machine-main.ps1"
+      #podman_machine_windows_task:
+      #    name: *std_name_fmt
+      #    alias: podman_machine_windows
+      #    # Only run for non-docs/copr PRs and non-release branch builds
+      #    # and never for tags.  Docs: ./contrib/cirrus/CIModes.md
+      #    only_if: *not_tag_branch_build_docs
+      #    depends_on:
+      #      - alt_build
+      #      - build
+      #      - win_installer
+      #      - local_integration_test
+      #      - remote_integration_test
+      #      - container_integration_test
+      #      - rootless_integration_test
+      #    ec2_instance:
+      #        <<: *windows
+      #        type: m5zn.metal
+      #        platform: windows
+      #    env: *winenv
+      #    matrix:
+      #      - env:
+      #          TEST_FLAVOR: "machine-wsl"
+      #      - env:
+      #          TEST_FLAVOR: "machine-hyperv"
+      #    clone_script: *winclone
+      #    main_script: ".\\repo\\contrib\\cirrus\\win-podman-machine-main.ps1"
 
 
-podman_machine_mac_task:
-    name: *std_name_fmt
-    alias: podman_machine_mac
-    only_if: *not_tag_branch_build_docs
-    depends_on:
-      - osx_alt_build
-      - local_integration_test
-      - remote_integration_test
-      - container_integration_test
-      - rootless_integration_test
-    persistent_worker: *mac_pw
-    env:
-        <<: *mac_env
-        # Consumed by podman-machine ginkgo tests
-        CONTAINERS_MACHINE_PROVIDER: "applehv"
-        # TODO: Should not require a special image, for now it does.
-        # Simply remove the line below when a mac image is GA.
-        MACHINE_IMAGE: "https://fedorapeople.org/groups/podman/testing/applehv/arm64/fedora-coreos-38.20230925.dev.0-applehv.aarch64.raw.gz"
-        # Values necessary to populate std_name_fmt alias
-        TEST_FLAVOR: "machine-mac"
-        DISTRO_NV: "darwin"
-        PRIV_NAME: "rootless"  # intended use-case
-    clone_script:  # artifacts from osx_alt_build_task
-        - mkdir -p $CIRRUS_WORKING_DIR
-        - cd $CIRRUS_WORKING_DIR
-        - $ARTCURL/OSX%20Cross/repo/repo.tbz
-        - tar xjf repo.tbz
-    # This host is/was shared with potentially many other CI tasks.
-    # The previous task may have been canceled or aborted.
-    prep_script: *mac_cleanup
-    setup_script: "contrib/cirrus/mac_setup.sh"
-    env_script: "contrib/cirrus/mac_env.sh"
-    # TODO: Timeout bumped b/c initial image download (~5min) and VM
-    #       resize (~2min) causes test-timeout (90s default).  Should
-    #       tests deal with this internally?
-    smoke_test_script:
-        - MACHINE_TEST_TIMEOUT=500 make localmachine FOCUS_FILE="basic_test.go"
-    test_script:
-        - make localmachine
-    # This host is/was shared with potentially many other CI tasks.
-    # Ensure nothing is left running while waiting for the next task.
-    always:
-        task_cleanup_script: *mac_cleanup
+      #podman_machine_mac_task:
+      #    name: *std_name_fmt
+      #    alias: podman_machine_mac
+      #    only_if: *not_tag_branch_build_docs
+      #    depends_on:
+      #      - osx_alt_build
+      #      - local_integration_test
+      #      - remote_integration_test
+      #      - container_integration_test
+      #      - rootless_integration_test
+      #    persistent_worker: *mac_pw
+      #    env:
+      #        <<: *mac_env
+      #        # Consumed by podman-machine ginkgo tests
+      #        CONTAINERS_MACHINE_PROVIDER: "applehv"
+      #        # TODO: Should not require a special image, for now it does.
+      #        # Simply remove the line below when a mac image is GA.
+      #        MACHINE_IMAGE: "https://fedorapeople.org/groups/podman/testing/applehv/arm64/fedora-coreos-38.20230925.dev.0-applehv.aarch64.raw.gz"
+      #        # Values necessary to populate std_name_fmt alias
+      #        TEST_FLAVOR: "machine-mac"
+      #        DISTRO_NV: "darwin"
+      #        PRIV_NAME: "rootless"  # intended use-case
+      #    clone_script:  # artifacts from osx_alt_build_task
+      #        - mkdir -p $CIRRUS_WORKING_DIR
+      #        - cd $CIRRUS_WORKING_DIR
+      #        - $ARTCURL/OSX%20Cross/repo/repo.tbz
+      #        - tar xjf repo.tbz
+      #    # This host is/was shared with potentially many other CI tasks.
+      #    # The previous task may have been canceled or aborted.
+      #    prep_script: *mac_cleanup
+      #    setup_script: "contrib/cirrus/mac_setup.sh"
+      #    env_script: "contrib/cirrus/mac_env.sh"
+      #    # TODO: Timeout bumped b/c initial image download (~5min) and VM
+      #    #       resize (~2min) causes test-timeout (90s default).  Should
+      #    #       tests deal with this internally?
+      #    smoke_test_script:
+      #        - MACHINE_TEST_TIMEOUT=500 make localmachine FOCUS_FILE="basic_test.go"
+      #    test_script:
+      #        - make localmachine
+      #    # This host is/was shared with potentially many other CI tasks.
+      #    # Ensure nothing is left running while waiting for the next task.
+      #    always:
+      #        task_cleanup_script: *mac_cleanup
 
 # Always run subsequent to integration tests.  While parallelism is lost
 # with runtime, debugging system-test failures can be more challenging
@@ -1084,9 +1084,9 @@ success_task:
         - bindings
         - swagger
         - alt_build
-        - osx_alt_build
-        - freebsd_alt_build
-        - win_installer
+          #- osx_alt_build
+          #- freebsd_alt_build
+          #- win_installer
         - docker-py_test
         - unit_test
         - apiv2_test
@@ -1133,104 +1133,104 @@ success_task:
 # WARNING: Most of the artifacts captured here are also have their
 # permalinks present in the `DOWNLOADS.md` file.  Any changes made
 # here, should probably be reflected in that document.
-artifacts_task:
-    name: "Artifacts"
-    alias: artifacts
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: >-
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
-        $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
-    depends_on:
-        - success
-    # This task is a secondary/convenience for downstream consumers, don't
-    # block development progress if there is a failure in a PR, only break
-    # when running on branches or tags.
-    allow_failures: $CIRRUS_PR != ''
-    container: *smallcontainer
-    env:
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        TEST_ENVIRON: container
-    # In order to keep the download URL and Cirrus-CI artifact.zip contents
-    # simple, nothing should exist in $CIRRUS_WORKING_DIR except for artifacts.
-    clone_script: *noop
-    fedora_binaries_script:
-        - mkdir -p /tmp/fed
-        - cd /tmp/fed
-        - $ARTCURL/Build%20for%20${FEDORA_NAME}/repo/repo.tbz
-        - tar xjf repo.tbz
-        - cp ./bin/* $CIRRUS_WORKING_DIR/
-    alt_binaries_intel_script:
-        - mkdir -p /tmp/alt
-        - cd /tmp/alt
-        - $ARTCURL/Alt%20Arch.%20x86%20Cross/repo/repo.tbz
-        - tar xjf repo.tbz
-        - mv ./*.tar.gz $CIRRUS_WORKING_DIR/
-    alt_binaries_arm_script:
-        - mkdir -p /tmp/alt
-        - cd /tmp/alt
-        - $ARTCURL/Alt%20Arch.%20ARM%20Cross/repo/repo.tbz
-        - tar xjf repo.tbz
-        - mv ./*.tar.gz $CIRRUS_WORKING_DIR/
-    alt_binaries_mips_script:
-        - mkdir -p /tmp/alt
-        - cd /tmp/alt
-        - $ARTCURL/Alt%20Arch.%20MIPS%20Cross/repo/repo.tbz
-        - tar xjf repo.tbz
-        - mv ./*.tar.gz $CIRRUS_WORKING_DIR/
-    alt_binaries_mips64_script:
-        - mkdir -p /tmp/alt
-        - cd /tmp/alt
-        - $ARTCURL/Alt%20Arch.%20MIPS64%20Cross/repo/repo.tbz
-        - tar xjf repo.tbz
-        - mv ./*.tar.gz $CIRRUS_WORKING_DIR/
-    alt_binaries_other_script:
-        - mkdir -p /tmp/alt
-        - cd /tmp/alt
-        - $ARTCURL/Alt%20Arch.%20Other%20Cross/repo/repo.tbz
-        - tar xjf repo.tbz
-        - mv ./*.tar.gz $CIRRUS_WORKING_DIR/
-    win_binaries_script:
-        - mkdir -p /tmp/win
-        - cd /tmp/win
-        - $ARTCURL/Windows%20Cross/repo/repo.tbz
-        - tar xjf repo.tbz
-        - mv ./podman-remote*.zip $CIRRUS_WORKING_DIR/
-    osx_binaries_script:
-        - mkdir -p /tmp/osx
-        - cd /tmp/osx
-        - $ARTCURL/OSX%20Cross/repo/repo.tbz
-        - tar xjf repo.tbz
-        - mv ./podman-remote-release-darwin_*.zip $CIRRUS_WORKING_DIR/
-        - mv ./contrib/pkginstaller/out/podman-installer-macos-*.pkg $CIRRUS_WORKING_DIR/
-    always:
-      contents_script: ls -la $CIRRUS_WORKING_DIR
-      # Produce downloadable files and an automatic zip-file accessible
-      # by a consistent URL, based on contents of $CIRRUS_WORKING_DIR
-      # Ref: https://cirrus-ci.org/guide/writing-tasks/#latest-build-artifacts
-      binary_artifacts:
-          path: ./*
-          type: application/octet-stream
+#artifacts_task:
+#    name: "Artifacts"
+#    alias: artifacts
+#    # Docs: ./contrib/cirrus/CIModes.md
+#    only_if: >-
+#        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
+#        $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
+#        $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
+#    depends_on:
+#        - success
+#    # This task is a secondary/convenience for downstream consumers, don't
+#    # block development progress if there is a failure in a PR, only break
+#    # when running on branches or tags.
+#    allow_failures: $CIRRUS_PR != ''
+#    container: *smallcontainer
+#    env:
+#        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+#        TEST_ENVIRON: container
+#    # In order to keep the download URL and Cirrus-CI artifact.zip contents
+#    # simple, nothing should exist in $CIRRUS_WORKING_DIR except for artifacts.
+#    clone_script: *noop
+#    fedora_binaries_script:
+#        - mkdir -p /tmp/fed
+#        - cd /tmp/fed
+#        - $ARTCURL/Build%20for%20${FEDORA_NAME}/repo/repo.tbz
+#        - tar xjf repo.tbz
+#        - cp ./bin/* $CIRRUS_WORKING_DIR/
+#    alt_binaries_intel_script:
+#        - mkdir -p /tmp/alt
+#        - cd /tmp/alt
+#        - $ARTCURL/Alt%20Arch.%20x86%20Cross/repo/repo.tbz
+#        - tar xjf repo.tbz
+#        - mv ./*.tar.gz $CIRRUS_WORKING_DIR/
+#    alt_binaries_arm_script:
+#        - mkdir -p /tmp/alt
+#        - cd /tmp/alt
+#        - $ARTCURL/Alt%20Arch.%20ARM%20Cross/repo/repo.tbz
+#        - tar xjf repo.tbz
+#        - mv ./*.tar.gz $CIRRUS_WORKING_DIR/
+#    alt_binaries_mips_script:
+#        - mkdir -p /tmp/alt
+#        - cd /tmp/alt
+#        - $ARTCURL/Alt%20Arch.%20MIPS%20Cross/repo/repo.tbz
+#        - tar xjf repo.tbz
+#        - mv ./*.tar.gz $CIRRUS_WORKING_DIR/
+#    alt_binaries_mips64_script:
+#        - mkdir -p /tmp/alt
+#        - cd /tmp/alt
+#        - $ARTCURL/Alt%20Arch.%20MIPS64%20Cross/repo/repo.tbz
+#        - tar xjf repo.tbz
+#        - mv ./*.tar.gz $CIRRUS_WORKING_DIR/
+#    alt_binaries_other_script:
+#        - mkdir -p /tmp/alt
+#        - cd /tmp/alt
+#        - $ARTCURL/Alt%20Arch.%20Other%20Cross/repo/repo.tbz
+#        - tar xjf repo.tbz
+#        - mv ./*.tar.gz $CIRRUS_WORKING_DIR/
+#    win_binaries_script:
+#        - mkdir -p /tmp/win
+#        - cd /tmp/win
+#        - $ARTCURL/Windows%20Cross/repo/repo.tbz
+#        - tar xjf repo.tbz
+#        - mv ./podman-remote*.zip $CIRRUS_WORKING_DIR/
+#    osx_binaries_script:
+#        - mkdir -p /tmp/osx
+#        - cd /tmp/osx
+#        - $ARTCURL/OSX%20Cross/repo/repo.tbz
+#        - tar xjf repo.tbz
+#        - mv ./podman-remote-release-darwin_*.zip $CIRRUS_WORKING_DIR/
+#        - mv ./contrib/pkginstaller/out/podman-installer-macos-*.pkg $CIRRUS_WORKING_DIR/
+#    always:
+#      contents_script: ls -la $CIRRUS_WORKING_DIR
+#      # Produce downloadable files and an automatic zip-file accessible
+#      # by a consistent URL, based on contents of $CIRRUS_WORKING_DIR
+#      # Ref: https://cirrus-ci.org/guide/writing-tasks/#latest-build-artifacts
+#      binary_artifacts:
+#          path: ./*
+#          type: application/octet-stream
 
 
 # When a new tag is pushed, confirm that the code and commits
 # meet criteria for an official release.
-release_task:
-    name: "Verify Release"
-    alias: release
-    # This should _only_ run for new tags
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: $CIRRUS_TAG != ''
-    depends_on:
-        - build
-        - success
-    gce_instance: *standardvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: release
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
+#release_task:
+#    name: "Verify Release"
+#    alias: release
+#    # This should _only_ run for new tags
+#    # Docs: ./contrib/cirrus/CIModes.md
+#    only_if: $CIRRUS_TAG != ''
+#    depends_on:
+#        - build
+#        - success
+#    gce_instance: *standardvm
+#    env:
+#        <<: *stdenvars
+#        TEST_FLAVOR: release
+#    clone_script: *get_gosrc
+#    setup_script: *setup
+#    main_script: *main
 
 
 # When preparing to release a new version, this task may be manually
@@ -1239,22 +1239,22 @@ release_task:
 #
 # Note: This cannot use a YAML alias on 'release_task' as of this
 # comment, it is incompatible with 'trigger_type: manual'
-release_test_task:
-    name: "Optional Release Test"
-    alias: release_test
-    # Release-PRs always include "release" or "Bump" in the title
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: $CIRRUS_CHANGE_TITLE =~ '.*((release)|(bump)).*'
-    # Allow running manually only as part of release-related builds
-    # see RELEASE_PROCESS.md
-    trigger_type: manual
-    depends_on:
-        - build
-        - success
-    gce_instance: *standardvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: release
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
+#release_test_task:
+#    name: "Optional Release Test"
+#    alias: release_test
+#    # Release-PRs always include "release" or "Bump" in the title
+#    # Docs: ./contrib/cirrus/CIModes.md
+#    only_if: $CIRRUS_CHANGE_TITLE =~ '.*((release)|(bump)).*'
+#    # Allow running manually only as part of release-related builds
+#    # see RELEASE_PROCESS.md
+#    trigger_type: manual
+#    depends_on:
+#        - build
+#        - success
+#    gce_instance: *standardvm
+#    env:
+#        <<: *stdenvars
+#        TEST_FLAVOR: release
+#    clone_script: *get_gosrc
+#    setup_script: *setup
+#    main_script: *main
