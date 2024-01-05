@@ -28,7 +28,6 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/sockets"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/pkg/rootless"
-	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/digitalocean/go-qemu/qmp"
 	"github.com/sirupsen/logrus"
@@ -124,7 +123,10 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	defer callbackFuncs.CleanIfErr(&err)
 	go callbackFuncs.CleanOnSignal()
 
-	v.IdentityPath = util.GetIdentityPath(define.DefaultIdentityName)
+	v.IdentityPath, err = machine.GetSSHIdentityPath(define.DefaultIdentityName)
+	if err != nil {
+		return false, err
+	}
 	v.Rootful = opts.Rootful
 
 	imagePath, strm, err := machine.Pull(opts.ImagePath, opts.Name, VirtualizationProvider())

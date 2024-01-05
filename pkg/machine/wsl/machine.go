@@ -22,7 +22,6 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/pkg/machine/wsl/wutil"
-	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/lockfile"
@@ -411,7 +410,10 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	}
 
 	_ = setupWslProxyEnv()
-	v.IdentityPath = util.GetIdentityPath(define.DefaultIdentityName)
+	v.IdentityPath, err = machine.GetSSHIdentityPath(define.DefaultIdentityName)
+	if err != nil {
+		return false, err
+	}
 	v.Rootful = opts.Rootful
 	v.Version = currentMachineVersion
 
