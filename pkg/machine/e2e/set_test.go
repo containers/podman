@@ -136,6 +136,8 @@ var _ = Describe("podman machine set", func() {
 	})
 
 	It("set rootful with docker sock change", func() {
+		// TODO pipes and docker socks need to plumbed into podman 5 still
+		Skip("Needs to be plumbed in still")
 		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()

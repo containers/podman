@@ -177,11 +177,27 @@ func GetMachineDirs(vmType define.VMType) (*define.MachineDirs, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	configDirFile, err := define.NewMachineFile(configDir, nil)
+	if err != nil {
+		return nil, err
+	}
 	dataDir, err := GetDataDir(vmType)
+	if err != nil {
+		return nil, err
+	}
+
+	dataDirFile, err := define.NewMachineFile(dataDir, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	rtDirFile, err := define.NewMachineFile(rtDir, nil)
+
 	dirs := define.MachineDirs{
-		ConfigDir:  configDir,
-		DataDir:    dataDir,
-		RuntimeDir: rtDir,
+		ConfigDir:  configDirFile,
+		DataDir:    dataDirFile,
+		RuntimeDir: rtDirFile,
 	}
 	return &dirs, err
 }
@@ -258,20 +274,6 @@ const (
 	MachineLocal
 	DockerGlobal
 )
-
-type VirtProvider interface { //nolint:interfacebloat
-	Artifact() define.Artifact
-	CheckExclusiveActiveVM() (bool, string, error)
-	Compression() compression.ImageCompression
-	Format() define.ImageFormat
-	IsValidVMName(name string) (bool, error)
-	List(opts ListOptions) ([]*ListResponse, error)
-	LoadVMByName(name string) (VM, error)
-	NewMachine(opts define.InitOptions) (VM, error)
-	NewDownload(vmName string) (Download, error)
-	RemoveAndCleanMachines() error
-	VMType() define.VMType
-}
 
 type Virtualization struct {
 	artifact    define.Artifact

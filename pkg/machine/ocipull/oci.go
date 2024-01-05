@@ -28,10 +28,7 @@ type OSVersion struct {
 }
 
 type Disker interface {
-	Pull() error
-	Decompress(compressedFile *define.VMFile) (*define.VMFile, error)
-	DiskEndpoint() string
-	Unpack() (*define.VMFile, error)
+	Get() error
 }
 
 type OCIOpts struct {

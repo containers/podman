@@ -1,6 +1,6 @@
-//go:build !darwin
+//build: !darwin
 
-package qemu
+package p5
 
 func dockerClaimHelperInstalled() bool {
 	return false

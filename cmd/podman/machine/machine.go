@@ -17,6 +17,7 @@ import (
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/machine"
 	provider2 "github.com/containers/podman/v4/pkg/machine/provider"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -39,9 +40,6 @@ var (
 		RunE:               validate.SubCommandExists,
 	}
 )
-var (
-	provider machine.VirtProvider
-)
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -50,11 +48,14 @@ func init() {
 }
 
 func machinePreRunE(c *cobra.Command, args []string) error {
-	var err error
-	provider, err = provider2.Get()
-	if err != nil {
-		return err
-	}
+	// TODO this should get enabled again once we define what a new provider is
+	// this can be done when the second "provider" is enabled.
+
+	// var err error
+	// provider, err = provider2.Get()
+	// if err != nil {
+	// 	return err
+	// }
 	return rootlessOnly(c, args)
 }
 
@@ -80,7 +81,11 @@ func getMachines(toComplete string) ([]string, cobra.ShellCompDirective) {
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	machines, err := provider.List(machine.ListOptions{})
+	dirs, err := machine.GetMachineDirs(provider.VMType())
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	machines, err := vmconfigs.LoadMachinesInDir(dirs)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp
