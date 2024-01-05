@@ -4,10 +4,16 @@ package machine
 
 import (
 	"fmt"
+	"time"
+
+	"github.com/containers/podman/v4/pkg/machine/p5"
 
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/qemu"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +41,6 @@ func init() {
 func stop(cmd *cobra.Command, args []string) error {
 	var (
 		err error
-		vm  machine.VM
 	)
 
 	vmName := defaultMachineName
@@ -43,13 +48,27 @@ func stop(cmd *cobra.Command, args []string) error {
 		vmName = args[0]
 	}
 
-	vm, err = provider.LoadVMByName(vmName)
+	// TODO this is for QEMU only (change to generic when adding second provider)
+	q := new(qemu.QEMUStubber)
+	dirs, err := machine.GetMachineDirs(q.VMType())
 	if err != nil {
 		return err
 	}
-	if err := vm.Stop(vmName, machine.StopOptions{}); err != nil {
+	mc, err := vmconfigs.LoadMachineByName(vmName, dirs)
+	if err != nil {
 		return err
 	}
+
+	if err := p5.Stop(mc, q, dirs, false); err != nil {
+		return err
+	}
+
+	// Update last time up
+	mc.LastUp = time.Now()
+	if err := mc.Write(); err != nil {
+		logrus.Errorf("unable to write configuration file: %q", err)
+	}
+
 	fmt.Printf("Machine %q stopped successfully\n", vmName)
 	newMachineEvent(events.Stop, events.Event{Name: vmName})
 	return nil

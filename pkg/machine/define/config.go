@@ -15,7 +15,7 @@ type CreateVMOpts struct {
 }
 
 type MachineDirs struct {
-	ConfigDir  string
-	DataDir    string
-	RuntimeDir string
+	ConfigDir  *VMFile
+	DataDir    *VMFile
+	RuntimeDir *VMFile
 }

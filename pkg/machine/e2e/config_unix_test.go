@@ -4,13 +4,12 @@ package e2e_test
 
 import (
 	"os/exec"
-
-	"github.com/containers/podman/v4/pkg/machine"
 )
 
-func getDownloadLocation(p machine.VirtProvider) string {
-	return getFCOSDownloadLocation(p)
-}
+// TODO temporarily suspended
+// func getDownloadLocation(p machine.VirtProvider) string {
+// 	return getFCOSDownloadLocation(p)
+// }
 
 func pgrep(n string) (string, error) {
 	out, err := exec.Command("pgrep", "gvproxy").Output()
