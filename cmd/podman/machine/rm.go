@@ -41,9 +41,6 @@ func init() {
 	formatFlagName := "force"
 	flags.BoolVarP(&destroyOptions.Force, formatFlagName, "f", false, "Stop and do not prompt before rming")
 
-	keysFlagName := "save-keys"
-	flags.BoolVar(&destroyOptions.SaveKeys, keysFlagName, false, "Do not delete SSH keys")
-
 	ignitionFlagName := "save-ignition"
 	flags.BoolVar(&destroyOptions.SaveIgnition, ignitionFlagName, false, "Do not delete ignition file")
 

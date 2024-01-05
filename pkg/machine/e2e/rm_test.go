@@ -3,6 +3,7 @@ package e2e_test
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/containers/podman/v4/pkg/machine/define"
 	. "github.com/onsi/ginkgo/v2"
@@ -80,7 +81,7 @@ var _ = Describe("podman machine rm", func() {
 		Expect(ec).To(Equal(125))
 	})
 
-	It("machine rm --save-keys, --save-ignition, --save-image", func() {
+	It("machine rm --save-ignition --save-image", func() {
 		i := new(initMachine)
 		session, err := mb.setCmd(i.withImagePath(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
@@ -104,7 +105,7 @@ var _ = Describe("podman machine rm", func() {
 		img := inspectSession.outputToString()
 
 		rm := rmMachine{}
-		removeSession, err := mb.setCmd(rm.withForce().withSaveIgnition().withSaveImage().withSaveKeys()).run()
+		removeSession, err := mb.setCmd(rm.withForce().withSaveIgnition().withSaveImage()).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(removeSession).To(Exit(0))
 
@@ -125,6 +126,73 @@ var _ = Describe("podman machine rm", func() {
 			Expect(err).ToNot(HaveOccurred())
 		}
 		_, err = os.Stat(img)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("Remove machine sharing ssh key with another machine", func() {
+		expectedIdentityPathSuffix := filepath.Join(".local", "share", "containers", "podman", "machine", define.DefaultIdentityName)
+
+		fooName := "foo"
+		foo := new(initMachine)
+		session, err := mb.setName(fooName).setCmd(foo.withImagePath(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		barName := "bar"
+		bar := new(initMachine)
+		session, err = mb.setName(barName).setCmd(bar.withImagePath(mb.imagePath).withNow()).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		inspectFoo := new(inspectMachine)
+		inspectFoo = inspectFoo.withFormat("{{.SSHConfig.IdentityPath}}")
+		inspectSession, err := mb.setName(fooName).setCmd(inspectFoo).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(inspectSession).To(Exit(0))
+		Expect(inspectSession.outputToString()).To(ContainSubstring(expectedIdentityPathSuffix))
+		fooIdentityPath := inspectSession.outputToString()
+
+		inspectBar := new(inspectMachine)
+		inspectBar = inspectBar.withFormat("{{.SSHConfig.IdentityPath}}")
+		inspectSession, err = mb.setName(barName).setCmd(inspectBar).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(inspectSession).To(Exit(0))
+		Expect(inspectSession.outputToString()).To(Equal(fooIdentityPath))
+
+		rmFoo := new(rmMachine)
+		stop, err := mb.setName(fooName).setCmd(rmFoo.withForce()).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(stop).To(Exit(0))
+
+		// removal of foo should not affect the ability to ssh into the bar machine
+		sshBar := new(sshMachine)
+		sshSession, err := mb.setName(barName).setCmd(sshBar.withSSHCommand([]string{"echo", "foo"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(sshSession).To(Exit(0))
+	})
+
+	It("Removing all machines doesn't delete ssh keys", func() {
+		fooName := "foo"
+		foo := new(initMachine)
+		session, err := mb.setName(fooName).setCmd(foo.withImagePath(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		inspectFoo := new(inspectMachine)
+		inspectFoo = inspectFoo.withFormat("{{.SSHConfig.IdentityPath}}")
+		inspectSession, err := mb.setName(fooName).setCmd(inspectFoo).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(inspectSession).To(Exit(0))
+		fooIdentityPath := inspectSession.outputToString()
+
+		rmFoo := new(rmMachine)
+		stop, err := mb.setName(fooName).setCmd(rmFoo.withForce()).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(stop).To(Exit(0))
+
+		_, err = os.Stat(fooIdentityPath)
+		Expect(err).ToNot(HaveOccurred())
+		_, err = os.Stat(fooIdentityPath + ".pub")
 		Expect(err).ToNot(HaveOccurred())
 	})
 })

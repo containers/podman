@@ -531,7 +531,7 @@ func TestValidateSysctlBadSysctlWithExtraSpaces(t *testing.T) {
 func TestGetIdentityPath(t *testing.T) {
 	name := "p-test"
 	identityPath := GetIdentityPath(name)
-	assert.Equal(t, identityPath, filepath.Join(homedir.Get(), ".ssh", name))
+	assert.Equal(t, identityPath, filepath.Join(homedir.Get(), ".local", "share", "containers", "podman", "machine", name))
 }
 
 func TestCoresToPeriodAndQuota(t *testing.T) {

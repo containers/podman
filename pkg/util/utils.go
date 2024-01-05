@@ -1184,7 +1184,7 @@ func ExitCode(err error) int {
 }
 
 func GetIdentityPath(name string) string {
-	return filepath.Join(homedir.Get(), ".ssh", name)
+	return filepath.Join(homedir.Get(), ".local", "share", "containers", "podman", "machine", name)
 }
 
 func Tmpdir() string {

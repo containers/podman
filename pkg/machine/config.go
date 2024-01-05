@@ -113,7 +113,6 @@ type StopOptions struct{}
 
 type RemoveOptions struct {
 	Force        bool
-	SaveKeys     bool
 	SaveImage    bool
 	SaveIgnition bool
 }
