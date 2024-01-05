@@ -23,7 +23,6 @@ import (
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/inspect"
-	"github.com/containers/podman/v4/pkg/util"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/reexec"
@@ -33,6 +32,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 	"golang.org/x/sys/unix"
 )
 
@@ -1043,7 +1043,7 @@ func (p *PodmanTestIntegration) PodmanNoEvents(args []string) *PodmanSessionInte
 // MakeOptions assembles all the podman main options
 func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache bool) []string {
 	if p.RemoteTest {
-		if !util.StringInSlice("--remote", args) {
+		if !slices.Contains(args, "--remote") {
 			return append([]string{"--remote", "--url", p.RemoteSocket}, args...)
 		}
 		return args

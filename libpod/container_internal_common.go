@@ -32,7 +32,6 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/subscriptions"
 	"github.com/containers/common/pkg/umask"
-	cutil "github.com/containers/common/pkg/util"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
@@ -54,6 +53,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 	"golang.org/x/sys/unix"
 	cdi "tags.cncf.io/container-device-interface/pkg/cdi"
 )
@@ -193,7 +193,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	overrides := c.getUserOverrides()
 	execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, c.config.User, overrides)
 	if err != nil {
-		if cutil.StringInSlice(c.config.User, c.config.HostUsers) {
+		if slices.Contains(c.config.HostUsers, c.config.User) {
 			execUser, err = lookupHostUser(c.config.User)
 		}
 		if err != nil {
@@ -2495,7 +2495,7 @@ func (c *Container) setHomeEnvIfNeeded() error {
 		overrides := c.getUserOverrides()
 		execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, c.config.User, overrides)
 		if err != nil {
-			if cutil.StringInSlice(c.config.User, c.config.HostUsers) {
+			if slices.Contains(c.config.HostUsers, c.config.User) {
 				execUser, err = lookupHostUser(c.config.User)
 			}
 

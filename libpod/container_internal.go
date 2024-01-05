@@ -47,6 +47,7 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 	"golang.org/x/sys/unix"
 )
 
@@ -1794,7 +1795,7 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		return nil, err
 	}
 	_, hasNoCopy := vol.config.Options["nocopy"]
-	if vol.state.NeedsCopyUp && !cutil.StringInSlice("nocopy", v.Options) && !hasNoCopy {
+	if vol.state.NeedsCopyUp && !slices.Contains(v.Options, "nocopy") && !hasNoCopy {
 		logrus.Debugf("Copying up contents from container %s to volume %s", c.ID(), vol.Name())
 
 		srcDir, err := securejoin.SecureJoin(mountpoint, v.Dest)

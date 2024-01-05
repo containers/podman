@@ -4,12 +4,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	jsoniter "github.com/json-iterator/go"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	"golang.org/x/exp/slices"
 )
 
 var _ = Describe("podman machine list", func() {
@@ -75,8 +75,8 @@ var _ = Describe("podman machine list", func() {
 
 		listNames := secondList.outputToStringSlice()
 		stripAsterisk(listNames)
-		Expect(util.StringInSlice(name1, listNames)).To(BeTrue())
-		Expect(util.StringInSlice(name2, listNames)).To(BeTrue())
+		Expect(slices.Contains(listNames, name1)).To(BeTrue())
+		Expect(slices.Contains(listNames, name2)).To(BeTrue())
 	})
 
 	It("list machine: check if running while starting", func() {
@@ -136,7 +136,7 @@ var _ = Describe("podman machine list", func() {
 
 		listNames := listSession.outputToStringSlice()
 		stripAsterisk(listNames)
-		Expect(util.StringInSlice(name1, listNames)).To(BeTrue())
+		Expect(slices.Contains(listNames, name1)).To(BeTrue())
 
 		// --format json
 		list2 := new(listMachine)

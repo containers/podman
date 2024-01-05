@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
+	"golang.org/x/exp/slices"
 )
 
 var (
@@ -59,7 +59,7 @@ func (s *SpecGenerator) Validate() error {
 		return fmt.Errorf("cannot set hostname when running in the host UTS namespace: %w", ErrInvalidSpecConfig)
 	}
 	// systemd values must be true, false, or always
-	if len(s.ContainerBasicConfig.Systemd) > 0 && !util.StringInSlice(strings.ToLower(s.ContainerBasicConfig.Systemd), SystemDValues) {
+	if len(s.ContainerBasicConfig.Systemd) > 0 && !slices.Contains(SystemDValues, strings.ToLower(s.ContainerBasicConfig.Systemd)) {
 		return fmt.Errorf("--systemd values must be one of %q: %w", strings.Join(SystemDValues, ", "), ErrInvalidSpecConfig)
 	}
 
@@ -75,7 +75,7 @@ func (s *SpecGenerator) Validate() error {
 		return exclusiveOptions("rootfs", "image")
 	}
 	// imagevolumemode must be one of ignore, tmpfs, or anonymous if given
-	if len(s.ContainerStorageConfig.ImageVolumeMode) > 0 && !util.StringInSlice(strings.ToLower(s.ContainerStorageConfig.ImageVolumeMode), ImageVolumeModeValues) {
+	if len(s.ContainerStorageConfig.ImageVolumeMode) > 0 && !slices.Contains(ImageVolumeModeValues, strings.ToLower(s.ContainerStorageConfig.ImageVolumeMode)) {
 		return fmt.Errorf("invalid ImageVolumeMode %q, value must be one of %s",
 			s.ContainerStorageConfig.ImageVolumeMode, strings.Join(ImageVolumeModeValues, ","))
 	}

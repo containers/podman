@@ -8,8 +8,8 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
-	"github.com/containers/podman/v4/pkg/util"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slices"
 )
 
 var (
@@ -91,7 +91,7 @@ func farmUpdate(cmd *cobra.Command, args []string) error {
 
 		for _, cRemove := range updateOpts.Remove {
 			connections := cfg.Farms.List[farmName]
-			if util.StringInSlice(cRemove, connections) {
+			if slices.Contains(connections, cRemove) {
 				delete(cMap, cRemove)
 			} else {
 				return fmt.Errorf("cannot remove from farm, %q is not a connection in the farm", cRemove)

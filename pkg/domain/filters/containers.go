@@ -13,6 +13,7 @@ import (
 	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
+	"golang.org/x/exp/slices"
 )
 
 // GenerateContainerFilterFuncs return ContainerFilter functions based of filter.
@@ -263,7 +264,7 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 				return false
 			}
 			for _, net := range networks {
-				if util.StringInSlice(net, inputNetNames) {
+				if slices.Contains(inputNetNames, net) {
 					return true
 				}
 			}

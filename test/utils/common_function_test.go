@@ -38,13 +38,6 @@ var _ = Describe("Common functions test", func() {
 		Expect(session.Command.Process).ShouldNot(BeNil(), "SystemExec cannot start a process")
 	})
 
-	It("Test StringInSlice", func() {
-		testSlice := []string{"apple", "peach", "pear"}
-		Expect(StringInSlice("apple", testSlice)).To(BeTrue(), "apple should in ['apple', 'peach', 'pear']")
-		Expect(StringInSlice("banana", testSlice)).ShouldNot(BeTrue(), "banana should not in ['apple', 'peach', 'pear']")
-		Expect(StringInSlice("anything", []string{})).ShouldNot(BeTrue(), "anything should not in empty slice")
-	})
-
 	DescribeTable("Test GetHostDistributionInfo",
 		func(path, id, ver string, empty bool) {
 			txt := fmt.Sprintf("ID=%s\nVERSION_ID=%s", id, ver)

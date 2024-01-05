@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"golang.org/x/exp/slices"
 )
 
 var _ = Describe("Podman networks", func() {
@@ -148,7 +149,7 @@ var _ = Describe("Podman networks", func() {
 		Expect(len(list)).To(BeNumerically(">=", 5))
 		for _, n := range list {
 			if n.Name != "podman" {
-				Expect(StringInSlice(n.Name, netNames)).To(BeTrue())
+				Expect(slices.Contains(netNames, n.Name)).To(BeTrue())
 			}
 		}
 

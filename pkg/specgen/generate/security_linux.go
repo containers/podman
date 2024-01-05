@@ -10,7 +10,6 @@ import (
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/common/pkg/config"
-	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/specgen"
@@ -18,6 +17,7 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 // setLabelOpts sets the label options of the SecurityConfig according to the
@@ -123,7 +123,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 		// capabilities, required to run the container.
 		var capsRequiredRequested []string
 		for key, val := range s.Labels {
-			if cutil.StringInSlice(key, capabilities.ContainerImageLabels) {
+			if slices.Contains(capabilities.ContainerImageLabels, key) {
 				capsRequiredRequested = strings.Split(val, ",")
 			}
 		}
@@ -137,7 +137,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 			}
 			// Verify all capRequired are in the capList
 			for _, cap := range capsRequired {
-				if !cutil.StringInSlice(cap, caplist) {
+				if !slices.Contains(caplist, cap) {
 					privCapsRequired = append(privCapsRequired, cap)
 				}
 			}

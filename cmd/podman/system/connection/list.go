@@ -8,12 +8,12 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/report"
-	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/system"
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slices"
 )
 
 var (
@@ -89,7 +89,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 	}
 	rows := make([]namedDestination, 0)
 	for k, v := range cfg.Engine.ServiceDestinations {
-		if args != nil && !util.StringInSlice(k, args) {
+		if args != nil && !slices.Contains(args, k) {
 			continue
 		}
 

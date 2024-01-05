@@ -11,7 +11,6 @@ import (
 	"github.com/containers/buildah/pkg/cli"
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/config"
-	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/cmd/podman/common"
@@ -24,6 +23,7 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slices"
 	"golang.org/x/term"
 )
 
@@ -134,7 +134,7 @@ func create(cmd *cobra.Command, args []string) error {
 		if !cmd.Flags().Changed("pod") {
 			return errors.New("must specify pod value with init-ctr")
 		}
-		if !cutil.StringInSlice(initctr, []string{define.AlwaysInitContainer, define.OneShotInitContainer}) {
+		if !slices.Contains([]string{define.AlwaysInitContainer, define.OneShotInitContainer}, initctr) {
 			return fmt.Errorf("init-ctr value must be '%s' or '%s'", define.AlwaysInitContainer, define.OneShotInitContainer)
 		}
 		cliVals.InitContainerType = initctr

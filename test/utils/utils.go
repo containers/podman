@@ -404,16 +404,6 @@ func StartSystemExec(command string, args []string) *PodmanSession {
 	return &PodmanSession{session}
 }
 
-// StringInSlice determines if a string is in a string slice, returns bool
-func StringInSlice(s string, sl []string) bool {
-	for _, i := range sl {
-		if i == s {
-			return true
-		}
-	}
-	return false
-}
-
 // tagOutPutToMap parses each string in imagesOutput and returns
 // a map whose key is a repo, and value is another map whose keys
 // are the tags found for that repo. Notice, the first array item will

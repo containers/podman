@@ -21,7 +21,6 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/parse"
 	"github.com/containers/common/pkg/secrets"
-	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/image/v5/manifest"
 	itypes "github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/libpod/define"
@@ -487,7 +486,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 				// Make sure the z/Z option is not already there (from editing the YAML)
 				if k == define.BindMountPrefix {
 					lastIndex := strings.LastIndex(v, ":")
-					if lastIndex != -1 && v[:lastIndex] == volumeSource.Source && !cutil.StringInSlice("z", options) && !cutil.StringInSlice("Z", options) {
+					if lastIndex != -1 && v[:lastIndex] == volumeSource.Source && !slices.Contains(options, "z") && !slices.Contains(options, "Z") {
 						options = append(options, v[lastIndex+1:])
 					}
 				}
