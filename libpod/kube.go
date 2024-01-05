@@ -17,7 +17,6 @@ import (
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
-	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -32,6 +31,7 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 // GenerateForKube takes a slice of libpod containers and generates
@@ -729,7 +729,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 			for _, ulimit := range ctr.config.Spec.Process.Rlimits {
 				finalUlimit := strings.ToLower(strings.ReplaceAll(ulimit.Type, "RLIMIT_", "")) + "=" + strconv.Itoa(int(ulimit.Soft)) + ":" + strconv.Itoa(int(ulimit.Hard))
 				// compare ulimit with default list so we don't add it twice
-				if cutil.StringInSlice(finalUlimit, defaultUlimits) {
+				if slices.Contains(defaultUlimits, finalUlimit) {
 					continue
 				}
 
@@ -768,7 +768,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 					podDNS.Nameservers = make([]string, 0)
 				}
 				for _, s := range servers {
-					if !cutil.StringInSlice(s, podDNS.Nameservers) { // only append if it does not exist
+					if !slices.Contains(podDNS.Nameservers, s) { // only append if it does not exist
 						podDNS.Nameservers = append(podDNS.Nameservers, s)
 					}
 				}
@@ -779,7 +779,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 					podDNS.Searches = make([]string, 0)
 				}
 				for _, d := range domains {
-					if !cutil.StringInSlice(d, podDNS.Searches) { // only append if it does not exist
+					if !slices.Contains(podDNS.Searches, d) { // only append if it does not exist
 						podDNS.Searches = append(podDNS.Searches, d)
 					}
 				}
@@ -796,7 +796,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 	podName := removeUnderscores(ctrs[0].Name())
 	// Check if the pod name and container name will end up conflicting
 	// Append -pod if so
-	if cutil.StringInSlice(podName, ctrNames) {
+	if slices.Contains(ctrNames, podName) {
 		podName += "-pod"
 	}
 
@@ -1114,7 +1114,7 @@ func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, []v1.Volume
 
 // generateKubePersistentVolumeClaim converts a ContainerNamedVolume to a Kubernetes PersistentVolumeClaim
 func generateKubePersistentVolumeClaim(v *ContainerNamedVolume) (v1.VolumeMount, v1.Volume) {
-	ro := cutil.StringInSlice("ro", v.Options)
+	ro := slices.Contains(v.Options, "ro")
 
 	// To avoid naming conflicts with any host path mounts, add a unique suffix to the volume's name.
 	name := v.Name + "-pvc"
@@ -1175,7 +1175,7 @@ func generateKubeVolumeMount(m specs.Mount) (v1.VolumeMount, v1.Volume, error) {
 	}
 	vm.Name = name
 	vm.MountPath = m.Destination
-	if cutil.StringInSlice("ro", m.Options) {
+	if slices.Contains(m.Options, "ro") {
 		vm.ReadOnly = true
 	}
 
@@ -1216,7 +1216,7 @@ func determineCapAddDropFromCapabilities(defaultCaps, containerCaps []string) *v
 	// Find caps in the defaultCaps but not in the container's
 	// those indicate a dropped cap
 	for _, capability := range defaultCaps {
-		if !cutil.StringInSlice(capability, containerCaps) {
+		if !slices.Contains(containerCaps, capability) {
 			if _, ok := dedupDrop[capability]; !ok {
 				drop = append(drop, v1.Capability(capability))
 				dedupDrop[capability] = true
@@ -1226,7 +1226,7 @@ func determineCapAddDropFromCapabilities(defaultCaps, containerCaps []string) *v
 	// Find caps in the container but not in the defaults; those indicate
 	// an added cap
 	for _, capability := range containerCaps {
-		if !cutil.StringInSlice(capability, defaultCaps) {
+		if !slices.Contains(defaultCaps, capability) {
 			if _, ok := dedupAdd[capability]; !ok {
 				add = append(add, v1.Capability(capability))
 				dedupAdd[capability] = true

@@ -9,7 +9,6 @@ import (
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/cgroups"
-	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/namespaces"
 	"github.com/containers/podman/v4/pkg/rootless"
@@ -17,6 +16,7 @@ import (
 	"github.com/containers/storage"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"golang.org/x/exp/slices"
 )
 
 type NamespaceMode string
@@ -445,8 +445,8 @@ func ParseNetworkFlag(networks []string, pastaNetworkNameExists bool) (Namespace
 				return toReturn, nil, nil, fmt.Errorf("network name cannot be empty: %w", define.ErrInvalidArg)
 			}
 			// TODO (5.0): Don't accept string(Pasta) here once we drop pastaNetworkNameExists
-			if cutil.StringInSlice(parts[0], []string{string(Bridge), string(Slirp), string(FromPod), string(NoNetwork),
-				string(Default), string(Private), string(Path), string(FromContainer), string(Host)}) {
+			if slices.Contains([]string{string(Bridge), string(Slirp), string(FromPod), string(NoNetwork),
+				string(Default), string(Private), string(Path), string(FromContainer), string(Host)}, parts[0]) {
 				return toReturn, nil, nil, fmt.Errorf("can only set extra network names, selected mode %s conflicts with bridge: %w", parts[0], define.ErrInvalidArg)
 			}
 			netOpts := types.PerNetworkOptions{}

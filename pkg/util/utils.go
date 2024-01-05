@@ -18,7 +18,6 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/common/pkg/util"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/errorhandling"
@@ -161,11 +160,6 @@ func ParseRegistryCreds(creds string) (*types.DockerAuthConfig, error) {
 	}, nil
 }
 
-// StringInSlice is deprecated, use containers/common/pkg/util/StringInSlice
-func StringInSlice(s string, sl []string) bool {
-	return util.StringInSlice(s, sl)
-}
-
 // StringMatchRegexSlice determines if a given string matches one of the given regexes, returns bool
 func StringMatchRegexSlice(s string, re []string) bool {
 	for _, r := range re {
@@ -175,17 +169,6 @@ func StringMatchRegexSlice(s string, re []string) bool {
 		}
 	}
 	return false
-}
-
-// IndexOfStringInSlice returns the index if a string is in a slice, otherwise
-// it returns -1 if the string is not found
-func IndexOfStringInSlice(s string, sl []string) int {
-	for i := range sl {
-		if sl[i] == s {
-			return i
-		}
-	}
-	return -1
 }
 
 // ParseSignal parses and validates a signal name or number.

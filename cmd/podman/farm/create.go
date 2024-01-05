@@ -6,8 +6,8 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/cmd/podman/registry"
-	"github.com/containers/podman/v4/pkg/util"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slices"
 )
 
 var (
@@ -55,7 +55,7 @@ func create(cmd *cobra.Command, args []string) error {
 
 	for _, c := range connections {
 		if _, ok := cfg.Engine.ServiceDestinations[c]; ok {
-			if util.StringInSlice(c, cfg.Farms.List[farmName]) {
+			if slices.Contains(cfg.Farms.List[farmName], c) {
 				// Don't add duplicate connections to a farm
 				continue
 			}

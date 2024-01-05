@@ -7,8 +7,8 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/system"
-	"github.com/containers/podman/v4/pkg/util"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slices"
 )
 
 var (
@@ -80,7 +80,7 @@ func rm(cmd *cobra.Command, args []string) error {
 
 	// If there are existing farm, remove the deleted connection that might be part of a farm
 	for k, v := range cfg.Farms.List {
-		index := util.IndexOfStringInSlice(args[0], v)
+		index := slices.Index(v, args[0])
 		if index > -1 {
 			cfg.Farms.List[k] = append(v[:index], v[index+1:]...)
 		}

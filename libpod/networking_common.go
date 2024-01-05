@@ -12,13 +12,13 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/machine"
-	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/namespaces"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 // convertPortMappings will remove the HostIP part from the ports when running inside podman machine.
@@ -597,7 +597,7 @@ func getFreeInterfaceName(networks map[string]types.PerNetworkOptions) string {
 	}
 	for i := 0; i < 100000; i++ {
 		ifName := fmt.Sprintf("eth%d", i)
-		if !util.StringInSlice(ifName, ifNames) {
+		if !slices.Contains(ifNames, ifName) {
 			return ifName
 		}
 	}

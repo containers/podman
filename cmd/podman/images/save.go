@@ -8,13 +8,13 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
-	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/parse"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slices"
 	"golang.org/x/term"
 )
 
@@ -38,7 +38,7 @@ var (
 			if err != nil {
 				return err
 			}
-			if !util.StringInSlice(format, common.ValidSaveFormats) {
+			if !slices.Contains(common.ValidSaveFormats, format) {
 				return fmt.Errorf("format value must be one of %s", strings.Join(common.ValidSaveFormats, " "))
 			}
 			return nil

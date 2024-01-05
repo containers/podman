@@ -12,13 +12,13 @@ import (
 
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/define"
-	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/types"
+	"golang.org/x/exp/slices"
 )
 
 var originalHomeDir = os.Getenv("HOME")
@@ -122,7 +122,7 @@ func (m *machineTestBuilder) setName(name string) *machineTestBuilder {
 // representation of the podman machine command
 func (m *machineTestBuilder) setCmd(mc machineCommand) *machineTestBuilder {
 	// If no name for the machine exists, we set a random name.
-	if !util.StringInSlice(m.name, m.names) {
+	if !slices.Contains(m.names, m.name) {
 		if len(m.name) < 1 {
 			m.name = randomString()
 		}

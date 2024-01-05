@@ -6,11 +6,11 @@ import (
 	"regexp"
 
 	"github.com/containers/common/pkg/completion"
-	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slices"
 )
 
 var (
@@ -60,7 +60,7 @@ func setTrust(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if !util.StringInSlice(setOptions.Type, validTrustTypes) {
+	if !slices.Contains(validTrustTypes, setOptions.Type) {
 		return fmt.Errorf("invalid choice: %s (choose from 'accept', 'reject', 'signedBy', 'sigstoreSigned')", setOptions.Type)
 	}
 	return registry.ImageEngine().SetTrust(registry.Context(), args, setOptions)

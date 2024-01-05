@@ -17,7 +17,6 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
-	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/libpod/shutdown"
@@ -31,6 +30,7 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 // Contains the public Runtime API for containers
@@ -256,7 +256,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		for _, opts := range ctr.config.Networks {
 			if opts.InterfaceName != "" {
 				// check that no name is assigned to more than network
-				if cutil.StringInSlice(opts.InterfaceName, usedIfNames) {
+				if slices.Contains(usedIfNames, opts.InterfaceName) {
 					return nil, fmt.Errorf("network interface name %q is already assigned to another network", opts.InterfaceName)
 				}
 				usedIfNames = append(usedIfNames, opts.InterfaceName)
@@ -272,7 +272,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 			if opts.InterfaceName == "" {
 				for i < 100000 {
 					ifName := fmt.Sprintf("eth%d", i)
-					if !cutil.StringInSlice(ifName, usedIfNames) {
+					if !slices.Contains(usedIfNames, ifName) {
 						opts.InterfaceName = ifName
 						usedIfNames = append(usedIfNames, ifName)
 						break

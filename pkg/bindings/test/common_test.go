@@ -246,17 +246,6 @@ func (b *bindingTest) PodcreateAndExpose(name *string, port *string) {
 	b.runPodman(command).Wait(45)
 }
 
-// StringInSlice returns a boolean based on whether a given
-// string is in a given slice
-func StringInSlice(s string, sl []string) bool {
-	for _, val := range sl {
-		if s == val {
-			return true
-		}
-	}
-	return false
-}
-
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	// make cache dir
 	err := os.MkdirAll(ImageCacheDir, 0777)

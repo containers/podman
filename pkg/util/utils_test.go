@@ -13,10 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	sliceData = []string{"one", "two", "three", "four"}
-)
-
 func BreakInsert(mapping []idtools.IDMap, extension idtools.IDMap) (result []idtools.IDMap) {
 	result = breakInsert(mapping, extension)
 	result = sortAndMergeConsecutiveMappings(result)
@@ -483,15 +479,6 @@ func TestGetAvailableIDRanges(t *testing.T) {
 	expectedResult := [][2]int{{0, 2}, {4, 25}, {55, 70}}
 	result := getAvailableIDRanges(all, used)
 	assert.Equal(t, expectedResult, result)
-}
-
-func TestStringInSlice(t *testing.T) {
-	// string is in the slice
-	assert.True(t, StringInSlice("one", sliceData))
-	// string is not in the slice
-	assert.False(t, StringInSlice("five", sliceData))
-	// string is not in empty slice
-	assert.False(t, StringInSlice("one", []string{}))
 }
 
 func TestValidateSysctls(t *testing.T) {
