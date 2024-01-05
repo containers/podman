@@ -32,7 +32,6 @@ var (
 		Args:              cobra.ArbitraryArgs,
 		ValidArgsFunction: common.AutocompleteTopCmd,
 		Example: `podman top ctrID
-podman top --latest
 podman top ctrID pid seccomp args %C
 podman top ctrID -eo user,pid,comm`,
 	}
@@ -44,7 +43,6 @@ podman top ctrID -eo user,pid,comm`,
 		RunE:              topCommand.RunE,
 		ValidArgsFunction: topCommand.ValidArgsFunction,
 		Example: `podman container top ctrID
-podman container top --latest
 podman container top ctrID pid seccomp args %C
 podman container top ctrID -eo user,pid,comm`,
 	}

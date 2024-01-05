@@ -36,7 +36,7 @@ var (
 		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman container checkpoint --keep ctrID
   podman container checkpoint --all
-  podman container checkpoint --leave-running --latest`,
+  podman container checkpoint --leave-running ctrID`,
 	}
 )
 

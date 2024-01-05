@@ -24,8 +24,7 @@ var (
 		RunE:              start,
 		Args:              validateStart,
 		ValidArgsFunction: common.AutocompleteContainersStartable,
-		Example: `podman start --latest
-  podman start 860a4b231279 5421ab43b45
+		Example: `podman start 860a4b231279 5421ab43b45
   podman start --interactive --attach imageID`,
 	}
 
@@ -36,8 +35,7 @@ var (
 		RunE:              startCommand.RunE,
 		Args:              startCommand.Args,
 		ValidArgsFunction: startCommand.ValidArgsFunction,
-		Example: `podman container start --latest
-  podman container start 860a4b231279 5421ab43b45
+		Example: `podman container start 860a4b231279 5421ab43b45
   podman container start --interactive --attach imageID`,
 	}
 )

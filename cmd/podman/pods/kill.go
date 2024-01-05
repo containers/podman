@@ -26,8 +26,7 @@ var (
 		},
 		ValidArgsFunction: common.AutocompletePodsRunning,
 		Example: `podman pod kill podID
-  podman pod kill --signal TERM mywebserver
-  podman pod kill --latest`,
+  podman pod kill --signal TERM mywebserver`,
 	}
 )
 

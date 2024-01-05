@@ -30,7 +30,6 @@ var (
 		},
 		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman restart ctrID
-  podman restart --latest
   podman restart ctrID1 ctrID2`,
 	}
 
@@ -42,7 +41,6 @@ var (
 		Args:              restartCommand.Args,
 		ValidArgsFunction: restartCommand.ValidArgsFunction,
 		Example: `podman container restart ctrID
-  podman container restart --latest
   podman container restart ctrID1 ctrID2`,
 	}
 )

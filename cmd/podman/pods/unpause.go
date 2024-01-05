@@ -26,8 +26,7 @@ var (
 		},
 		ValidArgsFunction: common.AutoCompletePodsPause,
 		Example: `podman pod unpause podID1 podID2
-  podman pod unpause --all
-  podman pod unpause --latest`,
+  podman pod unpause --all`,
 	}
 )
 

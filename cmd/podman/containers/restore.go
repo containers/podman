@@ -32,7 +32,6 @@ var (
 		ValidArgsFunction: common.AutocompleteContainersAndImages,
 		Example: `podman container restore ctrID
   podman container restore imageID
-  podman container restore --latest
   podman container restore --all`,
 	}
 )
