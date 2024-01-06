@@ -246,7 +246,8 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	readyUnitFile, err := createReadyUnit(m.ReadyHVSock.Port)
+	readyOpts := ignition.ReadyUnitOpts{Port: m.ReadyHVSock.Port}
+	readyUnitFile, err := ignition.CreateReadyUnitFile(define.HyperVVirt, &readyOpts)
 	if err != nil {
 		return false, err
 	}
@@ -292,13 +293,6 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
 	// read it so that we can put it into key-value pairs
 	err = m.readAndSplitIgnition()
 	return err == nil, err
-}
-
-func createReadyUnit(readyPort uint64) (string, error) {
-	readyUnit := ignition.DefaultReadyUnitFile()
-	readyUnit.Add("Unit", "After", "systemd-user-sessions.service")
-	readyUnit.Add("Service", "ExecStart", fmt.Sprintf("/bin/sh -c '/usr/bin/echo Ready | socat - VSOCK-CONNECT:2:%d'", readyPort))
-	return readyUnit.ToString()
 }
 
 func createNetworkUnit(netPort uint64) (string, error) {
