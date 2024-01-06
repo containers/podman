@@ -38,6 +38,18 @@ var _ = Describe("Podman pull", func() {
 		Expect(session.ErrorToString()).To(ContainSubstring("unauthorized: access to the requested resource is not authorized"))
 	})
 
+	It("podman pull with tag all output to stdout", func() {
+		session := podmanTest.Podman([]string{"pull", "quay.io/libpod/testdigest_v2s2:20200210"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.ErrorToString()).To(BeEmpty())
+		Expect(session.OutputToString()).To(ContainSubstring("Trying to pull quay.io/libpod/testdigest_v2s2:20200210"))
+
+		session = podmanTest.Podman([]string{"rmi", "testdigest_v2s2:20200210"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+	})
+
 	It("podman pull with tag --quiet", func() {
 		session := podmanTest.Podman([]string{"pull", "-q", "quay.io/libpod/testdigest_v2s2:20200210"})
 		session.WaitWithDefaultTimeout()

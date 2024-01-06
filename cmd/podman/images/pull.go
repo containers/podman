@@ -172,7 +172,7 @@ func imagePull(cmd *cobra.Command, args []string) error {
 	pullOptions.OciDecryptConfig = decConfig
 
 	if !pullOptions.Quiet {
-		pullOptions.Writer = os.Stderr
+		pullOptions.Writer = os.Stdout
 	}
 
 	// Let's do all the remaining Yoga in the API to prevent us from

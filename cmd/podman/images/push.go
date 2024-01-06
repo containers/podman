@@ -191,7 +191,7 @@ func imagePush(cmd *cobra.Command, args []string) error {
 	}
 
 	if !pushOptions.Quiet {
-		pushOptions.Writer = os.Stderr
+		pushOptions.Writer = os.Stdout
 	}
 
 	signingCleanup, err := common.PrepareSigning(&pushOptions.ImagePushOptions,
