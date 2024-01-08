@@ -30,7 +30,6 @@ var (
 		},
 		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman stop ctrID
-  podman stop --latest
   podman stop --time 2 mywebserver 6e534f14da9d`,
 	}
 
@@ -44,7 +43,6 @@ var (
 		},
 		ValidArgsFunction: stopCommand.ValidArgsFunction,
 		Example: `podman container stop ctrID
-  podman container stop --latest
   podman container stop --time 2 mywebserver 6e534f14da9d`,
 	}
 )

@@ -35,7 +35,6 @@ var (
 		},
 		ValidArgsFunction: common.AutocompletePods,
 		Example: `podman pod start podID
-  podman pod start --latest
   podman pod start --all`,
 	}
 )

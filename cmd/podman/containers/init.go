@@ -24,8 +24,7 @@ var (
 			return validate.CheckAllLatestAndIDFile(cmd, args, false, "")
 		},
 		ValidArgsFunction: common.AutocompleteContainersCreated,
-		Example: `podman init --latest
-  podman init 3c45ef19d893
+		Example: `podman init 3c45ef19d893
   podman init test1`,
 	}
 
@@ -36,8 +35,7 @@ var (
 		RunE:              initCommand.RunE,
 		Args:              initCommand.Args,
 		ValidArgsFunction: initCommand.ValidArgsFunction,
-		Example: `podman container init --latest
-  podman container init 3c45ef19d893
+		Example: `podman container init 3c45ef19d893
   podman container init test1`,
 	}
 )

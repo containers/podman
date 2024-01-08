@@ -31,7 +31,6 @@ var (
 		Args:              cobra.ArbitraryArgs,
 		ValidArgsFunction: common.AutocompleteTopCmd,
 		Example: `podman pod top podID
-podman pod top --latest
 podman pod top podID pid seccomp args %C
 podman pod top podID -eo user,pid,comm`,
 	}

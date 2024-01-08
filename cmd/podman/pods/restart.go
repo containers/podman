@@ -26,7 +26,6 @@ var (
 		},
 		ValidArgsFunction: common.AutocompletePods,
 		Example: `podman pod restart podID1 podID2
-  podman pod restart --latest
   podman pod restart --all`,
 	}
 )

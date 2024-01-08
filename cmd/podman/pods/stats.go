@@ -38,7 +38,6 @@ var (
 		ValidArgsFunction: common.AutocompletePodsRunning,
 		Example: `podman pod stats
   podman pod stats a69b23034235 named-pod
-  podman pod stats --latest
   podman pod stats --all`,
 	}
 )
