@@ -272,14 +272,13 @@ http://docs.microsoft.com/en-us/windows/wsl/install\
 `
 
 const (
-	gvProxy        = "gvproxy.exe"
-	winSShProxy    = "win-sshproxy.exe"
-	winSshProxyTid = "win-sshproxy.tid"
-	pipePrefix     = "npipe:////./pipe/"
-	globalPipe     = "docker_engine"
-	userModeDist   = "podman-net-usermode"
-	rootfulSock    = "/run/podman/podman.sock"
-	rootlessSock   = "/run/user/1000/podman/podman.sock"
+	gvProxy      = "gvproxy.exe"
+	winSShProxy  = "win-sshproxy.exe"
+	pipePrefix   = "npipe:////./pipe/"
+	globalPipe   = "docker_engine"
+	userModeDist = "podman-net-usermode"
+	rootfulSock  = "/run/podman/podman.sock"
+	rootlessSock = "/run/user/1000/podman/podman.sock"
 )
 
 type MachineVM struct {
@@ -1210,28 +1209,15 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		}
 		fmt.Printf("\n\tpodman machine set --rootful%s\n\n", suffix)
 	}
-
-	globalName, pipeName, err := launchWinProxy(v)
-	if !opts.NoInfo {
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "API forwarding for Docker API clients is not available due to the following startup failures.")
-			fmt.Fprintf(os.Stderr, "\t%s\n", err.Error())
-			fmt.Fprintln(os.Stderr, "\nPodman clients are still able to connect.")
-		} else {
-			fmt.Printf("API forwarding listening on: %s\n", pipeName)
-			if globalName {
-				fmt.Printf("\nDocker API clients default to this address. You do not need to set DOCKER_HOST.\n")
-			} else {
-				fmt.Printf("\nAnother process was listening on the default Docker API pipe address.\n")
-				fmt.Printf("You can still connect Docker API clients by setting DOCKER HOST using the\n")
-				fmt.Printf("following powershell command in your terminal session:\n")
-				fmt.Printf("\n\t$Env:DOCKER_HOST = '%s'\n", pipeName)
-				fmt.Printf("\nOr in a classic CMD prompt:\n")
-				fmt.Printf("\n\tset DOCKER_HOST=%s\n", pipeName)
-				fmt.Printf("\nAlternatively, terminate the other process and restart podman machine.\n")
-			}
-		}
+	winProxyOpts := machine.WinProxyOpts{
+		Name:           v.Name,
+		IdentityPath:   v.IdentityPath,
+		Port:           v.Port,
+		RemoteUsername: v.RemoteUsername,
+		Rootful:        v.Rootful,
+		VMType:         vmtype,
 	}
+	machine.LaunchWinProxy(winProxyOpts, opts.NoInfo)
 
 	_, _, err = v.updateTimeStamps(true)
 	return err
@@ -1303,85 +1289,6 @@ func (v *MachineVM) reassignSshPort() error {
 	success = true
 
 	return nil
-}
-
-func findExecutablePeer(name string) (string, error) {
-	exe, err := os.Executable()
-	if err != nil {
-		return "", err
-	}
-
-	exe, err = filepath.EvalSymlinks(exe)
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(filepath.Dir(exe), name), nil
-}
-
-func launchWinProxy(v *MachineVM) (bool, string, error) {
-	machinePipe := toDist(v.Name)
-	if !machine.PipeNameAvailable(machinePipe) {
-		return false, "", fmt.Errorf("could not start api proxy since expected pipe is not available: %s", machinePipe)
-	}
-
-	globalName := false
-	if machine.PipeNameAvailable(globalPipe) {
-		globalName = true
-	}
-
-	command, err := findExecutablePeer(winSShProxy)
-	if err != nil {
-		return globalName, "", err
-	}
-
-	stateDir, err := getWinProxyStateDir(v)
-	if err != nil {
-		return globalName, "", err
-	}
-
-	destSock := rootlessSock
-	forwardUser := v.RemoteUsername
-
-	if v.Rootful {
-		destSock = rootfulSock
-		forwardUser = "root"
-	}
-
-	dest := fmt.Sprintf("ssh://%s@localhost:%d%s", forwardUser, v.Port, destSock)
-	args := []string{v.Name, stateDir, pipePrefix + machinePipe, dest, v.IdentityPath}
-	waitPipe := machinePipe
-	if globalName {
-		args = append(args, pipePrefix+globalPipe, dest, v.IdentityPath)
-		waitPipe = globalPipe
-	}
-
-	cmd := exec.Command(command, args...)
-	if err := cmd.Start(); err != nil {
-		return globalName, "", err
-	}
-
-	return globalName, pipePrefix + waitPipe, machine.WaitPipeExists(waitPipe, 80, func() error {
-		active, exitCode := machine.GetProcessState(cmd.Process.Pid)
-		if !active {
-			return fmt.Errorf("win-sshproxy.exe failed to start, exit code: %d (see windows event logs)", exitCode)
-		}
-
-		return nil
-	})
-}
-
-func getWinProxyStateDir(v *MachineVM) (string, error) {
-	dir, err := machine.GetDataDir(vmtype)
-	if err != nil {
-		return "", err
-	}
-	stateDir := filepath.Join(dir, v.Name)
-	if err = os.MkdirAll(stateDir, 0755); err != nil {
-		return "", err
-	}
-
-	return stateDir, nil
 }
 
 func IsWSLFeatureEnabled() bool {
@@ -1489,7 +1396,7 @@ func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
 
 	_, _, _ = v.updateTimeStamps(true)
 
-	if err := stopWinProxy(v); err != nil {
+	if err := machine.StopWinProxy(v.Name, vmtype); err != nil {
 		fmt.Fprintf(os.Stderr, "Could not stop API forwarding service (win-sshproxy.exe): %s\n", err.Error())
 	}
 
@@ -1527,59 +1434,6 @@ func (v *MachineVM) State(bypass bool) (define.Status, error) {
 	}
 
 	return define.Stopped, nil
-}
-
-func stopWinProxy(v *MachineVM) error {
-	pid, tid, tidFile, err := readWinProxyTid(v)
-	if err != nil {
-		return err
-	}
-
-	proc, err := os.FindProcess(int(pid))
-	if err != nil {
-		return nil
-	}
-	sendQuit(tid)
-	_ = waitTimeout(proc, 20*time.Second)
-	_ = os.Remove(tidFile)
-
-	return nil
-}
-
-func waitTimeout(proc *os.Process, timeout time.Duration) bool {
-	done := make(chan bool)
-	go func() {
-		proc.Wait()
-		done <- true
-	}()
-	ret := false
-	select {
-	case <-time.After(timeout):
-		proc.Kill()
-		<-done
-	case <-done:
-		ret = true
-		break
-	}
-
-	return ret
-}
-
-func readWinProxyTid(v *MachineVM) (uint32, uint32, string, error) {
-	stateDir, err := getWinProxyStateDir(v)
-	if err != nil {
-		return 0, 0, "", err
-	}
-
-	tidFile := filepath.Join(stateDir, winSshProxyTid)
-	contents, err := os.ReadFile(tidFile)
-	if err != nil {
-		return 0, 0, "", err
-	}
-
-	var pid, tid uint32
-	fmt.Sscanf(string(contents), "%d:%d", &pid, &tid)
-	return pid, tid, tidFile, nil
 }
 
 //nolint:cyclop

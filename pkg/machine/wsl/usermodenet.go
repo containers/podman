@@ -74,7 +74,7 @@ func (v *MachineVM) startUserModeNetworking() error {
 		return nil
 	}
 
-	exe, err := findExecutablePeer(gvProxy)
+	exe, err := machine.FindExecutablePeer(gvProxy)
 	if err != nil {
 		return fmt.Errorf("could not locate %s, which is necessary for user-mode networking, please reinstall", gvProxy)
 	}

@@ -338,11 +338,14 @@ func (m *HyperVMachine) Inspect() (*machine.InspectInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	machinePipe := machine.ToDist(m.Name)
+	podmanPipe := &define.VMFile{Path: `\\.\pipe\` + machinePipe}
 
 	return &machine.InspectInfo{
 		ConfigPath: m.ConfigPath,
 		ConnectionInfo: machine.ConnectionConfig{
 			PodmanSocket: podmanSocket,
+			PodmanPipe:   podmanPipe,
 		},
 		Created: m.Created,
 		Image: machine.ImageConfig{
@@ -587,6 +590,15 @@ func (m *HyperVMachine) Start(name string, opts machine.StartOptions) error {
 			m.HostUser.Modified = false
 		}
 	}
+	winProxyOpts := machine.WinProxyOpts{
+		Name:           m.Name,
+		IdentityPath:   m.IdentityPath,
+		Port:           m.Port,
+		RemoteUsername: m.RemoteUsername,
+		Rootful:        m.Rootful,
+		VMType:         vmtype,
+	}
+	machine.LaunchWinProxy(winProxyOpts, opts.NoInfo)
 
 	// Write the config with updated starting status and hostuser modification
 	if err := m.writeConfig(); err != nil {
@@ -646,6 +658,10 @@ func (m *HyperVMachine) Stop(name string, opts machine.StopOptions) error {
 
 	if err := machine.CleanupGVProxy(m.GvProxyPid); err != nil {
 		logrus.Error(err)
+	}
+
+	if err := machine.StopWinProxy(m.Name, vmtype); err != nil {
+		fmt.Fprintf(os.Stderr, "Could not stop API forwarding service (win-sshproxy.exe): %s\n", err.Error())
 	}
 
 	if err := vm.Stop(); err != nil {
