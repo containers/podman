@@ -184,16 +184,18 @@ EOF
 
     # Wait for the container to be running
     container_a=test_pod-test
+    container_running=
     for i in $(seq 1 20); do
         run_podman "?" container wait $container_a --condition="running"
         if [[ $status == 0 ]]; then
+            container_running=1
             break
         fi
         sleep 0.5
         # Just for debugging
         run_podman ps -a
     done
-    if [[ $status != 0 ]]; then
+    if [[ -z "$container_running" ]]; then
         die "container $container_a did not start"
     fi
 
@@ -573,7 +575,7 @@ EOF
     # Create the YAMl file, with two pods, each with one container
     yaml_source="$PODMAN_TMPDIR/test.yaml"
     for n in 1 2;do
-        _write_test_yaml labels="app: pod$n" name="pod$n" ctrname="ctr$n"
+        _write_test_yaml labels="app: pod$n" name="pod$n" ctrname="ctr$n" command=top
 
         # Separator between two yaml halves
         if [[ $n = 1 ]]; then
@@ -592,17 +594,19 @@ EOF
     service_container="${yaml_sha:0:12}-service"
     # Wait for the containers to be running
     container_1=pod1-ctr1
-    container_2=pod1-ctr2
+    container_2=pod2-ctr2
+    containers_running=
     for i in $(seq 1 20); do
         run_podman "?" container wait $container_1 $container_2 $service_container --condition="running"
         if [[ $status == 0 ]]; then
+            containers_running=1
             break
         fi
         sleep 0.5
         # Just for debugging
         run_podman ps -a
     done
-    if [[ $status != 0 ]]; then
+    if [[ -z "$containers_running" ]]; then
         die "container $container_1, $container_2 and/or $service_container did not start"
     fi
 

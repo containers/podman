@@ -9,7 +9,7 @@ load helpers.systemd
 SERVICE_NAME="podman_test_$(random_string)"
 
 UNIT_FILE="$UNIT_DIR/$SERVICE_NAME.service"
-TEMPLATE_FILE_PREFIX="$UNIT_DIR/$SERVICE_NAME"
+TEMPLATE_FILE="$UNIT_DIR/$SERVICE_NAME@.service"
 
 function setup() {
     skip_if_remote "systemd tests are meaningless over remote"
@@ -33,11 +33,19 @@ function teardown() {
 
 # Helper to start a systemd service running a container
 function service_setup() {
-    run_podman generate systemd \
+    # January 2024: we can no longer do "run_podman generate systemd" followed
+    # by "echo $output >file", because generate-systemd is deprecated and now
+    # says so loudly, to stderr, with no way to silence it. Since BATS gloms
+    # stdout + stderr, that warning goes to the unit file. (Today's systemd
+    # is forgiving about that, but RHEL8 systemd chokes with EINVAL)
+    (
+        cd $UNIT_DIR
+        run_podman generate systemd --files --name \
                -e http_proxy -e https_proxy -e no_proxy \
                -e HTTP_PROXY -e HTTPS_PROXY -e NO_PROXY \
                --new $cname
-    echo "$output" > "$UNIT_FILE"
+        mv "container-$cname.service" $UNIT_FILE
+    )
     run_podman rm $cname
 
     systemctl daemon-reload
@@ -223,8 +231,12 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     cname=$(random_string)
     run_podman create --name $cname $IMAGE top
 
-    run_podman generate systemd --template -n $cname
-    echo "$output" > "$TEMPLATE_FILE_PREFIX@.service"
+    # See note in service_setup() above re: using --files
+    (
+        cd $UNIT_DIR
+        run_podman generate systemd --template --files -n $cname
+        mv "container-$cname.service" $TEMPLATE_FILE
+    )
     run_podman rm -f $cname
 
     systemctl daemon-reload
@@ -239,7 +251,7 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     run systemctl stop "$INSTANCE"
     assert $status -eq 0 "Error stopping systemd unit $INSTANCE: $output"
 
-    rm -f "$TEMPLATE_FILE_PREFIX@.service"
+    rm -f $TEMPLATE_FILE
     systemctl daemon-reload
 }
 
