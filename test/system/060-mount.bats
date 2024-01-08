@@ -308,6 +308,21 @@ EOF
 }
 
 @test "podman mount noswap memory mounts" {
+    # tmpfs+noswap new in kernel 6.x, mid-2023; likely not in RHEL for a while
+    if ! is_rootless; then
+        testmount=$PODMAN_TMPDIR/testmount
+        mkdir $testmount
+        run mount -t tmpfs -o noswap none $testmount
+        if [[ $status -ne 0 ]]; then
+            if [[ $output =~ "bad option" ]]; then
+                skip "requires kernel with tmpfs + noswap support"
+            fi
+            die "Could not test for tmpfs + noswap support: $output"
+        else
+            umount $testmount
+        fi
+    fi
+
     # if volumes source and dest match then pass
     run_podman run --rm --mount type=ramfs,destination=${PODMAN_TMPDIR} $IMAGE stat -f -c "%T" ${PODMAN_TMPDIR}
     is "$output" "ramfs" "ramfs mounted"
