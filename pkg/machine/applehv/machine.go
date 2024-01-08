@@ -773,6 +773,10 @@ func loadMacMachineFromJSON(fqConfigPath string) (*MacMachine, error) {
 	if err := json.Unmarshal(b, mm); err != nil {
 		return nil, err
 	}
+	// And synchronize copied data
+	logrus.Debugf("setting %d cpus and %d memory", mm.CPUs, mm.Memory)
+	mm.Vfkit.VirtualMachine.MemoryBytes = mm.Memory
+	mm.Vfkit.VirtualMachine.Vcpus = uint(mm.CPUs)
 	return mm, nil
 }
 
