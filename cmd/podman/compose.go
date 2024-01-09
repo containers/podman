@@ -187,7 +187,7 @@ func composeDockerHost() (string, error) {
 		if info.State != machine.Running {
 			return "", fmt.Errorf("machine %s is not running but in state %s", item.Name, info.State)
 		}
-		if machineProvider.VMType() == machine.WSLVirt {
+		if machineProvider.VMType() == machine.WSLVirt || machineProvider.VMType() == machine.HyperVVirt {
 			if info.ConnectionInfo.PodmanPipe == nil {
 				return "", errors.New("pipe of machine is not set")
 			}
