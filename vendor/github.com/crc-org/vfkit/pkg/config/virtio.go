@@ -77,6 +77,11 @@ type RosettaShare struct {
 	InstallRosetta bool
 }
 
+// NVMExpressController configures a NVMe controller in the guest
+type NVMExpressController struct {
+	StorageConfig
+}
+
 // virtioRng configures a random number generator (RNG) device.
 type VirtioRng struct {
 }
@@ -143,6 +148,8 @@ func deviceFromCmdLine(deviceOpts string) (VirtioDevice, error) {
 	switch opts[0] {
 	case "rosetta":
 		dev = &RosettaShare{}
+	case "nvme":
+		dev = nvmExpressControllerNewEmpty()
 	case "virtio-blk":
 		dev = virtioBlkNewEmpty()
 	case "virtio-fs":
@@ -450,6 +457,28 @@ func (dev *VirtioRng) FromOptions(options []option) error {
 		return fmt.Errorf("Unknown options for virtio-rng devices: %s", options)
 	}
 	return nil
+}
+
+func nvmExpressControllerNewEmpty() *NVMExpressController {
+	return &NVMExpressController{
+		StorageConfig: StorageConfig{
+			DevName: "nvme",
+		},
+	}
+}
+
+func NVMExpressControllerNew(imagePath string) (*NVMExpressController, error) {
+	r := nvmExpressControllerNewEmpty()
+	r.ImagePath = imagePath
+	return r, nil
+}
+
+func (dev *NVMExpressController) FromOptions(options []option) error {
+	return dev.StorageConfig.FromOptions(options)
+}
+
+func (dev *NVMExpressController) ToCmdLine() ([]string, error) {
+	return dev.StorageConfig.ToCmdLine()
 }
 
 func virtioBlkNewEmpty() *VirtioBlk {

@@ -417,7 +417,7 @@ github.com/coreos/stream-metadata-go/release
 github.com/coreos/stream-metadata-go/release/rhcos
 github.com/coreos/stream-metadata-go/stream
 github.com/coreos/stream-metadata-go/stream/rhcos
-# github.com/crc-org/vfkit v0.5.0
+# github.com/crc-org/vfkit v0.5.0 => ../../crc-org/vfkit
 ## explicit; go 1.18
 github.com/crc-org/vfkit/pkg/cmdline
 github.com/crc-org/vfkit/pkg/config
@@ -1367,4 +1367,5 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v0.6.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# github.com/crc-org/vfkit => ../../crc-org/vfkit
 # github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20230904132852-a0466dd76f23

@@ -25,6 +25,7 @@ const (
 	vfGpu          vmComponentKind = "virtiogpu"
 	vfInput        vmComponentKind = "virtioinput"
 	usbMassStorage vmComponentKind = "usbmassstorage"
+	nvme           vmComponentKind = "nvme"
 	rosetta        vmComponentKind = "rosetta"
 )
 
@@ -107,6 +108,10 @@ func unmarshalDevice(rawMsg json.RawMessage) (VirtioDevice, error) {
 		dev = &newDevice
 	case vfBlk:
 		var newDevice VirtioBlk
+		err = json.Unmarshal(rawMsg, &newDevice)
+		dev = &newDevice
+	case nvme:
+		var newDevice NVMExpressController
 		err = json.Unmarshal(rawMsg, &newDevice)
 		dev = &newDevice
 	case vfFs:
@@ -255,6 +260,17 @@ func (dev *VirtioFs) MarshalJSON() ([]byte, error) {
 	return json.Marshal(devWithKind{
 		jsonKind: kind(vfFs),
 		VirtioFs: *dev,
+	})
+}
+
+func (dev *NVMExpressController) MarshalJSON() ([]byte, error) {
+	type devWithKind struct {
+		jsonKind
+		NVMExpressController
+	}
+	return json.Marshal(devWithKind{
+		jsonKind:  kind(nvme),
+		NVMExpressController: *dev,
 	})
 }
 

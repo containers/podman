@@ -103,7 +103,7 @@ func (m *MacMachine) setGVProxyInfo(runtimeDir string) error {
 func (m *MacMachine) setVfkitInfo(cfg *config.Config, readySocket define.VMFile) error {
 	defaultDevices, err := getDefaultDevices(m.ImagePath.GetPath(), m.LogPath.GetPath(), readySocket.GetPath())
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to setup devices: %w", err)
 	}
 	// Store VFKit stuffs
 	vfkitPath, err := cfg.FindHelperBinary("vfkit", false)
@@ -748,7 +748,7 @@ func (m *MacMachine) loadFromFile() (*MacMachine, error) {
 
 	mm, err := loadMacMachineFromJSON(jsonPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse machine JSON: %w", err)
 	}
 
 	lock, err := machine.GetLock(mm.Name, vmtype)
