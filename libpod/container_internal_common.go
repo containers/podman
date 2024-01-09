@@ -607,9 +607,6 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 		if err != nil {
 			return nil, nil, err
 		}
-		if err != nil {
-			return nil, nil, err
-		}
 		for name, secr := range c.config.EnvSecrets {
 			_, data, err := manager.LookupSecretData(secr.Name)
 			if err != nil {
