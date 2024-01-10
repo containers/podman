@@ -132,7 +132,7 @@ func (m *machineTestBuilder) setCmd(mc machineCommand) *machineTestBuilder {
 	return m
 }
 
-func (m *machineTestBuilder) setTimeout(timeout time.Duration) *machineTestBuilder {
+func (m *machineTestBuilder) setTimeout(timeout time.Duration) *machineTestBuilder { //nolint: unparam
 	m.timeout = timeout
 	return m
 }
