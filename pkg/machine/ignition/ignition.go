@@ -318,6 +318,7 @@ func getFiles(usrName string, uid int, rootful bool, vmtype define.VMType) []Fil
 
 	containers := `[containers]
 netns="bridge"
+pids_limit=0
 `
 	// Set deprecated machine_enabled until podman package on fcos is
 	// current enough to no longer require it
