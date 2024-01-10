@@ -39,7 +39,8 @@ Terminate container by sending `TERM` signal
 podman kill --signal TERM 860a4b23
 ```
 
-Kill the latest container created by Podman
+Kill the latest container. (This option is not available with the remote Podman client, including Mac and Windows
+(excluding WSL2) machines)
 ```
 podman kill --latest
 ```

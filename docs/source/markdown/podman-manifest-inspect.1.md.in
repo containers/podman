@@ -21,6 +21,7 @@ A formatted JSON representation of the manifest list or image index.
 
 ## EXAMPLES
 
+Inspect the manifest of mylist:v1.11.
 ```
 podman manifest inspect mylist:v1.11
 ```

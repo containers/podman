@@ -63,7 +63,7 @@ The Kubernetes kind to generate in the YAML file. Currently, the only supported 
 
 ## EXAMPLES
 
-Create Kubernetes Pod YAML for a container called `some-mariadb`.
+Create Kubernetes Pod YAML for the specified container.
 ```
 $ podman kube generate some-mariadb
 # Save the output of this file and use kubectl create -f to import
@@ -103,7 +103,7 @@ spec:
       claimName: mariadb_data
 ```
 
-Create Kubernetes Deployment YAML with 3 replicas for a container called `dep-ctr`
+Create Kubernetes Deployment YAML with 3 replicas for the specified container.
 ```
 $ podman kube generate --type deployment --replicas 3 dep-ct
 r
@@ -140,7 +140,7 @@ spec:
 ```
 
 
-Create Kubernetes Pod YAML for a container with the directory `/home/user/my-data` on the host bind-mounted in the container to `/volume`.
+Create Kubernetes Pod YAML for the specified container with the host directory `/home/user/my-data` bind-mounted onto the container path `/volume`.
 ```
 $ podman kube generate my-container-with-bind-mounted-data
 # Save the output of this file and use kubectl create -f to import
@@ -171,7 +171,7 @@ spec:
     name: home-user-my-data-host
 ```
 
-Create Kubernetes Pod YAML for a container with the named volume `priceless-data` mounted in the container at `/volume`.
+Create Kubernetes Pod YAML for the specified container with named volume `priceless-data` mounted onto the container path `/volume`.
 ```
 $ podman kube generate my-container-using-priceless-data
 # Save the output of this file and use kubectl create -f to import
@@ -201,7 +201,7 @@ spec:
       claimName: priceless-data
 ```
 
-Create Kubernetes Pod YAML for a pod called `demoweb` and include a service.
+Create Kubernetes Pod YAML for the specified pod and include a service.
 ```
 $ sudo podman kube generate -s demoweb
 # Save the output of this file and use kubectl create -f to import

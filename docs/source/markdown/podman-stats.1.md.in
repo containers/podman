@@ -55,10 +55,10 @@ Valid placeholders for the Go template are listed below:
 | .NetOutput          | Network Output                                   |
 | .PerCPU             | CPU time consumed by all tasks [1]               |
 | .PIDs               | Number of PIDs                                   |
-| .PIDS               | Number of PIDs (yes, we know it's a dup)         |
+| .PIDS               | Number of PIDs (yes, we know this is a dup)      |
 | .SystemNano         | Current system datetime, nanoseconds since epoch |
 | .Up                 | Duration (CPUNano), in human-readable form       |
-| .UpTime             | Same as Up                                   |
+| .UpTime             | Same as Up                                       |
 
 [1] Cgroups V1 only
 

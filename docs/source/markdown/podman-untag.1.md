@@ -19,14 +19,20 @@ Print usage statement
 
 ## EXAMPLES
 
+Remove all tags from the specified image.
 ```
 $ podman untag 0e3bbc2
-
-$ podman untag imageName:latest otherImageName:latest
-
-$ podman untag httpd myregistryhost:5000/fedora/httpd:v2
 ```
 
+Remove tag from specified image.
+```
+$ podman untag imageName:latest otherImageName:latest
+```
+
+Remove multiple tags from the specified image.
+```
+$ podman untag httpd myhttpd myregistryhost:5000/fedora/httpd:v2
+```
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**

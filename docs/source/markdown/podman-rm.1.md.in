@@ -105,7 +105,7 @@ Remove all containers regardless of the run state
 $ podman rm -f -a
 ```
 
-Forcibly remove the last created container
+Forcibly remove the last created container. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 ```
 $ podman rm -f --latest
 ```

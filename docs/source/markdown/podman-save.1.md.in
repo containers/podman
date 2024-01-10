@@ -62,18 +62,22 @@ Accept uncompressed layers when using one of the OCI formats.
 
 ## EXAMPLES
 
+Save image to a local file without displaying progress.
 ```
 $ podman save --quiet -o alpine.tar alpine:2.6
 ```
 
+Save image to stdout and redirect content via shell.
 ```
-$ podman save > alpine-all.tar alpine
+$ podman save alpine > alpine-all.tar
 ```
 
+Save image in oci-archive format to the local file.
 ```
 $ podman save -o oci-alpine.tar --format oci-archive alpine
 ```
 
+Save image compressed in docker-dir format.
 ```
 $ podman save --compress --format docker-dir -o alp-dir alpine
 Getting image source signatures
@@ -81,25 +85,6 @@ Copying blob sha256:2fdfe1cd78c20d05774f0919be19bc1a3e4729bce219968e4188e7e0f1af
  1.97 MB / 1.97 MB [========================================================] 0s
 Copying config sha256:501d1a8f0487e93128df34ea349795bc324d5e0c0d5112e08386a9dfaff620be
  584 B / 584 B [============================================================] 0s
-Writing manifest to image destination
-Storing signatures
-```
-
-```
-$ podman save --format docker-dir -o ubuntu-dir ubuntu
-Getting image source signatures
-Copying blob sha256:660c48dd555dcbfdfe19c80a30f557ac57a15f595250e67bfad1e5663c1725bb
- 45.55 MB / 45.55 MB [======================================================] 8s
-Copying blob sha256:4c7380416e7816a5ab1f840482c9c3ca8de58c6f3ee7f95e55ad299abbfe599f
- 846 B / 846 B [============================================================] 0s
-Copying blob sha256:421e436b5f80d876128b74139531693be9b4e59e4f1081c9a3c379c95094e375
- 620 B / 620 B [============================================================] 0s
-Copying blob sha256:e4ce6c3651b3a090bb43688f512f687ea6e3e533132bcbc4a83fb97e7046cea3
- 849 B / 849 B [============================================================] 0s
-Copying blob sha256:be588e74bd348ce48bb7161350f4b9d783c331f37a853a80b0b4abc0a33c569e
- 169 B / 169 B [============================================================] 0s
-Copying config sha256:20c44cd7596ff4807aef84273c99588d22749e2a7e15a7545ac96347baa65eda
- 3.53 KB / 3.53 KB [========================================================] 0s
 Writing manifest to image destination
 Storing signatures
 ```

@@ -41,23 +41,39 @@ Ignore errors when a specified container is missing and mark its return code as 
 
 ## EXAMPLES
 
+Wait for the specified container to exit.
 ```
 $ podman wait mywebserver
 0
+```
 
+Wait for the latest container to exit. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+```
 $ podman wait --latest
 0
+```
 
-$ podman wait --interval 2s
+Wait up to 2 seconds the specified container to exit.
+```
+$ podman wait --interval 2s mywebserver
 0
+```
 
+Wait for the specified container to exit with a failure.
+```
 $ podman wait 860a4b23
 1
+```
 
+Wait for both specified containers to exit.
+```
 $ podman wait mywebserver myftpserver
 0
 125
+```
 
+Wait for does-not-exist container to exit, but do not fail if container does not exist.
+```
 $ podman wait --ignore does-not-exist
 -1
 ```

@@ -69,6 +69,7 @@ print detailed information about credential store
 
 ## EXAMPLES
 
+Add login credentials for specified registry to the default authorization file.
 ```
 $ podman login docker.io
 Username: umohnani
@@ -76,18 +77,21 @@ Password:
 Login Succeeded!
 ```
 
+Add login credentials using specified username and password for local registry to the default authorization file.
 ```
 $ podman login -u testuser -p testpassword localhost:5000
 Login Succeeded!
 ```
 
+Add login credentials for alternate authfile path for the specified registry.
 ```
-$ podman login --authfile authdir/myauths.json docker.io
+$ podman login --authfile authdir/myauths.json quay.io
 Username: umohnani
 Password:
 Login Succeeded!
 ```
 
+Add login credentials as a Podman Secret for the specified registry to the default authorization file.
 ```
 $ echo -n MySecret! | podman secret create secretname -
 a0ad54df3c97cf89d5ca6193c
@@ -95,26 +99,31 @@ $ podman login --secret secretname -u testuser quay.io
 Login Succeeded!
 ```
 
+Add login credentials for user test with password test to localhost:5000 registry disabling tls verification requirement.
 ```
 $ podman login --tls-verify=false -u test -p test localhost:5000
 Login Succeeded!
 ```
 
+Add login credentials for user foo with password bar to localhost:5000 registry using the certificate directory /etc/containers/certs.d.
 ```
 $ podman login --cert-dir /etc/containers/certs.d/ -u foo -p bar localhost:5000
 Login Succeeded!
 ```
 
+Add login credentials for docker.io into the default authorization file for user testuser with password information provided via stdin from a file on disk.
 ```
 $ podman login -u testuser  --password-stdin < testpassword.txt docker.io
 Login Succeeded!
 ```
 
+Add login credentials for docker.io into the default authorization file for user testuser with password information provided via stdin from a pipe.
 ```
 $ echo $testpassword | podman login -u testuser --password-stdin docker.io
 Login Succeeded!
 ```
 
+Add login credentials for the quay.io registry in verbose mode default authorization file.
 ```
 $ podman login quay.io --verbose
 Username: myusername

@@ -31,6 +31,7 @@ Ignore errors when specified secrets are not present.
 
 ## EXAMPLES
 
+Remove secrets mysecret1 and mysecret2.
 ```
 $ podman secret rm mysecret1 mysecret2
 ```

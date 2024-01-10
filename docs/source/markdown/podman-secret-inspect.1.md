@@ -46,9 +46,18 @@ Display secret data
 
 ## EXAMPLES
 
+Inspect the secret mysecret.
 ```
 $ podman secret inspect mysecret
+```
+
+Inspect the secret mysecret and display the Name and Scope field.
+```
 $ podman secret inspect --format "{{.Name} {{.Scope}}" mysecret
+```
+
+Inspect the secret mysecret and display the Name and SecretData fields. Note this will display the secret data to the screen.
+```
 $ podman secret inspect --showsecret --format "{{.Name} {{.SecretData}}" mysecret
 ```
 

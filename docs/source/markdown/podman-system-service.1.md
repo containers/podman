@@ -95,36 +95,30 @@ See **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/c
 
 ## EXAMPLES
 
-To start the systemd socket for a rootless service, run as the user:
-
+Start the user systemd socket for a rootless service.
 ```
 systemctl --user start podman.socket
 ```
 
-The socket can then be used by for example docker-compose that needs a Docker-compatible API.
-
+Configure DOCKER_HOST environment variable to point to the Podman socket so that
+it can be used via Docker API tools like docker-compose.
 ```
-$ ls $XDG_RUNTIME_DIR/podman/podman.sock
-/run/user/1000/podman/podman.sock
 $ export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/podman/podman.sock
 $ docker-compose up
 ```
 
-To configure the systemd socket to be automatically started after reboots, run as the user:
-
+Configure the systemd socket to be automatically started after reboots, and run as the specified user.
 ```
 systemctl --user enable podman.socket
 loginctl enable-linger <USER>
 ```
 
-To start the systemd socket for the rootful service, run:
-
+Start the systemd socket for the rootful service.
 ```
 sudo systemctl start podman.socket
 ```
 
-To configure the socket to be automatically started after reboots, run:
-
+Configure the socket to be automatically started after reboots.
 ```
 sudo systemctl enable podman.socket
 ```
@@ -132,8 +126,7 @@ sudo systemctl enable podman.socket
 It is possible to run the API without using systemd socket activation.
 In this case the API will not be available on demand because the command will
 stay terminated after the inactivity timeout has passed.
-Run an API with an inactivity timeout of 5 seconds without using socket activation:
-
+Run an API with an inactivity timeout of 5 seconds without using socket activation.
 ```
 podman system service --time 5
 ```

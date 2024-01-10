@@ -31,7 +31,7 @@ Attach to a container called "foobar".
 $ podman attach foobar
 ```
 
-Attach to the latest created container.
+Attach to the latest created container. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 ```
 $ podman attach --latest
 ```

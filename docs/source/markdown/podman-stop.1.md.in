@@ -58,21 +58,45 @@ Valid filters are listed below:
 
 ## EXAMPLES
 
+Stop the specified container via its name.
+```
 $ podman stop mywebserver
+```
 
+Stop the container via its id.
+```
 $ podman stop 860a4b235279
+```
 
+Stop multiple containers.
+```
 $ podman stop mywebserver 860a4b235279
+```
 
+Stop the container identified in the cidfile.
+```
 $ podman stop --cidfile /home/user/cidfile-1
+```
 
+Stop the containers identified in the cidfiles.
+```
 $ podman stop --cidfile /home/user/cidfile-1 --cidfile ./cidfile-2
+```
 
+Stop the specified container in 2 seconds.
+```
 $ podman stop --time 2 860a4b235279
+```
 
+Stop all running containers.
+```
 $ podman stop -a
+```
 
+Stop the last created container (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+```
 $ podman stop --latest
+```
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-rm(1)](podman-rm.1.md)**

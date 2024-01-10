@@ -22,11 +22,18 @@ Print usage statement
 
 ## EXAMPLES
 
+Tag specified image with an image name defaulting to :latest.
 ```
 $ podman tag 0e3bbc2 fedora:latest
+```
 
+Tag specified image with fully specified image name.
+```
 $ podman tag httpd myregistryhost:5000/fedora/httpd:v2
+```
 
+Tag specified image with multiple tags.
+```
 $ podman tag mymariadb mycontainerregistry.io/namespace/mariadb:10 mycontainerregistry.io/namespace/mariadb:10.11 mycontainerregistry.io/namespace/mariadb:10.11.12
 ```
 

@@ -49,11 +49,19 @@ Print usage statement
 
 ## EXAMPLES
 
+
+Prune all unused volumes.
 ```
 $ podman volume prune
+```
 
+Prune all volumes. Note: this command will also remove all containers that are using a volume.
+```
 $ podman volume prune --force
+```
 
+Prune all volumes that contain the specified label.
+```
 $ podman volume prune --filter label=mylabel=mylabelvalue
 ```
 

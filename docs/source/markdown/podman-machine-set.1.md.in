@@ -70,24 +70,24 @@ devices with the same vendor product value, the first available device is assign
 
 ## EXAMPLES
 
-To switch the default VM `podman-machine-default` from rootless to rootful:
+To switch the default Podman machine from rootless to rootful:
 
 ```
 $ podman machine set --rootful
 ```
 
-or more explicitly:
+or more explicitly set with value true.
 
 ```
 $ podman machine set --rootful=true
 ```
 
-To switch the default VM `podman-machine-default` from rootful to rootless:
+Switch the default Podman machine from rootful to rootless.
 ```
 $ podman machine set --rootful=false
 ```
 
-To switch the VM `myvm` from rootless to rootful:
+Switch the specified Podman machine from rootless to rootful.
 ```
 $ podman machine set --rootful myvm
 ```

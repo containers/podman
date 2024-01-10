@@ -62,15 +62,22 @@ is printed.
 
 ## EXAMPLES
 
+List all Podman machines.
 ```
 $ podman machine list
 NAME                    VM TYPE     CREATED      LAST UP      CPUS        MEMORY      DISK SIZE
 podman-machine-default  qemu        2 weeks ago  2 weeks ago  1           2.147GB     10.74GB
+```
 
+List all Podman machines using the specified table format.
+```
 $ podman machine ls --format "table {{.Name}}\t{{.VMType}}\t{{.Created}}\t{{.LastUp}}"
 NAME                    VM TYPE     CREATED      LAST UP
 podman-machine-default  qemu        2 weeks ago  2 weeks ago
+```
 
+List all Podman machines in json format.
+```
 $ podman machine ls --format json
 [
     {

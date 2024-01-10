@@ -35,7 +35,7 @@ Terminate pod by sending `TERM` signal
 podman pod kill --signal TERM 860a4b23
 ```
 
-Kill the latest pod created by Podman
+Kill the latest pod. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 ```
 podman pod kill --latest
 ```

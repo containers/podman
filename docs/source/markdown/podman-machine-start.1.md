@@ -41,6 +41,7 @@ Suppress machine starting status output.
 
 ## EXAMPLES
 
+Start the specified podman machine.
 ```
 $ podman machine start myvm
 ```

@@ -124,6 +124,7 @@ Default: created
 
 ## EXAMPLES
 
+List all running pods.
 ```
 $ podman pod ps
 POD ID         NAME              STATUS    CREATED          INFRA ID       # OF CONTAINERS
@@ -131,6 +132,7 @@ POD ID         NAME              STATUS    CREATED          INFRA ID       # OF 
 f4df8692e116   nifty_torvalds    Created   10 minutes ago   331693bff40a   2
 ```
 
+List all running pods along with container names within the pods.
 ```
 $ podman pod ps --ctr-names
 POD ID         NAME              STATUS    CREATED          INFRA ID       NAMES
@@ -138,6 +140,7 @@ POD ID         NAME              STATUS    CREATED          INFRA ID       NAMES
 f4df8692e116   nifty_torvalds    Created   10 minutes ago   331693bff40a   thirsty_hawking,wizardly_golick
 ```
 
+List all running pods along with status, names and ids.
 ```
 $ podman pod ps --ctr-status --ctr-names --ctr-ids
 POD ID         NAME              STATUS    CREATED          INFRA ID       IDS                         NAMES                             STATUS
@@ -145,18 +148,21 @@ POD ID         NAME              STATUS    CREATED          INFRA ID       IDS  
 f4df8692e116   nifty_torvalds    Created   10 minutes ago   331693bff40a   331693bff40a,8e428daeb89e   thirsty_hawking,wizardly_golick   configured,configured
 ```
 
+List all running pods and print ID, Container Names, and cgroups.
 ```
 $ podman pod ps --format "{{.ID}}  {{.ContainerNames}}  {{.Cgroup}}"
 00dfd6fa02c0   loving_archimedes   /libpod_parent
 f4df8692e116   thirsty_hawking,wizardly_golick   /libpod_parent
 ```
 
+List all running pods with two containers sorted by pod ID.
 ```
 $ podman pod ps --sort id --filter ctr-number=2
 POD ID         NAME             STATUS    CREATED          INFRA ID       # OF CONTAINERS
 f4df8692e116   nifty_torvalds   Created   10 minutes ago   331693bff40a   2
 ```
 
+List all running pods with their container ids.
 ```
 $ podman pod ps  --ctr-ids
 POD ID         NAME              STATUS    CREATED          INFRA ID       IDS
@@ -164,6 +170,7 @@ POD ID         NAME              STATUS    CREATED          INFRA ID       IDS
 f4df8692e116   nifty_torvalds    Created   10 minutes ago   331693bff40a   331693bff40a,8e428daeb89e
 ```
 
+List all running pods with container ids without truncating IDs.
 ```
 $ podman pod ps --no-trunc --ctr-ids
 POD ID                                                             NAME              STATUS    CREATED          INFRA ID                                                           IDS
@@ -171,6 +178,7 @@ POD ID                                                             NAME         
 f4df8692e116a3e6d1d62572644ed36ca475d933808cc3c93435c45aa139314b   nifty_torvalds    Created   10 minutes ago   331693bff40a926b6d52b184e116afd15497610c378d5d4c42945dd6e33b75b0   331693bff40a926b6d52b184e116afd15497610c378d5d4c42945dd6e33b75b0,8e428daeb89e69b71e7916a13accfb87d122889442b5c05c2d99cf94a3230e9d
 ```
 
+List all running pods with container names.
 ```
 $ podman pod ps --ctr-names
 POD ID         NAME   STATUS    CREATED        INFRA ID       NAMES

@@ -181,23 +181,43 @@ Note: This option conflicts with the **--share=cgroup** option since that option
 
 ## EXAMPLES
 
+Create a named pod.
 ```
 $ podman pod create --name test
+```
 
+Create a named pod.
+```
 $ podman pod create mypod
+```
 
+Create a pod without an infra container.
+```
 $ podman pod create --infra=false
+```
 
+Create a named pod with infra container command to run.
+```
 $ podman pod create --infra-command /top toppod
+```
 
+Create a pod with published ports on the host.
+```
 $ podman pod create --publish 8443:443
+```
 
+Create a pod with the specified network configuration.
+```
 $ podman pod create --network slirp4netns:outbound_addr=127.0.0.1,allow_host_loopback=true
+```
 
-$ podman pod create --network slirp4netns:cidr=192.168.0.0/24
-
+Create a pod with the specified network.
+```
 $ podman pod create --network pasta
+```
 
+Create a pod on two networks.
+```
 $ podman pod create --network net1:ip=10.89.1.5 --network net2:ip=10.89.10.10
 ```
 

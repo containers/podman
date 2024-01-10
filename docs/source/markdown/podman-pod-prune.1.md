@@ -15,7 +15,8 @@ podman-pod-prune - Remove all stopped pods and their containers
 Force removal of all running pods and their containers. The default is false.
 
 ## EXAMPLES
-Remove all stopped pods and their containers from local storage
+
+Remove all stopped pods and their containers from local storage.
 ```
 $ sudo podman pod prune
 22b8813332948064b6566370088c5e0230eeaf15a58b1c5646859fd9fc364fe7

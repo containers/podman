@@ -17,6 +17,7 @@ Note: This command is not supported with podman-remote.
 
 ## EXAMPLES
 
+Reload the volume plugins.
 ```
 $ podman volume reload
 Added:

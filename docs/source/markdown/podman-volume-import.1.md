@@ -22,14 +22,19 @@ Print usage statement
 
 ## EXAMPLES
 
-```
-$ gunzip -c hello.tar.gz | podman volume import myvol -
-```
+Import named volume content from the specified file.
 ```
 $ podman volume import myvol test.tar
 ```
+
+Import named volume content from stdin.
 ```
-$ podman volume export myvol | podman volume import oldmyvol -
+$ gunzip -c hello.tar.gz | podman volume import myvol -
+```
+
+Export the content from named volume and pipe it into the named volume via stdin.
+```
+$ podman volume export oldmyvol | podman volume import myvol -
 ```
 
 ## SEE ALSO

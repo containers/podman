@@ -99,22 +99,27 @@ clone process has completed. All containers within the pod are started.
 @@option volumes-from
 
 ## EXAMPLES
+
+Clone the specified pod to a new pod.
 ```
 # podman pod clone pod-name
 6b2c73ff8a1982828c9ae2092954bcd59836a131960f7e05221af9df5939c584
 ```
 
+Clone the specified pod to a new pod with a new name.
 ```
-# podman pod clone --name=cloned-pod
+# podman pod clone pod-name --name=cloned-pod
 d0cf1f782e2ed67e8c0050ff92df865a039186237a4df24d7acba5b1fa8cc6e7
 6b2c73ff8a1982828c9ae2092954bcd59836a131960f7e05221af9df5939c584
 ```
 
+Clone and remove the specified pod to a new pod modifying its cpus.
 ```
-# podman pod clone --destroy --cpus=5 d0cf1f782e2ed67e8c0050ff92df865a039186237a4df24d7acba5b1fa8cc6e7
+# podman pod clone --destroy --cpus=5 d0cf1
 6b2c73ff8a1982828c9ae2092954bcd59836a131960f7e05221af9df5939c584
 ```
 
+Clone the specified pod to a new named pod.
 ```
 # podman pod clone 2d4d4fca7219b4437e0d74fcdc272c4f031426a6eacd207372691207079551de new_name
 5a9b7851013d326aa4ac4565726765901b3ecc01fcbc0f237bc7fd95588a24f9

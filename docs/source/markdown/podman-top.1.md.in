@@ -78,8 +78,7 @@ The following descriptors are supported in addition to the AIX format descriptor
 
 ## EXAMPLES
 
-By default, `podman-top` prints data similar to `ps -ef`:
-
+By default, `podman-top` prints data similar to `ps -ef`.
 ```
 $ podman top f5a62a71b07
 USER   PID   PPID   %CPU    ELAPSED         TTY     TIME   COMMAND
@@ -88,8 +87,7 @@ root   7     1      0.000   16.386882887s   pts/0   0s     sleep
 root   8     1      0.000   11.386886562s   pts/0   0s     vi
 ```
 
-The output can be controlled by specifying format descriptors as arguments after the container:
-
+The output can be controlled by specifying format descriptors as arguments after the container.
 ```
 $ podman top -l pid seccomp args %C
 PID   SECCOMP   COMMAND     %CPU
@@ -98,7 +96,6 @@ PID   SECCOMP   COMMAND     %CPU
 ```
 
 Podman falls back to executing ps(1) from the host in the container namespace if an unknown descriptor is specified.
-
 ```
 $ podman top -l -- aux
 USER   PID   PPID   %CPU    ELAPSED             TTY   TIME   COMMAND

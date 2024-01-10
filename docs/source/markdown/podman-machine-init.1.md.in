@@ -167,14 +167,43 @@ Driver to use for mounting volumes from the host, such as `virtfs`.
 
 ## EXAMPLES
 
+Initialize the default Podman machine, pulling the content from the internet.
 ```
 $ podman machine init
+```
+
+Initialize a Podman machine for the specified name pulling the content from the internet.
+```
 $ podman machine init myvm
+```
+
+Initialize the default Podman machine pulling the content from the internet defaulting to rootful mode. The default is rootless.
+```
 $ podman machine init --rootful
+```
+
+Initialize the default Podman machine overriding its disk size override, pulling the content from the internet.
+```
 $ podman machine init --disk-size 50
+```
+
+Initialize the specified Podman machine overriding its memory size, pulling the content from the internet.
+```
 $ podman machine init --memory=1024 myvm
+```
+
+Initialize the default Podman machine with the host directory `/Users` mounted into the VM at `/mnt/Users`.
+```
 $ podman machine init -v /Users:/mnt/Users
+```
+
+Initialize the default Podman machine with a usb device passthrough specified with options. Only supported for QEMU Machines.
+```
 $ podman machine init --usb vendor=13d3,product=5406
+```
+
+Initialize the default Podman machine with a usb device passthrough with specified with options. Only supported for QEMU Machines.
+```
 $ podman machine init --usb bus=1,devnum=3
 ```
 

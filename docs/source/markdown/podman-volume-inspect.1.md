@@ -53,6 +53,7 @@ Print usage statement
 
 ## EXAMPLES
 
+Inspect named volume.
 ```
 $ podman volume inspect myvol
 [
@@ -71,6 +72,7 @@ $ podman volume inspect myvol
 ]
 ```
 
+Inspect all volumes.
 ```
 $ podman volume inspect --all
 [
@@ -89,6 +91,7 @@ $ podman volume inspect --all
 ]
 ```
 
+Inspect named volume and display its Driver and Scope field.
 ```
 $ podman volume inspect --format "{{.Driver}} {{.Scope}}" myvol
 local local
