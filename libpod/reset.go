@@ -119,13 +119,23 @@ func (r *Runtime) reset(ctx context.Context) error {
 	}
 
 	for _, c := range ctrs {
-		if err := r.RemoveContainer(ctx, c, true, true, timeout); err != nil {
-			if err := r.RemoveStorageContainer(c.ID(), true); err != nil {
-				if errors.Is(err, define.ErrNoSuchCtr) {
-					continue
-				}
-				logrus.Errorf("Removing container %s: %v", c.ID(), err)
+		if ctrs, _, err := r.RemoveContainerAndDependencies(ctx, c, true, true, timeout); err != nil {
+			for ctr, err := range ctrs {
+				logrus.Errorf("Error removing container %s: %v", ctr, err)
 			}
+
+			if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
+				continue
+			}
+
+			logrus.Errorf("Removing container %s: %v", c.ID(), err)
+
+			// There's no point trying a storage container removal
+			// here. High likelihood it doesn't work
+			// (RemoveStorageContainer will refuse to remove if a
+			// container exists in the Libpod database) and, even if
+			// it would, we'll get the container later on during
+			// image removal.
 		}
 	}
 
@@ -133,11 +143,7 @@ func (r *Runtime) reset(ctx context.Context) error {
 		logrus.Errorf("Stopping pause process: %v", err)
 	}
 
-	rmiOptions := &libimage.RemoveImagesOptions{Filters: []string{"readonly=false"}}
-	if _, rmiErrors := r.LibimageRuntime().RemoveImages(ctx, nil, rmiOptions); rmiErrors != nil {
-		return errorhandling.JoinErrors(rmiErrors)
-	}
-
+	// Volumes before images, as volumes can mount images.
 	volumes, err := r.state.AllVolumes()
 	if err != nil {
 		return err
@@ -149,6 +155,19 @@ func (r *Runtime) reset(ctx context.Context) error {
 			}
 			logrus.Errorf("Removing volume %s: %v", v.config.Name, err)
 		}
+	}
+
+	// Set force and ignore.
+	// Ignore shouldn't be necessary, but it seems safer. We want everything
+	// gone anyways...
+	rmiOptions := &libimage.RemoveImagesOptions{
+		Force:               true,
+		Ignore:              true,
+		RemoveContainerFunc: r.RemoveContainersForImageCallback(ctx),
+		Filters:             []string{"readonly=false"},
+	}
+	if _, rmiErrors := r.LibimageRuntime().RemoveImages(ctx, nil, rmiOptions); rmiErrors != nil {
+		return errorhandling.JoinErrors(rmiErrors)
 	}
 
 	// remove all networks
