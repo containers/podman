@@ -4,6 +4,9 @@
 PODMAN=${PODMAN:-podman}
 QUADLET=${QUADLET:-/usr/libexec/podman/quadlet}
 
+# crun or runc, unlikely to change. Cache, because it's expensive to determine.
+PODMAN_RUNTIME=
+
 # Standard image to use for most tests
 PODMAN_TEST_IMAGE_REGISTRY=${PODMAN_TEST_IMAGE_REGISTRY:-"quay.io"}
 PODMAN_TEST_IMAGE_USER=${PODMAN_TEST_IMAGE_USER:-"libpod"}
@@ -195,6 +198,11 @@ function basic_setup() {
     # ancient BATS (v1.1) in RHEL gating tests.)
     PODMAN_TMPDIR=$(mktemp -d --tmpdir=${BATS_TMPDIR:-/tmp} podman_bats.XXXXXX)
 
+    # runtime is not likely to change
+    if [[ -z "$PODMAN_RUNTIME" ]]; then
+        PODMAN_RUNTIME=$(podman_runtime)
+    fi
+
     # In the unlikely event that a test runs is() before a run_podman()
     MOST_RECENT_PODMAN_COMMAND=
 
@@ -379,10 +387,12 @@ function run_podman() {
     # (see top of function) allows our caller to indicate that warnings are
     # expected, e.g., "podman stop" without -t0.
     if [[ $status -eq 0 ]]; then
-        # FIXME: don't do this on Debian: runc is way, way too flaky:
-        # FIXME: #11784 - lstat /sys/fs/.../*.scope: ENOENT
-        # FIXME: #11785 - cannot toggle freezer: cgroups not configured
-        if [[ ! "${DISTRO_NV}" =~ debian ]]; then
+        # FIXME: don't do this on Debian or RHEL. runc is way too buggy:
+        #   - #11784 - lstat /sys/fs/.../*.scope: ENOENT
+        #   - #11785 - cannot toggle freezer: cgroups not configured
+        # As of January 2024 the freezer one seems to be fixed in Debian-runc
+        # but not in RHEL8-runc. The lstat one is closed-wontfix.
+        if [[ $PODMAN_RUNTIME != "runc" ]]; then
             # FIXME: All kube commands emit unpredictable errors:
             #    "Storage for container <X> has been removed"
             #    "no container with ID <X> found in database"
@@ -547,10 +557,9 @@ function selinux_enabled() {
 # love to cache this result, we probably shouldn't.
 function podman_runtime() {
     # This function is intended to be used as '$(podman_runtime)', i.e.
-    # our caller wants our output. run_podman() messes with output because
-    # it emits the command invocation to stdout, hence the redirection.
-    run_podman info --format '{{ .Host.OCIRuntime.Name }}' >/dev/null
-    basename "${output:-[null]}"
+    # our caller wants our output. It's unsafe to use run_podman().
+    runtime=$($PODMAN $_PODMAN_TEST_OPTS info --format '{{ .Host.OCIRuntime.Name }}' 2>/dev/null)
+    basename "${runtime:-[null]}"
 }
 
 # Returns the storage driver: 'overlay' or 'vfs'
