@@ -16,10 +16,8 @@ function teardown() {
 }
 
 
+# bats test_tags=distro-integration
 @test "podman update - test all options" {
-    # Broken on rawhide & F38 images as of c20230726t191046z-f38f37d13
-    skip "FIXME: #19471 brq / blkio / loopbackfs / something broken"
-
     local cgv=1
     if is_cgroupsv2; then
         cgv=2;

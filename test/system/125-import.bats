@@ -44,13 +44,9 @@ load helpers
     run_podman rmi -f $fqin
 }
 
+# Integration tag to catch future breakage in tar, e.g. #19407
+# bats test_tags=distro-integration
 @test "podman export, alter tarball, re-import" {
-    # Skip this only when running under rawhide in CI, since detecting
-    # and/or skipping for rawhide outside this environment is unhelpful.
-    if [[ "$CIRRUS_CI" == "true" ]] && [[ "$DISTRO_NV" == "rawhide" ]]; then
-        skip "FIXME: #19407 Broken in rawhide: processing tar file(): duplicates of file paths not supported"
-    fi
-
     # Create a test file following test
     mkdir $PODMAN_TMPDIR/tmp
     touch $PODMAN_TMPDIR/testfile1
