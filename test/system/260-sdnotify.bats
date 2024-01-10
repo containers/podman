@@ -352,16 +352,18 @@ EOF
         $PODMAN play kube --service-container=true --log-driver journald $yaml_source &>/dev/null &
 
     # Wait for both containers to be running
+    containers_running=
     for i in $(seq 1 20); do
         run_podman "?" container wait $container_a $container_b --condition="running"
         if [[ $status == 0 ]]; then
+            containers_running=1
             break
         fi
         sleep 0.5
         # Just for debugging
         run_podman ps -a
     done
-    if [[ $status != 0 ]]; then
+    if [[ -z "$containers_running" ]]; then
         die "container $container_a and/or $container_b did not start"
     fi
 
