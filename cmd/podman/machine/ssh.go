@@ -57,10 +57,8 @@ func ssh(cmd *cobra.Command, args []string) error {
 	// provided the VM name.  If so, we check.  The VM name,
 	// if provided, must be in args[0].
 	if len(args) > 0 {
-		validVM, err = provider.IsValidVMName(args[0])
-		if err != nil {
-			return err
-		}
+		// Ignore the error, See https://github.com/containers/podman/issues/21183#issuecomment-1879713572
+		validVM, _ = provider.IsValidVMName(args[0])
 		if validVM {
 			vmName = args[0]
 		} else {
