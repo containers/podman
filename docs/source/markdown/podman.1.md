@@ -32,6 +32,9 @@ The CGroup manager to use for container cgroups. Supported values are __cgroupfs
 Note: Setting this flag can cause certain commands to break when called on containers previously created by the other CGroup manager type.
 Note: CGroup manager is not supported in rootless mode when using CGroups Version V1.
 
+#### **--config**
+Location of config file. Mainly for docker compatibility, only the authentication parts of the config are supported.
+
 #### **--conmon**
 Path of the conmon binary (Default path is configured in `containers.conf`)
 

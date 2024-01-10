@@ -35,9 +35,6 @@ function setup() {
 
     run_podman -v
     is "$output" "podman.*version \+"               "'Version line' in output"
-
-    run_podman 0+w --config foobar version
-    require_warning "The --config flag is ignored by Podman. Exists for Docker compatibility"
 }
 
 # bats test_tags=distro-integration
