@@ -174,12 +174,12 @@ Valid options for `[Container]` are listed below:
 | GIDMap=0:10000:10                    | --gidmap=0:10000:10                                  |
 | Group=1234                           | --user UID:1234                                      |
 | GlobalArgs=--log-level=debug         | --log-level=debug                                    |
-| HealthCmd="/usr/bin/command"         | --health-cmd="/usr/bin/command"                      |
+| HealthCmd=/usr/bin/command           | --health-cmd=/usr/bin/command                        |
 | HealthInterval=2m                    | --health-interval=2m                                 |
 | HealthOnFailure=kill                 | --health-on-failure=kill                             |
 | HealthRetries=5                      | --health-retries=5                                   |
 | HealthStartPeriod=1m                 | --health-start-period=period=1m                      |
-| HealthStartupCmd="command"           | --health-startup-cmd="command"                       |
+| HealthStartupCmd=command             | --health-startup-cmd=command                         |
 | HealthStartupInterval=1m             | --health-startup-interval=1m                         |
 | HealthStartupRetries=8               | --health-startup-retries=8                           |
 | HealthStartupSuccess=2               | --health-startup-success=2                           |
