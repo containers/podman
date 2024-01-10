@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	defaultVFKitEndpoint = "http://localhost:8081"
-	ignitionSocketName   = "ignition.sock"
+	localhostURI       = "http://localhost"
+	ignitionSocketName = "ignition.sock"
 )
 
 type AppleHVVirtualization struct {

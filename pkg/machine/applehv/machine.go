@@ -129,7 +129,12 @@ func (m *MacMachine) setVfkitInfo(cfg *config.Config, readySocket define.VMFile)
 	}
 
 	m.Vfkit.VirtualMachine.Devices = defaultDevices
-	m.Vfkit.Endpoint = defaultVFKitEndpoint
+	randPort, err := utils.GetRandomPort()
+	if err != nil {
+		return err
+	}
+
+	m.Vfkit.Endpoint = localhostURI + ":" + strconv.Itoa(randPort)
 	m.Vfkit.VfkitBinaryPath = vfkitBinaryPath
 
 	return nil
