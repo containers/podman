@@ -454,6 +454,7 @@ osx_alt_build_task:
         labels:
             os: darwin
             arch: arm64
+            purpose: prod
     env: &mac_env
         CIRRUS_SHELL: "/bin/bash"  # sh is the default
         CIRRUS_WORKING_DIR: "$HOME/ci/task-${CIRRUS_TASK_ID}"  # Isolation: $HOME will be set to "ci" dir.
