@@ -405,6 +405,15 @@ func (m *MacMachine) writeConfig() error {
 	return os.WriteFile(m.ConfigPath.Path, b, 0644)
 }
 
+func (m *MacMachine) setRootful(rootful bool) error {
+	if err := machine.SetRootful(rootful, m.Name, m.Name+"-root"); err != nil {
+		return err
+	}
+
+	m.HostUser.Modified = true
+	return nil
+}
+
 func (m *MacMachine) Set(name string, opts machine.SetOptions) ([]error, error) {
 	var setErrors []error
 
@@ -436,6 +445,14 @@ func (m *MacMachine) Set(name string, opts machine.SetOptions) ([]error, error) 
 	}
 	if opts.USBs != nil {
 		setErrors = append(setErrors, errors.New("changing USBs not supported for applehv machines"))
+	}
+
+	if opts.Rootful != nil && m.Rootful != *opts.Rootful {
+		if err := m.setRootful(*opts.Rootful); err != nil {
+			setErrors = append(setErrors, fmt.Errorf("failed to set rootful option: %w", err))
+		} else {
+			m.Rootful = *opts.Rootful
+		}
 	}
 
 	// Write the machine config to the filesystem
@@ -697,6 +714,17 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 		m.isIncompatible(),
 		m.Rootful,
 	)
+
+	// update the podman/docker socket service if the host user has been modified at all (UID or Rootful)
+	if m.HostUser.Modified {
+		if machine.UpdatePodmanDockerSockService(m, name, m.UID, m.Rootful) == nil {
+			// Reset modification state if there are no errors, otherwise ignore errors
+			// which are already logged
+			m.HostUser.Modified = false
+			_ = m.writeConfig()
+		}
+	}
+
 	return nil
 }
 
