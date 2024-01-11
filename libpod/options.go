@@ -465,9 +465,10 @@ func WithDefaultInfraCommand(cmd string) RuntimeOption {
 	}
 }
 
-// WithReset instructs libpod to reset all storage to factory defaults.
-// All containers, pods, volumes, images, and networks will be removed.
-// All directories created by Libpod will be removed.
+// WithReset tells Libpod that the runtime will be used to perform a system
+// reset. A number of checks at initialization are relaxed as the runtime is
+// going to be used to remove all containers, pods, volumes, images, and
+// networks.
 func WithReset() RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -480,10 +481,8 @@ func WithReset() RuntimeOption {
 	}
 }
 
-// WithRenumber instructs libpod to perform a lock renumbering while
-// initializing. This will handle migrations from early versions of libpod with
-// file locks to newer versions with SHM locking, as well as changes in the
-// number of configured locks.
+// WithRenumber tells Libpod that the runtime will be used to perform a system
+// renumber. A number of checks on initialization related to locks are relaxed.
 func WithRenumber() RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -491,43 +490,6 @@ func WithRenumber() RuntimeOption {
 		}
 
 		rt.doRenumber = true
-
-		return nil
-	}
-}
-
-// WithMigrate instructs libpod to migrate container configurations to account
-// for changes between Engine versions. All running containers will be stopped
-// during a migration, then restarted after the migration is complete.
-func WithMigrate() RuntimeOption {
-	return func(rt *Runtime) error {
-		if rt.valid {
-			return define.ErrRuntimeFinalized
-		}
-
-		rt.doMigrate = true
-
-		return nil
-	}
-}
-
-// WithMigrateRuntime instructs Engine to change the default OCI runtime on all
-// containers during a migration. This is not used if `MigrateRuntime()` is not
-// also passed.
-// Engine makes no promises that your containers continue to work with the new
-// runtime - migrations between dissimilar runtimes may well break things.
-// Use with caution.
-func WithMigrateRuntime(requestedRuntime string) RuntimeOption {
-	return func(rt *Runtime) error {
-		if rt.valid {
-			return define.ErrRuntimeFinalized
-		}
-
-		if requestedRuntime == "" {
-			return fmt.Errorf("must provide a non-empty name for new runtime: %w", define.ErrInvalidArg)
-		}
-
-		rt.migrateRuntime = requestedRuntime
 
 		return nil
 	}

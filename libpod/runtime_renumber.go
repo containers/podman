@@ -6,18 +6,34 @@ package libpod
 import (
 	"fmt"
 
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 )
 
-// renumberLocks reassigns lock numbers for all containers and pods in the
-// state.
-// TODO: It would be desirable to make it impossible to call this until all
-// other libpod sessions are dead.
-// Possibly use a read-write file lock, with all non-renumber podmans owning the
-// lock as read, renumber attempting to take a write lock?
-// The alternative is some sort of session tracking, and I don't know how
-// reliable that can be.
-func (r *Runtime) renumberLocks() error {
+// RenumberLocks reassigns lock numbers for all containers and pods in the
+// state. This should NOT be run while there are other Libpod
+func (r *Runtime) RenumberLocks() error {
+	// TODO: It would be desirable to make it impossible to call this until all
+	// other libpod sessions are dead.
+	// Possibly use a read-write file lock, with all non-renumber podmans owning the
+	// lock as read, renumber attempting to take a write lock?
+	// The alternative is some sort of session tracking, and I don't know how
+	// reliable that can be.
+
+	// Acquire the alive lock and hold it.
+	// Ensures that we don't let other Podman commands run while we are
+	// changing around lock numbers.
+	aliveLock, err := r.getRuntimeAliveLock()
+	if err != nil {
+		return fmt.Errorf("retrieving alive lock: %w", err)
+	}
+	aliveLock.Lock()
+	defer aliveLock.Unlock()
+
+	if !r.valid {
+		return define.ErrRuntimeStopped
+	}
+
 	// Start off by deallocating all locks
 	if err := r.lockManager.FreeAllLocks(); err != nil {
 		return err
@@ -77,5 +93,5 @@ func (r *Runtime) renumberLocks() error {
 
 	r.NewSystemEvent(events.Renumber)
 
-	return nil
+	return r.Shutdown(false)
 }

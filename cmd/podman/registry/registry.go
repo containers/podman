@@ -64,6 +64,14 @@ func ContainerEngine() entities.ContainerEngine {
 func NewContainerEngine(cmd *cobra.Command, args []string) (entities.ContainerEngine, error) {
 	if containerEngine == nil {
 		podmanOptions.FlagSet = cmd.Flags()
+		if cmd.Name() == "reset" && cmd.Parent().Name() == "system" {
+			logrus.Debugf("Performing system reset, runtime validation checks will be relaxed")
+			podmanOptions.IsReset = true
+		}
+		if cmd.Name() == "renumber" && cmd.Parent().Name() == "system" {
+			logrus.Debugf("Performing system renumber, runtime validation checks will be relaxed")
+			podmanOptions.IsRenumber = true
+		}
 		engine, err := infra.NewContainerEngine(&podmanOptions)
 		if err != nil {
 			return nil, err

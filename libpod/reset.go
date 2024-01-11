@@ -92,8 +92,24 @@ func (r *Runtime) removeAllDirs() error {
 	return lastErr
 }
 
-// Reset removes all storage
-func (r *Runtime) reset(ctx context.Context) error {
+// Reset removes all Libpod files.
+// All containers, images, volumes, pods, and networks will be removed.
+// Calls Shutdown(), rendering the runtime unusable after this is run.
+func (r *Runtime) Reset(ctx context.Context) error {
+	// Acquire the alive lock and hold it.
+	// Ensures that we don't let other Podman commands run while we are
+	// removing everything.
+	aliveLock, err := r.getRuntimeAliveLock()
+	if err != nil {
+		return fmt.Errorf("retrieving alive lock: %w", err)
+	}
+	aliveLock.Lock()
+	defer aliveLock.Unlock()
+
+	if !r.valid {
+		return define.ErrRuntimeStopped
+	}
+
 	var timeout *uint
 	pods, err := r.GetAllPods()
 	if err != nil {
@@ -254,6 +270,14 @@ func (r *Runtime) reset(ctx context.Context) error {
 			}
 		}
 	} else {
+		if prevError != nil {
+			logrus.Error(prevError)
+		}
+		prevError = err
+	}
+
+	// Shut down the runtime, it's no longer usable after mass-deletion.
+	if err := r.Shutdown(false); err != nil {
 		if prevError != nil {
 			logrus.Error(prevError)
 		}

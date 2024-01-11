@@ -43,7 +43,24 @@ func (r *Runtime) stopPauseProcess() error {
 	return nil
 }
 
-func (r *Runtime) migrate() error {
+// Migrate stops the rootless pause process and performs any necessary database
+// migrations that are required. It can also migrate all containers to a new OCI
+// runtime, if requested.
+func (r *Runtime) Migrate(newRuntime string) error {
+	// Acquire the alive lock and hold it.
+	// Ensures that we don't let other Podman commands run while we are
+	// rewriting things in the DB.
+	aliveLock, err := r.getRuntimeAliveLock()
+	if err != nil {
+		return fmt.Errorf("retrieving alive lock: %w", err)
+	}
+	aliveLock.Lock()
+	defer aliveLock.Unlock()
+
+	if !r.valid {
+		return define.ErrRuntimeStopped
+	}
+
 	runningContainers, err := r.GetRunningContainers()
 	if err != nil {
 		return err
@@ -63,10 +80,14 @@ func (r *Runtime) migrate() error {
 	}
 
 	// Did the user request a new runtime?
-	runtimeChangeRequested := r.migrateRuntime != ""
-	requestedRuntime, runtimeExists := r.ociRuntimes[r.migrateRuntime]
-	if !runtimeExists && runtimeChangeRequested {
-		return fmt.Errorf("change to runtime %q requested but no such runtime is defined: %w", r.migrateRuntime, define.ErrInvalidArg)
+	runtimeChangeRequested := newRuntime != ""
+	var requestedRuntime OCIRuntime
+	if runtimeChangeRequested {
+		runtime, exists := r.ociRuntimes[newRuntime]
+		if !exists {
+			return fmt.Errorf("change to runtime %q requested but no such runtime is defined: %w", newRuntime, define.ErrInvalidArg)
+		}
+		requestedRuntime = runtime
 	}
 
 	for _, ctr := range allCtrs {
@@ -81,9 +102,9 @@ func (r *Runtime) migrate() error {
 		}
 
 		// Reset runtime
-		if runtimeChangeRequested {
-			logrus.Infof("Resetting container %s runtime to runtime %s", ctr.ID(), r.migrateRuntime)
-			ctr.config.OCIRuntime = r.migrateRuntime
+		if runtimeChangeRequested && ctr.config.OCIRuntime != newRuntime {
+			logrus.Infof("Resetting container %s runtime to runtime %s", ctr.ID(), newRuntime)
+			ctr.config.OCIRuntime = newRuntime
 			ctr.ociRuntime = requestedRuntime
 
 			needsWrite = true
