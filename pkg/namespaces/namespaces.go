@@ -48,24 +48,21 @@ func (n CgroupMode) IsNS() bool {
 
 // NS gets the path associated with a ns:<path> cgroup ns
 func (n CgroupMode) NS() string {
-	parts := strings.SplitN(string(n), ":", 2)
-	if len(parts) > 1 {
-		return parts[1]
-	}
-	return ""
+	_, path, _ := strings.Cut(string(n), ":")
+	return path
 }
 
 // IsContainer indicates whether the container uses a new cgroup namespace.
 func (n CgroupMode) IsContainer() bool {
-	parts := strings.SplitN(string(n), ":", 2)
-	return len(parts) > 1 && parts[0] == containerType
+	typ, _, hasColon := strings.Cut(string(n), ":")
+	return hasColon && typ == containerType
 }
 
 // Container returns the name of the container whose cgroup namespace is going to be used.
 func (n CgroupMode) Container() string {
-	parts := strings.SplitN(string(n), ":", 2)
-	if len(parts) > 1 && parts[0] == containerType {
-		return parts[1]
+	typ, name, hasName := strings.Cut(string(n), ":")
+	if hasName && typ == containerType {
+		return name
 	}
 	return ""
 }
@@ -123,36 +120,36 @@ func (n UsernsMode) IsDefaultValue() bool {
 // GetKeepIDOptions returns a KeepIDUserNsOptions with the settings to keepIDmatically set up
 // a user namespace.
 func (n UsernsMode) GetKeepIDOptions() (*KeepIDUserNsOptions, error) {
-	parts := strings.SplitN(string(n), ":", 2)
-	if parts[0] != "keep-id" {
+	nsmode, nsopts, hasOpts := strings.Cut(string(n), ":")
+	if nsmode != "keep-id" {
 		return nil, fmt.Errorf("wrong user namespace mode")
 	}
 	options := KeepIDUserNsOptions{}
-	if len(parts) == 1 {
+	if !hasOpts {
 		return &options, nil
 	}
-	for _, o := range strings.Split(parts[1], ",") {
-		v := strings.SplitN(o, "=", 2)
-		if len(v) != 2 {
+	for _, o := range strings.Split(nsopts, ",") {
+		opt, val, hasVal := strings.Cut(o, "=")
+		if !hasVal {
 			return nil, fmt.Errorf("invalid option specified: %q", o)
 		}
-		switch v[0] {
+		switch opt {
 		case "uid":
-			s, err := strconv.ParseUint(v[1], 10, 32)
+			s, err := strconv.ParseUint(val, 10, 32)
 			if err != nil {
 				return nil, err
 			}
 			v := uint32(s)
 			options.UID = &v
 		case "gid":
-			s, err := strconv.ParseUint(v[1], 10, 32)
+			s, err := strconv.ParseUint(val, 10, 32)
 			if err != nil {
 				return nil, err
 			}
 			v := uint32(s)
 			options.GID = &v
 		default:
-			return nil, fmt.Errorf("unknown option specified: %q", v[0])
+			return nil, fmt.Errorf("unknown option specified: %q", opt)
 		}
 	}
 	return &options, nil
@@ -185,24 +182,21 @@ func (n UsernsMode) IsNS() bool {
 
 // NS gets the path associated with a ns:<path> userns ns
 func (n UsernsMode) NS() string {
-	parts := strings.SplitN(string(n), ":", 2)
-	if len(parts) > 1 {
-		return parts[1]
-	}
-	return ""
+	_, path, _ := strings.Cut(string(n), ":")
+	return path
 }
 
 // IsContainer indicates whether container uses a container userns.
 func (n UsernsMode) IsContainer() bool {
-	parts := strings.SplitN(string(n), ":", 2)
-	return len(parts) > 1 && parts[0] == containerType
+	typ, _, hasName := strings.Cut(string(n), ":")
+	return hasName && typ == containerType
 }
 
 // Container is the id of the container which network this container is connected to.
 func (n UsernsMode) Container() string {
-	parts := strings.SplitN(string(n), ":", 2)
-	if len(parts) > 1 && parts[0] == containerType {
-		return parts[1]
+	typ, name, hasName := strings.Cut(string(n), ":")
+	if hasName && typ == containerType {
+		return name
 	}
 	return ""
 }
@@ -222,15 +216,15 @@ func (n UTSMode) IsHost() bool {
 
 // IsContainer indicates whether the container uses a container's UTS namespace.
 func (n UTSMode) IsContainer() bool {
-	parts := strings.SplitN(string(n), ":", 2)
-	return len(parts) > 1 && parts[0] == containerType
+	typ, _, hasName := strings.Cut(string(n), ":")
+	return hasName && typ == containerType
 }
 
 // Container returns the name of the container whose uts namespace is going to be used.
 func (n UTSMode) Container() string {
-	parts := strings.SplitN(string(n), ":", 2)
-	if len(parts) > 1 && parts[0] == containerType {
-		return parts[1]
+	typ, name, hasName := strings.Cut(string(n), ":")
+	if hasName && typ == containerType {
+		return name
 	}
 	return ""
 }
@@ -270,8 +264,8 @@ func (n IpcMode) IsShareable() bool {
 
 // IsContainer indicates whether the container uses another container's ipc namespace.
 func (n IpcMode) IsContainer() bool {
-	parts := strings.SplitN(string(n), ":", 2)
-	return len(parts) > 1 && parts[0] == containerType
+	typ, _, hasName := strings.Cut(string(n), ":")
+	return hasName && typ == containerType
 }
 
 // IsNone indicates whether container IpcMode is set to "none".
@@ -291,9 +285,9 @@ func (n IpcMode) Valid() bool {
 
 // Container returns the name of the container ipc stack is going to be used.
 func (n IpcMode) Container() string {
-	parts := strings.SplitN(string(n), ":", 2)
-	if len(parts) > 1 && parts[0] == containerType {
-		return parts[1]
+	typ, name, hasName := strings.Cut(string(n), ":")
+	if hasName && typ == containerType {
+		return name
 	}
 	return ""
 }
@@ -313,8 +307,8 @@ func (n PidMode) IsHost() bool {
 
 // IsContainer indicates whether the container uses a container's pid namespace.
 func (n PidMode) IsContainer() bool {
-	parts := strings.SplitN(string(n), ":", 2)
-	return len(parts) > 1 && parts[0] == containerType
+	typ, _, hasName := strings.Cut(string(n), ":")
+	return hasName && typ == containerType
 }
 
 // Valid indicates whether the pid namespace is valid.
@@ -334,9 +328,9 @@ func (n PidMode) Valid() bool {
 
 // Container returns the name of the container whose pid namespace is going to be used.
 func (n PidMode) Container() string {
-	parts := strings.SplitN(string(n), ":", 2)
-	if len(parts) > 1 && parts[0] == containerType {
-		return parts[1]
+	typ, name, hasName := strings.Cut(string(n), ":")
+	if hasName && typ == containerType {
+		return name
 	}
 	return ""
 }
@@ -366,15 +360,15 @@ func (n NetworkMode) IsPrivate() bool {
 
 // IsContainer indicates whether container uses a container network stack.
 func (n NetworkMode) IsContainer() bool {
-	parts := strings.SplitN(string(n), ":", 2)
-	return len(parts) > 1 && parts[0] == containerType
+	typ, _, hasName := strings.Cut(string(n), ":")
+	return hasName && typ == containerType
 }
 
 // Container is the id of the container which network this container is connected to.
 func (n NetworkMode) Container() string {
-	parts := strings.SplitN(string(n), ":", 2)
-	if len(parts) > 1 && parts[0] == containerType {
-		return parts[1]
+	typ, name, hasName := strings.Cut(string(n), ":")
+	if hasName && typ == containerType {
+		return name
 	}
 	return ""
 }
@@ -409,11 +403,8 @@ func (n NetworkMode) IsNS() bool {
 
 // NS gets the path associated with a ns:<path> network ns
 func (n NetworkMode) NS() string {
-	parts := strings.SplitN(string(n), ":", 2)
-	if len(parts) > 1 {
-		return parts[1]
-	}
-	return ""
+	_, path, _ := strings.Cut(string(n), ":")
+	return path
 }
 
 // IsPod returns whether the network refers to pod networking

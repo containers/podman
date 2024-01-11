@@ -102,11 +102,11 @@ func pause(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, f := range filters {
-		split := strings.SplitN(f, "=", 2)
-		if len(split) < 2 {
+		fname, filter, hasFilter := strings.Cut(f, "=")
+		if !hasFilter {
 			return fmt.Errorf("invalid filter %q", f)
 		}
-		pauseOpts.Filters[split[0]] = append(pauseOpts.Filters[split[0]], split[1])
+		pauseOpts.Filters[fname] = append(pauseOpts.Filters[fname], filter)
 	}
 
 	responses, err := registry.ContainerEngine().ContainerPause(context.Background(), args, pauseOpts)

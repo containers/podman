@@ -124,11 +124,11 @@ func start(cmd *cobra.Command, args []string) error {
 
 	containers := utils.RemoveSlash(args)
 	for _, f := range filters {
-		split := strings.SplitN(f, "=", 2)
-		if len(split) < 2 {
+		fname, filter, hasFilter := strings.Cut(f, "=")
+		if !hasFilter {
 			return fmt.Errorf("invalid filter %q", f)
 		}
-		startOptions.Filters[split[0]] = append(startOptions.Filters[split[0]], split[1])
+		startOptions.Filters[fname] = append(startOptions.Filters[fname], filter)
 	}
 
 	responses, err := registry.ContainerEngine().ContainerStart(registry.GetContext(), containers, startOptions)

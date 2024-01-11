@@ -246,18 +246,17 @@ func play(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, annotation := range playOptions.annotations {
-		splitN := strings.SplitN(annotation, "=", 2)
-		if len(splitN) != 2 {
+		key, val, hasVal := strings.Cut(annotation, "=")
+		if !hasVal {
 			return fmt.Errorf("annotation %q must include an '=' sign", annotation)
 		}
 		if playOptions.Annotations == nil {
 			playOptions.Annotations = make(map[string]string)
 		}
-		annotation := splitN[1]
-		if len(annotation) > define.MaxKubeAnnotation && !playOptions.UseLongAnnotations {
-			return fmt.Errorf("annotation exceeds maximum size, %d, of kubernetes annotation: %s", define.MaxKubeAnnotation, annotation)
+		if len(val) > define.MaxKubeAnnotation && !playOptions.UseLongAnnotations {
+			return fmt.Errorf("annotation exceeds maximum size, %d, of kubernetes annotation: %s", define.MaxKubeAnnotation, val)
 		}
-		playOptions.Annotations[splitN[0]] = annotation
+		playOptions.Annotations[key] = val
 	}
 
 	for _, mac := range playOptions.macs {

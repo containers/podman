@@ -342,10 +342,10 @@ func PullImage(imageName string, cliVals *entities.ContainerCreateOptions) (stri
 			if cliVals.Arch != "" || cliVals.OS != "" {
 				return "", errors.New("--platform option can not be specified with --arch or --os")
 			}
-			split := strings.SplitN(cliVals.Platform, "/", 2)
-			cliVals.OS = split[0]
-			if len(split) > 1 {
-				cliVals.Arch = split[1]
+			OS, Arch, hasArch := strings.Cut(cliVals.Platform, "/")
+			cliVals.OS = OS
+			if hasArch {
+				cliVals.Arch = Arch
 			}
 		}
 	}

@@ -471,8 +471,8 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 			// because it does try to red the value from the environment
 			if !strings.Contains(env, "=") {
 				for _, containerEnv := range info.containerEnv {
-					split := strings.SplitN(containerEnv, "=", 2)
-					if split[0] == env {
+					key, _, _ := strings.Cut(containerEnv, "=")
+					if key == env {
 						info.ExtraEnvs = append(info.ExtraEnvs, escapeSystemdArg(containerEnv))
 					}
 				}

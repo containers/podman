@@ -530,9 +530,9 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 			if len(secretOpt) > 0 {
 				modifiedOpt := []string{}
 				for _, token := range secretOpt {
-					arr := strings.SplitN(token, "=", 2)
-					if len(arr) > 1 {
-						if arr[0] == "src" {
+					opt, val, hasVal := strings.Cut(token, "=")
+					if hasVal {
+						if opt == "src" {
 							// read specified secret into a tmp file
 							// move tmp file to tar and change secret source to relative tmp file
 							tmpSecretFile, err := os.CreateTemp(options.ContextDirectory, "podman-build-secret")
@@ -541,7 +541,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 							}
 							defer os.Remove(tmpSecretFile.Name()) // clean up
 							defer tmpSecretFile.Close()
-							srcSecretFile, err := os.Open(arr[1])
+							srcSecretFile, err := os.Open(val)
 							if err != nil {
 								return nil, err
 							}

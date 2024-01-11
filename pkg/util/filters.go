@@ -65,9 +65,9 @@ func PrepareFilters(r *http.Request) (*map[string][]string, error) {
 	}
 	filterMap := map[string][]string{}
 	for _, filter := range filtersList {
-		split := strings.SplitN(filter, "=", 2)
-		if len(split) > 1 {
-			filterMap[split[0]] = append(filterMap[split[0]], split[1])
+		fname, filter, hasFilter := strings.Cut(filter, "=")
+		if hasFilter {
+			filterMap[fname] = append(filterMap[fname], filter)
 		}
 	}
 	return &filterMap, nil

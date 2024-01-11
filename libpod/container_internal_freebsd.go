@@ -254,7 +254,7 @@ func (c *Container) addSharedNamespaces(g *generate.Generator) error {
 	}
 	needEnv := true
 	for _, checkEnv := range g.Config.Process.Env {
-		if strings.SplitN(checkEnv, "=", 2)[0] == "HOSTNAME" {
+		if strings.HasPrefix(checkEnv, "HOSTNAME=") {
 			needEnv = false
 			break
 		}

@@ -116,16 +116,16 @@ func rm(cmd *cobra.Command, args []string) error {
 			}
 			return fmt.Errorf("reading CIDFile: %w", err)
 		}
-		id := strings.Split(string(content), "\n")[0]
+		id, _, _ := strings.Cut(string(content), "\n")
 		args = append(args, id)
 	}
 
 	for _, f := range filters {
-		split := strings.SplitN(f, "=", 2)
-		if len(split) < 2 {
+		fname, filter, hasFilter := strings.Cut(f, "=")
+		if !hasFilter {
 			return fmt.Errorf("invalid filter %q", f)
 		}
-		rmOptions.Filters[split[0]] = append(rmOptions.Filters[split[0]], split[1])
+		rmOptions.Filters[fname] = append(rmOptions.Filters[fname], filter)
 	}
 
 	if rmOptions.All {

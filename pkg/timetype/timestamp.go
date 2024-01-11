@@ -116,19 +116,19 @@ func ParseTimestamps(value string, def int64) (int64, int64, error) {
 }
 
 func parseTimestamp(value string) (int64, int64, error) {
-	sa := strings.SplitN(value, ".", 2)
-	s, err := strconv.ParseInt(sa[0], 10, 64)
+	spart, npart, hasParts := strings.Cut(value, ".")
+	s, err := strconv.ParseInt(spart, 10, 64)
 	if err != nil {
 		return s, 0, err
 	}
-	if len(sa) != 2 {
+	if !hasParts {
 		return s, 0, nil
 	}
-	n, err := strconv.ParseInt(sa[1], 10, 64)
+	n, err := strconv.ParseInt(npart, 10, 64)
 	if err != nil {
 		return s, n, err
 	}
 	// should already be in nanoseconds but just in case convert n to nanoseconds
-	n = int64(float64(n) * math.Pow(float64(10), float64(9-len(sa[1]))))
+	n = int64(float64(n) * math.Pow(float64(10), float64(9-len(npart))))
 	return s, n, nil
 }

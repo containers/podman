@@ -110,11 +110,11 @@ func unpause(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, f := range filters {
-		split := strings.SplitN(f, "=", 2)
-		if len(split) < 2 {
+		fname, filter, hasFilter := strings.Cut(f, "=")
+		if !hasFilter {
 			return fmt.Errorf("invalid filter %q", f)
 		}
-		unpauseOpts.Filters[split[0]] = append(unpauseOpts.Filters[split[0]], split[1])
+		unpauseOpts.Filters[fname] = append(unpauseOpts.Filters[fname], filter)
 	}
 
 	responses, err := registry.ContainerEngine().ContainerUnpause(context.Background(), args, unpauseOpts)

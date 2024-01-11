@@ -135,7 +135,7 @@ func generateRunlabelCommand(runlabel string, img *libimage.Image, inputName str
 		name = splitImageName[len(splitImageName)-1]
 		// make sure to remove the tag from the image name, otherwise the name cannot
 		// be used as container name because a colon is an illegal character
-		name = strings.SplitN(name, ":", 2)[0]
+		name, _, _ = strings.Cut(name, ":")
 	}
 
 	// Append the user-specified arguments to the runlabel (command).

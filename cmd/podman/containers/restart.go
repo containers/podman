@@ -114,11 +114,11 @@ func restart(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, f := range filters {
-		split := strings.SplitN(f, "=", 2)
-		if len(split) < 2 {
+		fname, filter, hasFilter := strings.Cut(f, "=")
+		if !hasFilter {
 			return fmt.Errorf("invalid filter %q", f)
 		}
-		restartOpts.Filters[split[0]] = append(restartOpts.Filters[split[0]], split[1])
+		restartOpts.Filters[fname] = append(restartOpts.Filters[fname], filter)
 	}
 
 	responses, err := registry.ContainerEngine().ContainerRestart(context.Background(), args, restartOpts)

@@ -524,11 +524,11 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 
 	exposedPorts := make(nat.PortSet)
 	for ep := range inspect.NetworkSettings.Ports {
-		splitp := strings.SplitN(ep, "/", 2)
-		if len(splitp) != 2 {
+		port, proto, ok := strings.Cut(ep, "/")
+		if !ok {
 			return nil, fmt.Errorf("PORT/PROTOCOL Format required for %q", ep)
 		}
-		exposedPort, err := nat.NewPort(splitp[1], splitp[0])
+		exposedPort, err := nat.NewPort(proto, port)
 		if err != nil {
 			return nil, err
 		}

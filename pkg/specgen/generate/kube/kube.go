@@ -221,29 +221,29 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 
 	s.LogConfiguration.Options = make(map[string]string)
 	for _, o := range opts.LogOptions {
-		split := strings.SplitN(o, "=", 2)
-		if len(split) < 2 {
+		opt, val, hasVal := strings.Cut(o, "=")
+		if !hasVal {
 			return nil, fmt.Errorf("invalid log option %q", o)
 		}
-		switch strings.ToLower(split[0]) {
+		switch strings.ToLower(opt) {
 		case "driver":
-			s.LogConfiguration.Driver = split[1]
+			s.LogConfiguration.Driver = val
 		case "path":
-			s.LogConfiguration.Path = split[1]
+			s.LogConfiguration.Path = val
 		case "max-size":
-			logSize, err := units.FromHumanSize(split[1])
+			logSize, err := units.FromHumanSize(val)
 			if err != nil {
 				return nil, err
 			}
 			s.LogConfiguration.Size = logSize
 		default:
-			switch len(split[1]) {
+			switch len(val) {
 			case 0:
 				return nil, fmt.Errorf("invalid log option: %w", define.ErrInvalidArg)
 			default:
 				// tags for journald only
 				if s.LogConfiguration.Driver == "" || s.LogConfiguration.Driver == define.JournaldLogging {
-					s.LogConfiguration.Options[split[0]] = split[1]
+					s.LogConfiguration.Options[opt] = val
 				} else {
 					logrus.Warnf("Can only set tags with journald log driver but driver is %q", s.LogConfiguration.Driver)
 				}
@@ -434,8 +434,8 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	// Environment Variables
 	envs := map[string]string{}
 	for _, env := range imageData.Config.Env {
-		keyval := strings.SplitN(env, "=", 2)
-		envs[keyval[0]] = keyval[1]
+		key, val, _ := strings.Cut(env, "=")
+		envs[key] = val
 	}
 
 	for _, env := range opts.Container.Env {

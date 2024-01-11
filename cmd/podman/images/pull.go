@@ -149,10 +149,14 @@ func imagePull(cmd *cobra.Command, args []string) error {
 		if pullOptions.Arch != "" || pullOptions.OS != "" {
 			return errors.New("--platform option can not be specified with --arch or --os")
 		}
-		split := strings.SplitN(platform, "/", 2)
-		pullOptions.OS = split[0]
-		if len(split) > 1 {
-			pullOptions.Arch = split[1]
+
+		specs := strings.Split(platform, "/")
+		pullOptions.OS = specs[0] // may be empty
+		if len(specs) > 1 {
+			pullOptions.Arch = specs[1]
+			if len(specs) > 2 {
+				pullOptions.Variant = specs[2]
+			}
 		}
 	}
 
