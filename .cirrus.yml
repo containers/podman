@@ -815,6 +815,7 @@ podman_machine_mac_task:
       - container_integration_test
       - rootless_integration_test
     persistent_worker: *mac_pw
+    timeout_in: 120m
     env:
         <<: *mac_env
         # Consumed by podman-machine ginkgo tests
