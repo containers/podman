@@ -84,7 +84,7 @@ func parseOptionIDs(ctrMappings []idtools.IDMap, option string) ([]idtools.IDMap
 		if relative {
 			found := false
 			for _, m := range ctrMappings {
-				if v.ContainerID >= m.ContainerID && v.ContainerID < m.ContainerID+m.Size {
+				if v.HostID >= m.ContainerID && v.HostID < m.ContainerID+m.Size {
 					v.HostID += m.HostID - m.ContainerID
 					found = true
 					break
