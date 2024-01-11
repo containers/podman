@@ -162,18 +162,18 @@ Valid options for `[Container]` are listed below:
 | ContainerName=name                   | --name name                                          |
 | ContainersConfModule=/etc/nvd\.conf  | --module=/etc/nvd\.conf                              |
 | DNS=192.168.55.1                     | --dns=192.168.55.1                                   |
-| DNSSearch=foo.com                    | --dns-search=foo.com                                 |
 | DNSOption=ndots:1                    | --dns-option=ndots:1                                 |
+| DNSSearch=foo.com                    | --dns-search=foo.com                                 |
 | DropCapability=CAP                   | --cap-drop=CAP                                       |
+| Entrypoint=/foo.sh                   | --entrypoint=/foo.sh                                 |
 | Environment=foo=bar                  | --env foo=bar                                        |
 | EnvironmentFile=/tmp/env             | --env-file /tmp/env                                  |
 | EnvironmentHost=true                 | --env-host                                           |
-| Entrypoint=/foo.sh                   | --entrypoint=/foo.sh                                 |
 | Exec=/usr/bin/command                | Command after image specification - /usr/bin/command |
 | ExposeHostPort=50-59                 | --expose 50-59                                       |
 | GIDMap=0:10000:10                    | --gidmap=0:10000:10                                  |
-| Group=1234                           | --user UID:1234                                      |
 | GlobalArgs=--log-level=debug         | --log-level=debug                                    |
+| Group=1234                           | --user UID:1234                                      |
 | HealthCmd=/usr/bin/command           | --health-cmd=/usr/bin/command                        |
 | HealthInterval=2m                    | --health-interval=2m                                 |
 | HealthOnFailure=kill                 | --health-on-failure=kill                             |
@@ -195,7 +195,6 @@ Valid options for `[Container]` are listed below:
 | Mount=type=...                       | --mount type=...                                     |
 | Network=host                         | --net host                                           |
 | NoNewPrivileges=true                 | --security-opt no-new-privileges                     |
-| Rootfs=/var/lib/rootfs               | --rootfs /var/lib/rootfs                             |
 | Notify=true                          | --sdnotify container                                 |
 | PidsLimit=10000                      | --pids-limit 10000                                   |
 | Pod=pod-name                         | --pod=pod-name                                       |
@@ -204,8 +203,10 @@ Valid options for `[Container]` are listed below:
 | Pull=never                           | --pull=never                                         |
 | ReadOnly=true                        | --read-only                                          |
 | ReadOnlyTmpfs=true                   | --read-only-tmpfs                                    |
+| Rootfs=/var/lib/rootfs               | --rootfs /var/lib/rootfs                             |
 | RunInit=true                         | --init                                               |
 | SeccompProfile=/tmp/s.json           | --security-opt seccomp=/tmp/s.json                   |
+| Secret=secret                        | --secret=secret[,opt=opt ...]                        |
 | SecurityLabelDisable=true            | --security-opt label=disable                         |
 | SecurityLabelFileType=usr_t          | --security-opt label=filetype:usr_t                  |
 | SecurityLabelLevel=s0:c1,c2          | --security-opt label=level:s0:c1,c2                  |
@@ -306,6 +307,12 @@ For example:
 DropCapability=CAP_DAC_OVERRIDE CAP_IPC_OWNER
 ```
 
+### `Entrypoint=`
+
+Override the default ENTRYPOINT from the image.
+Equivalent to the Podman `--entrypoint` option.
+Specify multi option commands in the form of a json string.
+
 ### `Environment=`
 
 Set an environment variable in the container. This uses the same format as
@@ -321,12 +328,6 @@ This key may be used multiple times, and the order persists when passed to `podm
 ### `EnvironmentHost=`
 
 Use the host environment inside of the container.
-
-#### `Entrypoint=`
-
-Override the default ENTRYPOINT from the image.
-Equivalent to the Podman `--entrypoint` option.
-Specify multi option commands in the form of a json string.
 
 ### `Exec=`
 
@@ -499,14 +500,6 @@ This key can be listed multiple times.
 If enabled, this disables the container processes from gaining additional privileges via things like
 setuid and file capabilities.
 
-### `Rootfs=`
-
-The rootfs to use for the container. Rootfs points to a directory on the system that contains the content to be run within the container. This option conflicts with the `Image` option.
-
-The format of the rootfs is the same as when passed to `podman run --rootfs`, so it supports overlay mounts as well.
-
-Note: On SELinux systems, the rootfs needs the correct label, which is by default unconfined_u:object_r:container_file_t:s0.
-
 ### `Notify=` (defaults to `no`)
 
 By default, Podman is run in such a way that the systemd startup notify command is handled by
@@ -576,6 +569,14 @@ If enabled, makes the image read-only.
 
 If ReadOnly is set to `yes`, mount a read-write tmpfs on /dev, /dev/shm, /run, /tmp, and /var/tmp.
 
+### `Rootfs=`
+
+The rootfs to use for the container. Rootfs points to a directory on the system that contains the content to be run within the container. This option conflicts with the `Image` option.
+
+The format of the rootfs is the same as when passed to `podman run --rootfs`, so it supports overlay mounts as well.
+
+Note: On SELinux systems, the rootfs needs the correct label, which is by default unconfined_u:object_r:container_file_t:s0.
+
 ### `RunInit=` (default to `no`)
 
 If enabled, the container has a minimal init process inside the
@@ -585,6 +586,11 @@ container that forwards signals and reaps processes.
 
 Set the seccomp profile to use in the container. If unset, the default podman profile is used.
 Set to either the pathname of a json file, or `unconfined` to disable the seccomp filters.
+
+### `Secret=`
+
+Use a Podman secret in the container either as a file or an environment variable.
+This is equivalent to the Podman `--secret` option and generally has the form `secret[,opt=opt ...]`
 
 ### `SecurityLabelDisable=`
 
@@ -605,11 +611,6 @@ Allow SecurityLabels to function within the container. This allows separation of
 ### `SecurityLabelType=`
 
 Set the label process type for the container processes.
-
-### `Secret=`
-
-Use a Podman secret in the container either as a file or an environment variable.
-This is equivalent to the Podman `--secret` option and generally has the form `secret[,opt=opt ...]`
 
 ### `ShmSize=`
 
@@ -646,16 +647,16 @@ For example:
 Sysctl=net.ipv6.conf.all.disable_ipv6=1 net.ipv6.conf.all.use_tempaddr=1
 ```
 
+### `Timezone=` (if unset uses system-configured default)
+
+The timezone to run the container in.
+
 ### `Tmpfs=`
 
 Mount a tmpfs in the container. This is equivalent to the Podman `--tmpfs` option, and
 generally has the form `CONTAINER-DIR[:OPTIONS]`.
 
 This key can be listed multiple times.
-
-### `Timezone=` (if unset uses system-configured default)
-
-The timezone to run the container in.
 
 ### `UIDMap=`
 
@@ -835,6 +836,7 @@ Valid options for `[Kube]` are listed below:
 | AutoUpdate=registry                 | --annotation "io.containers.autoupdate=registry"                 |
 | ConfigMap=/tmp/config.map           | --config-map /tmp/config.map                                     |
 | ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                                          |
+| ExitCodePropagation=how             | How to propagate container error status                          |
 | GlobalArgs=--log-level=debug        | --log-level=debug                                                |
 | KubeDownForce=true                  | --force (for `podman kube down`)                                 |
 | LogDriver=journald                  | --log-driver journald                                            |
@@ -1145,6 +1147,8 @@ Valid options for `[Volume]` are listed below:
 | Label="foo=bar"                     | --label "foo=bar"                         |
 | Options=XYZ                         | --opt XYZ                                 |
 | PodmanArgs=--driver=image           | --driver=image                            |
+| Type=type                           | Filesystem type of Device                 |
+| User=123                            | --opt uid=123                             |
 | VolumeName=foo                      | podman volume create foo                  |
 
 Supported keys in `[Volume]` section are:

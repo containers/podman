@@ -544,6 +544,7 @@ man-page-check: bin/podman
 	hack/man-page-checker
 	hack/xref-helpmsgs-manpages
 	hack/man-page-table-check
+	hack/xref-quadlet-docs
 
 .PHONY: swagger-check
 swagger-check:
