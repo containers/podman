@@ -1,6 +1,8 @@
 package integration
 
 import (
+	"fmt"
+
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -73,5 +75,33 @@ var _ = Describe("podman system reset", Serial, func() {
 			Expect(session).Should(ExitCleanly())
 			Expect(session.OutputToStringArray()).To(BeEmpty())
 		}
+	})
+
+	It("system reset completely removes container", func() {
+		SkipIfRemote("system reset not supported on podman --remote")
+		useCustomNetworkDir(podmanTest, tempdir)
+
+		rmi := podmanTest.Podman([]string{"rmi", "--force", "--all"})
+		rmi.WaitWithDefaultTimeout()
+		Expect(rmi).Should(ExitCleanly())
+		podmanTest.AddImageToRWStore(ALPINE)
+
+		// The name ensures that we have a Libpod resource that we'll
+		// hit if we recreate the container after a reset and it still
+		// exists. The port does the same for a system-level resource.
+		ctrName := "testctr"
+		port1 := GetPort()
+		port2 := GetPort()
+		session := podmanTest.Podman([]string{"run", "--name", ctrName, "-p", fmt.Sprintf("%d:%d", port1, port2), "-d", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		reset := podmanTest.Podman([]string{"system", "reset", "--force"})
+		reset.WaitWithDefaultTimeout()
+		Expect(reset).Should(ExitCleanly())
+
+		session2 := podmanTest.Podman([]string{"run", "--name", ctrName, "-p", fmt.Sprintf("%d:%d", port1, port2), "-d", ALPINE, "top"})
+		session2.WaitWithDefaultTimeout()
+		Expect(session2).Should(ExitCleanly())
 	})
 })

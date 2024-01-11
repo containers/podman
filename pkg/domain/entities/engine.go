@@ -14,12 +14,6 @@ type EngineSetup string
 const (
 	ABIMode    = EngineMode("abi")
 	TunnelMode = EngineMode("tunnel")
-
-	MigrateMode  = EngineSetup("migrate")
-	NoFDsMode    = EngineSetup("disablefds")
-	NormalMode   = EngineSetup("normal")
-	RenumberMode = EngineSetup("renumber")
-	ResetMode    = EngineSetup("reset")
 )
 
 // Convert EngineMode to String
@@ -42,6 +36,8 @@ type PodmanConfig struct {
 	EngineMode               EngineMode     // ABI or Tunneling mode
 	HooksDir                 []string
 	Identity                 string   // ssh identity for connecting to server
+	IsRenumber               bool     // Is this a system renumber command? If so, a number of checks will be relaxed
+	IsReset                  bool     // Is this a system reset command? If so, a number of checks will be skipped/omitted
 	MaxWorks                 int      // maximum number of parallel threads
 	MemoryProfile            string   // Hidden: Should memory profile be taken
 	RegistriesConf           string   // allows for specifying a custom registries.conf

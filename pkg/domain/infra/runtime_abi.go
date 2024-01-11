@@ -6,10 +6,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	"github.com/containers/podman/v4/pkg/domain/infra/tunnel"
 )
 
@@ -39,35 +37,6 @@ func NewImageEngine(facts *entities.PodmanConfig) (entities.ImageEngine, error) 
 			return nil, fmt.Errorf("%w: %s", err, facts.URI)
 		}
 		return &tunnel.ImageEngine{ClientCtx: ctx, FarmNode: tunnel.FarmNode{NodeName: facts.FarmNodeName}}, nil
-	}
-	return nil, fmt.Errorf("runtime mode '%v' is not supported", facts.EngineMode)
-}
-
-// NewSystemEngine factory provides a libpod runtime for specialized system operations
-func NewSystemEngine(setup entities.EngineSetup, facts *entities.PodmanConfig) (entities.SystemEngine, error) {
-	switch facts.EngineMode {
-	case entities.ABIMode:
-		var r *libpod.Runtime
-		var err error
-		switch setup {
-		case entities.NormalMode:
-			r, err = GetRuntime(context.Background(), facts.FlagSet, facts)
-		case entities.RenumberMode:
-			r, err = GetRuntimeRenumber(context.Background(), facts.FlagSet, facts)
-		case entities.ResetMode:
-			r, err = GetRuntimeReset(context.Background(), facts.FlagSet, facts)
-		case entities.MigrateMode:
-			name, flagErr := facts.FlagSet.GetString("new-runtime")
-			if flagErr != nil {
-				return nil, flagErr
-			}
-			r, err = GetRuntimeMigrate(context.Background(), facts.FlagSet, facts, name)
-		case entities.NoFDsMode:
-			r, err = GetRuntimeDisableFDs(context.Background(), facts.FlagSet, facts)
-		}
-		return &abi.SystemEngine{Libpod: r}, err
-	case entities.TunnelMode:
-		return nil, fmt.Errorf("tunnel system runtime not supported")
 	}
 	return nil, fmt.Errorf("runtime mode '%v' is not supported", facts.EngineMode)
 }
