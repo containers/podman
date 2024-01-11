@@ -13,7 +13,7 @@ func (i *inspectMachine) buildCmd(m *machineTestBuilder) []string {
 	if len(i.format) > 0 {
 		cmd = append(cmd, "--format", i.format)
 	}
-	cmd = append(cmd, m.names...)
+	cmd = append(cmd, m.name)
 	i.cmd = cmd
 	return cmd
 }
