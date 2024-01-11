@@ -991,7 +991,7 @@ func (m *MacMachine) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.Gvp
 	}
 
 	destSock := fmt.Sprintf("/run/user/%d/podman/podman.sock", m.UID)
-	forwardUser := "core"
+	forwardUser := m.RemoteUsername
 
 	if m.Rootful {
 		destSock = "/run/podman/podman.sock"
