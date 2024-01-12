@@ -12,16 +12,16 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/compression"
 	"github.com/containers/podman/v4/pkg/machine/define"
-	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/pkg/machine/ignition"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
 	"github.com/docker/go-units"
 	"golang.org/x/sys/unix"
 )
 
 const (
-	defaultVFKitEndpoint = "http://localhost:8081"
-	ignitionSocketName   = "ignition.sock"
+	localhostURI       = "http://localhost"
+	ignitionSocketName = "ignition.sock"
 )
 
 type AppleHVVirtualization struct {
