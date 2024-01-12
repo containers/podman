@@ -1008,7 +1008,8 @@ func (m *MacMachine) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.Gvp
 		}
 	}
 
-	return cmd, "", machine.MachineLocal
+	return cmd, socket.GetPath(), machine.MachineLocal
+
 }
 
 func (m *MacMachine) dockerSock() (string, error) {
