@@ -572,12 +572,6 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 		return machine.ErrVMAlreadyRunning
 	}
 
-	ioEater, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
-	if err != nil {
-		return err
-	}
-	defer ioEater.Close()
-
 	// TODO handle returns from startHostNetworking
 	forwardSock, forwardState, err := m.startHostNetworking()
 	if err != nil {
@@ -640,8 +634,6 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 		cmd.Args = append(cmd.Args, debugDevArgs...)
 		cmd.Args = append(cmd.Args, "--gui") // add command line switch to pop the gui open
 	}
-
-	cmd.ExtraFiles = []*os.File{ioEater, ioEater, ioEater}
 
 	readSocketBaseDir := filepath.Dir(m.ReadySocket.GetPath())
 	if err := os.MkdirAll(readSocketBaseDir, 0755); err != nil {
