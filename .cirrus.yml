@@ -454,6 +454,7 @@ osx_alt_build_task:
         labels:
             os: darwin
             arch: arm64
+            purpose: cevich_testing
     env: &mac_env
         CIRRUS_SHELL: "/bin/bash"  # sh is the default
         CIRRUS_WORKING_DIR: "$HOME/ci/task-${CIRRUS_TASK_ID}"  # Isolation: $HOME will be set to "ci" dir.
@@ -815,6 +816,7 @@ podman_machine_mac_task:
       - container_integration_test
       - rootless_integration_test
     persistent_worker: *mac_pw
+    timeout_in: 120m
     env:
         <<: *mac_env
         # Consumed by podman-machine ginkgo tests

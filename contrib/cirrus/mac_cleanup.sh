@@ -22,5 +22,8 @@ rm -rf /private/tmp/ci/* /private/tmp/ci/.??*
 find "${ORIGINAL_HOME:-$HOME}/ci" -mindepth 1 -maxdepth 1 \
     -not -name "*task-${CIRRUS_TASK_ID}*" -prune -exec rm -rf '{}' +
 
+# SSH Has a limit to the number of keys it can handle
+rm -rf "${ORIGINAL_HOME:-$HOME}"/.ssh/*
+
 # Bash scripts exit with the status of the last command.
 true
