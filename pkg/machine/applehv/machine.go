@@ -759,8 +759,13 @@ func (m *MacMachine) Stop(name string, opts machine.StopOptions) error {
 			logrus.Error(err)
 		}
 	}()
+	if err := m.Vfkit.Stop(false, true); err != nil {
+		return err
+	}
 
-	return m.Vfkit.Stop(false, true)
+	// keep track of last up
+	m.LastUp = time.Now()
+	return m.writeConfig()
 }
 
 // getVMConfigPath is a simple wrapper for getting the fully-qualified
