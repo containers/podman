@@ -1,0 +1,8 @@
+[Unit]
+Description", "A systemd user unit demo
+After=network-online.target
+Wants=network-online.target podman.socket
+
+[Service]
+ExecStart=/usr/bin/sleep infinity
+
