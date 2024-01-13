@@ -44,6 +44,10 @@ const (
 	MountType9p          = "9p"
 	dockerSock           = "/var/run/docker.sock"
 	dockerConnectTimeout = 5 * time.Second
+	retryCountForStop    = 5
+	windowsFallbackUID   = 501
+	baseBackoff          = 500 * time.Millisecond
+	maxStartupBackoffs   = 6
 )
 
 type MachineVM struct {
@@ -146,6 +150,9 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	}
 
 	v.UID = os.Getuid()
+	if v.UID == -1 {
+		v.UID = windowsFallbackUID // Used on Windows to match FCOS image
+	}
 
 	// Add location of bootable image
 	v.CmdLine.SetBootableImage(v.getImageFile())
@@ -422,7 +429,7 @@ func (v *MachineVM) qemuPid() (int, error) {
 		logrus.Warnf("Reading QEMU pidfile: %v", err)
 		return -1, nil
 	}
-	return findProcess(pid)
+	return pingProcess(pid)
 }
 
 // Start executes the qemu command line and forks it
@@ -432,9 +439,6 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		err            error
 		qemuSocketConn net.Conn
 	)
-
-	defaultBackoff := 500 * time.Millisecond
-	maxBackoffs := 6
 
 	v.lock.Lock()
 	defer v.lock.Unlock()
@@ -489,7 +493,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		logrus.Errorf("machine %q is incompatible with this release of podman and needs to be recreated, starting for recovery only", v.Name)
 	}
 
-	forwardSock, forwardState, err := v.startHostNetworking()
+	forwardSock, forwardState, _, err := v.startHostNetworking(&v.QMPMonitor.Address)
 	if err != nil {
 		return fmt.Errorf("unable to start host networking: %q", err)
 	}
@@ -513,7 +517,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		return err
 	}
 
-	qemuSocketConn, err = sockets.DialSocketWithBackoffs(maxBackoffs, defaultBackoff, v.QMPMonitor.Address.Path)
+	qemuSocketConn, err = sockets.DialSocketWithBackoffs(maxStartupBackoffs, baseBackoff, v.QMPMonitor.Address.Path)
 	if err != nil {
 		return fmt.Errorf("failed to connect to qemu monitor socket: %w", err)
 	}
@@ -532,9 +536,6 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	defer dnr.Close()
 	defer dnw.Close()
 
-	attr := new(os.ProcAttr)
-	files := []*os.File{dnr, dnw, dnw, fd}
-	attr.Files = files
 	cmdLine := v.CmdLine
 
 	cmdLine.SetPropagatedHostEnvs()
@@ -551,12 +552,15 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 
 	// actually run the command that starts the virtual machine
 	cmd := &exec.Cmd{
-		Args:       cmdLine,
-		Path:       cmdLine[0],
-		Stdin:      dnr,
-		Stdout:     dnw,
-		Stderr:     stderrBuf,
-		ExtraFiles: []*os.File{fd},
+		Args:   cmdLine,
+		Path:   cmdLine[0],
+		Stdin:  dnr,
+		Stdout: dnw,
+		Stderr: stderrBuf,
+	}
+	// Forward FD if one was allocated
+	if fd != nil {
+		cmd.ExtraFiles = []*os.File{fd}
 	}
 
 	if err := runStartVMCommand(cmd); err != nil {
@@ -569,7 +573,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		fmt.Println("Waiting for VM ...")
 	}
 
-	conn, err = sockets.DialSocketWithBackoffsAndProcCheck(maxBackoffs, defaultBackoff, v.ReadySocket.GetPath(), checkProcessStatus, "qemu", cmd.Process.Pid, stderrBuf)
+	conn, err = sockets.DialSocketWithBackoffsAndProcCheck(maxStartupBackoffs, baseBackoff, v.ReadySocket.GetPath(), checkProcessStatus, "qemu", cmd.Process.Pid, stderrBuf)
 	if err != nil {
 		return err
 	}
@@ -603,7 +607,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		return nil
 	}
 
-	connected, sshError, err := v.conductVMReadinessCheck(name, maxBackoffs, defaultBackoff)
+	connected, sshError, err := v.conductVMReadinessCheck(name, maxStartupBackoffs, baseBackoff)
 	if err != nil {
 		return err
 	}
@@ -677,7 +681,7 @@ func (v *MachineVM) checkStatus(monitor *qmp.SocketMonitor) (define.Status, erro
 func (v *MachineVM) waitForMachineToStop() error {
 	fmt.Println("Waiting for VM to stop running...")
 	waitInternal := 250 * time.Millisecond
-	for i := 0; i < 5; i++ {
+	for i := 0; i < retryCountForStop; i++ {
 		state, err := v.State(false)
 		if err != nil {
 			return err
@@ -710,15 +714,15 @@ func (v *MachineVM) ProxyPID() (int, error) {
 	return proxyPid, nil
 }
 
-// cleanupVMProxyProcess kills the proxy process and removes the VM's pidfile
-func (v *MachineVM) cleanupVMProxyProcess(proxyProc *os.Process) error {
+// cleanupVMProxyProcess kills the proxy process
+func (v *MachineVM) cleanupVMProxyProcess(proxyPid int) error {
 	// Kill the process
-	if err := proxyProc.Kill(); err != nil {
+	if err := killProcess(proxyPid, false); err != nil {
 		return err
 	}
 	// Remove the pidfile
 	if err := v.PidFilePath.Delete(); err != nil {
-		return err
+		logrus.Debugf("Error while removing proxy pidfile: %v", err)
 	}
 	return nil
 }
@@ -762,7 +766,7 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
 		return stopErr
 	}
 
-	if err := sigKill(qemuPid); err != nil {
+	if err := killProcess(qemuPid, true); err != nil {
 		if stopErr == nil {
 			return err
 		}
@@ -837,7 +841,7 @@ func (v *MachineVM) stopLocked() error {
 		return err
 	}
 
-	if err := v.cleanupVMProxyProcess(proxyProc); err != nil {
+	if err := v.cleanupVMProxyProcess(proxyPid); err != nil {
 		return err
 	}
 
@@ -869,8 +873,18 @@ func (v *MachineVM) stopLocked() error {
 	}
 
 	fmt.Println("Waiting for VM to exit...")
-	for isProcessAlive(vmPid) {
-		time.Sleep(500 * time.Millisecond)
+	retries := 60
+	for {
+		alive, _ := isProcessAlive(vmPid)
+		if retries <= 0 {
+			logrus.Warning("Giving up on waiting for VM to exit. VM process might still terminate")
+			break
+		}
+		if !alive {
+			break
+		}
+		time.Sleep(baseBackoff)
+		retries--
 	}
 
 	return nil
@@ -1101,18 +1115,18 @@ func getDiskSize(path string) (uint64, error) {
 
 // startHostNetworking runs a binary on the host system that allows users
 // to set up port forwarding to the podman virtual machine
-func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, error) {
+func (v *MachineVM) startHostNetworking(vlanSocket *define.VMFile) (string, machine.APIForwardingState, *os.Process, error) {
 	cfg, err := config.Default()
 	if err != nil {
-		return "", machine.NoForwarding, err
+		return "", machine.NoForwarding, nil, err
 	}
 	binary, err := cfg.FindHelperBinary(machine.ForwarderBinaryName, false)
 	if err != nil {
-		return "", machine.NoForwarding, err
+		return "", machine.NoForwarding, nil, err
 	}
 
 	cmd := gvproxy.NewGvproxyCommand()
-	cmd.AddQemuSocket(fmt.Sprintf("unix://%s", v.QMPMonitor.Address.GetPath()))
+	cmd.AddQemuSocket(fmt.Sprintf("unix://%s", filepath.ToSlash(vlanSocket.GetPath())))
 	cmd.PidFile = v.PidFilePath.GetPath()
 	cmd.SSHPort = v.Port
 
@@ -1127,11 +1141,13 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
 		logrus.Debug(cmd)
 	}
 
+	cargs := cmd.ToCmdline()
+	logrus.Debugf("gvproxy cmd: %v", append([]string{binary}, cargs...))
 	c := cmd.Cmd(binary)
 	if err := c.Start(); err != nil {
-		return "", 0, fmt.Errorf("unable to execute: %q: %w", cmd.ToCmdline(), err)
+		return "", 0, nil, fmt.Errorf("unable to execute: %q: %w", cmd.ToCmdline(), err)
 	}
-	return forwardSock, state, nil
+	return forwardSock, state, c.Process, nil
 }
 
 func (v *MachineVM) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.GvproxyCommand, string, machine.APIForwardingState) {
@@ -1325,6 +1341,7 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
 		return nil, err
 	}
 	connInfo.PodmanSocket = podmanSocket
+	connInfo.PodmanPipe = podmanPipe(v.Name)
 	return &machine.InspectInfo{
 		ConfigPath:         v.ConfigPath,
 		ConnectionInfo:     *connInfo,

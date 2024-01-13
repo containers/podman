@@ -7,13 +7,27 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
 )
 
-func isProcessAlive(pid int) bool {
+func isProcessAlive(pid int) (bool, error) {
 	if checkProcessStatus("process", pid, nil) == nil {
-		return true
+		return true, nil
 	}
-	return false
+	return false, nil
+}
+
+func pingProcess(pid int) (int, error) {
+	alive, _ := isProcessAlive(pid)
+	if !alive {
+		return -1, nil
+	}
+	return pid, nil
+}
+
+func killProcess(pid int, force bool) error {
+	machine.SendQuit(uint32(pid))
+	return nil
 }
 
 func checkProcessStatus(processHint string, pid int, stderrBuf *bytes.Buffer) error {
@@ -51,10 +65,16 @@ func extractTargetPath(paths []string) string {
 	return dedup.ReplaceAllLiteralString("/"+target, "/")
 }
 
-func sigKill(pid int) error {
-	return nil
+func podmanPipe(name string) *define.VMFile {
+	return &define.VMFile{Path: `\\.\pipe\` + toPipeName(name)}
 }
 
-func findProcess(pid int) (int, error) {
-	return -1, nil
+func toPipeName(name string) string {
+	if !strings.HasPrefix(name, "qemu-podman") {
+		if !strings.HasPrefix(name, "podman") {
+			name = "podman-" + name
+		}
+		name = "qemu-" + name
+	}
+	return name
 }

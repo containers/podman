@@ -53,7 +53,6 @@ func (q *QemuCmd) SetNetwork() {
 	*q = append(*q, "-netdev", "socket,id=vlan,fd=3", "-device", "virtio-net-pci,netdev=vlan,mac=5a:94:ef:e4:0c:ee")
 }
 
-// SetNetwork adds a network device to the machine
 func (q *QemuCmd) SetUSBHostPassthrough(usbs []USBConfig) {
 	if len(usbs) == 0 {
 		return

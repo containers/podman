@@ -157,7 +157,7 @@ func StopWinProxy(name string, vmtype define.VMType) error {
 	if err != nil {
 		return nil
 	}
-	sendQuit(tid)
+	SendQuit(tid)
 	_ = waitTimeout(proc, 20*time.Second)
 	_ = os.Remove(tidFile)
 
@@ -200,7 +200,7 @@ func waitTimeout(proc *os.Process, timeout time.Duration) bool {
 	return ret
 }
 
-func sendQuit(tid uint32) {
+func SendQuit(tid uint32) {
 	user32 := syscall.NewLazyDLL("user32.dll")
 	postMessage := user32.NewProc("PostThreadMessageW")
 	postMessage.Call(uintptr(tid), WM_QUIT, 0, 0)
