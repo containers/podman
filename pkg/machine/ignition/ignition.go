@@ -135,6 +135,14 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 		ignStorage.Links = append(ignStorage.Links, tzLink)
 	}
 
+	// Enables automatic login on the console;
+	// there's no security concerns here, and this makes debugging easier.
+	// xref https://docs.fedoraproject.org/en-US/fedora-coreos/tutorial-autologin/
+	var autologinDropin = `[Service]
+ExecStart=
+ExecStart=-/usr/sbin/agetty --autologin root --noclear %I $TERM
+`
+
 	deMoby := parser.NewUnitFile()
 	deMoby.Add("Unit", "Description", "Remove moby-engine")
 	deMoby.Add("Unit", "After", "systemd-machine-id-commit.service")
@@ -220,7 +228,26 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 				Enabled: BoolToPtr(false),
 				Name:    "zincati.service",
 			},
-		}}
+			{
+				Name: "serial-getty@.service",
+				Dropins: []Dropin{
+					{
+						Name:     "10-autologin.conf",
+						Contents: &autologinDropin,
+					},
+				},
+			},
+			{
+				Name: "getty@.service",
+				Dropins: []Dropin{
+					{
+						Name:     "10-autologin.conf",
+						Contents: &autologinDropin,
+					},
+				},
+			},
+		},
+	}
 
 	// Only qemu has the qemu firmware environment setting
 	if ign.VMType == define.QemuVirt {
