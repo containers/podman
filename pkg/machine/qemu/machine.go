@@ -194,14 +194,15 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	}
 
 	builder := ignition.NewIgnitionBuilder(ignition.DynamicIgnition{
-		Name:      opts.Username,
-		Key:       key,
-		VMName:    v.Name,
-		VMType:    define.QemuVirt,
-		TimeZone:  opts.TimeZone,
-		WritePath: v.getIgnitionFile(),
-		UID:       v.UID,
-		Rootful:   v.Rootful,
+		Name:       opts.Username,
+		Key:        key,
+		VMName:     v.Name,
+		VMType:     define.QemuVirt,
+		TimeZone:   opts.TimeZone,
+		WritePath:  v.getIgnitionFile(),
+		UID:        v.UID,
+		Rootful:    v.Rootful,
+		NetRecover: useNetworkRecover(),
 	})
 
 	// If the user provides an ignition file, we need to
