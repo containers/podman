@@ -33,70 +33,23 @@ var (
 )
 
 type engineOpts struct {
-	name     string
-	renumber bool
-	migrate  bool
 	withFDS  bool
 	reset    bool
+	renumber bool
 	config   *entities.PodmanConfig
-}
-
-// GetRuntimeMigrate gets a libpod runtime that will perform a migration of existing containers
-func GetRuntimeMigrate(ctx context.Context, fs *flag.FlagSet, cfg *entities.PodmanConfig, newRuntime string) (*libpod.Runtime, error) {
-	return getRuntime(ctx, fs, &engineOpts{
-		name:     newRuntime,
-		renumber: false,
-		migrate:  true,
-		withFDS:  true,
-		reset:    false,
-		config:   cfg,
-	})
-}
-
-// GetRuntimeDisableFDs gets a libpod runtime that will disable sd notify
-func GetRuntimeDisableFDs(ctx context.Context, fs *flag.FlagSet, cfg *entities.PodmanConfig) (*libpod.Runtime, error) {
-	return getRuntime(ctx, fs, &engineOpts{
-		renumber: false,
-		migrate:  false,
-		withFDS:  false,
-		reset:    false,
-		config:   cfg,
-	})
-}
-
-// GetRuntimeRenumber gets a libpod runtime that will perform a lock renumber
-func GetRuntimeRenumber(ctx context.Context, fs *flag.FlagSet, cfg *entities.PodmanConfig) (*libpod.Runtime, error) {
-	return getRuntime(ctx, fs, &engineOpts{
-		renumber: true,
-		migrate:  false,
-		withFDS:  true,
-		reset:    false,
-		config:   cfg,
-	})
 }
 
 // GetRuntime generates a new libpod runtime configured by command line options
 func GetRuntime(ctx context.Context, flags *flag.FlagSet, cfg *entities.PodmanConfig) (*libpod.Runtime, error) {
 	runtimeSync.Do(func() {
 		runtimeLib, runtimeErr = getRuntime(ctx, flags, &engineOpts{
-			renumber: false,
-			migrate:  false,
 			withFDS:  true,
-			reset:    false,
+			reset:    cfg.IsReset,
+			renumber: cfg.IsRenumber,
 			config:   cfg,
 		})
 	})
 	return runtimeLib, runtimeErr
-}
-
-func GetRuntimeReset(ctx context.Context, fs *flag.FlagSet, cfg *entities.PodmanConfig) (*libpod.Runtime, error) {
-	return getRuntime(ctx, fs, &engineOpts{
-		renumber: false,
-		migrate:  false,
-		withFDS:  true,
-		reset:    true,
-		config:   cfg,
-	})
 }
 
 func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpod.Runtime, error) {
@@ -161,17 +114,10 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	if fs.Changed("transient-store") {
 		options = append(options, libpod.WithTransientStore(cfg.TransientStore))
 	}
-	if opts.migrate {
-		options = append(options, libpod.WithMigrate())
-		if opts.name != "" {
-			options = append(options, libpod.WithMigrateRuntime(opts.name))
-		}
-	}
 
 	if opts.reset {
 		options = append(options, libpod.WithReset())
 	}
-
 	if opts.renumber {
 		options = append(options, libpod.WithRenumber())
 	}
