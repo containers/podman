@@ -36,7 +36,7 @@ type BlobInfoCache2 interface {
 	// that could possibly be reused within the specified (transport scope) (if they still
 	// exist, which is not guaranteed).
 	//
-	// If !canSubstitute, the returned cadidates will match the submitted digest exactly; if
+	// If !canSubstitute, the returned candidates will match the submitted digest exactly; if
 	// canSubstitute, data from previous RecordDigestUncompressedPair calls is used to also look
 	// up variants of the blob which have the same uncompressed digest.
 	//

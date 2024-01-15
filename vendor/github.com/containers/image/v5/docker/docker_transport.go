@@ -12,6 +12,11 @@ import (
 	"github.com/containers/image/v5/types"
 )
 
+// UnknownDigestSuffix can be appended to a reference when the caller
+// wants to push an image without a tag or digest.
+// NewReferenceUnknownDigest() is called when this const is detected.
+const UnknownDigestSuffix = "@@unknown-digest@@"
+
 func init() {
 	transports.Register(Transport)
 }
@@ -43,7 +48,8 @@ func (t dockerTransport) ValidatePolicyConfigurationScope(scope string) error {
 
 // dockerReference is an ImageReference for Docker images.
 type dockerReference struct {
-	ref reference.Named // By construction we know that !reference.IsNameOnly(ref)
+	ref             reference.Named // By construction we know that !reference.IsNameOnly(ref) unless isUnknownDigest=true
+	isUnknownDigest bool
 }
 
 // ParseReference converts a string, which should not start with the ImageTransport.Name prefix, into an Docker ImageReference.
@@ -51,23 +57,46 @@ func ParseReference(refString string) (types.ImageReference, error) {
 	if !strings.HasPrefix(refString, "//") {
 		return nil, fmt.Errorf("docker: image reference %s does not start with //", refString)
 	}
+	// Check if ref has UnknownDigestSuffix suffixed to it
+	unknownDigest := false
+	if strings.HasSuffix(refString, UnknownDigestSuffix) {
+		unknownDigest = true
+		refString = strings.TrimSuffix(refString, UnknownDigestSuffix)
+	}
 	ref, err := reference.ParseNormalizedNamed(strings.TrimPrefix(refString, "//"))
 	if err != nil {
 		return nil, err
 	}
+
+	if unknownDigest {
+		if !reference.IsNameOnly(ref) {
+			return nil, fmt.Errorf("docker: image reference %q has unknown digest set but it contains either a tag or digest", ref.String()+UnknownDigestSuffix)
+		}
+		return NewReferenceUnknownDigest(ref)
+	}
+
 	ref = reference.TagNameOnly(ref)
 	return NewReference(ref)
 }
 
 // NewReference returns a Docker reference for a named reference. The reference must satisfy !reference.IsNameOnly().
 func NewReference(ref reference.Named) (types.ImageReference, error) {
-	return newReference(ref)
+	return newReference(ref, false)
+}
+
+// NewReferenceUnknownDigest returns a Docker reference for a named reference, which can be used to write images without setting
+// a tag on the registry. The reference must satisfy reference.IsNameOnly()
+func NewReferenceUnknownDigest(ref reference.Named) (types.ImageReference, error) {
+	return newReference(ref, true)
 }
 
 // newReference returns a dockerReference for a named reference.
-func newReference(ref reference.Named) (dockerReference, error) {
-	if reference.IsNameOnly(ref) {
-		return dockerReference{}, fmt.Errorf("Docker reference %s has neither a tag nor a digest", reference.FamiliarString(ref))
+func newReference(ref reference.Named, unknownDigest bool) (dockerReference, error) {
+	if reference.IsNameOnly(ref) && !unknownDigest {
+		return dockerReference{}, fmt.Errorf("Docker reference %s is not for an unknown digest case; tag or digest is needed", reference.FamiliarString(ref))
+	}
+	if !reference.IsNameOnly(ref) && unknownDigest {
+		return dockerReference{}, fmt.Errorf("Docker reference %s is for an unknown digest case but reference has a tag or digest", reference.FamiliarString(ref))
 	}
 	// A github.com/distribution/reference value can have a tag and a digest at the same time!
 	// The docker/distribution API does not really support that (we can’t ask for an image with a specific
@@ -81,7 +110,8 @@ func newReference(ref reference.Named) (dockerReference, error) {
 	}
 
 	return dockerReference{
-		ref: ref,
+		ref:             ref,
+		isUnknownDigest: unknownDigest,
 	}, nil
 }
 
@@ -95,7 +125,11 @@ func (ref dockerReference) Transport() types.ImageTransport {
 // e.g. default attribute values omitted by the user may be filled in the return value, or vice versa.
 // WARNING: Do not use the return value in the UI to describe an image, it does not contain the Transport().Name() prefix.
 func (ref dockerReference) StringWithinTransport() string {
-	return "//" + reference.FamiliarString(ref.ref)
+	famString := "//" + reference.FamiliarString(ref.ref)
+	if ref.isUnknownDigest {
+		return famString + UnknownDigestSuffix
+	}
+	return famString
 }
 
 // DockerReference returns a Docker reference associated with this reference
@@ -113,6 +147,9 @@ func (ref dockerReference) DockerReference() reference.Named {
 // not required/guaranteed that it will be a valid input to Transport().ParseReference().
 // Returns "" if configuration identities for these references are not supported.
 func (ref dockerReference) PolicyConfigurationIdentity() string {
+	if ref.isUnknownDigest {
+		return ref.ref.Name()
+	}
 	res, err := policyconfiguration.DockerReferenceIdentity(ref.ref)
 	if res == "" || err != nil { // Coverage: Should never happen, NewReference above should refuse values which could cause a failure.
 		panic(fmt.Sprintf("Internal inconsistency: policyconfiguration.DockerReferenceIdentity returned %#v, %v", res, err))
@@ -126,7 +163,13 @@ func (ref dockerReference) PolicyConfigurationIdentity() string {
 // It is STRONGLY recommended for the first element, if any, to be a prefix of PolicyConfigurationIdentity(),
 // and each following element to be a prefix of the element preceding it.
 func (ref dockerReference) PolicyConfigurationNamespaces() []string {
-	return policyconfiguration.DockerReferenceNamespaces(ref.ref)
+	namespaces := policyconfiguration.DockerReferenceNamespaces(ref.ref)
+	if ref.isUnknownDigest {
+		if len(namespaces) != 0 && namespaces[0] == ref.ref.Name() {
+			namespaces = namespaces[1:]
+		}
+	}
+	return namespaces
 }
 
 // NewImage returns a types.ImageCloser for this reference, possibly specialized for this ImageTransport.
@@ -162,6 +205,10 @@ func (ref dockerReference) tagOrDigest() (string, error) {
 	}
 	if ref, ok := ref.ref.(reference.NamedTagged); ok {
 		return ref.Tag(), nil
+	}
+
+	if ref.isUnknownDigest {
+		return "", fmt.Errorf("Docker reference %q is for an unknown digest case, has neither a digest nor a tag", reference.FamiliarString(ref.ref))
 	}
 	// This should not happen, NewReference above refuses reference.IsNameOnly values.
 	return "", fmt.Errorf("Internal inconsistency: Reference %s unexpectedly has neither a digest nor a tag", reference.FamiliarString(ref.ref))

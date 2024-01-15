@@ -4,7 +4,7 @@
 podman\-farm\-create - Create a new farm
 
 ## SYNOPSIS
-**podman farm create** [*options*] *name* [*connections*]
+**podman farm create** *name* [*connections*]
 
 ## DESCRIPTION
 Create a new farm with connections that Podman knows about which were added via the
@@ -12,8 +12,6 @@ Create a new farm with connections that Podman knows about which were added via 
 
 An empty farm can be created without adding any connections to it. Add or remove
 connections from a farm via the *podman farm update* command.
-
-## OPTIONS
 
 ## EXAMPLE
 

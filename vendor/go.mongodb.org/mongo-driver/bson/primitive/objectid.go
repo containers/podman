@@ -82,18 +82,18 @@ func ObjectIDFromHex(s string) (ObjectID, error) {
 		return NilObjectID, ErrInvalidHex
 	}
 
-	b, err := hex.DecodeString(s)
+	var oid [12]byte
+	_, err := hex.Decode(oid[:], []byte(s))
 	if err != nil {
 		return NilObjectID, err
 	}
-
-	var oid [12]byte
-	copy(oid[:], b)
 
 	return oid, nil
 }
 
 // IsValidObjectID returns true if the provided hex string represents a valid ObjectID and false if not.
+//
+// Deprecated: Use ObjectIDFromHex and check the error instead.
 func IsValidObjectID(s string) bool {
 	_, err := ObjectIDFromHex(s)
 	return err == nil

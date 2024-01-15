@@ -20,5 +20,4 @@ func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: farmCmd,
 	})
-	farmCmd.Hidden = true
 }

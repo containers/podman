@@ -123,6 +123,9 @@ func GetDigest(ctx context.Context, sys *types.SystemContext, ref types.ImageRef
 	if !ok {
 		return "", errors.New("ref must be a dockerReference")
 	}
+	if dr.isUnknownDigest {
+		return "", fmt.Errorf("docker: reference %q is for unknown digest case; cannot get digest", dr.StringWithinTransport())
+	}
 
 	tagOrDigest, err := dr.tagOrDigest()
 	if err != nil {

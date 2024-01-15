@@ -328,6 +328,7 @@ func ParseDecimal128(s string) (Decimal128, error) {
 		return dErr(s)
 	}
 
+	// Parse the significand (i.e. the non-exponent part) as a big.Int.
 	bi, ok := new(big.Int).SetString(intPart+decPart, 10)
 	if !ok {
 		return dErr(s)
@@ -359,6 +360,19 @@ func ParseDecimal128FromBigInt(bi *big.Int, exp int) (Decimal128, bool) {
 
 	q := new(big.Int)
 	r := new(big.Int)
+
+	// If the significand is zero, the logical value will always be zero, independent of the
+	// exponent. However, the loops for handling out-of-range exponent values below may be extremely
+	// slow for zero values because the significand never changes. Limit the exponent value to the
+	// supported range here to prevent entering the loops below.
+	if bi.Cmp(zero) == 0 {
+		if exp > MaxDecimal128Exp {
+			exp = MaxDecimal128Exp
+		}
+		if exp < MinDecimal128Exp {
+			exp = MinDecimal128Exp
+		}
+	}
 
 	for bigIntCmpAbs(bi, maxS) == 1 {
 		bi, _ = q.QuoRem(bi, ten, r)

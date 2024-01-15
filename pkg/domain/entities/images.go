@@ -492,19 +492,3 @@ type FarmInspectReport struct {
 	Arch              string
 	Variant           string
 }
-
-// PullToFileOptions are the options for pulling the images from farm
-// nodes into a dir
-type PullToFileOptions struct {
-	ImageID    string
-	SaveFormat string
-	SaveFile   string
-}
-
-// PullToLocalOptions are the options for pulling the images from farm
-// nodes into containers-storage
-type PullToLocalOptions struct {
-	ImageID     string
-	SaveFormat  string
-	Destination ImageEngine
-}

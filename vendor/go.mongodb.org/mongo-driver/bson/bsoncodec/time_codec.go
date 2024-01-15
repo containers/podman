@@ -22,18 +22,28 @@ const (
 )
 
 // TimeCodec is the Codec used for time.Time values.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// TimeCodec registered.
 type TimeCodec struct {
+	// UseLocalTimeZone specifies if we should decode into the local time zone. Defaults to false.
+	//
+	// Deprecated: Use bson.Decoder.UseLocalTimeZone instead.
 	UseLocalTimeZone bool
 }
 
 var (
 	defaultTimeCodec = NewTimeCodec()
 
-	_ ValueCodec  = defaultTimeCodec
+	// Assert that defaultTimeCodec satisfies the typeDecoder interface, which allows it to be used
+	// by collection type decoders (e.g. map, slice, etc) to set individual values in a collection.
 	_ typeDecoder = defaultTimeCodec
 )
 
 // NewTimeCodec returns a TimeCodec with options opts.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// TimeCodec registered.
 func NewTimeCodec(opts ...*bsonoptions.TimeCodecOptions) *TimeCodec {
 	timeOpt := bsonoptions.MergeTimeCodecOptions(opts...)
 
@@ -95,7 +105,7 @@ func (tc *TimeCodec) decodeType(dc DecodeContext, vr bsonrw.ValueReader, t refle
 		return emptyValue, fmt.Errorf("cannot decode %v into a time.Time", vrType)
 	}
 
-	if !tc.UseLocalTimeZone {
+	if !tc.UseLocalTimeZone && !dc.useLocalTimeZone {
 		timeVal = timeVal.UTC()
 	}
 	return reflect.ValueOf(timeVal), nil
@@ -117,7 +127,7 @@ func (tc *TimeCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val re
 }
 
 // EncodeValue is the ValueEncoderFunc for time.TIme.
-func (tc *TimeCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (tc *TimeCodec) EncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tTime {
 		return ValueEncoderError{Name: "TimeEncodeValue", Types: []reflect.Type{tTime}, Received: val}
 	}

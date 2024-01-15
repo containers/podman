@@ -7,11 +7,11 @@
 package bsoncore
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
@@ -237,7 +237,7 @@ func (d Document) DebugString() string {
 	if len(d) < 5 {
 		return "<malformed>"
 	}
-	var buf bytes.Buffer
+	var buf strings.Builder
 	buf.WriteString("Document")
 	length, rem, _ := ReadLength(d) // We know we have enough bytes to read the length
 	buf.WriteByte('(')
@@ -253,7 +253,7 @@ func (d Document) DebugString() string {
 			buf.WriteString(fmt.Sprintf("<malformed (%d)>", length))
 			break
 		}
-		fmt.Fprintf(&buf, "%s ", elem.DebugString())
+		buf.WriteString(elem.DebugString())
 	}
 	buf.WriteByte('}')
 
@@ -266,7 +266,7 @@ func (d Document) String() string {
 	if len(d) < 5 {
 		return ""
 	}
-	var buf bytes.Buffer
+	var buf strings.Builder
 	buf.WriteByte('{')
 
 	length, rem, _ := ReadLength(d) // We know we have enough bytes to read the length
@@ -285,7 +285,7 @@ func (d Document) String() string {
 		if !ok {
 			return ""
 		}
-		fmt.Fprintf(&buf, "%s", elem.String())
+		buf.WriteString(elem.String())
 		first = false
 	}
 	buf.WriteByte('}')

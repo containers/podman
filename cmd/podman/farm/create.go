@@ -16,7 +16,7 @@ var (
 	The "podman system connection add --farm" command can be used to add a new connection to a new or existing farm.`
 
 	createCommand = &cobra.Command{
-		Use:               "create [options] NAME [CONNECTIONS...]",
+		Use:               "create NAME [CONNECTIONS...]",
 		Args:              cobra.MinimumNArgs(1),
 		Short:             "Create a new farm",
 		Long:              farmCreateDescription,

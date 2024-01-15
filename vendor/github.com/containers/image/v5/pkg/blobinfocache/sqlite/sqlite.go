@@ -171,7 +171,7 @@ func transaction[T any](sqc *cache, fn func(tx *sql.Tx) (T, error)) (T, error) {
 
 // dbTransaction calls fn within a read-write transaction in db.
 func dbTransaction[T any](db *sql.DB, fn func(tx *sql.Tx) (T, error)) (T, error) {
-	// Ideally we should be able to distinguish between read-only and read-write transactions, see the _txlock=exclusive dicussion.
+	// Ideally we should be able to distinguish between read-only and read-write transactions, see the _txlock=exclusive discussion.
 
 	var zeroRes T // A zero value of T
 
@@ -496,7 +496,7 @@ func (sqc *cache) appendReplacementCandidates(candidates []prioritize.CandidateW
 // that could possibly be reused within the specified (transport scope) (if they still
 // exist, which is not guaranteed).
 //
-// If !canSubstitute, the returned cadidates will match the submitted digest exactly; if
+// If !canSubstitute, the returned candidates will match the submitted digest exactly; if
 // canSubstitute, data from previous RecordDigestUncompressedPair calls is used to also look
 // up variants of the blob which have the same uncompressed digest.
 //

@@ -28,12 +28,23 @@ var vwPool = sync.Pool{
 	},
 }
 
+func putValueWriter(vw *valueWriter) {
+	if vw != nil {
+		vw.w = nil // don't leak the writer
+		vwPool.Put(vw)
+	}
+}
+
 // BSONValueWriterPool is a pool for BSON ValueWriters.
+//
+// Deprecated: BSONValueWriterPool will not be supported in Go Driver 2.0.
 type BSONValueWriterPool struct {
 	pool sync.Pool
 }
 
 // NewBSONValueWriterPool creates a new pool for ValueWriter instances that write to BSON.
+//
+// Deprecated: BSONValueWriterPool will not be supported in Go Driver 2.0.
 func NewBSONValueWriterPool() *BSONValueWriterPool {
 	return &BSONValueWriterPool{
 		pool: sync.Pool{
@@ -45,6 +56,8 @@ func NewBSONValueWriterPool() *BSONValueWriterPool {
 }
 
 // Get retrieves a BSON ValueWriter from the pool and resets it to use w as the destination.
+//
+// Deprecated: BSONValueWriterPool will not be supported in Go Driver 2.0.
 func (bvwp *BSONValueWriterPool) Get(w io.Writer) ValueWriter {
 	vw := bvwp.pool.Get().(*valueWriter)
 
@@ -56,6 +69,8 @@ func (bvwp *BSONValueWriterPool) Get(w io.Writer) ValueWriter {
 }
 
 // GetAtModeElement retrieves a ValueWriterFlusher from the pool and resets it to use w as the destination.
+//
+// Deprecated: BSONValueWriterPool will not be supported in Go Driver 2.0.
 func (bvwp *BSONValueWriterPool) GetAtModeElement(w io.Writer) ValueWriterFlusher {
 	vw := bvwp.Get(w).(*valueWriter)
 	vw.push(mElement)
@@ -64,6 +79,8 @@ func (bvwp *BSONValueWriterPool) GetAtModeElement(w io.Writer) ValueWriterFlushe
 
 // Put inserts a ValueWriter into the pool. If the ValueWriter is not a BSON ValueWriter, nothing
 // happens and ok will be false.
+//
+// Deprecated: BSONValueWriterPool will not be supported in Go Driver 2.0.
 func (bvwp *BSONValueWriterPool) Put(vw ValueWriter) (ok bool) {
 	bvw, ok := vw.(*valueWriter)
 	if !ok {
@@ -139,32 +156,21 @@ type valueWriter struct {
 }
 
 func (vw *valueWriter) advanceFrame() {
-	if vw.frame+1 >= int64(len(vw.stack)) { // We need to grow the stack
-		length := len(vw.stack)
-		if length+1 >= cap(vw.stack) {
-			// double it
-			buf := make([]vwState, 2*cap(vw.stack)+1)
-			copy(buf, vw.stack)
-			vw.stack = buf
-		}
-		vw.stack = vw.stack[:length+1]
-	}
 	vw.frame++
+	if vw.frame >= int64(len(vw.stack)) {
+		vw.stack = append(vw.stack, vwState{})
+	}
 }
 
 func (vw *valueWriter) push(m mode) {
 	vw.advanceFrame()
 
 	// Clean the stack
-	vw.stack[vw.frame].mode = m
-	vw.stack[vw.frame].key = ""
-	vw.stack[vw.frame].arrkey = 0
-	vw.stack[vw.frame].start = 0
+	vw.stack[vw.frame] = vwState{mode: m}
 
-	vw.stack[vw.frame].mode = m
 	switch m {
 	case mDocument, mArray, mCodeWithScope:
-		vw.reserveLength()
+		vw.reserveLength() // WARN: this is not needed
 	}
 }
 
@@ -203,6 +209,7 @@ func newValueWriter(w io.Writer) *valueWriter {
 	return vw
 }
 
+// TODO: only used in tests
 func newValueWriterFromSlice(buf []byte) *valueWriter {
 	vw := new(valueWriter)
 	stack := make([]vwState, 1, 5)
@@ -239,17 +246,16 @@ func (vw *valueWriter) invalidTransitionError(destination mode, name string, mod
 }
 
 func (vw *valueWriter) writeElementHeader(t bsontype.Type, destination mode, callerName string, addmodes ...mode) error {
-	switch vw.stack[vw.frame].mode {
+	frame := &vw.stack[vw.frame]
+	switch frame.mode {
 	case mElement:
-		key := vw.stack[vw.frame].key
+		key := frame.key
 		if !isValidCString(key) {
 			return errors.New("BSON element key cannot contain null bytes")
 		}
-
-		vw.buf = bsoncore.AppendHeader(vw.buf, t, key)
+		vw.appendHeader(t, key)
 	case mValue:
-		// TODO: Do this with a cache of the first 1000 or so array keys.
-		vw.buf = bsoncore.AppendHeader(vw.buf, t, strconv.Itoa(vw.stack[vw.frame].arrkey))
+		vw.appendIntHeader(t, frame.arrkey)
 	default:
 		modes := []mode{mElement, mValue}
 		if addmodes != nil {
@@ -591,9 +597,11 @@ func (vw *valueWriter) writeLength() error {
 	if length > maxSize {
 		return errMaxDocumentSizeExceeded{size: int64(len(vw.buf))}
 	}
-	length = length - int(vw.stack[vw.frame].start)
-	start := vw.stack[vw.frame].start
+	frame := &vw.stack[vw.frame]
+	length = length - int(frame.start)
+	start := frame.start
 
+	_ = vw.buf[start+3] // BCE
 	vw.buf[start+0] = byte(length)
 	vw.buf[start+1] = byte(length >> 8)
 	vw.buf[start+2] = byte(length >> 16)
@@ -602,5 +610,31 @@ func (vw *valueWriter) writeLength() error {
 }
 
 func isValidCString(cs string) bool {
-	return !strings.ContainsRune(cs, '\x00')
+	// Disallow the zero byte in a cstring because the zero byte is used as the
+	// terminating character.
+	//
+	// It's safe to check bytes instead of runes because all multibyte UTF-8
+	// code points start with (binary) 11xxxxxx or 10xxxxxx, so 00000000 (i.e.
+	// 0) will never be part of a multibyte UTF-8 code point. This logic is the
+	// same as the "r < utf8.RuneSelf" case in strings.IndexRune but can be
+	// inlined.
+	//
+	// https://cs.opensource.google/go/go/+/refs/tags/go1.21.1:src/strings/strings.go;l=127
+	return strings.IndexByte(cs, 0) == -1
+}
+
+// appendHeader is the same as bsoncore.AppendHeader but does not check if the
+// key is a valid C string since the caller has already checked for that.
+//
+// The caller of this function must check if key is a valid C string.
+func (vw *valueWriter) appendHeader(t bsontype.Type, key string) {
+	vw.buf = bsoncore.AppendType(vw.buf, t)
+	vw.buf = append(vw.buf, key...)
+	vw.buf = append(vw.buf, 0x00)
+}
+
+func (vw *valueWriter) appendIntHeader(t bsontype.Type, key int) {
+	vw.buf = bsoncore.AppendType(vw.buf, t)
+	vw.buf = strconv.AppendInt(vw.buf, int64(key), 10)
+	vw.buf = append(vw.buf, 0x00)
 }

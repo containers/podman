@@ -17,18 +17,29 @@ import (
 )
 
 // UIntCodec is the Codec used for uint values.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// UIntCodec registered.
 type UIntCodec struct {
+	// EncodeToMinSize causes EncodeValue to marshal Go uint values (excluding uint64) as the
+	// minimum BSON int size (either 32-bit or 64-bit) that can represent the integer value.
+	//
+	// Deprecated: Use bson.Encoder.IntMinSize instead.
 	EncodeToMinSize bool
 }
 
 var (
 	defaultUIntCodec = NewUIntCodec()
 
-	_ ValueCodec  = defaultUIntCodec
+	// Assert that defaultUIntCodec satisfies the typeDecoder interface, which allows it to be used
+	// by collection type decoders (e.g. map, slice, etc) to set individual values in a collection.
 	_ typeDecoder = defaultUIntCodec
 )
 
 // NewUIntCodec returns a UIntCodec with options opts.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// UIntCodec registered.
 func NewUIntCodec(opts ...*bsonoptions.UIntCodecOptions) *UIntCodec {
 	uintOpt := bsonoptions.MergeUIntCodecOptions(opts...)
 

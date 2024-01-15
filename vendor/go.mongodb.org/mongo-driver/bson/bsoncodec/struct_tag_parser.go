@@ -12,12 +12,16 @@ import (
 )
 
 // StructTagParser returns the struct tags for a given struct field.
+//
+// Deprecated: Defining custom BSON struct tag parsers will not be supported in Go Driver 2.0.
 type StructTagParser interface {
 	ParseStructTags(reflect.StructField) (StructTags, error)
 }
 
 // StructTagParserFunc is an adapter that allows a generic function to be used
 // as a StructTagParser.
+//
+// Deprecated: Defining custom BSON struct tag parsers will not be supported in Go Driver 2.0.
 type StructTagParserFunc func(reflect.StructField) (StructTags, error)
 
 // ParseStructTags implements the StructTagParser interface.
@@ -50,7 +54,7 @@ func (stpf StructTagParserFunc) ParseStructTags(sf reflect.StructField) (StructT
 //	Skip       This struct field should be skipped. This is usually denoted by parsing a "-"
 //	           for the name.
 //
-// TODO(skriptble): Add tags for undefined as nil and for null as nil.
+// Deprecated: Defining custom BSON struct tag parsers will not be supported in Go Driver 2.0.
 type StructTags struct {
 	Name      string
 	OmitEmpty bool
@@ -85,6 +89,8 @@ type StructTags struct {
 // A struct tag either consisting entirely of '-' or with a bson key with a
 // value consisting entirely of '-' will return a StructTags with Skip true and
 // the remaining fields will be their default values.
+//
+// Deprecated: DefaultStructTagParser will be removed in Go Driver 2.0.
 var DefaultStructTagParser StructTagParserFunc = func(sf reflect.StructField) (StructTags, error) {
 	key := strings.ToLower(sf.Name)
 	tag, ok := sf.Tag.Lookup("bson")
@@ -125,6 +131,9 @@ func parseTags(key string, tag string) (StructTags, error) {
 // JSONFallbackStructTagParser has the same behavior as DefaultStructTagParser
 // but will also fallback to parsing the json tag instead on a field where the
 // bson tag isn't available.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Encoder.UseJSONStructTags] and
+// [go.mongodb.org/mongo-driver/bson.Decoder.UseJSONStructTags] instead.
 var JSONFallbackStructTagParser StructTagParserFunc = func(sf reflect.StructField) (StructTags, error) {
 	key := strings.ToLower(sf.Name)
 	tag, ok := sf.Tag.Lookup("bson")

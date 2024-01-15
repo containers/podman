@@ -10,7 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
-// These constants uniquely refer to each BSON type.
+// BSON element types as described in https://bsonspec.org/spec.html.
 const (
 	TypeDouble           = bsontype.Double
 	TypeString           = bsontype.String
@@ -33,4 +33,18 @@ const (
 	TypeDecimal128       = bsontype.Decimal128
 	TypeMinKey           = bsontype.MinKey
 	TypeMaxKey           = bsontype.MaxKey
+)
+
+// BSON binary element subtypes as described in https://bsonspec.org/spec.html.
+const (
+	TypeBinaryGeneric     = bsontype.BinaryGeneric
+	TypeBinaryFunction    = bsontype.BinaryFunction
+	TypeBinaryBinaryOld   = bsontype.BinaryBinaryOld
+	TypeBinaryUUIDOld     = bsontype.BinaryUUIDOld
+	TypeBinaryUUID        = bsontype.BinaryUUID
+	TypeBinaryMD5         = bsontype.BinaryMD5
+	TypeBinaryEncrypted   = bsontype.BinaryEncrypted
+	TypeBinaryColumn      = bsontype.BinaryColumn
+	TypeBinarySensitive   = bsontype.BinarySensitive
+	TypeBinaryUserDefined = bsontype.BinaryUserDefined
 )
