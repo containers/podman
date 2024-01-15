@@ -239,7 +239,7 @@ func play(cmd *cobra.Command, args []string) error {
 
 	for _, annotation := range playOptions.annotations {
 		splitN := strings.SplitN(annotation, "=", 2)
-		if len(splitN) > 2 {
+		if len(splitN) != 2 {
 			return fmt.Errorf("annotation %q must include an '=' sign", annotation)
 		}
 		if playOptions.Annotations == nil {
