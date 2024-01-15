@@ -90,21 +90,20 @@ type Runtime struct {
 	// This bool is just needed so that we can set it for netavark interface.
 	syslog bool
 
-	// doReset indicates that the runtime should perform a system reset.
-	// All Podman files will be removed.
+	// doReset indicates that the runtime will perform a system reset.
+	// A reset will remove all containers, pods, volumes, networks, etc.
+	// A number of validation checks are relaxed, or replaced with logic to
+	// remove as much of the runtime as possible if they fail. This ensures
+	// that even a broken Libpod can still be removed via `system reset`.
+	// This does not actually perform a `system reset`. That is done by
+	// calling "Reset()" on the returned runtime.
 	doReset bool
-
-	// doRenumber indicates that the runtime should perform a lock renumber
-	// during initialization.
-	// Once the runtime has been initialized and returned, this variable is
-	// unused.
+	// doRenumber indicates that the runtime will perform a system renumber.
+	// A renumber will reassign lock numbers for all containers, pods, etc.
+	// This will not perform the renumber itself, but will ignore some
+	// errors related to lock initialization so a renumber can be performed
+	// if something has gone wrong.
 	doRenumber bool
-
-	doMigrate bool
-	// System migrate can move containers to a new runtime.
-	// We make no promises that these migrated containers work on the new
-	// runtime, though.
-	migrateRuntime string
 
 	// valid indicates whether the runtime is ready to use.
 	// valid is set to true when a runtime is returned from GetRuntime(),
@@ -232,11 +231,6 @@ func newRuntimeFromConfig(conf *config.Config, options ...RuntimeOption) (*Runti
 	}
 
 	runtime.config.CheckCgroupsAndAdjustConfig()
-
-	// If resetting storage, do *not* return a runtime.
-	if runtime.doReset {
-		return nil, nil
-	}
 
 	return runtime, nil
 }
@@ -563,9 +557,8 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	// We now need to see if the system has restarted
 	// We check for the presence of a file in our tmp directory to verify this
 	// This check must be locked to prevent races
-	runtimeAliveLock := filepath.Join(runtime.config.Engine.TmpDir, "alive.lck")
 	runtimeAliveFile := filepath.Join(runtime.config.Engine.TmpDir, "alive")
-	aliveLock, err := lockfile.GetLockFile(runtimeAliveLock)
+	aliveLock, err := runtime.getRuntimeAliveLock()
 	if err != nil {
 		return fmt.Errorf("acquiring runtime init lock: %w", err)
 	}
@@ -639,27 +632,6 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		return err
 	}
 
-	// If we're resetting storage, do it now.
-	// We will not return a valid runtime.
-	// TODO: Plumb this context out so it can be set.
-	if runtime.doReset {
-		// Mark the runtime as valid, so normal functionality "mostly"
-		// works and we can use regular functions to remove
-		// ctrs/pods/etc
-		runtime.valid = true
-
-		return runtime.reset(context.Background())
-	}
-
-	// If we're renumbering locks, do it now.
-	// It breaks out of normal runtime init, and will not return a valid
-	// runtime.
-	if runtime.doRenumber {
-		if err := runtime.renumberLocks(); err != nil {
-			return err
-		}
-	}
-
 	// If we need to refresh the state, do it now - things are guaranteed to
 	// be set up by now.
 	if doRefresh {
@@ -680,12 +652,6 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	// Mark the runtime as valid - ready to be used, cannot be modified
 	// further
 	runtime.valid = true
-
-	if runtime.doMigrate {
-		if err := runtime.migrate(); err != nil {
-			return err
-		}
-	}
 
 	return nil
 }
@@ -1193,6 +1159,11 @@ func (r *Runtime) graphRootMountedFlag(mounts []spec.Mount) string {
 		}
 	}
 	return ""
+}
+
+// Returns a copy of the runtime alive lock
+func (r *Runtime) getRuntimeAliveLock() (*lockfile.LockFile, error) {
+	return lockfile.GetLockFile(filepath.Join(r.config.Engine.TmpDir, "alive.lck"))
 }
 
 // Network returns the network interface which is used by the runtime

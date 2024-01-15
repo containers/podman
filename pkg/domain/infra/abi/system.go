@@ -21,7 +21,6 @@ import (
 	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/pflag"
 )
 
 func (ic *ContainerEngine) Info(ctx context.Context) (*define.Info, error) {
@@ -370,16 +369,16 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 	}, nil
 }
 
-func (se *SystemEngine) Reset(ctx context.Context) error {
-	return nil
+func (ic *ContainerEngine) Reset(ctx context.Context) error {
+	return ic.Libpod.Reset(ctx)
 }
 
-func (se *SystemEngine) Renumber(ctx context.Context, flags *pflag.FlagSet, config *entities.PodmanConfig) error {
-	return nil
+func (ic *ContainerEngine) Renumber(ctx context.Context) error {
+	return ic.Libpod.RenumberLocks()
 }
 
-func (se SystemEngine) Migrate(ctx context.Context, flags *pflag.FlagSet, config *entities.PodmanConfig, options entities.SystemMigrateOptions) error {
-	return nil
+func (ic *ContainerEngine) Migrate(ctx context.Context, options entities.SystemMigrateOptions) error {
+	return ic.Libpod.Migrate(options.NewRuntime)
 }
 
 func (se SystemEngine) Shutdown(ctx context.Context) {

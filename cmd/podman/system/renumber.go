@@ -11,8 +11,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/libpod/define"
-	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/containers/podman/v4/pkg/domain/infra"
 	"github.com/spf13/cobra"
 )
 
@@ -42,19 +40,7 @@ func init() {
 	})
 }
 func renumber(cmd *cobra.Command, args []string) {
-	// Shutdown all running engines, `renumber` will hijack all methods
-	registry.ContainerEngine().Shutdown(registry.Context())
-	registry.ImageEngine().Shutdown(registry.Context())
-
-	engine, err := infra.NewSystemEngine(entities.RenumberMode, registry.PodmanConfig())
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(define.ExecErrorCodeGeneric)
-	}
-	defer engine.Shutdown(registry.Context())
-
-	err = engine.Renumber(registry.Context(), cmd.Flags(), registry.PodmanConfig())
-	if err != nil {
+	if err := registry.ContainerEngine().Renumber(registry.Context()); err != nil {
 		fmt.Println(err)
 		// FIXME change this to return the error like other commands
 		// defer will never run on os.Exit()

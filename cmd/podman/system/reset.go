@@ -13,9 +13,6 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
-	"github.com/containers/podman/v4/libpod/define"
-	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/containers/podman/v4/pkg/domain/infra"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -49,10 +46,9 @@ func init() {
 
 func reset(cmd *cobra.Command, args []string) {
 	// Get all the external containers in use
-	listCtn, _ := registry.ContainerEngine().ContainerListExternal(registry.Context())
-	listCtnIds := make([]string, 0, len(listCtn))
-	for _, externalCtn := range listCtn {
-		listCtnIds = append(listCtnIds, externalCtn.ID)
+	listCtn, err := registry.ContainerEngine().ContainerListExternal(registry.Context())
+	if err != nil {
+		logrus.Error(err)
 	}
 	// Prompt for confirmation if --force is not set
 	if !forceFlag {
@@ -91,25 +87,14 @@ func reset(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	// Purge all the external containers with storage
-	_, err := registry.ContainerEngine().ContainerRm(registry.Context(), listCtnIds, entities.RmOptions{Force: true, All: true, Ignore: true, Volumes: true})
-	if err != nil {
-		logrus.Error(err)
-	}
 	// Clean build cache if any
-	err = volumes.CleanCacheMount()
-	if err != nil {
+	if err := volumes.CleanCacheMount(); err != nil {
 		logrus.Error(err)
 	}
-	// Shutdown all running engines, `reset` will hijack repository
-	registry.ContainerEngine().Shutdown(registry.Context())
-	registry.ImageEngine().Shutdown(registry.Context())
 
-	// Do not try to shut the engine down, as a Reset engine is not valid
-	// after its creation.
-	if _, err := infra.NewSystemEngine(entities.ResetMode, registry.PodmanConfig()); err != nil {
+	// ContainerEngine() is unusable and shut down after this.
+	if err := registry.ContainerEngine().Reset(registry.Context()); err != nil {
 		logrus.Error(err)
-		os.Exit(define.ExecErrorCodeGeneric)
 	}
 
 	// Shutdown podman-machine and delete all machine files

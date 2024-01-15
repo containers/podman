@@ -23,6 +23,18 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, opts entities.System
 	return system.Prune(ic.ClientCtx, options)
 }
 
+func (ic *ContainerEngine) Migrate(ctx context.Context, options entities.SystemMigrateOptions) error {
+	return errors.New("runtime migration is not supported on remote clients")
+}
+
+func (ic *ContainerEngine) Renumber(ctx context.Context) error {
+	return errors.New("lock renumbering is not supported on remote clients")
+}
+
+func (ic *ContainerEngine) Reset(ctx context.Context) error {
+	return errors.New("system reset is not supported on remote clients")
+}
+
 func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.SystemDfOptions) (*entities.SystemDfReport, error) {
 	return system.DiskUsage(ic.ClientCtx, nil)
 }

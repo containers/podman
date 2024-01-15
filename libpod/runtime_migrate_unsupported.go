@@ -11,6 +11,6 @@ func (r *Runtime) stopPauseProcess() error {
 	return errors.New("not implemented (*Runtime) stopPauseProcess")
 }
 
-func (r *Runtime) migrate() error {
+func (r *Runtime) Migrate(newRuntime string) error {
 	return errors.New("not implemented (*Runtime) migrate")
 }
