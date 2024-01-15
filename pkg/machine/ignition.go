@@ -15,6 +15,7 @@ import (
 	"github.com/containers/common/libnetwork/etchosts"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/systemd/parser"
 	"github.com/sirupsen/logrus"
 )
 
@@ -56,15 +57,16 @@ func GetNodeGrp(grpName string) NodeGroup {
 }
 
 type DynamicIgnition struct {
-	Name      string
-	Key       string
-	TimeZone  string
-	UID       int
-	VMName    string
-	VMType    VMType
-	WritePath string
-	Cfg       Config
-	Rootful   bool
+	Name       string
+	Key        string
+	TimeZone   string
+	UID        int
+	VMName     string
+	VMType     VMType
+	WritePath  string
+	Cfg        Config
+	Rootful    bool
+	NetRecover bool
 }
 
 func (ign *DynamicIgnition) Write() error {
@@ -100,7 +102,7 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 
 	ignStorage := Storage{
 		Directories: getDirs(ign.Name),
-		Files:       getFiles(ign.Name, ign.UID, ign.Rootful),
+		Files:       getFiles(ign.Name, ign.UID, ign.Rootful, ign.VMType, ign.NetRecover),
 		Links:       getLinks(ign.Name),
 	}
 
@@ -228,6 +230,21 @@ WantedBy=sysinit.target
 		}
 		ignSystemd.Units = append(ignSystemd.Units, qemuUnit)
 	}
+
+	if ign.NetRecover {
+		contents, err := GetNetRecoveryUnitFile().ToString()
+		if err != nil {
+			return err
+		}
+
+		recoveryUnit := Unit{
+			Enabled:  BoolToPtr(true),
+			Name:     "net-health-recovery.service",
+			Contents: &contents,
+		}
+		ignSystemd.Units = append(ignSystemd.Units, recoveryUnit)
+	}
+
 	// Only after all checks are done
 	// it's ready create the ingConfig
 	ign.Cfg = Config{
@@ -300,7 +317,8 @@ func getDirs(usrName string) []Directory {
 	return dirs
 }
 
-func getFiles(usrName string, uid int, rootful bool) []File {
+//nolint:unparam // matches signature in 5.x
+func getFiles(usrName string, uid int, rootful bool, vmtype VMType, netRecover bool) []File {
 	files := make([]File, 0)
 
 	lingerExample := `[Unit]
@@ -569,6 +587,23 @@ Delegate=memory pids cpu io
 		},
 	})
 
+	// Only necessary for qemu on mac
+	if netRecover {
+		files = append(files, File{
+			Node: Node{
+				User:  GetNodeUsr("root"),
+				Group: GetNodeGrp("root"),
+				Path:  "/usr/local/bin/net-health-recovery.sh",
+			},
+			FileEmbedded1: FileEmbedded1{
+				Mode: IntToPtr(0755),
+				Contents: Resource{
+					Source: EncodeDataURLPtr(GetNetRecoveryFile()),
+				},
+			},
+		})
+	}
+
 	return files
 }
 
@@ -757,4 +792,35 @@ func (i *IgnitionBuilder) BuildWithIgnitionFile(ignPath string) error {
 // Build writes the internal `DynamicIgnition` config to its write path
 func (i *IgnitionBuilder) Build() error {
 	return i.dynamicIgnition.Write()
+}
+
+func GetNetRecoveryFile() string {
+	return `#!/bin/bash
+# Verify network health, and bounce the network device if host connectivity
+# is lost. This is a temporary workaround for a known rare qemu/virtio issue
+# that affects some systems
+
+sleep 120 # allow time for network setup on initial boot
+while true; do
+  sleep 30
+  curl -s -o /dev/null --max-time 30 http://192.168.127.1/health
+  if [ "$?" != "0" ]; then
+    echo "bouncing nic due to loss of connectivity with host"
+    ifconfig enp0s1 down; ifconfig enp0s1 up
+  fi
+done
+`
+}
+
+func GetNetRecoveryUnitFile() *parser.UnitFile {
+	recoveryUnit := parser.NewUnitFile()
+	recoveryUnit.Add("Unit", "Description", "Verifies health of network and recovers if necessary")
+	recoveryUnit.Add("Unit", "After", "sshd.socket sshd.service")
+	recoveryUnit.Add("Service", "ExecStart", "/usr/local/bin/net-health-recovery.sh")
+	recoveryUnit.Add("Service", "StandardOutput", "journal")
+	recoveryUnit.Add("Service", "StandardError", "journal")
+	recoveryUnit.Add("Service", "StandardInput", "null")
+	recoveryUnit.Add("Install", "WantedBy", "default.target")
+
+	return recoveryUnit
 }

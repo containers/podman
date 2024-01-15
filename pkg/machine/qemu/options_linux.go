@@ -11,3 +11,7 @@ func getRuntimeDir() (string, error) {
 	}
 	return util.GetRuntimeDir()
 }
+
+func useNetworkRecover() bool {
+	return false
+}
