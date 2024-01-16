@@ -388,6 +388,9 @@ func (r *Registry) RegisterTypeMapEntry(bt bsontype.Type, rt reflect.Type) {
 // If no encoder is found, an error of type ErrNoEncoder is returned. LookupEncoder is safe for
 // concurrent use by multiple goroutines after all codecs and encoders are registered.
 func (r *Registry) LookupEncoder(valueType reflect.Type) (ValueEncoder, error) {
+	if valueType == nil {
+		return nil, ErrNoEncoder{Type: valueType}
+	}
 	enc, found := r.lookupTypeEncoder(valueType)
 	if found {
 		if enc == nil {
@@ -400,15 +403,10 @@ func (r *Registry) LookupEncoder(valueType reflect.Type) (ValueEncoder, error) {
 	if found {
 		return r.typeEncoders.LoadOrStore(valueType, enc), nil
 	}
-	if valueType == nil {
-		r.storeTypeEncoder(valueType, nil)
-		return nil, ErrNoEncoder{Type: valueType}
-	}
 
 	if v, ok := r.kindEncoders.Load(valueType.Kind()); ok {
 		return r.storeTypeEncoder(valueType, v), nil
 	}
-	r.storeTypeEncoder(valueType, nil)
 	return nil, ErrNoEncoder{Type: valueType}
 }
 
@@ -474,7 +472,6 @@ func (r *Registry) LookupDecoder(valueType reflect.Type) (ValueDecoder, error) {
 	if v, ok := r.kindDecoders.Load(valueType.Kind()); ok {
 		return r.storeTypeDecoder(valueType, v), nil
 	}
-	r.storeTypeDecoder(valueType, nil)
 	return nil, ErrNoDecoder{Type: valueType}
 }
 
