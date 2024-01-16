@@ -228,6 +228,13 @@ func run(cmd *cobra.Command, args []string) error {
 		registry.SetExitCode(report.ExitCode)
 	}
 	if err != nil {
+		// if pod was created as part of run
+		// remove it in case ctr creation fails
+		if err := rmPodIfNecessary(cmd, s); err != nil {
+			if !errors.Is(err, define.ErrNoSuchPod) {
+				logrus.Error(err.Error())
+			}
+		}
 		return err
 	}
 

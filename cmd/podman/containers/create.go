@@ -180,6 +180,13 @@ func create(cmd *cobra.Command, args []string) error {
 
 	report, err := registry.ContainerEngine().ContainerCreate(registry.GetContext(), s)
 	if err != nil {
+		// if pod was created as part of run
+		// remove it in case ctr creation fails
+		if err := rmPodIfNecessary(cmd, s); err != nil {
+			if !errors.Is(err, define.ErrNoSuchPod) {
+				logrus.Error(err.Error())
+			}
+		}
 		return err
 	}
 
@@ -383,6 +390,18 @@ func PullImage(imageName string, cliVals *entities.ContainerCreateOptions) (stri
 	}
 
 	return imageName, nil
+}
+
+func rmPodIfNecessary(cmd *cobra.Command, s *specgen.SpecGenerator) error {
+	if !strings.HasPrefix(cmd.Flag("pod").Value.String(), "new:") {
+		return nil
+	}
+
+	// errcheck not necessary since
+	// pod creation would've failed
+	podName := strings.Replace(s.Pod, "new:", "", 1)
+	_, err := registry.ContainerEngine().PodRm(context.Background(), []string{podName}, entities.PodRmOptions{})
+	return err
 }
 
 // createPodIfNecessary automatically creates a pod when requested.  if the pod name
