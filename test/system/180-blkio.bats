@@ -24,9 +24,6 @@ function teardown() {
 }
 
 @test "podman run --blkio-weight-device" {
-    # Broken on rawhide & F38 images as of c20230726t191046z-f38f37d13
-    skip "FIXME: #19471 brq / blkio / loopbackfs / something broken"
-
     skip_if_rootless "cannot create devices in rootless mode"
 
     # create loopback device

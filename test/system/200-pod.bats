@@ -514,7 +514,6 @@ spec:
     skip_if_remote "resource limits only implemented on non-remote"
     skip_if_rootless "resource limits only work with root"
     skip_if_cgroupsv1 "resource limits only meaningful on cgroups V2"
-    skip_if_aarch64 "FIXME: #15074 - flakes often on aarch64"
 
     # create loopback device
     lofile=${PODMAN_TMPDIR}/disk.img
