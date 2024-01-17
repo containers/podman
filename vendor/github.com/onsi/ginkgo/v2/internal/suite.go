@@ -79,7 +79,7 @@ func NewSuite() *Suite {
 
 func (suite *Suite) Clone() (*Suite, error) {
 	if suite.phase != PhaseBuildTopLevel {
-		return nil, fmt.Errorf("cnanot clone suite after tree has been built")
+		return nil, fmt.Errorf("cannot clone suite after tree has been built")
 	}
 	return &Suite{
 		tree:                    &TreeNode{},
