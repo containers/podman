@@ -233,7 +233,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/gvisor-tap-vsock v0.7.1
+# github.com/containers/gvisor-tap-vsock v0.7.2
 ## explicit; go 1.20
 github.com/containers/gvisor-tap-vsock/pkg/types
 # github.com/containers/image/v5 v5.29.1-0.20231214202217-8eabe0f6b3eb
@@ -410,7 +410,7 @@ github.com/coreos/go-systemd/v22/dbus
 github.com/coreos/go-systemd/v22/internal/dlopen
 github.com/coreos/go-systemd/v22/journal
 github.com/coreos/go-systemd/v22/sdjournal
-# github.com/coreos/stream-metadata-go v0.4.3
+# github.com/coreos/stream-metadata-go v0.4.4
 ## explicit; go 1.18
 github.com/coreos/stream-metadata-go/fedoracoreos
 github.com/coreos/stream-metadata-go/fedoracoreos/internals
@@ -1119,7 +1119,7 @@ go.opentelemetry.io/otel/trace
 # golang.org/x/arch v0.5.0
 ## explicit; go 1.17
 golang.org/x/arch/x86/x86asm
-# golang.org/x/crypto v0.17.0
+# golang.org/x/crypto v0.18.0
 ## explicit; go 1.18
 golang.org/x/crypto/argon2
 golang.org/x/crypto/blake2b
@@ -1192,7 +1192,7 @@ golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
 golang.org/x/sys/windows/svc/eventlog
-# golang.org/x/term v0.15.0
+# golang.org/x/term v0.16.0
 ## explicit; go 1.18
 golang.org/x/term
 # golang.org/x/text v0.14.0

@@ -13,14 +13,14 @@ require (
 	github.com/containers/buildah v1.33.2-0.20231121195905-d1a1c53c8e1c
 	github.com/containers/common v0.57.1-0.20231206135104-b647eb3a5eea
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/gvisor-tap-vsock v0.7.1
+	github.com/containers/gvisor-tap-vsock v0.7.2
 	github.com/containers/image/v5 v5.29.1-0.20231214202217-8eabe0f6b3eb
 	github.com/containers/libhvee v0.6.0
 	github.com/containers/ocicrypt v1.1.9
 	github.com/containers/psgo v1.8.0
 	github.com/containers/storage v1.51.1-0.20231205203947-fe005407c7d5
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
-	github.com/coreos/stream-metadata-go v0.4.3
+	github.com/coreos/stream-metadata-go v0.4.4
 	github.com/crc-org/vfkit v0.5.0
 	github.com/cyphar/filepath-securejoin v0.2.4
 	github.com/digitalocean/go-qemu v0.0.0-20230711162256-2e3d0186973e
@@ -69,7 +69,7 @@ require (
 	golang.org/x/net v0.19.0
 	golang.org/x/sync v0.6.0
 	golang.org/x/sys v0.16.0
-	golang.org/x/term v0.15.0
+	golang.org/x/term v0.16.0
 	golang.org/x/text v0.14.0
 	google.golang.org/protobuf v1.31.0
 	gopkg.in/inf.v0 v0.9.1
@@ -204,7 +204,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.19.0 // indirect
 	go.opentelemetry.io/otel/trace v1.19.0 // indirect
 	golang.org/x/arch v0.5.0 // indirect
-	golang.org/x/crypto v0.17.0 // indirect
+	golang.org/x/crypto v0.18.0 // indirect
 	golang.org/x/mod v0.13.0 // indirect
 	golang.org/x/oauth2 v0.15.0 // indirect
 	golang.org/x/tools v0.14.0 // indirect
