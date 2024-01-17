@@ -1403,6 +1403,30 @@ search               | $IMAGE           |
     run_podman rm -f -t0 $cid
 }
 
+@test "podman run with mounts.conf missing" {
+    skip_if_remote "--default-mounts-file is not supported for remote clients"
+    MOUNTS_CONF=$PODMAN_TMPDIR/mounts.conf
+    run_podman run --rm --default-mounts-file=${MOUNTS_CONF} $IMAGE echo test1
+    assert "$output" = "test1" "No warning messages on missing mounts file"
+
+    touch ${MOUNTS_CONF}
+
+    run_podman run --rm --default-mounts-file=${MOUNTS_CONF} $IMAGE echo test2
+    assert "$output" = "test2" "No warning messages on empty mounts file"
+
+    echo /tmp/bogus > ${MOUNTS_CONF}
+    run_podman run --rm --default-mounts-file=${MOUNTS_CONF} $IMAGE echo test3
+    assert "$output" = "test3" "No warning messages on missing content in mounts file"
+
+    randfile=$(random_string 30)
+    randcontent=$(random_string 30)
+    mkdir -p $PODMAN_TMPDIR/mounts
+    echo $randcontent > $PODMAN_TMPDIR/mounts/$randfile
+    echo $PODMAN_TMPDIR/mounts:/run/secrets > ${MOUNTS_CONF}
+    run_podman run --rm --default-mounts-file=${MOUNTS_CONF} $IMAGE cat /run/secrets/$randfile
+    assert "$output" = "$randcontent" "mounts should appear in container"
+}
+
 @test "podman run - rm pod if container creation failed with -pod new:" {
     run_podman run -d --name foobar $IMAGE hostname
     cid=$output
