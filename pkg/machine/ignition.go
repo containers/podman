@@ -75,6 +75,51 @@ func (ign *DynamicIgnition) Write() error {
 	return os.WriteFile(ign.WritePath, b, 0644)
 }
 
+func (ign *DynamicIgnition) getUsers() []PasswdUser {
+	var (
+		users []PasswdUser
+	)
+
+	isCoreUser := ign.Name == DefaultIgnitionUserName
+
+	// if we are not using the 'core' user, we need to tell ignition to
+	// not add it
+	if !isCoreUser {
+		coreUser := PasswdUser{
+			Name:        DefaultIgnitionUserName,
+			ShouldExist: BoolToPtr(false),
+		}
+		users = append(users, coreUser)
+	}
+
+	// Adding the user
+	user := PasswdUser{
+		Name:              ign.Name,
+		SSHAuthorizedKeys: []SSHAuthorizedKey{SSHAuthorizedKey(ign.Key)},
+		UID:               IntToPtr(ign.UID),
+	}
+
+	// If we are not using the core user, we need to make the user part
+	// of the following groups
+	if !isCoreUser {
+		user.Groups = []Group{
+			Group("sudo"),
+			Group("adm"),
+			Group("wheel"),
+			Group("systemd-journal")}
+	}
+
+	// set root SSH key
+	root := PasswdUser{
+		Name:              "root",
+		SSHAuthorizedKeys: []SSHAuthorizedKey{SSHAuthorizedKey(ign.Key)},
+	}
+	// add them all in
+	users = append(users, user, root)
+
+	return users
+}
+
 // GenerateIgnitionConfig
 func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 	if len(ign.Name) < 1 {
@@ -84,18 +129,7 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 		Version: "3.2.0",
 	}
 	ignPassword := Passwd{
-		Users: []PasswdUser{
-			{
-				Name:              ign.Name,
-				SSHAuthorizedKeys: []SSHAuthorizedKey{SSHAuthorizedKey(ign.Key)},
-				// Set the UID of the core user inside the machine
-				UID: IntToPtr(ign.UID),
-			},
-			{
-				Name:              "root",
-				SSHAuthorizedKeys: []SSHAuthorizedKey{SSHAuthorizedKey(ign.Key)},
-			},
-		},
+		Users: ign.getUsers(),
 	}
 
 	ignStorage := Storage{
