@@ -27,7 +27,7 @@ Valid placeholders for the Go template are listed below:
 | .BoundingCaps            | Bounding capability set (array of strings)         |
 | .Config ...              | Structure with config info                         |
 | .ConmonPidFile           | Path to file containing conmon pid (string)        |
-| .Created                 | Container creation time (string, ISO3601)          |
+| .Created ...             | Container creation time (string, ISO3601)          |
 | .Dependencies            | Dependencies (array of strings)                    |
 | .Driver                  | Storage driver (string)                            |
 | .EffectiveCaps           | Effective capability set (array of strings)        |

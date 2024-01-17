@@ -27,14 +27,14 @@ Print results with a Go template.
 | ------------------- | --------------------------------------------------------------------- |
 | .ConfigPath ...     | Machine configuration file location                                   |
 | .ConnectionInfo ... | Machine connection information                                        |
-| .Created            | Machine creation time (string, ISO3601)                               |
+| .Created ...        | Machine creation time (string, ISO3601)                               |
 | .Image ...          | Machine image config                                                  |
-| .LastUp             | Time when machine was last booted                                     |
+| .LastUp ...         | Time when machine was last booted                                     |
 | .Name               | Name of the machine                                                   |
 | .Resources ...      | Resources used by the machine                                         |
 | .Rootful            | Whether the machine prefers rootful or rootless container execution   |
 | .SSHConfig ...      | SSH configuration info for communicating with machine                 |
-| .State ...          | Machine state                                                         |
+| .State              | Machine state                                                         |
 | .UserModeNetworking | Whether this machine uses user-mode networking                        |
 
 #### **--help**
