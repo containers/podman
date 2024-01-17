@@ -1399,4 +1399,20 @@ search               | $IMAGE           |
     run_podman rm -f -t0 $cid
 }
 
+@test "podman run - rm pod if container creation failed with -pod new:" {
+    run_podman run -d --name foobar $IMAGE hostname
+    cid=$output
+
+    podname=pod$(random_string)
+    run_podman 125 run --rm --pod "new:$podname" --name foobar $IMAGE hostname
+    is "$output" ".*creating container storage: the container name \"foobar\" is already in use by"
+
+    # pod should've been cleaned up
+    # if container creation failed
+    run_podman 1 pod exists $podname
+
+    run_podman rm $cid
+    run_podman rmi $(pause_image)
+}
+
 # vim: filetype=sh
