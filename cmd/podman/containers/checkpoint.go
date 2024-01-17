@@ -48,6 +48,9 @@ type checkpointStatistics struct {
 }
 
 func init() {
+	if !registry.IsRemote() {
+		checkpointCommand.Example += "\n  podman container checkpoint --latest"
+	}
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: checkpointCommand,
 		Parent:  containerCmd,

@@ -35,6 +35,10 @@ var (
 )
 
 func init() {
+	if !registry.IsRemote() {
+		restartCommand.Example += "\n  podman pod restart --latest"
+	}
+
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: restartCommand,
 		Parent:  podCmd,

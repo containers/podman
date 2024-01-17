@@ -101,6 +101,10 @@ func execFlags(cmd *cobra.Command) {
 }
 
 func init() {
+	if !registry.IsRemote() {
+		execCommand.Example += "\n  podman exec --latest"
+		containerExecCommand.Example += "\n  podman container exec --latest"
+	}
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: execCommand,
 	})

@@ -35,6 +35,9 @@ var (
 )
 
 func init() {
+	if !registry.IsRemote() {
+		unpauseCommand.Example += "\npodman pod unpause --latest"
+	}
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: unpauseCommand,
 		Parent:  podCmd,

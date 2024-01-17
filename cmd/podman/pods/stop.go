@@ -65,6 +65,8 @@ func init() {
 
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("ignore")
+	} else {
+		stopCommand.Example += "\n  podman pod stop --latest"
 	}
 
 	flags.SetNormalizeFunc(utils.AliasFlags)

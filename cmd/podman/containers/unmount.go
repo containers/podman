@@ -62,6 +62,10 @@ func unmountFlags(flags *pflag.FlagSet) {
 }
 
 func init() {
+	if !registry.IsRemote() {
+		unmountCommand.Example += "\n  podman unmount --latest"
+		containerUnmountCommand.Example += "\n  podman container unmount --latest"
+	}
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: unmountCommand,
 	})

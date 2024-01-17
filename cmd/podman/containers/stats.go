@@ -81,6 +81,10 @@ func statFlags(cmd *cobra.Command) {
 }
 
 func init() {
+	if !registry.IsRemote() {
+		statsCommand.Example += "\n  podman stats --latest"
+		containerStatsCommand.Example += "\n  podman container stats --latest"
+	}
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: statsCommand,
 	})

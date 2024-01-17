@@ -43,6 +43,9 @@ var (
 )
 
 func init() {
+	if !registry.IsRemote() {
+		statsCmd.Example += "\n  podman pod stats --latest"
+	}
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: statsCmd,
 		Parent:  podCmd,

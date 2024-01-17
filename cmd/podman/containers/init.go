@@ -49,6 +49,10 @@ func initFlags(flags *pflag.FlagSet) {
 }
 
 func init() {
+	if !registry.IsRemote() {
+		initCommand.Example += "\n  podman init --latest"
+		containerInitCommand.Example += "\n  podman container init --latest"
+	}
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: initCommand,
 	})

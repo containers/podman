@@ -59,6 +59,10 @@ func waitFlags(cmd *cobra.Command) {
 }
 
 func init() {
+	if !registry.IsRemote() {
+		waitCommand.Example += "\n  podman wait --latest"
+		containerWaitCommand.Example += "\n  podman container wait --latest"
+	}
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: waitCommand,
 	})

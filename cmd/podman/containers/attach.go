@@ -55,6 +55,10 @@ func attachFlags(cmd *cobra.Command) {
 }
 
 func init() {
+	if !registry.IsRemote() {
+		attachCommand.Example += "\n  podman attach --latest"
+		containerAttachCommand.Example += "\n  podman container attach --latest"
+	}
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: attachCommand,
 	})

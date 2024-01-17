@@ -40,7 +40,7 @@ var (
 		},
 		ValidArgsFunction: portCommand.ValidArgsFunction,
 		Example: `podman container port --all
-  podman container port CTRID 80`,
+  podman container port ctrID 80/tcp`,
 	}
 )
 
@@ -53,6 +53,10 @@ func portFlags(flags *pflag.FlagSet) {
 }
 
 func init() {
+	if !registry.IsRemote() {
+		portCommand.Example += "\n  podman port --latest"
+		containerPortCommand.Example += "\n  podman container port --latest"
+	}
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: portCommand,
 	})

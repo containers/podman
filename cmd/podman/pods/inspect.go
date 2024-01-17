@@ -27,6 +27,9 @@ var (
 )
 
 func init() {
+	if !registry.IsRemote() {
+		inspectCmd.Example += "\n  podman pod inspect --latest"
+	}
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: inspectCmd,
 		Parent:  podCmd,

@@ -55,6 +55,10 @@ func topFlags(flags *pflag.FlagSet) {
 }
 
 func init() {
+	if !registry.IsRemote() {
+		topCommand.Example += "\n  podman top --latest"
+		containerTopCommand.Example += "\n  podman container top --latest"
+	}
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: topCommand,
 	})

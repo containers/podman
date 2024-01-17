@@ -28,7 +28,7 @@ type logsOptionsWrapper struct {
 var (
 	logsPodOptions     logsOptionsWrapper
 	logsPodDescription = `Displays logs for pod with one or more containers.`
-	podLogsCommand     = &cobra.Command{
+	logsCommand        = &cobra.Command{
 		Use:   "logs [options] POD",
 		Short: "Fetch logs for pod with one or more containers",
 		Long:  logsPodDescription,
@@ -57,13 +57,16 @@ var (
 )
 
 func init() {
+	if !registry.IsRemote() {
+		logsCommand.Example += "\n  podman pod logs --latest"
+	}
 	// pod logs
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Command: podLogsCommand,
+		Command: logsCommand,
 		Parent:  podCmd,
 	})
-	logsFlags(podLogsCommand)
-	validate.AddLatestFlag(podLogsCommand, &logsPodOptions.Latest)
+	logsFlags(logsCommand)
+	validate.AddLatestFlag(logsCommand, &logsPodOptions.Latest)
 }
 
 func logsFlags(cmd *cobra.Command) {

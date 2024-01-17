@@ -82,6 +82,10 @@ func stopFlags(cmd *cobra.Command) {
 }
 
 func init() {
+	if !registry.IsRemote() {
+		stopCommand.Example += "\n  podman stop --latest"
+		containerStopCommand.Example += "\n  podman container stop --latest"
+	}
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: stopCommand,
 	})

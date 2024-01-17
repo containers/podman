@@ -44,6 +44,9 @@ type restoreStatistics struct {
 }
 
 func init() {
+	if !registry.IsRemote() {
+		restoreCommand.Example += "\n  podman container restore --latest"
+	}
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: restoreCommand,
 		Parent:  containerCmd,

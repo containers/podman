@@ -67,6 +67,10 @@ func killFlags(cmd *cobra.Command) {
 }
 
 func init() {
+	if !registry.IsRemote() {
+		killCommand.Example += "\n  podman kill --latest"
+		containerKillCommand.Example += "\n  podman container kill --latest"
+	}
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: killCommand,
 	})

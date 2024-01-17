@@ -37,6 +37,9 @@ podman pod top podID -eo user,pid,comm`,
 )
 
 func init() {
+	if !registry.IsRemote() {
+		topCommand.Example += "\npodman pod top --latest"
+	}
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: topCommand,
 		Parent:  podCmd,

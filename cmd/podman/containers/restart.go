@@ -55,6 +55,10 @@ var (
 
 func restartFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
+	if !registry.IsRemote() {
+		restartCommand.Example += "\n  podman restart --latest"
+		containerRestartCommand.Example += "\n  podman container restart --latest"
+	}
 
 	flags.BoolVarP(&restartOpts.All, "all", "a", false, "Restart all non-running containers")
 	flags.BoolVar(&restartOpts.Running, "running", false, "Restart only running containers")

@@ -86,6 +86,10 @@ func rmFlags(cmd *cobra.Command) {
 }
 
 func init() {
+	if !registry.IsRemote() {
+		rmCommand.Example += "\n  podman rm --latest"
+		containerRmCommand.Example += "\n  podman container rm --latest"
+	}
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: rmCommand,
 	})

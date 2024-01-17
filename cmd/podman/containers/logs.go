@@ -74,6 +74,10 @@ var (
 )
 
 func init() {
+	if !registry.IsRemote() {
+		logsCommand.Example += "\n  podman logs --latest"
+		containerLogsCommand.Example += "\n  podman container logs --latest"
+	}
 	// if run remotely we only allow one container arg
 	if registry.IsRemote() {
 		logsCommand.Use = "logs [options] CONTAINER"

@@ -35,6 +35,10 @@ var (
 )
 
 func init() {
+	if !registry.IsRemote() {
+		killCommand.Example += "\n  podman pod kill --latest"
+	}
+
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: killCommand,
 		Parent:  podCmd,

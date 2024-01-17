@@ -73,6 +73,10 @@ func unpauseFlags(cmd *cobra.Command) {
 }
 
 func init() {
+	if !registry.IsRemote() {
+		unpauseCommand.Example += "\n  podman unpause --latest"
+		containerUnpauseCommand.Example += "\n  podman container unpause --latest"
+	}
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: unpauseCommand,
 	})
