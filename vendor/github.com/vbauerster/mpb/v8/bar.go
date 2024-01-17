@@ -305,9 +305,6 @@ func (b *Bar) EwmaIncrBy(n int, iterDur time.Duration) {
 // EwmaIncrInt64 increments progress by amount of n and updates EWMA based
 // decorators by dur of a single iteration.
 func (b *Bar) EwmaIncrInt64(n int64, iterDur time.Duration) {
-	if n <= 0 {
-		return
-	}
 	select {
 	case b.operateState <- func(s *bState) {
 		s.decoratorEwmaUpdate(n, iterDur)

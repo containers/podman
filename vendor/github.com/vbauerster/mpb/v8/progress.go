@@ -68,8 +68,6 @@ func NewWithContext(ctx context.Context, options ...ContainerOption) *Progress {
 		ctx = context.Background()
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	delayRC := make(chan struct{}, 1)
-	delayRC <- struct{}{}
 	s := &pState{
 		ctx:         ctx,
 		hm:          make(heapManager),
@@ -78,7 +76,6 @@ func NewWithContext(ctx context.Context, options ...ContainerOption) *Progress {
 		renderReq:   make(chan time.Time),
 		popPriority: math.MinInt32,
 		refreshRate: defaultRefreshRate,
-		delayRC:     delayRC,
 		queueBars:   make(map[*Bar]*Bar),
 		output:      os.Stdout,
 		debugOut:    io.Discard,
@@ -262,10 +259,16 @@ func (p *Progress) Shutdown() {
 func (p *Progress) serve(s *pState, cw *cwriter.Writer) {
 	defer p.pwg.Done()
 	var err error
-	w := cwriter.New(io.Discard)
+	var w *cwriter.Writer
 	renderReq := s.renderReq
 	operateState := p.operateState
 	interceptIO := p.interceptIO
+
+	if s.delayRC != nil {
+		w = cwriter.New(io.Discard)
+	} else {
+		w, cw = cw, nil
+	}
 
 	for {
 		select {
