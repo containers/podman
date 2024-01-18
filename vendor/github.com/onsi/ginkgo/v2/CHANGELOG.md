@@ -1,3 +1,28 @@
+## 2.14.0
+
+### Features
+You can now use `GinkgoTB()` when you need an instance of `testing.TB` to pass to a library.
+
+Prior to this release table testing only supported generating individual `It`s for each test entry.  `DescribeTableSubtree` extends table testing support to entire testing subtrees - under the hood `DescrieTableSubtree` generates a new container for each entry and invokes your function to fill our the container.  See the [docs](https://onsi.github.io/ginkgo/#generating-subtree-tables) to learn more.
+
+- Introduce DescribeTableSubtree [65ec56d]
+- add GinkgoTB() to docs [4a2c832]
+- Add GinkgoTB() function (#1333) [92b6744]
+
+### Fixes
+- Fix typo in internal/suite.go (#1332) [beb9507]
+- Fix typo in docs/index.md (#1319) [4ac3a13]
+- allow wasm to compile with ginkgo present (#1311) [b2e5bc5]
+
+### Maintenance
+- Bump golang.org/x/tools from 0.16.0 to 0.16.1 (#1316) [465a8ec]
+- Bump actions/setup-go from 4 to 5 (#1313) [eab0e40]
+- Bump github/codeql-action from 2 to 3 (#1317) [fbf9724]
+- Bump golang.org/x/crypto (#1318) [3ee80ee]
+- Bump golang.org/x/tools from 0.14.0 to 0.16.0 (#1306) [123e1d5]
+- Bump github.com/onsi/gomega from 1.29.0 to 1.30.0 (#1297) [558f6e0]
+- Bump golang.org/x/net from 0.17.0 to 0.19.0 (#1307) [84ff7f3]
+
 ## 2.13.2
 
 ### Fixes

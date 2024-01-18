@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.3
-	github.com/onsi/ginkgo/v2 v2.13.2
+	github.com/onsi/ginkgo/v2 v2.14.0
 	github.com/vbatts/git-validation v1.2.1
 	golang.org/x/tools v0.16.1
 )
@@ -20,5 +20,5 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	golang.org/x/mod v0.14.0 // indirect
-	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
 )
