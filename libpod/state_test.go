@@ -46,6 +46,10 @@ func getEmptyBoltState() (_ State, _ string, _ lock.Manager, retErr error) {
 		}
 	}()
 
+	if err := os.Setenv("CI_DESIRED_DATABASE", "boltdb"); err != nil {
+		return nil, "", nil, err
+	}
+
 	dbPath := filepath.Join(tmpDir, "db.sql")
 
 	lockManager, err := lock.NewInMemoryManager(16)

@@ -83,6 +83,11 @@ verify_iid_and_name() {
 @test "podman image scp transfer" {
     skip_if_remote "only applicable under local podman"
 
+    # See https://github.com/containers/podman/pull/21300 for details
+    if [[ "$CI_DESIRED_DATABASE" = "boltdb" ]]; then
+        skip "impossible due to pitfalls in our SSH implementation"
+    fi
+
     # The testing is the same whether we're root or rootless; all that
     # differs is the destination (not-me) username.
     if is_rootless; then

@@ -52,7 +52,7 @@ var _ = Describe("Systemd activate", func() {
 		systemdArgs := []string{
 			"-E", "http_proxy", "-E", "https_proxy", "-E", "no_proxy",
 			"-E", "HTTP_PROXY", "-E", "HTTPS_PROXY", "-E", "NO_PROXY",
-			"-E", "XDG_RUNTIME_DIR",
+			"-E", "XDG_RUNTIME_DIR", "-E", "CI_DESIRED_DATABASE",
 			"--listen", addr,
 			podmanTest.PodmanBinary}
 		systemdArgs = append(systemdArgs, podmanOptions...)
@@ -114,7 +114,7 @@ var _ = Describe("Systemd activate", func() {
 
 		// start systemd activation with datagram socket
 		activateSession := testUtils.StartSystemExec(activate, []string{
-			"--datagram", "--listen", addr,
+			"--datagram", "--listen", addr, "-E", "CI_DESIRED_DATABASE",
 			podmanTest.PodmanBinary,
 			"--root=" + filepath.Join(tempdir, "server_root"),
 			"system", "service",
