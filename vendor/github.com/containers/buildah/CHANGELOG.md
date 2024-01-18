@@ -2,6 +2,10 @@
 
 # Changelog
 
+## v1.33.3 (2024-01-18)
+
+    Bump c/common to 0.57.2 and c/image to 5.29.1
+
 ## v1.33.2 (2023-11-22)
 
     Update minimum to golang 1.20

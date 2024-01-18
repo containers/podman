@@ -452,7 +452,15 @@ func (d *dockerImageDestination) TryReusingBlobWithOptions(ctx context.Context, 
 // but may accept a different manifest type, the returned error must be an ManifestTypeRejectedError.
 func (d *dockerImageDestination) PutManifest(ctx context.Context, m []byte, instanceDigest *digest.Digest) error {
 	var refTail string
-	if instanceDigest != nil {
+	// If d.ref.isUnknownDigest=true, then we push without a tag, so get the
+	// digest that will be used
+	if d.ref.isUnknownDigest {
+		digest, err := manifest.Digest(m)
+		if err != nil {
+			return err
+		}
+		refTail = digest.String()
+	} else if instanceDigest != nil {
 		// If the instanceDigest is provided, then use it as the refTail, because the reference,
 		// whether it includes a tag or a digest, refers to the list as a whole, and not this
 		// particular instance.
