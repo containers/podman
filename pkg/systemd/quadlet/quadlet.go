@@ -57,25 +57,27 @@ const (
 	KeyAuthFile              = "AuthFile"
 	KeyAutoUpdate            = "AutoUpdate"
 	KeyCertDir               = "CertDir"
-	KeyCreds                 = "Creds"
-	KeyDecryptionKey         = "DecryptionKey"
 	KeyConfigMap             = "ConfigMap"
 	KeyContainerName         = "ContainerName"
 	KeyContainersConfModule  = "ContainersConfModule"
 	KeyCopy                  = "Copy"
+	KeyCreds                 = "Creds"
+	KeyDecryptionKey         = "DecryptionKey"
 	KeyDevice                = "Device"
+	KeyDisableDNS            = "DisableDNS"
 	KeyDNS                   = "DNS"
 	KeyDNSOption             = "DNSOption"
 	KeyDNSSearch             = "DNSSearch"
 	KeyDriver                = "Driver"
 	KeyDropCapability        = "DropCapability"
+	KeyEntrypoint            = "Entrypoint"
 	KeyEnvironment           = "Environment"
 	KeyEnvironmentFile       = "EnvironmentFile"
 	KeyEnvironmentHost       = "EnvironmentHost"
-	KeyEntrypoint            = "Entrypoint"
 	KeyExec                  = "Exec"
 	KeyExitCodePropagation   = "ExitCodePropagation"
 	KeyExposeHostPort        = "ExposeHostPort"
+	KeyGateway               = "Gateway"
 	KeyGIDMap                = "GIDMap"
 	KeyGlobalArgs            = "GlobalArgs"
 	KeyGroup                 = "Group"
@@ -91,42 +93,37 @@ const (
 	KeyHealthStartupTimeout  = "HealthStartupTimeout"
 	KeyHealthTimeout         = "HealthTimeout"
 	KeyHostName              = "HostName"
-	KeyIP                    = "IP"
-	KeyIP6                   = "IP6"
 	KeyImage                 = "Image"
 	KeyImageTag              = "ImageTag"
+	KeyInternal              = "Internal"
+	KeyIP                    = "IP"
+	KeyIP6                   = "IP6"
+	KeyIPAMDriver            = "IPAMDriver"
+	KeyIPRange               = "IPRange"
+	KeyIPv6                  = "IPv6"
 	KeyKubeDownForce         = "KubeDownForce"
 	KeyLabel                 = "Label"
 	KeyLogDriver             = "LogDriver"
 	KeyMask                  = "Mask"
 	KeyMount                 = "Mount"
 	KeyNetwork               = "Network"
-	KeyNetworkDisableDNS     = "DisableDNS"
-	KeyNetworkDriver         = "Driver"
-	KeyNetworkGateway        = "Gateway"
-	KeyNetworkIPAMDriver     = "IPAMDriver"
-	KeyNetworkIPRange        = "IPRange"
-	KeyNetworkIPv6           = "IPv6"
-	KeyNetworkInternal       = "Internal"
 	KeyNetworkName           = "NetworkName"
-	KeyNetworkOptions        = "Options"
-	KeyNetworkSubnet         = "Subnet"
 	KeyNoNewPrivileges       = "NoNewPrivileges"
 	KeyNotify                = "Notify"
 	KeyOptions               = "Options"
 	KeyOS                    = "OS"
 	KeyPidsLimit             = "PidsLimit"
+	KeyPod                   = "Pod"
 	KeyPodmanArgs            = "PodmanArgs"
 	KeyPodName               = "PodName"
-	KeyPod                   = "Pod"
 	KeyPublishPort           = "PublishPort"
 	KeyPull                  = "Pull"
 	KeyReadOnly              = "ReadOnly"
 	KeyReadOnlyTmpfs         = "ReadOnlyTmpfs"
-	KeyRemapGID              = "RemapGid"
-	KeyRemapUID              = "RemapUid"
-	KeyRemapUIDSize          = "RemapUidSize"
-	KeyRemapUsers            = "RemapUsers"
+	KeyRemapGid              = "RemapGid"     //nolint:stylecheck // deprecated
+	KeyRemapUid              = "RemapUid"     //nolint:stylecheck // deprecated
+	KeyRemapUidSize          = "RemapUidSize" //nolint:stylecheck // deprecated
+	KeyRemapUsers            = "RemapUsers"   // deprecated
 	KeyRootfs                = "Rootfs"
 	KeyRunInit               = "RunInit"
 	KeySeccompProfile        = "SeccompProfile"
@@ -140,6 +137,7 @@ const (
 	KeyShmSize               = "ShmSize"
 	KeyStopTimeout           = "StopTimeout"
 	KeySubGIDMap             = "SubGIDMap"
+	KeySubnet                = "Subnet"
 	KeySubUIDMap             = "SubUIDMap"
 	KeySysctl                = "Sysctl"
 	KeyTimezone              = "Timezone"
@@ -152,7 +150,7 @@ const (
 	KeyUser                  = "User"
 	KeyUserNS                = "UserNS"
 	KeyVariant               = "Variant"
-	KeyVolatileTmp           = "VolatileTmp"
+	KeyVolatileTmp           = "VolatileTmp" // deprecated
 	KeyVolume                = "Volume"
 	KeyVolumeName            = "VolumeName"
 	KeyWorkingDir            = "WorkingDir"
@@ -217,9 +215,9 @@ var (
 		KeyPull:                  true,
 		KeyReadOnly:              true,
 		KeyReadOnlyTmpfs:         true,
-		KeyRemapGID:              true,
-		KeyRemapUID:              true,
-		KeyRemapUIDSize:          true,
+		KeyRemapGid:              true,
+		KeyRemapUid:              true,
+		KeyRemapUidSize:          true,
 		KeyRemapUsers:            true,
 		KeyRootfs:                true,
 		KeyRunInit:               true,
@@ -270,16 +268,16 @@ var (
 		KeyDNS:                  true,
 		KeyContainersConfModule: true,
 		KeyGlobalArgs:           true,
-		KeyNetworkDisableDNS:    true,
-		KeyNetworkDriver:        true,
-		KeyNetworkGateway:       true,
-		KeyNetworkIPAMDriver:    true,
-		KeyNetworkIPRange:       true,
-		KeyNetworkIPv6:          true,
-		KeyNetworkInternal:      true,
+		KeyDisableDNS:           true,
+		KeyDriver:               true,
+		KeyGateway:              true,
+		KeyIPAMDriver:           true,
+		KeyIPRange:              true,
+		KeyIPv6:                 true,
+		KeyInternal:             true,
 		KeyNetworkName:          true,
-		KeyNetworkOptions:       true,
-		KeyNetworkSubnet:        true,
+		KeyOptions:              true,
+		KeySubnet:               true,
 		KeyPodmanArgs:           true,
 	}
 
@@ -295,9 +293,9 @@ var (
 		KeyNetwork:              true,
 		KeyPodmanArgs:           true,
 		KeyPublishPort:          true,
-		KeyRemapGID:             true,
-		KeyRemapUID:             true,
-		KeyRemapUIDSize:         true,
+		KeyRemapGid:             true,
+		KeyRemapUid:             true,
+		KeyRemapUidSize:         true,
 		KeyRemapUsers:           true,
 		KeySetWorkingDirectory:  true,
 		KeyUserNS:               true,
@@ -826,7 +824,7 @@ func ConvertNetwork(network *parser.UnitFile, name string) (*parser.UnitFile, st
 
 	podman.add("network", "create", "--ignore")
 
-	if disableDNS := network.LookupBooleanWithDefault(NetworkGroup, KeyNetworkDisableDNS, false); disableDNS {
+	if disableDNS := network.LookupBooleanWithDefault(NetworkGroup, KeyDisableDNS, false); disableDNS {
 		podman.add("--disable-dns")
 	}
 
@@ -835,14 +833,14 @@ func ConvertNetwork(network *parser.UnitFile, name string) (*parser.UnitFile, st
 		podman.addf("--dns=%s", ipAddr)
 	}
 
-	driver, ok := network.Lookup(NetworkGroup, KeyNetworkDriver)
+	driver, ok := network.Lookup(NetworkGroup, KeyDriver)
 	if ok && len(driver) > 0 {
 		podman.addf("--driver=%s", driver)
 	}
 
-	subnets := network.LookupAll(NetworkGroup, KeyNetworkSubnet)
-	gateways := network.LookupAll(NetworkGroup, KeyNetworkGateway)
-	ipRanges := network.LookupAll(NetworkGroup, KeyNetworkIPRange)
+	subnets := network.LookupAll(NetworkGroup, KeySubnet)
+	gateways := network.LookupAll(NetworkGroup, KeyGateway)
+	ipRanges := network.LookupAll(NetworkGroup, KeyIPRange)
 	if len(subnets) > 0 {
 		if len(gateways) > len(subnets) {
 			return nil, "", fmt.Errorf("cannot set more gateways than subnets")
@@ -863,19 +861,19 @@ func ConvertNetwork(network *parser.UnitFile, name string) (*parser.UnitFile, st
 		return nil, "", fmt.Errorf("cannot set gateway or range without subnet")
 	}
 
-	if internal := network.LookupBooleanWithDefault(NetworkGroup, KeyNetworkInternal, false); internal {
+	if internal := network.LookupBooleanWithDefault(NetworkGroup, KeyInternal, false); internal {
 		podman.add("--internal")
 	}
 
-	if ipamDriver, ok := network.Lookup(NetworkGroup, KeyNetworkIPAMDriver); ok && len(ipamDriver) > 0 {
+	if ipamDriver, ok := network.Lookup(NetworkGroup, KeyIPAMDriver); ok && len(ipamDriver) > 0 {
 		podman.addf("--ipam-driver=%s", ipamDriver)
 	}
 
-	if ipv6 := network.LookupBooleanWithDefault(NetworkGroup, KeyNetworkIPv6, false); ipv6 {
+	if ipv6 := network.LookupBooleanWithDefault(NetworkGroup, KeyIPv6, false); ipv6 {
 		podman.add("--ipv6")
 	}
 
-	networkOptions := network.LookupAllKeyVal(NetworkGroup, KeyNetworkOptions)
+	networkOptions := network.LookupAllKeyVal(NetworkGroup, KeyOptions)
 	if len(networkOptions) > 0 {
 		podman.addKeys("--opt", networkOptions)
 	}
@@ -1390,8 +1388,8 @@ func handleUserMappings(unitFile *parser.UnitFile, groupName string, podman *Pod
 	}
 
 	if mappingsDefined {
-		_, hasRemapUID := unitFile.Lookup(groupName, KeyRemapUID)
-		_, hasRemapGID := unitFile.Lookup(groupName, KeyRemapGID)
+		_, hasRemapUID := unitFile.Lookup(groupName, KeyRemapUid)
+		_, hasRemapGID := unitFile.Lookup(groupName, KeyRemapGid)
 		_, RemapUsers := unitFile.LookupLast(groupName, KeyRemapUsers)
 		if hasRemapUID || hasRemapGID || RemapUsers {
 			return fmt.Errorf("deprecated Remap keys are set along with explicit mapping keys")
@@ -1403,8 +1401,8 @@ func handleUserMappings(unitFile *parser.UnitFile, groupName string, podman *Pod
 }
 
 func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline, isUser, supportManual bool) error {
-	uidMaps := unitFile.LookupAllStrv(groupName, KeyRemapUID)
-	gidMaps := unitFile.LookupAllStrv(groupName, KeyRemapGID)
+	uidMaps := unitFile.LookupAllStrv(groupName, KeyRemapUid)
+	gidMaps := unitFile.LookupAllStrv(groupName, KeyRemapGid)
 	remapUsers, _ := unitFile.LookupLast(groupName, KeyRemapUsers)
 	switch remapUsers {
 	case "":
@@ -1433,7 +1431,7 @@ func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *Podman
 		for _, gidMap := range gidMaps {
 			autoOpts = append(autoOpts, "gidmapping="+gidMap)
 		}
-		uidSize := unitFile.LookupUint32(groupName, KeyRemapUIDSize, 0)
+		uidSize := unitFile.LookupUint32(groupName, KeyRemapUidSize, 0)
 		if uidSize > 0 {
 			autoOpts = append(autoOpts, fmt.Sprintf("size=%v", uidSize))
 		}
