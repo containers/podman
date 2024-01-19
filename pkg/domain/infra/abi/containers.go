@@ -1102,8 +1102,12 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 				_, isCheckpointImage := imgData.Annotations[define.CheckpointAnnotationRuntimeName]
 				if isCheckpointImage {
 					var restoreOptions entities.RestoreOptions
-					restoreOptions.Name = opts.Spec.Name
-					restoreOptions.Pod = opts.Spec.Pod
+					if opts.Spec.Name != nil {
+						restoreOptions.Name = *opts.Spec.Name
+					}
+					if opts.Spec.Pod != nil {
+						restoreOptions.Pod = *opts.Spec.Pod
+					}
 					responses, err := ic.ContainerRestore(ctx, []string{resolvedImageName}, restoreOptions)
 					if err != nil {
 						return nil, err
@@ -1701,7 +1705,8 @@ func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts enti
 	}
 
 	// if we do not pass term, running ctrs exit
-	spec.Terminal = c.Terminal()
+	terminal := c.Terminal()
+	spec.Terminal = &terminal
 
 	// Print warnings
 	if len(out) > 0 {
@@ -1712,14 +1717,15 @@ func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts enti
 	}
 
 	if len(ctrCloneOpts.CreateOpts.Name) > 0 {
-		spec.Name = ctrCloneOpts.CreateOpts.Name
+		spec.Name = &ctrCloneOpts.CreateOpts.Name
 	} else {
 		n := c.Name()
 		_, err := ic.Libpod.LookupContainer(c.Name() + "-clone")
 		if err == nil {
 			n += "-clone"
 		}
-		spec.Name = generate.CheckName(ic.Libpod, n, true)
+		localName := generate.CheckName(ic.Libpod, n, true)
+		spec.Name = &localName
 	}
 
 	rtSpec, spec, opts, err := generate.MakeContainer(context.Background(), ic.Libpod, spec, true, c)

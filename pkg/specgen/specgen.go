@@ -18,14 +18,14 @@ import (
 type LogConfig struct {
 	// LogDriver is the container's log driver.
 	// Optional.
-	Driver string `json:"driver,omitempty"`
+	Driver *string `json:"driver,omitempty"`
 	// LogPath is the path the container's logs will be stored at.
 	// Only available if LogDriver is set to "json-file" or "k8s-file".
 	// Optional.
-	Path string `json:"path,omitempty"`
+	Path *string `json:"path,omitempty"`
 	// Size is the maximum size of the log file
 	// Optional.
-	Size int64 `json:"size,omitempty"`
+	Size *int64 `json:"size,omitempty"`
 	// A set of options to accompany the log driver.
 	// Optional.
 	Options map[string]string `json:"options,omitempty"`
@@ -36,10 +36,10 @@ type ContainerBasicConfig struct {
 	// Name is the name the container will be given.
 	// If no name is provided, one will be randomly generated.
 	// Optional.
-	Name string `json:"name,omitempty"`
+	Name *string `json:"name,omitempty"`
 	// Pod is the ID of the pod the container will join.
 	// Optional.
-	Pod string `json:"pod,omitempty"`
+	Pod *string `json:"pod,omitempty"`
 	// Entrypoint is the container's entrypoint.
 	// If not given and Image is specified, this will be populated by the
 	// image's configuration.
@@ -52,20 +52,21 @@ type ContainerBasicConfig struct {
 	Command []string `json:"command,omitempty"`
 	// EnvHost indicates that the host environment should be added to container
 	// Optional.
-	EnvHost bool `json:"env_host,omitempty"`
+	EnvHost *bool `json:"env_host,omitempty"`
 	// EnvHTTPProxy indicates that the http host proxy environment variables
 	// should be added to container
 	// Optional.
-	HTTPProxy bool `json:"httpproxy,omitempty"`
+	HTTPProxy *bool `json:"httpproxy,omitempty"`
 	// Env is a set of environment variables that will be set in the
 	// container.
 	// Optional.
 	Env map[string]string `json:"env,omitempty"`
 	// Terminal is whether the container will create a PTY.
 	// Optional.
-	Terminal bool `json:"terminal,omitempty"`
+	Terminal *bool `json:"terminal,omitempty"`
 	// Stdin is whether the container will keep its STDIN open.
-	Stdin bool `json:"stdin,omitempty"`
+	// Optional.
+	Stdin *bool `json:"stdin,omitempty"`
 	// Labels are key-value pairs that are used to add metadata to
 	// containers.
 	// Optional.
@@ -90,8 +91,9 @@ type ContainerBasicConfig struct {
 	// Timeout is a maximum time in seconds the container will run before
 	// main process is sent SIGKILL.
 	// If 0 is used, signal will not be sent. Container can run indefinitely
+	// if they do not stop after the default termination signal.
 	// Optional.
-	Timeout uint `json:"timeout,omitempty"`
+	Timeout *uint `json:"timeout,omitempty"`
 	// LogConfiguration describes the logging for a container including
 	// driver, path, and options.
 	// Optional
@@ -100,21 +102,28 @@ type ContainerBasicConfig struct {
 	// placed.
 	// If not given, a default location will be used.
 	// Optional.
-	ConmonPidFile string `json:"conmon_pid_file,omitempty"`
+	ConmonPidFile *string `json:"conmon_pid_file,omitempty"`
 	// RawImageName is the user-specified and unprocessed input referring
 	// to a local or a remote image.
-	RawImageName string `json:"raw_image_name,omitempty"`
-	// ImageOS is the user-specified image OS
-	ImageOS string `json:"image_os,omitempty"`
-	// ImageArch is the user-specified image architecture
-	ImageArch string `json:"image_arch,omitempty"`
-	// ImageVariant is the user-specified image variant
-	ImageVariant string `json:"image_variant,omitempty"`
+	// Optional.
+	RawImageName *string `json:"raw_image_name,omitempty"`
+	// ImageOS is the user-specified OS of the image, specifying which
+	// variant of the image will be used.
+	// Optional.
+	ImageOS *string `json:"image_os,omitempty"`
+	// ImageArch is the user-specified image architecture, specifying which
+	// variant of the image will be used.
+	// Optional.
+	ImageArch *string `json:"image_arch,omitempty"`
+	// ImageVariant is the user-specified image variant, specifying which
+	// variant of the image will be used.
+	// Optional.
+	ImageVariant *string `json:"image_variant,omitempty"`
 	// RestartPolicy is the container's restart policy - an action which
 	// will be taken when the container exits.
 	// If not given, the default policy, which does nothing, will be used.
 	// Optional.
-	RestartPolicy string `json:"restart_policy,omitempty"`
+	RestartPolicy *string `json:"restart_policy,omitempty"`
 	// RestartRetries is the number of attempts that will be made to restart
 	// the container.
 	// Only available when RestartPolicy is set to "on-failure".
@@ -124,7 +133,7 @@ type ContainerBasicConfig struct {
 	// the container.
 	// If not specified, the default will be used.
 	// Optional.
-	OCIRuntime string `json:"oci_runtime,omitempty"`
+	OCIRuntime *string `json:"oci_runtime,omitempty"`
 	// Systemd is whether the container will be started in systemd mode.
 	// Valid options are "true", "false", and "always".
 	// "true" enables this mode only if the binary run in the container is
@@ -136,14 +145,12 @@ type ContainerBasicConfig struct {
 	// If not specified, "false" will be assumed.
 	// Optional.
 	Systemd string `json:"systemd,omitempty"`
-	// Determine how to handle the NOTIFY_SOCKET - do we participate or pass it through
+	// Determine how to handle the NOTIFY_SOCKET - do we participate or pass it through?
 	// "container" - let the OCI runtime deal with it, advertise conmon's MAINPID
 	// "conmon-only" - advertise conmon's MAINPID, send READY when started, don't pass to OCI
 	// "ignore" - unset NOTIFY_SOCKET
-	SdNotifyMode string `json:"sdnotifyMode,omitempty"`
-	// Namespace is the libpod namespace the container will be placed in.
 	// Optional.
-	Namespace string `json:"namespace,omitempty"`
+	SdNotifyMode *string `json:"sdnotifyMode,omitempty"`
 	// PidNS is the container's PID namespace.
 	// It defaults to private.
 	// Mandatory.
@@ -158,15 +165,16 @@ type ContainerBasicConfig struct {
 	// container ID (if UtsNS is private).
 	// Conflicts with UtsNS if UtsNS is not set to private.
 	// Optional.
-	Hostname string `json:"hostname,omitempty"`
+	Hostname *string `json:"hostname,omitempty"`
 	// HostUsers is a list of host usernames or UIDs to add to the container
 	// /etc/passwd file
 	HostUsers []string `json:"hostusers,omitempty"`
 	// Sysctl sets kernel parameters for the container
 	Sysctl map[string]string `json:"sysctl,omitempty"`
 	// Remove indicates if the container should be removed once it has been started
-	// and exits
-	Remove bool `json:"remove,omitempty"`
+	// and exits.
+	// Optional.
+	Remove *bool `json:"remove,omitempty"`
 	// ContainerCreateCommand is the command that was used to create this
 	// container.
 	// This will be shown in the output of Inspect() on the container, and
@@ -179,7 +187,7 @@ type ContainerBasicConfig struct {
 	// passed will be 3 + PreserveFDs.
 	// set tags as `json:"-"` for not supported remote
 	// Optional.
-	PreserveFDs uint `json:"-"`
+	PreserveFDs *uint `json:"-"`
 	// PreserveFD is a list of additional file descriptors (in addition
 	// to 0, 1, 2) that will be passed to the executed process.
 	// set tags as `json:"-"` for not supported remote
@@ -188,29 +196,32 @@ type ContainerBasicConfig struct {
 	// Timezone is the timezone inside the container.
 	// Local means it has the same timezone as the host machine
 	// Optional.
-	Timezone string `json:"timezone,omitempty"`
+	Timezone *string `json:"timezone,omitempty"`
 	// DependencyContainers is an array of containers this container
 	// depends on. Dependency containers must be started before this
 	// container. Dependencies can be specified by name or full/partial ID.
 	// Optional.
 	DependencyContainers []string `json:"dependencyContainers,omitempty"`
 	// PidFile is the file that saves container process id.
-	// set tags as `json:"-"` for not supported remote
+	// Not supported for remote clients, so not serialized in specgen JSON.
 	// Optional.
 	PidFile string `json:"-"`
 	// EnvSecrets are secrets that will be set as environment variables
 	// Optional.
 	EnvSecrets map[string]string `json:"secret_env,omitempty"`
 	// InitContainerType describes if this container is an init container
-	// and if so, what type: always or once
-	InitContainerType string `json:"init_container_type"`
+	// and if so, what type: always or once.
+	// Optional.
+	InitContainerType *string `json:"init_container_type"`
 	// Personality allows users to configure different execution domains.
 	// Execution domains tell Linux how to map signal numbers into signal actions.
 	// The execution domain system allows Linux to provide limited support
 	// for binaries compiled under other UNIX-like operating systems.
+	// Optional.
 	Personality *spec.LinuxPersonality `json:"personality,omitempty"`
 	// EnvMerge takes the specified environment variables from image and preprocess them before injecting them into the
 	// container.
+	// Optional.
 	EnvMerge []string `json:"envmerge,omitempty"`
 	// UnsetEnv unsets the specified default environment variables from the image or from buildin or containers.conf
 	// Optional.
@@ -218,13 +229,15 @@ type ContainerBasicConfig struct {
 	// UnsetEnvAll unsetall default environment variables from the image or from buildin or containers.conf
 	// UnsetEnvAll unsets all default environment variables from the image or from buildin
 	// Optional.
-	UnsetEnvAll bool `json:"unsetenvall,omitempty"`
+	UnsetEnvAll *bool `json:"unsetenvall,omitempty"`
 	// Passwd is a container run option that determines if we are validating users/groups before running the container
 	Passwd *bool `json:"manage_password,omitempty"`
-	// PasswdEntry specifies arbitrary data to append to a file.
-	PasswdEntry string `json:"passwd_entry,omitempty"`
-	// GroupEntry specifies arbitrary data to append to a file.
-	GroupEntry string `json:"group_entry,omitempty"`
+	// PasswdEntry specifies arbitrary data to append to the container's /etc/passwd file.
+	// Optional.
+	PasswdEntry *string `json:"passwd_entry,omitempty"`
+	// GroupEntry specifies arbitrary data to append to the container's /etc/groups file.
+	// Optional.
+	GroupEntry *string `json:"group_entry,omitempty"`
 }
 
 // ContainerStorageConfig contains information on the storage configuration of a
@@ -242,30 +255,34 @@ type ContainerStorageConfig struct {
 	// Conflicts with Image.
 	// At least one of Image or Rootfs must be specified.
 	Rootfs string `json:"rootfs,omitempty"`
-	// RootfsOverlay tells if rootfs is actually an overlay on top of base path
-	RootfsOverlay bool `json:"rootfs_overlay,omitempty"`
-	// RootfsMapping specifies if there are mappings to apply to the rootfs.
+	// RootfsOverlay tells if rootfs is actually an overlay on top of base path.
+	// Optional.
+	RootfsOverlay *bool `json:"rootfs_overlay,omitempty"`
+	// RootfsMapping specifies if there are UID/GID mappings to apply to the rootfs.
+	// Optional
 	RootfsMapping *string `json:"rootfs_mapping,omitempty"`
 	// ImageVolumeMode indicates how image volumes will be created.
 	// Supported modes are "ignore" (do not create), "tmpfs" (create as
 	// tmpfs), and "anonymous" (create as anonymous volumes).
 	// The default if unset is anonymous.
 	// Optional.
-	ImageVolumeMode string `json:"image_volume_mode,omitempty"`
+	ImageVolumeMode *string `json:"image_volume_mode,omitempty"`
 	// VolumesFrom is a set of containers whose volumes will be added to
 	// this container. The name or ID of the container must be provided, and
 	// may optionally be followed by a : and then one or more
 	// comma-separated options. Valid options are 'ro', 'rw', and 'z'.
 	// Options will be used for all volumes sourced from the container.
+	// Optional.
 	VolumesFrom []string `json:"volumes_from,omitempty"`
 	// Init specifies that an init binary will be mounted into the
 	// container, and will be used as PID1.
-	Init bool `json:"init,omitempty"`
+	// Optional.
+	Init *bool `json:"init,omitempty"`
 	// InitPath specifies the path to the init binary that will be added if
 	// Init is specified above. If not specified, the default set in the
 	// Libpod config will be used. Ignored if Init above is not set.
 	// Optional.
-	InitPath string `json:"init_path,omitempty"`
+	InitPath *string `json:"init_path,omitempty"`
 	// Mounts are mounts that will be added to the container.
 	// These will supersede Image Volumes and VolumesFrom volumes where
 	// there are conflicts.
@@ -288,9 +305,11 @@ type ContainerStorageConfig struct {
 	// DeviceCgroupRule are device cgroup rules that allow containers
 	// to use additional types of devices.
 	DeviceCgroupRule []spec.LinuxDeviceCgroup `json:"device_cgroup_rule,omitempty"`
-	// DevicesFrom is a way to ensure your container inherits device specific information from another container
+	// DevicesFrom is a way to ensure your container inherits device specific information from another container.
+	// Optional.
 	DevicesFrom []string `json:"devices_from,omitempty"`
-	// HostDeviceList is used to recreate the mounted device on inherited containers
+	// HostDeviceList is used to recreate the mounted device on inherited containers.
+	// Optional.
 	HostDeviceList []spec.LinuxDevice `json:"host_device_list,omitempty"`
 	// IpcNS is the container's IPC namespace.
 	// Default is private.
@@ -308,27 +327,29 @@ type ContainerStorageConfig struct {
 	// WorkDir is the container's working directory.
 	// If unset, the default, /, will be used.
 	// Optional.
-	WorkDir string `json:"work_dir,omitempty"`
+	WorkDir *string `json:"work_dir,omitempty"`
 	// Create the working directory if it doesn't exist.
 	// If unset, it doesn't create it.
 	// Optional.
-	CreateWorkingDir bool `json:"create_working_dir,omitempty"`
+	CreateWorkingDir *bool `json:"create_working_dir,omitempty"`
 	// StorageOpts is the container's storage options
 	// Optional.
 	StorageOpts map[string]string `json:"storage_opts,omitempty"`
 	// RootfsPropagation is the rootfs propagation mode for the container.
 	// If not set, the default of rslave will be used.
 	// Optional.
-	RootfsPropagation string `json:"rootfs_propagation,omitempty"`
+	RootfsPropagation *string `json:"rootfs_propagation,omitempty"`
 	// Secrets are the secrets that will be added to the container
 	// Optional.
 	Secrets []Secret `json:"secrets,omitempty"`
 	// Volatile specifies whether the container storage can be optimized
 	// at the cost of not syncing all the dirty files in memory.
-	Volatile bool `json:"volatile,omitempty"`
+	// Optional.
+	Volatile *bool `json:"volatile,omitempty"`
 	// ChrootDirs is an additional set of directories that need to be
 	// treated as root directories. Standard bind mounts will be mounted
 	// into paths relative to these directories.
+	// Optional.
 	ChrootDirs []string `json:"chroot_directories,omitempty"`
 }
 
@@ -343,13 +364,14 @@ type ContainerSecurityConfig struct {
 	//   (Though SELinux can be manually re-enabled).
 	// TODO: this conflicts with things.
 	// TODO: this does more.
-	Privileged bool `json:"privileged,omitempty"`
+	// Optional.
+	Privileged *bool `json:"privileged,omitempty"`
 	// User is the user the container will be run as.
 	// Can be given as a UID or a username; if a username, it will be
 	// resolved within the container, using the container's /etc/passwd.
 	// If unset, the container will be run as root.
 	// Optional.
-	User string `json:"user,omitempty"`
+	User *string `json:"user,omitempty"`
 	// Groups are a list of supplemental groups the container's user will
 	// be granted access to.
 	// Optional.
@@ -370,19 +392,20 @@ type ContainerSecurityConfig struct {
 	// ApparmorProfile is the name of the Apparmor profile the container
 	// will use.
 	// Optional.
-	ApparmorProfile string `json:"apparmor_profile,omitempty"`
+	ApparmorProfile *string `json:"apparmor_profile,omitempty"`
 	// SeccompPolicy determines which seccomp profile gets applied
 	// the container. valid values: empty,default,image
-	SeccompPolicy string `json:"seccomp_policy,omitempty"`
+	SeccompPolicy *string `json:"seccomp_policy,omitempty"`
 	// SeccompProfilePath is the path to a JSON file containing the
 	// container's Seccomp profile.
 	// If not specified, no Seccomp profile will be used.
 	// Optional.
-	SeccompProfilePath string `json:"seccomp_profile_path,omitempty"`
+	SeccompProfilePath *string `json:"seccomp_profile_path,omitempty"`
 	// NoNewPrivileges is whether the container will set the no new
 	// privileges flag on create, which disables gaining additional
 	// privileges (e.g. via setuid) in the container.
-	NoNewPrivileges bool `json:"no_new_privileges,omitempty"`
+	// Optional.
+	NoNewPrivileges *bool `json:"no_new_privileges,omitempty"`
 	// UserNS is the container's user namespace.
 	// It defaults to host, indicating that no user namespace will be
 	// created.
@@ -394,26 +417,33 @@ type ContainerSecurityConfig struct {
 	// Required if UserNS is private.
 	IDMappings *types.IDMappingOptions `json:"idmappings,omitempty"`
 	// ReadOnlyFilesystem indicates that everything will be mounted
-	// as read-only
-	ReadOnlyFilesystem bool `json:"read_only_filesystem,omitempty"`
+	// as read-only.
+	// Optional.
+	ReadOnlyFilesystem *bool `json:"read_only_filesystem,omitempty"`
 	// ReadWriteTmpfs indicates that when running with a ReadOnlyFilesystem
-	// mount temporary file systems
-	ReadWriteTmpfs bool `json:"read_write_tmpfs,omitempty"`
+	// mount temporary file systems.
+	// Optional.
+	ReadWriteTmpfs *bool `json:"read_write_tmpfs,omitempty"`
 
 	// LabelNested indicates whether or not the container is allowed to
-	// run fully nested containers including labelling
-	LabelNested bool `json:"label_nested,omitempty"`
+	// run fully nested containers including labelling.
+	// Optional.
+	LabelNested *bool `json:"label_nested,omitempty"`
 
 	// Umask is the umask the init process of the container will be run with.
-	Umask string `json:"umask,omitempty"`
+	// Optional.
+	Umask *string `json:"umask,omitempty"`
 	// ProcOpts are the options used for the proc mount.
+	// Optional.
 	ProcOpts []string `json:"procfs_opts,omitempty"`
 	// Mask is the path we want to mask in the container. This masks the paths
 	// given in addition to the default list.
 	// Optional
 	Mask []string `json:"mask,omitempty"`
-	// Unmask is the path we want to unmask in the container. To override
-	// all the default paths that are masked, set unmask=ALL.
+	// Unmask a path in the container. Some paths are masked by default,
+	// preventing them from being accessed within the container; this undoes
+	// that masking. If ALL is passed, all paths will be unmasked.
+	// Optional.
 	Unmask []string `json:"unmask,omitempty"`
 }
 
@@ -424,13 +454,14 @@ type ContainerCgroupConfig struct {
 	// It defaults to private.
 	// Mandatory.
 	CgroupNS Namespace `json:"cgroupns,omitempty"`
-	// CgroupsMode sets a policy for how cgroups will be created in the
+	// CgroupsMode sets a policy for how cgroups will be created for the
 	// container, including the ability to disable creation entirely.
-	CgroupsMode string `json:"cgroups_mode,omitempty"`
+	// Optional.
+	CgroupsMode *string `json:"cgroups_mode,omitempty"`
 	// CgroupParent is the container's Cgroup parent.
 	// If not set, the default for the current cgroup driver will be used.
 	// Optional.
-	CgroupParent string `json:"cgroup_parent,omitempty"`
+	CgroupParent *string `json:"cgroup_parent,omitempty"`
 }
 
 // ContainerNetworkConfig contains information on a container's network
@@ -449,7 +480,8 @@ type ContainerNetworkConfig struct {
 	// This is based on ports set in Expose below, and any ports specified
 	// by the Image (if one is given).
 	// Only available if NetNS is set to Bridge or Slirp.
-	PublishExposedPorts bool `json:"publish_image_ports,omitempty"`
+	// Optional.
+	PublishExposedPorts *bool `json:"publish_image_ports,omitempty"`
 	// Expose is a number of ports that will be forwarded to the container
 	// if PublishExposedPorts is set.
 	// Expose is a map of uint16 (port number) to a string representing
@@ -466,6 +498,7 @@ type ContainerNetworkConfig struct {
 	// network interface name for this container on the specific network.
 	// If the map is empty and the bridge network mode is set the container
 	// will be joined to the default network.
+	// Optional.
 	Networks map[string]nettypes.PerNetworkOptions
 	// CNINetworks is a list of CNI networks to join the container to.
 	// If this list is empty, the default CNI network will be joined
@@ -478,7 +511,8 @@ type ContainerNetworkConfig struct {
 	// UseImageResolvConf indicates that resolv.conf should not be managed
 	// by Podman, but instead sourced from the image.
 	// Conflicts with DNSServer, DNSSearch, DNSOption.
-	UseImageResolvConf bool `json:"use_image_resolve_conf,omitempty"`
+	// Optional.
+	UseImageResolvConf *bool `json:"use_image_resolve_conf,omitempty"`
 	// DNSServers is a set of DNS servers that will be used in the
 	// container's resolv.conf, replacing the host's DNS Servers which are
 	// used by default.
@@ -500,20 +534,15 @@ type ContainerNetworkConfig struct {
 	// UseImageHosts indicates that /etc/hosts should not be managed by
 	// Podman, and instead sourced from the image.
 	// Conflicts with HostAdd.
-	// Do not set omitempty here, if this is false it should be set to not get
-	// the server default.
-	// Ideally this would be a pointer so we could differentiate between an
-	// explicitly false/true and unset (containers.conf default). However
-	// specgen is stable so we can not change this right now.
-	// TODO (5.0): change to pointer
-	UseImageHosts bool `json:"use_image_hosts"`
+	// Optional.
+	UseImageHosts *bool `json:"use_image_hosts,omitempty"`
 	// BaseHostsFile is the path to a hosts file, the entries from this file
 	// are added to the containers hosts file. As special value "image" is
 	// allowed which uses the /etc/hosts file from within the image and "none"
 	// which uses no base file at all. If it is empty we should default
 	// to the base_hosts_file configuration in containers.conf.
 	// Optional.
-	BaseHostsFile string `json:"base_hosts_file,omitempty"`
+	BaseHostsFile *string `json:"base_hosts_file,omitempty"`
 	// HostAdd is a set of hosts which will be added to the container's
 	// /etc/hosts file.
 	// Conflicts with UseImageHosts.
@@ -556,17 +585,17 @@ type ContainerResourceConfig struct {
 	// that are used to configure cgroup v2.
 	// Optional.
 	CgroupConf map[string]string `json:"unified,omitempty"`
-	// CPU period of the cpuset, determined by --cpus
-	CPUPeriod uint64 `json:"cpu_period,omitempty"`
-	// CPU quota of the cpuset, determined by --cpus
-	CPUQuota int64 `json:"cpu_quota,omitempty"`
 }
 
 // ContainerHealthCheckConfig describes a container healthcheck with attributes
 // like command, retries, interval, start period, and timeout.
 type ContainerHealthCheckConfig struct {
-	HealthConfig               *manifest.Schema2HealthConfig     `json:"healthconfig,omitempty"`
-	HealthCheckOnFailureAction define.HealthCheckOnFailureAction `json:"health_check_on_failure_action,omitempty"`
+	// Configuration of the container's healthcheck.
+	// Optional.
+	HealthConfig *manifest.Schema2HealthConfig `json:"healthconfig,omitempty"`
+	// What action to take when the healthcheck fails.
+	// Optional.
+	HealthCheckOnFailureAction *define.HealthCheckOnFailureAction `json:"health_check_on_failure_action,omitempty"`
 	// Startup healthcheck for a container.
 	// Requires that HealthConfig be set.
 	// Optional.
@@ -591,7 +620,14 @@ type SpecGenerator struct {
 }
 
 func (s *SpecGenerator) IsInitContainer() bool {
-	return len(s.InitContainerType) != 0
+	return s.InitContainerType != nil
+}
+
+func (s *SpecGenerator) IsPrivileged() bool {
+	if s.Privileged != nil {
+		return *s.Privileged
+	}
+	return false
 }
 
 type Secret struct {
@@ -623,7 +659,8 @@ func NewSpecGenerator(arg string, rootfs bool) *SpecGenerator {
 		if lastColonIndex != -1 {
 			lastPart := csc.Rootfs[lastColonIndex+1:]
 			if lastPart == "O" {
-				csc.RootfsOverlay = true
+				localTrue := true
+				csc.RootfsOverlay = &localTrue
 				csc.Rootfs = csc.Rootfs[:lastColonIndex]
 			} else if lastPart == "idmap" || strings.HasPrefix(lastPart, "idmap=") {
 				csc.RootfsMapping = &lastPart

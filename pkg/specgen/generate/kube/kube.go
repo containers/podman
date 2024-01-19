@@ -189,18 +189,21 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		return nil, err
 	}
 
-	if s.Umask == "" {
-		s.Umask = rtc.Umask()
+	if s.Umask == nil {
+		umask := rtc.Umask()
+		s.Umask = &umask
 	}
 
-	if s.CgroupsMode == "" {
-		s.CgroupsMode = rtc.Cgroups()
+	if s.CgroupsMode == nil {
+		cgroups := rtc.Cgroups()
+		s.CgroupsMode = &cgroups
 	}
-	if len(s.ImageVolumeMode) == 0 {
-		s.ImageVolumeMode = rtc.Engine.ImageVolumeMode
+	if s.ImageVolumeMode == nil {
+		s.ImageVolumeMode = &rtc.Engine.ImageVolumeMode
 	}
-	if s.ImageVolumeMode == define.TypeBind {
-		s.ImageVolumeMode = "anonymous"
+	if s.ImageVolumeMode != nil && *s.ImageVolumeMode == define.TypeBind {
+		localAnon := "anonymous"
+		s.ImageVolumeMode = &localAnon
 	}
 
 	// pod name should be non-empty for Deployment objects to be able to create
@@ -209,14 +212,15 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		return nil, errors.New("got empty pod name on container creation when playing kube")
 	}
 
-	s.Name = fmt.Sprintf("%s-%s", opts.PodName, opts.Container.Name)
+	localName := fmt.Sprintf("%s-%s", opts.PodName, opts.Container.Name)
+	s.Name = &localName
 
-	s.Terminal = opts.Container.TTY
+	s.Terminal = &opts.Container.TTY
 
-	s.Pod = opts.PodID
+	s.Pod = &opts.PodID
 
 	s.LogConfiguration = &specgen.LogConfig{
-		Driver: opts.LogDriver,
+		Driver: &opts.LogDriver,
 	}
 
 	s.LogConfiguration.Options = make(map[string]string)
@@ -227,22 +231,22 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		}
 		switch strings.ToLower(opt) {
 		case "driver":
-			s.LogConfiguration.Driver = val
+			s.LogConfiguration.Driver = &val
 		case "path":
-			s.LogConfiguration.Path = val
+			s.LogConfiguration.Path = &val
 		case "max-size":
 			logSize, err := units.FromHumanSize(val)
 			if err != nil {
 				return nil, err
 			}
-			s.LogConfiguration.Size = logSize
+			s.LogConfiguration.Size = &logSize
 		default:
 			switch len(val) {
 			case 0:
 				return nil, fmt.Errorf("invalid log option: %w", define.ErrInvalidArg)
 			default:
 				// tags for journald only
-				if s.LogConfiguration.Driver == "" || s.LogConfiguration.Driver == define.JournaldLogging {
+				if s.LogConfiguration.Driver == nil || *s.LogConfiguration.Driver == define.JournaldLogging {
 					s.LogConfiguration.Options[opt] = val
 				} else {
 					logrus.Warnf("Can only set tags with journald log driver but driver is %q", s.LogConfiguration.Driver)
@@ -251,7 +255,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		}
 	}
 
-	s.InitContainerType = opts.InitContainerType
+	s.InitContainerType = &opts.InitContainerType
 
 	setupSecurityContext(s, opts.Container.SecurityContext, opts.PodSecurityContext)
 	err = setupLivenessProbe(s, opts.Container, opts.RestartPolicy)
@@ -266,7 +270,8 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	// Since we prefix the container name with pod name to work-around the uniqueness requirement,
 	// the seccomp profile should reference the actual container name from the YAML
 	// but apply to the containers with the prefixed name
-	s.SeccompProfilePath = opts.SeccompPaths.FindForContainer(opts.Container.Name)
+	seccompPath := opts.SeccompPaths.FindForContainer(opts.Container.Name)
+	s.SeccompProfilePath = &seccompPath
 
 	s.ResourceLimits = &spec.LinuxResources{}
 	milliCPU := opts.Container.Resources.Limits.Cpu().MilliValue()
@@ -318,15 +323,16 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	if err != nil {
 		return nil, err
 	}
-	s.WorkDir = "/"
+	localSlash := "/"
+	s.WorkDir = &localSlash
 	// Entrypoint/Command handling is based off of
 	// https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#notes
 	if imageData != nil && imageData.Config != nil {
 		if imageData.Config.WorkingDir != "" {
-			s.WorkDir = imageData.Config.WorkingDir
+			s.WorkDir = &imageData.Config.WorkingDir
 		}
-		if s.User == "" {
-			s.User = imageData.Config.User
+		if s.User == nil {
+			s.User = &imageData.Config.User
 		}
 
 		exposed, err := generate.GenExposedPorts(imageData.Config.ExposedPorts)
@@ -364,7 +370,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	// FIXME,
 	// we are currently ignoring imageData.Config.ExposedPorts
 	if !opts.IsInfra && opts.Container.WorkingDir != "" {
-		s.WorkDir = opts.Container.WorkingDir
+		s.WorkDir = &opts.Container.WorkingDir
 	}
 
 	annotations := make(map[string]string)
@@ -390,7 +396,8 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 
 	if label, ok := opts.Annotations[define.InspectAnnotationLabel+"/"+opts.Container.Name]; ok {
 		if label == "nested" {
-			s.ContainerSecurityConfig.LabelNested = true
+			localTrue := true
+			s.ContainerSecurityConfig.LabelNested = &localTrue
 		}
 		if !slices.Contains(s.ContainerSecurityConfig.SelinuxOpts, label) {
 			s.ContainerSecurityConfig.SelinuxOpts = append(s.ContainerSecurityConfig.SelinuxOpts, label)
@@ -403,7 +410,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		if err != nil {
 			return nil, err
 		}
-		s.Remove = autoremoveAsBool
+		s.Remove = &autoremoveAsBool
 		s.Annotations[define.InspectAnnotationAutoremove] = autoremove
 	}
 
@@ -413,7 +420,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			return nil, err
 		}
 
-		s.Init = initAsBool
+		s.Init = &initAsBool
 		s.Annotations[define.InspectAnnotationInit] = init
 	}
 
@@ -423,7 +430,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			if err != nil {
 				return nil, err
 			}
-			s.PublishExposedPorts = publishAllAsBool
+			s.PublishExposedPorts = &publishAllAsBool
 		}
 
 		s.Annotations[define.InspectAnnotationPublishAll] = publishAll
@@ -557,7 +564,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		}
 	}
 
-	s.RestartPolicy = opts.RestartPolicy
+	s.RestartPolicy = &opts.RestartPolicy
 
 	if opts.NetNSIsHost {
 		s.NetNS.NSMode = specgen.Host
@@ -589,10 +596,12 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	}
 
 	if ro := opts.ReadOnly; ro != itypes.OptionalBoolUndefined {
-		s.ReadOnlyFilesystem = ro == itypes.OptionalBoolTrue
+		roFS := ro == itypes.OptionalBoolTrue
+		s.ReadOnlyFilesystem = &roFS
 	}
 	// This should default to true for kubernetes yaml
-	s.ReadWriteTmpfs = true
+	localTrue := true
+	s.ReadWriteTmpfs = &localTrue
 
 	// Make sure the container runs in a systemd unit which is
 	// stored as a label at container creation.
@@ -717,7 +726,8 @@ func setupLivenessProbe(s *specgen.SpecGenerator, containerYAML v1.Container, re
 		}
 		// if restart policy is in place, ensure the health check enforces it
 		if restartPolicy == "always" || restartPolicy == "onfailure" {
-			s.HealthCheckOnFailureAction = define.HealthCheckOnFailureActionRestart
+			var hcAct define.HealthCheckOnFailureAction = define.HealthCheckOnFailureActionRestart
+			s.HealthCheckOnFailureAction = &hcAct
 		}
 		return nil
 	}
@@ -749,7 +759,8 @@ func setupStartupProbe(s *specgen.SpecGenerator, containerYAML v1.Container, res
 		}
 		// if restart policy is in place, ensure the health check enforces it
 		if restartPolicy == "always" || restartPolicy == "onfailure" {
-			s.HealthCheckOnFailureAction = define.HealthCheckOnFailureActionRestart
+			var hcAct define.HealthCheckOnFailureAction = define.HealthCheckOnFailureActionRestart
+			s.HealthCheckOnFailureAction = &hcAct
 		}
 		return nil
 	}
@@ -818,15 +829,12 @@ func setupSecurityContext(s *specgen.SpecGenerator, securityContext *v1.Security
 		podSecurityContext = &v1.PodSecurityContext{}
 	}
 
-	if securityContext.ReadOnlyRootFilesystem != nil {
-		s.ReadOnlyFilesystem = *securityContext.ReadOnlyRootFilesystem
-	}
-	if securityContext.Privileged != nil {
-		s.Privileged = *securityContext.Privileged
-	}
+	s.ReadOnlyFilesystem = securityContext.ReadOnlyRootFilesystem
+	s.Privileged = securityContext.Privileged
 
 	if securityContext.AllowPrivilegeEscalation != nil {
-		s.NoNewPrivileges = !*securityContext.AllowPrivilegeEscalation
+		localNNP := !*securityContext.AllowPrivilegeEscalation
+		s.NoNewPrivileges = &localNNP
 	}
 
 	if securityContext.ProcMount != nil && *securityContext.ProcMount == v1.UnmaskedProcMount {
@@ -867,7 +875,8 @@ func setupSecurityContext(s *specgen.SpecGenerator, securityContext *v1.Security
 		runAsUser = podSecurityContext.RunAsUser
 	}
 	if runAsUser != nil {
-		s.User = strconv.FormatInt(*runAsUser, 10)
+		localUser := strconv.FormatInt(*runAsUser, 10)
+		s.User = &localUser
 	}
 
 	runAsGroup := securityContext.RunAsGroup
@@ -875,10 +884,12 @@ func setupSecurityContext(s *specgen.SpecGenerator, securityContext *v1.Security
 		runAsGroup = podSecurityContext.RunAsGroup
 	}
 	if runAsGroup != nil {
-		if s.User == "" {
-			s.User = "0"
+		if s.User == nil {
+			localZero := "0"
+			s.User = &localZero
 		}
-		s.User = fmt.Sprintf("%s:%d", s.User, *runAsGroup)
+		localUser := fmt.Sprintf("%s:%d", s.User, *runAsGroup)
+		s.User = &localUser
 	}
 	for _, group := range podSecurityContext.SupplementalGroups {
 		s.Groups = append(s.Groups, strconv.FormatInt(group, 10))

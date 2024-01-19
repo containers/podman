@@ -830,10 +830,10 @@ func (ic *ContainerEngine) ContainerListExternal(ctx context.Context) ([]entitie
 }
 
 func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.ContainerRunOptions) (*entities.ContainerRunReport, error) {
-	if opts.Spec != nil && !reflect.ValueOf(opts.Spec).IsNil() && opts.Spec.RawImageName != "" {
+	if opts.Spec != nil && !reflect.ValueOf(opts.Spec).IsNil() && opts.Spec.RawImageName != nil {
 		// If this is a checkpoint image, restore it.
 		getImageOptions := new(images.GetOptions).WithSize(false)
-		inspectReport, err := images.GetImage(ic.ClientCtx, opts.Spec.RawImageName, getImageOptions)
+		inspectReport, err := images.GetImage(ic.ClientCtx, *opts.Spec.RawImageName, getImageOptions)
 		if err != nil {
 			return nil, fmt.Errorf("no such container or image: %s", opts.Spec.RawImageName)
 		}
@@ -841,8 +841,12 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 			_, isCheckpointImage := inspectReport.Annotations[define.CheckpointAnnotationRuntimeName]
 			if isCheckpointImage {
 				restoreOptions := new(containers.RestoreOptions)
-				restoreOptions.WithName(opts.Spec.Name)
-				restoreOptions.WithPod(opts.Spec.Pod)
+				if opts.Spec.Name != nil {
+					restoreOptions.WithName(*opts.Spec.Name)
+				}
+				if opts.Spec.Pod != nil {
+					restoreOptions.WithPod(*opts.Spec.Pod)
+				}
 
 				restoreReport, err := containers.Restore(ic.ClientCtx, inspectReport.ID, restoreOptions)
 				if err != nil {

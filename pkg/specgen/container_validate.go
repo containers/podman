@@ -27,11 +27,11 @@ func exclusiveOptions(opt1, opt2 string) error {
 func (s *SpecGenerator) Validate() error {
 	// Containers being added to a pod cannot have certain network attributes
 	// associated with them because those should be on the infra container.
-	if len(s.Pod) > 0 && s.NetNS.NSMode == FromPod {
+	if s.Pod != nil && s.NetNS.NSMode == FromPod {
 		if len(s.Networks) > 0 {
 			return fmt.Errorf("networks must be defined when the pod is created: %w", define.ErrNetworkOnPodContainer)
 		}
-		if len(s.PortMappings) > 0 || s.PublishExposedPorts {
+		if len(s.PortMappings) > 0 || (s.PublishExposedPorts != nil && *s.PublishExposedPorts) {
 			return fmt.Errorf("published or exposed ports must be defined when the pod is created: %w", define.ErrNetworkOnPodContainer)
 		}
 		if len(s.HostAdd) > 0 {
@@ -51,7 +51,7 @@ func (s *SpecGenerator) Validate() error {
 		return fmt.Errorf("both image and rootfs cannot be simultaneously: %w", ErrInvalidSpecConfig)
 	}
 	// Cannot set hostname and utsns
-	if len(s.ContainerBasicConfig.Hostname) > 0 && !s.ContainerBasicConfig.UtsNS.IsPrivate() {
+	if s.ContainerBasicConfig.Hostname != nil && !s.ContainerBasicConfig.UtsNS.IsPrivate() {
 		if s.ContainerBasicConfig.UtsNS.IsPod() {
 			return fmt.Errorf("cannot set hostname when joining the pod UTS namespace: %w", ErrInvalidSpecConfig)
 		}
@@ -63,8 +63,10 @@ func (s *SpecGenerator) Validate() error {
 		return fmt.Errorf("--systemd values must be one of %q: %w", strings.Join(SystemDValues, ", "), ErrInvalidSpecConfig)
 	}
 
-	if err := define.ValidateSdNotifyMode(s.ContainerBasicConfig.SdNotifyMode); err != nil {
-		return err
+	if s.SdNotifyMode != nil {
+		if err := define.ValidateSdNotifyMode(*s.SdNotifyMode); err != nil {
+			return err
+		}
 	}
 
 	//
@@ -75,7 +77,7 @@ func (s *SpecGenerator) Validate() error {
 		return exclusiveOptions("rootfs", "image")
 	}
 	// imagevolumemode must be one of ignore, tmpfs, or anonymous if given
-	if len(s.ContainerStorageConfig.ImageVolumeMode) > 0 && !slices.Contains(ImageVolumeModeValues, strings.ToLower(s.ContainerStorageConfig.ImageVolumeMode)) {
+	if s.ImageVolumeMode != nil && !slices.Contains(ImageVolumeModeValues, strings.ToLower(*s.ImageVolumeMode)) {
 		return fmt.Errorf("invalid ImageVolumeMode %q, value must be one of %s",
 			s.ContainerStorageConfig.ImageVolumeMode, strings.Join(ImageVolumeModeValues, ","))
 	}
@@ -102,7 +104,7 @@ func (s *SpecGenerator) Validate() error {
 	// ContainerNetworkConfig
 	//
 	// useimageresolveconf conflicts with dnsserver, dnssearch, dnsoption
-	if s.UseImageResolvConf {
+	if s.UseImageResolvConf != nil && *s.UseImageResolvConf {
 		if len(s.DNSServers) > 0 {
 			return exclusiveOptions("UseImageResolvConf", "DNSServer")
 		}
@@ -114,7 +116,7 @@ func (s *SpecGenerator) Validate() error {
 		}
 	}
 	// UseImageHosts and HostAdd are exclusive
-	if s.UseImageHosts && len(s.HostAdd) > 0 {
+	if s.UseImageHosts != nil && *s.UseImageHosts && len(s.HostAdd) > 0 {
 		return exclusiveOptions("UseImageHosts", "HostAdd")
 	}
 

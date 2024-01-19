@@ -49,7 +49,7 @@ func makeCommand(s *specgen.SpecGenerator, imageData *libimage.ImageData) ([]str
 		return nil, fmt.Errorf("no command or entrypoint provided, and no CMD or ENTRYPOINT from image")
 	}
 
-	if s.Init {
+	if s.Init != nil && *s.Init {
 		// bind mount for this binary is added in addContainerInitBinary()
 		finalCommand = append([]string{define.ContainerInitPath, "--"}, finalCommand...)
 	}

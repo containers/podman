@@ -66,8 +66,10 @@ var _ = Describe("Podman containers attach", func() {
 
 	It("can echo data via cat in container", func() {
 		s := specgen.NewSpecGenerator(alpine.name, false)
-		s.Name = "CatAttachTest"
-		s.Terminal = true
+		localName := "CatAttachTest"
+		s.Name = &localName
+		localTrue := true
+		s.Terminal = &localTrue
 		s.Command = []string{"/bin/cat"}
 		ctnr, err := containers.CreateWithSpec(bt.conn, s, nil)
 		Expect(err).ShouldNot(HaveOccurred())

@@ -211,10 +211,10 @@ func run(cmd *cobra.Command, args []string) error {
 	if err := specgenutil.FillOutSpecGen(s, &cliVals, args); err != nil {
 		return err
 	}
-	s.RawImageName = rawImageName
-	s.ImageOS = cliVals.OS
-	s.ImageArch = cliVals.Arch
-	s.ImageVariant = cliVals.Variant
+	s.RawImageName = &rawImageName
+	s.ImageOS = &cliVals.OS
+	s.ImageArch = &cliVals.Arch
+	s.ImageVariant = &cliVals.Variant
 	s.Passwd = &runOpts.Passwd
 	runOpts.Spec = s
 

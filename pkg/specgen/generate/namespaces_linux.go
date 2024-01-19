@@ -72,7 +72,10 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 		}
 	}
 
-	hostname := s.Hostname
+	hostname := ""
+	if s.Hostname != nil {
+		hostname = *s.Hostname
+	}
 	if hostname == "" {
 		switch {
 		case s.UtsNS.NSMode == specgen.FromPod:
@@ -95,14 +98,14 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 	}
 
 	g.RemoveHostname()
-	if s.Hostname != "" || s.UtsNS.NSMode != specgen.Host {
+	if s.Hostname != nil || s.UtsNS.NSMode != specgen.Host {
 		// Set the hostname in the OCI configuration only if specified by
 		// the user or if we are creating a new UTS namespace.
 		// TODO: Should we be doing this for pod or container shared
 		// namespaces?
 		g.SetHostname(hostname)
 	}
-	if _, ok := s.Env["HOSTNAME"]; !ok && s.Hostname != "" {
+	if _, ok := s.Env["HOSTNAME"]; !ok && s.Hostname != nil {
 		g.AddProcessEnv("HOSTNAME", hostname)
 	}
 
@@ -152,7 +155,7 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 	if g.Config.Annotations == nil {
 		g.Config.Annotations = make(map[string]string)
 	}
-	if s.PublishExposedPorts {
+	if s.PublishExposedPorts != nil && *s.PublishExposedPorts {
 		g.Config.Annotations[define.InspectAnnotationPublishAll] = define.InspectResponseTrue
 	}
 

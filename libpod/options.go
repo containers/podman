@@ -2051,7 +2051,7 @@ func WithInfraConmonPidFile(path string, infraSpec *specgen.SpecGenerator) PodCr
 		if pod.valid {
 			return define.ErrPodFinalized
 		}
-		infraSpec.ConmonPidFile = path
+		infraSpec.ConmonPidFile = &path
 		return nil
 	}
 }

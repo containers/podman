@@ -203,14 +203,11 @@ func (b *bindingTest) restoreImageFromCache(i testImage) {
 // and add or append the alpine image to it
 func (b *bindingTest) RunTopContainer(containerName *string, podName *string) (string, error) {
 	s := specgen.NewSpecGenerator(alpine.name, false)
-	s.Terminal = false
+	localFalse := false
+	s.Terminal = &localFalse
 	s.Command = []string{"/usr/bin/top"}
-	if containerName != nil {
-		s.Name = *containerName
-	}
-	if podName != nil {
-		s.Pod = *podName
-	}
+	s.Name = containerName
+	s.Pod = podName
 	ctr, err := containers.CreateWithSpec(b.conn, s, nil)
 	if err != nil {
 		return "", err

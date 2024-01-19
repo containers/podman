@@ -67,8 +67,8 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	// If joining a pod, retrieve the pod for use, and its infra container
 	var pod *libpod.Pod
 	var infra *libpod.Container
-	if s.Pod != "" {
-		pod, err = rt.LookupPod(s.Pod)
+	if s.Pod != nil {
+		pod, err = rt.LookupPod(*s.Pod)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("retrieving pod %s: %w", s.Pod, err)
 		}
@@ -152,7 +152,11 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	}
 
 	if s.Rootfs != "" {
-		options = append(options, libpod.WithRootFS(s.Rootfs, s.RootfsOverlay, s.RootfsMapping))
+		rootfsOverlay := false
+		if s.RootfsOverlay != nil {
+			rootfsOverlay = *s.RootfsOverlay
+		}
+		options = append(options, libpod.WithRootFS(s.Rootfs, rootfsOverlay, s.RootfsMapping))
 	}
 
 	newImage, resolvedImageName, imageData, err := getImageFromSpec(ctx, rt, s)
@@ -181,13 +185,20 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 			}
 		}
 
-		options = append(options, libpod.WithRootFSFromImage(newImage.ID(), resolvedImageName, s.RawImageName))
+		rawImageName := ""
+		if s.RawImageName != nil {
+			rawImageName = *s.RawImageName
+		}
+
+		options = append(options, libpod.WithRootFSFromImage(newImage.ID(), resolvedImageName, rawImageName))
 	}
 
-	_, err = rt.LookupPod(s.Hostname)
-	if len(s.Hostname) > 0 && !s.UtsNS.IsPrivate() && err == nil {
-		// ok, we are incorrectly setting the pod as the hostname, let's undo that before validation
-		s.Hostname = ""
+	if s.Hostname != nil {
+		_, err = rt.LookupPod(*s.Hostname)
+		if !s.UtsNS.IsPrivate() && err == nil {
+			// ok, we are incorrectly setting the pod as the hostname, let's undo that before validation
+			s.Hostname = nil
+		}
 	}
 
 	// Set defaults if network info is not provided
@@ -238,12 +249,12 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	}
 	options = append(options, opts...)
 
-	if containerType := s.InitContainerType; len(containerType) > 0 {
-		options = append(options, libpod.WithInitCtrType(containerType))
+	if s.InitContainerType != nil {
+		options = append(options, libpod.WithInitCtrType(*s.InitContainerType))
 	}
-	if len(s.Name) > 0 {
-		logrus.Debugf("setting container name %s", s.Name)
-		options = append(options, libpod.WithName(s.Name))
+	if s.Name != nil {
+		logrus.Debugf("setting container name %s", *s.Name)
+		options = append(options, libpod.WithName(*s.Name))
 	}
 	if len(s.Devices) > 0 {
 		opts = ExtractCDIDevices(s)
@@ -350,38 +361,38 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	var options []libpod.CtrCreateOption
 	var err error
 
-	if s.PreserveFDs > 0 {
-		options = append(options, libpod.WithPreserveFDs(s.PreserveFDs))
+	if s.PreserveFDs != nil {
+		options = append(options, libpod.WithPreserveFDs(*s.PreserveFDs))
 	}
 
 	if s.PreserveFD != nil {
 		options = append(options, libpod.WithPreserveFD(s.PreserveFD))
 	}
 
-	if s.Stdin {
+	if s.Stdin != nil && *s.Stdin {
 		options = append(options, libpod.WithStdin())
 	}
 
-	if s.Timezone != "" {
-		options = append(options, libpod.WithTimezone(s.Timezone))
+	if s.Timezone != nil {
+		options = append(options, libpod.WithTimezone(*s.Timezone))
 	}
-	if s.Umask != "" {
-		options = append(options, libpod.WithUmask(s.Umask))
+	if s.Umask != nil {
+		options = append(options, libpod.WithUmask(*s.Umask))
 	}
-	if s.Volatile {
+	if s.Volatile != nil && *s.Volatile {
 		options = append(options, libpod.WithVolatile())
 	}
-	if s.PasswdEntry != "" {
-		options = append(options, libpod.WithPasswdEntry(s.PasswdEntry))
+	if s.PasswdEntry != nil {
+		options = append(options, libpod.WithPasswdEntry(*s.PasswdEntry))
 	}
-	if s.GroupEntry != "" {
-		options = append(options, libpod.WithGroupEntry(s.GroupEntry))
+	if s.GroupEntry != nil {
+		options = append(options, libpod.WithGroupEntry(*s.GroupEntry))
 	}
-	if s.BaseHostsFile != "" {
-		options = append(options, libpod.WithBaseHostsFile(s.BaseHostsFile))
+	if s.BaseHostsFile != nil {
+		options = append(options, libpod.WithBaseHostsFile(*s.BaseHostsFile))
 	}
 
-	if s.Privileged {
+	if s.Privileged != nil && *s.Privileged {
 		options = append(options, libpod.WithMountAllDevices())
 	}
 
@@ -432,9 +443,9 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 
 		options = append(options, libpod.WithSystemd())
 	}
-	if len(s.SdNotifyMode) > 0 {
-		options = append(options, libpod.WithSdNotifyMode(s.SdNotifyMode))
-		if s.SdNotifyMode != define.SdNotifyModeIgnore {
+	if s.SdNotifyMode != nil {
+		options = append(options, libpod.WithSdNotifyMode(*s.SdNotifyMode))
+		if *s.SdNotifyMode != define.SdNotifyModeIgnore {
 			if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
 				options = append(options, libpod.WithSdNotifySocket(notify))
 			}
@@ -513,14 +524,15 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	}
 	// If the user did not specify a workdir on the CLI, let's extract it
 	// from the image.
-	if s.WorkDir == "" && imageData != nil {
+	if s.WorkDir == nil && imageData != nil {
 		options = append(options, libpod.WithCreateWorkingDir())
-		s.WorkDir = imageData.Config.WorkingDir
+		s.WorkDir = &imageData.Config.WorkingDir
 	}
-	if s.WorkDir == "" {
-		s.WorkDir = "/"
+	if s.WorkDir != nil && *s.WorkDir == "" {
+		slash := "/"
+		s.WorkDir = &slash
 	}
-	if s.CreateWorkingDir {
+	if s.CreateWorkingDir != nil && *s.CreateWorkingDir {
 		options = append(options, libpod.WithCreateWorkingDir())
 	}
 	if s.StopSignal != nil {
@@ -529,26 +541,26 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	if s.StopTimeout != nil {
 		options = append(options, libpod.WithStopTimeout(*s.StopTimeout))
 	}
-	if s.Timeout != 0 {
-		options = append(options, libpod.WithTimeout(s.Timeout))
+	if s.Timeout != nil {
+		options = append(options, libpod.WithTimeout(*s.Timeout))
 	}
 	if s.LogConfiguration != nil {
-		if len(s.LogConfiguration.Path) > 0 {
-			options = append(options, libpod.WithLogPath(s.LogConfiguration.Path))
+		if s.LogConfiguration.Path != nil {
+			options = append(options, libpod.WithLogPath(*s.LogConfiguration.Path))
 		}
-		if s.LogConfiguration.Size > 0 {
-			options = append(options, libpod.WithMaxLogSize(s.LogConfiguration.Size))
+		if s.LogConfiguration.Size != nil {
+			options = append(options, libpod.WithMaxLogSize(*s.LogConfiguration.Size))
 		}
 		if len(s.LogConfiguration.Options) > 0 && s.LogConfiguration.Options["tag"] != "" {
 			options = append(options, libpod.WithLogTag(s.LogConfiguration.Options["tag"]))
 		}
 
-		if len(s.LogConfiguration.Driver) > 0 {
-			options = append(options, libpod.WithLogDriver(s.LogConfiguration.Driver))
+		if s.LogConfiguration.Driver != nil {
+			options = append(options, libpod.WithLogDriver(*s.LogConfiguration.Driver))
 		}
 	}
-	if s.ContainerSecurityConfig.LabelNested {
-		options = append(options, libpod.WithLabelNested(s.ContainerSecurityConfig.LabelNested))
+	if s.ContainerSecurityConfig.LabelNested != nil {
+		options = append(options, libpod.WithLabelNested(*s.ContainerSecurityConfig.LabelNested))
 	}
 	// Security options
 	if len(s.SelinuxOpts) > 0 {
@@ -567,8 +579,12 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 			options = append(options, libpod.WithSecLabels(selinuxOpts))
 		}
 	}
-	options = append(options, libpod.WithPrivileged(s.Privileged))
-	options = append(options, libpod.WithReadWriteTmpfs(s.ReadWriteTmpfs))
+	if s.Privileged != nil {
+		options = append(options, libpod.WithPrivileged(*s.Privileged))
+	}
+	if s.ReadWriteTmpfs != nil {
+		options = append(options, libpod.WithReadWriteTmpfs(*s.ReadWriteTmpfs))
+	}
 
 	// Get namespace related options
 	namespaceOpts, err := namespaceOptions(s, rt, pod, imageData)
@@ -577,8 +593,8 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	}
 	options = append(options, namespaceOpts...)
 
-	if len(s.ConmonPidFile) > 0 {
-		options = append(options, libpod.WithConmonPidFile(s.ConmonPidFile))
+	if s.ConmonPidFile != nil {
+		options = append(options, libpod.WithConmonPidFile(*s.ConmonPidFile))
 	}
 	options = append(options, libpod.WithLabels(s.Labels))
 	if s.ShmSize != nil {
@@ -588,7 +604,11 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		options = append(options, libpod.WithShmSizeSystemd(*s.ShmSizeSystemd))
 	}
 	if s.Rootfs != "" {
-		options = append(options, libpod.WithRootFS(s.Rootfs, s.RootfsOverlay, s.RootfsMapping))
+		rootfsOverlay := false
+		if s.RootfsOverlay != nil {
+			rootfsOverlay = *s.RootfsOverlay
+		}
+		options = append(options, libpod.WithRootFS(s.Rootfs, rootfsOverlay, s.RootfsMapping))
 	}
 	// Default used if not overridden on command line
 
@@ -597,17 +617,17 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		retries       uint
 	)
 	// If the container is running in a pod, use the pod's restart policy for all the containers
-	if pod != nil && !s.IsInitContainer() && s.RestartPolicy == "" {
+	if pod != nil && !s.IsInitContainer() && s.RestartPolicy == nil {
 		podConfig := pod.ConfigNoCopy()
 		if podConfig.RestartRetries != nil {
 			retries = *podConfig.RestartRetries
 		}
 		restartPolicy = podConfig.RestartPolicy
-	} else if s.RestartPolicy != "" {
+	} else if s.RestartPolicy != nil {
 		if s.RestartRetries != nil {
 			retries = *s.RestartRetries
 		}
-		restartPolicy = s.RestartPolicy
+		restartPolicy = *s.RestartPolicy
 	}
 	options = append(options, libpod.WithRestartRetries(retries), libpod.WithRestartPolicy(restartPolicy))
 
@@ -622,12 +642,12 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		healthCheckSet = true
 	}
 
-	if s.ContainerHealthCheckConfig.HealthCheckOnFailureAction != define.HealthCheckOnFailureActionNone {
-		options = append(options, libpod.WithHealthCheckOnFailureAction(s.ContainerHealthCheckConfig.HealthCheckOnFailureAction))
+	if s.HealthCheckOnFailureAction != nil && *s.HealthCheckOnFailureAction == define.HealthCheckOnFailureActionNone {
+		options = append(options, libpod.WithHealthCheckOnFailureAction(*s.HealthCheckOnFailureAction))
 	}
 
-	if s.SdNotifyMode == define.SdNotifyModeHealthy && !healthCheckSet {
-		return nil, fmt.Errorf("%w: sdnotify policy %q requires a healthcheck to be set", define.ErrInvalidArg, s.SdNotifyMode)
+	if s.SdNotifyMode != nil && *s.SdNotifyMode == define.SdNotifyModeHealthy && !healthCheckSet {
+		return nil, fmt.Errorf("%w: sdnotify policy %q requires a healthcheck to be set", define.ErrInvalidArg, *s.SdNotifyMode)
 	}
 
 	if len(s.Secrets) != 0 {

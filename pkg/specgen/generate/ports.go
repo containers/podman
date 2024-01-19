@@ -365,7 +365,7 @@ func createPortMappings(s *specgen.SpecGenerator, imageData *libimage.ImageData)
 	}
 
 	publishPorts := toExpose
-	if !s.PublishExposedPorts {
+	if s.PublishExposedPorts == nil || !*s.PublishExposedPorts {
 		publishPorts = nil
 	}
 

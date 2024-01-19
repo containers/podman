@@ -360,7 +360,8 @@ var _ = Describe("Podman containers ", func() {
 	It("logging", func() {
 		stdoutChan := make(chan string, 10)
 		s := specgen.NewSpecGenerator(alpine.name, false)
-		s.Terminal = true
+		localTrue := true
+		s.Terminal = &localTrue
 		s.Command = []string{"date", "-R"}
 		r, err := containers.CreateWithSpec(bt.conn, s, nil)
 		Expect(err).ToNot(HaveOccurred())
@@ -774,7 +775,8 @@ var _ = Describe("Podman containers ", func() {
 		_, err = bt.RunTopContainer(&name2, nil)
 		Expect(err).ToNot(HaveOccurred())
 		s := specgen.NewSpecGenerator(alpine.name, false)
-		s.Terminal = true
+		localTrue := true
+		s.Terminal = &localTrue
 		s.Command = []string{"date", "-R"}
 		_, err = containers.CreateWithSpec(bt.conn, s, nil)
 		Expect(err).ToNot(HaveOccurred())

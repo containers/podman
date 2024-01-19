@@ -48,7 +48,19 @@ func getImageFromSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGen
 	manifestList, err := image.ToManifestList()
 	// only process if manifest list found otherwise expect it to be regular image
 	if err == nil {
-		image, err = manifestList.LookupInstance(ctx, s.ImageArch, s.ImageOS, s.ImageVariant)
+		arch := ""
+		if s.ImageArch != nil {
+			arch = *s.ImageArch
+		}
+		os := ""
+		if s.ImageOS != nil {
+			os = *s.ImageOS
+		}
+		variant := ""
+		if s.ImageVariant != nil {
+			variant = *s.ImageVariant
+		}
+		image, err = manifestList.LookupInstance(ctx, arch, os, variant)
 		if err != nil {
 			return nil, "", nil, err
 		}
@@ -110,7 +122,15 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	}
 
 	// Get Default Environment from containers.conf
-	defaultEnvs, err := envLib.ParseSlice(rtc.GetDefaultEnvEx(s.EnvHost, s.HTTPProxy))
+	envHost := false
+	if s.EnvHost != nil {
+		envHost = *s.EnvHost
+	}
+	httpProxy := false
+	if s.HTTPProxy != nil {
+		httpProxy = *s.HTTPProxy
+	}
+	defaultEnvs, err := envLib.ParseSlice(rtc.GetDefaultEnvEx(envHost, httpProxy))
 	if err != nil {
 		return nil, fmt.Errorf("parsing fields in containers.conf: %w", err)
 	}
@@ -129,7 +149,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 
 	// add default terminal to env if tty flag is set
 	_, ok := defaultEnvs["TERM"]
-	if s.Terminal && !ok {
+	if s.Terminal != nil && *s.Terminal && !ok {
 		defaultEnvs["TERM"] = "xterm"
 	}
 
@@ -154,7 +174,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		delete(defaultEnvs, e)
 	}
 
-	if s.UnsetEnvAll {
+	if s.UnsetEnvAll != nil && *s.UnsetEnvAll {
 		defaultEnvs = make(map[string]string)
 	}
 	// First transform the os env into a map. We need it for the labels later in
@@ -162,9 +182,9 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	osEnv := envLib.Map(os.Environ())
 
 	// Caller Specified defaults
-	if s.EnvHost {
+	if s.EnvHost != nil && *s.EnvHost {
 		defaultEnvs = envLib.Join(defaultEnvs, osEnv)
-	} else if s.HTTPProxy {
+	} else if s.HTTPProxy != nil && *s.EnvHost {
 		for _, envSpec := range config.ProxyEnv {
 			if v, ok := osEnv[envSpec]; ok {
 				defaultEnvs[envSpec] = v
@@ -204,8 +224,8 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	// - "container" denotes the container should join the VM of the SandboxID
 	//   (the infra container)
 	annotations := make(map[string]string)
-	if len(s.Pod) > 0 {
-		p, err := r.LookupPod(s.Pod)
+	if s.Pod != nil {
+		p, err := r.LookupPod(*s.Pod)
 		if err != nil {
 			return nil, err
 		}
@@ -221,7 +241,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		// Check if this is an init-ctr and if so, check if
 		// the pod is running.  we do not want to add init-ctrs to
 		// a running pod because it creates confusion for us.
-		if len(s.InitContainerType) > 0 {
+		if s.InitContainerType != nil {
 			containerStatuses, err := p.Status()
 			if err != nil {
 				return nil, err
@@ -246,16 +266,16 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	}
 	s.Annotations = annotations
 
-	if len(s.SeccompProfilePath) < 1 {
+	if s.SeccompProfilePath == nil {
 		p, err := libpod.DefaultSeccompPath()
 		if err != nil {
 			return nil, err
 		}
-		s.SeccompProfilePath = p
+		s.SeccompProfilePath = &p
 	}
 
-	if len(s.User) == 0 && inspectData != nil {
-		s.User = inspectData.Config.User
+	if s.User == nil && inspectData != nil {
+		s.User = &inspectData.Config.User
 	}
 	// Unless already set via the CLI, check if we need to disable process
 	// labels or set the defaults.
@@ -265,8 +285,9 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		}
 	}
 
-	if s.CgroupsMode == "" {
-		s.CgroupsMode = rtc.Cgroups()
+	if s.CgroupsMode == nil {
+		localCgroups := rtc.Cgroups()
+		s.CgroupsMode = &localCgroups
 	}
 
 	// If caller did not specify Pids Limits load default
@@ -276,11 +297,11 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		s.LogConfiguration = &specgen.LogConfig{}
 	}
 	// set log-driver from common if not already set
-	if len(s.LogConfiguration.Driver) < 1 {
-		s.LogConfiguration.Driver = rtc.Containers.LogDriver
+	if s.LogConfiguration.Driver == nil {
+		s.LogConfiguration.Driver = &rtc.Containers.LogDriver
 	}
 	if len(rtc.Containers.LogTag) > 0 {
-		if s.LogConfiguration.Driver != define.JSONLogging {
+		if s.LogConfiguration.Driver != nil && *s.LogConfiguration.Driver != define.JSONLogging {
 			if s.LogConfiguration.Options == nil {
 				s.LogConfiguration.Options = make(map[string]string)
 			}
@@ -327,7 +348,7 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 		specg = &specgen.SpecGenerator{}
 	}
 
-	specg.Pod = conf.Pod
+	specg.Pod = &conf.Pod
 
 	matching, err := json.Marshal(conf)
 	if err != nil {
@@ -497,9 +518,9 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 
 // mapSecurityConfig takes a libpod.ContainerSecurityConfig and converts it to a specgen.ContinerSecurityConfig
 func mapSecurityConfig(c *libpod.ContainerConfig, s *specgen.SpecGenerator) {
-	s.Privileged = c.Privileged
+	s.Privileged = &c.Privileged
 	s.SelinuxOpts = append(s.SelinuxOpts, c.LabelOpts...)
-	s.User = c.User
+	s.User = &c.User
 	s.Groups = c.Groups
 	s.HostUsers = c.HostUsers
 }

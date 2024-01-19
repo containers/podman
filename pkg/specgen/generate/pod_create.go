@@ -43,7 +43,7 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (_ *libpod.Pod, finalErr e
 			return nil, err
 		}
 		p.PodSpecGen.InfraImage = imageName
-		p.PodSpecGen.InfraContainerSpec.RawImageName = imageName
+		p.PodSpecGen.InfraContainerSpec.RawImageName = &imageName
 	}
 
 	spec, err := MapSpec(&p.PodSpecGen)
@@ -72,14 +72,15 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (_ *libpod.Pod, finalErr e
 	createdPod = pod
 
 	if !p.PodSpecGen.NoInfra && p.PodSpecGen.InfraContainerSpec != nil {
-		if p.PodSpecGen.InfraContainerSpec.Name == "" {
-			p.PodSpecGen.InfraContainerSpec.Name = pod.ID()[:12] + "-infra"
+		if p.PodSpecGen.InfraContainerSpec.Name == nil {
+			tmpName := pod.ID()[:12] + "-infra"
+			p.PodSpecGen.InfraContainerSpec.Name = &tmpName
 		}
 		_, err = CompleteSpec(context.Background(), rt, p.PodSpecGen.InfraContainerSpec)
 		if err != nil {
 			return nil, err
 		}
-		p.PodSpecGen.InfraContainerSpec.User = "" // infraSpec user will get incorrectly assigned via the container creation process, overwrite here
+		p.PodSpecGen.InfraContainerSpec.User = nil // infraSpec user will get incorrectly assigned via the container creation process, overwrite here
 		// infra's resource limits are used as a parsing tool,
 		// we do not want infra to get these resources in its cgroup
 		// make sure of that here.
@@ -90,9 +91,11 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (_ *libpod.Pod, finalErr e
 			return nil, err
 		}
 
-		spec.Pod = pod.ID()
+		podID := pod.ID()
+		spec.Pod = &podID
 		opts = append(opts, rt.WithPod(pod))
-		spec.CgroupParent = pod.CgroupParent()
+		cgParent := pod.CgroupParent()
+		spec.CgroupParent = &cgParent
 		infraCtr, err := ExecuteCreate(context.Background(), rt, rtSpec, spec, true, opts...)
 		if err != nil {
 			return nil, err
@@ -250,7 +253,8 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 		spec.DNSSearch = p.DNSSearch
 	}
 	if p.NoManageResolvConf {
-		spec.UseImageResolvConf = true
+		localTrue := true
+		spec.UseImageResolvConf = &localTrue
 	}
 	if len(p.Networks) > 0 {
 		spec.Networks = p.Networks
@@ -260,11 +264,11 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 		spec.CNINetworks = p.CNINetworks
 	}
 	if p.NoManageHosts {
-		spec.UseImageHosts = p.NoManageHosts
+		spec.UseImageHosts = &p.NoManageHosts
 	}
 
 	if len(p.InfraConmonPidFile) > 0 {
-		spec.ConmonPidFile = p.InfraConmonPidFile
+		spec.ConmonPidFile = &p.InfraConmonPidFile
 	}
 
 	if p.Sysctl != nil && len(p.Sysctl) > 0 {
@@ -292,42 +296,46 @@ func PodConfigToSpec(rt *libpod.Runtime, spec *specgen.PodSpecGenerator, infraOp
 			return nil, err
 		}
 
-		infraSpec.Hostname = ""
-		infraSpec.CgroupParent = ""
-		infraSpec.Pod = "" // remove old pod...
+		infraSpec.Hostname = nil
+		infraSpec.CgroupParent = nil
+		infraSpec.Pod = nil // remove old pod...
 		infraOptions.IsClone = true
 		infraOptions.IsInfra = true
 
-		n := infraSpec.Name
-		_, err = rt.LookupContainer(n + "-clone")
-		if err == nil { // if we found a ctr with this name, set it so the below switch can tell
-			n += "-clone"
-		}
+		if infraSpec.Name != nil {
+			n := *infraSpec.Name
+			_, err = rt.LookupContainer(n + "-clone")
+			if err == nil { // if we found a ctr with this name, set it so the below switch can tell
+				n += "-clone"
+			}
 
-		switch {
-		case strings.Contains(n, "-clone"):
-			ind := strings.Index(n, "-clone") + 6
-			num, err := strconv.Atoi(n[ind:])
-			if num == 0 && err != nil { // clone1 is hard to get with this logic, just check for it here.
-				_, err = rt.LookupContainer(n + "1")
-				if err != nil {
-					infraSpec.Name = n + "1"
-					break
+			switch {
+			case strings.Contains(n, "-clone"):
+				ind := strings.Index(n, "-clone") + 6
+				num, err := strconv.Atoi(n[ind:])
+				if num == 0 && err != nil { // clone1 is hard to get with this logic, just check for it here.
+					_, err = rt.LookupContainer(n + "1")
+					if err != nil {
+						newName := n + "1"
+						infraSpec.Name = &newName
+						break
+					}
+				} else {
+					n = n[0:ind]
 				}
-			} else {
-				n = n[0:ind]
+				err = nil
+				count := num
+				for err == nil {
+					count++
+					tempN := n + strconv.Itoa(count)
+					_, err = rt.LookupContainer(tempN)
+				}
+				n += strconv.Itoa(count)
+				infraSpec.Name = &n
+			default:
+				newName := n + "-clone"
+				infraSpec.Name = &newName
 			}
-			err = nil
-			count := num
-			for err == nil {
-				count++
-				tempN := n + strconv.Itoa(count)
-				_, err = rt.LookupContainer(tempN)
-			}
-			n += strconv.Itoa(count)
-			infraSpec.Name = n
-		default:
-			infraSpec.Name = n + "-clone"
 		}
 
 		err = specgenutil.FillOutSpecGen(infraSpec, infraOptions, []string{})

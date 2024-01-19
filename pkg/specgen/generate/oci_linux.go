@@ -100,7 +100,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 
 	canMountSys := canMountSys(isRootless, isNewUserns, s)
 
-	if s.Privileged && canMountSys {
+	if s.IsPrivileged() && canMountSys {
 		cgroupPerm = "rw"
 		g.RemoveMount("/sys")
 		sysMnt := spec.Mount{
@@ -115,7 +115,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		addCgroup = false
 		g.RemoveMount("/sys")
 		r := "ro"
-		if s.Privileged {
+		if s.Privileged != nil && s.IsPrivileged() {
 			r = "rw"
 		}
 		sysMnt := spec.Mount{
@@ -134,7 +134,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 			Options:     []string{"rprivate", "nosuid", "noexec", "nodev", r},
 		}
 		g.AddMount(sysFsCgroupMnt)
-		if !s.Privileged && isRootless {
+		if !s.IsPrivileged() && isRootless {
 			g.AddLinuxMaskedPaths("/sys/kernel")
 		}
 	}
@@ -207,11 +207,17 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 
 	g.Config.Linux.Personality = s.Personality
 
-	g.SetProcessCwd(s.WorkDir)
+	if s.WorkDir != nil {
+		g.SetProcessCwd(*s.WorkDir)
+	}
 
 	g.SetProcessArgs(finalCmd)
 
-	g.SetProcessTerminal(s.Terminal)
+	if s.Terminal != nil {
+		g.SetProcessTerminal(*s.Terminal)
+	} else {
+		g.SetProcessTerminal(false)
+	}
 
 	for key, val := range s.Annotations {
 		g.AddAnnotation(key, val)
@@ -247,13 +253,13 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 
 	// Devices
 	// set the default rule at the beginning of device configuration
-	if !inUserNS && !s.Privileged {
+	if !inUserNS && !s.IsPrivileged() {
 		g.AddLinuxResourcesDevice(false, "", nil, nil, "rwm")
 	}
 
 	var userDevices []spec.LinuxDevice
 
-	if !s.Privileged {
+	if !s.IsPrivileged() {
 		// add default devices from containers.conf
 		for _, device := range rtc.Containers.Devices.Get() {
 			if err = DevicesFromPath(&g, device); err != nil {
@@ -278,13 +284,13 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	if isRootless && len(s.DeviceCgroupRule) > 0 {
 		return nil, fmt.Errorf("device cgroup rules are not supported in rootless mode or in a user namespace")
 	}
-	if !isRootless && !s.Privileged {
+	if !isRootless && !s.IsPrivileged() {
 		for _, dev := range s.DeviceCgroupRule {
 			g.AddLinuxResourcesDevice(true, dev.Type, dev.Major, dev.Minor, dev.Access)
 		}
 	}
 
-	BlockAccessToKernelFilesystems(s.Privileged, s.PidNS.IsHost(), s.Mask, s.Unmask, &g)
+	BlockAccessToKernelFilesystems(s.IsPrivileged(), s.PidNS.IsHost(), s.Mask, s.Unmask, &g)
 
 	g.ClearProcessEnv()
 	for name, val := range s.Env {
@@ -315,7 +321,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		configSpec.Annotations = make(map[string]string)
 	}
 
-	if s.Remove {
+	if s.Remove != nil && *s.Remove {
 		configSpec.Annotations[define.InspectAnnotationAutoremove] = define.InspectResponseTrue
 	}
 
@@ -323,11 +329,11 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		configSpec.Annotations[define.InspectAnnotationVolumesFrom] = strings.Join(s.VolumesFrom, ",")
 	}
 
-	if s.Privileged {
+	if s.IsPrivileged() {
 		configSpec.Annotations[define.InspectAnnotationPrivileged] = define.InspectResponseTrue
 	}
 
-	if s.Init {
+	if s.Init != nil && *s.Init {
 		configSpec.Annotations[define.InspectAnnotationInit] = define.InspectResponseTrue
 	}
 
@@ -336,7 +342,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	}
 
 	setProcOpts(s, &g)
-	if s.ReadOnlyFilesystem && !s.ReadWriteTmpfs {
+	if (s.ReadOnlyFilesystem != nil && *s.ReadOnlyFilesystem) && (s.ReadWriteTmpfs == nil || !*s.ReadWriteTmpfs) {
 		setDevOptsReadOnly(&g)
 	}
 

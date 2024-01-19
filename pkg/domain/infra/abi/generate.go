@@ -70,7 +70,12 @@ func (ic *ContainerEngine) GenerateSpec(ctx context.Context, opts *entities.Gene
 	// rename if we are looking to consume the output and make a new entity
 	if opts.Name {
 		if spec != nil {
-			spec.Name = generateUtils.CheckName(ic.Libpod, spec.Name, true)
+			name := ""
+			if spec.Name != nil {
+				name = *spec.Name
+			}
+			localName := generateUtils.CheckName(ic.Libpod, name, true)
+			spec.Name = &localName
 		} else {
 			pspec.Name = generateUtils.CheckName(ic.Libpod, pspec.Name, false)
 		}

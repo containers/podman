@@ -57,7 +57,7 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 		return nil, err
 	}
 	if p.InfraContainerSpec != nil {
-		p.InfraContainerSpec.CgroupParent = parentCgroup
+		p.InfraContainerSpec.CgroupParent = &parentCgroup
 	}
 
 	if !pod.HasInfraContainer() && pod.SharesNamespaces() {
@@ -80,8 +80,8 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 			pod.config.Name = name
 		}
 
-		if p.InfraContainerSpec != nil && p.InfraContainerSpec.Hostname == "" {
-			p.InfraContainerSpec.Hostname = pod.config.Name
+		if p.InfraContainerSpec != nil && p.InfraContainerSpec.Hostname == nil {
+			p.InfraContainerSpec.Hostname = &pod.config.Name
 		}
 		if addPodErr = r.state.AddPod(pod); addPodErr == nil {
 			return pod, nil

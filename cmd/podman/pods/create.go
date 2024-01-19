@@ -270,9 +270,9 @@ func create(cmd *cobra.Command, args []string) error {
 			createOptions.InfraCommand = infraOptions.Entrypoint
 		}
 		podSpec.InfraContainerSpec = specgen.NewSpecGenerator(imageName, false)
-		podSpec.InfraContainerSpec.RawImageName = rawImageName
+		podSpec.InfraContainerSpec.RawImageName = &rawImageName
 		podSpec.InfraContainerSpec.NetworkOptions = podSpec.NetworkOptions
-		podSpec.InfraContainerSpec.RestartPolicy = podSpec.RestartPolicy
+		podSpec.InfraContainerSpec.RestartPolicy = &podSpec.RestartPolicy
 		err = specgenutil.FillOutSpecGen(podSpec.InfraContainerSpec, &infraOptions, []string{})
 		if err != nil {
 			return err

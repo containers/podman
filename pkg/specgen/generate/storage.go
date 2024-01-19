@@ -128,8 +128,11 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 	}
 
 	// If requested, add container init binary
-	if s.Init {
-		initPath := s.InitPath
+	if s.Init != nil && *s.Init {
+		initPath := ""
+		if s.InitPath != nil {
+			initPath = *s.InitPath
+		}
 		if initPath == "" {
 			initPath, err = rtc.FindInitBinary()
 			if err != nil {
@@ -180,7 +183,7 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 		}
 	}
 
-	if s.ReadWriteTmpfs {
+	if s.ReadWriteTmpfs != nil && *s.ReadWriteTmpfs {
 		runPath, err := imageRunPath(ctx, img)
 		if err != nil {
 			return nil, nil, nil, err
@@ -218,7 +221,10 @@ func getImageVolumes(ctx context.Context, img *libimage.Image, s *specgen.SpecGe
 	mounts := make(map[string]spec.Mount)
 	volumes := make(map[string]*specgen.NamedVolume)
 
-	mode := strings.ToLower(s.ImageVolumeMode)
+	mode := ""
+	if s.ImageVolumeMode != nil {
+		mode = strings.ToLower(*s.ImageVolumeMode)
+	}
 
 	// Image may be nil (rootfs in use), or image volume mode may be ignore.
 	if img == nil || mode == "ignore" {

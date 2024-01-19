@@ -166,7 +166,7 @@ func create(cmd *cobra.Command, args []string) error {
 	if err := specgenutil.FillOutSpecGen(s, &cliVals, args); err != nil {
 		return err
 	}
-	s.RawImageName = rawImageName
+	s.RawImageName = &rawImageName
 
 	if err := createPodIfNecessary(cmd, s, cliVals.Net); err != nil {
 		return err
@@ -399,7 +399,11 @@ func rmPodIfNecessary(cmd *cobra.Command, s *specgen.SpecGenerator) error {
 
 	// errcheck not necessary since
 	// pod creation would've failed
-	podName := strings.Replace(s.Pod, "new:", "", 1)
+	pod := ""
+	if s.Pod != nil {
+		pod = *s.Pod
+	}
+	podName := strings.Replace(pod, "new:", "", 1)
 	_, err := registry.ContainerEngine().PodRm(context.Background(), []string{podName}, entities.PodRmOptions{})
 	return err
 }
@@ -408,10 +412,14 @@ func rmPodIfNecessary(cmd *cobra.Command, s *specgen.SpecGenerator) error {
 // has the form new:ID, the pod ID is created and the name in the spec generator is replaced
 // with ID.
 func createPodIfNecessary(cmd *cobra.Command, s *specgen.SpecGenerator, netOpts *entities.NetOptions) error {
-	if !strings.HasPrefix(s.Pod, "new:") {
+	pod := ""
+	if s.Pod != nil {
+		pod = *s.Pod
+	}
+	if !strings.HasPrefix(pod, "new:") {
 		return nil
 	}
-	podName := strings.Replace(s.Pod, "new:", "", 1)
+	podName := strings.Replace(pod, "new:", "", 1)
 	if len(podName) < 1 {
 		return errors.New("new pod name must be at least one character")
 	}
@@ -424,12 +432,16 @@ func createPodIfNecessary(cmd *cobra.Command, s *specgen.SpecGenerator, netOpts 
 			return err
 		}
 	}
+	hostname := ""
+	if s.Hostname != nil {
+		hostname = *s.Hostname
+	}
 	createOptions := entities.PodCreateOptions{
 		Name:          podName,
 		Infra:         true,
 		Net:           netOpts,
 		CreateCommand: os.Args,
-		Hostname:      s.ContainerBasicConfig.Hostname,
+		Hostname:      hostname,
 		Cpus:          cliVals.CPUS,
 		CpusetCpus:    cliVals.CPUSetCPUs,
 		Pid:           cliVals.PID,
@@ -437,10 +449,12 @@ func createPodIfNecessary(cmd *cobra.Command, s *specgen.SpecGenerator, netOpts 
 		Restart:       cliVals.Restart,
 	}
 	// Unset config values we passed to the pod to prevent them being used twice for the container and pod.
-	s.ContainerBasicConfig.Hostname = ""
+	s.ContainerBasicConfig.Hostname = nil
 	s.ContainerNetworkConfig = specgen.ContainerNetworkConfig{}
 
-	s.Pod = podName
+	if podName != "" {
+		s.Pod = &podName
+	}
 	podSpec := entities.PodSpec{}
 	podGen := specgen.NewPodSpecGenerator()
 	podSpec.PodSpecGen = *podGen

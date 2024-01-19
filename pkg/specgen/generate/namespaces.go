@@ -224,7 +224,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 
 		// If user is not overridden, set user in the container
 		// to user running Podman.
-		if s.User == "" {
+		if s.User == nil {
 			_, uid, gid, err := util.GetKeepIDMapping(opts)
 			if err != nil {
 				return nil, err
@@ -237,7 +237,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 		}
 		// Inherit the user from the infra container if it is set and --user has not
 		// been set explicitly
-		if infraCtr.User() != "" && s.User == "" {
+		if infraCtr.User() != "" && s.User == nil {
 			toReturn = append(toReturn, libpod.WithUser(infraCtr.User()))
 		}
 		toReturn = append(toReturn, libpod.WithUserNSFrom(infraCtr))
@@ -259,8 +259,8 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 			return nil, fmt.Errorf("cannot specify a new uid/gid map when entering a pod with an infra container: %w", define.ErrInvalidArg)
 		}
 	}
-	if s.User != "" {
-		toReturn = append(toReturn, libpod.WithUser(s.User))
+	if s.User != nil {
+		toReturn = append(toReturn, libpod.WithUser(*s.User))
 	}
 	if len(s.Groups) > 0 {
 		toReturn = append(toReturn, libpod.WithGroups(s.Groups))
@@ -287,12 +287,12 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 		}
 	}
 
-	if s.CgroupParent != "" {
-		toReturn = append(toReturn, libpod.WithCgroupParent(s.CgroupParent))
+	if s.CgroupParent != nil {
+		toReturn = append(toReturn, libpod.WithCgroupParent(*s.CgroupParent))
 	}
 
-	if s.CgroupsMode != "" {
-		toReturn = append(toReturn, libpod.WithCgroupsMode(s.CgroupsMode))
+	if s.CgroupsMode != nil {
+		toReturn = append(toReturn, libpod.WithCgroupsMode(*s.CgroupsMode))
 	}
 
 	postConfigureNetNS := needPostConfigureNetNS(s)
@@ -367,7 +367,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, "bridge", s.Networks))
 	}
 
-	if s.UseImageHosts {
+	if s.UseImageHosts != nil && *s.UseImageHosts {
 		toReturn = append(toReturn, libpod.WithUseImageHosts())
 	} else if len(s.HostAdd) > 0 {
 		toReturn = append(toReturn, libpod.WithHosts(s.HostAdd))
@@ -375,7 +375,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	if len(s.DNSSearch) > 0 {
 		toReturn = append(toReturn, libpod.WithDNSSearch(s.DNSSearch))
 	}
-	if s.UseImageResolvConf {
+	if s.UseImageResolvConf != nil && *s.UseImageResolvConf {
 		toReturn = append(toReturn, libpod.WithUseImageResolvConf())
 	} else if len(s.DNSServers) > 0 {
 		var dnsServers []string

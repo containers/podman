@@ -23,7 +23,7 @@ import (
 // setLabelOpts sets the label options of the SecurityConfig according to the
 // input.
 func setLabelOpts(s *specgen.SpecGenerator, runtime *libpod.Runtime, pidConfig specgen.Namespace, ipcConfig specgen.Namespace) error {
-	if !runtime.EnableLabeling() || s.Privileged {
+	if !runtime.EnableLabeling() || s.IsPrivileged() {
 		s.SelinuxOpts = label.DisableSecOpt()
 		return nil
 	}
@@ -62,22 +62,22 @@ func setLabelOpts(s *specgen.SpecGenerator, runtime *libpod.Runtime, pidConfig s
 }
 
 func setupApparmor(s *specgen.SpecGenerator, rtc *config.Config, g *generate.Generator) error {
-	hasProfile := len(s.ApparmorProfile) > 0
+	hasProfile := s.ApparmorProfile != nil
 	if !apparmor.IsEnabled() {
-		if hasProfile && s.ApparmorProfile != "unconfined" {
+		if hasProfile && s.ApparmorProfile != nil && *s.ApparmorProfile != "unconfined" {
 			return fmt.Errorf("apparmor profile %q specified, but Apparmor is not enabled on this system", s.ApparmorProfile)
 		}
 		return nil
 	}
 	// If privileged and caller did not specify apparmor profiles return
-	if s.Privileged && !hasProfile {
+	if s.IsPrivileged() && !hasProfile {
 		return nil
 	}
-	if !hasProfile {
-		s.ApparmorProfile = rtc.Containers.ApparmorProfile
+	if !hasProfile && rtc.Containers.ApparmorProfile != "" {
+		s.ApparmorProfile = &rtc.Containers.ApparmorProfile
 	}
-	if len(s.ApparmorProfile) > 0 {
-		g.SetProcessApparmorProfile(s.ApparmorProfile)
+	if s.ApparmorProfile != nil {
+		g.SetProcessApparmorProfile(*s.ApparmorProfile)
 	}
 
 	return nil
@@ -90,7 +90,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 	)
 	// HANDLE CAPABILITIES
 	// NOTE: Must happen before SECCOMP
-	if s.Privileged {
+	if s.IsPrivileged() {
 		g.SetupPrivileged(true)
 		caplist, err = capabilities.BoundingSet()
 		if err != nil {
@@ -127,9 +127,9 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 				capsRequiredRequested = strings.Split(val, ",")
 			}
 		}
-		if !s.Privileged && len(capsRequiredRequested) == 1 && capsRequiredRequested[0] == "" {
+		if !s.IsPrivileged() && len(capsRequiredRequested) == 1 && capsRequiredRequested[0] == "" {
 			caplist = []string{}
-		} else if !s.Privileged && len(capsRequiredRequested) > 0 {
+		} else if !s.IsPrivileged() && len(capsRequiredRequested) > 0 {
 			// Pass capRequiredRequested in CapAdd field to normalize capabilities names
 			capsRequired, err := capabilities.MergeCapabilities(nil, capsRequiredRequested, nil)
 			if err != nil {
@@ -157,7 +157,10 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 	configSpec.Process.Capabilities.Inheritable = []string{}
 	configSpec.Process.Capabilities.Bounding = caplist
 
-	user := strings.Split(s.User, ":")[0]
+	user := ""
+	if s.User != nil {
+		user = strings.Split(*s.User, ":")[0]
+	}
 
 	if (user == "" && s.UserNS.NSMode != specgen.KeepID) || user == "root" || user == "0" {
 		configSpec.Process.Capabilities.Effective = caplist
@@ -192,14 +195,20 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 		}
 	}
 
-	g.SetProcessNoNewPrivileges(s.NoNewPrivileges)
+	if s.NoNewPrivileges != nil {
+		g.SetProcessNoNewPrivileges(*s.NoNewPrivileges)
+	}
 
 	if err := setupApparmor(s, rtc, g); err != nil {
 		return err
 	}
 
 	// HANDLE SECCOMP
-	if s.SeccompProfilePath != "unconfined" {
+	seccompProfilePath := ""
+	if s.SeccompProfilePath != nil {
+		seccompProfilePath = *s.SeccompProfilePath
+	}
+	if seccompProfilePath != "unconfined" {
 		seccompConfig, err := getSeccompConfig(s, configSpec, newImage)
 		if err != nil {
 			return err
@@ -209,11 +218,13 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 
 	// Clear default Seccomp profile from Generator for unconfined containers
 	// and privileged containers which do not specify a seccomp profile.
-	if s.SeccompProfilePath == "unconfined" || (s.Privileged && (s.SeccompProfilePath == "" || s.SeccompProfilePath == config.SeccompOverridePath || s.SeccompProfilePath == config.SeccompDefaultPath)) {
+	if seccompProfilePath == "unconfined" || (s.IsPrivileged() && (seccompProfilePath == "" || seccompProfilePath == config.SeccompOverridePath || seccompProfilePath == config.SeccompDefaultPath)) {
 		configSpec.Linux.Seccomp = nil
 	}
 
-	g.SetRootReadonly(s.ReadOnlyFilesystem)
+	if s.ReadOnlyFilesystem != nil {
+		g.SetRootReadonly(*s.ReadOnlyFilesystem)
+	}
 
 	noUseIPC := s.IpcNS.NSMode == specgen.FromContainer || s.IpcNS.NSMode == specgen.FromPod || s.IpcNS.NSMode == specgen.Host
 	noUseNet := s.NetNS.NSMode == specgen.FromContainer || s.NetNS.NSMode == specgen.FromPod || s.NetNS.NSMode == specgen.Host

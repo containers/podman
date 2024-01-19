@@ -19,7 +19,13 @@ import (
 func getSeccompConfig(s *specgen.SpecGenerator, configSpec *spec.Spec, img *libimage.Image) (*spec.LinuxSeccomp, error) {
 	var seccompConfig *spec.LinuxSeccomp
 	var err error
-	scp, err := seccomp.LookupPolicy(s.SeccompPolicy)
+
+	// "" grabs us the default policy if unset in SpecGen.
+	seccompPolicy := ""
+	if s.SeccompPolicy != nil {
+		seccompPolicy = *s.SeccompPolicy
+	}
+	scp, err := seccomp.LookupPolicy(seccompPolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -44,9 +50,9 @@ func getSeccompConfig(s *specgen.SpecGenerator, configSpec *spec.Spec, img *libi
 		return seccompConfig, nil
 	}
 
-	if s.SeccompProfilePath != "" {
-		logrus.Debugf("Loading seccomp profile from %q", s.SeccompProfilePath)
-		seccompProfile, err := os.ReadFile(s.SeccompProfilePath)
+	if s.SeccompProfilePath != nil {
+		logrus.Debugf("Loading seccomp profile from %q", *s.SeccompProfilePath)
+		seccompProfile, err := os.ReadFile(*s.SeccompProfilePath)
 		if err != nil {
 			return nil, fmt.Errorf("opening seccomp profile failed: %w", err)
 		}

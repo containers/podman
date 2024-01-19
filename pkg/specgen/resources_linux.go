@@ -7,7 +7,7 @@ import (
 
 func (s *SpecGenerator) InitResourceLimits(rtc *config.Config) {
 	if s.ResourceLimits == nil || s.ResourceLimits.Pids == nil {
-		if s.CgroupsMode != "disabled" {
+		if s.CgroupsMode != nil && *s.CgroupsMode != "disabled" {
 			limit := rtc.PidsLimit()
 			if limit != 0 {
 				if s.ResourceLimits == nil {
