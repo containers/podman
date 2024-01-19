@@ -217,7 +217,14 @@ func LoadToRemote(dest entities.ImageScpOptions, localFile string, tag string, u
 		return "", "", err
 	}
 
-	remoteFile, err := ssh.Exec(&ssh.ConnectionExecOptions{Host: url.String(), Identity: iden, Port: port, User: url.User, Args: []string{"mktemp"}}, sshEngine)
+	// If TMPDIR is specified locally, use the same value on the destination system
+	tmpdir := os.Getenv("TMPDIR")
+	tmpPrefix := ""
+	if tmpdir != "" {
+		tmpPrefix = "env TMPDIR=" + tmpdir + " "
+	}
+
+	remoteFile, err := ssh.Exec(&ssh.ConnectionExecOptions{Host: url.String(), Identity: iden, Port: port, User: url.User, Args: []string{tmpPrefix + "mktemp"}}, sshEngine)
 	if err != nil {
 		return "", "", err
 	}
