@@ -59,7 +59,7 @@ jobs:
                 SECRET_CIRRUS_API_KEY: ${{ secrets.SECRET_CIRRUS_API_KEY }}
               run: './.github/actions/check_cirrus_cron/rerun_failed_tasks.sh'
 
-            - uses: actions/upload-artifact@v3
+            - uses: actions/upload-artifact@v4
               with:
                   name: ${{ github.job }}_artifacts
                   path: artifacts/*
