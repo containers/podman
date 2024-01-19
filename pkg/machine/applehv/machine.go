@@ -572,6 +572,10 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 		return machine.ErrVMAlreadyRunning
 	}
 
+	if _, err := m.getRuntimeDir(); err != nil {
+	     return err
+	}
+
 	// TODO handle returns from startHostNetworking
 	forwardSock, forwardState, err := m.startHostNetworking()
 	if err != nil {
