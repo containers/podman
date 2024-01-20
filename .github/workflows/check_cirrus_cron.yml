@@ -61,7 +61,7 @@ jobs:
             - if: steps.cron.outputs.failures > 0
               name: Send failure notification e-mail
               # Ref: https://github.com/dawidd6/action-send-mail
-              uses: dawidd6/action-send-mail@v3.9.0
+              uses: dawidd6/action-send-mail@v3.10.0
               with:
                 server_address: ${{secrets.ACTION_MAIL_SERVER}}
                 server_port: 465
@@ -80,7 +80,7 @@ jobs:
 
             - if: failure()
               name: Send error notification e-mail
-              uses: dawidd6/action-send-mail@v3.9.0
+              uses: dawidd6/action-send-mail@v3.10.0
               with:
                 server_address: ${{secrets.ACTION_MAIL_SERVER}}
                 server_port: 465
