@@ -3,13 +3,13 @@
 package generate
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/sirupsen/logrus"
 )
 
 func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) {
@@ -23,7 +23,7 @@ func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) {
 }
 
 // Produce the final command for the container.
-func makeCommand(s *specgen.SpecGenerator, imageData *libimage.ImageData) ([]string, error) {
+func makeCommand(s *specgen.SpecGenerator, imageData *libimage.ImageData) []string {
 	finalCommand := []string{}
 
 	entrypoint := s.Entrypoint
@@ -46,7 +46,8 @@ func makeCommand(s *specgen.SpecGenerator, imageData *libimage.ImageData) ([]str
 	finalCommand = append(finalCommand, command...)
 
 	if len(finalCommand) == 0 {
-		return nil, fmt.Errorf("no command or entrypoint provided, and no CMD or ENTRYPOINT from image")
+		logrus.Debug("no command or entrypoint provided, and no CMD or ENTRYPOINT from image: defaulting to empty string")
+		finalCommand = []string{""}
 	}
 
 	if s.Init {
@@ -54,5 +55,5 @@ func makeCommand(s *specgen.SpecGenerator, imageData *libimage.ImageData) ([]str
 		finalCommand = append([]string{define.ContainerInitPath, "--"}, finalCommand...)
 	}
 
-	return finalCommand, nil
+	return finalCommand
 }

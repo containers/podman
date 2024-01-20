@@ -17,7 +17,7 @@ CMD []
 		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest", "false")
 		session := podmanTest.Podman([]string{"run", "foobar.com/entrypoint:latest"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(Or(Exit(126), Exit(127)))
 	})
 
 	It("podman run entrypoint == [\"\"]", func() {
