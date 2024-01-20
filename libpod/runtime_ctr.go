@@ -264,11 +264,18 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		}
 		i := 0
 		for nameOrID, opts := range ctr.config.Networks {
-			netName, err := r.normalizeNetworkName(nameOrID)
+			netName, nicName, err := r.normalizeNetworkName(nameOrID)
 			if err != nil {
 				return nil, err
 			}
-			// assign interface name if empty
+
+			// check whether interface is to be named as the network_interface
+			// when name left unspecified
+			if opts.InterfaceName == "" && nicName != "" && ctr.runtime.config.Containers.InterfaceName == "device" {
+				opts.InterfaceName = nicName
+			}
+
+			// assign default interface name if empty
 			if opts.InterfaceName == "" {
 				for i < 100000 {
 					ifName := fmt.Sprintf("eth%d", i)
