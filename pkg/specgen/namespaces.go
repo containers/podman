@@ -443,6 +443,19 @@ func ParseNetworkFlag(networks []string, pastaNetworkNameExists bool) (Namespace
 		}
 	}
 
+	// Set unnamed interaces' names to their parent interface names as per
+	// containers.conf file.
+	if containerConfig.Containers.InterfaceName == "parent" {
+		for name, netOpts := range podmanNetworks {
+			// Honor the interface name as mentioned in the request.
+			continue if netOpts.InterfaceName != ""
+
+			// Get the parent interface name of the network bridge.
+			// TODO: How to extract parent interface name?
+			// netOpts.InterfaceName = parentOf(name)
+		}
+	}
+
 	return toReturn, podmanNetworks, networkOptions, nil
 }
 
