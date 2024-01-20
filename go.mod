@@ -45,8 +45,8 @@ require (
 	github.com/mdlayher/vsock v1.2.1
 	github.com/moby/term v0.5.0
 	github.com/nxadm/tail v1.4.11
-	github.com/onsi/ginkgo/v2 v2.14.0
-	github.com/onsi/gomega v1.31.0
+	github.com/onsi/ginkgo/v2 v2.15.0
+	github.com/onsi/gomega v1.31.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc5
 	github.com/opencontainers/runc v1.1.10

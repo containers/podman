@@ -15,6 +15,11 @@ GinkgoT() is analogous to *testing.T and implements the majority of *testing.T's
 GinkgoT() takes an optional offset argument that can be used to get the
 correct line number associated with the failure - though you do not need to use this if you call GinkgoHelper() or GinkgoT().Helper() appropriately
 
+GinkgoT() attempts to mimic the behavior of `testing.T` with the exception of the following:
+
+- Error/Errorf: failures in Ginkgo always immediately stop execution and there is no mechanism to log a failure without aborting the test.  As such Error/Errorf are equivalent to Fatal/Fatalf.
+- Parallel() is a no-op as Ginkgo's multi-process parallelism model is substantially different from go test's in-process model.
+
 You can learn more here: https://onsi.github.io/ginkgo/#using-third-party-libraries
 */
 func GinkgoT(optionalOffset ...int) FullGinkgoTInterface {
