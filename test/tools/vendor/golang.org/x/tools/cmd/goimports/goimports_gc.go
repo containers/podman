@@ -19,8 +19,8 @@ func doTrace() func() {
 		bw, flush := bufferedFileWriter(*traceProfile)
 		trace.Start(bw)
 		return func() {
-			trace.Stop()
 			flush()
+			trace.Stop()
 		}
 	}
 	return func() {}

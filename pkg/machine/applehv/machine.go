@@ -1149,7 +1149,6 @@ func generateSystemDFilesForVirtiofsMounts(mounts []machine.VirtIoFs) []ignition
 		mountUnit.Add("Mount", "What", "%s")
 		mountUnit.Add("Mount", "Where", "%s")
 		mountUnit.Add("Mount", "Type", "virtiofs")
-		mountUnit.Add("Mount", "Option", "defcontext=\"system_u:object_r:nfs_t:s0\"")
 		mountUnit.Add("Install", "WantedBy", "multi-user.target")
 		mountUnitFile, err := mountUnit.ToString()
 		if err != nil {
