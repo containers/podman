@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/podman/v4/pkg/machine/ignition"
+
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/strongunits"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
@@ -68,7 +70,7 @@ func (q *QEMUStubber) setQEMUCommandLine(mc *vmconfigs.MachineConfig) error {
 	return nil
 }
 
-func (q *QEMUStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConfig) error {
+func (q *QEMUStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConfig, _ *ignition.IgnitionBuilder) error {
 	monitor, err := command.NewQMPMonitor(opts.Name, opts.Dirs.RuntimeDir)
 	if err != nil {
 		return err

@@ -1,4 +1,4 @@
-//build: !darwin
+//go:build !darwin
 
 package shim
 
