@@ -8,7 +8,7 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/machine/os"
-	"github.com/containers/podman/v4/pkg/machine/qemu"
+	provider2 "github.com/containers/podman/v4/pkg/machine/provider"
 	"github.com/spf13/cobra"
 )
 
@@ -49,10 +49,11 @@ func apply(cmd *cobra.Command, args []string) error {
 		Restart: restart,
 	}
 
-	// TODO This is temporary
-	s := new(qemu.QEMUStubber)
-
-	osManager, err := NewOSManager(managerOpts, s)
+	provider, err := provider2.Get()
+	if err != nil {
+		return err
+	}
+	osManager, err := NewOSManager(managerOpts, provider)
 	if err != nil {
 		return err
 	}

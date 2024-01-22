@@ -5,18 +5,13 @@ package machine
 import (
 	"fmt"
 
-	"github.com/sirupsen/logrus"
-
-	"github.com/containers/podman/v4/pkg/machine/p5"
-
-	"github.com/containers/podman/v4/pkg/machine/qemu"
-	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
-
-	"github.com/containers/podman/v4/pkg/machine/define"
-
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/machine/shim"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -60,10 +55,7 @@ func start(_ *cobra.Command, args []string) error {
 		vmName = args[0]
 	}
 
-	// TODO this is for QEMU only (change to generic when adding second provider)
-	q := new(qemu.QEMUStubber)
-
-	dirs, err := machine.GetMachineDirs(q.VMType())
+	dirs, err := machine.GetMachineDirs(provider.VMType())
 	if err != nil {
 		return err
 	}
@@ -72,7 +64,7 @@ func start(_ *cobra.Command, args []string) error {
 		return err
 	}
 
-	state, err := q.State(mc, false)
+	state, err := provider.State(mc, false)
 	if err != nil {
 		return err
 	}
@@ -81,7 +73,7 @@ func start(_ *cobra.Command, args []string) error {
 		return define.ErrVMAlreadyRunning
 	}
 
-	if err := p5.CheckExclusiveActiveVM(q, mc); err != nil {
+	if err := shim.CheckExclusiveActiveVM(provider, mc); err != nil {
 		return err
 	}
 
@@ -102,7 +94,7 @@ func start(_ *cobra.Command, args []string) error {
 			logrus.Error(err)
 		}
 	}()
-	if err := p5.Start(mc, q, dirs, startOpts); err != nil {
+	if err := shim.Start(mc, provider, dirs, startOpts); err != nil {
 		return err
 	}
 	fmt.Printf("Machine %q started successfully\n", vmName)

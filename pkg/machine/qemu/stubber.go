@@ -252,8 +252,9 @@ func (q *QEMUStubber) StartNetworking(mc *vmconfigs.MachineConfig, cmd *gvproxy.
 	return nil
 }
 
-func (q *QEMUStubber) RemoveAndCleanMachines() error {
-	return define.ErrNotImplemented
+func (q *QEMUStubber) RemoveAndCleanMachines(_ *define.MachineDirs) error {
+	// nothing to do but remove files
+	return nil
 }
 
 // mountVolumesToVM iterates through the machine's volumes and mounts them to the
