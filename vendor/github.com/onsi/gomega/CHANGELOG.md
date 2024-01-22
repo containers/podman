@@ -1,3 +1,14 @@
+## 1.31.1
+
+### Fixes
+- Inverted arguments order of FailureMessage of BeComparableToMatcher [e0dd999]
+- Update test in case keeping msg is desired [ad1a367]
+
+### Maintenance
+- Show how to import the format sub package [24e958d]
+- tidy up go.sum [26661b8]
+- bump dependencies [bde8f7a]
+
 ## 1.31.0
 
 ### Features

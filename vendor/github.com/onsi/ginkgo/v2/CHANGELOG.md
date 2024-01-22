@@ -1,3 +1,21 @@
+## 2.15.0
+
+### Features
+
+- JUnit reports now interpret Label(owner:X) and set owner to X. [8f3bd70]
+- include cancellation reason when cancelling spec context [96e915c]
+
+### Fixes
+
+- emit output of failed go tool cover invocation so users can try to debug things for themselves [c245d09]
+- fix outline when using nodot in ginkgo v2 [dca77c8]
+- Document areas where GinkgoT() behaves differently from testing.T [dbaf18f]
+- bugfix(docs): use Unsetenv instead of Clearenv (#1337) [6f67a14]
+
+### Maintenance
+
+- Bump to go 1.20 [4fcd0b3]
+
 ## 2.14.0
 
 ### Features
