@@ -41,6 +41,10 @@ var (
 	}
 )
 
+var (
+	provider vmconfigs.VMProvider
+)
+
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: machineCmd,
@@ -48,14 +52,11 @@ func init() {
 }
 
 func machinePreRunE(c *cobra.Command, args []string) error {
-	// TODO this should get enabled again once we define what a new provider is
-	// this can be done when the second "provider" is enabled.
-
-	// var err error
-	// provider, err = provider2.Get()
-	// if err != nil {
-	// 	return err
-	// }
+	var err error
+	provider, err = provider2.Get()
+	if err != nil {
+		return err
+	}
 	return rootlessOnly(c, args)
 }
 

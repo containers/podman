@@ -8,12 +8,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
-
 	machineconfig "github.com/containers/common/pkg/machine"
 	pkgMachine "github.com/containers/podman/v4/pkg/machine"
 	pkgOS "github.com/containers/podman/v4/pkg/machine/os"
 	"github.com/containers/podman/v4/pkg/machine/provider"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 )
 
 type ManagerOpts struct {
@@ -23,7 +22,7 @@ type ManagerOpts struct {
 }
 
 // NewOSManager creates a new OSManager depending on the mode of the call
-func NewOSManager(opts ManagerOpts, p vmconfigs.VMStubber) (pkgOS.Manager, error) {
+func NewOSManager(opts ManagerOpts, p vmconfigs.VMProvider) (pkgOS.Manager, error) {
 	// If a VM name is specified, then we know that we are not inside a
 	// Podman VM, but rather outside of it.
 	if machineconfig.IsPodmanMachine() && opts.VMName == "" {
@@ -44,7 +43,7 @@ func guestOSManager() (pkgOS.Manager, error) {
 }
 
 // machineOSManager returns an os manager that manages outside the VM.
-func machineOSManager(opts ManagerOpts, _ vmconfigs.VMStubber) (pkgOS.Manager, error) {
+func machineOSManager(opts ManagerOpts, _ vmconfigs.VMProvider) (pkgOS.Manager, error) {
 	vmName := opts.VMName
 	if opts.VMName == "" {
 		vmName = pkgMachine.DefaultMachineName
