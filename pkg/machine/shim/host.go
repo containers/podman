@@ -182,7 +182,7 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 		return nil, err
 	}
 
-	readyUnitFile, err := ignition.CreateReadyUnitFile(machineDefine.QemuVirt, nil)
+	readyUnitFile, err := ignition.CreateReadyUnitFile(mp.VMType(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -194,12 +194,8 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 	}
 	ignBuilder.WithUnit(readyUnit)
 
-	if err := ignBuilder.Build(); err != nil {
-		return nil, err
-	}
-
 	// Mounts
-	mc.Mounts = vmconfigs.CmdLineVolumesToMounts(opts.Volumes, mp.MountType())
+	mc.Mounts = CmdLineVolumesToMounts(opts.Volumes, mp.MountType())
 
 	// TODO AddSSHConnectionToPodmanSocket could take an machineconfig instead
 	if err := connection.AddSSHConnectionsToPodmanSocket(mc.HostUser.UID, mc.SSH.Port, mc.SSH.IdentityPath, mc.Name, mc.SSH.RemoteUsername, opts); err != nil {
@@ -211,7 +207,11 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 	}
 	callbackFuncs.Add(cleanup)
 
-	if err := mp.CreateVM(createOpts, mc); err != nil {
+	if err := mp.CreateVM(createOpts, mc, &ignBuilder); err != nil {
+		return nil, err
+	}
+
+	if err := ignBuilder.Build(); err != nil {
 		return nil, err
 	}
 
@@ -327,7 +327,6 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 	if err != nil {
 		return err
 	}
-
 	// if there are generic things that need to be done, a preStart function could be added here
 	// should it be extensive
 

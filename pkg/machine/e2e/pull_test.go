@@ -7,14 +7,16 @@ import (
 	"net/http"
 
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/coreos/stream-metadata-go/fedoracoreos"
 	"github.com/coreos/stream-metadata-go/stream"
 	"github.com/sirupsen/logrus"
 )
 
-func GetDownload() (string, error) {
+func GetDownload(vmType define.VMType) (string, error) {
 	var (
-		fcosstable stream.Stream
+		fcosstable           stream.Stream
+		artifactType, format string
 	)
 	url := fedoracoreos.GetStreamURL("testing")
 	resp, err := http.Get(url.String())
@@ -34,6 +36,19 @@ func GetDownload() (string, error) {
 	if err := json.Unmarshal(body, &fcosstable); err != nil {
 		return "", err
 	}
+
+	switch vmType {
+	case define.AppleHvVirt:
+		artifactType = "applehv"
+		format = "raw.gz"
+	case define.HyperVVirt:
+		artifactType = "hyperv"
+		format = "vhdx.zip"
+	default:
+		artifactType = "qemu"
+		format = "qcow2.xz"
+	}
+
 	arch, ok := fcosstable.Architectures[machine.GetFcosArch()]
 	if !ok {
 		return "", fmt.Errorf("unable to pull VM image: no targetArch in stream")
@@ -42,17 +57,17 @@ func GetDownload() (string, error) {
 	if upstreamArtifacts == nil {
 		return "", fmt.Errorf("unable to pull VM image: no artifact in stream")
 	}
-	upstreamArtifact, ok := upstreamArtifacts["qemu"]
+	upstreamArtifact, ok := upstreamArtifacts[artifactType]
 	if !ok {
-		return "", fmt.Errorf("unable to pull VM image: no %s artifact in stream", "qemu")
+		return "", fmt.Errorf("unable to pull VM image: no %s artifact in stream", artifactType)
 	}
 	formats := upstreamArtifact.Formats
 	if formats == nil {
 		return "", fmt.Errorf("unable to pull VM image: no formats in stream")
 	}
-	formatType, ok := formats["qcow2.xz"]
+	formatType, ok := formats[format]
 	if !ok {
-		return "", fmt.Errorf("unable to pull VM image: no %s format in stream", "qcow2.xz")
+		return "", fmt.Errorf("unable to pull VM image: no %s format in stream", format)
 	}
 	disk := formatType.Disk
 	return disk.Location, nil

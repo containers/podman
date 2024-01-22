@@ -7,6 +7,7 @@ import (
 
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/containers/podman/v4/pkg/machine/qemu/command"
 	"github.com/containers/podman/v4/pkg/strongunits"
 	"github.com/containers/storage/pkg/lockfile"
@@ -106,7 +107,7 @@ func (f fcosMachineImage) path() string {
 }
 
 type VMProvider interface { //nolint:interfacebloat
-	CreateVM(opts define.CreateVMOpts, mc *MachineConfig) error
+	CreateVM(opts define.CreateVMOpts, mc *MachineConfig, builder *ignition.IgnitionBuilder) error
 	GetHyperVisorVMs() ([]string, error)
 	MountType() VolumeMountType
 	MountVolumesToVM(mc *MachineConfig, quiet bool) error
