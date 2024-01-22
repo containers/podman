@@ -1,0 +1,17 @@
+//go:build !darwin
+
+package vmconfigs
+
+import (
+	"fmt"
+
+	"github.com/containers/podman/v4/pkg/machine/define"
+)
+
+func gvProxySocket(name string, machineRuntimeDir *define.VMFile) (*define.VMFile, error) {
+	return machineRuntimeDir.AppendToNewVMFile(fmt.Sprintf("%s-gvproxy.sock", name), nil)
+}
+
+func readySocket(name string, machineRuntimeDir *define.VMFile) (*define.VMFile, error) {
+	return machineRuntimeDir.AppendToNewVMFile(name+".sock", nil)
+}

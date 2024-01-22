@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/podman/v4/pkg/machine/connection"
+
 	"github.com/containers/storage/pkg/ioutils"
 )
 
@@ -104,7 +106,7 @@ following command in your terminal session:
 // SetRootful modifies the machine's default connection to be either rootful or
 // rootless
 func SetRootful(rootful bool, name, rootfulName string) error {
-	return UpdateConnectionIfDefault(rootful, name, rootfulName)
+	return connection.UpdateConnectionIfDefault(rootful, name, rootfulName)
 }
 
 // WriteConfig writes the machine's JSON config file
