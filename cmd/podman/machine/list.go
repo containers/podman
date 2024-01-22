@@ -9,10 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/containers/podman/v4/pkg/machine/p5"
-	"github.com/containers/podman/v4/pkg/machine/qemu"
-	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
-
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/report"
@@ -21,6 +17,8 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/shim"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
 )
@@ -68,8 +66,7 @@ func list(cmd *cobra.Command, args []string) error {
 		err  error
 	)
 
-	s := new(qemu.QEMUStubber)
-	listResponse, err := p5.List([]vmconfigs.VMStubber{s}, opts)
+	listResponse, err := shim.List([]vmconfigs.VMProvider{provider}, opts)
 	if err != nil {
 		return err
 	}

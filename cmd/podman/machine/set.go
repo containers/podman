@@ -8,7 +8,6 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/machine"
-	"github.com/containers/podman/v4/pkg/machine/qemu"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/pkg/strongunits"
 	"github.com/spf13/cobra"
@@ -100,7 +99,6 @@ func setMachine(cmd *cobra.Command, args []string) error {
 		vmName = args[0]
 	}
 
-	provider := new(qemu.QEMUStubber)
 	dirs, err := machine.GetMachineDirs(provider.VMType())
 	if err != nil {
 		return err
