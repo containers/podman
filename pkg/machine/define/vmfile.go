@@ -73,6 +73,7 @@ func NewMachineFile(path string, symlink *string) (*VMFile, error) {
 		return nil, errors.New("invalid symlink path")
 	}
 	mf := VMFile{Path: path}
+	logrus.Debugf("socket length for %s is %d", path, len(path))
 	if symlink != nil && len(path) > MaxSocketPathLength {
 		if err := mf.makeSymlink(symlink); err != nil && !errors.Is(err, os.ErrExist) {
 			return nil, err
@@ -100,5 +101,5 @@ func (m *VMFile) makeSymlink(symlink *string) error {
 // AppendToNewVMFile takes a given path and appends it to the existing vmfile path.  The new
 // VMFile is returned
 func (m *VMFile) AppendToNewVMFile(additionalPath string, symlink *string) (*VMFile, error) {
-	return NewMachineFile(filepath.Join(m.GetPath(), additionalPath), symlink)
+	return NewMachineFile(filepath.Join(m.Path, additionalPath), symlink)
 }

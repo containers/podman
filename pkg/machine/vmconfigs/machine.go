@@ -10,14 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v4/pkg/machine/connection"
-
-	"github.com/sirupsen/logrus"
-
 	define2 "github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/pkg/machine/connection"
 	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/machine/lock"
 	"github.com/containers/podman/v4/utils"
+	"github.com/sirupsen/logrus"
 )
 
 /*
@@ -235,7 +233,15 @@ func (mc *MachineConfig) ReadySocket() (*define.VMFile, error) {
 	if err != nil {
 		return nil, err
 	}
-	return rtDir.AppendToNewVMFile(mc.Name+".sock", nil)
+	return readySocket(mc.Name, rtDir)
+}
+
+func (mc *MachineConfig) GVProxySocket() (*define.VMFile, error) {
+	machineRuntimeDir, err := mc.RuntimeDir()
+	if err != nil {
+		return nil, err
+	}
+	return gvProxySocket(mc.Name, machineRuntimeDir)
 }
 
 func (mc *MachineConfig) LogFile() (*define.VMFile, error) {
@@ -262,6 +268,14 @@ func (mc *MachineConfig) Kind() (define.VMType, error) {
 	}
 
 	return define.UnknownVirt, nil
+}
+
+func (mc *MachineConfig) IsFirstBoot() (bool, error) {
+	never, err := time.Parse(time.RFC3339, "0001-01-01T00:00:00Z")
+	if err != nil {
+		return false, err
+	}
+	return mc.LastUp == never, nil
 }
 
 // LoadMachineByName returns a machine config based on the vm name and provider

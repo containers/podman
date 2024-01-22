@@ -61,3 +61,13 @@ func NewVirtIoFsMount(src, target string, readOnly bool) VirtIoFs {
 	vfs.Tag = vfs.unitName()
 	return vfs
 }
+
+func MountToVirtIOFs(mnt vmconfigs.Mount) VirtIoFs {
+	return VirtIoFs{
+		VolumeKind: VirtIOFsVk,
+		ReadOnly:   mnt.ReadOnly,
+		Source:     mnt.Source,
+		Tag:        mnt.Tag,
+		Target:     mnt.Target,
+	}
+}

@@ -59,7 +59,7 @@ var _ = BeforeSuite(func() {
 
 	downloadLocation := os.Getenv("MACHINE_IMAGE")
 	if downloadLocation == "" {
-		downloadLocation, err = GetDownload()
+		downloadLocation, err = GetDownload(testProvider.VMType())
 		if err != nil {
 			Fail("unable to derive download disk from fedora coreos")
 		}
@@ -69,9 +69,15 @@ var _ = BeforeSuite(func() {
 		Fail("machine tests require a file reference to a disk image right now")
 	}
 
-	// TODO Fix or remove - this only works for qemu rn
-	// compressionExtension := fmt.Sprintf(".%s", testProvider.Compression().String())
-	compressionExtension := ".xz"
+	var compressionExtension string
+	switch testProvider.VMType() {
+	case define.AppleHvVirt:
+		compressionExtension = ".gz"
+	case define.HyperVVirt:
+		compressionExtension = ".zip"
+	default:
+		compressionExtension = ".xz"
+	}
 
 	suiteImageName = strings.TrimSuffix(path.Base(downloadLocation), compressionExtension)
 	fqImageName = filepath.Join(tmpDir, suiteImageName)

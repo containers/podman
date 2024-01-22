@@ -57,6 +57,9 @@ func (vf *VfkitHelper) getRawState() (define.Status, error) {
 	if err != nil {
 		return "", err
 	}
+	if err := serverResponse.Body.Close(); err != nil {
+		logrus.Error(err)
+	}
 	return ToMachineStatus(response.State)
 }
 
@@ -66,7 +69,7 @@ func (vf *VfkitHelper) getRawState() (define.Status, error) {
 func (vf *VfkitHelper) State() (define.Status, error) {
 	vmState, err := vf.getRawState()
 	if err == nil {
-		return vmState, err
+		return vmState, nil
 	}
 	if errors.Is(err, unix.ECONNREFUSED) {
 		return define.Stopped, nil
@@ -107,7 +110,7 @@ func (vf *VfkitHelper) Stop(force, wait bool) error {
 			waitErr = nil
 			break
 		}
-		waitDuration = waitDuration * 2
+		waitDuration *= 2
 		logrus.Debugf("backoff wait time: %s", waitDuration.String())
 		time.Sleep(waitDuration)
 	}

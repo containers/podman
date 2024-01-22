@@ -58,20 +58,3 @@ func SplitVolume(idx int, volume string) (string, string, string, bool, string) 
 	readonly, securityModel := extractMountOptions(paths)
 	return tag, source, target, readonly, securityModel
 }
-
-func CmdLineVolumesToMounts(volumes []string, volumeType VolumeMountType) []Mount {
-	mounts := []Mount{}
-	for i, volume := range volumes {
-		tag, source, target, readOnly, _ := SplitVolume(i, volume)
-		mount := Mount{
-			Type:          volumeType.String(),
-			Tag:           tag,
-			Source:        source,
-			Target:        target,
-			ReadOnly:      readOnly,
-			OriginalInput: volume,
-		}
-		mounts = append(mounts, mount)
-	}
-	return mounts
-}

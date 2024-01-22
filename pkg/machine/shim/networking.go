@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/containers/common/pkg/config"
@@ -101,6 +102,8 @@ func startNetworking(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvider)
 	}
 
 	c := cmd.Cmd(binary)
+
+	logrus.Debugf("gvproxy command-line: %s %s", binary, strings.Join(cmd.ToCmdline(), " "))
 	if err := c.Start(); err != nil {
 		return forwardSock, 0, fmt.Errorf("unable to execute: %q: %w", cmd.ToCmdline(), err)
 	}
