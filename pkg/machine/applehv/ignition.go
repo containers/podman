@@ -7,14 +7,20 @@ import (
 	"net/http"
 
 	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/sirupsen/logrus"
 )
 
 // serveIgnitionOverSock allows podman to open a small httpd instance on the vsock between the host
 // and guest to inject the ignitionfile into fcos
-func (m *MacMachine) serveIgnitionOverSock(ignitionSocket *define.VMFile) error {
-	logrus.Debugf("reading ignition file: %s", m.IgnitionFile.GetPath())
-	ignFile, err := m.IgnitionFile.Read()
+func serveIgnitionOverSock(ignitionSocket *define.VMFile, mc *vmconfigs.MachineConfig) error {
+	ignitionFile, err := mc.IgnitionFile()
+	if err != nil {
+		return err
+	}
+
+	logrus.Debugf("reading ignition file: %s", ignitionFile.GetPath())
+	ignFile, err := ignitionFile.Read()
 	if err != nil {
 		return err
 	}
@@ -22,7 +28,7 @@ func (m *MacMachine) serveIgnitionOverSock(ignitionSocket *define.VMFile) error 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, err := w.Write(ignFile)
 		if err != nil {
-			logrus.Error("failed to serve ignition file: %v", err)
+			logrus.Errorf("failed to serve ignition file: %v", err)
 		}
 	})
 	listener, err := net.Listen("unix", ignitionSocket.GetPath())
