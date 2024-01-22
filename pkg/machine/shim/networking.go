@@ -1,4 +1,4 @@
-package p5
+package shim
 
 import (
 	"fmt"
@@ -22,7 +22,7 @@ const (
 	dockerConnectTimeout = 5 * time.Second
 )
 
-func startNetworking(mc *vmconfigs.MachineConfig, provider vmconfigs.VMStubber) (string, machine.APIForwardingState, error) {
+func startNetworking(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvider) (string, machine.APIForwardingState, error) {
 	var (
 		forwardingState machine.APIForwardingState
 		forwardSock     string

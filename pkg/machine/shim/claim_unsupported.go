@@ -1,6 +1,6 @@
 //build: !darwin
 
-package p5
+package shim
 
 func dockerClaimHelperInstalled() bool {
 	return false

@@ -17,7 +17,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/machine"
 	machineDefine "github.com/containers/podman/v4/pkg/machine/define"
-	"github.com/containers/podman/v4/pkg/machine/qemu"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -102,10 +101,7 @@ func hostInfo() (*entities.MachineHostInfo, error) {
 	host.Arch = runtime.GOARCH
 	host.OS = runtime.GOOS
 
-	// TODO This is temporary
-	s := new(qemu.QEMUStubber)
-
-	dirs, err := machine.GetMachineDirs(s.VMType())
+	dirs, err := machine.GetMachineDirs(provider.VMType())
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +125,7 @@ func hostInfo() (*entities.MachineHostInfo, error) {
 			host.DefaultMachine = vm.Name
 		}
 		// If machine is running or starting, it is automatically the current machine
-		state, err := s.State(vm, false)
+		state, err := provider.State(vm, false)
 		if err != nil {
 			return nil, err
 		}
@@ -152,7 +148,7 @@ func hostInfo() (*entities.MachineHostInfo, error) {
 		}
 	}
 
-	host.VMType = s.VMType().String()
+	host.VMType = provider.VMType().String()
 
 	host.MachineImageDir = dirs.DataDir.GetPath()
 	host.MachineConfigDir = dirs.ConfigDir.GetPath()

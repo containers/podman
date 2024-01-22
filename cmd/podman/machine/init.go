@@ -12,8 +12,7 @@ import (
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/define"
-	"github.com/containers/podman/v4/pkg/machine/p5"
-	"github.com/containers/podman/v4/pkg/machine/qemu"
+	"github.com/containers/podman/v4/pkg/machine/shim"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/spf13/cobra"
 )
@@ -145,10 +144,8 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot use %q for a machine name", initOpts.Name)
 	}
 
-	s := new(qemu.QEMUStubber)
-
 	// Check if machine already exists
-	_, exists, err := p5.VMExists(initOpts.Name, []vmconfigs.VMStubber{s})
+	_, exists, err := shim.VMExists(initOpts.Name, []vmconfigs.VMProvider{provider})
 	if err != nil {
 		return err
 	}
@@ -192,7 +189,7 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	// }
 
 	// TODO this is for QEMU only (change to generic when adding second provider)
-	mc, err := p5.Init(initOpts, s)
+	mc, err := shim.Init(initOpts, provider)
 	if err != nil {
 		return err
 	}

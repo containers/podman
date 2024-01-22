@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/containers/podman/v4/pkg/machine"
-	"github.com/containers/podman/v4/pkg/machine/p5"
+	"github.com/containers/podman/v4/pkg/machine/shim"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 )
 
@@ -14,7 +14,7 @@ import (
 type MachineOS struct {
 	Args     []string
 	VM       *vmconfigs.MachineConfig
-	Provider vmconfigs.VMStubber
+	Provider vmconfigs.VMProvider
 	VMName   string
 	Restart  bool
 }
@@ -33,10 +33,10 @@ func (m *MachineOS) Apply(image string, opts ApplyOptions) error {
 	}
 
 	if m.Restart {
-		if err := p5.Stop(m.VM, m.Provider, dirs, false); err != nil {
+		if err := shim.Stop(m.VM, m.Provider, dirs, false); err != nil {
 			return err
 		}
-		if err := p5.Start(m.VM, m.Provider, dirs, machine.StartOptions{NoInfo: true}); err != nil {
+		if err := shim.Start(m.VM, m.Provider, dirs, machine.StartOptions{NoInfo: true}); err != nil {
 			return err
 		}
 		fmt.Printf("Machine %q restarted successfully\n", m.VMName)

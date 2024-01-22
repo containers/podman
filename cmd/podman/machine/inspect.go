@@ -10,7 +10,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/pkg/machine"
-	"github.com/containers/podman/v4/pkg/machine/qemu"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/spf13/cobra"
 )
@@ -48,8 +47,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)
-	s := new(qemu.QEMUStubber)
-	dirs, err := machine.GetMachineDirs(s.VMType())
+	dirs, err := machine.GetMachineDirs(provider.VMType())
 	if err != nil {
 		return err
 	}
@@ -65,7 +63,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 			continue
 		}
 
-		state, err := s.State(mc, false)
+		state, err := provider.State(mc, false)
 		if err != nil {
 			return err
 		}
