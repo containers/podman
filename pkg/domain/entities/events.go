@@ -27,11 +27,11 @@ func ConvertToLibpodEvent(e Event) *libpodEvents.Event {
 			return nil
 		}
 	}
-	status, err := libpodEvents.StringToStatus(e.Action)
+	status, err := libpodEvents.StringToStatus(string(e.Action))
 	if err != nil {
 		return nil
 	}
-	t, err := libpodEvents.StringToType(e.Type)
+	t, err := libpodEvents.StringToType(string(e.Type))
 	if err != nil {
 		return nil
 	}
@@ -75,8 +75,8 @@ func ConvertToEntitiesEvent(e libpodEvents.Event) *Event {
 		Status: e.Status.String(),
 		ID:     e.ID,
 		From:   e.Image,
-		Type:   e.Type.String(),
-		Action: e.Status.String(),
+		Type:   dockerEvents.Type(e.Type.String()),
+		Action: dockerEvents.Action(e.Status.String()),
 		Actor: dockerEvents.Actor{
 			ID:         e.ID,
 			Attributes: attributes,

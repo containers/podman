@@ -25,6 +25,7 @@ import (
 	"github.com/containers/storage"
 	docker "github.com/docker/docker/api/types"
 	dockerContainer "github.com/docker/docker/api/types/container"
+	dockerImage "github.com/docker/docker/api/types/image"
 	"github.com/docker/go-connections/nat"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
@@ -381,7 +382,7 @@ func imageDataToImageInspect(ctx context.Context, l *libimage.Image) (*handlers.
 		DockerVersion:   info.Version,
 		GraphDriver:     graphDriver,
 		ID:              "sha256:" + l.ID(),
-		Metadata:        docker.ImageMetadata{},
+		Metadata:        dockerImage.Metadata{},
 		Os:              info.Os,
 		OsVersion:       info.Version,
 		Parent:          info.Parent,
