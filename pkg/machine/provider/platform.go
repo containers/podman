@@ -6,15 +6,14 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
-
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/machine/qemu"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/sirupsen/logrus"
 )
 
-func Get() (vmconfigs.VMStubber, error) {
+func Get() (vmconfigs.VMProvider, error) {
 	cfg, err := config.Default()
 	if err != nil {
 		return nil, err

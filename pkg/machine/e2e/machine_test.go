@@ -48,7 +48,7 @@ func TestMachine(t *testing.T) {
 	RunSpecs(t, "Podman Machine tests")
 }
 
-var testProvider vmconfigs.VMStubber
+var testProvider vmconfigs.VMProvider
 
 var _ = BeforeSuite(func() {
 	var err error

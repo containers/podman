@@ -1,4 +1,4 @@
-package p5
+package shim
 
 import (
 	"context"
@@ -36,7 +36,7 @@ func SSH()     {}
 
 // List is done at the host level to allow for a *possible* future where
 // more than one provider is used
-func List(vmstubbers []vmconfigs.VMStubber, opts machine.ListOptions) ([]*machine.ListResponse, error) {
+func List(vmstubbers []vmconfigs.VMProvider, opts machine.ListOptions) ([]*machine.ListResponse, error) {
 	var (
 		lrs []*machine.ListResponse
 	)
@@ -78,7 +78,7 @@ func List(vmstubbers []vmconfigs.VMStubber, opts machine.ListOptions) ([]*machin
 	return lrs, nil
 }
 
-func Init(opts machineDefine.InitOptions, mp vmconfigs.VMStubber) (*vmconfigs.MachineConfig, error) {
+func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.MachineConfig, error) {
 	var (
 		err error
 	)
@@ -219,7 +219,7 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMStubber) (*vmconfigs.Ma
 }
 
 // VMExists looks across given providers for a machine's existence.  returns the actual config and found bool
-func VMExists(name string, vmstubbers []vmconfigs.VMStubber) (*vmconfigs.MachineConfig, bool, error) {
+func VMExists(name string, vmstubbers []vmconfigs.VMProvider) (*vmconfigs.MachineConfig, bool, error) {
 	mcs, err := getMCsOverProviders(vmstubbers)
 	if err != nil {
 		return nil, false, err
@@ -229,9 +229,9 @@ func VMExists(name string, vmstubbers []vmconfigs.VMStubber) (*vmconfigs.Machine
 }
 
 // CheckExclusiveActiveVM checks if any of the machines are already running
-func CheckExclusiveActiveVM(provider vmconfigs.VMStubber, mc *vmconfigs.MachineConfig) error {
+func CheckExclusiveActiveVM(provider vmconfigs.VMProvider, mc *vmconfigs.MachineConfig) error {
 	// Check if any other machines are running; if so, we error
-	localMachines, err := getMCsOverProviders([]vmconfigs.VMStubber{provider})
+	localMachines, err := getMCsOverProviders([]vmconfigs.VMProvider{provider})
 	if err != nil {
 		return err
 	}
@@ -249,7 +249,7 @@ func CheckExclusiveActiveVM(provider vmconfigs.VMStubber, mc *vmconfigs.MachineC
 
 // getMCsOverProviders loads machineconfigs from a config dir derived from the "provider".  it returns only what is known on
 // disk so things like status may be incomplete or inaccurate
-func getMCsOverProviders(vmstubbers []vmconfigs.VMStubber) (map[string]*vmconfigs.MachineConfig, error) {
+func getMCsOverProviders(vmstubbers []vmconfigs.VMProvider) (map[string]*vmconfigs.MachineConfig, error) {
 	mcs := make(map[string]*vmconfigs.MachineConfig)
 	for _, stubber := range vmstubbers {
 		dirs, err := machine.GetMachineDirs(stubber.VMType())
@@ -274,7 +274,7 @@ func getMCsOverProviders(vmstubbers []vmconfigs.VMStubber) (map[string]*vmconfig
 
 // Stop stops the machine as well as supporting binaries/processes
 // TODO: I think this probably needs to go somewhere that remove can call it.
-func Stop(mc *vmconfigs.MachineConfig, mp vmconfigs.VMStubber, dirs *machineDefine.MachineDirs, hardStop bool) error {
+func Stop(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDefine.MachineDirs, hardStop bool) error {
 	// state is checked here instead of earlier because stopping a stopped vm is not considered
 	// an error.  so putting in one place instead of sprinkling all over.
 	state, err := mp.State(mc, false)
@@ -318,7 +318,7 @@ func Stop(mc *vmconfigs.MachineConfig, mp vmconfigs.VMStubber, dirs *machineDefi
 	return nil
 }
 
-func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMStubber, dirs *machineDefine.MachineDirs, opts machine.StartOptions) error {
+func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDefine.MachineDirs, opts machine.StartOptions) error {
 	defaultBackoff := 500 * time.Millisecond
 	maxBackoffs := 6
 
