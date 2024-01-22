@@ -1,4 +1,4 @@
-package p5
+package shim
 
 import (
 	"fmt"
