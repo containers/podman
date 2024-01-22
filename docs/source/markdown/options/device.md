@@ -1,5 +1,5 @@
 ####> This option file is used in:
-####>   podman build, create, pod clone, pod create, run
+####>   podman build, create, farm build, pod clone, pod create, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--device**=*host-device[:container-device][:permissions]*

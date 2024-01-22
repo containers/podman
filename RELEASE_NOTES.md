@@ -1,5 +1,18 @@
 # Release Notes
 
+## 4.9.0
+### Features
+- The `podman farm` suite of commands for multi-architecture builds is now fully enabled and documented.
+- Add a network recovery service to Podman Machine VMs using the QEMU backend to detect and recover from an inoperable host networking issues experienced by Mac users when running for long periods of time.
+
+### Bugfixes
+- Fixed a bug where the HyperV provider for `podman machine` did not forward the API socket to the host machine.
+- Fixed a bug where improperly formatted annotations passed to `podman kube play` could cause Podman to panic.
+- Fixed a bug where `podman system reset` could fail if non-Podman containers (e.g. containers created by Buildah) were present.
+
+### Misc
+- Containers run in `podman machine` VMs now default to a PID limit of unlimited, instead of 2048.
+
 ## 4.8.3
 ### Security
 - Fixed [GHSA-45x7-px36-x8w8](https://github.com/advisories/GHSA-45x7-px36-x8w8): CVE-2023-48795 by vendoring golang.org/x/crypto v0.17.0.
@@ -58,7 +71,6 @@
 - The amount of CPUs a podman machine uses now defaults to available cores/2 ([#17066](https://github.com/containers/podman/issues/17066)).
 - Podman machine now prohibits using provider names as machine names. `applehv`, `qemu`, `wsl`, and `hyperv` are no longer valid Podman machine names
 
-
 ### Quadlet
 - Quadlet now supports the `UIDMap`, `GIDMap`, `SubUIDMap`, and `SubGIDMap` options in .container files.
 - Fixed a bug where symlinks were not resolved in search paths ([#20504](https://github.com/containers/podman/issues/20504)).
@@ -72,7 +84,6 @@
 - Fixed a bug where Quadlet would crash when specifying non key-value options ([#20104](https://github.com/containers/podman/issues/20104)).
 - Quadlet now removes anonymous volumes when removing a container ([#20070](https://github.com/containers/podman/issues/20070)).
 - Quadlet now supports a new unit type, `.image`.
-
 
 ### Bugfixes
 - Fixed a bug where mounted volumes on Podman machines on MacOS would have a max open files limit ([#16106](https://github.com/containers/podman/issues/16106)).

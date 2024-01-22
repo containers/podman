@@ -6,12 +6,10 @@ package abi
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/containers/buildah/pkg/parse"
 	lplatform "github.com/containers/common/libimage/platform"
-	istorage "github.com/containers/image/v5/storage"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/emulation"
 )
@@ -56,65 +54,4 @@ func (ir *ImageEngine) FarmNodeInspect(ctx context.Context) (*entities.FarmInspe
 		OS:                ir.os,
 		Arch:              ir.arch,
 		Variant:           ir.variant}, ir.platformsErr
-}
-
-// PullToFile pulls the image from the remote engine and saves it to a file,
-// returning a string-format reference which can be parsed by containers/image.
-func (ir *ImageEngine) PullToFile(ctx context.Context, options entities.PullToFileOptions) (reference string, err error) {
-	saveOptions := entities.ImageSaveOptions{
-		Format: options.SaveFormat,
-		Output: options.SaveFile,
-	}
-	if err := ir.Save(ctx, options.ImageID, nil, saveOptions); err != nil {
-		return "", fmt.Errorf("saving image %q: %w", options.ImageID, err)
-	}
-	return options.SaveFormat + ":" + options.SaveFile, nil
-}
-
-// PullToFile pulls the image from the remote engine and saves it to the local
-// engine passed in via options, returning a string-format reference which can
-// be parsed by containers/image.
-func (ir *ImageEngine) PullToLocal(ctx context.Context, options entities.PullToLocalOptions) (reference string, err error) {
-	destination := options.Destination
-	if destination == nil {
-		return "", fmt.Errorf("destination not given, cannot pull image %q", options.ImageID)
-	}
-
-	// Check if the image is already present at destination
-	var br *entities.BoolReport
-	br, err = destination.Exists(ctx, options.ImageID)
-	if err != nil {
-		return "", err
-	}
-	if br.Value {
-		return istorage.Transport.Name() + ":" + options.ImageID, nil
-	}
-
-	tempFile, err := os.CreateTemp("", "")
-	if err != nil {
-		return "", err
-	}
-	defer os.Remove(tempFile.Name())
-	defer tempFile.Close()
-
-	saveOptions := entities.ImageSaveOptions{
-		Format: options.SaveFormat,
-		Output: tempFile.Name(),
-	}
-	// Save image built on builder in a temp file
-	if err := ir.Save(ctx, options.ImageID, nil, saveOptions); err != nil {
-		return "", fmt.Errorf("saving image %q: %w", options.ImageID, err)
-	}
-
-	// Load the image saved in tempFile into the local engine
-	loadOptions := entities.ImageLoadOptions{
-		Input: tempFile.Name(),
-	}
-
-	_, err = destination.Load(ctx, loadOptions)
-	if err != nil {
-		return "", err
-	}
-
-	return istorage.Transport.Name() + ":" + options.ImageID, nil
 }

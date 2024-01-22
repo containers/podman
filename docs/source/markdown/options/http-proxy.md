@@ -1,5 +1,5 @@
 ####> This option file is used in:
-####>   podman build, create, run
+####>   podman build, create, farm build, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--http-proxy**

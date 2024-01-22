@@ -58,6 +58,13 @@ func (releaseArch *Arch) toStreamArch(rel *Release) stream.Arch {
 		}
 	}
 
+	if releaseArch.Media.AppleHV != nil {
+		artifacts["applehv"] = stream.PlatformArtifacts{
+			Release: rel.Release,
+			Formats: mapFormats(releaseArch.Media.AppleHV.Artifacts),
+		}
+	}
+
 	if releaseArch.Media.Aws != nil {
 		artifacts["aws"] = stream.PlatformArtifacts{
 			Release: rel.Release,

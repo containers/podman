@@ -81,7 +81,7 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		ForceCompressionFormat: query.ForceCompressionFormat,
 		Format:                 query.Format,
 		Password:               password,
-		Quiet:                  true,
+		Quiet:                  query.Quiet,
 		RemoveSignatures:       query.RemoveSignatures,
 		Username:               username,
 	}
@@ -150,9 +150,9 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 			}
 			if pushError != nil {
 				stream.Error = pushError.Error()
-				if err := enc.Encode(stream); err != nil {
-					logrus.Warnf("Failed to encode json: %v", err)
-				}
+			}
+			if err := enc.Encode(stream); err != nil {
+				logrus.Warnf("Failed to encode json: %v", err)
 			}
 			flush()
 			return

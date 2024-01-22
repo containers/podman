@@ -32,7 +32,7 @@ type Schedule struct {
 	platformBuilders map[string]string // target->connection
 }
 
-func newFarmWithBuilders(_ context.Context, name string, destinations *map[string]config.Destination, localEngine entities.ImageEngine) (*Farm, error) {
+func newFarmWithBuilders(_ context.Context, name string, destinations *map[string]config.Destination, localEngine entities.ImageEngine, buildLocal bool) (*Farm, error) {
 	farm := &Farm{
 		builders:    make(map[string]entities.ImageEngine),
 		localEngine: localEngine,
@@ -66,7 +66,7 @@ func newFarmWithBuilders(_ context.Context, name string, destinations *map[strin
 		})
 	}
 	// If local=true then use the local machine for builds as well
-	if localEngine != nil {
+	if buildLocal {
 		builderGroup.Go(func() error {
 			fmt.Println("Setting up local builder")
 			defer fmt.Println("Local builder ready")
@@ -88,14 +88,14 @@ func newFarmWithBuilders(_ context.Context, name string, destinations *map[strin
 	return nil, errors.New("no builders configured")
 }
 
-func NewFarm(ctx context.Context, name string, localEngine entities.ImageEngine) (*Farm, error) {
+func NewFarm(ctx context.Context, name string, localEngine entities.ImageEngine, buildLocal bool) (*Farm, error) {
 	// Get the destinations of the connections specified in the farm
 	destinations, err := getFarmDestinations(name)
 	if err != nil {
 		return nil, err
 	}
 
-	return newFarmWithBuilders(ctx, name, &destinations, localEngine)
+	return newFarmWithBuilders(ctx, name, &destinations, localEngine, buildLocal)
 }
 
 // Done performs any necessary end-of-process cleanup for the farm's members.
@@ -315,7 +315,7 @@ func (f *Farm) Schedule(ctx context.Context, platforms []string) (Schedule, erro
 // Build runs a build using the specified targetplatform:service map.  If all
 // builds succeed, it copies the resulting images from the remote hosts to the
 // local service and builds a manifest list with the specified reference name.
-func (f *Farm) Build(ctx context.Context, schedule Schedule, options entities.BuildOptions, reference string) error {
+func (f *Farm) Build(ctx context.Context, schedule Schedule, options entities.BuildOptions, reference string, localEngine entities.ImageEngine) error {
 	switch options.OutputFormat {
 	default:
 		return fmt.Errorf("unknown output format %q requested", options.OutputFormat)
@@ -359,24 +359,13 @@ func (f *Farm) Build(ctx context.Context, schedule Schedule, options entities.Bu
 		})
 	}
 
-	// Decide where the final result will be stored.
-	var (
-		manifestListBuilder listBuilder
-		err                 error
-	)
 	listBuilderOptions := listBuilderOptions{
-		cleanup: options.Cleanup,
-		iidFile: options.IIDFile,
+		cleanup:       options.Cleanup,
+		iidFile:       options.IIDFile,
+		authfile:      options.Authfile,
+		skipTLSVerify: options.SkipTLSVerify,
 	}
-	if strings.HasPrefix(reference, "dir:") || f.localEngine == nil {
-		location := strings.TrimPrefix(reference, "dir:")
-		manifestListBuilder, err = newFileManifestListBuilder(location, listBuilderOptions)
-		if err != nil {
-			return fmt.Errorf("preparing to build list: %w", err)
-		}
-	} else {
-		manifestListBuilder = newLocalManifestListBuilder(reference, f.localEngine, listBuilderOptions)
-	}
+	manifestListBuilder := newManifestListBuilder(reference, f.localEngine, listBuilderOptions)
 
 	// Start builds in parallel and wait for them all to finish.
 	var (

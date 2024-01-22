@@ -53,6 +53,7 @@ type Arch struct {
 // Media contains release details for various platforms
 type Media struct {
 	Aliyun       *PlatformAliyun   `json:"aliyun"`
+	AppleHV      *PlatformBase     `json:"applehv"`
 	Aws          *PlatformAws      `json:"aws"`
 	Azure        *PlatformBase     `json:"azure"`
 	AzureStack   *PlatformBase     `json:"azurestack"`
