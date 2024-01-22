@@ -3,7 +3,7 @@
 ## 4.9.0
 ### Features
 - The `podman farm` suite of commands for multi-architecture builds is now fully enabled and documented.
-- Add a network recovery service to Podman Machine VMs using the QEMU backend to detect and recover from an inoperable host networking issues experienced by Mac users when ran for long periods of time
+- Add a network recovery service to Podman Machine VMs using the QEMU backend to detect and recover from an inoperable host networking issues experienced by Mac users when running for long periods of time.
 
 ### Bugfixes
 - Fixed a bug where the HyperV provider for `podman machine` did not forward the API socket to the host machine.
