@@ -255,4 +255,20 @@ EOF
 
 }
 
+@test "podman - BoltDB cannot create new databases" {
+    skip_if_remote "DB checks only work for local Podman"
+
+    safe_opts=$(podman_isolation_opts ${PODMAN_TMPDIR})
+
+    CI_DESIRED_DATABASE= run_podman 125 $safe_opts --db-backend=boltdb info
+    assert "$output" =~ "deprecated, no new BoltDB databases can be created" \
+           "without CI_DESIRED_DATABASE"
+
+    CI_DESIRED_DATABASE=boltdb run_podman $safe_opts --log-level=debug --db-backend=boltdb info
+    assert "$output" =~ "Allowing deprecated database backend" \
+           "with CI_DESIRED_DATABASE"
+
+    run_podman $safe_opts system reset --force
+}
+
 # vim: filetype=sh
