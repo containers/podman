@@ -1415,4 +1415,20 @@ search               | $IMAGE           |
     run_podman rmi $(pause_image)
 }
 
+@test "podman run - no entrypoint" {
+    run_podman 127 run --rm --rootfs "$PODMAN_TMPDIR"
+
+    # runc and crun emit different diagnostics
+    runtime=$(podman_runtime)
+    case "$runtime" in
+        crun) expect='crun: executable file `` not found in $PATH: No such file or directory: OCI runtime attempted to invoke a command that was not found' ;;
+        runc) expect='runc: runc create failed: unable to start container process: exec: "": executable file not found in $PATH: OCI runtime attempted to invoke a command that was not found' ;;
+        *)    skip "Unknown runtime '$runtime'" ;;
+    esac
+
+    # The '.*' in the error below is for dealing with podman-remote, which
+    # includes "error preparing container <sha> for attach" in output.
+    is "$output" "Error.*: $expect" "podman emits useful diagnostic when no entrypoint is set"
+}
+
 # vim: filetype=sh

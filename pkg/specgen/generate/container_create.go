@@ -226,10 +226,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		options = append(options, libpod.WithHostUsers(s.HostUsers))
 	}
 
-	command, err := makeCommand(s, imageData)
-	if err != nil {
-		return nil, nil, nil, err
-	}
+	command := makeCommand(s, imageData)
 
 	infraVol := len(compatibleOptions.Mounts) > 0 || len(compatibleOptions.Volumes) > 0 || len(compatibleOptions.ImageVolumes) > 0 || len(compatibleOptions.OverlayVolumes) > 0
 	opts, err := createContainerOptions(rt, s, pod, finalVolumes, finalOverlays, imageData, command, infraVol, *compatibleOptions)
