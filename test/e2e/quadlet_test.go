@@ -25,6 +25,17 @@ type quadletTestcase struct {
 	checks      [][]string
 }
 
+// Converts "foo@bar.container" to "foo@.container"
+func getGenericTemplateFile(fileName string) (bool, string) {
+	extension := filepath.Ext(fileName)
+	base := strings.TrimSuffix(fileName, extension)
+	parts := strings.SplitN(base, "@", 2)
+	if len(parts) == 2 && len(parts[1]) > 0 {
+		return true, parts[0] + "@" + extension
+	}
+	return false, ""
+}
+
 func loadQuadletTestcase(path string) *quadletTestcase {
 	data, err := os.ReadFile(path)
 	Expect(err).ToNot(HaveOccurred())
@@ -724,13 +735,19 @@ BOGUS=foo
 			Expect(err).ToNot(HaveOccurred())
 
 			// Also copy any extra snippets
-			dotdDir := filepath.Join("quadlet", fileName+".d")
-			if s, err := os.Stat(dotdDir); err == nil && s.IsDir() {
-				dotdDirDest := filepath.Join(quadletDir, fileName+".d")
-				err = os.Mkdir(dotdDirDest, os.ModePerm)
-				Expect(err).ToNot(HaveOccurred())
-				err = CopyDirectory(dotdDir, dotdDirDest)
-				Expect(err).ToNot(HaveOccurred())
+			snippetdirs := []string{fileName + ".d"}
+			if ok, genericFileName := getGenericTemplateFile(fileName); ok {
+				snippetdirs = append(snippetdirs, genericFileName+".d")
+			}
+			for _, snippetdir := range snippetdirs {
+				dotdDir := filepath.Join("quadlet", snippetdir)
+				if s, err := os.Stat(dotdDir); err == nil && s.IsDir() {
+					dotdDirDest := filepath.Join(quadletDir, snippetdir)
+					err = os.Mkdir(dotdDirDest, os.ModePerm)
+					Expect(err).ToNot(HaveOccurred())
+					err = CopyDirectory(dotdDir, dotdDirDest)
+					Expect(err).ToNot(HaveOccurred())
+				}
 			}
 
 			// Run quadlet to convert the file
@@ -825,6 +842,8 @@ BOGUS=foo
 		Entry("Container - Containers Conf Modules", "containersconfmodule.container", 0, ""),
 		Entry("merged.container", "merged.container", 0, ""),
 		Entry("merged-override.container", "merged-override.container", 0, ""),
+		Entry("template@.container", "template@.container", 0, ""),
+		Entry("template@instance.container", "template@instance.container", 0, ""),
 
 		Entry("basic.volume", "basic.volume", 0, ""),
 		Entry("device-copy.volume", "device-copy.volume", 0, ""),
