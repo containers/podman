@@ -75,7 +75,6 @@ func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name stri
 	}
 	ctrOpts := entities.ContainerCreateOptions{
 		// Inherited from infra containers
-		ImageVolume:      define.TypeBind,
 		IsInfra:          false,
 		MemorySwappiness: -1,
 		ReadOnly:         true,

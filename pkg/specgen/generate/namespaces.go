@@ -367,7 +367,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, "bridge", s.Networks))
 	}
 
-	if s.UseImageHosts {
+	if s.UseImageHosts != nil && *s.UseImageHosts {
 		toReturn = append(toReturn, libpod.WithUseImageHosts())
 	} else if len(s.HostAdd) > 0 {
 		toReturn = append(toReturn, libpod.WithHosts(s.HostAdd))
@@ -375,7 +375,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	if len(s.DNSSearch) > 0 {
 		toReturn = append(toReturn, libpod.WithDNSSearch(s.DNSSearch))
 	}
-	if s.UseImageResolvConf {
+	if s.UseImageResolvConf != nil && *s.UseImageResolvConf {
 		toReturn = append(toReturn, libpod.WithUseImageResolvConf())
 	} else if len(s.DNSServers) > 0 {
 		var dnsServers []string

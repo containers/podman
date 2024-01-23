@@ -50,7 +50,7 @@ func makeCommand(s *specgen.SpecGenerator, imageData *libimage.ImageData) []stri
 		finalCommand = []string{""}
 	}
 
-	if s.Init {
+	if s.Init != nil && *s.Init {
 		// bind mount for this binary is added in addContainerInitBinary()
 		finalCommand = append([]string{define.ContainerInitPath, "--"}, finalCommand...)
 	}

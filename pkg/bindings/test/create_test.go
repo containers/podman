@@ -33,7 +33,8 @@ var _ = Describe("Create containers ", func() {
 	It("create a container running top", func() {
 		s := specgen.NewSpecGenerator(alpine.name, false)
 		s.Command = []string{"top"}
-		s.Terminal = true
+		terminal := true
+		s.Terminal = &terminal
 		s.Name = "top"
 		ctr, err := containers.CreateWithSpec(bt.conn, s, nil)
 		Expect(err).ToNot(HaveOccurred())

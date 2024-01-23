@@ -250,7 +250,8 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 		spec.DNSSearch = p.DNSSearch
 	}
 	if p.NoManageResolvConf {
-		spec.UseImageResolvConf = true
+		localTrue := true
+		spec.UseImageResolvConf = &localTrue
 	}
 	if len(p.Networks) > 0 {
 		spec.Networks = p.Networks
@@ -260,7 +261,7 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 		spec.CNINetworks = p.CNINetworks
 	}
 	if p.NoManageHosts {
-		spec.UseImageHosts = p.NoManageHosts
+		spec.UseImageHosts = &p.NoManageHosts
 	}
 
 	if len(p.InfraConmonPidFile) > 0 {

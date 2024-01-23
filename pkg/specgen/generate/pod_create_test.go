@@ -8,6 +8,7 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"testing"
 )
@@ -54,9 +55,11 @@ func TestMapSpecCopyPodSpecToInfraContainerSpec(t *testing.T) {
 	assert.Equal(t, dnsServers, mappedSpec.DNSServers)
 	assert.Equal(t, dnsOptions, mappedSpec.DNSOptions)
 	assert.Equal(t, dnsSearch, mappedSpec.DNSSearch)
-	assert.True(t, mappedSpec.UseImageResolvConf)
+	require.NotNil(t, mappedSpec.UseImageResolvConf)
+	assert.True(t, *mappedSpec.UseImageResolvConf)
 	assert.Equal(t, networks, mappedSpec.Networks)
-	assert.True(t, mappedSpec.UseImageHosts)
+	require.NotNil(t, mappedSpec.UseImageHosts)
+	assert.True(t, *mappedSpec.UseImageHosts)
 	assert.Equal(t, conmonPidFile, mappedSpec.ConmonPidFile)
 	assert.Equal(t, infraImage, mappedSpec.Image)
 }

@@ -30,11 +30,11 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	// we have to set the default before we decode to make sure the correct default is set when the field is unset
 	sg := specgen.SpecGenerator{
 		ContainerNetworkConfig: specgen.ContainerNetworkConfig{
-			UseImageHosts: conf.Containers.NoHosts,
+			UseImageHosts: &conf.Containers.NoHosts,
 		},
 		ContainerSecurityConfig: specgen.ContainerSecurityConfig{
 			Umask:      conf.Containers.Umask,
-			Privileged: conf.Containers.Privileged,
+			Privileged: &conf.Containers.Privileged,
 		},
 	}
 

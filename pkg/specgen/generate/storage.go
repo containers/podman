@@ -128,7 +128,7 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 	}
 
 	// If requested, add container init binary
-	if s.Init {
+	if s.Init != nil && *s.Init {
 		initPath := s.InitPath
 		if initPath == "" {
 			initPath, err = rtc.FindInitBinary()
@@ -180,7 +180,7 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 		}
 	}
 
-	if s.ReadWriteTmpfs {
+	if s.ReadWriteTmpfs != nil && *s.ReadWriteTmpfs {
 		runPath, err := imageRunPath(ctx, img)
 		if err != nil {
 			return nil, nil, nil, err

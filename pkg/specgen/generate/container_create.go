@@ -152,7 +152,11 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	}
 
 	if s.Rootfs != "" {
-		options = append(options, libpod.WithRootFS(s.Rootfs, s.RootfsOverlay, s.RootfsMapping))
+		rootfsOverlay := false
+		if s.RootfsOverlay != nil {
+			rootfsOverlay = *s.RootfsOverlay
+		}
+		options = append(options, libpod.WithRootFS(s.Rootfs, rootfsOverlay, s.RootfsMapping))
 	}
 
 	newImage, resolvedImageName, imageData, err := getImageFromSpec(ctx, rt, s)
@@ -358,7 +362,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		options = append(options, libpod.WithPreserveFD(s.PreserveFD))
 	}
 
-	if s.Stdin {
+	if s.Stdin != nil && *s.Stdin {
 		options = append(options, libpod.WithStdin())
 	}
 
@@ -368,7 +372,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	if s.Umask != "" {
 		options = append(options, libpod.WithUmask(s.Umask))
 	}
-	if s.Volatile {
+	if s.Volatile != nil && *s.Volatile {
 		options = append(options, libpod.WithVolatile())
 	}
 	if s.PasswdEntry != "" {
@@ -381,7 +385,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		options = append(options, libpod.WithBaseHostsFile(s.BaseHostsFile))
 	}
 
-	if s.Privileged {
+	if s.IsPrivileged() {
 		options = append(options, libpod.WithMountAllDevices())
 	}
 
@@ -520,7 +524,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	if s.WorkDir == "" {
 		s.WorkDir = "/"
 	}
-	if s.CreateWorkingDir {
+	if s.CreateWorkingDir != nil && *s.CreateWorkingDir {
 		options = append(options, libpod.WithCreateWorkingDir())
 	}
 	if s.StopSignal != nil {
@@ -547,8 +551,8 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 			options = append(options, libpod.WithLogDriver(s.LogConfiguration.Driver))
 		}
 	}
-	if s.ContainerSecurityConfig.LabelNested {
-		options = append(options, libpod.WithLabelNested(s.ContainerSecurityConfig.LabelNested))
+	if s.LabelNested != nil {
+		options = append(options, libpod.WithLabelNested(*s.LabelNested))
 	}
 	// Security options
 	if len(s.SelinuxOpts) > 0 {
@@ -567,8 +571,10 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 			options = append(options, libpod.WithSecLabels(selinuxOpts))
 		}
 	}
-	options = append(options, libpod.WithPrivileged(s.Privileged))
-	options = append(options, libpod.WithReadWriteTmpfs(s.ReadWriteTmpfs))
+	options = append(options, libpod.WithPrivileged(s.IsPrivileged()))
+	if s.ReadWriteTmpfs != nil {
+		options = append(options, libpod.WithReadWriteTmpfs(*s.ReadWriteTmpfs))
+	}
 
 	// Get namespace related options
 	namespaceOpts, err := namespaceOptions(s, rt, pod, imageData)
@@ -588,7 +594,11 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		options = append(options, libpod.WithShmSizeSystemd(*s.ShmSizeSystemd))
 	}
 	if s.Rootfs != "" {
-		options = append(options, libpod.WithRootFS(s.Rootfs, s.RootfsOverlay, s.RootfsMapping))
+		rootfsOverlay := false
+		if s.RootfsOverlay != nil {
+			rootfsOverlay = *s.RootfsOverlay
+		}
+		options = append(options, libpod.WithRootFS(s.Rootfs, rootfsOverlay, s.RootfsMapping))
 	}
 	// Default used if not overridden on command line
 

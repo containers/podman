@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	commonFlag "github.com/containers/common/pkg/flag"
-	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities/types"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/util"
@@ -271,7 +270,7 @@ type ContainerCreateOptions struct {
 func NewInfraContainerCreateOptions() ContainerCreateOptions {
 	options := ContainerCreateOptions{
 		IsInfra:          true,
-		ImageVolume:      define.TypeBind,
+		ImageVolume:      "anonymous",
 		MemorySwappiness: -1,
 	}
 	return options

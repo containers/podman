@@ -110,7 +110,15 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	}
 
 	// Get Default Environment from containers.conf
-	defaultEnvs, err := envLib.ParseSlice(rtc.GetDefaultEnvEx(s.EnvHost, s.HTTPProxy))
+	envHost := false
+	if s.EnvHost != nil {
+		envHost = *s.EnvHost
+	}
+	httpProxy := false
+	if s.HTTPProxy != nil {
+		httpProxy = *s.HTTPProxy
+	}
+	defaultEnvs, err := envLib.ParseSlice(rtc.GetDefaultEnvEx(envHost, httpProxy))
 	if err != nil {
 		return nil, fmt.Errorf("parsing fields in containers.conf: %w", err)
 	}
@@ -129,7 +137,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 
 	// add default terminal to env if tty flag is set
 	_, ok := defaultEnvs["TERM"]
-	if s.Terminal && !ok {
+	if (s.Terminal != nil && *s.Terminal) && !ok {
 		defaultEnvs["TERM"] = "xterm"
 	}
 
@@ -154,7 +162,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		delete(defaultEnvs, e)
 	}
 
-	if s.UnsetEnvAll {
+	if s.UnsetEnvAll != nil && *s.UnsetEnvAll {
 		defaultEnvs = make(map[string]string)
 	}
 	// First transform the os env into a map. We need it for the labels later in
@@ -162,9 +170,9 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	osEnv := envLib.Map(os.Environ())
 
 	// Caller Specified defaults
-	if s.EnvHost {
+	if envHost {
 		defaultEnvs = envLib.Join(defaultEnvs, osEnv)
-	} else if s.HTTPProxy {
+	} else if httpProxy {
 		for _, envSpec := range config.ProxyEnv {
 			if v, ok := osEnv[envSpec]; ok {
 				defaultEnvs[envSpec] = v
@@ -301,6 +309,10 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		s.NetNS.NSMode == specgen.FromPod || s.NetNS.NSMode == specgen.NoNetwork) &&
 		len(s.PortMappings) > 0 {
 		warnings = append(warnings, "Port mappings have been discarded as one of the Host, Container, Pod, and None network modes are in use")
+	}
+
+	if len(s.ImageVolumeMode) == 0 {
+		s.ImageVolumeMode = rtc.Engine.ImageVolumeMode
 	}
 
 	return warnings, nil
@@ -497,7 +509,7 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 
 // mapSecurityConfig takes a libpod.ContainerSecurityConfig and converts it to a specgen.ContinerSecurityConfig
 func mapSecurityConfig(c *libpod.ContainerConfig, s *specgen.SpecGenerator) {
-	s.Privileged = c.Privileged
+	s.Privileged = &c.Privileged
 	s.SelinuxOpts = append(s.SelinuxOpts, c.LabelOpts...)
 	s.User = c.User
 	s.Groups = c.Groups
