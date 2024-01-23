@@ -311,6 +311,7 @@ type VirtProvider interface { //nolint:interfacebloat
 	NewDownload(vmName string) (Download, error)
 	RemoveAndCleanMachines() error
 	VMType() define.VMType
+	CreateReadySock(loc interface{}, name, path string) error
 }
 
 type Virtualization struct {

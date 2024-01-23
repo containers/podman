@@ -139,8 +139,8 @@ func (p *QEMUVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, e
 	if err != nil {
 		return nil, err
 	}
-	symlink := vm.Name + "_ready.sock"
-	if err := sockets.SetSocket(&vm.ReadySocket, sockets.ReadySocketPath(runtimeDir+"/podman/", vm.Name), &symlink); err != nil {
+
+	if err := p.CreateReadySock(&vm.ReadySocket, vm.Name, runtimeDir); err != nil {
 		return nil, err
 	}
 
@@ -338,6 +338,11 @@ func (p *QEMUVirtualization) RemoveAndCleanMachines() error {
 
 func (p *QEMUVirtualization) VMType() define.VMType {
 	return vmtype
+}
+
+func (p *QEMUVirtualization) CreateReadySock(loc interface{}, name, path string) error {
+	symlink := name + "_ready.sock"
+	return sockets.SetSocket(loc.(*define.VMFile), sockets.ReadySocketPath(path+"/podman/", name), &symlink)
 }
 
 func VirtualizationProvider() machine.VirtProvider {

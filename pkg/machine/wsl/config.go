@@ -26,6 +26,10 @@ func VirtualizationProvider() machine.VirtProvider {
 	}
 }
 
+func (p *WSLVirtualization) CreateReadySock(loc interface{}, name, runtimeDir string) error {
+	return fmt.Errorf("Not Implemented")
+}
+
 // NewMachine initializes an instance of a wsl machine
 func (p *WSLVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	vm := new(MachineVM)

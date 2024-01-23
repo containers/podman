@@ -194,7 +194,7 @@ func (m *MacMachine) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	if err := sockets.SetSocket(&m.ReadySocket, sockets.ReadySocketPath(runtimeDir, m.Name), nil); err != nil {
+	if err := VirtualizationProvider().CreateReadySock(&m.ReadySocket, m.Name, runtimeDir); err != nil {
 		return false, err
 	}
 
@@ -573,7 +573,7 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 	}
 
 	if _, err := m.getRuntimeDir(); err != nil {
-	     return err
+		return err
 	}
 
 	// TODO handle returns from startHostNetworking

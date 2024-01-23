@@ -15,6 +15,7 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/compression"
 	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/machine/hyperv/vsock"
 	"github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
@@ -114,6 +115,17 @@ func (v HyperVVirtualization) List(opts machine.ListOptions) ([]*machine.ListRes
 func (v HyperVVirtualization) LoadVMByName(name string) (machine.VM, error) {
 	m := &HyperVMachine{Name: name}
 	return m.loadFromFile()
+}
+
+func (v HyperVVirtualization) CreateReadySock(loc interface{}, name, runtimedir string) error {
+	readySock, err := vsock.NewHVSockRegistryEntry(name, vsock.Events)
+	if err != nil {
+		return err
+	}
+
+	location := loc.(*vsock.HVSockRegistryEntry)
+	*location = *readySock
+	return nil
 }
 
 func (v HyperVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, error) {

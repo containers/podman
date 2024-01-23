@@ -105,13 +105,9 @@ func (m *HyperVMachine) addNetworkAndReadySocketsToRegistry() error {
 	if err != nil {
 		return err
 	}
-	eventHVSocket, err := vsock.NewHVSockRegistryEntry(m.Name, vsock.Events)
-	if err != nil {
-		return err
-	}
 	m.NetworkHVSock = *networkHVSock
-	m.ReadyHVSock = *eventHVSocket
-	return nil
+
+	return VirtualizationProvider().CreateReadySock(&m.ReadyHVSock, m.Name, "")
 }
 
 // readAndSplitIgnition reads the ignition file and splits it into key:value pairs

@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/compression"
 	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/machine/ignition"
+	"github.com/containers/podman/v4/pkg/machine/sockets"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
 	"github.com/docker/go-units"
@@ -110,6 +111,10 @@ func (v AppleHVVirtualization) List(opts machine.ListOptions) ([]*machine.ListRe
 func (v AppleHVVirtualization) LoadVMByName(name string) (machine.VM, error) {
 	m := MacMachine{Name: name}
 	return m.loadFromFile()
+}
+
+func (v AppleHVVirtualization) CreateReadySock(loc interface{}, name, path string) error {
+	return sockets.SetSocket(loc.(*define.VMFile), sockets.ReadySocketPath(path+"/podman/", name), nil)
 }
 
 func (v AppleHVVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, error) {
