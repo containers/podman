@@ -443,6 +443,10 @@ Or just add the content manually.
 
 See the `subuid(5)` and `subgid(5)` man pages for more information.
 
+
+
+Note: whitespace in any row of /etc/subuid or /etc/subgid, including trailing blanks, may result in no entry failures.
+
 Images are pulled under `XDG_DATA_HOME` when specified, otherwise in the home directory of the user under `.local/share/containers/storage`.
 
 Currently slirp4netns or pasta is required to be installed to create a network
