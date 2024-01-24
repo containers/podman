@@ -308,7 +308,10 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 	}
 
 	opts := nettypes.NetworkCreateOptions{
-		IgnoreIfExists: !networkCreate.CheckDuplicate,
+		// networkCreate.CheckDuplicate is deprecated since API v1.44,
+		// but it defaults to true when sent by the client package to
+		// older daemons.
+		IgnoreIfExists: false,
 	}
 	ic := abi.ContainerEngine{Libpod: runtime}
 	newNetwork, err := ic.NetworkCreate(r.Context(), network, &opts)

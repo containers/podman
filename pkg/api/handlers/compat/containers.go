@@ -23,6 +23,7 @@ import (
 	"github.com/containers/podman/v4/pkg/signal"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/docker/docker/api/types"
+	dockerBackend "github.com/docker/docker/api/types/backend"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/go-connections/nat"
@@ -397,7 +398,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 			NetworkSettings: &networkSettings,
 			Mounts:          mounts,
 		},
-		ContainerCreateConfig: types.ContainerCreateConfig{},
+		ContainerCreateConfig: dockerBackend.ContainerCreateConfig{},
 	}, nil
 }
 

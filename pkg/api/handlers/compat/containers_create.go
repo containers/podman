@@ -307,8 +307,13 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 		NoHosts:        rtc.Containers.NoHosts,
 	}
 
-	// sigh docker-compose sets the mac address on the container config instead on the per network endpoint config
-	containerMacAddress := cc.MacAddress
+	// docker-compose sets the mac address on the container config instead
+	// on the per network endpoint config
+	//
+	// This field is deprecated since API v1.44 where
+	// EndpointSettings.MacAddress is used instead (and has precedence
+	// below).  Let's still use it for backwards compat.
+	containerMacAddress := cc.MacAddress //nolint:staticcheck
 
 	// network names
 	switch {
@@ -555,7 +560,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 	}
 
 	if len(cc.HostConfig.RestartPolicy.Name) > 0 {
-		policy := cc.HostConfig.RestartPolicy.Name
+		policy := string(cc.HostConfig.RestartPolicy.Name)
 		// only add restart count on failure
 		if cc.HostConfig.RestartPolicy.IsOnFailure() {
 			policy += fmt.Sprintf(":%d", cc.HostConfig.RestartPolicy.MaximumRetryCount)

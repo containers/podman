@@ -14,6 +14,7 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/docker/docker/api/types"
+	dockerImage "github.com/docker/docker/api/types/image"
 )
 
 func PruneImages(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +42,7 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idr := make([]types.ImageDeleteResponseItem, 0, len(imagePruneReports))
+	idr := make([]dockerImage.DeleteResponse, 0, len(imagePruneReports))
 	var reclaimedSpace uint64
 	var errorMsg bytes.Buffer
 	for _, p := range imagePruneReports {
@@ -53,7 +54,7 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		idr = append(idr, types.ImageDeleteResponseItem{
+		idr = append(idr, dockerImage.DeleteResponse{
 			Deleted: p.Id,
 		})
 		reclaimedSpace += p.Size

@@ -10,6 +10,7 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
 	"github.com/containers/podman/v4/pkg/inspect"
 	dockerAPI "github.com/docker/docker/api/types"
+	dockerImage "github.com/docker/docker/api/types/image"
 	dockerVolume "github.com/docker/docker/api/types/volume"
 )
 
@@ -219,7 +220,7 @@ type execSessionInspect struct {
 // swagger:response
 type imageList struct {
 	// in:body
-	Body []dockerAPI.ImageSummary
+	Body []dockerImage.Summary
 }
 
 // Image summary for libpod API
