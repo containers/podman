@@ -11,12 +11,12 @@ PODMAN_RUNTIME=
 PODMAN_TEST_IMAGE_REGISTRY=${PODMAN_TEST_IMAGE_REGISTRY:-"quay.io"}
 PODMAN_TEST_IMAGE_USER=${PODMAN_TEST_IMAGE_USER:-"libpod"}
 PODMAN_TEST_IMAGE_NAME=${PODMAN_TEST_IMAGE_NAME:-"testimage"}
-PODMAN_TEST_IMAGE_TAG=${PODMAN_TEST_IMAGE_TAG:-"20221018"}
+PODMAN_TEST_IMAGE_TAG=${PODMAN_TEST_IMAGE_TAG:-"20240123"}
 PODMAN_TEST_IMAGE_FQN="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:$PODMAN_TEST_IMAGE_TAG"
 
 # Larger image containing systemd tools.
 PODMAN_SYSTEMD_IMAGE_NAME=${PODMAN_SYSTEMD_IMAGE_NAME:-"systemd-image"}
-PODMAN_SYSTEMD_IMAGE_TAG=${PODMAN_SYSTEMD_IMAGE_TAG:-"20230531"}
+PODMAN_SYSTEMD_IMAGE_TAG=${PODMAN_SYSTEMD_IMAGE_TAG:-"20240124"}
 PODMAN_SYSTEMD_IMAGE_FQN="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_SYSTEMD_IMAGE_NAME:$PODMAN_SYSTEMD_IMAGE_TAG"
 
 # Remote image that we *DO NOT* fetch or keep by default; used for testing pull
@@ -1140,60 +1140,6 @@ function _podman_commands() {
     # &>/dev/null prevents duplicate output
     run_podman help "$@" &>/dev/null
     awk '/^Available Commands:/{ok=1;next}/^Options:/{ok=0}ok { print $1 }' <<<"$output" | grep .
-}
-
-###############################
-#  _build_health_check_image  #  Builds a container image with a configured health check
-###############################
-#
-# The health check will fail once the /uh-oh file exists.
-#
-# First argument is the desired name of the image
-# Second argument, if present and non-null, forces removal of the /uh-oh file once the check failed; this way the container can be restarted
-#
-
-function _build_health_check_image {
-    local imagename="$1"
-    local cleanfile=""
-
-    if [[ ! -z "$2" ]]; then
-        cleanfile="rm -f /uh-oh"
-    fi
-    # Create an image with a healthcheck script; said script will
-    # pass until the file /uh-oh gets created (by us, via exec)
-    cat >${PODMAN_TMPDIR}/healthcheck <<EOF
-#!/bin/sh
-
-if test -e /uh-oh; then
-    echo "Uh-oh on stdout!"
-    echo "Uh-oh on stderr!" >&2
-    ${cleanfile}
-    exit 1
-else
-    echo "Life is Good on stdout"
-    echo "Life is Good on stderr" >&2
-    exit 0
-fi
-EOF
-
-    cat >${PODMAN_TMPDIR}/entrypoint <<EOF
-#!/bin/sh
-
-trap 'echo Received SIGTERM, finishing; exit' SIGTERM; echo WAITING; while :; do sleep 0.1; done
-EOF
-
-    cat >${PODMAN_TMPDIR}/Containerfile <<EOF
-FROM $IMAGE
-
-COPY healthcheck /healthcheck
-COPY entrypoint  /entrypoint
-
-RUN  chmod 755 /healthcheck /entrypoint
-
-CMD ["/entrypoint"]
-EOF
-
-    run_podman build -t $imagename ${PODMAN_TMPDIR}
 }
 
 ##########################

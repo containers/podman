@@ -214,7 +214,7 @@ var _ = Describe("Podman rmi", func() {
 		session = podmanTest.Podman([]string{"images", "-q", "-a"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(HaveLen(142))
+		Expect(session.OutputToStringArray()).To(HaveLen(len(CACHE_IMAGES)))
 	})
 
 	It("podman rmi -a with no images should be exit 0", func() {

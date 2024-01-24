@@ -324,16 +324,13 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
 }
 
 @test "podman create --health-on-failure=kill" {
-    img="healthcheck_i"
-    _build_health_check_image $img
-
     cname=c_$(random_string)
-    run_podman create --name $cname      \
-               --health-cmd /healthcheck \
-               --health-on-failure=kill  \
-               --health-retries=1        \
-               --restart=on-failure      \
-               $img
+    run_podman create --name $cname                  \
+               --health-cmd /home/podman/healthcheck \
+               --health-on-failure=kill              \
+               --health-retries=1                    \
+               --restart=on-failure                  \
+               $IMAGE /home/podman/pause
 
     # run container in systemd unit
     service_setup
@@ -376,7 +373,6 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
 
     # stop systemd container
     service_cleanup
-    run_podman rmi -f $img
 }
 
 @test "podman-kube@.service template" {

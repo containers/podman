@@ -8,6 +8,6 @@ var (
 	CACHE_IMAGES             = []string{ALPINE, BB, fedoraMinimal, NGINX_IMAGE, REDIS_IMAGE, INFRA_IMAGE, CITEST_IMAGE}
 	NGINX_IMAGE              = "quay.io/libpod/alpine_nginx-ppc64le:latest"
 	BB_GLIBC                 = "docker.io/ppc64le/busybox:glibc"
-	CITEST_IMAGE             = "quay.io/libpod/testimage:20221018"
+	CITEST_IMAGE             = "quay.io/libpod/testimage:20240123"
 	REGISTRY_IMAGE           string
 )

@@ -45,22 +45,28 @@ function teardown() {
     run_podman system df --format json
     local results="$output"
 
+    # FIXME! This needs to be fiddled with every time we bump testimage.
+    local size=11
+    if [[ "$(uname -m)" = "aarch64" ]]; then
+        size=13
+    fi
+
     # FIXME: we can't check exact RawSize or Size because every CI system
     # computes a different value: 12701526, 12702113, 12706209... and
     # those are all amd64. aarch64 gets 12020148, 12019561.
     #
     # WARNING: RawSize and Size tests may fail if $IMAGE is updated. Since
     # that tends to be done yearly or less, and only by Ed, that's OK.
-    local tests='
-Type           | Images    | Containers | Local Volumes
-Total          |         1 |          2 |             0
-Active         |         1 |          1 |             0
-RawSize        | ~12...... |         !0 |             0
-RawReclaimable |         0 |         !0 |             0
-Reclaimable    |   ~\(0%\) |   ~\(50%\) |       ~\(0%\)
-TotalCount     |         1 |          2 |             0
-Size           |   ~12.*MB |        !0B |            0B
-'
+    local tests="
+Type           | Images         | Containers | Local Volumes
+Total          |              1 |          2 |             0
+Active         |              1 |          1 |             0
+RawSize        | ~${size}...... |         !0 |             0
+RawReclaimable |              0 |         !0 |             0
+Reclaimable    |        ~\(0%\) |   ~\(50%\) |       ~\(0%\)
+TotalCount     |              1 |          2 |             0
+Size           |   ~${size}.*MB |        !0B |            0B
+"
     while read -a fields; do
         for i in 0 1 2;do
             expect="${fields[$((i+1))]}"

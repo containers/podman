@@ -51,12 +51,33 @@ cat >pause <<EOF
 #
 # Trivial little pause script, used in one of the pod tests
 #
+trap 'exit 0' SIGTERM
 echo Confirmed: testimage pause invoked as \$0
 while :; do
     sleep 0.1
 done
 EOF
 chmod 755 pause
+
+# Add a health check
+cat >healthcheck <<EOF
+#!/bin/sh
+
+if test -e /uh-oh || test -e /uh-oh-only-once; then
+    echo "Uh-oh on stdout!"
+    echo "Uh-oh on stderr!" >&2
+
+    # Special file causes us to fail healthcheck only once
+    rm -f /uh-oh-only-once
+
+    exit 1
+else
+    echo "Life is Good on stdout"
+    echo "Life is Good on stderr" >&2
+    exit 0
+fi
+EOF
+chmod 755 healthcheck
 
 # alpine because it's small and light and reliable
 #    - check for updates @ https://hub.docker.com/_/alpine
@@ -73,9 +94,9 @@ chmod 755 pause
 #
 cat >Containerfile1 <<EOF
 ARG REPO=please-override-repo
-FROM docker.io/\${REPO}/alpine:3.16.2
+FROM docker.io/\${REPO}/alpine:3.19.0
 RUN apk add busybox-extras iproute2 socat
-ADD testimage-id pause /home/podman/
+ADD testimage-id healthcheck pause /home/podman/
 RUN rm -f /var/cache/apk/*
 EOF
 
