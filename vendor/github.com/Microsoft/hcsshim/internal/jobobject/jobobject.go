@@ -374,7 +374,7 @@ func (job *JobObject) Pids() ([]uint32, error) {
 		return []uint32{}, nil
 	}
 
-	if err != winapi.ERROR_MORE_DATA {
+	if err != winapi.ERROR_MORE_DATA { //nolint:errorlint
 		return nil, fmt.Errorf("failed initial query for PIDs in job object: %w", err)
 	}
 

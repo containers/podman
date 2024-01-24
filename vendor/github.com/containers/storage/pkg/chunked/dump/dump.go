@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 	"time"
 	"unicode"
@@ -93,13 +94,18 @@ func getStMode(mode uint32, typ string) (uint32, error) {
 	return mode, nil
 }
 
-func dumpNode(out io.Writer, links map[string]int, verityDigests map[string]string, entry *internal.FileMetadata) error {
-	path := entry.Name
-	if path == "" {
+func sanitizeName(name string) string {
+	path := filepath.Clean(name)
+	if path == "." {
 		path = "/"
 	} else if path[0] != '/' {
 		path = "/" + path
 	}
+	return path
+}
+
+func dumpNode(out io.Writer, links map[string]int, verityDigests map[string]string, entry *internal.FileMetadata) error {
+	path := sanitizeName(entry.Name)
 
 	if _, err := fmt.Fprint(out, escaped(path, ESCAPE_STANDARD)); err != nil {
 		return err
@@ -133,9 +139,10 @@ func dumpNode(out io.Writer, links map[string]int, verityDigests map[string]stri
 
 	var payload string
 	if entry.Linkname != "" {
-		payload = entry.Linkname
-		if entry.Type == internal.TypeLink && payload[0] != '/' {
-			payload = "/" + payload
+		if entry.Type == internal.TypeSymlink {
+			payload = entry.Linkname
+		} else {
+			payload = sanitizeName(entry.Linkname)
 		}
 	} else {
 		if len(entry.Digest) > 10 {
@@ -198,10 +205,13 @@ func GenerateDump(tocI interface{}, verityDigests map[string]string) (io.Reader,
 			if e.Linkname == "" {
 				continue
 			}
+			if e.Type == internal.TypeSymlink {
+				continue
+			}
 			links[e.Linkname] = links[e.Linkname] + 1
 		}
 
-		if len(toc.Entries) == 0 || (toc.Entries[0].Name != "" && toc.Entries[0].Name != "/") {
+		if len(toc.Entries) == 0 || (sanitizeName(toc.Entries[0].Name) != "/") {
 			root := &internal.FileMetadata{
 				Name: "/",
 				Type: internal.TypeDir,

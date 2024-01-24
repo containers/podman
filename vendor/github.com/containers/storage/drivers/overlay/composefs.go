@@ -1,5 +1,5 @@
-//go:build linux && composefs && cgo
-// +build linux,composefs,cgo
+//go:build linux && cgo
+// +build linux,cgo
 
 package overlay
 
@@ -7,15 +7,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sync"
-	"syscall"
-	"unsafe"
 
 	"github.com/containers/storage/pkg/chunked/dump"
+	"github.com/containers/storage/pkg/fsverity"
 	"github.com/containers/storage/pkg/loopback"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -32,77 +30,6 @@ func getComposeFsHelper() (string, error) {
 		composeFsHelperPath, composeFsHelperErr = exec.LookPath("mkcomposefs")
 	})
 	return composeFsHelperPath, composeFsHelperErr
-}
-
-func composeFsSupported() bool {
-	_, err := getComposeFsHelper()
-	return err == nil
-}
-
-func enableVerity(description string, fd int) error {
-	enableArg := unix.FsverityEnableArg{
-		Version:        1,
-		Hash_algorithm: unix.FS_VERITY_HASH_ALG_SHA256,
-		Block_size:     4096,
-	}
-
-	_, _, e1 := syscall.Syscall(unix.SYS_IOCTL, uintptr(fd), uintptr(unix.FS_IOC_ENABLE_VERITY), uintptr(unsafe.Pointer(&enableArg)))
-	if e1 != 0 && !errors.Is(e1, unix.EEXIST) {
-		return fmt.Errorf("failed to enable verity for %q: %w", description, e1)
-	}
-	return nil
-}
-
-type verityDigest struct {
-	Fsv unix.FsverityDigest
-	Buf [64]byte
-}
-
-func measureVerity(description string, fd int) (string, error) {
-	var digest verityDigest
-	digest.Fsv.Size = 64
-	_, _, e1 := syscall.Syscall(unix.SYS_IOCTL, uintptr(fd), uintptr(unix.FS_IOC_MEASURE_VERITY), uintptr(unsafe.Pointer(&digest)))
-	if e1 != 0 {
-		return "", fmt.Errorf("failed to measure verity for %q: %w", description, e1)
-	}
-	return fmt.Sprintf("%x", digest.Buf[:digest.Fsv.Size]), nil
-}
-
-func enableVerityRecursive(root string) (map[string]string, error) {
-	digests := make(map[string]string)
-	walkFn := func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.Type().IsRegular() {
-			return nil
-		}
-
-		f, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-
-		if err := enableVerity(path, int(f.Fd())); err != nil {
-			return err
-		}
-
-		verity, err := measureVerity(path, int(f.Fd()))
-		if err != nil {
-			return err
-		}
-
-		relPath, err := filepath.Rel(root, path)
-		if err != nil {
-			return err
-		}
-
-		digests[relPath] = verity
-		return nil
-	}
-	err := filepath.WalkDir(root, walkFn)
-	return digests, err
 }
 
 func getComposefsBlob(dataDir string) string {
@@ -156,7 +83,7 @@ func generateComposeFsBlob(verityDigests map[string]string, toc interface{}, com
 		return err
 	}
 
-	if err := enableVerity("manifest file", int(newFd.Fd())); err != nil && !errors.Is(err, unix.ENOTSUP) && !errors.Is(err, unix.ENOTTY) {
+	if err := fsverity.EnableVerity("manifest file", int(newFd.Fd())); err != nil && !errors.Is(err, unix.ENOTSUP) && !errors.Is(err, unix.ENOTTY) {
 		logrus.Warningf("%s", err)
 	}
 

@@ -12,7 +12,6 @@ import (
 	"sync"
 
 	"github.com/letsencrypt/boulder/core"
-	berrors "github.com/letsencrypt/boulder/errors"
 
 	"github.com/titanous/rocacheck"
 )
@@ -136,7 +135,7 @@ func (policy *KeyPolicy) GoodKey(ctx context.Context, key crypto.PublicKey) erro
 	// that has been administratively blocked.
 	if policy.blockedList != nil {
 		if blocked, err := policy.blockedList.blocked(key); err != nil {
-			return berrors.InternalServerError("error checking blocklist for key: %v", key)
+			return fmt.Errorf("error checking blocklist for key: %v", key)
 		} else if blocked {
 			return badKey("public key is forbidden")
 		}
