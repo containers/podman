@@ -61,6 +61,7 @@ A Kubernetes PersistentVolumeClaim represents a Podman named volume. Only the Pe
 - volume.podman.io/gid
 - volume.podman.io/mount-options
 - volume.podman.io/import-source
+- volume.podman.io/image
 
 Use `volume.podman.io/import-source` to import the contents of the tarball (.tar, .tar.gz, .tgz, .bzip, .tar.xz, .txz) specified in the annotation's value into the created Podman volume
 

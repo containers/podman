@@ -4062,6 +4062,36 @@ o: {{ .Options.o }}`})
 		Expect(files[0].Name()).To(Equal(fileName))
 	})
 
+	It("persistentVolumeClaim - image based", func() {
+		volName := "myVolWithStorage"
+		imageName := "quay.io/libpod/alpine_nginx:latest"
+		pvc := getPVC(withPVCName(volName),
+			withPVCAnnotations(util.VolumeDriverAnnotation, "image"),
+			withPVCAnnotations(util.VolumeImageAnnotation, imageName),
+		)
+		err = generateKubeYaml("persistentVolumeClaim", pvc, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(ExitCleanly())
+
+		inspect := podmanTest.Podman([]string{"inspect", volName, "--format", `
+{
+	"Name": "{{ .Name }}",
+	"Driver": "{{ .Driver }}",
+	"Image": "{{ .Options.image }}"
+}`})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		mp := make(map[string]string)
+		err = json.Unmarshal([]byte(inspect.OutputToString()), &mp)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(mp["Name"]).To(Equal(volName))
+		Expect(mp["Driver"]).To(Equal("image"))
+		Expect(mp["Image"]).To(Equal(imageName))
+	})
+
 	// Multi doc related tests
 	It("multi doc yaml with persistentVolumeClaim, service and deployment", func() {
 		yamlDocs := []string{}

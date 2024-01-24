@@ -1147,6 +1147,8 @@ func (ic *ContainerEngine) playKubePVC(ctx context.Context, mountLabel string, p
 			opts["o"] = v
 		case util.VolumeImportSourceAnnotation:
 			importFrom = v
+		case util.VolumeImageAnnotation:
+			opts["image"] = v
 		}
 	}
 	volOptions = append(volOptions, libpod.WithVolumeOptions(opts))
