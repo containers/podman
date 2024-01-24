@@ -31,6 +31,10 @@ func VirtualizationProvider() machine.VirtProvider {
 	}
 }
 
+func (v HyperVVirtualization) ListenReadySock(path interface{}, args ...interface{}) (interface{}, error) {
+	return nil, path.(*vsock.HVSockRegistryEntry).Listen()
+}
+
 func (v HyperVVirtualization) DeleteReadySock(sock interface{}) error {
 	return sock.(*vsock.HVSockRegistryEntry).Remove()
 }

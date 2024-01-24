@@ -660,14 +660,14 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 	}
 
 	logrus.Debugf("listening for ready on: %s", m.ReadySocket.GetPath())
-	readyListen, err := net.Listen("unix", m.ReadySocket.GetPath())
+	readyListen, err := VirtualizationProvider().ListenReadySock(m.ReadySocket.GetPath())
 	if err != nil {
 		return err
 	}
 
 	logrus.Debug("waiting for ready notification")
 	readyChan := make(chan error)
-	go sockets.ListenAndWaitOnSocket(readyChan, readyListen)
+	go sockets.ListenAndWaitOnSocket(readyChan, readyListen.(net.Listener))
 
 	if err := cmd.Start(); err != nil {
 		return err

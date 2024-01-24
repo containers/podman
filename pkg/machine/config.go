@@ -313,6 +313,7 @@ type VirtProvider interface { //nolint:interfacebloat
 	VMType() define.VMType
 	CreateReadySock(loc interface{}, name, path string) error
 	DeleteReadySock(sock interface{}) error
+	ListenReadySock(path interface{}, args ...interface{}) (interface{}, error)
 }
 
 type Virtualization struct {

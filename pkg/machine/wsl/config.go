@@ -26,12 +26,16 @@ func VirtualizationProvider() machine.VirtProvider {
 	}
 }
 
+func (p *WSLVirtualization) ListenReadySock(path interface{}, args ...interface{}) (interface{}, error) {
+	return nil, fmt.Errorf("WSL does not utilize a ready socket")
+}
+
 func (p *WSLVirtualization) CreateReadySock(loc interface{}, name, runtimeDir string) error {
-	return fmt.Errorf("Not Implemented")
+	return fmt.Errorf("WSL does not utilize a ready socket")
 }
 
 func (p *WSLVirtualization) DeleteReadySock(sock interface{}) error {
-	return fmt.Errorf("Not Implemented")
+	return fmt.Errorf("WSL does not utilize a ready socket")
 }
 
 // NewMachine initializes an instance of a wsl machine

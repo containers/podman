@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"net"
 	"path/filepath"
 	"time"
 
@@ -44,6 +45,10 @@ func VirtualizationProvider() machine.VirtProvider {
 
 func (v AppleHVVirtualization) DeleteReadySock(sock interface{}) error {
 	return sock.(*define.VMFile).Delete()
+}
+
+func (v AppleHVVirtualization) ListenReadySock(path interface{}, args ...interface{}) (interface{}, error) {
+	return net.Listen("unix", path.(string))
 }
 
 func (v AppleHVVirtualization) CheckExclusiveActiveVM() (bool, string, error) {

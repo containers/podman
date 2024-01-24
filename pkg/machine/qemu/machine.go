@@ -570,7 +570,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 		fmt.Println("Waiting for VM ...")
 	}
 
-	conn, err = sockets.DialSocketWithBackoffsAndProcCheck(maxBackoffs, defaultBackoff, v.ReadySocket.GetPath(), checkProcessStatus, "qemu", cmd.Process.Pid, stderrBuf)
+	_, err = VirtualizationProvider().ListenReadySock(v.ReadySocket.GetPath(), &conn, maxBackoffs, defaultBackoff, checkProcessStatus, cmd.Process.Pid, stderrBuf)
 	if err != nil {
 		return err
 	}

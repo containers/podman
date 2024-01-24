@@ -572,7 +572,8 @@ func (m *HyperVMachine) Start(name string, opts machine.StartOptions) error {
 		return err
 	}
 	// Wait on notification from the guest
-	if err := m.ReadyHVSock.Listen(); err != nil {
+	_, err = VirtualizationProvider().ListenReadySock(&m.ReadyHVSock)
+	if err != nil {
 		return err
 	}
 

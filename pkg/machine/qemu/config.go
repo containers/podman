@@ -1,9 +1,11 @@
 package qemu
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -338,6 +340,19 @@ func (p *QEMUVirtualization) RemoveAndCleanMachines() error {
 
 func (p *QEMUVirtualization) VMType() define.VMType {
 	return vmtype
+}
+
+func (p *QEMUVirtualization) ListenReadySock(path interface{}, args ...interface{}) (interface{}, error) {
+	conn := args[0].(*net.Conn)
+	maxBackoffs := args[1].(int)
+	defaultBackoff := args[2].(time.Duration)
+	checkProcessStatus := args[3].(func(string, int, *bytes.Buffer) error)
+	procPid := args[4].(int)
+	errBuf := args[5].(*bytes.Buffer)
+
+	c, err := sockets.DialSocketWithBackoffsAndProcCheck(maxBackoffs, defaultBackoff, path.(string), checkProcessStatus, "qemu", procPid, errBuf)
+	*conn = c
+	return nil, err
 }
 
 func (p *QEMUVirtualization) CreateReadySock(loc interface{}, name, path string) error {
