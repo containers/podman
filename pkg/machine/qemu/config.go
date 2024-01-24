@@ -345,6 +345,10 @@ func (p *QEMUVirtualization) CreateReadySock(loc interface{}, name, path string)
 	return sockets.SetSocket(loc.(*define.VMFile), sockets.ReadySocketPath(path+"/podman/", name), &symlink)
 }
 
+func (p *QEMUVirtualization) DeleteReadySock(sock interface{}) error {
+	return sock.(*define.VMFile).Delete()
+}
+
 func VirtualizationProvider() machine.VirtProvider {
 	return &QEMUVirtualization{
 		machine.NewVirtualization(define.Qemu, compression.Xz, define.Qcow, vmtype),

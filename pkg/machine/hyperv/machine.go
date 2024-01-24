@@ -387,7 +387,7 @@ func (m *HyperVMachine) removeNetworkAndReadySocketsFromRegistry() {
 	}
 
 	// Remove the HVSOCK for events
-	if err := m.ReadyHVSock.Remove(); err != nil {
+	if err := VirtualizationProvider().DeleteReadySock(&m.ReadyHVSock); err != nil {
 		logrus.Errorf("unable to remove registry entry for %s: %q", m.ReadyHVSock.KeyName, err)
 	}
 }

@@ -655,7 +655,7 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 		}()
 	}
 
-	if err := m.ReadySocket.Delete(); err != nil {
+	if err := VirtualizationProvider().DeleteReadySock(&m.ReadySocket); err != nil {
 		return err
 	}
 

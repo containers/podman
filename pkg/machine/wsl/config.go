@@ -30,6 +30,10 @@ func (p *WSLVirtualization) CreateReadySock(loc interface{}, name, runtimeDir st
 	return fmt.Errorf("Not Implemented")
 }
 
+func (p *WSLVirtualization) DeleteReadySock(sock interface{}) error {
+	return fmt.Errorf("Not Implemented")
+}
+
 // NewMachine initializes an instance of a wsl machine
 func (p *WSLVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	vm := new(MachineVM)

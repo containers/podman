@@ -853,7 +853,7 @@ func (v *MachineVM) stopLocked() error {
 	}
 	disconnected = true
 
-	if err := v.ReadySocket.Delete(); err != nil {
+	if err := VirtualizationProvider().DeleteReadySock(&v.ReadySocket); err != nil {
 		return err
 	}
 

@@ -312,6 +312,7 @@ type VirtProvider interface { //nolint:interfacebloat
 	RemoveAndCleanMachines() error
 	VMType() define.VMType
 	CreateReadySock(loc interface{}, name, path string) error
+	DeleteReadySock(sock interface{}) error
 }
 
 type Virtualization struct {

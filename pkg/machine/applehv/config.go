@@ -42,6 +42,10 @@ func VirtualizationProvider() machine.VirtProvider {
 	}
 }
 
+func (v AppleHVVirtualization) DeleteReadySock(sock interface{}) error {
+	return sock.(*define.VMFile).Delete()
+}
+
 func (v AppleHVVirtualization) CheckExclusiveActiveVM() (bool, string, error) {
 	fsVms, err := getVMInfos()
 	if err != nil {

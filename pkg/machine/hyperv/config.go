@@ -31,6 +31,10 @@ func VirtualizationProvider() machine.VirtProvider {
 	}
 }
 
+func (v HyperVVirtualization) DeleteReadySock(sock interface{}) error {
+	return sock.(*vsock.HVSockRegistryEntry).Remove()
+}
+
 func (v HyperVVirtualization) CheckExclusiveActiveVM() (bool, string, error) {
 	vmm := hypervctl.NewVirtualMachineManager()
 
