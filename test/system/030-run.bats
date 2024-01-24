@@ -268,7 +268,7 @@ echo $rand        |   0 | $rand
     # Save it as a tar archive
     run_podman commit myc myi
     archive=$PODMAN_TMPDIR/archive.tar
-    run_podman save --quiet myi -o $archive
+    run_podman save --format "docker-archive" --quiet myi -o $archive
     is "$output" "" "podman save"
 
     # Clean up image and container from container storage...

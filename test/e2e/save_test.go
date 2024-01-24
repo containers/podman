@@ -34,7 +34,7 @@ var _ = Describe("Podman save", func() {
 	It("podman save oci flag", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
 
-		save := podmanTest.Podman([]string{"save", "-q", "-o", outfile, "--format", "oci-archive", ALPINE})
+		save := podmanTest.Podman([]string{"save", "-q", "-o", outfile, ALPINE})
 		save.WaitWithDefaultTimeout()
 		Expect(save).Should(ExitCleanly())
 	})
@@ -104,7 +104,7 @@ var _ = Describe("Podman save", func() {
 		// should not be 0
 		Expect(save).To(ExitWithError())
 
-		save = podmanTest.Podman([]string{"save", "-q", "--compress", "--format", "oci-archive", "-o", outdir, ALPINE})
+		save = podmanTest.Podman([]string{"save", "-q", "--compress", "-o", outdir, ALPINE})
 		save.WaitWithDefaultTimeout()
 		// should not be 0
 		Expect(save).To(ExitWithError())
@@ -239,7 +239,7 @@ default-docker:
 func multiImageSave(podmanTest *PodmanTestIntegration, images []string) {
 	// Create the archive.
 	outfile := filepath.Join(podmanTest.TempDir, "temp.tar")
-	session := podmanTest.Podman(append([]string{"save", "-q", "-o", outfile, "--multi-image-archive"}, images...))
+	session := podmanTest.Podman(append([]string{"save", "-q", "--format", "docker-archive", "-o", outfile, "--multi-image-archive"}, images...))
 	session.WaitWithDefaultTimeout()
 	Expect(session).Should(ExitCleanly())
 

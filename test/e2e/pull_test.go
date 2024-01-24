@@ -76,7 +76,7 @@ var _ = Describe("Podman pull", func() {
 		tmpDir := filepath.Join(podmanTest.TempDir, "splitstore")
 		outfile := filepath.Join(podmanTest.TempDir, "image.tar")
 
-		save := podmanTest.Podman([]string{"save", "-q", "-o", outfile, "--format", "oci-archive", imgName})
+		save := podmanTest.Podman([]string{"save", "-q", "-o", outfile, imgName})
 		save.WaitWithDefaultTimeout()
 		Expect(save).Should(ExitCleanly())
 
@@ -317,7 +317,7 @@ var _ = Describe("Podman pull", func() {
 
 		podmanTest.AddImageToRWStore(CIRROS_IMAGE)
 		tarfn := filepath.Join(podmanTest.TempDir, "cirros.tar")
-		session := podmanTest.Podman([]string{"save", "-q", "-o", tarfn, "cirros"})
+		session := podmanTest.Podman([]string{"save", "--format", "docker-archive", "-q", "-o", tarfn, "cirros"})
 		session.WaitWithDefaultTimeout()
 
 		Expect(session).Should(ExitCleanly())
@@ -377,7 +377,7 @@ var _ = Describe("Podman pull", func() {
 
 		podmanTest.AddImageToRWStore(CIRROS_IMAGE)
 		tarfn := filepath.Join(podmanTest.TempDir, "oci-cirrus.tar")
-		session := podmanTest.Podman([]string{"save", "-q", "--format", "oci-archive", "-o", tarfn, "cirros"})
+		session := podmanTest.Podman([]string{"save", "-q", "-o", tarfn, "cirros"})
 		session.WaitWithDefaultTimeout()
 
 		Expect(session).Should(ExitCleanly())

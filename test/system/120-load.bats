@@ -254,7 +254,7 @@ verify_iid_and_name() {
     _prefetch $img1
     _prefetch $img2
 
-    run_podman save -m -o $archive $img1 $img2
+    run_podman save --format docker-archive -m -o $archive $img1 $img2
     run_podman rmi -f $img1 $img2
     run_podman load -i $archive
 
@@ -275,7 +275,7 @@ verify_iid_and_name() {
     # We can't use run_podman because that uses the BATS 'run' function
     # which redirects stdout and stderr. Here we need to guarantee
     # that podman's stdout is a pipe, not any other form of redirection
-    $PODMAN save -m $img1 $img2 | cat >$archive
+    $PODMAN save --format docker-archive -m $img1 $img2 | cat >$archive
     assert "$?" -eq 0 "Command failed: podman save ... | cat"
 
     run_podman rmi -f $img1 $img2
@@ -292,10 +292,15 @@ verify_iid_and_name() {
     mkdir -p $untar
 
     # Create a tarball, unpack it and make sure the layers are uncompressed.
-    run_podman save -o $archive --format oci-archive --uncompressed $IMAGE
+    run_podman save -o $archive --uncompressed $IMAGE
     tar -C $untar -xvf $archive
     run file $untar/blobs/sha256/*
     is "$output" ".*POSIX tar archive" "layers are uncompressed"
+}
+
+@test "podman save --help" {
+    run_podman save --help
+    is "$output" '.*--format.*(default "oci-archive")' "--format default should be oci-archive"
 }
 
 # vim: filetype=sh

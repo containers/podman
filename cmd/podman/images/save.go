@@ -23,7 +23,7 @@ var (
 )
 
 var (
-	saveDescription = `Save an image to docker-archive or oci-archive on the local machine. Default is docker-archive.`
+	saveDescription = `Save an image to docker-archive or oci-archive on the local machine. Default is oci-archive.`
 
 	saveCommand = &cobra.Command{
 		Use:   "save [options] IMAGE [IMAGE...]",
@@ -87,7 +87,7 @@ func saveFlags(cmd *cobra.Command) {
 	flags.BoolVar(&saveOpts.OciAcceptUncompressedLayers, "uncompressed", false, "Accept uncompressed layers when copying OCI images")
 
 	formatFlagName := "format"
-	flags.StringVar(&saveOpts.Format, formatFlagName, define.V2s2Archive, "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-archive, docker-dir (directory with v2s2 manifest type)")
+	flags.StringVar(&saveOpts.Format, formatFlagName, define.OCIArchive, "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-archive, docker-dir (directory with v2s2 manifest type)")
 	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteImageSaveFormat)
 
 	outputFlagName := "output"

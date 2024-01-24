@@ -161,7 +161,7 @@ var _ = Describe("Podman load", func() {
 		pull.WaitWithDefaultTimeout()
 		Expect(pull).Should(ExitCleanly())
 
-		save := podmanTest.Podman([]string{"save", "-q", "-o", outfile, ALPINE, alpVersion})
+		save := podmanTest.Podman([]string{"save", "--format", "docker-archive", "-q", "-o", outfile, ALPINE, alpVersion})
 		save.WaitWithDefaultTimeout()
 		Expect(save).Should(ExitCleanly())
 

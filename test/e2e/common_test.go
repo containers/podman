@@ -426,7 +426,7 @@ func (p *PodmanTestIntegration) createArtifact(image string) {
 			time.Sleep(time.Duration(try+1) * 5 * time.Second)
 		}
 
-		save := p.PodmanNoCache([]string{"save", "-o", destName, image})
+		save := p.PodmanNoCache([]string{"save", "--format", "docker-archive", "-o", destName, image})
 		save.Wait(90)
 		Expect(save).Should(Exit(0))
 		GinkgoWriter.Printf("\n")

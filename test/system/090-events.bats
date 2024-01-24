@@ -60,7 +60,7 @@ load helpers
     # Force using the file backend since the journal backend is eating events
     # (see containers/podman/pull/10219#issuecomment-842325032).
     run_podman --events-backend=file push $IMAGE dir:$pushedDir
-    run_podman --events-backend=file save $IMAGE -o $tarball
+    run_podman --events-backend=file save --format "docker-archive" $IMAGE -o $tarball
     run_podman --events-backend=file load -i $tarball
     run_podman --events-backend=file pull docker-archive:$tarball
     run_podman --events-backend=file tag $IMAGE $tag

@@ -157,7 +157,7 @@ function _confirm_update() {
 
     # Requires docker (or no) transport
     archive=$PODMAN_TMPDIR/archive.tar
-    run_podman save -o $archive $IMAGE
+    run_podman save --format "docker-archive" -o $archive $IMAGE
     run_podman 125 create --label io.containers.autoupdate=registry docker-archive:$archive
     is "$output" ".*Error: auto updates require the docker image transport but image is of transport \"docker-archive\""
 

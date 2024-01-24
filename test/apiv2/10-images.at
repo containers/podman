@@ -255,7 +255,7 @@ t POST libpod/images/prune 200 length=0 []
 
 # compat api must allow loading tar which contain multiple images
 podman pull quay.io/libpod/alpine:latest quay.io/libpod/busybox:latest
-podman save -o ${TMPD}/test.tar quay.io/libpod/alpine:latest quay.io/libpod/busybox:latest
+podman save --format docker-archive -o ${TMPD}/test.tar quay.io/libpod/alpine:latest quay.io/libpod/busybox:latest
 t POST "images/load" ${TMPD}/test.tar 200 \
   .stream="Loaded image: quay.io/libpod/busybox:latest,quay.io/libpod/alpine:latest"
 t GET libpod/images/quay.io/libpod/alpine:latest/exists  204

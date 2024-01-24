@@ -100,7 +100,7 @@ function _corrupt_image_test() {
 @test "podman corrupt images - initialize" {
     # Pull once, save cached copy.
     run_podman pull $PODMAN_CORRUPT_TEST_IMAGE_CANONICAL_FQIN
-    run_podman save -o ${PODMAN_CORRUPT_TEST_WORKDIR}/img.tar \
+    run_podman save --format "docker-archive" -o ${PODMAN_CORRUPT_TEST_WORKDIR}/img.tar \
                $PODMAN_CORRUPT_TEST_IMAGE_CANONICAL_FQIN
 }
 
