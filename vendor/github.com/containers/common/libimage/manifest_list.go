@@ -1,5 +1,4 @@
 //go:build !remote
-// +build !remote
 
 package libimage
 
@@ -314,7 +313,7 @@ func (m *ManifestList) Add(ctx context.Context, name string, options *ManifestLi
 	return newDigest, nil
 }
 
-// Options for annotationg a manifest list.
+// Options for annotating a manifest list.
 type ManifestListAnnotateOptions struct {
 	// Add the specified annotations to the added image.
 	Annotations map[string]string

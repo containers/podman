@@ -9,8 +9,7 @@ import (
 	"os"
 
 	"github.com/letsencrypt/boulder/core"
-
-	yaml "gopkg.in/yaml.v3"
+	"github.com/letsencrypt/boulder/strictyaml"
 )
 
 // blockedKeys is a type for maintaining a map of SHA256 hashes
@@ -58,7 +57,7 @@ func loadBlockedKeysList(filename string) (*blockedKeys, error) {
 		BlockedHashes    []string `yaml:"blocked"`
 		BlockedHashesHex []string `yaml:"blockedHashesHex"`
 	}
-	err = yaml.Unmarshal(yamlBytes, &list)
+	err = strictyaml.Unmarshal(yamlBytes, &list)
 	if err != nil {
 		return nil, err
 	}

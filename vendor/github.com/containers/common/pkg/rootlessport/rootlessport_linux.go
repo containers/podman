@@ -1,5 +1,4 @@
 //go:build linux
-// +build linux
 
 // Rootlessport Config type for use in podman/cmd/rootlessport.
 package rootlessport

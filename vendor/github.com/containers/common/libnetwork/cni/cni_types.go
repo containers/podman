@@ -1,5 +1,4 @@
 //go:build linux || freebsd
-// +build linux freebsd
 
 package cni
 
@@ -116,7 +115,7 @@ type dnsNameConfig struct {
 }
 
 // ncList describes a generic map
-type ncList map[string]interface{}
+type ncList map[string]any
 
 // newNcList creates a generic map of values with string
 // keys and adds in version and network name
@@ -139,8 +138,6 @@ func newNcList(name, version string, labels, options map[string]string) ncList {
 
 // newHostLocalBridge creates a new LocalBridge for host-local
 func newHostLocalBridge(name string, isGateWay, ipMasq bool, mtu, vlan int, ipamConf *ipamConfig) *hostLocalBridge {
-	caps := make(map[string]bool)
-	caps["ips"] = true
 	bridge := hostLocalBridge{
 		PluginType:  "bridge",
 		BrName:      name,
@@ -154,7 +151,7 @@ func newHostLocalBridge(name string, isGateWay, ipMasq bool, mtu, vlan int, ipam
 		bridge.IPAM = *ipamConf
 		// if we use host-local set the ips cap to ensure we can set static ips via runtime config
 		if ipamConf.PluginType == types.HostLocalIPAMDriver {
-			bridge.Capabilities = caps
+			bridge.Capabilities = map[string]bool{"ips": true}
 		}
 	}
 	return &bridge
@@ -216,13 +213,10 @@ func newIPAMDefaultRoute(isIPv6 bool) (ipamRoute, error) {
 // newPortMapPlugin creates a predefined, default portmapping
 // configuration
 func newPortMapPlugin() portMapConfig {
-	caps := make(map[string]bool)
-	caps["portMappings"] = true
-	p := portMapConfig{
+	return portMapConfig{
 		PluginType:   "portmap",
-		Capabilities: caps,
+		Capabilities: map[string]bool{"portMappings": true},
 	}
-	return p
 }
 
 // newFirewallPlugin creates a generic firewall plugin
@@ -246,12 +240,10 @@ func newTuningPlugin() tuningConfig {
 // newDNSNamePlugin creates the dnsname config with a given
 // domainname
 func newDNSNamePlugin(domainName string) dnsNameConfig {
-	caps := make(map[string]bool, 1)
-	caps["aliases"] = true
 	return dnsNameConfig{
 		PluginType:   "dnsname",
 		DomainName:   domainName,
-		Capabilities: caps,
+		Capabilities: map[string]bool{"aliases": true},
 	}
 }
 

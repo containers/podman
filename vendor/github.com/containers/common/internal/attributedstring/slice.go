@@ -42,8 +42,8 @@ func (a *Slice) Set(values []string) {
 }
 
 // UnmarshalTOML is the custom unmarshal method for Slice.
-func (a *Slice) UnmarshalTOML(data interface{}) error {
-	iFaceSlice, ok := data.([]interface{})
+func (a *Slice) UnmarshalTOML(data any) error {
+	iFaceSlice, ok := data.([]any)
 	if !ok {
 		return fmt.Errorf("unable to cast to interface array: %v", data)
 	}
@@ -53,7 +53,7 @@ func (a *Slice) UnmarshalTOML(data interface{}) error {
 		switch val := x.(type) {
 		case string: // Strings are directly appended to the slice.
 			loadedStrings = append(loadedStrings, val)
-		case map[string]interface{}: // The attribute struct is represented as a map.
+		case map[string]any: // The attribute struct is represented as a map.
 			for k, v := range val { // Iterate over all _supported_ keys.
 				switch k {
 				case "append":
@@ -81,16 +81,15 @@ func (a *Slice) UnmarshalTOML(data interface{}) error {
 
 // MarshalTOML is the custom marshal method for Slice.
 func (a *Slice) MarshalTOML() ([]byte, error) {
-	iFaceSlice := make([]interface{}, 0, len(a.Values))
+	iFaceSlice := make([]any, 0, len(a.Values))
 
 	for _, x := range a.Values {
 		iFaceSlice = append(iFaceSlice, x)
 	}
 
 	if a.Attributes.Append != nil {
-		Attributes := make(map[string]any)
-		Attributes["append"] = *a.Attributes.Append
-		iFaceSlice = append(iFaceSlice, Attributes)
+		attributes := map[string]any{"append": *a.Attributes.Append}
+		iFaceSlice = append(iFaceSlice, attributes)
 	}
 
 	buf := new(bytes.Buffer)

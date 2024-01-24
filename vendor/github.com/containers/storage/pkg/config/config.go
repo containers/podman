@@ -97,6 +97,8 @@ type OverlayOptionsConfig struct {
 	Inodes string `toml:"inodes,omitempty"`
 	// Do not create a bind mount on the storage home
 	SkipMountHome string `toml:"skip_mount_home,omitempty"`
+	// Specify whether composefs must be used to mount the data layers
+	UseComposefs string `toml:"use_composefs,omitempty"`
 	// ForceMask indicates the permissions mask (e.g. "0755") to use for new
 	// files and directories
 	ForceMask string `toml:"force_mask,omitempty"`
@@ -146,6 +148,9 @@ type OptionsConfig struct {
 	// IgnoreChownErrors is a flag for whether chown errors should be
 	// ignored when building an image.
 	IgnoreChownErrors string `toml:"ignore_chown_errors,omitempty"`
+
+	// Specify whether composefs must be used to mount the data layers
+	UseComposefs string `toml:"use_composefs,omitempty"`
 
 	// ForceMask indicates the permissions mask (e.g. "0755") to use for new
 	// files and directories.
@@ -283,6 +288,7 @@ func GetGraphDriverOptions(driverName string, options OptionsConfig) []string {
 		}
 
 	case "overlay", "overlay2":
+		// Specify whether composefs must be used to mount the data layers
 		if options.Overlay.IgnoreChownErrors != "" {
 			doptions = append(doptions, fmt.Sprintf("%s.ignore_chown_errors=%s", driverName, options.Overlay.IgnoreChownErrors))
 		} else if options.IgnoreChownErrors != "" {
@@ -315,6 +321,9 @@ func GetGraphDriverOptions(driverName string, options OptionsConfig) []string {
 			doptions = append(doptions, fmt.Sprintf("%s.force_mask=%s", driverName, options.Overlay.ForceMask))
 		} else if options.ForceMask != 0 {
 			doptions = append(doptions, fmt.Sprintf("%s.force_mask=%s", driverName, options.ForceMask))
+		}
+		if options.Overlay.UseComposefs != "" {
+			doptions = append(doptions, fmt.Sprintf("%s.use_composefs=%s", driverName, options.Overlay.UseComposefs))
 		}
 	case "vfs":
 		if options.Vfs.IgnoreChownErrors != "" {

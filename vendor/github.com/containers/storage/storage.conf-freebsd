@@ -96,6 +96,9 @@ mountopt = "nodev"
 # Set to skip a PRIVATE bind mount on the storage home directory.
 # skip_mount_home = "false"
 
+# Set to use composefs to mount data layers with overlay.
+# use_composefs = "false"
+
 # Size is used to set a maximum size of the container image.
 # size = ""
 

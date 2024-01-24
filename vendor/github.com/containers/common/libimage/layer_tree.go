@@ -1,5 +1,4 @@
 //go:build !remote
-// +build !remote
 
 package libimage
 
@@ -92,14 +91,14 @@ func (l *layerNode) repoTags() ([]string, error) {
 
 // layerTree extracts a layerTree from the layers in the local storage and
 // relates them to the specified images.
-func (r *Runtime) layerTree(images []*Image) (*layerTree, error) {
+func (r *Runtime) layerTree(ctx context.Context, images []*Image) (*layerTree, error) {
 	layers, err := r.store.Layers()
 	if err != nil {
 		return nil, err
 	}
 
 	if images == nil {
-		images, err = r.ListImages(context.Background(), nil, nil)
+		images, err = r.ListImages(ctx, nil, nil)
 		if err != nil {
 			return nil, err
 		}

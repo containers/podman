@@ -1,3 +1,5 @@
+//go:build windows
+
 package winapi
 
 import (
@@ -34,7 +36,7 @@ type CimFsFileMetadata struct {
 //sys CimDismountImage(volumeID *g) (hr error) = cimfs.CimDismountImage?
 
 //sys CimCreateImage(imagePath string, oldFSName *uint16, newFSName *uint16, cimFSHandle *FsHandle) (hr error) = cimfs.CimCreateImage?
-//sys CimCloseImage(cimFSHandle FsHandle) (hr error) = cimfs.CimCloseImage?
+//sys CimCloseImage(cimFSHandle FsHandle) = cimfs.CimCloseImage?
 //sys CimCommitImage(cimFSHandle FsHandle) (hr error) = cimfs.CimCommitImage?
 
 //sys CimCreateFile(cimFSHandle FsHandle, path string, file *CimFsFileMetadata, cimStreamHandle *StreamHandle) (hr error) = cimfs.CimCreateFile?

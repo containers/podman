@@ -1,5 +1,4 @@
 //go:build linux
-// +build linux
 
 package slirp4netns
 
@@ -706,7 +705,7 @@ func openSlirp4netnsPort(apiSocket, proto, hostip string, hostport, guestport ui
 	}
 	// if there is no 'error' key in the received JSON data, then the operation was
 	// successful.
-	var y map[string]interface{}
+	var y map[string]any
 	if err := json.Unmarshal(buf[0:readLength], &y); err != nil {
 		return fmt.Errorf("parsing error status from slirp4netns: %w", err)
 	}

@@ -1,5 +1,4 @@
 //go:build !remote
-// +build !remote
 
 package libimage
 
@@ -31,7 +30,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// PullOptions allows for custommizing image pulls.
+// PullOptions allows for customizing image pulls.
 type PullOptions struct {
 	CopyOptions
 
@@ -511,7 +510,7 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 
 	// If the local image is corrupted, we need to repull it.
 	if localImage != nil {
-		if err := localImage.isCorrupted(imageName); err != nil {
+		if err := localImage.isCorrupted(ctx, imageName); err != nil {
 			logrus.Error(err)
 			localImage = nil
 		}

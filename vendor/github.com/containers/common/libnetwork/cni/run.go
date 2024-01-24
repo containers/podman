@@ -1,5 +1,4 @@
 //go:build linux || freebsd
-// +build linux freebsd
 
 package cni
 
@@ -70,8 +69,9 @@ func (n *cniNetwork) Setup(namespacePath string, options types.SetupOptions) (ma
 			// If we have more than one static ip we need parse the ips via runtime config,
 			// make sure to add the ips capability to the first plugin otherwise it doesn't get the ips
 			if len(netOpts.StaticIPs) > 0 && !network.cniNet.Plugins[0].Network.Capabilities["ips"] {
-				caps := make(map[string]interface{})
-				caps["capabilities"] = map[string]bool{"ips": true}
+				caps := map[string]any{
+					"capabilities": map[string]bool{"ips": true},
+				}
 				network.cniNet.Plugins[0], retErr = libcni.InjectConf(network.cniNet.Plugins[0], caps)
 				if retErr != nil {
 					return retErr
@@ -174,7 +174,7 @@ func getRuntimeConfig(netns, conName, conID, networkName string, ports []cniPort
 			// Only K8S_POD_NAME is used by dnsname to get the container name.
 			{"K8S_POD_NAME", conName},
 		},
-		CapabilityArgs: map[string]interface{}{},
+		CapabilityArgs: map[string]any{},
 	}
 
 	// Propagate environment CNI_ARGS

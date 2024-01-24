@@ -17,7 +17,6 @@
 // limitations under the License.
 
 //go:build linux || freebsd
-// +build linux freebsd
 
 package cni
 

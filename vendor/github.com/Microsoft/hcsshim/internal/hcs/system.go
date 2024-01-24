@@ -97,7 +97,7 @@ func CreateComputeSystem(ctx context.Context, id string, hcsDocumentInterface in
 	events, err := processAsyncHcsResult(ctx, createError, resultJSON, computeSystem.callbackNumber,
 		hcsNotificationSystemCreateCompleted, &timeout.SystemCreate)
 	if err != nil {
-		if err == ErrTimeout {
+		if errors.Is(err, ErrTimeout) {
 			// Terminate the compute system if it still exists. We're okay to
 			// ignore a failure here.
 			_ = computeSystem.Terminate(ctx)
@@ -238,7 +238,7 @@ func (computeSystem *System) Shutdown(ctx context.Context) error {
 
 	resultJSON, err := vmcompute.HcsShutdownComputeSystem(ctx, computeSystem.handle, "")
 	events := processHcsResult(ctx, resultJSON)
-	switch err {
+	switch err { //nolint:errorlint
 	case nil, ErrVmcomputeAlreadyStopped, ErrComputeSystemDoesNotExist, ErrVmcomputeOperationPending:
 	default:
 		return makeSystemError(computeSystem, operation, err, events)
@@ -259,7 +259,7 @@ func (computeSystem *System) Terminate(ctx context.Context) error {
 
 	resultJSON, err := vmcompute.HcsTerminateComputeSystem(ctx, computeSystem.handle, "")
 	events := processHcsResult(ctx, resultJSON)
-	switch err {
+	switch err { //nolint:errorlint
 	case nil, ErrVmcomputeAlreadyStopped, ErrComputeSystemDoesNotExist, ErrVmcomputeOperationPending:
 	default:
 		return makeSystemError(computeSystem, operation, err, events)
@@ -279,7 +279,7 @@ func (computeSystem *System) waitBackground() {
 	span.AddAttributes(trace.StringAttribute("cid", computeSystem.id))
 
 	err := waitForNotification(ctx, computeSystem.callbackNumber, hcsNotificationSystemExited, nil)
-	switch err {
+	switch err { //nolint:errorlint
 	case nil:
 		log.G(ctx).Debug("system exited")
 	case ErrVmcomputeUnexpectedExit:

@@ -1,5 +1,4 @@
 //go:build !remote
-// +build !remote
 
 package config
 
@@ -65,6 +64,13 @@ func (c *ContainersConfig) validateTZ() error {
 	lookupPaths := []string{
 		"/usr/share/zoneinfo",
 		"/etc/zoneinfo",
+	}
+
+	// Allow using TZDIR to override the lookupPaths. Ref:
+	// https://sourceware.org/git/?p=glibc.git;a=blob;f=time/tzfile.c;h=8a923d0cccc927a106dc3e3c641be310893bab4e;hb=HEAD#l149
+	tzdir := os.Getenv("TZDIR")
+	if tzdir != "" {
+		lookupPaths = []string{tzdir}
 	}
 
 	for _, paths := range lookupPaths {

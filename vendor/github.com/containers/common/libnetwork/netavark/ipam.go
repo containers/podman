@@ -1,5 +1,4 @@
 //go:build linux || freebsd
-// +build linux freebsd
 
 package netavark
 
@@ -48,7 +47,7 @@ func (e *ipamError) Error() string {
 	return msg
 }
 
-func newIPAMError(cause error, msg string, args ...interface{}) *ipamError {
+func newIPAMError(cause error, msg string, args ...any) *ipamError {
 	return &ipamError{
 		msg:   fmt.Sprintf(msg, args...),
 		cause: cause,

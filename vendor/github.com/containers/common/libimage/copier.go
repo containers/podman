@@ -1,5 +1,4 @@
 //go:build !remote
-// +build !remote
 
 package libimage
 
@@ -518,8 +517,8 @@ func checkRegistrySourcesAllows(dest types.ImageReference) (insecure *bool, err 
 		return nil, fmt.Errorf("registry %q denied by policy: not in allowed registries list (%s)", reference.Domain(dref), registrySources)
 	}
 
-	for _, inseureDomain := range sources.InsecureRegistries {
-		if inseureDomain == reference.Domain(dref) {
+	for _, insecureDomain := range sources.InsecureRegistries {
+		if insecureDomain == reference.Domain(dref) {
 			insecure := true
 			return &insecure, nil
 		}
