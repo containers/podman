@@ -3,7 +3,8 @@ package entities
 import (
 	"net"
 
-	"github.com/containers/common/libnetwork/types"
+	commonTypes "github.com/containers/common/libnetwork/types"
+	"github.com/containers/podman/v4/pkg/domain/entities/types"
 )
 
 // NetworkListOptions describes options for listing networks in cli
@@ -82,16 +83,13 @@ type NetworkDisconnectOptions struct {
 // a container to a network
 type NetworkConnectOptions struct {
 	Container string `json:"container"`
-	types.PerNetworkOptions
+	commonTypes.PerNetworkOptions
 }
 
 // NetworkPruneReport containers the name of network and an error
 // associated in its pruning (removal)
 // swagger:model NetworkPruneReport
-type NetworkPruneReport struct {
-	Name  string
-	Error error
-}
+type NetworkPruneReport = types.NetworkPruneReport
 
 // NetworkPruneOptions describes options for pruning unused networks
 type NetworkPruneOptions struct {

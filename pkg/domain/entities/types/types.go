@@ -27,3 +27,8 @@ type Version struct {
 	Experimental  bool   `json:",omitempty"`
 	BuildTime     string `json:",omitempty"`
 }
+
+// SystemComponentVersion is the type used by pkg/domain/entities
+type SystemComponentVersion struct {
+	Version
+}

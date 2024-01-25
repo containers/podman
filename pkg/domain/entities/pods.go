@@ -7,6 +7,7 @@ import (
 
 	commonFlag "github.com/containers/common/pkg/flag"
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/pkg/domain/entities/types"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -446,10 +447,7 @@ type PodPruneOptions struct {
 	Force bool `json:"force" schema:"force"`
 }
 
-type PodPruneReport struct {
-	Err error
-	Id  string //nolint:revive,stylecheck
-}
+type PodPruneReport = types.PodPruneReport
 
 type PodTopOptions struct {
 	// CLI flags.
