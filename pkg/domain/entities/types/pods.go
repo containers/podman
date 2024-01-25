@@ -1,5 +1,12 @@
 package types
 
+import (
+	"time"
+
+	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/pkg/specgen"
+)
+
 type PodPruneReport struct {
 	Err error
 	Id  string //nolint:revive,stylecheck
@@ -72,4 +79,40 @@ type PodStatsReport struct {
 	// Pod Name
 	// example: elastic_pascal
 	Name string
+}
+
+// PodSpec is an abstracted version of PodSpecGen designed to eventually accept options
+// not meant to be in a specgen
+type PodSpec struct {
+	PodSpecGen specgen.PodSpecGenerator
+}
+
+type PodInspectReport struct {
+	*define.InspectPodData
+}
+
+type PodKillReport struct {
+	Errs []error
+	Id   string //nolint:revive,stylecheck
+}
+
+type ListPodsReport struct {
+	Cgroup     string
+	Containers []*ListPodContainer
+	Created    time.Time
+	Id         string //nolint:revive,stylecheck
+	InfraId    string //nolint:revive,stylecheck
+	Name       string
+	Namespace  string
+	// Network names connected to infra container
+	Networks []string
+	Status   string
+	Labels   map[string]string
+}
+
+type ListPodContainer struct {
+	Id           string //nolint:revive,stylecheck
+	Names        string
+	Status       string
+	RestartCount uint
 }

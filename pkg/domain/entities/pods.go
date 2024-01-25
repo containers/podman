@@ -3,7 +3,6 @@ package entities
 import (
 	"errors"
 	"strings"
-	"time"
 
 	commonFlag "github.com/containers/common/pkg/flag"
 	"github.com/containers/podman/v4/libpod/define"
@@ -19,31 +18,11 @@ type PodKillOptions struct {
 	Signal string
 }
 
-type PodKillReport struct {
-	Errs []error
-	Id   string //nolint:revive,stylecheck
-}
+type PodKillReport = types.PodKillReport
 
-type ListPodsReport struct {
-	Cgroup     string
-	Containers []*ListPodContainer
-	Created    time.Time
-	Id         string //nolint:revive,stylecheck
-	InfraId    string //nolint:revive,stylecheck
-	Name       string
-	Namespace  string
-	// Network names connected to infra container
-	Networks []string
-	Status   string
-	Labels   map[string]string
-}
+type ListPodsReport = types.ListPodsReport
 
-type ListPodContainer struct {
-	Id           string //nolint:revive,stylecheck
-	Names        string
-	Status       string
-	RestartCount uint
-}
+type ListPodContainer = types.ListPodContainer
 
 type PodPauseOptions struct {
 	All    bool
@@ -91,11 +70,7 @@ type PodRmOptions struct {
 
 type PodRmReport = types.PodRmReport
 
-// PddSpec is an abstracted version of PodSpecGen designed to eventually accept options
-// not meant to be in a specgen
-type PodSpec struct {
-	PodSpecGen specgen.PodSpecGenerator
-}
+type PodSpec = types.PodSpec
 
 // PodCreateOptions provides all possible options for creating a pod and its infra container.
 // The JSON tags below are made to match the respective field in ContainerCreateOptions for the purpose of mapping.
@@ -447,9 +422,7 @@ type PodPSOptions struct {
 	Sort      string
 }
 
-type PodInspectReport struct {
-	*define.InspectPodData
-}
+type PodInspectReport = types.PodInspectReport
 
 // PodStatsOptions are options for the pod stats command.
 type PodStatsOptions struct {
