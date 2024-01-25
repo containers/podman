@@ -109,8 +109,8 @@ verify_iid_and_name() {
     _sudo true || skip "cannot sudo to $notme"
 
     # Preserve digest of original image; we will compare against it later
-    run_podman image inspect --format '{{.Digest}}' $IMAGE
-    src_digest=$output
+    run_podman image inspect --format '{{.RepoDigests}}' $IMAGE
+    src_digests=$output
 
     # image name that is not likely to exist in the destination
     newname=foo.bar/nonesuch/c_$(random_string 10 | tr A-Z a-z):mytag
@@ -132,14 +132,14 @@ verify_iid_and_name() {
 
     # Confirm that we have it, and that its digest matches our original
     run_podman image inspect --format '{{.Digest}}' $newname
-    is "$output" "$src_digest" "Digest of re-fetched image matches original"
+    assert "$output" =~ "$src_digests" "Digest of re-fetched image is in list of original image digests"
 
     # test tagging capability
     run_podman untag $IMAGE $newname
     run_podman image scp ${notme}@localhost::$newname foobar:123
 
     run_podman image inspect --format '{{.Digest}}' foobar:123
-    is "$output" "$src_digest" "Digest of re-fetched image matches original"
+    assert "$output" =~ "$src_digest" "Digest of re-fetched image is in list of original image digests"
 
     # remove root img for transfer back with another name
     _sudo $PODMAN image rm $newname
