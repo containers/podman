@@ -13,7 +13,7 @@ import (
 	"github.com/containers/podman/v4/pkg/namespaces"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/containers/storage"
+	storageTypes "github.com/containers/storage/types"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/exp/slices"
@@ -488,7 +488,7 @@ func parseBridgeNetworkOptions(opts string) (types.PerNetworkOptions, error) {
 	return netOpts, nil
 }
 
-func SetupUserNS(idmappings *storage.IDMappingOptions, userns Namespace, g *generate.Generator) (string, error) {
+func SetupUserNS(idmappings *storageTypes.IDMappingOptions, userns Namespace, g *generate.Generator) (string, error) {
 	// User
 	var user string
 	switch userns.NSMode {
@@ -544,7 +544,7 @@ func SetupUserNS(idmappings *storage.IDMappingOptions, userns Namespace, g *gene
 	return user, nil
 }
 
-func privateUserNamespace(idmappings *storage.IDMappingOptions, g *generate.Generator) error {
+func privateUserNamespace(idmappings *storageTypes.IDMappingOptions, g *generate.Generator) error {
 	if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), ""); err != nil {
 		return err
 	}
