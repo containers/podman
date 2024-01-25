@@ -25,3 +25,11 @@ type RestoreReport struct {
 	RuntimeDuration int64                                   `json:"runtime_restore_duration"`
 	CRIUStatistics  *define.CRIUCheckpointRestoreStatistics `json:"criu_statistics"`
 }
+
+// ContainerStatsReport is used for streaming container stats.
+type ContainerStatsReport struct {
+	// Error from reading stats.
+	Error error
+	// Results, set when there is no error.
+	Stats []define.ContainerStats
+}

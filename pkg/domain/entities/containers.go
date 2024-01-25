@@ -473,13 +473,7 @@ type ContainerStatsOptions struct {
 	Interval int
 }
 
-// ContainerStatsReport is used for streaming container stats.
-type ContainerStatsReport struct {
-	// Error from reading stats.
-	Error error
-	// Results, set when there is no error.
-	Stats []define.ContainerStats
-}
+type ContainerStatsReport = types.ContainerStatsReport
 
 // ContainerRenameOptions describes input options for renaming a container.
 type ContainerRenameOptions struct {
