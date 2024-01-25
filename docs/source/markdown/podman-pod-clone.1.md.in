@@ -113,7 +113,7 @@ d0cf1f782e2ed67e8c0050ff92df865a039186237a4df24d7acba5b1fa8cc6e7
 6b2c73ff8a1982828c9ae2092954bcd59836a131960f7e05221af9df5939c584
 ```
 
-Clone and remove the specified pod to a new pod modifying its cpus.
+Clone and remove the specified pod to a new pod, modifying its cpus.
 ```
 # podman pod clone --destroy --cpus=5 d0cf1
 6b2c73ff8a1982828c9ae2092954bcd59836a131960f7e05221af9df5939c584

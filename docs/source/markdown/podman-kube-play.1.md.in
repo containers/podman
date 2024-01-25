@@ -283,7 +283,7 @@ $ cat demo.yml | podman kube play -
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 ```
 
-Teardown the pod and containers as described in the specified YAML file.
+Tear down the pod and containers as described in the specified YAML file.
 ```
 $  podman kube play --down demo.yml
 Pods stopped:
@@ -292,7 +292,7 @@ Pods removed:
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 ```
 
-Provide multiple configmaps files as sources for environment variables within the specified pods and containers.
+Provide multiple configmap files as sources for environment variables within the specified pods and containers.
 ```
 $ podman kube play demo.yml --configmap configmap-foo.yml,configmap-bar.yml
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
@@ -301,7 +301,7 @@ $ podman kube play demo.yml --configmap configmap-foo.yml --configmap configmap-
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 ```
 
-Create a pod connected to two networks with a static ip.
+Create a pod connected to two networks with a static ip on each.
 ```
 $ podman kube play demo.yml --network net1:ip=10.89.1.5 --network net2:ip=10.89.10.10
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
