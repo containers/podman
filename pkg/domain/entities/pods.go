@@ -50,20 +50,14 @@ type PodPauseOptions struct {
 	Latest bool
 }
 
-type PodPauseReport struct {
-	Errs []error
-	Id   string //nolint:revive,stylecheck
-}
+type PodPauseReport = types.PodPauseReport
 
 type PodunpauseOptions struct {
 	All    bool
 	Latest bool
 }
 
-type PodUnpauseReport struct {
-	Errs []error
-	Id   string //nolint:revive,stylecheck
-}
+type PodUnpauseReport = types.PodUnpauseReport
 
 type PodStopOptions struct {
 	All     bool
@@ -72,30 +66,20 @@ type PodStopOptions struct {
 	Timeout int
 }
 
-type PodStopReport struct {
-	Errs []error
-	Id   string //nolint:revive,stylecheck
-}
+type PodStopReport = types.PodStopReport
 
 type PodRestartOptions struct {
 	All    bool
 	Latest bool
 }
 
-type PodRestartReport struct {
-	Errs []error
-	Id   string //nolint:revive,stylecheck
-}
-
+type PodRestartReport = types.PodRestartReport
 type PodStartOptions struct {
 	All    bool
 	Latest bool
 }
 
-type PodStartReport struct {
-	Errs []error
-	Id   string //nolint:revive,stylecheck
-}
+type PodStartReport = types.PodStartReport
 
 type PodRmOptions struct {
 	All     bool
@@ -105,11 +89,7 @@ type PodRmOptions struct {
 	Timeout *uint
 }
 
-type PodRmReport struct {
-	RemovedCtrs map[string]error
-	Err         error
-	Id          string //nolint:revive,stylecheck
-}
+type PodRmReport = types.PodRmReport
 
 // PddSpec is an abstracted version of PodSpecGen designed to eventually accept options
 // not meant to be in a specgen
@@ -322,13 +302,9 @@ func NewInfraContainerCreateOptions() ContainerCreateOptions {
 	return options
 }
 
-type PodCreateReport struct {
-	Id string //nolint:revive,stylecheck
-}
+type PodCreateReport = types.PodCreateReport
 
-type PodCloneReport struct {
-	Id string //nolint:revive,stylecheck
-}
+type PodCloneReport = types.PodCloneReport
 
 func (p *PodCreateOptions) CPULimits() *specs.LinuxCPU {
 	cpu := &specs.LinuxCPU{}
@@ -484,35 +460,7 @@ type PodStatsOptions struct {
 }
 
 // PodStatsReport includes pod-resource statistics data.
-type PodStatsReport struct {
-	// Percentage of CPU utilized by pod
-	// example: 75.5%
-	CPU string
-	// Humanized Memory usage and maximum
-	// example: 12mb / 24mb
-	MemUsage string
-	// Memory usage and maximum in bytes
-	// example: 1,000,000 / 4,000,000
-	MemUsageBytes string
-	// Percentage of Memory utilized by pod
-	// example: 50.5%
-	Mem string
-	// Network usage inbound + outbound
-	NetIO string
-	// Humanized disk usage read + write
-	BlockIO string
-	// Container PID
-	PIDS string
-	// Pod ID
-	// example: 62310217a19e
-	Pod string
-	// Container ID
-	// example: e43534f89a7d
-	CID string
-	// Pod Name
-	// example: elastic_pascal
-	Name string
-}
+type PodStatsReport = types.PodStatsReport
 
 // ValidatePodStatsOptions validates the specified slice and options. Allows
 // for sharing code in the front- and the back-end.

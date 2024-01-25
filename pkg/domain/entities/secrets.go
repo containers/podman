@@ -1,14 +1,11 @@
 package entities
 
 import (
-	"time"
-
+	"github.com/containers/podman/v4/pkg/domain/entities/types"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 )
 
-type SecretCreateReport struct {
-	ID string
-}
+type SecretCreateReport = types.SecretCreateReport
 
 type SecretCreateOptions struct {
 	Driver     string
@@ -25,51 +22,24 @@ type SecretListRequest struct {
 	Filters map[string][]string
 }
 
-type SecretListReport struct {
-	ID        string
-	Name      string
-	Driver    string
-	CreatedAt string
-	UpdatedAt string
-}
+type SecretListReport = types.SecretListReport
 
 type SecretRmOptions struct {
 	All    bool
 	Ignore bool
 }
 
-type SecretRmReport struct {
-	ID  string
-	Err error
-}
+type SecretRmReport = types.SecretRmReport
 
-type SecretInfoReport struct {
-	ID         string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	Spec       SecretSpec
-	SecretData string `json:"SecretData,omitempty"`
-}
+type SecretInfoReport = types.SecretInfoReport
 
-type SecretInfoReportCompat struct {
-	SecretInfoReport
-	Version SecretVersion
-}
+type SecretInfoReportCompat = types.SecretInfoReportCompat
 
-type SecretVersion struct {
-	Index int
-}
+type SecretVersion = types.SecretVersion
 
-type SecretSpec struct {
-	Name   string
-	Driver SecretDriverSpec
-	Labels map[string]string
-}
+type SecretSpec = types.SecretSpec
 
-type SecretDriverSpec struct {
-	Name    string
-	Options map[string]string
-}
+type SecretDriverSpec = types.SecretDriverSpec
 
 // swagger:model SecretCreate
 type SecretCreateRequest struct {

@@ -3,7 +3,7 @@ package entities
 import (
 	"net/url"
 
-	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/pkg/domain/entities/types"
 )
 
 // VolumeCreateOptions provides details for creating volumes
@@ -23,9 +23,7 @@ type VolumeCreateOptions struct {
 	IgnoreIfExists bool `schema:"ignoreIfExist"`
 }
 
-type VolumeConfigResponse struct {
-	define.InspectVolumeData
-}
+type VolumeConfigResponse = types.VolumeConfigResponse
 
 type VolumeRmOptions struct {
 	All     bool
@@ -34,14 +32,9 @@ type VolumeRmOptions struct {
 	Timeout *uint
 }
 
-type VolumeRmReport struct {
-	Err error
-	Id  string //nolint:revive,stylecheck
-}
+type VolumeRmReport = types.VolumeRmReport
 
-type VolumeInspectReport struct {
-	*VolumeConfigResponse
-}
+type VolumeInspectReport = types.VolumeInspectReport
 
 // VolumePruneOptions describes the options needed
 // to prune a volume from the CLI
@@ -53,29 +46,17 @@ type VolumeListOptions struct {
 	Filter map[string][]string
 }
 
-type VolumeListReport struct {
-	VolumeConfigResponse
-}
+type VolumeListReport = types.VolumeListReport
 
 // VolumeReloadReport describes the response from reload volume plugins
-type VolumeReloadReport struct {
-	define.VolumeReload
-}
+type VolumeReloadReport = types.VolumeReloadReport
 
 /*
  * Docker API compatibility types
  */
 
 // VolumeMountReport describes the response from volume mount
-type VolumeMountReport struct {
-	Err  error
-	Id   string //nolint:revive,stylecheck
-	Name string
-	Path string
-}
+type VolumeMountReport = types.VolumeMountReport
 
 // VolumeUnmountReport describes the response from umounting a volume
-type VolumeUnmountReport struct {
-	Err error
-	Id  string //nolint:revive,stylecheck
-}
+type VolumeUnmountReport = types.VolumeUnmountReport

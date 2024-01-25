@@ -24,6 +24,7 @@ import (
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
+	entitiesTypes "github.com/containers/podman/v4/pkg/domain/entities/types"
 	v1apps "github.com/containers/podman/v4/pkg/k8s.io/api/apps/v1"
 	v1 "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
 	metav1 "github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1184,7 +1185,7 @@ func (ic *ContainerEngine) playKubePVC(ctx context.Context, mountLabel string, p
 		}
 	}
 
-	report.Volumes = append(report.Volumes, entities.PlayKubeVolume{
+	report.Volumes = append(report.Volumes, entitiesTypes.PlayKubeVolume{
 		Name: vol.Name(),
 	})
 
