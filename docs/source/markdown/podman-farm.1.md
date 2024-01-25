@@ -11,6 +11,8 @@ Farm out builds to machines running Podman for different architectures.
 
 Manage farms by creating, updating, and removing them.
 
+Note: All farm machines must have a minimum podman version of v4.9.0.
+
 ## COMMANDS
 
 | Command  | Man Page                                            | Description                                                       |
