@@ -316,7 +316,7 @@ func (t *task) localUpdateAvailable() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return localImg.Digest().String() != t.image.Digest().String(), nil
+	return localImg.ID() != t.image.ID(), nil
 }
 
 // rollbackImage rolls back the task's image to the previous version before the update.
