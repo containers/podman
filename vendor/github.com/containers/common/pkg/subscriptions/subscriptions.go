@@ -231,7 +231,7 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 		fileInfo, err := os.Stat(hostDirOrFile)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
-				logrus.Warnf("Path %q from %q doesn't exist, skipping", hostDirOrFile, filePath)
+				logrus.Infof("Path %q from %q doesn't exist, skipping", hostDirOrFile, filePath)
 				continue
 			}
 			return nil, err

@@ -147,7 +147,7 @@ func yamlScalar(node *yaml.Node) (interface{}, error) {
 	case yamlTimestamp:
 		return node.Value, nil
 	case yamlNull:
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	default:
 		return nil, fmt.Errorf("YAML tag %q is not supported", node.LongTag())
 	}
@@ -319,7 +319,8 @@ func json2yaml(item interface{}) (*yaml.Node, error) {
 			Value: strconv.FormatBool(val),
 		}, nil
 	}
-	return nil, nil
+
+	return nil, nil //nolint:nilnil
 }
 
 // JSONMapItem represents the value of a key in a JSON object held by JSONMapSlice

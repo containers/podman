@@ -259,10 +259,17 @@ func GetDiffer(ctx context.Context, store storage.Store, blobSize int64, annotat
 		return nil, err
 	}
 
-	if _, ok := annotations[internal.ManifestChecksumKey]; ok {
+	_, hasZstdChunkedTOC := annotations[internal.ManifestChecksumKey]
+	_, hasEstargzTOC := annotations[estargz.TOCJSONDigestAnnotation]
+
+	if hasZstdChunkedTOC && hasEstargzTOC {
+		return nil, errors.New("both zstd:chunked and eStargz TOC found")
+	}
+
+	if hasZstdChunkedTOC {
 		return makeZstdChunkedDiffer(ctx, store, blobSize, annotations, iss, &storeOpts)
 	}
-	if _, ok := annotations[estargz.TOCJSONDigestAnnotation]; ok {
+	if hasEstargzTOC {
 		return makeEstargzChunkedDiffer(ctx, store, blobSize, annotations, iss, &storeOpts)
 	}
 

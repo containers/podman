@@ -477,7 +477,7 @@ func (ta *tarAppender) addTarFile(path, name string) error {
 		}
 	}
 	if fi.Mode()&os.ModeSocket != 0 {
-		logrus.Warnf("archive: skipping %q since it is a socket", path)
+		logrus.Infof("archive: skipping %q since it is a socket", path)
 		return nil
 	}
 

@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/syndtr/gocapability/capability"
+	"golang.org/x/exp/slices"
 )
 
 var (
@@ -52,16 +53,6 @@ func init() {
 		capabilityList = append(capabilityList, getCapName(cap))
 		sort.Strings(capabilityList)
 	}
-}
-
-// stringInSlice determines if a string is in a string slice, returns bool
-func stringInSlice(s string, sl []string) bool {
-	for _, i := range sl {
-		if i == s {
-			return true
-		}
-	}
-	return false
 }
 
 var (
@@ -115,7 +106,7 @@ func NormalizeCapabilities(caps []string) ([]string, error) {
 		if !strings.HasPrefix(c, "CAP_") {
 			c = "CAP_" + c
 		}
-		if !stringInSlice(c, capabilityList) {
+		if !slices.Contains(capabilityList, c) {
 			return nil, fmt.Errorf("%q: %w", c, ErrUnknownCapability)
 		}
 		normalized = append(normalized, c)
@@ -127,7 +118,7 @@ func NormalizeCapabilities(caps []string) ([]string, error) {
 // ValidateCapabilities validates if caps only contains valid capabilities.
 func ValidateCapabilities(caps []string) error {
 	for _, c := range caps {
-		if !stringInSlice(c, capabilityList) {
+		if !slices.Contains(capabilityList, c) {
 			return fmt.Errorf("%q: %w", c, ErrUnknownCapability)
 		}
 	}
@@ -159,8 +150,8 @@ func MergeCapabilities(base, adds, drops []string) ([]string, error) {
 		return nil, err
 	}
 
-	if stringInSlice(All, capDrop) {
-		if stringInSlice(All, capAdd) {
+	if slices.Contains(capDrop, All) {
+		if slices.Contains(capAdd, All) {
 			return nil, errors.New("adding all caps and removing all caps not allowed")
 		}
 		// "Drop" all capabilities; return what's in capAdd instead
@@ -168,7 +159,7 @@ func MergeCapabilities(base, adds, drops []string) ([]string, error) {
 		return capAdd, nil
 	}
 
-	if stringInSlice(All, capAdd) {
+	if slices.Contains(capAdd, All) {
 		base, err = BoundingSet()
 		if err != nil {
 			return nil, err
@@ -176,14 +167,14 @@ func MergeCapabilities(base, adds, drops []string) ([]string, error) {
 		capAdd = []string{}
 	} else {
 		for _, add := range capAdd {
-			if stringInSlice(add, capDrop) {
+			if slices.Contains(capDrop, add) {
 				return nil, fmt.Errorf("capability %q cannot be dropped and added", add)
 			}
 		}
 	}
 
 	for _, drop := range capDrop {
-		if stringInSlice(drop, capAdd) {
+		if slices.Contains(capAdd, drop) {
 			return nil, fmt.Errorf("capability %q cannot be dropped and added", drop)
 		}
 	}
@@ -191,7 +182,7 @@ func MergeCapabilities(base, adds, drops []string) ([]string, error) {
 	caps := make([]string, 0, len(base)+len(capAdd))
 	// Drop any capabilities in capDrop that are in base
 	for _, cap := range base {
-		if stringInSlice(cap, capDrop) {
+		if slices.Contains(capDrop, cap) {
 			continue
 		}
 		caps = append(caps, cap)
@@ -199,7 +190,7 @@ func MergeCapabilities(base, adds, drops []string) ([]string, error) {
 
 	// Add any capabilities in capAdd that are not in base
 	for _, cap := range capAdd {
-		if stringInSlice(cap, base) {
+		if slices.Contains(base, cap) {
 			continue
 		}
 		caps = append(caps, cap)

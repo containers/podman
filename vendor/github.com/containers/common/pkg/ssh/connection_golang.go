@@ -23,6 +23,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/crypto/ssh/knownhosts"
+	"golang.org/x/exp/maps"
 )
 
 func golangConnectionCreate(options ConnectionCreateOptions) error {
@@ -262,7 +263,7 @@ func ValidateAndConfigure(uri *url.URL, iden string, insecureIsMachineConnection
 			}
 		}
 	}
-	var authMethods []ssh.AuthMethod // now we validate and check for the authorization methods, most notaibly public key authorization
+	var authMethods []ssh.AuthMethod // now we validate and check for the authorization methods, most notably public key authorization
 	if len(signers) > 0 {
 		dedup := make(map[string]ssh.Signer)
 		for _, s := range signers {
@@ -273,10 +274,7 @@ func ValidateAndConfigure(uri *url.URL, iden string, insecureIsMachineConnection
 			dedup[fp] = s
 		}
 
-		var uniq []ssh.Signer
-		for _, s := range dedup {
-			uniq = append(uniq, s)
-		}
+		uniq := maps.Values(dedup)
 		authMethods = append(authMethods, ssh.PublicKeysCallback(func() ([]ssh.Signer, error) {
 			return uniq, nil
 		}))

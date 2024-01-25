@@ -143,7 +143,7 @@ func RunUnderSystemdScope(pid int, slice string, unitName string) error {
 	return nil
 }
 
-func newProp(name string, units interface{}) systemdDbus.Property {
+func newProp(name string, units any) systemdDbus.Property {
 	return systemdDbus.Property{
 		Name:  name,
 		Value: dbus.MakeVariant(units),

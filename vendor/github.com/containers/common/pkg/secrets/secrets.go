@@ -13,6 +13,7 @@ import (
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/regexp"
 	"github.com/containers/storage/pkg/stringid"
+	"golang.org/x/exp/maps"
 )
 
 // maxSecretSize is the max size for secret data - 512kB
@@ -289,11 +290,7 @@ func (s *SecretsManager) List() ([]Secret, error) {
 	if err != nil {
 		return nil, err
 	}
-	ls := make([]Secret, 0, len(secrets))
-	for _, v := range secrets {
-		ls = append(ls, v)
-	}
-	return ls, nil
+	return maps.Values(secrets), nil
 }
 
 // LookupSecretData returns secret metadata as well as secret data in bytes.

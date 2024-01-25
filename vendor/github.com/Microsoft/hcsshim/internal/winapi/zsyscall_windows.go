@@ -184,18 +184,12 @@ func _CMLocateDevNode(pdnDevInst *uint32, pDeviceID *uint16, uFlags uint32) (hr 
 	return
 }
 
-func CimCloseImage(cimFSHandle FsHandle) (hr error) {
-	hr = procCimCloseImage.Find()
-	if hr != nil {
+func CimCloseImage(cimFSHandle FsHandle) (err error) {
+	err = procCimCloseImage.Find()
+	if err != nil {
 		return
 	}
-	r0, _, _ := syscall.Syscall(procCimCloseImage.Addr(), 1, uintptr(cimFSHandle), 0, 0)
-	if int32(r0) < 0 {
-		if r0&0x1fff0000 == 0x00070000 {
-			r0 &= 0xffff
-		}
-		hr = syscall.Errno(r0)
-	}
+	syscall.Syscall(procCimCloseImage.Addr(), 1, uintptr(cimFSHandle), 0, 0)
 	return
 }
 

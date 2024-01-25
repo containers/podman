@@ -1,5 +1,4 @@
 //go:build !remote
-// +build !remote
 
 package libimage
 
@@ -21,33 +20,28 @@ import (
 // indicates that the image matches the criteria.
 type filterFunc func(*Image) (bool, error)
 
-// Apply the specified filters.  At least one filter of each key must apply.
-func (i *Image) applyFilters(filters map[string][]filterFunc) (bool, error) {
-	matches := false
-	for key := range filters { // and
-		matches = false
-		for _, filter := range filters[key] { // or
-			var err error
-			matches, err = filter(i)
+// Apply the specified filters.  All filters of each key must apply.
+func (i *Image) applyFilters(ctx context.Context, filters map[string][]filterFunc) (bool, error) {
+	for key := range filters {
+		for _, filter := range filters[key] {
+			matches, err := filter(i)
 			if err != nil {
 				// Some images may have been corrupted in the
 				// meantime, so do an extra check and make the
 				// error non-fatal (see containers/podman/issues/12582).
-				if errCorrupted := i.isCorrupted(""); errCorrupted != nil {
+				if errCorrupted := i.isCorrupted(ctx, ""); errCorrupted != nil {
 					logrus.Errorf(errCorrupted.Error())
 					return false, nil
 				}
 				return false, err
 			}
-			if matches {
-				break
+			// If any filter within a group doesn't match, return false
+			if !matches {
+				return false, nil
 			}
 		}
-		if !matches {
-			return false, nil
-		}
 	}
-	return matches, nil
+	return true, nil
 }
 
 // filterImages returns a slice of images which are passing all specified
@@ -63,7 +57,7 @@ func (r *Runtime) filterImages(ctx context.Context, images []*Image, options *Li
 	}
 	result := []*Image{}
 	for i := range images {
-		match, err := images[i].applyFilters(filters)
+		match, err := images[i].applyFilters(ctx, filters)
 		if err != nil {
 			return nil, err
 		}
@@ -84,7 +78,7 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 	var tree *layerTree
 	getTree := func() (*layerTree, error) {
 		if tree == nil {
-			t, err := r.layerTree(nil)
+			t, err := r.layerTree(ctx, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -93,6 +87,7 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 		return tree, nil
 	}
 
+	var wantedReferenceMatches, unwantedReferenceMatches []string
 	filters := map[string][]filterFunc{}
 	duplicate := map[string]string{}
 	for _, f := range options.Filters {
@@ -184,7 +179,12 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 			filter = filterManifest(ctx, manifest)
 
 		case "reference":
-			filter = filterReferences(r, value)
+			if negate {
+				unwantedReferenceMatches = append(unwantedReferenceMatches, value)
+			} else {
+				wantedReferenceMatches = append(wantedReferenceMatches, value)
+			}
+			continue
 
 		case "until":
 			until, err := r.until(value)
@@ -201,6 +201,11 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 		}
 		filters[key] = append(filters[key], filter)
 	}
+
+	// reference filters is a special case as it does an OR for positive matches
+	// and an AND logic for negative matches
+	filter := filterReferences(r, wantedReferenceMatches, unwantedReferenceMatches)
+	filters["reference"] = append(filters["reference"], filter)
 
 	return filters, nil
 }
@@ -273,55 +278,97 @@ func filterManifest(ctx context.Context, value bool) filterFunc {
 	}
 }
 
-// filterReferences creates a reference filter for matching the specified value.
-func filterReferences(r *Runtime, value string) filterFunc {
-	lookedUp, _, _ := r.LookupImage(value, nil)
+// filterReferences creates a reference filter for matching the specified wantedReferenceMatches value (OR logic)
+// and for matching the unwantedReferenceMatches values (AND logic)
+func filterReferences(r *Runtime, wantedReferenceMatches, unwantedReferenceMatches []string) filterFunc {
 	return func(img *Image) (bool, error) {
-		if lookedUp != nil {
-			if lookedUp.ID() == img.ID() {
+		// Empty reference filters, return true
+		if len(wantedReferenceMatches) == 0 && len(unwantedReferenceMatches) == 0 {
+			return true, nil
+		}
+
+		unwantedMatched := false
+		// Go through the unwanted matches first
+		for _, value := range unwantedReferenceMatches {
+			matches, err := imageMatchesReferenceFilter(r, img, value)
+			if err != nil {
+				return false, err
+			}
+			if matches {
+				unwantedMatched = true
+			}
+		}
+
+		// If there are no wanted match filters, then return false for the image
+		// that matched the unwanted value otherwise return true
+		if len(wantedReferenceMatches) == 0 {
+			return !unwantedMatched, nil
+		}
+
+		// Go through the wanted matches
+		// If an image matches the wanted filter but it also matches the unwanted
+		// filter, don't add it to the output
+		for _, value := range wantedReferenceMatches {
+			matches, err := imageMatchesReferenceFilter(r, img, value)
+			if err != nil {
+				return false, err
+			}
+			if matches && !unwantedMatched {
 				return true, nil
-			}
-		}
-
-		refs, err := img.NamesReferences()
-		if err != nil {
-			return false, err
-		}
-
-		for _, ref := range refs {
-			refString := ref.String() // FQN with tag/digest
-			candidates := []string{refString}
-
-			// Split the reference into 3 components (twice if digested/tagged):
-			// 1) Fully-qualified reference
-			// 2) Without domain
-			// 3) Without domain and path
-			if named, isNamed := ref.(reference.Named); isNamed {
-				candidates = append(candidates,
-					reference.Path(named),                           // path/name without tag/digest (Path() removes it)
-					refString[strings.LastIndex(refString, "/")+1:]) // name with tag/digest
-
-				trimmedString := reference.TrimNamed(named).String()
-				if refString != trimmedString {
-					tagOrDigest := refString[len(trimmedString):]
-					candidates = append(candidates,
-						trimmedString,                     // FQN without tag/digest
-						reference.Path(named)+tagOrDigest, // path/name with tag/digest
-						trimmedString[strings.LastIndex(trimmedString, "/")+1:]) // name without tag/digest
-				}
-			}
-
-			for _, candidate := range candidates {
-				// path.Match() is also used by Docker's reference.FamiliarMatch().
-				matched, _ := path.Match(value, candidate)
-				if matched {
-					return true, nil
-				}
 			}
 		}
 
 		return false, nil
 	}
+}
+
+// imageMatchesReferenceFilter returns true if an image matches the filter value given
+func imageMatchesReferenceFilter(r *Runtime, img *Image, value string) (bool, error) {
+	lookedUp, _, _ := r.LookupImage(value, nil)
+	if lookedUp != nil {
+		if lookedUp.ID() == img.ID() {
+			return true, nil
+		}
+	}
+
+	refs, err := img.NamesReferences()
+	if err != nil {
+		return false, err
+	}
+
+	for _, ref := range refs {
+		refString := ref.String() // FQN with tag/digest
+		candidates := []string{refString}
+
+		// Split the reference into 3 components (twice if digested/tagged):
+		// 1) Fully-qualified reference
+		// 2) Without domain
+		// 3) Without domain and path
+		if named, isNamed := ref.(reference.Named); isNamed {
+			candidates = append(candidates,
+				reference.Path(named),                           // path/name without tag/digest (Path() removes it)
+				refString[strings.LastIndex(refString, "/")+1:]) // name with tag/digest
+
+			trimmedString := reference.TrimNamed(named).String()
+			if refString != trimmedString {
+				tagOrDigest := refString[len(trimmedString):]
+				candidates = append(candidates,
+					trimmedString,                     // FQN without tag/digest
+					reference.Path(named)+tagOrDigest, // path/name with tag/digest
+					trimmedString[strings.LastIndex(trimmedString, "/")+1:]) // name without tag/digest
+			}
+		}
+
+		for _, candidate := range candidates {
+			// path.Match() is also used by Docker's reference.FamiliarMatch().
+			matched, _ := path.Match(value, candidate)
+			if matched {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
 }
 
 // filterLabel creates a label for matching the specified value.

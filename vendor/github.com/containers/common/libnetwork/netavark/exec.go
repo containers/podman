@@ -1,5 +1,4 @@
 //go:build linux || freebsd
-// +build linux freebsd
 
 package netavark
 
@@ -77,7 +76,7 @@ func getRustLogEnv() string {
 // used to marshal the netavark output into it. This can be nil.
 // All errors return by this function should be of the type netavarkError
 // to provide a helpful error message.
-func (n *netavarkNetwork) execNetavark(args []string, needPlugin bool, stdin, result interface{}) error {
+func (n *netavarkNetwork) execNetavark(args []string, needPlugin bool, stdin, result any) error {
 	// set the netavark log level to the same as the podman
 	env := append(os.Environ(), getRustLogEnv())
 	// Netavark need access to iptables in $PATH. As it turns out debian doesn't put
@@ -102,11 +101,11 @@ func (n *netavarkNetwork) execNetavark(args []string, needPlugin bool, stdin, re
 	return n.execBinary(n.netavarkBinary, append(n.getCommonNetavarkOptions(needPlugin), args...), stdin, result, env)
 }
 
-func (n *netavarkNetwork) execPlugin(path string, args []string, stdin, result interface{}) error {
+func (n *netavarkNetwork) execPlugin(path string, args []string, stdin, result any) error {
 	return n.execBinary(path, args, stdin, result, nil)
 }
 
-func (n *netavarkNetwork) execBinary(path string, args []string, stdin, result interface{}, env []string) error {
+func (n *netavarkNetwork) execBinary(path string, args []string, stdin, result any, env []string) error {
 	stdinR, stdinW, err := os.Pipe()
 	if err != nil {
 		return newNetavarkError("failed to create stdin pipe", err)

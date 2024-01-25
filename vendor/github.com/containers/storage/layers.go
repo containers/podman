@@ -2034,9 +2034,16 @@ func (s *simpleGetCloser) Close() error {
 // LOCKING BUG: See the comments in layerStore.Diff
 func (r *layerStore) newFileGetter(id string) (drivers.FileGetCloser, error) {
 	if getter, ok := r.driver.(drivers.DiffGetterDriver); ok {
-		return getter.DiffGetter(id)
+		fgc, err := getter.DiffGetter(id)
+		if err != nil {
+			return nil, err
+		}
+		if fgc != nil {
+			return fgc, nil
+		}
 	}
-	path, err := r.Mount(id, drivers.MountOpts{})
+
+	path, err := r.Mount(id, drivers.MountOpts{Options: []string{"ro"}})
 	if err != nil {
 		return nil, err
 	}
