@@ -74,7 +74,7 @@ func scanType(cdt string) reflect.Type {
 	case SQLITE_TIME:
 		return reflect.TypeOf(sql.NullTime{})
 	}
-	return reflect.TypeOf(new(interface{}))
+	return reflect.TypeOf(new(any))
 }
 
 func databaseTypeConvSqlite(t string) int {

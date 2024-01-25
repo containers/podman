@@ -3,6 +3,7 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build sqlite_fts5 || fts5
 // +build sqlite_fts5 fts5
 
 package sqlite3
