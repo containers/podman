@@ -211,13 +211,7 @@ type CheckpointOptions struct {
 	FileLocks      bool
 }
 
-type CheckpointReport struct {
-	Err             error                                   `json:"-"`
-	Id              string                                  `json:"Id"` //nolint:revive,stylecheck
-	RawInput        string                                  `json:"-"`
-	RuntimeDuration int64                                   `json:"runtime_checkpoint_duration"`
-	CRIUStatistics  *define.CRIUCheckpointRestoreStatistics `json:"criu_statistics"`
-}
+type CheckpointReport = types.CheckpointReport
 
 type RestoreOptions struct {
 	All             bool
@@ -238,13 +232,7 @@ type RestoreOptions struct {
 	FileLocks       bool
 }
 
-type RestoreReport struct {
-	Err             error                                   `json:"-"`
-	Id              string                                  `json:"Id"` //nolint:revive,stylecheck
-	RawInput        string                                  `json:"-"`
-	RuntimeDuration int64                                   `json:"runtime_restore_duration"`
-	CRIUStatistics  *define.CRIUCheckpointRestoreStatistics `json:"criu_statistics"`
-}
+type RestoreReport = types.RestoreReport
 
 type ContainerCreateReport struct {
 	Id string //nolint:revive,stylecheck
