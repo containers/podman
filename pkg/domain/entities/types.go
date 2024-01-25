@@ -2,9 +2,7 @@ package entities
 
 import (
 	"net"
-	"os"
 
-	buildahDefine "github.com/containers/buildah/define"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
@@ -103,33 +101,13 @@ type EventsOptions struct {
 type ContainerCreateResponse = entitiesTypes.ContainerCreateResponse
 
 // BuildOptions describe the options for building container images.
-type BuildOptions struct {
-	buildahDefine.BuildOptions
-	ContainerFiles []string
-	FarmBuildOptions
-	// Files that need to be closed after the build
-	// so need to pass this to the main build functions
-	LogFileToClose *os.File
-	TmpDirToClose  string
-}
+type BuildOptions = entitiesTypes.BuildOptions
 
 // BuildReport is the image-build report.
-type BuildReport struct {
-	// ID of the image.
-	ID string
-	// Format to save the image in
-	SaveFormat string
-}
+type BuildReport = entitiesTypes.BuildReport
 
 // FarmBuildOptions describes the options for building container images on farm nodes
-type FarmBuildOptions struct {
-	// Cleanup removes built images from farm nodes on success
-	Cleanup bool
-	// Authfile is the path to the file holding registry credentials
-	Authfile string
-	// SkipTLSVerify skips tls verification when set to true
-	SkipTLSVerify bool
-}
+type FarmBuildOptions = entitiesTypes.FarmBuildOptions
 
 type IDOrNameResponse struct {
 	// The Id or Name of an object

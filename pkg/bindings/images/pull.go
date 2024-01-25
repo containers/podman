@@ -10,10 +10,10 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/containers/image/v5/types"
+	imgTypes "github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/pkg/auth"
 	"github.com/containers/podman/v4/pkg/bindings"
-	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/containers/podman/v4/pkg/domain/entities/types"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 )
 
@@ -41,7 +41,7 @@ func Pull(ctx context.Context, rawImage string, options *PullOptions) ([]string,
 		params.Set("tlsVerify", strconv.FormatBool(!options.GetSkipTLSVerify()))
 	}
 
-	header, err := auth.MakeXRegistryAuthHeader(&types.SystemContext{AuthFilePath: options.GetAuthfile()}, options.GetUsername(), options.GetPassword())
+	header, err := auth.MakeXRegistryAuthHeader(&imgTypes.SystemContext{AuthFilePath: options.GetAuthfile()}, options.GetUsername(), options.GetPassword())
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func Pull(ctx context.Context, rawImage string, options *PullOptions) ([]string,
 	var pullErrors []error
 LOOP:
 	for {
-		var report entities.ImagePullReport
+		var report types.ImagePullReport
 		if err := dec.Decode(&report); err != nil {
 			if errors.Is(err, io.EOF) {
 				break
