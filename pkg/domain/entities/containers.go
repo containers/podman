@@ -493,7 +493,4 @@ type ContainerCloneOptions struct {
 }
 
 // ContainerUpdateOptions containers options for updating an existing containers cgroup configuration
-type ContainerUpdateOptions struct {
-	NameOrID string
-	Specgen  *specgen.SpecGenerator
-}
+type ContainerUpdateOptions = types.ContainerUpdateOptions

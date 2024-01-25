@@ -2,6 +2,7 @@ package types
 
 import (
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/pkg/specgen"
 )
 
 type ContainerCopyFunc func() error
@@ -32,4 +33,9 @@ type ContainerStatsReport struct {
 	Error error
 	// Results, set when there is no error.
 	Stats []define.ContainerStats
+}
+
+type ContainerUpdateOptions struct {
+	NameOrID string
+	Specgen  *specgen.SpecGenerator
 }
