@@ -50,15 +50,15 @@ import (
 // perhaps using a cryptographic hash function like SHA1.
 
 // CryptEncoderSHA1 encodes a password with SHA1
-func CryptEncoderSHA1(pass []byte, hash interface{}) []byte {
+func CryptEncoderSHA1(pass []byte, hash any) []byte {
 	h := sha1.Sum(pass)
 	return h[:]
 }
 
 // CryptEncoderSSHA1 encodes a password with SHA1 with the
 // configured salt.
-func CryptEncoderSSHA1(salt string) func(pass []byte, hash interface{}) []byte {
-	return func(pass []byte, hash interface{}) []byte {
+func CryptEncoderSSHA1(salt string) func(pass []byte, hash any) []byte {
+	return func(pass []byte, hash any) []byte {
 		s := []byte(salt)
 		p := append(pass, s...)
 		h := sha1.Sum(p)
@@ -67,15 +67,15 @@ func CryptEncoderSSHA1(salt string) func(pass []byte, hash interface{}) []byte {
 }
 
 // CryptEncoderSHA256 encodes a password with SHA256
-func CryptEncoderSHA256(pass []byte, hash interface{}) []byte {
+func CryptEncoderSHA256(pass []byte, hash any) []byte {
 	h := sha256.Sum256(pass)
 	return h[:]
 }
 
 // CryptEncoderSSHA256 encodes a password with SHA256
 // with the configured salt
-func CryptEncoderSSHA256(salt string) func(pass []byte, hash interface{}) []byte {
-	return func(pass []byte, hash interface{}) []byte {
+func CryptEncoderSSHA256(salt string) func(pass []byte, hash any) []byte {
+	return func(pass []byte, hash any) []byte {
 		s := []byte(salt)
 		p := append(pass, s...)
 		h := sha256.Sum256(p)
@@ -84,15 +84,15 @@ func CryptEncoderSSHA256(salt string) func(pass []byte, hash interface{}) []byte
 }
 
 // CryptEncoderSHA384 encodes a password with SHA384
-func CryptEncoderSHA384(pass []byte, hash interface{}) []byte {
+func CryptEncoderSHA384(pass []byte, hash any) []byte {
 	h := sha512.Sum384(pass)
 	return h[:]
 }
 
 // CryptEncoderSSHA384 encodes a password with SHA384
 // with the configured salt
-func CryptEncoderSSHA384(salt string) func(pass []byte, hash interface{}) []byte {
-	return func(pass []byte, hash interface{}) []byte {
+func CryptEncoderSSHA384(salt string) func(pass []byte, hash any) []byte {
+	return func(pass []byte, hash any) []byte {
 		s := []byte(salt)
 		p := append(pass, s...)
 		h := sha512.Sum384(p)
@@ -101,15 +101,15 @@ func CryptEncoderSSHA384(salt string) func(pass []byte, hash interface{}) []byte
 }
 
 // CryptEncoderSHA512 encodes a password with SHA512
-func CryptEncoderSHA512(pass []byte, hash interface{}) []byte {
+func CryptEncoderSHA512(pass []byte, hash any) []byte {
 	h := sha512.Sum512(pass)
 	return h[:]
 }
 
 // CryptEncoderSSHA512 encodes a password with SHA512
 // with the configured salt
-func CryptEncoderSSHA512(salt string) func(pass []byte, hash interface{}) []byte {
-	return func(pass []byte, hash interface{}) []byte {
+func CryptEncoderSSHA512(salt string) func(pass []byte, hash any) []byte {
+	return func(pass []byte, hash any) []byte {
 		s := []byte(salt)
 		p := append(pass, s...)
 		h := sha512.Sum512(p)

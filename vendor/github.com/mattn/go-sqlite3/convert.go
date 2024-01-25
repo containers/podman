@@ -23,7 +23,7 @@ var errNilPtr = errors.New("destination pointer is nil") // embedded in descript
 // convertAssign copies to dest the value in src, converting it if possible.
 // An error is returned if the copy would result in loss of information.
 // dest should be a pointer type.
-func convertAssign(dest, src interface{}) error {
+func convertAssign(dest, src any) error {
 	// Common cases, without reflect.
 	switch s := src.(type) {
 	case string:
@@ -55,7 +55,7 @@ func convertAssign(dest, src interface{}) error {
 			}
 			*d = string(s)
 			return nil
-		case *interface{}:
+		case *any:
 			if d == nil {
 				return errNilPtr
 			}
@@ -97,7 +97,7 @@ func convertAssign(dest, src interface{}) error {
 		}
 	case nil:
 		switch d := dest.(type) {
-		case *interface{}:
+		case *any:
 			if d == nil {
 				return errNilPtr
 			}
@@ -149,7 +149,7 @@ func convertAssign(dest, src interface{}) error {
 			*d = bv.(bool)
 		}
 		return err
-	case *interface{}:
+	case *any:
 		*d = src
 		return nil
 	}
@@ -256,7 +256,7 @@ func cloneBytes(b []byte) []byte {
 	return c
 }
 
-func asString(src interface{}) string {
+func asString(src any) string {
 	switch v := src.(type) {
 	case string:
 		return v
