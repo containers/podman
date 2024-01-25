@@ -35,11 +35,12 @@ In addition to normal output, display the total file size if the type is a conta
 
 #### **--type**, **-t**=*type*
 
-Return JSON for the specified type.  Type can be 'container', 'image', 'volume', 'network', 'pod', or 'all' (default: all)
+Return JSON for the specified type. Type can be 'container', 'image', 'volume', 'network', 'pod', or 'all' (default: all)
 (Only meaningful when invoked as *podman inspect*)
 
 ## EXAMPLE
 
+Inspect the fedora image
 ```
 # podman inspect fedora
 [
@@ -121,35 +122,43 @@ Return JSON for the specified type.  Type can be 'container', 'image', 'volume',
 ]
 ```
 
+Inspect the specified image for Image Name.
 ```
 # podman inspect a04 --format "{{.ImageName}}"
 fedora
 ```
 
+Inspect the specified image for GraphDriver Name.
 ```
 # podman inspect a04 --format "{{.GraphDriver.Name}}"
 overlay
 ```
 
+Inspect the specified image for its Size field.
 ```
 # podman image inspect --format "size: {{.Size}}" alpine
 size:   4405240
 ```
 
+Inspect the latest container created for its EffectiveCaps field. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 ```
 podman container inspect --latest --format {{.EffectiveCaps}}
 [CAP_CHOWN CAP_DAC_OVERRIDE CAP_FSETID CAP_FOWNER CAP_SETGID CAP_SETUID CAP_SETFCAP CAP_SETPCAP CAP_NET_BIND_SERVICE CAP_KILL]
 ```
 
+Inspect the specified pod for the Name field.
 ```
 # podman inspect myPod --type pod --format "{{.Name}}"
 myPod
 ```
+
+Inspect the specified volume for the Name field.
 ```
 # podman inspect myVolume --type volume --format "{{.Name}}"
 myVolume
 ```
 
+Inspect the specified network for the Name field.
 ```
 # podman inspect nyNetwork --type network --format "{{.name}}"
 myNetwork

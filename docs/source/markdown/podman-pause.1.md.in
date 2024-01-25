@@ -69,7 +69,7 @@ podman pause --cidfile /home/user/cidfile-1
 podman pause --cidfile /home/user/cidfile-1 --cidfile ./cidfile-2
 ```
 
-Pause the latest container created by Podman.
+Pause the latest container. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 ```
 podman pause --latest
 ```

@@ -32,7 +32,7 @@ Start pods with given IDs
 podman pod start 860a4b23 5421ab4
 ```
 
-Start the latest pod created by Podman
+Start the latest pod. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 ```
 podman pod start --latest
 ```

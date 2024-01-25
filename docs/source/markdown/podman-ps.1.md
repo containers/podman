@@ -28,7 +28,7 @@ all the containers information.  By default it lists:
 
 #### **--all**, **-a**
 
-Show all the containers created by Podman, default is only running containers.
+Show all the containers, default is only running containers.
 
 Note: Podman shares containers storage with other tools such as Buildah and CRI-O. In some cases these `external` containers might also exist in the same storage. Use the `--external` option to see these external containers. External containers show the 'storage' status.
 
@@ -154,6 +154,15 @@ Refresh the output with current containers on an interval in seconds.
 
 ## EXAMPLES
 
+List running containers.
+```
+$ podman ps
+CONTAINER ID  IMAGE                            COMMAND    CREATED        STATUS        PORTS                                                   NAMES
+4089df24d4f3  docker.io/library/centos:latest  /bin/bash  2 minutes ago  Up 2 minutes  0.0.0.0:80->8080/tcp, 0.0.0.0:2000-2006->2000-2006/tcp  manyports
+92f58933c28c  docker.io/library/centos:latest  /bin/bash  3 minutes ago  Up 3 minutes  192.168.99.100:1000-1006->1000-1006/tcp                 zen_sanderson
+```
+
+List all containers.
 ```
 $ podman ps -a
 CONTAINER ID   IMAGE         COMMAND         CREATED       STATUS                    PORTS     NAMES
@@ -161,6 +170,7 @@ CONTAINER ID   IMAGE         COMMAND         CREATED       STATUS               
 69ed779d8ef9f  redis:alpine  "redis-server"  25 hours ago  Created                   6379/tcp  k8s_container1_podsandbox1_redhat.test.crio_redhat-test-crio_1
 ```
 
+List all containers including their size. Note: this can take longer since Podman needs to calculate the size from the file system.
 ```
 $ podman ps -a -s
 CONTAINER ID   IMAGE         COMMAND         CREATED       STATUS                    PORTS     NAMES                                                                  SIZE
@@ -168,12 +178,14 @@ CONTAINER ID   IMAGE         COMMAND         CREATED       STATUS               
 69ed779d8ef9f  redis:alpine  "redis-server"  25 hours ago  Created                   6379/tcp  k8s_container1_podsandbox1_redhat.test.crio_redhat-test-crio_1         27.49 MB
 ```
 
+List all containers, running or not, using a custom Go format.
 ```
 $ podman ps -a --format "{{.ID}}  {{.Image}}  {{.Labels}}  {{.Mounts}}"
 02f65160e14ca  redis:alpine  tier=backend  proc,tmpfs,devpts,shm,mqueue,sysfs,cgroup,/var/run/,/var/run/
 69ed779d8ef9f  redis:alpine  batch=no,type=small  proc,tmpfs,devpts,shm,mqueue,sysfs,cgroup,/var/run/,/var/run/
 ```
 
+List all containers and display their namespaces.
 ```
 $ podman ps --ns -a
 CONTAINER ID    NAMES                                                                   PID     CGROUP       IPC          MNT          NET          PIDNS        USER         UTS
@@ -182,6 +194,7 @@ CONTAINER ID    NAMES                                                           
 a31ebbee9cee7   k8s_podsandbox1-redis_podsandbox1_redhat.test.crio_redhat-test-crio_0   29717   4026531835   4026532585   4026532587   4026532508   4026532589   4026531837   4026532588
 ```
 
+List all containers including size sorted by names.
 ```
 $ podman ps -a --size --sort names
 CONTAINER ID   IMAGE         COMMAND         CREATED       STATUS                    PORTS     NAMES
@@ -189,14 +202,7 @@ CONTAINER ID   IMAGE         COMMAND         CREATED       STATUS               
 02f65160e14ca  redis:alpine  "redis-server"  19 hours ago  Exited (-1) 19 hours ago  6379/tcp  k8s_podsandbox1-redis_podsandbox1_redhat.test.crio_redhat-test-crio_0
 ```
 
-```
-$ podman ps
-CONTAINER ID  IMAGE                            COMMAND    CREATED        STATUS        PORTS                                                   NAMES
-4089df24d4f3  docker.io/library/centos:latest  /bin/bash  2 minutes ago  Up 2 minutes  0.0.0.0:80->8080/tcp, 0.0.0.0:2000-2006->2000-2006/tcp  manyports
-92f58933c28c  docker.io/library/centos:latest  /bin/bash  3 minutes ago  Up 3 minutes  192.168.99.100:1000-1006->1000-1006/tcp                 zen_sanderson
-
-```
-
+List all external containers created by tools other than Podman.
 ```
 $ podman ps --external -a
 CONTAINER ID  IMAGE                             COMMAND  CREATED      STATUS  PORTS  NAMES

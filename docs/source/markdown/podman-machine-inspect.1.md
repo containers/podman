@@ -43,6 +43,7 @@ Print usage statement.
 
 ## EXAMPLES
 
+Inspect the specified Podman machine.
 ```
 $ podman machine inspect podman-machine-default
 ```

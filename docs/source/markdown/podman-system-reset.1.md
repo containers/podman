@@ -30,6 +30,7 @@ Print usage statement
 
 ## EXAMPLES
 
+Reset all storage back to a clean initialized state.
 ```
 $ podman system reset
 WARNING! This will remove:

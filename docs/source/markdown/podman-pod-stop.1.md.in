@@ -25,7 +25,7 @@ Stops all pods
 
 ## EXAMPLE
 
-Stop pod with a given name
+Stop pod with a given name.
 ```
 $ podman pod stop mywebserverpod
 cc8f0bea67b1a1a11aec1ecd38102a1be4b145577f21fc843c7c83b77fc28907
@@ -38,13 +38,13 @@ $ podman pod stop 490eb 3557fb
 3557fbea6ad61569de0506fe037479bd9896603c31d3069a6677f23833916fab
 ```
 
-Stop the last created pod
+Stop the last created pod. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 ```
 $ podman pod stop --latest
 3557fbea6ad61569de0506fe037479bd9896603c31d3069a6677f23833916fab
 ```
 
-Stop all pods
+Stop all pods.
 ```
 $ podman pod stop --all
 19456b4cd557eaf9629825113a552681a6013f8c8cad258e36ab825ef536e818
@@ -54,14 +54,14 @@ $ podman pod stop --all
 cc8f0bea67b1a1a11aec1ecd38102a1be4b145577f21fc843c7c83b77fc28907
 ```
 
-Stop two pods via --pod-id-file
+Stop two pods via --pod-id-file.
 ```
 $ podman pod stop --pod-id-file file1 --pod-id-file file2
 19456b4cd557eaf9629825113a552681a6013f8c8cad258e36ab825ef536e818
 cc8f0bea67b1a1a11aec1ecd38102a1be4b145577f21fc843c7c83b77fc28907
 ```
 
-Stop all pods with a timeout of 1 second
+Stop all pods with a timeout of 1 second.
 ```
 $ podman pod stop -a -t 1
 3557fbea6ad61569de0506fe037479bd9896603c31d3069a6677f23833916fab

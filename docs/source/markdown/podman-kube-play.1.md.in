@@ -14,7 +14,7 @@ Using the `--down` command line option, it is also capable of tearing down the p
 
 Using the `--replace` command line option, it tears down the pods(if any) created by a previous run of `podman kube play` and recreate the pods with the Kubernetes YAML file.
 
-Ideally the input file is created by Podman (see podman-kube-generate(1)).  This guarantees a smooth import and expected results.
+Ideally the input file is created by the Podman command (see podman-kube-generate(1)).  This guarantees a smooth import and expected results.
 
 Currently, the supported Kubernetes kinds are:
 
@@ -271,19 +271,19 @@ upon exit.
 
 ## EXAMPLES
 
-Recreate the pod and containers as described in a file called `demo.yml`
+Recreate the pod and containers described in the specified host YAML file.
 ```
 $ podman kube play demo.yml
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 ```
 
-Recreate the pod and containers as described in a file `demo.yml` sent to stdin
+Recreate the pod and containers specified in a YAML file sent to stdin.
 ```
 $ cat demo.yml | podman kube play -
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
-
 ```
-Teardown the pod and containers as described in a file `demo.yml`
+
+Teardown the pod and containers as described in the specified YAML file.
 ```
 $  podman kube play --down demo.yml
 Pods stopped:
@@ -292,7 +292,7 @@ Pods removed:
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 ```
 
-Provide `configmap-foo.yml` and `configmap-bar.yml` as sources for environment variables within the containers.
+Provide multiple configmaps files as sources for environment variables within the specified pods and containers.
 ```
 $ podman kube play demo.yml --configmap configmap-foo.yml,configmap-bar.yml
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
@@ -301,14 +301,14 @@ $ podman kube play demo.yml --configmap configmap-foo.yml --configmap configmap-
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 ```
 
-Create a pod connected to two networks (called net1 and net2) with a static ip
+Create a pod connected to two networks with a static ip.
 ```
 $ podman kube play demo.yml --network net1:ip=10.89.1.5 --network net2:ip=10.89.10.10
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 ```
 Please take into account that networks must be created first using podman-network-create(1).
 
-Create and teardown from a URL pointing to a YAML file
+Create and teardown from a URL pointing to a YAML file.
 ```
 $ podman kube play https://podman.io/demo.yml
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6

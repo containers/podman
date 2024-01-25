@@ -28,6 +28,7 @@ Write to a file, default is STDOUT
 
 ## EXAMPLES
 
+Export named volume content into the specified file.
 ```
 $ podman volume export myvol --output myvol.tar
 

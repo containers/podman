@@ -95,18 +95,20 @@ Do not truncate the output (default *false*).
 
 ## EXAMPLES
 
+Search for images containing the specified name, returning the first three images from each defined registry.
 ```
 $ podman search --limit 3 fedora
 NAME                                     DESCRIPTION
-registry.centos.org/centos
-registry.centos.org/cdrage/mosh-centos7
-registry.centos.org/centos/bind
-docker.io/library/centos                 The official build of CentOS.
-docker.io/jdeathe/centos-ssh             OpenSSH / Supervisor / EPEL/IUS/SCL Repos - ...
-docker.io/ansible/centos7-ansible        Ansible on Centos7
-quay.io/centos/centos                    The official CentOS base containers.
-quay.io/ukhomeofficedigital/centos-base
-quay.io/quarkus/centos-quarkus-maven     Quarkus.io builder image for building Quarku...
+NAME                                           DESCRIPTION
+registry.fedoraproject.org/f29/fedora-toolbox
+registry.fedoraproject.org/f30/fedora-toolbox
+registry.fedoraproject.org/f31/fedora-toolbox
+docker.io/library/fedora                       Official Docker builds of Fedora
+docker.io/kasmweb/fedora-37-desktop            Fedora 37 desktop for Kasm Workspaces
+docker.io/kasmweb/fedora-38-desktop            Fedora 38 desktop for Kasm Workspaces
+quay.io/fedora/fedora
+quay.io/containerdisks/fedora                  # Fedora Containerdisk Images  <img src="htt...
+quay.io/fedora/fedora-minimal
 ```
 
 Note that the Stars, Official and Automated descriptors are only available on Docker Hub and are hence not displayed by default.
@@ -120,6 +122,7 @@ quay.io/vqcomms/alpine-tools   0
 quay.io/wire/alpine-deps       0
 ```
 
+Search and list tags for the specified image returning the first four images from each defined registry.
 ```
 $ podman search --list-tags registry.access.redhat.com/ubi8 --limit 4
 NAME                             TAG
@@ -127,7 +130,6 @@ registry.access.redhat.com/ubi8  8.4-211
 registry.access.redhat.com/ubi8  8.4-206.1626828523-source
 registry.access.redhat.com/ubi8  8.4-199
 registry.access.redhat.com/ubi8  8.4-211-source
-
 ```
 Note: This works only with registries that implement the v2 API. If tried with a v1 registry an error is returned.
 

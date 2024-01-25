@@ -78,10 +78,20 @@ delete =
 
 ## EXAMPLES
 
+Create the specified secret based on local file.
 ```
-$ podman secret create my_secret ./secret.json
-$ podman secret create --driver=file my_secret ./secret.json
+echo -n mysecret > ./secret.txt
+$ podman secret create my_secret ./secret.txt
+```
+
+Create the specified secret via stdin.
+```
 $ printf <secret> | podman secret create my_secret -
+```
+
+Create gpg encrypted secret based on local file using the pass driver.
+```
+$ podman secret create --driver=pass my_secret ./secret.txt.gpg
 ```
 
 ## SEE ALSO

@@ -41,8 +41,7 @@ Do not delete the VM image.
 
 ## EXAMPLES
 
-Remove a VM named "test1":
-
+Remove the specified Podman machine.
 ```
 $ podman machine rm test1
 
@@ -55,6 +54,7 @@ The following files will be deleted:
 Are you sure you want to continue? [y/N] y
 ```
 
+Remove the specified Podman machine even if it is running.
 ```
 $ podman machine rm -f test1
 $

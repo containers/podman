@@ -71,17 +71,33 @@ When not using the **local** and **image** drivers, the given options are passed
 
 ## EXAMPLES
 
+Create empty volume.
+```
+$ podman volume create
+```
+
+Create empty named volume.
 ```
 $ podman volume create myvol
+```
 
-$ podman volume create
-
+Create empty named volume with specified label.
+```
 $ podman volume create --label foo=bar myvol
+```
 
+Create tmpfs named volume with specified size and mount options.
+```
 # podman volume create --opt device=tmpfs --opt type=tmpfs --opt o=size=2M,nodev,noexec myvol
+```
 
+Create tmpfs named volume testvol with specified options.
+```
 # podman volume create --opt device=tmpfs --opt type=tmpfs --opt o=uid=1000,gid=1000 testvol
+```
 
+Create image named volume using the specified local image in containers/storage.
+```
 # podman volume create --driver image --opt image=fedora:latest fedoraVol
 ```
 

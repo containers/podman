@@ -74,15 +74,28 @@ Print volume output in quiet mode. Only print the volume names.
 
 ## EXAMPLES
 
+List all volumes.
 ```
 $ podman volume ls
+```
 
+List all volumes and display content as json format.
+```
 $ podman volume ls --format json
+```
 
+List all volumes and display their Driver and Scope fields
+```
 $ podman volume ls --format "{{.Driver}} {{.Scope}}"
+```
 
+List volumes with the name foo and label blue.
+```
 $ podman volume ls --filter name=foo,label=blue
+```
 
+List volumes with the label key=value.
+```
 $ podman volume ls --filter label=key=value
 ```
 

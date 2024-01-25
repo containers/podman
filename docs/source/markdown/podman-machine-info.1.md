@@ -28,6 +28,7 @@ Print usage statement.
 
 ## EXAMPLES
 
+Display default Podman machine info.
 ```
 $ podman machine info
 Host:
@@ -52,6 +53,7 @@ Version:
   Version: 4.4.0
 ```
 
+Display default Podman machine info formatted as json.
 ```
 $ podman machine info --format json
 {
@@ -80,6 +82,7 @@ $ podman machine info --format json
 }
 ```
 
+Display default Podman machine Host.Arch field.
 ```
 $ podman machine info --format "{{ .Host.Arch }}"
 amd64
