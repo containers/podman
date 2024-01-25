@@ -294,8 +294,6 @@ remove_packaged_podman_files() {
     # Do so without running podman, lest that invocation initialize unwanted state.
     rm -f /run/podman/podman.sock  /run/user/$(id -u)/podman/podman.sock || true
 
-    rm -f $(podman info --format "{{.Host.RemoteSocket.Path}}")
-
     # yum/dnf/dpkg may list system directories, only remove files
     $LISTING_CMD | while read fullpath
     do
