@@ -5,17 +5,11 @@ import (
 	"time"
 
 	libpodEvents "github.com/containers/podman/v4/libpod/events"
+	types "github.com/containers/podman/v4/pkg/domain/entities/types"
 	dockerEvents "github.com/docker/docker/api/types/events"
 )
 
-// Event combines various event-related data such as time, event type, status
-// and more.
-type Event struct {
-	// TODO: it would be nice to have full control over the types at some
-	// point and fork such Docker types.
-	dockerEvents.Message
-	HealthStatus string `json:",omitempty"`
-}
+type Event = types.Event
 
 // ConvertToLibpodEvent converts an entities event to a libpod one.
 func ConvertToLibpodEvent(e Event) *libpodEvents.Event {
@@ -59,7 +53,7 @@ func ConvertToLibpodEvent(e Event) *libpodEvents.Event {
 }
 
 // ConvertToEntitiesEvent converts a libpod event to an entities one.
-func ConvertToEntitiesEvent(e libpodEvents.Event) *Event {
+func ConvertToEntitiesEvent(e libpodEvents.Event) *types.Event {
 	attributes := e.Details.Attributes
 	if attributes == nil {
 		attributes = make(map[string]string)
@@ -85,8 +79,8 @@ func ConvertToEntitiesEvent(e libpodEvents.Event) *Event {
 		Time:     e.Time.Unix(),
 		TimeNano: e.Time.UnixNano(),
 	}
-	return &Event{
-		message,
-		e.HealthStatus,
+	return &types.Event{
+		Message:      message,
+		HealthStatus: e.HealthStatus,
 	}
 }

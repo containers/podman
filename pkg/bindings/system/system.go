@@ -12,13 +12,14 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/containers/podman/v4/pkg/domain/entities/types"
 	"github.com/sirupsen/logrus"
 )
 
 // Events allows you to monitor libdpod related events like container creation and
 // removal.  The events are then passed to the eventChan provided. The optional cancelChan
 // can be used to cancel the read of events and close down the HTTP connection.
-func Events(ctx context.Context, eventChan chan entities.Event, cancelChan chan bool, options *EventsOptions) error {
+func Events(ctx context.Context, eventChan chan types.Event, cancelChan chan bool, options *EventsOptions) error {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
@@ -44,7 +45,7 @@ func Events(ctx context.Context, eventChan chan entities.Event, cancelChan chan 
 
 	dec := json.NewDecoder(response.Body)
 	for err = (error)(nil); err == nil; {
-		var e = entities.Event{}
+		var e = types.Event{}
 		err = dec.Decode(&e)
 		if err == nil {
 			eventChan <- e
