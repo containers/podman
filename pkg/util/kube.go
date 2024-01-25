@@ -15,4 +15,6 @@ const (
 	VolumeMountOptsAnnotation = "volume.podman.io/mount-options"
 	// Kube annotation for podman volume import source.
 	VolumeImportSourceAnnotation = "volume.podman.io/import-source"
+	// Kube annotation for podman volume image.
+	VolumeImageAnnotation = "volume.podman.io/image"
 )
