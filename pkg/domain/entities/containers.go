@@ -7,8 +7,9 @@ import (
 	"time"
 
 	nettypes "github.com/containers/common/libnetwork/types"
-	"github.com/containers/image/v5/types"
+	imageTypes "github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/pkg/domain/entities/types"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/storage/pkg/archive"
 )
@@ -43,7 +44,7 @@ type ContainerRunlabelOptions struct {
 	SignaturePolicy string
 	// SkipTLSVerify - skip HTTPS and certificate verifications when
 	// contacting registries.
-	SkipTLSVerify types.OptionalBool
+	SkipTLSVerify imageTypes.OptionalBool
 }
 
 // ContainerRunlabelReport contains the results from executing container-runlabel.
@@ -157,9 +158,7 @@ type ContainerInspectReport struct {
 	*define.InspectContainerData
 }
 
-type ContainerStatReport struct {
-	define.FileInfo
-}
+type ContainerStatReport = types.ContainerStatReport
 
 type CommitOptions struct {
 	Author         string
