@@ -8,6 +8,7 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
+	entitiesTypes "github.com/containers/podman/v4/pkg/domain/entities/types"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/storage/pkg/archive"
 	dockerAPI "github.com/docker/docker/api/types"
@@ -99,14 +100,7 @@ type EventsOptions struct {
 }
 
 // ContainerCreateResponse is the response struct for creating a container
-type ContainerCreateResponse struct {
-	// ID of the container created
-	// required: true
-	ID string `json:"Id"`
-	// Warnings during container creation
-	// required: true
-	Warnings []string `json:"Warnings"`
-}
+type ContainerCreateResponse = entitiesTypes.ContainerCreateResponse
 
 // BuildOptions describe the options for building container images.
 type BuildOptions struct {

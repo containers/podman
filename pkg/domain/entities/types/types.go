@@ -32,3 +32,13 @@ type Version struct {
 type SystemComponentVersion struct {
 	Version
 }
+
+// ContainerCreateResponse is the response struct for creating a container
+type ContainerCreateResponse struct {
+	// ID of the container created
+	// required: true
+	ID string `json:"Id"`
+	// Warnings during container creation
+	// required: true
+	Warnings []string `json:"Warnings"`
+}
