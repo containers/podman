@@ -8,7 +8,7 @@ import (
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v4/pkg/bindings"
-	"github.com/containers/podman/v4/pkg/domain/entities"
+	entitiesTypes "github.com/containers/podman/v4/pkg/domain/entities/types"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -88,8 +88,8 @@ func Inspect(ctx context.Context, nameOrID string, _ *InspectOptions) (types.Net
 // Remove deletes a defined network configuration by name.  The optional force boolean
 // will remove all containers associated with the network when set to true.  A slice
 // of NetworkRemoveReports are returned.
-func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) ([]*entities.NetworkRmReport, error) {
-	var reports []*entities.NetworkRmReport
+func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) ([]*entitiesTypes.NetworkRmReport, error) {
+	var reports []*entitiesTypes.NetworkRmReport
 	if options == nil {
 		options = new(RemoveOptions)
 	}
@@ -177,7 +177,7 @@ func Connect(ctx context.Context, networkName string, containerNameOrID string, 
 		return err
 	}
 	// Connect sends everything in body
-	connect := entities.NetworkConnectOptions{
+	connect := entitiesTypes.NetworkConnectOptions{
 		Container:         containerNameOrID,
 		PerNetworkOptions: *options,
 	}
@@ -212,7 +212,7 @@ func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool,
 }
 
 // Prune removes unused networks
-func Prune(ctx context.Context, options *PruneOptions) ([]*entities.NetworkPruneReport, error) {
+func Prune(ctx context.Context, options *PruneOptions) ([]*entitiesTypes.NetworkPruneReport, error) {
 	if options == nil {
 		options = new(PruneOptions)
 	}
@@ -221,7 +221,7 @@ func Prune(ctx context.Context, options *PruneOptions) ([]*entities.NetworkPrune
 		return nil, err
 	}
 	var (
-		prunedNetworks []*entities.NetworkPruneReport
+		prunedNetworks []*entitiesTypes.NetworkPruneReport
 	)
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
