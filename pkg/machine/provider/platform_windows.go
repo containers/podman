@@ -2,17 +2,16 @@ package provider
 
 import (
 	"fmt"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"os"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/pkg/machine/hyperv"
-	"github.com/containers/podman/v4/pkg/machine/wsl"
 	"github.com/sirupsen/logrus"
 )
 
-func Get() (machine.VirtProvider, error) {
+func Get() (vmconfigs.VMProvider, error) {
 	cfg, err := config.Default()
 	if err != nil {
 		return nil, err
@@ -28,10 +27,11 @@ func Get() (machine.VirtProvider, error) {
 
 	logrus.Debugf("Using Podman machine with `%s` virtualization provider", resolvedVMType.String())
 	switch resolvedVMType {
-	case define.WSLVirt:
-		return wsl.VirtualizationProvider(), nil
+	// TODO re-enable this with WSL
+	//case define.WSLVirt:
+	//	return wsl.VirtualizationProvider(), nil
 	case define.HyperVVirt:
-		return hyperv.VirtualizationProvider(), nil
+		return new(hyperv.HyperVStubber), nil
 	default:
 		return nil, fmt.Errorf("unsupported virtualization provider: `%s`", resolvedVMType.String())
 	}

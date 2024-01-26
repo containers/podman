@@ -54,7 +54,7 @@ func getIgnitionVsockDevice(path string) (vfConfig.VirtioDevice, error) {
 	return vfConfig.VirtioVsockNew(1024, path, true)
 }
 
-func virtIOFsToVFKitVirtIODevice(mounts []vmconfigs.Mount) ([]vfConfig.VirtioDevice, error) {
+func virtIOFsToVFKitVirtIODevice(mounts []*vmconfigs.Mount) ([]vfConfig.VirtioDevice, error) {
 	var virtioDevices []vfConfig.VirtioDevice
 	for _, vol := range mounts {
 		virtfsDevice, err := vfConfig.VirtioFsNew(vol.Source, vol.Tag)
