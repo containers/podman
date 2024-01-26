@@ -837,15 +837,15 @@ func AutoCompleteFarms(cmd *cobra.Command, args []string, toComplete string) ([]
 	if !validCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	suggestions := []string{}
-	cfg, err := config.ReadCustomConfig()
+	farms, err := podmanConfig.ContainersConfDefaultsRO.GetAllFarms()
 	if err != nil {
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
-	for k := range cfg.Farms.List {
-		suggestions = append(suggestions, k)
+	suggestions := make([]string, 0, len(farms))
+	for _, farm := range farms {
+		suggestions = append(suggestions, farm.Name)
 	}
 
 	return suggestions, cobra.ShellCompDirectiveNoFileComp
@@ -856,16 +856,17 @@ func AutocompleteSystemConnections(cmd *cobra.Command, args []string, toComplete
 	if !validCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	suggestions := []string{}
-	cfg, err := config.ReadCustomConfig()
+
+	cons, err := podmanConfig.ContainersConfDefaultsRO.GetAllConnections()
 	if err != nil {
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
-	for k, v := range cfg.Engine.ServiceDestinations {
+	suggestions := make([]string, 0, len(cons))
+	for _, con := range cons {
 		// the URI will be show as description in shells like zsh
-		suggestions = append(suggestions, k+"\t"+v.URI)
+		suggestions = append(suggestions, con.Name+"\t"+con.URI)
 	}
 
 	return suggestions, cobra.ShellCompDirectiveNoFileComp

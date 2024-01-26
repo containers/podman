@@ -14,7 +14,6 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/machine"
@@ -114,15 +113,10 @@ func composeDockerHost() (string, error) {
 		return registry.DefaultAPIAddress(), nil
 	}
 
-	cfg, err := config.ReadCustomConfig()
+	// TODO need to add support for --connection and --url
+	connection, err := registry.PodmanConfig().ContainersConfDefaultsRO.GetConnection("", true)
 	if err != nil {
-		return "", err
-	}
-
-	// NOTE: podman --connection=foo and --url=... are injected
-	// into the default connection below in `root.go`.
-	defaultConnection := cfg.Engine.ActiveService
-	if defaultConnection == "" {
+		logrus.Info(err)
 		switch runtime.GOOS {
 		// If no default connection is set on Linux or FreeBSD,
 		// we just use the local socket by default - just as
@@ -137,10 +131,6 @@ func composeDockerHost() (string, error) {
 		}
 	}
 
-	connection, ok := cfg.Engine.ServiceDestinations[defaultConnection]
-	if !ok {
-		return "", fmt.Errorf("internal error: default connection %q not found in database", defaultConnection)
-	}
 	parsedConnection, err := url.Parse(connection.URI)
 	if err != nil {
 		return "", fmt.Errorf("preparing connection to remote machine: %w", err)

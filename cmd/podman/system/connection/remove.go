@@ -48,43 +48,35 @@ func init() {
 }
 
 func rm(cmd *cobra.Command, args []string) error {
-	cfg, err := config.ReadCustomConfig()
-	if err != nil {
-		return err
-	}
+	return config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
+		if rmOpts.All {
+			cfg.Connection.Connections = nil
+			cfg.Connection.Default = ""
 
-	if rmOpts.All {
-		for k := range cfg.Engine.ServiceDestinations {
-			delete(cfg.Engine.ServiceDestinations, k)
+			// Clear all the connections in any existing farms
+			for k := range cfg.Farm.List {
+				cfg.Farm.List[k] = []string{}
+			}
+			return nil
 		}
-		cfg.Engine.ActiveService = ""
 
-		// Clear all the connections in any existing farms
-		for k := range cfg.Farms.List {
-			cfg.Farms.List[k] = []string{}
+		if len(args) != 1 {
+			return errors.New("accepts 1 arg(s), received 0")
 		}
-		return cfg.Write()
-	}
 
-	if len(args) != 1 {
-		return errors.New("accepts 1 arg(s), received 0")
-	}
-
-	if cfg.Engine.ServiceDestinations != nil {
-		delete(cfg.Engine.ServiceDestinations, args[0])
-	}
-
-	if cfg.Engine.ActiveService == args[0] {
-		cfg.Engine.ActiveService = ""
-	}
-
-	// If there are existing farm, remove the deleted connection that might be part of a farm
-	for k, v := range cfg.Farms.List {
-		index := slices.Index(v, args[0])
-		if index > -1 {
-			cfg.Farms.List[k] = append(v[:index], v[index+1:]...)
+		delete(cfg.Connection.Connections, args[0])
+		if cfg.Connection.Default == args[0] {
+			cfg.Connection.Default = ""
 		}
-	}
 
-	return cfg.Write()
+		// If there are existing farm, remove the deleted connection that might be part of a farm
+		for k, v := range cfg.Farm.List {
+			index := slices.Index(v, args[0])
+			if index > -1 {
+				cfg.Farm.List[k] = append(v[:index], v[index+1:]...)
+			}
+		}
+
+		return nil
+	})
 }

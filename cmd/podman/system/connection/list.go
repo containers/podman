@@ -41,7 +41,7 @@ var (
 func init() {
 	initFlags := func(cmd *cobra.Command) {
 		cmd.Flags().StringP("format", "f", "", "Custom Go template for printing connections")
-		_ = cmd.RegisterFlagCompletionFunc("format", common.AutocompleteFormat(&namedDestination{}))
+		_ = cmd.RegisterFlagCompletionFunc("format", common.AutocompleteFormat(&config.Connection{}))
 		cmd.Flags().BoolP("quiet", "q", false, "Custom Go template for printing connections")
 	}
 
@@ -62,22 +62,11 @@ func init() {
 	initFlags(inspectCmd)
 }
 
-type namedDestination struct {
-	Name string
-	config.Destination
-	Default bool
-}
-
 func list(cmd *cobra.Command, _ []string) error {
 	return inspect(cmd, nil)
 }
 
 func inspect(cmd *cobra.Command, args []string) error {
-	cfg, err := config.ReadCustomConfig()
-	if err != nil {
-		return err
-	}
-
 	format := cmd.Flag("format").Value.String()
 	if format == "" && args != nil {
 		format = "json"
@@ -87,31 +76,23 @@ func inspect(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	rows := make([]namedDestination, 0)
-	for k, v := range cfg.Engine.ServiceDestinations {
-		if args != nil && !slices.Contains(args, k) {
+
+	cons, err := registry.PodmanConfig().ContainersConfDefaultsRO.GetAllConnections()
+	if err != nil {
+		return err
+	}
+	rows := make([]config.Connection, 0, len(cons))
+	for _, con := range cons {
+		if args != nil && !slices.Contains(args, con.Name) {
 			continue
 		}
 
 		if quiet {
-			fmt.Println(k)
+			fmt.Println(con.Name)
 			continue
 		}
-		def := false
-		if k == cfg.Engine.ActiveService {
-			def = true
-		}
 
-		r := namedDestination{
-			Name: k,
-			Destination: config.Destination{
-				Identity:  v.Identity,
-				URI:       v.URI,
-				IsMachine: v.IsMachine,
-			},
-			Default: def,
-		}
-		rows = append(rows, r)
+		rows = append(rows, con)
 	}
 
 	if quiet {
@@ -137,7 +118,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 		rpt, err = rpt.Parse(report.OriginUser, format)
 	} else {
 		rpt, err = rpt.Parse(report.OriginPodman,
-			"{{range .}}{{.Name}}\t{{.URI}}\t{{.Identity}}\t{{.Default}}\n{{end -}}")
+			"{{range .}}{{.Name}}\t{{.URI}}\t{{.Identity}}\t{{.Default}}\t{{.ReadWrite}}\n{{end -}}")
 	}
 	if err != nil {
 		return err
@@ -145,10 +126,11 @@ func inspect(cmd *cobra.Command, args []string) error {
 
 	if rpt.RenderHeaders {
 		err = rpt.Execute([]map[string]string{{
-			"Default":  "Default",
-			"Identity": "Identity",
-			"Name":     "Name",
-			"URI":      "URI",
+			"Default":   "Default",
+			"Identity":  "Identity",
+			"Name":      "Name",
+			"URI":       "URI",
+			"ReadWrite": "ReadWrite",
 		}})
 		if err != nil {
 			return err

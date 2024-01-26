@@ -8,7 +8,6 @@ import (
 	"runtime"
 
 	"github.com/containers/common/pkg/completion"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
@@ -108,16 +107,18 @@ func hostInfo() (*entities.MachineHostInfo, error) {
 
 	host.NumberOfMachines = len(listResponse)
 
-	cfg, err := config.ReadCustomConfig()
-	if err != nil {
-		return nil, err
+	defaultCon := ""
+	con, err := registry.PodmanConfig().ContainersConfDefaultsRO.GetConnection("", true)
+	if err == nil {
+		// ignore the error here we only want to know if we have a default connection to show it in list
+		defaultCon = con.Name
 	}
 
 	// Default state of machine is stopped
 	host.MachineState = "Stopped"
 	for _, vm := range listResponse {
 		// Set default machine if found
-		if vm.Name == cfg.Engine.ActiveService {
+		if vm.Name == defaultCon {
 			host.DefaultMachine = vm.Name
 		}
 		// If machine is running or starting, it is automatically the current machine

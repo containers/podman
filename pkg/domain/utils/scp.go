@@ -33,11 +33,6 @@ func ExecuteTransfer(src, dst string, parentFlags []string, quiet bool, sshMode 
 		return nil, nil, nil, nil, err
 	}
 
-	confR, err := config.New(nil) // create a hand made config for the remote engine since we might use remote and native at once
-	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("could not make config: %w", err)
-	}
-
 	locations := []*entities.ImageScpOptions{}
 	cliConnections := []string{}
 	args := []string{src}
@@ -84,17 +79,15 @@ func ExecuteTransfer(src, dst string, parentFlags []string, quiet bool, sshMode 
 		cliConnections = []string{}
 	}
 
-	cfg, err := config.ReadCustomConfig() // get ready to set ssh destination if necessary
+	cfg, err := config.Default()
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	var serv map[string]config.Destination
-	serv, err = GetServiceInformation(&sshInfo, cliConnections, cfg)
+	err = GetServiceInformation(&sshInfo, cliConnections, cfg)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	confR.Engine = config.EngineConfig{Remote: true, CgroupManager: "cgroupfs", ServiceDestinations: serv} // pass the service dest (either remote or something else) to engine
 	saveCmd, loadCmd := CreateCommands(source, dest, parentFlags, podman)
 
 	switch {
@@ -401,15 +394,15 @@ func RemoteArgLength(input string, side int) int {
 }
 
 // GetServiceInformation takes the parsed list of hosts to connect to and validates the information
-func GetServiceInformation(sshInfo *entities.ImageScpConnections, cliConnections []string, cfg *config.Config) (map[string]config.Destination, error) {
-	var serv map[string]config.Destination
+func GetServiceInformation(sshInfo *entities.ImageScpConnections, cliConnections []string, cfg *config.Config) error {
 	var urlS string
 	var iden string
 	for i, val := range cliConnections {
 		connection, _, _ := strings.Cut(val, "::")
 		sshInfo.Connections = append(sshInfo.Connections, connection)
-		conn, found := cfg.Engine.ServiceDestinations[sshInfo.Connections[i]]
-		if found {
+		conn, err := cfg.GetConnection(sshInfo.Connections[i], false)
+		if err == nil {
+			// connection found
 			urlS = conn.URI
 			iden = conn.Identity
 		} else { // no match, warn user and do a manual connection.
@@ -419,17 +412,17 @@ func GetServiceInformation(sshInfo *entities.ImageScpConnections, cliConnections
 		}
 		urlFinal, err := url.Parse(urlS) // create an actual url to pass to exec command
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if urlFinal.User.Username() == "" {
 			if urlFinal.User, err = GetUserInfo(urlFinal); err != nil {
-				return nil, err
+				return err
 			}
 		}
 		sshInfo.URI = append(sshInfo.URI, urlFinal)
 		sshInfo.Identities = append(sshInfo.Identities, iden)
 	}
-	return serv, nil
+	return nil
 }
 
 func GetUserInfo(uri *url.URL) (*url.Userinfo, error) {

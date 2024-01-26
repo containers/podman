@@ -46,50 +46,29 @@ func init() {
 
 	formatFlagName := "format"
 	flags.StringVar(&lsOpts.Format, formatFlagName, "", "Format farm output using Go template")
-	_ = lsCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&farmOut{}))
-}
-
-type farmOut struct {
-	Name        string
-	Connections []string
-	Default     bool
+	_ = lsCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&config.Farm{}))
 }
 
 func list(cmd *cobra.Command, args []string) error {
-	cfg, err := config.ReadCustomConfig()
-	if err != nil {
-		return err
-	}
-
 	format := lsOpts.Format
 	if format == "" && len(args) > 0 {
 		format = "json"
 	}
 
-	rows := make([]farmOut, 0)
-	for k, v := range cfg.Farms.List {
-		defaultFarm := false
-		if k == cfg.Farms.Default {
-			defaultFarm = true
-		}
-
-		r := farmOut{
-			Name:        k,
-			Connections: v,
-			Default:     defaultFarm,
-		}
-		rows = append(rows, r)
+	farms, err := registry.PodmanConfig().ContainersConfDefaultsRO.GetAllFarms()
+	if err != nil {
+		return err
 	}
 
-	sort.Slice(rows, func(i, j int) bool {
-		return rows[i].Name < rows[j].Name
+	sort.Slice(farms, func(i, j int) bool {
+		return farms[i].Name < farms[j].Name
 	})
 
 	rpt := report.New(os.Stdout, cmd.Name())
 	defer rpt.Flush()
 
 	if report.IsJSON(format) {
-		buf, err := registry.JSONLibrary().MarshalIndent(rows, "", "    ")
+		buf, err := registry.JSONLibrary().MarshalIndent(farms, "", "    ")
 		if err == nil {
 			fmt.Println(string(buf))
 		}
@@ -100,7 +79,7 @@ func list(cmd *cobra.Command, args []string) error {
 		rpt, err = rpt.Parse(report.OriginUser, format)
 	} else {
 		rpt, err = rpt.Parse(report.OriginPodman,
-			"{{range .}}{{.Name}}\t{{.Connections}}\t{{.Default}}\n{{end -}}")
+			"{{range .}}{{.Name}}\t{{.Connections}}\t{{.Default}}\t{{.ReadWrite}}\n{{end -}}")
 	}
 	if err != nil {
 		return err
@@ -111,11 +90,12 @@ func list(cmd *cobra.Command, args []string) error {
 			"Default":     "Default",
 			"Connections": "Connections",
 			"Name":        "Name",
+			"ReadWrite":   "ReadWrite",
 		}})
 		if err != nil {
 			return err
 		}
 	}
 
-	return rpt.Execute(rows)
+	return rpt.Execute(farms)
 }

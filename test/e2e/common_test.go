@@ -122,6 +122,7 @@ var (
 		// invalid containers.conf files to fail the cleanup.
 		os.Unsetenv("CONTAINERS_CONF")
 		os.Unsetenv("CONTAINERS_CONF_OVERRIDE")
+		os.Unsetenv("PODMAN_CONNECTIONS_CONF")
 		podmanTest.Cleanup()
 		f := CurrentSpecReport()
 		processTestResult(f)

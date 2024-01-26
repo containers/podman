@@ -167,7 +167,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.57.1-0.20240129201029-3310a75e3608
+# github.com/containers/common v0.57.1-0.20240130143645-b26099256b92
 ## explicit; go 1.20
 github.com/containers/common/internal/attributedstring
 github.com/containers/common/libimage
@@ -236,7 +236,7 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.7.2
 ## explicit; go 1.20
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/image/v5 v5.29.2-0.20240129204525-816800b5daf7
+# github.com/containers/image/v5 v5.29.2-0.20240130233108-e66a1ade2efc
 ## explicit; go 1.19
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -346,7 +346,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.52.1-0.20240129173630-7a525ce0e2bc
+# github.com/containers/storage v1.52.1-0.20240130205044-62997abeaf2f
 ## explicit; go 1.20
 github.com/containers/storage
 github.com/containers/storage/drivers

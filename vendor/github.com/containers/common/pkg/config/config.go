@@ -9,11 +9,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/BurntSushi/toml"
 	"github.com/containers/common/internal/attributedstring"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/capabilities"
-	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/unshare"
 	units "github.com/docker/go-units"
 	selinux "github.com/opencontainers/selinux/go-selinux"
@@ -667,9 +665,9 @@ type MachineConfig struct {
 // FarmConfig represents the "farm" TOML config tables
 type FarmConfig struct {
 	// Default is the default farm to be used when farming out builds
-	Default string `toml:"default,omitempty"`
+	Default string `json:",omitempty" toml:"default,omitempty"`
 	// List is a map of farms created where key=farm-name and value=list of connections
-	List map[string][]string `toml:"list,omitempty"`
+	List map[string][]string `json:",omitempty" toml:"list,omitempty"`
 }
 
 // Destination represents destination for remote service
@@ -678,10 +676,10 @@ type Destination struct {
 	URI string `toml:"uri"`
 
 	// Identity file with ssh key, optional
-	Identity string `toml:"identity,omitempty"`
+	Identity string `json:",omitempty" toml:"identity,omitempty"`
 
 	// isMachine describes if the remote destination is a machine.
-	IsMachine bool `toml:"is_machine,omitempty"`
+	IsMachine bool `json:",omitempty" toml:"is_machine,omitempty"`
 }
 
 // Consumes container image's os and arch and returns if any dedicated runtime was
@@ -1006,82 +1004,6 @@ func IsValidDeviceMode(mode string) bool {
 		legalDeviceMode[c] = false
 	}
 	return true
-}
-
-func rootlessConfigPath() (string, error) {
-	if configHome := os.Getenv("XDG_CONFIG_HOME"); configHome != "" {
-		return filepath.Join(configHome, _configPath), nil
-	}
-	home, err := unshare.HomeDir()
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(home, UserOverrideContainersConfig), nil
-}
-
-func Path() string {
-	if path := os.Getenv("CONTAINERS_CONF"); path != "" {
-		return path
-	}
-	if unshare.IsRootless() {
-		if rpath, err := rootlessConfigPath(); err == nil {
-			return rpath
-		}
-		return "$HOME/" + UserOverrideContainersConfig
-	}
-	return OverrideContainersConfig
-}
-
-// ReadCustomConfig reads the custom config and only generates a config based on it
-// If the custom config file does not exists, function will return an empty config
-func ReadCustomConfig() (*Config, error) {
-	path, err := customConfigFile()
-	if err != nil {
-		return nil, err
-	}
-	newConfig := &Config{}
-	if _, err := os.Stat(path); err == nil {
-		if err := readConfigFromFile(path, newConfig); err != nil {
-			return nil, err
-		}
-	} else {
-		if !errors.Is(err, os.ErrNotExist) {
-			return nil, err
-		}
-	}
-	// Let's always initialize the farm list so it is never nil
-	if newConfig.Farms.List == nil {
-		newConfig.Farms.List = make(map[string][]string)
-	}
-	return newConfig, nil
-}
-
-// Write writes the configuration to the default file
-func (c *Config) Write() error {
-	var err error
-	path, err := customConfigFile()
-	if err != nil {
-		return err
-	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
-	}
-
-	opts := &ioutils.AtomicFileWriterOptions{ExplicitCommit: true}
-	configFile, err := ioutils.NewAtomicFileWriterWithOpts(path, 0o644, opts)
-	if err != nil {
-		return err
-	}
-	defer configFile.Close()
-
-	enc := toml.NewEncoder(configFile)
-	if err := enc.Encode(c); err != nil {
-		return err
-	}
-
-	// If no errors commit the changes to the config file
-	return configFile.Commit()
 }
 
 // Reload clean the cached config and reloads the configuration from containers.conf files

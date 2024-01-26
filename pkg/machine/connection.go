@@ -17,93 +17,81 @@ func AddConnection(uri fmt.Stringer, name, identity string, isDefault bool) erro
 	if len(identity) < 1 {
 		return errors.New("identity must be defined")
 	}
-	cfg, err := config.ReadCustomConfig()
-	if err != nil {
-		return err
-	}
-	if _, ok := cfg.Engine.ServiceDestinations[name]; ok {
-		return errors.New("cannot overwrite connection")
-	}
-	if isDefault {
-		cfg.Engine.ActiveService = name
-	}
-	dst := config.Destination{
-		URI:       uri.String(),
-		IsMachine: true,
-	}
-	dst.Identity = identity
-	if cfg.Engine.ServiceDestinations == nil {
-		cfg.Engine.ServiceDestinations = map[string]config.Destination{
-			name: dst,
-		}
-		cfg.Engine.ActiveService = name
-	} else {
-		cfg.Engine.ServiceDestinations[name] = dst
-	}
-	return cfg.Write()
-}
 
-func AnyConnectionDefault(name ...string) (bool, error) {
-	cfg, err := config.ReadCustomConfig()
-	if err != nil {
-		return false, err
-	}
-	for _, n := range name {
-		if n == cfg.Engine.ActiveService {
-			return true, nil
+	return config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
+		if _, ok := cfg.Connection.Connections[name]; ok {
+			return errors.New("cannot overwrite connection")
 		}
-	}
 
-	return false, nil
+		dst := config.Destination{
+			URI:       uri.String(),
+			IsMachine: true,
+			Identity:  identity,
+		}
+
+		if isDefault {
+			cfg.Connection.Default = name
+		}
+
+		if cfg.Connection.Connections == nil {
+			cfg.Connection.Connections = map[string]config.Destination{
+				name: dst,
+			}
+			cfg.Connection.Default = name
+		} else {
+			cfg.Connection.Connections[name] = dst
+		}
+
+		return nil
+	})
 }
 
 func ChangeConnectionURI(name string, uri fmt.Stringer) error {
-	cfg, err := config.ReadCustomConfig()
-	if err != nil {
-		return err
-	}
-	dst, ok := cfg.Engine.ServiceDestinations[name]
-	if !ok {
-		return errors.New("connection not found")
-	}
-	dst.URI = uri.String()
-	cfg.Engine.ServiceDestinations[name] = dst
+	return config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
+		dst, ok := cfg.Connection.Connections[name]
+		if !ok {
+			return errors.New("connection not found")
+		}
+		dst.URI = uri.String()
+		cfg.Connection.Connections[name] = dst
 
-	return cfg.Write()
+		return nil
+	})
 }
 
-func ChangeDefault(name string) error {
-	cfg, err := config.ReadCustomConfig()
-	if err != nil {
-		return err
-	}
-
-	cfg.Engine.ActiveService = name
-
-	return cfg.Write()
+// UpdateConnectionIfDefault updates the default connection to the rootful/rootless when depending
+// on the bool but only if other rootful/less connection was already the default.
+// Returns true if it modified the default
+func UpdateConnectionIfDefault(rootful bool, name, rootfulName string) error {
+	return config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
+		if name == cfg.Connection.Default && rootful {
+			cfg.Connection.Default = rootfulName
+		} else if rootfulName == cfg.Connection.Default && !rootful {
+			cfg.Connection.Default = name
+		}
+		return nil
+	})
 }
 
 func RemoveConnections(names ...string) error {
-	cfg, err := config.ReadCustomConfig()
-	if err != nil {
-		return err
-	}
-	for _, name := range names {
-		if _, ok := cfg.Engine.ServiceDestinations[name]; ok {
-			delete(cfg.Engine.ServiceDestinations, name)
-		} else {
-			return fmt.Errorf("unable to find connection named %q", name)
-		}
+	return config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
+		for _, name := range names {
+			if _, ok := cfg.Connection.Connections[name]; ok {
+				delete(cfg.Connection.Connections, name)
+			} else {
+				return fmt.Errorf("unable to find connection named %q", name)
+			}
 
-		if cfg.Engine.ActiveService == name {
-			cfg.Engine.ActiveService = ""
-			for service := range cfg.Engine.ServiceDestinations {
-				cfg.Engine.ActiveService = service
-				break
+			if cfg.Connection.Default == name {
+				cfg.Connection.Default = ""
 			}
 		}
-	}
-	return cfg.Write()
+		for service := range cfg.Connection.Connections {
+			cfg.Connection.Default = service
+			break
+		}
+		return nil
+	})
 }
 
 // removeFilesAndConnections removes any files and connections with the given names
