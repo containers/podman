@@ -206,34 +206,34 @@ type InspectMount struct {
 // Docker, but here we see more fields that are unused (nonsensical in the
 // context of Libpod).
 type InspectContainerState struct {
-	OciVersion     string             `json:"OciVersion"`
-	Status         string             `json:"Status"`
-	Running        bool               `json:"Running"`
-	Paused         bool               `json:"Paused"`
-	Restarting     bool               `json:"Restarting"` // TODO
-	OOMKilled      bool               `json:"OOMKilled"`
-	Dead           bool               `json:"Dead"`
-	Pid            int                `json:"Pid"`
-	ConmonPid      int                `json:"ConmonPid,omitempty"`
-	ExitCode       int32              `json:"ExitCode"`
-	Error          string             `json:"Error"` // TODO
-	StartedAt      time.Time          `json:"StartedAt"`
-	FinishedAt     time.Time          `json:"FinishedAt"`
-	Health         HealthCheckResults `json:"Health,omitempty"`
-	Checkpointed   bool               `json:"Checkpointed,omitempty"`
-	CgroupPath     string             `json:"CgroupPath,omitempty"`
-	CheckpointedAt time.Time          `json:"CheckpointedAt,omitempty"`
-	RestoredAt     time.Time          `json:"RestoredAt,omitempty"`
-	CheckpointLog  string             `json:"CheckpointLog,omitempty"`
-	CheckpointPath string             `json:"CheckpointPath,omitempty"`
-	RestoreLog     string             `json:"RestoreLog,omitempty"`
-	Restored       bool               `json:"Restored,omitempty"`
-	StoppedByUser  bool               `json:"StoppedByUser,omitempty"`
+	OciVersion     string              `json:"OciVersion"`
+	Status         string              `json:"Status"`
+	Running        bool                `json:"Running"`
+	Paused         bool                `json:"Paused"`
+	Restarting     bool                `json:"Restarting"` // TODO
+	OOMKilled      bool                `json:"OOMKilled"`
+	Dead           bool                `json:"Dead"`
+	Pid            int                 `json:"Pid"`
+	ConmonPid      int                 `json:"ConmonPid,omitempty"`
+	ExitCode       int32               `json:"ExitCode"`
+	Error          string              `json:"Error"` // TODO
+	StartedAt      time.Time           `json:"StartedAt"`
+	FinishedAt     time.Time           `json:"FinishedAt"`
+	Health         *HealthCheckResults `json:"Health,omitempty"`
+	Checkpointed   bool                `json:"Checkpointed,omitempty"`
+	CgroupPath     string              `json:"CgroupPath,omitempty"`
+	CheckpointedAt time.Time           `json:"CheckpointedAt,omitempty"`
+	RestoredAt     time.Time           `json:"RestoredAt,omitempty"`
+	CheckpointLog  string              `json:"CheckpointLog,omitempty"`
+	CheckpointPath string              `json:"CheckpointPath,omitempty"`
+	RestoreLog     string              `json:"RestoreLog,omitempty"`
+	Restored       bool                `json:"Restored,omitempty"`
+	StoppedByUser  bool                `json:"StoppedByUser,omitempty"`
 }
 
 // Healthcheck returns the HealthCheckResults. This is used for old podman compat
 // to make the "Healthcheck" key available in the go template.
-func (s *InspectContainerState) Healthcheck() HealthCheckResults {
+func (s *InspectContainerState) Healthcheck() *HealthCheckResults {
 	return s.Health
 }
 

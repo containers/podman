@@ -189,15 +189,20 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 		data.OCIConfigPath = c.state.ConfigPath
 	}
 
-	if c.config.HealthCheckConfig != nil {
+	// Check if healthcheck is not nil and --no-healthcheck option is not set.
+	// If --no-healthcheck is set Test will be always set to `[NONE]`, so the
+	// inspect status should be set to nil.
+	if c.config.HealthCheckConfig != nil && !(len(c.config.HealthCheckConfig.Test) == 1 && c.config.HealthCheckConfig.Test[0] == "NONE") {
 		// This container has a healthcheck defined in it; we need to add its state
 		healthCheckState, err := c.getHealthCheckLog()
 		if err != nil {
 			// An error here is not considered fatal; no health state will be displayed
 			logrus.Error(err)
 		} else {
-			data.State.Health = healthCheckState
+			data.State.Health = &healthCheckState
 		}
+	} else {
+		data.State.Health = nil
 	}
 
 	networkConfig, err := c.getContainerNetworkInfo()
