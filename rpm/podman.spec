@@ -12,7 +12,7 @@
 # until that's fixed.
 # c9s bz: https://bugzilla.redhat.com/show_bug.cgi?id=2227328
 # c8s bz: https://bugzilla.redhat.com/show_bug.cgi?id=2227331
-%if %{defined rhel} && !%{defined eln}
+%if %{defined rhel} && 0%{?rhel} < 10
 %define gobuild(o:) go build -buildmode pie -compiler gc -tags="rpm_crashtraceback libtrust_openssl ${BUILDTAGS:-}" -ldflags "-linkmode=external -compressdwarf=false ${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '%__global_ldflags'" -a -v -x %{?**};
 # python3 dep conditional for rhel8
 %if %{?rhel} == 8
