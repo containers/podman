@@ -62,7 +62,7 @@ func NewVirtIoFsMount(src, target string, readOnly bool) VirtIoFs {
 	return vfs
 }
 
-func MountToVirtIOFs(mnt vmconfigs.Mount) VirtIoFs {
+func MountToVirtIOFs(mnt *vmconfigs.Mount) VirtIoFs {
 	return VirtIoFs{
 		VolumeKind: VirtIOFsVk,
 		ReadOnly:   mnt.ReadOnly,

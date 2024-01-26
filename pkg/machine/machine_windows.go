@@ -133,6 +133,7 @@ func launchWinProxy(opts WinProxyOpts) (bool, string, error) {
 	}
 
 	cmd := exec.Command(command, args...)
+	logrus.Debugf("winssh command: %s %v", command, args)
 	if err := cmd.Start(); err != nil {
 		return globalName, "", err
 	}

@@ -21,7 +21,7 @@ type MachineConfig struct {
 
 	LastUp time.Time
 
-	Mounts []Mount
+	Mounts []*Mount
 	Name   string
 
 	Resources ResourceConfig
@@ -108,6 +108,7 @@ func (f fcosMachineImage) path() string {
 
 type VMProvider interface { //nolint:interfacebloat
 	CreateVM(opts define.CreateVMOpts, mc *MachineConfig, builder *ignition.IgnitionBuilder) error
+	PrepareIgnition(mc *MachineConfig, ignBuilder *ignition.IgnitionBuilder) (*ignition.ReadyUnitOpts, error)
 	GetHyperVisorVMs() ([]string, error)
 	MountType() VolumeMountType
 	MountVolumesToVM(mc *MachineConfig, quiet bool) error
@@ -115,10 +116,11 @@ type VMProvider interface { //nolint:interfacebloat
 	RemoveAndCleanMachines(dirs *define.MachineDirs) error
 	SetProviderAttrs(mc *MachineConfig, cpus, memory *uint64, newDiskSize *strongunits.GiB) error
 	StartNetworking(mc *MachineConfig, cmd *gvproxy.GvproxyCommand) error
+	PostStartNetworking(mc *MachineConfig) error
 	StartVM(mc *MachineConfig) (func() error, func() error, error)
 	State(mc *MachineConfig, bypass bool) (define.Status, error)
 	StopVM(mc *MachineConfig, hardStop bool) error
-	StopHostNetworking() error
+	StopHostNetworking(mc *MachineConfig, vmType define.VMType) error
 	VMType() define.VMType
 }
 
@@ -133,12 +135,13 @@ type HostUser struct {
 }
 
 type Mount struct {
+	OriginalInput string
 	ReadOnly      bool
 	Source        string
 	Tag           string
 	Target        string
 	Type          string
-	OriginalInput string
+	VSockNumber   *uint64
 }
 
 // ResourceConfig describes physical attributes of the machine
