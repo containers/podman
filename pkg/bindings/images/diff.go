@@ -9,11 +9,7 @@ import (
 )
 
 // Diff provides the changes between two container layers
-func Diff(ctx context.Context, nameOrID string, options *DiffOptions) ([]archive.Change, error) {
-	if options == nil {
-		options = new(DiffOptions)
-	}
-	_ = options
+func Diff(ctx context.Context, nameOrID string, _ *DiffOptions) ([]archive.Change, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err

@@ -369,6 +369,9 @@ func Wait(ctx context.Context, nameOrID string, options *WaitOptions) (int32, er
 // exists in local storage.  The nameOrID can be a container name
 // or a partial/full ID.
 func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool, error) {
+	if options == nil {
+		options = new(ExistsOptions)
+	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return false, err

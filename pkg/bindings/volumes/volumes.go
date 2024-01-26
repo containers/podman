@@ -12,14 +12,10 @@ import (
 )
 
 // Create creates a volume given its configuration.
-func Create(ctx context.Context, config entities.VolumeCreateOptions, options *CreateOptions) (*entities.VolumeConfigResponse, error) {
+func Create(ctx context.Context, config entities.VolumeCreateOptions, _ *CreateOptions) (*entities.VolumeConfigResponse, error) {
 	var (
 		v entities.VolumeConfigResponse
 	)
-	if options == nil {
-		options = new(CreateOptions)
-	}
-	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -39,14 +35,10 @@ func Create(ctx context.Context, config entities.VolumeCreateOptions, options *C
 }
 
 // Inspect returns low-level information about a volume.
-func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*entities.VolumeConfigResponse, error) {
+func Inspect(ctx context.Context, nameOrID string, _ *InspectOptions) (*entities.VolumeConfigResponse, error) {
 	var (
 		inspect entities.VolumeConfigResponse
 	)
-	if options == nil {
-		options = new(InspectOptions)
-	}
-	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -126,7 +118,7 @@ func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) error 
 }
 
 // Exists returns true if a given volume exists
-func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool, error) {
+func Exists(ctx context.Context, nameOrID string, _ *ExistsOptions) (bool, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return false, err

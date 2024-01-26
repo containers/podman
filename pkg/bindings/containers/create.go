@@ -11,12 +11,8 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-func CreateWithSpec(ctx context.Context, s *specgen.SpecGenerator, options *CreateOptions) (entities.ContainerCreateResponse, error) {
+func CreateWithSpec(ctx context.Context, s *specgen.SpecGenerator, _ *CreateOptions) (entities.ContainerCreateResponse, error) {
 	var ccr entities.ContainerCreateResponse
-	if options == nil {
-		options = new(CreateOptions)
-	}
-	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return ccr, err

@@ -39,7 +39,7 @@ func CreatePodFromSpec(ctx context.Context, spec *entities.PodSpec) (*entities.P
 }
 
 // Exists is a lightweight method to determine if a pod exists in local storage
-func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool, error) {
+func Exists(ctx context.Context, nameOrID string, _ *ExistsOptions) (bool, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return false, err
@@ -54,14 +54,10 @@ func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool,
 }
 
 // Inspect returns low-level information about the given pod.
-func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*entities.PodInspectReport, error) {
+func Inspect(ctx context.Context, nameOrID string, _ *InspectOptions) (*entities.PodInspectReport, error) {
 	var (
 		report entities.PodInspectReport
 	)
-	if options == nil {
-		options = new(InspectOptions)
-	}
-	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -102,12 +98,8 @@ func Kill(ctx context.Context, nameOrID string, options *KillOptions) (*entities
 }
 
 // Pause pauses all running containers in a given pod.
-func Pause(ctx context.Context, nameOrID string, options *PauseOptions) (*entities.PodPauseReport, error) {
+func Pause(ctx context.Context, nameOrID string, _ *PauseOptions) (*entities.PodPauseReport, error) {
 	var report entities.PodPauseReport
-	if options == nil {
-		options = new(PauseOptions)
-	}
-	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -123,12 +115,8 @@ func Pause(ctx context.Context, nameOrID string, options *PauseOptions) (*entiti
 
 // Prune by default removes all non-running pods in local storage.
 // And with force set true removes all pods.
-func Prune(ctx context.Context, options *PruneOptions) ([]*entities.PodPruneReport, error) {
+func Prune(ctx context.Context, _ *PruneOptions) ([]*entities.PodPruneReport, error) {
 	var reports []*entities.PodPruneReport
-	if options == nil {
-		options = new(PruneOptions)
-	}
-	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -169,12 +157,8 @@ func List(ctx context.Context, options *ListOptions) ([]*entities.ListPodsReport
 }
 
 // Restart restarts all containers in a pod.
-func Restart(ctx context.Context, nameOrID string, options *RestartOptions) (*entities.PodRestartReport, error) {
+func Restart(ctx context.Context, nameOrID string, _ *RestartOptions) (*entities.PodRestartReport, error) {
 	var report entities.PodRestartReport
-	if options == nil {
-		options = new(RestartOptions)
-	}
-	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -213,12 +197,8 @@ func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) (*enti
 }
 
 // Start starts all containers in a pod.
-func Start(ctx context.Context, nameOrID string, options *StartOptions) (*entities.PodStartReport, error) {
+func Start(ctx context.Context, nameOrID string, _ *StartOptions) (*entities.PodStartReport, error) {
 	var report entities.PodStartReport
-	if options == nil {
-		options = new(StartOptions)
-	}
-	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err

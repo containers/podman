@@ -83,15 +83,11 @@ func Prune(ctx context.Context, options *PruneOptions) (*entities.SystemPruneRep
 	return &report, response.Process(&report)
 }
 
-func Version(ctx context.Context, options *VersionOptions) (*entities.SystemVersionReport, error) {
+func Version(ctx context.Context, _ *VersionOptions) (*entities.SystemVersionReport, error) {
 	var (
 		component entities.ComponentVersion
 		report    entities.SystemVersionReport
 	)
-	if options == nil {
-		options = new(VersionOptions)
-	}
-	_ = options
 	version, err := define.GetVersion()
 	if err != nil {
 		return nil, err
@@ -134,12 +130,8 @@ func Version(ctx context.Context, options *VersionOptions) (*entities.SystemVers
 
 // DiskUsage returns information about image, container, and volume disk
 // consumption
-func DiskUsage(ctx context.Context, options *DiskOptions) (*entities.SystemDfReport, error) {
+func DiskUsage(ctx context.Context, _ *DiskOptions) (*entities.SystemDfReport, error) {
 	var report entities.SystemDfReport
-	if options == nil {
-		options = new(DiskOptions)
-	}
-	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
