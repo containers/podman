@@ -4,14 +4,15 @@ import (
 	"context"
 	"io"
 
-	"github.com/containers/common/libnetwork/types"
+	netTypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
+	"github.com/containers/podman/v4/pkg/domain/entities/types"
 	"github.com/containers/podman/v4/pkg/specgen"
 )
 
-type ContainerCopyFunc func() error
+type ContainerCopyFunc = types.ContainerCopyFunc
 
 type ContainerEngine interface { //nolint:interfacebloat
 	AutoUpdate(ctx context.Context, options AutoUpdateOptions) ([]*AutoUpdateReport, []error)
@@ -65,12 +66,12 @@ type ContainerEngine interface { //nolint:interfacebloat
 	Locks(ctx context.Context) (*LocksReport, error)
 	Migrate(ctx context.Context, options SystemMigrateOptions) error
 	NetworkConnect(ctx context.Context, networkname string, options NetworkConnectOptions) error
-	NetworkCreate(ctx context.Context, network types.Network, createOptions *types.NetworkCreateOptions) (*types.Network, error)
+	NetworkCreate(ctx context.Context, network netTypes.Network, createOptions *netTypes.NetworkCreateOptions) (*netTypes.Network, error)
 	NetworkUpdate(ctx context.Context, networkname string, options NetworkUpdateOptions) error
 	NetworkDisconnect(ctx context.Context, networkname string, options NetworkDisconnectOptions) error
 	NetworkExists(ctx context.Context, networkname string) (*BoolReport, error)
-	NetworkInspect(ctx context.Context, namesOrIds []string, options InspectOptions) ([]types.Network, []error, error)
-	NetworkList(ctx context.Context, options NetworkListOptions) ([]types.Network, error)
+	NetworkInspect(ctx context.Context, namesOrIds []string, options InspectOptions) ([]netTypes.Network, []error, error)
+	NetworkList(ctx context.Context, options NetworkListOptions) ([]netTypes.Network, error)
 	NetworkPrune(ctx context.Context, options NetworkPruneOptions) ([]*NetworkPruneReport, error)
 	NetworkReload(ctx context.Context, names []string, options NetworkReloadOptions) ([]*NetworkReloadReport, error)
 	NetworkRm(ctx context.Context, namesOrIds []string, options NetworkRmOptions) ([]*NetworkRmReport, error)

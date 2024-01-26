@@ -10,11 +10,11 @@ import (
 	"strconv"
 
 	imageTypes "github.com/containers/image/v5/types"
-	"github.com/containers/podman/v4/pkg/api/handlers/types"
+	handlersTypes "github.com/containers/podman/v4/pkg/api/handlers/types"
 	"github.com/containers/podman/v4/pkg/auth"
 	"github.com/containers/podman/v4/pkg/bindings"
-	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
+	"github.com/containers/podman/v4/pkg/domain/entities/types"
 )
 
 // Exists a lightweight way to determine if an image exists in local storage.  It returns a
@@ -35,11 +35,11 @@ func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool,
 
 // List returns a list of images in local storage.  The all boolean and filters parameters are optional
 // ways to alter the image query.
-func List(ctx context.Context, options *ListOptions) ([]*entities.ImageSummary, error) {
+func List(ctx context.Context, options *ListOptions) ([]*types.ImageSummary, error) {
 	if options == nil {
 		options = new(ListOptions)
 	}
-	var imageSummary []*entities.ImageSummary
+	var imageSummary []*types.ImageSummary
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func List(ctx context.Context, options *ListOptions) ([]*entities.ImageSummary, 
 
 // Get performs an image inspect.  To have the on-disk size of the image calculated, you can
 // use the optional size parameter.
-func GetImage(ctx context.Context, nameOrID string, options *GetOptions) (*entities.ImageInspectReport, error) {
+func GetImage(ctx context.Context, nameOrID string, options *GetOptions) (*types.ImageInspectReport, error) {
 	if options == nil {
 		options = new(GetOptions)
 	}
@@ -71,7 +71,7 @@ func GetImage(ctx context.Context, nameOrID string, options *GetOptions) (*entit
 	if err != nil {
 		return nil, err
 	}
-	inspectedData := entities.ImageInspectReport{}
+	inspectedData := types.ImageInspectReport{}
 	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/images/%s/json", params, nil, nameOrID)
 	if err != nil {
 		return &inspectedData, err
@@ -82,11 +82,11 @@ func GetImage(ctx context.Context, nameOrID string, options *GetOptions) (*entit
 }
 
 // Tree retrieves a "tree" based representation of the given image
-func Tree(ctx context.Context, nameOrID string, options *TreeOptions) (*entities.ImageTreeReport, error) {
+func Tree(ctx context.Context, nameOrID string, options *TreeOptions) (*types.ImageTreeReport, error) {
 	if options == nil {
 		options = new(TreeOptions)
 	}
-	var report entities.ImageTreeReport
+	var report types.ImageTreeReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -105,12 +105,12 @@ func Tree(ctx context.Context, nameOrID string, options *TreeOptions) (*entities
 }
 
 // History returns the parent layers of an image.
-func History(ctx context.Context, nameOrID string, options *HistoryOptions) ([]*types.HistoryResponse, error) {
+func History(ctx context.Context, nameOrID string, options *HistoryOptions) ([]*handlersTypes.HistoryResponse, error) {
 	if options == nil {
 		options = new(HistoryOptions)
 	}
 	_ = options
-	var history []*types.HistoryResponse
+	var history []*handlersTypes.HistoryResponse
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -124,8 +124,8 @@ func History(ctx context.Context, nameOrID string, options *HistoryOptions) ([]*
 	return history, response.Process(&history)
 }
 
-func Load(ctx context.Context, r io.Reader) (*entities.ImageLoadReport, error) {
-	var report entities.ImageLoadReport
+func Load(ctx context.Context, r io.Reader) (*types.ImageLoadReport, error) {
+	var report types.ImageLoadReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -242,11 +242,11 @@ func Untag(ctx context.Context, nameOrID, tag, repo string, options *UntagOption
 // Import adds the given image to the local image store.  This can be done by file and the given reader
 // or via the url parameter.  Additional metadata can be associated with the image by using the changes and
 // message parameters.  The image can also be tagged given a reference. One of url OR r must be provided.
-func Import(ctx context.Context, r io.Reader, options *ImportOptions) (*entities.ImageImportReport, error) {
+func Import(ctx context.Context, r io.Reader, options *ImportOptions) (*types.ImageImportReport, error) {
 	if options == nil {
 		options = new(ImportOptions)
 	}
-	var report entities.ImageImportReport
+	var report types.ImageImportReport
 	if r != nil && options.URL != nil {
 		return nil, errors.New("url and r parameters cannot be used together")
 	}
@@ -268,7 +268,7 @@ func Import(ctx context.Context, r io.Reader, options *ImportOptions) (*entities
 }
 
 // Search is the binding for libpod's v2 endpoints for Search images.
-func Search(ctx context.Context, term string, options *SearchOptions) ([]entities.ImageSearchReport, error) {
+func Search(ctx context.Context, term string, options *SearchOptions) ([]types.ImageSearchReport, error) {
 	if options == nil {
 		options = new(SearchOptions)
 	}
@@ -299,7 +299,7 @@ func Search(ctx context.Context, term string, options *SearchOptions) ([]entitie
 	}
 	defer response.Body.Close()
 
-	results := []entities.ImageSearchReport{}
+	results := []types.ImageSearchReport{}
 	if err := response.Process(&results); err != nil {
 		return nil, err
 	}

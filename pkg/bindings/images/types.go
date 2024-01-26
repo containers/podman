@@ -3,7 +3,7 @@ package images
 import (
 	"io"
 
-	buildahDefine "github.com/containers/buildah/define"
+	"github.com/containers/podman/v4/pkg/domain/entities/types"
 )
 
 // RemoveOptions are optional options for image removal
@@ -226,9 +226,7 @@ type PullOptions struct {
 }
 
 // BuildOptions are optional options for building images
-type BuildOptions struct {
-	buildahDefine.BuildOptions
-}
+type BuildOptions = types.BuildOptions
 
 // ExistsOptions are optional options for checking if an image exists
 //

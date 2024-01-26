@@ -17,8 +17,9 @@ import (
 	"github.com/containers/podman/v4/pkg/auth"
 	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/containers/podman/v4/pkg/bindings/images"
-	"github.com/containers/podman/v4/pkg/domain/entities"
+	entitiesTypes "github.com/containers/podman/v4/pkg/domain/entities/types"
 	"github.com/containers/podman/v4/pkg/errorhandling"
+	dockerAPI "github.com/docker/docker/api/types"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -27,7 +28,7 @@ import (
 // of a list if the name provided is a manifest list.  The ID of the new manifest list
 // is returned as a string.
 func Create(ctx context.Context, name string, images []string, options *CreateOptions) (string, error) {
-	var idr entities.IDResponse
+	var idr dockerAPI.IDResponse
 	if options == nil {
 		options = new(CreateOptions)
 	}
@@ -179,8 +180,8 @@ func Remove(ctx context.Context, name, digest string, _ *RemoveOptions) (string,
 }
 
 // Delete removes specified manifest from local storage.
-func Delete(ctx context.Context, name string) (*entities.ManifestRemoveReport, error) {
-	var report entities.ManifestRemoveReport
+func Delete(ctx context.Context, name string) (*entitiesTypes.ManifestRemoveReport, error) {
+	var report entitiesTypes.ManifestRemoveReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -250,7 +251,7 @@ func Push(ctx context.Context, name, destination string, options *images.PushOpt
 
 	dec := json.NewDecoder(response.Body)
 	for {
-		var report entities.ManifestPushReport
+		var report entitiesTypes.ManifestPushReport
 		if err := dec.Decode(&report); err != nil {
 			return "", err
 		}
@@ -320,7 +321,7 @@ func Modify(ctx context.Context, name string, images []string, options *ModifyOp
 	}
 
 	if response.IsSuccess() || response.IsRedirection() {
-		var report entities.ManifestModifyReport
+		var report entitiesTypes.ManifestModifyReport
 		if err = jsoniter.Unmarshal(data, &report); err != nil {
 			return "", fmt.Errorf("unable to decode API response: %w", err)
 		}

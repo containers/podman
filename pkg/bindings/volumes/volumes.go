@@ -6,15 +6,15 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v4/pkg/bindings"
-	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
+	entitiesTypes "github.com/containers/podman/v4/pkg/domain/entities/types"
 	jsoniter "github.com/json-iterator/go"
 )
 
 // Create creates a volume given its configuration.
-func Create(ctx context.Context, config entities.VolumeCreateOptions, options *CreateOptions) (*entities.VolumeConfigResponse, error) {
+func Create(ctx context.Context, config entitiesTypes.VolumeCreateOptions, options *CreateOptions) (*entitiesTypes.VolumeConfigResponse, error) {
 	var (
-		v entities.VolumeConfigResponse
+		v entitiesTypes.VolumeConfigResponse
 	)
 	if options == nil {
 		options = new(CreateOptions)
@@ -39,9 +39,9 @@ func Create(ctx context.Context, config entities.VolumeCreateOptions, options *C
 }
 
 // Inspect returns low-level information about a volume.
-func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*entities.VolumeConfigResponse, error) {
+func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*entitiesTypes.VolumeConfigResponse, error) {
 	var (
-		inspect entities.VolumeConfigResponse
+		inspect entitiesTypes.VolumeConfigResponse
 	)
 	if options == nil {
 		options = new(InspectOptions)
@@ -62,9 +62,9 @@ func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*en
 
 // List returns the configurations for existing volumes in the form of a slice.  Optionally, filters
 // can be used to refine the list of volumes.
-func List(ctx context.Context, options *ListOptions) ([]*entities.VolumeListReport, error) {
+func List(ctx context.Context, options *ListOptions) ([]*entitiesTypes.VolumeListReport, error) {
 	var (
-		vols []*entities.VolumeListReport
+		vols []*entitiesTypes.VolumeListReport
 	)
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {

@@ -13,7 +13,7 @@ import (
 	imageTypes "github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/pkg/auth"
 	"github.com/containers/podman/v4/pkg/bindings"
-	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/containers/podman/v4/pkg/domain/entities/types"
 )
 
 // Push is the binding for libpod's endpoints for push images.  Note that
@@ -69,7 +69,7 @@ func Push(ctx context.Context, source string, destination string, options *PushO
 	dec := json.NewDecoder(response.Body)
 LOOP:
 	for {
-		var report entities.ImagePushStream
+		var report types.ImagePushStream
 		if err := dec.Decode(&report); err != nil {
 			if errors.Is(err, io.EOF) {
 				break

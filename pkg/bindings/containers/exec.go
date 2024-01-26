@@ -11,7 +11,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/api/handlers"
 	"github.com/containers/podman/v4/pkg/bindings"
-	"github.com/containers/podman/v4/pkg/domain/entities"
+	dockerAPI "github.com/docker/docker/api/types"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 )
@@ -43,7 +43,7 @@ func ExecCreate(ctx context.Context, nameOrID string, config *handlers.ExecCreat
 	}
 	defer resp.Body.Close()
 
-	respStruct := new(entities.IDResponse)
+	respStruct := new(dockerAPI.IDResponse)
 	if err := resp.Process(respStruct); err != nil {
 		return "", err
 	}

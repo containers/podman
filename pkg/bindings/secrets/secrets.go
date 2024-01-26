@@ -6,13 +6,13 @@ import (
 	"net/http"
 
 	"github.com/containers/podman/v4/pkg/bindings"
-	"github.com/containers/podman/v4/pkg/domain/entities"
+	entitiesTypes "github.com/containers/podman/v4/pkg/domain/entities/types"
 )
 
 // List returns information about existing secrets in the form of a slice.
-func List(ctx context.Context, options *ListOptions) ([]*entities.SecretInfoReport, error) {
+func List(ctx context.Context, options *ListOptions) ([]*entitiesTypes.SecretInfoReport, error) {
 	var (
-		secrs []*entities.SecretInfoReport
+		secrs []*entitiesTypes.SecretInfoReport
 	)
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
@@ -32,12 +32,12 @@ func List(ctx context.Context, options *ListOptions) ([]*entities.SecretInfoRepo
 }
 
 // Inspect returns low-level information about a secret.
-func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*entities.SecretInfoReport, error) {
+func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*entitiesTypes.SecretInfoReport, error) {
 	if options == nil {
 		options = new(InspectOptions)
 	}
 	var (
-		inspect *entities.SecretInfoReport
+		inspect *entitiesTypes.SecretInfoReport
 	)
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
@@ -72,9 +72,9 @@ func Remove(ctx context.Context, nameOrID string) error {
 }
 
 // Create creates a secret given some data
-func Create(ctx context.Context, reader io.Reader, options *CreateOptions) (*entities.SecretCreateReport, error) {
+func Create(ctx context.Context, reader io.Reader, options *CreateOptions) (*entitiesTypes.SecretCreateReport, error) {
 	var (
-		create *entities.SecretCreateReport
+		create *entitiesTypes.SecretCreateReport
 	)
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {

@@ -239,3 +239,6 @@ $
 
 You can also verify that the information being passed back and forth is correct by putting
 with a tool like `socat`, which can dump what the socket is seeing.
+
+## Reducing Binary Size with "remote" Build Tag
+When building a program that uses the Podman Go bindings, you can reduce the binary size by passing the "remote" build tag to the go build command.  This tag excludes code related to local Podman operations, which is not needed for applications that only interact with Podman over a network.

@@ -6,11 +6,11 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v4/pkg/bindings"
-	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/containers/podman/v4/pkg/domain/entities/types"
 	jsoniter "github.com/json-iterator/go"
 )
 
-func Update(ctx context.Context, options *entities.ContainerUpdateOptions) (string, error) {
+func Update(ctx context.Context, options *types.ContainerUpdateOptions) (string, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return "", err

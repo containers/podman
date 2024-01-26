@@ -9,13 +9,13 @@ import (
 
 	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/containers/podman/v4/pkg/copy"
-	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/containers/podman/v4/pkg/domain/entities/types"
 )
 
 // Stat checks if the specified path is on the container.  Note that the stat
 // report may be set even in case of an error.  This happens when the path
 // resolves to symlink pointing to a non-existent path.
-func Stat(ctx context.Context, nameOrID string, path string) (*entities.ContainerStatReport, error) {
+func Stat(ctx context.Context, nameOrID string, path string) (*types.ContainerStatReport, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -36,7 +36,7 @@ func Stat(ctx context.Context, nameOrID string, path string) (*entities.Containe
 		finalErr = errors.New(response.Status)
 	}
 
-	var statReport *entities.ContainerStatReport
+	var statReport *types.ContainerStatReport
 
 	fileInfo, err := copy.ExtractFileInfoFromHeader(&response.Header)
 	if err != nil && finalErr == nil {
@@ -44,18 +44,18 @@ func Stat(ctx context.Context, nameOrID string, path string) (*entities.Containe
 	}
 
 	if fileInfo != nil {
-		statReport = &entities.ContainerStatReport{FileInfo: *fileInfo}
+		statReport = &types.ContainerStatReport{FileInfo: *fileInfo}
 	}
 
 	return statReport, finalErr
 }
 
-func CopyFromArchive(ctx context.Context, nameOrID string, path string, reader io.Reader) (entities.ContainerCopyFunc, error) {
+func CopyFromArchive(ctx context.Context, nameOrID string, path string, reader io.Reader) (types.ContainerCopyFunc, error) {
 	return CopyFromArchiveWithOptions(ctx, nameOrID, path, reader, nil)
 }
 
 // CopyFromArchiveWithOptions copy files into container
-func CopyFromArchiveWithOptions(ctx context.Context, nameOrID string, path string, reader io.Reader, options *CopyOptions) (entities.ContainerCopyFunc, error) {
+func CopyFromArchiveWithOptions(ctx context.Context, nameOrID string, path string, reader io.Reader, options *CopyOptions) (types.ContainerCopyFunc, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -82,7 +82,7 @@ func CopyFromArchiveWithOptions(ctx context.Context, nameOrID string, path strin
 }
 
 // CopyToArchive copy files from container
-func CopyToArchive(ctx context.Context, nameOrID string, path string, writer io.Writer) (entities.ContainerCopyFunc, error) {
+func CopyToArchive(ctx context.Context, nameOrID string, path string, writer io.Writer) (types.ContainerCopyFunc, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err

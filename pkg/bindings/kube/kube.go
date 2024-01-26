@@ -12,11 +12,11 @@ import (
 	"github.com/containers/podman/v4/pkg/auth"
 	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/containers/podman/v4/pkg/bindings/generate"
-	"github.com/containers/podman/v4/pkg/domain/entities"
+	entitiesTypes "github.com/containers/podman/v4/pkg/domain/entities/types"
 	"github.com/sirupsen/logrus"
 )
 
-func Play(ctx context.Context, path string, options *PlayOptions) (*entities.KubePlayReport, error) {
+func Play(ctx context.Context, path string, options *PlayOptions) (*entitiesTypes.KubePlayReport, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -26,8 +26,8 @@ func Play(ctx context.Context, path string, options *PlayOptions) (*entities.Kub
 	return PlayWithBody(ctx, f, options)
 }
 
-func PlayWithBody(ctx context.Context, body io.Reader, options *PlayOptions) (*entities.KubePlayReport, error) {
-	var report entities.KubePlayReport
+func PlayWithBody(ctx context.Context, body io.Reader, options *PlayOptions) (*entitiesTypes.KubePlayReport, error) {
+	var report entitiesTypes.KubePlayReport
 	if options == nil {
 		options = new(PlayOptions)
 	}
@@ -88,7 +88,7 @@ func PlayWithBody(ctx context.Context, body io.Reader, options *PlayOptions) (*e
 	return &report, nil
 }
 
-func Down(ctx context.Context, path string, options DownOptions) (*entities.KubePlayReport, error) {
+func Down(ctx context.Context, path string, options DownOptions) (*entitiesTypes.KubePlayReport, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -102,8 +102,8 @@ func Down(ctx context.Context, path string, options DownOptions) (*entities.Kube
 	return DownWithBody(ctx, f, options)
 }
 
-func DownWithBody(ctx context.Context, body io.Reader, options DownOptions) (*entities.KubePlayReport, error) {
-	var report entities.KubePlayReport
+func DownWithBody(ctx context.Context, body io.Reader, options DownOptions) (*entitiesTypes.KubePlayReport, error) {
+	var report entitiesTypes.KubePlayReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -125,7 +125,7 @@ func DownWithBody(ctx context.Context, body io.Reader, options DownOptions) (*en
 }
 
 // Kube generate Kubernetes YAML (v1 specification)
-func Generate(ctx context.Context, nameOrIDs []string, options generate.KubeOptions) (*entities.GenerateKubeReport, error) {
+func Generate(ctx context.Context, nameOrIDs []string, options generate.KubeOptions) (*entitiesTypes.GenerateKubeReport, error) {
 	return generate.Kube(ctx, nameOrIDs, &options)
 }
 
