@@ -90,21 +90,7 @@ func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string
 		if secret.UpdatedAt.IsZero() {
 			secret.UpdatedAt = secret.CreatedAt
 		}
-		report := &entities.SecretInfoReport{
-			ID:        secret.ID,
-			CreatedAt: secret.CreatedAt,
-			UpdatedAt: secret.UpdatedAt,
-			Spec: entities.SecretSpec{
-				Name: secret.Name,
-				Driver: entities.SecretDriverSpec{
-					Name:    secret.Driver,
-					Options: secret.DriverOptions,
-				},
-				Labels: secret.Labels,
-			},
-			SecretData: string(data),
-		}
-		reports = append(reports, report)
+		reports = append(reports, secretToReportWithData(*secret, string(data)))
 	}
 
 	return reports, errs, nil
@@ -126,19 +112,7 @@ func (ic *ContainerEngine) SecretList(ctx context.Context, opts entities.SecretL
 			return nil, err
 		}
 		if result {
-			reportItem := entities.SecretInfoReport{
-				ID:        secret.ID,
-				CreatedAt: secret.CreatedAt,
-				UpdatedAt: secret.CreatedAt,
-				Spec: entities.SecretSpec{
-					Name: secret.Name,
-					Driver: entities.SecretDriverSpec{
-						Name:    secret.Driver,
-						Options: secret.DriverOptions,
-					},
-				},
-			}
-			report = append(report, &reportItem)
+			report = append(report, secretToReport(secret))
 		}
 	}
 	return report, nil
@@ -187,4 +161,25 @@ func (ic *ContainerEngine) SecretExists(ctx context.Context, nameOrID string) (*
 	}
 
 	return &entities.BoolReport{Value: secret != nil}, nil
+}
+
+func secretToReport(secret secrets.Secret) *entities.SecretInfoReport {
+	return secretToReportWithData(secret, "")
+}
+
+func secretToReportWithData(secret secrets.Secret, data string) *entities.SecretInfoReport {
+	return &entities.SecretInfoReport{
+		ID:        secret.ID,
+		CreatedAt: secret.CreatedAt,
+		UpdatedAt: secret.UpdatedAt,
+		Spec: entities.SecretSpec{
+			Name: secret.Name,
+			Driver: entities.SecretDriverSpec{
+				Name:    secret.Driver,
+				Options: secret.DriverOptions,
+			},
+			Labels: secret.Labels,
+		},
+		SecretData: data,
+	}
 }
