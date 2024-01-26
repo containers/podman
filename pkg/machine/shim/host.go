@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/connection"
 	machineDefine "github.com/containers/podman/v4/pkg/machine/define"
@@ -80,8 +81,11 @@ func List(vmstubbers []vmconfigs.VMProvider, opts machine.ListOptions) ([]*machi
 
 func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.MachineConfig, error) {
 	var (
-		err error
+		err            error
+		imageExtension string
+		imagePath      *machineDefine.VMFile
 	)
+
 	callbackFuncs := machine.InitCleanup()
 	defer callbackFuncs.CleanIfErr(&err)
 	go callbackFuncs.CleanOnSignal()
@@ -116,8 +120,20 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 	// image stuff is the slowest part of the operation
 
 	// This is a break from before.  New images are named vmname-ARCH.
-	// TODO does the image name need to retain its type? (qcow2)
-	imagePath, err := dirs.DataDir.AppendToNewVMFile(fmt.Sprintf("%s-%s", opts.Name, runtime.GOARCH), nil)
+	// It turns out that Windows/HyperV will not accept a disk that
+	// is not suffixed as ".vhdx". Go figure
+	switch mp.VMType() {
+	case machineDefine.QemuVirt:
+		imageExtension = ".qcow2"
+	case machineDefine.AppleHvVirt:
+		imageExtension = ".raw"
+	case machineDefine.HyperVVirt:
+		imageExtension = ".vhdx"
+	default:
+		// do nothing
+	}
+
+	imagePath, err = dirs.DataDir.AppendToNewVMFile(fmt.Sprintf("%s-%s%s", opts.Name, runtime.GOARCH, imageExtension), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +162,8 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 	if err != nil {
 		return nil, err
 	}
-	if err := mydisk.Get(); err != nil {
+	err = mydisk.Get()
+	if err != nil {
 		return nil, err
 	}
 
@@ -160,11 +177,16 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 		return nil, err
 	}
 
+	uid := os.Getuid()
+	if uid == -1 { // windows compensation
+		uid = 1000
+	}
+
 	ignBuilder := ignition.NewIgnitionBuilder(ignition.DynamicIgnition{
 		Name:      opts.Username,
 		Key:       sshKey,
 		TimeZone:  opts.TimeZone,
-		UID:       os.Getuid(),
+		UID:       uid,
 		VMName:    opts.Name,
 		VMType:    mp.VMType(),
 		WritePath: ignitionFile.GetPath(),
@@ -178,11 +200,17 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 		return nil, err
 	}
 
-	if err := ignBuilder.GenerateIgnitionConfig(); err != nil {
+	err = ignBuilder.GenerateIgnitionConfig()
+	if err != nil {
 		return nil, err
 	}
 
-	readyUnitFile, err := ignition.CreateReadyUnitFile(mp.VMType(), nil)
+	readyIgnOpts, err := mp.PrepareIgnition(mc, &ignBuilder)
+	if err != nil {
+		return nil, err
+	}
+
+	readyUnitFile, err := ignition.CreateReadyUnitFile(mp.VMType(), readyIgnOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -207,11 +235,13 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 	}
 	callbackFuncs.Add(cleanup)
 
-	if err := mp.CreateVM(createOpts, mc, &ignBuilder); err != nil {
+	err = mp.CreateVM(createOpts, mc, &ignBuilder)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := ignBuilder.Build(); err != nil {
+	err = ignBuilder.Build()
+	if err != nil {
 		return nil, err
 	}
 
@@ -220,12 +250,25 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 
 // VMExists looks across given providers for a machine's existence.  returns the actual config and found bool
 func VMExists(name string, vmstubbers []vmconfigs.VMProvider) (*vmconfigs.MachineConfig, bool, error) {
+	// Look on disk first
 	mcs, err := getMCsOverProviders(vmstubbers)
 	if err != nil {
 		return nil, false, err
 	}
-	mc, found := mcs[name]
-	return mc, found, nil
+	if mc, found := mcs[name]; found {
+		return mc, true, nil
+	}
+	// Check with the provider hypervisor
+	for _, vmstubber := range vmstubbers {
+		vms, err := vmstubber.GetHyperVisorVMs()
+		if err != nil {
+			return nil, false, err
+		}
+		if util.StringInSlice(name, vms) { //nolint:staticcheck
+			return nil, true, fmt.Errorf("vm %q already exists on hypervisor", name)
+		}
+	}
+	return nil, false, nil
 }
 
 // CheckExclusiveActiveVM checks if any of the machines are already running
@@ -358,11 +401,16 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 		return err
 	}
 
-	if releaseCmd() != nil { // overkill but protective
+	if releaseCmd != nil && releaseCmd() != nil { // some providers can return nil here (hyperv)
 		if err := releaseCmd(); err != nil {
 			// I think it is ok for a "light" error?
 			logrus.Error(err)
 		}
+	}
+
+	err = mp.PostStartNetworking(mc)
+	if err != nil {
+		return err
 	}
 
 	stateF := func() (machineDefine.Status, error) {

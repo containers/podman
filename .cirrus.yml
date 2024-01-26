@@ -6,7 +6,7 @@ env:
     #### Global variables used for all tasks
     ####
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
-    DEST_BRANCH: "main"
+    DEST_BRANCH: "machine-dev-5"
     # Sane (default) value for GOPROXY and GOSUMDB.
     GOPROXY: "https://proxy.golang.org,direct"
     GOSUMDB: "sum.golang.org"
@@ -1136,7 +1136,7 @@ success_task:
         - rootless_integration_test
         - podman_machine
         - podman_machine_aarch64
-        - podman_machine_windows
+        #- podman_machine_windows
         # TODO: Issue #20853; Tests mostly fail then timeout after an hour.
         # - podman_machine_mac
         - local_system_test

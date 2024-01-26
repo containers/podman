@@ -287,14 +287,14 @@ func (a AppleHVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func
 	return cmd.Process.Release, returnFunc, nil
 }
 
-func (a AppleHVStubber) StopHostNetworking() error {
-	// TODO implement me
-	panic("implement me")
+func (a AppleHVStubber) StopHostNetworking(_ *vmconfigs.MachineConfig, _ define.VMType) error {
+	return nil
 }
 
 func (a AppleHVStubber) VMType() define.VMType {
 	return define.AppleHvVirt
 }
+
 
 func waitForGvProxy(gvproxySocket *define.VMFile) error {
 	backoffWait := gvProxyWaitBackoff
@@ -308,4 +308,12 @@ func waitForGvProxy(gvproxySocket *define.VMFile) error {
 		backoffWait *= 2
 	}
 	return fmt.Errorf("unable to connect to gvproxy %q", gvproxySocket.GetPath())
+}
+
+func (a AppleHVStubber) PrepareIgnition(_ *vmconfigs.MachineConfig, _ *ignition.IgnitionBuilder) (*ignition.ReadyUnitOpts, error) {
+	return nil, nil
+}
+
+func (a AppleHVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig) error {
+	return nil
 }
