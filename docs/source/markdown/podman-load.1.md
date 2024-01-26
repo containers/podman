@@ -67,7 +67,7 @@ Storing signatures
 Loaded image:  registry.fedoraproject.org/fedora:latest
 ```
 
-Create an image from stdin using a piped.
+Create an image from stdin using a pipe.
 ```
 $ cat fedora.tar | podman load
 Getting image source signatures

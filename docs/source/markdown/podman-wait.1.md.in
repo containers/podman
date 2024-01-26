@@ -53,13 +53,13 @@ $ podman wait --latest
 0
 ```
 
-Wait up to 2 seconds the specified container to exit.
+Wait for the container to exit, checking every two seconds.
 ```
 $ podman wait --interval 2s mywebserver
 0
 ```
 
-Wait for the specified container to exit with a failure.
+Wait for the container by ID. This container exits with error status 1:
 ```
 $ podman wait 860a4b23
 1
@@ -72,7 +72,7 @@ $ podman wait mywebserver myftpserver
 125
 ```
 
-Wait for does-not-exist container to exit, but do not fail if container does not exist.
+Wait for the named container to exit, but do not fail if the container does not exist.
 ```
 $ podman wait --ignore does-not-exist
 -1

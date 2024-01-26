@@ -91,7 +91,7 @@ Password:
 Login Succeeded!
 ```
 
-Add login credentials as a Podman Secret for the specified registry to the default authorization file.
+Add login credentials using a Podman secret for the password.
 ```
 $ echo -n MySecret! | podman secret create secretname -
 a0ad54df3c97cf89d5ca6193c
