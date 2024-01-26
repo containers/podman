@@ -5,8 +5,8 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 )
 
-func CmdLineVolumesToMounts(volumes []string, volumeType vmconfigs.VolumeMountType) []vmconfigs.Mount {
-	mounts := []vmconfigs.Mount{}
+func CmdLineVolumesToMounts(volumes []string, volumeType vmconfigs.VolumeMountType) []*vmconfigs.Mount {
+	mounts := []*vmconfigs.Mount{}
 	for i, volume := range volumes {
 		var mount vmconfigs.Mount
 		tag, source, target, readOnly, _ := vmconfigs.SplitVolume(i, volume)
@@ -24,7 +24,7 @@ func CmdLineVolumesToMounts(volumes []string, volumeType vmconfigs.VolumeMountTy
 				OriginalInput: volume,
 			}
 		}
-		mounts = append(mounts, mount)
+		mounts = append(mounts, &mount)
 	}
 	return mounts
 }

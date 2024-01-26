@@ -215,7 +215,11 @@ func (q *QEMUStubber) VMType() define.VMType {
 	return define.QemuVirt
 }
 
-func (q *QEMUStubber) StopHostNetworking() error {
+func (q *QEMUStubber) PrepareIgnition(_ *vmconfigs.MachineConfig, _ *ignition.IgnitionBuilder) (*ignition.ReadyUnitOpts, error) {
+	return nil, nil
+}
+
+func (q *QEMUStubber) StopHostNetworking(_ *vmconfigs.MachineConfig, _ define.VMType) error {
 	return define.ErrNotImplemented
 }
 
@@ -303,4 +307,8 @@ func (q *QEMUStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, quiet bool) 
 
 func (q *QEMUStubber) MountType() vmconfigs.VolumeMountType {
 	return vmconfigs.NineP
+}
+
+func (q *QEMUStubber) PostStartNetworking(mc *vmconfigs.MachineConfig) error {
+	return nil
 }

@@ -190,7 +190,6 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	// 	return err
 	// }
 
-	// TODO this is for QEMU only (change to generic when adding second provider)
 	mc, err := shim.Init(initOpts, provider)
 	if err != nil {
 		return err

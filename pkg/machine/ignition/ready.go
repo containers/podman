@@ -13,7 +13,7 @@ type ReadyUnitOpts struct {
 	Port uint64
 }
 
-// CreateReadyUnitFile makes a the ready unit to report back to the host that the system is running
+// CreateReadyUnitFile makes the ready unit to report back to the host that the system is running
 func CreateReadyUnitFile(provider define.VMType, opts *ReadyUnitOpts) (string, error) {
 	readyUnit := DefaultReadyUnitFile()
 	switch provider {
