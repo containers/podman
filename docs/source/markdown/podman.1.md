@@ -242,11 +242,11 @@ Set default location of the storage.conf file.
 
 #### **CONTAINER_CONNECTION**
 
-Override default `--connection` value to access Podman service. Also enabled --remote option.
+Override default `--connection` value to access Podman service. Automatically enables the --remote option.
 
 #### **CONTAINER_HOST**
 
-Set default `--url` value to access Podman service. Also enabled --remote option.
+Set default `--url` value to access Podman service. Automatically enables --remote option.
 
 #### **CONTAINER_SSHKEY**
 
