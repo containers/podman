@@ -1,6 +1,8 @@
 module github.com/containers/podman/v4
 
-go 1.20
+go 1.21
+
+toolchain go1.21.6
 
 require (
 	github.com/BurntSushi/toml v1.3.2
@@ -74,7 +76,7 @@ require (
 	google.golang.org/protobuf v1.31.0
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/kubernetes v1.28.4
+	k8s.io/kubernetes v1.29.1
 	sigs.k8s.io/yaml v1.4.0
 	tags.cncf.io/container-device-interface v0.6.2
 )
