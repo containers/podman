@@ -146,7 +146,7 @@ EOF
     echo "-----------------"
     cat -vET $envfile2
 
-    # See above for resoning behind 'env -0' and a results file
+    # See above for reasoning behind 'env -0' and a results file
     local resultsfile="$PODMAN_TMPDIR/envresults"
     touch $resultsfile
     run_podman run --rm -v "$resultsfile:/envresults:Z" \

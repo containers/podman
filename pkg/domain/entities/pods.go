@@ -464,7 +464,7 @@ func ValidatePodStatsOptions(args []string, options *PodStatsOptions) error {
 // PodLogsOptionsToContainerLogsOptions converts PodLogOptions to ContainerLogOptions
 func PodLogsOptionsToContainerLogsOptions(options PodLogsOptions) ContainerLogsOptions {
 	// PodLogsOptions are similar but contains few extra fields like ctrName
-	// So cast other values as is so we can re-use the code
+	// So cast other values as is so we can reuse the code
 	containerLogsOpts := ContainerLogsOptions{
 		Details:      options.Details,
 		Latest:       options.Latest,

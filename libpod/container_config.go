@@ -160,7 +160,7 @@ type ContainerRootFSConfig struct {
 	// pre-1.8, which was used in very old Podman versions to determine how
 	// image volumes were handled in Libpod (support for these eventually
 	// moved out of Libpod into pkg/specgen).
-	// Please DO NOT re-use the `imageVolumes` name in container JSON again.
+	// Please DO NOT reuse the `imageVolumes` name in container JSON again.
 	ImageVolumes []*ContainerImageVolume `json:"ctrImageVolumes,omitempty"`
 	// CreateWorkingDir indicates that Libpod should create the container's
 	// working directory if it does not exist. Some OCI runtimes do this by

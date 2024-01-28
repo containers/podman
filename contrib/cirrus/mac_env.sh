@@ -4,7 +4,7 @@ set -euo pipefail
 
 # This script is intended to be called by Cirrus-CI on a Mac M1 persistent worker.
 # It runs /after/ `mac_setup.sh` to help developers debug any environment
-# related issues.  It must not make any actualy changes to the environment.
+# related issues.  It must not make any actually changes to the environment.
 
 # Many variables can affect operations, make them all known to assist debugging.
 echo "Selection of current env. vars:"

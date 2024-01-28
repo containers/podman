@@ -481,7 +481,7 @@ type ContainerRenameOptions struct {
 	NewName string
 }
 
-// ContainerCloneOptions contains options for cloning an existing continer
+// ContainerCloneOptions contains options for cloning an existing container
 type ContainerCloneOptions struct {
 	ID           string
 	Destroy      bool

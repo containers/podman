@@ -880,7 +880,7 @@ EOF
     fi
 
     local net1=a-$(random_string 10)
-    # use /29 subnet to limt available ip space, a 29 gives 5 usable addresses (6 - 1 for the gw)
+    # use /29 subnet to limit available ip space, a 29 gives 5 usable addresses (6 - 1 for the gw)
     local subnet="$(random_rfc1918_subnet).0/29"
     run_podman network create --subnet $subnet $net1
     local cname=con-$(random_string 10)
