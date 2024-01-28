@@ -137,7 +137,7 @@ func (f *Formatter) Init(w io.Writer, minwidth, tabwidth, padding int, padchar b
 
 // Execute applies a parsed template to the specified data object,
 // and writes the output to Formatter.Writer.
-func (f *Formatter) Execute(data interface{}) error {
+func (f *Formatter) Execute(data any) error {
 	return f.template.Execute(f.writer, data)
 }
 

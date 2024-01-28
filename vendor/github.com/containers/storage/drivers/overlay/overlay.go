@@ -105,6 +105,7 @@ type overlayOptions struct {
 	mountOptions      string
 	ignoreChownErrors bool
 	forceMask         *os.FileMode
+	useComposefs      bool
 }
 
 // Driver contains information about the home directory and the list of active mounts that are created using this driver.
@@ -122,6 +123,7 @@ type Driver struct {
 	supportsDType    bool
 	supportsVolatile *bool
 	usingMetacopy    bool
+	usingComposefs   bool
 
 	supportsIDMappedMounts *bool
 }
@@ -387,6 +389,22 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		}
 	}
 
+	if opts.useComposefs {
+		if unshare.IsRootless() {
+			return nil, fmt.Errorf("composefs is not supported in user namespaces")
+		}
+		supportsDataOnly, err := supportsDataOnlyLayersCached(home, runhome)
+		if err != nil {
+			return nil, err
+		}
+		if !supportsDataOnly {
+			return nil, fmt.Errorf("composefs is not supported on this kernel: %w", graphdriver.ErrIncompatibleFS)
+		}
+		if _, err := getComposeFsHelper(); err != nil {
+			return nil, fmt.Errorf("composefs helper program not found: %w", err)
+		}
+	}
+
 	var usingMetacopy bool
 	var supportsDType bool
 	var supportsVolatile *bool
@@ -448,6 +466,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		supportsDType:    supportsDType,
 		usingMetacopy:    usingMetacopy,
 		supportsVolatile: supportsVolatile,
+		usingComposefs:   opts.useComposefs,
 		options:          *opts,
 	}
 
@@ -554,6 +573,12 @@ func parseOptions(options []string) (*overlayOptions, error) {
 					path:          lstore,
 					withReference: withReference,
 				})
+			}
+		case "use_composefs":
+			logrus.Debugf("overlay: use_composefs=%s", val)
+			o.useComposefs, err = strconv.ParseBool(val)
+			if err != nil {
+				return nil, err
 			}
 		case "mount_program":
 			logrus.Debugf("overlay: mount_program=%s", val)
@@ -782,7 +807,7 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 }
 
 func (d *Driver) useNaiveDiff() bool {
-	if d.useComposeFs() {
+	if d.usingComposefs {
 		return true
 	}
 
@@ -2002,6 +2027,9 @@ func (d *Driver) getStagingDir() string {
 // contains files for the layer differences, either for this layer, or one of our
 // lowers if we're just a template directory. Used for direct access for tar-split.
 func (d *Driver) DiffGetter(id string) (graphdriver.FileGetCloser, error) {
+	if d.usingComposefs {
+		return nil, nil
+	}
 	p, err := d.getDiffPath(id)
 	if err != nil {
 		return nil, err
@@ -2018,9 +2046,9 @@ func (d *Driver) CleanupStagingDirectory(stagingDirectory string) error {
 	return os.RemoveAll(stagingDirectory)
 }
 
-func (d *Driver) supportsDataOnlyLayers() (bool, error) {
+func supportsDataOnlyLayersCached(home, runhome string) (bool, error) {
 	feature := "dataonly-layers"
-	overlayCacheResult, overlayCacheText, err := cachedFeatureCheck(d.runhome, feature)
+	overlayCacheResult, overlayCacheText, err := cachedFeatureCheck(runhome, feature)
 	if err == nil {
 		if overlayCacheResult {
 			logrus.Debugf("Cached value indicated that data-only layers for overlay are supported")
@@ -2029,23 +2057,11 @@ func (d *Driver) supportsDataOnlyLayers() (bool, error) {
 		logrus.Debugf("Cached value indicated that data-only layers for overlay are not supported")
 		return false, errors.New(overlayCacheText)
 	}
-	supportsDataOnly, err := supportsDataOnlyLayers(d.home)
-	if err2 := cachedFeatureRecord(d.runhome, feature, supportsDataOnly, ""); err2 != nil {
+	supportsDataOnly, err := supportsDataOnlyLayers(home)
+	if err2 := cachedFeatureRecord(runhome, feature, supportsDataOnly, ""); err2 != nil {
 		return false, fmt.Errorf("recording overlay data-only layers support status: %w", err2)
 	}
 	return supportsDataOnly, err
-}
-
-func (d *Driver) useComposeFs() bool {
-	if !composeFsSupported() || unshare.IsRootless() {
-		return false
-	}
-	supportsDataOnlyLayers, err := d.supportsDataOnlyLayers()
-	if err != nil {
-		logrus.Debugf("Check for data-only layers failed with: %v", err)
-		return false
-	}
-	return supportsDataOnlyLayers
 }
 
 // ApplyDiff applies the changes in the new layer using the specified function
@@ -2083,7 +2099,7 @@ func (d *Driver) ApplyDiffWithDiffer(id, parent string, options *graphdriver.App
 	differOptions := graphdriver.DifferOptions{
 		Format: graphdriver.DifferOutputFormatDir,
 	}
-	if d.useComposeFs() {
+	if d.usingComposefs {
 		differOptions.Format = graphdriver.DifferOutputFormatFlat
 	}
 	out, err := differ.ApplyDiff(applyDir, &archive.TarOptions{
@@ -2105,7 +2121,7 @@ func (d *Driver) ApplyDiffFromStagingDirectory(id, parent, stagingDirectory stri
 		return fmt.Errorf("%q is not a staging directory", stagingDirectory)
 	}
 
-	if d.useComposeFs() {
+	if d.usingComposefs {
 		// FIXME: move this logic into the differ so we don't have to open
 		// the file twice.
 		verityDigests, err := enableVerityRecursive(stagingDirectory)

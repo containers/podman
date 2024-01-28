@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/common/pkg/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 const (
@@ -111,7 +111,7 @@ func getDefaultResolvConf(params *Params) ([]byte, bool, error) {
 
 // unsetSearchDomainsIfNeeded removes the search domain when they contain a single dot as element.
 func unsetSearchDomainsIfNeeded(searches []string) []string {
-	if util.StringInSlice(".", searches) {
+	if slices.Contains(searches, ".") {
 		return nil
 	}
 	return searches
@@ -173,7 +173,7 @@ func Remove(path string, nameservers []string) error {
 	oldNameservers := getNameservers(contents)
 	newNameserver := make([]string, 0, len(oldNameservers))
 	for _, ns := range oldNameservers {
-		if !util.StringInSlice(ns, nameservers) {
+		if !slices.Contains(nameservers, ns) {
 			newNameserver = append(newNameserver, ns)
 		}
 	}

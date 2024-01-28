@@ -1,5 +1,4 @@
 //go:build (windows && ignore) || osx
-// +build windows,ignore osx
 
 package sysinfo
 

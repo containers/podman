@@ -343,7 +343,7 @@ type zeroable interface {
 func IsZero(data interface{}) bool {
 	v := reflect.ValueOf(data)
 	// check for nil data
-	switch v.Kind() {
+	switch v.Kind() { //nolint:exhaustive
 	case reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
 		if v.IsNil() {
 			return true
@@ -356,7 +356,7 @@ func IsZero(data interface{}) bool {
 	}
 
 	// continue with slightly more complex reflection
-	switch v.Kind() {
+	switch v.Kind() { //nolint:exhaustive
 	case reflect.String:
 		return v.Len() == 0
 	case reflect.Bool:

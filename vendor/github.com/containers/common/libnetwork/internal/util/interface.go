@@ -7,7 +7,7 @@ import "github.com/containers/common/libnetwork/types"
 
 // NetUtil is a helper interface which all network interfaces should implement to allow easy code sharing
 type NetUtil interface {
-	// ForEach eaxecutes the given function for each network
+	// ForEach executes the given function for each network
 	ForEach(func(types.Network))
 	// Len returns the number of networks
 	Len() int

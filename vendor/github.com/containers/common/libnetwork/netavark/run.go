@@ -1,5 +1,4 @@
 //go:build linux || freebsd
-// +build linux freebsd
 
 package netavark
 
@@ -11,8 +10,8 @@ import (
 
 	"github.com/containers/common/libnetwork/internal/util"
 	"github.com/containers/common/libnetwork/types"
-	pkgutil "github.com/containers/common/pkg/util"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 type netavarkOptions struct {
@@ -175,7 +174,7 @@ func (n *netavarkNetwork) convertNetOpts(opts types.NetworkOptions) (*netavarkOp
 			return nil, false, err
 		}
 		netavarkOptions.Networks[network] = net
-		if !pkgutil.StringInSlice(net.Driver, builtinDrivers) {
+		if !slices.Contains(builtinDrivers, net.Driver) {
 			needsPlugin = true
 		}
 	}

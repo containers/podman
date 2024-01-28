@@ -629,12 +629,16 @@ json-file | f
 @test "podman inspect includes image data" {
     randomname=$(random_string 30)
 
-    run_podman inspect $IMAGE --format "{{.ID}} {{.Digest}}"
+    run_podman inspect $IMAGE --format "{{.ID}}"
     expected="$IMAGE $output"
+    run_podman inspect $IMAGE --format "{{.RepoDigests}}"
+    expectedDigests="$output"
 
     run_podman run --name $randomname $IMAGE true
-    run_podman container inspect $randomname --format "{{.ImageName}} {{.Image}} {{.ImageDigest}}"
+    run_podman container inspect $randomname --format "{{.ImageName}} {{.Image}}"
     is "$output" "$expected"
+    run_podman container inspect $randomname --format "{{.ImageDigest}}"
+    assert "$output" =~ "$expectedDigests"
     run_podman rm -f -t0 $randomname
 }
 

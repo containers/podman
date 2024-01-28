@@ -70,11 +70,11 @@ type ConnectionScpReport struct {
 // Info is the overall struct that describes the host system
 // running libpod/podman
 type Info struct {
-	Host       *HostInfo              `json:"host"`
-	Store      *StoreInfo             `json:"store"`
-	Registries map[string]interface{} `json:"registries"`
-	Plugins    Plugins                `json:"plugins"`
-	Version    Version                `json:"version"`
+	Host       *HostInfo      `json:"host"`
+	Store      *StoreInfo     `json:"store"`
+	Registries map[string]any `json:"registries"`
+	Plugins    Plugins        `json:"plugins"`
+	Version    Version        `json:"version"`
 }
 
 // Version is an output struct for API
@@ -121,8 +121,8 @@ type HostInfo struct {
 	OCIRuntime        *OCIRuntimeInfo  `json:"ociRuntime"`
 	OS                string           `json:"os"`
 	// RemoteSocket returns the UNIX domain socket the Podman service is listening on
-	RemoteSocket *RemoteSocket          `json:"remoteSocket,omitempty"`
-	RuntimeInfo  map[string]interface{} `json:"runtimeInfo,omitempty"`
+	RemoteSocket *RemoteSocket  `json:"remoteSocket,omitempty"`
+	RuntimeInfo  map[string]any `json:"runtimeInfo,omitempty"`
 	// ServiceIsRemote is true when the podman/libpod service is remote to the client
 	ServiceIsRemote bool         `json:"serviceIsRemote"`
 	Security        SecurityInfo `json:"security"`
@@ -179,11 +179,11 @@ type OCIRuntimeInfo struct {
 // StoreInfo describes the container storage and its
 // attributes
 type StoreInfo struct {
-	ConfigFile      string                 `json:"configFile"`
-	ContainerStore  ContainerStore         `json:"containerStore"`
-	GraphDriverName string                 `json:"graphDriverName"`
-	GraphOptions    map[string]interface{} `json:"graphOptions"`
-	GraphRoot       string                 `json:"graphRoot"`
+	ConfigFile      string         `json:"configFile"`
+	ContainerStore  ContainerStore `json:"containerStore"`
+	GraphDriverName string         `json:"graphDriverName"`
+	GraphOptions    map[string]any `json:"graphOptions"`
+	GraphRoot       string         `json:"graphRoot"`
 	// GraphRootAllocated is how much space the graphroot has in bytes
 	GraphRootAllocated uint64 `json:"graphRootAllocated"`
 	// GraphRootUsed is how much of graphroot is used in bytes

@@ -1,5 +1,4 @@
 //go:build linux
-// +build linux
 
 package cgroups
 
@@ -22,6 +21,7 @@ import (
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/maps"
 )
 
 var (
@@ -73,12 +73,13 @@ const (
 var handlers map[string]controllerHandler
 
 func init() {
-	handlers = make(map[string]controllerHandler)
-	handlers[CPU] = getCPUHandler()
-	handlers[CPUset] = getCpusetHandler()
-	handlers[Memory] = getMemoryHandler()
-	handlers[Pids] = getPidsHandler()
-	handlers[Blkio] = getBlkioHandler()
+	handlers = map[string]controllerHandler{
+		CPU:    getCPUHandler(),
+		CPUset: getCpusetHandler(),
+		Memory: getMemoryHandler(),
+		Pids:   getPidsHandler(),
+		Blkio:  getBlkioHandler(),
+	}
 }
 
 // getAvailableControllers get the available controllers
@@ -492,10 +493,7 @@ func (c *CgroupControl) AddPid(pid int) error {
 		return fs2.CreateCgroupPath(path, c.config)
 	}
 
-	names := make([]string, 0, len(handlers))
-	for n := range handlers {
-		names = append(names, n)
-	}
+	names := maps.Keys(handlers)
 
 	for _, c := range c.additionalControllers {
 		if !c.symlink {

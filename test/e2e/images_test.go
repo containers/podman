@@ -496,4 +496,53 @@ RUN > file2
 
 	})
 
+	It("podman images filter should be AND logic", func() {
+		dockerfile := `FROM quay.io/libpod/alpine:latest
+LABEL abc=""
+LABEL xyz=""
+`
+		podmanTest.BuildImage(dockerfile, "test-abc-xyz", "true")
+
+		dockerfile2 := `FROM quay.io/libpod/alpine:latest
+LABEL xyz="bar"
+`
+		podmanTest.BuildImage(dockerfile2, "test-xyz", "true")
+
+		session := podmanTest.Podman([]string{"images", "-f", "label=xyz"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(HaveLen(3))
+		Expect(session.OutputToString()).To(ContainSubstring("test-abc-xyz"))
+		Expect(session.OutputToString()).To(ContainSubstring("test-xyz"))
+
+		session = podmanTest.Podman([]string{"images", "-f", "label=xyz=bar"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
+		Expect(session.OutputToString()).To(ContainSubstring("test-xyz"))
+
+		session = podmanTest.Podman([]string{"images", "-f", "label=abc"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
+		Expect(session.OutputToString()).To(ContainSubstring("test-abc-xyz"))
+
+		session = podmanTest.Podman([]string{"images", "-f", "label=abc", "-f", "label=xyz"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
+		Expect(session.OutputToString()).To(ContainSubstring("test-abc-xyz"))
+
+		session = podmanTest.Podman([]string{"images", "-f", "label=xyz=bar", "-f", "label=abc"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
+
+		session = podmanTest.Podman([]string{"images", "-f", "label=xyz", "-f", "reference=test-abc-xyz"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
+		Expect(session.OutputToString()).To(ContainSubstring("test-abc-xyz"))
+	})
+
 })
