@@ -31,7 +31,7 @@ const (
 	bindirPrefix = "$BINDIR"
 )
 
-var validImageVolumeModes = []string{_typeBind, "tmpfs", "ignore"}
+var validImageVolumeModes = []string{"anonymous", "tmpfs", "ignore"}
 
 // ProxyEnv is a list of Proxy Environment variables
 var ProxyEnv = []string{
@@ -153,6 +153,13 @@ type ContainersConfig struct {
 	//
 	// Deprecated: Do not use this field directly use conf.FindInitBinary() instead.
 	InitPath string `toml:"init_path,omitempty"`
+
+	// InterfaceName tells container runtimes how to set interface names
+	// inside containers.
+	// The only valid value at the moment is "device" that indicates the
+	// interface name should be set as the network_interface name from
+	// the network config.
+	InterfaceName string `toml:"interface_name,omitempty"`
 
 	// IPCNS way to create a ipc namespace for the container
 	IPCNS string `toml:"ipcns,omitempty"`
@@ -811,6 +818,10 @@ func (c *ContainersConfig) Validate() error {
 	}
 
 	if err := c.validateDevices(); err != nil {
+		return err
+	}
+
+	if err := c.validateInterfaceName(); err != nil {
 		return err
 	}
 
