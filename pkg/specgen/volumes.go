@@ -78,7 +78,7 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 		src = splitVol[0]
 
 		// Support relative paths beginning with ./
-		if strings.HasPrefix(src, "./") {
+		if strings.HasPrefix(src, ".") {
 			path, err := filepath.EvalSymlinks(src)
 			if err != nil {
 				return nil, nil, nil, err
@@ -112,7 +112,7 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 			}
 		}
 
-		if strings.HasPrefix(src, "/") || strings.HasPrefix(src, ".") || isHostWinPath(src) {
+		if strings.HasPrefix(src, "/") || isHostWinPath(src) {
 			// This is not a named volume
 			overlayFlag := false
 			chownFlag := false
