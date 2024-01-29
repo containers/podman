@@ -56,7 +56,7 @@ type FarmBuildOptions struct {
 	// Authfile is the path to the file holding registry credentials
 	Authfile string
 	// SkipTLSVerify skips tls verification when set to true
-	SkipTLSVerify bool
+	SkipTLSVerify *bool
 }
 
 // BuildOptions describe the options for building container images.

@@ -85,10 +85,37 @@ load helpers.bash
     run_podman image prune -f
 }
 
+@test "farm - build on farm node only with registries.conf" {
+    cat >$PODMAN_TMPDIR/registries.conf <<EOF
+[[registry]]
+location="$REGISTRY"
+insecure=true
+EOF
+
+    iname="test-image-4"
+    CONTAINERS_REGISTRIES_CONF="$PODMAN_TMPDIR/registries.conf" run_podman farm build --authfile $AUTHFILE -t $REGISTRY/$iname $FARM_TMPDIR
+    assert "$output" =~ "Farm \"$FARMNAME\" ready"
+
+    # get the system architecture
+    CONTAINERS_REGISTRIES_CONF="$PODMAN_TMPDIR/registries.conf" run_podman info --format '{{.Host.Arch}}'
+    ARCH=$output
+    # inspect manifest list built and saved
+    CONTAINERS_REGISTRIES_CONF="$PODMAN_TMPDIR/registries.conf" run_podman manifest inspect $iname
+    assert "$output" =~ $ARCH
+
+    echo "# skopeo inspect ..."
+    run skopeo inspect "$@" --tls-verify=false --authfile $AUTHFILE docker://$REGISTRY/$iname
+    echo "$output"
+    is "$status" "0" "skopeo inspect - exit status"
+
+    run_podman manifest rm $iname
+    run_podman image prune -f
+}
+
 # Test out podman-remote
 
 @test "farm - build on farm node only (podman-remote)" {
-    iname="test-image-4"
+    iname="test-image-5"
     run_podman --remote farm build --authfile $AUTHFILE --tls-verify=false -t $REGISTRY/$iname $FARM_TMPDIR
     assert "$output" =~ "Farm \"$FARMNAME\" ready"
 

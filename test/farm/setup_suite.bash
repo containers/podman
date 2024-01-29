@@ -36,7 +36,7 @@ function setup_suite(){
     run_podman system connection add --identity $sshkey test-node $ROOTLESS_USER@localhost
     run_podman farm create $FARMNAME test-node
 
-     export PODMAN_LOGIN_WORKDIR=$(mktemp -d --tmpdir=${BATS_TMPDIR:-${TMPDIR:-/tmp}} podman-bats-registry.XXXXXX)
+    export PODMAN_LOGIN_WORKDIR=$(mktemp -d --tmpdir=${BATS_TMPDIR:-${TMPDIR:-/tmp}} podman-bats-registry.XXXXXX)
 
     export PODMAN_LOGIN_USER="user$(random_string 4)"
     export PODMAN_LOGIN_PASS="pw$(random_string 15)"

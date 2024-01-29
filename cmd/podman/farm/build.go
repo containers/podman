@@ -109,11 +109,17 @@ func build(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	opts.IIDFile = iidFile
-	tlsVerify, err := cmd.Flags().GetBool("tls-verify")
-	if err != nil {
-		return err
+	// only set tls-verify if it has been changed by the user
+	// if it hasn't we will read the registries.conf on the farm
+	// nodes for further configuration
+	if changed := cmd.Flags().Changed("tls-verify"); changed {
+		tlsVerify, err := cmd.Flags().GetBool("tls-verify")
+		if err != nil {
+			return err
+		}
+		skipTLSVerify := !tlsVerify
+		opts.SkipTLSVerify = &skipTLSVerify
 	}
-	opts.SkipTLSVerify = !tlsVerify
 
 	localEngine := registry.ImageEngine()
 	ctx := registry.Context()
