@@ -8,6 +8,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
+	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slices"
 )
@@ -15,12 +16,14 @@ import (
 var (
 	farmUpdateDescription = `Update an existing farm by adding a connection, removing a connection, or changing it to the default farm.`
 	updateCommand         = &cobra.Command{
-		Use:               "update [options] FARM",
-		Short:             "Update an existing farm",
-		Long:              farmUpdateDescription,
-		RunE:              farmUpdate,
-		Args:              cobra.ExactArgs(1),
-		ValidArgsFunction: common.AutoCompleteFarms,
+		Use:                "update [options] FARM",
+		Short:              "Update an existing farm",
+		Long:               farmUpdateDescription,
+		PersistentPreRunE:  validate.NoOp,
+		RunE:               farmUpdate,
+		PersistentPostRunE: validate.NoOp,
+		Args:               cobra.ExactArgs(1),
+		ValidArgsFunction:  common.AutoCompleteFarms,
 		Example: `podman farm update --add con1 farm1
 	podman farm update --remove con2 farm2
 	podman farm update --default farm3`,

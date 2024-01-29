@@ -6,6 +6,7 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/cmd/podman/registry"
+	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slices"
 )
@@ -16,12 +17,14 @@ var (
 	The "podman system connection add --farm" command can be used to add a new connection to a new or existing farm.`
 
 	createCommand = &cobra.Command{
-		Use:               "create NAME [CONNECTIONS...]",
-		Args:              cobra.MinimumNArgs(1),
-		Short:             "Create a new farm",
-		Long:              farmCreateDescription,
-		RunE:              create,
-		ValidArgsFunction: completion.AutocompleteNone,
+		Use:                "create NAME [CONNECTIONS...]",
+		Args:               cobra.MinimumNArgs(1),
+		Short:              "Create a new farm",
+		Long:               farmCreateDescription,
+		PersistentPreRunE:  validate.NoOp,
+		RunE:               create,
+		PersistentPostRunE: validate.NoOp,
+		ValidArgsFunction:  completion.AutocompleteNone,
 		Example: `podman farm create myfarm connection1
   podman farm create myfarm`,
 	}
