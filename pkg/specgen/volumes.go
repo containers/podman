@@ -77,7 +77,7 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 
 		src = splitVol[0]
 
-		// Support relative paths beginning with ./
+		// Support relative paths beginning with .
 		if strings.HasPrefix(src, ".") {
 			path, err := filepath.EvalSymlinks(src)
 			if err != nil {
