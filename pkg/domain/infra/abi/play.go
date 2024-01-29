@@ -630,7 +630,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 					// error out instead reuse the current volume.
 					vol, err = ic.Libpod.GetVolume(v.Source)
 					if err != nil {
-						return nil, nil, fmt.Errorf("cannot re-use local volume for volume from configmap %q: %w", v.Source, err)
+						return nil, nil, fmt.Errorf("cannot reuse local volume for volume from configmap %q: %w", v.Source, err)
 					}
 				} else {
 					return nil, nil, fmt.Errorf("cannot create a local volume for volume from configmap %q: %w", v.Source, err)

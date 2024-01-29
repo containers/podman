@@ -40,7 +40,7 @@ const (
 	sqliteOptionForeignKeys = "&_foreign_keys=1"
 	// Make sure that transactions happen exclusively.
 	sqliteOptionTXLock = "&_txlock=exclusive"
-	// Make sure busy timeout is set to high value to keep retying when the db is locked.
+	// Make sure busy timeout is set to high value to keep retrying when the db is locked.
 	// Timeout is in ms, so set it to 100s to have enough time to retry the operations.
 	sqliteOptionBusyTimeout = "&_busy_timeout=100000"
 

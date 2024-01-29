@@ -244,7 +244,7 @@ EOF
     run_podman container exec $cname grep CapBnd /proc/self/status
     non_privileged_caps="$output"
     run_podman --module=$conf_tmp container exec $cname grep CapBnd /proc/self/status
-    assert "$output" != "$non_privileged_caps" "--module should enable a prvileged exec session"
+    assert "$output" != "$non_privileged_caps" "--module should enable a privileged exec session"
 
     run_podman rm -f -t0 $cname
 }

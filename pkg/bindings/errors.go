@@ -71,7 +71,7 @@ type APIVersionError struct {
 
 // NewAPIVersionError create bindings error when the endpoint on the server is not supported
 // because the version is to old.
-//   - endpoint is the name fo the endpoint (e.g. /containers/json)
+//   - endpoint is the name for the endpoint (e.g. /containers/json)
 //   - version is the server API version
 //   - requiredVersion is the server version need to use said endpoint
 func NewAPIVersionError(endpoint string, version *semver.Version, requiredVersion string) *APIVersionError {

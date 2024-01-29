@@ -781,7 +781,7 @@ func GetPodmanDockerTmpConfig(uid int, rootful bool, newline bool) string {
 }
 
 // SetIgnitionFile creates a new Machine File for the machine's ignition file
-// and assignes the handle to `loc`
+// and assigns the handle to `loc`
 func SetIgnitionFile(loc *define.VMFile, vmtype define.VMType, vmName, vmConfigDir string) error {
 	ignitionFile, err := define.NewMachineFile(filepath.Join(vmConfigDir, vmName+".ign"), nil)
 	if err != nil {

@@ -46,7 +46,7 @@ func (ic *ContainerEngine) PodKill(ctx context.Context, namesOrIds []string, opt
 
 func (ic *ContainerEngine) PodLogs(ctx context.Context, nameOrIDs string, options entities.PodLogsOptions) error {
 	// PodLogsOptions are similar but contains few extra fields like ctrName
-	// So cast other values as is so we can re-use the code
+	// So cast other values as is so we can reuse the code
 	containerLogsOpts := entities.PodLogsOptionsToContainerLogsOptions(options)
 
 	// interface only accepts slice, keep everything consistent

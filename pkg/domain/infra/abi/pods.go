@@ -121,7 +121,7 @@ func (ic *ContainerEngine) PodLogs(ctx context.Context, nameOrID string, options
 	}
 
 	// PodLogsOptions are similar but contains few extra fields like ctrName
-	// So cast other values as is so we can re-use the code
+	// So cast other values as is so we can reuse the code
 	containerLogsOpts := entities.PodLogsOptionsToContainerLogsOptions(options)
 
 	return ic.ContainerLogs(ctx, ctrNames, containerLogsOpts)
