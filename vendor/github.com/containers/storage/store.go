@@ -397,6 +397,18 @@ type Store interface {
 	// allow ImagesByDigest to find images by their correct digests.
 	SetImageBigData(id, key string, data []byte, digestManifest func([]byte) (digest.Digest, error)) error
 
+	// ImageDirectory returns a path of a directory which the caller can
+	// use to store data, specific to the image, which the library does not
+	// directly manage.  The directory will be deleted when the image is
+	// deleted.
+	ImageDirectory(id string) (string, error)
+
+	// ImageRunDirectory returns a path of a directory which the caller can
+	// use to store data, specific to the image, which the library does not
+	// directly manage.  The directory will be deleted when the host system
+	// is restarted.
+	ImageRunDirectory(id string) (string, error)
+
 	// ListLayerBigData retrieves a list of the (possibly large) chunks of
 	// named data associated with a layer.
 	ListLayerBigData(id string) ([]string, error)
@@ -3311,6 +3323,27 @@ func (s *store) ContainerByLayer(id string) (*Container, error) {
 	return nil, ErrContainerUnknown
 }
 
+func (s *store) ImageDirectory(id string) (string, error) {
+	foundImage := false
+	if res, done, err := readAllImageStores(s, func(store roImageStore) (string, bool, error) {
+		if store.Exists(id) {
+			foundImage = true
+		}
+		middleDir := s.graphDriverName + "-images"
+		gipath := filepath.Join(s.GraphRoot(), middleDir, id, "userdata")
+		if err := os.MkdirAll(gipath, 0o700); err != nil {
+			return "", true, err
+		}
+		return gipath, true, nil
+	}); done {
+		return res, err
+	}
+	if foundImage {
+		return "", fmt.Errorf("locating image with ID %q (consider removing the image to resolve the issue): %w", id, os.ErrNotExist)
+	}
+	return "", fmt.Errorf("locating image with ID %q: %w", id, ErrImageUnknown)
+}
+
 func (s *store) ContainerDirectory(id string) (string, error) {
 	res, _, err := readContainerStore(s, func() (string, bool, error) {
 		id, err := s.containerStore.Lookup(id)
@@ -3326,6 +3359,28 @@ func (s *store) ContainerDirectory(id string) (string, error) {
 		return gcpath, true, nil
 	})
 	return res, err
+}
+
+func (s *store) ImageRunDirectory(id string) (string, error) {
+	foundImage := false
+	if res, done, err := readAllImageStores(s, func(store roImageStore) (string, bool, error) {
+		if store.Exists(id) {
+			foundImage = true
+		}
+
+		middleDir := s.graphDriverName + "-images"
+		rcpath := filepath.Join(s.RunRoot(), middleDir, id, "userdata")
+		if err := os.MkdirAll(rcpath, 0o700); err != nil {
+			return "", true, err
+		}
+		return rcpath, true, nil
+	}); done {
+		return res, err
+	}
+	if foundImage {
+		return "", fmt.Errorf("locating image with ID %q (consider removing the image to resolve the issue): %w", id, os.ErrNotExist)
+	}
+	return "", fmt.Errorf("locating image with ID %q: %w", id, ErrImageUnknown)
 }
 
 func (s *store) ContainerRunDirectory(id string) (string, error) {

@@ -118,10 +118,13 @@ func GetConfigHome() (string, error) {
 			tmpDir := filepath.Join(resolvedHome, ".config")
 			_ = os.MkdirAll(tmpDir, 0o700)
 			st, err := os.Stat(tmpDir)
-			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && isWriteableOnlyByOwner(st.Mode().Perm()) {
+			if err != nil {
+				rootlessConfigHomeDirError = err
+				return
+			} else if int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() {
 				cfgHomeDir = tmpDir
 			} else {
-				rootlessConfigHomeDirError = fmt.Errorf("path %q exists and it is not writeable only by the current user", tmpDir)
+				rootlessConfigHomeDirError = fmt.Errorf("path %q exists and it is not owned by the current user", tmpDir)
 				return
 			}
 		}

@@ -82,7 +82,8 @@ const (
 	lowerFile  = "lower"
 	maxDepth   = 500
 
-	tocArtifact = "toc"
+	tocArtifact             = "toc"
+	fsVerityDigestsArtifact = "fs-verity-digests"
 
 	// idLength represents the number of random characters
 	// which can be used to create the unique link identifier
@@ -2085,7 +2086,13 @@ func (d *Driver) ApplyDiffWithDiffer(id, parent string, options *graphdriver.App
 		if err != nil {
 			return graphdriver.DriverWithDifferOutput{}, err
 		}
-
+		perms := defaultPerms
+		if d.options.forceMask != nil {
+			perms = *d.options.forceMask
+		}
+		if err := os.Chmod(applyDir, perms); err != nil {
+			return graphdriver.DriverWithDifferOutput{}, err
+		}
 	} else {
 		var err error
 		applyDir, err = d.getDiffPath(id)
@@ -2101,6 +2108,7 @@ func (d *Driver) ApplyDiffWithDiffer(id, parent string, options *graphdriver.App
 	}
 	if d.usingComposefs {
 		differOptions.Format = graphdriver.DifferOutputFormatFlat
+		differOptions.UseFsVerity = graphdriver.DifferFsVerityEnabled
 	}
 	out, err := differ.ApplyDiff(applyDir, &archive.TarOptions{
 		UIDMaps:           idMappings.UIDs(),
@@ -2120,22 +2128,32 @@ func (d *Driver) ApplyDiffFromStagingDirectory(id, parent, stagingDirectory stri
 	if filepath.Dir(stagingDirectory) != d.getStagingDir() {
 		return fmt.Errorf("%q is not a staging directory", stagingDirectory)
 	}
-
-	if d.usingComposefs {
-		// FIXME: move this logic into the differ so we don't have to open
-		// the file twice.
-		verityDigests, err := enableVerityRecursive(stagingDirectory)
-		if err != nil && !errors.Is(err, unix.ENOTSUP) && !errors.Is(err, unix.ENOTTY) {
-			logrus.Warningf("%s", err)
-		}
-		toc := diffOutput.Artifacts[tocArtifact]
-		if err := generateComposeFsBlob(verityDigests, toc, d.getComposefsData(id)); err != nil {
-			return err
-		}
-	}
 	diffPath, err := d.getDiffPath(id)
 	if err != nil {
 		return err
+	}
+
+	// If the current layer doesn't set the mode for the parent, override it with the parent layer's mode.
+	if d.options.forceMask == nil && diffOutput.RootDirMode == nil && parent != "" {
+		parentDiffPath, err := d.getDiffPath(parent)
+		if err != nil {
+			return err
+		}
+		parentSt, err := os.Stat(parentDiffPath)
+		if err != nil {
+			return err
+		}
+		if err := os.Chmod(stagingDirectory, parentSt.Mode()); err != nil {
+			return err
+		}
+	}
+
+	if d.usingComposefs {
+		toc := diffOutput.Artifacts[tocArtifact]
+		verityDigests := diffOutput.Artifacts[fsVerityDigestsArtifact].(map[string]string)
+		if err := generateComposeFsBlob(verityDigests, toc, d.getComposefsData(id)); err != nil {
+			return err
+		}
 	}
 	if err := os.RemoveAll(diffPath); err != nil && !os.IsNotExist(err) {
 		return err

@@ -42,6 +42,14 @@ func (c *ContainersConfig) validateDevices() error {
 	return nil
 }
 
+func (c *ContainersConfig) validateInterfaceName() error {
+	if c.InterfaceName == "device" || c.InterfaceName == "" {
+		return nil
+	}
+
+	return fmt.Errorf("invalid interface_name option %s", c.InterfaceName)
+}
+
 func (c *ContainersConfig) validateUlimits() error {
 	for _, u := range c.DefaultUlimits.Get() {
 		ul, err := units.ParseUlimit(u)

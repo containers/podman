@@ -276,7 +276,7 @@ func (s *storageImageDestination) PutBlobPartial(ctx context.Context, chunkAcces
 		blobInfo:      srcInfo,
 	}
 
-	differ, err := chunked.GetDiffer(ctx, s.imageRef.transport.store, srcInfo.Size, srcInfo.Annotations, &fetcher)
+	differ, err := chunked.GetDiffer(ctx, s.imageRef.transport.store, srcInfo.Digest, srcInfo.Size, srcInfo.Annotations, &fetcher)
 	if err != nil {
 		return private.UploadedBlob{}, err
 	}
