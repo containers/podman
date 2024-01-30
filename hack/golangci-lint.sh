@@ -1,46 +1,45 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # Need to run linter twice to cover all the build tags code paths
 set -e
 
-# Dedicated block for Darwin: OS doesn't support the rest of this
-# script, only needs to check 'remote', and its golangci-lint needs
-# specialized arguments.
-if [[ $(uname -s) == "Darwin" ]] || [[ "$GOOS" == "darwin" ]]; then
-  declare -a DARWIN_SKIP_DIRS
-  DARWIN_SKIP_DIRS=(
-    libpod/events
-    pkg/api
-    pkg/domain/infra/abi
-    pkg/machine/qemu
-    pkg/trust
-    test
-  )
-  echo ""
-  echo Running golangci-lint for "remote"
-  echo Build Tags          "remote": remote
-  echo Skipped directories "remote": ${DARWIN_SKIP_DIRS[*]}
-  ./bin/golangci-lint run --build-tags="remote" \
-    --skip-dirs=$(tr ' ' ',' <<<"${DARWIN_SKIP_DIRS[@]}")
-  exit 0  # All done, don't execute anything below, it will break on Darwin
-fi
+# WARNING: This script executes on multiple operating systems that
+# do not have the same version of Bash.  Specifically, Darwin uses
+# a very old version, where modern features (like `declare -A`) are
+# absent.
 
-declare -A BUILD_TAGS
-BUILD_TAGS[default]="apparmor,seccomp,selinux"
-BUILD_TAGS[abi]="${BUILD_TAGS[default]},systemd"
-BUILD_TAGS[tunnel]="${BUILD_TAGS[default]},remote"
-
-declare -A SKIP_DIRS
-SKIP_DIRS[abi]=""
-# TODO: add "remote" build tag to pkg/api
-SKIP_DIRS[tunnel]="pkg/api,pkg/domain/infra/abi"
-
+# Makefile calls script with the 'run' argument, but developers may not.
+# Handle both cases transparently.
 [[ $1 == run ]] && shift
 
-for i in tunnel abi; do
+BUILD_TAGS_DEFAULT="apparmor,seccomp,selinux"
+BUILD_TAGS_ABI="$BUILD_TAGS_DEFAULT,systemd"
+BUILD_TAGS_TUNNEL="$BUILD_TAGS_DEFAULT,remote"
+BUILD_TAGS_REMOTE="remote"
+
+SKIP_DIRS_ABI=""
+SKIP_DIRS_TUNNEL="pkg/api,pkg/domain/infra/abi"
+SKIP_DIRS_REMOTE="libpod/events,pkg/api,pkg/domain/infra/abi,pkg/machine/qemu,pkg/trust,test"
+
+declare -a to_lint
+to_lint=(ABI TUNNEL REMOTE)
+
+# Special-case, for Darwin and Windows only "remote" linting is possible and required.
+if [[ "$GOOS" == "windows" ]] || [[ "$GOOS" == "darwin" ]]; then
+  to_lint=(REMOTE)
+fi
+
+for to_lint in "${to_lint[@]}"; do
+  tags_var="BUILD_TAGS_${to_lint}"
+  skip_var="SKIP_DIRS_${to_lint}"
   echo ""
-  echo Running golangci-lint for "$i"
-  echo Build Tags          "$i": ${BUILD_TAGS[$i]}
-  echo Skipped directories "$i": ${SKIP_DIRS[$i]}
-  ./bin/golangci-lint run --build-tags=${BUILD_TAGS[$i]} --skip-dirs=${SKIP_DIRS[$i]} "$@"
+  echo Running golangci-lint for "$to_lint"
+  echo Build Tags          "$to_lint": ${!tags_var}
+  echo Skipped directories "$to_lint": ${!skip_var}
+  (
+    # Make it really easy for a developer to copy-paste the command-line
+    # to focus or debug a single, specific linting category.
+    set -x
+    ./bin/golangci-lint run --build-tags="${!tags_var}" --skip-dirs="${!skip_var}" "$@"
+  )
 done
