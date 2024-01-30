@@ -281,6 +281,7 @@ function _run_altbuild() {
             rm -rf $context_dir
             ;;
         *Windows*)
+            showrun make lint GOOS=windows
             showrun make podman-remote-release-windows_amd64.zip
             ;;
         *RPM*)
