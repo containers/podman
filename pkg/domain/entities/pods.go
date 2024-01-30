@@ -167,6 +167,7 @@ type ContainerCreateOptions struct {
 	EnvFile            []string
 	Expose             []string
 	GIDMap             []string
+	GPUs               []string
 	GroupAdd           []string
 	HealthCmd          string
 	HealthInterval     string

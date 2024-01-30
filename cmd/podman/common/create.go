@@ -700,6 +700,10 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(gidmapFlagName, completion.AutocompleteNone)
 
+		gpuFlagName := "gpus"
+		createFlags.StringSliceVar(&cf.GPUs, gpuFlagName, []string{}, "GPU devices to add to the container ('all' to pass all GPUs)")
+		_ = cmd.RegisterFlagCompletionFunc(gpuFlagName, completion.AutocompleteNone)
+
 		uidmapFlagName := "uidmap"
 		createFlags.StringSliceVar(
 			&cf.UIDMap,

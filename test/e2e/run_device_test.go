@@ -119,12 +119,6 @@ var _ = Describe("Podman run device", func() {
 		Expect(session).Should(ExitCleanly())
 	})
 
-	It("podman run --gpus noop", func() {
-		session := podmanTest.Podman([]string{"run", "--gpus", "all", ALPINE, "true"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-	})
-
 	It("podman run cannot access non default devices", func() {
 		session := podmanTest.Podman([]string{"run", "-v /dev:/dev-host", ALPINE, "head", "-1", "/dev-host/kmsg"})
 		session.WaitWithDefaultTimeout()
