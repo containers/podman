@@ -20,13 +20,15 @@ var (
 List all available farms. The output of the farms can be filtered
 and the output format can be changed to JSON or a user specified Go template.`
 	lsCommand = &cobra.Command{
-		Use:               "list [options]",
-		Aliases:           []string{"ls"},
-		Args:              validate.NoArgs,
-		Short:             "List all existing farms",
-		Long:              farmLsDescription,
-		RunE:              list,
-		ValidArgsFunction: completion.AutocompleteNone,
+		Use:                "list [options]",
+		Aliases:            []string{"ls"},
+		Args:               validate.NoArgs,
+		Short:              "List all existing farms",
+		Long:               farmLsDescription,
+		PersistentPreRunE:  validate.NoOp,
+		RunE:               list,
+		PersistentPostRunE: validate.NoOp,
+		ValidArgsFunction:  completion.AutocompleteNone,
 	}
 
 	// Temporary struct to hold cli values.

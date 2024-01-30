@@ -7,6 +7,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
+	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -14,12 +15,14 @@ import (
 var (
 	farmRmDescription = `Remove one or more existing farms.`
 	rmCommand         = &cobra.Command{
-		Use:               "remove [options] [FARM...]",
-		Aliases:           []string{"rm"},
-		Short:             "Remove one or more farms",
-		Long:              farmRmDescription,
-		RunE:              rm,
-		ValidArgsFunction: common.AutoCompleteFarms,
+		Use:                "remove [options] [FARM...]",
+		Aliases:            []string{"rm"},
+		Short:              "Remove one or more farms",
+		Long:               farmRmDescription,
+		PersistentPreRunE:  validate.NoOp,
+		RunE:               rm,
+		PersistentPostRunE: validate.NoOp,
+		ValidArgsFunction:  common.AutoCompleteFarms,
 		Example: `podman farm rm myfarm1 myfarm2
   podman farm rm --all`,
 	}
