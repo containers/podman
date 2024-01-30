@@ -238,7 +238,7 @@ func LoadToRemote(dest entities.ImageScpOptions, localFile string, tag string, u
 	outArr := strings.Split(rep, " ")
 	id := outArr[len(outArr)-1]
 	if len(dest.Tag) > 0 { // tag the remote image using the output ID
-		_, err := ssh.Exec(&ssh.ConnectionExecOptions{Host: url.Hostname(), Identity: iden, Port: port, User: url.User, Args: []string{"podman", "image", "tag", id, dest.Tag}}, sshEngine)
+		_, err := ssh.Exec(&ssh.ConnectionExecOptions{Host: url.String(), Identity: iden, Port: port, User: url.User, Args: []string{"podman", "image", "tag", id, dest.Tag}}, sshEngine)
 		if err != nil {
 			return "", "", err
 		}
