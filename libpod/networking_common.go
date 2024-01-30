@@ -353,7 +353,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 
 	// check if network exists and if the input is an ID we get the name
 	// CNI and netavark and the libpod db only uses names so it is important that we only use the name
-	netName, err = c.runtime.normalizeNetworkName(netName)
+	netName, _, err = c.runtime.normalizeNetworkName(netName)
 	if err != nil {
 		return err
 	}
@@ -467,7 +467,8 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 
 	// check if network exists and if the input is an ID we get the name
 	// CNI and netavark and the libpod db only uses names so it is important that we only use the name
-	netName, err = c.runtime.normalizeNetworkName(netName)
+	nicName := ""
+	netName, nicName, err = c.runtime.normalizeNetworkName(netName)
 	if err != nil {
 		return err
 	}
@@ -481,6 +482,13 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 
 	netOpts.Aliases = append(netOpts.Aliases, getExtraNetworkAliases(c)...)
 
+	// check whether interface is to be named as the network_interface
+	// when name left unspecified
+	if netOpts.InterfaceName == "" && nicName != "" && c.runtime.config.Containers.InterfaceName == "device" {
+		netOpts.InterfaceName = nicName
+	}
+
+	// set default interface name
 	if netOpts.InterfaceName == "" {
 		netOpts.InterfaceName = getFreeInterfaceName(networks)
 		if netOpts.InterfaceName == "" {
@@ -632,14 +640,15 @@ func (r *Runtime) ConnectContainerToNetwork(nameOrID, netName string, netOpts ty
 	return ctr.NetworkConnect(nameOrID, netName, netOpts)
 }
 
-// normalizeNetworkName takes a network name, a partial or a full network ID and returns the network name.
+// normalizeNetworkName takes a network name, a partial or a full network ID and
+// returns the network and network_interface names.
 // If the network is not found an error is returned.
-func (r *Runtime) normalizeNetworkName(nameOrID string) (string, error) {
+func (r *Runtime) normalizeNetworkName(nameOrID string) (string, string, error) {
 	net, err := r.network.NetworkInspect(nameOrID)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	return net.Name, nil
+	return net.Name, net.NetworkInterface, nil
 }
 
 // ocicniPortsToNetTypesPorts convert the old port format to the new one
