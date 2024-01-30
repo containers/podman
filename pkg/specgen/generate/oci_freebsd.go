@@ -43,7 +43,9 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 
 	g.SetProcessArgs(finalCmd)
 
-	g.SetProcessTerminal(s.Terminal)
+	if s.Terminal != nil {
+		g.SetProcessTerminal(*s.Terminal)
+	}
 
 	for key, val := range s.Annotations {
 		g.AddAnnotation(key, val)
@@ -51,7 +53,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 
 	// Devices
 	var userDevices []spec.LinuxDevice
-	if !s.Privileged {
+	if !s.IsPrivileged() {
 		// add default devices from containers.conf
 		for _, device := range rtc.Containers.Devices.Get() {
 			if err = DevicesFromPath(&g, device); err != nil {
@@ -145,7 +147,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		configSpec.Annotations = make(map[string]string)
 	}
 
-	if s.Remove {
+	if s.Remove != nil && *s.Remove {
 		configSpec.Annotations[define.InspectAnnotationAutoremove] = define.InspectResponseTrue
 	}
 
@@ -153,11 +155,11 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		configSpec.Annotations[define.InspectAnnotationVolumesFrom] = strings.Join(s.VolumesFrom, ",")
 	}
 
-	if s.Privileged {
+	if s.IsPrivileged() {
 		configSpec.Annotations[define.InspectAnnotationPrivileged] = define.InspectResponseTrue
 	}
 
-	if s.Init {
+	if s.Init != nil && *s.Init {
 		configSpec.Annotations[define.InspectAnnotationInit] = define.InspectResponseTrue
 	}
 

@@ -11,14 +11,14 @@ require (
 	github.com/checkpoint-restore/go-criu/v7 v7.0.0
 	github.com/containernetworking/plugins v1.4.0
 	github.com/containers/buildah v1.33.2-0.20231121195905-d1a1c53c8e1c
-	github.com/containers/common v0.57.1-0.20240124083822-167512e3cfc4
+	github.com/containers/common v0.57.1-0.20240129201029-3310a75e3608
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.2
-	github.com/containers/image/v5 v5.29.1-0.20231221164234-1b221d4a9c28
+	github.com/containers/image/v5 v5.29.2-0.20240129204525-816800b5daf7
 	github.com/containers/libhvee v0.6.0
 	github.com/containers/ocicrypt v1.1.9
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.51.1-0.20231221151421-1020ab61b4e5
+	github.com/containers/storage v1.52.1-0.20240129173630-7a525ce0e2bc
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/coreos/stream-metadata-go v0.4.4
 	github.com/crc-org/vfkit v0.5.0
@@ -65,7 +65,7 @@ require (
 	github.com/vbauerster/mpb/v8 v8.7.2
 	github.com/vishvananda/netlink v1.2.1-beta.2
 	go.etcd.io/bbolt v1.3.8
-	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
+	golang.org/x/exp v0.0.0-20231226003508-02704c960a9b
 	golang.org/x/net v0.20.0
 	golang.org/x/sync v0.6.0
 	golang.org/x/sys v0.16.0
@@ -101,13 +101,13 @@ require (
 	github.com/containers/luksy v0.0.0-20231030195837-b5a7f79da98b // indirect
 	github.com/coreos/go-oidc/v3 v3.9.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
-	github.com/cyberphone/json-canonicalization v0.0.0-20231011164504-785e29786b46 // indirect
+	github.com/cyberphone/json-canonicalization v0.0.0-20231217050601-ba74d44ecf5f // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/digitalocean/go-libvirt v0.0.0-20220804181439-8648fbde413e // indirect
 	github.com/disiqueira/gotree/v3 v3.0.2 // indirect
 	github.com/distribution/reference v0.5.0 // indirect
-	github.com/docker/docker-credential-helpers v0.8.0 // indirect
-	github.com/felixge/httpsnoop v1.0.3 // indirect
+	github.com/docker/docker-credential-helpers v0.8.1 // indirect
+	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/fsouza/go-dockerclient v1.10.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
@@ -124,8 +124,8 @@ require (
 	github.com/go-openapi/loads v0.21.2 // indirect
 	github.com/go-openapi/runtime v0.26.0 // indirect
 	github.com/go-openapi/spec v0.20.9 // indirect
-	github.com/go-openapi/strfmt v0.21.10 // indirect
-	github.com/go-openapi/swag v0.22.5 // indirect
+	github.com/go-openapi/strfmt v0.22.0 // indirect
+	github.com/go-openapi/swag v0.22.9 // indirect
 	github.com/go-openapi/validate v0.22.1 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
@@ -145,7 +145,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
-	github.com/klauspost/compress v1.17.4 // indirect
+	github.com/klauspost/compress v1.17.5 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/kr/fs v0.1.0 // indirect
@@ -184,7 +184,7 @@ require (
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/sigstore/fulcio v1.4.3 // indirect
 	github.com/sigstore/rekor v1.2.2 // indirect
-	github.com/sigstore/sigstore v1.8.0 // indirect
+	github.com/sigstore/sigstore v1.8.1 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20201008174630-78d3cae3a980 // indirect
 	github.com/sylabs/sif/v2 v2.15.1 // indirect
@@ -208,7 +208,7 @@ require (
 	golang.org/x/arch v0.5.0 // indirect
 	golang.org/x/crypto v0.18.0 // indirect
 	golang.org/x/mod v0.14.0 // indirect
-	golang.org/x/oauth2 v0.15.0 // indirect
+	golang.org/x/oauth2 v0.16.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.16.1 // indirect
 	google.golang.org/appengine v1.6.8 // indirect

@@ -31,7 +31,7 @@ func (s *SpecGenerator) Validate() error {
 		if len(s.Networks) > 0 {
 			return fmt.Errorf("networks must be defined when the pod is created: %w", define.ErrNetworkOnPodContainer)
 		}
-		if len(s.PortMappings) > 0 || s.PublishExposedPorts {
+		if len(s.PortMappings) > 0 || (s.PublishExposedPorts != nil && *s.PublishExposedPorts) {
 			return fmt.Errorf("published or exposed ports must be defined when the pod is created: %w", define.ErrNetworkOnPodContainer)
 		}
 		if len(s.HostAdd) > 0 {
@@ -102,7 +102,7 @@ func (s *SpecGenerator) Validate() error {
 	// ContainerNetworkConfig
 	//
 	// useimageresolveconf conflicts with dnsserver, dnssearch, dnsoption
-	if s.UseImageResolvConf {
+	if s.UseImageResolvConf != nil && *s.UseImageResolvConf {
 		if len(s.DNSServers) > 0 {
 			return exclusiveOptions("UseImageResolvConf", "DNSServer")
 		}
@@ -114,7 +114,7 @@ func (s *SpecGenerator) Validate() error {
 		}
 	}
 	// UseImageHosts and HostAdd are exclusive
-	if s.UseImageHosts && len(s.HostAdd) > 0 {
+	if (s.UseImageHosts != nil && *s.UseImageHosts) && len(s.HostAdd) > 0 {
 		return exclusiveOptions("UseImageHosts", "HostAdd")
 	}
 

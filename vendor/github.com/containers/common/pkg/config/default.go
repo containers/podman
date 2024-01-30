@@ -29,7 +29,7 @@ const (
 	_defaultTransport = "docker://"
 
 	// _defaultImageVolumeMode is a mode to handle built-in image volumes.
-	_defaultImageVolumeMode = _typeBind
+	_defaultImageVolumeMode = "anonymous"
 
 	// defaultInitName is the default name of the init binary
 	defaultInitName = "catatonit"

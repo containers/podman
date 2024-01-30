@@ -18,7 +18,7 @@ func setLabelOpts(s *specgen.SpecGenerator, runtime *libpod.Runtime, pidConfig s
 
 func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator, newImage *libimage.Image, rtc *config.Config) error {
 	// If this is a privileged container, change the devfs ruleset to expose all devices.
-	if s.Privileged {
+	if s.IsPrivileged() {
 		for k, m := range g.Config.Mounts {
 			if m.Type == "devfs" {
 				m.Options = []string{
@@ -29,7 +29,9 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 		}
 	}
 
-	g.SetRootReadonly(s.ReadOnlyFilesystem)
+	if s.ReadOnlyFilesystem != nil {
+		g.SetRootReadonly(*s.ReadOnlyFilesystem)
+	}
 
 	return nil
 }

@@ -1701,7 +1701,8 @@ func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts enti
 	}
 
 	// if we do not pass term, running ctrs exit
-	spec.Terminal = c.Terminal()
+	localTerm := c.Terminal()
+	spec.Terminal = &localTerm
 
 	// Print warnings
 	if len(out) > 0 {

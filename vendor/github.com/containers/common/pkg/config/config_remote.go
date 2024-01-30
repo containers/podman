@@ -20,6 +20,10 @@ func (c *ContainersConfig) validateDevices() error {
 	return nil
 }
 
+func (c *ContainersConfig) validateInterfaceName() error {
+	return nil
+}
+
 func (c *ContainersConfig) validateUlimits() error {
 	return nil
 }

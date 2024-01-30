@@ -149,7 +149,9 @@ func (t *layerTree) layersOf(image *Image) []*storage.Layer {
 	var layers []*storage.Layer
 	node := t.node(image.TopLayer())
 	for node != nil {
-		layers = append(layers, node.layer)
+		if node.layer != nil {
+			layers = append(layers, node.layer)
+		}
 		node = node.parent
 	}
 	return layers

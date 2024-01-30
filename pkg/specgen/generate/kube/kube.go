@@ -182,6 +182,8 @@ type CtrSpecGenOptions struct {
 }
 
 func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGenerator, error) {
+	localTrue := true
+
 	s := specgen.NewSpecGenerator(opts.Container.Image, false)
 
 	rtc, err := config.Default()
@@ -211,7 +213,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 
 	s.Name = fmt.Sprintf("%s-%s", opts.PodName, opts.Container.Name)
 
-	s.Terminal = opts.Container.TTY
+	s.Terminal = &opts.Container.TTY
 
 	s.Pod = opts.PodID
 
@@ -390,7 +392,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 
 	if label, ok := opts.Annotations[define.InspectAnnotationLabel+"/"+opts.Container.Name]; ok {
 		if label == "nested" {
-			s.ContainerSecurityConfig.LabelNested = true
+			s.ContainerSecurityConfig.LabelNested = &localTrue
 		}
 		if !slices.Contains(s.ContainerSecurityConfig.SelinuxOpts, label) {
 			s.ContainerSecurityConfig.SelinuxOpts = append(s.ContainerSecurityConfig.SelinuxOpts, label)
@@ -403,7 +405,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		if err != nil {
 			return nil, err
 		}
-		s.Remove = autoremoveAsBool
+		s.Remove = &autoremoveAsBool
 		s.Annotations[define.InspectAnnotationAutoremove] = autoremove
 	}
 
@@ -413,7 +415,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			return nil, err
 		}
 
-		s.Init = initAsBool
+		s.Init = &initAsBool
 		s.Annotations[define.InspectAnnotationInit] = init
 	}
 
@@ -423,7 +425,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			if err != nil {
 				return nil, err
 			}
-			s.PublishExposedPorts = publishAllAsBool
+			s.PublishExposedPorts = &publishAllAsBool
 		}
 
 		s.Annotations[define.InspectAnnotationPublishAll] = publishAll
@@ -589,10 +591,12 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	}
 
 	if ro := opts.ReadOnly; ro != itypes.OptionalBoolUndefined {
-		s.ReadOnlyFilesystem = ro == itypes.OptionalBoolTrue
+		localRO := ro == itypes.OptionalBoolTrue
+		s.ReadOnlyFilesystem = &localRO
 	}
 	// This should default to true for kubernetes yaml
-	s.ReadWriteTmpfs = true
+
+	s.ReadWriteTmpfs = &localTrue
 
 	// Make sure the container runs in a systemd unit which is
 	// stored as a label at container creation.
@@ -819,14 +823,15 @@ func setupSecurityContext(s *specgen.SpecGenerator, securityContext *v1.Security
 	}
 
 	if securityContext.ReadOnlyRootFilesystem != nil {
-		s.ReadOnlyFilesystem = *securityContext.ReadOnlyRootFilesystem
+		s.ReadOnlyFilesystem = securityContext.ReadOnlyRootFilesystem
 	}
 	if securityContext.Privileged != nil {
-		s.Privileged = *securityContext.Privileged
+		s.Privileged = securityContext.Privileged
 	}
 
 	if securityContext.AllowPrivilegeEscalation != nil {
-		s.NoNewPrivileges = !*securityContext.AllowPrivilegeEscalation
+		localNNP := !*securityContext.AllowPrivilegeEscalation
+		s.NoNewPrivileges = &localNNP
 	}
 
 	if securityContext.ProcMount != nil && *securityContext.ProcMount == v1.UnmaskedProcMount {

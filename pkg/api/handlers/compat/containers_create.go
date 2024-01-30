@@ -115,7 +115,8 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// moby always create the working directory
-	sg.CreateWorkingDir = true
+	localTrue := true
+	sg.CreateWorkingDir = &localTrue
 	// moby doesn't inherit /etc/hosts from host
 	sg.BaseHostsFile = "none"
 
@@ -420,7 +421,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 		Expose:            expose,
 		GroupAdd:          cc.HostConfig.GroupAdd,
 		Hostname:          cc.Config.Hostname,
-		ImageVolume:       define.TypeBind,
+		ImageVolume:       "anonymous",
 		Init:              init,
 		Interactive:       cc.Config.OpenStdin,
 		IPC:               string(cc.HostConfig.IpcMode),

@@ -226,6 +226,7 @@ func setNamespaces(rtc *config.Config, s *specgen.SpecGenerator, c *entities.Con
 		if ns, ok := os.LookupEnv("PODMAN_USERNS"); ok {
 			userns = ns
 		} else {
+			// TODO: This should be moved into pkg/specgen/generate so we don't use the client's containers.conf
 			userns = rtc.Containers.UserNS
 		}
 	}
@@ -326,6 +327,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		return err
 	}
 
+	// TODO: This needs to move into pkg/specgen/generate so we aren't using containers.conf on the client.
 	if rtc.Containers.EnableLabeledUsers {
 		defSecurityOpts, err := currentLabelOpts()
 		if err != nil {
@@ -334,6 +336,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 
 		c.SecurityOpt = append(defSecurityOpts, c.SecurityOpt...)
 	}
+
 	// validate flags as needed
 	if err := validate(c); err != nil {
 		return err
@@ -389,8 +392,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		return err
 	}
 
-	if !s.Terminal {
-		s.Terminal = c.TTY
+	if s.Terminal == nil {
+		s.Terminal = &c.TTY
 	}
 
 	if err := verifyExpose(c.Expose); err != nil {
@@ -401,8 +404,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	if c.Net != nil {
 		s.PortMappings = c.Net.PublishPorts
 	}
-	if !s.PublishExposedPorts {
-		s.PublishExposedPorts = c.PublishAll
+	if s.PublishExposedPorts == nil {
+		s.PublishExposedPorts = &c.PublishAll
 	}
 
 	if len(s.Pod) == 0 || len(c.Pod) > 0 {
@@ -450,12 +453,12 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	// any case.
 	osEnv := envLib.Map(os.Environ())
 
-	if !s.EnvHost {
-		s.EnvHost = c.EnvHost
+	if s.EnvHost == nil {
+		s.EnvHost = &c.EnvHost
 	}
 
-	if !s.HTTPProxy {
-		s.HTTPProxy = c.HTTPProxy
+	if s.HTTPProxy == nil {
+		s.HTTPProxy = &c.HTTPProxy
 	}
 
 	// env-file overrides any previous variables
@@ -572,12 +575,12 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 
 	if c.Net != nil {
 		s.HostAdd = c.Net.AddHosts
-		s.UseImageResolvConf = c.Net.UseImageResolvConf
+		s.UseImageResolvConf = &c.Net.UseImageResolvConf
 		s.DNSServers = c.Net.DNSServers
 		s.DNSSearch = c.Net.DNSSearch
 		s.DNSOptions = c.Net.DNSOptions
 		s.NetworkOptions = c.Net.NetworkOptions
-		s.UseImageHosts = c.Net.NoHosts
+		s.UseImageHosts = &c.Net.NoHosts
 	}
 	if len(s.HostUsers) == 0 || len(c.HostUsers) != 0 {
 		s.HostUsers = c.HostUsers
@@ -586,9 +589,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		if len(s.ImageVolumeMode) == 0 {
 			s.ImageVolumeMode = c.ImageVolume
 		}
-	}
-	if len(s.ImageVolumeMode) == 0 {
-		s.ImageVolumeMode = rtc.Engine.ImageVolumeMode
 	}
 	if s.ImageVolumeMode == define.TypeBind {
 		s.ImageVolumeMode = "anonymous"
@@ -622,9 +622,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	if len(s.CgroupsMode) == 0 {
 		s.CgroupsMode = c.CgroupsMode
 	}
-	if s.CgroupsMode == "" {
-		s.CgroupsMode = rtc.Cgroups()
-	}
 
 	if len(s.Groups) == 0 || len(c.GroupAdd) != 0 {
 		s.Groups = c.GroupAdd
@@ -650,11 +647,11 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	if len(s.CapDrop) == 0 || len(c.CapDrop) != 0 {
 		s.CapDrop = c.CapDrop
 	}
-	if !s.Privileged {
-		s.Privileged = c.Privileged
+	if s.Privileged == nil {
+		s.Privileged = &c.Privileged
 	}
-	if !s.ReadOnlyFilesystem {
-		s.ReadOnlyFilesystem = c.ReadOnly
+	if s.ReadOnlyFilesystem == nil {
+		s.ReadOnlyFilesystem = &c.ReadOnly
 	}
 	if len(s.ConmonPidFile) == 0 || len(c.ConmonPIDFile) != 0 {
 		s.ConmonPidFile = c.ConmonPIDFile
@@ -667,7 +664,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	// Only add ReadWrite tmpfs mounts iff the container is
 	// being run ReadOnly and ReadWriteTmpFS is not disabled,
 	// (user specifying --read-only-tmpfs=false.)
-	s.ReadWriteTmpfs = c.ReadOnly && c.ReadWriteTmpFS
+	localRWTmpfs := c.ReadOnly && c.ReadWriteTmpFS
+	s.ReadWriteTmpfs = &localRWTmpfs
 
 	//  TODO convert to map?
 	// check if key=value and convert
@@ -707,7 +705,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 			s.Annotations[define.InspectAnnotationApparmor] = val
 		case "label":
 			if val == "nested" {
-				s.ContainerSecurityConfig.LabelNested = true
+				localTrue := true
+				s.ContainerSecurityConfig.LabelNested = &localTrue
 				continue
 			}
 			// TODO selinux opts and label opts are the same thing
@@ -739,7 +738,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 					return fmt.Errorf("invalid --security-opt 2: %q", opt)
 				}
 			}
-			s.ContainerSecurityConfig.NoNewPrivileges = noNewPrivileges
+			s.ContainerSecurityConfig.NoNewPrivileges = &noNewPrivileges
 		default:
 			return fmt.Errorf("invalid --security-opt 2: %q", opt)
 		}
@@ -766,7 +765,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.Volumes = volumes
 	}
 
-	if s.ContainerSecurityConfig.LabelNested {
+	if s.LabelNested != nil && *s.LabelNested {
 		// Need to unmask the SELinux file system
 		s.Unmask = append(s.Unmask, "/sys/fs/selinux", "/proc")
 		s.Mounts = append(s.Mounts, specs.Mount{
@@ -801,14 +800,14 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.DeviceCgroupRule = append(s.DeviceCgroupRule, dev)
 	}
 
-	if !s.Init {
-		s.Init = c.Init
+	if s.Init == nil {
+		s.Init = &c.Init
 	}
 	if len(s.InitPath) == 0 || len(c.InitPath) != 0 {
 		s.InitPath = c.InitPath
 	}
-	if !s.Stdin {
-		s.Stdin = c.Interactive
+	if s.Stdin == nil {
+		s.Stdin = &c.Interactive
 	}
 	// quiet
 	// DeviceCgroupRules: c.StringSlice("device-cgroup-rule"),
@@ -882,8 +881,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.Personality.Domain = specs.LinuxPersonalityDomain(c.Personality)
 	}
 
-	if !s.Remove {
-		s.Remove = c.Rm
+	if s.Remove == nil {
+		s.Remove = &c.Rm
 	}
 	if s.StopTimeout == nil || c.StopTimeout != 0 {
 		s.StopTimeout = &c.StopTimeout
@@ -900,8 +899,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	if len(s.PidFile) == 0 || len(c.PidFile) != 0 {
 		s.PidFile = c.PidFile
 	}
-	if !s.Volatile {
-		s.Volatile = c.Rm
+	if s.Volatile == nil {
+		s.Volatile = &c.Rm
 	}
 	if len(s.EnvMerge) == 0 || len(c.EnvMerge) != 0 {
 		s.EnvMerge = c.EnvMerge
@@ -909,8 +908,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	if len(s.UnsetEnv) == 0 || len(c.UnsetEnv) != 0 {
 		s.UnsetEnv = c.UnsetEnv
 	}
-	if !s.UnsetEnvAll {
-		s.UnsetEnvAll = c.UnsetEnvAll
+	if s.UnsetEnvAll == nil {
+		s.UnsetEnvAll = &c.UnsetEnvAll
 	}
 	if len(s.ChrootDirs) == 0 || len(c.ChrootDirs) != 0 {
 		s.ChrootDirs = c.ChrootDirs

@@ -532,7 +532,7 @@ EOF
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm volume_image stat -f -c %T /data
     is "$output" "tmpfs" "Should be tmpfs"
 
-    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --image-volume bind --rm volume_image stat -f -c %T /data
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --image-volume anonymous --rm volume_image stat -f -c %T /data
     assert "$output" != "tmpfs" "Should match hosts $fs"
 
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --image-volume tmpfs --rm volume_image stat -f -c %T /data

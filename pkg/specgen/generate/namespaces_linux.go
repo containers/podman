@@ -152,7 +152,7 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 	if g.Config.Annotations == nil {
 		g.Config.Annotations = make(map[string]string)
 	}
-	if s.PublishExposedPorts {
+	if s.PublishExposedPorts != nil && *s.PublishExposedPorts {
 		g.Config.Annotations[define.InspectAnnotationPublishAll] = define.InspectResponseTrue
 	}
 
