@@ -33,7 +33,7 @@ env:
     DEBIAN_NAME: "debian-13"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20240102t212217z-f39f38d13"
+    IMAGE_SUFFIX: "c20240125t184057z-f39f38d13"
 
 
     # EC2 images
