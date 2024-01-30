@@ -35,6 +35,7 @@ type PodmanConfig struct {
 	CPUProfile               string         // Hidden: Should CPU profile be taken
 	EngineMode               EngineMode     // ABI or Tunneling mode
 	HooksDir                 []string
+	CdiSpecDirs              []string
 	Identity                 string   // ssh identity for connecting to server
 	IsRenumber               bool     // Is this a system renumber command? If so, a number of checks will be relaxed
 	IsReset                  bool     // Is this a system reset command? If so, a number of checks will be skipped/omitted

@@ -328,6 +328,17 @@ func WithCDI(devices []string) CtrCreateOption {
 	}
 }
 
+func WithCDISpecDirs(cdiSpecDirs []string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return define.ErrRuntimeFinalized
+		}
+
+		rt.config.Engine.CdiSpecDirs.Set(cdiSpecDirs)
+		return nil
+	}
+}
+
 // WithStorageOpts sets the devices to check for CDI configuration.
 func WithStorageOpts(storageOpts map[string]string) CtrCreateOption {
 	return func(ctr *Container) error {
