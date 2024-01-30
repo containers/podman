@@ -129,7 +129,12 @@ func (m *MacMachine) setVfkitInfo(cfg *config.Config, readySocket define.VMFile)
 	}
 
 	m.Vfkit.VirtualMachine.Devices = defaultDevices
-	m.Vfkit.Endpoint = defaultVFKitEndpoint
+	randPort, err := utils.GetRandomPort()
+	if err != nil {
+		return err
+	}
+
+	m.Vfkit.Endpoint = localhostURI + ":" + strconv.Itoa(randPort)
 	m.Vfkit.VfkitBinaryPath = vfkitBinaryPath
 
 	return nil
@@ -769,8 +774,13 @@ func (m *MacMachine) Stop(name string, opts machine.StopOptions) error {
 			logrus.Error(err)
 		}
 	}()
+	if err := m.Vfkit.stop(false, true); err != nil {
+		return err
+	}
 
-	return m.Vfkit.stop(false, true)
+	// keep track of last up
+	m.LastUp = time.Now()
+	return m.writeConfig()
 }
 
 // getVMConfigPath is a simple wrapper for getting the fully-qualified
