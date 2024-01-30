@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/digitalocean/go-qemu/qmp"
@@ -237,7 +238,15 @@ func (q *QEMUStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() erro
 	}
 
 	return qemuRmFiles, func() error {
-		return nil
+		var errs []error
+		if err := mc.QEMUHypervisor.QEMUPidPath.Delete(); err != nil {
+			errs = append(errs, err)
+		}
+
+		if err := mc.QEMUHypervisor.QMPMonitor.Address.Delete(); err != nil {
+			errs = append(errs, err)
+		}
+		return errorhandling.JoinErrors(errs)
 	}, nil
 }
 
