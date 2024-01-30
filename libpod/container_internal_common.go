@@ -579,6 +579,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	// Warning: CDI may alter g.Config in place.
 	if len(c.config.CDIDevices) > 0 {
 		registry, err := cdi.NewCache(
+			cdi.WithSpecDirs(c.config.CdiSpecDir),
 			cdi.WithAutoRefresh(false),
 		)
 		if err != nil {
