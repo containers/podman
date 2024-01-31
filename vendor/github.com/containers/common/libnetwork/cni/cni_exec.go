@@ -16,7 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build linux || freebsd
+//go:build (linux || freebsd) && cni
 
 package cni
 

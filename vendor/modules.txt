@@ -167,7 +167,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.57.1-0.20240129201029-3310a75e3608
+# github.com/containers/common v0.57.1-0.20240129201029-3310a75e3608 => github.com/dcermak/common v0.0.0-20240130081831-609a9be65a84
 ## explicit; go 1.20
 github.com/containers/common/internal/attributedstring
 github.com/containers/common/libimage
@@ -1385,3 +1385,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
 # github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20230904132852-a0466dd76f23
+# github.com/containers/common => github.com/dcermak/common v0.0.0-20240130081831-609a9be65a84

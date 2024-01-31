@@ -221,3 +221,5 @@ require (
 )
 
 replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20230904132852-a0466dd76f23
+
+replace github.com/containers/common => github.com/dcermak/common v0.0.0-20240130081831-609a9be65a84
