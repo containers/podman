@@ -330,9 +330,9 @@ type EngineConfig struct {
 	// this slice takes precedence.
 	HooksDir attributedstring.Slice `toml:"hooks_dir,omitempty"`
 
-	// configuration files. When the same filename is present in
-	// multiple directories, the file in the directory listed last in
-	// this slice takes precedence.
+	// Location of CDI configuration files. These define mounts devices and
+	// other configs according to the CDI spec. In particular this is used
+	// for GPU passthrough.
 	CdiSpecDir attributedstring.Slice `toml:"cdi_spec_dir,omitempty"`
 
 	// ImageBuildFormat (DEPRECATED) indicates the default image format to
