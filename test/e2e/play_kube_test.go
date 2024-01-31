@@ -2436,7 +2436,7 @@ var _ = Describe("Podman kube play", func() {
 
 	// If you have an init container in the pod yaml, podman should create and run the init container with kube play
 	// With annotation set to always
-	It("test with init containers and annotation set", func() {
+	It("test with init containers and annotation set to always", func() {
 		// With the init container type annotation set to always
 		pod := getPod(withAnnotation("io.podman.annotations.init.container.type", "always"), withPodInitCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"printenv", "container"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"top"}))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
@@ -2473,6 +2473,35 @@ var _ = Describe("Podman kube play", func() {
 		logs.WaitWithDefaultTimeout()
 		Expect(logs).Should(ExitCleanly())
 		Expect(logs.OutputToString()).To(Equal("podman"))
+	})
+
+	// If you have an init container in the pod yaml, podman should only create but not run the init container with kube play
+	// With annotation set to idle
+	It("test with init containers and annotation set to idle", func() {
+		// With the init container type annotation set to idle
+		pod := getPod(withAnnotation("io.podman.annotations.init.container.type", "idle"), withPodInitCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"printenv", "container"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"top"}))))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(ExitCleanly())
+
+		// Expect the number of containers created to be 3, one init, infra, and regular container
+		numOfCtrs := podmanTest.NumberOfContainers()
+		Expect(numOfCtrs).To(Equal(3))
+
+		// Init container should have created
+		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{.State.Status}}", "testPod-init-test"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		Expect(inspect.OutputToString()).To(ContainSubstring("created"))
+
+		// Regular container should be in running state
+		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{.State.Status}}", "testPod-" + defaultCtrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		Expect(inspect.OutputToString()).To(ContainSubstring("running"))
 	})
 
 	// If you have an init container in the pod yaml, podman should create and run the init container with kube play

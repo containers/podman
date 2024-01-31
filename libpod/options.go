@@ -28,6 +28,7 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 var umaskRegex = regexp.Delayed(`^[0-7]{1,4}$`)
@@ -1878,7 +1879,7 @@ func WithInitCtrType(containerType string) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 		// Make sure the type is valid
-		if containerType == define.OneShotInitContainer || containerType == define.AlwaysInitContainer {
+		if slices.Contains([]string{define.AlwaysInitContainer, define.IdleInitContainer, define.OneShotInitContainer}, containerType) {
 			ctr.config.InitContainerType = containerType
 			return nil
 		}

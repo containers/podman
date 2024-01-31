@@ -134,8 +134,8 @@ func create(cmd *cobra.Command, args []string) error {
 		if !cmd.Flags().Changed("pod") {
 			return errors.New("must specify pod value with init-ctr")
 		}
-		if !slices.Contains([]string{define.AlwaysInitContainer, define.OneShotInitContainer}, initctr) {
-			return fmt.Errorf("init-ctr value must be '%s' or '%s'", define.AlwaysInitContainer, define.OneShotInitContainer)
+		if !slices.Contains([]string{define.AlwaysInitContainer, define.IdleInitContainer, define.OneShotInitContainer}, initctr) {
+			return fmt.Errorf("init-ctr value must be '%s', '%s', or '%s'", define.AlwaysInitContainer, define.IdleInitContainer, define.OneShotInitContainer)
 		}
 		cliVals.InitContainerType = initctr
 	}

@@ -32,6 +32,9 @@ const (
 	// AlwaysInitContainer is an init container that runs on each
 	// pod start (including restart)
 	AlwaysInitContainer = "always"
+	// IdleInitContainer is an init container that creates only, and
+	// not run
+	IdleInitContainer = "idle"
 	// OneShotInitContainer is a container that only runs as init once
 	// and is then deleted.
 	OneShotInitContainer = "once"

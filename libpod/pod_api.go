@@ -24,6 +24,11 @@ func (p *Pod) startInitContainers(ctx context.Context) error {
 	}
 	// Now iterate init containers
 	for _, initCon := range initCtrs {
+		// Do not start idle init container
+		if initCon.config.InitContainerType == define.IdleInitContainer {
+			continue
+		}
+
 		if err := initCon.Start(ctx, true); err != nil {
 			return err
 		}

@@ -35,7 +35,9 @@ Only three volume types are supported by kube play, the *hostPath*, *emptyDir*, 
 
 Note: The default restart policy for containers is `always`.  You can change the default by setting the `restartPolicy` field in the spec.
 
-Note: When playing a kube YAML with init containers, the init container is created with init type value `once`. To change the default type, use the `io.podman.annotations.init.container.type` annotation to set the type to `always`.
+Note: When playing a kube YAML with init containers, the init container is created with init type value set to `once`. Use the `io.podman.annotations.init.container.type` annotation to change the type.
+- Set it to `always` to run the container when the pod restarts.
+- Set it to `idle` to create the container and not run it.
 
 Note: *hostPath* volume types created by kube play is given an SELinux shared label (z), bind mounts are not relabeled (use `chcon -t container_file_t -R <directory>`).
 

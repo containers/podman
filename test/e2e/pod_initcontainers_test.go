@@ -145,4 +145,71 @@ var _ = Describe("Podman init containers", func() {
 		Expect(firstResult).ToNot(Equal(secondCheckLog.OutputToString()))
 	})
 
+	It("podman init containers of type idle should not degrade pod status", func() {
+		// create a pod
+		topPod := podmanTest.Podman([]string{"create", "-t", "--pod", "new:foobar", ALPINE, "top"})
+		topPod.WaitWithDefaultTimeout()
+		Expect(topPod).Should(ExitCleanly())
+		// add an init container
+		session := podmanTest.Podman([]string{"create", "--init-ctr", "idle", "--pod", "foobar", ALPINE, "bin/sh"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		// start a pod
+		start := podmanTest.Podman([]string{"pod", "start", "foobar"})
+		start.WaitWithDefaultTimeout()
+		Expect(start).Should(ExitCleanly())
+
+		inspect := podmanTest.Podman([]string{"pod", "inspect", "foobar"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		data := inspect.InspectPodToJSON()
+		Expect(data).To(HaveField("State", define.PodStateRunning))
+	})
+
+	It("podman ensure idle init containers always exist", func() {
+		initName := "init-" + RandomString(4)
+
+		session := podmanTest.Podman([]string{"create", "--init-ctr", "idle", "--pod", "new:foobar", "--name", initName, ALPINE, "bin/sh"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		verify := podmanTest.Podman([]string{"create", "--pod", "foobar", "-t", ALPINE, "top"})
+		verify.WaitWithDefaultTimeout()
+		Expect(verify).Should(ExitCleanly())
+		start := podmanTest.Podman([]string{"pod", "start", "foobar"})
+		start.WaitWithDefaultTimeout()
+		Expect(start).Should(ExitCleanly())
+
+		// Init container should have created
+		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{.State.Status}}", initName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		Expect(inspect.OutputToString()).To(ContainSubstring("created"))
+
+		// Get create timestamp
+		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{.Created}}", initName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		createdAt := inspect.OutputToString()
+
+		// Stop and start the pod
+		stopPod := podmanTest.Podman([]string{"pod", "stop", "foobar"})
+		stopPod.WaitWithDefaultTimeout()
+		Expect(stopPod).Should(ExitCleanly())
+		startPod := podmanTest.Podman([]string{"pod", "start", "foobar"})
+		startPod.WaitWithDefaultTimeout()
+		Expect(startPod).Should(ExitCleanly())
+
+		// Check the init container status again
+		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{.State.Status}}", initName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		Expect(inspect.OutputToString()).To(ContainSubstring("created"))
+
+		// Check the create timestamp is same
+		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{.Created}}", initName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		Expect(inspect.OutputToString()).To(Equal(createdAt))
+	})
+
 })
