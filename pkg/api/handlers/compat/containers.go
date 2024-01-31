@@ -442,22 +442,28 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 	}
 
 	if l.HasHealthCheck() && state.Status != "created" {
-		state.Health = &types.Health{
-			Status:        inspect.State.Health.Status,
-			FailingStreak: inspect.State.Health.FailingStreak,
-		}
+		state.Health = &types.Health{}
+		if inspect.State.Health != nil {
+			state.Health.Status = inspect.State.Health.Status
+			state.Health.FailingStreak = inspect.State.Health.FailingStreak
+			log := inspect.State.Health.Log
 
-		log := inspect.State.Health.Log
-
-		for _, item := range log {
-			res := &types.HealthcheckResult{}
-			s, _ := time.Parse(time.RFC3339Nano, item.Start)
-			e, _ := time.Parse(time.RFC3339Nano, item.End)
-			res.Start = s
-			res.End = e
-			res.ExitCode = item.ExitCode
-			res.Output = item.Output
-			state.Health.Log = append(state.Health.Log, res)
+			for _, item := range log {
+				res := &types.HealthcheckResult{}
+				s, err := time.Parse(time.RFC3339Nano, item.Start)
+				if err != nil {
+					return nil, err
+				}
+				e, err := time.Parse(time.RFC3339Nano, item.End)
+				if err != nil {
+					return nil, err
+				}
+				res.Start = s
+				res.End = e
+				res.ExitCode = item.ExitCode
+				res.Output = item.Output
+				state.Health.Log = append(state.Health.Log, res)
+			}
 		}
 	}
 
