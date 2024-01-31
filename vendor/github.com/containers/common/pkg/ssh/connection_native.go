@@ -72,24 +72,32 @@ func nativeConnectionCreate(options ConnectionCreateOptions) error {
 		return fmt.Errorf("remote podman %q failed to report its UDS socket", uri.Host)
 	}
 
-	cfg, err := config.ReadCustomConfig()
-	if err != nil {
-		return err
-	}
-	if options.Default {
-		cfg.Engine.ActiveService = options.Name
-	}
-
-	if cfg.Engine.ServiceDestinations == nil {
-		cfg.Engine.ServiceDestinations = map[string]config.Destination{
-			options.Name: *dst,
+	// TODO this really should not live here, it must be in podman where we write the other connections as well.
+	// This duplicates the code for no reason and I have a really hard time to make any sense of why this code
+	// was added in the first place.
+	return config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
+		if cfg.Connection.Connections == nil {
+			cfg.Connection.Connections = map[string]config.Destination{
+				options.Name: *dst,
+			}
+			cfg.Connection.Default = options.Name
+		} else {
+			cfg.Connection.Connections[options.Name] = *dst
 		}
-		cfg.Engine.ActiveService = options.Name
-	} else {
-		cfg.Engine.ServiceDestinations[options.Name] = *dst
-	}
 
-	return cfg.Write()
+		// Create or update an existing farm with the connection being added
+		if options.Farm != "" {
+			if len(cfg.Farm.List) == 0 {
+				cfg.Farm.Default = options.Farm
+			}
+			if val, ok := cfg.Farm.List[options.Farm]; ok {
+				cfg.Farm.List[options.Farm] = append(val, options.Name)
+			} else {
+				cfg.Farm.List[options.Farm] = []string{options.Name}
+			}
+		}
+		return nil
+	})
 }
 
 func nativeConnectionExec(options ConnectionExecOptions) (*ConnectionExecReport, error) {

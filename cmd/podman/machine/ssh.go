@@ -7,7 +7,6 @@ import (
 	"net/url"
 
 	"github.com/containers/common/pkg/completion"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/pkg/machine"
@@ -93,12 +92,12 @@ func ssh(cmd *cobra.Command, args []string) error {
 }
 
 func remoteConnectionUsername() (string, error) {
-	cfg, err := config.ReadCustomConfig()
+	con, err := registry.PodmanConfig().ContainersConfDefaultsRO.GetConnection("", true)
 	if err != nil {
 		return "", err
 	}
-	dest := cfg.Engine.ServiceDestinations[cfg.Engine.ActiveService].URI
-	uri, err := url.Parse(dest)
+
+	uri, err := url.Parse(con.URI)
 	if err != nil {
 		return "", err
 	}

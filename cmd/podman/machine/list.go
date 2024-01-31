@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/completion"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
@@ -79,12 +78,15 @@ func list(cmd *cobra.Command, args []string) error {
 		return listResponse[i].Running
 	})
 
-	if report.IsJSON(listFlag.format) {
-		machineReporter, err := toMachineFormat(listResponse)
-		if err != nil {
-			return err
-		}
+	defaultCon := ""
+	con, err := registry.PodmanConfig().ContainersConfDefaultsRO.GetConnection("", true)
+	if err == nil {
+		// ignore the error here we only want to know if we have a default connection to show it in list
+		defaultCon = con.Name
+	}
 
+	if report.IsJSON(listFlag.format) {
+		machineReporter := toMachineFormat(listResponse, defaultCon)
 		b, err := json.MarshalIndent(machineReporter, "", "    ")
 		if err != nil {
 			return err
@@ -93,11 +95,7 @@ func list(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	machineReporter, err := toHumanFormat(listResponse)
-	if err != nil {
-		return err
-	}
-
+	machineReporter := toHumanFormat(listResponse, defaultCon)
 	return outputTemplate(cmd, machineReporter)
 }
 
@@ -153,16 +151,11 @@ func streamName(imageStream string) string {
 	return imageStream
 }
 
-func toMachineFormat(vms []*machine.ListResponse) ([]*entities.ListReporter, error) {
-	cfg, err := config.ReadCustomConfig()
-	if err != nil {
-		return nil, err
-	}
-
+func toMachineFormat(vms []*machine.ListResponse, defaultCon string) []*entities.ListReporter {
 	machineResponses := make([]*entities.ListReporter, 0, len(vms))
 	for _, vm := range vms {
 		response := new(entities.ListReporter)
-		response.Default = vm.Name == cfg.Engine.ActiveService
+		response.Default = vm.Name == defaultCon
 		response.Name = vm.Name
 		response.Running = vm.Running
 		response.LastUp = strTime(vm.LastUp)
@@ -180,19 +173,14 @@ func toMachineFormat(vms []*machine.ListResponse) ([]*entities.ListReporter, err
 
 		machineResponses = append(machineResponses, response)
 	}
-	return machineResponses, nil
+	return machineResponses
 }
 
-func toHumanFormat(vms []*machine.ListResponse) ([]*entities.ListReporter, error) {
-	cfg, err := config.ReadCustomConfig()
-	if err != nil {
-		return nil, err
-	}
-
+func toHumanFormat(vms []*machine.ListResponse, defaultCon string) []*entities.ListReporter {
 	humanResponses := make([]*entities.ListReporter, 0, len(vms))
 	for _, vm := range vms {
 		response := new(entities.ListReporter)
-		if vm.Name == cfg.Engine.ActiveService {
+		if vm.Name == defaultCon {
 			response.Name = vm.Name + "*"
 			response.Default = true
 		} else {
@@ -218,5 +206,5 @@ func toHumanFormat(vms []*machine.ListResponse) ([]*entities.ListReporter, error
 
 		humanResponses = append(humanResponses, response)
 	}
-	return humanResponses, nil
+	return humanResponses
 }

@@ -143,7 +143,7 @@ func Execute() {
 }
 
 // readRemoteCliFlags reads cli flags related to operating podman remotely
-func readRemoteCliFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) (err error) {
+func readRemoteCliFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) error {
 	conf := podmanConfig.ContainersConfDefaultsRO
 	contextConn, host := cmd.Root().LocalFlags().Lookup("context"), cmd.Root().LocalFlags().Lookup("host")
 	conn, url := cmd.Root().LocalFlags().Lookup("connection"), cmd.Root().LocalFlags().Lookup("url")
@@ -151,35 +151,32 @@ func readRemoteCliFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig)
 	switch {
 	case conn != nil && conn.Changed:
 		if contextConn != nil && contextConn.Changed {
-			err = fmt.Errorf("use of --connection and --context at the same time is not allowed")
-			return
+			return fmt.Errorf("use of --connection and --context at the same time is not allowed")
 		}
-		if dest, ok := conf.Engine.ServiceDestinations[conn.Value.String()]; ok {
-			podmanConfig.URI = dest.URI
-			podmanConfig.Identity = dest.Identity
-			podmanConfig.MachineMode = dest.IsMachine
-			return
+		con, err := conf.GetConnection(conn.Value.String(), false)
+		if err != nil {
+			return err
 		}
-		err = fmt.Errorf("connection %q not found", conn.Value.String())
-		return
+		podmanConfig.URI = con.URI
+		podmanConfig.Identity = con.Identity
+		podmanConfig.MachineMode = con.IsMachine
 	case url.Changed:
 		podmanConfig.URI = url.Value.String()
-		return
 	case contextConn != nil && contextConn.Changed:
 		service := contextConn.Value.String()
 		if service != "default" {
-			if dest, ok := conf.Engine.ServiceDestinations[contextConn.Value.String()]; ok {
-				podmanConfig.URI = dest.URI
-				podmanConfig.Identity = dest.Identity
-				podmanConfig.MachineMode = dest.IsMachine
-				return
+			con, err := conf.GetConnection(service, false)
+			if err != nil {
+				return err
 			}
-			return fmt.Errorf("connection %q not found", service)
+			podmanConfig.URI = con.URI
+			podmanConfig.Identity = con.Identity
+			podmanConfig.MachineMode = con.IsMachine
 		}
 	case host.Changed:
 		podmanConfig.URI = host.Value.String()
 	}
-	return
+	return nil
 }
 
 // setupRemoteConnection returns information about the active service destination
@@ -191,28 +188,30 @@ func readRemoteCliFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig)
 func setupRemoteConnection(podmanConfig *entities.PodmanConfig) error {
 	conf := podmanConfig.ContainersConfDefaultsRO
 	connEnv, hostEnv, sshkeyEnv := os.Getenv("CONTAINER_CONNECTION"), os.Getenv("CONTAINER_HOST"), os.Getenv("CONTAINER_SSHKEY")
-	dest, destFound := conf.Engine.ServiceDestinations[conf.Engine.ActiveService]
 
 	switch {
 	case connEnv != "":
-		if ConnEnvDest, ok := conf.Engine.ServiceDestinations[connEnv]; ok {
-			podmanConfig.URI = ConnEnvDest.URI
-			podmanConfig.Identity = ConnEnvDest.Identity
-			podmanConfig.MachineMode = ConnEnvDest.IsMachine
-			return nil
+		con, err := conf.GetConnection(connEnv, false)
+		if err != nil {
+			return err
 		}
-		return fmt.Errorf("connection %q not found", connEnv)
+		podmanConfig.URI = con.URI
+		podmanConfig.Identity = con.Identity
+		podmanConfig.MachineMode = con.IsMachine
 	case hostEnv != "":
 		if sshkeyEnv != "" {
 			podmanConfig.Identity = sshkeyEnv
 		}
 		podmanConfig.URI = hostEnv
-	case destFound:
-		podmanConfig.URI = dest.URI
-		podmanConfig.Identity = dest.Identity
-		podmanConfig.MachineMode = dest.IsMachine
 	default:
-		podmanConfig.URI = registry.DefaultAPIAddress()
+		con, err := conf.GetConnection("", true)
+		if err == nil {
+			podmanConfig.URI = con.URI
+			podmanConfig.Identity = con.Identity
+			podmanConfig.MachineMode = con.IsMachine
+		} else {
+			podmanConfig.URI = registry.DefaultAPIAddress()
+		}
 	}
 	return nil
 }

@@ -63,62 +63,59 @@ func farmUpdate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("nothing to update for farm %q, please use the --add, --remove, or --default flags to update a farm", farmName)
 	}
 
-	cfg, err := config.ReadCustomConfig()
-	if err != nil {
-		return err
-	}
-
-	if len(cfg.Farms.List) == 0 {
-		return errors.New("no farms are created at this time, there is nothing to update")
-	}
-
-	if _, ok := cfg.Farms.List[farmName]; !ok {
-		return fmt.Errorf("cannot update farm, %q farm doesn't exist", farmName)
-	}
-
-	if defChanged {
-		// Change the default to the given farm if --default=true
-		if updateOpts.Default {
-			cfg.Farms.Default = farmName
-		} else {
-			// if --default=false, user doesn't want any farms to be default so clear the DefaultFarm
-			cfg.Farms.Default = ""
-		}
-	}
-
-	if val, ok := cfg.Farms.List[farmName]; ok {
-		cMap := make(map[string]int)
-		for _, c := range val {
-			cMap[c] = 0
+	err := config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
+		if len(cfg.Farm.List) == 0 {
+			return errors.New("no farms are created at this time, there is nothing to update")
 		}
 
-		for _, cRemove := range updateOpts.Remove {
-			connections := cfg.Farms.List[farmName]
-			if slices.Contains(connections, cRemove) {
-				delete(cMap, cRemove)
+		if _, ok := cfg.Farm.List[farmName]; !ok {
+			return fmt.Errorf("cannot update farm, %q farm doesn't exist", farmName)
+		}
+
+		if defChanged {
+			// Change the default to the given farm if --default=true
+			if updateOpts.Default {
+				cfg.Farm.Default = farmName
 			} else {
-				return fmt.Errorf("cannot remove from farm, %q is not a connection in the farm", cRemove)
+				// if --default=false, user doesn't want any farms to be default so clear the DefaultFarm
+				cfg.Farm.Default = ""
 			}
 		}
 
-		for _, cAdd := range updateOpts.Add {
-			if _, ok := cfg.Engine.ServiceDestinations[cAdd]; ok {
-				if _, ok := cMap[cAdd]; !ok {
-					cMap[cAdd] = 0
+		if val, ok := cfg.Farm.List[farmName]; ok {
+			cMap := make(map[string]int)
+			for _, c := range val {
+				cMap[c] = 0
+			}
+
+			for _, cRemove := range updateOpts.Remove {
+				connections := cfg.Farm.List[farmName]
+				if slices.Contains(connections, cRemove) {
+					delete(cMap, cRemove)
+				} else {
+					return fmt.Errorf("cannot remove from farm, %q is not a connection in the farm", cRemove)
 				}
-			} else {
-				return fmt.Errorf("cannot add to farm, %q is not a system connection", cAdd)
 			}
-		}
 
-		updatedConnections := []string{}
-		for k := range cMap {
-			updatedConnections = append(updatedConnections, k)
-		}
-		cfg.Farms.List[farmName] = updatedConnections
-	}
+			for _, cAdd := range updateOpts.Add {
+				if _, ok := cfg.Connection.Connections[cAdd]; ok {
+					if _, ok := cMap[cAdd]; !ok {
+						cMap[cAdd] = 0
+					}
+				} else {
+					return fmt.Errorf("cannot add to farm, %q is not a system connection", cAdd)
+				}
+			}
 
-	if err := cfg.Write(); err != nil {
+			updatedConnections := []string{}
+			for k := range cMap {
+				updatedConnections = append(updatedConnections, k)
+			}
+			cfg.Farm.List[farmName] = updatedConnections
+		}
+		return nil
+	})
+	if err != nil {
 		return err
 	}
 	fmt.Printf("Farm %q updated\n", farmName)

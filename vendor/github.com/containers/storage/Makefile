@@ -41,7 +41,7 @@ containers-storage: ## build using gc on the host
 	$(GO) build -compiler gc $(BUILDFLAGS) ./cmd/containers-storage
 
 codespell:
-	codespell -S Makefile,build,buildah,buildah.spec,imgtype,copy,AUTHORS,bin,vendor,.git,go.sum,CHANGELOG.md,changelog.txt,seccomp.json,.cirrus.yml,"*.xz,*.gz,*.tar,*.tgz,*ico,*.png,*.1,*.5,*.orig,*.rej" -L worl,flate,uint,iff,od,ERRO -w
+	codespell -S Makefile,build,buildah,buildah.spec,imgtype,copy,AUTHORS,bin,vendor,.git,go.sum,CHANGELOG.md,changelog.txt,seccomp.json,.cirrus.yml,"*.xz,*.gz,*.tar,*.tgz,*ico,*.png,*.1,*.5,*.orig,*.rej" -L plack,worl,flate,uint,iff,od,ERRO -w
 
 binary local-binary: containers-storage
 

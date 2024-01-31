@@ -45,15 +45,13 @@ func init() {
 }
 
 func defaultRunE(cmd *cobra.Command, args []string) error {
-	cfg, err := config.ReadCustomConfig()
-	if err != nil {
-		return err
-	}
+	connection := args[0]
+	return config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
+		if _, found := cfg.Connection.Connections[connection]; !found {
+			return fmt.Errorf("%q destination is not defined. See \"podman system connection add ...\" to create a connection", connection)
+		}
 
-	if _, found := cfg.Engine.ServiceDestinations[args[0]]; !found {
-		return fmt.Errorf("%q destination is not defined. See \"podman system connection add ...\" to create a connection", args[0])
-	}
-
-	cfg.Engine.ActiveService = args[0]
-	return cfg.Write()
+		cfg.Connection.Default = connection
+		return nil
+	})
 }

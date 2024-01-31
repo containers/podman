@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/containers/common/pkg/completion"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/machine"
@@ -150,15 +149,18 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("%s: %w", initOpts.Name, machine.ErrVMAlreadyExists)
 	}
 
-	cfg, err := config.ReadCustomConfig()
+	// check if a system connection already exists
+	cons, err := registry.PodmanConfig().ContainersConfDefaultsRO.GetAllConnections()
 	if err != nil {
 		return err
 	}
-
-	// check if a system connection already exists
-	for _, connection := range []string{initOpts.Name, fmt.Sprintf("%s-root", initOpts.Name)} {
-		if _, valueFound := cfg.Engine.ServiceDestinations[connection]; valueFound {
-			return fmt.Errorf("system connection %q already exists. consider a different machine name or remove the connection with `podman system connection rm`", connection)
+	for _, con := range cons {
+		if con.ReadWrite {
+			for _, connection := range []string{initOpts.Name, fmt.Sprintf("%s-root", initOpts.Name)} {
+				if con.Name == connection {
+					return fmt.Errorf("system connection %q already exists. consider a different machine name or remove the connection with `podman system connection rm`", connection)
+				}
+			}
 		}
 	}
 
