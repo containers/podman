@@ -34,6 +34,12 @@ type LibpodImagesRemoveReport struct {
 	Errors []string
 }
 
+// LibpodImagesResolveReport includes a list of fully-qualified image references.
+type LibpodImagesResolveReport struct {
+	// Fully-qualified image references.
+	Names []string
+}
+
 type ContainersPruneReport struct {
 	docker.ContainersPruneReport
 }

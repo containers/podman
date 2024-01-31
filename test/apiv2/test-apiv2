@@ -448,7 +448,8 @@ function start_service() {
         $PODMAN_BIN unshare true
     fi
 
-    $PODMAN_BIN \
+    CONTAINERS_REGISTRIES_CONF=$TESTS_DIR/../registries.conf \
+        $PODMAN_BIN \
         --root $WORKDIR/server_root --syslog=true \
         system service \
         --time 0 \
