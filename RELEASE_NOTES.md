@@ -1,5 +1,19 @@
 # Release Notes
 
+## 4.9.1
+### Bugfixes
+- Fixed a bug where the `--rootful` option to `podman machine set` would not set the machine to use the root connection ([#21195](https://github.com/containers/podman/issues/21195)).
+- Fixed a bug where podman would crash when running in a containerized environment with `euid != 0` and capabilities set ([#20766](https://github.com/containers/podman/issues/20766)).
+- Fixed a bug where the `podman info` command would crash on if called multiple times when podman was running as `euid=0` without `CAP_SYS_ADMIN` ([#20908](https://github.com/containers/podman/issues/20908)).
+- Fixed a bug where `podman machine` commands were not relayed to the correct machine on AppleHV ([#21115](https://github.com/containers/podman/issues/21115)).
+- Fixed a bug where the `podman machine list` and `podman machine inspect` commands would not show the correct `Last Up` time on AppleHV ([#21244](https://github.com/containers/podman/issues/21244)).
+
+### Misc
+- Updated the Mac pkginstaller QEMU to v8.2.1
+- Updated Buildah to v1.33.4
+- Updated the containers/image library to v5.29.2
+- Updated the containers/common library to v0.57.3
+
 ## 4.9.0
 ### Features
 - The `podman farm` suite of commands for multi-architecture builds is now fully enabled and documented.
