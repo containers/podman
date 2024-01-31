@@ -1690,5 +1690,27 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/internalError'
 	r.Handle(VersionedPath("/libpod/images/scp/{name:.*}"), s.APIHandler(libpod.ImageScp)).Methods(http.MethodPost)
+	// swagger:operation GET /libpod/images/{name}/resolve libpod ImageResolveLibpod
+	// ---
+	// tags:
+	//  - images
+	// summary: Resolve an image (short) name
+	// description: Resolve the passed image name to a list of fully-qualified images referring to container registries.
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the (short) name to resolve
+	// produces:
+	// - application/json
+	// responses:
+	//   204:
+	//     description: resolved image names
+	//   400:
+	//     $ref: "#/responses/badParamError"
+	//   500:
+	//     $ref: '#/responses/internalError'
+	r.Handle(VersionedPath("/libpod/images/{name:.*}/resolve"), s.APIHandler(libpod.ImageResolve)).Methods(http.MethodGet)
 	return nil
 }

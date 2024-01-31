@@ -15,6 +15,8 @@ import (
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/ssh"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/pkg/shortnames"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/api/handlers"
@@ -719,4 +721,37 @@ func ImageScp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteResponse(w, http.StatusOK, &reports.ScpReport{Id: rep.Names[0]})
+}
+
+// Resolve the passed (short) name to one more candidates it may resolve to.
+// See https://www.redhat.com/sysadmin/container-image-short-names.
+//
+// One user of this endpoint is Podman Desktop which needs to figure out where
+// an image may resolve to.
+func ImageResolve(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	name := utils.GetName(r)
+
+	mode := types.ShortNameModeDisabled
+	sys := runtime.SystemContext()
+	sys.ShortNameMode = &mode
+
+	resolved, err := shortnames.Resolve(sys, name)
+	if err != nil {
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("resolving %q: %w", name, err))
+		return
+	}
+
+	if len(resolved.PullCandidates) == 0 { // Should never happen but let's be defensive.
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("name %q did not resolve to any candidate", name))
+		return
+	}
+
+	names := make([]string, 0, len(resolved.PullCandidates))
+	for _, candidate := range resolved.PullCandidates {
+		names = append(names, candidate.Value.String())
+	}
+
+	report := handlers.LibpodImagesResolveReport{Names: names}
+	utils.WriteResponse(w, http.StatusOK, report)
 }

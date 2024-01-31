@@ -325,4 +325,22 @@ t DELETE images/$iid_test2?noprune=false 200
 t GET libpod/images/$iid_test1/exists 404
 t GET libpod/images/$iid_test2/exists 404
 
+# If the /resolve tests fail, make sure to use ../registries.conf for the
+# podman-service.
+
+# With an alias, we only get one item back.
+t GET libpod/images/podman-desktop-test123:this/resolve 200 \
+  .Names[0]="florent.fr/will/like:this"
+
+# If no alias matches, we will get a candidate for each unqualified-search
+# registry.
+t GET libpod/images/no-alias-for-sure/resolve 200 \
+  .Names[0]="docker.io/library/no-alias-for-sure:latest" \
+  .Names[1]="quay.io/no-alias-for-sure:latest" \
+  .Names[2]="registry.fedoraproject.org/no-alias-for-sure:latest"
+
+# Test invalid input.
+t GET libpod/images/noCAPITALcharAllowed/resolve 400 \
+  .cause="repository name must be lowercase"
+
 # vim: filetype=sh
