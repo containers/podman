@@ -226,10 +226,16 @@ eof
 }
 
 function _run_build() {
+    req_env_vars CI_DESIRED_NETWORK CI_DESIRED_RUNTIME
     # Ensure always start from clean-slate with all vendor modules downloaded
     showrun make clean
     showrun make vendor
-    showrun make podman-release  # includes podman, podman-remote, and docs
+    # TODO: remove this once fedora 38 moves off of CNI
+    # shellcheck disable=SC2154
+    if [[ "$CI_DESIRED_NETWORK" == "cni" ]]; then
+        cni=1
+    fi
+    showrun make CNI=$cni podman-release
 
     # Last-minute confirmation that we're testing the desired runtime.
     # This Can't Possibly Fail™ in regular CI; only when updating VMs.
@@ -395,7 +401,7 @@ function logformatter() {
 # Handle local|remote integration|system testing in a uniform way
 dotest() {
     local testsuite="$1"
-    req_env_vars testsuite CONTAINER TEST_ENVIRON PRIV_NAME
+    req_env_vars testsuite CONTAINER TEST_ENVIRON PRIV_NAME CI_DESIRED_NETWORK
 
     # shellcheck disable=SC2154
     if ((CONTAINER==0)) && [[ "$TEST_ENVIRON" == "container" ]]; then
@@ -420,7 +426,12 @@ dotest() {
         die "Found fallback podman '$fallback_podman' in \$PATH; tests require none, as a guarantee that we're testing the right binary."
     fi
 
-    showrun make ${localremote}${testsuite} PODMAN_SERVER_LOG=$PODMAN_SERVER_LOG \
+    # TODO: remove this once fedora 38 moves off of CNI
+    # shellcheck disable=SC2154
+    if [[ "$NETWORK_BACKEND" == "cni" ]]; then
+        cni=1
+    fi
+    showrun make CNI=$cni ${localremote}${testsuite} PODMAN_SERVER_LOG=$PODMAN_SERVER_LOG \
         |& logformatter
 }
 

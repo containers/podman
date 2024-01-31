@@ -212,6 +212,11 @@ ifdef HOMEBREW_PREFIX
 endif
 endif
 
+CNI ?= 0
+ifeq ($(CNI),1)
+BUILDTAGS := $(BUILDTAGS) cni
+endif
+
 # gvisor-tap-vsock version for gvproxy.exe and win-sshproxy.exe downloads
 # the upstream project ships pre-built binaries since version 0.7.1
 GV_VERSION=v0.7.2
