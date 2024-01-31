@@ -237,7 +237,7 @@ func (d *blobCacheDestination) PutBlobPartial(ctx context.Context, chunkAccessor
 // If the blob has been successfully reused, returns (true, info, nil).
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
 func (d *blobCacheDestination) TryReusingBlobWithOptions(ctx context.Context, info types.BlobInfo, options private.TryReusingBlobOptions) (bool, private.ReusedBlob, error) {
-	if !impl.OriginalBlobMatchesRequiredCompression(options) {
+	if !impl.OriginalCandidateMatchesTryReusingBlobOptions(options) {
 		return false, private.ReusedBlob{}, nil
 	}
 	present, reusedInfo, err := d.destination.TryReusingBlobWithOptions(ctx, info, options)

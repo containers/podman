@@ -307,7 +307,7 @@ func (s *storageImageDestination) PutBlobPartial(ctx context.Context, chunkAcces
 // If the blob has been successfully reused, returns (true, info, nil).
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
 func (s *storageImageDestination) TryReusingBlobWithOptions(ctx context.Context, blobinfo types.BlobInfo, options private.TryReusingBlobOptions) (bool, private.ReusedBlob, error) {
-	if !impl.OriginalBlobMatchesRequiredCompression(options) {
+	if !impl.OriginalCandidateMatchesTryReusingBlobOptions(options) {
 		return false, private.ReusedBlob{}, nil
 	}
 	reused, info, err := s.tryReusingBlobAsPending(blobinfo.Digest, blobinfo.Size, &options)

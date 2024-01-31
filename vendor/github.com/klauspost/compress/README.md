@@ -16,6 +16,14 @@ This package provides various compression algorithms.
 
 # changelog
 
+* Jan 26th, 2024 - [v1.17.5](https://github.com/klauspost/compress/releases/tag/v1.17.5)
+	* flate: Fix reset with dictionary on custom window encodes by @klauspost in https://github.com/klauspost/compress/pull/912
+	* zstd: Add Frame header encoding and stripping by @klauspost in https://github.com/klauspost/compress/pull/908
+	* zstd: Limit better/best default window to 8MB by @klauspost in https://github.com/klauspost/compress/pull/913
+	* zstd: Speed improvements by @greatroar in https://github.com/klauspost/compress/pull/896 https://github.com/klauspost/compress/pull/910
+	* s2: Fix callbacks for skippable blocks and disallow 0xfe (Padding) by @Jille in https://github.com/klauspost/compress/pull/916 https://github.com/klauspost/compress/pull/917
+https://github.com/klauspost/compress/pull/919 https://github.com/klauspost/compress/pull/918
+
 * Dec 1st, 2023 - [v1.17.4](https://github.com/klauspost/compress/releases/tag/v1.17.4)
 	* huff0: Speed up symbol counting by @greatroar in https://github.com/klauspost/compress/pull/887
 	* huff0: Remove byteReader by @greatroar in https://github.com/klauspost/compress/pull/886

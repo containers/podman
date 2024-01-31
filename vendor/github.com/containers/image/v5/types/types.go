@@ -135,8 +135,8 @@ type BlobInfo struct {
 	// CompressionOperation is used in Image.UpdateLayerInfos to instruct
 	// whether the original layer's "compressed or not" should be preserved,
 	// possibly while changing the compression algorithm from one to another,
-	// or if it should be compressed or decompressed.  The field defaults to
-	// preserve the original layer's compressedness.
+	// or if it should be changed to compressed or decompressed.
+	// The field defaults to preserve the original layer's compressedness.
 	// TODO: To remove together with CryptoOperation in re-design to remove
 	// field out of BlobInfo.
 	CompressionOperation LayerCompression

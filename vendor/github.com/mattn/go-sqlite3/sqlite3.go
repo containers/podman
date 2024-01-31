@@ -875,14 +875,16 @@ func (c *SQLiteConn) exec(ctx context.Context, query string, args []driver.Named
 			// consume the number of arguments used in the current
 			// statement and append all named arguments not
 			// contained therein
-			stmtArgs = append(stmtArgs, args[start:start+na]...)
-			for i := range args {
-				if (i < start || i >= na) && args[i].Name != "" {
-					stmtArgs = append(stmtArgs, args[i])
+			if len(args[start:start+na]) > 0 {
+				stmtArgs = append(stmtArgs, args[start:start+na]...)
+				for i := range args {
+					if (i < start || i >= na) && args[i].Name != "" {
+						stmtArgs = append(stmtArgs, args[i])
+					}
 				}
-			}
-			for i := range stmtArgs {
-				stmtArgs[i].Ordinal = i + 1
+				for i := range stmtArgs {
+					stmtArgs[i].Ordinal = i + 1
+				}
 			}
 			res, err = s.(*SQLiteStmt).exec(ctx, stmtArgs)
 			if err != nil && err != driver.ErrSkip {
@@ -1906,6 +1908,7 @@ func (s *SQLiteStmt) Close() error {
 	if rv != C.SQLITE_OK {
 		return s.c.lastError()
 	}
+	s.c = nil
 	runtime.SetFinalizer(s, nil)
 	return nil
 }
@@ -2011,6 +2014,7 @@ func (s *SQLiteStmt) query(ctx context.Context, args []driver.NamedValue) (drive
 		closed:   false,
 		ctx:      ctx,
 	}
+	runtime.SetFinalizer(rows, (*SQLiteRows).Close)
 
 	return rows, nil
 }
@@ -2056,6 +2060,7 @@ func (s *SQLiteStmt) exec(ctx context.Context, args []driver.NamedValue) (driver
 		err error
 	}
 	resultCh := make(chan result)
+	defer close(resultCh)
 	go func() {
 		r, err := s.execSync(args)
 		resultCh <- result{r, err}
@@ -2122,6 +2127,8 @@ func (rc *SQLiteRows) Close() error {
 		return rc.s.c.lastError()
 	}
 	rc.s.mu.Unlock()
+	rc.s = nil
+	runtime.SetFinalizer(rc, nil)
 	return nil
 }
 
@@ -2168,6 +2175,7 @@ func (rc *SQLiteRows) Next(dest []driver.Value) error {
 		return rc.nextSyncLocked(dest)
 	}
 	resultCh := make(chan error)
+	defer close(resultCh)
 	go func() {
 		resultCh <- rc.nextSyncLocked(dest)
 	}()
