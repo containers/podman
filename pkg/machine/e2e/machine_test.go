@@ -2,6 +2,7 @@ package e2e_test
 
 import (
 	"fmt"
+	"github.com/containers/podman/v4/pkg/machine/wsl"
 	"io"
 	url2 "net/url"
 	"os"
@@ -59,9 +60,20 @@ var _ = BeforeSuite(func() {
 
 	downloadLocation := os.Getenv("MACHINE_IMAGE")
 	if downloadLocation == "" {
-		downloadLocation, err = GetDownload(testProvider.VMType())
-		if err != nil {
-			Fail("unable to derive download disk from fedora coreos")
+		// TODO so beautifully gross ... ideally we can spend some time
+		// here making life easier on the next person
+		switch testProvider.VMType() {
+		case define.WSLVirt:
+			dl, _, _, _, err := wsl.GetFedoraDownloadForWSL()
+			if err != nil {
+				Fail("unable to determine WSL download")
+			}
+			downloadLocation = dl.String()
+		default:
+			downloadLocation, err = GetDownload(testProvider.VMType())
+			if err != nil {
+				Fail("unable to derive download disk from fedora coreos")
+			}
 		}
 	}
 

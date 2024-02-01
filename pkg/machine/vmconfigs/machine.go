@@ -67,6 +67,7 @@ func NewMachineConfig(opts define.InitOptions, dirs *define.MachineDirs, sshIden
 	}
 	mc.Resources = mrc
 
+	// TODO WSL had a locking port mechanism, we should consider this.
 	sshPort, err := utils.GetRandomPort()
 	if err != nil {
 		return nil, err

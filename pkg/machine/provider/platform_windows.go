@@ -3,6 +3,7 @@ package provider
 import (
 	"fmt"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v4/pkg/machine/wsl"
 	"os"
 
 	"github.com/containers/common/pkg/config"
@@ -27,9 +28,8 @@ func Get() (vmconfigs.VMProvider, error) {
 
 	logrus.Debugf("Using Podman machine with `%s` virtualization provider", resolvedVMType.String())
 	switch resolvedVMType {
-	// TODO re-enable this with WSL
-	//case define.WSLVirt:
-	//	return wsl.VirtualizationProvider(), nil
+	case define.WSLVirt:
+		return new(wsl.WSLStubber), nil
 	case define.HyperVVirt:
 		return new(hyperv.HyperVStubber), nil
 	default:

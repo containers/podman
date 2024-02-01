@@ -134,6 +134,13 @@ func launchWinProxy(opts WinProxyOpts) (bool, string, error) {
 
 	cmd := exec.Command(command, args...)
 	logrus.Debugf("winssh command: %s %v", command, args)
+	f, err := os.Open("c:\\Users\\baude\\sshproxy.log")
+	if err != nil {
+		return false, "", err
+	}
+	cmd.Stderr = f
+	cmd.Stdout = f
+	defer f.Close()
 	if err := cmd.Start(); err != nil {
 		return globalName, "", err
 	}

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Microsoft/go-winio"
+	"github.com/containers/podman/v4/pkg/machine/shim/diskpull"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,6 +26,10 @@ import (
 
 type HyperVStubber struct {
 	vmconfigs.HyperVConfig
+}
+
+func (h HyperVStubber) UserModeNetworkEnabled(mc *vmconfigs.MachineConfig) bool {
+	return true
 }
 
 func (h HyperVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConfig, builder *ignition.IgnitionBuilder) error {
@@ -456,6 +461,10 @@ func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig) error {
 		err = startShares(mc)
 	}
 	return err
+}
+
+func (h HyperVStubber) GetDisk(userInputPath string, dirs *define.MachineDirs, mc *vmconfigs.MachineConfig) error {
+	return diskpull.GetDisk(userInputPath, dirs, mc.ImagePath, h.VMType(), mc.Name)
 }
 
 func resizeDisk(newSize strongunits.GiB, imagePath *define.VMFile) error {
