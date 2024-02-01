@@ -17,7 +17,7 @@ type listBuilderOptions struct {
 	cleanup       bool
 	iidFile       string
 	authfile      string
-	skipTLSVerify bool
+	skipTLSVerify *bool
 }
 
 type listLocal struct {
@@ -39,13 +39,19 @@ func newManifestListBuilder(listName string, localEngine entities.ImageEngine, o
 // Build retrieves images from the build reports and assembles them into a
 // manifest list in local container storage.
 func (l *listLocal) build(ctx context.Context, images map[entities.BuildReport]entities.ImageEngine) (string, error) {
+	// Set skipTLSVerify based on whether it was changed by the caller
+	skipTLSVerify := types.OptionalBoolUndefined
+	if l.options.skipTLSVerify != nil {
+		skipTLSVerify = types.NewOptionalBool(*l.options.skipTLSVerify)
+	}
+
 	exists, err := l.localEngine.ManifestExists(ctx, l.listName)
 	if err != nil {
 		return "", err
 	}
 	// Create list if it doesn't exist
 	if !exists.Value {
-		_, err = l.localEngine.ManifestCreate(ctx, l.listName, []string{}, entities.ManifestCreateOptions{SkipTLSVerify: types.NewOptionalBool(l.options.skipTLSVerify)})
+		_, err = l.localEngine.ManifestCreate(ctx, l.listName, []string{}, entities.ManifestCreateOptions{SkipTLSVerify: skipTLSVerify})
 		if err != nil {
 			return "", fmt.Errorf("creating manifest list %q: %w", l.listName, err)
 		}
@@ -63,7 +69,7 @@ func (l *listLocal) build(ctx context.Context, images map[entities.BuildReport]e
 			logrus.Infof("pushing image %s", image.ID)
 			defer logrus.Infof("pushed image %s", image.ID)
 			// Push the image to the registry
-			report, err := engine.Push(ctx, image.ID, l.listName+docker.UnknownDigestSuffix, entities.ImagePushOptions{Authfile: l.options.authfile, Quiet: false, SkipTLSVerify: types.NewOptionalBool(l.options.skipTLSVerify)})
+			report, err := engine.Push(ctx, image.ID, l.listName+docker.UnknownDigestSuffix, entities.ImagePushOptions{Authfile: l.options.authfile, Quiet: false, SkipTLSVerify: skipTLSVerify})
 			if err != nil {
 				return fmt.Errorf("pushing image %q to registry: %w", image, err)
 			}
@@ -111,11 +117,11 @@ func (l *listLocal) build(ctx context.Context, images map[entities.BuildReport]e
 	}
 
 	// Add the images to the list
-	listID, err := l.localEngine.ManifestAdd(ctx, l.listName, refs, entities.ManifestAddOptions{Authfile: l.options.authfile, SkipTLSVerify: types.NewOptionalBool(l.options.skipTLSVerify)})
+	listID, err := l.localEngine.ManifestAdd(ctx, l.listName, refs, entities.ManifestAddOptions{Authfile: l.options.authfile, SkipTLSVerify: skipTLSVerify})
 	if err != nil {
 		return "", fmt.Errorf("adding images %q to list: %w", refs, err)
 	}
-	_, err = l.localEngine.ManifestPush(ctx, l.listName, l.listName, entities.ImagePushOptions{Authfile: l.options.authfile, SkipTLSVerify: types.NewOptionalBool(l.options.skipTLSVerify)})
+	_, err = l.localEngine.ManifestPush(ctx, l.listName, l.listName, entities.ImagePushOptions{Authfile: l.options.authfile, SkipTLSVerify: skipTLSVerify})
 	if err != nil {
 		return "", err
 	}
