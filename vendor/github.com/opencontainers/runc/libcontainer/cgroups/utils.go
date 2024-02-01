@@ -36,13 +36,13 @@ func IsCgroup2UnifiedMode() bool {
 		var st unix.Statfs_t
 		err := unix.Statfs(unifiedMountpoint, &st)
 		if err != nil {
-			level := logrus.WarnLevel
 			if os.IsNotExist(err) && userns.RunningInUserNS() {
-				// For rootless containers, sweep it under the rug.
-				level = logrus.DebugLevel
+				// ignore the "not found" error if running in userns
+				logrus.WithError(err).Debugf("%s missing, assuming cgroup v1", unifiedMountpoint)
+				isUnified = false
+				return
 			}
-			logrus.StandardLogger().Logf(level,
-				"statfs %s: %v; assuming cgroup v1", unifiedMountpoint, err)
+			panic(fmt.Sprintf("cannot statfs cgroup root: %s", err))
 		}
 		isUnified = st.Type == unix.CGROUP2_SUPER_MAGIC
 	})
@@ -217,9 +217,20 @@ func PathExists(path string) bool {
 	return true
 }
 
+func EnterPid(cgroupPaths map[string]string, pid int) error {
+	for _, path := range cgroupPaths {
+		if PathExists(path) {
+			if err := WriteCgroupProc(path, pid); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func rmdir(path string) error {
 	err := unix.Rmdir(path)
-	if err == nil || err == unix.ENOENT {
+	if err == nil || err == unix.ENOENT { //nolint:errorlint // unix errors are bare
 		return nil
 	}
 	return &os.PathError{Op: "rmdir", Path: path, Err: err}

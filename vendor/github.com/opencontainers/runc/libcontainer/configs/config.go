@@ -31,13 +31,12 @@ type IDMap struct {
 // for syscalls. Additional architectures can be added by specifying them in
 // Architectures.
 type Seccomp struct {
-	DefaultAction    Action                   `json:"default_action"`
-	Architectures    []string                 `json:"architectures"`
-	Flags            []specs.LinuxSeccompFlag `json:"flags"`
-	Syscalls         []*Syscall               `json:"syscalls"`
-	DefaultErrnoRet  *uint                    `json:"default_errno_ret"`
-	ListenerPath     string                   `json:"listener_path,omitempty"`
-	ListenerMetadata string                   `json:"listener_metadata,omitempty"`
+	DefaultAction    Action     `json:"default_action"`
+	Architectures    []string   `json:"architectures"`
+	Syscalls         []*Syscall `json:"syscalls"`
+	DefaultErrnoRet  *uint      `json:"default_errno_ret"`
+	ListenerPath     string     `json:"listener_path,omitempty"`
+	ListenerMetadata string     `json:"listener_metadata,omitempty"`
 }
 
 // Action is taken upon rule match in Seccomp
@@ -84,6 +83,9 @@ type Syscall struct {
 	Args     []*Arg `json:"args"`
 }
 
+// TODO Windows. Many of these fields should be factored out into those parts
+// which are common across platforms, and those which are platform specific.
+
 // Config defines configuration options for executing a process inside a contained environment.
 type Config struct {
 	// NoPivotRoot will use MS_MOVE and a chroot to jail the process into the container's rootfs
@@ -118,9 +120,6 @@ type Config struct {
 
 	// Hostname optionally sets the container's hostname if provided
 	Hostname string `json:"hostname"`
-
-	// Domainname optionally sets the container's domainname if provided
-	Domainname string `json:"domainname"`
 
 	// Namespaces specifies the container's namespaces that it should setup when cloning the init process
 	// If a namespace is not provided that namespace is shared from the container's parent process
@@ -159,11 +158,11 @@ type Config struct {
 	// More information about kernel oom score calculation here: https://lwn.net/Articles/317814/
 	OomScoreAdj *int `json:"oom_score_adj,omitempty"`
 
-	// UIDMappings is an array of User ID mappings for User Namespaces
-	UIDMappings []IDMap `json:"uid_mappings"`
+	// UidMappings is an array of User ID mappings for User Namespaces
+	UidMappings []IDMap `json:"uid_mappings"`
 
-	// GIDMappings is an array of Group ID mappings for User Namespaces
-	GIDMappings []IDMap `json:"gid_mappings"`
+	// GidMappings is an array of Group ID mappings for User Namespaces
+	GidMappings []IDMap `json:"gid_mappings"`
 
 	// MaskPaths specifies paths within the container's rootfs to mask over with a bind
 	// mount pointing to /dev/null as to prevent reads of the file.
@@ -212,13 +211,6 @@ type Config struct {
 	// RootlessCgroups is set when unlikely to have the full access to cgroups.
 	// When RootlessCgroups is set, cgroups errors are ignored.
 	RootlessCgroups bool `json:"rootless_cgroups,omitempty"`
-
-	// Do not try to remount a bind mount again after the first attempt failed on source
-	// filesystems that have nodev, noexec, nosuid, noatime, relatime, strictatime, nodiratime set
-	NoMountFallback bool `json:"no_mount_fallback,omitempty"`
-
-	// TimeOffsets specifies the offset for supporting time namespaces.
-	TimeOffsets map[string]specs.LinuxTimeOffset `json:"time_offsets,omitempty"`
 }
 
 type (
@@ -285,7 +277,6 @@ type Capabilities struct {
 	Ambient []string
 }
 
-// Deprecated: use (Hooks).Run instead.
 func (hooks HookList) RunHooks(state *specs.State) error {
 	for i, h := range hooks {
 		if err := h.Run(state); err != nil {
@@ -340,18 +331,6 @@ func (hooks *Hooks) MarshalJSON() ([]byte, error) {
 		"poststart":       serialize((*hooks)[Poststart]),
 		"poststop":        serialize((*hooks)[Poststop]),
 	})
-}
-
-// Run executes all hooks for the given hook name.
-func (hooks Hooks) Run(name HookName, state *specs.State) error {
-	list := hooks[name]
-	for i, h := range list {
-		if err := h.Run(state); err != nil {
-			return fmt.Errorf("error running %s hook #%d: %w", name, i, err)
-		}
-	}
-
-	return nil
 }
 
 type Hook interface {
@@ -414,7 +393,7 @@ func (c Command) Run(s *specs.State) error {
 	go func() {
 		err := cmd.Wait()
 		if err != nil {
-			err = fmt.Errorf("%w, stdout: %s, stderr: %s", err, stdout.String(), stderr.String())
+			err = fmt.Errorf("error running hook: %w, stdout: %s, stderr: %s", err, stdout.String(), stderr.String())
 		}
 		errC <- err
 	}()
