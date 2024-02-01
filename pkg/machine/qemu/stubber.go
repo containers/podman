@@ -11,14 +11,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v5/pkg/machine/ignition"
-
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/strongunits"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/ignition"
 	"github.com/containers/podman/v5/pkg/machine/qemu/command"
+	"github.com/containers/podman/v5/pkg/machine/shim/diskpull"
 	"github.com/containers/podman/v5/pkg/machine/sockets"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/sirupsen/logrus"
@@ -28,6 +28,10 @@ type QEMUStubber struct {
 	vmconfigs.QEMUConfig
 	// Command describes the final QEMU command line
 	Command command.QemuCmd
+}
+
+func (q QEMUStubber) UserModeNetworkEnabled(*vmconfigs.MachineConfig) bool {
+	return true
 }
 
 func (q *QEMUStubber) setQEMUCommandLine(mc *vmconfigs.MachineConfig) error {
@@ -325,4 +329,8 @@ func (q *QEMUStubber) MountType() vmconfigs.VolumeMountType {
 
 func (q *QEMUStubber) PostStartNetworking(mc *vmconfigs.MachineConfig) error {
 	return nil
+}
+
+func (q *QEMUStubber) GetDisk(userInputPath string, dirs *define.MachineDirs, mc *vmconfigs.MachineConfig) error {
+	return diskpull.GetDisk(userInputPath, dirs, mc.ImagePath, q.VMType(), mc.Name)
 }

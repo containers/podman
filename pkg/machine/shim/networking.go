@@ -23,16 +23,12 @@ const (
 	dockerConnectTimeout = 5 * time.Second
 )
 
-func startNetworking(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvider) (string, machine.APIForwardingState, error) {
-	var (
-		forwardingState machine.APIForwardingState
-		forwardSock     string
-	)
-	// the guestSock is "inside" the guest machine
-	guestSock := fmt.Sprintf(defaultGuestSock, mc.HostUser.UID)
+func startUserModeNetworking(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvider, dirs *define.MachineDirs, hostSocket *define.VMFile) error {
 	forwardUser := mc.SSH.RemoteUsername
 
-	// TODO should this go up the stack higher
+	// TODO should this go up the stack higher or
+	// the guestSock is "inside" the guest machine
+	guestSock := fmt.Sprintf(defaultGuestSock, mc.HostUser.UID)
 	if mc.HostUser.Rootful {
 		guestSock = "/run/podman/podman.sock"
 		forwardUser = "root"
@@ -40,38 +36,18 @@ func startNetworking(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvider)
 
 	cfg, err := config.Default()
 	if err != nil {
-		return "", 0, err
+		return err
 	}
 
 	binary, err := cfg.FindHelperBinary(machine.ForwarderBinaryName, false)
 	if err != nil {
-		return "", 0, err
-	}
-
-	dataDir, err := mc.DataDir()
-	if err != nil {
-		return "", 0, err
-	}
-	hostSocket, err := dataDir.AppendToNewVMFile("podman.sock", nil)
-	if err != nil {
-		return "", 0, err
-	}
-
-	runDir, err := mc.RuntimeDir()
-	if err != nil {
-		return "", 0, err
-	}
-
-	linkSocketPath := filepath.Dir(dataDir.GetPath())
-	linkSocket, err := define.NewMachineFile(filepath.Join(linkSocketPath, "podman.sock"), nil)
-	if err != nil {
-		return "", 0, err
+		return err
 	}
 
 	cmd := gvproxy.NewGvproxyCommand()
 
 	// GvProxy PID file path is now derived
-	cmd.PidFile = filepath.Join(runDir.GetPath(), "gvproxy.pid")
+	cmd.PidFile = filepath.Join(dirs.RuntimeDir.GetPath(), "gvproxy.pid")
 
 	// TODO This can be re-enabled when gvisor-tap-vsock #305 is merged
 	// debug is set, we dump to a logfile as well
@@ -94,6 +70,36 @@ func startNetworking(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvider)
 	// This allows a provider to perform additional setup as well as
 	// add in any provider specific options for gvproxy
 	if err := provider.StartNetworking(mc, &cmd); err != nil {
+		return err
+	}
+
+	c := cmd.Cmd(binary)
+
+	logrus.Debugf("gvproxy command-line: %s %s", binary, strings.Join(cmd.ToCmdline(), " "))
+	if err := c.Start(); err != nil {
+		return fmt.Errorf("unable to execute: %q: %w", cmd.ToCmdline(), err)
+	}
+
+	return nil
+}
+
+func startNetworking(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvider) (string, machine.APIForwardingState, error) {
+	var (
+		forwardingState machine.APIForwardingState
+		forwardSock     string
+	)
+	dirs, err := machine.GetMachineDirs(provider.VMType())
+	if err != nil {
+		return "", 0, err
+	}
+	hostSocket, err := dirs.DataDir.AppendToNewVMFile("podman.sock", nil)
+	if err != nil {
+		return "", 0, err
+	}
+
+	linkSocketPath := filepath.Dir(dirs.DataDir.GetPath())
+	linkSocket, err := define.NewMachineFile(filepath.Join(linkSocketPath, "podman.sock"), nil)
+	if err != nil {
 		return "", 0, err
 	}
 
@@ -101,19 +107,13 @@ func startNetworking(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvider)
 		forwardSock, forwardingState = setupAPIForwarding(hostSocket, linkSocket)
 	}
 
-	c := cmd.Cmd(binary)
-
-	logrus.Debugf("gvproxy command-line: %s %s", binary, strings.Join(cmd.ToCmdline(), " "))
-	if err := c.Start(); err != nil {
-		return forwardSock, 0, fmt.Errorf("unable to execute: %q: %w", cmd.ToCmdline(), err)
+	if provider.UserModeNetworkEnabled(mc) {
+		if err := startUserModeNetworking(mc, provider, dirs, hostSocket); err != nil {
+			return "", 0, err
+		}
 	}
 
 	return forwardSock, forwardingState, nil
-}
-
-type apiOptions struct { //nolint:unused
-	socketpath, destinationSocketPath *define.VMFile
-	fowardUser                        string
 }
 
 func setupAPIForwarding(hostSocket, linkSocket *define.VMFile) (string, machine.APIForwardingState) {

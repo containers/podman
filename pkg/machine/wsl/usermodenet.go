@@ -5,6 +5,7 @@ package wsl
 import (
 	"errors"
 	"fmt"
+	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -69,8 +70,8 @@ func verifyWSLUserModeCompat() error {
 		prefix)
 }
 
-func (v *MachineVM) startUserModeNetworking() error {
-	if !v.UserModeNetworking {
+func startUserModeNetworking(mc *vmconfigs.MachineConfig) error {
+	if !mc.WSLHypervisor.UserModeNetworking {
 		return nil
 	}
 
@@ -79,7 +80,7 @@ func (v *MachineVM) startUserModeNetworking() error {
 		return fmt.Errorf("could not locate %s, which is necessary for user-mode networking, please reinstall", gvProxy)
 	}
 
-	flock, err := v.obtainUserModeNetLock()
+	flock, err := obtainUserModeNetLock()
 	if err != nil {
 		return err
 	}
@@ -93,17 +94,17 @@ func (v *MachineVM) startUserModeNetworking() error {
 
 	// Start or reuse
 	if !running {
-		if err := v.launchUserModeNetDist(exe); err != nil {
+		if err := launchUserModeNetDist(exe); err != nil {
 			return err
 		}
 	}
 
-	if err := createUserModeResolvConf(toDist(v.Name)); err != nil {
+	if err := createUserModeResolvConf(mc.Name); err != nil {
 		return err
 	}
 
 	// Register in-use
-	err = v.addUserModeNetEntry()
+	err = addUserModeNetEntry(mc)
 	if err != nil {
 		return err
 	}
@@ -111,23 +112,23 @@ func (v *MachineVM) startUserModeNetworking() error {
 	return nil
 }
 
-func (v *MachineVM) stopUserModeNetworking(dist string) error {
-	if !v.UserModeNetworking {
+func stopUserModeNetworking(mc *vmconfigs.MachineConfig) error {
+	if !mc.WSLHypervisor.UserModeNetworking {
 		return nil
 	}
 
-	flock, err := v.obtainUserModeNetLock()
+	flock, err := obtainUserModeNetLock()
 	if err != nil {
 		return err
 	}
 	defer flock.unlock()
 
-	err = v.removeUserModeNetEntry()
+	err = removeUserModeNetEntry(mc.Name)
 	if err != nil {
 		return err
 	}
 
-	count, err := v.cleanupAndCountNetEntries()
+	count, err := cleanupAndCountNetEntries()
 	if err != nil {
 		return err
 	}
@@ -159,7 +160,7 @@ func isGvProxyVMRunning() bool {
 	return wslInvoke(userModeDist, "bash", "-c", "ps -eo args | grep -q -m1 ^/usr/local/bin/vm || exit 42") == nil
 }
 
-func (v *MachineVM) launchUserModeNetDist(exeFile string) error {
+func launchUserModeNetDist(exeFile string) error {
 	fmt.Println("Starting user-mode networking...")
 
 	exe, err := specgen.ConvertWinMountPath(exeFile)
@@ -220,7 +221,7 @@ func createUserModeResolvConf(dist string) error {
 	return err
 }
 
-func (v *MachineVM) getUserModeNetDir() (string, error) {
+func getUserModeNetDir() (string, error) {
 	vmDataDir, err := machine.GetDataDir(vmtype)
 	if err != nil {
 		return "", err
@@ -234,8 +235,8 @@ func (v *MachineVM) getUserModeNetDir() (string, error) {
 	return dir, nil
 }
 
-func (v *MachineVM) getUserModeNetEntriesDir() (string, error) {
-	netDir, err := v.getUserModeNetDir()
+func getUserModeNetEntriesDir() (string, error) {
+	netDir, err := getUserModeNetDir()
 	if err != nil {
 		return "", err
 	}
@@ -248,13 +249,13 @@ func (v *MachineVM) getUserModeNetEntriesDir() (string, error) {
 	return dir, nil
 }
 
-func (v *MachineVM) addUserModeNetEntry() error {
-	entriesDir, err := v.getUserModeNetEntriesDir()
+func addUserModeNetEntry(mc *vmconfigs.MachineConfig) error {
+	entriesDir, err := getUserModeNetEntriesDir()
 	if err != nil {
 		return err
 	}
 
-	path := filepath.Join(entriesDir, toDist(v.Name))
+	path := filepath.Join(entriesDir, mc.Name)
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		return fmt.Errorf("could not add user-mode networking registration: %w", err)
@@ -263,18 +264,18 @@ func (v *MachineVM) addUserModeNetEntry() error {
 	return nil
 }
 
-func (v *MachineVM) removeUserModeNetEntry() error {
-	entriesDir, err := v.getUserModeNetEntriesDir()
+func removeUserModeNetEntry(name string) error {
+	entriesDir, err := getUserModeNetEntriesDir()
 	if err != nil {
 		return err
 	}
 
-	path := filepath.Join(entriesDir, toDist(v.Name))
+	path := filepath.Join(entriesDir, name)
 	return os.Remove(path)
 }
 
-func (v *MachineVM) cleanupAndCountNetEntries() (uint, error) {
-	entriesDir, err := v.getUserModeNetEntriesDir()
+func cleanupAndCountNetEntries() (uint, error) {
+	entriesDir, err := getUserModeNetEntriesDir()
 	if err != nil {
 		return 0, err
 	}
@@ -302,8 +303,8 @@ func (v *MachineVM) cleanupAndCountNetEntries() (uint, error) {
 	return count, nil
 }
 
-func (v *MachineVM) obtainUserModeNetLock() (*fileLock, error) {
-	dir, err := v.getUserModeNetDir()
+func obtainUserModeNetLock() (*fileLock, error) {
+	dir, err := getUserModeNetDir()
 
 	if err != nil {
 		return nil, err

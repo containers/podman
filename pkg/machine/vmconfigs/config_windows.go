@@ -13,7 +13,8 @@ type HyperVConfig struct {
 }
 
 type WSLConfig struct {
-	//wslstuff *aThing
+	// Uses usermode networking
+	UserModeNetworking bool
 }
 
 // Stubs

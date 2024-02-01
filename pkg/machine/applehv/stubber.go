@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/applehv/vfkit"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
+	"github.com/containers/podman/v5/pkg/machine/shim/diskpull"
 	"github.com/containers/podman/v5/pkg/machine/sockets"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v5/utils"
@@ -36,6 +37,10 @@ var (
 
 type AppleHVStubber struct {
 	vmconfigs.AppleHVConfig
+}
+
+func (a AppleHVStubber) UserModeNetworkEnabled(_ *vmconfigs.MachineConfig) bool {
+	return true
 }
 
 func (a AppleHVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConfig, ignBuilder *ignition.IgnitionBuilder) error {
@@ -316,4 +321,8 @@ func (a AppleHVStubber) PrepareIgnition(_ *vmconfigs.MachineConfig, _ *ignition.
 
 func (a AppleHVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig) error {
 	return nil
+}
+
+func (a AppleHVStubber) GetDisk(userInputPath string, dirs *define.MachineDirs, mc *vmconfigs.MachineConfig) error {
+	return diskpull.GetDisk(userInputPath, dirs, mc.ImagePath, a.VMType(), mc.Name)
 }
