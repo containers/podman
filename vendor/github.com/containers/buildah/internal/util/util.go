@@ -97,3 +97,8 @@ func ExportFromReader(input io.Reader, opts define.BuildOutputOption) error {
 	}
 	return nil
 }
+
+func SetHas(m map[string]struct{}, k string) bool {
+	_, ok := m[k]
+	return ok
+}

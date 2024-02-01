@@ -391,6 +391,10 @@ type ImportFromImageOptions struct {
 // instead of the usual rootfs contents.
 type ConfidentialWorkloadOptions = define.ConfidentialWorkloadOptions
 
+// SBOMScanOptions encapsulates options which control whether or not we run a
+// scanner on the rootfs that we're about to commit, and how.
+type SBOMScanOptions = define.SBOMScanOptions
+
 // NewBuilder creates a new build container.
 func NewBuilder(ctx context.Context, store storage.Store, options BuilderOptions) (*Builder, error) {
 	if options.CommonBuildOpts == nil {

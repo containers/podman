@@ -565,24 +565,23 @@ func (s *StageExecutor) runStageMountPoints(mountList []string) (map[string]inte
 	stageMountPoints := make(map[string]internal.StageMountDetails)
 	for _, flag := range mountList {
 		if strings.Contains(flag, "from") {
-			arr := strings.SplitN(flag, ",", 2)
-			if len(arr) < 2 {
+			tokens := strings.Split(flag, ",")
+			if len(tokens) < 2 {
 				return nil, fmt.Errorf("Invalid --mount command: %s", flag)
 			}
-			tokens := strings.Split(flag, ",")
-			for _, val := range tokens {
-				kv := strings.SplitN(val, "=", 2)
-				switch kv[0] {
+			for _, token := range tokens {
+				key, val, hasVal := strings.Cut(token, "=")
+				switch key {
 				case "from":
-					if len(kv) == 1 {
+					if !hasVal {
 						return nil, fmt.Errorf("unable to resolve argument for `from=`: bad argument")
 					}
-					if kv[1] == "" {
+					if val == "" {
 						return nil, fmt.Errorf("unable to resolve argument for `from=`: from points to an empty value")
 					}
-					from, fromErr := imagebuilder.ProcessWord(kv[1], s.stage.Builder.Arguments())
+					from, fromErr := imagebuilder.ProcessWord(val, s.stage.Builder.Arguments())
 					if fromErr != nil {
-						return nil, fmt.Errorf("unable to resolve argument %q: %w", kv[1], fromErr)
+						return nil, fmt.Errorf("unable to resolve argument %q: %w", val, fromErr)
 					}
 					// If additional buildContext contains this
 					// give priority to that and break if additional
@@ -684,6 +683,15 @@ func (s *StageExecutor) createNeededHeredocMountsForRun(files []imagebuilder.Fil
 	return mountResult, nil
 }
 
+func parseSheBang(data string) string {
+	lines := strings.Split(data, "\n")
+	if len(lines) > 2 && strings.HasPrefix(lines[1], "#!") {
+		shebang := strings.TrimLeft(lines[1], "#!")
+		return shebang
+	}
+	return ""
+}
+
 // Run executes a RUN instruction using the stage's current working container
 // as a root directory.
 func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
@@ -694,12 +702,17 @@ func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 		if heredoc := buildkitparser.MustParseHeredoc(args[0]); heredoc != nil {
 			if strings.HasPrefix(run.Files[0].Data, "#!") || strings.HasPrefix(run.Files[0].Data, "\n#!") {
 				// This is a single heredoc with a shebang, so create a file
-				// and run it.
+				// and run it with program specified in shebang.
 				heredocMount, err := s.createNeededHeredocMountsForRun(run.Files)
 				if err != nil {
 					return err
 				}
-				args = []string{heredocMount[0].Destination}
+				shebangArgs := parseSheBang(run.Files[0].Data)
+				if shebangArgs != "" {
+					args = []string{shebangArgs + " " + heredocMount[0].Destination}
+				} else {
+					args = []string{heredocMount[0].Destination}
+				}
 				heredocMounts = append(heredocMounts, heredocMount...)
 			} else {
 				args = []string{run.Files[0].Data}
@@ -1044,8 +1057,8 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 	moreStages := s.index < len(s.stages)-1
 	lastStage := !moreStages
 	onlyBaseImage := false
-	imageIsUsedLater := moreStages && (s.executor.baseMap[stage.Name] || s.executor.baseMap[strconv.Itoa(stage.Position)])
-	rootfsIsUsedLater := moreStages && (s.executor.rootfsMap[stage.Name] || s.executor.rootfsMap[strconv.Itoa(stage.Position)])
+	imageIsUsedLater := moreStages && (internalUtil.SetHas(s.executor.baseMap, stage.Name) || internalUtil.SetHas(s.executor.baseMap, strconv.Itoa(stage.Position)))
+	rootfsIsUsedLater := moreStages && (internalUtil.SetHas(s.executor.rootfsMap, stage.Name) || internalUtil.SetHas(s.executor.rootfsMap, strconv.Itoa(stage.Position)))
 
 	// If the base image's name corresponds to the result of an earlier
 	// stage, make sure that stage has finished building an image, and
@@ -1160,7 +1173,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 
 	if len(children) == 0 {
 		// There are no steps.
-		if s.builder.FromImageID == "" || s.executor.squash || s.executor.confidentialWorkload.Convert || len(s.executor.labels) > 0 || len(s.executor.annotations) > 0 || len(s.executor.unsetEnvs) > 0 || len(s.executor.unsetLabels) > 0 {
+		if s.builder.FromImageID == "" || s.executor.squash || s.executor.confidentialWorkload.Convert || len(s.executor.labels) > 0 || len(s.executor.annotations) > 0 || len(s.executor.unsetEnvs) > 0 || len(s.executor.unsetLabels) > 0 || len(s.executor.sbomScanOptions) > 0 {
 			// We either don't have a base image, or we need to
 			// transform the contents of the base image, or we need
 			// to make some changes to just the config blob.  Whichever
@@ -1169,7 +1182,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			// No base image means there's nothing to put in a
 			// layer, so don't create one.
 			emptyLayer := (s.builder.FromImageID == "")
-			if imgID, ref, err = s.commit(ctx, s.getCreatedBy(nil, ""), emptyLayer, s.output, s.executor.squash, lastStage); err != nil {
+			if imgID, ref, err = s.commit(ctx, s.getCreatedBy(nil, ""), emptyLayer, s.output, s.executor.squash || s.executor.confidentialWorkload.Convert, lastStage); err != nil {
 				return "", nil, false, fmt.Errorf("committing base container: %w", err)
 			}
 		} else {
@@ -1511,7 +1524,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			}
 		}
 
-		// Note: If the build has squash, we must try to re-use as many layers as possible if cache is found.
+		// Note: If the build has squash, we must try to reuse as many layers as possible if cache is found.
 		// So only perform commit if it's the lastInstruction of lastStage.
 		if cacheID != "" {
 			logCacheHit(cacheID)
@@ -1567,11 +1580,13 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		}
 
 		if lastInstruction && lastStage {
-			if s.executor.squash || s.executor.confidentialWorkload.Convert {
-				// Create a squashed version of this image
-				// if we're supposed to create one and this
-				// is the last instruction of the last stage.
-				imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), !s.stepRequiresLayer(step), commitName, true, lastStage && lastInstruction)
+			if s.executor.squash || s.executor.confidentialWorkload.Convert || len(s.executor.sbomScanOptions) != 0 {
+				// If this is the last instruction of the last stage,
+				// create a squashed or confidential workload
+				// version of the image if that's what we're after,
+				// or a normal one if we need to scan the image while
+				// committing it.
+				imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), !s.stepRequiresLayer(step), commitName, s.executor.squash || s.executor.confidentialWorkload.Convert, lastStage && lastInstruction)
 				if err != nil {
 					return "", nil, false, fmt.Errorf("committing final squash step %+v: %w", *step, err)
 				}
@@ -1726,7 +1741,14 @@ func (s *StageExecutor) getCreatedBy(node *parser.Node, addedContentSummary stri
 		if buildArgs != "" {
 			return "|" + strconv.Itoa(len(strings.Split(buildArgs, " "))) + " " + buildArgs + " /bin/sh -c " + node.Original[4:]
 		}
-		return "/bin/sh -c " + node.Original[4:]
+		result := "/bin/sh -c " + node.Original[4:]
+		if len(node.Heredocs) > 0 {
+			for _, doc := range node.Heredocs {
+				heredocContent := strings.TrimSpace(doc.Content)
+				result = result + "\n" + heredocContent
+			}
+		}
+		return result
 	case "ADD", "COPY":
 		destination := node
 		for destination.Next != nil {
@@ -1748,9 +1770,9 @@ func (s *StageExecutor) getBuildArgsResolvedForRun() string {
 	dockerConfig := s.stage.Builder.Config()
 
 	for _, env := range dockerConfig.Env {
-		splitv := strings.SplitN(env, "=", 2)
-		if len(splitv) == 2 {
-			configuredEnvs[splitv[0]] = splitv[1]
+		key, val, hasVal := strings.Cut(env, "=")
+		if hasVal {
+			configuredEnvs[key] = val
 		}
 	}
 
@@ -2102,8 +2124,8 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 		s.builder.SetPort(string(p))
 	}
 	for _, envSpec := range config.Env {
-		spec := strings.SplitN(envSpec, "=", 2)
-		s.builder.SetEnv(spec[0], spec[1])
+		key, val, _ := strings.Cut(envSpec, "=")
+		s.builder.SetEnv(key, val)
 	}
 	for _, envSpec := range s.executor.unsetEnvs {
 		s.builder.UnsetEnv(envSpec)
@@ -2139,12 +2161,8 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 		// an intermediate image, in such case we must
 		// honor layer labels if they are configured.
 		for _, labelString := range s.executor.layerLabels {
-			label := strings.SplitN(labelString, "=", 2)
-			if len(label) > 1 {
-				s.builder.SetLabel(label[0], label[1])
-			} else {
-				s.builder.SetLabel(label[0], "")
-			}
+			labelk, labelv, _ := strings.Cut(labelString, "=")
+			s.builder.SetLabel(labelk, labelv)
 		}
 	}
 	for k, v := range config.Labels {
@@ -2157,12 +2175,8 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 		s.builder.UnsetLabel(key)
 	}
 	for _, annotationSpec := range s.executor.annotations {
-		annotation := strings.SplitN(annotationSpec, "=", 2)
-		if len(annotation) > 1 {
-			s.builder.SetAnnotation(annotation[0], annotation[1])
-		} else {
-			s.builder.SetAnnotation(annotation[0], "")
-		}
+		annotationk, annotationv, _ := strings.Cut(annotationSpec, "=")
+		s.builder.SetAnnotation(annotationk, annotationv)
 	}
 	if imageRef != nil {
 		logName := transports.ImageName(imageRef)
@@ -2192,6 +2206,7 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 	}
 	if finalInstruction {
 		options.ConfidentialWorkloadOptions = s.executor.confidentialWorkload
+		options.SBOMScanOptions = s.executor.sbomScanOptions
 	}
 	imgID, _, manifestDigest, err := s.builder.Commit(ctx, imageRef, options)
 	if err != nil {

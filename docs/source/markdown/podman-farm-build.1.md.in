@@ -179,6 +179,22 @@ Build only on farm nodes that match the given platforms.
 
 @@option runtime-flag
 
+@@option sbom
+
+@@option sbom-image-output
+
+@@option sbom-image-purl-output
+
+@@option sbom-merge-strategy
+
+@@option sbom-output
+
+@@option sbom-purl-output
+
+@@option sbom-scanner-command
+
+@@option sbom-scanner-image
+
 @@option secret.image
 
 @@option security-opt.image

@@ -104,6 +104,15 @@ github.com/chenzhuoyu/iasm/x86_64
 # github.com/chzyer/readline v1.5.1
 ## explicit; go 1.15
 github.com/chzyer/readline
+# github.com/cilium/ebpf v0.9.1
+## explicit; go 1.17
+github.com/cilium/ebpf
+github.com/cilium/ebpf/asm
+github.com/cilium/ebpf/btf
+github.com/cilium/ebpf/internal
+github.com/cilium/ebpf/internal/sys
+github.com/cilium/ebpf/internal/unix
+github.com/cilium/ebpf/link
 # github.com/containerd/cgroups/v3 v3.0.2
 ## explicit; go 1.18
 github.com/containerd/cgroups/v3/cgroup1/stats
@@ -138,7 +147,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.4.0
 ## explicit; go 1.20
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.33.2-0.20231121195905-d1a1c53c8e1c
+# github.com/containers/buildah v1.34.1-0.20240201124221-b850c711ff5c
 ## explicit; go 1.20
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -152,6 +161,7 @@ github.com/containers/buildah/internal/config
 github.com/containers/buildah/internal/mkcw
 github.com/containers/buildah/internal/mkcw/types
 github.com/containers/buildah/internal/parse
+github.com/containers/buildah/internal/sbom
 github.com/containers/buildah/internal/tmpdir
 github.com/containers/buildah/internal/util
 github.com/containers/buildah/internal/volumes
@@ -316,7 +326,7 @@ github.com/containers/libhvee/pkg/wmiext
 # github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01
 ## explicit
 github.com/containers/libtrust
-# github.com/containers/luksy v0.0.0-20231030195837-b5a7f79da98b
+# github.com/containers/luksy v0.0.0-20240129181507-b62d551ce6d8
 ## explicit; go 1.20
 github.com/containers/luksy
 # github.com/containers/ocicrypt v1.1.9
@@ -518,7 +528,7 @@ github.com/felixge/httpsnoop
 # github.com/fsnotify/fsnotify v1.7.0
 ## explicit; go 1.17
 github.com/fsnotify/fsnotify
-# github.com/fsouza/go-dockerclient v1.10.0
+# github.com/fsouza/go-dockerclient v1.10.1
 ## explicit; go 1.20
 github.com/fsouza/go-dockerclient
 # github.com/gabriel-vasile/mimetype v1.4.2
@@ -782,7 +792,7 @@ github.com/mistifyio/go-zfs/v3
 # github.com/mitchellh/mapstructure v1.5.0
 ## explicit; go 1.14
 github.com/mitchellh/mapstructure
-# github.com/moby/buildkit v0.12.3
+# github.com/moby/buildkit v0.12.5
 ## explicit; go 1.20
 github.com/moby/buildkit/frontend/dockerfile/command
 github.com/moby/buildkit/frontend/dockerfile/parser
@@ -868,10 +878,13 @@ github.com/opencontainers/go-digest
 ## explicit; go 1.18
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.1.12 => github.com/opencontainers/runc v1.1.1-0.20230904132852-a0466dd76f23
-## explicit; go 1.20
+# github.com/opencontainers/runc v1.1.12
+## explicit; go 1.17
 github.com/opencontainers/runc/libcontainer/apparmor
 github.com/opencontainers/runc/libcontainer/cgroups
+github.com/opencontainers/runc/libcontainer/cgroups/devices
+github.com/opencontainers/runc/libcontainer/cgroups/ebpf
+github.com/opencontainers/runc/libcontainer/cgroups/ebpf/devicefilter
 github.com/opencontainers/runc/libcontainer/cgroups/fs
 github.com/opencontainers/runc/libcontainer/cgroups/fs2
 github.com/opencontainers/runc/libcontainer/cgroups/fscommon
@@ -1384,4 +1397,3 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v0.6.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
-# github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20230904132852-a0466dd76f23

@@ -4,6 +4,7 @@
 package jail
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -187,6 +188,41 @@ func (j *jail) Set(jconf *config) error {
 	return err
 }
 
+func parseVersion(version string) (string, int, int, int, error) {
+	// Expected formats:
+	//	<major>.<minor>-RELEASE optionally followed by -p<patchlevel>
+	//	<major>-STABLE
+	//	<major>-CURRENT
+	parts := strings.Split(string(version), "-")
+	if len(parts) < 2 || len(parts) > 3 {
+		return "", -1, -1, -1, fmt.Errorf("unexpected OS version: %s", version)
+	}
+	ver := strings.Split(parts[0], ".")
+
+	if len(ver) != 2 {
+		return "", -1, -1, -1, fmt.Errorf("unexpected OS version: %s", version)
+	}
+	major, err := strconv.Atoi(ver[0])
+	if err != nil {
+		return "", -1, -1, -1, fmt.Errorf("unexpected OS version: %s", version)
+	}
+	minor, err := strconv.Atoi(ver[1])
+	if err != nil {
+		return "", -1, -1, -1, fmt.Errorf("unexpected OS version: %s", version)
+	}
+	patchlevel := 0
+	if len(parts) == 3 {
+		if parts[1] != "RELEASE" || !strings.HasPrefix(parts[2], "p") {
+			return "", -1, -1, -1, fmt.Errorf("unexpected OS version: %s", version)
+		}
+		patchlevel, err = strconv.Atoi(strings.TrimPrefix(parts[2], "p"))
+		if err != nil {
+			return "", -1, -1, -1, fmt.Errorf("unexpected OS version: %s", version)
+		}
+	}
+	return parts[1], major, minor, patchlevel, nil
+}
+
 // Return true if its necessary to have a separate jail to own the vnet.  For
 // FreeBSD 13.3 and later, we don't need a separate vnet jail since it is
 // possible to configure the network without either attaching to the container's
@@ -194,36 +230,14 @@ func (j *jail) Set(jconf *config) error {
 // any reason, we fail to parse the OS version, we default to returning true.
 func NeedVnetJail() bool {
 	needVnetJailOnce.Do(func() {
+		// FreeBSD 13.3 and later have support for 'ifconfig -j' and 'route -j'
 		needVnetJail = true
 		version, err := util.ReadKernelVersion()
 		if err != nil {
 			logrus.Errorf("failed to determine OS version: %v", err)
 			return
 		}
-		// Expected formats "<major>.<minor>-<RELEASE|STABLE|CURRENT>" optionally
-		// followed by "-<patchlevel>"
-		parts := strings.Split(string(version), "-")
-		if len(parts) < 2 {
-			logrus.Errorf("unexpected OS version: %s", version)
-			return
-		}
-		ver := strings.Split(parts[0], ".")
-		if len(parts) != 2 {
-			logrus.Errorf("unexpected OS version: %s", version)
-			return
-		}
-
-		// FreeBSD 13.3 and later have support for 'ifconfig -j' and 'route -j'
-		major, err := strconv.Atoi(ver[0])
-		if err != nil {
-			logrus.Errorf("unexpected OS version: %s", version)
-			return
-		}
-		minor, err := strconv.Atoi(ver[1])
-		if err != nil {
-			logrus.Errorf("unexpected OS version: %s", version)
-			return
-		}
+		_, major, minor, _, err := parseVersion(version)
 		if major > 13 || (major == 13 && minor > 2) {
 			needVnetJail = false
 		}

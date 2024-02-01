@@ -32,22 +32,9 @@ type CpuUsage struct {
 	UsageInUsermode uint64 `json:"usage_in_usermode"`
 }
 
-type PSIData struct {
-	Avg10  float64 `json:"avg10"`
-	Avg60  float64 `json:"avg60"`
-	Avg300 float64 `json:"avg300"`
-	Total  uint64  `json:"total"`
-}
-
-type PSIStats struct {
-	Some PSIData `json:"some,omitempty"`
-	Full PSIData `json:"full,omitempty"`
-}
-
 type CpuStats struct {
 	CpuUsage       CpuUsage       `json:"cpu_usage,omitempty"`
 	ThrottlingData ThrottlingData `json:"throttling_data,omitempty"`
-	PSI            *PSIStats      `json:"psi,omitempty"`
 }
 
 type CPUSetStats struct {
@@ -91,6 +78,8 @@ type MemoryStats struct {
 	Usage MemoryData `json:"usage,omitempty"`
 	// usage of memory + swap
 	SwapUsage MemoryData `json:"swap_usage,omitempty"`
+	// usage of swap only
+	SwapOnlyUsage MemoryData `json:"swap_only_usage,omitempty"`
 	// usage of kernel memory
 	KernelUsage MemoryData `json:"kernel_usage,omitempty"`
 	// usage of kernel TCP memory
@@ -102,7 +91,6 @@ type MemoryStats struct {
 	UseHierarchy bool `json:"use_hierarchy"`
 
 	Stats map[string]uint64 `json:"stats,omitempty"`
-	PSI   *PSIStats         `json:"psi,omitempty"`
 }
 
 type PageUsageByNUMA struct {
@@ -147,7 +135,6 @@ type BlkioStats struct {
 	IoMergedRecursive       []BlkioStatEntry `json:"io_merged_recursive,omitempty"`
 	IoTimeRecursive         []BlkioStatEntry `json:"io_time_recursive,omitempty"`
 	SectorsRecursive        []BlkioStatEntry `json:"sectors_recursive,omitempty"`
-	PSI                     *PSIStats        `json:"psi,omitempty"`
 }
 
 type HugetlbStats struct {

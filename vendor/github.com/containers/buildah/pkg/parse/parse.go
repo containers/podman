@@ -18,6 +18,7 @@ import (
 	"github.com/containers/buildah/define"
 	mkcwtypes "github.com/containers/buildah/internal/mkcw/types"
 	internalParse "github.com/containers/buildah/internal/parse"
+	"github.com/containers/buildah/internal/sbom"
 	"github.com/containers/buildah/internal/tmpdir"
 	"github.com/containers/buildah/pkg/sshagent"
 	"github.com/containers/common/pkg/auth"
@@ -446,6 +447,58 @@ func SystemContextFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name strin
 	return ctx, nil
 }
 
+// PullPolicyFromOptions returns a PullPolicy that reflects the combination of
+// the specified "pull" and undocumented "pull-always" and "pull-never" flags.
+func PullPolicyFromOptions(c *cobra.Command) (define.PullPolicy, error) {
+	return PullPolicyFromFlagSet(c.Flags(), c.Flag)
+}
+
+// PullPolicyFromFlagSet returns a PullPolicy that reflects the combination of
+// the specified "pull" and undocumented "pull-always" and "pull-never" flags.
+func PullPolicyFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name string) *pflag.Flag) (define.PullPolicy, error) {
+	pullFlagsCount := 0
+
+	if findFlagFunc("pull").Changed {
+		pullFlagsCount++
+	}
+	if findFlagFunc("pull-always").Changed {
+		pullFlagsCount++
+	}
+	if findFlagFunc("pull-never").Changed {
+		pullFlagsCount++
+	}
+
+	if pullFlagsCount > 1 {
+		return 0, errors.New("can only set one of 'pull' or 'pull-always' or 'pull-never'")
+	}
+
+	// Allow for --pull, --pull=true, --pull=false, --pull=never, --pull=always
+	// --pull-always and --pull-never.  The --pull-never and --pull-always options
+	// will not be documented.
+	pullPolicy := define.PullIfMissing
+	pullFlagValue := findFlagFunc("pull").Value.String()
+	if strings.EqualFold(pullFlagValue, "true") || strings.EqualFold(pullFlagValue, "ifnewer") {
+		pullPolicy = define.PullIfNewer
+	}
+	pullAlwaysFlagValue, err := flags.GetBool("pull-always")
+	if err != nil {
+		return 0, err
+	}
+	if pullAlwaysFlagValue || strings.EqualFold(pullFlagValue, "always") {
+		pullPolicy = define.PullAlways
+	}
+	pullNeverFlagValue, err := flags.GetBool("pull-never")
+	if err != nil {
+		return 0, err
+	}
+	if pullNeverFlagValue || strings.EqualFold(pullFlagValue, "never") {
+		pullPolicy = define.PullNever
+	}
+	logrus.Debugf("Pull Policy for pull [%v]", pullPolicy)
+
+	return pullPolicy, nil
+}
+
 func getAuthFile(authfile string) string {
 	if authfile != "" {
 		absAuthfile, err := filepath.Abs(authfile)
@@ -705,6 +758,73 @@ func GetConfidentialWorkloadOptions(arg string) (define.ConfidentialWorkloadOpti
 	}
 	if options != defaults && !options.Convert {
 		return options, fmt.Errorf("--cw arguments missing one or more of (%q, %q)", "passphrase", "attestation_url")
+	}
+	return options, nil
+}
+
+// SBOMScanOptions parses the build options from the cli
+func SBOMScanOptions(c *cobra.Command) (*define.SBOMScanOptions, error) {
+	return SBOMScanOptionsFromFlagSet(c.Flags(), c.Flag)
+}
+
+// SBOMScanOptionsFromFlagSet parses scan settings from the cli
+func SBOMScanOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name string) *pflag.Flag) (*define.SBOMScanOptions, error) {
+	preset, err := flags.GetString("sbom")
+	if err != nil {
+		return nil, fmt.Errorf("invalid value for --sbom: %w", err)
+	}
+
+	options, err := sbom.Preset(preset)
+	if err != nil {
+		return nil, err
+	}
+	if options == nil {
+		return nil, fmt.Errorf("parsing --sbom flag: unrecognized preset name %q", preset)
+	}
+	image, err := flags.GetString("sbom-scanner-image")
+	if err != nil {
+		return nil, fmt.Errorf("invalid value for --sbom-scanner-image: %w", err)
+	}
+	commands, err := flags.GetStringArray("sbom-scanner-command")
+	if err != nil {
+		return nil, fmt.Errorf("invalid value for --sbom-scanner-command: %w", err)
+	}
+	mergeStrategy, err := flags.GetString("sbom-merge-strategy")
+	if err != nil {
+		return nil, fmt.Errorf("invalid value for --sbom-merge-strategy: %w", err)
+	}
+
+	if image != "" || len(commands) > 0 || mergeStrategy != "" {
+		options = &define.SBOMScanOptions{
+			Image:         image,
+			Commands:      append([]string{}, commands...),
+			MergeStrategy: define.SBOMMergeStrategy(mergeStrategy),
+		}
+	}
+	if options.ImageSBOMOutput, err = flags.GetString("sbom-image-output"); err != nil {
+		return nil, fmt.Errorf("invalid value for --sbom-image-output: %w", err)
+	}
+	if options.SBOMOutput, err = flags.GetString("sbom-output"); err != nil {
+		return nil, fmt.Errorf("invalid value for --sbom-output: %w", err)
+	}
+	if options.ImagePURLOutput, err = flags.GetString("sbom-image-purl-output"); err != nil {
+		return nil, fmt.Errorf("invalid value for --sbom-image-purl-output: %w", err)
+	}
+	if options.PURLOutput, err = flags.GetString("sbom-purl-output"); err != nil {
+		return nil, fmt.Errorf("invalid value for --sbom-purl-output: %w", err)
+	}
+
+	if options.Image == "" || len(options.Commands) == 0 || (options.SBOMOutput == "" && options.ImageSBOMOutput == "" && options.PURLOutput == "" && options.ImagePURLOutput == "") {
+		return options, fmt.Errorf("sbom configuration missing one or more of (%q, %q, %q, %q, %q or %q)", "--sbom-scanner-imag", "--sbom-scanner-command", "--sbom-output", "--sbom-image-output", "--sbom-purl-output", "--sbom-image-purl-output")
+	}
+	if len(options.Commands) > 1 && options.MergeStrategy == "" {
+		return options, fmt.Errorf("sbom configuration included multiple %q values but no %q value", "--sbom-scanner-command", "--sbom-merge-strategy")
+	}
+	switch options.MergeStrategy {
+	default:
+		return options, fmt.Errorf("sbom arguments included unrecognized merge strategy %q", string(options.MergeStrategy))
+	case define.SBOMMergeStrategyCat, define.SBOMMergeStrategyCycloneDXByComponentNameAndVersion, define.SBOMMergeStrategySPDXByPackageNameAndVersionInfo:
+		// all good here
 	}
 	return options, nil
 }
@@ -1053,19 +1173,19 @@ func Device(device string) (string, string, string, error) {
 // isValidDeviceMode checks if the mode for device is valid or not.
 // isValid mode is a composition of r (read), w (write), and m (mknod).
 func isValidDeviceMode(mode string) bool {
-	var legalDeviceMode = map[rune]bool{
-		'r': true,
-		'w': true,
-		'm': true,
+	var legalDeviceMode = map[rune]struct{}{
+		'r': {},
+		'w': {},
+		'm': {},
 	}
 	if mode == "" {
 		return false
 	}
 	for _, c := range mode {
-		if !legalDeviceMode[c] {
+		if _, has := legalDeviceMode[c]; !has {
 			return false
 		}
-		legalDeviceMode[c] = false
+		delete(legalDeviceMode, c)
 	}
 	return true
 }
