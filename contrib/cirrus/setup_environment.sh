@@ -205,6 +205,11 @@ runroot = "/run/containers/storage"
 graphroot = "/var/lib/containers/storage"
 EOF
 
+# Since we've potentially changed important config settings, reset.
+# This prevents `database graph driver "" does not match "overlay"`
+# on Debian.
+rm -rf /var/lib/containers/storage
+
 # shellcheck disable=SC2154
 showrun echo "Setting CI_DESIRED_STORAGE [=$CI_DESIRED_STORAGE] for *e2e* tests"
 echo "STORAGE_FS=$CI_DESIRED_STORAGE" >>/etc/ci_environment
@@ -291,6 +296,10 @@ esac
 #
 # Either way, this block of code should be removed after March 31 2023
 # because it creates a system that is not representative of real-world Fedora.
+#
+# 2024-01-25 update: ha ha. This fix has proven so popular that it is
+# being used by other groups who were seeing the cdn03 flake. Looks like
+# we're stuck with it.
 if ((CONTAINER==0)); then
     nsswitch=/etc/authselect/nsswitch.conf
     if [[ -e $nsswitch ]]; then
