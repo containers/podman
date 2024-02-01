@@ -868,7 +868,7 @@ github.com/opencontainers/go-digest
 ## explicit; go 1.18
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.1.11 => github.com/opencontainers/runc v1.1.1-0.20230904132852-a0466dd76f23
+# github.com/opencontainers/runc v1.1.12 => github.com/opencontainers/runc v1.1.1-0.20230904132852-a0466dd76f23
 ## explicit; go 1.20
 github.com/opencontainers/runc/libcontainer/apparmor
 github.com/opencontainers/runc/libcontainer/cgroups
