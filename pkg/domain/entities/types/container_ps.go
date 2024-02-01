@@ -4,7 +4,7 @@ import (
 	"time"
 
 	netTypes "github.com/containers/common/libnetwork/types"
-	define "github.com/containers/podman/v4/pkg/ps/define"
+	define "github.com/containers/podman/v5/pkg/ps/define"
 )
 
 // ListContainer describes a container suitable for listing

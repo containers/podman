@@ -2,7 +2,7 @@ package version
 
 import (
 	"github.com/blang/semver/v4"
-	"github.com/containers/podman/v4/version/rawversion"
+	"github.com/containers/podman/v5/version/rawversion"
 )
 
 type (

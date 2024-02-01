@@ -13,7 +13,7 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	netUtil "github.com/containers/common/libnetwork/util"
 	"github.com/containers/common/pkg/netns"
-	"github.com/containers/podman/v4/pkg/rootless"
+	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"

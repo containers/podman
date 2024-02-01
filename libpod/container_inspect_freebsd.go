@@ -3,7 +3,7 @@
 package libpod
 
 import (
-	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v5/libpod/define"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 

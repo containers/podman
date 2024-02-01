@@ -11,7 +11,7 @@ import (
 
 	"github.com/containers/common/libnetwork/etchosts"
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/define"
 )
 
 // QemuCmd is an alias around a string slice to prevent the need to migrate the

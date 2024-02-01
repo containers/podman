@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/containers/podman/v4/pkg/api/handlers/utils"
+	"github.com/containers/podman/v5/pkg/api/handlers/utils"
 )
 
 // DefaultPodmanSwaggerSpec provides the default path to the podman swagger spec file

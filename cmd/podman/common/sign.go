@@ -8,7 +8,7 @@ import (
 	"github.com/containers/image/v5/pkg/cli"
 	"github.com/containers/image/v5/pkg/cli/sigstore"
 	"github.com/containers/image/v5/signature/signer"
-	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/containers/podman/v5/pkg/domain/entities"
 )
 
 // PrepareSigning updates pushOpts.Signers, pushOpts.SignPassphrase and SignSigstorePrivateKeyPassphrase based on a --sign-passphrase-file

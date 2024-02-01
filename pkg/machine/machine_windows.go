@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/sirupsen/logrus"
 )
 

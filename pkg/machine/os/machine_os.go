@@ -5,7 +5,7 @@ package os
 import (
 	"fmt"
 
-	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v5/pkg/machine"
 )
 
 // MachineOS manages machine OS's from outside the machine.

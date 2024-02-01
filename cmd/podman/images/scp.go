@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/ssh"
-	"github.com/containers/podman/v4/cmd/podman/common"
-	"github.com/containers/podman/v4/cmd/podman/registry"
+	"github.com/containers/podman/v5/cmd/podman/common"
+	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/spf13/cobra"
 )
 

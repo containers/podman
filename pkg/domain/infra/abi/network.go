@@ -8,8 +8,8 @@ import (
 
 	"github.com/containers/common/libnetwork/types"
 	netutil "github.com/containers/common/libnetwork/util"
-	"github.com/containers/podman/v4/libpod/define"
-	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/podman/v5/pkg/domain/entities"
 	"golang.org/x/exp/slices"
 )
 

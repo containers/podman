@@ -12,11 +12,11 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/containers/podman/v4/libpod"
-	libpodDefine "github.com/containers/podman/v4/libpod/define"
-	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/containers/podman/v4/pkg/systemd/define"
-	"github.com/containers/podman/v4/version"
+	"github.com/containers/podman/v5/libpod"
+	libpodDefine "github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/containers/podman/v5/pkg/systemd/define"
+	"github.com/containers/podman/v5/version"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 )

@@ -3,7 +3,7 @@ package entities
 import (
 	"net"
 
-	entitiesTypes "github.com/containers/podman/v4/pkg/domain/entities/types"
+	entitiesTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
 )
 
 // NetworkListOptions describes options for listing networks in cli

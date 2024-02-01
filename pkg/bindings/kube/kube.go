@@ -9,10 +9,10 @@ import (
 	"strconv"
 
 	"github.com/containers/image/v5/types"
-	"github.com/containers/podman/v4/pkg/auth"
-	"github.com/containers/podman/v4/pkg/bindings"
-	"github.com/containers/podman/v4/pkg/bindings/generate"
-	entitiesTypes "github.com/containers/podman/v4/pkg/domain/entities/types"
+	"github.com/containers/podman/v5/pkg/auth"
+	"github.com/containers/podman/v5/pkg/bindings"
+	"github.com/containers/podman/v5/pkg/bindings/generate"
+	entitiesTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
 	"github.com/sirupsen/logrus"
 )
 

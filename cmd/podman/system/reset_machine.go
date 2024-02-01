@@ -3,7 +3,7 @@
 package system
 
 import (
-	p "github.com/containers/podman/v4/pkg/machine/provider"
+	p "github.com/containers/podman/v5/pkg/machine/provider"
 )
 
 func resetMachine() error {

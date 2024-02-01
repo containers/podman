@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/crc-org/vfkit/pkg/config"
 	rest "github.com/crc-org/vfkit/pkg/rest/define"
 	"github.com/sirupsen/logrus"

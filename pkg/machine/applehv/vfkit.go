@@ -3,7 +3,7 @@
 package applehv
 
 import (
-	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v5/pkg/machine"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
 )
 

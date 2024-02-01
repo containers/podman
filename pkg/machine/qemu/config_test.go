@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/containers/podman/v4/pkg/machine/qemu/command"
+	"github.com/containers/podman/v5/pkg/machine/qemu/command"
 )
 
 func TestUSBParsing(t *testing.T) {

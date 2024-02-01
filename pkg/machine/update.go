@@ -5,7 +5,7 @@ package machine
 import (
 	"fmt"
 
-	"github.com/containers/podman/v4/pkg/machine/ignition"
+	"github.com/containers/podman/v5/pkg/machine/ignition"
 	"github.com/sirupsen/logrus"
 )
 

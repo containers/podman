@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/containers/common/libimage/define"
-	podmanRegistry "github.com/containers/podman/v4/hack/podman-registry-go"
-	. "github.com/containers/podman/v4/test/utils"
+	podmanRegistry "github.com/containers/podman/v5/hack/podman-registry-go"
+	. "github.com/containers/podman/v5/test/utils"
 	"github.com/containers/storage/pkg/archive"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

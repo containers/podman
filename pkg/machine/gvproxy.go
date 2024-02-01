@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/define"
 	psutil "github.com/shirou/gopsutil/v3/process"
 	"github.com/sirupsen/logrus"
 )

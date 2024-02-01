@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v5/libpod/define"
 	"github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
 )

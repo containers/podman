@@ -10,8 +10,8 @@ import (
 
 	"github.com/containers/buildah/pkg/volumes"
 	"github.com/containers/common/pkg/completion"
-	"github.com/containers/podman/v4/cmd/podman/registry"
-	"github.com/containers/podman/v4/cmd/podman/validate"
+	"github.com/containers/podman/v5/cmd/podman/registry"
+	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

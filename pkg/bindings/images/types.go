@@ -3,7 +3,7 @@ package images
 import (
 	"io"
 
-	"github.com/containers/podman/v4/pkg/domain/entities/types"
+	"github.com/containers/podman/v5/pkg/domain/entities/types"
 )
 
 // RemoveOptions are optional options for image removal

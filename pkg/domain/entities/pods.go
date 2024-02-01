@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	commonFlag "github.com/containers/common/pkg/flag"
-	"github.com/containers/podman/v4/pkg/domain/entities/types"
-	"github.com/containers/podman/v4/pkg/specgen"
-	"github.com/containers/podman/v4/pkg/util"
+	"github.com/containers/podman/v5/pkg/domain/entities/types"
+	"github.com/containers/podman/v5/pkg/specgen"
+	"github.com/containers/podman/v5/pkg/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 

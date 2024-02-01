@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/containers/podman/v4/pkg/util"
+	"github.com/containers/podman/v5/pkg/util"
 )
 
 var (

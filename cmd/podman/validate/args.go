@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v4/cmd/podman/registry"
+	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/spf13/cobra"
 )
 

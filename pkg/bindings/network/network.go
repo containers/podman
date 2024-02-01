@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/podman/v4/pkg/bindings"
-	entitiesTypes "github.com/containers/podman/v4/pkg/domain/entities/types"
+	"github.com/containers/podman/v5/pkg/bindings"
+	entitiesTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
 	jsoniter "github.com/json-iterator/go"
 )
 

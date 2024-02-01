@@ -5,7 +5,7 @@ package libpod
 import (
 	"testing"
 
-	"github.com/containers/podman/v4/utils"
+	"github.com/containers/podman/v5/utils"
 	"github.com/stretchr/testify/assert"
 )
 

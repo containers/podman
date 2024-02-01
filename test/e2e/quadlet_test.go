@@ -9,9 +9,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/containers/podman/v4/pkg/systemd/parser"
-	. "github.com/containers/podman/v4/test/utils"
-	"github.com/containers/podman/v4/version"
+	"github.com/containers/podman/v5/pkg/systemd/parser"
+	. "github.com/containers/podman/v5/test/utils"
+	"github.com/containers/podman/v5/version"
 	"github.com/mattn/go-shellwords"
 
 	. "github.com/onsi/ginkgo/v2"

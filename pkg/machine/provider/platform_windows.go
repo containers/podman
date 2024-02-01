@@ -5,10 +5,10 @@ import (
 	"os"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/podman/v4/pkg/machine"
-	"github.com/containers/podman/v4/pkg/machine/define"
-	"github.com/containers/podman/v4/pkg/machine/hyperv"
-	"github.com/containers/podman/v4/pkg/machine/wsl"
+	"github.com/containers/podman/v5/pkg/machine"
+	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/hyperv"
+	"github.com/containers/podman/v5/pkg/machine/wsl"
 	"github.com/sirupsen/logrus"
 )
 

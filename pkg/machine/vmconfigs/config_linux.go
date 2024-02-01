@@ -1,7 +1,7 @@
 package vmconfigs
 
 import (
-	"github.com/containers/podman/v4/pkg/machine/qemu/command"
+	"github.com/containers/podman/v5/pkg/machine/qemu/command"
 )
 
 type QEMUConfig struct {

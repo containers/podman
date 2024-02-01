@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v5/pkg/machine"
 )
 
 func isProcessAlive(pid int) bool {

@@ -13,9 +13,9 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/containers/podman/v4/pkg/systemd/parser"
-	"github.com/containers/podman/v4/pkg/systemd/quadlet"
-	"github.com/containers/podman/v4/version/rawversion"
+	"github.com/containers/podman/v5/pkg/systemd/parser"
+	"github.com/containers/podman/v5/pkg/systemd/quadlet"
+	"github.com/containers/podman/v5/version/rawversion"
 )
 
 // This commandline app is the systemd generator (system and user,

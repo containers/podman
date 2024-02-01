@@ -5,7 +5,7 @@ package e2e_test
 import (
 	"os/exec"
 
-	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v5/pkg/machine"
 )
 
 func getDownloadLocation(p machine.VirtProvider) string {

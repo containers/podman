@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/podman/v4/pkg/specgenutilexternal"
-	"github.com/containers/podman/v4/pkg/systemd/parser"
+	"github.com/containers/podman/v5/pkg/specgenutilexternal"
+	"github.com/containers/podman/v5/pkg/systemd/parser"
 	"github.com/containers/storage/pkg/regexp"
 )
 
