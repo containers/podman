@@ -4,7 +4,7 @@ package libpod
 
 import (
 	"github.com/containers/common/pkg/capabilities"
-	"github.com/opencontainers/runc/libcontainer/user"
+	"github.com/moby/sys/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 

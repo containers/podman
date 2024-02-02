@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/opencontainers/runc/libcontainer/user"
+	"github.com/moby/sys/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
