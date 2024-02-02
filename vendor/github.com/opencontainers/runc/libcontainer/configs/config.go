@@ -21,9 +21,9 @@ type Rlimit struct {
 
 // IDMap represents UID/GID Mappings for User Namespaces.
 type IDMap struct {
-	ContainerID int `json:"container_id"`
-	HostID      int `json:"host_id"`
-	Size        int `json:"size"`
+	ContainerID int64 `json:"container_id"`
+	HostID      int64 `json:"host_id"`
+	Size        int64 `json:"size"`
 }
 
 // Seccomp represents syscall restrictions
@@ -82,6 +82,9 @@ type Syscall struct {
 	ErrnoRet *uint  `json:"errnoRet"`
 	Args     []*Arg `json:"args"`
 }
+
+// TODO Windows. Many of these fields should be factored out into those parts
+// which are common across platforms, and those which are platform specific.
 
 // Config defines configuration options for executing a process inside a contained environment.
 type Config struct {
