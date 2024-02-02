@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/user"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"unicode"
@@ -918,4 +919,14 @@ func (f *UnitFile) PrependComment(groupName string, comments ...string) {
 	for i := len(comments) - 1; i >= 0; i-- {
 		group.prependComment(newUnitLine("", "# "+comments[i], true))
 	}
+}
+
+func (f *UnitFile) GetTemplateParts() (string, string) {
+	ext := filepath.Ext(f.Filename)
+	basename := strings.TrimSuffix(f.Filename, ext)
+	parts := strings.SplitN(basename, "@", 2)
+	if len(parts) < 2 {
+		return "", ""
+	}
+	return parts[0] + "@" + ext, parts[1]
 }

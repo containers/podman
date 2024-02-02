@@ -254,10 +254,22 @@ func loadUnitDropins(unit *parser.UnitFile, sourcePaths []string) error {
 		prevError = err
 	}
 
-	var dropinPaths = make(map[string]string)
-	for _, sourcePath := range sourcePaths {
-		dropinDir := path.Join(sourcePath, unit.Filename+".d")
+	dropinDirs := []string{}
 
+	for _, sourcePath := range sourcePaths {
+		dropinDirs = append(dropinDirs, path.Join(sourcePath, unit.Filename+".d"))
+	}
+
+	// For instantiated templates, also look in the non-instanced template dropin dirs
+	templateBase, templateInstance := unit.GetTemplateParts()
+	if templateBase != "" && templateInstance != "" {
+		for _, sourcePath := range sourcePaths {
+			dropinDirs = append(dropinDirs, path.Join(sourcePath, templateBase+".d"))
+		}
+	}
+
+	var dropinPaths = make(map[string]string)
+	for _, dropinDir := range dropinDirs {
 		dropinFiles, err := os.ReadDir(dropinDir)
 		if err != nil {
 			if !errors.Is(err, os.ErrNotExist) {
@@ -345,19 +357,36 @@ func enableServiceFile(outputPath string, service *parser.UnitFile) {
 		symlinks = append(symlinks, filepath.Clean(alias))
 	}
 
-	wantedBy := service.LookupAllStrv(quadlet.InstallGroup, "WantedBy")
-	for _, wantedByUnit := range wantedBy {
-		// Only allow filenames, not paths
-		if !strings.Contains(wantedByUnit, "/") {
-			symlinks = append(symlinks, fmt.Sprintf("%s.wants/%s", wantedByUnit, service.Filename))
+	serviceFilename := service.Filename
+	templateBase, templateInstance := service.GetTemplateParts()
+
+	// For non-instantiated template service we only support installs if a
+	// DefaultInstance is given. Otherwise we ignore the Install group, but
+	// it is still useful when instantiating the unit via a symlink.
+	if templateBase != "" && templateInstance == "" {
+		if defaultInstance, ok := service.Lookup(quadlet.InstallGroup, "DefaultInstance"); ok {
+			parts := strings.SplitN(templateBase, "@", 2)
+			serviceFilename = parts[0] + "@" + defaultInstance + parts[1]
+		} else {
+			serviceFilename = ""
 		}
 	}
 
-	requiredBy := service.LookupAllStrv(quadlet.InstallGroup, "RequiredBy")
-	for _, requiredByUnit := range requiredBy {
-		// Only allow filenames, not paths
-		if !strings.Contains(requiredByUnit, "/") {
-			symlinks = append(symlinks, fmt.Sprintf("%s.requires/%s", requiredByUnit, service.Filename))
+	if serviceFilename != "" {
+		wantedBy := service.LookupAllStrv(quadlet.InstallGroup, "WantedBy")
+		for _, wantedByUnit := range wantedBy {
+			// Only allow filenames, not paths
+			if !strings.Contains(wantedByUnit, "/") {
+				symlinks = append(symlinks, fmt.Sprintf("%s.wants/%s", wantedByUnit, serviceFilename))
+			}
+		}
+
+		requiredBy := service.LookupAllStrv(quadlet.InstallGroup, "RequiredBy")
+		for _, requiredByUnit := range requiredBy {
+			// Only allow filenames, not paths
+			if !strings.Contains(requiredByUnit, "/") {
+				symlinks = append(symlinks, fmt.Sprintf("%s.requires/%s", requiredByUnit, serviceFilename))
+			}
 		}
 	}
 

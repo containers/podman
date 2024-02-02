@@ -109,16 +109,86 @@ WantedBy=default.target
 
 Currently, only the `Alias`, `WantedBy` and `RequiredBy` keys are supported.
 
+The Install section can be part of the main file, or it can be in a
+separate drop-in file as described above. The latter allows you to
+install an non-enabled unit and then later enabling it by installing
+the drop-in.
+
+
 **NOTE:** To express dependencies between containers, use the generated names of the service. In other
 words `WantedBy=other.service`, not `WantedBy=other.container`. The same is
 true for other kinds of dependencies, too, like `After=other.service`.
 
+### Template files
+
+Systemd supports a concept of [template files](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html#Service%20Templates).
+They are units with names of the form "basename@instancename.service"
+when they are running, but that can be instantiated multiple times
+from a single "basename@.service" file. The individual instances can
+also be different by using drop-in files with the full instance name.
+
+Quadlets support these in two ways. First of all, a quadlet unit with
+a template form will generate a systemd service with a template form,
+and the template systemd service can be used as a regular template.
+For example, "foo@.container" will generate "foo@.service" and you can
+then "systemctl start foo@bar.service".
+
+Secondly, if you make a symlink like "foo@instance.container", that
+will generate an instantiated template file. When generating this file
+quadlet will read drop-in files both from the instanced directory
+(foo@instance.container.d) and the template directory
+(foo@.container.d). This allows customization of individual instances.
+
+Instanced template files (like `foo@bar.container`) can be enabled
+just like non-templated ones. However, templated ones
+(`foo@.container`) are different, because they need to be
+instantiated. If the `[Install]` section contains a `DefaultInstance=`
+key, then that instance will be enabled, but if not, nothing will
+happen and the options will only be used as the default for units
+that are instantiated using symlinks.
+
+An example template file `sleep@.container` might look like this:
+
+```
+[Unit]
+Description=A templated sleepy container
+
+[Container]
+Image=quay.io/fedora/fedora
+Exec=sleep %i
+
+[Service]
+# Restart service when sleep finishes
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+DefaultInstance=100
+```
+
+If this is installed, then on boot there will be a `sleep@100.service`
+running that sleeps for 100 seconds. You can then do something like
+`systemctl start sleep@50.service` to start another instance that
+sleeps 50 seconds, or alternatively another service can start it via a
+dependency like `Wants=sleep@50.service`.
+
+In addition, if you do `ln -s sleep@.container sleep@10.container` you
+will also have a 10 second sleep running at boot. And, if you want
+that particular instance to be running with another image, you can
+create a drop-in file like `sleep@10.container.d/10-image.conf`:
+```
+[Container]
+Image=quay.io/centos/centos
+```
+
 ### Debugging unit files
 
-After placing the unit file in one of the unit search paths (mentioned above), you can start it with
-`systemctl start {--user}`. If it fails with "Failed to start example.service: Unit example.service not found.",
-then it is possible that you used incorrect syntax or you used an option from a newer version of Podman
-Quadlet and the generator failed to create a service file.
+After placing the unit file in one of the unit search paths (mentioned
+above), you can start it with `systemctl start {--user}`. If it fails
+with "Failed to start example.service: Unit example.service not
+found.", then it is possible that you used incorrect syntax or you
+used an option from a newer version of Podman Quadlet and the
+generator failed to create a service file.
 
 View the generated files and/or error messages with:
 ```
