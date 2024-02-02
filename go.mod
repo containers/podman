@@ -2,6 +2,8 @@ module github.com/containers/podman/v4
 
 go 1.20
 
+replace github.com/crc-org/vfkit => ../../crc-org/vfkit
+
 require (
 	github.com/BurntSushi/toml v1.3.2
 	github.com/Microsoft/go-winio v0.6.1

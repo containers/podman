@@ -3,14 +3,32 @@
 package applehv
 
 import (
+	"os"
+
 	"github.com/containers/podman/v4/pkg/machine"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
+	"github.com/sirupsen/logrus"
 )
 
 func getDefaultDevices(imagePath, logPath, readyPath string) ([]vfConfig.VirtioDevice, error) {
 	var devices []vfConfig.VirtioDevice
 
-	disk, err := vfConfig.VirtioBlkNew(imagePath)
+	// Default to NVMe to avoid a disk corruption issue
+	// xref https://github.com/containers/podman/issues/21160
+	// https://github.com/utmapp/UTM/issues/4840
+	backend, ok := os.LookupEnv("PODMAN_MACHINE_APPLEHV_DISK_BACKEND")
+	if !ok {
+		backend = "nvme"
+	}
+	var err error
+	var disk vfConfig.VirtioDevice
+	logrus.Debugf("Using %s backend for disk", backend)
+	switch backend {
+	case "nvme":
+		disk, err = vfConfig.NVMExpressControllerNew(imagePath)
+	case "virtio":
+		disk, err = vfConfig.VirtioBlkNew(imagePath)
+	}
 	if err != nil {
 		return nil, err
 	}
