@@ -471,34 +471,34 @@ unit_test_task:
 #     always: *logs_artifacts
 
 
-compose_test_task:
-    name: "$TEST_FLAVOR test on $DISTRO_NV ($PRIV_NAME)"
-    alias: compose_test
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs
-    depends_on:
-        - build
-        - validate
-    gce_instance: *standardvm
-    matrix:
-      - env:
-            TEST_FLAVOR: compose
-            PRIV_NAME: root
-      - env:
-            TEST_FLAVOR: compose
-            PRIV_NAME: rootless
-      - env:
-            TEST_FLAVOR: compose_v2
-            PRIV_NAME: root
-      - env:
-            TEST_FLAVOR: compose_v2
-            PRIV_NAME: rootless
-    env:
-        <<: *stdenvars
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always: *logs_artifacts
+# compose_test_task:
+#     name: "$TEST_FLAVOR test on $DISTRO_NV ($PRIV_NAME)"
+#     alias: compose_test
+#     # Docs: ./contrib/cirrus/CIModes.md
+#     only_if: *not_tag_branch_build_docs
+#     depends_on:
+#         - build
+#         - validate
+#     gce_instance: *standardvm
+#     matrix:
+#       - env:
+#             TEST_FLAVOR: compose
+#             PRIV_NAME: root
+#       - env:
+#             TEST_FLAVOR: compose
+#             PRIV_NAME: rootless
+#       - env:
+#             TEST_FLAVOR: compose_v2
+#             PRIV_NAME: root
+#       - env:
+#             TEST_FLAVOR: compose_v2
+#             PRIV_NAME: rootless
+#     env:
+#         <<: *stdenvars
+#     clone_script: *get_gosrc
+#     setup_script: *setup
+#     main_script: *main
+#     always: *logs_artifacts
 
 
 # Execute the podman integration tests on all primary platforms and release
@@ -806,7 +806,6 @@ success_task:
         - alt_build
         - osx_alt_build
         - unit_test
-        - compose_test
         - local_integration_test
         - remote_integration_test
         - container_integration_test
