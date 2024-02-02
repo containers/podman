@@ -1,5 +1,13 @@
 # Release Notes
 
+## 4.9.2
+### Security
+- This release addresses a number of Buildkit vulnerabilities including but not limited to: [CVE-2024-23651](https://github.com/advisories/GHSA-m3r6-h7wv-7xxv), [CVE-2024-23652](https://github.com/advisories/GHSA-4v98-7qmw-rqr8), and [CVE-2024-23653](https://github.com/advisories/GHSA-wr6v-9f75-vh2g).
+
+### Misc
+- Updated Buildah to v1.33.5
+- Updated the containers/common library to v0.57.4
+
 ## 4.9.1
 ### Bugfixes
 - Fixed a bug where the `--rootful` option to `podman machine set` would not set the machine to use the root connection ([#21195](https://github.com/containers/podman/issues/21195)).
