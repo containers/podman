@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	securejoin "github.com/cyphar/filepath-securejoin"
+	//nolint:staticcheck
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/sirupsen/logrus"
 )
