@@ -28,6 +28,7 @@ var subsystems = []subsystem{
 	&FreezerGroup{},
 	&RdmaGroup{},
 	&NameGroup{GroupName: "name=systemd", Join: true},
+	&NameGroup{GroupName: "misc", Join: true},
 }
 
 var errSubsystemDoesNotExist = errors.New("cgroup: subsystem does not exist")
@@ -182,7 +183,7 @@ func (m *manager) Set(r *configs.Resources) error {
 		if err := sys.Set(path, r); err != nil {
 			// When rootless is true, errors from the device subsystem
 			// are ignored, as it is really not expected to work.
-			if m.cgroups.Rootless && sys.Name() == "devices" && !errors.Is(err, cgroups.ErrDevicesUnsupported) {
+			if m.cgroups.Rootless && sys.Name() == "devices" {
 				continue
 			}
 			// However, errors from other subsystems are not ignored.

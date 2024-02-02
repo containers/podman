@@ -267,49 +267,25 @@ func GetLimits(resource *spec.LinuxResources) (runcconfig.Resources, error) {
 	if resource.BlockIO != nil {
 		if len(resource.BlockIO.ThrottleReadBpsDevice) > 0 {
 			for _, entry := range resource.BlockIO.ThrottleReadBpsDevice {
-				throttle := &runcconfig.ThrottleDevice{}
-				dev := &runcconfig.BlockIODevice{
-					Major: entry.Major,
-					Minor: entry.Minor,
-				}
-				throttle.BlockIODevice = *dev
-				throttle.Rate = entry.Rate
+				throttle := runcconfig.NewThrottleDevice(entry.Major, entry.Minor, entry.Rate)
 				final.BlkioThrottleReadBpsDevice = append(final.BlkioThrottleReadBpsDevice, throttle)
 			}
 		}
 		if len(resource.BlockIO.ThrottleWriteBpsDevice) > 0 {
 			for _, entry := range resource.BlockIO.ThrottleWriteBpsDevice {
-				throttle := &runcconfig.ThrottleDevice{}
-				dev := &runcconfig.BlockIODevice{
-					Major: entry.Major,
-					Minor: entry.Minor,
-				}
-				throttle.BlockIODevice = *dev
-				throttle.Rate = entry.Rate
+				throttle := runcconfig.NewThrottleDevice(entry.Major, entry.Minor, entry.Rate)
 				final.BlkioThrottleWriteBpsDevice = append(final.BlkioThrottleWriteBpsDevice, throttle)
 			}
 		}
 		if len(resource.BlockIO.ThrottleReadIOPSDevice) > 0 {
 			for _, entry := range resource.BlockIO.ThrottleReadIOPSDevice {
-				throttle := &runcconfig.ThrottleDevice{}
-				dev := &runcconfig.BlockIODevice{
-					Major: entry.Major,
-					Minor: entry.Minor,
-				}
-				throttle.BlockIODevice = *dev
-				throttle.Rate = entry.Rate
+				throttle := runcconfig.NewThrottleDevice(entry.Major, entry.Minor, entry.Rate)
 				final.BlkioThrottleReadIOPSDevice = append(final.BlkioThrottleReadIOPSDevice, throttle)
 			}
 		}
 		if len(resource.BlockIO.ThrottleWriteIOPSDevice) > 0 {
 			for _, entry := range resource.BlockIO.ThrottleWriteIOPSDevice {
-				throttle := &runcconfig.ThrottleDevice{}
-				dev := &runcconfig.BlockIODevice{
-					Major: entry.Major,
-					Minor: entry.Minor,
-				}
-				throttle.BlockIODevice = *dev
-				throttle.Rate = entry.Rate
+				throttle := runcconfig.NewThrottleDevice(entry.Major, entry.Minor, entry.Rate)
 				final.BlkioThrottleWriteIOPSDevice = append(final.BlkioThrottleWriteIOPSDevice, throttle)
 			}
 		}
@@ -321,18 +297,14 @@ func GetLimits(resource *spec.LinuxResources) (runcconfig.Resources, error) {
 		}
 		if len(resource.BlockIO.WeightDevice) > 0 {
 			for _, entry := range resource.BlockIO.WeightDevice {
-				weight := &runcconfig.WeightDevice{}
-				dev := &runcconfig.BlockIODevice{
-					Major: entry.Major,
-					Minor: entry.Minor,
-				}
+				var w, lw uint16
 				if entry.Weight != nil {
-					weight.Weight = *entry.Weight
+					w = *entry.Weight
 				}
 				if entry.LeafWeight != nil {
-					weight.LeafWeight = *entry.LeafWeight
+					lw = *entry.LeafWeight
 				}
-				weight.BlockIODevice = *dev
+				weight := runcconfig.NewWeightDevice(entry.Major, entry.Minor, w, lw)
 				final.BlkioWeightDevice = append(final.BlkioWeightDevice, weight)
 			}
 		}

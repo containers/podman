@@ -64,6 +64,14 @@ github.com/checkpoint-restore/go-criu/v6/stats
 # github.com/chzyer/readline v1.5.1
 ## explicit; go 1.15
 github.com/chzyer/readline
+# github.com/cilium/ebpf v0.7.0
+## explicit; go 1.16
+github.com/cilium/ebpf
+github.com/cilium/ebpf/asm
+github.com/cilium/ebpf/internal
+github.com/cilium/ebpf/internal/btf
+github.com/cilium/ebpf/internal/unix
+github.com/cilium/ebpf/link
 # github.com/container-orchestrated-devices/container-device-interface v0.5.3
 ## explicit; go 1.17
 github.com/container-orchestrated-devices/container-device-interface/internal/multierror
@@ -348,7 +356,7 @@ github.com/coreos/stream-metadata-go/stream/rhcos
 # github.com/cyberphone/json-canonicalization v0.0.0-20220623050100-57a0ce2678a7
 ## explicit
 github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer
-# github.com/cyphar/filepath-securejoin v0.2.3
+# github.com/cyphar/filepath-securejoin v0.2.4
 ## explicit; go 1.13
 github.com/cyphar/filepath-securejoin
 # github.com/davecgh/go-spew v1.1.1
@@ -706,10 +714,13 @@ github.com/opencontainers/go-digest
 ## explicit; go 1.17
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.1.4 => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
+# github.com/opencontainers/runc v1.1.12
 ## explicit; go 1.17
 github.com/opencontainers/runc/libcontainer/apparmor
 github.com/opencontainers/runc/libcontainer/cgroups
+github.com/opencontainers/runc/libcontainer/cgroups/devices
+github.com/opencontainers/runc/libcontainer/cgroups/ebpf
+github.com/opencontainers/runc/libcontainer/cgroups/ebpf/devicefilter
 github.com/opencontainers/runc/libcontainer/cgroups/fs
 github.com/opencontainers/runc/libcontainer/cgroups/fs2
 github.com/opencontainers/runc/libcontainer/cgroups/fscommon
@@ -1129,4 +1140,3 @@ gopkg.in/yaml.v3
 # sigs.k8s.io/yaml v1.3.0
 ## explicit; go 1.12
 sigs.k8s.io/yaml
-# github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
