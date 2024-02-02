@@ -1,6 +1,6 @@
 [Container]
 Image=localhost/imagename
-## assert-podman-args "--health-cmd" "\"hello world\""
+## assert-podman-args "--health-cmd" "hello world"
 HealthCmd="hello world"
 ## assert-podman-args "--health-interval" "1m"
 HealthInterval=1m
