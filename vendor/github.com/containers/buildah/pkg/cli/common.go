@@ -1,6 +1,6 @@
 package cli
 
-// the cli package contains urfave/cli related structs that help make up
+// the cli package contains spf13/cobra related structs that help make up
 // the command line for buildah commands. it resides here so other projects
 // that vendor in this code can use them too.
 
@@ -90,6 +90,14 @@ type BudResults struct {
 	Rm                  bool
 	Runtime             string
 	RuntimeFlags        []string
+	SbomPreset          string
+	SbomScannerImage    string
+	SbomScannerCommand  []string
+	SbomMergeStrategy   string
+	SbomOutput          string
+	SbomImgOutput       string
+	SbomPurlOutput      string
+	SbomImgPurlOutput   string
 	Secrets             []string
 	SSH                 []string
 	SignaturePolicy     string
@@ -110,6 +118,7 @@ type BudResults struct {
 	OSFeatures          []string
 	OSVersion           string
 	CWOptions           string
+	SBOMOptions         []string
 }
 
 // FromAndBugResults represents the results for common flags
@@ -253,7 +262,7 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.String("os", runtime.GOOS, "set the OS to the provided value instead of the current operating system of the host")
 	fs.StringArrayVar(&flags.OSFeatures, "os-feature", []string{}, "set required OS `feature` for the target image in addition to values from the base image")
 	fs.StringVar(&flags.OSVersion, "os-version", "", "set required OS `version` for the target image instead of the value from the base image")
-	fs.StringVar(&flags.Pull, "pull", "true", "pull the image from the registry if newer or not present in store, if false, only pull the image if not present, if always, pull the image even if the named image is present in store, if never, only use the image present in store if available")
+	fs.StringVar(&flags.Pull, "pull", "true", "pull base and SBOM scanner images from the registry if newer or not present in store, if false, only pull base and SBOM scanner images if not present, if always, pull base and SBOM scanner images even if the named images are present in store, if never, only use images present in store if available")
 	fs.Lookup("pull").NoOptDefVal = "true" //allow `--pull ` to be set to `true` as expected.
 	fs.BoolVar(&flags.PullAlways, "pull-always", false, "pull the image even if the named image is present in store")
 	if err := fs.MarkHidden("pull-always"); err != nil {
@@ -269,6 +278,14 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.BoolVar(&flags.Rm, "rm", true, "remove intermediate containers after a successful build")
 	// "runtime" definition moved to avoid name collision in podman build.  Defined in cmd/buildah/build.go.
 	fs.StringSliceVar(&flags.RuntimeFlags, "runtime-flag", []string{}, "add global flags for the container runtime")
+	fs.StringVar(&flags.SbomPreset, "sbom", "", "scan working container using `preset` configuration")
+	fs.StringVar(&flags.SbomScannerImage, "sbom-scanner-image", "", "scan working container using scanner command from `image`")
+	fs.StringArrayVar(&flags.SbomScannerCommand, "sbom-scanner-command", nil, "scan working container using `command` in scanner image")
+	fs.StringVar(&flags.SbomMergeStrategy, "sbom-merge-strategy", "", "merge scan results using `strategy`")
+	fs.StringVar(&flags.SbomOutput, "sbom-output", "", "save scan results to `file`")
+	fs.StringVar(&flags.SbomImgOutput, "sbom-image-output", "", "add scan results to image as `path`")
+	fs.StringVar(&flags.SbomPurlOutput, "sbom-purl-output", "", "save scan results to `file``")
+	fs.StringVar(&flags.SbomImgPurlOutput, "sbom-image-purl-output", "", "add scan results to image as `path`")
 	fs.StringArrayVar(&flags.Secrets, "secret", []string{}, "secret file to expose to the build")
 	fs.StringVar(&flags.SignBy, "sign-by", "", "sign the image using a GPG key with the specified `FINGERPRINT`")
 	fs.StringVar(&flags.SignaturePolicy, "signature-policy", "", "`pathname` of signature policy file (not usually used)")
@@ -324,6 +341,14 @@ func GetBudFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion["output"] = commonComp.AutocompleteNone
 	flagCompletion["pull"] = commonComp.AutocompleteDefault
 	flagCompletion["runtime-flag"] = commonComp.AutocompleteNone
+	flagCompletion["sbom"] = commonComp.AutocompleteNone
+	flagCompletion["sbom-scanner-image"] = commonComp.AutocompleteNone
+	flagCompletion["sbom-scanner-command"] = commonComp.AutocompleteNone
+	flagCompletion["sbom-merge-strategy"] = commonComp.AutocompleteNone
+	flagCompletion["sbom-output"] = commonComp.AutocompleteDefault
+	flagCompletion["sbom-image-output"] = commonComp.AutocompleteNone
+	flagCompletion["sbom-purl-output"] = commonComp.AutocompleteDefault
+	flagCompletion["sbom-image-purl-output"] = commonComp.AutocompleteNone
 	flagCompletion["secret"] = commonComp.AutocompleteNone
 	flagCompletion["sign-by"] = commonComp.AutocompleteNone
 	flagCompletion["signature-policy"] = commonComp.AutocompleteNone

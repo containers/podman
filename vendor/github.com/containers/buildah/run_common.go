@@ -110,7 +110,7 @@ func (b *Builder) addResolvConf(rdir string, chownOpts *idtools.IDPair, dnsServe
 		return "", err
 	}
 
-	if err := label.Relabel(cfile, b.MountLabel, false); err != nil {
+	if err := relabel(cfile, b.MountLabel, false); err != nil {
 		return "", err
 	}
 	return cfile, nil
@@ -169,7 +169,7 @@ func (b *Builder) generateHosts(rdir string, chownOpts *idtools.IDPair, imageRoo
 	if err = os.Chown(targetfile, uid, gid); err != nil {
 		return "", err
 	}
-	if err := label.Relabel(targetfile, b.MountLabel, false); err != nil {
+	if err := relabel(targetfile, b.MountLabel, false); err != nil {
 		return "", err
 	}
 
@@ -198,7 +198,7 @@ func (b *Builder) generateHostname(rdir, hostname string, chownOpts *idtools.IDP
 	if err = os.Chown(cfile, uid, gid); err != nil {
 		return "", err
 	}
-	if err := label.Relabel(cfile, b.MountLabel, false); err != nil {
+	if err := relabel(cfile, b.MountLabel, false); err != nil {
 		return "", err
 	}
 
@@ -1410,7 +1410,7 @@ func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, builtin
 			if err = os.MkdirAll(volumePath, 0755); err != nil {
 				return nil, err
 			}
-			if err = label.Relabel(volumePath, mountLabel, false); err != nil {
+			if err = relabel(volumePath, mountLabel, false); err != nil {
 				return nil, err
 			}
 			initializeVolume = true
@@ -1750,7 +1750,7 @@ func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secr
 		return nil, "", err
 	}
 
-	if err := label.Relabel(ctrFileOnHost, b.MountLabel, false); err != nil {
+	if err := relabel(ctrFileOnHost, b.MountLabel, false); err != nil {
 		return nil, "", err
 	}
 	hostUID, hostGID, err := util.GetHostIDs(idMaps.uidmap, idMaps.gidmap, uid, gid)
@@ -1848,13 +1848,13 @@ func (b *Builder) getSSHMount(tokens []string, count int, sshsources map[string]
 		return nil, nil, err
 	}
 
-	if err := label.Relabel(filepath.Dir(hostSock), b.MountLabel, false); err != nil {
+	if err := relabel(filepath.Dir(hostSock), b.MountLabel, false); err != nil {
 		if shutdownErr := fwdAgent.Shutdown(); shutdownErr != nil {
 			b.Logger.Errorf("error shutting down agent: %v", shutdownErr)
 		}
 		return nil, nil, err
 	}
-	if err := label.Relabel(hostSock, b.MountLabel, false); err != nil {
+	if err := relabel(hostSock, b.MountLabel, false); err != nil {
 		if shutdownErr := fwdAgent.Shutdown(); shutdownErr != nil {
 			b.Logger.Errorf("error shutting down agent: %v", shutdownErr)
 		}
@@ -1958,4 +1958,14 @@ func setPdeathsig(cmd *exec.Cmd) {
 		cmd.SysProcAttr = &syscall.SysProcAttr{}
 	}
 	cmd.SysProcAttr.Pdeathsig = syscall.SIGKILL
+}
+
+func relabel(path, mountLabel string, recurse bool) error {
+	if err := label.Relabel(path, mountLabel, recurse); err != nil {
+		if !errors.Is(err, syscall.ENOTSUP) {
+			return err
+		}
+		logrus.Debugf("Labeling not supported on %q", path)
+	}
+	return nil
 }

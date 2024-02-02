@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/containers/storage/pkg/lockfile"
-	"github.com/opencontainers/runc/libcontainer/user"
+	"github.com/moby/sys/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 

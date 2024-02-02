@@ -59,6 +59,9 @@ func IsNamespaceSupported(ns NamespaceType) bool {
 	if nsFile == "" {
 		return false
 	}
+	// We don't need to use /proc/thread-self here because the list of
+	// namespace types is unrelated to the thread. This lets us avoid having to
+	// do runtime.LockOSThread.
 	_, err := os.Stat("/proc/self/ns/" + nsFile)
 	// a namespace is supported if it exists and we have permissions to read it
 	supported = err == nil

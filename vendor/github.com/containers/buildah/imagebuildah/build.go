@@ -651,7 +651,7 @@ func baseImages(dockerfilenames []string, dockerfilecontents [][]byte, from stri
 		return nil, fmt.Errorf("reading multiple stages: %w", err)
 	}
 	var baseImages []string
-	nicknames := make(map[string]bool)
+	nicknames := make(map[string]struct{})
 	for stageIndex, stage := range stages {
 		node := stage.Node // first line
 		for node != nil {  // each line
@@ -673,7 +673,7 @@ func baseImages(dockerfilenames []string, dockerfilecontents [][]byte, from stri
 							}
 						}
 						base := child.Next.Value
-						if base != "" && base != buildah.BaseImageFakeName && !nicknames[base] {
+						if base != "" && base != buildah.BaseImageFakeName && !internalUtil.SetHas(nicknames, base) {
 							headingArgs := argsMapToSlice(stage.Builder.HeadingArgs)
 							userArgs := argsMapToSlice(stage.Builder.Args)
 							// append heading args so if --build-arg key=value is not
@@ -692,7 +692,7 @@ func baseImages(dockerfilenames []string, dockerfilecontents [][]byte, from stri
 			node = node.Next // next line
 		}
 		if stage.Name != strconv.Itoa(stageIndex) {
-			nicknames[stage.Name] = true
+			nicknames[stage.Name] = struct{}{}
 		}
 	}
 	return baseImages, nil

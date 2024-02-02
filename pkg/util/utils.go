@@ -28,7 +28,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	stypes "github.com/containers/storage/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
-	ruser "github.com/opencontainers/runc/libcontainer/user"
+	ruser "github.com/moby/sys/user"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/term"

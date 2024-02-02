@@ -333,4 +333,7 @@ type BuildOptions struct {
 	// value set in a base image will be preserved, so this does not
 	// frequently need to be set.
 	OSVersion string
+	// SBOMScanOptions encapsulates options which control whether or not we
+	// run scanners on the rootfs that we're about to commit, and how.
+	SBOMScanOptions []SBOMScanOptions
 }

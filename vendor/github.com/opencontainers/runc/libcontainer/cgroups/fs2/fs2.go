@@ -133,6 +133,10 @@ func (m *Manager) GetStats() (*cgroups.Stats, error) {
 	if err := fscommon.RdmaGetStats(m.dirPath, st); err != nil && !os.IsNotExist(err) {
 		errs = append(errs, err)
 	}
+	// misc (since kernel 5.13)
+	if err := statMisc(m.dirPath, st); err != nil && !os.IsNotExist(err) {
+		errs = append(errs, err)
+	}
 	if len(errs) > 0 && !m.config.Rootless {
 		return st, fmt.Errorf("error while statting cgroup v2: %+v", errs)
 	}

@@ -47,7 +47,7 @@ import (
 	"github.com/containers/storage/pkg/lockfile"
 	stypes "github.com/containers/storage/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
-	runcuser "github.com/opencontainers/runc/libcontainer/user"
+	runcuser "github.com/moby/sys/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux"

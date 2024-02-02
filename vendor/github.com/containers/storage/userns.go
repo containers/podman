@@ -11,7 +11,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/containers/storage/types"
-	libcontainerUser "github.com/opencontainers/runc/libcontainer/user"
+	libcontainerUser "github.com/moby/sys/user"
 	"github.com/sirupsen/logrus"
 )
 

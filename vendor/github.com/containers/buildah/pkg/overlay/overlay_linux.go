@@ -17,6 +17,9 @@ import (
 // But allows api to set custom workdir, upperdir and other overlay options
 // Following API is being used by podman at the moment
 func MountWithOptions(contentDir, source, dest string, opts *Options) (mount specs.Mount, Err error) {
+	if opts == nil {
+		opts = &Options{}
+	}
 	mergeDir := filepath.Join(contentDir, "merge")
 
 	// Create overlay mount options for rw/ro.

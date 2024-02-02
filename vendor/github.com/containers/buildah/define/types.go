@@ -29,7 +29,7 @@ const (
 	// identify working containers.
 	Package = "buildah"
 	// Version for the Package. Also used by .packit.sh for Packit builds.
-	Version = "1.33.2-dev"
+	Version = "1.34.1-dev"
 
 	// DefaultRuntime if containers.conf fails.
 	DefaultRuntime = "runc"
@@ -121,13 +121,49 @@ type ConfidentialWorkloadOptions struct {
 	AttestationURL           string
 	CPUs                     int
 	Memory                   int
-	TempDir                  string
+	TempDir                  string // used for the temporary plaintext copy of the disk image
 	TeeType                  TeeType
 	IgnoreAttestationErrors  bool
 	WorkloadID               string
 	DiskEncryptionPassphrase string
 	Slop                     string
 	FirmwareLibrary          string
+}
+
+// SBOMMergeStrategy tells us how to merge multiple SBOM documents into one.
+type SBOMMergeStrategy string
+
+const (
+	// SBOMMergeStrategyCat literally concatenates the documents.
+	SBOMMergeStrategyCat SBOMMergeStrategy = "cat"
+	// SBOMMergeStrategyCycloneDXByComponentNameAndVersion adds components
+	// from the second document to the first, so long as they have a
+	// name+version combination which is not already present in the
+	// components array.
+	SBOMMergeStrategyCycloneDXByComponentNameAndVersion SBOMMergeStrategy = "merge-cyclonedx-by-component-name-and-version"
+	// SBOMMergeStrategySPDXByPackageNameAndVersionInfo adds packages from
+	// the second document to the first, so long as they have a
+	// name+versionInfo combination which is not already present in the
+	// first document's packages array, and adds hasExtractedLicensingInfos
+	// items from the second document to the first, so long as they include
+	// a licenseId value which is not already present in the first
+	// document's hasExtractedLicensingInfos array.
+	SBOMMergeStrategySPDXByPackageNameAndVersionInfo SBOMMergeStrategy = "merge-spdx-by-package-name-and-versioninfo"
+)
+
+// SBOMScanOptions encapsulates options which control whether or not we run a
+// scanner on the rootfs that we're about to commit, and how.
+type SBOMScanOptions struct {
+	Type            []string          // a shorthand name for a defined group of these options
+	Image           string            // the scanner image to use
+	PullPolicy      PullPolicy        // how to get the scanner image
+	Commands        []string          // one or more commands to invoke for the image rootfs or ContextDir locations
+	ContextDir      []string          // one or more "source" directory locations
+	SBOMOutput      string            // where to save SBOM scanner output outside of the image (i.e., the local filesystem)
+	PURLOutput      string            // where to save PURL list outside of the image (i.e., the local filesystem)
+	ImageSBOMOutput string            // where to save SBOM scanner output in the image
+	ImagePURLOutput string            // where to save PURL list in the image
+	MergeStrategy   SBOMMergeStrategy // how to merge the outputs of multiple scans
 }
 
 // TempDirForURL checks if the passed-in string looks like a URL or -.  If it is,

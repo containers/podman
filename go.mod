@@ -10,7 +10,7 @@ require (
 	github.com/checkpoint-restore/checkpointctl v1.1.0
 	github.com/checkpoint-restore/go-criu/v7 v7.0.0
 	github.com/containernetworking/plugins v1.4.0
-	github.com/containers/buildah v1.33.2-0.20231121195905-d1a1c53c8e1c
+	github.com/containers/buildah v1.34.1-0.20240201124221-b850c711ff5c
 	github.com/containers/common v0.57.1-0.20240130143645-b26099256b92
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.2
@@ -18,7 +18,7 @@ require (
 	github.com/containers/libhvee v0.6.0
 	github.com/containers/ocicrypt v1.1.9
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.52.1-0.20240130205044-62997abeaf2f
+	github.com/containers/storage v1.52.1-0.20240202181245-1419a5980565
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/coreos/stream-metadata-go v0.4.4
 	github.com/crc-org/vfkit v0.5.0
@@ -43,6 +43,7 @@ require (
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/mattn/go-sqlite3 v1.14.20
 	github.com/mdlayher/vsock v1.2.1
+	github.com/moby/sys/user v0.1.0
 	github.com/moby/term v0.5.0
 	github.com/nxadm/tail v1.4.11
 	github.com/onsi/ginkgo/v2 v2.15.0
@@ -71,7 +72,7 @@ require (
 	golang.org/x/sys v0.16.0
 	golang.org/x/term v0.16.0
 	golang.org/x/text v0.14.0
-	google.golang.org/protobuf v1.31.0
+	google.golang.org/protobuf v1.32.0
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/kubernetes v1.28.4
@@ -98,7 +99,7 @@ require (
 	github.com/containerd/typeurl/v2 v2.1.1 // indirect
 	github.com/containernetworking/cni v1.1.2 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
-	github.com/containers/luksy v0.0.0-20231030195837-b5a7f79da98b // indirect
+	github.com/containers/luksy v0.0.0-20240129181507-b62d551ce6d8 // indirect
 	github.com/coreos/go-oidc/v3 v3.9.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20231217050601-ba74d44ecf5f // indirect
@@ -109,7 +110,7 @@ require (
 	github.com/docker/docker-credential-helpers v0.8.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/fsouza/go-dockerclient v1.10.0 // indirect
+	github.com/fsouza/go-dockerclient v1.10.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/gin-gonic/gin v1.9.1 // indirect
@@ -160,11 +161,10 @@ require (
 	github.com/miekg/pkcs11 v1.1.1 // indirect
 	github.com/mistifyio/go-zfs/v3 v3.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/moby/buildkit v0.12.3 // indirect
+	github.com/moby/buildkit v0.12.5 // indirect
 	github.com/moby/patternmatcher v0.6.0 // indirect
 	github.com/moby/sys/mountinfo v0.7.1 // indirect
 	github.com/moby/sys/sequential v0.5.0 // indirect
-	github.com/moby/sys/user v0.1.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
@@ -220,4 +220,4 @@ require (
 	tags.cncf.io/container-device-interface/specs-go v0.6.0 // indirect
 )
 
-replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20230904132852-a0466dd76f23
+replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20240131200429-02120488a4c0

@@ -69,6 +69,9 @@ type Resources struct {
 	// CPU hardcap limit (in usecs). Allowed cpu time in a given period.
 	CpuQuota int64 `json:"cpu_quota"`
 
+	// CPU hardcap burst limit (in usecs). Allowed accumulated cpu time additionally for burst in a given period.
+	CpuBurst *uint64 `json:"cpu_burst"` //nolint:revive
+
 	// CPU period to be used for hardcapping (in usecs). 0 to use system default.
 	CpuPeriod uint64 `json:"cpu_period"`
 

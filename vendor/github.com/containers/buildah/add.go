@@ -23,7 +23,6 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/hashicorp/go-multierror"
 	digest "github.com/opencontainers/go-digest"
-	"github.com/opencontainers/runc/libcontainer/userns"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
@@ -438,7 +437,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 						ChmodDirs:     nil,
 						ChownFiles:    nil,
 						ChmodFiles:    nil,
-						IgnoreDevices: userns.RunningInUserNS(),
+						IgnoreDevices: runningInUserNS(),
 					}
 					putErr = copier.Put(extractDirectory, extractDirectory, putOptions, io.TeeReader(pipeReader, hasher))
 				}
@@ -579,7 +578,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 						ChmodDirs:       nil,
 						ChownFiles:      nil,
 						ChmodFiles:      nil,
-						IgnoreDevices:   userns.RunningInUserNS(),
+						IgnoreDevices:   runningInUserNS(),
 					}
 					putErr = copier.Put(extractDirectory, extractDirectory, putOptions, io.TeeReader(pipeReader, hasher))
 				}

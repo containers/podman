@@ -1,8 +1,10 @@
 package cli
 
-// the cli package contains urfave/cli related structs that help make up
-// the command line for buildah commands. it resides here so other projects
-// that vendor in this code can use them too.
+// the cli package contains spf13/cobra related structs that help make up
+// the command line for buildah commands. this file's contents are better
+// suited for pkg/parse, but since pkg/parse imports pkg/util which also
+// imports pkg/parse, having it there would create a cyclic dependency, so
+// here we are.
 
 import (
 	"errors"
@@ -17,6 +19,7 @@ import (
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/util"
 	"github.com/containers/common/pkg/auth"
+	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -88,20 +91,10 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		removeAll = append(removeAll, iopts.BudResults.Authfile)
 	}
 
-	// Allow for --pull, --pull=true, --pull=false, --pull=never, --pull=always
-	// --pull-always and --pull-never.  The --pull-never and --pull-always options
-	// will not be documented.
-	pullPolicy := define.PullIfMissing
-	if strings.EqualFold(strings.TrimSpace(iopts.Pull), "true") {
-		pullPolicy = define.PullIfNewer
+	pullPolicy, err := parse.PullPolicyFromOptions(c)
+	if err != nil {
+		return options, nil, nil, err
 	}
-	if iopts.PullAlways || strings.EqualFold(strings.TrimSpace(iopts.Pull), "always") {
-		pullPolicy = define.PullAlways
-	}
-	if iopts.PullNever || strings.EqualFold(strings.TrimSpace(iopts.Pull), "never") {
-		pullPolicy = define.PullNever
-	}
-	logrus.Debugf("Pull Policy for pull [%v]", pullPolicy)
 
 	args := make(map[string]string)
 	if c.Flag("build-arg-file").Changed {
@@ -224,21 +217,6 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		return options, nil, nil, err
 	}
 
-	pullFlagsCount := 0
-	if c.Flag("pull").Changed {
-		pullFlagsCount++
-	}
-	if c.Flag("pull-always").Changed {
-		pullFlagsCount++
-	}
-	if c.Flag("pull-never").Changed {
-		pullFlagsCount++
-	}
-
-	if pullFlagsCount > 1 {
-		return options, nil, nil, errors.New("can only set one of 'pull' or 'pull-always' or 'pull-never'")
-	}
-
 	if (c.Flag("rm").Changed || c.Flag("force-rm").Changed) && (!c.Flag("layers").Changed && !c.Flag("no-cache").Changed) {
 		return options, nil, nil, errors.New("'rm' and 'force-rm' can only be set with either 'layers' or 'no-cache'")
 	}
@@ -356,6 +334,24 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		}
 	}
 
+	var sbomScanOptions []define.SBOMScanOptions
+	if c.Flag("sbom").Changed || c.Flag("sbom-scanner-command").Changed || c.Flag("sbom-scanner-image").Changed || c.Flag("sbom-image-output").Changed || c.Flag("sbom-merge-strategy").Changed || c.Flag("sbom-output").Changed || c.Flag("sbom-image-output").Changed || c.Flag("sbom-purl-output").Changed || c.Flag("sbom-image-purl-output").Changed {
+		sbomScanOption, err := parse.SBOMScanOptions(c)
+		if err != nil {
+			return options, nil, nil, err
+		}
+		if !cutil.StringInSlice(contextDir, sbomScanOption.ContextDir) {
+			sbomScanOption.ContextDir = append(sbomScanOption.ContextDir, contextDir)
+		}
+		for _, abc := range additionalBuildContext {
+			if !abc.IsURL && !abc.IsImage {
+				sbomScanOption.ContextDir = append(sbomScanOption.ContextDir, abc.Value)
+			}
+		}
+		sbomScanOption.PullPolicy = pullPolicy
+		sbomScanOptions = append(sbomScanOptions, *sbomScanOption)
+	}
+
 	options = define.BuildOptions{
 		AddCapabilities:         iopts.CapAdd,
 		AdditionalBuildContexts: additionalBuildContext,
@@ -416,6 +412,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		Runtime:                 iopts.Runtime,
 		RuntimeArgs:             runtimeFlags,
 		RusageLogFile:           iopts.RusageLogFile,
+		SBOMScanOptions:         sbomScanOptions,
 		SignBy:                  iopts.SignBy,
 		SignaturePolicyPath:     iopts.SignaturePolicy,
 		SkipUnusedStages:        types.NewOptionalBool(iopts.SkipUnusedStages),

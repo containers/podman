@@ -44,7 +44,6 @@ import (
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -310,7 +309,7 @@ rootless=%d
 		if err = ioutils.AtomicWriteFile(containerenvPath, []byte(containerenv), 0755); err != nil {
 			return err
 		}
-		if err := label.Relabel(containerenvPath, b.MountLabel, false); err != nil {
+		if err := relabel(containerenvPath, b.MountLabel, false); err != nil {
 			return err
 		}
 
@@ -916,12 +915,12 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 			options = append(options, "rw")
 		}
 		if foundz {
-			if err := label.Relabel(host, mountLabel, true); err != nil {
+			if err := relabel(host, mountLabel, true); err != nil {
 				return specs.Mount{}, err
 			}
 		}
 		if foundZ {
-			if err := label.Relabel(host, mountLabel, false); err != nil {
+			if err := relabel(host, mountLabel, false); err != nil {
 				return specs.Mount{}, err
 			}
 		}

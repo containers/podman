@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/containers/storage/pkg/idtools"
-	ruser "github.com/opencontainers/runc/libcontainer/user"
+	ruser "github.com/moby/sys/user"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/assert"
 )

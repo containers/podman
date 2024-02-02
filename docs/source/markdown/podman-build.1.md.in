@@ -326,6 +326,97 @@ Pull image policy. The default is **missing**.
 
 @@option runtime-flag
 
+#### **--sbom**=*preset*
+
+Generate SBOMs (Software Bills Of Materials) for the output image by scanning
+the working container and build contexts using the named combination of scanner
+image, scanner commands, and merge strategy.  Must be specified with one or
+more of **--sbom-image-output**, **--sbom-image-purl-output**, **--sbom-output**,
+and **--sbom-purl-output**.  Recognized presets, and the set of options which
+they equate to:
+
+ - "syft", "syft-cyclonedx":
+     --sbom-scanner-image=ghcr.io/anchore/syft
+     --sbom-scanner-command="/syft scan -q dir:{ROOTFS} --output cyclonedx-json={OUTPUT}"
+     --sbom-scanner-command="/syft scan -q dir:{CONTEXT} --output cyclonedx-json={OUTPUT}"
+     --sbom-merge-strategy=merge-cyclonedx-by-component-name-and-version
+ - "syft-spdx":
+     --sbom-scanner-image=ghcr.io/anchore/syft
+     --sbom-scanner-command="/syft scan -q dir:{ROOTFS} --output spdx-json={OUTPUT}"
+     --sbom-scanner-command="/syft scan -q dir:{CONTEXT} --output spdx-json={OUTPUT}"
+     --sbom-merge-strategy=merge-spdx-by-package-name-and-versioninfo
+ - "trivy", "trivy-cyclonedx":
+     --sbom-scanner-image=ghcr.io/aquasecurity/trivy
+     --sbom-scanner-command="trivy filesystem -q {ROOTFS} --format cyclonedx --output {OUTPUT}"
+     --sbom-scanner-command="trivy filesystem -q {CONTEXT} --format cyclonedx --output {OUTPUT}"
+     --sbom-merge-strategy=merge-cyclonedx-by-component-name-and-version
+ - "trivy-spdx":
+     --sbom-scanner-image=ghcr.io/aquasecurity/trivy
+     --sbom-scanner-command="trivy filesystem -q {ROOTFS} --format spdx-json --output {OUTPUT}"
+     --sbom-scanner-command="trivy filesystem -q {CONTEXT} --format spdx-json --output {OUTPUT}"
+     --sbom-merge-strategy=merge-spdx-by-package-name-and-versioninfo
+
+#### **--sbom-image-output**=*path*
+
+When generating SBOMs, store the generated SBOM in the specified path in the
+output image.  There is no default.
+
+#### **--sbom-image-purl-output**=*path*
+
+When generating SBOMs, scan them for PURL ([package
+URL](https://github.com/package-url/purl-spec/blob/master/PURL-SPECIFICATION.rst))
+information, and save a list of found PURLs to the specified path in the output
+image.  There is no default.
+
+#### **--sbom-merge-strategy**=*method*
+
+If more than one **--sbom-scanner-command** value is being used, use the
+specified method to merge the output from later commands with output from
+earlier commands.  Recognized values include:
+
+ - cat
+     Concatenate the files.
+ - merge-cyclonedx-by-component-name-and-version
+     Merge the "component" fields of JSON documents, ignoring values from
+     documents when the combination of their "name" and "version" values is
+     already present.  Documents are processed in the order in which they are
+     generated, which is the order in which the commands that generate them
+     were specified.
+ - merge-spdx-by-package-name-and-versioninfo
+     Merge the "package" fields of JSON documents, ignoring values from
+     documents when the combination of their "name" and "versionInfo" values is
+     already present.  Documents are processed in the order in which they are
+     generated, which is the order in which the commands that generate them
+     were specified.
+
+#### **--sbom-output**=*file*
+
+When generating SBOMs, store the generated SBOM in the named file on the local
+filesystem.  There is no default.
+
+#### **--sbom-purl-output**=*file*
+
+When generating SBOMs, scan them for PURL ([package
+URL](https://github.com/package-url/purl-spec/blob/master/PURL-SPECIFICATION.rst))
+information, and save a list of found PURLs to the named file in the local
+filesystem.  There is no default.
+
+#### **--sbom-scanner-command**=*image*
+
+Generate SBOMs by running the specified command from the scanner image.  If
+multiple commands are specified, they are run in the order in which they are
+specified.  These text substitutions are performed:
+  - {ROOTFS}
+      The root of the built image's filesystem, bind mounted.
+  - {CONTEXT}
+      The build context and additional build contexts, bind mounted.
+  - {OUTPUT}
+      The name of a temporary output file, to be read and merged with others or copied elsewhere.
+
+#### **--sbom-scanner-image**=*image*
+
+Generate SBOMs using the specified scanner image.
+
 @@option secret.image
 
 @@option security-opt.image

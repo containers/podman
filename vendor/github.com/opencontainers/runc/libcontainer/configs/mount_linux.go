@@ -2,6 +2,24 @@ package configs
 
 import "golang.org/x/sys/unix"
 
+type MountIDMapping struct {
+	// Recursive indicates if the mapping needs to be recursive.
+	Recursive bool `json:"recursive"`
+
+	// UserNSPath is a path to a user namespace that indicates the necessary
+	// id-mappings for MOUNT_ATTR_IDMAP. If set to non-"", UIDMappings and
+	// GIDMappings must be set to nil.
+	UserNSPath string `json:"userns_path,omitempty"`
+
+	// UIDMappings is the uid mapping set for this mount, to be used with
+	// MOUNT_ATTR_IDMAP.
+	UIDMappings []IDMap `json:"uid_mappings,omitempty"`
+
+	// GIDMappings is the gid mapping set for this mount, to be used with
+	// MOUNT_ATTR_IDMAP.
+	GIDMappings []IDMap `json:"gid_mappings,omitempty"`
+}
+
 type Mount struct {
 	// Source path for the mount.
 	Source string `json:"source"`
@@ -14,6 +32,10 @@ type Mount struct {
 
 	// Mount flags.
 	Flags int `json:"flags"`
+
+	// Mount flags that were explicitly cleared in the configuration (meaning
+	// the user explicitly requested that these flags *not* be set).
+	ClearedFlags int `json:"cleared_flags"`
 
 	// Propagation Flags
 	PropagationFlags []int `json:"propagation_flags"`
@@ -30,17 +52,9 @@ type Mount struct {
 	// Extensions are additional flags that are specific to runc.
 	Extensions int `json:"extensions"`
 
-	// UIDMappings is used to changing file user owners w/o calling chown.
-	// Note that, the underlying filesystem should support this feature to be
-	// used.
-	// Every mount point could have its own mapping.
-	UIDMappings []IDMap `json:"uid_mappings,omitempty"`
-
-	// GIDMappings is used to changing file group owners w/o calling chown.
-	// Note that, the underlying filesystem should support this feature to be
-	// used.
-	// Every mount point could have its own mapping.
-	GIDMappings []IDMap `json:"gid_mappings,omitempty"`
+	// Mapping is the MOUNT_ATTR_IDMAP configuration for the mount. If non-nil,
+	// the mount is configured to use MOUNT_ATTR_IDMAP-style id mappings.
+	IDMapping *MountIDMapping `json:"id_mapping,omitempty"`
 }
 
 func (m *Mount) IsBind() bool {
@@ -48,5 +62,5 @@ func (m *Mount) IsBind() bool {
 }
 
 func (m *Mount) IsIDMapped() bool {
-	return len(m.UIDMappings) > 0 || len(m.GIDMappings) > 0
+	return m.IDMapping != nil
 }

@@ -118,6 +118,15 @@ type CommitOptions struct {
 	// to the configuration of the image that is being committed, after
 	// OverrideConfig is applied.
 	OverrideChanges []string
+	// ExtraImageContent is a map which describes additional content to add
+	// to the committed image.  The map's keys are filesystem paths in the
+	// image and the corresponding values are the paths of files whose
+	// contents will be used in their place.  The contents will be owned by
+	// 0:0 and have mode 0644.  Currently only accepts regular files.
+	ExtraImageContent map[string]string
+	// SBOMScanOptions encapsulates options which control whether or not we
+	// run scanners on the rootfs that we're about to commit, and how.
+	SBOMScanOptions []SBOMScanOptions
 }
 
 var (
@@ -315,6 +324,28 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 	}
 	logrus.Debugf("committing image with reference %q is allowed by policy", transports.ImageName(dest))
 
+	// If we need to scan the rootfs, do it now.
+	options.ExtraImageContent = copyStringStringMap(options.ExtraImageContent)
+	var extraImageContent, extraLocalContent map[string]string
+	if len(options.SBOMScanOptions) != 0 {
+		var scansDirectory string
+		if extraImageContent, extraLocalContent, scansDirectory, err = b.sbomScan(ctx, options); err != nil {
+			return imgID, nil, "", fmt.Errorf("scanning rootfs to generate SBOM for container %q: %w", b.ContainerID, err)
+		}
+		if scansDirectory != "" {
+			defer func() {
+				if err := os.RemoveAll(scansDirectory); err != nil {
+					logrus.Warnf("removing temporary directory %q: %v", scansDirectory, err)
+				}
+			}()
+		}
+		for k, v := range extraImageContent {
+			if _, set := options.ExtraImageContent[k]; !set {
+				options.ExtraImageContent[k] = v
+			}
+		}
+	}
+
 	// Build an image reference from which we can copy the finished image.
 	src, err = b.makeContainerImageRef(options)
 	if err != nil {
@@ -402,7 +433,31 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 			}
 		}
 	}
+	// If we're supposed to store SBOM or PURL information in local files, write them now.
+	for filename, content := range extraLocalContent {
+		err := func() error {
+			output, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+			if err != nil {
+				return err
+			}
+			defer output.Close()
+			input, err := os.Open(content)
+			if err != nil {
+				return err
+			}
+			defer input.Close()
+			if _, err := io.Copy(output, input); err != nil {
+				return fmt.Errorf("copying from %q to %q: %w", content, filename, err)
+			}
+			return nil
+		}()
+		if err != nil {
+			return imgID, nil, "", err
+		}
+	}
 
+	// Calculate the as-written digest of the image's manifest and build the digested
+	// reference for the image.
 	manifestDigest, err := manifest.Digest(manifestBytes)
 	if err != nil {
 		return imgID, nil, "", fmt.Errorf("computing digest of manifest of new image %q: %w", transports.ImageName(dest), err)
