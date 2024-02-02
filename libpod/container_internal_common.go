@@ -48,6 +48,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/lockfile"
+	"github.com/containers/storage/pkg/unshare"
 	stypes "github.com/containers/storage/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	runcuser "github.com/opencontainers/runc/libcontainer/user"
@@ -633,14 +634,15 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	nofileSet := false
 	nprocSet := false
 	isRootless := rootless.IsRootless()
-	if isRootless {
-		if g.Config.Process != nil && g.Config.Process.OOMScoreAdj != nil {
-			var err error
-			*g.Config.Process.OOMScoreAdj, err = maybeClampOOMScoreAdj(*g.Config.Process.OOMScoreAdj)
-			if err != nil {
-				return nil, nil, err
-			}
+	isRunningInUserNs := unshare.IsRootless()
+	if isRunningInUserNs && g.Config.Process != nil && g.Config.Process.OOMScoreAdj != nil {
+		var err error
+		*g.Config.Process.OOMScoreAdj, err = maybeClampOOMScoreAdj(*g.Config.Process.OOMScoreAdj)
+		if err != nil {
+			return nil, nil, err
 		}
+	}
+	if isRootless {
 		for _, rlimit := range c.config.Spec.Process.Rlimits {
 			if rlimit.Type == "RLIMIT_NOFILE" {
 				nofileSet = true
