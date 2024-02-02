@@ -50,13 +50,15 @@ import (
 	"github.com/containers/storage/pkg/lockfile"
 	stypes "github.com/containers/storage/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
-	runcuser "github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
+
+	//nolint:staticcheck
+	runcuser "github.com/opencontainers/runc/libcontainer/user"
 )
 
 func parseOptionIDs(ctrMappings []idtools.IDMap, option string) ([]idtools.IDMap, error) {

@@ -39,6 +39,7 @@ func (r *Runtime) platformMakePod(pod *Pod, p specgen.PodSpecGenerator) error {
 							if err != nil {
 								return err
 							}
+							res.SkipDevices = true
 							// Need to both create and update the cgroup
 							// rather than create a new path in c/common for pod cgroup creation
 							// just create as if it is a ctr and then update figures out that we need to

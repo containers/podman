@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/opencontainers/runc/libcontainer/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -49,22 +50,11 @@ func WriteFile(dir, file, data string) error {
 		return err
 	}
 	defer fd.Close()
-	if err := retryingWriteFile(fd, data); err != nil {
+	if _, err := fd.WriteString(data); err != nil {
 		// Having data in the error message helps in debugging.
 		return fmt.Errorf("failed to write %q: %w", data, err)
 	}
 	return nil
-}
-
-func retryingWriteFile(fd *os.File, data string) error {
-	for {
-		_, err := fd.Write([]byte(data))
-		if errors.Is(err, unix.EINTR) {
-			logrus.Infof("interrupted while writing %s to %s", data, fd.Name())
-			continue
-		}
-		return err
-	}
 }
 
 const (
@@ -76,35 +66,36 @@ var (
 	// TestMode is set to true by unit tests that need "fake" cgroupfs.
 	TestMode bool
 
-	cgroupFd     int = -1
-	prepOnce     sync.Once
-	prepErr      error
-	resolveFlags uint64
+	cgroupRootHandle *os.File
+	prepOnce         sync.Once
+	prepErr          error
+	resolveFlags     uint64
 )
 
 func prepareOpenat2() error {
 	prepOnce.Do(func() {
 		fd, err := unix.Openat2(-1, cgroupfsDir, &unix.OpenHow{
-			Flags: unix.O_DIRECTORY | unix.O_PATH,
+			Flags: unix.O_DIRECTORY | unix.O_PATH | unix.O_CLOEXEC,
 		})
 		if err != nil {
 			prepErr = &os.PathError{Op: "openat2", Path: cgroupfsDir, Err: err}
-			if err != unix.ENOSYS { //nolint:errorlint // unix errors are bare
+			if err != unix.ENOSYS {
 				logrus.Warnf("falling back to securejoin: %s", prepErr)
 			} else {
 				logrus.Debug("openat2 not available, falling back to securejoin")
 			}
 			return
 		}
+		file := os.NewFile(uintptr(fd), cgroupfsDir)
+
 		var st unix.Statfs_t
-		if err = unix.Fstatfs(fd, &st); err != nil {
+		if err := unix.Fstatfs(int(file.Fd()), &st); err != nil {
 			prepErr = &os.PathError{Op: "statfs", Path: cgroupfsDir, Err: err}
 			logrus.Warnf("falling back to securejoin: %s", prepErr)
 			return
 		}
 
-		cgroupFd = fd
-
+		cgroupRootHandle = file
 		resolveFlags = unix.RESOLVE_BENEATH | unix.RESOLVE_NO_MAGICLINKS
 		if st.Type == unix.CGROUP2_SUPER_MAGIC {
 			// cgroupv2 has a single mountpoint and no "cpu,cpuacct" symlinks
@@ -122,7 +113,7 @@ func openFile(dir, file string, flags int) (*os.File, error) {
 		flags |= os.O_TRUNC | os.O_CREATE
 		mode = 0o600
 	}
-	path := path.Join(dir, file)
+	path := path.Join(dir, utils.CleanPath(file))
 	if prepareOpenat2() != nil {
 		return openFallback(path, flags, mode)
 	}
@@ -131,7 +122,7 @@ func openFile(dir, file string, flags int) (*os.File, error) {
 		return openFallback(path, flags, mode)
 	}
 
-	fd, err := unix.Openat2(cgroupFd, relPath,
+	fd, err := unix.Openat2(int(cgroupRootHandle.Fd()), relPath,
 		&unix.OpenHow{
 			Resolve: resolveFlags,
 			Flags:   uint64(flags) | unix.O_CLOEXEC,
@@ -139,20 +130,21 @@ func openFile(dir, file string, flags int) (*os.File, error) {
 		})
 	if err != nil {
 		err = &os.PathError{Op: "openat2", Path: path, Err: err}
-		// Check if cgroupFd is still opened to cgroupfsDir
+		// Check if cgroupRootHandle is still opened to cgroupfsDir
 		// (happens when this package is incorrectly used
 		// across the chroot/pivot_root/mntns boundary, or
 		// when /sys/fs/cgroup is remounted).
 		//
 		// TODO: if such usage will ever be common, amend this
-		// to reopen cgroupFd and retry openat2.
-		fdStr := strconv.Itoa(cgroupFd)
-		fdDest, _ := os.Readlink("/proc/self/fd/" + fdStr)
+		// to reopen cgroupRootHandle and retry openat2.
+		fdPath, closer := utils.ProcThreadSelf("fd/" + strconv.Itoa(int(cgroupRootHandle.Fd())))
+		defer closer()
+		fdDest, _ := os.Readlink(fdPath)
 		if fdDest != cgroupfsDir {
-			// Wrap the error so it is clear that cgroupFd
+			// Wrap the error so it is clear that cgroupRootHandle
 			// is opened to an unexpected/wrong directory.
-			err = fmt.Errorf("cgroupFd %s unexpectedly opened to %s != %s: %w",
-				fdStr, fdDest, cgroupfsDir, err)
+			err = fmt.Errorf("cgroupRootHandle %d unexpectedly opened to %s != %s: %w",
+				cgroupRootHandle.Fd(), fdDest, cgroupfsDir, err)
 		}
 		return nil, err
 	}

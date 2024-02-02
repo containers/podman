@@ -280,7 +280,7 @@ spec:
   - command:
     - /bin/sh
     - -c
-    - 'printenv NOTIFY_SOCKET; while ! test -f /stop;do sleep 0.1;done'
+    - 'printenv NOTIFY_SOCKET; echo READY; while ! test -f /stop;do sleep 0.1;done'
     image: $SYSTEMD_IMAGE
     name: a
   - command:
@@ -320,6 +320,7 @@ EOF
         die "container $container_a and/or $container_b did not start"
     fi
 
+    wait_for_ready $container_a
     # Make sure the containers have the correct policy
     run_podman container inspect $container_a $container_b $service_container --format "{{.Config.SdNotifyMode}}"
     is "$output" "container

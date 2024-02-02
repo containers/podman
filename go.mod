@@ -23,7 +23,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.4.2
 	github.com/crc-org/vfkit v0.0.5-0.20230602131541-3d57f09010c9
-	github.com/cyphar/filepath-securejoin v0.2.3
+	github.com/cyphar/filepath-securejoin v0.2.4
 	github.com/digitalocean/go-qemu v0.0.0-20221209210016-f035778c97f7
 	github.com/docker/distribution v2.8.2+incompatible
 	github.com/docker/docker v24.0.2+incompatible
@@ -47,8 +47,8 @@ require (
 	github.com/onsi/gomega v1.27.8
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc3
-	github.com/opencontainers/runc v1.1.7
-	github.com/opencontainers/runtime-spec v1.1.0-rc.3
+	github.com/opencontainers/runc v1.1.12
+	github.com/opencontainers/runtime-spec v1.1.1-0.20230823135140-4fec88fd00a4
 	github.com/opencontainers/runtime-tools v0.9.1-0.20230317050512-e931285f4b69
 	github.com/opencontainers/selinux v1.11.0
 	github.com/openshift/imagebuilder v1.2.5
@@ -63,12 +63,12 @@ require (
 	github.com/vishvananda/netlink v1.2.1-beta.2
 	go.etcd.io/bbolt v1.3.7
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
-	golang.org/x/net v0.13.0
+	golang.org/x/net v0.20.0
 	golang.org/x/sync v0.3.0
-	golang.org/x/sys v0.15.0
-	golang.org/x/term v0.15.0
+	golang.org/x/sys v0.16.0
+	golang.org/x/term v0.16.0
 	golang.org/x/text v0.14.0
-	google.golang.org/protobuf v1.30.0
+	google.golang.org/protobuf v1.32.0
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v3 v3.0.1
 	sigs.k8s.io/yaml v1.3.0
@@ -135,8 +135,9 @@ require (
 	github.com/mistifyio/go-zfs/v3 v3.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/patternmatcher v0.5.0 // indirect
-	github.com/moby/sys/mountinfo v0.6.2 // indirect
+	github.com/moby/sys/mountinfo v0.7.1 // indirect
 	github.com/moby/sys/sequential v0.5.0 // indirect
+	github.com/moby/sys/user v0.1.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
@@ -166,7 +167,7 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.15.0 // indirect
 	go.opentelemetry.io/otel/trace v1.15.0 // indirect
-	golang.org/x/crypto v0.17.0 // indirect
+	golang.org/x/crypto v0.18.0 // indirect
 	golang.org/x/mod v0.10.0 // indirect
 	golang.org/x/oauth2 v0.9.0 // indirect
 	golang.org/x/tools v0.9.3 // indirect
@@ -179,4 +180,4 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
-replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
+replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20240131200429-02120488a4c0
