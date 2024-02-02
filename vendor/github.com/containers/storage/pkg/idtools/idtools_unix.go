@@ -14,7 +14,7 @@ import (
 	"syscall"
 
 	"github.com/containers/storage/pkg/system"
-	"github.com/opencontainers/runc/libcontainer/user"
+	"github.com/moby/sys/user"
 )
 
 var (

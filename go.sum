@@ -279,8 +279,8 @@ github.com/containers/ocicrypt v1.1.9/go.mod h1:dTKx1918d8TDkxXvarscpNVY+lyPakPN
 github.com/containers/psgo v1.8.0 h1:2loGekmGAxM9ir5OsXWEfGwFxorMPYnc6gEDsGFQvhY=
 github.com/containers/psgo v1.8.0/go.mod h1:T8ZxnX3Ur4RvnhxFJ7t8xJ1F48RhiZB4rSrOaR/qGHc=
 github.com/containers/storage v1.43.0/go.mod h1:uZ147thiIFGdVTjMmIw19knttQnUCl3y9zjreHrg11s=
-github.com/containers/storage v1.52.1-0.20240130205044-62997abeaf2f h1:BJSLHe7f1tgu53d8mGIK/y2KhEev5lggWlIk1rWYT7k=
-github.com/containers/storage v1.52.1-0.20240130205044-62997abeaf2f/go.mod h1:T/ZMocbhShnMLIF0pdkiLPwpkwlGlyUWJeSXnfC/uew=
+github.com/containers/storage v1.52.1-0.20240202181245-1419a5980565 h1:Gcirfx2DNoayB/+ypLgl5+ABzIPPDAoncs1qgZHHQHE=
+github.com/containers/storage v1.52.1-0.20240202181245-1419a5980565/go.mod h1:2E/QBqWVcJXwumP7nVUrampwRNL4XKjHL/aQya7ZdhI=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-iptables v0.4.5/go.mod h1:/mVI274lEDI2ns62jHCDnCyBF9Iwsmekav8Dbxlm1MU=
