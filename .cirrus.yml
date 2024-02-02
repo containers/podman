@@ -295,27 +295,28 @@ swagger_task:
             type: text/plain
 
 
-# Check that all included go modules from other sources match
-# what is expected in `vendor/modules.txt` vs `go.mod`.  Also
-# make sure that the generated bindings in pkg/bindings/...
-# are in sync with the code.
-consistency_task:
-    name: "Test Code Consistency"
-    alias: consistency
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *is_pr
-    depends_on:
-        - build
-    container: *smallcontainer
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: consistency
-        TEST_ENVIRON: container
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always: *runner_stats
+# Disabled as we are now manually patching vendor/
+# # Check that all included go modules from other sources match
+# # what is expected in `vendor/modules.txt` vs `go.mod`.  Also
+# # make sure that the generated bindings in pkg/bindings/...
+# # are in sync with the code.
+# consistency_task:
+#     name: "Test Code Consistency"
+#     alias: consistency
+#     # Docs: ./contrib/cirrus/CIModes.md
+#     only_if: *is_pr
+#     depends_on:
+#         - build
+#     container: *smallcontainer
+#     env:
+#         <<: *stdenvars
+#         TEST_FLAVOR: consistency
+#         TEST_ENVIRON: container
+#         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+#     clone_script: *get_gosrc
+#     setup_script: *setup
+#     main_script: *main
+#     always: *runner_stats
 
 
 # There are several other important variations of podman which
@@ -384,30 +385,31 @@ osx_alt_build_task:
     always: *runner_stats
 
 
+# Disabled due to too-old Python
 # Verify podman is compatible with the docker python-module.
-docker-py_test_task:
-    name: Docker-py Compat.
-    alias: docker-py_test
-    # Don't create task for tags, branches, or PRs w/ [CI:DOCS] or [CI:BUILD]
-    # N/B: for PRs $CIRRUS_BRANCH == 'pull/<number>'
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: &not_tag_branch_build_docs >-
-        $CIRRUS_PR != '' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
+# docker-py_test_task:
+#     name: Docker-py Compat.
+#     alias: docker-py_test
+#     # Don't create task for tags, branches, or PRs w/ [CI:DOCS] or [CI:BUILD]
+#     # N/B: for PRs $CIRRUS_BRANCH == 'pull/<number>'
+#     # Docs: ./contrib/cirrus/CIModes.md
+    # only_if: &not_tag_branch_build_docs >-
+    #     $CIRRUS_PR != '' &&
+    #     $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
+    #     $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
+    #     $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
 
-    depends_on:
-        - build
-    gce_instance: *standardvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: docker-py
-        TEST_ENVIRON: container
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always: *runner_stats
+#     depends_on:
+#         - build
+#     gce_instance: *standardvm
+#     env:
+#         <<: *stdenvars
+#         TEST_FLAVOR: docker-py
+#         TEST_ENVIRON: container
+#     clone_script: *get_gosrc
+#     setup_script: *setup
+#     main_script: *main
+#     always: *runner_stats
 
 
 # Does exactly what it says, execute the podman unit-tests on all primary
@@ -416,7 +418,11 @@ unit_test_task:
     name: "Unit tests on $DISTRO_NV"
     alias: unit_test
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs
+    only_if: &not_tag_branch_build_docs >-
+        $CIRRUS_PR != '' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
     depends_on:
         - build
         - validate
@@ -438,30 +444,31 @@ unit_test_task:
     always: *logs_artifacts
 
 
-apiv2_test_task:
-    name: "APIv2 test on $DISTRO_NV ($PRIV_NAME)"
-    alias: apiv2_test
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs
-    depends_on:
-        - build
-        - validate
-    gce_instance: *standardvm
-    # Test is normally pretty quick, about 10-minutes.  If it hangs,
-    # don't make developers wait the full 1-hour timeout.
-    timeout_in: 20m
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: apiv2
-    matrix:
-      - env:
-          PRIV_NAME: root
-      - env:
-          PRIV_NAME: rootless
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always: *logs_artifacts
+# Disabled due to too-old Python
+# apiv2_test_task:
+#     name: "APIv2 test on $DISTRO_NV ($PRIV_NAME)"
+#     alias: apiv2_test
+#     # Docs: ./contrib/cirrus/CIModes.md
+#     only_if: *not_tag_branch_build_docs
+#     depends_on:
+#         - build
+#         - validate
+#     gce_instance: *standardvm
+#     # Test is normally pretty quick, about 10-minutes.  If it hangs,
+#     # don't make developers wait the full 1-hour timeout.
+#     timeout_in: 20m
+#     env:
+#         <<: *stdenvars
+#         TEST_FLAVOR: apiv2
+#     matrix:
+#       - env:
+#           PRIV_NAME: root
+#       - env:
+#           PRIV_NAME: rootless
+#     clone_script: *get_gosrc
+#     setup_script: *setup
+#     main_script: *main
+#     always: *logs_artifacts
 
 
 compose_test_task:
@@ -796,12 +803,9 @@ success_task:
         - validate
         - bindings
         - swagger
-        - consistency
         - alt_build
         - osx_alt_build
-        - docker-py_test
         - unit_test
-        - apiv2_test
         - compose_test
         - local_integration_test
         - remote_integration_test
