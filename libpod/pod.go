@@ -278,7 +278,7 @@ func (p *Pod) VolumesFrom() []string {
 		return nil
 	}
 	if ctrs, ok := infra.config.Spec.Annotations[define.InspectAnnotationVolumesFrom]; ok {
-		return strings.Split(ctrs, ",")
+		return strings.Split(ctrs, ";")
 	}
 	return nil
 }

@@ -54,7 +54,7 @@ func (c *Container) volumesFrom() ([]string, error) {
 		return nil, err
 	}
 	if ctrs, ok := ctrSpec.Annotations[define.InspectAnnotationVolumesFrom]; ok {
-		return strings.Split(ctrs, ","), nil
+		return strings.Split(ctrs, ";"), nil
 	}
 	return nil, nil
 }
@@ -511,7 +511,7 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 			hostConfig.AutoRemove = true
 		}
 		if ctrs, ok := ctrSpec.Annotations[define.InspectAnnotationVolumesFrom]; ok {
-			hostConfig.VolumesFrom = strings.Split(ctrs, ",")
+			hostConfig.VolumesFrom = strings.Split(ctrs, ";")
 		}
 		if ctrSpec.Annotations[define.InspectAnnotationPrivileged] == define.InspectResponseTrue {
 			hostConfig.Privileged = true
