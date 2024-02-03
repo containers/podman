@@ -47,7 +47,7 @@ Filter output based on conditions provided (default [])
 
 Supported filters are:
 
-* stars (int - number of stars the image has)
+* stars (int) - minimum number of stars required for images to show
 * is-automated (boolean - true | false) - is the image automated or not
 * is-official (boolean - true | false) - is the image official or not
 
