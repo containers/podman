@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"io/fs"
+	"errors"
 
 	"github.com/spf13/cobra"
 )
@@ -25,7 +27,7 @@ func init() {
 }
 
 func uninstall(cmd *cobra.Command, args []string) error {
-	userName, _, _, err := getUser()
+	userName, _, homeDir, err := getUser()
 	if err != nil {
 		return err
 	}
@@ -54,5 +56,35 @@ func uninstall(cmd *cobra.Command, args []string) error {
 	if err := os.RemoveAll(helperPath); err != nil {
 		return fmt.Errorf("could not remove helper binary path: %s", helperPath)
 	}
+
+	// Get the file information of dockerSock
+	if _, err := os.Lstat(dockerSock); err != nil {
+		// If the error is due to the file not existing, return nil
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+		// Return an error if unable to get the file information
+		return fmt.Errorf("could not stat dockerSock: %v", err)
+	}
+	if target, err := os.Readlink(dockerSock); err != nil {
+		//Return an error if unable to read the symlink
+		return fmt.Errorf("could not read dockerSock symlink: %v", err)
+	} else {
+		// Check if the target of the symlink matches the expected target
+		expectedTarget := filepath.Join(homeDir, ".local", "share", "containers", "podman", "machine", "podman.sock")
+		if target != expectedTarget {
+			// If the targets do not match, print the information and return with nothing left to do
+			fmt.Printf("dockerSock does not point to the expected target: %v\n", target)
+			return nil
+		}
+
+		// Attempt to remove dockerSock
+		if err := os.Remove(dockerSock); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				return fmt.Errorf("could not remove dockerSock file: %s", err)
+			}
+		}
+	}
+
 	return nil
 }
