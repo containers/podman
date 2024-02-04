@@ -295,7 +295,6 @@ func (a AppleHVStubber) VMType() define.VMType {
 	return define.AppleHvVirt
 }
 
-
 func waitForGvProxy(gvproxySocket *define.VMFile) error {
 	backoffWait := gvProxyWaitBackoff
 	logrus.Debug("checking that gvproxy is running")
