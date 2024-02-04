@@ -124,6 +124,39 @@ func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name stri
 	return ctr, nil
 }
 
+func prepareVolumesFrom(forContainer string, annotations map[string]string) ([]string, error) {
+	annotationVolsFrom := define.VolumesFromAnnotation + "/" + forContainer
+
+	volsFromCtrs := annotations[annotationVolsFrom]
+
+	// No volumes-from specified
+	if volsFromCtrs == "" {
+		return nil, nil
+	}
+
+	// volumes-from is a semicolon-separated container names optionally
+	// with respective mount options
+	volumesFrom := strings.Split(volsFromCtrs, ";")
+	for _, volsFromCtr := range volumesFrom {
+		// each entry is of format "container[:mount-options]"
+		fields := strings.Split(volsFromCtr, ":")
+		if len(fields) != 1 && len(fields) != 2 {
+			return nil, fmt.Errorf("invalid annotation %s value", annotationVolsFrom)
+		}
+
+		if fields[0] == "" {
+			return nil, fmt.Errorf("from container name cannot be empty in annotation %s", annotationVolsFrom)
+		}
+
+		// to and from containers cannot be same
+		if fields[0] == forContainer {
+			return nil, fmt.Errorf("to and from container names cannot be same in annotation %s", annotationVolsFrom)
+		}
+	}
+
+	return volumesFrom, nil
+}
+
 // Creates the name for a k8s entity based on the provided content of a
 // K8s yaml file and a given suffix.
 func k8sName(content []byte, suffix string) string {
@@ -785,6 +818,13 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			initCtrType = define.OneShotInitContainer
 		}
 
+		var volumesFrom []string
+		if list, err := prepareVolumesFrom(initCtr.Name, annotations); err != nil {
+			return nil, nil, err
+		} else if list != nil {
+			volumesFrom = list
+		}
+
 		specgenOpts := kube.CtrSpecGenOptions{
 			Annotations:        annotations,
 			ConfigMaps:         configMaps,
@@ -805,6 +845,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			SecretsManager:     secretsManager,
 			UserNSIsHost:       p.Userns.IsHost(),
 			Volumes:            volumes,
+			VolumesFrom:        volumesFrom,
 			UtsNSIsHost:        p.UtsNs.IsHost(),
 		}
 		specGen, err := kube.ToSpecGen(ctx, &specgenOpts)
@@ -861,6 +902,13 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			labels[k] = v
 		}
 
+		var volumesFrom []string
+		if list, err := prepareVolumesFrom(container.Name, annotations); err != nil {
+			return nil, nil, err
+		} else if list != nil {
+			volumesFrom = list
+		}
+
 		specgenOpts := kube.CtrSpecGenOptions{
 			Annotations:        annotations,
 			ConfigMaps:         configMaps,
@@ -881,6 +929,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			SecretsManager:     secretsManager,
 			UserNSIsHost:       p.Userns.IsHost(),
 			Volumes:            volumes,
+			VolumesFrom:        volumesFrom,
 			UtsNSIsHost:        p.UtsNs.IsHost(),
 		}
 

@@ -1673,30 +1673,42 @@ USER test1`
 		Expect(pod.Annotations).To(Not(HaveKeyWithValue(define.BindMountPrefix, vol1+":Z")))
 	})
 
-	It("--podman-only on container with --volumes-from", func() {
-		ctr1 := "ctr1"
-		ctr2 := "ctr2"
+	It("pod on container with --volumes-from", func() {
+		// Assert that volumes-from annotation for multiple source
+		// containers along with their mount options are getting
+		// generated with semicolon as the field separator.
+
+		srcctr1, srcctr2, tgtctr := "srcctr1", "srcctr2", "tgtctr"
+		frmopt1, frmopt2 := srcctr1+":ro", srcctr2+":ro"
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
+		vol2 := filepath.Join(podmanTest.TempDir, "vol-test2")
 
-		err := os.MkdirAll(vol1, 0755)
-		Expect(err).ToNot(HaveOccurred())
+		err1 := os.MkdirAll(vol1, 0755)
+		Expect(err1).ToNot(HaveOccurred())
 
-		session := podmanTest.Podman([]string{"create", "--name", ctr1, "-v", vol1, CITEST_IMAGE})
+		err2 := os.MkdirAll(vol2, 0755)
+		Expect(err2).ToNot(HaveOccurred())
+
+		session := podmanTest.Podman([]string{"create", "--name", srcctr1, "-v", vol1, CITEST_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"create", "--volumes-from", ctr1, "--name", ctr2, CITEST_IMAGE})
+		session = podmanTest.Podman([]string{"create", "--name", srcctr2, "-v", vol2, CITEST_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", ctr2})
+		session = podmanTest.Podman([]string{"create", "--volumes-from", frmopt1, "--volumes-from", frmopt2, "--name", tgtctr, CITEST_IMAGE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		kube := podmanTest.Podman([]string{"kube", "generate", tgtctr})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
 		pod := new(v1.Pod)
-		err = yaml.Unmarshal(kube.Out.Contents(), pod)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationVolumesFrom+"/"+ctr2, ctr1))
+		err3 := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err3).ToNot(HaveOccurred())
+		Expect(pod.Annotations).To(HaveKeyWithValue(define.VolumesFromAnnotation+"/"+tgtctr, frmopt1+";"+frmopt2))
 	})
 
 	It("--podman-only on container with --rm", func() {
