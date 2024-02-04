@@ -5,7 +5,6 @@ package applehv
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"syscall"
 
 	"github.com/containers/common/pkg/strongunits"
@@ -101,15 +100,7 @@ func checkProcessRunning(processName string, pid int) error {
 // is assumed GiB
 func resizeDisk(mc *vmconfigs.MachineConfig, newSize strongunits.GiB) error {
 	logrus.Debugf("resizing %s to %d bytes", mc.ImagePath.GetPath(), newSize.ToBytes())
-	// seems like os.truncate() is not very performant with really large files
-	// so exec'ing out to the command truncate
-	size := fmt.Sprintf("%dG", newSize)
-	c := exec.Command("truncate", "-s", size, mc.ImagePath.GetPath())
-	if logrus.IsLevelEnabled(logrus.DebugLevel) {
-		c.Stderr = os.Stderr
-		c.Stdout = os.Stdout
-	}
-	return c.Run()
+	return os.Truncate(mc.ImagePath.GetPath(), int64(newSize.ToBytes()))
 }
 
 func generateSystemDFilesForVirtiofsMounts(mounts []machine.VirtIoFs) []ignition.Unit {
