@@ -1696,7 +1696,7 @@ USER test1`
 		pod := new(v1.Pod)
 		err = yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationVolumesFrom+"/"+ctr2, ctr1))
+		Expect(pod.Annotations).To(HaveKeyWithValue(define.VolumesFromAnnotation+"/"+ctr2, ctr1))
 	})
 
 	It("pod volumes-from annotation with semicolon as field separator", func() {
@@ -1734,7 +1734,7 @@ USER test1`
 		pod := new(v1.Pod)
 		err3 := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err3).ToNot(HaveOccurred())
-		Expect(pod.Annotations).To(HaveKeyWithValue(define.InspectAnnotationVolumesFrom+"/"+tgtctr, frmopt1+";"+frmopt2))
+		Expect(pod.Annotations).To(HaveKeyWithValue(define.VolumesFromAnnotation+"/"+tgtctr, frmopt1+";"+frmopt2))
 	})
 
 	It("--podman-only on container with --rm", func() {

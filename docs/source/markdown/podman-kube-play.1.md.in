@@ -41,6 +41,8 @@ Note: *hostPath* volume types created by kube play is given an SELinux shared la
 
 Note: To set userns of a pod, use the **io.podman.annotations.userns** annotation in the pod/deployment definition. This can be overridden with the `--userns` flag.
 
+Note: Use the **io.podman.annotations.volumes-from** annotation to bind mount volumes of one container to another. You can mount volumes from multiple source containers to a target container. The source containers that belong to the same pod must be defined before the source container in the kube YAML. The annotation format is `io.podman.annotations.volumes-from/targetContainer: "sourceContainer1:mountOpts1;sourceContainer2:mountOpts2"`.
+
 Note: If the `:latest` tag is used, Podman attempts to pull the image from a registry. If the image was built locally with Podman or Buildah, it has `localhost` as the domain, in that case, Podman uses the image from the local store even if it has the `:latest` tag.
 
 Note: The command `podman play kube` is an alias of `podman kube play`, and performs the same function.
