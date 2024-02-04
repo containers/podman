@@ -33,6 +33,4 @@ Note: To run specific test files, add the test files to the end of the winmake c
 ### Apple Hypervisor
 
 1. `make podman-remote`
-1. `export CONTAINERS_MACHINE_PROVIDER="applehv"`
-1. `export MACHINE_IMAGE="https://fedorapeople.org/groups/podman/testing/applehv/arm64/fedora-coreos-38.20230925.dev.0-applehv.aarch64.raw.gz"`
 1. `make localmachine` (Add `FOCUS_FILE=basic_test.go` to only run basic test)

@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"compress/gzip"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -41,24 +42,50 @@ func Decompress(localPath *define.VMFile, uncompressedPath string) error {
 	if strings.HasSuffix(localPath.GetPath(), ".zip") {
 		isZip = true
 	}
-	prefix := "Copying uncompressed file"
 	compressionType := archive.DetectCompression(sourceFile)
-	if compressionType != archive.Uncompressed || isZip {
-		prefix = "Extracting compressed file"
-	}
+
+	prefix := "Extracting compressed file"
 	prefix += ": " + filepath.Base(uncompressedPath)
-	if compressionType == archive.Xz {
+	switch compressionType {
+	case archive.Xz:
 		return decompressXZ(prefix, localPath.GetPath(), uncompressedFileWriter)
-	}
-	if isZip && runtime.GOOS == "windows" {
-		return decompressZip(prefix, localPath.GetPath(), uncompressedFileWriter)
+	case archive.Uncompressed:
+		if isZip && runtime.GOOS == "windows" {
+			return decompressZip(prefix, localPath.GetPath(), uncompressedFileWriter)
+		}
+		// here we should just do a copy
+		dstFile, err := os.Open(localPath.GetPath())
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Copying uncompressed file %q to %q/n", localPath.GetPath(), dstFile.Name())
+		_, err = CopySparse(uncompressedFileWriter, dstFile)
+		return err
+	case archive.Gzip:
+		if runtime.GOOS == "darwin" {
+			return decompressGzWithSparse(prefix, localPath, uncompressedPath)
+		}
+		fallthrough
+	default:
+		return decompressEverythingElse(prefix, localPath.GetPath(), uncompressedFileWriter)
 	}
 
-	// Unfortunately GZ is not sparse capable.  Lets handle it differently
-	if compressionType == archive.Gzip && runtime.GOOS == "darwin" {
-		return decompressGzWithSparse(prefix, localPath, uncompressedPath)
-	}
-	return decompressEverythingElse(prefix, localPath.GetPath(), uncompressedFileWriter)
+	// if compressionType != archive.Uncompressed || isZip {
+	// 	prefix = "Extracting compressed file"
+	// }
+	// prefix += ": " + filepath.Base(uncompressedPath)
+	// if compressionType == archive.Xz {
+	// 	return decompressXZ(prefix, localPath.GetPath(), uncompressedFileWriter)
+	// }
+	// if isZip && runtime.GOOS == "windows" {
+	// 	return decompressZip(prefix, localPath.GetPath(), uncompressedFileWriter)
+	// }
+
+	//  Unfortunately GZ is not sparse capable.  Lets handle it differently
+	// if compressionType == archive.Gzip && runtime.GOOS == "darwin" {
+	// 	return decompressGzWithSparse(prefix, localPath, uncompressedPath)
+	// }
+	// return decompressEverythingElse(prefix, localPath.GetPath(), uncompressedFileWriter)
 }
 
 // Will error out if file without .Xz already exists
