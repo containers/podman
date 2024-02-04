@@ -3475,7 +3475,7 @@ spec:
 		podName := tgtctr
 		pod := getPod(
 			withPodName(podName),
-			withCtr(getCtr(withName(tgtctr)),
+			withCtr(getCtr(withName(tgtctr))),
 			withAnnotation(volsFromAnnotaton, volsFromValue))
 
 		err3 := generateKubeYaml("pod", pod, kubeYaml)
