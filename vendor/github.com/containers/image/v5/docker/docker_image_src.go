@@ -38,8 +38,8 @@ type dockerImageSource struct {
 	impl.DoesNotAffectLayerInfosForCopy
 	stubs.ImplementsGetBlobAt
 
-	logicalRef  dockerReference // The reference the user requested.
-	physicalRef dockerReference // The actual reference we are accessing (possibly a mirror)
+	logicalRef  dockerReference // The reference the user requested. This must satisfy !isUnknownDigest
+	physicalRef dockerReference // The actual reference we are accessing (possibly a mirror). This must satisfy !isUnknownDigest
 	c           *dockerClient
 	// State
 	cachedManifest         []byte // nil if not loaded yet
@@ -48,7 +48,12 @@ type dockerImageSource struct {
 
 // newImageSource creates a new ImageSource for the specified image reference.
 // The caller must call .Close() on the returned ImageSource.
+// The caller must ensure !ref.isUnknownDigest.
 func newImageSource(ctx context.Context, sys *types.SystemContext, ref dockerReference) (*dockerImageSource, error) {
+	if ref.isUnknownDigest {
+		return nil, fmt.Errorf("reading images from docker: reference %q without a tag or digest is not supported", ref.StringWithinTransport())
+	}
+
 	registryConfig, err := loadRegistryConfiguration(sys)
 	if err != nil {
 		return nil, err
@@ -121,7 +126,7 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, ref dockerRef
 // The caller must call .Close() on the returned ImageSource.
 func newImageSourceAttempt(ctx context.Context, sys *types.SystemContext, logicalRef dockerReference, pullSource sysregistriesv2.PullSource,
 	registryConfig *registryConfiguration) (*dockerImageSource, error) {
-	physicalRef, err := newReference(pullSource.Reference)
+	physicalRef, err := newReference(pullSource.Reference, false)
 	if err != nil {
 		return nil, err
 	}
@@ -591,6 +596,10 @@ func (s *dockerImageSource) getSignaturesFromSigstoreAttachments(ctx context.Con
 
 // deleteImage deletes the named image from the registry, if supported.
 func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerReference) error {
+	if ref.isUnknownDigest {
+		return fmt.Errorf("Docker reference without a tag or digest cannot be deleted")
+	}
+
 	registryConfig, err := loadRegistryConfiguration(sys)
 	if err != nil {
 		return err

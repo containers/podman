@@ -2,6 +2,18 @@
 
 # Changelog
 
+## v1.33.5 (2024-02-01)
+
+    Bump c/common to v0.57.4, moby/buildkit v0.5.12
+
+## v1.33.4 (2024-01-30)
+
+    Bump c/image to v5.29.2 and c/common to v0.57.3
+
+## v1.33.3 (2024-01-18)
+
+    Bump c/common to 0.57.2 and c/image to 5.29.1
+
 ## v1.33.2 (2023-11-22)
 
     Update minimum to golang 1.20
