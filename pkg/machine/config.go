@@ -193,12 +193,25 @@ func GetMachineDirs(vmType define.VMType) (*define.MachineDirs, error) {
 	}
 
 	rtDirFile, err := define.NewMachineFile(rtDir, nil)
+	if err != nil {
+		return nil, err
+	}
 
 	dirs := define.MachineDirs{
 		ConfigDir:  configDirFile,
 		DataDir:    dataDirFile,
 		RuntimeDir: rtDirFile,
 	}
+
+	// make sure all machine dirs are present
+	if err := os.MkdirAll(rtDir, 0755); err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return nil, err
+	}
+	err = os.MkdirAll(dataDir, 0755)
+
 	return &dirs, err
 }
 
