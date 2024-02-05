@@ -21,17 +21,22 @@ container image from quay.io/podman, uses it to create and run
 a number of containers, then uses new-podman to interact with
 those containers.
 
-As of 2021-02-23 the available old-podman versions are:
+As of 2024-02-05 the available old-podman versions are:
 
 ```console
-$ ./bin/podman search --list-tags quay.io/podman/stable | awk '$2 ~ /^v/ { print $2}' | sort | column -c 75
-v1.4.2  v1.5.0  v1.6    v1.9.0  v2.0.2  v2.1.1
-v1.4.4  v1.5.1  v1.6.2  v1.9.1  v2.0.6  v2.2.1
+$ bin/podman search --list-tags --limit=400 quay.io/podman/stable | awk '$2 ~ /^v/ { print $2}' | sort | column -c 75
+v1.4.2  v1.9.1  v3.2.0  v3.4.0  v4.1.0  v4.3.1  v4.5.1  v4.8
+v1.4.4  v2.0.2  v3.2.1  v3.4.1  v4.1.1  v4.4    v4.6    v4.8.0
+v1.5.0  v2.0.6  v3.2.2  v3.4.2  v4.2    v4.4.1  v4.6.1  v4.8.1
+v1.5.1  v2.1.1  v3.2.3  v3.4.4  v4.2.0  v4.4.2  v4.6.2  v4.8.2
+v1.6    v2.2.1  v3.3.0  v3.4.7  v4.2.1  v4.4.4  v4.7    v4.8.3
+v1.6.2  v3      v3.3.1  v4      v4.3    v4.5    v4.7.0  v4.9
+v1.9.0  v3.1.2  v3.4    v4.1    v4.3.0  v4.5.0  v4.7.2  v4.9.0
 ```
 
 Test invocation is:
 ```console
-$ sudo env PODMAN=bin/podman PODMAN_UPGRADE_FROM=v1.9.0 PODMAN_UPGRADE_TEST_DEBUG= bats test/upgrade
+$ sudo env PODMAN=bin/podman PODMAN_UPGRADE_FROM=v4.1.0 PODMAN_UPGRADE_TEST_DEBUG= bats test/upgrade
 ```
 (Path assumes you're cd'ed to top-level podman repo). `PODMAN_UPGRADE_FROM`
 can be any of the versions above. `PODMAN_UPGRADE_TEST_DEBUG` is empty

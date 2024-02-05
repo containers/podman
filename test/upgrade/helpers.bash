@@ -13,8 +13,12 @@ teardown() {
 
 # skip a test when the given version is older than the currently tested one
 skip_if_version_older() {
-    # use ${PODMAN_UPGRADE_FROM##v} to trim the leading "v"
-    if printf '%s\n%s\n' "${PODMAN_UPGRADE_FROM##v}" "$1" | sort --check=quiet --version-sort; then
+    if version_is_older_than $1; then
         skip "${2-test is only meaningful when upgrading from $1 or later}"
     fi
+}
+
+version_is_older_than() {
+    # The '##v' strips off leading 'v'
+    printf '%s\n%s\n' "${PODMAN_UPGRADE_FROM##v}" "$1" | sort --check=quiet --version-sort
 }
