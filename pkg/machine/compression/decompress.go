@@ -17,6 +17,7 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/archive"
+	crcOs "github.com/crc-org/crc/v2/pkg/os"
 	"github.com/sirupsen/logrus"
 	"github.com/ulikunitz/xz"
 )
@@ -59,7 +60,7 @@ func Decompress(localPath *define.VMFile, uncompressedPath string) error {
 			return err
 		}
 		fmt.Printf("Copying uncompressed file %q to %q/n", localPath.GetPath(), dstFile.Name())
-		_, err = CopySparse(uncompressedFileWriter, dstFile)
+		_, err = crcOs.CopySparse(uncompressedFileWriter, dstFile)
 		return err
 	case archive.Gzip:
 		if runtime.GOOS == "darwin" {
@@ -260,19 +261,17 @@ func decompressGzWithSparse(prefix string, compressedPath *define.VMFile, uncomp
 		}
 	}()
 
-	// TODO remove the following line when progress bars work
-	_ = prefix
-	// p, bar := utils.ProgressBar(prefix, stat.Size(), prefix+": done")
-	// proxyReader := bar.ProxyReader(f)
-	// defer func() {
-	// 	if err := proxyReader.Close(); err != nil {
-	// 		logrus.Error(err)
-	// 	}
-	// }()
+	p, bar := utils.ProgressBar(prefix, stat.Size(), prefix+": done")
+	proxyReader := bar.ProxyReader(gzReader)
+	defer func() {
+		if err := proxyReader.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	logrus.Debugf("decompressing %s", compressedPath.GetPath())
-	_, err = CopySparse(dstFile, gzReader)
+	_, err = crcOs.CopySparse(dstFile, proxyReader)
 	logrus.Debug("decompression complete")
-	// p.Wait()
+	p.Wait()
 	return err
 }

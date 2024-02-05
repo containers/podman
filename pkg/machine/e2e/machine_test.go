@@ -18,6 +18,7 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/provider"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/utils"
+	crcOs "github.com/crc-org/crc/v2/pkg/os"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -168,7 +169,7 @@ func setup() (string, *machineTestBuilder) {
 			Fail(fmt.Sprintf("failed to copy %ss to %s: %q", fqImageName, mb.imagePath, err))
 		}
 	} else {
-		if _, err := compression.CopySparse(dest, src); err != nil {
+		if _, err := crcOs.CopySparse(dest, src); err != nil {
 			Fail(fmt.Sprintf("failed to copy %q to %q: %q", src.Name(), dest.Name(), err))
 		}
 	}
