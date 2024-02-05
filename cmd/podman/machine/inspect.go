@@ -67,10 +67,6 @@ func inspect(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		ignFile, err := mc.IgnitionFile()
-		if err != nil {
-			return err
-		}
 
 		podmanSocket, podmanPipe, err := mc.ConnectionInfo(provider.VMType())
 		if err != nil {
@@ -83,13 +79,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 				PodmanSocket: podmanSocket,
 				PodmanPipe:   podmanPipe,
 			},
-			Created: mc.Created,
-			// TODO This is no longer applicable; we dont care about the provenance
-			// of the image
-			Image: machine.ImageConfig{
-				IgnitionFile: *ignFile,
-				ImagePath:    *mc.ImagePath,
-			},
+			Created:            mc.Created,
 			LastUp:             mc.LastUp,
 			Name:               mc.Name,
 			Resources:          mc.Resources,
