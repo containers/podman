@@ -373,18 +373,6 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 	// if there are generic things that need to be done, a preStart function could be added here
 	// should it be extensive
 
-	// update the podman/docker socket service if the host user has been modified at all (UID or Rootful)
-	if mc.HostUser.Modified {
-		if machine.UpdatePodmanDockerSockService(mc) == nil {
-			// Reset modification state if there are no errors, otherwise ignore errors
-			// which are already logged
-			mc.HostUser.Modified = false
-			if err := mc.Write(); err != nil {
-				logrus.Error(err)
-			}
-		}
-	}
-
 	// releaseFunc is if the provider starts a vm using a go command
 	// and we still need control of it while it is booting until the ready
 	// socket is tripped
@@ -443,5 +431,17 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 		opts.NoInfo,
 		mc.HostUser.Rootful,
 	)
+
+	// update the podman/docker socket service if the host user has been modified at all (UID or Rootful)
+	if mc.HostUser.Modified {
+		if machine.UpdatePodmanDockerSockService(mc) == nil {
+			// Reset modification state if there are no errors, otherwise ignore errors
+			// which are already logged
+			mc.HostUser.Modified = false
+			if err := mc.Write(); err != nil {
+				logrus.Error(err)
+			}
+		}
+	}
 	return nil
 }

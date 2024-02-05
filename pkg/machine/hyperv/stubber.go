@@ -290,7 +290,7 @@ func stateConversion(s hypervctl.EnabledState) (define.Status, error) {
 	return define.Unknown, fmt.Errorf("unknown state: %q", s.String())
 }
 
-func (h HyperVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, cpus, memory *uint64, newDiskSize *strongunits.GiB) error {
+func (h HyperVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, cpus, memory *uint64, newDiskSize *strongunits.GiB, newRootful *bool) error {
 	var (
 		cpuChanged, memoryChanged bool
 	)
@@ -308,14 +308,11 @@ func (h HyperVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, cpus, memor
 		return errors.New("unable to change settings unless vm is stopped")
 	}
 
-	// Rootful still needs plumbing
-	//if opts.Rootful != nil && m.Rootful != *opts.Rootful {
-	//	if err := m.setRootful(*opts.Rootful); err != nil {
-	//		setErrors = append(setErrors, fmt.Errorf("failed to set rootful option: %w", err))
-	//	} else {
-	//		m.Rootful = *opts.Rootful
-	//	}
-	//}
+	if newRootful != nil && mc.HostUser.Rootful != *newRootful {
+		if err := mc.SetRootful(*newRootful); err != nil {
+			return err
+		}
+	}
 
 	if newDiskSize != nil {
 		if err := resizeDisk(*newDiskSize, mc.ImagePath); err != nil {

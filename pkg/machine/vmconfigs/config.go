@@ -114,7 +114,7 @@ type VMProvider interface { //nolint:interfacebloat
 	MountVolumesToVM(mc *MachineConfig, quiet bool) error
 	Remove(mc *MachineConfig) ([]string, func() error, error)
 	RemoveAndCleanMachines(dirs *define.MachineDirs) error
-	SetProviderAttrs(mc *MachineConfig, cpus, memory *uint64, newDiskSize *strongunits.GiB) error
+	SetProviderAttrs(mc *MachineConfig, cpus, memory *uint64, newDiskSize *strongunits.GiB, newRootful *bool) error
 	StartNetworking(mc *MachineConfig, cmd *gvproxy.GvproxyCommand) error
 	PostStartNetworking(mc *MachineConfig) error
 	StartVM(mc *MachineConfig) (func() error, func() error, error)

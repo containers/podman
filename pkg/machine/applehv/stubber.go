@@ -79,12 +79,19 @@ func (a AppleHVStubber) RemoveAndCleanMachines(_ *define.MachineDirs) error {
 	return nil
 }
 
-func (a AppleHVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, cpus, memory *uint64, newDiskSize *strongunits.GiB) error {
+func (a AppleHVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, cpus, memory *uint64, newDiskSize *strongunits.GiB, newRootful *bool) error {
 	if newDiskSize != nil {
 		if err := resizeDisk(mc, *newDiskSize); err != nil {
 			return err
 		}
 	}
+
+	if newRootful != nil && mc.HostUser.Rootful != *newRootful {
+		if err := mc.SetRootful(*newRootful); err != nil {
+			return err
+		}
+	}
+
 	// VFKit does not require saving memory, disk, or cpu
 	return nil
 }
