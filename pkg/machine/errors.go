@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/containers/podman/v4/pkg/strongunits"
+	"github.com/containers/common/pkg/strongunits"
 )
 
 var (
