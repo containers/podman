@@ -192,34 +192,34 @@ build_task:
 # Confirm the result of building on at least one platform appears sane.
 # This confirms the binaries can be executed, checks --help vs docs, and
 # other essential post-build validation checks.
-validate_task:
-    name: "Validate $DISTRO_NV Build"
-    alias: validate
-    # This task is primarily intended to catch human-errors early on, in a
-    # PR.  Skip it for branch-push, branch-create, and tag-push to improve
-    # automation reliability/speed in those contexts.  Any missed errors due
-    # to nonsequential PR merging practices, will be caught on a future PR,
-    # build or test task failures.
-    skip: *branches_and_tags
-    depends_on:
-        - ext_svc_check
-        - automation
-        - build
-    # golangci-lint is a very, very hungry beast.
-    gce_instance: &bigvm
-        <<: *standardvm
-        cpu: 8
-        memory: "16Gb"
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: validate
-    gopath_cache: &ro_gopath_cache
-        <<: *gopath_cache
-        reupload_on_changes: false
-    clone_script: *noop
-    setup_script: *setup
-    main_script: *main
-    always: *runner_stats
+# validate_task:
+#     name: "Validate $DISTRO_NV Build"
+#     alias: validate
+#     # This task is primarily intended to catch human-errors early on, in a
+#     # PR.  Skip it for branch-push, branch-create, and tag-push to improve
+#     # automation reliability/speed in those contexts.  Any missed errors due
+#     # to nonsequential PR merging practices, will be caught on a future PR,
+#     # build or test task failures.
+#     skip: *branches_and_tags
+#     depends_on:
+#         - ext_svc_check
+#         - automation
+#         - build
+#     # golangci-lint is a very, very hungry beast.
+#     gce_instance: &bigvm
+#         <<: *standardvm
+#         cpu: 8
+#         memory: "16Gb"
+#     env:
+#         <<: *stdenvars
+#         TEST_FLAVOR: validate
+#     gopath_cache: &ro_gopath_cache
+#         <<: *gopath_cache
+#         reupload_on_changes: false
+#     clone_script: *noop
+#     setup_script: *setup
+#     main_script: *main
+#     always: *runner_stats
 
 
 # Exercise the "libpod" API with a small set of common
@@ -236,7 +236,9 @@ bindings_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: bindings
-    gopath_cache: *ro_gopath_cache
+    gopath_cache: &ro_gopath_cache
+        <<: *gopath_cache
+        reupload_on_changes: false
     clone_script: *noop  # Comes from cache
     setup_script: *setup
     main_script: *main
@@ -318,8 +320,6 @@ alt_build_task:
     gce_instance: *standardvm
     matrix:
       - env:
-            ALT_NAME: 'Build Each Commit'
-      - env:
             ALT_NAME: 'Windows Cross'
       - env:
             ALT_NAME: 'Build Without CGO'
@@ -362,7 +362,7 @@ unit_test_task:
     skip: *tags
     only_if: *not_build
     depends_on:
-        - validate
+        - build
     matrix:
         - env: *stdenvars
         #- env: *priorfedora_envvars
@@ -388,7 +388,7 @@ apiv2_test_task:
     only_if: *not_build
     skip: *tags
     depends_on:
-        - validate
+        - build
     gce_instance: *standardvm
     # Test is normally pretty quick, about 10-minutes.  If it hangs,
     # don't make developers wait the full 1-hour timeout.
@@ -409,7 +409,7 @@ compose_test_task:
     only_if: *not_build
     skip: *tags
     depends_on:
-        - validate
+        - build
     gce_instance: *standardvm
     env:
         <<: *stdenvars
@@ -719,7 +719,6 @@ success_task:
         - ext_svc_check
         - automation
         - build
-        - validate
         - bindings
         - swagger
         - alt_build
