@@ -1,9 +1,6 @@
 package integration
 
 import (
-	"encoding/json"
-
-	"github.com/containers/podman/v4/libpod/define"
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -69,9 +66,7 @@ var _ = Describe("Podman pod inspect", func() {
 		inspectOut.WaitWithDefaultTimeout()
 		Expect(inspectOut).Should(ExitCleanly())
 
-		inspectJSON := new(define.InspectPodData)
-		err := json.Unmarshal(inspectOut.Out.Contents(), inspectJSON)
-		Expect(err).ToNot(HaveOccurred())
+		inspectJSON := inspectOut.InspectPodToJSON()
 		Expect(inspectJSON.InfraConfig).To(Not(BeNil()))
 		Expect(inspectJSON.InfraConfig.PortBindings["80/tcp"]).To(HaveLen(1))
 		Expect(inspectJSON.InfraConfig.PortBindings["80/tcp"][0]).To(HaveField("HostPort", "8383"))

@@ -41,8 +41,6 @@ func init() {
 }
 
 func inspectExec(cmd *cobra.Command, args []string) error {
-	// We need backwards compat with the old podman pod inspect behavior.
-	// https://github.com/containers/podman/pull/15675
-	inspectOpts.Type = common.PodLegacyType
+	inspectOpts.Type = common.PodType
 	return inspect.Inspect(args, *inspectOpts)
 }
