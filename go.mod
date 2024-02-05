@@ -41,7 +41,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/linuxkit/virtsock v0.0.0-20220523201153-1a23e78aa7a2
 	github.com/mattn/go-shellwords v1.0.12
-	github.com/mattn/go-sqlite3 v1.14.20
+	github.com/mattn/go-sqlite3 v1.14.21
 	github.com/mdlayher/vsock v1.2.1
 	github.com/moby/sys/user v0.1.0
 	github.com/moby/term v0.5.0
