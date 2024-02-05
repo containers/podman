@@ -41,6 +41,10 @@ func (matcher *ExitMatcher) Match(actual interface{}) (success bool, err error) 
 
 func (matcher *ExitMatcher) FailureMessage(_ interface{}) (message string) {
 	if matcher.Actual == -1 {
+		// FIXME: temporary, for #21504
+		ps := SystemExec("ps", []string{"auxww", "--forest"})
+		ps.WaitWithDefaultTimeout()
+
 		return "Expected process to exit.  It did not."
 	}
 	return format.Message(matcher.Actual, "to be greater than exit code: ", matcher.Expected)

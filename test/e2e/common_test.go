@@ -672,6 +672,11 @@ func (p *PodmanTestIntegration) Cleanup() {
 	// Clean up the registries configuration file ENV variable set in Create
 	resetRegistriesConfigEnv()
 
+	// FIXME: temporary, for #21504
+	if strings.Contains(rmall.ErrorToString(), "die within timeout") {
+		ps := SystemExec("ps", []string{"auxww", "--forest"})
+		ps.WaitWithDefaultTimeout()
+	}
 	// Make sure to only check exit codes after all cleanup is done.
 	// An error would cause it to stop and return early otherwise.
 	Expect(stop).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", stop.Command.Args, stop.OutputToString(), stop.ErrorToString())
