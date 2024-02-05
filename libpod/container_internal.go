@@ -306,9 +306,13 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 		return false, err
 	}
 
-	// set up slirp4netns again because slirp4netns will die when conmon exits
-	if err := c.setupRootlessNetwork(); err != nil {
-		return false, err
+	// only do this if the container is not in a userns, if we are the cleanupNetwork()
+	// was called above and a proper network setup is needed which is part of the init() below.
+	if !c.config.PostConfigureNetNS {
+		// set up slirp4netns again because slirp4netns will die when conmon exits
+		if err := c.setupRootlessNetwork(); err != nil {
+			return false, err
+		}
 	}
 
 	if c.state.State == define.ContainerStateStopped {
