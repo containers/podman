@@ -168,8 +168,9 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.57.1-0.20240205132223-de5cb00e891c
+# github.com/containers/common v0.57.1-0.20240206153655-323e410f34bf
 ## explicit; go 1.20
+github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -222,6 +223,7 @@ github.com/containers/common/pkg/secrets/shelldriver
 github.com/containers/common/pkg/servicereaper
 github.com/containers/common/pkg/signal
 github.com/containers/common/pkg/ssh
+github.com/containers/common/pkg/strongunits
 github.com/containers/common/pkg/subscriptions
 github.com/containers/common/pkg/supplemented
 github.com/containers/common/pkg/sysinfo
@@ -309,7 +311,7 @@ github.com/containers/image/v5/transports
 github.com/containers/image/v5/transports/alltransports
 github.com/containers/image/v5/types
 github.com/containers/image/v5/version
-# github.com/containers/libhvee v0.6.0
+# github.com/containers/libhvee v0.6.1-0.20240205152934-3a16bce3e4be
 ## explicit; go 1.18
 github.com/containers/libhvee/pkg/hypervctl
 github.com/containers/libhvee/pkg/kvp/ginsu

@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/common/internal"
 	"github.com/containers/image/v5/manifest"
 	digest "github.com/opencontainers/go-digest"
 	imgspec "github.com/opencontainers/image-spec/specs-go"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"golang.org/x/exp/slices"
 )
 
 // List is a generic interface for manipulating a manifest list or an image
@@ -36,8 +38,10 @@ type List interface {
 	OSFeatures(instanceDigest digest.Digest) ([]string, error)
 	SetMediaType(instanceDigest digest.Digest, mediaType string) error
 	MediaType(instanceDigest digest.Digest) (string, error)
-	SetArtifactType(instanceDigest digest.Digest, artifactType string) error
-	ArtifactType(instanceDigest digest.Digest) (string, error)
+	SetArtifactType(instanceDigest *digest.Digest, artifactType string) error
+	ArtifactType(instanceDigest *digest.Digest) (string, error)
+	SetSubject(subject *v1.Descriptor) error
+	Subject() (*v1.Descriptor, error)
 	Serialize(mimeType string) ([]byte, error)
 	Instances() []digest.Digest
 	OCIv1() *v1.Index
@@ -469,22 +473,50 @@ func (l *list) MediaType(instanceDigest digest.Digest) (string, error) {
 }
 
 // SetArtifactType sets the ArtifactType field in the instance with the specified digest.
-func (l *list) SetArtifactType(instanceDigest digest.Digest, artifactType string) error {
-	oci, err := l.findOCIv1(instanceDigest)
-	if err != nil {
-		return err
+func (l *list) SetArtifactType(instanceDigest *digest.Digest, artifactType string) error {
+	artifactTypePtr := &l.oci.ArtifactType
+	if instanceDigest != nil {
+		oci, err := l.findOCIv1(*instanceDigest)
+		if err != nil {
+			return err
+		}
+		artifactTypePtr = &oci.ArtifactType
 	}
-	oci.ArtifactType = artifactType
+	*artifactTypePtr = artifactType
 	return nil
 }
 
 // ArtifactType retrieves the ArtifactType field in the instance with the specified digest.
-func (l *list) ArtifactType(instanceDigest digest.Digest) (string, error) {
-	oci, err := l.findOCIv1(instanceDigest)
-	if err != nil {
-		return "", err
+func (l *list) ArtifactType(instanceDigest *digest.Digest) (string, error) {
+	artifactTypePtr := &l.oci.ArtifactType
+	if instanceDigest != nil {
+		oci, err := l.findOCIv1(*instanceDigest)
+		if err != nil {
+			return "", err
+		}
+		artifactTypePtr = &oci.ArtifactType
 	}
-	return oci.ArtifactType, nil
+	return *artifactTypePtr, nil
+}
+
+// SetSubject sets the image index's subject.
+// The field is specific to the OCI image index format, and is not present in Docker manifest lists.
+func (l *list) SetSubject(subject *v1.Descriptor) error {
+	if subject != nil {
+		subject = internal.DeepCopyDescriptor(subject)
+	}
+	l.oci.Subject = subject
+	return nil
+}
+
+// Subject retrieves the subject which might have been set on the image index.
+// The field is specific to the OCI image index format, and is not present in Docker manifest lists.
+func (l *list) Subject() (*v1.Descriptor, error) {
+	s := l.oci.Subject
+	if s != nil {
+		s = internal.DeepCopyDescriptor(s)
+	}
+	return s, nil
 }
 
 // FromBlob builds a list from an encoded manifest list or image index.
@@ -530,11 +562,19 @@ func FromBlob(manifestBytes []byte) (List, error) {
 			if platform == nil {
 				platform = &v1.Platform{}
 			}
+			if m.Platform != nil && m.Platform.OSFeatures != nil {
+				platform.OSFeatures = slices.Clone(m.Platform.OSFeatures)
+			}
+			var urls []string
+			if m.URLs != nil {
+				urls = slices.Clone(m.URLs)
+			}
 			list.docker.Manifests = append(list.docker.Manifests, manifest.Schema2ManifestDescriptor{
 				Schema2Descriptor: manifest.Schema2Descriptor{
 					MediaType: m.MediaType,
 					Size:      m.Size,
 					Digest:    m.Digest,
+					URLs:      urls,
 				},
 				Platform: manifest.Schema2PlatformSpec{
 					Architecture: platform.Architecture,
@@ -555,6 +595,9 @@ func (l *list) preferOCI() bool {
 		return true
 	}
 	if l.oci.Subject != nil {
+		return true
+	}
+	if len(l.oci.Annotations) > 0 {
 		return true
 	}
 	for _, m := range l.oci.Manifests {

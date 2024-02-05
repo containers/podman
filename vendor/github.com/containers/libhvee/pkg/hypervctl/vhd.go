@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/common/pkg/strongunits"
 	"github.com/containers/libhvee/pkg/wmiext"
-	"github.com/containers/podman/v4/pkg/strongunits"
 )
 
 // ResizeDisk takes a diskPath and strongly typed new size and uses powershell
