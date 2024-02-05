@@ -107,7 +107,7 @@ github.com/chzyer/readline
 # github.com/containerd/cgroups/v3 v3.0.2
 ## explicit; go 1.18
 github.com/containerd/cgroups/v3/cgroup1/stats
-# github.com/containerd/containerd v1.7.12
+# github.com/containerd/containerd v1.7.13
 ## explicit; go 1.19
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/log
@@ -168,7 +168,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.57.1-0.20240130143645-b26099256b92
+# github.com/containers/common v0.57.1-0.20240205132223-de5cb00e891c
 ## explicit; go 1.20
 github.com/containers/common/internal/attributedstring
 github.com/containers/common/libimage
@@ -458,7 +458,7 @@ github.com/distribution/reference
 github.com/docker/distribution/registry/api/errcode
 github.com/docker/distribution/registry/api/v2
 github.com/docker/distribution/registry/client/auth/challenge
-# github.com/docker/docker v25.0.1+incompatible
+# github.com/docker/docker v25.0.2+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
