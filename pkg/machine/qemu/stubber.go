@@ -243,12 +243,19 @@ func (q *QEMUStubber) resizeDisk(newSize strongunits.GiB, diskPath *define.VMFil
 	return nil
 }
 
-func (q *QEMUStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, cpus, memory *uint64, newDiskSize *strongunits.GiB) error {
+func (q *QEMUStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, cpus, memory *uint64, newDiskSize *strongunits.GiB, newRootful *bool) error {
 	if newDiskSize != nil {
 		if err := q.resizeDisk(*newDiskSize, mc.ImagePath); err != nil {
 			return err
 		}
 	}
+
+	if newRootful != nil && mc.HostUser.Rootful != *newRootful {
+		if err := mc.SetRootful(*newRootful); err != nil {
+			return err
+		}
+	}
+
 	// Because QEMU does nothing with these hardware attributes, we can simply return
 	return nil
 }

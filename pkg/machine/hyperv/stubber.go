@@ -6,11 +6,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/Microsoft/go-winio"
 	"os"
 	"os/exec"
 	"path/filepath"
 
+	"github.com/Microsoft/go-winio"
+	"github.com/containers/common/pkg/strongunits"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/libhvee/pkg/hypervctl"
 	"github.com/containers/podman/v4/pkg/machine"
@@ -18,7 +19,6 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/hyperv/vsock"
 	"github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
-	"github.com/containers/podman/v4/pkg/strongunits"
 	"github.com/containers/podman/v4/pkg/systemd/parser"
 	"github.com/sirupsen/logrus"
 )
@@ -290,7 +290,7 @@ func stateConversion(s hypervctl.EnabledState) (define.Status, error) {
 	return define.Unknown, fmt.Errorf("unknown state: %q", s.String())
 }
 
-func (h HyperVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, cpus, memory *uint64, newDiskSize *strongunits.GiB) error {
+func (h HyperVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, cpus, memory *uint64, newDiskSize *strongunits.GiB, newRootful *bool) error {
 	var (
 		cpuChanged, memoryChanged bool
 	)
@@ -308,14 +308,11 @@ func (h HyperVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, cpus, memor
 		return errors.New("unable to change settings unless vm is stopped")
 	}
 
-	// Rootful still needs plumbing
-	//if opts.Rootful != nil && m.Rootful != *opts.Rootful {
-	//	if err := m.setRootful(*opts.Rootful); err != nil {
-	//		setErrors = append(setErrors, fmt.Errorf("failed to set rootful option: %w", err))
-	//	} else {
-	//		m.Rootful = *opts.Rootful
-	//	}
-	//}
+	if newRootful != nil && mc.HostUser.Rootful != *newRootful {
+		if err := mc.SetRootful(*newRootful); err != nil {
+			return err
+		}
+	}
 
 	if newDiskSize != nil {
 		if err := resizeDisk(*newDiskSize, mc.ImagePath); err != nil {

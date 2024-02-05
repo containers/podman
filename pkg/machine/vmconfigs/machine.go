@@ -125,6 +125,15 @@ func (mc *MachineConfig) write() error {
 	return os.WriteFile(mc.configPath.GetPath(), b, define.DefaultFilePerm)
 }
 
+func (mc *MachineConfig) SetRootful(rootful bool) error {
+	if err := connection.UpdateConnectionIfDefault(rootful, mc.Name, mc.Name+"-root"); err != nil {
+		return err
+	}
+	mc.HostUser.Rootful = rootful
+	mc.HostUser.Modified = true
+	return nil
+}
+
 func (mc *MachineConfig) removeSystemConnection() error { //nolint:unused
 	return define2.ErrNotImplemented
 }

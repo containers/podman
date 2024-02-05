@@ -92,6 +92,7 @@ func setMachine(cmd *cobra.Command, args []string) error {
 		err                error
 		newCPUs, newMemory *uint64
 		newDiskSize        *strongunits.GiB
+		newRootful         *bool
 	)
 
 	vmName := defaultMachineName
@@ -110,7 +111,7 @@ func setMachine(cmd *cobra.Command, args []string) error {
 	}
 
 	if cmd.Flags().Changed("rootful") {
-		mc.HostUser.Rootful = setFlags.Rootful
+		newRootful = &setFlags.Rootful
 	}
 	if cmd.Flags().Changed("cpus") {
 		mc.Resources.CPUs = setFlags.CPUs
@@ -139,7 +140,7 @@ func setMachine(cmd *cobra.Command, args []string) error {
 
 	// At this point, we have the known changed information, etc
 	// Walk through changes to the providers if they need them
-	if err := provider.SetProviderAttrs(mc, newCPUs, newMemory, newDiskSize); err != nil {
+	if err := provider.SetProviderAttrs(mc, newCPUs, newMemory, newDiskSize, newRootful); err != nil {
 		return err
 	}
 

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/strongunits"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/applehv/vfkit"
@@ -17,7 +18,6 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/containers/podman/v4/pkg/machine/sockets"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
-	"github.com/containers/podman/v4/pkg/strongunits"
 	"github.com/containers/podman/v4/utils"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
 	"github.com/sirupsen/logrus"
@@ -79,12 +79,19 @@ func (a AppleHVStubber) RemoveAndCleanMachines(_ *define.MachineDirs) error {
 	return nil
 }
 
-func (a AppleHVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, cpus, memory *uint64, newDiskSize *strongunits.GiB) error {
+func (a AppleHVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, cpus, memory *uint64, newDiskSize *strongunits.GiB, newRootful *bool) error {
 	if newDiskSize != nil {
 		if err := resizeDisk(mc, *newDiskSize); err != nil {
 			return err
 		}
 	}
+
+	if newRootful != nil && mc.HostUser.Rootful != *newRootful {
+		if err := mc.SetRootful(*newRootful); err != nil {
+			return err
+		}
+	}
+
 	// VFKit does not require saving memory, disk, or cpu
 	return nil
 }
