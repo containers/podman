@@ -326,8 +326,7 @@ func ParseUserNamespace(ns string) (Namespace, error) {
 
 // ParseNetworkFlag parses a network string slice into the network options
 // If the input is nil or empty it will use the default setting from containers.conf
-// TODO (5.0): Drop pastaNetworkNameExists
-func ParseNetworkFlag(networks []string, pastaNetworkNameExists bool) (Namespace, map[string]types.PerNetworkOptions, map[string][]string, error) {
+func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetworkOptions, map[string][]string, error) {
 	var networkOptions map[string][]string
 	// by default we try to use the containers.conf setting
 	// if we get at least one value use this instead
@@ -379,19 +378,11 @@ func ParseNetworkFlag(networks []string, pastaNetworkNameExists bool) (Namespace
 		toReturn.Value = value
 	case ns == string(Pasta), strings.HasPrefix(ns, string(Pasta)+":"):
 		key, options, hasOptions := strings.Cut(ns, ":")
-
-		if pastaNetworkNameExists {
-			goto nextCase
-		}
-
 		if hasOptions {
 			networkOptions = make(map[string][]string)
 			networkOptions[key] = strings.Split(options, ",")
 		}
 		toReturn.NSMode = Pasta
-		break
-	nextCase:
-		fallthrough
 	default:
 		// we should have a normal network
 		name, options, hasOptions := strings.Cut(ns, ":")
@@ -426,8 +417,7 @@ func ParseNetworkFlag(networks []string, pastaNetworkNameExists bool) (Namespace
 			if name == "" {
 				return toReturn, nil, nil, fmt.Errorf("network name cannot be empty: %w", define.ErrInvalidArg)
 			}
-			// TODO (5.0): Don't accept string(Pasta) here once we drop pastaNetworkNameExists
-			if slices.Contains([]string{string(Bridge), string(Slirp), string(FromPod), string(NoNetwork),
+			if slices.Contains([]string{string(Bridge), string(Slirp), string(Pasta), string(FromPod), string(NoNetwork),
 				string(Default), string(Private), string(Path), string(FromContainer), string(Host)}, name) {
 				return toReturn, nil, nil, fmt.Errorf("can only set extra network names, selected mode %s conflicts with bridge: %w", name, define.ErrInvalidArg)
 			}

@@ -76,5 +76,3 @@ Valid _mode_ values are:
     - **pasta:-T,5201**: enable forwarding of TCP port 5201 from container to
         host, using the loopback interface instead of the tap interface for improved
         performance
-
-    NOTE: For backward compatibility reasons, if there is an existing network named `pasta`, Podman uses it instead of the pasta mode."?

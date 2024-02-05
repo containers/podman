@@ -15,11 +15,6 @@ If no options are provided, Podman assigns a free subnet and name for the networ
 
 Upon completion of creating the network, Podman displays the name of the newly added network.
 
-NOTE: The support for "pasta" as network *name* value is deprecated and will not be accepted in the next major
-Podman version 5.0, because it is used as a special network mode in **podman run/create --network**.
-The CNI backend is also deprecated and will also be removed in the next major Podman version 5.0, in preference
-of Netavark, see **[podman-network(1)](podman-network.1.md)** on how to change the backend.
-
 ## OPTIONS
 #### **--disable-dns**
 

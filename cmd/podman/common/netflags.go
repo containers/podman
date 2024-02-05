@@ -95,7 +95,7 @@ func DefineNetFlags(cmd *cobra.Command) {
 }
 
 // NetFlagsToNetOptions parses the network flags for the given cmd.
-func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet, pastaNetworkNameExists bool) (*entities.NetOptions, error) {
+func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet) (*entities.NetOptions, error) {
 	var (
 		err error
 	)
@@ -192,7 +192,7 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet, pastaN
 			return nil, err
 		}
 
-		ns, networks, options, err := specgen.ParseNetworkFlag(network, pastaNetworkNameExists)
+		ns, networks, options, err := specgen.ParseNetworkFlag(network)
 		if err != nil {
 			return nil, err
 		}

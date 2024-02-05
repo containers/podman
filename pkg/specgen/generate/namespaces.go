@@ -90,7 +90,7 @@ func GetDefaultNamespaceMode(nsType string, cfg *config.Config, pod *libpod.Pod)
 	case "cgroup":
 		return specgen.ParseCgroupNamespace(cfg.Containers.CgroupNS)
 	case "net":
-		ns, _, _, err := specgen.ParseNetworkFlag(nil, false)
+		ns, _, _, err := specgen.ParseNetworkFlag(nil)
 		return ns, err
 	}
 
