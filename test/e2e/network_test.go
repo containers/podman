@@ -506,8 +506,6 @@ var _ = Describe("Podman network", func() {
 	})
 
 	It("podman network create/remove macvlan", func() {
-		// Netavark currently does not do dhcp so the this test fails
-		SkipIfNetavark(podmanTest)
 		net := "macvlan" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{"network", "create", "--macvlan", "lo", net})
 		nc.WaitWithDefaultTimeout()
@@ -521,8 +519,6 @@ var _ = Describe("Podman network", func() {
 	})
 
 	It("podman network create/remove macvlan as driver (-d) no device name", func() {
-		// Netavark currently does not do dhcp so the this test fails
-		SkipIfNetavark(podmanTest)
 		net := "macvlan" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{"network", "create", "-d", "macvlan", net})
 		nc.WaitWithDefaultTimeout()
@@ -550,8 +546,6 @@ var _ = Describe("Podman network", func() {
 	for _, opt := range []string{"-o=parent=lo", "--interface-name=lo"} {
 		opt := opt
 		It(fmt.Sprintf("podman network create/remove macvlan as driver (-d) with %s", opt), func() {
-			// Netavark currently does not do dhcp so the this test fails
-			SkipIfNetavark(podmanTest)
 			net := "macvlan" + stringid.GenerateRandomID()
 			nc := podmanTest.Podman([]string{"network", "create", "-d", "macvlan", opt, net})
 			nc.WaitWithDefaultTimeout()
@@ -580,10 +574,8 @@ var _ = Describe("Podman network", func() {
 	}
 
 	It("podman network create/remove ipvlan as driver (-d) with device name", func() {
-		// Netavark currently does not support ipvlan
-		SkipIfNetavark(podmanTest)
 		net := "ipvlan" + stringid.GenerateRandomID()
-		nc := podmanTest.Podman([]string{"network", "create", "-d", "ipvlan", "-o", "parent=lo", net})
+		nc := podmanTest.Podman([]string{"network", "create", "-d", "ipvlan", "-o", "parent=lo", "--subnet", "10.0.2.0/24", net})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)
 		Expect(nc).Should(ExitCleanly())
@@ -600,8 +592,8 @@ var _ = Describe("Podman network", func() {
 
 		Expect(result).To(HaveField("Driver", "ipvlan"))
 		Expect(result).To(HaveField("NetworkInterface", "lo"))
-		Expect(result.IPAMOptions).To(HaveKeyWithValue("driver", "dhcp"))
-		Expect(result.Subnets).To(BeEmpty())
+		Expect(result.IPAMOptions).To(HaveKeyWithValue("driver", "host-local"))
+		Expect(result.Subnets).To(HaveLen(1))
 
 		nc = podmanTest.Podman([]string{"network", "rm", net})
 		nc.WaitWithDefaultTimeout()
