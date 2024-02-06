@@ -73,11 +73,9 @@ func startNetworking(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvider)
 	// GvProxy PID file path is now derived
 	cmd.PidFile = filepath.Join(runDir.GetPath(), "gvproxy.pid")
 
-	// TODO This can be re-enabled when gvisor-tap-vsock #305 is merged
-	// debug is set, we dump to a logfile as well
-	// if logrus.IsLevelEnabled(logrus.DebugLevel) {
-	// 	cmd.LogFile = filepath.Join(runDir.GetPath(), "gvproxy.log")
-	// }
+	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+		cmd.LogFile = filepath.Join(runDir.GetPath(), "gvproxy.log")
+	}
 
 	cmd.SSHPort = mc.SSH.Port
 
