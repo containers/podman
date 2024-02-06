@@ -227,6 +227,7 @@ github.com/containers/common/pkg/supplemented
 github.com/containers/common/pkg/sysinfo
 github.com/containers/common/pkg/systemd
 github.com/containers/common/pkg/timetype
+github.com/containers/common/pkg/timezone
 github.com/containers/common/pkg/umask
 github.com/containers/common/pkg/util
 github.com/containers/common/pkg/version
