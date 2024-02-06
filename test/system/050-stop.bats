@@ -77,16 +77,13 @@ load helpers
     # stop -a must print the IDs
     run_podman run -d $IMAGE top
     ctrID="$output"
-    # Output means container has set up its signal handlers
-    wait_for_output "Mem:" $ctrID
-    run_podman stop --all
+    run_podman stop -t0 --all
     is "$output" "$ctrID"
 
     # stop $input must print $input
     cname=$(random_string)
     run_podman run -d --name $cname $IMAGE top
-    wait_for_output "Mem:" $cname
-    run_podman stop $cname
+    run_podman stop -t0 $cname
     is "$output" $cname
 
     run_podman rm -t 0 -f $ctrID $cname

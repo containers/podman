@@ -248,7 +248,8 @@ var _ = Describe("Podman restart", func() {
 
 		result := podmanTest.Podman([]string{"restart", "--cidfile", tmpFile})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(ExitCleanly())
+		// FIXME - #20196: Cannot use ExitCleanly()
+		Expect(result).Should(Exit(0))
 		output := result.OutputToString()
 		Expect(output).To(ContainSubstring(cid))
 	})

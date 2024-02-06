@@ -329,7 +329,7 @@ var _ = Describe("Podman rm", func() {
 		Expect(ctr2).Should(ExitCleanly())
 		cid2 := ctr2.OutputToString()
 
-		rm := podmanTest.Podman([]string{"rm", "-fa"})
+		rm := podmanTest.Podman([]string{"rm", "-t0", "-fa"})
 		rm.WaitWithDefaultTimeout()
 		Expect(rm).Should(ExitCleanly())
 		Expect(rm.ErrorToString()).To(BeEmpty(), "rm -fa error logged")
