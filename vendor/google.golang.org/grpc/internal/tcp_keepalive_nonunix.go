@@ -1,6 +1,7 @@
+//go:build !unix
+
 /*
- *
- * Copyright 2018 gRPC authors.
+ * Copyright 2023 gRPC authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +17,13 @@
  *
  */
 
-package grpc
+package internal
 
-// Version is the current grpc version.
-const Version = "1.60.1"
+import (
+	"net"
+)
+
+// NetDialerWithTCPKeepalive returns a vanilla net.Dialer on non-unix platforms.
+func NetDialerWithTCPKeepalive() *net.Dialer {
+	return &net.Dialer{}
+}
