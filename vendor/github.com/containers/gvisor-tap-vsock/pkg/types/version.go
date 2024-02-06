@@ -45,6 +45,16 @@ func moduleVersion() string {
 		return gitArchiveVersion
 	// This will be set when building from git using make
 	case gitVersion != "":
+		if !strings.HasPrefix(gitVersion, "v") {
+			// if an annotated tag is found, the git describe string will be similar to:
+			// v0.7.2-15-g2c897d90
+			// When using shallow clones, the commit being built
+			// may not have an annotated tag in its history,
+			// `git describe` will only be the abbreviated commit hash in this case:
+			// 2c897d90
+			return fmt.Sprintf("git%s", gitVersion)
+
+		}
 		return gitVersion
 	// moduleVersionFromBuildInfo() will be set when using `go install`
 	default:

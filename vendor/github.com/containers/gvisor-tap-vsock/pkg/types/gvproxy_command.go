@@ -22,6 +22,9 @@ type GvproxyCommand struct {
 	// Map of different sockets provided by user (socket-type flag:socket)
 	sockets map[string]string
 
+	// Logfile where gvproxy should redirect logs
+	LogFile string
+
 	// File where gvproxy's pid is stored
 	PidFile string
 
@@ -177,6 +180,11 @@ func (c *GvproxyCommand) ToCmdline() []string {
 	// pid-file
 	if c.PidFile != "" {
 		args = append(args, "-pid-file", c.PidFile)
+	}
+
+	// log-file
+	if c.LogFile != "" {
+		args = append(args, "-log-file", c.LogFile)
 	}
 
 	return args
