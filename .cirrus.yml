@@ -390,7 +390,7 @@ alt_build_task:
 win_installer_task:
     name: "Verify Win Installer Build"
     alias: win_installer
-    only_if:
+    only_if:  # RHEL never releases podman windows installer binary
       $CIRRUS_TAG == '' &&
       $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
       $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
@@ -446,7 +446,7 @@ osx_alt_build_task:
     name: "OSX Cross"
     alias: osx_alt_build
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *no_rhel_release
+    only_if: *no_rhel_release  # RHEL never releases podman mac installer binary
     depends_on:
         - build
     persistent_worker: &mac_pw
@@ -722,10 +722,11 @@ podman_machine_task:
     alias: podman_machine
     # Only run for PRs and never [CI:DOCS] or [CI:BUILD]
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: &not_tag_branch_build_docs >-
-        $CIRRUS_PR != '' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
+    only_if: &machine_cron_not_tag_build_docs >-
+        ($CIRRUS_PR != '' &&
+         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
+         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
+        ) || $CIRRUS_CRON == "main"
     depends_on:
         - build
         - validate
@@ -752,7 +753,7 @@ podman_machine_task:
 podman_machine_aarch64_task:
     name: *std_name_fmt
     alias: podman_machine_aarch64
-    only_if: *not_tag_branch_build_docs
+    only_if: *machine_cron_not_tag_build_docs
     depends_on:
         - build_aarch64
         - validate_aarch64
@@ -779,7 +780,7 @@ podman_machine_windows_task:
     alias: podman_machine_windows
     # Only run for non-docs/copr PRs and non-release branch builds
     # and never for tags.  Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs
+    only_if: *machine_cron_not_tag_build_docs
     depends_on:
       - alt_build
       - build
@@ -805,7 +806,7 @@ podman_machine_windows_task:
 podman_machine_mac_task:
     name: *std_name_fmt
     alias: podman_machine_mac
-    only_if: *not_tag_branch_build_docs
+    only_if: *machine_cron_not_tag_build_docs
     depends_on:
       - osx_alt_build
       - local_integration_test
