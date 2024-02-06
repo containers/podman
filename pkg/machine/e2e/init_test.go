@@ -287,16 +287,6 @@ var _ = Describe("podman machine init", func() {
 		Expect(err).ToNot(HaveOccurred())
 		cfgpth := filepath.Join(inspectSession.outputToString(), fmt.Sprintf("%s.json", name))
 
-		inspect = inspect.withFormat("{{.Image.IgnitionFile.Path}}")
-		inspectSession, err = mb.setCmd(inspect).run()
-		Expect(err).ToNot(HaveOccurred())
-		ign := inspectSession.outputToString()
-
-		inspect = inspect.withFormat("{{.Image.ImagePath.Path}}")
-		inspectSession, err = mb.setCmd(inspect).run()
-		Expect(err).ToNot(HaveOccurred())
-		img := inspectSession.outputToString()
-
 		rm := rmMachine{}
 		removeSession, err := mb.setCmd(rm.withForce()).run()
 		Expect(err).ToNot(HaveOccurred())
@@ -317,13 +307,17 @@ var _ = Describe("podman machine init", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(session).To(Exit(125))
 
-			// ensure files created by init are cleaned up on init failure
-			_, err = os.Stat(img)
+			imageSuffix := mb.imagePath[strings.LastIndex(mb.imagePath, "/")+1:]
+			imgPath := filepath.Join(testDir, ".local", "share", "containers", "podman", "machine", "qemu", mb.name+"_"+imageSuffix)
+			_, err = os.Stat(imgPath)
 			Expect(err).To(HaveOccurred())
+
+			cfgDir := filepath.Join(testDir, ".config", "containers", "podman", "machine", testProvider.VMType().String())
 			_, err = os.Stat(cfgpth)
 			Expect(err).To(HaveOccurred())
 
-			_, err = os.Stat(ign)
+			ignPath := filepath.Join(cfgDir, mb.name+".ign")
+			_, err = os.Stat(ignPath)
 			Expect(err).To(HaveOccurred())
 		}
 	})

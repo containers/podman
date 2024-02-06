@@ -94,16 +94,6 @@ var _ = Describe("podman machine rm", func() {
 		key := inspectSession.outputToString()
 		pubkey := key + ".pub"
 
-		inspect = inspect.withFormat("{{.Image.IgnitionFile.Path}}")
-		inspectSession, err = mb.setCmd(inspect).run()
-		Expect(err).ToNot(HaveOccurred())
-		ign := inspectSession.outputToString()
-
-		inspect = inspect.withFormat("{{.Image.ImagePath.Path}}")
-		inspectSession, err = mb.setCmd(inspect).run()
-		Expect(err).ToNot(HaveOccurred())
-		img := inspectSession.outputToString()
-
 		rm := rmMachine{}
 		removeSession, err := mb.setCmd(rm.withForce().withSaveIgnition().withSaveImage()).run()
 		Expect(err).ToNot(HaveOccurred())
@@ -122,10 +112,11 @@ var _ = Describe("podman machine rm", func() {
 
 		// WSL does not use ignition
 		if testProvider.VMType() != define.WSLVirt {
-			_, err = os.Stat(ign)
+			ignPath := filepath.Join(testDir, ".config", "containers", "podman", "machine", testProvider.VMType().String(), mb.name+".ign")
+			_, err = os.Stat(ignPath)
 			Expect(err).ToNot(HaveOccurred())
 		}
-		_, err = os.Stat(img)
+		_, err = os.Stat(mb.imagePath)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
