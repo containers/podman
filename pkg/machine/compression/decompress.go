@@ -17,6 +17,7 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/define"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/archive"
+	crcos "github.com/crc-org/crc/v2/pkg/os"
 	"github.com/sirupsen/logrus"
 	"github.com/ulikunitz/xz"
 )
@@ -26,7 +27,7 @@ import (
 // called, the same uncompressed path is being opened multiple times.
 func Decompress(localPath *define.VMFile, uncompressedPath string) error {
 	var isZip bool
-	uncompressedFileWriter, err := os.OpenFile(uncompressedPath, os.O_CREATE|os.O_RDWR, 0600)
+	uncompressedFileWriter, err := os.OpenFile(uncompressedPath, os.O_CREATE|os.O_RDWR, 0o600)
 	if err != nil {
 		return err
 	}
@@ -59,7 +60,7 @@ func Decompress(localPath *define.VMFile, uncompressedPath string) error {
 			return err
 		}
 		fmt.Printf("Copying uncompressed file %q to %q/n", localPath.GetPath(), dstFile.Name())
-		_, err = CopySparse(uncompressedFileWriter, dstFile)
+		_, err = crcos.CopySparse(uncompressedFileWriter, dstFile)
 		return err
 	case archive.Gzip:
 		if runtime.GOOS == "darwin" {
@@ -271,7 +272,7 @@ func decompressGzWithSparse(prefix string, compressedPath *define.VMFile, uncomp
 	// }()
 
 	logrus.Debugf("decompressing %s", compressedPath.GetPath())
-	_, err = CopySparse(dstFile, gzReader)
+	_, err = crcos.CopySparse(dstFile, gzReader)
 	logrus.Debug("decompression complete")
 	// p.Wait()
 	return err
