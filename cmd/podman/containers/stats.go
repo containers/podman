@@ -215,7 +215,15 @@ func (s *containerStats) MemPerc() string {
 }
 
 func (s *containerStats) NetIO() string {
-	return combineHumanValues(s.NetInput, s.NetOutput)
+	var netInput uint64
+	var netOutput uint64
+
+	for _, net := range s.Network {
+		netInput += net.RxBytes
+		netOutput += net.TxBytes
+	}
+
+	return combineHumanValues(netInput, netOutput)
 }
 
 func (s *containerStats) BlockIO() string {
