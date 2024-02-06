@@ -211,6 +211,11 @@ when `%{_bindir}/%{name}sh` is set as a login shell or set as os.Args[0].
 %autosetup -Sgit -n %{name}-%{version_no_tilde}
 sed -i 's;@@PODMAN@@\;$(BINDIR);@@PODMAN@@\;%{_bindir};' Makefile
 
+# cgroups-v1 is supported on rhel9
+%if 0%{?rhel} == 9
+sed -i '/DELETE ON RHEL9/,/DELETE ON RHEL9/d' libpod/runtime.go
+%endif
+
 # These changes are only meant for copr builds
 %if %{defined copr_build}
 # podman --version should show short sha

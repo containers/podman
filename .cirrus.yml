@@ -123,6 +123,9 @@ build_task:
               DISTRO_NV: ${DEBIAN_NAME}
               VM_IMAGE_NAME: ${DEBIAN_CACHE_IMAGE_NAME}
               CI_DESIRED_RUNTIME: runc
+              CI_DESIRED_NETWORK: netavark
+              # Ignore cgroups-v1 warnings on debian
+              PODMAN_IGNORE_CGROUPSV1_WARNING: true
     env:
         TEST_FLAVOR: build
     # NOTE: The default way Cirrus-CI clones is *NOT* compatible with

@@ -88,6 +88,11 @@ verify_iid_and_name() {
         skip "impossible due to pitfalls in our SSH implementation"
     fi
 
+    # See https://github.com/containers/podman/pull/21431
+    if [[ -n "$PODMAN_IGNORE_CGROUPSV1_WARNING" ]]; then
+        skip "impossible to test due to pitfalls in our SSH implementation"
+    fi
+
     # The testing is the same whether we're root or rootless; all that
     # differs is the destination (not-me) username.
     if is_rootless; then
