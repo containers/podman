@@ -61,7 +61,7 @@ func (d *DiskFromURL) Get() error {
 	if err := d.pull(); err != nil {
 		return err
 	}
-	logrus.Debugf("decompressing %s to %s", d.tempLocation.GetPath(), d.finalPath.GetPath())
+	logrus.Debugf("decompressing (if needed) %s to %s", d.tempLocation.GetPath(), d.finalPath.GetPath())
 	return compression.Decompress(d.tempLocation, d.finalPath.GetPath())
 }
 

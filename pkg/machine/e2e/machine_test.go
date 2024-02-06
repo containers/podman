@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -96,9 +97,11 @@ var _ = BeforeSuite(func() {
 			if err != nil {
 				Fail(fmt.Sprintf("unable to create vmfile %q: %v", fqImageName+compressionExtension, err))
 			}
+			compressionStart := time.Now()
 			if err := compression.Decompress(diskImage, fqImageName); err != nil {
 				Fail(fmt.Sprintf("unable to decompress image file: %q", err))
 			}
+			GinkgoWriter.Println("compression took: ", time.Since(compressionStart))
 		} else {
 			Fail(fmt.Sprintf("unable to check for cache image: %q", err))
 		}
@@ -140,20 +143,34 @@ func setup() (string, *machineTestBuilder) {
 	if err != nil {
 		Fail(fmt.Sprintf("failed to create machine test: %q", err))
 	}
-	f, err := os.Open(fqImageName)
+	src, err := os.Open(fqImageName)
 	if err != nil {
 		Fail(fmt.Sprintf("failed to open file %s: %q", fqImageName, err))
 	}
+	defer func() {
+		if err := src.Close(); err != nil {
+			Fail(fmt.Sprintf("failed to close src reader %q: %q", src.Name(), err))
+		}
+	}()
 	mb.imagePath = filepath.Join(homeDir, suiteImageName)
-	n, err := os.Create(mb.imagePath)
+	dest, err := os.Create(mb.imagePath)
 	if err != nil {
 		Fail(fmt.Sprintf("failed to create file %s: %q", mb.imagePath, err))
 	}
-	if _, err := io.Copy(n, f); err != nil {
-		Fail(fmt.Sprintf("failed to copy %ss to %s: %q", fqImageName, mb.imagePath, err))
-	}
-	if err := n.Close(); err != nil {
-		Fail(fmt.Sprintf("failed to close image copy handler: %q", err))
+	defer func() {
+		if err := dest.Close(); err != nil {
+			Fail(fmt.Sprintf("failed to close destination file %q: %q", dest.Name(), err))
+		}
+	}()
+	fmt.Printf("--> copying %q to %q/n", src.Name(), dest.Name())
+	if runtime.GOOS != "darwin" {
+		if _, err := io.Copy(dest, src); err != nil {
+			Fail(fmt.Sprintf("failed to copy %ss to %s: %q", fqImageName, mb.imagePath, err))
+		}
+	} else {
+		if _, err := compression.CopySparse(dest, src); err != nil {
+			Fail(fmt.Sprintf("failed to copy %q to %q: %q", src.Name(), dest.Name(), err))
+		}
 	}
 	return homeDir, mb
 }

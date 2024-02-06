@@ -26,6 +26,6 @@ func (s *StdDiskPull) Get() error {
 		// could not find disk
 		return err
 	}
-	logrus.Debugf("decompressing %s to %s", s.inputPath.GetPath(), s.finalPath.GetPath())
+	logrus.Debugf("decompressing (if needed) %s to %s", s.inputPath.GetPath(), s.finalPath.GetPath())
 	return compression.Decompress(s.inputPath, s.finalPath.GetPath())
 }
