@@ -1099,7 +1099,6 @@ success_task:
         - podman_machine
         - podman_machine_aarch64
         #- podman_machine_windows
-        # TODO: Issue #20853; Tests mostly fail then timeout after an hour.
         - podman_machine_mac
         - local_system_test
         - local_system_test_aarch64
