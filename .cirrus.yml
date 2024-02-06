@@ -105,13 +105,11 @@ build_task:
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
               # ID for re-use of build output
               CI_DESIRED_RUNTIME: crun
-              CI_DESIRED_NETWORK: netavark
         - env:
               DISTRO_NV: ${PRIOR_FEDORA_NAME}
               VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
               CI_DESIRED_RUNTIME: crun
-              CI_DESIRED_NETWORK: cni
               CI_DESIRED_DATABASE: boltdb
               CI_DESIRED_STORAGE: vfs
               # Catch invalid "TMPDIR == /tmp" assumptions; PR #19281
@@ -125,7 +123,6 @@ build_task:
               DISTRO_NV: ${DEBIAN_NAME}
               VM_IMAGE_NAME: ${DEBIAN_CACHE_IMAGE_NAME}
               CI_DESIRED_RUNTIME: runc
-              CI_DESIRED_NETWORK: netavark
     env:
         TEST_FLAVOR: build
     # NOTE: The default way Cirrus-CI clones is *NOT* compatible with
@@ -186,7 +183,6 @@ build_aarch64_task:
         VM_IMAGE_NAME: ${FEDORA_AARCH64_AMI}
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
         CI_DESIRED_RUNTIME: crun
-        CI_DESIRED_NETWORK: netavark
         TEST_FLAVOR: build
     clone_script: *full_clone
     prebuild_script: *prebuild
@@ -682,13 +678,11 @@ container_integration_test_task:
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
               CI_DESIRED_RUNTIME: crun
-              CI_DESIRED_NETWORK: netavark
         - env:
               DISTRO_NV: ${PRIOR_FEDORA_NAME}
               VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
               CI_DESIRED_RUNTIME: crun
-              CI_DESIRED_NETWORK: cni
               CI_DESIRED_DATABASE: boltdb
     gce_instance: *standardvm
     timeout_in: 50m
@@ -746,7 +740,6 @@ podman_machine_task:
       PRIV_NAME: "rootless"  # intended use-case
       DISTRO_NV: "${FEDORA_NAME}"
       VM_IMAGE_NAME: "${FEDORA_AMI}"
-      CI_DESIRED_NETWORK: netavark
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
@@ -772,7 +765,6 @@ podman_machine_aarch64_task:
         PRIV_NAME: "rootless"  # intended use-case
         DISTRO_NV: "${FEDORA_AARCH64_NAME}"
         VM_IMAGE_NAME: "${FEDORA_AARCH64_AMI}"
-        CI_DESIRED_NETWORK: netavark
     clone_script: *get_gosrc_aarch64
     setup_script: *setup
     main_script: *main
@@ -922,7 +914,6 @@ rootless_remote_system_test_task:
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
               CI_DESIRED_RUNTIME: crun
-              CI_DESIRED_NETWORK: netavark
     <<: *local_system_test_task
     alias: rootless_remote_system_test
     gce_instance: *standardvm
@@ -1007,37 +998,6 @@ buildah_bud_test_task:
     main_script: *main
     always: *int_logs_artifacts
 
-upgrade_test_task:
-    name: "Upgrade test: from $PODMAN_UPGRADE_FROM"
-    alias: upgrade_test
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_magic
-    depends_on:
-        - build
-        - local_system_test
-    matrix:
-        - env:
-              PODMAN_UPGRADE_FROM: v2.1.1
-              CI_DESIRED_NETWORK: cni
-        - env:
-              PODMAN_UPGRADE_FROM: v3.1.2
-              CI_DESIRED_NETWORK: cni
-        - env:
-              PODMAN_UPGRADE_FROM: v3.4.4
-              CI_DESIRED_NETWORK: cni
-    gce_instance: *standardvm
-    env:
-        TEST_FLAVOR: upgrade_test
-        DISTRO_NV: ${FEDORA_NAME}
-        VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-        # FIXME: remove this once we have VMs with podman >= 4.8
-        CI_DESIRED_DATABASE: boltdb
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always: *logs_artifacts
-
-
 # This task is critical.  It updates the "last-used by" timestamp stored
 # in metadata for all VM images.  This mechanism functions in tandem with
 # an out-of-band pruning operation to remove disused VM images.
@@ -1111,7 +1071,6 @@ success_task:
         - minikube_test
         - farm_test
         - buildah_bud_test
-        - upgrade_test
         - meta
     container: &smallcontainer
         image: ${CTR_FQIN}

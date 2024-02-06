@@ -125,10 +125,6 @@ while :;do
         echo STOPPING
         podman \$opts stop -t 0 myrunningcontainer || true
         podman \$opts rm -f     myrunningcontainer || true
-        # sigh, network rm fails with exec: "ip": executable file not found in $PATH
-        # we cannot change the images afterwards so we remove it manually (#11403)
-        # hardcode /etc/cni/net.d dir for now
-        podman \$opts network rm -f mynetwork || rm -f /etc/cni/net.d/mynetwork.conflist
         exit 0
     fi
     sleep 0.5
@@ -143,10 +139,7 @@ EOF
     # Also use --network host to prevent any netavark/cni conflicts
     $PODMAN run --rm --network host $OLD_PODMAN true
 
-    # Podman 4.0 might no longer use cni so /run/cni and /run/containers will no be created in this case
-    # Create directories manually to fix this. Also running with netavark can
-    # cause connectivity issues since cni and netavark should never be mixed.
-    mkdir -p /run/netns /run/cni /run/containers /var/lib/cni /etc/cni/net.d
+    mkdir -p /run/netns
 
     # Containers-common around release 1-55 no-longer supplies this file
     sconf=/etc/containers/storage.conf
@@ -165,7 +158,6 @@ EOF
     #
     # mount /etc/containers/storage.conf to use the same storage settings as on the host
     # mount /dev/shm because the container locks are stored there
-    # mount /var/lib/cni, /run/cni and /etc/cni/net.d for cni networking
     # mount /run/containers for the dnsname plugin
     #
     $PODMAN run -d --name podman_parent --pid=host \
@@ -178,9 +170,6 @@ EOF
             -v /run/crun:/run/crun \
             -v /run/netns:/run/netns:rshared \
             -v /run/containers:/run/containers \
-            -v /run/cni:/run/cni \
-            -v /var/lib/cni:/var/lib/cni \
-            -v /etc/cni/net.d:/etc/cni/net.d \
             -v /dev/shm:/dev/shm \
             -v $pmroot:$pmroot:rshared \
             $OLD_PODMAN $pmroot/setup
@@ -200,10 +189,8 @@ EOF
 }
 
 @test "info" {
-    # check network backend, since this is an old version we should use CNI
-    # when we start testing from 4.0 we should have netavark as backend
     run_podman info --format '{{.Host.NetworkBackend}}'
-    is "$output" "cni" "correct network backend"
+    is "$output" "netavark" "correct network backend"
 }
 
 @test "images" {

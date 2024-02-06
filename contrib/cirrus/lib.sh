@@ -95,7 +95,7 @@ EPOCH_TEST_COMMIT="$CIRRUS_BASE_SHA"
 # contexts, such as host->container or root->rootless user
 #
 # List of envariables which must be EXACT matches
-PASSTHROUGH_ENV_EXACT='CGROUP_MANAGER|DEST_BRANCH|DISTRO_NV|GOCACHE|GOPATH|GOSRC|NETWORK_BACKEND|OCI_RUNTIME|ROOTLESS_USER|SCRIPT_BASE|SKIP_USERNS|EC2_INST_TYPE|PODMAN_DB|STORAGE_FS'
+PASSTHROUGH_ENV_EXACT='CGROUP_MANAGER|DEST_BRANCH|DISTRO_NV|GOCACHE|GOPATH|GOSRC|OCI_RUNTIME|ROOTLESS_USER|SCRIPT_BASE|SKIP_USERNS|EC2_INST_TYPE|PODMAN_DB|STORAGE_FS'
 
 # List of envariable patterns which must match AT THE BEGINNING of the name.
 PASSTHROUGH_ENV_ATSTART='CI|LANG|LC_|TEST'
@@ -200,61 +200,6 @@ setup_rootless() {
 install_test_configs() {
     msg "Installing ./test/registries.conf system-wide."
     install -v -D -m 644 ./test/registries.conf /etc/containers/
-}
-
-use_cni() {
-    req_env_vars OS_RELEASE_ID PACKAGE_DOWNLOAD_DIR SCRIPT_BASE
-    # Defined by common automation library
-    # shellcheck disable=SC2154
-    if [[ "$OS_RELEASE_ID" =~ "debian" ]]; then
-        # Supporting it involves swapping the rpm & dnf commands below
-        die "Testing debian w/ CNI networking currently not supported"
-    fi
-
-    msg "Forcing NETWORK_BACKEND=cni for all subsequent environments."
-    echo "NETWORK_BACKEND=cni" >> /etc/ci_environment
-    export NETWORK_BACKEND=cni
-    # While it's possible a user may want both installed, for CNI CI testing
-    # purposes we only care about backward-compatibility, not forward.
-    # If both CNI & netavark are present, in some situations where --root
-    # is used it's possible for podman to pick the "wrong" networking stack.
-    msg "Force-removing netavark and aardvark-dns"
-    # Other packages depend on nv/av, but we're testing with podman
-    # binaries built from source, so it's safe to ignore these deps.
-    #
-    # Do not fail when netavark and aardvark-dns are not installed.
-    for pkg in aardvark-dns netavark
-    do
-        [ -z "$(rpm -qa | grep $pkg)" ] && echo "$pkg not installed" || rpm -e --nodeps $pkg
-    done
-    msg "Installing default CNI configuration"
-    showrun dnf install -y $PACKAGE_DOWNLOAD_DIR/podman-plugins*
-    cd $GOSRC || exit 1
-    rm -rvf /etc/cni/net.d
-    mkdir -p /etc/cni/net.d
-    showrun install -v -D -m 644 ./cni/87-podman-bridge.conflist \
-        /etc/cni/net.d/
-    # This config must always sort last in the list of networks (podman picks
-    # first one as the default).  This config prevents allocation of network
-    # address space used by default in google cloud.
-    # https://cloud.google.com/vpc/docs/vpc#ip-ranges
-    showrun install -v -D -m 644 $SCRIPT_BASE/99-do-not-use-google-subnets.conflist \
-        /etc/cni/net.d/
-}
-
-use_netavark() {
-    req_env_vars OS_RELEASE_ID PRIOR_FEDORA_NAME DISTRO_NV
-    local magickind repokind
-    msg "Unsetting NETWORK_BACKEND for all subsequent environments."
-    echo "export -n NETWORK_BACKEND" >> /etc/ci_environment
-    echo "unset NETWORK_BACKEND" >> /etc/ci_environment
-    export -n NETWORK_BACKEND
-    unset NETWORK_BACKEND
-    msg "Removing any/all CNI configuration"
-    showrun rm -rvf /etc/cni/net.d/*
-    # N/B: The CNI packages are still installed and available. This is
-    # on purpose, since CI needs to verify the selection mechanisms are
-    # functional when both are available.
 }
 
 # Remove all files provided by the distro version of podman.
