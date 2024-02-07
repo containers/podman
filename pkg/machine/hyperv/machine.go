@@ -16,6 +16,7 @@ import (
 
 	"github.com/Microsoft/go-winio"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/strongunits"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/libhvee/pkg/hypervctl"
 	"github.com/containers/podman/v4/pkg/machine"
@@ -23,7 +24,6 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/hyperv/vsock"
 	"github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
-	"github.com/containers/podman/v4/pkg/strongunits"
 	"github.com/containers/podman/v4/pkg/systemd/parser"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/lockfile"

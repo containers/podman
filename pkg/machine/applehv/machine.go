@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/strongunits"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/applehv/vfkit"
@@ -25,7 +26,6 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/containers/podman/v4/pkg/machine/sockets"
 	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
-	"github.com/containers/podman/v4/pkg/strongunits"
 	"github.com/containers/podman/v4/pkg/systemd/parser"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/lockfile"
@@ -573,7 +573,7 @@ func (m *MacMachine) Start(name string, opts machine.StartOptions) error {
 	}
 
 	if _, err := m.getRuntimeDir(); err != nil {
-	     return err
+		return err
 	}
 
 	// TODO handle returns from startHostNetworking

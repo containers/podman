@@ -4,24 +4,28 @@ import (
 	"github.com/containers/image/v5/manifest"
 )
 
-// ManifestListDescriptor references a platform-specific manifest.
-// Contains exclusive field like `annotations` which is only present in
-// OCI spec and not in docker image spec.
+// ManifestListDescriptor describes a manifest that is mentioned in an
+// image index or manifest list.
+// Contains a subset of the fields which are present in both the OCI spec and
+// the Docker spec, along with some which are unique to one or the other.
 type ManifestListDescriptor struct {
 	manifest.Schema2Descriptor
-	Platform manifest.Schema2PlatformSpec `json:"platform"`
-	// Annotations contains arbitrary metadata for the image index.
-	Annotations map[string]string `json:"annotations,omitempty"`
+	Platform     manifest.Schema2PlatformSpec `json:"platform,omitempty"`
+	Annotations  map[string]string            `json:"annotations,omitempty"`
+	ArtifactType string                       `json:"artifactType,omitempty"`
+	Data         []byte                       `json:"data,omitempty"`
+	Files        []string                     `json:"files,omitempty"`
 }
 
 // ManifestListData is a list of platform-specific manifests, specifically used to
 // generate output struct for `podman manifest inspect`. Reason for maintaining and
-// having this type is to ensure we can have a common type which contains exclusive
+// having this type is to ensure we can have a single type which contains exclusive
 // fields from both Docker manifest format and OCI manifest format.
 type ManifestListData struct {
 	SchemaVersion int                      `json:"schemaVersion"`
 	MediaType     string                   `json:"mediaType"`
+	ArtifactType  string                   `json:"artifactType,omitempty"`
 	Manifests     []ManifestListDescriptor `json:"manifests"`
-	// Annotations contains arbitrary metadata for the image index.
-	Annotations map[string]string `json:"annotations,omitempty"`
+	Subject       *ManifestListDescriptor  `json:"subject,omitempty"`
+	Annotations   map[string]string        `json:"annotations,omitempty"`
 }

@@ -18,6 +18,8 @@ import (
 	"github.com/containers/storage"
 	structcopier "github.com/jinzhu/copier"
 	"github.com/opencontainers/go-digest"
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"golang.org/x/exp/slices"
 )
 
 // NOTE: the abstractions and APIs here are a first step to further merge
@@ -221,17 +223,73 @@ func (i *Image) IsManifestList(ctx context.Context) (bool, error) {
 // Inspect returns a dockerized version of the manifest list.
 func (m *ManifestList) Inspect() (*define.ManifestListData, error) {
 	inspectList := define.ManifestListData{}
+	// Copy the fields from the Docker-format version of the list.
 	dockerFormat := m.list.Docker()
 	err := structcopier.Copy(&inspectList, &dockerFormat)
 	if err != nil {
 		return &inspectList, err
 	}
-	// Get missing annotation field from OCIv1 Spec
-	// and populate inspect data.
+	// Get OCI-specific fields from the OCIv1-format version of the list
+	// and copy them to the inspect data.
 	ociFormat := m.list.OCIv1()
+	inspectList.ArtifactType = ociFormat.ArtifactType
 	inspectList.Annotations = ociFormat.Annotations
 	for i, manifest := range ociFormat.Manifests {
 		inspectList.Manifests[i].Annotations = manifest.Annotations
+		inspectList.Manifests[i].ArtifactType = manifest.ArtifactType
+		if manifest.URLs != nil {
+			inspectList.Manifests[i].URLs = slices.Clone(manifest.URLs)
+		}
+		inspectList.Manifests[i].Data = manifest.Data
+		inspectList.Manifests[i].Files, err = m.list.Files(manifest.Digest)
+		if err != nil {
+			return &inspectList, err
+		}
+	}
+	if ociFormat.Subject != nil {
+		platform := ociFormat.Subject.Platform
+		if platform == nil {
+			platform = &imgspecv1.Platform{}
+		}
+		var osFeatures []string
+		if platform.OSFeatures != nil {
+			osFeatures = slices.Clone(platform.OSFeatures)
+		}
+		inspectList.Subject = &define.ManifestListDescriptor{
+			Platform: manifest.Schema2PlatformSpec{
+				OS:           platform.OS,
+				Architecture: platform.Architecture,
+				OSVersion:    platform.OSVersion,
+				Variant:      platform.Variant,
+				OSFeatures:   osFeatures,
+			},
+			Schema2Descriptor: manifest.Schema2Descriptor{
+				MediaType: ociFormat.Subject.MediaType,
+				Digest:    ociFormat.Subject.Digest,
+				Size:      ociFormat.Subject.Size,
+				URLs:      ociFormat.Subject.URLs,
+			},
+			Annotations:  ociFormat.Subject.Annotations,
+			ArtifactType: ociFormat.Subject.ArtifactType,
+			Data:         ociFormat.Subject.Data,
+		}
+	}
+	// Set MediaType to mirror the value we'd use when saving the list
+	// using defaults, instead of forcing it to one or the other by
+	// using the value from one version or the other that we explicitly
+	// requested above.
+	serialized, err := m.list.Serialize("")
+	if err != nil {
+		return &inspectList, err
+	}
+	var typed struct {
+		MediaType string `json:"mediaType,omitempty"`
+	}
+	if err := json.Unmarshal(serialized, &typed); err != nil {
+		return &inspectList, err
+	}
+	if typed.MediaType != "" {
+		inspectList.MediaType = typed.MediaType
 	}
 	return &inspectList, nil
 }
