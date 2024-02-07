@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/secrets"
-	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/stretchr/testify/assert"
 )
 

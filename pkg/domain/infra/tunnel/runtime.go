@@ -6,8 +6,8 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/containers/podman/v4/libpod/define"
-	"github.com/containers/podman/v4/pkg/signal"
+	"github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/podman/v5/pkg/signal"
 	"github.com/sirupsen/logrus"
 )
 

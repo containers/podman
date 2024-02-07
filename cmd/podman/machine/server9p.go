@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/completion"
-	"github.com/containers/podman/v4/cmd/podman/registry"
-	"github.com/containers/podman/v4/pkg/fileserver"
+	"github.com/containers/podman/v5/cmd/podman/registry"
+	"github.com/containers/podman/v5/pkg/fileserver"
 	psutil "github.com/shirou/gopsutil/v3/process"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

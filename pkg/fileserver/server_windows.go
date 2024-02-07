@@ -3,7 +3,7 @@ package fileserver
 import (
 	"fmt"
 
-	"github.com/containers/podman/v4/pkg/fileserver/plan9"
+	"github.com/containers/podman/v5/pkg/fileserver/plan9"
 	"github.com/linuxkit/virtsock/pkg/hvsock"
 	"github.com/sirupsen/logrus"
 )

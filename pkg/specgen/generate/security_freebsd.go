@@ -5,8 +5,8 @@ package generate
 import (
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/podman/v4/libpod"
-	"github.com/containers/podman/v4/pkg/specgen"
+	"github.com/containers/podman/v5/libpod"
+	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/opencontainers/runtime-tools/generate"
 )
 

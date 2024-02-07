@@ -9,8 +9,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/podman/v4/pkg/bindings"
-	"github.com/containers/podman/v4/pkg/bindings/images"
+	"github.com/containers/podman/v5/pkg/bindings"
+	"github.com/containers/podman/v5/pkg/bindings/images"
 	"github.com/containers/storage/pkg/regexp"
 	dockerAPI "github.com/docker/docker/api/types"
 )

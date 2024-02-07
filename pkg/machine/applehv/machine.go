@@ -8,11 +8,11 @@ import (
 	"syscall"
 
 	"github.com/containers/common/pkg/strongunits"
-	"github.com/containers/podman/v4/pkg/machine"
-	"github.com/containers/podman/v4/pkg/machine/define"
-	"github.com/containers/podman/v4/pkg/machine/ignition"
-	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
-	"github.com/containers/podman/v4/pkg/systemd/parser"
+	"github.com/containers/podman/v5/pkg/machine"
+	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/ignition"
+	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v5/pkg/systemd/parser"
 	vfRest "github.com/crc-org/vfkit/pkg/rest"
 	"github.com/sirupsen/logrus"
 )

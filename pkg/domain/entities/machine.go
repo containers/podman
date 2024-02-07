@@ -1,6 +1,6 @@
 package entities
 
-import "github.com/containers/podman/v4/libpod/define"
+import "github.com/containers/podman/v5/libpod/define"
 
 type ListReporter struct {
 	Name               string

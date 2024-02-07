@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

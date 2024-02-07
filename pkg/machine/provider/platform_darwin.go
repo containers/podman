@@ -5,9 +5,9 @@ import (
 	"os"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/podman/v4/pkg/machine/applehv"
-	"github.com/containers/podman/v4/pkg/machine/define"
-	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v5/pkg/machine/applehv"
+	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/sirupsen/logrus"
 )
 

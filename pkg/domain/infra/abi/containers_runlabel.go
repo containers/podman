@@ -10,10 +10,10 @@ import (
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/podman/v4/libpod/define"
-	"github.com/containers/podman/v4/pkg/domain/entities"
-	envLib "github.com/containers/podman/v4/pkg/env"
-	"github.com/containers/podman/v4/utils"
+	"github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/podman/v5/pkg/domain/entities"
+	envLib "github.com/containers/podman/v5/pkg/env"
+	"github.com/containers/podman/v5/utils"
 	"github.com/google/shlex"
 	"github.com/sirupsen/logrus"
 )

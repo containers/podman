@@ -3,7 +3,7 @@ package machine
 import (
 	"strings"
 
-	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 )
 
 type Volume interface {

@@ -13,7 +13,7 @@ import (
 
 	"github.com/containers/buildah/pkg/jail"
 	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
 )

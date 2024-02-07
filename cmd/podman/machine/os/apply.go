@@ -3,12 +3,12 @@
 package os
 
 import (
-	"github.com/containers/podman/v4/cmd/podman/common"
-	"github.com/containers/podman/v4/cmd/podman/machine"
-	"github.com/containers/podman/v4/cmd/podman/registry"
-	"github.com/containers/podman/v4/cmd/podman/validate"
-	"github.com/containers/podman/v4/pkg/machine/os"
-	provider2 "github.com/containers/podman/v4/pkg/machine/provider"
+	"github.com/containers/podman/v5/cmd/podman/common"
+	"github.com/containers/podman/v5/cmd/podman/machine"
+	"github.com/containers/podman/v5/cmd/podman/registry"
+	"github.com/containers/podman/v5/cmd/podman/validate"
+	"github.com/containers/podman/v5/pkg/machine/os"
+	provider2 "github.com/containers/podman/v5/pkg/machine/provider"
 	"github.com/spf13/cobra"
 )
 

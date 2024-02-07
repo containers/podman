@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/define"
 )
 
 // defaultQMPTimeout is the timeout duration for the

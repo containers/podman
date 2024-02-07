@@ -7,10 +7,10 @@ import (
 	"strconv"
 
 	"github.com/containers/common/pkg/cgroups"
-	"github.com/containers/podman/v4/libpod"
-	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/containers/podman/v4/pkg/rootless"
-	"github.com/containers/podman/v4/utils"
+	"github.com/containers/podman/v5/libpod"
+	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/containers/podman/v5/pkg/rootless"
+	"github.com/containers/podman/v5/utils"
 	"github.com/docker/go-units"
 )
 

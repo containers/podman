@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/containers/podman/v4/pkg/machine/connection"
+	"github.com/containers/podman/v5/pkg/machine/connection"
 	"github.com/stretchr/testify/assert"
 )
 

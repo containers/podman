@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v4/pkg/machine/define"
-	"github.com/containers/podman/v4/utils"
+	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"

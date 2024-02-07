@@ -10,13 +10,13 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/util"
-	"github.com/containers/podman/v4/pkg/machine"
-	"github.com/containers/podman/v4/pkg/machine/connection"
-	machineDefine "github.com/containers/podman/v4/pkg/machine/define"
-	"github.com/containers/podman/v4/pkg/machine/ignition"
-	"github.com/containers/podman/v4/pkg/machine/ocipull"
-	"github.com/containers/podman/v4/pkg/machine/stdpull"
-	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v5/pkg/machine"
+	"github.com/containers/podman/v5/pkg/machine/connection"
+	machineDefine "github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/ignition"
+	"github.com/containers/podman/v5/pkg/machine/ocipull"
+	"github.com/containers/podman/v5/pkg/machine/stdpull"
+	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/sirupsen/logrus"
 )
 

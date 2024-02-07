@@ -11,16 +11,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v4/pkg/machine/ignition"
+	"github.com/containers/podman/v5/pkg/machine/ignition"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/strongunits"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
-	"github.com/containers/podman/v4/pkg/machine"
-	"github.com/containers/podman/v4/pkg/machine/define"
-	"github.com/containers/podman/v4/pkg/machine/qemu/command"
-	"github.com/containers/podman/v4/pkg/machine/sockets"
-	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v5/pkg/machine"
+	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/qemu/command"
+	"github.com/containers/podman/v5/pkg/machine/sockets"
+	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/sirupsen/logrus"
 )
 

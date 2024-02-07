@@ -14,8 +14,8 @@ import (
 	"strings"
 
 	"github.com/containers/image/v5/pkg/compression"
-	"github.com/containers/podman/v4/pkg/machine/define"
-	"github.com/containers/podman/v4/utils"
+	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/utils"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/sirupsen/logrus"
 	"github.com/ulikunitz/xz"

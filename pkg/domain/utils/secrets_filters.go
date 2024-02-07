@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/secrets"
-	"github.com/containers/podman/v4/pkg/util"
+	"github.com/containers/podman/v5/pkg/util"
 )
 
 func IfPassesSecretsFilter(s secrets.Secret, filters map[string][]string) (bool, error) {

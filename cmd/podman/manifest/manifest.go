@@ -1,8 +1,8 @@
 package manifest
 
 import (
-	"github.com/containers/podman/v4/cmd/podman/registry"
-	"github.com/containers/podman/v4/cmd/podman/validate"
+	"github.com/containers/podman/v5/cmd/podman/registry"
+	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/spf13/cobra"
 )
 

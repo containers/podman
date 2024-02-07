@@ -3,8 +3,8 @@ package integration
 import (
 	"fmt"
 
-	. "github.com/containers/podman/v4/test/utils"
-	"github.com/containers/podman/v4/version"
+	. "github.com/containers/podman/v5/test/utils"
+	"github.com/containers/podman/v5/version"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"

@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/containers/podman/v4/pkg/bindings"
-	"github.com/containers/podman/v4/pkg/copy"
-	"github.com/containers/podman/v4/pkg/domain/entities/types"
+	"github.com/containers/podman/v5/pkg/bindings"
+	"github.com/containers/podman/v5/pkg/copy"
+	"github.com/containers/podman/v5/pkg/domain/entities/types"
 )
 
 // Stat checks if the specified path is on the container.  Note that the stat

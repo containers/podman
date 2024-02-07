@@ -1,7 +1,7 @@
 package entities
 
 import (
-	"github.com/containers/podman/v4/pkg/domain/entities/types"
+	"github.com/containers/podman/v5/pkg/domain/entities/types"
 )
 
 // GenerateSystemdOptions control the generation of systemd unit files.

@@ -9,10 +9,10 @@ import (
 	"strings"
 
 	machineconfig "github.com/containers/common/pkg/machine"
-	pkgMachine "github.com/containers/podman/v4/pkg/machine"
-	pkgOS "github.com/containers/podman/v4/pkg/machine/os"
-	"github.com/containers/podman/v4/pkg/machine/provider"
-	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
+	pkgMachine "github.com/containers/podman/v5/pkg/machine"
+	pkgOS "github.com/containers/podman/v5/pkg/machine/os"
+	"github.com/containers/podman/v5/pkg/machine/provider"
+	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 )
 
 type ManagerOpts struct {

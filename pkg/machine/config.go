@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v4/pkg/machine/compression"
-	"github.com/containers/podman/v4/pkg/machine/define"
-	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v5/pkg/machine/compression"
+	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"

@@ -9,7 +9,7 @@ import (
 	"github.com/containers/image/v5/signature/signer"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
-	entitiesTypes "github.com/containers/podman/v4/pkg/domain/entities/types"
+	entitiesTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"

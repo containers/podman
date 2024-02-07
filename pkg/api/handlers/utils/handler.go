@@ -14,8 +14,8 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 
-	"github.com/containers/podman/v4/pkg/api/handlers/utils/apiutil"
-	api "github.com/containers/podman/v4/pkg/api/types"
+	"github.com/containers/podman/v5/pkg/api/handlers/utils/apiutil"
+	api "github.com/containers/podman/v5/pkg/api/types"
 )
 
 // IsLibpodRequest returns true if the request related to a libpod endpoint

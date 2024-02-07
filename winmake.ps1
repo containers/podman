@@ -6,9 +6,9 @@ function Podman-Remote{
     New-Item -ItemType Directory -Force -Path "./bin/windows"
 
     $buildInfo = Get-Date -UFormat %s -Millisecond 0
-    $buildInfo = "-X github.com/containers/podman/v4/libpod/define.buildInfo=$buildInfo "
+    $buildInfo = "-X github.com/containers/podman/v5/libpod/define.buildInfo=$buildInfo "
     $commit = Git-Commit
-    $commit = "-X github.com/containers/podman/v4/libpod/define.gitCommit=$commit "
+    $commit = "-X github.com/containers/podman/v5/libpod/define.gitCommit=$commit "
 
     Run-Command "go build --ldflags `"$commit $buildInfo `" --tags `"$remotetags`" --o ./bin/windows/podman.exe ./cmd/podman/."
 }

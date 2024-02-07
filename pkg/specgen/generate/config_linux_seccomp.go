@@ -10,8 +10,8 @@ import (
 
 	"github.com/containers/common/libimage"
 	goSeccomp "github.com/containers/common/pkg/seccomp"
-	"github.com/containers/podman/v4/pkg/seccomp"
-	"github.com/containers/podman/v4/pkg/specgen"
+	"github.com/containers/podman/v5/pkg/seccomp"
+	"github.com/containers/podman/v5/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
