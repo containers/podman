@@ -11,7 +11,7 @@ import (
 	"github.com/containers/storage/pkg/ioutils"
 )
 
-const connectionsFile = "podman-connections.conf"
+const connectionsFile = "podman-connections.json"
 
 // connectionsConfigFile returns the path to the rw connections config file
 func connectionsConfigFile() (string, error) {

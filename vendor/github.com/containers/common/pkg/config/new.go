@@ -78,19 +78,8 @@ func newLocked(options *Options) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("finding config on system: %w", err)
 	}
-	// connectionsPath, err := connectionsConfigFile()
-	// if err != nil {
-	// 	return nil, err
-	// }
 
 	for _, path := range configs {
-		// var dests []*Destination
-		// if path == connectionsPath {
-		// 	// Store the dest pointers so we know after the load if there are new pointers
-		// 	// the connection changed and thus is read write.
-		// 	dests = maps.Values(config.Engine.ServiceDestinations)
-		// }
-
 		// Merge changes in later configs with the previous configs.
 		// Each config file that specified fields, will override the
 		// previous fields.
@@ -99,13 +88,6 @@ func newLocked(options *Options) (*Config, error) {
 		}
 		logrus.Debugf("Merged system config %q", path)
 		logrus.Tracef("%+v", config)
-
-		// // if there is a new dest now we know it is read write as it was in the connections.conf file
-		// for _, dest := range config.Engine.ServiceDestinations {
-		// 	if !slices.Contains(dests, dest) {
-		// 		dest.ReadWrite = true
-		// 	}
-		// }
 	}
 
 	modules, err := options.modules()

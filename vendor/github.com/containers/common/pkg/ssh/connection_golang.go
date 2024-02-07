@@ -99,7 +99,7 @@ func golangConnectionDial(options ConnectionDialOptions) (*ConnectionDialReport,
 	return &ConnectionDialReport{dial}, nil
 }
 
-func golangConnectionExec(options ConnectionExecOptions) (*ConnectionExecReport, error) {
+func golangConnectionExec(options ConnectionExecOptions, input io.Reader) (*ConnectionExecReport, error) {
 	if !strings.HasPrefix(options.Host, "ssh://") {
 		options.Host = "ssh://" + options.Host
 	}
@@ -117,7 +117,7 @@ func golangConnectionExec(options ConnectionExecOptions) (*ConnectionExecReport,
 		return nil, fmt.Errorf("failed to connect: %w", err)
 	}
 
-	out, err := ExecRemoteCommand(dialAdd, strings.Join(options.Args, " "))
+	out, err := ExecRemoteCommandWithInput(dialAdd, strings.Join(options.Args, " "), input)
 	if err != nil {
 		return nil, err
 	}
@@ -189,6 +189,10 @@ func golangConnectionScp(options ConnectionScpOptions) (*ConnectionScpReport, er
 // ExecRemoteCommand takes a ssh client connection and a command to run and executes the
 // command on the specified client. The function returns the Stdout from the client or the Stderr
 func ExecRemoteCommand(dial *ssh.Client, run string) ([]byte, error) {
+	return ExecRemoteCommandWithInput(dial, run, nil)
+}
+
+func ExecRemoteCommandWithInput(dial *ssh.Client, run string, input io.Reader) ([]byte, error) {
 	sess, err := dial.NewSession() // new ssh client session
 	if err != nil {
 		return nil, err
@@ -197,8 +201,11 @@ func ExecRemoteCommand(dial *ssh.Client, run string) ([]byte, error) {
 
 	var buffer bytes.Buffer
 	var bufferErr bytes.Buffer
-	sess.Stdout = &buffer                 // output from client funneled into buffer
-	sess.Stderr = &bufferErr              // err form client funneled into buffer
+	sess.Stdout = &buffer    // output from client funneled into buffer
+	sess.Stderr = &bufferErr // err from client funneled into buffer
+	if input != nil {
+		sess.Stdin = input
+	}
 	if err := sess.Run(run); err != nil { // run the command on the ssh client
 		return nil, fmt.Errorf("%v: %w", bufferErr.String(), err)
 	}
