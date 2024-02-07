@@ -19,4 +19,4 @@ container
 - `no-new-privileges`   : Not supported
 
 - `seccomp=unconfined` : Turn off seccomp confinement for the container
-- `seccomp=profile.json` :  White listed syscalls seccomp Json file to be used as a seccomp filter
+- `seccomp=profile.json` :  JSON file to be used as the seccomp filter for the container.
