@@ -34,6 +34,7 @@ const (
 	KubeVolumeTypeCharDevice
 	KubeVolumeTypeSecret
 	KubeVolumeTypeEmptyDir
+	KubeVolumeTypeEmptyDirTmpfs
 )
 
 //nolint:revive
@@ -263,7 +264,17 @@ func VolumeFromConfigMap(configMapVolumeSource *v1.ConfigMapVolumeSource, config
 
 // Create a kubeVolume for an emptyDir volume
 func VolumeFromEmptyDir(emptyDirVolumeSource *v1.EmptyDirVolumeSource, name string) (*KubeVolume, error) {
-	return &KubeVolume{Type: KubeVolumeTypeEmptyDir, Source: name}, nil
+	if emptyDirVolumeSource.Medium == v1.StorageMediumMemory {
+		return &KubeVolume{
+			Type:   KubeVolumeTypeEmptyDirTmpfs,
+			Source: name,
+		}, nil
+	} else {
+		return &KubeVolume{
+			Type:   KubeVolumeTypeEmptyDir,
+			Source: name,
+		}, nil
+	}
 }
 
 // Create a KubeVolume from one of the supported VolumeSource
