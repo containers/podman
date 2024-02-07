@@ -12,6 +12,8 @@ import (
 	"github.com/containers/storage/pkg/lockfile"
 )
 
+const MachineConfigVersion = 1
+
 type MachineConfig struct {
 	// Common stuff
 	Created  time.Time

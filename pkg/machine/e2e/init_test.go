@@ -315,4 +315,136 @@ var _ = Describe("podman machine init", func() {
 			Expect(err).To(HaveOccurred())
 		}
 	})
+
+	It("verify a podman 4 config does not break podman 5", func() {
+		vmName := "foobar-machine"
+		configDir := filepath.Join(testDir, ".config", "containers", "podman", "machine", testProvider.VMType().String())
+		if err := os.MkdirAll(configDir, 0755); err != nil {
+			Expect(err).ToNot(HaveOccurred())
+		}
+		f, err := os.Create(filepath.Join(configDir, fmt.Sprintf("%s.json", vmName)))
+		Expect(err).ToNot(HaveOccurred())
+		if _, err := f.Write(p4Config); err != nil {
+			Expect(err).ToNot(HaveOccurred())
+		}
+		err = f.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		// At this point we have a p4 config in the config dir
+		// podman machine list should emit a "soft" error but complete
+		list := new(listMachine)
+		firstList, err := mb.setCmd(list).run()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(firstList).Should(Exit(0))
+		Expect(firstList.errorToString()).To(ContainSubstring("incompatible machine config"))
+
+		// podman machine inspect should fail because we are
+		// trying to work with the incompatible machine json
+		ins := inspectMachine{}
+		inspectShouldFail, err := mb.setName(vmName).setCmd(&ins).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(inspectShouldFail).To(Exit(125))
+		Expect(inspectShouldFail.errorToString()).To(ContainSubstring("incompatible machine config"))
+
+		// We should be able to init with a bad config present
+		i := new(initMachine)
+		name := randomString()
+		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		// We should still be able to ls
+		secondList, err := mb.setCmd(list).run()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(secondList).Should(Exit(0))
+
+		// And inspecting the valid machine should not error
+		inspectShouldPass, err := mb.setName(name).setCmd(&ins).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(inspectShouldPass).To(Exit(0))
+	})
 })
+
+var p4Config = []byte(`{
+ "ConfigPath": {
+  "Path": "/home/baude/.config/containers/podman/machine/qemu/podman-machine-default.json"
+ },
+ "CmdLine": [
+  "/usr/bin/qemu-system-x86_64",
+  "-accel",
+  "kvm",
+  "-cpu",
+  "host",
+  "-m",
+  "2048",
+  "-smp",
+  "12",
+  "-fw_cfg",
+  "name=opt/com.coreos/config,file=/home/baude/.config/containers/podman/machine/qemu/podman-machine-default.ign",
+  "-qmp",
+  "unix:/run/user/1000/podman/qmp_podman-machine-default.sock,server=on,wait=off",
+  "-netdev",
+  "socket,id=vlan,fd=3",
+  "-device",
+  "virtio-net-pci,netdev=vlan,mac=5a:94:ef:e4:0c:ee",
+  "-device",
+  "virtio-serial",
+  "-chardev",
+  "socket,path=/run/user/1000/podman/podman-machine-default_ready.sock,server=on,wait=off,id=apodman-machine-default_ready",
+  "-device",
+  "virtserialport,chardev=apodman-machine-default_ready,name=org.fedoraproject.port.0",
+  "-pidfile",
+  "/run/user/1000/podman/podman-machine-default_vm.pid",
+  "-virtfs",
+  "local,path=/home/baude,mount_tag=vol0,security_model=none",
+  "-drive",
+  "if=virtio,file=/home/baude/.local/share/containers/podman/machine/qemu/podman-machine-default_fedora-coreos-39.20240128.2.2-qemu.x86_64.qcow2"
+ ],
+ "Rootful": false,
+ "UID": 1000,
+ "HostUserModified": false,
+ "IgnitionFilePath": {
+  "Path": "/home/baude/.config/containers/podman/machine/qemu/podman-machine-default.ign"
+ },
+ "ImageStream": "testing",
+ "ImagePath": {
+  "Path": "/home/baude/.local/share/containers/podman/machine/qemu/podman-machine-default_fedora-coreos-39.20240128.2.2-qemu.x86_64.qcow2"
+ },
+ "Mounts": [
+  {
+   "ReadOnly": false,
+   "Source": "/home/baude",
+   "Tag": "vol0",
+   "Target": "/home/baude",
+   "Type": "9p"
+  }
+ ],
+ "Name": "podman-machine-default",
+ "PidFilePath": {
+  "Path": "/run/user/1000/podman/podman-machine-default_proxy.pid"
+ },
+ "VMPidFilePath": {
+  "Path": "/run/user/1000/podman/podman-machine-default_vm.pid"
+ },
+ "QMPMonitor": {
+  "Address": {
+   "Path": "/run/user/1000/podman/qmp_podman-machine-default.sock"
+  },
+  "Network": "unix",
+  "Timeout": 2000000000
+ },
+ "ReadySocket": {
+  "Path": "/run/user/1000/podman/podman-machine-default_ready.sock"
+ },
+ "CPUs": 12,
+ "DiskSize": 100,
+ "Memory": 2048,
+ "USBs": [],
+ "IdentityPath": "/home/baude/.local/share/containers/podman/machine/machine",
+ "Port": 38419,
+ "RemoteUsername": "core",
+ "Starting": false,
+ "Created": "2024-02-08T10:34:14.067604999-06:00",
+ "LastUp": "0001-01-01T00:00:00Z"
+}
+`)

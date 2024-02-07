@@ -40,3 +40,12 @@ type ErrNewDiskSizeTooSmall struct {
 func (err *ErrNewDiskSizeTooSmall) Error() string {
 	return fmt.Sprintf("invalid disk size %d: new disk must be larger than %dGB", err.OldSize, err.NewSize)
 }
+
+type ErrIncompatibleMachineConfig struct {
+	Name string
+	Path string
+}
+
+func (err *ErrIncompatibleMachineConfig) Error() string {
+	return fmt.Sprintf("incompatible machine config %q (%s) for this version of Podman", err.Path, err.Name)
+}
