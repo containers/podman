@@ -861,7 +861,7 @@ func (r *Runtime) refresh(ctx context.Context, alivePath string) error {
 		}
 		// This is the only place it's safe to use ctr.state.State unlocked
 		// We're holding the alive lock, guaranteed to be the only Libpod on the system right now.
-		if ctr.AutoRemove() && ctr.state.State == define.ContainerStateExited {
+		if (ctr.AutoRemove() && ctr.state.State == define.ContainerStateExited) || ctr.state.State == define.ContainerStateRemoving {
 			opts := ctrRmOpts{
 				// Don't force-remove, we're supposed to be fresh off a reboot
 				// If we have to force something is seriously wrong
