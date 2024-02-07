@@ -11,6 +11,8 @@ import (
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/machine/shim"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +28,7 @@ var (
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
 
-	initOpts           = machine.InitOptions{}
+	initOpts           = define.InitOptions{}
 	initOptionalFlags  = InitOptionalFlags{}
 	defaultMachineName = machine.DefaultMachineName
 	now                bool
@@ -99,7 +101,7 @@ func init() {
 	_ = initCmd.RegisterFlagCompletionFunc(UsernameFlagName, completion.AutocompleteDefault)
 
 	ImagePathFlagName := "image-path"
-	flags.StringVar(&initOpts.ImagePath, ImagePathFlagName, cfg.ContainersConfDefaultsRO.Machine.Image, "Path to bootable image")
+	flags.StringVar(&initOpts.ImagePath, ImagePathFlagName, "", "Path to bootable image")
 	_ = initCmd.RegisterFlagCompletionFunc(ImagePathFlagName, completion.AutocompleteDefault)
 
 	VolumeFlagName := "volume"
@@ -128,10 +130,6 @@ func init() {
 }
 
 func initMachine(cmd *cobra.Command, args []string) error {
-	var (
-		err error
-		vm  machine.VM
-	)
 	initOpts.Name = defaultMachineName
 	if len(args) > 0 {
 		if len(args[0]) > maxMachineNameSize {
@@ -145,8 +143,15 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot use %q for a machine name", initOpts.Name)
 	}
 
-	if _, err := provider.LoadVMByName(initOpts.Name); err == nil {
-		return fmt.Errorf("%s: %w", initOpts.Name, machine.ErrVMAlreadyExists)
+	// Check if machine already exists
+	_, exists, err := shim.VMExists(initOpts.Name, []vmconfigs.VMProvider{provider})
+	if err != nil {
+		return err
+	}
+
+	// machine exists, return error
+	if exists {
+		return fmt.Errorf("%s: %w", initOpts.Name, define.ErrVMAlreadyExists)
 	}
 
 	// check if a system connection already exists
@@ -173,20 +178,28 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		initOpts.UserModeNetworking = &initOptionalFlags.UserModeNetworking
 	}
 
-	vm, err = provider.NewMachine(initOpts)
+	// TODO need to work this back in
+	// if finished, err := vm.Init(initOpts); err != nil || !finished {
+	// 	// Finished = true,  err  = nil  -  Success! Log a message with further instructions
+	// 	// Finished = false, err  = nil  -  The installation is partially complete and podman should
+	// 	//                                  exit gracefully with no error and no success message.
+	// 	//                                  Examples:
+	// 	//                                  - a user has chosen to perform their own reboot
+	// 	//                                  - reexec for limited admin operations, returning to parent
+	// 	// Finished = *,     err != nil  -  Exit with an error message
+	// 	return err
+	// }
+
+	mc, err := shim.Init(initOpts, provider)
 	if err != nil {
 		return err
 	}
-	if finished, err := vm.Init(initOpts); err != nil || !finished {
-		// Finished = true,  err  = nil  -  Success! Log a message with further instructions
-		// Finished = false, err  = nil  -  The installation is partially complete and podman should
-		//                                  exit gracefully with no error and no success message.
-		//                                  Examples:
-		//                                  - a user has chosen to perform their own reboot
-		//                                  - reexec for limited admin operations, returning to parent
-		// Finished = *,     err != nil  -  Exit with an error message
+
+	// TODO callback needed for the configuration file
+	if err := mc.Write(); err != nil {
 		return err
 	}
+
 	newMachineEvent(events.Init, events.Event{Name: initOpts.Name})
 	fmt.Println("Machine init complete")
 

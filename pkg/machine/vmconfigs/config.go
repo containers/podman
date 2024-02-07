@@ -5,32 +5,33 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/containers/common/pkg/strongunits"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v4/pkg/machine/ignition"
 	"github.com/containers/podman/v4/pkg/machine/qemu/command"
 	"github.com/containers/storage/pkg/lockfile"
 )
 
-type aThing struct{}
-
 type MachineConfig struct {
 	// Common stuff
-	Created      time.Time
-	GvProxy      gvproxy.GvproxyCommand
-	HostUser     HostUser
-	IgnitionFile *aThing // possible interface
-	LastUp       time.Time
-	LogPath      *define.VMFile `json:",omitempty"` // Revisit this for all providers
-	Mounts       []Mount
-	Name         string
-	ReadySocket  *aThing // possible interface
-	Resources    ResourceConfig
-	SSH          SSHConfig
-	Starting     *bool
-	Version      uint
+	Created  time.Time
+	GvProxy  gvproxy.GvproxyCommand
+	HostUser HostUser
+
+	LastUp time.Time
+
+	Mounts []*Mount
+	Name   string
+
+	Resources ResourceConfig
+	SSH       SSHConfig
+	Version   uint
 
 	// Image stuff
 	imageDescription machineImage //nolint:unused
+
+	ImagePath *define.VMFile // Temporary only until a proper image struct is worked out
 
 	// Provider stuff
 	AppleHypervisor  *AppleHVConfig `json:",omitempty"`
@@ -39,11 +40,22 @@ type MachineConfig struct {
 	WSLHypervisor    *WSLConfig     `json:",omitempty"`
 
 	lock *lockfile.LockFile //nolint:unused
+
+	// configPath can be used for reading, writing, removing
+	configPath *define.VMFile
+
+	// used for deriving file, socket, etc locations
+	dirs *define.MachineDirs
+
+	// State
+
+	// Starting is defined as "on" but not fully booted
+	Starting bool
 }
 
 // MachineImage describes a podman machine image
 type MachineImage struct {
-	OCI  *ociMachineImage
+	OCI  *OCIMachineImage
 	FCOS *fcosMachineImage
 }
 
@@ -63,7 +75,7 @@ type machineImage interface { //nolint:unused
 	path() string
 }
 
-type ociMachineImage struct {
+type OCIMachineImage struct {
 	// registry
 	// TODO JSON serial/deserial will write string to disk
 	// but in code it is a types.ImageReference
@@ -72,11 +84,11 @@ type ociMachineImage struct {
 	FQImageReference string
 }
 
-func (o ociMachineImage) path() string {
+func (o OCIMachineImage) path() string {
 	return ""
 }
 
-func (o ociMachineImage) download() error {
+func (o OCIMachineImage) download() error {
 	return nil
 }
 
@@ -94,6 +106,24 @@ func (f fcosMachineImage) path() string {
 	return ""
 }
 
+type VMProvider interface { //nolint:interfacebloat
+	CreateVM(opts define.CreateVMOpts, mc *MachineConfig, builder *ignition.IgnitionBuilder) error
+	PrepareIgnition(mc *MachineConfig, ignBuilder *ignition.IgnitionBuilder) (*ignition.ReadyUnitOpts, error)
+	GetHyperVisorVMs() ([]string, error)
+	MountType() VolumeMountType
+	MountVolumesToVM(mc *MachineConfig, quiet bool) error
+	Remove(mc *MachineConfig) ([]string, func() error, error)
+	RemoveAndCleanMachines(dirs *define.MachineDirs) error
+	SetProviderAttrs(mc *MachineConfig, cpus, memory *uint64, newDiskSize *strongunits.GiB, newRootful *bool) error
+	StartNetworking(mc *MachineConfig, cmd *gvproxy.GvproxyCommand) error
+	PostStartNetworking(mc *MachineConfig) error
+	StartVM(mc *MachineConfig) (func() error, func() error, error)
+	State(mc *MachineConfig, bypass bool) (define.Status, error)
+	StopVM(mc *MachineConfig, hardStop bool) error
+	StopHostNetworking(mc *MachineConfig, vmType define.VMType) error
+	VMType() define.VMType
+}
+
 // HostUser describes the host user
 type HostUser struct {
 	// Whether this machine should run in a rootful or rootless manner
@@ -105,11 +135,13 @@ type HostUser struct {
 }
 
 type Mount struct {
-	ReadOnly bool
-	Source   string
-	Tag      string
-	Target   string
-	Type     string
+	OriginalInput string
+	ReadOnly      bool
+	Source        string
+	Tag           string
+	Target        string
+	Type          string
+	VSockNumber   *uint64
 }
 
 // ResourceConfig describes physical attributes of the machine

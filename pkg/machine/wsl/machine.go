@@ -16,6 +16,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/podman/v4/pkg/machine/connection"
+
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/define"
@@ -334,7 +336,7 @@ func readAndMigrate(configPath string, name string) (*MachineVM, error) {
 	b, err := os.ReadFile(configPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return nil, fmt.Errorf("%v: %w", name, machine.ErrNoSuchVM)
+			return nil, fmt.Errorf("%v: %w", name, define.ErrNoSuchVM)
 		}
 		return vm, err
 	}
@@ -394,7 +396,7 @@ func getLegacyLastStart(vm *MachineVM) time.Time {
 
 // Init writes the json configuration file to the filesystem for
 // other verbs (start, stop)
-func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
+func (v *MachineVM) Init(opts define.InitOptions) (bool, error) {
 	var (
 		err error
 	)
@@ -495,10 +497,10 @@ func (v *MachineVM) removeMachineImage() error {
 }
 
 func (v *MachineVM) removeSystemConnections() error {
-	return machine.RemoveConnections(v.Name, fmt.Sprintf("%s-root", v.Name))
+	return connection.RemoveConnections(v.Name, fmt.Sprintf("%s-root", v.Name))
 }
 
-func downloadDistro(v *MachineVM, opts machine.InitOptions) error {
+func downloadDistro(v *MachineVM, opts define.InitOptions) error {
 	var (
 		dd  machine.DistributionDownload
 		err error
@@ -525,8 +527,8 @@ func (v *MachineVM) writeConfig() error {
 }
 
 func constructSSHUris(v *MachineVM) ([]url.URL, []string) {
-	uri := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, rootlessSock, strconv.Itoa(v.Port), v.RemoteUsername)
-	uriRoot := machine.SSHRemoteConnection.MakeSSHURL(machine.LocalhostIP, rootfulSock, strconv.Itoa(v.Port), "root")
+	uri := connection.SSHRemoteConnection.MakeSSHURL(connection.LocalhostIP, rootlessSock, strconv.Itoa(v.Port), v.RemoteUsername)
+	uriRoot := connection.SSHRemoteConnection.MakeSSHURL(connection.LocalhostIP, rootfulSock, strconv.Itoa(v.Port), "root")
 
 	uris := []url.URL{uri, uriRoot}
 	names := []string{v.Name, v.Name + "-root"}
@@ -534,7 +536,7 @@ func constructSSHUris(v *MachineVM) ([]url.URL, []string) {
 	return uris, names
 }
 
-func setupConnections(v *MachineVM, opts machine.InitOptions) error {
+func setupConnections(v *MachineVM, opts define.InitOptions) error {
 	uris, names := constructSSHUris(v)
 
 	// The first connection defined when connections is empty will become the default
@@ -552,7 +554,7 @@ func setupConnections(v *MachineVM, opts machine.InitOptions) error {
 	defer flock.unlock()
 
 	for i := 0; i < 2; i++ {
-		if err := machine.AddConnection(&uris[i], names[i], v.IdentityPath, opts.IsDefault && i == 0); err != nil {
+		if err := connection.AddConnection(&uris[i], names[i], v.IdentityPath, opts.IsDefault && i == 0); err != nil {
 			return err
 		}
 	}
@@ -809,7 +811,7 @@ func writeWslConf(dist string, user string) error {
 	return nil
 }
 
-func checkAndInstallWSL(opts machine.InitOptions) (bool, error) {
+func checkAndInstallWSL(opts define.InitOptions) (bool, error) {
 	if wutil.IsWSLInstalled() {
 		return true, nil
 	}
@@ -844,7 +846,7 @@ func checkAndInstallWSL(opts machine.InitOptions) (bool, error) {
 	return true, nil
 }
 
-func attemptFeatureInstall(opts machine.InitOptions, admin bool) error {
+func attemptFeatureInstall(opts define.InitOptions, admin bool) error {
 	if !winVersionAtLeast(10, 0, 18362) {
 		return errors.New("your version of Windows does not support WSL. Update to Windows 10 Build 19041 or later")
 	} else if !winVersionAtLeast(10, 0, 19041) {
@@ -1172,7 +1174,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	defer v.lock.Unlock()
 
 	if v.isRunning() {
-		return machine.ErrVMAlreadyRunning
+		return define.ErrVMAlreadyRunning
 	}
 
 	dist := toDist(name)
@@ -1276,7 +1278,7 @@ func (v *MachineVM) reassignSshPort() error {
 	v.Port = newPort
 	uris, names := constructSSHUris(v)
 	for i := 0; i < 2; i++ {
-		if err := machine.ChangeConnectionURI(names[i], &uris[i]); err != nil {
+		if err := connection.ChangeConnectionURI(names[i], &uris[i]); err != nil {
 			return err
 		}
 	}
@@ -1442,7 +1444,7 @@ func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, fun
 
 	if v.isRunning() {
 		if !opts.Force {
-			return "", nil, &machine.ErrVMRunningCannotDestroyed{Name: v.Name}
+			return "", nil, &define.ErrVMRunningCannotDestroyed{Name: v.Name}
 		}
 		if err := v.Stop(v.Name, machine.StopOptions{}); err != nil {
 			return "", nil, err
@@ -1476,7 +1478,7 @@ func (v *MachineVM) Remove(name string, opts machine.RemoveOptions) (string, fun
 
 	confirmationMessage += "\n"
 	return confirmationMessage, func() error {
-		if err := machine.RemoveConnections(v.Name, v.Name+"-root"); err != nil {
+		if err := connection.RemoveConnections(v.Name, v.Name+"-root"); err != nil {
 			logrus.Error(err)
 		}
 		if err := runCmdPassThrough("wsl", "--unregister", toDist(v.Name)); err != nil {

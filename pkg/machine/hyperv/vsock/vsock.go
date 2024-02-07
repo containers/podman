@@ -8,9 +8,8 @@ import (
 	"net"
 	"strings"
 
-	"github.com/containers/podman/v4/pkg/machine/sockets"
-
 	"github.com/Microsoft/go-winio"
+	"github.com/containers/podman/v4/pkg/machine/sockets"
 	"github.com/containers/podman/v4/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/windows/registry"

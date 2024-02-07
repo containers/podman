@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/containers/podman/v4/pkg/machine/connection"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +28,7 @@ func TestRemoteConnectionType_MakeSSHURL(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		rc   RemoteConnectionType
+		rc   connection.RemoteConnectionType
 		args args
 		want url.URL
 	}{

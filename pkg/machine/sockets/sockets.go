@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/sirupsen/logrus"
 )
 
 // SetSocket creates a new machine file for the socket and assigns it to
@@ -33,10 +34,12 @@ func ReadySocketPath(runtimeDir, machineName string) string {
 func ListenAndWaitOnSocket(errChan chan<- error, listener net.Listener) {
 	conn, err := listener.Accept()
 	if err != nil {
+		logrus.Debug("failed to connect to ready socket")
 		errChan <- err
 		return
 	}
 	_, err = bufio.NewReader(conn).ReadString('\n')
+	logrus.Debug("ready ack received")
 
 	if closeErr := conn.Close(); closeErr != nil {
 		errChan <- closeErr

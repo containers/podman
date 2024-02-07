@@ -1,6 +1,6 @@
 //go:build !darwin
 
-package qemu
+package shim
 
 func dockerClaimHelperInstalled() bool {
 	return false

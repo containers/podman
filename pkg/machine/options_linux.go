@@ -1,4 +1,4 @@
-package qemu
+package machine
 
 import (
 	"github.com/containers/podman/v4/pkg/rootless"
@@ -10,8 +10,4 @@ func getRuntimeDir() (string, error) {
 		return "/run", nil
 	}
 	return util.GetRootlessRuntimeDir()
-}
-
-func useNetworkRecover() bool {
-	return false
 }

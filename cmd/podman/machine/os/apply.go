@@ -8,6 +8,7 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/machine/os"
+	provider2 "github.com/containers/podman/v4/pkg/machine/provider"
 	"github.com/spf13/cobra"
 )
 
@@ -47,7 +48,12 @@ func apply(cmd *cobra.Command, args []string) error {
 		CLIArgs: args,
 		Restart: restart,
 	}
-	osManager, err := NewOSManager(managerOpts)
+
+	provider, err := provider2.Get()
+	if err != nil {
+		return err
+	}
+	osManager, err := NewOSManager(managerOpts, provider)
 	if err != nil {
 		return err
 	}

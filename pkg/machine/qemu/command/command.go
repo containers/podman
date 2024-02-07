@@ -1,17 +1,21 @@
 package command
 
 import (
-	"encoding/base64"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/containers/common/libnetwork/etchosts"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine/define"
+)
+
+// defaultQMPTimeout is the timeout duration for the
+// qmp monitor interactions.
+var (
+	defaultQMPTimeout = 2 * time.Second
 )
 
 // QemuCmd is an alias around a string slice to prevent the need to migrate the
@@ -104,7 +108,7 @@ func (q *QemuCmd) SetDisplay(display string) {
 
 // SetPropagatedHostEnvs adds options that propagate SSL and proxy settings
 func (q *QemuCmd) SetPropagatedHostEnvs() {
-	*q = propagateHostEnv(*q)
+	*q = PropagateHostEnv(*q)
 }
 
 func (q *QemuCmd) Build() []string {
@@ -181,51 +185,6 @@ func ParseUSBs(usbs []string) ([]USBConfig, error) {
 	return configs, nil
 }
 
-func GetProxyVariables() map[string]string {
-	proxyOpts := make(map[string]string)
-	for _, variable := range config.ProxyEnv {
-		if value, ok := os.LookupEnv(variable); ok {
-			if value == "" {
-				continue
-			}
-
-			v := strings.ReplaceAll(value, "127.0.0.1", etchosts.HostContainersInternal)
-			v = strings.ReplaceAll(v, "localhost", etchosts.HostContainersInternal)
-			proxyOpts[variable] = v
-		}
-	}
-	return proxyOpts
-}
-
-// propagateHostEnv is here for providing the ability to propagate
-// proxy and SSL settings (e.g. HTTP_PROXY and others) on a start
-// and avoid a need of re-creating/re-initiating a VM
-func propagateHostEnv(cmdLine QemuCmd) QemuCmd {
-	varsToPropagate := make([]string, 0)
-
-	for k, v := range GetProxyVariables() {
-		varsToPropagate = append(varsToPropagate, fmt.Sprintf("%s=%q", k, v))
-	}
-
-	if sslCertFile, ok := os.LookupEnv("SSL_CERT_FILE"); ok {
-		pathInVM := filepath.Join(define.UserCertsTargetPath, filepath.Base(sslCertFile))
-		varsToPropagate = append(varsToPropagate, fmt.Sprintf("%s=%q", "SSL_CERT_FILE", pathInVM))
-	}
-
-	if _, ok := os.LookupEnv("SSL_CERT_DIR"); ok {
-		varsToPropagate = append(varsToPropagate, fmt.Sprintf("%s=%q", "SSL_CERT_DIR", define.UserCertsTargetPath))
-	}
-
-	if len(varsToPropagate) > 0 {
-		prefix := "name=opt/com.coreos/environment,string="
-		envVarsJoined := strings.Join(varsToPropagate, "|")
-		fwCfgArg := prefix + base64.StdEncoding.EncodeToString([]byte(envVarsJoined))
-		return append(cmdLine, "-fw_cfg", fwCfgArg)
-	}
-
-	return cmdLine
-}
-
 type Monitor struct {
 	//	Address portion of the qmp monitor (/tmp/tmp.sock)
 	Address define.VMFile
@@ -233,4 +192,23 @@ type Monitor struct {
 	Network string
 	// Timeout in seconds for qmp monitor transactions
 	Timeout time.Duration
+}
+
+// NewQMPMonitor creates the monitor subsection of our vm
+func NewQMPMonitor(name string, machineRuntimeDir *define.VMFile) (Monitor, error) {
+	if _, err := os.Stat(machineRuntimeDir.GetPath()); errors.Is(err, fs.ErrNotExist) {
+		if err := os.MkdirAll(machineRuntimeDir.GetPath(), 0755); err != nil {
+			return Monitor{}, err
+		}
+	}
+	address, err := machineRuntimeDir.AppendToNewVMFile("qmp_"+name+".sock", nil)
+	if err != nil {
+		return Monitor{}, err
+	}
+	monitor := Monitor{
+		Network: "unix",
+		Address: *address,
+		Timeout: defaultQMPTimeout,
+	}
+	return monitor, nil
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/machine"
 	provider2 "github.com/containers/podman/v4/pkg/machine/provider"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -39,8 +40,9 @@ var (
 		RunE:               validate.SubCommandExists,
 	}
 )
+
 var (
-	provider machine.VirtProvider
+	provider vmconfigs.VMProvider
 )
 
 func init() {
@@ -80,7 +82,11 @@ func getMachines(toComplete string) ([]string, cobra.ShellCompDirective) {
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	machines, err := provider.List(machine.ListOptions{})
+	dirs, err := machine.GetMachineDirs(provider.VMType())
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	machines, err := vmconfigs.LoadMachinesInDir(dirs)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp

@@ -1,20 +1,14 @@
-//go:build darwin
-
-package applehv
+package shim
 
 import (
 	"fmt"
 	"io"
-	"io/fs"
 	"net"
 	"os"
 	"os/user"
 	"path/filepath"
 	"time"
 )
-
-// TODO the following functions were taken from pkg/qemu/claim_darwin.go and
-// should be refactored.  I'm thinking even something in pkg/machine/
 
 func dockerClaimSupported() bool {
 	return true
@@ -66,18 +60,4 @@ func findClaimHelper() string {
 	}
 
 	return filepath.Join(filepath.Dir(exe), "podman-mac-helper")
-}
-
-func checkSockInUse(sock string) bool {
-	if info, err := os.Stat(sock); err == nil && info.Mode()&fs.ModeSocket == fs.ModeSocket {
-		_, err = net.DialTimeout("unix", dockerSock, dockerConnectTimeout)
-		return err == nil
-	}
-
-	return false
-}
-
-func alreadyLinked(target string, link string) bool {
-	read, err := os.Readlink(link)
-	return err == nil && read == target
 }

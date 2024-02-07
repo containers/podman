@@ -5,17 +5,21 @@ import (
 )
 
 type HyperVConfig struct {
+	// ReadyVSock is the pipeline for the guest to alert the host
+	// it is running
+	ReadyVsock vsock.HVSockRegistryEntry
 	// NetworkVSock is for the user networking
-	NetworkHVSock vsock.HVSockRegistryEntry
-	// MountVsocks contains the currently-active vsocks, mapped to the
-	// directory they should be mounted on.
-	MountVsocks map[string]uint64
+	NetworkVSock vsock.HVSockRegistryEntry
 }
 
 type WSLConfig struct {
-	wslstuff *aThing
+	//wslstuff *aThing
 }
 
 // Stubs
 type QEMUConfig struct{}
 type AppleHVConfig struct{}
+
+func getHostUID() int {
+	return 1000
+}

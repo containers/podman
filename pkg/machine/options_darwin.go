@@ -1,8 +1,6 @@
-package qemu
+package machine
 
-import (
-	"os"
-)
+import "os"
 
 func getRuntimeDir() (string, error) {
 	tmpDir, ok := os.LookupEnv("TMPDIR")
@@ -10,8 +8,4 @@ func getRuntimeDir() (string, error) {
 		tmpDir = "/tmp"
 	}
 	return tmpDir, nil
-}
-
-func useNetworkRecover() bool {
-	return true
 }

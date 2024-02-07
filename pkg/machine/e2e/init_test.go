@@ -3,6 +3,7 @@ package e2e_test
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -290,7 +291,7 @@ var _ = Describe("podman machine init", func() {
 		inspect = inspect.withFormat("{{.ConfigPath.Path}}")
 		inspectSession, err := mb.setCmd(inspect).run()
 		Expect(err).ToNot(HaveOccurred())
-		cfgpth := inspectSession.outputToString()
+		cfgpth := filepath.Join(inspectSession.outputToString(), fmt.Sprintf("%s.json", name))
 
 		inspect = inspect.withFormat("{{.Image.IgnitionFile.Path}}")
 		inspectSession, err = mb.setCmd(inspect).run()

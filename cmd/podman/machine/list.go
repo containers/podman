@@ -16,6 +16,8 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/shim"
+	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
 	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
 )
@@ -59,14 +61,13 @@ func init() {
 
 func list(cmd *cobra.Command, args []string) error {
 	var (
-		opts         machine.ListOptions
-		listResponse []*machine.ListResponse
-		err          error
+		opts machine.ListOptions
+		err  error
 	)
 
-	listResponse, err = provider.List(opts)
+	listResponse, err := shim.List([]vmconfigs.VMProvider{provider}, opts)
 	if err != nil {
-		return fmt.Errorf("listing vms: %w", err)
+		return err
 	}
 
 	// Sort by last run

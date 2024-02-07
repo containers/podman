@@ -3,7 +3,9 @@ package compression
 import (
 	"archive/zip"
 	"bufio"
+	"compress/gzip"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -19,12 +21,20 @@ import (
 	"github.com/ulikunitz/xz"
 )
 
+// Decompress is a generic wrapper for various decompression algos
+// TODO this needs some love.  in the various decompression functions that are
+// called, the same uncompressed path is being opened multiple times.
 func Decompress(localPath *define.VMFile, uncompressedPath string) error {
 	var isZip bool
 	uncompressedFileWriter, err := os.OpenFile(uncompressedPath, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if err := uncompressedFileWriter.Close(); err != nil {
+			logrus.Errorf("unable to to close decompressed file %s: %q", uncompressedPath, err)
+		}
+	}()
 	sourceFile, err := localPath.Read()
 	if err != nil {
 		return err
@@ -32,19 +42,50 @@ func Decompress(localPath *define.VMFile, uncompressedPath string) error {
 	if strings.HasSuffix(localPath.GetPath(), ".zip") {
 		isZip = true
 	}
-	prefix := "Copying uncompressed file"
 	compressionType := archive.DetectCompression(sourceFile)
-	if compressionType != archive.Uncompressed || isZip {
-		prefix = "Extracting compressed file"
-	}
+
+	prefix := "Extracting compressed file"
 	prefix += ": " + filepath.Base(uncompressedPath)
-	if compressionType == archive.Xz {
+	switch compressionType {
+	case archive.Xz:
 		return decompressXZ(prefix, localPath.GetPath(), uncompressedFileWriter)
+	case archive.Uncompressed:
+		if isZip && runtime.GOOS == "windows" {
+			return decompressZip(prefix, localPath.GetPath(), uncompressedFileWriter)
+		}
+		// here we should just do a copy
+		dstFile, err := os.Open(localPath.GetPath())
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Copying uncompressed file %q to %q/n", localPath.GetPath(), dstFile.Name())
+		_, err = CopySparse(uncompressedFileWriter, dstFile)
+		return err
+	case archive.Gzip:
+		if runtime.GOOS == "darwin" {
+			return decompressGzWithSparse(prefix, localPath, uncompressedPath)
+		}
+		fallthrough
+	default:
+		return decompressEverythingElse(prefix, localPath.GetPath(), uncompressedFileWriter)
 	}
-	if isZip && runtime.GOOS == "windows" {
-		return decompressZip(prefix, localPath.GetPath(), uncompressedFileWriter)
-	}
-	return decompressEverythingElse(prefix, localPath.GetPath(), uncompressedFileWriter)
+
+	// if compressionType != archive.Uncompressed || isZip {
+	// 	prefix = "Extracting compressed file"
+	// }
+	// prefix += ": " + filepath.Base(uncompressedPath)
+	// if compressionType == archive.Xz {
+	// 	return decompressXZ(prefix, localPath.GetPath(), uncompressedFileWriter)
+	// }
+	// if isZip && runtime.GOOS == "windows" {
+	// 	return decompressZip(prefix, localPath.GetPath(), uncompressedFileWriter)
+	// }
+
+	//  Unfortunately GZ is not sparse capable.  Lets handle it differently
+	// if compressionType == archive.Gzip && runtime.GOOS == "darwin" {
+	// 	return decompressGzWithSparse(prefix, localPath, uncompressedPath)
+	// }
+	// return decompressEverythingElse(prefix, localPath.GetPath(), uncompressedFileWriter)
 }
 
 // Will error out if file without .Xz already exists
@@ -180,5 +221,58 @@ func decompressZip(prefix string, src string, output io.WriteCloser) error {
 	}()
 	_, err = io.Copy(output, proxyReader)
 	p.Wait()
+	return err
+}
+
+func decompressGzWithSparse(prefix string, compressedPath *define.VMFile, uncompressedPath string) error {
+	stat, err := os.Stat(compressedPath.GetPath())
+	if err != nil {
+		return err
+	}
+
+	dstFile, err := os.OpenFile(uncompressedPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, stat.Mode())
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := dstFile.Close(); err != nil {
+			logrus.Errorf("unable to close uncompressed file %s: %q", uncompressedPath, err)
+		}
+	}()
+
+	f, err := os.Open(compressedPath.GetPath())
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			logrus.Errorf("unable to close on compressed file %s: %q", compressedPath.GetPath(), err)
+		}
+	}()
+
+	gzReader, err := gzip.NewReader(f)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := gzReader.Close(); err != nil {
+			logrus.Errorf("unable to close gzreader: %q", err)
+		}
+	}()
+
+	// TODO remove the following line when progress bars work
+	_ = prefix
+	// p, bar := utils.ProgressBar(prefix, stat.Size(), prefix+": done")
+	// proxyReader := bar.ProxyReader(f)
+	// defer func() {
+	// 	if err := proxyReader.Close(); err != nil {
+	// 		logrus.Error(err)
+	// 	}
+	// }()
+
+	logrus.Debugf("decompressing %s", compressedPath.GetPath())
+	_, err = CopySparse(dstFile, gzReader)
+	logrus.Debug("decompression complete")
+	// p.Wait()
 	return err
 }
