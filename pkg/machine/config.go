@@ -333,11 +333,55 @@ func NewVirtualization(artifact define.Artifact, compression compression.ImageCo
 	}
 }
 
+func dialSocket(socket string, timeout time.Duration) (net.Conn, error) {
+	scheme := "unix"
+	if strings.Contains(socket, "://") {
+		url, err := url.Parse(socket)
+		if err != nil {
+			return nil, err
+		}
+		scheme = url.Scheme
+		socket = url.Path
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	var dial func() (net.Conn, error)
+	switch scheme {
+	default:
+		fallthrough
+	case "unix":
+		dial = func() (net.Conn, error) {
+			var dialer net.Dialer
+			return dialer.DialContext(ctx, "unix", socket)
+		}
+	case "npipe":
+		dial = func() (net.Conn, error) {
+			return DialNamedPipe(ctx, socket)
+		}
+	}
+
+	backoff := 500 * time.Millisecond
+	for {
+		conn, err := dial()
+		if !errors.Is(err, os.ErrNotExist) {
+			return conn, err
+		}
+
+		select {
+		case <-time.After(backoff):
+			backoff *= 2
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+}
+
 func WaitAndPingAPI(sock string) {
 	client := http.Client{
 		Transport: &http.Transport{
 			DialContext: func(context.Context, string, string) (net.Conn, error) {
-				con, err := net.DialTimeout("unix", sock, apiUpTimeout)
+				con, err := dialSocket(sock, apiUpTimeout)
 				if err != nil {
 					return nil, err
 				}

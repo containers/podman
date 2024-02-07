@@ -56,10 +56,11 @@ func getConfigPathExt(name string, extension string) (string, error) {
 // TODO like provisionWSL, i think this needs to be pushed to use common
 // paths and types where possible
 func unprovisionWSL(mc *vmconfigs.MachineConfig) error {
-	if err := terminateDist(mc.Name); err != nil {
+	dist := machine.ToDist(mc.Name)
+	if err := terminateDist(dist); err != nil {
 		logrus.Error(err)
 	}
-	if err := unregisterDist(mc.Name); err != nil {
+	if err := unregisterDist(dist); err != nil {
 		logrus.Error(err)
 	}
 
@@ -87,17 +88,18 @@ func provisionWSLDist(name string, imagePath string, prompt string) (string, err
 		return "", fmt.Errorf("could not create wsldist directory: %w", err)
 	}
 
+	dist := machine.ToDist(name)
 	fmt.Println(prompt)
-	if err = runCmdPassThrough("wsl", "--import", name, distTarget, imagePath, "--version", "2"); err != nil {
+	if err = runCmdPassThrough("wsl", "--import", dist, distTarget, imagePath, "--version", "2"); err != nil {
 		return "", fmt.Errorf("the WSL import of guest OS failed: %w", err)
 	}
 
 	// Fixes newuidmap
-	if err = wslInvoke(name, "rpm", "--restore", "shadow-utils"); err != nil {
+	if err = wslInvoke(dist, "rpm", "--restore", "shadow-utils"); err != nil {
 		return "", fmt.Errorf("package permissions restore of shadow-utils on guest OS failed: %w", err)
 	}
 
-	return name, nil
+	return dist, nil
 }
 
 func createKeys(mc *vmconfigs.MachineConfig, dist string) error {
@@ -139,21 +141,21 @@ func configureSystem(mc *vmconfigs.MachineConfig, dist string) error {
 		return fmt.Errorf("could not configure SSH port for guest OS: %w", err)
 	}
 
-	if err := wslPipe(withUser(configServices, user), mc.Name, "sh"); err != nil {
+	if err := wslPipe(withUser(configServices, user), dist, "sh"); err != nil {
 		return fmt.Errorf("could not configure systemd settings for guest OS: %w", err)
 	}
 
-	if err := wslPipe(sudoers, mc.Name, "sh", "-c", "cat >> /etc/sudoers"); err != nil {
+	if err := wslPipe(sudoers, dist, "sh", "-c", "cat >> /etc/sudoers"); err != nil {
 		return fmt.Errorf("could not add wheel to sudoers: %w", err)
 	}
 
-	if err := wslPipe(overrideSysusers, mc.Name, "sh", "-c",
+	if err := wslPipe(overrideSysusers, dist, "sh", "-c",
 		"cat > /etc/systemd/system/systemd-sysusers.service.d/override.conf"); err != nil {
 		return fmt.Errorf("could not generate systemd-sysusers override for guest OS: %w", err)
 	}
 
 	lingerCmd := withUser("cat > /home/[USER]/.config/systemd/[USER]/linger-example.service", user)
-	if err := wslPipe(lingerService, mc.Name, "sh", "-c", lingerCmd); err != nil {
+	if err := wslPipe(lingerService, dist, "sh", "-c", lingerCmd); err != nil {
 		return fmt.Errorf("could not generate linger service for guest OS: %w", err)
 	}
 
@@ -714,14 +716,15 @@ func unregisterDist(dist string) error {
 }
 
 func isRunning(name string) (bool, error) {
-	wsl, err := isWSLRunning(name)
+	dist := machine.ToDist(name)
+	wsl, err := isWSLRunning(dist)
 	if err != nil {
 		return false, err
 	}
 
 	sysd := false
 	if wsl {
-		sysd, err = isSystemdRunning(name)
+		sysd, err = isSystemdRunning(dist)
 
 		if err != nil {
 			return false, err
@@ -746,10 +749,11 @@ func getDiskSize(name string) uint64 {
 }
 
 func getCPUs(name string) (uint64, error) {
-	if run, _ := isWSLRunning(name); !run {
+	dist := machine.ToDist(name)
+	if run, _ := isWSLRunning(dist); !run {
 		return 0, nil
 	}
-	cmd := exec.Command("wsl", "-u", "root", "-d", name, "nproc")
+	cmd := exec.Command("wsl", "-u", "root", "-d", dist, "nproc")
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		return 0, err
@@ -769,10 +773,11 @@ func getCPUs(name string) (uint64, error) {
 }
 
 func getMem(name string) (uint64, error) {
-	if run, _ := isWSLRunning(name); !run {
+	dist := machine.ToDist(name)
+	if run, _ := isWSLRunning(dist); !run {
 		return 0, nil
 	}
-	cmd := exec.Command("wsl", "-u", "root", "-d", name, "cat", "/proc/meminfo")
+	cmd := exec.Command("wsl", "-u", "root", "-d", dist, "cat", "/proc/meminfo")
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		return 0, err

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/containers/podman/v5/pkg/machine/connection"
 	"github.com/containers/storage/pkg/ioutils"
@@ -46,19 +47,6 @@ func WaitAPIAndPrintInfo(forwardState APIForwardingState, name, helper, forwardS
 	WaitAndPingAPI(forwardSock)
 
 	if !noInfo {
-		if !rootful {
-			fmtString = `
-This machine is currently configured in rootless mode. If your containers
-require root permissions (e.g. ports < 1024), or if you run into compatibility
-issues with non-podman clients, you can switch using the following command:
-
-        podman machine set --rootful%s
-
-`
-
-			fmt.Printf(fmtString, suffix)
-		}
-
 		fmt.Printf("API forwarding listening on: %s\n", forwardSock)
 		if forwardState == DockerGlobal {
 			fmt.Printf("Docker API clients default to this address. You do not need to set DOCKER_HOST.\n\n")
@@ -79,7 +67,7 @@ address can't be used by podman. `
         sudo %s install
         podman machine stop%[2]s; podman machine start%[2]s
 
-                `
+`
 					fmt.Printf(fmtString, helper, suffix)
 				}
 			case MachineLocal:
@@ -93,13 +81,33 @@ address can't be used by podman. `
 			fmtString = `You can %sconnect Docker API clients by setting DOCKER_HOST using the
 following command in your terminal session:
 
-        export DOCKER_HOST='unix://%s'
+        %s'
 
 `
-
-			fmt.Printf(fmtString, stillString, forwardSock)
+			prefix := ""
+			if !strings.Contains(forwardSock, "://") {
+				prefix = "unix://"
+			}
+			fmt.Printf(fmtString, stillString, GetEnvSetString("DOCKER_HOST", prefix+forwardSock))
 		}
 	}
+}
+
+func PrintRootlessWarning(name string) {
+	suffix := ""
+	if name != DefaultMachineName {
+		suffix = " " + name
+	}
+
+	fmtString := `
+This machine is currently configured in rootless mode. If your containers
+require root permissions (e.g. ports < 1024), or if you run into compatibility
+issues with non-podman clients, you can switch using the following command:
+
+	podman machine set --rootful%s
+
+`
+	fmt.Printf(fmtString, suffix)
 }
 
 // SetRootful modifies the machine's default connection to be either rootful or

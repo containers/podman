@@ -401,6 +401,10 @@ github.com/containers/storage/pkg/tarlog
 github.com/containers/storage/pkg/truncindex
 github.com/containers/storage/pkg/unshare
 github.com/containers/storage/types
+# github.com/containers/winquit v1.1.0
+## explicit; go 1.19
+github.com/containers/winquit/pkg/winquit
+github.com/containers/winquit/pkg/winquit/win32
 # github.com/coreos/go-oidc/v3 v3.9.0
 ## explicit; go 1.19
 github.com/coreos/go-oidc/v3/oidc

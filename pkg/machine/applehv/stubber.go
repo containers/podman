@@ -40,6 +40,14 @@ type AppleHVStubber struct {
 }
 
 func (a AppleHVStubber) UserModeNetworkEnabled(_ *vmconfigs.MachineConfig) bool {
+return true
+}
+
+func (a AppleHVStubber) UseProviderNetworkSetup() bool {
+	return false
+}
+
+func (a AppleHVStubber) RequireExclusiveActive() bool {
 	return true
 }
 
@@ -319,7 +327,7 @@ func (a AppleHVStubber) PrepareIgnition(_ *vmconfigs.MachineConfig, _ *ignition.
 	return nil, nil
 }
 
-func (a AppleHVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig) error {
+func (a AppleHVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo bool) error {
 	return nil
 }
 

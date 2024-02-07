@@ -3,7 +3,9 @@
 package machine
 
 import (
+	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,16 +14,17 @@ import (
 	"time"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
+	winio "github.com/Microsoft/go-winio"
 	"github.com/sirupsen/logrus"
 )
 
 const (
-	pipePrefix     = "npipe:////./pipe/"
-	globalPipe     = "docker_engine"
-	winSShProxy    = "win-sshproxy.exe"
-	winSshProxyTid = "win-sshproxy.tid"
-	rootfulSock    = "/run/podman/podman.sock"
-	rootlessSock   = "/run/user/1000/podman/podman.sock"
+	NamedPipePrefix = "npipe:////./pipe/"
+	GlobalNamedPipe = "docker_engine"
+	winSShProxy     = "win-sshproxy.exe"
+	winSshProxyTid  = "win-sshproxy.tid"
+	rootfulSock     = "/run/podman/podman.sock"
+	rootlessSock    = "/run/user/1000/podman/podman.sock"
 )
 
 const WM_QUIT = 0x12 //nolint
@@ -71,6 +74,11 @@ func WaitPipeExists(pipeName string, retries int, checkFailure func() error) err
 	return err
 }
 
+func DialNamedPipe(ctx context.Context, path string) (net.Conn, error) {
+	path = strings.Replace(path, "/", "\\", -1)
+	return winio.DialPipeContext(ctx, path)
+}
+
 func LaunchWinProxy(opts WinProxyOpts, noInfo bool) {
 	globalName, pipeName, err := launchWinProxy(opts)
 	if !noInfo {
@@ -102,7 +110,7 @@ func launchWinProxy(opts WinProxyOpts) (bool, string, error) {
 	}
 
 	globalName := false
-	if PipeNameAvailable(globalPipe) {
+	if PipeNameAvailable(GlobalNamedPipe) {
 		globalName = true
 	}
 
@@ -125,27 +133,20 @@ func launchWinProxy(opts WinProxyOpts) (bool, string, error) {
 	}
 
 	dest := fmt.Sprintf("ssh://%s@localhost:%d%s", forwardUser, opts.Port, destSock)
-	args := []string{opts.Name, stateDir, pipePrefix + machinePipe, dest, opts.IdentityPath}
+	args := []string{opts.Name, stateDir, NamedPipePrefix + machinePipe, dest, opts.IdentityPath}
 	waitPipe := machinePipe
 	if globalName {
-		args = append(args, pipePrefix+globalPipe, dest, opts.IdentityPath)
-		waitPipe = globalPipe
+		args = append(args, NamedPipePrefix+GlobalNamedPipe, dest, opts.IdentityPath)
+		waitPipe = GlobalNamedPipe
 	}
 
 	cmd := exec.Command(command, args...)
 	logrus.Debugf("winssh command: %s %v", command, args)
-	f, err := os.Open("c:\\Users\\baude\\sshproxy.log")
-	if err != nil {
-		return false, "", err
-	}
-	cmd.Stderr = f
-	cmd.Stdout = f
-	defer f.Close()
 	if err := cmd.Start(); err != nil {
 		return globalName, "", err
 	}
 
-	return globalName, pipePrefix + waitPipe, WaitPipeExists(waitPipe, 80, func() error {
+	return globalName, NamedPipePrefix + waitPipe, WaitPipeExists(waitPipe, 80, func() error {
 		active, exitCode := GetProcessState(cmd.Process.Pid)
 		if !active {
 			return fmt.Errorf("win-sshproxy.exe failed to start, exit code: %d (see windows event logs)", exitCode)
@@ -246,4 +247,8 @@ func ToDist(name string) string {
 		name = "podman-" + name
 	}
 	return name
+}
+
+func GetEnvSetString(env string, val string) string {
+	return fmt.Sprintf("$Env:%s=\"%s\"", env, val)
 }

@@ -128,7 +128,6 @@ func setMachine(cmd *cobra.Command, args []string) error {
 		setOpts.DiskSize = &newDiskSizeGB
 	}
 	if cmd.Flags().Changed("user-mode-networking") {
-		// TODO This needs help
 		setOpts.UserModeNetworking = &setFlags.UserModeNetworking
 	}
 	if cmd.Flags().Changed("usb") {

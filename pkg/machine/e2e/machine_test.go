@@ -2,7 +2,6 @@ package e2e_test
 
 import (
 	"fmt"
-	"github.com/containers/podman/v4/pkg/machine/wsl"
 	"io"
 	url2 "net/url"
 	"os"
@@ -12,6 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/containers/podman/v5/pkg/machine/wsl"
 
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/compression"

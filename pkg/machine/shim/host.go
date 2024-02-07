@@ -256,6 +256,11 @@ func VMExists(name string, vmstubbers []vmconfigs.VMProvider) (*vmconfigs.Machin
 
 // CheckExclusiveActiveVM checks if any of the machines are already running
 func CheckExclusiveActiveVM(provider vmconfigs.VMProvider, mc *vmconfigs.MachineConfig) error {
+	// Don't check if provider supports parallel running machines
+	if !provider.RequireExclusiveActive() {
+		return nil
+	}
+
 	// Check if any other machines are running; if so, we error
 	localMachines, err := getMCsOverProviders([]vmconfigs.VMProvider{provider})
 	if err != nil {
@@ -330,7 +335,7 @@ func Stop(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDef
 	}
 
 	// Stop GvProxy and remove PID file
-	if mp.UserModeNetworkEnabled(mc) {
+	if !mp.UseProviderNetworkSetup() {
 		gvproxyPidFile, err := dirs.RuntimeDir.AppendToNewVMFile("gvproxy.pid", nil)
 		if err != nil {
 			return err
@@ -381,7 +386,11 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, _ *machineDefin
 		}
 	}
 
-	err = mp.PostStartNetworking(mc)
+	if !opts.NoInfo && !mc.HostUser.Rootful {
+		machine.PrintRootlessWarning(mc.Name)
+	}
+
+	err = mp.PostStartNetworking(mc, opts.NoInfo)
 	if err != nil {
 		return err
 	}
@@ -408,15 +417,6 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, _ *machineDefin
 		return err
 	}
 
-	machine.WaitAPIAndPrintInfo(
-		forwardingState,
-		mc.Name,
-		findClaimHelper(),
-		forwardSocketPath,
-		opts.NoInfo,
-		mc.HostUser.Rootful,
-	)
-
 	// update the podman/docker socket service if the host user has been modified at all (UID or Rootful)
 	if mc.HostUser.Modified {
 		if machine.UpdatePodmanDockerSockService(mc) == nil {
@@ -428,5 +428,22 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, _ *machineDefin
 			}
 		}
 	}
+
+	// Provider is responsible for waiting
+	if mp.UseProviderNetworkSetup() {
+		return nil
+	}
+
+	noInfo := opts.NoInfo
+
+	machine.WaitAPIAndPrintInfo(
+		forwardingState,
+		mc.Name,
+		findClaimHelper(),
+		forwardSocketPath,
+		noInfo,
+		mc.HostUser.Rootful,
+	)
+
 	return nil
 }

@@ -32,8 +32,8 @@ func Decompress(localPath *define.VMFile, uncompressedPath string) error {
 		return err
 	}
 	defer func() {
-		if err := uncompressedFileWriter.Close(); err != nil {
-			logrus.Errorf("unable to to close decompressed file %s: %q", uncompressedPath, err)
+		if err := uncompressedFileWriter.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
+			logrus.Warnf("unable to close decompressed file %s: %q", uncompressedPath, err)
 		}
 	}()
 	sourceFile, err := localPath.Read()

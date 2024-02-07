@@ -1,16 +1,12 @@
 package machine
 
 import (
-	"errors"
 	"fmt"
-	"runtime"
 	"strconv"
-	"syscall"
 	"time"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
 	psutil "github.com/shirou/gopsutil/v3/process"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -37,49 +33,6 @@ func backoffForProcess(p *psutil.Process) error {
 		sleepInterval += sleepInterval
 	}
 	return fmt.Errorf("process %d has not ended", p.Pid)
-}
-
-// waitOnProcess takes a pid and sends a sigterm to it. it then waits for the
-// process to not exist.  if the sigterm does not end the process after an interval,
-// then sigkill is sent.  it also waits for the process to exit after the sigkill too.
-func waitOnProcess(processID int) error {
-	logrus.Infof("Going to stop gvproxy (PID %d)", processID)
-
-	p, err := psutil.NewProcess(int32(processID))
-	if err != nil {
-		return fmt.Errorf("looking up PID %d: %w", processID, err)
-	}
-
-	// Try to kill the pid with sigterm
-	if runtime.GOOS != "windows" { // FIXME: temporary work around because signals are lame in windows
-		if err := p.SendSignal(syscall.SIGTERM); err != nil {
-			if errors.Is(err, syscall.ESRCH) {
-				return nil
-			}
-			return fmt.Errorf("sending SIGTERM to grproxy: %w", err)
-		}
-
-		if err := backoffForProcess(p); err == nil {
-			return nil
-		}
-	}
-
-	running, err := p.IsRunning()
-	if err != nil {
-		return fmt.Errorf("checking if gvproxy is running: %w", err)
-	}
-	if !running {
-		return nil
-	}
-
-	if err := p.Kill(); err != nil {
-		if errors.Is(err, syscall.ESRCH) {
-			logrus.Debugf("Gvproxy already dead, exiting cleanly")
-			return nil
-		}
-		return err
-	}
-	return backoffForProcess(p)
 }
 
 // CleanupGVProxy reads the --pid-file for gvproxy attempts to stop it

@@ -120,7 +120,7 @@ func (w WSLStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() error,
 	// below if we wanted to hard error on the wsl unregister
 	// of the vm
 	wslRemoveFunc := func() error {
-		if err := runCmdPassThrough("wsl", "--unregister", mc.Name); err != nil {
+		if err := runCmdPassThrough("wsl", "--unregister", machine.ToDist(mc.Name)); err != nil {
 			logrus.Error(err)
 		}
 		return machine.ReleaseMachinePort(mc.SSH.Port)
@@ -178,24 +178,19 @@ func (w WSLStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.Se
 		return errors.New("changing disk size not supported for WSL machines")
 	}
 
-	// TODO This needs to be plumbed in for set as well
-	//if opts.UserModeNetworking != nil && *opts.UserModeNetworking != v.UserModeNetworking {
-	//	update := true
-	//
-	//	if v.isRunning() {
-	//		update = false
-	//		setErrors = append(setErrors, fmt.Errorf("user-mode networking can only be changed when the machine is not running"))
-	//	} else {
-	//		dist := toDist(v.Name)
-	//		if err := changeDistUserModeNetworking(dist, v.RemoteUsername, v.ImagePath, *opts.UserModeNetworking); err != nil {
-	//			update = false
-	//			setErrors = append(setErrors, err)
-	//		}
-	//	}
-	//
-	//	if update {
-	//		v.UserModeNetworking = *opts.UserModeNetworking
-	//	}
+	if opts.UserModeNetworking != nil && mc.WSLHypervisor.UserModeNetworking != *opts.UserModeNetworking {
+		if running, _ := isRunning(mc.Name); running {
+			return errors.New("user-mode networking can only be changed when the machine is not running")
+		}
+
+		dist := machine.ToDist(mc.Name)
+		if err := changeDistUserModeNetworking(dist, mc.SSH.RemoteUsername, mc.ImagePath.GetPath(), *opts.UserModeNetworking); err != nil {
+			return fmt.Errorf("failure changing state of user-mode networking setting", err)
+		}
+
+		mc.WSLHypervisor.UserModeNetworking = *opts.UserModeNetworking
+	}
+
 	return nil
 }
 
@@ -211,26 +206,34 @@ func (w WSLStubber) UserModeNetworkEnabled(mc *vmconfigs.MachineConfig) bool {
 	return mc.WSLHypervisor.UserModeNetworking
 }
 
-func (w WSLStubber) PostStartNetworking(mc *vmconfigs.MachineConfig) error {
-	if mc.WSLHypervisor.UserModeNetworking {
-		winProxyOpts := machine.WinProxyOpts{
-			Name:           mc.Name,
-			IdentityPath:   mc.SSH.IdentityPath,
-			Port:           mc.SSH.Port,
-			RemoteUsername: mc.SSH.RemoteUsername,
-			Rootful:        mc.HostUser.Rootful,
-			VMType:         w.VMType(),
-		}
-		machine.LaunchWinProxy(winProxyOpts, false)
+func (w WSLStubber) UseProviderNetworkSetup() bool {
+	return true
+}
+
+func (w WSLStubber) RequireExclusiveActive() bool {
+	return false
+}
+
+func (w WSLStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo bool) error {
+	winProxyOpts := machine.WinProxyOpts{
+		Name:           mc.Name,
+		IdentityPath:   mc.SSH.IdentityPath,
+		Port:           mc.SSH.Port,
+		RemoteUsername: mc.SSH.RemoteUsername,
+		Rootful:        mc.HostUser.Rootful,
+		VMType:         w.VMType(),
 	}
+	machine.LaunchWinProxy(winProxyOpts, noInfo)
+
 	return nil
 }
 
 func (w WSLStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func() error, error) {
 	useProxy := setupWslProxyEnv()
+	dist := machine.ToDist(mc.Name)
 
 	// TODO Quiet is hard set to false: follow up
-	if err := configureProxy(mc.Name, useProxy, false); err != nil {
+	if err := configureProxy(dist, useProxy, false); err != nil {
 		return nil, nil, err
 	}
 
@@ -243,24 +246,10 @@ func (w WSLStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func() e
 	//	}
 	// }
 
-	err := wslInvoke(mc.Name, "/root/bootstrap")
+	err := wslInvoke(dist, "/root/bootstrap")
 	if err != nil {
 		err = fmt.Errorf("the WSL bootstrap script failed: %w", err)
 	}
-
-	// TODO we dont show this for any other provider. perhaps we should ? and if
-	// so, we need to move it up the stack
-	//if !v.Rootful && !opts.NoInfo {
-	//	fmt.Printf("\nThis machine is currently configured in rootless mode. If your containers\n")
-	//	fmt.Printf("require root permissions (e.g. ports < 1024), or if you run into compatibility\n")
-	//	fmt.Printf("issues with non-podman clients, you can switch using the following command: \n")
-	//
-	//	suffix := ""
-	//	if name != machine.DefaultMachineName {
-	//		suffix = " " + name
-	//	}
-	//	fmt.Printf("\n\tpodman machine set --rootful%s\n\n", suffix)
-	//}
 
 	readyFunc := func() error {
 		return nil
@@ -284,10 +273,15 @@ func (w WSLStubber) StopVM(mc *vmconfigs.MachineConfig, hardStop bool) error {
 	var (
 		err error
 	)
-	// by this time, state has been verified to be running and a request
-	// to stop is fair game
 	mc.Lock()
 	defer mc.Unlock()
+
+	// recheck after lock
+	if running, err := isRunning(mc.Name); !running {
+		return err
+	}
+
+	dist := machine.ToDist(mc.Name)
 
 	// Stop user-mode networking if enabled
 	if err := stopUserModeNetworking(mc); err != nil {
@@ -298,13 +292,13 @@ func (w WSLStubber) StopVM(mc *vmconfigs.MachineConfig, hardStop bool) error {
 		fmt.Fprintf(os.Stderr, "Could not stop API forwarding service (win-sshproxy.exe): %s\n", err.Error())
 	}
 
-	cmd := exec.Command("wsl", "-u", "root", "-d", mc.Name, "sh")
+	cmd := exec.Command("wsl", "-u", "root", "-d", dist, "sh")
 	cmd.Stdin = strings.NewReader(waitTerm)
 	if err = cmd.Start(); err != nil {
 		return fmt.Errorf("executing wait command: %w", err)
 	}
 
-	exitCmd := exec.Command("wsl", "-u", "root", "-d", mc.Name, "/usr/local/bin/enterns", "systemctl", "exit", "0")
+	exitCmd := exec.Command("wsl", "-u", "root", "-d", dist, "/usr/local/bin/enterns", "systemctl", "exit", "0")
 	if err = exitCmd.Run(); err != nil {
 		return fmt.Errorf("stopping sysd: %w", err)
 	}
@@ -313,7 +307,7 @@ func (w WSLStubber) StopVM(mc *vmconfigs.MachineConfig, hardStop bool) error {
 		return err
 	}
 
-	return terminateDist(mc.Name)
+	return terminateDist(dist)
 }
 
 func (w WSLStubber) StopHostNetworking(mc *vmconfigs.MachineConfig, vmType define.VMType) error {

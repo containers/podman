@@ -34,6 +34,14 @@ func (q QEMUStubber) UserModeNetworkEnabled(*vmconfigs.MachineConfig) bool {
 	return true
 }
 
+func (q QEMUStubber) UseProviderNetworkSetup() bool {
+	return false
+}
+
+func (q QEMUStubber) RequireExclusiveActive() bool {
+	return true
+}
+
 func (q *QEMUStubber) setQEMUCommandLine(mc *vmconfigs.MachineConfig) error {
 	qemuBinary, err := findQEMUBinary()
 	if err != nil {
@@ -73,7 +81,7 @@ func (q *QEMUStubber) setQEMUCommandLine(mc *vmconfigs.MachineConfig) error {
 	return nil
 }
 
-func (q *QEMUStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConfig, _ *ignition.IgnitionBuilder) error {
+func (q *QEMUStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConfig, builder *ignition.IgnitionBuilder) error {
 	monitor, err := command.NewQMPMonitor(opts.Name, opts.Dirs.RuntimeDir)
 	if err != nil {
 		return err
@@ -327,7 +335,7 @@ func (q *QEMUStubber) MountType() vmconfigs.VolumeMountType {
 	return vmconfigs.NineP
 }
 
-func (q *QEMUStubber) PostStartNetworking(mc *vmconfigs.MachineConfig) error {
+func (q *QEMUStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo bool) error {
 	return nil
 }
 

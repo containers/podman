@@ -2,9 +2,7 @@ package shim
 
 import (
 	"fmt"
-	"io/fs"
 	"net"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -23,7 +21,7 @@ const (
 	dockerConnectTimeout = 5 * time.Second
 )
 
-func startUserModeNetworking(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvider, dirs *define.MachineDirs, hostSocket *define.VMFile) error {
+func startHostForwarder(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvider, dirs *define.MachineDirs, hostSocks []string) error {
 	forwardUser := mc.SSH.RemoteUsername
 
 	// TODO should this go up the stack higher or
@@ -57,10 +55,13 @@ func startUserModeNetworking(mc *vmconfigs.MachineConfig, provider vmconfigs.VMP
 
 	cmd.SSHPort = mc.SSH.Port
 
-	cmd.AddForwardSock(hostSocket.GetPath())
-	cmd.AddForwardDest(guestSock)
-	cmd.AddForwardUser(forwardUser)
-	cmd.AddForwardIdentity(mc.SSH.IdentityPath)
+	// Windows providers listen on multiple sockets since they do not involve links
+	for _, hostSock := range hostSocks {
+		cmd.AddForwardSock(hostSock)
+		cmd.AddForwardDest(guestSock)
+		cmd.AddForwardUser(forwardUser)
+		cmd.AddForwardIdentity(mc.SSH.IdentityPath)
+	}
 
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		cmd.Debug = true
@@ -84,90 +85,26 @@ func startUserModeNetworking(mc *vmconfigs.MachineConfig, provider vmconfigs.VMP
 }
 
 func startNetworking(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvider) (string, machine.APIForwardingState, error) {
-	var (
-		forwardingState machine.APIForwardingState
-		forwardSock     string
-	)
+	// Provider has its own networking code path (e.g. WSL)
+	if provider.UseProviderNetworkSetup() {
+		return "", 0, provider.StartNetworking(mc, nil)
+	}
+
 	dirs, err := machine.GetMachineDirs(provider.VMType())
 	if err != nil {
 		return "", 0, err
 	}
-	hostSocket, err := dirs.DataDir.AppendToNewVMFile("podman.sock", nil)
+
+	hostSocks, forwardSock, forwardingState, err := setupMachineSockets(mc.Name, dirs)
 	if err != nil {
 		return "", 0, err
 	}
 
-	linkSocketPath := filepath.Dir(dirs.DataDir.GetPath())
-	linkSocket, err := define.NewMachineFile(filepath.Join(linkSocketPath, "podman.sock"), nil)
-	if err != nil {
+	if err := startHostForwarder(mc, provider, dirs, hostSocks); err != nil {
 		return "", 0, err
-	}
-
-	if mc.HostUser.UID != -1 {
-		forwardSock, forwardingState = setupAPIForwarding(hostSocket, linkSocket)
-	}
-
-	if provider.UserModeNetworkEnabled(mc) {
-		if err := startUserModeNetworking(mc, provider, dirs, hostSocket); err != nil {
-			return "", 0, err
-		}
 	}
 
 	return forwardSock, forwardingState, nil
-}
-
-func setupAPIForwarding(hostSocket, linkSocket *define.VMFile) (string, machine.APIForwardingState) {
-	// The linking pattern is /var/run/docker.sock -> user global sock (link) -> machine sock (socket)
-	// This allows the helper to only have to maintain one constant target to the user, which can be
-	// repositioned without updating docker.sock.
-
-	if !dockerClaimSupported() {
-		return hostSocket.GetPath(), machine.ClaimUnsupported
-	}
-
-	if !dockerClaimHelperInstalled() {
-		return hostSocket.GetPath(), machine.NotInstalled
-	}
-
-	if !alreadyLinked(hostSocket.GetPath(), linkSocket.GetPath()) {
-		if checkSockInUse(linkSocket.GetPath()) {
-			return hostSocket.GetPath(), machine.MachineLocal
-		}
-
-		_ = linkSocket.Delete()
-
-		if err := os.Symlink(hostSocket.GetPath(), linkSocket.GetPath()); err != nil {
-			logrus.Warnf("could not create user global API forwarding link: %s", err.Error())
-			return hostSocket.GetPath(), machine.MachineLocal
-		}
-	}
-
-	if !alreadyLinked(linkSocket.GetPath(), dockerSock) {
-		if checkSockInUse(dockerSock) {
-			return hostSocket.GetPath(), machine.MachineLocal
-		}
-
-		if !claimDockerSock() {
-			logrus.Warn("podman helper is installed, but was not able to claim the global docker sock")
-			return hostSocket.GetPath(), machine.MachineLocal
-		}
-	}
-
-	return dockerSock, machine.DockerGlobal
-}
-
-func alreadyLinked(target string, link string) bool {
-	read, err := os.Readlink(link)
-	return err == nil && read == target
-}
-
-func checkSockInUse(sock string) bool {
-	if info, err := os.Stat(sock); err == nil && info.Mode()&fs.ModeSocket == fs.ModeSocket {
-		_, err = net.DialTimeout("unix", dockerSock, dockerConnectTimeout)
-		return err == nil
-	}
-
-	return false
 }
 
 // conductVMReadinessCheck checks to make sure the machine is in the proper state
@@ -191,7 +128,7 @@ func conductVMReadinessCheck(mc *vmconfigs.MachineConfig, maxBackoffs int, backo
 			// CoreOS users have reported the same observation but
 			// the underlying source of the issue remains unknown.
 
-			if sshError = machine.CommonSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, []string{"true"}); sshError != nil {
+			if sshError = machine.CommonSSHSilent(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, []string{"true"}); sshError != nil {
 				logrus.Debugf("SSH readiness check for machine failed: %v", sshError)
 				continue
 			}
