@@ -1,4 +1,4 @@
-[![GoDoc](https://godoc.org/github.com/containers/psgo?status.svg)](https://godoc.org/github.com/containers/psgo) [![Build Status](https://travis-ci.org/containers/psgo.svg?branch=master)](https://travis-ci.org/containers/psgo)
+[![GoDoc](https://godoc.org/github.com/containers/psgo?status.svg)](https://godoc.org/github.com/containers/psgo)
 
 # psgo
 A ps(1) AIX-format compatible golang library extended with various descriptors useful for displaying container-related data.

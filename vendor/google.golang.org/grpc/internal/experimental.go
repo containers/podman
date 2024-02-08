@@ -1,6 +1,5 @@
 /*
- *
- * Copyright 2018 gRPC authors.
+ * Copyright 2023 gRPC authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +15,14 @@
  *
  */
 
-package grpc
+package internal
 
-// Version is the current grpc version.
-const Version = "1.60.1"
+var (
+	// WithRecvBufferPool is implemented by the grpc package and returns a dial
+	// option to configure a shared buffer pool for a grpc.ClientConn.
+	WithRecvBufferPool any // func (grpc.SharedBufferPool) grpc.DialOption
+
+	// RecvBufferPool is implemented by the grpc package and returns a server
+	// option to configure a shared buffer pool for a grpc.Server.
+	RecvBufferPool any // func (grpc.SharedBufferPool) grpc.ServerOption
+)
