@@ -106,7 +106,7 @@ var _ = Describe("Podman push", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		push := podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", "imageone", "localhost:5000/image"})
+		push := podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--force-compression=true", "--compression-format", "gzip", "--remove-signatures", "imageone", "localhost:5000/image"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(ExitCleanly())
 
@@ -115,7 +115,6 @@ var _ = Describe("Podman push", func() {
 		skopeo.WaitWithDefaultTimeout()
 		Expect(skopeo).Should(ExitCleanly())
 		output := skopeo.OutputToString()
-		// Default compression is gzip and push with `--force-compression=false` no traces of `zstd` should be there.
 		Expect(output).ToNot(ContainSubstring("zstd"))
 
 		push = podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--force-compression=false", "--compression-format", "zstd", "--remove-signatures", "imageone", "localhost:5000/image"})
