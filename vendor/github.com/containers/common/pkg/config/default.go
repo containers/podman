@@ -353,7 +353,7 @@ func defaultEngineConfig() (*EngineConfig, error) {
 	c.ImageCopyTmpDir = getDefaultTmpDir()
 
 	c.VolumePluginTimeout = DefaultVolumePluginTimeout
-	c.CompressionFormat = "gzip"
+	c.CompressionFormat = "zstd:chunked"
 
 	c.HealthcheckEvents = true
 	c.HelperBinariesDir.Set(defaultHelperBinariesDir)
