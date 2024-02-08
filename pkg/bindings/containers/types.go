@@ -29,6 +29,7 @@ type LogOptions struct {
 type CommitOptions struct {
 	Author  *string
 	Changes []string
+	Config  *io.Reader `schema:"-"`
 	Comment *string
 	Format  *string
 	Pause   *bool
