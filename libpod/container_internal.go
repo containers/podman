@@ -622,7 +622,19 @@ func resetContainerState(state *ContainerState) {
 	state.ConmonPID = 0
 	state.Mountpoint = ""
 	state.Mounted = false
-	if state.State != define.ContainerStateExited {
+	// Reset state.
+	// Almost all states are reset to either Configured or Exited,
+	// except ContainerStateRemoving which is preserved.
+	switch state.State {
+	case define.ContainerStateStopped, define.ContainerStateExited, define.ContainerStateStopping, define.ContainerStateRunning, define.ContainerStatePaused:
+		// All containers that ran at any point during the last boot
+		// must be placed in the Exited state.
+		state.State = define.ContainerStateExited
+	case define.ContainerStateConfigured, define.ContainerStateCreated:
+		state.State = define.ContainerStateConfigured
+	case define.ContainerStateUnknown:
+		// Something really strange must have happened to get us here.
+		// Reset to configured, maybe the reboot cleared things up?
 		state.State = define.ContainerStateConfigured
 	}
 	state.ExecSessions = make(map[string]*ExecSession)
