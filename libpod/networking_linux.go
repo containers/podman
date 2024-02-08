@@ -13,6 +13,7 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	netUtil "github.com/containers/common/libnetwork/util"
 	"github.com/containers/common/pkg/netns"
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -186,10 +187,9 @@ func getContainerNetNS(ctr *Container) (string, *Container, error) {
 	return "", nil, nil
 }
 
-// TODO (5.0): return the statistics per network interface
-// This would allow better compat with docker.
-func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
-	var netStats *netlink.LinkStatistics
+// Returns a map of interface name to statistics for that interface.
+func getContainerNetIO(ctr *Container) (map[string]define.ContainerNetworkStats, error) {
+	perNetworkStats := make(map[string]define.ContainerNetworkStats)
 
 	netNSPath, otherCtr, netPathErr := getContainerNetNS(ctr)
 	if netPathErr != nil {
@@ -222,21 +222,26 @@ func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 				if err != nil {
 					return err
 				}
-				if netStats == nil {
-					netStats = link.Attrs().Statistics
-					continue
-				}
-				// Currently only Tx/RxBytes are used.
-				// In the future we should return all stats per interface so that
-				// api users have a better options.
 				stats := link.Attrs().Statistics
-				netStats.TxBytes += stats.TxBytes
-				netStats.RxBytes += stats.RxBytes
+				if stats != nil {
+					newStats := define.ContainerNetworkStats{
+						RxBytes:   stats.RxBytes,
+						RxDropped: stats.RxDropped,
+						RxErrors:  stats.RxErrors,
+						RxPackets: stats.RxPackets,
+						TxBytes:   stats.TxBytes,
+						TxDropped: stats.TxDropped,
+						TxErrors:  stats.TxErrors,
+						TxPackets: stats.TxPackets,
+					}
+
+					perNetworkStats[dev] = newStats
+				}
 			}
 		}
 		return nil
 	})
-	return netStats, err
+	return perNetworkStats, err
 }
 
 // joinedNetworkNSPath returns netns path and bool if netns was set

@@ -41,6 +41,12 @@ func (c *Container) GetContainerStats(previousStats *define.ContainerStats) (*de
 		}
 	}
 
+	netStats, err := getContainerNetIO(c)
+	if err != nil {
+		return nil, err
+	}
+	stats.Network = netStats
+
 	if err := c.getPlatformContainerStats(stats, previousStats); err != nil {
 		return nil, err
 	}

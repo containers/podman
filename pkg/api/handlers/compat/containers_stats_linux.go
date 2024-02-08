@@ -119,23 +119,20 @@ streamLabel: // A label to flatten the scope
 			return
 		}
 
-		// FIXME: network inspection does not yet work entirely
 		net := make(map[string]docker.NetworkStats)
-		networkName := inspect.NetworkSettings.EndpointID
-		if networkName == "" {
-			networkName = "network"
-		}
-		net[networkName] = docker.NetworkStats{
-			RxBytes:    stats.NetInput,
-			RxPackets:  0,
-			RxErrors:   0,
-			RxDropped:  0,
-			TxBytes:    stats.NetOutput,
-			TxPackets:  0,
-			TxErrors:   0,
-			TxDropped:  0,
-			EndpointID: inspect.NetworkSettings.EndpointID,
-			InstanceID: "",
+		for netName, netStats := range stats.Network {
+			net[netName] = docker.NetworkStats{
+				RxBytes:    netStats.RxBytes,
+				RxPackets:  netStats.RxPackets,
+				RxErrors:   netStats.RxErrors,
+				RxDropped:  netStats.RxDropped,
+				TxBytes:    netStats.TxBytes,
+				TxPackets:  netStats.TxPackets,
+				TxErrors:   netStats.TxErrors,
+				TxDropped:  netStats.TxDropped,
+				EndpointID: inspect.NetworkSettings.EndpointID,
+				InstanceID: "",
+			}
 		}
 
 		resources := ctnr.LinuxResources()

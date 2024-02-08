@@ -13,6 +13,7 @@ import (
 
 	"github.com/containers/buildah/pkg/jail"
 	"github.com/containers/common/libnetwork/types"
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
 )
@@ -43,33 +44,6 @@ type NetstatAddress struct {
 	DroppedPackets uint64 `json:"dropped-packets"`
 
 	Collisions uint64 `json:"collisions"`
-}
-
-// copied from github.com/vishvanada/netlink which does not build on freebsd
-type LinkStatistics64 struct {
-	RxPackets         uint64
-	TxPackets         uint64
-	RxBytes           uint64
-	TxBytes           uint64
-	RxErrors          uint64
-	TxErrors          uint64
-	RxDropped         uint64
-	TxDropped         uint64
-	Multicast         uint64
-	Collisions        uint64
-	RxLengthErrors    uint64
-	RxOverErrors      uint64
-	RxCrcErrors       uint64
-	RxFrameErrors     uint64
-	RxFifoErrors      uint64
-	RxMissedErrors    uint64
-	TxAbortedErrors   uint64
-	TxCarrierErrors   uint64
-	TxFifoErrors      uint64
-	TxHeartbeatErrors uint64
-	TxWindowErrors    uint64
-	RxCompressed      uint64
-	TxCompressed      uint64
 }
 
 type RootlessNetNS struct {
@@ -223,7 +197,7 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 
 // TODO (5.0): return the statistics per network interface
 // This would allow better compat with docker.
-func getContainerNetIO(ctr *Container) (*LinkStatistics64, error) {
+func getContainerNetIO(ctr *Container) (map[string]define.ContainerNetworkStats, error) {
 	if ctr.state.NetNS == "" {
 		// If NetNS is nil, it was set as none, and no netNS
 		// was set up this is a valid state and thus return no
@@ -249,8 +223,9 @@ func getContainerNetIO(ctr *Container) (*LinkStatistics64, error) {
 		return nil, err
 	}
 
+	res := make(map[string]define.ContainerNetworkStats)
+
 	// Sum all the interface stats - in practice only Tx/TxBytes are needed
-	res := &LinkStatistics64{}
 	for _, ifaddr := range stats.Statistics.Interface {
 		// Each interface has two records, one for link-layer which has
 		// an MTU field and one for IP which doesn't. We only want the
@@ -260,14 +235,16 @@ func getContainerNetIO(ctr *Container) (*LinkStatistics64, error) {
 		// if we move to per-interface stats in future, this can be
 		// reported separately.
 		if ifaddr.Mtu > 0 {
-			res.RxPackets += ifaddr.ReceivedPackets
-			res.TxPackets += ifaddr.SentPackets
-			res.RxBytes += ifaddr.ReceivedBytes
-			res.TxBytes += ifaddr.SentBytes
-			res.RxErrors += ifaddr.ReceivedErrors
-			res.TxErrors += ifaddr.SentErrors
-			res.RxDropped += ifaddr.DroppedPackets
-			res.Collisions += ifaddr.Collisions
+			linkStats := define.ContainerNetworkStats{
+				RxPackets: ifaddr.ReceivedPackets,
+				TxPackets: ifaddr.SentPackets,
+				RxBytes:   ifaddr.ReceivedBytes,
+				TxBytes:   ifaddr.SentBytes,
+				RxErrors:  ifaddr.ReceivedErrors,
+				TxErrors:  ifaddr.SentErrors,
+				RxDropped: ifaddr.DroppedPackets,
+			}
+			res[ifaddr.Name] = linkStats
 		}
 	}
 

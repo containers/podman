@@ -80,20 +80,6 @@ func (c *Container) getPlatformContainerStats(stats *define.ContainerStats, prev
 	stats.MemLimit = c.getMemLimit()
 	stats.SystemNano = now
 
-	netStats, err := getContainerNetIO(c)
-	if err != nil {
-		return err
-	}
-
-	// Handle case where the container is not in a network namespace
-	if netStats != nil {
-		stats.NetInput = netStats.RxBytes
-		stats.NetOutput = netStats.TxBytes
-	} else {
-		stats.NetInput = 0
-		stats.NetOutput = 0
-	}
-
 	return nil
 }
 
