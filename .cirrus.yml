@@ -488,35 +488,35 @@ osx_alt_build_task:
         task_cleanup_script: *mac_cleanup
 
 # Build freebsd release natively on a FreeBSD VM.
-#freebsd_alt_build_task:
-#    name: "FreeBSD Cross"
-#    alias: freebsd_alt_build
-#    # Only run on 'main' and PRs against 'main'
-#    # Docs: ./contrib/cirrus/CIModes.md
-#    only_if: |
-#        $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*' &&
-#        ( $CIRRUS_BRANCH == 'main' || $CIRRUS_BASE_BRANCH == 'main' )
-#    depends_on:
-#        - build
-#    env:
-#        <<: *stdenvars
-#        # Functional FreeBSD builds must be built natively since they depend on CGO
-#        DISTRO_NV: freebsd-13
-#        VM_IMAGE_NAME: notyet
-#        CTR_FQIN: notyet
-#        CIRRUS_SHELL: "/bin/sh"
-#        TEST_FLAVOR: "altbuild"
-#        ALT_NAME: 'FreeBSD Cross'
-#    freebsd_instance:
-#        image_family: freebsd-13-2
-#    setup_script:
-#        - pkg install -y gpgme bash go-md2man gmake gsed gnugrep go pkgconf
-#    build_amd64_script:
-#        - gmake podman-release
-#    # This task cannot make use of the shared repo.tbz artifact and must
-#    # produce a new repo.tbz artifact for consumption by 'artifacts' task.
-#    repo_prep_script: *repo_prep
-#    repo_artifacts: *repo_artifacts
+freebsd_alt_build_task:
+   name: "FreeBSD Cross"
+   alias: freebsd_alt_build
+   # Only run on 'main' and PRs against 'main'
+   # Docs: ./contrib/cirrus/CIModes.md
+   only_if: |
+       $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*' &&
+       ( $CIRRUS_BRANCH == 'main' || $CIRRUS_BASE_BRANCH == 'main' )
+   depends_on:
+       - build
+   env:
+       <<: *stdenvars
+       # Functional FreeBSD builds must be built natively since they depend on CGO
+       DISTRO_NV: freebsd-13
+       VM_IMAGE_NAME: notyet
+       CTR_FQIN: notyet
+       CIRRUS_SHELL: "/bin/sh"
+       TEST_FLAVOR: "altbuild"
+       ALT_NAME: 'FreeBSD Cross'
+   freebsd_instance:
+       image_family: freebsd-13-2
+   setup_script:
+       - pkg install -y gpgme bash go-md2man gmake gsed gnugrep go pkgconf
+   build_amd64_script:
+       - gmake podman-release
+   # This task cannot make use of the shared repo.tbz artifact and must
+   # produce a new repo.tbz artifact for consumption by 'artifacts' task.
+   repo_prep_script: *repo_prep
+   repo_artifacts: *repo_artifacts
 
 
 # Verify podman is compatible with the docker python-module.
@@ -1076,7 +1076,7 @@ success_task:
         - swagger
         - alt_build
         - osx_alt_build
-          #- freebsd_alt_build
+        - freebsd_alt_build
           #- win_installer
         - docker-py_test
         - unit_test
