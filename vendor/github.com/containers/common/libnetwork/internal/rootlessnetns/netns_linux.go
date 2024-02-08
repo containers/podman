@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/common/libnetwork/pasta"
 	"github.com/containers/common/libnetwork/resolvconf"
 	"github.com/containers/common/libnetwork/slirp4netns"
 	"github.com/containers/common/pkg/config"
@@ -31,8 +31,8 @@ const (
 	// refCountFile file name for the ref count file
 	refCountFile = "ref-count"
 
-	// rootlessNetNsSilrp4netnsPidFile is the name of the rootless netns slirp4netns pid file
-	rootlessNetNsSilrp4netnsPidFile = "rootless-netns-slirp4netns.pid"
+	// rootlessNetNsConnPidFile is the name of the rootless netns slirp4netns/pasta pid file
+	rootlessNetNsConnPidFile = "rootless-netns-conn.pid"
 
 	// persistentCNIDir is the directory where the CNI files are stored
 	persistentCNIDir = "/var/lib/cni"
@@ -113,7 +113,14 @@ func (n *Netns) getOrCreateNetns() (ns.NetNS, bool, error) {
 	if err != nil {
 		return nil, false, wrapError("create netns", err)
 	}
-	err = n.setupSlirp4netns(nsPath)
+	switch strings.ToLower(n.config.Network.DefaultRootlessNetworkCmd) {
+	case "", slirp4netns.BinaryName:
+		err = n.setupSlirp4netns(nsPath)
+	case pasta.BinaryName:
+		err = n.setupPasta(nsPath)
+	default:
+		err = fmt.Errorf("invalid rootless network command %q", n.config.Network.DefaultRootlessNetworkCmd)
+	}
 	return netns, true, err
 }
 
@@ -133,14 +140,61 @@ func (n *Netns) cleanup() error {
 	if err := netns.UnmountNS(nsPath); err != nil {
 		multiErr = multierror.Append(multiErr, err)
 	}
-	if err := n.cleanupSlirp4netns(); err != nil {
-		multiErr = multierror.Append(multiErr, wrapError("kill slirp4netns", err))
+	if err := n.cleanupRootlessNetns(); err != nil {
+		multiErr = multierror.Append(multiErr, wrapError("kill network process", err))
 	}
 	if err := os.RemoveAll(n.dir); err != nil {
 		multiErr = multierror.Append(multiErr, wrapError("remove rootless netns dir", err))
 	}
 
 	return multiErr.ErrorOrNil()
+}
+
+func (n *Netns) setupPasta(nsPath string) error {
+	pidPath := n.getPath(rootlessNetNsConnPidFile)
+
+	pastaOpts := pasta.SetupOptions{
+		Config:       n.config,
+		Netns:        nsPath,
+		ExtraOptions: []string{"--pid", pidPath},
+	}
+	if err := pasta.Setup(&pastaOpts); err != nil {
+		return fmt.Errorf("setting up Pasta: %w", err)
+	}
+
+	if systemd.RunsOnSystemd() {
+		// Treat these as fatal - if pasta failed to write a PID file something is probably wrong.
+		pidfile, err := os.ReadFile(pidPath)
+		if err != nil {
+			return fmt.Errorf("unable to open pasta PID file: %w", err)
+		}
+		pid, err := strconv.Atoi(strings.TrimSpace(string(pidfile)))
+		if err != nil {
+			return fmt.Errorf("unable to decode pasta PID: %w", err)
+		}
+
+		if err := systemd.MoveRootlessNetnsSlirpProcessToUserSlice(pid); err != nil {
+			// only log this, it is not fatal but can lead to issues when running podman inside systemd units
+			logrus.Errorf("failed to move the rootless netns pasta process to the systemd user.slice: %v", err)
+		}
+	}
+
+	if err := resolvconf.New(&resolvconf.Params{
+		Path: n.getPath(resolvConfName),
+		// fake the netns since we want to filter localhost
+		Namespaces: []specs.LinuxNamespace{
+			{Type: specs.NetworkNamespace},
+		},
+		// TODO: Need a way to determine if there is a valid v6 address on any
+		// external interface of the system.
+		IPv6Enabled:     false,
+		KeepHostServers: true,
+		Nameservers:     []string{},
+	}); err != nil {
+		return wrapError("create resolv.conf", err)
+	}
+
+	return nil
 }
 
 func (n *Netns) setupSlirp4netns(nsPath string) error {
@@ -155,7 +209,7 @@ func (n *Netns) setupSlirp4netns(nsPath string) error {
 	// create pid file for the slirp4netns process
 	// this is need to kill the process in the cleanup
 	pid := strconv.Itoa(res.Pid)
-	err = os.WriteFile(n.getPath(rootlessNetNsSilrp4netnsPidFile), []byte(pid), 0o600)
+	err = os.WriteFile(n.getPath(rootlessNetNsConnPidFile), []byte(pid), 0o600)
 	if err != nil {
 		return wrapError("write slirp4netns pid file", err)
 	}
@@ -190,15 +244,18 @@ func (n *Netns) setupSlirp4netns(nsPath string) error {
 	return nil
 }
 
-func (n *Netns) cleanupSlirp4netns() error {
-	pidFile := n.getPath(rootlessNetNsSilrp4netnsPidFile)
+func (n *Netns) cleanupRootlessNetns() error {
+	pidFile := n.getPath(rootlessNetNsConnPidFile)
 	b, err := os.ReadFile(pidFile)
 	if err == nil {
 		var i int
-		i, err = strconv.Atoi(string(b))
+		i, err = strconv.Atoi(strings.TrimSpace(string(b)))
 		if err == nil {
 			// kill the slirp process so we do not leak it
-			err = syscall.Kill(i, syscall.SIGTERM)
+			err = unix.Kill(i, unix.SIGTERM)
+			if err == unix.ESRCH {
+				err = nil
+			}
 		}
 	}
 	return err

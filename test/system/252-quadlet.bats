@@ -144,6 +144,8 @@ function remove_secret() {
 }
 
 @test "quadlet - basic" {
+    # Network=none is to work around a Pasta bug, can be removed once a patched Pasta is available.
+    # Ref https://github.com/containers/podman/pull/21563#issuecomment-1965145324
     local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).container
     cat > $quadlet_file <<EOF
 [Container]
@@ -151,6 +153,7 @@ Image=$IMAGE
 Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; sleep inf"
 Notify=yes
 LogDriver=passthrough
+Network=none
 EOF
 
     # FIXME: Temporary until podman fully removes cgroupsv1 support; see #21431

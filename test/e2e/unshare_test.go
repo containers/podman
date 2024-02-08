@@ -9,14 +9,6 @@ import (
 	. "github.com/onsi/gomega/gexec"
 )
 
-// podman unshare --rootless-netns leaks the process by design.
-// Running a container will cause the cleanup to kick in when this container gets stopped.
-func cleanupRootlessSlirp4netns(p *PodmanTestIntegration) {
-	session := p.Podman([]string{"run", "--network", "bridge", ALPINE, "true"})
-	session.WaitWithDefaultTimeout()
-	Expect(session).Should(ExitCleanly())
-}
-
 var _ = Describe("Podman unshare", func() {
 	BeforeEach(func() {
 		if _, err := os.Stat("/proc/self/uid_map"); err != nil {
@@ -35,15 +27,6 @@ var _ = Describe("Podman unshare", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).ToNot(ContainSubstring(userNS))
-	})
-
-	It("podman unshare --rootless-netns", func() {
-		SkipIfRemote("podman-remote unshare is not supported")
-		defer cleanupRootlessSlirp4netns(podmanTest)
-		session := podmanTest.Podman([]string{"unshare", "--rootless-netns", "ip", "addr"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(ContainSubstring("tap0"))
 	})
 
 	It("podman unshare exit codes", func() {

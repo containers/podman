@@ -257,7 +257,7 @@ func defaultConfig() (*Config, error) {
 			DefaultNetwork:            "podman",
 			DefaultSubnet:             DefaultSubnet,
 			DefaultSubnetPools:        DefaultSubnetPools,
-			DefaultRootlessNetworkCmd: "slirp4netns",
+			DefaultRootlessNetworkCmd: "pasta",
 			DNSBindPort:               0,
 			CNIPluginDirs:             attributedstring.NewSlice(DefaultCNIPluginDirs),
 			NetavarkPluginDirs:        attributedstring.NewSlice(DefaultNetavarkPluginDirs),

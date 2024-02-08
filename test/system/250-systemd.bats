@@ -5,6 +5,7 @@
 
 load helpers
 load helpers.systemd
+load helpers.network
 
 SERVICE_NAME="podman_test_$(random_string)"
 
@@ -294,7 +295,7 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
 }
 
 # https://github.com/containers/podman/issues/13153
-@test "podman rootless-netns slirp4netns process should be in different cgroup" {
+@test "podman rootless-netns pasta processes should be in different cgroup" {
     is_rootless || skip "only meaningful for rootless"
 
     cname=$(random_string)
@@ -314,9 +315,11 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     # stop systemd container
     service_cleanup
 
+    pasta_iface=$(default_ifname)
+
     # now check that the rootless netns slirp4netns process is still alive and working
     run_podman unshare --rootless-netns ip addr
-    is "$output" ".*tap0.*" "slirp4netns interface exists in the netns"
+    is "$output" ".*$pasta_iface.*" "pasta interface exists in the netns"
     run_podman exec $cname2 nslookup google.com
 
     run_podman rm -f -t0 $cname2

@@ -369,3 +369,20 @@ function tcp_port_probe() {
 
     : | nc "${address}" "${1}"
 }
+
+### Pasta Helpers ##############################################################
+
+function default_ifname() {
+    local ip_ver="${1}"
+
+    local expr='[.[] | select(.dst == "default").dev] | .[0]'
+    ip -j -"${ip_ver}" route show | jq -rM "${expr}"
+}
+
+function default_addr() {
+    local ip_ver="${1}"
+    local ifname="${2:-$(default_ifname "${ip_ver}")}"
+
+    local expr='.[0] | .addr_info[0].local'
+    ip -j -"${ip_ver}" addr show "${ifname}" | jq -rM "${expr}"
+}
