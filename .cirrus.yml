@@ -803,48 +803,48 @@ podman_machine_aarch64_task:
 
 
 podman_machine_mac_task:
-   name: *std_name_fmt
-   alias: podman_machine_mac
-   only_if: *machine_cron_not_tag_build_docs
-   depends_on:
-     - osx_alt_build
-     - local_integration_test
-     - remote_integration_test
-     - container_integration_test
-     - rootless_integration_test
-   persistent_worker: *mac_pw
-   env:
-       <<: *mac_env
-       # Consumed by podman-machine ginkgo tests
-       CONTAINERS_MACHINE_PROVIDER: "applehv"
-       # TODO: Should not require a special image, for now it does.
-       # Simply remove the line below when a mac image is GA.
-       # MACHINE_IMAGE: "https://fedorapeople.org/groups/podman/testing/applehv/arm64/fedora-coreos-38.20230925.dev.0-applehv.aarch64.raw.gz"
-       # Values necessary to populate std_name_fmt alias
-       TEST_FLAVOR: "machine-mac"
-       DISTRO_NV: "darwin"
-       PRIV_NAME: "rootless"  # intended use-case
-   clone_script:  # artifacts from osx_alt_build_task
-       - mkdir -p $CIRRUS_WORKING_DIR
-       - cd $CIRRUS_WORKING_DIR
-       - $ARTCURL/OSX%20Cross/repo/repo.tbz
-       - tar xjf repo.tbz
-   # This host is/was shared with potentially many other CI tasks.
-   # The previous task may have been canceled or aborted.
-   prep_script: *mac_cleanup
-   setup_script: "contrib/cirrus/mac_setup.sh"
-   env_script: "contrib/cirrus/mac_env.sh"
-   # TODO: Timeout bumped b/c initial image download (~5min) and VM
-   #       resize (~2min) causes test-timeout (90s default).  Should
-   #       tests deal with this internally?
-   smoke_test_script:
-       - MACHINE_TEST_TIMEOUT=500 make localmachine FOCUS_FILE="basic_test.go"
-   test_script:
-       - make localmachine
-   # This host is/was shared with potentially many other CI tasks.
-   # Ensure nothing is left running while waiting for the next task.
-   always:
-       task_cleanup_script: *mac_cleanup
+    name: *std_name_fmt
+    alias: podman_machine_mac
+    only_if: *machine_cron_not_tag_build_docs
+    depends_on:
+      - osx_alt_build
+      - local_integration_test
+      - remote_integration_test
+      - container_integration_test
+      - rootless_integration_test
+    persistent_worker: *mac_pw
+    env:
+        <<: *mac_env
+        # Consumed by podman-machine ginkgo tests
+        CONTAINERS_MACHINE_PROVIDER: "applehv"
+        # TODO: Should not require a special image, for now it does.
+        # Simply remove the line below when a mac image is GA.
+        # MACHINE_IMAGE: "https://fedorapeople.org/groups/podman/testing/applehv/arm64/fedora-coreos-38.20230925.dev.0-applehv.aarch64.raw.gz"
+        # Values necessary to populate std_name_fmt alias
+        TEST_FLAVOR: "machine-mac"
+        DISTRO_NV: "darwin"
+        PRIV_NAME: "rootless"  # intended use-case
+    clone_script:  # artifacts from osx_alt_build_task
+        - mkdir -p $CIRRUS_WORKING_DIR
+        - cd $CIRRUS_WORKING_DIR
+        - $ARTCURL/OSX%20Cross/repo/repo.tbz
+        - tar xjf repo.tbz
+    # This host is/was shared with potentially many other CI tasks.
+    # The previous task may have been canceled or aborted.
+    prep_script: *mac_cleanup
+    setup_script: "contrib/cirrus/mac_setup.sh"
+    env_script: "contrib/cirrus/mac_env.sh"
+    # TODO: Timeout bumped b/c initial image download (~5min) and VM
+    #       resize (~2min) causes test-timeout (90s default).  Should
+    #       tests deal with this internally?
+    smoke_test_script:
+        - MACHINE_TEST_TIMEOUT=500 make localmachine FOCUS_FILE="basic_test.go"
+    test_script:
+        - make localmachine
+    # This host is/was shared with potentially many other CI tasks.
+    # Ensure nothing is left running while waiting for the next task.
+    always:
+        task_cleanup_script: *mac_cleanup
 
 # Always run subsequent to integration tests.  While parallelism is lost
 # with runtime, debugging system-test failures can be more challenging
@@ -1088,8 +1088,7 @@ success_task:
         - rootless_integration_test
         - podman_machine
         - podman_machine_aarch64
-          #- podman_machine_windows
-        # TODO: Issue #20853; Tests mostly fail then timeout after an hour.
+        #- podman_machine_windows
         - podman_machine_mac
         - local_system_test
         - local_system_test_aarch64
