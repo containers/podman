@@ -716,8 +716,8 @@ function thingy_with_unique_id() {
         podid="$output"
         run_podman run -d --pod $podid $IMAGE top -d 2
 
-        run_podman pod inspect $podid
-        result=$(jq -r .CgroupPath <<< $output)
+        run_podman pod inspect $podid --format "{{.CgroupPath}}"
+        result="$output"
         assert "$result" =~ "/" ".CgroupPath is a valid path"
 
         if is_cgroupsv2; then

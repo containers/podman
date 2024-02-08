@@ -123,7 +123,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 		for i := range ctrData {
 			data = append(data, ctrData[i])
 		}
-	case common.PodType, common.PodLegacyType:
+	case common.PodType:
 		podData, allErrs, err := i.containerEngine.PodInspect(ctx, namesOrIDs, i.options)
 		if err != nil {
 			return err
@@ -163,14 +163,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 	var err error
 	switch {
 	case report.IsJSON(i.options.Format) || i.options.Format == "":
-		if i.options.Type == common.PodLegacyType && len(data) == 1 {
-			// We need backwards compat with the old podman pod inspect behavior.
-			// https://github.com/containers/podman/pull/15675
-			// TODO (5.0): consider removing this to better match other commands.
-			err = printJSON(data[0])
-		} else {
-			err = printJSON(data)
-		}
+		err = printJSON(data)
 	default:
 		// Landing here implies user has given a custom --format
 		var rpt *report.Formatter
