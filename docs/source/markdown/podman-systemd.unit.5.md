@@ -1070,7 +1070,7 @@ Valid options for `[Network]` are listed below:
 | IPv6=true                           | --ipv6                               |
 | Label="XYZ"                         | --label "XYZ"                        |
 | NetworkName=foo                     | podman network create foo            |
-| Options=isolate                     | --opt isolate                        |
+| Options=isolate=true                | --opt isolate=true                   |
 | PodmanArgs=--dns=192.168.55.1       | --dns=192.168.55.1                   |
 | Subnet=192.5.0.0/16                 | --subnet 192.5.0.0/16                |
 
