@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/containers/common/libnetwork/pasta"
+	"github.com/containers/common/libnetwork/slirp4netns"
 	"github.com/containers/common/libnetwork/types"
 	netutil "github.com/containers/common/libnetwork/util"
 	"github.com/containers/podman/v5/libpod/define"
@@ -150,8 +152,7 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 }
 
 func (ic *ContainerEngine) NetworkCreate(ctx context.Context, network types.Network, createOptions *types.NetworkCreateOptions) (*types.Network, error) {
-	// TODO (5.0): Stop accepting "pasta" as value here
-	if slices.Contains([]string{"none", "host", "bridge", "private", "slirp4netns", "container", "ns", "default"}, network.Name) {
+	if slices.Contains([]string{"none", "host", "bridge", "private", slirp4netns.BinaryName, pasta.BinaryName, "container", "ns", "default"}, network.Name) {
 		return nil, fmt.Errorf("cannot create network with name %q because it conflicts with a valid network mode", network.Name)
 	}
 	network, err := ic.Libpod.Network().NetworkCreate(network, createOptions)

@@ -491,14 +491,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	}
 
 	if len(options.Networks) > 0 {
-		var pastaNetworkNameExists bool
-
-		_, err := ic.Libpod.Network().NetworkInspect("pasta")
-		if err == nil {
-			pastaNetworkNameExists = true
-		}
-
-		ns, networks, netOpts, err := specgen.ParseNetworkFlag(options.Networks, pastaNetworkNameExists)
+		ns, networks, netOpts, err := specgen.ParseNetworkFlag(options.Networks)
 		if err != nil {
 			return nil, nil, err
 		}
