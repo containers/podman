@@ -10,11 +10,11 @@ import (
 	"strconv"
 
 	imageTypes "github.com/containers/image/v5/types"
-	handlersTypes "github.com/containers/podman/v4/pkg/api/handlers/types"
-	"github.com/containers/podman/v4/pkg/auth"
-	"github.com/containers/podman/v4/pkg/bindings"
-	"github.com/containers/podman/v4/pkg/domain/entities/reports"
-	"github.com/containers/podman/v4/pkg/domain/entities/types"
+	handlersTypes "github.com/containers/podman/v5/pkg/api/handlers/types"
+	"github.com/containers/podman/v5/pkg/auth"
+	"github.com/containers/podman/v5/pkg/bindings"
+	"github.com/containers/podman/v5/pkg/domain/entities/reports"
+	"github.com/containers/podman/v5/pkg/domain/entities/types"
 )
 
 // Exists a lightweight way to determine if an image exists in local storage.  It returns a

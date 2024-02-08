@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/podman/v4/pkg/machine/connection"
+	"github.com/containers/podman/v5/pkg/machine/connection"
 	"github.com/containers/storage/pkg/ioutils"
 )
 

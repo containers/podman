@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/containers/podman/v4/libpod/events"
+	"github.com/containers/podman/v5/libpod/events"
 	"github.com/sirupsen/logrus"
 )
 

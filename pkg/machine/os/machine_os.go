@@ -5,9 +5,9 @@ package os
 import (
 	"fmt"
 
-	"github.com/containers/podman/v4/pkg/machine"
-	"github.com/containers/podman/v4/pkg/machine/shim"
-	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v5/pkg/machine"
+	"github.com/containers/podman/v5/pkg/machine/shim"
+	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 )
 
 // MachineOS manages machine OS's from outside the machine.

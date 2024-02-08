@@ -6,7 +6,7 @@ import (
 	"net"
 
 	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/podman/v4/pkg/specgen"
+	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

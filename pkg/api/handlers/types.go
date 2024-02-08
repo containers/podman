@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/containers/podman/v5/pkg/domain/entities"
 	docker "github.com/docker/docker/api/types"
 	dockerBackend "github.com/docker/docker/api/types/backend"
 	dockerContainer "github.com/docker/docker/api/types/container"

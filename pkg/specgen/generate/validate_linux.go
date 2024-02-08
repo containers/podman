@@ -11,8 +11,8 @@ import (
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/sysinfo"
-	"github.com/containers/podman/v4/pkg/rootless"
-	"github.com/containers/podman/v4/pkg/specgen"
+	"github.com/containers/podman/v5/pkg/rootless"
+	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 

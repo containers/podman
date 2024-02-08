@@ -2,12 +2,12 @@ package provider
 
 import (
 	"fmt"
-	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"os"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/podman/v4/pkg/machine/define"
-	"github.com/containers/podman/v4/pkg/machine/hyperv"
+	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/hyperv"
 	"github.com/sirupsen/logrus"
 )
 

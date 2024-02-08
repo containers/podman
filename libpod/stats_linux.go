@@ -11,7 +11,7 @@ import (
 	runccgroup "github.com/opencontainers/runc/libcontainer/cgroups"
 
 	"github.com/containers/common/pkg/cgroups"
-	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v5/libpod/define"
 	"golang.org/x/sys/unix"
 )
 

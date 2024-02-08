@@ -1,8 +1,8 @@
 package types
 
 import (
-	"github.com/containers/podman/v4/libpod/define"
-	"github.com/containers/podman/v4/pkg/specgen"
+	"github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/podman/v5/pkg/specgen"
 )
 
 type ContainerCopyFunc func() error

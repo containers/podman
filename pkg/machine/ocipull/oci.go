@@ -9,8 +9,8 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/podman/v4/pkg/machine/define"
-	"github.com/containers/podman/v4/version"
+	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/version"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/sirupsen/logrus"
 )

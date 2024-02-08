@@ -11,9 +11,9 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/containers/podman/v4/pkg/machine/compression"
-	"github.com/containers/podman/v4/pkg/machine/define"
-	"github.com/containers/podman/v4/utils"
+	"github.com/containers/podman/v5/pkg/machine/compression"
+	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/utils"
 	"github.com/sirupsen/logrus"
 )
 

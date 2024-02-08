@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/containers/podman/v4/pkg/domain/entities/types"
+	"github.com/containers/podman/v5/pkg/domain/entities/types"
 )
 
 // ListContainer describes a container suitable for listing

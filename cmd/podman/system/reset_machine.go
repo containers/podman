@@ -3,13 +3,13 @@
 package system
 
 import (
-	"github.com/containers/podman/v4/pkg/machine"
-	"github.com/containers/podman/v4/pkg/machine/connection"
-	"github.com/containers/podman/v4/pkg/machine/define"
-	p "github.com/containers/podman/v4/pkg/machine/provider"
-	"github.com/containers/podman/v4/pkg/machine/shim"
-	"github.com/containers/podman/v4/pkg/machine/vmconfigs"
-	"github.com/containers/podman/v4/utils"
+	"github.com/containers/podman/v5/pkg/machine"
+	"github.com/containers/podman/v5/pkg/machine/connection"
+	"github.com/containers/podman/v5/pkg/machine/define"
+	p "github.com/containers/podman/v5/pkg/machine/provider"
+	"github.com/containers/podman/v5/pkg/machine/shim"
+	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v5/utils"
 	"github.com/sirupsen/logrus"
 )
 

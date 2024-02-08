@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/containers/podman/v4/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/define"
 )
 
 // AddSSHConnectionsToPodmanSocket adds SSH connections to the podman socket if
