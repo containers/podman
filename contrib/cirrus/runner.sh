@@ -169,7 +169,7 @@ function _run_swagger() {
     local upload_bucket
     local download_url
     local envvarsfile
-    req_env_vars GCPJSON GCPNAME GCPPROJECT CTR_FQIN
+    req_env_vars GCPJSON GCPNAME GCPPROJECT CTR_FQIN  # gitleaks:allow
 
     [[ -x /usr/local/bin/swagger ]] || \
         die "Expecting swagger binary to be present and executable."
@@ -203,25 +203,20 @@ function _run_swagger() {
     # Cirrus-CI Artifact instruction expects file here
     cp -v $GOSRC/pkg/api/swagger.yaml ./
 
-    envvarsfile=$(mktemp -p '' .tmp_$(basename $0)_XXXXXXXX)
-    trap "rm -f $envvarsfile" EXIT  # contains secrets
-    # Warning: These values must _not_ be quoted, podman will not remove them.
     #shellcheck disable=SC2154
-    cat <<eof >>$envvarsfile
-GCPJSON=$GCPJSON
-GCPNAME=$GCPNAME
-GCPPROJECT=$GCPPROJECT
-FROM_FILEPATH=$GOSRC/swagger.yaml
-TO_GCSURI=gs://$upload_bucket/$upload_filename
-eof
+    export FROM_FILEPATH=$GOSRC/swagger.yaml
+
+    #shellcheck disable=SC2154
+    export TO_GCSURI=gs://$upload_bucket/$upload_filename
 
     msg "Waiting for backgrounded podman pull to complete..."
     wait %%
     showrun bin/podman run -it --rm --security-opt label=disable \
-        --env-file=$envvarsfile \
         -v $GOSRC:$GOSRC:ro \
         --workdir $GOSRC \
-        $CTR_FQIN
+        -e FROM_FILEPATH \
+        -e TO_GCSURI \
+        -e GCPJSON -e GCPNAME -e GCPPROJECT $CTR_FQIN  # gitleaks:allow
     rm -f $envvarsfile
 }
 

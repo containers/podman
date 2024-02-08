@@ -11,13 +11,13 @@ on:
   # Ref: https://docs.github.com/en/actions/using-workflows/reusing-workflows
   workflow_call:
     secrets:
-      ACTION_MAIL_SERVER:
+      ACTION_MAIL_SERVER:   # gitleaks:allow
         required: true
-      ACTION_MAIL_USERNAME:
+      ACTION_MAIL_USERNAME: # gitleaks:allow
         required: true
-      ACTION_MAIL_PASSWORD:
+      ACTION_MAIL_PASSWORD: # gitleaks:allow
         required: true
-      ACTION_MAIL_SENDER:
+      ACTION_MAIL_SENDER:   # gitleaks:allow
         required: true
   # Debug: Allow triggering job manually in github-actions WebUI
   workflow_dispatch: {}
@@ -58,11 +58,11 @@ jobs:
         name: Send job failure notification e-mail
         uses: dawidd6/action-send-mail@v3.11.0
         with:
-          server_address: ${{secrets.ACTION_MAIL_SERVER}}
+          server_address: ${{secrets.ACTION_MAIL_SERVER}}  # gitleaks:allow
           server_port: 465
-          username: ${{secrets.ACTION_MAIL_USERNAME}}
-          password: ${{secrets.ACTION_MAIL_PASSWORD}}
+          username: ${{secrets.ACTION_MAIL_USERNAME}}      # gitleaks:allow
+          password: ${{secrets.ACTION_MAIL_PASSWORD}}      # gitleaks:allow
           subject: Github workflow error on ${{github.repository}}
           to: podman-monitor@lists.podman.io
-          from: ${{secrets.ACTION_MAIL_SENDER}}
+          from: ${{secrets.ACTION_MAIL_SENDER}}            # gitleaks:allow
           body: "Job failed: https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"

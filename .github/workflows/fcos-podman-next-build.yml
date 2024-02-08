@@ -93,5 +93,5 @@ jobs:
         image: ${{ env.IMAGE_NAME }}
         tags: ${{ steps.build_image_multiarch.outputs.tags }}
         registry: ${{ env.IMAGE_REGISTRY }}
-        username: ${{ secrets.QUAY_PODMAN_USERNAME }}
-        password: ${{ secrets.QUAY_PODMAN_PASSWORD }}
+        username: ${{ secrets.QUAY_PODMAN_USERNAME }}  # gitleaks:allow
+        password: ${{ secrets.QUAY_PODMAN_PASSWORD }}  # gitleaks:allow

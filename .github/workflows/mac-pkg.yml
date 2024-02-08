@@ -24,15 +24,15 @@ jobs:
   build:
     runs-on: macos-latest
     env:
-      APPLICATION_CERTIFICATE: ${{ secrets.MACOS_APPLICATION_CERT }}
-      CODESIGN_IDENTITY: ${{ secrets.MACOS_APPLICATION_IDENTITY }}
-      INSTALLER_CERTIFICATE: ${{ secrets.MACOS_INSTALLER_CERT }}
-      PRODUCTSIGN_IDENTITY: ${{ secrets.MACOS_INSTALLER_IDENTITY }}
-      CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+      APPLICATION_CERTIFICATE: ${{ secrets.MACOS_APPLICATION_CERT }}  # gitleaks:allow
+      CODESIGN_IDENTITY: ${{ secrets.MACOS_APPLICATION_IDENTITY }}    # gitleaks:allow
+      INSTALLER_CERTIFICATE: ${{ secrets.MACOS_INSTALLER_CERT }}      # gitleaks:allow
+      PRODUCTSIGN_IDENTITY: ${{ secrets.MACOS_INSTALLER_IDENTITY }}   # gitleaks:allow
+      CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}           # gitleaks:allow
 
-      NOTARIZE_TEAM: ${{ secrets.MACOS_NOTARIZATION_TEAM_ID }}
-      NOTARIZE_USERNAME: ${{ secrets.MACOS_NOTARIZATION_APPLE_ID }}
-      NOTARIZE_PASSWORD: ${{ secrets.MACOS_NOTARIZATION_PWD }}
+      NOTARIZE_TEAM: ${{ secrets.MACOS_NOTARIZATION_TEAM_ID }}        # gitleaks:allow
+      NOTARIZE_USERNAME: ${{ secrets.MACOS_NOTARIZATION_APPLE_ID }}   # gitleaks:allow
+      NOTARIZE_PASSWORD: ${{ secrets.MACOS_NOTARIZATION_PWD }}        # gitleaks:allow
 
       KEYCHAIN_PWD: ${{ secrets.MACOS_CI_KEYCHAIN_PWD }}
     steps:
@@ -106,17 +106,17 @@ jobs:
         steps.check.outputs.buildarm == 'true' ||
         steps.actual_dryrun.outputs.dryrun == 'true'
       run: |
-        echo $APPLICATION_CERTIFICATE | base64 --decode -o appcert.p12
-        echo $INSTALLER_CERTIFICATE | base64 --decode -o instcert.p12
+        echo $APPLICATION_CERTIFICATE | base64 --decode -o appcert.p12  # gitleaks:allow
+        echo $INSTALLER_CERTIFICATE | base64 --decode -o instcert.p12   # gitleaks:allow
 
         security create-keychain -p "$KEYCHAIN_PWD" build.keychain
         security default-keychain -s build.keychain
         security unlock-keychain -p "$KEYCHAIN_PWD" build.keychain
-        security import appcert.p12 -k build.keychain -P "$CERTIFICATE_PWD" -T /usr/bin/codesign
-        security import instcert.p12 -k build.keychain -P "$CERTIFICATE_PWD" -T /usr/bin/productsign
+        security import appcert.p12 -k build.keychain -P "$CERTIFICATE_PWD" -T /usr/bin/codesign     # gitleaks:allow
+        security import instcert.p12 -k build.keychain -P "$CERTIFICATE_PWD" -T /usr/bin/productsign # gitleaks:allow
         security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PWD" build.keychain &> /dev/null
 
-        xcrun notarytool store-credentials "notarytool-profile" --apple-id "$NOTARIZE_USERNAME" --team-id "$NOTARIZE_TEAM" --password "$NOTARIZE_PASSWORD" &> /dev/null
+        xcrun notarytool store-credentials "notarytool-profile" --apple-id "$NOTARIZE_USERNAME" --team-id "$NOTARIZE_TEAM" --password "$NOTARIZE_PASSWORD" &> /dev/null  # gitleaks:allow
     - name: Build and Sign ARM
       if: steps.check.outputs.buildarm == 'true' || steps.actual_dryrun.outputs.dryrun == 'true'
       working-directory: contrib/pkginstaller

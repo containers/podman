@@ -87,7 +87,7 @@ fi
 #####
 
 msg "$header rerun_failed_tasks.sh"
-export SECRET_CIRRUS_API_KEY=testing-nottherightkey
+export SECRET_CIRRUS_API_KEY="testing-nottherightkey"  # gitleaks:allow
 # test.sh is sensitive to the 'testing' name.  Var. defined by cirrus-ci
 # shellcheck disable=SC2154
 echo "$CIRRUS_BUILD_ID test cron job name" > "$ID_NAME_FILEPATH"

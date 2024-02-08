@@ -63,17 +63,22 @@ gql() {
         msg "::error file=${BASH_SOURCE[1]},line=${BASH_LINENO[0]}::Invalid query JSON: $query"
         return 1
     fi
-    # SECRET_CIRRUS_API_KEY is defined github secret
+
+    local -a _curl_cmd
+    # ...API_KEY is pre-defined github secret
     # shellcheck disable=SC2154
-    if output=$(curl \
-              --request POST \
-              --silent \
-              --show-error \
-              --location \
-              --header 'content-type: application/json' \
-              --header "Authorization: Bearer $SECRET_CIRRUS_API_KEY" \
-              --url 'https://api.cirrus-ci.com/graphql' \
-              --data "$query") && [[ -n "$output" ]]; then
+    _curl_cmd=(
+        curl
+        --request POST
+        --silent
+        --show-error
+        --location
+        --header 'content-type: application/json'
+        --header "Authorization: Bearer $SECRET_CIRRUS_API_KEY" # gitleaks:allow
+        --url 'https://api.cirrus-ci.com/graphql'
+        --data "$query"
+    )
+    if output=$("${_curl_cmd[@]}") && [[ -n "$output" ]]; then
 
         if filtered=$(jq -e "$filter" <<<"$output") && [[ -n "$filtered" ]]; then
             msg "result:"

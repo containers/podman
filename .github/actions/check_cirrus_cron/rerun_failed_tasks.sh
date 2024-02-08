@@ -9,7 +9,7 @@ set -eo pipefail
 # HOW TO TEST:  This script may be manually tested assuming you have
 # access to the github containers-org. Cirrus API key.  With that in-hand,
 # this script may be manually run by:
-# 1. export SECRET_CIRRUS_API_KEY=<value>
+# 1. export SECRET_CIRRUS_API_KEY=<value>  # gitleaks:allow
 # 2. Find an old podman build that failed on `main` or another **branch**.
 #    For example, from https://cirrus-ci.com/github/containers/podman/main
 #    (pick an old one from the bottom, since re-running it won't affect anybody)
@@ -27,8 +27,8 @@ source $(dirname "${BASH_SOURCE[0]}")/lib.sh
 _errfmt="Expecting %s value to not be empty"
 # ID_NAME_FILEPATH is defined by workflow YAML
 # shellcheck disable=SC2154
-if [[ -z "$SECRET_CIRRUS_API_KEY" ]]; then
-    err $(printf "$_errfmt" "\$SECRET_CIRRUS_API_KEY")
+if [[ -z "$SECRET_CIRRUS_API_KEY" ]]; then  # gitleaks:allow
+    err $(printf "$_errfmt" "\$SECRET_CIRRUS_API_KEY")  #gitleaks:allow
 elif [[ ! -r "$ID_NAME_FILEPATH" ]]; then  # output from cron_failures.sh
     err $(printf "Expecting %s value to be a readable file" "\$ID_NAME_FILEPATH")
 fi

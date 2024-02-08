@@ -94,11 +94,11 @@ jobs:
       if: steps.Check.outputs.already-exists != 'true' || steps.actual_dryrun.outputs.dryrun == 'true'
       run: |
           dotnet tool install --global AzureSignTool --version 3.0.0
-          echo "CERT_NAME=${{secrets.AZ_CERT_NAME}}" | Out-File -FilePath $env:GITHUB_ENV -Append
-          echo "VAULT_ID=${{secrets.AZ_VAULT_ID}}" | Out-File -FilePath $env:GITHUB_ENV -Append
-          echo "APP_ID=${{secrets.AZ_APP_ID}}" | Out-File -FilePath $env:GITHUB_ENV -Append
-          echo "TENANT_ID=${{secrets.AZ_TENANT_ID}}" | Out-File -FilePath $env:GITHUB_ENV -Append
-          echo "CLIENT_SECRET=${{secrets.AZ_CLIENT_SECRET}}" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "CERT_NAME=${{secrets.AZ_CERT_NAME}}" | Out-File -FilePath $env:GITHUB_ENV -Append  # gitleaks:allow
+          echo "VAULT_ID=${{secrets.AZ_VAULT_ID}}" | Out-File -FilePath $env:GITHUB_ENV -Append    # gitleaks:allow
+          echo "APP_ID=${{secrets.AZ_APP_ID}}" | Out-File -FilePath $env:GITHUB_ENV -Append        # gitleaks:allow
+          echo "TENANT_ID=${{secrets.AZ_TENANT_ID}}" | Out-File -FilePath $env:GITHUB_ENV -Append  # gitleaks:allow
+          echo "CLIENT_SECRET=${{secrets.AZ_CLIENT_SECRET}}" | Out-File -FilePath $env:GITHUB_ENV -Append  # gitleaks:allow
     - name: Build
       id: build
       if: steps.check.outputs.already-exists != 'true' || steps.actual_dryrun.outputs.dryrun == 'true'

@@ -17,15 +17,15 @@ on:
     # Ref: https://docs.github.com/en/actions/using-workflows/reusing-workflows
     workflow_call:
       secrets:
-        SECRET_CIRRUS_API_KEY:
+        SECRET_CIRRUS_API_KEY:  # gitleaks:allow
           required : true
-        ACTION_MAIL_SERVER:
+        ACTION_MAIL_SERVER:     # gitleaks:allow
           required: true
-        ACTION_MAIL_USERNAME:
+        ACTION_MAIL_USERNAME:   # gitleaks:allow
           required: true
-        ACTION_MAIL_PASSWORD:
+        ACTION_MAIL_PASSWORD:   # gitleaks:allow
           required: true
-        ACTION_MAIL_SENDER:
+        ACTION_MAIL_SENDER:     # gitleaks:allow
           required: true
 
 env:
@@ -56,7 +56,7 @@ jobs:
             - if: steps.cron.outputs.failures > 0
               shell: bash
               env:
-                SECRET_CIRRUS_API_KEY: ${{ secrets.SECRET_CIRRUS_API_KEY }}
+                SECRET_CIRRUS_API_KEY: ${{ secrets.SECRET_CIRRUS_API_KEY }}  # gitleaks:allow
               run: './.github/actions/check_cirrus_cron/rerun_failed_tasks.sh'
 
             - uses: actions/upload-artifact@v4
@@ -68,11 +68,11 @@ jobs:
               name: Send error notification e-mail
               uses: dawidd6/action-send-mail@v3.11.0
               with:
-                server_address: ${{secrets.ACTION_MAIL_SERVER}}
+                server_address: ${{secrets.ACTION_MAIL_SERVER}}  # gitleaks:allow
                 server_port: 465
-                username: ${{secrets.ACTION_MAIL_USERNAME}}
-                password: ${{secrets.ACTION_MAIL_PASSWORD}}
+                username: ${{secrets.ACTION_MAIL_USERNAME}}      # gitleaks:allow
+                password: ${{secrets.ACTION_MAIL_PASSWORD}}      # gitleaks:allow
                 subject: Github workflow error on ${{github.repository}}
                 to: ${{env.RCPTCSV}}
-                from: ${{secrets.ACTION_MAIL_SENDER}}
+                from: ${{secrets.ACTION_MAIL_SENDER}}            # gitleaks:allow
                 body: "Job failed: https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
