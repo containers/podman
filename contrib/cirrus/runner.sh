@@ -228,7 +228,7 @@ eof
 function _run_build() {
     # Ensure always start from clean-slate with all vendor modules downloaded
     showrun make clean
-    showrun make vendor
+    # showrun make vendor
     showrun make podman-release  # includes podman, podman-remote, and docs
 
     # Last-minute confirmation that we're testing the desired runtime.
