@@ -12,6 +12,7 @@ import (
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/podman/v5/pkg/machine/define"
 	specV1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -27,16 +28,12 @@ type PullOptions struct {
 }
 
 // Pull `imageInput` from a container registry to `sourcePath`.
-func Pull(ctx context.Context, imageInput string, sourcePath string, options PullOptions) error {
-	if _, err := os.Stat(sourcePath); err == nil {
-		return fmt.Errorf("%q already exists", sourcePath)
+func Pull(ctx context.Context, imageInput types.ImageReference, localDestPath *define.VMFile, options *PullOptions) error {
+	if _, err := os.Stat(localDestPath.GetPath()); err == nil {
+		return fmt.Errorf("%q already exists", localDestPath.GetPath())
 	}
 
-	srcRef, err := stringToImageReference(imageInput)
-	if err != nil {
-		return err
-	}
-	destRef, err := layout.ParseReference(sourcePath)
+	destRef, err := layout.ParseReference(localDestPath.GetPath())
 	if err != nil {
 		return err
 	}
@@ -52,7 +49,7 @@ func Pull(ctx context.Context, imageInput string, sourcePath string, options Pul
 		sysCtx.DockerAuthConfig = authConf
 	}
 
-	if err := validateSourceImageReference(ctx, srcRef, sysCtx); err != nil {
+	if err := validateSourceImageReference(ctx, imageInput, sysCtx); err != nil {
 		return err
 	}
 
@@ -71,14 +68,14 @@ func Pull(ctx context.Context, imageInput string, sourcePath string, options Pul
 	if !options.Quiet {
 		copyOpts.ReportWriter = os.Stderr
 	}
-	if _, err := copy.Image(ctx, policyContext, destRef, srcRef, &copyOpts); err != nil {
+	if _, err := copy.Image(ctx, policyContext, destRef, imageInput, &copyOpts); err != nil {
 		return fmt.Errorf("pulling source image: %w", err)
 	}
 
 	return nil
 }
 
-func stringToImageReference(imageInput string) (types.ImageReference, error) {
+func stringToImageReference(imageInput string) (types.ImageReference, error) { //nolint:unused
 	if shortnames.IsShortName(imageInput) {
 		return nil, fmt.Errorf("pulling source images by short name (%q) is not supported, please use a fully-qualified name", imageInput)
 	}
@@ -105,6 +102,5 @@ func validateSourceImageReference(ctx context.Context, ref types.ImageReference,
 	if ociManifest.Config.MediaType != specV1.MediaTypeImageConfig {
 		return fmt.Errorf("invalid media type of image config %q (expected: %q)", ociManifest.Config.MediaType, specV1.MediaTypeImageConfig)
 	}
-
 	return nil
 }

@@ -16,7 +16,7 @@ func GetDisk(userInputPath string, dirs *define.MachineDirs, imagePath *define.V
 	)
 
 	if userInputPath == "" {
-		mydisk, err = ocipull.NewVersioned(context.Background(), dirs.DataDir, name, vmType.String(), imagePath)
+		mydisk, err = ocipull.NewOCIArtifactPull(context.Background(), dirs, name, vmType, imagePath)
 	} else {
 		if strings.HasPrefix(userInputPath, "http") {
 			// TODO probably should use tempdir instead of datadir
