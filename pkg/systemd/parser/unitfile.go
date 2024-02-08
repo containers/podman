@@ -402,12 +402,14 @@ func (f *UnitFile) Parse(data string) error {
 		var line string
 		line, data = nextLine(data, 0)
 
-		// Handle multi-line continuations
-		// Note: This doesn't support comments in the middle of the continuation, which systemd does
-		if lineIsKeyValuePair(line) {
-			for len(data) > 0 && line[len(line)-1] == '\\' {
-				line, data = nextLine(origdata, len(line)+1)
-				nLines++
+		if !lineIsComment(line) {
+			// Handle multi-line continuations
+			// Note: This doesn't support comments in the middle of the continuation, which systemd does
+			if lineIsKeyValuePair(line) {
+				for len(data) > 0 && line[len(line)-1] == '\\' {
+					line, data = nextLine(origdata, len(line)+1)
+					nLines++
+				}
 			}
 		}
 

@@ -770,6 +770,7 @@ BOGUS=foo
 		Entry("basepodman.container", "basepodman.container", 0, ""),
 		Entry("capabilities.container", "capabilities.container", 0, ""),
 		Entry("capabilities2.container", "capabilities2.container", 0, ""),
+		Entry("comment-with-continuation.container", "comment-with-continuation.container", 0, ""),
 		Entry("devices.container", "devices.container", 0, ""),
 		Entry("disableselinux.container", "disableselinux.container", 0, ""),
 		Entry("dns-options.container", "dns-options.container", 0, ""),
