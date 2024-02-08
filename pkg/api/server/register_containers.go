@@ -1565,6 +1565,10 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: boolean
 	//    description: check out the container with previous criu image files in pre-dump. only works on runc 1.0-rc or higher
 	//  - in: query
+	//    name: compression
+	//    type: integer
+	//    description: select compression algorithm (gzip, none, zstd) for checkpoint archive. (default "zstd")
+	//  - in: query
 	//    name: fileLocks
 	//    type: boolean
 	//    description: checkpoint a container with filelocks

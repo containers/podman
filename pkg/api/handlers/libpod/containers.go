@@ -17,6 +17,7 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	"github.com/containers/podman/v4/pkg/util"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/gorilla/schema"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -212,16 +213,17 @@ func Checkpoint(w http.ResponseWriter, r *http.Request) {
 
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		Keep           bool   `schema:"keep"`
-		LeaveRunning   bool   `schema:"leaveRunning"`
-		TCPEstablished bool   `schema:"tcpEstablished"`
-		Export         bool   `schema:"export"`
-		IgnoreRootFS   bool   `schema:"ignoreRootFS"`
-		PrintStats     bool   `schema:"printStats"`
-		PreCheckpoint  bool   `schema:"preCheckpoint"`
-		WithPrevious   bool   `schema:"withPrevious"`
-		FileLocks      bool   `schema:"fileLocks"`
-		CreateImage    string `schema:"createImage"`
+		Keep           bool                `schema:"keep"`
+		LeaveRunning   bool                `schema:"leaveRunning"`
+		TCPEstablished bool                `schema:"tcpEstablished"`
+		Export         bool                `schema:"export"`
+		IgnoreRootFS   bool                `schema:"ignoreRootFS"`
+		PrintStats     bool                `schema:"printStats"`
+		PreCheckpoint  bool                `schema:"preCheckpoint"`
+		WithPrevious   bool                `schema:"withPrevious"`
+		Compression    archive.Compression `schema:"compression"`
+		FileLocks      bool                `schema:"fileLocks"`
+		CreateImage    string              `schema:"createImage"`
 	}{
 		// override any golang type defaults
 	}
@@ -246,6 +248,7 @@ func Checkpoint(w http.ResponseWriter, r *http.Request) {
 		PrintStats:     query.PrintStats,
 		PreCheckPoint:  query.PreCheckpoint,
 		WithPrevious:   query.WithPrevious,
+		Compression:    query.Compression,
 		FileLocks:      query.FileLocks,
 		CreateImage:    query.CreateImage,
 	}
