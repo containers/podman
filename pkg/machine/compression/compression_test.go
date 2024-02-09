@@ -112,6 +112,8 @@ func Test_Decompress(t *testing.T) {
 	}{
 		{name: "zip", args: args{src: "./testdata/sample.zip", dst: "./testdata/hellozip"}, want: "zip\n"},
 		{name: "zip with trailing zeros", args: args{src: "./testdata/sample-withzeros.zip", dst: "./testdata/hellozip-withzeros"}, want: "zip\n\x00\x00\x00\x00\x00\x00"},
+		{name: "xz", args: args{src: "./testdata/sample.xz", dst: "./testdata/helloxz"}, want: "xz\n"},
+		{name: "xz with trailing zeros", args: args{src: "./testdata/sample-withzeros.xz", dst: "./testdata/helloxz-withzeros"}, want: "xz\n\x00\x00\x00\x00\x00\x00\x00"},
 		{name: "gzip", args: args{src: "./testdata/sample.gz", dst: "./testdata/hellogz"}, want: "gzip\n"},
 		{name: "gzip with trailing zeros", args: args{src: "./testdata/sample-withzeros.gz", dst: "./testdata/hellogzip-withzeros"}, want: "gzip\n\x00\x00\x00\x00\x00"},
 		{name: "bzip2", args: args{src: "./testdata/sample.bz2", dst: "./testdata/hellobz2"}, want: "bzip2\n"},
