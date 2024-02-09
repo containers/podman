@@ -1,4 +1,4 @@
-//go:build !unix
+//go:build !unix && !windows
 
 /*
  * Copyright 2023 gRPC authors.

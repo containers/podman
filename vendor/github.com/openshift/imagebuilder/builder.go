@@ -198,6 +198,21 @@ func (stages Stages) ByName(name string) (Stage, bool) {
 			return stage, true
 		}
 	}
+	if i, err := strconv.Atoi(name); err == nil {
+		return stages.ByPosition(i)
+	}
+	return Stage{}, false
+}
+
+func (stages Stages) ByPosition(position int) (Stage, bool) {
+	for _, stage := range stages {
+		// stage.Position is expected to be the same as the unnamed
+		// index variable for this loop, but comparing to the Position
+		// field's value is easier to explain
+		if stage.Position == position {
+			return stage, true
+		}
+	}
 	return Stage{}, false
 }
 
@@ -211,6 +226,16 @@ func (stages Stages) ByTarget(target string) (Stages, bool) {
 			return stages[i : i+1], true
 		}
 	}
+	if position, err := strconv.Atoi(target); err == nil {
+		for i, stage := range stages {
+			// stage.Position is expected to be the same as the unnamed
+			// index variable for this loop, but comparing to the Position
+			// field's value is easier to explain
+			if stage.Position == position {
+				return stages[i : i+1], true
+			}
+		}
+	}
 	return nil, false
 }
 
@@ -222,6 +247,16 @@ func (stages Stages) ThroughTarget(target string) (Stages, bool) {
 	for i, stage := range stages {
 		if stage.Name == target {
 			return stages[0 : i+1], true
+		}
+	}
+	if position, err := strconv.Atoi(target); err == nil {
+		for i, stage := range stages {
+			// stage.Position is expected to be the same as the unnamed
+			// index variable for this loop, but comparing to the Position
+			// field's value is easier to explain
+			if stage.Position == position {
+				return stages[0 : i+1], true
+			}
 		}
 	}
 	return nil, false
