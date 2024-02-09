@@ -11,6 +11,7 @@ Rootless user --userns=Key mappings:
 Key       | Host User |  Container User
 ----------|---------------|---------------------
 ""        |$UID           |0 (Default User account mapped to root user in container.)
+host      |$UID           |0 (Default User account mapped to root user in container.)
 keep-id   |$UID           |$UID (Map user account to same UID within container.)
 auto      |$UID           | nil (Host User UID is not mapped into container.)
 nomap     |$UID           | nil (Host User UID is not mapped into container.)
