@@ -1,6 +1,11 @@
 package compression
 
-import "testing"
+import (
+	"os"
+	"testing"
+
+	"github.com/containers/podman/v5/pkg/machine/define"
+)
 
 func Test_compressionFromFile(t *testing.T) {
 	type args struct {
@@ -85,6 +90,105 @@ func TestImageCompression_String(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.c.String(); got != tt.want {
 				t.Errorf("String() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_Decompress(t *testing.T) {
+	type args struct {
+		src string
+		dst string
+	}
+
+	type want struct {
+		content string
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "zip",
+			args: args{
+				src: "./testfiles/sample.zip",
+				dst: "./testfiles/hellozip",
+			},
+			want: want{
+				content: "zip\n",
+			},
+		},
+		{
+			name: "xz",
+			args: args{
+				src: "./testfiles/sample.xz",
+				dst: "./testfiles/helloxz",
+			},
+			want: want{
+				content: "xz\n",
+			},
+		},
+		{
+			name: "gzip",
+			args: args{
+				src: "./testfiles/sample.gz",
+				dst: "./testfiles/hellogz",
+			},
+			want: want{
+				content: "gzip\n",
+			},
+		},
+		{
+			name: "bzip2",
+			args: args{
+				src: "./testfiles/sample.bz2",
+				dst: "./testfiles/hellobz2",
+			},
+			want: want{
+				content: "bzip2\n",
+			},
+		},
+		{
+			name: "zstd",
+			args: args{
+				src: "./testfiles/sample.zst",
+				dst: "./testfiles/hellozstd",
+			},
+			want: want{
+				content: "zstd\n",
+			},
+		},
+		{
+			name: "uncompressed",
+			args: args{
+				src: "./testfiles/sample.uncompressed",
+				dst: "./testfiles/hellozuncompressed",
+			},
+			want: want{
+				content: "uncompressed\n",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srcVMFile := &define.VMFile{Path: tt.args.src}
+			dstFilePath := tt.args.dst
+
+			defer os.Remove(dstFilePath)
+
+			if err := Decompress(srcVMFile, dstFilePath); err != nil {
+				t.Fatalf("decompress() error = %v", err)
+			}
+
+			data, err := os.ReadFile(dstFilePath)
+			if err != nil {
+				t.Fatalf("ReadFile() error = %v", err)
+			}
+
+			if got := string(data); got != tt.want.content {
+				t.Fatalf("content = %v, want %v", got, tt.want.content)
 			}
 		})
 	}
