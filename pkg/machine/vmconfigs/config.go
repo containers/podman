@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/containers/common/pkg/strongunits"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
@@ -114,7 +113,7 @@ type VMProvider interface { //nolint:interfacebloat
 	MountVolumesToVM(mc *MachineConfig, quiet bool) error
 	Remove(mc *MachineConfig) ([]string, func() error, error)
 	RemoveAndCleanMachines(dirs *define.MachineDirs) error
-	SetProviderAttrs(mc *MachineConfig, cpus, memory *uint64, newDiskSize *strongunits.GiB, newRootful *bool) error
+	SetProviderAttrs(mc *MachineConfig, opts define.SetOptions) error
 	StartNetworking(mc *MachineConfig, cmd *gvproxy.GvproxyCommand) error
 	PostStartNetworking(mc *MachineConfig) error
 	StartVM(mc *MachineConfig) (func() error, func() error, error)

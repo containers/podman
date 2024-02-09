@@ -9,6 +9,7 @@ import (
 	"github.com/containers/common/pkg/strongunits"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/pkg/machine"
+	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/spf13/cobra"
 )
@@ -28,7 +29,7 @@ var (
 
 var (
 	setFlags = SetFlags{}
-	setOpts  = machine.SetOptions{}
+	setOpts  = define.SetOptions{}
 )
 
 type SetFlags struct {
@@ -89,10 +90,7 @@ func init() {
 
 func setMachine(cmd *cobra.Command, args []string) error {
 	var (
-		err                error
-		newCPUs, newMemory *uint64
-		newDiskSize        *strongunits.GiB
-		newRootful         *bool
+		err error
 	)
 
 	vmName := defaultMachineName
@@ -111,15 +109,15 @@ func setMachine(cmd *cobra.Command, args []string) error {
 	}
 
 	if cmd.Flags().Changed("rootful") {
-		newRootful = &setFlags.Rootful
+		setOpts.Rootful = &setFlags.Rootful
 	}
 	if cmd.Flags().Changed("cpus") {
 		mc.Resources.CPUs = setFlags.CPUs
-		newCPUs = &mc.Resources.CPUs
+		setOpts.CPUs = &mc.Resources.CPUs
 	}
 	if cmd.Flags().Changed("memory") {
 		mc.Resources.Memory = setFlags.Memory
-		newMemory = &mc.Resources.Memory
+		setOpts.Memory = &mc.Resources.Memory
 	}
 	if cmd.Flags().Changed("disk-size") {
 		if setFlags.DiskSize <= mc.Resources.DiskSize {
@@ -127,20 +125,19 @@ func setMachine(cmd *cobra.Command, args []string) error {
 		}
 		mc.Resources.DiskSize = setFlags.DiskSize
 		newDiskSizeGB := strongunits.GiB(setFlags.DiskSize)
-		newDiskSize = &newDiskSizeGB
+		setOpts.DiskSize = &newDiskSizeGB
 	}
 	if cmd.Flags().Changed("user-mode-networking") {
 		// TODO This needs help
 		setOpts.UserModeNetworking = &setFlags.UserModeNetworking
 	}
 	if cmd.Flags().Changed("usb") {
-		// TODO This needs help
 		setOpts.USBs = &setFlags.USBs
 	}
 
 	// At this point, we have the known changed information, etc
 	// Walk through changes to the providers if they need them
-	if err := provider.SetProviderAttrs(mc, newCPUs, newMemory, newDiskSize, newRootful); err != nil {
+	if err := provider.SetProviderAttrs(mc, setOpts); err != nil {
 		return err
 	}
 

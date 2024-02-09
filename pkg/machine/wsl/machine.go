@@ -1105,7 +1105,7 @@ func setupWslProxyEnv() (hasProxy bool) {
 	return
 }
 
-func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
+func (v *MachineVM) Set(_ string, opts define.SetOptions) ([]error, error) {
 	// If one setting fails to be applied, the others settings will not fail and still be applied.
 	// The setting(s) that failed to be applied will have its errors returned in setErrors
 	var setErrors []error
