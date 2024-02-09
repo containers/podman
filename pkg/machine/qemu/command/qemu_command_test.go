@@ -21,6 +21,9 @@ func TestQemuCmd(t *testing.T) {
 	readySocket, err := define.NewMachineFile(t.TempDir()+"readySocket.sock", nil)
 	assert.NoError(t, err)
 
+	vlanSocket, err := define.NewMachineFile(t.TempDir()+"vlanSocket.sock", nil)
+	assert.NoError(t, err)
+
 	vmPidFile, err := define.NewMachineFile(t.TempDir()+"vmpidfile.pid", nil)
 	assert.NoError(t, err)
 
@@ -32,6 +35,7 @@ func TestQemuCmd(t *testing.T) {
 	ignPath := ignFile.GetPath()
 	addrFilePath := machineAddrFile.GetPath()
 	readySocketPath := readySocket.GetPath()
+	vlanSocketPath := vlanSocket.GetPath()
 	vmPidFilePath := vmPidFile.GetPath()
 	bootableImagePath := t.TempDir() + "test-machine_fedora-coreos-38.20230918.2.0-qemu.x86_64.qcow2"
 
@@ -40,7 +44,8 @@ func TestQemuCmd(t *testing.T) {
 	cmd.SetCPUs(4)
 	cmd.SetIgnitionFile(*ignFile)
 	cmd.SetQmpMonitor(monitor)
-	cmd.SetNetwork()
+	err = cmd.SetNetwork(vlanSocket)
+	assert.NoError(t, err)
 	cmd.SetSerialPort(*readySocket, *vmPidFile, "test-machine")
 	cmd.SetVirtfsMount("/tmp/path", "vol10", "none", true)
 	cmd.SetBootableImage(bootableImagePath)
@@ -52,7 +57,7 @@ func TestQemuCmd(t *testing.T) {
 		"-smp", "4",
 		"-fw_cfg", fmt.Sprintf("name=opt/com.coreos/config,file=%s", ignPath),
 		"-qmp", fmt.Sprintf("unix:%s,server=on,wait=off", addrFilePath),
-		"-netdev", "socket,id=vlan,fd=3",
+		"-netdev", socketVlanNetdev(vlanSocketPath),
 		"-device", "virtio-net-pci,netdev=vlan,mac=5a:94:ef:e4:0c:ee",
 		"-device", "virtio-serial",
 		"-chardev", fmt.Sprintf("socket,path=%s,server=on,wait=off,id=atest-machine_ready", readySocketPath),
