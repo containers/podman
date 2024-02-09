@@ -64,8 +64,7 @@ func (q *QEMUStubber) setQEMUCommandLine(mc *vmconfigs.MachineConfig) error {
 		q.Command.SetVirtfsMount(mount.Source, mount.Tag, securityModel, mount.ReadOnly)
 	}
 
-	// TODO
-	// v.QEMUConfig.Command.SetUSBHostPassthrough(v.USBs)
+	q.Command.SetUSBHostPassthrough(mc.Resources.USBs)
 
 	return nil
 }
@@ -243,17 +242,25 @@ func (q *QEMUStubber) resizeDisk(newSize strongunits.GiB, diskPath *define.VMFil
 	return nil
 }
 
-func (q *QEMUStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, cpus, memory *uint64, newDiskSize *strongunits.GiB, newRootful *bool) error {
-	if newDiskSize != nil {
-		if err := q.resizeDisk(*newDiskSize, mc.ImagePath); err != nil {
+func (q *QEMUStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.SetOptions) error {
+	if opts.DiskSize != nil {
+		if err := q.resizeDisk(*opts.DiskSize, mc.ImagePath); err != nil {
 			return err
 		}
 	}
 
-	if newRootful != nil && mc.HostUser.Rootful != *newRootful {
-		if err := mc.SetRootful(*newRootful); err != nil {
+	if opts.Rootful != nil && mc.HostUser.Rootful != *opts.Rootful {
+		if err := mc.SetRootful(*opts.Rootful); err != nil {
 			return err
 		}
+	}
+
+	if opts.USBs != nil {
+		usbs, err := command.ParseUSBs(*opts.USBs)
+		if err != nil {
+			return err
+		}
+		mc.Resources.USBs = usbs
 	}
 
 	// Because QEMU does nothing with these hardware attributes, we can simply return

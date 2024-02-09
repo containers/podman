@@ -68,15 +68,6 @@ type ListResponse struct {
 	UserModeNetworking bool
 }
 
-type SetOptions struct {
-	CPUs               *uint64
-	DiskSize           *uint64
-	Memory             *uint64
-	Rootful            *bool
-	UserModeNetworking *bool
-	USBs               *[]string
-}
-
 type SSHOptions struct {
 	Username string
 	Args     []string
@@ -101,7 +92,7 @@ type VM interface {
 	Init(opts define.InitOptions) (bool, error)
 	Inspect() (*InspectInfo, error)
 	Remove(name string, opts RemoveOptions) (string, func() error, error)
-	Set(name string, opts SetOptions) ([]error, error)
+	Set(name string, opts define.SetOptions) ([]error, error)
 	SSH(name string, opts SSHOptions) error
 	Start(name string, opts StartOptions) error
 	State(bypass bool) (define.Status, error)

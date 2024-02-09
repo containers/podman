@@ -14,6 +14,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/connection"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/lock"
+	"github.com/containers/podman/v5/pkg/machine/qemu/command"
 	"github.com/containers/podman/v5/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -40,7 +41,7 @@ var (
 type RemoteConnectionType string
 
 // NewMachineConfig creates the initial machine configuration file from cli options
-func NewMachineConfig(opts define.InitOptions, dirs *define.MachineDirs, sshIdentityPath string) (*MachineConfig, error) {
+func NewMachineConfig(opts define.InitOptions, dirs *define.MachineDirs, sshIdentityPath string, vmtype define.VMType) (*MachineConfig, error) {
 	mc := new(MachineConfig)
 	mc.Name = opts.Name
 	mc.dirs = dirs
@@ -58,12 +59,21 @@ func NewMachineConfig(opts define.InitOptions, dirs *define.MachineDirs, sshIden
 	}
 	mc.configPath = cf
 
+	if vmtype != define.QemuVirt && len(opts.USBs) > 0 {
+		return nil, fmt.Errorf("USB host passthrough not supported for %s machines", vmtype)
+	}
+
+	usbs, err := command.ParseUSBs(opts.USBs)
+	if err != nil {
+		return nil, err
+	}
+
 	// System Resources
 	mrc := ResourceConfig{
 		CPUs:     opts.CPUS,
 		DiskSize: opts.DiskSize,
 		Memory:   opts.Memory,
-		USBs:     nil, // Needs to be filled in by providers?
+		USBs:     usbs,
 	}
 	mc.Resources = mrc
 

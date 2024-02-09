@@ -290,7 +290,7 @@ func stateConversion(s hypervctl.EnabledState) (define.Status, error) {
 	return define.Unknown, fmt.Errorf("unknown state: %q", s.String())
 }
 
-func (h HyperVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, cpus, memory *uint64, newDiskSize *strongunits.GiB, newRootful *bool) error {
+func (h HyperVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.SetOptions) error {
 	var (
 		cpuChanged, memoryChanged bool
 	)
@@ -308,40 +308,44 @@ func (h HyperVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, cpus, memor
 		return errors.New("unable to change settings unless vm is stopped")
 	}
 
-	if newRootful != nil && mc.HostUser.Rootful != *newRootful {
-		if err := mc.SetRootful(*newRootful); err != nil {
+	if opts.Rootful != nil && mc.HostUser.Rootful != *opts.Rootful {
+		if err := mc.SetRootful(*opts.Rootful); err != nil {
 			return err
 		}
 	}
 
-	if newDiskSize != nil {
-		if err := resizeDisk(*newDiskSize, mc.ImagePath); err != nil {
+	if opts.DiskSize != nil {
+		if err := resizeDisk(*opts.DiskSize, mc.ImagePath); err != nil {
 			return err
 		}
 	}
-	if cpus != nil {
+	if opts.CPUs != nil {
 		cpuChanged = true
 	}
-	if memory != nil {
+	if opts.Memory != nil {
 		memoryChanged = true
 	}
 
 	if cpuChanged || memoryChanged {
 		err := vm.UpdateProcessorMemSettings(func(ps *hypervctl.ProcessorSettings) {
 			if cpuChanged {
-				ps.VirtualQuantity = *cpus
+				ps.VirtualQuantity = *opts.CPUs
 			}
 		}, func(ms *hypervctl.MemorySettings) {
 			if memoryChanged {
 				ms.DynamicMemoryEnabled = false
-				ms.VirtualQuantity = *memory
-				ms.Limit = *memory
-				ms.Reservation = *memory
+				ms.VirtualQuantity = *opts.Memory
+				ms.Limit = *opts.Memory
+				ms.Reservation = *opts.Memory
 			}
 		})
 		if err != nil {
 			return fmt.Errorf("setting CPU and Memory for VM: %w", err)
 		}
+	}
+
+	if opts.USBs != nil {
+		return fmt.Errorf("changing USBs not supported for hyperv machines")
 	}
 
 	return nil

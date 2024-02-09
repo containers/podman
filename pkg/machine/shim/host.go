@@ -104,7 +104,7 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 		return nil, err
 	}
 
-	mc, err := vmconfigs.NewMachineConfig(opts, dirs, sshIdentityPath)
+	mc, err := vmconfigs.NewMachineConfig(opts, dirs, sshIdentityPath, mp.VMType())
 	if err != nil {
 		return nil, err
 	}

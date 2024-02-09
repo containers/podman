@@ -79,17 +79,21 @@ func (a AppleHVStubber) RemoveAndCleanMachines(_ *define.MachineDirs) error {
 	return nil
 }
 
-func (a AppleHVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, cpus, memory *uint64, newDiskSize *strongunits.GiB, newRootful *bool) error {
-	if newDiskSize != nil {
-		if err := resizeDisk(mc, *newDiskSize); err != nil {
+func (a AppleHVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.SetOptions) error {
+	if opts.DiskSize != nil {
+		if err := resizeDisk(mc, *opts.DiskSize); err != nil {
 			return err
 		}
 	}
 
-	if newRootful != nil && mc.HostUser.Rootful != *newRootful {
-		if err := mc.SetRootful(*newRootful); err != nil {
+	if opts.Rootful != nil && mc.HostUser.Rootful != *opts.Rootful {
+		if err := mc.SetRootful(*opts.Rootful); err != nil {
 			return err
 		}
+	}
+
+	if opts.USBs != nil {
+		return fmt.Errorf("changing USBs not supported for applehv machines")
 	}
 
 	// VFKit does not require saving memory, disk, or cpu
