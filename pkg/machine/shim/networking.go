@@ -35,7 +35,6 @@ func startNetworking(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvider)
 	// TODO should this go up the stack higher
 	if mc.HostUser.Rootful {
 		guestSock = "/run/podman/podman.sock"
-		forwardUser = "root"
 	}
 
 	cfg, err := config.Default()

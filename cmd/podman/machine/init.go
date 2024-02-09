@@ -138,6 +138,13 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		initOpts.Name = args[0]
 	}
 
+	if initOpts.Rootful {
+		if cmd.Flag("user").Changed && initOpts.Username != "root" {
+			return fmt.Errorf("cannot set username when VM is rootful")
+		}
+		initOpts.Username = "root"
+	}
+
 	// The vmtype names need to be reserved and cannot be used for podman machine names
 	if _, err := define.ParseVMType(initOpts.Name, define.UnknownVirt); err == nil {
 		return fmt.Errorf("cannot use %q for a machine name", initOpts.Name)
