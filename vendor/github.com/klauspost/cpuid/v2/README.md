@@ -9,10 +9,7 @@ You can access the CPU information by accessing the shared CPU variable of the c
 Package home: https://github.com/klauspost/cpuid
 
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/klauspost/cpuid)](https://pkg.go.dev/github.com/klauspost/cpuid/v2)
-[![Build Status][3]][4]
-
-[3]: https://travis-ci.org/klauspost/cpuid.svg?branch=master
-[4]: https://travis-ci.org/klauspost/cpuid
+[![Go](https://github.com/klauspost/cpuid/actions/workflows/go.yml/badge.svg)](https://github.com/klauspost/cpuid/actions/workflows/go.yml)
 
 ## installing
 
@@ -285,7 +282,12 @@ Exit Code 1
 | AMXINT8            | Tile computational operations on 8-bit integers                                                                                                                                    |
 | AMXFP16            | Tile computational operations on FP16 numbers                                                                                                                                      |
 | AMXTILE            | Tile architecture                                                                                                                                                                  |
+| APX_F              | Intel APX                                                                                                                                                                          |
 | AVX                | AVX functions                                                                                                                                                                      |
+| AVX10              | If set the Intel AVX10 Converged Vector ISA is supported                                                                                                                           |
+| AVX10_128          | If set indicates that AVX10 128-bit vector support is present                                                                                                                      |
+| AVX10_256          | If set indicates that AVX10 256-bit vector support is present                                                                                                                      |
+| AVX10_512          | If set indicates that AVX10 512-bit vector support is present                                                                                                                      |
 | AVX2               | AVX2 functions                                                                                                                                                                     |
 | AVX512BF16         | AVX-512 BFLOAT16 Instructions                                                                                                                                                      |
 | AVX512BITALG       | AVX-512 Bit Algorithms                                                                                                                                                             |
@@ -365,6 +367,8 @@ Exit Code 1
 | IDPRED_CTRL        | IPRED_DIS                                                                                                                                                                          |
 | INT_WBINVD         | WBINVD/WBNOINVD are interruptible.                                                                                                                                                 |
 | INVLPGB            | NVLPGB and TLBSYNC instruction supported                                                                                                                                           |
+| KEYLOCKER          | Key locker                                                                                                                                                                         |
+| KEYLOCKERW         | Key locker wide                                                                                                                                                                    |
 | LAHF               | LAHF/SAHF in long mode                                                                                                                                                             |
 | LAM                | If set, CPU supports Linear Address Masking                                                                                                                                        |
 | LBRVIRT            | LBR virtualization                                                                                                                                                                 |
@@ -380,7 +384,7 @@ Exit Code 1
 | MOVDIRI            | Move Doubleword as Direct Store                                                                                                                                                    |
 | MOVSB_ZL           | Fast Zero-Length MOVSB                                                                                                                                                             |
 | MPX                | Intel MPX (Memory Protection Extensions)                                                                                                                                           |
-| MOVU               | MOVU SSE instructions are more efficient and should be preferred to SSE	MOVL/MOVH. MOVUPS is more efficient than MOVLPS/MOVHPS. MOVUPD is more efficient than MOVLPD/MOVHPD       |
+| MOVU               | MOVU SSE instructions are more efficient and should be preferred to SSE	MOVL/MOVH. MOVUPS is more efficient than MOVLPS/MOVHPS. MOVUPD is more efficient than MOVLPD/MOVHPD        |
 | MSRIRC             | Instruction Retired Counter MSR available                                                                                                                                          |
 | MSRLIST            | Read/Write List of Model Specific Registers                                                                                                                                        |
 | MSR_PAGEFLUSH      | Page Flush MSR available                                                                                                                                                           |

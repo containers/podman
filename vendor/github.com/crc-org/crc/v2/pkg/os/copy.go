@@ -1,16 +1,10 @@
-package compression
+package os
 
 import (
 	"bytes"
 	"io"
 	"os"
 )
-
-// TODO vendor this in ... pkg/os directory is small and code should be negligible
-/*
-	NOTE:   copy.go and copy.test were lifted from github.com/crc-org/crc because
-			i was having trouble getting go to vendor it properly. all credit to them
-*/
 
 func copyFile(src, dst string, sparse bool) error {
 	in, err := os.Open(src)

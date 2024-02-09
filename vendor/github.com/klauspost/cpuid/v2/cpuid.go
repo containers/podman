@@ -76,7 +76,12 @@ const (
 	AMXFP16                             // Tile computational operations on FP16 numbers
 	AMXINT8                             // Tile computational operations on 8-bit integers
 	AMXTILE                             // Tile architecture
+	APX_F                               // Intel APX
 	AVX                                 // AVX functions
+	AVX10                               // If set the Intel AVX10 Converged Vector ISA is supported
+	AVX10_128                           // If set indicates that AVX10 128-bit vector support is present
+	AVX10_256                           // If set indicates that AVX10 256-bit vector support is present
+	AVX10_512                           // If set indicates that AVX10 512-bit vector support is present
 	AVX2                                // AVX2 functions
 	AVX512BF16                          // AVX-512 BFLOAT16 Instructions
 	AVX512BITALG                        // AVX-512 Bit Algorithms
@@ -156,6 +161,8 @@ const (
 	IDPRED_CTRL                         // IPRED_DIS
 	INT_WBINVD                          // WBINVD/WBNOINVD are interruptible.
 	INVLPGB                             // NVLPGB and TLBSYNC instruction supported
+	KEYLOCKER                           // Key locker
+	KEYLOCKERW                          // Key locker wide
 	LAHF                                // LAHF/SAHF in long mode
 	LAM                                 // If set, CPU supports Linear Address Masking
 	LBRVIRT                             // LBR virtualization
@@ -302,9 +309,10 @@ type CPUInfo struct {
 		L2  int // L2 Cache (per core or shared). Will be -1 if undetected
 		L3  int // L3 Cache (per core, per ccx or shared). Will be -1 if undetected
 	}
-	SGX       SGXSupport
-	maxFunc   uint32
-	maxExFunc uint32
+	SGX        SGXSupport
+	AVX10Level uint8
+	maxFunc    uint32
+	maxExFunc  uint32
 }
 
 var cpuid func(op uint32) (eax, ebx, ecx, edx uint32)
@@ -1165,6 +1173,7 @@ func support() flagSet {
 		fs.setIf(ecx&(1<<10) != 0, VPCLMULQDQ)
 		fs.setIf(ecx&(1<<13) != 0, TME)
 		fs.setIf(ecx&(1<<25) != 0, CLDEMOTE)
+		fs.setIf(ecx&(1<<23) != 0, KEYLOCKER)
 		fs.setIf(ecx&(1<<27) != 0, MOVDIRI)
 		fs.setIf(ecx&(1<<28) != 0, MOVDIR64B)
 		fs.setIf(ecx&(1<<29) != 0, ENQCMD)
@@ -1202,6 +1211,8 @@ func support() flagSet {
 		fs.setIf(edx1&(1<<4) != 0, AVXVNNIINT8)
 		fs.setIf(edx1&(1<<5) != 0, AVXNECONVERT)
 		fs.setIf(edx1&(1<<14) != 0, PREFETCHI)
+		fs.setIf(edx1&(1<<19) != 0, AVX10)
+		fs.setIf(edx1&(1<<21) != 0, APX_F)
 
 		// Only detect AVX-512 features if XGETBV is supported
 		if c&((1<<26)|(1<<27)) == (1<<26)|(1<<27) {
@@ -1252,6 +1263,19 @@ func support() flagSet {
 		fs.setIf(edx&(1<<4) != 0, BHI_CTRL)
 		fs.setIf(edx&(1<<5) != 0, MCDT_NO)
 
+		// Add keylocker features.
+		if fs.inSet(KEYLOCKER) && mfi >= 0x19 {
+			_, ebx, _, _ := cpuidex(0x19, 0)
+			fs.setIf(ebx&5 == 5, KEYLOCKERW) // Bit 0 and 2 (1+4)
+		}
+
+		// Add AVX10 features.
+		if fs.inSet(AVX10) && mfi >= 0x24 {
+			_, ebx, _, _ := cpuidex(0x24, 0)
+			fs.setIf(ebx&(1<<16) != 0, AVX10_128)
+			fs.setIf(ebx&(1<<17) != 0, AVX10_256)
+			fs.setIf(ebx&(1<<18) != 0, AVX10_512)
+		}
 	}
 
 	// Processor Extended State Enumeration Sub-leaf (EAX = 0DH, ECX = 1)
@@ -1394,6 +1418,20 @@ func support() flagSet {
 		fs.setIf((a>>24)&1 == 1, VMSA_REGPROT)
 	}
 
+	if mfi >= 0x20 {
+		// Microsoft has decided to purposefully hide the information
+		// of the guest TEE when VMs are being created using Hyper-V.
+		//
+		// This leads us to check for the Hyper-V cpuid features
+		// (0x4000000C), and then for the `ebx` value set.
+		//
+		// For Intel TDX, `ebx` is set as `0xbe3`, being 3 the part
+		// we're mostly interested about,according to:
+		// https://github.com/torvalds/linux/blob/d2f51b3516dade79269ff45eae2a7668ae711b25/arch/x86/include/asm/hyperv-tlfs.h#L169-L174
+		_, ebx, _, _ := cpuid(0x4000000C)
+		fs.setIf(ebx == 0xbe3, TDX_GUEST)
+	}
+
 	if mfi >= 0x21 {
 		// Intel Trusted Domain Extensions Guests have their own cpuid leaf (0x21).
 		_, ebx, ecx, edx := cpuid(0x21)
@@ -1402,6 +1440,14 @@ func support() flagSet {
 	}
 
 	return fs
+}
+
+func (c *CPUInfo) supportAVX10() uint8 {
+	if c.maxFunc >= 0x24 && c.featureSet.inSet(AVX10) {
+		_, ebx, _, _ := cpuidex(0x24, 0)
+		return uint8(ebx)
+	}
+	return 0
 }
 
 func valAsString(values ...uint32) []byte {
