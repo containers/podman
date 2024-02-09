@@ -31,11 +31,10 @@ cd $tmpdir
 echo $YMD >testimage-id
 
 cat >Containerfile <<EOF
-FROM registry.fedoraproject.org/fedora-minimal:38
+FROM registry.fedoraproject.org/fedora-minimal:39
 LABEL created_by="$create_script @ $create_script_rev"
 LABEL created_at=$create_time_z
-# Note the reinstall of tzdata is required (https://bugzilla.redhat.com/show_bug.cgi?id=1870814)
-RUN microdnf install -y systemd && microdnf reinstall -y tzdata && microdnf clean all && sed -i -e 's/.*LogColor.*/LogColor=no/' /etc/systemd/system.conf
+RUN microdnf install -y systemd tzdata && microdnf clean all && sed -i -e 's/.*LogColor.*/LogColor=no/' /etc/systemd/system.conf
 ADD testimage-id /home/podman/
 WORKDIR /home/podman
 CMD ["/bin/echo", "This image is intended for podman CI testing"]

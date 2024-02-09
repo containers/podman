@@ -33,15 +33,12 @@ function _check_health {
 }
 
 @test "podman healthcheck" {
-    _build_health_check_image healthcheck_i
-
-    # Run that healthcheck image.
-    run_podman run -d --name healthcheck_c \
-               --health-cmd /healthcheck   \
-               --health-interval 1s        \
-               --health-retries 3          \
-               --health-on-failure=kill    \
-               healthcheck_i
+    run_podman run -d --name healthcheck_c             \
+               --health-cmd /home/podman/healthcheck   \
+               --health-interval 1s                    \
+               --health-retries 3                      \
+               --health-on-failure=kill                \
+               $IMAGE /home/podman/pause
 
     run_podman inspect healthcheck_c --format "{{.Config.HealthcheckOnFailureAction}}"
     is "$output" "kill" "on-failure action is set to kill"
@@ -88,25 +85,22 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
 
     # Clean up
     run_podman rm -t 0 -f healthcheck_c
-    run_podman rmi   healthcheck_i
 }
 
 @test "podman healthcheck - restart cleans up old state" {
     ctr="healthcheck_c"
-    img="healthcheck_i"
 
-    _build_health_check_image $img cleanfile
-    run_podman run -d --name $ctr      \
-           --health-cmd /healthcheck   \
-           --health-retries=3          \
-           --health-interval=disable   \
-           $img
+    run_podman run -d --name $ctr                  \
+           --health-cmd /home/podman/healthcheck   \
+           --health-retries=3                      \
+           --health-interval=disable               \
+           $IMAGE /home/podman/pause
 
     run_podman container inspect $ctr --format "{{.State.Healthcheck.FailingStreak}}"
     is "$output" "0" "Failing streak of fresh container should be 0"
 
     # Get the healthcheck to fail
-    run_podman exec $ctr touch /uh-oh
+    run_podman exec $ctr touch /uh-oh-only-once
     run_podman 1 healthcheck run $ctr
     is "$output" "unhealthy" "output from 'podman healthcheck run'"
     run_podman container inspect $ctr --format "{{.State.Healthcheck.FailingStreak}}"
@@ -117,22 +111,20 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
     is "$output" "0" "Failing streak of restarted container should be 0 again"
 
     run_podman rm -f -t0 $ctr
-    run_podman rmi $img
 }
 
 @test "podman wait --condition={healthy,unhealthy}" {
     ctr="healthcheck_c"
-    img="healthcheck_i"
+
     wait_file="$PODMAN_TMPDIR/$(random_string).wait_for_me"
-    _build_health_check_image $img
 
     for condition in healthy unhealthy;do
         rm -f $wait_file
-        run_podman run -d --name $ctr      \
-               --health-cmd /healthcheck   \
-               --health-retries=1          \
-               --health-interval=disable   \
-               $img
+        run_podman run -d --name $ctr                  \
+               --health-cmd /home/podman/healthcheck   \
+               --health-retries=1                      \
+               --health-interval=disable               \
+               $IMAGE /home/podman/pause
         if [[ $condition == "unhealthy" ]];then
             # create the uh-oh file to let the health check fail
             run_podman exec $ctr touch /uh-oh
@@ -156,8 +148,6 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
         wait_for_file $wait_file
         run_podman rm -f -t0 $ctr
     done
-
-    run_podman rmi $img
 }
 
 @test "podman healthcheck --health-on-failure" {
@@ -165,30 +155,27 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
     is "$output" "Error: cannot set on-failure action to kill without a health check"
 
     ctr="healthcheck_c"
-    img="healthcheck_i"
 
     for policy in none kill restart stop;do
-        if [[ $policy == "none" ]];then
-           # Do not remove the /uh-oh file for `none` as we want to
-           # demonstrate that no action was taken
-           _build_health_check_image $img
-        else
-           _build_health_check_image $img cleanfile
+        uhoh=/uh-oh
+        if [[ $policy != "none" ]];then
+            # only fail the first run
+            uhoh=/uh-oh-only-once
         fi
 
-        # Run that healthcheck image.
-        run_podman run -d --name $ctr      \
-               --health-cmd /healthcheck   \
-               --health-retries=1          \
-               --health-on-failure=$policy \
-               --health-interval=disable   \
-               $img
+        # Run healthcheck image.
+        run_podman run -d --name $ctr                 \
+               --health-cmd /home/podman/healthcheck  \
+               --health-retries=1                     \
+               --health-on-failure=$policy            \
+               --health-interval=disable              \
+               $IMAGE /home/podman/pause
 
         # healthcheck should succeed
         run_podman healthcheck run $ctr
 
         # Now cause the healthcheck to fail
-        run_podman exec $ctr touch /uh-oh
+        run_podman exec $ctr touch $uhoh
 
         # healthcheck should now fail, with exit status 1 and 'unhealthy' output
         run_podman 1 healthcheck run $ctr
@@ -218,7 +205,6 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
         fi
 
         run_podman rm -f -t0 $ctr
-        run_podman rmi -f $img
     done
 }
 

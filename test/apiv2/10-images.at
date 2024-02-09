@@ -54,8 +54,8 @@ t POST "libpod/images/pull?reference=alpine&compatMode=true" 200 .error~null .st
 t POST "images/create?fromImage=alpine&tag=latest" 200
 
 # 10977 - handle platform parameter correctly
-t POST "images/create?fromImage=quay.io/libpod/testimage:20210610&platform=linux/arm64" 200
-t GET  "images/testimage:20210610/json" 200 \
+t POST "images/create?fromImage=quay.io/libpod/testimage:20240123&platform=linux/arm64" 200
+t GET  "images/testimage:20240123/json" 200 \
   .Architecture=arm64
 
 # Make sure that new images are pulled
