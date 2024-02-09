@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	crcOs "github.com/crc-org/crc/v2/pkg/os"
 )
 
 func TestCopyFile(t *testing.T) {
@@ -37,7 +39,7 @@ func TestCopyFile(t *testing.T) {
 
 	destFilePath := filepath.Join(os.TempDir(), destFi.Name())
 
-	if err := CopyFile(srcFilePath, destFilePath); err != nil {
+	if err := crcOs.CopyFile(srcFilePath, destFilePath); err != nil {
 		t.Fatal(err)
 	}
 
