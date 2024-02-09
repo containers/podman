@@ -39,7 +39,7 @@
 %global container_base_url https://%{container_base_path}
 
 # For LDFLAGS
-%global ld_project %{container_base_path}/%{name}/v4
+%global ld_project %{container_base_path}/%{name}/v5
 %global ld_libpod %{ld_project}/libpod
 
 # %%{name}
