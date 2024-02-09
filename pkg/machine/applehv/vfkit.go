@@ -3,34 +3,43 @@
 package applehv
 
 import (
+	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
 )
 
-// TODO this signature could be an machineconfig
-func getDefaultDevices(imagePath, logPath, readyPath string) ([]vfConfig.VirtioDevice, error) {
+func getDefaultDevices(mc *vmconfigs.MachineConfig) ([]vfConfig.VirtioDevice, *define.VMFile, error) {
 	var devices []vfConfig.VirtioDevice
 
-	disk, err := vfConfig.VirtioBlkNew(imagePath)
+	disk, err := vfConfig.VirtioBlkNew(mc.ImagePath.GetPath())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	rng, err := vfConfig.VirtioRngNew()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	serial, err := vfConfig.VirtioSerialNew(logPath)
+	logfile, err := mc.LogFile()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	serial, err := vfConfig.VirtioSerialNew(logfile.GetPath())
+	if err != nil {
+		return nil, nil, err
 	}
 
-	readyDevice, err := vfConfig.VirtioVsockNew(1025, readyPath, true)
+	readySocket, err := mc.ReadySocket()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+
+	readyDevice, err := vfConfig.VirtioVsockNew(1025, readySocket.GetPath(), true)
+	if err != nil {
+		return nil, nil, err
 	}
 	devices = append(devices, disk, rng, serial, readyDevice)
-	return devices, nil
+	return devices, readySocket, nil
 }
 
 func getDebugDevices() ([]vfConfig.VirtioDevice, error) {

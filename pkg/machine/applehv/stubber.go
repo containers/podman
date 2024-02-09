@@ -141,21 +141,11 @@ func (a AppleHVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func
 
 	netDevice.SetUnixSocketPath(gvproxySocket.GetPath())
 
-	readySocket, err := mc.ReadySocket()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	logfile, err := mc.LogFile()
-	if err != nil {
-		return nil, nil, err
-	}
-
 	// create a one-time virtual machine for starting because we dont want all this information in the
 	// machineconfig if possible.  the preference was to derive this stuff
 	vm := vfConfig.NewVirtualMachine(uint(mc.Resources.CPUs), mc.Resources.Memory, mc.AppleHypervisor.Vfkit.VirtualMachine.Bootloader)
 
-	defaultDevices, err := getDefaultDevices(mc.ImagePath.GetPath(), logfile.GetPath(), readySocket.GetPath())
+	defaultDevices, readySocket, err := getDefaultDevices(mc)
 	if err != nil {
 		return nil, nil, err
 	}
