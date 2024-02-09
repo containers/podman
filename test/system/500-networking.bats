@@ -716,7 +716,16 @@ nameserver 8.8.8.8" "nameserver order is correct"
 }
 
 @test "podman run port forward range" {
-    for netmode in bridge slirp4netns:port_handler=slirp4netns slirp4netns:port_handler=rootlesskit; do
+    # we run a long loop of tests lets run all combinations before bailing out
+    defer-assertion-failures
+
+    # pasta only works rootless
+    local pasta=
+    if is_rootless; then
+        pasta=pasta
+    fi
+
+    for netmode in bridge slirp4netns:port_handler=slirp4netns slirp4netns:port_handler=rootlesskit $pasta; do
         local range=$(random_free_port_range 3)
         # die() inside $(...) does not actually stop us.
         assert "$range" != "" "Could not find free port range"
@@ -729,10 +738,22 @@ nameserver 8.8.8.8" "nameserver order is correct"
         cid="$output"
         for port in $(seq $port $end_port); do
             run_podman exec -d $cid nc -l -p $port -e /bin/cat
-            # -w 1 adds a 1 second timeout. For some reason, ubuntu's ncat
-            # doesn't close the connection on EOF, and other options to
-            # change this are not portable across distros. -w seems to work.
-            run nc -w 1 127.0.0.1 $port <<<$random
+
+            # we have to rety ncat as it can flake as we exec in the background so nc -l
+            # might not have bound the port yet, retry seems simpler than checking if the
+            # port is bound in the container, https://github.com/containers/podman/issues/21561.
+            retries=5
+            while [[ $retries -gt 0 ]]; do
+                # -w 1 adds a 1 second timeout. For some reason, ubuntu's ncat
+                # doesn't close the connection on EOF, and other options to
+                # change this are not portable across distros. -w seems to work.
+                run nc -w 1 127.0.0.1 $port <<<$random
+                if [[ $status -eq 0 ]]; then
+                    break
+                fi
+                sleep 0.5
+                retries=$((retries -1))
+            done
             is "$output" "$random" "ncat got data back (netmode=$netmode port=$port)"
         done
 
