@@ -779,7 +779,7 @@ podman_machine_aarch64_task:
 #    alias: podman_machine_windows
 #    # Only run for non-docs/copr PRs and non-release branch builds
 #    # and never for tags.  Docs: ./contrib/cirrus/CIModes.md
-#    only_if: *not_tag_branch_build_docs_machine
+#    only_if: *machine_cron_not_tag_build_docs
 #    depends_on:
 #      - alt_build
 #      - build
@@ -805,7 +805,7 @@ podman_machine_aarch64_task:
 podman_machine_mac_task:
    name: *std_name_fmt
    alias: podman_machine_mac
-   only_if: *not_tag_branch_build_docs_machine
+   only_if: *machine_cron_not_tag_build_docs
    depends_on:
      - osx_alt_build
      - local_integration_test
