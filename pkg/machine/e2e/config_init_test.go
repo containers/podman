@@ -125,7 +125,7 @@ func (i *initMachine) withRootful(r bool) *initMachine {
 	return i
 }
 
-func (i *initMachine) withUserModeNetworking(r bool) *initMachine {
+func (i *initMachine) withUserModeNetworking(r bool) *initMachine { //nolint:unused
 	i.userModeNetworking = r
 	return i
 }
