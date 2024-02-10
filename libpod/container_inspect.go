@@ -5,10 +5,13 @@ package libpod
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/driver"
+	"github.com/containers/podman/v5/pkg/signal"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/storage/types"
 	"github.com/docker/go-units"
@@ -388,7 +391,7 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 
 	// Leave empty if not explicitly overwritten by user
 	if len(c.config.Entrypoint) != 0 {
-		ctrConfig.Entrypoint = strings.Join(c.config.Entrypoint, " ")
+		ctrConfig.Entrypoint = c.config.Entrypoint
 	}
 
 	if len(c.config.Labels) != 0 {
@@ -404,8 +407,11 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 			ctrConfig.Annotations[k] = v
 		}
 	}
-
-	ctrConfig.StopSignal = c.config.StopSignal
+	var signal, err = signal.ParseSysSignalToName(syscall.Signal(c.config.StopSignal))
+	if err != nil {
+		signal = strconv.FormatUint(uint64(c.config.StopSignal), 10)
+	}
+	ctrConfig.StopSignal = fmt.Sprintf("SIG%s", signal)
 	// TODO: should JSON deep copy this to ensure internal pointers don't
 	// leak.
 	ctrConfig.Healthcheck = c.config.HealthCheckConfig

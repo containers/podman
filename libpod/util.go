@@ -235,8 +235,12 @@ func makeInspectPorts(bindings []types.PortMapping, expose map[uint16][]string) 
 			for i := uint16(0); i < port.Range; i++ {
 				key := fmt.Sprintf("%d/%s", port.ContainerPort+i, protocol)
 				hostPorts := portBindings[key]
+				var host = port.HostIP
+				if len(port.HostIP) == 0 {
+					host = "0.0.0.0"
+				}
 				hostPorts = append(hostPorts, define.InspectHostPort{
-					HostIP:   port.HostIP,
+					HostIP:   host,
 					HostPort: strconv.FormatUint(uint64(port.HostPort+i), 10),
 				})
 				portBindings[key] = hostPorts
