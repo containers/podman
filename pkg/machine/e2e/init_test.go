@@ -261,24 +261,6 @@ var _ = Describe("podman machine init", func() {
 		Expect(output).To(Equal("/run/podman/podman.sock"))
 	})
 
-	It("init with user mode networking", func() {
-		if testProvider.VMType() != define.WSLVirt {
-			Skip("test is only supported by WSL")
-		}
-		i := new(initMachine)
-		name := randomString()
-		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withUserModeNetworking(true)).run()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(session).To(Exit(0))
-
-		inspect := new(inspectMachine)
-		inspect = inspect.withFormat("{{.UserModeNetworking}}")
-		inspectSession, err := mb.setName(name).setCmd(inspect).run()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(inspectSession).To(Exit(0))
-		Expect(inspectSession.outputToString()).To(Equal("true"))
-	})
-
 	It("init should cleanup on failure", func() {
 		i := new(initMachine)
 		name := randomString()

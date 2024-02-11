@@ -119,7 +119,7 @@ func (h HyperVStubber) GetHyperVisorVMs() ([]string, error) {
 		return nil, err
 	}
 	for _, vm := range vms {
-		vmNames = append(vmNames, vm.Name)
+		vmNames = append(vmNames, vm.ElementName) // Note: elementname is human-readable name
 	}
 	return vmNames, nil
 }
