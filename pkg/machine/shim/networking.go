@@ -1,6 +1,7 @@
 package shim
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"path/filepath"
@@ -19,6 +20,11 @@ const (
 	dockerSock           = "/var/run/docker.sock"
 	defaultGuestSock     = "/run/user/%d/podman/podman.sock"
 	dockerConnectTimeout = 5 * time.Second
+)
+
+var (
+	ErrNotRunning      = errors.New("machine not in running state")
+	ErrSSHNotListening = errors.New("machine is not listening on ssh port")
 )
 
 func startHostForwarder(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvider, dirs *define.MachineDirs, hostSocks []string) error {
@@ -119,22 +125,30 @@ func conductVMReadinessCheck(mc *vmconfigs.MachineConfig, maxBackoffs int, backo
 		if err != nil {
 			return false, nil, err
 		}
-		if state == define.Running && isListening(mc.SSH.Port) {
-			// Also make sure that SSH is up and running.  The
-			// ready service's dependencies don't fully make sure
-			// that clients can SSH into the machine immediately
-			// after boot.
-			//
-			// CoreOS users have reported the same observation but
-			// the underlying source of the issue remains unknown.
-
-			if sshError = machine.CommonSSHSilent(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, []string{"true"}); sshError != nil {
-				logrus.Debugf("SSH readiness check for machine failed: %v", sshError)
-				continue
-			}
-			connected = true
-			break
+		if state != define.Running {
+			sshError = ErrNotRunning
+			continue
 		}
+		if !isListening(mc.SSH.Port) {
+			sshError = ErrSSHNotListening
+			continue
+		}
+
+		// Also make sure that SSH is up and running.  The
+		// ready service's dependencies don't fully make sure
+		// that clients can SSH into the machine immediately
+		// after boot.
+		//
+		// CoreOS users have reported the same observation but
+		// the underlying source of the issue remains unknown.
+
+		if sshError = machine.CommonSSHSilent(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, []string{"true"}); sshError != nil {
+			logrus.Debugf("SSH readiness check for machine failed: %v", sshError)
+			continue
+		}
+		connected = true
+		sshError = nil
+		break
 	}
 	return
 }

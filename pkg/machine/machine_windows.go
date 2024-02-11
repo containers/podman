@@ -4,7 +4,9 @@ package machine
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"net"
 	"os"
 	"os/exec"
@@ -13,8 +15,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/podman/v5/pkg/machine/define"
 	winio "github.com/Microsoft/go-winio"
+	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,6 +27,10 @@ const (
 	winSshProxyTid  = "win-sshproxy.tid"
 	rootfulSock     = "/run/podman/podman.sock"
 	rootlessSock    = "/run/user/1000/podman/podman.sock"
+
+	// machine wait is longer since we must hard fail
+	MachineNameWait = 5 * time.Second
+	GlobalNameWait  = 250 * time.Millisecond
 )
 
 const WM_QUIT = 0x12 //nolint
@@ -53,9 +59,20 @@ func GetProcessState(pid int) (active bool, exitCode int) {
 	return code == 259, int(code)
 }
 
-func PipeNameAvailable(pipeName string) bool {
-	_, err := os.Stat(`\\.\pipe\` + pipeName)
-	return os.IsNotExist(err)
+func PipeNameAvailable(pipeName string, maxWait time.Duration) bool {
+	const interval = 250 * time.Millisecond
+	var wait time.Duration
+	for {
+		_, err := os.Stat(`\\.\pipe\` + pipeName)
+		if errors.Is(err, fs.ErrNotExist) {
+			return true
+		}
+		if wait >= maxWait {
+			return false
+		}
+		time.Sleep(interval)
+		wait += interval
+	}
 }
 
 func WaitPipeExists(pipeName string, retries int, checkFailure func() error) error {
@@ -105,12 +122,12 @@ func LaunchWinProxy(opts WinProxyOpts, noInfo bool) {
 
 func launchWinProxy(opts WinProxyOpts) (bool, string, error) {
 	machinePipe := ToDist(opts.Name)
-	if !PipeNameAvailable(machinePipe) {
+	if !PipeNameAvailable(machinePipe, MachineNameWait) {
 		return false, "", fmt.Errorf("could not start api proxy since expected pipe is not available: %s", machinePipe)
 	}
 
 	globalName := false
-	if PipeNameAvailable(GlobalNamedPipe) {
+	if PipeNameAvailable(GlobalNamedPipe, GlobalNameWait) {
 		globalName = true
 	}
 
