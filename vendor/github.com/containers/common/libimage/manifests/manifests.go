@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -284,10 +285,8 @@ func (l *list) Reference(store storage.Store, multiple cp.ImageListSelection, in
 		}
 	case cp.CopySpecificImages:
 		for instance := range l.instances {
-			for _, allowed := range instances {
-				if instance == allowed {
-					whichInstances = append(whichInstances, instance)
-				}
+			if slices.Contains(instances, instance) {
+				whichInstances = append(whichInstances, instance)
 			}
 		}
 	}
@@ -304,8 +303,11 @@ func (l *list) Reference(store storage.Store, multiple cp.ImageListSelection, in
 		if err != nil {
 			return nil, err
 		}
+		subdir := 0
 		for artifactManifestDigest, contents := range l.artifacts.Manifests {
 			// create the blobs directory
+			subdir++
+			tmp := filepath.Join(tmp, strconv.Itoa(subdir))
 			blobsDir := filepath.Join(tmp, "blobs", artifactManifestDigest.Algorithm().String())
 			if err := os.MkdirAll(blobsDir, 0o700); err != nil {
 				return nil, fmt.Errorf("creating directory for blobs: %w", err)
@@ -811,12 +813,14 @@ func (l *list) AddArtifact(ctx context.Context, sys *types.SystemContext, option
 	configDescriptor := internal.DeepCopyDescriptor(&v1.DescriptorEmptyJSON)
 	if options.ConfigDescriptor != nil {
 		configDescriptor = internal.DeepCopyDescriptor(options.ConfigDescriptor)
-	} else if options.ConfigFile != "" {
-		configDescriptor = &v1.Descriptor{
-			MediaType: v1.MediaTypeImageConfig,
-			Digest:    "", // to be figured out below
-			Size:      -1, // to be figured out below
+	}
+	if options.ConfigFile != "" {
+		if options.ConfigDescriptor == nil { // i.e., we assigned the default mediatype
+			configDescriptor.MediaType = v1.MediaTypeImageConfig
 		}
+		configDescriptor.Data = nil
+		configDescriptor.Digest = "" // to be figured out below
+		configDescriptor.Size = -1   // to be figured out below
 	}
 	configFilePath := ""
 	if configDescriptor.Size != 0 {
@@ -889,19 +893,23 @@ func (l *list) AddArtifact(ctx context.Context, sys *types.SystemContext, option
 	}
 	l.artifacts.Manifests[artifactManifestDigest] = string(artifactManifestBytes)
 	l.artifacts.Layers[artifactManifestDigest] = nil
+	l.artifacts.Configs[artifactManifestDigest] = artifactManifest.Config.Digest
 	if configFilePath != "" {
-		l.artifacts.Configs[artifactManifestDigest] = artifactManifest.Config.Digest
 		l.artifacts.Detached[artifactManifest.Config.Digest] = configFilePath
 		l.artifacts.Files[artifactManifestDigest] = append(l.artifacts.Files[artifactManifestDigest], configFilePath)
-	}
-	if len(artifactManifest.Config.Data) != 0 {
-		l.artifacts.Configs[artifactManifestDigest] = artifactManifest.Config.Digest
+	} else {
 		l.artifacts.Blobs[artifactManifest.Config.Digest] = slices.Clone(artifactManifest.Config.Data)
 	}
 	for filePath, fileDigest := range fileDigests {
 		l.artifacts.Layers[artifactManifestDigest] = append(l.artifacts.Layers[artifactManifestDigest], fileDigest)
 		l.artifacts.Detached[fileDigest] = filePath
 		l.artifacts.Files[artifactManifestDigest] = append(l.artifacts.Files[artifactManifestDigest], filePath)
+	}
+	for _, layer := range layers {
+		if len(layer.Data) != 0 {
+			l.artifacts.Blobs[layer.Digest] = slices.Clone(layer.Data)
+			l.artifacts.Layers[artifactManifestDigest] = append(l.artifacts.Layers[artifactManifestDigest], layer.Digest)
+		}
 	}
 	// Add this artifact manifest to the image index.
 	if err := l.AddInstance(artifactManifestDigest, int64(len(artifactManifestBytes)), artifactManifest.MediaType, options.Platform.OS, options.Platform.Architecture, options.Platform.OSVersion, options.Platform.OSFeatures, options.Platform.Variant, nil, nil); err != nil {

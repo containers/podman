@@ -255,7 +255,7 @@ Set default `--identity` path to ssh key file value used to access Podman servic
 #### **PODMAN_CONNECTIONS_CONF**
 
 The path to the file where the system connections and farms created with `podman system connection add`
-and `podman farm add` are stored, by default it uses `~/.config/containers/podman-connections.conf`.
+and `podman farm add` are stored, by default it uses `~/.config/containers/podman-connections.json`.
 
 #### **STORAGE_DRIVER**
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -100,7 +101,7 @@ func nativeConnectionCreate(options ConnectionCreateOptions) error {
 	})
 }
 
-func nativeConnectionExec(options ConnectionExecOptions) (*ConnectionExecReport, error) {
+func nativeConnectionExec(options ConnectionExecOptions, input io.Reader) (*ConnectionExecReport, error) {
 	dst, uri, err := Validate(options.User, options.Host, options.Port, options.Identity)
 	if err != nil {
 		return nil, err
@@ -134,6 +135,9 @@ func nativeConnectionExec(options ConnectionExecOptions) (*ConnectionExecReport,
 	info := exec.Command(ssh, args...)
 	info.Stdout = output
 	info.Stderr = errors
+	if input != nil {
+		info.Stdin = input
+	}
 	err = info.Run()
 	if err != nil {
 		return nil, err
