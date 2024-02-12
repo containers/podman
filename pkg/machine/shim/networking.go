@@ -51,7 +51,8 @@ func startHostForwarder(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvid
 	cmd := gvproxy.NewGvproxyCommand()
 
 	// GvProxy PID file path is now derived
-	cmd.PidFile = filepath.Join(dirs.RuntimeDir.GetPath(), "gvproxy.pid")
+	runDir := dirs.RuntimeDir
+	cmd.PidFile = filepath.Join(runDir.GetPath(), "gvproxy.pid")
 
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		cmd.LogFile = filepath.Join(runDir.GetPath(), "gvproxy.log")
