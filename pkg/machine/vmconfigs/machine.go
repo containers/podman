@@ -14,7 +14,6 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/connection"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/lock"
-	"github.com/containers/podman/v5/pkg/machine/qemu/command"
 	"github.com/containers/podman/v5/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -63,7 +62,7 @@ func NewMachineConfig(opts define.InitOptions, dirs *define.MachineDirs, sshIden
 		return nil, fmt.Errorf("USB host passthrough not supported for %s machines", vmtype)
 	}
 
-	usbs, err := command.ParseUSBs(opts.USBs)
+	usbs, err := define.ParseUSBs(opts.USBs)
 	if err != nil {
 		return nil, err
 	}

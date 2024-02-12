@@ -1,3 +1,5 @@
+//go:build freebsd
+
 package qemu
 
 import (

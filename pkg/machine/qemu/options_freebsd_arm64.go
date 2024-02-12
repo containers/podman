@@ -1,3 +1,5 @@
+//go:build freebsd && arm64
+
 package qemu
 
 var (

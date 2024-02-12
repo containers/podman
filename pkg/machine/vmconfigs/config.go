@@ -8,7 +8,6 @@ import (
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
-	"github.com/containers/podman/v5/pkg/machine/qemu/command"
 	"github.com/containers/storage/pkg/lockfile"
 )
 
@@ -161,7 +160,7 @@ type ResourceConfig struct {
 	// Memory in megabytes assigned to the vm
 	Memory uint64
 	// Usbs
-	USBs []command.USBConfig
+	USBs []define.USBConfig
 }
 
 // SSHConfig contains remote access information for SSH

@@ -1,4 +1,4 @@
-//go:build (amd64 && !windows) || (arm64 && !windows)
+//go:build ((amd64 && !windows) || (arm64 && !windows)) && !darwin
 
 package command
 
