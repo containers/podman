@@ -1609,7 +1609,7 @@ func handleStorageSource(quadletUnitFile, serviceUnitFile *parser.UnitFile, sour
 	}
 	if source[0] == '/' {
 		// Absolute path
-		if len(strings.Split(source, " ")) > 0 {
+		if strings.Contains(source, " ") {
 			source = fmt.Sprintf("\"%s\"", source)
 		}
 		serviceUnitFile.Add(UnitGroup, "RequiresMountsFor", source)
