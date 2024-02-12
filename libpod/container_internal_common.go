@@ -2865,7 +2865,22 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 		st, err := os.Lstat(filepath.Join(c.state.Mountpoint, v.Dest))
 		if err == nil {
 			if stat, ok := st.Sys().(*syscall.Stat_t); ok {
-				if err := idtools.SafeLchown(mountPoint, int(stat.Uid), int(stat.Gid)); err != nil {
+				uid, gid := int(stat.Uid), int(stat.Gid)
+
+				if c.config.IDMappings.UIDMap != nil {
+					p := idtools.IDPair{
+						UID: uid,
+						GID: gid,
+					}
+					mappings := idtools.NewIDMappingsFromMaps(c.config.IDMappings.UIDMap, c.config.IDMappings.GIDMap)
+					newUID, newGID, err := mappings.ToContainer(p)
+					if err != nil {
+						return fmt.Errorf("mapping user %d:%d: %w", uid, gid, err)
+					}
+					uid, gid = newUID, newGID
+				}
+
+				if err := idtools.SafeLchown(mountPoint, uid, gid); err != nil {
 					return err
 				}
 			}
