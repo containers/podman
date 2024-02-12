@@ -248,7 +248,7 @@ LDFLAGS=''
 
 %install
 install -dp %{buildroot}%{_unitdir}
-PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{_sysconfdir} \
+PODMAN_VERSION=%{version} %{__make} DESTDIR=%{buildroot} PREFIX=%{_prefix} ETCDIR=%{_sysconfdir} \
        install.bin \
        install.man \
        install.systemd \
@@ -300,6 +300,7 @@ cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 %files docker
 %{_bindir}/docker
 %{_mandir}/man1/docker*.1*
+%{_sysconfdir}/profile.d/%{name}-docker.*
 %{_tmpfilesdir}/%{name}-docker.conf
 %{_user_tmpfilesdir}/%{name}-docker.conf
 
