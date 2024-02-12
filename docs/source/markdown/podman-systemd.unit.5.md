@@ -1533,6 +1533,32 @@ Exec=sh -c "sleep inf"
 Pod=test.pod
 ```
 
+Example `s3fs.volume`:
+
+For further details, please see the [s3fs-fuse](https://github.com/s3fs-fuse/s3fs-fuse) project.
+Remember to read the [FAQ](https://github.com/s3fs-fuse/s3fs-fuse/wiki/FAQ)
+
+> NOTE: Enabling the cache massively speeds up access and write times on static files/objects.
+
+> However, `use_cache` is [UNBOUNDED](https://github.com/s3fs-fuse/s3fs-fuse/wiki/FAQ#q-how-does-the-local-file-cache-work)!
+
+> Be careful, it will fill up with any files accessed on the s3 bucket through the file system.
+
+Please remember to set `S3_BUCKET`, `PATH`, `AWS_REGION`. `CACHE_DIRECTORY` should be set up by [systemd](https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html#RuntimeDirectory=)
+
+```
+[Service]
+CacheDirectory=s3fs
+ExecStartPre=/usr/local/bin/aws s3api put-object --bucket ${S3_BUCKET} --key ${PATH}/
+
+[Volume]
+Device=${S3_BUCKET}:/${PATH}
+Type=fuse.s3fs
+VolumeName=s3fs-volume
+Options=iam_role,endpoint=${AWS_REGION},use_xattr,listobjectsv2,del_cache,use_cache=${CACHE_DIRECTORY}
+# `iam_role` assumes inside EC2, if not, Use `profile=` instead
+```
+
 ## SEE ALSO
 **[systemd.unit(5)](https://www.freedesktop.org/software/systemd/man/systemd.unit.html)**,
 **[systemd.service(5)](https://www.freedesktop.org/software/systemd/man/systemd.service.html)**,

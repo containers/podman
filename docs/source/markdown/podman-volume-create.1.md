@@ -103,7 +103,7 @@ Create image named volume using the specified local image in containers/storage.
 
 ## QUOTAS
 
-podman volume create uses `XFS project quota controls` for controlling the size and the number of inodes of builtin volumes. The directory used to store the volumes must be an `XFS` file system and be mounted with the `pquota` option.
+`podman volume create` uses `XFS project quota controls` for controlling the size and the number of inodes of builtin volumes. The directory used to store the volumes must be an `XFS` file system and be mounted with the `pquota` option.
 
 Example /etc/fstab entry:
 ```
@@ -128,6 +128,77 @@ created containers as well as volumes to use project IDs with a **start offset**
 All containers are assigned larger project IDs (e.g. >= 100000).
 All volume assigned project IDs larger project IDs starting with 200000.
 This prevents xfs_quota management conflicts with containers/storage.
+
+## MOUNT EXAMPLES
+
+`podman volume create` allows the `type`, `device`, and `o` options to be passed to `mount(8)` when using the `local` driver.
+
+## [s3fs-fuse](https://github.com/s3fs-fuse/s3fs-fuse)
+
+[s3fs-fuse](https://github.com/s3fs-fuse/s3fs-fuse) or just `s3fs`, is a [fuse](https://github.com/libfuse/libfuse) filesystem that allows s3 prefixes to be mounted as filesystem mounts.
+
+**Installing:**
+```shell
+$ doas dnf install s3fs-fuse
+```
+
+**Simple usage:**
+```shell
+$ s3fs --help
+$ s3fs -o use_xattr,endpoint=aq-central-1 bucket:/prefix /mnt
+```
+
+**Equivalent through `mount(8)`**
+```shell
+$ mount -t fuse.s3fs -o use_xattr,endpoint=aq-central-1 bucket:/prefix /mnt
+```
+
+**Equivalent through `podman volume create`**
+```shell
+$ podman volume create s3fs-fuse-volume -o type=fuse.s3fs -o device=bucket:/prefix -o o=use_xattr,endpoint=aq-central-1
+```
+
+**The volume can then be mounted in a container with**
+```shell
+$ podman run -v s3fs-fuse-volume:/s3:z --rm -it fedora:latest
+```
+
+Please see the available [options](https://github.com/s3fs-fuse/s3fs-fuse/wiki/Fuse-Over-Amazon#options) on their wiki.
+
+### Using with other container users
+
+The above example works because the volume is mounted as the host user and inside the container `root` is mapped to the user in the host.
+
+If the mount is accessed by a different user inside the container, a "Permission denied" error will be raised.
+
+```shell
+$ podman run --user bin:bin -v s3fs-fuse-volume:/s3:z,U --rm -it fedora:latest
+$ ls /s3
+# ls: /s3: Permission denied
+```
+
+In FUSE-land, mounts are protected for the user who mounted them; specify the `allow_other` mount option if other users need access.
+> Note: This will remove the normal fuse [security measures](https://github.com/libfuse/libfuse/wiki/FAQ#why-dont-other-users-have-access-to-the-mounted-filesystem) on the mount point, after which, the normal filesystem permissions will have to protect it
+
+```shell
+$ podman volume create s3fs-fuse-other-volume -o type=fuse.s3fs -o device=bucket:/prefix -o o=allow_other,use_xattr,endpoint=aq-central-1
+$ podman run --user bin:bin -v s3fs-fuse-volume:/s3:z,U --rm -it fedora:latest
+$ ls /s3
+```
+
+### The Prefix must exist
+
+`s3fs` will fail to mount if the prefix does not exist in the bucket.
+
+Create a s3-directory by putting an empty object at the desired `prefix/` key
+```shell
+$ aws s3api put-object --bucket bucket --key prefix/
+```
+
+If performance is the priority, please check out the more performant [goofys](https://github.com/kahing/goofys).
+
+> FUSE filesystems exist for [Google Cloud Storage](https://github.com/GoogleCloudPlatform/gcsfuse) and [Azure Blob Storage](https://github.com/Azure/azure-storage-fuse)
+
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**, **[podman-volume(1)](podman-volume.1.md)**, **mount(8)**, **xfs_quota(8)**, **xfs_quota(8)**, **projects(5)**, **projid(5)**
