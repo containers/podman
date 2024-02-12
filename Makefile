@@ -840,14 +840,14 @@ ifneq ($(shell uname -s),FreeBSD)
 	ln -sfr $(DESTDIR)$(LIBEXECPODMAN)/quadlet $(DESTDIR)$(SYSTEMDGENERATORSDIR)/podman-system-generator
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(USERSYSTEMDGENERATORSDIR)
 	ln -sfr $(DESTDIR)$(LIBEXECPODMAN)/quadlet $(DESTDIR)$(USERSYSTEMDGENERATORSDIR)/podman-user-generator
-	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${TMPFILESDIR}
-	install ${SELINUXOPT} -m 644 contrib/tmpfile/podman.conf ${DESTDIR}${TMPFILESDIR}/podman.conf
+	install ${SELINUXOPT} -m 755 -d $(DESTDIR)${TMPFILESDIR}
+	install ${SELINUXOPT} -m 644 contrib/tmpfile/podman.conf $(DESTDIR)${TMPFILESDIR}/podman.conf
 endif
 
 .PHONY: install.modules-load
 install.modules-load: # This should only be used by distros which might use iptables-legacy, this is not needed on RHEL
-	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${MODULESLOADDIR}
-	install ${SELINUXOPT} -m 644 contrib/modules-load.d/podman-iptables.conf ${DESTDIR}${MODULESLOADDIR}/podman-iptables.conf
+	install ${SELINUXOPT} -m 755 -d $(DESTDIR)${MODULESLOADDIR}
+	install ${SELINUXOPT} -m 644 contrib/modules-load.d/podman-iptables.conf $(DESTDIR)${MODULESLOADDIR}/podman-iptables.conf
 
 .PHONY: install.man
 install.man:
@@ -860,15 +860,15 @@ install.man:
 
 .PHONY: install.completions
 install.completions:
-	install ${SELINUXOPT} -d -m 755 ${DESTDIR}${BASHINSTALLDIR}
-	install ${SELINUXOPT} -m 644 completions/bash/podman ${DESTDIR}${BASHINSTALLDIR}
-	install ${SELINUXOPT} -m 644 completions/bash/podman-remote ${DESTDIR}${BASHINSTALLDIR}
-	install ${SELINUXOPT} -d -m 755 ${DESTDIR}${ZSHINSTALLDIR}
-	install ${SELINUXOPT} -m 644 completions/zsh/_podman ${DESTDIR}${ZSHINSTALLDIR}
-	install ${SELINUXOPT} -m 644 completions/zsh/_podman-remote ${DESTDIR}${ZSHINSTALLDIR}
-	install ${SELINUXOPT} -d -m 755 ${DESTDIR}${FISHINSTALLDIR}
-	install ${SELINUXOPT} -m 644 completions/fish/podman.fish ${DESTDIR}${FISHINSTALLDIR}
-	install ${SELINUXOPT} -m 644 completions/fish/podman-remote.fish ${DESTDIR}${FISHINSTALLDIR}
+	install ${SELINUXOPT} -d -m 755 $(DESTDIR)${BASHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/bash/podman $(DESTDIR)${BASHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/bash/podman-remote $(DESTDIR)${BASHINSTALLDIR}
+	install ${SELINUXOPT} -d -m 755 $(DESTDIR)${ZSHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/zsh/_podman $(DESTDIR)${ZSHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/zsh/_podman-remote $(DESTDIR)${ZSHINSTALLDIR}
+	install ${SELINUXOPT} -d -m 755 $(DESTDIR)${FISHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/fish/podman.fish $(DESTDIR)${FISHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/fish/podman-remote.fish $(DESTDIR)${FISHINSTALLDIR}
 	# There is no common location for powershell files so do not install them. Users have to source the file from their powershell profile.
 
 .PHONY: install.docker
@@ -878,9 +878,9 @@ install.docker:
 	env BINDIR=${BINDIR} ETCDIR=${ETCDIR} envsubst < docker.in > ${INTERPOLATED_DOCKER_SCRIPT}
 	install ${SELINUXOPT} -m 755 ${INTERPOLATED_DOCKER_SCRIPT} $(DESTDIR)$(BINDIR)/docker
 	rm ${INTERPOLATED_DOCKER_SCRIPT}
-	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR}  ${DESTDIR}${USERSYSTEMDDIR} ${DESTDIR}${TMPFILESDIR} ${DESTDIR}${USERTMPFILESDIR}
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-docker.conf -t ${DESTDIR}${TMPFILESDIR}
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-docker.conf -t ${DESTDIR}${USERTMPFILESDIR}
+	install ${SELINUXOPT} -m 755 -d $(DESTDIR)${SYSTEMDDIR}  $(DESTDIR)${USERSYSTEMDDIR} $(DESTDIR)${TMPFILESDIR} $(DESTDIR)${USERTMPFILESDIR}
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-docker.conf -t $(DESTDIR)${TMPFILESDIR}
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-docker.conf -t $(DESTDIR)${USERTMPFILESDIR}
 
 .PHONY: install.docker-docs
 install.docker-docs:
@@ -905,22 +905,22 @@ PODMAN_UNIT_FILES = contrib/systemd/auto-update/podman-auto-update.service \
 		&& mv -f $@.tmp.$$ $@
 
 install.systemd: $(PODMAN_UNIT_FILES)
-	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR}  ${DESTDIR}${USERSYSTEMDDIR}
+	install ${SELINUXOPT} -m 755 -d $(DESTDIR)${SYSTEMDDIR}  $(DESTDIR)${USERSYSTEMDDIR}
 	# User services
-	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/podman-auto-update.service ${DESTDIR}${USERSYSTEMDDIR}/podman-auto-update.service
-	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/podman-auto-update.timer ${DESTDIR}${USERSYSTEMDDIR}/podman-auto-update.timer
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman.socket ${DESTDIR}${USERSYSTEMDDIR}/podman.socket
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman.service ${DESTDIR}${USERSYSTEMDDIR}/podman.service
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-restart.service ${DESTDIR}${USERSYSTEMDDIR}/podman-restart.service
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-kube@.service ${DESTDIR}${USERSYSTEMDDIR}/podman-kube@.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/podman-auto-update.service $(DESTDIR)${USERSYSTEMDDIR}/podman-auto-update.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/podman-auto-update.timer $(DESTDIR)${USERSYSTEMDDIR}/podman-auto-update.timer
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman.socket $(DESTDIR)${USERSYSTEMDDIR}/podman.socket
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman.service $(DESTDIR)${USERSYSTEMDDIR}/podman.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-restart.service $(DESTDIR)${USERSYSTEMDDIR}/podman-restart.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-kube@.service $(DESTDIR)${USERSYSTEMDDIR}/podman-kube@.service
 	# System services
-	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/podman-auto-update.service ${DESTDIR}${SYSTEMDDIR}/podman-auto-update.service
-	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/podman-auto-update.timer ${DESTDIR}${SYSTEMDDIR}/podman-auto-update.timer
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman.socket ${DESTDIR}${SYSTEMDDIR}/podman.socket
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman.service ${DESTDIR}${SYSTEMDDIR}/podman.service
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-restart.service ${DESTDIR}${SYSTEMDDIR}/podman-restart.service
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-kube@.service ${DESTDIR}${SYSTEMDDIR}/podman-kube@.service
-	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-clean-transient.service ${DESTDIR}${SYSTEMDDIR}/podman-clean-transient.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/podman-auto-update.service $(DESTDIR)${SYSTEMDDIR}/podman-auto-update.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/podman-auto-update.timer $(DESTDIR)${SYSTEMDDIR}/podman-auto-update.timer
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman.socket $(DESTDIR)${SYSTEMDDIR}/podman.socket
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman.service $(DESTDIR)${SYSTEMDDIR}/podman.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-restart.service $(DESTDIR)${SYSTEMDDIR}/podman-restart.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-kube@.service $(DESTDIR)${SYSTEMDDIR}/podman-kube@.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-clean-transient.service $(DESTDIR)${SYSTEMDDIR}/podman-clean-transient.service
 	rm -f $(PODMAN_UNIT_FILES)
 else
 install.systemd:
@@ -994,15 +994,15 @@ uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/podman
 	rm -f $(DESTDIR)$(BINDIR)/podman-remote
 	# Remove related config files
-	rm -f ${DESTDIR}${ETCDIR}/cni/net.d/87-podman-bridge.conflist
-	rm -f ${DESTDIR}${TMPFILESDIR}/podman.conf
-	rm -f ${DESTDIR}${SYSTEMDDIR}/io.podman.socket
-	rm -f ${DESTDIR}${USERSYSTEMDDIR}/io.podman.socket
-	rm -f ${DESTDIR}${SYSTEMDDIR}/io.podman.service
-	rm -f ${DESTDIR}${SYSTEMDDIR}/podman.service
-	rm -f ${DESTDIR}${SYSTEMDDIR}/podman.socket
-	rm -f ${DESTDIR}${USERSYSTEMDDIR}/podman.socket
-	rm -f ${DESTDIR}${USERSYSTEMDDIR}/podman.service
+	rm -f $(DESTDIR)${ETCDIR}/cni/net.d/87-podman-bridge.conflist
+	rm -f $(DESTDIR)${TMPFILESDIR}/podman.conf
+	rm -f $(DESTDIR)${SYSTEMDDIR}/io.podman.socket
+	rm -f $(DESTDIR)${USERSYSTEMDDIR}/io.podman.socket
+	rm -f $(DESTDIR)${SYSTEMDDIR}/io.podman.service
+	rm -f $(DESTDIR)${SYSTEMDDIR}/podman.service
+	rm -f $(DESTDIR)${SYSTEMDDIR}/podman.socket
+	rm -f $(DESTDIR)${USERSYSTEMDDIR}/podman.socket
+	rm -f $(DESTDIR)${USERSYSTEMDDIR}/podman.service
 
 .PHONY: clean-binaries
 clean-binaries: ## Remove platform/architecture specific binary files
