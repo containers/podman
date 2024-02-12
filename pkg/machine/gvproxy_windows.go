@@ -13,6 +13,9 @@ func waitOnProcess(processID int) error {
 
 	p, err := os.FindProcess(processID)
 	if err != nil {
+		// FindProcess on Windows will return an error when the process is not found
+		// if a process can not be found then it has already exited and there is
+		// nothing left to do, so return without error
 		return nil
 	}
 
@@ -23,7 +26,7 @@ func waitOnProcess(processID int) error {
 
 	logrus.Debugf("completed grace quit || kill of gvproxy (PID %d)", processID)
 
-	// Make sure the process is gone
+	// Make sure the process is gone (Hard kills are async)
 	done := make(chan struct{})
 	go func() {
 		_, _ = p.Wait()
