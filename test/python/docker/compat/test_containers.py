@@ -8,7 +8,6 @@ import threading
 import time
 from typing import IO, List, Optional
 
-import requests
 import yaml
 from docker import errors
 from docker.models.containers import Container
@@ -311,13 +310,13 @@ class TestContainers(common.DockerTestCase):
             ctr.remove(force=True)
 
     def test_container_inspect_compatibility(self):
-        """Test conatainer inspect result compatibility with DOCKER_API"""
+        """Test container inspect result compatibility with DOCKER_API.
+        When upgrading module "github.com/docker/docker" this test might fail, if so please correct podman inspect
+        command result to stay compatible with docker.
+        """
         ctr = self.docker.containers.create(image="alpine", detach=True)
         try:
-            spec = yaml.load(
-                requests.get(f"https://docs.docker.com/reference/engine/v{DOCKER_API_COMPATIBILITY_VERSION}.yaml").text,
-                Loader=yaml.SafeLoader)
-
+            spec = yaml.load(open("vendor/github.com/docker/docker/api/swagger.yaml").read(), Loader=yaml.Loader)
             ctr_inspect = json.loads(self.podman.run("inspect", ctr.id).stdout)[0]
             schema = spec['paths']["/containers/{id}/json"]["get"]['responses'][200]['schema']
             schema["definitions"] = spec["definitions"]
@@ -335,7 +334,12 @@ class TestContainers(common.DockerTestCase):
                         continue
                 important_error.append(error)
             if important_error:
-                raise best_match(important_error)
+                if newversion := spec["info"]["version"] != DOCKER_API_COMPATIBILITY_VERSION:
+                    ex = Exception(f"There may be a breaking change in Docker API between "
+                                   f"{DOCKER_API_COMPATIBILITY_VERSION} and {newversion}")
+                    raise best_match(important_error) from ex
+                else:
+                    raise best_match(important_error)
         finally:
             ctr.stop()
             ctr.remove(force=True)

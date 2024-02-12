@@ -266,7 +266,7 @@ EOF
     local infra_cid="$output"
     # confirm that entrypoint is what we set
     run_podman container inspect --format '{{.Config.Entrypoint}}' $infra_cid
-    is "$output" "$infra_command" "infra-command took effect"
+    is "$output" "[${infra_command}]" "infra-command took effect"
     # confirm that infra container name is set
     run_podman container inspect --format '{{.Name}}' $infra_cid
     is "$output" "$infra_name" "infra-name took effect"
