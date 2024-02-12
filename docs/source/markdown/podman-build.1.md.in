@@ -35,7 +35,8 @@ When the URL is a Containerfile, the Containerfile is downloaded to a temporary
 location.
 
 When a Git repository is set as the URL, the repository is cloned locally and
-then set as the context.
+then set as the context.  A URL is treated as a Git repository if it
+has a `git://` prefix or a `.git` suffix.
 
 NOTE: `podman build` uses code sourced from the `Buildah` project to build
 container images.  This `Buildah` code creates `Buildah` containers for the
