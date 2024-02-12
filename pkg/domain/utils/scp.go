@@ -210,17 +210,13 @@ func LoadToRemote(dest entities.ImageScpOptions, localFile string, tag string, u
 		return "", "", err
 	}
 
-	remoteFile, err := ssh.Exec(&ssh.ConnectionExecOptions{Host: url.String(), Identity: iden, Port: port, User: url.User, Args: []string{"mktemp"}}, sshEngine)
+	input, err := os.Open(localFile)
 	if err != nil {
 		return "", "", err
 	}
+	defer input.Close()
 
-	opts := ssh.ConnectionScpOptions{User: url.User, Identity: iden, Port: port, Source: localFile, Destination: "ssh://" + url.User.String() + "@" + url.Hostname() + ":" + remoteFile}
-	scpRep, err := ssh.Scp(&opts, sshEngine)
-	if err != nil {
-		return "", "", err
-	}
-	out, err := ssh.Exec(&ssh.ConnectionExecOptions{Host: url.String(), Identity: iden, Port: port, User: url.User, Args: []string{"podman", "image", "load", "--input=" + scpRep + ";", "rm", scpRep}}, sshEngine)
+	out, err := ssh.ExecWithInput(&ssh.ConnectionExecOptions{Host: url.String(), Identity: iden, Port: port, User: url.User, Args: []string{"podman", "image", "load"}}, sshEngine, input)
 	if err != nil {
 		return "", "", err
 	}
