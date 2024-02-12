@@ -24,7 +24,6 @@ import (
 const (
 	// Used for testing the latest podman in fcos
 	// special builds
-	podmanTesting     = "podman-testing"
 	PodmanTestingHost = "fedorapeople.org"
 	PodmanTestingURL  = "groups/podman/testing"
 )
@@ -202,8 +201,6 @@ const (
 	Stable
 	// Podman-Testing
 	PodmanTesting
-	// Unknown
-	UnknownStream
 	// Custom
 	CustomStream
 )
@@ -223,22 +220,7 @@ func (st FCOSStream) String() string {
 	return "custom"
 }
 
-func FCOSStreamFromString(s string) (FCOSStream, error) {
-	switch s {
-	case Testing.String():
-		return Testing, nil
-	case Next.String():
-		return Next, nil
-	case PodmanTesting.String():
-		return PodmanTesting, nil
-	case Stable.String():
-		return Stable, nil
-	case CustomStream.String():
-		return CustomStream, nil
-	}
-	return UnknownStream, fmt.Errorf("unknown fcos stream: %s", s)
-}
-
+// TODO can be removed when WSL is refactored into podman 5
 func IsValidFCOSStreamString(s string) bool {
 	switch s {
 	case Testing.String():
