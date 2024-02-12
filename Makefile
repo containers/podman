@@ -875,10 +875,13 @@ install.completions:
 install.docker:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
 	$(eval INTERPOLATED_DOCKER_SCRIPT := $(shell mktemp))
-	env BINDIR=${BINDIR} ETCDIR=${ETCDIR} envsubst < docker.in > ${INTERPOLATED_DOCKER_SCRIPT}
+	env BINDIR=${BINDIR} ETCDIR=${ETCDIR} envsubst < docker/docker.in > ${INTERPOLATED_DOCKER_SCRIPT}
 	install ${SELINUXOPT} -m 755 ${INTERPOLATED_DOCKER_SCRIPT} $(DESTDIR)$(BINDIR)/docker
 	rm ${INTERPOLATED_DOCKER_SCRIPT}
 	install ${SELINUXOPT} -m 755 -d $(DESTDIR)${SYSTEMDDIR}  $(DESTDIR)${USERSYSTEMDDIR} $(DESTDIR)${TMPFILESDIR} $(DESTDIR)${USERTMPFILESDIR}
+	install ${SELINUXOPT} -d -m 755 $(DESTDIR)${ETCDIR}/profile.d
+	install ${SELINUXOPT} -m 644 docker/podman-docker.sh $(DESTDIR)${ETCDIR}/profile.d/podman-docker.sh
+	install ${SELINUXOPT} -m 644 docker/podman-docker.csh $(DESTDIR)${ETCDIR}/profile.d/podman-docker.csh
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-docker.conf -t $(DESTDIR)${TMPFILESDIR}
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-docker.conf -t $(DESTDIR)${USERTMPFILESDIR}
 
