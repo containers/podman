@@ -40,6 +40,9 @@ const (
 	// ImageRef is the container image ref annotation.
 	ImageRef = "io.kubernetes.cri-o.ImageRef"
 
+	// ImageDigests is the container image digests annotation.
+	ImageDigests = "io.kubernetes.cri-o.ImageDigests"
+
 	// KubeName is the kubernetes name annotation.
 	KubeName = "io.kubernetes.cri-o.KubeName"
 
