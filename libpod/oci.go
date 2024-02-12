@@ -149,6 +149,12 @@ type OCIRuntime interface { //nolint:interfacebloat
 	// This is the path to that file for a given container.
 	ExitFilePath(ctr *Container) (string, error)
 
+	// OOMFilePath is the path to a container's oom file if it was oom killed.
+	// An oom file is only created when the container is oom killed. The existence
+	// of this file means that the container was oom killed.
+	// This is the path to that file for a given container.
+	OOMFilePath(ctr *Container) (string, error)
+
 	// RuntimeInfo returns verbose information about the runtime.
 	RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeInfo, error)
 
