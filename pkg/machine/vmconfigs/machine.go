@@ -313,6 +313,16 @@ func LoadMachineByName(name string, dirs *define.MachineDirs) (*MachineConfig, e
 	}
 	mc.dirs = dirs
 	mc.configPath = fullPath
+
+	// If we find an incompatible configuration, we return a hard
+	// error because the user wants to deal directly with this
+	// machine
+	if mc.Version == 0 {
+		return mc, &define.ErrIncompatibleMachineConfig{
+			Name: name,
+			Path: fullPath.GetPath(),
+		}
+	}
 	return mc, nil
 }
 
@@ -345,6 +355,16 @@ func LoadMachinesInDir(dirs *define.MachineDirs) (map[string]*MachineConfig, err
 			mc, err := loadMachineFromFQPath(fullPath)
 			if err != nil {
 				return err
+			}
+			// if we find an incompatible machine configuration file, we emit and error
+			//
+			if mc.Version == 0 {
+				tmpErr := &define.ErrIncompatibleMachineConfig{
+					Name: mc.Name,
+					Path: fullPath.GetPath(),
+				}
+				logrus.Error(tmpErr)
+				return nil
 			}
 			mc.configPath = fullPath
 			mc.dirs = dirs

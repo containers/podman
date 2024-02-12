@@ -90,6 +90,8 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 		return nil, err
 	}
 
+	mc.Version = vmconfigs.MachineConfigVersion
+
 	createOpts := machineDefine.CreateVMOpts{
 		Name: opts.Name,
 		Dirs: dirs,

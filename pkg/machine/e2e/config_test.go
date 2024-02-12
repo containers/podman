@@ -235,18 +235,3 @@ func isVmtype(vmType define.VMType) bool {
 func isWSL() bool {
 	return isVmtype(define.WSLVirt)
 }
-
-// TODO temporarily suspended
-// func getFCOSDownloadLocation(p vmconfigs.VMStubber) string {
-// 	dd, err := p.NewDownload("")
-// 	if err != nil {
-// 		Fail("unable to create new download")
-// 	}
-//
-// 	fcd, err := dd.GetFCOSDownload(defaultStream)
-// 	if err != nil {
-// 		Fail("unable to get virtual machine image")
-// 	}
-//
-// 	return fcd.Location
-// }
