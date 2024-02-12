@@ -10,8 +10,10 @@ var (
 )
 
 type CreateVMOpts struct {
-	Name string
-	Dirs *MachineDirs
+	Name               string
+	Dirs               *MachineDirs
+	ReExec             bool
+	UserModeNetworking bool
 }
 
 type MachineDirs struct {

@@ -10,6 +10,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/containers/podman/v5/pkg/machine/shim/diskpull"
+
 	"github.com/Microsoft/go-winio"
 	"github.com/containers/common/pkg/strongunits"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
@@ -25,6 +27,18 @@ import (
 
 type HyperVStubber struct {
 	vmconfigs.HyperVConfig
+}
+
+func (h HyperVStubber) UserModeNetworkEnabled(mc *vmconfigs.MachineConfig) bool {
+	return true
+}
+
+func (h HyperVStubber) UseProviderNetworkSetup() bool {
+	return false
+}
+
+func (h HyperVStubber) RequireExclusiveActive() bool {
+	return true
 }
 
 func (h HyperVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConfig, builder *ignition.IgnitionBuilder) error {
@@ -368,7 +382,7 @@ func (h HyperVStubber) PrepareIgnition(mc *vmconfigs.MachineConfig, ignBuilder *
 	return &ignOpts, nil
 }
 
-func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig) error {
+func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo bool) error {
 	var (
 		err        error
 		executable string
@@ -376,25 +390,6 @@ func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig) error {
 	callbackFuncs := machine.InitCleanup()
 	defer callbackFuncs.CleanIfErr(&err)
 	go callbackFuncs.CleanOnSignal()
-
-	winProxyOpts := machine.WinProxyOpts{
-		Name:           mc.Name,
-		IdentityPath:   mc.SSH.IdentityPath,
-		Port:           mc.SSH.Port,
-		RemoteUsername: mc.SSH.RemoteUsername,
-		Rootful:        mc.HostUser.Rootful,
-		VMType:         h.VMType(),
-	}
-	// TODO Should this process be fatal on error; currenty, no error is
-	// returned but an error can occur in the func itself
-	// TODO we do not currently pass "noinfo" (quiet) into the StartVM
-	// func so this is hard set to false
-	machine.LaunchWinProxy(winProxyOpts, false)
-
-	winProxyCallbackFunc := func() error {
-		return machine.StopWinProxy(mc.Name, h.VMType())
-	}
-	callbackFuncs.Add(winProxyCallbackFunc)
 
 	if len(mc.Mounts) != 0 {
 		var (
@@ -457,6 +452,10 @@ func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig) error {
 		err = startShares(mc)
 	}
 	return err
+}
+
+func (h HyperVStubber) GetDisk(userInputPath string, dirs *define.MachineDirs, mc *vmconfigs.MachineConfig) error {
+	return diskpull.GetDisk(userInputPath, dirs, mc.ImagePath, h.VMType(), mc.Name)
 }
 
 func resizeDisk(newSize strongunits.GiB, imagePath *define.VMFile) error {

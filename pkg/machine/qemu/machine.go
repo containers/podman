@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -266,6 +267,22 @@ func (q *QEMUStubber) State(mc *vmconfigs.MachineConfig, bypass bool) (define.St
 		return "", err
 	}
 	if err := monitor.Connect(); err != nil {
+		// There is a case where if we stop the same vm (from running) two
+		// consecutive times we can get an econnreset when trying to get the
+		// state
+		if errors.Is(err, syscall.ECONNRESET) {
+			// try again
+			logrus.Debug("received ECCONNRESET from QEMU monitor; trying again")
+			secondTry := monitor.Connect()
+			if errors.Is(secondTry, io.EOF) {
+				return define.Stopped, nil
+			}
+			if secondTry != nil {
+				logrus.Debugf("second attempt to connect to QEMU monitor failed")
+				return "", secondTry
+			}
+		}
+
 		return "", err
 	}
 	defer func() {

@@ -1,12 +1,10 @@
 package shim
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/containers/common/pkg/util"
@@ -14,30 +12,13 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/connection"
 	machineDefine "github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
-	"github.com/containers/podman/v5/pkg/machine/ocipull"
-	"github.com/containers/podman/v5/pkg/machine/stdpull"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/sirupsen/logrus"
 )
 
-/*
-Host
-   ├ Info
-   ├ OS Apply
-   ├ SSH
-   ├ List
-   ├ Init
-   ├ VMExists
-   ├ CheckExclusiveActiveVM *HyperV/WSL need to check their hypervisors as well
-*/
-
-func Info()    {}
-func OSApply() {}
-func SSH()     {}
-
 // List is done at the host level to allow for a *possible* future where
 // more than one provider is used
-func List(vmstubbers []vmconfigs.VMProvider, opts machine.ListOptions) ([]*machine.ListResponse, error) {
+func List(vmstubbers []vmconfigs.VMProvider, _ machine.ListOptions) ([]*machine.ListResponse, error) {
 	var (
 		lrs []*machine.ListResponse
 	)
@@ -114,6 +95,10 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 		Dirs: dirs,
 	}
 
+	if umn := opts.UserModeNetworking; umn != nil {
+		createOpts.UserModeNetworking = *umn
+	}
+
 	// Get Image
 	// TODO This needs rework bigtime; my preference is most of below of not living in here.
 	// ideally we could get a func back that pulls the image, and only do so IF everything works because
@@ -137,8 +122,7 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 	if err != nil {
 		return nil, err
 	}
-
-	var mydisk ocipull.Disker
+	mc.ImagePath = imagePath
 
 	// TODO The following stanzas should be re-written in a differeent place.  It should have a custom
 	// parser for our image pulling.  It would be nice if init just got an error and mydisk back.
@@ -149,25 +133,12 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 	// "/path
 	// "docker://quay.io/something/someManifest
 
-	if opts.ImagePath == "" {
-		mydisk, err = ocipull.NewVersioned(context.Background(), dirs.DataDir, opts.Name, mp.VMType().String(), imagePath)
-	} else {
-		if strings.HasPrefix(opts.ImagePath, "http") {
-			// TODO probably should use tempdir instead of datadir
-			mydisk, err = stdpull.NewDiskFromURL(opts.ImagePath, imagePath, dirs.DataDir)
-		} else {
-			mydisk, err = stdpull.NewStdDiskPull(opts.ImagePath, imagePath)
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	err = mydisk.Get()
+	// TODO Ideally this changes into some way better ...
+	err = mp.GetDisk(opts.ImagePath, dirs, mc)
 	if err != nil {
 		return nil, err
 	}
 
-	mc.ImagePath = imagePath
 	callbackFuncs.Add(mc.ImagePath.Delete)
 
 	logrus.Debugf("--> imagePath is %q", imagePath.GetPath())
@@ -182,8 +153,18 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 		uid = 1000
 	}
 
+	// TODO the definition of "user" should go into
+	// common for WSL
+	userName := opts.Username
+	if mp.VMType() == machineDefine.WSLVirt {
+		if opts.Username == "core" {
+			userName = "user"
+			mc.SSH.RemoteUsername = "user"
+		}
+	}
+
 	ignBuilder := ignition.NewIgnitionBuilder(ignition.DynamicIgnition{
-		Name:      opts.Username,
+		Name:      userName,
 		Key:       sshKey,
 		TimeZone:  opts.TimeZone,
 		UID:       uid,
@@ -223,7 +204,9 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 	ignBuilder.WithUnit(readyUnit)
 
 	// Mounts
-	mc.Mounts = CmdLineVolumesToMounts(opts.Volumes, mp.MountType())
+	if mp.VMType() != machineDefine.WSLVirt {
+		mc.Mounts = CmdLineVolumesToMounts(opts.Volumes, mp.MountType())
+	}
 
 	// TODO AddSSHConnectionToPodmanSocket could take an machineconfig instead
 	if err := connection.AddSSHConnectionsToPodmanSocket(mc.HostUser.UID, mc.SSH.Port, mc.SSH.IdentityPath, mc.Name, mc.SSH.RemoteUsername, opts); err != nil {
@@ -273,6 +256,11 @@ func VMExists(name string, vmstubbers []vmconfigs.VMProvider) (*vmconfigs.Machin
 
 // CheckExclusiveActiveVM checks if any of the machines are already running
 func CheckExclusiveActiveVM(provider vmconfigs.VMProvider, mc *vmconfigs.MachineConfig) error {
+	// Don't check if provider supports parallel running machines
+	if !provider.RequireExclusiveActive() {
+		return nil
+	}
+
 	// Check if any other machines are running; if so, we error
 	localMachines, err := getMCsOverProviders([]vmconfigs.VMProvider{provider})
 	if err != nil {
@@ -347,21 +335,23 @@ func Stop(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDef
 	}
 
 	// Stop GvProxy and remove PID file
-	gvproxyPidFile, err := dirs.RuntimeDir.AppendToNewVMFile("gvproxy.pid", nil)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err := machine.CleanupGVProxy(*gvproxyPidFile); err != nil {
-			logrus.Errorf("unable to clean up gvproxy: %q", err)
+	if !mp.UseProviderNetworkSetup() {
+		gvproxyPidFile, err := dirs.RuntimeDir.AppendToNewVMFile("gvproxy.pid", nil)
+		if err != nil {
+			return err
 		}
-	}()
+
+		defer func() {
+			if err := machine.CleanupGVProxy(*gvproxyPidFile); err != nil {
+				logrus.Errorf("unable to clean up gvproxy: %q", err)
+			}
+		}()
+	}
 
 	return nil
 }
 
-func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDefine.MachineDirs, opts machine.StartOptions) error {
+func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, _ *machineDefine.MachineDirs, opts machine.StartOptions) error {
 	defaultBackoff := 500 * time.Millisecond
 	maxBackoffs := 6
 
@@ -396,7 +386,11 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 		}
 	}
 
-	err = mp.PostStartNetworking(mc)
+	if !opts.NoInfo && !mc.HostUser.Rootful {
+		machine.PrintRootlessWarning(mc.Name)
+	}
+
+	err = mp.PostStartNetworking(mc, opts.NoInfo)
 	if err != nil {
 		return err
 	}
@@ -423,15 +417,6 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 		return err
 	}
 
-	machine.WaitAPIAndPrintInfo(
-		forwardingState,
-		mc.Name,
-		findClaimHelper(),
-		forwardSocketPath,
-		opts.NoInfo,
-		mc.HostUser.Rootful,
-	)
-
 	// update the podman/docker socket service if the host user has been modified at all (UID or Rootful)
 	if mc.HostUser.Modified {
 		if machine.UpdatePodmanDockerSockService(mc) == nil {
@@ -443,5 +428,22 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 			}
 		}
 	}
+
+	// Provider is responsible for waiting
+	if mp.UseProviderNetworkSetup() {
+		return nil
+	}
+
+	noInfo := opts.NoInfo
+
+	machine.WaitAPIAndPrintInfo(
+		forwardingState,
+		mc.Name,
+		findClaimHelper(),
+		forwardSocketPath,
+		noInfo,
+		mc.HostUser.Rootful,
+	)
+
 	return nil
 }

@@ -1,5 +1,3 @@
-//go:build windows
-
 package wsl
 
 import (
@@ -14,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/define"
 )
@@ -27,8 +27,10 @@ type FedoraDownload struct {
 	machine.Download
 }
 
+// NewFedoraDownloader
+// deprecated
 func NewFedoraDownloader(vmType define.VMType, vmName, releaseStream string) (machine.DistributionDownload, error) {
-	downloadURL, version, arch, size, err := getFedoraDownload()
+	downloadURL, version, arch, size, err := GetFedoraDownloadForWSL()
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +84,7 @@ func (f FedoraDownload) CleanCache() error {
 	return machine.RemoveImageAfterExpire(f.CacheDir, expire)
 }
 
-func getFedoraDownload() (*url.URL, string, string, int64, error) {
+func GetFedoraDownloadForWSL() (*url.URL, string, string, int64, error) {
 	var releaseURL string
 	arch := machine.DetermineMachineArch()
 	switch arch {
@@ -118,11 +120,14 @@ func getFedoraDownload() (*url.URL, string, string, int64, error) {
 		return nil, "", "", -1, fmt.Errorf("get request failed: %s: %w", verURL.String(), err)
 	}
 
-	defer resp.Body.Close()
-	bytes, err := io.ReadAll(&io.LimitedReader{R: resp.Body, N: 1024})
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			logrus.Errorf("error closing http boddy: %q", err)
+		}
+	}()
+	b, err := io.ReadAll(&io.LimitedReader{R: resp.Body, N: 1024})
 	if err != nil {
 		return nil, "", "", -1, fmt.Errorf("failed reading: %s: %w", verURL.String(), err)
 	}
-
-	return downloadURL, strings.TrimSpace(string(bytes)), arch, contentLen, nil
+	return downloadURL, strings.TrimSpace(string(b)), arch, contentLen, nil
 }

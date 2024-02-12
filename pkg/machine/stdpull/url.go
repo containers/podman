@@ -23,7 +23,7 @@ type DiskFromURL struct {
 	tempLocation *define.VMFile
 }
 
-func NewDiskFromURL(inputPath string, finalPath *define.VMFile, tempDir *define.VMFile) (*DiskFromURL, error) {
+func NewDiskFromURL(inputPath string, finalPath *define.VMFile, tempDir *define.VMFile, optionalTempFileName *string) (*DiskFromURL, error) {
 	var (
 		err error
 	)
@@ -40,6 +40,9 @@ func NewDiskFromURL(inputPath string, finalPath *define.VMFile, tempDir *define.
 	}
 
 	remoteImageName := path.Base(inputPath)
+	if optionalTempFileName != nil {
+		remoteImageName = *optionalTempFileName
+	}
 	if remoteImageName == "" {
 		return nil, fmt.Errorf("invalid url: unable to determine image name in %q", inputPath)
 	}

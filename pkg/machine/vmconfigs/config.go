@@ -107,6 +107,10 @@ func (f fcosMachineImage) path() string {
 
 type VMProvider interface { //nolint:interfacebloat
 	CreateVM(opts define.CreateVMOpts, mc *MachineConfig, builder *ignition.IgnitionBuilder) error
+	// GetDisk should be only temporary.  It is largely here only because WSL disk pulling is different
+	// TODO
+	// Let's deprecate this ASAP
+	GetDisk(userInputPath string, dirs *define.MachineDirs, mc *MachineConfig) error
 	PrepareIgnition(mc *MachineConfig, ignBuilder *ignition.IgnitionBuilder) (*ignition.ReadyUnitOpts, error)
 	GetHyperVisorVMs() ([]string, error)
 	MountType() VolumeMountType
@@ -115,12 +119,15 @@ type VMProvider interface { //nolint:interfacebloat
 	RemoveAndCleanMachines(dirs *define.MachineDirs) error
 	SetProviderAttrs(mc *MachineConfig, opts define.SetOptions) error
 	StartNetworking(mc *MachineConfig, cmd *gvproxy.GvproxyCommand) error
-	PostStartNetworking(mc *MachineConfig) error
+	PostStartNetworking(mc *MachineConfig, noInfo bool) error
 	StartVM(mc *MachineConfig) (func() error, func() error, error)
 	State(mc *MachineConfig, bypass bool) (define.Status, error)
 	StopVM(mc *MachineConfig, hardStop bool) error
 	StopHostNetworking(mc *MachineConfig, vmType define.VMType) error
 	VMType() define.VMType
+	UserModeNetworkEnabled(mc *MachineConfig) bool
+	UseProviderNetworkSetup() bool
+	RequireExclusiveActive() bool
 }
 
 // HostUser describes the host user
