@@ -794,8 +794,8 @@ podman_machine_windows_task:
         platform: windows
     env: *winenv
     matrix:
-      #- env:
-      #    TEST_FLAVOR: "machine-wsl"
+      - env:
+          TEST_FLAVOR: "machine-wsl"
       - env:
           TEST_FLAVOR: "machine-hyperv"
     clone_script: *winclone
