@@ -147,6 +147,11 @@ func setup() (string, *machineTestBuilder) {
 	if err := os.Setenv("HOME", homeDir); err != nil {
 		Fail("failed to set home dir")
 	}
+	if runtime.GOOS == "windows" {
+		if err := os.Setenv("USERPROFILE", homeDir); err != nil {
+			Fail("unable to set home dir on windows")
+		}
+	}
 	if err := os.Setenv("XDG_RUNTIME_DIR", homeDir); err != nil {
 		Fail("failed to set xdg_runtime dir")
 	}
@@ -202,5 +207,10 @@ func teardown(origHomeDir string, testDir string, mb *machineTestBuilder) {
 	// this needs to be last in teardown
 	if err := os.Setenv("HOME", origHomeDir); err != nil {
 		Fail("failed to set home dir")
+	}
+	if runtime.GOOS == "windows" {
+		if err := os.Setenv("USERPROFILE", origHomeDir); err != nil {
+			Fail("failed to set windows home dir back to original")
+		}
 	}
 }
