@@ -107,8 +107,7 @@ func (w WSLStubber) GetHyperVisorVMs() ([]string, error) {
 }
 
 func (w WSLStubber) MountType() vmconfigs.VolumeMountType {
-	//TODO implement me
-	panic("implement me")
+	return vmconfigs.Unknown
 }
 
 func (w WSLStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, quiet bool) error {
@@ -132,7 +131,6 @@ func (w WSLStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() error,
 func (w WSLStubber) RemoveAndCleanMachines(_ *define.MachineDirs) error {
 	return nil
 }
-
 
 func (w WSLStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.SetOptions) error {
 	mc.Lock()
