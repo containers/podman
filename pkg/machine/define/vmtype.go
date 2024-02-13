@@ -36,6 +36,18 @@ func (v VMType) String() string {
 	return qemu
 }
 
+func (v VMType) ImageFormat() ImageFormat {
+	switch v {
+	case WSLVirt:
+		return Tar
+	case AppleHvVirt:
+		return Raw
+	case HyperVVirt:
+		return Vhdx
+	}
+	return Qcow
+}
+
 func ParseVMType(input string, emptyFallback VMType) (VMType, error) {
 	switch strings.TrimSpace(strings.ToLower(input)) {
 	case qemu:

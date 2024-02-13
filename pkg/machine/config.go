@@ -181,15 +181,21 @@ func GetMachineDirs(vmType define.VMType) (*define.MachineDirs, error) {
 		return nil, err
 	}
 
+	imageCacheDir, err := dataDirFile.AppendToNewVMFile("cache", nil)
+	if err != nil {
+		return nil, err
+	}
+
 	rtDirFile, err := define.NewMachineFile(rtDir, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	dirs := define.MachineDirs{
-		ConfigDir:  configDirFile,
-		DataDir:    dataDirFile,
-		RuntimeDir: rtDirFile,
+		ConfigDir:     configDirFile,
+		DataDir:       dataDirFile,
+		ImageCacheDir: imageCacheDir,
+		RuntimeDir:    rtDirFile,
 	}
 
 	// make sure all machine dirs are present
@@ -199,7 +205,10 @@ func GetMachineDirs(vmType define.VMType) (*define.MachineDirs, error) {
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return nil, err
 	}
-	err = os.MkdirAll(dataDir, 0755)
+
+	// Because this is a mkdirall, we make the image cache dir
+	// which is a subdir of datadir (so the datadir is made anyway)
+	err = os.MkdirAll(imageCacheDir.GetPath(), 0755)
 
 	return &dirs, err
 }
