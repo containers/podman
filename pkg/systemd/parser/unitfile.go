@@ -880,8 +880,8 @@ func (f *UnitFile) Setv(groupName string, keyvals ...string) {
 
 func (f *UnitFile) Add(groupName string, key string, value string) {
 	group := f.ensureGroup(groupName)
-	// Wrap spaced-values, eg. absolute paths that contain spaces in quotes,
-	// however, avoid doing so for ExecStart.
+	// Wrap spaced-values in quotes, eg. absolute paths that contain space(s).
+	// however, avoid wrapping the entirety of ExecStart in quotes if an included value contains a space.
 	if strings.Contains(value, " ") && key != "ExecStart" {
 		value = fmt.Sprintf("\"%s\"", value)
 	}
