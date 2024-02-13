@@ -34,12 +34,6 @@ func (w WSLStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConf
 	defer callbackFuncs.CleanIfErr(&err)
 	go callbackFuncs.CleanOnSignal()
 	mc.WSLHypervisor = new(vmconfigs.WSLConfig)
-	// TODO
-	// USB opts are unsupported in WSL.  Need to account for that here
-	// or up the stack
-	//	if len(opts.USBs) > 0 {
-	//		return nil, fmt.Errorf("USB host passthrough is not supported for WSL machines")
-	//	}
 
 	if cont, err := checkAndInstallWSL(opts.ReExec); !cont {
 		appendOutputIfError(opts.ReExec, err)
@@ -159,10 +153,9 @@ func (w WSLStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.Se
 		return errors.New("changing memory not supported for WSL machines")
 	}
 
-	// TODO USB still needs to be plumbed for all providers
-	// if USBs != nil {
-	// 	setErrors = append(setErrors, errors.New("changing USBs not supported for WSL machines"))
-	// }
+	if opts.USBs != nil {
+		return errors.New("changing USBs not supported for WSL machines")
+	}
 
 	if opts.DiskSize != nil {
 		return errors.New("changing disk size not supported for WSL machines")
