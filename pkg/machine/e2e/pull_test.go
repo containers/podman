@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"runtime"
 
-	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/coreos/stream-metadata-go/fedoracoreos"
 	"github.com/coreos/stream-metadata-go/stream"
 	"github.com/sirupsen/logrus"
@@ -49,11 +50,15 @@ func GetDownload(vmType define.VMType) (string, error) {
 		format = "qcow2.xz"
 	}
 
-	arch, ok := fcosstable.Architectures[machine.GetFcosArch()]
+	arch, err := vmconfigs.NormalizeMachineArch(runtime.GOARCH)
+	if err != nil {
+		return "", err
+	}
+	fcosArch, ok := fcosstable.Architectures[arch]
 	if !ok {
 		return "", fmt.Errorf("unable to pull VM image: no targetArch in stream")
 	}
-	upstreamArtifacts := arch.Artifacts
+	upstreamArtifacts := fcosArch.Artifacts
 	if upstreamArtifacts == nil {
 		return "", fmt.Errorf("unable to pull VM image: no artifact in stream")
 	}
