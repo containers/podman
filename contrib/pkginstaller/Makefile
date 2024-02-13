@@ -7,9 +7,9 @@ else
 	GOARCH:=$(ARCH)
 endif
 GVPROXY_VERSION ?= 0.7.3
-QEMU_VERSION ?= 8.2.1-1
+VFKIT_VERSION ?= 0.5.1
 GVPROXY_RELEASE_URL ?= https://github.com/containers/gvisor-tap-vsock/releases/download/v$(GVPROXY_VERSION)/gvproxy-darwin
-QEMU_RELEASE_URL ?= https://github.com/containers/podman-machine-qemu/releases/download/v$(QEMU_VERSION)/podman-machine-qemu-$(ARCH)-$(QEMU_VERSION).tar.xz
+VFKIT_RELEASE_URL ?= https://github.com/crc-org/vfkit/releases/download/v$(VFKIT_VERSION)/vfkit-unsigned
 PACKAGE_DIR ?= out/packaging
 TMP_DOWNLOAD ?= tmp-download
 PACKAGE_ROOT ?= root
@@ -24,9 +24,9 @@ $(TMP_DOWNLOAD)/gvproxy:
 	mkdir -p $(TMP_DOWNLOAD)
 	cd $(TMP_DOWNLOAD) && curl -sLo gvproxy $(GVPROXY_RELEASE_URL)
 
-$(TMP_DOWNLOAD)/podman-machine-qemu-$(ARCH)-$(QEMU_VERSION).tar.xz:
+$(TMP_DOWNLOAD)/vfkit:
 	mkdir -p $(TMP_DOWNLOAD)
-	cd $(TMP_DOWNLOAD) && curl -sLO $(QEMU_RELEASE_URL)
+	cd $(TMP_DOWNLOAD) && curl -sLo vfkit $(VFKIT_RELEASE_URL)
 
 packagedir: podman_version package_root Distribution welcome.html
 	mkdir -p $(PACKAGE_DIR)
@@ -42,10 +42,10 @@ packagedir: podman_version package_root Distribution welcome.html
 	cp ../../LICENSE $(PACKAGE_DIR)/Resources/LICENSE.txt
 	cp hvf.entitlements $(PACKAGE_DIR)/
 
-package_root: clean-pkgroot $(TMP_DOWNLOAD)/podman-machine-qemu-$(ARCH)-$(QEMU_VERSION).tar.xz $(TMP_DOWNLOAD)/gvproxy
-	mkdir -p $(PACKAGE_ROOT)/podman/bin $(PACKAGE_ROOT)/podman/qemu
-	tar -C $(PACKAGE_ROOT)/podman/qemu -xf $(TMP_DOWNLOAD)/podman-machine-qemu-$(ARCH)-$(QEMU_VERSION).tar.xz
+package_root: clean-pkgroot $(TMP_DOWNLOAD)/gvproxy $(TMP_DOWNLOAD)/vfkit
+	mkdir -p $(PACKAGE_ROOT)/podman/bin
 	cp $(TMP_DOWNLOAD)/gvproxy $(PACKAGE_ROOT)/podman/bin/
+	cp $(TMP_DOWNLOAD)/vfkit $(PACKAGE_ROOT)/podman/bin/
 	chmod a+x $(PACKAGE_ROOT)/podman/bin/*
 
 %: %.in podman_version
