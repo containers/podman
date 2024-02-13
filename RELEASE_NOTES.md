@@ -1,5 +1,9 @@
 # Release Notes
 
+## 4.9.3
+### Features
+- The `podman container commit` command now features a `--config` option which accepts a filename containing a JSON-encoded container configuration to be merged in to the newly-created image.
+
 ## 4.9.2
 ### Security
 - This release addresses a number of Buildkit vulnerabilities including but not limited to: [CVE-2024-23651](https://github.com/advisories/GHSA-m3r6-h7wv-7xxv), [CVE-2024-23652](https://github.com/advisories/GHSA-4v98-7qmw-rqr8), and [CVE-2024-23653](https://github.com/advisories/GHSA-wr6v-9f75-vh2g).
