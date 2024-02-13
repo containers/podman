@@ -133,27 +133,17 @@ func (w WSLStubber) RemoveAndCleanMachines(_ *define.MachineDirs) error {
 	return nil
 }
 
-
 func (w WSLStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.SetOptions) error {
 	mc.Lock()
 	defer mc.Unlock()
 
-	// TODO the check for running when setting rootful is something I have not
-	// seen in the other distributions.  I wonder if this is true everywhere or just
-	// with WSL?
-	// TODO maybe the "rule" for set is that it must be done when the machine is
-	// stopped?
-	// if opts.Rootful != nil && v.Rootful != *opts.Rootful {
-	// 	err := v.setRootful(*opts.Rootful)
-	// 	if err != nil {
-	// 		setErrors = append(setErrors, fmt.Errorf("setting rootful option: %w", err))
-	// 	} else {
-	// 		if v.isRunning() {
-	// 			logrus.Warn("restart is necessary for rootful change to go into effect")
-	// 		}
-	// 		v.Rootful = *opts.Rootful
-	// 	}
-	// }
+	state, err := w.State(mc, false)
+	if err != nil {
+		return err
+	}
+	if state != define.Stopped {
+		return errors.New("unable to change settings unless vm is stopped")
+	}
 
 	if opts.Rootful != nil && mc.HostUser.Rootful != *opts.Rootful {
 		if err := mc.SetRootful(*opts.Rootful); err != nil {

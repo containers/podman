@@ -4,6 +4,7 @@ package applehv
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -40,7 +41,7 @@ type AppleHVStubber struct {
 }
 
 func (a AppleHVStubber) UserModeNetworkEnabled(_ *vmconfigs.MachineConfig) bool {
-return true
+	return true
 }
 
 func (a AppleHVStubber) UseProviderNetworkSetup() bool {
@@ -93,6 +94,17 @@ func (a AppleHVStubber) RemoveAndCleanMachines(_ *define.MachineDirs) error {
 }
 
 func (a AppleHVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.SetOptions) error {
+	mc.Lock()
+	defer mc.Unlock()
+
+	state, err := a.State(mc, false)
+	if err != nil {
+		return err
+	}
+	if state != define.Stopped {
+		return errors.New("unable to change settings unless vm is stopped")
+	}
+
 	if opts.DiskSize != nil {
 		if err := resizeDisk(mc, *opts.DiskSize); err != nil {
 			return err
