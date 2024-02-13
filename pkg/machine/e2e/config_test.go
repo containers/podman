@@ -235,3 +235,21 @@ func isVmtype(vmType define.VMType) bool {
 func isWSL() bool {
 	return isVmtype(define.WSLVirt)
 }
+
+func runSystemCommand(binary string, cmdArgs []string, timeout time.Duration, wait bool) (*machineSession, error) {
+	if len(os.Getenv("DEBUG")) > 0 {
+		cmdArgs = append([]string{"--log-level=debug"}, cmdArgs...)
+	}
+	GinkgoWriter.Println(binary + " " + strings.Join(cmdArgs, " "))
+	c := exec.Command(binary, cmdArgs...)
+	session, err := Start(c, GinkgoWriter, GinkgoWriter)
+	if err != nil {
+		Fail(fmt.Sprintf("Unable to start session: %q", err))
+		return nil, err
+	}
+	ms := machineSession{session}
+	if wait {
+		ms.waitWithTimeout(timeout)
+	}
+	return &ms, nil
+}
