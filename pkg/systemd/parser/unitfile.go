@@ -880,6 +880,9 @@ func (f *UnitFile) Setv(groupName string, keyvals ...string) {
 
 func (f *UnitFile) Add(groupName string, key string, value string) {
 	group := f.ensureGroup(groupName)
+	if strings.Contains(value, " ") {
+		value = fmt.Sprintf("\"%s\"", value)
+	}
 	group.add(key, value)
 }
 
