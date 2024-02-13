@@ -498,7 +498,17 @@ _EOF
                $IMAGE /bin/busybox-extras httpd -f -p 80
 
     wait_for_port 127.0.0.1 $HOST_PORT
+    # FIXME: 2024-02-14 TEMPORARY: this and 'if' block below are
+    # instrumentation for #21649.
+    defer-assertion-failures
     wait_for_command_output "curl -s -S $SERVER/ready" "READY"
+    if [[ "$output" != "READY" ]]; then
+        run_podman ps -a
+        run_podman container inspect myyaml
+        # INSERT YOUR OWN DEBUG COMMANDS HERE
+        immediate-assertion-failures
+    fi
+    immediate-assertion-failures
 
     run_podman kube play $SERVER/testpod.yaml
     run_podman inspect test_pod-test --format "{{.State.Running}}"
