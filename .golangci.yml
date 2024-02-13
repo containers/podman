@@ -15,6 +15,8 @@ linters:
     # too many reports but requires attention
     - depguard
     - tagalign
+    - perfsprint
+    - typecheck
     # useful hints that should be addressed
     - testifylint # all of reports that should be fixed
     - nakedret
