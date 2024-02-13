@@ -276,9 +276,6 @@ func Test_Add_OptionWithSpaceValue(t *testing.T) {
 	assert.Equal(t, expected, actual)
 }
 
-// If a given unit file, has an option that has no spaces,
-// Do not proceed to wrap its value in quotes.
-// This is the inverse of unitfile_test.go#Test_Add_OptionWithSpaceValue
 func Test_Add_OptionWithoutSpaceValue(t *testing.T) {
 
 	f := NewUnitFile()
