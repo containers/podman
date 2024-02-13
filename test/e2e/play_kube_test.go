@@ -1248,7 +1248,7 @@ var (
 	defaultConfigMapName  = "testConfigMap"
 	defaultSecretName     = "testSecret"
 	defaultPVCName        = "testPVC"
-	seccompPwdEPERM       = []byte(`{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"name":"getcwd","action":"SCMP_ACT_ERRNO"}]}`)
+	seccompLinkEPERM      = []byte(`{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"name":"link","action":"SCMP_ACT_ERRNO"}]}`)
 	// CPU Period in ms
 	defaultCPUPeriod = 100
 	// Default secret in JSON. Note that the values ("foo" and "bar") are base64 encoded.
@@ -3016,14 +3016,14 @@ var _ = Describe("Podman kube play", func() {
 	It("seccomp container level", func() {
 		SkipIfRemote("podman-remote does not support --seccomp-profile-root flag")
 		// expect kube play is expected to set a seccomp label if it's applied as an annotation
-		jsonFile, err := podmanTest.CreateSeccompJSON(seccompPwdEPERM)
+		jsonFile, err := podmanTest.CreateSeccompJSON(seccompLinkEPERM)
 		if err != nil {
 			GinkgoWriter.Println(err)
 			Skip("Failed to prepare seccomp.json for test.")
 		}
 
 		ctrAnnotation := "container.seccomp.security.alpha.kubernetes.io/" + defaultCtrName
-		ctr := getCtr(withCmd([]string{"pwd"}), withArg(nil))
+		ctr := getCtr(withCmd([]string{"ln"}), withArg([]string{"/etc/motd", "/noneShallPass"}))
 
 		pod := getPod(withCtr(ctr), withAnnotation(ctrAnnotation, "localhost/"+filepath.Base(jsonFile)))
 		err = generateKubeYaml("pod", pod, kubeYaml)
@@ -3042,20 +3042,20 @@ var _ = Describe("Podman kube play", func() {
 		logs := podmanTest.Podman([]string{"logs", ctrName})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs).Should(Exit(0), "podman logs %s", ctrName)
-		Expect(logs.ErrorToString()).To(ContainSubstring("getcwd: Operation not permitted"))
+		Expect(logs.ErrorToString()).To(ContainSubstring("ln: /noneShallPass: Operation not permitted"))
 	})
 
 	It("seccomp pod level", func() {
 		SkipIfRemote("podman-remote does not support --seccomp-profile-root flag")
 		// expect kube play is expected to set a seccomp label if it's applied as an annotation
-		jsonFile, err := podmanTest.CreateSeccompJSON(seccompPwdEPERM)
+		jsonFile, err := podmanTest.CreateSeccompJSON(seccompLinkEPERM)
 		if err != nil {
 			GinkgoWriter.Println(err)
 			Skip("Failed to prepare seccomp.json for test.")
 		}
 		defer os.Remove(jsonFile)
 
-		ctr := getCtr(withCmd([]string{"pwd"}), withArg(nil))
+		ctr := getCtr(withCmd([]string{"ln"}), withArg([]string{"/etc/motd", "/noPodsShallPass"}))
 
 		pod := getPod(withCtr(ctr), withAnnotation("seccomp.security.alpha.kubernetes.io/pod", "localhost/"+filepath.Base(jsonFile)))
 		err = generateKubeYaml("pod", pod, kubeYaml)
@@ -3074,7 +3074,7 @@ var _ = Describe("Podman kube play", func() {
 		logs := podmanTest.Podman([]string{"logs", podName})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs).Should(Exit(0))
-		Expect(logs.ErrorToString()).To(ContainSubstring("Operation not permitted"))
+		Expect(logs.ErrorToString()).To(ContainSubstring("ln: /noPodsShallPass: Operation not permitted"))
 	})
 
 	It("with pull policy of never should be 125", func() {
