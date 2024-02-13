@@ -254,7 +254,6 @@ const unitFileWithOptionsWithSpaceValues = `
 `
 
 func Test_Add_OptionWithSpaceValue(t *testing.T) {
-
 	f := NewUnitFile()
 
 	if e := f.Parse(unitFileWithOptionsWithSpaceValues); e != nil {
@@ -277,7 +276,6 @@ func Test_Add_OptionWithSpaceValue(t *testing.T) {
 }
 
 func Test_Add_OptionWithoutSpaceValue(t *testing.T) {
-
 	f := NewUnitFile()
 
 	if e := f.Parse(unitFileWithOptionsWithSpaceValues); e != nil {
