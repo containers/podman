@@ -249,18 +249,21 @@ func TestRanges_Roundtrip(t *testing.T) {
 // `Mount=type=bind,src=/mnt/base part1 part 2,dst=/mnt`,
 // We want to make sure it gets quoted appropriately,
 // Such as: `Mount="type=bind,src=/mnt/base part1 part 2,dst=/mnt"`
-const unitFileWithOptionsWithSpaceValues = `
+const emptyUnitFile = `
 [Container]
+
+[Service]
 `
 
 func Test_Add_OptionWithSpaceValue(t *testing.T) {
 	f := NewUnitFile()
 
-	if e := f.Parse(unitFileWithOptionsWithSpaceValues); e != nil {
+	if e := f.Parse(emptyUnitFile); e != nil {
 		panic(e)
 	}
 
 	f.Add("Container", "OptionWithSpacesInValue", "/mnt/base part1 part2/xyz") // Visible spaces added to the absolute path (value)
+	f.Add("Service", "ExecStart", `fake exec start with spaces should have no quotes`)
 
 	asStr, e := f.ToString()
 	if e != nil {
@@ -269,16 +272,18 @@ func Test_Add_OptionWithSpaceValue(t *testing.T) {
 
 	lines := strings.Split(asStr, "\n")
 
-	actual := lines[len(lines)-2]
-	expected := `OptionWithSpacesInValue="/mnt/base part1 part2/xyz"` // assert if quotes are there.
+	assert.Equal(t, `OptionWithSpacesInValue="/mnt/base part1 part2/xyz"`, lines[1])
 
-	assert.Equal(t, expected, actual)
+	// Assert the execStartsLine (ExecStarts=...)'s value isn't quoted, as a result
+	// of any options with spaces in their values (OptionWithSpacesInValue).
+	execStartsLine := lines[len(lines)-2]
+	assert.Equal(t, false, strings.Contains(execStartsLine, "\""))
 }
 
 func Test_Add_OptionWithoutSpaceValue(t *testing.T) {
 	f := NewUnitFile()
 
-	if e := f.Parse(unitFileWithOptionsWithSpaceValues); e != nil {
+	if e := f.Parse(emptyUnitFile); e != nil {
 		panic(e)
 	}
 
@@ -291,7 +296,7 @@ func Test_Add_OptionWithoutSpaceValue(t *testing.T) {
 
 	lines := strings.Split(asStr, "\n")
 
-	actual := lines[len(lines)-2]
+	actual := lines[1]
 	expected := `OptionWithoutSpacesInValue=/mnt/path_value_no_space` // assert if that no quotes got added
 
 	assert.Equal(t, expected, actual)
