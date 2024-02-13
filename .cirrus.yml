@@ -387,58 +387,58 @@ alt_build_task:
     always: *runner_stats
 
 
-#win_installer_task:
-#    name: "Verify Win Installer Build"
-#    alias: win_installer
-#    only_if:  # RHEL never releases podman windows installer binary
-#      $CIRRUS_TAG == '' &&
-#      $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
-#      $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
-#    depends_on:
-#      - alt_build
-#    ec2_instance: &windows
-#        image: "${WINDOWS_AMI}"
-#        type: m5.large
-#        region: us-east-1
-#        platform: windows
-#    env: &winenv
-#        CIRRUS_WORKING_DIR: &wincwd "${LOCALAPPDATA}\\cirrus-ci-build"
-#        CIRRUS_SHELL: powershell
-#        PATH: "${PATH};C:\\ProgramData\\chocolatey\\bin"
-#        DISTRO_NV: "windows"
-#        PRIV_NAME: "rootless"
-#        # Fake version, we are only testing the installer functions, so version doesn't matter
-#        WIN_INST_VER: 9.9.9
-#    # It's HIGHLY desireable to use the same binary throughout CI.  Otherwise, if
-#    # there's a toolchain or build-environment specific problem, it can be incredibly
-#    # difficult (and non-obvious) to debug.
-#    clone_script: &winclone |
-#        $ErrorActionPreference = 'Stop'
-#        $ProgressPreference = 'SilentlyContinue'
-#        New-Item -ItemType Directory -Force -Path "$ENV:CIRRUS_WORKING_DIR"
-#        Set-Location "$ENV:CIRRUS_WORKING_DIR"
-#        $uri = "${ENV:ART_URL}/Windows Cross/repo/repo.tbz"
-#        Write-Host "Downloading $uri"
-#        For($i = 0;;) {
-#            Try {
-#                Invoke-WebRequest -UseBasicParsing -ErrorAction Stop -OutFile "repo.tbz2" `
-#                  -Uri "$uri"
-#                Break
-#            } Catch {
-#                if (++$i -gt 6) {
-#                    throw $_.Exception
-#                }
-#                Write-Host "Download failed - retrying:" $_.Exception.Response.StatusCode
-#                Start-Sleep -Seconds 10
-#            }
-#        }
-#        arc unarchive repo.tbz2 .\
-#        if ($LASTEXITCODE -ne 0) {
-#            throw "Unarchive repo.tbz2 failed"
-#            Exit 1
-#        }
-#        Get-ChildItem -Path .\repo
-#    main_script: ".\\repo\\contrib\\cirrus\\win-installer-main.ps1"
+win_installer_task:
+    name: "Verify Win Installer Build"
+    alias: win_installer
+    only_if:  # RHEL never releases podman windows installer binary
+      $CIRRUS_TAG == '' &&
+      $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
+      $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
+    depends_on:
+      - alt_build
+    ec2_instance: &windows
+        image: "${WINDOWS_AMI}"
+        type: m5.large
+        region: us-east-1
+        platform: windows
+    env: &winenv
+        CIRRUS_WORKING_DIR: &wincwd "${LOCALAPPDATA}\\cirrus-ci-build"
+        CIRRUS_SHELL: powershell
+        PATH: "${PATH};C:\\ProgramData\\chocolatey\\bin"
+        DISTRO_NV: "windows"
+        PRIV_NAME: "rootless"
+        # Fake version, we are only testing the installer functions, so version doesn't matter
+        WIN_INST_VER: 9.9.9
+    # It's HIGHLY desireable to use the same binary throughout CI.  Otherwise, if
+    # there's a toolchain or build-environment specific problem, it can be incredibly
+    # difficult (and non-obvious) to debug.
+    clone_script: &winclone |
+        $ErrorActionPreference = 'Stop'
+        $ProgressPreference = 'SilentlyContinue'
+        New-Item -ItemType Directory -Force -Path "$ENV:CIRRUS_WORKING_DIR"
+        Set-Location "$ENV:CIRRUS_WORKING_DIR"
+        $uri = "${ENV:ART_URL}/Windows Cross/repo/repo.tbz"
+        Write-Host "Downloading $uri"
+        For($i = 0;;) {
+            Try {
+                Invoke-WebRequest -UseBasicParsing -ErrorAction Stop -OutFile "repo.tbz2" `
+                  -Uri "$uri"
+                Break
+            } Catch {
+                if (++$i -gt 6) {
+                    throw $_.Exception
+                }
+                Write-Host "Download failed - retrying:" $_.Exception.Response.StatusCode
+                Start-Sleep -Seconds 10
+            }
+        }
+        arc unarchive repo.tbz2 .\
+        if ($LASTEXITCODE -ne 0) {
+            throw "Unarchive repo.tbz2 failed"
+            Exit 1
+        }
+        Get-ChildItem -Path .\repo
+    main_script: ".\\repo\\contrib\\cirrus\\win-installer-main.ps1"
 
 
 # Confirm building the remote client, natively on a Mac OS-X VM.
@@ -774,32 +774,32 @@ podman_machine_aarch64_task:
     always: *int_logs_artifacts
 
 
-#podman_machine_windows_task:
-#    name: *std_name_fmt
-#    alias: podman_machine_windows
-#    # Only run for non-docs/copr PRs and non-release branch builds
-#    # and never for tags.  Docs: ./contrib/cirrus/CIModes.md
-#    only_if: *machine_cron_not_tag_build_docs
-#    depends_on:
-#      - alt_build
-#      - build
-#      - win_installer
-#      - local_integration_test
-#      - remote_integration_test
-#      - container_integration_test
-#      - rootless_integration_test
-#    ec2_instance:
-#        <<: *windows
-#        type: m5zn.metal
-#        platform: windows
-#    env: *winenv
-#    matrix:
-#      #- env:
-#      #    TEST_FLAVOR: "machine-wsl"
-#      - env:
-#          TEST_FLAVOR: "machine-hyperv"
-#    clone_script: *winclone
-#    main_script: ".\\repo\\contrib\\cirrus\\win-podman-machine-main.ps1"
+podman_machine_windows_task:
+    name: *std_name_fmt
+    alias: podman_machine_windows
+    # Only run for non-docs/copr PRs and non-release branch builds
+    # and never for tags.  Docs: ./contrib/cirrus/CIModes.md
+    only_if: *machine_cron_not_tag_build_docs
+    depends_on:
+      - alt_build
+      - build
+      - win_installer
+      - local_integration_test
+      - remote_integration_test
+      - container_integration_test
+      - rootless_integration_test
+    ec2_instance:
+        <<: *windows
+        type: m5zn.metal
+        platform: windows
+    env: *winenv
+    matrix:
+      #- env:
+      #    TEST_FLAVOR: "machine-wsl"
+      - env:
+          TEST_FLAVOR: "machine-hyperv"
+    clone_script: *winclone
+    main_script: ".\\repo\\contrib\\cirrus\\win-podman-machine-main.ps1"
 
 
 podman_machine_mac_task:
@@ -1077,7 +1077,7 @@ success_task:
         - alt_build
         - osx_alt_build
         - freebsd_alt_build
-          #- win_installer
+        - win_installer
         - docker-py_test
         - unit_test
         - apiv2_test
@@ -1088,7 +1088,7 @@ success_task:
         - rootless_integration_test
         - podman_machine
         - podman_machine_aarch64
-        #- podman_machine_windows
+        - podman_machine_windows
         - podman_machine_mac
         - local_system_test
         - local_system_test_aarch64
