@@ -217,6 +217,10 @@ type PullOptions struct {
 	// Quiet can be specified to suppress pull progress when pulling.  Ignored
 	// for remote calls.
 	Quiet *bool
+	// Retry number of times to retry pull in case of failure
+	Retry *uint
+	// RetryDelay between retries in case of pull failures
+	RetryDelay *string
 	// SkipTLSVerify to skip HTTPS and certificate verification.
 	SkipTLSVerify *bool `schema:"-"`
 	// Username for authenticating against the registry.

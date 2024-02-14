@@ -113,6 +113,13 @@ func pullFlags(cmd *cobra.Command) {
 	flags.StringArrayVar(&pullOptions.DecryptionKeys, decryptionKeysFlagName, nil, "Key needed to decrypt the image (e.g. /path/to/key.pem)")
 	_ = cmd.RegisterFlagCompletionFunc(decryptionKeysFlagName, completion.AutocompleteDefault)
 
+	retryFlagName := "retry"
+	flags.Uint(retryFlagName, cli.MaxPullPushRetries, "number of times to retry in case of failure when performing pull")
+	_ = cmd.RegisterFlagCompletionFunc(retryFlagName, completion.AutocompleteNone)
+	retryDelayFlagName := "retry-delay"
+	flags.String(retryDelayFlagName, cli.PullPushRetryDelay.String(), "delay between retries in case of pull failures")
+	_ = cmd.RegisterFlagCompletionFunc(retryDelayFlagName, completion.AutocompleteNone)
+
 	if registry.IsRemote() {
 		_ = flags.MarkHidden(decryptionKeysFlagName)
 	}
@@ -136,6 +143,25 @@ func imagePull(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("tls-verify") {
 		pullOptions.SkipTLSVerify = types.NewOptionalBool(!pullOptions.TLSVerifyCLI)
 	}
+
+	if cmd.Flags().Changed("retry") {
+		retry, err := cmd.Flags().GetUint("retry")
+		if err != nil {
+			return err
+		}
+
+		pullOptions.Retry = &retry
+	}
+
+	if cmd.Flags().Changed("retry-delay") {
+		val, err := cmd.Flags().GetString("retry-delay")
+		if err != nil {
+			return err
+		}
+
+		pullOptions.RetryDelay = val
+	}
+
 	if cmd.Flags().Changed("authfile") {
 		if err := auth.CheckAuthFile(pullOptions.Authfile); err != nil {
 			return err

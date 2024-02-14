@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	bdefine "github.com/containers/buildah/define"
 	"github.com/containers/common/libimage"
@@ -253,6 +254,15 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 	pullOptions.InsecureSkipTLSVerify = options.SkipTLSVerify
 	pullOptions.Writer = options.Writer
 	pullOptions.OciDecryptConfig = options.OciDecryptConfig
+
+	pullOptions.MaxRetries = options.Retry
+	if options.RetryDelay != "" {
+		duration, err := time.ParseDuration(options.RetryDelay)
+		if err != nil {
+			return nil, err
+		}
+		pullOptions.RetryDelay = &duration
+	}
 
 	if !options.Quiet && pullOptions.Writer == nil {
 		pullOptions.Writer = os.Stderr
