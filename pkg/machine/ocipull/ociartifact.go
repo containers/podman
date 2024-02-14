@@ -29,6 +29,7 @@ const (
 	artifactRepo         = "baude"
 	artifactImageName    = "podman-machine-images-art"
 	artifactOriginalName = "org.opencontainers.image.title"
+	machineOS            = "linux"
 )
 
 type OCIArtifactDisk struct {
@@ -88,7 +89,7 @@ func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, vmName st
 	diskOpts := DiskArtifactOpts{
 		arch:     arch,
 		diskType: vmType.String(),
-		os:       runtime.GOOS,
+		os:       machineOS,
 	}
 	ociDisk := OCIArtifactDisk{
 		ctx:              ctx,

@@ -13,7 +13,6 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/pkg/machine/define"
-	specV1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // PullOptions includes data to alter certain knobs when pulling a source
@@ -49,10 +48,6 @@ func Pull(ctx context.Context, imageInput types.ImageReference, localDestPath *d
 		sysCtx.DockerAuthConfig = authConf
 	}
 
-	if err := validateSourceImageReference(ctx, imageInput, sysCtx); err != nil {
-		return err
-	}
-
 	policy, err := signature.DefaultPolicy(sysCtx)
 	if err != nil {
 		return fmt.Errorf("obtaining default signature policy: %w", err)
@@ -86,21 +81,4 @@ func stringToImageReference(imageInput string) (types.ImageReference, error) { /
 	}
 
 	return ref, nil
-}
-
-func validateSourceImageReference(ctx context.Context, ref types.ImageReference, sysCtx *types.SystemContext) error {
-	src, err := ref.NewImageSource(ctx, sysCtx)
-	if err != nil {
-		return fmt.Errorf("creating image source from reference: %w", err)
-	}
-	defer src.Close()
-
-	ociManifest, _, _, err := readManifestFromImageSource(ctx, src)
-	if err != nil {
-		return err
-	}
-	if ociManifest.Config.MediaType != specV1.MediaTypeImageConfig {
-		return fmt.Errorf("invalid media type of image config %q (expected: %q)", ociManifest.Config.MediaType, specV1.MediaTypeImageConfig)
-	}
-	return nil
 }
