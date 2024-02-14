@@ -35,12 +35,13 @@ The `until` *filter* can be Unix timestamps, date formatted timestamps, or Go du
 Do not prompt for confirmation
 
 ## EXAMPLE
-Prune networks
+
+Prune networks:
 ```
 podman network prune
 ```
 
-Prune all networks created before 2h
+Prune all networks created before 2h:
 ```
 podman network prune --filter until=2h
 ```

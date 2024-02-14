@@ -71,8 +71,7 @@ The `quiet` option restricts the output to only the network names.
 
 ## EXAMPLE
 
-Display networks
-
+Display networks:
 ```
 $ podman network ls
 NETWORK ID    NAME         DRIVER
@@ -81,7 +80,7 @@ NETWORK ID    NAME         DRIVER
 8e35c2cd3bf6  podman5  macvlan
 ```
 
-Display only network names
+Display only network names:
 ```
 $ podman network ls -q
 podman
@@ -90,14 +89,14 @@ outside
 podman9
 ```
 
-Display name of network which support bridge plugin
+Display name of network which support bridge plugin:
 ```
 $ podman network ls --filter driver=bridge --format {{.Name}}
 podman
 podman2
 podman9
 ```
-List networks with their subnets
+List networks with their subnets:
 ```
 $ podman network ls --format "{{.Name}}: {{range .Subnets}}{{.Subnet}} {{end}}"
 podman: 10.88.0.0/16

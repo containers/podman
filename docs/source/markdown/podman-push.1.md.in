@@ -103,29 +103,33 @@ Add a sigstore signature at the destination using a private key at the specified
 
 ## EXAMPLE
 
-This example pushes the image specified by the imageID to a local directory in docker format.
+This example pushes the image specified by the imageID to a local directory in docker format:
+```
+# podman push imageID dir:/path/to/image
+```
 
- `# podman push imageID dir:/path/to/image`
+This example pushes the image specified by the imageID to a local directory in oci format:
+```
+# podman push imageID oci-archive:/path/to/layout:image:tag
+```
 
-This example pushes the image specified by the imageID to a local directory in oci format.
+This example pushes the image specified by the imageID to a container registry named registry.example.com:
+```
+# podman push imageID docker://registry.example.com/repository:tag
+```
 
- `# podman push imageID oci-archive:/path/to/layout:image:tag`
+This example pushes the image specified by the imageID to a container registry named registry.example.com and saves the digest in the specified digestfile:
+```
+# podman push --digestfile=/tmp/mydigest imageID docker://registry.example.com/repository:tag
+```
 
-This example pushes the image specified by the imageID to a container registry named registry.example.com
-
- `# podman push imageID docker://registry.example.com/repository:tag`
-
-This example pushes the image specified by the imageID to a container registry named registry.example.com and saves the digest in the specified digestfile.
-
- `# podman push --digestfile=/tmp/mydigest imageID docker://registry.example.com/repository:tag`
-
-This example pushes the image specified by the imageID and puts it into the local docker container store
-
- `# podman push imageID docker-daemon:image:tag`
+This example pushes the image specified by the imageID and puts it into the local docker container store:
+```
+# podman push imageID docker-daemon:image:tag
+```
 
 This example pushes the alpine image to umohnani/alpine on dockerhub and reads the creds from
-the path given to --authfile
-
+the path given to --authfile:
 ```
 # podman push --authfile temp-auths/myauths.json alpine docker://docker.io/umohnani/alpine
 Getting image source signatures
@@ -137,7 +141,7 @@ Writing manifest to image destination
 Storing signatures
 ```
 
-This example pushes the rhel7 image to rhel7-dir with the "oci" manifest type
+This example pushes the rhel7 image to rhel7-dir with the "oci" manifest type:
 ```
 # podman push --format oci registry.access.redhat.com/rhel7 dir:rhel7-dir
 Getting image source signatures

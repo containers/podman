@@ -19,6 +19,7 @@ returned.
 
 ## EXAMPLE
 
+Mount specified volume. In rootless mode, first execute podman unshare:
 ```
 podman volume mount foo
 /home/dwalsh/.local/share/containers/storage/volumes/foo/_data

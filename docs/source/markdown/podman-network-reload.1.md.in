@@ -22,8 +22,7 @@ Reload network configuration of all containers.
 
 ## EXAMPLE
 
-Reload the network configuration after a firewall reload.
-
+Reload the network configuration after a firewall reload:
 ```
 # podman run -p 80:80 -d nginx
 b1b538e8bc4078fc3ee1c95b666ebc7449b9a97bacd15bcbe464a29e1be59c1c
@@ -39,8 +38,7 @@ b1b538e8bc4078fc3ee1c95b666ebc7449b9a97bacd15bcbe464a29e1be59c1c
 works
 ```
 
-Reload the network configuration for all containers.
-
+Reload the network configuration for all containers:
 ```
 # podman network reload --all
 b1b538e8bc4078fc3ee1c95b666ebc7449b9a97bacd15bcbe464a29e1be59c1c

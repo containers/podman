@@ -18,11 +18,17 @@ Delete one or more farms.
 Remove all farms.
 
 ## EXAMPLE
+
+Remove specified farm:
 ```
 $ podman farm remove farm1
+```
 
+Remove all farms:
+```
 $ podman farm rm --all
 ```
+
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-farm(1)](podman-farm.1.md)**
 

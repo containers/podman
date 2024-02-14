@@ -21,12 +21,12 @@ Instead of providing the pod name or ID, unpause the last created pod. (This opt
 
 ## EXAMPLE
 
-Unpause pod with a given name
+Unpause pod with a given name:
 ```
 podman pod unpause mywebserverpod
 ```
 
-Unpause pod with a given ID
+Unpause pod with a given ID:
 ```
 podman pod unpause 860a4b23
 ```

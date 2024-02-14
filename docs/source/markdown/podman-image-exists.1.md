@@ -20,20 +20,18 @@ Print usage statement
 
 ## EXAMPLES
 
-Check if an image called `webclient` exists in local storage (the image does actually exist).
+Check if an image called `webclient` exists in local storage (the image does actually exist):
 ```
 $ podman image exists webclient
 $ echo $?
 0
-$
 ```
 
-Check if an image called `webbackend` exists in local storage (the image does not actually exist).
+Check if an image called `webbackend` exists in local storage (the image does not actually exist):
 ```
 $ podman image exists webbackend
 $ echo $?
 1
-$
 ```
 
 ## SEE ALSO

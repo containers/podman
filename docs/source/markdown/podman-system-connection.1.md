@@ -33,6 +33,8 @@ not be edited with the **podman system connection** commands.
 | rename   | [podman-system-connection\-rename(1)](podman-system-connection-rename.1.md)   | Rename the destination for Podman service                  |
 
 ## EXAMPLE
+
+List system connections:
 ```
 $ podman system connection list
 Name URI                                           Identity	      Default  ReadWrite

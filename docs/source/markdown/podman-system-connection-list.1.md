@@ -31,6 +31,8 @@ Valid placeholders for the Go template listed below:
 Only show connection names
 
 ## EXAMPLE
+
+List system connections:
 ```
 $ podman system connection list
 Name URI                                                      Identity	    Default  ReadWrite

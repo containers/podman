@@ -69,16 +69,24 @@ the exit codes follow the `chroot` standard, see below:
 
 ## EXAMPLE
 
+Execute specified command in rootless user namespace:
 ```
 $ podman unshare id
 uid=0(root) gid=0(root) groups=0(root),65534(nobody)
+```
 
+Show user namespace mappings for rootless containers:
+```
 $ podman unshare cat /proc/self/uid_map /proc/self/gid_map
          0       1000          1
          1      10000      65536
          0       1000          1
          1      10000      65536
+```
 
+
+Show rootless netns information in user namespace for rootless containers:
+```
 $ podman unshare --rootless-netns ip addr
 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00

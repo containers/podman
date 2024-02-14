@@ -164,7 +164,7 @@ The journald events-backend of Podman uses the following journald identifiers.  
 
 ## EXAMPLES
 
-Showing Podman events
+Showing Podman events:
 ```
 $ podman events
 2019-03-02 10:33:42.312377447 -0600 CST container create 34503c192940 (image=docker.io/library/alpine:latest, name=friendly_allen)
@@ -174,7 +174,7 @@ $ podman events
 2019-03-02 10:33:51.047104966 -0600 CST container cleanup 34503c192940 (image=docker.io/library/alpine:latest, name=friendly_allen)
 ```
 
-Show only Podman create events
+Show only Podman create events:
 ```
 $ podman events -f event=create
 2019-03-02 10:36:01.375685062 -0600 CST container create 20dc581f6fbf (image=docker.io/library/alpine:latest, name=sharp_morse)
@@ -183,7 +183,7 @@ $ podman events -f event=create
 2019-03-02 10:36:29.978806894 -0600 CST container create d81e30f1310f (image=docker.io/library/busybox:latest, name=musing_newton)
 ```
 
-Show only Podman pod create events
+Show only Podman pod create events:
 ```
 $ podman events --filter event=create --filter type=pod
 2019-03-02 10:44:29.601746633 -0600 CST pod create 1df5ebca7b44 (image=, name=confident_hawking)
@@ -200,7 +200,7 @@ $ sudo podman events --since 5m
 2019-03-02 10:44:42.374637304 -0600 CST pod create ca731231718e (image=, name=webapp)
 ```
 
-Show Podman events in JSON Lines format
+Show Podman events in JSON Lines format:
 ```
 $ podman events --format json
 {"ID":"683b0909d556a9c02fa8cd2b61c3531a965db42158627622d1a67b391964d519","Image":"localhost/myshdemo:latest","Name":"agitated_diffie","Status":"cleanup","Time":"2019-04-27T22:47:00.849932843-04:00","Type":"container"}

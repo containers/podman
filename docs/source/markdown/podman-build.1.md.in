@@ -480,59 +480,122 @@ using the architecture variant of the build host.
 
 ### Build an image using local Containerfiles
 
+Build image using Containerfile with content from current directory:
 ```
 $ podman build .
+```
 
+Build image using specified Containerfile with content from current directory:
+```
 $ podman build -f Containerfile.simple .
+```
 
+Build image using Containerfile from stdin with content from current directory:
+```
 $ cat $HOME/Containerfile | podman build -f - .
+```
 
+Build image using multiple Containerfiles with content from current directory:
+```
 $ podman build -f Containerfile.simple -f Containerfile.notsosimple .
+```
 
+Build image with specified Containerfile with content from $HOME directory. Note `cpp` is applied to Containerfile.in before processesing as Containerfile:
+```
 $ podman build -f Containerfile.in $HOME
+```
 
+Build image with the specified tag with Containerfile and content from current directory:
+```
 $ podman build -t imageName .
+```
 
+Build image requiring registry verification for any images pulled via the Containerfile:
+```
 $ podman build --tls-verify=true -t imageName -f Containerfile.simple .
+```
 
+Build image ignoring registry verification for any images pulled via the Containerfile:
+```
 $ podman build --tls-verify=false -t imageName .
+```
 
+Build image with the specified logging format:
+```
 $ podman build --runtime-flag log-format=json .
+```
 
+Build image using debug mode for logging:
+```
 $ podman build --runtime-flag debug .
+```
 
+Build image using specified registry attributes when pulling images from the selected Containerfile:
+```
 $ podman build --authfile /tmp/auths/myauths.json --cert-dir $HOME/auth --tls-verify=true --creds=username:password -t imageName -f Containerfile.simple .
+```
 
+Build image using specified resource controls when running containers during the build:
+```
 $ podman build --memory 40m --cpu-period 10000 --cpu-quota 50000 --ulimit nofile=1024:1028 -t imageName .
+```
 
+Build image using specified SELinux labels and cgroup config running containers during the build:
+```
 $ podman build --security-opt label=level:s0:c100,c200 --cgroup-parent /path/to/cgroup/parent -t imageName .
+```
 
+Build image with read-only and SELinux relabeled volume mounted from the host into running containers during the build:
+```
 $ podman build --volume /home/test:/myvol:ro,Z -t imageName .
+```
 
+Build image with overlay volume mounted from the host into running containers during the build:
+```
 $ podman build -v /var/lib/yum:/var/lib/yum:O -t imageName .
+```
 
+Build image with using layers during the build:
+```
 $ podman build --layers -t imageName .
+```
 
+Build image ignoring any cached layers during the build:
+```
 $ podman build --no-cache -t imageName .
+```
 
+Build image using layers and then remove intermediary containers even if the build fails.
+```
 $ podman build --layers --force-rm -t imageName .
+```
 
+Build image without using cache and do not remove intermediary containers even if the build succeeds:
+```
 $ podman build --no-cache --rm=false -t imageName .
+```
 
+Build image using the specified network when running containers during the build:
+```
 $ podman build --network mynet .
 ```
 
 ### Building a multi-architecture image using the --manifest option (requires emulation software)
 
+Build image using the specified architectures and link to a single manifest on successful completion:
 ```
 $ podman build --arch arm --manifest myimage /tmp/mysrc
-
 $ podman build --arch amd64 --manifest myimage /tmp/mysrc
-
 $ podman build --arch s390x --manifest myimage /tmp/mysrc
+```
 
+Build image using multiple specified architectures and link to single manifest on successful completion:
+```
 $ podman build --platform linux/s390x,linux/ppc64le,linux/amd64 --manifest myimage /tmp/mysrc
+```
 
+Build image using multiple specified architectures and link to single manifest on successful completion:
+```
 $ podman build --platform linux/arm64 --platform linux/amd64 --manifest myimage /tmp/mysrc
 ```
 
@@ -548,9 +611,7 @@ context.
 
 #### Building an image using a URL to a Containerfile
 
-  Podman downloads the Containerfile to a temporary location and then use
-it as the build context.
-
+Build image from Containerfile downloaded into temporary location used as the build context:
 ```
 $ podman build https://10.10.10.1/podman/Containerfile
 ```
@@ -561,6 +622,7 @@ $ podman build https://10.10.10.1/podman/Containerfile
 use it as the context. The Containerfile at the root of the repository is used
 and it only works if the GitHub repository is a dedicated repository.
 
+Build image from specified git repository downloaded into temporary location used as the build context:
 ```
 $ podman build -t hello  https://github.com/containers/PodmanHello.git
 $ podman run hello

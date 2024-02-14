@@ -16,6 +16,8 @@ Delete named ssh destination.
 Remove all connections.
 
 ## EXAMPLE
+
+Remove specified system connection:
 ```
 $ podman system connection remove production
 ```
