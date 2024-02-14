@@ -150,4 +150,134 @@ EOF
     run_podman image prune -f
 }
 
+function manifestListAddArtifactOnce() {
+    echo listFlags="$listFlags"
+    echo platformFlags="$platformFlags"
+    echo typeFlag="$typeFlag"
+    echo layerTypeFlag="$layerTypeFlag"
+    echo configTypeFlag="$configTypeFlag"
+    echo configFlag="$configFlag"
+    echo titleFlag="$titleFlag"
+    local index artifact firstdigest seconddigest config configSize defaulttype filetitle requested expected actual
+    run_podman manifest create $listFlags $list
+    run_podman manifest add $list ${platformFlags} --artifact ${typeFlag} ${layerTypeFlag} ${configTypeFlag} ${configFlag} ${titleFlag} ${PODMAN_TMPDIR}/listed.txt
+    run_podman manifest add $list ${platformFlags} --artifact ${typeFlag} ${layerTypeFlag} ${configTypeFlag} ${configFlag} ${titleFlag} ${PODMAN_TMPDIR}/zeroes
+    run_podman manifest inspect $list
+    run_podman tag $list localhost:${PODMAN_LOGIN_REGISTRY_PORT}/test
+    run_podman manifest push --tls-verify=false localhost:${PODMAN_LOGIN_REGISTRY_PORT}/test
+    run skopeo inspect --tls-verify=false --raw docker://localhost:${PODMAN_LOGIN_REGISTRY_PORT}/test
+    assert $status -eq 0
+    echo "$output"
+    index="$output"
+    if [[ -n "$listFlags" ]] ; then
+        assert $(jq -r '.annotations["global"]' <<<"$index") == local
+    fi
+    if [[ -n "$platformFlags" ]] ; then
+        assert $(jq -r '.manifests[1].platform.os' <<<"$index") == linux
+        assert $(jq -r '.manifests[1].platform.architecture' <<<"$index") == amd64
+    fi
+    if [[ -n "$typeFlag" ]] ; then
+        actual=$(jq -r '.manifests[0].artifactType' <<<"$index")
+        assert "${actual#null}" == "${typeFlag#--artifact-type=}"
+        actual=$(jq -r '.manifests[1].artifactType' <<<"$index")
+        assert "${actual#null}" == "${typeFlag#--artifact-type=}"
+    fi
+    firstdigest=$(jq -r '.manifests[0].digest' <<<"$index")
+    seconddigest=$(jq -r '.manifests[1].digest' <<<"$index")
+    for digest in $firstdigest $seconddigest ; do
+        case $digest in
+        $firstdigest)
+            filetitle=listed.txt
+            defaulttype=text/plain
+            ;;
+        $seconddigest)
+            filetitle=zeroes
+            defaulttype=application/octet-stream
+            ;;
+        *)
+            false
+            ;;
+        esac
+        run skopeo inspect --raw --tls-verify=false docker://localhost:${PODMAN_LOGIN_REGISTRY_PORT}/test@${digest}
+        assert $status -eq 0
+        echo "$output"
+        artifact="$output"
+        if [[ -n "$typeFlag" ]] ; then
+            actual=$(jq -r '.artifactType' <<<"$artifact")
+            assert "${actual#null}" == "${typeFlag#--artifact-type=}"
+        else
+            actual=$(jq -r '.artifactType' <<<"$artifact")
+            assert "${actual}" == application/vnd.unknown.artifact.v1
+        fi
+        if [ -n "$layerTypeFlag" ] ; then
+            actual=$(jq -r '.layers[0].mediaType' <<<"$artifact")
+            assert "${actual}" == "${layerTypeFlag#--artifact-layer-type=}"
+        else
+            actual=$(jq -r '.layers[0].mediaType' <<<"$artifact")
+            assert "${actual}" == "$defaulttype"
+        fi
+        requested=${configTypeFlag#--artifact-config-type=}
+        actual=$(jq -r '.config.mediaType' <<<"$artifact")
+        if test -n "$requested" ; then
+            assert "$actual" == "$requested"
+        else
+            config=${configFlag#--artifact-config=}
+            if [ -z "$config" ] ; then
+                expected=application/vnd.oci.empty.v1+json
+            else
+                configSize=$(wc -c <"$config")
+                if [ $configSize -gt 0 ] ; then
+                    expected=application/vnd.oci.image.config.v1+json
+                else
+                    expected=application/vnd.oci.empty.v1+json
+                fi
+            fi
+            assert "$actual" == "$expected"
+        fi
+        if test -n "$titleFlag" ; then
+            assert $(jq -r '.layers[0].annotations["org.opencontainers.image.title"]' <<<"$artifact") == null
+        else
+            assert $(jq -r '.layers[0].annotations["org.opencontainers.image.title"]' <<<"$artifact") == $filetitle
+        fi
+    done
+    run_podman rmi $list localhost:${PODMAN_LOGIN_REGISTRY_PORT}/test
+}
+
+@test "manifest list --add --artifact" {
+    # Build a list and add some files to it, making sure to exercise and verify
+    # every flag available.
+    skip_if_remote "running a local registry doesn't work with podman-remote"
+    start_registry
+    run_podman login --tls-verify=false \
+               --username ${PODMAN_LOGIN_USER} \
+               --password-stdin \
+               --authfile=$authfile \
+               localhost:${PODMAN_LOGIN_REGISTRY_PORT} <<<"${PODMAN_LOGIN_PASS}"
+    local list="test:1.0"
+    truncate -s 20M ${PODMAN_TMPDIR}/zeroes
+    echo oh yeah > ${PODMAN_TMPDIR}/listed.txt
+    echo '{}' > ${PODMAN_TMPDIR}/minimum-config.json
+    local listFlags platformFlags typeFlag configTypeFlag configFlag layerTypeFlag titleFlag
+    for listFlags in "" "--annotation global=local" ; do
+        manifestListAddArtifactOnce
+    done
+    for platformFlags in "" "--os=linux --arch=amd64" ; do
+        manifestListAddArtifactOnce
+    done
+    for typeFlag in "" --artifact-type="" --artifact-type=application/octet-stream --artifact-type=text/plain ; do
+        manifestListAddArtifactOnce
+    done
+    for configTypeFlag in "" --artifact-config-type=application/octet-stream --artifact-config-type=text/plain ; do
+        for configFlag in "" --artifact-config= --artifact-config=${PODMAN_TMPDIR}/minimum-config.json ; do
+            manifestListAddArtifactOnce
+        done
+    done
+    for layerTypeFlag in "" --artifact-layer-type=application/octet-stream --artifact-layer-type=text/plain ; do
+        manifestListAddArtifactOnce
+    done
+    for titleFlag in "" "--artifact-exclude-titles" ; do
+        manifestListAddArtifactOnce
+    done
+    stop_registry
+}
 # vim: filetype=sh

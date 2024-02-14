@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Usage: test-apiv2 [PORT]
+# Usage: test-apiv2 testglob
 #
 # DEVELOPER NOTE: you almost certainly don't need to play in here. See README.
 #
@@ -238,17 +238,17 @@ function jsonify() {
 function t() {
     local method=$1; shift
     local path=$1; shift
-    local -a curl_args
+    local -a curl_args form_args
     local content_type="application/json"
 
     local testname="$method $path"
 
     # POST and PUT requests may be followed by one or more key=value pairs.
     # Slurp the command line until we see a 3-digit status code.
-    if [[ $method = "POST" || $method == "PUT" || $method = "DELETE" ]]; then
+    if [[ $method = "POST" || $method == "PUT" || $method == "DELETE" ]]; then
         local -a post_args
 
-        if [[ $method = "POST" ]]; then
+        if [[ $method == "POST" ]]; then
             function _add_curl_args() { curl_args+=(--data-binary @$1); }
         else
             function _add_curl_args() { curl_args+=(--upload-file $1); }
@@ -259,6 +259,10 @@ function t() {
                 # This is just some hack to avoid adding `-d {}` to curl for endpoints where we really need an empty body.
                 # --disable makes curl not lookup the curlrc file, it shouldn't affect the tests in any way.
                 -)                curl_args+=(--disable);
+                                  shift;;
+                --form=*)         form_args+=(--form);
+                                  form_args+=("${arg#--form=}");
+                                  content_type="multipart/form-data";
                                   shift;;
                 *=*)              post_args+=("$arg");
                                   shift;;
@@ -276,9 +280,12 @@ function t() {
                 *)                die "Internal error: invalid POST arg '$arg'" ;;
             esac
         done
-        if [[ -z "$curl_args" ]]; then
+        if [[ -z "${curl_args[*]}" && -z "${form_args[*]}" ]]; then
             curl_args=(-d $(jsonify ${post_args[*]}))
             testname="$testname [${curl_args[*]}]"
+        elif [[ -z "${curl_args[*]}" ]]; then
+            curl_args=(--form request.json=$(jsonify ${post_args[*]}) "${form_args[@]}")
+            testname="$testname [${curl_args[*]} ${form_args[*]}]"
         fi
     fi
 
@@ -319,14 +326,29 @@ function t() {
     echo "-------------------------------------------------------------" >>$LOG
     echo "\$ $testname"                                                  >>$LOG
     rm -f $WORKDIR/curl.*
-    # -s = silent, but --write-out 'format' gives us important response data
+    # The --write-out 'format' gives us important response data.
     # The hairy "{ ...;rc=$?; } || :" lets us capture curl's exit code and
     # give a helpful diagnostic if it fails.
-    { response=$(curl -s -X $method "${curl_args[@]}"            \
+    : > $WORKDIR/curl.result.out
+    : > $WORKDIR/curl.result.err
+    { response=$(curl -X $method "${curl_args[@]}"               \
                     -H "Content-type: $content_type"             \
                     --dump-header $WORKDIR/curl.headers.out      \
+                    -v --stderr $WORKDIR/curl.result.err         \
                     --write-out '%{http_code}^%{content_type}^%{time_total}' \
                     -o $WORKDIR/curl.result.out "$url"); rc=$?; } || :
+    if [ -n "$PODMAN_TESTS_DUMP_TRACES" ]; then
+        # Dump the results we got back, exactly as we got them back.
+        echo "\$ begin stdout"                                                      >>$LOG
+        test -s $WORKDIR/curl.result.out && od -t x1c $WORKDIR/curl.result.out 2>&1 >>$LOG
+        echo "\$ end stdout"                                                        >>$LOG
+        echo "\$ begin stderr"                                                      >>$LOG
+        test -s $WORKDIR/curl.result.err && cat $WORKDIR/curl.result.err            >>$LOG
+        echo "\$ end stderr"                                                        >>$LOG
+        echo "\$ begin response code^content_type^time_total"                       >>$LOG
+        od -t x1c <<< "$response"                                                   >>$LOG
+        echo "\$ end response"                                                      >>$LOG
+    fi
 
     # Special case: this means we *expect and want* a timeout
     if [[ -n "$APIV2_TEST_EXPECT_TIMEOUT" ]]; then

@@ -8,8 +8,12 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/containers/common/libimage/define"
 	"github.com/containers/image/v5/docker/reference"
@@ -23,22 +27,24 @@ import (
 	"github.com/containers/podman/v5/pkg/channel"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/infra/abi"
-	envLib "github.com/containers/podman/v5/pkg/env"
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/maps"
 )
 
 func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		Name   string   `schema:"name"`
-		Images []string `schema:"images"`
-		All    bool     `schema:"all"`
-		Amend  bool     `schema:"amend"`
+		Name        string            `schema:"name"`
+		Images      []string          `schema:"images"`
+		All         bool              `schema:"all"`
+		Amend       bool              `schema:"amend"`
+		Annotation  []string          `schema:"annotation"`
+		Annotations map[string]string `schema:"annotations"`
 	}{
 		// Add defaults here once needed.
 	}
@@ -73,7 +79,21 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 
-	createOptions := entities.ManifestCreateOptions{All: query.All, Amend: query.Amend}
+	annotations := maps.Clone(query.Annotations)
+	for _, annotation := range query.Annotation {
+		k, v, ok := strings.Cut(annotation, "=")
+		if !ok {
+			utils.Error(w, http.StatusBadRequest,
+				fmt.Errorf("invalid annotation %s", annotation))
+			return
+		}
+		if annotations == nil {
+			annotations = make(map[string]string)
+		}
+		annotations[k] = v
+	}
+
+	createOptions := entities.ManifestCreateOptions{All: query.All, Amend: query.Amend, Annotations: annotations}
 	manID, err := imageEngine.ManifestCreate(r.Context(), query.Name, query.Images, createOptions)
 	if err != nil {
 		utils.InternalServerError(w, err)
@@ -99,26 +119,29 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 
 	body := new(entities.ManifestModifyOptions)
 	if err := json.Unmarshal(buffer, body); err != nil {
-		utils.InternalServerError(w, fmt.Errorf("Decode(): %w", err))
+		utils.InternalServerError(w, fmt.Errorf("decoding modifications in request: %w", err))
 		return
 	}
 
-	// gather all images for manifest list
-	var images []string
-	if len(query.Images) > 0 {
-		images = query.Images
+	if len(body.IndexAnnotation) != 0 || len(body.IndexAnnotations) != 0 || body.IndexSubject != "" {
+		manifestAnnotateOptions := entities.ManifestAnnotateOptions{
+			IndexAnnotation:  body.IndexAnnotation,
+			IndexAnnotations: body.IndexAnnotations,
+			IndexSubject:     body.IndexSubject,
+		}
+		if _, err := imageEngine.ManifestAnnotate(r.Context(), manID, "", manifestAnnotateOptions); err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
 	}
 	if len(body.Images) > 0 {
-		images = body.Images
+		if _, err := imageEngine.ManifestAdd(r.Context(), manID, body.Images, body.ManifestAddOptions); err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
 	}
 
-	id, err := imageEngine.ManifestAdd(r.Context(), query.Name, images, body.ManifestAddOptions)
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-
-	utils.WriteResponse(w, status, entities.IDResponse{ID: id})
+	utils.WriteResponse(w, status, entities.IDResponse{ID: manID})
 }
 
 // ManifestExists return true if manifest list exists.
@@ -194,7 +217,7 @@ func ManifestAddV3(w http.ResponseWriter, r *http.Request) {
 		TLSVerify bool `schema:"tlsVerify"`
 	}{}
 	if err := json.NewDecoder(r.Body).Decode(&query); err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("decoding AddV3 query: %w", err))
 		return
 	}
 
@@ -471,33 +494,137 @@ func ManifestModify(w http.ResponseWriter, r *http.Request) {
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 
 	body := new(entities.ManifestModifyOptions)
-	if err := json.NewDecoder(r.Body).Decode(body); err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
-		return
+
+	multireader, err := r.MultipartReader()
+	if err != nil {
+		multireader = nil
+		// not multipart - request is just encoded JSON, nothing else
+		if err := json.NewDecoder(r.Body).Decode(body); err != nil {
+			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("decoding modify request: %w", err))
+			return
+		}
+	} else {
+		// multipart - request is encoded JSON in the first part, each artifact is its own part
+		bodyPart, err := multireader.NextPart()
+		if err != nil {
+			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("reading first part of multipart request: %w", err))
+			return
+		}
+		err = json.NewDecoder(bodyPart).Decode(body)
+		bodyPart.Close()
+		if err != nil {
+			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("decoding modify request in multipart request: %w", err))
+			return
+		}
 	}
 
 	name := utils.GetName(r)
-	if _, err := runtime.LibimageRuntime().LookupManifestList(name); err != nil {
+	manifestList, err := runtime.LibimageRuntime().LookupManifestList(name)
+	if err != nil {
 		utils.Error(w, http.StatusNotFound, err)
 		return
 	}
 
+	annotationsFromAnnotationSlice := func(annotation []string) map[string]string {
+		annotations := make(map[string]string)
+		for _, annotationSpec := range annotation {
+			key, val, hasVal := strings.Cut(annotationSpec, "=")
+			if !hasVal {
+				utils.Error(w, http.StatusBadRequest, fmt.Errorf("no value given for annotation %q", key))
+				return nil
+			}
+			annotations[key] = val
+		}
+		return annotations
+	}
 	if len(body.ManifestAddOptions.Annotation) != 0 {
 		if len(body.ManifestAddOptions.Annotations) != 0 {
 			utils.Error(w, http.StatusBadRequest, fmt.Errorf("can not set both Annotation and Annotations"))
 			return
 		}
-		annotations := make(map[string]string)
-		for _, annotationSpec := range body.ManifestAddOptions.Annotation {
-			key, val, hasVal := strings.Cut(annotationSpec, "=")
-			if !hasVal {
-				utils.Error(w, http.StatusBadRequest, fmt.Errorf("no value given for annotation %q", key))
+		body.ManifestAddOptions.Annotations = annotationsFromAnnotationSlice(body.ManifestAddOptions.Annotation)
+		body.ManifestAddOptions.Annotation = nil
+	}
+	if len(body.ManifestAddOptions.IndexAnnotation) != 0 {
+		if len(body.ManifestAddOptions.IndexAnnotations) != 0 {
+			utils.Error(w, http.StatusBadRequest, fmt.Errorf("can not set both IndexAnnotation and IndexAnnotations"))
+			return
+		}
+		body.ManifestAddOptions.IndexAnnotations = annotationsFromAnnotationSlice(body.ManifestAddOptions.IndexAnnotation)
+		body.ManifestAddOptions.IndexAnnotation = nil
+	}
+
+	var artifactExtractionError error
+	var artifactExtraction sync.WaitGroup
+	if multireader != nil {
+		// If the data was multipart, then save items from it into a
+		// directory that will be removed along with this list,
+		// whenever that happens.
+		artifactExtraction.Add(1)
+		go func() {
+			defer artifactExtraction.Done()
+			storageConfig := runtime.StorageConfig()
+			// FIXME: knowing that this is the location of the
+			// per-image-record-stuff directory is a little too
+			// "inside storage"
+			fileDir, err := os.MkdirTemp(filepath.Join(runtime.GraphRoot(), storageConfig.GraphDriverName+"-images", manifestList.ID()), "")
+			if err != nil {
+				artifactExtractionError = err
 				return
 			}
-			annotations[key] = val
-		}
-		body.ManifestAddOptions.Annotations = envLib.Join(body.ManifestAddOptions.Annotations, annotations)
-		body.ManifestAddOptions.Annotation = nil
+			// We'll be building a list of the names of files we
+			// received as part of the request and setting it in
+			// the request body before we're done.
+			var contentFiles []string
+			part, err := multireader.NextPart()
+			if err != nil {
+				artifactExtractionError = err
+				return
+			}
+			for part != nil {
+				partName := part.FormName()
+				if filename := part.FileName(); filename != "" {
+					partName = filename
+				}
+				if partName != "" {
+					partName = path.Base(partName)
+				}
+				// Write the file in a scope that lets us close it as quickly
+				// as possible.
+				if err = func() error {
+					defer part.Close()
+					var f *os.File
+					// Create the file.
+					if partName != "" {
+						// Try to use the supplied name.
+						f, err = os.OpenFile(filepath.Join(fileDir, partName), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+					} else {
+						// No supplied name means they don't care.
+						f, err = os.CreateTemp(fileDir, "upload")
+					}
+					if err != nil {
+						return err
+					}
+					defer f.Close()
+					// Write the file's contents.
+					if _, err = io.Copy(f, part); err != nil {
+						return err
+					}
+					contentFiles = append(contentFiles, f.Name())
+					return nil
+				}(); err != nil {
+					break
+				}
+				part, err = multireader.NextPart()
+			}
+			// If we stowed all of the uploaded files without issue, we're all good.
+			if err != nil && !errors.Is(err, io.EOF) {
+				artifactExtractionError = err
+				return
+			}
+			// Save the list of files that we created.
+			body.ArtifactFiles = contentFiles
+		}()
 	}
 
 	if tlsVerify, ok := r.URL.Query()["tlsVerify"]; ok {
@@ -527,17 +654,50 @@ func ManifestModify(w http.ResponseWriter, r *http.Request) {
 		body.ManifestAddOptions.CertDir = sys.DockerCertPath
 	}
 
-	var report entities.ManifestModifyReport
+	report := entities.ManifestModifyReport{ID: manifestList.ID()}
 	switch {
 	case strings.EqualFold("update", body.Operation):
-		id, err := imageEngine.ManifestAdd(r.Context(), name, body.Images, body.ManifestAddOptions)
-		if err != nil {
-			report.Errors = append(report.Errors, err)
-			break
+		if len(body.Images) > 0 {
+			id, err := imageEngine.ManifestAdd(r.Context(), name, body.Images, body.ManifestAddOptions)
+			if err != nil {
+				report.Errors = append(report.Errors, err)
+				break
+			}
+			report.ID = id
+			report.Images = body.Images
 		}
-		report = entities.ManifestModifyReport{
-			ID:     id,
-			Images: body.Images,
+		if multireader != nil {
+			// Wait for the extraction goroutine to finish
+			// processing the message in the request body, so that
+			// we know whether or not everything looked alright.
+			artifactExtraction.Wait()
+			if artifactExtractionError != nil {
+				report.Errors = append(report.Errors, artifactExtractionError)
+				artifactExtractionError = nil
+				break
+			}
+			// Reconstruct a ManifestAddArtifactOptions from the corresponding
+			// fields in the entities.ManifestModifyOptions that we decoded
+			// the request struct into and then supplemented with the files list.
+			// We waited until after the extraction goroutine finished to ensure
+			// that we'd pick up its changes to the ArtifactFiles list.
+			manifestAddArtifactOptions := entities.ManifestAddArtifactOptions{
+				Type:          body.ArtifactType,
+				LayerType:     body.ArtifactLayerType,
+				ConfigType:    body.ArtifactConfigType,
+				Config:        body.ArtifactConfig,
+				ExcludeTitles: body.ArtifactExcludeTitles,
+				Annotations:   body.ArtifactAnnotations,
+				Subject:       body.ArtifactSubject,
+				Files:         body.ArtifactFiles,
+			}
+			id, err := imageEngine.ManifestAddArtifact(r.Context(), name, body.ArtifactFiles, manifestAddArtifactOptions)
+			if err != nil {
+				report.Errors = append(report.Errors, err)
+				break
+			}
+			report.ID = id
+			report.Files = body.ArtifactFiles
 		}
 	case strings.EqualFold("remove", body.Operation):
 		for _, image := range body.Images {
@@ -550,15 +710,7 @@ func ManifestModify(w http.ResponseWriter, r *http.Request) {
 			report.Images = append(report.Images, image)
 		}
 	case strings.EqualFold("annotate", body.Operation):
-		options := entities.ManifestAnnotateOptions{
-			Annotations: body.Annotations,
-			Arch:        body.Arch,
-			Features:    body.Features,
-			OS:          body.OS,
-			OSFeatures:  body.OSFeatures,
-			OSVersion:   body.OSVersion,
-			Variant:     body.Variant,
-		}
+		options := body.ManifestAnnotateOptions
 		for _, image := range body.Images {
 			id, err := imageEngine.ManifestAnnotate(r.Context(), name, image, options)
 			if err != nil {
@@ -571,6 +723,13 @@ func ManifestModify(w http.ResponseWriter, r *http.Request) {
 	default:
 		utils.Error(w, http.StatusBadRequest, fmt.Errorf("illegal operation %q for %q", body.Operation, r.URL.String()))
 		return
+	}
+
+	// In case something weird happened, don't just let the goroutine go; make the
+	// client at least wait for it.
+	artifactExtraction.Wait()
+	if artifactExtractionError != nil {
+		report.Errors = append(report.Errors, artifactExtractionError)
 	}
 
 	statusCode := http.StatusOK

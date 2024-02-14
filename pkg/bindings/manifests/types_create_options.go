@@ -46,3 +46,18 @@ func (o *CreateOptions) GetAmend() bool {
 	}
 	return *o.Amend
 }
+
+// WithAnnotation set field Annotation to given value
+func (o *CreateOptions) WithAnnotation(value map[string]string) *CreateOptions {
+	o.Annotation = value
+	return o
+}
+
+// GetAnnotation returns value of field Annotation
+func (o *CreateOptions) GetAnnotation() map[string]string {
+	if o.Annotation == nil {
+		var z map[string]string
+		return z
+	}
+	return o.Annotation
+}

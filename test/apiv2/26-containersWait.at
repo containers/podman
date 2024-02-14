@@ -33,7 +33,7 @@ wait "${child_pid}"
 APIV2_TEST_EXPECT_TIMEOUT=2 t POST "containers/${CTR}/wait?condition=next-exit" 999
 like "$(<$WORKDIR/curl.headers.out)" ".*HTTP.* 200 OK.*" \
      "Received headers from /wait"
-if [[ -e $WORKDIR/curl.result.out ]]; then
+if [[ -s $WORKDIR/curl.result.out ]]; then
     _show_ok 0 "UNEXPECTED: curl on /wait returned results"
 fi
 
