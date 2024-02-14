@@ -83,6 +83,10 @@ type RemoveOptions struct {
 	SaveIgnition bool
 }
 
+type ResetOptions struct {
+	Force bool
+}
+
 type InspectOptions struct{}
 
 // TODO This can be removed when WSL is refactored into podman 5
