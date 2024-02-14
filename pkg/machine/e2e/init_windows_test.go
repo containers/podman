@@ -8,6 +8,7 @@ import (
 	"github.com/Microsoft/go-winio/vhd"
 	"github.com/containers/libhvee/pkg/hypervctl"
 	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/wsl/wutil"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -35,6 +36,18 @@ var _ = Describe("podman machine init - windows only", func() {
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withUserModeNetworking(true)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
+
+		defer func() {
+			_, err := runSystemCommand(wutil.FindWSL(),  []string{"--terminate", "podman-net-usermode"}, defaultTimeout, true)
+			if err != nil {
+				fmt.Println("unable to terminate podman-net-usermode")
+			}
+
+			_, err = runSystemCommand(wutil.FindWSL(),  []string{"--unregister", "podman-net-usermode"}, defaultTimeout, true)
+			if err != nil {
+				fmt.Println("unable to unregister podman-net-usermode")
+			}
+		}()
 
 		inspect := new(inspectMachine)
 		inspect = inspect.withFormat("{{.UserModeNetworking}}")
@@ -81,10 +94,6 @@ var _ = Describe("podman machine init - windows only", func() {
 	It("init should not overwrite existing WSL vms", func() {
 		skipIfNotVmtype(define.WSLVirt, "WSL test only")
 
-		var (
-			wsl string = "wsl"
-		)
-
 		name := randomString()
 		distName := fmt.Sprintf("podman-%s", name)
 		exportedPath := filepath.Join(testDir, "bogus.tar")
@@ -102,17 +111,17 @@ var _ = Describe("podman machine init - windows only", func() {
 		// a vm outside the context of podman-machine and also
 		// so we dont have to download a distribution from microsoft
 		// servers
-		exportSession, err := runSystemCommand(wsl, []string{"--export", "podman-foobarexport", exportedPath}, defaultTimeout, true)
+		exportSession, err := runSystemCommand(wutil.FindWSL(), []string{"--export", "podman-foobarexport", exportedPath}, defaultTimeout, true)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(exportSession).To(Exit(0))
 
 		// importing the machine and creating a vm
-		importSession, err := runSystemCommand(wsl, []string{"--import", distName, distrDir, exportedPath}, defaultTimeout, true)
+		importSession, err := runSystemCommand(wutil.FindWSL(), []string{"--import", distName, distrDir, exportedPath}, defaultTimeout, true)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(importSession).To(Exit(0))
 
 		defer func() {
-			_, err := runSystemCommand(wsl, []string{"--unregister", distName}, defaultTimeout, true)
+			_, err := runSystemCommand(wutil.FindWSL(), []string{"--unregister", distName}, defaultTimeout, true)
 			if err != nil {
 				fmt.Println("unable to remove bogus wsl instance")
 			}

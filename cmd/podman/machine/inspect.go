@@ -89,7 +89,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 			Resources:          mc.Resources,
 			SSHConfig:          mc.SSH,
 			State:              state,
-			UserModeNetworking: false,
+			UserModeNetworking: provider.UserModeNetworkEnabled(mc),
 			// TODO I think this should be the HostUser
 			Rootful: mc.HostUser.Rootful,
 		}
