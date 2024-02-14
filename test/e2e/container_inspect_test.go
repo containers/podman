@@ -68,6 +68,6 @@ var _ = Describe("Podman container inspect", func() {
 		data := podmanTest.InspectContainer(ctr2)
 		Expect(data).To(HaveLen(1))
 		Expect(data[0].HostConfig.VolumesFrom).To(Equal([]string{volsctr}))
-		Expect(data[0].Config.Annotations[define.InspectAnnotationVolumesFrom]).To(Equal(volsctr))
+		Expect(data[0].Config.Annotations[define.VolumesFromAnnotation]).To(Equal(volsctr))
 	})
 })

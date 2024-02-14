@@ -492,6 +492,34 @@ spec:
 status: {}
 `
 
+var volumesFromPodYaml = `
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    io.podman.annotations.volumes-from/tgtctr: srcctr:ro
+  name: volspod
+spec:
+    containers:
+    - name: srcctr
+      image: ` + CITEST_IMAGE + `
+      command:
+        - sleep
+        - inf
+      volumeMounts:
+      - mountPath: /mnt/vol
+        name: testing
+    - name: tgtctr
+      image: ` + CITEST_IMAGE + `
+      command:
+        - sleep
+        - inf
+    volumes:
+    - name: testing
+      persistentVolumeClaim:
+        claimName: testvol
+`
+
 var configMapYamlTemplate = `
 apiVersion: v1
 kind: ConfigMap
@@ -5909,7 +5937,7 @@ spec:
 		Expect(session).Should(Exit(125))
 	})
 
-	It("test with reserved volumes-from annotation in yaml", func() {
+	It("test pod with volumes-from annotation in yaml", func() {
 		ctr1 := "ctr1"
 		ctr2 := "ctr2"
 		ctrNameInKubePod := ctr2 + "-pod-" + ctr2
@@ -5927,7 +5955,7 @@ spec:
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", "-f", outputFile, ctr2})
+		kube := podmanTest.Podman([]string{"kube", "generate", "-f", outputFile, ctr2})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
@@ -5950,6 +5978,114 @@ spec:
 		podrm := podmanTest.Podman([]string{"kube", "down", outputFile})
 		podrm.WaitWithDefaultTimeout()
 		Expect(podrm).Should(ExitCleanly())
+	})
+
+	It("test volumes-from annotation with source containers external", func() {
+		// Assert that volumes of multiple source containers, listed in
+		// volumes-from annotation, running outside the pod are
+		// getting mounted inside the target container.
+
+		srcctr1, srcctr2, tgtctr := "srcctr1", "srcctr2", "tgtctr"
+		frmopt1, frmopt2 := srcctr1+":ro", srcctr2+":ro"
+		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
+		vol2 := filepath.Join(podmanTest.TempDir, "vol-test2")
+
+		volsFromAnnotaton := define.VolumesFromAnnotation + "/" + tgtctr
+		volsFromValue := frmopt1 + ";" + frmopt2
+
+		err1 := os.MkdirAll(vol1, 0755)
+		Expect(err1).ToNot(HaveOccurred())
+
+		err2 := os.MkdirAll(vol2, 0755)
+		Expect(err2).ToNot(HaveOccurred())
+
+		session := podmanTest.Podman([]string{"create", "--name", srcctr1, "-v", vol1, CITEST_IMAGE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"create", "--name", srcctr2, "-v", vol2, CITEST_IMAGE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		podName := tgtctr
+		pod := getPod(
+			withPodName(podName),
+			withCtr(getCtr(withName(tgtctr))),
+			withAnnotation(volsFromAnnotaton, volsFromValue))
+
+		err3 := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err3).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(ExitCleanly())
+
+		// Assert volumes are accessible inside the target container
+		ctrNameInKubePod := podName + "-" + tgtctr
+
+		inspect := podmanTest.InspectContainer(ctrNameInKubePod)
+		Expect(inspect).To(HaveLen(1))
+
+		exec := podmanTest.Podman([]string{"exec", ctrNameInKubePod, "ls", "-d", vol1, vol2})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).Should(ExitCleanly())
+		Expect(exec.OutputToString()).To(ContainSubstring(vol1))
+		Expect(exec.OutputToString()).To(ContainSubstring(vol2))
+	})
+
+	It("test volumes-from annotation with source container in pod", func() {
+		// Assert that volume of source container, member of the pod,
+		// listed in volumes-from annotation is getting mounted inside
+		// the target container.
+
+		srcctr, tgtctr, podName := "srcctr", "tgtctr", "volspod"
+		vol := "/mnt/vol"
+
+		srcctrInKubePod := podName + "-" + srcctr
+		tgtctrInKubePod := podName + "-" + tgtctr
+
+		err := writeYaml(volumesFromPodYaml, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(ExitCleanly())
+
+		inspect := podmanTest.InspectContainer(tgtctrInKubePod)
+		Expect(inspect).To(HaveLen(1))
+
+		// Assert volume is accessible inside the target container
+		// by creating contents in the volume and accessing that from
+		// the target container.
+		volFile := filepath.Join(vol, RandomString(10)+".txt")
+
+		exec := podmanTest.Podman([]string{"exec", srcctrInKubePod, "touch", volFile})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).Should(ExitCleanly())
+
+		exec = podmanTest.Podman([]string{"exec", srcctrInKubePod, "ls", volFile})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).Should(ExitCleanly())
+		Expect(exec.OutputToString()).To(ContainSubstring(volFile))
+
+		exec = podmanTest.Podman([]string{"exec", tgtctrInKubePod, "ls", volFile})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).Should(ExitCleanly())
+		Expect(exec.OutputToString()).To(ContainSubstring(volFile))
+	})
+
+	It("test with reserved volumes-from annotation in yaml", func() {
+		// Assert that volumes-from annotation without target container
+		// errors out.
+
+		pod := getPod(withAnnotation(define.VolumesFromAnnotation, "reserved"))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(125))
+		Expect(kube.ErrorToString()).To(ContainSubstring("annotation " + define.VolumesFromAnnotation + " without target volume is reserved for internal use"))
 	})
 
 	It("test with reserved autoremove annotation in yaml", func() {

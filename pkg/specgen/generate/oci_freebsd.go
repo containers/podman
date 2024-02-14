@@ -152,7 +152,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	}
 
 	if len(s.VolumesFrom) > 0 {
-		configSpec.Annotations[define.InspectAnnotationVolumesFrom] = strings.Join(s.VolumesFrom, ";")
+		configSpec.Annotations[define.VolumesFromAnnotation] = strings.Join(s.VolumesFrom, ";")
 	}
 
 	if s.IsPrivileged() {

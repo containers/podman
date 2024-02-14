@@ -140,6 +140,8 @@ type CtrSpecGenOptions struct {
 	IpcNSIsHost bool
 	// Volumes for all containers
 	Volumes map[string]*KubeVolume
+	// VolumesFrom for all containers
+	VolumesFrom []string
 	// PodID of the parent pod
 	PodID string
 	// PodName of the parent pod
@@ -565,6 +567,8 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			return nil, errors.New("unsupported volume source type")
 		}
 	}
+
+	s.VolumesFrom = opts.VolumesFrom
 
 	s.RestartPolicy = opts.RestartPolicy
 
