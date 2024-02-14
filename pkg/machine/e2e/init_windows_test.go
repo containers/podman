@@ -78,7 +78,7 @@ var _ = Describe("podman machine init - windows only", func() {
 		Expect(session.errorToString()).To(ContainSubstring("already exists on hypervisor"))
 	})
 
-	It("init should not should not overwrite existing HyperV vms", func() {
+	It("init should not overwrite existing WSL vms", func() {
 		skipIfNotVmtype(define.WSLVirt, "WSL test only")
 
 		var (

@@ -236,10 +236,8 @@ func isWSL() bool {
 	return isVmtype(define.WSLVirt)
 }
 
+//nolint:unused
 func runSystemCommand(binary string, cmdArgs []string, timeout time.Duration, wait bool) (*machineSession, error) {
-	if len(os.Getenv("DEBUG")) > 0 {
-		cmdArgs = append([]string{"--log-level=debug"}, cmdArgs...)
-	}
 	GinkgoWriter.Println(binary + " " + strings.Join(cmdArgs, " "))
 	c := exec.Command(binary, cmdArgs...)
 	session, err := Start(c, GinkgoWriter, GinkgoWriter)
