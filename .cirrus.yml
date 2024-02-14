@@ -487,36 +487,37 @@ osx_alt_build_task:
     always:
         task_cleanup_script: *mac_cleanup
 
+
 # Build freebsd release natively on a FreeBSD VM.
 freebsd_alt_build_task:
-   name: "FreeBSD Cross"
-   alias: freebsd_alt_build
-   # Only run on 'main' and PRs against 'main'
-   # Docs: ./contrib/cirrus/CIModes.md
-   only_if: |
-       $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*' &&
-       ( $CIRRUS_BRANCH == 'main' || $CIRRUS_BASE_BRANCH == 'main' )
-   depends_on:
-       - build
-   env:
-       <<: *stdenvars
-       # Functional FreeBSD builds must be built natively since they depend on CGO
-       DISTRO_NV: freebsd-13
-       VM_IMAGE_NAME: notyet
-       CTR_FQIN: notyet
-       CIRRUS_SHELL: "/bin/sh"
-       TEST_FLAVOR: "altbuild"
-       ALT_NAME: 'FreeBSD Cross'
-   freebsd_instance:
-       image_family: freebsd-13-2
-   setup_script:
-       - pkg install -y gpgme bash go-md2man gmake gsed gnugrep go pkgconf
-   build_amd64_script:
-       - gmake podman-release
-   # This task cannot make use of the shared repo.tbz artifact and must
-   # produce a new repo.tbz artifact for consumption by 'artifacts' task.
-   repo_prep_script: *repo_prep
-   repo_artifacts: *repo_artifacts
+    name: "FreeBSD Cross"
+    alias: freebsd_alt_build
+    # Only run on 'main' and PRs against 'main'
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: |
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*' &&
+        ( $CIRRUS_BRANCH == 'main' || $CIRRUS_BASE_BRANCH == 'main' )
+    depends_on:
+        - build
+    env:
+        <<: *stdenvars
+        # Functional FreeBSD builds must be built natively since they depend on CGO
+        DISTRO_NV: freebsd-13
+        VM_IMAGE_NAME: notyet
+        CTR_FQIN: notyet
+        CIRRUS_SHELL: "/bin/sh"
+        TEST_FLAVOR: "altbuild"
+        ALT_NAME: 'FreeBSD Cross'
+    freebsd_instance:
+        image_family: freebsd-13-2
+    setup_script:
+        - pkg install -y gpgme bash go-md2man gmake gsed gnugrep go pkgconf
+    build_amd64_script:
+        - gmake podman-release
+    # This task cannot make use of the shared repo.tbz artifact and must
+    # produce a new repo.tbz artifact for consumption by 'artifacts' task.
+    repo_prep_script: *repo_prep
+    repo_artifacts: *repo_artifacts
 
 
 # Verify podman is compatible with the docker python-module.
@@ -1203,22 +1204,22 @@ artifacts_task:
 
 # When a new tag is pushed, confirm that the code and commits
 # meet criteria for an official release.
-#release_task:
-#    name: "Verify Release"
-#    alias: release
-#    # This should _only_ run for new tags
-#    # Docs: ./contrib/cirrus/CIModes.md
-#    only_if: $CIRRUS_TAG != ''
-#    depends_on:
-#        - build
-#        - success
-#    gce_instance: *standardvm
-#    env:
-#        <<: *stdenvars
-#        TEST_FLAVOR: release
-#    clone_script: *get_gosrc
-#    setup_script: *setup
-#    main_script: *main
+release_task:
+    name: "Verify Release"
+    alias: release
+    # This should _only_ run for new tags
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: $CIRRUS_TAG != ''
+    depends_on:
+        - build
+        - success
+    gce_instance: *standardvm
+    env:
+        <<: *stdenvars
+        TEST_FLAVOR: release
+    clone_script: *get_gosrc
+    setup_script: *setup
+    main_script: *main
 
 
 # When preparing to release a new version, this task may be manually
@@ -1227,22 +1228,22 @@ artifacts_task:
 #
 # Note: This cannot use a YAML alias on 'release_task' as of this
 # comment, it is incompatible with 'trigger_type: manual'
-#release_test_task:
-#    name: "Optional Release Test"
-#    alias: release_test
-#    # Release-PRs always include "release" or "Bump" in the title
-#    # Docs: ./contrib/cirrus/CIModes.md
-#    only_if: $CIRRUS_CHANGE_TITLE =~ '.*((release)|(bump)).*'
-#    # Allow running manually only as part of release-related builds
-#    # see RELEASE_PROCESS.md
-#    trigger_type: manual
-#    depends_on:
-#        - build
-#        - success
-#    gce_instance: *standardvm
-#    env:
-#        <<: *stdenvars
-#        TEST_FLAVOR: release
-#    clone_script: *get_gosrc
-#    setup_script: *setup
-#    main_script: *main
+release_test_task:
+    name: "Optional Release Test"
+    alias: release_test
+    # Release-PRs always include "release" or "Bump" in the title
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: $CIRRUS_CHANGE_TITLE =~ '.*((release)|(bump)).*'
+    # Allow running manually only as part of release-related builds
+    # see RELEASE_PROCESS.md
+    trigger_type: manual
+    depends_on:
+        - build
+        - success
+    gce_instance: *standardvm
+    env:
+        <<: *stdenvars
+        TEST_FLAVOR: release
+    clone_script: *get_gosrc
+    setup_script: *setup
+    main_script: *main
