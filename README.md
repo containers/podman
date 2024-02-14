@@ -15,7 +15,7 @@ Podman is based on libpod, a library for container lifecycle management that is 
 All releases are GPG signed. Public keys of members of the team approved to make releases are located [here](https://github.com/containers/release-keys/tree/main/podman).
 
 * Continuous Integration:
-  * [![Build Status](https://api.cirrus-ci.com/github/containers/podman.svg)](https://cirrus-ci.com/github/containers/podman/master)
+  * [![Build Status](https://api.cirrus-ci.com/github/containers/podman.svg)](https://cirrus-ci.com/github/containers/podman/main)
   * [GoDoc: ![GoDoc](https://godoc.org/github.com/containers/podman/libpod?status.svg)](https://godoc.org/github.com/containers/podman/libpod)
   * [Downloads](DOWNLOADS.md)
 
@@ -37,9 +37,11 @@ At a high level, the scope of Podman and libpod is the following:
 
 ## Roadmap
 
-1. A fully-featured GUI frontend for `podman machine`
-1. Further improvements to `podman generate kube` and `podman play kube`
-1. Improvements to Pods, including the addition of pod-level resource limits
+1. Further improvements to `podman machine` to better support Podman Desktop and other developer usecases.
+1. Support for [conmon-rs](https://github.com/containers/conmon-rs), which will improve container logging.
+1. Support for the BuildKit API.
+1. Performance and stability improvements.
+1. Reductions to the size of the Podman binary.
 
 ## Communications
 
@@ -72,7 +74,10 @@ A little configuration by an administrator is required before rootless Podman ca
 
 ## Podman Desktop
 
-[Podman Desktop](https://podman-desktop.io/) is a new project under the container organization built to help the developers working with containers from their local environment with a desktop UI. Podman Desktop is still in its early days, but already provides capabilities to list your images, interact with containers (access logs, get a terminal), connect to registries (pull private images, push your images) and configure podman settings (proxies). The project develops on [GitHub](https://github.com/containers/podman-desktop) and contributors are welcome.
+[Podman Desktop](https://podman-desktop.io/) provides a local development environment for Podman and Kubernetes on Linux, Windows, and Mac machines.
+It is a full-featured desktop UI frontend for Podman which uses the `podman machine` backend on non-Linux operating systems to run containers.
+It supports full container lifecycle management (building, pulling, and pushing images, creating and managing containers, creating and managing pods, and working with Kubernetes YAML).
+The project develops on [GitHub](https://github.com/containers/podman-desktop) and contributors are welcome.
 
 ## Out of scope
 
