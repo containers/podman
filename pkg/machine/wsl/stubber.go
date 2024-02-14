@@ -94,16 +94,8 @@ func (w WSLStubber) PrepareIgnition(_ *vmconfigs.MachineConfig, _ *ignition.Igni
 	return nil, nil
 }
 
-func (w WSLStubber) GetHyperVisorVMs() ([]string, error) {
-	vms, err := getAllWSLDistros(false)
-	if err != nil {
-		return nil, err
-	}
-	wslVMs := make([]string, 0)
-	for name := range vms {
-		wslVMs = append(wslVMs, name)
-	}
-	return wslVMs, nil
+func (w WSLStubber) Exists(name string) (bool, error) {
+	return isWSLExist(machine.ToDist(name))
 }
 
 func (w WSLStubber) MountType() vmconfigs.VolumeMountType {

@@ -218,8 +218,8 @@ func waitForReady(readySocket *define.VMFile, pid int, stdErrBuffer *bytes.Buffe
 	return err
 }
 
-func (q *QEMUStubber) GetHyperVisorVMs() ([]string, error) {
-	return nil, nil
+func (q *QEMUStubber) Exists(name string) (bool, error) {
+	return false, nil
 }
 
 func (q *QEMUStubber) VMType() define.VMType {

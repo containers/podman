@@ -7,7 +7,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/connection"
 	machineDefine "github.com/containers/podman/v5/pkg/machine/define"
@@ -243,11 +242,11 @@ func VMExists(name string, vmstubbers []vmconfigs.VMProvider) (*vmconfigs.Machin
 	}
 	// Check with the provider hypervisor
 	for _, vmstubber := range vmstubbers {
-		vms, err := vmstubber.GetHyperVisorVMs()
+		exists, err := vmstubber.Exists(name)
 		if err != nil {
 			return nil, false, err
 		}
-		if util.StringInSlice(name, vms) { //nolint:staticcheck
+		if exists {
 			return nil, true, fmt.Errorf("vm %q already exists on hypervisor", name)
 		}
 	}

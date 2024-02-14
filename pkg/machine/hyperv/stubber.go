@@ -123,19 +123,10 @@ func (h HyperVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineC
 	return err
 }
 
-func (h HyperVStubber) GetHyperVisorVMs() ([]string, error) {
-	var (
-		vmNames []string
-	)
+func (h HyperVStubber) Exists(name string) (bool, error) {
 	vmm := hypervctl.NewVirtualMachineManager()
-	vms, err := vmm.GetAll()
-	if err != nil {
-		return nil, err
-	}
-	for _, vm := range vms {
-		vmNames = append(vmNames, vm.ElementName) // Note: elementname is human-readable name
-	}
-	return vmNames, nil
+	exists, _, err := vmm.GetMachineExists(name)
+	return exists, err
 }
 
 func (h HyperVStubber) MountType() vmconfigs.VolumeMountType {
