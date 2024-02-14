@@ -1,0 +1,18 @@
+name: TRY TMT GHA
+
+on:
+  pull_request:
+    branches:
+      main
+
+jobs:
+  fcos-podman-next-image-build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Schedule test on Testing Farm
+      uses: sclorg/testing-farm-as-github-action@v2.0.1
+      with:
+        api_key: ${{ secrets.TF_API_KEY }}
+        git_url: https://github.com/sclorg/sclorg-testing-farm
+        pull_request_status_name: "TEST"
