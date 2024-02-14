@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
@@ -178,46 +179,6 @@ ExecStart=
 ExecStart=-/usr/sbin/agetty --autologin root --noclear %I $TERM
 `
 
-	// This service gets environment variables that are provided
-	// through qemu fw_cfg and then sets them into systemd/system.conf.d,
-	// profile.d and environment.d files
-	//
-	// Currently, it is used for propagating
-	// proxy settings e.g. HTTP_PROXY and others, on a start avoiding
-	// a need of re-creating/re-initiating a VM
-
-	envset := parser.NewUnitFile()
-	envset.Add("Unit", "Description", "Environment setter from QEMU FW_CFG")
-
-	envset.Add("Service", "Type", "oneshot")
-	envset.Add("Service", "RemainAfterExit", "yes")
-	envset.Add("Service", "Environment", "FWCFGRAW=/sys/firmware/qemu_fw_cfg/by_name/opt/com.coreos/environment/raw")
-	envset.Add("Service", "Environment", "SYSTEMD_CONF=/etc/systemd/system.conf.d/default-env.conf")
-	envset.Add("Service", "Environment", "ENVD_CONF=/etc/environment.d/default-env.conf")
-	envset.Add("Service", "Environment", "PROFILE_CONF=/etc/profile.d/default-env.sh")
-	envset.Add("Service", "ExecStart", `/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} &&\
-        echo "[Manager]\n#Got from QEMU FW_CFG\nDefaultEnvironment=$(/usr/bin/base64 -d ${FWCFGRAW} | sed -e "s+|+ +g")\n" > ${SYSTEMD_CONF} ||\
-        echo "[Manager]\n#Got nothing from QEMU FW_CFG\n#DefaultEnvironment=\n" > ${SYSTEMD_CONF}'`)
-	envset.Add("Service", "ExecStart", `/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
-        echo "#Got from QEMU FW_CFG"> ${ENVD_CONF};\
-        IFS="|";\
-        for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
-            echo "$iprxy" >> ${ENVD_CONF}; done ) || \
-        echo "#Got nothing from QEMU FW_CFG"> ${ENVD_CONF}'`)
-	envset.Add("Service", "ExecStart", `/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
-        echo "#Got from QEMU FW_CFG"> ${PROFILE_CONF};\
-        IFS="|";\
-        for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
-            echo "export $iprxy" >> ${PROFILE_CONF}; done ) || \
-        echo "#Got nothing from QEMU FW_CFG"> ${PROFILE_CONF}'`)
-	envset.Add("Service", "ExecStartPost", "/usr/bin/systemctl daemon-reload")
-
-	envset.Add("Install", "WantedBy", "sysinit.target")
-	envsetFile, err := envset.ToString()
-	if err != nil {
-		return err
-	}
-
 	ignSystemd := Systemd{
 		Units: []Unit{
 			{
@@ -259,16 +220,6 @@ ExecStart=-/usr/sbin/agetty --autologin root --noclear %I $TERM
 				},
 			},
 		},
-	}
-
-	// Only qemu has the qemu firmware environment setting
-	if ign.VMType == define.QemuVirt {
-		qemuUnit := Unit{
-			Enabled:  BoolToPtr(true),
-			Name:     "envset-fwcfg.service",
-			Contents: &envsetFile,
-		}
-		ignSystemd.Units = append(ignSystemd.Units, qemuUnit)
 	}
 
 	if ign.NetRecover {
@@ -582,22 +533,28 @@ Delegate=memory pids cpu io
 	certFiles = getCerts(filepath.Join(userHome, ".config/docker/certs.d"), true)
 	files = append(files, certFiles...)
 
-	if sslCertFile, ok := os.LookupEnv("SSL_CERT_FILE"); ok {
-		if _, err := os.Stat(sslCertFile); err == nil {
-			certFiles = getCerts(sslCertFile, false)
+	sslCertFileName, ok := os.LookupEnv(sslCertFile)
+	if ok {
+		if _, err := os.Stat(sslCertFileName); err == nil {
+			certFiles = getCerts(sslCertFileName, false)
 			files = append(files, certFiles...)
 		} else {
-			logrus.Warnf("Invalid path in SSL_CERT_FILE: %q", err)
+			logrus.Warnf("Invalid path in %s: %q", sslCertFile, err)
 		}
 	}
 
-	if sslCertDir, ok := os.LookupEnv("SSL_CERT_DIR"); ok {
-		if _, err := os.Stat(sslCertDir); err == nil {
-			certFiles = getCerts(sslCertDir, true)
+	sslCertDirName, ok := os.LookupEnv(sslCertDir)
+	if ok {
+		if _, err := os.Stat(sslCertDirName); err == nil {
+			certFiles = getCerts(sslCertDirName, true)
 			files = append(files, certFiles...)
 		} else {
-			logrus.Warnf("Invalid path in SSL_CERT_DIR: %q", err)
+			logrus.Warnf("Invalid path in %s: %q", sslCertDir, err)
 		}
+	}
+	if sslCertFileName != "" || sslCertDirName != "" {
+		// If we copied certs via env then also make the to set the env in the VM.
+		files = append(files, getSSLEnvironmentFiles(sslCertFileName, sslCertDirName)...)
 	}
 
 	files = append(files, File{
@@ -686,16 +643,18 @@ func getCerts(certsDir string, isDir bool) []File {
 	return files
 }
 
-func prepareCertFile(path string, name string) (File, error) {
-	b, err := os.ReadFile(path)
+func prepareCertFile(fpath string, name string) (File, error) {
+	b, err := os.ReadFile(fpath)
 	if err != nil {
 		logrus.Warnf("Unable to read cert file %v", err)
 		return File{}, err
 	}
 
-	targetPath := filepath.Join(define.UserCertsTargetPath, name)
+	// Note path is required here as we always create a path for the linux VM
+	// even when the client run on windows so we cannot use filepath.
+	targetPath := path.Join(define.UserCertsTargetPath, name)
 
-	logrus.Debugf("Copying cert file from '%s' to '%s'.", path, targetPath)
+	logrus.Debugf("Copying cert file from '%s' to '%s'.", fpath, targetPath)
 
 	file := File{
 		Node: Node{
@@ -712,6 +671,57 @@ func prepareCertFile(path string, name string) (File, error) {
 		},
 	}
 	return file, nil
+}
+
+const (
+	systemdSSLConf = "/etc/systemd/system.conf.d/podman-machine-ssl.conf"
+	envdSSLConf    = "/etc/environment.d/podman-machine-ssl.conf"
+	profileSSLConf = "/etc/profile.d/podman-machine-ssl.sh"
+	sslCertFile    = "SSL_CERT_FILE"
+	sslCertDir     = "SSL_CERT_DIR"
+)
+
+func getSSLEnvironmentFiles(sslFileName, sslDirName string) []File {
+	systemdFileContent := "[Manager]\n"
+	envdFileContent := ""
+	profileFileContent := ""
+	if sslFileName != "" {
+		// certs are written to UserCertsTargetPath see prepareCertFile()
+		// Note the mix of path/filepath is intentional and required, we want to get the name of
+		// a path on the client (i.e. windows) but then join to linux path that will be used inside the VM.
+		env := fmt.Sprintf("%s=%q\n", sslCertFile, path.Join(define.UserCertsTargetPath, filepath.Base(sslFileName)))
+		systemdFileContent += "DefaultEnvironment=" + env
+		envdFileContent += env
+		profileFileContent += "export " + env
+	}
+	if sslDirName != "" {
+		// certs are written to UserCertsTargetPath see prepareCertFile()
+		env := fmt.Sprintf("%s=%q\n", sslCertDir, define.UserCertsTargetPath)
+		systemdFileContent += "DefaultEnvironment=" + env
+		envdFileContent += env
+		profileFileContent += "export " + env
+	}
+	return []File{
+		getSSLFile(systemdSSLConf, systemdFileContent),
+		getSSLFile(envdSSLConf, envdFileContent),
+		getSSLFile(profileSSLConf, profileFileContent),
+	}
+}
+
+func getSSLFile(path, content string) File {
+	return File{
+		Node: Node{
+			Group: GetNodeGrp("root"),
+			Path:  path,
+			User:  GetNodeUsr("root"),
+		},
+		FileEmbedded1: FileEmbedded1{
+			Contents: Resource{
+				Source: EncodeDataURLPtr(content),
+			},
+			Mode: IntToPtr(0644),
+		},
+	}
 }
 
 func getLinks(usrName string) []Link {

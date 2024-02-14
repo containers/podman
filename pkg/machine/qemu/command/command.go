@@ -107,11 +107,6 @@ func (q *QemuCmd) SetDisplay(display string) {
 	*q = append(*q, "-display", display)
 }
 
-// SetPropagatedHostEnvs adds options that propagate SSL and proxy settings
-func (q *QemuCmd) SetPropagatedHostEnvs() {
-	*q = PropagateHostEnv(*q)
-}
-
 func (q *QemuCmd) Build() []string {
 	return *q
 }

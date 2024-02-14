@@ -204,13 +204,7 @@ func (w WSLStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo bool
 }
 
 func (w WSLStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func() error, error) {
-	useProxy := setupWslProxyEnv()
 	dist := machine.ToDist(mc.Name)
-
-	// TODO Quiet is hard set to false: follow up
-	if err := configureProxy(dist, useProxy, false); err != nil {
-		return nil, nil, err
-	}
 
 	// TODO The original code checked to see if the SSH port was actually open and re-assigned if it was
 	// we could consider this but it should be higher up the stack
