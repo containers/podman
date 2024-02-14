@@ -317,7 +317,6 @@ func (h HyperVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define
 		return err
 	}
 
-	// TODO lets move this up into set as a "rule" for all machines
 	if vm.State() != hypervctl.Disabled {
 		return errors.New("unable to change settings unless vm is stopped")
 	}

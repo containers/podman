@@ -34,12 +34,6 @@ func (w WSLStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConf
 	defer callbackFuncs.CleanIfErr(&err)
 	go callbackFuncs.CleanOnSignal()
 	mc.WSLHypervisor = new(vmconfigs.WSLConfig)
-	// TODO
-	// USB opts are unsupported in WSL.  Need to account for that here
-	// or up the stack
-	//	if len(opts.USBs) > 0 {
-	//		return nil, fmt.Errorf("USB host passthrough is not supported for WSL machines")
-	//	}
 
 	if cont, err := checkAndInstallWSL(opts.ReExec); !cont {
 		appendOutputIfError(opts.ReExec, err)
@@ -136,22 +130,13 @@ func (w WSLStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.Se
 	mc.Lock()
 	defer mc.Unlock()
 
-	// TODO the check for running when setting rootful is something I have not
-	// seen in the other distributions.  I wonder if this is true everywhere or just
-	// with WSL?
-	// TODO maybe the "rule" for set is that it must be done when the machine is
-	// stopped?
-	// if opts.Rootful != nil && v.Rootful != *opts.Rootful {
-	// 	err := v.setRootful(*opts.Rootful)
-	// 	if err != nil {
-	// 		setErrors = append(setErrors, fmt.Errorf("setting rootful option: %w", err))
-	// 	} else {
-	// 		if v.isRunning() {
-	// 			logrus.Warn("restart is necessary for rootful change to go into effect")
-	// 		}
-	// 		v.Rootful = *opts.Rootful
-	// 	}
-	// }
+	state, err := w.State(mc, false)
+	if err != nil {
+		return err
+	}
+	if state != define.Stopped {
+		return errors.New("unable to change settings unless vm is stopped")
+	}
 
 	if opts.Rootful != nil && mc.HostUser.Rootful != *opts.Rootful {
 		if err := mc.SetRootful(*opts.Rootful); err != nil {
@@ -167,10 +152,9 @@ func (w WSLStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.Se
 		return errors.New("changing memory not supported for WSL machines")
 	}
 
-	// TODO USB still needs to be plumbed for all providers
-	// if USBs != nil {
-	// 	setErrors = append(setErrors, errors.New("changing USBs not supported for WSL machines"))
-	// }
+	if opts.USBs != nil {
+		return errors.New("changing USBs not supported for WSL machines")
+	}
 
 	if opts.DiskSize != nil {
 		return errors.New("changing disk size not supported for WSL machines")

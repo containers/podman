@@ -3,6 +3,7 @@ package qemu
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -255,6 +256,17 @@ func (q *QEMUStubber) resizeDisk(newSize strongunits.GiB, diskPath *define.VMFil
 }
 
 func (q *QEMUStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.SetOptions) error {
+	mc.Lock()
+	defer mc.Unlock()
+
+	state, err := q.State(mc, false)
+	if err != nil {
+		return err
+	}
+	if state != define.Stopped {
+		return errors.New("unable to change settings unless vm is stopped")
+	}
+
 	if opts.DiskSize != nil {
 		if err := q.resizeDisk(*opts.DiskSize, mc.ImagePath); err != nil {
 			return err

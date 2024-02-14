@@ -192,4 +192,23 @@ var _ = Describe("podman machine set", func() {
 		Expect(inspectSession).To(Exit(0))
 		Expect(inspectSession.outputToString()).To(Equal("true"))
 	})
+
+	It("set while machine already running", func() {
+		name := randomString()
+		i := new(initMachine)
+		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		s := new(startMachine)
+		startSession, err := mb.setCmd(s).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(startSession).To(Exit(0))
+
+		set := setMachine{}
+		setSession, err := mb.setName(name).setCmd(set.withRootful(true)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(setSession).To(Exit(125))
+		Expect(setSession.errorToString()).To(ContainSubstring("Error: unable to change settings unless vm is stopped"))
+	})
 })
