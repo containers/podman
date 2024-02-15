@@ -139,7 +139,7 @@ func init() {
 		"Whether this machine should use user-mode networking, routing traffic through a host user-space process")
 	
 	rosettaFlagName := "rosetta"
-	flags.BoolVar(&initOpts.Rosetta, rosettaFlagName, false, "Whether this machine should use Rosetta, running x86_64 Linux binaries under ARM Linux on Apple silicon")
+	flags.BoolVar(&initOpts.Rosetta, rosettaFlagName, true, "Whether this machine should use Rosetta, running x86_64 Linux binaries under ARM Linux on Apple silicon")
 }
 
 func initMachine(cmd *cobra.Command, args []string) error {
