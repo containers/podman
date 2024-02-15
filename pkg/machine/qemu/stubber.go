@@ -141,19 +141,18 @@ func (q *QEMUStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func()
 		return nil, nil, err
 	}
 
-	// If the qemusocketpath exists and the vm is off/down, we should rm
-	// it before the dial as to avoid a segv
-
-	if err := mc.QEMUHypervisor.QMPMonitor.Address.Delete(); err != nil {
+	gvProxySock, err := mc.GVProxySocket()
+	if err != nil {
 		return nil, nil, err
 	}
-	qemuSocketConn, err := sockets.DialSocketWithBackoffs(maxBackoffs, defaultBackoff, mc.QEMUHypervisor.QMPMonitor.Address.GetPath())
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to connect to qemu monitor socket: %w", err)
-	}
-	defer qemuSocketConn.Close()
 
-	fd, err := qemuSocketConn.(*net.UnixConn).File()
+	qemuNetdevSockConn, err := sockets.DialSocketWithBackoffs(maxBackoffs, defaultBackoff, gvProxySock.GetPath())
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to connect to gvproxy socket: %w", err)
+	}
+	defer qemuNetdevSockConn.Close()
+
+	fd, err := qemuNetdevSockConn.(*net.UnixConn).File()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -166,9 +165,6 @@ func (q *QEMUStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func()
 	defer dnr.Close()
 	defer dnw.Close()
 
-	attr := new(os.ProcAttr)
-	files := []*os.File{dnr, dnw, dnw, fd}
-	attr.Files = files
 	cmdLine := q.Command
 
 	cmdLine.SetPropagatedHostEnvs()
@@ -292,7 +288,15 @@ func (q *QEMUStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.
 }
 
 func (q *QEMUStubber) StartNetworking(mc *vmconfigs.MachineConfig, cmd *gvproxy.GvproxyCommand) error {
-	cmd.AddQemuSocket(fmt.Sprintf("unix://%s", mc.QEMUHypervisor.QMPMonitor.Address.GetPath()))
+	gvProxySock, err := mc.GVProxySocket()
+	if err != nil {
+		return err
+	}
+	// make sure it does not exist before gvproxy is called
+	if err := gvProxySock.Delete(); err != nil {
+		logrus.Error(err)
+	}
+	cmd.AddQemuSocket(fmt.Sprintf("unix://%s", gvProxySock.GetPath()))
 	return nil
 }
 
