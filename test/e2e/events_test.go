@@ -87,10 +87,10 @@ var _ = Describe("Podman events", func() {
 	It("podman events with a type", func() {
 		setup := podmanTest.Podman([]string{"run", "-dt", "--pod", "new:foobarpod", ALPINE, "top"})
 		setup.WaitWithDefaultTimeout()
-		stop := podmanTest.Podman([]string{"pod", "stop", "-t0", "foobarpod"})
-		stop.WaitWithDefaultTimeout()
-		Expect(stop).Should(ExitCleanly())
 		Expect(setup).Should(ExitCleanly())
+
+		podmanTest.StopPod("foobarpod")
+
 		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "type=pod", "--filter", "pod=foobarpod"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())

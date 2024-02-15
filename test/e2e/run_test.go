@@ -302,9 +302,7 @@ var _ = Describe("Podman run", func() {
 		Expect(osession).Should(ExitCleanly())
 		Expect(osession.OutputToString()).To(Equal("hello"))
 
-		osession = podmanTest.Podman([]string{"stop", "overlay-foo"})
-		osession.WaitWithDefaultTimeout()
-		Expect(osession).Should(ExitCleanly())
+		podmanTest.StopContainer("overlay-foo")
 
 		startsession := podmanTest.Podman([]string{"start", "--attach", "overlay-foo"})
 		startsession.WaitWithDefaultTimeout()
@@ -1541,9 +1539,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 		ctr.WaitWithDefaultTimeout()
 		Expect(ctr).Should(ExitCleanly())
 
-		stop := podmanTest.Podman([]string{"stop", "-t0", ctrName})
-		stop.WaitWithDefaultTimeout()
-		Expect(stop).Should(ExitCleanly())
+		podmanTest.StopContainer(ctrName)
 
 		// This is ugly, but I don't see a better way
 		time.Sleep(10 * time.Second)
@@ -2093,9 +2089,7 @@ WORKDIR /madethis`, BB)
 		mainContainer.WaitWithDefaultTimeout()
 		Expect(mainContainer).Should(ExitCleanly())
 
-		stop := podmanTest.Podman([]string{"stop", "--all"})
-		stop.WaitWithDefaultTimeout()
-		Expect(stop).Should(ExitCleanly())
+		podmanTest.StopContainer("--all")
 
 		start := podmanTest.Podman([]string{"start", mainName})
 		start.WaitWithDefaultTimeout()

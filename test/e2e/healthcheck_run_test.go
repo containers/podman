@@ -282,9 +282,7 @@ var _ = Describe("Podman healthcheck run", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		stop := podmanTest.Podman([]string{"stop", "-t0", "hc"})
-		stop.WaitWithDefaultTimeout()
-		Expect(stop).Should(ExitCleanly())
+		podmanTest.StopContainer("hc")
 
 		startAgain := podmanTest.Podman([]string{"start", "hc"})
 		startAgain.WaitWithDefaultTimeout()

@@ -524,9 +524,7 @@ RUN useradd -u 1000 auser`, fedoraMinimal)
 
 		// Ensure that stop with a running detached exec session is
 		// clean.
-		stop := podmanTest.Podman([]string{"stop", ctrName})
-		stop.WaitWithDefaultTimeout()
-		Expect(stop).Should(ExitCleanly())
+		podmanTest.StopContainer(ctrName)
 	})
 
 	It("podman exec with env var secret", func() {

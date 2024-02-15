@@ -26,9 +26,7 @@ var _ = Describe("Podman run exit", func() {
 		Expect(pmount).Should(ExitCleanly())
 		Expect(pmount.OutputToString()).To(ContainSubstring(cid))
 
-		stop := podmanTest.Podman([]string{"stop", cid})
-		stop.WaitWithDefaultTimeout()
-		Expect(stop).Should(ExitCleanly())
+		podmanTest.StopContainer(cid)
 
 		// We have to force cleanup so the unmount happens
 		podmanCleanupSession := podmanTest.Podman([]string{"container", "cleanup", cid})
@@ -69,9 +67,7 @@ var _ = Describe("Podman run exit", func() {
 		Expect(pmount).Should(ExitCleanly())
 		Expect(pmount.OutputToString()).To(ContainSubstring(cid))
 
-		stop := podmanTest.Podman([]string{"stop", cid})
-		stop.WaitWithDefaultTimeout()
-		Expect(stop).Should(ExitCleanly())
+		podmanTest.StopContainer(cid)
 
 		// We have to force cleanup so the unmount happens
 		podmanCleanupSession := podmanTest.Podman([]string{"container", "cleanup", cid})

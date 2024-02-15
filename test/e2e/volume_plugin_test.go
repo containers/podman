@@ -140,9 +140,7 @@ var _ = Describe("Podman volume plugins", func() {
 		Expect(arrOutput).To(HaveLen(1))
 		Expect(arrOutput[0]).To(ContainSubstring(volName))
 
-		stop := podmanTest.Podman([]string{"stop", "--timeout", "0", ctrName})
-		stop.WaitWithDefaultTimeout()
-		Expect(stop).Should(ExitCleanly())
+		podmanTest.StopContainer(ctrName)
 
 		// Remove should exit non-zero because missing plugin
 		remove := podmanTest.Podman([]string{"volume", "rm", volName})
