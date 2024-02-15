@@ -124,4 +124,5 @@ type Helper struct {
 	Endpoint       string
 	BinaryPath     *define.VMFile
 	VirtualMachine *config.VirtualMachine
+	Rosetta        bool
 }

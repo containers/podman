@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/systemd/parser"
@@ -65,6 +66,7 @@ type DynamicIgnition struct {
 	Cfg        Config
 	Rootful    bool
 	NetRecover bool
+	Rosetta    bool
 }
 
 func (ign *DynamicIgnition) Write() error {
@@ -237,6 +239,19 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 			Contents: &envsetFile,
 		}
 		ignSystemd.Units = append(ignSystemd.Units, qemuUnit)
+	}
+
+	// Only AppleHv with Apple Silicon can use Rosetta
+	if ign.VMType == define.AppleHvVirt && runtime.GOARCH == "arm64" {
+		rosettaUnit := Systemd{
+			Units: []Unit{
+				{
+					Enabled: BoolToPtr(true),
+					Name:    "rosetta-activation.service",
+				},
+			},
+		}
+		ignSystemd.Units = append(ignSystemd.Units, rosettaUnit.Units...)
 	}
 
 	// Only after all checks are done

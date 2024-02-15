@@ -4,8 +4,10 @@ package applehv
 
 import (
 	"fmt"
+	"runtime"
 	"strconv"
 
+	"github.com/containers/common/pkg/config"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/apple"
@@ -65,6 +67,16 @@ func (a AppleHVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.Machine
 	}
 	ignBuilder.WithUnit(virtIOIgnitionMounts...)
 
+	cfg, err := config.Default()
+	if err != nil {
+		return err
+	}
+	rosetta := cfg.Machine.Rosetta
+	if runtime.GOARCH != "arm64" {
+		rosetta = false
+	}
+	mc.AppleHypervisor.Vfkit.Rosetta = rosetta
+
 	return apple.ResizeDisk(mc, mc.Resources.DiskSize)
 }
 
@@ -104,6 +116,18 @@ func (a AppleHVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func
 		return nil, nil, fmt.Errorf("unable to determine boot loader for this machine")
 	}
 
+	cfg, err := config.Default()
+	if err != nil {
+		return nil, nil, err
+	}
+	rosetta := cfg.Machine.Rosetta
+	rosettaNew := rosetta
+	if runtime.GOARCH == "arm64" {
+		rosettaMC := mc.AppleHypervisor.Vfkit.Rosetta
+		if rosettaMC != rosettaNew {
+			mc.AppleHypervisor.Vfkit.Rosetta = rosettaNew
+		}
+	}
 	return apple.StartGenericAppleVM(mc, vfkitCommand, bl, mc.AppleHypervisor.Vfkit.Endpoint)
 }
 
@@ -130,4 +154,9 @@ func (a AppleHVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo 
 
 func (a AppleHVStubber) GetDisk(userInputPath string, dirs *define.MachineDirs, mc *vmconfigs.MachineConfig) error {
 	return diskpull.GetDisk(userInputPath, dirs, mc.ImagePath, a.VMType(), mc.Name)
+}
+
+func (a *AppleHVStubber) GetRosetta(mc *vmconfigs.MachineConfig) (bool, error) {
+	rosetta := mc.AppleHypervisor.Vfkit.Rosetta
+	return rosetta, nil
 }

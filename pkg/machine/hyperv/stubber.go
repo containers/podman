@@ -557,3 +557,7 @@ func createNetworkUnit(netPort uint64) (string, error) {
 	netUnit.Add("Install", "WantedBy", "multi-user.target")
 	return netUnit.ToString()
 }
+
+func (h HyperVStubber) GetRosetta(mc *vmconfigs.MachineConfig) (bool, error) {
+	return false, nil
+}
