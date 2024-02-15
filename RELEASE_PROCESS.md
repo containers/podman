@@ -297,7 +297,7 @@ spelled with complete minutiae.
       1. On the left pick the "Update Windows Installer" category
       1. A blue box will appear above the job list with a right side drop
          -down. Click the drop-down and specify the version number in the
-         dialog that appears
+         dialog that appears.
 
       ## Manually Triggering Mac Installer Build & Upload
 
