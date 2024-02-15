@@ -2,6 +2,7 @@ package e2e_test
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/Microsoft/go-winio/vhd"
@@ -42,6 +43,7 @@ var _ = Describe("podman machine init - windows only", func() {
 		Expect(inspectSession).To(Exit(0))
 		Expect(inspectSession.outputToString()).To(Equal("true"))
 	})
+
 	It("init should not should not overwrite existing HyperV vms", func() {
 		skipIfNotVmtype(define.HyperVVirt, "HyperV test only")
 		name := randomString()
@@ -74,5 +76,51 @@ var _ = Describe("podman machine init - windows only", func() {
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
 		Expect(session).To(Exit(125))
 		Expect(session.errorToString()).To(ContainSubstring("already exists on hypervisor"))
+	})
+
+	It("init should not overwrite existing WSL vms", func() {
+		skipIfNotVmtype(define.WSLVirt, "WSL test only")
+
+		var (
+			wsl string = "wsl"
+		)
+
+		name := randomString()
+		distName := fmt.Sprintf("podman-%s", name)
+		exportedPath := filepath.Join(testDir, "bogus.tar")
+		distrDir := filepath.Join(testDir, "testDistro")
+		err := os.Mkdir(distrDir, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		// create a bogus machine
+		i := new(initMachine)
+		session, err := mb.setName("foobarexport").setCmd(i.withImagePath(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		// export the bogus machine so we have input for making
+		// a vm outside the context of podman-machine and also
+		// so we dont have to download a distribution from microsoft
+		// servers
+		exportSession, err := runSystemCommand(wsl, []string{"--export", "podman-foobarexport", exportedPath}, defaultTimeout, true)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(exportSession).To(Exit(0))
+
+		// importing the machine and creating a vm
+		importSession, err := runSystemCommand(wsl, []string{"--import", distName, distrDir, exportedPath}, defaultTimeout, true)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(importSession).To(Exit(0))
+
+		defer func() {
+			_, err := runSystemCommand(wsl, []string{"--unregister", distName}, defaultTimeout, true)
+			if err != nil {
+				fmt.Println("unable to remove bogus wsl instance")
+			}
+		}()
+
+		// Trying to make a vm with the same name as an existing name should result in a 125
+		checkSession, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(checkSession).To(Exit(125))
 	})
 })
