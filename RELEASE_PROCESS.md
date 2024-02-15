@@ -312,7 +312,7 @@ spelled with complete minutiae.
       1. On the left pick the "Sign and Upload Mac Installer" category
       1. A blue box will appear above the job list with a right side drop
          -down. Click the drop-down and specify the version number in the
-         dialog that appears
+         dialog that appears.
 
 1. Announce the release
       1. For major and minor releases, write a blog post and publish it to blogs.podman.io
