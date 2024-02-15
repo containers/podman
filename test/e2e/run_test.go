@@ -1541,7 +1541,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 		ctr.WaitWithDefaultTimeout()
 		Expect(ctr).Should(ExitCleanly())
 
-		stop := podmanTest.Podman([]string{"stop", ctrName})
+		stop := podmanTest.Podman([]string{"stop", "-t0", ctrName})
 		stop.WaitWithDefaultTimeout()
 		Expect(stop).Should(ExitCleanly())
 
@@ -1693,13 +1693,15 @@ VOLUME %s`, ALPINE, volPath, volPath)
 		session := podmanTest.Podman([]string{"create", "--replace", ALPINE, "/bin/sh"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("cannot replace container without --name being set"))
 
 		// Run and replace 5 times in a row the "same" container.
 		ctrName := "testCtr"
 		for i := 0; i < 5; i++ {
 			session := podmanTest.Podman([]string{"run", "--detach", "--replace", "--name", ctrName, ALPINE, "top"})
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(ExitCleanly())
+			// FIXME - #20196: Cannot use ExitCleanly()
+			Expect(session).Should(Exit(0))
 
 			// make sure Podman prints only one ID
 			Expect(session.OutputToString()).To(HaveLen(64))

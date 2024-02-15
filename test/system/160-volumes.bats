@@ -155,7 +155,7 @@ Labels.l       | $mylabel
     cid=$output
     run_podman 2 volume rm myvol
     is "$output" "Error: volume myvol is being used by the following container(s): $cid: volume is being used" "should error since container is running"
-    run_podman volume rm myvol --force
+    run_podman volume rm myvol --force -t0
 }
 
 # Running scripts (executables) from a volume

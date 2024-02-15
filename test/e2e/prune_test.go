@@ -405,7 +405,8 @@ var _ = Describe("Podman prune", func() {
 
 		session = podmanTest.Podman([]string{"pod", "stop", podid1})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		// FIXME - #20196: Cannot use ExitCleanly()
+		Expect(session).Should(Exit(0))
 
 		// Create a container. This container should be pruned.
 		create := podmanTest.Podman([]string{"create", "--name", "test", BB})
