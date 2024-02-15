@@ -60,7 +60,7 @@ require (
 	github.com/vbauerster/mpb/v7 v7.5.3
 	github.com/vishvananda/netlink v1.2.1-beta.2
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/net v0.10.0
+	golang.org/x/net v0.13.0
 	golang.org/x/sync v0.1.0
 	golang.org/x/sys v0.15.0
 	golang.org/x/term v0.15.0
