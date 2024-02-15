@@ -1,40 +1,52 @@
 % podman-manifest-annotate 1
 
 ## NAME
-podman\-manifest\-annotate - Add or update information about an entry in a manifest list or image index
+podman\-manifest\-annotate - Add and update information about an image or artifact in a manifest list or image index
 
 ## SYNOPSIS
-**podman manifest annotate** [*options*] *listnameorindexname* *imagemanifestdigest*
+**podman manifest annotate** [*options*] *listnameorindexname* *imagemanifestdigestorimageorartifactname*
 
 ## DESCRIPTION
 
-Adds or updates information about an image included in a manifest list or image index.
+Adds or updates information about an image or artifact included in a manifest list or image index.
 
 ## OPTIONS
 
 @@option annotation.manifest
+If **--index** is also specified, sets the annotation on the entire image index.
 
-#### **--arch**
+#### **--arch**=*architecture*
 
 Override the architecture which the list or index records as a requirement for
 the image.  This is usually automatically retrieved from the image's
 configuration information, so it is rarely necessary to use this option.
 
-
 @@option features
 
-#### **--os**
+#### **--index**
+
+Treats arguments to the **--annotation** option as annotation values to be set
+on the image index itself rather than on an entry in the image index.  Implied
+for **--subject**.
+
+#### **--os**=*OS*
 
 Override the OS which the list or index records as a requirement for the image.
 This is usually automatically retrieved from the image's configuration
 information, so it is rarely necessary to use this option.
 
-#### **--os-features**
+#### **--os-features**=*feature*
 
 Specify the OS features list which the list or index records as requirements
 for the image.  This option is rarely used.
 
 @@option os-version
+
+#### **--subject**=*imageName*
+
+Set the *subject* field in the image index to mark the image index as being
+associated with the specified image in some way.  An image index can only be
+associated with, at most, one subject.
 
 @@option variant.manifest
 

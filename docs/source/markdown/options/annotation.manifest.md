@@ -4,4 +4,4 @@
 ####> are applicable to all of those.
 #### **--annotation**=*annotation=value*
 
-Set an annotation on the entry for the image.
+Set an annotation on the entry for the specified image or artifact.

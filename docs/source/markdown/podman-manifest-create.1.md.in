@@ -28,6 +28,10 @@ If a manifest list named *listnameorindexname* already exists, modify the
 preexisting list instead of exiting with an error.  The contents of
 *listnameorindexname* are not modified if no *imagename*s are given.
 
+#### **--annotation**=*value*
+
+Set an annotation on the newly-created image index.
+
 @@option tls-verify
 
 ## EXAMPLES
