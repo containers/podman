@@ -454,6 +454,19 @@ func (p *PodmanTestIntegration) InspectContainer(name string) []define.InspectCo
 	return session.InspectContainerToJSON()
 }
 
+// StopContainer stops a container with no timeout, ensuring a fast test.
+func (p *PodmanTestIntegration) StopContainer(nameOrID string) {
+	stop := p.Podman([]string{"stop", "-t0", nameOrID})
+	stop.WaitWithDefaultTimeout()
+	Expect(stop).Should(ExitCleanly())
+}
+
+func (p *PodmanTestIntegration) StopPod(nameOrID string) {
+	stop := p.Podman([]string{"pod", "stop", "-t0", nameOrID})
+	stop.WaitWithDefaultTimeout()
+	Expect(stop).Should(ExitCleanly())
+}
+
 func processTestResult(r SpecReport) {
 	tr := testResult{length: r.RunTime.Seconds(), name: r.FullText()}
 	_, err := timingsFile.WriteString(fmt.Sprintf("%s\t\t%f\n", tr.name, tr.length))

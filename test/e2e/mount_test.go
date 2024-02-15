@@ -179,9 +179,7 @@ var _ = Describe("Podman mount", func() {
 		Expect(lmount).Should(ExitCleanly())
 		Expect(lmount.OutputToString()).To(ContainSubstring(cid))
 
-		stop := podmanTest.Podman([]string{"stop", cid})
-		stop.WaitWithDefaultTimeout()
-		Expect(stop).Should(ExitCleanly())
+		podmanTest.StopContainer(cid)
 
 		lmount = podmanTest.Podman([]string{"mount", "--no-trunc"})
 		lmount.WaitWithDefaultTimeout()

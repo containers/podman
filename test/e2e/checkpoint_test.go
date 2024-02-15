@@ -142,16 +142,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(inspectOut[0].State.CheckpointLog).To(ContainSubstring("userdata/dump.log"))
 		Expect(inspectOut[0].State.RestoreLog).To(ContainSubstring("userdata/restore.log"))
 
-		result = podmanTest.Podman([]string{
-			"container",
-			"stop",
-			"--timeout",
-			"0",
-			cid,
-		})
-		result.WaitWithDefaultTimeout()
-
-		Expect(result).Should(ExitCleanly())
+		podmanTest.StopContainer(cid)
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 
 		result = podmanTest.Podman([]string{
@@ -416,10 +407,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
 
 		// Stop the container
-		result = podmanTest.Podman([]string{"container", "stop", cid})
-		result.WaitWithDefaultTimeout()
-
-		Expect(result).Should(ExitCleanly())
+		podmanTest.StopContainer(cid)
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Exited"))
 

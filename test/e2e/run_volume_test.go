@@ -386,9 +386,7 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(mountOut2).To(ContainSubstring(volName))
 
 		// Stop the container to unmount
-		podmanStopSession := podmanTest.Podman([]string{"stop", "--time", "0", ctrName})
-		podmanStopSession.WaitWithDefaultTimeout()
-		Expect(podmanStopSession).Should(ExitCleanly())
+		podmanTest.StopContainer(ctrName)
 
 		// We have to force cleanup so the unmount happens
 		podmanCleanupSession := podmanTest.Podman([]string{"container", "cleanup", ctrName})
@@ -675,9 +673,7 @@ VOLUME /test/`, ALPINE)
 		session = podmanTest.Podman([]string{"exec", "-l", "ls", "/run/test/container"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		session = podmanTest.Podman([]string{"stop", "-l"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		podmanTest.StopContainer("-l")
 		session = podmanTest.Podman([]string{"start", "-l"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
