@@ -256,6 +256,7 @@ sub xref_by_help {
                     }
 
                     warn "$ME: 'podman @subcommand {{$k' $msg\n";
+                    ++$Errs;
                 }
             }
         }
