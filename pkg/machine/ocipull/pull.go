@@ -28,10 +28,6 @@ type PullOptions struct {
 
 // Pull `imageInput` from a container registry to `sourcePath`.
 func Pull(ctx context.Context, imageInput types.ImageReference, localDestPath *define.VMFile, options *PullOptions) error {
-	if _, err := os.Stat(localDestPath.GetPath()); err == nil {
-		return fmt.Errorf("%q already exists", localDestPath.GetPath())
-	}
-
 	destRef, err := layout.ParseReference(localDestPath.GetPath())
 	if err != nil {
 		return err
