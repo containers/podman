@@ -369,6 +369,41 @@ var _ = Describe("podman machine init", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(inspectShouldPass).To(Exit(0))
 	})
+
+	It("machine init with rosetta", func() {
+		if testProvider.VMType() != define.AppleHvVirt {
+			Skip("Test is only for AppleHv")
+		}
+		i := initMachine{}
+		name := randomString()
+		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withRosetta(true)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		s := startMachine{}
+		ssession, err := mb.setCmd(s).setTimeout(time.Minute * 10).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(ssession).Should(Exit(0))
+
+		inspect := new(inspectMachine)
+		inspect = inspect.withFormat("{{.Rosetta}}")
+		inspectSession, err := mb.setName(name).setCmd(inspect).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(inspectSession).To(Exit(0))
+		Expect(inspectSession.outputToString()).To(Equal("true"))
+
+		mnt := sshMachine{}
+		mntSession, err := mb.setName(name).setCmd(mnt.withSSHCommand([]string{"ls -d /mnt/rosetta"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(mntSession).To(Exit(0))
+		Expect(mntSession.outputToString()).To(ContainSubstring("/mnt/rosetta"))
+
+		proc := sshMachine{}
+		procSession, err := mb.setName(name).setCmd(proc.withSSHCommand([]string{"ls -d /proc/sys/fs/binfmt_misc/rosetta"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(procSession).To(Exit(0))
+		Expect(procSession.outputToString()).To(ContainSubstring("/proc/sys/fs/binfmt_misc/rosetta"))
+	})
 })
 
 var p4Config = []byte(`{

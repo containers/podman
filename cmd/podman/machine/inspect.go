@@ -88,6 +88,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 			State:              state,
 			UserModeNetworking: provider.UserModeNetworkEnabled(mc),
 			Rootful:            mc.HostUser.Rootful,
+			Rosetta:            mc.Rosetta,
 		}
 
 		vms = append(vms, ii)

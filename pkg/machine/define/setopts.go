@@ -9,4 +9,5 @@ type SetOptions struct {
 	Rootful            *bool
 	UserModeNetworking *bool
 	USBs               *[]string
+	Rosetta            *bool
 }

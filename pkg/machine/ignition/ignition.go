@@ -238,6 +238,21 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 		ignSystemd.Units = append(ignSystemd.Units, qemuUnit)
 	}
 
+	// Only AppleHv has the rosetta setting
+	if ign.VMType == define.AppleHvVirt {
+		contents, err := GetRosettaActivationUnitFile().ToString()
+		if err != nil {
+			return err
+		}
+
+		rosettaUnit := Unit{
+			Enabled:  BoolToPtr(false),
+			Name:     "rosetta-activation.service",
+			Contents: &contents,
+		}
+		ignSystemd.Units = append(ignSystemd.Units, rosettaUnit)
+	}
+
 	// Only after all checks are done
 	// it's ready create the ingConfig
 	ign.Cfg = Config{
@@ -427,6 +442,24 @@ pids_limit=0
 		// If we copied certs via env then also make the to set the env in the VM.
 		files = append(files, getSSLEnvironmentFiles(sslCertFileName, sslCertDirName)...)
 	}
+
+	RosettaActivation := `#!/bin/bash
+echo ":rosetta:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x3e\x00:\xff\xff\xff\xff\xff\xfe\xfe\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/mnt/rosetta:F" > /proc/sys/fs/binfmt_misc/register
+`
+
+	files = append(files, File{
+		Node: Node{
+			User:  GetNodeUsr("root"),
+			Group: GetNodeGrp("root"),
+			Path:  "/usr/local/bin/rosetta-activation.sh",
+		},
+		FileEmbedded1: FileEmbedded1{
+			Mode: IntToPtr(0755),
+			Contents: Resource{
+				Source: EncodeDataURLPtr(RosettaActivation),
+			},
+		},
+	})
 
 	return files
 }
@@ -691,4 +724,18 @@ func DefaultReadyUnitFile() parser.UnitFile {
 	u.Add("Service", "RemainAfterExit", "yes")
 	u.Add("Install", "RequiredBy", "default.target")
 	return *u
+}
+
+func GetRosettaActivationUnitFile() *parser.UnitFile {
+    rosettaUnit := parser.NewUnitFile()
+    rosettaUnit.Add("Unit", "Description", "Activates Rosetta if necessary")
+    rosettaUnit.Add("Unit", "After", "sshd.socket sshd.service")
+	rosettaUnit.Add("Service", "Type", "oneshot")
+	rosettaUnit.Add("Service", "RemainAfterExit", "yes")
+    rosettaUnit.Add("Service", "ExecStartPre","mount -t virtiofs -o context=system_u:object_r:container_runtime_exec_t:s0 rosetta /mnt")
+	rosettaUnit.Add("Service", "ExecStart","/usr/local/bin/rosetta-activation.sh")
+    rosettaUnit.Add("Service", "ExecStartPost",`find /proc/sys/fs/binfmt_misc -type f -name 'qemu-*' -exec sh -c 'echo -1 > {}' \;`)
+	rosettaUnit.Add("Install", "WantedBy", "default.target")
+
+    return rosettaUnit
 }

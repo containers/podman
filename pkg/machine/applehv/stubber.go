@@ -116,6 +116,10 @@ func (a AppleHVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts defin
 		return fmt.Errorf("changing USBs not supported for applehv machines")
 	}
 
+	if opts.Rosetta != nil {
+		mc.Rosetta = *opts.Rosetta
+	}
+
 	// VFKit does not require saving memory, disk, or cpu
 	return nil
 }

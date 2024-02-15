@@ -38,6 +38,7 @@ type SetFlags struct {
 	Rootful            bool
 	UserModeNetworking bool
 	USBs               []string
+	Rosetta            bool
 }
 
 func init() {
@@ -85,6 +86,9 @@ func init() {
 	userModeNetFlagName := "user-mode-networking"
 	flags.BoolVar(&setFlags.UserModeNetworking, userModeNetFlagName, false, // defaults not-relevant due to use of Changed()
 		"Whether this machine should use user-mode networking, routing traffic through a host user-space process")
+
+	rosettaFlagName := "rosetta"
+	flags.BoolVar(&setFlags.Rosetta, rosettaFlagName, false, "Whether this machine should use Rosetta, running x86_64 Linux binaries under ARM Linux on Apple silicon")
 }
 
 func setMachine(cmd *cobra.Command, args []string) error {
@@ -122,6 +126,9 @@ func setMachine(cmd *cobra.Command, args []string) error {
 	}
 	if cmd.Flags().Changed("usb") {
 		setOpts.USBs = &setFlags.USBs
+	}
+	if cmd.Flags().Changed("rosetta") {
+		setOpts.Rosetta = &setFlags.Rosetta
 	}
 
 	// At this point, we have the known changed information, etc

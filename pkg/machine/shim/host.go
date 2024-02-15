@@ -526,6 +526,13 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 		mc.HostUser.Rootful,
 	)
 
+	if mc.Rosetta {
+		err := machine.ActivateRosettaService(mc)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
