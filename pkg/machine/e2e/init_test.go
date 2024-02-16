@@ -66,7 +66,19 @@ var _ = Describe("podman machine init", func() {
 		Expect(badInit).To(Exit(125))
 		Expect(badInit.errorToString()).To(ContainSubstring(want))
 
+		invalidName := "ab/cd"
+		session, err = mb.setName(invalidName).setCmd(&i).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(125))
+		Expect(session.errorToString()).To(ContainSubstring(`invalid name "ab/cd": names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*: invalid argument`))
+
+		i.username = "-/a"
+		session, err = mb.setName("").setCmd(&i).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(125))
+		Expect(session.errorToString()).To(ContainSubstring(`invalid username "-/a": names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*: invalid argument`))
 	})
+
 	It("simple init", func() {
 		i := new(initMachine)
 		session, err := mb.setCmd(i.withImagePath(mb.imagePath)).run()
