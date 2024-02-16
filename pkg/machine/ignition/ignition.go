@@ -178,24 +178,6 @@ ExecStart=
 ExecStart=-/usr/sbin/agetty --autologin root --noclear %I $TERM
 `
 
-	deMoby := parser.NewUnitFile()
-	deMoby.Add("Unit", "Description", "Remove moby-engine")
-	deMoby.Add("Unit", "After", "systemd-machine-id-commit.service")
-	deMoby.Add("Unit", "Before", "zincati.service")
-	deMoby.Add("Unit", "ConditionPathExists", "!/var/lib/%N.stamp")
-
-	deMoby.Add("Service", "Type", "oneshot")
-	deMoby.Add("Service", "RemainAfterExit", "yes")
-	deMoby.Add("Service", "ExecStart", "/usr/bin/rpm-ostree override remove moby-engine")
-	deMoby.Add("Service", "ExecStart", "/usr/bin/rpm-ostree ex apply-live --allow-replacement")
-	deMoby.Add("Service", "ExecStartPost", "/bin/touch /var/lib/%N.stamp")
-
-	deMoby.Add("Install", "WantedBy", "default.target")
-	deMobyFile, err := deMoby.ToString()
-	if err != nil {
-		return err
-	}
-
 	// This service gets environment variables that are provided
 	// through qemu fw_cfg and then sets them into systemd/system.conf.d,
 	// profile.d and environment.d files
@@ -251,11 +233,6 @@ ExecStart=-/usr/sbin/agetty --autologin root --noclear %I $TERM
 				Enabled: BoolToPtr(false),
 				Name:    "docker.socket",
 				Mask:    BoolToPtr(true),
-			},
-			{
-				Enabled:  BoolToPtr(true),
-				Name:     "remove-moby.service",
-				Contents: &deMobyFile,
 			},
 			{
 				// Disable auto-updating of fcos images
@@ -871,7 +848,7 @@ func GetNetRecoveryUnitFile() *parser.UnitFile {
 
 func DefaultReadyUnitFile() parser.UnitFile {
 	u := parser.NewUnitFile()
-	u.Add("Unit", "After", "remove-moby.service sshd.socket sshd.service")
+	u.Add("Unit", "After", "sshd.socket sshd.service")
 	u.Add("Unit", "OnFailure", "emergency.target")
 	u.Add("Unit", "OnFailureJobMode", "isolate")
 	u.Add("Service", "Type", "oneshot")

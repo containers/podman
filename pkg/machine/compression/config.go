@@ -9,6 +9,7 @@ const (
 	Zip
 	Gz
 	Bz2
+	Zstd
 )
 
 func KindFromFile(path string) ImageCompression {
@@ -19,8 +20,10 @@ func KindFromFile(path string) ImageCompression {
 		return Gz
 	case strings.HasSuffix(path, Zip.String()):
 		return Zip
+	case strings.HasSuffix(path, Xz.String()):
+		return Xz
 	}
-	return Xz
+	return Zstd
 }
 
 func (c ImageCompression) String() string {
@@ -31,6 +34,8 @@ func (c ImageCompression) String() string {
 		return "zip"
 	case Bz2:
 		return "bz2"
+	case Xz:
+		return "xz"
 	}
-	return "xz"
+	return "zst"
 }

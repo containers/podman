@@ -45,19 +45,19 @@ func TestImageFormat_KindWithCompression(t *testing.T) {
 		want string
 	}{
 		{
-			name: "vhdx.zip",
+			name: "vhdx",
 			imf:  Vhdx,
-			want: "vhdx.zip",
+			want: "vhdx.zst",
 		},
 		{
 			name: "qcow2",
 			imf:  Qcow,
-			want: "qcow2.xz",
+			want: "qcow2.zst",
 		},
 		{
-			name: "raw.gz",
+			name: "raw",
 			imf:  Raw,
-			want: "raw.gz",
+			want: "raw.zst",
 		}, {
 			name: "tar.xz",
 			imf:  Tar,

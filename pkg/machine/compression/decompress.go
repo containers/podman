@@ -18,6 +18,7 @@ import (
 	"github.com/containers/podman/v5/utils"
 	"github.com/containers/storage/pkg/archive"
 	crcOs "github.com/crc-org/crc/v2/pkg/os"
+	"github.com/klauspost/compress/zstd"
 	"github.com/sirupsen/logrus"
 	"github.com/ulikunitz/xz"
 )
@@ -59,12 +60,22 @@ func Decompress(localPath *define.VMFile, uncompressedPath string) error {
 		if err != nil {
 			return err
 		}
+		// darwin really struggles with sparse files. being diligent here
 		fmt.Printf("Copying uncompressed file %q to %q/n", localPath.GetPath(), dstFile.Name())
+
+		// Keeping CRC implementation for now, but ideally this could be pruned and
+		// sparsewriter could be used.  in that case, this area needs rework or
+		// sparsewriter be made to honor the *file interface
 		_, err = crcOs.CopySparse(uncompressedFileWriter, dstFile)
 		return err
 	case archive.Gzip:
 		if runtime.GOOS == "darwin" {
-			return decompressGzWithSparse(prefix, localPath, uncompressedPath)
+			return decompressGzWithSparse(prefix, localPath, uncompressedFileWriter)
+		}
+		fallthrough
+	case archive.Zstd:
+		if runtime.GOOS == "darwin" {
+			return decompressZstdWithSparse(prefix, localPath, uncompressedFileWriter)
 		}
 		fallthrough
 	default:
@@ -225,22 +236,31 @@ func decompressZip(prefix string, src string, output io.WriteCloser) error {
 	return err
 }
 
-func decompressGzWithSparse(prefix string, compressedPath *define.VMFile, uncompressedPath string) error {
-	stat, err := os.Stat(compressedPath.GetPath())
-	if err != nil {
-		return err
-	}
-
-	dstFile, err := os.OpenFile(uncompressedPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, stat.Mode())
-	if err != nil {
-		return err
-	}
+func decompressWithSparse(prefix string, compressedReader io.Reader, uncompressedFile *os.File) error {
+	dstFile := NewSparseWriter(uncompressedFile)
 	defer func() {
 		if err := dstFile.Close(); err != nil {
-			logrus.Errorf("unable to close uncompressed file %s: %q", uncompressedPath, err)
+			logrus.Errorf("unable to close uncompressed file %s: %q", uncompressedFile.Name(), err)
 		}
 	}()
 
+	// TODO remove the following line when progress bars work
+	_ = prefix
+	// p, bar := utils.ProgressBar(prefix, stat.Size(), prefix+": done")
+	// proxyReader := bar.ProxyReader(f)
+	// defer func() {
+	// 	if err := proxyReader.Close(); err != nil {
+	// 		logrus.Error(err)
+	// 	}
+	// }()
+
+	// p.Wait()
+	_, err := io.Copy(dstFile, compressedReader)
+	return err
+}
+
+func decompressGzWithSparse(prefix string, compressedPath *define.VMFile, uncompressedFileWriter *os.File) error {
+	logrus.Debugf("decompressing %s", compressedPath.GetPath())
 	f, err := os.Open(compressedPath.GetPath())
 	if err != nil {
 		return err
@@ -260,20 +280,34 @@ func decompressGzWithSparse(prefix string, compressedPath *define.VMFile, uncomp
 			logrus.Errorf("unable to close gzreader: %q", err)
 		}
 	}()
+	// This way we get something to look at in debug mode
+	defer func() {
+		logrus.Debug("decompression complete")
+	}()
+	return decompressWithSparse(prefix, gzReader, uncompressedFileWriter)
+}
 
-	// TODO remove the following line when progress bars work
-	_ = prefix
-	// p, bar := utils.ProgressBar(prefix, stat.Size(), prefix+": done")
-	// proxyReader := bar.ProxyReader(f)
-	// defer func() {
-	// 	if err := proxyReader.Close(); err != nil {
-	// 		logrus.Error(err)
-	// 	}
-	// }()
-
+func decompressZstdWithSparse(prefix string, compressedPath *define.VMFile, uncompressedFileWriter *os.File) error {
 	logrus.Debugf("decompressing %s", compressedPath.GetPath())
-	_, err = crcOs.CopySparse(dstFile, gzReader)
-	logrus.Debug("decompression complete")
-	// p.Wait()
-	return err
+	f, err := os.Open(compressedPath.GetPath())
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			logrus.Errorf("unable to close on compressed file %s: %q", compressedPath.GetPath(), err)
+		}
+	}()
+
+	zstdReader, err := zstd.NewReader(f)
+	if err != nil {
+		return err
+	}
+	defer zstdReader.Close()
+
+	// This way we get something to look at in debug mode
+	defer func() {
+		logrus.Debug("decompression complete")
+	}()
+	return decompressWithSparse(prefix, zstdReader, uncompressedFileWriter)
 }

@@ -33,11 +33,11 @@ func Test_compressionFromFile(t *testing.T) {
 			want: Bz2,
 		},
 		{
-			name: "default is xz",
+			name: "default is zstd",
 			args: args{
 				path: "/tmp/foo",
 			},
-			want: Xz,
+			want: Zstd,
 		},
 	}
 	for _, tt := range tests {
@@ -76,9 +76,9 @@ func TestImageCompression_String(t *testing.T) {
 			want: "zip",
 		},
 		{
-			name: "xz is default",
+			name: "zstd is default",
 			c:    99,
-			want: "xz",
+			want: "zst",
 		},
 	}
 	for _, tt := range tests {
