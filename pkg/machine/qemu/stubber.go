@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -296,7 +297,7 @@ func (q *QEMUStubber) StartNetworking(mc *vmconfigs.MachineConfig, cmd *gvproxy.
 	if err := gvProxySock.Delete(); err != nil {
 		logrus.Error(err)
 	}
-	cmd.AddQemuSocket(fmt.Sprintf("unix://%s", gvProxySock.GetPath()))
+	cmd.AddQemuSocket(fmt.Sprintf("unix://%s", filepath.ToSlash(gvProxySock.GetPath())))
 	return nil
 }
 

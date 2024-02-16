@@ -22,7 +22,7 @@ func checkProcessStatus(processHint string, pid int, stderrBuf *bytes.Buffer) er
 	var status syscall.WaitStatus
 	pid, err := syscall.Wait4(pid, &status, syscall.WNOHANG, nil)
 	if err != nil {
-		return fmt.Errorf("failed to read qem%su process status: %w", processHint, err)
+		return fmt.Errorf("failed to read %s process status: %w", processHint, err)
 	}
 	if pid > 0 {
 		// child exited

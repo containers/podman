@@ -10,11 +10,3 @@ func (q *QEMUStubber) addArchOptions(_ *setNewMachineCMDOpts) []string {
 	opts := []string{"-machine", "q35,accel=whpx:tcg", "-cpu", "qemu64"}
 	return opts
 }
-
-func (v *MachineVM) prepare() error {
-	return nil
-}
-
-func (v *MachineVM) archRemovalFiles() []string {
-	return []string{}
-}
