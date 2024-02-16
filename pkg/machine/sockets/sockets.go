@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -93,4 +94,19 @@ func DialSocketWithBackoffsAndProcCheck(
 		}
 	}
 	return nil, err
+}
+
+// WaitForSocketWithBackoffs attempts to discover listening socket in maxBackoffs attempts
+func WaitForSocketWithBackoffs(maxBackoffs int, backoff time.Duration, socketPath string, name string) error {
+	backoffWait := backoff
+	logrus.Debugf("checking that %q socket is ready", name)
+	for i := 0; i < maxBackoffs; i++ {
+		_, err := os.Stat(socketPath)
+		if err == nil {
+			return nil
+		}
+		time.Sleep(backoffWait)
+		backoffWait *= 2
+	}
+	return fmt.Errorf("unable to connect to %q socket at %q", name, socketPath)
 }
