@@ -50,8 +50,6 @@ type MachineConfig struct {
 
 	// Starting is defined as "on" but not fully booted
 	Starting bool
-
-	Rosetta  bool
 }
 
 type machineImage interface { //nolint:unused
@@ -100,6 +98,8 @@ type VMProvider interface { //nolint:interfacebloat
 	UseProviderNetworkSetup() bool
 	RequireExclusiveActive() bool
 	UpdateSSHPort(mc *MachineConfig, port int) error
+	SetRosetta(mc *MachineConfig) error
+	GetRosetta(mc *MachineConfig) (bool, error)
 }
 
 // HostUser describes the host user

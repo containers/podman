@@ -10,7 +10,6 @@ type setMachine struct {
 	memory             *uint
 	rootful            bool
 	userModeNetworking bool
-	rosetta            bool
 
 	cmd []string
 }
@@ -31,9 +30,6 @@ func (i *setMachine) buildCmd(m *machineTestBuilder) []string {
 	}
 	if i.userModeNetworking {
 		cmd = append(cmd, "--user-mode-networking")
-	}
-	if i.rosetta {
-		cmd = append(cmd, "--rosetta")
 	}
 	cmd = append(cmd, m.name)
 	i.cmd = cmd
@@ -61,10 +57,5 @@ func (i *setMachine) withRootful(r bool) *setMachine {
 
 func (i *setMachine) withUserModeNetworking(r bool) *setMachine {
 	i.userModeNetworking = r
-	return i
-}
-
-func (i *setMachine) withRosetta(r bool) *setMachine {
-	i.rosetta = r
 	return i
 }

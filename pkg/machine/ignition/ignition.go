@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/systemd/parser"
@@ -64,6 +65,7 @@ type DynamicIgnition struct {
 	Cfg        Config
 	Rootful    bool
 	NetRecover bool
+	Rosetta	   bool
 }
 
 func (ign *DynamicIgnition) Write() error {
@@ -238,8 +240,8 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 		ignSystemd.Units = append(ignSystemd.Units, qemuUnit)
 	}
 
-	// Only AppleHv has the rosetta setting
-	if ign.VMType == define.AppleHvVirt {
+	// Only AppleHv with Apple Silicon can use Rosetta
+	if ign.VMType == define.AppleHvVirt && runtime.GOARCH == "arm64" {
 		contents, err := GetRosettaActivationUnitFile().ToString()
 		if err != nil {
 			return err
@@ -727,15 +729,14 @@ func DefaultReadyUnitFile() parser.UnitFile {
 }
 
 func GetRosettaActivationUnitFile() *parser.UnitFile {
-    rosettaUnit := parser.NewUnitFile()
-    rosettaUnit.Add("Unit", "Description", "Activates Rosetta if necessary")
-    rosettaUnit.Add("Unit", "After", "sshd.socket sshd.service")
+	rosettaUnit := parser.NewUnitFile()
+	rosettaUnit.Add("Unit", "Description", "Activates Rosetta if necessary")
+	rosettaUnit.Add("Unit", "After", "sshd.socket sshd.service")
 	rosettaUnit.Add("Service", "Type", "oneshot")
 	rosettaUnit.Add("Service", "RemainAfterExit", "yes")
-    rosettaUnit.Add("Service", "ExecStartPre","mount -t virtiofs -o context=system_u:object_r:container_runtime_exec_t:s0 rosetta /mnt")
-	rosettaUnit.Add("Service", "ExecStart","/usr/local/bin/rosetta-activation.sh")
-    rosettaUnit.Add("Service", "ExecStartPost",`find /proc/sys/fs/binfmt_misc -type f -name 'qemu-*' -exec sh -c 'echo -1 > {}' \;`)
+	rosettaUnit.Add("Service", "ExecStartPre","mount -t virtiofs -o context=system_u:object_r:container_runtime_exec_t:s0 rosetta /mnt")
+	rosettaUnit.Add("Service", "ExecStart",`/bin/sh -c "echo -1 > /proc/sys/fs/binfmt_misc/qemu-x86_64"`)
+	rosettaUnit.Add("Service", "ExecStartPost","/usr/local/bin/rosetta-activation.sh")
 	rosettaUnit.Add("Install", "WantedBy", "default.target")
-
-    return rosettaUnit
+	return rosettaUnit
 }

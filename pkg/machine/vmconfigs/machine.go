@@ -97,8 +97,6 @@ func NewMachineConfig(opts define.InitOptions, dirs *define.MachineDirs, sshIden
 
 	mc.HostUser = HostUser{UID: getHostUID(), Rootful: opts.Rootful}
 
-	mc.Rosetta = opts.Rosetta
-	
 	return mc, nil
 }
 

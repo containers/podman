@@ -3,6 +3,8 @@
 package applehv
 
 import (
+	"runtime"
+
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
@@ -38,16 +40,16 @@ func getDefaultDevices(mc *vmconfigs.MachineConfig) ([]vfConfig.VirtioDevice, *d
 	if err != nil {
 		return nil, nil, err
 	}
-	devices = append(devices, disk, rng, serial, readyDevice)
 
-	if mc.Rosetta {
+	if runtime.GOARCH == "arm64" {
 		rosetta, err := vfConfig.RosettaShareNew(define.MountTag)
 		if err != nil {
 			return nil, nil, err
 		}
-		devices = append(devices, rosetta)
-	} 
-	
+		devices = append(devices, disk, rng, serial, readyDevice, rosetta)
+	} else {
+		devices = append(devices, disk, rng, serial, readyDevice)
+	}
 	return devices, readySocket, nil
 }
 
