@@ -15,7 +15,7 @@ import (
 
 const LocalhostIP = "127.0.0.1"
 
-func AddConnection(uri fmt.Stringer, name, identity string, isDefault bool) error {
+func AddConnection(uri *url.URL, name, identity string, isDefault bool) error {
 	if len(identity) < 1 {
 		return errors.New("identity must be defined")
 	}
@@ -108,27 +108,19 @@ func RemoveFilesAndConnections(files []string, names ...string) {
 	}
 }
 
-type RemoteConnectionType string
-
-var SSHRemoteConnection RemoteConnectionType = "ssh"
-
-// MakeSSHURL
-func (rc RemoteConnectionType) MakeSSHURL(host, path, port, userName string) url.URL {
-	// TODO Should this function have input verification?
-	userInfo := url.User(userName)
-	uri := url.URL{
-		Scheme:     "ssh",
-		Opaque:     "",
-		User:       userInfo,
-		Host:       host,
-		Path:       path,
-		RawPath:    "",
-		ForceQuery: false,
-		RawQuery:   "",
-		Fragment:   "",
-	}
+// makeSSHURL creates a URL from the given input
+func makeSSHURL(host, path, port, userName string) *url.URL {
+	var hostname string
 	if len(port) > 0 {
-		uri.Host = net.JoinHostPort(uri.Hostname(), port)
+		hostname = net.JoinHostPort(host, port)
+	} else {
+		hostname = host
 	}
-	return uri
+	userInfo := url.User(userName)
+	return &url.URL{
+		Scheme: "ssh",
+		User:   userInfo,
+		Host:   hostname,
+		Path:   path,
+	}
 }
