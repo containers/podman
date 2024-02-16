@@ -15,33 +15,40 @@ import (
 
 const LocalhostIP = "127.0.0.1"
 
-func AddConnection(uri *url.URL, name, identity string, isDefault bool) error {
+type connection struct {
+	name string
+	uri  *url.URL
+}
+
+func addConnection(cons []connection, identity string, isDefault bool) error {
 	if len(identity) < 1 {
 		return errors.New("identity must be defined")
 	}
 
 	return config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
-		if _, ok := cfg.Connection.Connections[name]; ok {
-			return errors.New("cannot overwrite connection")
-		}
-
-		dst := config.Destination{
-			URI:       uri.String(),
-			IsMachine: true,
-			Identity:  identity,
-		}
-
-		if isDefault {
-			cfg.Connection.Default = name
-		}
-
-		if cfg.Connection.Connections == nil {
-			cfg.Connection.Connections = map[string]config.Destination{
-				name: dst,
+		for i, con := range cons {
+			if _, ok := cfg.Connection.Connections[con.name]; ok {
+				return fmt.Errorf("cannot overwrite connection %q", con.name)
 			}
-			cfg.Connection.Default = name
-		} else {
-			cfg.Connection.Connections[name] = dst
+
+			dst := config.Destination{
+				URI:       con.uri.String(),
+				IsMachine: true,
+				Identity:  identity,
+			}
+
+			if isDefault && i == 0 {
+				cfg.Connection.Default = con.name
+			}
+
+			if cfg.Connection.Connections == nil {
+				cfg.Connection.Connections = map[string]config.Destination{
+					con.name: dst,
+				}
+				cfg.Connection.Default = con.name
+			} else {
+				cfg.Connection.Connections[con.name] = dst
+			}
 		}
 
 		return nil
