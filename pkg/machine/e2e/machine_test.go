@@ -30,7 +30,6 @@ func TestMain(m *testing.M) {
 }
 
 const (
-	defaultStream        = machine.Testing
 	defaultDiskSize uint = 11
 )
 
@@ -75,7 +74,7 @@ var _ = BeforeSuite(func() {
 		default:
 			downloadLocation, err = GetDownload(testProvider.VMType())
 			if err != nil {
-				Fail("unable to derive download disk from fedora coreos")
+				Fail(fmt.Sprintf("unable to derive download disk from fedora coreos: %q", err))
 			}
 		}
 	}

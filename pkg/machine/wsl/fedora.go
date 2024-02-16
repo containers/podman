@@ -8,14 +8,11 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/containers/podman/v5/pkg/machine"
-	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -25,42 +22,6 @@ const (
 
 type FedoraDownload struct {
 	machine.Download
-}
-
-// NewFedoraDownloader
-// deprecated
-func NewFedoraDownloader(vmType define.VMType, vmName, releaseStream string) (machine.DistributionDownload, error) {
-	downloadURL, version, arch, size, err := GetFedoraDownloadForWSL()
-	if err != nil {
-		return nil, err
-	}
-
-	cacheDir, err := machine.GetCacheDir(vmType)
-	if err != nil {
-		return nil, err
-	}
-
-	imageName := fmt.Sprintf("fedora-podman-%s-%s.tar.xz", arch, version)
-
-	f := FedoraDownload{
-		Download: machine.Download{
-			Arch:      machine.GetFcosArch(),
-			Artifact:  define.None,
-			CacheDir:  cacheDir,
-			Format:    define.Tar,
-			ImageName: imageName,
-			LocalPath: filepath.Join(cacheDir, imageName),
-			URL:       downloadURL,
-			VMName:    vmName,
-			Size:      size,
-		},
-	}
-	dataDir, err := machine.GetDataDir(vmType)
-	if err != nil {
-		return nil, err
-	}
-	f.Download.LocalUncompressedFile = f.GetLocalUncompressedFile(dataDir)
-	return f, nil
 }
 
 func (f FedoraDownload) Get() *machine.Download {

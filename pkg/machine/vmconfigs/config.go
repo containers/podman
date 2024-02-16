@@ -1,8 +1,6 @@
 package vmconfigs
 
 import (
-	"errors"
-	"net/url"
 	"time"
 
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
@@ -54,23 +52,6 @@ type MachineConfig struct {
 	Starting bool
 }
 
-// MachineImage describes a podman machine image
-type MachineImage struct {
-	OCI  *OCIMachineImage
-	FCOS *fcosMachineImage
-}
-
-// Pull downloads a machine image
-func (m *MachineImage) Pull() error {
-	if m.OCI != nil {
-		return m.OCI.download()
-	}
-	if m.FCOS != nil {
-		return m.FCOS.download()
-	}
-	return errors.New("no valid machine image provider detected")
-}
-
 type machineImage interface { //nolint:unused
 	download() error
 	path() string
@@ -91,20 +72,6 @@ func (o OCIMachineImage) path() string {
 
 func (o OCIMachineImage) download() error {
 	return nil
-}
-
-type fcosMachineImage struct {
-	// TODO JSON serial/deserial will write string to disk
-	// but in code is url.URL
-	Location url.URL // file://path/.qcow2  https://path/qcow2
-}
-
-func (f fcosMachineImage) download() error {
-	return nil
-}
-
-func (f fcosMachineImage) path() string {
-	return ""
 }
 
 type VMProvider interface { //nolint:interfacebloat
