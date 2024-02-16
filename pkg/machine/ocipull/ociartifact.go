@@ -27,7 +27,7 @@ const (
 	// TODO This is temporary until we decide on a proper image name
 	artifactRegistry     = "quay.io"
 	artifactRepo         = "baude"
-	artifactImageName    = "stage-podman-machine"
+	artifactImageName    = "stage-podman-machine-image"
 	artifactOriginalName = "org.opencontainers.image.title"
 	machineOS            = "linux"
 )
@@ -105,7 +105,22 @@ func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, vmName st
 	return &ociDisk, nil
 }
 
+func (o *OCIArtifactDisk) OriginalFileName() (string, string) {
+	return o.cachedCompressedDiskPath.GetPath(), o.diskArtifactFileName
+}
+
 func (o *OCIArtifactDisk) Get() error {
+	if err := o.get(); err != nil {
+		return err
+	}
+	return o.decompress()
+}
+
+func (o *OCIArtifactDisk) GetNoCompress() error {
+	return o.get()
+}
+
+func (o *OCIArtifactDisk) get() error {
 	destRef, artifactDigest, err := o.getDestArtifact()
 	if err != nil {
 		return err
@@ -116,6 +131,7 @@ func (o *OCIArtifactDisk) Get() error {
 	if err != nil {
 		return err
 	}
+
 	// check if we have the latest and greatest disk image
 	if _, err = os.Stat(cachedImagePath.GetPath()); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
@@ -139,7 +155,7 @@ func (o *OCIArtifactDisk) Get() error {
 		logrus.Debugf("cached image exists and is latest: %s", cachedImagePath.GetPath())
 		o.cachedCompressedDiskPath = cachedImagePath
 	}
-	return o.decompress()
+	return nil
 }
 
 func (o *OCIArtifactDisk) getDestArtifact() (types.ImageReference, digest.Digest, error) {
