@@ -51,7 +51,7 @@ Valid placeholders for the Go template are listed below:
 | .MemUsageBytes      | Memory usage (IEC)                               |
 | .Name               | Container Name                                   |
 | .NetIO              | Network IO                                       |
-| .Network            | Network I/O, separated by network interface      |
+| .Network ...        | Network I/O, separated by network interface      |
 | .PerCPU             | CPU time consumed by all tasks [1]               |
 | .PIDs               | Number of PIDs                                   |
 | .PIDS               | Number of PIDs (yes, we know this is a dup)      |
