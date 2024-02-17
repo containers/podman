@@ -18,8 +18,8 @@ and it does not have network connectivity until a network is connected again.
 Force the container to disconnect from a network
 
 ## EXAMPLE
-Disconnect a container named *web* from a network called *test*.
 
+Disconnect container from specified network:
 ```
 podman network disconnect test web
 ```

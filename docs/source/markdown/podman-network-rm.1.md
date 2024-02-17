@@ -21,15 +21,13 @@ Seconds to wait before forcibly stopping the running containers that are using t
 
 ## EXAMPLE
 
-Delete the `podman9` network
-
+Delete specified network:
 ```
 # podman network rm podman9
 Deleted: podman9
 ```
 
-Delete the `fred` network and all containers associated with the network.
-
+Delete specified network and all containers associated with the network:
 ```
 # podman network rm -f fred
 Deleted: fred
