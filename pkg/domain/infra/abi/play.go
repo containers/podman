@@ -23,6 +23,7 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/parse"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/podman/v5/pkg/annotations"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	entitiesTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
 	v1apps "github.com/containers/podman/v5/pkg/k8s.io/api/apps/v1"
@@ -289,16 +290,16 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 
 			podTemplateSpec.ObjectMeta = podYAML.ObjectMeta
 			podTemplateSpec.Spec = podYAML.Spec
-			for name, val := range podYAML.Annotations {
-				if len(val) > define.MaxKubeAnnotation && !options.UseLongAnnotations {
-					return nil, fmt.Errorf("annotation %q=%q value length exceeds Kubernetes max %d", name, val, define.MaxKubeAnnotation)
-				}
-			}
+
 			for name, val := range options.Annotations {
 				if podYAML.Annotations == nil {
 					podYAML.Annotations = make(map[string]string)
 				}
 				podYAML.Annotations[name] = val
+			}
+
+			if err := annotations.ValidateAnnotations(podYAML.Annotations); err != nil {
+				return nil, err
 			}
 
 			r, proxies, err := ic.playKubePod(ctx, podTemplateSpec.ObjectMeta.Name, &podTemplateSpec, options, &ipIndex, podYAML.Annotations, configMaps, serviceContainer)

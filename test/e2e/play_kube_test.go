@@ -5897,44 +5897,29 @@ spec:
 		Expect(kube.ErrorToString()).To(ContainSubstring("since Network Namespace set to host: invalid argument"))
 	})
 
-	It("test with --no-trunc", func() {
-		ctrName := "demo"
-		vol1 := filepath.Join(podmanTest.TempDir, RandomString(99))
-		err := os.MkdirAll(vol1, 0755)
+	It("test with annotation size beyond limits", func() {
+		key := "name"
+		val := RandomString(define.TotalAnnotationSizeLimitB - len(key) + 1)
+		pod := getPod(withAnnotation(key, val))
+		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		session := podmanTest.Podman([]string{"run", "-v", vol1 + ":/tmp/foo:Z", "--name", ctrName, CITEST_IMAGE})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		file := filepath.Join(podmanTest.TempDir, ctrName+".yml")
-		session = podmanTest.Podman([]string{"kube", "generate", "--no-trunc", "-f", file, ctrName})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		session = podmanTest.Podman([]string{"kube", "play", "--no-trunc", file})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(125))
+		Expect(kube.ErrorToString()).To(ContainSubstring("annotations size " + strconv.Itoa(len(key+val)) + " is larger than limit " + strconv.Itoa(define.TotalAnnotationSizeLimitB)))
 	})
 
-	It("test with long annotation", func() {
-		ctrName := "demo"
-		vol1 := filepath.Join(podmanTest.TempDir, RandomString(99))
-		err := os.MkdirAll(vol1, 0755)
+	It("test with annotation size within limits", func() {
+		key := "name"
+		val := RandomString(define.TotalAnnotationSizeLimitB - len(key))
+		pod := getPod(withAnnotation(key, val))
+		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		session := podmanTest.Podman([]string{"run", "-v", vol1 + ":/tmp/foo:Z", "--name", ctrName, CITEST_IMAGE})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		file := filepath.Join(podmanTest.TempDir, ctrName+".yml")
-		session = podmanTest.Podman([]string{"kube", "generate", "--no-trunc", "-f", file, ctrName})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		session = podmanTest.Podman([]string{"kube", "play", file})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(ExitCleanly())
 	})
 
 	It("test pod with volumes-from annotation in yaml", func() {
