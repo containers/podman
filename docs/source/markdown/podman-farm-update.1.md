@@ -25,13 +25,22 @@ Set the current farm as the default.
 Remove one or more connections from an existing farm.
 
 ## EXAMPLE
+
+Add two connections to specified farm:
 ```
 $ podman farm update --add f35,f38 farm1
+```
 
+Add connection to specified farm:
+```
 $ podman farm update --remove f35 farm1
+```
 
+Change specified farm to be default:
+```
 $ podman farm update --default farm2
 ```
+
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-farm(1)](podman-farm.1.md)**
 

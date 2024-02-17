@@ -239,14 +239,24 @@ Build only on farm nodes that match the given platforms.
 
 ## EXAMPLES
 
+Build named image and manifest list using specified Containerfile with default farm:
 ```
 $ podman farm build --local -t name -f /path/to/containerfile .
+```
 
+Build named image and manifest list using the specified farm:
+```
 $ podman farm build --farm myfarm -t name .
+```
 
+Build named image and manifest list using the specified farm, removing all images from farm nodes, after they are pushed to registry:
+```
 $ podman farm build --farm myfarm --cleanup -t name .
+```
 
-$ podman farm build --platforms arm64,amd64 --cleanup -t name .
+Build named images and manifest list for specified platforms using default farm:
+```
+$ podman farm build --platforms arm64,amd64 -t name .
 ```
 
 ## SEE ALSO

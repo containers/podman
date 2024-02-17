@@ -26,12 +26,15 @@ Valid placeholders for the Go template listed below:
 | .ReadWrite      | Indicates if this farm can be modified using the podman farm commands |
 
 ## EXAMPLE
+
+List all farms:
 ```
 $ podman farm list
 Name        Connections  Default     ReadWrite
 farm1       [f38 f37]    false       true
 farm2       [f37]        true        true
 ```
+
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-farm(1)](podman-farm.1.md)**
 
