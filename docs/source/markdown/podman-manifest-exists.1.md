@@ -21,20 +21,18 @@ Print usage statement.
 
 ## EXAMPLE
 
-Check if a manifest list called `list1` exists (the manifest list does actually exist).
+Check if a manifest list called `list1` exists (the manifest list does actually exist):
 ```
 $ podman manifest exists list1
 $ echo $?
 0
-$
 ```
 
-Check if a manifest called `mylist` exists (the manifest list does not actually exist).
+Check if a manifest called `mylist` exists (the manifest list does not actually exist):
 ```
 $ podman manifest exists mylist
 $ echo $?
 1
-$
 ```
 
 ## SEE ALSO
