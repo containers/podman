@@ -41,30 +41,31 @@ Do not truncate the output (default *false*).
 
 ## EXAMPLE
 
+In rootful mode, Mount specified container.
 ```
-podman mount c831414b10a3
-
+# podman mount c831414b10a3
 /var/lib/containers/storage/overlay/f3ac502d97b5681989dff84dfedc8354239bcecbdc2692f9a639f4e080a02364/merged
 ```
 
+In rootless mode, container mounting only works from inside the user namespace.
+```
+$ podman unshare
+# podman mount affectionate_mcnulty
+/home/dwalsh/.local/share/containers/storage/overlay/4218326b9a80619aef005ff95067f76687ad975ce101c176598fb416f6186906/merged
+```
+
+List the currently mounted containers:
 ```
 podman mount
-
 c831414b10a3 /var/lib/containers/storage/overlay/f3ac502d97b5681989dff84dfedc8354239bcecbdc2692f9a639f4e080a02364/merged
 a7060253093b /var/lib/containers/storage/overlay/0ff7d7ca68bed1ace424f9df154d2dd7b5a125c19d887f17653cbcd5b6e30ba1/merged
 ```
+
+Mount multiple containers:
 ```
 podman mount c831414b10a3 a7060253093b
-
 /var/lib/containers/storage/overlay/f3ac502d97b5681989dff84dfedc8354239bcecbdc2692f9a639f4e080a02364/merged
 /var/lib/containers/storage/overlay/0ff7d7ca68bed1ace424f9df154d2dd7b5a125c19d887f17653cbcd5b6e30ba1/merged
-```
-
-```
-podman mount
-
-c831414b10a3 /var/lib/containers/storage/overlay/f3ac502d97b5681989dff84dfedc8354239bcecbdc2692f9a639f4e080a02364/merged
-a7060253093b /var/lib/containers/storage/overlay/0ff7d7ca68bed1ace424f9df154d2dd7b5a125c19d887f17653cbcd5b6e30ba1/merged
 ```
 
 ## SEE ALSO
