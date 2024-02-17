@@ -10,6 +10,8 @@ podman\-system\-connection\-default - Set named destination as default for the P
 Set named ssh destination as default destination for the Podman service.
 
 ## EXAMPLE
+
+Set the specified connection as default:
 ```
 $ podman system connection default production
 ```
