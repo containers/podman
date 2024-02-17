@@ -12,6 +12,7 @@ import (
 
 	"github.com/containers/podman/v5/pkg/machine/ocipull"
 	"github.com/containers/podman/v5/pkg/machine/stdpull"
+	"github.com/containers/podman/v5/pkg/machine/wsl/wutil"
 
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v5/pkg/machine"
@@ -105,7 +106,7 @@ func (w WSLStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() error,
 	// below if we wanted to hard error on the wsl unregister
 	// of the vm
 	wslRemoveFunc := func() error {
-		if err := runCmdPassThrough("wsl", "--unregister", machine.ToDist(mc.Name)); err != nil {
+		if err := runCmdPassThrough(wutil.FindWSL(), "--unregister", machine.ToDist(mc.Name)); err != nil {
 			logrus.Error(err)
 		}
 		return machine.ReleaseMachinePort(mc.SSH.Port)
@@ -266,13 +267,13 @@ func (w WSLStubber) StopVM(mc *vmconfigs.MachineConfig, hardStop bool) error {
 		fmt.Fprintf(os.Stderr, "Could not stop API forwarding service (win-sshproxy.exe): %s\n", err.Error())
 	}
 
-	cmd := exec.Command("wsl", "-u", "root", "-d", dist, "sh")
+	cmd := exec.Command(wutil.FindWSL(), "-u", "root", "-d", dist, "sh")
 	cmd.Stdin = strings.NewReader(waitTerm)
 	if err = cmd.Start(); err != nil {
 		return fmt.Errorf("executing wait command: %w", err)
 	}
 
-	exitCmd := exec.Command("wsl", "-u", "root", "-d", dist, "/usr/local/bin/enterns", "systemctl", "exit", "0")
+	exitCmd := exec.Command(wutil.FindWSL(), "-u", "root", "-d", dist, "/usr/local/bin/enterns", "systemctl", "exit", "0")
 	if err = exitCmd.Run(); err != nil {
 		return fmt.Errorf("stopping sysd: %w", err)
 	}

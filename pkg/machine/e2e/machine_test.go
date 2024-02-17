@@ -200,6 +200,7 @@ func teardown(origHomeDir string, testDir string, mb *machineTestBuilder) {
 			GinkgoWriter.Printf("error occurred rm'ing machine: %q\n", err)
 		}
 	}
+
 	if err := utils.GuardedRemoveAll(testDir); err != nil {
 		Fail(fmt.Sprintf("failed to remove test dir: %q", err))
 	}

@@ -50,7 +50,7 @@ func List(vmstubbers []vmconfigs.VMProvider, _ machine.ListOptions) ([]*machine.
 				Port:               mc.SSH.Port,
 				RemoteUsername:     mc.SSH.RemoteUsername,
 				IdentityPath:       mc.SSH.IdentityPath,
-				UserModeNetworking: false, // TODO Need to plumb this for WSL
+				UserModeNetworking: s.UserModeNetworkEnabled(mc),
 			}
 			lrs = append(lrs, &lr)
 		}
