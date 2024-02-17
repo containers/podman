@@ -69,15 +69,15 @@ print detailed information about credential store
 
 ## EXAMPLES
 
-Add login credentials for specified registry to the default authorization file.
+Add login credentials for specified registry to default authentication file.
 ```
-$ podman login docker.io
+$ podman login quay.io
 Username: umohnani
 Password:
 Login Succeeded!
 ```
 
-Add login credentials using specified username and password for local registry to the default authorization file.
+Add login credentials using specified username and password for local registry to default authentication file.
 ```
 $ podman login -u testuser -p testpassword localhost:5000
 Login Succeeded!
@@ -111,19 +111,19 @@ $ podman login --cert-dir /etc/containers/certs.d/ -u foo -p bar localhost:5000
 Login Succeeded!
 ```
 
-Add login credentials for docker.io into the default authorization file for user testuser with password information provided via stdin from a file on disk.
+Add login credentials for specified registries to default authentication file for given user with password information provided via stdin from a file on disk.
 ```
 $ podman login -u testuser  --password-stdin < testpassword.txt docker.io
 Login Succeeded!
 ```
 
-Add login credentials for docker.io into the default authorization file for user testuser with password information provided via stdin from a pipe.
+Add login credentials for specified registry to default authentication file for given user with password information provided via stdin from a pipe.
 ```
-$ echo $testpassword | podman login -u testuser --password-stdin docker.io
+$ echo $testpassword | podman login -u testuser --password-stdin quay.io
 Login Succeeded!
 ```
 
-Add login credentials for the quay.io registry in verbose mode default authorization file.
+Add login credentials for specified registry to default authentication file in verbose mode.
 ```
 $ podman login quay.io --verbose
 Username: myusername
