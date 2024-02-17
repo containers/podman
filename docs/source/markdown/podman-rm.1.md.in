@@ -75,37 +75,37 @@ Remove anonymous volumes associated with the container. This does not include na
 created with **podman volume create**, or the **--volume** option of **podman run** and **podman create**.
 
 ## EXAMPLE
-Remove container with a given name
+Remove container with a given name:
 ```
 $ podman rm mywebserver
 ```
 
-Remove container with a given name and all of the containers that depend on it
+Remove container with a given name and all of the containers that depend on it:
 ```
 $ podman rm --depend mywebserver
 ```
 
-Remove multiple containers with given names or IDs
+Remove multiple containers with given names or IDs:
 ```
 $ podman rm mywebserver myflaskserver 860a4b23
 ```
 
-Remove multiple containers with IDs read from files
+Remove multiple containers with IDs read from files:
 ```
 $ podman rm --cidfile ./cidfile-1 --cidfile /home/user/cidfile-2
 ```
 
-Forcibly remove container with a given ID
+Forcibly remove container with a given ID:
 ```
 $ podman rm -f 860a4b23
 ```
 
-Remove all containers regardless of the run state
+Remove all containers regardless of the run state:
 ```
 $ podman rm -f -a
 ```
 
-Forcibly remove the last created container. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+Forcibly remove the last created container. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines):
 ```
 $ podman rm -f --latest
 ```
