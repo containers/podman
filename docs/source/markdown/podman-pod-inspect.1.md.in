@@ -60,6 +60,8 @@ Valid placeholders for the Go template are listed below:
 @@option latest
 
 ## EXAMPLE
+
+Inspect specified pod:
 ```
 # podman pod inspect foobar
 [

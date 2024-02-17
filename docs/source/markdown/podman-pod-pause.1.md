@@ -21,12 +21,12 @@ Instead of providing the pod name or ID, pause the last created pod. (This optio
 
 ## EXAMPLE
 
-Pause a pod with a given name
+Pause a pod with a given name:
 ```
 podman pod pause mywebserverpod
 ```
 
-Pause a pod with a given ID
+Pause a pod with a given ID:
 ```
 podman pod pause 860a4b23
 ```

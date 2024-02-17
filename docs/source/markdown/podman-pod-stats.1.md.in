@@ -44,6 +44,7 @@ When using a Go template, precede the format with `table` to print headers.
 
 ## EXAMPLE
 
+List statistics about all pods without streaming:
 ```
 # podman pod stats -a --no-stream
 ID             NAME              CPU %   MEM USAGE / LIMIT   MEM %   NET IO    BLOCK IO   PIDS
@@ -51,12 +52,14 @@ a9f807ffaacd   frosty_hodgkin    --      3.092MB / 16.7GB    0.02%   -- / --   -
 3b33001239ee   sleepy_stallman   --      -- / --             --      -- / --   -- / --    --
 ```
 
+List statistics about specified pod without streaming:
 ```
 # podman pod stats --no-stream a9f80
 ID             NAME             CPU %   MEM USAGE / LIMIT   MEM %   NET IO    BLOCK IO   PIDS
 a9f807ffaacd   frosty_hodgkin   --      3.092MB / 16.7GB    0.02%   -- / --   -- / --    2
 ```
 
+List statistics about specified pod in JSON format without streaming:
 ```
 # podman pod stats --no-stream --format=json a9f80
 [
@@ -73,6 +76,7 @@ a9f807ffaacd   frosty_hodgkin   --      3.092MB / 16.7GB    0.02%   -- / --   --
 ]
 ```
 
+List selected statistics formatted in a table about specified pod:
 ```
 # podman pod stats --no-stream --format "table {{.ID}} {{.Name}} {{.MemUsage}}" 6eae
 ID             NAME           MEM USAGE / LIMIT

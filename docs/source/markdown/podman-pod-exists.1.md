@@ -14,20 +14,16 @@ was an issue accessing the local storage.
 
 ## EXAMPLES
 
-Check if a pod called `web` exists in local storage (the pod does actually exist).
+Check if specified pod exists in local storage (the pod does actually exist):
 ```
-$ sudo podman pod exists web
-$ echo $?
+$ sudo podman pod exists web; echo $?
 0
-$
 ```
 
-Check if a pod called `backend` exists in local storage (the pod does not actually exist).
+Check if specified pod exists in local storage (the pod does not actually exist):
 ```
-$ sudo podman pod exists backend
-$ echo $?
+$ sudo podman pod exists backend; echo $?
 1
-$
 ```
 
 ## SEE ALSO

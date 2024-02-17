@@ -40,7 +40,7 @@ To view a pod's logs:
 podman pod logs -t podIdorName
 ```
 
-To view logs of a specific container on the pod
+To view logs of a specific container on the pod:
 ```
 podman pod logs -c ctrIdOrName podIdOrName
 ```
