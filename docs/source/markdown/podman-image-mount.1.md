@@ -32,20 +32,21 @@ Print the mounted images in specified format (json).
 
 ## EXAMPLE
 
+Mount multiple images. Note: In rootless mode, image mounting works only after executing the podman unshare command to enter the user namespace.
 ```
 podman image mount fedora ubi8-init
-
 /var/lib/containers/storage/overlay/f3ac502d97b5681989dff84dfedc8354239bcecbdc2692f9a639f4e080a02364/merged
 /var/lib/containers/storage/overlay/0ff7d7ca68bed1ace424f9df154d2dd7b5a125c19d887f17653cbcd5b6e30ba1/merged
 ```
 
+List mounted images:
 ```
-podman mount
-
+podman image mount
 registry.fedoraproject.org/fedora:latest /var/lib/containers/storage/overlay/f3ac502d97b5681989dff84dfedc8354239bcecbdc2692f9a639f4e080a02364/merged
 registry.access.redhat.com/ubi8-init:latest /var/lib/containers/storage/overlay/0ff7d7ca68bed1ace424f9df154d2dd7b5a125c19d887f17653cbcd5b6e30ba1/merged
 ```
 
+List mounted images in JSON format:
 ```
 podman image mount --format json
 [
