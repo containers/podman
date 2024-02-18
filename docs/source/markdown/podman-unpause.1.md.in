@@ -63,7 +63,7 @@ Unpause all **paused** containers:
 podman unpause --all
 ```
 
-Unpause container using ID specified in a given files:
+Unpause container using ID specified in given files:
 ```
 podman unpause --cidfile /home/user/cidfile-1
 podman unpause --cidfile /home/user/cidfile-1 --cidfile ./cidfile-2

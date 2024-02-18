@@ -63,7 +63,7 @@ Pause all **running** containers:
 podman pause --all
 ```
 
-Pause container using ID specified in a given files:
+Pause container using ID specified in given files:
 ```
 podman pause --cidfile /home/user/cidfile-1
 podman pause --cidfile /home/user/cidfile-1 --cidfile ./cidfile-2
