@@ -9,11 +9,3 @@ func (q *QEMUStubber) addArchOptions(_ *setNewMachineCMDOpts) []string {
 	opts := []string{}
 	return opts
 }
-
-func (v *MachineVM) prepare() error {
-	return nil
-}
-
-func (v *MachineVM) archRemovalFiles() []string {
-	return []string{}
-}

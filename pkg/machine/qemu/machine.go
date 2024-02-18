@@ -149,9 +149,9 @@ func (q *QEMUStubber) StopVM(mc *vmconfigs.MachineConfig, _ bool) error {
 // stopLocked stops the machine and expects the caller to hold the machine's lock.
 func (q *QEMUStubber) stopLocked(mc *vmconfigs.MachineConfig) error {
 	// check if the qmp socket is there. if not, qemu instance is gone
-	if _, err := os.Stat(q.QMPMonitor.Address.GetPath()); errors.Is(err, fs.ErrNotExist) {
+	if _, err := os.Stat(mc.QEMUHypervisor.QMPMonitor.Address.GetPath()); errors.Is(err, fs.ErrNotExist) {
 		// Right now it is NOT an error to stop a stopped machine
-		logrus.Debugf("QMP monitor socket %v does not exist", q.QMPMonitor.Address)
+		logrus.Debugf("QMP monitor socket %v does not exist", mc.QEMUHypervisor.QMPMonitor.Address)
 		// Fix incorrect starting state in case of crash during start
 		if mc.Starting {
 			mc.Starting = false
@@ -162,7 +162,7 @@ func (q *QEMUStubber) stopLocked(mc *vmconfigs.MachineConfig) error {
 		return nil
 	}
 
-	qmpMonitor, err := qmp.NewSocketMonitor(q.QMPMonitor.Network, q.QMPMonitor.Address.GetPath(), q.QMPMonitor.Timeout)
+	qmpMonitor, err := qmp.NewSocketMonitor(mc.QEMUHypervisor.QMPMonitor.Network, mc.QEMUHypervisor.QMPMonitor.Address.GetPath(), mc.QEMUHypervisor.QMPMonitor.Timeout)
 	if err != nil {
 		return err
 	}
@@ -196,7 +196,7 @@ func (q *QEMUStubber) stopLocked(mc *vmconfigs.MachineConfig) error {
 	}
 
 	// Remove socket
-	if err := q.QMPMonitor.Address.Delete(); err != nil {
+	if err := mc.QEMUHypervisor.QMPMonitor.Address.Delete(); err != nil {
 		return err
 	}
 
@@ -206,14 +206,14 @@ func (q *QEMUStubber) stopLocked(mc *vmconfigs.MachineConfig) error {
 	}
 	disconnected = true
 
-	if q.QEMUPidPath.GetPath() == "" {
+	if mc.QEMUHypervisor.QEMUPidPath.GetPath() == "" {
 		// no vm pid file path means it's probably a machine created before we
 		// started using it, so we revert to the old way of waiting for the
 		// machine to stop
 		return q.waitForMachineToStop(mc)
 	}
 
-	vmPid, err := q.QEMUPidPath.ReadPIDFrom()
+	vmPid, err := mc.QEMUHypervisor.QEMUPidPath.ReadPIDFrom()
 	if err != nil {
 		return err
 	}
