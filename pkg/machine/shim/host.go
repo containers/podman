@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"time"
 
@@ -12,6 +13,8 @@ import (
 	machineDefine "github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v5/utils"
+	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 )
 
@@ -445,4 +448,40 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, _ *machineDefin
 	)
 
 	return nil
+}
+
+func Reset(dirs *machineDefine.MachineDirs, mp vmconfigs.VMProvider, mcs map[string]*vmconfigs.MachineConfig) error {
+	var resetErrors *multierror.Error
+	for _, mc := range mcs {
+		err := Stop(mc, mp, dirs, true)
+		if err != nil {
+			resetErrors = multierror.Append(resetErrors, err)
+		}
+		_, genericRm, err := mc.Remove(false, false)
+		if err != nil {
+			resetErrors = multierror.Append(resetErrors, err)
+		}
+		_, providerRm, err := mp.Remove(mc)
+		if err != nil {
+			resetErrors = multierror.Append(resetErrors, err)
+		}
+
+		if err := genericRm(); err != nil {
+			resetErrors = multierror.Append(resetErrors, err)
+		}
+		if err := providerRm(); err != nil {
+			resetErrors = multierror.Append(resetErrors, err)
+		}
+	}
+
+	// Delete the various directories
+	// Note: we cannot delete the machine run dir blindly like this because
+	// other things live there like the podman.socket and so forth.
+
+	// in linux this ~/.local/share/containers/podman/machine
+	dataDirErr := utils.GuardedRemoveAll(filepath.Dir(dirs.DataDir.GetPath()))
+	// in linux this ~/.config/containers/podman/machine
+	confDirErr := utils.GuardedRemoveAll(filepath.Dir(dirs.ConfigDir.GetPath()))
+	resetErrors = multierror.Append(resetErrors, confDirErr, dataDirErr)
+	return resetErrors.ErrorOrNil()
 }
