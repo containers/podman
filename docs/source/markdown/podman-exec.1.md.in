@@ -69,9 +69,18 @@ non-zero code, the exit codes follow the `chroot` standard, see below:
 
 ## EXAMPLES
 
+Execute command in selected container with a stdin and a tty allocated:
 ```
 $ podman exec -it ctrID ls
+```
+
+Execute command with the overridden working directory in selected container with a stdin and a tty allocated:
+```
 $ podman exec -it -w /tmp myCtr pwd
+```
+
+Execute command as the specified user in selected container:
+```
 $ podman exec --user root ctrID ls
 ```
 
