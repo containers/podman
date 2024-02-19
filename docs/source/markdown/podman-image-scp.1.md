@@ -30,12 +30,13 @@ Suppress the output
 
 ## EXAMPLES
 
-
+Copy specified image to local storage:
 ```
 $ podman image scp alpine
 Loaded image: docker.io/library/alpine:latest
 ```
 
+Copy specified image from local storage to remote connection:
 ```
 $ podman image scp alpine Fedora::/home/charliedoern/Documents/alpine
 Getting image source signatures
@@ -46,11 +47,13 @@ Storing signatures
 Loaded image: docker.io/library/alpine:latest
 ```
 
+Copy specified image from remote connection to remote connection:
 ```
 $ podman image scp Fedora::alpine RHEL::
 Loaded image: docker.io/library/alpine:latest
 ```
 
+Copy specified image via ssh to local storage:
 ```
 $ podman image scp charliedoern@192.168.68.126:22/run/user/1000/podman/podman.sock::alpine
 WARN[0000] Unknown connection name given. Please use system connection add to specify the default remote socket location
@@ -62,6 +65,7 @@ Storing signatures
 Loaded image: docker.io/library/alpine:latest
 ```
 
+Copy specified image from root account to user accounts local storage:
 ```
 $ sudo podman image scp root@localhost::alpine username@localhost::
 Copying blob e2eb06d8af82 done
@@ -76,6 +80,7 @@ Storing signatures
 Loaded image: docker.io/library/alpine:latest
 ```
 
+Copy specified image from root account to local storage:
 ```
 $ sudo podman image scp root@localhost::alpine
 Copying blob e2eb06d8af82 done

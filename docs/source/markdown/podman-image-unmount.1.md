@@ -32,17 +32,17 @@ Note: Other processes using the file system can fail if the mount point is remov
 
 ## EXAMPLE
 
-Unmount image with a given ID
+Unmount image with a given ID:
 ```
 podman image unmount imageID
 ```
 
-Unmount multiple images with given IDs
+Unmount multiple images with given IDs:
 ```
 podman image unmount imageID1 imageID2 imageID3
 ```
 
-Unmount all images
+Unmount all images:
 ```
 podman image unmount --all
 ```

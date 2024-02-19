@@ -47,6 +47,7 @@ Valid placeholders for the Go template are listed below:
 
 ## EXAMPLE
 
+Inspect information on the specified image:
 ```
 $ podman image inspect fedora
 [
@@ -120,6 +121,7 @@ $ podman image inspect fedora
 ]
 ```
 
+Inspect image ID for the specified image:
 ```
 $ podman image inspect --format '{{ .Id }}' fedora
 37e5619f4a8ca9dbc4d6c0ae7890625674a10dbcfb76201399e2aaddb40da17d

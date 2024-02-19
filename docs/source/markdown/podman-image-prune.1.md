@@ -49,7 +49,7 @@ Print usage statement
 
 ## EXAMPLES
 
-Remove all dangling images from local storage
+Remove all dangling images from local storage:
 ```
 $ sudo podman image prune
 
@@ -59,7 +59,7 @@ f3e20dc537fb04cb51672a5cb6fdf2292e61d411315549391a0d1f64e4e3097e
 324a7a3b2e0135f4226ffdd473e4099fd9e477a74230cdc35de69e84c0f9d907
 ```
 
-Remove all unused images from local storage without confirming
+Remove all unused images from local storage without confirming:
 ```
 $ sudo podman image prune -a -f
 f3e20dc537fb04cb51672a5cb6fdf2292e61d411315549391a0d1f64e4e3097e
@@ -71,7 +71,7 @@ e4e5109420323221f170627c138817770fb64832da7d8fe2babd863148287fca
 
 ```
 
-Remove all unused images from local storage since given time/hours.
+Remove all unused images from local storage since given time/hours:
 ```
 $ sudo podman image prune -a --filter until=2019-11-14T06:15:42.937792374Z
 
@@ -91,7 +91,7 @@ f3e20dc537fb04cb51672a5cb6fdf2292e61d411315549391a0d1f64e4e3097e
 324a7a3b2e0135f4226ffdd473e4099fd9e477a74230cdc35de69e84c0f9d907
 ```
 
-Remove all unused images from local storage with label version 1.0
+Remove all unused images from local storage with label version 1.0:
 ```
 $ sudo podman image prune -a -f --filter label=version=1.0
 e813d2135f17fadeffeea8159a34cfdd4c30b98d8111364b913a91fd930643e9
@@ -102,7 +102,6 @@ e813d2135f17fadeffeea8159a34cfdd4c30b98d8111364b913a91fd930643e9
 f9f0a8a58c9e02a2b3250b88cc5c95b1e10245ca2c4161d19376580aaa90f55c
 1ef14d5ede80db78978b25ad677fd3e897a578c3af614e1fda608d40c8809707
 45e1482040e441a521953a6da2eca9bafc769e15667a07c23720d6e0cafc3ab2
-
 ```
 
 ## SEE ALSO
