@@ -90,8 +90,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 			SSHConfig:          mc.SSH,
 			State:              state,
 			UserModeNetworking: provider.UserModeNetworkEnabled(mc),
-			// TODO I think this should be the HostUser
-			Rootful: mc.HostUser.Rootful,
+			Rootful:            mc.HostUser.Rootful,
 		}
 
 		vms = append(vms, ii)
