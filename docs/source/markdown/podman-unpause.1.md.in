@@ -48,28 +48,28 @@ Valid filters are listed below:
 
 ## EXAMPLE
 
-Unpause container called 'mywebserver'
+Unpause specified container:
 ```
 podman unpause mywebserver
 ```
 
-Unpause container by a partial container ID.
+Unpause container by a partial container ID:
 ```
 podman unpause 860a4b23
 ```
 
-Unpause all **paused** containers.
+Unpause all **paused** containers:
 ```
 podman unpause --all
 ```
 
-Unpause container using ID specified in a given files.
+Unpause container using ID specified in given files:
 ```
 podman unpause --cidfile /home/user/cidfile-1
 podman unpause --cidfile /home/user/cidfile-1 --cidfile ./cidfile-2
 ```
 
-Unpause the latest container. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+Unpause the latest container. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines):
 ```
 podman unpause --latest
 ```
