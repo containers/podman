@@ -164,7 +164,7 @@ The journald events-backend of Podman uses the following journald identifiers.  
 
 ## EXAMPLES
 
-Showing Podman events:
+Show Podman events:
 ```
 $ podman events
 2019-03-02 10:33:42.312377447 -0600 CST container create 34503c192940 (image=docker.io/library/alpine:latest, name=friendly_allen)
