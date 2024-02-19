@@ -298,6 +298,35 @@ func (mc *MachineConfig) IsFirstBoot() (bool, error) {
 	return mc.LastUp == never, nil
 }
 
+func (mc *MachineConfig) ConnectionInfo(vmtype define.VMType) (*define.VMFile, *define.VMFile, error) {
+	var (
+		socket *define.VMFile
+		pipe   *define.VMFile
+	)
+
+	if vmtype == define.HyperVVirt || vmtype == define.WSLVirt {
+		pipeName := mc.Name
+		if !strings.HasPrefix(pipeName, "podman") {
+			pipeName = "podman-" + pipeName
+		}
+		pipe = &define.VMFile{Path: `\\.\pipe\` + pipeName}
+	}
+
+	if vmtype == define.WSLVirt {
+		return nil, pipe, nil
+	}
+
+	sockName := "podman.sock"
+	dataDir, err := mc.DataDir()
+	if err != nil {
+		logrus.Errorf("Resolving data dir: %s", err.Error())
+		return nil, nil, err
+	}
+
+	socket, err = define.NewMachineFile(filepath.Join(dataDir.Path, sockName), &sockName)
+	return socket, pipe, err
+}
+
 // LoadMachineByName returns a machine config based on the vm name and provider
 func LoadMachineByName(name string, dirs *define.MachineDirs) (*MachineConfig, error) {
 	fullPath, err := dirs.ConfigDir.AppendToNewVMFile(name+".json", nil)

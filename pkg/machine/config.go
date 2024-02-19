@@ -103,7 +103,7 @@ type DistributionDownload interface {
 	CleanCache() error
 }
 type InspectInfo struct {
-	ConfigPath         define.VMFile
+	ConfigDir          define.VMFile
 	ConnectionInfo     ConnectionConfig
 	Created            time.Time
 	Image              ImageConfig

@@ -72,12 +72,18 @@ func inspect(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
+		podmanSocket, podmanPipe, err := mc.ConnectionInfo(provider.VMType())
+		if err != nil {
+			return err
+		}
+
 		ii := machine.InspectInfo{
-			// TODO I dont think this is useful
-			ConfigPath: *dirs.ConfigDir,
-			// TODO Fill this out
-			ConnectionInfo: machine.ConnectionConfig{},
-			Created:        mc.Created,
+			ConfigDir: *dirs.ConfigDir,
+			ConnectionInfo: machine.ConnectionConfig{
+				PodmanSocket: podmanSocket,
+				PodmanPipe:   podmanPipe,
+			},
+			Created: mc.Created,
 			// TODO This is no longer applicable; we dont care about the provenance
 			// of the image
 			Image: machine.ImageConfig{
