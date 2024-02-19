@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_compressionFromFile(t *testing.T) {
@@ -101,95 +102,30 @@ func Test_Decompress(t *testing.T) {
 		dst string
 	}
 
-	type want struct {
-		content string
-	}
+	type want string
 
 	tests := []struct {
 		name string
 		args args
 		want want
 	}{
-		{
-			name: "zip",
-			args: args{
-				src: "./testfiles/sample.zip",
-				dst: "./testfiles/hellozip",
-			},
-			want: want{
-				content: "zip\n",
-			},
-		},
-		{
-			name: "xz",
-			args: args{
-				src: "./testfiles/sample.xz",
-				dst: "./testfiles/helloxz",
-			},
-			want: want{
-				content: "xz\n",
-			},
-		},
-		{
-			name: "gzip",
-			args: args{
-				src: "./testfiles/sample.gz",
-				dst: "./testfiles/hellogz",
-			},
-			want: want{
-				content: "gzip\n",
-			},
-		},
-		{
-			name: "bzip2",
-			args: args{
-				src: "./testfiles/sample.bz2",
-				dst: "./testfiles/hellobz2",
-			},
-			want: want{
-				content: "bzip2\n",
-			},
-		},
-		{
-			name: "zstd",
-			args: args{
-				src: "./testfiles/sample.zst",
-				dst: "./testfiles/hellozstd",
-			},
-			want: want{
-				content: "zstd\n",
-			},
-		},
-		{
-			name: "uncompressed",
-			args: args{
-				src: "./testfiles/sample.uncompressed",
-				dst: "./testfiles/hellozuncompressed",
-			},
-			want: want{
-				content: "uncompressed\n",
-			},
-		},
+		{name: "zip", args: args{src: "./testfiles/sample.zip", dst: "./testfiles/hellozip"}, want: "zip\n"},
+		{name: "xz", args: args{src: "./testfiles/sample.xz", dst: "./testfiles/helloxz"}, want: "xz\n"},
+		{name: "gzip", args: args{src: "./testfiles/sample.gz", dst: "./testfiles/hellogz"}, want: "gzip\n"},
+		{name: "bzip2", args: args{src: "./testfiles/sample.bz2", dst: "./testfiles/hellobz2"}, want: "bzip2\n"},
+		{name: "zstd", args: args{src: "./testfiles/sample.zst", dst: "./testfiles/hellozstd"}, want: "zstd\n"},
+		{name: "uncompressed", args: args{src: "./testfiles/sample.uncompressed", dst: "./testfiles/hellozuncompressed"}, want: "uncompressed\n"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			srcVMFile := &define.VMFile{Path: tt.args.src}
 			dstFilePath := tt.args.dst
-
 			defer os.Remove(dstFilePath)
-
-			if err := Decompress(srcVMFile, dstFilePath); err != nil {
-				t.Fatalf("decompress() error = %v", err)
-			}
-
+			err := Decompress(srcVMFile, dstFilePath)
+			assert.NoError(t, err)
 			data, err := os.ReadFile(dstFilePath)
-			if err != nil {
-				t.Fatalf("ReadFile() error = %v", err)
-			}
-
-			if got := string(data); got != tt.want.content {
-				t.Fatalf("content = %v, want %v", got, tt.want.content)
-			}
+			assert.NoError(t, err)
+			assert.Equal(t, string(tt.want), string(data))
 		})
 	}
 }
