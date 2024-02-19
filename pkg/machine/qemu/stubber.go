@@ -1,3 +1,5 @@
+//go:build !darwin
+
 package qemu
 
 import (
@@ -277,7 +279,7 @@ func (q *QEMUStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.
 	}
 
 	if opts.USBs != nil {
-		usbs, err := command.ParseUSBs(*opts.USBs)
+		usbs, err := define.ParseUSBs(*opts.USBs)
 		if err != nil {
 			return err
 		}
