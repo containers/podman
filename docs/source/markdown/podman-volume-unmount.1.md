@@ -19,12 +19,12 @@ counter reaches zero indicating no other processes are using the mount.
 
 ## EXAMPLE
 
-Unmount volume with a given ID
+Unmount volume with a given ID:
 ```
 podman volume unmount volumeID
 ```
 
-Unmount multiple volumes with given IDs
+Unmount multiple volumes with given IDs:
 ```
 podman volume unmount volumeID1 volumeID2 volumeID3
 ```
