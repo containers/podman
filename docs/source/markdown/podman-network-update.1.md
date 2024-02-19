@@ -23,12 +23,12 @@ Accepts array of DNS resolvers and removes them from the existing list of resolv
 
 ## EXAMPLE
 
-Update a network
+Update a network:
 ```
 $ podman network update network1 --dns-add 8.8.8.8,1.1.1.1
 ```
 
-Update a network and add/remove dns servers
+Update a network and add/remove dns servers:
 ```
 $ podman network update network1 --dns-drop 8.8.8.8 --dns-add 3.3.3.3
 ```

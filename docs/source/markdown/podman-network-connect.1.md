@@ -28,17 +28,17 @@ Set a static mac address for this container on this network.
 
 ## EXAMPLE
 
-Connect a container named *web* to a network named *test*
+Connect specified container to a named network:
 ```
 podman network connect test web
 ```
 
-Connect a container name *web* to a network named *test* with two aliases: web1 and web2
+Connect specified container to named network with two aliases:
 ```
 podman network connect --alias web1 --alias web2 test web
 ```
 
-Connect a container name *web* to a network named *test* with a static ip.
+Connect specified container to named network with a static ip:
 ```
 podman network connect --ip 10.89.1.13 test web
 ```

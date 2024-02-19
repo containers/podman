@@ -21,20 +21,18 @@ Print usage statement
 
 ## EXAMPLE
 
-Check if a network called `net1` exists (the network does actually exist).
+Check if specified network exists (the network does actually exist):
 ```
 $ podman network exists net1
 $ echo $?
 0
-$
 ```
 
-Check if a network called `webbackend` exists (the network does not actually exist).
+Check if nonexistent network exists:
 ```
 $ podman network exists webbackend
 $ echo $?
 1
-$
 ```
 
 ## SEE ALSO
