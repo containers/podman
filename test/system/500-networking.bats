@@ -921,7 +921,7 @@ EOF
     run_podman run --rm --network $net1 $IMAGE true
 
     # And now because of all the fun we have to check the same with slirp4netns and pasta because
-    # that uses slighlty different code paths. Note this would dealock before the fix.
+    # that uses slightly different code paths. Note this would deadlock before the fix.
     # https://github.com/containers/podman/issues/21477
     run_podman 1 run --name $cname2 --network slirp4netns --restart on-failure:2 --userns keep-id $IMAGE false
     run_podman inspect --format "{{.RestartCount}}" $cname2

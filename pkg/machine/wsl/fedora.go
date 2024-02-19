@@ -83,7 +83,7 @@ func GetFedoraDownloadForWSL() (*url.URL, string, string, int64, error) {
 
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			logrus.Errorf("error closing http boddy: %q", err)
+			logrus.Errorf("error closing http body: %q", err)
 		}
 	}()
 	b, err := io.ReadAll(&io.LimitedReader{R: resp.Body, N: 1024})
