@@ -37,17 +37,17 @@ Print usage statement
 
 ## EXAMPLES
 
-Remove login credentials for the docker.io registry from the authorization file
+Remove login credentials for the docker.io registry from the authentication file:
 ```
 $ podman logout docker.io
 ```
 
-Remove login credentials for the docker.io registry from the authdir/myauths.json file.
+Remove login credentials for the docker.io registry from the authdir/myauths.json file:
 ```
 $ podman logout --authfile authdir/myauths.json docker.io
 ```
 
-Remove login credentials for all registries.
+Remove login credentials for all registries:
 ```
 $ podman logout --all
 ```
