@@ -34,9 +34,13 @@ Write to a file, default is STDOUT
 
 ## EXAMPLES
 
+Export container into specified tar ball:
 ```
 $ podman export -o redis-container.tar 883504668ec465463bc0fe7e63d53154ac3b696ea8d7b233748918664ea90e57
+```
 
+Export container to stdout:
+```
 $ podman export 883504668ec465463bc0fe7e63d53154ac3b696ea8d7b233748918664ea90e57 > redis-container.tar
 ```
 
