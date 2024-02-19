@@ -72,10 +72,9 @@ jobs:
   - job: koji_build
     trigger: commit
     dist_git_branches:
-      - fedora-development
+      - fedora-all
 
-        # TODO: Revisit once fedora 40 is branched and manual bodhi is enabled
-        #- job: bodhi_update
-        #trigger: commit
-        #dist_git_branches:
-        #- fedora-40 # rawhide updates are created automatically
+  - job: bodhi_update
+    trigger: commit
+    dist_git_branches:
+      - fedora-branched # rawhide updates are created automatically
