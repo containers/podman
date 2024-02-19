@@ -257,9 +257,11 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	query := struct {
-		FromImage string `schema:"fromImage"`
-		Tag       string `schema:"tag"`
-		Platform  string `schema:"platform"`
+		FromImage  string `schema:"fromImage"`
+		Tag        string `schema:"tag"`
+		Platform   string `schema:"platform"`
+		Retry      uint   `schema:"retry"`
+		RetryDelay string `schema:"retryDelay"`
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -289,6 +291,19 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 		pullOptions.IdentityToken = authConf.IdentityToken
 	}
 	pullOptions.Writer = os.Stderr // allows for debugging on the server
+
+	if _, found := r.URL.Query()["retry"]; found {
+		pullOptions.MaxRetries = &query.Retry
+	}
+
+	if _, found := r.URL.Query()["retryDelay"]; found {
+		duration, err := time.ParseDuration(query.RetryDelay)
+		if err != nil {
+			utils.Error(w, http.StatusBadRequest, err)
+			return
+		}
+		pullOptions.RetryDelay = &duration
+	}
 
 	// Handle the platform.
 	platformSpecs := strings.Split(query.Platform, "/")

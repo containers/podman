@@ -73,6 +73,10 @@ Print the usage statement.
 
 Suppress output information when pulling images
 
+@@option retry
+
+@@option retry-delay
+
 @@option tls-verify
 
 @@option variant.container
@@ -204,6 +208,10 @@ Writing manifest to image destination
 Storing signatures
 3cba58dad5d9b35e755b48b634acb3fdd185ab1c996ac11510cc72c17780e13c
 ```
+
+Pull an image with up to 6 retries, delaying 10 seconds between retries in quet mode.
+$ podman --remote pull -q --retry 6 --retry-delay 10s ubi9
+4d6addf62a90e392ff6d3f470259eb5667eab5b9a8e03d20b41d0ab910f92170
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-push(1)](podman-push.1.md)**, **[podman-login(1)](podman-login.1.md)**, **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**, **[containers-registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md)**, **[containers-transports(5)](https://github.com/containers/image/blob/main/docs/containers-transports.5.md)**

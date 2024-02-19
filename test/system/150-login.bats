@@ -327,6 +327,46 @@ function _test_skopeo_credential_sharing() {
 
 }
 
+@test "podman images with retry" {
+    run_podman pull -q --retry 4 --retry-delay "10s" $IMAGE
+    run_podman 125 pull -q --retry 4 --retry-delay "bogus" $IMAGE
+    is "$output" 'Error: time: invalid duration "bogus"' "bad retry-delay"
+
+    skip_if_remote "running a local registry doesn't work with podman-remote"
+    start_registry
+    authfile=${PODMAN_LOGIN_WORKDIR}/auth-$(random_string 10).json
+    run_podman login --tls-verify=false \
+               --username ${PODMAN_LOGIN_USER} \
+               --password-stdin \
+               --authfile=$authfile \
+               localhost:${PODMAN_LOGIN_REGISTRY_PORT} <<<"${PODMAN_LOGIN_PASS}"
+    is "$output" "Login Succeeded!" "output from podman login"
+
+    image1="localhost:${PODMAN_LOGIN_REGISTRY_PORT}/test:1.0"
+
+    run_podman tag $IMAGE $image1
+    run_podman push --authfile=$authfile \
+        --tls-verify=false $mid \
+        $image1
+    run_podman rmi $image1
+    run_podman pull -q --retry 4 --retry-delay "0s" --authfile=$authfile \
+        --tls-verify=false $image1
+    assert "${output:0:12}" = "$PODMAN_TEST_IMAGE_ID" "First pull (before stopping registry)"
+    run_podman rmi $image1
+
+    # This actually STOPs the registry, so the port is unbound...
+    pause_registry
+    # ...then, in eight seconds, we start it again
+    (sleep 8; unpause_registry) &
+    run_podman 0+w pull -q --retry 4 --retry-delay "5s" --authfile=$authfile \
+            --tls-verify=false $image1
+    assert "$output" =~ "Failed, retrying in 5s.*Error: initializing.* connection refused"
+    assert "${lines[-1]:0:12}" = "$PODMAN_TEST_IMAGE_ID" "push should succeed via retry"
+    unpause_registry
+
+    run_podman rmi $image1
+}
+
 # END   cooperation with skopeo
 # END   actual tests
 ###############################################################################

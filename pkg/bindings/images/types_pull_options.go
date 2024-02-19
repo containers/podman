@@ -138,6 +138,36 @@ func (o *PullOptions) GetQuiet() bool {
 	return *o.Quiet
 }
 
+// WithRetry set field Retry to given value
+func (o *PullOptions) WithRetry(value uint) *PullOptions {
+	o.Retry = &value
+	return o
+}
+
+// GetRetry returns value of field Retry
+func (o *PullOptions) GetRetry() uint {
+	if o.Retry == nil {
+		var z uint
+		return z
+	}
+	return *o.Retry
+}
+
+// WithRetryDelay set field RetryDelay to given value
+func (o *PullOptions) WithRetryDelay(value string) *PullOptions {
+	o.RetryDelay = &value
+	return o
+}
+
+// GetRetryDelay returns value of field RetryDelay
+func (o *PullOptions) GetRetryDelay() string {
+	if o.RetryDelay == nil {
+		var z string
+		return z
+	}
+	return *o.RetryDelay
+}
+
 // WithSkipTLSVerify set field SkipTLSVerify to given value
 func (o *PullOptions) WithSkipTLSVerify(value bool) *PullOptions {
 	o.SkipTLSVerify = &value

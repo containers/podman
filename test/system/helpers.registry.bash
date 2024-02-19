@@ -115,3 +115,23 @@ function stop_registry() {
         die "Socket still seems open"
     fi
 }
+
+function pause_registry() {
+    if [[ ! -d "$PODMAN_LOGIN_WORKDIR/auth" ]]; then
+        # No registry running
+        return
+    fi
+
+    opts="--storage-driver vfs $(podman_isolation_opts ${PODMAN_LOGIN_WORKDIR})"
+    run_podman $opts stop registry
+}
+
+function unpause_registry() {
+    if [[ ! -d "$PODMAN_LOGIN_WORKDIR/auth" ]]; then
+        # No registry running
+        return
+    fi
+
+    opts="--storage-driver vfs $(podman_isolation_opts ${PODMAN_LOGIN_WORKDIR})"
+    run_podman $opts start registry
+}
