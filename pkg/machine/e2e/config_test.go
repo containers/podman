@@ -236,7 +236,9 @@ func isWSL() bool {
 	return isVmtype(define.WSLVirt)
 }
 
-//nolint:unused
+// Only used on Windows
+//
+//nolint:unparam,unused
 func runSystemCommand(binary string, cmdArgs []string, timeout time.Duration, wait bool) (*machineSession, error) {
 	GinkgoWriter.Println(binary + " " + strings.Join(cmdArgs, " "))
 	c := exec.Command(binary, cmdArgs...)

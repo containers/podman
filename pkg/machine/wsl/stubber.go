@@ -160,7 +160,7 @@ func (w WSLStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.Se
 
 		dist := machine.ToDist(mc.Name)
 		if err := changeDistUserModeNetworking(dist, mc.SSH.RemoteUsername, mc.ImagePath.GetPath(), *opts.UserModeNetworking); err != nil {
-			return fmt.Errorf("failure changing state of user-mode networking setting", err)
+			return fmt.Errorf("failure changing state of user-mode networking setting: %w", err)
 		}
 
 		mc.WSLHypervisor.UserModeNetworking = *opts.UserModeNetworking

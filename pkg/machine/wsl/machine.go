@@ -40,10 +40,12 @@ func (e *ExitCodeError) Error() string {
 	return fmt.Sprintf("Process failed with exit code: %d", e.code)
 }
 
+//nolint:unused
 func getConfigPath(name string) (string, error) {
 	return getConfigPathExt(name, "json")
 }
 
+//nolint:unused
 func getConfigPathExt(name string, extension string) (string, error) {
 	vmConfigDir, err := machine.GetConfDir(vmtype)
 	if err != nil {
@@ -396,7 +398,9 @@ func attemptFeatureInstall(reExec, admin bool) error {
 }
 
 func launchElevate(operation string) error {
-	truncateElevatedOutputFile()
+	if err := truncateElevatedOutputFile(); err != nil {
+		return err
+	}
 	err := relaunchElevatedWait()
 	if err != nil {
 		if eerr, ok := err.(*ExitCodeError); ok {
@@ -565,6 +569,7 @@ func wslPipe(input string, dist string, arg ...string) error {
 	return pipeCmdPassThrough(wutil.FindWSL(), input, newArgs...)
 }
 
+//nolint:unused
 func wslCreateKeys(identityPath string, dist string) (string, error) {
 	return machine.CreateSSHKeysPrefix(identityPath, true, true, wutil.FindWSL(), "-u", "root", "-d", dist)
 }
@@ -619,6 +624,7 @@ func setupWslProxyEnv() (hasProxy bool) {
 	return
 }
 
+//nolint:unused
 func obtainGlobalConfigLock() (*fileLock, error) {
 	lockDir, err := machine.GetGlobalDataDir()
 	if err != nil {
@@ -734,6 +740,7 @@ func isRunning(name string) (bool, error) {
 	return sysd, err
 }
 
+//nolint:unused
 func getDiskSize(name string) uint64 {
 	vmDataDir, err := machine.GetDataDir(vmtype)
 	if err != nil {
@@ -748,6 +755,7 @@ func getDiskSize(name string) uint64 {
 	return uint64(info.Size())
 }
 
+//nolint:unused
 func getCPUs(name string) (uint64, error) {
 	dist := machine.ToDist(name)
 	if run, _ := isWSLRunning(dist); !run {
@@ -772,6 +780,7 @@ func getCPUs(name string) (uint64, error) {
 	return uint64(ret), err
 }
 
+//nolint:unused
 func getMem(name string) (uint64, error) {
 	dist := machine.ToDist(name)
 	if run, _ := isWSLRunning(dist); !run {
@@ -808,6 +817,7 @@ func getMem(name string) (uint64, error) {
 	return total - available, err
 }
 
+//nolint:unused
 func getResources(mc *vmconfigs.MachineConfig) (resources vmconfigs.ResourceConfig) {
 	resources.CPUs, _ = getCPUs(mc.Name)
 	resources.Memory, _ = getMem(mc.Name)

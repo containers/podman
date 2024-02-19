@@ -16,6 +16,7 @@ func waitOnProcess(processID int) error {
 		// FindProcess on Windows will return an error when the process is not found
 		// if a process can not be found then it has already exited and there is
 		// nothing left to do, so return without error
+		//nolint:nilerr
 		return nil
 	}
 

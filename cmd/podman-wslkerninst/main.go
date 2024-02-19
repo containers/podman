@@ -16,9 +16,12 @@ import (
 )
 
 const (
+	//nolint:stylecheck
 	MB_ICONWARNING = 0x00000030
-	MB_OK          = 0x00000000
-	MB_DEFBUTTON1  = 0x00000000
+	//nolint:stylecheck
+	MB_OK = 0x00000000
+	//nolint:stylecheck
+	MB_DEFBUTTON1 = 0x00000000
 )
 
 const KernelWarning = "WSL Kernel installation did not complete successfully. " +
@@ -85,7 +88,7 @@ func warn(title string, caption string) int {
 
 func main() {
 	args := os.Args
-	setupLogging(path.Base(args[0]))
+	_, _ = setupLogging(path.Base(args[0]))
 	if wutil.IsWSLInstalled() {
 		// nothing to do
 		logrus.Info("WSL Kernel already installed")

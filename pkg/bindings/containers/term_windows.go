@@ -61,7 +61,6 @@ func notifyWinChange(ctx context.Context, winChange chan os.Signal, stdin *os.Fi
 			}
 		}
 	}()
-
 }
 
 func getTermSize(stdin *os.File, stdout *os.File) (width, height int, err error) {
