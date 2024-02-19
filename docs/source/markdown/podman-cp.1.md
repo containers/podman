@@ -101,7 +101,7 @@ the cp command.
 
 ## EXAMPLES
 
-Copy a file from host to a container:
+Copy a file from the host to a container:
 ```
 podman cp /myapp/app.conf containerID:/myapp/app.conf
 ```
