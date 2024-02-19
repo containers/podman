@@ -249,12 +249,19 @@ EOF
     local count=30
     for i in $(seq --format '%02g' 1 $count); do
         timeout --foreground -v --kill=10 60 \
-                $PODMAN build -t i$i $PODMAN_TMPDIR &>/dev/null &
+                $PODMAN build -t i$i $PODMAN_TMPDIR &> $PODMAN_TMPDIR/log.$i &
     done
 
     # Wait for all background builds to complete. Note that this succeeds
     # even if some of the individual builds fail! Our actual test is below.
     wait
+
+    # For debugging, e.g., #21742
+    for log in $PODMAN_TMPDIR/log.*;do
+        echo
+        echo $log ":"
+        cat $log
+    done
 
     # Now delete all built images. If any image wasn't built, rmi will fail
     # and test will fail.

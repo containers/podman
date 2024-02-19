@@ -216,6 +216,7 @@ EOF
     is "$output" "$rand_value"
 
     run_podman pod rm -t 0 -f test
+    run_podman rmi $(pause_image)
 }
 
 @test "podman ps --format PodName" {
@@ -229,6 +230,8 @@ EOF
     is "$output" ".*$rand_value"
 
     run_podman rm -t 0 -f $cid
+    run_podman pod rm -t 0 -f $rand_value
+    run_podman rmi $(pause_image)
 }
 
 # vim: filetype=sh
