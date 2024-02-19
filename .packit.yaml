@@ -66,14 +66,6 @@ jobs:
   - job: propose_downstream
     trigger: release
     update_release: false
-    dist_git_branches: &stable_fedora
+    dist_git_branches:
       - fedora-39
       - fedora-38
-
-  - job: koji_build
-    trigger: commit
-    dist_git_branches: *stable_fedora
-
-  - job: bodhi_update
-    trigger: commit
-    dist_git_branches: *stable_fedora
