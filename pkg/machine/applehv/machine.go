@@ -107,7 +107,7 @@ func generateSystemDFilesForVirtiofsMounts(mounts []machine.VirtIoFs) []ignition
 	// for automatic mounting on boot, and a "preparatory" service file that disables FCOS security, performs
 	// the mkdir of the mount point, and then re-enables security.  This must be done for each mount.
 
-	var unitFiles []ignition.Unit
+	unitFiles := make([]ignition.Unit, 0, len(mounts))
 	for _, mnt := range mounts {
 		// Here we are looping the mounts and for each mount, we are adding two unit files
 		// for virtiofs.  One unit file is the mount itself and the second is to automount it

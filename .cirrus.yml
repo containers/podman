@@ -338,7 +338,7 @@ osx_alt_build_task:
     # The previous task may have been canceled or aborted.
     prep_script: &mac_cleanup "contrib/cirrus/mac_cleanup.sh"
     lint_script:
-        - make lint || true  # TODO: Enable when code passes check
+        - make golangci-lint
     basic_build_script:
         - make .install.ginkgo
         - make podman-remote

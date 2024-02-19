@@ -3,12 +3,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"io/fs"
-	"errors"
 
 	"github.com/spf13/cobra"
 )
@@ -67,7 +67,7 @@ func uninstall(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("could not stat dockerSock: %v", err)
 	}
 	if target, err := os.Readlink(dockerSock); err != nil {
-		//Return an error if unable to read the symlink
+		// Return an error if unable to read the symlink
 		return fmt.Errorf("could not read dockerSock symlink: %v", err)
 	} else {
 		// Check if the target of the symlink matches the expected target

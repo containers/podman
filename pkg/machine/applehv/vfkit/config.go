@@ -83,7 +83,8 @@ func (vf *VfkitHelper) stateChange(newState rest.StateChange) error {
 		return err
 	}
 	payload := bytes.NewReader(b)
-	_, err = vf.post(vf.Endpoint+state, payload)
+	serverResponse, err := vf.post(vf.Endpoint+state, payload)
+	_ = serverResponse.Body.Close()
 	return err
 }
 
