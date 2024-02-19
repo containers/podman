@@ -413,14 +413,14 @@ Setting automatic user-namespace separated containers:
 # podman create --userns=auto:size=65536 ubi8-init
 ```
 
-Configure timezone in a container:
+Configure the timezone in a container:
 ```
 $ podman create --tz=local alpine date
 $ podman create --tz=Asia/Shanghai alpine date
 $ podman create --tz=US/Eastern alpine date
 ```
 
-Podman makes sure the first container (container1) is running before the second container (container2) is started:
+Ensure the first container (container1) is running before the second container (container2) is started:
 ```
 $ podman create --name container1 -t -i fedora bash
 $ podman create --name container2 --requires container1 -t -i fedora bash
@@ -440,12 +440,12 @@ Expose shared libraries inside of container as read-only using a glob:
 $ podman create --mount type=glob,src=/usr/lib64/libnvidia\*,ro -i -t fedora /bin/bash
 ```
 
-Configure container to keep supplemental groups for access to volume:
+Create a container allowing supplemental groups to have access to the volume:
 ```
 $ podman create -v /var/lib/design:/var/lib/design --group-add keep-groups ubi8
 ```
 
-Configure execution domain for containers using personality flag:
+Configure execution domain for containers using the personality option:
 ```
 $ podman create --name container1 --personality=LINUX32 fedora bash
 ```
