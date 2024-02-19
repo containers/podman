@@ -34,6 +34,8 @@ func newDecompressor(compressedFilePath string, compressedFileContent []byte) de
 	switch {
 	case compressionType == archive.Xz:
 		return newXzDecompressor(compressedFilePath)
+	// Zip files are not guaranteed to have a magic number at the beginning
+	// of the file, so we need to use the file name to detect them.
 	case compressionType == archive.Uncompressed && hasZipSuffix:
 		return newZipDecompressor(compressedFilePath)
 	case compressionType == archive.Uncompressed:
