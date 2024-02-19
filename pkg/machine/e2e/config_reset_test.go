@@ -2,7 +2,7 @@ package e2e_test
 
 type resetMachine struct {
 	/*
-	  -f, --force           Stop and do not prompt before reseting
+	  -f, --force           Stop and do not prompt before resetting
 	*/
 
 	force bool
