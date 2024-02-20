@@ -387,59 +387,47 @@ Use the **--group-add keep-groups** option to pass the user's supplementary grou
 
 ## EXAMPLES
 
-### Create a container using a local image
-
+Create a container using a local image:
 ```
 $ podman create alpine ls
 ```
 
-### Create a container using a local image and annotate it
-
+Create a container using a local image and annotate it:
 ```
 $ podman create --annotation HELLO=WORLD alpine ls
 ```
 
-### Create a container using a local image, allocating a pseudo-TTY, keeping stdin open and name it myctr
-
+Create a container using a local image, allocating a pseudo-TTY, keeping stdin open and name it myctr:
 ```
   podman create -t -i --name myctr alpine ls
 ```
 
-### Set UID/GID mapping in a new user namespace
-
 Running a container in a new user namespace requires a mapping of
-the UIDs and GIDs from the host.
-
+the UIDs and GIDs from the host:
 ```
 $ podman create --uidmap 0:30000:7000 --gidmap 0:30000:7000 fedora echo hello
 ```
 
-### Setting automatic user namespace separated containers
-
+Setting automatic user-namespace separated containers:
 ```
 # podman create --userns=auto:size=65536 ubi8-init
 ```
 
-### Configure timezone in a container
-
+Configure the timezone in a container:
 ```
 $ podman create --tz=local alpine date
 $ podman create --tz=Asia/Shanghai alpine date
 $ podman create --tz=US/Eastern alpine date
 ```
 
-### Adding dependency containers
-
-Podman makes sure the first container, container1, is running before the second container (container2) is started.
-
+Ensure the first container (container1) is running before the second container (container2) is started:
 ```
 $ podman create --name container1 -t -i fedora bash
 $ podman create --name container2 --requires container1 -t -i fedora bash
 $ podman start --attach container2
 ```
 
-Multiple containers can be required.
-
+Create a container which requires multiple containers:
 ```
 $ podman create --name container1 -t -i fedora bash
 $ podman create --name container2 -t -i fedora bash
@@ -447,32 +435,27 @@ $ podman create --name container3 --requires container1,container2 -t -i fedora 
 $ podman start --attach container3
 ```
 
-### Exposing shared libraries inside of container as read-only using a glob
-
+Expose shared libraries inside of container as read-only using a glob:
 ```
 $ podman create --mount type=glob,src=/usr/lib64/libnvidia\*,ro -i -t fedora /bin/bash
 ```
 
-### Configure keep supplemental groups for access to volume
-
+Create a container allowing supplemental groups to have access to the volume:
 ```
 $ podman create -v /var/lib/design:/var/lib/design --group-add keep-groups ubi8
 ```
 
-### Configure execution domain for containers using personality flag
-
+Configure execution domain for containers using the personality option:
 ```
 $ podman create --name container1 --personality=LINUX32 fedora bash
 ```
 
-### Create a container with external rootfs mounted as an overlay
-
+Create a container with external rootfs mounted as an overlay:
 ```
 $ podman create --name container1 --rootfs /path/to/rootfs:O bash
 ```
 
-### Create a container connected to two networks (called net1 and net2) with a static ip
-
+Create a container connected to two networks (called net1 and net2) with a static ip:
 ```
 $ podman create --network net1:ip=10.89.1.5 --network net2:ip=10.89.10.10 alpine ip addr
 ```
