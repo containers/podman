@@ -54,6 +54,7 @@ Print the numeric IDs only (default *false*).
 
 ## EXAMPLES
 
+Show the history of the specified image:
 ```
 $ podman history debian
 ID              CREATED       CREATED BY                                      SIZE       COMMENT
@@ -61,6 +62,7 @@ b676ca55e4f2c   9 weeks ago   /bin/sh -c #(nop) CMD ["bash"]                  0 
 <missing>       9 weeks ago   /bin/sh -c #(nop) ADD file:ebba725fb97cea4...   45.14 MB
 ```
 
+Show the history of the specified image without truncating content and using raw data:
 ```
 $ podman history --no-trunc=true --human=false debian
 ID              CREATED                CREATED BY                                      SIZE       COMMENT
@@ -68,12 +70,14 @@ b676ca55e4f2c   2017-07-24T16:52:55Z   /bin/sh -c #(nop) CMD ["bash"]           
 <missing>       2017-07-24T16:52:54Z   /bin/sh -c #(nop) ADD file:ebba725fb97cea4...   45142935
 ```
 
+Show the formatted history of the specified image:
 ```
 $ podman history --format "{{.ID}} {{.Created}}" debian
 b676ca55e4f2c   9 weeks ago
 <missing>       9 weeks ago
 ```
 
+Show the history in JSON format for the specified image:
 ```
 $ podman history --format json debian
 [
