@@ -27,11 +27,13 @@ Alter the output into a different format.  The only valid format for **podman di
 
 ## EXAMPLE
 
+Show container-modified files versus the container's image:
 ```
 $ podman diff container1
 A /myscript.sh
 ```
 
+Show container-modified files versus the container's image in JSON format:
 ```
 $ podman diff --format json myimage
 {
@@ -46,6 +48,7 @@ $ podman diff --format json myimage
 }
 ```
 
+Show the difference between the specified container and the image:
 ```
 $ podman diff container1 image1
 A /test
