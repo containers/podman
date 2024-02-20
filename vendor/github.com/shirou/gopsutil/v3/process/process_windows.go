@@ -253,7 +253,7 @@ func pidsWithContext(ctx context.Context) ([]int32, error) {
 		if err := windows.EnumProcesses(ps, &read); err != nil {
 			return nil, err
 		}
-		if uint32(len(ps)) == read { // ps buffer was too small to host every results, retry with a bigger one
+		if uint32(len(ps)) == read/dwordSize { // ps buffer was too small to host every results, retry with a bigger one
 			psSize += 1024
 			continue
 		}
