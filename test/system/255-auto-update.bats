@@ -8,27 +8,33 @@ load helpers.network
 load helpers.registry
 load helpers.systemd
 
-SNAME_FILE=$BATS_TMPDIR/services
+export SNAME_FILE
 
 function setup() {
     skip_if_remote "systemd tests are meaningless over remote"
     basic_setup
+
+    SNAME_FILE=${PODMAN_TMPDIR}/services
 }
 
 function teardown() {
-    while read line; do
-        if [[ "$line" =~ "podman-auto-update" ]]; then
-            echo "Stop timer: $line.timer"
-            systemctl stop $line.timer
-            systemctl disable $line.timer
-        else
-            systemctl stop $line
-        fi
-        rm -f $UNIT_DIR/$line.{service,timer}
-    done < $SNAME_FILE
+    if [[ -e $SNAME_FILE ]]; then
+        while read line; do
+            if [[ "$line" =~ "podman-auto-update" ]]; then
+                echo "Stop timer: $line.timer"
+                systemctl stop $line.timer
+                systemctl disable $line.timer
+            else
+                systemctl stop $line
+            fi
+            rm -f $UNIT_DIR/$line.{service,timer}
+        done < $SNAME_FILE
 
-    rm -f $SNAME_FILE
-    run_podman '?' rmi -f                            \
+        rm -f $SNAME_FILE
+    fi
+    SNAME_FILE=
+
+    run_podman rmi -f                              \
             quay.io/libpod/alpine:latest           \
             quay.io/libpod/busybox:latest          \
             quay.io/libpod/localtest:latest        \
@@ -37,7 +43,7 @@ function teardown() {
 
     # The rollback tests may leave some dangling images behind, so let's prune
     # them to leave a clean state.
-    run_podman '?' image prune -f
+    run_podman image prune -f
     basic_teardown
 }
 
