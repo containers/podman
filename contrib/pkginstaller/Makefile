@@ -47,6 +47,8 @@ package_root: clean-pkgroot $(TMP_DOWNLOAD)/gvproxy $(TMP_DOWNLOAD)/vfkit
 	cp $(TMP_DOWNLOAD)/gvproxy $(PACKAGE_ROOT)/podman/bin/
 	cp $(TMP_DOWNLOAD)/vfkit $(PACKAGE_ROOT)/podman/bin/
 	chmod a+x $(PACKAGE_ROOT)/podman/bin/*
+	mkdir $(PACKAGE_ROOT)/podman/config
+	cp ../../pkg/machine/ocipull/policy.json $(PACKAGE_ROOT)/podman/config/policy.json
 
 %: %.in podman_version
 	@sed -e 's/__VERSION__/'$(shell ../../test/version/version)'/g' $< >$@
