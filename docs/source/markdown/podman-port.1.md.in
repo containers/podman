@@ -37,7 +37,7 @@ List port mappings for a specific container:
 80/tcp -> 0.0.0.0:44327
 #
 ```
-List specified port mappings for specified container:
+List the specified port mappings for a specific container:
 ```
 # podman port b4d2f054 80
  0.0.0.0:44327
