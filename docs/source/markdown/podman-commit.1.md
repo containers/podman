@@ -78,7 +78,7 @@ Squash newly built layers into a single new layer.\
 The default is **false**.
 
 ## EXAMPLES
-Create image from container with entrypoint and label
+Create image from container with entrypoint and label:
 ```
 $ podman commit --change CMD=/bin/bash --change ENTRYPOINT=/bin/sh --change "LABEL blue=image" reverent_golick image-committed
 Getting image source signatures
@@ -91,32 +91,32 @@ Storing signatures
 e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 
-Create image from container with commit message
+Create image from container with commit message:
 ```
 $ podman commit -q --message "committing container to image"
 reverent_golick image-committed
 e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 
-Create image from container with author
+Create image from container with author:
 ```
 $ podman commit -q --author "firstName lastName" reverent_golick image-committed
 e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 
-Pause a running container while creating the image
+Pause running container while creating image:
 ```
 $ podman commit -q --pause=true containerID image-committed
 e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 
-Create an image from a container with a default image tag
+Create image from container with default image tag:
 ```
 $ podman commit containerID
 e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 
-Create an image from container with default required capabilities are SETUID and SETGID
+Create image from container with default required capabilities:
 ```
 $ podman commit -q --change LABEL=io.containers.capabilities=setuid,setgid epic_nobel privimage
 400d31a3f36dca751435e80a0e16da4859beb51ff84670ce6bdc5edb30b94066
