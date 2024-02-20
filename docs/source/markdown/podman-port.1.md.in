@@ -21,7 +21,7 @@ List all known port mappings for running containers; when using this option, con
 
 ## EXAMPLE
 
-List all port mappings
+List all port mappings:
 ```
 # podman port -a
 b4d2f05432e482e017b1a4b2eae15fa7b4f6fb7e9f65c1bde46294fdef285906
@@ -30,21 +30,21 @@ b4d2f05432e482e017b1a4b2eae15fa7b4f6fb7e9f65c1bde46294fdef285906
 #
 ```
 
-List port mappings for a specific container
+List port mappings for a specific container:
 ```
 # podman port b4d2f054
 80/udp -> 0.0.0.0:44327
 80/tcp -> 0.0.0.0:44327
 #
 ```
-List the port mappings for the latest container and port 80
+List the specified port mappings for a specific container:
 ```
 # podman port b4d2f054 80
  0.0.0.0:44327
 #
 ```
 
-List the port mappings for a specific container for port 80 and the tcp protocol.
+List the port mappings for a specific container for port 80 and the tcp protocol:
 ```
 # podman port b4d2f054 80/tcp
 0.0.0.0:44327
