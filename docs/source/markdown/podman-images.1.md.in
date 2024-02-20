@@ -122,7 +122,7 @@ Sort by *created*, *id*, *repository*, *size* or *tag* (default: **created**)
 
 ## EXAMPLE
 
-List all non dangling images in local storage:
+List all non-dangling images in local storage:
 ```
 $ podman images
 REPOSITORY                         TAG         IMAGE ID      CREATED       SIZE
@@ -225,7 +225,7 @@ registry.access.redhat.com/rhel7            latest   7a840db7f020   2 weeks ago 
 registry.fedoraproject.org/fedora           27       801894bc0e43   6 weeks ago          246 MB
 ```
 
-Show difference between listed images in use, versus all images including dangling images:
+Show the difference between listed images in use versus all images, including dangling images:
 ```
 # podman images
 REPOSITORY                 TAG      IMAGE ID       CREATED         SIZE
