@@ -79,6 +79,7 @@ Do not truncate output
 
 ## EXAMPLE
 
+List statistics about all running containers without streaming mode:
 ```
 # podman stats -a --no-stream
 ID             NAME              CPU %   MEM USAGE / LIMIT   MEM %   NET IO    BLOCK IO   PIDS
@@ -86,18 +87,21 @@ a9f807ffaacd   frosty_hodgkin    --      3.092MB / 16.7GB    0.02%   -- / --   -
 3b33001239ee   sleepy_stallman   --      -- / --             --      -- / --   -- / --    --
 ```
 
+List the specified container's statistics in streaming mode:
 ```
-# podman stats --no-stream a9f80
+# podman stats a9f80
 ID             NAME             CPU %   MEM USAGE / LIMIT   MEM %   NET IO    BLOCK IO   PIDS
 a9f807ffaacd   frosty_hodgkin   --      3.092MB / 16.7GB    0.02%   -- / --   -- / --    2
 ```
 
+List the specified statistics about the specified container in table format:
 ```
 $ podman stats --no-trunc 3667 --format 'table {{ .ID }} {{ .MemUsage }}'
 ID                                                                MEM USAGE / LIMIT
 3667c6aacb06aac2eaffce914c01736420023d56ef9b0f4cfe58b6d6a78b7503  49.15kB / 67.17GB
 ```
 
+List the specified container statistics in JSON format:
 ```
 # podman stats --no-stream --format=json a9f80
 [
@@ -114,6 +118,7 @@ ID                                                                MEM USAGE / LI
 ]
 ```
 
+List the specified container statistics in table format:
 ```
 # podman stats --no-stream --format "table {{.ID}} {{.Name}} {{.MemUsage}}" 6eae
 ID             NAME           MEM USAGE / LIMIT
