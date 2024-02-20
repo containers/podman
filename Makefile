@@ -69,6 +69,8 @@ ifeq ($(shell uname -s),FreeBSD)
 SED=gsed
 GREP=ggrep
 MAN_L=	mandoc
+# FreeBSD needs CNI until netavark is supported
+BUILDTAGS += cni
 else
 SED=sed
 GREP=grep
