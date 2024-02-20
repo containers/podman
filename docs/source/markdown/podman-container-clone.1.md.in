@@ -92,21 +92,26 @@ When set to true, this flag runs the newly created container after the
 clone process has completed, this specifies a detached running mode.
 
 ## EXAMPLES
+
+Clone specified container into a new container:
 ```
 # podman container clone d0cf1f782e2ed67e8c0050ff92df865a039186237a4df24d7acba5b1fa8cc6e7
 6b2c73ff8a1982828c9ae2092954bcd59836a131960f7e05221af9df5939c584
 ```
 
+Clone specified container into a newly named container:
 ```
 # podman container clone --name=clone d0cf1f782e2ed67e8c0050ff92df865a039186237a4df24d7acba5b1fa8cc6e7
 6b2c73ff8a1982828c9ae2092954bcd59836a131960f7e05221af9df5939c584
 ```
 
+Replace specified container with selected resource constraints into a new container, removing original container:
 ```
 # podman container clone --destroy --cpus=5 d0cf1f782e2ed67e8c0050ff92df865a039186237a4df24d7acba5b1fa8cc6e7
 6b2c73ff8a1982828c9ae2092954bcd59836a131960f7e05221af9df5939c584
 ```
 
+Clone specified container giving a new name and then replacing the image of the original container with the specified image name:
 ```
 # podman container clone 2d4d4fca7219b4437e0d74fcdc272c4f031426a6eacd207372691207079551de new_name fedora
 Resolved "fedora" as an alias (/etc/containers/registries.conf.d/shortnames.conf)
@@ -118,6 +123,7 @@ Writing manifest to image destination
 Storing signatures
 5a9b7851013d326aa4ac4565726765901b3ecc01fcbc0f237bc7fd95588a24f9
 ```
+
 ## SEE ALSO
 **[podman-create(1)](podman-create.1.md)**, **[cgroups(7)](https://man7.org/linux/man-pages/man7/cgroups.7.html)**
 

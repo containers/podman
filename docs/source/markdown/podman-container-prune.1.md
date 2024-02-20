@@ -38,7 +38,7 @@ Print usage statement.\
 The default is **false**.
 
 ## EXAMPLES
-Remove all stopped containers from local storage
+Remove all stopped containers from local storage:
 ```
 $ podman container prune
 WARNING! This will remove all stopped containers.
@@ -51,7 +51,7 @@ fff1c5b6c3631746055ec40598ce8ecaa4b82aef122f9e3a85b03b55c0d06c23
 602d343cd47e7cb3dfc808282a9900a3e4555747787ec6723bb68cedab8384d5
 ```
 
-Remove all stopped containers from local storage without confirmation.
+Remove all stopped containers from local storage without confirmation:
 ```
 $ podman container prune -f
 878392adf2e6c5c9bb1fc19b69d37d2e98c8abf9d539c0bce4b15b46bbcce471
@@ -62,7 +62,7 @@ fff1c5b6c3631746055ec40598ce8ecaa4b82aef122f9e3a85b03b55c0d06c23
 602d343cd47e7cb3dfc808282a9900a3e4555747787ec6723bb68cedab8384d5
 ```
 
-Remove all stopped containers from local storage created before the last 10 minutes
+Remove all stopped containers from local storage created before the last 10 minutes:
 ```
 $ podman container prune --filter until="10m"
 WARNING! This will remove all stopped containers.
