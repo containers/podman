@@ -103,29 +103,32 @@ Add a sigstore signature at the destination using a private key at the specified
 
 ## EXAMPLE
 
-This example pushes the image specified by the imageID to a local directory in docker format.
+Push the specified image to a local directory:
+```
+# podman push imageID dir:/path/to/image
+```
 
- `# podman push imageID dir:/path/to/image`
+Push the specified image to a local directory in OCI format:
+```
+# podman push imageID oci-archive:/path/to/layout:image:tag
+```
 
-This example pushes the image specified by the imageID to a local directory in oci format.
+Push the specified image to a container registry:
+```
+# podman push imageID docker://registry.example.com/repository:tag
+```
 
- `# podman push imageID oci-archive:/path/to/layout:image:tag`
+Push the specified image to a container registry and save the digest in the specified file:
+```
+# podman push --digestfile=/tmp/mydigest imageID docker://registry.example.com/repository:tag
+```
 
-This example pushes the image specified by the imageID to a container registry named registry.example.com
+Push the specified image into the local Docker daemon container store:
+```
+# podman push imageID docker-daemon:image:tag
+```
 
- `# podman push imageID docker://registry.example.com/repository:tag`
-
-This example pushes the image specified by the imageID to a container registry named registry.example.com and saves the digest in the specified digestfile.
-
- `# podman push --digestfile=/tmp/mydigest imageID docker://registry.example.com/repository:tag`
-
-This example pushes the image specified by the imageID and puts it into the local docker container store
-
- `# podman push imageID docker-daemon:image:tag`
-
-This example pushes the alpine image to umohnani/alpine on dockerhub and reads the creds from
-the path given to --authfile
-
+Push the specified image with a different image name using credentials from an alternate authfile path:
 ```
 # podman push --authfile temp-auths/myauths.json alpine docker://docker.io/umohnani/alpine
 Getting image source signatures
@@ -137,7 +140,7 @@ Writing manifest to image destination
 Storing signatures
 ```
 
-This example pushes the rhel7 image to rhel7-dir with the "oci" manifest type
+Push the specified image to a local directory as an OCI image:
 ```
 # podman push --format oci registry.access.redhat.com/rhel7 dir:rhel7-dir
 Getting image source signatures
