@@ -4,28 +4,26 @@ import (
 	"archive/zip"
 	"errors"
 	"io"
-	"os"
 
 	"github.com/sirupsen/logrus"
 )
 
 type zipDecompressor struct {
-	compressedFilePath string
-	zipReader          *zip.ReadCloser
-	fileReader         io.ReadCloser
+	genericDecompressor
+	zipReader  *zip.ReadCloser
+	fileReader io.ReadCloser
 }
 
-func newZipDecompressor(compressedFilePath string) decompressor {
-	return &zipDecompressor{
-		compressedFilePath: compressedFilePath,
-	}
+func newZipDecompressor(compressedFilePath string) (*zipDecompressor, error) {
+	d, err := newGenericDecompressor(compressedFilePath)
+	return &zipDecompressor{*d, nil, nil}, err
 }
 
-func (d *zipDecompressor) srcFilePath() string {
-	return d.compressedFilePath
-}
-
-func (d *zipDecompressor) reader() (io.Reader, error) {
+// This is the only compressor that doesn't return the compressed file
+// stream (zip.OpenReader() provides access to the decompressed file).
+// As a result the progress bar shows the decompressed file stream
+// but the final size is the compressed file size.
+func (d *zipDecompressor) compressedFileReader() (io.ReadCloser, error) {
 	zipReader, err := zip.OpenReader(d.compressedFilePath)
 	if err != nil {
 		return nil, err
@@ -42,7 +40,7 @@ func (d *zipDecompressor) reader() (io.Reader, error) {
 	return z, nil
 }
 
-func (*zipDecompressor) copy(w *os.File, r io.Reader) error {
+func (*zipDecompressor) decompress(w io.WriteSeeker, r io.Reader) error {
 	_, err := io.Copy(w, r)
 	return err
 }

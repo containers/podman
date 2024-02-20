@@ -1,6 +1,7 @@
 package compression
 
 import (
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -14,19 +15,39 @@ import (
 )
 
 const (
-	zipExt            = ".zip"
-	progressBarPrefix = "Extracting compressed file"
-	macOs             = "darwin"
+	decompressedFileFlag = os.O_CREATE | os.O_TRUNC | os.O_WRONLY
+	macOs                = "darwin"
+	progressBarPrefix    = "Extracting compressed file"
+	zipExt               = ".zip"
 )
 
 type decompressor interface {
-	srcFilePath() string
-	reader() (io.Reader, error)
-	copy(w *os.File, r io.Reader) error
+	compressedFileSize() int64
+	compressedFileMode() os.FileMode
+	compressedFileReader() (io.ReadCloser, error)
+	decompress(w io.WriteSeeker, r io.Reader) error
 	close()
 }
 
-func newDecompressor(compressedFilePath string, compressedFileContent []byte) decompressor {
+func Decompress(compressedVMFile *define.VMFile, decompressedFilePath string) error {
+	compressedFilePath := compressedVMFile.GetPath()
+	// Are we reading full image file?
+	// Only few bytes are read to detect
+	// the compression type
+	compressedFileContent, err := compressedVMFile.Read()
+	if err != nil {
+		return err
+	}
+
+	var d decompressor
+	if d, err = newDecompressor(compressedFilePath, compressedFileContent); err != nil {
+		return err
+	}
+
+	return runDecompression(d, decompressedFilePath)
+}
+
+func newDecompressor(compressedFilePath string, compressedFileContent []byte) (decompressor, error) {
 	compressionType := archive.DetectCompression(compressedFileContent)
 	os := runtime.GOOS
 	hasZipSuffix := strings.HasSuffix(compressedFilePath, zipExt)
@@ -40,6 +61,10 @@ func newDecompressor(compressedFilePath string, compressedFileContent []byte) de
 		return newZipDecompressor(compressedFilePath)
 	case compressionType == archive.Uncompressed:
 		return newUncompressedDecompressor(compressedFilePath)
+	// macOS gzipped VM images are sparse. As a result a
+	// special decompressor is required: it uses crc os.CopySparse
+	// instead of io.Copy and std lib gzip instead of klauspost/pgzip
+	// (even if it's slower).
 	case compressionType == archive.Gzip && os == macOs:
 		return newGzipDecompressor(compressedFilePath)
 	default:
@@ -47,70 +72,42 @@ func newDecompressor(compressedFilePath string, compressedFileContent []byte) de
 	}
 }
 
-func Decompress(srcVMFile *define.VMFile, dstFilePath string) error {
-	srcFilePath := srcVMFile.GetPath()
-	// Are we reading full image file?
-	// Only few bytes are read to detect
-	// the compression type
-	srcFileContent, err := srcVMFile.Read()
-	if err != nil {
-		return err
-	}
-
-	d := newDecompressor(srcFilePath, srcFileContent)
-	return runDecompression(d, dstFilePath)
-}
-
-func runDecompression(d decompressor, dstFilePath string) error {
-	decompressorReader, err := d.reader()
+func runDecompression(d decompressor, decompressedFilePath string) error {
+	compressedFileReader, err := d.compressedFileReader()
 	if err != nil {
 		return err
 	}
 	defer d.close()
 
-	stat, err := os.Stat(d.srcFilePath())
-	if err != nil {
-		return err
-	}
-
-	initMsg := progressBarPrefix + ": " + filepath.Base(dstFilePath)
+	initMsg := progressBarPrefix + ": " + filepath.Base(decompressedFilePath)
 	finalMsg := initMsg + ": done"
 
-	// We are getting the compressed file size but
-	// the progress bar needs the full size of the
-	// decompressed file.
-	// As a result the progress bar shows 100%
-	// before the decompression completes.
-	// A workaround is to set the size to -1 but the
-	// side effect is that we won't see any advancment in
-	// the bar.
-	// An update in utils.ProgressBar to handle is needed
-	// to improve the case of size=-1 (i.e. unkwonw size).
-	p, bar := utils.ProgressBar(initMsg, stat.Size(), finalMsg)
+	p, bar := utils.ProgressBar(initMsg, d.compressedFileSize(), finalMsg)
 	// Wait for bars to complete and then shut down the bars container
 	defer p.Wait()
 
-	readProxy := bar.ProxyReader(decompressorReader)
+	compressedFileReaderProxy := bar.ProxyReader(compressedFileReader)
 	// Interrupts the bar goroutine. It's important that
 	// bar.Abort(false) is called before p.Wait(), otherwise
 	// can hang.
 	defer bar.Abort(false)
 
-	dstFileWriter, err := os.OpenFile(dstFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, stat.Mode())
-	if err != nil {
-		logrus.Errorf("Unable to open destination file %s for writing: %q", dstFilePath, err)
+	var decompressedFileWriter *os.File
+
+	if decompressedFileWriter, err = os.OpenFile(decompressedFilePath, decompressedFileFlag, d.compressedFileMode()); err != nil {
+		logrus.Errorf("Unable to open destination file %s for writing: %q", decompressedFilePath, err)
 		return err
 	}
 	defer func() {
-		if err := dstFileWriter.Close(); err != nil {
-			logrus.Errorf("Unable to to close destination file %s: %q", dstFilePath, err)
+		if err := decompressedFileWriter.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
+			logrus.Warnf("Unable to to close destination file %s: %q", decompressedFilePath, err)
 		}
 	}()
 
-	err = d.copy(dstFileWriter, readProxy)
-	if err != nil {
+	if err = d.decompress(decompressedFileWriter, compressedFileReaderProxy); err != nil {
 		logrus.Errorf("Error extracting compressed file: %q", err)
 		return err
 	}
+
 	return nil
 }

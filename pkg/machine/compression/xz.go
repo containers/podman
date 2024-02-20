@@ -11,33 +11,18 @@ import (
 )
 
 type xzDecompressor struct {
-	compressedFilePath string
-	compressedFile     *os.File
+	genericDecompressor
 }
 
-func newXzDecompressor(compressedFilePath string) decompressor {
-	return &xzDecompressor{
-		compressedFilePath: compressedFilePath,
-	}
-}
-
-func (d *xzDecompressor) srcFilePath() string {
-	return d.compressedFilePath
-}
-
-func (d *xzDecompressor) reader() (io.Reader, error) {
-	srcFile, err := os.Open(d.compressedFilePath)
-	if err != nil {
-		return nil, err
-	}
-	d.compressedFile = srcFile
-	return srcFile, nil
+func newXzDecompressor(compressedFilePath string) (*xzDecompressor, error) {
+	d, err := newGenericDecompressor(compressedFilePath)
+	return &xzDecompressor{*d}, err
 }
 
 // Will error out if file without .Xz already exists
 // Maybe extracting then renaming is a good idea here..
 // depends on Xz: not pre-installed on mac, so it becomes a brew dependency
-func (*xzDecompressor) copy(w *os.File, r io.Reader) error {
+func (*xzDecompressor) decompress(w io.WriteSeeker, r io.Reader) error {
 	var cmd *exec.Cmd
 	var read io.Reader
 
@@ -78,10 +63,4 @@ func (*xzDecompressor) copy(w *os.File, r io.Reader) error {
 	}
 	<-done
 	return nil
-}
-
-func (d *xzDecompressor) close() {
-	if err := d.compressedFile.Close(); err != nil {
-		logrus.Errorf("Unable to close xz file: %q", err)
-	}
 }
