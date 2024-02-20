@@ -112,6 +112,10 @@ func (v *validate) traverseField(ctx context.Context, parent reflect.Value, curr
 			return
 		}
 
+		if ct.typeof == typeOmitNil && (kind != reflect.Invalid && current.IsNil()) {
+			return
+		}
+
 		if ct.hasTag {
 			if kind == reflect.Invalid {
 				v.str1 = string(append(ns, cf.altName...))
@@ -228,6 +232,26 @@ OUTER:
 
 			if !hasValue(v) {
 				return
+			}
+
+			ct = ct.next
+			continue
+
+		case typeOmitNil:
+			v.slflParent = parent
+			v.flField = current
+			v.cf = cf
+			v.ct = ct
+
+			switch field := v.Field(); field.Kind() {
+			case reflect.Slice, reflect.Map, reflect.Ptr, reflect.Interface, reflect.Chan, reflect.Func:
+				if field.IsNil() {
+					return
+				}
+			default:
+				if v.fldIsPointer && field.Interface() == nil {
+					return
+				}
 			}
 
 			ct = ct.next

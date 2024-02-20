@@ -10,9 +10,6 @@
 </h6>
 
 <p align="center">
-  <a href="https://travis-ci.org/gabriel-vasile/mimetype">
-    <img alt="Build Status" src="https://travis-ci.org/gabriel-vasile/mimetype.svg?branch=master">
-  </a>
   <a href="https://pkg.go.dev/github.com/gabriel-vasile/mimetype">
     <img alt="Go Reference" src="https://pkg.go.dev/badge/github.com/gabriel-vasile/mimetype.svg">
   </a>

@@ -72,18 +72,6 @@ func (self *BaseAssembler) NOPn(n int) {
     }
 }
 
-func (self *BaseAssembler) StorePtr(ptr int64, to obj.Addr, tmp obj.Addr) {
-    if (to.Type != obj.TYPE_MEM) || (tmp.Type != obj.TYPE_REG) {
-        panic("must store imm to memory, tmp must be register")
-    }
-    if (ptr >> 32) != 0 {
-        self.Emit("MOVQ", Imm(ptr), tmp)
-        self.Emit("MOVQ", tmp, to)
-    } else {
-        self.Emit("MOVQ", Imm(ptr), to);
-    }
-}
-
 func (self *BaseAssembler) Byte(v ...byte) {
     for ; len(v) >= 8; v = v[8:] { self.From("QUAD", Imm(rt.Get64(v))) }
     for ; len(v) >= 4; v = v[4:] { self.From("LONG", Imm(int64(rt.Get32(v)))) }
