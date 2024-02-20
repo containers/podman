@@ -23,7 +23,6 @@ import (
 	"github.com/containers/podman/v5/utils"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
 )
 
 // applehcMACAddress is a pre-defined mac address that vfkit recognizes
@@ -160,7 +159,7 @@ func (a AppleHVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func
 	}
 
 	// Wait on gvproxy to be running and aware
-	if err := waitForGvProxy(gvproxySocket); err != nil {
+	if err := sockets.WaitForSocketWithBackoffs(gvProxyMaxBackoffAttempts, gvProxyWaitBackoff, gvproxySocket.GetPath(), "gvproxy"); err != nil {
 		return nil, nil, err
 	}
 
@@ -319,20 +318,6 @@ func (a AppleHVStubber) StopHostNetworking(_ *vmconfigs.MachineConfig, _ define.
 
 func (a AppleHVStubber) VMType() define.VMType {
 	return define.AppleHvVirt
-}
-
-func waitForGvProxy(gvproxySocket *define.VMFile) error {
-	backoffWait := gvProxyWaitBackoff
-	logrus.Debug("checking that gvproxy is running")
-	for i := 0; i < gvProxyMaxBackoffAttempts; i++ {
-		err := unix.Access(gvproxySocket.GetPath(), unix.W_OK)
-		if err == nil {
-			return nil
-		}
-		time.Sleep(backoffWait)
-		backoffWait *= 2
-	}
-	return fmt.Errorf("unable to connect to gvproxy %q", gvproxySocket.GetPath())
 }
 
 func (a AppleHVStubber) PrepareIgnition(_ *vmconfigs.MachineConfig, _ *ignition.IgnitionBuilder) (*ignition.ReadyUnitOpts, error) {
