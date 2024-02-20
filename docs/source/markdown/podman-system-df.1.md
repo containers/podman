@@ -31,13 +31,18 @@ Valid placeholders for the Go template are listed below:
 Show detailed information on space usage
 
 ## EXAMPLE
+
+Show disk usage:
 ```
 $ podman system df
 TYPE            TOTAL   ACTIVE   SIZE    RECLAIMABLE
 Images          6       2        281MB   168MB (59%)
 Containers      3       1        0B      0B (0%)
 Local Volumes   1       1        22B     0B (0%)
+```
 
+Show disk usage in verbose mode:
+```
 $ podman system df -v
 Images space usage:
 

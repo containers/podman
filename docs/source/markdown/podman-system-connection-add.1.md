@@ -36,13 +36,24 @@ Port for ssh destination. The default value is `22`.
 Path to the Podman service unix domain socket on the ssh destination host
 
 ## EXAMPLE
+
+Add a named system connection:
 ```
 $ podman system connection add QA podman.example.com
+```
 
+Add a system connection using SSH data:
+```
 $ podman system connection add --identity ~/.ssh/dev_rsa production ssh://root@server.example.com:2222
+```
 
+Add a named system connection to local Unix domain socket:
+```
 $ podman system connection add testing unix:///run/podman/podman.sock
+```
 
+Add a named system connection to local tcp socket:
+```
 $ podman system connection add debug tcp://localhost:8080
 ```
 ## SEE ALSO
