@@ -36,13 +36,15 @@ case $1 in
     packages)
         # These names are common to Fedora and Debian
         PKG_NAMES=(\
+                    aardvark-dns
                     buildah
                     conmon
                     containernetworking-plugins
-                    containers-common
                     criu
                     crun
                     golang
+                    netavark
+                    passt
                     podman
                     runc
                     skopeo
@@ -53,18 +55,17 @@ case $1 in
                 cat /etc/fedora-release
                 PKG_LST_CMD='rpm -q --qf=%{N}-%{V}-%{R}-%{ARCH}\n'
                 PKG_NAMES+=(\
-                    aardvark-dns
                     container-selinux
+                    containers-common
                     libseccomp
-                    netavark
-                    passt
                 )
                 ;;
             debian)
                 cat /etc/issue
                 PKG_LST_CMD='dpkg-query --show --showformat=${Package}-${Version}-${Architecture}\n'
                 PKG_NAMES+=(\
-                    cri-o-runc
+                    golang-github-containers-common
+                    golang-github-containers-image
                     libseccomp2
                 )
                 ;;
