@@ -1301,6 +1301,9 @@ func (d *jsonDecDriver) DecodeNaked() {
 // Note also that the float values for NaN, +Inf or -Inf are encoded as null,
 // as suggested by NOTE 4 of the ECMA-262 ECMAScript Language Specification 5.1 edition.
 // see http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-262.pdf .
+//
+// Note the following behaviour differences vs std-library encoding/json package:
+//   - struct field names matched in case-sensitive manner
 type JsonHandle struct {
 	textEncodingType
 	BasicHandle

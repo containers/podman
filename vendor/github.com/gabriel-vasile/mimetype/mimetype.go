@@ -39,7 +39,8 @@ func Detect(in []byte) *MIME {
 //
 // DetectReader assumes the reader offset is at the start. If the input is an
 // io.ReadSeeker you previously read from, it should be rewinded before detection:
-//  reader.Seek(0, io.SeekStart)
+//
+//	reader.Seek(0, io.SeekStart)
 func DetectReader(r io.Reader) (*MIME, error) {
 	var in []byte
 	var err error

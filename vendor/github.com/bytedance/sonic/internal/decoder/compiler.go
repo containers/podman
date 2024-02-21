@@ -527,6 +527,38 @@ func (self *_Compiler) compile(vt reflect.Type) (ret _Program, err error) {
     return
 }
 
+func (self *_Compiler) checkMarshaler(p *_Program, vt reflect.Type) bool {
+    pt := reflect.PtrTo(vt)
+
+    /* check for `json.Unmarshaler` with pointer receiver */
+    if pt.Implements(jsonUnmarshalerType) {
+        p.rtt(_OP_unmarshal_p, pt)
+        return true
+    }
+
+    /* check for `json.Unmarshaler` */
+    if vt.Implements(jsonUnmarshalerType) {
+        p.add(_OP_lspace)
+        self.compileUnmarshalJson(p, vt)
+        return true
+    }
+
+    /* check for `encoding.TextMarshaler` with pointer receiver */
+    if pt.Implements(encodingTextUnmarshalerType) {
+        p.add(_OP_lspace)
+        self.compileUnmarshalTextPtr(p, pt)
+        return true
+    }
+
+    /* check for `encoding.TextUnmarshaler` */
+    if vt.Implements(encodingTextUnmarshalerType) {
+        p.add(_OP_lspace)
+        self.compileUnmarshalText(p, vt)
+        return true
+    }
+    return false
+}
+
 func (self *_Compiler) compileOne(p *_Program, sp int, vt reflect.Type) {
     /* check for recursive nesting */
     ok := self.tab[vt]
@@ -535,32 +567,7 @@ func (self *_Compiler) compileOne(p *_Program, sp int, vt reflect.Type) {
         return
     }
 
-    pt := reflect.PtrTo(vt)
-
-    /* check for `json.Unmarshaler` with pointer receiver */
-    if pt.Implements(jsonUnmarshalerType) {
-        p.rtt(_OP_unmarshal_p, pt)
-        return
-    }
-
-    /* check for `json.Unmarshaler` */
-    if vt.Implements(jsonUnmarshalerType) {
-        p.add(_OP_lspace)
-        self.compileUnmarshalJson(p, vt)
-        return
-    }
-
-    /* check for `encoding.TextMarshaler` with pointer receiver */
-    if pt.Implements(encodingTextUnmarshalerType) {
-        p.add(_OP_lspace)
-        self.compileUnmarshalTextPtr(p, pt)
-        return
-    }
-
-    /* check for `encoding.TextUnmarshaler` */
-    if vt.Implements(encodingTextUnmarshalerType) {
-        p.add(_OP_lspace)
-        self.compileUnmarshalText(p, vt)
+    if self.checkMarshaler(p, vt) {
         return
     }
 
@@ -683,17 +690,9 @@ func (self *_Compiler) compilePtr(p *_Program, sp int, et reflect.Type) {
 
     /* dereference all the way down */
     for et.Kind() == reflect.Ptr {
-        if et.Implements(jsonUnmarshalerType) {
-            p.rtt(_OP_unmarshal_p, et)
+        if self.checkMarshaler(p, et) {
             return
         }
-
-        if et.Implements(encodingTextUnmarshalerType) {
-            p.add(_OP_lspace)
-            self.compileUnmarshalTextPtr(p, et)
-            return
-        }
-
         et = et.Elem()
         p.rtt(_OP_deref, et)
     }
@@ -706,7 +705,7 @@ func (self *_Compiler) compilePtr(p *_Program, sp int, et reflect.Type) {
         /* enter the recursion */
         p.add(_OP_lspace)
         self.tab[et] = true
-        
+
         /* not inline the pointer type
         * recursing the defined pointer type's elem will casue issue379.
         */
@@ -716,8 +715,12 @@ func (self *_Compiler) compilePtr(p *_Program, sp int, et reflect.Type) {
 
     j := p.pc()
     p.add(_OP_goto)
+
+    // set val pointer as nil
     p.pin(i)
     p.add(_OP_nil_1)
+
+    // nothing todo
     p.pin(j)
 }
 

@@ -63,7 +63,7 @@ github.com/blang/semver/v4
 # github.com/buger/goterm v1.0.4
 ## explicit; go 1.15
 github.com/buger/goterm
-# github.com/bytedance/sonic v1.10.1
+# github.com/bytedance/sonic v1.10.2
 ## explicit; go 1.16
 github.com/bytedance/sonic
 github.com/bytedance/sonic/ast
@@ -97,7 +97,7 @@ github.com/checkpoint-restore/go-criu/v7/stats
 # github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d
 ## explicit; go 1.16
 github.com/chenzhuoyu/base64x
-# github.com/chenzhuoyu/iasm v0.9.0
+# github.com/chenzhuoyu/iasm v0.9.1
 ## explicit; go 1.16
 github.com/chenzhuoyu/iasm/expr
 github.com/chenzhuoyu/iasm/x86_64
@@ -429,7 +429,7 @@ github.com/coreos/stream-metadata-go/stream/rhcos
 ## explicit; go 1.20
 github.com/crc-org/crc/v2/pkg/crc/logging
 github.com/crc-org/crc/v2/pkg/os
-# github.com/crc-org/vfkit v0.5.0
+# github.com/crc-org/vfkit v0.5.1
 ## explicit; go 1.18
 github.com/crc-org/vfkit/pkg/cmdline
 github.com/crc-org/vfkit/pkg/config
@@ -531,7 +531,7 @@ github.com/fsnotify/fsnotify
 # github.com/fsouza/go-dockerclient v1.10.1
 ## explicit; go 1.20
 github.com/fsouza/go-dockerclient
-# github.com/gabriel-vasile/mimetype v1.4.2
+# github.com/gabriel-vasile/mimetype v1.4.3
 ## explicit; go 1.20
 github.com/gabriel-vasile/mimetype
 github.com/gabriel-vasile/mimetype/internal/charset
@@ -615,7 +615,7 @@ github.com/go-playground/locales/currency
 # github.com/go-playground/universal-translator v0.18.1
 ## explicit; go 1.18
 github.com/go-playground/universal-translator
-# github.com/go-playground/validator/v10 v10.15.5
+# github.com/go-playground/validator/v10 v10.17.0
 ## explicit; go 1.18
 github.com/go-playground/validator/v10
 # github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572
@@ -770,7 +770,7 @@ github.com/manifoldco/promptui/screenbuf
 # github.com/mattn/go-colorable v0.1.13
 ## explicit; go 1.15
 github.com/mattn/go-colorable
-# github.com/mattn/go-isatty v0.0.19
+# github.com/mattn/go-isatty v0.0.20
 ## explicit; go 1.15
 github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.15
@@ -974,7 +974,7 @@ github.com/secure-systems-lab/go-securesystemslib/encrypted
 # github.com/segmentio/ksuid v1.0.4
 ## explicit; go 1.12
 github.com/segmentio/ksuid
-# github.com/shirou/gopsutil/v3 v3.23.12
+# github.com/shirou/gopsutil/v3 v3.24.1
 ## explicit; go 1.15
 github.com/shirou/gopsutil/v3/common
 github.com/shirou/gopsutil/v3/cpu
@@ -1067,7 +1067,7 @@ github.com/twitchyliquid64/golang-asm/unsafeheader
 # github.com/u-root/uio v0.0.0-20230305220412-3e8cd9d6bf63
 ## explicit; go 1.16
 github.com/u-root/uio/ulog
-# github.com/ugorji/go/codec v1.2.11
+# github.com/ugorji/go/codec v1.2.12
 ## explicit; go 1.11
 github.com/ugorji/go/codec
 # github.com/ulikunitz/xz v0.5.11
@@ -1147,8 +1147,8 @@ go.opentelemetry.io/otel/metric/embedded
 ## explicit; go 1.20
 go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
-# golang.org/x/arch v0.5.0
-## explicit; go 1.17
+# golang.org/x/arch v0.7.0
+## explicit; go 1.18
 golang.org/x/arch/x86/x86asm
 # golang.org/x/crypto v0.19.0
 ## explicit; go 1.18

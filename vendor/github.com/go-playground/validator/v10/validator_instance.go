@@ -22,6 +22,7 @@ const (
 	structOnlyTag         = "structonly"
 	noStructLevelTag      = "nostructlevel"
 	omitempty             = "omitempty"
+	omitnil               = "omitnil"
 	isdefault             = "isdefault"
 	requiredWithoutAllTag = "required_without_all"
 	requiredWithoutTag    = "required_without"

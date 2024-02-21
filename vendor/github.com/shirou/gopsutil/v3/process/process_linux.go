@@ -1071,7 +1071,7 @@ func (p *Process) fillFromTIDStatWithContext(ctx context.Context, tid int32) (ui
 		Iowait: iotime / float64(clockTicks),
 	}
 
-	bootTime, _ := common.BootTimeWithContext(ctx)
+	bootTime, _ := common.BootTimeWithContext(ctx, enableBootTimeCache)
 	t, err := strconv.ParseUint(fields[22], 10, 64)
 	if err != nil {
 		return 0, 0, nil, 0, 0, 0, nil, err

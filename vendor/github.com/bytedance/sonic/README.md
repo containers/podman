@@ -107,7 +107,7 @@ err := sonic.Unmarshal(output, &data)
  ```
 
 ### Streaming IO
-Sonic supports decoding json from `io.Reader` or encoding objects into `io.`Writer`, aims at handling multiple values as well as reducing memory consumption.
+Sonic supports decoding json from `io.Reader` or encoding objects into `io.Writer`, aims at handling multiple values as well as reducing memory consumption.
 - encoder
 ```go
 var o1 = map[string]interface{}{
