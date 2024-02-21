@@ -6,10 +6,37 @@ import (
 	"errors"
 	"fmt"
 	"syscall"
+	"time"
 
 	psutil "github.com/shirou/gopsutil/v3/process"
 	"github.com/sirupsen/logrus"
 )
+
+const (
+	loops     = 8
+	sleepTime = time.Millisecond * 1
+)
+
+// backoffForProcess checks if the process still exists, for something like
+// sigterm. If the process still exists after loops and sleep time are exhausted,
+// an error is returned
+func backoffForProcess(p *psutil.Process) error {
+	sleepInterval := sleepTime
+	for i := 0; i < loops; i++ {
+		running, err := p.IsRunning()
+		if err != nil {
+			return fmt.Errorf("checking if process running: %w", err)
+		}
+		if !running {
+			return nil
+		}
+
+		time.Sleep(sleepInterval)
+		// double the time
+		sleepInterval += sleepInterval
+	}
+	return fmt.Errorf("process %d has not ended", p.Pid)
+}
 
 // / waitOnProcess takes a pid and sends a sigterm to it. it then waits for the
 // process to not exist.  if the sigterm does not end the process after an interval,

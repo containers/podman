@@ -19,6 +19,7 @@ const registriesConf = `unqualified-search-registries=["docker.io"]
 
 const appendPort = `grep -q Port\ %d /etc/ssh/sshd_config || echo Port %d >> /etc/ssh/sshd_config`
 
+//nolint:unused
 const changePort = `sed -E -i 's/^Port[[:space:]]+[0-9]+/Port %d/' /etc/ssh/sshd_config`
 
 const configServices = `ln -fs /usr/lib/systemd/system/sshd.service /etc/systemd/system/multi-user.target.wants/sshd.service
@@ -240,7 +241,7 @@ http://docs.microsoft.com/en-us/windows/wsl/install\
 
 const (
 	gvProxy      = "gvproxy.exe"
-	winSShProxy  = "win-sshproxy.exe"
+	winSSHProxy  = "win-sshproxy.exe"
 	pipePrefix   = "npipe:////./pipe/"
 	globalPipe   = "docker_engine"
 	userModeDist = "podman-net-usermode"

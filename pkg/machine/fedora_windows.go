@@ -14,7 +14,7 @@ func DetermineMachineArch() string {
 	current, _ := syscall.GetCurrentProcess()
 
 	if err := windows.IsWow64Process2(windows.Handle(current), &machine, &native); err != nil {
-		logrus.Warnf("Failure detecting native system architecture, %s: %w", fallbackMsg, err)
+		logrus.Warnf("Failure detecting native system architecture, %s: %v", fallbackMsg, err)
 		// Fall-back to binary arch
 		return runtime.GOARCH
 	}
@@ -26,7 +26,7 @@ func DetermineMachineArch() string {
 	case 0x8664:
 		return "amd64"
 	default:
-		logrus.Warnf("Unknown or unsupported native system architecture [%d], %s", fallbackMsg)
+		logrus.Warnf("Unknown or unsupported native system architecture [%d], %s", native, fallbackMsg)
 		return runtime.GOARCH
 	}
 }

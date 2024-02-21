@@ -5,12 +5,12 @@ package wsl
 import (
 	"errors"
 	"fmt"
-	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"os"
 	"os/exec"
 	"path/filepath"
 
 	"github.com/containers/podman/v5/pkg/machine"
+	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v5/pkg/machine/wsl/wutil"
 	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/sirupsen/logrus"
@@ -84,7 +84,9 @@ func startUserModeNetworking(mc *vmconfigs.MachineConfig) error {
 	if err != nil {
 		return err
 	}
-	defer flock.unlock()
+	defer func() {
+		_ = flock.unlock()
+	}()
 
 	running, err := isWSLRunning(userModeDist)
 	if err != nil {
@@ -121,7 +123,9 @@ func stopUserModeNetworking(mc *vmconfigs.MachineConfig) error {
 	if err != nil {
 		return err
 	}
-	defer flock.unlock()
+	defer func() {
+		_ = flock.unlock()
+	}()
 
 	err = removeUserModeNetEntry(mc.Name)
 	if err != nil {
@@ -322,7 +326,7 @@ func obtainUserModeNetLock() (*fileLock, error) {
 func changeDistUserModeNetworking(dist string, user string, image string, enable bool) error {
 	// Only install if user-mode is being enabled and there was an image path passed
 	if enable {
-		if len(image) <= 0 {
+		if len(image) == 0 {
 			return errors.New("existing machine configuration is corrupt, no image is defined")
 		}
 		if err := installUserModeDist(dist, image); err != nil {

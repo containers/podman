@@ -38,12 +38,12 @@ var _ = Describe("podman machine init - windows only", func() {
 		Expect(session).To(Exit(0))
 
 		defer func() {
-			_, err := runSystemCommand(wutil.FindWSL(),  []string{"--terminate", "podman-net-usermode"}, defaultTimeout, true)
+			_, err := runSystemCommand(wutil.FindWSL(), []string{"--terminate", "podman-net-usermode"}, defaultTimeout, true)
 			if err != nil {
 				fmt.Println("unable to terminate podman-net-usermode")
 			}
 
-			_, err = runSystemCommand(wutil.FindWSL(),  []string{"--unregister", "podman-net-usermode"}, defaultTimeout, true)
+			_, err = runSystemCommand(wutil.FindWSL(), []string{"--unregister", "podman-net-usermode"}, defaultTimeout, true)
 			if err != nil {
 				fmt.Println("unable to unregister podman-net-usermode")
 			}
@@ -87,6 +87,7 @@ var _ = Describe("podman machine init - windows only", func() {
 		}()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(125))
 		Expect(session.errorToString()).To(ContainSubstring("already exists on hypervisor"))
 	})

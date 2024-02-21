@@ -29,7 +29,7 @@ func removeShares(mc *vmconfigs.MachineConfig) error {
 
 		if err := vsockReg.Remove(); err != nil {
 			if removalErr != nil {
-				logrus.Errorf("Error removing vsock: %w", removalErr)
+				logrus.Errorf("Error removing vsock: %v", removalErr)
 			}
 			removalErr = fmt.Errorf("removing vsock %d for mountpoint %s: %w", *mount.VSockNumber, mount.Target, err)
 		}
@@ -44,7 +44,7 @@ func startShares(mc *vmconfigs.MachineConfig) error {
 		if logrus.IsLevelEnabled(logrus.DebugLevel) {
 			args = append(args, "--log-level=debug")
 		}
-		//just being protective here; in a perfect world, this cannot happen
+		// just being protective here; in a perfect world, this cannot happen
 		if mount.VSockNumber == nil {
 			return errors.New("cannot start 9p shares with undefined vsock number")
 		}

@@ -18,13 +18,19 @@ import (
 type operation int
 
 const (
-	HWND_BROADCAST             = 0xFFFF
-	WM_SETTINGCHANGE           = 0x001A
-	SMTO_ABORTIFHUNG           = 0x0002
-	ERR_BAD_ARGS               = 0x000A
-	OPERATION_FAILED           = 0x06AC
-	Environment                = "Environment"
-	Add              operation = iota
+	//nolint:stylecheck
+	HWND_BROADCAST = 0xFFFF
+	//nolint:stylecheck
+	WM_SETTINGCHANGE = 0x001A
+	//nolint:stylecheck
+	SMTO_ABORTIFHUNG = 0x0002
+	//nolint:stylecheck
+	ERR_BAD_ARGS = 0x000A
+	//nolint:stylecheck
+	OPERATION_FAILED = 0x06AC
+
+	Environment           = "Environment"
+	Add         operation = iota
 	Remove
 	Open
 	NotSpecified
@@ -143,6 +149,8 @@ func removePathFromRegistry(path string) error {
 		return err
 	}
 
+	// No point preallocating we can't know how big the array needs to be.
+	//nolint:prealloc
 	var elements []string
 	for _, element := range strings.Split(existing, ";") {
 		if strings.EqualFold(element, path) {
@@ -174,6 +182,7 @@ func broadcastEnvironmentChange() {
 	user32 := syscall.NewLazyDLL("user32")
 	proc := user32.NewProc("SendMessageTimeoutW")
 	millis := 3000
+	//nolint:dogsled
 	_, _, _ = proc.Call(HWND_BROADCAST, WM_SETTINGCHANGE, 0, uintptr(unsafe.Pointer(env)), SMTO_ABORTIFHUNG, uintptr(millis), 0)
 }
 

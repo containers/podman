@@ -281,7 +281,8 @@ function _run_altbuild() {
             rm -rf $context_dir
             ;;
         *Windows*)
-            showrun make lint GOOS=windows || true  # TODO: Enable when code passes check
+	    showrun make .install.pre-commit
+            showrun make lint GOOS=windows CGO_ENABLED=0
             showrun make podman-remote-release-windows_amd64.zip
             ;;
         *RPM*)

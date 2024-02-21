@@ -15,7 +15,7 @@ set -e
 BUILD_TAGS_DEFAULT="apparmor,seccomp,selinux"
 BUILD_TAGS_ABI="$BUILD_TAGS_DEFAULT,systemd"
 BUILD_TAGS_TUNNEL="$BUILD_TAGS_DEFAULT,remote"
-BUILD_TAGS_REMOTE="remote"
+BUILD_TAGS_REMOTE="remote,containers_image_openpgp"
 
 SKIP_DIRS_ABI=""
 SKIP_DIRS_TUNNEL="pkg/api,pkg/domain/infra/abi"
@@ -40,6 +40,6 @@ for to_lint in "${to_lint[@]}"; do
     # Make it really easy for a developer to copy-paste the command-line
     # to focus or debug a single, specific linting category.
     set -x
-    ./bin/golangci-lint run --build-tags="${!tags_var}" --skip-dirs="${!skip_var}" "$@"
+    ./bin/golangci-lint run --timeout=10m --build-tags="${!tags_var}" --skip-dirs="${!skip_var}" "$@"
   )
 done
