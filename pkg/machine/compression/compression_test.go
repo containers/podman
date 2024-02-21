@@ -110,12 +110,12 @@ func Test_Decompress(t *testing.T) {
 		args args
 		want want
 	}{
-		{name: "zip", args: args{src: "./testfiles/sample.zip", dst: "./testfiles/hellozip"}, want: "zip\n"},
-		{name: "xz", args: args{src: "./testfiles/sample.xz", dst: "./testfiles/helloxz"}, want: "xz\n"},
-		{name: "gzip", args: args{src: "./testfiles/sample.gz", dst: "./testfiles/hellogz"}, want: "gzip\n"},
-		{name: "bzip2", args: args{src: "./testfiles/sample.bz2", dst: "./testfiles/hellobz2"}, want: "bzip2\n"},
-		{name: "zstd", args: args{src: "./testfiles/sample.zst", dst: "./testfiles/hellozstd"}, want: "zstd\n"},
-		{name: "uncompressed", args: args{src: "./testfiles/sample.uncompressed", dst: "./testfiles/hellozuncompressed"}, want: "uncompressed\n"},
+		{name: "zip", args: args{src: "./testdata/sample.zip", dst: "./testdata/hellozip"}, want: "zip\n"},
+		{name: "xz", args: args{src: "./testdata/sample.xz", dst: "./testdata/helloxz"}, want: "xz\n"},
+		{name: "gzip", args: args{src: "./testdata/sample.gz", dst: "./testdata/hellogz"}, want: "gzip\n"},
+		{name: "bzip2", args: args{src: "./testdata/sample.bz2", dst: "./testdata/hellobz2"}, want: "bzip2\n"},
+		{name: "zstd", args: args{src: "./testdata/sample.zst", dst: "./testdata/hellozstd"}, want: "zstd\n"},
+		{name: "uncompressed", args: args{src: "./testdata/sample.uncompressed", dst: "./testdata/hellozuncompressed"}, want: "uncompressed\n"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
