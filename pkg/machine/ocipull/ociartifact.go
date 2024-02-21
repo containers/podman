@@ -27,7 +27,7 @@ const (
 	// TODO This is temporary until we decide on a proper image name
 	artifactRegistry     = "quay.io"
 	artifactRepo         = "baude"
-	artifactImageName    = "podman-machine-images-art"
+	artifactImageName    = "stage-podman-machine"
 	artifactOriginalName = "org.opencontainers.image.title"
 	machineOS            = "linux"
 )

@@ -1,5 +1,7 @@
 package define
 
+import "fmt"
+
 type ImageFormat int64
 
 const (
@@ -22,13 +24,9 @@ func (imf ImageFormat) Kind() string {
 }
 
 func (imf ImageFormat) KindWithCompression() string {
-	switch imf {
-	case Vhdx:
-		return "vhdx.zip"
-	case Tar:
+	// Tar uses xz; all others use zstd
+	if imf == Tar {
 		return "tar.xz"
-	case Raw:
-		return "raw.gz"
 	}
-	return "qcow2.xz"
+	return fmt.Sprintf("%s.zst", imf.Kind())
 }

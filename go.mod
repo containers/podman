@@ -41,6 +41,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hugelgupf/p9 v0.3.1-0.20230822151754-54f5c5530921
 	github.com/json-iterator/go v1.1.12
+	github.com/klauspost/compress v1.17.5
 	github.com/linuxkit/virtsock v0.0.0-20220523201153-1a23e78aa7a2
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/mattn/go-sqlite3 v1.14.21
@@ -149,7 +150,6 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
-	github.com/klauspost/compress v1.17.5 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.6 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/kr/fs v0.1.0 // indirect
