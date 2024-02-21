@@ -194,6 +194,14 @@ func setup() (string, *machineTestBuilder) {
 }
 
 func teardown(origHomeDir string, testDir string, mb *machineTestBuilder) {
+	gvproxyLogFilePath := filepath.Join(testDir, fmt.Sprintf(".local/share/containers/podman/%s/gvproxy.log", testProvider.VMType().String()))
+	_, err := os.Stat(gvproxyLogFilePath)
+	if err == nil {
+		b, err := os.ReadFile(gvproxyLogFilePath)
+		if err == nil {
+			GinkgoWriter.Println(string(b))
+		}
+	}
 	r := new(rmMachine)
 	for _, name := range mb.names {
 		if _, err := mb.setName(name).setCmd(r.withForce()).run(); err != nil {

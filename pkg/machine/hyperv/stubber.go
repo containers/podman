@@ -8,9 +8,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
-
-	"github.com/containers/podman/v5/pkg/machine/shim/diskpull"
 
 	"github.com/Microsoft/go-winio"
 	"github.com/containers/common/pkg/strongunits"
@@ -20,6 +17,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/hyperv/vsock"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
+	"github.com/containers/podman/v5/pkg/machine/shim/diskpull"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v5/pkg/systemd/parser"
 	"github.com/sirupsen/logrus"
@@ -427,7 +425,7 @@ func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo b
 	fsCmd := exec.Command(executable, p9ServerArgs...)
 
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
-		err = logCommandToFile(fsCmd, "podman-machine-server9.log")
+		err = machine.LogCommandToFile(fsCmd, "podman-machine-server9.log")
 		if err != nil {
 			return err
 		}
@@ -501,25 +499,6 @@ func removeIgnitionFromRegistry(vm *hypervctl.VirtualMachine) error {
 			return err
 		}
 	}
-	return nil
-}
-
-func logCommandToFile(c *exec.Cmd, filename string) error {
-	dir, err := machine.GetDataDir(define.HyperVVirt)
-	if err != nil {
-		return fmt.Errorf("obtain machine dir: %w", err)
-	}
-	path := filepath.Join(dir, filename)
-	logrus.Infof("Going to log to %s", path)
-	log, err := os.Create(path)
-	if err != nil {
-		return fmt.Errorf("create log file: %w", err)
-	}
-	defer log.Close()
-
-	c.Stdout = log
-	c.Stderr = log
-
 	return nil
 }
 

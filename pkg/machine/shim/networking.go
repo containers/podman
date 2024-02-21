@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -82,6 +83,16 @@ func startHostForwarder(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvid
 	c := cmd.Cmd(binary)
 
 	logrus.Debugf("gvproxy command-line: %s %s", binary, strings.Join(cmd.ToCmdline(), " "))
+	// TODO Temporary and should be removed
+	lfPath := filepath.Join(dirs.DataDir.GetPath(), "gvproxy.log")
+	lf, err := os.Create(lfPath)
+	if err != nil {
+		return err
+	}
+	os.Stdout = lf
+	os.Stderr = lf
+	defer lf.Close()
+	// End Temporary
 	if err := c.Start(); err != nil {
 		return fmt.Errorf("unable to execute: %q: %w", cmd.ToCmdline(), err)
 	}

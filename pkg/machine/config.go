@@ -5,10 +5,12 @@ package machine
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -412,4 +414,18 @@ func WaitAndPingAPI(sock string) {
 	if err != nil || resp.StatusCode != 200 {
 		logrus.Warn("API socket failed ping test")
 	}
+}
+
+func LogCommandToFile(c *exec.Cmd, filename string) error {
+	logrus.Infof("Going to log to %s", filename)
+	log, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("create log file: %w", err)
+	}
+	defer log.Close()
+
+	c.Stdout = log
+	c.Stderr = log
+
+	return nil
 }
