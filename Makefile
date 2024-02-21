@@ -763,10 +763,10 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 	$(MAKE) GOOS=$(GOOS) GOARCH=$(GOARCH) \
 		clean-binaries podman-remote-$(GOOS)-docs
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then \
-		$(MAKE) CGO_ENABLED=0 $(GOPLAT) BUILDTAGS="$(BUILDTAGS_CROSS)" \
+		$(MAKE) CGO_ENABLED=0 $(GOPLAT) BUILDTAGS="$(BUILDTAGS_CROSS)" MACHINE_POLICY_JSON_DIR="." \
 			clean-binaries podman-remote; \
 	else \
-		$(MAKE) $(GOPLAT) podman-remote; \
+		$(MAKE) $(GOPLAT) MACHINE_POLICY_JSON_DIR="." podman-remote; \
 	fi
 	if [[ "$(GOOS)" == "windows" ]]; then \
 		$(MAKE) $(GOPLAT) TMPDIR="" win-gvproxy; \
@@ -776,6 +776,7 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 	fi
 	cp -r ./docs/build/remote/$(GOOS) "$(tmpsubdir)/$(releasedir)/docs/"
 	cp ./contrib/remote/containers.conf "$(tmpsubdir)/$(releasedir)/"
+	cp ./pkg/machine/ocipull/policy.json "$(tmpsubdir)/$(releasedir)/"
 	$(MAKE) $(GOPLAT) $(_dstargs) SELINUXOPT="" install.remote
 	cd "$(tmpsubdir)" && \
 		zip --recurse-paths "$(CURDIR)/$@" "./$(releasedir)"
