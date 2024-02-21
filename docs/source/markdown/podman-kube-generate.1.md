@@ -39,11 +39,6 @@ Also note that both Deployment and DaemonSet can only have `restartPolicy` set t
 
 Output to the given file instead of STDOUT. If the file already exists, `kube generate` refuses to replace it and returns an error.
 
-#### **--no-trunc**
-
-Don't truncate annotations to the Kubernetes maximum length of 63 characters.
-Note: enabling this flag means the generated YAML file is not Kubernetes compatible and can only be used with `podman kube play`
-
 #### **--podman-only**
 
 Add podman-only reserved annotations in generated YAML file (Cannot be used by Kubernetes)
