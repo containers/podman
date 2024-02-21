@@ -665,6 +665,19 @@ func (p *PodmanTestIntegration) Cleanup() {
 	rmall := p.Podman([]string{"rm", "-fa", "-t", "0"})
 	rmall.WaitWithDefaultTimeout()
 
+	// FIXME: temporary, for #21504
+	errs := rmall.ErrorToString()
+	if strings.Contains(errs, "die within timeout") {
+		ps := SystemExec("ps", []string{"auxww", "--forest"})
+		ps.WaitWithDefaultTimeout()
+		foo := strings.Index(errs, "cannot remove container ")
+		if foo >= 0 {
+			cid := errs[foo+24 : 64]
+			bar := p.Podman([]string{"inspect", cid})
+			bar.WaitWithDefaultTimeout()
+		}
+	}
+
 	p.StopRemoteService()
 	// Nuke tempdir
 	rmAll(p.PodmanBinary, p.TempDir)
@@ -672,11 +685,6 @@ func (p *PodmanTestIntegration) Cleanup() {
 	// Clean up the registries configuration file ENV variable set in Create
 	resetRegistriesConfigEnv()
 
-	// FIXME: temporary, for #21504
-	if strings.Contains(rmall.ErrorToString(), "die within timeout") {
-		ps := SystemExec("ps", []string{"auxww", "--forest"})
-		ps.WaitWithDefaultTimeout()
-	}
 	// Make sure to only check exit codes after all cleanup is done.
 	// An error would cause it to stop and return early otherwise.
 	Expect(stop).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", stop.Command.Args, stop.OutputToString(), stop.ErrorToString())
