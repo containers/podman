@@ -273,6 +273,12 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 			options.WithSkipTLSVerify(false)
 		}
 	}
+	if opts.Retry != nil {
+		options.WithRetry(*opts.Retry)
+	}
+	if opts.RetryDelay != "" {
+		options.WithRetryDelay(opts.RetryDelay)
+	}
 	if err := images.Push(ir.ClientCtx, source, destination, options); err != nil {
 		return nil, err
 	}

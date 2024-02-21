@@ -198,6 +198,36 @@ func (o *PushOptions) GetRemoveSignatures() bool {
 	return *o.RemoveSignatures
 }
 
+// WithRetry set field Retry to given value
+func (o *PushOptions) WithRetry(value uint) *PushOptions {
+	o.Retry = &value
+	return o
+}
+
+// GetRetry returns value of field Retry
+func (o *PushOptions) GetRetry() uint {
+	if o.Retry == nil {
+		var z uint
+		return z
+	}
+	return *o.Retry
+}
+
+// WithRetryDelay set field RetryDelay to given value
+func (o *PushOptions) WithRetryDelay(value string) *PushOptions {
+	o.RetryDelay = &value
+	return o
+}
+
+// GetRetryDelay returns value of field RetryDelay
+func (o *PushOptions) GetRetryDelay() string {
+	if o.RetryDelay == nil {
+		var z string
+		return z
+	}
+	return *o.RetryDelay
+}
+
 // WithUsername set field Username to given value
 func (o *PushOptions) WithUsername(value string) *PushOptions {
 	o.Username = &value

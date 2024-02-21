@@ -84,6 +84,10 @@ When writing the output image, suppress progress output
 
 Discard any pre-existing signatures in the image.
 
+@@option retry
+
+@@option retry-delay
+
 #### **--sign-by**=*key*
 
 Add a “simple signing” signature at the destination using the specified key. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)

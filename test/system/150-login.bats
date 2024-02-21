@@ -327,7 +327,7 @@ function _test_skopeo_credential_sharing() {
 
 }
 
-@test "podman images with retry" {
+@test "podman pull images with retry" {
     run_podman pull -q --retry 4 --retry-delay "10s" $IMAGE
     run_podman 125 pull -q --retry 4 --retry-delay "bogus" $IMAGE
     is "$output" 'Error: time: invalid duration "bogus"' "bad retry-delay"
@@ -365,6 +365,30 @@ function _test_skopeo_credential_sharing() {
     unpause_registry
 
     run_podman rmi $image1
+}
+
+@test "podman containers.conf retry" {
+    skip_if_remote "containers.conf settings not set for remote connections"
+    run_podman pull --help
+    assert "$output" =~ "--retry .*performing pull \(default 3\)"
+
+    run_podman push --help
+    assert "$output" =~ "--retry .*performing push \(default 3\)"
+
+    containersConf=$PODMAN_TMPDIR/containers.conf
+    cat >$containersConf <<EOF
+[engine]
+retry=10
+retry_delay="5s"
+EOF
+
+    CONTAINERS_CONF="$containersConf" run_podman pull --help
+    assert "$output" =~ "--retry .*performing pull \(default 10\)"
+    assert "$output" =~ "--retry-delay .*pull failures \(default \"5s\"\)"
+
+    CONTAINERS_CONF="$containersConf" run_podman push --help
+    assert "$output" =~ "--retry .*performing push \(default 10\)"
+    assert "$output" =~ "--retry-delay .*push failures \(default \"5s\"\)"
 }
 
 # END   cooperation with skopeo

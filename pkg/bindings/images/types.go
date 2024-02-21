@@ -162,6 +162,10 @@ type PushOptions struct {
 	SkipTLSVerify *bool `schema:"-"`
 	// RemoveSignatures Discard any pre-existing signatures in the image.
 	RemoveSignatures *bool
+	// Retry number of times to retry push in case of failure
+	Retry *uint
+	// RetryDelay between retries in case of push failures
+	RetryDelay *string
 	// Username for authenticating against the registry.
 	Username *string `schema:"-"`
 	// Quiet can be specified to suppress progress when pushing.

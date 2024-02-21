@@ -151,6 +151,10 @@ type ImagePushOptions struct {
 	// RemoveSignatures, discard any pre-existing signatures in the image.
 	// Ignored for remote calls.
 	RemoveSignatures bool
+	// Retry number of times to retry push in case of failure
+	Retry *uint
+	// RetryDelay between retries in case of push failures
+	RetryDelay string
 	// SignaturePolicy to use when pulling.  Ignored for remote calls.
 	SignaturePolicy string
 	// Signers, if non-empty, asks for signatures to be added during the copy

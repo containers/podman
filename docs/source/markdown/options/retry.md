@@ -1,8 +1,8 @@
 ####> This option file is used in:
-####>   podman build, farm build, pull
+####>   podman build, farm build, pull, push
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--retry**=*attempts*
 
-Number of times to retry in case of failure when performing pull of
-images from registry. Default is **3**.
+Number of times to retry pulling or pushing images between the registry and
+local storage in case of failure. Default is **3**.
