@@ -2,8 +2,6 @@ package compression
 
 import (
 	"io"
-
-	crcOs "github.com/crc-org/crc/v2/pkg/os"
 )
 
 type uncompressedDecompressor struct {
@@ -15,7 +13,8 @@ func newUncompressedDecompressor(compressedFilePath string) (*uncompressedDecomp
 	return &uncompressedDecompressor{*d}, err
 }
 
-func (*uncompressedDecompressor) decompress(w WriteSeekCloser, r io.Reader) error {
-	_, err := crcOs.CopySparse(w, r)
+func (d *uncompressedDecompressor) decompress(w WriteSeekCloser, r io.Reader) error {
+	sparseWriter := NewSparseWriter(w)
+	_, err := io.Copy(sparseWriter, r)
 	return err
 }

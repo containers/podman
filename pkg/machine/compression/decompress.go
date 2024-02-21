@@ -61,12 +61,12 @@ func newDecompressor(compressedFilePath string, compressedFileContent []byte) (d
 		return newZipDecompressor(compressedFilePath)
 	case compressionType == archive.Uncompressed:
 		return newUncompressedDecompressor(compressedFilePath)
-	// macOS gzipped VM images are sparse. As a result a
-	// special decompressor is required: it uses crc os.CopySparse
-	// instead of io.Copy and std lib gzip instead of klauspost/pgzip
-	// (even if it's slower).
+	// Using special compressors on MacOS because default ones
+	// in c/image/pkg/compression are slow with sparse files.
 	case compressionType == archive.Gzip && os == macOs:
 		return newGzipDecompressor(compressedFilePath)
+	case compressionType == archive.Zstd && os == macOs:
+		return newZstdDecompressor(compressedFilePath)
 	default:
 		return newGenericDecompressor(compressedFilePath)
 	}
