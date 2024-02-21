@@ -336,8 +336,7 @@ load helpers.network
 
     # create second network
     netname2=testnet-$(random_string 10)
-    # TODO add --ipv6 and uncomment the ipv6 checks below once cni plugins 1.0 is available on ubuntu CI VMs.
-    run_podman network create $netname2
+    run_podman network create --ipv6 $netname2
     is "$output" "$netname2" "output of 'network create'"
 
     # connect the container to the second network
@@ -345,9 +344,9 @@ load helpers.network
 
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname2\").IPAddress}}"
     ip2="$output"
-    #run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname2\").GlobalIPv6Address}}"
-    #is "$output" "fd.*:.*" "IPv6 address should start with fd..."
-    #ipv6="$output"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname2\").GlobalIPv6Address}}"
+    is "$output" "fd.*:.*" "IPv6 address should start with fd..."
+    ipv6="$output"
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname2\").MacAddress}}"
     mac2="$output"
 
@@ -363,8 +362,8 @@ load helpers.network
     is "$output" "$mac1" "MAC address changed after podman network reload ($netname)"
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname2\").IPAddress}}"
     is "$output" "$ip2" "IP address changed after podman network reload ($netname2)"
-    #run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname2\").GlobalIPv6Address}}"
-    #is "$output" "$ipv6" "IPv6 address changed after podman network reload ($netname2)"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname2\").GlobalIPv6Address}}"
+    is "$output" "$ipv6" "IPv6 address changed after podman network reload ($netname2)"
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname2\").MacAddress}}"
     is "$output" "$mac2" "MAC address changed after podman network reload ($netname2)"
 
