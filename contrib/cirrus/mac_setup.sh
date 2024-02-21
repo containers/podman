@@ -31,3 +31,10 @@ echo "TMPDIR=/private/tmp/ci" >> $CIRRUS_ENV
 
 # Removed completely during cleanup.
 mkdir -p /private/tmp/ci
+
+# Some test operations & checks require a git "identity"
+# N/B: $HOME in this context does not include the /ci part automatically
+# (see above) but it will when the next Cirrus-CI "_script" section
+# takes over.
+git config --file "$HOME/ci/.gitconfig" \
+  --add safe.directory $CIRRUS_WORKING_DIR

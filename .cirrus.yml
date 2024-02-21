@@ -133,6 +133,7 @@ build_task:
     #       the 'origin' remote must be defined, and all remote branches/tags
     #       must be available for reference from CI scripts.
     clone_script: &full_clone |
+          set -exuo pipefail
           cd /
           rm -rf $CIRRUS_WORKING_DIR
           mkdir -p $CIRRUS_WORKING_DIR
@@ -145,10 +146,6 @@ build_task:
           else
               git reset --hard $CIRRUS_CHANGE_IN_REPO
           fi
-          # Some test operations & checks require a git "identity"
-          _gc='git config --file /root/.gitconfig'
-          $_gc user.email "TMcTestFace@example.com"
-          $_gc user.name "Testy McTestface"
     # Attempt to prevent flakes by confirming basic environment expectations,
     # network service connectivity and essential container image availability.
     prebuild_script: &prebuild $SCRIPT_BASE/prebuild.sh
@@ -462,6 +459,7 @@ osx_alt_build_task:
         GOCACHE: "$CIRRUS_WORKING_DIR/.go/cache"
         GOENV: "$CIRRUS_WORKING_DIR/.go/support"
         GOSRC: "$HOME/ci/task-${CIRRUS_TASK_ID}"
+    clone_script: *full_clone
     # This host is/was shared with potentially many other CI tasks.
     # The previous task may have been canceled or aborted.
     prep_script: &mac_cleanup "contrib/cirrus/mac_cleanup.sh"
