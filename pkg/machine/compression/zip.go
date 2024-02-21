@@ -40,7 +40,7 @@ func (d *zipDecompressor) compressedFileReader() (io.ReadCloser, error) {
 	return z, nil
 }
 
-func (*zipDecompressor) decompress(w io.WriteSeeker, r io.Reader) error {
+func (*zipDecompressor) decompress(w WriteSeekCloser, r io.Reader) error {
 	_, err := io.Copy(w, r)
 	return err
 }

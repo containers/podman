@@ -1,10 +1,9 @@
 package compression
 
 import (
-	"compress/gzip"
 	"io"
 
-	crcOs "github.com/crc-org/crc/v2/pkg/os"
+	image "github.com/containers/image/v5/pkg/compression"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,13 +17,15 @@ func newGzipDecompressor(compressedFilePath string) (*gzipDecompressor, error) {
 	return &gzipDecompressor{*d, nil}, err
 }
 
-func (d *gzipDecompressor) decompress(w io.WriteSeeker, r io.Reader) error {
-	gzReader, err := gzip.NewReader(r)
+func (d *gzipDecompressor) decompress(w WriteSeekCloser, r io.Reader) error {
+	gzReader, err := image.GzipDecompressor(r)
 	if err != nil {
 		return err
 	}
 	d.gzReader = gzReader
-	_, err = crcOs.CopySparse(w, gzReader)
+
+	sparseWriter := NewSparseWriter(w)
+	_, err = io.Copy(sparseWriter, gzReader)
 	return err
 }
 

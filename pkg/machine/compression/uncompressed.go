@@ -15,7 +15,7 @@ func newUncompressedDecompressor(compressedFilePath string) (*uncompressedDecomp
 	return &uncompressedDecompressor{*d}, err
 }
 
-func (*uncompressedDecompressor) decompress(w io.WriteSeeker, r io.Reader) error {
+func (*uncompressedDecompressor) decompress(w WriteSeekCloser, r io.Reader) error {
 	_, err := crcOs.CopySparse(w, r)
 	return err
 }

@@ -22,7 +22,7 @@ func newXzDecompressor(compressedFilePath string) (*xzDecompressor, error) {
 // Will error out if file without .Xz already exists
 // Maybe extracting then renaming is a good idea here..
 // depends on Xz: not pre-installed on mac, so it becomes a brew dependency
-func (*xzDecompressor) decompress(w io.WriteSeeker, r io.Reader) error {
+func (*xzDecompressor) decompress(w WriteSeekCloser, r io.Reader) error {
 	var cmd *exec.Cmd
 	var read io.Reader
 

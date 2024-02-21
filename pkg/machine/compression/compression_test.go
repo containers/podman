@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_compressionFromFile(t *testing.T) {
@@ -122,9 +123,9 @@ func Test_Decompress(t *testing.T) {
 			dstFilePath := tt.args.dst
 			defer os.Remove(dstFilePath)
 			err := Decompress(srcVMFile, dstFilePath)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			data, err := os.ReadFile(dstFilePath)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, string(tt.want), string(data))
 		})
 	}

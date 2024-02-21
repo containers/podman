@@ -25,7 +25,7 @@ type decompressor interface {
 	compressedFileSize() int64
 	compressedFileMode() os.FileMode
 	compressedFileReader() (io.ReadCloser, error)
-	decompress(w io.WriteSeeker, r io.Reader) error
+	decompress(w WriteSeekCloser, r io.Reader) error
 	close()
 }
 
