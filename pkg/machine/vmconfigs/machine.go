@@ -11,6 +11,7 @@ import (
 	"time"
 
 	define2 "github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/containers/podman/v5/pkg/machine/connection"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/lock"
@@ -184,28 +185,32 @@ func (mc *MachineConfig) Remove(saveIgnition, saveImage bool) ([]string, func() 
 	}
 
 	mcRemove := func() error {
+		var errs []error
+		if err := connection.RemoveConnections(mc.Name, mc.Name+"-root"); err != nil {
+			errs = append(errs, err)
+		}
+
 		if !saveIgnition {
 			if err := ignitionFile.Delete(); err != nil {
-				logrus.Error(err)
+				errs = append(errs, err)
 			}
 		}
 		if !saveImage {
 			if err := mc.ImagePath.Delete(); err != nil {
-				logrus.Error(err)
+				errs = append(errs, err)
 			}
 		}
-		if err := mc.configPath.Delete(); err != nil {
-			logrus.Error(err)
-		}
 		if err := readySocket.Delete(); err != nil {
-			logrus.Error()
+			errs = append(errs, err)
 		}
 		if err := logPath.Delete(); err != nil {
-			logrus.Error(err)
+			errs = append(errs, err)
 		}
-		// TODO This should be bumped up into delete and called out in the text given then
-		// are not technically files per'se
-		return connection.RemoveConnections(mc.Name, mc.Name+"-root")
+
+		if err := mc.configPath.Delete(); err != nil {
+			errs = append(errs, err)
+		}
+		return errorhandling.JoinErrors(errs)
 	}
 
 	return rmFiles, mcRemove, nil

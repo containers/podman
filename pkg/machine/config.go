@@ -110,7 +110,6 @@ type InspectInfo struct {
 	ConfigDir          define.VMFile
 	ConnectionInfo     ConnectionConfig
 	Created            time.Time
-	Image              ImageConfig
 	LastUp             time.Time
 	Name               string
 	Resources          vmconfigs.ResourceConfig

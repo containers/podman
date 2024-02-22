@@ -120,14 +120,12 @@ func rm(_ *cobra.Command, args []string) error {
 	// All actual removal of files and vms should occur after this
 	//
 
-	// TODO Should this be a hard error?
 	if err := providerRm(); err != nil {
-		logrus.Errorf("failed to remove virtual machine from provider for %q", vmName)
+		logrus.Errorf("failed to remove virtual machine from provider for %q: %v", vmName, err)
 	}
 
-	// TODO Should this be a hard error?
 	if err := genericRm(); err != nil {
-		logrus.Error("failed to remove machines files")
+		return fmt.Errorf("failed to remove machines files: %v", err)
 	}
 	newMachineEvent(events.Remove, events.Event{Name: vmName})
 	return nil
