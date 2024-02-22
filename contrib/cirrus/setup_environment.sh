@@ -40,12 +40,8 @@ done
 
 cp hack/podman-registry /bin
 
-# Some test operations & checks require a git "identity"
-_gc='git config --file /root/.gitconfig'
-showrun $_gc user.email "TMcTestFace@example.com"
-showrun $_gc user.name "Testy McTestface"
 # Bypass git safety/security checks when operating in a throwaway environment
-showrun git config --system --add safe.directory $GOSRC
+showrun git config --global --add safe.directory $GOSRC
 
 # Ensure that all lower-level contexts and child-processes have
 # ready access to higher level orchestration (e.g Cirrus-CI)
