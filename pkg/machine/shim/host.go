@@ -341,12 +341,9 @@ func Stop(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDef
 		if err != nil {
 			return err
 		}
-
-		defer func() {
-			if err := machine.CleanupGVProxy(*gvproxyPidFile); err != nil {
-				logrus.Errorf("unable to clean up gvproxy: %q", err)
-			}
-		}()
+		if err := machine.CleanupGVProxy(*gvproxyPidFile); err != nil {
+			return fmt.Errorf("unable to clean up gvproxy: %w", err)
+		}
 	}
 
 	return nil
