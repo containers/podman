@@ -282,7 +282,7 @@ var _ = Describe("podman machine init", func() {
 		Expect(session).To(Exit(0))
 
 		inspect := new(inspectMachine)
-		inspect = inspect.withFormat("{{.ConfigPath.Path}}")
+		inspect = inspect.withFormat("{{.ConfigDir.Path}}")
 		inspectSession, err := mb.setCmd(inspect).run()
 		Expect(err).ToNot(HaveOccurred())
 		cfgpth := filepath.Join(inspectSession.outputToString(), fmt.Sprintf("%s.json", name))
