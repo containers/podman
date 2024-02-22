@@ -131,7 +131,7 @@ EOF
 
     # Push to local registry; the magic key here is --add-compression...
     local manifestpushed="localhost:${PODMAN_LOGIN_REGISTRY_PORT}/test:1.0"
-    run_podman manifest push --authfile=$authfile --all --add-compression zstd --tls-verify=false $manifestlocal $manifestpushed
+    run_podman manifest push --authfile=$authfile --all --compression-format gzip --add-compression zstd --tls-verify=false $manifestlocal $manifestpushed
 
     # ...and use skopeo to confirm that each component has the right settings
     echo "$_LOG_PROMPT skopeo inspect ... $manifestpushed"

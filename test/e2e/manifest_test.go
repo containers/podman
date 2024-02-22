@@ -197,7 +197,7 @@ var _ = Describe("Podman manifest", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		push := podmanTest.Podman([]string{"manifest", "push", "--all", "--add-compression", "zstd", "--tls-verify=false", "--remove-signatures", "foobar", "localhost:5000/list"})
+		push := podmanTest.Podman([]string{"manifest", "push", "--all", "--compression-format", "gzip", "--add-compression", "zstd", "--tls-verify=false", "--remove-signatures", "foobar", "localhost:5000/list"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
 		output := push.ErrorToString()
