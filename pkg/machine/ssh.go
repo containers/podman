@@ -2,6 +2,8 @@ package machine
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"os/exec"
 	"strconv"
 
@@ -12,14 +14,18 @@ import (
 // and a port
 // TODO This should probably be taught about an machineconfig to reduce input
 func CommonSSH(username, identityPath, name string, sshPort int, inputArgs []string) error {
-	return commonSSH(username, identityPath, name, sshPort, inputArgs, false)
+	return commonSSH(username, identityPath, name, sshPort, inputArgs, false, os.Stdin)
 }
 
 func CommonSSHSilent(username, identityPath, name string, sshPort int, inputArgs []string) error {
-	return commonSSH(username, identityPath, name, sshPort, inputArgs, true)
+	return commonSSH(username, identityPath, name, sshPort, inputArgs, true, os.Stdin)
 }
 
-func commonSSH(username, identityPath, name string, sshPort int, inputArgs []string, silent bool) error {
+func CommonSSHWithStdin(username, identityPath, name string, sshPort int, inputArgs []string, stdin io.Reader) error {
+	return commonSSH(username, identityPath, name, sshPort, inputArgs, false, stdin)
+}
+
+func commonSSH(username, identityPath, name string, sshPort int, inputArgs []string, silent bool, stdin io.Reader) error {
 	sshDestination := username + "@localhost"
 	port := strconv.Itoa(sshPort)
 	interactive := true
@@ -40,7 +46,7 @@ func commonSSH(username, identityPath, name string, sshPort int, inputArgs []str
 	logrus.Debugf("Executing: ssh %v\n", args)
 
 	if !silent {
-		if err := setupIOPassthrough(cmd, interactive); err != nil {
+		if err := setupIOPassthrough(cmd, interactive, stdin); err != nil {
 			return err
 		}
 	}

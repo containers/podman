@@ -244,41 +244,6 @@ func setupPodmanDockerSock(dist string, rootful bool) error {
 	return nil
 }
 
-func configureProxy(dist string, useProxy bool, quiet bool) error {
-	if !useProxy {
-		_ = wslInvoke(dist, "sh", "-c", clearProxySettings)
-		return nil
-	}
-	var content string
-	for i, key := range config.ProxyEnv {
-		if value, _ := os.LookupEnv(key); len(value) > 0 {
-			var suffix string
-			if i < (len(config.ProxyEnv) - 1) {
-				suffix = "|"
-			}
-			content = fmt.Sprintf("%s%s=\"%s\"%s", content, key, value, suffix)
-		}
-	}
-
-	if err := wslPipe(content, dist, "sh", "-c", proxyConfigAttempt); err != nil {
-		const failMessage = "Failure creating proxy configuration"
-		if exitErr, isExit := err.(*exec.ExitError); isExit && exitErr.ExitCode() != 42 {
-			return fmt.Errorf("%v: %w", failMessage, err)
-		}
-		if !quiet {
-			fmt.Println("Installing proxy support")
-		}
-		_ = wslPipe(proxyConfigSetup, dist, "sh", "-c",
-			"cat > /usr/local/bin/proxyinit; chmod 755 /usr/local/bin/proxyinit")
-
-		if err = wslPipe(content, dist, "/usr/local/bin/proxyinit"); err != nil {
-			return fmt.Errorf("%v: %w", failMessage, err)
-		}
-	}
-
-	return nil
-}
-
 func enableUserLinger(mc *vmconfigs.MachineConfig, dist string) error {
 	lingerCmd := "mkdir -p /var/lib/systemd/linger; touch /var/lib/systemd/linger/" + mc.SSH.RemoteUsername
 	if err := wslInvoke(dist, "sh", "-c", lingerCmd); err != nil {
@@ -315,11 +280,6 @@ func installScripts(dist string) error {
 	if err := wslPipe(bootstrap, dist, "sh", "-c",
 		"cat > /root/bootstrap; chmod 755 /root/bootstrap"); err != nil {
 		return fmt.Errorf("could not create bootstrap script for guest OS: %w", err)
-	}
-
-	if err := wslPipe(proxyConfigSetup, dist, "sh", "-c",
-		"cat > /usr/local/bin/proxyinit; chmod 755 /usr/local/bin/proxyinit"); err != nil {
-		return fmt.Errorf("could not create proxyinit script for guest OS: %w", err)
 	}
 
 	return nil

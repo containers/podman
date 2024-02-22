@@ -12,6 +12,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/connection"
 	machineDefine "github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
+	"github.com/containers/podman/v5/pkg/machine/proxyenv"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v5/utils"
 	"github.com/hashicorp/go-multierror"
@@ -411,6 +412,10 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, _ *machineDefin
 			return fmt.Errorf("%s: ssh error: %v", msg, sshError)
 		}
 		return errors.New(msg)
+	}
+
+	if err := proxyenv.ApplyProxies(mc); err != nil {
+		return err
 	}
 
 	// mount the volumes to the VM

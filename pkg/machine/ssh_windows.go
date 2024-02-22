@@ -8,8 +8,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func setupIOPassthrough(cmd *exec.Cmd, interactive bool) error {
-	cmd.Stdin = os.Stdin
+func setupIOPassthrough(cmd *exec.Cmd, interactive bool, stdin io.Reader) error {
+	cmd.Stdin = stdin
 
 	if interactive {
 		cmd.Stdout = os.Stdout
