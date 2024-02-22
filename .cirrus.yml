@@ -35,7 +35,6 @@ env:
     # Image identifiers
     IMAGE_SUFFIX: "c20240222t143004z-f39f38d13"
 
-
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
     FEDORA_AARCH64_AMI: "fedora-podman-aws-arm64-${IMAGE_SUFFIX}"
@@ -169,35 +168,6 @@ build_task:
             path: ./*-${STATS_LOGFILE_SFX}
             type: text/plain
 
-build_aarch64_task:
-    alias: 'build_aarch64'
-    name: 'Build for $DISTRO_NV'
-    ec2_instance: &standard_build_ec2_aarch64
-        image: ${VM_IMAGE_NAME}
-        type: ${EC2_INST_TYPE}
-        region: us-east-1
-        architecture: arm64  # CAUTION: This has to be "arm64", not "aarch64".
-    env: &stdenvars_aarch64
-        EC2_INST_TYPE: "t4g.xlarge"
-        DISTRO_NV: ${FEDORA_AARCH64_NAME}
-        VM_IMAGE_NAME: ${FEDORA_AARCH64_AMI}
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        CI_DESIRED_RUNTIME: crun
-        TEST_FLAVOR: build
-    clone_script: *full_clone
-    prebuild_script: *prebuild
-    setup_script: *setup
-    postbuild_script: *postbuild
-    main_script: *main
-    # Cirrus-CI is very slow uploading one file at time, and the repo contains
-    # thousands of files.  Speed this up by archiving into tarball first.
-    repo_prep_script: &repo_prep_aarch64 >-
-        tar cjf /tmp/repo.tbz -C $GOSRC . && mv /tmp/repo.tbz $GOSRC/
-    repo_artifacts: &repo_artifacts_aarch64
-        path: ./repo.tbz
-        type: application/octet-stream
-    always: *runner_stats
-
 
 # Confirm the result of building on at least one platform appears sane.
 # This confirms the binaries can be executed, checks --help vs docs, and
@@ -241,6 +211,36 @@ validate_task:
     always: *runner_stats
 
 
+build_aarch64_task:
+    alias: 'build_aarch64'
+    name: 'Build for $DISTRO_NV'
+    ec2_instance: &standard_build_ec2_aarch64
+        image: ${VM_IMAGE_NAME}
+        type: ${EC2_INST_TYPE}
+        region: us-east-1
+        architecture: arm64  # CAUTION: This has to be "arm64", not "aarch64".
+    env: &stdenvars_aarch64
+        EC2_INST_TYPE: "t4g.xlarge"
+        DISTRO_NV: ${FEDORA_AARCH64_NAME}
+        VM_IMAGE_NAME: ${FEDORA_AARCH64_AMI}
+        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+        CI_DESIRED_RUNTIME: crun
+        TEST_FLAVOR: build
+    clone_script: *full_clone
+    prebuild_script: *prebuild
+    setup_script: *setup
+    postbuild_script: *postbuild
+    main_script: *main
+    # Cirrus-CI is very slow uploading one file at time, and the repo contains
+    # thousands of files.  Speed this up by archiving into tarball first.
+    repo_prep_script: &repo_prep_aarch64 >-
+        tar cjf /tmp/repo.tbz -C $GOSRC . && mv /tmp/repo.tbz $GOSRC/
+    repo_artifacts: &repo_artifacts_aarch64
+        path: ./repo.tbz
+        type: application/octet-stream
+    always: *runner_stats
+
+
 # Confirm the result of building on at least one platform appears sane.
 # This confirms the binaries can be executed, checks --help vs docs, and
 # other essential post-build validation checks.
@@ -272,74 +272,6 @@ validate_aarch64_task:
     always: *runner_stats
 
 
-# Exercise the "libpod" API with a small set of common
-# operations to ensure they are functional.
-bindings_task:
-    name: "Test Bindings"
-    alias: bindings
-    # Don't create task for PRs using [CI:DOCS] or [CI:BUILD]
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: >-
-        $CIRRUS_PR != '' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*'
-    depends_on:
-        - build
-    gce_instance: *standardvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: bindings
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always: &logs_artifacts
-        <<: *runner_stats
-        # Required for `contrib/cirrus/logformatter` to work properly
-        html_artifacts:
-            path: ./*.html
-            type: text/html
-        server_log_artifacts:
-            path: ./podman-server.log
-            type: text/plain
-        df_script: '$SCRIPT_BASE/logcollector.sh df'
-        audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
-        journal_script: '$SCRIPT_BASE/logcollector.sh journal'
-        podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
-        time_script: '$SCRIPT_BASE/logcollector.sh time'
-
-
-# Build the "libpod" API documentation `swagger.yaml` and
-# publish it to google-cloud-storage (GCS).
-swagger_task:
-    name: "Test Swagger"
-    alias: swagger
-    # Don't create task for [CI:BUILD]
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: |
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*'
-    depends_on:
-        - build
-    gce_instance: *standardvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: swagger
-        CTR_FQIN: 'quay.io/libpod/gcsupld:${IMAGE_SUFFIX}'
-        # N/B: Do not modify below items w/o update to references in .gitleaks/config.toml
-        GCPJSON: ENCRYPTED[927dc01e755eaddb4242b0845cf86c9098d1e3dffac38c70aefb1487fd8b4fe6dd6ae627b3bffafaba70e2c63172664e]
-        GCPNAME: ENCRYPTED[c145e9c16b6fb88d476944a454bf4c1ccc84bb4ecaca73bdd28bdacef0dfa7959ebc8171a27b2e4064d66093b2cdba49]
-        GCPPROJECT: 'libpod-218412'
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always:
-        <<: *runner_stats
-        swagger_artifacts:
-            path: ./swagger.yaml
-            type: text/plain
-
-
 # There are several other important variations of podman which
 # must always build successfully.  Most of them are handled in
 # this task, though a few need dedicated tasks which follow.
@@ -351,8 +283,6 @@ alt_build_task:
     only_if: &no_rhel_release |
         $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
         $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
-    depends_on:
-        - build
     env:
         <<: *stdenvars
         TEST_FLAVOR: "altbuild"
@@ -384,68 +314,12 @@ alt_build_task:
     always: *runner_stats
 
 
-win_installer_task:
-    name: "Verify Win Installer Build"
-    alias: win_installer
-    only_if:  # RHEL never releases podman windows installer binary
-      $CIRRUS_TAG == '' &&
-      $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
-      $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
-    depends_on:
-      - alt_build
-    ec2_instance: &windows
-        image: "${WINDOWS_AMI}"
-        type: m5.large
-        region: us-east-1
-        platform: windows
-    env: &winenv
-        CIRRUS_WORKING_DIR: &wincwd "${LOCALAPPDATA}\\cirrus-ci-build"
-        CIRRUS_SHELL: powershell
-        PATH: "${PATH};C:\\ProgramData\\chocolatey\\bin"
-        DISTRO_NV: "windows"
-        PRIV_NAME: "rootless"
-        # Fake version, we are only testing the installer functions, so version doesn't matter
-        WIN_INST_VER: 9.9.9
-    # It's HIGHLY desireable to use the same binary throughout CI.  Otherwise, if
-    # there's a toolchain or build-environment specific problem, it can be incredibly
-    # difficult (and non-obvious) to debug.
-    clone_script: &winclone |
-        $ErrorActionPreference = 'Stop'
-        $ProgressPreference = 'SilentlyContinue'
-        New-Item -ItemType Directory -Force -Path "$ENV:CIRRUS_WORKING_DIR"
-        Set-Location "$ENV:CIRRUS_WORKING_DIR"
-        $uri = "${ENV:ART_URL}/Windows Cross/repo/repo.tbz"
-        Write-Host "Downloading $uri"
-        For($i = 0;;) {
-            Try {
-                Invoke-WebRequest -UseBasicParsing -ErrorAction Stop -OutFile "repo.tbz2" `
-                  -Uri "$uri"
-                Break
-            } Catch {
-                if (++$i -gt 6) {
-                    throw $_.Exception
-                }
-                Write-Host "Download failed - retrying:" $_.Exception.Response.StatusCode
-                Start-Sleep -Seconds 10
-            }
-        }
-        arc unarchive repo.tbz2 .\
-        if ($LASTEXITCODE -ne 0) {
-            throw "Unarchive repo.tbz2 failed"
-            Exit 1
-        }
-        Get-ChildItem -Path .\repo
-    main_script: ".\\repo\\contrib\\cirrus\\win-installer-main.ps1"
-
-
 # Confirm building the remote client, natively on a Mac OS-X VM.
 osx_alt_build_task:
     name: "OSX Cross"
     alias: osx_alt_build
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *no_rhel_release  # RHEL never releases podman mac installer binary
-    depends_on:
-        - build
     persistent_worker: &mac_pw
         labels:
             os: darwin
@@ -495,8 +369,6 @@ freebsd_alt_build_task:
     only_if: |
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*' &&
         ( $CIRRUS_BRANCH == 'main' || $CIRRUS_BASE_BRANCH == 'main' )
-    depends_on:
-        - build
     env:
         <<: *stdenvars
         # Functional FreeBSD builds must be built natively since they depend on CGO
@@ -518,6 +390,152 @@ freebsd_alt_build_task:
     repo_artifacts: *repo_artifacts
 
 
+# Status aggregator for all builds.  This task simply makes dependency
+# management easier, and results in a simpler graph that using YAML
+# anchors/aliases.
+build_success_task:
+    name: "Total Build Success"
+    alias: build_success
+    depends_on:
+        - build
+        - validate
+        - build_aarch64
+        - validate_aarch64
+        - alt_build
+        - osx_alt_build
+        - freebsd_alt_build
+    env:
+        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+    container: &smallcontainer
+        image: ${CTR_FQIN}
+        # Resources are limited across ALL currently executing tasks
+        # ref: https://cirrus-ci.org/guide/linux/#linux-containers
+        cpu: 1
+        memory: 1
+    clone_script:  &noop mkdir -p "$CIRRUS_WORKING_DIR"
+    script: *noop
+
+
+# Exercise the "libpod" API with a small set of common
+# operations to ensure they are functional.
+bindings_task:
+    name: "Test Bindings"
+    alias: bindings
+    # Don't create task for PRs using [CI:DOCS] or [CI:BUILD]
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: >-
+        $CIRRUS_PR != '' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*'
+    depends_on: &build
+        - build_success
+    gce_instance: *standardvm
+    env:
+        <<: *stdenvars
+        TEST_FLAVOR: bindings
+    clone_script: *get_gosrc
+    setup_script: *setup
+    main_script: *main
+    always: &logs_artifacts
+        <<: *runner_stats
+        # Required for `contrib/cirrus/logformatter` to work properly
+        html_artifacts:
+            path: ./*.html
+            type: text/html
+        server_log_artifacts:
+            path: ./podman-server.log
+            type: text/plain
+        df_script: '$SCRIPT_BASE/logcollector.sh df'
+        audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
+        journal_script: '$SCRIPT_BASE/logcollector.sh journal'
+        podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
+        time_script: '$SCRIPT_BASE/logcollector.sh time'
+
+
+# Build the "libpod" API documentation `swagger.yaml` and
+# publish it to google-cloud-storage (GCS).
+swagger_task:
+    name: "Test Swagger"
+    alias: swagger
+    # Don't create task for [CI:BUILD]
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: |
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*'
+    depends_on: *build
+    gce_instance: *standardvm
+    env:
+        <<: *stdenvars
+        TEST_FLAVOR: swagger
+        CTR_FQIN: 'quay.io/libpod/gcsupld:${IMAGE_SUFFIX}'
+        # N/B: Do not modify below items w/o update to references in .gitleaks/config.toml
+        GCPJSON: ENCRYPTED[927dc01e755eaddb4242b0845cf86c9098d1e3dffac38c70aefb1487fd8b4fe6dd6ae627b3bffafaba70e2c63172664e]
+        GCPNAME: ENCRYPTED[c145e9c16b6fb88d476944a454bf4c1ccc84bb4ecaca73bdd28bdacef0dfa7959ebc8171a27b2e4064d66093b2cdba49]
+        GCPPROJECT: 'libpod-218412'
+    clone_script: *get_gosrc
+    setup_script: *setup
+    main_script: *main
+    always:
+        <<: *runner_stats
+        swagger_artifacts:
+            path: ./swagger.yaml
+            type: text/plain
+
+
+win_installer_task:
+    name: "Verify Win Installer Build"
+    alias: win_installer
+    only_if:  # RHEL never releases podman windows installer binary
+      $CIRRUS_TAG == '' &&
+      $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
+      $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
+    depends_on: *build
+    ec2_instance: &windows
+        image: "${WINDOWS_AMI}"
+        type: m5.large
+        region: us-east-1
+        platform: windows
+    env: &winenv
+        CIRRUS_WORKING_DIR: &wincwd "${LOCALAPPDATA}\\cirrus-ci-build"
+        CIRRUS_SHELL: powershell
+        PATH: "${PATH};C:\\ProgramData\\chocolatey\\bin"
+        DISTRO_NV: "windows"
+        PRIV_NAME: "rootless"
+        # Fake version, we are only testing the installer functions, so version doesn't matter
+        WIN_INST_VER: 9.9.9
+    # It's HIGHLY desireable to use the same binary throughout CI.  Otherwise, if
+    # there's a toolchain or build-environment specific problem, it can be incredibly
+    # difficult (and non-obvious) to debug.
+    clone_script: &winclone |
+        $ErrorActionPreference = 'Stop'
+        $ProgressPreference = 'SilentlyContinue'
+        New-Item -ItemType Directory -Force -Path "$ENV:CIRRUS_WORKING_DIR"
+        Set-Location "$ENV:CIRRUS_WORKING_DIR"
+        $uri = "${ENV:ART_URL}/Windows Cross/repo/repo.tbz"
+        Write-Host "Downloading $uri"
+        For($i = 0;;) {
+            Try {
+                Invoke-WebRequest -UseBasicParsing -ErrorAction Stop -OutFile "repo.tbz2" `
+                  -Uri "$uri"
+                Break
+            } Catch {
+                if (++$i -gt 6) {
+                    throw $_.Exception
+                }
+                Write-Host "Download failed - retrying:" $_.Exception.Response.StatusCode
+                Start-Sleep -Seconds 10
+            }
+        }
+        arc unarchive repo.tbz2 .\
+        if ($LASTEXITCODE -ne 0) {
+            throw "Unarchive repo.tbz2 failed"
+            Exit 1
+        }
+        Get-ChildItem -Path .\repo
+    main_script: ".\\repo\\contrib\\cirrus\\win-installer-main.ps1"
+
+
 # Verify podman is compatible with the docker python-module.
 docker-py_test_task:
     name: Docker-py Compat.
@@ -530,9 +548,7 @@ docker-py_test_task:
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*'
-
-    depends_on:
-        - build
+    depends_on: *build
     gce_instance: *standardvm
     env:
         <<: *stdenvars
@@ -550,9 +566,7 @@ unit_test_task:
     alias: unit_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs_machine
-    depends_on:
-        - build
-        - validate
+    depends_on: *build
     matrix:
         - env: *stdenvars
         # Special-case: Rootless on latest Fedora (standard) VM
@@ -574,9 +588,7 @@ apiv2_test_task:
     alias: apiv2_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs_machine
-    depends_on:
-        - build
-        - validate
+    depends_on: *build
     gce_instance: *standardvm
     # Test is normally pretty quick, about 10-minutes.  If it hangs,
     # don't make developers wait the full 1-hour timeout.
@@ -600,9 +612,7 @@ compose_test_task:
     alias: compose_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs_machine
-    depends_on:
-        - build
-        - validate
+    depends_on: *build
     gce_instance: *standardvm
     matrix:
       - env:
@@ -633,9 +643,7 @@ local_integration_test_task: &local_integration_test_task
     alias: local_integration_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs_machine
-    depends_on: &build_unit
-        - build
-        - unit_test
+    depends_on: *build
     matrix: *platform_axis
     gce_instance: *standardvm
     timeout_in: 50m
@@ -672,7 +680,7 @@ container_integration_test_task:
     alias: container_integration_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs_machine
-    depends_on: *build_unit
+    depends_on: *build
     matrix: &fedora_vm_axis
         - env:
               DISTRO_NV: ${FEDORA_NAME}
@@ -702,7 +710,7 @@ rootless_integration_test_task:
     alias: rootless_integration_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs_machine
-    depends_on: *build_unit
+    depends_on: *build
     matrix: *platform_axis
     gce_instance: *standardvm
     timeout_in: 50m
@@ -725,13 +733,7 @@ podman_machine_task:
          $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
          $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
         ) || $CIRRUS_CRON == "main"
-    depends_on:
-        - build
-        - validate
-        - local_integration_test
-        - remote_integration_test
-        - container_integration_test
-        - rootless_integration_test
+    depends_on: *build
     ec2_instance:
         image: "${VM_IMAGE_NAME}"
         type: "${EC2_INST_TYPE}"
@@ -752,13 +754,7 @@ podman_machine_aarch64_task:
     name: *std_name_fmt
     alias: podman_machine_aarch64
     only_if: *machine_cron_not_tag_build_docs
-    depends_on:
-        - build_aarch64
-        - validate_aarch64
-        - local_integration_test
-        - remote_integration_test
-        - container_integration_test
-        - rootless_integration_test
+    depends_on: *build
     ec2_instance:
         <<: *standard_build_ec2_aarch64
     env:
@@ -779,14 +775,7 @@ podman_machine_windows_task:
     # Only run for non-docs/copr PRs and non-release branch builds
     # and never for tags.  Docs: ./contrib/cirrus/CIModes.md
     only_if: *machine_cron_not_tag_build_docs
-    depends_on:
-      - alt_build
-      - build
-      - win_installer
-      - local_integration_test
-      - remote_integration_test
-      - container_integration_test
-      - rootless_integration_test
+    depends_on: *build
     ec2_instance:
         <<: *windows
         type: m5zn.metal
@@ -805,12 +794,7 @@ podman_machine_mac_task:
     name: *std_name_fmt
     alias: podman_machine_mac
     only_if: *machine_cron_not_tag_build_docs
-    depends_on:
-      - osx_alt_build
-      - local_integration_test
-      - remote_integration_test
-      - container_integration_test
-      - rootless_integration_test
+    depends_on: *build
     persistent_worker: *mac_pw
     env:
         <<: *mac_env
@@ -845,6 +829,7 @@ podman_machine_mac_task:
     always:
         task_cleanup_script: *mac_cleanup
 
+
 # Always run subsequent to integration tests.  While parallelism is lost
 # with runtime, debugging system-test failures can be more challenging
 # for some golang developers.  Otherwise the following tasks run across
@@ -859,7 +844,7 @@ local_system_test_task: &local_system_test_task
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*'
-    depends_on: *build_unit
+    depends_on: *build
     matrix: *platform_axis
     gce_instance: *standardvm
     env:
@@ -876,10 +861,8 @@ local_system_test_aarch64_task: &local_system_test_task_aarch64
     # Don't create task for tags, or if using [CI:DOCS], [CI:BUILD]
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_magic
-    depends_on:
-        - build_aarch64
-        - validate_aarch64
-        - unit_test
+    depends_on: *build
+    persistent_worker: *mac_pw
     ec2_instance: *standard_build_ec2_aarch64
     env:
         <<: *stdenvars_aarch64
@@ -930,7 +913,7 @@ rootless_system_test_task:
     alias: rootless_system_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_magic
-    depends_on: *build_unit
+    depends_on: *build
     matrix: *platform_axis
     gce_instance: *standardvm
     env:
@@ -941,14 +924,13 @@ rootless_system_test_task:
     main_script: *main
     always: *logs_artifacts
 
+
 minikube_test_task:
     name: *std_name_fmt
     alias: minikube_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_magic
-    depends_on:
-        - build
-        - rootless_system_test
+    depends_on: *build
     gce_instance: *standardvm
     env:
         <<: *stdenvars
@@ -964,9 +946,7 @@ farm_test_task:
     alias: farm_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_magic
-    depends_on:
-        - build
-        - rootless_system_test
+    depends_on: *build
     gce_instance: *standardvm
     env:
         <<: *stdenvars
@@ -982,9 +962,7 @@ buildah_bud_test_task:
     alias: buildah_bud_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_magic
-    depends_on:
-        - build
-        - local_integration_test
+    depends_on: *build
     env:
         <<: *stdenvars
         TEST_FLAVOR: bud
@@ -1005,9 +983,7 @@ upgrade_test_task:
     alias: upgrade_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_magic
-    depends_on:
-        - build
-        - local_system_test
+    depends_on: *build
     matrix:
 #        - env:
 #              PODMAN_UPGRADE_FROM: v4.1.0
@@ -1055,27 +1031,22 @@ meta_task:
         GCPJSON: ENCRYPTED[3a198350077849c8df14b723c0f4c9fece9ebe6408d35982e7adf2105a33f8e0e166ed3ed614875a0887e1af2b8775f4]
         GCPNAME: ENCRYPTED[2f9738ef295a706f66a13891b40e8eaa92a89e0e87faf8bed66c41eca72bf76cfd190a6f2d0e8444c631fdf15ed32ef6]
         GCPPROJECT: libpod-218412
-    clone_script: &noop mkdir -p "$CIRRUS_WORKING_DIR"
+    clone_script: *noop
     script: /usr/local/bin/entrypoint.sh
 
 
-# Status aggregator for all tests.  This task simply ensures a defined
-# set of tasks all passed, and allows confirming that based on the status
-# of this task.
+# Status aggregator for all tests.  This task ensures a defined set of tasks
+# all passed, and allows confirming that based on the status of this task.
 success_task:
+    # N/B: The prow merge-bot (tide) is sensitized to this exact name, DO NOT CHANGE IT.
+    # Ref: https://github.com/openshift/release/pull/48855
     name: "Total Success"
     alias: success
     # N/B: ALL tasks must be listed here, minus their '_task' suffix.
     depends_on:
-        - build
-        - build_aarch64
-        - validate
-        - validate_aarch64
+        - build_success
         - bindings
         - swagger
-        - alt_build
-        - osx_alt_build
-        - freebsd_alt_build
         - win_installer
         - docker-py_test
         - unit_test
@@ -1093,22 +1064,21 @@ success_task:
         - local_system_test_aarch64
         - remote_system_test
         - remote_system_test_aarch64
-        - rootless_system_test
         - rootless_remote_system_test
+        - rootless_system_test
+        - local_system_test
+        - local_system_test_aarch64
+        - remote_system_test
+        - rootless_remote_system_test
+        - rootless_system_test
         - minikube_test
         - farm_test
         - buildah_bud_test
         - upgrade_test
         - meta
-    container: &smallcontainer
-        image: ${CTR_FQIN}
-        # Resources are limited across ALL currently executing tasks
-        # ref: https://cirrus-ci.org/guide/linux/#linux-containers
-        cpu: 2
-        memory: 2
     env:
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        TEST_ENVIRON: container
+    container: *smallcontainer
     clone_script: *noop
     script: |
         if [[ "$CIRRUS_CHANGE_TITLE" =~ CI:MACHINE ]] && [[ -n "$CIRRUS_PR" ]]; then
@@ -1209,7 +1179,7 @@ release_task:
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: $CIRRUS_TAG != ''
     depends_on:
-        - build
+        - build_success
         - success
     gce_instance: *standardvm
     env:
@@ -1236,7 +1206,7 @@ release_test_task:
     # see RELEASE_PROCESS.md
     trigger_type: manual
     depends_on:
-        - build
+        - build_success
         - success
     gce_instance: *standardvm
     env:
