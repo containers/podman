@@ -116,9 +116,8 @@ Format the output to JSON Lines or using the given Go template.
 | .Network                | Name of network being used (string)               |
 | .PodID                  | ID of pod associated with container, if any       |
 | .Status                 | Event status (e.g., create, start, died, ...)     |
-| .Time ...               | Event timestamp (string)                          |
+| .Time                   | Event timestamp (string)                          |
 | .TimeNano               | Event timestamp with nanosecond precision (int64) |
-| .ToHumanReadable *bool* | If true, truncates CID in output                  |
 | .Type                   | Event type (e.g., image, container, pod, ...)     |
 
 #### **--help**

@@ -2,10 +2,8 @@ package system
 
 import (
 	"context"
-	jsonencoding "encoding/json"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
@@ -14,7 +12,6 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/containers/podman/v5/libpod/events"
 	"github.com/containers/podman/v5/pkg/domain/entities"
-	"github.com/containers/storage/pkg/stringid"
 	"github.com/spf13/cobra"
 )
 
@@ -78,7 +75,7 @@ type Event struct {
 	events.Details
 }
 
-func newEventFromLibpodEvent(e events.Event) Event {
+func newEventFromLibpodEvent(e *events.Event) Event {
 	return Event{
 		ContainerExitCode: e.ContainerExitCode,
 		ID:                e.ID,
@@ -95,52 +92,8 @@ func newEventFromLibpodEvent(e events.Event) Event {
 }
 
 func (e *Event) ToJSONString() (string, error) {
-	b, err := jsonencoding.Marshal(e)
+	b, err := json.Marshal(e)
 	return string(b), err
-}
-
-func (e *Event) ToHumanReadable(truncate bool) string {
-	if e == nil {
-		return ""
-	}
-	var humanFormat string
-	id := e.ID
-	if truncate {
-		id = stringid.TruncateID(id)
-	}
-
-	timeUnix := time.Unix(0, e.TimeNano)
-
-	switch e.Type {
-	case events.Container, events.Pod:
-		humanFormat = fmt.Sprintf("%s %s %s %s (image=%s, name=%s", timeUnix, e.Type, e.Status, id, e.Image, e.Name)
-		if e.PodID != "" {
-			humanFormat += fmt.Sprintf(", pod_id=%s", e.PodID)
-		}
-		if e.HealthStatus != "" {
-			humanFormat += fmt.Sprintf(", health_status=%s", e.HealthStatus)
-		}
-		// check if the container has labels and add it to the output
-		if len(e.Attributes) > 0 {
-			for k, v := range e.Attributes {
-				humanFormat += fmt.Sprintf(", %s=%s", k, v)
-			}
-		}
-		humanFormat += ")"
-	case events.Network:
-		humanFormat = fmt.Sprintf("%s %s %s %s (container=%s, name=%s)", timeUnix, e.Type, e.Status, id, id, e.Network)
-	case events.Image:
-		humanFormat = fmt.Sprintf("%s %s %s %s %s", timeUnix, e.Type, e.Status, id, e.Name)
-	case events.System:
-		if e.Name != "" {
-			humanFormat = fmt.Sprintf("%s %s %s %s", timeUnix, e.Type, e.Status, e.Name)
-		} else {
-			humanFormat = fmt.Sprintf("%s %s %s", timeUnix, e.Type, e.Status)
-		}
-	case events.Volume, events.Machine:
-		humanFormat = fmt.Sprintf("%s %s %s %s", timeUnix, e.Type, e.Status, e.Name)
-	}
-	return humanFormat
 }
 
 func init() {
@@ -217,20 +170,20 @@ func eventsCmd(cmd *cobra.Command, _ []string) error {
 				// channel was closed we can exit
 				return nil
 			}
-			e := newEventFromLibpodEvent(*event)
 			switch {
 			case doJSON:
+				e := newEventFromLibpodEvent(event)
 				jsonStr, err := e.ToJSONString()
 				if err != nil {
 					return err
 				}
 				fmt.Println(jsonStr)
 			case cmd.Flags().Changed("format"):
-				if err := rpt.Execute(event); err != nil {
+				if err := rpt.Execute(newEventFromLibpodEvent(event)); err != nil {
 					return err
 				}
 			default:
-				fmt.Println(e.ToHumanReadable(!noTrunc))
+				fmt.Println(event.ToHumanReadable(!noTrunc))
 			}
 		case err := <-errChannel:
 			// only exit in case of an error,
