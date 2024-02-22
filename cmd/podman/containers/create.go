@@ -142,7 +142,7 @@ func create(cmd *cobra.Command, args []string) error {
 	rawImageName := ""
 	if !cliVals.RootFS {
 		rawImageName = args[0]
-		name, err := PullImage(args[0], &cliVals)
+		name, err := pullImage(args[0], &cliVals)
 		if err != nil {
 			return err
 		}
@@ -336,7 +336,7 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 }
 
 // Pulls image if any also parses and populates OS, Arch and Variant in specified container create options
-func PullImage(imageName string, cliVals *entities.ContainerCreateOptions) (string, error) {
+func pullImage(imageName string, cliVals *entities.ContainerCreateOptions) (string, error) {
 	pullPolicy, err := config.ParsePullPolicy(cliVals.Pull)
 	if err != nil {
 		return "", err

@@ -150,7 +150,7 @@ func run(cmd *cobra.Command, args []string) error {
 	rawImageName := ""
 	if !cliVals.RootFS {
 		rawImageName = args[0]
-		name, err := PullImage(args[0], &cliVals)
+		name, err := pullImage(args[0], &cliVals)
 		if err != nil {
 			return err
 		}
