@@ -21,7 +21,6 @@ func (a *AppleHVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() e
 	mc.Lock()
 	defer mc.Unlock()
 
-	// TODO we could delete the vfkit pid/log files if we wanted to be thorough
 	return []string{}, func() error { return nil }, nil
 }
 
