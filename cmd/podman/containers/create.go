@@ -142,7 +142,7 @@ func create(cmd *cobra.Command, args []string) error {
 	rawImageName := ""
 	if !cliVals.RootFS {
 		rawImageName = args[0]
-		name, err := pullImage(args[0], &cliVals)
+		name, err := pullImage(cmd, args[0], &cliVals)
 		if err != nil {
 			return err
 		}
@@ -336,7 +336,7 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 }
 
 // Pulls image if any also parses and populates OS, Arch and Variant in specified container create options
-func pullImage(imageName string, cliVals *entities.ContainerCreateOptions) (string, error) {
+func pullImage(cmd *cobra.Command, imageName string, cliVals *entities.ContainerCreateOptions) (string, error) {
 	pullPolicy, err := config.ParsePullPolicy(cliVals.Pull)
 	if err != nil {
 		return "", err
@@ -365,7 +365,7 @@ func pullImage(imageName string, cliVals *entities.ContainerCreateOptions) (stri
 		return "unable to obtain decryption config", err
 	}
 
-	pullReport, pullErr := registry.ImageEngine().Pull(registry.GetContext(), imageName, entities.ImagePullOptions{
+	pullOptions := entities.ImagePullOptions{
 		Authfile:         cliVals.Authfile,
 		Quiet:            cliVals.Quiet,
 		Arch:             cliVals.Arch,
@@ -375,7 +375,27 @@ func pullImage(imageName string, cliVals *entities.ContainerCreateOptions) (stri
 		PullPolicy:       pullPolicy,
 		SkipTLSVerify:    skipTLSVerify,
 		OciDecryptConfig: decConfig,
-	})
+	}
+
+	if cmd.Flags().Changed("retry") {
+		retry, err := cmd.Flags().GetUint("retry")
+		if err != nil {
+			return "", err
+		}
+
+		pullOptions.Retry = &retry
+	}
+
+	if cmd.Flags().Changed("retry-delay") {
+		val, err := cmd.Flags().GetString("retry-delay")
+		if err != nil {
+			return "", err
+		}
+
+		pullOptions.RetryDelay = val
+	}
+
+	pullReport, pullErr := registry.ImageEngine().Pull(registry.GetContext(), imageName, pullOptions)
 	if pullErr != nil {
 		return "", pullErr
 	}

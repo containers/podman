@@ -346,6 +346,10 @@ Suppress output information when pulling images
 
 @@option restart
 
+@@option retry
+
+@@option retry-delay
+
 #### **--rm**
 
 Automatically remove the container and any anonymous unnamed volume associated with

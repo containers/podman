@@ -389,6 +389,14 @@ EOF
     CONTAINERS_CONF="$containersConf" run_podman push --help
     assert "$output" =~ "--retry .*performing push \(default 10\)"
     assert "$output" =~ "--retry-delay .*push failures \(default \"5s\"\)"
+
+    CONTAINERS_CONF="$containersConf" run_podman create --help
+    assert "$output" =~ "--retry .*performing pull \(default 10\)"
+    assert "$output" =~ "--retry-delay .*pull failures \(default \"5s\"\)"
+
+    CONTAINERS_CONF="$containersConf" run_podman run --help
+    assert "$output" =~ "--retry .*performing pull \(default 10\)"
+    assert "$output" =~ "--retry-delay .*pull failures \(default \"5s\"\)"
 }
 
 # END   cooperation with skopeo

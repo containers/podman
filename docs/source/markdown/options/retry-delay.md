@@ -1,5 +1,5 @@
 ####> This option file is used in:
-####>   podman build, farm build, pull, push
+####>   podman build, create, farm build, pull, push, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--retry-delay**=*duration*
