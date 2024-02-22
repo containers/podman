@@ -527,6 +527,29 @@ t GET containers/$cid/json 200 \
 
 t DELETE containers/$cid?v=true 204
 
+# test create container like Docker >= 25 cli: NetworkMode="default" but EndpointsConfig struct is explictly set and netns="host"
+t POST containers/create \
+  Image=$IMAGE \
+  HostConfig='{"NetworkMode":"default"}' \
+  NetworkingConfig='{"EndpointsConfig":{"default":{"IPAMConfig":null,"Links":null,"Aliases":null,"MacAddress":"","NetworkID":"","EndpointID":"","Gateway":"","IPAddress":"","IPPrefixLen":0,"IPv6Gateway":"","GlobalIPv6Address":"","GlobalIPv6PrefixLen":0,"DriverOpts":null,"DNSNames":null}}}' \
+  201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+t GET containers/$cid/json 200 \
+  .HostConfig.NetworkMode="host"
+
+t DELETE containers/$cid?v=true 204
+
+# test creating a container fails with netns="hosts" on podman side but keep using the default network mode
+# on docker CLI side and trying to use --ip 1.2.3.4 which is only valid for the bridge network mode (docker CLI
+# will assume the default is the bridge mode, so it's valid from docker CLI point of view).
+t POST containers/create \
+  Image=$IMAGE \
+  HostConfig='{"NetworkMode":"default"}' \
+  NetworkingConfig='{"EndpointsConfig":{"default":{"IPAMConfig":null,"Links":null,"Aliases":null,"MacAddress":"","NetworkID":"","EndpointID":"","Gateway":"","IPAddress":"1.2.3.4","IPPrefixLen":0,"IPv6Gateway":"","GlobalIPv6Address":"","GlobalIPv6PrefixLen":0,"DriverOpts":null,"DNSNames":null}}}' \
+  500 \
+    .cause="networks and static ip/mac address can only be used with Bridge mode networking"
+
 # Restart with the default containers.conf for next tests.
 stop_service
 start_service
