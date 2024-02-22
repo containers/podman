@@ -29,7 +29,7 @@ t GET "events?stream=false&since=$START"  200  \
   'select(.status | contains("die")).Actor.Attributes.exitCode=1'
 
 t GET "events?stream=false&since=$START&type=remove"  200  \
-  'select(.status| contains("remove")).Action=remove' \
+  'select(.status | contains("remove")).Action=remove' \
   'select(.status | contains("remove")).Actor.Attributes.containerExitCode=1'
 
 # vim: filetype=sh

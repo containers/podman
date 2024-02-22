@@ -48,8 +48,6 @@ type Event struct {
 // Details describes specifics about certain events, specifically around
 // container events
 type Details struct {
-	// ID is the event ID
-	ID string
 	// ContainerInspectData includes the payload of the container's inspect
 	// data. Only set when events_container_create_inspect_data is set true
 	// in containers.conf.

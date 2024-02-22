@@ -223,9 +223,9 @@ EOF
     # same amount of events.  We checked the contents before.
     CONTAINERS_CONF_OVERRIDE=$containersConf run_podman events --stream=false --since="2022-03-06T11:26:42.723667984+02:00" --format=json
     assert "${#lines[@]}" = 52 "Number of events returned"
-    is "${lines[0]}" "{\"Name\":\"$eventsFile\",\"Status\":\"log-rotation\",\"Time\":\".*\",\"Type\":\"system\",\"Attributes\":{\"io.podman.event.rotate\":\"begin\"}}"
-    is "${lines[-2]}" "{\"Name\":\"$eventsFile\",\"Status\":\"log-rotation\",\"Time\":\".*\",\"Type\":\"system\",\"Attributes\":{\"io.podman.event.rotate\":\"end\"}}"
-    is "${lines[-1]}" "{\"ID\":\"$ctrID\",\"Image\":\"$IMAGE\",\"Name\":\".*\",\"Status\":\"remove\",\"Time\":\".*\",\"Type\":\"container\",\"Attributes\":{.*}}"
+    is "${lines[0]}" "{\"Name\":\"$eventsFile\",\"Status\":\"log-rotation\",\"time\":[0-9]\+,\"timeNano\":[0-9]\+,\"Type\":\"system\",\"Attributes\":{\"io.podman.event.rotate\":\"begin\"}}"
+    is "${lines[-2]}" "{\"Name\":\"$eventsFile\",\"Status\":\"log-rotation\",\"time\":[0-9]\+,\"timeNano\":[0-9]\+,\"Type\":\"system\",\"Attributes\":{\"io.podman.event.rotate\":\"end\"}}"
+    is "${lines[-1]}" "{\"ID\":\"$ctrID\",\"Image\":\"$IMAGE\",\"Name\":\".*\",\"Status\":\"remove\",\"time\":[0-9]\+,\"timeNano\":[0-9]\+,\"Type\":\"container\",\"Attributes\":{.*}}"
 }
 
 @test "events log-file no duplicates" {
@@ -292,10 +292,10 @@ EOF
     # Make sure that the JSON stream looks as expected. That means it has all
     # events and no duplicates.
     run cat $eventsJSON
-    is "${lines[0]}" "{\"Name\":\"busybox\",\"Status\":\"pull\",\"Time\":\"2022-04-06T11:26:42.7236679+02:00\",\"Type\":\"image\",\"Attributes\":null}"
-    is "${lines[99]}" "{\"Name\":\"busybox\",\"Status\":\"pull\",\"Time\":\"2022-04-06T11:26:42.723667999+02:00\",\"Type\":\"image\",\"Attributes\":null}"
-    is "${lines[100]}" "{\"Name\":\"$eventsFile\",\"Status\":\"log-rotation\",\"Time\":\".*\",\"Type\":\"system\",\"Attributes\":{\"io.podman.event.rotate\":\"end\"}}"
-    is "${lines[103]}" "{\"ID\":\"$ctrID\",\"Image\":\"$IMAGE\",\"Name\":\".*\",\"Status\":\"remove\",\"Time\":\".*\",\"Type\":\"container\",\"Attributes\":{.*}}"
+    is "${lines[0]}" "{\"Name\":\"busybox\",\"Status\":\"pull\",\"time\":1649237202,\"timeNano\":1649237202723[0-9]\+,\"Type\":\"image\",\"Attributes\":null}"
+    is "${lines[99]}" "{\"Name\":\"busybox\",\"Status\":\"pull\",\"time\":1649237202,\"timeNano\":1649237202723[0-9]\+,\"Type\":\"image\",\"Attributes\":null}"
+    is "${lines[100]}" "{\"Name\":\"$eventsFile\",\"Status\":\"log-rotation\",\"time\":[0-9]\+,\"timeNano\":[0-9]\+,\"Type\":\"system\",\"Attributes\":{\"io.podman.event.rotate\":\"end\"}}"
+    is "${lines[103]}" "{\"ID\":\"$ctrID\",\"Image\":\"$IMAGE\",\"Name\":\".*\",\"Status\":\"remove\",\"time\":[0-9]\+,\"timeNano\":[0-9]\+,\"Type\":\"container\",\"Attributes\":{.*}}"
 }
 
 # Prior to #15633, container labels would not appear in 'die' log events
