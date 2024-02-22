@@ -365,7 +365,17 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 				}
 			}
 
-			networks[netName] = netOpts
+			// Report configuration error in case bridge mode is not used.
+			if !nsmode.IsBridge() && (len(netOpts.Aliases) > 0 || len(netOpts.StaticIPs) > 0 || len(netOpts.StaticMAC) > 0) {
+				return nil, nil, fmt.Errorf("networks and static ip/mac address can only be used with Bridge mode networking")
+			} else if nsmode.IsBridge() {
+				// Docker CLI now always sends the end point config when using the default (bridge) mode
+				// however podman configuration doesn't expect this to define this at all when not in bridge
+				// mode and the podman server config might override the default network mode to something
+				// else than bridge. So adapt to the podman expectation and define custom end point config
+				// only when really using the bridge mode.
+				networks[netName] = netOpts
+			}
 		}
 
 		netInfo.Networks = networks
