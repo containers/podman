@@ -1,9 +1,12 @@
 package define
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/podman/v5/pkg/signal"
 )
 
 type InspectIDMappings struct {
@@ -85,6 +88,51 @@ type InspectContainerConfig struct {
 	SdNotifyMode string `json:"sdNotifyMode,omitempty"`
 	// SdNotifySocket is the NOTIFY_SOCKET in use by/configured for the container.
 	SdNotifySocket string `json:"sdNotifySocket,omitempty"`
+}
+
+// UnmarshalJSON allow compatibility with podman V4 API
+func (insp *InspectContainerConfig) UnmarshalJSON(data []byte) error {
+	type Alias InspectContainerConfig
+	aux := &struct {
+		Entrypoint interface{} `json:"Entrypoint"`
+		StopSignal interface{} `json:"StopSignal"`
+		*Alias
+	}{
+		Alias: (*Alias)(insp),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	switch entrypoint := aux.Entrypoint.(type) {
+	case string:
+		insp.Entrypoint = []string{entrypoint}
+	case []string:
+		insp.Entrypoint = entrypoint
+	case []interface{}:
+		insp.Entrypoint = []string{}
+		for _, entry := range entrypoint {
+			if str, ok := entry.(string); ok {
+				insp.Entrypoint = append(insp.Entrypoint, str)
+			}
+		}
+	case nil:
+		insp.Entrypoint = []string{}
+	default:
+		return fmt.Errorf("cannot unmarshal Config.Entrypoint of type  %T", entrypoint)
+	}
+
+	switch stopsignal := aux.StopSignal.(type) {
+	case string:
+		insp.StopSignal = stopsignal
+	case float64:
+		insp.StopSignal = signal.ToDockerFormat(uint(stopsignal))
+	case nil:
+		break
+	default:
+		return fmt.Errorf("cannot unmarshal Config.StopSignal of type  %T", stopsignal)
+	}
+	return nil
 }
 
 // InspectRestartPolicy holds information about the container's restart policy.

@@ -5,9 +5,7 @@ package libpod
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
-	"syscall"
 
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/driver"
@@ -407,11 +405,7 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 			ctrConfig.Annotations[k] = v
 		}
 	}
-	var signal, err = signal.ParseSysSignalToName(syscall.Signal(c.config.StopSignal))
-	if err != nil {
-		signal = strconv.FormatUint(uint64(c.config.StopSignal), 10)
-	}
-	ctrConfig.StopSignal = fmt.Sprintf("SIG%s", signal)
+	ctrConfig.StopSignal = signal.ToDockerFormat(c.config.StopSignal)
 	// TODO: should JSON deep copy this to ensure internal pointers don't
 	// leak.
 	ctrConfig.Healthcheck = c.config.HealthCheckConfig
