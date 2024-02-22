@@ -52,7 +52,7 @@ func (bootloader *LinuxBootloader) FromOptions(options []option) error {
 		case "initrd":
 			bootloader.InitrdPath = option.value
 		default:
-			return fmt.Errorf("Unknown option for linux bootloaders: %s", option.key)
+			return fmt.Errorf("unknown option for linux bootloaders: %s", option.key)
 		}
 	}
 	return nil
@@ -61,17 +61,17 @@ func (bootloader *LinuxBootloader) FromOptions(options []option) error {
 func (bootloader *LinuxBootloader) ToCmdLine() ([]string, error) {
 	args := []string{}
 	if bootloader.VmlinuzPath == "" {
-		return nil, fmt.Errorf("Missing kernel path")
+		return nil, fmt.Errorf("missing kernel path")
 	}
 	args = append(args, "--kernel", bootloader.VmlinuzPath)
 
 	if bootloader.InitrdPath == "" {
-		return nil, fmt.Errorf("Missing initrd path")
+		return nil, fmt.Errorf("missing initrd path")
 	}
 	args = append(args, "--initrd", bootloader.InitrdPath)
 
 	if bootloader.KernelCmdLine == "" {
-		return nil, fmt.Errorf("Missing kernel command line")
+		return nil, fmt.Errorf("missing kernel command line")
 	}
 	args = append(args, "--kernel-cmdline", bootloader.KernelCmdLine)
 
@@ -95,11 +95,11 @@ func (bootloader *EFIBootloader) FromOptions(options []option) error {
 			bootloader.EFIVariableStorePath = option.value
 		case "create":
 			if option.value != "" {
-				return fmt.Errorf("Unexpected value for EFI bootloader 'create' option: %s", option.value)
+				return fmt.Errorf("unexpected value for EFI bootloader 'create' option: %s", option.value)
 			}
 			bootloader.CreateVariableStore = true
 		default:
-			return fmt.Errorf("Unknown option for EFI bootloaders: %s", option.key)
+			return fmt.Errorf("unknown option for EFI bootloaders: %s", option.key)
 		}
 	}
 	return nil
@@ -107,7 +107,7 @@ func (bootloader *EFIBootloader) FromOptions(options []option) error {
 
 func (bootloader *EFIBootloader) ToCmdLine() ([]string, error) {
 	if bootloader.EFIVariableStorePath == "" {
-		return nil, fmt.Errorf("Missing EFI store path")
+		return nil, fmt.Errorf("missing EFI store path")
 	}
 
 	builder := strings.Builder{}

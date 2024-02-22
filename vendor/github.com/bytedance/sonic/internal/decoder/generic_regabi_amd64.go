@@ -119,9 +119,9 @@ func (self *_ValueDecoder) call_go(fn obj.Addr) {
 }
 
 func (self *_ValueDecoder) callc(fn obj.Addr) {
-    self.Emit("XCHGQ", _IP, _BP)
+    self.save(_IP)  
     self.call(fn)
-    self.Emit("XCHGQ", _IP, _BP)
+    self.load(_IP)  
 }
 
 func (self *_ValueDecoder) call_c(fn obj.Addr) {

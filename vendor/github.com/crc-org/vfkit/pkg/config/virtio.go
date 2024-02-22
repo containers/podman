@@ -193,7 +193,7 @@ func (dev *VirtioSerial) validate() error {
 		return fmt.Errorf("'logFilePath' and 'stdio' cannot be set at the same time")
 	}
 	if dev.LogFile == "" && !dev.UsesStdio {
-		return fmt.Errorf("One of 'logFilePath' or 'stdio' must be set")
+		return fmt.Errorf("one of 'logFilePath' or 'stdio' must be set")
 	}
 
 	return nil
@@ -217,11 +217,11 @@ func (dev *VirtioSerial) FromOptions(options []option) error {
 			dev.LogFile = option.value
 		case "stdio":
 			if option.value != "" {
-				return fmt.Errorf("Unexpected value for virtio-serial 'stdio' option: %s", option.value)
+				return fmt.Errorf("unexpected value for virtio-serial 'stdio' option: %s", option.value)
 			}
 			dev.UsesStdio = true
 		default:
-			return fmt.Errorf("Unknown option for virtio-serial devices: %s", option.key)
+			return fmt.Errorf("unknown option for virtio-serial devices: %s", option.key)
 		}
 	}
 
@@ -244,7 +244,7 @@ func VirtioInputNew(inputType string) (VirtioDevice, error) {
 
 func (dev *VirtioInput) validate() error {
 	if dev.InputType != VirtioInputPointingDevice && dev.InputType != VirtioInputKeyboardDevice {
-		return fmt.Errorf("Unknown option for virtio-input devices: %s", dev.InputType)
+		return fmt.Errorf("unknown option for virtio-input devices: %s", dev.InputType)
 	}
 
 	return nil
@@ -263,11 +263,11 @@ func (dev *VirtioInput) FromOptions(options []option) error {
 		switch option.key {
 		case VirtioInputPointingDevice, VirtioInputKeyboardDevice:
 			if option.value != "" {
-				return fmt.Errorf(fmt.Sprintf("Unexpected value for virtio-input %s option: %s", option.key, option.value))
+				return fmt.Errorf(fmt.Sprintf("unexpected value for virtio-input %s option: %s", option.key, option.value))
 			}
 			dev.InputType = option.key
 		default:
-			return fmt.Errorf("Unknown option for virtio-input devices: %s", option.key)
+			return fmt.Errorf("unknown option for virtio-input devices: %s", option.key)
 		}
 	}
 	return dev.validate()
@@ -288,7 +288,7 @@ func VirtioGPUNew() (VirtioDevice, error) {
 
 func (dev *VirtioGPU) validate() error {
 	if dev.Height < 1 || dev.Width < 1 {
-		return fmt.Errorf("Invalid dimensions for virtio-gpu device resolution: %dx%d", dev.Width, dev.Height)
+		return fmt.Errorf("invalid dimensions for virtio-gpu device resolution: %dx%d", dev.Width, dev.Height)
 	}
 
 	return nil
@@ -320,7 +320,7 @@ func (dev *VirtioGPU) FromOptions(options []option) error {
 
 			dev.Width = width
 		default:
-			return fmt.Errorf("Unknown option for virtio-gpu devices: %s", option.key)
+			return fmt.Errorf("unknown option for virtio-gpu devices: %s", option.key)
 		}
 	}
 
@@ -376,7 +376,7 @@ func (dev *VirtioNet) validate() error {
 		return fmt.Errorf("'fd' and 'unixSocketPath' cannot be set at the same time")
 	}
 	if !dev.Nat && dev.Socket == nil && dev.UnixSocketPath == "" {
-		return fmt.Errorf("One of 'nat' or 'fd' or 'unixSocketPath' must be set")
+		return fmt.Errorf("one of 'nat' or 'fd' or 'unixSocketPath' must be set")
 	}
 
 	return nil
@@ -410,7 +410,7 @@ func (dev *VirtioNet) FromOptions(options []option) error {
 		switch option.key {
 		case "nat":
 			if option.value != "" {
-				return fmt.Errorf("Unexpected value for virtio-net 'nat' option: %s", option.value)
+				return fmt.Errorf("unexpected value for virtio-net 'nat' option: %s", option.value)
 			}
 			dev.Nat = true
 		case "mac":
@@ -428,7 +428,7 @@ func (dev *VirtioNet) FromOptions(options []option) error {
 		case "unixSocketPath":
 			dev.UnixSocketPath = option.value
 		default:
-			return fmt.Errorf("Unknown option for virtio-net devices: %s", option.key)
+			return fmt.Errorf("unknown option for virtio-net devices: %s", option.key)
 		}
 	}
 
@@ -447,7 +447,7 @@ func (dev *VirtioRng) ToCmdLine() ([]string, error) {
 
 func (dev *VirtioRng) FromOptions(options []option) error {
 	if len(options) != 0 {
-		return fmt.Errorf("Unknown options for virtio-rng devices: %s", options)
+		return fmt.Errorf("unknown options for virtio-rng devices: %s", options)
 	}
 	return nil
 }
@@ -494,7 +494,7 @@ func (dev *VirtioBlk) ToCmdLine() ([]string, error) {
 		return []string{}, err
 	}
 	if len(cmdLine) != 2 {
-		return []string{}, fmt.Errorf("Unexpected storage config commandline")
+		return []string{}, fmt.Errorf("unexpected storage config commandline")
 	}
 	if dev.DeviceIdentifier != "" {
 		cmdLine[1] = fmt.Sprintf("%s,deviceId=%s", cmdLine[1], dev.DeviceIdentifier)
@@ -546,7 +546,7 @@ func (dev *VirtioVsock) FromOptions(options []option) error {
 		case "connect":
 			dev.Listen = false
 		default:
-			return fmt.Errorf("Unknown option for virtio-vsock devices: %s", option.key)
+			return fmt.Errorf("unknown option for virtio-vsock devices: %s", option.key)
 		}
 	}
 	return nil
@@ -583,7 +583,7 @@ func (dev *VirtioFs) FromOptions(options []option) error {
 		case "mountTag":
 			dev.MountTag = option.value
 		default:
-			return fmt.Errorf("Unknown option for virtio-fs devices: %s", option.key)
+			return fmt.Errorf("unknown option for virtio-fs devices: %s", option.key)
 		}
 	}
 	return nil
@@ -623,7 +623,7 @@ func (dev *RosettaShare) FromOptions(options []option) error {
 		case "install":
 			dev.InstallRosetta = true
 		default:
-			return fmt.Errorf("Unknown option for rosetta share: %s", option.key)
+			return fmt.Errorf("unknown option for rosetta share: %s", option.key)
 		}
 	}
 	return nil
@@ -670,7 +670,7 @@ func (config *StorageConfig) FromOptions(options []option) error {
 		case "path":
 			config.ImagePath = option.value
 		default:
-			return fmt.Errorf("Unknown option for %s devices: %s", config.DevName, option.key)
+			return fmt.Errorf("unknown option for %s devices: %s", config.DevName, option.key)
 		}
 	}
 	return nil

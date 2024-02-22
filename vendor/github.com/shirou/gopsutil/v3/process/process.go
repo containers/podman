@@ -171,6 +171,13 @@ func (p NumCtxSwitchesStat) String() string {
 	return string(s)
 }
 
+var enableBootTimeCache bool
+
+// EnableBootTimeCache change cache behavior of BootTime. If true, cache BootTime value. Default is false.
+func EnableBootTimeCache(enable bool) {
+	enableBootTimeCache = enable
+}
+
 // Pids returns a slice of process ID list which are running now.
 func Pids() ([]int32, error) {
 	return PidsWithContext(context.Background())

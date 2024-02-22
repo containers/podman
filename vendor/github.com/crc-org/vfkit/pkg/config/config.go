@@ -189,12 +189,12 @@ func (ts *TimeSync) FromOptions(options []option) error {
 			}
 			ts.VsockPort = uint(vsockPort)
 		default:
-			return fmt.Errorf("Unknown option for timesync parameter: %s", option.key)
+			return fmt.Errorf("unknown option for timesync parameter: %s", option.key)
 		}
 	}
 
 	if ts.VsockPort == 0 {
-		return fmt.Errorf("Missing 'vsockPort' option for timesync parameter")
+		return fmt.Errorf("missing 'vsockPort' option for timesync parameter")
 	}
 
 	return nil

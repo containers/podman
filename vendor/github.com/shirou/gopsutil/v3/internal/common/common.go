@@ -343,7 +343,7 @@ func PathExistsWithContents(filename string) bool {
 	if err != nil {
 		return false
 	}
-	return info.Size() > 4 // at least 4 bytes
+	return info.Size() > 4 && !info.IsDir() // at least 4 bytes
 }
 
 // GetEnvWithContext retrieves the environment variable key. If it does not exist it returns the default.

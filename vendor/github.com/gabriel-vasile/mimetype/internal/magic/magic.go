@@ -177,7 +177,9 @@ func newXMLSig(localName, xmlns string) xmlSig {
 // and, optionally, followed by the arguments for the interpreter.
 //
 // Ex:
-//  #! /usr/bin/env php
+//
+//	#! /usr/bin/env php
+//
 // /usr/bin/env is the interpreter, php is the first and only argument.
 func shebang(sigs ...[]byte) Detector {
 	return func(raw []byte, limit uint32) bool {

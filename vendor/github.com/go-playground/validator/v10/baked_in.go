@@ -51,6 +51,7 @@ var (
 		endKeysTag:        {},
 		structOnlyTag:     {},
 		omitempty:         {},
+		omitnil:           {},
 		skipValidationTag: {},
 		utf8HexComma:      {},
 		utf8Pipe:          {},
@@ -149,6 +150,7 @@ var (
 		"isbn":                          isISBN,
 		"isbn10":                        isISBN10,
 		"isbn13":                        isISBN13,
+		"issn":                          isISSN,
 		"eth_addr":                      isEthereumAddress,
 		"eth_addr_checksum":             isEthereumAddressChecksum,
 		"btc_addr":                      isBitcoinAddress,
@@ -508,47 +510,47 @@ func isASCII(fl FieldLevel) bool {
 
 // isUUID5 is the validation function for validating if the field's value is a valid v5 UUID.
 func isUUID5(fl FieldLevel) bool {
-	return uUID5Regex.MatchString(fl.Field().String())
+	return fieldMatchesRegexByStringerValOrString(uUID5Regex, fl)
 }
 
 // isUUID4 is the validation function for validating if the field's value is a valid v4 UUID.
 func isUUID4(fl FieldLevel) bool {
-	return uUID4Regex.MatchString(fl.Field().String())
+	return fieldMatchesRegexByStringerValOrString(uUID4Regex, fl)
 }
 
 // isUUID3 is the validation function for validating if the field's value is a valid v3 UUID.
 func isUUID3(fl FieldLevel) bool {
-	return uUID3Regex.MatchString(fl.Field().String())
+	return fieldMatchesRegexByStringerValOrString(uUID3Regex, fl)
 }
 
 // isUUID is the validation function for validating if the field's value is a valid UUID of any version.
 func isUUID(fl FieldLevel) bool {
-	return uUIDRegex.MatchString(fl.Field().String())
+	return fieldMatchesRegexByStringerValOrString(uUIDRegex, fl)
 }
 
 // isUUID5RFC4122 is the validation function for validating if the field's value is a valid RFC4122 v5 UUID.
 func isUUID5RFC4122(fl FieldLevel) bool {
-	return uUID5RFC4122Regex.MatchString(fl.Field().String())
+	return fieldMatchesRegexByStringerValOrString(uUID5RFC4122Regex, fl)
 }
 
 // isUUID4RFC4122 is the validation function for validating if the field's value is a valid RFC4122 v4 UUID.
 func isUUID4RFC4122(fl FieldLevel) bool {
-	return uUID4RFC4122Regex.MatchString(fl.Field().String())
+	return fieldMatchesRegexByStringerValOrString(uUID4RFC4122Regex, fl)
 }
 
 // isUUID3RFC4122 is the validation function for validating if the field's value is a valid RFC4122 v3 UUID.
 func isUUID3RFC4122(fl FieldLevel) bool {
-	return uUID3RFC4122Regex.MatchString(fl.Field().String())
+	return fieldMatchesRegexByStringerValOrString(uUID3RFC4122Regex, fl)
 }
 
 // isUUIDRFC4122 is the validation function for validating if the field's value is a valid RFC4122 UUID of any version.
 func isUUIDRFC4122(fl FieldLevel) bool {
-	return uUIDRFC4122Regex.MatchString(fl.Field().String())
+	return fieldMatchesRegexByStringerValOrString(uUIDRFC4122Regex, fl)
 }
 
 // isULID is the validation function for validating if the field's value is a valid ULID.
 func isULID(fl FieldLevel) bool {
-	return uLIDRegex.MatchString(fl.Field().String())
+	return fieldMatchesRegexByStringerValOrString(uLIDRegex, fl)
 }
 
 // isMD4 is the validation function for validating if the field's value is a valid MD4.
@@ -645,6 +647,32 @@ func isISBN10(fl FieldLevel) bool {
 		checksum += 10 * 10
 	} else {
 		checksum += 10 * int32(s[9]-'0')
+	}
+
+	return checksum%11 == 0
+}
+
+// isISSN is the validation function for validating if the field's value is a valid ISSN.
+func isISSN(fl FieldLevel) bool {
+	s := fl.Field().String()
+
+	if !iSSNRegex.MatchString(s) {
+		return false
+	}
+	s = strings.ReplaceAll(s, "-", "")
+
+	pos := 8
+	checksum := 0
+
+	for i := 0; i < 7; i++ {
+		checksum += pos * int(s[i]-'0')
+		pos--
+	}
+
+	if s[7] == 'X' {
+		checksum += 10
+	} else {
+		checksum += int(s[7] - '0')
 	}
 
 	return checksum%11 == 0
@@ -1413,6 +1441,15 @@ func isURI(fl FieldLevel) bool {
 	panic(fmt.Sprintf("Bad field type %T", field.Interface()))
 }
 
+// isFileURL is the helper function for validating if the `path` valid file URL as per RFC8089
+func isFileURL(path string) bool {
+	if !strings.HasPrefix(path, "file:/") {
+		return false
+	}
+	_, err := url.ParseRequestURI(path)
+	return err == nil
+}
+
 // isURL is the validation function for validating if the current field's value is a valid URL.
 func isURL(fl FieldLevel) bool {
 	field := fl.Field()
@@ -1420,10 +1457,14 @@ func isURL(fl FieldLevel) bool {
 	switch field.Kind() {
 	case reflect.String:
 
-		s := field.String()
+		s := strings.ToLower(field.String())
 
 		if len(s) == 0 {
 			return false
+		}
+
+		if isFileURL(s) {
+			return true
 		}
 
 		url, err := url.Parse(s)

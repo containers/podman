@@ -420,9 +420,9 @@ func (self *_Assembler) call_go(fn obj.Addr) {
 }
 
 func (self *_Assembler) callc(fn obj.Addr) {
-    self.Emit("XCHGQ", _IP, _BP)
+    self.save(_IP)
     self.call(fn)
-    self.Emit("XCHGQ", _IP, _BP)
+    self.load(_IP)
 }
 
 func (self *_Assembler) call_c(fn obj.Addr) {
@@ -1164,7 +1164,7 @@ var (
 
 var (
     _F_FieldMap_GetCaseInsensitive obj.Addr
-    _Empty_Slice = make([]byte, 0)
+    _Empty_Slice = []byte{}
     _Zero_Base = int64(uintptr(((*rt.GoSlice)(unsafe.Pointer(&_Empty_Slice))).Ptr))
 )
 
@@ -1641,7 +1641,8 @@ func (self *_Assembler) _asm_OP_check_empty(p *_Instr) {
         self.Emit("CMPB", jit.Sib(_IP, _IC, 1, 0), jit.Imm(int64(rbracket))) // CMPB    (IP)(IC), ']'
         self.Sjmp("JNE" , "_not_empty_array_{n}")                            // JNE     _not_empty_array_{n}
         self.Emit("MOVQ", _AX, _IC)                                          // MOVQ    AX, IC
-        self.StorePtr(_Zero_Base, jit.Ptr(_VP, 0), _AX)                      // MOVQ    $zerobase, (VP)
+        self.Emit("MOVQ", jit.Imm(_Zero_Base), _AX)
+        self.WritePtrAX(9, jit.Ptr(_VP, 0), false)
         self.Emit("PXOR", _X0, _X0)                                          // PXOR    X0, X0
         self.Emit("MOVOU", _X0, jit.Ptr(_VP, 8))                             // MOVOU   X0, 8(VP)
         self.Xjmp("JMP" , p.vi())                                            // JMP     {p.vi()}
