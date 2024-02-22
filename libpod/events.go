@@ -43,7 +43,6 @@ func (c *Container) newContainerEventWithInspectData(status events.Status, inspe
 	e.Type = events.Container
 
 	e.Details = events.Details{
-		ID:         e.ID,
 		PodID:      c.PodID(),
 		Attributes: c.Labels(),
 	}
@@ -99,7 +98,6 @@ func (c *Container) newContainerExitedEvent(exitCode int32) {
 	e.ContainerExitCode = &intExitCode
 
 	e.Details = events.Details{
-		ID:         e.ID,
 		Attributes: c.Labels(),
 	}
 
@@ -121,7 +119,6 @@ func (c *Container) newExecDiedEvent(sessionID string, exitCode int) {
 	e.Attributes["execID"] = sessionID
 
 	e.Details = events.Details{
-		ID:         e.ID,
 		Attributes: c.Labels(),
 	}
 
