@@ -2,6 +2,7 @@ package machine
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
@@ -11,6 +12,9 @@ import (
 func CleanupGVProxy(f define.VMFile) error {
 	gvPid, err := f.Read()
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
 		return fmt.Errorf("unable to read gvproxy pid file %s: %v", f.GetPath(), err)
 	}
 	proxyPid, err := strconv.Atoi(string(gvPid))
