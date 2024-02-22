@@ -5,7 +5,7 @@ github.com/Azure/go-ansiterm/winterm
 ## explicit
 github.com/BurntSushi/toml
 github.com/BurntSushi/toml/internal
-# github.com/Microsoft/go-winio v0.5.1
+# github.com/Microsoft/go-winio v0.5.2
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/backuptar
 github.com/Microsoft/go-winio/pkg/guid
@@ -61,9 +61,10 @@ github.com/chzyer/readline
 ## explicit
 github.com/container-orchestrated-devices/container-device-interface/pkg/cdi
 github.com/container-orchestrated-devices/container-device-interface/specs-go
-# github.com/containerd/cgroups v1.0.1
+# github.com/containerd/cgroups v1.0.3
 github.com/containerd/cgroups/stats/v1
-# github.com/containerd/containerd v1.5.9
+# github.com/containerd/containerd v1.5.18
+## explicit
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/log
 github.com/containerd/containerd/pkg/userns
@@ -481,7 +482,7 @@ github.com/mattn/go-isatty
 github.com/mattn/go-runewidth
 # github.com/mattn/go-shellwords v1.0.12
 github.com/mattn/go-shellwords
-# github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369
+# github.com/matttproud/golang_protobuf_extensions v1.0.4
 github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/miekg/pkcs11 v1.1.1
 github.com/miekg/pkcs11
@@ -752,7 +753,7 @@ golang.org/x/net/trace
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
+# golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
