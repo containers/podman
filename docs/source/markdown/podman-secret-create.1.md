@@ -94,8 +94,14 @@ Create gpg encrypted secret based on local file using the pass driver.
 $ podman secret create --driver=pass my_secret ./secret.txt.gpg
 ```
 
+Create a secret from an environment variable called 'MYSECRET'.
+```
+$ podman secret create --env=true my_secret MYSECRET
+```
+
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-secret(1)](podman-secret.1.md)**, **[podman-login(1)](podman-login.1.md)**
 
 ## HISTORY
 January 2021, Originally compiled by Ashley Cui <acui@redhat.com>
+February 2024, Added example showing secret creation from an environment variable by Brett Calliss <brett@obligatory.email>
