@@ -88,7 +88,7 @@ not git grep -l 'x/net/context' -- "*.go"
 git grep -l '"math/rand"' -- "*.go" 2>&1 | not grep -v '^examples\|^interop/stress\|grpcrand\|^benchmark\|wrr_test'
 
 # - Do not use "interface{}"; use "any" instead.
-git grep -l 'interface{}' -- "*.go" 2>&1 | not grep -v '\.pb\.go\|protoc-gen-go-grpc'
+git grep -l 'interface{}' -- "*.go" 2>&1 | not grep -v '\.pb\.go\|protoc-gen-go-grpc\|grpc_testing_not_regenerate'
 
 # - Do not call grpclog directly. Use grpclog.Component instead.
 git grep -l -e 'grpclog.I' --or -e 'grpclog.W' --or -e 'grpclog.E' --or -e 'grpclog.F' --or -e 'grpclog.V' -- "*.go" | not grep -v '^grpclog/component.go\|^internal/grpctest/tlogger_test.go'
@@ -127,7 +127,7 @@ staticcheck -go 1.19 -checks 'all' ./... > "${SC_OUT}" || true
 grep -v "(ST1000)" "${SC_OUT}" | grep -v "(SA1019)" | grep -v "(ST1003)" | not grep -v "(ST1019)\|\(other import of\)"
 
 # Exclude underscore checks for generated code.
-grep "(ST1003)" "${SC_OUT}" | not grep -v '\(.pb.go:\)\|\(code_string_test.go:\)'
+grep "(ST1003)" "${SC_OUT}" | not grep -v '\(.pb.go:\)\|\(code_string_test.go:\)\|\(grpc_testing_not_regenerate\)'
 
 # Error for duplicate imports not including grpc protos.
 grep "(ST1019)\|\(other import of\)" "${SC_OUT}" | not grep -Fv 'XXXXX PleaseIgnoreUnused
@@ -152,6 +152,7 @@ grep "(SA1019)" "${SC_OUT}" | not grep -Fv 'XXXXX PleaseIgnoreUnused
 XXXXX Protobuf related deprecation errors:
 "github.com/golang/protobuf
 .pb.go:
+grpc_testing_not_regenerate
 : ptypes.
 proto.RegisterType
 XXXXX gRPC internal usage deprecation errors:
@@ -184,9 +185,6 @@ GetSafeRegexMatch
 GetSuffixMatch
 GetTlsCertificateCertificateProviderInstance
 GetValidationContextCertificateProviderInstance
-XXXXX TODO: Remove the below deprecation usages:
-CloseNotifier
-Roots.Subjects
 XXXXX PleaseIgnoreUnused'
 
 echo SUCCESS

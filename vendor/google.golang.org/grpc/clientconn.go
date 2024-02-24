@@ -1860,27 +1860,15 @@ func (cc *ClientConn) determineAuthority() error {
 	}
 
 	endpoint := cc.parsedTarget.Endpoint()
-	target := cc.target
-	switch {
-	case authorityFromDialOption != "":
+	if authorityFromDialOption != "" {
 		cc.authority = authorityFromDialOption
-	case authorityFromCreds != "":
+	} else if authorityFromCreds != "" {
 		cc.authority = authorityFromCreds
-	case strings.HasPrefix(target, "unix:") || strings.HasPrefix(target, "unix-abstract:"):
-		// TODO: remove when the unix resolver implements optional interface to
-		// return channel authority.
-		cc.authority = "localhost"
-	case strings.HasPrefix(endpoint, ":"):
+	} else if auth, ok := cc.resolverBuilder.(resolver.AuthorityOverrider); ok {
+		cc.authority = auth.OverrideAuthority(cc.parsedTarget)
+	} else if strings.HasPrefix(endpoint, ":") {
 		cc.authority = "localhost" + endpoint
-	default:
-		// TODO: Define an optional interface on the resolver builder to return
-		// the channel authority given the user's dial target. For resolvers
-		// which don't implement this interface, we will use the endpoint from
-		// "scheme://authority/endpoint" as the default authority.
-		// Escape the endpoint to handle use cases where the endpoint
-		// might not be a valid authority by default.
-		// For example an endpoint which has multiple paths like
-		// 'a/b/c', which is not a valid authority by default.
+	} else {
 		cc.authority = encodeAuthority(endpoint)
 	}
 	channelz.Infof(logger, cc.channelzID, "Channel authority set to %q", cc.authority)
