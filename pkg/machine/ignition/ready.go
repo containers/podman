@@ -28,7 +28,9 @@ func CreateReadyUnitFile(provider define.VMType, opts *ReadyUnitOpts) (string, e
 		if opts == nil || opts.Port == 0 {
 			return "", errors.New("no port provided for hyperv ready unit")
 		}
+		readyUnit.Add("Unit", "Requires", "sys-devices-virtual-net-vsock0.device")
 		readyUnit.Add("Unit", "After", "systemd-user-sessions.service")
+		readyUnit.Add("Unit", "After", "vsock-network.service")
 		readyUnit.Add("Service", "ExecStart", fmt.Sprintf("/bin/sh -c '/usr/bin/echo Ready | socat - VSOCK-CONNECT:2:%d'", opts.Port))
 	case define.WSLVirt: // WSL does not use ignition
 		return "", nil

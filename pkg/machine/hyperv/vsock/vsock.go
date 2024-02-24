@@ -5,6 +5,7 @@ package vsock
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"strings"
 
@@ -258,21 +259,18 @@ func (hv *HVSockRegistryEntry) Listener() (net.Listener, error) {
 	return listener, nil
 }
 
-// Listen is used on the windows side to listen for anything to come
-// over the hvsock as a signal the vm is booted
-func (hv *HVSockRegistryEntry) Listen() error {
+// ListenSetupWait creates an hvsock on the windows side and returns
+// a wait function that, when called, blocks until it receives a ready
+// notification on the vsock
+func (hv *HVSockRegistryEntry) ListenSetupWait() (func() error, io.Closer, error) {
 	listener, err := hv.Listener()
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
-	defer func() {
-		if err := listener.Close(); err != nil {
-			logrus.Error(err)
-		}
-	}()
 
 	errChan := make(chan error)
 	go sockets.ListenAndWaitOnSocket(errChan, listener)
-
-	return <-errChan
+	return func() error {
+		return <-errChan
+	}, listener, nil
 }
