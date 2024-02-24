@@ -215,8 +215,15 @@ func (h HyperVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func(
 		callbackFuncs.Add(rmIgnCallbackFunc)
 	}
 
+	waitReady, listener, err := mc.HyperVHypervisor.ReadyVsock.ListenSetupWait()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	err = vm.Start()
 	if err != nil {
+		// cleanup the pending listener
+		_ = listener.Close()
 		return nil, nil, err
 	}
 
@@ -225,7 +232,7 @@ func (h HyperVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func(
 	}
 	callbackFuncs.Add(startCallback)
 
-	return nil, mc.HyperVHypervisor.ReadyVsock.Listen, err
+	return nil, waitReady, err
 }
 
 // State is returns the state as a define.status.  for hyperv, state differs from others because
