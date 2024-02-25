@@ -332,3 +332,7 @@ func (w WSLStubber) SetRosetta(mc *vmconfigs.MachineConfig) error {
 func (w WSLStubber) GetRosetta(mc *vmconfigs.MachineConfig) (bool, error){
 	return false, nil
 }
+
+func (w WSLStubber) SetRosettaToFalse(rosetta bool) bool {
+	return false
+}

@@ -42,9 +42,11 @@ func getDefaultDevices(mc *vmconfigs.MachineConfig) ([]vfConfig.VirtioDevice, *d
 	}
 
 	if runtime.GOARCH == "arm64" {
-		rosetta, err := vfConfig.RosettaShareNew(define.MountTag)
-		if err != nil {
-			return nil, nil, err
+		rosetta := &vfConfig.RosettaShare{
+			DirectorySharingConfig: vfConfig.DirectorySharingConfig{
+				MountTag: define.MountTag,
+			},
+			InstallRosetta: true,
 		}
 		devices = append(devices, disk, rng, serial, readyDevice, rosetta)
 	} else {

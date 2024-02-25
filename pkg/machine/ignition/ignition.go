@@ -10,7 +10,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/systemd/parser"
@@ -238,21 +237,6 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 			Contents: &envsetFile,
 		}
 		ignSystemd.Units = append(ignSystemd.Units, qemuUnit)
-	}
-
-	// Only AppleHv with Apple Silicon can use Rosetta
-	if ign.VMType == define.AppleHvVirt && runtime.GOARCH == "arm64" {
-		contents, err := GetRosettaActivationUnitFile().ToString()
-		if err != nil {
-			return err
-		}
-
-		rosettaUnit := Unit{
-			Enabled:  BoolToPtr(false),
-			Name:     "rosetta-activation.service",
-			Contents: &contents,
-		}
-		ignSystemd.Units = append(ignSystemd.Units, rosettaUnit)
 	}
 
 	// Only after all checks are done
@@ -738,5 +722,18 @@ func GetRosettaActivationUnitFile() *parser.UnitFile {
 	rosettaUnit.Add("Service", "ExecStart",`/bin/sh -c "echo -1 > /proc/sys/fs/binfmt_misc/qemu-x86_64"`)
 	rosettaUnit.Add("Service", "ExecStartPost","/usr/local/bin/rosetta-activation.sh")
 	rosettaUnit.Add("Install", "WantedBy", "default.target")
+	return rosettaUnit
+}
+
+func SetRosettaUnit() Unit{
+	contents, err := GetRosettaActivationUnitFile().ToString()
+	if err != nil {
+		logrus.Warnf(err.Error())
+	}
+	rosettaUnit := Unit{
+		Enabled:  BoolToPtr(false),
+		Name:     "rosetta-activation.service",
+		Contents: &contents,
+	}
 	return rosettaUnit
 }

@@ -368,3 +368,7 @@ func (q *QEMUStubber) SetRosetta(mc *vmconfigs.MachineConfig) error {
 func (q *QEMUStubber) GetRosetta(mc *vmconfigs.MachineConfig) (bool, error){
     return false, nil
 }
+
+func (q *QEMUStubber) SetRosettaToFalse(rosetta bool) bool {
+	return false
+}

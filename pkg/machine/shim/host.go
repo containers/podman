@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strings"
 	"time"
+	"strconv"
 
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/connection"
@@ -180,12 +181,17 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 
 	cfg := registry.PodmanConfig()
 	createOpts.Rosetta = cfg.ContainersConfDefaultsRO.Machine.Rosetta
-
+	if rosettaOverride, found := os.LookupEnv("CONTAINERS_MACHINE_ROSETTA"); found {
+		var rosettaAsBool bool
+		rosettaAsBool, err := strconv.ParseBool(rosettaOverride)
+		if err != nil {
+			fmt.Errorf("CONTAINERS_MACHINE_ROSETTA is not a bool: %v", err)
+		}
+		createOpts.Rosetta = rosettaAsBool
+	}
 	// Rosetta is only supported Apple Silicon Mac(darwin and arm64)
 	// Other machines set Rosetta to false
-	if mp.VMType() != machineDefine.AppleHvVirt || (mp.VMType() == machineDefine.AppleHvVirt && runtime.GOARCH != "arm64") {
-		createOpts.Rosetta = false
-	}
+	createOpts.Rosetta = mp.SetRosettaToFalse(createOpts.Rosetta)
 
 	ignBuilder := ignition.NewIgnitionBuilder(ignition.DynamicIgnition{
 		Name:      userName,

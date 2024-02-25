@@ -563,3 +563,7 @@ func (h HyperVStubber) SetRosetta(mc *vmconfigs.MachineConfig) error {
 func (h HyperVStubber) GetRosetta(mc *vmconfigs.MachineConfig) (bool, error){
 	return false, nil
 }
+
+func (h HyperVStubber) SetRosettaToFalse(rosetta bool) bool {
+	return false
+}
