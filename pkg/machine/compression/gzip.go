@@ -9,12 +9,11 @@ import (
 
 type gzipDecompressor struct {
 	genericDecompressor
-	gzReader io.ReadCloser
 }
 
 func newGzipDecompressor(compressedFilePath string) (*gzipDecompressor, error) {
 	d, err := newGenericDecompressor(compressedFilePath)
-	return &gzipDecompressor{*d, nil}, err
+	return &gzipDecompressor{*d}, err
 }
 
 func (d *gzipDecompressor) decompress(w WriteSeekCloser, r io.Reader) error {
@@ -22,16 +21,19 @@ func (d *gzipDecompressor) decompress(w WriteSeekCloser, r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	d.gzReader = gzReader
+	defer func() {
+		if err := gzReader.Close(); err != nil {
+			logrus.Errorf("Unable to close gz file: %q", err)
+		}
+	}()
 
 	sparseWriter := NewSparseWriter(w)
+	defer func() {
+		if err := sparseWriter.Close(); err != nil {
+			logrus.Errorf("Unable to close uncompressed file: %q", err)
+		}
+	}()
+
 	_, err = io.Copy(sparseWriter, gzReader)
 	return err
-}
-
-func (d *gzipDecompressor) close() {
-	if err := d.gzReader.Close(); err != nil {
-		logrus.Errorf("Unable to close gz file: %q", err)
-	}
-	d.genericDecompressor.close()
 }

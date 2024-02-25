@@ -10,10 +10,9 @@ import (
 )
 
 type genericDecompressor struct {
-	compressedFilePath     string
-	compressedFile         *os.File
-	decompressedFileReader io.ReadCloser
-	compressedFileInfo     os.FileInfo
+	compressedFilePath string
+	compressedFile     *os.File
+	compressedFileInfo os.FileInfo
 }
 
 func newGenericDecompressor(compressedFilePath string) (*genericDecompressor, error) {
@@ -49,7 +48,11 @@ func (d *genericDecompressor) decompress(w WriteSeekCloser, r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	d.decompressedFileReader = decompressedFileReader
+	defer func() {
+		if err := decompressedFileReader.Close(); err != nil {
+			logrus.Errorf("Unable to close gz file: %q", err)
+		}
+	}()
 
 	_, err = io.Copy(w, decompressedFileReader)
 	return err
@@ -58,11 +61,5 @@ func (d *genericDecompressor) decompress(w WriteSeekCloser, r io.Reader) error {
 func (d *genericDecompressor) close() {
 	if err := d.compressedFile.Close(); err != nil {
 		logrus.Errorf("Unable to close compressed file: %q", err)
-	}
-
-	if d.decompressedFileReader != nil {
-		if err := d.decompressedFileReader.Close(); err != nil {
-			logrus.Errorf("Unable to close uncompressed stream: %q", err)
-		}
 	}
 }

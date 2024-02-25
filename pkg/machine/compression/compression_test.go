@@ -111,11 +111,17 @@ func Test_Decompress(t *testing.T) {
 		want want
 	}{
 		{name: "zip", args: args{src: "./testdata/sample.zip", dst: "./testdata/hellozip"}, want: "zip\n"},
+		{name: "zip with trailing zeros", args: args{src: "./testdata/sample-withzeros.zip", dst: "./testdata/hellozip-withzeros"}, want: "zip\n\x00\x00\x00\x00\x00\x00"},
 		{name: "xz", args: args{src: "./testdata/sample.xz", dst: "./testdata/helloxz"}, want: "xz\n"},
+		{name: "xz with trailing zeros", args: args{src: "./testdata/sample-withzeros.xz", dst: "./testdata/helloxz-withzeros"}, want: "xz\n\x00\x00\x00\x00\x00\x00\x00"},
 		{name: "gzip", args: args{src: "./testdata/sample.gz", dst: "./testdata/hellogz"}, want: "gzip\n"},
+		{name: "gzip with trailing zeros", args: args{src: "./testdata/sample-withzeros.gz", dst: "./testdata/hellogzip-withzeros"}, want: "gzip\n\x00\x00\x00\x00\x00"},
 		{name: "bzip2", args: args{src: "./testdata/sample.bz2", dst: "./testdata/hellobz2"}, want: "bzip2\n"},
+		{name: "bzip2 with trailing zeros", args: args{src: "./testdata/sample-withzeros.bz2", dst: "./testdata/hellobz2-withzeros"}, want: "bzip2\n\x00\x00\x00\x00"},
 		{name: "zstd", args: args{src: "./testdata/sample.zst", dst: "./testdata/hellozstd"}, want: "zstd\n"},
-		{name: "uncompressed", args: args{src: "./testdata/sample.uncompressed", dst: "./testdata/hellozuncompressed"}, want: "uncompressed\n"},
+		{name: "zstd with trailing zeros", args: args{src: "./testdata/sample-withzeros.zst", dst: "./testdata/hellozstd-withzeros"}, want: "zstd\n\x00\x00\x00\x00\x00"},
+		{name: "uncompressed", args: args{src: "./testdata/sample.uncompressed", dst: "./testdata/hellouncompressed"}, want: "uncompressed\n"},
+		{name: "uncompressed with trailing zeros", args: args{src: "./testdata/sample-withzeros.uncompressed", dst: "./testdata/hellozuncompressed-withzeros"}, want: "uncompressed\n\x00\x00\x00\x00\x00\x00\x00"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
