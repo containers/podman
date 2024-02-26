@@ -15,7 +15,7 @@ require (
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.3
 	github.com/containers/image/v5 v5.29.2-0.20240130233108-e66a1ade2efc
-	github.com/containers/libhvee v0.6.1-0.20240205152934-3a16bce3e4be
+	github.com/containers/libhvee v0.6.1-0.20240225143609-c1bda9d3838c
 	github.com/containers/ocicrypt v1.1.9
 	github.com/containers/psgo v1.9.0
 	github.com/containers/storage v1.52.1-0.20240202181245-1419a5980565
@@ -182,7 +182,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/proglottis/gpgme v0.1.3 // indirect
-	github.com/rivo/uniseg v0.4.4 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/seccomp/libseccomp-golang v0.10.0 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.8.0 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect

@@ -82,8 +82,8 @@ github.com/containers/gvisor-tap-vsock v0.7.3 h1:yORnf15sP+sLFhxLNLgmB5/lOhldn9d
 github.com/containers/gvisor-tap-vsock v0.7.3/go.mod h1:NI1fLMtKXQZoDrrOeqryGz7x7j/XSFWRmQILva7Fu9c=
 github.com/containers/image/v5 v5.29.2-0.20240130233108-e66a1ade2efc h1:3I5+mrrG7Fuv4aA13t1hAMQcjN3rTAQInfbxa5P+XH4=
 github.com/containers/image/v5 v5.29.2-0.20240130233108-e66a1ade2efc/go.mod h1:oMMRA6avp1Na54lVPCj/OvcfXDMLlzfy3H7xeRiWmmI=
-github.com/containers/libhvee v0.6.1-0.20240205152934-3a16bce3e4be h1:M0lI66eh3tYtvfcxy78dMbhKuYVP8aE0oLDoS5nDPq0=
-github.com/containers/libhvee v0.6.1-0.20240205152934-3a16bce3e4be/go.mod h1:IMG6nPEIBqC3FvxV//mCTRKo12gvY0NqSjRIKQoMaKY=
+github.com/containers/libhvee v0.6.1-0.20240225143609-c1bda9d3838c h1:C80Xw6cDHkx0zMJk/Qkczcz/1OOVEF9+6iHuEZbD47k=
+github.com/containers/libhvee v0.6.1-0.20240225143609-c1bda9d3838c/go.mod h1:zX7HGsRwCxBOpzc8Jvwq2aEaECsb2q5/l5HqB9n7UPc=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 h1:Qzk5C6cYglewc+UyGf6lc8Mj2UaPTHy/iF2De0/77CA=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
 github.com/containers/luksy v0.0.0-20240129181507-b62d551ce6d8 h1:0p58QJRICjkRVCDix1nsnyrtJ3Qj4CWcGd1bOEY9sVY=
@@ -492,8 +492,8 @@ github.com/prometheus/client_model v0.5.0 h1:VQw1hfvPvk3Uv6Qf29VrPF32JB6rtbgI6cY
 github.com/prometheus/common v0.44.0 h1:+5BrQJwiBB9xsMygAB3TNvpQKOwlkc25LbISbrdOOfY=
 github.com/prometheus/procfs v0.11.1 h1:xRC8Iq1yyca5ypa9n1EZnWZkt7dwcoRPQwX/5gwaUuI=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
-github.com/rivo/uniseg v0.4.4 h1:8TfxU8dW6PdqD27gjM8MVNuicgxIjxpm4K7x4jp8sis=
-github.com/rivo/uniseg v0.4.4/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=
+github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
+github.com/rivo/uniseg v0.4.7/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=
 github.com/rogpeppe/go-internal v1.1.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.2.2/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
