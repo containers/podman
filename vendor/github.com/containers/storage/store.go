@@ -580,10 +580,19 @@ type LayerOptions struct {
 	// initialize this layer.  If set, it should be a child of the layer
 	// which we want to use as the parent of the new layer.
 	TemplateLayer string
-	// OriginalDigest specifies a digest of the tarstream (diff), if one is
+	// OriginalDigest specifies a digest of the (possibly-compressed) tarstream (diff), if one is
 	// provided along with these LayerOptions, and reliably known by the caller.
+	// The digest might not be exactly the digest of the provided tarstream
+	// (e.g. the digest might be of a compressed representation, while providing
+	// an uncompressed one); in that case the caller is responsible for the two matching.
 	// Use the default "" if this fields is not applicable or the value is not known.
 	OriginalDigest digest.Digest
+	// OriginalSize specifies a size of the (possibly-compressed) tarstream corresponding
+	// to OriginalDigest.
+	// If the digest does not match the provided tarstream, OriginalSize must match OriginalDigest,
+	// not the tarstream.
+	// Use nil if not applicable or not known.
+	OriginalSize *int64
 	// UncompressedDigest specifies a digest of the uncompressed version (“DiffID”)
 	// of the tarstream (diff), if one is provided along with these LayerOptions,
 	// and reliably known by the caller.
@@ -1485,6 +1494,7 @@ func (s *store) PutLayer(id, parent string, names []string, mountLabel string, w
 	}
 	layerOptions := LayerOptions{
 		OriginalDigest:     options.OriginalDigest,
+		OriginalSize:       options.OriginalSize,
 		UncompressedDigest: options.UncompressedDigest,
 		Flags:              options.Flags,
 	}

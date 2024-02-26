@@ -370,11 +370,6 @@ type EngineConfig struct {
 	// LockType is the type of locking to use.
 	LockType string `toml:"lock_type,omitempty"`
 
-	// MachineEnabled indicates if Podman is running in a podman-machine VM
-	//
-	// This method is soft deprecated, use machine.IsPodmanMachine instead
-	MachineEnabled bool `toml:"machine_enabled,omitempty"`
-
 	// MultiImageArchive - if true, the container engine allows for storing
 	// archives (e.g., of the docker-archive transport) with multiple
 	// images.  By default, Podman creates single-image archives.
@@ -420,6 +415,14 @@ type EngineConfig struct {
 
 	// Indicates whether the application should be running in Remote mode
 	Remote bool `toml:"remote,omitempty"`
+
+	// Number of times to retry pulling/pushing images in case of failure
+	Retry uint `toml:"retry,omitempty"`
+
+	// Delay between retries in case pulling/pushing image fails
+	// If set, container engines will retry at the set interval,
+	// otherwise they delay 2 seconds and then exponentially back off.
+	RetryDelay string `toml:"retry_delay,omitempty"`
 
 	// RemoteURI is deprecated, see ActiveService
 	// RemoteURI containers connection information used to connect to remote system.

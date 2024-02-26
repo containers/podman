@@ -177,16 +177,26 @@ func newNSPath(nsPath string) (ns.NetNS, error) {
 
 // UnmountNS unmounts the given netns path
 func UnmountNS(nsPath string) error {
+	var rErr error
 	// Only unmount if it's been bind-mounted (don't touch namespaces in /proc...)
 	if !strings.HasPrefix(nsPath, "/proc/") {
 		if err := unix.Unmount(nsPath, unix.MNT_DETACH); err != nil {
-			return fmt.Errorf("failed to unmount NS: at %s: %v", nsPath, err)
+			// Do not return here, always try to remove below.
+			// This is important in case podman now is in a new userns compared to
+			// when the netns was created. The umount will fail EINVAL but removing
+			// the file will work and the kernel will destroy the bind mount in the
+			// other ns because of this. We also need it so pasta doesn't leak.
+			rErr = fmt.Errorf("failed to unmount NS: at %s: %w", nsPath, err)
 		}
 
 		if err := os.Remove(nsPath); err != nil {
-			return fmt.Errorf("failed to remove ns path %s: %v", nsPath, err)
+			err := fmt.Errorf("failed to remove ns path: %w", err)
+			if rErr != nil {
+				err = fmt.Errorf("%v, %w", err, rErr)
+			}
+			rErr = err
 		}
 	}
 
-	return nil
+	return rErr
 }

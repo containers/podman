@@ -55,7 +55,7 @@ type ImageDestinationInternalOnly interface {
 	// It is available only if SupportsPutBlobPartial().
 	// Even if SupportsPutBlobPartial() returns true, the call can fail, in which case the caller
 	// should fall back to PutBlobWithOptions.
-	PutBlobPartial(ctx context.Context, chunkAccessor BlobChunkAccessor, srcInfo types.BlobInfo, cache blobinfocache.BlobInfoCache2) (UploadedBlob, error)
+	PutBlobPartial(ctx context.Context, chunkAccessor BlobChunkAccessor, srcInfo types.BlobInfo, options PutBlobPartialOptions) (UploadedBlob, error)
 
 	// TryReusingBlobWithOptions checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
 	// (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
@@ -100,6 +100,12 @@ type PutBlobOptions struct {
 	LayerIndex *int // If the blob is a layer, a zero-based index of the layer within the image; nil otherwise.
 }
 
+// PutBlobPartialOptions are used in PutBlobPartial.
+type PutBlobPartialOptions struct {
+	Cache      blobinfocache.BlobInfoCache2 // Cache to use and/or update.
+	LayerIndex int                          // A zero-based index of the layer within the image (PutBlobPartial is only called with layer-like blobs, not configs)
+}
+
 // TryReusingBlobOptions are used in TryReusingBlobWithOptions.
 type TryReusingBlobOptions struct {
 	Cache blobinfocache.BlobInfoCache2 // Cache to use and/or update.
@@ -112,12 +118,13 @@ type TryReusingBlobOptions struct {
 	// Transports, OTOH, MUST support these fields being zero-valued for types.ImageDestination callers
 	// if they use internal/imagedestination/impl.Compat;
 	// in that case, they will all be consistently zero-valued.
-	RequiredCompression *compression.Algorithm // If set, reuse blobs with a matching algorithm as per implementations in internal/imagedestination/impl.helpers.go
-	OriginalCompression *compression.Algorithm // Must be set if RequiredCompression is set; can be set to nil to indicate “uncompressed” or “unknown”.
-	EmptyLayer          bool                   // True if the blob is an "empty"/"throwaway" layer, and may not necessarily be physically represented.
-	LayerIndex          *int                   // If the blob is a layer, a zero-based index of the layer within the image; nil otherwise.
-	SrcRef              reference.Named        // A reference to the source image that contains the input blob.
-	TOCDigest           *digest.Digest         // If specified, the blob can be looked up in the destination also by its TOC digest.
+	EmptyLayer              bool                   // True if the blob is an "empty"/"throwaway" layer, and may not necessarily be physically represented.
+	LayerIndex              *int                   // If the blob is a layer, a zero-based index of the layer within the image; nil otherwise.
+	SrcRef                  reference.Named        // A reference to the source image that contains the input blob.
+	PossibleManifestFormats []string               // A set of possible manifest formats; at least one should support the reused layer blob.
+	RequiredCompression     *compression.Algorithm // If set, reuse blobs with a matching algorithm as per implementations in internal/imagedestination/impl.helpers.go
+	OriginalCompression     *compression.Algorithm // May be nil to indicate “uncompressed” or “unknown”.
+	TOCDigest               digest.Digest          // If specified, the blob can be looked up in the destination also by its TOC digest.
 }
 
 // ReusedBlob is information about a blob reused in a destination.
@@ -129,6 +136,8 @@ type ReusedBlob struct {
 	// a differently-compressed blob.
 	CompressionOperation types.LayerCompression // Compress/Decompress, matching the reused blob; PreserveOriginal if N/A
 	CompressionAlgorithm *compression.Algorithm // Algorithm if compressed, nil if decompressed or N/A
+
+	MatchedByTOCDigest bool // Whether the layer was reused/matched by TOC digest. Used only for UI purposes.
 }
 
 // ImageSourceChunk is a portion of a blob.

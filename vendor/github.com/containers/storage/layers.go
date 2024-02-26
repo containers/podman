@@ -2286,7 +2286,7 @@ func (r *layerStore) applyDiffWithOptions(to string, layerOptions *LayerOptions,
 	if layerOptions != nil && layerOptions.UncompressedDigest != "" &&
 		layerOptions.UncompressedDigest.Algorithm() == digest.Canonical {
 		uncompressedDigest = layerOptions.UncompressedDigest
-	} else {
+	} else if compression != archive.Uncompressed {
 		uncompressedDigester = digest.Canonical.Digester()
 	}
 
@@ -2365,10 +2365,17 @@ func (r *layerStore) applyDiffWithOptions(to string, layerOptions *LayerOptions,
 	if uncompressedDigester != nil {
 		uncompressedDigest = uncompressedDigester.Digest()
 	}
+	if uncompressedDigest == "" && compression == archive.Uncompressed {
+		uncompressedDigest = compressedDigest
+	}
 
 	updateDigestMap(&r.bycompressedsum, layer.CompressedDigest, compressedDigest, layer.ID)
 	layer.CompressedDigest = compressedDigest
-	layer.CompressedSize = compressedCounter.Count
+	if layerOptions != nil && layerOptions.OriginalDigest != "" && layerOptions.OriginalSize != nil {
+		layer.CompressedSize = *layerOptions.OriginalSize
+	} else {
+		layer.CompressedSize = compressedCounter.Count
+	}
 	updateDigestMap(&r.byuncompressedsum, layer.UncompressedDigest, uncompressedDigest, layer.ID)
 	layer.UncompressedDigest = uncompressedDigest
 	layer.UncompressedSize = uncompressedCounter.Count

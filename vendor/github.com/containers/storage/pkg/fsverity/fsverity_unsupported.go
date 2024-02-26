@@ -17,5 +17,5 @@ func EnableVerity(description string, fd int) error {
 // MeasureVerity measures and returns the verity digest for the file represented by 'fd'.
 // The 'description' parameter is a human-readable description of the file.
 func MeasureVerity(description string, fd int) (string, error) {
-	return fmt.Errorf("fs-verity is not supported on this platform")
+	return "", fmt.Errorf("fs-verity is not supported on this platform")
 }
