@@ -63,7 +63,7 @@ func (a AppleHVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.Machine
 	}
 	mc.AppleHypervisor.Vfkit.Endpoint = localhostURI + ":" + strconv.Itoa(randPort)
 
-	var virtiofsMounts []machine.VirtIoFs
+	virtiofsMounts := make([]machine.VirtIoFs, 0, len(mc.Mounts))
 	for _, mnt := range mc.Mounts {
 		virtiofsMounts = append(virtiofsMounts, machine.MountToVirtIOFs(mnt))
 	}

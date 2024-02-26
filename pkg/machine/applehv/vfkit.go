@@ -64,7 +64,7 @@ func getIgnitionVsockDevice(path string) (vfConfig.VirtioDevice, error) {
 }
 
 func virtIOFsToVFKitVirtIODevice(mounts []*vmconfigs.Mount) ([]vfConfig.VirtioDevice, error) {
-	var virtioDevices []vfConfig.VirtioDevice
+	virtioDevices := make([]vfConfig.VirtioDevice, 0, len(mounts))
 	for _, vol := range mounts {
 		virtfsDevice, err := vfConfig.VirtioFsNew(vol.Source, vol.Tag)
 		if err != nil {
