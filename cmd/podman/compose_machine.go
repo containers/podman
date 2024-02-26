@@ -7,14 +7,13 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/provider"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 )
 
-func getMachineConn(connection *config.Connection, parsedConnection *url.URL) (string, error) {
+func getMachineConn(connectionURI string, parsedConnection *url.URL) (string, error) {
 	machineProvider, err := provider.Get()
 	if err != nil {
 		return "", fmt.Errorf("getting machine provider: %w", err)
@@ -64,6 +63,5 @@ func getMachineConn(connection *config.Connection, parsedConnection *url.URL) (s
 		// return "unix://" + info.ConnectionInfo.PodmanSocket.Path, nil
 		return "", nil
 	}
-
-	return "", fmt.Errorf("could not find a matching machine for connection %q", connection.URI)
+	return "", fmt.Errorf("could not find a matching machine for connection %q", connectionURI)
 }

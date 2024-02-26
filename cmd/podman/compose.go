@@ -108,10 +108,8 @@ func composeDockerHost() (string, error) {
 		return registry.DefaultAPIAddress(), nil
 	}
 
-	// TODO need to add support for --connection and --url
-	connection, err := registry.PodmanConfig().ContainersConfDefaultsRO.GetConnection("", true)
-	if err != nil {
-		logrus.Info(err)
+	conf := registry.PodmanConfig()
+	if conf.URI == "" {
 		switch runtime.GOOS {
 		// If no default connection is set on Linux or FreeBSD,
 		// we just use the local socket by default - just as
@@ -126,20 +124,20 @@ func composeDockerHost() (string, error) {
 		}
 	}
 
-	parsedConnection, err := url.Parse(connection.URI)
+	parsedConnection, err := url.Parse(conf.URI)
 	if err != nil {
 		return "", fmt.Errorf("preparing connection to remote machine: %w", err)
 	}
 
 	// If the default connection does not point to a `podman
 	// machine`, we cannot use a local path and need to use SSH.
-	if !connection.IsMachine {
+	if !conf.MachineMode {
 		// Compose doesn't like paths, so we optimistically
 		// assume the presence of a Docker socket on the remote
 		// machine which is the case for podman machines.
-		return strings.TrimSuffix(connection.URI, parsedConnection.Path), nil
+		return strings.TrimSuffix(conf.URI, parsedConnection.Path), nil
 	}
-	uri, err := getMachineConn(connection, parsedConnection)
+	uri, err := getMachineConn(conf.URI, parsedConnection)
 	if err != nil {
 		return "", fmt.Errorf("get machine connection URI: %w", err)
 	}
