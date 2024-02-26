@@ -132,7 +132,7 @@ build_task:
     #       the 'origin' remote must be defined, and all remote branches/tags
     #       must be available for reference from CI scripts.
     clone_script: &full_clone |
-          set -exuo pipefail
+          set -exo pipefail
           cd /
           rm -rf $CIRRUS_WORKING_DIR
           mkdir -p $CIRRUS_WORKING_DIR
