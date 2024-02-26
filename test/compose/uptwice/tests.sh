@@ -5,7 +5,7 @@ NL=$'\n'
 
 cp docker-compose.yml docker-compose.yml.bak
 sed -i -e 's/10001/10002/' docker-compose.yml
-output=$(docker-compose up -d 2>&1)
+output=$(podman_compose up -d 2>&1)
 
 # Horrible output check here but we really want to make sure that there are
 # no unexpected warning/errors and the normal messages are send on stderr as
