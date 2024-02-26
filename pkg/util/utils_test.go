@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"math"
 	"testing"
 	"time"
 
@@ -572,4 +573,18 @@ func TestConvertMappings(t *testing.T) {
 		assert.Equal(t, start[i].HostID, convertedBack[i].HostID)
 		assert.Equal(t, start[i].Size, convertedBack[i].Size)
 	}
+}
+
+func TestConvertTimeout(t *testing.T) {
+	timeout := ConvertTimeout(0)
+	assert.Equal(t, uint(0), timeout)
+
+	timeout = ConvertTimeout(100)
+	assert.Equal(t, uint(100), timeout)
+
+	timeout = ConvertTimeout(-1)
+	assert.Equal(t, uint(math.MaxUint32), timeout)
+
+	timeout = ConvertTimeout(-100)
+	assert.Equal(t, uint(math.MaxUint32), timeout)
 }

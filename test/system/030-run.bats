@@ -1079,7 +1079,7 @@ $IMAGE--c_ok" \
     run_podman stop -t 0 $cid
 
     # Actual test for 15895: with --systemd, no ttyN devices are passed through
-    run_podman run -d --privileged --systemd=always $IMAGE top
+    run_podman run -d --privileged --stop-signal=TERM --systemd=always $IMAGE top
     cid="$output"
 
     run_podman exec $cid sh -c "find /dev -regex '/dev/tty[0-9].*' | wc -w"
@@ -1087,12 +1087,7 @@ $IMAGE--c_ok" \
            "ls /dev/tty[0-9] with --systemd=always: should have no ttyN devices"
 
     # Make sure run_podman stop supports -1 option
-    # FIXME: do we really really mean to say FFFFFFFFFFFFFFFF here???
-    run_podman 0+w stop -t -1 $cid
-    if ! is_remote; then
-        require_warning "StopSignal \(37\) failed to stop container .* in 18446744073709551615 seconds, resorting to SIGKILL" \
-                        "stop -t -1 (negative 1) issues warning"
-    fi
+    run_podman stop -t -1 $cid
     run_podman rm -t -1 -f $cid
 }
 
