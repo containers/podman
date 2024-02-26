@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -33,6 +32,11 @@ type QEMUStubber struct {
 	// Command describes the final QEMU command line
 	Command command.QemuCmd
 }
+
+var (
+	gvProxyWaitBackoff        = 500 * time.Millisecond
+	gvProxyMaxBackoffAttempts = 6
+)
 
 func (q QEMUStubber) UserModeNetworkEnabled(*vmconfigs.MachineConfig) bool {
 	return true
@@ -70,7 +74,13 @@ func (q *QEMUStubber) setQEMUCommandLine(mc *vmconfigs.MachineConfig) error {
 	q.Command.SetCPUs(mc.Resources.CPUs)
 	q.Command.SetIgnitionFile(*ignitionFile)
 	q.Command.SetQmpMonitor(mc.QEMUHypervisor.QMPMonitor)
-	q.Command.SetNetwork()
+	gvProxySock, err := mc.GVProxySocket()
+	if err != nil {
+		return err
+	}
+	if err := q.Command.SetNetwork(gvProxySock); err != nil {
+		return err
+	}
 	q.Command.SetSerialPort(*readySocket, *mc.QEMUHypervisor.QEMUPidPath, mc.Name)
 
 	// Add volumes to qemu command line
@@ -136,9 +146,6 @@ func (q *QEMUStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func()
 		return nil, nil, fmt.Errorf("unable to generate qemu command line: %q", err)
 	}
 
-	defaultBackoff := 500 * time.Millisecond
-	maxBackoffs := 6
-
 	readySocket, err := mc.ReadySocket()
 	if err != nil {
 		return nil, nil, err
@@ -149,17 +156,10 @@ func (q *QEMUStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func()
 		return nil, nil, err
 	}
 
-	qemuNetdevSockConn, err := sockets.DialSocketWithBackoffs(maxBackoffs, defaultBackoff, gvProxySock.GetPath())
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to connect to gvproxy socket: %w", err)
-	}
-	defer qemuNetdevSockConn.Close()
-
-	fd, err := qemuNetdevSockConn.(*net.UnixConn).File()
-	if err != nil {
+	// Wait on gvproxy to be running and aware
+	if err := sockets.WaitForSocketWithBackoffs(gvProxyMaxBackoffAttempts, gvProxyWaitBackoff, gvProxySock.GetPath(), "gvproxy"); err != nil {
 		return nil, nil, err
 	}
-	defer fd.Close()
 
 	dnr, dnw, err := machine.GetDevNullFiles()
 	if err != nil {
@@ -182,12 +182,11 @@ func (q *QEMUStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func()
 
 	// actually run the command that starts the virtual machine
 	cmd := &exec.Cmd{
-		Args:       cmdLine,
-		Path:       cmdLine[0],
-		Stdin:      dnr,
-		Stdout:     dnw,
-		Stderr:     stderrBuf,
-		ExtraFiles: []*os.File{fd},
+		Args:   cmdLine,
+		Path:   cmdLine[0],
+		Stdin:  dnr,
+		Stdout: dnw,
+		Stderr: stderrBuf,
 	}
 
 	if err := runStartVMCommand(cmd); err != nil {
