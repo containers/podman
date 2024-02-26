@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -133,11 +134,11 @@ var _ = Describe("Podman save", func() {
 		Expect(err).ToNot(HaveOccurred())
 		defer os.Setenv("GNUPGHOME", origGNUPGHOME)
 
-		port := 5000
+		port := 5005
 		portlock := GetPortLock(strconv.Itoa(port))
 		defer portlock.Unlock()
 
-		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", strings.Join([]string{strconv.Itoa(port), strconv.Itoa(port)}, ":"), REGISTRY_IMAGE})
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", strings.Join([]string{strconv.Itoa(port), "5000"}, ":"), REGISTRY_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
@@ -173,29 +174,30 @@ default-docker:
 `
 		Expect(os.WriteFile("/etc/containers/registries.d/default.yaml", []byte(sigstore), 0755)).To(Succeed())
 
-		session = podmanTest.Podman([]string{"tag", ALPINE, "localhost:5000/alpine"})
+		pushedImage := fmt.Sprintf("localhost:%d/alpine", port)
+		session = podmanTest.Podman([]string{"tag", ALPINE, pushedImage})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--sign-by", "foo@bar.com", "localhost:5000/alpine"})
+		session = podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--sign-by", "foo@bar.com", pushedImage})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"rmi", ALPINE, "localhost:5000/alpine"})
+		session = podmanTest.Podman([]string{"rmi", ALPINE, pushedImage})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
 		if !IsRemote() {
 			// Generate a signature verification policy file
-			policyPath := generatePolicyFile(podmanTest.TempDir)
+			policyPath := generatePolicyFile(podmanTest.TempDir, port)
 			defer os.Remove(policyPath)
 
-			session = podmanTest.Podman([]string{"pull", "-q", "--tls-verify=false", "--signature-policy", policyPath, "localhost:5000/alpine"})
+			session = podmanTest.Podman([]string{"pull", "-q", "--tls-verify=false", "--signature-policy", policyPath, pushedImage})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
 
 			outfile := filepath.Join(podmanTest.TempDir, "temp.tar")
-			save := podmanTest.Podman([]string{"save", "-q", "remove-signatures=true", "-o", outfile, "localhost:5000/alpine"})
+			save := podmanTest.Podman([]string{"save", "-q", "remove-signatures=true", "-o", outfile, pushedImage})
 			save.WaitWithDefaultTimeout()
 			Expect(save).To(ExitWithError())
 		}

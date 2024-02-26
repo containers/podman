@@ -1175,7 +1175,7 @@ func (p *PodmanTestIntegration) removeNetwork(name string) {
 
 // generatePolicyFile generates a signature verification policy file.
 // it returns the policy file path.
-func generatePolicyFile(tempDir string) string {
+func generatePolicyFile(tempDir string, port int) string {
 	keyPath := filepath.Join(tempDir, "key.gpg")
 	policyPath := filepath.Join(tempDir, "policy.json")
 	conf := fmt.Sprintf(`
@@ -1187,20 +1187,20 @@ func generatePolicyFile(tempDir string) string {
     ],
     "transports": {
         "docker": {
-            "localhost:5000": [
+            "localhost:%[1]d": [
                 {
                     "type": "signedBy",
                     "keyType": "GPGKeys",
-                    "keyPath": "%s"
+                    "keyPath": "%[2]s"
                 }
             ],
-            "localhost:5000/sigstore-signed": [
+            "localhost:%[1]d/sigstore-signed": [
                 {
                     "type": "sigstoreSigned",
                     "keyPath": "testdata/sigstore-key.pub"
                 }
             ],
-            "localhost:5000/sigstore-signed-params": [
+            "localhost:%[1]d/sigstore-signed-params": [
                 {
                     "type": "sigstoreSigned",
                     "keyPath": "testdata/sigstore-key.pub"
@@ -1209,7 +1209,7 @@ func generatePolicyFile(tempDir string) string {
         }
     }
 }
-`, keyPath)
+`, port, keyPath)
 	writeConf([]byte(conf), policyPath)
 	return policyPath
 }
