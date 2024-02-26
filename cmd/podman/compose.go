@@ -132,10 +132,13 @@ func composeDockerHost() (string, error) {
 	// If the default connection does not point to a `podman
 	// machine`, we cannot use a local path and need to use SSH.
 	if !conf.MachineMode {
-		// Compose doesn't like paths, so we optimistically
+		// Docker Compose v1 doesn't like paths for ssh, so we optimistically
 		// assume the presence of a Docker socket on the remote
 		// machine which is the case for podman machines.
-		return strings.TrimSuffix(conf.URI, parsedConnection.Path), nil
+		if parsedConnection.Scheme == "ssh" {
+			return strings.TrimSuffix(conf.URI, parsedConnection.Path), nil
+		}
+		return conf.URI, nil
 	}
 	uri, err := getMachineConn(conf.URI, parsedConnection)
 	if err != nil {
