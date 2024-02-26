@@ -57,7 +57,7 @@ var (
 	// GetXDSHandshakeInfoForTesting returns a pointer to the xds.HandshakeInfo
 	// stored in the passed in attributes. This is set by
 	// credentials/xds/xds.go.
-	GetXDSHandshakeInfoForTesting any // func (*attributes.Attributes) *xds.HandshakeInfo
+	GetXDSHandshakeInfoForTesting any // func (*attributes.Attributes) *unsafe.Pointer
 	// GetServerCredentials returns the transport credentials configured on a
 	// gRPC server. An xDS-enabled server needs to know what type of credentials
 	// is configured on the underlying gRPC server. This is set by server.go.
@@ -68,11 +68,6 @@ var (
 	// This is used in the 1.0 release of gcp/observability, and thus must not be
 	// deleted or changed.
 	CanonicalString any // func (codes.Code) string
-	// DrainServerTransports initiates a graceful close of existing connections
-	// on a gRPC server accepted on the provided listener address. An
-	// xDS-enabled server invokes this method on a grpc.Server when a particular
-	// listener moves to "not-serving" mode.
-	DrainServerTransports any // func(*grpc.Server, string)
 	// IsRegisteredMethod returns whether the passed in method is registered as
 	// a method on the server.
 	IsRegisteredMethod any // func(*grpc.Server, string) bool
@@ -188,6 +183,19 @@ var (
 	ExitIdleModeForTesting any // func(*grpc.ClientConn) error
 
 	ChannelzTurnOffForTesting func()
+
+	// TriggerXDSResourceNameNotFoundForTesting triggers the resource-not-found
+	// error for a given resource type and name. This is usually triggered when
+	// the associated watch timer fires. For testing purposes, having this
+	// function makes events more predictable than relying on timer events.
+	TriggerXDSResourceNameNotFoundForTesting any // func(func(xdsresource.Type, string), string, string) error
+
+	// TriggerXDSResourceNotFoundClient invokes the testing xDS Client singleton
+	// to invoke resource not found for a resource type name and resource name.
+	TriggerXDSResourceNameNotFoundClient any // func(string, string) error
+
+	// FromOutgoingContextRaw returns the un-merged, intermediary contents of metadata.rawMD.
+	FromOutgoingContextRaw any // func(context.Context) (metadata.MD, [][]string, bool)
 )
 
 // HealthChecker defines the signature of the client-side LB channel health checking function.

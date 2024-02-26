@@ -66,7 +66,7 @@ are made for those systems currently.
 
 ## Getting Started
 
-You can find a getting started guide on [opentelemetry.io](https://opentelemetry.io/docs/go/getting-started/).
+You can find a getting started guide on [opentelemetry.io](https://opentelemetry.io/docs/languages/go/getting-started/).
 
 OpenTelemetry's goal is to provide a single set of APIs to capture distributed
 traces and metrics from your application and send them to an observability

@@ -314,3 +314,13 @@ type Resolver interface {
 	// Close closes the resolver.
 	Close()
 }
+
+// AuthorityOverrider is implemented by Builders that wish to override the
+// default authority for the ClientConn.
+// By default, the authority used is target.Endpoint().
+type AuthorityOverrider interface {
+	// OverrideAuthority returns the authority to use for a ClientConn with the
+	// given target. The implementation must generate it without blocking,
+	// typically in line, and must keep it unchanged.
+	OverrideAuthority(Target) string
+}

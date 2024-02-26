@@ -6,7 +6,6 @@ services:
   - docker
 
 go:
-  - "1.19"
   - "1.20"
 
 before_install:
