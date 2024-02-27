@@ -171,7 +171,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.57.1-0.20240207210145-1eeaf97594e9
+# github.com/containers/common v0.57.1-0.20240229151045-1c65e0de241a
 ## explicit; go 1.20
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
@@ -353,7 +353,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.52.1-0.20240227082351-387d7c8480b0
+# github.com/containers/storage v1.52.1-0.20240229151339-eadc620e74e7
 ## explicit; go 1.20
 github.com/containers/storage
 github.com/containers/storage/drivers

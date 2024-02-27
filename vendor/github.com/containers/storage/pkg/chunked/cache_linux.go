@@ -25,7 +25,7 @@ import (
 
 const (
 	cacheKey     = "chunked-manifest-cache"
-	cacheVersion = 1
+	cacheVersion = 2
 
 	digestSha256Empty = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 )
@@ -207,9 +207,9 @@ func calculateHardLinkFingerprint(f *internal.FileMetadata) (string, error) {
 	return string(digester.Digest()), nil
 }
 
-// generateFileLocation generates a file location in the form $OFFSET@$PATH
-func generateFileLocation(path string, offset uint64) []byte {
-	return []byte(fmt.Sprintf("%d@%s", offset, path))
+// generateFileLocation generates a file location in the form $OFFSET:$LEN:$PATH
+func generateFileLocation(path string, offset, len uint64) []byte {
+	return []byte(fmt.Sprintf("%d:%d:%s", offset, len, path))
 }
 
 // generateTag generates a tag in the form $DIGEST$OFFSET@LEN.
@@ -245,7 +245,7 @@ func writeCache(manifest []byte, format graphdriver.DifferOutputFormat, id strin
 	var tags []string
 	for _, k := range toc {
 		if k.Digest != "" {
-			location := generateFileLocation(k.Name, 0)
+			location := generateFileLocation(k.Name, 0, uint64(k.Size))
 
 			off := uint64(vdata.Len())
 			l := uint64(len(location))
@@ -276,7 +276,7 @@ func writeCache(manifest []byte, format graphdriver.DifferOutputFormat, id strin
 			digestLen = len(k.Digest)
 		}
 		if k.ChunkDigest != "" {
-			location := generateFileLocation(k.Name, uint64(k.ChunkOffset))
+			location := generateFileLocation(k.Name, uint64(k.ChunkOffset), uint64(k.ChunkSize))
 			off := uint64(vdata.Len())
 			l := uint64(len(location))
 			d := generateTag(k.ChunkDigest, off, l)
@@ -490,7 +490,9 @@ func findTag(digest string, metadata *metadata) (string, uint64, uint64) {
 		if digest == d {
 			startOff := i*metadata.tagLen + metadata.digestLen
 			parts := strings.Split(string(metadata.tags[startOff:(i+1)*metadata.tagLen]), "@")
+
 			off, _ := strconv.ParseInt(parts[0], 10, 64)
+
 			len, _ := strconv.ParseInt(parts[1], 10, 64)
 			return digest, uint64(off), uint64(len)
 		}
@@ -507,12 +509,16 @@ func (c *layersCache) findDigestInternal(digest string) (string, string, int64, 
 	defer c.mutex.RUnlock()
 
 	for _, layer := range c.layers {
-		digest, off, len := findTag(digest, layer.metadata)
+		digest, off, tagLen := findTag(digest, layer.metadata)
 		if digest != "" {
-			position := string(layer.metadata.vdata[off : off+len])
-			parts := strings.SplitN(position, "@", 2)
+			position := string(layer.metadata.vdata[off : off+tagLen])
+			parts := strings.SplitN(position, ":", 3)
+			if len(parts) != 3 {
+				continue
+			}
 			offFile, _ := strconv.ParseInt(parts[0], 10, 64)
-			return layer.target, parts[1], offFile, nil
+			// parts[1] is the chunk length, currently unused.
+			return layer.target, parts[2], offFile, nil
 		}
 	}
 

@@ -4,9 +4,6 @@ import (
 	"os"
 	"strings"
 	"sync"
-
-	"github.com/containers/common/pkg/config"
-	"github.com/sirupsen/logrus"
 )
 
 type Marker struct {
@@ -29,9 +26,7 @@ var (
 
 func loadMachineMarker(file string) {
 	var kind string
-
-	// Support deprecated config value for compatibility
-	enabled := isLegacyConfigSet()
+	enabled := false
 
 	if content, err := os.ReadFile(file); err == nil {
 		enabled = true
@@ -39,17 +34,6 @@ func loadMachineMarker(file string) {
 	}
 
 	marker = &Marker{enabled, kind}
-}
-
-func isLegacyConfigSet() bool {
-	config, err := config.Default()
-	if err != nil {
-		logrus.Warnf("could not obtain container configuration")
-		return false
-	}
-
-	//nolint:staticcheck //lint:ignore SA1019 deprecated call
-	return config.Engine.MachineEnabled
 }
 
 func IsPodmanMachine() bool {

@@ -1819,13 +1819,17 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 
 		mode := os.FileMode(r.Mode)
 
-		r.Name = filepath.Clean(r.Name)
-		r.Linkname = filepath.Clean(r.Linkname)
-
 		t, err := typeToTarType(r.Type)
 		if err != nil {
 			return output, err
 		}
+
+		r.Name = filepath.Clean(r.Name)
+		// do not modify the value of symlinks
+		if r.Linkname != "" && t != tar.TypeSymlink {
+			r.Linkname = filepath.Clean(r.Linkname)
+		}
+
 		if whiteoutConverter != nil {
 			hdr := archivetar.Header{
 				Typeflag: t,

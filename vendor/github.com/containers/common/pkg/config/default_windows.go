@@ -1,6 +1,13 @@
 package config
 
-import "os"
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/containers/storage/pkg/homedir"
+)
 
 // isCgroup2UnifiedMode returns whether we are running in cgroup2 mode.
 func isCgroup2UnifiedMode() (isUnified bool, isUnifiedErr error) {
@@ -36,7 +43,10 @@ func getLibpodTmpDir() string {
 
 // getDefaultMachineVolumes returns default mounted volumes (possibly with env vars, which will be expanded)
 func getDefaultMachineVolumes() []string {
-	return []string{}
+	hd := homedir.Get()
+	vol := filepath.VolumeName(hd)
+	hostMnt := filepath.ToSlash(strings.TrimPrefix(hd, vol))
+	return []string{fmt.Sprintf("%s:%s", hd, hostMnt)}
 }
 
 func getDefaultComposeProviders() []string {

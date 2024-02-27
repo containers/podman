@@ -60,6 +60,23 @@ func (r *Runtime) Pull(ctx context.Context, name string, pullPolicy config.PullP
 		options = &PullOptions{}
 	}
 
+	defaultConfig, err := config.Default()
+	if err != nil {
+		return nil, err
+	}
+	if options.MaxRetries == nil {
+		options.MaxRetries = &defaultConfig.Engine.Retry
+	}
+	if options.RetryDelay == nil {
+		if defaultConfig.Engine.RetryDelay != "" {
+			duration, err := time.ParseDuration(defaultConfig.Engine.RetryDelay)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse containers.conf retry_delay: %w", err)
+			}
+			options.RetryDelay = &duration
+		}
+	}
+
 	var possiblyUnqualifiedName string // used for short-name resolution
 	ref, err := alltransports.ParseImageName(name)
 	if err != nil {

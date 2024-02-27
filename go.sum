@@ -76,8 +76,8 @@ github.com/containernetworking/plugins v1.4.0 h1:+w22VPYgk7nQHw7KT92lsRmuToHvb7w
 github.com/containernetworking/plugins v1.4.0/go.mod h1:UYhcOyjefnrQvKvmmyEKsUA+M9Nfn7tqULPpH0Pkcj0=
 github.com/containers/buildah v1.34.1-0.20240201124221-b850c711ff5c h1:r+1vFyTAoXptJrsPsnOMI3G0jm4+BCfXAcIyuA33lzo=
 github.com/containers/buildah v1.34.1-0.20240201124221-b850c711ff5c/go.mod h1:Hw4qo2URFpWvZ2tjLstoQMpNC6+gR4PtxQefvV/UKaA=
-github.com/containers/common v0.57.1-0.20240207210145-1eeaf97594e9 h1:JFkj+j5hSOJdCpLhpx+xp1pEbMfXj2xtorRx223PqYo=
-github.com/containers/common v0.57.1-0.20240207210145-1eeaf97594e9/go.mod h1:0NtD59teSfqhgJqcgg73on5AuaGo8XbbVLv+i2bl0oY=
+github.com/containers/common v0.57.1-0.20240229151045-1c65e0de241a h1:N/AOv7bQBTD/+inld7Qpc2WzxtpbsPgPDB/gg7JGQKA=
+github.com/containers/common v0.57.1-0.20240229151045-1c65e0de241a/go.mod h1:8irlyBcVooYx0F+YmoY7PQPAIgdJvCj17bvL7PqeaxI=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/gvisor-tap-vsock v0.7.3 h1:yORnf15sP+sLFhxLNLgmB5/lOhldn9dRMHx/tmYtSOQ=
@@ -94,8 +94,8 @@ github.com/containers/ocicrypt v1.1.9 h1:2Csfba4jse85Raxk5HIyEk8OwZNjRvfkhEGijOj
 github.com/containers/ocicrypt v1.1.9/go.mod h1:dTKx1918d8TDkxXvarscpNVY+lyPakPNFN4jwA9GBys=
 github.com/containers/psgo v1.9.0 h1:eJ74jzSaCHnWt26OlKZROSyUyRcGDf+gYBdXnxrMW4g=
 github.com/containers/psgo v1.9.0/go.mod h1:0YoluUm43Mz2UnBIh1P+6V6NWcbpTL5uRtXyOcH0B5A=
-github.com/containers/storage v1.52.1-0.20240227082351-387d7c8480b0 h1:n5UoWBdTeOGN5rlV49ZqS8E4vgo8Z6LxFFgbCDNaU+c=
-github.com/containers/storage v1.52.1-0.20240227082351-387d7c8480b0/go.mod h1:mFA6QpUoT9qTa3q2DD1CvSo3Az3syNkw1P9X+4nUYdY=
+github.com/containers/storage v1.52.1-0.20240229151339-eadc620e74e7 h1:rL6WUiGo7uyDY8WRfpLidnzSZuPPepcQLuc9p29Y9k8=
+github.com/containers/storage v1.52.1-0.20240229151339-eadc620e74e7/go.mod h1:mFA6QpUoT9qTa3q2DD1CvSo3Az3syNkw1P9X+4nUYdY=
 github.com/containers/winquit v1.1.0 h1:jArun04BNDQvt2W0Y78kh9TazN2EIEMG5Im6/JY7+pE=
 github.com/containers/winquit v1.1.0/go.mod h1:PsPeZlnbkmGGIToMPHF1zhWjBUkd8aHjMOr/vFcPxw8=
 github.com/coreos/go-oidc/v3 v3.9.0 h1:0J/ogVOd4y8P0f0xUh8l9t07xRP/d8tccvjHl2dcsSo=
