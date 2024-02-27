@@ -41,9 +41,7 @@ setup() {
     fi
 
     if [ "$(< $PODMAN_UPGRADE_WORKDIR/status)" = "failed" ]; then
-        # FIXME: exit instead?
-        echo "*** setup failed - no point in running tests"
-        false
+        skip "*** setup failed - no point in running tests"
     fi
 
     # cgroup-manager=systemd does not work inside a container
@@ -128,7 +126,7 @@ podman \$opts run    --name myfailedcontainer  --label mylabel=$LABEL_FAILED \
 podman \$opts run -d --name myrunningcontainer --label mylabel=$LABEL_RUNNING \
                                                --network bridge \
                                                -p $HOST_PORT:80 \
-                                               -p 127.0.0.1:8080-8082:8080-8082 \
+                                               -p 127.0.0.1:9090-9092:8080-8082 \
                                                -v $pmroot/var/www:/var/www \
                                                -w /var/www \
                                                --mac-address aa:bb:cc:dd:ee:ff \
@@ -177,7 +175,7 @@ EOF
     # mount /dev/shm because the container locks are stored there
     # mount /run/containers for the dnsname plugin
     #
-    $PODMAN run -d --name podman_parent --pid=host \
+    $PODMAN run -d --name podman_parent \
             --privileged \
             --net=host \
             --cgroupns=host \
@@ -243,7 +241,7 @@ EOF
     # Port order is not guaranteed
     assert "${lines[3]}" =~ "myrunningcontainer--Up .*--$LABEL_RUNNING" "line 3, running"
     assert "${lines[3]}" =~ ".*--.*0\.0\.0\.0:$HOST_PORT->80\/tcp.*--.*"  "line 3, first port forward"
-    assert "${lines[3]}" =~ ".*--.*127\.0\.0\.1\:8080-8082->8080-8082\/tcp.*--.*" "line 3, second port forward"
+    assert "${lines[3]}" =~ ".*--.*127\.0\.0\.1\:9090-9092->8080-8082\/tcp.*--.*" "line 3, second port forward"
 
     assert "${lines[4]}" =~ ".*-infra--Created----<no value>" "line 4, infra container"
 
