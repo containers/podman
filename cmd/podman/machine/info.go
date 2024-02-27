@@ -18,7 +18,7 @@ import (
 	machineDefine "github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 var infoDescription = `Display information pertaining to the machine host.`
