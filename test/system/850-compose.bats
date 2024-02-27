@@ -55,10 +55,20 @@ EOF
     CONTAINERS_CONF_OVERRIDE=$compose_conf run_podman 42 compose fail
 
     # Make sure the three env variables are set (and parsed)
+    op='=~'
+    url=".*/podman.sock"
+    # if we run remote with --url check the url arg is honored
+    if [[ "$PODMAN" =~ "--url" ]]; then
+        # get the url from the podman string
+        url="${PODMAN##*--url }"
+        url="${url%% *}"
+        op='='
+    fi
+    # podman-remote test might run with --url so unset this because the socket will be used otherwise
     CONTAINERS_CONF_OVERRIDE=$compose_conf run_podman compose env
-    is "${lines[0]}" ".*/podman.sock"
-    is "${lines[1]}" "0"
-    is "${lines[2]}" ""
+    assert "${lines[0]}" $op "$url" "line 1 of 3 (DOCKER_HOST)"
+    assert "${lines[1]}" = "0"      "line 2 of 3 (DOCKER_BUILDKIT)"
+    assert "${lines[2]}" = ""       "line 3 of 3 (DOCKER_CONFIG)"
 
     DOCKER_HOST="$random_data" DOCKER_CONFIG="$random_data" CONTAINERS_CONF_OVERRIDE=$compose_conf run_podman compose env
     is "${lines[0]}" "$random_data"

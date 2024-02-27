@@ -1,5 +1,3 @@
-//go:build amd64 || arm64
-
 package main
 
 import (
@@ -16,10 +14,6 @@ import (
 
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/pkg/errorhandling"
-	"github.com/containers/podman/v5/pkg/machine"
-	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/podman/v5/pkg/machine/provider"
-	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -114,10 +108,8 @@ func composeDockerHost() (string, error) {
 		return registry.DefaultAPIAddress(), nil
 	}
 
-	// TODO need to add support for --connection and --url
-	connection, err := registry.PodmanConfig().ContainersConfDefaultsRO.GetConnection("", true)
-	if err != nil {
-		logrus.Info(err)
+	conf := registry.PodmanConfig()
+	if conf.URI == "" {
 		switch runtime.GOOS {
 		// If no default connection is set on Linux or FreeBSD,
 		// we just use the local socket by default - just as
@@ -132,71 +124,27 @@ func composeDockerHost() (string, error) {
 		}
 	}
 
-	parsedConnection, err := url.Parse(connection.URI)
+	parsedConnection, err := url.Parse(conf.URI)
 	if err != nil {
 		return "", fmt.Errorf("preparing connection to remote machine: %w", err)
 	}
 
 	// If the default connection does not point to a `podman
 	// machine`, we cannot use a local path and need to use SSH.
-	if !connection.IsMachine {
-		// Compose doesn't like paths, so we optimistically
+	if !conf.MachineMode {
+		// Docker Compose v1 doesn't like paths for ssh, so we optimistically
 		// assume the presence of a Docker socket on the remote
 		// machine which is the case for podman machines.
-		return strings.TrimSuffix(connection.URI, parsedConnection.Path), nil
-	}
-
-	machineProvider, err := provider.Get()
-	if err != nil {
-		return "", fmt.Errorf("getting machine provider: %w", err)
-	}
-	dirs, err := machine.GetMachineDirs(machineProvider.VMType())
-	if err != nil {
-		return "", err
-	}
-
-	machineList, err := vmconfigs.LoadMachinesInDir(dirs)
-	if err != nil {
-		return "", fmt.Errorf("listing machines: %w", err)
-	}
-
-	// Now we know that the connection points to a machine and we
-	// can find the machine by looking for the one with the
-	// matching port.
-	connectionPort, err := strconv.Atoi(parsedConnection.Port())
-	if err != nil {
-		return "", fmt.Errorf("parsing connection port: %w", err)
-	}
-	for _, item := range machineList {
-		if connectionPort != item.SSH.Port {
-			continue
+		if parsedConnection.Scheme == "ssh" {
+			return strings.TrimSuffix(conf.URI, parsedConnection.Path), nil
 		}
-
-		state, err := machineProvider.State(item, false)
-		if err != nil {
-			return "", err
-		}
-
-		if state != define.Running {
-			return "", fmt.Errorf("machine %s is not running but in state %s", item.Name, state)
-		}
-
-		// TODO This needs to be wired back in when all providers are complete
-		// TODO Need someoone to plumb in the connection information below
-		// if machineProvider.VMType() == define.WSLVirt || machineProvider.VMType() == define.HyperVVirt {
-		// 	if info.ConnectionInfo.PodmanPipe == nil {
-		// 		return "", errors.New("pipe of machine is not set")
-		// 	}
-		// 	return strings.Replace(info.ConnectionInfo.PodmanPipe.Path, `\\.\pipe\`, "npipe:////./pipe/", 1), nil
-		// }
-		// if info.ConnectionInfo.PodmanSocket == nil {
-		// 	return "", errors.New("socket of machine is not set")
-		// }
-		// return "unix://" + info.ConnectionInfo.PodmanSocket.Path, nil
-		return "", nil
+		return conf.URI, nil
 	}
-
-	return "", fmt.Errorf("could not find a matching machine for connection %q", connection.URI)
+	uri, err := getMachineConn(conf.URI, parsedConnection)
+	if err != nil {
+		return "", fmt.Errorf("get machine connection URI: %w", err)
+	}
+	return uri, nil
 }
 
 // composeEnv returns the compose-specific environment variables.
