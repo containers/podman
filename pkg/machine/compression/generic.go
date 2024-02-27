@@ -63,3 +63,13 @@ func (d *genericDecompressor) close() {
 		logrus.Errorf("Unable to close compressed file: %q", err)
 	}
 }
+
+func (d *genericDecompressor) sparseOptimizedCopy(w WriteSeekCloser, r io.Reader) error {
+	var err error
+	sparseWriter := NewSparseWriter(w)
+	defer func() {
+		err = sparseWriter.Close()
+	}()
+	_, err = io.Copy(sparseWriter, r)
+	return err
+}

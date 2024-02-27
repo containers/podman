@@ -4,7 +4,6 @@ import (
 	"io"
 
 	"github.com/klauspost/compress/zstd"
-	"github.com/sirupsen/logrus"
 )
 
 type zstdDecompressor struct {
@@ -23,13 +22,5 @@ func (d *zstdDecompressor) decompress(w WriteSeekCloser, r io.Reader) error {
 	}
 	defer zstdReader.Close()
 
-	sparseWriter := NewSparseWriter(w)
-	defer func() {
-		if err := sparseWriter.Close(); err != nil {
-			logrus.Errorf("Unable to close uncompressed file: %q", err)
-		}
-	}()
-
-	_, err = io.Copy(sparseWriter, zstdReader)
-	return err
+	return d.sparseOptimizedCopy(w, zstdReader)
 }

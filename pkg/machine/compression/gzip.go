@@ -27,13 +27,5 @@ func (d *gzipDecompressor) decompress(w WriteSeekCloser, r io.Reader) error {
 		}
 	}()
 
-	sparseWriter := NewSparseWriter(w)
-	defer func() {
-		if err := sparseWriter.Close(); err != nil {
-			logrus.Errorf("Unable to close uncompressed file: %q", err)
-		}
-	}()
-
-	_, err = io.Copy(sparseWriter, gzReader)
-	return err
+	return d.sparseOptimizedCopy(w, gzReader)
 }
