@@ -257,8 +257,8 @@ func readZstdChunkedManifest(blobStream ImageSourceSeekable, blobSize int64, ann
 	return decodedBlob, decodedTarSplit, int64(footerData.Offset), err
 }
 
-func decodeAndValidateBlob(blob []byte, lengthUncompressed uint64, expectedUncompressedChecksum string) ([]byte, error) {
-	d, err := digest.Parse(expectedUncompressedChecksum)
+func decodeAndValidateBlob(blob []byte, lengthUncompressed uint64, expectedCompressedChecksum string) ([]byte, error) {
+	d, err := digest.Parse(expectedCompressedChecksum)
 	if err != nil {
 		return nil, err
 	}

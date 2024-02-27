@@ -16,7 +16,6 @@ import (
 	"sync/atomic"
 
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/internal/blobinfocache"
 	"github.com/containers/image/v5/internal/imagedestination/impl"
 	"github.com/containers/image/v5/internal/imagedestination/stubs"
 	"github.com/containers/image/v5/internal/private"
@@ -55,41 +54,61 @@ type storageImageDestination struct {
 	stubs.ImplementsPutBlobPartial
 	stubs.AlwaysSupportsSignatures
 
-	imageRef        storageReference
-	directory       string                   // Temporary directory where we store blobs until Commit() time
-	nextTempFileID  atomic.Int32             // A counter that we use for computing filenames to assign to blobs
-	manifest        []byte                   // Manifest contents, temporary
-	manifestDigest  digest.Digest            // Valid if len(manifest) != 0
-	signatures      []byte                   // Signature contents, temporary
-	signatureses    map[digest.Digest][]byte // Instance signature contents, temporary
-	SignatureSizes  []int                    `json:"signature-sizes,omitempty"`  // List of sizes of each signature slice
-	SignaturesSizes map[digest.Digest][]int  `json:"signatures-sizes,omitempty"` // Sizes of each manifest's signature slice
+	imageRef              storageReference
+	directory             string                   // Temporary directory where we store blobs until Commit() time
+	nextTempFileID        atomic.Int32             // A counter that we use for computing filenames to assign to blobs
+	manifest              []byte                   // Manifest contents, temporary
+	manifestDigest        digest.Digest            // Valid if len(manifest) != 0
+	untrustedDiffIDValues []digest.Digest          // From config’s RootFS.DiffIDs, valid if not nil
+	signatures            []byte                   // Signature contents, temporary
+	signatureses          map[digest.Digest][]byte // Instance signature contents, temporary
+	metadata              storageImageMetadata     // Metadata contents being built
 
-	// A storage destination may be used concurrently.  Accesses are
-	// serialized via a mutex.  Please refer to the individual comments
-	// below for details.
-	lock sync.Mutex
 	// Mapping from layer (by index) to the associated ID in the storage.
 	// It's protected *implicitly* since `commitLayer()`, at any given
 	// time, can only be executed by *one* goroutine.  Please refer to
 	// `queueOrCommit()` for further details on how the single-caller
 	// guarantee is implemented.
-	indexToStorageID map[int]*string
-	// All accesses to below data are protected by `lock` which is made
-	// *explicit* in the code.
-	uncompressedOrTocDigest map[digest.Digest]digest.Digest                       // Mapping from layer blobsums to their corresponding DiffIDs or TOC IDs.
-	fileSizes               map[digest.Digest]int64                               // Mapping from layer blobsums to their sizes
-	filenames               map[digest.Digest]string                              // Mapping from layer blobsums to names of files we used to hold them
-	currentIndex            int                                                   // The index of the layer to be committed (i.e., lower indices have already been committed)
-	indexToAddedLayerInfo   map[int]addedLayerInfo                                // Mapping from layer (by index) to blob to add to the image
-	blobAdditionalLayer     map[digest.Digest]storage.AdditionalLayer             // Mapping from layer blobsums to their corresponding additional layer
-	diffOutputs             map[digest.Digest]*graphdriver.DriverWithDifferOutput // Mapping from digest to differ output
+	indexToStorageID map[int]string
+
+	// A storage destination may be used concurrently, due to HasThreadSafePutBlob.
+	lock          sync.Mutex // Protects lockProtected
+	lockProtected storageImageDestinationLockProtected
+}
+
+// storageImageDestinationLockProtected contains storageImageDestination data which might be
+// accessed concurrently, due to HasThreadSafePutBlob.
+// _During the concurrent TryReusingBlob/PutBlob/* calls_ (but not necessarily during the final Commit)
+// uses must hold storageImageDestination.lock.
+type storageImageDestinationLockProtected struct {
+	currentIndex          int                    // The index of the layer to be committed (i.e., lower indices have already been committed)
+	indexToAddedLayerInfo map[int]addedLayerInfo // Mapping from layer (by index) to blob to add to the image
+
+	// In general, a layer is identified either by (compressed) digest, or by TOC digest.
+	// When creating a layer, the c/storage layer metadata and image IDs must _only_ be based on trusted values
+	// we have computed ourselves. (Layer reuse can then look up against such trusted values, but it might not
+	// recompute those values for incomding layers — the point of the reuse is that we don’t need to consume the incoming layer.)
+
+	// Layer identification: For a layer, at least one of indexToTOCDigest and blobDiffIDs must be available before commitLayer is called.
+	// The presence of an indexToTOCDigest is what decides how the layer is identified, i.e. which fields must be trusted.
+	blobDiffIDs      map[digest.Digest]digest.Digest // Mapping from layer blobsums to their corresponding DiffIDs
+	indexToTOCDigest map[int]digest.Digest           // Mapping from layer index to a TOC Digest, IFF the layer was created/found/reused by TOC digest
+
+	// Layer data: Before commitLayer is called, either at least one of (diffOutputs, blobAdditionalLayer, filenames)
+	// should be available; or indexToTOCDigest/blobDiffIDs should be enough to locate an existing c/storage layer.
+	// They are looked up in the order they are mentioned above.
+	diffOutputs         map[int]*graphdriver.DriverWithDifferOutput // Mapping from layer index to a partially-pulled layer intermediate data
+	blobAdditionalLayer map[digest.Digest]storage.AdditionalLayer   // Mapping from layer blobsums to their corresponding additional layer
+	// Mapping from layer blobsums to names of files we used to hold them. If set, fileSizes and blobDiffIDs must also be set.
+	filenames map[digest.Digest]string
+	// Mapping from layer blobsums to their sizes. If set, filenames and blobDiffIDs must also be set.
+	fileSizes map[digest.Digest]int64
 }
 
 // addedLayerInfo records data about a layer to use in this image.
 type addedLayerInfo struct {
-	digest     digest.Digest
-	emptyLayer bool // The layer is an “empty”/“throwaway” one, and may or may not be physically represented in various transport / storage systems.  false if the manifest type does not have the concept.
+	digest     digest.Digest // Mandatory, the digest of the layer.
+	emptyLayer bool          // The layer is an “empty”/“throwaway” one, and may or may not be physically represented in various transport / storage systems.  false if the manifest type does not have the concept.
 }
 
 // newImageDestination sets us up to write a new image, caching blobs in a temporary directory until
@@ -117,18 +136,23 @@ func newImageDestination(sys *types.SystemContext, imageRef storageReference) (*
 			HasThreadSafePutBlob:           true,
 		}),
 
-		imageRef:                imageRef,
-		directory:               directory,
-		signatureses:            make(map[digest.Digest][]byte),
-		uncompressedOrTocDigest: make(map[digest.Digest]digest.Digest),
-		blobAdditionalLayer:     make(map[digest.Digest]storage.AdditionalLayer),
-		fileSizes:               make(map[digest.Digest]int64),
-		filenames:               make(map[digest.Digest]string),
-		SignatureSizes:          []int{},
-		SignaturesSizes:         make(map[digest.Digest][]int),
-		indexToStorageID:        make(map[int]*string),
-		indexToAddedLayerInfo:   make(map[int]addedLayerInfo),
-		diffOutputs:             make(map[digest.Digest]*graphdriver.DriverWithDifferOutput),
+		imageRef:     imageRef,
+		directory:    directory,
+		signatureses: make(map[digest.Digest][]byte),
+		metadata: storageImageMetadata{
+			SignatureSizes:  []int{},
+			SignaturesSizes: make(map[digest.Digest][]int),
+		},
+		indexToStorageID: make(map[int]string),
+		lockProtected: storageImageDestinationLockProtected{
+			indexToAddedLayerInfo: make(map[int]addedLayerInfo),
+			blobDiffIDs:           make(map[digest.Digest]digest.Digest),
+			indexToTOCDigest:      make(map[int]digest.Digest),
+			diffOutputs:           make(map[int]*graphdriver.DriverWithDifferOutput),
+			blobAdditionalLayer:   make(map[digest.Digest]storage.AdditionalLayer),
+			filenames:             make(map[digest.Digest]string),
+			fileSizes:             make(map[digest.Digest]int64),
+		},
 	}
 	dest.Compat = impl.AddCompat(dest)
 	return dest, nil
@@ -142,12 +166,13 @@ func (s *storageImageDestination) Reference() types.ImageReference {
 
 // Close cleans up the temporary directory and additional layer store handlers.
 func (s *storageImageDestination) Close() error {
-	for _, al := range s.blobAdditionalLayer {
+	// This is outside of the scope of HasThreadSafePutBlob, so we don’t need to hold s.lock.
+	for _, al := range s.lockProtected.blobAdditionalLayer {
 		al.Release()
 	}
-	for _, v := range s.diffOutputs {
+	for _, v := range s.lockProtected.diffOutputs {
 		if v.Target != "" {
-			_ = s.imageRef.transport.store.CleanupStagingDirectory(v.Target)
+			_ = s.imageRef.transport.store.CleanupStagedLayer(v)
 		}
 	}
 	return os.RemoveAll(s.directory)
@@ -227,9 +252,9 @@ func (s *storageImageDestination) putBlobToPendingFile(stream io.Reader, blobinf
 
 	// Record information about the blob.
 	s.lock.Lock()
-	s.uncompressedOrTocDigest[blobDigest] = diffID.Digest()
-	s.fileSizes[blobDigest] = counter.Count
-	s.filenames[blobDigest] = filename
+	s.lockProtected.blobDiffIDs[blobDigest] = diffID.Digest()
+	s.lockProtected.fileSizes[blobDigest] = counter.Count
+	s.lockProtected.filenames[blobDigest] = filename
 	s.lock.Unlock()
 	// This is safe because we have just computed diffID, and blobDigest was either computed
 	// by us, or validated by the caller (usually copy.digestingReader).
@@ -269,7 +294,7 @@ func (f *zstdFetcher) GetBlobAt(chunks []chunked.ImageSourceChunk) (chan io.Read
 // It is available only if SupportsPutBlobPartial().
 // Even if SupportsPutBlobPartial() returns true, the call can fail, in which case the caller
 // should fall back to PutBlobWithOptions.
-func (s *storageImageDestination) PutBlobPartial(ctx context.Context, chunkAccessor private.BlobChunkAccessor, srcInfo types.BlobInfo, cache blobinfocache.BlobInfoCache2) (private.UploadedBlob, error) {
+func (s *storageImageDestination) PutBlobPartial(ctx context.Context, chunkAccessor private.BlobChunkAccessor, srcInfo types.BlobInfo, options private.PutBlobPartialOptions) (private.UploadedBlob, error) {
 	fetcher := zstdFetcher{
 		chunkAccessor: chunkAccessor,
 		ctx:           ctx,
@@ -286,13 +311,25 @@ func (s *storageImageDestination) PutBlobPartial(ctx context.Context, chunkAcces
 		return private.UploadedBlob{}, err
 	}
 
+	if out.TOCDigest == "" && out.UncompressedDigest == "" {
+		return private.UploadedBlob{}, errors.New("internal error: ApplyDiffWithDiffer succeeded with neither TOCDigest nor UncompressedDigest set")
+	}
+
 	blobDigest := srcInfo.Digest
 
 	s.lock.Lock()
-	s.uncompressedOrTocDigest[blobDigest] = blobDigest
-	s.fileSizes[blobDigest] = 0
-	s.filenames[blobDigest] = ""
-	s.diffOutputs[blobDigest] = out
+	if out.UncompressedDigest != "" {
+		// The computation of UncompressedDigest means the whole layer has been consumed; while doing that, chunked.GetDiffer is
+		// responsible for ensuring blobDigest has been validated.
+		s.lockProtected.blobDiffIDs[blobDigest] = out.UncompressedDigest
+	} else {
+		// Don’t identify layers by TOC if UncompressedDigest is available.
+		// - Using UncompressedDigest allows image reuse with non-partially-pulled layers
+		// - If UncompressedDigest has been computed, that means the layer was read completely, and the TOC has been created from scratch.
+		//   That TOC is quite unlikely to match with any other TOC value.
+		s.lockProtected.indexToTOCDigest[options.LayerIndex] = out.TOCDigest
+	}
+	s.lockProtected.diffOutputs[options.LayerIndex] = out
 	s.lock.Unlock()
 
 	return private.UploadedBlob{
@@ -307,7 +344,7 @@ func (s *storageImageDestination) PutBlobPartial(ctx context.Context, chunkAcces
 // If the blob has been successfully reused, returns (true, info, nil).
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
 func (s *storageImageDestination) TryReusingBlobWithOptions(ctx context.Context, blobinfo types.BlobInfo, options private.TryReusingBlobOptions) (bool, private.ReusedBlob, error) {
-	if !impl.OriginalBlobMatchesRequiredCompression(options) {
+	if !impl.OriginalCandidateMatchesTryReusingBlobOptions(options) {
 		return false, private.ReusedBlob{}, nil
 	}
 	reused, info, err := s.tryReusingBlobAsPending(blobinfo.Digest, blobinfo.Size, &options)
@@ -321,68 +358,79 @@ func (s *storageImageDestination) TryReusingBlobWithOptions(ctx context.Context,
 	})
 }
 
-// tryReusingBlobAsPending implements TryReusingBlobWithOptions for (digest, size or -1), filling s.uncompressedOrTocDigest and other metadata.
+// tryReusingBlobAsPending implements TryReusingBlobWithOptions for (blobDigest, size or -1), filling s.blobDiffIDs and other metadata.
 // The caller must arrange the blob to be eventually committed using s.commitLayer().
-func (s *storageImageDestination) tryReusingBlobAsPending(digest digest.Digest, size int64, options *private.TryReusingBlobOptions) (bool, private.ReusedBlob, error) {
+func (s *storageImageDestination) tryReusingBlobAsPending(blobDigest digest.Digest, size int64, options *private.TryReusingBlobOptions) (bool, private.ReusedBlob, error) {
 	// lock the entire method as it executes fairly quickly
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	if options.SrcRef != nil {
 		// Check if we have the layer in the underlying additional layer store.
-		aLayer, err := s.imageRef.transport.store.LookupAdditionalLayer(digest, options.SrcRef.String())
+		aLayer, err := s.imageRef.transport.store.LookupAdditionalLayer(blobDigest, options.SrcRef.String())
 		if err != nil && !errors.Is(err, storage.ErrLayerUnknown) {
-			return false, private.ReusedBlob{}, fmt.Errorf(`looking for compressed layers with digest %q and labels: %w`, digest, err)
+			return false, private.ReusedBlob{}, fmt.Errorf(`looking for compressed layers with digest %q and labels: %w`, blobDigest, err)
 		} else if err == nil {
-			// Record the uncompressed value so that we can use it to calculate layer IDs.
-			s.uncompressedOrTocDigest[digest] = aLayer.UncompressedDigest()
-			s.blobAdditionalLayer[digest] = aLayer
+			s.lockProtected.blobDiffIDs[blobDigest] = aLayer.UncompressedDigest()
+			s.lockProtected.blobAdditionalLayer[blobDigest] = aLayer
 			return true, private.ReusedBlob{
-				Digest: digest,
+				Digest: blobDigest,
 				Size:   aLayer.CompressedSize(),
 			}, nil
 		}
 	}
 
-	if digest == "" {
+	if blobDigest == "" {
 		return false, private.ReusedBlob{}, errors.New(`Can not check for a blob with unknown digest`)
 	}
-	if err := digest.Validate(); err != nil {
+	if err := blobDigest.Validate(); err != nil {
 		return false, private.ReusedBlob{}, fmt.Errorf("Can not check for a blob with invalid digest: %w", err)
 	}
+	if options.TOCDigest != "" {
+		if err := options.TOCDigest.Validate(); err != nil {
+			return false, private.ReusedBlob{}, fmt.Errorf("Can not check for a blob with invalid digest: %w", err)
+		}
+	}
+
+	// Check if we have a wasn't-compressed layer in storage that's based on that blob.
 
 	// Check if we've already cached it in a file.
-	if size, ok := s.fileSizes[digest]; ok {
+	if size, ok := s.lockProtected.fileSizes[blobDigest]; ok {
+		// s.lockProtected.blobDiffIDs is set either by putBlobToPendingFile or in createNewLayer when creating the
+		// filenames/fileSizes entry.
 		return true, private.ReusedBlob{
-			Digest: digest,
+			Digest: blobDigest,
 			Size:   size,
 		}, nil
 	}
 
-	// Check if we have a wasn't-compressed layer in storage that's based on that blob.
-	layers, err := s.imageRef.transport.store.LayersByUncompressedDigest(digest)
+	layers, err := s.imageRef.transport.store.LayersByUncompressedDigest(blobDigest)
 	if err != nil && !errors.Is(err, storage.ErrLayerUnknown) {
-		return false, private.ReusedBlob{}, fmt.Errorf(`looking for layers with digest %q: %w`, digest, err)
+		return false, private.ReusedBlob{}, fmt.Errorf(`looking for layers with digest %q: %w`, blobDigest, err)
 	}
 	if len(layers) > 0 {
-		// Save this for completeness.
-		s.uncompressedOrTocDigest[digest] = layers[0].UncompressedDigest
+		s.lockProtected.blobDiffIDs[blobDigest] = blobDigest
 		return true, private.ReusedBlob{
-			Digest: digest,
+			Digest: blobDigest,
 			Size:   layers[0].UncompressedSize,
 		}, nil
 	}
 
 	// Check if we have a was-compressed layer in storage that's based on that blob.
-	layers, err = s.imageRef.transport.store.LayersByCompressedDigest(digest)
+	layers, err = s.imageRef.transport.store.LayersByCompressedDigest(blobDigest)
 	if err != nil && !errors.Is(err, storage.ErrLayerUnknown) {
-		return false, private.ReusedBlob{}, fmt.Errorf(`looking for compressed layers with digest %q: %w`, digest, err)
+		return false, private.ReusedBlob{}, fmt.Errorf(`looking for compressed layers with digest %q: %w`, blobDigest, err)
 	}
 	if len(layers) > 0 {
-		// Record the uncompressed value so that we can use it to calculate layer IDs.
-		s.uncompressedOrTocDigest[digest] = layers[0].UncompressedDigest
+		// LayersByCompressedDigest only finds layers which were created from a full layer blob, and extracting that
+		// always sets UncompressedDigest.
+		diffID := layers[0].UncompressedDigest
+		if diffID == "" {
+			return false, private.ReusedBlob{}, fmt.Errorf("internal error: compressed layer %q (for compressed digest %q) does not have an uncompressed digest", layers[0].ID, blobDigest.String())
+		}
+		s.lockProtected.blobDiffIDs[blobDigest] = diffID
 		return true, private.ReusedBlob{
-			Digest: digest,
+			Digest: blobDigest,
 			Size:   layers[0].CompressedSize,
 		}, nil
 	}
@@ -391,23 +439,23 @@ func (s *storageImageDestination) tryReusingBlobAsPending(digest digest.Digest, 
 	// Because we must return the size, which is unknown for unavailable compressed blobs, the returned BlobInfo refers to the
 	// uncompressed layer, and that can happen only if options.CanSubstitute, or if the incoming manifest already specifies the size.
 	if options.CanSubstitute || size != -1 {
-		if uncompressedDigest := options.Cache.UncompressedDigest(digest); uncompressedDigest != "" && uncompressedDigest != digest {
+		if uncompressedDigest := options.Cache.UncompressedDigest(blobDigest); uncompressedDigest != "" && uncompressedDigest != blobDigest {
 			layers, err := s.imageRef.transport.store.LayersByUncompressedDigest(uncompressedDigest)
 			if err != nil && !errors.Is(err, storage.ErrLayerUnknown) {
 				return false, private.ReusedBlob{}, fmt.Errorf(`looking for layers with digest %q: %w`, uncompressedDigest, err)
 			}
 			if len(layers) > 0 {
 				if size != -1 {
-					s.uncompressedOrTocDigest[digest] = layers[0].UncompressedDigest
+					s.lockProtected.blobDiffIDs[blobDigest] = uncompressedDigest
 					return true, private.ReusedBlob{
-						Digest: digest,
+						Digest: blobDigest,
 						Size:   size,
 					}, nil
 				}
 				if !options.CanSubstitute {
-					return false, private.ReusedBlob{}, fmt.Errorf("Internal error: options.CanSubstitute was expected to be true for blob with digest %s", digest)
+					return false, private.ReusedBlob{}, fmt.Errorf("Internal error: options.CanSubstitute was expected to be true for blob with digest %s", blobDigest)
 				}
-				s.uncompressedOrTocDigest[uncompressedDigest] = layers[0].UncompressedDigest
+				s.lockProtected.blobDiffIDs[uncompressedDigest] = uncompressedDigest
 				return true, private.ReusedBlob{
 					Digest: uncompressedDigest,
 					Size:   layers[0].UncompressedSize,
@@ -416,23 +464,30 @@ func (s *storageImageDestination) tryReusingBlobAsPending(digest digest.Digest, 
 		}
 	}
 
-	tocDigest := digest
-	if options.TOCDigest != nil {
-		tocDigest = *options.TOCDigest
-	}
+	if options.TOCDigest != "" && options.LayerIndex != nil {
+		// Check if we have a chunked layer in storage with the same TOC digest.
+		layers, err := s.imageRef.transport.store.LayersByTOCDigest(options.TOCDigest)
 
-	// Check if we have a chunked layer in storage with the same TOC digest.
-	layers, err = s.imageRef.transport.store.LayersByTOCDigest(tocDigest)
-	if err != nil && !errors.Is(err, storage.ErrLayerUnknown) {
-		return false, private.ReusedBlob{}, fmt.Errorf(`looking for layers with TOC digest %q: %w`, tocDigest, err)
-	}
-	if len(layers) > 0 {
-		// Save this for completeness.
-		s.uncompressedOrTocDigest[digest] = layers[0].TOCDigest
-		return true, private.ReusedBlob{
-			Digest: layers[0].TOCDigest,
-			Size:   layers[0].UncompressedSize,
-		}, nil
+		if err != nil && !errors.Is(err, storage.ErrLayerUnknown) {
+			return false, private.ReusedBlob{}, fmt.Errorf(`looking for layers with TOC digest %q: %w`, options.TOCDigest, err)
+		}
+		if len(layers) > 0 {
+			if size != -1 {
+				s.lockProtected.indexToTOCDigest[*options.LayerIndex] = options.TOCDigest
+				return true, private.ReusedBlob{
+					Digest:             blobDigest,
+					Size:               size,
+					MatchedByTOCDigest: true,
+				}, nil
+			} else if options.CanSubstitute && layers[0].UncompressedDigest != "" {
+				s.lockProtected.indexToTOCDigest[*options.LayerIndex] = options.TOCDigest
+				return true, private.ReusedBlob{
+					Digest:             layers[0].UncompressedDigest,
+					Size:               layers[0].UncompressedSize,
+					MatchedByTOCDigest: true,
+				}, nil
+			}
+		}
 	}
 
 	// Nope, we don't have it.
@@ -444,6 +499,8 @@ func (s *storageImageDestination) tryReusingBlobAsPending(digest digest.Digest, 
 // that since we don't have a recommendation, a random ID should be used if one needs
 // to be allocated.
 func (s *storageImageDestination) computeID(m manifest.Manifest) string {
+	// This is outside of the scope of HasThreadSafePutBlob, so we don’t need to hold s.lock.
+
 	// Build the diffID list.  We need the decompressed sums that we've been calculating to
 	// fill in the DiffIDs.  It's expected (but not enforced by us) that the number of
 	// diffIDs corresponds to the number of non-EmptyLayer entries in the history.
@@ -457,28 +514,59 @@ func (s *storageImageDestination) computeID(m manifest.Manifest) string {
 				continue
 			}
 			blobSum := m.FSLayers[i].BlobSum
-			diffID, ok := s.uncompressedOrTocDigest[blobSum]
+			diffID, ok := s.lockProtected.blobDiffIDs[blobSum]
 			if !ok {
+				// this can, in principle, legitimately happen when a layer is reused by TOC.
 				logrus.Infof("error looking up diffID for layer %q", blobSum.String())
 				return ""
 			}
 			diffIDs = append([]digest.Digest{diffID}, diffIDs...)
 		}
-	case *manifest.Schema2:
+	case *manifest.Schema2, *manifest.OCI1:
 		// We know the ID calculation doesn't actually use the diffIDs, so we don't need to populate
 		// the diffID list.
-	case *manifest.OCI1:
-		for _, l := range m.Layers {
-			diffIDs = append(diffIDs, l.Digest)
-		}
 	default:
 		return ""
 	}
-	id, err := m.ImageID(diffIDs)
+
+	// We want to use the same ID for “the same” images, but without risking unwanted sharing / malicious image corruption.
+	//
+	// Traditionally that means the same ~config digest, as computed by m.ImageID;
+	// but if we pull a layer by TOC, we verify the layer against neither the (compressed) blob digest in the manifest,
+	// nor against the config’s RootFS.DiffIDs. We don’t really want to do either, to allow partial layer pulls where we never see
+	// most of the data.
+	//
+	// So, if a layer is pulled by TOC (and we do validate against the TOC), the fact that we used the TOC, and the value of the TOC,
+	// must enter into the image ID computation.
+	// But for images where no TOC was used, continue to use IDs computed the traditional way, to maximize image reuse on upgrades,
+	// and to introduce the changed behavior only when partial pulls are used.
+	//
+	// Note that it’s not 100% guaranteed that an image pulled by TOC uses an OCI manifest; consider
+	// (skopeo copy --format v2s2 docker://…/zstd-chunked-image containers-storage:… ). So this is not happening only in the OCI case above.
+	ordinaryImageID, err := m.ImageID(diffIDs)
 	if err != nil {
 		return ""
 	}
-	return id
+	tocIDInput := ""
+	hasLayerPulledByTOC := false
+	for i := range m.LayerInfos() {
+		layerValue := ""                                     // An empty string is not a valid digest, so this is unambiguous with the TOC case.
+		tocDigest, ok := s.lockProtected.indexToTOCDigest[i] // "" if not a TOC
+		if ok {
+			hasLayerPulledByTOC = true
+			layerValue = tocDigest.String()
+		}
+		tocIDInput += layerValue + "|" // "|" can not be present in a TOC digest, so this is an unambiguous separator.
+	}
+
+	if !hasLayerPulledByTOC {
+		return ordinaryImageID
+	}
+	// ordinaryImageID is a digest of a config, which is a JSON value.
+	// To avoid the risk of collisions, start the input with @ so that the input is not a valid JSON.
+	tocImageID := digest.FromString("@With TOC:" + tocIDInput).Hex()
+	logrus.Debugf("Ordinary storage image ID %s; a layer was looked up by TOC, so using image ID %s", ordinaryImageID, tocImageID)
+	return tocImageID
 }
 
 // getConfigBlob exists only to let us retrieve the configuration blob so that the manifest package can dig
@@ -491,7 +579,7 @@ func (s *storageImageDestination) getConfigBlob(info types.BlobInfo) ([]byte, er
 		return nil, fmt.Errorf("invalid digest supplied when reading blob: %w", err)
 	}
 	// Assume it's a file, since we're only calling this from a place that expects to read files.
-	if filename, ok := s.filenames[info.Digest]; ok {
+	if filename, ok := s.lockProtected.filenames[info.Digest]; ok {
 		contents, err2 := os.ReadFile(filename)
 		if err2 != nil {
 			return nil, fmt.Errorf(`reading blob from file %q: %w`, filename, err2)
@@ -525,17 +613,17 @@ func (s *storageImageDestination) queueOrCommit(index int, info addedLayerInfo) 
 	// caller is the "worker" routine committing layers.  All other routines
 	// can continue pulling and queuing in layers.
 	s.lock.Lock()
-	s.indexToAddedLayerInfo[index] = info
+	s.lockProtected.indexToAddedLayerInfo[index] = info
 
 	// We're still waiting for at least one previous/parent layer to be
 	// committed, so there's nothing to do.
-	if index != s.currentIndex {
+	if index != s.lockProtected.currentIndex {
 		s.lock.Unlock()
 		return nil
 	}
 
 	for {
-		info, ok := s.indexToAddedLayerInfo[index]
+		info, ok := s.lockProtected.indexToAddedLayerInfo[index]
 		if !ok {
 			break
 		}
@@ -550,25 +638,30 @@ func (s *storageImageDestination) queueOrCommit(index int, info addedLayerInfo) 
 
 	// Set the index at the very end to make sure that only one routine
 	// enters stage 2).
-	s.currentIndex = index
+	s.lockProtected.currentIndex = index
 	s.lock.Unlock()
 	return nil
 }
 
-// getDiffIDOrTOCDigest returns the diffID for the specified digest or the digest for the TOC, if known.
-func (s *storageImageDestination) getDiffIDOrTOCDigest(uncompressedDigest digest.Digest) (digest.Digest, bool) {
+// singleLayerIDComponent returns a single layer’s the input to computing a layer (chain) ID,
+// and an indication whether the input already has the shape of a layer ID.
+// It returns ("", false) if the layer is not found at all (which should never happen)
+func (s *storageImageDestination) singleLayerIDComponent(layerIndex int, blobDigest digest.Digest) (string, bool) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	if d, found := s.diffOutputs[uncompressedDigest]; found {
-		return d.TOCDigest, found
+	if d, found := s.lockProtected.indexToTOCDigest[layerIndex]; found {
+		return "@TOC=" + d.Hex(), false // "@" is not a valid start of a digest.Digest, so this is unambiguous.
 	}
-	d, found := s.uncompressedOrTocDigest[uncompressedDigest]
-	return d, found
+
+	if d, found := s.lockProtected.blobDiffIDs[blobDigest]; found {
+		return d.Hex(), true // This looks like chain IDs, and it uses the traditional value.
+	}
+	return "", false
 }
 
 // commitLayer commits the specified layer with the given index to the storage.
-// size can usually be -1; it can be provided if the layer is not known to be already present in uncompressedOrTocDigest.
+// size can usually be -1; it can be provided if the layer is not known to be already present in blobDiffIDs.
 //
 // If the layer cannot be committed yet, the function returns (true, nil).
 //
@@ -586,29 +679,38 @@ func (s *storageImageDestination) commitLayer(index int, info addedLayerInfo, si
 	// Start with an empty string or the previous layer ID.  Note that
 	// `s.indexToStorageID` can only be accessed by *one* goroutine at any
 	// given time. Hence, we don't need to lock accesses.
-	var lastLayer string
-	if prev := s.indexToStorageID[index-1]; prev != nil {
-		lastLayer = *prev
+	var parentLayer string
+	if index != 0 {
+		prev, ok := s.indexToStorageID[index-1]
+		if !ok {
+			return false, fmt.Errorf("Internal error: commitLayer called with previous layer %d not committed yet", index-1)
+		}
+		parentLayer = prev
 	}
 
 	// Carry over the previous ID for empty non-base layers.
 	if info.emptyLayer {
-		s.indexToStorageID[index] = &lastLayer
+		s.indexToStorageID[index] = parentLayer
 		return false, nil
 	}
 
 	// Check if there's already a layer with the ID that we'd give to the result of applying
 	// this layer blob to its parent, if it has one, or the blob's hex value otherwise.
-	// The diffIDOrTOCDigest refers either to the DiffID or the digest of the TOC.
-	diffIDOrTOCDigest, haveDiffIDOrTOCDigest := s.getDiffIDOrTOCDigest(info.digest)
-	if !haveDiffIDOrTOCDigest {
-		// Check if it's elsewhere and the caller just forgot to pass it to us in a PutBlob(),
-		// or to even check if we had it.
-		// Use none.NoCache to avoid a repeated DiffID lookup in the BlobInfoCache; a caller
+	// The layerID refers either to the DiffID or the digest of the TOC.
+	layerIDComponent, layerIDComponentStandalone := s.singleLayerIDComponent(index, info.digest)
+	if layerIDComponent == "" {
+		// Check if it's elsewhere and the caller just forgot to pass it to us in a PutBlob() / TryReusingBlob() / …
+		//
+		// Use none.NoCache to avoid a repeated DiffID lookup in the BlobInfoCache: a caller
 		// that relies on using a blob digest that has never been seen by the store had better call
 		// TryReusingBlob; not calling PutBlob already violates the documented API, so there’s only
 		// so far we are going to accommodate that (if we should be doing that at all).
-		logrus.Debugf("looking for diffID or TOC digest for blob %+v", info.digest)
+		//
+		// We are also ignoring lookups by TOC, and other non-trivial situations.
+		// Those can only happen using the c/image/internal/private API,
+		// so those internal callers should be fixed to follow the API instead of expanding this fallback.
+		logrus.Debugf("looking for diffID for blob=%+v", info.digest)
+
 		// Use tryReusingBlobAsPending, not the top-level TryReusingBlobWithOptions, to prevent recursion via queueOrCommit.
 		has, _, err := s.tryReusingBlobAsPending(info.digest, size, &private.TryReusingBlobOptions{
 			Cache:         none.NoCache,
@@ -618,115 +720,140 @@ func (s *storageImageDestination) commitLayer(index int, info addedLayerInfo, si
 			return false, fmt.Errorf("checking for a layer based on blob %q: %w", info.digest.String(), err)
 		}
 		if !has {
-			return false, fmt.Errorf("error determining uncompressed digest or TOC digest for blob %q", info.digest.String())
+			return false, fmt.Errorf("error determining uncompressed digest for blob %q", info.digest.String())
 		}
-		diffIDOrTOCDigest, haveDiffIDOrTOCDigest = s.getDiffIDOrTOCDigest(info.digest)
-		if !haveDiffIDOrTOCDigest {
-			return false, fmt.Errorf("we have blob %q, but don't know its uncompressed or TOC digest", info.digest.String())
+
+		layerIDComponent, layerIDComponentStandalone = s.singleLayerIDComponent(index, info.digest)
+		if layerIDComponent == "" {
+			return false, fmt.Errorf("we have blob %q, but don't know its layer ID", info.digest.String())
 		}
 	}
-	id := diffIDOrTOCDigest.Hex()
-	if lastLayer != "" {
-		id = digest.Canonical.FromBytes([]byte(lastLayer + "+" + diffIDOrTOCDigest.Hex())).Hex()
+
+	id := layerIDComponent
+	if !layerIDComponentStandalone || parentLayer != "" {
+		id = digest.Canonical.FromString(parentLayer + "+" + layerIDComponent).Hex()
 	}
 	if layer, err2 := s.imageRef.transport.store.Layer(id); layer != nil && err2 == nil {
 		// There's already a layer that should have the right contents, just reuse it.
-		lastLayer = layer.ID
-		s.indexToStorageID[index] = &lastLayer
+		s.indexToStorageID[index] = layer.ID
 		return false, nil
 	}
 
+	layer, err := s.createNewLayer(index, info.digest, parentLayer, id)
+	if err != nil {
+		return false, err
+	}
+	if layer == nil {
+		return true, nil
+	}
+	s.indexToStorageID[index] = layer.ID
+	return false, nil
+}
+
+// createNewLayer creates a new layer newLayerID for (index, layerDigest) on top of parentLayer (which may be "").
+// If the layer cannot be committed yet, the function returns (nil, nil).
+func (s *storageImageDestination) createNewLayer(index int, layerDigest digest.Digest, parentLayer, newLayerID string) (*storage.Layer, error) {
 	s.lock.Lock()
-	diffOutput, ok := s.diffOutputs[info.digest]
+	diffOutput, ok := s.lockProtected.diffOutputs[index]
 	s.lock.Unlock()
 	if ok {
-		if s.manifest == nil {
-			logrus.Debugf("Skipping commit for TOC=%q, manifest not yet available", id)
-			return true, nil
+		var untrustedUncompressedDigest digest.Digest
+		if diffOutput.UncompressedDigest == "" {
+			d, err := s.untrustedLayerDiffID(index)
+			if err != nil {
+				return nil, err
+			}
+			if d == "" {
+				logrus.Debugf("Skipping commit for layer %q, manifest not yet available", newLayerID)
+				return nil, nil
+			}
+			untrustedUncompressedDigest = d
 		}
 
-		man, err := manifest.FromBlob(s.manifest, manifest.GuessMIMEType(s.manifest))
-		if err != nil {
-			return false, fmt.Errorf("parsing manifest: %w", err)
-		}
-
-		cb, err := s.getConfigBlob(man.ConfigInfo())
-		if err != nil {
-			return false, err
-		}
-
-		// retrieve the expected uncompressed digest from the config blob.
-		configOCI := &imgspecv1.Image{}
-		if err := json.Unmarshal(cb, configOCI); err != nil {
-			return false, err
-		}
-		if index >= len(configOCI.RootFS.DiffIDs) {
-			return false, fmt.Errorf("index %d out of range for configOCI.RootFS.DiffIDs", index)
-		}
-
-		layer, err := s.imageRef.transport.store.CreateLayer(id, lastLayer, nil, "", false, nil)
-		if err != nil {
-			return false, err
-		}
-
-		// let the storage layer know what was the original uncompressed layer.
 		flags := make(map[string]interface{})
-		flags[expectedLayerDiffIDFlag] = configOCI.RootFS.DiffIDs[index]
-		logrus.Debugf("Setting uncompressed digest to %q for layer %q", configOCI.RootFS.DiffIDs[index], id)
-		options := &graphdriver.ApplyDiffWithDifferOpts{
-			Flags: flags,
+		if untrustedUncompressedDigest != "" {
+			flags[expectedLayerDiffIDFlag] = untrustedUncompressedDigest
+			logrus.Debugf("Setting uncompressed digest to %q for layer %q", untrustedUncompressedDigest, newLayerID)
 		}
 
-		if err := s.imageRef.transport.store.ApplyDiffFromStagingDirectory(layer.ID, diffOutput.Target, diffOutput, options); err != nil {
-			_ = s.imageRef.transport.store.Delete(layer.ID)
-			return false, err
-		}
+		args := storage.ApplyStagedLayerOptions{
+			ID:          newLayerID,
+			ParentLayer: parentLayer,
 
-		s.indexToStorageID[index] = &layer.ID
-		return false, nil
+			DiffOutput: diffOutput,
+			DiffOptions: &graphdriver.ApplyDiffWithDifferOpts{
+				Flags: flags,
+			},
+		}
+		layer, err := s.imageRef.transport.store.ApplyStagedLayer(args)
+		if err != nil && !errors.Is(err, storage.ErrDuplicateID) {
+			return nil, fmt.Errorf("failed to put layer using a partial pull: %w", err)
+		}
+		return layer, nil
 	}
 
 	s.lock.Lock()
-	al, ok := s.blobAdditionalLayer[info.digest]
+	al, ok := s.lockProtected.blobAdditionalLayer[layerDigest]
 	s.lock.Unlock()
 	if ok {
-		layer, err := al.PutAs(id, lastLayer, nil)
+		layer, err := al.PutAs(newLayerID, parentLayer, nil)
 		if err != nil && !errors.Is(err, storage.ErrDuplicateID) {
-			return false, fmt.Errorf("failed to put layer from digest and labels: %w", err)
+			return nil, fmt.Errorf("failed to put layer from digest and labels: %w", err)
 		}
-		lastLayer = layer.ID
-		s.indexToStorageID[index] = &lastLayer
-		return false, nil
+		return layer, nil
 	}
 
 	// Check if we previously cached a file with that blob's contents.  If we didn't,
 	// then we need to read the desired contents from a layer.
+	var trustedUncompressedDigest, trustedOriginalDigest digest.Digest // For storage.LayerOptions
 	s.lock.Lock()
-	filename, ok := s.filenames[info.digest]
+	tocDigest := s.lockProtected.indexToTOCDigest[index]       // "" if not set
+	optionalDiffID := s.lockProtected.blobDiffIDs[layerDigest] // "" if not set
+	filename, gotFilename := s.lockProtected.filenames[layerDigest]
 	s.lock.Unlock()
-	if !ok {
-		// Try to find the layer with contents matching that blobsum.
-		layer := ""
-		layers, err2 := s.imageRef.transport.store.LayersByUncompressedDigest(diffIDOrTOCDigest)
-		if err2 == nil && len(layers) > 0 {
-			layer = layers[0].ID
-		} else {
-			layers, err2 = s.imageRef.transport.store.LayersByCompressedDigest(info.digest)
+	if gotFilename && tocDigest == "" {
+		// If tocDigest != "", if we now happen to find a layerDigest match, the newLayerID has already been computed as TOC-based,
+		// and we don't know the relationship of the layerDigest and TOC digest.
+		// We could recompute newLayerID to be DiffID-based and use the file, but such a within-image layer
+		// reuse is expected to be pretty rare; instead, ignore the unexpected file match and proceed to the
+		// originally-planned TOC match.
+
+		// Because tocDigest == "", optionaldiffID must have been set; and even if it weren’t, PutLayer will recompute the digest from the stream.
+		trustedUncompressedDigest = optionalDiffID
+		trustedOriginalDigest = layerDigest // The code setting .filenames[layerDigest] is responsible for the contents matching.
+	} else {
+		// Try to find the layer with contents matching the data we use.
+		var layer *storage.Layer // = nil
+		if tocDigest != "" {
+			layers, err2 := s.imageRef.transport.store.LayersByTOCDigest(tocDigest)
 			if err2 == nil && len(layers) > 0 {
-				layer = layers[0].ID
+				layer = &layers[0]
+			} else {
+				return nil, fmt.Errorf("locating layer for TOC digest %q: %w", tocDigest, err2)
 			}
-		}
-		if layer == "" {
-			return false, fmt.Errorf("locating layer for blob %q: %w", info.digest, err2)
+		} else {
+			// Because tocDigest == "", optionaldiffID must have been set
+			layers, err2 := s.imageRef.transport.store.LayersByUncompressedDigest(optionalDiffID)
+			if err2 == nil && len(layers) > 0 {
+				layer = &layers[0]
+			} else {
+				layers, err2 = s.imageRef.transport.store.LayersByCompressedDigest(layerDigest)
+				if err2 == nil && len(layers) > 0 {
+					layer = &layers[0]
+				}
+			}
+			if layer == nil {
+				return nil, fmt.Errorf("locating layer for blob %q: %w", layerDigest, err2)
+			}
 		}
 		// Read the layer's contents.
 		noCompression := archive.Uncompressed
 		diffOptions := &storage.DiffOptions{
 			Compression: &noCompression,
 		}
-		diff, err2 := s.imageRef.transport.store.Diff("", layer, diffOptions)
+		diff, err2 := s.imageRef.transport.store.Diff("", layer.ID, diffOptions)
 		if err2 != nil {
-			return false, fmt.Errorf("reading layer %q for blob %q: %w", layer, info.digest, err2)
+			return nil, fmt.Errorf("reading layer %q for blob %q: %w", layer.ID, layerDigest, err2)
 		}
 		// Copy the layer diff to a file.  Diff() takes a lock that it holds
 		// until the ReadCloser that it returns is closed, and PutLayer() wants
@@ -736,41 +863,112 @@ func (s *storageImageDestination) commitLayer(index int, info addedLayerInfo, si
 		file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY|os.O_EXCL, 0o600)
 		if err != nil {
 			diff.Close()
-			return false, fmt.Errorf("creating temporary file %q: %w", filename, err)
+			return nil, fmt.Errorf("creating temporary file %q: %w", filename, err)
 		}
 		// Copy the data to the file.
 		// TODO: This can take quite some time, and should ideally be cancellable using
 		// ctx.Done().
-		_, err = io.Copy(file, diff)
+		fileSize, err := io.Copy(file, diff)
 		diff.Close()
 		file.Close()
 		if err != nil {
-			return false, fmt.Errorf("storing blob to file %q: %w", filename, err)
+			return nil, fmt.Errorf("storing blob to file %q: %w", filename, err)
 		}
-		// Make sure that we can find this file later, should we need the layer's
-		// contents again.
-		s.lock.Lock()
-		s.filenames[info.digest] = filename
-		s.lock.Unlock()
+
+		if optionalDiffID == "" && layer.UncompressedDigest != "" {
+			optionalDiffID = layer.UncompressedDigest
+		}
+		// The stream we have is uncompressed, this matches contents of the stream.
+		// If tocDigest != "", trustedUncompressedDigest might still be ""; in that case PutLayer will compute the value from the stream.
+		trustedUncompressedDigest = optionalDiffID
+		// FIXME? trustedOriginalDigest could be set to layerDigest IF tocDigest == "" (otherwise layerDigest is untrusted).
+		// But for c/storage to reasonably use it (as a CompressedDigest value), we should also ensure the CompressedSize of the created
+		// layer is correct, and the API does not currently make it possible (.CompressedSize is set from the input stream).
+		//
+		// We can legitimately set storage.LayerOptions.OriginalDigest to "",
+		// but that would just result in PutLayer computing the digest of the input stream == optionalDiffID.
+		// So, instead, set .OriginalDigest to the value we know already, to avoid that digest computation.
+		trustedOriginalDigest = optionalDiffID
+
+		// Allow using the already-collected layer contents without extracting the layer again.
+		//
+		// This only matches against the uncompressed digest.
+		// We don’t have the original compressed data here to trivially set filenames[layerDigest].
+		// In particular we can’t achieve the correct Layer.CompressedSize value with the current c/storage API.
+		// Within-image layer reuse is probably very rare, for now we prefer to avoid that complexity.
+		if trustedUncompressedDigest != "" {
+			s.lock.Lock()
+			s.lockProtected.blobDiffIDs[trustedUncompressedDigest] = trustedUncompressedDigest
+			s.lockProtected.filenames[trustedUncompressedDigest] = filename
+			s.lockProtected.fileSizes[trustedUncompressedDigest] = fileSize
+			s.lock.Unlock()
+		}
 	}
 	// Read the cached blob and use it as a diff.
 	file, err := os.Open(filename)
 	if err != nil {
-		return false, fmt.Errorf("opening file %q: %w", filename, err)
+		return nil, fmt.Errorf("opening file %q: %w", filename, err)
 	}
 	defer file.Close()
 	// Build the new layer using the diff, regardless of where it came from.
 	// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
-	layer, _, err := s.imageRef.transport.store.PutLayer(id, lastLayer, nil, "", false, &storage.LayerOptions{
-		OriginalDigest:     info.digest,
-		UncompressedDigest: diffIDOrTOCDigest,
+	layer, _, err := s.imageRef.transport.store.PutLayer(newLayerID, parentLayer, nil, "", false, &storage.LayerOptions{
+		OriginalDigest:     trustedOriginalDigest,
+		UncompressedDigest: trustedUncompressedDigest,
 	}, file)
 	if err != nil && !errors.Is(err, storage.ErrDuplicateID) {
-		return false, fmt.Errorf("adding layer with blob %q: %w", info.digest, err)
+		return nil, fmt.Errorf("adding layer with blob %q: %w", layerDigest, err)
+	}
+	return layer, nil
+}
+
+// untrustedLayerDiffID returns a DiffID value for layerIndex from the image’s config.
+// If the value is not yet available (but it can be available after s.manifets is set), it returns ("", nil).
+// WARNING: We don’t validate the DiffID value against the layer contents; it must not be used for any deduplication.
+func (s *storageImageDestination) untrustedLayerDiffID(layerIndex int) (digest.Digest, error) {
+	// At this point, we are either inside the multi-threaded scope of HasThreadSafePutBlob, and
+	// nothing is writing to s.manifest yet, or PutManifest has been called and s.manifest != nil.
+	// Either way this function does not need the protection of s.lock.
+	if s.manifest == nil {
+		logrus.Debugf("Skipping commit for layer %d, manifest not yet available", layerIndex)
+		return "", nil
 	}
 
-	s.indexToStorageID[index] = &layer.ID
-	return false, nil
+	if s.untrustedDiffIDValues == nil {
+		mt := manifest.GuessMIMEType(s.manifest)
+		if mt != imgspecv1.MediaTypeImageManifest {
+			// We could, in principle, build an ImageSource, support arbitrary image formats using image.FromUnparsedImage,
+			// and then use types.Image.OCIConfig so that we can parse the image.
+			//
+			// In practice, this should, right now, only matter for pulls of OCI images (this code path implies that a layer has annotation),
+			// while converting to a non-OCI formats, using a manual (skopeo copy) or something similar, not (podman pull).
+			// So it is not implemented yet.
+			return "", fmt.Errorf("determining DiffID for manifest type %q is not yet supported", mt)
+		}
+		man, err := manifest.FromBlob(s.manifest, mt)
+		if err != nil {
+			return "", fmt.Errorf("parsing manifest: %w", err)
+		}
+
+		cb, err := s.getConfigBlob(man.ConfigInfo())
+		if err != nil {
+			return "", err
+		}
+
+		// retrieve the expected uncompressed digest from the config blob.
+		configOCI := &imgspecv1.Image{}
+		if err := json.Unmarshal(cb, configOCI); err != nil {
+			return "", err
+		}
+		s.untrustedDiffIDValues = slices.Clone(configOCI.RootFS.DiffIDs)
+		if s.untrustedDiffIDValues == nil { // Unlikely but possible in theory…
+			s.untrustedDiffIDValues = []digest.Digest{}
+		}
+	}
+	if layerIndex >= len(s.untrustedDiffIDValues) {
+		return "", fmt.Errorf("image config has only %d DiffID values, but a layer with index %d exists", len(s.untrustedDiffIDValues), layerIndex)
+	}
+	return s.untrustedDiffIDValues[layerIndex], nil
 }
 
 // Commit marks the process of storing the image as successful and asks for the image to be persisted.
@@ -781,6 +979,8 @@ func (s *storageImageDestination) commitLayer(index int, info addedLayerInfo, si
 // - Uploaded data MAY be visible to others before Commit() is called
 // - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)
 func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel types.UnparsedImage) error {
+	// This function is outside of the scope of HasThreadSafePutBlob, so we don’t need to hold s.lock.
+
 	if len(s.manifest) == 0 {
 		return errors.New("Internal error: storageImageDestination.Commit() called without PutManifest()")
 	}
@@ -827,12 +1027,12 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 		}
 	}
 	var lastLayer string
-	if len(layerBlobs) > 0 { // Can happen when using caches
-		prev := s.indexToStorageID[len(layerBlobs)-1]
-		if prev == nil {
+	if len(layerBlobs) > 0 { // Zero-layer images rarely make sense, but it is technically possible, and may happen for non-image artifacts.
+		prev, ok := s.indexToStorageID[len(layerBlobs)-1]
+		if !ok {
 			return fmt.Errorf("Internal error: storageImageDestination.Commit(): previous layer %d hasn't been committed (lastLayer == nil)", len(layerBlobs)-1)
 		}
-		lastLayer = *prev
+		lastLayer = prev
 	}
 
 	// If one of those blobs was a configuration blob, then we can try to dig out the date when the image
@@ -846,14 +1046,14 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 	// Set up to save the non-layer blobs as data items.  Since we only share layers, they should all be in files, so
 	// we just need to screen out the ones that are actually layers to get the list of non-layers.
 	dataBlobs := set.New[digest.Digest]()
-	for blob := range s.filenames {
+	for blob := range s.lockProtected.filenames {
 		dataBlobs.Add(blob)
 	}
 	for _, layerBlob := range layerBlobs {
 		dataBlobs.Delete(layerBlob.Digest)
 	}
 	for _, blob := range dataBlobs.Values() {
-		v, err := os.ReadFile(s.filenames[blob])
+		v, err := os.ReadFile(s.lockProtected.filenames[blob])
 		if err != nil {
 			return fmt.Errorf("copying non-layer blob %q to image: %w", blob, err)
 		}
@@ -906,7 +1106,7 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 	}
 
 	// Set up to save our metadata.
-	metadata, err := json.Marshal(s)
+	metadata, err := json.Marshal(s.metadata)
 	if err != nil {
 		return fmt.Errorf("encoding metadata for image: %w", err)
 	}
@@ -1011,7 +1211,7 @@ func (s *storageImageDestination) PutSignaturesWithFormat(ctx context.Context, s
 	}
 	if instanceDigest == nil {
 		s.signatures = sigblob
-		s.SignatureSizes = sizes
+		s.metadata.SignatureSizes = sizes
 		if len(s.manifest) > 0 {
 			manifestDigest := s.manifestDigest
 			instanceDigest = &manifestDigest
@@ -1019,7 +1219,7 @@ func (s *storageImageDestination) PutSignaturesWithFormat(ctx context.Context, s
 	}
 	if instanceDigest != nil {
 		s.signatureses[*instanceDigest] = sigblob
-		s.SignaturesSizes[*instanceDigest] = sizes
+		s.metadata.SignaturesSizes[*instanceDigest] = sizes
 	}
 	return nil
 }

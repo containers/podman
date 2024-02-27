@@ -296,7 +296,7 @@ func isNetworkFileSystem(fsMagic graphdriver.FsMagic) bool {
 	// a bunch of network file systems...
 	case graphdriver.FsMagicNfsFs, graphdriver.FsMagicSmbFs, graphdriver.FsMagicAcfs,
 		graphdriver.FsMagicAfs, graphdriver.FsMagicCephFs, graphdriver.FsMagicCIFS,
-		graphdriver.FsMagicFHGFSFs, graphdriver.FsMagicGPFS, graphdriver.FsMagicIBRIX,
+		graphdriver.FsMagicGPFS, graphdriver.FsMagicIBRIX,
 		graphdriver.FsMagicKAFS, graphdriver.FsMagicLUSTRE, graphdriver.FsMagicNCP,
 		graphdriver.FsMagicNFSD, graphdriver.FsMagicOCFS2, graphdriver.FsMagicPANFS,
 		graphdriver.FsMagicPRLFS, graphdriver.FsMagicSMB2, graphdriver.FsMagicSNFS,
@@ -2124,7 +2124,8 @@ func (d *Driver) ApplyDiffWithDiffer(id, parent string, options *graphdriver.App
 }
 
 // ApplyDiffFromStagingDirectory applies the changes using the specified staging directory.
-func (d *Driver) ApplyDiffFromStagingDirectory(id, parent, stagingDirectory string, diffOutput *graphdriver.DriverWithDifferOutput, options *graphdriver.ApplyDiffWithDifferOpts) error {
+func (d *Driver) ApplyDiffFromStagingDirectory(id, parent string, diffOutput *graphdriver.DriverWithDifferOutput, options *graphdriver.ApplyDiffWithDifferOpts) error {
+	stagingDirectory := diffOutput.Target
 	if filepath.Dir(stagingDirectory) != d.getStagingDir() {
 		return fmt.Errorf("%q is not a staging directory", stagingDirectory)
 	}

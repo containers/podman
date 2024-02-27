@@ -82,18 +82,11 @@ func determineManifestConversion(in determineManifestConversionInputs) (manifest
 	if in.forceManifestMIMEType != "" {
 		destSupportedManifestMIMETypes = []string{in.forceManifestMIMEType}
 	}
-
-	restrictiveCompressionRequired := in.requestedCompressionFormat != nil && !internalManifest.CompressionAlgorithmIsUniversallySupported(*in.requestedCompressionFormat)
 	if len(destSupportedManifestMIMETypes) == 0 {
-		if (!in.requiresOCIEncryption || manifest.MIMETypeSupportsEncryption(srcType)) &&
-			(!restrictiveCompressionRequired || internalManifest.MIMETypeSupportsCompressionAlgorithm(srcType, *in.requestedCompressionFormat)) {
-			return manifestConversionPlan{ // Anything goes; just use the original as is, do not try any conversions.
-				preferredMIMEType:       srcType,
-				otherMIMETypeCandidates: []string{},
-			}, nil
-		}
 		destSupportedManifestMIMETypes = allManifestMIMETypes
 	}
+
+	restrictiveCompressionRequired := in.requestedCompressionFormat != nil && !internalManifest.CompressionAlgorithmIsUniversallySupported(*in.requestedCompressionFormat)
 	supportedByDest := set.New[string]()
 	for _, t := range destSupportedManifestMIMETypes {
 		if in.requiresOCIEncryption && !manifest.MIMETypeSupportsEncryption(t) {
