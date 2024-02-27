@@ -423,7 +423,7 @@ func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo b
 
 	for _, mount := range mc.Mounts {
 		if mount.VSockNumber == nil {
-			return fmt.Errorf("mount %s has not vsock port defined", mount.Source)
+			return fmt.Errorf("mount %s has no vsock port defined", mount.Source)
 		}
 		p9ServerArgs = append(p9ServerArgs, "--serve", fmt.Sprintf("%s:%s", mount.Source, winio.VsockServiceID(uint32(*mount.VSockNumber)).String()))
 	}

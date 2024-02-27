@@ -1,10 +1,14 @@
 package e2e_test
 
 import (
+	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
+	"path/filepath"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -93,6 +97,31 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(out).ToNot(ContainSubstring("gvproxy"))
 	})
 
+	It("podman volume on non-standard path", func() {
+		skipIfWSL("Requires standard volume handling")
+		dir, err := os.MkdirTemp("", "machine-volume")
+		Expect(err).ToNot(HaveOccurred())
+		defer os.RemoveAll(dir)
+
+		testString := "abcdefg1234567"
+		testFile := "testfile"
+		err = os.WriteFile(filepath.Join(dir, testFile), []byte(testString), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		name := randomString()
+		machinePath := "/does/not/exist"
+		init := new(initMachine).withVolume(fmt.Sprintf("%s:%s", dir, machinePath)).withImagePath(mb.imagePath).withNow()
+		session, err := mb.setName(name).setCmd(init).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		// Must use path.Join to ensure forward slashes are used, even on Windows.
+		ssh := new(sshMachine).withSSHCommand([]string{"cat", path.Join(machinePath, testFile)})
+		ls, err := mb.setName(name).setCmd(ssh).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(ls).To(Exit(0))
+		Expect(ls.outputToString()).To(ContainSubstring(testString))
+	})
 })
 
 func testHTTPServer(port string, shouldErr bool, expectedResponse string) {

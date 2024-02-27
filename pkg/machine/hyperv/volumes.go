@@ -5,6 +5,8 @@ package hyperv
 import (
 	"errors"
 	"fmt"
+	"path"
+	"strings"
 
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/hyperv/vsock"
@@ -40,7 +42,19 @@ func removeShares(mc *vmconfigs.MachineConfig) error {
 
 func startShares(mc *vmconfigs.MachineConfig) error {
 	for _, mount := range mc.Mounts {
-		args := []string{"-q", "--", "sudo", "podman"}
+		args := []string{"-q", "--"}
+
+		cleanTarget := path.Clean(mount.Target)
+		requiresChattr := !strings.HasPrefix(cleanTarget, "/home") && !strings.HasPrefix(cleanTarget, "/mnt")
+		if requiresChattr {
+			args = append(args, "sudo", "chattr", "-i", "/", "; ")
+		}
+		args = append(args, "sudo", "mkdir", "-p", cleanTarget, "; ")
+		if requiresChattr {
+			args = append(args, "sudo", "chattr", "+i", "/", "; ")
+		}
+
+		args = append(args, "sudo", "podman")
 		if logrus.IsLevelEnabled(logrus.DebugLevel) {
 			args = append(args, "--log-level=debug")
 		}
@@ -48,7 +62,7 @@ func startShares(mc *vmconfigs.MachineConfig) error {
 		if mount.VSockNumber == nil {
 			return errors.New("cannot start 9p shares with undefined vsock number")
 		}
-		args = append(args, "machine", "client9p", fmt.Sprintf("%d", mount.VSockNumber), mount.Target)
+		args = append(args, "machine", "client9p", fmt.Sprintf("%d", *mount.VSockNumber), mount.Target)
 
 		if err := machine.CommonSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, args); err != nil {
 			return err
