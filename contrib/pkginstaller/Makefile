@@ -40,7 +40,7 @@ packagedir: podman_version package_root Distribution welcome.html
 	../../test/version/version > $(PACKAGE_DIR)/VERSION
 	echo -n $(ARCH) > $(PACKAGE_DIR)/ARCH
 	cp ../../LICENSE $(PACKAGE_DIR)/Resources/LICENSE.txt
-	cp hvf.entitlements $(PACKAGE_DIR)/
+	cp vfkit.entitlements $(PACKAGE_DIR)/
 
 package_root: clean-pkgroot $(TMP_DOWNLOAD)/gvproxy $(TMP_DOWNLOAD)/vfkit
 	mkdir -p $(PACKAGE_ROOT)/podman/bin
