@@ -55,7 +55,7 @@ func (c *CleanupCallback) clean() {
 	}
 }
 
-func InitCleanup() CleanupCallback {
+func CleanUp() CleanupCallback {
 	return CleanupCallback{
 		Funcs: []func() error{},
 	}
