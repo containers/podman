@@ -1332,10 +1332,10 @@ func ParseRestartPolicy(policy string) (string, uint, error) {
 	return policyType, retriesUint, nil
 }
 
-// ConvertTimeout converts negative timeout to MaxInt, which indicates approximately infinity, waiting to stop containers
+// ConvertTimeout converts negative timeout to MaxUint32, which indicates approximately infinity, waiting to stop containers
 func ConvertTimeout(timeout int) uint {
 	if timeout < 0 {
-		return math.MaxInt
+		return math.MaxUint32
 	}
 	return uint(timeout)
 }
