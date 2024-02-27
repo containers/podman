@@ -76,3 +76,5 @@ require (
 )
 
 replace github.com/onsi/gomega => github.com/onsi/gomega v1.16.0
+
+replace github.com/opencontainers/runc => github.com/mheon/runc v0.0.0-20240227201613-d09e29ac8168
