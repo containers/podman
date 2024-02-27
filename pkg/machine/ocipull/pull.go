@@ -44,9 +44,14 @@ func Pull(ctx context.Context, imageInput types.ImageReference, localDestPath *d
 		sysCtx.DockerAuthConfig = authConf
 	}
 
-	policy, err := signature.DefaultPolicy(sysCtx)
+	path, err := policyPath()
 	if err != nil {
-		return fmt.Errorf("obtaining default signature policy: %w", err)
+		return err
+	}
+
+	policy, err := signature.NewPolicyFromFile(path)
+	if err != nil {
+		return fmt.Errorf("obtaining signature policy: %w", err)
 	}
 	policyContext, err := signature.NewPolicyContext(policy)
 	if err != nil {
