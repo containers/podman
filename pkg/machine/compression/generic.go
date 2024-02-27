@@ -69,7 +69,7 @@ func (d *genericDecompressor) sparseOptimizedCopy(w WriteSeekCloser, r io.Reader
 	sparseWriter := NewSparseWriter(w)
 	defer func() {
 		e := sparseWriter.Close()
-		if err != nil {
+		if e != nil && err == nil {
 			err = e
 		}
 	}()
