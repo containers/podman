@@ -73,6 +73,7 @@ type ListUpdate struct {
 		Platform                  *imgspecv1.Platform
 		Annotations               map[string]string
 		CompressionAlgorithmNames []string
+		ArtifactType              string
 	}
 }
 
@@ -101,6 +102,7 @@ type ListEdit struct {
 	AddDigest                digest.Digest
 	AddSize                  int64
 	AddMediaType             string
+	AddArtifactType          string
 	AddPlatform              *imgspecv1.Platform
 	AddAnnotations           map[string]string
 	AddCompressionAlgorithms []compression.Algorithm

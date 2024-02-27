@@ -181,6 +181,13 @@ type DiffOptions struct {
 	Compression *archive.Compression
 }
 
+// stagedLayerOptions are the options passed to .create to populate a staged
+// layer
+type stagedLayerOptions struct {
+	DiffOutput  *drivers.DriverWithDifferOutput
+	DiffOptions *drivers.ApplyDiffWithDifferOpts
+}
+
 // roLayerStore wraps a graph driver, adding the ability to refer to layers by
 // name, and keeping track of parent-child relationships, along with a list of
 // all known layers.
@@ -267,7 +274,7 @@ type rwLayerStore interface {
 	// underlying drivers do not themselves distinguish between writeable
 	// and read-only layers.  Returns the new layer structure and the size of the
 	// diff which was applied to its parent to initialize its contents.
-	create(id string, parent *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, diff io.Reader) (*Layer, int64, error)
+	create(id string, parent *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, diff io.Reader, slo *stagedLayerOptions) (*Layer, int64, error)
 
 	// updateNames modifies names associated with a layer based on (op, names).
 	updateNames(id string, names []string, op updateNameOperation) error
@@ -312,8 +319,8 @@ type rwLayerStore interface {
 	// CleanupStagingDirectory cleanups the staging directory.  It can be used to cleanup the staging directory on errors
 	CleanupStagingDirectory(stagingDirectory string) error
 
-	// ApplyDiffFromStagingDirectory uses stagingDirectory to create the diff.
-	ApplyDiffFromStagingDirectory(id, stagingDirectory string, diffOutput *drivers.DriverWithDifferOutput, options *drivers.ApplyDiffWithDifferOpts) error
+	// applyDiffFromStagingDirectory uses diffOutput.Target to create the diff.
+	applyDiffFromStagingDirectory(id string, diffOutput *drivers.DriverWithDifferOutput, options *drivers.ApplyDiffWithDifferOpts) error
 
 	// DifferTarget gets the location where files are stored for the layer.
 	DifferTarget(id string) (string, error)
@@ -1232,7 +1239,7 @@ func (r *layerStore) PutAdditionalLayer(id string, parentLayer *Layer, names []s
 }
 
 // Requires startWriting.
-func (r *layerStore) create(id string, parentLayer *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, diff io.Reader) (layer *Layer, size int64, err error) {
+func (r *layerStore) create(id string, parentLayer *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, diff io.Reader, slo *stagedLayerOptions) (layer *Layer, size int64, err error) {
 	if moreOptions == nil {
 		moreOptions = &LayerOptions{}
 	}
@@ -1424,6 +1431,11 @@ func (r *layerStore) create(id string, parentLayer *Layer, names []string, mount
 	if diff != nil {
 		if size, err = r.applyDiffWithOptions(layer.ID, moreOptions, diff); err != nil {
 			cleanupFailureContext = "applying layer diff"
+			return nil, -1, err
+		}
+	} else if slo != nil {
+		if err := r.applyDiffFromStagingDirectory(layer.ID, slo.DiffOutput, slo.DiffOptions); err != nil {
+			cleanupFailureContext = "applying staged directory diff"
 			return nil, -1, err
 		}
 	} else {
@@ -2286,7 +2298,7 @@ func (r *layerStore) applyDiffWithOptions(to string, layerOptions *LayerOptions,
 	if layerOptions != nil && layerOptions.UncompressedDigest != "" &&
 		layerOptions.UncompressedDigest.Algorithm() == digest.Canonical {
 		uncompressedDigest = layerOptions.UncompressedDigest
-	} else {
+	} else if compression != archive.Uncompressed {
 		uncompressedDigester = digest.Canonical.Digester()
 	}
 
@@ -2365,10 +2377,17 @@ func (r *layerStore) applyDiffWithOptions(to string, layerOptions *LayerOptions,
 	if uncompressedDigester != nil {
 		uncompressedDigest = uncompressedDigester.Digest()
 	}
+	if uncompressedDigest == "" && compression == archive.Uncompressed {
+		uncompressedDigest = compressedDigest
+	}
 
 	updateDigestMap(&r.bycompressedsum, layer.CompressedDigest, compressedDigest, layer.ID)
 	layer.CompressedDigest = compressedDigest
-	layer.CompressedSize = compressedCounter.Count
+	if layerOptions != nil && layerOptions.OriginalDigest != "" && layerOptions.OriginalSize != nil {
+		layer.CompressedSize = *layerOptions.OriginalSize
+	} else {
+		layer.CompressedSize = compressedCounter.Count
+	}
 	updateDigestMap(&r.byuncompressedsum, layer.UncompressedDigest, uncompressedDigest, layer.ID)
 	layer.UncompressedDigest = uncompressedDigest
 	layer.UncompressedSize = uncompressedCounter.Count
@@ -2407,7 +2426,7 @@ func (r *layerStore) DifferTarget(id string) (string, error) {
 }
 
 // Requires startWriting.
-func (r *layerStore) ApplyDiffFromStagingDirectory(id, stagingDirectory string, diffOutput *drivers.DriverWithDifferOutput, options *drivers.ApplyDiffWithDifferOpts) error {
+func (r *layerStore) applyDiffFromStagingDirectory(id string, diffOutput *drivers.DriverWithDifferOutput, options *drivers.ApplyDiffWithDifferOpts) error {
 	ddriver, ok := r.driver.(drivers.DriverWithDiffer)
 	if !ok {
 		return ErrNotSupported
@@ -2426,7 +2445,7 @@ func (r *layerStore) ApplyDiffFromStagingDirectory(id, stagingDirectory string, 
 		}
 	}
 
-	err := ddriver.ApplyDiffFromStagingDirectory(layer.ID, layer.Parent, stagingDirectory, diffOutput, options)
+	err := ddriver.ApplyDiffFromStagingDirectory(layer.ID, layer.Parent, diffOutput, options)
 	if err != nil {
 		return err
 	}
@@ -2446,6 +2465,10 @@ func (r *layerStore) ApplyDiffFromStagingDirectory(id, stagingDirectory string, 
 			layer.Flags[k] = v
 		}
 	}
+	if err = r.saveFor(layer); err != nil {
+		return err
+	}
+
 	if len(diffOutput.TarSplit) != 0 {
 		tsdata := bytes.Buffer{}
 		compressor, err := pgzip.NewWriterLevel(&tsdata, pgzip.BestSpeed)
@@ -2474,9 +2497,6 @@ func (r *layerStore) ApplyDiffFromStagingDirectory(id, stagingDirectory string, 
 			}
 			return err
 		}
-	}
-	if err = r.saveFor(layer); err != nil {
-		return err
 	}
 	return err
 }

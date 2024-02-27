@@ -12,7 +12,6 @@ import (
 
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/internal/blobinfocache"
 	"github.com/containers/image/v5/internal/imagedestination"
 	"github.com/containers/image/v5/internal/imagedestination/impl"
 	"github.com/containers/image/v5/internal/imagedestination/stubs"
@@ -128,8 +127,8 @@ func (d *openshiftImageDestination) PutBlobWithOptions(ctx context.Context, stre
 // It is available only if SupportsPutBlobPartial().
 // Even if SupportsPutBlobPartial() returns true, the call can fail, in which case the caller
 // should fall back to PutBlobWithOptions.
-func (d *openshiftImageDestination) PutBlobPartial(ctx context.Context, chunkAccessor private.BlobChunkAccessor, srcInfo types.BlobInfo, cache blobinfocache.BlobInfoCache2) (private.UploadedBlob, error) {
-	return d.docker.PutBlobPartial(ctx, chunkAccessor, srcInfo, cache)
+func (d *openshiftImageDestination) PutBlobPartial(ctx context.Context, chunkAccessor private.BlobChunkAccessor, srcInfo types.BlobInfo, options private.PutBlobPartialOptions) (private.UploadedBlob, error) {
+	return d.docker.PutBlobPartial(ctx, chunkAccessor, srcInfo, options)
 }
 
 // TryReusingBlobWithOptions checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination

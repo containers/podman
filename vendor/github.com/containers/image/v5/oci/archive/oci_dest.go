@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/containers/image/v5/internal/blobinfocache"
 	"github.com/containers/image/v5/internal/imagedestination"
 	"github.com/containers/image/v5/internal/imagedestination/impl"
 	"github.com/containers/image/v5/internal/private"
@@ -120,8 +119,8 @@ func (d *ociArchiveImageDestination) PutBlobWithOptions(ctx context.Context, str
 // It is available only if SupportsPutBlobPartial().
 // Even if SupportsPutBlobPartial() returns true, the call can fail, in which case the caller
 // should fall back to PutBlobWithOptions.
-func (d *ociArchiveImageDestination) PutBlobPartial(ctx context.Context, chunkAccessor private.BlobChunkAccessor, srcInfo types.BlobInfo, cache blobinfocache.BlobInfoCache2) (private.UploadedBlob, error) {
-	return d.unpackedDest.PutBlobPartial(ctx, chunkAccessor, srcInfo, cache)
+func (d *ociArchiveImageDestination) PutBlobPartial(ctx context.Context, chunkAccessor private.BlobChunkAccessor, srcInfo types.BlobInfo, options private.PutBlobPartialOptions) (private.UploadedBlob, error) {
+	return d.unpackedDest.PutBlobPartial(ctx, chunkAccessor, srcInfo, options)
 }
 
 // TryReusingBlobWithOptions checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination

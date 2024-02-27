@@ -339,12 +339,43 @@ func (compression *Compression) Extension() string {
 	return ""
 }
 
+// nosysFileInfo hides the system-dependent info of the wrapped FileInfo to
+// prevent tar.FileInfoHeader from introspecting it and potentially calling into
+// glibc.
+type nosysFileInfo struct {
+	os.FileInfo
+}
+
+func (fi nosysFileInfo) Sys() interface{} {
+	// A Sys value of type *tar.Header is safe as it is system-independent.
+	// The tar.FileInfoHeader function copies the fields into the returned
+	// header without performing any OS lookups.
+	if sys, ok := fi.FileInfo.Sys().(*tar.Header); ok {
+		return sys
+	}
+	return nil
+}
+
+// sysStatOverride, if non-nil, populates hdr from system-dependent fields of fi.
+var sysStatOverride func(fi os.FileInfo, hdr *tar.Header) error
+
+func fileInfoHeaderNoLookups(fi os.FileInfo, link string) (*tar.Header, error) {
+	if sysStatOverride == nil {
+		return tar.FileInfoHeader(fi, link)
+	}
+	hdr, err := tar.FileInfoHeader(nosysFileInfo{fi}, link)
+	if err != nil {
+		return nil, err
+	}
+	return hdr, sysStatOverride(fi, hdr)
+}
+
 // FileInfoHeader creates a populated Header from fi.
 // Compared to archive pkg this function fills in more information.
 // Also, regardless of Go version, this function fills file type bits (e.g. hdr.Mode |= modeISDIR),
 // which have been deleted since Go 1.9 archive/tar.
 func FileInfoHeader(name string, fi os.FileInfo, link string) (*tar.Header, error) {
-	hdr, err := tar.FileInfoHeader(fi, link)
+	hdr, err := fileInfoHeaderNoLookups(fi, link)
 	if err != nil {
 		return nil, err
 	}

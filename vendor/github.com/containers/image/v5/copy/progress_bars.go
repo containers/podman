@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/types"
@@ -148,13 +149,14 @@ type blobChunkAccessorProxy struct {
 // The readers must be fully consumed, in the order they are returned, before blocking
 // to read the next chunk.
 func (s *blobChunkAccessorProxy) GetBlobAt(ctx context.Context, info types.BlobInfo, chunks []private.ImageSourceChunk) (chan io.ReadCloser, chan error, error) {
+	start := time.Now()
 	rc, errs, err := s.wrapped.GetBlobAt(ctx, info, chunks)
 	if err == nil {
 		total := int64(0)
 		for _, c := range chunks {
 			total += int64(c.Length)
 		}
-		s.bar.IncrInt64(total)
+		s.bar.EwmaIncrInt64(total, time.Since(start))
 	}
 	return rc, errs, err
 }

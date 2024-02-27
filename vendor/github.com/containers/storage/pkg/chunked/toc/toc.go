@@ -1,6 +1,8 @@
 package toc
 
 import (
+	"errors"
+
 	"github.com/containers/storage/pkg/chunked/internal"
 	digest "github.com/opencontainers/go-digest"
 )
@@ -16,19 +18,24 @@ const tocJSONDigestAnnotation = "containerd.io/snapshot/stargz/toc.digest"
 // table of contents (TOC) from the image's annotations.
 // This is an experimental feature and may be changed/removed in the future.
 func GetTOCDigest(annotations map[string]string) (*digest.Digest, error) {
-	if contentDigest, ok := annotations[tocJSONDigestAnnotation]; ok {
-		d, err := digest.Parse(contentDigest)
+	d1, ok1 := annotations[tocJSONDigestAnnotation]
+	d2, ok2 := annotations[internal.ManifestChecksumKey]
+	switch {
+	case ok1 && ok2:
+		return nil, errors.New("both zstd:chunked and eStargz TOC found")
+	case ok1:
+		d, err := digest.Parse(d1)
 		if err != nil {
 			return nil, err
 		}
 		return &d, nil
-	}
-	if contentDigest, ok := annotations[internal.ManifestChecksumKey]; ok {
-		d, err := digest.Parse(contentDigest)
+	case ok2:
+		d, err := digest.Parse(d2)
 		if err != nil {
 			return nil, err
 		}
 		return &d, nil
+	default:
+		return nil, nil
 	}
-	return nil, nil
 }

@@ -14,11 +14,11 @@ require (
 	github.com/containers/common v0.57.1-0.20240207210145-1eeaf97594e9
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.3
-	github.com/containers/image/v5 v5.29.2-0.20240130233108-e66a1ade2efc
+	github.com/containers/image/v5 v5.29.3-0.20240227090231-5bef5e1e1506
 	github.com/containers/libhvee v0.6.1-0.20240225143609-c1bda9d3838c
 	github.com/containers/ocicrypt v1.1.9
 	github.com/containers/psgo v1.9.0
-	github.com/containers/storage v1.52.1-0.20240202181245-1419a5980565
+	github.com/containers/storage v1.52.1-0.20240227082351-387d7c8480b0
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/coreos/stream-metadata-go v0.4.4
@@ -44,7 +44,7 @@ require (
 	github.com/klauspost/compress v1.17.7
 	github.com/linuxkit/virtsock v0.0.0-20220523201153-1a23e78aa7a2
 	github.com/mattn/go-shellwords v1.0.12
-	github.com/mattn/go-sqlite3 v1.14.21
+	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mdlayher/vsock v1.2.1
 	github.com/moby/sys/user v0.1.0
 	github.com/moby/term v0.5.0
@@ -54,7 +54,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/opencontainers/runc v1.1.12
-	github.com/opencontainers/runtime-spec v1.1.1-0.20230823135140-4fec88fd00a4
+	github.com/opencontainers/runtime-spec v1.2.0
 	github.com/opencontainers/runtime-tools v0.9.1-0.20230914150019-408c51e934dc
 	github.com/opencontainers/selinux v1.11.0
 	github.com/openshift/imagebuilder v1.2.6
@@ -69,7 +69,7 @@ require (
 	github.com/vbauerster/mpb/v8 v8.7.2
 	github.com/vishvananda/netlink v1.2.1-beta.2
 	go.etcd.io/bbolt v1.3.9
-	golang.org/x/exp v0.0.0-20231226003508-02704c960a9b
+	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
 	golang.org/x/net v0.21.0
 	golang.org/x/sync v0.6.0
 	golang.org/x/sys v0.17.0
@@ -86,7 +86,7 @@ require (
 require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
-	github.com/Microsoft/hcsshim v0.12.0-rc.2 // indirect
+	github.com/Microsoft/hcsshim v0.12.0-rc.3 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/aead/serpent v0.0.0-20160714141033-fba169763ea6 // indirect
@@ -97,6 +97,7 @@ require (
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/containerd/cgroups/v3 v3.0.3 // indirect
 	github.com/containerd/containerd v1.7.13 // indirect
+	github.com/containerd/errdefs v0.1.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.15.1 // indirect
 	github.com/containerd/typeurl/v2 v2.1.1 // indirect
@@ -210,9 +211,9 @@ require (
 	go.opentelemetry.io/otel/sdk v1.21.0 // indirect
 	go.opentelemetry.io/otel/trace v1.22.0 // indirect
 	golang.org/x/arch v0.7.0 // indirect
-	golang.org/x/crypto v0.19.0 // indirect
+	golang.org/x/crypto v0.20.0 // indirect
 	golang.org/x/mod v0.14.0 // indirect
-	golang.org/x/oauth2 v0.16.0 // indirect
+	golang.org/x/oauth2 v0.17.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.17.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
