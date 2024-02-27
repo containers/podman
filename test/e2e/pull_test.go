@@ -633,12 +633,12 @@ var _ = Describe("Podman pull", func() {
 			Expect(session).Should(Exit(125))
 
 			// Pulling encrypted image with wrong key should fail
-			session = podmanTest.Podman([]string{"pull", "-q", "--decryption-key", wrongPrivateKeyFileName, imgPath})
+			session = podmanTest.Podman([]string{"pull", "-q", "--decryption-key", wrongPrivateKeyFileName, "--tls-verify=false", imgPath})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(125))
 
 			// Pulling encrypted image with correct key should pass
-			session = podmanTest.Podman([]string{"pull", "-q", "--decryption-key", privateKeyFileName, imgPath})
+			session = podmanTest.Podman([]string{"pull", "-q", "--decryption-key", privateKeyFileName, "--tls-verify=false", imgPath})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
 			session = podmanTest.Podman([]string{"images"})
@@ -675,9 +675,9 @@ var _ = Describe("Podman pull", func() {
 				err := podmanTest.RestoreArtifact(REGISTRY_IMAGE)
 				Expect(err).ToNot(HaveOccurred())
 			}
-			lock := GetPortLock("5000")
+			lock := GetPortLock("5012")
 			defer lock.Unlock()
-			session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+			session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5012:5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
 
@@ -685,7 +685,7 @@ var _ = Describe("Podman pull", func() {
 				Skip("Cannot start docker registry.")
 			}
 
-			imgPath := "localhost:5000/my-alpine"
+			imgPath := "localhost:5012/my-alpine"
 
 			session = decryptionTestHelper(imgPath)
 

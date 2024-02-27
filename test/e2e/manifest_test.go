@@ -169,9 +169,9 @@ var _ = Describe("Podman manifest", func() {
 			err := podmanTest.RestoreArtifact(REGISTRY_IMAGE)
 			Expect(err).ToNot(HaveOccurred())
 		}
-		lock := GetPortLock("5000")
+		lock := GetPortLock("5007")
 		defer lock.Unlock()
-		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5007:5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -197,14 +197,14 @@ var _ = Describe("Podman manifest", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		push := podmanTest.Podman([]string{"manifest", "push", "--all", "--compression-format", "gzip", "--add-compression", "zstd", "--tls-verify=false", "--remove-signatures", "foobar", "localhost:5000/list"})
+		push := podmanTest.Podman([]string{"manifest", "push", "--all", "--compression-format", "gzip", "--add-compression", "zstd", "--tls-verify=false", "--remove-signatures", "foobar", "localhost:5007/list"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
 		output := push.ErrorToString()
 		// 4 images must be pushed two for gzip and two for zstd
 		Expect(output).To(ContainSubstring("Copying 4 images generated from 2 images in list"))
 
-		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5000/list:latest"})
+		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5007/list:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		var index imgspecv1.Index
@@ -218,14 +218,14 @@ var _ = Describe("Podman manifest", func() {
 		Expect(verifyInstanceCompression(index.Manifests, "gzip", "amd64")).Should(BeTrue())
 
 		// Note: Pushing again with --force-compression should produce the correct response the since blobs will be correctly force-pushed again.
-		push = podmanTest.Podman([]string{"manifest", "push", "--all", "--add-compression", "zstd", "--tls-verify=false", "--compression-format", "gzip", "--force-compression", "--remove-signatures", "foobar", "localhost:5000/list"})
+		push = podmanTest.Podman([]string{"manifest", "push", "--all", "--add-compression", "zstd", "--tls-verify=false", "--compression-format", "gzip", "--force-compression", "--remove-signatures", "foobar", "localhost:5007/list"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
 		output = push.ErrorToString()
 		// 4 images must be pushed two for gzip and two for zstd
 		Expect(output).To(ContainSubstring("Copying 4 images generated from 2 images in list"))
 
-		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5000/list:latest"})
+		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5007/list:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		inspectData = []byte(session.OutputToString())
@@ -244,14 +244,14 @@ add_compression = ["zstd"]`), 0o644)
 		Expect(err).ToNot(HaveOccurred())
 		os.Setenv("CONTAINERS_CONF", confFile)
 
-		push = podmanTest.Podman([]string{"manifest", "push", "--all", "--tls-verify=false", "--compression-format", "gzip", "--force-compression", "--remove-signatures", "foobar", "localhost:5000/list"})
+		push = podmanTest.Podman([]string{"manifest", "push", "--all", "--tls-verify=false", "--compression-format", "gzip", "--force-compression", "--remove-signatures", "foobar", "localhost:5007/list"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
 		output = push.ErrorToString()
 		// 4 images must be pushed two for gzip and two for zstd
 		Expect(output).To(ContainSubstring("Copying 4 images generated from 2 images in list"))
 
-		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5000/list:latest"})
+		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5007/list:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		inspectData = []byte(session.OutputToString())
@@ -265,14 +265,14 @@ add_compression = ["zstd"]`), 0o644)
 
 		// Note: Pushing again with --force-compression=false should produce in-correct/wrong result since blobs are already present in registry so they will be reused
 		// ignoring our compression priority ( this is expected behaviour of c/image and --force-compression is introduced to mitigate this behaviour ).
-		push = podmanTest.Podman([]string{"manifest", "push", "--all", "--add-compression", "zstd", "--force-compression=false", "--tls-verify=false", "--remove-signatures", "foobar", "localhost:5000/list"})
+		push = podmanTest.Podman([]string{"manifest", "push", "--all", "--add-compression", "zstd", "--force-compression=false", "--tls-verify=false", "--remove-signatures", "foobar", "localhost:5007/list"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
 		output = push.ErrorToString()
 		// 4 images must be pushed two for gzip and two for zstd
 		Expect(output).To(ContainSubstring("Copying 4 images generated from 2 images in list"))
 
-		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5000/list:latest"})
+		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5007/list:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		inspectData = []byte(session.OutputToString())

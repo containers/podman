@@ -668,11 +668,11 @@ var _ = Describe("Podman kube generate", func() {
 	It("on pod with ports", func() {
 		podName := "test"
 
-		lock4 := GetPortLock("4000")
+		lock4 := GetPortLock("4008")
 		defer lock4.Unlock()
-		lock5 := GetPortLock("5000")
+		lock5 := GetPortLock("5008")
 		defer lock5.Unlock()
-		podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName, "-p", "4000:4000", "-p", "5000:5000"})
+		podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName, "-p", "4008:4000", "-p", "5008:5000"})
 		podSession.WaitWithDefaultTimeout()
 		Expect(podSession).Should(ExitCleanly())
 
@@ -694,8 +694,8 @@ var _ = Describe("Podman kube generate", func() {
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).ToNot(HaveOccurred())
 
-		foundPort4000 := 0
-		foundPort5000 := 0
+		foundPort400x := 0
+		foundPort500x := 0
 		foundOtherPort := 0
 		for _, ctr := range pod.Spec.Containers {
 			for _, port := range ctr.Ports {
@@ -703,17 +703,17 @@ var _ = Describe("Podman kube generate", func() {
 				// have anything for protocol under the ports as tcp is the default
 				// for k8s
 				Expect(port.Protocol).To(BeEmpty())
-				if port.HostPort == 4000 {
-					foundPort4000++
-				} else if port.HostPort == 5000 {
-					foundPort5000++
+				if port.HostPort == 4008 {
+					foundPort400x++
+				} else if port.HostPort == 5008 {
+					foundPort500x++
 				} else {
 					foundOtherPort++
 				}
 			}
 		}
-		Expect(foundPort4000).To(Equal(1))
-		Expect(foundPort5000).To(Equal(1))
+		Expect(foundPort400x).To(Equal(1))
+		Expect(foundPort500x).To(Equal(1))
 		Expect(foundOtherPort).To(Equal(0))
 
 		// Create container with UDP port and check the generated kube yaml
