@@ -854,6 +854,9 @@ func addRlimits(ulimit []string, g *generate.Generator, defaultUlimits []string)
 	var (
 		ul  *units.Ulimit
 		err error
+		// setup rlimits
+		nofileSet bool
+		nprocSet  bool
 	)
 
 	ulimit = append(defaultUlimits, ulimit...)
@@ -862,8 +865,39 @@ func addRlimits(ulimit []string, g *generate.Generator, defaultUlimits []string)
 			return fmt.Errorf("ulimit option %q requires name=SOFT:HARD, failed to be parsed: %w", u, err)
 		}
 
+		if strings.ToUpper(ul.Name) == "NOFILE" {
+			nofileSet = true
+		}
+		if strings.ToUpper(ul.Name) == "NPROC" {
+			nprocSet = true
+		}
 		g.AddProcessRlimits("RLIMIT_"+strings.ToUpper(ul.Name), uint64(ul.Hard), uint64(ul.Soft))
 	}
+	if !nofileSet {
+		max := define.RLimitDefaultValue
+		var rlimit unix.Rlimit
+		if err := unix.Getrlimit(unix.RLIMIT_NOFILE, &rlimit); err == nil {
+			if max < rlimit.Max || unshare.IsRootless() {
+				max = rlimit.Max
+			}
+		} else {
+			logrus.Warnf("Failed to return RLIMIT_NOFILE ulimit %q", err)
+		}
+		g.AddProcessRlimits("RLIMIT_NOFILE", max, max)
+	}
+	if !nprocSet {
+		max := define.RLimitDefaultValue
+		var rlimit unix.Rlimit
+		if err := unix.Getrlimit(unix.RLIMIT_NPROC, &rlimit); err == nil {
+			if max < rlimit.Max || unshare.IsRootless() {
+				max = rlimit.Max
+			}
+		} else {
+			logrus.Warnf("Failed to return RLIMIT_NPROC ulimit %q", err)
+		}
+		g.AddProcessRlimits("RLIMIT_NPROC", max, max)
+	}
+
 	return nil
 }
 

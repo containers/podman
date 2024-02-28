@@ -45,7 +45,6 @@ type CWConvertImageOptions struct {
 	FirmwareLibrary          string
 	BaseImage                string
 	Logger                   *logrus.Logger
-	ExtraImageContent        map[string]string
 
 	// Passed through to BuilderOptions. Most settings won't make
 	// sense to be made available here because we don't launch a process.
@@ -173,7 +172,6 @@ func CWConvertImage(ctx context.Context, systemContext *types.SystemContext, sto
 		FirmwareLibrary:          options.FirmwareLibrary,
 		Logger:                   logger,
 		GraphOptions:             store.GraphOptions(),
-		ExtraImageContent:        options.ExtraImageContent,
 	}
 	rc, workloadConfig, err := mkcw.Archive(sourceDir, &source.OCIv1, archiveOptions)
 	if err != nil {

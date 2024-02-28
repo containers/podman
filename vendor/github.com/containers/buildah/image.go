@@ -204,7 +204,9 @@ func (i *containerImageRef) extractConfidentialWorkloadFS(options ConfidentialWo
 		Slop:                     options.Slop,
 		FirmwareLibrary:          options.FirmwareLibrary,
 		GraphOptions:             i.store.GraphOptions(),
-		ExtraImageContent:        i.extraImageContent,
+	}
+	if len(i.extraImageContent) > 0 {
+		logrus.Warnf("ignoring extra requested content %v, not implemented (yet)", i.extraImageContent)
 	}
 	rc, _, err := mkcw.Archive(mountPoint, &image, archiveOptions)
 	if err != nil {
@@ -273,7 +275,7 @@ func (i *containerImageRef) extractRootfs(opts ExtractRootfsOptions) (io.ReadClo
 			StripSetgidBit: opts.StripSetgidBit,
 			StripXattrs:    opts.StripXattrs,
 		}
-		err := copier.Get(mountPoint, mountPoint, copierOptions, []string{"."}, pipeWriter)
+		err = copier.Get(mountPoint, mountPoint, copierOptions, []string{"."}, pipeWriter)
 		errChan <- err
 		pipeWriter.Close()
 

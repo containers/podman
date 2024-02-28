@@ -1173,7 +1173,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 
 	if len(children) == 0 {
 		// There are no steps.
-		if s.builder.FromImageID == "" || s.executor.squash || s.executor.confidentialWorkload.Convert || len(s.executor.labels) > 0 || len(s.executor.annotations) > 0 || len(s.executor.unsetEnvs) > 0 || len(s.executor.unsetLabels) > 0 || len(s.executor.sbomScanOptions) > 0 {
+		if s.builder.FromImageID == "" || s.executor.squash || s.executor.confidentialWorkload.Convert || len(s.executor.labels) > 0 || len(s.executor.annotations) > 0 || len(s.executor.unsetEnvs) > 0 || len(s.executor.unsetLabels) > 0 {
 			// We either don't have a base image, or we need to
 			// transform the contents of the base image, or we need
 			// to make some changes to just the config blob.  Whichever
@@ -1182,7 +1182,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			// No base image means there's nothing to put in a
 			// layer, so don't create one.
 			emptyLayer := (s.builder.FromImageID == "")
-			if imgID, ref, err = s.commit(ctx, s.getCreatedBy(nil, ""), emptyLayer, s.output, s.executor.squash || s.executor.confidentialWorkload.Convert, lastStage); err != nil {
+			if imgID, ref, err = s.commit(ctx, s.getCreatedBy(nil, ""), emptyLayer, s.output, s.executor.squash, lastStage); err != nil {
 				return "", nil, false, fmt.Errorf("committing base container: %w", err)
 			}
 		} else {
@@ -1217,7 +1217,24 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		}
 		logrus.Debugf("Parsed Step: %+v", *step)
 		if !s.executor.quiet {
-			s.log("%s", step.Original)
+			logMsg := step.Original
+			if len(step.Heredocs) > 0 {
+				summarizeHeredoc := func(doc string) string {
+					doc = strings.TrimSpace(doc)
+					lines := strings.Split(strings.ReplaceAll(doc, "\r\n", "\n"), "\n")
+					summary := lines[0]
+					if len(lines) > 1 {
+						summary += "..."
+					}
+					return summary
+				}
+
+				for _, doc := range node.Heredocs {
+					heredocContent := summarizeHeredoc(doc.Content)
+					logMsg = logMsg + " (" + heredocContent + ")"
+				}
+			}
+			s.log("%s", logMsg)
 		}
 
 		// Check if there's a --from if the step command is COPY.
@@ -1580,13 +1597,11 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		}
 
 		if lastInstruction && lastStage {
-			if s.executor.squash || s.executor.confidentialWorkload.Convert || len(s.executor.sbomScanOptions) != 0 {
-				// If this is the last instruction of the last stage,
-				// create a squashed or confidential workload
-				// version of the image if that's what we're after,
-				// or a normal one if we need to scan the image while
-				// committing it.
-				imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), !s.stepRequiresLayer(step), commitName, s.executor.squash || s.executor.confidentialWorkload.Convert, lastStage && lastInstruction)
+			if s.executor.squash || s.executor.confidentialWorkload.Convert {
+				// Create a squashed version of this image
+				// if we're supposed to create one and this
+				// is the last instruction of the last stage.
+				imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), !s.stepRequiresLayer(step), commitName, true, lastStage && lastInstruction)
 				if err != nil {
 					return "", nil, false, fmt.Errorf("committing final squash step %+v: %w", *step, err)
 				}
@@ -1737,11 +1752,15 @@ func (s *StageExecutor) getCreatedBy(node *parser.Node, addedContentSummary stri
 		buildArgs := s.getBuildArgsKey()
 		return "/bin/sh -c #(nop) ARG " + buildArgs
 	case "RUN":
+		shArg := ""
 		buildArgs := s.getBuildArgsResolvedForRun()
-		if buildArgs != "" {
-			return "|" + strconv.Itoa(len(strings.Split(buildArgs, " "))) + " " + buildArgs + " /bin/sh -c " + node.Original[4:]
+		if len(node.Original) > 4 {
+			shArg = node.Original[4:]
 		}
-		result := "/bin/sh -c " + node.Original[4:]
+		if buildArgs != "" {
+			return "|" + strconv.Itoa(len(strings.Split(buildArgs, " "))) + " " + buildArgs + " /bin/sh -c " + shArg
+		}
+		result := "/bin/sh -c " + shArg
 		if len(node.Heredocs) > 0 {
 			for _, doc := range node.Heredocs {
 				heredocContent := strings.TrimSpace(doc.Content)
@@ -2206,7 +2225,6 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 	}
 	if finalInstruction {
 		options.ConfidentialWorkloadOptions = s.executor.confidentialWorkload
-		options.SBOMScanOptions = s.executor.sbomScanOptions
 	}
 	imgID, _, manifestDigest, err := s.builder.Commit(ctx, imageRef, options)
 	if err != nil {
