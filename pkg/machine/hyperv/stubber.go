@@ -138,9 +138,6 @@ func (h HyperVStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, quiet bool)
 }
 
 func (h HyperVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() error, error) {
-	mc.Lock()
-	defer mc.Unlock()
-
 	_, vm, err := GetVMFromMC(mc)
 	if err != nil {
 		return nil, nil, err
@@ -247,9 +244,6 @@ func (h HyperVStubber) State(mc *vmconfigs.MachineConfig, bypass bool) (define.S
 }
 
 func (h HyperVStubber) StopVM(mc *vmconfigs.MachineConfig, hardStop bool) error {
-	mc.Lock()
-	defer mc.Unlock()
-
 	vmm := hypervctl.NewVirtualMachineManager()
 	vm, err := vmm.GetMachine(mc.Name)
 	if err != nil {
@@ -306,9 +300,6 @@ func (h HyperVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define
 	var (
 		cpuChanged, memoryChanged bool
 	)
-
-	mc.Lock()
-	defer mc.Unlock()
 
 	_, vm, err := GetVMFromMC(mc)
 	if err != nil {

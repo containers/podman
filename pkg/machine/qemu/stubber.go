@@ -252,9 +252,6 @@ func (q *QEMUStubber) resizeDisk(newSize strongunits.GiB, diskPath *define.VMFil
 }
 
 func (q *QEMUStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.SetOptions) error {
-	mc.Lock()
-	defer mc.Unlock()
-
 	state, err := q.State(mc, false)
 	if err != nil {
 		return err

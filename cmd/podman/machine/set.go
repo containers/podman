@@ -10,6 +10,7 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/shim"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/spf13/cobra"
 )
@@ -136,10 +137,5 @@ func setMachine(cmd *cobra.Command, args []string) error {
 
 	// At this point, we have the known changed information, etc
 	// Walk through changes to the providers if they need them
-	if err := provider.SetProviderAttrs(mc, setOpts); err != nil {
-		return err
-	}
-
-	// Update the configuration file last if everything earlier worked
-	return mc.Write()
+	return shim.Set(mc, provider, setOpts)
 }

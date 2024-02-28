@@ -18,9 +18,6 @@ import (
 )
 
 func (a *AppleHVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() error, error) {
-	mc.Lock()
-	defer mc.Unlock()
-
 	return []string{}, func() error { return nil }, nil
 }
 
@@ -75,8 +72,6 @@ func (a *AppleHVStubber) State(mc *vmconfigs.MachineConfig, _ bool) (define.Stat
 }
 
 func (a *AppleHVStubber) StopVM(mc *vmconfigs.MachineConfig, _ bool) error {
-	mc.Lock()
-	defer mc.Unlock()
 	return mc.AppleHypervisor.Vfkit.Stop(false, true)
 }
 
