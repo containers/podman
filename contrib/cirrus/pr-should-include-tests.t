@@ -7,6 +7,13 @@
 #
 ME=$(basename $0)
 
+# As of 2024-02 our test script queries github, for which we need token
+if [[ -z "$GITHUB_TOKEN" ]]; then
+    echo "$ME: Please set \$GITHUB_TOKEN" >&2
+    exit 1
+fi
+export CIRRUS_REPO_CLONE_TOKEN="$GITHUB_TOKEN"
+
 ###############################################################################
 # BEGIN test cases
 #
@@ -26,19 +33,19 @@ ME=$(basename $0)
 #        commit history, but once we do, please add a new '0' test here.
 #
 tests="
-0  68c9e02df  db71759b1   PR 8821: multiple commits, includes tests
-0  bb82c37b7  eeb4c129b   PR 8832: single commit, w/tests, merge-base test
-1  1f5927699  864592c74   PR 8685, multiple commits, no tests
-0  7592f8fbb  6bbe54f2b   PR 8766, no tests, but CI:DOCS in commit message
-0  355e38769  bfbd915d6   PR 8884, a vendor bump
-0  ffe2b1e95  e467400eb   PR 8899, only .cirrus.yml
-0  06a6fd9f2  3cc080151   PR 8695, docs-only, without CI:DOCS
-0  a47515008  ecedda63a   PR 8816, unit tests only
-0  caa84cd35  e55320efd   PR 8565, hack/podman-socat only
-0  c342583da  12f835d12   PR 8523, version.go + podman.spec.in
-0  8f75ed958  7b3ad6d89   PR 8835, only a README.md change
-0  b6db60e58  f06dd45e0   PR 9420, a test rename
-0  c6a896b0c  4ea5d6971   PR 11833, includes magic string
+0  68c9e02df  db71759b1   8821  multiple commits, includes tests
+0  bb82c37b7  eeb4c129b   8832  single commit, w/tests, merge-base test
+1  1f5927699  864592c74   8685  multiple commits, no tests
+0  7592f8fbb  6bbe54f2b   8766  no tests, but CI:DOCS in commit message
+0  355e38769  bfbd915d6   8884  a vendor bump
+0  ffe2b1e95  e467400eb   8899  only .cirrus.yml
+0  06a6fd9f2  3cc080151   8695  docs-only, without CI:DOCS
+0  a47515008  ecedda63a   8816  unit tests only
+0  caa84cd35  e55320efd   8565  hack/podman-socat only
+0  c342583da  12f835d12   8523  version.go + podman.spec.in
+0  8f75ed958  7b3ad6d89   8835  only a README.md change
+0  b6db60e58  f06dd45e0   9420  a test rename
+0  c6a896b0c  4ea5d6971  11833  includes magic string
 "
 
 # The script we're testing
@@ -76,10 +83,10 @@ function run_test_script() {
                 echo "# Actual:   $output"
                 rc=1
             else
-                echo "ok $testnum $testname"
+                echo "ok $testnum $testname - rc=$expected_rc"
             fi
         else
-            echo "ok $testnum $testname"
+            echo "ok $testnum $testname - rc=$expected_rc"
         fi
     fi
 
@@ -97,15 +104,6 @@ function run_test_script() {
                 echo "ok $testnum $rest (override with CI:DOCS)"
             fi
 
-            testnum=$(( testnum + 1 ))
-            CIRRUS_CHANGE_MESSAGE="hi there [NO TESTS NEEDED] bye" $test_script &>/dev/null
-            if [[ $? -ne 0 ]]; then
-                echo "not ok $testnum $rest (override with '[NO TESTS NEEDED]')"
-                rc=1
-            else
-                echo "ok $testnum $rest (override with '[NO TESTS NEEDED]')"
-            fi
-
             tested_override=1
         fi
     fi
@@ -119,7 +117,7 @@ rc=0
 testnum=0
 tested_override=
 
-while read expected_rc parent_sha  commit_sha rest; do
+while read expected_rc parent_sha  commit_sha pr rest; do
     # Skip blank lines
     test -z "$expected_rc" && continue
 
@@ -127,8 +125,9 @@ while read expected_rc parent_sha  commit_sha rest; do
     export CIRRUS_CHANGE_IN_REPO=$commit_sha
     export CIRRUS_CHANGE_TITLE=$(git log -1 --format=%s $commit_sha)
     export CIRRUS_CHANGE_MESSAGE=
+    export CIRRUS_PR=$pr
 
-    run_test_script $expected_rc "$rest"
+    run_test_script $expected_rc "PR $pr - $rest"
 done <<<"$tests"
 
 echo "1..$testnum"
