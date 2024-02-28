@@ -81,7 +81,7 @@ BuildRequires: glibc-devel
 BuildRequires: glibc-static
 BuildRequires: golang
 BuildRequires: git-core
-%if !%{defined gobuild}
+%if %{undefined rhel} || 0%{?rhel} >= 10
 BuildRequires: go-rpm-macros
 %endif
 BuildRequires: gpgme-devel
@@ -219,7 +219,7 @@ export CGO_CFLAGS+=" -m64 -mtune=generic -fcf-protection=full"
 
 export GOPROXY=direct
 
-LDFLAGS="-X %{ld_libpod}/define.buildInfo=$(date +%s) \
+LDFLAGS="-X %{ld_libpod}/define.buildInfo=${SOURCE_DATE_EPOCH:-$(date +%s)} \
          -X %{ld_libpod}/config._installPrefix=%{_prefix} \
          -X %{ld_libpod}/config._etcDir=%{_sysconfdir} \
          -X %{ld_project}/pkg/systemd/quadlet._binDir=%{_bindir}"
