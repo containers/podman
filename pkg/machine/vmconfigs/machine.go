@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/lock"
 	"github.com/containers/podman/v5/utils"
+	"github.com/containers/storage/pkg/ioutils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -133,7 +134,7 @@ func (mc *MachineConfig) write() error {
 		return err
 	}
 	logrus.Debugf("writing configuration file %q", mc.configPath.Path)
-	return os.WriteFile(mc.configPath.GetPath(), b, define.DefaultFilePerm)
+	return ioutils.AtomicWriteFile(mc.configPath.GetPath(), b, define.DefaultFilePerm)
 }
 
 func (mc *MachineConfig) SetRootful(rootful bool) error {
