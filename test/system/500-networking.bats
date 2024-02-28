@@ -953,4 +953,52 @@ EOF
     assert "$output" = $hostname "/etc/hostname with --uts=host --net=host must be equal to 'uname -n'"
 }
 
+@test "podman network inspect running containers" {
+    local cname1=c1-$(random_string 10)
+    local cname2=c2-$(random_string 10)
+    local cname3=c3-$(random_string 10)
+
+    local netname=net-$(random_string 10)
+    local subnet=$(random_rfc1918_subnet)
+
+    run_podman network create --subnet "${subnet}.0/24" $netname
+
+    run_podman network inspect --format "{{json .Containers}}" $netname
+    assert "$output" == "{}" "no containers on the network"
+
+    run_podman create --name $cname1 --network $netname $IMAGE top
+    cid1="$output"
+    run_podman create --name $cname2 --network $netname $IMAGE top
+    cid2="$output"
+
+    # containers should only be part of the output when they are running
+    run_podman network inspect --format "{{json .Containers}}" $netname
+    assert "$output" == "{}" "no running containers on the network"
+
+    # start the containers to setup the network info
+    run_podman start $cname1 $cname2
+
+    # also run a third container on different network (should not be part of inspect then)
+    run_podman run -d --name $cname3 --network podman $IMAGE top
+    cid3="$output"
+
+    # Map ordering is not deterministic so we check each container one by one
+    local expect="\{\"name\":\"$cname1\",\"interfaces\":\{\"eth0\":\{\"subnets\":\[\{\"ipnet\":\"${subnet}.2/24\"\,\"gateway\":\"${subnet}.1\"\}\],\"mac_address\":\"[0-9a-f]{2}:.*\"\}\}\}"
+    run_podman network inspect --format "{{json (index .Containers \"$cid1\")}}" $netname
+    assert "$output" =~ "$expect" "container 1 on the network"
+
+    local expect="\{\"name\":\"$cname2\",\"interfaces\":\{\"eth0\":\{\"subnets\":\[\{\"ipnet\":\"${subnet}.3/24\"\,\"gateway\":\"${subnet}.1\"\}\],\"mac_address\":\"[0-9a-f]{2}:.*\"\}\}\}"
+    run_podman network inspect --format "{{json (index .Containers \"$cid2\")}}" $netname
+    assert "$output" =~ "$expect" "container 2 on the network"
+
+    # container 3 should not be part of the inspect, index does not error if the key does not
+    # exists so just make sure the cid3 and cname3 are not in the json.
+    run_podman network inspect --format "{{json .Containers}}" $netname
+    assert "$output" !~ "$cid3" "container 3 on the network (cid)"
+    assert "$output" !~ "$cname3" "container 3 on the network (name)"
+
+    run_podman rm -f -t0 $cname1 $cname2 $cname3
+    run_podman network rm $netname
+}
+
 # vim: filetype=sh

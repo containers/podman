@@ -22,9 +22,9 @@ func (ic *ContainerEngine) NetworkList(ctx context.Context, opts entities.Networ
 	return network.List(ic.ClientCtx, options)
 }
 
-func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []string, opts entities.InspectOptions) ([]types.Network, []error, error) {
+func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []string, opts entities.InspectOptions) ([]entities.NetworkInspectReport, []error, error) {
 	var (
-		reports = make([]types.Network, 0, len(namesOrIds))
+		reports = make([]entities.NetworkInspectReport, 0, len(namesOrIds))
 		errs    = []error{}
 	)
 	options := new(network.InspectOptions)

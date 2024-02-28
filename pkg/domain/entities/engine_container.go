@@ -70,7 +70,7 @@ type ContainerEngine interface { //nolint:interfacebloat
 	NetworkUpdate(ctx context.Context, networkname string, options NetworkUpdateOptions) error
 	NetworkDisconnect(ctx context.Context, networkname string, options NetworkDisconnectOptions) error
 	NetworkExists(ctx context.Context, networkname string) (*BoolReport, error)
-	NetworkInspect(ctx context.Context, namesOrIds []string, options InspectOptions) ([]netTypes.Network, []error, error)
+	NetworkInspect(ctx context.Context, namesOrIds []string, options InspectOptions) ([]NetworkInspectReport, []error, error)
 	NetworkList(ctx context.Context, options NetworkListOptions) ([]netTypes.Network, error)
 	NetworkPrune(ctx context.Context, options NetworkPruneOptions) ([]*NetworkPruneReport, error)
 	NetworkReload(ctx context.Context, names []string, options NetworkReloadOptions) ([]*NetworkReloadReport, error)

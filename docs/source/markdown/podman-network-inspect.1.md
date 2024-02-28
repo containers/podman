@@ -16,6 +16,7 @@ Pretty-print networks to JSON or using a Go template.
 
 | **Placeholder**    | **Description**                           |
 |--------------------|-------------------------------------------|
+| .Containers ...    | Running containers on this network.       |
 | .Created ...       | Timestamp when the network was created    |
 | .DNSEnabled        | Network has dns enabled (boolean)         |
 | .Driver            | Network driver                            |
@@ -25,6 +26,7 @@ Pretty-print networks to JSON or using a Go template.
 | .IPv6Enabled       | Network has ipv6 subnet (boolean)         |
 | .Labels ...        | Network labels                            |
 | .Name              | Network name                              |
+| .Network ...       | Nested Network type                       |
 | .NetworkDNSServers | Array of DNS servers used in this network |
 | .NetworkInterface  | Name of the network interface on the host |
 | .Options ...       | Network options                           |
