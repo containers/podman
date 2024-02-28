@@ -34,7 +34,7 @@ var _ = Describe("run basic podman commands", func() {
 		// so skip it on cirrus envs and where CIRRUS_CI isn't set.
 		name := randomString()
 		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withNow()).run()
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withNow()).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -62,7 +62,7 @@ var _ = Describe("run basic podman commands", func() {
 	It("Podman ops with port forwarding and gvproxy", func() {
 		name := randomString()
 		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withNow()).run()
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withNow()).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -110,7 +110,7 @@ var _ = Describe("run basic podman commands", func() {
 
 		name := randomString()
 		machinePath := "/does/not/exist"
-		init := new(initMachine).withVolume(fmt.Sprintf("%s:%s", dir, machinePath)).withImagePath(mb.imagePath).withNow()
+		init := new(initMachine).withVolume(fmt.Sprintf("%s:%s", dir, machinePath)).withImage(mb.imagePath).withNow()
 		session, err := mb.setName(name).setCmd(init).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))

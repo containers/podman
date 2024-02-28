@@ -61,7 +61,7 @@ var _ = Describe("podman machine init", func() {
 
 		bi := new(initMachine)
 		want := fmt.Sprintf("system connection \"%s\" already exists", badName)
-		badInit, berr := mb.setName(badName).setCmd(bi.withImagePath(mb.imagePath)).run()
+		badInit, berr := mb.setName(badName).setCmd(bi.withImage(mb.imagePath)).run()
 		Expect(berr).ToNot(HaveOccurred())
 		Expect(badInit).To(Exit(125))
 		Expect(badInit.errorToString()).To(ContainSubstring(want))
@@ -81,7 +81,7 @@ var _ = Describe("podman machine init", func() {
 
 	It("simple init", func() {
 		i := new(initMachine)
-		session, err := mb.setCmd(i.withImagePath(mb.imagePath)).run()
+		session, err := mb.setCmd(i.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -100,7 +100,7 @@ var _ = Describe("podman machine init", func() {
 
 	It("simple init with start", func() {
 		i := initMachine{}
-		session, err := mb.setCmd(i.withImagePath(mb.imagePath)).run()
+		session, err := mb.setCmd(i.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -137,7 +137,7 @@ var _ = Describe("podman machine init", func() {
 	It("simple init with username", func() {
 		i := new(initMachine)
 		remoteUsername := "remoteuser"
-		session, err := mb.setCmd(i.withImagePath(mb.imagePath).withUsername(remoteUsername)).run()
+		session, err := mb.setCmd(i.withImage(mb.imagePath).withUsername(remoteUsername)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -160,7 +160,7 @@ var _ = Describe("podman machine init", func() {
 		skipIfWSL("setting hardware resource numbers and timezone are not supported on WSL")
 		name := randomString()
 		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withCPUs(2).withDiskSize(102).withMemory(4096).withTimezone("Pacific/Honolulu")).run()
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withCPUs(2).withDiskSize(102).withMemory(4096).withTimezone("Pacific/Honolulu")).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -212,7 +212,7 @@ var _ = Describe("podman machine init", func() {
 
 		name := randomString()
 		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withVolume(mount).withNow()).run()
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withVolume(mount).withNow()).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -226,7 +226,7 @@ var _ = Describe("podman machine init", func() {
 	It("machine init rootless docker.sock check", func() {
 		i := initMachine{}
 		name := randomString()
-		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -249,7 +249,7 @@ var _ = Describe("podman machine init", func() {
 	It("machine init rootful with docker.sock check", func() {
 		i := initMachine{}
 		name := randomString()
-		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withRootful(true)).run()
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withRootful(true)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -276,7 +276,7 @@ var _ = Describe("podman machine init", func() {
 	It("init should cleanup on failure", func() {
 		i := new(initMachine)
 		name := randomString()
-		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
@@ -303,7 +303,7 @@ var _ = Describe("podman machine init", func() {
 			// Bad ignition path - init fails
 			i = new(initMachine)
 			i.ignitionPath = "/bad/path"
-			session, err = mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
+			session, err = mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(session).To(Exit(125))
 
@@ -355,7 +355,7 @@ var _ = Describe("podman machine init", func() {
 		// We should be able to init with a bad config present
 		i := new(initMachine)
 		name := randomString()
-		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 

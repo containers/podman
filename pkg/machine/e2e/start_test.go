@@ -23,7 +23,7 @@ var _ = Describe("podman machine start", func() {
 
 	It("start simple machine", func() {
 		i := new(initMachine)
-		session, err := mb.setCmd(i.withImagePath(mb.imagePath)).run()
+		session, err := mb.setCmd(i.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 		s := new(startMachine)
@@ -68,7 +68,7 @@ var _ = Describe("podman machine start", func() {
 
 	It("start machine already started", func() {
 		i := new(initMachine)
-		session, err := mb.setCmd(i.withImagePath(mb.imagePath)).run()
+		session, err := mb.setCmd(i.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 		s := new(startMachine)
@@ -90,13 +90,13 @@ var _ = Describe("podman machine start", func() {
 	It("start only starts specified machine", func() {
 		i := initMachine{}
 		startme := randomString()
-		session, err := mb.setName(startme).setCmd(i.withImagePath(mb.imagePath)).run()
+		session, err := mb.setName(startme).setCmd(i.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
 		j := initMachine{}
 		dontstartme := randomString()
-		session2, err := mb.setName(dontstartme).setCmd(j.withImagePath(mb.imagePath)).run()
+		session2, err := mb.setName(dontstartme).setCmd(j.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session2).To(Exit(0))
 

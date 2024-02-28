@@ -33,12 +33,12 @@ var _ = Describe("podman inspect stop", func() {
 
 	It("inspect two machines", func() {
 		i := new(initMachine)
-		foo1, err := mb.setName("foo1").setCmd(i.withImagePath(mb.imagePath)).run()
+		foo1, err := mb.setName("foo1").setCmd(i.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(foo1).To(Exit(0))
 
 		ii := new(initMachine)
-		foo2, err := mb.setName("foo2").setCmd(ii.withImagePath(mb.imagePath)).run()
+		foo2, err := mb.setName("foo2").setCmd(ii.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(foo2).To(Exit(0))
 
@@ -53,7 +53,7 @@ var _ = Describe("podman inspect stop", func() {
 	It("inspect with go format", func() {
 		name := randomString()
 		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
