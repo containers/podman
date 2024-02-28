@@ -70,7 +70,7 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 		imagePath      *machineDefine.VMFile
 	)
 
-	callbackFuncs := machine.InitCleanup()
+	callbackFuncs := machine.CleanUp()
 	defer callbackFuncs.CleanIfErr(&err)
 	go callbackFuncs.CleanOnSignal()
 
@@ -350,15 +350,31 @@ func Stop(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDef
 	return nil
 }
 
-func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, _ *machineDefine.MachineDirs, opts machine.StartOptions) error {
+func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDefine.MachineDirs, opts machine.StartOptions) error {
 	defaultBackoff := 500 * time.Millisecond
 	maxBackoffs := 6
+
+	gvproxyPidFile, err := dirs.RuntimeDir.AppendToNewVMFile("gvproxy.pid", nil)
+	if err != nil {
+		return err
+	}
 
 	// start gvproxy and set up the API socket forwarding
 	forwardSocketPath, forwardingState, err := startNetworking(mc, mp)
 	if err != nil {
 		return err
 	}
+
+	callBackFuncs := machine.CleanUp()
+	defer callBackFuncs.CleanIfErr(&err)
+	go callBackFuncs.CleanOnSignal()
+
+	// Clean up gvproxy if start fails
+	cleanGV := func() error {
+		return machine.CleanupGVProxy(*gvproxyPidFile)
+	}
+	callBackFuncs.Add(cleanGV)
+
 	// if there are generic things that need to be done, a preStart function could be added here
 	// should it be extensive
 
