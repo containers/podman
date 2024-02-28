@@ -10,7 +10,7 @@ import (
 	"syscall"
 
 	"github.com/containernetworking/plugins/pkg/ns"
-	"github.com/containers/common/libnetwork/types"
+	"github.com/containers/podman/v5/pkg/domain/entities"
 	. "github.com/containers/podman/v5/test/utils"
 	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo/v2"
@@ -36,7 +36,7 @@ var _ = Describe("Podman run networking", func() {
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)
 		Expect(session).Should(ExitCleanly())
-		var results []types.Network
+		var results []entities.NetworkInspectReport
 		err := json.Unmarshal([]byte(session.OutputToString()), &results)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(results).To(HaveLen(1))
@@ -83,7 +83,7 @@ var _ = Describe("Podman run networking", func() {
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)
 		Expect(session).Should(ExitCleanly())
-		var results []types.Network
+		var results []entities.NetworkInspectReport
 		err := json.Unmarshal([]byte(session.OutputToString()), &results)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(results).To(HaveLen(1))

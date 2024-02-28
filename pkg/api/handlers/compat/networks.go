@@ -22,36 +22,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type containerNetStatus struct {
-	name   string
-	id     string
-	status map[string]nettypes.StatusBlock
-}
-
-func getContainerNetStatuses(rt *libpod.Runtime) ([]containerNetStatus, error) {
-	cons, err := rt.GetAllContainers()
-	if err != nil {
-		return nil, err
-	}
-	statuses := make([]containerNetStatus, 0, len(cons))
-	for _, con := range cons {
-		status, err := con.GetNetworkStatus()
-		if err != nil {
-			if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
-				continue
-			}
-			return nil, err
-		}
-
-		statuses = append(statuses, containerNetStatus{
-			id:     con.ID(),
-			name:   con.Name(),
-			status: status,
-		})
-	}
-	return statuses, nil
-}
-
 func normalizeNetworkName(rt *libpod.Runtime, name string) (string, bool) {
 	if name == nettypes.BridgeNetworkDriver {
 		return rt.Network().DefaultNetworkName(), true
@@ -86,7 +56,8 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 		utils.NetworkNotFound(w, name, err)
 		return
 	}
-	statuses, err := getContainerNetStatuses(runtime)
+	ic := abi.ContainerEngine{Libpod: runtime}
+	statuses, err := ic.GetContainerNetStatuses()
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -95,10 +66,10 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, report)
 }
 
-func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, statuses []containerNetStatus, network *nettypes.Network, changeDefaultName bool) *types.NetworkResource {
+func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, statuses []abi.ContainerNetStatus, network *nettypes.Network, changeDefaultName bool) *types.NetworkResource {
 	containerEndpoints := make(map[string]types.EndpointResource, len(statuses))
 	for _, st := range statuses {
-		if netData, ok := st.status[network.Name]; ok {
+		if netData, ok := st.Status[network.Name]; ok {
 			ipv4Address := ""
 			ipv6Address := ""
 			macAddr := ""
@@ -116,12 +87,12 @@ func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, statuses []con
 				break
 			}
 			containerEndpoint := types.EndpointResource{
-				Name:        st.name,
+				Name:        st.Name,
 				MacAddress:  macAddr,
 				IPv4Address: ipv4Address,
 				IPv6Address: ipv6Address,
 			}
-			containerEndpoints[st.id] = containerEndpoint
+			containerEndpoints[st.ID] = containerEndpoint
 		}
 	}
 	ipamConfigs := make([]dockerNetwork.IPAMConfig, 0, len(network.Subnets))
@@ -192,7 +163,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	statuses, err := getContainerNetStatuses(runtime)
+	statuses, err := ic.GetContainerNetStatuses()
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

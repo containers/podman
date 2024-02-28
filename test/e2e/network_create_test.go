@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/containers/common/libnetwork/types"
+	"github.com/containers/podman/v5/pkg/domain/entities"
 	. "github.com/containers/podman/v5/test/utils"
 	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo/v2"
@@ -32,7 +33,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(inspect).Should(ExitCleanly())
 
 		// JSON the network configuration into something usable
-		var results []types.Network
+		var results []entities.NetworkInspectReport
 		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(results).To(HaveLen(1))
@@ -84,7 +85,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(inspect).Should(ExitCleanly())
 
 		// JSON the network configuration into something usable
-		var results []types.Network
+		var results []entities.NetworkInspectReport
 		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(results).To(HaveLen(1))
@@ -125,7 +126,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(inspect).Should(ExitCleanly())
 
 		// JSON the network configuration into something usable
-		var results []types.Network
+		var results []entities.NetworkInspectReport
 		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(results).To(HaveLen(1))
@@ -168,7 +169,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(inspect).Should(ExitCleanly())
 
 		// JSON the network configuration into something usable
-		var results []types.Network
+		var results []entities.NetworkInspectReport
 		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(results).To(HaveLen(1))
@@ -213,7 +214,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(inspect).Should(ExitCleanly())
 
 		// JSON the network configuration into something usable
-		var results []types.Network
+		var results []entities.NetworkInspectReport
 		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(results).To(HaveLen(1))
@@ -254,7 +255,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(inspect).Should(ExitCleanly())
 
 		// JSON the network configuration into something usable
-		var results []types.Network
+		var results []entities.NetworkInspectReport
 		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(results).To(HaveLen(1))
@@ -284,7 +285,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(inspect).Should(ExitCleanly())
 
 		// JSON the network configuration into something usable
-		var results []types.Network
+		var results []entities.NetworkInspectReport
 		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(results).To(HaveLen(1))
@@ -323,7 +324,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(inspect).Should(ExitCleanly())
 
 		// JSON the network configuration into something usable
-		var results []types.Network
+		var results []entities.NetworkInspectReport
 		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(results).To(HaveLen(1))
@@ -711,7 +712,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(inspect).Should(ExitCleanly())
 
 		// JSON the network configuration into something usable
-		var results []types.Network
+		var results []entities.NetworkInspectReport
 		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(results).To(HaveLen(1))

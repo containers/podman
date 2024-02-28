@@ -1298,7 +1298,7 @@ func getEntityType(cmd *cobra.Command, args []string, o interface{}) interface{}
 	}
 	// network logic
 	if networks, _ := getNetworks(cmd, args[0], completeDefault); len(networks) > 0 {
-		return &types.Network{}
+		return &entities.NetworkInspectReport{}
 	}
 	return o
 }

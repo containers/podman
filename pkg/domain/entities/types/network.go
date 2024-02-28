@@ -35,3 +35,17 @@ type NetworkRmReport struct {
 type NetworkCreateReport struct {
 	Name string
 }
+
+type NetworkInspectReport struct {
+	commonTypes.Network
+
+	Containers map[string]NetworkContainerInfo `json:"containers"`
+}
+
+type NetworkContainerInfo struct {
+	// Name of the container
+	Name string `json:"name"`
+
+	// Interfaces configured for this container with their addresses
+	Interfaces map[string]commonTypes.NetInterface `json:"interfaces,omitempty"`
+}

@@ -70,8 +70,8 @@ func Update(ctx context.Context, netNameOrID string, options *UpdateOptions) err
 }
 
 // Inspect returns information about a network configuration
-func Inspect(ctx context.Context, nameOrID string, _ *InspectOptions) (types.Network, error) {
-	var net types.Network
+func Inspect(ctx context.Context, nameOrID string, _ *InspectOptions) (entitiesTypes.NetworkInspectReport, error) {
+	var net entitiesTypes.NetworkInspectReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return net, err

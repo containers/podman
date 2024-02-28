@@ -434,7 +434,7 @@ type networkRmResponse struct {
 // swagger:response
 type networkInspectResponse struct {
 	// in:body
-	Body types.Network
+	Body entities.NetworkInspectReport
 }
 
 // Network list
