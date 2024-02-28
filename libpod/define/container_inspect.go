@@ -3,6 +3,7 @@ package define
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/containers/image/v5/manifest"
@@ -106,7 +107,7 @@ func (insp *InspectContainerConfig) UnmarshalJSON(data []byte) error {
 
 	switch entrypoint := aux.Entrypoint.(type) {
 	case string:
-		insp.Entrypoint = []string{entrypoint}
+		insp.Entrypoint = strings.Split(entrypoint, " ")
 	case []string:
 		insp.Entrypoint = entrypoint
 	case []interface{}:
