@@ -6,7 +6,7 @@ type InitOptions struct {
 	CPUS               uint64
 	DiskSize           uint64
 	IgnitionPath       string
-	ImagePath          string
+	Image              string
 	Volumes            []string
 	VolumeDriver       string
 	IsDefault          bool

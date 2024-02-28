@@ -25,6 +25,7 @@ import (
 
 const (
 	// TODO This is temporary until we decide on a proper image name
+	// Also should be moved into c/common once stabilized
 	artifactRegistry     = "quay.io"
 	artifactRepo         = "baude"
 	artifactImageName    = "stage-podman-machine-image"
@@ -71,7 +72,7 @@ type DiskArtifactOpts struct {
 
 */
 
-func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, vmName string, vmType define.VMType, finalPath *define.VMFile) (*OCIArtifactDisk, error) {
+func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, endpoint string, vmName string, vmType define.VMType, finalPath *define.VMFile) (*OCIArtifactDisk, error) {
 	var (
 		arch string
 	)
@@ -91,12 +92,17 @@ func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, vmName st
 		diskType: vmType.String(),
 		os:       machineOS,
 	}
+
+	if endpoint == "" {
+		endpoint = fmt.Sprintf("docker://%s/%s/%s:%s", artifactRegistry, artifactRepo, artifactImageName, artifactVersion.majorMinor())
+	}
+
 	ociDisk := OCIArtifactDisk{
 		ctx:              ctx,
 		dirs:             dirs,
 		diskArtifactOpts: &diskOpts,
 		finalPath:        finalPath.GetPath(),
-		imageEndpoint:    fmt.Sprintf("docker://%s/%s/%s:%s", artifactRegistry, artifactRepo, artifactImageName, artifactVersion.majorMinor()),
+		imageEndpoint:    endpoint,
 		machineVersion:   artifactVersion,
 		name:             vmName,
 		pullOptions:      &PullOptions{},

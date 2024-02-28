@@ -140,7 +140,7 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 	// "/path
 	// "docker://quay.io/something/someManifest
 
-	if err := mp.GetDisk(opts.ImagePath, dirs, mc); err != nil {
+	if err := mp.GetDisk(opts.Image, dirs, mc); err != nil {
 		return nil, err
 	}
 
