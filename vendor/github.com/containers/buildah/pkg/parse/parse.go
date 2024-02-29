@@ -491,7 +491,9 @@ func PullPolicyFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name string) 
 	if err != nil {
 		return 0, err
 	}
-	if pullNeverFlagValue || strings.EqualFold(pullFlagValue, "never") {
+	if pullNeverFlagValue ||
+		strings.EqualFold(pullFlagValue, "never") ||
+		strings.EqualFold(pullFlagValue, "false") {
 		pullPolicy = define.PullNever
 	}
 	logrus.Debugf("Pull Policy for pull [%v]", pullPolicy)
@@ -814,8 +816,11 @@ func SBOMScanOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name str
 		return nil, fmt.Errorf("invalid value for --sbom-purl-output: %w", err)
 	}
 
-	if options.Image == "" || len(options.Commands) == 0 || (options.SBOMOutput == "" && options.ImageSBOMOutput == "" && options.PURLOutput == "" && options.ImagePURLOutput == "") {
-		return options, fmt.Errorf("sbom configuration missing one or more of (%q, %q, %q, %q, %q or %q)", "--sbom-scanner-imag", "--sbom-scanner-command", "--sbom-output", "--sbom-image-output", "--sbom-purl-output", "--sbom-image-purl-output")
+	if options.Image == "" || len(options.Commands) == 0 {
+		return options, fmt.Errorf("sbom configuration missing one or more of (%q or %q)", "--sbom-scanner-image", "--sbom-scanner-command")
+	}
+	if options.SBOMOutput == "" && options.ImageSBOMOutput == "" && options.PURLOutput == "" && options.ImagePURLOutput == "" {
+		return options, fmt.Errorf("sbom configuration missing one or more of (%q, %q, %q or %q)", "--sbom-output", "--sbom-image-output", "--sbom-purl-output", "--sbom-image-purl-output")
 	}
 	if len(options.Commands) > 1 && options.MergeStrategy == "" {
 		return options, fmt.Errorf("sbom configuration included multiple %q values but no %q value", "--sbom-scanner-command", "--sbom-merge-strategy")

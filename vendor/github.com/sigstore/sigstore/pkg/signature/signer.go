@@ -30,6 +30,7 @@ import (
 	_ "crypto/sha512"
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 
 	// these ensure we have the implementations loaded
 	_ "golang.org/x/crypto/sha3"
@@ -59,12 +60,33 @@ func (s SignerOpts) HashFunc() crypto.Hash {
 // If privateKey is an RSA key, a RSAPKCS1v15Signer will be returned. If a
 // RSAPSSSigner is desired instead, use the LoadRSAPSSSigner() method directly.
 func LoadSigner(privateKey crypto.PrivateKey, hashFunc crypto.Hash) (Signer, error) {
+	return LoadSignerWithOpts(privateKey, options.WithHash(hashFunc))
+}
+
+// LoadSignerWithOpts returns a signature.Signer based on the algorithm of the private key
+// provided.
+func LoadSignerWithOpts(privateKey crypto.PrivateKey, opts ...LoadOption) (Signer, error) {
+	var rsaPSSOptions *rsa.PSSOptions
+	var useED25519ph bool
+	hashFunc := crypto.SHA256
+	for _, o := range opts {
+		o.ApplyED25519ph(&useED25519ph)
+		o.ApplyHash(&hashFunc)
+		o.ApplyRSAPSS(&rsaPSSOptions)
+	}
+
 	switch pk := privateKey.(type) {
 	case *rsa.PrivateKey:
+		if rsaPSSOptions != nil {
+			return LoadRSAPSSSigner(pk, hashFunc, rsaPSSOptions)
+		}
 		return LoadRSAPKCS1v15Signer(pk, hashFunc)
 	case *ecdsa.PrivateKey:
 		return LoadECDSASigner(pk, hashFunc)
 	case ed25519.PrivateKey:
+		if useED25519ph {
+			return LoadED25519phSigner(pk)
+		}
 		return LoadED25519Signer(pk)
 	}
 	return nil, errors.New("unsupported public key type")
@@ -86,4 +108,18 @@ func LoadSignerFromPEMFile(path string, hashFunc crypto.Hash, pf cryptoutils.Pas
 		return nil, err
 	}
 	return LoadSigner(priv, hashFunc)
+}
+
+// LoadSignerFromPEMFileWithOpts returns a signature.Signer based on the algorithm of the private key
+// in the file. The Signer will use the hash function specified in the options when computing digests.
+func LoadSignerFromPEMFileWithOpts(path string, pf cryptoutils.PassFunc, opts ...LoadOption) (Signer, error) {
+	fileBytes, err := os.ReadFile(filepath.Clean(path))
+	if err != nil {
+		return nil, err
+	}
+	priv, err := cryptoutils.UnmarshalPEMToPrivateKey(fileBytes, pf)
+	if err != nil {
+		return nil, err
+	}
+	return LoadSignerWithOpts(priv, opts...)
 }

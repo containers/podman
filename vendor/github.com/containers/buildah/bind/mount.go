@@ -11,11 +11,11 @@ import (
 	"syscall"
 
 	"github.com/containers/buildah/util"
-	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 	"golang.org/x/sys/unix"
 )
 
@@ -192,11 +192,11 @@ func SetupIntermediateMountNamespace(spec *specs.Spec, bundlePath string) (unmou
 // Decide if the mount should not be redirected to an intermediate location first.
 func leaveBindMountAlone(mount specs.Mount) bool {
 	// If we know we shouldn't do a redirection for this mount, skip it.
-	if cutil.StringInSlice(NoBindOption, mount.Options) {
+	if slices.Contains(mount.Options, NoBindOption) {
 		return true
 	}
 	// If we're not bind mounting it in, we don't need to do anything for it.
-	if mount.Type != "bind" && !cutil.StringInSlice("bind", mount.Options) && !cutil.StringInSlice("rbind", mount.Options) {
+	if mount.Type != "bind" && !slices.Contains(mount.Options, "bind") && !slices.Contains(mount.Options, "rbind") {
 		return true
 	}
 	return false
@@ -294,7 +294,7 @@ func UnmountMountpoints(mountpoint string, mountpointsToRemove []string) error {
 			}
 		}
 		// if we're also supposed to remove this thing, do that, too
-		if cutil.StringInSlice(mount.Mountpoint, mountpointsToRemove) {
+		if slices.Contains(mountpointsToRemove, mount.Mountpoint) {
 			if err := os.Remove(mount.Mountpoint); err != nil {
 				return fmt.Errorf("removing %q: %w", mount.Mountpoint, err)
 			}

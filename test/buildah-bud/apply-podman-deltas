@@ -256,6 +256,9 @@ skip_if_remote "Explicit request in buildah PR 4190 to skip this on remote" \
 skip_if_rootless "Flakes when run rootless, too. See Buildah PR 4190" \
                  "build: test race in updating image name while performing parallel commits"
 
+skip_if_remote "--events-backend does not work with podman-remote" \
+	       "build test default ulimits"
+
 ###############################################################################
 # BEGIN tests which are skipped due to actual podman or podman-remote bugs.
 

@@ -164,9 +164,6 @@ func (d Decimal128) BigInt() (*big.Int, int, error) {
 
 	// Would be handled by the logic below, but that's trivial and common.
 	if high == 0 && low == 0 && exp == 0 {
-		if posSign {
-			return new(big.Int), 0, nil
-		}
 		return new(big.Int), 0, nil
 	}
 

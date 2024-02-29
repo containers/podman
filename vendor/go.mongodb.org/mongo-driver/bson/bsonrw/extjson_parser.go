@@ -313,7 +313,7 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 				// convert hex to bytes
 				bytes, err := hex.DecodeString(uuidNoHyphens)
 				if err != nil {
-					return nil, fmt.Errorf("$uuid value does not follow RFC 4122 format regarding hex bytes: %v", err)
+					return nil, fmt.Errorf("$uuid value does not follow RFC 4122 format regarding hex bytes: %w", err)
 				}
 
 				ejp.advanceState()

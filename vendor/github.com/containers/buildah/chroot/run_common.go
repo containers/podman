@@ -34,6 +34,8 @@ const (
 	runUsingChrootCommand = "buildah-chroot-runtime"
 	// runUsingChrootExec is a command we use as a key for reexec
 	runUsingChrootExecCommand = "buildah-chroot-exec"
+	// containersConfEnv is an environment variable that we need to pass down except for the command itself
+	containersConfEnv = "CONTAINERS_CONF"
 )
 
 func init() {
@@ -128,6 +130,9 @@ func RunUsingChroot(spec *specs.Spec, bundlePath, homeDir string, stdin io.Reade
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = stdin, stdout, stderr
 	cmd.Dir = "/"
 	cmd.Env = []string{fmt.Sprintf("LOGLEVEL=%d", logrus.GetLevel())}
+	if _, ok := os.LookupEnv(containersConfEnv); ok {
+		cmd.Env = append(cmd.Env, containersConfEnv+"="+os.Getenv(containersConfEnv))
+	}
 
 	interrupted := make(chan os.Signal, 100)
 	cmd.Hook = func(int) error {
@@ -511,6 +516,9 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = stdin, stdout, stderr
 	cmd.Dir = "/"
 	cmd.Env = []string{fmt.Sprintf("LOGLEVEL=%d", logrus.GetLevel())}
+	if _, ok := os.LookupEnv(containersConfEnv); ok {
+		cmd.Env = append(cmd.Env, containersConfEnv+"="+os.Getenv(containersConfEnv))
+	}
 	if ctty != nil {
 		cmd.Setsid = true
 		cmd.Ctty = ctty

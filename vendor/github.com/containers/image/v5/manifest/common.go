@@ -55,7 +55,7 @@ func compressionVariantMIMEType(variantTable []compressionMIMETypeSet, mimeType 
 	if variants != nil {
 		name := mtsUncompressed
 		if algorithm != nil {
-			name = algorithm.InternalUnstableUndocumentedMIMEQuestionMark()
+			name = algorithm.BaseVariantName()
 		}
 		if res, ok := variants[name]; ok {
 			if res != mtsUnsupportedMIMEType {

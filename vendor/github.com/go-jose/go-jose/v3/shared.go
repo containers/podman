@@ -183,8 +183,13 @@ type Header struct {
 	// Unverified certificate chain parsed from x5c header.
 	certificates []*x509.Certificate
 
-	// Any headers not recognised above get unmarshalled
-	// from JSON in a generic manner and placed in this map.
+	// At parse time, each header parameter with a name other than "kid",
+	// "jwk", "alg", "nonce", or "x5c"  will have its value passed to
+	// [json.Unmarshal] to unmarshal it into an interface value.
+	// The resulting value will be stored in this map, with the header
+	// parameter name as the key.
+	//
+	// [json.Unmarshal]: https://pkg.go.dev/encoding/json#Unmarshal
 	ExtraHeaders map[HeaderKey]interface{}
 }
 

@@ -18,6 +18,7 @@ package options
 import (
 	"context"
 	"crypto"
+	"crypto/rsa"
 	"io"
 )
 
@@ -47,3 +48,12 @@ func (NoOpOptionImpl) ApplyKeyVersion(_ *string) {}
 
 // ApplyKeyVersionUsed is a no-op required to fully implement the requisite interfaces
 func (NoOpOptionImpl) ApplyKeyVersionUsed(_ **string) {}
+
+// ApplyHash is a no-op required to fully implement the requisite interfaces
+func (NoOpOptionImpl) ApplyHash(_ *crypto.Hash) {}
+
+// ApplyED25519ph is a no-op required to fully implement the requisite interfaces
+func (NoOpOptionImpl) ApplyED25519ph(_ *bool) {}
+
+// ApplyRSAPSS is a no-op required to fully implement the requisite interfaces
+func (NoOpOptionImpl) ApplyRSAPSS(_ **rsa.PSSOptions) {}

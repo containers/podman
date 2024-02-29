@@ -23,9 +23,9 @@ var (
 	// compressionBufferSize is the buffer size used to compress a blob
 	compressionBufferSize = 1048576
 
-	// expectedCompressionFormats is used to check if a blob with a specified media type is compressed
+	// expectedBaseCompressionFormats is used to check if a blob with a specified media type is compressed
 	// using the algorithm that the media type says it should be compressed with
-	expectedCompressionFormats = map[string]*compressiontypes.Algorithm{
+	expectedBaseCompressionFormats = map[string]*compressiontypes.Algorithm{
 		imgspecv1.MediaTypeImageLayerGzip:      &compression.Gzip,
 		imgspecv1.MediaTypeImageLayerZstd:      &compression.Zstd,
 		manifest.DockerV2Schema2LayerMediaType: &compression.Gzip,
@@ -62,8 +62,8 @@ func blobPipelineDetectCompressionStep(stream *sourceStream, srcInfo types.BlobI
 		res.srcCompressorName = internalblobinfocache.Uncompressed
 	}
 
-	if expectedFormat, known := expectedCompressionFormats[stream.info.MediaType]; known && res.isCompressed && format.Name() != expectedFormat.Name() {
-		logrus.Debugf("blob %s with type %s should be compressed with %s, but compressor appears to be %s", srcInfo.Digest.String(), srcInfo.MediaType, expectedFormat.Name(), format.Name())
+	if expectedBaseFormat, known := expectedBaseCompressionFormats[stream.info.MediaType]; known && res.isCompressed && format.BaseVariantName() != expectedBaseFormat.Name() {
+		logrus.Debugf("blob %s with type %s should be compressed with %s, but compressor appears to be %s", srcInfo.Digest.String(), srcInfo.MediaType, expectedBaseFormat.Name(), format.Name())
 	}
 	return res, nil
 }
@@ -172,7 +172,8 @@ func (ic *imageCopier) bpcCompressUncompressed(stream *sourceStream, detected bp
 // bpcRecompressCompressed checks if we should be recompressing a compressed input to another format, and returns a *bpCompressionStepData if so.
 func (ic *imageCopier) bpcRecompressCompressed(stream *sourceStream, detected bpDetectCompressionStepData) (*bpCompressionStepData, error) {
 	if ic.c.dest.DesiredLayerCompression() == types.Compress && detected.isCompressed &&
-		ic.compressionFormat != nil && ic.compressionFormat.Name() != detected.format.Name() {
+		ic.compressionFormat != nil &&
+		(ic.compressionFormat.Name() != detected.format.Name() && ic.compressionFormat.Name() != detected.format.BaseVariantName()) {
 		// When the blob is compressed, but the desired format is different, it first needs to be decompressed and finally
 		// re-compressed using the desired format.
 		logrus.Debugf("Blob will be converted")

@@ -41,7 +41,7 @@ func newDefaultStructCodec() *StructCodec {
 	if err != nil {
 		// This function is called from the codec registration path, so errors can't be propagated. If there's an error
 		// constructing the StructCodec, we panic to avoid losing it.
-		panic(fmt.Errorf("error creating default StructCodec: %v", err))
+		panic(fmt.Errorf("error creating default StructCodec: %w", err))
 	}
 	return codec
 }
@@ -178,7 +178,7 @@ func (dvd DefaultValueDecoders) DDecodeValue(dc DecodeContext, vr bsonrw.ValueRe
 
 	for {
 		key, elemVr, err := dr.ReadElement()
-		if err == bsonrw.ErrEOD {
+		if errors.Is(err, bsonrw.ErrEOD) {
 			break
 		} else if err != nil {
 			return err
@@ -1379,7 +1379,7 @@ func (dvd DefaultValueDecoders) MapDecodeValue(dc DecodeContext, vr bsonrw.Value
 	keyType := val.Type().Key()
 	for {
 		key, vr, err := dr.ReadElement()
-		if err == bsonrw.ErrEOD {
+		if errors.Is(err, bsonrw.ErrEOD) {
 			break
 		}
 		if err != nil {
@@ -1675,7 +1675,7 @@ func (dvd DefaultValueDecoders) decodeDefault(dc DecodeContext, vr bsonrw.ValueR
 	idx := 0
 	for {
 		vr, err := ar.ReadValue()
-		if err == bsonrw.ErrEOA {
+		if errors.Is(err, bsonrw.ErrEOA) {
 			break
 		}
 		if err != nil {
@@ -1787,7 +1787,7 @@ func (DefaultValueDecoders) decodeElemsFromDocumentReader(dc DecodeContext, dr b
 	elems := make([]reflect.Value, 0)
 	for {
 		key, vr, err := dr.ReadElement()
-		if err == bsonrw.ErrEOD {
+		if errors.Is(err, bsonrw.ErrEOD) {
 			break
 		}
 		if err != nil {

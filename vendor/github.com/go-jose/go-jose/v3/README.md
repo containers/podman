@@ -1,14 +1,17 @@
 # Go JOSE
 
-[![godoc](http://img.shields.io/badge/godoc-jose_package-blue.svg?style=flat)](https://godoc.org/gopkg.in/go-jose/go-jose.v2)
-[![godoc](http://img.shields.io/badge/godoc-jwt_package-blue.svg?style=flat)](https://godoc.org/gopkg.in/go-jose/go-jose.v2/jwt)
-[![license](http://img.shields.io/badge/license-apache_2.0-blue.svg?style=flat)](https://raw.githubusercontent.com/go-jose/go-jose/master/LICENSE)
-[![build](https://travis-ci.org/go-jose/go-jose.svg?branch=master)](https://travis-ci.org/go-jose/go-jose)
-[![coverage](https://coveralls.io/repos/github/go-jose/go-jose/badge.svg?branch=master)](https://coveralls.io/r/go-jose/go-jose)
+[![godoc](https://pkg.go.dev/badge/github.com/go-jose/go-jose/v3.svg)](https://pkg.go.dev/github.com/go-jose/go-jose/v3)
+[![godoc](https://pkg.go.dev/badge/github.com/go-jose/go-jose/v3/jwt.svg)](https://pkg.go.dev/github.com/go-jose/go-jose/v3/jwt)
+[![license](https://img.shields.io/badge/license-apache_2.0-blue.svg?style=flat)](https://raw.githubusercontent.com/go-jose/go-jose/master/LICENSE)
+[![test](https://img.shields.io/github/checks-status/go-jose/go-jose/v3)](https://github.com/go-jose/go-jose/actions)
 
 Package jose aims to provide an implementation of the Javascript Object Signing
 and Encryption set of standards. This includes support for JSON Web Encryption,
 JSON Web Signature, and JSON Web Token standards.
+
+**Help Wanted!** If you'd like to help us develop this library please reach
+out to css (at) css.bio. While I'm still working on keeping this maintained,
+I have limited time for in-depth development and could use some additional help.
 
 **Disclaimer**: This library contains encryption software that is subject to
 the U.S. Export Administration Regulations. You may not export, re-export,
@@ -21,13 +24,13 @@ US maintained blocked list.
 ## Overview
 
 The implementation follows the
-[JSON Web Encryption](http://dx.doi.org/10.17487/RFC7516) (RFC 7516),
-[JSON Web Signature](http://dx.doi.org/10.17487/RFC7515) (RFC 7515), and
-[JSON Web Token](http://dx.doi.org/10.17487/RFC7519) (RFC 7519) specifications.
+[JSON Web Encryption](https://dx.doi.org/10.17487/RFC7516) (RFC 7516),
+[JSON Web Signature](https://dx.doi.org/10.17487/RFC7515) (RFC 7515), and
+[JSON Web Token](https://dx.doi.org/10.17487/RFC7519) (RFC 7519) specifications.
 Tables of supported algorithms are shown below. The library supports both
 the compact and JWS/JWE JSON Serialization formats, and has optional support for
 multiple recipients. It also comes with a small command-line utility
-([`jose-util`](https://github.com/go-jose/go-jose/tree/master/jose-util))
+([`jose-util`](https://pkg.go.dev/github.com/go-jose/go-jose/jose-util))
 for dealing with JOSE messages in a shell.
 
 **Note**: We use a forked version of the `encoding/json` package from the Go
@@ -38,29 +41,19 @@ libraries in other languages.
 
 ### Versions
 
-[Version 2](https://gopkg.in/go-jose/go-jose.v2)
-([branch](https://github.com/go-jose/go-jose/tree/v2),
-[doc](https://godoc.org/gopkg.in/go-jose/go-jose.v2)) is the current stable version:
-
-    import "gopkg.in/go-jose/go-jose.v2"
-
 [Version 3](https://github.com/go-jose/go-jose)
-([branch](https://github.com/go-jose/go-jose/tree/master),
-[doc](https://godoc.org/github.com/go-jose/go-jose)) is the under development/unstable version (not released yet):
+([branch](https://github.com/go-jose/go-jose/tree/v3),
+[doc](https://pkg.go.dev/github.com/go-jose/go-jose/v3), [releases](https://github.com/go-jose/go-jose/releases)) is the current stable version:
 
     import "github.com/go-jose/go-jose/v3"
 
-All new feature development takes place on the `master` branch, which we are
-preparing to release as version 3 soon. Version 2 will continue to receive
-critical bug and security fixes. Note that starting with version 3 we are
-using Go modules for versioning instead of `gopkg.in` as before. Version 3 also will require Go version 1.13 or higher.
-
-Version 1 (on the `v1` branch) is frozen and not supported anymore.
+The old [square/go-jose](https://github.com/square/go-jose) repo contains the prior v1 and v2 versions, which
+are still useable but not actively developed anymore. 
 
 ### Supported algorithms
 
 See below for a table of supported algorithms. Algorithm identifiers match
-the names in the [JSON Web Algorithms](http://dx.doi.org/10.17487/RFC7518)
+the names in the [JSON Web Algorithms](https://dx.doi.org/10.17487/RFC7518)
 standard where possible. The Godoc reference has a list of constants.
 
  Key encryption             | Algorithm identifier(s)
@@ -103,20 +96,20 @@ allows attaching a key id.
 
  Algorithm(s)               | Corresponding types
  :------------------------- | -------------------------------
- RSA                        | *[rsa.PublicKey](http://golang.org/pkg/crypto/rsa/#PublicKey), *[rsa.PrivateKey](http://golang.org/pkg/crypto/rsa/#PrivateKey)
- ECDH, ECDSA                | *[ecdsa.PublicKey](http://golang.org/pkg/crypto/ecdsa/#PublicKey), *[ecdsa.PrivateKey](http://golang.org/pkg/crypto/ecdsa/#PrivateKey)
- EdDSA<sup>1</sup>          | [ed25519.PublicKey](https://godoc.org/pkg/crypto/ed25519#PublicKey), [ed25519.PrivateKey](https://godoc.org/pkg/crypto/ed25519#PrivateKey)
+ RSA                        | *[rsa.PublicKey](https://pkg.go.dev/crypto/rsa/#PublicKey), *[rsa.PrivateKey](https://pkg.go.dev/crypto/rsa/#PrivateKey)
+ ECDH, ECDSA                | *[ecdsa.PublicKey](https://pkg.go.dev/crypto/ecdsa/#PublicKey), *[ecdsa.PrivateKey](https://pkg.go.dev/crypto/ecdsa/#PrivateKey)
+ EdDSA<sup>1</sup>          | [ed25519.PublicKey](https://pkg.go.dev/crypto/ed25519#PublicKey), [ed25519.PrivateKey](https://pkg.go.dev/crypto/ed25519#PrivateKey)
  AES, HMAC                  | []byte
 
 <sup>1. Only available in version 2 or later of the package</sup>
 
 ## Examples
 
-[![godoc](http://img.shields.io/badge/godoc-jose_package-blue.svg?style=flat)](https://godoc.org/gopkg.in/go-jose/go-jose.v2)
-[![godoc](http://img.shields.io/badge/godoc-jwt_package-blue.svg?style=flat)](https://godoc.org/gopkg.in/go-jose/go-jose.v2/jwt)
+[![godoc](https://pkg.go.dev/badge/github.com/go-jose/go-jose/v3.svg)](https://pkg.go.dev/github.com/go-jose/go-jose/v3)
+[![godoc](https://pkg.go.dev/badge/github.com/go-jose/go-jose/v3/jwt.svg)](https://pkg.go.dev/github.com/go-jose/go-jose/v3/jwt)
 
 Examples can be found in the Godoc
 reference for this package. The
-[`jose-util`](https://github.com/go-jose/go-jose/tree/master/jose-util)
+[`jose-util`](https://github.com/go-jose/go-jose/tree/v3/jose-util)
 subdirectory also contains a small command-line utility which might be useful
 as an example as well.

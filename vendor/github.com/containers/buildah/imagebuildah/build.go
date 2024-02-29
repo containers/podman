@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	gotypes "go/types"
 	"io"
 	"net/http"
 	"os"
@@ -36,6 +37,7 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/openshift/imagebuilder"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -493,6 +495,26 @@ func preprocessContainerfileContents(logger *logrus.Logger, containerfile string
 	return &stdoutBuffer, nil
 }
 
+// platformIsUnknown checks if the platform value indicates that the
+// corresponding index entry is suitable for use as a base image
+func platformIsAcceptable(platform *v1.Platform, logger *logrus.Logger) bool {
+	if platform == nil {
+		logger.Trace("rejecting potential base image with no platform information")
+		return false
+	}
+	if gotypes.SizesFor("gc", platform.Architecture) == nil {
+		// the compiler's never heard of this
+		logger.Tracef("rejecting potential base image architecture %q for which Go has no knowledge of how to do unsafe code", platform.Architecture)
+		return false
+	}
+	if slices.Contains([]string{"", "unknown"}, platform.OS) {
+		// we're hard-wired to reject images with these values
+		logger.Tracef("rejecting potential base image for which the OS value is always-rejected value %q", platform.OS)
+		return false
+	}
+	return true
+}
+
 // platformsForBaseImages resolves the names of base images from the
 // dockerfiles, and if they are all valid references to manifest lists, returns
 // the list of platforms that are supported by all of the base images.
@@ -570,7 +592,10 @@ func platformsForBaseImages(ctx context.Context, logger *logrus.Logger, dockerfi
 		if baseImageIndex == 0 {
 			// populate the list with the first image's normalized platforms
 			for _, instance := range index.Manifests {
-				if instance.Platform == nil {
+				if !platformIsAcceptable(instance.Platform, logger) {
+					continue
+				}
+				if instance.ArtifactType != "" {
 					continue
 				}
 				platform := internalUtil.NormalizePlatform(*instance.Platform)
@@ -581,7 +606,10 @@ func platformsForBaseImages(ctx context.Context, logger *logrus.Logger, dockerfi
 			// prune the list of any normalized platforms this base image doesn't support
 			imagePlatforms := make(map[string]struct{})
 			for _, instance := range index.Manifests {
-				if instance.Platform == nil {
+				if !platformIsAcceptable(instance.Platform, logger) {
+					continue
+				}
+				if instance.ArtifactType != "" {
 					continue
 				}
 				platform := internalUtil.NormalizePlatform(*instance.Platform)

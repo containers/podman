@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-jose/go-jose/v3"
@@ -44,6 +45,17 @@ type TokenGetter interface {
 type OIDCIDToken struct {
 	RawString string // RawString provides the raw token (a base64-encoded JWT) value
 	Subject   string // Subject is the extracted subject from the raw token
+}
+
+// init
+func init() {
+	// set the default HTML page for the DefaultIDTokenGetter
+	htmlPage, err := soauth.GetInteractiveSuccessHTML(false, 10)
+	if err != nil {
+		log.Print("failed to get interactive success html, defaulting to original static page")
+	} else {
+		DefaultIDTokenGetter.HTMLPage = htmlPage
+	}
 }
 
 // ConnectorIDOpt requests the value of prov as a the connector_id (either on URL or in form body) on the initial request;

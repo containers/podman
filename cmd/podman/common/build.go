@@ -310,7 +310,9 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 		pullPolicy = buildahDefine.PullAlways
 	}
 
-	if flags.PullNever || strings.EqualFold(strings.TrimSpace(flags.Pull), "never") {
+	if flags.PullNever ||
+		strings.EqualFold(strings.TrimSpace(flags.Pull), "false") ||
+		strings.EqualFold(strings.TrimSpace(flags.Pull), "never") {
 		pullPolicy = buildahDefine.PullNever
 	}
 

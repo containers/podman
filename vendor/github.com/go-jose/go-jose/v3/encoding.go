@@ -189,3 +189,36 @@ func base64URLDecode(value string) ([]byte, error) {
 	value = strings.TrimRight(value, "=")
 	return base64.RawURLEncoding.DecodeString(value)
 }
+
+func base64EncodeLen(sl []byte) int {
+	return base64.RawURLEncoding.EncodedLen(len(sl))
+}
+
+func base64JoinWithDots(inputs ...[]byte) string {
+	if len(inputs) == 0 {
+		return ""
+	}
+
+	// Count of dots.
+	totalCount := len(inputs) - 1
+
+	for _, input := range inputs {
+		totalCount += base64EncodeLen(input)
+	}
+
+	out := make([]byte, totalCount)
+	startEncode := 0
+	for i, input := range inputs {
+		base64.RawURLEncoding.Encode(out[startEncode:], input)
+
+		if i == len(inputs)-1 {
+			continue
+		}
+
+		startEncode += base64EncodeLen(input)
+		out[startEncode] = '.'
+		startEncode++
+	}
+
+	return string(out)
+}

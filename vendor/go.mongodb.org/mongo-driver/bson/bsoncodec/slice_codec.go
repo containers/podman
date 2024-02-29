@@ -7,6 +7,7 @@
 package bsoncodec
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 
@@ -20,8 +21,22 @@ var defaultSliceCodec = NewSliceCodec()
 
 // SliceCodec is the Codec used for slice values.
 //
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// SliceCodec registered.
+// Deprecated: SliceCodec will not be directly configurable in Go Driver 2.0. To
+// configure the slice encode and decode behavior, use the configuration methods
+// on a [go.mongodb.org/mongo-driver/bson.Encoder] or
+// [go.mongodb.org/mongo-driver/bson.Decoder]. To configure the slice encode and
+// decode behavior for a mongo.Client, use
+// [go.mongodb.org/mongo-driver/mongo/options.ClientOptions.SetBSONOptions].
+//
+// For example, to configure a mongo.Client to marshal nil Go slices as empty
+// BSON arrays, use:
+//
+//	opt := options.Client().SetBSONOptions(&options.BSONOptions{
+//	    NilSliceAsEmpty: true,
+//	})
+//
+// See the deprecation notice for each field in SliceCodec for the corresponding
+// settings.
 type SliceCodec struct {
 	// EncodeNilAsEmpty causes EncodeValue to marshal nil Go slices as empty BSON arrays instead of
 	// BSON null.
@@ -32,8 +47,8 @@ type SliceCodec struct {
 
 // NewSliceCodec returns a MapCodec with options opts.
 //
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// SliceCodec registered.
+// Deprecated: NewSliceCodec will not be available in Go Driver 2.0. See
+// [SliceCodec] for more details.
 func NewSliceCodec(opts ...*bsonoptions.SliceCodecOptions) *SliceCodec {
 	sliceOpt := bsonoptions.MergeSliceCodecOptions(opts...)
 
@@ -93,7 +108,7 @@ func (sc SliceCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val re
 
 	for idx := 0; idx < val.Len(); idx++ {
 		currEncoder, currVal, lookupErr := defaultValueEncoders.lookupElementEncoder(ec, encoder, val.Index(idx))
-		if lookupErr != nil && lookupErr != errInvalidValue {
+		if lookupErr != nil && !errors.Is(lookupErr, errInvalidValue) {
 			return lookupErr
 		}
 
@@ -102,7 +117,7 @@ func (sc SliceCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val re
 			return err
 		}
 
-		if lookupErr == errInvalidValue {
+		if errors.Is(lookupErr, errInvalidValue) {
 			err = vw.WriteNull()
 			if err != nil {
 				return err
