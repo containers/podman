@@ -286,10 +286,14 @@ func defaultMachineConfig() MachineConfig {
 	return MachineConfig{
 		CPUs:     uint64(cpus),
 		DiskSize: 100,
-		Image:    getDefaultMachineImage(),
-		Memory:   2048,
-		User:     getDefaultMachineUser(),
-		Volumes:  attributedstring.NewSlice(getDefaultMachineVolumes()),
+		// TODO: Set machine image default here
+		// Currently the default is set in Podman as we need time to stabilize
+		// VM images and locations between different providers.
+		Image:   "",
+		Memory:  2048,
+		User:    getDefaultMachineUser(),
+		Volumes: attributedstring.NewSlice(getDefaultMachineVolumes()),
+		Rosetta: true,
 	}
 }
 
@@ -354,6 +358,7 @@ func defaultEngineConfig() (*EngineConfig, error) {
 	c.PodmanshTimeout = uint(30)
 	c.ExitCommandDelay = uint(5 * 60)
 	c.Remote = isRemote()
+	c.Retry = 3
 	c.OCIRuntimes = map[string][]string{
 		"crun": {
 			"/usr/bin/crun",
@@ -479,7 +484,6 @@ func defaultEngineConfig() (*EngineConfig, error) {
 	// TODO - ideally we should expose a `type LockType string` along with
 	// constants.
 	c.LockType = getDefaultLockType()
-	c.MachineEnabled = false
 	c.ChownCopiedFiles = true
 
 	c.PodExitPolicy = defaultPodExitPolicy
@@ -648,11 +652,6 @@ func (c *Config) LogDriver() string {
 	return c.Containers.LogDriver
 }
 
-// MachineEnabled returns if podman is running inside a VM or not.
-func (c *Config) MachineEnabled() bool {
-	return c.Engine.MachineEnabled
-}
-
 // MachineVolumes returns volumes to mount into the VM.
 func (c *Config) MachineVolumes() ([]string, error) {
 	return machineVolumes(c.Machine.Volumes.Get())
@@ -680,12 +679,6 @@ func getDefaultSSHConfig() string {
 	}
 	dirname := homedir.Get()
 	return filepath.Join(dirname, ".ssh", "config")
-}
-
-// getDefaultImage returns the default machine image stream
-// On Windows this refers to the Fedora major release number
-func getDefaultMachineImage() string {
-	return "testing"
 }
 
 // getDefaultMachineUser returns the user to use for rootless podman

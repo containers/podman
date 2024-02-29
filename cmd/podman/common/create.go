@@ -396,6 +396,13 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(requiresFlagName, AutocompleteContainers)
 
+		retryFlagName := "retry"
+		createFlags.Uint(retryFlagName, registry.RetryDefault(), "number of times to retry in case of failure when performing pull")
+		_ = cmd.RegisterFlagCompletionFunc(retryFlagName, completion.AutocompleteNone)
+		retryDelayFlagName := "retry-delay"
+		createFlags.String(retryDelayFlagName, registry.RetryDelayDefault(), "delay between retries in case of pull failures")
+		_ = cmd.RegisterFlagCompletionFunc(retryDelayFlagName, completion.AutocompleteNone)
+
 		createFlags.BoolVar(
 			&cf.Rm,
 			"rm", false,

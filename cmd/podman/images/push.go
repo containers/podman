@@ -111,6 +111,13 @@ func pushFlags(cmd *cobra.Command) {
 	flags.BoolVarP(&pushOptions.Quiet, "quiet", "q", false, "Suppress output information when pushing images")
 	flags.BoolVar(&pushOptions.RemoveSignatures, "remove-signatures", false, "Discard any pre-existing signatures in the image")
 
+	retryFlagName := "retry"
+	flags.Uint(retryFlagName, registry.RetryDefault(), "number of times to retry in case of failure when performing push")
+	_ = cmd.RegisterFlagCompletionFunc(retryFlagName, completion.AutocompleteNone)
+	retryDelayFlagName := "retry-delay"
+	flags.String(retryDelayFlagName, registry.RetryDelayDefault(), "delay between retries in case of push failures")
+	_ = cmd.RegisterFlagCompletionFunc(retryDelayFlagName, completion.AutocompleteNone)
+
 	signByFlagName := "sign-by"
 	flags.StringVar(&pushOptions.SignBy, signByFlagName, "", "Add a signature at the destination using the specified key")
 	_ = cmd.RegisterFlagCompletionFunc(signByFlagName, completion.AutocompleteNone)
@@ -207,6 +214,24 @@ func imagePush(cmd *cobra.Command, args []string) error {
 	}
 	pushOptions.OciEncryptConfig = encConfig
 	pushOptions.OciEncryptLayers = encLayers
+
+	if cmd.Flags().Changed("retry") {
+		retry, err := cmd.Flags().GetUint("retry")
+		if err != nil {
+			return err
+		}
+
+		pushOptions.Retry = &retry
+	}
+
+	if cmd.Flags().Changed("retry-delay") {
+		val, err := cmd.Flags().GetString("retry-delay")
+		if err != nil {
+			return err
+		}
+
+		pushOptions.RetryDelay = val
+	}
 
 	if cmd.Flags().Changed("compression-level") {
 		val, err := cmd.Flags().GetInt("compression-level")

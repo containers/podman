@@ -4,10 +4,14 @@ package libimage
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/containers/common/pkg/config"
 	dockerArchiveTransport "github.com/containers/image/v5/docker/archive"
+	dockerDaemonTransport "github.com/containers/image/v5/docker/daemon"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/sirupsen/logrus"
 )
@@ -29,6 +33,23 @@ type PushOptions struct {
 func (r *Runtime) Push(ctx context.Context, source, destination string, options *PushOptions) ([]byte, error) {
 	if options == nil {
 		options = &PushOptions{}
+	}
+
+	defaultConfig, err := config.Default()
+	if err != nil {
+		return nil, err
+	}
+	if options.MaxRetries == nil {
+		options.MaxRetries = &defaultConfig.Engine.Retry
+	}
+	if options.RetryDelay == nil {
+		if defaultConfig.Engine.RetryDelay != "" {
+			duration, err := time.ParseDuration(defaultConfig.Engine.RetryDelay)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse containers.conf retry_delay: %w", err)
+			}
+			options.RetryDelay = &duration
+		}
 	}
 
 	// Look up the local image.  Note that we need to ignore the platform
@@ -63,6 +84,14 @@ func (r *Runtime) Push(ctx context.Context, source, destination string, options 
 			return nil, err
 		}
 		destRef = dockerRef
+	}
+
+	// docker-archive and only DockerV2Schema2MediaType support Gzip compression
+	if options.CompressionFormat != nil &&
+		(destRef.Transport().Name() == dockerArchiveTransport.Transport.Name() ||
+			destRef.Transport().Name() == dockerDaemonTransport.Transport.Name() ||
+			options.ManifestMIMEType == manifest.DockerV2Schema2MediaType) {
+		options.CompressionFormat = nil
 	}
 
 	if r.eventChannel != nil {

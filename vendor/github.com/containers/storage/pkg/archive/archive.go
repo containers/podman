@@ -416,7 +416,7 @@ func ReadUserXattrToTarHeader(path string, hdr *tar.Header) error {
 		return err
 	}
 	for _, key := range xattrs {
-		if strings.HasPrefix(key, "user.") {
+		if strings.HasPrefix(key, "user.") && !strings.HasPrefix(key, "user.overlay.") {
 			value, err := system.Lgetxattr(path, key)
 			if err != nil {
 				if errors.Is(err, system.E2BIG) {

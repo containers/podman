@@ -114,10 +114,10 @@ func pullFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(decryptionKeysFlagName, completion.AutocompleteDefault)
 
 	retryFlagName := "retry"
-	flags.Uint(retryFlagName, cli.MaxPullPushRetries, "number of times to retry in case of failure when performing pull")
+	flags.Uint(retryFlagName, registry.RetryDefault(), "number of times to retry in case of failure when performing pull")
 	_ = cmd.RegisterFlagCompletionFunc(retryFlagName, completion.AutocompleteNone)
 	retryDelayFlagName := "retry-delay"
-	flags.String(retryDelayFlagName, cli.PullPushRetryDelay.String(), "delay between retries in case of pull failures")
+	flags.String(retryDelayFlagName, registry.RetryDelayDefault(), "delay between retries in case of pull failures")
 	_ = cmd.RegisterFlagCompletionFunc(retryDelayFlagName, completion.AutocompleteNone)
 
 	if registry.IsRemote() {

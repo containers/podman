@@ -254,8 +254,8 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 	pullOptions.InsecureSkipTLSVerify = options.SkipTLSVerify
 	pullOptions.Writer = options.Writer
 	pullOptions.OciDecryptConfig = options.OciDecryptConfig
-
 	pullOptions.MaxRetries = options.Retry
+
 	if options.RetryDelay != "" {
 		duration, err := time.ParseDuration(options.RetryDelay)
 		if err != nil {
@@ -343,6 +343,14 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	pushOptions.OciEncryptLayers = options.OciEncryptLayers
 	pushOptions.CompressionLevel = options.CompressionLevel
 	pushOptions.ForceCompressionFormat = options.ForceCompressionFormat
+	pushOptions.MaxRetries = options.Retry
+	if options.RetryDelay != "" {
+		duration, err := time.ParseDuration(options.RetryDelay)
+		if err != nil {
+			return nil, err
+		}
+		pushOptions.RetryDelay = &duration
+	}
 
 	compressionFormat := options.CompressionFormat
 	if compressionFormat == "" {

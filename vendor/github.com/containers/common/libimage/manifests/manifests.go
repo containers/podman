@@ -711,10 +711,18 @@ func (l *list) AddArtifact(ctx context.Context, sys *types.SystemContext, option
 		if err != nil {
 			return "", fmt.Errorf("digesting manifest of subject %q: %w", transports.ImageName(options.SubjectReference), err)
 		}
+		var subjectArtifactType string
+		if !manifest.MIMETypeIsMultiImage(subjectManifestType) {
+			var subjectManifest v1.Manifest
+			if json.Unmarshal(subjectManifestBytes, &subjectManifest) == nil {
+				subjectArtifactType = subjectManifest.ArtifactType
+			}
+		}
 		subject = &v1.Descriptor{
-			MediaType: subjectManifestType,
-			Digest:    subjectManifestDigest,
-			Size:      int64(len(subjectManifestBytes)),
+			MediaType:    subjectManifestType,
+			ArtifactType: subjectArtifactType,
+			Digest:       subjectManifestDigest,
+			Size:         int64(len(subjectManifestBytes)),
 		}
 	}
 

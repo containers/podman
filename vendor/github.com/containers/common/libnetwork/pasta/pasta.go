@@ -47,6 +47,7 @@ func Setup(opts *SetupOptions) error {
 	NoTCPNamespacePorts := true
 	NoUDPNamespacePorts := true
 	NoMapGW := true
+	NoDNS := true
 
 	path, err := opts.Config.FindHelperBinary(BinaryName, true)
 	if err != nil {
@@ -102,6 +103,8 @@ func Setup(opts *SetupOptions) error {
 			NoMapGW = false
 			// not an actual pasta(1) option
 			cmdArgs = append(cmdArgs[:i], cmdArgs[i+1:]...)
+		case "-D", "--dns", "--dns-forward":
+			NoDNS = false
 		}
 	}
 
@@ -120,20 +123,35 @@ func Setup(opts *SetupOptions) error {
 	if NoMapGW {
 		cmdArgs = append(cmdArgs, "--no-map-gw")
 	}
+	if NoDNS {
+		// disable pasta reading from /etc/resolv.conf which hides the
+		// "Couldn't get any nameserver address" warning when only
+		// localhost resolvers are configured.
+		cmdArgs = append(cmdArgs, "--dns", "none")
+	}
 
-	cmdArgs = append(cmdArgs, "--netns", opts.Netns)
+	// always pass --quiet to silence the info output from pasta
+	cmdArgs = append(cmdArgs, "--quiet", "--netns", opts.Netns)
 
 	logrus.Debugf("pasta arguments: %s", strings.Join(cmdArgs, " "))
 
 	// pasta forks once ready, and quits once we delete the target namespace
-	_, err = exec.Command(path, cmdArgs...).Output()
+	out, err := exec.Command(path, cmdArgs...).CombinedOutput()
 	if err != nil {
 		exitErr := &exec.ExitError{}
 		if errors.As(err, &exitErr) {
 			return fmt.Errorf("pasta failed with exit code %d:\n%s",
-				exitErr.ExitCode(), exitErr.Stderr)
+				exitErr.ExitCode(), string(out))
 		}
 		return fmt.Errorf("failed to start pasta: %w", err)
+	}
+
+	if len(out) > 0 {
+		// TODO: This should be warning but right now pasta still prints
+		// things with --quiet that we do not care about.
+		// For now info is fine and we can bump it up later, it is only a
+		// nice to have.
+		logrus.Infof("pasta logged warnings: %q", string(out))
 	}
 
 	return nil

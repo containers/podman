@@ -166,3 +166,19 @@ func setXdgDirs() error {
 	}
 	return nil
 }
+
+func RetryDefault() uint {
+	if IsRemote() {
+		return 0
+	}
+
+	return PodmanConfig().ContainersConfDefaultsRO.Engine.Retry
+}
+
+func RetryDelayDefault() string {
+	if IsRemote() {
+		return ""
+	}
+
+	return PodmanConfig().ContainersConfDefaultsRO.Engine.RetryDelay
+}

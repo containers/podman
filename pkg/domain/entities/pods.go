@@ -216,6 +216,8 @@ type ContainerCreateOptions struct {
 	Restart            string
 	Replace            bool
 	Requires           []string
+	Retry              *uint  `json:"retry,omitempty"`
+	RetryDelay         string `json:"retry_delay,omitempty"`
 	Rm                 bool
 	RootFS             bool
 	Secrets            []string
