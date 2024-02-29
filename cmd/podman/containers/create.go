@@ -189,7 +189,7 @@ func create(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if cliVals.LogDriver != define.PassthroughLogging {
+	if cliVals.LogDriver != define.PassthroughLogging && cliVals.LogDriver != define.PassthroughTTYLogging {
 		fmt.Println(report.Id)
 	}
 	return nil
@@ -239,10 +239,15 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 
 	if cliVals.LogDriver == define.PassthroughLogging {
 		if term.IsTerminal(0) || term.IsTerminal(1) || term.IsTerminal(2) {
-			return vals, errors.New("the '--log-driver passthrough' option cannot be used on a TTY")
+			return vals, errors.New("the '--log-driver passthrough' option cannot be used on a TTY.  If you really want it, use '--log-driver passthrough-tty'")
 		}
 		if registry.IsRemote() {
 			return vals, errors.New("the '--log-driver passthrough' option is not supported in remote mode")
+		}
+	}
+	if cliVals.LogDriver == define.PassthroughTTYLogging {
+		if registry.IsRemote() {
+			return vals, errors.New("the '--log-driver passthrough-tty' option is not supported in remote mode")
 		}
 	}
 

@@ -33,7 +33,7 @@ const (
 // Does not check if state is appropriate.
 // started is only required if startContainer is true.
 func (r *ConmonOCIRuntime) Attach(c *Container, params *AttachOptions) error {
-	passthrough := c.LogDriver() == define.PassthroughLogging
+	passthrough := c.LogDriver() == define.PassthroughLogging || c.LogDriver() == define.PassthroughTTYLogging
 
 	if params == nil || params.Streams == nil {
 		return fmt.Errorf("must provide parameters to Attach: %w", define.ErrInternal)

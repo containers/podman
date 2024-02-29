@@ -4,7 +4,7 @@
 ####> are applicable to all of those.
 #### **--log-driver**=*driver*
 
-Logging driver for the container. Currently available options are **k8s-file**, **journald**, **none** and **passthrough**, with **json-file** aliased to **k8s-file** for scripting compatibility. (Default **journald**).
+Logging driver for the container. Currently available options are **k8s-file**, **journald**, **none**, **passthrough** and **passthrough-tty**, with **json-file** aliased to **k8s-file** for scripting compatibility. (Default **journald**).
 
 The podman info command below displays the default log-driver for the system.
 ```
@@ -14,3 +14,5 @@ journald
 The **passthrough** driver passes down the standard streams (stdin, stdout, stderr) to the
 container.  It is not allowed with the remote Podman client, including Mac and Windows (excluding WSL2) machines, and on a tty, since it is
 vulnerable to attacks via TIOCSTI.
+
+The **passthrough-tty** driver is the same as **passthrough** except that it also allows it to be used on a TTY if the user really wants it.
