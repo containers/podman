@@ -212,9 +212,14 @@ func LoginUser(user string) (*exec.Cmd, error) {
 // and copies the saved image dir over to the remote host and then loads it onto the machine
 // returns a string containing output or an error
 func LoadToRemote(dest entities.ImageScpOptions, localFile string, tag string, url *url.URL, iden string, sshEngine ssh.EngineMode) (string, string, error) {
-	port, err := strconv.Atoi(url.Port())
-	if err != nil {
-		return "", "", err
+	port := 0
+	urlPort := url.Port()
+	if urlPort != "" {
+		var err error
+		port, err = strconv.Atoi(url.Port())
+		if err != nil {
+			return "", "", err
+		}
 	}
 
 	remoteFile, err := ssh.Exec(&ssh.ConnectionExecOptions{Host: url.String(), Identity: iden, Port: port, User: url.User, Args: []string{"mktemp"}}, sshEngine)
@@ -257,9 +262,14 @@ func SaveToRemote(image, localFile string, tag string, uri *url.URL, iden string
 		return fmt.Errorf("renaming of an image is currently not supported: %w", define.ErrInvalidArg)
 	}
 
-	port, err := strconv.Atoi(uri.Port())
-	if err != nil {
-		return err
+	port := 0
+	urlPort := uri.Port()
+	if urlPort != "" {
+		var err error
+		port, err = strconv.Atoi(uri.Port())
+		if err != nil {
+			return err
+		}
 	}
 
 	remoteFile, err := ssh.Exec(&ssh.ConnectionExecOptions{Host: uri.String(), Identity: iden, Port: port, User: uri.User, Args: []string{"mktemp"}}, sshEngine)
