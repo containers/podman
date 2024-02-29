@@ -983,8 +983,12 @@ upgrade_test_task:
     only_if: *not_tag_magic
     depends_on: *build
     matrix:
-#        - env:
-#              PODMAN_UPGRADE_FROM: v4.1.0
+        - env:
+              # 2024-02: as long as possible/reasonable, try to keep
+              #   one version < 4.8 so we can test boltdb. v4.3.1 is
+              #   the lowest we can go right now, builds before that
+              #   have netavark <1.4 which hangs on f39 kernel (#21863).
+              PODMAN_UPGRADE_FROM: v4.3.1
         - env:
               PODMAN_UPGRADE_FROM: v4.8.0
     gce_instance: *standardvm
