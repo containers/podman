@@ -21,7 +21,7 @@ package e2e_test
 
 // 	It("apply machine", func() {
 // 		i := new(initMachine)
-// 		foo1, err := mb.setName("foo1").setCmd(i.withImagePath(mb.imagePath)).run()
+// 		foo1, err := mb.setName("foo1").setCmd(i.withImage(mb.imagePath)).run()
 // 		Expect(err).ToNot(HaveOccurred())
 // 		Expect(foo1).To(Exit(0))
 
@@ -33,7 +33,7 @@ package e2e_test
 
 // 	It("apply machine from containers-storage", func() {
 // 		i := new(initMachine)
-// 		foo1, err := mb.setName("foo1").setCmd(i.withImagePath(mb.imagePath)).run()
+// 		foo1, err := mb.setName("foo1").setCmd(i.withImage(mb.imagePath)).run()
 // 		Expect(err).ToNot(HaveOccurred())
 // 		Expect(foo1).To(Exit(0))
 

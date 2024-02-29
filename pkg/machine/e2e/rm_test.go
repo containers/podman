@@ -35,7 +35,7 @@ var _ = Describe("podman machine rm", func() {
 	It("Remove machine", func() {
 		name := randomString()
 		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 		rm := rmMachine{}
@@ -59,7 +59,7 @@ var _ = Describe("podman machine rm", func() {
 	It("Remove running machine", func() {
 		name := randomString()
 		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withNow()).run()
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withNow()).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 		rm := new(rmMachine)
@@ -83,7 +83,7 @@ var _ = Describe("podman machine rm", func() {
 
 	It("machine rm --save-ignition --save-image", func() {
 		i := new(initMachine)
-		session, err := mb.setCmd(i.withImagePath(mb.imagePath)).run()
+		session, err := mb.setCmd(i.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -125,13 +125,13 @@ var _ = Describe("podman machine rm", func() {
 
 		fooName := "foo"
 		foo := new(initMachine)
-		session, err := mb.setName(fooName).setCmd(foo.withImagePath(mb.imagePath)).run()
+		session, err := mb.setName(fooName).setCmd(foo.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
 		barName := "bar"
 		bar := new(initMachine)
-		session, err = mb.setName(barName).setCmd(bar.withImagePath(mb.imagePath).withNow()).run()
+		session, err = mb.setName(barName).setCmd(bar.withImage(mb.imagePath).withNow()).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -165,7 +165,7 @@ var _ = Describe("podman machine rm", func() {
 	It("Removing all machines doesn't delete ssh keys", func() {
 		fooName := "foo"
 		foo := new(initMachine)
-		session, err := mb.setName(fooName).setCmd(foo.withImagePath(mb.imagePath)).run()
+		session, err := mb.setName(fooName).setCmd(foo.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 

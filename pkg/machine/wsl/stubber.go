@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v5/pkg/machine/ocipull"
+	"github.com/containers/podman/v5/pkg/machine/shim/diskpull"
 	"github.com/containers/podman/v5/pkg/machine/stdpull"
 	"github.com/containers/podman/v5/pkg/machine/wsl/wutil"
 
@@ -281,10 +282,14 @@ func (w WSLStubber) VMType() define.VMType {
 	return define.WSLVirt
 }
 
-func (w WSLStubber) GetDisk(_ string, dirs *define.MachineDirs, mc *vmconfigs.MachineConfig) error {
+func (w WSLStubber) GetDisk(userInputPath string, dirs *define.MachineDirs, mc *vmconfigs.MachineConfig) error {
 	var (
 		myDisk ocipull.Disker
 	)
+
+	if userInputPath != "" {
+		return diskpull.GetDisk(userInputPath, dirs, mc.ImagePath, w.VMType(), mc.Name)
+	}
 
 	// check github for the latest version of the WSL dist
 	downloadURL, downloadVersion, _, _, err := GetFedoraDownloadForWSL()

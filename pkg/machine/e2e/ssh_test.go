@@ -32,7 +32,7 @@ var _ = Describe("podman machine ssh", func() {
 	It("ssh to non-running machine", func() {
 		name := randomString()
 		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -47,7 +47,7 @@ var _ = Describe("podman machine ssh", func() {
 		wsl := testProvider.VMType() == define.WSLVirt
 		name := randomString()
 		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withNow()).run()
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withNow()).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 

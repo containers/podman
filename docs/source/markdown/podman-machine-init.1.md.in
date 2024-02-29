@@ -73,11 +73,10 @@ Fully qualified path of the ignition file.
 If an ignition file is provided, the file
 is copied into the user's CONF_DIR and renamed.  Additionally, no SSH keys are generated, nor are any system connections made.  It is assumed that the user does these things manually or handled otherwise.
 
-#### **--image-path**
+#### **--image**
 
-Fully qualified path or URL to the VM image.
-Can also be set to `testing`, `next`, or `stable` to pull down default image.
-Defaults to `testing`.
+Fully qualified registry, path, or URL to a VM image.
+Registry target must be in the form of `docker://registry/repo/image:version`.
 
 #### **--memory**, **-m**=*number*
 
