@@ -548,7 +548,7 @@ EOF
 
     run_podman kube play $PODMAN_TMPDIR/test.yaml
     run_podman pod inspect test_pod --format "{{.InfraConfig.PortBindings}}"
-    assert "$output" = "map[$HOST_PORT/tcp:[{ $HOST_PORT}]]"
+    assert "$output" = "map[$HOST_PORT/tcp:[{0.0.0.0 $HOST_PORT}]]"
     run_podman kube down $PODMAN_TMPDIR/test.yaml
 
     run_podman pod rm -a -f

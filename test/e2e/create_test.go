@@ -121,7 +121,7 @@ var _ = Describe("Podman create", func() {
 		result := podmanTest.Podman([]string{"inspect", "entrypoint_test", "--format", "{{.Config.Entrypoint}}"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
-		Expect(result.OutputToString()).To(Equal("/bin/foobar"))
+		Expect(result.OutputToString()).To(Equal("[/bin/foobar]"))
 	})
 
 	It("podman create --entrypoint \"\"", func() {
@@ -133,7 +133,7 @@ var _ = Describe("Podman create", func() {
 		result := podmanTest.Podman([]string{"inspect", session.OutputToString(), "--format", "{{.Config.Entrypoint}}"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
-		Expect(result.OutputToString()).To(Equal(""))
+		Expect(result.OutputToString()).To(Equal("[]"))
 	})
 
 	It("podman create --entrypoint json", func() {
@@ -146,7 +146,7 @@ var _ = Describe("Podman create", func() {
 		result := podmanTest.Podman([]string{"inspect", "entrypoint_json", "--format", "{{.Config.Entrypoint}}"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
-		Expect(result.OutputToString()).To(Equal("/bin/foo -c"))
+		Expect(result.OutputToString()).To(Equal("[/bin/foo -c]"))
 	})
 
 	It("podman create --mount flag with multiple mounts", func() {
@@ -266,7 +266,8 @@ var _ = Describe("Podman create", func() {
 		Expect(ctrJSON).To(HaveLen(1))
 		Expect(ctrJSON[0].Config.Cmd).To(HaveLen(1))
 		Expect(ctrJSON[0].Config.Cmd[0]).To(Equal("redis-server"))
-		Expect(ctrJSON[0].Config).To(HaveField("Entrypoint", "docker-entrypoint.sh"))
+		Expect(ctrJSON[0].Config.Entrypoint).To(HaveLen(1))
+		Expect(ctrJSON[0].Config.Entrypoint[0]).To(Equal("docker-entrypoint.sh"))
 	})
 
 	It("podman create --pull", func() {
@@ -482,7 +483,7 @@ var _ = Describe("Podman create", func() {
 		inspect.WaitWithDefaultTimeout()
 		data := inspect.InspectContainerToJSON()
 		Expect(data).To(HaveLen(1))
-		Expect(data[0].Config).To(HaveField("StopSignal", uint(15)))
+		Expect(data[0].Config).To(HaveField("StopSignal", "SIGTERM"))
 	})
 
 	It("podman create --tz", func() {

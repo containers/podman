@@ -438,7 +438,7 @@ var _ = Describe("Podman inspect", func() {
 		inspect := podmanTest.Podman([]string{"inspect", `--format="{{json .NetworkSettings.Ports}}"`, ctnrName})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(ExitCleanly())
-		Expect(inspect.OutputToString()).To(Equal(`"{"80/tcp":[{"HostIp":"","HostPort":"8084"}]}"`))
+		Expect(inspect.OutputToString()).To(Equal(`"{"80/tcp":[{"HostIp":"0.0.0.0","HostPort":"8084"}]}"`))
 	})
 
 	It("Verify container inspect has default network", func() {

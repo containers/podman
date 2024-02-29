@@ -3228,7 +3228,7 @@ spec:
 		Expect(ctr[0].Config.WorkingDir).To(ContainSubstring("/etc"))
 		Expect(ctr[0].Config.Labels).To(HaveKeyWithValue("key1", ContainSubstring("value1")))
 		Expect(ctr[0].Config.Labels).To(HaveKeyWithValue("key1", ContainSubstring("value1")))
-		Expect(ctr[0].Config).To(HaveField("StopSignal", uint(51)))
+		Expect(ctr[0].Config).To(HaveField("StopSignal", "SIGRTMAX-13"))
 	})
 
 	It("daemonset sanity", func() {
@@ -5757,7 +5757,7 @@ spec:
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
-		verifyPodPorts(podmanTest, "network-echo", "19008/tcp:[{ 19010}]", "19008/udp:[{ 19009}]")
+		verifyPodPorts(podmanTest, "network-echo", "19008/tcp:[{0.0.0.0 19010}]", "19008/udp:[{0.0.0.0 19009}]")
 	})
 
 	It("override with udp should keep tcp from YAML file", func() {
@@ -5768,7 +5768,7 @@ spec:
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
-		verifyPodPorts(podmanTest, "network-echo", "19008/tcp:[{ 19011}]", "19008/udp:[{ 19012}]")
+		verifyPodPorts(podmanTest, "network-echo", "19008/tcp:[{0.0.0.0 19011}]", "19008/udp:[{0.0.0.0 19012}]")
 	})
 
 	It("with replicas limits the count to 1 and emits a warning", func() {
