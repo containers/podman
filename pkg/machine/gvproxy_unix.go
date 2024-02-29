@@ -10,6 +10,7 @@ import (
 
 	psutil "github.com/shirou/gopsutil/v3/process"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -25,6 +26,11 @@ func backoffForProcess(p *psutil.Process) error {
 	for i := 0; i < loops; i++ {
 		running, err := p.IsRunning()
 		if err != nil {
+			// It is possible that while in our loop, the PID vaporize triggering
+			// an input/output error (#21845)
+			if errors.Is(err, unix.EIO) {
+				return nil
+			}
 			return fmt.Errorf("checking if process running: %w", err)
 		}
 		if !running {

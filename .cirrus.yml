@@ -820,8 +820,6 @@ podman_machine_mac_task:
     # TODO: Timeout bumped b/c initial image download (~5min) and VM
     #       resize (~2min) causes test-timeout (90s default).  Should
     #       tests deal with this internally?
-    smoke_test_script:
-        - MACHINE_TEST_TIMEOUT=500 make localmachine FOCUS_FILE="basic_test.go"
     test_script:
         - make localmachine
     # This host is/was shared with potentially many other CI tasks.

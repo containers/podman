@@ -171,13 +171,45 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 		ignStorage.Links = append(ignStorage.Links, tzLink)
 	}
 
-	// Enables automatic login on the console;
-	// there's no security concerns here, and this makes debugging easier.
-	// xref https://docs.fedoraproject.org/en-US/fedora-coreos/tutorial-autologin/
-	var autologinDropin = `[Service]
-ExecStart=
-ExecStart=-/usr/sbin/agetty --autologin root --noclear %I $TERM
-`
+	// This service gets environment variables that are provided
+	// through qemu fw_cfg and then sets them into systemd/system.conf.d,
+	// profile.d and environment.d files
+	//
+	// Currently, it is used for propagating
+	// proxy settings e.g. HTTP_PROXY and others, on a start avoiding
+	// a need of re-creating/re-initiating a VM
+
+	envset := parser.NewUnitFile()
+	envset.Add("Unit", "Description", "Environment setter from QEMU FW_CFG")
+
+	envset.Add("Service", "Type", "oneshot")
+	envset.Add("Service", "RemainAfterExit", "yes")
+	envset.Add("Service", "Environment", "FWCFGRAW=/sys/firmware/qemu_fw_cfg/by_name/opt/com.coreos/environment/raw")
+	envset.Add("Service", "Environment", "SYSTEMD_CONF=/etc/systemd/system.conf.d/default-env.conf")
+	envset.Add("Service", "Environment", "ENVD_CONF=/etc/environment.d/default-env.conf")
+	envset.Add("Service", "Environment", "PROFILE_CONF=/etc/profile.d/default-env.sh")
+	envset.Add("Service", "ExecStart", `/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} &&\
+        echo "[Manager]\n#Got from QEMU FW_CFG\nDefaultEnvironment=$(/usr/bin/base64 -d ${FWCFGRAW} | sed -e "s+|+ +g")\n" > ${SYSTEMD_CONF} ||\
+        echo "[Manager]\n#Got nothing from QEMU FW_CFG\n#DefaultEnvironment=\n" > ${SYSTEMD_CONF}'`)
+	envset.Add("Service", "ExecStart", `/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
+        echo "#Got from QEMU FW_CFG"> ${ENVD_CONF};\
+        IFS="|";\
+        for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
+            echo "$iprxy" >> ${ENVD_CONF}; done ) || \
+        echo "#Got nothing from QEMU FW_CFG"> ${ENVD_CONF}'`)
+	envset.Add("Service", "ExecStart", `/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
+        echo "#Got from QEMU FW_CFG"> ${PROFILE_CONF};\
+        IFS="|";\
+        for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
+            echo "export $iprxy" >> ${PROFILE_CONF}; done ) || \
+        echo "#Got nothing from QEMU FW_CFG"> ${PROFILE_CONF}'`)
+	envset.Add("Service", "ExecStartPost", "/usr/bin/systemctl daemon-reload")
+
+	envset.Add("Install", "WantedBy", "sysinit.target")
+	envsetFile, err := envset.ToString()
+	if err != nil {
+		return err
+	}
 
 	ignSystemd := Systemd{
 		Units: []Unit{
@@ -186,54 +218,24 @@ ExecStart=-/usr/sbin/agetty --autologin root --noclear %I $TERM
 				Name:    "podman.socket",
 			},
 			{
-				Enabled: BoolToPtr(false),
-				Name:    "docker.service",
-				Mask:    BoolToPtr(true),
-			},
-			{
-				Enabled: BoolToPtr(false),
-				Name:    "docker.socket",
-				Mask:    BoolToPtr(true),
-			},
-			{
+				// TODO Need to understand if this could play a role in machine
+				// updates given a certain configuration
 				// Disable auto-updating of fcos images
 				// https://github.com/containers/podman/issues/20122
 				Enabled: BoolToPtr(false),
 				Name:    "zincati.service",
 			},
-			{
-				Name: "serial-getty@.service",
-				Dropins: []Dropin{
-					{
-						Name:     "10-autologin.conf",
-						Contents: &autologinDropin,
-					},
-				},
-			},
-			{
-				Name: "getty@.service",
-				Dropins: []Dropin{
-					{
-						Name:     "10-autologin.conf",
-						Contents: &autologinDropin,
-					},
-				},
-			},
 		},
 	}
 
-	if ign.NetRecover {
-		contents, err := GetNetRecoveryUnitFile().ToString()
-		if err != nil {
-			return err
-		}
-
-		recoveryUnit := Unit{
+	// Only qemu has the qemu firmware environment setting
+	if ign.VMType == define.QemuVirt {
+		qemuUnit := Unit{
 			Enabled:  BoolToPtr(true),
-			Name:     "net-health-recovery.service",
-			Contents: &contents,
+			Name:     "envset-fwcfg.service",
+			Contents: &envsetFile,
 		}
-		ignSystemd.Units = append(ignSystemd.Units, recoveryUnit)
+		ignSystemd.Units = append(ignSystemd.Units, qemuUnit)
 	}
 
 	// Only after all checks are done
@@ -272,43 +274,10 @@ func getDirs(usrName string) []Directory {
 		dirs[i] = newDir
 	}
 
-	// Issue #11489: make sure that we can inject a custom registries.conf
-	// file on the system level to force a single search registry.
-	// The remote client does not yet support prompting for short-name
-	// resolution, so we enforce a single search registry (i.e., docker.io)
-	// as a workaround.
-	dirs = append(dirs, Directory{
-		Node: Node{
-			Group: GetNodeGrp("root"),
-			Path:  "/etc/containers/registries.conf.d",
-			User:  GetNodeUsr("root"),
-		},
-		DirectoryEmbedded1: DirectoryEmbedded1{Mode: IntToPtr(0755)},
-	})
-
-	// The directory is used by envset-fwcfg.service
-	// for propagating environment variables that got
-	// from a host
-	dirs = append(dirs, Directory{
-		Node: Node{
-			Group: GetNodeGrp("root"),
-			Path:  "/etc/systemd/system.conf.d",
-			User:  GetNodeUsr("root"),
-		},
-		DirectoryEmbedded1: DirectoryEmbedded1{Mode: IntToPtr(0755)},
-	}, Directory{
-		Node: Node{
-			Group: GetNodeGrp("root"),
-			Path:  "/etc/environment.d",
-			User:  GetNodeUsr("root"),
-		},
-		DirectoryEmbedded1: DirectoryEmbedded1{Mode: IntToPtr(0755)},
-	})
-
 	return dirs
 }
 
-func getFiles(usrName string, uid int, rootful bool, vmtype define.VMType, netRecover bool) []File {
+func getFiles(usrName string, uid int, rootful bool, vmtype define.VMType, _ bool) []File {
 	files := make([]File, 0)
 
 	lingerExample := parser.NewUnitFile()
@@ -325,15 +294,12 @@ func getFiles(usrName string, uid int, rootful bool, vmtype define.VMType, netRe
 netns="bridge"
 pids_limit=0
 `
+	// TODO I think this can be removed but leaving breadcrumb until certain.
 	// Set deprecated machine_enabled until podman package on fcos is
 	// current enough to no longer require it
-	rootContainers := `[engine]
-machine_enabled=true
-`
-
-	delegateConf := `[Service]
-Delegate=memory pids cpu io
-`
+	// 	rootContainers := `[engine]
+	// machine_enabled=true
+	// `
 	// Prevent subUID from clashing with actual UID
 	subUID := 100000
 	subUIDs := 1000000
@@ -374,6 +340,7 @@ Delegate=memory pids cpu io
 			Mode: IntToPtr(0744),
 		},
 	})
+
 	// Set up /etc/subuid and /etc/subgid
 	for _, sub := range []string{"/etc/subuid", "/etc/subgid"} {
 		files = append(files, File{
@@ -393,50 +360,8 @@ Delegate=memory pids cpu io
 		})
 	}
 
-	// Set delegate.conf so cpu,io subsystem is delegated to non-root users as well for cgroupv2
-	// by default
-	files = append(files, File{
-		Node: Node{
-			Group: GetNodeGrp("root"),
-			Path:  "/etc/systemd/system/user@.service.d/delegate.conf",
-			User:  GetNodeUsr("root"),
-		},
-		FileEmbedded1: FileEmbedded1{
-			Append: nil,
-			Contents: Resource{
-				Source: EncodeDataURLPtr(delegateConf),
-			},
-			Mode: IntToPtr(0644),
-		},
-	})
-
-	// Add a file into linger
-	files = append(files, File{
-		Node: Node{
-			Group: GetNodeGrp(usrName),
-			Path:  "/var/lib/systemd/linger/core",
-			User:  GetNodeUsr(usrName),
-		},
-		FileEmbedded1: FileEmbedded1{Mode: IntToPtr(0644)},
-	})
-
-	// Set deprecated machine_enabled to true to indicate we're in a VM
-	files = append(files, File{
-		Node: Node{
-			Group: GetNodeGrp("root"),
-			Path:  "/etc/containers/containers.conf",
-			User:  GetNodeUsr("root"),
-		},
-		FileEmbedded1: FileEmbedded1{
-			Append: nil,
-			Contents: Resource{
-				Source: EncodeDataURLPtr(rootContainers),
-			},
-			Mode: IntToPtr(0644),
-		},
-	})
-
-	// Set machine marker file to indicate podman is in a qemu based machine
+	// Set machine marker file to indicate podman what vmtype we are
+	// operating under
 	files = append(files, File{
 		Node: Node{
 			Group: GetNodeGrp("root"),
@@ -452,42 +377,6 @@ Delegate=memory pids cpu io
 		},
 	})
 
-	// Increase the number of inotify instances.
-	files = append(files, File{
-		Node: Node{
-			Group: GetNodeGrp("root"),
-			Path:  "/etc/sysctl.d/10-inotify-instances.conf",
-			User:  GetNodeUsr("root"),
-		},
-		FileEmbedded1: FileEmbedded1{
-			Append: nil,
-			Contents: Resource{
-				Source: EncodeDataURLPtr("fs.inotify.max_user_instances=524288\n"),
-			},
-			Mode: IntToPtr(0644),
-		},
-	})
-
-	// Issue #11489: make sure that we can inject a custom registries.conf
-	// file on the system level to force a single search registry.
-	// The remote client does not yet support prompting for short-name
-	// resolution, so we enforce a single search registry (i.e., docker.io)
-	// as a workaround.
-	files = append(files, File{
-		Node: Node{
-			Group: GetNodeGrp("root"),
-			Path:  "/etc/containers/registries.conf.d/999-podman-machine.conf",
-			User:  GetNodeUsr("root"),
-		},
-		FileEmbedded1: FileEmbedded1{
-			Append: nil,
-			Contents: Resource{
-				Source: EncodeDataURLPtr("unqualified-search-registries=[\"docker.io\"]\n"),
-			},
-			Mode: IntToPtr(0644),
-		},
-	})
-
 	files = append(files, File{
 		Node: Node{
 			Path: PodmanDockerTmpConfPath,
@@ -497,24 +386,6 @@ Delegate=memory pids cpu io
 			// Create a symlink from the docker socket to the podman socket.
 			Contents: Resource{
 				Source: EncodeDataURLPtr(GetPodmanDockerTmpConfig(uid, rootful, true)),
-			},
-			Mode: IntToPtr(0644),
-		},
-	})
-
-	setDockerHost := `export DOCKER_HOST="unix://$(podman info -f "{{.Host.RemoteSocket.Path}}")"
-`
-
-	files = append(files, File{
-		Node: Node{
-			Group: GetNodeGrp("root"),
-			Path:  "/etc/profile.d/docker-host.sh",
-			User:  GetNodeUsr("root"),
-		},
-		FileEmbedded1: FileEmbedded1{
-			Append: nil,
-			Contents: Resource{
-				Source: EncodeDataURLPtr(setDockerHost),
 			},
 			Mode: IntToPtr(0644),
 		},
@@ -555,51 +426,6 @@ Delegate=memory pids cpu io
 	if sslCertFileName != "" || sslCertDirName != "" {
 		// If we copied certs via env then also make the to set the env in the VM.
 		files = append(files, getSSLEnvironmentFiles(sslCertFileName, sslCertDirName)...)
-	}
-
-	files = append(files, File{
-		Node: Node{
-			User:  GetNodeUsr("root"),
-			Group: GetNodeGrp("root"),
-			Path:  "/etc/chrony.conf",
-		},
-		FileEmbedded1: FileEmbedded1{
-			Append: []Resource{{
-				Source: EncodeDataURLPtr("\nconfdir /etc/chrony.d\n"),
-			}},
-		},
-	})
-
-	// Issue #11541: allow Chrony to update the system time when it has drifted
-	// far from NTP time.
-	files = append(files, File{
-		Node: Node{
-			User:  GetNodeUsr("root"),
-			Group: GetNodeGrp("root"),
-			Path:  "/etc/chrony.d/50-podman-makestep.conf",
-		},
-		FileEmbedded1: FileEmbedded1{
-			Contents: Resource{
-				Source: EncodeDataURLPtr("makestep 1 -1\n"),
-			},
-		},
-	})
-
-	// Only necessary for qemu on mac
-	if netRecover {
-		files = append(files, File{
-			Node: Node{
-				User:  GetNodeUsr("root"),
-				Group: GetNodeGrp("root"),
-				Path:  "/usr/local/bin/net-health-recovery.sh",
-			},
-			FileEmbedded1: FileEmbedded1{
-				Mode: IntToPtr(0755),
-				Contents: Resource{
-					Source: EncodeDataURLPtr(GetNetRecoveryFile()),
-				},
-			},
-		})
 	}
 
 	return files

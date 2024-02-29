@@ -32,6 +32,11 @@ echo "TMPDIR=/private/tmp/ci" >> $CIRRUS_ENV
 # Removed completely during cleanup.
 mkdir -p /private/tmp/ci
 
+# Add policy.json
+mkdir -p $HOME/ci/.config/containers
+cp pkg/machine/ocipull/policy.json /$HOME/ci/.config/containers/
+
+
 # Some test operations & checks require a git "identity"
 # N/B: $HOME in this context does not include the /ci part automatically
 # (see above) but it will when the next Cirrus-CI "_script" section
