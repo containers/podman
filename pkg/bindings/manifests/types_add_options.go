@@ -77,21 +77,6 @@ func (o *AddOptions) GetFeatures() []string {
 	return o.Features
 }
 
-// WithImages set field Images to given value
-func (o *AddOptions) WithImages(value []string) *AddOptions {
-	o.Images = value
-	return o
-}
-
-// GetImages returns value of field Images
-func (o *AddOptions) GetImages() []string {
-	if o.Images == nil {
-		var z []string
-		return z
-	}
-	return o.Images
-}
-
 // WithOS set field OS to given value
 func (o *AddOptions) WithOS(value string) *AddOptions {
 	o.OS = &value
@@ -122,6 +107,21 @@ func (o *AddOptions) GetOSVersion() string {
 	return *o.OSVersion
 }
 
+// WithOSFeatures set field OSFeatures to given value
+func (o *AddOptions) WithOSFeatures(value []string) *AddOptions {
+	o.OSFeatures = value
+	return o
+}
+
+// GetOSFeatures returns value of field OSFeatures
+func (o *AddOptions) GetOSFeatures() []string {
+	if o.OSFeatures == nil {
+		var z []string
+		return z
+	}
+	return o.OSFeatures
+}
+
 // WithVariant set field Variant to given value
 func (o *AddOptions) WithVariant(value string) *AddOptions {
 	o.Variant = &value
@@ -135,6 +135,21 @@ func (o *AddOptions) GetVariant() string {
 		return z
 	}
 	return *o.Variant
+}
+
+// WithImages set field Images to given value
+func (o *AddOptions) WithImages(value []string) *AddOptions {
+	o.Images = value
+	return o
+}
+
+// GetImages returns value of field Images
+func (o *AddOptions) GetImages() []string {
+	if o.Images == nil {
+		var z []string
+		return z
+	}
+	return o.Images
 }
 
 // WithAuthfile set field Authfile to given value

@@ -14,8 +14,10 @@ type ManifestPushReport struct {
 type ManifestModifyReport struct {
 	// Manifest List ID
 	ID string `json:"Id"`
-	// Images to removed from manifest list, otherwise not provided.
+	// Images added to or removed from manifest list, otherwise not provided.
 	Images []string `json:"images,omitempty" schema:"images"`
+	// Files added to manifest list, otherwise not provided.
+	Files []string `json:"files,omitempty" schema:"files"`
 	// Errors associated with operation
 	Errors []error `json:"errors,omitempty"`
 }

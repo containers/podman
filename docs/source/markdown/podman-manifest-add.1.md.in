@@ -1,16 +1,18 @@
 % podman-manifest-add 1
 
 ## NAME
-podman\-manifest\-add - Add an image to a manifest list or image index
+podman\-manifest\-add - Add an image or artifact to a manifest list or image index
 
 ## SYNOPSIS
-**podman manifest add** [*options*] *listnameorindexname* [*transport*]:*imagename*
+**podman manifest add** [*options*] *listnameorindexname* [*transport*]:*imagename* *imageorartifactname* [...]
 
 ## DESCRIPTION
 
-Adds the specified image to the specified manifest list or image index.
+Adds the specified image to the specified manifest list or image index, or
+creates an artifact manifest and adds it to the specified image index.
 
 ## RETURN VALUE
+
 The list image's ID.
 
 ## OPTIONS
@@ -24,12 +26,61 @@ from such a list or index is added to the list or index.  Combining
 
 @@option annotation.manifest
 
-#### **--arch**
+#### **--arch**=*architecture*
 
 Override the architecture which the list or index records as a requirement for
 the image.  If *imageName* refers to a manifest list or image index, the
 architecture information is retrieved from it.  Otherwise, it is
 retrieved from the image's configuration information.
+
+#### **--artifact**
+
+Create an artifact manifest and add it to the image index.  Arguments after the
+index name will be interpreted as file names rather than as image references.
+In most scenarios, the **--artifact-type** option should also be specified.
+
+#### **--artifact-config**=*path*
+
+When creating an artifact manifest and adding it to the image index, use the
+specified file's contents as the configuration blob in the artifact manifest.
+In most scenarios, leaving the default value, which signifies an empty
+configuration, unchanged, is the preferred option.
+
+#### **--artifact-config-type**=*type*
+
+When creating an artifact manifest and adding it to the image index, use the
+specified MIME type as the `mediaType` associated with the configuration blob
+in the artifact manifest.  In most scenarios, leaving the default value, which
+signifies either an empty configuration or the standard OCI configuration type,
+unchanged, is the preferred option.
+
+#### **--artifact-exclude-titles**
+
+When creating an artifact manifest and adding it to the image index, do not
+set "org.opencontainers.image.title" annotations equal to the file's basename
+for each file added to the artifact manifest.  Tools which retrieve artifacts
+from a registry may use these values to choose names for files when saving
+artifacts to disk, so this option is not recommended unless it is required
+for interoperability with a particular registry.
+
+#### **--artifact-layer-type**=*type*
+
+When creating an artifact manifest and adding it to the image index, use the
+specified MIME type as the `mediaType` associated with the files' contents.  If
+not specified, guesses based on either the files names or their contents will
+be made and used, but the option should be specified if certainty is needed.
+
+#### **--artifact-subject**=*imageName*
+
+When creating an artifact manifest and adding it to the image index, set the
+*subject* field in the artifact manifest to mark the artifact manifest as being
+associated with the specified image in some way.  An artifact manifest can only
+be associated with, at most, one subject.
+
+#### **--artifact-type**=*type*
+
+When creating an artifact manifest, use the specified MIME type as the
+manifest's `artifactType` value instead of the less informative default value.
 
 @@option authfile
 
@@ -39,7 +90,7 @@ retrieved from the image's configuration information.
 
 @@option features
 
-#### **--os**
+#### **--os**=*OS*
 
 Override the OS which the list or index records as a requirement for the image.
 If *imagename* refers to a manifest list or image index, the OS information

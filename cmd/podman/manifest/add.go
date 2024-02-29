@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
@@ -12,30 +14,35 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/util"
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/spf13/cobra"
 )
 
-// manifestAddOptsWrapper wraps entities.ManifestAddOptions and prevents leaking
-// CLI-only fields into the API types.
+// manifestAddOptsWrapper wraps entities.ManifestAddOptions and prevents
+// leaking CLI-only fields into the API types.
 type manifestAddOptsWrapper struct {
 	entities.ManifestAddOptions
+	artifactOptions entities.ManifestAddArtifactOptions
 
-	TLSVerifyCLI   bool // CLI only
-	Insecure       bool // CLI only
-	CredentialsCLI string
+	tlsVerifyCLI       bool   // CLI only
+	insecure           bool   // CLI only
+	credentialsCLI     string // CLI only
+	artifact           bool   // CLI only
+	artifactConfigFile string // CLI only
+	artifactType       string // CLI only
 }
 
 var (
 	manifestAddOpts = manifestAddOptsWrapper{}
 	addCmd          = &cobra.Command{
-		Use:               "add [options] LIST IMAGE [IMAGE...]",
-		Short:             "Add images to a manifest list or image index",
-		Long:              "Adds an image to a manifest list or image index.",
+		Use:               "add [options] LIST IMAGEORARTIFACT [IMAGEORARTIFACT...]",
+		Short:             "Add images or artifacts to a manifest list or image index",
+		Long:              "Adds an image or artifact to a manifest list or image index.",
 		RunE:              add,
 		Args:              cobra.MinimumNArgs(2),
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman manifest add mylist:v1.11 image:v1.11-amd64
-		podman manifest add mylist:v1.11 transport:imageName`,
+  podman manifest add mylist:v1.11 transport:imageName`,
 	}
 )
 
@@ -55,6 +62,32 @@ func init() {
 	flags.StringVar(&manifestAddOpts.Arch, archFlagName, "", "override the `architecture` of the specified image")
 	_ = addCmd.RegisterFlagCompletionFunc(archFlagName, completion.AutocompleteArch)
 
+	artifactFlagName := "artifact"
+	flags.BoolVar(&manifestAddOpts.artifact, artifactFlagName, false, "add all arguments as artifact files rather than as images")
+
+	artifactExcludeTitlesFlagName := "artifact-exclude-titles"
+	flags.BoolVar(&manifestAddOpts.artifactOptions.ExcludeTitles, artifactExcludeTitlesFlagName, false, fmt.Sprintf(`refrain from setting %q annotations on "layers"`, imgspecv1.AnnotationTitle))
+
+	artifactTypeFlagName := "artifact-type"
+	flags.StringVar(&manifestAddOpts.artifactType, artifactTypeFlagName, "", "override the artifactType value")
+	_ = addCmd.RegisterFlagCompletionFunc(artifactTypeFlagName, completion.AutocompleteNone)
+
+	artifactConfigFlagName := "artifact-config"
+	flags.StringVar(&manifestAddOpts.artifactConfigFile, artifactConfigFlagName, "", "artifact configuration file")
+	_ = addCmd.RegisterFlagCompletionFunc(artifactConfigFlagName, completion.AutocompleteNone)
+
+	artifactConfigTypeFlagName := "artifact-config-type"
+	flags.StringVar(&manifestAddOpts.artifactOptions.ConfigType, artifactConfigTypeFlagName, "", "artifact configuration media type")
+	_ = addCmd.RegisterFlagCompletionFunc(artifactConfigTypeFlagName, completion.AutocompleteNone)
+
+	artifactLayerTypeFlagName := "artifact-layer-type"
+	flags.StringVar(&manifestAddOpts.artifactOptions.LayerType, artifactLayerTypeFlagName, "", "artifact layer media type")
+	_ = addCmd.RegisterFlagCompletionFunc(artifactLayerTypeFlagName, completion.AutocompleteNone)
+
+	artifactSubjectFlagName := "artifact-subject"
+	flags.StringVar(&manifestAddOpts.IndexSubject, artifactSubjectFlagName, "", "artifact subject reference")
+	_ = addCmd.RegisterFlagCompletionFunc(artifactSubjectFlagName, completion.AutocompleteNone)
+
 	authfileFlagName := "authfile"
 	flags.StringVar(&manifestAddOpts.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	_ = addCmd.RegisterFlagCompletionFunc(authfileFlagName, completion.AutocompleteDefault)
@@ -64,7 +97,7 @@ func init() {
 	_ = addCmd.RegisterFlagCompletionFunc(certDirFlagName, completion.AutocompleteDefault)
 
 	credsFlagName := "creds"
-	flags.StringVar(&manifestAddOpts.CredentialsCLI, credsFlagName, "", "use `[username[:password]]` for accessing the registry")
+	flags.StringVar(&manifestAddOpts.credentialsCLI, credsFlagName, "", "use `[username[:password]]` for accessing the registry")
 	_ = addCmd.RegisterFlagCompletionFunc(credsFlagName, completion.AutocompleteNone)
 
 	featuresFlagName := "features"
@@ -79,9 +112,9 @@ func init() {
 	flags.StringVar(&manifestAddOpts.OSVersion, osVersionFlagName, "", "override the OS `version` of the specified image")
 	_ = addCmd.RegisterFlagCompletionFunc(osVersionFlagName, completion.AutocompleteNone)
 
-	flags.BoolVar(&manifestAddOpts.Insecure, "insecure", false, "neither require HTTPS nor verify certificates when accessing the registry")
+	flags.BoolVar(&manifestAddOpts.insecure, "insecure", false, "neither require HTTPS nor verify certificates when accessing the registry")
 	_ = flags.MarkHidden("insecure")
-	flags.BoolVar(&manifestAddOpts.TLSVerifyCLI, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
+	flags.BoolVar(&manifestAddOpts.tlsVerifyCLI, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
 
 	variantFlagName := "variant"
 	flags.StringVar(&manifestAddOpts.Variant, variantFlagName, "", "override the `Variant` of the specified image")
@@ -99,8 +132,8 @@ func add(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if manifestAddOpts.CredentialsCLI != "" {
-		creds, err := util.ParseRegistryCreds(manifestAddOpts.CredentialsCLI)
+	if manifestAddOpts.credentialsCLI != "" {
+		creds, err := util.ParseRegistryCreds(manifestAddOpts.credentialsCLI)
 		if err != nil {
 			return err
 		}
@@ -113,18 +146,53 @@ func add(cmd *cobra.Command, args []string) error {
 	// which is important to implement a sane way of dealing with defaults of
 	// boolean CLI flags.
 	if cmd.Flags().Changed("tls-verify") {
-		manifestAddOpts.SkipTLSVerify = types.NewOptionalBool(!manifestAddOpts.TLSVerifyCLI)
+		manifestAddOpts.SkipTLSVerify = types.NewOptionalBool(!manifestAddOpts.tlsVerifyCLI)
 	}
 	if cmd.Flags().Changed("insecure") {
 		if manifestAddOpts.SkipTLSVerify != types.OptionalBoolUndefined {
 			return errors.New("--insecure may not be used with --tls-verify")
 		}
-		manifestAddOpts.SkipTLSVerify = types.NewOptionalBool(manifestAddOpts.Insecure)
+		manifestAddOpts.SkipTLSVerify = types.NewOptionalBool(manifestAddOpts.insecure)
 	}
 
-	listID, err := registry.ImageEngine().ManifestAdd(context.Background(), args[0], args[1:], manifestAddOpts.ManifestAddOptions)
-	if err != nil {
-		return err
+	if !manifestAddOpts.artifact {
+		var changedArtifactFlags []string
+		for _, artifactOption := range []string{"artifact-type", "artifact-config", "artifact-config-type", "artifact-layer-type", "artifact-subject", "artifact-exclude-titles"} {
+			if cmd.Flags().Changed(artifactOption) {
+				changedArtifactFlags = append(changedArtifactFlags, "--"+artifactOption)
+			}
+		}
+		switch {
+		case len(changedArtifactFlags) == 1:
+			return fmt.Errorf("%s requires --artifact", changedArtifactFlags[0])
+		case len(changedArtifactFlags) > 1:
+			return fmt.Errorf("%s require --artifact", strings.Join(changedArtifactFlags, "/"))
+		}
+	}
+
+	var listID string
+	var err error
+	if manifestAddOpts.artifact {
+		if cmd.Flags().Changed("artifact-type") {
+			manifestAddOpts.artifactOptions.Type = &manifestAddOpts.artifactType
+		}
+		if manifestAddOpts.artifactConfigFile != "" {
+			configBytes, err := os.ReadFile(manifestAddOpts.artifactConfigFile)
+			if err != nil {
+				return fmt.Errorf("%v", err)
+			}
+			manifestAddOpts.artifactOptions.Config = string(configBytes)
+		}
+		manifestAddOpts.artifactOptions.ManifestAnnotateOptions = manifestAddOpts.ManifestAnnotateOptions
+		listID, err = registry.ImageEngine().ManifestAddArtifact(context.Background(), args[0], args[1:], manifestAddOpts.artifactOptions)
+		if err != nil {
+			return err
+		}
+	} else {
+		listID, err = registry.ImageEngine().ManifestAdd(context.Background(), args[0], args[1:], manifestAddOpts.ManifestAddOptions)
+		if err != nil {
+			return err
+		}
 	}
 	fmt.Println(listID)
 	return nil

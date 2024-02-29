@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path"
 	"strings"
 
 	"errors"
 
 	"github.com/containers/common/libimage"
 	cp "github.com/containers/image/v5/copy"
+	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/pkg/shortnames"
@@ -24,6 +26,7 @@ import (
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 // ManifestCreate implements logic for creating manifest lists via ImageEngine
@@ -41,6 +44,14 @@ func (ir *ImageEngine) ManifestCreate(ctx context.Context, name string, images [
 			}
 			manifestList = amendList
 		} else {
+			return "", err
+		}
+	}
+
+	annotateOptions := &libimage.ManifestListAnnotateOptions{}
+	if len(opts.Annotations) != 0 {
+		annotateOptions.IndexAnnotations = opts.Annotations
+		if err := manifestList.AnnotateInstance("", annotateOptions); err != nil {
 			return "", err
 		}
 	}
@@ -214,6 +225,13 @@ func (ir *ImageEngine) ManifestAdd(ctx context.Context, name string, images []st
 		Password:              opts.Password,
 	}
 
+	images = slices.Clone(images)
+	for _, image := range opts.Images {
+		if !slices.Contains(images, image) {
+			images = append(images, image)
+		}
+	}
+
 	for _, image := range images {
 		instanceDigest, err := manifestList.Add(ctx, image, addOptions)
 		if err != nil {
@@ -226,6 +244,7 @@ func (ir *ImageEngine) ManifestAdd(ctx context.Context, name string, images []st
 			OS:           opts.OS,
 			OSVersion:    opts.OSVersion,
 			Variant:      opts.Variant,
+			Subject:      opts.IndexSubject,
 		}
 		if len(opts.Annotation) != 0 {
 			annotations := make(map[string]string)
@@ -247,13 +266,26 @@ func (ir *ImageEngine) ManifestAdd(ctx context.Context, name string, images []st
 	return manifestList.ID(), nil
 }
 
+func mergeAnnotations(preferred map[string]string, aux []string) (map[string]string, error) {
+	if len(aux) != 0 {
+		auxAnnotations := make(map[string]string)
+		for _, annotationSpec := range aux {
+			key, val, hasVal := strings.Cut(annotationSpec, "=")
+			if !hasVal {
+				return nil, fmt.Errorf("no value given for annotation %q", key)
+			}
+			auxAnnotations[key] = val
+		}
+		if preferred == nil {
+			preferred = make(map[string]string)
+		}
+		preferred = envLib.Join(auxAnnotations, preferred)
+	}
+	return preferred, nil
+}
+
 // ManifestAnnotate updates an entry of the manifest list
 func (ir *ImageEngine) ManifestAnnotate(ctx context.Context, name, image string, opts entities.ManifestAnnotateOptions) (string, error) {
-	instanceDigest, err := digest.Parse(image)
-	if err != nil {
-		return "", fmt.Errorf(`invalid image digest "%s": %v`, image, err)
-	}
-
 	manifestList, err := ir.Libpod.LibimageRuntime().LookupManifestList(name)
 	if err != nil {
 		return "", err
@@ -265,25 +297,164 @@ func (ir *ImageEngine) ManifestAnnotate(ctx context.Context, name, image string,
 		OS:           opts.OS,
 		OSVersion:    opts.OSVersion,
 		Variant:      opts.Variant,
+		Subject:      opts.IndexSubject,
 	}
-	if len(opts.Annotation) != 0 {
-		annotations := make(map[string]string)
-		for _, annotationSpec := range opts.Annotation {
-			key, val, hasVal := strings.Cut(annotationSpec, "=")
-			if !hasVal {
-				return "", fmt.Errorf("no value given for annotation %q", key)
-			}
-			annotations[key] = val
+	if annotateOptions.Annotations, err = mergeAnnotations(opts.Annotations, opts.Annotation); err != nil {
+		return "", err
+	}
+	if annotateOptions.IndexAnnotations, err = mergeAnnotations(opts.IndexAnnotations, opts.IndexAnnotation); err != nil {
+		return "", err
+	}
+
+	var instanceDigest digest.Digest
+	if image == "" {
+		if len(opts.Annotations) != 0 {
+			return "", errors.New("setting annotation on an item in a manifest list requires an instance digest")
 		}
-		opts.Annotations = envLib.Join(opts.Annotations, annotations)
+		if len(opts.Annotation) != 0 {
+			return "", errors.New("setting annotation on an item in a manifest list requires an instance digest")
+		}
+		if opts.Arch != "" {
+			return "", errors.New("setting architecture on an item in a manifest list requires an instance digest")
+		}
+		if len(opts.Features) != 0 {
+			return "", errors.New("setting features on an item in a manifest list requires an instance digest")
+		}
+		if opts.OS != "" {
+			return "", errors.New("setting OS on an item in a manifest list requires an instance digest")
+		}
+		if len(opts.OSFeatures) != 0 {
+			return "", errors.New("setting OS features on an item in a manifest list requires an instance digest")
+		}
+		if opts.OSVersion != "" {
+			return "", errors.New("setting OS version on an item in a manifest list requires an instance digest")
+		}
+		if opts.Variant != "" {
+			return "", errors.New("setting variant on an item in a manifest list requires an instance digest")
+		}
+	} else {
+		if len(opts.IndexAnnotations) != 0 {
+			return "", errors.New("setting index-wide annotation in a manifest list requires no instance digest")
+		}
+		if len(opts.IndexAnnotation) != 0 {
+			return "", errors.New("setting index-wide annotation in a manifest list requires no instance digest")
+		}
+		if len(opts.IndexSubject) != 0 {
+			return "", errors.New("setting subject for a manifest list requires no instance digest")
+		}
+		instanceDigest, err = ir.digestFromDigestOrManifestListMember(ctx, manifestList, image)
+		if err != nil {
+			return "", fmt.Errorf("finding instance for %q: %w", image, err)
+		}
 	}
-	annotateOptions.Annotations = opts.Annotations
 
 	if err := manifestList.AnnotateInstance(instanceDigest, annotateOptions); err != nil {
 		return "", err
 	}
 
 	return manifestList.ID(), nil
+}
+
+// ManifestAddArtifact creates artifact manifest for files and adds them to the manifest list
+func (ir *ImageEngine) ManifestAddArtifact(ctx context.Context, name string, files []string, opts entities.ManifestAddArtifactOptions) (string, error) {
+	if len(files) < 1 {
+		return "", errors.New("manifest add artifact requires at least one file")
+	}
+
+	manifestList, err := ir.Libpod.LibimageRuntime().LookupManifestList(name)
+	if err != nil {
+		return "", err
+	}
+
+	files = slices.Clone(files)
+	for _, file := range opts.Files {
+		if !slices.Contains(files, file) {
+			files = append(files, file)
+		}
+	}
+
+	addArtifactOptions := &libimage.ManifestListAddArtifactOptions{
+		Type:          opts.Type,
+		ConfigType:    opts.ConfigType,
+		Config:        opts.Config,
+		LayerType:     opts.LayerType,
+		ExcludeTitles: opts.ExcludeTitles,
+		Annotations:   opts.Annotations,
+		Subject:       opts.Subject,
+	}
+
+	instanceDigest, err := manifestList.AddArtifact(ctx, addArtifactOptions, files...)
+	if err != nil {
+		return "", err
+	}
+
+	annotateOptions := &libimage.ManifestListAnnotateOptions{
+		Architecture: opts.Arch,
+		Features:     opts.Features,
+		OS:           opts.OS,
+		OSVersion:    opts.OSVersion,
+		Variant:      opts.Variant,
+		Subject:      opts.IndexSubject,
+	}
+	if annotateOptions.Annotations, err = mergeAnnotations(opts.Annotations, opts.Annotation); err != nil {
+		return "", err
+	}
+	if annotateOptions.IndexAnnotations, err = mergeAnnotations(opts.IndexAnnotations, opts.IndexAnnotation); err != nil {
+		return "", err
+	}
+
+	if err := manifestList.AnnotateInstance(instanceDigest, annotateOptions); err != nil {
+		return "", err
+	}
+
+	return manifestList.ID(), nil
+}
+
+func (ir *ImageEngine) digestFromDigestOrManifestListMember(ctx context.Context, list *libimage.ManifestList, name string) (digest.Digest, error) {
+	instanceDigest, err := digest.Parse(name)
+	if err == nil {
+		return instanceDigest, nil
+	}
+	listData, inspectErr := list.Inspect()
+	if inspectErr != nil {
+		return "", fmt.Errorf(`inspecting list "%s" for instance list: %v`, list.ID(), err)
+	}
+	// maybe the name is a file name we previously attached as part of an artifact manifest
+	for _, descriptor := range listData.Manifests {
+		if slices.Contains(descriptor.Files, path.Base(name)) || slices.Contains(descriptor.Files, name) {
+			return descriptor.Digest, nil
+		}
+	}
+	// maybe it's the name of an image we added to the list?
+	ref, err := alltransports.ParseImageName(name)
+	if err != nil {
+		withDocker := fmt.Sprintf("%s://%s", docker.Transport.Name(), name)
+		ref, err = alltransports.ParseImageName(withDocker)
+		if err != nil {
+			image, _, err := ir.Libpod.LibimageRuntime().LookupImage(name, &libimage.LookupImageOptions{ManifestList: true})
+			if err != nil {
+				return "", fmt.Errorf("locating image named %q to check if it's in the manifest list: %w", name, err)
+			}
+			if ref, err = image.StorageReference(); err != nil {
+				return "", fmt.Errorf("reading image reference %q to check if it's in the manifest list: %w", name, err)
+			}
+		}
+	}
+	// read the manifest of this image
+	src, err := ref.NewImageSource(ctx, ir.Libpod.SystemContext())
+	if err != nil {
+		return "", fmt.Errorf("reading local image %q to check if it's in the manifest list: %w", name, err)
+	}
+	defer src.Close()
+	manifestBytes, _, err := src.GetManifest(ctx, nil)
+	if err != nil {
+		return "", fmt.Errorf("locating image named %q to check if it's in the manifest list: %w", name, err)
+	}
+	refDigest, err := manifest.Digest(manifestBytes)
+	if err != nil {
+		return "", fmt.Errorf("digesting manifest of local image %q: %w", name, err)
+	}
+	return refDigest, nil
 }
 
 // ManifestRemoveDigest removes specified digest from the specified manifest list

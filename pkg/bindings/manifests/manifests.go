@@ -6,10 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/containers/common/libimage/define"
 	"github.com/containers/image/v5/manifest"
@@ -21,6 +25,7 @@ import (
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	dockerAPI "github.com/docker/docker/api/types"
 	jsoniter "github.com/json-iterator/go"
+	"golang.org/x/exp/slices"
 )
 
 // Create creates a manifest for the given name.  Optional images to be associated with
@@ -160,7 +165,7 @@ func Add(ctx context.Context, name string, options *AddOptions) (string, error) 
 		Features:      options.Features,
 		Images:        options.Images,
 		OS:            options.OS,
-		OSFeatures:    nil,
+		OSFeatures:    options.OSFeatures,
 		OSVersion:     options.OSVersion,
 		Variant:       options.Variant,
 		Username:      options.Username,
@@ -170,6 +175,37 @@ func Add(ctx context.Context, name string, options *AddOptions) (string, error) 
 	}
 	optionsv4.WithOperation("update")
 	return Modify(ctx, name, options.Images, &optionsv4)
+}
+
+// AddArtifact creates an artifact manifest and adds it to a given manifest
+// list.  Additional options for the manifest can also be specified.  The ID of
+// the new manifest list is returned as a string
+func AddArtifact(ctx context.Context, name string, options *AddArtifactOptions) (string, error) {
+	if options == nil {
+		options = new(AddArtifactOptions)
+	}
+	optionsv4 := ModifyOptions{
+		Annotations: options.Annotation,
+		Arch:        options.Arch,
+		Features:    options.Features,
+		OS:          options.OS,
+		OSFeatures:  options.OSFeatures,
+		OSVersion:   options.OSVersion,
+		Variant:     options.Variant,
+
+		ArtifactType:          options.Type,
+		ArtifactConfigType:    options.ConfigType,
+		ArtifactLayerType:     options.LayerType,
+		ArtifactConfig:        options.Config,
+		ArtifactExcludeTitles: options.ExcludeTitles,
+		ArtifactSubject:       options.Subject,
+		ArtifactAnnotations:   options.Annotations,
+	}
+	if len(options.Files) > 0 {
+		optionsv4.WithArtifactFiles(options.Files)
+	}
+	optionsv4.WithOperation("update")
+	return Modify(ctx, name, nil, &optionsv4)
 }
 
 // Remove deletes a manifest entry from a manifest list.  Both name and the digest to be
@@ -284,6 +320,16 @@ func Modify(ctx context.Context, name string, images []string, options *ModifyOp
 	}
 	options.WithImages(images)
 
+	var artifactFiles, artifactBaseNames []string
+	if options.ArtifactFiles != nil && len(*options.ArtifactFiles) > 0 {
+		artifactFiles = slices.Clone(*options.ArtifactFiles)
+		artifactBaseNames = make([]string, 0, len(artifactFiles))
+		for _, filename := range artifactFiles {
+			artifactBaseNames = append(artifactBaseNames, filepath.Base(filename))
+		}
+		options.ArtifactFiles = &artifactBaseNames
+	}
+
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return "", err
@@ -292,11 +338,80 @@ func Modify(ctx context.Context, name string, images []string, options *ModifyOp
 	if err != nil {
 		return "", err
 	}
-	reader := strings.NewReader(opts)
+	reader := io.Reader(strings.NewReader(opts))
+	if options.Body != nil {
+		reader = io.MultiReader(reader, *options.Body)
+	}
+	var artifactContentType string
+	var artifactWriterGroup sync.WaitGroup
+	var artifactWriterError error
+	if len(artifactFiles) > 0 {
+		// get ready to upload the passed-in files
+		bodyReader, bodyWriter := io.Pipe()
+		defer bodyReader.Close()
+		requestBodyReader := reader
+		reader = bodyReader
+		// upload the files in another goroutine
+		writer := multipart.NewWriter(bodyWriter)
+		artifactContentType = writer.FormDataContentType()
+		artifactWriterGroup.Add(1)
+		go func() {
+			defer bodyWriter.Close()
+			defer writer.Close()
+			// start with the body we would have uploaded if we weren't
+			// attaching artifacts
+			headers := textproto.MIMEHeader{
+				"Content-Type": []string{"application/json"},
+			}
+			requestPartWriter, err := writer.CreatePart(headers)
+			if err != nil {
+				artifactWriterError = fmt.Errorf("creating form part for request: %v", err)
+				return
+			}
+			if _, err := io.Copy(requestPartWriter, requestBodyReader); err != nil {
+				artifactWriterError = fmt.Errorf("uploading request as form part: %v", err)
+				return
+			}
+			// now walk the list of files we're attaching
+			for _, file := range artifactFiles {
+				if err := func() error {
+					f, err := os.Open(file)
+					if err != nil {
+						return err
+					}
+					defer f.Close()
+					fileBase := filepath.Base(file)
+					formFile, err := writer.CreateFormFile(fileBase, fileBase)
+					if err != nil {
+						return err
+					}
+					st, err := f.Stat()
+					if err != nil {
+						return err
+					}
+					// upload the file contents
+					n, err := io.Copy(formFile, f)
+					if err != nil {
+						return fmt.Errorf("uploading contents of artifact file %s: %w", filepath.Base(file), err)
+					}
+					if n != st.Size() {
+						return fmt.Errorf("short write while uploading contents of artifact file %s: %d != %d", filepath.Base(file), n, st.Size())
+					}
+					return nil
+				}(); err != nil {
+					artifactWriterError = err
+					break
+				}
+			}
+		}()
+	}
 
 	header, err := auth.MakeXRegistryAuthHeader(&imageTypes.SystemContext{AuthFilePath: options.GetAuthfile()}, options.GetUsername(), options.GetPassword())
 	if err != nil {
 		return "", err
+	}
+	if artifactContentType != "" {
+		header["Content-Type"] = []string{artifactContentType}
 	}
 
 	params, err := options.ToParams()
@@ -314,6 +429,11 @@ func Modify(ctx context.Context, name string, images []string, options *ModifyOp
 		return "", err
 	}
 	defer response.Body.Close()
+
+	artifactWriterGroup.Wait()
+	if artifactWriterError != nil {
+		return "", fmt.Errorf("uploading artifacts: %w", err)
+	}
 
 	data, err := io.ReadAll(response.Body)
 	if err != nil {

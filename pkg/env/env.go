@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"golang.org/x/exp/maps"
 )
 
 const whiteSpaces = " \t"
@@ -50,8 +52,9 @@ func Map(slice []string) map[string]string {
 // Join joins the two environment maps with override overriding base.
 func Join(base map[string]string, override map[string]string) map[string]string {
 	if len(base) == 0 {
-		return override
+		return maps.Clone(override)
 	}
+	base = maps.Clone(base)
 	for k, v := range override {
 		base[k] = v
 	}
