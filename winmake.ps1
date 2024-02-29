@@ -87,7 +87,7 @@ switch ($target) {
     'clean' {
         Make-Clean
     }
-    'win-sshproxy' {
+    {$_ -in 'win-sshproxy', 'win-gvproxy'} {
         if ($args.Count -gt 1) {
             $ref = $args[1]
         }
@@ -104,5 +104,8 @@ switch ($target) {
         Write-Host
         Write-Host "Example: Run specfic machine tests "
         Write-Host " .\winmake localmachine "basic_test.go""
+        Write-Host
+        Write-Host "Example: Download win-gvproxy and win-sshproxy helpers"
+        Write-Host " .\winmake win-gvproxy"
     }
 }
