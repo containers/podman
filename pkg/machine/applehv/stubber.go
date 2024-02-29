@@ -93,9 +93,6 @@ func (a AppleHVStubber) RemoveAndCleanMachines(_ *define.MachineDirs) error {
 }
 
 func (a AppleHVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.SetOptions) error {
-	mc.Lock()
-	defer mc.Unlock()
-
 	state, err := a.State(mc, false)
 	if err != nil {
 		return err

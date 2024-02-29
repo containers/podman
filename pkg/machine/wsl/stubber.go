@@ -120,9 +120,6 @@ func (w WSLStubber) RemoveAndCleanMachines(_ *define.MachineDirs) error {
 }
 
 func (w WSLStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.SetOptions) error {
-	mc.Lock()
-	defer mc.Unlock()
-
 	state, err := w.State(mc, false)
 	if err != nil {
 		return err
@@ -242,10 +239,7 @@ func (w WSLStubber) StopVM(mc *vmconfigs.MachineConfig, hardStop bool) error {
 	var (
 		err error
 	)
-	mc.Lock()
-	defer mc.Unlock()
 
-	// recheck after lock
 	if running, err := isRunning(mc.Name); !running {
 		return err
 	}

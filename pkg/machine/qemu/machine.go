@@ -114,9 +114,6 @@ func (q *QEMUStubber) waitForMachineToStop(mc *vmconfigs.MachineConfig) error {
 
 // Stop uses the qmp monitor to call a system_powerdown
 func (q *QEMUStubber) StopVM(mc *vmconfigs.MachineConfig, _ bool) error {
-	mc.Lock()
-	defer mc.Unlock()
-
 	if err := mc.Refresh(); err != nil {
 		return err
 	}
@@ -229,9 +226,6 @@ func (q *QEMUStubber) stopLocked(mc *vmconfigs.MachineConfig) error {
 
 // Remove deletes all the files associated with a machine including the image itself
 func (q *QEMUStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() error, error) {
-	mc.Lock()
-	defer mc.Unlock()
-
 	qemuRmFiles := []string{
 		mc.QEMUHypervisor.QEMUPidPath.GetPath(),
 		mc.QEMUHypervisor.QMPMonitor.Address.GetPath(),

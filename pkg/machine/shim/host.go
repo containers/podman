@@ -1,11 +1,13 @@
 package shim
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/containers/podman/v5/pkg/machine"
@@ -310,6 +312,14 @@ func getMCsOverProviders(vmstubbers []vmconfigs.VMProvider) (map[string]*vmconfi
 func Stop(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDefine.MachineDirs, hardStop bool) error {
 	// state is checked here instead of earlier because stopping a stopped vm is not considered
 	// an error.  so putting in one place instead of sprinkling all over.
+	mc.Lock()
+	defer mc.Unlock()
+
+	return stopLocked(mc, mp, dirs, hardStop)
+}
+
+// stopLocked stops the machine and expects the caller to hold the machine's lock.
+func stopLocked(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDefine.MachineDirs, hardStop bool) error {
 	state, err := mp.State(mc, false)
 	if err != nil {
 		return err
@@ -353,6 +363,9 @@ func Stop(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDef
 func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDefine.MachineDirs, opts machine.StartOptions) error {
 	defaultBackoff := 500 * time.Millisecond
 	maxBackoffs := 6
+
+	mc.Lock()
+	defer mc.Unlock()
 
 	gvproxyPidFile, err := dirs.RuntimeDir.AppendToNewVMFile("gvproxy.pid", nil)
 	if err != nil {
@@ -465,6 +478,91 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 	)
 
 	return nil
+}
+
+func Set(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machineDefine.SetOptions) error {
+	mc.Lock()
+	defer mc.Unlock()
+
+	if err := mp.SetProviderAttrs(mc, opts); err != nil {
+		return err
+	}
+
+	// Update the configuration file last if everything earlier worked
+	return mc.Write()
+}
+
+func Remove(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDefine.MachineDirs, opts machine.RemoveOptions) error {
+	mc.Lock()
+	defer mc.Unlock()
+
+	state, err := mp.State(mc, false)
+	if err != nil {
+		return err
+	}
+
+	if state == machineDefine.Running {
+		if !opts.Force {
+			return &machineDefine.ErrVMRunningCannotDestroyed{Name: mc.Name}
+		}
+	}
+
+	rmFiles, genericRm, err := mc.Remove(opts.SaveIgnition, opts.SaveImage)
+	if err != nil {
+		return err
+	}
+
+	providerFiles, providerRm, err := mp.Remove(mc)
+	if err != nil {
+		return err
+	}
+
+	// Add provider specific files to the list
+	rmFiles = append(rmFiles, providerFiles...)
+
+	// Important!
+	// Nothing can be removed at this point.  The user can still opt out below
+	//
+
+	if !opts.Force {
+		// Warn user
+		confirmationMessage(rmFiles)
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("Are you sure you want to continue? [y/N] ")
+		answer, err := reader.ReadString('\n')
+		if err != nil {
+			return err
+		}
+		if strings.ToLower(answer)[0] != 'y' {
+			return nil
+		}
+	}
+
+	if state == machineDefine.Running {
+		if err := stopLocked(mc, mp, dirs, true); err != nil {
+			return err
+		}
+	}
+
+	//
+	// All actual removal of files and vms should occur after this
+	//
+
+	if err := providerRm(); err != nil {
+		logrus.Errorf("failed to remove virtual machine from provider for %q: %v", mc.Name, err)
+	}
+
+	if err := genericRm(); err != nil {
+		return fmt.Errorf("failed to remove machines files: %v", err)
+	}
+	return nil
+}
+
+func confirmationMessage(files []string) {
+	fmt.Printf("The following files will be deleted:\n\n\n")
+	for _, msg := range files {
+		fmt.Println(msg)
+	}
 }
 
 func Reset(dirs *machineDefine.MachineDirs, mp vmconfigs.VMProvider, mcs map[string]*vmconfigs.MachineConfig) error {

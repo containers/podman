@@ -108,13 +108,6 @@ func (mc *MachineConfig) Unlock() {
 	mc.lock.Unlock()
 }
 
-// Write is a locking way to the machine configuration file
-func (mc *MachineConfig) Write() error {
-	mc.Lock()
-	defer mc.Unlock()
-	return mc.write()
-}
-
 // Refresh reloads the config file from disk
 func (mc *MachineConfig) Refresh() error {
 	content, err := os.ReadFile(mc.configPath.GetPath())
@@ -125,7 +118,7 @@ func (mc *MachineConfig) Refresh() error {
 }
 
 // write is a non-locking way to write the machine configuration file to disk
-func (mc *MachineConfig) write() error {
+func (mc *MachineConfig) Write() error {
 	if mc.configPath == nil {
 		return fmt.Errorf("no configuration file associated with vm %q", mc.Name)
 	}
