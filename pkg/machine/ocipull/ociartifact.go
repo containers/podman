@@ -139,7 +139,7 @@ func (o *OCIArtifactDisk) get() error {
 		}
 		// pull the image down to our local filesystem
 		if err := o.pull(destRef, artifactDigest); err != nil {
-			return err
+			return fmt.Errorf("failed to pull %s: %w", destRef.DockerReference(), err)
 		}
 		// grab the artifact disk out of the cache and lay
 		// it into our local cache in the format of
