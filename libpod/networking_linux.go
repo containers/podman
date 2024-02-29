@@ -191,7 +191,7 @@ func getContainerNetNS(ctr *Container) (string, *Container, error) {
 func getContainerNetIO(ctr *Container) (map[string]define.ContainerNetworkStats, error) {
 	perNetworkStats := make(map[string]define.ContainerNetworkStats)
 
-	netNSPath, otherCtr, netPathErr := getContainerNetNS(ctr)
+	netNSPath, _, netPathErr := getContainerNetNS(ctr)
 	if netPathErr != nil {
 		return nil, netPathErr
 	}
@@ -201,47 +201,37 @@ func getContainerNetIO(ctr *Container) (map[string]define.ContainerNetworkStats,
 		return nil, nil
 	}
 
-	netMode := ctr.config.NetMode
-	netStatus := ctr.getNetworkStatus()
-	if otherCtr != nil {
-		netMode = otherCtr.config.NetMode
-		netStatus = otherCtr.getNetworkStatus()
-	}
-	if netMode.IsSlirp4netns() {
-		// create a fake status with correct interface name for the logic below
-		netStatus = map[string]types.StatusBlock{
-			"slirp4netns": {
-				Interfaces: map[string]types.NetInterface{"tap0": {}},
-			},
-		}
-	}
 	err := ns.WithNetNSPath(netNSPath, func(_ ns.NetNS) error {
-		for _, status := range netStatus {
-			for dev := range status.Interfaces {
-				link, err := netlink.LinkByName(dev)
-				if err != nil {
-					return err
-				}
-				stats := link.Attrs().Statistics
-				if stats != nil {
-					newStats := define.ContainerNetworkStats{
-						RxBytes:   stats.RxBytes,
-						RxDropped: stats.RxDropped,
-						RxErrors:  stats.RxErrors,
-						RxPackets: stats.RxPackets,
-						TxBytes:   stats.TxBytes,
-						TxDropped: stats.TxDropped,
-						TxErrors:  stats.TxErrors,
-						TxPackets: stats.TxPackets,
-					}
+		links, err := netlink.LinkList()
+		if err != nil {
+			return fmt.Errorf("retrieving all network interfaces: %w", err)
+		}
+		for _, link := range links {
+			attributes := link.Attrs()
+			if attributes.Flags&net.FlagLoopback != 0 {
+				continue
+			}
 
-					perNetworkStats[dev] = newStats
-				}
+			if attributes.Statistics != nil {
+				perNetworkStats[attributes.Name] = getNetStatsFromNetlinkStats(attributes.Statistics)
 			}
 		}
 		return nil
 	})
 	return perNetworkStats, err
+}
+
+func getNetStatsFromNetlinkStats(stats *netlink.LinkStatistics) define.ContainerNetworkStats {
+	return define.ContainerNetworkStats{
+		RxBytes:   stats.RxBytes,
+		RxDropped: stats.RxDropped,
+		RxErrors:  stats.RxErrors,
+		RxPackets: stats.RxPackets,
+		TxBytes:   stats.TxBytes,
+		TxDropped: stats.TxDropped,
+		TxErrors:  stats.TxErrors,
+		TxPackets: stats.TxPackets,
+	}
 }
 
 // joinedNetworkNSPath returns netns path and bool if netns was set

@@ -18,21 +18,6 @@ function setup() {
     XFER_FILE="${PODMAN_TMPDIR}/pasta.bin"
 }
 
-function default_ifname() {
-    local ip_ver="${1}"
-
-    local expr='[.[] | select(.dst == "default").dev] | .[0]'
-    ip -j -"${ip_ver}" route show | jq -rM "${expr}"
-}
-
-function default_addr() {
-    local ip_ver="${1}"
-    local ifname="${2:-$(default_ifname "${ip_ver}")}"
-
-    local expr='.[0] | .addr_info[0].local'
-    ip -j -"${ip_ver}" addr show "${ifname}" | jq -rM "${expr}"
-}
-
 # _set_opt() - meta-helper for pasta_test_do.
 #
 # Sets an option, but panics if option is already set (e.g. UDP+TCP, IPv4/v6)
@@ -788,4 +773,15 @@ EOF
     mac2="aa:bb:cc:dd:ee:ff"
     CONTAINERS_CONF_OVERRIDE=$containersconf run_podman run --net=pasta:--ns-mac-addr,"$mac2" $IMAGE ip link show myname
     assert "$output" =~ "$mac2" "mac address from cli is set on custom interface"
+}
+
+### Rootless unshare testins
+
+@test "Podman unshare --rootless-netns with Pasta" {
+    skip_if_remote "unshare is local-only"
+
+    pasta_iface=$(default_ifname)
+
+    run_podman unshare --rootless-netns ip addr
+    is "$output" ".*${pasta_iface}.*"
 }

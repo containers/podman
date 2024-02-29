@@ -857,7 +857,7 @@ EOF
     cid=${output}
     run_podman inspect --format '{{ .NetworkSettings.Networks }}' $cid
     if is_rootless; then
-        is "$output" "map\[slirp4netns:.*" "NeworkSettings should contain one network named slirp4netns"
+        is "$output" "map\[pasta:.*" "NeworkSettings should contain one network named pasta"
     else
         is "$output" "map\[podman:.*" "NeworkSettings should contain one network named podman"
     fi

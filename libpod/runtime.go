@@ -696,15 +696,16 @@ func (r *Runtime) GetConfig() (*config.Config, error) {
 
 // libimageEventsMap translates a libimage event type to a libpod event status.
 var libimageEventsMap = map[libimage.EventType]events.Status{
-	libimage.EventTypeImagePull:    events.Pull,
-	libimage.EventTypeImagePush:    events.Push,
-	libimage.EventTypeImageRemove:  events.Remove,
-	libimage.EventTypeImageLoad:    events.LoadFromArchive,
-	libimage.EventTypeImageSave:    events.Save,
-	libimage.EventTypeImageTag:     events.Tag,
-	libimage.EventTypeImageUntag:   events.Untag,
-	libimage.EventTypeImageMount:   events.Mount,
-	libimage.EventTypeImageUnmount: events.Unmount,
+	libimage.EventTypeImagePull:      events.Pull,
+	libimage.EventTypeImagePullError: events.PullError,
+	libimage.EventTypeImagePush:      events.Push,
+	libimage.EventTypeImageRemove:    events.Remove,
+	libimage.EventTypeImageLoad:      events.LoadFromArchive,
+	libimage.EventTypeImageSave:      events.Save,
+	libimage.EventTypeImageTag:       events.Tag,
+	libimage.EventTypeImageUntag:     events.Untag,
+	libimage.EventTypeImageMount:     events.Mount,
+	libimage.EventTypeImageUnmount:   events.Unmount,
 }
 
 // libimageEvents spawns a goroutine which will listen for events on
