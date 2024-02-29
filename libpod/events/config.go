@@ -41,6 +41,8 @@ type Event struct {
 	Type Type
 	// Health status of the current container
 	HealthStatus string `json:"health_status,omitempty"`
+	// Error code for certain events involving errors.
+	Error error `json:"error,omitempty"`
 
 	Details
 }
@@ -170,6 +172,8 @@ const (
 	Prune Status = "prune"
 	// Pull ...
 	Pull Status = "pull"
+	// PullError is an error pulling an image
+	PullError Status = "pull-error"
 	// Push ...
 	Push Status = "push"
 	// Refresh indicates that the system refreshed the state after a

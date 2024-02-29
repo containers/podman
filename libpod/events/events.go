@@ -194,6 +194,8 @@ func StringToStatus(name string) (Status, error) {
 		return Prune, nil
 	case Pull.String():
 		return Pull, nil
+	case PullError.String():
+		return PullError, nil
 	case Push.String():
 		return Push, nil
 	case Refresh.String():
