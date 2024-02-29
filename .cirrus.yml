@@ -821,10 +821,14 @@ podman_machine_mac_task:
     #       resize (~2min) causes test-timeout (90s default).  Should
     #       tests deal with this internally?
     test_script:
-        - make localmachine
+        - "contrib/cirrus/mac_runner.sh"
     # This host is/was shared with potentially many other CI tasks.
     # Ensure nothing is left running while waiting for the next task.
     always:
+        # Required for `contrib/cirrus/logformatter` to work properly
+        html_artifacts:
+            path: ./*.html
+            type: text/html
         task_cleanup_script: *mac_cleanup
 
 
