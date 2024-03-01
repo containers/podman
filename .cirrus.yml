@@ -351,6 +351,7 @@ osx_alt_build_task:
         - cd contrib/pkginstaller
         - make ARCH=amd64 NO_CODESIGN=1 pkginstaller
         - make ARCH=aarch64 NO_CODESIGN=1 pkginstaller
+        - make ARCH=universal NO_CODESIGN=1 pkginstaller
     # Produce a new repo.tbz artifact for consumption by dependent tasks.
     repo_prep_script: *repo_prep
     repo_artifacts: *repo_artifacts
