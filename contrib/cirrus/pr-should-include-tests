@@ -2,14 +2,13 @@
 #
 # Intended for use in CI: check git commits, barf if no tests added.
 #
+ME=$(basename $0)
+
+# Github label which allows overriding this check
+OVERRIDE_LABEL="No New Tests"
 
 # Docs-only changes are excused
 if [[ "${CIRRUS_CHANGE_TITLE}" =~ CI:DOCS ]]; then
-    exit 0
-fi
-
-# So are PRs where 'NO NEW TESTS NEEDED' appears in the Github message
-if [[ "${CIRRUS_CHANGE_MESSAGE}" =~ NO.NEW.TESTS.NEEDED ]]; then
     exit 0
 fi
 
@@ -51,14 +50,41 @@ if [[ -z "$filtered_changes" ]]; then
     exit 0
 fi
 
-# One last chance: perhaps the developer included the magic '[NO NEW TESTS NEEDED]'
-# string in an amended commit.
-if git log --format=%B ${base}..${head} | grep -F '[NO NEW TESTS NEEDED]'; then
-   exit 0
+# Nope. Only allow if the github 'no-tests-needed' label is set
+if [[ -z "$CIRRUS_PR" ]]; then
+    echo "$ME: cannot query github: \$CIRRUS_PR is undefined" >&2
+    exit 1
+fi
+if [[ -z "$CIRRUS_REPO_CLONE_TOKEN" ]]; then
+    echo "$ME: cannot query github: \$CIRRUS_REPO_CLONE_TOKEN is undefined" >&2
+    exit 1
+fi
+
+query="{
+  \"query\": \"query {
+  repository(owner: \\\"containers\\\", name: \\\"podman\\\") {
+    pullRequest(number: $CIRRUS_PR) {
+      labels(first: 100) {
+        nodes {
+          name
+        }
+      }
+    }
+  }
+}\"
+}"
+
+result=$(curl -s -H "Authorization: bearer $CIRRUS_REPO_CLONE_TOKEN" -H "Accept: application/vnd.github.antiope-preview+json" -H "Content-Type: application/json" -X POST --data @- https://api.github.com/graphql <<<"$query")
+
+labels=$(jq -r '.data.repository.pullRequest.labels.nodes[].name' <<<"$result")
+
+if grep -F -x -q "$OVERRIDE_LABEL" <<<"$labels"; then
+    # PR has the label set
+    exit 0
 fi
 
 cat <<EOF
-$(basename $0): PR does not include changes in the 'tests' directory
+$ME: PR does not include changes in the 'tests' directory
 
 Please write a regression test for what you're fixing. Even if it
 seems trivial or obvious, try to add a test that will prevent
@@ -69,8 +95,8 @@ tests, possibly just adding a small step to a similar existing test.
 Every second counts in CI.
 
 If your commit really, truly does not need tests, you can proceed
-by adding '[NO NEW TESTS NEEDED]' to the body of your commit message.
-Please think carefully before doing so.
+by asking a repo maintainer to set the '$OVERRIDE_LABEL' github label.
+This will only be done when there's no reasonable alternative.
 EOF
 
 exit 1

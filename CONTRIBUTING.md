@@ -164,9 +164,9 @@ Regardless of the type of PR, all PRs should include:
 * well documented code changes.
 * additional testcases. Ideally, they should fail w/o your code change applied.
   (With a few exceptions, CI hooks will block your PR unless your change
-  includes files named `*_test.go` or under the `test/` subdirectory. To
-  bypass this block, include the string `[NO NEW TESTS NEEDED]` in your
-  commit message).
+  includes files named `*_test.go` or under the `test/` subdirectory. Repo
+  admins may bypass this restriction by setting the 'No New Tests' GitHub
+  label on the PR).
 * documentation changes.
 
 Squash your commits into logical pieces of work that might want to be reviewed
