@@ -7,14 +7,15 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"strconv"
-	"time"
 	"os"
 	"runtime"
+	"strconv"
+	"time"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/strongunits"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
+	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/applehv/vfkit"
 	"github.com/containers/podman/v5/pkg/machine/define"
@@ -25,7 +26,6 @@ import (
 	"github.com/containers/podman/v5/utils"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
 	"github.com/sirupsen/logrus"
-	"github.com/containers/podman/v5/cmd/podman/registry"
 )
 
 // applehcMACAddress is a pre-defined mac address that vfkit recognizes
@@ -121,7 +121,6 @@ func (a AppleHVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts defin
 	if opts.USBs != nil {
 		return fmt.Errorf("changing USBs not supported for applehv machines")
 	}
-
 
 	// VFKit does not require saving memory, disk, or cpu
 	return nil
@@ -378,7 +377,7 @@ func (a AppleHVStubber) SetRosetta(mc *vmconfigs.MachineConfig) error {
 	return nil
 }
 
-func (a *AppleHVStubber) GetRosetta(mc *vmconfigs.MachineConfig) (bool, error){
+func (a *AppleHVStubber) GetRosetta(mc *vmconfigs.MachineConfig) (bool, error) {
 	rosetta := mc.AppleHypervisor.Vfkit.Rosetta
 	return rosetta, nil
 }

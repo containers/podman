@@ -64,7 +64,7 @@ type DynamicIgnition struct {
 	Cfg        Config
 	Rootful    bool
 	NetRecover bool
-	Rosetta	   bool
+	Rosetta    bool
 }
 
 func (ign *DynamicIgnition) Write() error {
@@ -718,14 +718,14 @@ func GetRosettaActivationUnitFile() *parser.UnitFile {
 	rosettaUnit.Add("Unit", "After", "sshd.socket sshd.service")
 	rosettaUnit.Add("Service", "Type", "oneshot")
 	rosettaUnit.Add("Service", "RemainAfterExit", "yes")
-	rosettaUnit.Add("Service", "ExecStartPre","mount -t virtiofs -o context=system_u:object_r:container_runtime_exec_t:s0 rosetta /mnt")
-	rosettaUnit.Add("Service", "ExecStart",`/bin/sh -c "echo -1 > /proc/sys/fs/binfmt_misc/qemu-x86_64"`)
-	rosettaUnit.Add("Service", "ExecStartPost","/usr/local/bin/rosetta-activation.sh")
+	rosettaUnit.Add("Service", "ExecStartPre", "mount -t virtiofs -o context=system_u:object_r:nfs_t:s0 rosetta /mnt")
+	rosettaUnit.Add("Service", "ExecStart", `/bin/sh -c "echo -1 > /proc/sys/fs/binfmt_misc/qemu-x86_64"`)
+	rosettaUnit.Add("Service", "ExecStartPost", "/usr/local/bin/rosetta-activation.sh")
 	rosettaUnit.Add("Install", "WantedBy", "default.target")
 	return rosettaUnit
 }
 
-func SetRosettaUnit() Unit{
+func SetRosettaUnit() Unit {
 	contents, err := GetRosettaActivationUnitFile().ToString()
 	if err != nil {
 		logrus.Warnf(err.Error())

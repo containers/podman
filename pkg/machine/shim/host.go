@@ -7,10 +7,11 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
 
+	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/connection"
 	machineDefine "github.com/containers/podman/v5/pkg/machine/define"
@@ -22,7 +23,6 @@ import (
 	"github.com/containers/podman/v5/utils"
 	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
-	"github.com/containers/podman/v5/cmd/podman/registry"
 )
 
 // List is done at the host level to allow for a *possible* future where
@@ -185,7 +185,7 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 		var rosettaAsBool bool
 		rosettaAsBool, err := strconv.ParseBool(rosettaOverride)
 		if err != nil {
-			fmt.Errorf("CONTAINERS_MACHINE_ROSETTA is not a bool: %v", err)
+			return fmt.Errorf("CONTAINERS_MACHINE_ROSETTA is not a bool: %v", err)
 		}
 		createOpts.Rosetta = rosettaAsBool
 	}

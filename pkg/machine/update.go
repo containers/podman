@@ -29,11 +29,11 @@ func UpdatePodmanDockerSockService(mc *vmconfigs.MachineConfig) error {
 }
 
 func ActivateRosettaService(mc *vmconfigs.MachineConfig) error {
-    args := []string{"sudo", "systemctl", "start", "rosetta-activation.service"}
-    if err := CommonSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, args); err != nil {
-        logrus.Warnf("Could not start rosetta-activation.service")
-        return err
-    }
+	args := []string{"sudo", "systemctl", "start", "rosetta-activation.service"}
+	if err := CommonSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, args); err != nil {
+		logrus.Warnf("Could not start rosetta-activation.service")
+		return err
+	}
 
-    return nil
+	return nil
 }

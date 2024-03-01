@@ -560,7 +560,7 @@ func (h HyperVStubber) SetRosetta(mc *vmconfigs.MachineConfig) error {
 	return nil
 }
 
-func (h HyperVStubber) GetRosetta(mc *vmconfigs.MachineConfig) (bool, error){
+func (h HyperVStubber) GetRosetta(mc *vmconfigs.MachineConfig) (bool, error) {
 	return false, nil
 }
 
