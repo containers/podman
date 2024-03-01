@@ -456,6 +456,18 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 					Reason:     "not a Float32",
 				}
 			}
+		case float64:
+			switch f.Kind() {
+			case reflect.Float32, reflect.Float64:
+				f.SetFloat(val)
+			default:
+				return &ErrFieldMismatch{
+					StructType: of.Type(),
+					FieldName:  n,
+					Reason:     "not a Float64",
+				}
+			}
+		
 		default:
 			if f.Kind() == reflect.Slice {
 				switch f.Type().Elem().Kind() {
