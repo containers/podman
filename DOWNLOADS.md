@@ -61,8 +61,3 @@ matches corresponding changes in the artifacts task.
   * [podman-release-mipsle.tar.gz](https://api.cirrus-ci.com/v1/artifact/github/containers/podman/Artifacts/binary/podman-release-mipsle.tar.gz)
   * [podman-release-ppc64le.tar.gz](https://api.cirrus-ci.com/v1/artifact/github/containers/podman/Artifacts/binary/podman-release-ppc64le.tar.gz)
   * [podman-release-s390x.tar.gz](https://api.cirrus-ci.com/v1/artifact/github/containers/podman/Artifacts/binary/podman-release-s390x.tar.gz)
-
-* As-tested Mac and Windows podman repository tarballs.  These pair the source code and compiled binaries together.
-
-  * Windows [podman-repository](https://api.cirrus-ci.com/v1/artifact/github/containers/podman/Artifacts/binary/windows_podman_repo.tar.bz2) (x86_64 only).
-  * MacOS [podman-repository](https://api.cirrus-ci.com/v1/artifact/github/containers/podman/Artifacts/binary/mac_podman_repo.tar.bz2) (all arches).
