@@ -527,7 +527,7 @@ t GET containers/$cid/json 200 \
 
 t DELETE containers/$cid?v=true 204
 
-# test create container like Docker >= 25 cli: NetworkMode="default" but EndpointsConfig struct is explictly set and netns="host"
+# test create container like Docker >= 25 cli: NetworkMode="default" but EndpointsConfig struct is explicitly set and netns="host"
 t POST containers/create \
   Image=$IMAGE \
   HostConfig='{"NetworkMode":"default"}' \
