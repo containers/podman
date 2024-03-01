@@ -103,8 +103,8 @@ func addCompressionAnnotations(compressionAlgorithms []compression.Algorithm, an
 		*annotationsMap = map[string]string{}
 	}
 	for _, algo := range compressionAlgorithms {
-		switch algo.Name() {
-		case compression.ZstdAlgorithmName, compression.ZstdChunkedAlgorithmName: // Should this use InternalUnstableUndocumentedMIMEQuestionMark() ?
+		switch algo.BaseVariantName() {
+		case compression.ZstdAlgorithmName:
 			(*annotationsMap)[OCI1InstanceAnnotationCompressionZSTD] = OCI1InstanceAnnotationCompressionZSTDValue
 		default:
 			continue

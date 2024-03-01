@@ -367,7 +367,7 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 	fs := pflag.FlagSet{}
 	defaultContainerConfig, err := config.Default()
 	if err != nil {
-		return fs, fmt.Errorf("failed to get container config: %w", err)
+		return fs, fmt.Errorf("failed to get default container config: %w", err)
 	}
 
 	fs.StringSliceVar(&flags.AddHost, "add-host", []string{}, "add a custom host-to-IP mapping (`host:ip`) (default [])")
@@ -392,8 +392,8 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 	fs.StringVar(&flags.Isolation, "isolation", DefaultIsolation(), "`type` of process isolation to use. Use BUILDAH_ISOLATION environment variable to override.")
 	fs.StringVarP(&flags.Memory, "memory", "m", "", "memory limit (format: <number>[<unit>], where unit = b, k, m or g)")
 	fs.StringVar(&flags.MemorySwap, "memory-swap", "", "swap limit equal to memory plus swap: '-1' to enable unlimited swap")
-	fs.IntVar(&flags.Retry, "retry", MaxPullPushRetries, "number of times to retry in case of failure when performing push/pull")
-	fs.StringVar(&flags.RetryDelay, "retry-delay", PullPushRetryDelay.String(), "delay between retries in case of push/pull failures")
+	fs.IntVar(&flags.Retry, "retry", int(defaultContainerConfig.Engine.Retry), "number of times to retry in case of failure when performing push/pull")
+	fs.StringVar(&flags.RetryDelay, "retry-delay", defaultContainerConfig.Engine.RetryDelay, "delay between retries in case of push/pull failures")
 	fs.String("arch", runtime.GOARCH, "set the ARCH of the image to the provided value instead of the architecture of the host")
 	fs.String("os", runtime.GOOS, "prefer `OS` instead of the running OS when pulling images")
 	fs.StringSlice("platform", []string{parse.DefaultPlatform()}, "set the `OS/ARCH[/VARIANT]` of the image to the provided value instead of the current operating system and architecture of the host (for example \"linux/arm\")")

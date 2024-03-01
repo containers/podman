@@ -169,7 +169,8 @@ func NormalizedMIMEType(input string) string {
 
 // CompressionAlgorithmIsUniversallySupported returns true if MIMETypeSupportsCompressionAlgorithm(mimeType, algo) returns true for all mimeType values.
 func CompressionAlgorithmIsUniversallySupported(algo compressiontypes.Algorithm) bool {
-	switch algo.Name() { // Should this use InternalUnstableUndocumentedMIMEQuestionMark() ?
+	// Compare the discussion about BaseVariantName in MIMETypeSupportsCompressionAlgorithm().
+	switch algo.Name() {
 	case compressiontypes.GzipAlgorithmName:
 		return true
 	default:
@@ -182,7 +183,9 @@ func MIMETypeSupportsCompressionAlgorithm(mimeType string, algo compressiontypes
 	if CompressionAlgorithmIsUniversallySupported(algo) {
 		return true
 	}
-	switch algo.Name() { // Should this use InternalUnstableUndocumentedMIMEQuestionMark() ?
+	// This does not use BaseVariantName: Plausibly a manifest format might support zstd but not have annotation fields.
+	// The logic might have to be more complex (and more ad-hoc) if more manifest formats, with more capabilities, emerge.
+	switch algo.Name() {
 	case compressiontypes.ZstdAlgorithmName, compressiontypes.ZstdChunkedAlgorithmName:
 		return mimeType == imgspecv1.MediaTypeImageManifest
 	default: // Includes Bzip2AlgorithmName and XzAlgorithmName, which are defined names but are not supported anywhere

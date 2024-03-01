@@ -32,7 +32,7 @@ env:
     DEBIAN_NAME: "debian-13"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20240102t212217z-f39f38d13"
+    IMAGE_SUFFIX: "c20240222t143004z-f39f38d13"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
@@ -221,6 +221,7 @@ integration_task:
             DISTRO_NV: "${DEBIAN_NAME}"
             IMAGE_NAME: "${DEBIAN_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'vfs'
+            CI_DESIRED_RUNTIME: runc
         # OVERLAY
         - env:
             DISTRO_NV: "${FEDORA_NAME}"
@@ -234,6 +235,7 @@ integration_task:
             DISTRO_NV: "${DEBIAN_NAME}"
             IMAGE_NAME: "${DEBIAN_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
+            CI_DESIRED_RUNTIME: runc
 
     gce_instance:
         image_name: "$IMAGE_NAME"
@@ -323,6 +325,8 @@ in_podman_task:
 # set of tasks all passed, and allows confirming that based on the status
 # of this task.
 success_task:
+    # N/B: The prow merge-bot (tide) is sensitized to this exact name, DO NOT CHANGE IT.
+    # Ref: https://github.com/openshift/release/pull/48909
     name: "Total Success"
     alias: success
 

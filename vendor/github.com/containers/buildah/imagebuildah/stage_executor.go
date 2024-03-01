@@ -1217,7 +1217,24 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		}
 		logrus.Debugf("Parsed Step: %+v", *step)
 		if !s.executor.quiet {
-			s.log("%s", step.Original)
+			logMsg := step.Original
+			if len(step.Heredocs) > 0 {
+				summarizeHeredoc := func(doc string) string {
+					doc = strings.TrimSpace(doc)
+					lines := strings.Split(strings.ReplaceAll(doc, "\r\n", "\n"), "\n")
+					summary := lines[0]
+					if len(lines) > 1 {
+						summary += "..."
+					}
+					return summary
+				}
+
+				for _, doc := range node.Heredocs {
+					heredocContent := summarizeHeredoc(doc.Content)
+					logMsg = logMsg + " (" + heredocContent + ")"
+				}
+			}
+			s.log("%s", logMsg)
 		}
 
 		// Check if there's a --from if the step command is COPY.
@@ -1737,11 +1754,15 @@ func (s *StageExecutor) getCreatedBy(node *parser.Node, addedContentSummary stri
 		buildArgs := s.getBuildArgsKey()
 		return "/bin/sh -c #(nop) ARG " + buildArgs
 	case "RUN":
+		shArg := ""
 		buildArgs := s.getBuildArgsResolvedForRun()
-		if buildArgs != "" {
-			return "|" + strconv.Itoa(len(strings.Split(buildArgs, " "))) + " " + buildArgs + " /bin/sh -c " + node.Original[4:]
+		if len(node.Original) > 4 {
+			shArg = node.Original[4:]
 		}
-		result := "/bin/sh -c " + node.Original[4:]
+		if buildArgs != "" {
+			return "|" + strconv.Itoa(len(strings.Split(buildArgs, " "))) + " " + buildArgs + " /bin/sh -c " + shArg
+		}
+		result := "/bin/sh -c " + shArg
 		if len(node.Heredocs) > 0 {
 			for _, doc := range node.Heredocs {
 				heredocContent := strings.TrimSpace(doc.Content)

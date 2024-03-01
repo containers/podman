@@ -8,6 +8,7 @@ package bsoncodec
 
 import (
 	"encoding"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -21,25 +22,40 @@ var defaultMapCodec = NewMapCodec()
 
 // MapCodec is the Codec used for map values.
 //
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// MapCodec registered.
+// Deprecated: MapCodec will not be directly configurable in Go Driver 2.0. To
+// configure the map encode and decode behavior, use the configuration methods
+// on a [go.mongodb.org/mongo-driver/bson.Encoder] or
+// [go.mongodb.org/mongo-driver/bson.Decoder]. To configure the map encode and
+// decode behavior for a mongo.Client, use
+// [go.mongodb.org/mongo-driver/mongo/options.ClientOptions.SetBSONOptions].
+//
+// For example, to configure a mongo.Client to marshal nil Go maps as empty BSON
+// documents, use:
+//
+//	opt := options.Client().SetBSONOptions(&options.BSONOptions{
+//	    NilMapAsEmpty: true,
+//	})
+//
+// See the deprecation notice for each field in MapCodec for the corresponding
+// settings.
 type MapCodec struct {
 	// DecodeZerosMap causes DecodeValue to delete any existing values from Go maps in the destination
 	// value passed to Decode before unmarshaling BSON documents into them.
 	//
-	// Deprecated: Use bson.Decoder.ZeroMaps instead.
+	// Deprecated: Use bson.Decoder.ZeroMaps or options.BSONOptions.ZeroMaps instead.
 	DecodeZerosMap bool
 
 	// EncodeNilAsEmpty causes EncodeValue to marshal nil Go maps as empty BSON documents instead of
 	// BSON null.
 	//
-	// Deprecated: Use bson.Encoder.NilMapAsEmpty instead.
+	// Deprecated: Use bson.Encoder.NilMapAsEmpty or options.BSONOptions.NilMapAsEmpty instead.
 	EncodeNilAsEmpty bool
 
 	// EncodeKeysWithStringer causes the Encoder to convert Go map keys to BSON document field name
 	// strings using fmt.Sprintf() instead of the default string conversion logic.
 	//
-	// Deprecated: Use bson.Encoder.StringifyMapKeysWithFmt instead.
+	// Deprecated: Use bson.Encoder.StringifyMapKeysWithFmt or
+	// options.BSONOptions.StringifyMapKeysWithFmt instead.
 	EncodeKeysWithStringer bool
 }
 
@@ -61,8 +77,8 @@ type KeyUnmarshaler interface {
 
 // NewMapCodec returns a MapCodec with options opts.
 //
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// MapCodec registered.
+// Deprecated: NewMapCodec will not be available in Go Driver 2.0. See
+// [MapCodec] for more details.
 func NewMapCodec(opts ...*bsonoptions.MapCodecOptions) *MapCodec {
 	mapOpt := bsonoptions.MergeMapCodecOptions(opts...)
 
@@ -128,7 +144,7 @@ func (mc *MapCodec) mapEncodeValue(ec EncodeContext, dw bsonrw.DocumentWriter, v
 		}
 
 		currEncoder, currVal, lookupErr := defaultValueEncoders.lookupElementEncoder(ec, encoder, val.MapIndex(key))
-		if lookupErr != nil && lookupErr != errInvalidValue {
+		if lookupErr != nil && !errors.Is(lookupErr, errInvalidValue) {
 			return lookupErr
 		}
 
@@ -137,7 +153,7 @@ func (mc *MapCodec) mapEncodeValue(ec EncodeContext, dw bsonrw.DocumentWriter, v
 			return err
 		}
 
-		if lookupErr == errInvalidValue {
+		if errors.Is(lookupErr, errInvalidValue) {
 			err = vw.WriteNull()
 			if err != nil {
 				return err
@@ -200,7 +216,7 @@ func (mc *MapCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val ref
 
 	for {
 		key, vr, err := dr.ReadElement()
-		if err == bsonrw.ErrEOD {
+		if errors.Is(err, bsonrw.ErrEOD) {
 			break
 		}
 		if err != nil {
@@ -313,7 +329,7 @@ func (mc *MapCodec) decodeKey(key string, keyType reflect.Type) (reflect.Value, 
 			if mc.EncodeKeysWithStringer {
 				parsed, err := strconv.ParseFloat(key, 64)
 				if err != nil {
-					return keyVal, fmt.Errorf("Map key is defined to be a decimal type (%v) but got error %v", keyType.Kind(), err)
+					return keyVal, fmt.Errorf("Map key is defined to be a decimal type (%v) but got error %w", keyType.Kind(), err)
 				}
 				keyVal = reflect.ValueOf(parsed)
 				break

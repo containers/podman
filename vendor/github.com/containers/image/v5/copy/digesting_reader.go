@@ -23,11 +23,11 @@ type digestingReader struct {
 func newDigestingReader(source io.Reader, expectedDigest digest.Digest) (*digestingReader, error) {
 	var digester digest.Digester
 	if err := expectedDigest.Validate(); err != nil {
-		return nil, fmt.Errorf("Invalid digest specification %s", expectedDigest)
+		return nil, fmt.Errorf("invalid digest specification %q: %w", expectedDigest, err)
 	}
 	digestAlgorithm := expectedDigest.Algorithm()
 	if !digestAlgorithm.Available() {
-		return nil, fmt.Errorf("Invalid digest specification %s: unsupported digest algorithm %s", expectedDigest, digestAlgorithm)
+		return nil, fmt.Errorf("invalid digest specification %q: unsupported digest algorithm %q", expectedDigest, digestAlgorithm)
 	}
 	digester = digestAlgorithm.Digester()
 

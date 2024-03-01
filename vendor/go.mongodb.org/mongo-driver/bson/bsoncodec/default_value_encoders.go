@@ -343,7 +343,7 @@ func (dve DefaultValueEncoders) mapEncodeValue(ec EncodeContext, dw bsonrw.Docum
 		}
 
 		currEncoder, currVal, lookupErr := dve.lookupElementEncoder(ec, encoder, val.MapIndex(key))
-		if lookupErr != nil && lookupErr != errInvalidValue {
+		if lookupErr != nil && !errors.Is(lookupErr, errInvalidValue) {
 			return lookupErr
 		}
 
@@ -352,7 +352,7 @@ func (dve DefaultValueEncoders) mapEncodeValue(ec EncodeContext, dw bsonrw.Docum
 			return err
 		}
 
-		if lookupErr == errInvalidValue {
+		if errors.Is(lookupErr, errInvalidValue) {
 			err = vw.WriteNull()
 			if err != nil {
 				return err
@@ -418,7 +418,7 @@ func (dve DefaultValueEncoders) ArrayEncodeValue(ec EncodeContext, vw bsonrw.Val
 
 	for idx := 0; idx < val.Len(); idx++ {
 		currEncoder, currVal, lookupErr := dve.lookupElementEncoder(ec, encoder, val.Index(idx))
-		if lookupErr != nil && lookupErr != errInvalidValue {
+		if lookupErr != nil && !errors.Is(lookupErr, errInvalidValue) {
 			return lookupErr
 		}
 
@@ -427,7 +427,7 @@ func (dve DefaultValueEncoders) ArrayEncodeValue(ec EncodeContext, vw bsonrw.Val
 			return err
 		}
 
-		if lookupErr == errInvalidValue {
+		if errors.Is(lookupErr, errInvalidValue) {
 			err = vw.WriteNull()
 			if err != nil {
 				return err
@@ -487,7 +487,7 @@ func (dve DefaultValueEncoders) SliceEncodeValue(ec EncodeContext, vw bsonrw.Val
 
 	for idx := 0; idx < val.Len(); idx++ {
 		currEncoder, currVal, lookupErr := dve.lookupElementEncoder(ec, encoder, val.Index(idx))
-		if lookupErr != nil && lookupErr != errInvalidValue {
+		if lookupErr != nil && !errors.Is(lookupErr, errInvalidValue) {
 			return lookupErr
 		}
 
@@ -496,7 +496,7 @@ func (dve DefaultValueEncoders) SliceEncodeValue(ec EncodeContext, vw bsonrw.Val
 			return err
 		}
 
-		if lookupErr == errInvalidValue {
+		if errors.Is(lookupErr, errInvalidValue) {
 			err = vw.WriteNull()
 			if err != nil {
 				return err

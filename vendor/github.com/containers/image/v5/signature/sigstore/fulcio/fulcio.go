@@ -142,9 +142,13 @@ func WithFulcioAndInteractiveOIDC(fulcioURL *url.URL, oidcIssuerURL *url.URL, oi
 		}
 
 		logrus.Debugf("Starting interactive OIDC authentication for issuer %s", oidcIssuerURL.Redacted())
-		// This is intended to match oauthflow.DefaultIDTokenGetter, overriding only input/output
+		// This is intended to match oauthflow.DefaultIDTokenGetter (incl. the update in init()), overriding only input/output
+		htmlPage, err := oauth.GetInteractiveSuccessHTML(false, 10)
+		if err != nil {
+			return fmt.Errorf("formatting HTML content: %w", err)
+		}
 		tokenGetter := &oauthflow.InteractiveIDTokenGetter{
-			HTMLPage: oauth.InteractiveSuccessHTML,
+			HTMLPage: htmlPage,
 			Input:    interactiveInput,
 			Output:   interactiveOutput,
 		}

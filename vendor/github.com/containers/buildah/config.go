@@ -12,7 +12,6 @@ import (
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/docker"
 	internalUtil "github.com/containers/buildah/internal/util"
-	"github.com/containers/common/pkg/util"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/transports"
@@ -20,6 +19,7 @@ import (
 	"github.com/containers/storage/pkg/stringid"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 // unmarshalConvertedConfig obtains the config blob of img valid for the wantedManifestMIMEType format
@@ -229,10 +229,10 @@ func (b *Builder) OSFeatures() []string {
 // SetOSFeature adds a feature of the OS which the container, or a container
 // built using an image built from this container, depends on the OS supplying.
 func (b *Builder) SetOSFeature(feature string) {
-	if !util.StringInSlice(feature, b.OCIv1.OSFeatures) {
+	if !slices.Contains(b.OCIv1.OSFeatures, feature) {
 		b.OCIv1.OSFeatures = append(b.OCIv1.OSFeatures, feature)
 	}
-	if !util.StringInSlice(feature, b.Docker.OSFeatures) {
+	if !slices.Contains(b.Docker.OSFeatures, feature) {
 		b.Docker.OSFeatures = append(b.Docker.OSFeatures, feature)
 	}
 }
@@ -241,7 +241,7 @@ func (b *Builder) SetOSFeature(feature string) {
 // container built using an image built from this container, depends on the OS
 // supplying.
 func (b *Builder) UnsetOSFeature(feature string) {
-	if util.StringInSlice(feature, b.OCIv1.OSFeatures) {
+	if slices.Contains(b.OCIv1.OSFeatures, feature) {
 		features := make([]string, 0, len(b.OCIv1.OSFeatures))
 		for _, f := range b.OCIv1.OSFeatures {
 			if f != feature {
@@ -250,7 +250,7 @@ func (b *Builder) UnsetOSFeature(feature string) {
 		}
 		b.OCIv1.OSFeatures = features
 	}
-	if util.StringInSlice(feature, b.Docker.OSFeatures) {
+	if slices.Contains(b.Docker.OSFeatures, feature) {
 		features := make([]string, 0, len(b.Docker.OSFeatures))
 		for _, f := range b.Docker.OSFeatures {
 			if f != feature {

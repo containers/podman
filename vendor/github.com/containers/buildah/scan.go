@@ -10,10 +10,10 @@ import (
 
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/internal/sbom"
-	"github.com/containers/common/pkg/util"
 	"github.com/mattn/go-shellwords"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 func stringSliceReplaceAll(slice []string, replacements map[string]string, important []string) (built []string, replacedAnImportantValue bool) {
@@ -23,7 +23,7 @@ func stringSliceReplaceAll(slice []string, replacements map[string]string, impor
 		for from, to := range replacements {
 			previous := element
 			if element = strings.ReplaceAll(previous, from, to); element != previous {
-				if len(important) == 0 || util.StringInSlice(from, important) {
+				if len(important) == 0 || slices.Contains(important, from) {
 					replacedAnImportantValue = true
 				}
 			}

@@ -978,13 +978,10 @@ func (c *dockerClient) fetchManifest(ctx context.Context, ref dockerReference, t
 // This function can return nil reader when no url is supported by this function. In this case, the caller
 // should fallback to fetch the non-external blob (i.e. pull from the registry).
 func (c *dockerClient) getExternalBlob(ctx context.Context, urls []string) (io.ReadCloser, int64, error) {
-	var (
-		resp *http.Response
-		err  error
-	)
 	if len(urls) == 0 {
 		return nil, 0, errors.New("internal error: getExternalBlob called with no URLs")
 	}
+	var remoteErrors []error
 	for _, u := range urls {
 		blobURL, err := url.Parse(u)
 		if err != nil || (blobURL.Scheme != "http" && blobURL.Scheme != "https") {
@@ -993,24 +990,28 @@ func (c *dockerClient) getExternalBlob(ctx context.Context, urls []string) (io.R
 		// NOTE: we must not authenticate on additional URLs as those
 		//       can be abused to leak credentials or tokens.  Please
 		//       refer to CVE-2020-15157 for more information.
-		resp, err = c.makeRequestToResolvedURL(ctx, http.MethodGet, blobURL, nil, nil, -1, noAuth, nil)
-		if err == nil {
-			if resp.StatusCode != http.StatusOK {
-				err = fmt.Errorf("error fetching external blob from %q: %d (%s)", u, resp.StatusCode, http.StatusText(resp.StatusCode))
-				logrus.Debug(err)
-				resp.Body.Close()
-				continue
-			}
-			break
+		resp, err := c.makeRequestToResolvedURL(ctx, http.MethodGet, blobURL, nil, nil, -1, noAuth, nil)
+		if err != nil {
+			remoteErrors = append(remoteErrors, err)
+			continue
 		}
+		if resp.StatusCode != http.StatusOK {
+			err := fmt.Errorf("error fetching external blob from %q: %d (%s)", u, resp.StatusCode, http.StatusText(resp.StatusCode))
+			remoteErrors = append(remoteErrors, err)
+			logrus.Debug(err)
+			resp.Body.Close()
+			continue
+		}
+		return resp.Body, getBlobSize(resp), nil
 	}
-	if resp == nil && err == nil {
+	if remoteErrors == nil {
 		return nil, 0, nil // fallback to non-external blob
 	}
-	if err != nil {
-		return nil, 0, err
+	err := fmt.Errorf("failed fetching external blob from all urls: %w", remoteErrors[0])
+	for _, e := range remoteErrors[1:] {
+		err = fmt.Errorf("%s, %w", err, e)
 	}
-	return resp.Body, getBlobSize(resp), nil
+	return nil, 0, err
 }
 
 func getBlobSize(resp *http.Response) int64 {

@@ -17,7 +17,8 @@ func CandidateMatchesTryReusingBlobOptions(options private.TryReusingBlobOptions
 			// The caller must re-compress to build those annotations.
 			return false
 		}
-		if candidateCompression == nil || (options.RequiredCompression.Name() != candidateCompression.Name()) {
+		if candidateCompression == nil ||
+			(options.RequiredCompression.Name() != candidateCompression.Name() && options.RequiredCompression.Name() != candidateCompression.BaseVariantName()) {
 			return false
 		}
 	}

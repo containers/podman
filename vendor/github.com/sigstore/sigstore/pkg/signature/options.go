@@ -18,6 +18,7 @@ package signature
 import (
 	"context"
 	"crypto"
+	"crypto/rsa"
 	"io"
 
 	"github.com/sigstore/sigstore/pkg/signature/options"
@@ -54,4 +55,11 @@ type SignOption interface {
 type VerifyOption interface {
 	RPCOption
 	MessageOption
+}
+
+// LoadOption specifies options to be used when creating a Signer/Verifier
+type LoadOption interface {
+	ApplyHash(*crypto.Hash)
+	ApplyED25519ph(*bool)
+	ApplyRSAPSS(**rsa.PSSOptions)
 }

@@ -17,13 +17,28 @@ import (
 
 // ByteSliceCodec is the Codec used for []byte values.
 //
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// ByteSliceCodec registered.
+// Deprecated: ByteSliceCodec will not be directly configurable in Go Driver
+// 2.0. To configure the byte slice encode and decode behavior, use the
+// configuration methods on a [go.mongodb.org/mongo-driver/bson.Encoder] or
+// [go.mongodb.org/mongo-driver/bson.Decoder]. To configure the byte slice
+// encode and decode behavior for a mongo.Client, use
+// [go.mongodb.org/mongo-driver/mongo/options.ClientOptions.SetBSONOptions].
+//
+// For example, to configure a mongo.Client to encode nil byte slices as empty
+// BSON binary values, use:
+//
+//	opt := options.Client().SetBSONOptions(&options.BSONOptions{
+//	    NilByteSliceAsEmpty: true,
+//	})
+//
+// See the deprecation notice for each field in ByteSliceCodec for the
+// corresponding settings.
 type ByteSliceCodec struct {
 	// EncodeNilAsEmpty causes EncodeValue to marshal nil Go byte slices as empty BSON binary values
 	// instead of BSON null.
 	//
-	// Deprecated: Use bson.Encoder.NilByteSliceAsEmpty instead.
+	// Deprecated: Use bson.Encoder.NilByteSliceAsEmpty or options.BSONOptions.NilByteSliceAsEmpty
+	// instead.
 	EncodeNilAsEmpty bool
 }
 
@@ -38,8 +53,8 @@ var (
 
 // NewByteSliceCodec returns a ByteSliceCodec with options opts.
 //
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// ByteSliceCodec registered.
+// Deprecated: NewByteSliceCodec will not be available in Go Driver 2.0. See
+// [ByteSliceCodec] for more details.
 func NewByteSliceCodec(opts ...*bsonoptions.ByteSliceCodecOptions) *ByteSliceCodec {
 	byteSliceOpt := bsonoptions.MergeByteSliceCodecOptions(opts...)
 	codec := ByteSliceCodec{}
