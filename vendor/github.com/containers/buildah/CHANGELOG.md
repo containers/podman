@@ -2,6 +2,34 @@
 
 # Changelog
 
+## v1.34.1 (2024-02-21)
+
+    [release-1.34] Vendor bumps
+    manifest: addCompression use default from containers.conf
+    Build with CNI support on FreeBSD
+    tests: retrofit test for heredoc summary
+    build, heredoc: show heredoc summary in build output
+    docs: correct default authfile path
+    Make buildah match podman for handling of ulimits
+    imagebuildah: fix crash with empty RUN
+    docs: move footnotes to where they're applicable
+    Run codespell on code
+    Fix FreeBSD version parsing
+    Allow users to specify no-dereference
+    Fix a build break on FreeBSD
+    Remove a bad FROM line
+    commit: force omitHistory if the parent has layers but no history
+    docs: fix a couple of typos
+    stage_executor,heredoc: honor interpreter in heredoc
+    stage_executor,layers: burst cache if heredoc content is changed
+    Replace map[K]bool with map[K]struct{} where it makes sense
+    Replace strings.SplitN with strings.Cut
+    Document use of containers-transports values in buildah
+    commit: add a --add-file flag
+    mkcw: populate the rootfs using an overlay
+    Ignore errors if label.Relabel returns ENOSUP
+    manifest: addCompression use default from containers.conf
+
 ## v1.34.0 (2023-12-11)
 
     vendor: update c/{common,image,storage}
