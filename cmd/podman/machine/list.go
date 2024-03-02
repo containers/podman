@@ -164,8 +164,8 @@ func toMachineFormat(vms []*machine.ListResponse, defaultCon string) []*entities
 		response.Stream = streamName(vm.Stream)
 		response.VMType = vm.VMType
 		response.CPUs = vm.CPUs
-		response.Memory = strUint(vm.Memory)
-		response.DiskSize = strUint(vm.DiskSize)
+		response.Memory = strUint(uint64(vm.Memory.ToBytes()))
+		response.DiskSize = strUint(uint64(vm.DiskSize.ToBytes()))
 		response.Port = vm.Port
 		response.RemoteUsername = vm.RemoteUsername
 		response.IdentityPath = vm.IdentityPath
@@ -202,8 +202,8 @@ func toHumanFormat(vms []*machine.ListResponse, defaultCon string) []*entities.L
 		response.Created = units.HumanDuration(time.Since(vm.CreatedAt)) + " ago"
 		response.VMType = vm.VMType
 		response.CPUs = vm.CPUs
-		response.Memory = units.BytesSize(float64(vm.Memory))
-		response.DiskSize = units.BytesSize(float64(vm.DiskSize))
+		response.Memory = units.BytesSize(float64(vm.Memory.ToBytes()))
+		response.DiskSize = units.BytesSize(float64(vm.DiskSize.ToBytes()))
 
 		humanResponses = append(humanResponses, response)
 	}

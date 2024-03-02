@@ -1,6 +1,7 @@
 package e2e_test
 
 import (
+	"strconv"
 	"strings"
 	"time"
 
@@ -157,6 +158,40 @@ var _ = Describe("podman machine list", func() {
 		Expect(listSession3).To(Exit(0))
 		listNames3 := listSession3.outputToStringSlice()
 		Expect(listNames3).To(HaveLen(2))
+	})
+	It("list machine in machine-readable byte format", func() {
+		i := new(initMachine)
+		session, err := mb.setCmd(i.withImage(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		list := new(listMachine)
+		list = list.withFormat(("json"))
+		listSession, err := mb.setCmd(list).run()
+		Expect(err).NotTo(HaveOccurred())
+		var listResponse []*entities.ListReporter
+		err = jsoniter.Unmarshal(listSession.Bytes(), &listResponse)
+		Expect(err).NotTo(HaveOccurred())
+		for _, reporter := range listResponse {
+			memory, err := strconv.Atoi(reporter.Memory)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(memory).To(BeNumerically(">", 2000000000)) // 2GiB
+			diskSize, err := strconv.Atoi(reporter.DiskSize)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(diskSize).To(BeNumerically(">", 11000000000)) // 11GiB
+		}
+	})
+	It("list machine in human-readable format", func() {
+		i := new(initMachine)
+		session, err := mb.setCmd(i.withImage(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		list := new(listMachine)
+		listSession, err := mb.setCmd(list.withFormat("{{.Memory}} {{.DiskSize}}")).run()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(listSession).To(Exit(0))
+		Expect(listSession.outputToString()).To(Equal("2GiB 11GiB"))
 	})
 })
 
