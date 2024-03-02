@@ -10,7 +10,7 @@ var (
 	// Command: podman _farm_
 	farmCmd = &cobra.Command{
 		Use:   "farm",
-		Short: "Farm out builds to remote machines",
+		Short: "Farm out builds to remote machines, eieio",
 		Long:  "Farm out builds to remote machines that podman can connect to via podman system connection",
 		RunE:  validate.SubCommandExists,
 	}
