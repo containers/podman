@@ -313,6 +313,11 @@ func (a AppleHVStubber) StopHostNetworking(_ *vmconfigs.MachineConfig, _ define.
 	return nil
 }
 
+func (a AppleHVStubber) UpdateSSHPort(mc *vmconfigs.MachineConfig, port int) error {
+	// managed by gvproxy on this backend, so nothing to do
+	return nil
+}
+
 func (a AppleHVStubber) VMType() define.VMType {
 	return define.AppleHvVirt
 }

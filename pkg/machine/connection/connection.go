@@ -55,14 +55,17 @@ func addConnection(cons []connection, identity string, isDefault bool) error {
 	})
 }
 
-func ChangeConnectionURI(name string, uri fmt.Stringer) error {
+func UpdateConnectionPairPort(name string, port, uid int, remoteUsername string, identityPath string) error {
+	cons := createConnections(name, uid, port, remoteUsername)
 	return config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
-		dst, ok := cfg.Connection.Connections[name]
-		if !ok {
-			return errors.New("connection not found")
+		for _, con := range cons {
+			dst := config.Destination{
+				IsMachine: true,
+				URI:       con.uri.String(),
+				Identity:  identityPath,
+			}
+			cfg.Connection.Connections[name] = dst
 		}
-		dst.URI = uri.String()
-		cfg.Connection.Connections[name] = dst
 
 		return nil
 	})

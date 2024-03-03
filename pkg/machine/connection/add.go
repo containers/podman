@@ -1,3 +1,5 @@
+//go:build amd64 || arm64
+
 package connection
 
 import (
@@ -14,10 +16,23 @@ func AddSSHConnectionsToPodmanSocket(uid, port int, identityPath, name, remoteUs
 		fmt.Println("An ignition path was provided.  No SSH connection was added to Podman")
 		return nil
 	}
+
+	cons := createConnections(name, uid, port, remoteUsername)
+
+	// The first connection defined when connections is empty will become the default
+	// regardless of IsDefault, so order according to rootful
+	if opts.Rootful {
+		cons[0], cons[1] = cons[1], cons[0]
+	}
+
+	return addConnection(cons, identityPath, opts.IsDefault)
+}
+
+func createConnections(name string, uid, port int, remoteUsername string) []connection {
 	uri := makeSSHURL(LocalhostIP, fmt.Sprintf("/run/user/%d/podman/podman.sock", uid), strconv.Itoa(port), remoteUsername)
 	uriRoot := makeSSHURL(LocalhostIP, "/run/podman/podman.sock", strconv.Itoa(port), "root")
 
-	cons := []connection{
+	return []connection{
 		{
 			name: name,
 			uri:  uri,
@@ -27,12 +42,4 @@ func AddSSHConnectionsToPodmanSocket(uid, port int, identityPath, name, remoteUs
 			uri:  uriRoot,
 		},
 	}
-
-	// The first connection defined when connections is empty will become the default
-	// regardless of IsDefault, so order according to rootful
-	if opts.Rootful {
-		cons[0], cons[1] = cons[1], cons[0]
-	}
-
-	return addConnection(cons, identityPath, opts.IsDefault)
 }

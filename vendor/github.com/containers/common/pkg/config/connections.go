@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/containers/storage/pkg/ioutils"
+	"github.com/containers/storage/pkg/lockfile"
 )
 
 const connectionsFile = "podman-connections.json"
@@ -64,28 +65,24 @@ type Farm struct {
 	ReadWrite bool
 }
 
-func readConnectionConf() (*ConnectionsFile, string, error) {
-	path, err := connectionsConfigFile()
-	if err != nil {
-		return nil, "", err
-	}
+func readConnectionConf(path string) (*ConnectionsFile, error) {
 	conf := new(ConnectionsFile)
 	f, err := os.Open(path)
 	if err != nil {
 		// return empty config if file does not exists
 		if errors.Is(err, fs.ErrNotExist) {
-			return conf, path, nil
+			return conf, nil
 		}
 
-		return nil, "", err
+		return nil, err
 	}
 	defer f.Close()
 
 	err = json.NewDecoder(f).Decode(conf)
 	if err != nil {
-		return nil, "", fmt.Errorf("parse %q: %w", path, err)
+		return nil, fmt.Errorf("parse %q: %w", path, err)
 	}
-	return conf, path, nil
+	return conf, nil
 }
 
 func writeConnectionConf(path string, conf *ConnectionsFile) error {
@@ -113,7 +110,20 @@ func writeConnectionConf(path string, conf *ConnectionsFile) error {
 // The function will read and write the file automatically and the
 // callback function just needs to modify the cfg as needed.
 func EditConnectionConfig(callback func(cfg *ConnectionsFile) error) error {
-	conf, path, err := readConnectionConf()
+	path, err := connectionsConfigFile()
+	if err != nil {
+		return err
+	}
+
+	lockPath := path + ".lock"
+	lock, err := lockfile.GetLockFile(lockPath)
+	if err != nil {
+		return fmt.Errorf("obtain lock file: %w", err)
+	}
+	lock.Lock()
+	defer lock.Unlock()
+
+	conf, err := readConnectionConf(path)
 	if err != nil {
 		return fmt.Errorf("read connections file: %w", err)
 	}
@@ -139,7 +149,11 @@ func makeConnection(name string, dst Destination, def, readWrite bool) *Connecti
 
 // GetConnection return the connection for the given name or if def is set to true then return the default connection.
 func (c *Config) GetConnection(name string, def bool) (*Connection, error) {
-	conConf, _, err := readConnectionConf()
+	path, err := connectionsConfigFile()
+	if err != nil {
+		return nil, err
+	}
+	conConf, err := readConnectionConf(path)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +181,11 @@ func (c *Config) GetConnection(name string, def bool) (*Connection, error) {
 
 // GetAllConnections return all configured connections
 func (c *Config) GetAllConnections() ([]Connection, error) {
-	conConf, _, err := readConnectionConf()
+	path, err := connectionsConfigFile()
+	if err != nil {
+		return nil, err
+	}
+	conConf, err := readConnectionConf(path)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +240,11 @@ func (c *Config) GetDefaultFarmConnections() (string, []Connection, error) {
 // if def is true it will use the default farm instead of the name.
 // Returns the name of the farm and the connections for it.
 func (c *Config) getFarmConnections(name string, def bool) (string, []Connection, error) {
-	conConf, _, err := readConnectionConf()
+	path, err := connectionsConfigFile()
+	if err != nil {
+		return "", nil, err
+	}
+	conConf, err := readConnectionConf(path)
 	if err != nil {
 		return "", nil, err
 	}
@@ -259,7 +281,11 @@ func makeFarm(name string, cons []string, def, readWrite bool) Farm {
 
 // GetAllFarms returns all configured farms
 func (c *Config) GetAllFarms() ([]Farm, error) {
-	conConf, _, err := readConnectionConf()
+	path, err := connectionsConfigFile()
+	if err != nil {
+		return nil, err
+	}
+	conConf, err := readConnectionConf(path)
 	if err != nil {
 		return nil, err
 	}
