@@ -334,10 +334,71 @@ type rwLayerStore interface {
 	GarbageCollect() error
 }
 
+type multipleLockFile struct {
+	lockfiles []*lockfile.LockFile
+}
+
+func (l multipleLockFile) Lock() {
+	for _, lock := range l.lockfiles {
+		lock.Lock()
+	}
+}
+
+func (l multipleLockFile) RLock() {
+	for _, lock := range l.lockfiles {
+		lock.RLock()
+	}
+}
+
+func (l multipleLockFile) Unlock() {
+	for _, lock := range l.lockfiles {
+		lock.Unlock()
+	}
+}
+
+func (l multipleLockFile) ModifiedSince(lastWrite lockfile.LastWrite) (lockfile.LastWrite, bool, error) {
+	// Look up only the first lockfile, since this is the value returned by RecordWrite().
+	return l.lockfiles[0].ModifiedSince(lastWrite)
+}
+
+func (l multipleLockFile) AssertLockedForWriting() {
+	for _, lock := range l.lockfiles {
+		lock.AssertLockedForWriting()
+	}
+}
+
+func (l multipleLockFile) GetLastWrite() (lockfile.LastWrite, error) {
+	return l.lockfiles[0].GetLastWrite()
+}
+
+func (l multipleLockFile) RecordWrite() (lockfile.LastWrite, error) {
+	var lastWrite *lockfile.LastWrite
+	for _, lock := range l.lockfiles {
+		lw, err := lock.RecordWrite()
+		if err != nil {
+			return lw, err
+		}
+		// Return the first value we get so we know that
+		// all the locks have a write time >= to this one.
+		if lastWrite == nil {
+			lastWrite = &lw
+		}
+	}
+	return *lastWrite, nil
+}
+
+func (l multipleLockFile) IsReadWrite() bool {
+	return l.lockfiles[0].IsReadWrite()
+}
+
+func newMultipleLockFile(l ...*lockfile.LockFile) *multipleLockFile {
+	return &multipleLockFile{lockfiles: l}
+}
+
 type layerStore struct {
 	// The following fields are only set when constructing layerStore, and must never be modified afterwards.
 	// They are safe to access without any other locking.
-	lockfile       *lockfile.LockFile // lockfile.IsReadWrite can be used to distinguish between read-write and read-only layer stores.
+	lockfile       *multipleLockFile  // lockfile.IsReadWrite can be used to distinguish between read-write and read-only layer stores.
 	mountsLockfile *lockfile.LockFile // Can _only_ be obtained with inProcessLock held.
 	rundir         string
 	jsonPath       [numLayerLocationIndex]string
@@ -1023,22 +1084,37 @@ func (r *layerStore) saveMounts() error {
 	return r.loadMounts()
 }
 
-func (s *store) newLayerStore(rundir string, layerdir string, driver drivers.Driver, transient bool) (rwLayerStore, error) {
+func (s *store) newLayerStore(rundir, layerdir, imagedir string, driver drivers.Driver, transient bool) (rwLayerStore, error) {
 	if err := os.MkdirAll(rundir, 0o700); err != nil {
 		return nil, err
 	}
 	if err := os.MkdirAll(layerdir, 0o700); err != nil {
 		return nil, err
 	}
+	if imagedir != "" {
+		if err := os.MkdirAll(imagedir, 0o700); err != nil {
+			return nil, err
+		}
+	}
 	// Note: While the containers.lock file is in rundir for transient stores
 	// we don't want to do this here, because the non-transient layers in
 	// layers.json might be used externally as a read-only layer (using e.g.
 	// additionalimagestores), and that would look for the lockfile in the
 	// same directory
+	var lockFiles []*lockfile.LockFile
 	lockFile, err := lockfile.GetLockFile(filepath.Join(layerdir, "layers.lock"))
 	if err != nil {
 		return nil, err
 	}
+	lockFiles = append(lockFiles, lockFile)
+	if imagedir != "" {
+		lockFile, err := lockfile.GetLockFile(filepath.Join(imagedir, "layers.lock"))
+		if err != nil {
+			return nil, err
+		}
+		lockFiles = append(lockFiles, lockFile)
+	}
+
 	mountsLockfile, err := lockfile.GetLockFile(filepath.Join(rundir, "mountpoints.lock"))
 	if err != nil {
 		return nil, err
@@ -1048,7 +1124,7 @@ func (s *store) newLayerStore(rundir string, layerdir string, driver drivers.Dri
 		volatileDir = rundir
 	}
 	rlstore := layerStore{
-		lockfile:       lockFile,
+		lockfile:       newMultipleLockFile(lockFiles...),
 		mountsLockfile: mountsLockfile,
 		rundir:         rundir,
 		jsonPath: [numLayerLocationIndex]string{
@@ -1085,7 +1161,7 @@ func newROLayerStore(rundir string, layerdir string, driver drivers.Driver) (roL
 		return nil, err
 	}
 	rlstore := layerStore{
-		lockfile:       lockfile,
+		lockfile:       newMultipleLockFile(lockfile),
 		mountsLockfile: nil,
 		rundir:         rundir,
 		jsonPath: [numLayerLocationIndex]string{
