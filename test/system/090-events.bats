@@ -4,6 +4,7 @@
 #
 
 load helpers
+load helpers.network
 
 # bats test_tags=distro-integration
 @test "events with a filter by label" {
@@ -57,12 +58,15 @@ load helpers
     t0=$(date --iso-8601=seconds)
     tag=registry.com/$(random_string 10 | tr A-Z a-z)
 
+    bogus_image="localhost:$(random_free_port)/bogus"
+
     # Force using the file backend since the journal backend is eating events
     # (see containers/podman/pull/10219#issuecomment-842325032).
     run_podman --events-backend=file push $IMAGE dir:$pushedDir
     run_podman --events-backend=file save $IMAGE -o $tarball
     run_podman --events-backend=file load -i $tarball
     run_podman --events-backend=file pull docker-archive:$tarball
+    run_podman 125 --events-backend=file pull --retry 0 $bogus_image
     run_podman --events-backend=file tag $IMAGE $tag
     run_podman --events-backend=file untag $IMAGE $tag
     run_podman --events-backend=file tag $IMAGE $tag
@@ -74,6 +78,7 @@ load helpers
 .*image save $imageID $tarball
 .*image loadfromarchive $imageID $tarball
 .*image pull $imageID docker-archive:$tarball
+.*image pull-error  $bogus_image .*pinging container registry localhost.*connection refused
 .*image tag $imageID $tag
 .*image untag $imageID $tag:latest
 .*image tag $imageID $tag
@@ -87,6 +92,7 @@ load helpers
                      "save--$tarball"
                      "loadfromarchive--$tarball"
                      "pull--docker-archive:$tarball"
+                     "pull-error--$bogus_image"
                      "tag--$tag"
                      "untag--$tag:latest"
                      "tag--$tag"

@@ -42,7 +42,7 @@ type Event struct {
 	// Health status of the current container
 	HealthStatus string `json:"health_status,omitempty"`
 	// Error code for certain events involving errors.
-	Error error `json:"error,omitempty"`
+	Error string `json:"error,omitempty"`
 
 	Details
 }
