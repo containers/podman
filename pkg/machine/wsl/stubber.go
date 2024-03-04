@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v5/pkg/machine/ocipull"
+	"github.com/containers/podman/v5/pkg/machine/ports"
 	"github.com/containers/podman/v5/pkg/machine/shim/diskpull"
 	"github.com/containers/podman/v5/pkg/machine/stdpull"
 	"github.com/containers/podman/v5/pkg/machine/wsl/wutil"
@@ -110,7 +111,7 @@ func (w WSLStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() error,
 		if err := runCmdPassThrough(wutil.FindWSL(), "--unregister", machine.ToDist(mc.Name)); err != nil {
 			logrus.Error(err)
 		}
-		return machine.ReleaseMachinePort(mc.SSH.Port)
+		return ports.ReleaseMachinePort(mc.SSH.Port)
 	}
 
 	return []string{}, wslRemoveFunc, nil

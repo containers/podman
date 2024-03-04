@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/provider"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 )
@@ -18,7 +18,7 @@ func getMachineConn(connectionURI string, parsedConnection *url.URL) (string, er
 	if err != nil {
 		return "", fmt.Errorf("getting machine provider: %w", err)
 	}
-	dirs, err := machine.GetMachineDirs(machineProvider.VMType())
+	dirs, err := env.GetMachineDirs(machineProvider.VMType())
 	if err != nil {
 		return "", err
 	}

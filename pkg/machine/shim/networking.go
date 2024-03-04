@@ -12,6 +12,7 @@ import (
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/sirupsen/logrus"
 )
@@ -95,7 +96,7 @@ func startNetworking(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvider)
 		return "", 0, provider.StartNetworking(mc, nil)
 	}
 
-	dirs, err := machine.GetMachineDirs(provider.VMType())
+	dirs, err := env.GetMachineDirs(provider.VMType())
 	if err != nil {
 		return "", 0, err
 	}

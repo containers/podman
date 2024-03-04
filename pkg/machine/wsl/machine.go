@@ -17,6 +17,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v5/pkg/machine/wsl/wutil"
@@ -47,7 +48,7 @@ func getConfigPath(name string) (string, error) {
 
 //nolint:unused
 func getConfigPathExt(name string, extension string) (string, error) {
-	vmConfigDir, err := machine.GetConfDir(vmtype)
+	vmConfigDir, err := env.GetConfDir(vmtype)
 	if err != nil {
 		return "", err
 	}
@@ -66,7 +67,7 @@ func unprovisionWSL(mc *vmconfigs.MachineConfig) error {
 		logrus.Error(err)
 	}
 
-	vmDataDir, err := machine.GetDataDir(vmtype)
+	vmDataDir, err := env.GetDataDir(vmtype)
 	if err != nil {
 		return err
 	}
@@ -79,7 +80,7 @@ func unprovisionWSL(mc *vmconfigs.MachineConfig) error {
 // we should push this stuff be more common (dir names, etc) and also use
 // typed things where possible like vmfiles
 func provisionWSLDist(name string, imagePath string, prompt string) (string, error) {
-	vmDataDir, err := machine.GetDataDir(vmtype)
+	vmDataDir, err := env.GetDataDir(vmtype)
 	if err != nil {
 		return "", err
 	}
@@ -586,7 +587,7 @@ func setupWslProxyEnv() (hasProxy bool) {
 
 //nolint:unused
 func obtainGlobalConfigLock() (*fileLock, error) {
-	lockDir, err := machine.GetGlobalDataDir()
+	lockDir, err := env.GetGlobalDataDir()
 	if err != nil {
 		return nil, err
 	}
@@ -702,7 +703,7 @@ func isRunning(name string) (bool, error) {
 
 //nolint:unused
 func getDiskSize(name string) uint64 {
-	vmDataDir, err := machine.GetDataDir(vmtype)
+	vmDataDir, err := env.GetDataDir(vmtype)
 	if err != nil {
 		return 0
 	}

@@ -1,4 +1,4 @@
-package machine
+package ports
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
@@ -135,7 +136,7 @@ func getRandomPortHold() (io.Closer, int, error) {
 }
 
 func acquirePortLock() (*lockfile.LockFile, error) {
-	lockDir, err := GetGlobalDataDir()
+	lockDir, err := env.GetGlobalDataDir()
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +151,7 @@ func acquirePortLock() (*lockfile.LockFile, error) {
 }
 
 func loadPortAllocations() (map[int]struct{}, error) {
-	portDir, err := GetGlobalDataDir()
+	portDir, err := env.GetGlobalDataDir()
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +187,7 @@ func loadPortAllocations() (map[int]struct{}, error) {
 }
 
 func storePortAllocations(ports map[int]struct{}) error {
-	portDir, err := GetGlobalDataDir()
+	portDir, err := env.GetGlobalDataDir()
 	if err != nil {
 		return err
 	}

@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/shim/diskpull"
 
 	"github.com/Microsoft/go-winio"
@@ -387,7 +388,7 @@ func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo b
 		dirs       *define.MachineDirs
 		gvproxyPID int
 	)
-	dirs, err = machine.GetMachineDirs(h.VMType())
+	dirs, err = env.GetMachineDirs(h.VMType())
 	if err != nil {
 		return err
 	}
@@ -503,7 +504,7 @@ func removeIgnitionFromRegistry(vm *hypervctl.VirtualMachine) error {
 }
 
 func logCommandToFile(c *exec.Cmd, filename string) error {
-	dir, err := machine.GetDataDir(define.HyperVVirt)
+	dir, err := env.GetDataDir(define.HyperVVirt)
 	if err != nil {
 		return fmt.Errorf("obtain machine dir: %w", err)
 	}

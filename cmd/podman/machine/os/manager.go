@@ -10,6 +10,7 @@ import (
 
 	machineconfig "github.com/containers/common/pkg/machine"
 	pkgMachine "github.com/containers/podman/v5/pkg/machine"
+	"github.com/containers/podman/v5/pkg/machine/env"
 	pkgOS "github.com/containers/podman/v5/pkg/machine/os"
 	"github.com/containers/podman/v5/pkg/machine/provider"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
@@ -52,7 +53,7 @@ func machineOSManager(opts ManagerOpts, _ vmconfigs.VMProvider) (pkgOS.Manager, 
 	if err != nil {
 		return nil, err
 	}
-	dirs, err := pkgMachine.GetMachineDirs(p.VMType())
+	dirs, err := env.GetMachineDirs(p.VMType())
 	if err != nil {
 		return nil, err
 	}

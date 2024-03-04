@@ -15,6 +15,7 @@ import (
 
 	"github.com/containers/podman/v5/pkg/machine/compression"
 	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/ocipull"
 	"github.com/containers/podman/v5/utils"
 	"github.com/sirupsen/logrus"
@@ -31,11 +32,11 @@ func NewGenericDownloader(vmType define.VMType, vmName, pullPath string) (Distri
 	var (
 		imageName string
 	)
-	dataDir, err := GetDataDir(vmType)
+	dataDir, err := env.GetDataDir(vmType)
 	if err != nil {
 		return nil, err
 	}
-	cacheDir, err := GetCacheDir(vmType)
+	cacheDir, err := env.GetCacheDir(vmType)
 	if err != nil {
 		return nil, err
 	}

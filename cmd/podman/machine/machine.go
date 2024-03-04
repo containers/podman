@@ -15,7 +15,7 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/containers/podman/v5/libpod/events"
-	"github.com/containers/podman/v5/pkg/machine"
+	"github.com/containers/podman/v5/pkg/machine/env"
 	provider2 "github.com/containers/podman/v5/pkg/machine/provider"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v5/pkg/util"
@@ -82,7 +82,7 @@ func getMachines(toComplete string) ([]string, cobra.ShellCompDirective) {
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	dirs, err := machine.GetMachineDirs(provider.VMType())
+	dirs, err := env.GetMachineDirs(provider.VMType())
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
