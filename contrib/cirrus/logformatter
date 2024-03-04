@@ -322,6 +322,11 @@ END_HTML
             #           1  12  3                 34         4             5   526
             $line =~ s{^(.*)(\/(containers\/[^/]+)(\/\S+\.py).*,\s+line\s+(\d+))(,\s+in.*)$}
                       {$1<a class="codelink" href='https://github.com/$3/blob/$git_commit$4#L$5'>$2</a>$6};
+
+            # And, sigh, Macintosh always has to be different
+            #           1              123    3 4   425  5
+            $line =~ s{^(.*/ci/task-\d+)((/\S+):(\d+))(.*)$}
+                      {$1<a class="codelink" href="https://github.com/containers/podman/blob/$git_commit$3#L$4">$2</a>$5};
         }
 
         # Try to identify the cirrus task
@@ -848,6 +853,9 @@ END_SYNOPSIS
     $test_name =~ s/\\\s+/ /g;
     $s .= _tr("Test name", $test_name);
 
+    # Macs always have to be different
+    my $is_mac = ($test_name =~ /darwin/);
+
     # Link to further Cirrus results, e.g. other runs.
     # Build is mostly boring, it's usually TASK that we want to see.
     $s .= _tr("Cirrus", sprintf("<small>Build %s</small> / <b>Task %s</b>",
@@ -855,10 +863,11 @@ END_SYNOPSIS
                                 _a("{CIRRUS_TASK_ID}", "https://cirrus-ci.com/task/{CIRRUS_TASK_ID}")));
 
     # Logs: link to original (unformatted) log; journal; and, if remote, server
-    my @logs = (
-        _a("main", "https://api.cirrus-ci.com/v1/task/{CIRRUS_TASK_ID}/logs/main.log"),
-        _a("journal", "https://api.cirrus-ci.com/v1/task/{CIRRUS_TASK_ID}/logs/journal.log"),
-    );
+    my @logs;
+    push @logs, _a("main", sprintf("https://api.cirrus-ci.com/v1/task/{CIRRUS_TASK_ID}/logs/%s.log",
+                                   ($is_mac ? 'test' : 'main')));
+    push @logs, _a("journal", "https://api.cirrus-ci.com/v1/task/{CIRRUS_TASK_ID}/logs/journal.log")
+        unless $is_mac;
 
     # System tests are single-threaded, and have a server log available
     if ($test_name =~ /sys\s+remote\s/) {

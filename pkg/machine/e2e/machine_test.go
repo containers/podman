@@ -126,7 +126,7 @@ func setup() (string, *machineTestBuilder) {
 			fmt.Printf("failed to close destination file %q: %q\n", dest.Name(), err)
 		}
 	}()
-	fmt.Printf("--> copying %q to %q/n", src.Name(), dest.Name())
+	fmt.Printf("--> copying %q to %q\n", src.Name(), dest.Name())
 	if runtime.GOOS != "darwin" {
 		if _, err := io.Copy(dest, src); err != nil {
 			Fail(fmt.Sprintf("failed to copy %ss to %s: %q", fqImageName, mb.imagePath, err))

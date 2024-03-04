@@ -51,7 +51,7 @@ func (i *initMachine) buildCmd(m *machineTestBuilder) []string {
 		cmd = append(cmd, "--username", i.username)
 	}
 	if l := len(i.image); l > 0 {
-		cmd = append(cmd, "--image-path", i.image)
+		cmd = append(cmd, "--image", i.image)
 	}
 	if i.memory != nil {
 		cmd = append(cmd, "--memory", strconv.Itoa(int(*i.memory)))
