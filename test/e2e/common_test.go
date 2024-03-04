@@ -675,8 +675,20 @@ func (p *PodmanTestIntegration) Cleanup() {
 	// Make sure to only check exit codes after all cleanup is done.
 	// An error would cause it to stop and return early otherwise.
 	Expect(stop).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", stop.Command.Args, stop.OutputToString(), stop.ErrorToString())
+	checkStderrCleanupError(stop, "stop --all -t0 error logged")
 	Expect(podrm).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", podrm.Command.Args, podrm.OutputToString(), podrm.ErrorToString())
+	checkStderrCleanupError(podrm, "pod rm -fa -t0 error logged")
 	Expect(rmall).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", rmall.Command.Args, rmall.OutputToString(), rmall.ErrorToString())
+	checkStderrCleanupError(rmall, "rm -fa -t0 error logged")
+}
+
+func checkStderrCleanupError(s *PodmanSessionIntegration, cmd string) {
+	if strings.Contains(podmanTest.OCIRuntime, "runc") {
+		// we cannot check stderr for runc, way to many errors
+		return
+	}
+	// offset is 1 so the stacj trace doesn't link to this helper function here
+	ExpectWithOffset(1, s.ErrorToString()).To(BeEmpty(), cmd)
 }
 
 // CleanupVolume cleans up the volumes and containers.
@@ -686,6 +698,7 @@ func (p *PodmanTestIntegration) CleanupVolume() {
 	session := p.Podman([]string{"volume", "rm", "-fa"})
 	session.WaitWithDefaultTimeout()
 	Expect(session).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", session.Command.Args, session.OutputToString(), session.ErrorToString())
+	checkStderrCleanupError(session, "volume rm -fa error logged")
 }
 
 // CleanupSecret cleans up the secrets and containers.
@@ -695,6 +708,7 @@ func (p *PodmanTestIntegration) CleanupSecrets() {
 	session := p.Podman([]string{"secret", "rm", "-a"})
 	session.Wait(90)
 	Expect(session).To(Exit(0), "command: %v\nstdout: %s\nstderr: %s", session.Command.Args, session.OutputToString(), session.ErrorToString())
+	checkStderrCleanupError(session, "secret rm -a error logged")
 }
 
 // InspectContainerToJSON takes the session output of an inspect
