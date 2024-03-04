@@ -19,6 +19,7 @@ const (
 	macOs                = "darwin"
 	progressBarPrefix    = "Extracting compressed file"
 	zipExt               = ".zip"
+	magicNumberMaxBytes  = 10
 )
 
 type decompressor interface {
@@ -31,24 +32,21 @@ type decompressor interface {
 
 func Decompress(compressedVMFile *define.VMFile, decompressedFilePath string) error {
 	compressedFilePath := compressedVMFile.GetPath()
-	// Are we reading full image file?
-	// Only few bytes are read to detect
-	// the compression type
-	compressedFileContent, err := compressedVMFile.Read()
+	compressedFileMagicNum, err := compressedVMFile.ReadMagicNumber(magicNumberMaxBytes)
 	if err != nil {
 		return err
 	}
 
 	var d decompressor
-	if d, err = newDecompressor(compressedFilePath, compressedFileContent); err != nil {
+	if d, err = newDecompressor(compressedFilePath, compressedFileMagicNum); err != nil {
 		return err
 	}
 
 	return runDecompression(d, decompressedFilePath)
 }
 
-func newDecompressor(compressedFilePath string, compressedFileContent []byte) (decompressor, error) {
-	compressionType := archive.DetectCompression(compressedFileContent)
+func newDecompressor(compressedFilePath string, compressedFileMagicNum []byte) (decompressor, error) {
+	compressionType := archive.DetectCompression(compressedFileMagicNum)
 	os := runtime.GOOS
 	hasZipSuffix := strings.HasSuffix(compressedFilePath, zipExt)
 
