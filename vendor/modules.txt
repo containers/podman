@@ -315,7 +315,7 @@ github.com/containers/image/v5/transports
 github.com/containers/image/v5/transports/alltransports
 github.com/containers/image/v5/types
 github.com/containers/image/v5/version
-# github.com/containers/libhvee v0.6.1-0.20240225143609-c1bda9d3838c
+# github.com/containers/libhvee v0.6.1-0.20240301191848-0ff33af3be2d
 ## explicit; go 1.18
 github.com/containers/libhvee/pkg/hypervctl
 github.com/containers/libhvee/pkg/kvp/ginsu
@@ -353,7 +353,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.52.1-0.20240229151339-eadc620e74e7
+# github.com/containers/storage v1.52.1-0.20240301185114-bdd7d8188030
 ## explicit; go 1.20
 github.com/containers/storage
 github.com/containers/storage/drivers

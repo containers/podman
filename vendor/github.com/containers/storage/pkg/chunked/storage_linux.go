@@ -41,6 +41,7 @@ import (
 
 const (
 	maxNumberMissingChunks  = 1024
+	autoMergePartsThreshold = 128 // if the gap between two ranges is below this threshold, automatically merge them.
 	newFileFlags            = (unix.O_CREAT | unix.O_TRUNC | unix.O_EXCL | unix.O_WRONLY)
 	containersOverrideXattr = "user.containers.override_stat"
 	bigDataKey              = "zstd-chunked-manifest"
@@ -1180,22 +1181,12 @@ func (c *chunkedDiffer) storeMissingFiles(streams chan io.ReadCloser, errs chan 
 }
 
 func mergeMissingChunks(missingParts []missingPart, target int) []missingPart {
-	getGap := func(missingParts []missingPart, i int) int {
+	getGap := func(missingParts []missingPart, i int) uint64 {
 		prev := missingParts[i-1].SourceChunk.Offset + missingParts[i-1].SourceChunk.Length
-		return int(missingParts[i].SourceChunk.Offset - prev)
-	}
-	getCost := func(missingParts []missingPart, i int) int {
-		cost := getGap(missingParts, i)
-		if missingParts[i-1].OriginFile != nil {
-			cost += int(missingParts[i-1].SourceChunk.Length)
-		}
-		if missingParts[i].OriginFile != nil {
-			cost += int(missingParts[i].SourceChunk.Length)
-		}
-		return cost
+		return missingParts[i].SourceChunk.Offset - prev
 	}
 
-	// simple case: merge chunks from the same file.
+	// simple case: merge chunks from the same file.  Useful to reduce the number of parts to work with later.
 	newMissingParts := missingParts[0:1]
 	prevIndex := 0
 	for i := 1; i < len(missingParts); i++ {
@@ -1215,28 +1206,50 @@ func mergeMissingChunks(missingParts []missingPart, target int) []missingPart {
 	}
 	missingParts = newMissingParts
 
-	if len(missingParts) <= target {
-		return missingParts
+	type gap struct {
+		from int
+		to   int
+		cost uint64
 	}
-
-	// this implementation doesn't account for duplicates, so it could merge
-	// more than necessary to reach the specified target.  Since target itself
-	// is a heuristic value, it doesn't matter.
-	costs := make([]int, len(missingParts)-1)
-	for i := 1; i < len(missingParts); i++ {
-		costs[i-1] = getCost(missingParts, i)
+	var requestGaps []gap
+	lastOffset := int(-1)
+	numberSourceChunks := 0
+	for i, c := range missingParts {
+		if c.OriginFile != nil || c.Hole {
+			// it does not require a network request
+			continue
+		}
+		numberSourceChunks++
+		if lastOffset >= 0 {
+			prevEnd := missingParts[lastOffset].SourceChunk.Offset + missingParts[lastOffset].SourceChunk.Length
+			cost := c.SourceChunk.Offset - prevEnd
+			g := gap{
+				from: lastOffset,
+				to:   i,
+				cost: cost,
+			}
+			requestGaps = append(requestGaps, g)
+		}
+		lastOffset = i
 	}
-	sort.Ints(costs)
-
-	toShrink := len(missingParts) - target
-	if toShrink >= len(costs) {
-		toShrink = len(costs) - 1
+	sort.Slice(requestGaps, func(i, j int) bool {
+		return requestGaps[i].cost < requestGaps[j].cost
+	})
+	toMergeMap := make([]bool, len(missingParts))
+	remainingToMerge := numberSourceChunks - target
+	for _, g := range requestGaps {
+		if remainingToMerge < 0 && g.cost > autoMergePartsThreshold {
+			continue
+		}
+		for i := g.from + 1; i <= g.to; i++ {
+			toMergeMap[i] = true
+		}
+		remainingToMerge--
 	}
-	targetValue := costs[toShrink]
 
 	newMissingParts = missingParts[0:1]
 	for i := 1; i < len(missingParts); i++ {
-		if getCost(missingParts, i) > targetValue {
+		if !toMergeMap[i] {
 			newMissingParts = append(newMissingParts, missingParts[i])
 		} else {
 			gap := getGap(missingParts, i)
@@ -1268,6 +1281,7 @@ func (c *chunkedDiffer) retrieveMissingFiles(stream ImageSourceSeekable, dest st
 		}
 	}
 
+	missingParts = mergeMissingChunks(missingParts, maxNumberMissingChunks)
 	calculateChunksToRequest()
 
 	// There are some missing files.  Prepare a multirange request for the missing chunks.
@@ -1281,14 +1295,13 @@ func (c *chunkedDiffer) retrieveMissingFiles(stream ImageSourceSeekable, dest st
 		}
 
 		if _, ok := err.(ErrBadRequest); ok {
-			requested := len(missingParts)
 			// If the server cannot handle at least 64 chunks in a single request, just give up.
-			if requested < 64 {
+			if len(chunksToRequest) < 64 {
 				return err
 			}
 
 			// Merge more chunks to request
-			missingParts = mergeMissingChunks(missingParts, requested/2)
+			missingParts = mergeMissingChunks(missingParts, len(chunksToRequest)/2)
 			calculateChunksToRequest()
 			continue
 		}
@@ -1999,7 +2012,6 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 	}
 	// There are some missing files.  Prepare a multirange request for the missing chunks.
 	if len(missingParts) > 0 {
-		missingParts = mergeMissingChunks(missingParts, maxNumberMissingChunks)
 		if err := c.retrieveMissingFiles(stream, dest, dirfd, missingParts, options); err != nil {
 			return output, err
 		}

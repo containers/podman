@@ -15,10 +15,10 @@ require (
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.3
 	github.com/containers/image/v5 v5.29.3-0.20240229213915-cdc68020a24f
-	github.com/containers/libhvee v0.6.1-0.20240225143609-c1bda9d3838c
+	github.com/containers/libhvee v0.6.1-0.20240301191848-0ff33af3be2d
 	github.com/containers/ocicrypt v1.1.9
 	github.com/containers/psgo v1.9.0
-	github.com/containers/storage v1.52.1-0.20240229151339-eadc620e74e7
+	github.com/containers/storage v1.52.1-0.20240301185114-bdd7d8188030
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/coreos/stream-metadata-go v0.4.4
