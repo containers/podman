@@ -597,7 +597,8 @@ RUN touch /file
 
 		push := podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--creds=" + registry.User + ":" + registry.Password, "--format=v2s2", "localhost:" + registry.Port + "/citest:latest"})
 		push.WaitWithDefaultTimeout()
-		Expect(push).Should(ExitCleanly())
+		// Cannot ExitCleanly() because this sometimes warns "Failed, retrying in 1s"
+		Expect(push).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"manifest", "add", "--tls-verify=false", "--creds=" + registry.User + ":" + registry.Password, "foo", "localhost:" + registry.Port + "/citest:latest"})
 		session.WaitWithDefaultTimeout()
