@@ -96,6 +96,7 @@ not ok 3 fail
 # (from function `assert' in file ./helpers.bash, line 343,
 #  from function `expect_output' in file ./helpers.bash, line 370,
 #  in test file ./run.bats, line 786)
+# $ /path/to/podman-remote --url /this/should/be-stripped blah blah
 # $ /path/to/podman foo -bar
 # time="2023-01-05T15:15:20Z" level=debug msg="this is debug"
 # time="2023-01-05T15:15:20Z" level=warning msg="this is warning"
@@ -109,6 +110,7 @@ ok 4 blah
 <span class='bats-log'># (from function `assert&#39; in file ./<a class="codelink" href="https://github.com/containers/podman/blob/ceci-nest-pas-une-sha/test/system/helpers.bash#L343">helpers.bash, line 343</a>,</span>
 <span class='bats-log'>#  from function `expect_output&#39; in file ./<a class="codelink" href="https://github.com/containers/podman/blob/ceci-nest-pas-une-sha/test/system/helpers.bash#L370">helpers.bash, line 370</a>,</span>
 <span class='bats-log'>#  in test file ./<a class="codelink" href="https://github.com/containers/podman/blob/ceci-nest-pas-une-sha/test/system/run.bats#L786">run.bats, line 786</a>)</span>
+<span class='bats-log'># $ <b><span title="/path/to/podman-remote --url /this/should/be-stripped">podman-remote</span> blah blah</b></span>
 <span class='bats-log'># $ <b><span title="/path/to/podman">podman</span> foo -bar</b></span>
 <span class='bats-log'># time=<span class='log-debug'>&quot;2023-01-05T15:15:20Z&quot;</span> level=<span class='log-debug'>debug</span> msg=<span class='log-debug'>&quot;this is debug&quot;</span></span>
 <span class='bats-log'># time=<span class='log-warning'>&quot;2023-01-05T15:15:20Z&quot;</span> level=<span class='log-warning'>warning</span> msg=<span class='log-warning'>&quot;this is warning&quot;</span></span>
