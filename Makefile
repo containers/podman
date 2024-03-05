@@ -355,6 +355,7 @@ endif
 		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' \
 		-tags "$(BUILDTAGS)" \
 		-o $@ ./cmd/podman
+	test -z "${SELINUXOPT}" || chcon -t container_runtime_exec_t $@
 
 # Disambiguate Linux vs Darwin/Windows platform binaries under distinct "bin" dirs
 $(SRCBINDIR):
