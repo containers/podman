@@ -160,8 +160,6 @@ func (p *SourcePath) appendFileOptions(b []byte) []byte {
 		b = p.appendSingularField(b, "java_generic_services", nil)
 	case 18:
 		b = p.appendSingularField(b, "py_generic_services", nil)
-	case 42:
-		b = p.appendSingularField(b, "php_generic_services", nil)
 	case 23:
 		b = p.appendSingularField(b, "deprecated", nil)
 	case 31:

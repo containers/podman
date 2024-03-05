@@ -18,6 +18,21 @@ const (
 	Edition_enum_name     = "Edition"
 )
 
+// Enum values for google.protobuf.Edition.
+const (
+	Edition_EDITION_UNKNOWN_enum_value         = 0
+	Edition_EDITION_PROTO2_enum_value          = 998
+	Edition_EDITION_PROTO3_enum_value          = 999
+	Edition_EDITION_2023_enum_value            = 1000
+	Edition_EDITION_2024_enum_value            = 1001
+	Edition_EDITION_1_TEST_ONLY_enum_value     = 1
+	Edition_EDITION_2_TEST_ONLY_enum_value     = 2
+	Edition_EDITION_99997_TEST_ONLY_enum_value = 99997
+	Edition_EDITION_99998_TEST_ONLY_enum_value = 99998
+	Edition_EDITION_99999_TEST_ONLY_enum_value = 99999
+	Edition_EDITION_MAX_enum_value             = 2147483647
+)
+
 // Names for google.protobuf.FileDescriptorSet.
 const (
 	FileDescriptorSet_message_name     protoreflect.Name     = "FileDescriptorSet"
@@ -213,6 +228,12 @@ const (
 	ExtensionRangeOptions_VerificationState_enum_name     = "VerificationState"
 )
 
+// Enum values for google.protobuf.ExtensionRangeOptions.VerificationState.
+const (
+	ExtensionRangeOptions_DECLARATION_enum_value = 0
+	ExtensionRangeOptions_UNVERIFIED_enum_value  = 1
+)
+
 // Names for google.protobuf.ExtensionRangeOptions.Declaration.
 const (
 	ExtensionRangeOptions_Declaration_message_name     protoreflect.Name     = "Declaration"
@@ -297,10 +318,39 @@ const (
 	FieldDescriptorProto_Type_enum_name     = "Type"
 )
 
+// Enum values for google.protobuf.FieldDescriptorProto.Type.
+const (
+	FieldDescriptorProto_TYPE_DOUBLE_enum_value   = 1
+	FieldDescriptorProto_TYPE_FLOAT_enum_value    = 2
+	FieldDescriptorProto_TYPE_INT64_enum_value    = 3
+	FieldDescriptorProto_TYPE_UINT64_enum_value   = 4
+	FieldDescriptorProto_TYPE_INT32_enum_value    = 5
+	FieldDescriptorProto_TYPE_FIXED64_enum_value  = 6
+	FieldDescriptorProto_TYPE_FIXED32_enum_value  = 7
+	FieldDescriptorProto_TYPE_BOOL_enum_value     = 8
+	FieldDescriptorProto_TYPE_STRING_enum_value   = 9
+	FieldDescriptorProto_TYPE_GROUP_enum_value    = 10
+	FieldDescriptorProto_TYPE_MESSAGE_enum_value  = 11
+	FieldDescriptorProto_TYPE_BYTES_enum_value    = 12
+	FieldDescriptorProto_TYPE_UINT32_enum_value   = 13
+	FieldDescriptorProto_TYPE_ENUM_enum_value     = 14
+	FieldDescriptorProto_TYPE_SFIXED32_enum_value = 15
+	FieldDescriptorProto_TYPE_SFIXED64_enum_value = 16
+	FieldDescriptorProto_TYPE_SINT32_enum_value   = 17
+	FieldDescriptorProto_TYPE_SINT64_enum_value   = 18
+)
+
 // Full and short names for google.protobuf.FieldDescriptorProto.Label.
 const (
 	FieldDescriptorProto_Label_enum_fullname = "google.protobuf.FieldDescriptorProto.Label"
 	FieldDescriptorProto_Label_enum_name     = "Label"
+)
+
+// Enum values for google.protobuf.FieldDescriptorProto.Label.
+const (
+	FieldDescriptorProto_LABEL_OPTIONAL_enum_value = 1
+	FieldDescriptorProto_LABEL_REPEATED_enum_value = 3
+	FieldDescriptorProto_LABEL_REQUIRED_enum_value = 2
 )
 
 // Names for google.protobuf.OneofDescriptorProto.
@@ -474,7 +524,6 @@ const (
 	FileOptions_CcGenericServices_field_name         protoreflect.Name = "cc_generic_services"
 	FileOptions_JavaGenericServices_field_name       protoreflect.Name = "java_generic_services"
 	FileOptions_PyGenericServices_field_name         protoreflect.Name = "py_generic_services"
-	FileOptions_PhpGenericServices_field_name        protoreflect.Name = "php_generic_services"
 	FileOptions_Deprecated_field_name                protoreflect.Name = "deprecated"
 	FileOptions_CcEnableArenas_field_name            protoreflect.Name = "cc_enable_arenas"
 	FileOptions_ObjcClassPrefix_field_name           protoreflect.Name = "objc_class_prefix"
@@ -497,7 +546,6 @@ const (
 	FileOptions_CcGenericServices_field_fullname         protoreflect.FullName = "google.protobuf.FileOptions.cc_generic_services"
 	FileOptions_JavaGenericServices_field_fullname       protoreflect.FullName = "google.protobuf.FileOptions.java_generic_services"
 	FileOptions_PyGenericServices_field_fullname         protoreflect.FullName = "google.protobuf.FileOptions.py_generic_services"
-	FileOptions_PhpGenericServices_field_fullname        protoreflect.FullName = "google.protobuf.FileOptions.php_generic_services"
 	FileOptions_Deprecated_field_fullname                protoreflect.FullName = "google.protobuf.FileOptions.deprecated"
 	FileOptions_CcEnableArenas_field_fullname            protoreflect.FullName = "google.protobuf.FileOptions.cc_enable_arenas"
 	FileOptions_ObjcClassPrefix_field_fullname           protoreflect.FullName = "google.protobuf.FileOptions.objc_class_prefix"
@@ -523,7 +571,6 @@ const (
 	FileOptions_CcGenericServices_field_number         protoreflect.FieldNumber = 16
 	FileOptions_JavaGenericServices_field_number       protoreflect.FieldNumber = 17
 	FileOptions_PyGenericServices_field_number         protoreflect.FieldNumber = 18
-	FileOptions_PhpGenericServices_field_number        protoreflect.FieldNumber = 42
 	FileOptions_Deprecated_field_number                protoreflect.FieldNumber = 23
 	FileOptions_CcEnableArenas_field_number            protoreflect.FieldNumber = 31
 	FileOptions_ObjcClassPrefix_field_number           protoreflect.FieldNumber = 36
@@ -541,6 +588,13 @@ const (
 const (
 	FileOptions_OptimizeMode_enum_fullname = "google.protobuf.FileOptions.OptimizeMode"
 	FileOptions_OptimizeMode_enum_name     = "OptimizeMode"
+)
+
+// Enum values for google.protobuf.FileOptions.OptimizeMode.
+const (
+	FileOptions_SPEED_enum_value        = 1
+	FileOptions_CODE_SIZE_enum_value    = 2
+	FileOptions_LITE_RUNTIME_enum_value = 3
 )
 
 // Names for google.protobuf.MessageOptions.
@@ -639,10 +693,24 @@ const (
 	FieldOptions_CType_enum_name     = "CType"
 )
 
+// Enum values for google.protobuf.FieldOptions.CType.
+const (
+	FieldOptions_STRING_enum_value       = 0
+	FieldOptions_CORD_enum_value         = 1
+	FieldOptions_STRING_PIECE_enum_value = 2
+)
+
 // Full and short names for google.protobuf.FieldOptions.JSType.
 const (
 	FieldOptions_JSType_enum_fullname = "google.protobuf.FieldOptions.JSType"
 	FieldOptions_JSType_enum_name     = "JSType"
+)
+
+// Enum values for google.protobuf.FieldOptions.JSType.
+const (
+	FieldOptions_JS_NORMAL_enum_value = 0
+	FieldOptions_JS_STRING_enum_value = 1
+	FieldOptions_JS_NUMBER_enum_value = 2
 )
 
 // Full and short names for google.protobuf.FieldOptions.OptionRetention.
@@ -651,10 +719,31 @@ const (
 	FieldOptions_OptionRetention_enum_name     = "OptionRetention"
 )
 
+// Enum values for google.protobuf.FieldOptions.OptionRetention.
+const (
+	FieldOptions_RETENTION_UNKNOWN_enum_value = 0
+	FieldOptions_RETENTION_RUNTIME_enum_value = 1
+	FieldOptions_RETENTION_SOURCE_enum_value  = 2
+)
+
 // Full and short names for google.protobuf.FieldOptions.OptionTargetType.
 const (
 	FieldOptions_OptionTargetType_enum_fullname = "google.protobuf.FieldOptions.OptionTargetType"
 	FieldOptions_OptionTargetType_enum_name     = "OptionTargetType"
+)
+
+// Enum values for google.protobuf.FieldOptions.OptionTargetType.
+const (
+	FieldOptions_TARGET_TYPE_UNKNOWN_enum_value         = 0
+	FieldOptions_TARGET_TYPE_FILE_enum_value            = 1
+	FieldOptions_TARGET_TYPE_EXTENSION_RANGE_enum_value = 2
+	FieldOptions_TARGET_TYPE_MESSAGE_enum_value         = 3
+	FieldOptions_TARGET_TYPE_FIELD_enum_value           = 4
+	FieldOptions_TARGET_TYPE_ONEOF_enum_value           = 5
+	FieldOptions_TARGET_TYPE_ENUM_enum_value            = 6
+	FieldOptions_TARGET_TYPE_ENUM_ENTRY_enum_value      = 7
+	FieldOptions_TARGET_TYPE_SERVICE_enum_value         = 8
+	FieldOptions_TARGET_TYPE_METHOD_enum_value          = 9
 )
 
 // Names for google.protobuf.FieldOptions.EditionDefault.
@@ -813,6 +902,13 @@ const (
 	MethodOptions_IdempotencyLevel_enum_name     = "IdempotencyLevel"
 )
 
+// Enum values for google.protobuf.MethodOptions.IdempotencyLevel.
+const (
+	MethodOptions_IDEMPOTENCY_UNKNOWN_enum_value = 0
+	MethodOptions_NO_SIDE_EFFECTS_enum_value     = 1
+	MethodOptions_IDEMPOTENT_enum_value          = 2
+)
+
 // Names for google.protobuf.UninterpretedOption.
 const (
 	UninterpretedOption_message_name     protoreflect.Name     = "UninterpretedOption"
@@ -909,10 +1005,25 @@ const (
 	FeatureSet_FieldPresence_enum_name     = "FieldPresence"
 )
 
+// Enum values for google.protobuf.FeatureSet.FieldPresence.
+const (
+	FeatureSet_FIELD_PRESENCE_UNKNOWN_enum_value = 0
+	FeatureSet_EXPLICIT_enum_value               = 1
+	FeatureSet_IMPLICIT_enum_value               = 2
+	FeatureSet_LEGACY_REQUIRED_enum_value        = 3
+)
+
 // Full and short names for google.protobuf.FeatureSet.EnumType.
 const (
 	FeatureSet_EnumType_enum_fullname = "google.protobuf.FeatureSet.EnumType"
 	FeatureSet_EnumType_enum_name     = "EnumType"
+)
+
+// Enum values for google.protobuf.FeatureSet.EnumType.
+const (
+	FeatureSet_ENUM_TYPE_UNKNOWN_enum_value = 0
+	FeatureSet_OPEN_enum_value              = 1
+	FeatureSet_CLOSED_enum_value            = 2
 )
 
 // Full and short names for google.protobuf.FeatureSet.RepeatedFieldEncoding.
@@ -921,10 +1032,24 @@ const (
 	FeatureSet_RepeatedFieldEncoding_enum_name     = "RepeatedFieldEncoding"
 )
 
+// Enum values for google.protobuf.FeatureSet.RepeatedFieldEncoding.
+const (
+	FeatureSet_REPEATED_FIELD_ENCODING_UNKNOWN_enum_value = 0
+	FeatureSet_PACKED_enum_value                          = 1
+	FeatureSet_EXPANDED_enum_value                        = 2
+)
+
 // Full and short names for google.protobuf.FeatureSet.Utf8Validation.
 const (
 	FeatureSet_Utf8Validation_enum_fullname = "google.protobuf.FeatureSet.Utf8Validation"
 	FeatureSet_Utf8Validation_enum_name     = "Utf8Validation"
+)
+
+// Enum values for google.protobuf.FeatureSet.Utf8Validation.
+const (
+	FeatureSet_UTF8_VALIDATION_UNKNOWN_enum_value = 0
+	FeatureSet_VERIFY_enum_value                  = 2
+	FeatureSet_NONE_enum_value                    = 3
 )
 
 // Full and short names for google.protobuf.FeatureSet.MessageEncoding.
@@ -933,10 +1058,24 @@ const (
 	FeatureSet_MessageEncoding_enum_name     = "MessageEncoding"
 )
 
+// Enum values for google.protobuf.FeatureSet.MessageEncoding.
+const (
+	FeatureSet_MESSAGE_ENCODING_UNKNOWN_enum_value = 0
+	FeatureSet_LENGTH_PREFIXED_enum_value          = 1
+	FeatureSet_DELIMITED_enum_value                = 2
+)
+
 // Full and short names for google.protobuf.FeatureSet.JsonFormat.
 const (
 	FeatureSet_JsonFormat_enum_fullname = "google.protobuf.FeatureSet.JsonFormat"
 	FeatureSet_JsonFormat_enum_name     = "JsonFormat"
+)
+
+// Enum values for google.protobuf.FeatureSet.JsonFormat.
+const (
+	FeatureSet_JSON_FORMAT_UNKNOWN_enum_value = 0
+	FeatureSet_ALLOW_enum_value               = 1
+	FeatureSet_LEGACY_BEST_EFFORT_enum_value  = 2
 )
 
 // Names for google.protobuf.FeatureSetDefaults.
@@ -1084,4 +1223,11 @@ const (
 const (
 	GeneratedCodeInfo_Annotation_Semantic_enum_fullname = "google.protobuf.GeneratedCodeInfo.Annotation.Semantic"
 	GeneratedCodeInfo_Annotation_Semantic_enum_name     = "Semantic"
+)
+
+// Enum values for google.protobuf.GeneratedCodeInfo.Annotation.Semantic.
+const (
+	GeneratedCodeInfo_Annotation_NONE_enum_value  = 0
+	GeneratedCodeInfo_Annotation_SET_enum_value   = 1
+	GeneratedCodeInfo_Annotation_ALIAS_enum_value = 2
 )

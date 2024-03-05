@@ -5,14 +5,16 @@
 package protodesc
 
 import (
-	_ "embed"
 	"fmt"
 	"os"
 	"sync"
 
+	"google.golang.org/protobuf/internal/editiondefaults"
 	"google.golang.org/protobuf/internal/filedesc"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
+	gofeaturespb "google.golang.org/protobuf/types/gofeaturespb"
 )
 
 const (
@@ -20,14 +22,12 @@ const (
 	SupportedEditionsMaximum = descriptorpb.Edition_EDITION_2023
 )
 
-//go:embed editions_defaults.binpb
-var binaryEditionDefaults []byte
 var defaults = &descriptorpb.FeatureSetDefaults{}
 var defaultsCacheMu sync.Mutex
 var defaultsCache = make(map[filedesc.Edition]*descriptorpb.FeatureSet)
 
 func init() {
-	err := proto.Unmarshal(binaryEditionDefaults, defaults)
+	err := proto.Unmarshal(editiondefaults.Defaults, defaults)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "unmarshal editions defaults: %v\n", err)
 		os.Exit(1)
@@ -83,37 +83,56 @@ func getFeatureSetFor(ed filedesc.Edition) *descriptorpb.FeatureSet {
 	return fs
 }
 
-func resolveFeatureHasFieldPresence(fileDesc *filedesc.File, fieldDesc *descriptorpb.FieldDescriptorProto) bool {
-	fs := fieldDesc.GetOptions().GetFeatures()
-	if fs == nil || fs.FieldPresence == nil {
-		return fileDesc.L1.EditionFeatures.IsFieldPresence
+// mergeEditionFeatures merges the parent and child feature sets. This function
+// should be used when initializing Go descriptors from descriptor protos which
+// is why the parent is a filedesc.EditionsFeatures (Go representation) while
+// the child is a descriptorproto.FeatureSet (protoc representation).
+// Any feature set by the child overwrites what is set by the parent.
+func mergeEditionFeatures(parentDesc protoreflect.Descriptor, child *descriptorpb.FeatureSet) filedesc.EditionFeatures {
+	var parentFS filedesc.EditionFeatures
+	switch p := parentDesc.(type) {
+	case *filedesc.File:
+		parentFS = p.L1.EditionFeatures
+	case *filedesc.Message:
+		parentFS = p.L1.EditionFeatures
+	default:
+		panic(fmt.Sprintf("unknown parent type %T", parentDesc))
 	}
-	return fs.GetFieldPresence() == descriptorpb.FeatureSet_LEGACY_REQUIRED ||
-		fs.GetFieldPresence() == descriptorpb.FeatureSet_EXPLICIT
-}
+	if child == nil {
+		return parentFS
+	}
+	if fp := child.FieldPresence; fp != nil {
+		parentFS.IsFieldPresence = *fp == descriptorpb.FeatureSet_LEGACY_REQUIRED ||
+			*fp == descriptorpb.FeatureSet_EXPLICIT
+		parentFS.IsLegacyRequired = *fp == descriptorpb.FeatureSet_LEGACY_REQUIRED
+	}
+	if et := child.EnumType; et != nil {
+		parentFS.IsOpenEnum = *et == descriptorpb.FeatureSet_OPEN
+	}
 
-func resolveFeatureRepeatedFieldEncodingPacked(fileDesc *filedesc.File, fieldDesc *descriptorpb.FieldDescriptorProto) bool {
-	fs := fieldDesc.GetOptions().GetFeatures()
-	if fs == nil || fs.RepeatedFieldEncoding == nil {
-		return fileDesc.L1.EditionFeatures.IsPacked
+	if rfe := child.RepeatedFieldEncoding; rfe != nil {
+		parentFS.IsPacked = *rfe == descriptorpb.FeatureSet_PACKED
 	}
-	return fs.GetRepeatedFieldEncoding() == descriptorpb.FeatureSet_PACKED
-}
 
-func resolveFeatureEnforceUTF8(fileDesc *filedesc.File, fieldDesc *descriptorpb.FieldDescriptorProto) bool {
-	fs := fieldDesc.GetOptions().GetFeatures()
-	if fs == nil || fs.Utf8Validation == nil {
-		return fileDesc.L1.EditionFeatures.IsUTF8Validated
+	if utf8val := child.Utf8Validation; utf8val != nil {
+		parentFS.IsUTF8Validated = *utf8val == descriptorpb.FeatureSet_VERIFY
 	}
-	return fs.GetUtf8Validation() == descriptorpb.FeatureSet_VERIFY
-}
 
-func resolveFeatureDelimitedEncoding(fileDesc *filedesc.File, fieldDesc *descriptorpb.FieldDescriptorProto) bool {
-	fs := fieldDesc.GetOptions().GetFeatures()
-	if fs == nil || fs.MessageEncoding == nil {
-		return fileDesc.L1.EditionFeatures.IsDelimitedEncoded
+	if me := child.MessageEncoding; me != nil {
+		parentFS.IsDelimitedEncoded = *me == descriptorpb.FeatureSet_DELIMITED
 	}
-	return fs.GetMessageEncoding() == descriptorpb.FeatureSet_DELIMITED
+
+	if jf := child.JsonFormat; jf != nil {
+		parentFS.IsJSONCompliant = *jf == descriptorpb.FeatureSet_ALLOW
+	}
+
+	if goFeatures, ok := proto.GetExtension(child, gofeaturespb.E_Go).(*gofeaturespb.GoFeatures); ok && goFeatures != nil {
+		if luje := goFeatures.LegacyUnmarshalJsonEnum; luje != nil {
+			parentFS.GenerateLegacyUnmarshalJSON = *luje
+		}
+	}
+
+	return parentFS
 }
 
 // initFileDescFromFeatureSet initializes editions related fields in fd based
@@ -122,56 +141,8 @@ func resolveFeatureDelimitedEncoding(fileDesc *filedesc.File, fieldDesc *descrip
 // before calling this function.
 func initFileDescFromFeatureSet(fd *filedesc.File, fs *descriptorpb.FeatureSet) {
 	dfs := getFeatureSetFor(fd.L1.Edition)
-	if fs == nil {
-		fs = &descriptorpb.FeatureSet{}
-	}
-
-	var fieldPresence descriptorpb.FeatureSet_FieldPresence
-	if fp := fs.FieldPresence; fp != nil {
-		fieldPresence = *fp
-	} else {
-		fieldPresence = *dfs.FieldPresence
-	}
-	fd.L1.EditionFeatures.IsFieldPresence = fieldPresence == descriptorpb.FeatureSet_LEGACY_REQUIRED ||
-		fieldPresence == descriptorpb.FeatureSet_EXPLICIT
-
-	var enumType descriptorpb.FeatureSet_EnumType
-	if et := fs.EnumType; et != nil {
-		enumType = *et
-	} else {
-		enumType = *dfs.EnumType
-	}
-	fd.L1.EditionFeatures.IsOpenEnum = enumType == descriptorpb.FeatureSet_OPEN
-
-	var respeatedFieldEncoding descriptorpb.FeatureSet_RepeatedFieldEncoding
-	if rfe := fs.RepeatedFieldEncoding; rfe != nil {
-		respeatedFieldEncoding = *rfe
-	} else {
-		respeatedFieldEncoding = *dfs.RepeatedFieldEncoding
-	}
-	fd.L1.EditionFeatures.IsPacked = respeatedFieldEncoding == descriptorpb.FeatureSet_PACKED
-
-	var isUTF8Validated descriptorpb.FeatureSet_Utf8Validation
-	if utf8val := fs.Utf8Validation; utf8val != nil {
-		isUTF8Validated = *utf8val
-	} else {
-		isUTF8Validated = *dfs.Utf8Validation
-	}
-	fd.L1.EditionFeatures.IsUTF8Validated = isUTF8Validated == descriptorpb.FeatureSet_VERIFY
-
-	var messageEncoding descriptorpb.FeatureSet_MessageEncoding
-	if me := fs.MessageEncoding; me != nil {
-		messageEncoding = *me
-	} else {
-		messageEncoding = *dfs.MessageEncoding
-	}
-	fd.L1.EditionFeatures.IsDelimitedEncoded = messageEncoding == descriptorpb.FeatureSet_DELIMITED
-
-	var jsonFormat descriptorpb.FeatureSet_JsonFormat
-	if jf := fs.JsonFormat; jf != nil {
-		jsonFormat = *jf
-	} else {
-		jsonFormat = *dfs.JsonFormat
-	}
-	fd.L1.EditionFeatures.IsJSONCompliant = jsonFormat == descriptorpb.FeatureSet_ALLOW
+	// initialize the featureset with the defaults
+	fd.L1.EditionFeatures = mergeEditionFeatures(fd, dfs)
+	// overwrite any options explicitly specified
+	fd.L1.EditionFeatures = mergeEditionFeatures(fd, fs)
 }
