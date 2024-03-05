@@ -426,9 +426,10 @@ END_HTML
             }
 
             # Readability: /long/path/to/podman -> podman (hover for full path)
-            # Also make it boldface, to make commands stand out
-            $line =~ s{^(#\s+(#|\$)\s+)(\S+/)(podman\S*)(\s.*)}
-                      {$1<b><span title="$3$4">$4</span>$5</b>};
+            # Also make it boldface, to make commands stand out, and strip --url
+            #           1    2    2   13    345         56              6 47    7
+            $line =~ s{^(#\s+(#|\$)\s+)(\S+/)((podman\S*)(\s+--url\s+\S+)?)(\s.*)}
+                      {$1<b><span title="$3$4">$5</span>$7</b>};
 
             if    ($line =~ /^ok\s.*\s# skip/)    { $css = 'skipped'       }
             elsif ($line =~ /^ok\s/)              { $css = 'passed'        }
