@@ -1449,10 +1449,11 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint and restore container with --file-locks", func() {
-		localRunString := getRunString([]string{"--name", "test_name", ALPINE, "flock", "test.lock", "sleep", "100"})
+		localRunString := getRunString([]string{"--name", "test_name", ALPINE, "flock", "test.lock", "sh", "-c", "echo READY;sleep 100"})
 		session := podmanTest.Podman(localRunString)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
+		Expect(WaitContainerReady(podmanTest, "test_name", "READY", 5, 1)).To(BeTrue(), "Timed out waiting for READY")
 
 		// Checkpoint is expected to fail without --file-locks
 		result := podmanTest.Podman([]string{"container", "checkpoint", "test_name"})
