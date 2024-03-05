@@ -263,8 +263,8 @@ PODMAN_VERSION=%{version} %{__make} DESTDIR=%{buildroot} PREFIX=%{_prefix} ETCDI
 sed -i 's;%{buildroot};;g' %{buildroot}%{_bindir}/docker
 
 # do not include docker and podman-remote man pages in main package
-for file in `find %{buildroot}%{_mandir}/man[15] -type f | sed "s,%{buildroot},," | grep -v -e remote -e docker`; do
-    echo "$file*" >> podman.file-list
+for file in `find %{buildroot}%{_mandir}/man[15] -type f | sed "s,%{buildroot},," | grep -v -e %{name}sh.1 -e remote -e docker`; do
+    echo "$file*" >> %{name}.file-list
 done
 
 rm -f %{buildroot}%{_mandir}/man5/docker*.5
@@ -319,6 +319,7 @@ cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 
 %files -n %{name}sh
 %{_bindir}/%{name}sh
+%{_mandir}/man1/%{name}sh.1*
 
 %changelog
 %if %{defined autochangelog}
