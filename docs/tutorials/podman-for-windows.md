@@ -397,7 +397,7 @@ Recovering from a failed auto-installation of WSL
 
 If auto-install fails and retrying is unsuccessful, you can attempt to reset
 your WSL system state and perform a manual WSL installation using the `wsl
---install command`. To do so, perform the following steps:
+--install` command. To do so, perform the following steps:
 
 1. Launch PowerShell as administrator
    ```
