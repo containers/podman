@@ -64,9 +64,6 @@ Examples:
 export PODMAN=${PODMAN:-$(pwd)/bin/podman}
 export QUADLET=${QUADLET:-$(pwd)/bin/quadlet}
 
-# Because 'make' doesn't do this by default
-chcon -t container_runtime_exec_t $PODMAN
-
 # Directory in which
 TESTS=test/system
 
