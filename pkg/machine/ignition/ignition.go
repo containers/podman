@@ -715,25 +715,49 @@ func DefaultReadyUnitFile() parser.UnitFile {
 func GetRosettaActivationUnitFile() *parser.UnitFile {
 	rosettaUnit := parser.NewUnitFile()
 	rosettaUnit.Add("Unit", "Description", "Activates Rosetta if necessary")
-	rosettaUnit.Add("Unit", "After", "sshd.socket sshd.service")
+	rosettaUnit.Add("Unit", "After", "systemd-binfmt.service")
 	rosettaUnit.Add("Service", "Type", "oneshot")
 	rosettaUnit.Add("Service", "RemainAfterExit", "yes")
-	rosettaUnit.Add("Service", "ExecStartPre", "mount -t virtiofs -o context=system_u:object_r:nfs_t:s0 rosetta /mnt")
-	rosettaUnit.Add("Service", "ExecStart", `/bin/sh -c "echo -1 > /proc/sys/fs/binfmt_misc/qemu-x86_64"`)
-	rosettaUnit.Add("Service", "ExecStartPost", "/usr/local/bin/rosetta-activation.sh")
-	rosettaUnit.Add("Install", "WantedBy", "default.target")
+	rosettaUnit.Add("Service", "ExecStartPre", `/bin/sh -c "mount -t virtiofs -o context=system_u:object_r:nfs_t:s0 rosetta /mnt || true"`)
+	rosettaUnit.Add("Service", "ExecStart", `/bin/sh -c "/usr/local/bin/rosetta-activation.sh || true"`)
+	rosettaUnit.Add("Install", "WantedBy", "multi-user.target")
 	return rosettaUnit
 }
 
-func SetRosettaUnit() Unit {
+func RosettaActivationUnit() Unit {
 	contents, err := GetRosettaActivationUnitFile().ToString()
 	if err != nil {
 		logrus.Warnf(err.Error())
 	}
 	rosettaUnit := Unit{
-		Enabled:  BoolToPtr(false),
+		Enabled:  BoolToPtr(true),
 		Name:     "rosetta-activation.service",
 		Contents: &contents,
 	}
 	return rosettaUnit
+}
+
+func GetUnregisterHandlerUnitFile() *parser.UnitFile {
+	unregisterUnit := parser.NewUnitFile()
+	unregisterUnit.Add("Unit", "Description", "Unregiester x86_64 handler if necessary")
+	unregisterUnit.Add("Unit", "After", "rosetta-activation.service")
+	unregisterUnit.Add("Unit", "ConditionPathExists", "/mnt/rosetta")
+	unregisterUnit.Add("Service", "Type", "oneshot")
+	unregisterUnit.Add("Service", "RemainAfterExit", "yes")
+	unregisterUnit.Add("Service", "ExecStart", `/bin/sh -c "echo -1 > /proc/sys/fs/binfmt_misc/qemu-x86_64"`)
+	unregisterUnit.Add("Install", "WantedBy", "multi-user.target")
+	return unregisterUnit
+}
+
+func UnregisterHandlerUnit() Unit {
+	contents, err := GetUnregisterHandlerUnitFile().ToString()
+	if err != nil {
+		logrus.Warnf(err.Error())
+	}
+	unregisterUnit := Unit{
+		Enabled:  BoolToPtr(true),
+		Name:     "unregister-handler.service",
+		Contents: &contents,
+	}
+	return unregisterUnit
 }

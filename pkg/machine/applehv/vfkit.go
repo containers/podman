@@ -3,8 +3,6 @@
 package applehv
 
 import (
-	"runtime"
-
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
@@ -41,17 +39,23 @@ func getDefaultDevices(mc *vmconfigs.MachineConfig) ([]vfConfig.VirtioDevice, *d
 		return nil, nil, err
 	}
 
-	if runtime.GOARCH == "arm64" {
+	devices = append(devices, disk, rng, serial, readyDevice)
+
+	mp := &AppleHVStubber{}
+	rosettaEnabled, err := mp.SetRosetta(mc)
+	if err != nil {
+		return nil, nil, err
+	}
+	if rosettaEnabled {
 		rosetta := &vfConfig.RosettaShare{
 			DirectorySharingConfig: vfConfig.DirectorySharingConfig{
 				MountTag: define.MountTag,
 			},
 			InstallRosetta: true,
 		}
-		devices = append(devices, disk, rng, serial, readyDevice, rosetta)
-	} else {
-		devices = append(devices, disk, rng, serial, readyDevice)
+		devices = append(devices, rosetta)
 	}
+
 	return devices, readySocket, nil
 }
 

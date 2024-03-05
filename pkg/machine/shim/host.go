@@ -542,11 +542,6 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 		mc.HostUser.Rootful,
 	)
 
-	err = mp.SetRosetta(mc)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 

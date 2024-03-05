@@ -325,8 +325,8 @@ func (w WSLStubber) GetDisk(userInputPath string, dirs *define.MachineDirs, mc *
 	return myDisk.Get()
 }
 
-func (w WSLStubber) SetRosetta(mc *vmconfigs.MachineConfig) error {
-	return nil
+func (w WSLStubber) SetRosetta(mc *vmconfigs.MachineConfig) (bool, error) {
+	return false, nil
 }
 
 func (w WSLStubber) GetRosetta(mc *vmconfigs.MachineConfig) (bool, error) {

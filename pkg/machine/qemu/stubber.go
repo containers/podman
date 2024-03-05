@@ -361,8 +361,8 @@ func (q *QEMUStubber) GetDisk(userInputPath string, dirs *define.MachineDirs, mc
 	return diskpull.GetDisk(userInputPath, dirs, mc.ImagePath, q.VMType(), mc.Name)
 }
 
-func (q *QEMUStubber) SetRosetta(mc *vmconfigs.MachineConfig) error {
-	return nil
+func (q *QEMUStubber) SetRosetta(mc *vmconfigs.MachineConfig) (bool, error) {
+	return false, nil
 }
 
 func (q *QEMUStubber) GetRosetta(mc *vmconfigs.MachineConfig) (bool, error) {
