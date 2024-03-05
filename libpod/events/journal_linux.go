@@ -43,8 +43,8 @@ func (e EventJournalD) Write(ee Event) error {
 	case Image:
 		m["PODMAN_NAME"] = ee.Name
 		m["PODMAN_ID"] = ee.ID
-		if ee.Error != nil {
-			m["ERROR"] = ee.Error.Error()
+		if ee.Error != "" {
+			m["ERROR"] = ee.Error
 		}
 	case Container, Pod:
 		m["PODMAN_IMAGE"] = ee.Image
@@ -231,8 +231,8 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {
 		newEvent.Network = entry.Fields["PODMAN_NETWORK_NAME"]
 	case Image:
 		newEvent.ID = entry.Fields["PODMAN_ID"]
-		if _, ok := entry.Fields["ERROR"]; ok {
-			newEvent.Error = errors.New(entry.Fields["ERROR"])
+		if val, ok := entry.Fields["ERROR"]; ok {
+			newEvent.Error = val
 		}
 	}
 	return &newEvent, nil

@@ -71,6 +71,8 @@ type Event struct {
 	Type events.Type
 	// Health status of the current container
 	HealthStatus string `json:"health_status,omitempty"`
+	// Error code for certain events involving errors.
+	Error string `json:",omitempty"`
 
 	events.Details
 }
@@ -88,6 +90,7 @@ func newEventFromLibpodEvent(e *events.Event) Event {
 		HealthStatus:      e.HealthStatus,
 		Details:           e.Details,
 		TimeNano:          e.Time.UnixNano(),
+		Error:             e.Error,
 	}
 }
 

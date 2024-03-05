@@ -737,6 +737,9 @@ func (r *Runtime) libimageEvents() {
 					Time:   libimageEvent.Time,
 					Type:   events.Image,
 				}
+				if libimageEvent.Error != nil {
+					e.Error = libimageEvent.Error.Error()
+				}
 				if err := r.eventer.Write(e); err != nil {
 					logrus.Errorf("Unable to write image event: %q", err)
 				}

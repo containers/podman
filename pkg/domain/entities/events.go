@@ -33,11 +33,13 @@ func ConvertToLibpodEvent(e Event) *libpodEvents.Event {
 	name := e.Actor.Attributes["name"]
 	network := e.Actor.Attributes["network"]
 	podID := e.Actor.Attributes["podId"]
+	errorString := e.Actor.Attributes["error"]
 	details := e.Actor.Attributes
 	delete(details, "image")
 	delete(details, "name")
 	delete(details, "network")
 	delete(details, "podId")
+	delete(details, "error")
 	delete(details, "containerExitCode")
 	return &libpodEvents.Event{
 		ContainerExitCode: &exitCode,
@@ -49,6 +51,7 @@ func ConvertToLibpodEvent(e Event) *libpodEvents.Event {
 		Time:              time.Unix(0, e.TimeNano),
 		Type:              t,
 		HealthStatus:      e.HealthStatus,
+		Error:             errorString,
 		Details: libpodEvents.Details{
 			PodID:      podID,
 			Attributes: details,
@@ -70,6 +73,9 @@ func ConvertToEntitiesEvent(e libpodEvents.Event) *types.Event {
 	attributes["podId"] = e.PodID
 	if e.Network != "" {
 		attributes["network"] = e.Network
+	}
+	if e.Error != "" {
+		attributes["error"] = e.Error
 	}
 	message := dockerEvents.Message{
 		// Compatibility with clients that still look for deprecated API elements

@@ -61,6 +61,7 @@ The *image* event type reports the following statuses:
  * loadFromArchive,
  * mount
  * pull
+ * pull-error
  * push
  * remove
  * save
@@ -104,21 +105,22 @@ In the case where an ID is used, the ID may be in its full or shortened form.  T
 
 Format the output to JSON Lines or using the given Go template.
 
-| **Placeholder**         | **Description**                                   |
-|-------------------------|----------------------------------------------- ---|
-| .Attributes ...         | created_at, _by, labels, and more (map[])         |
-| .ContainerExitCode      | Exit code (int)                                   |
-| .ContainerInspectData   | Payload of the container's inspect                |
-| .HealthStatus           | Health Status (string)                            |
-| .ID                     | Container ID (full 64-bit SHA)                    |
-| .Image                  | Name of image being run (string)                  |
-| .Name                   | Container name (string)                           |
-| .Network                | Name of network being used (string)               |
-| .PodID                  | ID of pod associated with container, if any       |
-| .Status                 | Event status (e.g., create, start, died, ...)     |
-| .Time                   | Event timestamp (string)                          |
-| .TimeNano               | Event timestamp with nanosecond precision (int64) |
-| .Type                   | Event type (e.g., image, container, pod, ...)     |
+| **Placeholder**       | **Description**                                                      |
+| --------------------- | -------------------------------------------------------------------- |
+| .Attributes ...       | created_at, _by, labels, and more (map[])                            |
+| .ContainerExitCode    | Exit code (int)                                                      |
+| .ContainerInspectData | Payload of the container's inspect                                   |
+| .Error                | Error message in case the event status is an error (e.g. pull-error) |
+| .HealthStatus         | Health Status (string)                                               |
+| .ID                   | Container ID (full 64-bit SHA)                                       |
+| .Image                | Name of image being run (string)                                     |
+| .Name                 | Container name (string)                                              |
+| .Network              | Name of network being used (string)                                  |
+| .PodID                | ID of pod associated with container, if any                          |
+| .Status               | Event status (e.g., create, start, died, ...)                        |
+| .Time                 | Event timestamp (string)                                             |
+| .TimeNano             | Event timestamp with nanosecond precision (int64)                    |
+| .Type                 | Event type (e.g., image, container, pod, ...)                        |
 
 #### **--help**
 

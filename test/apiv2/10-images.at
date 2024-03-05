@@ -343,4 +343,14 @@ t GET libpod/images/no-alias-for-sure/resolve 200 \
 t GET libpod/images/noCAPITALcharAllowed/resolve 400 \
   .cause="repository name must be lowercase"
 
+
+START=$(date +%s.%N)
+# test pull-error API response
+podman pull --retry 0 localhost:5000/idonotexist || true
+t GET "libpod/events?stream=false&since=$START"  200  \
+  .status=pull-error \
+  .Action=pull-error \
+  .Actor.Attributes.name="localhost:5000/idonotexist" \
+  .Actor.Attributes.error~".*connection refused"
+
 # vim: filetype=sh
