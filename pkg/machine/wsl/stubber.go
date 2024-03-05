@@ -110,7 +110,7 @@ func (w WSLStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() error,
 		if err := runCmdPassThrough(wutil.FindWSL(), "--unregister", machine.ToDist(mc.Name)); err != nil {
 			logrus.Error(err)
 		}
-		return machine.ReleaseMachinePort(mc.SSH.Port)
+		return nil
 	}
 
 	return []string{}, wslRemoveFunc, nil
@@ -204,15 +204,6 @@ func (w WSLStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo bool
 func (w WSLStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func() error, error) {
 	dist := machine.ToDist(mc.Name)
 
-	// TODO The original code checked to see if the SSH port was actually open and re-assigned if it was
-	// we could consider this but it should be higher up the stack
-	// if !machine.IsLocalPortAvailable(v.Port) {
-	// logrus.Warnf("SSH port conflict detected, reassigning a new port")
-	//	if err := v.reassignSshPort(); err != nil {
-	//		return err
-	//	}
-	// }
-
 	err := wslInvoke(dist, "/root/bootstrap")
 	if err != nil {
 		err = fmt.Errorf("the WSL bootstrap script failed: %w", err)
@@ -276,6 +267,16 @@ func (w WSLStubber) StopVM(mc *vmconfigs.MachineConfig, hardStop bool) error {
 
 func (w WSLStubber) StopHostNetworking(mc *vmconfigs.MachineConfig, vmType define.VMType) error {
 	return stopUserModeNetworking(mc)
+}
+
+func (w WSLStubber) UpdateSSHPort(mc *vmconfigs.MachineConfig, port int) error {
+	dist := machine.ToDist(mc.Name)
+
+	if err := wslInvoke(dist, "sh", "-c", fmt.Sprintf(changePort, port)); err != nil {
+		return fmt.Errorf("could not change SSH port for guest OS: %w", err)
+	}
+
+	return nil
 }
 
 func (w WSLStubber) VMType() define.VMType {

@@ -1,4 +1,4 @@
-package machine
+package env
 
 import (
 	"github.com/containers/podman/v5/pkg/rootless"

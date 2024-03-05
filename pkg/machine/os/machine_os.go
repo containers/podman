@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/containers/podman/v5/pkg/machine"
+	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/shim"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 )
@@ -27,7 +28,7 @@ func (m *MachineOS) Apply(image string, opts ApplyOptions) error {
 		return err
 	}
 
-	dirs, err := machine.GetMachineDirs(m.Provider.VMType())
+	dirs, err := env.GetMachineDirs(m.Provider.VMType())
 	if err != nil {
 		return err
 	}

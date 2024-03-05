@@ -96,6 +96,7 @@ type VMProvider interface { //nolint:interfacebloat
 	UserModeNetworkEnabled(mc *MachineConfig) bool
 	UseProviderNetworkSetup() bool
 	RequireExclusiveActive() bool
+	UpdateSSHPort(mc *MachineConfig, port int) error
 }
 
 // HostUser describes the host user

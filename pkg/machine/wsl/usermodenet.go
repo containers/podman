@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/containers/podman/v5/pkg/machine"
+	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v5/pkg/machine/wsl/wutil"
 	"github.com/containers/podman/v5/pkg/specgen"
@@ -226,7 +227,7 @@ func createUserModeResolvConf(dist string) error {
 }
 
 func getUserModeNetDir() (string, error) {
-	vmDataDir, err := machine.GetDataDir(vmtype)
+	vmDataDir, err := env.GetDataDir(vmtype)
 	if err != nil {
 		return "", err
 	}

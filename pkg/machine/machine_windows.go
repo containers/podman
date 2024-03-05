@@ -17,6 +17,7 @@ import (
 
 	winio "github.com/Microsoft/go-winio"
 	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/sirupsen/logrus"
 )
 
@@ -250,7 +251,7 @@ func FindExecutablePeer(name string) (string, error) {
 }
 
 func GetWinProxyStateDir(name string, vmtype define.VMType) (string, error) {
-	dir, err := GetDataDir(vmtype)
+	dir, err := env.GetDataDir(vmtype)
 	if err != nil {
 		return "", err
 	}

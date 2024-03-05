@@ -1,4 +1,4 @@
-//go:build !darwin
+//go:build linux || freebsd
 
 package qemu
 
@@ -349,6 +349,11 @@ func (q *QEMUStubber) MountType() vmconfigs.VolumeMountType {
 }
 
 func (q *QEMUStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo bool) error {
+	return nil
+}
+
+func (q *QEMUStubber) UpdateSSHPort(mc *vmconfigs.MachineConfig, port int) error {
+	// managed by gvproxy on this backend, so nothing to do
 	return nil
 }
 

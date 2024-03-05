@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/connection"
 	machineDefine "github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
 	"github.com/containers/podman/v5/pkg/machine/proxyenv"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
@@ -29,7 +30,7 @@ func List(vmstubbers []vmconfigs.VMProvider, _ machine.ListOptions) ([]*machine.
 	)
 
 	for _, s := range vmstubbers {
-		dirs, err := machine.GetMachineDirs(s.VMType())
+		dirs, err := env.GetMachineDirs(s.VMType())
 		if err != nil {
 			return nil, err
 		}
@@ -76,12 +77,12 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 	defer callbackFuncs.CleanIfErr(&err)
 	go callbackFuncs.CleanOnSignal()
 
-	dirs, err := machine.GetMachineDirs(mp.VMType())
+	dirs, err := env.GetMachineDirs(mp.VMType())
 	if err != nil {
 		return nil, err
 	}
 
-	sshIdentityPath, err := machine.GetSSHIdentityPath(machineDefine.DefaultIdentityName)
+	sshIdentityPath, err := env.GetSSHIdentityPath(machineDefine.DefaultIdentityName)
 	if err != nil {
 		return nil, err
 	}
@@ -288,7 +289,7 @@ func CheckExclusiveActiveVM(provider vmconfigs.VMProvider, mc *vmconfigs.Machine
 func getMCsOverProviders(vmstubbers []vmconfigs.VMProvider) (map[string]*vmconfigs.MachineConfig, error) {
 	mcs := make(map[string]*vmconfigs.MachineConfig)
 	for _, stubber := range vmstubbers {
-		dirs, err := machine.GetMachineDirs(stubber.VMType())
+		dirs, err := env.GetMachineDirs(stubber.VMType())
 		if err != nil {
 			return nil, err
 		}

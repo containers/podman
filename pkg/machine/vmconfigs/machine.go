@@ -15,7 +15,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/connection"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/lock"
-	"github.com/containers/podman/v5/utils"
+	"github.com/containers/podman/v5/pkg/machine/ports"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/sirupsen/logrus"
 )
@@ -78,8 +78,7 @@ func NewMachineConfig(opts define.InitOptions, dirs *define.MachineDirs, sshIden
 	}
 	mc.Resources = mrc
 
-	// TODO WSL had a locking port mechanism, we should consider this.
-	sshPort, err := utils.GetRandomPort()
+	sshPort, err := ports.AllocateMachinePort()
 	if err != nil {
 		return nil, err
 	}
@@ -204,6 +203,11 @@ func (mc *MachineConfig) Remove(saveIgnition, saveImage bool) ([]string, func() 
 		if err := mc.configPath.Delete(); err != nil {
 			errs = append(errs, err)
 		}
+
+		if err := ports.ReleaseMachinePort(mc.SSH.Port); err != nil {
+			errs = append(errs, err)
+		}
+
 		return errorhandling.JoinErrors(errs)
 	}
 
