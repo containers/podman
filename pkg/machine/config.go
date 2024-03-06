@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/pkg/strongunits"
 	"github.com/containers/podman/v5/pkg/machine/compression"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/env"
@@ -56,8 +57,8 @@ type ListResponse struct {
 	Stream             string
 	VMType             string
 	CPUs               uint64
-	Memory             uint64
-	DiskSize           uint64
+	Memory             strongunits.MiB
+	DiskSize           strongunits.GiB
 	Port               int
 	RemoteUsername     string
 	IdentityPath       string

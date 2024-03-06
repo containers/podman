@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/pkg/strongunits"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/connection"
 	machineDefine "github.com/containers/podman/v5/pkg/machine/define"
@@ -52,8 +53,8 @@ func List(vmstubbers []vmconfigs.VMProvider, _ machine.ListOptions) ([]*machine.
 				//Stream:             "", // No longer applicable
 				VMType:             s.VMType().String(),
 				CPUs:               mc.Resources.CPUs,
-				Memory:             mc.Resources.Memory,
-				DiskSize:           mc.Resources.DiskSize,
+				Memory:             strongunits.MiB(mc.Resources.Memory),
+				DiskSize:           strongunits.GiB(mc.Resources.DiskSize),
 				Port:               mc.SSH.Port,
 				RemoteUsername:     mc.SSH.RemoteUsername,
 				IdentityPath:       mc.SSH.IdentityPath,
