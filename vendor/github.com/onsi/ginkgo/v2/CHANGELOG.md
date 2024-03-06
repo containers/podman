@@ -1,3 +1,22 @@
+## 2.16.0
+
+### Features
+- add SpecContext to reporting nodes
+
+### Fixes
+- merge coverages instead of combining them (#1329) (#1340) [23f0cc5]
+- core_dsl: disable Getwd() with environment variable (#1357) [cd418b7]
+
+### Maintenance
+- docs/index.md: Typo [2cebe8d]
+- fix docs [06de431]
+- chore: test with Go 1.22 (#1352) [898cba9]
+- Bump golang.org/x/tools from 0.16.1 to 0.17.0 (#1336) [17ae120]
+- Bump golang.org/x/sys from 0.15.0 to 0.16.0 (#1327) [5a179ed]
+- Bump github.com/go-logr/logr from 1.3.0 to 1.4.1 (#1321) [a1e6b69]
+- Bump github-pages and jekyll-feed in /docs (#1351) [d52951d]
+- Fix docs for handling failures in goroutines (#1339) [4471b2e]
+
 ## 2.15.0
 
 ### Features
