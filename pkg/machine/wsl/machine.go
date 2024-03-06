@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/strongunits"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/env"
@@ -702,7 +703,7 @@ func isRunning(name string) (bool, error) {
 }
 
 //nolint:unused
-func getDiskSize(name string) uint64 {
+func getDiskSize(name string) strongunits.GiB {
 	vmDataDir, err := env.GetDataDir(vmtype)
 	if err != nil {
 		return 0
@@ -713,7 +714,7 @@ func getDiskSize(name string) uint64 {
 	if err != nil {
 		return 0
 	}
-	return uint64(info.Size())
+	return strongunits.ToGiB(strongunits.B(info.Size()))
 }
 
 //nolint:unused
@@ -742,7 +743,7 @@ func getCPUs(name string) (uint64, error) {
 }
 
 //nolint:unused
-func getMem(name string) (uint64, error) {
+func getMem(name string) (strongunits.MiB, error) {
 	dist := machine.ToDist(name)
 	if run, _ := isWSLRunning(dist); !run {
 		return 0, nil
@@ -761,13 +762,14 @@ func getMem(name string) (uint64, error) {
 		t, a             int
 	)
 	for scanner.Scan() {
+		// fields are in kB so div to mb
 		fields := strings.Fields(scanner.Text())
 		if strings.HasPrefix(fields[0], "MemTotal") && len(fields) >= 2 {
 			t, err = strconv.Atoi(fields[1])
-			total = uint64(t) * 1024
+			total = uint64(t) / 1024
 		} else if strings.HasPrefix(fields[0], "MemAvailable") && len(fields) >= 2 {
 			a, err = strconv.Atoi(fields[1])
-			available = uint64(a) * 1024
+			available = uint64(a) / 1024
 		}
 		if err != nil {
 			break
@@ -775,7 +777,7 @@ func getMem(name string) (uint64, error) {
 	}
 	_ = cmd.Wait()
 
-	return total - available, err
+	return strongunits.MiB(total - available), err
 }
 
 //nolint:unused

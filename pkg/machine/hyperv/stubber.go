@@ -53,8 +53,8 @@ func (h HyperVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineC
 	hwConfig := hypervctl.HardwareConfig{
 		CPUs:     uint16(mc.Resources.CPUs),
 		DiskPath: mc.ImagePath.GetPath(),
-		DiskSize: mc.Resources.DiskSize,
-		Memory:   mc.Resources.Memory,
+		DiskSize: uint64(mc.Resources.DiskSize),
+		Memory:   uint64(mc.Resources.Memory),
 	}
 
 	networkHVSock, err := vsock.NewHVSockRegistryEntry(mc.Name, vsock.Network)
@@ -120,7 +120,7 @@ func (h HyperVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineC
 	}
 
 	callbackFuncs.Add(vmRemoveCallback)
-	err = resizeDisk(strongunits.GiB(mc.Resources.DiskSize), mc.ImagePath)
+	err = resizeDisk(mc.Resources.DiskSize, mc.ImagePath)
 	return err
 }
 
@@ -337,9 +337,10 @@ func (h HyperVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define
 		}, func(ms *hypervctl.MemorySettings) {
 			if memoryChanged {
 				ms.DynamicMemoryEnabled = false
-				ms.VirtualQuantity = *opts.Memory
-				ms.Limit = *opts.Memory
-				ms.Reservation = *opts.Memory
+				mem := uint64(*opts.Memory)
+				ms.VirtualQuantity = mem
+				ms.Limit = mem
+				ms.Reservation = mem
 			}
 		})
 		if err != nil {

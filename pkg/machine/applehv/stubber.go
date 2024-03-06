@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/common/pkg/strongunits"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/applehv/vfkit"
@@ -55,7 +54,7 @@ func (a AppleHVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.Machine
 	mc.AppleHypervisor = new(vmconfigs.AppleHVConfig)
 	mc.AppleHypervisor.Vfkit = vfkit.VfkitHelper{}
 	bl := vfConfig.NewEFIBootloader(fmt.Sprintf("%s/efi-bl-%s", opts.Dirs.DataDir.GetPath(), opts.Name), true)
-	mc.AppleHypervisor.Vfkit.VirtualMachine = vfConfig.NewVirtualMachine(uint(mc.Resources.CPUs), mc.Resources.Memory, bl)
+	mc.AppleHypervisor.Vfkit.VirtualMachine = vfConfig.NewVirtualMachine(uint(mc.Resources.CPUs), uint64(mc.Resources.Memory), bl)
 
 	randPort, err := utils.GetRandomPort()
 	if err != nil {
@@ -71,7 +70,7 @@ func (a AppleHVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.Machine
 	// Populate the ignition file with virtiofs stuff
 	ignBuilder.WithUnit(generateSystemDFilesForVirtiofsMounts(virtiofsMounts)...)
 
-	return resizeDisk(mc, strongunits.GiB(mc.Resources.DiskSize))
+	return resizeDisk(mc, mc.Resources.DiskSize)
 }
 
 func (a AppleHVStubber) Exists(name string) (bool, error) {
@@ -164,7 +163,7 @@ func (a AppleHVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func
 
 	// create a one-time virtual machine for starting because we dont want all this information in the
 	// machineconfig if possible.  the preference was to derive this stuff
-	vm := vfConfig.NewVirtualMachine(uint(mc.Resources.CPUs), mc.Resources.Memory, mc.AppleHypervisor.Vfkit.VirtualMachine.Bootloader)
+	vm := vfConfig.NewVirtualMachine(uint(mc.Resources.CPUs), uint64(mc.Resources.Memory), mc.AppleHypervisor.Vfkit.VirtualMachine.Bootloader)
 
 	defaultDevices, readySocket, err := getDefaultDevices(mc)
 	if err != nil {

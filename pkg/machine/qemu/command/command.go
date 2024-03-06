@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/containers/common/pkg/strongunits"
 	"github.com/containers/podman/v5/pkg/machine/define"
 )
 
@@ -32,8 +33,9 @@ func NewQemuBuilder(binary string, options []string) QemuCmd {
 }
 
 // SetMemory adds the specified amount of memory for the machine
-func (q *QemuCmd) SetMemory(m uint64) {
-	*q = append(*q, "-m", strconv.FormatUint(m, 10))
+func (q *QemuCmd) SetMemory(m strongunits.MiB) {
+	// qemu accepts the memory in MiB
+	*q = append(*q, "-m", strconv.FormatUint(uint64(m), 10))
 }
 
 // SetCPUs adds the number of CPUs the machine will have

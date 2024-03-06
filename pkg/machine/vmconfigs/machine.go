@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/pkg/strongunits"
 	define2 "github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/containers/podman/v5/pkg/machine/connection"
@@ -72,8 +73,8 @@ func NewMachineConfig(opts define.InitOptions, dirs *define.MachineDirs, sshIden
 	// System Resources
 	mrc := ResourceConfig{
 		CPUs:     opts.CPUS,
-		DiskSize: opts.DiskSize,
-		Memory:   opts.Memory,
+		DiskSize: strongunits.GiB(opts.DiskSize),
+		Memory:   strongunits.MiB(opts.Memory),
 		USBs:     usbs,
 	}
 	mc.Resources = mrc

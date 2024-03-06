@@ -117,15 +117,16 @@ func setMachine(cmd *cobra.Command, args []string) error {
 		setOpts.CPUs = &mc.Resources.CPUs
 	}
 	if cmd.Flags().Changed("memory") {
-		mc.Resources.Memory = setFlags.Memory
+		mc.Resources.Memory = strongunits.MiB(setFlags.Memory)
 		setOpts.Memory = &mc.Resources.Memory
 	}
 	if cmd.Flags().Changed("disk-size") {
-		if setFlags.DiskSize <= mc.Resources.DiskSize {
+		newDiskSizeGB := strongunits.GiB(setFlags.DiskSize)
+		if newDiskSizeGB <= mc.Resources.DiskSize {
 			return fmt.Errorf("new disk size must be larger than %d GB", mc.Resources.DiskSize)
 		}
-		mc.Resources.DiskSize = setFlags.DiskSize
-		newDiskSizeGB := strongunits.GiB(setFlags.DiskSize)
+		mc.Resources.DiskSize = newDiskSizeGB
+
 		setOpts.DiskSize = &newDiskSizeGB
 	}
 	if cmd.Flags().Changed("user-mode-networking") {

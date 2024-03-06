@@ -94,7 +94,7 @@ var _ = Describe("podman machine init", func() {
 		Expect(testMachine.Name).To(Equal(mb.names[0]))
 		if testProvider.VMType() != define.WSLVirt { // WSL hardware specs are hardcoded
 			Expect(testMachine.Resources.CPUs).To(Equal(uint64(cpus)))
-			Expect(testMachine.Resources.Memory).To(Equal(uint64(2048)))
+			Expect(testMachine.Resources.Memory).To(BeEquivalentTo(uint64(2048)))
 		}
 	})
 
@@ -150,7 +150,7 @@ var _ = Describe("podman machine init", func() {
 		Expect(testMachine.Name).To(Equal(mb.names[0]))
 		if testProvider.VMType() != define.WSLVirt { // memory and cpus something we cannot set with WSL
 			Expect(testMachine.Resources.CPUs).To(Equal(uint64(cpus)))
-			Expect(testMachine.Resources.Memory).To(Equal(uint64(2048)))
+			Expect(testMachine.Resources.Memory).To(BeEquivalentTo(uint64(2048)))
 		}
 		Expect(testMachine.SSHConfig.RemoteUsername).To(Equal(remoteUsername))
 
