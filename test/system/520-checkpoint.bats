@@ -67,13 +67,19 @@ function teardown() {
     is "$output" "running:true:false:false" \
        "State. Status:Running:Pause:Checkpointed"
 
-    # Pause briefly to let restarted container emit some output
-    sleep 0.3
-
-    # Get full logs, and make sure something changed
-    run_podman logs $cid
-    local nlines_after="${#lines[*]}"
-    assert $nlines_after -gt $nlines_before \
+    # Re-fetch logs, and ensure that they continue growing.
+    # Allow a short while for container process to actually restart.
+    local retries=10
+    while [[ $retries -gt 0 ]]; do
+        run_podman logs $cid
+        local nlines_after="${#lines[*]}"
+        if [[ $nlines_after -gt $nlines_before ]]; then
+            break
+        fi
+        sleep 0.1
+        retries=$((retries - 1))
+    done
+    assert "$retries" -gt 0 \
            "Container failed to output new lines after first restore"
 
     # Same thing again: test for https://github.com/containers/crun/issues/756
@@ -83,12 +89,18 @@ function teardown() {
     nlines_before="${#lines[*]}"
     run_podman container restore $cid
 
-    # Give container time to write new output; then confirm that something
-    # was emitted
-    sleep 0.3
-    run_podman container logs $cid
-    nlines_after="${#lines[*]}"
-    assert $nlines_after -gt $nlines_before \
+    # Same as above, confirm that we get new output
+    retries=10
+    while [[ $retries -gt 0 ]]; do
+        run_podman logs $cid
+        local nlines_after="${#lines[*]}"
+        if [[ $nlines_after -gt $nlines_before ]]; then
+            break
+        fi
+        sleep 0.1
+        retries=$((retries - 1))
+    done
+    assert "$retries" -gt 0 \
            "stdout went away after second restore (crun issue 756)"
 
     run_podman rm -t 0 -f $cid

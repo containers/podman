@@ -769,9 +769,16 @@ EOF
     CONTAINERS_CONF_OVERRIDE="$containersConf" run_podman kube play $YAML
     run_podman container inspect --format '{{ .Config.Umask }}' $ctrInPod
     is "${output}" "0472"
-    # Confirm that umask actually takes effect
-    run_podman logs $ctrInPod
-    is "$output" "204" "stat() on created file"
+    # Confirm that umask actually takes effect. Might take a second or so.
+    local retries=10
+    while [[ $retries -gt 0 ]]; do
+        run_podman logs $ctrInPod
+        test -n "$output" && break
+        sleep 0.1
+        retries=$((retries - 1))
+    done
+    assert "$retries" -gt 0 "Timed out waiting for container output"
+    assert "$output" = "204" "stat() on created file"
 
     run_podman kube down $YAML
     run_podman pod rm -a
