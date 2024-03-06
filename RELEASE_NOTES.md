@@ -1,5 +1,102 @@
 # Release Notes
 
+## 5.0.0
+### Features
+- VMs created by `podman machine` can now use the native Apple hypervisor (`applehv`) when run on MacOS.
+- A new command has been added, `podman machine reset`, which will remove all existing `podman machine` VMs and relevant configurations.
+- The `podman manifest add` command now supports a new `--artifact` option to add OCI artifacts to a manifest list.
+- The `podman create`, `podman run`, and `podman push` commands now support the `--retry` and `--retry-delay` options to configure retries for pushing and pulling images.
+- The `podman run` and `podman exec` commands now support a new option, `--preserve-fd`, which allows passing a list of file descriptors into the container (as an alternative to `--preserve-fds`, which passes a specific number of file descriptors).
+- Quadlet now supports templated units ([#17744](https://github.com/containers/podman/discussions/17744)).
+- The `podman kube play` command can now create image-based volumes using the `volume.podman.io/image` annotation.
+- Containers created with `podman kube play` can now include volumes from other containers (similar to the `--volumes-from` option) using a new annotation, `io.podman.annotations.volumes-from` ([#16819](https://github.com/containers/podman/issues/16819)).
+- Pods created with `podman kube play` can now set user namespace options through the the `io.podman.annotations.userns` annotation in the pod definition ([#20658](https://github.com/containers/podman/issues/20658)).
+- Macvlan and ipvlan networks can adjust the name of the network interface created inside containers via the new `containers.conf` field `interface_name` ([#21313](https://github.com/containers/podman/issues/21313)).
+- The `--gpus` option to `podman create` and `podman run` is now compatible with Nvidia GPUs ([#21156](https://github.com/containers/podman/issues/21156)).
+- The `--mount` option to `podman create` and `podman run` supports a new mount option, `no-dereference`, to mount a symlink (instead of its dereferenced target) into a container ([#20098](https://github.com/containers/podman/issues/20098)).
+- Podman now supports a new global option, `--config`, to point to a Docker configuration where we can source registry login credentials.
+- The `podman ps --format` command now supports a new format specifier, `.Label` ([#20957](https://github.com/containers/podman/issues/20957)).
+- The `uidmapping` and `gidmapping` options to the `podman run --userns=auto` option can now map to host IDs by prefixing host IDs with the `@` symbol.
+- Quadlet now supports systemd-style drop-in directories.
+- Quadlet now supports creating pods via new `.pod` unit files ([#17687](https://github.com/containers/podman/discussions/17687)).
+- Quadlet now supports two new keys, `Entrypoint` and `StopTimeout`, in `.container` files ([#20585](https://github.com/containers/podman/issues/20585) and [#21134](https://github.com/containers/podman/issues/21134)).
+- Quadlet now supports specifying the `Ulimit` key multiple times in `.container` files to set more than one ulimit on a container.
+- Quadlet now supports setting the `Notify` key to `healthy` in `.container` files, to only sdnotify that a container has started when its health check begins passing ([#18189](https://github.com/containers/podman/issues/18189)).
+
+### Breaking Changes
+- The backend for the `podman machine` commands has seen extensive rewrites. Configuration files have changed format and VMs from Podman 4.x and earlier are no longer usable. `podman machine` VMs must be recreated with Podman 5.
+- The `podman machine init` command now pulls images as OCI artifacts, instead of using HTTP. As a result, a valid `policy.json` file is required on the host. Windows and Mac installers have been changed to install this file.
+- QEMU is no longer a supported VM provider for `podman machine` on Mac. Instead, the native Apple hypervisor is supported.
+- The `ConfigPath` and `Image` fields are no longer provided by the `podman machine inspect` command. Users can also no longer use `{{ .ConfigPath }}` or `{{ .Image }}` as arguments to `podman machine inspect --format`.
+- The output of `podman inspect` for containers has seen a number of breaking changes to improve Docker compatibility, including changing `Entrypoint` from a string to an array of strings and StopSignal from an int to a string.
+- The `podman inspect` command for containers now returns nil for healthchecks when inspecting containers without healthchecks.
+- The `podman pod inspect` command now outputs a JSON array regardless of the number of pods inspected (previously, inspecting a single pod would omit the array).
+- It is no longer possible to create new BoltDB databases; attempting to do so will result in an error. All new Podman installations will now use the SQLite database backend. Existing BoltDB databases remain usable.
+- Support for CNI networking has been gated by a build tag and will not be enabled by default.
+- Podman will now print warnings when used on cgroups v1 systems. Support for cgroups v1 is deprecated and will be removed in a future release. The `PODMAN_CGROUPSV1_WARNING` environment variable can be set to suppress warnings.
+- Network statistics sent over the Docker API are now per-interface, and not aggregated, improving Docker compatibility.
+- The default tool for rootless networking has been swapped from `slirp4netns` to `pasta` for improved performance. As a result, networks named `pasta` are no longer supported.
+- The `--image` option replaces the now deprecated `--image-path` option for `podman machine init`.
+- The output of `podman events --format "{{json .}}"` has been changed to improve Docker compatibility, including the `time` and `timeNano` fields ([#14993](https://github.com/containers/podman/issues/14993)).
+- The name of `podman machine` VMs and the username used within the VM are now validated and must match this regex: `[a-zA-Z0-9][a-zA-Z0-9_.-]*`.
+- Using multiple filters with the List Images REST API now combines the filters with AND instead of OR, improving Docker compatibility ([#18412](https://github.com/containers/podman/issues/18412)).
+- The parsing for a number of Podman CLI options which accept arrays has been changed to no longer accept string-delineated lists, and instead to require the option to be passed multiple times. These options are `--annotation` to `podman manifest annotate` and `podman manifest add`, the `--configmap`, `--log-opt`, and `--annotation` options to `podman kube play`, the `--pubkeysfile` option to `podman image trust set`, the `--encryption-key` and `--decryption-key` options to `podman create`, `podman run`, `podman push` and `podman pull`, the `--env-file` option to `podman exec`, the `--bkio-weight-device`, `--device-read-bps`, `--device-write-bps` `--device-read-iops`, `--device-write-iops`, `--device`, `--label-file`, `--chrootdirs`, `--log-opt`, and `--env-file` options to `podman create` and `podman run`, and the `--hooks-dir` and `--module` global options.
+
+### Changes
+- The `podman system reset` command no longer waits for running containers to gracefully stop, and instead immediately sends SIGKILL ([#21874](https://github.com/containers/podman/issues/21874)).
+- The `podman network inspect` command now includes running containers using the network in its output ([#14126](https://github.com/containers/podman/issues/14126)).
+- The `podman compose` command is now supported on non-AMD64/ARM64 architectures.
+- VMs created by `podman machine` will now pass HTTP proxy environment variables into the VM for all providers.
+- The `--no-trunc` option to the `podman kube play` and `podman kube generate` commands has been deprecated. Podman now complies to the Kubernetes specification for annotation size, removing the need for this option.
+- The `DOCKER_HOST` environment variable will be set by default for rootless users when podman-docker is installed.
+- Connections from `podman system connection` and farms from `podman farm` are now written to a new configuration file called `podman-connections.conf`. As a result, Podman no longer writes to `containers.conf`. Existing connections from `containers.conf` will still be respected.
+- Most `podman farm` subcommands (save for `podman farm build`) no longer need to connect to the machines in the farm to run.
+- The `podman create` and `podman run` commands no longer require specifying an entrypoint on the command line when the container image does not define one. In this case, an empty command will be passed to the OCI runtime, and the resulting behavior is runtime-specific.
+- The default SELinux label for content mounted from the host in `podman machine` VMs on Mac is now `system_u:object_r:nfs_t:s0` so that it can be shared with all containers without issue.
+- Newly-created VMs created by `podman machine` will now share a single SSH key key for access. As a result, `podman machine rm --save-keys` is deprecated as the key will persist by default.
+
+### Bugfixes
+- Fixed a bug where the `podman stats` command would not show network statistics when the `pasta` network mode was used.
+- Fixed a bug where `podman machine` VMs using the HyperV provider could not mount shares on directories that did not yet exist.
+- Fixed a bug where the `podman compose` command did not respect the `--connection` and `--url` options.
+- Fixed a bug where the `podman stop -t -1` command would wait for 0 seconds, not infinite seconds, before sending SIGKILL ([#21811](https://github.com/containers/podman/issues/21811)).
+- Fixed a bug where Podman could deadlock when cleaning up a container when the `slirp4netns` network mode was used with a restart policy of `always` or `unless-stopped` or `on-failure` and a user namespace ([#21477](https://github.com/containers/podman/issues/21477)).
+- Fixed a bug where uninstalling Podman on Mac did not remove the `docker.sock` symlink ([#20650](https://github.com/containers/podman/issues/20650)).
+- Fixed a bug where preexisting volumes being mounted into a new container using a path that exists in said container would not be properly chowned ([#21608](https://github.com/containers/podman/issues/21608)).
+- Fixed a bug where the `podman image scp` command could fail if there was not sufficient space in the destination machine's `/tmp` for the image ([#21239](https://github.com/containers/podman/issues/21239)).
+- Fixed a bug where containers killed by running out of memory (including due to a memory limit) were not properly marked as OOM killed in `podman inspect` ([#13102](https://github.com/containers/podman/issues/13102)).
+- Fixed a bug where `podman kube play` did not create memory-backed emptyDir volumes using a tmpfs filesystem.
+- Fixed a bug where containers started with `--rm` were sometimes not removed after a reboot ([#21482](https://github.com/containers/podman/issues/21482)).
+- Fixed a bug where the `podman events` command using the remote Podman client did not display the network name associated with network events ([#21311](https://github.com/containers/podman/issues/21311)).
+- Fixed a bug where the `podman farm build` did not properly handle the `--tls-verify` option and would override server defaults even if the option was not set by the user ([#21352](https://github.com/containers/podman/issues/21352)).
+- Fixed a bug where the `podman inspect` command could segfault on FreeBSD ([#21117](https://github.com/containers/podman/issues/21117)).
+- Fixed a bug where Quadlet did not properly handle comment lines ending with a backslash ([#21555](https://github.com/containers/podman/issues/21555)).
+- Fixed a bug where Quadlet would sometimes not report errors when malformed quadlet files were present.
+- Fixed a bug where Quadlet could hang when given a `.container` file with certain types of trailing whitespace ([#21109](https://github.com/containers/podman/issues/21109)).
+- Fixed a bug where Quadlet could panic when generating from Kubernetes YAML containing the `bind-mount-options` key ([#21080](https://github.com/containers/podman/issues/21080)).
+- Fixed a bug where Quadlet did not properly strip quoting from values in `.container` files ([#20992](https://github.com/containers/podman/issues/20992)).
+- Fixed a bug where the `--publish-all` option to `podman kube play` did not function when used with the remote Podman client.
+- Fixed a bug where the `podman kube play --build` command could not build images whose Dockerfile specified an image from a private registry with a self-signed certificate in a `FROM` directive ([#20890](https://github.com/containers/podman/discussions/20890)).
+- Fixed a bug where container remove events did not have the correct exit code set ([#19124](https://github.com/containers/podman/issues/19124)).
+
+### API
+- A new API endpoint, `/libpod/images/$name/resolve`, has been added to resolve a (potential) short name to a list of fully-qualified image references Podman which could be used to pull the image.
+- Fixed a bug where the List API for Images did not properly handle filters and would discard all but the last listed filter.
+- Fixed a bug in the Docker Create API for Containers where entries from `/etc/hosts` were copied into create containers, resulting in incompatibility with network aliases.
+- The API bindings have been refactored to reduce code size, leading to smaller binaries ([#17167](https://github.com/containers/podman/issues/17167)).
+
+### Misc
+- Failed image pulls will now generate an event including the error.
+- Updated Buildah to v1.35.0
+- Updated the containers/image library to v5.30.0
+- Updated the containers/storage library to v1.53.0
+- Updated the containers/common library to v0.58.0
+- Updated the libhvee library to v0.7.0
+
+## 4.9.3
+### Features
+- The `podman container commit` command now features a `--config` option which accepts a filename containing a JSON-encoded container configuration to be merged in to the newly-created image.
+
 ## 4.9.2
 ### Security
 - This release addresses a number of Buildkit vulnerabilities including but not limited to: [CVE-2024-23651](https://github.com/advisories/GHSA-m3r6-h7wv-7xxv), [CVE-2024-23652](https://github.com/advisories/GHSA-4v98-7qmw-rqr8), and [CVE-2024-23653](https://github.com/advisories/GHSA-wr6v-9f75-vh2g).
