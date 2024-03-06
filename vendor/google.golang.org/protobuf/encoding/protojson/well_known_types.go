@@ -322,6 +322,10 @@ func (d decoder) skipJSONValue() error {
 			if open > d.opts.RecursionLimit {
 				return errors.New("exceeded max recursion depth")
 			}
+		case json.EOF:
+			// This can only happen if there's a bug in Decoder.Read.
+			// Avoid an infinite loop if this does happen.
+			return errors.New("unexpected EOF")
 		}
 		if open == 0 {
 			return nil
