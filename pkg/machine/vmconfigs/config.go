@@ -3,6 +3,7 @@ package vmconfigs
 import (
 	"time"
 
+	"github.com/containers/common/pkg/strongunits"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
@@ -124,9 +125,9 @@ type ResourceConfig struct {
 	// CPUs to be assigned to the VM
 	CPUs uint64
 	// Disk size in gigabytes assigned to the vm
-	DiskSize uint64
+	DiskSize strongunits.GiB
 	// Memory in megabytes assigned to the vm
-	Memory uint64
+	Memory strongunits.MiB
 	// Usbs
 	USBs []define.USBConfig
 }

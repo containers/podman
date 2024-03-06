@@ -116,7 +116,7 @@ func (q *QEMUStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineCo
 
 	mc.QEMUHypervisor = &qemuConfig
 	mc.QEMUHypervisor.QEMUPidPath = qemuPidPath
-	return q.resizeDisk(strongunits.GiB(mc.Resources.DiskSize), mc.ImagePath)
+	return q.resizeDisk(mc.Resources.DiskSize, mc.ImagePath)
 }
 
 func runStartVMCommand(cmd *exec.Cmd) error {
