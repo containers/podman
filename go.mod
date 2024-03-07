@@ -48,7 +48,7 @@ require (
 	github.com/onsi/gomega v1.18.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.3-0.20220114050600-8b9d41f48198
-	github.com/opencontainers/runc v1.1.0
+	github.com/opencontainers/runc v1.1.2
 	github.com/opencontainers/runtime-spec v1.0.3-0.20211214071223-8958f93039ab
 	github.com/opencontainers/runtime-tools v0.9.1-0.20220110225228-7e2d60f1e41f
 	github.com/opencontainers/selinux v1.10.0
@@ -76,3 +76,6 @@ require (
 )
 
 replace github.com/onsi/gomega => github.com/onsi/gomega v1.16.0
+
+// See https://github.com/projectatomic/runc/blob/podman-v4.0-rhel/README.branch for details.
+replace github.com/opencontainers/runc => github.com/projectatomic/runc v0.0.0-20240307031208-38278c48667a

@@ -23,6 +23,7 @@ func EnsureProcHandle(fh *os.File) error {
 	}
 	return nil
 }
+
 type fdFunc func(fd int)
 
 // fdRangeFrom calls the passed fdFunc for each file descriptor that is open in
