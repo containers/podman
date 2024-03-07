@@ -120,7 +120,7 @@ func setup() (string, *machineTestBuilder) {
 	}
 	defer func() {
 		if err := dest.Close(); err != nil {
-			fmt.Printf("failed to close destination file %q: %q\n", dest.Name(), err)
+			Fail(fmt.Sprintf("failed to close destination file %q: %q\n", dest.Name(), err))
 		}
 	}()
 	fmt.Printf("--> copying %q to %q\n", src.Name(), dest.Name())
@@ -159,9 +159,13 @@ func teardown(origHomeDir string, testDir string, mb *machineTestBuilder) {
 }
 
 // copySparse is a helper method for tests only; caller is responsible for closures
-func copySparse(dst io.WriteSeeker, src io.Reader) error {
+func copySparse(dst io.WriteSeeker, src io.Reader) (retErr error) {
 	spWriter := compression.NewSparseWriter(dst)
-	defer spWriter.Close()
+	defer func() {
+		if err := spWriter.Close(); err != nil && retErr == nil {
+			retErr = err
+		}
+	}()
 	_, err := io.Copy(spWriter, src)
 	return err
 }
