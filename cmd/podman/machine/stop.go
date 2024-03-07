@@ -4,14 +4,12 @@ package machine
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/libpod/events"
 	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/shim"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -57,12 +55,6 @@ func stop(cmd *cobra.Command, args []string) error {
 
 	if err := shim.Stop(mc, provider, dirs, false); err != nil {
 		return err
-	}
-
-	// Update last time up
-	mc.LastUp = time.Now()
-	if err := mc.Write(); err != nil {
-		logrus.Errorf("unable to write configuration file: %q", err)
 	}
 
 	fmt.Printf("Machine %q stopped successfully\n", vmName)

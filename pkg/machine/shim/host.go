@@ -366,7 +366,9 @@ func stopLocked(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *mach
 		}
 	}
 
-	return nil
+	// Update last time up
+	mc.LastUp = time.Now()
+	return mc.Write()
 }
 
 func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDefine.MachineDirs, opts machine.StartOptions) error {
@@ -375,6 +377,19 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 
 	mc.Lock()
 	defer mc.Unlock()
+
+	// Set starting to true
+	mc.Starting = true
+	if err := mc.Write(); err != nil {
+		logrus.Error(err)
+	}
+	// Set starting to false on exit
+	defer func() {
+		mc.Starting = false
+		if err := mc.Write(); err != nil {
+			logrus.Error(err)
+		}
+	}()
 
 	gvproxyPidFile, err := dirs.RuntimeDir.AppendToNewVMFile("gvproxy.pid", nil)
 	if err != nil {
