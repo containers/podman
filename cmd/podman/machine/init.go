@@ -208,13 +208,8 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	// 	return err
 	// }
 
-	mc, err := shim.Init(initOpts, provider)
+	err = shim.Init(initOpts, provider)
 	if err != nil {
-		return err
-	}
-
-	// TODO callback needed for the configuration file
-	if err := mc.Write(); err != nil {
 		return err
 	}
 

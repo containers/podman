@@ -18,6 +18,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/lock"
 	"github.com/containers/podman/v5/pkg/machine/ports"
 	"github.com/containers/storage/pkg/ioutils"
+	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
 )
 
@@ -42,16 +43,11 @@ var (
 
 type RemoteConnectionType string
 
-// NewMachineConfig creates the initial machine configuration file from cli options
-func NewMachineConfig(opts define.InitOptions, dirs *define.MachineDirs, sshIdentityPath string, vmtype define.VMType) (*MachineConfig, error) {
+// NewMachineConfig creates the initial machine configuration file from cli options.
+func NewMachineConfig(opts define.InitOptions, dirs *define.MachineDirs, sshIdentityPath string, vmtype define.VMType, machineLock *lockfile.LockFile) (*MachineConfig, error) {
 	mc := new(MachineConfig)
 	mc.Name = opts.Name
 	mc.dirs = dirs
-
-	machineLock, err := lock.GetMachineLock(opts.Name, dirs.ConfigDir.GetPath())
-	if err != nil {
-		return nil, err
-	}
 	mc.lock = machineLock
 
 	// Assign Dirs
@@ -60,6 +56,11 @@ func NewMachineConfig(opts define.InitOptions, dirs *define.MachineDirs, sshIden
 		return nil, err
 	}
 	mc.configPath = cf
+	// Given that we are locked now and check again that the config file does not exists,
+	// if it does it means the VM was already created and we should error.
+	if _, err := os.Stat(cf.Path); err == nil {
+		return nil, fmt.Errorf("%s: %w", opts.Name, define.ErrVMAlreadyExists)
+	}
 
 	if vmtype != define.QemuVirt && len(opts.USBs) > 0 {
 		return nil, fmt.Errorf("USB host passthrough not supported for %s machines", vmtype)

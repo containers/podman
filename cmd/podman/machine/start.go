@@ -12,7 +12,6 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/shim"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -82,19 +81,6 @@ func start(_ *cobra.Command, args []string) error {
 		fmt.Printf("Starting machine %q\n", vmName)
 	}
 
-	// Set starting to true
-	mc.Starting = true
-	if err := mc.Write(); err != nil {
-		logrus.Error(err)
-	}
-
-	// Set starting to false on exit
-	defer func() {
-		mc.Starting = false
-		if err := mc.Write(); err != nil {
-			logrus.Error(err)
-		}
-	}()
 	if err := shim.Start(mc, provider, dirs, startOpts); err != nil {
 		return err
 	}
