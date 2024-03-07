@@ -161,22 +161,6 @@ func teardown(origHomeDir string, testDir string, mb *machineTestBuilder) {
 	}
 }
 
-// copySparseFile is a helper method for tests only.  copies a file sparsely
-// between two string inputs
-func copySparseFile(src, dst string) error { //nolint:unused
-	dstWriter, err := os.OpenFile(dst, os.O_CREATE|os.O_RDWR, 0600)
-	if err != nil {
-		return err
-	}
-	dstWriter.Close()
-	fSrc, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer fSrc.Close()
-	return copySparse(dstWriter, fSrc)
-}
-
 // copySparse is a helper method for tests only; caller is responsible for closures
 func copySparse(dst compression.WriteSeekCloser, src io.Reader) error {
 	spWriter := compression.NewSparseWriter(dst)
