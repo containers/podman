@@ -432,12 +432,12 @@ func (c *copier) copy(ctx context.Context, source, destination types.ImageRefere
 	// Sanity checks for Buildah.
 	if sourceInsecure != nil && *sourceInsecure {
 		if c.systemContext.DockerInsecureSkipTLSVerify == types.OptionalBoolFalse {
-			return nil, fmt.Errorf("can't require tls verification on an insecured registry")
+			return nil, errors.New("can't require tls verification on an insecured registry")
 		}
 	}
 	if destinationInsecure != nil && *destinationInsecure {
 		if c.systemContext.DockerInsecureSkipTLSVerify == types.OptionalBoolFalse {
-			return nil, fmt.Errorf("can't require tls verification on an insecured registry")
+			return nil, errors.New("can't require tls verification on an insecured registry")
 		}
 	}
 

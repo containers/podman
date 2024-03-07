@@ -834,7 +834,7 @@ func (l *list) AddArtifact(ctx context.Context, sys *types.SystemContext, option
 	if configDescriptor.Size != 0 {
 		if len(configDescriptor.Data) == 0 {
 			if options.ConfigFile == "" {
-				return "", fmt.Errorf("needed config data file, but none was provided")
+				return "", errors.New("needed config data file, but none was provided")
 			}
 			filePath, err := filepath.Abs(options.ConfigFile)
 			if err != nil {

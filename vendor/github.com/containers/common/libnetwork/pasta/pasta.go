@@ -63,7 +63,7 @@ func Setup(opts *SetupOptions) error {
 			var addr string
 
 			if i.HostIP != "" {
-				addr = fmt.Sprintf("%s/", i.HostIP)
+				addr = i.HostIP + "/"
 			}
 
 			switch protocol {

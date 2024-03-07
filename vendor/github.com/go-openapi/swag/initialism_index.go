@@ -176,7 +176,7 @@ func (m *indexOfInitialisms) add(key string) *indexOfInitialisms {
 func (m *indexOfInitialisms) sorted() (result []string) {
 	m.sortMutex.Lock()
 	defer m.sortMutex.Unlock()
-	m.index.Range(func(key, value interface{}) bool {
+	m.index.Range(func(key, _ interface{}) bool {
 		k := key.(string)
 		result = append(result, k)
 		return true

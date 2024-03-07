@@ -103,7 +103,7 @@ func getAvailableControllers(exclude map[string]controllerHandler, cgroup2 bool)
 			}
 			// userSlice already contains '/' so not adding here
 			basePath := cgroupRoot + userSlice
-			controllersFile = fmt.Sprintf("%s/cgroup.controllers", basePath)
+			controllersFile = basePath + "/cgroup.controllers"
 		}
 		controllersFileBytes, err := os.ReadFile(controllersFile)
 		if err != nil {
@@ -389,7 +389,7 @@ func Load(path string) (*CgroupControl, error) {
 // CreateSystemdUnit creates the systemd cgroup
 func (c *CgroupControl) CreateSystemdUnit(path string) error {
 	if !c.systemd {
-		return fmt.Errorf("the cgroup controller is not using systemd")
+		return errors.New("the cgroup controller is not using systemd")
 	}
 
 	conn, err := systemdDbus.NewWithContext(context.TODO())
@@ -404,7 +404,7 @@ func (c *CgroupControl) CreateSystemdUnit(path string) error {
 // CreateSystemdUserUnit creates the systemd cgroup for the specified user
 func (c *CgroupControl) CreateSystemdUserUnit(path string, uid int) error {
 	if !c.systemd {
-		return fmt.Errorf("the cgroup controller is not using systemd")
+		return errors.New("the cgroup controller is not using systemd")
 	}
 
 	conn, err := UserConnection(uid)
@@ -678,7 +678,7 @@ func cpusetCopyFileFromParent(dir, file string, cgroupv2 bool) ([]byte, error) {
 	path := filepath.Join(dir, file)
 	parentPath := path
 	if cgroupv2 {
-		parentPath = fmt.Sprintf("%s.effective", parentPath)
+		parentPath += ".effective"
 	}
 	data, err := os.ReadFile(parentPath)
 	if err != nil {

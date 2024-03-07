@@ -14,6 +14,8 @@ BINDIR := $(PREFIX)/bin
 BASHINSTALLDIR = $(PREFIX)/share/bash-completion/completions
 BUILDFLAGS := -tags "$(BUILDTAGS)"
 BUILDAH := buildah
+SELINUXOPT ?= $(shell test -x /usr/sbin/selinuxenabled && selinuxenabled && echo -Z)
+SELINUXTYPE=container_runtime_exec_t
 
 GO := go
 GO_LDFLAGS := $(shell if $(GO) version|grep -q gccgo; then echo "-gccgoflags"; else echo "-ldflags"; fi)
@@ -75,6 +77,7 @@ static:
 
 bin/buildah: $(SOURCES) cmd/buildah/*.go internal/mkcw/embed/entrypoint_amd64.gz
 	$(GO_BUILD) $(BUILDAH_LDFLAGS) $(GO_GCFLAGS) "$(GOGCFLAGS)" -o $@ $(BUILDFLAGS) ./cmd/buildah
+	test -z "${SELINUXOPT}" || chcon --verbose -t $(SELINUXTYPE) $@
 
 ifneq ($(shell as --version | grep x86_64),)
 internal/mkcw/embed/entrypoint_amd64.gz: internal/mkcw/embed/entrypoint_amd64

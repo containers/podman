@@ -690,7 +690,7 @@ func (r *Runtime) RemoveImages(ctx context.Context, names []string, options *Rem
 	}
 
 	if options.ExternalContainers && options.IsExternalContainerFunc == nil {
-		return nil, []error{fmt.Errorf("libimage error: cannot remove external containers without callback")}
+		return nil, []error{errors.New("libimage error: cannot remove external containers without callback")}
 	}
 
 	// The logic here may require some explanation.  Image removal is

@@ -93,15 +93,15 @@ func ValidateRoutes(routes []types.Route) error {
 
 func ValidateRoute(route types.Route) error {
 	if route.Destination.IP == nil {
-		return fmt.Errorf("route destination ip nil")
+		return errors.New("route destination ip nil")
 	}
 
 	if route.Destination.Mask == nil {
-		return fmt.Errorf("route destination mask nil")
+		return errors.New("route destination mask nil")
 	}
 
 	if route.Gateway == nil {
-		return fmt.Errorf("route gateway nil")
+		return errors.New("route gateway nil")
 	}
 
 	// Reparse to ensure destination is valid.
@@ -112,7 +112,7 @@ func ValidateRoute(route types.Route) error {
 
 	// check that destination is a network and not an address
 	if !ip.Equal(ipNet.IP) {
-		return fmt.Errorf("route destination invalid")
+		return errors.New("route destination invalid")
 	}
 
 	return nil

@@ -531,13 +531,13 @@ func (c EngineConfig) EventsLogMaxSize() uint64 {
 func (c *Config) SecurityOptions() []string {
 	securityOpts := []string{}
 	if c.Containers.SeccompProfile != "" && c.Containers.SeccompProfile != SeccompDefaultPath {
-		securityOpts = append(securityOpts, fmt.Sprintf("seccomp=%s", c.Containers.SeccompProfile))
+		securityOpts = append(securityOpts, "seccomp="+c.Containers.SeccompProfile)
 	}
 	if apparmor.IsEnabled() && c.Containers.ApparmorProfile != "" {
-		securityOpts = append(securityOpts, fmt.Sprintf("apparmor=%s", c.Containers.ApparmorProfile))
+		securityOpts = append(securityOpts, "apparmor="+c.Containers.ApparmorProfile)
 	}
 	if selinux.GetEnabled() && !c.Containers.EnableLabeling {
-		securityOpts = append(securityOpts, fmt.Sprintf("label=%s", selinux.DisableSecOpt()[0]))
+		securityOpts = append(securityOpts, "label="+selinux.DisableSecOpt()[0])
 	}
 	return securityOpts
 }

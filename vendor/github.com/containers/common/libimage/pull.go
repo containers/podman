@@ -426,7 +426,7 @@ func (r *Runtime) copyFromRegistry(ctx context.Context, ref types.ImageReference
 	for _, tag := range tags {
 		select { // Let's be gentle with Podman remote.
 		case <-ctx.Done():
-			return nil, fmt.Errorf("pulling cancelled")
+			return nil, errors.New("pulling cancelled")
 		default:
 			// We can continue.
 		}
@@ -466,7 +466,7 @@ func (r *Runtime) imagesIDsForManifest(manifestBytes []byte, sys *types.SystemCo
 	} else {
 		d, err := manifest.Digest(manifestBytes)
 		if err != nil {
-			return nil, fmt.Errorf("digesting manifest")
+			return nil, errors.New("digesting manifest")
 		}
 		imageDigest = d
 	}
