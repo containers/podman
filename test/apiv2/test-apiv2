@@ -322,6 +322,10 @@ function t() {
 
     local expected_code=$1; shift
 
+    if [[ "$expected_code" == "101" ]]; then
+        curl_args+=("-H" "Connection: upgrade" "-H" "Upgrade: tcp")
+    fi
+
     # Log every action we do
     echo "-------------------------------------------------------------" >>$LOG
     echo "\$ $testname"                                                  >>$LOG
