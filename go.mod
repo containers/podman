@@ -73,4 +73,5 @@ require (
 
 require github.com/docker/libnetwork v0.8.0-dev.2.0.20190625141545-5a177b73e316 // indirect
 
-replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
+// See https://github.com/projectatomic/runc/blob/podman-v4.2.0-rhel/README.branch for details.
+replace github.com/opencontainers/runc => github.com/projectatomic/runc v0.0.0-20240307021259-c0428046ced8

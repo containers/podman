@@ -106,7 +106,6 @@ func prepareOpenat2() error {
 		}
 
 		cgroupRootHandle = file
-
 		resolveFlags = unix.RESOLVE_BENEATH | unix.RESOLVE_NO_MAGICLINKS
 		if st.Type == unix.CGROUP2_SUPER_MAGIC {
 			// cgroupv2 has a single mountpoint and no "cpu,cpuacct" symlinks
