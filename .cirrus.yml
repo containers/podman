@@ -295,28 +295,27 @@ swagger_task:
             type: text/plain
 
 
-# Disabled as we are now manually patching vendor/
-# # Check that all included go modules from other sources match
-# # what is expected in `vendor/modules.txt` vs `go.mod`.  Also
-# # make sure that the generated bindings in pkg/bindings/...
-# # are in sync with the code.
-# consistency_task:
-#     name: "Test Code Consistency"
-#     alias: consistency
-#     # Docs: ./contrib/cirrus/CIModes.md
-#     only_if: *is_pr
-#     depends_on:
-#         - build
-#     container: *smallcontainer
-#     env:
-#         <<: *stdenvars
-#         TEST_FLAVOR: consistency
-#         TEST_ENVIRON: container
-#         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-#     clone_script: *get_gosrc
-#     setup_script: *setup
-#     main_script: *main
-#     always: *runner_stats
+# Check that all included go modules from other sources match
+# what is expected in `vendor/modules.txt` vs `go.mod`.  Also
+# make sure that the generated bindings in pkg/bindings/...
+# are in sync with the code.
+consistency_task:
+    name: "Test Code Consistency"
+    alias: consistency
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: *is_pr
+    depends_on:
+        - build
+    container: *smallcontainer
+    env:
+        <<: *stdenvars
+        TEST_FLAVOR: consistency
+        TEST_ENVIRON: container
+        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+    clone_script: *get_gosrc
+    setup_script: *setup
+    main_script: *main
+    always: *runner_stats
 
 
 # There are several other important variations of podman which
@@ -803,6 +802,7 @@ success_task:
         - validate
         - bindings
         - swagger
+        - consistency
         - alt_build
         - osx_alt_build
         - unit_test
