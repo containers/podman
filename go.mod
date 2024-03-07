@@ -15,7 +15,7 @@ require (
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.3
 	github.com/containers/image/v5 v5.29.3-0.20240229213915-cdc68020a24f
-	github.com/containers/libhvee v0.6.1-0.20240305211055-7cee23cdfc54
+	github.com/containers/libhvee v0.7.0
 	github.com/containers/ocicrypt v1.1.9
 	github.com/containers/psgo v1.9.0
 	github.com/containers/storage v1.53.0
