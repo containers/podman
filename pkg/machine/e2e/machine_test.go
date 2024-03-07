@@ -1,10 +1,8 @@
 package e2e_test
 
 import (
-	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -121,9 +119,8 @@ func setup() (string, *machineTestBuilder) {
 		Fail(fmt.Sprintf("failed to create file %s: %q", mb.imagePath, err))
 	}
 	defer func() {
-		closeErr := dest.Close()
-		if err != nil || !errors.Is(closeErr, fs.ErrClosed) {
-			fmt.Printf("failed to close destination file %q: %q\n", dest.Name(), err)
+		if err := dest.Close(); err != nil {
+			Fail(fmt.Sprintf("failed to close destination file %q: %q\n", dest.Name(), err))
 		}
 	}()
 	fmt.Printf("--> copying %q to %q\n", src.Name(), dest.Name())
@@ -161,26 +158,14 @@ func teardown(origHomeDir string, testDir string, mb *machineTestBuilder) {
 	}
 }
 
-// copySparseFile is a helper method for tests only.  copies a file sparsely
-// between two string inputs
-func copySparseFile(src, dst string) error { //nolint:unused
-	dstWriter, err := os.OpenFile(dst, os.O_CREATE|os.O_RDWR, 0600)
-	if err != nil {
-		return err
-	}
-	dstWriter.Close()
-	fSrc, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer fSrc.Close()
-	return copySparse(dstWriter, fSrc)
-}
-
 // copySparse is a helper method for tests only; caller is responsible for closures
-func copySparse(dst compression.WriteSeekCloser, src io.Reader) error {
+func copySparse(dst io.WriteSeeker, src io.Reader) (retErr error) {
 	spWriter := compression.NewSparseWriter(dst)
-	defer spWriter.Close()
+	defer func() {
+		if err := spWriter.Close(); err != nil && retErr == nil {
+			retErr = err
+		}
+	}()
 	_, err := io.Copy(spWriter, src)
 	return err
 }

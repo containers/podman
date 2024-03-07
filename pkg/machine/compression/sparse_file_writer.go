@@ -14,14 +14,18 @@ type WriteSeekCloser interface {
 }
 
 type sparseWriter struct {
-	file WriteSeekCloser
+	file io.WriteSeeker
 	// Invariant between method calls:
 	// The contents of the file match the contents passed to Write, except that pendingZeroes trailing zeroes have not been written.
 	// Also, the data that _has_ been written does not end with a zero byte (i.e. pendingZeroes is the largest possible value.
 	pendingZeroes int64
 }
 
-func NewSparseWriter(file WriteSeekCloser) *sparseWriter {
+// NewSparseWriter returns a WriteCloser for underlying file which creates
+// holes where appropriate.
+// NOTE: The caller must .Close() both the returned sparseWriter AND the underlying file,
+// in that order.
+func NewSparseWriter(file io.WriteSeeker) *sparseWriter {
 	return &sparseWriter{
 		file:          file,
 		pendingZeroes: 0,
@@ -121,18 +125,15 @@ func (sw *sparseWriter) Close() error {
 	if sw.pendingZeroes != 0 {
 		if holeSize := sw.pendingZeroes - 1; holeSize >= zerosThreshold {
 			if err := sw.createHole(holeSize); err != nil {
-				sw.file.Close()
 				return err
 			}
 			sw.pendingZeroes -= holeSize
 		}
 		var zeroArray [zerosThreshold]byte
 		if _, err := sw.file.Write(zeroArray[:sw.pendingZeroes]); err != nil {
-			sw.file.Close()
 			return err
 		}
 	}
-	err := sw.file.Close()
 	sw.file = nil
-	return err
+	return nil
 }

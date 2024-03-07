@@ -1,7 +1,6 @@
 package compression
 
 import (
-	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -25,7 +24,7 @@ type decompressor interface {
 	compressedFileSize() int64
 	compressedFileMode() os.FileMode
 	compressedFileReader() (io.ReadCloser, error)
-	decompress(w WriteSeekCloser, r io.Reader) error
+	decompress(w io.WriteSeeker, r io.Reader) error
 	close()
 }
 
@@ -72,7 +71,7 @@ func newDecompressor(compressedFilePath string, compressedFileContent []byte) (d
 	}
 }
 
-func runDecompression(d decompressor, decompressedFilePath string) error {
+func runDecompression(d decompressor, decompressedFilePath string) (retErr error) {
 	compressedFileReader, err := d.compressedFileReader()
 	if err != nil {
 		return err
@@ -99,8 +98,11 @@ func runDecompression(d decompressor, decompressedFilePath string) error {
 		return err
 	}
 	defer func() {
-		if err := decompressedFileWriter.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
+		if err := decompressedFileWriter.Close(); err != nil {
 			logrus.Warnf("Unable to to close destination file %s: %q", decompressedFilePath, err)
+			if retErr == nil {
+				retErr = err
+			}
 		}
 	}()
 

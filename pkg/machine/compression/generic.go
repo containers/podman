@@ -43,7 +43,7 @@ func (d *genericDecompressor) compressedFileReader() (io.ReadCloser, error) {
 	return compressedFile, nil
 }
 
-func (d *genericDecompressor) decompress(w WriteSeekCloser, r io.Reader) error {
+func (d *genericDecompressor) decompress(w io.WriteSeeker, r io.Reader) error {
 	decompressedFileReader, _, err := compression.AutoDecompress(r)
 	if err != nil {
 		return err
@@ -64,7 +64,7 @@ func (d *genericDecompressor) close() {
 	}
 }
 
-func (d *genericDecompressor) sparseOptimizedCopy(w WriteSeekCloser, r io.Reader) error {
+func (d *genericDecompressor) sparseOptimizedCopy(w io.WriteSeeker, r io.Reader) error {
 	var err error
 	sparseWriter := NewSparseWriter(w)
 	defer func() {
