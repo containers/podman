@@ -2,6 +2,7 @@ package define
 
 import (
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -46,6 +47,22 @@ func (m *VMFile) Delete() error {
 // Read the contents of a given file and return in []bytes
 func (m *VMFile) Read() ([]byte, error) {
 	return os.ReadFile(m.GetPath())
+}
+
+// Read the first n bytes of a given file and return in []bytes
+func (m *VMFile) ReadMagicNumber(n int) ([]byte, error) {
+	f, err := os.Open(m.GetPath())
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	b := make([]byte, n)
+	n, err = io.ReadFull(f, b)
+	if err != nil && err != io.ErrUnexpectedEOF && err != io.EOF {
+		return b[:n], err
+	} else {
+		return b[:n], nil
+	}
 }
 
 // ReadPIDFrom a file and return as int. -1 means the pid file could not
