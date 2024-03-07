@@ -139,8 +139,16 @@ SignItem @("artifacts/win-sshproxy.exe",
 $gvExists = Test-Path "artifacts/gvproxy.exe"
 if ($gvExists) {
     SignItem @("artifacts/gvproxy.exe")
+    Remove-Item Env:\UseGVProxy -ErrorAction SilentlyContinue
 } else {
     $env:UseGVProxy = "Skip"
+}
+
+$pExists = Test-Path "artifacts/policy.json"
+if ($pExists) {
+    Remove-Item Env:\IncludePolicyJSON -ErrorAction SilentlyContinue
+} else {
+    $env:IncludePolicyJSON = "Skip"
 }
 
 .\build-msi.bat $ENV:INSTVER; ExitOnError

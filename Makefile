@@ -103,6 +103,8 @@ FISHINSTALLDIR=${PREFIX}/share/fish/vendor_completions.d
 
 SELINUXOPT ?= $(shell test -x /usr/sbin/selinuxenabled && selinuxenabled && echo -Z)
 
+MACHINE_POLICY_JSON_DIR ?= .
+
 COMMIT_NO ?= $(shell git rev-parse HEAD 2> /dev/null || true)
 GIT_COMMIT ?= $(if $(shell git status --porcelain --untracked-files=no),$(call err_if_empty,COMMIT_NO)-dirty,$(COMMIT_NO))
 DATE_FMT = %s
@@ -766,10 +768,10 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 	$(MAKE) GOOS=$(GOOS) GOARCH=$(GOARCH) \
 		clean-binaries podman-remote-$(GOOS)-docs
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then \
-		$(MAKE) CGO_ENABLED=0 $(GOPLAT) BUILDTAGS="$(BUILDTAGS_CROSS)" MACHINE_POLICY_JSON_DIR="." \
+		$(MAKE) CGO_ENABLED=0 $(GOPLAT) BUILDTAGS="$(BUILDTAGS_CROSS)" \
 			clean-binaries podman-remote; \
 	else \
-		$(MAKE) $(GOPLAT) MACHINE_POLICY_JSON_DIR="." podman-remote; \
+		$(MAKE) $(GOPLAT) podman-remote; \
 	fi
 	if [[ "$(GOOS)" == "windows" ]]; then \
 		$(MAKE) $(GOPLAT) TMPDIR="" win-gvproxy; \
@@ -779,8 +781,11 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 	fi
 	cp -r ./docs/build/remote/$(GOOS) "$(tmpsubdir)/$(releasedir)/docs/"
 	cp ./contrib/remote/containers.conf "$(tmpsubdir)/$(releasedir)/"
-	cp ./pkg/machine/ocipull/policy.json "$(tmpsubdir)/$(releasedir)/"
 	$(MAKE) $(GOPLAT) $(_dstargs) SELINUXOPT="" install.remote
+	# Placing the policy file in the bin directory is intentional This
+	# could be changed in the future to mirror LSB on Linux/Unix but would
+	# require path resolution logic changes to sustain the Win flat model
+	cp ./pkg/machine/ocipull/policy.json "$(tmpsubdir)/$(releasedir)/$(RELEASE_PREFIX)/bin"
 	cd "$(tmpsubdir)" && \
 		zip --recurse-paths "$(CURDIR)/$@" "./$(releasedir)"
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then $(MAKE) clean-binaries; fi
