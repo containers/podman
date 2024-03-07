@@ -27,6 +27,8 @@ Commands
 
 :doc:`export <markdown/podman-export.1>` Export container's filesystem contents as a tar archive
 
+:doc:`export <markdown/podman-farm.1>` Farm out builds to machines running podman for different architectures
+
 :doc:`generate <markdown/podman-generate.1>` Generated structured data
 
 :doc:`healthcheck <markdown/podman-healthcheck.1>` Manage Healthcheck
