@@ -121,8 +121,7 @@ func setup() (string, *machineTestBuilder) {
 		Fail(fmt.Sprintf("failed to create file %s: %q", mb.imagePath, err))
 	}
 	defer func() {
-		closeErr := dest.Close()
-		if err != nil || !errors.Is(closeErr, fs.ErrClosed) {
+		if err := dest.Close(); err != nil && !errors.Is(err, fs.ErrClosed) {
 			fmt.Printf("failed to close destination file %q: %q\n", dest.Name(), err)
 		}
 	}()
