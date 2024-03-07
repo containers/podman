@@ -41,7 +41,7 @@ func policyPath() (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("could not resolve relative path to binary: %w", err)
 		}
-		return filepath.Join(p, DefaultPolicyJSONPath, policyfile), nil
+		return filepath.Join(filepath.Dir(p), DefaultPolicyJSONPath, policyfile), nil
 	}
 	return "", &defaultPolicyError{errs: errs}
 }
