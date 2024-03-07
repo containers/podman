@@ -58,10 +58,6 @@ func (m *memorySparseFile) Write(b []byte) (n int, err error) {
 	return n, err
 }
 
-func (m *memorySparseFile) Close() error {
-	return nil
-}
-
 func testInputWithWriteLen(t *testing.T, input []byte, minSparse int64, chunkSize int) {
 	m := &memorySparseFile{}
 	sparseWriter := NewSparseWriter(m)

@@ -1,10 +1,8 @@
 package e2e_test
 
 import (
-	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -121,7 +119,7 @@ func setup() (string, *machineTestBuilder) {
 		Fail(fmt.Sprintf("failed to create file %s: %q", mb.imagePath, err))
 	}
 	defer func() {
-		if err := dest.Close(); err != nil && !errors.Is(err, fs.ErrClosed) {
+		if err := dest.Close(); err != nil {
 			fmt.Printf("failed to close destination file %q: %q\n", dest.Name(), err)
 		}
 	}()
@@ -161,7 +159,7 @@ func teardown(origHomeDir string, testDir string, mb *machineTestBuilder) {
 }
 
 // copySparse is a helper method for tests only; caller is responsible for closures
-func copySparse(dst compression.WriteSeekCloser, src io.Reader) error {
+func copySparse(dst io.WriteSeeker, src io.Reader) error {
 	spWriter := compression.NewSparseWriter(dst)
 	defer spWriter.Close()
 	_, err := io.Copy(spWriter, src)

@@ -13,6 +13,6 @@ func newUncompressedDecompressor(compressedFilePath string) (*uncompressedDecomp
 	return &uncompressedDecompressor{*d}, err
 }
 
-func (d *uncompressedDecompressor) decompress(w WriteSeekCloser, r io.Reader) error {
+func (d *uncompressedDecompressor) decompress(w io.WriteSeeker, r io.Reader) error {
 	return d.sparseOptimizedCopy(w, r)
 }

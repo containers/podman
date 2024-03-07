@@ -16,7 +16,7 @@ func newGzipDecompressor(compressedFilePath string) (*gzipDecompressor, error) {
 	return &gzipDecompressor{*d}, err
 }
 
-func (d *gzipDecompressor) decompress(w WriteSeekCloser, r io.Reader) error {
+func (d *gzipDecompressor) decompress(w io.WriteSeeker, r io.Reader) error {
 	gzReader, err := image.GzipDecompressor(r)
 	if err != nil {
 		return err
