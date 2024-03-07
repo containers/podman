@@ -565,7 +565,7 @@ github.com/opencontainers/go-digest
 ## explicit
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.1.0
+# github.com/opencontainers/runc v1.1.2 => github.com/projectatomic/runc v0.0.0-20240307031208-38278c48667a
 ## explicit
 github.com/opencontainers/runc/libcontainer/apparmor
 github.com/opencontainers/runc/libcontainer/cgroups
@@ -916,3 +916,4 @@ sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.3.0
 sigs.k8s.io/yaml
 # github.com/onsi/gomega => github.com/onsi/gomega v1.16.0
+# github.com/opencontainers/runc => github.com/projectatomic/runc v0.0.0-20240307031208-38278c48667a
