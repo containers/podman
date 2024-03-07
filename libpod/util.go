@@ -217,7 +217,7 @@ func writeHijackHeader(r *http.Request, conn io.Writer, tty bool) {
 		// Upgraded
 		fmt.Fprintf(conn,
 			"HTTP/1.1 101 UPGRADED\r\nContent-Type: %s\r\nConnection: Upgrade\r\nUpgrade: %s\r\n\r\n",
-			proto, header)
+			header, proto)
 	}
 }
 

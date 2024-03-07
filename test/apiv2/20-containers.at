@@ -45,6 +45,11 @@ t POST "/v4.7.0/libpod/containers/foo/attach?logs=true&stream=false" 200
 response_headers=$(cat "$WORKDIR/curl.headers.out")
 like "$response_headers" ".*Content-Type: application/vnd\.docker\.multiplexed-stream.*" "vnd.docker.multiplexed-stream libpod v4.7.0"
 
+t POST "containers/foo/attach?logs=true&stream=false" 101
+response_headers=$(cat "$WORKDIR/curl.headers.out")
+like "$response_headers" ".*Content-Type: application/vnd\.docker\.raw-stream.*" "hijacked connection header: Content-type: application/vnd.docker.raw-stream"
+like "$response_headers" ".*Upgrade: tcp.*" "hijacked connection header: Upgrade: tcp"
+
 t POST "containers/foo/kill" 204
 
 podman run --replace --name=foo -v /tmp:/tmp $IMAGE true
