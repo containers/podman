@@ -15,6 +15,7 @@ import (
 	machineDefine "github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
+	"github.com/containers/podman/v5/pkg/machine/lock"
 	"github.com/containers/podman/v5/pkg/machine/proxyenv"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v5/utils"
@@ -66,7 +67,7 @@ func List(vmstubbers []vmconfigs.VMProvider, _ machine.ListOptions) ([]*machine.
 	return lrs, nil
 }
 
-func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.MachineConfig, error) {
+func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	var (
 		err            error
 		imageExtension string
@@ -79,21 +80,28 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 
 	dirs, err := env.GetMachineDirs(mp.VMType())
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	sshIdentityPath, err := env.GetSSHIdentityPath(machineDefine.DefaultIdentityName)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	sshKey, err := machine.GetSSHKeys(sshIdentityPath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	mc, err := vmconfigs.NewMachineConfig(opts, dirs, sshIdentityPath, mp.VMType())
+	machineLock, err := lock.GetMachineLock(opts.Name, dirs.ConfigDir.GetPath())
 	if err != nil {
-		return nil, err
+		return err
+	}
+	machineLock.Lock()
+	defer machineLock.Unlock()
+
+	mc, err := vmconfigs.NewMachineConfig(opts, dirs, sshIdentityPath, mp.VMType(), machineLock)
+	if err != nil {
+		return err
 	}
 
 	mc.Version = vmconfigs.MachineConfigVersion
@@ -128,7 +136,7 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 
 	imagePath, err = dirs.DataDir.AppendToNewVMFile(fmt.Sprintf("%s-%s%s", opts.Name, runtime.GOARCH, imageExtension), nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	mc.ImagePath = imagePath
 
@@ -142,7 +150,7 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 	// "docker://quay.io/something/someManifest
 
 	if err := mp.GetDisk(opts.Image, dirs, mc); err != nil {
-		return nil, err
+		return err
 	}
 
 	callbackFuncs.Add(mc.ImagePath.Delete)
@@ -151,7 +159,7 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 
 	ignitionFile, err := mc.IgnitionFile()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	uid := os.Getuid()
@@ -184,22 +192,22 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 	// copy it into the conf dir
 	if len(opts.IgnitionPath) > 0 {
 		err = ignBuilder.BuildWithIgnitionFile(opts.IgnitionPath)
-		return nil, err
+		return err
 	}
 
 	err = ignBuilder.GenerateIgnitionConfig()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	readyIgnOpts, err := mp.PrepareIgnition(mc, &ignBuilder)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	readyUnitFile, err := ignition.CreateReadyUnitFile(mp.VMType(), readyIgnOpts)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	readyUnit := ignition.Unit{
@@ -216,7 +224,7 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 
 	// TODO AddSSHConnectionToPodmanSocket could take an machineconfig instead
 	if err := connection.AddSSHConnectionsToPodmanSocket(mc.HostUser.UID, mc.SSH.Port, mc.SSH.IdentityPath, mc.Name, mc.SSH.RemoteUsername, opts); err != nil {
-		return nil, err
+		return err
 	}
 
 	cleanup := func() error {
@@ -226,15 +234,15 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) (*vmconfigs.M
 
 	err = mp.CreateVM(createOpts, mc, &ignBuilder)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = ignBuilder.Build()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return mc, err
+	return mc.Write()
 }
 
 // VMExists looks across given providers for a machine's existence.  returns the actual config and found bool
