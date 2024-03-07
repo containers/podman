@@ -3,9 +3,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/env"
@@ -35,33 +37,34 @@ func getMachineConn(connectionURI string, parsedConnection *url.URL) (string, er
 	if err != nil {
 		return "", fmt.Errorf("parsing connection port: %w", err)
 	}
-	for _, item := range machineList {
-		if connectionPort != item.SSH.Port {
+	for _, mc := range machineList {
+		if connectionPort != mc.SSH.Port {
 			continue
 		}
 
-		state, err := machineProvider.State(item, false)
+		state, err := machineProvider.State(mc, false)
 		if err != nil {
 			return "", err
 		}
 
 		if state != define.Running {
-			return "", fmt.Errorf("machine %s is not running but in state %s", item.Name, state)
+			return "", fmt.Errorf("machine %s is not running but in state %s", mc.Name, state)
 		}
 
-		// TODO This needs to be wired back in when all providers are complete
-		// TODO Need someoone to plumb in the connection information below
-		// if machineProvider.VMType() == define.WSLVirt || machineProvider.VMType() == define.HyperVVirt {
-		// 	if info.ConnectionInfo.PodmanPipe == nil {
-		// 		return "", errors.New("pipe of machine is not set")
-		// 	}
-		// 	return strings.Replace(info.ConnectionInfo.PodmanPipe.Path, `\\.\pipe\`, "npipe:////./pipe/", 1), nil
-		// }
-		// if info.ConnectionInfo.PodmanSocket == nil {
-		// 	return "", errors.New("socket of machine is not set")
-		// }
-		// return "unix://" + info.ConnectionInfo.PodmanSocket.Path, nil
-		return "", nil
+		podmanSocket, podmanPipe, err := mc.ConnectionInfo(machineProvider.VMType())
+		if err != nil {
+			return "", err
+		}
+		if machineProvider.VMType() == define.WSLVirt || machineProvider.VMType() == define.HyperVVirt {
+			if podmanPipe == nil {
+				return "", errors.New("pipe of machine is not set")
+			}
+			return strings.Replace(podmanPipe.Path, `\\.\pipe\`, "npipe:////./pipe/", 1), nil
+		}
+		if podmanSocket == nil {
+			return "", errors.New("socket of machine is not set")
+		}
+		return "unix://" + podmanSocket.Path, nil
 	}
 	return "", fmt.Errorf("could not find a matching machine for connection %q", connectionURI)
 }
