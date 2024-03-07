@@ -12,6 +12,7 @@ import (
 	internalUtil "github.com/containers/buildah/internal/util"
 	putil "github.com/containers/buildah/pkg/util"
 	"github.com/containers/buildah/util"
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/pkg/unshare"
@@ -50,7 +51,7 @@ func hostInfo() map[string]interface{} {
 	info["cpus"] = runtime.NumCPU()
 	info["rootless"] = unshare.IsRootless()
 
-	unified, err := util.IsCgroup2UnifiedMode()
+	unified, err := cgroups.IsCgroup2UnifiedMode()
 	if err != nil {
 		logrus.Error(err, "err reading cgroups mode")
 	}

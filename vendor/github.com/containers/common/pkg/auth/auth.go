@@ -285,7 +285,7 @@ func getUserAndPass(opts *LoginOptions, password, userFromAuthFile string) (user
 	username := opts.Username
 	if username == "" {
 		if opts.Stdin == nil {
-			return "", "", fmt.Errorf("cannot prompt for username without stdin")
+			return "", "", errors.New("cannot prompt for username without stdin")
 		}
 
 		if userFromAuthFile != "" {

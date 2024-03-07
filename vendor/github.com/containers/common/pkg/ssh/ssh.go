@@ -1,7 +1,7 @@
 package ssh
 
 import (
-	"fmt"
+	"errors"
 	"io"
 
 	"golang.org/x/crypto/ssh"
@@ -18,7 +18,7 @@ func Dial(options *ConnectionDialOptions, kind EngineMode) (*ssh.Client, error) 
 	var rep *ConnectionDialReport
 	var err error
 	if kind == NativeMode {
-		return nil, fmt.Errorf("ssh dial failed: you cannot create a dial-able client with native ssh")
+		return nil, errors.New("ssh dial failed: you cannot create a dial-able client with native ssh")
 	}
 	rep, err = golangConnectionDial(*options)
 	if err != nil {

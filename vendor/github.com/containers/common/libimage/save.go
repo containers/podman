@@ -53,7 +53,7 @@ func (r *Runtime) Save(ctx context.Context, names []string, format, path string,
 			return fmt.Errorf("unsupported format %q for saving multiple images (only docker-archive)", format)
 		}
 		if len(options.AdditionalTags) > 0 {
-			return fmt.Errorf("cannot save multiple images with multiple tags")
+			return errors.New("cannot save multiple images with multiple tags")
 		}
 	}
 

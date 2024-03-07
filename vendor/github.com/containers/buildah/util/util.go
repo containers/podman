@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"sync"
 	"syscall"
 
 	"github.com/containers/buildah/define"
@@ -375,12 +374,6 @@ func TruncateString(str string, to int) string {
 	}
 	return newStr
 }
-
-var (
-	isUnifiedOnce sync.Once
-	isUnified     bool
-	isUnifiedErr  error
-)
 
 // fileExistsAndNotADir - Check to see if a file exists
 // and that it is not a directory.

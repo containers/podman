@@ -35,7 +35,7 @@ func nativeConnectionCreate(options ConnectionCreateOptions) error {
 	// test connection
 	ssh, err := exec.LookPath("ssh")
 	if err != nil {
-		return fmt.Errorf("no ssh binary found")
+		return err
 	}
 
 	if strings.Contains(uri.Host, "/run") {
@@ -109,7 +109,7 @@ func nativeConnectionExec(options ConnectionExecOptions, input io.Reader) (*Conn
 
 	ssh, err := exec.LookPath("ssh")
 	if err != nil {
-		return nil, fmt.Errorf("no ssh binary found")
+		return nil, err
 	}
 
 	output := &bytes.Buffer{}
@@ -157,7 +157,7 @@ func nativeConnectionScp(options ConnectionScpOptions) (*ConnectionScpReport, er
 
 	scp, err := exec.LookPath("scp")
 	if err != nil {
-		return nil, fmt.Errorf("no scp binary found")
+		return nil, err
 	}
 
 	conf, err := config.Default()

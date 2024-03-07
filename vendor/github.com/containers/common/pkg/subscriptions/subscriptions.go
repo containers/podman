@@ -212,7 +212,7 @@ func MountsWithUIDGID(mountLabel, containerRunDir, mountFile, mountPoint string,
 }
 
 func rchown(chowndir string, uid, gid int) error {
-	return filepath.Walk(chowndir, func(filePath string, f os.FileInfo, err error) error {
+	return filepath.Walk(chowndir, func(filePath string, _ os.FileInfo, err error) error {
 		return os.Lchown(filePath, uid, gid)
 	})
 }

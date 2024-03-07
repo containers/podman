@@ -3,6 +3,7 @@ package supplemented
 import (
 	"container/list"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -286,7 +287,7 @@ func (s *supplementedImageReference) NewImageSource(ctx context.Context, sys *ty
 }
 
 func (s *supplementedImageReference) DeleteImage(_ context.Context, _ *types.SystemContext) error {
-	return fmt.Errorf("deletion of images not implemented")
+	return errors.New("deletion of images not implemented")
 }
 
 func (s *supplementedImageSource) Close() error {

@@ -1,3 +1,86 @@
+- Changelog for v1.35.0 (2024-03-06)
+  * fix(deps): update module github.com/stretchr/testify to v1.9.0
+  * cgroups: reuse version check from c/common
+  * Update vendor of containers/(common,image)
+  * fix(deps): update github.com/containers/storage digest to eadc620
+  * fix(deps): update github.com/containers/luksy digest to ceb12d4
+  * fix(deps): update github.com/containers/image/v5 digest to cdc6802
+  * manifest add: complain if we get artifact flags without --artifact
+  * Use retry logic from containers/common
+  * Vendor in containers/(storage,image,common)
+  * Update module golang.org/x/crypto to v0.20.0
+  * Add comment re: Total Success task name
+  * tests: skip_if_no_unshare(): check for --setuid
+  * Properly handle build --pull=false
+  * [skip-ci] Update tim-actions/get-pr-commits action to v1.3.1
+  * Update module go.etcd.io/bbolt to v1.3.9
+  * Revert "Reduce official image size"
+  * Update module github.com/opencontainers/image-spec to v1.1.0
+  * Reduce official image size
+  * Build with CNI support on FreeBSD
+  * build --all-platforms: skip some base "image" platforms
+  * Bump main to v1.35.0-dev
+  * Vendor in latest containers/(storage,image,common)
+  * Split up error messages for missing --sbom related flags
+  * `buildah manifest`: add artifact-related options
+  * cmd/buildah/manifest.go: lock lists before adding/annotating/pushing
+  * cmd/buildah/manifest.go: don't make struct declarations aliases
+  * Use golang.org/x/exp/slices.Contains
+  * Disable loong64 again
+  * Fix a couple of typos in one-line comments
+  * egrep is obsolescent; use grep -E
+  * Try Cirrus with a newer VM version
+  * Set CONTAINERS_CONF in the chroot-mount-flags integration test
+  * Update to match dependency API update
+  * Update github.com/openshift/imagebuilder and containers/common
+  * docs: correct default authfile path
+  * fix(deps): update module github.com/containerd/containerd to v1.7.13
+  * tests: retrofit test for heredoc summary
+  * build, heredoc: show heredoc summary in build output
+  * manifest, push: add support for --retry and --retry-delay
+  * fix(deps): update github.com/openshift/imagebuilder digest to b767bc3
+  * imagebuildah: fix crash with empty RUN
+  * fix(deps): update github.com/containers/luksy digest to b62d551
+  * fix(deps): update module github.com/opencontainers/runc to v1.1.12 [security]
+  * fix(deps): update module github.com/moby/buildkit to v0.12.5 [security]
+  * Make buildah match podman for handling of ulimits
+  * docs: move footnotes to where they're applicable
+  * Allow users to specify no-dereference
+  * Run codespell on code
+  * Fix FreeBSD version parsing
+  * Fix a build break on FreeBSD
+  * Remove a bad FROM line
+  * fix(deps): update module github.com/onsi/gomega to v1.31.1
+  * fix(deps): update module github.com/opencontainers/image-spec to v1.1.0-rc6
+  * docs: use reversed logo for dark theme in README
+  * build,commit: add --sbom to scan and produce SBOMs when committing
+  * commit: force omitHistory if the parent has layers but no history
+  * docs: fix a couple of typos
+  * internal/mkcw.Archive(): handle extra image content
+  * stage_executor,heredoc: honor interpreter in heredoc
+  * stage_executor,layers: burst cache if heredoc content is changed
+  * fix(deps): update module golang.org/x/crypto to v0.18.0
+  * Replace map[K]bool with map[K]struct{} where it makes sense
+  * fix(deps): update module golang.org/x/sync to v0.6.0
+  * fix(deps): update module golang.org/x/term to v0.16.0
+  * Bump CI VMs
+  * Replace strings.SplitN with strings.Cut
+  * fix(deps): update github.com/containers/storage digest to ef81e9b
+  * fix(deps): update github.com/containers/image/v5 digest to 1b221d4
+  * fix(deps): update module github.com/fsouza/go-dockerclient to v1.10.1
+  * Document use of containers-transports values in buildah
+  * fix(deps): update module golang.org/x/crypto to v0.17.0 [security]
+  * chore(deps): update dependency containers/automation_images to v20231208
+  * manifest: addCompression use default from containers.conf
+  * commit: add a --add-file flag
+  * mkcw: populate the rootfs using an overlay
+  * chore(deps): update dependency containers/automation_images to v20230517
+  * [skip-ci] Update actions/stale action to v9
+  * fix(deps): update module github.com/containernetworking/plugins to v1.4.0
+  * fix(deps): update github.com/containers/image/v5 digest to 7a40fee
+  * Bump to v1.34.1-dev
+  * Ignore errors if label.Relabel returns ENOSUP
+
 - Changelog for v1.34.0 (2023-12-11)
   * vendor: update c/{common,image,storage}
   * run: Allow using just one jail per container on FreeBSD

@@ -2,6 +2,7 @@ package filters
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -17,7 +18,7 @@ import (
 func ComputeUntilTimestamp(filterValues []string) (time.Time, error) {
 	invalid := time.Time{}
 	if len(filterValues) != 1 {
-		return invalid, fmt.Errorf("specify exactly one timestamp for until")
+		return invalid, errors.New("specify exactly one timestamp for until")
 	}
 	ts, err := timetype.GetTimestamp(filterValues[0], time.Now())
 	if err != nil {

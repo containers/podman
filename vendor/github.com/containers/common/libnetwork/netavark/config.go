@@ -309,7 +309,7 @@ func createIpvlanOrMacvlan(network *types.Network) error {
 			return errIpvlanNoDHCP
 		}
 		if len(network.Subnets) > 0 {
-			return fmt.Errorf("ipam driver dhcp set but subnets are set")
+			return errors.New("ipam driver dhcp set but subnets are set")
 		}
 	}
 

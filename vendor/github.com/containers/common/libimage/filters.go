@@ -4,6 +4,7 @@ package libimage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path"
 	"strconv"
@@ -226,7 +227,7 @@ func (r *Runtime) containers(duplicate map[string]string, key, value string, ext
 	case "false", "true":
 	case "external":
 		if externalFunc == nil {
-			return fmt.Errorf("libimage error: external containers filter without callback")
+			return errors.New("libimage error: external containers filter without callback")
 		}
 	default:
 		return fmt.Errorf("unsupported value %q for containers filter", value)

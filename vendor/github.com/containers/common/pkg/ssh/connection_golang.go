@@ -291,7 +291,7 @@ func ValidateAndConfigure(uri *url.URL, iden string, insecureIsMachineConnection
 	}
 	if len(authMethods) == 0 {
 		authMethods = append(authMethods, ssh.PasswordCallback(func() (string, error) {
-			pass, err := ReadPassword(fmt.Sprintf("%s's login password:", uri.User.Username()))
+			pass, err := ReadPassword(uri.User.Username() + "'s login password:")
 			return string(pass), err
 		}))
 	}
