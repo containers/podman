@@ -485,6 +485,25 @@ func Set(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machineDefin
 	mc.Lock()
 	defer mc.Unlock()
 
+	if err := mc.Refresh(); err != nil {
+		return fmt.Errorf("reload config: %w", err)
+	}
+
+	if opts.CPUs != nil {
+		mc.Resources.CPUs = *opts.CPUs
+	}
+
+	if opts.Memory != nil {
+		mc.Resources.Memory = *opts.Memory
+	}
+
+	if opts.DiskSize != nil {
+		if *opts.DiskSize <= mc.Resources.DiskSize {
+			return fmt.Errorf("new disk size must be larger than %d GB", mc.Resources.DiskSize)
+		}
+		mc.Resources.DiskSize = *opts.DiskSize
+	}
+
 	if err := mp.SetProviderAttrs(mc, opts); err != nil {
 		return err
 	}

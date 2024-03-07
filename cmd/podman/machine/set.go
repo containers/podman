@@ -3,8 +3,6 @@
 package machine
 
 import (
-	"fmt"
-
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/strongunits"
 	"github.com/containers/podman/v5/cmd/podman/registry"
@@ -90,10 +88,6 @@ func init() {
 }
 
 func setMachine(cmd *cobra.Command, args []string) error {
-	var (
-		err error
-	)
-
 	vmName := defaultMachineName
 	if len(args) > 0 && len(args[0]) > 0 {
 		vmName = args[0]
@@ -113,20 +107,14 @@ func setMachine(cmd *cobra.Command, args []string) error {
 		setOpts.Rootful = &setFlags.Rootful
 	}
 	if cmd.Flags().Changed("cpus") {
-		mc.Resources.CPUs = setFlags.CPUs
-		setOpts.CPUs = &mc.Resources.CPUs
+		setOpts.CPUs = &setFlags.CPUs
 	}
 	if cmd.Flags().Changed("memory") {
-		mc.Resources.Memory = strongunits.MiB(setFlags.Memory)
-		setOpts.Memory = &mc.Resources.Memory
+		newMemory := strongunits.MiB(setFlags.Memory)
+		setOpts.Memory = &newMemory
 	}
 	if cmd.Flags().Changed("disk-size") {
 		newDiskSizeGB := strongunits.GiB(setFlags.DiskSize)
-		if newDiskSizeGB <= mc.Resources.DiskSize {
-			return fmt.Errorf("new disk size must be larger than %d GB", mc.Resources.DiskSize)
-		}
-		mc.Resources.DiskSize = newDiskSizeGB
-
 		setOpts.DiskSize = &newDiskSizeGB
 	}
 	if cmd.Flags().Changed("user-mode-networking") {
