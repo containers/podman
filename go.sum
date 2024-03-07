@@ -1292,8 +1292,6 @@ github.com/opencontainers/image-spec v1.0.2/go.mod h1:BtxoFyWECRxE4U/7sNtV5W15zM
 github.com/opencontainers/image-spec v1.0.3-0.20211202183452-c5a74bcca799/go.mod h1:BtxoFyWECRxE4U/7sNtV5W15zMzWCbyJoFRP3s7yZA0=
 github.com/opencontainers/image-spec v1.0.3-0.20220114050600-8b9d41f48198 h1:+czc/J8SlhPKLOtVLMQc+xDCFBT73ZStMsRhSsUhsSg=
 github.com/opencontainers/image-spec v1.0.3-0.20220114050600-8b9d41f48198/go.mod h1:j4h1pJW6ZcJTgMZWP3+7RlG3zTaP02aDZ/Qw0sppK7Q=
-github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc h1:qjkUzmFsOFbQyjObybk40mRida83j5IHRaKzLGdBbEU=
-github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc/go.mod h1:wUOQGsiKae6VzA/UvlCK3cO+pHk8F2VQHlIoITEfMM8=
 github.com/opencontainers/runtime-spec v0.1.2-0.20190507144316-5b71a03e2700/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/runtime-spec v1.0.1/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/runtime-spec v1.0.2-0.20190207185410-29686dbc5559/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
@@ -1354,6 +1352,8 @@ github.com/poy/onpar v0.0.0-20190519213022-ee068f8ea4d1/go.mod h1:nSbFQvMj97ZyhF
 github.com/pquerna/cachecontrol v0.0.0-20171018203845-0dec1b30a021/go.mod h1:prYjPmNq4d1NPVmpShWobRqXY3q7Vp+80DqgxxUrUIA=
 github.com/proglottis/gpgme v0.1.3 h1:Crxx0oz4LKB3QXc5Ea0J19K/3ICfy3ftr5exgUK1AU0=
 github.com/proglottis/gpgme v0.1.3/go.mod h1:fPbW/EZ0LvwQtH8Hy7eixhp1eF3G39dtx7GUN+0Gmy0=
+github.com/projectatomic/runc v0.0.0-20240307021259-c0428046ced8 h1:+Fd6Rtdi+ik531qEuoj5vPpl8lv+MhExIG8ltsB2H5A=
+github.com/projectatomic/runc v0.0.0-20240307021259-c0428046ced8/go.mod h1:wUOQGsiKae6VzA/UvlCK3cO+pHk8F2VQHlIoITEfMM8=
 github.com/prometheus/client_golang v0.0.0-20180209125602-c332b6f63c06/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=
 github.com/prometheus/client_golang v0.9.3/go.mod h1:/TN21ttK/J9q6uSwhBd54HahCDft0ttaMvbicHlPoso=
