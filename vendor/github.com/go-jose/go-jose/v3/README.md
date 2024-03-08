@@ -1,17 +1,21 @@
 # Go JOSE
 
-[![godoc](https://pkg.go.dev/badge/github.com/go-jose/go-jose/v3.svg)](https://pkg.go.dev/github.com/go-jose/go-jose/v3)
-[![godoc](https://pkg.go.dev/badge/github.com/go-jose/go-jose/v3/jwt.svg)](https://pkg.go.dev/github.com/go-jose/go-jose/v3/jwt)
-[![license](https://img.shields.io/badge/license-apache_2.0-blue.svg?style=flat)](https://raw.githubusercontent.com/go-jose/go-jose/master/LICENSE)
-[![test](https://img.shields.io/github/checks-status/go-jose/go-jose/v3)](https://github.com/go-jose/go-jose/actions)
+### Versions
+
+[Version 4](https://github.com/go-jose/go-jose)
+([branch](https://github.com/go-jose/go-jose/),
+[doc](https://pkg.go.dev/github.com/go-jose/go-jose/v4), [releases](https://github.com/go-jose/go-jose/releases)) is the current stable version:
+
+    import "github.com/go-jose/go-jose/v4"
+
+The old [square/go-jose](https://github.com/square/go-jose) repo contains the prior v1 and v2 versions, which
+are deprecated.
+
+### Summary
 
 Package jose aims to provide an implementation of the Javascript Object Signing
 and Encryption set of standards. This includes support for JSON Web Encryption,
 JSON Web Signature, and JSON Web Token standards.
-
-**Help Wanted!** If you'd like to help us develop this library please reach
-out to css (at) css.bio. While I'm still working on keeping this maintained,
-I have limited time for in-depth development and could use some additional help.
 
 **Disclaimer**: This library contains encryption software that is subject to
 the U.S. Export Administration Regulations. You may not export, re-export,
@@ -38,17 +42,6 @@ standard library which uses case-sensitive matching for member names (instead
 of [case-insensitive matching](https://www.ietf.org/mail-archive/web/json/current/msg03763.html)).
 This is to avoid differences in interpretation of messages between go-jose and
 libraries in other languages.
-
-### Versions
-
-[Version 3](https://github.com/go-jose/go-jose)
-([branch](https://github.com/go-jose/go-jose/tree/v3),
-[doc](https://pkg.go.dev/github.com/go-jose/go-jose/v3), [releases](https://github.com/go-jose/go-jose/releases)) is the current stable version:
-
-    import "github.com/go-jose/go-jose/v3"
-
-The old [square/go-jose](https://github.com/square/go-jose) repo contains the prior v1 and v2 versions, which
-are still useable but not actively developed anymore. 
 
 ### Supported algorithms
 
