@@ -83,7 +83,7 @@ because different UID/GID mappings could potentially be used on each invocation.
 __--userns__, __--uidmap__ and __--gidmap__ the performance penalty is a one-time cost
 that only occurs the first time the command is run.
 
-Using native overlayfs as an unprivileged user is only available for Podman version >= 3.1 on a Linux kernel version >= 5.12.
+Using native overlayfs as an unprivileged user is only available for Podman version >= 3.1 on a Linux kernel version >= 5.12. Native overlayfs support is included in RHEL >= 8.5, see release notes [here](http://www.reddit.comhttps://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html-single/8.5_release_notes/index).
 
 To show the current storage driver
 
