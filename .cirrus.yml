@@ -343,15 +343,18 @@ osx_alt_build_task:
         - make .install.ginkgo
         - make podman-remote
         - make podman-mac-helper
-    build_amd64_script:
-        - make podman-remote-release-darwin_amd64.zip
-    build_arm64_script:
-        - make podman-remote-release-darwin_arm64.zip
     build_pkginstaller_script:
-        - cd contrib/pkginstaller
+        - pushd contrib/pkginstaller
         - make ARCH=amd64 NO_CODESIGN=1 pkginstaller
         - make ARCH=aarch64 NO_CODESIGN=1 pkginstaller
         - make ARCH=universal NO_CODESIGN=1 pkginstaller
+        - popd
+    build_amd64_script:
+        - make podman-remote-release-darwin_amd64.zip
+    # Building arm podman needs to be the last thing built in this task
+    # The Mac tests rely this Podman binary to run, and the CI Mac is ARM-based
+    build_arm64_script:
+        - make podman-remote-release-darwin_arm64.zip
     # Produce a new repo.tbz artifact for consumption by dependent tasks.
     repo_prep_script: *repo_prep
     repo_artifacts: *repo_artifacts
