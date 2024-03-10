@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/containers/common/pkg/secrets"
+	"github.com/containers/podman/v5/libpod/define"
 	v1 "github.com/containers/podman/v5/pkg/k8s.io/api/core/v1"
 	"github.com/containers/podman/v5/pkg/k8s.io/apimachinery/pkg/api/resource"
 	v12 "github.com/containers/podman/v5/pkg/k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1371,6 +1372,24 @@ func TestTCPLivenessProbe(t *testing.T) {
 			"myservice.domain.com",
 			"4000",
 		},
+		{
+			"TCPLivenessProbeNormalWithOnFailureRestartPolicy",
+			specgen.SpecGenerator{},
+			v1.Container{
+				LivenessProbe: &v1.Probe{
+					Handler: v1.Handler{
+						TCPSocket: &v1.TCPSocketAction{
+							Host: "127.0.0.1",
+							Port: intstr.FromInt(8080),
+						},
+					},
+				},
+			},
+			"on-failure",
+			true,
+			"127.0.0.1",
+			"8080",
+		},
 	}
 
 	for _, test := range tests {
@@ -1379,6 +1398,7 @@ func TestTCPLivenessProbe(t *testing.T) {
 			err := setupLivenessProbe(&test.specGenerator, test.container, test.restartPolicy)
 			assert.Equal(t, err == nil, test.succeed)
 			if err == nil {
+				assert.Equal(t, int(test.specGenerator.ContainerHealthCheckConfig.HealthCheckOnFailureAction), define.HealthCheckOnFailureActionRestart)
 				assert.Contains(t, test.specGenerator.ContainerHealthCheckConfig.HealthConfig.Test, test.expectedHost)
 				assert.Contains(t, test.specGenerator.ContainerHealthCheckConfig.HealthConfig.Test, test.expectedPort)
 			}
