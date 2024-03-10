@@ -934,6 +934,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			PodInfraID:         podInfraID,
 			PodName:            podName,
 			PodSecurityContext: podYAML.Spec.SecurityContext,
+			RestartPolicy:      podSpec.PodSpecGen.RestartPolicy, // pass the restart policy to the container (https://github.com/containers/podman/issues/20903)
 			ReadOnly:           readOnly,
 			SeccompPaths:       seccompPaths,
 			SecretsManager:     secretsManager,
