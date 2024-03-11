@@ -9,7 +9,8 @@ podman\-generate\-systemd - [DEPRECATED] Generate systemd unit file(s) for a con
 ## DESCRIPTION
 DEPRECATED:
 Note: **podman generate systemd** is deprecated. We recommend using [Quadlet](podman-systemd.unit.5.md)
-files when running Podman containers or pods under systemd.
+files when running Podman containers or pods under systemd.  There are no plans to remove the command.
+It will receive urgent bug fixes but no new features.
 
 **podman generate systemd** creates a systemd unit file that can be used to control a container or pod.
 By default, the command prints the content of the unit files to stdout.
