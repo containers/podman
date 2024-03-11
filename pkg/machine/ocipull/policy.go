@@ -1,9 +1,10 @@
 package ocipull
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/sirupsen/logrus"
 )
 
 // DefaultPolicyJSONPath should be overwritten at build time with the real path to the directory where
@@ -15,33 +16,18 @@ var DefaultPolicyJSONPath = ""
 
 const policyfile = "policy.json"
 
-type defaultPolicyError struct {
-	errs []error
-}
-
-func (e *defaultPolicyError) Error() string {
-	return fmt.Sprintf("no DefaultPolicyJSONPath defined and no local overwrites found: %q", e.errs)
-}
-
-func policyPath() (string, error) {
+// policyPaths returns a slice of possible directories where a policy.json might live
+func policyPaths() []string {
 	paths := localPolicyOverwrites()
-	errs := make([]error, 0, len(paths))
-	for _, path := range paths {
-		_, err := os.Stat(path)
-		if err == nil {
-			return path, nil
-		}
-		errs = append(errs, err)
-	}
 	if DefaultPolicyJSONPath != "" {
 		if filepath.IsAbs(DefaultPolicyJSONPath) {
-			return filepath.Join(DefaultPolicyJSONPath, policyfile), nil
+			return append(paths, filepath.Join(DefaultPolicyJSONPath, policyfile))
 		}
 		p, err := os.Executable()
 		if err != nil {
-			return "", fmt.Errorf("could not resolve relative path to binary: %w", err)
+			logrus.Warnf("could not resolve relative path to binary: %q", err)
 		}
-		return filepath.Join(filepath.Dir(p), DefaultPolicyJSONPath, policyfile), nil
+		paths = append(paths, filepath.Join(filepath.Dir(p), DefaultPolicyJSONPath, policyfile))
 	}
-	return "", &defaultPolicyError{errs: errs}
+	return paths
 }

@@ -2,7 +2,9 @@ package ocipull
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 
 	"github.com/containers/buildah/pkg/parse"
@@ -13,6 +15,7 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/sirupsen/logrus"
 )
 
 // PullOptions includes data to alter certain knobs when pulling a source
@@ -26,8 +29,17 @@ type PullOptions struct {
 	Quiet bool
 }
 
+var (
+	// noSignaturePolicy is a default policy if policy.json is not found on
+	// the host machine.
+	noSignaturePolicy string = `{"default":[{"type":"insecureAcceptAnything"}]}`
+)
+
 // Pull `imageInput` from a container registry to `sourcePath`.
 func Pull(ctx context.Context, imageInput types.ImageReference, localDestPath *define.VMFile, options *PullOptions) error {
+	var (
+		policy *signature.Policy
+	)
 	destRef, err := layout.ParseReference(localDestPath.GetPath())
 	if err != nil {
 		return err
@@ -44,15 +56,28 @@ func Pull(ctx context.Context, imageInput types.ImageReference, localDestPath *d
 		sysCtx.DockerAuthConfig = authConf
 	}
 
-	path, err := policyPath()
-	if err != nil {
-		return err
+	// Policy paths returns a slice of directories where the policy.json
+	// may live.  Iterate those directories and try to see if any are
+	// valid ignoring when the file does not exist
+	for _, path := range policyPaths() {
+		policy, err = signature.NewPolicyFromFile(path)
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				continue
+			}
+			return fmt.Errorf("reading signature policy: %w", err)
+		}
 	}
 
-	policy, err := signature.NewPolicyFromFile(path)
-	if err != nil {
-		return fmt.Errorf("obtaining signature policy: %w", err)
+	// If no policy has been found yet, we use a no signature policy automatically
+	if policy == nil {
+		logrus.Debug("no signature policy file found: using default allow everything signature policy")
+		policy, err = signature.NewPolicyFromBytes([]byte(noSignaturePolicy))
+		if err != nil {
+			return fmt.Errorf("obtaining signature policy: %w", err)
+		}
 	}
+
 	policyContext, err := signature.NewPolicyContext(policy)
 	if err != nil {
 		return fmt.Errorf("creating new signature policy context: %w", err)

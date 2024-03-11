@@ -12,11 +12,6 @@
     <?define UseGVProxy = ""?>
   <?endif?>
 
-  <?ifdef env.IncludePolicyJSON?>
-    <?define IncludePolicyJSON = "$(env.IncludePolicyJSON)"?>
-  <?else?>
-    <?define IncludePolicyJSON = ""?>
-  <?endif?>
 
   <Product Name="Podman $(var.VERSION)" Id="*" UpgradeCode="696BAB5D-CA1F-4B05-B123-320F245B8D6D" Version="$(var.VERSION)" Language="1033" Manufacturer="Red Hat Inc.">
 
@@ -45,11 +40,6 @@
             <?if $(var.UseGVProxy) != Skip?>
             <Component Id="GvProxyExecutable" Guid="1A4A2975-AD2D-44AA-974B-9B343C098333" Win64="yes">
               <File Id="GvProxyExecutableFile" Name="gvproxy.exe" Source="artifacts/gvproxy.exe" KeyPath="yes"/>
-            </Component>
-            <?endif?>
-            <?if $(var.IncludePolicyJSON) != Skip?>
-            <Component Id="PolicyJSON" Guid="C6135EDA-7C17-4A0E-BC52-5AB38BD54A61" Win64="yes">
-              <File Id="PolicyJSONFile" Name="policy.json" Source="artifacts/policy.json" KeyPath="yes"/>
             </Component>
             <?endif?>
             <Component Id="GuideHTMLComponent" Guid="8B23C76B-F7D4-4030-8C46-1B5729E616B5" Win64="yes">
@@ -84,9 +74,6 @@
       <ComponentRef Id="WinSshProxyExecutable"/>
       <?if $(var.UseGVProxy) != Skip?>
       <ComponentRef Id="GvProxyExecutable"/>
-      <?endif?>
-      <?if $(var.IncludePolicyJSON) != Skip?>
-      <ComponentRef Id="PolicyJSON"/>
       <?endif?>
       <ComponentRef Id="GuideHTMLComponent"/>
       <ComponentGroupRef Id="ManFiles"/>
