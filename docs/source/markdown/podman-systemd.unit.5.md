@@ -8,12 +8,16 @@ podman\-systemd.unit - systemd units using Podman Quadlet
 
 *name*.container, *name*.volume, *name*.network, *name*.kube *name*.image, *name*.pod
 
-### Podman unit search path
+### Podman rootful unit search path
+
+Quadlet files for the root user can be placed in the following two directories:
 
  * /etc/containers/systemd/
  * /usr/share/containers/systemd/
 
-### Podman user unit search path
+### Podman rootless unit search path
+
+Quadlet files for non-root users can be placed in the following directories
 
  * $XDG_CONFIG_HOME/containers/systemd/ or ~/.config/containers/systemd/
  * /etc/containers/systemd/users/$(UID)
