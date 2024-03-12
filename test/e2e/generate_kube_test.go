@@ -184,7 +184,7 @@ var _ = Describe("Podman kube generate", func() {
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(pod.Spec).To(HaveField("HostNetwork", false))
-		Expect(pod.Annotations).To(BeEmpty())
+		Expect(pod.Annotations).To(HaveLen(1))
 
 		numContainers := 0
 		for range pod.Spec.Containers {
@@ -1819,7 +1819,7 @@ EXPOSE 2004-2005/tcp`, CITEST_IMAGE)
 		pod := new(v1.Pod)
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(pod.Annotations).To(BeEmpty())
+		Expect(pod.Annotations).To(HaveLen(1))
 	})
 
 	It("on pod with --stop-timeout set for ctr", func() {

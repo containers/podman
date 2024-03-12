@@ -17,7 +17,6 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/libpod/define"
-	"github.com/containers/podman/v5/pkg/annotations"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/env"
 	v1 "github.com/containers/podman/v5/pkg/k8s.io/api/core/v1"
@@ -515,7 +514,7 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 	for _, ctr := range containers {
 		if !ctr.IsInfra() {
 			for k, v := range ctr.config.Spec.Annotations {
-				if !podmanOnly && (define.IsReservedAnnotation(k) || annotations.IsReservedAnnotation(k)) {
+				if !podmanOnly && (define.IsReservedAnnotation(k)) {
 					continue
 				}
 				podAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = v
@@ -680,7 +679,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 	for _, ctr := range ctrs {
 		ctrNames = append(ctrNames, removeUnderscores(ctr.Name()))
 		for k, v := range ctr.config.Spec.Annotations {
-			if !podmanOnly && (define.IsReservedAnnotation(k) || annotations.IsReservedAnnotation(k)) {
+			if !podmanOnly && define.IsReservedAnnotation(k) {
 				continue
 			}
 			kubeAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = v
