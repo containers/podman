@@ -24,11 +24,9 @@ import (
 )
 
 const (
-	// TODO This is temporary until we decide on a proper image name
-	// Also should be moved into c/common once stabilized
 	artifactRegistry     = "quay.io"
-	artifactRepo         = "baude"
-	artifactImageName    = "stage-podman-machine-image"
+	artifactRepo         = "podman"
+	artifactImageName    = "machine-os"
 	artifactOriginalName = "org.opencontainers.image.title"
 	machineOS            = "linux"
 )
