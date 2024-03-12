@@ -27,15 +27,15 @@
 //
 //	 'podman info'
 //
-//	    curl --unix-socket /run/podman/podman.sock http://d/v4.0.0/libpod/info
+//	    curl --unix-socket /run/podman/podman.sock http://d/v5.0.0/libpod/info
 //
 //	 'podman pull quay.io/containers/podman'
 //
-//	    curl -XPOST --unix-socket /run/podman/podman.sock -v 'http://d/v4.0.0/images/create?fromImage=quay.io%2Fcontainers%2Fpodman'
+//	    curl -XPOST --unix-socket /run/podman/podman.sock -v 'http://d/v5.0.0/images/create?fromImage=quay.io%2Fcontainers%2Fpodman'
 //
 //	 'podman list images'
 //
-//	    curl --unix-socket /run/podman/podman.sock -v 'http://d/v4.0.0/libpod/images/json' | jq
+//	    curl --unix-socket /run/podman/podman.sock -v 'http://d/v5.0.0/libpod/images/json' | jq
 //
 // Terms Of Service:
 //
@@ -44,7 +44,7 @@
 //	Schemes: http, https
 //	Host: podman.io
 //	BasePath: /
-//	Version: 4.0.0
+//	Version: 5.0.0
 //	License: Apache-2.0 https://opensource.org/licenses/Apache-2.0
 //	Contact: Podman <podman@lists.podman.io> https://podman.io/community/
 //
