@@ -103,7 +103,6 @@ FISHINSTALLDIR=${PREFIX}/share/fish/vendor_completions.d
 
 SELINUXOPT ?= $(shell test -x /usr/sbin/selinuxenabled && selinuxenabled && echo -Z)
 
-MACHINE_POLICY_JSON_DIR ?= .
 
 COMMIT_NO ?= $(shell git rev-parse HEAD 2> /dev/null || true)
 GIT_COMMIT ?= $(if $(shell git status --porcelain --untracked-files=no),$(call err_if_empty,COMMIT_NO)-dirty,$(COMMIT_NO))
@@ -121,7 +120,6 @@ LDFLAGS_PODMAN ?= \
 	-X $(LIBPOD)/config._installPrefix=$(PREFIX) \
 	-X $(LIBPOD)/config._etcDir=$(ETCDIR) \
 	-X $(PROJECT)/v5/pkg/systemd/quadlet._binDir=$(BINDIR) \
-	-X $(PROJECT)/v5/pkg/machine/ocipull.DefaultPolicyJSONPath=$(MACHINE_POLICY_JSON_DIR) \
 	-X github.com/containers/common/pkg/config.additionalHelperBinariesDir=$(HELPER_BINARIES_DIR)\
 	$(EXTRA_LDFLAGS)
 LDFLAGS_PODMAN_STATIC ?= \
@@ -782,10 +780,6 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 	cp -r ./docs/build/remote/$(GOOS) "$(tmpsubdir)/$(releasedir)/docs/"
 	cp ./contrib/remote/containers.conf "$(tmpsubdir)/$(releasedir)/"
 	$(MAKE) $(GOPLAT) $(_dstargs) SELINUXOPT="" install.remote
-	# Placing the policy file in the bin directory is intentional This
-	# could be changed in the future to mirror LSB on Linux/Unix but would
-	# require path resolution logic changes to sustain the Win flat model
-	cp ./pkg/machine/ocipull/policy.json "$(tmpsubdir)/$(releasedir)/$(RELEASE_PREFIX)/bin"
 	cd "$(tmpsubdir)" && \
 		zip --recurse-paths "$(CURDIR)/$@" "./$(releasedir)"
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then $(MAKE) clean-binaries; fi

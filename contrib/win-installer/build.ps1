@@ -144,13 +144,13 @@ if ($gvExists) {
     $env:UseGVProxy = "Skip"
 }
 
-$pExists = Test-Path "artifacts/policy.json"
-if ($pExists) {
-    Remove-Item Env:\IncludePolicyJSON -ErrorAction SilentlyContinue
-} else {
-    $env:IncludePolicyJSON = "Skip"
-}
-
+# Retaining for possible future additions
+# $pExists = Test-Path "artifacts/policy.json"
+# if ($pExists) {
+#     Remove-Item Env:\IncludePolicyJSON -ErrorAction SilentlyContinue
+# } else {
+#     $env:IncludePolicyJSON = "Skip"
+# }
 .\build-msi.bat $ENV:INSTVER; ExitOnError
 SignItem @("podman.msi")
 
