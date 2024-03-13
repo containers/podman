@@ -37,6 +37,7 @@ filtered_changes=$(git diff --name-only $base $head        |
                        grep -F -vx go.sum                  |
                        grep -F -vx podman.spec.rpkg        |
                        grep -F -vx .golangci.yml           |
+                       grep -F -vx winmake.ps1             |
                        grep -E -v  '/*Makefile$'           |
                        grep -E -v  '^[^/]+\.md$'           |
                        grep -E -v  '^.github'              |
