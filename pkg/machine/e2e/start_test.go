@@ -1,6 +1,7 @@
 package e2e_test
 
 import (
+	"sync"
 	"time"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
@@ -118,5 +119,59 @@ var _ = Describe("podman machine start", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(inspectSession2).To(Exit(0))
 		Expect(inspectSession2.outputToString()).To(Not(Equal(define.Running)))
+	})
+
+	It("start two machines in parallel", func() {
+		i := initMachine{}
+		machine1 := "m1-" + randomString()
+		session, err := mb.setName(machine1).setCmd(i.withImage(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		machine2 := "m2-" + randomString()
+		session, err = mb.setName(machine2).setCmd(i.withImage(mb.imagePath)).run()
+		Expect(session).To(Exit(0))
+
+		var startSession1, startSession2 *machineSession
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+		// now start two machine start process in parallel
+		go func() {
+			defer GinkgoRecover()
+			defer wg.Done()
+			s := startMachine{}
+			startSession1, err = mb.setName(machine1).setCmd(s).setTimeout(time.Minute * 10).run()
+			Expect(err).ToNot(HaveOccurred())
+		}()
+		go func() {
+			defer GinkgoRecover()
+			defer wg.Done()
+			s := startMachine{}
+			// ok this is a hack and should not be needed but the way these test are setup they all
+			// share "mb" which stores the name that is used for the VM, thus running two parallel
+			// can overwrite the name from the other, work around that by creating a new mb for the
+			// second run.
+			nmb, err := newMB()
+			Expect(err).ToNot(HaveOccurred())
+			startSession2, err = nmb.setName(machine2).setCmd(s).setTimeout(time.Minute * 10).run()
+			Expect(err).ToNot(HaveOccurred())
+		}()
+		wg.Wait()
+
+		// WSL can start in parallel so just check both command exit 0 there
+		if testProvider.VMType() == define.WSLVirt {
+			Expect(startSession1).To(Exit(0))
+			Expect(startSession2).To(Exit(0))
+			return
+		}
+		// other providers have a check that only one VM can be running at any given time so make sure our check is race free
+		Expect(startSession1).To(Or(Exit(0), Exit(125)), "start command should succeed or fail with 125")
+		if startSession1.ExitCode() == 0 {
+			Expect(startSession2).To(Exit(125), "first start worked, second start must fail")
+			Expect(startSession2.errorToString()).To(ContainSubstring("machine %s: VM already running or starting", machine1))
+		} else {
+			Expect(startSession2).To(Exit(0), "first start failed, second start succeed")
+			Expect(startSession1.errorToString()).To(ContainSubstring("machine %s: VM already running or starting", machine2))
+		}
 	})
 })

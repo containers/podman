@@ -268,13 +268,8 @@ func VMExists(name string, vmstubbers []vmconfigs.VMProvider) (*vmconfigs.Machin
 	return nil, false, nil
 }
 
-// CheckExclusiveActiveVM checks if any of the machines are already running
-func CheckExclusiveActiveVM(provider vmconfigs.VMProvider, mc *vmconfigs.MachineConfig) error {
-	// Don't check if provider supports parallel running machines
-	if !provider.RequireExclusiveActive() {
-		return nil
-	}
-
+// checkExclusiveActiveVM checks if any of the machines are already running
+func checkExclusiveActiveVM(provider vmconfigs.VMProvider, mc *vmconfigs.MachineConfig) error {
 	// Check if any other machines are running; if so, we error
 	localMachines, err := getMCsOverProviders([]vmconfigs.VMProvider{provider})
 	if err != nil {
@@ -382,6 +377,30 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 	defer mc.Unlock()
 	if err := mc.Refresh(); err != nil {
 		return fmt.Errorf("reload config: %w", err)
+	}
+
+	// Don't check if provider supports parallel running machines
+	if mp.RequireExclusiveActive() {
+		startLock, err := lock.GetMachineStartLock()
+		if err != nil {
+			return err
+		}
+		startLock.Lock()
+		defer startLock.Unlock()
+
+		if err := checkExclusiveActiveVM(mp, mc); err != nil {
+			return err
+		}
+	} else {
+		// still should make sure we do not start the same machine twice
+		state, err := mp.State(mc, false)
+		if err != nil {
+			return err
+		}
+
+		if state == machineDefine.Running || state == machineDefine.Starting {
+			return fmt.Errorf("machine %s: %w", mc.Name, machineDefine.ErrVMAlreadyRunning)
+		}
 	}
 
 	// Set starting to true
