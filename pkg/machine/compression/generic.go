@@ -4,6 +4,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"runtime"
 
 	"github.com/containers/image/v5/pkg/compression"
 	"github.com/sirupsen/logrus"
@@ -54,7 +55,15 @@ func (d *genericDecompressor) decompress(w io.WriteSeeker, r io.Reader) error {
 		}
 	}()
 
-	_, err = io.Copy(w, decompressedFileReader)
+	// Use sparse-optimized copy for macOS as applehv,
+	// macOS native hypervisor, uses large raw VM disk
+	// files mostly empty (~2GB of content ~8GB empty).
+	if runtime.GOOS == macOs {
+		err = d.sparseOptimizedCopy(w, decompressedFileReader)
+	} else {
+		_, err = io.Copy(w, decompressedFileReader)
+	}
+
 	return err
 }
 

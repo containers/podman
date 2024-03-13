@@ -4,7 +4,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
@@ -46,24 +45,15 @@ func Decompress(compressedVMFile *define.VMFile, decompressedFilePath string) er
 
 func newDecompressor(compressedFilePath string, compressedFileMagicNum []byte) (decompressor, error) {
 	compressionType := archive.DetectCompression(compressedFileMagicNum)
-	os := runtime.GOOS
 	hasZipSuffix := strings.HasSuffix(compressedFilePath, zipExt)
 
 	switch {
-	case compressionType == archive.Xz:
-		return newXzDecompressor(compressedFilePath)
 	// Zip files are not guaranteed to have a magic number at the beginning
 	// of the file, so we need to use the file name to detect them.
 	case compressionType == archive.Uncompressed && hasZipSuffix:
 		return newZipDecompressor(compressedFilePath)
 	case compressionType == archive.Uncompressed:
 		return newUncompressedDecompressor(compressedFilePath)
-	// Using special compressors on MacOS because default ones
-	// in c/image/pkg/compression are slow with sparse files.
-	case compressionType == archive.Gzip && os == macOs:
-		return newGzipDecompressor(compressedFilePath)
-	case compressionType == archive.Zstd && os == macOs:
-		return newZstdDecompressor(compressedFilePath)
 	default:
 		return newGenericDecompressor(compressedFilePath)
 	}
