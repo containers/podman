@@ -8,7 +8,6 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/libpod/events"
 	"github.com/containers/podman/v5/pkg/machine"
-	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/shim"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
@@ -61,19 +60,6 @@ func start(_ *cobra.Command, args []string) error {
 	}
 	mc, err := vmconfigs.LoadMachineByName(vmName, dirs)
 	if err != nil {
-		return err
-	}
-
-	state, err := provider.State(mc, false)
-	if err != nil {
-		return err
-	}
-
-	if state == define.Running {
-		return define.ErrVMAlreadyRunning
-	}
-
-	if err := shim.CheckExclusiveActiveVM(provider, mc); err != nil {
 		return err
 	}
 
