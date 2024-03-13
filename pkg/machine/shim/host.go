@@ -323,6 +323,9 @@ func Stop(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDef
 	// an error.  so putting in one place instead of sprinkling all over.
 	mc.Lock()
 	defer mc.Unlock()
+	if err := mc.Refresh(); err != nil {
+		return fmt.Errorf("reload config: %w", err)
+	}
 
 	return stopLocked(mc, mp, dirs, hardStop)
 }
@@ -377,6 +380,9 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 
 	mc.Lock()
 	defer mc.Unlock()
+	if err := mc.Refresh(); err != nil {
+		return fmt.Errorf("reload config: %w", err)
+	}
 
 	// Set starting to true
 	mc.Starting = true
@@ -538,6 +544,9 @@ func Set(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machineDefin
 func Remove(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDefine.MachineDirs, opts machine.RemoveOptions) error {
 	mc.Lock()
 	defer mc.Unlock()
+	if err := mc.Refresh(); err != nil {
+		return fmt.Errorf("reload config: %w", err)
+	}
 
 	state, err := mp.State(mc, false)
 	if err != nil {
