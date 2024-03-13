@@ -123,7 +123,7 @@ func LaunchWinProxy(opts WinProxyOpts, noInfo bool) {
 }
 
 func launchWinProxy(opts WinProxyOpts) (bool, string, error) {
-	machinePipe := ToDist(opts.Name)
+	machinePipe := env.WithPodmanPrefix(opts.Name)
 	if !PipeNameAvailable(machinePipe, MachineNameWait) {
 		return false, "", fmt.Errorf("could not start api proxy since expected pipe is not available: %s", machinePipe)
 	}
@@ -261,13 +261,6 @@ func GetWinProxyStateDir(name string, vmtype define.VMType) (string, error) {
 	}
 
 	return stateDir, nil
-}
-
-func ToDist(name string) string {
-	if !strings.HasPrefix(name, "podman") {
-		name = "podman-" + name
-	}
-	return name
 }
 
 func GetEnvSetString(env string, val string) string {

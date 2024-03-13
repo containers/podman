@@ -15,3 +15,7 @@ func gvProxySocket(name string, machineRuntimeDir *define.VMFile) (*define.VMFil
 func readySocket(name string, machineRuntimeDir *define.VMFile) (*define.VMFile, error) {
 	return machineRuntimeDir.AppendToNewVMFile(name+".sock", nil)
 }
+
+func apiSocket(name string, socketDir *define.VMFile) (*define.VMFile, error) {
+	return socketDir.AppendToNewVMFile(name+"-api.sock", nil)
+}

@@ -15,3 +15,8 @@ func readySocket(name string, machineRuntimeDir *define.VMFile) (*define.VMFile,
 	socketName := name + ".sock"
 	return machineRuntimeDir.AppendToNewVMFile(socketName, &socketName)
 }
+
+func apiSocket(name string, socketDir *define.VMFile) (*define.VMFile, error) {
+	socketName := name + "-api.sock"
+	return socketDir.AppendToNewVMFile(socketName, &socketName)
+}

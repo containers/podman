@@ -111,7 +111,7 @@ func startNetworking(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvider)
 		return "", 0, err
 	}
 
-	hostSocks, forwardSock, forwardingState, err := setupMachineSockets(mc.Name, dirs)
+	hostSocks, forwardSock, forwardingState, err := setupMachineSockets(mc, dirs)
 	if err != nil {
 		return "", 0, err
 	}

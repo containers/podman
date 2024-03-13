@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/ocipull"
 	"github.com/containers/podman/v5/pkg/machine/shim/diskpull"
 	"github.com/containers/podman/v5/pkg/machine/stdpull"
@@ -91,7 +92,7 @@ func (w WSLStubber) PrepareIgnition(_ *vmconfigs.MachineConfig, _ *ignition.Igni
 }
 
 func (w WSLStubber) Exists(name string) (bool, error) {
-	return isWSLExist(machine.ToDist(name))
+	return isWSLExist(env.WithPodmanPrefix(name))
 }
 
 func (w WSLStubber) MountType() vmconfigs.VolumeMountType {
@@ -107,7 +108,7 @@ func (w WSLStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() error,
 	// below if we wanted to hard error on the wsl unregister
 	// of the vm
 	wslRemoveFunc := func() error {
-		if err := runCmdPassThrough(wutil.FindWSL(), "--unregister", machine.ToDist(mc.Name)); err != nil {
+		if err := runCmdPassThrough(wutil.FindWSL(), "--unregister", env.WithPodmanPrefix(mc.Name)); err != nil {
 			logrus.Error(err)
 		}
 		return nil
@@ -156,7 +157,7 @@ func (w WSLStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.Se
 			return errors.New("user-mode networking can only be changed when the machine is not running")
 		}
 
-		dist := machine.ToDist(mc.Name)
+		dist := env.WithPodmanPrefix(mc.Name)
 		if err := changeDistUserModeNetworking(dist, mc.SSH.RemoteUsername, mc.ImagePath.GetPath(), *opts.UserModeNetworking); err != nil {
 			return fmt.Errorf("failure changing state of user-mode networking setting: %w", err)
 		}
@@ -202,7 +203,7 @@ func (w WSLStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo bool
 }
 
 func (w WSLStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func() error, error) {
-	dist := machine.ToDist(mc.Name)
+	dist := env.WithPodmanPrefix(mc.Name)
 
 	err := wslInvoke(dist, "/root/bootstrap")
 	if err != nil {
@@ -236,7 +237,7 @@ func (w WSLStubber) StopVM(mc *vmconfigs.MachineConfig, hardStop bool) error {
 		return err
 	}
 
-	dist := machine.ToDist(mc.Name)
+	dist := env.WithPodmanPrefix(mc.Name)
 
 	// Stop user-mode networking if enabled
 	if err := stopUserModeNetworking(mc); err != nil {
@@ -270,7 +271,7 @@ func (w WSLStubber) StopHostNetworking(mc *vmconfigs.MachineConfig, vmType defin
 }
 
 func (w WSLStubber) UpdateSSHPort(mc *vmconfigs.MachineConfig, port int) error {
-	dist := machine.ToDist(mc.Name)
+	dist := env.WithPodmanPrefix(mc.Name)
 
 	if err := wslInvoke(dist, "sh", "-c", fmt.Sprintf(changePort, port)); err != nil {
 		return fmt.Errorf("could not change SSH port for guest OS: %w", err)

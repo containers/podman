@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/storage/pkg/homedir"
@@ -148,4 +149,11 @@ func GetSSHIdentityPath(name string) (string, error) {
 		return "", err
 	}
 	return filepath.Join(datadir, name), nil
+}
+
+func WithPodmanPrefix(name string) string {
+	if !strings.HasPrefix(name, "podman") {
+		name = "podman-" + name
+	}
+	return name
 }
