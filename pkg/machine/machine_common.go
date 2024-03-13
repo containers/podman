@@ -81,7 +81,7 @@ address can't be used by podman. `
 			fmtString = `You can %sconnect Docker API clients by setting DOCKER_HOST using the
 following command in your terminal session:
 
-        %s'
+        %s
 
 `
 			prefix := ""

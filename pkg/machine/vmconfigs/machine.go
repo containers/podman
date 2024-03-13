@@ -15,6 +15,7 @@ import (
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/containers/podman/v5/pkg/machine/connection"
 	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/lock"
 	"github.com/containers/podman/v5/pkg/machine/ports"
 	"github.com/containers/storage/pkg/ioutils"
@@ -162,6 +163,16 @@ func (mc *MachineConfig) Remove(saveIgnition, saveImage bool) ([]string, func() 
 		return nil, nil, err
 	}
 
+	gvProxySocket, err := mc.GVProxySocket()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	apiSocket, err := mc.APISocket()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	logPath, err := mc.LogFile()
 	if err != nil {
 		return nil, nil, err
@@ -170,6 +181,8 @@ func (mc *MachineConfig) Remove(saveIgnition, saveImage bool) ([]string, func() 
 	rmFiles := []string{
 		mc.configPath.GetPath(),
 		readySocket.GetPath(),
+		gvProxySocket.GetPath(),
+		apiSocket.GetPath(),
 		logPath.GetPath(),
 	}
 	if !saveImage {
@@ -196,6 +209,12 @@ func (mc *MachineConfig) Remove(saveIgnition, saveImage bool) ([]string, func() 
 			}
 		}
 		if err := readySocket.Delete(); err != nil {
+			errs = append(errs, err)
+		}
+		if err := gvProxySocket.Delete(); err != nil {
+			errs = append(errs, err)
+		}
+		if err := apiSocket.Delete(); err != nil {
 			errs = append(errs, err)
 		}
 		if err := logPath.Delete(); err != nil {
@@ -268,6 +287,14 @@ func (mc *MachineConfig) GVProxySocket() (*define.VMFile, error) {
 	return gvProxySocket(mc.Name, machineRuntimeDir)
 }
 
+func (mc *MachineConfig) APISocket() (*define.VMFile, error) {
+	machineRuntimeDir, err := mc.RuntimeDir()
+	if err != nil {
+		return nil, err
+	}
+	return apiSocket(mc.Name, machineRuntimeDir)
+}
+
 func (mc *MachineConfig) LogFile() (*define.VMFile, error) {
 	rtDir, err := mc.RuntimeDir()
 	if err != nil {
@@ -309,26 +336,13 @@ func (mc *MachineConfig) ConnectionInfo(vmtype define.VMType) (*define.VMFile, *
 	)
 
 	if vmtype == define.HyperVVirt || vmtype == define.WSLVirt {
-		pipeName := mc.Name
-		if !strings.HasPrefix(pipeName, "podman") {
-			pipeName = "podman-" + pipeName
-		}
+		pipeName := env.WithPodmanPrefix(mc.Name)
 		pipe = &define.VMFile{Path: `\\.\pipe\` + pipeName}
-	}
-
-	if vmtype == define.WSLVirt {
 		return nil, pipe, nil
 	}
 
-	sockName := "podman.sock"
-	dataDir, err := mc.DataDir()
-	if err != nil {
-		logrus.Errorf("Resolving data dir: %s", err.Error())
-		return nil, nil, err
-	}
-
-	socket, err = define.NewMachineFile(filepath.Join(dataDir.Path, sockName), &sockName)
-	return socket, pipe, err
+	socket, err := mc.APISocket()
+	return socket, nil, err
 }
 
 // LoadMachineByName returns a machine config based on the vm name and provider
