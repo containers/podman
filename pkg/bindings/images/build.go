@@ -2,7 +2,6 @@ package images
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -31,6 +30,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/hashicorp/go-multierror"
 	jsoniter "github.com/json-iterator/go"
+	gzip "github.com/klauspost/pgzip"
 	"github.com/sirupsen/logrus"
 )
 
