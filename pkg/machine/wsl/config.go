@@ -150,10 +150,6 @@ func (p *WSLVirtualization) IsValidVMName(name string) (bool, error) {
 	return false, nil
 }
 
-func (p *WSLVirtualization) CheckExclusiveActiveVM() (bool, string, error) {
-	return false, "", nil
-}
-
 // RemoveAndCleanMachines removes all machine and cleans up any other files associated with podman machine
 func (p *WSLVirtualization) RemoveAndCleanMachines() error {
 	var (
