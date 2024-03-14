@@ -731,7 +731,7 @@ func setupLivenessProbe(s *specgen.SpecGenerator, containerYAML v1.Container, re
 			return err
 		}
 		// if restart policy is in place, ensure the health check enforces it
-		if restartPolicy == "always" || restartPolicy == "onfailure" {
+		if restartPolicy == define.RestartPolicyAlways || restartPolicy == define.RestartPolicyOnFailure {
 			s.HealthCheckOnFailureAction = define.HealthCheckOnFailureActionRestart
 		}
 		return nil
@@ -763,7 +763,7 @@ func setupStartupProbe(s *specgen.SpecGenerator, containerYAML v1.Container, res
 			Successes:           int(containerYAML.StartupProbe.SuccessThreshold),
 		}
 		// if restart policy is in place, ensure the health check enforces it
-		if restartPolicy == "always" || restartPolicy == "onfailure" {
+		if restartPolicy == define.RestartPolicyAlways || restartPolicy == define.RestartPolicyOnFailure {
 			s.HealthCheckOnFailureAction = define.HealthCheckOnFailureActionRestart
 		}
 		return nil
