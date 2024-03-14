@@ -431,9 +431,12 @@ function pasta_test_do() {
 @test "Local forwarder, IPv4" {
     skip_if_no_ipv4 "IPv4 not routable on the host"
 
-    run_podman run --dns 198.51.100.1 \
-        --net=pasta:--dns-forward,198.51.100.1 $IMAGE nslookup 127.0.0.1 || :
+    # pasta is the default now so no need to set it
+    run_podman run --rm $IMAGE grep nameserver /etc/resolv.conf
+    assert "${lines[0]}" == "nameserver 169.254.0.1" "default dns forward server"
 
+    run_podman run --rm --net=pasta:--dns-forward,198.51.100.1 \
+        $IMAGE nslookup 127.0.0.1 || :
     assert "$output" =~ "1.0.0.127.in-addr.arpa" "No answer from resolver"
 }
 

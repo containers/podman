@@ -279,7 +279,7 @@ func (c *Container) setCgroupsPath(g *generate.Generator) error {
 	return nil
 }
 
-func (c *Container) addSlirp4netnsDNS(nameservers []string) []string {
+func (c *Container) addSpecialDNS(nameservers []string) []string {
 	return nameservers
 }
 
