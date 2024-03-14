@@ -268,7 +268,3 @@ func (c *Container) reloadRootlessRLKPortMapping() error {
 func (c *Container) setupRootlessNetwork() error {
 	return nil
 }
-
-func getPastaIP(state *ContainerState) (net.IP, error) {
-	return nil, fmt.Errorf("pasta networking is Linux only")
-}

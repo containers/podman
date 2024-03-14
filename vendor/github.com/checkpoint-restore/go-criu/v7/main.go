@@ -218,7 +218,7 @@ func (c *Criu) StartPageServerChld(opts *rpc.CriuOpts) (int, int, error) {
 		return 0, 0, err
 	}
 
-	return int(resp.Ps.GetPid()), int(resp.Ps.GetPort()), nil
+	return int(resp.GetPs().GetPid()), int(resp.GetPs().GetPort()), nil
 }
 
 // GetCriuVersion executes the VERSION RPC call and returns the version
@@ -230,22 +230,22 @@ func (c *Criu) GetCriuVersion() (int, error) {
 	}
 
 	if resp.GetType() != rpc.CriuReqType_VERSION {
-		return 0, fmt.Errorf("unexpected CRIU RPC response")
+		return 0, errors.New("unexpected CRIU RPC response")
 	}
 
-	version := int(*resp.GetVersion().MajorNumber) * 10000
-	version += int(*resp.GetVersion().MinorNumber) * 100
-	if resp.GetVersion().Sublevel != nil {
-		version += int(*resp.GetVersion().Sublevel)
+	version := resp.GetVersion().GetMajorNumber() * 10000
+	version += resp.GetVersion().GetMinorNumber() * 100
+	if resp.GetVersion().GetSublevel() != 0 {
+		version += resp.GetVersion().GetSublevel()
 	}
 
-	if resp.GetVersion().Gitid != nil {
+	if resp.GetVersion().GetGitid() != "" {
 		// taken from runc: if it is a git release -> increase minor by 1
 		version -= (version % 100)
 		version += 100
 	}
 
-	return version, nil
+	return int(version), nil
 }
 
 // IsCriuAtLeast checks if the version is at least the same

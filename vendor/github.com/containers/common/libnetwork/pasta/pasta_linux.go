@@ -13,16 +13,23 @@ package pasta
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os/exec"
 	"strings"
 
+	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/common/libnetwork/types"
+	"github.com/containers/common/libnetwork/util"
 	"github.com/containers/common/pkg/config"
 	"github.com/sirupsen/logrus"
 )
 
 const (
-	BinaryName = "pasta"
+	dnsForwardOpt = "--dns-forward"
+
+	// dnsForwardIpv4 static ip used as nameserver address inside the netns,
+	// given this is a "link local" ip it should be very unlikely that it causes conflicts
+	dnsForwardIpv4 = "169.254.0.1"
 )
 
 type SetupOptions struct {
@@ -37,21 +44,25 @@ type SetupOptions struct {
 	ExtraOptions []string
 }
 
-// Setup start the pasta process for the given netns.
-// The pasta binary is looked up in the HelperBinariesDir and $PATH.
-// Note that there is no need any special cleanup logic, the pasta process will
-// automatically exit when the netns path is deleted.
 func Setup(opts *SetupOptions) error {
+	_, err := Setup2(opts)
+	return err
+}
+
+// Setup2 start the pasta process for the given netns.
+// The pasta binary is looked up in the HelperBinariesDir and $PATH.
+// Note that there is no need for any special cleanup logic, the pasta
+// process will automatically exit when the netns path is deleted.
+func Setup2(opts *SetupOptions) (*SetupResult, error) {
 	NoTCPInitPorts := true
 	NoUDPInitPorts := true
 	NoTCPNamespacePorts := true
 	NoUDPNamespacePorts := true
 	NoMapGW := true
-	NoDNS := true
 
 	path, err := opts.Config.FindHelperBinary(BinaryName, true)
 	if err != nil {
-		return fmt.Errorf("could not find pasta, the network namespace can't be configured: %w", err)
+		return nil, fmt.Errorf("could not find pasta, the network namespace can't be configured: %w", err)
 	}
 
 	cmdArgs := []string{}
@@ -72,7 +83,7 @@ func Setup(opts *SetupOptions) error {
 			case "udp":
 				cmdArgs = append(cmdArgs, "-u")
 			default:
-				return fmt.Errorf("can't forward protocol: %s", protocol)
+				return nil, fmt.Errorf("can't forward protocol: %s", protocol)
 			}
 
 			arg := fmt.Sprintf("%s%d-%d:%d-%d", addr,
@@ -89,6 +100,7 @@ func Setup(opts *SetupOptions) error {
 	// then append the ones that were set on the cli
 	cmdArgs = append(cmdArgs, opts.ExtraOptions...)
 
+	var dnsForwardIPs []string
 	for i, opt := range cmdArgs {
 		switch opt {
 		case "-t", "--tcp-ports":
@@ -103,9 +115,18 @@ func Setup(opts *SetupOptions) error {
 			NoMapGW = false
 			// not an actual pasta(1) option
 			cmdArgs = append(cmdArgs[:i], cmdArgs[i+1:]...)
-		case "-D", "--dns", "--dns-forward":
-			NoDNS = false
+		case dnsForwardOpt:
+			// if there is no arg after it pasta will likely error out anyway due invalid cli args
+			if len(cmdArgs) > i+1 {
+				dnsForwardIPs = append(dnsForwardIPs, cmdArgs[i+1])
+			}
 		}
+	}
+
+	if len(dnsForwardIPs) == 0 {
+		// the user did not request custom --dns-forward so add our own.
+		cmdArgs = append(cmdArgs, dnsForwardOpt, dnsForwardIpv4)
+		dnsForwardIPs = append(dnsForwardIPs, dnsForwardIpv4)
 	}
 
 	if NoTCPInitPorts {
@@ -123,12 +144,6 @@ func Setup(opts *SetupOptions) error {
 	if NoMapGW {
 		cmdArgs = append(cmdArgs, "--no-map-gw")
 	}
-	if NoDNS {
-		// disable pasta reading from /etc/resolv.conf which hides the
-		// "Couldn't get any nameserver address" warning when only
-		// localhost resolvers are configured.
-		cmdArgs = append(cmdArgs, "--dns", "none")
-	}
 
 	// always pass --quiet to silence the info output from pasta
 	cmdArgs = append(cmdArgs, "--quiet", "--netns", opts.Netns)
@@ -140,10 +155,10 @@ func Setup(opts *SetupOptions) error {
 	if err != nil {
 		exitErr := &exec.ExitError{}
 		if errors.As(err, &exitErr) {
-			return fmt.Errorf("pasta failed with exit code %d:\n%s",
+			return nil, fmt.Errorf("pasta failed with exit code %d:\n%s",
 				exitErr.ExitCode(), string(out))
 		}
-		return fmt.Errorf("failed to start pasta: %w", err)
+		return nil, fmt.Errorf("failed to start pasta: %w", err)
 	}
 
 	if len(out) > 0 {
@@ -154,5 +169,39 @@ func Setup(opts *SetupOptions) error {
 		logrus.Infof("pasta logged warnings: %q", string(out))
 	}
 
-	return nil
+	var ipv4, ipv6 bool
+	result := &SetupResult{}
+	err = ns.WithNetNSPath(opts.Netns, func(_ ns.NetNS) error {
+		addrs, err := net.InterfaceAddrs()
+		if err != nil {
+			return err
+		}
+		for _, addr := range addrs {
+			// make sure to skip localhost and other special addresses
+			if ipnet, ok := addr.(*net.IPNet); ok && ipnet.IP.IsGlobalUnicast() {
+				result.IPAddresses = append(result.IPAddresses, ipnet.IP)
+				if !ipv4 && util.IsIPv4(ipnet.IP) {
+					ipv4 = true
+				}
+				if !ipv6 && util.IsIPv6(ipnet.IP) {
+					ipv6 = true
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result.IPv6 = ipv6
+	for _, ip := range dnsForwardIPs {
+		ipp := net.ParseIP(ip)
+		// add the namesever ip only if the address family matches
+		if ipv4 && util.IsIPv4(ipp) || ipv6 && util.IsIPv6(ipp) {
+			result.DNSForwardIPs = append(result.DNSForwardIPs, ip)
+		}
+	}
+
+	return result, nil
 }
