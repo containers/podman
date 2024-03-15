@@ -1333,6 +1333,11 @@ exists on the host, pulling it if needed.
 Using image units allows containers and volumes to depend on images being automatically pulled. This is
 particularly interesting when using special options to control image pulls.
 
+Note: The generated service have a dependency on `network-online.target` assuring the network is reachable if
+an image needs to be pulled.
+If the image service needs to run without available network (e.g. early in boot), the requirement can be
+overriden simply by adding an empty `After=` in the unit file. This will unset all previously set After's.
+
 Valid options for `[Image]` are listed below:
 
 | **[Image] options**                    | **podman image pull equivalent**                 |
