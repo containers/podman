@@ -83,10 +83,12 @@
 - A new API endpoint, `/libpod/images/$name/resolve`, has been added to resolve a (potential) short name to a list of fully-qualified image references Podman which could be used to pull the image.
 - Fixed a bug where the List API for Images did not properly handle filters and would discard all but the last listed filter.
 - Fixed a bug in the Docker Create API for Containers where entries from `/etc/hosts` were copied into create containers, resulting in incompatibility with network aliases.
+- Fixed a bug in the Libpod and Docker Exec APIs for Containers which caused incorrect header values to be set when upgrading a connection for an interactive exec session.
 - The API bindings have been refactored to reduce code size, leading to smaller binaries ([#17167](https://github.com/containers/podman/issues/17167)).
 
 ### Misc
 - Failed image pulls will now generate an event including the error.
+- The gzip compression library used for sending build contexts, improving performance for remote `podman build`.
 - Updated Buildah to v1.35.0
 - Updated the containers/image library to v5.30.0
 - Updated the containers/storage library to v1.53.0
