@@ -38,8 +38,8 @@ github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA
 github.com/cespare/xxhash/v2 v2.2.0 h1:DC2CZ1Ep5Y4k3ZQ899DldepgrayRUGE6BBZ/cd9Cj44=
 github.com/checkpoint-restore/checkpointctl v1.1.0 h1:plS/2zBzbAXO6DH/H+TqD7ZGhz8iQVb+NLgsOJSTWaw=
 github.com/checkpoint-restore/checkpointctl v1.1.0/go.mod h1:DtPd9M4bt/jdt+7DodFxm0lrzdevabk3cbni/FL4BY0=
-github.com/checkpoint-restore/go-criu/v7 v7.0.0 h1:R4UF/njKOuq8ooG7naFGsCeKsjv5j+rIhgFgSSeC2KY=
-github.com/checkpoint-restore/go-criu/v7 v7.0.0/go.mod h1:xD1v3cPww1QYpJR3+XTTdC8hYubPnptIPsT1daXhbr4=
+github.com/checkpoint-restore/go-criu/v7 v7.1.0 h1:JbQyO4o+P8ycNTMLPiiDqXg49bAcy4WljWCzYQho35A=
+github.com/checkpoint-restore/go-criu/v7 v7.1.0/go.mod h1:1svAtmbtvX4BKI45OFzgoTTLG7oYFKdColv/Vcsb2A8=
 github.com/chenzhuoyu/base64x v0.0.0-20211019084208-fb5309c8db06/go.mod h1:DH46F32mSOjUmXrMHnKwZdA8wcEefY7UVqBKYGjpdQY=
 github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311/go.mod h1:b583jCggY9gE99b6G5LEC39OIiVsWj+R97kbl5odCEk=
 github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d h1:77cEq6EriyTZ0g/qfRdp61a3Uu/AWrgIq2s0ClJV1g0=

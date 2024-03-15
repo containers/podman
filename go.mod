@@ -8,7 +8,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/buger/goterm v1.0.4
 	github.com/checkpoint-restore/checkpointctl v1.1.0
-	github.com/checkpoint-restore/go-criu/v7 v7.0.0
+	github.com/checkpoint-restore/go-criu/v7 v7.1.0
 	github.com/containernetworking/plugins v1.4.0
 	github.com/containers/buildah v1.35.0
 	github.com/containers/common v0.58.0

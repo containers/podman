@@ -1,7 +1,7 @@
 package criu
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/checkpoint-restore/go-criu/v7/rpc"
 )
@@ -38,7 +38,7 @@ func (c *Criu) FeatureCheck(features *rpc.CriuFeatures) (*rpc.CriuFeatures, erro
 	}
 
 	if resp.GetType() != rpc.CriuReqType_FEATURE_CHECK {
-		return nil, fmt.Errorf("unexpected CRIU RPC response")
+		return nil, errors.New("unexpected CRIU RPC response")
 	}
 
 	return features, nil
