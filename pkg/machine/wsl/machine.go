@@ -103,6 +103,14 @@ func provisionWSLDist(name string, imagePath string, prompt string) (string, err
 		return "", fmt.Errorf("package permissions restore of shadow-utils on guest OS failed: %w", err)
 	}
 
+	if err = wslInvoke(dist, "mkdir", "-p", "/usr/local/bin"); err != nil {
+		return "", fmt.Errorf("could not create /usr/local/bin: %w", err)
+	}
+
+	if err = wslInvoke(dist, "ln", "-f", "-s", gvForwarderPath, "/usr/local/bin/vm"); err != nil {
+		return "", fmt.Errorf("could not setup compatibility link: %w", err)
+	}
+
 	return dist, nil
 }
 
