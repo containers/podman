@@ -12,12 +12,12 @@ import (
 	"time"
 
 	"github.com/containers/podman/v5/pkg/machine"
+	"github.com/containers/podman/v5/version"
 	"github.com/sirupsen/logrus"
 )
 
 const (
-	githubX86ReleaseURL = "https://github.com/containers/podman-wsl-fedora/releases/latest/download/rootfs.tar.xz"
-	githubArmReleaseURL = "https://github.com/containers/podman-wsl-fedora-arm/releases/latest/download/rootfs.tar.xz"
+	latestReleaseURL = "https://github.com/containers/podman-machine-wsl-os/releases/latest/download"
 )
 
 type FedoraDownload struct {
@@ -46,23 +46,20 @@ func (f FedoraDownload) CleanCache() error {
 }
 
 func GetFedoraDownloadForWSL() (*url.URL, string, string, int64, error) {
-	var releaseURL string
 	arch := machine.DetermineMachineArch()
-	switch arch {
-	case "arm64":
-		releaseURL = githubArmReleaseURL
-	case "amd64":
-		releaseURL = githubX86ReleaseURL
-	default:
+	if arch != "amd64" && arch != "arm64" {
 		return nil, "", "", -1, fmt.Errorf("CPU architecture %q is not supported", arch)
 	}
 
-	downloadURL, err := url.Parse(releaseURL)
+	releaseURL, err := url.Parse(latestReleaseURL)
 	if err != nil {
-		return nil, "", "", -1, fmt.Errorf("invalid URL generated from discovered Fedora file: %s: %w", releaseURL, err)
+		return nil, "", "", -1, fmt.Errorf("could not parse release URL: %s: %w", releaseURL, err)
 	}
 
-	resp, err := http.Head(releaseURL)
+	rootFs := fmt.Sprintf("%d.%d-rootfs-%s.tar.zst", version.Version.Major, version.Version.Minor, arch)
+	rootFsURL := appendToURL(releaseURL, rootFs)
+
+	resp, err := http.Head(rootFsURL.String())
 	if err != nil {
 		return nil, "", "", -1, fmt.Errorf("head request failed: %s: %w", releaseURL, err)
 	}
@@ -70,12 +67,10 @@ func GetFedoraDownloadForWSL() (*url.URL, string, string, int64, error) {
 	contentLen := resp.ContentLength
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, "", "", -1, fmt.Errorf("head request failed: %s: %w", releaseURL, err)
+		return nil, "", "", -1, fmt.Errorf("head request failed: %s: %w", rootFsURL, err)
 	}
 
-	verURL := *downloadURL
-	verURL.Path = path.Join(path.Dir(downloadURL.Path), "version")
-
+	verURL := appendToURL(releaseURL, "version")
 	resp, err = http.Get(verURL.String())
 	if err != nil {
 		return nil, "", "", -1, fmt.Errorf("get request failed: %s: %w", verURL.String(), err)
@@ -90,5 +85,11 @@ func GetFedoraDownloadForWSL() (*url.URL, string, string, int64, error) {
 	if err != nil {
 		return nil, "", "", -1, fmt.Errorf("failed reading: %s: %w", verURL.String(), err)
 	}
-	return downloadURL, strings.TrimSpace(string(b)), arch, contentLen, nil
+	return rootFsURL, strings.TrimSpace(string(b)), arch, contentLen, nil
+}
+
+func appendToURL(url *url.URL, elem string) *url.URL {
+	newURL := *url
+	newURL.Path = path.Join(url.Path, elem)
+	return &newURL
 }
