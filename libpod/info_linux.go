@@ -18,6 +18,7 @@ import (
 	"github.com/containers/common/pkg/version"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/rootless"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 )
@@ -90,7 +91,7 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 		info.Pasta = program
 	}
 
-	if rootless.IsRootless() {
+	if unshare.IsRootless() {
 		uidmappings, err := rootless.ReadMappingsProc("/proc/self/uid_map")
 		if err != nil {
 			return fmt.Errorf("reading uid mappings: %w", err)
