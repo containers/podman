@@ -612,6 +612,20 @@ func TestGetRootlessKeepIDMapping(t *testing.T) {
 			expectedUID: 1000,
 			expectedGID: 1000,
 		},
+		{
+			uid:  0,
+			gid:  0,
+			uids: []idtools.IDMap{{ContainerID: 0, HostID: 100000, Size: 65536}},
+			gids: []idtools.IDMap{{ContainerID: 0, HostID: 100000, Size: 65536}},
+			expectedOptions: &stypes.IDMappingOptions{
+				HostUIDMapping: false,
+				HostGIDMapping: false,
+				UIDMap:         []idtools.IDMap{{ContainerID: 0, HostID: 0, Size: 1}, {ContainerID: 1, HostID: 1, Size: 65536}},
+				GIDMap:         []idtools.IDMap{{ContainerID: 0, HostID: 0, Size: 1}, {ContainerID: 1, HostID: 1, Size: 65536}},
+			},
+			expectedUID: 0,
+			expectedGID: 0,
+		},
 	}
 
 	for _, test := range tests {

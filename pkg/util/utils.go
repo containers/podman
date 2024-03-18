@@ -195,7 +195,7 @@ func getRootlessKeepIDMapping(uid, gid int, uids, gids []idtools.IDMap) (*stypes
 
 	options.UIDMap, options.GIDMap = nil, nil
 
-	if len(uids) > 0 {
+	if len(uids) > 0 && uid != 0 {
 		options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: min(uid, maxUID)})
 	}
 	options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid, HostID: 0, Size: 1})
@@ -203,7 +203,7 @@ func getRootlessKeepIDMapping(uid, gid int, uids, gids []idtools.IDMap) (*stypes
 		options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid + 1, HostID: uid + 1, Size: maxUID - uid})
 	}
 
-	if len(gids) > 0 {
+	if len(gids) > 0 && gid != 0 {
 		options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: min(gid, maxGID)})
 	}
 	options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid, HostID: 0, Size: 1})
