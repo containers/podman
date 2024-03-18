@@ -66,7 +66,8 @@ WantedBy=default.target
 
 		checkAvailableJournald()
 		if !journald.journaldSkip {
-			logs := SystemExec("journalctl", []string{dashWhat, "-n", "20", "-u", serviceName})
+			// "-q" needed on fc40+ because something creates /run/log/journal/XXX 2750
+			logs := SystemExec("journalctl", []string{dashWhat, "-q", "-n", "20", "-u", serviceName})
 			Expect(logs).Should(ExitCleanly())
 		}
 
