@@ -218,5 +218,13 @@ lint: install.tools
 # CAUTION: This is not a replacement for RPMs provided by your distro.
 # Only intended to build and test the latest unreleased changes.
 .PHONY: rpm
-rpm:
-	rpkg local
+rpm:  ## Build rpm packages
+	$(MAKE) -C rpm
+
+# Remember that rpms install exec to /usr/bin/buildah while a `make install`
+# installs them to /usr/local/bin/buildah which is likely before. Always use
+# a full path to test installed buildah or you risk to call another executable.
+.PHONY: rpm-install
+rpm-install: package  ## Install rpm packages
+	$(call err_if_empty,PKG_MANAGER) -y install rpm/RPMS/*/*.rpm
+	/usr/bin/buildah version
