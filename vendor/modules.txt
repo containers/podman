@@ -89,7 +89,7 @@ github.com/bytedance/sonic/utf8
 # github.com/checkpoint-restore/checkpointctl v1.1.0
 ## explicit; go 1.18
 github.com/checkpoint-restore/checkpointctl/lib
-# github.com/checkpoint-restore/go-criu/v7 v7.0.0
+# github.com/checkpoint-restore/go-criu/v7 v7.1.0
 ## explicit; go 1.18
 github.com/checkpoint-restore/go-criu/v7
 github.com/checkpoint-restore/go-criu/v7/rpc
@@ -141,7 +141,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.4.0
 ## explicit; go 1.20
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.35.0
+# github.com/containers/buildah v1.35.1-0.20240318192459-e64e6cc09dfd
 ## explicit; go 1.20
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -171,7 +171,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.58.0
+# github.com/containers/common v0.58.1-0.20240318131753-6f1c96f53a78
 ## explicit; go 1.20
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
@@ -470,7 +470,7 @@ github.com/distribution/reference
 github.com/docker/distribution/registry/api/errcode
 github.com/docker/distribution/registry/api/v2
 github.com/docker/distribution/registry/client/auth/challenge
-# github.com/docker/docker v25.0.3+incompatible
+# github.com/docker/docker v25.0.4+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
@@ -646,12 +646,7 @@ github.com/gogo/protobuf/proto
 github.com/golang/groupcache/lru
 # github.com/golang/protobuf v1.5.3
 ## explicit; go 1.9
-github.com/golang/protobuf/jsonpb
 github.com/golang/protobuf/proto
-github.com/golang/protobuf/ptypes
-github.com/golang/protobuf/ptypes/any
-github.com/golang/protobuf/ptypes/duration
-github.com/golang/protobuf/ptypes/timestamp
 # github.com/google/go-cmp v0.6.0
 ## explicit; go 1.13
 github.com/google/go-cmp/cmp
@@ -1282,10 +1277,10 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20231212172506-995d672761c0
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20240123012728-ef4313101c80
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.61.0
+# google.golang.org/grpc v1.62.0
 ## explicit; go 1.19
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -1364,6 +1359,7 @@ google.golang.org/protobuf/internal/set
 google.golang.org/protobuf/internal/strs
 google.golang.org/protobuf/internal/version
 google.golang.org/protobuf/proto
+google.golang.org/protobuf/protoadapt
 google.golang.org/protobuf/reflect/protodesc
 google.golang.org/protobuf/reflect/protoreflect
 google.golang.org/protobuf/reflect/protoregistry

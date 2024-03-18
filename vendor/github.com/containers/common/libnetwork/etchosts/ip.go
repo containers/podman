@@ -1,6 +1,8 @@
 package etchosts
 
 import (
+	"net"
+
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/libnetwork/util"
 	"github.com/containers/common/pkg/config"
@@ -8,9 +10,16 @@ import (
 	"github.com/containers/storage/pkg/unshare"
 )
 
-// GetHostContainersInternalIP return the host.containers.internal ip
+// GetHostContainersInternalIP returns the host.containers.internal ip
 // if netStatus is not nil then networkInterface also must be non nil otherwise this function panics
 func GetHostContainersInternalIP(conf *config.Config, netStatus map[string]types.StatusBlock, networkInterface types.ContainerNetwork) string {
+	return GetHostContainersInternalIPExcluding(conf, netStatus, networkInterface, nil)
+}
+
+// GetHostContainersInternalIPExcluding returns the host.containers.internal ip
+// Exclude are ips that should not be returned, this is useful to prevent returning the same ip as in the container.
+// if netStatus is not nil then networkInterface also must be non nil otherwise this function panics
+func GetHostContainersInternalIPExcluding(conf *config.Config, netStatus map[string]types.StatusBlock, networkInterface types.ContainerNetwork, exclude []net.IP) string {
 	switch conf.Containers.HostContainersInternalIP {
 	case "":
 		// if empty (default) we will automatically choose one below
@@ -27,7 +36,7 @@ func GetHostContainersInternalIP(conf *config.Config, netStatus map[string]types
 	// Only use the bridge ip when root, as rootless the interfaces are created
 	// inside the special netns and not the host so we cannot use them.
 	if unshare.IsRootless() {
-		return util.GetLocalIP()
+		return util.GetLocalIPExcluding(exclude)
 	}
 	for net, status := range netStatus {
 		network, err := networkInterface.NetworkInspect(net)
@@ -51,7 +60,7 @@ func GetHostContainersInternalIP(conf *config.Config, netStatus map[string]types
 	if ip != "" {
 		return ip
 	}
-	return util.GetLocalIP()
+	return util.GetLocalIPExcluding(exclude)
 }
 
 // GetNetworkHostEntries returns HostEntries for all ips in the network status
