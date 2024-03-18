@@ -15,7 +15,6 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/domain/entities"
-	"github.com/containers/podman/v5/utils"
 	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
 )
@@ -243,12 +242,7 @@ func (s *containerStats) MemUsageBytes() string {
 }
 
 func floatToPercentString(f float64) string {
-	strippedFloat, err := utils.RemoveScientificNotationFromFloat(f)
-	if err != nil {
-		// If things go bazinga, return a safe value
-		return "--"
-	}
-	return fmt.Sprintf("%.2f", strippedFloat) + "%"
+	return fmt.Sprintf("%.2f%%", f)
 }
 
 func combineHumanValues(a, b uint64) string {

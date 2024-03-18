@@ -10,7 +10,6 @@ import (
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/rootless"
-	"github.com/containers/podman/v5/utils"
 	"github.com/docker/go-units"
 )
 
@@ -85,12 +84,7 @@ func combineBytesValues(a, b uint64) string {
 }
 
 func floatToPercentString(f float64) string {
-	strippedFloat, err := utils.RemoveScientificNotationFromFloat(f)
-	if err != nil || strippedFloat == 0 {
-		// If things go bazinga, return a safe value
-		return "--"
-	}
-	return fmt.Sprintf("%.2f", strippedFloat) + "%"
+	return fmt.Sprintf("%.2f%%", f)
 }
 
 func pidsToString(pid uint64) string {
