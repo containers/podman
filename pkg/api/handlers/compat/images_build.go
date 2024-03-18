@@ -50,7 +50,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	contextDirectory, err := extractTarFile(r)
+	anchorDir, err := os.MkdirTemp("", "libpod_builder")
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -64,11 +64,17 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		err := os.RemoveAll(filepath.Dir(contextDirectory))
+		err := os.RemoveAll(anchorDir)
 		if err != nil {
-			logrus.Warn(fmt.Errorf("failed to remove build scratch directory %q: %w", filepath.Dir(contextDirectory), err))
+			logrus.Warn(fmt.Errorf("failed to remove build scratch directory %q: %w", anchorDir, err))
 		}
 	}()
+
+	contextDirectory, err := extractTarFile(anchorDir, r)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
 
 	query := struct {
 		AddHosts                string   `schema:"extrahosts"`
@@ -884,13 +890,7 @@ func parseLibPodIsolation(isolation string) (buildah.Isolation, error) {
 	return parse.IsolationOption(isolation)
 }
 
-func extractTarFile(r *http.Request) (string, error) {
-	// build a home for the request body
-	anchorDir, err := os.MkdirTemp("", "libpod_builder")
-	if err != nil {
-		return "", err
-	}
-
+func extractTarFile(anchorDir string, r *http.Request) (string, error) {
 	path := filepath.Join(anchorDir, "tarBall")
 	tarBall, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
