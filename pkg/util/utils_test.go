@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/containers/storage/pkg/idtools"
+	stypes "github.com/containers/storage/types"
 	ruser "github.com/moby/sys/user"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/assert"
@@ -587,4 +588,37 @@ func TestConvertTimeout(t *testing.T) {
 
 	timeout = ConvertTimeout(-100)
 	assert.Equal(t, uint(math.MaxUint32), timeout)
+}
+
+func TestGetRootlessKeepIDMapping(t *testing.T) {
+	tests := []struct {
+		uid, gid                 int
+		uids, gids               []idtools.IDMap
+		expectedOptions          *stypes.IDMappingOptions
+		expectedUID, expectedGID int
+		expectedError            error
+	}{
+		{
+			uid:  1000,
+			gid:  1000,
+			uids: []idtools.IDMap{},
+			gids: []idtools.IDMap{},
+			expectedOptions: &stypes.IDMappingOptions{
+				HostUIDMapping: false,
+				HostGIDMapping: false,
+				UIDMap:         []idtools.IDMap{{ContainerID: 1000, HostID: 0, Size: 1}},
+				GIDMap:         []idtools.IDMap{{ContainerID: 1000, HostID: 0, Size: 1}},
+			},
+			expectedUID: 1000,
+			expectedGID: 1000,
+		},
+	}
+
+	for _, test := range tests {
+		options, uid, gid, err := getRootlessKeepIDMapping(test.uid, test.gid, test.uids, test.gids)
+		assert.Nil(t, err)
+		assert.Equal(t, test.expectedOptions, options)
+		assert.Equal(t, test.expectedUID, uid)
+		assert.Equal(t, test.expectedGID, gid)
+	}
 }
