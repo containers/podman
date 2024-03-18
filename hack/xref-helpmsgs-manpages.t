@@ -130,7 +130,7 @@ $mclone->{events}{"--format"}{".Attributes"} = 0;
 $mclone->{events}{"--format"}{".Image"} = '...';
 $mclone->{events}{"--format"}{".Status"} = 1;
 $hclone->{events}{"--format"}{".Status"} = '...';
-$mclone->{events}{"--format"}{".ToHumanReadable"} = 3;
+$mclone->{pod}{ps}{"--format"}{".Label"} = 3;
 $mclone->{ps}{"--format"}{".Label"} = 0;
 # --format is documented, with a table, but one entry missing
 delete $mclone->{events}{"--format"}{".Type"};
@@ -154,11 +154,11 @@ test_xref("xref_by_help() injection", $hclone, $mclone,
               "'podman events --format {{.Attributes' is a nested structure. Please add '...' to man page.",
               "'podman events --format {{.Image' is a simple value, not a nested structure. Please remove '...' from man page.",
               "'podman events --format {{.Status' is a nested structure, but the man page documents it as a function?!?",
-              "'podman events --format {{.ToHumanReadable' is a function that calls for 1 args; the man page lists 3. Please fix the man page.",
               "'podman events --format <TAB>' lists '.Type', which is not in podman-events.1.md",
               "'podman  --help' lists 'new-command-in-help', which is not in podman.1.md",
               "'podman partlydocumented' is not documented in man pages!",
               "'podman pod inspect --help' lists '-l', which is not in podman-pod-inspect.1.md",
+              "'podman pod ps --format {{.Label' is a function that calls for 1 args; the man page lists 3. Please fix the man page.",
               "'podman ps --format {{.Label' is a function that calls for 1 args. Please investigate what those are, then add them to the man page. E.g., '.Label *bool*' or '.Label *path* *bool*'",
               "'podman secret --help' lists 'subcommand-in-help', which is not in podman-secret.1.md",
           ],
