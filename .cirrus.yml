@@ -403,6 +403,7 @@ build_success_task:
     depends_on:
         - build
         - validate
+        - buildah_bud_test
         - build_aarch64
         - validate_aarch64
         - alt_build
@@ -967,7 +968,8 @@ buildah_bud_test_task:
     alias: buildah_bud_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_magic
-    depends_on: *build
+    depends_on:
+        - validate
     env:
         <<: *stdenvars
         TEST_FLAVOR: bud
@@ -976,6 +978,12 @@ buildah_bud_test_task:
             PODBIN_NAME: podman
         - env:
             PODBIN_NAME: remote
+        - env:
+            PODBIN_NAME: podman
+            PRIV_NAME: rootless
+        - env:
+            PODBIN_NAME: remote
+            PRIV_NAME: rootless
     gce_instance: *standardvm
     timeout_in: 45m
     clone_script: *get_gosrc
