@@ -283,7 +283,7 @@ cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 %{!?_licensedir:%global license %doc}
 
 %files -f %{name}.file-list
-%license LICENSE
+%license LICENSE vendor/modules.txt
 %doc README.md CONTRIBUTING.md install.md transfer.md
 %{_bindir}/%{name}
 %dir %{_libexecdir}/%{name}
