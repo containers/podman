@@ -203,6 +203,8 @@ sub xref_by_help {
 
   OPTION:
     for my $k (sort keys %$help) {
+        next if $k =~ /^_/;             # metadata ("_desc"). Ignore.
+
         if (! ref($man)) {
             # Super-unlikely but I've seen it
             warn "$ME: 'podman @subcommand' is not documented in man pages!\n";
@@ -354,16 +356,38 @@ sub xref_by_man {
 ##############
 #  xref_rst  #  Cross-check *.rst files against help
 ##############
+#
+# This makes a pass over top-level commands only. There is no rst
+# documentation for any podman subcommands.
+#
 sub xref_rst {
-    my ($help, $rst, @subcommand) = @_;
+    my ($help, $rst) = @_;
 
-    # Cross-check against rst (but only subcommands, not options).
+
     # We key on $help because that is Absolute Truth: anything in podman --help
-    # must be referenced in an rst (the converse is not true).
-    for my $k (sort grep { $_ !~ /^-/ } keys %$help) {
-        # Check for subcommands, if any (eg podman system -> connection -> add)
-        if (ref $help->{$k}) {
-            xref_rst($help->{$k}, $rst->{$k}, @subcommand, $k);
+    # must be referenced in an rst (the converse is not necessarily true)
+    for my $k (sort grep { $_ !~ /^[_-]/ } keys %$help) {
+        if (exists $rst->{$k}) {
+            # Descriptions must match
+            if ($rst->{$k}{_desc} ne $help->{$k}{_desc}) {
+                warn "$ME: podman $k: inconsistent description in $rst->{$k}{_source}:\n";
+                warn "   help: '$help->{$k}{_desc}'\n";
+                warn "   rst:  '$rst->{$k}{_desc}'\n";
+                ++$Errs;
+            }
+        }
+        else {
+            warn "$ME: Not found in rst: $k\n";
+            ++$Errs;
+         }
+    }
+
+    # Now the other way around: look for anything in Commands.rst that is
+    # not in podman --help
+    for my $k (sort grep { $rst->{$_}{_source} =~ /Commands.rst/ } keys %$rst) {
+        if ($k ne 'Podman' && ! exists $help->{$k}) {
+            warn "$ME: 'podman $k' found in $rst->{$k}{_source} but not 'podman help'\n";
+            ++$Errs;
         }
     }
 }
@@ -381,7 +405,17 @@ sub podman_help {
         or die "$ME: Cannot fork: $!\n";
     my $section = '';
     while (my $line = <$fh>) {
+        chomp $line;
+
+        # First line of --help is a short command description. We compare it
+        # (in a later step) against the blurb in Commands.rst.
+        # FIXME: we should crossref against man pages, but as of 2024-03-18
+        # it would be way too much work to get those aligned.
+        $help{_desc} //= $line;
+
         # Cobra is blessedly consistent in its output:
+        #    [command blurb]
+        #    Description: ...
         #    Usage: ...
         #    Available Commands:
         #       ....
@@ -840,14 +874,8 @@ sub podman_rst {
         if ($command eq 'Commands') {
             ;
         }
-        elsif ($command eq 'managecontainers') {
-            $subcommand_href = $rst{container} //= { };
-        }
-        elsif ($command eq 'connection') {
-            $subcommand_href = $rst{system}{connection} //= { };
-        }
         else {
-            $subcommand_href = $rst{$command} //= { };
+            $subcommand_href = $rst{$command} //= { _source => $rst };
         }
 
         my $previous_subcommand = '';
@@ -855,15 +883,20 @@ sub podman_rst {
             if ($line =~ /^:doc:`(\S+)\s+<(.*?)>`\s+(.*)/) {
                 my ($subcommand, $target, $desc) = ($1, $2, $3);
 
-                # Check that entries are in alphabetical order
+                # Check that entries are in alphabetical order, and not dups
                 if ($subcommand lt $previous_subcommand) {
                     warn "$ME: $rst:$.: '$previous_subcommand' and '$subcommand' are out of order\n";
+                    ++$Errs;
+                }
+                if ($subcommand eq $previous_subcommand) {
+                    warn "$ME: $rst:$.: duplicate '$subcommand'\n";
                     ++$Errs;
                 }
                 $previous_subcommand = $subcommand;
 
                 # Mark this subcommand as documented.
                 $subcommand_href->{$subcommand}{_desc} = $desc;
+                $subcommand_href->{$subcommand}{_source} = $rst;
 
                 # Check for invalid links. These will be one of two forms:
                 #    <markdown/foo.1>     -> markdown/foo.1.md
@@ -873,10 +906,20 @@ sub podman_rst {
                         warn "$ME: $rst:$.: '$subcommand' links to nonexistent $target\n";
                         ++$Errs;
                     }
+
+                    my $expect = "markdown/podman-$subcommand.1";
+                    if ($subcommand eq 'Podman') {
+                        $expect = "markdown/podman.1";
+                    }
+                    if ($target ne $expect) {
+                        warn "$ME: $rst:$.: '$subcommand' links to $target (expected '$expect')\n";
+                        ++$Errs;
+                    }
                 }
                 else {
                     if (! -e "$Docs_Path/$target.rst") {
                         warn "$ME: $rst:$.: '$subcommand' links to nonexistent $target.rst\n";
+                        ++$Errs;
                     }
                 }
             }
