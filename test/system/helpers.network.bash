@@ -208,15 +208,31 @@ EOF
 # ipv4_get_route_default() - Print first default IPv4 route reported by netlink
 # $1:	Optional output of 'ip -j -4 route show' from a different context
 function ipv4_get_route_default() {
-    local jq_expr='[.[] | select(.dst == "default").gateway] | .[0]'
-    echo "${1:-$(ip -j -4 route show)}" | jq -rM "${jq_expr}"
+    local jq_gw='[.[] | select(.dst == "default").gateway] | .[0]'
+    local jq_nh='[.[] | select(.dst == "default").nexthops[0].gateway] | .[0]'
+    local out
+
+    out="$(echo "${1:-$(ip -j -4 route show)}" | jq -rM "${jq_gw}")"
+    if [ "${out}" = "null" ]; then
+        out="$(echo "${1:-$(ip -j -4 route show)}" | jq -rM "${jq_nh}")"
+    fi
+
+    echo "${out}"
 }
 
 # ipv6_get_route_default() - Print first default IPv6 route reported by netlink
 # $1:	Optional output of 'ip -j -6 route show' from a different context
 function ipv6_get_route_default() {
-    local jq_expr='[.[] | select(.dst == "default").gateway] | .[0]'
-    echo "${1:-$(ip -j -6 route show)}" | jq -rM "${jq_expr}"
+    local jq_gw='[.[] | select(.dst == "default").gateway] | .[0]'
+    local jq_nh='[.[] | select(.dst == "default").nexthops[0].gateway] | .[0]'
+    local out
+
+    out="$(echo "${1:-$(ip -j -6 route show)}" | jq -rM "${jq_gw}")"
+    if [ "${out}" = "null" ]; then
+        out="$(echo "${1:-$(ip -j -6 route show)}" | jq -rM "${jq_nh}")"
+    fi
+
+    echo "${out}"
 }
 
 # ether_get_mtu() - Get MTU of first Ethernet-like link
@@ -373,10 +389,17 @@ function tcp_port_probe() {
 ### Pasta Helpers ##############################################################
 
 function default_ifname() {
+    local jq_expr='[.[] | select(.dst == "default").dev] | .[0]'
+    local jq_expr_nh='[.[] | select(.dst == "default").nexthops[0].dev] | .[0]'
     local ip_ver="${1}"
+    local out
 
-    local expr='[.[] | select(.dst == "default").dev] | .[0]'
-    ip -j -"${ip_ver}" route show | jq -rM "${expr}"
+    out="$(ip -j -"${ip_ver}" route show | jq -rM "${jq_expr}")"
+    if [ "${out}" = "null" ]; then
+        out="$(ip -j -"${ip_ver}" route show | jq -rM "${jq_expr_nh}")"
+    fi
+
+    echo "${out}"
 }
 
 function default_addr() {
