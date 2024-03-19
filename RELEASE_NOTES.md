@@ -1,6 +1,9 @@
 # Release Notes
 
 ## 5.0.0
+### Security
+- Fixed [CVE-2024-1753](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-1753) in Buildah and `podman build` which allowed a user to write files to the `/` directory of the host machine if selinux was not enabled.
+
 ### Features
 - VMs created by `podman machine` can now use the native Apple hypervisor (`applehv`) when run on MacOS.
 - A new command has been added, `podman machine reset`, which will remove all existing `podman machine` VMs and relevant configurations.
