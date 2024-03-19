@@ -2,6 +2,10 @@
 
 # Changelog
 
+## v1.35.1 (2024-03-18)
+
+    [release-1.35] CVE-2024-1753 container escape fix
+
 ## v1.35.0 (2024-03-06)
 
     fix(deps): update module github.com/stretchr/testify to v1.9.0
