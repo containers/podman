@@ -30,7 +30,7 @@ func pullWSLDisk() error {
 	if downloadLocation == "" {
 		return errors.New("machine tests require a file reference to a disk image right now")
 	}
-	compressionExtension := ".xz"
+	compressionExtension := ".zst"
 	suiteImageName = strings.TrimSuffix(path.Base(downloadLocation), compressionExtension)
 	fqImageName = filepath.Join(tmpDir, suiteImageName)
 	getMe, err := url2.Parse(downloadLocation)
