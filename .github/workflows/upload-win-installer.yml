@@ -84,7 +84,7 @@ jobs:
     - name: Confirm upload_asset_name is non-empty
       if: ${{ steps.check.outputs.upload_asset_name == '' }}
       run: |
-          Write-Output "::error::check.ps1 script failed to find manually uploaded podman-remote-release-windows_md64.zip github release asset for version ${{steps.getversion.outputs.version}}."
+          Write-Output "::error::check.ps1 script failed to find manually uploaded podman-remote-release-windows_amd64.zip github release asset for version ${{steps.getversion.outputs.version}}."
           Exit 1
     - name: Set up Go
       uses: actions/setup-go@v5
