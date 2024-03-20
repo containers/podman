@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"net"
 	"os"
 	"os/user"
 	"path"
@@ -2116,8 +2117,8 @@ func (c *Container) addResolvConf() error {
 		// first add the nameservers from the networks status
 		nameservers = networkNameServers
 
-		// slirp4netns has a built in DNS forwarder.
-		nameservers = c.addSlirp4netnsDNS(nameservers)
+		// pasta and slirp4netns have a built in DNS forwarder.
+		nameservers = c.addSpecialDNS(nameservers)
 	}
 
 	// Set DNS search domains
@@ -2165,6 +2166,10 @@ func (c *Container) checkForIPv6(netStatus map[string]types.StatusBlock) bool {
 				}
 			}
 		}
+	}
+
+	if c.pastaResult != nil {
+		return c.pastaResult.IPv6
 	}
 
 	return c.isSlirp4netnsIPv6()
@@ -2225,11 +2230,10 @@ func (c *Container) getHostsEntries() (etchosts.HostEntries, error) {
 	case c.config.NetMode.IsBridge():
 		entries = etchosts.GetNetworkHostEntries(c.state.NetworkStatus, names...)
 	case c.config.NetMode.IsPasta():
-		ip, err := getPastaIP(c.state)
-		if err != nil {
-			return nil, err
+		// this should never be the case but check just to be sure and not panic
+		if len(c.pastaResult.IPAddresses) > 0 {
+			entries = etchosts.HostEntries{{IP: c.pastaResult.IPAddresses[0].String(), Names: names}}
 		}
-		entries = etchosts.HostEntries{{IP: ip.String(), Names: names}}
 	case c.config.NetMode.IsSlirp4netns():
 		ip, err := getSlirp4netnsIP(c.slirp4netnsSubnet)
 		if err != nil {
@@ -2276,12 +2280,18 @@ func (c *Container) addHosts() error {
 		return err
 	}
 
+	var exclude []net.IP
+	if c.pastaResult != nil {
+		exclude = c.pastaResult.IPAddresses
+	}
+
 	return etchosts.New(&etchosts.Params{
-		BaseFile:                 baseHostFile,
-		ExtraHosts:               c.config.HostAdd,
-		ContainerIPs:             containerIPsEntries,
-		HostContainersInternalIP: etchosts.GetHostContainersInternalIP(c.runtime.config, c.state.NetworkStatus, c.runtime.network),
-		TargetFile:               targetFile,
+		BaseFile:     baseHostFile,
+		ExtraHosts:   c.config.HostAdd,
+		ContainerIPs: containerIPsEntries,
+		HostContainersInternalIP: etchosts.GetHostContainersInternalIPExcluding(
+			c.runtime.config, c.state.NetworkStatus, c.runtime.network, exclude),
+		TargetFile: targetFile,
 	})
 }
 

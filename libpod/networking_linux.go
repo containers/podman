@@ -11,7 +11,6 @@ import (
 
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/common/libnetwork/types"
-	netUtil "github.com/containers/common/libnetwork/util"
 	"github.com/containers/common/pkg/netns"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/rootless"
@@ -299,14 +298,4 @@ func (c *Container) inspectJoinedNetworkNS(networkns string) (q types.StatusBloc
 		return nil
 	})
 	return result, err
-}
-
-func getPastaIP(state *ContainerState) (net.IP, error) {
-	var ip string
-	err := ns.WithNetNSPath(state.NetNS, func(_ ns.NetNS) error {
-		// get the first ip in the netns
-		ip = netUtil.GetLocalIP()
-		return nil
-	})
-	return net.ParseIP(ip), err
 }

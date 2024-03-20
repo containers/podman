@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/libnetwork/pasta"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/secrets"
@@ -127,6 +128,7 @@ type Container struct {
 	restoreFromCheckpoint bool
 
 	slirp4netnsSubnet *net.IPNet
+	pastaResult       *pasta.SetupResult
 }
 
 // ContainerState contains the current state of the container

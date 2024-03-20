@@ -59,14 +59,31 @@ func NormalizeIP(ip *net.IP) {
 // If no ipv4 address is found it may return an ipv6 address.
 // When no ip is found and empty string is returned.
 func GetLocalIP() string {
+	return GetLocalIPExcluding(nil)
+}
+
+// GetLocalIPExcluding returns the first non loopback local IPv4 of the host.
+// If no ipv4 address is found it may return an ipv6 address.
+// Additionally you can specify a list of ips that should not be returned.
+// When no ip is found and empty string is returned.
+func GetLocalIPExcluding(exclude []net.IP) string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return ""
 	}
 	ip := ""
+outer:
 	for _, address := range addrs {
 		// check the address type and if it is not a loopback the display it
 		if ipnet, ok := address.(*net.IPNet); ok && ipnet.IP.IsGlobalUnicast() {
+			// cannot use slices.Contains for net.IP
+			for _, eip := range exclude {
+				if eip.Equal(ipnet.IP) {
+					// ip should be excluded skip to next one
+					continue outer
+				}
+			}
+
 			if IsIPv4(ipnet.IP) {
 				return ipnet.IP.String()
 			}

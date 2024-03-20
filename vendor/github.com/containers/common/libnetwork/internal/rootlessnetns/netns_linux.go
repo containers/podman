@@ -158,7 +158,8 @@ func (n *Netns) setupPasta(nsPath string) error {
 		Netns:        nsPath,
 		ExtraOptions: []string{"--pid", pidPath},
 	}
-	if err := pasta.Setup(&pastaOpts); err != nil {
+	res, err := pasta.Setup2(&pastaOpts)
+	if err != nil {
 		return fmt.Errorf("setting up Pasta: %w", err)
 	}
 
@@ -185,11 +186,9 @@ func (n *Netns) setupPasta(nsPath string) error {
 		Namespaces: []specs.LinuxNamespace{
 			{Type: specs.NetworkNamespace},
 		},
-		// TODO: Need a way to determine if there is a valid v6 address on any
-		// external interface of the system.
-		IPv6Enabled:     false,
+		IPv6Enabled:     res.IPv6,
 		KeepHostServers: true,
-		Nameservers:     []string{},
+		Nameservers:     res.DNSForwardIPs,
 	}); err != nil {
 		return wrapError("create resolv.conf", err)
 	}
