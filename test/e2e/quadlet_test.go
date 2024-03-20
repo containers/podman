@@ -172,6 +172,26 @@ func (t *quadletTestcase) assertKeyIsRegex(args []string, unit *parser.UnitFile)
 	return true
 }
 
+func (t *quadletTestcase) assertLastKeyIsRegex(args []string, unit *parser.UnitFile) bool {
+	Expect(len(args)).To(BeNumerically(">=", 3))
+	group := args[0]
+	key := args[1]
+	values := args[2:]
+
+	realValue, ok := unit.LookupLast(group, key)
+	if ! ok {
+		return false
+	}
+
+	for i := range values {
+		matched, _ := regexp.MatchString(realValue, values[i])
+		if !matched {
+			return false
+		}
+	}
+	return true
+}
+
 func (t *quadletTestcase) assertKeyContains(args []string, unit *parser.UnitFile) bool {
 	Expect(args).To(HaveLen(3))
 	group := args[0]
@@ -469,6 +489,8 @@ func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, sessio
 		ok = t.assertKeyIsRegex(args, unit)
 	case "assert-key-contains":
 		ok = t.assertKeyContains(args, unit)
+	case "assert-last-key-is-regex":
+		ok = t.assertLastKeyIsRegex(args, unit)
 	case "assert-podman-args":
 		ok = t.assertStartPodmanArgs(args, unit)
 	case "assert-podman-args-regex":
@@ -920,6 +942,7 @@ BOGUS=foo
 		Entry("Image - Arch and OS", "arch-os.image", 0, ""),
 		Entry("Image - global args", "globalargs.image", 0, ""),
 		Entry("Image - Containers Conf Modules", "containersconfmodule.image", 0, ""),
+		Entry("Image - Unit After Override", "unit-after-override", 0, ""),
 
 		Entry("basic.pod", "basic.pod", 0, ""),
 		Entry("name.pod", "name.pod", 0, ""),
