@@ -1,3 +1,16 @@
+## 1.32.0
+
+### Maintenance
+- Migrate github.com/golang/protobuf to google.golang.org/protobuf [436a197]
+  
+  This release drops the deprecated github.com/golang/protobuf and adopts google.golang.org/protobuf.  Care was taken to ensure the release is backwards compatible (thanks @jbduncan !).  Please open an issue if you run into one.
+
+- chore: test with Go 1.22 (#733) [32ef35e]
+- Bump golang.org/x/net from 0.19.0 to 0.20.0 (#717) [a0d0387]
+- Bump github-pages and jekyll-feed in /docs (#732) [b71e477]
+- docs: fix typo and broken anchor link to gstruct [f460154]
+- docs: fix HaveEach matcher signature [a2862e4]
+
 ## 1.31.1
 
 ### Fixes
