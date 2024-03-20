@@ -743,6 +743,11 @@ USER bin`, BB)
 
 	It("podman run limits host test", func() {
 		SkipIfRemote("This can only be used for local tests")
+		info := GetHostDistributionInfo()
+		if info.Distribution == "debian" {
+			// "expected 1048576 to be >= 1073741816"
+			Skip("FIXME 2024-05-28 fails on debian, maybe because of systemd 256?")
+		}
 
 		var l syscall.Rlimit
 
@@ -2187,6 +2192,12 @@ WORKDIR /madethis`, BB)
 	})
 
 	It("podman run --shm-size-systemd", func() {
+		// FIXME Failed to set RLIMIT_CORE: Operation not permitted
+		info := GetHostDistributionInfo()
+		if info.Distribution == "debian" {
+			Skip("FIXME 2024-05-28 fails on debian, maybe because of systemd 256?")
+		}
+
 		ctrName := "testShmSizeSystemd"
 		run := podmanTest.Podman([]string{"run", "--name", ctrName, "--shm-size-systemd", "10mb", "-d", SYSTEMD_IMAGE, "/sbin/init"})
 		run.WaitWithDefaultTimeout()

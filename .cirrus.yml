@@ -33,7 +33,7 @@ env:
     DEBIAN_NAME: "debian-13"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20240513t140131z-f40f39d13"
+    IMAGE_SUFFIX: "c20240528t194313z-f40f39d13"
 
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
@@ -58,6 +58,7 @@ env:
     DISTRO_NV:               # any {PRIOR_,}{FEDORA,DEBIAN}_NAME value
     VM_IMAGE_NAME:           # One of the "Google-cloud VM Images" (above)
     CTR_FQIN:                # One of the "Container FQIN's" (above)
+    CI_DESIRED_RUNTIME: crun    # As of 2024-05-28 there are no other supported runtimes
     CI_DESIRED_DATABASE: sqlite # 'sqlite' or 'boltdb'
     CI_DESIRED_STORAGE: overlay # overlay or vfs
 
@@ -103,12 +104,10 @@ build_task:
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
               # ID for re-use of build output
-              CI_DESIRED_RUNTIME: crun
         - env:
               DISTRO_NV: ${PRIOR_FEDORA_NAME}
               VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
-              CI_DESIRED_RUNTIME: crun
               CI_DESIRED_DATABASE: boltdb
               CI_DESIRED_STORAGE: vfs
         - env:
@@ -119,7 +118,6 @@ build_task:
         - env:
               DISTRO_NV: ${DEBIAN_NAME}
               VM_IMAGE_NAME: ${DEBIAN_CACHE_IMAGE_NAME}
-              CI_DESIRED_RUNTIME: runc
               CI_DESIRED_NETWORK: netavark
               # Ignore cgroups-v1 warnings on debian
               PODMAN_IGNORE_CGROUPSV1_WARNING: true
@@ -222,7 +220,6 @@ build_aarch64_task:
         DISTRO_NV: ${FEDORA_AARCH64_NAME}
         VM_IMAGE_NAME: ${FEDORA_AARCH64_AMI}
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        CI_DESIRED_RUNTIME: crun
         TEST_FLAVOR: build
     clone_script: *full_clone
     prebuild_script: *prebuild
@@ -684,12 +681,10 @@ container_integration_test_task:
               DISTRO_NV: ${FEDORA_NAME}
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-              CI_DESIRED_RUNTIME: crun
         - env:
               DISTRO_NV: ${PRIOR_FEDORA_NAME}
               VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
-              CI_DESIRED_RUNTIME: crun
               CI_DESIRED_DATABASE: boltdb
     gce_instance: *fastvm
     timeout_in: 50m
@@ -903,7 +898,6 @@ rootless_remote_system_test_task:
               # Not used here, is used in other tasks
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-              CI_DESIRED_RUNTIME: crun
     <<: *local_system_test_task
     alias: rootless_remote_system_test
     gce_instance: *standardvm

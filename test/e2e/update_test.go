@@ -3,6 +3,7 @@ package integration
 import (
 	"github.com/containers/common/pkg/cgroupv2"
 	. "github.com/containers/podman/v5/test/utils"
+	"github.com/containers/storage/pkg/fileutils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -115,8 +116,10 @@ var _ = Describe("Podman update", func() {
 		// checking cpu quota and period
 		podmanTest.CheckFileInContainerSubstring(ctrID, "/sys/fs/cgroup/cpu.max", "500000")
 
-		// checking blkio weight
-		podmanTest.CheckFileInContainerSubstring(ctrID, "/sys/fs/cgroup/io.bfq.weight", "123")
+		// checking blkio weight (as of 2024-05 this file does not exist on Debian 13)
+		if err := fileutils.Exists("/sys/fs/cgroup/system.slice/io.bfq.weight"); err == nil {
+			podmanTest.CheckFileInContainerSubstring(ctrID, "/sys/fs/cgroup/io.bfq.weight", "123")
+		}
 
 		// checking device-read/write-bps/iops
 		podmanTest.CheckFileInContainerSubstring(ctrID, "/sys/fs/cgroup/io.max", "rbps=10485760 wbps=10485760 riops=1000 wiops=1000")
