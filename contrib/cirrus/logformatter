@@ -327,6 +327,11 @@ END_HTML
             #           1              123    3 4   425  5
             $line =~ s{^(.*/ci/task-\d+)((/\S+):(\d+))(.*)$}
                       {$1<a class="codelink" href="https://github.com/containers/podman/blob/$git_commit$3#L$4">$2</a>$5};
+
+            # ...as does Windows
+            #           1                             123    3 4   435  5
+            $line =~ s{^(.*/Local/cirrus-ci-build/repo)((/\S+):(\d+))(.*)$}
+                      {$1<a class="codelink" href="https://github.com/containers/podman/blob/$git_commit$3#L$4">$2</a>$5}
         }
 
         # Try to identify the cirrus task
@@ -603,6 +608,11 @@ END_HTML
 
             $current_output = '';
         }
+        # Windows
+        #                 1   12                        2  3  3
+        elsif ($line =~ /^(\s*)(C:\\Users.*\\podman\.exe)\s(.*)$/) {
+            $line = qq{$1C&gt; <span title="$2"><b>podman.exe</b></span> <b>$3</b>};
+        }
         elsif ($line =~ /^\s*Error:/ || $line =~ / level=(warning|error) /) {
             $line = "<span class='log-warning'>" . $line . "</span>";
         }
@@ -660,7 +670,7 @@ END_HTML
                 #   https://onsi.github.io/ginkgo/#generating-reports-programmatically
                 $after_divider = 999;
             }
-            elsif ($line =~ m!^\s*/\S+!) {
+            elsif ($line =~ m!^\s*(/\S+|C:/)!) {
                 # Source code path: skip
             }
             elsif ($line =~ /<b/) {
@@ -801,6 +811,7 @@ sub make_id {
 
     state %counter;
 
+    $name =~ s/\r//g;                   # strip windows ^Ms
     $name =~ s/^\s+|\s+$//g;            # strip leading/trailing whitespace
     $name =~ s/^\[It\]\s*//;            # strip leading "[It] "
     $name =~ s/\&#\d+;//g;              # 'doesn&#39;t' -> 'doesnt'
