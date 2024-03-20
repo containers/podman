@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 	"time"
 
@@ -109,24 +108,6 @@ func TarChrootToFilesystem(source string, tarball *os.File) error {
 func TarWithChroot(source string) (io.ReadCloser, error) {
 	logrus.Debugf("creating tarball of %s", source)
 	return chrootarchive.Tar(source, nil, source)
-}
-
-// RemoveScientificNotationFromFloat returns a float without any
-// scientific notation if the number has any.
-// golang does not handle conversion of float64s that have scientific
-// notation in them and otherwise stinks.  please replace this if you have
-// a better implementation.
-func RemoveScientificNotationFromFloat(x float64) (float64, error) {
-	bigNum := strconv.FormatFloat(x, 'g', -1, 64)
-	breakPoint := strings.IndexAny(bigNum, "Ee")
-	if breakPoint > 0 {
-		bigNum = bigNum[:breakPoint]
-	}
-	result, err := strconv.ParseFloat(bigNum, 64)
-	if err != nil {
-		return x, fmt.Errorf("unable to remove scientific number from calculations: %w", err)
-	}
-	return result, nil
 }
 
 // GuardedRemoveAll functions much like os.RemoveAll but
