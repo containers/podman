@@ -1,6 +1,8 @@
+//go:build !grpcnotrace
+
 /*
  *
- * Copyright 2018 gRPC authors.
+ * Copyright 2024 gRPC authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,5 +20,20 @@
 
 package grpc
 
-// Version is the current grpc version.
-const Version = "1.62.0"
+import (
+	"context"
+
+	t "golang.org/x/net/trace"
+)
+
+func newTrace(family, title string) traceLog {
+	return t.New(family, title)
+}
+
+func newTraceContext(ctx context.Context, tr traceLog) context.Context {
+	return t.NewContext(ctx, tr)
+}
+
+func newTraceEventLog(family, title string) traceEventLog {
+	return t.NewEventLog(family, title)
+}

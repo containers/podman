@@ -189,6 +189,20 @@ type EmptyCallOption struct{}
 func (EmptyCallOption) before(*callInfo) error      { return nil }
 func (EmptyCallOption) after(*callInfo, *csAttempt) {}
 
+// StaticMethod returns a CallOption which specifies that a call is being made
+// to a method that is static, which means the method is known at compile time
+// and doesn't change at runtime. This can be used as a signal to stats plugins
+// that this method is safe to include as a key to a measurement.
+func StaticMethod() CallOption {
+	return StaticMethodCallOption{}
+}
+
+// StaticMethodCallOption is a CallOption that specifies that a call comes
+// from a static method.
+type StaticMethodCallOption struct {
+	EmptyCallOption
+}
+
 // Header returns a CallOptions that retrieves the header metadata
 // for a unary RPC.
 func Header(md *metadata.MD) CallOption {
@@ -958,6 +972,7 @@ const (
 	SupportPackageIsVersion5 = true
 	SupportPackageIsVersion6 = true
 	SupportPackageIsVersion7 = true
+	SupportPackageIsVersion8 = true
 )
 
 const grpcUA = "grpc-go/" + Version

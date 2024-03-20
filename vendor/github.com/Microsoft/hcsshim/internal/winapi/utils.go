@@ -4,7 +4,6 @@ package winapi
 
 import (
 	"errors"
-	"reflect"
 	"syscall"
 	"unsafe"
 
@@ -14,11 +13,7 @@ import (
 // Uint16BufferToSlice wraps a uint16 pointer-and-length into a slice
 // for easier interop with Go APIs
 func Uint16BufferToSlice(buffer *uint16, bufferLength int) (result []uint16) {
-	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&result))
-	hdr.Data = uintptr(unsafe.Pointer(buffer))
-	hdr.Cap = bufferLength
-	hdr.Len = bufferLength
-
+	result = unsafe.Slice(buffer, bufferLength)
 	return
 }
 

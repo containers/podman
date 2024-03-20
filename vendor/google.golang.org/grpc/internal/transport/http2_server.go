@@ -32,13 +32,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
 	"google.golang.org/grpc/internal/grpclog"
 	"google.golang.org/grpc/internal/grpcutil"
 	"google.golang.org/grpc/internal/pretty"
 	"google.golang.org/grpc/internal/syscall"
+	"google.golang.org/protobuf/proto"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -322,8 +322,24 @@ func NewServerTransport(conn net.Conn, config *ServerConfig) (_ ServerTransport,
 	go func() {
 		t.loopy = newLoopyWriter(serverSide, t.framer, t.controlBuf, t.bdpEst, t.conn, t.logger)
 		t.loopy.ssGoAwayHandler = t.outgoingGoAwayHandler
-		t.loopy.run()
+		err := t.loopy.run()
 		close(t.loopyWriterDone)
+		if !isIOError(err) {
+			// Close the connection if a non-I/O error occurs (for I/O errors
+			// the reader will also encounter the error and close).  Wait 1
+			// second before closing the connection, or when the reader is done
+			// (i.e. the client already closed the connection or a connection
+			// error occurred).  This avoids the potential problem where there
+			// is unread data on the receive side of the connection, which, if
+			// closed, would lead to a TCP RST instead of FIN, and the client
+			// encountering errors.  For more info:
+			// https://github.com/grpc/grpc-go/issues/5358
+			select {
+			case <-t.readerDone:
+			case <-time.After(time.Second):
+			}
+			t.conn.Close()
+		}
 	}()
 	go t.keepalive()
 	return t, nil
@@ -609,8 +625,8 @@ func (t *http2Server) operateHeaders(ctx context.Context, frame *http2.MetaHeade
 // traceCtx attaches trace to ctx and returns the new context.
 func (t *http2Server) HandleStreams(ctx context.Context, handle func(*Stream)) {
 	defer func() {
-		<-t.loopyWriterDone
 		close(t.readerDone)
+		<-t.loopyWriterDone
 	}()
 	for {
 		t.controlBuf.throttle()
@@ -635,10 +651,6 @@ func (t *http2Server) HandleStreams(ctx context.Context, handle func(*Stream)) {
 					})
 				}
 				continue
-			}
-			if err == io.EOF || err == io.ErrUnexpectedEOF {
-				t.Close(err)
-				return
 			}
 			t.Close(err)
 			return
@@ -1329,6 +1341,7 @@ func (t *http2Server) outgoingGoAwayHandler(g *goAway) (bool, error) {
 		if err := t.framer.fr.WriteGoAway(sid, g.code, g.debugData); err != nil {
 			return false, err
 		}
+		t.framer.writer.Flush()
 		if retErr != nil {
 			return false, retErr
 		}
@@ -1349,7 +1362,7 @@ func (t *http2Server) outgoingGoAwayHandler(g *goAway) (bool, error) {
 		return false, err
 	}
 	go func() {
-		timer := time.NewTimer(time.Minute)
+		timer := time.NewTimer(5 * time.Second)
 		defer timer.Stop()
 		select {
 		case <-t.drainEvent.Done():

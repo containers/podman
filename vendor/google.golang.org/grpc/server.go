@@ -33,8 +33,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"golang.org/x/net/trace"
-
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/encoding"
@@ -131,7 +129,7 @@ type Server struct {
 	drain    bool
 	cv       *sync.Cond              // signaled when connections close for GracefulStop
 	services map[string]*serviceInfo // service name -> service info
-	events   trace.EventLog
+	events   traceEventLog
 
 	quit               *grpcsync.Event
 	done               *grpcsync.Event
@@ -670,7 +668,7 @@ func NewServer(opt ...ServerOption) *Server {
 	s.cv = sync.NewCond(&s.mu)
 	if EnableTracing {
 		_, file, line, _ := runtime.Caller(1)
-		s.events = trace.NewEventLog("grpc.Server", fmt.Sprintf("%s:%d", file, line))
+		s.events = newTraceEventLog("grpc.Server", fmt.Sprintf("%s:%d", file, line))
 	}
 
 	if s.opts.numServerWorkers > 0 {
@@ -1734,8 +1732,8 @@ func (s *Server) handleStream(t transport.ServerTransport, stream *transport.Str
 	ctx = contextWithServer(ctx, s)
 	var ti *traceInfo
 	if EnableTracing {
-		tr := trace.New("grpc.Recv."+methodFamily(stream.Method()), stream.Method())
-		ctx = trace.NewContext(ctx, tr)
+		tr := newTrace("grpc.Recv."+methodFamily(stream.Method()), stream.Method())
+		ctx = newTraceContext(ctx, tr)
 		ti = &traceInfo{
 			tr: tr,
 			firstLine: firstLine{
