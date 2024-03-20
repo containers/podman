@@ -180,14 +180,47 @@ func ParseSignal(rawSignal string) (syscall.Signal, error) {
 	return sig, nil
 }
 
-// GetKeepIDMapping returns the mappings and the user to use when keep-id is used
-func GetKeepIDMapping(opts *namespaces.KeepIDUserNsOptions) (*stypes.IDMappingOptions, int, int, error) {
+func getRootlessKeepIDMapping(uid, gid int, uids, gids []idtools.IDMap) (*stypes.IDMappingOptions, int, int, error) {
 	options := stypes.IDMappingOptions{
 		HostUIDMapping: false,
 		HostGIDMapping: false,
 	}
+	maxUID, maxGID := 0, 0
+	for _, u := range uids {
+		maxUID += u.Size
+	}
+	for _, g := range gids {
+		maxGID += g.Size
+	}
 
+	options.UIDMap, options.GIDMap = nil, nil
+
+	if len(uids) > 0 && uid != 0 {
+		options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: min(uid, maxUID)})
+	}
+	options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid, HostID: 0, Size: 1})
+	if maxUID > uid {
+		options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid + 1, HostID: uid + 1, Size: maxUID - uid})
+	}
+
+	if len(gids) > 0 && gid != 0 {
+		options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: min(gid, maxGID)})
+	}
+	options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid, HostID: 0, Size: 1})
+	if maxGID > gid {
+		options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid + 1, HostID: gid + 1, Size: maxGID - gid})
+	}
+
+	return &options, uid, gid, nil
+}
+
+// GetKeepIDMapping returns the mappings and the user to use when keep-id is used
+func GetKeepIDMapping(opts *namespaces.KeepIDUserNsOptions) (*stypes.IDMappingOptions, int, int, error) {
 	if !rootless.IsRootless() {
+		options := stypes.IDMappingOptions{
+			HostUIDMapping: false,
+			HostGIDMapping: false,
+		}
 		uids, err := rootless.ReadMappingsProc("/proc/self/uid_map")
 		if err != nil {
 			return nil, 0, 0, err
@@ -224,33 +257,7 @@ func GetKeepIDMapping(opts *namespaces.KeepIDUserNsOptions) (*stypes.IDMappingOp
 		return nil, -1, -1, fmt.Errorf("cannot read mappings: %w", err)
 	}
 
-	maxUID, maxGID := 0, 0
-	for _, u := range uids {
-		maxUID += u.Size
-	}
-	for _, g := range gids {
-		maxGID += g.Size
-	}
-
-	options.UIDMap, options.GIDMap = nil, nil
-
-	if len(uids) > 0 {
-		options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: min(uid, maxUID)})
-	}
-	options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid, HostID: 0, Size: 1})
-	if maxUID > uid {
-		options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid + 1, HostID: uid + 1, Size: maxUID - uid})
-	}
-
-	if len(gids) > 0 {
-		options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: min(gid, maxGID)})
-	}
-	options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid, HostID: 0, Size: 1})
-	if maxGID > gid {
-		options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid + 1, HostID: gid + 1, Size: maxGID - gid})
-	}
-
-	return &options, uid, gid, nil
+	return getRootlessKeepIDMapping(uid, gid, uids, gids)
 }
 
 // GetNoMapMapping returns the mappings and the user to use when nomap is used
