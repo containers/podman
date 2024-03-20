@@ -311,7 +311,7 @@ While `podman build` is happy to use base images and build images for any
 platform that exists, `RUN` instructions are able to succeed without
 the help of emulation provided by packages like `qemu-user-static`.
 
-@@option pull.image
+@@option pull
 
 Pull image policy. The default is **missing**.
 
