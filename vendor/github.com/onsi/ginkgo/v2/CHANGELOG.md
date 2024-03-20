@@ -1,3 +1,14 @@
+## 2.17.0
+
+### Features
+
+- add `--github-output` for nicer output in github actions [e8a2056]
+
+### Maintenance
+
+- fix typo in core_dsl.go [977bc6f]
+- Fix typo in docs [e297e7b]
+
 ## 2.16.0
 
 ### Features
