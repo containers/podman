@@ -10,17 +10,16 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/containers/podman/v5/pkg/machine/env"
-	"github.com/containers/podman/v5/pkg/machine/shim/diskpull"
-
 	"github.com/Microsoft/go-winio"
 	"github.com/containers/common/pkg/strongunits"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/libhvee/pkg/hypervctl"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/hyperv/vsock"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
+	"github.com/containers/podman/v5/pkg/machine/shim/diskpull"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v5/pkg/systemd/parser"
 	"github.com/sirupsen/logrus"
@@ -497,12 +496,15 @@ func readAndSplitIgnition(mc *vmconfigs.MachineConfig, vm *hypervctl.VirtualMach
 }
 
 func removeIgnitionFromRegistry(vm *hypervctl.VirtualMachine) error {
-	pairs, err := vm.GetKeyValuePairs()
-	if err != nil {
-		return err
-	}
-	for key := range pairs {
-		if err := vm.RemoveKeyValuePair(key); err != nil {
+	// because the vm is down at this point, we cannot query hyperv for these key value pairs.
+	// therefore we blindly iterate from 0-50 and delete the key/value pairs. hyperv does not
+	// raise an error if the key is not present
+	//
+	for i := 0; i < 50; i++ {
+		// this is a well known "key" defined in libhvee and is the vm name
+		// plus an index starting at 0
+		key := fmt.Sprintf("%s%d", vm.ElementName, i)
+		if err := vm.RemoveKeyValuePairNoWait(key); err != nil {
 			return err
 		}
 	}
