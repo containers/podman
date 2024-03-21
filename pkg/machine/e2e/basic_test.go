@@ -54,6 +54,16 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(runAlp).To(Exit(0))
 		Expect(runAlp.outputToString()).To(ContainSubstring("Alpine Linux"))
 
+		contextDir := GinkgoT().TempDir()
+		cfile := filepath.Join(contextDir, "Containerfile")
+		err = os.WriteFile(cfile, []byte("FROM quay.io/libpod/alpine_nginx\nRUN ip addr\n"), 0o644)
+		Expect(err).ToNot(HaveOccurred())
+
+		build, err := mb.setCmd(bm.withPodmanCommand([]string{"build", contextDir})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(build).To(Exit(0))
+		Expect(build.outputToString()).To(ContainSubstring("COMMIT"))
+
 		rmCon, err := mb.setCmd(bm.withPodmanCommand([]string{"rm", "-a"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(rmCon).To(Exit(0))
