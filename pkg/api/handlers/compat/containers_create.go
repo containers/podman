@@ -451,6 +451,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 		ReadOnly:          cc.HostConfig.ReadonlyRootfs,
 		ReadWriteTmpFS:    true, // podman default
 		Rm:                cc.HostConfig.AutoRemove,
+		Annotation:        stringMaptoArray(cc.HostConfig.Annotations),
 		SecurityOpt:       cc.HostConfig.SecurityOpt,
 		StopSignal:        cc.Config.StopSignal,
 		StopTimeout:       rtc.Engine.StopTimeout, // podman default

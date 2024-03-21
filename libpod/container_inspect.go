@@ -506,6 +506,10 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 
 	// Annotations
 	if ctrSpec.Annotations != nil {
+		if len(ctrSpec.Annotations) != 0 {
+			hostConfig.Annotations = ctrSpec.Annotations
+		}
+
 		hostConfig.ContainerIDFile = ctrSpec.Annotations[define.InspectAnnotationCIDFile]
 		if ctrSpec.Annotations[define.InspectAnnotationAutoremove] == define.InspectResponseTrue {
 			hostConfig.AutoRemove = true
