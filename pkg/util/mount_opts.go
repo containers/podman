@@ -22,11 +22,17 @@ type defaultMountOptions struct {
 	nodev  bool
 }
 
+type getDefaultMountOptionsFn func(path string) (defaultMountOptions, error)
+
 // ProcessOptions parses the options for a bind or tmpfs mount and ensures that
 // they are sensible and follow convention. The isTmpfs variable controls
 // whether extra, tmpfs-specific options will be allowed.
 // The sourcePath variable, if not empty, contains a bind mount source.
 func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string, error) {
+	return processOptionsInternal(options, isTmpfs, sourcePath, getDefaultMountOptions)
+}
+
+func processOptionsInternal(options []string, isTmpfs bool, sourcePath string, getDefaultMountOptions getDefaultMountOptionsFn) ([]string, error) {
 	var (
 		foundWrite, foundSize, foundProp, foundMode, foundExec, foundSuid, foundDev, foundCopyUp, foundBind, foundZ, foundU, foundOverlay, foundIdmap, foundCopy, foundNoSwap, foundNoDereference bool
 	)
