@@ -7,11 +7,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
 
+	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/buildah/bind"
 	"github.com/containers/buildah/chroot"
 	"github.com/containers/buildah/copier"
@@ -23,7 +25,6 @@ import (
 	"github.com/containers/buildah/pkg/parse"
 	butil "github.com/containers/buildah/pkg/util"
 	"github.com/containers/buildah/util"
-	"github.com/containers/common/libnetwork/etchosts"
 	"github.com/containers/common/libnetwork/pasta"
 	"github.com/containers/common/libnetwork/resolvconf"
 	"github.com/containers/common/libnetwork/slirp4netns"
@@ -259,69 +260,30 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	}
 	rootIDPair := &idtools.IDPair{UID: int(rootUID), GID: int(rootGID)}
 
-	hostsFile := ""
+	hostFile := ""
 	if !options.NoHosts && !slices.Contains(volumes, config.DefaultHostsFile) && options.ConfigureNetwork != define.NetworkDisabled {
-		hostsFile, err = b.createHostsFile(path, rootIDPair)
+		hostFile, err = b.generateHosts(path, rootIDPair, mountPoint, spec)
 		if err != nil {
 			return err
 		}
-		bindFiles[config.DefaultHostsFile] = hostsFile
-
-		// Only add entries here if we do not have to do setup network,
-		// if we do we have to do it much later after the network setup.
-		if !configureNetwork {
-			var entries etchosts.HostEntries
-			isHost := true
-			if spec.Linux != nil {
-				for _, ns := range spec.Linux.Namespaces {
-					if ns.Type == specs.NetworkNamespace {
-						isHost = false
-						break
-					}
-				}
-			}
-			// add host entry for local ip when running in host network
-			if spec.Hostname != "" && isHost {
-				ip := netUtil.GetLocalIP()
-				if ip != "" {
-					entries = append(entries, etchosts.HostEntry{
-						Names: []string{spec.Hostname},
-						IP:    ip,
-					})
-				}
-			}
-			err = b.addHostsEntries(hostsFile, mountPoint, entries, nil)
-			if err != nil {
-				return err
-			}
-		}
+		bindFiles[config.DefaultHostsFile] = hostFile
 	}
 
 	if !options.NoHostname && !(slices.Contains(volumes, "/etc/hostname")) {
-		hostnameFile, err := b.generateHostname(path, spec.Hostname, rootIDPair)
+		hostFile, err := b.generateHostname(path, spec.Hostname, rootIDPair)
 		if err != nil {
 			return err
 		}
 		// Bind /etc/hostname
-		bindFiles["/etc/hostname"] = hostnameFile
+		bindFiles["/etc/hostname"] = hostFile
 	}
 
-	resolvFile := ""
 	if !slices.Contains(volumes, resolvconf.DefaultResolvConf) && options.ConfigureNetwork != define.NetworkDisabled && !(len(b.CommonBuildOpts.DNSServers) == 1 && strings.ToLower(b.CommonBuildOpts.DNSServers[0]) == "none") {
-		resolvFile, err = b.createResolvConf(path, rootIDPair)
+		resolvFile, err := b.addResolvConf(path, rootIDPair, b.CommonBuildOpts.DNSServers, b.CommonBuildOpts.DNSSearch, b.CommonBuildOpts.DNSOptions, spec.Linux.Namespaces)
 		if err != nil {
 			return err
 		}
 		bindFiles[resolvconf.DefaultResolvConf] = resolvFile
-
-		// Only add entries here if we do not have to do setup network,
-		// if we do we have to do it much later after the network setup.
-		if !configureNetwork {
-			err = b.addResolvConfEntries(resolvFile, nil, spec.Linux.Namespaces, false, true)
-			if err != nil {
-				return err
-			}
-		}
 	}
 	// Empty file, so no need to recreate if it exists
 	if _, ok := bindFiles["/run/.containerenv"]; !ok {
@@ -400,7 +362,7 @@ rootless=%d
 			moreCreateArgs = append(moreCreateArgs, "--no-pivot")
 		}
 		err = b.runUsingRuntimeSubproc(isolation, options, configureNetwork, networkString, moreCreateArgs, spec,
-			mountPoint, path, define.Package+"-"+filepath.Base(path), b.Container, hostsFile, resolvFile)
+			mountPoint, path, define.Package+"-"+filepath.Base(path), b.Container, hostFile)
 	case IsolationChroot:
 		err = chroot.RunUsingChroot(spec, path, homeDir, options.Stdin, options.Stdout, options.Stderr)
 	case IsolationOCIRootless:
@@ -409,7 +371,7 @@ rootless=%d
 			moreCreateArgs = append(moreCreateArgs, "--no-pivot")
 		}
 		err = b.runUsingRuntimeSubproc(isolation, options, configureNetwork, networkString, moreCreateArgs, spec,
-			mountPoint, path, define.Package+"-"+filepath.Base(path), b.Container, hostsFile, resolvFile)
+			mountPoint, path, define.Package+"-"+filepath.Base(path), b.Container, hostFile)
 	default:
 		err = errors.New("don't know how to run this command")
 	}
@@ -508,7 +470,7 @@ func addCommonOptsToSpec(commonOpts *define.CommonBuildOptions, g *generate.Gene
 	return nil
 }
 
-func setupSlirp4netnsNetwork(config *config.Config, netns, cid string, options, hostnames []string) (func(), *netResult, error) {
+func setupSlirp4netnsNetwork(config *config.Config, netns, cid string, options []string) (func(), map[string]nettypes.StatusBlock, error) {
 	// we need the TmpDir for the slirp4netns code
 	if err := os.MkdirAll(config.Engine.TmpDir, 0o751); err != nil {
 		return nil, nil, fmt.Errorf("failed to create tempdir: %w", err)
@@ -529,27 +491,30 @@ func setupSlirp4netnsNetwork(config *config.Config, netns, cid string, options, 
 		return nil, nil, fmt.Errorf("get slirp4netns ip: %w", err)
 	}
 
-	dns, err := slirp4netns.GetDNS(res.Subnet)
-	if err != nil {
-		return nil, nil, fmt.Errorf("get slirp4netns dns ip: %w", err)
-	}
-
-	result := &netResult{
-		entries:           etchosts.HostEntries{{IP: ip.String(), Names: hostnames}},
-		dnsServers:        []string{dns.String()},
-		ipv6:              res.IPv6,
-		keepHostResolvers: true,
+	// create fake status to make sure we get the correct ip in hosts
+	subnet := nettypes.IPNet{IPNet: net.IPNet{
+		IP:   *ip,
+		Mask: res.Subnet.Mask,
+	}}
+	netStatus := map[string]nettypes.StatusBlock{
+		slirp4netns.BinaryName: {
+			Interfaces: map[string]nettypes.NetInterface{
+				"tap0": {
+					Subnets: []nettypes.NetAddress{{IPNet: subnet}},
+				},
+			},
+		},
 	}
 
 	return func() {
 		syscall.Kill(res.Pid, syscall.SIGKILL) // nolint:errcheck
 		var status syscall.WaitStatus
 		syscall.Wait4(res.Pid, &status, 0, nil) // nolint:errcheck
-	}, result, nil
+	}, netStatus, nil
 }
 
-func setupPasta(config *config.Config, netns string, options, hostnames []string) (func(), *netResult, error) {
-	res, err := pasta.Setup2(&pasta.SetupOptions{
+func setupPasta(config *config.Config, netns string, options []string) (func(), map[string]nettypes.StatusBlock, error) {
+	err := pasta.Setup(&pasta.SetupOptions{
 		Config:       config,
 		Netns:        netns,
 		ExtraOptions: options,
@@ -558,23 +523,35 @@ func setupPasta(config *config.Config, netns string, options, hostnames []string
 		return nil, nil, err
 	}
 
-	var entries etchosts.HostEntries
-	if len(res.IPAddresses) > 0 {
-		entries = etchosts.HostEntries{{IP: res.IPAddresses[0].String(), Names: hostnames}}
+	var ip string
+	err = ns.WithNetNSPath(netns, func(_ ns.NetNS) error {
+		// get the first ip in the netns and use this as our ip for /etc/hosts
+		ip = netUtil.GetLocalIP()
+		return nil
+	})
+	if err != nil {
+		return nil, nil, err
 	}
 
-	result := &netResult{
-		entries:           entries,
-		dnsServers:        res.DNSForwardIPs,
-		excludeIPs:        res.IPAddresses,
-		ipv6:              res.IPv6,
-		keepHostResolvers: true,
+	// create fake status to make sure we get the correct ip in hosts
+	subnet := nettypes.IPNet{IPNet: net.IPNet{
+		IP:   net.ParseIP(ip),
+		Mask: net.IPv4Mask(255, 255, 255, 0),
+	}}
+	netStatus := map[string]nettypes.StatusBlock{
+		slirp4netns.BinaryName: {
+			Interfaces: map[string]nettypes.NetInterface{
+				"tap0": {
+					Subnets: []nettypes.NetAddress{{IPNet: subnet}},
+				},
+			},
+		},
 	}
 
-	return nil, result, nil
+	return nil, netStatus, nil
 }
 
-func (b *Builder) runConfigureNetwork(pid int, isolation define.Isolation, options RunOptions, network, containerName string, hostnames []string) (func(), *netResult, error) {
+func (b *Builder) runConfigureNetwork(pid int, isolation define.Isolation, options RunOptions, network, containerName string) (teardown func(), netStatus map[string]nettypes.StatusBlock, err error) {
 	netns := fmt.Sprintf("/proc/%d/ns/net", pid)
 	var configureNetworks []string
 	defConfig, err := config.Default()
@@ -601,9 +578,9 @@ func (b *Builder) runConfigureNetwork(pid int, isolation define.Isolation, optio
 
 	switch {
 	case name == slirp4netns.BinaryName:
-		return setupSlirp4netnsNetwork(defConfig, netns, containerName, netOpts, hostnames)
+		return setupSlirp4netnsNetwork(defConfig, netns, containerName, netOpts)
 	case name == pasta.BinaryName:
-		return setupPasta(defConfig, netns, netOpts, hostnames)
+		return setupPasta(defConfig, netns, netOpts)
 
 	// Basically default case except we make sure to not split an empty
 	// name as this would return a slice with one empty string which is
@@ -644,19 +621,19 @@ func (b *Builder) runConfigureNetwork(pid int, isolation define.Isolation, optio
 		ContainerName: containerName,
 		Networks:      networks,
 	}
-	netStatus, err := b.NetworkInterface.Setup(mynetns, nettypes.SetupOptions{NetworkOptions: opts})
+	netStatus, err = b.NetworkInterface.Setup(mynetns, nettypes.SetupOptions{NetworkOptions: opts})
 	if err != nil {
 		return nil, nil, err
 	}
 
-	teardown := func() {
+	teardown = func() {
 		err := b.NetworkInterface.Teardown(mynetns, nettypes.TeardownOptions{NetworkOptions: opts})
 		if err != nil {
 			options.Logger.Errorf("failed to cleanup network: %v", err)
 		}
 	}
 
-	return teardown, netStatusToNetResult(netStatus, hostnames), nil
+	return teardown, netStatus, nil
 }
 
 // Create pipes to use for relaying stdio.
