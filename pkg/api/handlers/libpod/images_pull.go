@@ -172,6 +172,13 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 				report.ID = image.ID()
 			}
 			if pullError != nil {
+				// Check if the error indicates that the image was not found
+				if libpod.IsImageNotFound(pullError) {
+					w.WriteHeader(http.StatusNotFound)
+				} else {
+					// For other errors, set the status to 500
+					w.WriteHeader(http.StatusInternalServerError)
+				}
 				report.Error = pullError.Error()
 			}
 			if err := enc.Encode(report); err != nil {
