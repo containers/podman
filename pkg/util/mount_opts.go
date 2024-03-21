@@ -37,6 +37,8 @@ func processOptionsInternal(options []string, isTmpfs bool, sourcePath string, g
 		foundWrite, foundSize, foundProp, foundMode, foundExec, foundSuid, foundDev, foundCopyUp, foundBind, foundZ, foundU, foundOverlay, foundIdmap, foundCopy, foundNoSwap, foundNoDereference bool
 	)
 
+	recursiveBind := true
+
 	newOptions := make([]string, 0, len(options))
 	for _, opt := range options {
 		// Some options have parameters - size, mode
@@ -159,7 +161,10 @@ func processOptionsInternal(options []string, isTmpfs bool, sourcePath string, g
 				return nil, fmt.Errorf("the 'no-dereference' option can only be set once: %w", ErrDupeMntOption)
 			}
 			foundNoDereference = true
-		case define.TypeBind, "rbind":
+		case define.TypeBind:
+			recursiveBind = false
+			fallthrough
+		case "rbind":
 			if isTmpfs {
 				return nil, fmt.Errorf("the 'bind' and 'rbind' options are not allowed with tmpfs mounts: %w", ErrBadMntOption)
 			}
@@ -190,7 +195,11 @@ func processOptionsInternal(options []string, isTmpfs bool, sourcePath string, g
 		newOptions = append(newOptions, "rw")
 	}
 	if !foundProp {
-		newOptions = append(newOptions, "rprivate")
+		if recursiveBind {
+			newOptions = append(newOptions, "rprivate")
+		} else {
+			newOptions = append(newOptions, "private")
+		}
 	}
 	defaults, err := getDefaultMountOptions(sourcePath)
 	if err != nil {

@@ -742,6 +742,12 @@ func TestProcessOptions(t *testing.T) {
 			sourcePath: "/path/to/source",
 			expected:   []string{"nodev", "nosuid", "rbind", "rprivate", "rw"},
 		},
+		{
+			name:       "default bind mount with bind",
+			sourcePath: "/path/to/source",
+			options:    []string{"bind"},
+			expected:   []string{"nodev", "nosuid", "bind", "private", "rw"},
+		},
 	}
 
 	for _, tt := range tests {
