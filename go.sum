@@ -76,8 +76,8 @@ github.com/containernetworking/plugins v1.4.0 h1:+w22VPYgk7nQHw7KT92lsRmuToHvb7w
 github.com/containernetworking/plugins v1.4.0/go.mod h1:UYhcOyjefnrQvKvmmyEKsUA+M9Nfn7tqULPpH0Pkcj0=
 github.com/containers/buildah v1.35.1-0.20240318192459-e64e6cc09dfd h1:QVUSJsMYYUIQmMi+PU9NYXpbk/lgz0Xx6/naihFHFBQ=
 github.com/containers/buildah v1.35.1-0.20240318192459-e64e6cc09dfd/go.mod h1:kJEmpENlkUrZ39k4jVJC9RxDNH30qxSsfEOar4la8Ec=
-github.com/containers/common v0.58.1-0.20240318131753-6f1c96f53a78 h1:EObLO2IA9zAuRp2Qtf6/siVjxlxE2J8KvtS4H2Q47bc=
-github.com/containers/common v0.58.1-0.20240318131753-6f1c96f53a78/go.mod h1:axvr7QuM6sjs/nwukYpNvSgjE5/T2i6l+UhsKLgOvuI=
+github.com/containers/common v0.58.1-0.20240320163250-bc5f97c39cca h1:5hTRZutFijVzUJJAU5oQJTOSbFkN2yJ2INcWlfMFjwk=
+github.com/containers/common v0.58.1-0.20240320163250-bc5f97c39cca/go.mod h1:qVUk13f2BftvRSK9rkR7VI9aUPCt+IzOyApQdqqkPyw=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/gvisor-tap-vsock v0.7.3 h1:yORnf15sP+sLFhxLNLgmB5/lOhldn9dRMHx/tmYtSOQ=
@@ -441,8 +441,8 @@ github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+W
 github.com/onsi/ginkgo v1.12.1/go.mod h1:zj2OWP4+oCPe1qIXoGWkgMRwljMUYCdkwsT2108oapk=
 github.com/onsi/ginkgo v1.16.4/go.mod h1:dX+/inL/fNMqNlz0e9LfyB9TswhZpCVdJM/Z6Vvnwo0=
 github.com/onsi/ginkgo/v2 v2.1.3/go.mod h1:vw5CSIxN1JObi/U8gcbwft7ZxR2dgaR70JSE3/PpL4c=
-github.com/onsi/ginkgo/v2 v2.16.0 h1:7q1w9frJDzninhXxjZd+Y/x54XNjG/UlRLIYPZafsPM=
-github.com/onsi/ginkgo/v2 v2.16.0/go.mod h1:llBI3WDLL9Z6taip6f33H76YcWtJv+7R3HigUjbIBOs=
+github.com/onsi/ginkgo/v2 v2.17.0 h1:kdnunFXpBjbzN56hcJHrXZ8M+LOkenKA7NnBzTNigTI=
+github.com/onsi/ginkgo/v2 v2.17.0/go.mod h1:llBI3WDLL9Z6taip6f33H76YcWtJv+7R3HigUjbIBOs=
 github.com/onsi/gomega v1.7.1/go.mod h1:XdKZgCCFLUoM/7CFJVPcG8C1xQ1AJ0vpAezJrB7JYyY=
 github.com/onsi/gomega v1.10.1/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1ybHNo=
 github.com/onsi/gomega v1.17.0/go.mod h1:HnhC7FXeEQY45zxNK3PPoIUhzk/80Xly9PcubAlGdZY=

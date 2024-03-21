@@ -89,6 +89,7 @@ type ReporterConfig struct {
 	VeryVerbose    bool
 	FullTrace      bool
 	ShowNodeEvents bool
+	GithubOutput   bool
 
 	JSONReport     string
 	JUnitReport    string
@@ -331,6 +332,8 @@ var ReporterConfigFlags = GinkgoFlags{
 		Usage: "If set, default reporter prints out the full stack trace when a failure occurs"},
 	{KeyPath: "R.ShowNodeEvents", Name: "show-node-events", SectionKey: "output",
 		Usage: "If set, default reporter prints node > Enter and < Exit events when specs fail"},
+	{KeyPath: "R.GithubOutput", Name: "github-output", SectionKey: "output",
+		Usage: "If set, default reporter prints easier to manage output in Github Actions."},
 
 	{KeyPath: "R.JSONReport", Name: "json-report", UsageArgument: "filename.json", SectionKey: "output",
 		Usage: "If set, Ginkgo will generate a JSON-formatted test report at the specified location."},
