@@ -400,9 +400,14 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 		compression = buildahDefine.Uncompressed
 	}
 
-	isolation, err := parse.IsolationOption(flags.Isolation)
-	if err != nil {
-		return nil, err
+	isolation := buildahDefine.IsolationDefault
+	// Only parse the isolation when it is actually needed as we do not want to send a wrong default
+	// to the server in the remote case (root vs rootless).
+	if flags.Isolation != "" {
+		isolation, err = parse.IsolationOption(flags.Isolation)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	usernsOption, idmappingOptions, err := parse.IDMappingOptions(c, isolation)

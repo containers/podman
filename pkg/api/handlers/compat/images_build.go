@@ -377,10 +377,19 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// make sure to force rootless as rootless otherwise buildah runs code which is intended to be run only as root.
-		if isolation == buildah.IsolationOCI && rootless.IsRootless() {
-			isolation = buildah.IsolationOCIRootless
+		// Make sure to force rootless as rootless otherwise buildah runs code which is intended to be run only as root.
+		// Same the other way around: https://github.com/containers/podman/issues/22109
+		switch isolation {
+		case buildah.IsolationOCI:
+			if rootless.IsRootless() {
+				isolation = buildah.IsolationOCIRootless
+			}
+		case buildah.IsolationOCIRootless:
+			if !rootless.IsRootless() {
+				isolation = buildah.IsolationOCI
+			}
 		}
+
 		registry = ""
 		format = query.OutputFormat
 	} else {
