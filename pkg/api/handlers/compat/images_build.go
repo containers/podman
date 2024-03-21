@@ -920,6 +920,6 @@ func extractTarFile(anchorDir string, r *http.Request) (string, error) {
 	}
 
 	_, _ = tarBall.Seek(0, 0)
-	err = archive.Untar(tarBall, buildDir, nil)
+	err = archive.Untar(tarBall, buildDir, &archive.TarOptions{NoLchown: true})
 	return buildDir, err
 }
