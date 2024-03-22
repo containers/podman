@@ -113,6 +113,9 @@ func DefineBuildFlags(cmd *cobra.Command, buildOpts *BuildFlagsWrapper, isFarmBu
 	completion.CompleteCommandFlags(cmd, fromAndBudFlagsCompletions)
 	flags.SetNormalizeFunc(buildahCLI.AliasFlags)
 	if registry.IsRemote() {
+		// Unset the isolation default as we never want to send this over the API
+		// as it can be wrong (root vs rootless).
+		_ = flags.Lookup("isolation").Value.Set("")
 		_ = flags.MarkHidden("disable-content-trust")
 		_ = flags.MarkHidden("sign-by")
 		_ = flags.MarkHidden("signature-policy")
