@@ -33,7 +33,7 @@
 - The `podman pod inspect` command now outputs a JSON array regardless of the number of pods inspected (previously, inspecting a single pod would omit the array).
 - It is no longer possible to create new BoltDB databases; attempting to do so will result in an error. All new Podman installations will now use the SQLite database backend. Existing BoltDB databases remain usable.
 - Support for CNI networking has been gated by a build tag and will not be enabled by default.
-- Podman will now print warnings when used on cgroups v1 systems. Support for cgroups v1 is deprecated and will be removed in a future release. The `PODMAN_CGROUPSV1_WARNING` environment variable can be set to suppress warnings.
+- Podman will now print warnings when used on cgroups v1 systems. Support for cgroups v1 is deprecated and will be removed in a future release. The `PODMAN_IGNORE_CGROUPSV1_WARNING` environment variable can be set to suppress warnings.
 - Network statistics sent over the Docker API are now per-interface, and not aggregated, improving Docker compatibility.
 - The default tool for rootless networking has been swapped from `slirp4netns` to `pasta` for improved performance. As a result, networks named `pasta` are no longer supported.
 - The `--image` option replaces the now deprecated `--image-path` option for `podman machine init`.
