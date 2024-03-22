@@ -10,7 +10,7 @@
 - Quadlet now supports templated units ([#17744](https://github.com/containers/podman/discussions/17744)).
 - The `podman kube play` command can now create image-based volumes using the `volume.podman.io/image` annotation.
 - Containers created with `podman kube play` can now include volumes from other containers (similar to the `--volumes-from` option) using a new annotation, `io.podman.annotations.volumes-from` ([#16819](https://github.com/containers/podman/issues/16819)).
-- Pods created with `podman kube play` can now set user namespace options through the the `io.podman.annotations.userns` annotation in the pod definition ([#20658](https://github.com/containers/podman/issues/20658)).
+- Pods created with `podman kube play` can now set user namespace options through the `io.podman.annotations.userns` annotation in the pod definition ([#20658](https://github.com/containers/podman/issues/20658)).
 - Macvlan and ipvlan networks can adjust the name of the network interface created inside containers via the new `containers.conf` field `interface_name` ([#21313](https://github.com/containers/podman/issues/21313)).
 - The `--gpus` option to `podman create` and `podman run` is now compatible with Nvidia GPUs ([#21156](https://github.com/containers/podman/issues/21156)).
 - The `--mount` option to `podman create` and `podman run` supports a new mount option, `no-dereference`, to mount a symlink (instead of its dereferenced target) into a container ([#20098](https://github.com/containers/podman/issues/20098)).
@@ -1151,7 +1151,7 @@
 - The `podman rmi` command now supports a new option, `--ignore`, which will ignore errors caused by missing images.
 - The `podman network create` command now features a new option, `--ipam-driver`, to specify details about how IP addresses are assigned to containers in the network ([#13521](https://github.com/containers/podman/issues/13521)).
 - The `podman machine list` command now features a new option, `--quiet`, to print only the names of configured VMs and no other information.
-- The `--ipc` option to the `podman create`, `podman run`, and `podman pod create` commands now supports three new modes: `none`, `private`, and `shareable`. The default IPC mode is now `shareable`, indicating the the IPC namespace can be shared with other containers ([#13265](https://github.com/containers/podman/issues/13265)).
+- The `--ipc` option to the `podman create`, `podman run`, and `podman pod create` commands now supports three new modes: `none`, `private`, and `shareable`. The default IPC mode is now `shareable`, indicating the IPC namespace can be shared with other containers ([#13265](https://github.com/containers/podman/issues/13265)).
 - The `--mount` option to the `podman create` and `podman run` commands can now set options for created named volumes via the `volume-opt` parameter ([#13387](https://github.com/containers/podman/issues/13387)).
 - The `--mount` option to the `podman create` and `podman run` commands now allows parameters to be passed in CSV format ([#13922](https://github.com/containers/podman/issues/13922)).
 - The `--userns` option to the `podman create` and `podman run` commands now supports a new option, `nomap`, that (only for rootless containers) does not map the UID of the user that started the container into the container, increasing security.
@@ -2135,7 +2135,7 @@
 - The `podman generate kube` command now properly supports generating YAML for containers and pods creating using host networking (`--net=host`) ([#9077](https://github.com/containers/podman/issues/9077)).
 - The `podman kill` command now supports a `--cidfile` option to kill containers given a file containing the container's ID ([#8443](https://github.com/containers/podman/issues/8443)).
 - The `podman pod create` command now supports the `--net=none` option ([#9165](https://github.com/containers/podman/issues/9165)).
-- The `podman volume create` command can now specify volume UID and GID as options with the `UID` and `GID` fields passed to the the `--opt` option.
+- The `podman volume create` command can now specify volume UID and GID as options with the `UID` and `GID` fields passed to the `--opt` option.
 - Initial support has been added for Docker Volume Plugins. Podman can now define available plugins in `containers.conf` and use them to create volumes with `podman volume create --driver`.
 - The `podman run` and `podman create` commands now support a new option, `--platform`, to specify the platform of the image to be used when creating the container.
 - The `--security-opt` option to `podman run` and `podman create` now supports the `systempaths=unconfined` option to unrestrict access to all paths in the container, as well as `mask` and `unmask` options to allow more granular restriction of container paths.
@@ -3088,7 +3088,7 @@
 - The `podman rm` command can now remove containers in broken states which previously could not be removed
 - The `podman info` command, when run without root, now shows information on UID and GID mappings in the rootless user namespace
 - Added `podman build --squash-all` flag, which squashes all layers (including those of the base image) into one layer
-- The `--systemd` flag to `podman run` and `podman create` now accepts a string argument and allows a new value, `always`, which forces systemd support without checking if the the container entrypoint is systemd
+- The `--systemd` flag to `podman run` and `podman create` now accepts a string argument and allows a new value, `always`, which forces systemd support without checking if the container entrypoint is systemd
 
 ### Bugfixes
 - Fixed a bug where the `podman top` command did not work on systems using CGroups V2 ([#4192](https://github.com/containers/podman/issues/4192))
