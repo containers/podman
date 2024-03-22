@@ -609,6 +609,16 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	// refresh runs.
 	runtime.valid = true
 
+	// Is the tmpdir or run root not on a tmpfs?
+	// If so, throw a very explicit warning that this is not a sane config.
+	// Allow suppression via an environment variable in case the user is
+	// very sure (e.g. has configured a service like systemd-tmpfiles to
+	// clean the dir on reboot).
+	// Do this very late in init so we can be sure we're not going to turn
+	// into the rootless userns process (if we did this earlier, we'd print
+	// this twice).
+	warnIfNotTmpfs([]string{runtime.config.Engine.TmpDir, runtime.storageConfig.RunRoot})
+
 	// If we need to refresh the state, do it now - things are guaranteed to
 	// be set up by now.
 	if doRefresh {

@@ -22,6 +22,8 @@ env:
     # Runner statistics log file path/name
     STATS_LOGFILE_SFX: 'runner_stats.log'
     STATS_LOGFILE: '$GOSRC/${CIRRUS_TASK_NAME}-${STATS_LOGFILE_SFX}'
+    # Disable Podman warnings about /tmp not being a tmpfs
+    PODMAN_SUPPRESS_TMPFS_WARNING: 'true'
 
     ####
     #### Cache-image names to test with (double-quotes around names are critical)

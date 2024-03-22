@@ -258,4 +258,25 @@ EOF
     run_podman $safe_opts system reset --force
 }
 
+@test "podman - warning message on launching Podman with non-tmpfs tmpdir" {
+    skip_if_remote "Check requires a local Libpod"
+
+    # We need a directory that is not tmpfs to put Podman in
+    OLDTMPFS=$PODMAN_SUPPRESS_TMPFS_WARNING
+    unset PODMAN_SUPPRESS_TMPFS_WARNING
+
+    # Anything that creates a Libpod should trigger the warning.
+    nottmpfs_tmp=$(mktemp -d /var/tmp)
+    run_podman --tmpdir=$nottmpfs_tmp/tmp --runroot=$nottmpfs_tmp/runroot --root=$nottmpfs_tmp/root info
+    assert "$output" =~ "The following temporary files directories are not on a tmpfs filesystem"
+
+    # Force a run on tmpfs that should not error
+    tmpfs_tmp=$(mktemp -d /dev/shm)
+    run_podman --tmpdir=$tmpfs_tmp/tmp --runroot=$tmpfs_tmp/runroot --root=$tmpfs_tmp/root info
+    assert "$output" !~ "are not on a tmpfs"
+    rm -rf $tmpfs_tmp
+
+    export PODMAN_SUPPRESS_TMPFS_WARNING=$OLDTMPFS
+}
+
 # vim: filetype=sh
