@@ -900,26 +900,12 @@ func parseLibPodIsolation(isolation string) (buildah.Isolation, error) {
 }
 
 func extractTarFile(anchorDir string, r *http.Request) (string, error) {
-	path := filepath.Join(anchorDir, "tarBall")
-	tarBall, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
-	if err != nil {
-		return "", err
-	}
-	defer tarBall.Close()
-
-	// Content-Length not used as too many existing API clients didn't honor it
-	_, err = io.Copy(tarBall, r.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed Request: Unable to copy tar file from request body %s", r.RequestURI)
-	}
-
 	buildDir := filepath.Join(anchorDir, "build")
-	err = os.Mkdir(buildDir, 0o700)
+	err := os.Mkdir(buildDir, 0o700)
 	if err != nil {
 		return "", err
 	}
 
-	_, _ = tarBall.Seek(0, 0)
-	err = archive.Untar(tarBall, buildDir, nil)
+	err = archive.Untar(r.Body, buildDir, nil)
 	return buildDir, err
 }
