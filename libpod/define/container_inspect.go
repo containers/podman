@@ -364,6 +364,9 @@ type InspectContainerHostConfig struct {
 	// It is not handled directly within libpod and is stored in an
 	// annotation.
 	AutoRemove bool `json:"AutoRemove"`
+	// Annotations are provided to the runtime when the container is
+	// started.
+	Annotations map[string]string `json:"Annotations"`
 	// VolumeDriver is presently unused and is retained for Docker
 	// compatibility.
 	VolumeDriver string `json:"VolumeDriver"`
