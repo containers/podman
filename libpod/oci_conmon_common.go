@@ -232,29 +232,31 @@ func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
 		return fmt.Errorf("getting stderr pipe: %w", err)
 	}
 
-	if err := cmd.Start(); err != nil {
-		out, err2 := io.ReadAll(errPipe)
-		if err2 != nil {
-			return fmt.Errorf("getting container %s state: %w", ctr.ID(), err)
-		}
-		if strings.Contains(string(out), "does not exist") || strings.Contains(string(out), "No such file") {
-			if err := ctr.removeConmonFiles(); err != nil {
-				logrus.Debugf("unable to remove conmon files for container %s", ctr.ID())
-			}
-			ctr.state.ExitCode = -1
-			ctr.state.FinishedTime = time.Now()
-			ctr.state.State = define.ContainerStateExited
-			return ctr.runtime.state.AddContainerExitCode(ctr.ID(), ctr.state.ExitCode)
-		}
-		return fmt.Errorf("getting container %s state. stderr/out: %s: %w", ctr.ID(), out, err)
+	err = cmd.Start()
+	if err != nil {
+		return fmt.Errorf("error launching container runtime: %w", err)
 	}
 	defer func() {
 		_ = cmd.Wait()
 	}()
 
+	stderr, err := io.ReadAll(errPipe)
+	if err != nil {
+		return fmt.Errorf("reading stderr: %s: %w", ctr.ID(), err)
+	}
+	if strings.Contains(string(stderr), "does not exist") || strings.Contains(string(stderr), "No such file") {
+		if err := ctr.removeConmonFiles(); err != nil {
+			logrus.Debugf("unable to remove conmon files for container %s", ctr.ID())
+		}
+		ctr.state.ExitCode = -1
+		ctr.state.FinishedTime = time.Now()
+		ctr.state.State = define.ContainerStateExited
+		return ctr.runtime.state.AddContainerExitCode(ctr.ID(), ctr.state.ExitCode)
+	}
 	if err := errPipe.Close(); err != nil {
 		return err
 	}
+
 	out, err := io.ReadAll(outPipe)
 	if err != nil {
 		return fmt.Errorf("reading stdout: %s: %w", ctr.ID(), err)
