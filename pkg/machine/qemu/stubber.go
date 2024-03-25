@@ -313,7 +313,7 @@ func (q *QEMUStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, quiet bool) 
 		// create mountpoint directory if it doesn't exist
 		// because / is immutable, we have to monkey around with permissions
 		// if we dont mount in /home or /mnt
-		args := []string{"-q", "--"}
+		var args []string
 		if !strings.HasPrefix(mount.Target, "/home") && !strings.HasPrefix(mount.Target, "/mnt") {
 			args = append(args, "sudo", "chattr", "-i", "/", ";")
 		}
@@ -333,7 +333,7 @@ func (q *QEMUStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, quiet bool) 
 			if mount.ReadOnly {
 				mountOptions = append(mountOptions, []string{"-o", "ro"}...)
 			}
-			err = machine.CommonSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, append([]string{"-q", "--", "sudo", "mount"}, mountOptions...))
+			err = machine.CommonSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, append([]string{"sudo", "mount"}, mountOptions...))
 			if err != nil {
 				return err
 			}
