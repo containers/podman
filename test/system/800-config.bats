@@ -253,7 +253,7 @@ EOF
     skip_if_remote "containers.conf does not effect client side of --remote"
 
     CONTAINERS_CONF=/dev/null run_podman push --help
-    assert "$output" =~ "--compression-format string.*compression format to use \(default \"gzip\"\)" "containers.conf should set default to gzip"
+    assert "$output" =~ "--compression-format string.*compression format to use \(default \"zstd\"\)"
     assert "$output" !~ "compression level to use \(default" "containers.conf should not set default compressionlevel"
 
     conf_tmp="$PODMAN_TMPDIR/containers.conf"
