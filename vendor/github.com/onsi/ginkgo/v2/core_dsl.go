@@ -792,8 +792,8 @@ DeferCleanup can be passed:
 For example:
 
 	BeforeEach(func() {
-	    DeferCleanup(os.SetEnv, "FOO", os.GetEnv("FOO"))
-	    os.SetEnv("FOO", "BAR")
+	    DeferCleanup(os.Setenv, "FOO", os.GetEnv("FOO"))
+	    os.Setenv("FOO", "BAR")
 	})
 
 will register a cleanup handler that will set the environment variable "FOO" to its current value (obtained by os.GetEnv("FOO")) after the spec runs and then sets the environment variable "FOO" to "BAR" for the current spec.
