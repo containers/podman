@@ -67,7 +67,8 @@ jobs:
     trigger: release
     update_release: false
     dist_git_branches:
-      - fedora-development # Implies fedora-rawhide and any branched but unreleased version, will include f40 before f40 is marked stable.
+      - fedora-development
+      - fedora-latest
 
   - job: koji_build
     trigger: commit
