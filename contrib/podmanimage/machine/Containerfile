@@ -1,0 +1,17 @@
+FROM quay.io/centos-bootc/fedora-bootc:eln
+
+RUN dnf -y update; \
+    rpm --setcaps shadow-utils 2>/dev/null; \
+    dnf -y install podman subscription-manager crun crun-wasm crun-krun chrony; \
+    dnf -y clean all; \
+    systemctl enable podman.service; \
+    printf "\nconfdir /etc/chrony.d\n" >> /etc/chrony.conf
+
+ADD usr usr
+ADD etc etc
+
+RUN systemctl enable rhsmcertd.service podman.socket
+
+RUN groupadd -g 501 core; useradd -u 501 -g 501 core
+USER core
+RUN systemctl --user enable podman.socket
