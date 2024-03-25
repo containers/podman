@@ -738,6 +738,11 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			podSpec.PodSpecGen.InfraContainerSpec.Name = v
 		}
 
+		if !infraOptions.NoHealthCheck {
+			if err := podSpec.PodSpecGen.InfraContainerSpec.InitHealthCheck(ctx); err != nil {
+				return nil, nil, err
+			}
+		}
 		err = specgenutil.FillOutSpecGen(podSpec.PodSpecGen.InfraContainerSpec, &infraOptions, []string{})
 		if err != nil {
 			return nil, nil, err
