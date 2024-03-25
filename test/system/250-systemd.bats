@@ -455,8 +455,11 @@ $name stderr" "logs work with passthrough"
     # Kill the pod and make sure the service is not running.
     run_podman pod kill test_pod
     for i in {0..20}; do
+        # echos are for debugging test flakes
+        echo "$_LOG_PROMPT systemctl is-active $service_name"
         run systemctl is-active $service_name
-        if [[ $output == "failed" ]]; then
+        echo "$output"
+        if [[ "$output" == "inactive" ]]; then
             break
         fi
         sleep 0.5

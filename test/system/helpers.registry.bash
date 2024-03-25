@@ -112,6 +112,13 @@ function stop_registry() {
 
     # Make sure socket is closed
     if tcp_port_probe $PODMAN_LOGIN_REGISTRY_PORT; then
+        # for debugging flakes
+        echo ""
+        echo "ps auxww --forest"
+        ps auxww --forest
+        echo ""
+        echo "lsof -i -P"
+        lsof -i -P
         die "Socket still seems open"
     fi
 }

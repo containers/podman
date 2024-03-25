@@ -734,8 +734,18 @@ spec:
 
     run_podman kube play --configmap=$configmap_file $pod_file
     run_podman wait test_pod-server
-    run_podman logs test_pod-server
-    is "$output" "foo:bar"
+
+    # systemd logs are unreliable; we may need to retry a few times
+    # https://github.com/systemd/systemd/issues/28650
+    local retries=10
+    while [[ $retries -gt 0 ]]; do
+        run_podman logs test_pod-server
+        test -n "$output" && break
+        sleep 0.1
+        retries=$((retries - 1))
+    done
+    assert "$retries" -gt 0 "Timed out waiting for podman logs"
+    assert "$output" = "foo:bar" "output from podman logs"
 
     run_podman kube down $pod_file
 }
