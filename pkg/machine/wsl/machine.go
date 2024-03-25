@@ -308,7 +308,7 @@ func checkAndInstallWSL(reExec bool) (bool, error) {
 		return true, nil
 	}
 
-	admin := hasAdminRights()
+	admin := HasAdminRights()
 
 	if !IsWSLFeatureEnabled() {
 		return false, attemptFeatureInstall(reExec, admin)
