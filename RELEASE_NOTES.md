@@ -1,5 +1,12 @@
 # Release Notes
 
+## 4.9.4
+### Security
+- Fixed [CVE-2024-1753](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-1753) in Buildah and `podman build` which allowed a user to write files to the `/` directory of the host machine if selinux was not enabled.
+
+### Bugfixes
+- Fixed a bug where health check status would be updated to "healthy" before the startup delay had expired.
+
 ## 4.9.3
 ### Features
 - The `podman container commit` command now features a `--config` option which accepts a filename containing a JSON-encoded container configuration to be merged in to the newly-created image.
