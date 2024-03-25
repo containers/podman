@@ -7,6 +7,7 @@ import (
 	dockerContainer "github.com/docker/docker/api/types/container"
 	dockerNetwork "github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/registry"
+	"github.com/docker/docker/api/types/system"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -16,6 +17,8 @@ type AuthConfig struct {
 
 type ImageInspect struct {
 	docker.ImageInspect
+	// Container is for backwards compat but is basically unused
+	Container string
 }
 
 type ContainerConfig struct {
@@ -74,7 +77,7 @@ type UpdateEntities struct {
 }
 
 type Info struct {
-	docker.Info
+	system.Info
 	BuildahVersion     string
 	CPURealtimePeriod  bool
 	CPURealtimeRuntime bool
