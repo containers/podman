@@ -1,0 +1,103 @@
+workflow_dispatch: false
+
+name: MACHINE IMAGE TRIAL
+
+on:
+  pull_request:
+    branches:
+      - main
+
+env:
+  MANIFEST_ADD_ARGS: --artifact --artifact-type="" --artifact-config-type="application/vnd.oci.image.config.v1+json" --artifact-layer-type=application/vnd.oci.image.layer.v1.tar --os=linux --arch=x86_64
+
+defaults:
+  run: 
+    shell: bash -l {0}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Install qemu dependency
+      run: |
+        sudo apt update
+        sudo apt -y install qemu-user-static
+
+    - name: Delete hostedtoolcache
+      run: rm -rf /opt/hostedtoolcache
+
+    - name: Check out code
+      uses: actions/checkout@v4
+
+    - name: Pull coreos-assembler image
+      run: podman pull quay.io/coreos-assembler/coreos-assembler
+
+    - name: create fcos work dir
+      run: mkdir ./fcos
+
+    - name: Cosa init
+      run: |
+        source ./contrib/podman-next/fcos-podmanimage/cosa-snippet
+        cd fcos
+        cosa init --branch podman-next https://github.com/lsm5/fedora-coreos-config
+
+    - name: Cosa Fetch
+      run: |
+        source ./contrib/podman-next/fcos-podmanimage/cosa-snippet
+        cd fcos
+        cosa fetch --update-lockfile
+
+    - name: Cosa Build Qcow2
+      run: |
+        source ./contrib/podman-next/fcos-podmanimage/cosa-snippet
+        cd fcos
+        cosa build
+
+    - name: Cosa Build Hyperv
+      run: |
+        source ./contrib/podman-next/fcos-podmanimage/cosa-snippet
+        cd fcos
+        cosa buildextend-hyperv
+
+    - name: Cosa Build Applehv
+      run: |
+        source ./contrib/podman-next/fcos-podmanimage/cosa-snippet
+        cd fcos
+        cosa buildextend-applehv
+
+    - name: Cosa Compress Qcow2
+      run: |
+        source ./contrib/podman-next/fcos-podmanimage/cosa-snippet
+        cd fcos
+        cosa compress
+
+    - name: Create manifest
+      run: buildah manifest create quay.io/podman/machine-images:5.0
+
+    - name: Add Qcow2 to manifest
+      run: |
+        cd ./fcos/builds/latest/x86_64
+        echo "QCOW_IMAGE_X86_64=$(ls | grep qcow2.xz)" >> $GITHUB_ENV
+        buildah manifest add --artifact --artifact-type="" --artifact-config-type="application/vnd.oci.image.config.v1+json" --artifact-layer-type=application/vnd.oci.image.layer.v1.tar --os=linux --arch=x86_64 --annotation "disktype=qemu" quay.io/podman/machine-images:5.0 ${{ env.QCOW_IMAGE }}
+
+    - name: Add Applehv to manifest
+      run: |
+        cd ./fcos/builds/latest/x86_64
+        echo "APPLEHV_IMAGE=$(ls | grep applehv.x86_64.raw.gz)" >> $GITHUB_ENV
+        buildah manifest add --artifact --artifact-type="" --artifact-config-type="application/vnd.oci.image.config.v1+json" --artifact-layer-type=application/vnd.oci.image.layer.v1.tar --os=linux --arch=x86_64 --annotation "disktype=applehv" quay.io/podman/machine-images:5.0 ${{ env.APPLEHV_IMAGE }}
+
+    - name: Add Hyperv to manifest
+      run: |
+        cd ./fcos/builds/latest/x86_64
+        echo "HYPERV_IMAGE=$(ls | grep hyperv.x86_64.vhdx.zip)" >> $GITHUB_ENV
+        buildah manifest add --artifact --artifact-type="" --artifact-config-type="application/vnd.oci.image.config.v1+json" --artifact-layer-type=application/vnd.oci.image.layer.v1.tar --os=linux --arch=x86_64  --annotation "disktype=hyperv" quay.io/podman/machine-images:5.0 ${{ env.HYPERV_IMAGE }}
+
+    - name: Push to Quay
+      uses: redhat-actions/push-to-registry@v2
+      with:
+        image: machine-images
+        tags: 5.0
+        registry: quay.io/podman
+        username: ${{ secrets.QUAY_PODMAN_USERNAME }}
+        password: ${{ secrets.QUAY_PODMAN_PASSWORD }}

@@ -1,15 +1,12 @@
-name: Build FCOS image with packages from rhcontainerbot/podman-next
+name: MACHINE IMAGE FROM FCOS IAMGE
 
 on:
-  push:
+  pull_request:
     branches:
-      - main
-  # Run everyday at midnight and pull the latest packages from the copr
-  schedule:
-    - cron: '0 0 * * *'
+      main
 
 env:
-  FCOS_IMAGE_NAME: fcos
+  IMAGE_NAME: fcos
   MACHINE_IMAGE_NAME: machine-images
   # IMAGE_ARCHS has to be comma separated
   IMAGE_ARCHS: amd64, arm64
@@ -33,15 +30,13 @@ jobs:
       run: |
         pip3 install git+https://github.com/packit/wait-for-copr.git@main
 
-    - name: Set up cosa
-      run: |
-        # TBD
-
     - name: Check out code
       uses: actions/checkout@v4
 
     - name: Get short SHA from HEAD
-      run: echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+      #run: echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+      # USE A KNOWN BUILT COMMIT FOR TESTING
+      run: echo "SHORT_SHA=f756e5db6" >> "$GITHUB_ENV"
       id: short_sha
 
     - name: Wait for successful podman-next build with the latest commit
@@ -50,7 +45,7 @@ jobs:
       run: |
         # TODO: add this in the Containerfile itself or as a --build-arg
         wait-for-copr --owner ${{ env.COPR_OWNER }} --project ${{ env.COPR_PROJECT }} podman ${{ env.SHORT_SHA }}
-        echo "podman-next build successful."
+        echo "podman-next build with ${{ env.SHORT_SHA }} successful."
 
     - name: Build FCOS Image
       id: build_image_multiarch
@@ -68,41 +63,35 @@ jobs:
           org.opencontainers.image.description=FCOS image with rpms from rhcontainerbot/podman-next copr
           org.opencontainers.image.revision=${{ github.sha }}
 
-    - name: Build Machine images
-      run: |
-      # TBD
+          #- name: Echo Outputs
+          #run: |
+          #echo "Image: ${{ steps.build_image_multiarch.outputs.image }}"
+          #echo "Tags: ${{ steps.build_image_multiarch.outputs.tags }}"
+          #echo "Tagged Image: ${{ steps.build_image_multiarch.outputs.image-with-tag }}"
 
-    - name: Add Machine images to Manifest
-      # TBD
+          #- name: Check images created
+          #run: buildah images | grep '${{ env.IMAGE_NAME }}'
 
-    - name: Echo Outputs
-      run: |
-        echo "Image: ${{ steps.build_image_multiarch.outputs.image }}"
-        echo "Tags: ${{ steps.build_image_multiarch.outputs.tags }}"
-        echo "Tagged Image: ${{ steps.build_image_multiarch.outputs.image-with-tag }}"
-
-    - name: Check images created
-      run: buildah images | grep '${{ env.IMAGE_NAME }}'
-
-    - name: Check image metadata
-      run: |
-        set -x
+          #- name: Check image metadata
+          #run: |
+          #set -x
         # COPR_PROJECT envvar is used for the `podman-next` floating tag
-        buildah inspect ${{ steps.build_image_multiarch.outputs.image }}:${{ env.COPR_PROJECT }} | jq ".OCIv1.architecture"
-        buildah inspect ${{ steps.build_image_multiarch.outputs.image }}:${{ env.COPR_PROJECT }} | jq ".Docker.architecture"
-        buildah inspect ${{ steps.build_image_multiarch.outputs.image }}:podman-${{ env.SHORT_SHA }} | jq ".OCIv1.architecture"
-        buildah inspect ${{ steps.build_image_multiarch.outputs.image }}:podman-${{ env.SHORT_SHA }} | jq ".Docker.architecture"
+        #buildah inspect ${{ steps.build_image_multiarch.outputs.image }}:${{ env.COPR_PROJECT }} | jq ".OCIv1.architecture"
+        #buildah inspect ${{ steps.build_image_multiarch.outputs.image }}:${{ env.COPR_PROJECT }} | jq ".Docker.architecture"
+        #buildah inspect ${{ steps.build_image_multiarch.outputs.image }}:podman-${{ env.SHORT_SHA }} | jq ".OCIv1.architecture"
+        #buildah inspect ${{ steps.build_image_multiarch.outputs.image }}:podman-${{ env.SHORT_SHA }} | jq ".Docker.architecture"
 
-    - name: Run image
-      run: podman run --privileged --rm ${{ steps.build_image_multiarch.outputs.image-with-tag }} podman system info
+          #- name: Run image
+          #run: podman run --privileged --rm ${{ steps.build_image_multiarch.outputs.image-with-tag }} podman system info
 
-    - name: Push to Quay
-      id: push-to-quay
+
+      #- name: Push to Quay
+      #id: push-to-quay
       # Ref: https://github.com/redhat-actions/push-to-registry
-      uses: redhat-actions/push-to-registry@v2
-      with:
-        image: ${{ env.IMAGE_NAME }}
-        tags: ${{ steps.build_image_multiarch.outputs.tags }}
-        registry: ${{ env.IMAGE_REGISTRY }}
-        username: ${{ secrets.QUAY_PODMAN_USERNAME }}
-        password: ${{ secrets.QUAY_PODMAN_PASSWORD }}
+      #uses: redhat-actions/push-to-registry@v2
+      #with:
+      #  image: ${{ env.MACHINE_IMAGE_NAME }}
+      #  tags: ${{ steps.build_image_multiarch.outputs.tags }}
+      #  registry: ${{ env.IMAGE_REGISTRY }}
+      #  username: ${{ secrets.QUAY_PODMAN_USERNAME }}
+      #  password: ${{ secrets.QUAY_PODMAN_PASSWORD }}
