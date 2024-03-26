@@ -84,8 +84,8 @@ github.com/containers/gvisor-tap-vsock v0.7.3 h1:yORnf15sP+sLFhxLNLgmB5/lOhldn9d
 github.com/containers/gvisor-tap-vsock v0.7.3/go.mod h1:NI1fLMtKXQZoDrrOeqryGz7x7j/XSFWRmQILva7Fu9c=
 github.com/containers/image/v5 v5.30.0 h1:CmHeSwI6W2kTRWnUsxATDFY5TEX4b58gPkaQcEyrLIA=
 github.com/containers/image/v5 v5.30.0/go.mod h1:gSD8MVOyqBspc0ynLsuiMR9qmt8UQ4jpVImjmK0uXfk=
-github.com/containers/libhvee v0.7.0 h1:TDfidZOduYk0ZW0tigzqpJOl+CeynvHxIZCuH/ak7YM=
-github.com/containers/libhvee v0.7.0/go.mod h1:fRKB3AyIqHMvq6xaeYhTpckM2cdoq0oecolyoiuLP7M=
+github.com/containers/libhvee v0.7.1 h1:dWGF5GLq9DZvXo3P8aDp3cNieL5eCaSell4UmeA/jY4=
+github.com/containers/libhvee v0.7.1/go.mod h1:fRKB3AyIqHMvq6xaeYhTpckM2cdoq0oecolyoiuLP7M=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 h1:Qzk5C6cYglewc+UyGf6lc8Mj2UaPTHy/iF2De0/77CA=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
 github.com/containers/luksy v0.0.0-20240212203526-ceb12d4fd50c h1:6zalnZZODMOqNZBww9VAM1Mq5EZ3J+S8vYGCo2yg39M=

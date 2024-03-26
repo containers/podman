@@ -89,11 +89,11 @@ func (vm *VirtualMachine) SplitAndAddIgnition(keyPrefix string, ignRdr *bytes.Re
 }
 
 func (vm *VirtualMachine) AddKeyValuePair(key string, value string) error {
-	return vm.kvpOperation("AddKvpItems", key, value, "key already exists?")
+	return vm.kvpOperation("AddKvpItems", key, value, false, "key already exists?")
 }
 
 func (vm *VirtualMachine) ModifyKeyValuePair(key string, value string) error {
-	return vm.kvpOperation("ModifyKvpItems", key, value, "key invalid?")
+	return vm.kvpOperation("ModifyKvpItems", key, value, false, "key invalid?")
 }
 
 func (vm *VirtualMachine) PutKeyValuePair(key string, value string) error {
@@ -107,7 +107,11 @@ func (vm *VirtualMachine) PutKeyValuePair(key string, value string) error {
 }
 
 func (vm *VirtualMachine) RemoveKeyValuePair(key string) error {
-	return vm.kvpOperation("RemoveKvpItems", key, "", "key invalid?")
+	return vm.kvpOperation("RemoveKvpItems", key, "", false, "key invalid?")
+}
+
+func (vm *VirtualMachine) RemoveKeyValuePairNoWait(key string) error {
+	return vm.kvpOperation("RemoveKvpItems", key, "", true, "key invalid?")
 }
 
 func (vm *VirtualMachine) GetKeyValuePairs() (map[string]string, error) {
@@ -148,9 +152,10 @@ func (vm *VirtualMachine) GetKeyValuePairs() (map[string]string, error) {
 	return parseKvpMapXml(s)
 }
 
-func (vm *VirtualMachine) kvpOperation(op string, key string, value string, illegalSuggestion string) error {
+func (vm *VirtualMachine) kvpOperation(op string, key string, value string, nowait bool, illegalSuggestion string) error {
 	var service *wmiext.Service
 	var vsms, job *wmiext.Instance
+	var ret int32
 	var err error
 
 	if service, err = NewLocalHyperVService(); err != nil {
@@ -172,15 +177,26 @@ func (vm *VirtualMachine) kvpOperation(op string, key string, value string, ille
 	execution := vsms.BeginInvoke(op).
 		In("TargetSystem", vm.Path()).
 		In("DataItems", []string{itemStr}).
-		Execute()
+		Execute().
+		Out("ReturnValue", &ret).
+		Out("Job", &job)
 
-	if err := execution.Out("Job", &job).End(); err != nil {
+	if err := execution.End(); err != nil {
 		return fmt.Errorf("%s execution failed: %w", op, err)
 	}
 
-	err = translateKvpError(wmiext.WaitJob(service, job), illegalSuggestion)
 	defer job.Close()
-	return err
+	if ret == 0 || (nowait && ret == 4096) {
+		return nil
+	}
+
+	if ret == 4096 {
+		err = wmiext.WaitJob(service, job)
+	} else {
+		err = &wmiext.JobError{ErrorCode: int(ret)}
+	}
+
+	return translateKvpError(err, illegalSuggestion)
 }
 
 func waitVMResult(res int32, service *wmiext.Service, job *wmiext.Instance, errorMsg string, translate func(int) error) error {
@@ -552,8 +568,12 @@ func (vm *VirtualMachine) remove() (int32, error) {
 		srv *wmiext.Service
 	)
 
+	refreshVM, err := vm.vmm.GetMachine(vm.ElementName)
+	if err != nil {
+		return 0, err
+	}
 	// Check for disabled/stopped state
-	if !Disabled.equal(vm.EnabledState) {
+	if !Disabled.equal(refreshVM.EnabledState) {
 		return -1, ErrMachineStateInvalid
 	}
 	if srv, err = NewLocalHyperVService(); err != nil {
