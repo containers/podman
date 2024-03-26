@@ -96,7 +96,7 @@ func winVersionAtLeast(major uint, minor uint, build uint) bool {
 	return true
 }
 
-func hasAdminRights() bool {
+func HasAdminRights() bool {
 	var sid *windows.SID
 
 	// See: https://coolaj86.com/articles/golang-and-windows-and-admins-oh-my/
