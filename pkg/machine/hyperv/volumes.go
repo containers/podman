@@ -42,8 +42,7 @@ func removeShares(mc *vmconfigs.MachineConfig) error {
 
 func startShares(mc *vmconfigs.MachineConfig) error {
 	for _, mount := range mc.Mounts {
-		args := []string{"-q", "--"}
-
+		var args []string
 		cleanTarget := path.Clean(mount.Target)
 		requiresChattr := !strings.HasPrefix(cleanTarget, "/home") && !strings.HasPrefix(cleanTarget, "/mnt")
 		if requiresChattr {
