@@ -314,6 +314,29 @@ spelled with complete minutiae.
          -down. Click the drop-down and specify the version number in the
          dialog that appears.
 
+1. Update Cirrus-CI cron job list
+   1. After any Major or significant minor (esp. `-rhel`) releases, it's critical to
+      maintain the Cirrus-CI cron job list.  This applies to all containers-org repos,
+      not just podman.
+   1. Access the repo. settings WebUI by navigating to
+      `https://cirrus-ci.com/github/containers/<repo name>`
+      and clicking the gear-icon in the upper-right.
+   1. For minor (i.e. **NOT** `-rhel`) releases, (e.x. `vX.Y`), the previous release
+      should be removed from rotation (e.x. `vX.<Y-1>`) assuming it's no longer supported.
+      Simply click the trash-can icon to the right of the job definition.
+   1. For `-rhel` releases, these are tied to products with specific EOL dates.  They should
+      *never* be disabled unless you (and a buddy) are *absolutely* certain the product is EOL
+      and will *never* ever see another backport (CVE or otherwise).
+   1. On the settings page, pick a "less used" time-slot based on the currently defined
+      jobs.  For example, if three jobs specify `12 12 12 ? * 1-6`, choose another.  Any
+      spec. `H`/`M`/`S` value between 12 and 22 is acceptable (e.x. `22 22 22 ? * 1-6`).
+      The point is to not overload the clouds with CI jobs.
+   1. Following the pattern of the already defined jobs, at the bottom of the settings
+      page add a new entry.  The "Name" should reflect the version number, the "Branch"
+      is simply the newly created release branch name (must be exact), and the "Expression"
+      is the time slot you selected (copy-paste).
+   1. Click the "+" button next to the new-job row you just filled out.
+
 1. Announce the release
       1. For major and minor releases, write a blog post and publish it to blogs.podman.io
          Highlight key features and important changes or fixes. Link to the GitHub release.
