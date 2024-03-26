@@ -96,11 +96,14 @@ load helpers.network
             # force bridge networking also for rootless
             # this ensures that rootless + bridge + userns + ports works
             network_arg="--network bridge"
-        else
-            # Issue #9828 make sure a custom slir4netns cidr also works
+        elif has_slirp4netns; then
+            # Issue #9828 make sure a custom slirp4netns cidr also works
             network_arg="--network slirp4netns:cidr=$cidr"
             # slirp4netns interface ip is always .100
             match="${cidr%.*}.100"
+        else
+            echo "# [skipping subtest of $cidr - slirp4netns unavailable]" >&3
+            continue
         fi
 
         # Container will exit as soon as 'nc' receives input
@@ -175,6 +178,8 @@ load helpers.network
 }
 
 @test "podman run with slirp4ns assigns correct addresses to /etc/hosts" {
+    has_slirp4netns || skip "slirp4netns unavailable"
+
     CIDR="$(random_rfc1918_subnet)"
     IP=$(hostname -I | cut -f 1 -d " ")
     local conname=con-$(random_string 10)
@@ -193,6 +198,8 @@ load helpers.network
 }
 
 @test "podman run with slirp4ns adds correct dns address to resolv.conf" {
+    has_slirp4netns || skip "slirp4netns unavailable"
+
     CIDR="$(random_rfc1918_subnet)"
     run_podman run --rm --network slirp4netns:cidr="${CIDR}.0/24" \
                 $IMAGE cat /etc/resolv.conf
@@ -210,6 +217,8 @@ load helpers.network
 }
 
 @test "podman run with slirp4ns assigns correct ip address container" {
+    has_slirp4netns || skip "slirp4netns unavailable"
+
     CIDR="$(random_rfc1918_subnet)"
     run_podman run --rm --network slirp4netns:cidr="${CIDR}.0/24" \
                 $IMAGE sh -c "ip address | grep ${CIDR}"
@@ -413,13 +422,15 @@ load helpers.network
         skip "This test needs an ipv6 nameserver in $resolve_file"
     fi
 
-    # ipv4 slirp
-    run_podman run --rm --network slirp4netns:enable_ipv6=false $IMAGE cat /etc/resolv.conf
-    assert "$output" !~ "$ipv6_regex" "resolv.conf should not contain ipv6 nameserver"
+    if has_slirp4netns; then
+        # ipv4 slirp
+        run_podman run --rm --network slirp4netns:enable_ipv6=false $IMAGE cat /etc/resolv.conf
+        assert "$output" !~ "$ipv6_regex" "resolv.conf should not contain ipv6 nameserver"
 
-    # ipv6 slirp
-    run_podman run --rm --network slirp4netns:enable_ipv6=true $IMAGE cat /etc/resolv.conf
-    assert "$output" =~ "$ipv6_regex" "resolv.conf should contain ipv6 nameserver"
+        # ipv6 slirp
+        run_podman run --rm --network slirp4netns:enable_ipv6=true $IMAGE cat /etc/resolv.conf
+        assert "$output" =~ "$ipv6_regex" "resolv.conf should contain ipv6 nameserver"
+    fi
 
     # ipv4 cni
     local mysubnet=$(random_rfc1918_subnet)
@@ -585,7 +596,11 @@ load helpers.network
     run_podman network create $netname
     is "$output" "$netname" "output of 'network create'"
 
-    for network in "slirp4netns" "$netname"; do
+    local -a networks=("$netname")
+    if has_slirp4netns; then
+        networks+=("slirp4netns")
+    fi
+    for network in "${networks[@]}"; do
         # Start container with the restart always policy
         run_podman run -d --name myweb -p "$HOST_PORT:80" \
                 --restart always \
@@ -718,13 +733,21 @@ nameserver 8.8.8.8" "nameserver order is correct"
     # we run a long loop of tests lets run all combinations before bailing out
     defer-assertion-failures
 
+    local -a netmodes=("bridge")
+    # As of podman 5.0, slirp4netns is optional
+    if has_slirp4netns; then
+        netmodes+=("slirp4netns:port_handler=slirp4netns" "slirp4netns:port_handler=rootlesskit")
+    fi
     # pasta only works rootless
-    local pasta=
     if is_rootless; then
-        pasta=pasta
+        if has_pasta; then
+            netmodes+=("pasta")
+        else
+            echo "# WARNING: pasta unavailable!" >&3
+        fi
     fi
 
-    for netmode in bridge slirp4netns:port_handler=slirp4netns slirp4netns:port_handler=rootlesskit $pasta; do
+    for netmode in "${netmodes[@]}"; do
         local range=$(random_free_port_range 3)
         # die() inside $(...) does not actually stop us.
         assert "$range" != "" "Could not find free port range"
@@ -900,7 +923,7 @@ EOF
     local subnet="$(random_rfc1918_subnet).0/29"
     run_podman network create --subnet $subnet $net1
     local cname=con1-$(random_string 10)
-    local cname2=con2-$(random_string 10)
+    local cname2=
     local cname3=
 
     local netns_count=
@@ -922,9 +945,12 @@ EOF
     # And now because of all the fun we have to check the same with slirp4netns and pasta because
     # that uses slightly different code paths. Note this would deadlock before the fix.
     # https://github.com/containers/podman/issues/21477
-    run_podman 1 run --name $cname2 --network slirp4netns --restart on-failure:2 --userns keep-id $IMAGE false
-    run_podman inspect --format "{{.RestartCount}}" $cname2
-    assert "$output" == "2" "RestartCount for failing container with slirp4netns"
+    if has_slirp4netns; then
+        cname2=con2-$(random_string 10)
+        run_podman 1 run --name $cname2 --network slirp4netns --restart on-failure:2 --userns keep-id $IMAGE false
+        run_podman inspect --format "{{.RestartCount}}" $cname2
+        assert "$output" == "2" "RestartCount for failing container with slirp4netns"
+    fi
 
     if is_rootless; then
         # pasta can only run rootless
