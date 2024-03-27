@@ -11,8 +11,8 @@
 # Customize from here.
 #
 
-%global golang_version 1.8.1
-%{!?version: %global version 1.2.6}
+%global golang_version 1.19
+%{!?version: %global version 1.2.7}
 %{!?release: %global release 1}
 %global package_name imagebuilder
 %global product_name Container Image Builder
