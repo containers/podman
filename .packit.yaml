@@ -2,8 +2,16 @@
 # See the documentation for more information:
 # https://packit.dev/docs/configuration/
 
-specfile_path: rpm/podman.spec
+downstream_package_name: podman
 upstream_tag_template: v{version}
+
+packages:
+  podman-fedora:
+    pkg_tool: fedpkg
+    specfile_path: rpm/podman.spec
+  podman-centos:
+    pkg_tool: centpkg
+    specfile_path: rpm/podman.spec
 
 srpm_build_deps:
   - git-archive-all
@@ -16,6 +24,7 @@ actions:
 jobs:
   - job: copr_build
     trigger: pull_request
+    packages: [podman-fedora]
     notifications:
       failure_comment:
         message: "Ephemeral COPR build failed. @containers/packit-build please check."
@@ -25,6 +34,17 @@ jobs:
       - fedora-all-aarch64
       - fedora-eln-x86_64
       - fedora-eln-aarch64
+    additional_repos:
+      - "copr://rhcontainerbot/podman-next"
+
+  - job: copr_build
+    trigger: pull_request
+    packages: [podman-centos]
+    notifications:
+      failure_comment:
+        message: "Ephemeral COPR build failed. @containers/packit-build please check."
+    enable_net: true
+    targets:
       - centos-stream+epel-next-8-x86_64
       - centos-stream+epel-next-8-aarch64
       - centos-stream+epel-next-9-x86_64
@@ -46,6 +66,7 @@ jobs:
   - job: tests
     identifier: cockpit-revdeps
     trigger: pull_request
+    packages: [podman-fedora]
     notifications:
       failure_comment:
         message: "Cockpit tests failed for commit {commit_sha}. @martinpitt, @jelly, @mvollmer please check."
@@ -66,15 +87,25 @@ jobs:
   - job: propose_downstream
     trigger: release
     update_release: false
+    packages: [podman-fedora]
     dist_git_branches:
       - fedora-development # Implies fedora-rawhide and any branched but unreleased version, will include f40 before f40 is marked stable.
 
+  - job: propose_downstream
+    trigger: release
+    update_release: false
+    packages: [podman-centos]
+    dist_git_branches:
+      - c10s
+
   - job: koji_build
     trigger: commit
+    packages: [podman-fedora]
     dist_git_branches:
       - fedora-all
 
   - job: bodhi_update
     trigger: commit
+    packages: [podman-fedora]
     dist_git_branches:
       - fedora-branched # rawhide updates are created automatically
