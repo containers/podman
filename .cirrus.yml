@@ -791,6 +791,11 @@ podman_machine_windows_task:
           TEST_FLAVOR: "machine-hyperv"
     clone_script: *winclone
     main_script: ".\\repo\\contrib\\cirrus\\win-podman-machine-main.ps1"
+    always:
+        # Required for `contrib/cirrus/logformatter` to work properly
+        html_artifacts:
+            path: ./*.html
+            type: text/html
 
 
 podman_machine_mac_task:

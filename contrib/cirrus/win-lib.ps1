@@ -40,6 +40,39 @@ if ($Env:CI -eq "true") {
     Remove-Item Env:\CIRRUS_PR_BODY -ErrorAction:Ignore
 }
 
+function Install-Perl-If-Required {
+    if (-not (Get-Command perl -ErrorAction SilentlyContinue)) {
+        Write-Host "`nInstalling Perl as it is required to use logformatter"
+        choco install --no-progress --confirm --acceptlicense --nocolor StrawberryPerl
+        Write-Host "`nAdd perl to the PATH"
+        Set-Item "Env:PATH" "$Env:PATH;C:\Strawberry\perl\bin"
+    }
+}
+
+function Invoke-Logformatter {
+    param (
+        [Collections.ArrayList] $unformattedLog
+    )
+
+    Install-Perl-If-Required
+
+    Write-Host "Invoking Logformatter"
+    $logFormatterInput = @('/define.gitCommit=' + $(git rev-parse HEAD)) + $unformattedLog
+    $logformatterPath = "$PSScriptRoot\logformatter"
+    if ($Env:TEST_FLAVOR) {
+        $logformatterArg = "$Env:TEST_FLAVOR-podman-windows-rootless-host-sqlite"
+    } else {
+        $logformatterArg = "podman-windows-rootless-host-sqlite"
+    }
+    $null =  $logFormatterInput | perl $logformatterPath $logformatterArg
+    $logformatterGeneratedFile = "$logformatterArg.log.html"
+    if (Test-Path $logformatterGeneratedFile) {
+        Move-Item $logformatterGeneratedFile .. -Force
+    } else {
+        Write-Host "Logformatter did not generate the expected file: $logformatterGeneratedFile"
+    }
+}
+
 # Non-powershell commands do not halt execution on error!  This helper
 # should be called after every critical operation to check and halt on a
 # non-zero exit code.  Be careful not to use this for powershell commandlets
@@ -48,14 +81,14 @@ if ($Env:CI -eq "true") {
 function Check-Exit {
     param (
         [int] $stackPos = 1,
-        [string] $command = 'command'
+        [string] $command = 'command',
+        [string] $exitCode = $LASTEXITCODE # WARNING: might not be a number!
     )
 
-    $result = $LASTEXITCODE  # WARNING: might not be a number!
-    if ( ($result -ne $null) -and ($result -ne 0) ) {
+    if ( ($exitCode -ne $null) -and ($exitCode -ne 0) ) {
         # https://learn.microsoft.com/en-us/dotnet/api/system.management.automation.callstackframe
         $caller = (Get-PSCallStack)[$stackPos]
-        throw "Exit code = '$result' running $command at $($caller.ScriptName):$($caller.ScriptLineNumber)"
+        throw "Exit code = '$exitCode' running $command at $($caller.ScriptName):$($caller.ScriptLineNumber)"
     }
 }
 
@@ -71,6 +104,18 @@ function Run-Command {
 
     Write-Host $command
 
-    Invoke-Expression $command
-    Check-Exit 2 "'$command'"
+    # The command output is saved into the variable $unformattedLog to be
+    # processed by `logformatter` later. The alternative is to redirect the
+    # command output to logformatter using a pipeline (`|`). But this approach
+    # doesn't work as the command exit code would be overridden by logformatter.
+    # It isn't possible to get a behavior of bash `pipefail` on Windows.
+    Invoke-Expression $command -OutVariable unformattedLog | Write-Output
+
+    $exitCode = $LASTEXITCODE
+
+    if ($Env:CIRRUS_CI -eq "true") {
+        Invoke-Logformatter $unformattedLog
+    }
+
+    Check-Exit 2 "'$command'" "$exitCode"
 }
