@@ -3191,6 +3191,46 @@ var _ = Describe("Podman kube play", func() {
 		Expect(oldBBinspect[0].Digest).To(Not(Equal(newBBinspect[0].Digest)))
 	})
 
+	It("with no tag and no pull policy should always pull", func() {
+		oldBB := "quay.io/libpod/busybox:1.30.1"
+		pull := podmanTest.Podman([]string{"pull", oldBB})
+		pull.WaitWithDefaultTimeout()
+		Expect(pull).Should(Exit(0))
+
+		tag := podmanTest.Podman([]string{"tag", oldBB, BB})
+		tag.WaitWithDefaultTimeout()
+		Expect(tag).Should(ExitCleanly())
+
+		rmi := podmanTest.Podman([]string{"rmi", oldBB})
+		rmi.WaitWithDefaultTimeout()
+		Expect(rmi).Should(ExitCleanly())
+
+		inspect := podmanTest.Podman([]string{"inspect", BB})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		oldBBinspect := inspect.InspectImageJSON()
+
+		noTagBB := "quay.io/libpod/busybox"
+		ctr := getCtr(withImage(noTagBB), withPullPolicy(""))
+		err := generateKubeYaml("pod", getPod(withCtr(ctr)), kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+		if IsRemote() {
+			Expect(kube.ErrorToString()).To(BeEmpty())
+		} else {
+			Expect(kube.ErrorToString()).To(ContainSubstring("Copying blob "))
+		}
+
+		inspect = podmanTest.Podman([]string{"inspect", noTagBB})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		newBBinspect := inspect.InspectImageJSON()
+		Expect(oldBBinspect[0].Digest).To(Not(Equal(newBBinspect[0].Digest)))
+	})
+
 	It("with image data", func() {
 		testyaml := `
 apiVersion: v1

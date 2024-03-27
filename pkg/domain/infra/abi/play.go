@@ -1110,7 +1110,7 @@ func (ic *ContainerEngine) getImageAndLabelInfo(ctx context.Context, cwd string,
 		} else {
 			if named, err := reference.ParseNamed(container.Image); err == nil {
 				tagged, isTagged := named.(reference.NamedTagged)
-				if isTagged && tagged.Tag() == "latest" {
+				if !isTagged || tagged.Tag() == "latest" {
 					// Make sure to always pull the latest image in case it got updated.
 					pullPolicy = config.PullPolicyNewer
 				}
