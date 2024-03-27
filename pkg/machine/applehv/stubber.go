@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 	"time"
 
@@ -195,6 +196,10 @@ func (a AppleHVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func
 	cmd, err := vm.Cmd(vfkitBinaryPath)
 	if err != nil {
 		return nil, nil, err
+	}
+	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
 	}
 
 	vfkitEndpointArgs, err := getVfKitEndpointCMDArgs(mc.AppleHypervisor.Vfkit.Endpoint)
