@@ -165,7 +165,7 @@ This option conflicts with **--add-host**.
 
 Build only on farm nodes that match the given platforms.
 
-@@option pull.image
+@@option pull
 
 @@option quiet
 
