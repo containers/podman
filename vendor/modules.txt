@@ -696,8 +696,8 @@ github.com/hashicorp/go-multierror
 # github.com/hashicorp/go-retryablehttp v0.7.5
 ## explicit; go 1.13
 github.com/hashicorp/go-retryablehttp
-# github.com/hugelgupf/p9 v0.3.1-0.20230822151754-54f5c5530921
-## explicit; go 1.20
+# github.com/hugelgupf/p9 v0.3.1-0.20240118043522-6f4f11e5296e
+## explicit; go 1.21
 github.com/hugelgupf/p9/fsimpl/localfs
 github.com/hugelgupf/p9/fsimpl/templatefs
 github.com/hugelgupf/p9/fsimpl/xattr
@@ -778,8 +778,8 @@ github.com/mattn/go-shellwords
 # github.com/mattn/go-sqlite3 v1.14.22
 ## explicit; go 1.19
 github.com/mattn/go-sqlite3
-# github.com/mdlayher/socket v0.4.1
-## explicit; go 1.20
+# github.com/mdlayher/socket v0.5.0
+## explicit; go 1.21
 github.com/mdlayher/socket
 # github.com/mdlayher/vsock v1.2.1
 ## explicit; go 1.20

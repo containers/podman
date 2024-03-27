@@ -18,6 +18,7 @@ package localfs
 import (
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/hugelgupf/p9/fsimpl/templatefs"
 	"github.com/hugelgupf/p9/internal"
@@ -267,7 +268,7 @@ func (l *Local) Renamed(parent p9.File, newName string) {
 // SetAttr implements p9.File.SetAttr.
 func (l *Local) SetAttr(valid p9.SetAttrMask, attr p9.SetAttr) error {
 	// When truncate(2) is called on Linux, Linux will try to set time & size. Fake it. Sorry.
-	supported := p9.SetAttrMask{Size: true, MTime: true, CTime: true}
+	supported := p9.SetAttrMask{Size: true, MTime: true, CTime: true, ATime: true}
 	if !valid.IsSubsetOf(supported) {
 		return linux.ENOSYS
 	}
@@ -278,4 +279,13 @@ func (l *Local) SetAttr(valid p9.SetAttrMask, attr p9.SetAttr) error {
 		return os.Truncate(l.path, int64(attr.Size))
 	}
 	return nil
+}
+
+// UnlinkAt implements p9.File.UnlinkAt
+func (l *Local) UnlinkAt(name string, flags uint32) error {
+	// Construct the full path
+	fullPath := filepath.Join(l.path, name)
+
+	// Remove the file or directory
+	return os.Remove(fullPath)
 }

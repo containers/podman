@@ -15,7 +15,7 @@ import (
 // IoctlKCMClone wraps ioctl(2) for unix.KCMClone values, but returns a Conn
 // rather than a raw file descriptor.
 func (c *Conn) IoctlKCMClone() (*Conn, error) {
-	info, err := controlT(c, context.Background(), "ioctl", unix.IoctlKCMClone)
+	info, err := controlT(c, "ioctl", unix.IoctlKCMClone)
 	if err != nil {
 		return nil, err
 	}
@@ -26,14 +26,14 @@ func (c *Conn) IoctlKCMClone() (*Conn, error) {
 
 // IoctlKCMAttach wraps ioctl(2) for unix.KCMAttach values.
 func (c *Conn) IoctlKCMAttach(info unix.KCMAttach) error {
-	return c.control(context.Background(), "ioctl", func(fd int) error {
+	return c.control("ioctl", func(fd int) error {
 		return unix.IoctlKCMAttach(fd, info)
 	})
 }
 
 // IoctlKCMUnattach wraps ioctl(2) for unix.KCMUnattach values.
 func (c *Conn) IoctlKCMUnattach(info unix.KCMUnattach) error {
-	return c.control(context.Background(), "ioctl", func(fd int) error {
+	return c.control("ioctl", func(fd int) error {
 		return unix.IoctlKCMUnattach(fd, info)
 	})
 }
@@ -41,7 +41,7 @@ func (c *Conn) IoctlKCMUnattach(info unix.KCMUnattach) error {
 // PidfdGetfd wraps pidfd_getfd(2) for a Conn which wraps a pidfd, but returns a
 // Conn rather than a raw file descriptor.
 func (c *Conn) PidfdGetfd(targetFD, flags int) (*Conn, error) {
-	outFD, err := controlT(c, context.Background(), "pidfd_getfd", func(fd int) (int, error) {
+	outFD, err := controlT(c, "pidfd_getfd", func(fd int) (int, error) {
 		return unix.PidfdGetfd(fd, targetFD, flags)
 	})
 	if err != nil {
@@ -55,7 +55,7 @@ func (c *Conn) PidfdGetfd(targetFD, flags int) (*Conn, error) {
 // PidfdSendSignal wraps pidfd_send_signal(2) for a Conn which wraps a Linux
 // pidfd.
 func (c *Conn) PidfdSendSignal(sig unix.Signal, info *unix.Siginfo, flags int) error {
-	return c.control(context.Background(), "pidfd_send_signal", func(fd int) error {
+	return c.control("pidfd_send_signal", func(fd int) error {
 		return unix.PidfdSendSignal(fd, sig, info, flags)
 	})
 }
@@ -84,28 +84,28 @@ func (c *Conn) RemoveBPF() error {
 
 // SetsockoptPacketMreq wraps setsockopt(2) for unix.PacketMreq values.
 func (c *Conn) SetsockoptPacketMreq(level, opt int, mreq *unix.PacketMreq) error {
-	return c.control(context.Background(), "setsockopt", func(fd int) error {
+	return c.control("setsockopt", func(fd int) error {
 		return unix.SetsockoptPacketMreq(fd, level, opt, mreq)
 	})
 }
 
 // SetsockoptSockFprog wraps setsockopt(2) for unix.SockFprog values.
 func (c *Conn) SetsockoptSockFprog(level, opt int, fprog *unix.SockFprog) error {
-	return c.control(context.Background(), "setsockopt", func(fd int) error {
+	return c.control("setsockopt", func(fd int) error {
 		return unix.SetsockoptSockFprog(fd, level, opt, fprog)
 	})
 }
 
 // GetsockoptTpacketStats wraps getsockopt(2) for unix.TpacketStats values.
 func (c *Conn) GetsockoptTpacketStats(level, name int) (*unix.TpacketStats, error) {
-	return controlT(c, context.Background(), "getsockopt", func(fd int) (*unix.TpacketStats, error) {
+	return controlT(c, "getsockopt", func(fd int) (*unix.TpacketStats, error) {
 		return unix.GetsockoptTpacketStats(fd, level, name)
 	})
 }
 
 // GetsockoptTpacketStatsV3 wraps getsockopt(2) for unix.TpacketStatsV3 values.
 func (c *Conn) GetsockoptTpacketStatsV3(level, name int) (*unix.TpacketStatsV3, error) {
-	return controlT(c, context.Background(), "getsockopt", func(fd int) (*unix.TpacketStatsV3, error) {
+	return controlT(c, "getsockopt", func(fd int) (*unix.TpacketStatsV3, error) {
 		return unix.GetsockoptTpacketStatsV3(fd, level, name)
 	})
 }

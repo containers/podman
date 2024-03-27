@@ -440,9 +440,7 @@ func (c *Conn) Accept(ctx context.Context, flags int) (*Conn, unix.Sockaddr, err
 
 // Bind wraps bind(2).
 func (c *Conn) Bind(sa unix.Sockaddr) error {
-	return c.control(context.Background(), "bind", func(fd int) error {
-		return unix.Bind(fd, sa)
-	})
+	return c.control("bind", func(fd int) error { return unix.Bind(fd, sa) })
 }
 
 // Connect wraps connect(2). In order to verify that the underlying socket is
@@ -530,26 +528,38 @@ func (c *Conn) Connect(ctx context.Context, sa unix.Sockaddr) (unix.Sockaddr, er
 
 // Getsockname wraps getsockname(2).
 func (c *Conn) Getsockname() (unix.Sockaddr, error) {
-	return controlT(c, context.Background(), "getsockname", unix.Getsockname)
+	return controlT(c, "getsockname", unix.Getsockname)
 }
 
 // Getpeername wraps getpeername(2).
 func (c *Conn) Getpeername() (unix.Sockaddr, error) {
-	return controlT(c, context.Background(), "getpeername", unix.Getpeername)
+	return controlT(c, "getpeername", unix.Getpeername)
+}
+
+// GetsockoptICMPv6Filter wraps getsockopt(2) for *unix.ICMPv6Filter values.
+func (c *Conn) GetsockoptICMPv6Filter(level, opt int) (*unix.ICMPv6Filter, error) {
+	return controlT(c, "getsockopt", func(fd int) (*unix.ICMPv6Filter, error) {
+		return unix.GetsockoptICMPv6Filter(fd, level, opt)
+	})
 }
 
 // GetsockoptInt wraps getsockopt(2) for integer values.
 func (c *Conn) GetsockoptInt(level, opt int) (int, error) {
-	return controlT(c, context.Background(), "getsockopt", func(fd int) (int, error) {
+	return controlT(c, "getsockopt", func(fd int) (int, error) {
 		return unix.GetsockoptInt(fd, level, opt)
+	})
+}
+
+// GetsockoptString wraps getsockopt(2) for string values.
+func (c *Conn) GetsockoptString(level, opt int) (string, error) {
+	return controlT(c, "getsockopt", func(fd int) (string, error) {
+		return unix.GetsockoptString(fd, level, opt)
 	})
 }
 
 // Listen wraps listen(2).
 func (c *Conn) Listen(n int) error {
-	return c.control(context.Background(), "listen", func(fd int) error {
-		return unix.Listen(fd, n)
-	})
+	return c.control("listen", func(fd int) error { return unix.Listen(fd, n) })
 }
 
 // Recvmsg wraps recvmsg(2).
@@ -602,18 +612,30 @@ func (c *Conn) Sendto(ctx context.Context, p []byte, flags int, to unix.Sockaddr
 	})
 }
 
+// SetsockoptICMPv6Filter wraps setsockopt(2) for *unix.ICMPv6Filter values.
+func (c *Conn) SetsockoptICMPv6Filter(level, opt int, filter *unix.ICMPv6Filter) error {
+	return c.control("setsockopt", func(fd int) error {
+		return unix.SetsockoptICMPv6Filter(fd, level, opt, filter)
+	})
+}
+
 // SetsockoptInt wraps setsockopt(2) for integer values.
 func (c *Conn) SetsockoptInt(level, opt, value int) error {
-	return c.control(context.Background(), "setsockopt", func(fd int) error {
+	return c.control("setsockopt", func(fd int) error {
 		return unix.SetsockoptInt(fd, level, opt, value)
+	})
+}
+
+// SetsockoptString wraps setsockopt(2) for string values.
+func (c *Conn) SetsockoptString(level, opt int, value string) error {
+	return c.control("setsockopt", func(fd int) error {
+		return unix.SetsockoptString(fd, level, opt, value)
 	})
 }
 
 // Shutdown wraps shutdown(2).
 func (c *Conn) Shutdown(how int) error {
-	return c.control(context.Background(), "shutdown", func(fd int) error {
-		return unix.Shutdown(fd, how)
-	})
+	return c.control("shutdown", func(fd int) error { return unix.Shutdown(fd, how) })
 }
 
 // Conn low-level read/write/control functions. These functions mirror the
@@ -725,10 +747,7 @@ func rwT[T any](c *Conn, rw rwContext[T]) (T, error) {
 		doneC = make(chan struct{})
 
 		// Atomic: reports whether we have to disarm the deadline.
-		//
-		// TODO(mdlayher): switch back to atomic.Bool when we drop support for
-		// Go 1.18.
-		needDisarm int64
+		needDisarm atomic.Bool
 	)
 
 	// On cancel, clean up the watcher.
@@ -744,7 +763,7 @@ func rwT[T any](c *Conn, rw rwContext[T]) (T, error) {
 			return *new(T), err
 		}
 		setDeadline = true
-		atomic.AddInt64(&needDisarm, 1)
+		needDisarm.Store(true)
 	} else {
 		// The context does not have an explicit deadline. We have to watch for
 		// cancelation so we can propagate that signal to immediately unblock
@@ -760,7 +779,7 @@ func rwT[T any](c *Conn, rw rwContext[T]) (T, error) {
 			case <-rw.Context.Done():
 				// Cancel the operation. Make the caller disarm after poll
 				// returns.
-				atomic.AddInt64(&needDisarm, 1)
+				needDisarm.Store(true)
 				_ = deadline(time.Unix(0, 1))
 			case <-doneC:
 				// Nothing to do.
@@ -778,7 +797,7 @@ func rwT[T any](c *Conn, rw rwContext[T]) (T, error) {
 		return ready(err)
 	})
 
-	if atomic.LoadInt64(&needDisarm) > 0 {
+	if needDisarm.Load() {
 		_ = deadline(time.Time{})
 	}
 
@@ -805,8 +824,8 @@ func rwT[T any](c *Conn, rw rwContext[T]) (T, error) {
 }
 
 // control executes Conn.control for op using the input function.
-func (c *Conn) control(ctx context.Context, op string, f func(fd int) error) error {
-	_, err := controlT(c, ctx, op, func(fd int) (struct{}, error) {
+func (c *Conn) control(op string, f func(fd int) error) error {
+	_, err := controlT(c, op, func(fd int) (struct{}, error) {
 		return struct{}{}, f(fd)
 	})
 	return err
@@ -814,7 +833,7 @@ func (c *Conn) control(ctx context.Context, op string, f func(fd int) error) err
 
 // controlT executes c.rc.Control for op using the input function, returning a
 // newly allocated result T.
-func controlT[T any](c *Conn, ctx context.Context, op string, f func(fd int) (T, error)) (T, error) {
+func controlT[T any](c *Conn, op string, f func(fd int) (T, error)) (T, error) {
 	if atomic.LoadUint32(&c.closed) != 0 {
 		// If the file descriptor is already closed, do nothing.
 		return *new(T), os.NewSyscallError(op, unix.EBADF)
@@ -832,11 +851,6 @@ func controlT[T any](c *Conn, ctx context.Context, op string, f func(fd int) (T,
 		// The last values for t and err are captured outside of the closure for
 		// use when the loop breaks.
 		for {
-			if err = ctx.Err(); err != nil {
-				// Early exit due to context cancel.
-				return
-			}
-
 			t, err = f(int(fd))
 			if ready(err) {
 				return
