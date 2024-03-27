@@ -64,6 +64,7 @@ type DynamicIgnition struct {
 	Cfg        Config
 	Rootful    bool
 	NetRecover bool
+	Rosetta    bool
 }
 
 func (ign *DynamicIgnition) Write() error {
@@ -428,6 +429,24 @@ pids_limit=0
 		files = append(files, getSSLEnvironmentFiles(sslCertFileName, sslCertDirName)...)
 	}
 
+	RosettaActivation := `#!/bin/bash
+echo ":rosetta:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x3e\x00:\xff\xff\xff\xff\xff\xfe\xfe\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/mnt/rosetta:F" > /proc/sys/fs/binfmt_misc/register
+`
+
+	files = append(files, File{
+		Node: Node{
+			User:  GetNodeUsr("root"),
+			Group: GetNodeGrp("root"),
+			Path:  "/usr/local/bin/rosetta-activation.sh",
+		},
+		FileEmbedded1: FileEmbedded1{
+			Mode: IntToPtr(0755),
+			Contents: Resource{
+				Source: EncodeDataURLPtr(RosettaActivation),
+			},
+		},
+	})
+
 	return files
 }
 
@@ -691,4 +710,54 @@ func DefaultReadyUnitFile() parser.UnitFile {
 	u.Add("Service", "RemainAfterExit", "yes")
 	u.Add("Install", "RequiredBy", "default.target")
 	return *u
+}
+
+func GetRosettaActivationUnitFile() *parser.UnitFile {
+	rosettaUnit := parser.NewUnitFile()
+	rosettaUnit.Add("Unit", "Description", "Activates Rosetta if necessary")
+	rosettaUnit.Add("Unit", "After", "systemd-binfmt.service")
+	rosettaUnit.Add("Service", "Type", "oneshot")
+	rosettaUnit.Add("Service", "RemainAfterExit", "yes")
+	rosettaUnit.Add("Service", "ExecStartPre", `/bin/sh -c "mount -t virtiofs -o context=system_u:object_r:nfs_t:s0 rosetta /mnt || true"`)
+	rosettaUnit.Add("Service", "ExecStart", `/bin/sh -c "/usr/local/bin/rosetta-activation.sh || true"`)
+	rosettaUnit.Add("Install", "WantedBy", "multi-user.target")
+	return rosettaUnit
+}
+
+func RosettaActivationUnit() Unit {
+	contents, err := GetRosettaActivationUnitFile().ToString()
+	if err != nil {
+		logrus.Warnf(err.Error())
+	}
+	rosettaUnit := Unit{
+		Enabled:  BoolToPtr(true),
+		Name:     "rosetta-activation.service",
+		Contents: &contents,
+	}
+	return rosettaUnit
+}
+
+func GetUnregisterHandlerUnitFile() *parser.UnitFile {
+	unregisterUnit := parser.NewUnitFile()
+	unregisterUnit.Add("Unit", "Description", "Unregiester x86_64 handler if necessary")
+	unregisterUnit.Add("Unit", "After", "rosetta-activation.service")
+	unregisterUnit.Add("Unit", "ConditionPathExists", "/mnt/rosetta")
+	unregisterUnit.Add("Service", "Type", "oneshot")
+	unregisterUnit.Add("Service", "RemainAfterExit", "yes")
+	unregisterUnit.Add("Service", "ExecStart", `/bin/sh -c "echo -1 > /proc/sys/fs/binfmt_misc/qemu-x86_64"`)
+	unregisterUnit.Add("Install", "WantedBy", "multi-user.target")
+	return unregisterUnit
+}
+
+func UnregisterHandlerUnit() Unit {
+	contents, err := GetUnregisterHandlerUnitFile().ToString()
+	if err != nil {
+		logrus.Warnf(err.Error())
+	}
+	unregisterUnit := Unit{
+		Enabled:  BoolToPtr(true),
+		Name:     "unregister-handler.service",
+		Contents: &contents,
+	}
+	return unregisterUnit
 }

@@ -124,4 +124,5 @@ type VfkitHelper struct {
 	Endpoint        string
 	VfkitBinaryPath *define.VMFile
 	VirtualMachine  *config.VirtualMachine
+	Rosetta         bool
 }

@@ -7,11 +7,14 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
+	"runtime"
 	"strconv"
 	"time"
 
 	"github.com/containers/common/pkg/config"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
+	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/applehv/vfkit"
 	"github.com/containers/podman/v5/pkg/machine/define"
@@ -69,6 +72,8 @@ func (a AppleHVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.Machine
 
 	// Populate the ignition file with virtiofs stuff
 	ignBuilder.WithUnit(generateSystemDFilesForVirtiofsMounts(virtiofsMounts)...)
+
+	mc.AppleHypervisor.Vfkit.Rosetta = opts.Rosetta
 
 	return resizeDisk(mc, mc.Resources.DiskSize)
 }
@@ -321,7 +326,13 @@ func (a AppleHVStubber) VMType() define.VMType {
 	return define.AppleHvVirt
 }
 
-func (a AppleHVStubber) PrepareIgnition(_ *vmconfigs.MachineConfig, _ *ignition.IgnitionBuilder) (*ignition.ReadyUnitOpts, error) {
+func (a AppleHVStubber) PrepareIgnition(_ *vmconfigs.MachineConfig, ignBuilder *ignition.IgnitionBuilder) (*ignition.ReadyUnitOpts, error) {
+	// Only AppleHv with Apple Silicon can use Rosetta
+	if runtime.GOARCH == "arm64" {
+		rosettaUnit := ignition.RosettaActivationUnit()
+		unregisterUnit := ignition.UnregisterHandlerUnit()
+		ignBuilder.WithUnit(rosettaUnit, unregisterUnit)
+	}
 	return nil, nil
 }
 
@@ -331,4 +342,44 @@ func (a AppleHVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo 
 
 func (a AppleHVStubber) GetDisk(userInputPath string, dirs *define.MachineDirs, mc *vmconfigs.MachineConfig) error {
 	return diskpull.GetDisk(userInputPath, dirs, mc.ImagePath, a.VMType(), mc.Name)
+}
+
+func (a AppleHVStubber) SetRosetta(mc *vmconfigs.MachineConfig) (bool, error) {
+	var rosettaNew bool
+	if runtime.GOARCH == "arm64" {
+		cfg := registry.PodmanConfig()
+		rosetta := mc.AppleHypervisor.Vfkit.Rosetta
+		rosettaCfg := cfg.ContainersConfDefaultsRO.Machine.Rosetta
+		rosettaNew = rosetta
+		if !rosettaCfg {
+			rosettaNew = rosettaCfg
+		}
+		if rosettaOverride, found := os.LookupEnv("CONTAINERS_MACHINE_ROSETTA"); found {
+			var rosettaAsBool bool
+			rosettaAsBool, err := strconv.ParseBool(rosettaOverride)
+			if err != nil {
+				return false, fmt.Errorf("CONTAINERS_MACHINE_ROSETTA is not a bool: %v", err)
+			}
+			rosettaNew = rosettaAsBool
+		}
+		if rosetta != rosettaNew {
+			mc.AppleHypervisor.Vfkit.Rosetta = rosettaNew
+			if err := mc.Write(); err != nil {
+				logrus.Error(err)
+			}
+		}
+	}
+	return rosettaNew, nil
+}
+
+func (a *AppleHVStubber) GetRosetta(mc *vmconfigs.MachineConfig) (bool, error) {
+	rosetta := mc.AppleHypervisor.Vfkit.Rosetta
+	return rosetta, nil
+}
+
+func (a *AppleHVStubber) SetRosettaToFalse(rosetta bool) bool {
+	if runtime.GOARCH != "arm64" {
+		return false
+	}
+	return rosetta
 }

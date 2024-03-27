@@ -117,6 +117,7 @@ type InspectInfo struct {
 	State              define.Status
 	UserModeNetworking bool
 	Rootful            bool
+	Rosetta            bool
 }
 
 // ImageConfig describes the bootable image for the VM

@@ -74,6 +74,11 @@ func inspect(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
+		rosetta, err := provider.GetRosetta(mc)
+		if err != nil {
+			return err
+		}
+
 		ii := machine.InspectInfo{
 			ConfigDir: *dirs.ConfigDir,
 			ConnectionInfo: machine.ConnectionConfig{
@@ -88,6 +93,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 			State:              state,
 			UserModeNetworking: provider.UserModeNetworkEnabled(mc),
 			Rootful:            mc.HostUser.Rootful,
+			Rosetta:            rosetta,
 		}
 
 		vms = append(vms, ii)

@@ -7,9 +7,11 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/connection"
 	machineDefine "github.com/containers/podman/v5/pkg/machine/define"
@@ -176,6 +178,20 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 			mc.SSH.RemoteUsername = "user"
 		}
 	}
+
+	cfg := registry.PodmanConfig()
+	createOpts.Rosetta = cfg.ContainersConfDefaultsRO.Machine.Rosetta
+	if rosettaOverride, found := os.LookupEnv("CONTAINERS_MACHINE_ROSETTA"); found {
+		var rosettaAsBool bool
+		rosettaAsBool, err := strconv.ParseBool(rosettaOverride)
+		if err != nil {
+			return fmt.Errorf("CONTAINERS_MACHINE_ROSETTA is not a bool: %v", err)
+		}
+		createOpts.Rosetta = rosettaAsBool
+	}
+	// Rosetta is only supported Apple Silicon Mac(darwin and arm64)
+	// Other machines set Rosetta to false
+	createOpts.Rosetta = mp.SetRosettaToFalse(createOpts.Rosetta)
 
 	ignBuilder := ignition.NewIgnitionBuilder(ignition.DynamicIgnition{
 		Name:      userName,
