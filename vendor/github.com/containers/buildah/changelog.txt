@@ -1,3 +1,13 @@
+- Changelog for v1.27.4 (2024-03-26)
+  * [release-1.27] Bump Bump google.golang.org/protobuf to v1.33.0
+  * [release-1.27] conformance tests: don't break on trailing zeroes
+  * [release-1.27] CVE-2024-1753 container escape fix
+  * Mask /sys/devices/virtual/powercap by default
+  * [release-1.27] Disable CI
+  * [release-1.27] remove registry.centos.org
+  * Cirrus: Add CI self-destruct condition on EOL date
+  * Cirrus: Migrate OSX task to M1
+
 - Changelog for v1.27.3 (2022-12-09)
   * copier.Put(): clear up os/syscall mode bit confusion
 
