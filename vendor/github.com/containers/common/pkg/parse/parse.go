@@ -14,7 +14,7 @@ import (
 
 // ValidateVolumeOpts validates a volume's options
 func ValidateVolumeOpts(options []string) ([]string, error) {
-	var foundRootPropagation, foundRWRO, foundLabelChange, bindType, foundExec, foundDev, foundSuid, foundChown, foundUpperDir, foundWorkDir, foundCopy, foundCopySymlink int
+	var foundRootPropagation, foundRWRO, foundLabelChange, bindType, foundExec, foundDev, foundSuid, foundChown, foundUpperDir, foundWorkDir, foundCopy, foundCopySymlink, foundVolumeSubpath int
 	finalOpts := make([]string, 0, len(options))
 	for _, opt := range options {
 		// support advanced options like upperdir=/path, workdir=/path
@@ -35,6 +35,14 @@ func ValidateVolumeOpts(options []string) ([]string, error) {
 			continue
 		}
 		if strings.HasPrefix(opt, "idmap") {
+			finalOpts = append(finalOpts, opt)
+			continue
+		}
+		if strings.HasPrefix(opt, "subpath") {
+			foundVolumeSubpath++
+			if foundVolumeSubpath > 1 {
+				return nil, fmt.Errorf("invalid options %q, can only specify 1 subpath per mount", strings.Join(options, ", "))
+			}
 			finalOpts = append(finalOpts, opt)
 			continue
 		}

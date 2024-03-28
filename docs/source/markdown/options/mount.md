@@ -37,6 +37,8 @@ Options specific to type=**volume**:
   Multiple ranges are separated with #.  If the specified mapping is prepended with a '@' then the mapping is considered relative to the container
   user namespace. The host ID for the mapping is changed to account for the relative position of the container user in the container user namespace.
 
+- *subpath*: If specified, mount specific file or directory from volume into the container.
+
 Options specific to type=**image**:
 
 - *rw*, *readwrite*: *true* or *false* (default if unspecified: *false*).

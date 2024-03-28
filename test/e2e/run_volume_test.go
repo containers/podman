@@ -962,4 +962,86 @@ USER testuser`, CITEST_IMAGE)
 		Expect(run).Should(ExitCleanly())
 		Expect(run.OutputToString()).Should(ContainSubstring(strings.TrimLeft("/vol/", f.Name())))
 	})
+
+	It("podman works with mounted subpath of a named volume", func() {
+		// Create named volume
+		volName := "testVol"
+		volCreate := podmanTest.Podman([]string{"volume", "create", volName})
+		volCreate.WaitWithDefaultTimeout()
+		Expect(volCreate).Should(ExitCleanly())
+
+		// Populate volume with sub-directories and files
+		volMount := podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/test", volName), ALPINE, "/bin/sh", "-c", "mkdir /test/subdir-ro && mkdir /test/subdir-rw && touch /test/subdir-ro/readonlyfile.txt && touch /test/subdir-rw/writablefile.txt"})
+		volMount.WaitWithDefaultTimeout()
+		Expect(volMount).Should(ExitCleanly())
+
+		// Mount subdir-ro as readonly
+		mountinfo := getMountInfo(volName + ":/test:subpath=subdir-ro,ro")
+		Expect(mountinfo[5]).To(ContainSubstring("ro"))
+
+		volMount = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/test:subpath=subdir-ro,ro", volName), ALPINE, "stat", "-c", "%s", "/test/readonlyfile.txt"})
+		volMount.WaitWithDefaultTimeout()
+		Expect(volMount).Should(ExitCleanly())
+		Expect(volMount.OutputToString()).To(Equal("0"))
+
+		volMount = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/test:subpath=subdir-ro,ro", volName), ALPINE, "stat", "-c", "%s", "/test/writablefile.txt"})
+		volMount.WaitWithDefaultTimeout()
+		Expect(volMount).Should(Exit(1))
+		Expect(volMount.ErrorToString()).To(ContainSubstring("such file or"))
+
+		volMount = podmanTest.Podman([]string{"run", "--rm", "--mount", fmt.Sprintf("type=volume,src=%s,dst=/test,subpath=subdir-ro,ro", volName), ALPINE, "stat", "-c", "%s", "/test/readonlyfile.txt"})
+		volMount.WaitWithDefaultTimeout()
+		Expect(volMount).Should(ExitCleanly())
+		Expect(volMount.OutputToString()).To(Equal("0"))
+
+		volMount = podmanTest.Podman([]string{"run", "--rm", "--mount", fmt.Sprintf("type=volume,src=%s,dst=/test,subpath=subdir-ro,ro", volName), ALPINE, "stat", "-c", "%s", "/test/writablefile.txt"})
+		volMount.WaitWithDefaultTimeout()
+		Expect(volMount).Should(Exit(1))
+		Expect(volMount.ErrorToString()).To(ContainSubstring("such file or"))
+
+		// Mount subdir-rw as readwrite
+		mountinfo = getMountInfo(volName + ":/test:subpath=subdir-rw,rw")
+		Expect(mountinfo[5]).To(ContainSubstring("rw"))
+
+		volMount = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/test:subpath=subdir-rw,rw", volName), ALPINE, "stat", "-c", "%s", "/test/writablefile.txt"})
+		volMount.WaitWithDefaultTimeout()
+		Expect(volMount).Should(ExitCleanly())
+		Expect(volMount.OutputToString()).To(Equal("0"))
+
+		volMount = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/test:subpath=subdir-rw,rw", volName), ALPINE, "stat", "-c", "%s", "/test/readonlyfile.txt"})
+		volMount.WaitWithDefaultTimeout()
+		Expect(volMount).Should(Exit(1))
+		Expect(volMount.ErrorToString()).To(ContainSubstring("such file or"))
+
+		volMount = podmanTest.Podman([]string{"run", "--rm", "--mount", fmt.Sprintf("type=volume,src=%s,dst=/test,subpath=subdir-rw,rw", volName), ALPINE, "stat", "-c", "%s", "/test/writablefile.txt"})
+		volMount.WaitWithDefaultTimeout()
+		Expect(volMount).Should(ExitCleanly())
+		Expect(volMount.OutputToString()).To(Equal("0"))
+
+		volMount = podmanTest.Podman([]string{"run", "--rm", "--mount", fmt.Sprintf("type=volume,src=%s,dst=/test,subpath=subdir-rw,rw", volName), ALPINE, "stat", "-c", "%s", "/test/readonlyfile.txt"})
+		volMount.WaitWithDefaultTimeout()
+		Expect(volMount).Should(Exit(1))
+		Expect(volMount.ErrorToString()).To(ContainSubstring("such file or"))
+
+		// Prevent directory traversal vulnerabilities in subpath
+		volMount = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/test:subpath=../../../../../../../../../../../../../../etc,rw", volName), ALPINE, "stat", "-c", "%s", "/test/readonlyfile.txt"})
+		volMount.WaitWithDefaultTimeout()
+		Expect(volMount).Should(Exit(126))
+		Expect(volMount.ErrorToString()).Should(ContainSubstring("is outside"))
+
+		volMount = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/test:subpath=/../../../../../../../../../../../../../../etc,rw", volName), ALPINE, "stat", "-c", "%s", "/test/readonlyfile.txt"})
+		volMount.WaitWithDefaultTimeout()
+		Expect(volMount).Should(Exit(126))
+		Expect(volMount.ErrorToString()).Should(ContainSubstring("is outside"))
+
+		volMount = podmanTest.Podman([]string{"run", "--rm", "--mount", fmt.Sprintf("type=volume,src=%s,dst=/test,subpath=../../../../../../../../../../../../../../etc,rw", volName), ALPINE, "stat", "-c", "%s", "/test/readonlyfile.txt"})
+		volMount.WaitWithDefaultTimeout()
+		Expect(volMount).Should(Exit(126))
+		Expect(volMount.ErrorToString()).Should(ContainSubstring("is outside"))
+
+		volMount = podmanTest.Podman([]string{"run", "--rm", "--mount", fmt.Sprintf("type=volume,src=%s,dst=/test,subpath=/../../../../../../../../../../../../../../etc,rw", volName), ALPINE, "stat", "-c", "%s", "/test/readonlyfile.txt"})
+		volMount.WaitWithDefaultTimeout()
+		Expect(volMount).Should(Exit(126))
+		Expect(volMount.ErrorToString()).Should(ContainSubstring("is outside"))
+	})
 })

@@ -254,7 +254,7 @@ func Mounts(mountFlag []string, configMounts []string) (map[string]spec.Mount, m
 }
 
 func parseMountOptions(mountType string, args []string) (*spec.Mount, error) {
-	var setTmpcopyup, setRORW, setSuid, setDev, setExec, setRelabel, setOwnership, setSwap bool
+	var setTmpcopyup, setRORW, setSuid, setDev, setExec, setRelabel, setOwnership, setSubpath, setSwap bool
 
 	mnt := spec.Mount{}
 	for _, arg := range args {
@@ -371,6 +371,19 @@ func parseMountOptions(mountType string, args []string) (*spec.Mount, error) {
 				return nil, fmt.Errorf("host directory cannot be empty: %w", errOptionArg)
 			}
 			mnt.Source = value
+		case "subpath":
+			if setSubpath {
+				return nil, fmt.Errorf("cannot pass %q option more than once: %w", name, errOptionArg)
+			}
+			setSubpath = true
+			if mountType != define.TypeVolume {
+				return nil, fmt.Errorf("%q option not supported for %q mount types", name, mountType)
+			}
+			if hasValue {
+				mnt.Options = append(mnt.Options, fmt.Sprintf("subpath=%s", value))
+			} else {
+				return nil, fmt.Errorf("%v: %w", name, errOptionArg)
+			}
 		case "target", "dst", "destination":
 			if mnt.Destination != "" {
 				return nil, fmt.Errorf("cannot pass %q option more than once: %w", name, errOptionArg)

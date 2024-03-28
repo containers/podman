@@ -28,6 +28,7 @@ The _OPTIONS_ is a comma-separated list and can be one or more of:
 * [**r**]**bind**
 * [**r**]**shared**|[**r**]**slave**|[**r**]**private**[**r**]**unbindable** <sup>[[1]](#Footnote1)</sup>
 * **idmap**[=**options**]
+* **subpath**[=**/path/inside/volume**]
 
 The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The volume
 is mounted into the container at this directory.
@@ -204,3 +205,8 @@ For each triplet, the first value is the start of the backing file
 system IDs that are mapped to the second value on the host.  The
 length of this mapping is given in the third value.
 Multiple ranges are separated with #.
+
+`Volume sub-path mount`
+
+If `subpath` is specified, mount only specified file or directory from the volume
+into the container.
