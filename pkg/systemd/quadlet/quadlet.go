@@ -1180,6 +1180,12 @@ func ConvertImage(image *parser.UnitFile) (*parser.UnitFile, string, error) {
 		return nil, "", err
 	}
 
+	// Add a dependency on network-online.target so the image pull does not happen
+	// before network is ready
+	// https://github.com/containers/podman/issues/21873
+	service.Add(UnitGroup, "After", "network-online.target")
+	service.Add(UnitGroup, "Wants", "network-online.target")
+
 	imageName, ok := image.Lookup(ImageGroup, KeyImage)
 	if !ok || len(imageName) == 0 {
 		return nil, "", fmt.Errorf("no Image key specified")
