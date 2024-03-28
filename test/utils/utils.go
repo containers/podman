@@ -272,6 +272,11 @@ func (s *PodmanSession) OutputToStringArray() []string {
 	return results
 }
 
+// ErrContents returns raw session buffer
+func (s *PodmanSession) ErrContents() []byte {
+	return s.Err.Contents()
+}
+
 // ErrorToString formats session stderr to string
 func (s *PodmanSession) ErrorToString() string {
 	fields := strings.Fields(string(s.Err.Contents()))
@@ -374,11 +379,6 @@ func (s *PodmanSession) WaitWithTimeout(timeout int) {
 	})
 	os.Stdout.Sync()
 	os.Stderr.Sync()
-}
-
-// CreateTempDirInTempDir create a temp dir with prefix podman_test
-func CreateTempDirInTempDir() (string, error) {
-	return os.MkdirTemp("", "podman_test")
 }
 
 // SystemExec is used to exec a system command to check its exit code or output

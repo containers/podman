@@ -255,11 +255,13 @@ EOF
     run_podman stop -a -t 0
     run_podman pod rm -t 0 -f test_pod
 
-    run_podman kube play --network slirp4netns:port_handler=slirp4netns $PODMAN_TMPDIR/test.yaml
-    run_podman pod inspect --format {{.InfraContainerID}} "${lines[1]}"
-    infraID="$output"
-    run_podman container inspect --format "{{.HostConfig.NetworkMode}}" $infraID
-    is "$output" "slirp4netns" "network mode slirp4netns is set for the container"
+    if has_slirp4netns; then
+        run_podman kube play --network slirp4netns:port_handler=slirp4netns $PODMAN_TMPDIR/test.yaml
+        run_podman pod inspect --format {{.InfraContainerID}} "${lines[1]}"
+        infraID="$output"
+        run_podman container inspect --format "{{.HostConfig.NetworkMode}}" $infraID
+        is "$output" "slirp4netns" "network mode slirp4netns is set for the container"
+    fi
 
     run_podman stop -a -t 0
     run_podman pod rm -t 0 -f test_pod
@@ -498,7 +500,17 @@ _EOF
                $IMAGE /bin/busybox-extras httpd -f -p 80
 
     wait_for_port 127.0.0.1 $HOST_PORT
+    # FIXME: 2024-02-14 TEMPORARY: this and 'if' block below are
+    # instrumentation for #21649.
+    defer-assertion-failures
     wait_for_command_output "curl -s -S $SERVER/ready" "READY"
+    if [[ "$output" != "READY" ]]; then
+        run_podman ps -a
+        run_podman container inspect myyaml
+        # INSERT YOUR OWN DEBUG COMMANDS HERE
+        immediate-assertion-failures
+    fi
+    immediate-assertion-failures
 
     run_podman kube play $SERVER/testpod.yaml
     run_podman inspect test_pod-test --format "{{.State.Running}}"
@@ -734,8 +746,17 @@ spec:
 
     run_podman kube play --configmap=$configmap_file $pod_file
     run_podman wait test_pod-server
-    run_podman logs test_pod-server
-    is "$output" "foo:bar"
+
+    # systemd logs are unreliable; we may need to retry a few tims
+    local retries=10
+    while [[ $retries -gt 0 ]]; do
+        run_podman logs test_pod-server
+        test -n "$output" && break
+        sleep 0.1
+        retries=$((retries - 1))
+    done
+    assert "$retries" -gt 0 "Timed out waiting for podman logs"
+    assert "$output" = "foo:bar" "output from podman logs"
 
     run_podman kube down $pod_file
 }

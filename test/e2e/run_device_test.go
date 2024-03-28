@@ -38,7 +38,8 @@ var _ = Describe("Podman run device", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		if !isRootless() {
-			session = podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "/dev/kmsg", "--cap-add", "SYS_ADMIN", ALPINE, "head", "-n", "1", "/dev/kmsg"})
+			// Kernel 6.9.0 (2024-03) requires SYSLOG
+			session = podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "/dev/kmsg", "--cap-add", "SYS_ADMIN,SYSLOG", ALPINE, "head", "-n", "1", "/dev/kmsg"})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
 		}

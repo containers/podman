@@ -139,7 +139,25 @@ function skopeo() {
 # Setup helper: establish a test environment with exactly the images needed
 function basic_setup() {
     # Clean up all containers
-    run_podman rm -t 0 --all --force --ignore
+    # FIXME FIXME FIXME 2024-02-07 for hang
+    run_podman '?' rm -t 0 --all --force --ignore
+    if [[ $status -ne 0 ]]; then
+        foo=$(expr "$output" : "container \(.*\) as it could not be stopped")
+        if [[ -n "$foo" ]]; then
+            echo "# BARF BARF BARF"
+            ps auxww --forest
+            run_podman '?' container inspect $foo
+            echo "$_LOG_PROMPT ps auxww --forest"
+        fi
+        foo=$(expr "$output" : "container \(.*\) pod: not all")
+        if [[ -n "$foo" ]]; then
+            echo "# POD BARF POD BARF"
+            ps auxww --forest
+            run_podman '?' container inspect $foo
+            echo "$_LOG_PROMPT ps auxww --forest"
+        fi
+        false
+    fi
 
     # ...including external (buildah) ones
     run_podman ps --all --external --format '{{.ID}} {{.Names}}'
@@ -413,6 +431,9 @@ function run_podman() {
             # It's possible for a subtest to _want_ a timeout
             if [[ "$expected_rc" != "124" ]]; then
                 echo "*** TIMED OUT ***"
+                # FIXME: temporary for #21504
+                echo "$_LOG_PROMPT ps auxww --forest"
+                ps auxww --forest
                 false
             fi
         fi

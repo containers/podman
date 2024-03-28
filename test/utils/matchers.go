@@ -41,6 +41,10 @@ func (matcher *ExitMatcher) Match(actual interface{}) (success bool, err error) 
 
 func (matcher *ExitMatcher) FailureMessage(_ interface{}) (message string) {
 	if matcher.Actual == -1 {
+		// FIXME: temporary, for #21504
+		ps := SystemExec("ps", []string{"auxww", "--forest"})
+		ps.WaitWithDefaultTimeout()
+
 		return "Expected process to exit.  It did not."
 	}
 	return format.Message(matcher.Actual, "to be greater than exit code: ", matcher.Expected)
@@ -75,7 +79,7 @@ type exitCleanlyMatcher struct {
 
 type podmanSession interface {
 	ExitCode() int
-	ErrorToString() string
+	ErrContents() []byte
 }
 
 func (matcher *exitCleanlyMatcher) Match(actual interface{}) (success bool, err error) {
@@ -85,18 +89,17 @@ func (matcher *exitCleanlyMatcher) Match(actual interface{}) (success bool, err 
 	}
 
 	exitcode := session.ExitCode()
-	stderr := session.ErrorToString()
+	stderr := session.ErrContents()
 	if exitcode != 0 {
 		matcher.msg = fmt.Sprintf("Command failed with exit status %d", exitcode)
-		if stderr != "" {
+		if len(stderr) != 0 {
 			matcher.msg += ". See above for error message."
 		}
 		return false, nil
 	}
 
-	// Exit status is 0. Now check for anything on stderr
-	if stderr != "" {
-		matcher.msg = fmt.Sprintf("Unexpected warnings seen on stderr: %q", stderr)
+	if len(stderr) != 0 {
+		matcher.msg = fmt.Sprintf("Unexpected warnings seen on stderr: %q", string(stderr))
 		return false, nil
 	}
 

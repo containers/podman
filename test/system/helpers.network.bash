@@ -31,6 +31,11 @@ function skip_if_no_ipv6() {
     fi
 }
 
+# has_slirp4netns - Check if the slirp4netns(1) command is available
+function has_slirp4netns() {
+    command -v slirp4netns >/dev/null
+}
+
 # has_pasta() - Check if the pasta(1) command is available
 function has_pasta() {
     command -v pasta >/dev/null

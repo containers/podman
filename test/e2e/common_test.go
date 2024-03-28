@@ -101,14 +101,15 @@ func TestLibpod(t *testing.T) {
 }
 
 var (
-	tempdir      string
+	globalTmpDir string // Single top-level dir for all subtests
+	tempdir      string // Working dir for _one_ subtest
 	err          error
 	podmanTest   *PodmanTestIntegration
 	safeIPOctets [2]uint8
 	timingsFile  *os.File
 
 	_ = BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
+		tempdir, err = os.MkdirTemp(globalTmpDir, "pm")
 		Expect(err).ToNot(HaveOccurred())
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
@@ -130,26 +131,31 @@ var (
 )
 
 const (
-	// lockdir - do not use directly use LockTmpDir
+	// lockdir - do not use directly; use LockTmpDir
 	lockdir = "libpodlock"
 	// imageCacheDir - do not use directly use ImageCacheDir
 	imageCacheDir = "imagecachedir"
 )
 
-var _ = SynchronizedBeforeSuite(func() []byte {
-	globalTmpDir := GinkgoT().TempDir()
+var _ = SynchronizedBeforeSuite(func() {
+	// One global scratch directory under which all test files will live.
+	// Force it under /var/tmp so as not to abuse tmpfs /tmp
+	globalTmpDir, err = os.MkdirTemp("/var/tmp", "pme2e-")
+	if err != nil {
+		panic(err)
+	}
 
 	// make cache dir
 	ImageCacheDir = filepath.Join(globalTmpDir, imageCacheDir)
-	if err := os.MkdirAll(ImageCacheDir, 0700); err != nil {
-		GinkgoWriter.Printf("%q\n", err)
+	if err = os.MkdirAll(ImageCacheDir, 0700); err != nil {
+		GinkgoWriter.Printf("Could not MkdirAll(%s): %q\n", ImageCacheDir, err)
 		os.Exit(1)
 	}
 
 	// Cache images
 	cwd, _ := os.Getwd()
 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
-	podman := PodmanTestSetup(GinkgoT().TempDir())
+	podman := PodmanTestSetup(filepath.Join(globalTmpDir, "pm"))
 
 	// Pull cirros but don't put it into the cache
 	pullImages := []string{CIRROS_IMAGE, fedoraToolbox, volumeTest}
@@ -179,12 +185,9 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	// remove temporary podman files, images are now cached in ImageCacheDir
 	rmAll(podman.PodmanBinary, podman.TempDir)
-
-	return []byte(globalTmpDir)
-}, func(data []byte) {
+}, func() {
 	cwd, _ := os.Getwd()
 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
-	globalTmpDir := string(data)
 	ImageCacheDir = filepath.Join(globalTmpDir, imageCacheDir)
 	LockTmpDir = filepath.Join(globalTmpDir, lockdir)
 
@@ -229,7 +232,7 @@ var _ = SynchronizedAfterSuite(func() {
 		}
 
 		cwd, _ := os.Getwd()
-		rmAll(getPodmanBinary(cwd), ImageCacheDir)
+		rmAll(getPodmanBinary(cwd), globalTmpDir)
 	})
 
 func getPodmanBinary(cwd string) string {
@@ -242,43 +245,41 @@ func getPodmanBinary(cwd string) string {
 
 // PodmanTestCreate creates a PodmanTestIntegration instance for the tests
 func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
-	var podmanRemoteBinary string
-
 	host := GetHostDistributionInfo()
 	cwd, _ := os.Getwd()
 
 	root := filepath.Join(tempDir, "root")
 	podmanBinary := getPodmanBinary(cwd)
 
-	podmanRemoteBinary = filepath.Join(cwd, "../../bin/podman-remote")
-	if os.Getenv("PODMAN_REMOTE_BINARY") != "" {
-		podmanRemoteBinary = os.Getenv("PODMAN_REMOTE_BINARY")
+	podmanRemoteBinary := os.Getenv("PODMAN_REMOTE_BINARY")
+	if podmanRemoteBinary == "" {
+		podmanRemoteBinary = filepath.Join(cwd, "../../bin/podman-remote")
 	}
 
-	quadletBinary := filepath.Join(cwd, "../../bin/quadlet")
-	if os.Getenv("QUADLET_BINARY") != "" {
-		quadletBinary = os.Getenv("QUADLET_BINARY")
+	quadletBinary := os.Getenv("QUADLET_BINARY")
+	if quadletBinary == "" {
+		quadletBinary = filepath.Join(cwd, "../../bin/quadlet")
 	}
 
-	conmonBinary := "/usr/libexec/podman/conmon"
-	altConmonBinary := "/usr/bin/conmon"
-	if _, err := os.Stat(conmonBinary); os.IsNotExist(err) {
-		conmonBinary = altConmonBinary
+	conmonBinary := os.Getenv("CONMON_BINARY")
+	if conmonBinary == "" {
+		conmonBinary = "/usr/libexec/podman/conmon"
+		if _, err := os.Stat(conmonBinary); errors.Is(err, os.ErrNotExist) {
+			conmonBinary = "/usr/bin/conmon"
+		}
 	}
-	if os.Getenv("CONMON_BINARY") != "" {
-		conmonBinary = os.Getenv("CONMON_BINARY")
-	}
+
 	storageOptions := STORAGE_OPTIONS
 	if os.Getenv("STORAGE_OPTIONS") != "" {
 		storageOptions = os.Getenv("STORAGE_OPTIONS")
 	}
 
-	cgroupManager := CGROUP_MANAGER
-	if isRootless() {
-		cgroupManager = "cgroupfs"
-	}
-	if os.Getenv("CGROUP_MANAGER") != "" {
-		cgroupManager = os.Getenv("CGROUP_MANAGER")
+	cgroupManager := os.Getenv("CGROUP_MANAGER")
+	if cgroupManager == "" {
+		cgroupManager = CGROUP_MANAGER
+		if isRootless() {
+			cgroupManager = "cgroupfs"
+		}
 	}
 
 	ociRuntime := os.Getenv("OCI_RUNTIME")
@@ -393,10 +394,8 @@ func (p PodmanTestIntegration) AddImageToRWStore(image string) {
 func imageTarPath(image string) string {
 	cacheDir := os.Getenv("PODMAN_TEST_IMAGE_CACHE_DIR")
 	if cacheDir == "" {
-		cacheDir = os.Getenv("TMPDIR")
-		if cacheDir == "" {
-			cacheDir = "/tmp"
-		}
+		// Avoid /tmp: it may be tmpfs, and these images are large
+		cacheDir = "/var/tmp"
 	}
 
 	// e.g., registry.com/fubar:latest -> registry.com-fubar-latest.tar
@@ -664,6 +663,19 @@ func (p *PodmanTestIntegration) Cleanup() {
 	// ...and containers
 	rmall := p.Podman([]string{"rm", "-fa", "-t", "0"})
 	rmall.WaitWithDefaultTimeout()
+
+	// FIXME: temporary, for #21504
+	errs := rmall.ErrorToString()
+	if strings.Contains(errs, "die within timeout") {
+		ps := SystemExec("ps", []string{"auxww", "--forest"})
+		ps.WaitWithDefaultTimeout()
+		foo := strings.Index(errs, "cannot remove container ")
+		if foo >= 0 {
+			cid := errs[foo+24 : 64]
+			bar := p.Podman([]string{"inspect", cid})
+			bar.WaitWithDefaultTimeout()
+		}
+	}
 
 	p.StopRemoteService()
 	// Nuke tempdir
