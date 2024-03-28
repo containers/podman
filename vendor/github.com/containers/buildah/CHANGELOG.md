@@ -2,6 +2,26 @@
 
 # Changelog
 
+## v1.29.3 (2024-03-26)
+
+    [release-1.29] Bump google.golang.org/protobuf to v1.33.0
+    [release-1.29] conformance tests: don't break on trailing zeroes
+    [release-1.29] CVE-2024-1753 container escape fix
+    bump golang.org/x/crypto to v0.17.0
+    conformance test: ignore file type bits when comparing layers
+
+## v1.29.2 (2023-10-31)
+
+    Mask /sys/devices/virtual/powercap by default
+    remove registry.centos.org
+    Cirrus: Increase conformance-test timeout
+    Cirrus: Add CI self-destruct condition on EOL date
+    Bump to c/common v0.51.2
+
+## v1.29.1 (2023-02-15)
+
+    update to c/image 5.24.1
+
 ## v1.29.0 (2023-01-25)
 
     tests: improve build-with-network-test
