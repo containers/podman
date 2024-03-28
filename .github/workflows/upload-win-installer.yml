@@ -54,9 +54,10 @@ jobs:
           }
         }
         Write-Output "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+    # Note this purposefully checks out the same branch the action runs in, as the
+    # installer build script is designed to support older releases (uses the archives
+    # on the release tag).
     - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-      with:
-        ref: ${{steps.getversion.outputs.version}}
     # This step is super-duper critical for the built/signed windows installer .exe file.
     # It ensures the referenced $version github release page does NOT already contain
     # this file.  Windows assigns a UUID to the installer at build time, it's assumed
