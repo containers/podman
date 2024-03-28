@@ -62,6 +62,7 @@ type PodmanTestIntegration struct {
 	TmpDir              string
 }
 
+var GlobalTmpDir string // Single top-level tmpdir for all tests
 var LockTmpDir string
 
 // PodmanSessionIntegration struct for command line session
@@ -101,14 +102,14 @@ func TestLibpod(t *testing.T) {
 }
 
 var (
-	tempdir      string
+	tempdir      string // Working dir for _one_ subtest
 	err          error
 	podmanTest   *PodmanTestIntegration
 	safeIPOctets [2]uint8
 	timingsFile  *os.File
 
 	_ = BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
+		tempdir, err = os.MkdirTemp(GlobalTmpDir, "subtest-")
 		Expect(err).ToNot(HaveOccurred())
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
@@ -130,26 +131,34 @@ var (
 )
 
 const (
-	// lockdir - do not use directly use LockTmpDir
+	// lockdir - do not use directly; use LockTmpDir
 	lockdir = "libpodlock"
 	// imageCacheDir - do not use directly use ImageCacheDir
 	imageCacheDir = "imagecachedir"
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	globalTmpDir := GinkgoT().TempDir()
+	// One global scratch directory under which all test files will live.
+	// The usual case is that these tests are running in CI, on VMs
+	// with limited RAM, so we use /var/tmp.
+	baseTmpDir := "/var/tmp"
+	if os.Getenv("CI") == "" {
+		// Almost certainly a manual run, e.g., a developer with
+		// a hotrod workstation. Assume they know what they're doing.
+		baseTmpDir = ""
+	}
+	globalTmpDir, err := os.MkdirTemp(baseTmpDir, "podman-e2e-")
+	Expect(err).ToNot(HaveOccurred())
 
 	// make cache dir
 	ImageCacheDir = filepath.Join(globalTmpDir, imageCacheDir)
-	if err := os.MkdirAll(ImageCacheDir, 0700); err != nil {
-		GinkgoWriter.Printf("%q\n", err)
-		os.Exit(1)
-	}
+	err = os.MkdirAll(ImageCacheDir, 0700)
+	Expect(err).ToNot(HaveOccurred())
 
 	// Cache images
 	cwd, _ := os.Getwd()
 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
-	podman := PodmanTestSetup(GinkgoT().TempDir())
+	podman := PodmanTestSetup(filepath.Join(globalTmpDir, "image-init"))
 
 	// Pull cirros but don't put it into the cache
 	pullImages := []string{CIRROS_IMAGE, fedoraToolbox, volumeTest}
@@ -177,16 +186,16 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		podman.StopRemoteService()
 	}
 
-	// remove temporary podman files, images are now cached in ImageCacheDir
+	// remove temporary podman files; images are now cached in ImageCacheDir
 	rmAll(podman.PodmanBinary, podman.TempDir)
 
 	return []byte(globalTmpDir)
 }, func(data []byte) {
 	cwd, _ := os.Getwd()
 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
-	globalTmpDir := string(data)
-	ImageCacheDir = filepath.Join(globalTmpDir, imageCacheDir)
-	LockTmpDir = filepath.Join(globalTmpDir, lockdir)
+	GlobalTmpDir = string(data)
+	ImageCacheDir = filepath.Join(GlobalTmpDir, imageCacheDir)
+	LockTmpDir = filepath.Join(GlobalTmpDir, lockdir)
 
 	timingsFile, err = os.Create(fmt.Sprintf("%s/timings-%d", LockTmpDir, GinkgoParallelProcess()))
 	Expect(err).ToNot(HaveOccurred())
@@ -229,7 +238,7 @@ var _ = SynchronizedAfterSuite(func() {
 		}
 
 		cwd, _ := os.Getwd()
-		rmAll(getPodmanBinary(cwd), ImageCacheDir)
+		rmAll(getPodmanBinary(cwd), GlobalTmpDir)
 	})
 
 func getPodmanBinary(cwd string) string {
@@ -242,40 +251,38 @@ func getPodmanBinary(cwd string) string {
 
 // PodmanTestCreate creates a PodmanTestIntegration instance for the tests
 func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
-	var podmanRemoteBinary string
-
 	host := GetHostDistributionInfo()
 	cwd, _ := os.Getwd()
 
 	root := filepath.Join(tempDir, "root")
 	podmanBinary := getPodmanBinary(cwd)
 
-	podmanRemoteBinary = filepath.Join(cwd, "../../bin/podman-remote")
-	if os.Getenv("PODMAN_REMOTE_BINARY") != "" {
-		podmanRemoteBinary = os.Getenv("PODMAN_REMOTE_BINARY")
+	podmanRemoteBinary := os.Getenv("PODMAN_REMOTE_BINARY")
+	if podmanRemoteBinary == "" {
+		podmanRemoteBinary = filepath.Join(cwd, "../../bin/podman-remote")
 	}
 
-	quadletBinary := filepath.Join(cwd, "../../bin/quadlet")
-	if os.Getenv("QUADLET_BINARY") != "" {
-		quadletBinary = os.Getenv("QUADLET_BINARY")
+	quadletBinary := os.Getenv("QUADLET_BINARY")
+	if quadletBinary == "" {
+		quadletBinary = filepath.Join(cwd, "../../bin/quadlet")
 	}
 
-	conmonBinary := "/usr/libexec/podman/conmon"
-	altConmonBinary := "/usr/bin/conmon"
-	if _, err := os.Stat(conmonBinary); os.IsNotExist(err) {
-		conmonBinary = altConmonBinary
-	}
-	if os.Getenv("CONMON_BINARY") != "" {
-		conmonBinary = os.Getenv("CONMON_BINARY")
-	}
-	storageOptions := STORAGE_OPTIONS
-	if os.Getenv("STORAGE_OPTIONS") != "" {
-		storageOptions = os.Getenv("STORAGE_OPTIONS")
+	conmonBinary := os.Getenv("CONMON_BINARY")
+	if conmonBinary == "" {
+		conmonBinary = "/usr/libexec/podman/conmon"
+		if _, err := os.Stat(conmonBinary); errors.Is(err, os.ErrNotExist) {
+			conmonBinary = "/usr/bin/conmon"
+		}
 	}
 
-	cgroupManager := CGROUP_MANAGER
-	if os.Getenv("CGROUP_MANAGER") != "" {
-		cgroupManager = os.Getenv("CGROUP_MANAGER")
+	storageOptions := os.Getenv("STORAGE_OPTIONS")
+	if storageOptions == "" {
+		storageOptions = STORAGE_OPTIONS
+	}
+
+	cgroupManager := os.Getenv("CGROUP_MANAGER")
+	if cgroupManager == "" {
+		cgroupManager = CGROUP_MANAGER
 	}
 
 	ociRuntime := os.Getenv("OCI_RUNTIME")
@@ -390,10 +397,8 @@ func (p PodmanTestIntegration) AddImageToRWStore(image string) {
 func imageTarPath(image string) string {
 	cacheDir := os.Getenv("PODMAN_TEST_IMAGE_CACHE_DIR")
 	if cacheDir == "" {
-		cacheDir = os.Getenv("TMPDIR")
-		if cacheDir == "" {
-			cacheDir = "/tmp"
-		}
+		// Avoid /tmp: it may be tmpfs, and these images are large
+		cacheDir = "/var/tmp"
 	}
 
 	// e.g., registry.com/fubar:latest -> registry.com-fubar-latest.tar

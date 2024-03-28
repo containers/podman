@@ -376,11 +376,6 @@ func (s *PodmanSession) WaitWithTimeout(timeout int) {
 	os.Stderr.Sync()
 }
 
-// CreateTempDirInTempDir create a temp dir with prefix podman_test
-func CreateTempDirInTempDir() (string, error) {
-	return os.MkdirTemp("", "podman_test")
-}
-
 // SystemExec is used to exec a system command to check its exit code or output
 func SystemExec(command string, args []string) *PodmanSession {
 	c := exec.Command(command, args...)
