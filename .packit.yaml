@@ -89,7 +89,8 @@ jobs:
     update_release: false
     packages: [podman-fedora]
     dist_git_branches:
-      - fedora-development # Implies fedora-rawhide and any branched but unreleased version, will include f40 before f40 is marked stable.
+      - fedora-development
+      - fedora-latest
 
   - job: propose_downstream
     trigger: release
