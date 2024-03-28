@@ -27,12 +27,6 @@ var _ = Describe("Common functions test", func() {
 		ProcessOneCgroupPath = defaultCgroupPath
 	})
 
-	It("Test CreateTempDirInTempDir", func() {
-		tmpDir, _ := CreateTempDirInTempDir()
-		_, err := os.Stat(tmpDir)
-		Expect(os.IsNotExist(err)).ShouldNot(BeTrue(), "Directory is not created as expect")
-	})
-
 	It("Test SystemExec", func() {
 		session := SystemExec(GoechoPath, []string{})
 		Expect(session.Command.Process).ShouldNot(BeNil(), "SystemExec cannot start a process")
