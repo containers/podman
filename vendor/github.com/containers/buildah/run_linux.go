@@ -986,6 +986,7 @@ func setupMaskedPaths(g *generate.Generator) {
 		"/sys/firmware",
 		"/sys/fs/selinux",
 		"/sys/dev",
+		"/sys/devices/virtual/powercap",
 	} {
 		g.AddLinuxMaskedPaths(mp)
 	}
