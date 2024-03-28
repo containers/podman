@@ -1491,6 +1491,22 @@ VOLUME %s`, ALPINE, volPath, volPath)
 		Expect(session).To(ExitWithError())
 	})
 
+	It("podman run with --base-hosts-file", func() {
+		confFile := filepath.Join(podmanTest.TempDir, "containers.conf")
+		err = os.WriteFile(confFile, []byte("[containers]\nbase_hosts_file=\"none\"\n"), 0755)
+		Expect(err).ToNot(HaveOccurred())
+		os.Setenv("CONTAINERS_CONF", confFile)
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		// Run flag should override containers.conf
+		session := podmanTest.Podman([]string{"run", "--rm", "--base-hosts-file=image", ALPINE, "cat", "/etc/hosts"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToString()).To(ContainSubstring("localhost localhost.localdomain"))
+	})
+
 	It("podman run with restart-policy always restarts containers", func() {
 		testDir := filepath.Join(podmanTest.RunRoot, "restart-test")
 		err := os.MkdirAll(testDir, 0755)

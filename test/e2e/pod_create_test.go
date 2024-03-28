@@ -148,6 +148,31 @@ var _ = Describe("Podman pod create", func() {
 		Expect(podCreate).Should(Exit(125))
 	})
 
+	It("podman create pod with --base-hosts-file", func() {
+		confFile := filepath.Join(podmanTest.TempDir, "containers.conf")
+		err := os.WriteFile(confFile, []byte("[containers]\nbase_hosts_file=\"none\"\n"), 0755)
+		Expect(err).ToNot(HaveOccurred())
+		os.Setenv("CONTAINERS_CONF", confFile)
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		hostsFile := filepath.Join(podmanTest.TempDir, "hosts")
+		err = os.WriteFile(hostsFile, []byte("12.34.56.78 test.example.com"), 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Create flag should override containers.conf
+		name := "test"
+		podCreate := podmanTest.Podman([]string{"pod", "create", "--base-hosts-file=" + hostsFile, "--name", name})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate).Should(ExitCleanly())
+
+		session := podmanTest.Podman([]string{"run", "--pod", name, "--rm", ALPINE, "cat", "/etc/hosts"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToString()).To(ContainSubstring("12.34.56.78 test.example.com"))
+	})
+
 	It("podman create pod with DNS server set", func() {
 		name := "test"
 		server := "12.34.56.78"

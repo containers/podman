@@ -461,6 +461,60 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("test"))
 	})
 
+	Describe("base_hosts_file in containers.conf", func() {
+		var baseHostsFile string
+		var session *PodmanSessionIntegration
+
+		JustBeforeEach(func() {
+			confFile := filepath.Join(podmanTest.TempDir, "containers.conf")
+			err = os.WriteFile(confFile, []byte(fmt.Sprintf("[containers]\nbase_hosts_file=\"%s\"\nno_hosts=false\n", baseHostsFile)), 0755)
+			Expect(err).ToNot(HaveOccurred())
+			os.Setenv("CONTAINERS_CONF_OVERRIDE", confFile)
+			if IsRemote() {
+				podmanTest.RestartRemoteService()
+			}
+
+			session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "cat", "/etc/hosts"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitCleanly())
+		})
+
+		Describe("base_hosts_file=/path/to/hosts", func() {
+			BeforeEach(func() {
+				hostsFile := filepath.Join(podmanTest.TempDir, "hosts")
+				err := os.WriteFile(hostsFile, []byte("12.34.56.78 test.example.com"), 0755)
+				Expect(err).ToNot(HaveOccurred())
+
+				baseHostsFile = hostsFile
+			})
+
+			It("should use the hosts file from the container image", func() {
+				Expect(session.OutputToString()).To(ContainSubstring("12.34.56.78 test.example.com"))
+			})
+		})
+
+		Describe("base_hosts_file=image", func() {
+			BeforeEach(func() {
+				baseHostsFile = "image"
+			})
+
+			It("should use the hosts file from the container image", func() {
+				Expect(session.OutputToString()).To(ContainSubstring("localhost localhost.localdomain"))
+			})
+		})
+
+		Describe("base_hosts_file=none", func() {
+			BeforeEach(func() {
+				baseHostsFile = "none"
+			})
+
+			It("should use the hosts file from the container image", func() {
+				Expect(session.OutputToString()).ToNot(ContainSubstring("localhost.localdomain"))
+				Expect(session.OutputToString()).To(ContainSubstring("localhost"))
+			})
+		})
+	})
+
 	It("seccomp profile path", func() {
 		configPath := filepath.Join(podmanTest.TempDir, "containers.conf")
 		os.Setenv("CONTAINERS_CONF", configPath)

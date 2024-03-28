@@ -33,6 +33,8 @@ For example, if a pod was created via **podman pod create --cpus=5**, specifying
 
 The /etc/hosts file is shared between all containers in the pod.
 
+@@option base-hosts-file
+
 @@option blkio-weight
 
 @@option blkio-weight-device

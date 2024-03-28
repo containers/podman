@@ -94,6 +94,8 @@ and specified with a _tag_.
 
 @@option authfile
 
+@@option base-hosts-file
+
 @@option blkio-weight
 
 @@option blkio-weight-device
