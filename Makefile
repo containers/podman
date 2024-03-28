@@ -55,6 +55,7 @@ BUILDTAGS ?= \
 	$(shell hack/btrfs_tag.sh) \
 	$(shell hack/systemd_tag.sh) \
 	$(shell hack/libsubid_tag.sh) \
+	${EXTRA_BUILD_TAGS} \
 	exclude_graphdriver_devicemapper \
 	seccomp
 # N/B: This value is managed by Renovate, manual changes are
