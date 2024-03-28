@@ -41,7 +41,7 @@ jobs:
       run: |
         Write-Output "::notice::This workflow execution will be a dry-run: ${{ steps.actual_dryrun.outputs.dryrun }}"
     - name: Install Wix
-      run: choco install wixtoolset --version=3.14.0
+      run: choco install wixtoolset --version=3.11.2
     - name: Determine version
       id: getversion
       run: |
