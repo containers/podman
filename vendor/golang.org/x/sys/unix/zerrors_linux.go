@@ -2940,6 +2940,7 @@ const (
 	SOL_RAW                                     = 0xff
 	SOL_RDS                                     = 0x114
 	SOL_RXRPC                                   = 0x110
+	SOL_SMC                                     = 0x11e
 	SOL_TCP                                     = 0x6
 	SOL_TIPC                                    = 0x10f
 	SOL_TLS                                     = 0x11a
