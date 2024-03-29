@@ -175,6 +175,8 @@ func (s Syntax) String() string {
 		return "proto2"
 	case Proto3:
 		return "proto3"
+	case Editions:
+		return "editions"
 	default:
 		return fmt.Sprintf("<unknown:%d>", s)
 	}
