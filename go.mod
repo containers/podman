@@ -12,7 +12,7 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.5.4
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
-	github.com/containers/buildah v1.31.3
+	github.com/containers/buildah v1.31.5
 	github.com/containers/common v0.55.4
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.26.2
@@ -68,7 +68,7 @@ require (
 	golang.org/x/sys v0.16.0
 	golang.org/x/term v0.16.0
 	golang.org/x/text v0.14.0
-	google.golang.org/protobuf v1.32.0
+	google.golang.org/protobuf v1.33.0
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v3 v3.0.1
 	sigs.k8s.io/yaml v1.3.0
