@@ -143,6 +143,7 @@ cross_build_task:
         image: ghcr.io/cirruslabs/macos-ventura-base:latest
 
     script:
+        - brew upgrade
         - brew update
         - brew install go
         - brew install go-md2man
@@ -191,7 +192,7 @@ conformance_task:
     gce_instance:
         image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
 
-    timeout_in: 25m
+    timeout_in: 30m
 
     matrix:
         - env:
