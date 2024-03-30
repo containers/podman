@@ -2,6 +2,15 @@
 
 # Changelog
 
+## v1.35.3 (2024-03-28)
+
+    [release-1.35] Bump c/common to v0.58.1
+
+## v1.35.2 (2024-03-22)
+
+    [release-1.35] CVE-2024-24786 protobuf to 1.33
+    [release-1.35] Bump to v1.35.2-dev
+
 ## v1.35.1 (2024-03-18)
 
     [release-1.35] CVE-2024-1753 container escape fix
