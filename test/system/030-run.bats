@@ -1252,8 +1252,15 @@ EOF
 
     touch $romount/testfile
     chown 2000:2000 $romount/testfile
-    run_podman run --uidmap=0:1000:2 --rm --rootfs "$romount:idmap=uids=@2000-1-1;gids=@2000-1-1" stat -c %u:%g /testfile
+    run_podman run --uidmap=0:1000:200 --rm --rootfs "$romount:idmap=uids=@2000-1-1;gids=@2000-1-1" stat -c %u:%g /testfile
     is "$output" "1:1"
+
+    myvolume=my-volume-$(random_string)
+    run_podman volume create $myvolume
+    mkdir $romount/volume
+    run_podman run --rm --uidmap=0:1000:10000 -v volume:/volume:idmap --rootfs $romount stat -c %u:%g /volume
+    is "$output" "0:0"
+    run_podman volume rm $myvolume
 
     rm -rf $romount
 }
