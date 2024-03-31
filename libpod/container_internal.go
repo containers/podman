@@ -301,27 +301,21 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 		}
 	}()
 
-	// Now this is a bit of a mess, normally we try to reuse the netns but if a userns
-	// is used this is not possible as it must be owned by the userns which is created
-	// by the oci runtime. Thus we need to teardown the netns so that the runtime
-	// creates the users+netns and then we setup in completeNetworkSetup() again.
-	if c.config.PostConfigureNetNS {
-		if err := c.cleanupNetwork(); err != nil {
-			return false, err
-		}
+	// Always teardown the network, trying to reuse the netns has caused
+	// a significant amount of bugs in this code here. It also never worked
+	// for containers with user namespaces. So once and for all simplify this
+	// by never reusing the netns. Originally this was done to have a faster
+	// restart of containers but with netavark now we are much faster so it
+	// shouldn't be that noticeable in practice. It also makes more sense to
+	// reconfigure the netns as it is likely that the container exited due
+	// some broken network state in which case reusing would just cause more
+	// harm than good.
+	if err := c.cleanupNetwork(); err != nil {
+		return false, err
 	}
 
 	if err := c.prepare(); err != nil {
 		return false, err
-	}
-
-	// only do this if the container is not in a userns, if we are the cleanupNetwork()
-	// was called above and a proper network setup is needed which is part of the init() below.
-	if !c.config.PostConfigureNetNS {
-		// set up slirp4netns again because slirp4netns will die when conmon exits
-		if err := c.setupRootlessNetwork(); err != nil {
-			return false, err
-		}
 	}
 
 	if c.state.State == define.ContainerStateStopped {
