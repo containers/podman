@@ -2819,6 +2819,15 @@ func (c *Container) createSecretMountDir(runPath string) error {
 	return err
 }
 
+func hasIdmapOption(options []string) bool {
+	for _, o := range options {
+		if o == "idmap" || strings.HasPrefix(o, "idmap=") {
+			return true
+		}
+	}
+	return false
+}
+
 // Fix ownership and permissions of the specified volume if necessary.
 func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 	vol, err := c.runtime.state.Volume(v.Name)
@@ -2842,7 +2851,8 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 		uid := int(c.config.Spec.Process.User.UID)
 		gid := int(c.config.Spec.Process.User.GID)
 
-		if c.config.IDMappings.UIDMap != nil {
+		// if the volume is mounted with "idmap", leave the IDs in from the current environment.
+		if c.config.IDMappings.UIDMap != nil && !hasIdmapOption(v.Options) {
 			p := idtools.IDPair{
 				UID: uid,
 				GID: gid,
