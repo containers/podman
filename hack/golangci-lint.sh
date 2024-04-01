@@ -40,6 +40,6 @@ for to_lint in "${to_lint[@]}"; do
     # Make it really easy for a developer to copy-paste the command-line
     # to focus or debug a single, specific linting category.
     set -x
-    ./bin/golangci-lint run --timeout=10m --build-tags="${!tags_var}" --skip-dirs="${!skip_var}" "$@"
+    ./bin/golangci-lint run --timeout=10m --build-tags="${!tags_var}" --exclude-dirs="${!skip_var}" "$@"
   )
 done
