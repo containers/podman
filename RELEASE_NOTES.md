@@ -1,5 +1,15 @@
 # Release Notes
 
+## 5.0.1
+### Bugfixes
+- Fixed a bug where rootless containers using the Pasta network driver did not properly handle localhost DNS resolvers on the host leading to DNS resolution issues ([#22044](https://github.com/containers/podman/issues/22044)).
+- Fixed a bug where Podman would warn that cgroups v1 systems were no longer supported on FreeBSD hosts.
+- Fixed a bug where HyperV `podman machine` VMs required an SSH client be installed on the system ([#22075](https://github.com/containers/podman/issues/22075)).
+- Fixed a bug that prevented the remote Podman client's `podman build` command from working properly when connecting from a rootless client to a rootful server ([#22109](https://github.com/containers/podman/issues/22109)).
+
+### Misc
+- The HyperV driver to `podman machine` now fails immediately if admin privileges are not available (previously, it would only fail when it reached operations that required admin privileges).
+
 ## 5.0.0
 ### Security
 - Fixed [CVE-2024-1753](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-1753) in Buildah and `podman build` which allowed a user to write files to the `/` directory of the host machine if selinux was not enabled.
