@@ -877,6 +877,8 @@ Note that not listing a host port means that Podman automatically selects one, a
 may be different for each invocation of service. This makes that a less useful option. The
 allocated port can be found with the `podman port` command.
 
+When using `host` networking via `Network=host`, the `PublishPort=` option cannot be used.
+
 This key can be listed multiple times.
 
 ### `Volume=`
