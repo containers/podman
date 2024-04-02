@@ -1298,6 +1298,7 @@ func writeYaml(content string, fileName string) error {
 		return err
 	}
 
+	GinkgoWriter.Printf("writeYaml: %s:\n%s\n", fileName, content)
 	return nil
 }
 
