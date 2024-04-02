@@ -328,6 +328,11 @@ type EngineConfig struct {
 	// this slice takes precedence.
 	HooksDir attributedstring.Slice `toml:"hooks_dir,omitempty"`
 
+	// Location of CDI configuration files. These define mounts devices and
+	// other configs according to the CDI spec. In particular this is used
+	// for GPU passthrough.
+	CdiSpecDirs attributedstring.Slice `toml:"cdi_spec_dirs,omitempty"`
+
 	// ImageBuildFormat (DEPRECATED) indicates the default image format to
 	// building container images. Should use ImageDefaultFormat
 	ImageBuildFormat string `toml:"image_build_format,omitempty"`
@@ -772,7 +777,7 @@ func (m *MachineConfig) URI() string {
 }
 
 func (c *EngineConfig) findRuntime() string {
-	// Search for crun first followed by runc, kata, runsc
+	// Search for crun first followed by runc, runj, kata, runsc, ocijail
 	for _, name := range []string{"crun", "runc", "runj", "kata", "runsc", "ocijail"} {
 		for _, v := range c.OCIRuntimes[name] {
 			if _, err := os.Stat(v); err == nil {

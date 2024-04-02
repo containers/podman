@@ -414,6 +414,12 @@ default_sysctls = [
 #  "/usr/local/share/containers/oci/hooks.d",
 #]
 
+# Directories to scan for CDI Spec files.
+#
+#cdi_spec_dirs = [
+#  "/etc/cdi",
+#]
+
 # Manifest Type (oci, v2s2, or v2s1) to use when pulling, pushing, building
 # container images. By default image pulled and pushed match the format of the
 # source image. Building/committing defaults to OCI.

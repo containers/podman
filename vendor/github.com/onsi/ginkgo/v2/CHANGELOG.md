@@ -1,3 +1,8 @@
+## 2.17.1
+
+### Fixes
+- If the user sets --seed=0, make sure all parallel nodes get the same seed [af0330d]
+
 ## 2.17.0
 
 ### Features

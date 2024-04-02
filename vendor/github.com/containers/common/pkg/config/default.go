@@ -74,6 +74,8 @@ var (
 	ErrInvalidArg = errors.New("invalid argument")
 	// DefaultHooksDirs defines the default hooks directory.
 	DefaultHooksDirs = []string{"/usr/share/containers/oci/hooks.d"}
+	// DefaultCdiSpecDirs defines the default cdi spec directories.
+	DefaultCdiSpecDirs = []string{"/etc/cdi"}
 	// DefaultCapabilities is the default for the default_capabilities option in the containers.conf file.
 	DefaultCapabilities = []string{
 		"CAP_CHOWN",
@@ -347,6 +349,7 @@ func defaultEngineConfig() (*EngineConfig, error) {
 		c.HelperBinariesDir.Set(append([]string{additionalHelperBinariesDir}, c.HelperBinariesDir.Get()...))
 	}
 	c.HooksDir.Set(DefaultHooksDirs)
+	c.CdiSpecDirs.Set(DefaultCdiSpecDirs)
 	c.ImageDefaultTransport = _defaultTransport
 	c.ImageVolumeMode = _defaultImageVolumeMode
 

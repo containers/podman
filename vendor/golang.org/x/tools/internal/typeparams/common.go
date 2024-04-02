@@ -2,20 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package typeparams contains common utilities for writing tools that interact
-// with generic Go code, as introduced with Go 1.18.
-//
-// Many of the types and functions in this package are proxies for the new APIs
-// introduced in the standard library with Go 1.18. For example, the
-// typeparams.Union type is an alias for go/types.Union, and the ForTypeSpec
-// function returns the value of the go/ast.TypeSpec.TypeParams field. At Go
-// versions older than 1.18 these helpers are implemented as stubs, allowing
-// users of this package to write code that handles generic constructs inline,
-// even if the Go version being used to compile does not support generics.
-//
-// Additionally, this package contains common utilities for working with the
-// new generic constructs, to supplement the standard library APIs. Notably,
-// the StructuralTerms API computes a minimal representation of the structural
+// Package typeparams contains common utilities for writing tools that
+// interact with generic Go code, as introduced with Go 1.18. It
+// supplements the standard library APIs. Notably, the StructuralTerms
+// API computes a minimal representation of the structural
 // restrictions on a type parameter.
 //
 // An external version of these APIs is available in the
@@ -27,6 +17,9 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+
+	"golang.org/x/tools/internal/aliases"
+	"golang.org/x/tools/internal/typesinternal"
 )
 
 // UnpackIndexExpr extracts data from AST nodes that represent index
@@ -72,9 +65,9 @@ func PackIndexExpr(x ast.Expr, lbrack token.Pos, indices []ast.Expr, rbrack toke
 	}
 }
 
-// IsTypeParam reports whether t is a type parameter.
+// IsTypeParam reports whether t is a type parameter (or an alias of one).
 func IsTypeParam(t types.Type) bool {
-	_, ok := t.(*types.TypeParam)
+	_, ok := aliases.Unalias(t).(*types.TypeParam)
 	return ok
 }
 
@@ -90,13 +83,8 @@ func OriginMethod(fn *types.Func) *types.Func {
 	if recv == nil {
 		return fn
 	}
-	base := recv.Type()
-	p, isPtr := base.(*types.Pointer)
-	if isPtr {
-		base = p.Elem()
-	}
-	named, isNamed := base.(*types.Named)
-	if !isNamed {
+	_, named := typesinternal.ReceiverNamed(recv)
+	if named == nil {
 		// Receiver is a *types.Interface.
 		return fn
 	}
@@ -158,6 +146,9 @@ func OriginMethod(fn *types.Func) *types.Func {
 // In this case, GenericAssignableTo reports that instantiations of Container
 // are assignable to the corresponding instantiation of Interface.
 func GenericAssignableTo(ctxt *types.Context, V, T types.Type) bool {
+	V = aliases.Unalias(V)
+	T = aliases.Unalias(T)
+
 	// If V and T are not both named, or do not have matching non-empty type
 	// parameter lists, fall back on types.AssignableTo.
 
