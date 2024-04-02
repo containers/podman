@@ -23,6 +23,15 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, opts entities.System
 	return system.Prune(ic.ClientCtx, options)
 }
 
+func (ic *ContainerEngine) SystemCheck(ctx context.Context, opts entities.SystemCheckOptions) (*entities.SystemCheckReport, error) {
+	options := new(system.CheckOptions).WithQuick(opts.Quick).WithRepair(opts.Repair).WithRepairLossy(opts.RepairLossy)
+	if opts.UnreferencedLayerMaximumAge != nil {
+		duration := *opts.UnreferencedLayerMaximumAge
+		options = options.WithUnreferencedLayerMaximumAge(duration.String())
+	}
+	return system.Check(ic.ClientCtx, options)
+}
+
 func (ic *ContainerEngine) Migrate(ctx context.Context, options entities.SystemMigrateOptions) error {
 	return errors.New("runtime migration is not supported on remote clients")
 }

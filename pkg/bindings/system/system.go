@@ -87,6 +87,26 @@ func Prune(ctx context.Context, options *PruneOptions) (*types.SystemPruneReport
 	return &report, response.Process(&report)
 }
 
+func Check(ctx context.Context, options *CheckOptions) (*types.SystemCheckReport, error) {
+	var report types.SystemCheckReport
+
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
+	}
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/system/check", params, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	return &report, response.Process(&report)
+}
+
 func Version(ctx context.Context, options *VersionOptions) (*types.SystemVersionReport, error) {
 	var (
 		component types.SystemComponentVersion

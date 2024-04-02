@@ -103,6 +103,7 @@ type ContainerEngine interface { //nolint:interfacebloat
 	SecretExists(ctx context.Context, nameOrID string) (*BoolReport, error)
 	Shutdown(ctx context.Context)
 	SystemDf(ctx context.Context, options SystemDfOptions) (*SystemDfReport, error)
+	SystemCheck(ctx context.Context, options SystemCheckOptions) (*SystemCheckReport, error)
 	Unshare(ctx context.Context, args []string, options SystemUnshareOptions) error
 	Version(ctx context.Context) (*SystemVersionReport, error)
 	VolumeCreate(ctx context.Context, opts VolumeCreateOptions) (*IDOrNameResponse, error)
