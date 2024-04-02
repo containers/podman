@@ -436,3 +436,11 @@ func (ic ContainerEngine) Locks(ctx context.Context) (*entities.LocksReport, err
 	report.LocksHeld = held
 	return &report, nil
 }
+
+func (ic ContainerEngine) SystemCheck(ctx context.Context, options entities.SystemCheckOptions) (*entities.SystemCheckReport, error) {
+	report, err := ic.Libpod.SystemCheck(ctx, options)
+	if err != nil {
+		return nil, err
+	}
+	return &report, nil
+}

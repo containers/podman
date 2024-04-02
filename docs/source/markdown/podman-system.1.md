@@ -13,6 +13,7 @@ The system command allows management of the podman systems
 
 | Command    | Man Page                                                     | Description                                                              |
 | -------    | ------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| check      | [podman-system-check(1)](podman-system-check.1.md)           | Perform consistency checks on image and container storage.
 | connection | [podman-system-connection(1)](podman-system-connection.1.md) | Manage the destination(s) for Podman service(s)                          |
 | df         | [podman-system-df(1)](podman-system-df.1.md)                 | Show podman disk usage.                                                  |
 | events     | [podman-events(1)](podman-events.1.md)                       | Monitor Podman events                                                    |
