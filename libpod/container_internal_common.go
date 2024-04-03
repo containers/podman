@@ -2882,8 +2882,13 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 			return err
 		}
 
-		// Make sure the new volume matches the permissions of the target directory.
+		// Make sure the new volume matches the permissions of the target directory unless 'U' is
+		// provided (since the volume was already chowned in this case).
 		// https://github.com/containers/podman/issues/10188
+		if slices.Contains(v.Options, "U") {
+			return nil
+		}
+
 		st, err := os.Lstat(filepath.Join(c.state.Mountpoint, v.Dest))
 		if err == nil {
 			if stat, ok := st.Sys().(*syscall.Stat_t); ok {

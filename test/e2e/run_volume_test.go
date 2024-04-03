@@ -740,15 +740,6 @@ VOLUME /test/`, ALPINE)
 			Skip("cannot find mappings for the current user")
 		}
 
-		if os.Getenv("container") != "" {
-			Skip("Overlay mounts not supported when running in a container")
-		}
-		if isRootless() {
-			if _, err := exec.LookPath("fuse_overlay"); err != nil {
-				Skip("Fuse-Overlayfs required for rootless overlay mount test")
-			}
-		}
-
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
 		err = os.Mkdir(mountPath, 0755)
 		Expect(err).ToNot(HaveOccurred())
@@ -758,6 +749,12 @@ VOLUME /test/`, ALPINE)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("888:888"))
+
+		// test with an existing directory in the image
+		session = podmanTest.Podman([]string{"run", "--rm", "--user", "881:882", "-v", "NAMED-VOLUME:/mnt:U", ALPINE, "stat", "-c", "%u:%g", "/mnt"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToString()).To(ContainSubstring("881:882"))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--user", "888:888", "--userns", "auto", "-v", vol, ALPINE, "stat", "-c", "%u:%g", dest})
 		session.WaitWithDefaultTimeout()
