@@ -785,6 +785,12 @@ EOF
 
     pasta_iface=$(default_ifname)
 
+    # First let's force a setup error by making pasta be "false".
+    ln -s /usr/bin/false $PODMAN_TMPDIR/pasta
+    CONTAINERS_HELPER_BINARY_DIR="$PODMAN_TMPDIR" run_podman 125 unshare --rootless-netns ip addr
+    assert "$output" =~ "pasta failed with exit code 1"
+
+    # Now this should recover from the previous error and setup the netns correctly.
     run_podman unshare --rootless-netns ip addr
     is "$output" ".*${pasta_iface}.*"
 }
