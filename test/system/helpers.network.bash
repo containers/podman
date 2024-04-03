@@ -1,5 +1,7 @@
 # -*- bash -*-
 
+_cached_has_pasta=
+_cached_has_slirp4netns=
 
 ### Feature Checks #############################################################
 
@@ -31,9 +33,28 @@ function skip_if_no_ipv6() {
     fi
 }
 
+# has_slirp4netns - Check if the slirp4netns(1) command is available
+function has_slirp4netns() {
+    if [[ -z "$_cached_has_slirp4netns" ]]; then
+        _cached_has_slirp4netns=n
+        run_podman info --format '{{.Host.Slirp4NetNS.Executable}}'
+        if [[ -n "$output" ]]; then
+            _cached_has_slirp4netns=y
+        fi
+    fi
+    test "$_cached_has_slirp4netns" = "y"
+}
+
 # has_pasta() - Check if the pasta(1) command is available
 function has_pasta() {
-    command -v pasta >/dev/null
+    if [[ -z "$_cached_has_pasta" ]]; then
+        _cached_has_pasta=n
+        run_podman info --format '{{.Host.Pasta.Executable}}'
+        if [[ -n "$output" ]]; then
+            _cached_has_pasta=y
+        fi
+    fi
+    test "$_cached_has_pasta" = "y"
 }
 
 # skip_if_no_pasta() - Skip current test if pasta(1) is not available
