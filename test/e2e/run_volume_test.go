@@ -750,6 +750,12 @@ VOLUME /test/`, ALPINE)
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("888:888"))
 
+		// test with an existing directory in the image
+		session = podmanTest.Podman([]string{"run", "--rm", "--user", "881:882", "-v", "NAMED-VOLUME:/mnt:U", ALPINE, "stat", "-c", "%u:%g", "/mnt"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToString()).To(ContainSubstring("881:882"))
+
 		session = podmanTest.Podman([]string{"run", "--rm", "--user", "888:888", "--userns", "auto", "-v", vol, ALPINE, "stat", "-c", "%u:%g", dest})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
