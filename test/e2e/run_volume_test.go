@@ -740,15 +740,6 @@ VOLUME /test/`, ALPINE)
 			Skip("cannot find mappings for the current user")
 		}
 
-		if os.Getenv("container") != "" {
-			Skip("Overlay mounts not supported when running in a container")
-		}
-		if isRootless() {
-			if _, err := exec.LookPath("fuse_overlay"); err != nil {
-				Skip("Fuse-Overlayfs required for rootless overlay mount test")
-			}
-		}
-
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
 		err = os.Mkdir(mountPath, 0755)
 		Expect(err).ToNot(HaveOccurred())
