@@ -52,7 +52,7 @@ my $Format_Exceptions = <<'END_EXCEPTIONS';
 # Deep internal structs; pretty sure these are permanent exceptions
 events       .Details
 history      .ImageHistoryLayer
-images       .ImageSummary
+images       .Arch .ImageSummary .Os .IsManifestList
 network-ls   .Network
 
 # FIXME: this one, maybe? But someone needs to write the text

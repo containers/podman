@@ -23,9 +23,15 @@ type ImageSummary struct {
 	Dangling    bool `json:",omitempty"`
 
 	// Podman extensions
-	Names   []string `json:",omitempty"`
+	Arch    string   `json:",omitempty"`
 	Digest  string   `json:",omitempty"`
 	History []string `json:",omitempty"`
+	// IsManifestList is a ptr so we can distinguish between a true
+	// json empty response and false.  the docker compat side needs to return
+	// empty; where as the libpod side needs a value of true or false
+	IsManifestList *bool    `json:",omitempty"`
+	Names          []string `json:",omitempty"`
+	Os             string   `json:",omitempty"`
 }
 
 func (i *ImageSummary) Id() string { //nolint:revive,stylecheck
