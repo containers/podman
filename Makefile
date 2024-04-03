@@ -548,7 +548,7 @@ podman-remote-%-docs: podman-remote
 		$(if $(findstring windows,$*),docs/source/markdown,docs/build/man)
 
 .PHONY: man-page-check
-man-page-check: bin/podman
+man-page-check: bin/podman docs
 	hack/man-page-checker
 	hack/xref-helpmsgs-manpages
 	hack/man-page-table-check
