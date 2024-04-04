@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 )
 
 // PullPolicy determines how and which images are being pulled from a container
@@ -73,14 +74,14 @@ func (p PullPolicy) Validate() error {
 // * "newer"   <-> PullPolicyNewer (also "ifnewer")
 // * "never"   <-> PullPolicyNever
 func ParsePullPolicy(s string) (PullPolicy, error) {
-	switch s {
-	case "always", "Always":
+	switch strings.ToLower(s) {
+	case "always":
 		return PullPolicyAlways, nil
-	case "missing", "Missing", "ifnotpresent", "IfNotPresent", "":
+	case "missing", "ifmissing", "ifnotpresent", "":
 		return PullPolicyMissing, nil
-	case "newer", "Newer", "ifnewer", "IfNewer":
+	case "newer", "ifnewer":
 		return PullPolicyNewer, nil
-	case "never", "Never":
+	case "never":
 		return PullPolicyNever, nil
 	default:
 		return PullPolicyUnsupported, fmt.Errorf("unsupported pull policy %q", s)
