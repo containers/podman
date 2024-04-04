@@ -20,8 +20,7 @@ var _ = Describe("Podman commit", func() {
 
 		session := podmanTest.Podman([]string{"commit", "test1", "--change", "BOGUS=foo", "foobar.com/test1-image:latest"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(HaveSuffix(`applying changes: processing change "BOGUS foo": did not understand change instruction "BOGUS foo"`))
+		Expect(session).Should(ExitWithError(125, `applying changes: processing change "BOGUS foo": did not understand change instruction "BOGUS foo"`))
 
 		session = podmanTest.Podman([]string{"commit", "test1", "foobar.com/test1-image:latest"})
 		session.WaitWithDefaultTimeout()
@@ -47,8 +46,7 @@ var _ = Describe("Podman commit", func() {
 		// commit second time with --quiet, should not write to stderr
 		session = podmanTest.Podman([]string{"commit", "--quiet", "bogus", "foobar.com/test1-image:latest"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(Equal("Error: no container with name or ID \"bogus\" found: no such container"))
+		Expect(session).Should(ExitWithError(125, `no container with name or ID "bogus" found: no such container`))
 	})
 
 	It("podman commit single letter container", func() {
@@ -346,7 +344,7 @@ var _ = Describe("Podman commit", func() {
 
 		session = podmanTest.Podman([]string{"run", "foobar.com/test1-image:latest", "cat", "/run/secrets/mysecret"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(1, "can't open '/run/secrets/mysecret': No such file or directory"))
 
 	})
 

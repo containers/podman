@@ -18,7 +18,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	It("podman healthcheck run bogus container", func() {
 		session := podmanTest.Podman([]string{"healthcheck", "run", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, `unable to look up foobar to perform a health check: no container with name or ID "foobar" found: no such container`))
 	})
 
 	It("podman disable healthcheck with --no-healthcheck on valid container", func() {
@@ -27,7 +27,7 @@ var _ = Describe("Podman healthcheck run", func() {
 		Expect(session).Should(ExitCleanly())
 		hc := podmanTest.Podman([]string{"healthcheck", "run", "hc"})
 		hc.WaitWithDefaultTimeout()
-		Expect(hc).Should(Exit(125))
+		Expect(hc).Should(ExitWithError(125, "has no defined healthcheck"))
 	})
 
 	It("podman disable healthcheck with --no-healthcheck must not show starting on status", func() {
@@ -80,7 +80,7 @@ var _ = Describe("Podman healthcheck run", func() {
 		Expect(session).Should(ExitCleanly())
 		hc := podmanTest.Podman([]string{"healthcheck", "run", "hc"})
 		hc.WaitWithDefaultTimeout()
-		Expect(hc).Should(Exit(125))
+		Expect(hc).Should(ExitWithError(125, "has no defined healthcheck"))
 	})
 
 	It("podman healthcheck on valid container", func() {
@@ -126,7 +126,7 @@ var _ = Describe("Podman healthcheck run", func() {
 
 		hc := podmanTest.Podman([]string{"healthcheck", "run", "hc"})
 		hc.WaitWithDefaultTimeout()
-		Expect(hc).Should(Exit(125))
+		Expect(hc).Should(ExitWithError(125, "is not running"))
 	})
 
 	It("podman healthcheck on container without healthcheck", func() {
@@ -136,7 +136,7 @@ var _ = Describe("Podman healthcheck run", func() {
 
 		hc := podmanTest.Podman([]string{"healthcheck", "run", "hc"})
 		hc.WaitWithDefaultTimeout()
-		Expect(hc).Should(Exit(125))
+		Expect(hc).Should(ExitWithError(125, "has no defined healthcheck"))
 	})
 
 	It("podman healthcheck should be starting", func() {

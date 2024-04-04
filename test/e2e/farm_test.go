@@ -180,13 +180,13 @@ farm2 [QA] false true
 			cmd = []string{"farm", "update", "--add", "no-node", "farm1"}
 			session = podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(ExitWithError())
+			Expect(session).Should(ExitWithError(125, `cannot add to farm, "no-node" is not a system connection`))
 
 			// update farm2 to remove node not in farm connections from it
 			cmd = []string{"farm", "update", "--remove", "QB", "farm2"}
 			session = podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(ExitWithError())
+			Expect(session).Should(ExitWithError(125, `cannot remove from farm, "QB" is not a connection in the farm`))
 
 			// check again to ensure that nothing has changed
 			session = podmanTest.Podman(farmListCmd)
@@ -209,13 +209,13 @@ farm2 [QA] false true
 			cmd = []string{"farm", "update", "--add", "no-node", "non-existent"}
 			session = podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(ExitWithError())
+			Expect(session).Should(ExitWithError(125, `cannot update farm, "non-existent" farm doesn't exist`))
 
 			// update non-existent farm to default
 			cmd = []string{"farm", "update", "--default", "non-existent"}
 			session = podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(ExitWithError())
+			Expect(session).Should(ExitWithError(125, `cannot update farm, "non-existent" farm doesn't exist`))
 
 			session = podmanTest.Podman(farmListCmd)
 			session.WaitWithDefaultTimeout()

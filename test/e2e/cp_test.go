@@ -40,7 +40,7 @@ var _ = Describe("Podman cp", func() {
 		// Cannot copy to a nonexistent path (note the trailing "/").
 		session = podmanTest.Podman([]string{"cp", srcFile.Name(), name + ":foo/"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, `"foo/" could not be found on container`))
 
 		// The file will now be created (and written to).
 		session = podmanTest.Podman([]string{"cp", srcFile.Name(), name + ":foo"})

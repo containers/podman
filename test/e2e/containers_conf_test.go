@@ -441,8 +441,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 	It("--add-host and no-hosts=true fails", func() {
 		session := podmanTest.Podman([]string{"run", "-dt", "--add-host", "test1:127.0.0.1", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("--no-hosts and --add-host cannot be set together"))
+		Expect(session).To(ExitWithError(125, "--no-hosts and --add-host cannot be set together"))
 
 		session = podmanTest.Podman([]string{"run", "-dt", "--add-host", "test1:127.0.0.1", "--no-hosts=false", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
@@ -533,8 +532,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		if !IsRemote() {
 			session = podmanTest.Podman([]string{"info", "--format", "{{.Store.ImageCopyTmpDir}}"})
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(125))
-			Expect(session.ErrorToString()).To(ContainSubstring("invalid image_copy_tmp_dir value \"storage1\" (relative paths are not accepted)"))
+			Expect(session).Should(ExitWithError(125, `invalid image_copy_tmp_dir value "storage1" (relative paths are not accepted)`))
 
 			os.Setenv("TMPDIR", "/hoge")
 			session = podmanTest.Podman([]string{"info", "--format", "{{.Store.ImageCopyTmpDir}}"})
@@ -573,18 +571,15 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 
 		result := podmanTest.Podman([]string{"pod", "create", "--infra-image", infra2})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
-		Expect(result.ErrorToString()).To(ContainSubstring(error2String))
+		Expect(result).Should(ExitWithError(125, error2String))
 
 		result = podmanTest.Podman([]string{"pod", "create"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
-		Expect(result.ErrorToString()).To(ContainSubstring(errorString))
+		Expect(result).Should(ExitWithError(125, errorString))
 
 		result = podmanTest.Podman([]string{"create", "--pod", "new:pod1", ALPINE})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
-		Expect(result.ErrorToString()).To(ContainSubstring(errorString))
+		Expect(result).Should(ExitWithError(125, errorString))
 	})
 
 	It("set .engine.remote=true", func() {
@@ -679,8 +674,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 			podman.WaitWithDefaultTimeout()
 
 			if mode == "invalid" {
-				Expect(podman).Should(Exit(125))
-				Expect(podman.ErrorToString()).Should(ContainSubstring("invalid default_rootless_network_cmd option \"invalid\""))
+				Expect(podman).Should(ExitWithError(125, `invalid default_rootless_network_cmd option "invalid"`))
 				continue
 			}
 			Expect(podman).Should(ExitCleanly())

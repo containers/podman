@@ -60,9 +60,8 @@ var _ = Describe("Podman create", func() {
 
 		create := podmanTest.Podman([]string{"container", "create", pushedImage})
 		create.WaitWithDefaultTimeout()
-		Expect(create).Should(Exit(125))
+		Expect(create).Should(ExitWithError(125, "http: server gave HTTP response to HTTPS client"))
 		Expect(create.ErrorToString()).To(ContainSubstring("pinging container registry localhost:" + port))
-		Expect(create.ErrorToString()).To(ContainSubstring("http: server gave HTTP response to HTTPS client"))
 
 		create = podmanTest.Podman([]string{"create", "--tls-verify=false", pushedImage, "echo", "got here"})
 		create.WaitWithDefaultTimeout()
@@ -85,7 +84,7 @@ var _ = Describe("Podman create", func() {
 
 		session = podmanTest.Podman([]string{"create", "--name=foo", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, `creating container storage: the container name "foo" is already in use by`))
 	})
 
 	It("podman create adds rdt-class", func() {
@@ -227,7 +226,7 @@ var _ = Describe("Podman create", func() {
 		// if used together.
 		session := podmanTest.Podman([]string{"create", "--pod", "foo", "--pod-id-file", "bar", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, "cannot specify both --pod and --pod-id-file"))
 
 		tmpDir := GinkgoT().TempDir()
 
@@ -273,7 +272,7 @@ var _ = Describe("Podman create", func() {
 	It("podman create --pull", func() {
 		session := podmanTest.Podman([]string{"create", "--pull", "never", "--name=foo", "testimage:00000000"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, "testimage:00000000: image not known"))
 
 		session = podmanTest.Podman([]string{"create", "--pull", "always", "--name=foo", "testimage:00000000"})
 		session.WaitWithDefaultTimeout()
@@ -342,23 +341,23 @@ var _ = Describe("Podman create", func() {
 		bogus := filepath.Join(podmanTest.TempDir, "bogus.conf")
 		session := podmanTest.Podman([]string{"create", "--authfile", bogus, "--name=foo", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, "credential file is not accessible: "))
 		Expect(session.ErrorToString()).To(ContainSubstring("no such file or directory"))
 	})
 
 	It("podman create --signature-policy", func() {
 		session := podmanTest.Podman([]string{"create", "--pull=always", "--signature-policy", "/no/such/file", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		if IsRemote() {
+			Expect(session).To(ExitWithError(125, "unknown flag: --signature-policy"))
+			return
+		} else {
+			Expect(session).To(ExitWithError(125, "open /no/such/file: no such file or directory"))
+		}
 
 		session = podmanTest.Podman([]string{"create", "-q", "--pull=always", "--signature-policy", "/etc/containers/policy.json", ALPINE})
 		session.WaitWithDefaultTimeout()
-		if IsRemote() {
-			Expect(session).To(ExitWithError())
-			Expect(session.ErrorToString()).To(ContainSubstring("unknown flag"))
-		} else {
-			Expect(session).Should(ExitCleanly())
-		}
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman create with unset label", func() {
@@ -410,7 +409,7 @@ var _ = Describe("Podman create", func() {
 	It("podman create with --restart-policy=always:5 fails", func() {
 		session := podmanTest.Podman([]string{"create", "-t", "--restart", "always:5", ALPINE, "/bin/sh"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, "restart policy retries can only be specified with on-failure restart policy"))
 	})
 
 	It("podman create with --restart-policy unless-stopped", func() {
@@ -462,7 +461,7 @@ var _ = Describe("Podman create", func() {
 		// Make sure we error out with --name.
 		session := podmanTest.Podman([]string{"create", "--replace", ALPINE, "/bin/sh"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, "cannot replace container without --name being set"))
 
 		// Create and replace 5 times in a row the "same" container.
 		ctrName := "testCtr"
@@ -489,15 +488,11 @@ var _ = Describe("Podman create", func() {
 	It("podman create --tz", func() {
 		session := podmanTest.Podman([]string{"create", "--tz", "foo", "--name", "bad", ALPINE, "date"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(Exit(125))
-		Expect(session.ErrorToString()).To(
-			Equal("Error: running container create option: finding timezone: unknown time zone foo"))
+		Expect(session).To(ExitWithError(125, "running container create option: finding timezone: unknown time zone foo"))
 
 		session = podmanTest.Podman([]string{"create", "--tz", "America", "--name", "dir", ALPINE, "date"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(Exit(125))
-		Expect(session.ErrorToString()).To(
-			Equal("Error: running container create option: finding timezone: is a directory"))
+		Expect(session).To(ExitWithError(125, "running container create option: finding timezone: is a directory"))
 
 		session = podmanTest.Podman([]string{"create", "--tz", "Pacific/Honolulu", "--name", "zone", ALPINE, "date"})
 		session.WaitWithDefaultTimeout()
@@ -555,8 +550,7 @@ var _ = Describe("Podman create", func() {
 
 		session = podmanTest.Podman([]string{"create", "--umask", "9999", "--name", "bad", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("invalid umask"))
+		Expect(session).To(ExitWithError(125, "invalid umask string 9999: invalid argument"))
 	})
 
 	It("create container in pod with IP should fail", func() {
@@ -568,7 +562,7 @@ var _ = Describe("Podman create", func() {
 
 		session := podmanTest.Podman([]string{"create", "--pod", name, "--ip", "192.168.1.2", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitWithError())
+		Expect(session).Should(ExitWithError(125, "invalid config provided: networks must be defined when the pod is created: network cannot be configured when it is shared with a pod"))
 	})
 
 	It("create container in pod with mac should fail", func() {
@@ -580,7 +574,7 @@ var _ = Describe("Podman create", func() {
 
 		session := podmanTest.Podman([]string{"create", "--pod", name, "--mac-address", "52:54:00:6d:2f:82", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitWithError())
+		Expect(session).Should(ExitWithError(125, "invalid config provided: networks must be defined when the pod is created: network cannot be configured when it is shared with a pod"))
 	})
 
 	It("create container in pod with network should not fail", func() {
@@ -608,7 +602,7 @@ var _ = Describe("Podman create", func() {
 
 		session := podmanTest.Podman([]string{"create", "--pod", name, "-p", "8086:80", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitWithError())
+		Expect(session).Should(ExitWithError(125, "invalid config provided: published or exposed ports must be defined when the pod is created: network cannot be configured when it is shared with a pod"))
 	})
 
 	It("create container in pod publish ports should fail", func() {
@@ -619,7 +613,7 @@ var _ = Describe("Podman create", func() {
 
 		session := podmanTest.Podman([]string{"create", "--pod", name, "-P", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitWithError())
+		Expect(session).Should(ExitWithError(125, "invalid config provided: published or exposed ports must be defined when the pod is created: network cannot be configured when it is shared with a pod"))
 	})
 
 	It("create use local store image if input image contains a manifest list", func() {
@@ -643,32 +637,26 @@ var _ = Describe("Podman create", func() {
 	It("podman create -d should fail, can not detach create containers", func() {
 		session := podmanTest.Podman([]string{"create", "-d", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(ContainSubstring("unknown shorthand flag"))
+		Expect(session).Should(ExitWithError(125, "unknown shorthand flag: 'd' in -d"))
 
 		session = podmanTest.Podman([]string{"create", "--detach", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(ContainSubstring("unknown flag"))
+		Expect(session).Should(ExitWithError(125, "unknown flag"))
+		Expect(session.ErrorToString()).To(ContainSubstring("unknown flag: --detach"))
 
 		session = podmanTest.Podman([]string{"create", "--detach-keys", "ctrl-x", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(ContainSubstring("unknown flag"))
+		Expect(session).Should(ExitWithError(125, "unknown flag: --detach-keys"))
 	})
 
 	It("podman create --platform", func() {
 		session := podmanTest.Podman([]string{"create", "--platform=linux/bogus", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		expectedError := "no image found in manifest list for architecture bogus"
-		Expect(session.ErrorToString()).To(ContainSubstring(expectedError))
+		Expect(session).Should(ExitWithError(125, "no image found in manifest list for architecture bogus"))
 
 		session = podmanTest.Podman([]string{"create", "--platform=linux/arm64", "--os", "windows", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		expectedError = "--platform option can not be specified with --arch or --os"
-		Expect(session.ErrorToString()).To(ContainSubstring(expectedError))
+		Expect(session).Should(ExitWithError(125, "--platform option can not be specified with --arch or --os"))
 
 		session = podmanTest.Podman([]string{"create", "-q", "--platform=linux/arm64", ALPINE})
 		session.WaitWithDefaultTimeout()

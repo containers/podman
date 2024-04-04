@@ -110,7 +110,7 @@ file itself. Consider the following actual test:
 It("podman inspect bogus pod", func() {
 		session := podmanTest.Podman([]string{"pod", "inspect", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, "no such pod foobar"))
 	})
 ```
 
