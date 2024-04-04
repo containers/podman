@@ -2,12 +2,6 @@
 run:
   concurrency: 6
   deadline: 5m
-  skip-dirs-use-default: true
-  skip-dirs:
-    - contrib
-    - dependencies
-  skip-files:
-    - swagger.go
   modules-download-mode: readonly
 linters:
   enable-all: true
@@ -97,3 +91,9 @@ issues:
   # Set to 0 to disable.
   # Default: 3
   max-same-issues: 0
+  exclude-dirs-use-default: true
+  exclude-dirs:
+    - contrib
+    - dependencies
+  exclude-files:
+    - swagger.go
