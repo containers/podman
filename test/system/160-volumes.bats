@@ -550,6 +550,13 @@ EOF
     is "$output" "Error: no volume with name \"bogus\" found: no such volume" "Should print error"
     run_podman volume rm --force bogus
     is "$output" "" "Should print no output"
+
+    run_podman volume create testvol
+    run_podman volume rm --force bogus testvol
+    assert "$output" = "testvol" "removed volume"
+
+    run_podman volume ls -q
+    assert "$output" = "" "no volumes"
 }
 
 @test "podman ps -f" {

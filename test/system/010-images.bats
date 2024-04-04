@@ -312,6 +312,15 @@ Deleted: $pauseID"
     is "$output" "Error: bogus: image not known" "Should print error"
     run_podman image rm --force bogus
     is "$output" "" "Should print no output"
+
+    random_image_name=$(random_string)
+    random_image_name=${random_image_name,,} # name must be lowercase
+    run_podman image tag $IMAGE $random_image_name
+    run_podman image rm --force bogus $random_image_name
+    assert "$output" = "Untagged: localhost/$random_image_name:latest" "removed image"
+
+    run_podman images
+    assert "$output" !~ "$random_image_name" "image must be removed"
 }
 
 @test "podman images - commit docker with comment" {
