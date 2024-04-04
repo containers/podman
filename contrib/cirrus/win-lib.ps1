@@ -40,21 +40,10 @@ if ($Env:CI -eq "true") {
     Remove-Item Env:\CIRRUS_PR_BODY -ErrorAction:Ignore
 }
 
-function Install-Perl-If-Required {
-    if (-not (Get-Command perl -ErrorAction SilentlyContinue)) {
-        Write-Host "`nInstalling Perl as it is required to use logformatter"
-        choco install --no-progress --confirm --acceptlicense --nocolor StrawberryPerl
-        Write-Host "`nAdd perl to the PATH"
-        Set-Item "Env:PATH" "$Env:PATH;C:\Strawberry\perl\bin"
-    }
-}
-
 function Invoke-Logformatter {
     param (
         [Collections.ArrayList] $unformattedLog
     )
-
-    Install-Perl-If-Required
 
     Write-Host "Invoking Logformatter"
     $logFormatterInput = @('/define.gitCommit=' + $(git rev-parse HEAD)) + $unformattedLog
