@@ -10,6 +10,10 @@ podman\-kube - Play containers, pods or volumes based on a structured input file
 The kube command recreates containers, pods or volumes based on the input from a structured (like YAML)
 file input.  Containers are automatically started.
 
+Note: The kube commands in podman focus on simplifying the process of moving containers from podman to a Kubernetes
+environment and from a Kubernetes environment back to podman. Podman is not replicating the kubectl CLI. Once containers
+are deployed to a Kubernetes cluster from podman, please use `kubectl` to manage the workloads in the cluster.
+
 ## COMMANDS
 
 | Command  | Man Page                                             | Description                                                                   |
