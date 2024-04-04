@@ -8,8 +8,8 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/rootless-containers/rootlesskit/pkg/msgutil"
-	"github.com/rootless-containers/rootlesskit/pkg/port"
+	"github.com/rootless-containers/rootlesskit/v2/pkg/lowlevelmsgutil"
+	"github.com/rootless-containers/rootlesskit/v2/pkg/port"
 )
 
 const (
@@ -35,14 +35,14 @@ func Initiate(c *net.UnixConn) error {
 	req := Request{
 		Type: RequestTypeInit,
 	}
-	if _, err := msgutil.MarshalToWriter(c, &req); err != nil {
+	if _, err := lowlevelmsgutil.MarshalToWriter(c, &req); err != nil {
 		return err
 	}
 	if err := c.CloseWrite(); err != nil {
 		return err
 	}
 	var rep Reply
-	if _, err := msgutil.UnmarshalFromReader(c, &rep); err != nil {
+	if _, err := lowlevelmsgutil.UnmarshalFromReader(c, &rep); err != nil {
 		return err
 	}
 	return c.CloseRead()
@@ -57,7 +57,7 @@ func ConnectToChild(c *net.UnixConn, spec port.Spec) (int, error) {
 		Port:  spec.ChildPort,
 		IP:    spec.ChildIP,
 	}
-	if _, err := msgutil.MarshalToWriter(c, &req); err != nil {
+	if _, err := lowlevelmsgutil.MarshalToWriter(c, &req); err != nil {
 		return 0, err
 	}
 	if err := c.CloseWrite(); err != nil {

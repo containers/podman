@@ -11,10 +11,11 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/rootless-containers/rootlesskit/pkg/msgutil"
-	"github.com/rootless-containers/rootlesskit/pkg/port"
-	"github.com/rootless-containers/rootlesskit/pkg/port/builtin/msg"
-	opaquepkg "github.com/rootless-containers/rootlesskit/pkg/port/builtin/opaque"
+	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/rootless-containers/rootlesskit/v2/pkg/lowlevelmsgutil"
+	"github.com/rootless-containers/rootlesskit/v2/pkg/port"
+	"github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin/msg"
+	opaquepkg "github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin/opaque"
 )
 
 func NewDriver(logWriter io.Writer) port.ChildDriver {
@@ -27,7 +28,7 @@ type childDriver struct {
 	logWriter io.Writer
 }
 
-func (d *childDriver) RunChildDriver(opaque map[string]string, quit <-chan struct{}) error {
+func (d *childDriver) RunChildDriver(opaque map[string]string, quit <-chan struct{}, detachedNetNSPath string) error {
 	socketPath := opaque[opaquepkg.SocketPath]
 	if socketPath == "" {
 		return errors.New("socket path not set")
@@ -68,34 +69,40 @@ func (d *childDriver) RunChildDriver(opaque map[string]string, quit <-chan struc
 			return err
 		}
 		go func() {
-			if rerr := d.routine(c); rerr != nil {
+			if rerr := d.routine(c, detachedNetNSPath); rerr != nil {
 				rep := msg.Reply{
 					Error: rerr.Error(),
 				}
-				msgutil.MarshalToWriter(c, &rep)
+				lowlevelmsgutil.MarshalToWriter(c, &rep)
 			}
 			c.Close()
 		}()
 	}
 }
 
-func (d *childDriver) routine(c *net.UnixConn) error {
+func (d *childDriver) routine(c *net.UnixConn, detachedNetNSPath string) error {
 	var req msg.Request
-	if _, err := msgutil.UnmarshalFromReader(c, &req); err != nil {
+	if _, err := lowlevelmsgutil.UnmarshalFromReader(c, &req); err != nil {
 		return err
 	}
 	switch req.Type {
 	case msg.RequestTypeInit:
 		return d.handleConnectInit(c, &req)
 	case msg.RequestTypeConnect:
-		return d.handleConnectRequest(c, &req)
+		if detachedNetNSPath == "" {
+			return d.handleConnectRequest(c, &req)
+		} else {
+			return ns.WithNetNSPath(detachedNetNSPath, func(_ ns.NetNS) error {
+				return d.handleConnectRequest(c, &req)
+			})
+		}
 	default:
 		return fmt.Errorf("unknown request type %q", req.Type)
 	}
 }
 
 func (d *childDriver) handleConnectInit(c *net.UnixConn, req *msg.Request) error {
-	_, err := msgutil.MarshalToWriter(c, nil)
+	_, err := lowlevelmsgutil.MarshalToWriter(c, nil)
 	return err
 }
 
