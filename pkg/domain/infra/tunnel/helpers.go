@@ -81,7 +81,7 @@ func getContainersAndInputByContext(contextWithConnection context.Context, all, 
 	return filtered, rawInputs, nil
 }
 
-func getPodsByContext(contextWithConnection context.Context, all bool, namesOrIDs []string) ([]*entities.ListPodsReport, error) {
+func getPodsByContext(contextWithConnection context.Context, all bool, ignore bool, namesOrIDs []string) ([]*entities.ListPodsReport, error) {
 	if all && len(namesOrIDs) > 0 {
 		return nil, errors.New("cannot look up specific pods and all")
 	}
@@ -108,6 +108,9 @@ func getPodsByContext(contextWithConnection context.Context, all bool, namesOrID
 		inspectData, err := pods.Inspect(contextWithConnection, nameOrID, nil)
 		if err != nil {
 			if errorhandling.Contains(err, define.ErrNoSuchPod) {
+				if ignore {
+					continue
+				}
 				return nil, fmt.Errorf("unable to find pod %q: %w", nameOrID, define.ErrNoSuchPod)
 			}
 			return nil, err
@@ -126,6 +129,9 @@ func getPodsByContext(contextWithConnection context.Context, all bool, namesOrID
 		}
 
 		if !found {
+			if ignore {
+				continue
+			}
 			return nil, fmt.Errorf("unable to find pod %q: %w", nameOrID, define.ErrNoSuchPod)
 		}
 	}

@@ -132,6 +132,9 @@ func rm(cmd *cobra.Command, args []string) error {
 		logrus.Debug("--all is set: enforcing --depend=true")
 		rmOptions.Depend = true
 	}
+	if rmOptions.Force {
+		rmOptions.Ignore = true
+	}
 
 	return removeContainers(utils.RemoveSlash(args), rmOptions, true, false)
 }
@@ -144,9 +147,6 @@ func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit
 	var errs utils.OutputErrors
 	responses, err := registry.ContainerEngine().ContainerRm(context.Background(), namesOrIDs, rmOptions)
 	if err != nil {
-		if rmOptions.Force && strings.Contains(err.Error(), define.ErrNoSuchCtr.Error()) {
-			return nil
-		}
 		if setExit {
 			setExitCode(err)
 		}
@@ -157,9 +157,6 @@ func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit
 		case r.Err != nil:
 			if errors.Is(r.Err, define.ErrWillDeadlock) {
 				logrus.Errorf("Potential deadlock detected - please run 'podman system renumber' to resolve")
-			}
-			if rmOptions.Force && strings.Contains(r.Err.Error(), define.ErrNoSuchCtr.Error()) {
-				continue
 			}
 			if setExit {
 				setExitCode(r.Err)

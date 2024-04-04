@@ -83,6 +83,10 @@ func rm(cmd *cobra.Command, args []string) error {
 		rmOptions.Timeout = &timeout
 	}
 
+	if rmOptions.Force {
+		rmOptions.Ignore = true
+	}
+
 	errs = append(errs, removePods(args, rmOptions.PodRmOptions, true)...)
 
 	for _, idFile := range rmOptions.PodIDFiles {
@@ -110,9 +114,6 @@ func removePods(namesOrIDs []string, rmOptions entities.PodRmOptions, printIDs b
 
 	responses, err := registry.ContainerEngine().PodRm(context.Background(), namesOrIDs, rmOptions)
 	if err != nil {
-		if rmOptions.Force && strings.Contains(err.Error(), define.ErrNoSuchPod.Error()) {
-			return nil
-		}
 		setExitCode(err)
 		errs = append(errs, err)
 		if !strings.Contains(err.Error(), define.ErrRemovingCtrs.Error()) {
@@ -127,9 +128,6 @@ func removePods(namesOrIDs []string, rmOptions entities.PodRmOptions, printIDs b
 				fmt.Println(r.Id)
 			}
 		} else {
-			if rmOptions.Force && strings.Contains(r.Err.Error(), define.ErrNoSuchPod.Error()) {
-				continue
-			}
 			setExitCode(r.Err)
 			errs = append(errs, r.Err)
 			for ctr, err := range r.RemovedCtrs {

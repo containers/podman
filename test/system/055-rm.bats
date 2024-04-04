@@ -111,6 +111,13 @@ load helpers
     is "$output" "Error: no container with ID or name \"bogus\" found: no such container" "Should print error"
     run_podman container rm --force bogus
     is "$output" "" "Should print no output"
+
+    run_podman create --name test $IMAGE
+    run_podman container rm --force bogus test
+    assert "$output" = "test" "should delete test"
+
+    run_podman ps -a -q
+    assert "$output" = "" "container should be removed"
 }
 
 function __run_healthcheck_container() {

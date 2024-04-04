@@ -579,6 +579,12 @@ io.max          | $lomajmin rbps=1048576 wbps=1048576 riops=max wiops=max
     is "$output" "Error: .*bogus.*: no such pod" "Should print error"
     run_podman pod rm -t -1 --force bogus
     is "$output" "" "Should print no output"
+
+    run_podman pod create --name testpod
+    run_podman pod rm --force bogus testpod
+    assert "$output" =~ "[0-9a-f]{64}" "rm pod"
+    run_podman pod ps -q
+    assert "$output" = "" "no pods listed"
 }
 
 @test "podman pod create on failure" {
