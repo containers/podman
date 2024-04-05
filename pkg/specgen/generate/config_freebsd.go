@@ -18,14 +18,16 @@ import (
 // DevicesFromPath computes a list of devices
 func DevicesFromPath(g *generate.Generator, devicePath string) error {
 	if isCDIDevice(devicePath) {
-		registry := cdi.GetRegistry(
+		registry, err := cdi.NewCache(
 			cdi.WithAutoRefresh(false),
 		)
+		if err != nil {
+			return fmt.Errorf("creating CDI registry: %w", err)
+		}
 		if err := registry.Refresh(); err != nil {
 			logrus.Debugf("The following error was triggered when refreshing the CDI registry: %v", err)
 		}
-		_, err := registry.InjectDevices(g.Config, devicePath)
-		if err != nil {
+		if _, err = registry.InjectDevices(g.Config, devicePath); err != nil {
 			return fmt.Errorf("setting up CDI devices: %w", err)
 		}
 		return nil
