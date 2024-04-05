@@ -107,9 +107,9 @@ func GetDiskArtifactReference(ctx context.Context, imgSrc types.ImageSource, opt
 	// podman-machine-images should have a original file name
 	// stored in the annotations under org.opencontainers.image.title
 	// i.e. fedora-coreos-39.20240128.2.2-qemu.x86_64.qcow2.xz
-	originalFileName, ok := v1MannyFest.Layers[0].Annotations["org.opencontainers.image.title"]
+	originalFileName, ok := v1MannyFest.Layers[0].Annotations[specV1.AnnotationTitle]
 	if !ok {
-		return "", fmt.Errorf("unable to determine original artifact name: missing required annotation 'org.opencontainers.image.title'")
+		return "", fmt.Errorf("unable to determine original artifact name: missing required annotation '%s'", specV1.AnnotationTitle)
 	}
 	logrus.Debugf("original artifact file name: %s", originalFileName)
 	return artifactDigest, err
