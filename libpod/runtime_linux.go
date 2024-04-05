@@ -43,3 +43,25 @@ func checkCgroups2UnifiedMode(runtime *Runtime) {
 		}
 	}
 }
+
+// Check the current boot ID against the ID cached in the runtime alive file.
+func (r *Runtime) checkBootID(runtimeAliveFile string) error {
+	systemBootID, err := os.ReadFile("/proc/sys/kernel/random/boot_id")
+	if err == nil {
+		podmanBootID, err := os.ReadFile(runtimeAliveFile)
+		if err != nil {
+			return fmt.Errorf("reading boot ID from runtime alive file: %w", err)
+		}
+		if len(podmanBootID) != 0 {
+			if string(systemBootID) != string(podmanBootID) {
+				return fmt.Errorf("current system boot ID differs from cached boot ID; an unhandled reboot has occurred. Please delete directories %q and %q and re-run Podman", r.storageConfig.RunRoot, r.config.Engine.TmpDir)
+			}
+		} else {
+			// Write the current boot ID to the alive file.
+			if err := os.WriteFile(runtimeAliveFile, systemBootID, 0644); err != nil {
+				return fmt.Errorf("writing boot ID to runtime alive file: %w", err)
+			}
+		}
+	}
+	return nil
+}

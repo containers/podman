@@ -624,6 +624,11 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		}
 	}
 
+	// Check current boot ID - will be written to the alive file.
+	if err := runtime.checkBootID(runtimeAliveFile); err != nil {
+		return err
+	}
+
 	runtime.startWorker()
 
 	return nil
