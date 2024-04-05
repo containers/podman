@@ -428,13 +428,17 @@ func splitString(s string, separators string, flags SplitFlags) ([]string, error
 	return splitStringAppend(make([]string, 0), s, separators, flags)
 }
 
-func charNeedEscape(c rune) bool {
+func charNeedEscape(c rune, isPath bool) bool {
 	if c > 128 {
 		return false /* unicode is ok */
 	}
 
+	pathRune := (isPath && c == '-') ||
+		(isPath && c == '/')
+
 	return unicode.IsSpace(c) ||
 		unicode.IsControl(c) ||
+		pathRune ||
 		c == '"' ||
 		c == '\'' ||
 		c == '\\'
@@ -442,18 +446,22 @@ func charNeedEscape(c rune) bool {
 
 func wordNeedEscape(word string) bool {
 	for _, c := range word {
-		if charNeedEscape(c) {
+		if charNeedEscape(c, false) {
 			return true
 		}
 	}
-
 	return false
 }
 
 func appendEscapeWord(escaped *strings.Builder, word string) {
 	escaped.WriteRune('"')
-	for _, c := range word {
-		if charNeedEscape(c) {
+	escapeString(escaped, word, false)
+	escaped.WriteRune('"')
+}
+
+func escapeString(escaped *strings.Builder, word string, isPath bool) {
+	for i, c := range word {
+		if charNeedEscape(c, isPath) {
 			switch c {
 			case '\a':
 				escaped.WriteString("\\a")
@@ -477,6 +485,10 @@ func appendEscapeWord(escaped *strings.Builder, word string) {
 				escaped.WriteString("\\\"")
 			case '\'':
 				escaped.WriteString("'")
+			case '/':
+				if isPath && i != 0 {
+					escaped.WriteString("-")
+				}
 			default:
 				escaped.WriteString(fmt.Sprintf("\\x%.2x", c))
 			}
@@ -484,7 +496,6 @@ func appendEscapeWord(escaped *strings.Builder, word string) {
 			escaped.WriteRune(c)
 		}
 	}
-	escaped.WriteRune('"')
 }
 
 func escapeWords(words []string) string {
@@ -500,6 +511,5 @@ func escapeWords(words []string) string {
 			escaped.WriteString(word)
 		}
 	}
-
 	return escaped.String()
 }

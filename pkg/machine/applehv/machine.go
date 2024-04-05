@@ -129,19 +129,19 @@ func generateSystemDFilesForVirtiofsMounts(mounts []machine.VirtIoFs) []ignition
 
 		virtiofsAutomount := ignition.Unit{
 			Enabled:  ignition.BoolToPtr(true),
-			Name:     fmt.Sprintf("%s.automount", mnt.Tag),
-			Contents: ignition.StrToPtr(fmt.Sprintf(autoMountUnitFile, mnt.Target, mnt.Target)),
+			Name:     fmt.Sprintf("%s.automount", parser.PathEscape(mnt.Target)),
+			Contents: ignition.StrToPtr(fmt.Sprintf(autoMountUnitFile, mnt.Tag, mnt.Target)),
 		}
 		virtiofsMount := ignition.Unit{
 			Enabled:  ignition.BoolToPtr(true),
-			Name:     fmt.Sprintf("%s.mount", mnt.Tag),
+			Name:     fmt.Sprintf("%s.mount", parser.PathEscape(mnt.Target)),
 			Contents: ignition.StrToPtr(fmt.Sprintf(mountUnitFile, mnt.Tag, mnt.Target)),
 		}
 
 		// This "unit" simulates something like systemctl enable virtiofs-mount-prepare@
 		enablePrep := ignition.Unit{
 			Enabled: ignition.BoolToPtr(true),
-			Name:    fmt.Sprintf("virtiofs-mount-prepare@%s.service", mnt.Tag),
+			Name:    fmt.Sprintf("virtiofs-mount-prepare@%s.service", parser.PathEscape(mnt.Target)),
 		}
 
 		unitFiles = append(unitFiles, virtiofsAutomount, virtiofsMount, enablePrep)
