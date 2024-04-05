@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/containers/common/pkg/machine"
-	"github.com/rootless-containers/rootlesskit/pkg/port"
+	"github.com/rootless-containers/rootlesskit/v2/pkg/port"
 	"github.com/stretchr/testify/assert"
 )
 

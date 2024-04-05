@@ -1,5 +1,5 @@
-// Package msgutil provides utility for JSON message with uint32le header
-package msgutil
+// Package lowlevelmsgutil provides utility for JSON message with uint32le header
+package lowlevelmsgutil
 
 import (
 	"bytes"

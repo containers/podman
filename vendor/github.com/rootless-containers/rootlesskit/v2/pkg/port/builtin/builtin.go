@@ -3,9 +3,9 @@ package builtin
 import (
 	"io"
 
-	"github.com/rootless-containers/rootlesskit/pkg/port"
-	"github.com/rootless-containers/rootlesskit/pkg/port/builtin/child"
-	"github.com/rootless-containers/rootlesskit/pkg/port/builtin/parent"
+	"github.com/rootless-containers/rootlesskit/v2/pkg/port"
+	"github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin/child"
+	"github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin/parent"
 )
 
 var (

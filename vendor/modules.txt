@@ -949,20 +949,20 @@ github.com/proglottis/gpgme
 # github.com/rivo/uniseg v0.4.7
 ## explicit; go 1.18
 github.com/rivo/uniseg
-# github.com/rootless-containers/rootlesskit v1.1.1
+# github.com/rootless-containers/rootlesskit/v2 v2.0.2
 ## explicit; go 1.19
-github.com/rootless-containers/rootlesskit/pkg/api
-github.com/rootless-containers/rootlesskit/pkg/msgutil
-github.com/rootless-containers/rootlesskit/pkg/port
-github.com/rootless-containers/rootlesskit/pkg/port/builtin
-github.com/rootless-containers/rootlesskit/pkg/port/builtin/child
-github.com/rootless-containers/rootlesskit/pkg/port/builtin/msg
-github.com/rootless-containers/rootlesskit/pkg/port/builtin/opaque
-github.com/rootless-containers/rootlesskit/pkg/port/builtin/parent
-github.com/rootless-containers/rootlesskit/pkg/port/builtin/parent/tcp
-github.com/rootless-containers/rootlesskit/pkg/port/builtin/parent/udp
-github.com/rootless-containers/rootlesskit/pkg/port/builtin/parent/udp/udpproxy
-github.com/rootless-containers/rootlesskit/pkg/port/portutil
+github.com/rootless-containers/rootlesskit/v2/pkg/api
+github.com/rootless-containers/rootlesskit/v2/pkg/lowlevelmsgutil
+github.com/rootless-containers/rootlesskit/v2/pkg/port
+github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin
+github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin/child
+github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin/msg
+github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin/opaque
+github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin/parent
+github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin/parent/tcp
+github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin/parent/udp
+github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin/parent/udp/udpproxy
+github.com/rootless-containers/rootlesskit/v2/pkg/port/portutil
 # github.com/seccomp/libseccomp-golang v0.10.0
 ## explicit; go 1.14
 github.com/seccomp/libseccomp-golang

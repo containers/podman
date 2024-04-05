@@ -7,9 +7,9 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/rootless-containers/rootlesskit/pkg/port"
-	"github.com/rootless-containers/rootlesskit/pkg/port/builtin/msg"
-	"github.com/rootless-containers/rootlesskit/pkg/port/builtin/parent/udp/udpproxy"
+	"github.com/rootless-containers/rootlesskit/v2/pkg/port"
+	"github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin/msg"
+	"github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin/parent/udp/udpproxy"
 )
 
 func Run(socketPath string, spec port.Spec, stopCh <-chan struct{}, stoppedCh chan error, logWriter io.Writer) error {

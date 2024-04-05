@@ -7,7 +7,7 @@ import (
 	"strings"
 	"text/scanner"
 
-	"github.com/rootless-containers/rootlesskit/pkg/port"
+	"github.com/rootless-containers/rootlesskit/v2/pkg/port"
 )
 
 // ParsePortSpec parses a Docker-like representation of PortSpec, but with
@@ -16,13 +16,13 @@ import (
 //
 // Format is as follows:
 //
-//     <parent IP>:<parent port>[:<child IP>]:<child port>/<proto>
+//	<parent IP>:<parent port>[:<child IP>]:<child port>/<proto>
 //
 // Note that (child IP being optional) the format can either contain 5 or 4
 // components. When using IPv6 IP addresses, addresses must use square brackets
 // to prevent the colons being mistaken for delimiters. For example:
 //
-//     [::1]:8080:[::2]:80/udp
+//	[::1]:8080:[::2]:80/udp
 func ParsePortSpec(portSpec string) (*port.Spec, error) {
 	const (
 		parentIP   = iota

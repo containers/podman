@@ -17,9 +17,9 @@ import (
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/rootlessport"
-	rkport "github.com/rootless-containers/rootlesskit/pkg/port"
-	rkbuiltin "github.com/rootless-containers/rootlesskit/pkg/port/builtin"
-	rkportutil "github.com/rootless-containers/rootlesskit/pkg/port/portutil"
+	rkport "github.com/rootless-containers/rootlesskit/v2/pkg/port"
+	rkbuiltin "github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin"
+	rkportutil "github.com/rootless-containers/rootlesskit/v2/pkg/port/portutil"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -343,7 +343,7 @@ func child() error {
 	errCh := make(chan error)
 	go func() {
 		d := rkbuiltin.NewChildDriver(os.Stderr)
-		dErr := d.RunChildDriver(opaque, quit)
+		dErr := d.RunChildDriver(opaque, quit, "")
 		errCh <- dErr
 	}()
 	defer func() {

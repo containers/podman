@@ -14,13 +14,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/rootless-containers/rootlesskit/pkg/api"
-	"github.com/rootless-containers/rootlesskit/pkg/port"
-	"github.com/rootless-containers/rootlesskit/pkg/port/builtin/msg"
-	"github.com/rootless-containers/rootlesskit/pkg/port/builtin/opaque"
-	"github.com/rootless-containers/rootlesskit/pkg/port/builtin/parent/tcp"
-	"github.com/rootless-containers/rootlesskit/pkg/port/builtin/parent/udp"
-	"github.com/rootless-containers/rootlesskit/pkg/port/portutil"
+	"github.com/rootless-containers/rootlesskit/v2/pkg/api"
+	"github.com/rootless-containers/rootlesskit/v2/pkg/port"
+	"github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin/msg"
+	"github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin/opaque"
+	"github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin/parent/tcp"
+	"github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin/parent/udp"
+	"github.com/rootless-containers/rootlesskit/v2/pkg/port/portutil"
 )
 
 // NewDriver for builtin driver.
