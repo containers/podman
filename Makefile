@@ -296,7 +296,7 @@ build-all-new-commits:
 
 .PHONY: vendor
 vendor:
-	GO111MODULE=on $(GO) mod tidy
+	GO111MODULE=on $(GO) mod tidy -compat=1.17
 	GO111MODULE=on $(GO) mod vendor
 	GO111MODULE=on $(GO) mod verify
 
@@ -304,7 +304,7 @@ vendor:
 vendor-in-container:
 	podman run --privileged --rm --env HOME=/root \
 		-v $(CURDIR):/src -w /src \
-		docker.io/library/golang:1.16 \
+		docker.io/library/golang:1.17 \
 		make vendor
 
 ###

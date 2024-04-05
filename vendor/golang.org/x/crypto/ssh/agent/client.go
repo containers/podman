@@ -16,6 +16,7 @@ import (
 	"bytes"
 	"crypto/dsa"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rsa"
 	"encoding/base64"
@@ -26,7 +27,6 @@ import (
 	"math/big"
 	"sync"
 
-	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -93,7 +93,7 @@ type ExtendedAgent interface {
 type ConstraintExtension struct {
 	// ExtensionName consist of a UTF-8 string suffixed by the
 	// implementation domain following the naming scheme defined
-	// in Section 4.2 of [RFC4251], e.g.  "foo@example.com".
+	// in Section 4.2 of RFC 4251, e.g.  "foo@example.com".
 	ExtensionName string
 	// ExtensionDetails contains the actual content of the extended
 	// constraint.
@@ -141,9 +141,14 @@ const (
 	agentAddSmartcardKeyConstrained = 26
 
 	// 3.7 Key constraint identifiers
-	agentConstrainLifetime  = 1
-	agentConstrainConfirm   = 2
-	agentConstrainExtension = 3
+	agentConstrainLifetime = 1
+	agentConstrainConfirm  = 2
+	// Constraint extension identifier up to version 2 of the protocol. A
+	// backward incompatible change will be required if we want to add support
+	// for SSH_AGENT_CONSTRAIN_MAXSIGN which uses the same ID.
+	agentConstrainExtensionV00 = 3
+	// Constraint extension identifier in version 3 and later of the protocol.
+	agentConstrainExtension = 255
 )
 
 // maxAgentResponseBytes is the maximum agent reply size that is accepted. This
@@ -205,7 +210,7 @@ type constrainLifetimeAgentMsg struct {
 }
 
 type constrainExtensionAgentMsg struct {
-	ExtensionName    string `sshtype:"3"`
+	ExtensionName    string `sshtype:"255|3"`
 	ExtensionDetails []byte
 
 	// Rest is a field used for parsing, not part of message
@@ -226,7 +231,9 @@ var ErrExtensionUnsupported = errors.New("agent: extension unsupported")
 
 type extensionAgentMsg struct {
 	ExtensionType string `sshtype:"27"`
-	Contents      []byte
+	// NOTE: this matches OpenSSH's PROTOCOL.agent, not the IETF draft [PROTOCOL.agent],
+	// so that it matches what OpenSSH actually implements in the wild.
+	Contents []byte `ssh:"rest"`
 }
 
 // Key represents a protocol 2 public key as defined in
@@ -729,7 +736,7 @@ func (c *client) insertCert(s interface{}, cert *ssh.Certificate, comment string
 	if err != nil {
 		return err
 	}
-	if bytes.Compare(cert.Key.Marshal(), signer.PublicKey().Marshal()) != 0 {
+	if !bytes.Equal(cert.Key.Marshal(), signer.PublicKey().Marshal()) {
 		return errors.New("agent: signer and cert have different public key")
 	}
 
@@ -772,7 +779,7 @@ func (s *agentKeyringSigner) Sign(rand io.Reader, data []byte) (*ssh.Signature, 
 }
 
 func (s *agentKeyringSigner) SignWithAlgorithm(rand io.Reader, data []byte, algorithm string) (*ssh.Signature, error) {
-	if algorithm == "" || algorithm == s.pub.Type() {
+	if algorithm == "" || algorithm == underlyingAlgo(s.pub.Type()) {
 		return s.Sign(rand, data)
 	}
 
@@ -790,6 +797,33 @@ func (s *agentKeyringSigner) SignWithAlgorithm(rand io.Reader, data []byte, algo
 }
 
 var _ ssh.AlgorithmSigner = &agentKeyringSigner{}
+
+// certKeyAlgoNames is a mapping from known certificate algorithm names to the
+// corresponding public key signature algorithm.
+//
+// This map must be kept in sync with the one in certs.go.
+var certKeyAlgoNames = map[string]string{
+	ssh.CertAlgoRSAv01:        ssh.KeyAlgoRSA,
+	ssh.CertAlgoRSASHA256v01:  ssh.KeyAlgoRSASHA256,
+	ssh.CertAlgoRSASHA512v01:  ssh.KeyAlgoRSASHA512,
+	ssh.CertAlgoDSAv01:        ssh.KeyAlgoDSA,
+	ssh.CertAlgoECDSA256v01:   ssh.KeyAlgoECDSA256,
+	ssh.CertAlgoECDSA384v01:   ssh.KeyAlgoECDSA384,
+	ssh.CertAlgoECDSA521v01:   ssh.KeyAlgoECDSA521,
+	ssh.CertAlgoSKECDSA256v01: ssh.KeyAlgoSKECDSA256,
+	ssh.CertAlgoED25519v01:    ssh.KeyAlgoED25519,
+	ssh.CertAlgoSKED25519v01:  ssh.KeyAlgoSKED25519,
+}
+
+// underlyingAlgo returns the signature algorithm associated with algo (which is
+// an advertised or negotiated public key or host key algorithm). These are
+// usually the same, except for certificate algorithms.
+func underlyingAlgo(algo string) string {
+	if a, ok := certKeyAlgoNames[algo]; ok {
+		return a
+	}
+	return algo
+}
 
 // Calls an extension method. It is up to the agent implementation as to whether or not
 // any particular extension is supported and may always return an error. Because the
