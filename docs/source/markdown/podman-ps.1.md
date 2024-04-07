@@ -39,6 +39,7 @@ Display external containers that are not controlled by Podman but are stored in 
 #### **--filter**, **-f**
 
 Filter what containers are shown in the output.
+The format is `key=value` (e.g. `--filter "id=89a1699b9d84"`).
 Multiple filters can be given with multiple uses of the --filter flag.
 Filters with the same key work inclusive with the only exception being
 `label` which is exclusive. Filters with different keys always work exclusive.
