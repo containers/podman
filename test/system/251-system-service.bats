@@ -17,6 +17,10 @@ function teardown() {
 
 @test "podman-system-service containers survive service stop" {
     skip_if_remote "podman system service unavailable over remote"
+    local runtime=$(podman_runtime)
+    if [[ "$runtime" != "crun" ]]; then
+        skip "survival code only implemented in crun; you're using $runtime"
+    fi
 
     port=$(random_free_port)
     URL=tcp://127.0.0.1:$port

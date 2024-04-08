@@ -474,9 +474,8 @@ spec:
 
 @test "pod resource limits" {
     skip_if_remote "resource limits only implemented on non-remote"
-    if is_rootless; then
-        skip "only meaningful for rootful"
-    fi
+    skip_if_rootless "resource limits only work with root"
+    skip_if_cgroupsv1 "resource limits only meaningful on cgroups V2"
 
     local name1="resources1"
     run_podman --cgroup-manager=systemd pod create --name=$name1 --cpus=5 --memory=10m
