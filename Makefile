@@ -489,6 +489,7 @@ pkg/api/swagger.yaml:
 $(MANPAGES_MD_GENERATED): %.md: %.md.in $(MANPAGES_SOURCE_DIR)/options/*.md
 	hack/markdown-preprocess
 
+$(MANPAGES): OUTFILE=$(subst source/markdown,build/man,$@)
 $(MANPAGES): %: %.md .install.md2man docdir
 
 # This does a bunch of filtering needed for man pages:
@@ -515,12 +516,12 @@ $(MANPAGES): %: %.md .install.md2man docdir
 	       -e 's/\[\([^]]*\)](http[^)]\+)/\1/g'         \
 	       -e 's;<\(/\)\?\(a\|a\s\+[^>]*\|sup\)>;;g'    \
 	       -e 's/\\$$/  /g' $<                         |\
-	$(GOMD2MAN) -out $(subst source/markdown,build/man,$@)
-	@if grep 'included file options/' docs/build/man/*; then \
-		echo "FATAL: man pages must not contain ^^^^"; exit 1; \
+	$(GOMD2MAN) -out $(OUTFILE)
+	@if grep 'included file options/' $(OUTFILE); then \
+		echo "FATAL: man pages must not contain ^^^^ in $(OUTFILE)"; exit 1; \
 	fi
-	@if $(MAN_L) $(subst source/markdown,build/man,$@) | $(GREP) -Pazoq '│\s+│\n\s+├─+┼─+┤\n\s+│\s+│'; then  \
-		echo "FATAL: $< has a too-long table column; use 'man -l $(subst source/markdown,build/man,$@)' and look for empty table cells."; exit 1; \
+	@if $(MAN_L) $(OUTFILE)| $(GREP) -Pazoq '│\s+│\n\s+├─+┼─+┤\n\s+│\s+│'; then  \
+		echo "FATAL: $< has a too-long table column; use 'man -l $(OUTFILE)' and look for empty table cells."; exit 1; \
 	fi
 
 .PHONY: docdir
