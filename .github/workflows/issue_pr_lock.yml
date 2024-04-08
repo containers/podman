@@ -2,7 +2,7 @@
 
 # Format ref: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions
 
-name: "Lock closed Issue/PR discussions"
+name: "Lock closed issues and PRs"
 
 on:
   schedule:
@@ -38,8 +38,7 @@ env:
   LOCKED_LABEL: 'locked - please file new issue/PR'
 
 jobs:
-  closed_issue_discussion_lock:
-    name: "Lock closed Issue/PR discussions"
+  manage_locking:
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -48,6 +47,7 @@ jobs:
       # Ref: https://github.com/dessant/lock-threads#usage
       - uses: dessant/lock-threads@v5
         with:
+          process-only: 'issues, prs'
           issue-inactive-days: '${{env.CLOSED_DAYS}}'
           pr-inactive-days: '${{env.CLOSED_DAYS}}'
           add-issue-labels: '${{env.LOCKED_LABEL}}'
