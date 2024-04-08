@@ -26,7 +26,7 @@ func (c *Container) pathAbs(path string) string {
 	return path
 }
 
-// resolveContainerPaths resolves the container's mount point and the container
+// resolvePath resolves the container's mount point and the container
 // path as specified by the user.  Both may resolve to paths outside of the
 // container's mount point when the container path hits a volume or bind mount.
 //
@@ -153,7 +153,7 @@ func isPathOnVolume(c *Container, containerPath string) bool {
 	return false
 }
 
-// findBindMounts checks if the specified containerPath matches the destination
+// findBindMount checks if the specified containerPath matches the destination
 // path of a Mount.  Returns a matching Mount or nil.
 func findBindMount(c *Container, containerPath string) *specs.Mount {
 	cleanedPath := filepath.Clean(containerPath)

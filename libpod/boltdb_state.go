@@ -1469,7 +1469,7 @@ func (s *BoltState) GetContainerExitCodeTimeStamp(id string) (*time.Time, error)
 	})
 }
 
-// PruneExitCodes removes exit codes older than 5 minutes unless the associated
+// PruneContainerExitCodes removes exit codes older than 5 minutes unless the associated
 // container still exists.
 func (s *BoltState) PruneContainerExitCodes() error {
 	if !s.valid {
