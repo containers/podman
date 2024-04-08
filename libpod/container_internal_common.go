@@ -564,14 +564,16 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 
 	// Warning: CDI may alter g.Config in place.
 	if len(c.config.CDIDevices) > 0 {
-		registry := cdi.GetRegistry(
+		registry, err := cdi.NewCache(
 			cdi.WithAutoRefresh(false),
 		)
+		if err != nil {
+			return nil, nil, fmt.Errorf("creating CDI registry: %w", err)
+		}
 		if err := registry.Refresh(); err != nil {
 			logrus.Debugf("The following error was triggered when refreshing the CDI registry: %v", err)
 		}
-		_, err := registry.InjectDevices(g.Config, c.config.CDIDevices...)
-		if err != nil {
+		if _, err := registry.InjectDevices(g.Config, c.config.CDIDevices...); err != nil {
 			return nil, nil, fmt.Errorf("setting up CDI devices: %w", err)
 		}
 	}
