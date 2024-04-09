@@ -314,29 +314,6 @@ type ManifestListAddOptions struct {
 	Password string
 }
 
-func (m *ManifestList) parseNameToExtantReference(ctx context.Context, name string, manifestList bool, what string) (types.ImageReference, error) {
-	ref, err := alltransports.ParseImageName(name)
-	if err != nil {
-		withDocker := fmt.Sprintf("%s://%s", docker.Transport.Name(), name)
-		ref, err = alltransports.ParseImageName(withDocker)
-		if err == nil {
-			var src types.ImageSource
-			src, err = ref.NewImageSource(ctx, nil)
-			if err == nil {
-				src.Close()
-			}
-		}
-		if err != nil {
-			image, _, lookupErr := m.image.runtime.LookupImage(name, &LookupImageOptions{ManifestList: manifestList})
-			if lookupErr != nil {
-				return nil, fmt.Errorf("locating %s: %q: %w; %q: %w", what, withDocker, err, name, lookupErr)
-			}
-			ref, err = image.storageReference, nil
-		}
-	}
-	return ref, err
-}
-
 // Add adds one or more manifests to the manifest list and returns the digest
 // of the added instance.
 func (m *ManifestList) Add(ctx context.Context, name string, options *ManifestListAddOptions) (digest.Digest, error) {
@@ -344,9 +321,13 @@ func (m *ManifestList) Add(ctx context.Context, name string, options *ManifestLi
 		options = &ManifestListAddOptions{}
 	}
 
-	ref, err := m.parseNameToExtantReference(ctx, name, false, "image to add to manifest list")
+	ref, err := alltransports.ParseImageName(name)
 	if err != nil {
-		return "", err
+		withDocker := fmt.Sprintf("%s://%s", docker.Transport.Name(), name)
+		ref, err = alltransports.ParseImageName(withDocker)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	// Now massage in the copy-related options into the system context.
@@ -447,9 +428,17 @@ func (m *ManifestList) AddArtifact(ctx context.Context, options *ManifestListAdd
 		opts.LayerMediaType = &options.LayerType
 	}
 	if options.Subject != "" {
-		ref, err := m.parseNameToExtantReference(ctx, options.Subject, true, "subject for artifact manifest")
+		ref, err := alltransports.ParseImageName(options.Subject)
 		if err != nil {
-			return "", err
+			withDocker := fmt.Sprintf("%s://%s", docker.Transport.Name(), options.Subject)
+			ref, err = alltransports.ParseImageName(withDocker)
+			if err != nil {
+				image, _, err := m.image.runtime.LookupImage(options.Subject, &LookupImageOptions{ManifestList: true})
+				if err != nil {
+					return "", fmt.Errorf("locating subject for artifact manifest: %w", err)
+				}
+				ref = image.storageReference
+			}
 		}
 		opts.SubjectReference = ref
 	}
@@ -552,9 +541,17 @@ func (m *ManifestList) AnnotateInstance(d digest.Digest, options *ManifestListAn
 		}
 	}
 	if options.Subject != "" {
-		ref, err := m.parseNameToExtantReference(ctx, options.Subject, true, "subject for image index")
+		ref, err := alltransports.ParseImageName(options.Subject)
 		if err != nil {
-			return err
+			withDocker := fmt.Sprintf("%s://%s", docker.Transport.Name(), options.Subject)
+			ref, err = alltransports.ParseImageName(withDocker)
+			if err != nil {
+				image, _, err := m.image.runtime.LookupImage(options.Subject, &LookupImageOptions{ManifestList: true})
+				if err != nil {
+					return fmt.Errorf("locating subject for image index: %w", err)
+				}
+				ref = image.storageReference
+			}
 		}
 		src, err := ref.NewImageSource(ctx, &m.image.runtime.systemContext)
 		if err != nil {

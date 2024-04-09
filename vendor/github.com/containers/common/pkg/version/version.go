@@ -15,35 +15,21 @@ const (
 // Note: This function is copied from containers/podman libpod/util.go
 // Please see https://github.com/containers/common/pull/1460
 func queryPackageVersion(cmdArg ...string) string {
-	_, err := os.Stat(cmdArg[0])
-	if err != nil {
-		return ""
-	}
 	output := UnknownPackage
 	if 1 < len(cmdArg) {
 		cmd := exec.Command(cmdArg[0], cmdArg[1:]...)
 		if outp, err := cmd.Output(); err == nil {
 			output = string(outp)
+			deb := false
 			if cmdArg[0] == "/usr/bin/dlocate" {
 				// can return multiple matches
 				l := strings.Split(output, "\n")
 				output = l[0]
-				r := strings.Split(output, ": ")
-				regexpFormat := `^..\s` + r[0] + `\s`
-				cmd = exec.Command(cmdArg[0], "-P", regexpFormat, "-l")
-				cmd.Env = []string{"COLUMNS=160"} // show entire value
-				// dlocate always returns exit code 1 for list command
-				if outp, _ = cmd.Output(); len(outp) > 0 {
-					lines := strings.Split(string(outp), "\n")
-					if len(lines) > 1 {
-						line := lines[len(lines)-2] // trailing newline
-						f := strings.Fields(line)
-						if len(f) >= 2 {
-							return f[1] + "_" + f[2]
-						}
-					}
-				}
+				deb = true
 			} else if cmdArg[0] == "/usr/bin/dpkg" {
+				deb = true
+			}
+			if deb {
 				r := strings.Split(output, ": ")
 				queryFormat := `${Package}_${Version}_${Architecture}`
 				cmd = exec.Command("/usr/bin/dpkg-query", "-f", queryFormat, "-W", r[0])
@@ -67,36 +53,22 @@ func Package(program string) string { // program is full path
 	if err != nil {
 		return UnknownPackage
 	}
-
-	type Packager struct {
-		Format  string
-		Command []string
-	}
-	packagers := []Packager{
-		{"rpm", []string{"/usr/bin/rpm", "-q", "-f"}},
-		{"deb", []string{"/usr/bin/dlocate", "-F"}},             // Debian, Ubuntu (quick)
-		{"deb", []string{"/usr/bin/dpkg", "-S"}},                // Debian, Ubuntu (slow)
-		{"pacman", []string{"/usr/bin/pacman", "-Qo"}},          // Arch
-		{"gentoo", []string{"/usr/bin/qfile", "-qv"}},           // Gentoo (quick)
-		{"gentoo", []string{"/usr/bin/equery", "b"}},            // Gentoo (slow)
-		{"apk", []string{"/sbin/apk", "info", "-W"}},            // Alpine
-		{"pkg", []string{"/usr/local/sbin/pkg", "which", "-q"}}, // FreeBSD
+	packagers := [][]string{
+		{"/usr/bin/rpm", "-q", "-f"},
+		{"/usr/bin/dlocate", "-F"},             // Debian, Ubuntu (quick)
+		{"/usr/bin/dpkg", "-S"},                // Debian, Ubuntu (slow)
+		{"/usr/bin/pacman", "-Qo"},             // Arch
+		{"/usr/bin/qfile", "-qv"},              // Gentoo (quick)
+		{"/usr/bin/equery", "b"},               // Gentoo (slow)
+		{"/sbin/apk", "info", "-W"},            // Alpine
+		{"/usr/local/sbin/pkg", "which", "-q"}, // FreeBSD
 	}
 
-	lastformat := ""
-	for _, packager := range packagers {
-		if packager.Format == lastformat {
-			continue
-		}
-		cmd := packager.Command
+	for _, cmd := range packagers {
 		cmd = append(cmd, program)
 		if out := queryPackageVersion(cmd...); out != UnknownPackage {
-			if out == "" {
-				continue
-			}
 			return out
 		}
-		lastformat = packager.Format
 	}
 	return UnknownPackage
 }
