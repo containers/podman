@@ -1221,7 +1221,7 @@ Valid options for `[Volume]` are listed below:
 | Group=192                           | --opt group=192                           |
 | Image=quay.io/centos/centos\:latest | --opt image=quay.io/centos/centos\:latest |
 | Label="foo=bar"                     | --label "foo=bar"                         |
-| Options=XYZ                         | --opt XYZ                                 |
+| Options=XYZ                         | --opt "o=XYZ"                             |
 | PodmanArgs=--driver=image           | --driver=image                            |
 | Type=type                           | Filesystem type of Device                 |
 | User=123                            | --opt uid=123                             |
