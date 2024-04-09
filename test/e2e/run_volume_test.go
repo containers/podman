@@ -201,11 +201,6 @@ var _ = Describe("Podman run with volumes", func() {
 		if os.Getenv("container") != "" {
 			Skip("Overlay mounts not supported when running in a container")
 		}
-		if isRootless() {
-			if _, err := exec.LookPath("fuse-overlayfs"); err != nil {
-				Skip("Fuse-Overlayfs required for rootless overlay mount test")
-			}
-		}
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
 		err := os.Mkdir(mountPath, 0755)
 		Expect(err).ToNot(HaveOccurred())
@@ -220,11 +215,6 @@ var _ = Describe("Podman run with volumes", func() {
 		SkipIfRemote("Overlay volumes only work locally")
 		if os.Getenv("container") != "" {
 			Skip("Overlay mounts not supported when running in a container")
-		}
-		if isRootless() {
-			if _, err := exec.LookPath("fuse-overlayfs"); err != nil {
-				Skip("Fuse-Overlayfs required for rootless overlay mount test")
-			}
 		}
 		session := podmanTest.Podman([]string{"volume", "create", "myvolume"})
 		session.WaitWithDefaultTimeout()
@@ -253,11 +243,6 @@ var _ = Describe("Podman run with volumes", func() {
 		SkipIfRemote("Overlay volumes only work locally")
 		if os.Getenv("container") != "" {
 			Skip("Overlay mounts not supported when running in a container")
-		}
-		if isRootless() {
-			if _, err := exec.LookPath("fuse-overlayfs"); err != nil {
-				Skip("Fuse-Overlayfs required for rootless overlay mount test")
-			}
 		}
 
 		// create persistent upperdir on host
@@ -307,11 +292,6 @@ var _ = Describe("Podman run with volumes", func() {
 		SkipIfRemote("Overlay volumes only work locally")
 		if os.Getenv("container") != "" {
 			Skip("Overlay mounts not supported when running in a container")
-		}
-		if isRootless() {
-			if _, err := exec.LookPath("fuse-overlayfs"); err != nil {
-				Skip("Fuse-Overlayfs required for rootless overlay mount test")
-			}
 		}
 
 		// Use bindsource instead of named volume
@@ -625,11 +605,6 @@ VOLUME /test/`, ALPINE)
 		SkipIfRemote("Overlay volumes only work locally")
 		if os.Getenv("container") != "" {
 			Skip("Overlay mounts not supported when running in a container")
-		}
-		if isRootless() {
-			if _, err := exec.LookPath("fuse-overlayfs"); err != nil {
-				Skip("Fuse-Overlayfs required for rootless overlay mount test")
-			}
 		}
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
 		err := os.Mkdir(mountPath, 0755)

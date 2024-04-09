@@ -83,10 +83,11 @@ var _ = Describe("Podman Info", func() {
 
 		rootlessStoragePath := `"/tmp/$HOME/$USER/$UID/storage"`
 		driver := `"overlay"`
-		storageOpt := `"/usr/bin/fuse-overlayfs"`
-		storageConf := []byte(fmt.Sprintf("[storage]\ndriver=%s\nrootless_storage_path=%s\n[storage.options]\nmount_program=%s", driver, rootlessStoragePath, storageOpt))
+		storageConf := []byte(fmt.Sprintf("[storage]\ndriver=%s\nrootless_storage_path=%s\n[storage.options]\n", driver, rootlessStoragePath))
 		err = os.WriteFile(configPath, storageConf, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
+		// Failures in this test are impossible to debug without breadcrumbs
+		GinkgoWriter.Printf("CONTAINERS_STORAGE_CONF=%s:\n%s\n", configPath, storageConf)
 
 		u, err := user.Current()
 		Expect(err).ToNot(HaveOccurred())
@@ -96,8 +97,9 @@ var _ = Describe("Podman Info", func() {
 		podmanPath := podmanTest.PodmanTest.PodmanBinary
 		cmd := exec.Command(podmanPath, "info", "--format", "{{.Store.GraphRoot -}}")
 		out, err := cmd.CombinedOutput()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(string(out)).To(Equal(expect))
+		GinkgoWriter.Printf("Running: podman info --format {{.Store.GraphRoot -}}\nOutput: %s\n", string(out))
+		Expect(err).ToNot(HaveOccurred(), "podman info")
+		Expect(string(out)).To(Equal(expect), "output from podman info")
 	})
 
 	It("check RemoteSocket ", func() {
