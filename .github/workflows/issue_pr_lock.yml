@@ -1,5 +1,9 @@
 ---
 
+# WARNING ALERT DANGER CAUTION ATTENTION: This file is re-used from the
+# `main` branch, by workflows in (at least) the Buildah and Skopeo repos.
+# Please think twice before making large changes, renaming, or moving the file.
+
 # Format ref: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions
 
 name: "Lock closed issues and PRs"
