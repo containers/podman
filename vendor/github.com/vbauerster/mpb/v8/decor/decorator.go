@@ -85,7 +85,7 @@ type Synchronizer interface {
 // in order to format string according to decor.WC settings.
 // No need to implement manually as long as decor.WC is embedded.
 type Formatter interface {
-	Format(string) (str string, viewWidth int)
+	Format(string) (_ string, width int)
 }
 
 // Wrapper interface.
@@ -138,17 +138,17 @@ type WC struct {
 // Format should be called by any Decorator implementation.
 // Returns formatted string and its view (visual) width.
 func (wc WC) Format(str string) (string, int) {
-	viewWidth := runewidth.StringWidth(str)
-	if wc.W > viewWidth {
-		viewWidth = wc.W
+	width := runewidth.StringWidth(str)
+	if wc.W > width {
+		width = wc.W
 	} else if (wc.C & DextraSpace) != 0 {
-		viewWidth++
+		width++
 	}
 	if (wc.C & DSyncWidth) != 0 {
-		wc.wsync <- viewWidth
-		viewWidth = <-wc.wsync
+		wc.wsync <- width
+		width = <-wc.wsync
 	}
-	return wc.fill(str, viewWidth), viewWidth
+	return wc.fill(str, width), width
 }
 
 // Init initializes width related config.

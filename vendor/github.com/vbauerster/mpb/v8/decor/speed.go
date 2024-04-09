@@ -46,7 +46,7 @@ func EwmaSpeed(unit interface{}, format string, age float64, wcc ...WC) Decorato
 	} else {
 		average = ewma.NewMovingAverage(age)
 	}
-	return MovingAverageSpeed(unit, format, NewThreadSafeMovingAverage(average), wcc...)
+	return MovingAverageSpeed(unit, format, average, wcc...)
 }
 
 // MovingAverageSpeed decorator relies on MovingAverage implementation
@@ -82,7 +82,7 @@ type movingAverageSpeed struct {
 	zDur     time.Duration
 }
 
-func (d *movingAverageSpeed) Decor(s Statistics) (string, int) {
+func (d *movingAverageSpeed) Decor(_ Statistics) (string, int) {
 	var str string
 	// ewma implementation may return 0 before accumulating certain number of samples
 	if v := d.average.Value(); v != 0 {
