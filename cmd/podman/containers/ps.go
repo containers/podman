@@ -20,6 +20,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slices"
 )
 
 var (
@@ -434,10 +435,7 @@ func (l psReporter) Networks() string {
 // Ports converts from Portmappings to the string form
 // required by ps
 func (l psReporter) Ports() string {
-	if len(l.ListContainer.Ports) < 1 {
-		return ""
-	}
-	return portsToString(l.ListContainer.Ports)
+	return portsToString(l.ListContainer.Ports, l.ListContainer.ExposedPorts)
 }
 
 // CreatedAt returns the container creation time in string format.  podman
@@ -489,8 +487,8 @@ func (l psReporter) UTS() string {
 // portsToString converts the ports used to a string of the from "port1, port2"
 // and also groups a continuous list of ports into a readable format.
 // The format is IP:HostPort(-Range)->ContainerPort(-Range)/Proto
-func portsToString(ports []types.PortMapping) string {
-	if len(ports) == 0 {
+func portsToString(ports []types.PortMapping, exposedPorts map[uint16][]string) string {
+	if len(ports) == 0 && len(exposedPorts) == 0 {
 		return ""
 	}
 	sb := &strings.Builder{}
@@ -512,6 +510,20 @@ func portsToString(ports []types.PortMapping) string {
 			}
 		}
 	}
+
+	// iterating a map is not deterministic so let's convert slice first and sort by port to make it deterministic
+	sortedPorts := make([]uint16, 0, len(exposedPorts))
+	for port := range exposedPorts {
+		sortedPorts = append(sortedPorts, port)
+	}
+	slices.Sort(sortedPorts)
+	for _, port := range sortedPorts {
+		for _, protocol := range exposedPorts[port] {
+			// exposed ports do not have a host part and are just written as "NUM/PROTO"
+			fmt.Fprintf(sb, "%d/%s, ", port, protocol)
+		}
+	}
+
 	display := sb.String()
 	// make sure to trim the last ", " of the string
 	return display[:len(display)-2]
