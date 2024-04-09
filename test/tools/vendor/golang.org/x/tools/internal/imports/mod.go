@@ -21,6 +21,7 @@ import (
 	"golang.org/x/tools/internal/event"
 	"golang.org/x/tools/internal/gocommand"
 	"golang.org/x/tools/internal/gopathwalk"
+	"golang.org/x/tools/internal/stdlib"
 )
 
 // Notes(rfindley): ModuleResolver appears to be heavily optimized for scanning
@@ -313,15 +314,19 @@ func (r *ModuleResolver) ClearForNewScan() Resolver {
 // TODO(rfindley): move this to a new env.go, consolidating ProcessEnv methods.
 func (e *ProcessEnv) ClearModuleInfo() {
 	if r, ok := e.resolver.(*ModuleResolver); ok {
-		resolver, resolverErr := newModuleResolver(e, e.ModCache)
-		if resolverErr == nil {
-			<-r.scanSema // acquire (guards caches)
-			resolver.moduleCacheCache = r.moduleCacheCache
-			resolver.otherCache = r.otherCache
-			r.scanSema <- struct{}{} // release
+		resolver, err := newModuleResolver(e, e.ModCache)
+		if err != nil {
+			e.resolver = nil
+			e.resolverErr = err
+			return
 		}
-		e.resolver = resolver
-		e.resolverErr = resolverErr
+
+		<-r.scanSema // acquire (guards caches)
+		resolver.moduleCacheCache = r.moduleCacheCache
+		resolver.otherCache = r.otherCache
+		r.scanSema <- struct{}{} // release
+
+		e.UpdateResolver(resolver)
 	}
 }
 
@@ -412,7 +417,7 @@ func (r *ModuleResolver) cachePackageName(info directoryPackageInfo) (string, er
 	return r.otherCache.CachePackageName(info)
 }
 
-func (r *ModuleResolver) cacheExports(ctx context.Context, env *ProcessEnv, info directoryPackageInfo) (string, []string, error) {
+func (r *ModuleResolver) cacheExports(ctx context.Context, env *ProcessEnv, info directoryPackageInfo) (string, []stdlib.Symbol, error) {
 	if info.rootType == gopathwalk.RootModuleCache {
 		return r.moduleCacheCache.CacheExports(ctx, env, info)
 	}
@@ -632,7 +637,7 @@ func (r *ModuleResolver) scan(ctx context.Context, callback *scanCallback) error
 }
 
 func (r *ModuleResolver) scoreImportPath(ctx context.Context, path string) float64 {
-	if _, ok := stdlib[path]; ok {
+	if stdlib.HasPackage(path) {
 		return MaxRelevance
 	}
 	mod, _ := r.findPackage(path)
@@ -710,7 +715,7 @@ func (r *ModuleResolver) canonicalize(info directoryPackageInfo) (*pkg, error) {
 	return res, nil
 }
 
-func (r *ModuleResolver) loadExports(ctx context.Context, pkg *pkg, includeTest bool) (string, []string, error) {
+func (r *ModuleResolver) loadExports(ctx context.Context, pkg *pkg, includeTest bool) (string, []stdlib.Symbol, error) {
 	if info, ok := r.cacheLoad(pkg.dir); ok && !includeTest {
 		return r.cacheExports(ctx, r.env, info)
 	}
