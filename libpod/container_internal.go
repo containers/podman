@@ -2514,11 +2514,44 @@ func (c *Container) extractSecretToCtrStorage(secr *ContainerSecret) error {
 	return nil
 }
 
-// update calls the ociRuntime update function to modify a cgroup config after container creation
+// Update a container's resources after creation
 func (c *Container) update(resources *spec.LinuxResources) error {
-	if err := c.ociRuntime.UpdateContainer(c, resources); err != nil {
+	oldResources := c.config.Spec.Linux.Resources
+
+	if c.config.Spec.Linux == nil {
+		c.config.Spec.Linux = new(spec.Linux)
+	}
+	c.config.Spec.Linux.Resources = resources
+
+	if err := c.runtime.state.SafeRewriteContainerConfig(c, "", "", c.config); err != nil {
+		// Assume DB write failed, revert to old resources block
+		c.config.Spec.Linux.Resources = oldResources
 		return err
 	}
+
+	if c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStatePaused) {
+		// So `podman inspect` on running containers sources its OCI spec from disk.
+		// To keep inspect accurate we need to update the on-disk OCI spec.
+		onDiskSpec, err := c.specFromState()
+		if err != nil {
+			return fmt.Errorf("retrieving on-disk OCI spec to update: %w", err)
+		}
+		if onDiskSpec.Linux == nil {
+			onDiskSpec.Linux = new(spec.Linux)
+		}
+		onDiskSpec.Linux.Resources = resources
+		if err := c.saveSpec(onDiskSpec); err != nil {
+			logrus.Errorf("Unable to update container %s OCI spec - `podman inspect` may not be accurate until container is restarted: %v", c.ID(), err)
+		}
+
+		if err := c.ociRuntime.UpdateContainer(c, resources); err != nil {
+			return err
+		}
+	}
+
 	logrus.Debugf("updated container %s", c.ID())
+
+	c.newContainerEvent(events.Update)
+
 	return nil
 }

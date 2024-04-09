@@ -121,9 +121,19 @@ func (c *Container) Start(ctx context.Context, recursive bool) (finalErr error) 
 // Update updates the given container.
 // only the cgroup config can be updated and therefore only a linux resource spec is passed.
 func (c *Container) Update(res *spec.LinuxResources) error {
-	if err := c.syncContainer(); err != nil {
-		return err
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
 	}
+
+	if c.ensureState(define.ContainerStateRemoving) {
+		return fmt.Errorf("container %s is being removed, cannot update: %w", c.ID(), define.ErrCtrStateInvalid)
+	}
+
 	return c.update(res)
 }
 

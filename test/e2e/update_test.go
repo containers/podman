@@ -218,4 +218,74 @@ var _ = Describe("Podman update", func() {
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(ContainSubstring("500000"))
 	})
+
+	It("podman update persists changes", func() {
+		SkipIfCgroupV1("testing flags that only work in cgroup v2")
+		SkipIfRootless("many of these handlers are not enabled while rootless in CI")
+
+		testCtr := "test-ctr-name"
+		ctr1 := podmanTest.Podman([]string{"run", "-d", "--name", testCtr, "-m", "512m", ALPINE, "top"})
+		ctr1.WaitWithDefaultTimeout()
+		Expect(ctr1).Should(ExitCleanly())
+
+		inspect1 := podmanTest.Podman([]string{"inspect", "--format", "{{ .HostConfig.Memory }}", testCtr})
+		inspect1.WaitWithDefaultTimeout()
+		Expect(inspect1).Should(ExitCleanly())
+		Expect(inspect1.OutputToString()).To(Equal("536870912"))
+
+		exec1 := podmanTest.Podman([]string{"exec", testCtr, "cat", "/sys/fs/cgroup/memory.max"})
+		exec1.WaitWithDefaultTimeout()
+		Expect(exec1).Should(ExitCleanly())
+		Expect(exec1.OutputToString()).Should(ContainSubstring("536870912"))
+
+		update := podmanTest.Podman([]string{"update", "-m", "256m", testCtr})
+		update.WaitWithDefaultTimeout()
+		Expect(update).Should(ExitCleanly())
+
+		inspect2 := podmanTest.Podman([]string{"inspect", "--format", "{{ .HostConfig.Memory }}", testCtr})
+		inspect2.WaitWithDefaultTimeout()
+		Expect(inspect2).Should(ExitCleanly())
+		Expect(inspect2.OutputToString()).To(Equal("268435456"))
+
+		exec2 := podmanTest.Podman([]string{"exec", testCtr, "cat", "/sys/fs/cgroup/memory.max"})
+		exec2.WaitWithDefaultTimeout()
+		Expect(exec2).Should(ExitCleanly())
+		Expect(exec2.OutputToString()).Should(ContainSubstring("268435456"))
+
+		restart := podmanTest.Podman([]string{"restart", testCtr})
+		restart.WaitWithDefaultTimeout()
+		Expect(restart).Should(ExitCleanly())
+
+		inspect3 := podmanTest.Podman([]string{"inspect", "--format", "{{ .HostConfig.Memory }}", testCtr})
+		inspect3.WaitWithDefaultTimeout()
+		Expect(inspect3).Should(ExitCleanly())
+		Expect(inspect3.OutputToString()).To(Equal("268435456"))
+
+		exec3 := podmanTest.Podman([]string{"exec", testCtr, "cat", "/sys/fs/cgroup/memory.max"})
+		exec3.WaitWithDefaultTimeout()
+		Expect(exec3).Should(ExitCleanly())
+		Expect(exec3.OutputToString()).Should(ContainSubstring("268435456"))
+
+		pause := podmanTest.Podman([]string{"pause", testCtr})
+		pause.WaitWithDefaultTimeout()
+		Expect(pause).Should(ExitCleanly())
+
+		update2 := podmanTest.Podman([]string{"update", "-m", "512m", testCtr})
+		update2.WaitWithDefaultTimeout()
+		Expect(update2).Should(ExitCleanly())
+
+		unpause := podmanTest.Podman([]string{"unpause", testCtr})
+		unpause.WaitWithDefaultTimeout()
+		Expect(unpause).Should(ExitCleanly())
+
+		inspect4 := podmanTest.Podman([]string{"inspect", "--format", "{{ .HostConfig.Memory }}", testCtr})
+		inspect4.WaitWithDefaultTimeout()
+		Expect(inspect4).Should(ExitCleanly())
+		Expect(inspect4.OutputToString()).To(Equal("536870912"))
+
+		exec4 := podmanTest.Podman([]string{"exec", testCtr, "cat", "/sys/fs/cgroup/memory.max"})
+		exec3.WaitWithDefaultTimeout()
+		Expect(exec4).Should(ExitCleanly())
+		Expect(exec4.OutputToString()).Should(ContainSubstring("536870912"))
+	})
 })

@@ -231,6 +231,8 @@ func StringToStatus(name string) (Status, error) {
 		return Unpause, nil
 	case Untag.String():
 		return Untag, nil
+	case Update.String():
+		return Update, nil
 	}
 	return "", fmt.Errorf("unknown event status %q", name)
 }
