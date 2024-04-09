@@ -446,7 +446,7 @@ func (l psReporter) CreatedAt() string {
 	return l.Created.String()
 }
 
-// CreateHuman allows us to output the created time in human readable format
+// CreatedHuman allows us to output the created time in human readable format
 func (l psReporter) CreatedHuman() string {
 	return units.HumanDuration(time.Since(l.Created)) + " ago"
 }

@@ -2482,7 +2482,7 @@ func (c *Container) hasNamespace(namespace spec.LinuxNamespaceType) bool {
 	return false
 }
 
-// extractSecretToStorage copies a secret's data from the secrets manager to the container's static dir
+// extractSecretToCtrStorage copies a secret's data from the secrets manager to the container's static dir
 func (c *Container) extractSecretToCtrStorage(secr *ContainerSecret) error {
 	manager, err := c.runtime.SecretsManager()
 	if err != nil {
