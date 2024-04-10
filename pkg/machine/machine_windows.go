@@ -18,6 +18,7 @@ import (
 	winio "github.com/Microsoft/go-winio"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/env"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -65,7 +66,7 @@ func PipeNameAvailable(pipeName string, maxWait time.Duration) bool {
 	const interval = 250 * time.Millisecond
 	var wait time.Duration
 	for {
-		_, err := os.Stat(`\\.\pipe\` + pipeName)
+		err := fileutils.Exists(`\\.\pipe\` + pipeName)
 		if errors.Is(err, fs.ErrNotExist) {
 			return true
 		}
@@ -80,7 +81,7 @@ func PipeNameAvailable(pipeName string, maxWait time.Duration) bool {
 func WaitPipeExists(pipeName string, retries int, checkFailure func() error) error {
 	var err error
 	for i := 0; i < retries; i++ {
-		_, err = os.Stat(`\\.\pipe\` + pipeName)
+		err = fileutils.Exists(`\\.\pipe\` + pipeName)
 		if err == nil {
 			break
 		}

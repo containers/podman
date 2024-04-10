@@ -19,6 +19,7 @@ import (
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/digitalocean/go-qemu/qmp"
 	"github.com/sirupsen/logrus"
 )
@@ -147,7 +148,7 @@ func (q *QEMUStubber) StopVM(mc *vmconfigs.MachineConfig, _ bool) error {
 // stopLocked stops the machine and expects the caller to hold the machine's lock.
 func (q *QEMUStubber) stopLocked(mc *vmconfigs.MachineConfig) error {
 	// check if the qmp socket is there. if not, qemu instance is gone
-	if _, err := os.Stat(mc.QEMUHypervisor.QMPMonitor.Address.GetPath()); errors.Is(err, fs.ErrNotExist) {
+	if err := fileutils.Exists(mc.QEMUHypervisor.QMPMonitor.Address.GetPath()); errors.Is(err, fs.ErrNotExist) {
 		// Right now it is NOT an error to stop a stopped machine
 		logrus.Debugf("QMP monitor socket %v does not exist", mc.QEMUHypervisor.QMPMonitor.Address)
 		// Fix incorrect starting state in case of crash during start
@@ -246,7 +247,7 @@ func (q *QEMUStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() erro
 
 func (q *QEMUStubber) State(mc *vmconfigs.MachineConfig, bypass bool) (define.Status, error) {
 	// Check if qmp socket path exists
-	if _, err := os.Stat(mc.QEMUHypervisor.QMPMonitor.Address.GetPath()); errors.Is(err, fs.ErrNotExist) {
+	if err := fileutils.Exists(mc.QEMUHypervisor.QMPMonitor.Address.GetPath()); errors.Is(err, fs.ErrNotExist) {
 		return define.Stopped, nil
 	}
 	if err := mc.Refresh(); err != nil {

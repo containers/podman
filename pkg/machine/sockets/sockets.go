@@ -5,11 +5,11 @@ import (
 	"bytes"
 	"fmt"
 	"net"
-	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -101,7 +101,7 @@ func WaitForSocketWithBackoffs(maxBackoffs int, backoff time.Duration, socketPat
 	backoffWait := backoff
 	logrus.Debugf("checking that %q socket is ready", name)
 	for i := 0; i < maxBackoffs; i++ {
-		_, err := os.Stat(socketPath)
+		err := fileutils.Exists(socketPath)
 		if err == nil {
 			return nil
 		}

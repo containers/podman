@@ -13,6 +13,7 @@ import (
 
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/systemd/parser"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -406,7 +407,7 @@ pids_limit=0
 
 	sslCertFileName, ok := os.LookupEnv(sslCertFile)
 	if ok {
-		if _, err := os.Stat(sslCertFileName); err == nil {
+		if err := fileutils.Exists(sslCertFileName); err == nil {
 			certFiles = getCerts(sslCertFileName, false)
 			files = append(files, certFiles...)
 		} else {
@@ -416,7 +417,7 @@ pids_limit=0
 
 	sslCertDirName, ok := os.LookupEnv(sslCertDir)
 	if ok {
-		if _, err := os.Stat(sslCertDirName); err == nil {
+		if err := fileutils.Exists(sslCertDirName); err == nil {
 			certFiles = getCerts(sslCertDirName, true)
 			files = append(files, certFiles...)
 		} else {

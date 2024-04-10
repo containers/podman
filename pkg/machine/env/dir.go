@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/homedir"
 )
 
@@ -17,7 +18,7 @@ func GetCacheDir(vmType define.VMType) (string, error) {
 		return "", err
 	}
 	cacheDir := filepath.Join(dataDir, "cache")
-	if _, err := os.Stat(cacheDir); !errors.Is(err, os.ErrNotExist) {
+	if err := fileutils.Exists(cacheDir); !errors.Is(err, os.ErrNotExist) {
 		return cacheDir, nil
 	}
 	return cacheDir, os.MkdirAll(cacheDir, 0755)
@@ -31,7 +32,7 @@ func GetDataDir(vmType define.VMType) (string, error) {
 		return "", err
 	}
 	dataDir := filepath.Join(dataDirPrefix, vmType.String())
-	if _, err := os.Stat(dataDir); !errors.Is(err, os.ErrNotExist) {
+	if err := fileutils.Exists(dataDir); !errors.Is(err, os.ErrNotExist) {
 		return dataDir, nil
 	}
 	mkdirErr := os.MkdirAll(dataDir, 0755)
@@ -125,7 +126,7 @@ func GetConfDir(vmType define.VMType) (string, error) {
 		return "", err
 	}
 	confDir := filepath.Join(confDirPrefix, vmType.String())
-	if _, err := os.Stat(confDir); !errors.Is(err, os.ErrNotExist) {
+	if err := fileutils.Exists(confDir); !errors.Is(err, os.ErrNotExist) {
 		return confDir, nil
 	}
 	mkdirErr := os.MkdirAll(confDir, 0755)

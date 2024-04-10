@@ -18,6 +18,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/lock"
 	"github.com/containers/podman/v5/pkg/machine/ports"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
@@ -59,7 +60,7 @@ func NewMachineConfig(opts define.InitOptions, dirs *define.MachineDirs, sshIden
 	mc.configPath = cf
 	// Given that we are locked now and check again that the config file does not exists,
 	// if it does it means the VM was already created and we should error.
-	if _, err := os.Stat(cf.Path); err == nil {
+	if err := fileutils.Exists(cf.Path); err == nil {
 		return nil, fmt.Errorf("%s: %w", opts.Name, define.ErrVMAlreadyExists)
 	}
 
