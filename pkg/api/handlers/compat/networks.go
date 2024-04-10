@@ -17,6 +17,7 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/infra/abi"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/docker/docker/api/types"
+	"golang.org/x/exp/maps"
 
 	dockerNetwork "github.com/docker/docker/api/types/network"
 	"github.com/sirupsen/logrus"
@@ -118,7 +119,9 @@ func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, statuses []abi
 	if changeDefaultName && name == runtime.Network().DefaultNetworkName() {
 		name = nettypes.BridgeNetworkDriver
 	}
-	options := network.Options
+	// Make sure to clone the map as we have access to the map stored in
+	// the network backend and will overwrite it which is not good.
+	options := maps.Clone(network.Options)
 	// bridge always has isolate set in the compat API but we should not return it to not confuse callers
 	// https://github.com/containers/podman/issues/15580
 	delete(options, nettypes.IsolateOption)
