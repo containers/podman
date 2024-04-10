@@ -26,6 +26,7 @@ import (
 	"github.com/containers/podman/v5/pkg/signal"
 	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/unshare"
 	stypes "github.com/containers/storage/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	ruser "github.com/moby/sys/user"
@@ -221,16 +222,12 @@ func GetKeepIDMapping(opts *namespaces.KeepIDUserNsOptions) (*stypes.IDMappingOp
 			HostUIDMapping: false,
 			HostGIDMapping: false,
 		}
-		uids, err := rootless.ReadMappingsProc("/proc/self/uid_map")
+		uids, gids, err := unshare.GetHostIDMappings("")
 		if err != nil {
 			return nil, 0, 0, err
 		}
-		gids, err := rootless.ReadMappingsProc("/proc/self/gid_map")
-		if err != nil {
-			return nil, 0, 0, err
-		}
-		options.UIDMap = uids
-		options.GIDMap = gids
+		options.UIDMap = RuntimeSpecToIDtools(uids)
+		options.GIDMap = RuntimeSpecToIDtools(gids)
 
 		uid, gid := 0, 0
 		if opts.UID != nil {
