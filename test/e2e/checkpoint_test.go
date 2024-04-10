@@ -64,15 +64,13 @@ var _ = Describe("Podman checkpoint", func() {
 	It("podman checkpoint bogus container", func() {
 		session := podmanTest.Podman([]string{"container", "checkpoint", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(ContainSubstring("no such container"))
+		Expect(session).Should(ExitWithError(125, "no such container"))
 	})
 
 	It("podman restore bogus container", func() {
 		session := podmanTest.Podman([]string{"container", "restore", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(ContainSubstring("no such container or image"))
+		Expect(session).Should(ExitWithError(125, "no such container or image"))
 	})
 
 	It("podman checkpoint a running container by id", func() {
@@ -228,7 +226,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result = podmanTest.Podman([]string{"pause", cid})
 		result.WaitWithDefaultTimeout()
 
-		Expect(result).Should(Exit(125))
+		Expect(result).Should(ExitWithError(125, `"exited" is not running, can't pause: container state improper`))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Exited"))
 
@@ -239,7 +237,7 @@ var _ = Describe("Podman checkpoint", func() {
 
 		result = podmanTest.Podman([]string{"rm", cid})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(2))
+		Expect(result).Should(ExitWithError(2, " as it is running - running or paused containers cannot be removed without force: container state improper"))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 
 		result = podmanTest.Podman([]string{"rm", "-t", "1", "-f", cid})
@@ -354,7 +352,9 @@ var _ = Describe("Podman checkpoint", func() {
 		result := podmanTest.Podman([]string{"container", "checkpoint", cid})
 		result.WaitWithDefaultTimeout()
 
-		Expect(result).Should(Exit(125))
+		// FIXME: criu emits an error message, but podman never sees it:
+		//   "CRIU checkpointing failed -52.  Please check CRIU logfile /...."
+		Expect(result).Should(ExitWithError(125, "failed: exit status 1"))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
 
@@ -370,7 +370,8 @@ var _ = Describe("Podman checkpoint", func() {
 		result = podmanTest.Podman([]string{"container", "restore", cid})
 		result.WaitWithDefaultTimeout()
 
-		Expect(result).Should(Exit(125))
+		// FIXME: CRIU failure message not seen by podman (same as above)
+		Expect(result).Should(ExitWithError(125))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Exited"))
 
@@ -618,8 +619,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result = podmanTest.Podman([]string{"container", "checkpoint", cid, "-e", fileName, "-c", "non-existing"})
 		result.WaitWithDefaultTimeout()
 
-		Expect(result).Should(Exit(125))
-		Expect(result.ErrorToString()).To(ContainSubstring("not supported"))
+		Expect(result).Should(ExitWithError(125, `selected compression algorithm ("non-existing") not supported. Please select one from`))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 
@@ -731,8 +731,7 @@ var _ = Describe("Podman checkpoint", func() {
 		// Verify the changes to the container's root file-system
 		result = podmanTest.Podman([]string{"exec", cid, "cat", "/test.output"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(1))
-		Expect(result.ErrorToString()).To(ContainSubstring("cat: can't open '/test.output': No such file or directory"))
+		Expect(result).Should(ExitWithError(1, "cat: can't open '/test.output': No such file or directory"))
 
 		// Remove exported checkpoint
 		os.Remove(fileName)
@@ -773,8 +772,7 @@ var _ = Describe("Podman checkpoint", func() {
 		// Verify the changes to the container's root file-system
 		result = podmanTest.Podman([]string{"exec", cid, "cat", "/test.output"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(1))
-		Expect(result.ErrorToString()).To(ContainSubstring("cat: can't open '/test.output': No such file or directory"))
+		Expect(result).Should(ExitWithError(1, "cat: can't open '/test.output': No such file or directory"))
 
 		// Remove exported checkpoint
 		os.Remove(fileName)
@@ -833,8 +831,7 @@ var _ = Describe("Podman checkpoint", func() {
 		// Checkpoint the container - this should fail as it was started with --rm
 		result := podmanTest.Podman([]string{"container", "checkpoint", cid})
 		result.WaitWithDefaultTimeout()
-		Expect(result).To(ExitWithError())
-		Expect(result.ErrorToString()).To(ContainSubstring("cannot checkpoint containers that have been started with '--rm'"))
+		Expect(result).To(ExitWithError(125, "cannot checkpoint containers that have been started with '--rm'"))
 
 		// Checkpointing with --export should still work
 		fileName := filepath.Join(podmanTest.TempDir, "/checkpoint-"+cid+".tar.gz")
@@ -922,10 +919,7 @@ var _ = Describe("Podman checkpoint", func() {
 		// Restore container should fail because named volume still exists
 		result = podmanTest.Podman([]string{"container", "restore", "-i", checkpointFileName})
 		result.WaitWithDefaultTimeout()
-		Expect(result).To(ExitWithError())
-		Expect(result.ErrorToString()).To(ContainSubstring(
-			"volume with name my-test-vol already exists. Use --ignore-volumes to not restore content of volumes",
-		))
+		Expect(result).To(ExitWithError(125, "volume with name my-test-vol already exists. Use --ignore-volumes to not restore content of volumes"))
 
 		// Remove named volume
 		session = podmanTest.Podman([]string{"volume", "rm", "my-test-vol"})
@@ -1205,8 +1199,7 @@ var _ = Describe("Podman checkpoint", func() {
 				fileName,
 			})
 			result.WaitWithDefaultTimeout()
-			Expect(result).To(Exit(125))
-			Expect(result.ErrorToString()).To(ContainSubstring("does not share the"))
+			Expect(result).To(ExitWithError(125, "does not share the "))
 
 			// Remove the pod and create a new pod
 			result = podmanTest.Podman([]string{
@@ -1458,8 +1451,7 @@ var _ = Describe("Podman checkpoint", func() {
 		// Checkpoint is expected to fail without --file-locks
 		result := podmanTest.Podman([]string{"container", "checkpoint", "test_name"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
-		Expect(result.ErrorToString()).To(ContainSubstring("failed: exit status 1"))
+		Expect(result).Should(ExitWithError(125, "failed: exit status 1"))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 
 		// Checkpoint is expected to succeed with --file-locks
@@ -1703,10 +1695,7 @@ var _ = Describe("Podman checkpoint", func() {
 		})
 		result.WaitWithDefaultTimeout()
 
-		Expect(result).Should(Exit(125))
-		Expect(result.ErrorToString()).To(
-			ContainSubstring("and cannot be restored with runtime"),
-		)
+		Expect(result).Should(ExitWithError(125, "and cannot be restored with runtime"))
 
 		result = podmanTest.Podman([]string{
 			"--runtime",

@@ -35,8 +35,7 @@ var _ = Describe("Podman checkpoint", func() {
 		checkpointImage := "foobar-checkpoint"
 		session := podmanTest.Podman([]string{"container", "checkpoint", "--create-image", checkpointImage, "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("no container with name or ID \"foobar\" found"))
+		Expect(session).To(ExitWithError(125, `no container with name or ID "foobar" found: no such container`))
 	})
 
 	It("podman checkpoint --create-image with running container", func() {

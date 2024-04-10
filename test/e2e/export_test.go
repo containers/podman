@@ -48,6 +48,6 @@ var _ = Describe("Podman export", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "container:with:colon.tar")
 		result := podmanTest.Podman([]string{"export", "-o", outfile, cid})
 		result.WaitWithDefaultTimeout()
-		Expect(result).To(ExitWithError())
+		Expect(result).To(ExitWithError(125, "invalid filename (should not contain ':')"))
 	})
 })

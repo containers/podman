@@ -15,22 +15,21 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 	"sigs.k8s.io/yaml"
 )
 
 var _ = Describe("Podman kube generate", func() {
 
 	It("pod on bogus object", func() {
-		session := podmanTest.Podman([]string{"generate", "kube", "foobar"})
+		session := podmanTest.Podman([]string{"generate", "kube", "foobarpod"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, `name or ID "foobarpod" not found`))
 	})
 
 	It("service on bogus object", func() {
-		session := podmanTest.Podman([]string{"kube", "generate", "-s", "foobar"})
+		session := podmanTest.Podman([]string{"kube", "generate", "-s", "foobarservice"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, `name or ID "foobarservice" not found`))
 	})
 
 	It("on container", func() {
@@ -390,7 +389,7 @@ var _ = Describe("Podman kube generate", func() {
 
 		ctrSession := podmanTest.Podman([]string{"create", "--name", "testCtr", "--pod", podName, "-p", "9000:8000", CITEST_IMAGE, "top"})
 		ctrSession.WaitWithDefaultTimeout()
-		Expect(ctrSession).Should(Exit(125))
+		Expect(ctrSession).Should(ExitWithError(125, "invalid config provided: published or exposed ports must be defined when the pod is created: network cannot be configured when it is shared with a pod"))
 
 		// Ports without Net sharing should work with ports being set for each container in the generated kube yaml
 		podName = "testNet"
@@ -431,7 +430,7 @@ var _ = Describe("Podman kube generate", func() {
 
 		ctrSession := podmanTest.Podman([]string{"create", "--name", "testCtr", "--pod", podName, "--hostname", "test-hostname", CITEST_IMAGE, "top"})
 		ctrSession.WaitWithDefaultTimeout()
-		Expect(ctrSession).Should(Exit(125))
+		Expect(ctrSession).Should(ExitWithError(125, "invalid config provided: cannot set hostname when joining the pod UTS namespace: invalid configuration"))
 
 		// Hostname without uts sharing should work, but generated kube yaml will have pod hostname
 		// set to the hostname of the first container
@@ -955,7 +954,7 @@ var _ = Describe("Podman kube generate", func() {
 
 		kube := podmanTest.Podman([]string{"kube", "generate", "top"})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).To(ExitWithError())
+		Expect(kube).To(ExitWithError(125, " is associated with pod "))
 	})
 
 	It("with multiple containers", func() {
@@ -983,7 +982,7 @@ var _ = Describe("Podman kube generate", func() {
 
 		kube := podmanTest.Podman([]string{"kube", "generate", "top1", "top2"})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).To(ExitWithError())
+		Expect(kube).To(ExitWithError(125, " is associated with pod "))
 	})
 
 	It("on a container with dns options", func() {
@@ -1522,7 +1521,7 @@ USER test1`
 
 		kube := podmanTest.Podman([]string{"kube", "generate", "--type", "pod", "--replicas", "3", ctrName})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(125))
+		Expect(kube).Should(ExitWithError(125, "--replicas can only be set when --type is set to deployment"))
 	})
 
 	It("on pod with --type=deployment and --restart=no should fail", func() {
@@ -1537,7 +1536,7 @@ USER test1`
 
 		kube := podmanTest.Podman([]string{"kube", "generate", "--type", "deployment", podName})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(125))
+		Expect(kube).Should(ExitWithError(125, "k8s Deployments can only have restartPolicy set to Always"))
 	})
 
 	It("on pod with invalid name", func() {
@@ -1877,8 +1876,7 @@ EXPOSE 2004-2005/tcp`, CITEST_IMAGE)
 
 		kube := podmanTest.Podman([]string{"kube", "generate", "--type", "daemonset", "--replicas", "3", ctrName})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(125))
-		Expect(kube.ErrorToString()).To(ContainSubstring("--replicas can only be set when --type is set to deployment"))
+		Expect(kube).Should(ExitWithError(125, "--replicas can only be set when --type is set to deployment"))
 	})
 
 	It("on pod with --type=daemonset and --restart=no should fail", func() {
@@ -1893,7 +1891,6 @@ EXPOSE 2004-2005/tcp`, CITEST_IMAGE)
 
 		kube := podmanTest.Podman([]string{"kube", "generate", "--type", "daemonset", podName})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(125))
-		Expect(kube.ErrorToString()).To(ContainSubstring("k8s DaemonSets can only have restartPolicy set to Always"))
+		Expect(kube).Should(ExitWithError(125, "k8s DaemonSets can only have restartPolicy set to Always"))
 	})
 })

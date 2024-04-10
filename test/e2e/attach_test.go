@@ -7,7 +7,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman attach", func() {
@@ -15,7 +14,7 @@ var _ = Describe("Podman attach", func() {
 	It("podman attach to bogus container", func() {
 		session := podmanTest.Podman([]string{"attach", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, `no container with name or ID "foobar" found: no such container`))
 	})
 
 	It("podman attach to non-running container", func() {
@@ -25,7 +24,7 @@ var _ = Describe("Podman attach", func() {
 
 		results := podmanTest.Podman([]string{"attach", "test1"})
 		results.WaitWithDefaultTimeout()
-		Expect(results).Should(Exit(125))
+		Expect(results).Should(ExitWithError(125, "you can only attach to running containers"))
 	})
 
 	It("podman container attach to non-running container", func() {
@@ -36,7 +35,7 @@ var _ = Describe("Podman attach", func() {
 
 		results := podmanTest.Podman([]string{"container", "attach", "test1"})
 		results.WaitWithDefaultTimeout()
-		Expect(results).Should(Exit(125))
+		Expect(results).Should(ExitWithError(125, "you can only attach to running containers"))
 	})
 
 	It("podman attach to multiple containers", func() {
@@ -50,7 +49,7 @@ var _ = Describe("Podman attach", func() {
 
 		results := podmanTest.Podman([]string{"attach", "test1", "test2"})
 		results.WaitWithDefaultTimeout()
-		Expect(results).Should(Exit(125))
+		Expect(results).Should(ExitWithError(125, " attach` accepts at most one argument"))
 	})
 
 	It("podman attach to a running container", func() {

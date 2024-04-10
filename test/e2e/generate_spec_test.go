@@ -18,7 +18,7 @@ var _ = Describe("Podman generate spec", func() {
 	It("podman generate spec bogus should fail", func() {
 		session := podmanTest.Podman([]string{"generate", "spec", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitWithError())
+		Expect(session).Should(ExitWithError(125, "could not find a pod or container with the id foobar"))
 	})
 
 	It("podman generate spec basic usage", func() {

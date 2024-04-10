@@ -1,12 +1,12 @@
 package integration
 
 import (
+	"fmt"
 	"time"
 
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman create with --ip flag", func() {
@@ -14,7 +14,7 @@ var _ = Describe("Podman create with --ip flag", func() {
 	It("Podman create --ip with garbage address", func() {
 		result := podmanTest.Podman([]string{"create", "--name", "test", "--ip", "114232346", ALPINE, "ls"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).To(ExitWithError())
+		Expect(result).To(ExitWithError(125, `"114232346" is not an ip address`))
 	})
 
 	It("Podman create --ip with non-allocatable IP", func() {
@@ -25,7 +25,7 @@ var _ = Describe("Podman create with --ip flag", func() {
 
 		result = podmanTest.Podman([]string{"start", "test"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).To(ExitWithError())
+		Expect(result).To(ExitWithError(125, "requested static ip 203.0.113.124 not in any subnet on network podman"))
 	})
 
 	It("Podman create with specified static IP has correct IP", func() {
@@ -34,7 +34,7 @@ var _ = Describe("Podman create with --ip flag", func() {
 		result.WaitWithDefaultTimeout()
 		// Rootless static ip assignment without network should error
 		if isRootless() {
-			Expect(result).Should(Exit(125))
+			Expect(result).Should(ExitWithError(125, "invalid config provided: networks and static ip/mac address can only be used with Bridge mode networking"))
 		} else {
 			Expect(result).Should(ExitCleanly())
 
@@ -74,11 +74,6 @@ var _ = Describe("Podman create with --ip flag", func() {
 		// test1 container is running with the given IP.
 		result = podmanTest.Podman([]string{"start", "-a", "test2"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).To(ExitWithError())
-		if podmanTest.NetworkBackend == CNI {
-			Expect(result.ErrorToString()).To(ContainSubstring("requested IP address %s is not available", ip))
-		} else if podmanTest.NetworkBackend == Netavark {
-			Expect(result.ErrorToString()).To(ContainSubstring("requested ip address %s is already allocated", ip))
-		}
+		Expect(result).To(ExitWithError(125, fmt.Sprintf("requested ip address %s is already allocated", ip)))
 	})
 })
