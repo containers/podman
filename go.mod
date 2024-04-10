@@ -28,7 +28,7 @@ require (
 	github.com/containers/buildah v1.35.1-0.20240318192459-e64e6cc09dfd
 	github.com/containers/common v0.58.1-0.20240403123718-735c922b53c4
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/gvisor-tap-vsock v0.7.3
+	github.com/containers/gvisor-tap-vsock v0.7.4-0.20240320091526-a0238e52b61f
 	github.com/containers/image/v5 v5.30.0
 	github.com/containers/libhvee v0.7.1
 	github.com/containers/ocicrypt v1.1.10
@@ -37,7 +37,7 @@ require (
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/coreos/stream-metadata-go v0.4.4
-	github.com/crc-org/crc/v2 v2.32.0
+	github.com/crc-org/crc/v2 v2.34.1
 	github.com/crc-org/vfkit v0.5.1
 	github.com/cyphar/filepath-securejoin v0.2.4
 	github.com/digitalocean/go-qemu v0.0.0-20230711162256-2e3d0186973e
@@ -165,7 +165,7 @@ require (
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/klauspost/compress v1.17.7 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.6 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/letsencrypt/boulder v0.0.0-20230907030200-6d76a0f91e1e // indirect
@@ -229,7 +229,7 @@ require (
 	golang.org/x/arch v0.7.0 // indirect
 	golang.org/x/mod v0.16.0 // indirect
 	golang.org/x/oauth2 v0.18.0 // indirect
-	golang.org/x/time v0.3.0 // indirect
+	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.19.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240123012728-ef4313101c80 // indirect
