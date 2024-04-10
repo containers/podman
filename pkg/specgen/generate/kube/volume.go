@@ -5,12 +5,14 @@ package kube
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 
 	"github.com/containers/common/pkg/parse"
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/podman/v5/libpod"
 	v1 "github.com/containers/podman/v5/pkg/k8s.io/api/core/v1"
+	"github.com/containers/storage/pkg/fileutils"
 
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
@@ -69,7 +71,7 @@ func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource, mountLabel string) (*
 				return nil, fmt.Errorf("giving %s a label: %w", hostPath.Path, err)
 			}
 		case v1.HostPathFileOrCreate:
-			if _, err := os.Stat(hostPath.Path); os.IsNotExist(err) {
+			if err := fileutils.Exists(hostPath.Path); errors.Is(err, fs.ErrNotExist) {
 				f, err := os.OpenFile(hostPath.Path, os.O_RDONLY|os.O_CREATE, kubeFilePermission)
 				if err != nil {
 					return nil, fmt.Errorf("creating HostPath: %w", err)

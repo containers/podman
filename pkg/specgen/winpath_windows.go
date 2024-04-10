@@ -1,9 +1,9 @@
 package specgen
 
 import (
-	"os"
 	"path/filepath"
 
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,6 +26,5 @@ func resolveRelativeOnWindows(path string) string {
 }
 
 func winPathExists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
+	return fileutils.Exists(path) == nil
 }

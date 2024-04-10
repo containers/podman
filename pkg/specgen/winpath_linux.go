@@ -1,9 +1,8 @@
 package specgen
 
 import (
-	"os"
-
 	"github.com/containers/common/pkg/machine"
+	"github.com/containers/storage/pkg/fileutils"
 )
 
 func shouldResolveWinPaths() bool {
@@ -11,8 +10,7 @@ func shouldResolveWinPaths() bool {
 }
 
 func shouldResolveUnixWinVariant(path string) bool {
-	_, err := os.Stat(path)
-	return err != nil
+	return fileutils.Exists(path) != nil
 }
 
 func resolveRelativeOnWindows(path string) string {

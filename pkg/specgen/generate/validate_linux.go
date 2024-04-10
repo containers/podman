@@ -13,6 +13,7 @@ import (
 	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/podman/v5/pkg/specgen"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -191,8 +192,8 @@ func verifyContainerResourcesCgroupV2(s *specgen.SpecGenerator) ([]string, error
 
 		memoryMax := filepath.Join("/sys/fs/cgroup", own, "memory.max")
 		memorySwapMax := filepath.Join("/sys/fs/cgroup", own, "memory.swap.max")
-		_, errMemoryMax := os.Stat(memoryMax)
-		_, errMemorySwapMax := os.Stat(memorySwapMax)
+		errMemoryMax := fileutils.Exists(memoryMax)
+		errMemorySwapMax := fileutils.Exists(memorySwapMax)
 		// Differently than cgroup v1, the memory.*max files are not present in the
 		// root directory, so we cannot query directly that, so as best effort use
 		// the current cgroup.

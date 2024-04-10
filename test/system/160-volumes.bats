@@ -419,7 +419,7 @@ EOF
 
     myvolume=myvol$(random_string)
     run_podman 125 volume create -o type=bind -o device=/bogus $myvolume
-    is "$output" "Error: invalid volume option device for driver 'local': stat /bogus: no such file or directory" "should fail with bogus directory not existing"
+    is "$output" "Error: invalid volume option device for driver 'local': faccessat /bogus: no such file or directory" "should fail with bogus directory not existing"
 
     run_podman volume create -o type=bind -o device=/$myvoldir $myvolume
     is "$output" "$myvolume" "should successfully create myvolume"
