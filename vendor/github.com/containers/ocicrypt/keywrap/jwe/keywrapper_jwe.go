@@ -24,7 +24,7 @@ import (
 	"github.com/containers/ocicrypt/config"
 	"github.com/containers/ocicrypt/keywrap"
 	"github.com/containers/ocicrypt/utils"
-	jose "gopkg.in/square/go-jose.v2"
+	"github.com/go-jose/go-jose/v3"
 )
 
 type jweKeyWrapper struct {
@@ -123,9 +123,24 @@ func addPubKeys(joseRecipients *[]jose.Recipient, pubKeys [][]byte) error {
 		}
 
 		alg := jose.RSA_OAEP
-		switch key.(type) {
+		switch key := key.(type) {
 		case *ecdsa.PublicKey:
 			alg = jose.ECDH_ES_A256KW
+		case *jose.JSONWebKey:
+			if key.Algorithm != "" {
+				alg = jose.KeyAlgorithm(key.Algorithm)
+				switch alg {
+				/* accepted algorithms */
+				case jose.RSA_OAEP:
+				case jose.RSA_OAEP_256:
+				case jose.ECDH_ES_A128KW:
+				case jose.ECDH_ES_A192KW:
+				case jose.ECDH_ES_A256KW:
+				/* all others are rejected */
+				default:
+					return fmt.Errorf("%s is an unsupported JWE key algorithm", alg)
+				}
+			}
 		}
 
 		*joseRecipients = append(*joseRecipients, jose.Recipient{

@@ -38,6 +38,15 @@ func CreateRSAKey(bits int) (*rsa.PrivateKey, error) {
 	return key, nil
 }
 
+// CreateECDSAKey creates an elliptic curve key for the given curve
+func CreateECDSAKey(curve elliptic.Curve) (*ecdsa.PrivateKey, error) {
+	key, err := ecdsa.GenerateKey(curve, rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("ecdsa.GenerateKey failed: %w", err)
+	}
+	return key, nil
+}
+
 // CreateRSATestKey creates an RSA key of the given size and returns
 // the public and private key in PEM or DER format
 func CreateRSATestKey(bits int, password []byte, pemencode bool) ([]byte, []byte, error) {
@@ -85,9 +94,9 @@ func CreateRSATestKey(bits int, password []byte, pemencode bool) ([]byte, []byte
 // CreateECDSATestKey creates and elliptic curve key for the given curve and returns
 // the public and private key in DER format
 func CreateECDSATestKey(curve elliptic.Curve) ([]byte, []byte, error) {
-	key, err := ecdsa.GenerateKey(curve, rand.Reader)
+	key, err := CreateECDSAKey(curve)
 	if err != nil {
-		return nil, nil, fmt.Errorf("ecdsa.GenerateKey failed: %w", err)
+		return nil, nil, err
 	}
 
 	pubData, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
