@@ -37,6 +37,7 @@ import (
 	"github.com/containers/podman/v5/pkg/systemd/notifyproxy"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/podman/v5/utils"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/selinux/go-selinux"
@@ -1465,7 +1466,7 @@ func getBuildFile(imageName string, cwd string) (string, error) {
 	containerfilePath := filepath.Join(cwd, buildDirName, "Containerfile")
 	dockerfilePath := filepath.Join(cwd, buildDirName, "Dockerfile")
 
-	_, err := os.Stat(containerfilePath)
+	err := fileutils.Exists(containerfilePath)
 	if err == nil {
 		logrus.Debugf("Building %s with %s", imageName, containerfilePath)
 		return containerfilePath, nil
@@ -1477,7 +1478,7 @@ func getBuildFile(imageName string, cwd string) (string, error) {
 		logrus.Error(err.Error())
 	}
 
-	_, err = os.Stat(dockerfilePath)
+	err = fileutils.Exists(dockerfilePath)
 	if err == nil {
 		logrus.Debugf("Building %s with %s", imageName, dockerfilePath)
 		return dockerfilePath, nil
