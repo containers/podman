@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/containers/podman/v5/pkg/machine/define"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -67,6 +68,37 @@ var _ = Describe("run basic podman commands", func() {
 		rmCon, err := mb.setCmd(bm.withPodmanCommand([]string{"rm", "-a"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(rmCon).To(Exit(0))
+	})
+
+	It("Volume ops", func() {
+		skipIfVmtype(define.HyperVVirt, "FIXME: #21036 - Hyper-V podman run -v fails due to path translation issues")
+
+		tDir, err := filepath.Abs(GinkgoT().TempDir())
+		Expect(err).ToNot(HaveOccurred())
+		roFile := filepath.Join(tDir, "attr-test-file")
+
+		// Create the file as ready-only, since some platforms disallow selinux attr writes
+		// The subsequent Z mount should still succeed in spite of that
+		rf, err := os.OpenFile(roFile, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0o444)
+		Expect(err).ToNot(HaveOccurred())
+		rf.Close()
+
+		name := randomString()
+		i := new(initMachine).withImage(mb.imagePath).withNow()
+
+		// All other platforms have an implicit mount for the temp area
+		if isVmtype(define.QemuVirt) {
+			i.withVolume(tDir)
+		}
+		session, err := mb.setName(name).setCmd(i).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		bm := basicMachine{}
+		// Test relabel works on all platforms
+		runAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"run", "-v", tDir + ":/test:Z", "quay.io/libpod/alpine_nginx", "ls", "/test/attr-test-file"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(runAlp).To(Exit(0))
 	})
 
 	It("Podman ops with port forwarding and gvproxy", func() {
