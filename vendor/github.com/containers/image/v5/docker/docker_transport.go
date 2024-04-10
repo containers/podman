@@ -54,16 +54,12 @@ type dockerReference struct {
 
 // ParseReference converts a string, which should not start with the ImageTransport.Name prefix, into an Docker ImageReference.
 func ParseReference(refString string) (types.ImageReference, error) {
-	if !strings.HasPrefix(refString, "//") {
+	refString, ok := strings.CutPrefix(refString, "//")
+	if !ok {
 		return nil, fmt.Errorf("docker: image reference %s does not start with //", refString)
 	}
-	// Check if ref has UnknownDigestSuffix suffixed to it
-	unknownDigest := false
-	if strings.HasSuffix(refString, UnknownDigestSuffix) {
-		unknownDigest = true
-		refString = strings.TrimSuffix(refString, UnknownDigestSuffix)
-	}
-	ref, err := reference.ParseNormalizedNamed(strings.TrimPrefix(refString, "//"))
+	refString, unknownDigest := strings.CutSuffix(refString, UnknownDigestSuffix)
+	ref, err := reference.ParseNormalizedNamed(refString)
 	if err != nil {
 		return nil, err
 	}

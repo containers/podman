@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/sirupsen/logrus"
 )
@@ -31,7 +32,7 @@ func DefaultConfigFile() (string, error) {
 		return path, nil
 	}
 	if !usePerUserStorage() {
-		if _, err := os.Stat(defaultOverrideConfigFile); err == nil {
+		if err := fileutils.Exists(defaultOverrideConfigFile); err == nil {
 			return defaultOverrideConfigFile, nil
 		}
 		return defaultConfigFile, nil

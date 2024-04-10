@@ -190,7 +190,7 @@ func (o ostreeReader) Read(p []byte) (int, error) {
 	if count == 0 {
 		return 0, io.EOF
 	}
-	data := (*[1 << 30]byte)(unsafe.Pointer(C.g_bytes_get_data(b, nil)))[:count:count]
+	data := unsafe.Slice((*byte)(C.g_bytes_get_data(b, nil)), count)
 	copy(p, data)
 	return count, nil
 }

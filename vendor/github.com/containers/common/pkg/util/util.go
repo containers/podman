@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/fsnotify/fsnotify"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
@@ -56,7 +57,7 @@ func WaitForFile(path string, chWait chan error, timeout time.Duration) (bool, e
 		case e := <-chWait:
 			return true, e
 		case <-inotifyEvents:
-			_, err := os.Stat(path)
+			err := fileutils.Exists(path)
 			if err == nil {
 				return false, nil
 			}
@@ -68,7 +69,7 @@ func WaitForFile(path string, chWait chan error, timeout time.Duration) (bool, e
 			// if the inotify watcher could not have been created.  It is
 			// also useful when using inotify as if for any reasons we missed
 			// a notification, we won't hang the process.
-			_, err := os.Stat(path)
+			err := fileutils.Exists(path)
 			if err == nil {
 				return false, nil
 			}

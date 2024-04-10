@@ -18,6 +18,13 @@ func DeviceFromPath(device string) (define.ContainerDevices, error) {
 	if err != nil {
 		return nil, err
 	}
+	if linkTarget, err := os.Readlink(src); err == nil {
+		if filepath.IsAbs(linkTarget) {
+			src = linkTarget
+		} else {
+			src = filepath.Join(filepath.Dir(src), linkTarget)
+		}
+	}
 	srcInfo, err := os.Stat(src)
 	if err != nil {
 		return nil, fmt.Errorf("getting info of source device %s: %w", src, err)

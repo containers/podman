@@ -12,6 +12,7 @@ import (
 	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/directory"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/parsers"
 	"github.com/containers/storage/pkg/system"
@@ -210,7 +211,7 @@ func (d *Driver) dir2(id string, useImageStore bool) string {
 	} else {
 		homedir = filepath.Join(d.home, "dir", filepath.Base(id))
 	}
-	if _, err := os.Stat(homedir); err != nil {
+	if err := fileutils.Exists(homedir); err != nil {
 		additionalHomes := d.additionalHomes[:]
 		if d.imageStore != "" {
 			additionalHomes = append(additionalHomes, d.imageStore)
@@ -269,7 +270,7 @@ func (d *Driver) ReadWriteDiskUsage(id string) (*directory.DiskUsage, error) {
 
 // Exists checks to see if the directory exists for the given id.
 func (d *Driver) Exists(id string) bool {
-	_, err := os.Stat(d.dir(id))
+	err := fileutils.Exists(d.dir(id))
 	return err == nil
 }
 

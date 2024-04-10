@@ -12,6 +12,7 @@ import (
 	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/devicemapper"
 	"github.com/containers/storage/pkg/directory"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/locker"
 	"github.com/containers/storage/pkg/mount"
@@ -222,7 +223,7 @@ func (d *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
 	}
 
 	idFile := path.Join(mp, "id")
-	if _, err := os.Stat(idFile); err != nil && os.IsNotExist(err) {
+	if err := fileutils.Exists(idFile); err != nil && os.IsNotExist(err) {
 		// Create an "id" file with the container/image id in it to help reconstruct this in case
 		// of later problems
 		if err := os.WriteFile(idFile, []byte(id), 0o600); err != nil {

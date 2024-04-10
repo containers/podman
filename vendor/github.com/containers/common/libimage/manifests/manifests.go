@@ -32,6 +32,7 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/lockfile"
 	digest "github.com/opencontainers/go-digest"
@@ -330,7 +331,7 @@ func (l *list) Reference(store storage.Store, multiple cp.ImageListSelection, in
 					return nil, fmt.Errorf(`internal error: no file or blob with artifact "config" or "layer" digest %q recorded`, referencedBlobDigest)
 				}
 				expectedLayerBlobPath := filepath.Join(blobsDir, referencedBlobDigest.Encoded())
-				if _, err := os.Lstat(expectedLayerBlobPath); err == nil {
+				if err := fileutils.Lexists(expectedLayerBlobPath); err == nil {
 					// did this one already
 					continue
 				} else if knownFile {

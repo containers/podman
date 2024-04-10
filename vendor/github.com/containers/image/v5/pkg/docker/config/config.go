@@ -13,14 +13,15 @@ import (
 	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/internal/multierr"
 	"github.com/containers/image/v5/internal/set"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/ioutils"
 	helperclient "github.com/docker/docker-credential-helpers/client"
 	"github.com/docker/docker-credential-helpers/credentials"
-	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 )
 
@@ -231,7 +232,7 @@ func getCredentialsWithHomeDir(sys *types.SystemContext, key, homeDir string) (t
 		return types.DockerAuthConfig{}, err
 	}
 
-	var multiErr error
+	var multiErr []error
 	for _, helper := range helpers {
 		var (
 			creds          types.DockerAuthConfig
@@ -253,7 +254,7 @@ func getCredentialsWithHomeDir(sys *types.SystemContext, key, homeDir string) (t
 		}
 		if err != nil {
 			logrus.Debugf("Error looking up credentials for %s in credential helper %s: %v", helperKey, helper, err)
-			multiErr = multierror.Append(multiErr, err)
+			multiErr = append(multiErr, err)
 			continue
 		}
 		if creds != (types.DockerAuthConfig{}) {
@@ -266,7 +267,7 @@ func getCredentialsWithHomeDir(sys *types.SystemContext, key, homeDir string) (t
 		}
 	}
 	if multiErr != nil {
-		return types.DockerAuthConfig{}, multiErr
+		return types.DockerAuthConfig{}, multierr.Format("errors looking up credentials:\n\t* ", "\nt* ", "\n", multiErr)
 	}
 
 	logrus.Debugf("No credentials for %s found", key)
@@ -313,7 +314,7 @@ func SetCredentials(sys *types.SystemContext, key, username, password string) (s
 	}
 
 	// Make sure to collect all errors.
-	var multiErr error
+	var multiErr []error
 	for _, helper := range helpers {
 		var desc string
 		var err error
@@ -345,14 +346,14 @@ func SetCredentials(sys *types.SystemContext, key, username, password string) (s
 			}
 		}
 		if err != nil {
-			multiErr = multierror.Append(multiErr, err)
+			multiErr = append(multiErr, err)
 			logrus.Debugf("Error storing credentials for %s in credential helper %s: %v", key, helper, err)
 			continue
 		}
 		logrus.Debugf("Stored credentials for %s in credential helper %s", key, helper)
 		return desc, nil
 	}
-	return "", multiErr
+	return "", multierr.Format("Errors storing credentials\n\t* ", "\n\t* ", "\n", multiErr)
 }
 
 func unsupportedNamespaceErr(helper string) error {
@@ -376,53 +377,56 @@ func RemoveAuthentication(sys *types.SystemContext, key string) error {
 		return err
 	}
 
-	var multiErr error
 	isLoggedIn := false
 
-	removeFromCredHelper := func(helper string) {
+	removeFromCredHelper := func(helper string) error {
 		if isNamespaced {
 			logrus.Debugf("Not removing credentials because namespaced keys are not supported for the credential helper: %s", helper)
-			return
+			return nil
 		}
 		err := deleteCredsFromCredHelper(helper, key)
 		if err == nil {
 			logrus.Debugf("Credentials for %q were deleted from credential helper %s", key, helper)
 			isLoggedIn = true
-			return
+			return nil
 		}
 		if credentials.IsErrCredentialsNotFoundMessage(err.Error()) {
 			logrus.Debugf("Not logged in to %s with credential helper %s", key, helper)
-			return
+			return nil
 		}
-		multiErr = multierror.Append(multiErr, fmt.Errorf("removing credentials for %s from credential helper %s: %w", key, helper, err))
+		return fmt.Errorf("removing credentials for %s from credential helper %s: %w", key, helper, err)
 	}
 
+	var multiErr []error
 	for _, helper := range helpers {
 		var err error
 		switch helper {
 		// Special-case the built-in helper for auth files.
 		case sysregistriesv2.AuthenticationFileHelper:
 			_, err = jsonEditor(sys, func(fileContents *dockerConfigFile) (bool, string, error) {
+				var helperErr error
 				if innerHelper, exists := fileContents.CredHelpers[key]; exists {
-					removeFromCredHelper(innerHelper)
+					helperErr = removeFromCredHelper(innerHelper)
 				}
 				if _, ok := fileContents.AuthConfigs[key]; ok {
 					isLoggedIn = true
 					delete(fileContents.AuthConfigs, key)
 				}
-				return true, "", multiErr
+				return true, "", helperErr
 			})
 			if err != nil {
-				multiErr = multierror.Append(multiErr, err)
+				multiErr = append(multiErr, err)
 			}
 		// External helpers.
 		default:
-			removeFromCredHelper(helper)
+			if err := removeFromCredHelper(helper); err != nil {
+				multiErr = append(multiErr, err)
+			}
 		}
 	}
 
 	if multiErr != nil {
-		return multiErr
+		return multierr.Format("errors removing credentials\n\t* ", "\n\t*", "\n", multiErr)
 	}
 	if !isLoggedIn {
 		return ErrNotLoggedIn
@@ -439,7 +443,7 @@ func RemoveAllAuthentication(sys *types.SystemContext) error {
 		return err
 	}
 
-	var multiErr error
+	var multiErr []error
 	for _, helper := range helpers {
 		var err error
 		switch helper {
@@ -479,13 +483,16 @@ func RemoveAllAuthentication(sys *types.SystemContext) error {
 		}
 		if err != nil {
 			logrus.Debugf("Error removing credentials from credential helper %s: %v", helper, err)
-			multiErr = multierror.Append(multiErr, err)
+			multiErr = append(multiErr, err)
 			continue
 		}
 		logrus.Debugf("All credentials removed from credential helper %s", helper)
 	}
 
-	return multiErr
+	if multiErr != nil {
+		return multierr.Format("errors removing all credentials:\n\t* ", "\n\t* ", "\n", multiErr)
+	}
+	return nil
 }
 
 // prepareForEdit processes sys and key (if keyRelevant) to return:
@@ -570,9 +577,9 @@ func getPathToAuthWithOS(sys *types.SystemContext, goOS string) (authPath, bool,
 	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
 	if runtimeDir != "" {
 		// This function does not in general need to separately check that the returned path exists; that’s racy, and callers will fail accessing the file anyway.
-		// We are checking for os.IsNotExist here only to give the user better guidance what to do in this special case.
-		_, err := os.Stat(runtimeDir)
-		if os.IsNotExist(err) {
+		// We are checking for fs.ErrNotExist here only to give the user better guidance what to do in this special case.
+		err := fileutils.Exists(runtimeDir)
+		if errors.Is(err, fs.ErrNotExist) {
 			// This means the user set the XDG_RUNTIME_DIR variable and either forgot to create the directory
 			// or made a typo while setting the environment variable,
 			// so return an error referring to $XDG_RUNTIME_DIR instead of xdgRuntimeDirPath inside.

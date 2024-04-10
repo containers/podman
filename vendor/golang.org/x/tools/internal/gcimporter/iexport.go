@@ -21,6 +21,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unsafe"
 
 	"golang.org/x/tools/go/types/objectpath"
 	"golang.org/x/tools/internal/aliases"
@@ -464,7 +465,7 @@ func (p *iexporter) doDecl(obj types.Object) {
 
 	switch obj := obj.(type) {
 	case *types.Var:
-		w.tag('V')
+		w.tag(varTag)
 		w.pos(obj.Pos())
 		w.typ(obj.Type(), obj.Pkg())
 
@@ -482,9 +483,9 @@ func (p *iexporter) doDecl(obj types.Object) {
 
 		// Function.
 		if sig.TypeParams().Len() == 0 {
-			w.tag('F')
+			w.tag(funcTag)
 		} else {
-			w.tag('G')
+			w.tag(genericFuncTag)
 		}
 		w.pos(obj.Pos())
 		// The tparam list of the function type is the declaration of the type
@@ -500,7 +501,7 @@ func (p *iexporter) doDecl(obj types.Object) {
 		w.signature(sig)
 
 	case *types.Const:
-		w.tag('C')
+		w.tag(constTag)
 		w.pos(obj.Pos())
 		w.value(obj.Type(), obj.Val())
 
@@ -508,7 +509,7 @@ func (p *iexporter) doDecl(obj types.Object) {
 		t := obj.Type()
 
 		if tparam, ok := aliases.Unalias(t).(*types.TypeParam); ok {
-			w.tag('P')
+			w.tag(typeParamTag)
 			w.pos(obj.Pos())
 			constraint := tparam.Constraint()
 			if p.version >= iexportVersionGo1_18 {
@@ -523,8 +524,13 @@ func (p *iexporter) doDecl(obj types.Object) {
 		}
 
 		if obj.IsAlias() {
-			w.tag('A')
+			w.tag(aliasTag)
 			w.pos(obj.Pos())
+			if alias, ok := t.(*aliases.Alias); ok {
+				// Preserve materialized aliases,
+				// even of non-exported types.
+				t = aliasRHS(alias)
+			}
 			w.typ(t, obj.Pkg())
 			break
 		}
@@ -536,9 +542,9 @@ func (p *iexporter) doDecl(obj types.Object) {
 		}
 
 		if named.TypeParams().Len() == 0 {
-			w.tag('T')
+			w.tag(typeTag)
 		} else {
-			w.tag('U')
+			w.tag(genericTypeTag)
 		}
 		w.pos(obj.Pos())
 
@@ -548,7 +554,7 @@ func (p *iexporter) doDecl(obj types.Object) {
 			w.tparamList(obj.Name(), named.TypeParams(), obj.Pkg())
 		}
 
-		underlying := obj.Type().Underlying()
+		underlying := named.Underlying()
 		w.typ(underlying, obj.Pkg())
 
 		if types.IsInterface(t) {
@@ -739,7 +745,10 @@ func (w *exportWriter) doTyp(t types.Type, pkg *types.Package) {
 		}()
 	}
 	switch t := t.(type) {
-	// TODO(adonovan): support types.Alias.
+	case *aliases.Alias:
+		// TODO(adonovan): support parameterized aliases, following *types.Named.
+		w.startType(aliasType)
+		w.qualifiedType(t.Obj())
 
 	case *types.Named:
 		if targs := t.TypeArgs(); targs.Len() > 0 {
@@ -1321,4 +1330,20 @@ func (e internalError) Error() string { return "gcimporter: " + string(e) }
 // situations like bad input, whose cause is external.
 func internalErrorf(format string, args ...interface{}) error {
 	return internalError(fmt.Sprintf(format, args...))
+}
+
+// aliasRHS removes exactly one Alias constructor.
+func aliasRHS(alias *aliases.Alias) types.Type {
+	// TODO(adonovan): if proposal #66559 is accepted, this will
+	// become Alias.RHS(alias). In the meantime, we must punch
+	// through the drywall.
+	type go123Alias struct {
+		_   *types.TypeName
+		_   *types.TypeParamList
+		RHS types.Type
+		_   types.Type
+	}
+	var raw *go123Alias
+	*(**aliases.Alias)(unsafe.Pointer(&raw)) = alias
+	return raw.RHS
 }

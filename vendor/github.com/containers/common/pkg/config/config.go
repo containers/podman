@@ -12,6 +12,7 @@ import (
 	"github.com/containers/common/internal/attributedstring"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/capabilities"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/unshare"
 	units "github.com/docker/go-units"
 	selinux "github.com/opencontainers/selinux/go-selinux"
@@ -715,7 +716,7 @@ func (c *Config) CheckCgroupsAndAdjustConfig() {
 	if hasSession {
 		for _, part := range strings.Split(session, ",") {
 			if strings.HasPrefix(part, "unix:path=") {
-				_, err := os.Stat(strings.TrimPrefix(part, "unix:path="))
+				err := fileutils.Exists(strings.TrimPrefix(part, "unix:path="))
 				hasSession = err == nil
 				break
 			}
@@ -780,7 +781,7 @@ func (c *EngineConfig) findRuntime() string {
 	// Search for crun first followed by runc, runj, kata, runsc, ocijail
 	for _, name := range []string{"crun", "runc", "runj", "kata", "runsc", "ocijail"} {
 		for _, v := range c.OCIRuntimes[name] {
-			if _, err := os.Stat(v); err == nil {
+			if err := fileutils.Exists(v); err == nil {
 				return name
 			}
 		}
@@ -1189,7 +1190,7 @@ func (c *Config) FindInitBinary() (string, error) {
 		return c.Engine.InitPath, nil
 	}
 	// keep old default working to guarantee backwards compat
-	if _, err := os.Stat(DefaultInitPath); err == nil {
+	if err := fileutils.Exists(DefaultInitPath); err == nil {
 		return DefaultInitPath, nil
 	}
 	return c.FindHelperBinary(defaultInitName, true)

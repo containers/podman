@@ -4,10 +4,10 @@ package cni
 
 import (
 	"net"
-	"os"
 	"path/filepath"
 
 	"github.com/containers/common/libnetwork/types"
+	"github.com/containers/storage/pkg/fileutils"
 )
 
 const (
@@ -250,7 +250,7 @@ func newDNSNamePlugin(domainName string) dnsNameConfig {
 // hasDNSNamePlugin looks to see if the dnsname cni plugin is present
 func hasDNSNamePlugin(paths []string) bool {
 	for _, p := range paths {
-		if _, err := os.Stat(filepath.Join(p, "dnsname")); err == nil {
+		if err := fileutils.Exists(filepath.Join(p, "dnsname")); err == nil {
 			return true
 		}
 	}

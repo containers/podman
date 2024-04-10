@@ -1,8 +1,6 @@
 package blobinfocache
 
 import (
-	"github.com/containers/image/v5/pkg/compression"
-	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/types"
 	digest "github.com/opencontainers/go-digest"
 )
@@ -32,7 +30,7 @@ func (bic *v1OnlyBlobInfoCache) Close() {
 func (bic *v1OnlyBlobInfoCache) RecordDigestCompressorName(anyDigest digest.Digest, compressorName string) {
 }
 
-func (bic *v1OnlyBlobInfoCache) CandidateLocations2(transport types.ImageTransport, scope types.BICTransportScope, digest digest.Digest, canSubstitute bool) []BICReplacementCandidate2 {
+func (bic *v1OnlyBlobInfoCache) CandidateLocations2(transport types.ImageTransport, scope types.BICTransportScope, digest digest.Digest, options CandidateLocations2Options) []BICReplacementCandidate2 {
 	return nil
 }
 
@@ -47,24 +45,4 @@ func CandidateLocationsFromV2(v2candidates []BICReplacementCandidate2) []types.B
 		})
 	}
 	return candidates
-}
-
-// OperationAndAlgorithmForCompressor returns CompressionOperation and CompressionAlgorithm
-// values suitable for inclusion in a types.BlobInfo structure, based on the name of the
-// compression algorithm, or Uncompressed, or UnknownCompression.  This is typically used by
-// TryReusingBlob() implementations to set values in the BlobInfo structure that they return
-// upon success.
-func OperationAndAlgorithmForCompressor(compressorName string) (types.LayerCompression, *compressiontypes.Algorithm, error) {
-	switch compressorName {
-	case Uncompressed:
-		return types.Decompress, nil, nil
-	case UnknownCompression:
-		return types.PreserveOriginal, nil, nil
-	default:
-		algo, err := compression.AlgorithmByName(compressorName)
-		if err == nil {
-			return types.Compress, &algo, nil
-		}
-		return types.PreserveOriginal, nil, err
-	}
 }

@@ -287,7 +287,7 @@ func (d *bpCompressionStepData) updateCompressionEdits(operation *types.LayerCom
 	maps.Copy(*annotations, d.uploadedAnnotations)
 }
 
-// recordValidatedBlobData updates b.blobInfoCache with data about the created uploadedInfo (as returned by PutBlob)
+// recordValidatedDigestData updates b.blobInfoCache with data about the created uploadedInfo (as returned by PutBlob)
 // and the original srcInfo (which the caller guarantees has been validated).
 // This must ONLY be called if all data has been validated by OUR code, and is not coming from third parties.
 func (d *bpCompressionStepData) recordValidatedDigestData(c *copier, uploadedInfo types.BlobInfo, srcInfo types.BlobInfo,

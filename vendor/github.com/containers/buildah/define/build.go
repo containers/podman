@@ -59,7 +59,7 @@ type CommonBuildOptions struct {
 	DNSServers []string
 	// DNSOptions is the list of DNS
 	DNSOptions []string
-	// LabelOpts is the a slice of fields of an SELinux context, given in "field:pair" format, or "disable".
+	// LabelOpts is a slice of the fields of an SELinux context, given in "field:pair" format, or "disable".
 	// Recognized field names are "role", "type", and "level".
 	LabelOpts []string
 	// MemorySwap limits the amount of memory and swap together.
@@ -140,7 +140,8 @@ type BuildOptions struct {
 	Runtime string
 	// RuntimeArgs adds global arguments for the runtime.
 	RuntimeArgs []string
-	// TransientMounts is a list of mounts that won't be kept in the image.
+	// TransientMounts is a list of unparsed mounts that will be provided to
+	// RUN instructions.
 	TransientMounts []string
 	// CacheFrom specifies any remote repository which can be treated as
 	// potential cache source.
@@ -242,22 +243,24 @@ type BuildOptions struct {
 	CommonBuildOpts *CommonBuildOptions
 	// CPPFlags are additional arguments to pass to the C Preprocessor (cpp).
 	CPPFlags []string
-	// DefaultMountsFilePath is the file path holding the mounts to be mounted in "host-path:container-path" format
+	// DefaultMountsFilePath is the file path holding the mounts to be mounted for RUN
+	// instructions in "host-path:container-path" format
 	DefaultMountsFilePath string
 	// IIDFile tells the builder to write the image ID to the specified file
 	IIDFile string
-	// Squash tells the builder to produce an image with a single layer
-	// instead of with possibly more than one layer.
+	// Squash tells the builder to produce an image with a single layer instead of with
+	// possibly more than one layer, by only committing a new layer after processing the
+	// final instruction.
 	Squash bool
-	// Labels metadata for an image
+	// Labels to set in a committed image.
 	Labels []string
 	// LayerLabels metadata for an intermediate image
 	LayerLabels []string
-	// Annotation metadata for an image
+	// Annotations to set in a committed image, in OCI format.
 	Annotations []string
-	// OnBuild commands to be run by images based on this image
+	// OnBuild commands to be run by builds that use the image we'll commit as a base image.
 	OnBuild []string
-	// Layers tells the builder to create a cache of images for each step in the Dockerfile
+	// Layers tells the builder to commit an image for each step in the Dockerfile.
 	Layers bool
 	// NoCache tells the builder to build the image from scratch without checking for a cache.
 	// It creates a new set of cached images for the build.
@@ -272,7 +275,7 @@ type BuildOptions struct {
 	BlobDirectory string
 	// Target the targeted FROM in the Dockerfile to build.
 	Target string
-	// Devices are the additional devices to add to the containers.
+	// Devices are unparsed devices to provide to RUN instructions.
 	Devices []string
 	// SignBy is the fingerprint of a GPG key to use for signing images.
 	SignBy string
@@ -298,18 +301,18 @@ type BuildOptions struct {
 	JobSemaphore *semaphore.Weighted
 	// LogRusage logs resource usage for each step.
 	LogRusage bool
-	// File to which the Rusage logs will be saved to instead of stdout
+	// File to which the Rusage logs will be saved to instead of stdout.
 	RusageLogFile string
 	// Excludes is a list of excludes to be used instead of the .dockerignore file.
 	Excludes []string
 	// IgnoreFile is a name of the .containerignore file
 	IgnoreFile string
 	// From is the image name to use to replace the value specified in the first
-	// FROM instruction in the Containerfile
+	// FROM instruction in the Containerfile.
 	From string
-	// GroupAdd is a list of groups to add to the primary process within
-	// the container. 'keep-groups' allows container processes to use
-	// supplementary groups.
+	// GroupAdd is a list of groups to add to the primary process when handling RUN
+	// instructions. The magic 'keep-groups' value indicates that the process should
+	// be allowed to inherit the current set of supplementary groups.
 	GroupAdd []string
 	// Platforms is the list of parsed OS/Arch/Variant triples that we want
 	// to build the image for.  If this slice has items in it, the OS and
@@ -336,4 +339,7 @@ type BuildOptions struct {
 	// SBOMScanOptions encapsulates options which control whether or not we
 	// run scanners on the rootfs that we're about to commit, and how.
 	SBOMScanOptions []SBOMScanOptions
+	// CDIConfigDir is the location of CDI configuration files, if the files in
+	// the default configuration locations shouldn't be used.
+	CDIConfigDir string
 }

@@ -2,9 +2,9 @@ package config
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/hashicorp/go-multierror"
@@ -76,7 +76,7 @@ func ModuleDirectories() ([]string, error) { // Public API for shell completions
 // Resolve the specified path to a module.
 func resolveModule(path string, dirs []string) (string, error) {
 	if filepath.IsAbs(path) {
-		_, err := os.Stat(path)
+		err := fileutils.Exists(path)
 		return path, err
 	}
 
@@ -85,7 +85,7 @@ func resolveModule(path string, dirs []string) (string, error) {
 	var multiErr error
 	for _, d := range dirs {
 		candidate := filepath.Join(d, path)
-		_, err := os.Stat(candidate)
+		err := fileutils.Exists(candidate)
 		if err == nil {
 			return candidate, nil
 		}

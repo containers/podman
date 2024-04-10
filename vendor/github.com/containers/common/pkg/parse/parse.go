@@ -6,10 +6,11 @@ package parse
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/containers/storage/pkg/fileutils"
 )
 
 // ValidateVolumeOpts validates a volume's options
@@ -175,7 +176,7 @@ func ValidateVolumeHostDir(hostDir string) error {
 		return errors.New("host directory cannot be empty")
 	}
 	if filepath.IsAbs(hostDir) {
-		if _, err := os.Stat(hostDir); err != nil {
+		if err := fileutils.Exists(hostDir); err != nil {
 			return err
 		}
 	}

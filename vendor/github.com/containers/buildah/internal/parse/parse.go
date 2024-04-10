@@ -2,11 +2,11 @@ package parse
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/containers/common/pkg/parse"
+	"github.com/containers/storage/pkg/fileutils"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -15,7 +15,7 @@ func ValidateVolumeMountHostDir(hostDir string) error {
 	if !filepath.IsAbs(hostDir) {
 		return fmt.Errorf("invalid host path, must be an absolute path %q", hostDir)
 	}
-	if _, err := os.Stat(hostDir); err != nil {
+	if err := fileutils.Exists(hostDir); err != nil {
 		return err
 	}
 	return nil

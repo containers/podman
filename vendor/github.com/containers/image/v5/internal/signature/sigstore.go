@@ -1,10 +1,10 @@
 package signature
 
 import (
+	"bytes"
 	"encoding/json"
 
 	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 const (
@@ -45,7 +45,7 @@ type sigstoreJSONRepresentation struct {
 func SigstoreFromComponents(untrustedMimeType string, untrustedPayload []byte, untrustedAnnotations map[string]string) Sigstore {
 	return Sigstore{
 		untrustedMIMEType:    untrustedMimeType,
-		untrustedPayload:     slices.Clone(untrustedPayload),
+		untrustedPayload:     bytes.Clone(untrustedPayload),
 		untrustedAnnotations: maps.Clone(untrustedAnnotations),
 	}
 }
@@ -79,7 +79,7 @@ func (s Sigstore) UntrustedMIMEType() string {
 	return s.untrustedMIMEType
 }
 func (s Sigstore) UntrustedPayload() []byte {
-	return slices.Clone(s.untrustedPayload)
+	return bytes.Clone(s.untrustedPayload)
 }
 
 func (s Sigstore) UntrustedAnnotations() map[string]string {

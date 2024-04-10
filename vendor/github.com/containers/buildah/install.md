@@ -10,7 +10,7 @@
 sudo pacman -S buildah
 ```
 
-#### [CentOS](https://www.centos.org)
+### [CentOS](https://www.centos.org)
 
 Buildah is available in the default Extras repos for CentOS 7 and in
 the AppStream repo for CentOS 8 and Stream, however the available version often
@@ -20,7 +20,7 @@ lags the upstream release.
 sudo yum -y install buildah
 ```
 
-#### [Debian](https://debian.org)
+### [Debian](https://debian.org)
 
 The buildah package is available in
 the [Bookworm](https://packages.debian.org/bookworm/buildah), which

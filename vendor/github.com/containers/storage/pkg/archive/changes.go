@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/pools"
 	"github.com/containers/storage/pkg/system"
@@ -106,7 +107,7 @@ func aufsDeletedFile(root, path string, fi os.FileInfo) (string, error) {
 
 func aufsWhiteoutPresent(root, path string) (bool, error) {
 	f := filepath.Join(filepath.Dir(path), WhiteoutPrefix+filepath.Base(path))
-	_, err := os.Stat(filepath.Join(root, f))
+	err := fileutils.Exists(filepath.Join(root, f))
 	if err == nil {
 		return true, nil
 	}

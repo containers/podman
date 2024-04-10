@@ -13,6 +13,7 @@ import (
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/cgroupv2"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/containers/storage/types"
@@ -206,8 +207,8 @@ func defaultConfig() (*Config, error) {
 		}
 		sigPath := filepath.Join(configHome, DefaultRootlessSignaturePolicyPath)
 		defaultEngineConfig.SignaturePolicyPath = sigPath
-		if _, err := os.Stat(sigPath); err != nil {
-			if _, err := os.Stat(DefaultSignaturePolicyPath); err == nil {
+		if err := fileutils.Exists(sigPath); err != nil {
+			if err := fileutils.Exists(DefaultSignaturePolicyPath); err == nil {
 				defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
 			}
 		}

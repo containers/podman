@@ -320,8 +320,10 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		Format:           options.Format,
 		TempVolumes:      map[string]bool{},
 		Devices:          options.Devices,
+		DeviceSpecs:      options.DeviceSpecs,
 		Logger:           options.Logger,
 		NetworkInterface: options.NetworkInterface,
+		CDIConfigDir:     options.CDIConfigDir,
 	}
 
 	if options.Mount {

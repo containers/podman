@@ -55,6 +55,10 @@ https://github.com/klauspost/compress/pull/919 https://github.com/klauspost/comp
 	* s2: Do 2 overlapping match checks https://github.com/klauspost/compress/pull/839
 	* flate: Add amd64 assembly matchlen https://github.com/klauspost/compress/pull/837
 	* gzip: Copy bufio.Reader on Reset by @thatguystone in https://github.com/klauspost/compress/pull/860
+
+<details>
+	<summary>See changes to v1.16.x</summary>
+
    
 * July 1st, 2023 - [v1.16.7](https://github.com/klauspost/compress/releases/tag/v1.16.7)
 	* zstd: Fix default level first dictionary encode https://github.com/klauspost/compress/pull/829
@@ -93,6 +97,7 @@ https://github.com/klauspost/compress/pull/919 https://github.com/klauspost/comp
 	* s2: Add LZ4 block converter. https://github.com/klauspost/compress/pull/748
 	* s2: Support io.ReaderAt in ReadSeeker. https://github.com/klauspost/compress/pull/747
 	* s2c/s2sx: Use concurrent decoding. https://github.com/klauspost/compress/pull/746
+</details>
 
 <details>
 	<summary>See changes to v1.15.x</summary>
@@ -559,6 +564,8 @@ If you expect to have a lot of concurrently allocated Writers consider using
 the stateless compress described below.
 
 For compression performance, see: [this spreadsheet](https://docs.google.com/spreadsheets/d/1nuNE2nPfuINCZJRMt6wFWhKpToF95I47XjSsc-1rbPQ/edit?usp=sharing).
+
+To disable all assembly add `-tags=noasm`. This works across all packages.
 
 # Stateless compression
 

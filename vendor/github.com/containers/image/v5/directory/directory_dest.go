@@ -15,6 +15,7 @@ import (
 	"github.com/containers/image/v5/internal/putblobdigest"
 	"github.com/containers/image/v5/internal/signature"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 )
@@ -249,7 +250,7 @@ func (d *dirImageDestination) Commit(context.Context, types.UnparsedImage) error
 
 // returns true if path exists
 func pathExists(path string) (bool, error) {
-	_, err := os.Stat(path)
+	err := fileutils.Exists(path)
 	if err == nil {
 		return true, nil
 	}
