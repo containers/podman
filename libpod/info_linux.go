@@ -18,6 +18,8 @@ import (
 	"github.com/containers/common/pkg/version"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/rootless"
+	"github.com/containers/podman/v5/pkg/util"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 )
@@ -91,17 +93,13 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 	}
 
 	if rootless.IsRootless() {
-		uidmappings, err := rootless.ReadMappingsProc("/proc/self/uid_map")
+		uidmappings, gidmappings, err := unshare.GetHostIDMappings("")
 		if err != nil {
-			return fmt.Errorf("reading uid mappings: %w", err)
-		}
-		gidmappings, err := rootless.ReadMappingsProc("/proc/self/gid_map")
-		if err != nil {
-			return fmt.Errorf("reading gid mappings: %w", err)
+			return fmt.Errorf("reading id mappings: %w", err)
 		}
 		idmappings := define.IDMappings{
-			GIDMap: gidmappings,
-			UIDMap: uidmappings,
+			GIDMap: util.RuntimeSpecToIDtools(gidmappings),
+			UIDMap: util.RuntimeSpecToIDtools(uidmappings),
 		}
 		info.IDMappings = idmappings
 	}

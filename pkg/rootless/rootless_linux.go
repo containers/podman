@@ -3,11 +3,9 @@
 package rootless
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	gosignal "os/signal"
@@ -22,6 +20,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	pmount "github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/unshare"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"github.com/syndtr/gocapability/capability"
 	"golang.org/x/sys/unix"
@@ -514,40 +513,9 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 	return false, 0, fmt.Errorf("could not find any running process: %w", unix.ESRCH)
 }
 
-// ReadMappingsProc parses and returns the ID mappings at the specified path.
-func ReadMappingsProc(path string) ([]idtools.IDMap, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	mappings := []idtools.IDMap{}
-
-	buf := bufio.NewReader(file)
-	for {
-		line, _, err := buf.ReadLine()
-		if err != nil {
-			if err == io.EOF {
-				return mappings, nil
-			}
-			return nil, fmt.Errorf("cannot read line from %s: %w", path, err)
-		}
-		if line == nil {
-			return mappings, nil
-		}
-
-		containerID, hostID, size := 0, 0, 0
-		if _, err := fmt.Sscanf(string(line), "%d %d %d", &containerID, &hostID, &size); err != nil {
-			return nil, fmt.Errorf("cannot parse %s: %w", string(line), err)
-		}
-		mappings = append(mappings, idtools.IDMap{ContainerID: containerID, HostID: hostID, Size: size})
-	}
-}
-
-func matches(id int, configuredIDs []idtools.IDMap, currentIDs []idtools.IDMap) bool {
+func matches(id int, configuredIDs []idtools.IDMap, currentIDs []specs.LinuxIDMapping) bool {
 	// The first mapping is the host user, handle it separately.
-	if currentIDs[0].HostID != id || currentIDs[0].Size != 1 {
+	if currentIDs[0].HostID != uint32(id) || currentIDs[0].Size != 1 {
 		return false
 	}
 
@@ -558,10 +526,10 @@ func matches(id int, configuredIDs []idtools.IDMap, currentIDs []idtools.IDMap) 
 
 	// It is fine to iterate sequentially as both slices are sorted.
 	for i := range currentIDs {
-		if currentIDs[i].HostID != configuredIDs[i].HostID {
+		if currentIDs[i].HostID != uint32(configuredIDs[i].HostID) {
 			return false
 		}
-		if currentIDs[i].Size != configuredIDs[i].Size {
+		if currentIDs[i].Size != uint32(configuredIDs[i].Size) {
 			return false
 		}
 	}
@@ -581,17 +549,12 @@ func ConfigurationMatches() (bool, error) {
 		return false, err
 	}
 
-	currentUIDs, err := ReadMappingsProc("/proc/self/uid_map")
+	currentUIDs, currentGIDs, err := unshare.GetHostIDMappings("")
 	if err != nil {
 		return false, err
 	}
 
 	if !matches(GetRootlessUID(), uids, currentUIDs) {
-		return false, err
-	}
-
-	currentGIDs, err := ReadMappingsProc("/proc/self/gid_map")
-	if err != nil {
 		return false, err
 	}
 
