@@ -192,6 +192,22 @@ t DELETE libpod/networks/macvlan1 200 \
   .[0].Name~macvlan1 \
   .[0].Err=null
 
+
+# create network with isolate option and make sure it is not shown in docker compat endpoint
+podman network create --opt isolate=true isolate-test
+# Note the order of both list calls is important to test for https://github.com/containers/podman/issues/22330
+# First call the compat endpoint, then the libpod one. Previously this would have removed
+# the internal option for the libpod endpoint as well.
+t GET networks?filters='{"name":["isolate-test"]}' 200 \
+  .[0].Name=isolate-test \
+  .[0].Options="{}"
+
+t GET libpod/networks/json?filters='{"name":["isolate-test"]}' 200 \
+  .[0].name=isolate-test \
+  .[0].options.isolate="true"
+
+t DELETE libpod/networks/isolate-test 200
+
 #
 # test networks with containers
 #
