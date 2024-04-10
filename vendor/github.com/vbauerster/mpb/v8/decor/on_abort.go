@@ -56,7 +56,7 @@ type onAbortMetaWrapper struct {
 }
 
 func (d onAbortMetaWrapper) Decor(s Statistics) (string, int) {
-	if s.Completed {
+	if s.Aborted {
 		str, width := d.Decorator.Decor(s)
 		return d.fn(str), width
 	}

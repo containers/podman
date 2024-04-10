@@ -14,9 +14,7 @@ import (
 	"github.com/vbauerster/mpb/v8/decor"
 )
 
-const (
-	defaultRefreshRate = 150 * time.Millisecond
-)
+const defaultRefreshRate = 150 * time.Millisecond
 
 // DoneError represents use after `(*Progress).Wait()` error.
 var DoneError = fmt.Errorf("%T instance can't be reused after %[1]T.Wait()", (*Progress)(nil))
@@ -467,9 +465,9 @@ func (s pState) makeBarState(total int64, filler BarFiller, options ...BarOption
 		}
 	}
 
-	for i := 0; i < len(bs.buffers); i++ {
-		bs.buffers[i] = bytes.NewBuffer(make([]byte, 0, 512))
-	}
+	bs.buffers[0] = bytes.NewBuffer(make([]byte, 0, 128)) // prepend
+	bs.buffers[1] = bytes.NewBuffer(make([]byte, 0, 128)) // append
+	bs.buffers[2] = bytes.NewBuffer(make([]byte, 0, 256)) // filler
 
 	return bs
 }

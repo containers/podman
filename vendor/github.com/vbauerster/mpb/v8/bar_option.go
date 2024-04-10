@@ -20,19 +20,19 @@ func inspect(decorators []decor.Decorator) (dest []decor.Decorator) {
 	return
 }
 
-// AppendDecorators let you inject decorators to the bar's right side.
-func AppendDecorators(decorators ...decor.Decorator) BarOption {
-	decorators = inspect(decorators)
-	return func(s *bState) {
-		s.aDecorators = decorators
-	}
-}
-
 // PrependDecorators let you inject decorators to the bar's left side.
 func PrependDecorators(decorators ...decor.Decorator) BarOption {
 	decorators = inspect(decorators)
 	return func(s *bState) {
-		s.pDecorators = decorators
+		s.decorators[0] = decorators
+	}
+}
+
+// AppendDecorators let you inject decorators to the bar's right side.
+func AppendDecorators(decorators ...decor.Decorator) BarOption {
+	decorators = inspect(decorators)
+	return func(s *bState) {
+		s.decorators[1] = decorators
 	}
 }
 
@@ -129,11 +129,11 @@ func makeExtenderFunc(filler BarFiller, rev bool) extenderFunc {
 		for {
 			b, err := buf.ReadBytes('\n')
 			if err != nil {
+				buf.Reset()
 				break
 			}
 			rows = append(rows, bytes.NewReader(b))
 		}
-		buf.Reset()
 		return rows, err
 	}
 
