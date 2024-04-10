@@ -483,7 +483,7 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 			dontexcludes = append(dontexcludes, "!"+containerfile+".containerignore")
 		} else {
 			// If Containerfile does not exist, assume it is in context directory and do Not add to tarfile
-			if _, err := os.Lstat(containerfile); err != nil {
+			if err := fileutils.Lexists(containerfile); err != nil {
 				if !os.IsNotExist(err) {
 					return nil, err
 				}
