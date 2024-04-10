@@ -284,7 +284,7 @@ var _ = Describe("Podman update", func() {
 		Expect(inspect4.OutputToString()).To(Equal("536870912"))
 
 		exec4 := podmanTest.Podman([]string{"exec", testCtr, "cat", "/sys/fs/cgroup/memory.max"})
-		exec3.WaitWithDefaultTimeout()
+		exec4.WaitWithDefaultTimeout()
 		Expect(exec4).Should(ExitCleanly())
 		Expect(exec4.OutputToString()).Should(ContainSubstring("536870912"))
 	})

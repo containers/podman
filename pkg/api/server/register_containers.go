@@ -675,6 +675,34 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/containers/{name}/rename"), s.APIHandler(compat.RenameContainer)).Methods(http.MethodPost)
 	r.HandleFunc("/containers/{name}/rename", s.APIHandler(compat.RenameContainer)).Methods(http.MethodPost)
+	// swagger:operation POST /containers/{name}/update compat ContainerUpdate
+	// ---
+	// tags:
+	//   - containers (compat)
+	// summary: Update configuration of an existing container
+	// description: Change configuration settings for an existing container without requiring recreation.
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: Full or partial ID or full name of the container to rename
+	//  - in: body
+	//    name: resources
+	//    description: attributes for updating the container
+	//    schema:
+	//      $ref: "#/definitions/UpdateConfig"
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     description: no error
+	//   404:
+	//     $ref: "#/responses/containerNotFound"
+	//   500:
+	//     $ref: "#/responses/internalError"
+	r.HandleFunc(VersionedPath("/containers/{name}/update"), s.APIHandler(compat.UpdateContainer)).Methods(http.MethodPost)
+	r.HandleFunc("/containers/{name}/update", s.APIHandler(compat.UpdateContainer)).Methods(http.MethodPost)
 
 	/*
 		libpod endpoints
