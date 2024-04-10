@@ -2,6 +2,7 @@ package integration
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 
 	"github.com/containers/common/libnetwork/types"
@@ -395,7 +396,7 @@ var _ = Describe("Podman network create", func() {
 	It("podman network create with invalid subnet", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.12.0/17000", stringid.GenerateRandomID()})
 		nc.WaitWithDefaultTimeout()
-		Expect(nc).To(ExitWithError())
+		Expect(nc).To(ExitWithError(125, "invalid CIDR address: 10.11.12.0/17000"))
 	})
 
 	It("podman network create with ipv4 subnet and ipv6 flag", func() {
@@ -426,16 +427,25 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc.OutputToString()).To(ContainSubstring(`.0/24`))
 	})
 
-	It("podman network create with invalid IP", func() {
-		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.0/17000", stringid.GenerateRandomID()})
+	It("podman network create with invalid IP arguments", func() {
+		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.12.0/24", "--ip-range", "10.11.12.345-10.11.12.999"})
 		nc.WaitWithDefaultTimeout()
-		Expect(nc).To(ExitWithError())
+		Expect(nc).To(ExitWithError(125, `range start ip "10.11.12.345" is not a ip address`))
+
+		nc = podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.12.0/24", "--ip-range", "10.11.12.3-10.11.12.999"})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc).To(ExitWithError(125, `range end ip "10.11.12.999" is not a ip address`))
+
+		nc = podmanTest.Podman([]string{"network", "create", "--gateway", "10.11.12.256"})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc).To(ExitWithError(125, `invalid argument "10.11.12.256" for "--gateway" flag: invalid string being converted to IP address: 10.11.12.256`))
+
 	})
 
 	It("podman network create with invalid gateway for subnet", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.12.0/24", "--gateway", "192.168.1.1", stringid.GenerateRandomID()})
 		nc.WaitWithDefaultTimeout()
-		Expect(nc).To(ExitWithError())
+		Expect(nc).To(ExitWithError(125, "gateway 192.168.1.1 not in subnet 10.11.12.0/24"))
 	})
 
 	It("podman network create two networks with same name should fail", func() {
@@ -447,7 +457,7 @@ var _ = Describe("Podman network create", func() {
 
 		ncFail := podmanTest.Podman([]string{"network", "create", netName})
 		ncFail.WaitWithDefaultTimeout()
-		Expect(ncFail).To(ExitWithError())
+		Expect(ncFail).To(ExitWithError(125, fmt.Sprintf("network name %s already used: network already exists", netName)))
 	})
 
 	It("podman network create two networks with same subnet should fail", func() {
@@ -461,7 +471,7 @@ var _ = Describe("Podman network create", func() {
 		ncFail := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.13.0/24", netName2})
 		ncFail.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(netName2)
-		Expect(ncFail).To(ExitWithError())
+		Expect(ncFail).To(ExitWithError(125, "subnet 10.11.13.0/24 is already used on the host or by another config"))
 	})
 
 	It("podman network create two IPv6 networks with same subnet should fail", func() {
@@ -475,13 +485,13 @@ var _ = Describe("Podman network create", func() {
 		ncFail := podmanTest.Podman([]string{"network", "create", "--subnet", "fd00:4:4:4:4::/64", "--ipv6", netName2})
 		ncFail.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(netName2)
-		Expect(ncFail).To(ExitWithError())
+		Expect(ncFail).To(ExitWithError(125, "subnet fd00:4:4:4::/64 is already used on the host or by another config"))
 	})
 
 	It("podman network create with invalid network name", func() {
-		nc := podmanTest.Podman([]string{"network", "create", "foo "})
+		nc := podmanTest.Podman([]string{"network", "create", "2bad!"})
 		nc.WaitWithDefaultTimeout()
-		Expect(nc).To(ExitWithError())
+		Expect(nc).To(ExitWithError(125, "network name 2bad! invalid: names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*: invalid argument"))
 	})
 
 	It("podman network create with mtu option", func() {
@@ -515,7 +525,7 @@ var _ = Describe("Podman network create", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "--opt", "foo=bar", net})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)
-		Expect(nc).To(ExitWithError())
+		Expect(nc).To(ExitWithError(125, "unsupported bridge network option foo"))
 	})
 
 	It("podman CNI network create with internal should not have dnsname", func() {
@@ -559,8 +569,7 @@ var _ = Describe("Podman network create", func() {
 		for _, name := range []string{"none", "host", "bridge", "private", "slirp4netns", "pasta", "container", "ns", "default"} {
 			nc := podmanTest.Podman([]string{"network", "create", name})
 			nc.WaitWithDefaultTimeout()
-			Expect(nc).To(Exit(125))
-			Expect(nc.ErrorToString()).To(ContainSubstring("cannot create network with name %q because it conflicts with a valid network mode", name))
+			Expect(nc).To(ExitWithError(125, fmt.Sprintf("cannot create network with name %q because it conflicts with a valid network mode", name)))
 		}
 	})
 
@@ -632,15 +641,13 @@ var _ = Describe("Podman network create", func() {
 		gw2 := "fd52:2a5a:747e:3acf::10"
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", subnet1, "--gateway", gw1, "--gateway", gw2, name})
 		nc.WaitWithDefaultTimeout()
-		Expect(nc).To(Exit(125))
-		Expect(nc.ErrorToString()).To(Equal("Error: cannot set more gateways than subnets"))
+		Expect(nc).To(ExitWithError(125, "cannot set more gateways than subnets"))
 
 		range1 := "10.10.3.0/26"
 		range2 := "10.10.3.0/28"
 		nc = podmanTest.Podman([]string{"network", "create", "--subnet", subnet1, "--ip-range", range1, "--ip-range", range2, name})
 		nc.WaitWithDefaultTimeout()
-		Expect(nc).To(Exit(125))
-		Expect(nc.ErrorToString()).To(Equal("Error: cannot set more ranges than subnets"))
+		Expect(nc).To(ExitWithError(125, "cannot set more ranges than subnets"))
 	})
 
 	It("podman network create same name - fail", func() {
@@ -654,7 +661,7 @@ var _ = Describe("Podman network create", func() {
 
 		nc = podmanTest.Podman(networkCreateCommand)
 		nc.WaitWithDefaultTimeout()
-		Expect(nc).To(Exit(125))
+		Expect(nc).To(ExitWithError(125, fmt.Sprintf("network name %s already used: network already exists", name)))
 	})
 
 	It("podman network create same name - succeed with ignore", func() {

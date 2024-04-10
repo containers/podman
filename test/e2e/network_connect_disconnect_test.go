@@ -1,11 +1,12 @@
 package integration
 
 import (
+	"fmt"
+
 	. "github.com/containers/podman/v5/test/utils"
 	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/types"
 )
 
@@ -14,7 +15,7 @@ var _ = Describe("Podman network connect and disconnect", func() {
 	It("bad network name in disconnect should result in error", func() {
 		dis := podmanTest.Podman([]string{"network", "disconnect", "foobar", "test"})
 		dis.WaitWithDefaultTimeout()
-		Expect(dis).Should(ExitWithError())
+		Expect(dis).Should(ExitWithError(125, `no container with name or ID "test" found: no such container`))
 	})
 
 	It("bad container name in network disconnect should result in error", func() {
@@ -26,7 +27,7 @@ var _ = Describe("Podman network connect and disconnect", func() {
 
 		dis := podmanTest.Podman([]string{"network", "disconnect", netName, "foobar"})
 		dis.WaitWithDefaultTimeout()
-		Expect(dis).Should(ExitWithError())
+		Expect(dis).Should(ExitWithError(125, `no container with name or ID "foobar" found: no such container`))
 	})
 
 	It("network disconnect with net mode slirp4netns should result in error", func() {
@@ -43,8 +44,7 @@ var _ = Describe("Podman network connect and disconnect", func() {
 
 		con := podmanTest.Podman([]string{"network", "disconnect", netName, "test"})
 		con.WaitWithDefaultTimeout()
-		Expect(con).Should(ExitWithError())
-		Expect(con.ErrorToString()).To(ContainSubstring(`"slirp4netns" is not supported: invalid network mode`))
+		Expect(con).Should(ExitWithError(125, `"slirp4netns" is not supported: invalid network mode`))
 	})
 
 	It("podman network disconnect", func() {
@@ -85,7 +85,7 @@ var _ = Describe("Podman network connect and disconnect", func() {
 
 		exec = podmanTest.Podman([]string{"exec", "test", "ip", "addr", "show", "eth0"})
 		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(ExitWithError())
+		Expect(exec).Should(ExitWithError(1, "ip: can't find device 'eth0'"))
 
 		exec3 := podmanTest.Podman([]string{"exec", "test", "cat", "/etc/resolv.conf"})
 		exec3.WaitWithDefaultTimeout()
@@ -99,9 +99,13 @@ var _ = Describe("Podman network connect and disconnect", func() {
 	})
 
 	It("bad network name in connect should result in error", func() {
-		dis := podmanTest.Podman([]string{"network", "connect", "foobar", "test"})
+		session := podmanTest.Podman([]string{"create", "--name", "testContainer", "--network", "bridge", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		dis := podmanTest.Podman([]string{"network", "connect", "nonexistent-network", "testContainer"})
 		dis.WaitWithDefaultTimeout()
-		Expect(dis).Should(ExitWithError())
+		Expect(dis).Should(ExitWithError(125, "unable to find network with name or ID nonexistent-network: network not found"))
 	})
 
 	It("bad container name in network connect should result in error", func() {
@@ -113,7 +117,7 @@ var _ = Describe("Podman network connect and disconnect", func() {
 
 		dis := podmanTest.Podman([]string{"network", "connect", netName, "foobar"})
 		dis.WaitWithDefaultTimeout()
-		Expect(dis).Should(ExitWithError())
+		Expect(dis).Should(ExitWithError(125, `no container with name or ID "foobar" found: no such container`))
 	})
 
 	It("network connect with net mode slirp4netns should result in error", func() {
@@ -130,8 +134,7 @@ var _ = Describe("Podman network connect and disconnect", func() {
 
 		con := podmanTest.Podman([]string{"network", "connect", netName, "test"})
 		con.WaitWithDefaultTimeout()
-		Expect(con).Should(ExitWithError())
-		Expect(con.ErrorToString()).To(ContainSubstring(`"slirp4netns" is not supported: invalid network mode`))
+		Expect(con).Should(ExitWithError(125, `"slirp4netns" is not supported: invalid network mode`))
 	})
 
 	It("podman connect on a container that already is connected to the network should error after init", func() {
@@ -162,7 +165,11 @@ var _ = Describe("Podman network connect and disconnect", func() {
 
 		con2 := podmanTest.Podman([]string{"network", "connect", netName, "test"})
 		con2.WaitWithDefaultTimeout()
-		Expect(con2).Should(ExitWithError())
+		if podmanTest.DatabaseBackend == "boltdb" {
+			Expect(con2).Should(ExitWithError(125, fmt.Sprintf("container %s is already connected to network %q: network is already connected", cid, netName)))
+		} else {
+			Expect(con2).Should(ExitWithError(125, fmt.Sprintf("container %s is already connected to network %s: network is already connected", cid, netName)))
+		}
 	})
 
 	It("podman network connect", func() {
@@ -359,11 +366,12 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		exec := podmanTest.Podman([]string{"exec", "test", "ip", "addr", "show", "eth0"})
 		exec.WaitWithDefaultTimeout()
 
-		// because the network interface order is not guaranteed to be the same we have to check both eth0 and eth1
-		// if eth0 did not exists eth1 has to exists
-		var exitMatcher types.GomegaMatcher = ExitWithError()
+		// because the network interface order is not guaranteed to be the same, we have to check both eth0 and eth1.
+		// if eth0 did not exist, eth1 has to exist.
+		var exitMatcher types.GomegaMatcher = ExitWithError(1, "ip: can't find device 'eth1'")
 		if exec.ExitCode() > 0 {
-			exitMatcher = Exit(0)
+			Expect(exec).To(ExitWithError(1, "ip: can't find device 'eth0'"))
+			exitMatcher = ExitCleanly()
 		}
 
 		exec = podmanTest.Podman([]string{"exec", "test", "ip", "addr", "show", "eth1"})
@@ -402,6 +410,6 @@ var _ = Describe("Podman network connect and disconnect", func() {
 
 		exec = podmanTest.Podman([]string{"exec", "test", "ip", "addr", "show", "eth0"})
 		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(ExitWithError())
+		Expect(exec).Should(ExitWithError(1, "ip: can't find device 'eth0'"))
 	})
 })
