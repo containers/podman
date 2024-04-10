@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/podman/v5/pkg/util"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -145,7 +146,7 @@ func setXdgDirs() error {
 
 	if _, found := os.LookupEnv("DBUS_SESSION_BUS_ADDRESS"); !found {
 		sessionAddr := filepath.Join(os.Getenv("XDG_RUNTIME_DIR"), "bus")
-		if _, err := os.Stat(sessionAddr); err == nil {
+		if err := fileutils.Exists(sessionAddr); err == nil {
 			sessionAddr, err = filepath.EvalSymlinks(sessionAddr)
 			if err != nil {
 				return err

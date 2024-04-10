@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"text/template"
 
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/spf13/cobra"
 )
 
@@ -91,7 +92,7 @@ func install(cmd *cobra.Command, args []string) error {
 	labelName := fmt.Sprintf("com.github.containers.podman.helper-%s.plist", userName)
 	fileName := filepath.Join("/Library", "LaunchDaemons", labelName)
 
-	if _, err := os.Stat(fileName); err == nil || !os.IsNotExist(err) {
+	if err := fileutils.Exists(fileName); err == nil || !errors.Is(err, fs.ErrNotExist) {
 		fmt.Fprintln(os.Stderr, "helper is already installed, skipping the install, uninstall first if you want to reinstall")
 		return nil
 	}
