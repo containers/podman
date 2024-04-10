@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/events"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -428,7 +430,7 @@ func (c *Container) healthCheckLogPath() string {
 // The caller should lock the container before this function is called.
 func (c *Container) getHealthCheckLog() (define.HealthCheckResults, error) {
 	var healthCheck define.HealthCheckResults
-	if _, err := os.Stat(c.healthCheckLogPath()); os.IsNotExist(err) {
+	if err := fileutils.Exists(c.healthCheckLogPath()); errors.Is(err, fs.ErrNotExist) {
 		return healthCheck, nil
 	}
 	b, err := os.ReadFile(c.healthCheckLogPath())

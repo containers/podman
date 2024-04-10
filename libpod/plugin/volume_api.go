@@ -16,6 +16,7 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/docker/go-plugins-helpers/sdk"
 	"github.com/docker/go-plugins-helpers/volume"
 	jsoniter "github.com/json-iterator/go"
@@ -188,7 +189,7 @@ func (p *VolumePlugin) getURI() string {
 // Verify the plugin is still available.
 // Does not actually ping the API, just verifies that the socket still exists.
 func (p *VolumePlugin) verifyReachable() error {
-	if _, err := os.Stat(p.SocketPath); err != nil {
+	if err := fileutils.Exists(p.SocketPath); err != nil {
 		if os.IsNotExist(err) {
 			pluginsLock.Lock()
 			defer pluginsLock.Unlock()

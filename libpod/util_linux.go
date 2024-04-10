@@ -5,7 +5,6 @@ package libpod
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -13,6 +12,7 @@ import (
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/rootless"
+	"github.com/containers/storage/pkg/fileutils"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
@@ -27,8 +27,7 @@ func cgroupExist(path string) bool {
 	} else {
 		fullPath = filepath.Join("/sys/fs/cgroup/memory", path)
 	}
-	_, err := os.Stat(fullPath)
-	return err == nil
+	return fileutils.Exists(fullPath) == nil
 }
 
 // systemdSliceFromPath makes a new systemd slice under the given parent with

@@ -38,6 +38,7 @@ import (
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/chrootarchive"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idmap"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/lockfile"
@@ -204,7 +205,7 @@ func (c *Container) handleExitFile(exitFile string, fi os.FileInfo) error {
 	if err != nil {
 		return err
 	}
-	if _, err = os.Stat(oomFilePath); err == nil {
+	if err = fileutils.Exists(oomFilePath); err == nil {
 		c.state.OOMKilled = true
 	}
 
@@ -1999,7 +2000,7 @@ func (c *Container) cleanup(ctx context.Context) error {
 	// cleanup host entry if it is shared
 	if c.config.NetNsCtr != "" {
 		if hoststFile, ok := c.state.BindMounts[config.DefaultHostsFile]; ok {
-			if _, err := os.Stat(hoststFile); err == nil {
+			if err := fileutils.Exists(hoststFile); err == nil {
 				// we cannot use the dependency container lock due ABBA deadlocks
 				if lock, err := lockfile.GetLockFile(hoststFile); err == nil {
 					lock.Lock()
@@ -2220,7 +2221,7 @@ func (c *Container) saveSpec(spec *spec.Spec) error {
 	// Cannot guarantee some things, e.g. network namespaces, have the same
 	// paths
 	jsonPath := filepath.Join(c.bundlePath(), "config.json")
-	if _, err := os.Stat(jsonPath); err != nil {
+	if err := fileutils.Exists(jsonPath); err != nil {
 		if !os.IsNotExist(err) {
 			return fmt.Errorf("doing stat on container %s spec: %w", c.ID(), err)
 		}
@@ -2363,8 +2364,7 @@ func (c *Container) checkReadyForRemoval() error {
 
 // canWithPrevious return the stat of the preCheckPoint dir
 func (c *Container) canWithPrevious() error {
-	_, err := os.Stat(c.PreCheckPointPath())
-	return err
+	return fileutils.Exists(c.PreCheckPointPath())
 }
 
 // prepareCheckpointExport writes the config and spec to

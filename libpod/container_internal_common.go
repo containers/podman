@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"math"
 	"net"
 	"os"
@@ -44,6 +45,7 @@ import (
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/podman/v5/version"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/unshare"
@@ -724,7 +726,7 @@ func (c *Container) isWorkDirSymlink(resolvedPath string) bool {
 			}
 			if resolvedSymlinkWorkdir != "" {
 				resolvedPath = resolvedSymlinkWorkdir
-				_, err := os.Stat(resolvedSymlinkWorkdir)
+				err := fileutils.Exists(resolvedSymlinkWorkdir)
 				if err == nil {
 					// Symlink resolved successfully and resolved path exists on container,
 					// this is a valid use-case so return nil.
@@ -1422,7 +1424,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 
 	// Let's try to stat() CRIU's inventory file. If it does not exist, it makes
 	// no sense to try a restore. This is a minimal check if a checkpoint exists.
-	if _, err := os.Stat(filepath.Join(c.CheckpointPath(), "inventory.img")); os.IsNotExist(err) {
+	if err := fileutils.Exists(filepath.Join(c.CheckpointPath(), "inventory.img")); errors.Is(err, fs.ErrNotExist) {
 		return nil, 0, fmt.Errorf("a complete checkpoint for this container cannot be found, cannot restore: %w", err)
 	}
 
@@ -1632,7 +1634,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	// Restore /dev/shm content
 	if c.config.ShmDir != "" && c.state.BindMounts["/dev/shm"] == c.config.ShmDir {
 		shmDirTarFileFullPath := filepath.Join(c.bundlePath(), metadata.DevShmCheckpointTar)
-		if _, err := os.Stat(shmDirTarFileFullPath); err != nil {
+		if err := fileutils.Exists(shmDirTarFileFullPath); err != nil {
 			logrus.Debug("Container checkpoint doesn't contain dev/shm: ", err.Error())
 		} else {
 			shmDirTarFile, err := os.Open(shmDirTarFileFullPath)
@@ -2678,13 +2680,13 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 	// do anything more.
 	if needPasswd {
 		passwdPath := filepath.Join(c.config.StaticDir, "passwd")
-		if _, err := os.Stat(passwdPath); err == nil {
+		if err := fileutils.Exists(passwdPath); err == nil {
 			needPasswd = false
 		}
 	}
 	if needGroup {
 		groupPath := filepath.Join(c.config.StaticDir, "group")
-		if _, err := os.Stat(groupPath); err == nil {
+		if err := fileutils.Exists(groupPath); err == nil {
 			needGroup = false
 		}
 	}
@@ -2803,7 +2805,7 @@ func (c *Container) cleanupOverlayMounts() error {
 // Creates and mounts an empty dir to mount secrets into, if it does not already exist
 func (c *Container) createSecretMountDir(runPath string) error {
 	src := filepath.Join(c.state.RunDir, "/run/secrets")
-	_, err := os.Stat(src)
+	err := fileutils.Exists(src)
 	if os.IsNotExist(err) {
 		if err := umask.MkdirAllIgnoreUmask(src, os.FileMode(0o755)); err != nil {
 			return err
