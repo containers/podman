@@ -15,6 +15,7 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/sirupsen/logrus"
 )
@@ -61,7 +62,7 @@ func DefaultPolicyPath(sys *types.SystemContext) string {
 	}
 
 	userPolicyFilePath := filepath.Join(homedir.Get(), filepath.FromSlash(".config/containers/policy.json"))
-	_, err := os.Stat(userPolicyFilePath)
+	err := fileutils.Exists(userPolicyFilePath)
 	if err == nil {
 		return userPolicyFilePath
 	}
@@ -218,7 +219,7 @@ func AddPolicyEntries(policyPath string, input AddPolicyEntriesInput) error {
 		return err
 	}
 
-	_, err = os.Stat(policyPath)
+	err = fileutils.Exists(policyPath)
 	if !os.IsNotExist(err) {
 		policyContent, err := os.ReadFile(policyPath)
 		if err != nil {
