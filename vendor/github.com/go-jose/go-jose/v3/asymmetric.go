@@ -285,6 +285,9 @@ func (ctx rsaDecrypterSigner) signPayload(payload []byte, alg SignatureAlgorithm
 
 	switch alg {
 	case RS256, RS384, RS512:
+		// TODO(https://github.com/go-jose/go-jose/issues/40): As of go1.20, the
+		// random parameter is legacy and ignored, and it can be nil.
+		// https://cs.opensource.google/go/go/+/refs/tags/go1.20:src/crypto/rsa/pkcs1v15.go;l=263;bpv=0;bpt=1
 		out, err = rsa.SignPKCS1v15(RandReader, ctx.privateKey, hash, hashed)
 	case PS256, PS384, PS512:
 		out, err = rsa.SignPSS(RandReader, ctx.privateKey, hash, hashed, &rsa.PSSOptions{
