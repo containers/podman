@@ -3,7 +3,6 @@ package schema
 import (
 	"errors"
 	"fmt"
-	"log"
 	"reflect"
 	"strconv"
 )
@@ -97,7 +96,7 @@ func (e *Encoder) encode(v reflect.Value, dst map[string][]string) error {
 		if isValidStructPointer(v.Field(i)) && !e.hasCustomEncoder(v.Field(i).Type()) {
 			err := e.encode(v.Field(i).Elem(), dst)
 			if err != nil {
-				log.Fatal(err)
+				errors[v.Field(i).Elem().Type().String()] = err
 			}
 			continue
 		}
@@ -118,7 +117,7 @@ func (e *Encoder) encode(v reflect.Value, dst map[string][]string) error {
 		if v.Field(i).Type().Kind() == reflect.Struct {
 			err := e.encode(v.Field(i), dst)
 			if err != nil {
-				log.Fatal(err)
+				errors[v.Field(i).Type().String()] = err
 			}
 			continue
 		}

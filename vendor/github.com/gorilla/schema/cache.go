@@ -197,6 +197,7 @@ func (c *cache) createField(field reflect.StructField, parentAlias string) *fiel
 		isSliceOfStructs: isSlice && isStruct,
 		isAnonymous:      field.Anonymous,
 		isRequired:       options.Contains("required"),
+		defaultValue:     options.getDefaultOptionValue(),
 	}
 }
 
@@ -246,8 +247,9 @@ type fieldInfo struct {
 	// isSliceOfStructs indicates if the field type is a slice of structs.
 	isSliceOfStructs bool
 	// isAnonymous indicates whether the field is embedded in the struct.
-	isAnonymous bool
-	isRequired  bool
+	isAnonymous  bool
+	isRequired   bool
+	defaultValue string
 }
 
 func (f *fieldInfo) paths(prefix string) []string {
@@ -302,4 +304,14 @@ func (o tagOptions) Contains(option string) bool {
 		}
 	}
 	return false
+}
+
+func (o tagOptions) getDefaultOptionValue() string {
+	for _, s := range o {
+		if strings.HasPrefix(s, "default:") {
+			return strings.Split(s, ":")[1]
+		}
+	}
+
+	return ""
 }
