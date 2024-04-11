@@ -957,7 +957,7 @@ install.tools: .install.golangci-lint ## Install needed tools
 
 .PHONY: .install.swagger
 .install.swagger:
-	env VERSION=0.30.3 \
+	env VERSION=0.30.5 \
 		BINDIR=$(BINDIR) \
 		GOOS=$(GOOS) \
 		GOARCH=$(GOARCH) \
