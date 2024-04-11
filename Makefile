@@ -242,7 +242,7 @@ binaries: podman podman-remote podmansh rootlessport quadlet ## Build podman, po
 endif
 
 # Extract text following double-# for targets, as their description for
-# the `help` target.  Otherwise These simple-substitutions are resolved
+# the `help` target.  Otherwise these simple-substitutions are resolved
 # at reference-time (due to `=` and not `=:`).
 _HLP_TGTS_RX = '^[[:print:]]+:.*?\#\# .*$$'
 _HLP_TGTS_CMD = $(GREP) -E $(_HLP_TGTS_RX) $(MAKEFILE_LIST)
