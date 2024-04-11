@@ -57,6 +57,21 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 				RepoTags:    img.Names(), // may include tags and digests
 				ParentId:    parentID,
 			}
+			if opts.ExtendedAttributes {
+				iml, err := img.IsManifestList(ctx)
+				if err != nil {
+					return nil, err
+				}
+				s.IsManifestList = &iml
+				if !iml {
+					imgData, err := img.Inspect(ctx, nil)
+					if err != nil {
+						return nil, err
+					}
+					s.Arch = imgData.Architecture
+					s.Os = imgData.Os
+				}
+			}
 			s.Labels, err = img.Labels(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("retrieving label for image %q: you may need to remove the image to resolve the error: %w", img.ID(), err)

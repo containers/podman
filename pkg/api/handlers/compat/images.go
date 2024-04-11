@@ -483,7 +483,7 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 
-	listOptions := entities.ImageListOptions{All: query.All, Filter: filterList}
+	listOptions := entities.ImageListOptions{All: query.All, Filter: filterList, ExtendedAttributes: utils.IsLibpodRequest(r)}
 	summaries, err := imageEngine.List(r.Context(), listOptions)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, err)

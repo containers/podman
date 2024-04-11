@@ -90,3 +90,41 @@ t DELETE libpod/images/$IMAGE 200 \
 podman system connection rm $conn
 
 stop_registry
+
+# if an image is a manifest list, it should not have
+# anything for arch or os
+podman manifest create foobar
+t GET libpod/images/json 200  \ .[0].IsManifestList=true \
+                                .[0].Arch=null \
+                                .[0].Os=null
+
+
+# list images through the libpod endpoint should return
+# IsManifestList (bool), Arch (string), and Os (string)
+podman pull -q $IMAGE
+t GET libpod/images/json 200  \ .[0].IsManifestList=true\
+                                .[0].Arch=null \
+                                .[0].Os=null \
+                                '.[0].RepoDigests | length=1' \
+                                .[1].IsManifestList=false \
+                                .[1].Arch=amd64 \
+                                .[1].Os=linux
+
+# if a manifest list and an image are returned with libpod images
+# endpoint, then one should be a manifest with IsManifest only; and
+# the other image should have IsManifestList, Arch, and Os.
+podman manifest add --arch amd64 foobar $IMAGE
+t GET libpod/images/json 200    .[0].IsManifestList=true\
+                                .[0].Arch=null \
+                                .[0].Os=null \
+                                '.[0].RepoDigests | length=2' \
+                                .[1].IsManifestList=false \
+                                .[1].Arch=amd64 \
+                                .[1].Os=linux
+
+t GET images/json 200    .[0].IsManifestList=null \
+                                .[0].Arch=null \
+                                .[0].Os=null \
+                                .[1].IsManifestList=null \
+                                .[1].Arch=null \
+                                .[1].Os=null \

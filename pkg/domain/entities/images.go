@@ -242,8 +242,11 @@ type ImageSearchReport = entitiesTypes.ImageSearchReport
 
 // Image List Options
 type ImageListOptions struct {
-	All    bool     `json:"all" schema:"all"`
-	Filter []string `json:"Filter,omitempty"`
+	All bool
+	// ExtendedAttributes is used by the libpod endpoint only to deliver extra information
+	// that the compat endpoint does not
+	ExtendedAttributes bool
+	Filter             []string
 }
 
 type ImagePruneOptions struct {
