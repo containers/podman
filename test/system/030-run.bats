@@ -506,6 +506,8 @@ json-file | f
 }
 
 @test "podman run --tz with zoneinfo" {
+    _prefetch $SYSTEMD_IMAGE
+
     # First make sure that zoneinfo is actually in the image otherwise the test is pointless
     run_podman run --rm $SYSTEMD_IMAGE ls /usr/share/zoneinfo
 
@@ -1395,6 +1397,8 @@ search               | $IMAGE           |
 
 # https://issues.redhat.com/browse/RHEL-14469
 @test "podman run - /run must not be world-writable in systemd containers" {
+    _prefetch $SYSTEMD_IMAGE
+
     run_podman run -d --rm $SYSTEMD_IMAGE /usr/sbin/init
     cid=$output
 
