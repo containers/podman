@@ -689,9 +689,10 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    description: Full or partial ID or full name of the container to rename
 	//  - in: body
 	//    name: resources
+	//    required: false
 	//    description: attributes for updating the container
 	//    schema:
-	//      $ref: "#/definitions/UpdateConfig"
+	//      $ref: "#/definitions/containerUpdateRequest"
 	// produces:
 	// - application/json
 	// responses:
@@ -1783,8 +1784,18 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: string
 	//    required: true
 	//    description: Full or partial ID or full name of the container to update
+	//  - in: query
+	//    name: restartPolicy
+	//    type: string
+	//    required: false
+	//    description: New restart policy for the container.
+	//  - in: query
+	//    name: restartRetries
+	//    type: integer
+	//    required: false
+	//    description: New amount of retries for the container's restart policy. Only allowed if restartPolicy is set to on-failure
 	//  - in: body
-	//    name: resources
+	//    name: config
 	//    description: attributes for updating the container
 	//    schema:
 	//      $ref: "#/definitions/UpdateEntities"
@@ -1794,6 +1805,8 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   responses:
 	//     201:
 	//       $ref: "#/responses/containerUpdateResponse"
+	//   400:
+	//     $ref: "#/responses/badParamError"
 	//   404:
 	//     $ref: "#/responses/containerNotFound"
 	//   500:

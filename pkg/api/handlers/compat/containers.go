@@ -774,8 +774,18 @@ func UpdateContainer(w http.ResponseWriter, r *http.Request) {
 		resources.BlockIO.Weight = &options.BlkioWeight
 	}
 
-	if err := ctr.Update(resources); err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("updating resources: %w", err))
+	// Restart policy
+	localPolicy := string(options.RestartPolicy.Name)
+	restartPolicy := &localPolicy
+
+	var restartRetries *uint
+	if options.RestartPolicy.MaximumRetryCount != 0 {
+		localRetries := uint(options.RestartPolicy.MaximumRetryCount)
+		restartRetries = &localRetries
+	}
+
+	if err := ctr.Update(resources, restartPolicy, restartRetries); err != nil {
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("updating container: %w", err))
 		return
 	}
 

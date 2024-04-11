@@ -1767,7 +1767,12 @@ func (ic *ContainerEngine) ContainerUpdate(ctx context.Context, updateOptions *e
 		return "", fmt.Errorf("container not found")
 	}
 
-	if err = containers[0].Update(updateOptions.Specgen.ResourceLimits); err != nil {
+	var restartPolicy *string
+	if updateOptions.Specgen.RestartPolicy != "" {
+		restartPolicy = &updateOptions.Specgen.RestartPolicy
+	}
+
+	if err = containers[0].Update(updateOptions.Specgen.ResourceLimits, restartPolicy, updateOptions.Specgen.RestartRetries); err != nil {
 		return "", err
 	}
 	return containers[0].ID(), nil

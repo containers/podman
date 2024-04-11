@@ -1,5 +1,9 @@
 package define
 
+import (
+	"fmt"
+)
+
 // Valid restart policy types.
 const (
 	// RestartPolicyNone indicates that no restart policy has been requested
@@ -25,6 +29,16 @@ var RestartPolicyMap = map[string]string{
 	RestartPolicyAlways:        RestartPolicyAlways,
 	RestartPolicyOnFailure:     RestartPolicyOnFailure,
 	RestartPolicyUnlessStopped: RestartPolicyUnlessStopped,
+}
+
+// Validate that the given string is a valid restart policy.
+func ValidateRestartPolicy(policy string) error {
+	switch policy {
+	case RestartPolicyNone, RestartPolicyNo, RestartPolicyOnFailure, RestartPolicyAlways, RestartPolicyUnlessStopped:
+		return nil
+	default:
+		return fmt.Errorf("%q is not a valid restart policy: %w", policy, ErrInvalidArg)
+	}
 }
 
 // InitContainerTypes

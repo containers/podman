@@ -53,6 +53,8 @@ The currently supported options are a subset of the podman create/run resource l
 
 @@option pids-limit
 
+@@option restart
+
 
 ## EXAMPLEs
 
