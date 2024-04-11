@@ -315,6 +315,18 @@ codespell:
 .PHONY: validate
 validate: lint .gitvalidation validate.completions man-page-check swagger-check tests-expect-exit pr-removes-fixed-skips
 
+.PHONY: validatepr
+validatepr:
+	$(PODMANCMD) run --rm --env HOME=/root \
+		-v $(CURDIR):/var/tmp/go/src/github.com/containers/podman \
+		--security-opt label=disable \
+		quay.io/libpod/fedora_podman:latest  \
+		make .validatepr
+
+.PHONY: .validatepr
+.validatepr:
+	env BUILDTAGS="$(BUILDTAGS)" REMOTETAGS="$(REMOTETAGS)" contrib/validatepr/validatepr.sh
+
 .PHONY: build-all-new-commits
 build-all-new-commits:
 	# Validate that all the commits build on top of $(GIT_BASE_BRANCH)

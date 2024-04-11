@@ -1,0 +1,17 @@
+FROM registry.fedoraproject.org/fedora:latest
+
+WORKDIR /go/src/github.com/containers/podman
+
+RUN dnf install -y systemd-devel \
+	libassuan-devel \
+	libseccomp-devel \
+	gpgme-devel \
+	device-mapper-devel \
+	btrfs-progs-devel \
+	golang \
+	make \
+	man-db \
+	git \
+	perl-Clone \
+	perl-FindBin \
+	pre-commit  && dnf clean all
