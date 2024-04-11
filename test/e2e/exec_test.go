@@ -32,11 +32,7 @@ var _ = Describe("Podman exec", func() {
 		// With no command
 		session = podmanTest.Podman([]string{"exec", "test1"})
 		session.WaitWithDefaultTimeout()
-		expectedStatus := 255
-		if IsRemote() {
-			expectedStatus = 125
-		}
-		Expect(session).Should(ExitWithError(expectedStatus, "must provide a non-empty command to start an exec session: invalid argument"))
+		Expect(session).Should(ExitWithError(125, "must provide a non-empty command to start an exec session: invalid argument"))
 	})
 
 	It("podman container exec simple command", func() {

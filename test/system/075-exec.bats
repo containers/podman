@@ -33,6 +33,9 @@ load helpers
     run_podman 127 exec $cid /no/such/command
     is "$output" ".*such file or dir"   "podman exec /no/such/command"
 
+    run_podman 125 exec $cid
+    is "$output" ".*must provide a non-empty command to start an exec session"   "podman exec must include a command"
+
     # Done. Tell the container to stop.
     # The '-d' is because container exit is racy: the exec process itself
     # could get caught and killed by cleanup, causing this step to exit 137
