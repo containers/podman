@@ -13,7 +13,6 @@ import (
 
 	"github.com/letsencrypt/boulder/core"
 	berrors "github.com/letsencrypt/boulder/errors"
-	"github.com/letsencrypt/boulder/features"
 	sapb "github.com/letsencrypt/boulder/sa/proto"
 	"google.golang.org/grpc"
 
@@ -275,6 +274,12 @@ func (policy *KeyPolicy) goodCurve(c elliptic.Curve) (err error) {
 	}
 }
 
+// Baseline Requirements, Section 6.1.5 requires key size >= 2048 and a multiple
+// of 8 bits: https://github.com/cabforum/servercert/blob/main/docs/BR.md#615-key-sizes
+// Baseline Requirements, Section 6.1.1.3 requires that we reject any keys which
+// have a known method to easily compute their private key, such as Debian Weak
+// Keys. Our enforcement mechanism relies on enumerating all Debian Weak Keys at
+// common key sizes, so we restrict all issuance to those common key sizes.
 var acceptableRSAKeySizes = map[int]bool{
 	2048: true,
 	3072: true,
@@ -290,27 +295,12 @@ func (policy *KeyPolicy) goodKeyRSA(key *rsa.PublicKey) (err error) {
 		return badKey("key is on a known weak RSA key list")
 	}
 
-	// Baseline Requirements Appendix A
-	// Modulus must be >= 2048 bits and <= 4096 bits
 	modulus := key.N
+
+	// See comment on acceptableRSAKeySizes above.
 	modulusBitLen := modulus.BitLen()
-	if features.Enabled(features.RestrictRSAKeySizes) {
-		if !acceptableRSAKeySizes[modulusBitLen] {
-			return badKey("key size not supported: %d", modulusBitLen)
-		}
-	} else {
-		const maxKeySize = 4096
-		if modulusBitLen < 2048 {
-			return badKey("key too small: %d", modulusBitLen)
-		}
-		if modulusBitLen > maxKeySize {
-			return badKey("key too large: %d > %d", modulusBitLen, maxKeySize)
-		}
-		// Bit lengths that are not a multiple of 8 may cause problems on some
-		// client implementations.
-		if modulusBitLen%8 != 0 {
-			return badKey("key length wasn't a multiple of 8: %d", modulusBitLen)
-		}
+	if !acceptableRSAKeySizes[modulusBitLen] {
+		return badKey("key size not supported: %d", modulusBitLen)
 	}
 
 	// Rather than support arbitrary exponents, which significantly increases

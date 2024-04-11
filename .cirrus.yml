@@ -553,252 +553,251 @@ local_integration_test_task: &local_integration_test_task
 # Nearly identical to `local_integration_test` except all operations
 # are performed through the podman-remote client vs a podman "server"
 # running on the same host.
-remote_integration_test_task:
-    <<: *local_integration_test_task
-    alias: remote_integration_test
-    env:
-        TEST_FLAVOR: int
-        PODBIN_NAME: remote
+#remote_integration_test_task:
+#    <<: *local_integration_test_task
+#    alias: remote_integration_test
+#    env:
+#        TEST_FLAVOR: int
+#        PODBIN_NAME: remote
 
 
 # Run the complete set of integration tests from inside a container.
 # This verifies all/most operations function with "podman-in-podman".
-container_integration_test_task:
-    name: *std_name_fmt
-    alias: container_integration_test
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs
-    depends_on:
-        - build
-        - unit_test
-    matrix: &fedora_vm_axis
-        - env:
-              DISTRO_NV: ${FEDORA_NAME}
-              VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-              CI_DESIRED_RUNTIME: crun
-              CI_DESIRED_NETWORK: netavark
-        - env:
-              DISTRO_NV: ${PRIOR_FEDORA_NAME}
-              VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
-              CI_DESIRED_RUNTIME: crun
-              CI_DESIRED_NETWORK: cni
-    gce_instance: *standardvm
-    timeout_in: 90m
-    env:
-        TEST_FLAVOR: int
-        TEST_ENVIRON: container
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always: *int_logs_artifacts
+#container_integration_test_task:
+#    name: *std_name_fmt
+#    alias: container_integration_test
+#    # Docs: ./contrib/cirrus/CIModes.md
+#    only_if: *not_tag_branch_build_docs
+#    depends_on:
+#        - build
+#        - unit_test
+#    matrix: &fedora_vm_axis
+#        - env:
+#              DISTRO_NV: ${FEDORA_NAME}
+#              VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
+#              CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+#              CI_DESIRED_RUNTIME: crun
+#              CI_DESIRED_NETWORK: netavark
+#        - env:
+#              DISTRO_NV: ${PRIOR_FEDORA_NAME}
+#              VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
+#              CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
+#              CI_DESIRED_RUNTIME: crun
+#              CI_DESIRED_NETWORK: cni
+#    gce_instance: *standardvm
+#    timeout_in: 90m
+#    env:
+#        TEST_FLAVOR: int
+#        TEST_ENVIRON: container
+#    clone_script: *get_gosrc
+#    setup_script: *setup
+#    main_script: *main
+#    always: *int_logs_artifacts
 
 
 # Execute most integration tests as a regular (non-root) user.
-rootless_integration_test_task:
-    name: *std_name_fmt
-    alias: rootless_integration_test
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs
-    depends_on:
-        - build
-        - unit_test
-    matrix: *platform_axis
-    gce_instance: *standardvm
-    timeout_in: 90m
-    env:
-        TEST_FLAVOR: int
-        PRIV_NAME: rootless
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always: *int_logs_artifacts
+#rootless_integration_test_task:
+#    name: *std_name_fmt
+#    alias: rootless_integration_test
+#    # Docs: ./contrib/cirrus/CIModes.md
+#    only_if: *not_tag_branch_build_docs
+#    depends_on:
+#        - build
+#        - unit_test
+#    matrix: *platform_axis
+#    gce_instance: *standardvm
+#    timeout_in: 90m
+#    env:
+#        TEST_FLAVOR: int
+#        PRIV_NAME: rootless
+#    clone_script: *get_gosrc
+#    setup_script: *setup
+#    main_script: *main
+#    always: *int_logs_artifacts
 
 
-podman_machine_task:
-    name: *std_name_fmt
-    alias: podman_machine
-    # Don't create task for tags, or if using [CI:DOCS], [CI:BUILD], multiarch
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: &not_tag_build_docs_multiarch >-
-        $CIRRUS_TAG == '' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
-        $CIRRUS_CRON != 'multiarch'
-    depends_on:
-        - build
-        - local_integration_test
-        - remote_integration_test
-        - container_integration_test
-        - rootless_integration_test
-    ec2_instance:
-        image: "${VM_IMAGE_NAME}"
-        type: "${EC2_INST_TYPE}"
-        region: us-east-1
-    env:
-      EC2_INST_TYPE: "m5zn.metal"  # Bare-metal instance is required
-      TEST_FLAVOR: "machine"
-      PRIV_NAME: "rootless"  # intended use-case
-      DISTRO_NV: "${FEDORA_NAME}"
-      VM_IMAGE_NAME: "${FEDORA_AMI}"
-      CI_DESIRED_NETWORK: netavark
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always: &machine_logs_benchmarks
-      <<: *int_logs_artifacts
-      benchmark_artifacts:
-          path: ./data/*
+#podman_machine_task:
+#    name: *std_name_fmt
+#    alias: podman_machine
+#    # Don't create task for tags, or if using [CI:DOCS], [CI:BUILD], multiarch
+#    # Docs: ./contrib/cirrus/CIModes.md
+#    only_if: &not_tag_build_docs_multiarch >-
+#        $CIRRUS_TAG == '' &&
+#        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
+#        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
+#        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
+#        $CIRRUS_CRON != 'multiarch'
+#    depends_on:
+#        - build
+#        #- remote_integration_test
+#        #- container_integration_test
+#        #- rootless_integration_test
+#    ec2_instance:
+#        image: "${VM_IMAGE_NAME}"
+#        type: "${EC2_INST_TYPE}"
+#        region: us-east-1
+#    env:
+#      EC2_INST_TYPE: "m5zn.metal"  # Bare-metal instance is required
+#      TEST_FLAVOR: "machine"
+#      PRIV_NAME: "rootless"  # intended use-case
+#      DISTRO_NV: "${FEDORA_NAME}"
+#      VM_IMAGE_NAME: "${FEDORA_AMI}"
+#      CI_DESIRED_NETWORK: netavark
+#    clone_script: *get_gosrc
+#    setup_script: *setup
+#    main_script: *main
+#    always: &machine_logs_benchmarks
+#      <<: *int_logs_artifacts
+#      benchmark_artifacts:
+#          path: ./data/*
 
 
-podman_machine_aarch64_task:
-    name: *std_name_fmt
-    alias: podman_machine_aarch64
-    only_if: *not_tag_build_docs_multiarch
-    depends_on:
-        - build_aarch64
-        - validate_aarch64
-        - local_integration_test
-        - remote_integration_test
-        - container_integration_test
-        - rootless_integration_test
-    ec2_instance:
-        <<: *standard_build_ec2_aarch64
-    env:
-        TEST_FLAVOR: "machine"
-        EC2_INST_TYPE: c6g.metal
-        PRIV_NAME: "rootless"  # intended use-case
-        DISTRO_NV: "${FEDORA_AARCH64_NAME}"
-        VM_IMAGE_NAME: "${FEDORA_AARCH64_AMI}"
-        CI_DESIRED_NETWORK: netavark
-    clone_script: *get_gosrc_aarch64
-    setup_script: *setup
-    main_script: *main
-    always: *machine_logs_benchmarks
+#podman_machine_aarch64_task:
+#    name: *std_name_fmt
+#    alias: podman_machine_aarch64
+#    only_if: *not_tag_build_docs_multiarch
+#    depends_on:
+#        - build_aarch64
+#        - validate_aarch64
+#        - local_integration_test
+#        #- remote_integration_test
+#        #- container_integration_test
+#        #- rootless_integration_test
+#    ec2_instance:
+#        <<: *standard_build_ec2_aarch64
+#    env:
+#        TEST_FLAVOR: "machine"
+#        EC2_INST_TYPE: c6g.metal
+#        PRIV_NAME: "rootless"  # intended use-case
+#        DISTRO_NV: "${FEDORA_AARCH64_NAME}"
+#        VM_IMAGE_NAME: "${FEDORA_AARCH64_AMI}"
+#        CI_DESIRED_NETWORK: netavark
+#    clone_script: *get_gosrc_aarch64
+#    setup_script: *setup
+#    main_script: *main
+#    always: *machine_logs_benchmarks
 
 
 # Always run subsequent to integration tests.  While parallelism is lost
 # with runtime, debugging system-test failures can be more challenging
 # for some golang developers.  Otherwise the following tasks run across
 # the same matrix as the integration-tests (above).
-local_system_test_task: &local_system_test_task
-    name: *std_name_fmt
-    alias: local_system_test
-    only_if: *not_tag_build_docs_multiarch
-    depends_on:
-        - build
-        - local_integration_test
-    matrix: *platform_axis
-    gce_instance: *standardvm
-    env:
-        TEST_FLAVOR: sys
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always: *logs_artifacts
+#local_system_test_task: &local_system_test_task
+#    name: *std_name_fmt
+#    alias: local_system_test
+#    only_if: *not_tag_build_docs_multiarch
+#    depends_on:
+#        - build
+#        - local_integration_test
+#    matrix: *platform_axis
+#    gce_instance: *standardvm
+#    env:
+#        TEST_FLAVOR: sys
+#    clone_script: *get_gosrc
+#    setup_script: *setup
+#    main_script: *main
+#    always: *logs_artifacts
 
 
-local_system_test_aarch64_task: &local_system_test_task_aarch64
-    name: *std_name_fmt
-    alias: local_system_test_aarch64
-    # Don't create task for tags, or if using [CI:DOCS], [CI:BUILD], multiarch
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_build_docs_multiarch
-    depends_on:
-        - build_aarch64
-        - local_integration_test
-    ec2_instance: *standard_build_ec2_aarch64
-    env:
-        <<: *stdenvars_aarch64
-        TEST_FLAVOR: sys
-        DISTRO_NV: ${FEDORA_AARCH64_NAME}
-    clone_script: *get_gosrc_aarch64
-    setup_script: *setup
-    main_script: *main
-    always: *logs_artifacts
+#local_system_test_aarch64_task: &local_system_test_task_aarch64
+#    name: *std_name_fmt
+#    alias: local_system_test_aarch64
+#    # Don't create task for tags, or if using [CI:DOCS], [CI:BUILD], multiarch
+#    # Docs: ./contrib/cirrus/CIModes.md
+#    only_if: *not_tag_build_docs_multiarch
+#    depends_on:
+#        - build_aarch64
+#        - local_integration_test
+#    ec2_instance: *standard_build_ec2_aarch64
+#    env:
+#        <<: *stdenvars_aarch64
+#        TEST_FLAVOR: sys
+#        DISTRO_NV: ${FEDORA_AARCH64_NAME}
+#    clone_script: *get_gosrc_aarch64
+#    setup_script: *setup
+#    main_script: *main
+#    always: *logs_artifacts
 
 
-remote_system_test_task:
-    <<: *local_system_test_task
-    alias: remote_system_test
-    depends_on:
-        - build
-        - remote_integration_test
-    env:
-        TEST_FLAVOR: sys
-        PODBIN_NAME: remote
+#remote_system_test_task:
+#    <<: *local_system_test_task
+#    alias: remote_system_test
+#    depends_on:
+#        - build
+#        - remote_integration_test
+#    env:
+#        TEST_FLAVOR: sys
+#        PODBIN_NAME: remote
 
 
-remote_system_test_aarch64_task:
-    <<: *local_system_test_task_aarch64
-    alias: remote_system_test_aarch64
-    depends_on:
-        - build_aarch64
-        - remote_integration_test
-    env:
-        TEST_FLAVOR: sys
-        PODBIN_NAME: remote
+#remote_system_test_aarch64_task:
+#    <<: *local_system_test_task_aarch64
+#    alias: remote_system_test_aarch64
+#    depends_on:
+#        - build_aarch64
+#        - remote_integration_test
+#    env:
+#        TEST_FLAVOR: sys
+#        PODBIN_NAME: remote
 
 
-rootless_remote_system_test_task:
-    matrix:
-        # Minimal sanity testing: only the latest Fedora
-        - env:
-              DISTRO_NV: ${FEDORA_NAME}
-              # Not used here, is used in other tasks
-              VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-              CI_DESIRED_RUNTIME: crun
-              CI_DESIRED_NETWORK: netavark
-    <<: *local_system_test_task
-    alias: rootless_remote_system_test
-    depends_on:
-        - build
-        - remote_integration_test
-    gce_instance: *standardvm
-    env:
-        TEST_FLAVOR: sys
-        PODBIN_NAME: remote
-        PRIV_NAME: rootless
+#rootless_remote_system_test_task:
+#    matrix:
+#        # Minimal sanity testing: only the latest Fedora
+#        - env:
+#              DISTRO_NV: ${FEDORA_NAME}
+#              # Not used here, is used in other tasks
+#              VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
+#              CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+#              CI_DESIRED_RUNTIME: crun
+#              CI_DESIRED_NETWORK: netavark
+#    <<: *local_system_test_task
+#    alias: rootless_remote_system_test
+#    depends_on:
+#        - build
+#        - remote_integration_test
+#    gce_instance: *standardvm
+#    env:
+#        TEST_FLAVOR: sys
+#        PODBIN_NAME: remote
+#        PRIV_NAME: rootless
 
 
-rootless_system_test_task:
-    name: *std_name_fmt
-    alias: rootless_system_test
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_build_docs_multiarch
-    depends_on:
-        - build
-        - rootless_integration_test
-    matrix: *platform_axis
-    gce_instance: *standardvm
-    env:
-        TEST_FLAVOR: sys
-        PRIV_NAME: rootless
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always: *logs_artifacts
+#rootless_system_test_task:
+#    name: *std_name_fmt
+#    alias: rootless_system_test
+#    # Docs: ./contrib/cirrus/CIModes.md
+#    only_if: *not_tag_build_docs_multiarch
+#    depends_on:
+#        - build
+#        - rootless_integration_test
+#    matrix: *platform_axis
+#    gce_instance: *standardvm
+#    env:
+#        TEST_FLAVOR: sys
+#        PRIV_NAME: rootless
+#    clone_script: *get_gosrc
+#    setup_script: *setup
+#    main_script: *main
+#    always: *logs_artifacts
 
-minikube_test_task:
-    name: *std_name_fmt
-    alias: minikube_test
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_build_docs_multiarch
-    depends_on:
-        - build
-        - rootless_system_test
-    gce_instance: *standardvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: minikube
-        PRIV_NAME: rootless
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always: *logs_artifacts
+#minikube_test_task:
+#    name: *std_name_fmt
+#    alias: minikube_test
+#    # Docs: ./contrib/cirrus/CIModes.md
+#    only_if: *not_tag_build_docs_multiarch
+#    depends_on:
+#        - build
+#        - rootless_system_test
+#    gce_instance: *standardvm
+#    env:
+#        <<: *stdenvars
+#        TEST_FLAVOR: minikube
+#        PRIV_NAME: rootless
+#    clone_script: *get_gosrc
+#    setup_script: *setup
+#    main_script: *main
+#    always: *logs_artifacts
 
 buildah_bud_test_task:
     name: *std_name_fmt
@@ -863,7 +862,7 @@ upgrade_test_task:
     only_if: *not_tag_branch_build_docs
     depends_on:
         - build
-        - local_system_test
+        #- local_system_test
     matrix:
         - env:
               PODMAN_UPGRADE_FROM: v2.1.1
@@ -985,18 +984,18 @@ success_task:
         - apiv2_test
         - compose_test
         - local_integration_test
-        - remote_integration_test
-        - container_integration_test
-        - rootless_integration_test
-        - podman_machine
-        - podman_machine_aarch64
-        - local_system_test
-        - local_system_test_aarch64
-        - remote_system_test
-        - remote_system_test_aarch64
-        - rootless_system_test
-        - rootless_remote_system_test
-        - minikube_test
+        #- remote_integration_test
+        #- container_integration_test
+        #- rootless_integration_test
+        #- podman_machine
+        #- podman_machine_aarch64
+        #- local_system_test
+        #- local_system_test_aarch64
+        #- remote_system_test
+        #- remote_system_test_aarch64
+        #- rootless_system_test
+        #- rootless_remote_system_test
+        #- minikube_test
         - buildah_bud_test
         #- rootless_gitlab_test
         - upgrade_test

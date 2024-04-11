@@ -26,14 +26,13 @@ import (
 	"strings"
 
 	"github.com/containers/ocicrypt/crypto/pkcs11"
-
+	"github.com/go-jose/go-jose/v3"
 	"golang.org/x/crypto/openpgp"
-	json "gopkg.in/square/go-jose.v2"
 )
 
 // parseJWKPrivateKey parses the input byte array as a JWK and makes sure it's a private key
 func parseJWKPrivateKey(privKey []byte, prefix string) (interface{}, error) {
-	jwk := json.JSONWebKey{}
+	jwk := jose.JSONWebKey{}
 	err := jwk.UnmarshalJSON(privKey)
 	if err != nil {
 		return nil, fmt.Errorf("%s: Could not parse input as JWK: %w", prefix, err)
@@ -46,7 +45,7 @@ func parseJWKPrivateKey(privKey []byte, prefix string) (interface{}, error) {
 
 // parseJWKPublicKey parses the input byte array as a JWK
 func parseJWKPublicKey(privKey []byte, prefix string) (interface{}, error) {
-	jwk := json.JSONWebKey{}
+	jwk := jose.JSONWebKey{}
 	err := jwk.UnmarshalJSON(privKey)
 	if err != nil {
 		return nil, fmt.Errorf("%s: Could not parse input as JWK: %w", prefix, err)
