@@ -4,7 +4,7 @@ validate: ${SWAGGER_OUT}
 	swagger validate ${SWAGGER_OUT}
 
 serve: ${SWAGGER_OUT}
-	swagger serve -F swagger -p=8080 swagger.yaml
+	swagger serve -F redoc -p=8080 swagger.yaml
 
 .PHONY: ${SWAGGER_OUT}
 ${SWAGGER_OUT}:
