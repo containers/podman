@@ -1,0 +1,3 @@
+if err := validate.FormatOf({{ if .Path }}{{ .Path }}{{ else }}""{{ end }}, {{ printf "%q" .Location }}, {{ printf "%q" .SwaggerFormat }}, {{ .ToString }}, formats); err != nil {
+  return err
+}

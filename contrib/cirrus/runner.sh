@@ -168,9 +168,6 @@ function _run_swagger() {
     local envvarsfile
     req_env_vars GCPJSON GCPNAME GCPPROJECT CTR_FQIN
 
-    [[ -x /usr/local/bin/swagger ]] || \
-        die "Expecting swagger binary to be present and executable."
-
     # The filename and bucket depend on the automation context
     #shellcheck disable=SC2154,SC2153
     if [[ -n "$CIRRUS_PR" ]]; then
