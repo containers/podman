@@ -29,6 +29,10 @@ func TranslateExecErrorToExitCode(originalEC int, err error) int {
 	if errors.Is(err, ErrOCIRuntimeNotFound) {
 		return ExecErrorCodeNotFound
 	}
+	if errors.Is(err, ErrInvalidArg) {
+		return ExecErrorCodeGeneric
+	}
+
 	return originalEC
 }
 
