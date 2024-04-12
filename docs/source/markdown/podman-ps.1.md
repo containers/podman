@@ -80,6 +80,7 @@ Valid placeholders for the Go template are listed below:
 | .ExitCode          | Container exit code                          |
 | .Exited            | "true" if container has exited               |
 | .ExitedAt          | Time (epoch seconds) that container exited   |
+| .ExposedPorts ...  | Map of exposed ports on this container       |
 | .ID                | Container ID                                 |
 | .Image             | Image Name/ID                                |
 | .ImageID           | Image ID                                     |
@@ -92,7 +93,7 @@ Valid placeholders for the Go template are listed below:
 | .Pid               | Process ID on host system                    |
 | .Pod               | Pod the container is associated with (SHA)   |
 | .PodName           | PodName of the container                     |
-| .Ports             | Exposed ports                                |
+| .Ports             | Forwarded and exposed ports                  |
 | .Restarts          | Display the container restart count          |
 | .RunningFor        | Time elapsed since container was started     |
 | .Size              | Size of container                            |

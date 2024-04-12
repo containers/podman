@@ -25,6 +25,11 @@ type ListContainer struct {
 	ExitedAt int64
 	// If container has exited, the return code from the command
 	ExitCode int32
+	// ExposedPorts contains the ports that are exposed but not forwarded,
+	// see Ports for forwarded ports.
+	// The key is the port number and the string slice contains the protocols,
+	// i.e. "tcp", "udp" and "sctp".
+	ExposedPorts map[uint16][]string
 	// The unique identifier for the container
 	ID string `json:"Id"`
 	// Container image
