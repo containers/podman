@@ -17,10 +17,13 @@
     </BootstrapperApplicationRef>
     <Variable Name='InstallFolder' Type='string' Value='[ProgramFiles64Folder]RedHat\Podman' bal:Overridable="yes"/>
     <Variable Name="VERSION" Value="$(var.VERSION)"/>
+    <Variable Name="MachineProvider" Type="string" Value="wsl" bal:Overridable="yes"/>
     <Variable Name="WSLCheckbox" Type="numeric" Value="1" bal:Overridable="yes"/>
+    <Variable Name="HyperVCheckbox" Type="numeric" Value="0" bal:Overridable="yes"/>
     <Variable Name="AllowOldWin" Type="numeric" Value="0" bal:Overridable="yes"/>
     <Variable Name="LaunchTarget" Value="explorer.exe"/>
     <Variable Name="LaunchArguments" Value="&quot;[InstallFolder]\podman-for-windows.html&quot;"/>
+    <Variable Name="SkipConfigFileCreation" Value="0"/>
 
     <util:RegistrySearch Id="PreviousVersionSearch" Variable="PreviousVersion"  Result="value" Root="HKLM"  Key="SOFTWARE\[WixBundleManufacturer]\Updates\[WixBundleName]" Value="PackageVersion"/>
     <util:RegistrySearch Id="PreviousInstallFolderSearch" Root="HKLM" Key="SOFTWARE\[WixBundleManufacturer]\[WixBundleName]" Value="InstallDir" Variable="PreviousInstallFolder" Win64="yes"/>
@@ -35,9 +38,12 @@
     <Chain>
       <MsiPackage Id="Setup" SourceFile="podman.msi" Vital="yes">
         <MsiProperty Name="INSTALLDIR" Value="[InstallFolder]" />
+        <MsiProperty Name="MACHINE_PROVIDER" Value="[MachineProvider]"/>
         <MsiProperty Name="WITH_WSL" Value="[WSLCheckbox]"/>
+        <MsiProperty Name="WITH_HYPERV" Value="[HyperVCheckbox]"/>
+        <MsiProperty Name="SKIP_CONFIG_FILE_CREATION" Value="[SkipConfigFileCreation]"/>
       </MsiPackage>
-      <ExePackage DisplayName="WSL Kernel Install" InstallCondition="WSLCheckbox = 1" SourceFile="artifacts\podman-wslkerninst.exe"/>
+      <ExePackage DisplayName="WSL Kernel Install" InstallCondition='(MachineProvider = "wsl") AND (WSLCheckbox = 1)' SourceFile="artifacts\podman-wslkerninst.exe"/>
     </Chain>
     <OptionalUpdateRegistration/>
   </Bundle>
