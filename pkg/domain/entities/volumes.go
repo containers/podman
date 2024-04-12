@@ -7,7 +7,6 @@ import (
 )
 
 // VolumeCreateOptions provides details for creating volumes
-// swagger:model
 type VolumeCreateOptions = types.VolumeCreateOptions
 
 type VolumeConfigResponse = types.VolumeConfigResponse

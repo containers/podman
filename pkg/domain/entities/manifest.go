@@ -117,8 +117,6 @@ type ManifestModifyOptions struct {
 }
 
 // ManifestPushReport provides the model for the pushed manifest
-//
-// swagger:model
 type ManifestPushReport = entitiesTypes.ManifestPushReport
 
 // ManifestRemoveOptions provides the model for removing digests from a manifest
@@ -128,11 +126,7 @@ type ManifestRemoveOptions struct {
 }
 
 // ManifestRemoveReport provides the model for the removed manifest
-//
-// swagger:model
 type ManifestRemoveReport = entitiesTypes.ManifestRemoveReport
 
 // ManifestModifyReport provides the model for removed digests and changed manifest
-//
-// swagger:model
 type ManifestModifyReport = entitiesTypes.ManifestModifyReport
