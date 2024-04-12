@@ -9,7 +9,7 @@ Note: you must not have any machines defined before running tests
 
 ## Microsoft Windows
 
-### HyperV
+### Hyper-V
 
 1. Open a powershell as admin
 1. $env:CONTAINERS_MACHINE_PROVIDER="hyperv"
@@ -28,9 +28,11 @@ Note: To run specific test files, add the test files to the end of the winmake c
 
 `./winmake localmachine "basic_test.go start_test.go"`
 
-## MacOS
+## macOS
 
 ### Apple Hypervisor
 
 1. `make podman-remote`
-1. `make localmachine` (Add `FOCUS_FILE=basic_test.go` to only run basic test)
+1. `make localmachine` (Add `FOCUS_FILE=basic_test.go` to only run basic test. Or add `FOCUS="simple init with start"` to only run one test case)
+
+Note: On macOS, an error will occur if the path length of `$TMPDIR` is longer than 22 characters. Please set the appropriate path to `$TMPDIR`. Also, if `$TMPDIR` is empty, `/private/tmp` will be set.

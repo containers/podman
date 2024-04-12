@@ -1,13 +1,16 @@
 package e2e_test
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/pkg/machine/compression"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/provider"
@@ -33,7 +36,11 @@ var (
 
 func init() {
 	if value, ok := os.LookupEnv("TMPDIR"); ok {
-		tmpDir = value
+		var err error
+		tmpDir, err = setTmpDir(value)
+		if err != nil {
+			fmt.Printf("failed to set TMPDIR: %q\n", err)
+		}
 	}
 }
 
@@ -69,7 +76,14 @@ var _ = SynchronizedAfterSuite(func() {}, func() {})
 
 func setup() (string, *machineTestBuilder) {
 	// Set TMPDIR if this needs a new directory
-	homeDir, err := os.MkdirTemp("", "podman_test")
+	if value, ok := os.LookupEnv("TMPDIR"); ok {
+		var err error
+		tmpDir, err = setTmpDir(value)
+		if err != nil {
+			Fail(fmt.Sprintf("failed to set TMPDIR: %q", err))
+		}
+	}
+	homeDir, err := os.MkdirTemp(tmpDir, "podman_test")
 	if err != nil {
 		Fail(fmt.Sprintf("failed to create home directory: %q", err))
 	}
@@ -168,4 +182,35 @@ func copySparse(dst io.WriteSeeker, src io.Reader) (retErr error) {
 	}()
 	_, err := io.Copy(spWriter, src)
 	return err
+}
+
+func setTmpDir(value string) (string, error) {
+	switch {
+	case runtime.GOOS != "darwin":
+		tmpDir = value
+	case len(value) >= 22:
+		return "", errors.New(value + " path length should be less than 22 characters")
+	case value == "":
+		return "", errors.New("TMPDIR cannot be empty. Set to directory mounted on podman machine (e.g. /private/tmp)")
+	default:
+		cfg, err := config.Default()
+		if err != nil {
+			return "", err
+		}
+		volumes := cfg.Machine.Volumes.Get()
+		containsPath := false
+		for _, volume := range volumes {
+			parts := strings.Split(volume, ":")
+			hostPath := parts[0]
+			if strings.Contains(value, hostPath) {
+				containsPath = true
+				break
+			}
+		}
+		if !containsPath {
+			return "", fmt.Errorf("%s cannot be used. Change to directory mounted on podman machine (e.g. /private/tmp)", value)
+		}
+		tmpDir = value
+	}
+	return tmpDir, nil
 }
