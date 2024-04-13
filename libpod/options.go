@@ -1827,7 +1827,7 @@ func WithSecrets(containerSecrets []*ContainerSecret) CtrCreateOption {
 	}
 }
 
-// WithSecrets adds environment variable secrets to the container
+// WithEnvSecrets adds environment variable secrets to the container
 func WithEnvSecrets(envSecrets map[string]string) CtrCreateOption {
 	return func(ctr *Container) error {
 		ctr.config.EnvSecrets = make(map[string]*secrets.Secret)
@@ -2085,7 +2085,7 @@ func WithPodCgroupParent(path string) PodCreateOption {
 	}
 }
 
-// WithPodCgroups tells containers in this pod to use the cgroup created for
+// WithPodParent tells containers in this pod to use the cgroup created for
 // this pod.
 // This can still be overridden at the container level by explicitly specifying
 // a Cgroup parent.

@@ -15,7 +15,7 @@ func UpdatePodmanDockerSockService(mc *vmconfigs.MachineConfig) error {
 	command := fmt.Sprintf("'echo %q > %s'", content, ignition.PodmanDockerTmpConfPath)
 	args := []string{"sudo", "bash", "-c", command}
 	if err := CommonSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, args); err != nil {
-		logrus.Warnf("Could not not update internal docker sock config")
+		logrus.Warnf("Could not update internal docker sock config")
 		return err
 	}
 

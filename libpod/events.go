@@ -127,7 +127,7 @@ func (c *Container) newExecDiedEvent(sessionID string, exitCode int) {
 	}
 }
 
-// netNetworkEvent creates a new event based on a network connect/disconnect
+// newNetworkEvent creates a new event based on a network connect/disconnect
 func (c *Container) newNetworkEvent(status events.Status, netName string) {
 	e := events.NewEvent(status)
 	e.ID = c.ID()

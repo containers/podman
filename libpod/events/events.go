@@ -105,7 +105,7 @@ func (e *Event) ToHumanReadable(truncate bool) string {
 	return humanFormat
 }
 
-// NewEventFromString takes stringified json and converts
+// newEventFromJSONString takes stringified json and converts
 // it to an event
 func newEventFromJSONString(event string) (*Event, error) {
 	e := new(Event)
