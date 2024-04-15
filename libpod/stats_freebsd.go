@@ -83,7 +83,7 @@ func (c *Container) getPlatformContainerStats(stats *define.ContainerStats, prev
 	return nil
 }
 
-// getMemory limit returns the memory limit for a container
+// getMemLimit returns the memory limit for a container
 func (c *Container) getMemLimit() uint64 {
 	memLimit := uint64(math.MaxUint64)
 

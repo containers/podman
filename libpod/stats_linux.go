@@ -69,7 +69,7 @@ func (c *Container) getPlatformContainerStats(stats *define.ContainerStats, prev
 	return nil
 }
 
-// getMemory limit returns the memory limit for a container
+// getMemLimit returns the memory limit for a container
 func (c *Container) getMemLimit(memLimit uint64) uint64 {
 	si := &syscall.Sysinfo_t{}
 	err := syscall.Sysinfo(si)

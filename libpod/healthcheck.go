@@ -346,7 +346,7 @@ func newHealthCheckLog(start, end time.Time, exitCode int, log string) define.He
 	}
 }
 
-// updatedHealthCheckStatus updates the health status of the container
+// updateHealthStatus updates the health status of the container
 // in the healthcheck log
 func (c *Container) updateHealthStatus(status string) error {
 	healthCheck, err := c.getHealthCheckLog()

@@ -100,7 +100,7 @@ cd podman
 # Build podman.exe
 .\winmake.ps1 podman-remote
 
-# Downlaod gvproxy.exe and win-sshproxy.exe
+# Download gvproxy.exe and win-sshproxy.exe
 # that are needed to execute the podman client
 .\winmake.ps1 win-gvproxy
 ```
