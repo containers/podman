@@ -17,7 +17,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -1430,11 +1429,6 @@ func CopyDirectory(srcDir, dest string) error {
 			return err
 		}
 
-		stat, ok := fileInfo.Sys().(*syscall.Stat_t)
-		if !ok {
-			return fmt.Errorf("failed to get raw syscall.Stat_t data for %q", sourcePath)
-		}
-
 		switch fileInfo.Mode() & os.ModeType {
 		case os.ModeDir:
 			if err := os.MkdirAll(destPath, 0755); err != nil {
@@ -1451,10 +1445,6 @@ func CopyDirectory(srcDir, dest string) error {
 			if err := Copy(sourcePath, destPath); err != nil {
 				return err
 			}
-		}
-
-		if err := os.Lchown(destPath, int(stat.Uid), int(stat.Gid)); err != nil {
-			return err
 		}
 
 		fInfo, err := entry.Info()

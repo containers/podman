@@ -97,6 +97,14 @@ var _ = Describe("Podman generate systemd", func() {
 	})
 
 	It("podman generate systemd --files --name", func() {
+		// We need to cd to a writable directory
+		cwd, err := os.Getwd()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(os.Chdir(podmanTest.TempDir)).To(Succeed())
+		defer func() {
+			Expect(os.Chdir(cwd)).To(Succeed())
+		}()
+
 		n := podmanTest.Podman([]string{"run", "--name", "nginx", "-dt", NGINX_IMAGE})
 		n.WaitWithDefaultTimeout()
 		Expect(n).Should(Exit(0))
@@ -105,9 +113,6 @@ var _ = Describe("Podman generate systemd", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		for _, file := range session.OutputToStringArray() {
-			os.Remove(file)
-		}
 		Expect(session.OutputToString()).To(ContainSubstring("/container-nginx.service"))
 	})
 
@@ -228,6 +233,14 @@ var _ = Describe("Podman generate systemd", func() {
 	})
 
 	It("podman generate systemd pod --name --files", func() {
+		// We need to cd to a writable directory
+		cwd, err := os.Getwd()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(os.Chdir(podmanTest.TempDir)).To(Succeed())
+		defer func() {
+			Expect(os.Chdir(cwd)).To(Succeed())
+		}()
+
 		n := podmanTest.Podman([]string{"pod", "create", "--name", "foo"})
 		n.WaitWithDefaultTimeout()
 		Expect(n).Should(Exit(0))
@@ -239,10 +252,6 @@ var _ = Describe("Podman generate systemd", func() {
 		session := podmanTest.Podman([]string{"generate", "systemd", "--name", "--files", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-
-		for _, file := range session.OutputToStringArray() {
-			os.Remove(file)
-		}
 
 		Expect(session.OutputToString()).To(ContainSubstring("/pod-foo.service"))
 		Expect(session.OutputToString()).To(ContainSubstring("/container-foo-1.service"))

@@ -638,7 +638,7 @@ VOLUME /test/`, ALPINE)
 
 		session = podmanTest.Podman([]string{"run", "--rm", "-v", ".:/app:O", ALPINE, "ls", "/app"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.OutputToString()).To(ContainSubstring(filepath.Base(CurrentSpecReport().FileName())))
+		Expect(session.OutputToString()).To(ContainSubstring(" quadlet "))
 		Expect(session).Should(ExitCleanly())
 
 		// Make sure modifications in container do not show up on host

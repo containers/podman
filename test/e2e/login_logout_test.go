@@ -60,7 +60,7 @@ var _ = Describe("Podman login and logout", func() {
 			"-e", strings.Join([]string{"REGISTRY_HTTP_ADDR=0.0.0.0", strconv.Itoa(port)}, ":"), "--name", "registry", "-v",
 			strings.Join([]string{authPath, "/auth:Z"}, ":"), "-e", "REGISTRY_AUTH=htpasswd", "-e",
 			"REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm", "-e", "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd",
-			"-v", strings.Join([]string{certPath, "/certs:Z"}, ":"), "-e", "REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt",
+			"-v", strings.Join([]string{certDirPath, "/certs:Z"}, ":"), "-e", "REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt",
 			"-e", "REGISTRY_HTTP_TLS_KEY=/certs/domain.key", REGISTRY_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())

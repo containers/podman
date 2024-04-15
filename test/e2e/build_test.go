@@ -16,6 +16,14 @@ import (
 	. "github.com/onsi/gomega/gexec"
 )
 
+// tempContextDirectory makes a writable copy of one of our test-data directories
+func tempContextDirectory(podmanTest *PodmanTestIntegration, source string) string {
+	contextDir, err := os.MkdirTemp(podmanTest.TempDir, "context-")
+	Expect(err).ToNot(HaveOccurred())
+	Expect(CopyDirectory(filepath.Join("build", source), contextDir)).To(Succeed())
+	return contextDir
+}
+
 var _ = Describe("Podman build", func() {
 	// Let's first do the most simple build possible to make sure stuff is
 	// happy and then clean up after ourselves to make sure that works too.
@@ -40,6 +48,14 @@ var _ = Describe("Podman build", func() {
 	})
 
 	It("podman build and remove basic alpine with TMPDIR as relative", func() {
+		// We need to cd into a writable directory, but then cd back
+		cwd, err := os.Getwd()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(os.Chdir(tempContextDirectory(podmanTest, "basicrun"))).To(Succeed())
+		defer func() {
+			Expect(os.Chdir(cwd)).To(Succeed())
+		}()
+
 		// preserve TMPDIR if it was originally set
 		if cacheDir, found := os.LookupEnv("TMPDIR"); found {
 			defer os.Setenv("TMPDIR", cacheDir)
@@ -49,8 +65,9 @@ var _ = Describe("Podman build", func() {
 		}
 		// Test case described here: https://github.com/containers/buildah/pull/5084
 		os.Setenv("TMPDIR", ".")
+
 		podmanTest.AddImageToRWStore(ALPINE)
-		session := podmanTest.Podman([]string{"build", "--pull-never", "build/basicrun"})
+		session := podmanTest.Podman([]string{"build", "--pull-never", "."})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 	})
@@ -199,55 +216,50 @@ var _ = Describe("Podman build", func() {
 	})
 
 	It("podman build Containerfile locations", func() {
-		// Given
-		// Switch to temp dir and restore it afterwards
-		cwd, err := os.Getwd()
+		// Given a Containerfile in current directory, but an explicit
+		// command-line "-f OtherContainerfile", ignore the one in cwd.
+		cdDir := filepath.Join(podmanTest.TempDir, "dir-where-we-cd")
+		err := os.Mkdir(cdDir, 0755)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(os.Chdir(os.TempDir())).To(Succeed())
-		defer Expect(os.Chdir(cwd)).To(BeNil())
-
-		fakeFile := filepath.Join(os.TempDir(), "Containerfile")
+		fakeFile := filepath.Join(cdDir, "Containerfile")
 		Expect(os.WriteFile(fakeFile, []byte(fmt.Sprintf("FROM %s", CITEST_IMAGE)), 0755)).To(Succeed())
 
-		targetFile := filepath.Join(podmanTest.TempDir, "Containerfile")
-		Expect(os.WriteFile(targetFile, []byte("FROM scratch"), 0755)).To(Succeed())
+		ctrfileDir := filepath.Join(podmanTest.TempDir, "dir-with-containerfile")
+		err = os.Mkdir(ctrfileDir, 0755)
+		Expect(err).ToNot(HaveOccurred())
+		realFile := filepath.Join(ctrfileDir, "Containerfile")
+		Expect(os.WriteFile(realFile, []byte("FROM scratch"), 0755)).To(Succeed())
 
+		// cd to the dir with the to-be-ignored Containerfile; but cd back when test is done
+		cwd, err := os.Getwd()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(os.Chdir(cdDir)).To(Succeed())
 		defer func() {
-			Expect(os.RemoveAll(fakeFile)).To(Succeed())
-			Expect(os.RemoveAll(targetFile)).To(Succeed())
+			Expect(os.Chdir(cwd)).To(Succeed())
 		}()
 
-		// When
 		session := podmanTest.Podman([]string{
-			"build", "--pull-never", "-f", targetFile, "-t", "test-locations",
+			"build", "--pull-never", "-f", realFile, "-t", "test-locations",
 		})
 		session.WaitWithDefaultTimeout()
 
-		// Then
 		Expect(session).Should(ExitCleanly())
-		Expect(strings.Fields(session.OutputToString())).
-			To(ContainElement("scratch"))
+		Expect(session.OutputToStringArray()).To(ContainElement("STEP 1/1: FROM scratch"))
+		// Assumes CITEST_IMAGE repo is quay.io
+		Expect(session.OutputToString()).NotTo(ContainSubstring("quay"))
 	})
 
 	It("podman build basic alpine and print id to external file", func() {
-		// Switch to temp dir and restore it afterwards
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(os.Chdir(os.TempDir())).To(Succeed())
-		defer Expect(os.Chdir(cwd)).To(BeNil())
-
 		targetFile := filepath.Join(podmanTest.TempDir, "idFile")
 
-		session := podmanTest.Podman([]string{"build", "--pull-never", "build/basicalpine", "--iidfile", targetFile})
+		session := podmanTest.Podman([]string{"build", "-q", "--pull-never", "build/basicalpine", "--iidfile", targetFile})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		id, _ := os.ReadFile(targetFile)
+		idFromBuild := session.OutputToString()
+		idFromFile, _ := os.ReadFile(targetFile)
 
-		// Verify that id is correct
-		inspect := podmanTest.Podman([]string{"inspect", string(id)})
-		inspect.WaitWithDefaultTimeout()
-		data := inspect.InspectImageJSON()
-		Expect("sha256:" + data[0].ID).To(Equal(string(id)))
+		// Give or take the "sha256:" prefix
+		Expect(string(idFromFile)).To(Equal("sha256:"+idFromBuild), "iidfile contents match output of podman build")
 	})
 
 	It("podman Test PATH and reserved annotation in built image", func() {
@@ -439,33 +451,21 @@ RUN find /test`, CITEST_IMAGE)
 	})
 
 	It("podman remote build must not allow symlink for ignore files", func() {
-		// Create a random file where symlink must be resolved
-		// but build should not be able to access it.
+		// dockerignore file outside the context directory
 		privateFile := filepath.Join(podmanTest.TempDir, "private_file")
 		f, err := os.Create(privateFile)
 		Expect(err).ToNot(HaveOccurred())
-		// Mark hello to be ignored in outerfile, but it should not be ignored.
 		_, err = f.WriteString("hello\n")
 		Expect(err).ToNot(HaveOccurred())
-		defer f.Close()
+		f.Close()
 
-		// Create .dockerignore which is a symlink to /tmp/.../private_file outside of the context dir.
-		currentDir, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-		ignoreFile := filepath.Join(currentDir, "build/containerignore-symlink/.dockerignore")
+		// Link to .dockerignore outside context dir
+		contextDir := tempContextDirectory(podmanTest, "containerignore-symlink")
+		ignoreFile := filepath.Join(contextDir, ".dockerignore")
 		err = os.Symlink(privateFile, ignoreFile)
 		Expect(err).ToNot(HaveOccurred())
-		// Remove created .dockerignore for this test when test ends.
-		defer os.Remove(ignoreFile)
 
-		if IsRemote() {
-			podmanTest.StopRemoteService()
-			podmanTest.StartRemoteService()
-		} else {
-			Skip("Only valid at remote test")
-		}
-
-		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "build/containerignore-symlink/"})
+		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", contextDir})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
