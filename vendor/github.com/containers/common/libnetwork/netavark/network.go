@@ -135,7 +135,11 @@ func NewNetworkInterface(conf *InitConfig) (types.ContainerNetwork, error) {
 	}
 
 	var netns *rootlessnetns.Netns
-	if unshare.IsRootless() {
+	// Do not use unshare.IsRootless() here. We only care if we are running re-exec in the userns,
+	// IsRootless() also returns true if we are root in a userns which is not what we care about and
+	// causes issues as this slower more complicated rootless-netns logic should not be used as root.
+	_, useRootlessNetns := os.LookupEnv(unshare.UsernsEnvName)
+	if useRootlessNetns {
 		netns, err = rootlessnetns.New(conf.NetworkRunDir, rootlessnetns.Netavark, conf.Config)
 		if err != nil {
 			return nil, err
@@ -147,7 +151,7 @@ func NewNetworkInterface(conf *InitConfig) (types.ContainerNetwork, error) {
 		networkRunDir:      conf.NetworkRunDir,
 		netavarkBinary:     conf.NetavarkBinary,
 		aardvarkBinary:     conf.AardvarkBinary,
-		networkRootless:    unshare.IsRootless(),
+		networkRootless:    useRootlessNetns,
 		ipamDBPath:         filepath.Join(conf.NetworkRunDir, "ipam.db"),
 		firewallDriver:     conf.Config.Network.FirewallDriver,
 		defaultNetwork:     defaultNetworkName,

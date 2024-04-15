@@ -376,6 +376,11 @@ func (n *netavarkNetwork) NetworkRemove(nameOrID string) error {
 		return fmt.Errorf("default network %s cannot be removed", n.defaultNetwork)
 	}
 
+	// remove the ipam bucket for this network
+	if err := n.removeNetworkIPAMBucket(network); err != nil {
+		return err
+	}
+
 	file := filepath.Join(n.networkConfigDir, network.Name+".json")
 	// make sure to not error for ErrNotExist
 	if err := os.Remove(file); err != nil && !errors.Is(err, os.ErrNotExist) {
