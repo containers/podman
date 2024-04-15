@@ -246,7 +246,8 @@ skip_if_remote "Explicit request in buildah PR 4190 to skip this on remote" \
 
 skip_if_remote "different error messages between podman & podman-remote" \
                "bud with .dockerignore #2" \
-               "bud with .dockerignore #4"
+               "bud with .dockerignore #4" \
+               "bud with .dockerignore #6"
 
 # END   tests which are skipped due to actual podman or podman-remote bugs.
 ###############################################################################
