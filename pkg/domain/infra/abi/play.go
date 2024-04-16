@@ -1504,6 +1504,7 @@ func sortKubeKinds(documentList [][]byte) ([][]byte, error) {
 
 	return sortedDocumentList, nil
 }
+
 func imageNamePrefix(imageName string) string {
 	prefix := imageName
 	s := strings.Split(prefix, ":")
@@ -1663,7 +1664,10 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, opt
 	}
 
 	// Add the reports
-	reports.StopReport, err = ic.PodStop(ctx, podNames, entities.PodStopOptions{Ignore: true})
+	reports.StopReport, err = ic.PodStop(ctx, podNames, entities.PodStopOptions{
+		Ignore:  true,
+		Timeout: -1,
+	})
 	if err != nil {
 		return nil, err
 	}
