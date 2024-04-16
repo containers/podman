@@ -228,11 +228,9 @@ var _ = Describe("Podman create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitWithError(125, "cannot specify both --pod and --pod-id-file"))
 
-		tmpDir := GinkgoT().TempDir()
-
 		podName := "rudolph"
 		ctrName := "prancer"
-		podIDFile := tmpDir + "pod-id-file"
+		podIDFile := filepath.Join(tempdir, "pod-id-file")
 
 		// Now, let's create a pod with --pod-id-file.
 		session = podmanTest.Podman([]string{"pod", "create", "--pod-id-file", podIDFile, "--name", podName})

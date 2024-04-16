@@ -2,6 +2,7 @@ package integration
 
 import (
 	"fmt"
+	"path/filepath"
 
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
@@ -122,16 +123,15 @@ var _ = Describe("Podman rm", func() {
 	})
 
 	It("podman rm --cidfile", func() {
-		tmpDir := GinkgoT().TempDir()
-		tmpFile := tmpDir + "cid"
+		cidFile := filepath.Join(tempdir, "cid")
 
-		session := podmanTest.Podman([]string{"create", "--cidfile", tmpFile, ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"create", "--cidfile", cidFile, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		cid := session.OutputToStringArray()[0]
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 
-		result := podmanTest.Podman([]string{"rm", "--cidfile", tmpFile})
+		result := podmanTest.Podman([]string{"rm", "--cidfile", cidFile})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
 		output := result.OutputToString()
@@ -140,23 +140,22 @@ var _ = Describe("Podman rm", func() {
 	})
 
 	It("podman rm multiple --cidfile", func() {
-		tmpDir := GinkgoT().TempDir()
-		tmpFile1 := tmpDir + "cid-1"
-		tmpFile2 := tmpDir + "cid-2"
+		cidFile1 := filepath.Join(tempdir, "cid-1")
+		cidFile2 := filepath.Join(tempdir, "cid-2")
 
-		session := podmanTest.Podman([]string{"create", "--cidfile", tmpFile1, ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"create", "--cidfile", cidFile1, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		cid1 := session.OutputToStringArray()[0]
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 
-		session = podmanTest.Podman([]string{"create", "--cidfile", tmpFile2, ALPINE, "ls"})
+		session = podmanTest.Podman([]string{"create", "--cidfile", cidFile2, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		cid2 := session.OutputToStringArray()[0]
 		Expect(podmanTest.NumberOfContainers()).To(Equal(2))
 
-		result := podmanTest.Podman([]string{"rm", "--cidfile", tmpFile1, "--cidfile", tmpFile2})
+		result := podmanTest.Podman([]string{"rm", "--cidfile", cidFile1, "--cidfile", cidFile2})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
 		output := result.OutputToString()
