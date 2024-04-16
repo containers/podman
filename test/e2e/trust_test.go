@@ -18,7 +18,7 @@ var _ = Describe("Podman trust", Ordered, func() {
 	})
 
 	It("podman image trust show", func() {
-		session := podmanTest.Podman([]string{"image", "trust", "show", "-n", "--registrypath", filepath.Join(INTEGRATION_ROOT, "test"), "--policypath", filepath.Join(INTEGRATION_ROOT, "test/policy.json")})
+		session := podmanTest.Podman([]string{"image", "trust", "show", "-n", "--registrypath", INTEGRATION_ROOT, "--policypath", filepath.Join(INTEGRATION_ROOT, "policy.json")})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		outArray := session.OutputToStringArray()
@@ -49,7 +49,7 @@ var _ = Describe("Podman trust", Ordered, func() {
 	})
 
 	It("podman image trust show --json", func() {
-		session := podmanTest.Podman([]string{"image", "trust", "show", "--registrypath", filepath.Join(INTEGRATION_ROOT, "test"), "--policypath", filepath.Join(INTEGRATION_ROOT, "test/policy.json"), "--json"})
+		session := podmanTest.Podman([]string{"image", "trust", "show", "--registrypath", INTEGRATION_ROOT, "--policypath", filepath.Join(INTEGRATION_ROOT, "policy.json"), "--json"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(BeValidJSON())
@@ -88,10 +88,10 @@ var _ = Describe("Podman trust", Ordered, func() {
 	})
 
 	It("podman image trust show --raw", func() {
-		session := podmanTest.Podman([]string{"image", "trust", "show", "--policypath", filepath.Join(INTEGRATION_ROOT, "test/policy.json"), "--raw"})
+		session := podmanTest.Podman([]string{"image", "trust", "show", "--policypath", filepath.Join(INTEGRATION_ROOT, "policy.json"), "--raw"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		contents, err := os.ReadFile(filepath.Join(INTEGRATION_ROOT, "test/policy.json"))
+		contents, err := os.ReadFile(filepath.Join(INTEGRATION_ROOT, "policy.json"))
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(session.OutputToString()).To(BeValidJSON())
 		Expect(string(session.Out.Contents())).To(Equal(string(contents) + "\n"))

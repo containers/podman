@@ -254,7 +254,7 @@ var _ = Describe("Podman push", func() {
 
 	It("podman push from local storage with nothing-allowed signature policy", func() {
 		SkipIfRemote("Remote push does not support dir transport")
-		denyAllPolicy := filepath.Join(INTEGRATION_ROOT, "test/deny.json")
+		denyAllPolicy := filepath.Join(INTEGRATION_ROOT, "deny.json")
 
 		inspect := podmanTest.Podman([]string{"inspect", "--format={{.ID}}", ALPINE})
 		inspect.WaitWithDefaultTimeout()
