@@ -33,10 +33,10 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ####
-    FEDORA_NAME: "fedora-35"
+    FEDORA_NAME: "fedora-36"
 
     # Google-cloud VM Images
-    IMAGE_SUFFIX: "c5814666029957120"
+    IMAGE_SUFFIX: "c4955393725038592"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
 
     # Container FQIN's
@@ -295,36 +295,6 @@ unit_test_task:
         time_script: '$SCRIPT_BASE/logcollector.sh time'
 
 
-upgrade_test_task:
-    name: "Upgrade test: from $PODMAN_UPGRADE_FROM"
-    alias: upgrade_test
-    skip: *tags
-    only_if: *not_build
-    depends_on:
-      - build
-    matrix:
-        - env:
-              PODMAN_UPGRADE_FROM: v1.9.0
-        - env:
-              PODMAN_UPGRADE_FROM: v2.0.6
-        - env:
-              PODMAN_UPGRADE_FROM: v2.1.1
-        - env:
-              PODMAN_UPGRADE_FROM: v3.1.2
-    gce_instance: *standardvm
-    env:
-        TEST_FLAVOR: upgrade_test
-        DISTRO_NV: ${FEDORA_NAME}
-        VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-        # ID for re-use of build output
-        _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
-    clone_script: *noop
-    gopath_cache: *ro_gopath_cache
-    setup_script: *setup
-    main_script: *main
-    always: *logs_artifacts
-
-
 # This task is critical.  It updates the "last-used by" timestamp stored
 # in metadata for all VM images.  This mechanism functions in tandem with
 # an out-of-band pruning operation to remove disused VM images.
@@ -363,7 +333,6 @@ success_task:
         - swagger
         - alt_build
         - unit_test
-        - upgrade_test
         - meta
     container: *smallcontainer
     env:

@@ -1,4 +1,5 @@
-//+build !linux !systemd
+//go:build !linux || !systemd
+// +build !linux !systemd
 
 package libpod
 

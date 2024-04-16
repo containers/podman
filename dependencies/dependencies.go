@@ -1,3 +1,4 @@
+//go:build !linter
 // +build !linter
 
 package dependencies
