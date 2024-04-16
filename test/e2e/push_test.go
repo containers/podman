@@ -279,8 +279,7 @@ var _ = Describe("Podman push", func() {
 		Expect(err).ToNot(HaveOccurred())
 		defer os.RemoveAll("/etc/containers/certs.d/localhost:5004")
 
-		cwd, _ := os.Getwd()
-		certPath := filepath.Join(cwd, "../", "certs")
+		certPath := filepath.Join(INTEGRATION_ROOT, "certs")
 
 		lock := GetPortLock("5004")
 		defer lock.Unlock()

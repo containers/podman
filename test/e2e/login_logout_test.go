@@ -48,11 +48,10 @@ var _ = Describe("Podman login and logout", func() {
 
 		testImg = strings.Join([]string{server, "test-alpine"}, "/")
 
-		certDirPath = filepath.Join(os.Getenv("HOME"), ".config/containers/certs.d", server)
+		certDirPath = filepath.Join(podmanTest.TempDir, "certs")
 		err = os.MkdirAll(certDirPath, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
-		cwd, _ := os.Getwd()
-		certPath = filepath.Join(cwd, "../", "certs")
+		certPath = filepath.Join(INTEGRATION_ROOT, "certs")
 
 		setup := SystemExec("cp", []string{filepath.Join(certPath, "domain.crt"), filepath.Join(certDirPath, "ca.crt")})
 		setup.WaitWithDefaultTimeout()
@@ -296,8 +295,7 @@ var _ = Describe("Podman login and logout", func() {
 		err = os.MkdirAll(certDir, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
 
-		cwd, _ := os.Getwd()
-		certPath = filepath.Join(cwd, "../", "certs")
+		certPath = filepath.Join(INTEGRATION_ROOT, "certs")
 
 		setup := SystemExec("cp", []string{filepath.Join(certPath, "domain.crt"), filepath.Join(certDir, "ca.crt")})
 		setup.WaitWithDefaultTimeout()
