@@ -456,6 +456,45 @@ RUN find /test`, ALPINE)
 		Expect(session.OutputToString()).To(ContainSubstring("/test/dummy"))
 	})
 
+	It("podman remote build must not allow symlink for ignore files", func() {
+		// Create a random file where symlink must be resolved
+		// but build should not be able to access it.
+		privateFile := filepath.Join("/tmp", "private_file")
+		f, err := os.Create(privateFile)
+		Expect(err).ToNot(HaveOccurred())
+		// Mark hello to be ignored in outerfile, but it should not be ignored.
+		_, err = f.WriteString("hello\n")
+		Expect(err).ToNot(HaveOccurred())
+		defer f.Close()
+
+		// Create .dockerignore which is a symlink to /tmp/private_file.
+		currentDir, err := os.Getwd()
+		Expect(err).ToNot(HaveOccurred())
+		ignoreFile := filepath.Join(currentDir, "build/containerignore-symlink/.dockerignore")
+		err = os.Symlink(privateFile, ignoreFile)
+		Expect(err).ToNot(HaveOccurred())
+		// Remove created .dockerignore for this test when test ends.
+		defer func() {
+			os.Remove(ignoreFile)
+		}()
+
+		if IsRemote() {
+			podmanTest.StopRemoteService()
+			podmanTest.StartRemoteService()
+		} else {
+			Skip("Only valid at remote test")
+		}
+
+		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "build/containerignore-symlink/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "test", "ls", "/dir"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("hello"))
+	})
+
 	It("podman remote test container/docker file is not at root of context dir", func() {
 		if IsRemote() {
 			podmanTest.StopRemoteService()
