@@ -19,7 +19,6 @@ type SystemUnshareOptions = types.SystemUnshareOptions
 type ComponentVersion = types.SystemComponentVersion
 type ListRegistriesReport = types.ListRegistriesReport
 
-// swagger:model AuthConfig
 type AuthConfig = types.AuthConfig
 type AuthReport = types.AuthReport
 type LocksReport = types.LocksReport

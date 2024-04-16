@@ -51,7 +51,6 @@ func (i *Image) Id() string { //nolint:revive,stylecheck
 	return i.ID
 }
 
-// swagger:model LibpodImageSummary
 type ImageSummary = entitiesTypes.ImageSummary
 
 // ImageRemoveOptions can be used to alter image removal.

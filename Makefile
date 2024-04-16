@@ -479,7 +479,7 @@ completions: podman podman-remote
 ### Documentation targets
 ###
 
-pkg/api/swagger.yaml:
+pkg/api/swagger.yaml: .install.swagger
 	make -C pkg/api
 
 $(MANPAGES_MD_GENERATED): %.md: %.md.in $(MANPAGES_SOURCE_DIR)/options/*.md
@@ -957,11 +957,7 @@ install.tools: .install.golangci-lint ## Install needed tools
 
 .PHONY: .install.swagger
 .install.swagger:
-	env VERSION=0.30.3 \
-		BINDIR=$(BINDIR) \
-		GOOS=$(GOOS) \
-		GOARCH=$(GOARCH) \
-		./hack/install_swagger.sh
+	$(MAKE) -C test/tools build/swagger
 
 .PHONY: .install.md2man
 .install.md2man:
