@@ -103,14 +103,14 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/internalError"
 	v4.Handle("/{name:.*}/registry/{destination:.*}", s.APIHandler(libpod.ManifestPush)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/manifests manifests ManifestCreateLibpod
+	// swagger:operation POST /libpod/manifests/{name} manifests ManifestCreateLibpod
 	// ---
 	// summary: Create
 	// description: Create a manifest list
 	// produces:
 	// - application/json
 	// parameters:
-	// - in: query
+	// - in: path
 	//   name: name
 	//   type: string
 	//   description: manifest list or index name to create
