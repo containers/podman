@@ -22,6 +22,7 @@ var (
 	networklistDescription = `List networks`
 	networklistCommand     = &cobra.Command{
 		Use:               "ls [options]",
+		Aliases:           []string{"list"},
 		Args:              validate.NoArgs,
 		Short:             "List networks",
 		Long:              networklistDescription,
