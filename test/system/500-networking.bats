@@ -10,6 +10,8 @@ load helpers.network
     heading="NETWORK *ID *NAME *DRIVER"
     run_podman network ls
     assert "${lines[0]}" =~ "^$heading\$" "network ls header missing"
+    run_podman network list
+    assert "${lines[0]}" =~ "^$heading\$" "network list header missing"
 
     run_podman network ls --noheading
     assert "$output" !~ "$heading" "network ls --noheading shows header anyway"
