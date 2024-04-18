@@ -459,11 +459,23 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			return nil, nil, fmt.Errorf("failed to create TempDir in the %s directory: %w", c.config.StaticDir, err)
 		}
 
+		imagePath := mountPoint
+		if volume.SubPath != "" {
+			safeMount, err := c.safeMountSubPath(mountPoint, volume.SubPath)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			safeMounts = append(safeMounts, safeMount)
+
+			imagePath = safeMount.mountPoint
+		}
+
 		var overlayMount spec.Mount
 		if volume.ReadWrite {
-			overlayMount, err = overlay.Mount(contentDir, mountPoint, volume.Dest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
+			overlayMount, err = overlay.Mount(contentDir, imagePath, volume.Dest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
 		} else {
-			overlayMount, err = overlay.MountReadOnly(contentDir, mountPoint, volume.Dest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
+			overlayMount, err = overlay.MountReadOnly(contentDir, imagePath, volume.Dest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
 		}
 		if err != nil {
 			return nil, nil, fmt.Errorf("creating overlay mount for image %q failed: %w", volume.Source, err)

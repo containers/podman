@@ -611,6 +611,14 @@ func getImageVolume(args []string) (*specgen.ImageVolume, error) {
 			default:
 				return nil, fmt.Errorf("invalid rw value %q: %w", value, util.ErrBadMntOption)
 			}
+		case "subpath":
+			if !hasValue {
+				return nil, fmt.Errorf("%v: %w", name, errOptionArg)
+			}
+			if !filepath.IsAbs(value) {
+				return nil, fmt.Errorf("volume subpath %q must be an absolute path", value)
+			}
+			newVolume.SubPath = value
 		case "consistency":
 			// Often used on MACs and mistakenly on Linux platforms.
 			// Since Docker ignores this option so shall we.
