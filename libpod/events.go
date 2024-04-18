@@ -28,19 +28,27 @@ func (r *Runtime) newEventer() (events.Eventer, error) {
 
 // newContainerEvent creates a new event based on a container
 func (c *Container) newContainerEvent(status events.Status) {
-	if err := c.newContainerEventWithInspectData(status, false); err != nil {
+	if err := c.newContainerEventWithInspectData(status, "", false); err != nil {
+		logrus.Errorf("Unable to write container event: %v", err)
+	}
+}
+
+// newContainerHealthCheckEvent creates a new healthcheck event with the given status
+func (c *Container) newContainerHealthCheckEvent(healthStatus string) {
+	if err := c.newContainerEventWithInspectData(events.HealthStatus, healthStatus, false); err != nil {
 		logrus.Errorf("Unable to write container event: %v", err)
 	}
 }
 
 // newContainerEventWithInspectData creates a new event and sets the
 // ContainerInspectData field if inspectData is set.
-func (c *Container) newContainerEventWithInspectData(status events.Status, inspectData bool) error {
+func (c *Container) newContainerEventWithInspectData(status events.Status, healthStatus string, inspectData bool) error {
 	e := events.NewEvent(status)
 	e.ID = c.ID()
 	e.Name = c.Name()
 	e.Image = c.config.RootfsImageName
 	e.Type = events.Container
+	e.HealthStatus = healthStatus
 
 	e.Details = events.Details{
 		PodID:      c.PodID(),
@@ -63,16 +71,6 @@ func (c *Container) newContainerEventWithInspectData(status events.Status, inspe
 		if err != nil {
 			return fmt.Errorf("adding inspect data to container-create event: %v", err)
 		}
-	}
-
-	// if the current event is a HealthStatus event, we need to get the current
-	// status of the container to pass to the event
-	if status == events.HealthStatus {
-		containerHealthStatus, err := c.healthCheckStatus()
-		if err != nil {
-			e.HealthStatus = err.Error()
-		}
-		e.HealthStatus = containerHealthStatus
 	}
 
 	if status == events.Remove {

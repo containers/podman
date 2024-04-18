@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/containers/podman/v5/libpod/define"
-	"github.com/containers/podman/v5/libpod/events"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -178,7 +177,7 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 	if hcResult == define.HealthCheckNotDefined || hcResult == define.HealthCheckInternalError {
 		return hcResult, logStatus, hcErr
 	}
-	c.newContainerEvent(events.HealthStatus)
+	c.newContainerHealthCheckEvent(logStatus)
 
 	return hcResult, logStatus, hcErr
 }
