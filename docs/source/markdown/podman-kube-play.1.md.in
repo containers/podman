@@ -39,7 +39,7 @@ Note: When playing a kube YAML with init containers, the init container is creat
 
 Note: *hostPath* volume types created by kube play is given an SELinux shared label (z), bind mounts are not relabeled (use `chcon -t container_file_t -R <directory>`).
 
-Note: To set userns of a pod, use the **io.podman.annotations.userns** annotation in the pod/deployment definition. This can be overridden with the `--userns` flag.
+Note: To set userns of a pod, use the **io.podman.annotations.userns** annotation in the pod/deployment definition. For example, **io.podman.annotations.userns=keep-id** annotation tells Podman to create a user namespace where the current rootless user's UID:GID are mapped to the same values in the container. This can be overridden with the `--userns` flag.
 
 Note: Use the **io.podman.annotations.volumes-from** annotation to bind mount volumes of one container to another. You can mount volumes from multiple source containers to a target container. The source containers that belong to the same pod must be defined before the source container in the kube YAML. The annotation format is `io.podman.annotations.volumes-from/targetContainer: "sourceContainer1:mountOpts1;sourceContainer2:mountOpts2"`.
 
