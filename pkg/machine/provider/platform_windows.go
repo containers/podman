@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/libhvee/pkg/hypervctl"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v5/pkg/machine/wsl"
+	"github.com/containers/podman/v5/pkg/machine/wsl/wutil"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/pkg/machine/define"
@@ -39,4 +41,39 @@ func Get() (vmconfigs.VMProvider, error) {
 	default:
 		return nil, fmt.Errorf("unsupported virtualization provider: `%s`", resolvedVMType.String())
 	}
+}
+
+// SupportedProviders returns the providers that are supported on the host operating system
+func SupportedProviders() []define.VMType {
+	return []define.VMType{define.HyperVVirt, define.WSLVirt}
+}
+
+// InstalledProviders returns the supported providers that are installed on the host
+func InstalledProviders() ([]define.VMType, error) {
+	installed := []define.VMType{}
+	if wutil.IsWSLInstalled() {
+		installed = append(installed, define.WSLVirt)
+	}
+
+	service, err := hypervctl.NewLocalHyperVService()
+	if err == nil {
+		installed = append(installed, define.HyperVVirt)
+	}
+	service.Close()
+
+	return installed, nil
+}
+
+// HasPermsForProvider returns whether the host operating system has the proper permissions to use the given provider
+func HasPermsForProvider(provider define.VMType) bool {
+	switch provider {
+	case define.QemuVirt:
+		fallthrough
+	case define.AppleHvVirt:
+		return false
+	case define.HyperVVirt:
+		return wsl.HasAdminRights()
+	}
+
+	return true
 }
