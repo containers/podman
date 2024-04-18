@@ -54,12 +54,6 @@ function _run_apiv2() {
     ) |& logformatter
 }
 
-function _run_compose() {
-    _bail_if_test_can_be_skipped test/compose
-
-    showrun ./test/compose/test-compose |& logformatter
-}
-
 function _run_compose_v2() {
     _bail_if_test_can_be_skipped test/compose
 

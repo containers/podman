@@ -367,11 +367,6 @@ case "$TEST_FLAVOR" in
         showrun pip install --upgrade pip
         showrun pip install --requirement $GOSRC/test/apiv2/python/requirements.txt
         ;&  # continue with next item
-    compose)
-        showrun make install.tools
-        showrun dnf remove -y gvisor-tap-vsock
-        showrun dnf install -y podman-docker*
-        ;&  # continue with next item
     int)
         showrun make .install.ginkgo
         ;&
