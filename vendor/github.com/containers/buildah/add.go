@@ -88,6 +88,11 @@ func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, 
 		return err
 	}
 	defer response.Body.Close()
+
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusBadRequest {
+		return fmt.Errorf("invalid response status %d", response.StatusCode)
+	}
+
 	// Figure out what to name the new content.
 	name := renameTarget
 	if name == "" {

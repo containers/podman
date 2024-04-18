@@ -29,7 +29,7 @@ const (
 	Package = "buildah"
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "1.24.6"
+	Version = "1.24.7"
 
 	// DefaultRuntime if containers.conf fails.
 	DefaultRuntime = "runc"
@@ -183,6 +183,9 @@ func downloadToDirectory(url, dir string) error {
 		return err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusBadRequest {
+		return fmt.Errorf("invalid response status %d", resp.StatusCode)
+	}
 	if resp.ContentLength == 0 {
 		return errors.Errorf("no contents in %q", url)
 	}
