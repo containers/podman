@@ -41,6 +41,19 @@ done
 # Bypass git safety/security checks when operating in a throwaway environment
 showrun git config --global --add safe.directory $GOSRC
 
+# Special case for testing composefs (Fedora >= 41): this is actually "overlay"
+# but we overload CI_DESIRED_STORAGE in .cirrus.yml for ease of readability.
+# Here we set it back, and define a new internal flag for enabling composefs.
+# Be sure to do this before writing /etc/ci_environment.
+export CI_DESIRED_COMPOSEFS=
+# shellcheck disable=SC2154
+if [[ "$CI_DESIRED_STORAGE" = "composefs" ]]; then
+    CI_DESIRED_STORAGE="overlay"
+    CI_DESIRED_COMPOSEFS="+composefs"
+    # FIXME: how to include "pull_options={}"
+    export STORAGE_OPTIONS_OVERLAY="overlay.use_composefs=true"
+fi
+
 # Ensure that all lower-level contexts and child-processes have
 # ready access to higher level orchestration (e.g Cirrus-CI)
 # variables.
@@ -175,7 +188,7 @@ esac
 # This is (sigh) different because e2e tests have their own special way
 # of ignoring system defaults.
 # shellcheck disable=SC2154
-showrun echo "Setting CI_DESIRED_STORAGE [=$CI_DESIRED_STORAGE] for *system* tests"
+showrun echo "Setting CI_DESIRED_STORAGE [=$CI_DESIRED_STORAGE$CI_DESIRED_COMPOSEFS] for *system* tests"
 conf=/etc/containers/storage.conf
 if [[ -e $conf ]]; then
     die "FATAL! INTERNAL ERROR! Cannot override $conf"
@@ -186,6 +199,22 @@ driver = "$CI_DESIRED_STORAGE"
 runroot = "/run/containers/storage"
 graphroot = "/var/lib/containers/storage"
 EOF
+
+if [[ -n "$CI_DESIRED_COMPOSEFS" ]]; then
+    cat <<EOF >>$conf
+
+# BEGIN CI-enabled composefs
+[storage.options]
+pull_options = {enable_partial_images = "true", use_hard_links = "false", ostree_repos="", convert_images = "true"}
+
+[storage.options.overlay]
+use_composefs = "true"
+# END CI-enabled composefs
+EOF
+
+    # FIXME FIXME: this needs to be done in automation_images
+    showrun dnf install -y composefs
+fi
 
 # Since we've potentially changed important config settings, reset.
 # This prevents `database graph driver "" does not match "overlay"`

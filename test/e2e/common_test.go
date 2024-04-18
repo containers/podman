@@ -266,11 +266,6 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		}
 	}
 
-	storageOptions := os.Getenv("STORAGE_OPTIONS")
-	if storageOptions == "" {
-		storageOptions = STORAGE_OPTIONS
-	}
-
 	cgroupManager := os.Getenv("CGROUP_MANAGER")
 	if cgroupManager == "" {
 		cgroupManager = CGROUP_MANAGER
@@ -313,9 +308,15 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 	if isRootless() {
 		storageFs = ROOTLESS_STORAGE_FS
 	}
+
+	storageOptions := STORAGE_OPTIONS
 	if os.Getenv("STORAGE_FS") != "" {
 		storageFs = os.Getenv("STORAGE_FS")
 		storageOptions = "--storage-driver " + storageFs
+		extraOptions := os.Getenv("STORAGE_OPTIONS_" + strings.ToUpper(storageFs))
+		if extraOptions != "" {
+			storageOptions += " --storage-opt " + extraOptions
+		}
 	}
 
 	p := &PodmanTestIntegration{
