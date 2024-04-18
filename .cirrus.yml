@@ -60,7 +60,7 @@ env:
     CTR_FQIN:                # One of the "Container FQIN's" (above)
     CI_DESIRED_RUNTIME: crun    # As of 2024-05-28 there are no other supported runtimes
     CI_DESIRED_DATABASE: sqlite # 'sqlite' or 'boltdb'
-    CI_DESIRED_STORAGE: overlay # overlay or vfs
+    CI_DESIRED_STORAGE: overlay # overlay, vfs, or composefs (which is actually overlay)
 
     # Curl-command prefix for downloading task artifacts, simply add the
     # the url-encoded task name, artifact name, and path as a suffix.
@@ -155,6 +155,7 @@ build_task:
               <<: *stdenvars
               DISTRO_NV: ${RAWHIDE_NAME}
               VM_IMAGE_NAME: ${RAWHIDE_CACHE_IMAGE_NAME}
+              CI_DESIRED_STORAGE: composefs
               CTR_FQIN: ""
         - env:
               DISTRO_NV: ${DEBIAN_NAME}

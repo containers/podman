@@ -240,6 +240,18 @@ var _ = Describe("Podman Info", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal(want), ".Store.GraphDriverName from podman info")
+
+		// Confirm desired setting of composefs
+		if want == "overlay" {
+			expect := "<no value>"
+			if os.Getenv("CI_DESIRED_COMPOSEFS") != "" {
+				expect = "true"
+			}
+			session = podmanTest.Podman([]string{"info", "--format", `{{index .Store.GraphOptions "overlay.use_composefs"}}`})
+			session.WaitWithDefaultTimeout()
+			Expect(session).To(ExitCleanly())
+			Expect(session.OutputToString()).To(Equal(expect), ".Store.GraphOptions -> overlay.use_composefs")
+		}
 	})
 
 	It("Podman info: check lock count", Serial, func() {
