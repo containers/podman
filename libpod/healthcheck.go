@@ -177,7 +177,9 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 	if hcResult == define.HealthCheckNotDefined || hcResult == define.HealthCheckInternalError {
 		return hcResult, logStatus, hcErr
 	}
-	c.newContainerHealthCheckEvent(logStatus)
+	if c.runtime.config.Engine.HealthcheckEvents {
+		c.newContainerHealthCheckEvent(logStatus)
+	}
 
 	return hcResult, logStatus, hcErr
 }
