@@ -1,3 +1,14 @@
+## 1.33.0
+
+### Features
+
+`Receive` not accepts `Receive(<POINTER>, MATCHER>)`, allowing you to pick out a specific value on the channel that satisfies the provided matcher and is stored in the provided pointer.
+
+### Maintenance
+- Bump github.com/onsi/ginkgo/v2 from 2.15.0 to 2.17.1 (#745) [9999deb]
+- Bump github-pages from 229 to 230 in /docs (#735) [cb5ff21]
+- Bump golang.org/x/net from 0.20.0 to 0.23.0 (#746) [bac6596]
+
 ## 1.32.0
 
 ### Maintenance
