@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/containers/storage/pkg/fileutils"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -54,7 +55,7 @@ func ConfigureContainerTimeZone(timezone, containerRunDir, mountPoint, etcPath, 
 	}
 
 	var localtimePath string
-	if _, err := os.Stat(hostPath); err != nil {
+	if err := fileutils.Exists(hostPath); err != nil {
 		// File does not exist, which means tzdata is not installed in the container.
 		// Create /etc/localtime as a copy from the host.
 		logrus.Debugf("Timezone %s does not exist in the container, create our own copy from the host", timezonePath)

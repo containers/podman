@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/utils"
 	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/spf13/cobra"
 )
 
@@ -105,7 +106,7 @@ func generateKube(cmd *cobra.Command, args []string) error {
 	}
 
 	if cmd.Flags().Changed("filename") {
-		if _, err := os.Stat(generateFile); err == nil {
+		if err := fileutils.Exists(generateFile); err == nil {
 			return fmt.Errorf("cannot write to %q; file exists", generateFile)
 		}
 		if err := os.WriteFile(generateFile, content, 0644); err != nil {

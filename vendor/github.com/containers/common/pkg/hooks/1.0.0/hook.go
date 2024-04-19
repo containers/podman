@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"regexp"
 
+	"github.com/containers/storage/pkg/fileutils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -44,7 +44,7 @@ func (hook *Hook) Validate(extensionStages []string) (err error) {
 		return errors.New("missing required property: hook.path")
 	}
 
-	if _, err := os.Stat(hook.Hook.Path); err != nil {
+	if err := fileutils.Exists(hook.Hook.Path); err != nil {
 		return err
 	}
 

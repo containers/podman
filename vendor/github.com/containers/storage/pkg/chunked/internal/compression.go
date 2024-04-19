@@ -21,9 +21,6 @@ import (
 type TOC struct {
 	Version int            `json:"version"`
 	Entries []FileMetadata `json:"entries"`
-
-	// internal: used by unmarshalToc
-	StringsBuf bytes.Buffer `json:"-"`
 }
 
 type FileMetadata struct {
@@ -48,9 +45,6 @@ type FileMetadata struct {
 	ChunkOffset int64  `json:"chunkOffset,omitempty"`
 	ChunkDigest string `json:"chunkDigest,omitempty"`
 	ChunkType   string `json:"chunkType,omitempty"`
-
-	// internal: computed by mergeTOCEntries.
-	Chunks []*FileMetadata `json:"-"`
 }
 
 const (

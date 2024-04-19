@@ -91,7 +91,7 @@ type Builder struct {
 	// Logger is the logrus logger to write log messages with
 	Logger *logrus.Logger `json:"-"`
 
-	// Args define variables that users can pass at build-time to the builder
+	// Args define variables that users can pass at build-time to the builder.
 	Args map[string]string
 	// Type is used to help identify a build container's metadata.  It
 	// should not be modified.
@@ -118,7 +118,7 @@ type Builder struct {
 	// MountPoint is the last location where the container's root
 	// filesystem was mounted.  It should not be modified.
 	MountPoint string `json:"mountpoint,omitempty"`
-	// ProcessLabel is the SELinux process label associated with the container
+	// ProcessLabel is the SELinux process label to use during subsequent Run() calls.
 	ProcessLabel string `json:"process-label,omitempty"`
 	// MountLabel is the SELinux mount label associated with the container
 	MountLabel string `json:"mount-label,omitempty"`
@@ -139,7 +139,7 @@ type Builder struct {
 
 	// Isolation controls how we handle "RUN" statements and the Run() method.
 	Isolation define.Isolation
-	// NamespaceOptions controls how we set up the namespaces for processes that we run in the container.
+	// NamespaceOptions controls how we set up the namespaces for processes that we Run().
 	NamespaceOptions define.NamespaceOptions
 	// ConfigureNetwork controls whether or not network interfaces and
 	// routing are configured for a new network namespace (i.e., when not
@@ -157,11 +157,11 @@ type Builder struct {
 	// NetworkInterface is the libnetwork network interface used to setup CNI or netavark networks.
 	NetworkInterface nettypes.ContainerNetwork `json:"-"`
 
-	// GroupAdd is a list of groups to add to the primary process within
-	// the container. 'keep-groups' allows container processes to use
-	// supplementary groups.
+	// GroupAdd is a list of groups to add to the primary process when Run() is
+	// called. The magic 'keep-groups' value indicates that the process should
+	// be allowed to inherit the current set of supplementary groups.
 	GroupAdd []string
-	// ID mapping options to use when running processes in the container with non-host user namespaces.
+	// ID mapping options to use when running processes with non-host user namespaces.
 	IDMappingOptions define.IDMappingOptions
 	// Capabilities is a list of capabilities to use when running commands in the container.
 	Capabilities []string
@@ -177,14 +177,20 @@ type Builder struct {
 	CommonBuildOpts     *define.CommonBuildOptions
 	// TopLayer is the top layer of the image
 	TopLayer string
-	// Format for the build Image
+	// Format to use for a container image we eventually commit, when we do.
 	Format string
-	// TempVolumes are temporary mount points created during container runs
+	// TempVolumes are temporary mount points created during Run() calls.
 	TempVolumes map[string]bool
-	// ContentDigester counts the digest of all Add()ed content
+	// ContentDigester counts the digest of all Add()ed content since it was
+	// last restarted.
 	ContentDigester CompositeDigester
-	// Devices are the additional devices to add to the containers
+	// Devices are parsed additional devices to provide to Run() calls.
 	Devices define.ContainerDevices
+	// DeviceSpecs are unparsed additional devices to provide to Run() calls.
+	DeviceSpecs []string
+	// CDIConfigDir is the location of CDI configuration files, if the files in
+	// the default configuration locations shouldn't be used.
+	CDIConfigDir string
 }
 
 // BuilderInfo are used as objects to display container information
@@ -215,6 +221,8 @@ type BuilderInfo struct {
 	IDMappingOptions      define.IDMappingOptions
 	History               []v1.History
 	Devices               define.ContainerDevices
+	DeviceSpecs           []string
+	CDIConfigDir          string
 }
 
 // GetBuildInfo gets a pointer to a Builder object and returns a BuilderInfo object from it.
@@ -251,6 +259,8 @@ func GetBuildInfo(b *Builder) BuilderInfo {
 		Capabilities:          b.Capabilities,
 		History:               history,
 		Devices:               b.Devices,
+		DeviceSpecs:           b.DeviceSpecs,
+		CDIConfigDir:          b.CDIConfigDir,
 	}
 }
 
@@ -328,13 +338,15 @@ type BuilderOptions struct {
 	// ID mapping options to use if we're setting up our own user namespace.
 	IDMappingOptions *define.IDMappingOptions
 	// Capabilities is a list of capabilities to use when
-	// running commands in the container.
+	// running commands for Run().
 	Capabilities    []string
 	CommonBuildOpts *define.CommonBuildOptions
-	// Format for the container image
+	// Format to use for a container image we eventually commit, when we do.
 	Format string
-	// Devices are the additional devices to add to the containers
+	// Devices are additional parsed devices to provide for Run() calls.
 	Devices define.ContainerDevices
+	// DeviceSpecs are additional unparsed devices to provide for Run() calls.
+	DeviceSpecs []string
 	// DefaultEnv is deprecated and ignored.
 	DefaultEnv []string
 	// MaxPullRetries is the maximum number of attempts we'll make to pull
@@ -345,9 +357,9 @@ type BuilderOptions struct {
 	// OciDecryptConfig contains the config that can be used to decrypt an image if it is
 	// encrypted if non-nil. If nil, it does not attempt to decrypt an image.
 	OciDecryptConfig *encconfig.DecryptConfig
-	// ProcessLabel is the SELinux process label associated with the container
+	// ProcessLabel is the SELinux process label associated with commands we Run()
 	ProcessLabel string
-	// MountLabel is the SELinux mount label associated with the container
+	// MountLabel is the SELinux mount label associated with the working container
 	MountLabel string
 	// PreserveBaseImageAnns indicates that we should preserve base
 	// image information (Annotations) that are present in our base image,
@@ -355,6 +367,9 @@ type BuilderOptions struct {
 	// itself. Useful as an internal implementation detail of multistage
 	// builds, and does not need to be set by most callers.
 	PreserveBaseImageAnns bool
+	// CDIConfigDir is the location of CDI configuration files, if the files in
+	// the default configuration locations shouldn't be used.
+	CDIConfigDir string
 }
 
 // ImportOptions are used to initialize a Builder from an existing container

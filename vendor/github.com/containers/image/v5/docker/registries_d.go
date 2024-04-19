@@ -12,6 +12,7 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/internal/rootless"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
@@ -93,7 +94,7 @@ func registriesDirPathWithHomeDir(sys *types.SystemContext, homeDir string) stri
 		return sys.RegistriesDirPath
 	}
 	userRegistriesDirPath := filepath.Join(homeDir, userRegistriesDir)
-	if _, err := os.Stat(userRegistriesDirPath); err == nil {
+	if err := fileutils.Exists(userRegistriesDirPath); err == nil {
 		return userRegistriesDirPath
 	}
 	if sys != nil && sys.RootForImplicitAbsolutePaths != "" {

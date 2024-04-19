@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/spf13/cobra"
 )
 
@@ -58,7 +59,7 @@ func uninstall(cmd *cobra.Command, args []string) error {
 	}
 
 	// Get the file information of dockerSock
-	if _, err := os.Lstat(dockerSock); err != nil {
+	if err := fileutils.Lexists(dockerSock); err != nil {
 		// If the error is due to the file not existing, return nil
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil

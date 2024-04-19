@@ -35,6 +35,7 @@ import (
 	"github.com/containers/podman/v5/pkg/systemd"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/docker/docker/pkg/namesgenerator"
@@ -139,7 +140,7 @@ func SetXdgDirs() error {
 
 	if rootless.IsRootless() && os.Getenv("DBUS_SESSION_BUS_ADDRESS") == "" {
 		sessionAddr := filepath.Join(runtimeDir, "bus")
-		if _, err := os.Stat(sessionAddr); err == nil {
+		if err := fileutils.Exists(sessionAddr); err == nil {
 			os.Setenv("DBUS_SESSION_BUS_ADDRESS", fmt.Sprintf("unix:path=%s", sessionAddr))
 		}
 	}
@@ -307,7 +308,7 @@ func getDBState(runtime *Runtime) (State, error) {
 	switch backend {
 	case config.DBBackendDefault:
 		// for backwards compatibility check if boltdb exists, if it does not we use sqlite
-		if _, err := os.Stat(boltDBPath); err != nil {
+		if err := fileutils.Exists(boltDBPath); err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
 				// need to set DBBackend string so podman info will show the backend name correctly
 				runtime.config.Engine.DBBackend = config.DBBackendSQLite.String()
@@ -543,7 +544,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		}
 	}()
 
-	_, err = os.Stat(runtimeAliveFile)
+	err = fileutils.Exists(runtimeAliveFile)
 	if err != nil {
 		// If we need to refresh, then it is safe to assume there are
 		// no containers running.  Create immediately a namespace, as

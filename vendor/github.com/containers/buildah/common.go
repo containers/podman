@@ -3,7 +3,6 @@ package buildah
 import (
 	"context"
 	"io"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/unshare"
 )
 
@@ -59,7 +59,7 @@ func getSystemContext(store storage.Store, defaults *types.SystemContext, signat
 	if store != nil {
 		if sc.SystemRegistriesConfPath == "" && unshare.IsRootless() {
 			userRegistriesFile := filepath.Join(store.GraphRoot(), "registries.conf")
-			if _, err := os.Stat(userRegistriesFile); err == nil {
+			if err := fileutils.Exists(userRegistriesFile); err == nil {
 				sc.SystemRegistriesConfPath = userRegistriesFile
 			}
 		}

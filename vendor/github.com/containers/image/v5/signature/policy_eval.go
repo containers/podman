@@ -94,7 +94,7 @@ const (
 	pcDestroyed    policyContextState = "Destroyed"
 )
 
-// changeContextState changes pc.state, or fails if the state is unexpected
+// changeState changes pc.state, or fails if the state is unexpected
 func (pc *PolicyContext) changeState(expected, new policyContextState) error {
 	if pc.state != expected {
 		return fmt.Errorf(`Invalid PolicyContext state, expected "%s", found "%s"`, expected, pc.state)

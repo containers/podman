@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"syscall"
 
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
 )
@@ -20,7 +21,7 @@ type FileLocks struct { //nolint:revive // struct name stutters
 
 // CreateFileLock sets up a directory containing the various lock files.
 func CreateFileLock(path string) (*FileLocks, error) {
-	_, err := os.Stat(path)
+	err := fileutils.Exists(path)
 	if err == nil {
 		return nil, fmt.Errorf("directory %s exists: %w", path, syscall.EEXIST)
 	}
@@ -37,7 +38,7 @@ func CreateFileLock(path string) (*FileLocks, error) {
 
 // OpenFileLock opens an existing directory with the lock files.
 func OpenFileLock(path string) (*FileLocks, error) {
-	_, err := os.Stat(path)
+	err := fileutils.Exists(path)
 	if err != nil {
 		return nil, err
 	}

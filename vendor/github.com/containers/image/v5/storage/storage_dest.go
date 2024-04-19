@@ -1189,7 +1189,7 @@ func (s *storageImageDestination) PutManifest(ctx context.Context, manifestBlob 
 	if err != nil {
 		return err
 	}
-	s.manifest = slices.Clone(manifestBlob)
+	s.manifest = bytes.Clone(manifestBlob)
 	s.manifestDigest = digest
 	return nil
 }

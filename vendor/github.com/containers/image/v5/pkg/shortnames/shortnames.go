@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/internal/multierr"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
 	"github.com/manifoldco/promptui"
@@ -169,26 +170,17 @@ func (r *Resolved) Description() string {
 // Note that nil is returned if len(pullErrors) == 0.  Otherwise, the amount of
 // pull errors must equal the amount of pull candidates.
 func (r *Resolved) FormatPullErrors(pullErrors []error) error {
-	if len(pullErrors) > 0 && len(pullErrors) != len(r.PullCandidates) {
+	if len(pullErrors) == 0 {
+		return nil
+	}
+
+	if len(pullErrors) != len(r.PullCandidates) {
 		pullErrors = append(slices.Clone(pullErrors),
 			fmt.Errorf("internal error: expected %d instead of %d errors for %d pull candidates",
 				len(r.PullCandidates), len(pullErrors), len(r.PullCandidates)))
 	}
 
-	switch len(pullErrors) {
-	case 0:
-		return nil
-	case 1:
-		return pullErrors[0]
-	default:
-		var sb strings.Builder
-		sb.WriteString(fmt.Sprintf("%d errors occurred while pulling:", len(pullErrors)))
-		for _, e := range pullErrors {
-			sb.WriteString("\n * ")
-			sb.WriteString(e.Error())
-		}
-		return errors.New(sb.String())
-	}
+	return multierr.Format(fmt.Sprintf("%d errors occurred while pulling:\n * ", len(pullErrors)), "\n * ", "", pullErrors)
 }
 
 // PullCandidate is a resolved name.  Once the Value has been used

@@ -3,8 +3,9 @@
 package qemu
 
 import (
-	"os"
 	"path/filepath"
+
+	"github.com/containers/storage/pkg/fileutils"
 )
 
 var (
@@ -27,7 +28,7 @@ func getQemuUefiFile(name string) string {
 		"/usr/share/edk2/aarch64",
 	}
 	for _, dir := range dirs {
-		if _, err := os.Stat(dir); err == nil {
+		if err := fileutils.Exists(dir); err == nil {
 			return filepath.Join(dir, name)
 		}
 	}

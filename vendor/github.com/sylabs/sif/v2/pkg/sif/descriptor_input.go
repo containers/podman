@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2023, Sylabs Inc. All rights reserved.
+// Copyright (c) 2021-2024, Sylabs Inc. All rights reserved.
 // This software is licensed under a 3-clause BSD license. Please consult the
 // LICENSE file distributed with the sources of this project regarding your
 // rights to use or distribute this software.
@@ -95,7 +95,7 @@ func OptObjectTime(t time.Time) DescriptorInputOpt {
 
 // OptMetadata marshals metadata from md into the "extra" field of d.
 func OptMetadata(md encoding.BinaryMarshaler) DescriptorInputOpt {
-	return func(t DataType, opts *descriptorOpts) error {
+	return func(_ DataType, opts *descriptorOpts) error {
 		opts.md = md
 		return nil
 	}

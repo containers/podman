@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/cgroupv2"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -51,7 +52,7 @@ func New(quiet bool) *SysInfo {
 	sysInfo.BridgeNFCallIP6TablesDisabled = !readProcBool("/proc/sys/net/bridge/bridge-nf-call-ip6tables")
 
 	// Check if AppArmor is supported.
-	if _, err := os.Stat("/sys/kernel/security/apparmor"); !errors.Is(err, os.ErrNotExist) {
+	if err := fileutils.Exists("/sys/kernel/security/apparmor"); !errors.Is(err, os.ErrNotExist) {
 		sysInfo.AppArmor = true
 	}
 
@@ -249,7 +250,7 @@ func checkCgroupPids(cgMounts map[string]string, quiet bool) cgroupPids {
 }
 
 func cgroupEnabled(mountPoint, name string) bool {
-	_, err := os.Stat(path.Join(mountPoint, name))
+	err := fileutils.Exists(path.Join(mountPoint, name))
 	return err == nil
 }
 

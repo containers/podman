@@ -19,6 +19,7 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/version"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/sirupsen/logrus"
@@ -331,7 +332,7 @@ func (n *cniNetwork) NetworkInfo() types.NetworkInfo {
 	if err != nil {
 		logrus.Infof("Failed to get the dnsname plugin version: %v", err)
 	}
-	if _, err := os.Stat(dnsPath); err == nil {
+	if err := fileutils.Exists(dnsPath); err == nil {
 		info.DNS = types.DNSNetworkInfo{
 			Path:    dnsPath,
 			Package: dnsPackage,

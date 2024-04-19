@@ -6,7 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
+	"io/fs"
 	"path"
 	"path/filepath"
 	"strings"
@@ -18,6 +18,7 @@ import (
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/containers/podman/v5/pkg/util"
+	"github.com/containers/storage/pkg/fileutils"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
@@ -391,7 +392,7 @@ func addContainerInitBinary(s *specgen.SpecGenerator, path string) (spec.Mount, 
 	if s.Systemd == "always" {
 		return mount, errors.New("cannot use container-init binary with systemd=always")
 	}
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+	if err := fileutils.Exists(path); errors.Is(err, fs.ErrNotExist) {
 		return mount, fmt.Errorf("container-init binary not found on the host: %w", err)
 	}
 	return mount, nil

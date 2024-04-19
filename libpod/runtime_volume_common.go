@@ -16,6 +16,7 @@ import (
 	volplugin "github.com/containers/podman/v5/libpod/plugin"
 	"github.com/containers/storage"
 	"github.com/containers/storage/drivers/quota"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/stringid"
 	pluginapi "github.com/docker/go-plugins-helpers/volume"
@@ -84,7 +85,7 @@ func (r *Runtime) newVolume(ctx context.Context, noCreatePluginVolume bool, opti
 			switch strings.ToLower(key) {
 			case "device":
 				if strings.ToLower(volume.config.Options["type"]) == define.TypeBind {
-					if _, err := os.Stat(val); err != nil {
+					if err := fileutils.Exists(val); err != nil {
 						return nil, fmt.Errorf("invalid volume option %s for driver 'local': %w", key, err)
 					}
 				}

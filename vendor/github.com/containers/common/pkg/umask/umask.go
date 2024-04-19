@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/containers/storage/pkg/fileutils"
 )
 
 // MkdirAllIgnoreUmask creates a directory by ignoring the currently set umask.
@@ -13,7 +15,7 @@ func MkdirAllIgnoreUmask(dir string, mode os.FileMode) error {
 
 	// Find all parent directories which would have been created by MkdirAll
 	for {
-		if _, err := os.Stat(parent); err == nil {
+		if err := fileutils.Exists(parent); err == nil {
 			break
 		} else if !os.IsNotExist(err) {
 			return fmt.Errorf("cannot stat %s: %w", dir, err)

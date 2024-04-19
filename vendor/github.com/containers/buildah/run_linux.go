@@ -34,6 +34,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/hooks"
 	hooksExec "github.com/containers/common/pkg/hooks/exec"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/lockfile"
@@ -45,10 +46,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 	"golang.org/x/sys/unix"
+	"tags.cncf.io/container-device-interface/pkg/cdi"
 )
-
-// ContainerDevices is an alias for a slice of github.com/opencontainers/runc/libcontainer/configs.Device structures.
-type ContainerDevices define.ContainerDevices
 
 var (
 	// We dont want to remove destinations with /etc, /dev, /sys,
@@ -67,6 +66,81 @@ func setChildProcess() error {
 		return err
 	}
 	return nil
+}
+
+func (b *Builder) cdiSetupDevicesInSpec(deviceSpecs []string, configDir string, spec *specs.Spec) ([]string, error) {
+	leftoverDevices := deviceSpecs
+	registry, err := cdi.NewCache()
+	if err != nil {
+		return nil, fmt.Errorf("creating CDI registry: %w", err)
+	}
+	var configDirs []string
+	if b.CDIConfigDir != "" {
+		configDirs = append(configDirs, b.CDIConfigDir)
+	}
+	if configDir != "" {
+		configDirs = append(configDirs, configDir)
+	}
+	// TODO: CdiSpecDirs will be in containers/common v0.59.0 or later?
+	// defConfig, err := config.Default()
+	// if err != nil {
+	//	return nil, fmt.Errorf("failed to get container config: %w", err)
+	// }
+	// configDirs = append(configDirs, defConfig.Engine.CdiSpecDirs.Get()...)
+	if len(configDirs) > 0 {
+		if err := registry.Configure(cdi.WithSpecDirs(configDirs...)); err != nil {
+			return nil, fmt.Errorf("CDI registry ignored configured directories %v: %w", configDirs, err)
+		}
+	}
+	if err := registry.Refresh(); err != nil {
+		logrus.Warnf("CDI registry refresh: %v", err)
+	} else {
+		leftoverDevices, err = registry.InjectDevices(spec, deviceSpecs...)
+		if err != nil {
+			logrus.Debugf("CDI device injection: %v, unresolved list %v", err, leftoverDevices)
+		}
+	}
+	removed := slices.DeleteFunc(slices.Clone(deviceSpecs), func(t string) bool { return slices.Contains(leftoverDevices, t) })
+	logrus.Debugf("CDI taking care of devices %v, leaving devices %v", removed, leftoverDevices)
+	return leftoverDevices, nil
+}
+
+// Extract the device list so that we can still try to make it work if
+// we're running rootless and can't just mknod() the device nodes.
+func separateDevicesFromRuntimeSpec(g *generate.Generator) define.ContainerDevices {
+	var result define.ContainerDevices
+	if g.Config != nil && g.Config.Linux != nil {
+		for _, device := range g.Config.Linux.Devices {
+			var bDevice define.BuildahDevice
+			bDevice.Path = device.Path
+			switch device.Type {
+			case "b":
+				bDevice.Type = 'b'
+			case "c":
+				bDevice.Type = 'c'
+			case "u":
+				bDevice.Type = 'u'
+			case "p":
+				bDevice.Type = 'p'
+			}
+			bDevice.Major = device.Major
+			bDevice.Minor = device.Minor
+			if device.FileMode != nil {
+				bDevice.FileMode = *device.FileMode
+			}
+			if device.UID != nil {
+				bDevice.Uid = *device.UID
+			}
+			if device.GID != nil {
+				bDevice.Gid = *device.GID
+			}
+			bDevice.Source = device.Path
+			bDevice.Destination = device.Path
+			result = append(result, bDevice)
+		}
+	}
+	g.ClearLinuxDevices()
+	return result
 }
 
 // Run runs the specified command in the container's root filesystem.
@@ -147,8 +221,24 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		g.SetProcessArgs(nil)
 	}
 
-	// Mount devices if any and if session is rootless attempt a bind-mount
-	// just like podman.
+	// Combine the working container's set of devices with the ones for just this run.
+	deviceSpecs := append(append([]string{}, options.DeviceSpecs...), b.DeviceSpecs...)
+	deviceSpecs, err = b.cdiSetupDevicesInSpec(deviceSpecs, options.CDIConfigDir, g.Config) // makes changes to more than just the device list
+	if err != nil {
+		return err
+	}
+	devices := separateDevicesFromRuntimeSpec(g)
+	for _, deviceSpec := range deviceSpecs {
+		device, err := parse.DeviceFromPath(deviceSpec)
+		if err != nil {
+			return fmt.Errorf("setting up device %q: %w", deviceSpec, err)
+		}
+		devices = append(devices, device...)
+	}
+	devices = append(append(devices, options.Devices...), b.Devices...)
+
+	// Mount devices, if any, and if we're rootless attempt to work around not
+	// being able to create device nodes by bind-mounting them from the host, like podman does.
 	if unshare.IsRootless() {
 		// We are going to create bind mounts for devices
 		// but we need to make sure that we don't override
@@ -158,7 +248,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 			mounts[m.Destination] = true
 		}
 		newMounts := []specs.Mount{}
-		for _, d := range b.Devices {
+		for _, d := range devices {
 			// Default permission is read-only.
 			perm := "ro"
 			// Get permission configured for this device but only process `write`
@@ -184,7 +274,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		}
 		g.Config.Mounts = append(newMounts, g.Config.Mounts...)
 	} else {
-		for _, d := range b.Devices {
+		for _, d := range devices {
 			sDev := specs.LinuxDevice{
 				Type:     string(d.Type),
 				Path:     d.Path,
@@ -1242,7 +1332,7 @@ func setupSpecialMountSpecChanges(spec *specs.Spec, shmSize string) ([]specs.Mou
 	// if userns and host ipc bind mount shm
 	if isUserns && !isIpcns {
 		// bind mount /dev/shm when it exists
-		if _, err := os.Stat("/dev/shm"); err == nil {
+		if err := fileutils.Exists("/dev/shm"); err == nil {
 			shmMount := specs.Mount{
 				Source:      "/dev/shm",
 				Type:        "bind",

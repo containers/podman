@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,7 +21,7 @@ var sshCommand = []string{"ssh-keygen", "-N", "", "-t", "ed25519", "-f"}
 // the a VM.
 func CreateSSHKeys(writeLocation string) (string, error) {
 	// If the SSH key already exists, hard fail
-	if _, err := os.Stat(writeLocation); err == nil {
+	if err := fileutils.Exists(writeLocation); err == nil {
 		return "", fmt.Errorf("SSH key already exists: %s", writeLocation)
 	}
 	if err := os.MkdirAll(filepath.Dir(writeLocation), 0700); err != nil {
@@ -39,7 +40,7 @@ func CreateSSHKeys(writeLocation string) (string, error) {
 // GetSSHKeys checks to see if there is a ssh key at the provided location.
 // If not, we create the priv and pub keys. The ssh key is then returned.
 func GetSSHKeys(identityPath string) (string, error) {
-	if _, err := os.Stat(identityPath); err == nil {
+	if err := fileutils.Exists(identityPath); err == nil {
 		b, err := os.ReadFile(identityPath + ".pub")
 		if err != nil {
 			return "", err
@@ -51,7 +52,7 @@ func GetSSHKeys(identityPath string) (string, error) {
 }
 
 func CreateSSHKeysPrefix(identityPath string, passThru bool, skipExisting bool, prefix ...string) (string, error) {
-	_, e := os.Stat(identityPath)
+	e := fileutils.Exists(identityPath)
 	if !skipExisting || errors.Is(e, os.ErrNotExist) {
 		if err := generatekeysPrefix(identityPath, passThru, prefix...); err != nil {
 			return "", err

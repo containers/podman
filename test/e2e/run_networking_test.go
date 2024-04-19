@@ -981,7 +981,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		session := podmanTest.Podman([]string{"run", "-dt", "--net", "ns:/run/netns/xxy", ALPINE, "wget", "www.redhat.com"})
 		session.Wait(90)
 		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("stat /run/netns/xxy: no such file or directory"))
+		Expect(session.ErrorToString()).To(ContainSubstring("faccessat /run/netns/xxy: no such file or directory"))
 	})
 
 	It("podman run in custom CNI network with --static-ip", func() {

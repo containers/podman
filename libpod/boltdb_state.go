@@ -16,6 +16,7 @@ import (
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
 )
@@ -86,7 +87,7 @@ func NewBoltState(path string, runtime *Runtime) (State, error) {
 	// To continue testing in CI, allow creation iff an undocumented env
 	// var is set.
 	if os.Getenv("CI_DESIRED_DATABASE") != "boltdb" {
-		if _, err := os.Stat(path); err != nil && errors.Is(err, fs.ErrNotExist) {
+		if err := fileutils.Exists(path); err != nil && errors.Is(err, fs.ErrNotExist) {
 			return nil, fmt.Errorf("the BoltDB backend has been deprecated, no new BoltDB databases can be created: %w", define.ErrInvalidArg)
 		}
 	} else {

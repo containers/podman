@@ -32,6 +32,7 @@ import (
 
 	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/directory"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/parsers"
@@ -589,11 +590,11 @@ func (d *Driver) setStorageSize(dir string, driver *Driver) error {
 // Remove the filesystem with given id.
 func (d *Driver) Remove(id string) error {
 	dir := d.subvolumesDirID(id)
-	if _, err := os.Stat(dir); err != nil {
+	if err := fileutils.Exists(dir); err != nil {
 		return err
 	}
 	quotasDir := d.quotasDirID(id)
-	if _, err := os.Stat(quotasDir); err == nil {
+	if err := fileutils.Exists(quotasDir); err == nil {
 		if err := os.Remove(quotasDir); err != nil {
 			return err
 		}
@@ -669,7 +670,7 @@ func (d *Driver) ReadWriteDiskUsage(id string) (*directory.DiskUsage, error) {
 // Exists checks if the id exists in the filesystem.
 func (d *Driver) Exists(id string) bool {
 	dir := d.subvolumesDirID(id)
-	_, err := os.Stat(dir)
+	err := fileutils.Exists(dir)
 	return err == nil
 }
 

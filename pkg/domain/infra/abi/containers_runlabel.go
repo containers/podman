@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	envLib "github.com/containers/podman/v5/pkg/env"
 	"github.com/containers/podman/v5/utils"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/google/shlex"
 	"github.com/sirupsen/logrus"
 )
@@ -276,7 +278,7 @@ func substituteCommand(cmd string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if _, err := os.Stat(res); !os.IsNotExist(err) {
+		if err := fileutils.Exists(res); !errors.Is(err, fs.ErrNotExist) {
 			return res, nil
 		} else if err != nil {
 			return "", err

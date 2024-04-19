@@ -3,9 +3,10 @@ package version
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/containers/storage/pkg/fileutils"
 )
 
 const (
@@ -15,7 +16,7 @@ const (
 // Note: This function is copied from containers/podman libpod/util.go
 // Please see https://github.com/containers/common/pull/1460
 func queryPackageVersion(cmdArg ...string) string {
-	_, err := os.Stat(cmdArg[0])
+	err := fileutils.Exists(cmdArg[0])
 	if err != nil {
 		return ""
 	}
@@ -63,7 +64,7 @@ func queryPackageVersion(cmdArg ...string) string {
 // Note: This function is copied from containers/podman libpod/util.go
 // Please see https://github.com/containers/common/pull/1460
 func Package(program string) string { // program is full path
-	_, err := os.Stat(program)
+	err := fileutils.Exists(program)
 	if err != nil {
 		return UnknownPackage
 	}

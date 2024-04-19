@@ -55,9 +55,9 @@ func SetupCertificates(dir string, tlsc *tls.Config) error {
 			}
 			tlsc.RootCAs.AppendCertsFromPEM(data)
 		}
-		if strings.HasSuffix(f.Name(), ".cert") {
+		if base, ok := strings.CutSuffix(f.Name(), ".cert"); ok {
 			certName := f.Name()
-			keyName := certName[:len(certName)-5] + ".key"
+			keyName := base + ".key"
 			logrus.Debugf(" cert: %s", fullPath)
 			if !hasFile(fs, keyName) {
 				return fmt.Errorf("missing key %s for client certificate %s. Note that CA certificates should use the extension .crt", keyName, certName)
@@ -68,9 +68,9 @@ func SetupCertificates(dir string, tlsc *tls.Config) error {
 			}
 			tlsc.Certificates = append(slices.Clone(tlsc.Certificates), cert)
 		}
-		if strings.HasSuffix(f.Name(), ".key") {
+		if base, ok := strings.CutSuffix(f.Name(), ".key"); ok {
 			keyName := f.Name()
-			certName := keyName[:len(keyName)-4] + ".cert"
+			certName := base + ".cert"
 			logrus.Debugf(" key: %s", fullPath)
 			if !hasFile(fs, certName) {
 				return fmt.Errorf("missing client certificate %s for key %s", certName, keyName)

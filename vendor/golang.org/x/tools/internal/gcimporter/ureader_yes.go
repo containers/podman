@@ -524,7 +524,7 @@ func (pr *pkgReader) objIdx(idx pkgbits.Index) (*types.Package, string) {
 		case pkgbits.ObjAlias:
 			pos := r.pos()
 			typ := r.typ()
-			declare(types.NewTypeName(pos, objPkg, objName, typ))
+			declare(aliases.NewAlias(pos, objPkg, objName, typ))
 
 		case pkgbits.ObjConst:
 			pos := r.pos()

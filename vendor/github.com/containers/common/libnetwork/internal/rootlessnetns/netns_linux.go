@@ -16,6 +16,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/netns"
 	"github.com/containers/common/pkg/systemd"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/hashicorp/go-multierror"
@@ -154,7 +155,7 @@ func (n *Netns) getOrCreateNetns() (ns.NetNS, bool, error) {
 }
 
 func (n *Netns) cleanup() error {
-	if _, err := os.Stat(n.dir); err != nil {
+	if err := fileutils.Exists(n.dir); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			// dir does not exists no need for cleanup
 			return nil
@@ -337,7 +338,7 @@ func (n *Netns) setupMounts() error {
 	// 2. Also keep /run/systemd if it exists.
 	// Many files are symlinked into this dir, for example /dev/log.
 	runSystemd := "/run/systemd"
-	_, err = os.Stat(runSystemd)
+	err = fileutils.Exists(runSystemd)
 	if err == nil {
 		newRunSystemd := n.getPath(runSystemd)
 		err = mountAndMkdirDest(runSystemd, newRunSystemd, none, unix.MS_BIND|unix.MS_REC)
@@ -476,7 +477,7 @@ func (n *Netns) mountCNIVarDir() error {
 	// while we could always use /var there are cases where a user might store the cni
 	// configs under /var/custom and this would break
 	for {
-		if _, err := os.Stat(varTarget); err == nil {
+		if err := fileutils.Exists(varTarget); err == nil {
 			varDir = n.getPath(varTarget)
 			break
 		}

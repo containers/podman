@@ -22,6 +22,7 @@ import (
 	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/devicemapper"
 	"github.com/containers/storage/pkg/dmesg"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/loopback"
 	"github.com/containers/storage/pkg/mount"
@@ -257,7 +258,7 @@ func (devices *DeviceSet) hasImage(name string) bool {
 	dirname := devices.loopbackDir()
 	filename := path.Join(dirname, name)
 
-	_, err := os.Stat(filename)
+	err := fileutils.Exists(filename)
 	return err == nil
 }
 
@@ -1192,7 +1193,7 @@ func (devices *DeviceSet) growFS(info *devInfo) error {
 	defer devices.deactivateDevice(info)
 
 	fsMountPoint := "/run/containers/storage/mnt"
-	if _, err := os.Stat(fsMountPoint); os.IsNotExist(err) {
+	if err := fileutils.Exists(fsMountPoint); os.IsNotExist(err) {
 		if err := os.MkdirAll(fsMountPoint, 0o700); err != nil {
 			return err
 		}

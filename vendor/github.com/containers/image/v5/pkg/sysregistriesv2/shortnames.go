@@ -9,6 +9,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/internal/multierr"
 	"github.com/containers/image/v5/internal/rootless"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/homedir"
@@ -297,11 +298,7 @@ func newShortNameAliasCache(path string, conf *shortNameAliasConf) (*shortNameAl
 		}
 	}
 	if len(errs) > 0 {
-		err := errs[0]
-		for i := 1; i < len(errs); i++ {
-			err = fmt.Errorf("%v\n: %w", errs[i], err)
-		}
-		return nil, err
+		return nil, multierr.Format("", "\n", "", errs)
 	}
 	return &res, nil
 }

@@ -11,6 +11,7 @@ import (
 
 	"github.com/containers/podman/v5/pkg/specgenutilexternal"
 	"github.com/containers/podman/v5/pkg/systemd/parser"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/regexp"
 )
 
@@ -589,7 +590,7 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 	for _, device := range devices {
 		if device[0] == '-' {
 			device = device[1:]
-			_, err := os.Stat(strings.Split(device, ":")[0])
+			err := fileutils.Exists(strings.Split(device, ":")[0])
 			if errors.Is(err, os.ErrNotExist) {
 				continue
 			}

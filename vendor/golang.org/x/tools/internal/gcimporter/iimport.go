@@ -80,6 +80,20 @@ const (
 	typeParamType
 	instanceType
 	unionType
+	aliasType
+)
+
+// Object tags
+const (
+	varTag          = 'V'
+	funcTag         = 'F'
+	genericFuncTag  = 'G'
+	constTag        = 'C'
+	aliasTag        = 'A'
+	genericAliasTag = 'B'
+	typeParamTag    = 'P'
+	typeTag         = 'T'
+	genericTypeTag  = 'U'
 )
 
 // IImportData imports a package from the serialized package data
@@ -324,7 +338,7 @@ func iimportCommon(fset *token.FileSet, getPackages GetPackagesFunc, data []byte
 	}
 
 	// SetConstraint can't be called if the constraint type is not yet complete.
-	// When type params are created in the 'P' case of (*importReader).obj(),
+	// When type params are created in the typeParamTag case of (*importReader).obj(),
 	// the associated constraint type may not be complete due to recursion.
 	// Therefore, we defer calling SetConstraint there, and call it here instead
 	// after all types are complete.
@@ -546,25 +560,29 @@ func (r *importReader) obj(name string) {
 	pos := r.pos()
 
 	switch tag {
-	case 'A':
+	case aliasTag:
 		typ := r.typ()
+		// TODO(adonovan): support generic aliases:
+		// if tag == genericAliasTag {
+		// 	tparams := r.tparamList()
+		// 	alias.SetTypeParams(tparams)
+		// }
+		r.declare(aliases.NewAlias(pos, r.currPkg, name, typ))
 
-		r.declare(types.NewTypeName(pos, r.currPkg, name, typ))
-
-	case 'C':
+	case constTag:
 		typ, val := r.value()
 
 		r.declare(types.NewConst(pos, r.currPkg, name, typ, val))
 
-	case 'F', 'G':
+	case funcTag, genericFuncTag:
 		var tparams []*types.TypeParam
-		if tag == 'G' {
+		if tag == genericFuncTag {
 			tparams = r.tparamList()
 		}
 		sig := r.signature(nil, nil, tparams)
 		r.declare(types.NewFunc(pos, r.currPkg, name, sig))
 
-	case 'T', 'U':
+	case typeTag, genericTypeTag:
 		// Types can be recursive. We need to setup a stub
 		// declaration before recursing.
 		obj := types.NewTypeName(pos, r.currPkg, name, nil)
@@ -572,7 +590,7 @@ func (r *importReader) obj(name string) {
 		// Declare obj before calling r.tparamList, so the new type name is recognized
 		// if used in the constraint of one of its own typeparams (see #48280).
 		r.declare(obj)
-		if tag == 'U' {
+		if tag == genericTypeTag {
 			tparams := r.tparamList()
 			named.SetTypeParams(tparams)
 		}
@@ -604,7 +622,7 @@ func (r *importReader) obj(name string) {
 			}
 		}
 
-	case 'P':
+	case typeParamTag:
 		// We need to "declare" a typeparam in order to have a name that
 		// can be referenced recursively (if needed) in the type param's
 		// bound.
@@ -637,7 +655,7 @@ func (r *importReader) obj(name string) {
 		// completely set up all types in ImportData.
 		r.p.later = append(r.p.later, setConstraintArgs{t: t, constraint: constraint})
 
-	case 'V':
+	case varTag:
 		typ := r.typ()
 
 		r.declare(types.NewVar(pos, r.currPkg, name, typ))
@@ -854,7 +872,7 @@ func (r *importReader) doType(base *types.Named) (res types.Type) {
 		errorf("unexpected kind tag in %q: %v", r.p.ipath, k)
 		return nil
 
-	case definedType:
+	case aliasType, definedType:
 		pkg, name := r.qualifiedIdent()
 		r.p.doDecl(pkg, name)
 		return pkg.Scope().Lookup(name).(*types.TypeName).Type()

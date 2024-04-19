@@ -41,6 +41,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/directory"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/locker"
 	mountpk "github.com/containers/storage/pkg/mount"
@@ -243,7 +244,7 @@ func (a *Driver) Metadata(id string) (map[string]string, error) {
 // Exists returns true if the given id is registered with
 // this driver
 func (a *Driver) Exists(id string) bool {
-	if _, err := os.Lstat(path.Join(a.rootPath(), "layers", id)); err != nil {
+	if err := fileutils.Lexists(path.Join(a.rootPath(), "layers", id)); err != nil {
 		return false
 	}
 	return true
@@ -431,7 +432,7 @@ func atomicRemove(source string) error {
 	case err == nil, os.IsNotExist(err):
 	case os.IsExist(err):
 		// Got error saying the target dir already exists, maybe the source doesn't exist due to a previous (failed) remove
-		if _, e := os.Stat(source); !os.IsNotExist(e) {
+		if e := fileutils.Exists(source); !os.IsNotExist(e) {
 			return fmt.Errorf("target rename dir '%s' exists but should not, this needs to be manually cleaned up: %w", target, err)
 		}
 	default:

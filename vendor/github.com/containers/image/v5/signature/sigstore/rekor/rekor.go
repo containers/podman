@@ -17,7 +17,6 @@ import (
 	"github.com/containers/image/v5/signature/internal"
 	signerInternal "github.com/containers/image/v5/signature/sigstore/internal"
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 	rekor "github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/rekor/pkg/generated/client/entries"
@@ -114,17 +113,22 @@ func (u *uploader) uploadEntry(ctx context.Context, proposedEntry models.Propose
 	return resp.GetPayload(), nil
 }
 
+// stringPtr returns a pointer to the provided string value.
+func stringPtr(s string) *string {
+	return &s
+}
+
 // uploadKeyOrCert integrates this code into sigstore/internal.Signer.
 // Given components of the created signature, it returns a SET that should be added to the signature.
 func (u *uploader) uploadKeyOrCert(ctx context.Context, keyOrCertBytes []byte, signatureBytes []byte, payloadBytes []byte) ([]byte, error) {
 	payloadHash := sha256.Sum256(payloadBytes) // HashedRecord only accepts SHA-256
 	proposedEntry := models.Hashedrekord{
-		APIVersion: swag.String(internal.HashedRekordV001APIVersion),
+		APIVersion: stringPtr(internal.HashedRekordV001APIVersion),
 		Spec: models.HashedrekordV001Schema{
 			Data: &models.HashedrekordV001SchemaData{
 				Hash: &models.HashedrekordV001SchemaDataHash{
-					Algorithm: swag.String(models.HashedrekordV001SchemaDataHashAlgorithmSha256),
-					Value:     swag.String(hex.EncodeToString(payloadHash[:])),
+					Algorithm: stringPtr(models.HashedrekordV001SchemaDataHashAlgorithmSha256),
+					Value:     stringPtr(hex.EncodeToString(payloadHash[:])),
 				},
 			},
 			Signature: &models.HashedrekordV001SchemaSignature{

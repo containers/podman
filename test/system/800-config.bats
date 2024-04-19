@@ -107,7 +107,7 @@ See 'podman create --help'" "--module must be specified before the command"
     # Nonexistent module path with comma
     nonesuch=${PODMAN_TMPDIR}/nonexistent,withcomma
     run_podman 1 --module=$nonesuch sdfsdfdsf
-    is "$output" "Failed to obtain podman configuration: could not resolve module \"$nonesuch\": stat $nonesuch: no such file or directory" \
+    is "$output" "Failed to obtain podman configuration: could not resolve module \"$nonesuch\": faccessat $nonesuch: no such file or directory" \
        "--module=ENOENT"
 }
 
@@ -188,7 +188,7 @@ EOF
     XDG_CONFIG_HOME=$fake_home run_podman 1 --module=$nonesuch invalid-command
     expect="Failed to obtain podman configuration: could not resolve module \"$nonesuch\": 3 errors occurred:"
     for dir in $fake_home /etc /usr/share;do
-        expect+=$'\n\t'"* stat $dir/containers/containers.conf.modules/$nonesuch: no such file or directory"
+        expect+=$'\n\t'"* faccessat $dir/containers/containers.conf.modules/$nonesuch: no such file or directory"
     done
     is "$output" "$expect" "--module=ENOENT : error message"
 }

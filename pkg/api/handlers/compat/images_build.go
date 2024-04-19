@@ -27,6 +27,7 @@ import (
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -248,9 +249,9 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		containerFiles = []string{filepath.Join(contextDirectory, "Dockerfile")}
 		if utils.IsLibpodRequest(r) {
 			containerFiles = []string{filepath.Join(contextDirectory, "Containerfile")}
-			if _, err = os.Stat(containerFiles[0]); err != nil {
+			if err = fileutils.Exists(containerFiles[0]); err != nil {
 				containerFiles = []string{filepath.Join(contextDirectory, "Dockerfile")}
-				if _, err1 := os.Stat(containerFiles[0]); err1 != nil {
+				if err1 := fileutils.Exists(containerFiles[0]); err1 != nil {
 					utils.BadRequest(w, "dockerfile", query.Dockerfile, err)
 					return
 				}

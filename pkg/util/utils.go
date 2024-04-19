@@ -25,6 +25,7 @@ import (
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/podman/v5/pkg/signal"
 	"github.com/containers/storage/pkg/directory"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/unshare"
 	stypes "github.com/containers/storage/types"
@@ -97,14 +98,14 @@ func ParseDockerignore(containerfiles []string, root string) ([]string, string, 
 		if dockerIgnoreErr != nil {
 			for _, containerfile := range containerfiles {
 				containerfile = strings.TrimPrefix(containerfile, root)
-				if _, err := os.Stat(filepath.Join(root, containerfile+".containerignore")); err == nil {
+				if err := fileutils.Exists(filepath.Join(root, containerfile+".containerignore")); err == nil {
 					path, symlinkErr = securejoin.SecureJoin(root, containerfile+".containerignore")
 					if symlinkErr == nil {
 						ignoreFile = path
 						ignore, dockerIgnoreErr = os.ReadFile(path)
 					}
 				}
-				if _, err := os.Stat(filepath.Join(root, containerfile+".dockerignore")); err == nil {
+				if err := fileutils.Exists(filepath.Join(root, containerfile+".dockerignore")); err == nil {
 					path, symlinkErr = securejoin.SecureJoin(root, containerfile+".dockerignore")
 					if symlinkErr == nil {
 						ignoreFile = path
@@ -1140,7 +1141,7 @@ func ParseInputTime(inputTime string, since bool) (time.Time, error) {
 func OpenExclusiveFile(path string) (*os.File, error) {
 	baseDir := filepath.Dir(path)
 	if baseDir != "" {
-		if _, err := os.Stat(baseDir); err != nil {
+		if err := fileutils.Exists(baseDir); err != nil {
 			return nil, err
 		}
 	}

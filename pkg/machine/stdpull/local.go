@@ -1,10 +1,9 @@
 package stdpull
 
 import (
-	"os"
-
 	"github.com/containers/podman/v5/pkg/machine/compression"
 	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,7 +21,7 @@ func NewStdDiskPull(inputPath string, finalpath *define.VMFile) (*StdDiskPull, e
 }
 
 func (s *StdDiskPull) Get() error {
-	if _, err := os.Stat(s.inputPath.GetPath()); err != nil {
+	if err := fileutils.Exists(s.inputPath.GetPath()); err != nil {
 		// could not find disk
 		return err
 	}

@@ -20,9 +20,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"encoding/asn1"
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
@@ -190,8 +192,23 @@ func (e ECDSAVerifier) VerifySignature(signature, message io.Reader, opts ...Ver
 		return fmt.Errorf("invalid ECDSA public key for %s", e.publicKey.Params().Name)
 	}
 
-	if !ecdsa.VerifyASN1(e.publicKey, digest, sigBytes) {
-		return errors.New("invalid signature when validating ASN.1 encoded signature")
+	asnParseTest := struct {
+		R, S *big.Int
+	}{}
+	if _, err := asn1.Unmarshal(sigBytes, &asnParseTest); err == nil {
+		if !ecdsa.VerifyASN1(e.publicKey, digest, sigBytes) {
+			return errors.New("invalid signature when validating ASN.1 encoded signature")
+		}
+	} else {
+		// deal with IEEE P1363 encoding of signatures
+		if len(sigBytes) == 0 || len(sigBytes) > 132 || len(sigBytes)%2 != 0 {
+			return errors.New("ecdsa: Invalid IEEE_P1363 encoded bytes")
+		}
+		r := new(big.Int).SetBytes(sigBytes[:len(sigBytes)/2])
+		s := new(big.Int).SetBytes(sigBytes[len(sigBytes)/2:])
+		if !ecdsa.Verify(e.publicKey, digest, r, s) {
+			return errors.New("invalid signature when validating IEEE_P1363 encoded signature")
+		}
 	}
 
 	return nil

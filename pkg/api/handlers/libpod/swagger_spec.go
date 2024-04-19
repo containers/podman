@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
+	"github.com/containers/storage/pkg/fileutils"
 )
 
 // DefaultPodmanSwaggerSpec provides the default path to the podman swagger spec file
@@ -17,7 +18,7 @@ func ServeSwagger(w http.ResponseWriter, r *http.Request) {
 	if p, found := os.LookupEnv("PODMAN_SWAGGER_SPEC"); found {
 		path = p
 	}
-	if _, err := os.Stat(path); err != nil {
+	if err := fileutils.Exists(path); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			utils.InternalServerError(w, fmt.Errorf("swagger spec %q does not exist", path))
 			return

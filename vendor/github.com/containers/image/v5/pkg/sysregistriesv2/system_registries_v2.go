@@ -13,6 +13,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/regexp"
 	"github.com/sirupsen/logrus"
@@ -564,7 +565,7 @@ func newConfigWrapperWithHomeDir(ctx *types.SystemContext, homeDir string) confi
 	// decide configPath using per-user path or system file
 	if ctx != nil && ctx.SystemRegistriesConfPath != "" {
 		wrapper.configPath = ctx.SystemRegistriesConfPath
-	} else if _, err := os.Stat(userRegistriesFilePath); err == nil {
+	} else if err := fileutils.Exists(userRegistriesFilePath); err == nil {
 		// per-user registries.conf exists, not reading system dir
 		// return config dirs from ctx or per-user one
 		wrapper.configPath = userRegistriesFilePath

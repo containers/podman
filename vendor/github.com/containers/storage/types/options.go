@@ -11,6 +11,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	cfg "github.com/containers/storage/pkg/config"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/unshare"
@@ -76,7 +77,7 @@ func loadDefaultStoreOptions() {
 
 	if path, ok := os.LookupEnv("XDG_CONFIG_HOME"); ok {
 		homeConfigFile := filepath.Join(path, "containers", "storage.conf")
-		if _, err := os.Stat(homeConfigFile); err == nil {
+		if err := fileutils.Exists(homeConfigFile); err == nil {
 			// user storage.conf in XDG_CONFIG_HOME if it exists
 			defaultOverrideConfigFile = homeConfigFile
 		} else {
@@ -87,7 +88,7 @@ func loadDefaultStoreOptions() {
 		}
 	}
 
-	_, err := os.Stat(defaultOverrideConfigFile)
+	err := fileutils.Exists(defaultOverrideConfigFile)
 	if err == nil {
 		// The DefaultConfigFile() function returns the path
 		// of the used storage.conf file, by returning defaultConfigFile
@@ -150,7 +151,7 @@ func loadStoreOptionsFromConfFile(storageConf string) (StoreOptions, error) {
 			return storageOpts, err
 		}
 	}
-	_, err = os.Stat(storageConf)
+	err = fileutils.Exists(storageConf)
 	if err != nil && !os.IsNotExist(err) {
 		return storageOpts, err
 	}

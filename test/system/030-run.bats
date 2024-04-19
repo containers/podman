@@ -1339,7 +1339,7 @@ search               | $IMAGE           |
         if [[ "$args" = "''" ]]; then args=;fi
 
         run_podman 125 $command --authfile=$bogus $args
-        assert "$output" = "Error: credential file is not accessible: stat $bogus: no such file or directory" \
+        assert "$output" = "Error: credential file is not accessible: faccessat $bogus: no such file or directory" \
            "$command --authfile=nonexistent-path"
 
         if [[ "$command" != "logout" ]]; then

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"os"
 	"strings"
 
 	"github.com/containers/common/libnetwork/types"
@@ -13,6 +12,7 @@ import (
 	"github.com/containers/podman/v5/pkg/namespaces"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/podman/v5/pkg/util"
+	"github.com/containers/storage/pkg/fileutils"
 	storageTypes "github.com/containers/storage/types"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -483,7 +483,7 @@ func SetupUserNS(idmappings *storageTypes.IDMappingOptions, userns Namespace, g 
 	var user string
 	switch userns.NSMode {
 	case Path:
-		if _, err := os.Stat(userns.Value); err != nil {
+		if err := fileutils.Exists(userns.Value); err != nil {
 			return user, fmt.Errorf("cannot find specified user namespace path: %w", err)
 		}
 		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), userns.Value); err != nil {

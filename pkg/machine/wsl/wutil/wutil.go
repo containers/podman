@@ -12,6 +12,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/containers/storage/pkg/fileutils"
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"
 )
@@ -42,7 +43,7 @@ func FindWSL() string {
 		locs = append(locs, filepath.Join(root, "System32", "wsl.exe"))
 
 		for _, loc := range locs {
-			if _, err := os.Stat(loc); err == nil {
+			if err := fileutils.Exists(loc); err == nil {
 				wslPath = loc
 				return
 			}

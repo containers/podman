@@ -16,6 +16,8 @@ BUILDFLAGS := -tags "$(BUILDTAGS)"
 BUILDAH := buildah
 SELINUXOPT ?= $(shell test -x /usr/sbin/selinuxenabled && selinuxenabled && echo -Z)
 SELINUXTYPE=container_runtime_exec_t
+AS ?= as
+STRIP ?= strip
 
 GO := go
 GO_LDFLAGS := $(shell if $(GO) version|grep -q gccgo; then echo "-gccgoflags"; else echo "-ldflags"; fi)
@@ -79,14 +81,14 @@ bin/buildah: $(SOURCES) cmd/buildah/*.go internal/mkcw/embed/entrypoint_amd64.gz
 	$(GO_BUILD) $(BUILDAH_LDFLAGS) $(GO_GCFLAGS) "$(GOGCFLAGS)" -o $@ $(BUILDFLAGS) ./cmd/buildah
 	test -z "${SELINUXOPT}" || chcon --verbose -t $(SELINUXTYPE) $@
 
-ifneq ($(shell as --version | grep x86_64),)
+ifneq ($(shell $(AS) --version | grep x86_64),)
 internal/mkcw/embed/entrypoint_amd64.gz: internal/mkcw/embed/entrypoint_amd64
 	gzip -k9nf $^
 
 internal/mkcw/embed/entrypoint_amd64: internal/mkcw/embed/entrypoint_amd64.s
 	$(AS) -o $(patsubst %.s,%.o,$^) $^
 	$(LD) -o $@ $(patsubst %.s,%.o,$^)
-	strip $@
+	$(STRIP) $@
 endif
 
 

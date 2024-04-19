@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/containers/storage/pkg/fileutils"
 	units "github.com/docker/go-units"
 	"tags.cncf.io/container-device-interface/pkg/parser"
 )
@@ -83,7 +84,7 @@ func (c *ContainersConfig) validateTZ() error {
 
 	for _, paths := range lookupPaths {
 		zonePath := filepath.Join(paths, c.TZ)
-		if _, err := os.Stat(zonePath); err == nil {
+		if err := fileutils.Exists(zonePath); err == nil {
 			// found zone information
 			return nil
 		}

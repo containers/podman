@@ -17,6 +17,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/unshare"
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/godbus/dbus/v5"
@@ -367,7 +368,7 @@ func Load(path string) (*CgroupControl, error) {
 		// check that the cgroup exists at least under one controller
 		for name := range handlers {
 			p := control.getCgroupv1Path(name)
-			if _, err := os.Stat(p); err == nil {
+			if err := fileutils.Exists(p); err == nil {
 				oneExists = true
 				break
 			}
@@ -575,7 +576,7 @@ func readCgroup2MapFile(ctr *CgroupControl, name string) (map[string][]string, e
 
 func (c *CgroupControl) createCgroupDirectory(controller string) (bool, error) {
 	cPath := c.getCgroupv1Path(controller)
-	_, err := os.Stat(cPath)
+	err := fileutils.Exists(cPath)
 	if err == nil {
 		return false, nil
 	}

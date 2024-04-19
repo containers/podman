@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"os"
 	"strings"
 	"syscall"
 	"time"
@@ -23,6 +22,7 @@ import (
 	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/regexp"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -268,7 +268,7 @@ func WithStaticDir(dir string) RuntimeOption {
 func WithRegistriesConf(path string) RuntimeOption {
 	logrus.Debugf("Setting custom registries.conf: %q", path)
 	return func(rt *Runtime) error {
-		if _, err := os.Stat(path); err != nil {
+		if err := fileutils.Exists(path); err != nil {
 			return fmt.Errorf("locating specified registries.conf: %w", err)
 		}
 		if rt.imageContext == nil {
@@ -1329,7 +1329,7 @@ func WithRootFS(rootfs string, overlay bool, mapping *string) CtrCreateOption {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
-		if _, err := os.Stat(rootfs); err != nil {
+		if err := fileutils.Exists(rootfs); err != nil {
 			return err
 		}
 		ctr.config.Rootfs = rootfs

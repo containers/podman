@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/containers/storage/pkg/fileutils"
 )
 
 // ResolvePathToFullyExplicit returns the input path converted to an absolute, no-symlinks, cleaned up path.
@@ -11,7 +13,7 @@ import (
 // a non-existent name (but not a symlink pointing to a non-existent name)
 // This is intended as a helper for implementations of types.ImageReference.PolicyConfigurationIdentity etc.
 func ResolvePathToFullyExplicit(path string) (string, error) {
-	switch _, err := os.Lstat(path); {
+	switch err := fileutils.Lexists(path); {
 	case err == nil:
 		return resolveExistingPathToFullyExplicit(path)
 	case os.IsNotExist(err):

@@ -14,6 +14,7 @@ import (
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/podman/v5/pkg/util"
+	"github.com/containers/storage/pkg/fileutils"
 
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -133,7 +134,7 @@ func addDevice(g *generate.Generator, device string) error {
 		return fmt.Errorf("%s is not a valid device: %w", src, err)
 	}
 	if rootless.IsRootless() {
-		if _, err := os.Stat(src); err != nil {
+		if err := fileutils.Exists(src); err != nil {
 			return err
 		}
 		perm := "ro"

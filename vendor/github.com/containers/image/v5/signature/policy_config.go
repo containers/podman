@@ -24,6 +24,7 @@ import (
 	"github.com/containers/image/v5/signature/internal"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/regexp"
 )
@@ -65,7 +66,7 @@ func defaultPolicyPathWithHomeDir(sys *types.SystemContext, homeDir string) stri
 		return sys.SignaturePolicyPath
 	}
 	userPolicyFilePath := filepath.Join(homeDir, userPolicyFile)
-	if _, err := os.Stat(userPolicyFilePath); err == nil {
+	if err := fileutils.Exists(userPolicyFilePath); err == nil {
 		return userPolicyFilePath
 	}
 	if sys != nil && sys.RootForImplicitAbsolutePaths != "" {

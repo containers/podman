@@ -71,7 +71,7 @@ var _ = Describe("Podman healthcheck run", func() {
 		hc := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Config.Healthcheck}}", "hc"})
 		hc.WaitWithDefaultTimeout()
 		Expect(hc).Should(ExitCleanly())
-		Expect(hc.OutputToString()).To(Equal("{[CMD-SHELL curl -f http://localhost/ || exit 1] 0s 5m0s 3s 0}"))
+		Expect(hc.OutputToString()).To(Equal("{[CMD-SHELL curl -f http://localhost/ || exit 1] 0s 0s 5m0s 3s 0}"))
 	})
 
 	It("podman disable healthcheck with --health-cmd=none on valid container", func() {

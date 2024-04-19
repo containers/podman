@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/pools"
 	"github.com/containers/storage/pkg/system"
@@ -84,7 +85,7 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 			parent := filepath.Dir(hdr.Name)
 			parentPath := filepath.Join(dest, parent)
 
-			if _, err := os.Lstat(parentPath); err != nil && os.IsNotExist(err) {
+			if err := fileutils.Lexists(parentPath); err != nil && os.IsNotExist(err) {
 				err = os.MkdirAll(parentPath, 0o755)
 				if err != nil {
 					return 0, err
@@ -130,7 +131,7 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 		if strings.HasPrefix(base, WhiteoutPrefix) {
 			dir := filepath.Dir(path)
 			if base == WhiteoutOpaqueDir {
-				_, err := os.Lstat(dir)
+				err := fileutils.Lexists(dir)
 				if err != nil {
 					return 0, err
 				}

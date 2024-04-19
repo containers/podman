@@ -13,6 +13,7 @@ import (
 	"unicode/utf16"
 	"unsafe"
 
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/windows"
@@ -225,7 +226,7 @@ func reboot() error {
 	}
 
 	command := fmt.Sprintf(pShellLaunch, commFile)
-	if _, err := os.Lstat(filepath.Join(os.Getenv(localAppData), wtLocation)); err == nil {
+	if err := fileutils.Lexists(filepath.Join(os.Getenv(localAppData), wtLocation)); err == nil {
 		wtCommand := wtPrefix + command
 		// RunOnce is limited to 260 chars (supposedly no longer in Builds >= 19489)
 		// For now fallback in cases of long usernames (>89 chars)

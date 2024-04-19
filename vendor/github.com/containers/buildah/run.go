@@ -147,14 +147,15 @@ type RunOptions struct {
 	// after processing the AddCapabilities set.  If a capability appears in both
 	// lists, it will be dropped.
 	DropCapabilities []string
-	// Devices are the additional devices to add to the containers
+	// Devices are parsed additional devices to add
 	Devices define.ContainerDevices
-	// Secrets are the available secrets to use in a RUN
+	// DeviceSpecs are unparsed additional devices to add
+	DeviceSpecs []string
+	// Secrets are the available secrets to use
 	Secrets map[string]define.Secret
-	// SSHSources is the available ssh agents to use in a RUN
+	// SSHSources is the available ssh agents to use
 	SSHSources map[string]*sshagent.Source `json:"-"`
-	// RunMounts are mounts for this run. RunMounts for this run
-	// will not show up in subsequent runs.
+	// RunMounts are unparsed mounts to be added for this run
 	RunMounts []string
 	// Map of stages and container mountpoint if any from stage executor
 	StageMountPoints map[string]internal.StageMountDetails
@@ -166,6 +167,9 @@ type RunOptions struct {
 	SystemContext *types.SystemContext
 	// CgroupManager to use for running OCI containers
 	CgroupManager string
+	// CDIConfigDir is the location of CDI configuration files, if the files in
+	// the default configuration locations shouldn't be used.
+	CDIConfigDir string
 }
 
 // RunMountArtifacts are the artifacts created when using a run mount.

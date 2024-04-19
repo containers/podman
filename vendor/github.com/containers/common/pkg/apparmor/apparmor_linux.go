@@ -16,6 +16,7 @@ import (
 	"text/template"
 
 	"github.com/containers/common/pkg/apparmor/internal/supported"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/unshare"
 	runcaa "github.com/opencontainers/runc/libcontainer/apparmor"
 	"github.com/sirupsen/logrus"
@@ -75,7 +76,7 @@ func (p *profileData) generateDefault(apparmorParserPath string, out io.Writer) 
 
 // macrosExists checks if the passed macro exists.
 func macroExists(m string) bool {
-	_, err := os.Stat(path.Join(profileDirectory, m))
+	err := fileutils.Exists(path.Join(profileDirectory, m))
 	return err == nil
 }
 

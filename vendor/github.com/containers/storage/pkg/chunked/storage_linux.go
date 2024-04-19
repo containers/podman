@@ -58,6 +58,21 @@ const (
 	copyGoRoutines = 32
 )
 
+// fileMetadata is a wrapper around internal.FileMetadata with additional private fields that
+// are not part of the TOC document.
+// Type: TypeChunk entries are stored in Chunks, the primary [fileMetadata] entries never use TypeChunk.
+type fileMetadata struct {
+	internal.FileMetadata
+
+	// chunks stores the TypeChunk entries relevant to this entry when FileMetadata.Type == TypeReg.
+	chunks []*internal.FileMetadata
+
+	// skipSetAttrs is set when the file attributes must not be
+	// modified, e.g. it is a hard link from a different source,
+	// or a composefs file.
+	skipSetAttrs bool
+}
+
 type compressedFileType int
 
 type chunkedDiffer struct {
@@ -138,7 +153,8 @@ func doHardLink(srcFd int, destDirFd int, destBase string) error {
 	return err
 }
 
-func copyFileContent(srcFd int, destFile string, dirfd int, mode os.FileMode, useHardLinks bool) (*os.File, int64, error) {
+func copyFileContent(srcFd int, fileMetadata *fileMetadata, dirfd int, mode os.FileMode, useHardLinks bool) (*os.File, int64, error) {
+	destFile := fileMetadata.Name
 	src := fmt.Sprintf("/proc/self/fd/%d", srcFd)
 	st, err := os.Stat(src)
 	if err != nil {
@@ -156,6 +172,8 @@ func copyFileContent(srcFd int, destFile string, dirfd int, mode os.FileMode, us
 
 			err := doHardLink(srcFd, int(destDir.Fd()), destBase)
 			if err == nil {
+				// if the file was deduplicated with a hard link, skip overriding file metadata.
+				fileMetadata.skipSetAttrs = true
 				return nil, st.Size(), nil
 			}
 		}
@@ -354,7 +372,7 @@ func makeCopyBuffer() []byte {
 // name is the path to the file to copy in source.
 // dirfd is an open file descriptor to the destination root directory.
 // useHardLinks defines whether the deduplication can be performed using hard links.
-func copyFileFromOtherLayer(file *internal.FileMetadata, source string, name string, dirfd int, useHardLinks bool) (bool, *os.File, int64, error) {
+func copyFileFromOtherLayer(file *fileMetadata, source string, name string, dirfd int, useHardLinks bool) (bool, *os.File, int64, error) {
 	srcDirfd, err := unix.Open(source, unix.O_RDONLY, 0)
 	if err != nil {
 		return false, nil, 0, fmt.Errorf("open source file: %w", err)
@@ -367,7 +385,7 @@ func copyFileFromOtherLayer(file *internal.FileMetadata, source string, name str
 	}
 	defer srcFile.Close()
 
-	dstFile, written, err := copyFileContent(int(srcFile.Fd()), file.Name, dirfd, 0, useHardLinks)
+	dstFile, written, err := copyFileContent(int(srcFile.Fd()), file, dirfd, 0, useHardLinks)
 	if err != nil {
 		return false, nil, 0, fmt.Errorf("copy content to %q: %w", file.Name, err)
 	}
@@ -376,7 +394,7 @@ func copyFileFromOtherLayer(file *internal.FileMetadata, source string, name str
 
 // canDedupMetadataWithHardLink says whether it is possible to deduplicate file with otherFile.
 // It checks that the two files have the same UID, GID, file mode and xattrs.
-func canDedupMetadataWithHardLink(file *internal.FileMetadata, otherFile *internal.FileMetadata) bool {
+func canDedupMetadataWithHardLink(file *fileMetadata, otherFile *fileMetadata) bool {
 	if file.UID != otherFile.UID {
 		return false
 	}
@@ -394,7 +412,7 @@ func canDedupMetadataWithHardLink(file *internal.FileMetadata, otherFile *intern
 
 // canDedupFileWithHardLink checks if the specified file can be deduplicated by an
 // open file, given its descriptor and stat data.
-func canDedupFileWithHardLink(file *internal.FileMetadata, fd int, s os.FileInfo) bool {
+func canDedupFileWithHardLink(file *fileMetadata, fd int, s os.FileInfo) bool {
 	st, ok := s.Sys().(*syscall.Stat_t)
 	if !ok {
 		return false
@@ -420,11 +438,13 @@ func canDedupFileWithHardLink(file *internal.FileMetadata, fd int, s os.FileInfo
 		xattrs[x] = string(v)
 	}
 	// fill only the attributes used by canDedupMetadataWithHardLink.
-	otherFile := internal.FileMetadata{
-		UID:    int(st.Uid),
-		GID:    int(st.Gid),
-		Mode:   int64(st.Mode),
-		Xattrs: xattrs,
+	otherFile := fileMetadata{
+		FileMetadata: internal.FileMetadata{
+			UID:    int(st.Uid),
+			GID:    int(st.Gid),
+			Mode:   int64(st.Mode),
+			Xattrs: xattrs,
+		},
 	}
 	return canDedupMetadataWithHardLink(file, &otherFile)
 }
@@ -434,7 +454,7 @@ func canDedupFileWithHardLink(file *internal.FileMetadata, fd int, s os.FileInfo
 // ostreeRepos is a list of OSTree repos.
 // dirfd is an open fd to the destination checkout.
 // useHardLinks defines whether the deduplication can be performed using hard links.
-func findFileInOSTreeRepos(file *internal.FileMetadata, ostreeRepos []string, dirfd int, useHardLinks bool) (bool, *os.File, int64, error) {
+func findFileInOSTreeRepos(file *fileMetadata, ostreeRepos []string, dirfd int, useHardLinks bool) (bool, *os.File, int64, error) {
 	digest, err := digest.Parse(file.Digest)
 	if err != nil {
 		logrus.Debugf("could not parse digest: %v", err)
@@ -467,7 +487,7 @@ func findFileInOSTreeRepos(file *internal.FileMetadata, ostreeRepos []string, di
 			continue
 		}
 
-		dstFile, written, err := copyFileContent(fd, file.Name, dirfd, 0, useHardLinks)
+		dstFile, written, err := copyFileContent(fd, file, dirfd, 0, useHardLinks)
 		if err != nil {
 			logrus.Debugf("could not copyFileContent: %v", err)
 			return false, nil, 0, nil
@@ -487,7 +507,7 @@ func findFileInOSTreeRepos(file *internal.FileMetadata, ostreeRepos []string, di
 // file is the file to look for.
 // dirfd is an open file descriptor to the checkout root directory.
 // useHardLinks defines whether the deduplication can be performed using hard links.
-func findFileInOtherLayers(cache *layersCache, file *internal.FileMetadata, dirfd int, useHardLinks bool) (bool, *os.File, int64, error) {
+func findFileInOtherLayers(cache *layersCache, file *fileMetadata, dirfd int, useHardLinks bool) (bool, *os.File, int64, error) {
 	target, name, err := cache.findFileInOtherLayers(file, useHardLinks)
 	if err != nil || name == "" {
 		return false, nil, 0, err
@@ -495,7 +515,7 @@ func findFileInOtherLayers(cache *layersCache, file *internal.FileMetadata, dirf
 	return copyFileFromOtherLayer(file, target, name, dirfd, useHardLinks)
 }
 
-func maybeDoIDRemap(manifest []internal.FileMetadata, options *archive.TarOptions) error {
+func maybeDoIDRemap(manifest []fileMetadata, options *archive.TarOptions) error {
 	if options.ChownOpts == nil && len(options.UIDMaps) == 0 || len(options.GIDMaps) == 0 {
 		return nil
 	}
@@ -529,7 +549,7 @@ func mapToSlice(inputMap map[uint32]struct{}) []uint32 {
 	return out
 }
 
-func collectIDs(entries []internal.FileMetadata) ([]uint32, []uint32) {
+func collectIDs(entries []fileMetadata) ([]uint32, []uint32) {
 	uids := make(map[uint32]struct{})
 	gids := make(map[uint32]struct{})
 	for _, entry := range entries {
@@ -549,7 +569,7 @@ type missingFileChunk struct {
 	Gap  int64
 	Hole bool
 
-	File *internal.FileMetadata
+	File *fileMetadata
 
 	CompressedSize   int64
 	UncompressedSize int64
@@ -582,7 +602,10 @@ func (o *originFile) OpenFile() (io.ReadCloser, error) {
 }
 
 // setFileAttrs sets the file attributes for file given metadata
-func setFileAttrs(dirfd int, file *os.File, mode os.FileMode, metadata *internal.FileMetadata, options *archive.TarOptions, usePath bool) error {
+func setFileAttrs(dirfd int, file *os.File, mode os.FileMode, metadata *fileMetadata, options *archive.TarOptions, usePath bool) error {
+	if metadata.skipSetAttrs {
+		return nil
+	}
 	if file == nil || file.Fd() < 0 {
 		return errors.New("invalid file")
 	}
@@ -944,14 +967,14 @@ type destinationFile struct {
 	dirfd          int
 	file           *os.File
 	hash           hash.Hash
-	metadata       *internal.FileMetadata
+	metadata       *fileMetadata
 	options        *archive.TarOptions
 	skipValidation bool
 	to             io.Writer
 	recordFsVerity recordFsVerityFunc
 }
 
-func openDestinationFile(dirfd int, metadata *internal.FileMetadata, options *archive.TarOptions, skipValidation bool, recordFsVerity recordFsVerityFunc) (*destinationFile, error) {
+func openDestinationFile(dirfd int, metadata *fileMetadata, options *archive.TarOptions, skipValidation bool, recordFsVerity recordFsVerityFunc) (*destinationFile, error) {
 	file, err := openFileUnderRoot(metadata.Name, dirfd, newFileFlags, 0)
 	if err != nil {
 		return nil, err
@@ -1314,7 +1337,7 @@ func (c *chunkedDiffer) retrieveMissingFiles(stream ImageSourceSeekable, dest st
 	return nil
 }
 
-func safeMkdir(dirfd int, mode os.FileMode, name string, metadata *internal.FileMetadata, options *archive.TarOptions) error {
+func safeMkdir(dirfd int, mode os.FileMode, name string, metadata *fileMetadata, options *archive.TarOptions) error {
 	parent := filepath.Dir(name)
 	base := filepath.Base(name)
 
@@ -1343,7 +1366,7 @@ func safeMkdir(dirfd int, mode os.FileMode, name string, metadata *internal.File
 	return setFileAttrs(dirfd, file, mode, metadata, options, false)
 }
 
-func safeLink(dirfd int, mode os.FileMode, metadata *internal.FileMetadata, options *archive.TarOptions) error {
+func safeLink(dirfd int, mode os.FileMode, metadata *fileMetadata, options *archive.TarOptions) error {
 	sourceFile, err := openFileUnderRoot(metadata.Linkname, dirfd, unix.O_PATH|unix.O_RDONLY|unix.O_NOFOLLOW, 0)
 	if err != nil {
 		return err
@@ -1385,7 +1408,7 @@ func safeLink(dirfd int, mode os.FileMode, metadata *internal.FileMetadata, opti
 	return setFileAttrs(dirfd, newFile, mode, metadata, options, false)
 }
 
-func safeSymlink(dirfd int, mode os.FileMode, metadata *internal.FileMetadata, options *archive.TarOptions) error {
+func safeSymlink(dirfd int, mode os.FileMode, metadata *fileMetadata, options *archive.TarOptions) error {
 	destDir, destBase := filepath.Dir(metadata.Name), filepath.Base(metadata.Name)
 	destDirFd := dirfd
 	if destDir != "." {
@@ -1473,7 +1496,7 @@ type hardLinkToCreate struct {
 	dest     string
 	dirfd    int
 	mode     os.FileMode
-	metadata *internal.FileMetadata
+	metadata *fileMetadata
 }
 
 func parseBooleanPullOption(storeOpts *storage.StoreOptions, name string, def bool) bool {
@@ -1498,7 +1521,7 @@ func reopenFileReadOnly(f *os.File) (*os.File, error) {
 	return os.NewFile(uintptr(fd), f.Name()), nil
 }
 
-func (c *chunkedDiffer) findAndCopyFile(dirfd int, r *internal.FileMetadata, copyOptions *findAndCopyFileOptions, mode os.FileMode) (bool, error) {
+func (c *chunkedDiffer) findAndCopyFile(dirfd int, r *fileMetadata, copyOptions *findAndCopyFileOptions, mode os.FileMode) (bool, error) {
 	finalizeFile := func(dstFile *os.File) error {
 		if dstFile == nil {
 			return nil
@@ -1549,8 +1572,8 @@ func (c *chunkedDiffer) findAndCopyFile(dirfd int, r *internal.FileMetadata, cop
 	return false, nil
 }
 
-func makeEntriesFlat(mergedEntries []internal.FileMetadata) ([]internal.FileMetadata, error) {
-	var new []internal.FileMetadata
+func makeEntriesFlat(mergedEntries []fileMetadata) ([]fileMetadata, error) {
+	var new []fileMetadata
 
 	hashes := make(map[string]string)
 	for i := range mergedEntries {
@@ -1572,6 +1595,7 @@ func makeEntriesFlat(mergedEntries []internal.FileMetadata) ([]internal.FileMeta
 		hashes[d] = d
 
 		mergedEntries[i].Name = fmt.Sprintf("%s/%s", d[0:2], d[2:])
+		mergedEntries[i].skipSetAttrs = true
 
 		new = append(new, mergedEntries[i])
 	}
@@ -1729,13 +1753,12 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 
 	var missingParts []missingPart
 
-	output.UIDs, output.GIDs = collectIDs(toc.Entries)
-
 	mergedEntries, totalSize, err := c.mergeTocEntries(c.fileType, toc.Entries)
 	if err != nil {
 		return output, err
 	}
 
+	output.UIDs, output.GIDs = collectIDs(mergedEntries)
 	output.Size = totalSize
 
 	if err := maybeDoIDRemap(mergedEntries, options); err != nil {
@@ -1789,7 +1812,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		njob     int
 		index    int
 		mode     os.FileMode
-		metadata *internal.FileMetadata
+		metadata *fileMetadata
 
 		found bool
 		err   error
@@ -1961,7 +1984,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		remainingSize := r.Size
 
 		// the file is missing, attempt to find individual chunks.
-		for _, chunk := range r.Chunks {
+		for _, chunk := range r.chunks {
 			compressedSize := int64(chunk.EndOffset - chunk.Offset)
 			size := remainingSize
 			if chunk.ChunkSize > 0 {
@@ -2045,7 +2068,7 @@ func mustSkipFile(fileType compressedFileType, e internal.FileMetadata) bool {
 	return false
 }
 
-func (c *chunkedDiffer) mergeTocEntries(fileType compressedFileType, entries []internal.FileMetadata) ([]internal.FileMetadata, int64, error) {
+func (c *chunkedDiffer) mergeTocEntries(fileType compressedFileType, entries []internal.FileMetadata) ([]fileMetadata, int64, error) {
 	var totalFilesSize int64
 
 	countNextChunks := func(start int) int {
@@ -2069,11 +2092,11 @@ func (c *chunkedDiffer) mergeTocEntries(fileType compressedFileType, entries []i
 		}
 	}
 
-	mergedEntries := make([]internal.FileMetadata, size)
+	mergedEntries := make([]fileMetadata, size)
 	m := 0
 	for i := 0; i < len(entries); i++ {
-		e := entries[i]
-		if mustSkipFile(fileType, e) {
+		e := fileMetadata{FileMetadata: entries[i]}
+		if mustSkipFile(fileType, entries[i]) {
 			continue
 		}
 
@@ -2086,12 +2109,12 @@ func (c *chunkedDiffer) mergeTocEntries(fileType compressedFileType, entries []i
 		if e.Type == TypeReg {
 			nChunks := countNextChunks(i + 1)
 
-			e.Chunks = make([]*internal.FileMetadata, nChunks+1)
+			e.chunks = make([]*internal.FileMetadata, nChunks+1)
 			for j := 0; j <= nChunks; j++ {
 				// we need a copy here, otherwise we override the
 				// .Size later
 				copy := entries[i+j]
-				e.Chunks[j] = &copy
+				e.chunks[j] = &copy
 				e.EndOffset = entries[i+j].EndOffset
 			}
 			i += nChunks
@@ -2110,10 +2133,10 @@ func (c *chunkedDiffer) mergeTocEntries(fileType compressedFileType, entries []i
 		}
 
 		lastChunkOffset := mergedEntries[i].EndOffset
-		for j := len(mergedEntries[i].Chunks) - 1; j >= 0; j-- {
-			mergedEntries[i].Chunks[j].EndOffset = lastChunkOffset
-			mergedEntries[i].Chunks[j].Size = mergedEntries[i].Chunks[j].EndOffset - mergedEntries[i].Chunks[j].Offset
-			lastChunkOffset = mergedEntries[i].Chunks[j].Offset
+		for j := len(mergedEntries[i].chunks) - 1; j >= 0; j-- {
+			mergedEntries[i].chunks[j].EndOffset = lastChunkOffset
+			mergedEntries[i].chunks[j].Size = mergedEntries[i].chunks[j].EndOffset - mergedEntries[i].chunks[j].Offset
+			lastChunkOffset = mergedEntries[i].chunks[j].Offset
 		}
 	}
 	return mergedEntries, totalFilesSize, nil

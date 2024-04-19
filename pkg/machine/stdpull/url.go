@@ -14,6 +14,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/compression"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/utils"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,7 +34,7 @@ func NewDiskFromURL(inputPath string, finalPath *define.VMFile, tempDir *define.
 	}
 
 	// Make sure the temporary location exists before we get too deep
-	if _, err := os.Stat(tempDir.GetPath()); err != nil {
+	if err := fileutils.Exists(tempDir.GetPath()); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil, fmt.Errorf("temporary download directory %s does not exist", tempDir.GetPath())
 		}

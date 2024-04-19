@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/sirupsen/logrus"
@@ -235,7 +236,7 @@ func MoveUnderCgroup(cgroup, subtree string, processes []uint32) error {
 			cgroupRoot = filepath.Join(cgroupRoot, "unified")
 
 			// Ignore the unified mount if it doesn't exist
-			if _, err := os.Stat(cgroupRoot); err != nil && os.IsNotExist(err) {
+			if err := fileutils.Exists(cgroupRoot); err != nil && os.IsNotExist(err) {
 				continue
 			}
 		} else if parts[1] != "" {

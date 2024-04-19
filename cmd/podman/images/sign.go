@@ -2,13 +2,13 @@ package images
 
 import (
 	"errors"
-	"os"
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/spf13/cobra"
 )
 
@@ -68,7 +68,7 @@ func sign(cmd *cobra.Command, args []string) error {
 	var sigStoreDir string
 	if len(signOptions.Directory) > 0 {
 		sigStoreDir = signOptions.Directory
-		if _, err := os.Stat(sigStoreDir); err != nil {
+		if err := fileutils.Exists(sigStoreDir); err != nil {
 			return err
 		}
 	}

@@ -168,7 +168,7 @@ var _ = Describe("Podman login and logout", func() {
 		session = podmanTest.Podman([]string{"push", "-q", "--authfile", "/tmp/nonexistent", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(Equal("Error: credential file is not accessible: stat /tmp/nonexistent: no such file or directory"))
+		Expect(session.ErrorToString()).To(Equal("Error: credential file is not accessible: faccessat /tmp/nonexistent: no such file or directory"))
 
 		session = podmanTest.Podman([]string{"push", "-q", "--authfile", authFile, ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
@@ -182,8 +182,7 @@ var _ = Describe("Podman login and logout", func() {
 		session = podmanTest.Podman([]string{"logout", "--authfile", "/tmp/nonexistent", server})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(Equal("Error: credential file is not accessible: stat /tmp/nonexistent: no such file or directory"))
-
+		Expect(session.ErrorToString()).To(Equal("Error: credential file is not accessible: faccessat /tmp/nonexistent: no such file or directory"))
 		session = podmanTest.Podman([]string{"logout", "--authfile", authFile, server})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -206,7 +205,7 @@ var _ = Describe("Podman login and logout", func() {
 		session = podmanTest.Podman([]string{"logout", "--compat-auth-file", "/tmp/nonexistent", server})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(Equal("Error: credential file is not accessible: stat /tmp/nonexistent: no such file or directory"))
+		Expect(session.ErrorToString()).To(Equal("Error: credential file is not accessible: faccessat /tmp/nonexistent: no such file or directory"))
 
 		// inconsistent command line flags are rejected
 		// Pre-create the files to make sure we are not hitting the “file not found” path

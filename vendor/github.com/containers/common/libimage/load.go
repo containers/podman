@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	dirTransport "github.com/containers/image/v5/directory"
@@ -15,6 +14,7 @@ import (
 	ociTransport "github.com/containers/image/v5/oci/layout"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -141,7 +141,7 @@ func (r *Runtime) loadMultiImageDockerArchive(ctx context.Context, ref types.Ima
 	// syntax to reference an image within the archive was used, so we
 	// should.
 	path := ref.StringWithinTransport()
-	if _, err := os.Stat(path); err != nil {
+	if err := fileutils.Exists(path); err != nil {
 		return r.copyFromDockerArchive(ctx, ref, options)
 	}
 
