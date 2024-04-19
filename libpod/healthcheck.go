@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/containers/podman/v5/libpod/define"
-	"github.com/containers/storage/pkg/fileutils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -431,11 +430,12 @@ func (c *Container) healthCheckLogPath() string {
 // The caller should lock the container before this function is called.
 func (c *Container) getHealthCheckLog() (define.HealthCheckResults, error) {
 	var healthCheck define.HealthCheckResults
-	if err := fileutils.Exists(c.healthCheckLogPath()); errors.Is(err, fs.ErrNotExist) {
-		return healthCheck, nil
-	}
 	b, err := os.ReadFile(c.healthCheckLogPath())
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			// If the file does not exists just return empty healthcheck and no error.
+			return healthCheck, nil
+		}
 		return healthCheck, fmt.Errorf("failed to read health check log file: %w", err)
 	}
 	if err := json.Unmarshal(b, &healthCheck); err != nil {
