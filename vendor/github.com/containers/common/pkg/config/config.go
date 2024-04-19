@@ -253,8 +253,6 @@ type EngineConfig struct {
 	// and "systemd".
 	CgroupManager string `toml:"cgroup_manager,omitempty"`
 
-	// NOTE: when changing this struct, make sure to update (*Config).Merge().
-
 	// ConmonEnvVars are environment variables to pass to the Conmon binary
 	// when it is launched.
 	ConmonEnvVars attributedstring.Slice `toml:"conmon_env_vars,omitempty"`
@@ -319,6 +317,13 @@ type EngineConfig struct {
 
 	// graphRoot internal stores the location of the graphroot
 	graphRoot string
+
+	// HealthcheckEvents is set to indicate whenever podman should log healthcheck events.
+	// With many running healthcheck on short interval Podman will spam the event log a lot.
+	// Because this event is optional and only useful to external consumers that may want to
+	// know when a healthcheck is run or failed allow users to turn it off by setting it to false.
+	// Default is true.
+	HealthcheckEvents bool `toml:"healthcheck_events,omitempty"`
 
 	// HelperBinariesDir is a list of directories which are used to search for
 	// helper binaries.
