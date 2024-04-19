@@ -1,0 +1,179 @@
+name: Upload Release Artifacts
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version to build and upload (e.g. "v9.8.7")'
+        required: true
+      dryrun:
+        description: 'Perform all the steps except uploading to the release page'
+        required: true
+        default: "true"  # 'choice' type requires string value
+        type: choice
+        options:
+          - "true"  # Must be quoted string, boolean value not supported.
+          - "false"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Determine Version
+      id: getversion
+      run: |
+        if [[ -z "${{ inputs.version }}" ]]
+        then
+              VERSION=${{ github.event.release.tag_name }}
+        else
+              VERSION=${{ inputs.version }}
+        fi
+        echo
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Consolidate dryrun setting to always be true or false
+      id: actual_dryrun
+      run: |
+        # The 'release' trigger will not have a 'dryrun' input set. Handle
+        # this case in a readable/maintainable way.
+        if [[ -z "${{ inputs.dryrun }}" ]]
+        then
+          echo "dryrun=false" >> $GITHUB_OUTPUT
+        else
+          echo "dryrun=${{ inputs.dryrun }}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Check uploads
+      id: check
+      run: |
+          URI="https://github.com/containers/podman/releases/download/${{steps.getversion.outputs.version}}"
+          for artifact in "podman-remote-release-darwin_amd64.zip darwin_amd" \
+                'podman-remote-release-darwin_arm64.zip darwin_arm' \
+                'podman-remote-release-windows_amd64.zip windows_amd' \
+                'podman-remote-static-linux_amd64.tar.gz linux_amd' \
+                'podman-remote-static-linux_arm64.tar.gz linux_arm'
+          do
+            set -- $artifact # Convert the "tuple" into the param args $1 $2...
+            status=$(curl -s -o /dev/null -w "%{http_code}" "${URI}/${1:?}")
+            if [[ "$status" == "404" ]] ; then
+              needsbuild=true
+              echo "${2:?}=true"
+            else
+              echo "::warning::${artifact} already exists, skipping"
+            fi
+          done
+
+          if [ "$needsbuild" = true ]; then
+            echo "buildartifacts=true" >> $GITHUB_OUTPUT
+          else
+            echo "No new artifacts need to be built."
+          fi
+
+    - name: Checkout Version
+      if: >-
+        steps.check.outputs.buildartifacts == 'true' ||
+        steps.actual_dryrun.outputs.dryrun == 'true'
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+      with:
+        repository: containers/podman
+        ref: ${{steps.getversion.outputs.version}}
+
+    - name: Set up Go
+      if: >-
+        steps.check.outputs.buildartifacts == 'true' ||
+        steps.actual_dryrun.outputs.dryrun == 'true'
+      uses: actions/setup-go@v5
+      with:
+        go-version: stable
+
+    - name: Setup artifact directory
+      if: >-
+        steps.check.outputs.buildartifacts == 'true' ||
+        steps.actual_dryrun.outputs.dryrun == 'true'
+      run: mkdir -p release/
+
+    - name: Build Darwin AMD
+      if: >-
+        steps.check.outputs.darwin_amd == 'true' ||
+        steps.actual_dryrun.outputs.dryrun == 'true'
+      run: |
+          make podman-remote-release-darwin_amd64.zip
+          mv podman-remote-release-darwin_amd64.zip release/
+
+    - name: Build Darwin ARM
+      if: >-
+        steps.check.outputs.darwin_arm  == 'true' ||
+        steps.actual_dryrun.outputs.dryrun == 'true'
+      run: |
+          make podman-remote-release-darwin_arm64.zip
+          mv podman-remote-release-darwin_arm64.zip release/
+
+    - name: Build Linux AMD
+      if: >-
+        steps.check.outputs.linux_amd == 'true' ||
+        steps.actual_dryrun.outputs.dryrun == 'true'
+      run: |
+            make podman-remote-static-linux_amd64
+            tar -cvzf podman-remote-static-linux_amd64.tar.gz bin/podman-remote-static-linux_amd64
+            mv podman-remote-static-linux_amd64.tar.gz release/
+
+    - name: Build Linux ARM
+      if: >-
+        steps.check.outputs.linux_arm == 'true' ||
+        steps.actual_dryrun.outputs.dryrun == 'true'
+      run: |
+          make podman-remote-static-linux_arm64
+          tar -cvzf podman-remote-static-linux_arm64.tar.gz bin/podman-remote-static-linux_arm64
+          mv podman-remote-static-linux_arm64.tar.gz release/
+
+    - name: Build Windows AMD
+      if: >-
+        steps.check.outputs.windows_amd == 'true' ||
+        steps.actual_dryrun.outputs.dryrun == 'true'
+      run: |
+          sudo apt-get install -y pandoc
+          make podman-remote-release-windows_amd64.zip
+          mv podman-remote-release-windows_amd64.zip release/
+
+    - name: shasums
+      if: >-
+        steps.check.outputs.buildartifacts == 'true' ||
+        steps.actual_dryrun.outputs.dryrun == 'true'
+      run: |
+          pushd release
+          sha256sum *.zip *.tar.gz > shasums
+          popd
+
+    - name: Upload to Actions as artifact
+      if: >-
+        steps.check.outputs.buildartifacts == 'true' ||
+        steps.actual_dryrun.outputs.dryrun == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: artifacts
+        path: |
+          release/*
+
+    - name: Upload to Release
+      if: >-
+        steps.check.outputs.buildartifacts == 'true' &&
+        steps.actual_dryrun.outputs.dryrun == 'false'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        (gh release download ${{steps.getversion.outputs.version}} -p "shasums" || exit 0)
+        cat release/shasums >> shasums
+        gh release upload ${{steps.getversion.outputs.version}} release/*.zip release/*.tar.gz
+        gh release upload ${{steps.getversion.outputs.version}} --clobber shasums
+
+    - name: Trigger Windows Installer
+      if: >-
+          steps.check.outputs.windows_amd == 'true' ||
+          steps.actual_dryrun.outputs.dryrun == 'false'
+      run: |
+        gh workflow run upload-win-installer.yml -f ${{steps.getversion.outputs.version}} -f dryrun=false
