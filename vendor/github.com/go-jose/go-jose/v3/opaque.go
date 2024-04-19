@@ -121,7 +121,7 @@ func (oke *opaqueKeyEncrypter) encryptKey(cek []byte, alg KeyAlgorithm) (recipie
 	return oke.encrypter.encryptKey(cek, alg)
 }
 
-//OpaqueKeyDecrypter is an interface that supports decrypting keys with an opaque key.
+// OpaqueKeyDecrypter is an interface that supports decrypting keys with an opaque key.
 type OpaqueKeyDecrypter interface {
 	DecryptKey(encryptedKey []byte, header Header) ([]byte, error)
 }
