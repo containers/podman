@@ -619,7 +619,12 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		}
 		restartPolicy = s.RestartPolicy
 	}
-	options = append(options, libpod.WithRestartRetries(retries), libpod.WithRestartPolicy(restartPolicy))
+	if restartPolicy != "" {
+		options = append(options, libpod.WithRestartPolicy(restartPolicy))
+	}
+	if retries != 0 {
+		options = append(options, libpod.WithRestartRetries(retries))
+	}
 
 	healthCheckSet := false
 	if s.ContainerHealthCheckConfig.HealthConfig != nil {

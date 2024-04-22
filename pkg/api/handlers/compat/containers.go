@@ -28,6 +28,7 @@ import (
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
 
@@ -660,4 +661,134 @@ func RenameContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteResponse(w, http.StatusNoContent, nil)
+}
+
+func UpdateContainer(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	name := utils.GetName(r)
+
+	ctr, err := runtime.LookupContainer(name)
+	if err != nil {
+		utils.ContainerNotFound(w, name, err)
+		return
+	}
+
+	options := new(container.UpdateConfig)
+	if err := json.NewDecoder(r.Body).Decode(options); err != nil {
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("decoding request body: %w", err))
+		return
+	}
+
+	// Only handle the bits of update that Docker uses as examples.
+	// For example, the update API claims to be able to update devices for
+	// existing containers... Which I am very dubious about.
+	// Ignore bits like that unless someone asks us for them.
+
+	// We're going to be editing this, so we have to deep-copy to not affect
+	// the container's own resources
+	resources := new(spec.LinuxResources)
+	oldResources := ctr.LinuxResources()
+	if oldResources != nil {
+		if err := libpod.JSONDeepCopy(oldResources, resources); err != nil {
+			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("copying old resource limits: %w", err))
+			return
+		}
+	}
+
+	// CPU limits
+	cpu := resources.CPU
+	if cpu == nil {
+		cpu = new(spec.LinuxCPU)
+	}
+	useCPU := false
+	if options.CPUShares != 0 {
+		shares := uint64(options.CPUShares)
+		cpu.Shares = &shares
+		useCPU = true
+	}
+	if options.CPUPeriod != 0 {
+		period := uint64(options.CPUPeriod)
+		cpu.Period = &period
+		useCPU = true
+	}
+	if options.CPUQuota != 0 {
+		cpu.Quota = &options.CPUQuota
+		useCPU = true
+	}
+	if options.CPURealtimeRuntime != 0 {
+		cpu.RealtimeRuntime = &options.CPURealtimeRuntime
+		useCPU = true
+	}
+	if options.CPURealtimePeriod != 0 {
+		period := uint64(options.CPURealtimePeriod)
+		cpu.RealtimePeriod = &period
+		useCPU = true
+	}
+	if options.CpusetCpus != "" {
+		cpu.Cpus = options.CpusetCpus
+		useCPU = true
+	}
+	if options.CpusetMems != "" {
+		cpu.Mems = options.CpusetMems
+		useCPU = true
+	}
+	if useCPU {
+		resources.CPU = cpu
+	}
+
+	// Memory limits
+	mem := resources.Memory
+	if mem == nil {
+		mem = new(spec.LinuxMemory)
+	}
+	useMem := false
+	if options.Memory != 0 {
+		mem.Limit = &options.Memory
+		useMem = true
+	}
+	if options.MemorySwap != 0 {
+		mem.Swap = &options.MemorySwap
+		useMem = true
+	}
+	if options.MemoryReservation != 0 {
+		mem.Reservation = &options.MemoryReservation
+		useMem = true
+	}
+	if useMem {
+		resources.Memory = mem
+	}
+
+	// PIDs limit
+	if options.PidsLimit != nil {
+		if resources.Pids == nil {
+			resources.Pids = new(spec.LinuxPids)
+		}
+		resources.Pids.Limit = *options.PidsLimit
+	}
+
+	// Blkio Weight
+	if options.BlkioWeight != 0 {
+		if resources.BlockIO == nil {
+			resources.BlockIO = new(spec.LinuxBlockIO)
+		}
+		resources.BlockIO.Weight = &options.BlkioWeight
+	}
+
+	// Restart policy
+	localPolicy := string(options.RestartPolicy.Name)
+	restartPolicy := &localPolicy
+
+	var restartRetries *uint
+	if options.RestartPolicy.MaximumRetryCount != 0 {
+		localRetries := uint(options.RestartPolicy.MaximumRetryCount)
+		restartRetries = &localRetries
+	}
+
+	if err := ctr.Update(resources, restartPolicy, restartRetries); err != nil {
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("updating container: %w", err))
+		return
+	}
+
+	responseStruct := container.ContainerUpdateOKBody{}
+	utils.WriteResponse(w, http.StatusOK, responseStruct)
 }

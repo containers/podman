@@ -675,6 +675,35 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/containers/{name}/rename"), s.APIHandler(compat.RenameContainer)).Methods(http.MethodPost)
 	r.HandleFunc("/containers/{name}/rename", s.APIHandler(compat.RenameContainer)).Methods(http.MethodPost)
+	// swagger:operation POST /containers/{name}/update compat ContainerUpdate
+	// ---
+	// tags:
+	//   - containers (compat)
+	// summary: Update configuration of an existing container
+	// description: Change configuration settings for an existing container without requiring recreation.
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: Full or partial ID or full name of the container to rename
+	//  - in: body
+	//    name: resources
+	//    required: false
+	//    description: attributes for updating the container
+	//    schema:
+	//      $ref: "#/definitions/containerUpdateRequest"
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     description: no error
+	//   404:
+	//     $ref: "#/responses/containerNotFound"
+	//   500:
+	//     $ref: "#/responses/internalError"
+	r.HandleFunc(VersionedPath("/containers/{name}/update"), s.APIHandler(compat.UpdateContainer)).Methods(http.MethodPost)
+	r.HandleFunc("/containers/{name}/update", s.APIHandler(compat.UpdateContainer)).Methods(http.MethodPost)
 
 	/*
 		libpod endpoints
@@ -1755,8 +1784,18 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: string
 	//    required: true
 	//    description: Full or partial ID or full name of the container to update
+	//  - in: query
+	//    name: restartPolicy
+	//    type: string
+	//    required: false
+	//    description: New restart policy for the container.
+	//  - in: query
+	//    name: restartRetries
+	//    type: integer
+	//    required: false
+	//    description: New amount of retries for the container's restart policy. Only allowed if restartPolicy is set to on-failure
 	//  - in: body
-	//    name: resources
+	//    name: config
 	//    description: attributes for updating the container
 	//    schema:
 	//      $ref: "#/definitions/UpdateEntities"
@@ -1766,6 +1805,8 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   responses:
 	//     201:
 	//       $ref: "#/responses/containerUpdateResponse"
+	//   400:
+	//     $ref: "#/responses/badParamError"
 	//   404:
 	//     $ref: "#/responses/containerNotFound"
 	//   500:

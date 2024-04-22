@@ -402,9 +402,37 @@ func InitContainer(w http.ResponseWriter, r *http.Request) {
 func UpdateContainer(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	decoder := utils.GetDecoder(r)
+	query := struct {
+		RestartPolicy  string `schema:"restartPolicy"`
+		RestartRetries uint   `schema:"restartRetries"`
+	}{
+		// override any golang type defaults
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
+		return
+	}
+
 	ctr, err := runtime.LookupContainer(name)
 	if err != nil {
 		utils.ContainerNotFound(w, name, err)
+		return
+	}
+
+	var restartPolicy *string
+	var restartRetries *uint
+	if query.RestartPolicy != "" {
+		restartPolicy = &query.RestartPolicy
+		if query.RestartPolicy == define.RestartPolicyOnFailure {
+			restartRetries = &query.RestartRetries
+		} else if query.RestartRetries != 0 {
+			utils.Error(w, http.StatusBadRequest, errors.New("cannot set restart retries unless restart policy is on-failure"))
+			return
+		}
+	} else if query.RestartRetries != 0 {
+		utils.Error(w, http.StatusBadRequest, errors.New("cannot set restart retries unless restart policy is set"))
 		return
 	}
 
@@ -413,7 +441,7 @@ func UpdateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("decode(): %w", err))
 		return
 	}
-	err = ctr.Update(options.Resources)
+	err = ctr.Update(options.Resources, restartPolicy, restartRetries)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

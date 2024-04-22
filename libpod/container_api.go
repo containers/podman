@@ -119,12 +119,24 @@ func (c *Container) Start(ctx context.Context, recursive bool) (finalErr error) 
 }
 
 // Update updates the given container.
-// only the cgroup config can be updated and therefore only a linux resource spec is passed.
-func (c *Container) Update(res *spec.LinuxResources) error {
-	if err := c.syncContainer(); err != nil {
-		return err
+// Either resource limits or restart policy can be updated.
+// Either resourcs or restartPolicy must not be nil.
+// If restartRetries is not nil, restartPolicy must be set and must be "on-failure".
+func (c *Container) Update(resources *spec.LinuxResources, restartPolicy *string, restartRetries *uint) error {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
 	}
-	return c.update(res)
+
+	if c.ensureState(define.ContainerStateRemoving) {
+		return fmt.Errorf("container %s is being removed, cannot update: %w", c.ID(), define.ErrCtrStateInvalid)
+	}
+
+	return c.update(resources, restartPolicy, restartRetries)
 }
 
 // StartAndAttach starts a container and attaches to it.

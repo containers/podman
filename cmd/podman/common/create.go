@@ -643,7 +643,8 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			`If a container with the same name exists, replace it`,
 		)
 	}
-	if mode == entities.InfraMode || (mode == entities.CreateMode) { // infra container flags, create should also pick these up
+	// Restart is allowed for created, updated, and infra ctr
+	if mode == entities.InfraMode || mode == entities.CreateMode || mode == entities.UpdateMode {
 		restartFlagName := "restart"
 		createFlags.StringVar(
 			&cf.Restart,
@@ -651,7 +652,8 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			`Restart policy to apply when a container exits ("always"|"no"|"never"|"on-failure"|"unless-stopped")`,
 		)
 		_ = cmd.RegisterFlagCompletionFunc(restartFlagName, AutocompleteRestartOption)
-
+	}
+	if mode == entities.InfraMode || (mode == entities.CreateMode) { // infra container flags, create should also pick these up
 		shmSizeFlagName := "shm-size"
 		createFlags.String(
 			shmSizeFlagName, shmSize(),

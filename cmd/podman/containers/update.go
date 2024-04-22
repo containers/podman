@@ -7,9 +7,11 @@ import (
 
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
+	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/containers/podman/v5/pkg/specgenutil"
+	"github.com/containers/podman/v5/pkg/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/spf13/cobra"
 )
@@ -68,6 +70,17 @@ func update(cmd *cobra.Command, args []string) error {
 	err = createOrUpdateFlags(cmd, &updateOpts)
 	if err != nil {
 		return err
+	}
+
+	if updateOpts.Restart != "" {
+		policy, retries, err := util.ParseRestartPolicy(updateOpts.Restart)
+		if err != nil {
+			return err
+		}
+		s.RestartPolicy = policy
+		if policy == define.RestartPolicyOnFailure {
+			s.RestartRetries = &retries
+		}
 	}
 
 	// we need to pass the whole specgen since throttle devices are parsed later due to cross compat.

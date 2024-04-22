@@ -454,6 +454,31 @@ func (p *PodmanTestIntegration) InspectContainer(name string) []define.InspectCo
 	return session.InspectContainerToJSON()
 }
 
+// Pull a single field from a container using `podman inspect --format {{ field }}`,
+// and verify it against the given expected value.
+func (p *PodmanTestIntegration) CheckContainerSingleField(name, field, expected string) {
+	inspect := p.Podman([]string{"inspect", "--format", fmt.Sprintf("{{ %s }}", field), name})
+	inspect.WaitWithDefaultTimeout()
+	ExpectWithOffset(1, inspect).Should(Exit(0))
+	ExpectWithOffset(1, inspect.OutputToString()).To(Equal(expected))
+}
+
+// Check that the contents of a single file in the given container matches the expected value.
+func (p *PodmanTestIntegration) CheckFileInContainer(name, filepath, expected string) {
+	exec := p.Podman([]string{"exec", name, "cat", filepath})
+	exec.WaitWithDefaultTimeout()
+	ExpectWithOffset(1, exec).Should(Exit(0))
+	ExpectWithOffset(1, exec.OutputToString()).To(Equal(expected))
+}
+
+// Check that the contents of a single file in the given container containers the given value.
+func (p *PodmanTestIntegration) CheckFileInContainerSubstring(name, filepath, expected string) {
+	exec := p.Podman([]string{"exec", name, "cat", filepath})
+	exec.WaitWithDefaultTimeout()
+	ExpectWithOffset(1, exec).Should(Exit(0))
+	ExpectWithOffset(1, exec.OutputToString()).To(ContainSubstring(expected))
+}
+
 // StopContainer stops a container with no timeout, ensuring a fast test.
 func (p *PodmanTestIntegration) StopContainer(nameOrID string) {
 	stop := p.Podman([]string{"stop", "-t0", nameOrID})

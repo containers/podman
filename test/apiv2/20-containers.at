@@ -730,6 +730,12 @@ if root; then
   eid=$(jq -r '.Id' <<<"$output")
   t POST exec/$eid/start 200 $cpu_weight_expect
 
+  # Now use the compat API
+  echo '{ "Memory": 536870912 }' >${TMPD}/compatupdate.json
+  t POST containers/updateCtr/update ${TMPD}/compatupdate.json 200
+  t GET libpod/containers/updateCtr/json 200 \
+    .HostConfig.Memory=536870912
+
   podman rm -f updateCtr
 fi
 

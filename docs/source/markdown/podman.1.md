@@ -384,7 +384,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-unpause(1)](podman-unpause.1.md)         | Unpause one or more containers.                                             |
 | [podman-unshare(1)](podman-unshare.1.md)         | Run a command inside of a modified user namespace.                          |
 | [podman-untag(1)](podman-untag.1.md)             | Remove one or more names from a locally-stored image.                       |
-| [podman-update(1)](podman-update.1.md)           | Update the cgroup configuration of a given container.                       |
+| [podman-update(1)](podman-update.1.md)           | Update the configuration of a given container.                              |
 | [podman-version(1)](podman-version.1.md)         | Display the Podman version information.                                     |
 | [podman-volume(1)](podman-volume.1.md)           | Simple management tool for volumes.                                         |
 | [podman-wait(1)](podman-wait.1.md)               | Wait on one or more containers to stop and print their exit codes.          |

@@ -467,6 +467,9 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 
 	restartPolicy := new(define.InspectRestartPolicy)
 	restartPolicy.Name = c.config.RestartPolicy
+	if restartPolicy.Name == "" {
+		restartPolicy.Name = define.RestartPolicyNo
+	}
 	restartPolicy.MaximumRetryCount = c.config.RestartRetries
 	hostConfig.RestartPolicy = restartPolicy
 	if c.config.NoCgroups {

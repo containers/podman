@@ -208,6 +208,8 @@ const (
 	Unpause Status = "unpause"
 	// Untag ...
 	Untag Status = "untag"
+	// Update indicates that a container's configuration has been modified.
+	Update Status = "update"
 )
 
 // EventFilter for filtering events
