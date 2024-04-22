@@ -48,6 +48,10 @@ jobs:
           echo "dryrun=${{ inputs.dryrun }}" >> $GITHUB_OUTPUT
         fi
 
+    - name: Dry Run Status
+      run: |
+        echo "::notice::This workflow execution will be a dry-run: ${{ steps.actual_dryrun.outputs.dryrun }}"
+
     - name: Check uploads
       id: check
       run: |
@@ -61,10 +65,11 @@ jobs:
             set -- $artifact # Convert the "tuple" into the param args $1 $2...
             status=$(curl -s -o /dev/null -w "%{http_code}" "${URI}/${1:?}")
             if [[ "$status" == "404" ]] ; then
+              echo "${1:?} will be built"
               needsbuild=true
-              echo "${2:?}=true"
+              echo "${2:?}=true" >> $GITHUB_OUTPUT
             else
-              echo "::warning::${artifact} already exists, skipping"
+              echo "::warning::${1:?} already exists, skipping"
             fi
           done
 
