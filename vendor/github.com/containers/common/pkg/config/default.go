@@ -344,6 +344,7 @@ func defaultEngineConfig() (*EngineConfig, error) {
 	c.VolumePluginTimeout = DefaultVolumePluginTimeout
 	c.CompressionFormat = "gzip"
 
+	c.HealthcheckEvents = true
 	c.HelperBinariesDir.Set(defaultHelperBinariesDir)
 	if additionalHelperBinariesDir != "" {
 		// Prioritize additionalHelperBinariesDir over defaults.

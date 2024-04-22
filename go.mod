@@ -26,7 +26,7 @@ require (
 	github.com/checkpoint-restore/go-criu/v7 v7.1.0
 	github.com/containernetworking/plugins v1.4.0
 	github.com/containers/buildah v1.35.1-0.20240412112838-e393e57728f5
-	github.com/containers/common v0.58.1-0.20240410144442-8db59bf2fcce
+	github.com/containers/common v0.58.1-0.20240419143618-deb3eeef3b74
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.4-0.20240408151405-d744d71db363
 	github.com/containers/image/v5 v5.30.1-0.20240411200840-dc519780d39f
