@@ -3624,7 +3624,7 @@ VOLUME %s`, CITEST_IMAGE, hostPathDir+"/")
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
-		result := podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "ls", hostPathDir + "/" + testfile})
+		result := podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "ls", filepath.Join(hostPathDir, testfile)})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
 

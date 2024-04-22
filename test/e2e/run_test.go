@@ -758,11 +758,19 @@ USER bin`, BB)
 	})
 
 	It("podman run with cidfile", func() {
-		session := podmanTest.Podman([]string{"run", "--cidfile", tempdir + "cidfile", ALPINE, "ls"})
+		cidFile := filepath.Join(tempdir, "cidfile")
+		session := podmanTest.Podman([]string{"run", "--name", "cidtest", "--cidfile", cidFile, CITEST_IMAGE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		err := os.Remove(tempdir + "cidfile")
+
+		cidFromFile, err := os.ReadFile(cidFile)
 		Expect(err).ToNot(HaveOccurred())
+
+		session = podmanTest.Podman([]string{"inspect", "--format", "{{.Id}}", "cidtest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		Expect(string(cidFromFile)).To(Equal(session.OutputToString()), "CID from cidfile == CID from podman inspect")
 	})
 
 	It("podman run sysctl test", func() {
@@ -924,7 +932,7 @@ USER bin`, BB)
 
 	It("podman test hooks", func() {
 		SkipIfRemote("--hooks-dir does not work with remote")
-		hooksDir := tempdir + "/hooks,withcomma"
+		hooksDir := filepath.Join(tempdir, "hooks,withcomma")
 		err := os.Mkdir(hooksDir, 0755)
 		Expect(err).ToNot(HaveOccurred())
 		hookJSONPath := filepath.Join(hooksDir, "checkhooks.json")
@@ -977,7 +985,7 @@ echo -n %s >%s
 		err = os.WriteFile(secretsFile, []byte(secretsString), 0755)
 		Expect(err).ToNot(HaveOccurred())
 
-		targetDir := tempdir + "/symlink/target"
+		targetDir := filepath.Join(tempdir, "symlink/target")
 		err = os.MkdirAll(targetDir, 0755)
 		Expect(err).ToNot(HaveOccurred())
 		keyFile := filepath.Join(targetDir, "key.pem")
@@ -2103,7 +2111,7 @@ WORKDIR /madethis`, BB)
 
 	It("podman run with pidfile", func() {
 		SkipIfRemote("pidfile not handled by remote")
-		pidfile := tempdir + "pidfile"
+		pidfile := filepath.Join(tempdir, "pidfile")
 		session := podmanTest.Podman([]string{"run", "--pidfile", pidfile, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())

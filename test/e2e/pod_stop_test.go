@@ -1,6 +1,8 @@
 package integration
 
 import (
+	"path/filepath"
+
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -157,13 +159,12 @@ var _ = Describe("Podman pod stop", func() {
 	})
 
 	It("podman pod start/stop single pod via --pod-id-file", func() {
-		tmpDir := GinkgoT().TempDir()
-		tmpFile := tmpDir + "podID"
+		podIDFile := filepath.Join(tempdir, "podID")
 
 		podName := "rudolph"
 
 		// Create a pod with --pod-id-file.
-		session := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--pod-id-file", tmpFile})
+		session := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--pod-id-file", podIDFile})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -172,26 +173,24 @@ var _ = Describe("Podman pod stop", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"pod", "start", "--pod-id-file", tmpFile})
+		session = podmanTest.Podman([]string{"pod", "start", "--pod-id-file", podIDFile})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2)) // infra+top
 
-		session = podmanTest.Podman([]string{"pod", "stop", "--pod-id-file", tmpFile})
+		session = podmanTest.Podman([]string{"pod", "stop", "--pod-id-file", podIDFile})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 	})
 
 	It("podman pod start/stop multiple pods via --pod-id-file", func() {
-		tmpDir := GinkgoT().TempDir()
-
 		podIDFiles := []string{}
 		for _, i := range "0123456789" {
-			tmpFile := tmpDir + "cid" + string(i)
+			podIDFile := filepath.Join(tempdir, "cid"+string(i))
 			podName := "rudolph" + string(i)
 			// Create a pod with --pod-id-file.
-			session := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--pod-id-file", tmpFile})
+			session := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--pod-id-file", podIDFile})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
 
@@ -202,7 +201,7 @@ var _ = Describe("Podman pod stop", func() {
 
 			// Append the id files along with the command.
 			podIDFiles = append(podIDFiles, "--pod-id-file")
-			podIDFiles = append(podIDFiles, tmpFile)
+			podIDFiles = append(podIDFiles, podIDFile)
 		}
 
 		cmd := []string{"pod", "start"}

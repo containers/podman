@@ -3,6 +3,7 @@ package integration
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -172,7 +173,7 @@ var _ = Describe("Podman start", func() {
 
 	It("podman start container with special pidfile", func() {
 		SkipIfRemote("pidfile not handled by remote")
-		pidfile := tempdir + "pidfile"
+		pidfile := filepath.Join(tempdir, "pidfile")
 		session := podmanTest.Podman([]string{"create", "--pidfile", pidfile, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())

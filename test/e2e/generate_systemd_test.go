@@ -2,6 +2,7 @@ package integration
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 
 	. "github.com/containers/podman/v5/test/utils"
@@ -537,8 +538,7 @@ var _ = Describe("Podman generate systemd", func() {
 	})
 
 	It("podman generate systemd pod with containers --new", func() {
-		tmpDir := GinkgoT().TempDir()
-		tmpFile := tmpDir + "podID"
+		tmpFile := filepath.Join(tempdir, "podID")
 
 		n := podmanTest.Podman([]string{"pod", "create", "--pod-id-file", tmpFile, "--name", "foo"})
 		n.WaitWithDefaultTimeout()

@@ -3,6 +3,7 @@ package integration
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -153,13 +154,12 @@ var _ = Describe("Podman pod start", func() {
 	})
 
 	It("podman pod start single pod via --pod-id-file", func() {
-		tmpDir := GinkgoT().TempDir()
-		tmpFile := tmpDir + "podID"
+		podIDFile := filepath.Join(tempdir, "podID")
 
 		podName := "rudolph"
 
 		// Create a pod with --pod-id-file.
-		session := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--pod-id-file", tmpFile})
+		session := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--pod-id-file", podIDFile})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -168,21 +168,19 @@ var _ = Describe("Podman pod start", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"pod", "start", "--pod-id-file", tmpFile})
+		session = podmanTest.Podman([]string{"pod", "start", "--pod-id-file", podIDFile})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2)) // infra+top
 	})
 
 	It("podman pod start multiple pods via --pod-id-file", func() {
-		tmpDir := GinkgoT().TempDir()
-
 		podIDFiles := []string{}
 		for _, i := range "0123456789" {
-			tmpFile := tmpDir + "cid" + string(i)
+			cidFile := filepath.Join(tempdir, "cid"+string(i))
 			podName := "rudolph" + string(i)
 			// Create a pod with --pod-id-file.
-			session := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--pod-id-file", tmpFile})
+			session := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--pod-id-file", cidFile})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
 
@@ -193,7 +191,7 @@ var _ = Describe("Podman pod start", func() {
 
 			// Append the id files along with the command.
 			podIDFiles = append(podIDFiles, "--pod-id-file")
-			podIDFiles = append(podIDFiles, tmpFile)
+			podIDFiles = append(podIDFiles, cidFile)
 		}
 
 		cmd := []string{"pod", "start"}
@@ -205,12 +203,11 @@ var _ = Describe("Podman pod start", func() {
 	})
 
 	It("podman pod create --infra-conmon-pod create + start", func() {
-		tmpDir := GinkgoT().TempDir()
-		tmpFile := tmpDir + "podID"
+		pidFile := filepath.Join(tempdir, "podID")
 
 		podName := "rudolph"
 		// Create a pod with --infra-conmon-pid.
-		session := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--infra-conmon-pidfile", tmpFile})
+		session := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--infra-conmon-pidfile", pidFile})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -227,7 +224,7 @@ var _ = Describe("Podman pod start", func() {
 
 		// Read the infra-conmon-pidfile and perform some sanity checks
 		// on the pid.
-		infraConmonPID := readFirstLine(tmpFile)
+		infraConmonPID := readFirstLine(pidFile)
 		_, err = strconv.Atoi(infraConmonPID) // Make sure it's a proper integer
 		Expect(err).ToNot(HaveOccurred())
 

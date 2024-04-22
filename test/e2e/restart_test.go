@@ -2,6 +2,7 @@ package integration
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
 	. "github.com/containers/podman/v5/test/utils"
@@ -232,10 +233,9 @@ var _ = Describe("Podman restart", func() {
 	})
 
 	It("podman restart --cidfile", func() {
-		tmpDir := GinkgoT().TempDir()
-		tmpFile := tmpDir + "cid"
+		cidFile := filepath.Join(tempdir, "cid")
 
-		session := podmanTest.Podman([]string{"create", "--cidfile", tmpFile, ALPINE, "top"})
+		session := podmanTest.Podman([]string{"create", "--cidfile", cidFile, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		cid := session.OutputToStringArray()[0]
@@ -244,7 +244,7 @@ var _ = Describe("Podman restart", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		result := podmanTest.Podman([]string{"restart", "--cidfile", tmpFile})
+		result := podmanTest.Podman([]string{"restart", "--cidfile", cidFile})
 		result.WaitWithDefaultTimeout()
 		// FIXME - #20196: Cannot use ExitCleanly()
 		Expect(result).Should(Exit(0))
@@ -253,23 +253,22 @@ var _ = Describe("Podman restart", func() {
 	})
 
 	It("podman restart multiple --cidfile", func() {
-		tmpDir := GinkgoT().TempDir()
-		tmpFile1 := tmpDir + "cid-1"
-		tmpFile2 := tmpDir + "cid-2"
+		cidFile1 := filepath.Join(tempdir, "cid-1")
+		cidFile2 := filepath.Join(tempdir, "cid-2")
 
-		session := podmanTest.Podman([]string{"run", "--cidfile", tmpFile1, "-d", ALPINE, "top"})
+		session := podmanTest.Podman([]string{"run", "--cidfile", cidFile1, "-d", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		cid1 := session.OutputToStringArray()[0]
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 
-		session = podmanTest.Podman([]string{"run", "--cidfile", tmpFile2, "-d", ALPINE, "top"})
+		session = podmanTest.Podman([]string{"run", "--cidfile", cidFile2, "-d", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		cid2 := session.OutputToStringArray()[0]
 		Expect(podmanTest.NumberOfContainers()).To(Equal(2))
 
-		result := podmanTest.Podman([]string{"restart", "--cidfile", tmpFile1, "--cidfile", tmpFile2})
+		result := podmanTest.Podman([]string{"restart", "--cidfile", cidFile1, "--cidfile", cidFile2})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
 		output := result.OutputToString()

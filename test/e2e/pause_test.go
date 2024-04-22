@@ -321,10 +321,9 @@ var _ = Describe("Podman pause", func() {
 	})
 
 	It("podman pause --cidfile", func() {
-		tmpDir := GinkgoT().TempDir()
-		tmpFile := tmpDir + "cid"
+		cidFile := filepath.Join(tempdir, "cid")
 
-		session := podmanTest.Podman([]string{"create", "--cidfile", tmpFile, ALPINE, "top"})
+		session := podmanTest.Podman([]string{"create", "--cidfile", cidFile, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		cid := session.OutputToStringArray()[0]
@@ -333,13 +332,13 @@ var _ = Describe("Podman pause", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		result := podmanTest.Podman([]string{"pause", "--cidfile", tmpFile})
+		result := podmanTest.Podman([]string{"pause", "--cidfile", cidFile})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
 		output := result.OutputToString()
 		Expect(output).To(ContainSubstring(cid))
 
-		result = podmanTest.Podman([]string{"unpause", "--cidfile", tmpFile})
+		result = podmanTest.Podman([]string{"unpause", "--cidfile", cidFile})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
 		output = result.OutputToString()
@@ -347,25 +346,22 @@ var _ = Describe("Podman pause", func() {
 	})
 
 	It("podman pause multiple --cidfile", func() {
-		tmpDir := GinkgoT().TempDir()
-		tmpFile1 := tmpDir + "cid-1"
-		tmpFile2 := tmpDir + "cid-2"
+		cidFile1 := filepath.Join(tempdir, "cid-1")
+		cidFile2 := filepath.Join(tempdir, "cid-2")
 
-		defer os.RemoveAll(tmpDir)
-
-		session := podmanTest.Podman([]string{"run", "--cidfile", tmpFile1, "-d", ALPINE, "top"})
+		session := podmanTest.Podman([]string{"run", "--cidfile", cidFile1, "-d", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		cid1 := session.OutputToStringArray()[0]
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 
-		session = podmanTest.Podman([]string{"run", "--cidfile", tmpFile2, "-d", ALPINE, "top"})
+		session = podmanTest.Podman([]string{"run", "--cidfile", cidFile2, "-d", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		cid2 := session.OutputToStringArray()[0]
 		Expect(podmanTest.NumberOfContainers()).To(Equal(2))
 
-		result := podmanTest.Podman([]string{"pause", "--cidfile", tmpFile1, "--cidfile", tmpFile2})
+		result := podmanTest.Podman([]string{"pause", "--cidfile", cidFile1, "--cidfile", cidFile2})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
 		output := result.OutputToString()
@@ -373,7 +369,7 @@ var _ = Describe("Podman pause", func() {
 		Expect(output).To(ContainSubstring(cid2))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(2))
 
-		result = podmanTest.Podman([]string{"unpause", "--cidfile", tmpFile1, "--cidfile", tmpFile2})
+		result = podmanTest.Podman([]string{"unpause", "--cidfile", cidFile1, "--cidfile", cidFile2})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
 		output = result.OutputToString()
