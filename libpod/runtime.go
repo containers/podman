@@ -438,7 +438,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 			}
 		}
 
-		return err
+		return fmt.Errorf("configure storage: %w", err)
 	}
 	defer func() {
 		if retErr != nil && store != nil {
@@ -616,7 +616,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		// Ensure we have a store before refresh occurs
 		if runtime.store == nil {
 			if err := runtime.configureStore(); err != nil {
-				return err
+				return fmt.Errorf("configure storage: %w", err)
 			}
 		}
 
