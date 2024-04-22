@@ -238,7 +238,7 @@ binaries: podman podman-remote ## Build podman and podman-remote binaries
 else ifneq (, $(findstring $(GOOS),darwin windows))
 binaries: podman-remote ## Build podman-remote (client) only binaries
 else
-binaries: podman podman-remote podmansh rootlessport quadlet ## Build podman, podman-remote and rootlessport binaries quadlet
+binaries: podman podman-remote podman-testing podmansh rootlessport quadlet ## Build podman, podman-remote and rootlessport binaries quadlet
 endif
 
 # Extract text following double-# for targets, as their description for
@@ -456,6 +456,16 @@ rootlessport: bin/rootlessport
 # Run: `man 1 podmansh` for details.
 podmansh: bin/podman
 	if [ ! -f bin/podmansh ]; then ln -s podman bin/podmansh; fi
+
+$(SRCBINDIR)/podman-testing: $(SOURCES) go.mod go.sum
+	$(GOCMD) build \
+		$(BUILDFLAGS) \
+		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' \
+		-tags "${BUILDTAGS}" \
+		-o $@ ./cmd/podman-testing
+
+.PHONY: podman-testing
+podman-testing: bin/podman-testing
 
 ###
 ### Secondary binary-build targets
@@ -876,6 +886,11 @@ ifneq ($(shell uname -s),FreeBSD)
 	install ${SELINUXOPT} -m 755 -d $(DESTDIR)${TMPFILESDIR}
 	install ${SELINUXOPT} -m 644 contrib/tmpfile/podman.conf $(DESTDIR)${TMPFILESDIR}/podman.conf
 endif
+
+.PHONY: install.testing
+install.testing:
+	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
+	install ${SELINUXOPT} -m 755 bin/podman-testing $(DESTDIR)$(BINDIR)/podman-testing
 
 .PHONY: install.modules-load
 install.modules-load: # This should only be used by distros which might use iptables-legacy, this is not needed on RHEL

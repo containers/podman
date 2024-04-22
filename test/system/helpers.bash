@@ -4,6 +4,9 @@
 PODMAN=${PODMAN:-podman}
 QUADLET=${QUADLET:-/usr/libexec/podman/quadlet}
 
+# Podman testing helper used in 331-system-check tests
+PODMAN_TESTING=${PODMAN_TESTING:-$(dirname ${BASH_SOURCE})/../../bin/podman-testing}
+
 # crun or runc, unlikely to change. Cache, because it's expensive to determine.
 PODMAN_RUNTIME=
 
@@ -449,6 +452,14 @@ function run_podman() {
     fi
 }
 
+function run_podman_testing() {
+    printf "\n%s %s %s %s\n" "$(timestamp)" "$_LOG_PROMPT" "$PODMAN_TESTING" "$*"
+    run $PODMAN_TESTING "$@"
+    if [[ $status -ne 0 ]]; then
+        echo "$output"
+        die "Unexpected error from testing helper, which should always always succeed"
+    fi
+}
 
 # Wait for certain output from a container, indicating that it's ready.
 function wait_for_output {
@@ -1176,6 +1187,10 @@ function wait_for_command_output() {
         tries=$((tries - 1))
     done
     die "Timed out waiting for '$cmd' to return '$want'"
+}
+
+function make_random_file() {
+    dd if=/dev/urandom of="$1" bs=1 count=${2:-$((${RANDOM} % 8192 + 1024))} status=none
 }
 
 # END   miscellaneous tools

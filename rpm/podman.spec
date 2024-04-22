@@ -240,6 +240,10 @@ export BUILDTAGS="$BASEBUILDTAGS exclude_graphdriver_btrfs btrfs_noversion remot
 export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh)"
 %gobuild -o bin/quadlet ./cmd/quadlet
 
+# build %%{name}-testing
+export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh)"
+%gobuild -o bin/podman-testing ./cmd/podman-testing
+
 # reset LDFLAGS for plugins binaries
 LDFLAGS=''
 
@@ -255,8 +259,9 @@ PODMAN_VERSION=%{version} %{__make} DESTDIR=%{buildroot} PREFIX=%{_prefix} ETCDI
        install.docker \
        install.docker-docs \
        install.remote \
+       install.testing \
 %if %{defined _modulesloaddir}
-        install.modules-load
+       install.modules-load
 %endif
 
 sed -i 's;%{buildroot};;g' %{buildroot}%{_bindir}/docker
@@ -314,6 +319,7 @@ cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 %{_datadir}/zsh/site-functions/_%{name}-remote
 
 %files tests
+%{_bindir}/%{name}-testing
 %{_datadir}/%{name}/test
 
 %files -n %{name}sh

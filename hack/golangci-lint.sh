@@ -18,8 +18,8 @@ BUILD_TAGS_TUNNEL="$BUILD_TAGS_DEFAULT,remote"
 BUILD_TAGS_REMOTE="remote,containers_image_openpgp"
 
 SKIP_DIRS_ABI=""
-SKIP_DIRS_TUNNEL="pkg/api,pkg/domain/infra/abi"
-SKIP_DIRS_REMOTE="libpod/events,pkg/api,pkg/domain/infra/abi,pkg/machine/qemu,pkg/trust,test"
+SKIP_DIRS_TUNNEL="pkg/api,pkg/domain/infra/abi,internal/domain/infra/abi"
+SKIP_DIRS_REMOTE="libpod/events,pkg/api,pkg/domain/infra/abi,internal/domain/infra/abi,pkg/machine/qemu,pkg/trust,test"
 
 declare -a to_lint
 to_lint=(ABI TUNNEL REMOTE)
