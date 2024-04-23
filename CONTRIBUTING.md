@@ -112,6 +112,13 @@ You need install some dependencies before building a binary.
   $ export PKG_CONFIG_PATH="/usr/lib/pkgconfig"
   ```
 
+#### openSUSE
+
+  ```shell
+  $ sudo zypper -n in libgpgme-devel libseccomp-devel systemd-devel
+  $ export PKG_CONFIG_PATH="/usr/lib/pkgconfig"
+  ```
+
 ### Building binaries and test your changes
 
 To test your changes do `make binaries` to generate your binaries.
