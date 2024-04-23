@@ -102,21 +102,18 @@ You need install some dependencies before building a binary.
 
   ```shell
   $ sudo dnf install gpgme-devel libseccomp-devel.x86_64 systemd-devel
-  $ export PKG_CONFIG_PATH="/usr/lib/pkgconfig"
   ```
 
 #### Debian / Ubuntu
 
   ```shell
   $ sudo apt-get install -y libsystemd-dev libgpgme-dev libseccomp-dev
-  $ export PKG_CONFIG_PATH="/usr/lib/pkgconfig"
   ```
 
 #### openSUSE
 
   ```shell
   $ sudo zypper -n in libgpgme-devel libseccomp-devel systemd-devel
-  $ export PKG_CONFIG_PATH="/usr/lib/pkgconfig"
   ```
 
 ### Building binaries and test your changes
