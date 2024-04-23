@@ -3,11 +3,11 @@ package util
 import (
 	"fmt"
 	"net"
+	"slices"
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/libnetwork/util"
 	"github.com/containers/common/pkg/config"
-	"golang.org/x/exp/slices"
 )
 
 func CreateBridge(n NetUtil, network *types.Network, usedNetworks []*net.IPNet, subnetPools []config.SubnetPool) error {

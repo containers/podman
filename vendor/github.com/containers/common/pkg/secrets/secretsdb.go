@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/containers/common/pkg/secrets/define"
 )
 
 type db struct {
@@ -70,14 +72,14 @@ func (s *SecretsManager) getNameAndID(nameOrID string) (name, id string, err err
 	name, id, err = s.getExactNameAndID(nameOrID)
 	if err == nil {
 		return name, id, nil
-	} else if !errors.Is(err, ErrNoSuchSecret) {
+	} else if !errors.Is(err, define.ErrNoSuchSecret) {
 		return "", "", err
 	}
 
 	// ID prefix may have been given, iterate through all IDs.
 	// ID and partial ID has a max length of 25, so we return if its greater than that.
 	if len(nameOrID) > secretIDLength {
-		return "", "", fmt.Errorf("no secret with name or id %q: %w", nameOrID, ErrNoSuchSecret)
+		return "", "", fmt.Errorf("no secret with name or id %q: %w", nameOrID, define.ErrNoSuchSecret)
 	}
 	exists := false
 	var foundID, foundName string
@@ -95,7 +97,7 @@ func (s *SecretsManager) getNameAndID(nameOrID string) (name, id string, err err
 	if exists {
 		return foundName, foundID, nil
 	}
-	return "", "", fmt.Errorf("no secret with name or id %q: %w", nameOrID, ErrNoSuchSecret)
+	return "", "", fmt.Errorf("no secret with name or id %q: %w", nameOrID, define.ErrNoSuchSecret)
 }
 
 // getExactNameAndID takes a secret's name or ID and returns both its name and full ID.
@@ -114,7 +116,7 @@ func (s *SecretsManager) getExactNameAndID(nameOrID string) (name, id string, er
 		return name, id, nil
 	}
 
-	return "", "", fmt.Errorf("no secret with name or id %q: %w", nameOrID, ErrNoSuchSecret)
+	return "", "", fmt.Errorf("no secret with name or id %q: %w", nameOrID, define.ErrNoSuchSecret)
 }
 
 // exactSecretExists checks if the secret exists, given a name or ID
@@ -122,7 +124,7 @@ func (s *SecretsManager) getExactNameAndID(nameOrID string) (name, id string, er
 func (s *SecretsManager) exactSecretExists(nameOrID string) (bool, error) {
 	_, _, err := s.getExactNameAndID(nameOrID)
 	if err != nil {
-		if errors.Is(err, ErrNoSuchSecret) {
+		if errors.Is(err, define.ErrNoSuchSecret) {
 			return false, nil
 		}
 		return false, err
@@ -157,7 +159,7 @@ func (s *SecretsManager) lookupSecret(nameOrID string) (*Secret, error) {
 		return &secret, nil
 	}
 
-	return nil, fmt.Errorf("no secret with name or id %q: %w", nameOrID, ErrNoSuchSecret)
+	return nil, fmt.Errorf("no secret with name or id %q: %w", nameOrID, define.ErrNoSuchSecret)
 }
 
 // Store creates a new secret in the secrets database.

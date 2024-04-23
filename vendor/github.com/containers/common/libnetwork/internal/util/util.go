@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"slices"
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 // GetBridgeInterfaceNames returns all bridge interface names

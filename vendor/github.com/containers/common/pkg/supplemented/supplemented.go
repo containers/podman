@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/image"
@@ -15,7 +16,6 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 // supplementedImageReference groups multiple references together.

@@ -8,12 +8,12 @@ package capabilities
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
 
 	"github.com/syndtr/gocapability/capability"
-	"golang.org/x/exp/slices"
 )
 
 var (

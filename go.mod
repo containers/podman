@@ -24,16 +24,16 @@ require (
 	github.com/buger/goterm v1.0.4
 	github.com/checkpoint-restore/checkpointctl v1.1.0
 	github.com/checkpoint-restore/go-criu/v7 v7.1.0
-	github.com/containernetworking/plugins v1.4.0
+	github.com/containernetworking/plugins v1.4.1
 	github.com/containers/buildah v1.35.1-0.20240412112838-e393e57728f5
-	github.com/containers/common v0.58.1-0.20240419143618-deb3eeef3b74
+	github.com/containers/common v0.58.1-0.20240423092841-98edaebbc18c
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.4-0.20240408151405-d744d71db363
 	github.com/containers/image/v5 v5.30.1-0.20240411200840-dc519780d39f
 	github.com/containers/libhvee v0.7.1
 	github.com/containers/ocicrypt v1.1.10
 	github.com/containers/psgo v1.9.0
-	github.com/containers/storage v1.53.1-0.20240411065836-1fd0dc1d20e5
+	github.com/containers/storage v1.53.1-0.20240423084155-8b0c90dd5c9c
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/coreos/stream-metadata-go v0.4.4
@@ -100,7 +100,7 @@ require (
 require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
-	github.com/Microsoft/hcsshim v0.12.0-rc.3 // indirect
+	github.com/Microsoft/hcsshim v0.12.0 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/aead/serpent v0.0.0-20160714141033-fba169763ea6 // indirect
@@ -110,7 +110,7 @@ require (
 	github.com/chenzhuoyu/iasm v0.9.1 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/containerd/cgroups/v3 v3.0.3 // indirect
-	github.com/containerd/containerd v1.7.13 // indirect
+	github.com/containerd/containerd v1.7.15 // indirect
 	github.com/containerd/errdefs v0.1.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.15.1 // indirect

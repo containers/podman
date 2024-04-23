@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/containers/common/pkg/secrets/define"
 	"github.com/containers/common/pkg/secrets/filedriver"
 	"github.com/containers/common/pkg/secrets/passdriver"
 	"github.com/containers/common/pkg/secrets/shelldriver"
@@ -26,7 +27,7 @@ const secretIDLength = 25
 var errInvalidPath = errors.New("invalid secrets path")
 
 // ErrNoSuchSecret indicates that the secret does not exist
-var ErrNoSuchSecret = errors.New("no such secret")
+var ErrNoSuchSecret = define.ErrNoSuchSecret
 
 // errSecretNameInUse indicates that the secret name is already in use
 var errSecretNameInUse = errors.New("secret name in use")
@@ -151,7 +152,7 @@ func (s *SecretsManager) newID() (string, error) {
 		newID = newID[0:secretIDLength]
 		_, err := s.lookupSecret(newID)
 		if err != nil {
-			if errors.Is(err, ErrNoSuchSecret) {
+			if errors.Is(err, define.ErrNoSuchSecret) {
 				return newID, nil
 			}
 			return "", err
@@ -217,12 +218,14 @@ func (s *SecretsManager) Store(name string, data []byte, driverType string, opti
 	}
 
 	if options.Replace {
-		if err := driver.Delete(secr.ID); err != nil {
+		if err := driver.Delete(secr.ID); err != nil && !errors.Is(err, define.ErrNoSuchSecret) {
 			return "", fmt.Errorf("deleting secret %s: %w", secr.ID, err)
 		}
 
-		if err := s.delete(secr.ID); err != nil {
-			return "", fmt.Errorf("deleting secret %s: %w", secr.ID, err)
+		if err == nil {
+			if err := s.delete(secr.ID); err != nil && !errors.Is(err, define.ErrNoSuchSecret) {
+				return "", fmt.Errorf("deleting secret %s: %w", secr.ID, err)
+			}
 		}
 	}
 

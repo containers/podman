@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"slices"
 
 	internalutil "github.com/containers/common/libnetwork/internal/util"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 func (n *cniNetwork) NetworkUpdate(_ string, _ types.NetworkUpdateOptions) error {

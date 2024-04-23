@@ -52,7 +52,7 @@ func escaped(val string, escape int) string {
 			if noescapeSpace {
 				hexEscape = !unicode.IsPrint(rune(c))
 			} else {
-				hexEscape = !unicode.IsGraphic(rune(c))
+				hexEscape = !unicode.IsPrint(rune(c)) || unicode.IsSpace(rune(c))
 			}
 		}
 

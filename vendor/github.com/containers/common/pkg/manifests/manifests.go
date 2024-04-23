@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/containers/common/internal"
@@ -12,7 +13,6 @@ import (
 	digest "github.com/opencontainers/go-digest"
 	imgspec "github.com/opencontainers/image-spec/specs-go"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"golang.org/x/exp/slices"
 )
 
 // List is a generic interface for manipulating a manifest list or an image

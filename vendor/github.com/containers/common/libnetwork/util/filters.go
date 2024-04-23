@@ -2,12 +2,12 @@ package util
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/filters"
 	"github.com/containers/common/pkg/util"
-	"golang.org/x/exp/slices"
 )
 
 func GenerateNetworkFilters(f map[string][]string) ([]types.FilterFunc, error) {
