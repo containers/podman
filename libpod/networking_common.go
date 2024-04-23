@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"sort"
 
 	"github.com/containers/common/libnetwork/etchosts"
@@ -18,7 +19,6 @@ import (
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 // convertPortMappings will remove the HostIP part from the ports when running inside podman machine.

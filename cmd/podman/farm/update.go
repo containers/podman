@@ -3,6 +3,7 @@ package farm
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
@@ -10,7 +11,6 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/spf13/cobra"
-	"golang.org/x/exp/slices"
 )
 
 var (

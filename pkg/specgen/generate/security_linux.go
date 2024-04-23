@@ -4,6 +4,7 @@ package generate
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/containers/common/libimage"
@@ -17,7 +18,6 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 // setLabelOpts sets the label options of the SecurityConfig according to the

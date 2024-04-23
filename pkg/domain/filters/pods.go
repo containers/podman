@@ -5,6 +5,7 @@ package filters
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
-	"golang.org/x/exp/slices"
 )
 
 // GeneratePodFilterFunc takes a filter and filtervalue (key, value)

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"slices"
 	"strings"
 
 	"github.com/containers/common/libnetwork/types"
@@ -16,7 +17,6 @@ import (
 	storageTypes "github.com/containers/storage/types"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"golang.org/x/exp/slices"
 )
 
 type NamespaceMode string
