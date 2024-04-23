@@ -11,13 +11,8 @@
 # set it separately here and do not depend on RHEL's go-[s]rpm-macros package
 # until that's fixed.
 # c9s bz: https://bugzilla.redhat.com/show_bug.cgi?id=2227328
-# c8s bz: https://bugzilla.redhat.com/show_bug.cgi?id=2227331
 %if %{defined rhel} && 0%{?rhel} < 10
 %define gobuild(o:) go build -buildmode pie -compiler gc -tags="rpm_crashtraceback libtrust_openssl ${BUILDTAGS:-}" -ldflags "-linkmode=external -compressdwarf=false ${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '%__global_ldflags'" -a -v -x %{?**};
-# python3 dep conditional for rhel8
-%if %{?rhel} == 8
-%define rhel8py3 1
-%endif
 %endif
 
 %global gomodulesmode GO111MODULE=on
@@ -96,9 +91,6 @@ BuildRequires: man-db
 BuildRequires: ostree-devel
 BuildRequires: systemd
 BuildRequires: systemd-devel
-%if %{defined rhel8py3}
-BuildRequires: python3
-%endif
 Requires: catatonit
 Requires: conmon >= 2:2.1.7-2
 %if %{defined fedora} && 0%{?fedora} >= 40

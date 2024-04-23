@@ -45,8 +45,6 @@ jobs:
         message: "Ephemeral COPR build failed. @containers/packit-build please check."
     enable_net: true
     targets:
-      - centos-stream+epel-next-8-x86_64
-      - centos-stream+epel-next-8-aarch64
       - epel-9-x86_64
       - epel-9-aarch64
       - centos-stream-10-x86_64
