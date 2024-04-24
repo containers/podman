@@ -94,8 +94,6 @@ github.com/containers/ocicrypt v1.1.10 h1:r7UR6o8+lyhkEywetubUUgcKFjOWOaWz8cEBrC
 github.com/containers/ocicrypt v1.1.10/go.mod h1:YfzSSr06PTHQwSTUKqDSjish9BeW1E4HUmreluQcMd8=
 github.com/containers/psgo v1.9.0 h1:eJ74jzSaCHnWt26OlKZROSyUyRcGDf+gYBdXnxrMW4g=
 github.com/containers/psgo v1.9.0/go.mod h1:0YoluUm43Mz2UnBIh1P+6V6NWcbpTL5uRtXyOcH0B5A=
-github.com/containers/storage v1.53.1-0.20240411065836-1fd0dc1d20e5 h1:owLaLUu/RKf0x62tFm5ZQjU21oRUUIWTRMpZ0zkIt3E=
-github.com/containers/storage v1.53.1-0.20240411065836-1fd0dc1d20e5/go.mod h1:P4tgJNR/o42wmg+9WZtoJtOJvmZKu2dwzFQggcH9aQw=
 github.com/containers/winquit v1.1.0 h1:jArun04BNDQvt2W0Y78kh9TazN2EIEMG5Im6/JY7+pE=
 github.com/containers/winquit v1.1.0/go.mod h1:PsPeZlnbkmGGIToMPHF1zhWjBUkd8aHjMOr/vFcPxw8=
 github.com/coreos/go-oidc/v3 v3.9.0 h1:0J/ogVOd4y8P0f0xUh8l9t07xRP/d8tccvjHl2dcsSo=
@@ -313,6 +311,8 @@ github.com/gorilla/mux v1.8.1/go.mod h1:AKf9I4AEqPTmMytcMc0KkNouC66V3BtZ4qD5fmWS
 github.com/gorilla/schema v1.3.0 h1:rbciOzXAx3IB8stEFnfTwO3sYa6EWlQk79XdyustPDA=
 github.com/gorilla/schema v1.3.0/go.mod h1:Dg5SSm5PV60mhF2NFaTV1xuYYj8tV8NOPRo4FggUMnM=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.18.0 h1:RtRsiaGvWxcwd8y3BiRZxsylPT8hLWZ5SPcfI+3IDNk=
+github.com/harche/storage v0.0.0-20240419150530-697c4129ea4e h1:Fb6B3EXLqiAodyFcef7vGcT1QnKSmFTAeQgN/acynh4=
+github.com/harche/storage v0.0.0-20240419150530-697c4129ea4e/go.mod h1:P4tgJNR/o42wmg+9WZtoJtOJvmZKu2dwzFQggcH9aQw=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
 github.com/hashicorp/errwrap v1.1.0 h1:OxrOeh75EUXMY8TBjag2fzXGZ40LB6IKw45YeGUDY2I=
 github.com/hashicorp/errwrap v1.1.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=

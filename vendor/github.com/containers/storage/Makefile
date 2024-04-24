@@ -27,7 +27,7 @@
 	vendor-in-container
 
 NATIVETAGS :=
-AUTOTAGS := $(shell ./hack/btrfs_tag.sh) $(shell ./hack/libdm_tag.sh) $(shell ./hack/libsubid_tag.sh)
+AUTOTAGS := $(shell ./hack/btrfs_tag.sh) $(shell ./hack/libsubid_tag.sh)
 BUILDFLAGS := -tags "$(AUTOTAGS) $(TAGS)" $(FLAGS)
 GO ?= go
 TESTFLAGS := $(shell $(GO) test -race $(BUILDFLAGS) ./pkg/stringutils 2>&1 > /dev/null && echo -race)

@@ -7,7 +7,6 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/containerd/stargz-snapshotter/estargz"
 	"github.com/containers/storage/pkg/chunked/internal"
 	"github.com/klauspost/compress/zstd"
 	"github.com/klauspost/pgzip"
@@ -33,7 +32,7 @@ func typeToTarType(t string) (byte, error) {
 	return r, nil
 }
 
-func readEstargzChunkedManifest(blobStream ImageSourceSeekable, blobSize int64, annotations map[string]string) ([]byte, int64, error) {
+func readEstargzChunkedManifest(blobStream ImageSourceSeekable, blobSize int64, tocDigest digest.Digest) ([]byte, int64, error) {
 	// information on the format here https://github.com/containerd/stargz-snapshotter/blob/main/docs/stargz-estargz.md
 	footerSize := int64(51)
 	if blobSize <= footerSize {
@@ -126,11 +125,7 @@ func readEstargzChunkedManifest(blobStream ImageSourceSeekable, blobSize int64, 
 		return nil, 0, err
 	}
 
-	d, err := digest.Parse(annotations[estargz.TOCJSONDigestAnnotation])
-	if err != nil {
-		return nil, 0, err
-	}
-	if manifestDigester.Digest() != d {
+	if manifestDigester.Digest() != tocDigest {
 		return nil, 0, errors.New("invalid manifest checksum")
 	}
 
@@ -140,7 +135,7 @@ func readEstargzChunkedManifest(blobStream ImageSourceSeekable, blobSize int64, 
 // readZstdChunkedManifest reads the zstd:chunked manifest from the seekable stream blobStream.  The blob total size must
 // be specified.
 // This function uses the io.github.containers.zstd-chunked. annotations when specified.
-func readZstdChunkedManifest(blobStream ImageSourceSeekable, blobSize int64, annotations map[string]string) ([]byte, []byte, int64, error) {
+func readZstdChunkedManifest(blobStream ImageSourceSeekable, blobSize int64, tocDigest digest.Digest, annotations map[string]string) ([]byte, []byte, int64, error) {
 	footerSize := int64(internal.FooterSizeSupported)
 	if blobSize <= footerSize {
 		return nil, nil, 0, errors.New("blob too small")
@@ -238,7 +233,7 @@ func readZstdChunkedManifest(blobStream ImageSourceSeekable, blobSize int64, ann
 		return nil, nil, 0, err
 	}
 
-	decodedBlob, err := decodeAndValidateBlob(manifest, footerData.LengthUncompressed, footerData.ChecksumAnnotation)
+	decodedBlob, err := decodeAndValidateBlob(manifest, footerData.LengthUncompressed, tocDigest.String())
 	if err != nil {
 		return nil, nil, 0, err
 	}

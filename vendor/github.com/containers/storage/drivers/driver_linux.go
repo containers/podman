@@ -94,8 +94,6 @@ var (
 	// Slice of drivers that should be used in an order
 	Priority = []string{
 		"overlay",
-		// We don't support devicemapper without configuration
-		// "devicemapper",
 		"aufs",
 		"btrfs",
 		"zfs",
