@@ -354,14 +354,13 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.53.1-0.20240411065836-1fd0dc1d20e5
+# github.com/containers/storage v1.53.1-0.20240411065836-1fd0dc1d20e5 => github.com/harche/storage v0.0.0-20240419150530-697c4129ea4e
 ## explicit; go 1.20
 github.com/containers/storage
 github.com/containers/storage/drivers
 github.com/containers/storage/drivers/aufs
 github.com/containers/storage/drivers/btrfs
 github.com/containers/storage/drivers/copy
-github.com/containers/storage/drivers/devmapper
 github.com/containers/storage/drivers/overlay
 github.com/containers/storage/drivers/overlayutils
 github.com/containers/storage/drivers/quota
@@ -377,9 +376,7 @@ github.com/containers/storage/pkg/chunked/dump
 github.com/containers/storage/pkg/chunked/internal
 github.com/containers/storage/pkg/chunked/toc
 github.com/containers/storage/pkg/config
-github.com/containers/storage/pkg/devicemapper
 github.com/containers/storage/pkg/directory
-github.com/containers/storage/pkg/dmesg
 github.com/containers/storage/pkg/fileutils
 github.com/containers/storage/pkg/fsutils
 github.com/containers/storage/pkg/fsverity
@@ -1399,3 +1396,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
 # github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20240131200429-02120488a4c0
+# github.com/containers/storage => github.com/harche/storage v0.0.0-20240419150530-697c4129ea4e

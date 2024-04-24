@@ -8,11 +8,6 @@ const (
 	SystemConfigFile        = "/usr/share/containers/storage.conf"
 )
 
-// defaultConfigFile path to the system wide storage.conf file
-var (
-	defaultOverrideConfigFile = "/etc/containers/storage.conf"
-)
-
 // canUseRootlessOverlay returns true if the overlay driver can be used for rootless containers
 func canUseRootlessOverlay(home, runhome string) bool {
 	return false

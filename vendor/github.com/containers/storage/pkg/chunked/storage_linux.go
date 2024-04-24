@@ -25,6 +25,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chunked/compressor"
 	"github.com/containers/storage/pkg/chunked/internal"
+	"github.com/containers/storage/pkg/chunked/toc"
 	"github.com/containers/storage/pkg/fsverity"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/system"
@@ -264,18 +265,26 @@ func GetDiffer(ctx context.Context, store storage.Store, blobDigest digest.Diges
 		return nil, errors.New("enable_partial_images not configured")
 	}
 
-	_, hasZstdChunkedTOC := annotations[internal.ManifestChecksumKey]
-	_, hasEstargzTOC := annotations[estargz.TOCJSONDigestAnnotation]
+	zstdChunkedTOCDigestString, hasZstdChunkedTOC := annotations[internal.ManifestChecksumKey]
+	estargzTOCDigestString, hasEstargzTOC := annotations[estargz.TOCJSONDigestAnnotation]
 
 	if hasZstdChunkedTOC && hasEstargzTOC {
 		return nil, errors.New("both zstd:chunked and eStargz TOC found")
 	}
 
 	if hasZstdChunkedTOC {
-		return makeZstdChunkedDiffer(ctx, store, blobSize, annotations, iss, &storeOpts)
+		zstdChunkedTOCDigest, err := digest.Parse(zstdChunkedTOCDigestString)
+		if err != nil {
+			return nil, fmt.Errorf("parsing zstd:chunked TOC digest %q: %w", zstdChunkedTOCDigestString, err)
+		}
+		return makeZstdChunkedDiffer(ctx, store, blobSize, zstdChunkedTOCDigest, annotations, iss, &storeOpts)
 	}
 	if hasEstargzTOC {
-		return makeEstargzChunkedDiffer(ctx, store, blobSize, annotations, iss, &storeOpts)
+		estargzTOCDigest, err := digest.Parse(estargzTOCDigestString)
+		if err != nil {
+			return nil, fmt.Errorf("parsing estargz TOC digest %q: %w", estargzTOCDigestString, err)
+		}
+		return makeEstargzChunkedDiffer(ctx, store, blobSize, estargzTOCDigest, iss, &storeOpts)
 	}
 
 	return makeConvertFromRawDiffer(ctx, store, blobDigest, blobSize, annotations, iss, &storeOpts)
@@ -303,19 +312,14 @@ func makeConvertFromRawDiffer(ctx context.Context, store storage.Store, blobDige
 	}, nil
 }
 
-func makeZstdChunkedDiffer(ctx context.Context, store storage.Store, blobSize int64, annotations map[string]string, iss ImageSourceSeekable, storeOpts *types.StoreOptions) (*chunkedDiffer, error) {
-	manifest, tarSplit, tocOffset, err := readZstdChunkedManifest(iss, blobSize, annotations)
+func makeZstdChunkedDiffer(ctx context.Context, store storage.Store, blobSize int64, tocDigest digest.Digest, annotations map[string]string, iss ImageSourceSeekable, storeOpts *types.StoreOptions) (*chunkedDiffer, error) {
+	manifest, tarSplit, tocOffset, err := readZstdChunkedManifest(iss, blobSize, tocDigest, annotations)
 	if err != nil {
 		return nil, fmt.Errorf("read zstd:chunked manifest: %w", err)
 	}
 	layersCache, err := getLayersCache(store)
 	if err != nil {
 		return nil, err
-	}
-
-	tocDigest, err := digest.Parse(annotations[internal.ManifestChecksumKey])
-	if err != nil {
-		return nil, fmt.Errorf("parse TOC digest %q: %w", annotations[internal.ManifestChecksumKey], err)
 	}
 
 	return &chunkedDiffer{
@@ -333,19 +337,14 @@ func makeZstdChunkedDiffer(ctx context.Context, store storage.Store, blobSize in
 	}, nil
 }
 
-func makeEstargzChunkedDiffer(ctx context.Context, store storage.Store, blobSize int64, annotations map[string]string, iss ImageSourceSeekable, storeOpts *types.StoreOptions) (*chunkedDiffer, error) {
-	manifest, tocOffset, err := readEstargzChunkedManifest(iss, blobSize, annotations)
+func makeEstargzChunkedDiffer(ctx context.Context, store storage.Store, blobSize int64, tocDigest digest.Digest, iss ImageSourceSeekable, storeOpts *types.StoreOptions) (*chunkedDiffer, error) {
+	manifest, tocOffset, err := readEstargzChunkedManifest(iss, blobSize, tocDigest)
 	if err != nil {
 		return nil, fmt.Errorf("read zstd:chunked manifest: %w", err)
 	}
 	layersCache, err := getLayersCache(store)
 	if err != nil {
 		return nil, err
-	}
-
-	tocDigest, err := digest.Parse(annotations[estargz.TOCJSONDigestAnnotation])
-	if err != nil {
-		return nil, fmt.Errorf("parse TOC digest %q: %w", annotations[estargz.TOCJSONDigestAnnotation], err)
 	}
 
 	return &chunkedDiffer{
@@ -1692,7 +1691,14 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		blobFile.Close()
 		blobFile = nil
 
-		manifest, tarSplit, tocOffset, err := readZstdChunkedManifest(fileSource, c.blobSize, annotations)
+		tocDigest, err := toc.GetTOCDigest(annotations)
+		if err != nil {
+			return graphdriver.DriverWithDifferOutput{}, fmt.Errorf("internal error: parsing just-created zstd:chunked TOC digest: %w", err)
+		}
+		if tocDigest == nil {
+			return graphdriver.DriverWithDifferOutput{}, fmt.Errorf("internal error: just-created zstd:chunked missing TOC digest")
+		}
+		manifest, tarSplit, tocOffset, err := readZstdChunkedManifest(fileSource, c.blobSize, *tocDigest, annotations)
 		if err != nil {
 			return graphdriver.DriverWithDifferOutput{}, fmt.Errorf("read zstd:chunked manifest: %w", err)
 		}

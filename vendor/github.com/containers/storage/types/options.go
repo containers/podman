@@ -49,6 +49,12 @@ var (
 	defaultConfigFile = SystemConfigFile
 	// DefaultStoreOptions is a reasonable default set of options.
 	defaultStoreOptions StoreOptions
+
+	// defaultOverrideConfigFile path to override the default system wide storage.conf file
+	defaultOverrideConfigFile = "/etc/containers/storage.conf"
+
+	// defaultDropInConfigDir path to the folder containing drop in config files
+	defaultDropInConfigDir = "/etc/containers/storage.conf.d"
 )
 
 func loadDefaultStoreOptions() {
@@ -114,11 +120,53 @@ func loadDefaultStoreOptions() {
 
 // loadStoreOptions returns the default storage ops for containers
 func loadStoreOptions() (StoreOptions, error) {
-	storageConf, err := DefaultConfigFile()
+	baseConf, err := DefaultConfigFile()
 	if err != nil {
 		return defaultStoreOptions, err
 	}
-	return loadStoreOptionsFromConfFile(storageConf)
+
+	// Load the base config file
+	baseOptions, err := loadStoreOptionsFromConfFile(baseConf)
+	if err != nil {
+		return defaultStoreOptions, err
+	}
+
+	if _, err := os.Stat(defaultDropInConfigDir); err == nil {
+		// The directory exists, so merge the configuration from this directory
+		err = mergeConfigFromDirectory(&baseOptions, defaultDropInConfigDir)
+		if err != nil {
+			return defaultStoreOptions, err
+		}
+	} else if !os.IsNotExist(err) {
+		// There was an error other than the directory not existing
+		return defaultStoreOptions, err
+	}
+
+	return baseOptions, nil
+}
+
+func mergeConfigFromDirectory(baseOptions *StoreOptions, configDir string) error {
+	return filepath.Walk(configDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+
+		// Only consider files with .conf extension
+		if filepath.Ext(path) != ".conf" {
+			return nil
+		}
+
+		// Load drop-in options from the current file
+		err = ReloadConfigurationFile(path, baseOptions)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 // usePerUserStorage returns whether the user private storage must be used.
