@@ -6,7 +6,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman kill", func() {
@@ -14,7 +13,7 @@ var _ = Describe("Podman kill", func() {
 	It("podman kill bogus container", func() {
 		session := podmanTest.Podman([]string{"kill", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, `no container with name or ID "foobar" found: no such container`))
 	})
 
 	It("podman container kill a running container by id", func() {
@@ -87,7 +86,7 @@ var _ = Describe("Podman kill", func() {
 
 		result := podmanTest.Podman([]string{"kill", "-s", "foobar", cid})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
+		Expect(result).Should(ExitWithError(125, "invalid signal: foobar"))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 	})
 
