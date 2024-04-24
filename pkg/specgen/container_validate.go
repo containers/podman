@@ -3,10 +3,10 @@ package specgen
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/containers/podman/v5/libpod/define"
-	"golang.org/x/exp/slices"
 )
 
 var (

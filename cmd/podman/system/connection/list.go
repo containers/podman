@@ -3,6 +3,7 @@ package connection
 import (
 	"fmt"
 	"os"
+	"slices"
 	"sort"
 
 	"github.com/containers/common/pkg/completion"
@@ -13,7 +14,6 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/system"
 	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/spf13/cobra"
-	"golang.org/x/exp/slices"
 )
 
 var (

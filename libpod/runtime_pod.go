@@ -6,10 +6,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/containers/podman/v5/libpod/define"
-	"golang.org/x/exp/slices"
 )
 
 // Contains the public Runtime API for pods
