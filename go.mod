@@ -3,7 +3,7 @@ module github.com/containers/podman/v5
 go 1.21
 
 // Warning: Ensure the "go" and "toolchain" versions match exactly to prevent unwanted auto-updates
-toolchain go1.21.0
+toolchain go1.22.2
 
 require (
 	github.com/BurntSushi/toml v1.3.2
