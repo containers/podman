@@ -222,7 +222,7 @@ func CRRuntimeSupportsCheckpointRestore(runtimePath string) bool {
 	return false
 }
 
-// CRRuntimeSupportsCheckpointRestore tests if the runtime at 'runtimePath'
+// CRRuntimeSupportsPodCheckpointRestore tests if the runtime at 'runtimePath'
 // supports restoring into existing Pods. The runtime needs to support
 // the CRIU option --lsm-mount-context and the existence of this is checked
 // by this function. In addition it is necessary to at least have CRIU 3.16.
