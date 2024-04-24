@@ -7,6 +7,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/pkg/machine/applehv"
 	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/libkrun"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/sirupsen/logrus"
 )
@@ -29,6 +30,8 @@ func Get() (vmconfigs.VMProvider, error) {
 	switch resolvedVMType {
 	case define.AppleHvVirt:
 		return new(applehv.AppleHVStubber), nil
+	case define.LibKrun:
+		return new(libkrun.LibKrunStubber), nil
 	default:
 		return nil, fmt.Errorf("unsupported virtualization provider: `%s`", resolvedVMType.String())
 	}

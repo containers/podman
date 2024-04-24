@@ -87,7 +87,7 @@ func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, endpoint 
 
 	diskOpts := DiskArtifactOpts{
 		arch:     arch,
-		diskType: vmType.String(),
+		diskType: vmType.DiskType(),
 		os:       machineOS,
 	}
 

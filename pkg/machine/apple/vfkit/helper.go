@@ -24,7 +24,7 @@ const (
 	version = "/version"
 )
 
-func (vf *VfkitHelper) get(endpoint string, payload io.Reader) (*http.Response, error) {
+func (vf *Helper) get(endpoint string, payload io.Reader) (*http.Response, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodGet, endpoint, payload)
 	if err != nil {
@@ -33,7 +33,7 @@ func (vf *VfkitHelper) get(endpoint string, payload io.Reader) (*http.Response, 
 	return client.Do(req)
 }
 
-func (vf *VfkitHelper) post(endpoint string, payload io.Reader) (*http.Response, error) {
+func (vf *Helper) post(endpoint string, payload io.Reader) (*http.Response, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodPost, endpoint, payload)
 	if err != nil {
@@ -43,7 +43,7 @@ func (vf *VfkitHelper) post(endpoint string, payload io.Reader) (*http.Response,
 }
 
 // getRawState asks vfkit for virtual machine state unmodified (see state())
-func (vf *VfkitHelper) getRawState() (define.Status, error) {
+func (vf *Helper) getRawState() (define.Status, error) {
 	var response rest.VMState
 	endPoint := vf.Endpoint + state
 	serverResponse, err := vf.get(endPoint, nil)
@@ -66,7 +66,7 @@ func (vf *VfkitHelper) getRawState() (define.Status, error) {
 // state asks vfkit for the virtual machine state. in case the vfkit
 // service is not responding, we assume the service is not running
 // and return a stopped status
-func (vf *VfkitHelper) State() (define.Status, error) {
+func (vf *Helper) State() (define.Status, error) {
 	vmState, err := vf.getRawState()
 	if err == nil {
 		return vmState, nil
@@ -77,7 +77,7 @@ func (vf *VfkitHelper) State() (define.Status, error) {
 	return "", err
 }
 
-func (vf *VfkitHelper) stateChange(newState rest.StateChange) error {
+func (vf *Helper) stateChange(newState rest.StateChange) error {
 	b, err := json.Marshal(rest.VMState{State: string(newState)})
 	if err != nil {
 		return err
@@ -88,7 +88,7 @@ func (vf *VfkitHelper) stateChange(newState rest.StateChange) error {
 	return err
 }
 
-func (vf *VfkitHelper) Stop(force, wait bool) error {
+func (vf *Helper) Stop(force, wait bool) error {
 	waitDuration := time.Millisecond * 10
 	// TODO Add ability to wait until stopped
 	if force {
@@ -118,10 +118,10 @@ func (vf *VfkitHelper) Stop(force, wait bool) error {
 	return waitErr
 }
 
-// VfkitHelper describes the use of vfkit: cmdline and endpoint
-type VfkitHelper struct {
-	LogLevel        logrus.Level
-	Endpoint        string
-	VfkitBinaryPath *define.VMFile
-	VirtualMachine  *config.VirtualMachine
+// Helper describes the use of vfkit: cmdline and endpoint
+type Helper struct {
+	LogLevel       logrus.Level
+	Endpoint       string
+	BinaryPath     *define.VMFile
+	VirtualMachine *config.VirtualMachine
 }

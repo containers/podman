@@ -23,7 +23,7 @@ func CreateReadyUnitFile(provider define.VMType, opts *ReadyUnitOpts) (string, e
 		readyUnit.Add("Unit", "Requires", "dev-virtio\\x2dports-vport1p1.device")
 		readyUnit.Add("Unit", "After", "systemd-user-sessions.service")
 		readyUnit.Add("Service", "ExecStart", "/bin/sh -c '/usr/bin/echo Ready >/dev/vport1p1'")
-	case define.AppleHvVirt:
+	case define.AppleHvVirt, define.LibKrun:
 		readyUnit.Add("Unit", "Requires", "dev-virtio\\x2dports-vsock.device")
 		readyUnit.Add("Service", "ExecStart", "/bin/sh -c '/usr/bin/echo Ready | socat - VSOCK-CONNECT:2:1025'")
 	case define.HyperVVirt:

@@ -1,6 +1,6 @@
 //go:build darwin
 
-package applehv
+package apple
 
 import (
 	"net"
@@ -11,9 +11,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// serveIgnitionOverSock allows podman to open a small httpd instance on the vsock between the host
+// ServeIgnitionOverSock allows podman to open a small httpd instance on the vsock between the host
 // and guest to inject the ignitionfile into fcos
-func serveIgnitionOverSock(ignitionSocket *define.VMFile, mc *vmconfigs.MachineConfig) error {
+func ServeIgnitionOverSock(ignitionSocket *define.VMFile, mc *vmconfigs.MachineConfig) error {
 	ignitionFile, err := mc.IgnitionFile()
 	if err != nil {
 		return err

@@ -19,6 +19,7 @@ type QEMUConfig struct {
 // Stubs
 type AppleHVConfig struct{}
 type HyperVConfig struct{}
+type LibKrunConfig struct{}
 type WSLConfig struct{}
 
 func getHostUID() int {
