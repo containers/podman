@@ -32,6 +32,7 @@ const (
 )
 
 type OCIArtifactDisk struct {
+	cache                    bool
 	cachedCompressedDiskPath *define.VMFile
 	name                     string
 	ctx                      context.Context
@@ -91,12 +92,15 @@ func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, endpoint 
 		os:       machineOS,
 	}
 
+	cache := false
 	if endpoint == "" {
 		endpoint = fmt.Sprintf("docker://%s/%s/%s:%s", artifactRegistry, artifactRepo, artifactImageName, artifactVersion.majorMinor())
+		cache = true
 	}
 
 	ociDisk := OCIArtifactDisk{
 		ctx:              ctx,
+		cache:            cache,
 		dirs:             dirs,
 		diskArtifactOpts: &diskOpts,
 		finalPath:        finalPath.GetPath(),
@@ -114,36 +118,46 @@ func (o *OCIArtifactDisk) OriginalFileName() (string, string) {
 }
 
 func (o *OCIArtifactDisk) Get() error {
-	if err := o.get(); err != nil {
+	cleanCache, err := o.get()
+	if err != nil {
 		return err
+	}
+	if cleanCache != nil {
+		defer cleanCache()
 	}
 	return o.decompress()
 }
 
-func (o *OCIArtifactDisk) GetNoCompress() error {
+func (o *OCIArtifactDisk) GetNoCompress() (func(), error) {
 	return o.get()
 }
 
-func (o *OCIArtifactDisk) get() error {
+func (o *OCIArtifactDisk) get() (func(), error) {
+	cleanCache := func() {}
+
 	destRef, artifactDigest, err := o.getDestArtifact()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Note: the artifactDigest here is the hash of the most recent disk image available
 	cachedImagePath, err := o.dirs.ImageCacheDir.AppendToNewVMFile(fmt.Sprintf("%s.%s", artifactDigest.Encoded(), o.vmType.ImageFormat().KindWithCompression()), nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// check if we have the latest and greatest disk image
 	if _, err = os.Stat(cachedImagePath.GetPath()); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("unable to access cached image path %q: %q", cachedImagePath.GetPath(), err)
+			return nil, fmt.Errorf("unable to access cached image path %q: %q", cachedImagePath.GetPath(), err)
 		}
+
+		// On cache misses, we clean out the cache
+		cleanCache = o.cleanCache(cachedImagePath.GetPath())
+
 		// pull the image down to our local filesystem
 		if err := o.pull(destRef, artifactDigest); err != nil {
-			return fmt.Errorf("failed to pull %s: %w", destRef.DockerReference(), err)
+			return nil, fmt.Errorf("failed to pull %s: %w", destRef.DockerReference(), err)
 		}
 		// grab the artifact disk out of the cache and lay
 		// it into our local cache in the format of
@@ -153,13 +167,46 @@ func (o *OCIArtifactDisk) get() error {
 		//
 		// i.e. 91d1e51...d28974.qcow2.xz
 		if err := o.unpack(artifactDigest); err != nil {
-			return err
+			return nil, err
 		}
 	} else {
 		logrus.Debugf("cached image exists and is latest: %s", cachedImagePath.GetPath())
 		o.cachedCompressedDiskPath = cachedImagePath
 	}
-	return nil
+	return cleanCache, nil
+}
+
+func (o *OCIArtifactDisk) cleanCache(cachedImagePath string) func() {
+	// cache miss while using an image that we cache, ie the default image
+	// clean out all old files fron the cache dir
+	if o.cache {
+		files, err := os.ReadDir(o.dirs.ImageCacheDir.GetPath())
+		if err != nil {
+			logrus.Warn("failed to clean machine image cache: ", err)
+			return nil
+		}
+
+		return func() {
+			for _, file := range files {
+				path := filepath.Join(o.dirs.ImageCacheDir.GetPath(), file.Name())
+				logrus.Debugf("cleaning cached file: %s", path)
+				err := utils.GuardedRemoveAll(path)
+				if err != nil && !errors.Is(err, os.ErrNotExist) {
+					logrus.Warn("failed to clean machine image cache: ", err)
+				}
+			}
+		}
+	} else {
+		// using an image that we don't cache, ie not the default image
+		// delete image after use and don't cache
+		return func() {
+			logrus.Debugf("cleaning cache: %s", o.dirs.ImageCacheDir.GetPath())
+			err := os.Remove(cachedImagePath)
+			if err != nil && !errors.Is(err, os.ErrNotExist) {
+				logrus.Warn("failed to clean pulled machine image: ", err)
+			}
+		}
+	}
 }
 
 func (o *OCIArtifactDisk) getDestArtifact() (types.ImageReference, digest.Digest, error) {

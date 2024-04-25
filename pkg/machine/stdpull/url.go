@@ -22,9 +22,10 @@ type DiskFromURL struct {
 	u            *url2.URL
 	finalPath    *define.VMFile
 	tempLocation *define.VMFile
+	cache        bool
 }
 
-func NewDiskFromURL(inputPath string, finalPath *define.VMFile, tempDir *define.VMFile, optionalTempFileName *string) (*DiskFromURL, error) {
+func NewDiskFromURL(inputPath string, finalPath *define.VMFile, tempDir *define.VMFile, optionalTempFileName *string, cache bool) (*DiskFromURL, error) {
 	var (
 		err error
 	)
@@ -57,6 +58,7 @@ func NewDiskFromURL(inputPath string, finalPath *define.VMFile, tempDir *define.
 		u:            u,
 		finalPath:    finalPath,
 		tempLocation: tempLocation,
+		cache:        cache,
 	}, nil
 }
 
@@ -65,6 +67,16 @@ func (d *DiskFromURL) Get() error {
 	if err := d.pull(); err != nil {
 		return err
 	}
+	if !d.cache {
+		defer func() {
+			if err := utils.GuardedRemoveAll(d.tempLocation.GetPath()); err != nil {
+				if !errors.Is(err, os.ErrNotExist) {
+					logrus.Warn("failed to clean machine image cache: ", err)
+				}
+			}
+		}()
+	}
+
 	logrus.Debugf("decompressing (if needed) %s to %s", d.tempLocation.GetPath(), d.finalPath.GetPath())
 	return compression.Decompress(d.tempLocation, d.finalPath.GetPath())
 }
