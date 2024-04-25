@@ -275,6 +275,8 @@ type ContainerImageVolume struct {
 	Dest string `json:"dest"`
 	// ReadWrite sets the volume writable.
 	ReadWrite bool `json:"rw"`
+	// SubPath determines which part of the image will be mounted into the container.
+	SubPath string `json:"subPath,omitempty"`
 }
 
 // ContainerSecret is a secret that is mounted in a container

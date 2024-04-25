@@ -41,6 +41,8 @@ Options specific to type=**image**:
 
 - *rw*, *readwrite*: *true* or *false* (default if unspecified: *false*).
 
+- *subpath*: Mount only a specific path within the image, instead of the whole image.
+
 Options specific to **bind** and **glob**:
 
 - *ro*, *readonly*: *true* or *false* (default if unspecified: *false*).

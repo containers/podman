@@ -126,6 +126,54 @@ func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name stri
 	return ctr, nil
 }
 
+func (ic *ContainerEngine) prepareAutomountImages(ctx context.Context, forContainer string, annotations map[string]string) ([]*specgen.ImageVolume, error) {
+	volMap := make(map[string]*specgen.ImageVolume)
+
+	ctrAnnotation := define.KubeImageAutomountAnnotation + "/" + forContainer
+
+	automount, ok := annotations[ctrAnnotation]
+	if !ok || automount == "" {
+		return nil, nil
+	}
+
+	for _, imageName := range strings.Split(automount, ";") {
+		img, fullName, err := ic.Libpod.LibimageRuntime().LookupImage(imageName, nil)
+		if err != nil {
+			return nil, fmt.Errorf("image %s from container %s does not exist in local storage, cannot automount: %w", imageName, forContainer, err)
+		}
+
+		logrus.Infof("Resolved image name %s to %s for automount into container %s", imageName, fullName, forContainer)
+
+		inspect, err := img.Inspect(ctx, nil)
+		if err != nil {
+			return nil, fmt.Errorf("cannot inspect image %s to automount into container %s: %w", fullName, forContainer, err)
+		}
+
+		volumes := inspect.Config.Volumes
+
+		for path := range volumes {
+			if oldPath, ok := volMap[path]; ok && oldPath != nil {
+				logrus.Warnf("Multiple volume mounts to %q requested, overriding image %q with image %s", path, oldPath.Source, fullName)
+			}
+
+			imgVol := new(specgen.ImageVolume)
+			imgVol.Source = fullName
+			imgVol.Destination = path
+			imgVol.ReadWrite = false
+			imgVol.SubPath = path
+
+			volMap[path] = imgVol
+		}
+	}
+
+	toReturn := make([]*specgen.ImageVolume, 0, len(volMap))
+	for _, vol := range volMap {
+		toReturn = append(toReturn, vol)
+	}
+
+	return toReturn, nil
+}
+
 func prepareVolumesFrom(forContainer, podName string, ctrNames, annotations map[string]string) ([]string, error) {
 	annotationVolsFrom := define.VolumesFromAnnotation + "/" + forContainer
 
@@ -829,6 +877,11 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			initCtrType = define.OneShotInitContainer
 		}
 
+		automountImages, err := ic.prepareAutomountImages(ctx, initCtr.Name, annotations)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		var volumesFrom []string
 		if list, err := prepareVolumesFrom(initCtr.Name, podName, ctrNames, annotations); err != nil {
 			return nil, nil, err
@@ -857,6 +910,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			UserNSIsHost:       p.Userns.IsHost(),
 			Volumes:            volumes,
 			VolumesFrom:        volumesFrom,
+			ImageVolumes:       automountImages,
 			UtsNSIsHost:        p.UtsNs.IsHost(),
 		}
 		specGen, err := kube.ToSpecGen(ctx, &specgenOpts)
@@ -913,6 +967,11 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			labels[k] = v
 		}
 
+		automountImages, err := ic.prepareAutomountImages(ctx, container.Name, annotations)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		var volumesFrom []string
 		if list, err := prepareVolumesFrom(container.Name, podName, ctrNames, annotations); err != nil {
 			return nil, nil, err
@@ -942,6 +1001,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			UserNSIsHost:       p.Userns.IsHost(),
 			Volumes:            volumes,
 			VolumesFrom:        volumesFrom,
+			ImageVolumes:       automountImages,
 			UtsNSIsHost:        p.UtsNs.IsHost(),
 		}
 

@@ -981,3 +981,48 @@ _EOF
     run_podman pod rm -t 0 -f test_pod
     run_podman rmi -f userimage:latest $from_image
 }
+
+@test "podman play with automount volume" {
+    cat >$PODMAN_TMPDIR/Containerfile <<EOF
+FROM $IMAGE
+RUN mkdir /test1 /test2
+RUN touch /test1/a /test1/b /test1/c
+RUN touch /test2/asdf /test2/ejgre /test2/lteghe
+VOLUME /test1
+VOLUME /test2
+EOF
+
+    run_podman build -t automount_test -f $PODMAN_TMPDIR/Containerfile
+
+    fname="/tmp/play_kube_wait_$(random_string 6).yaml"
+    echo "
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test
+  name: test_pod
+spec:
+  restartPolicy: Never
+  containers:
+    - name: testctr
+      image: $IMAGE
+      command:
+      - top
+" > $fname
+
+    run_podman kube play --annotation "io.podman.annotations.kube.image.volumes.mount/testctr=automount_test" $fname
+
+    run_podman run --rm automount_test ls /test1
+    run_out_test1="$output"
+    run_podman exec test_pod-testctr ls /test1
+    assert "$output" = "$run_out_test1" "matching ls run/exec volume path test1"
+
+    run_podman run --rm automount_test ls /test2
+    run_out_test2="$output"
+    run_podman exec test_pod-testctr ls /test2
+    assert "$output" = "$run_out_test2" "matching ls run/exec volume path test2"
+
+    run_podman rm -f -t 0 -a
+    run_podman rmi automount_test
+}
