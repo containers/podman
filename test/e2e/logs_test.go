@@ -29,8 +29,7 @@ var _ = Describe("Podman logs", func() {
 	It("podman logs on not existent container", func() {
 		results := podmanTest.Podman([]string{"logs", "notexist"})
 		results.WaitWithDefaultTimeout()
-		Expect(results).To(Exit(125))
-		Expect(results.ErrorToString()).To(Equal(`Error: no container with name or ID "notexist" found: no such container`))
+		Expect(results).To(ExitWithError(125, `no container with name or ID "notexist" found: no such container`))
 	})
 
 	for _, log := range []string{"k8s-file", "journald", "json-file"} {
@@ -270,7 +269,11 @@ var _ = Describe("Podman logs", func() {
 
 			results := podmanTest.Podman([]string{"logs", "-l", "foobar"})
 			results.WaitWithDefaultTimeout()
-			Expect(results).To(ExitWithError())
+			if IsRemote() {
+				Expect(results).To(ExitWithError(125, "unknown shorthand flag: 'l' in -l"))
+			} else {
+				Expect(results).To(ExitWithError(125, "--latest and containers cannot be used together"))
+			}
 		})
 
 		It("two containers showing short container IDs: "+log, func() {
@@ -326,8 +329,7 @@ var _ = Describe("Podman logs", func() {
 
 			if log == "journald" && !isEventBackendJournald(podmanTest) {
 				// --follow + journald log-driver is only supported with journald events-backend(PR #10431)
-				Expect(results).To(Exit(125))
-				Expect(results.ErrorToString()).To(ContainSubstring("using --follow with the journald --log-driver but without the journald --events-backend"))
+				Expect(results).To(ExitWithError(125, "using --follow with the journald --log-driver but without the journald --events-backend"))
 				return
 			}
 
@@ -366,8 +368,7 @@ var _ = Describe("Podman logs", func() {
 			results.WaitWithDefaultTimeout()
 			if log == "journald" && !isEventBackendJournald(podmanTest) {
 				// --follow + journald log-driver is only supported with journald events-backend(PR #10431)
-				Expect(results).To(Exit(125))
-				Expect(results.ErrorToString()).To(ContainSubstring("using --follow with the journald --log-driver but without the journald --events-backend"))
+				Expect(results).To(ExitWithError(125, "using --follow with the journald --log-driver but without the journald --events-backend"))
 				return
 			}
 			Expect(results).To(ExitCleanly())
@@ -581,8 +582,7 @@ var _ = Describe("Podman logs", func() {
 
 		logs := podmanTest.Podman([]string{"logs", "-f", ctrName})
 		logs.WaitWithDefaultTimeout()
-		Expect(logs).To(Exit(125))
-		Expect(logs.ErrorToString()).To(ContainSubstring("this container is using the 'none' log driver, cannot read logs: this container is not logging output"))
+		Expect(logs).To(ExitWithError(125, "this container is using the 'none' log driver, cannot read logs: this container is not logging output"))
 	})
 
 	It("podman logs with non ASCII log tag fails without correct LANG", func() {
@@ -595,14 +595,10 @@ var _ = Describe("Podman logs", func() {
 		defer cleanup()
 		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "--log-opt", "tag=äöüß", ALPINE, "echo", "podman"})
 		logc.WaitWithDefaultTimeout()
-		Expect(logc).To(Exit(126))
-		// FIXME-2023-09-26: conmon <2.1.8 logs to stdout; clean this up once >=2.1.8 is universal
-		errmsg := logc.ErrorToString() + logc.OutputToString()
+		Expect(logc).To(ExitWithError(126, "conmon failed: exit status 1"))
 		if !IsRemote() {
-			// Error is only seen on local client
-			Expect(errmsg).To(ContainSubstring("conmon: option parsing failed: Invalid byte sequence in conversion input"))
+			Expect(logc.ErrorToString()).To(ContainSubstring("conmon: option parsing failed: Invalid byte sequence in conversion input"))
 		}
-		Expect(errmsg).To(ContainSubstring("conmon failed: exit status 1"))
 	})
 
 	It("podman logs with non ASCII log tag succeeds with proper env", func() {

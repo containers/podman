@@ -21,8 +21,7 @@ var _ = Describe("Podman mount", func() {
 
 		mount := podmanTest.Podman([]string{"mount", cid})
 		mount.WaitWithDefaultTimeout()
-		Expect(mount).To(ExitWithError())
-		Expect(mount.ErrorToString()).To(ContainSubstring("podman unshare"))
+		Expect(mount).To(ExitWithError(125, "must execute `podman unshare` first"))
 	})
 
 	It("podman unshare podman mount", func() {
@@ -48,8 +47,7 @@ var _ = Describe("Podman mount", func() {
 		podmanTest.AddImageToRWStore(ALPINE)
 		mount := podmanTest.Podman([]string{"image", "mount", ALPINE})
 		mount.WaitWithDefaultTimeout()
-		Expect(mount).To(ExitWithError())
-		Expect(mount.ErrorToString()).To(ContainSubstring("podman unshare"))
+		Expect(mount).To(ExitWithError(125, "must execute `podman unshare` first"))
 	})
 
 	It("podman unshare image podman mount", func() {
