@@ -10,9 +10,9 @@ Valid _mode_ values are:
 
 - **bridge[:OPTIONS,...]**: Create a network stack on the default bridge. This is the default for rootful containers. It is possible to specify these additional options:
     - **alias=**_name_: Add network-scoped alias for the container.
-    - **ip=**_IPv4_: Specify a static ipv4 address for this container.
-    - **ip=**_IPv6_: Specify a static ipv6 address for this container.
-    - **mac=**_MAC_: Specify a static mac address for this container.
+    - **ip=**_IPv4_: Specify a static IPv4 address for this container.
+    - **ip6=**_IPv6_: Specify a static IPv6 address for this container.
+    - **mac=**_MAC_: Specify a static MAC address for this container.
     - **interface_name=**_name_: Specify a name for the created network interface inside the container.
 
     For example, to set a static ipv4 address and a static mac address, use `--network bridge:ip=10.88.0.10,mac=44:33:22:11:00:99`.
