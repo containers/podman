@@ -107,7 +107,7 @@ func normalizeTaggedDigestedString(s string) (string, reference.Named, error) {
 	// return it verbatim in error cases.
 	ref, err := reference.Parse(s)
 	if err != nil {
-		return "", nil, err
+		return "", nil, fmt.Errorf("parsing reference %q: %w", s, err)
 	}
 	named, ok := ref.(reference.Named)
 	if !ok {
