@@ -134,9 +134,7 @@ errmsg "non-directory/Dockerfile: not a directory" \
        "bud with a path to a Dockerfile (-f) containing a non-directory entry"
 
 errmsg "no such file or directory" \
-       "Error: context must be a directory:" \
-       "bud with dir for file but no Dockerfile in dir" \
-       "bud with bad dir Dockerfile"
+       "Error: context must be a directory:"
 
 errmsg "no such file or directory" \
        "Error: no context directory and no Containerfile specified" \
@@ -144,11 +142,11 @@ errmsg "no such file or directory" \
 
 errmsg "is not a file" \
        "Error: no Containerfile or Dockerfile specified or found in context directory" \
-       "bud with specified context should fail if assumed Dockerfile is a directory"
+       "bud with specified context should fail if Dockerfile in context directory is actually a file"
 
 errmsg "no such file or directory" \
        "context must be a directory" \
-       "bud with specified context should fail if context contains not-existing Dockerfile"
+       "bud with specified context should fail if context directory does not exist"
 
 # 2022-04-26 after buildah PR 3926 (where Ed added error-message checks"
 errmsg "no FROM statement found" \
