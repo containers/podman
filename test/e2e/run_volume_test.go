@@ -173,7 +173,6 @@ var _ = Describe("Podman run with volumes", func() {
 	})
 
 	It("podman run with volumes and suid/dev/exec options", func() {
-		SkipIfRemote("podman-remote does not support --volumes")
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
 		err := os.Mkdir(mountPath, 0755)
 		Expect(err).ToNot(HaveOccurred())
