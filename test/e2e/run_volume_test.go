@@ -173,6 +173,20 @@ var _ = Describe("Podman run with volumes", func() {
 	})
 
 	It("podman run with volumes and suid/dev/exec options", func() {
+		if isRootless() {
+			// We cannot undo nosuid,nodev,noexec when running rootless for obvious reasons.
+			// Thus we should check first if our source dir contains such options and skip the test int his case
+			session := SystemExec("findmnt", []string{"-n", "-o", "OPTIONS", "--target", podmanTest.TempDir})
+			session.WaitWithDefaultTimeout()
+			Expect(session).To(ExitCleanly())
+			output := session.OutputToString()
+			if strings.Contains(output, "noexec") ||
+				strings.Contains(output, "nodev") ||
+				strings.Contains(output, "nosuid") {
+				Skip("test file system is mounted noexec, nodev or nosuid - cannot bind mount without these options as rootless")
+			}
+		}
+
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
 		err := os.Mkdir(mountPath, 0755)
 		Expect(err).ToNot(HaveOccurred())
