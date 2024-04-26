@@ -4093,7 +4093,7 @@ o: {{ .Options.o }}`})
 	It("persistentVolumeClaim with source", func() {
 		fileName := "data"
 		expectedFileContent := "Test"
-		tarFilePath := filepath.Join(os.TempDir(), "podmanVolumeSource.tgz")
+		tarFilePath := filepath.Join(podmanTest.TempDir, "podmanVolumeSource.tgz")
 		err := createSourceTarFile(fileName, expectedFileContent, tarFilePath)
 		Expect(err).ToNot(HaveOccurred())
 
