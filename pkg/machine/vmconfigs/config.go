@@ -33,10 +33,11 @@ type MachineConfig struct {
 	ImagePath *define.VMFile // Temporary only until a proper image struct is worked out
 
 	// Provider stuff
-	AppleHypervisor  *AppleHVConfig `json:",omitempty"`
-	QEMUHypervisor   *QEMUConfig    `json:",omitempty"`
-	HyperVHypervisor *HyperVConfig  `json:",omitempty"`
-	WSLHypervisor    *WSLConfig     `json:",omitempty"`
+	AppleHypervisor   *AppleHVConfig `json:",omitempty"`
+	HyperVHypervisor  *HyperVConfig  `json:",omitempty"`
+	LibKrunHypervisor *LibKrunConfig `json:",omitempty"`
+	QEMUHypervisor    *QEMUConfig    `json:",omitempty"`
+	WSLHypervisor     *WSLConfig     `json:",omitempty"`
 
 	lock *lockfile.LockFile //nolint:unused
 
