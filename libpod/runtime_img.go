@@ -105,7 +105,7 @@ func (r *Runtime) IsExternalContainerCallback(_ context.Context) libimage.IsExte
 	}
 }
 
-// newBuildEvent creates a new event based on completion of a built image
+// newImageBuildCompleteEvent creates a new event based on completion of a built image
 func (r *Runtime) newImageBuildCompleteEvent(idOrName string) {
 	e := events.NewEvent(events.Build)
 	e.Type = events.Image

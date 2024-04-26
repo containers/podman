@@ -26,7 +26,7 @@ type listLocal struct {
 	options     listBuilderOptions
 }
 
-// newLocalManifestListBuilder returns a manifest list builder which saves a
+// newManifestListBuilder returns a manifest list builder which saves a
 // manifest list and images to local storage.
 func newManifestListBuilder(listName string, localEngine entities.ImageEngine, options listBuilderOptions) *listLocal {
 	return &listLocal{

@@ -557,7 +557,7 @@ func WithShmDir(dir string) CtrCreateOption {
 	}
 }
 
-// WithNOShmMount tells libpod whether to mount /dev/shm
+// WithNoShm tells libpod whether to mount /dev/shm
 func WithNoShm(mount bool) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
