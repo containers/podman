@@ -620,22 +620,26 @@ localunit: test/goecho/goecho test/version/version
 test: localunit localintegration remoteintegration localsystem remotesystem  ## Run unit, integration, and system tests.
 
 .PHONY: ginkgo-run
+# e2e tests need access to podman-registry
+ginkgo-run: PATH := $(PATH):$(CURDIR)/hack
 ginkgo-run: .install.ginkgo
 	$(GINKGO) version
 	$(GINKGO) -vv $(TESTFLAGS) --tags "$(TAGS) remote" $(GINKGOTIMEOUT) --flake-attempts $(GINKGO_FLAKE_ATTEMPTS) \
 		--trace $(if $(findstring y,$(GINKGO_NO_COLOR)),--no-color,) \
 		$(GINKGO_JSON) $(if $(findstring y,$(GINKGO_PARALLEL)),-p,) $(if $(FOCUS),--focus "$(FOCUS)",) \
-		$(if $(FOCUS_FILE),--focus-file "$(FOCUS_FILE)",) $(GINKGOWHAT) $(HACK)
+		$(if $(FOCUS_FILE),--focus-file "$(FOCUS_FILE)",) $(GINKGOWHAT)
 
 .PHONY: ginkgo
 ginkgo:
-	$(MAKE) ginkgo-run TAGS="$(BUILDTAGS)" HACK=hack/.
+	$(MAKE) ginkgo-run TAGS="$(BUILDTAGS)"
 
 .PHONY: ginkgo-remote
 ginkgo-remote:
-	$(MAKE) ginkgo-run TAGS="$(REMOTETAGS) remote_testing" HACK=
+	$(MAKE) ginkgo-run TAGS="$(REMOTETAGS) remote_testing"
 
 .PHONY: testbindings
+# bindings tests need access to podman-registry
+testbindings: PATH := $(PATH):$(CURDIR)/hack
 testbindings: .install.ginkgo
 	$(GINKGO) -v $(TESTFLAGS) --tags "$(TAGS) remote" $(GINKGOTIMEOUT) --trace --no-color --timeout 30m  -v -r ./pkg/bindings/test
 
@@ -649,7 +653,7 @@ remoteintegration: test-binaries ginkgo-remote
 localmachine:
 	# gitCommit needed by logformatter, to link to sources
 	@echo /define.gitCommit=$(GIT_COMMIT)
-	$(MAKE) ginkgo-run GINKGO_PARALLEL=n TAGS="$(REMOTETAGS)" GINKGO_FLAKE_ATTEMPTS=0 FOCUS_FILE=$(FOCUS_FILE) GINKGOWHAT=pkg/machine/e2e/. HACK=
+	$(MAKE) ginkgo-run GINKGO_PARALLEL=n TAGS="$(REMOTETAGS)" GINKGO_FLAKE_ATTEMPTS=0 FOCUS_FILE=$(FOCUS_FILE) GINKGOWHAT=pkg/machine/e2e/.
 
 .PHONY: localsystem
 localsystem:

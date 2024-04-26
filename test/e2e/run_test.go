@@ -718,10 +718,10 @@ USER bin`, BB)
 			Expect(session).Should(ExitCleanly())
 		}
 
-		session = podmanTest.Podman([]string{"run", "--rm", "--oom-score-adj=111", fedoraMinimal, "cat", "/proc/self/oom_score_adj"})
+		session = podmanTest.Podman([]string{"run", "--rm", "--oom-score-adj=999", fedoraMinimal, "cat", "/proc/self/oom_score_adj"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(Equal("111"))
+		Expect(session.OutputToString()).To(Equal("999"))
 
 		currentOOMScoreAdj, err := os.ReadFile("/proc/self/oom_score_adj")
 		Expect(err).ToNot(HaveOccurred())

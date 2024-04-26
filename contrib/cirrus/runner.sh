@@ -88,9 +88,6 @@ function _run_bindings() {
     # install ginkgo
     showrun make .install.ginkgo
 
-    # shellcheck disable=SC2155
-    export PATH=$PATH:$GOSRC/hack:$GOSRC/test/tools/build
-
     # if logformatter sees this, it can link directly to failing source lines
     local gitcommit_magic=
     if [[ -n "$GIT_COMMIT" ]]; then

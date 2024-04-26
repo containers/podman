@@ -38,8 +38,6 @@ do
     fi
 done
 
-cp hack/podman-registry /bin
-
 # Bypass git safety/security checks when operating in a throwaway environment
 showrun git config --global --add safe.directory $GOSRC
 
