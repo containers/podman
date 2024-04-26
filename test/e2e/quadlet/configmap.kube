@@ -1,5 +1,5 @@
 ## assert-podman-args "--configmap" "/opt/k8s/abs.yml"
-## assert-podman-args-regex "--configmap" ".*/podman_test.*/quadlet/rel.yml"
+## assert-podman-args-regex "--configmap" ".*/podman-e2e-.*/subtest-.*/quadlet/rel.yml"
 
 [Kube]
 Yaml=deployment.yml

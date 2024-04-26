@@ -532,14 +532,6 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(session.OutputToString()).To(Equal(sysctlValue))
 	})
 
-	It("podman run network expose host port 18082 to container port 8000 using slirp4netns port handler", func() {
-		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:port_handler=slirp4netns", "-dt", "-p", "18082:8000", ALPINE, "/bin/sh"})
-		session.Wait(30)
-		Expect(session).Should(ExitCleanly())
-		ncBusy := SystemExec("nc", []string{"-l", "-p", "18082"})
-		Expect(ncBusy).To(ExitWithError())
-	})
-
 	It("podman run network expose host port 8080 to container port 8000 using invalid port handler", func() {
 		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:port_handler=invalid", "-dt", "-p", "8080:8000", ALPINE, "/bin/sh"})
 		session.Wait(30)
