@@ -315,12 +315,17 @@ codespell:
 .PHONY: validate
 validate: lint .gitvalidation validate.completions man-page-check swagger-check tests-expect-exit pr-removes-fixed-skips
 
+
+# The image used below is generated manually from contrib/validatepr/Containerfile in this podman repo.  The builds are
+# not automated right now.  The hope is that eventually the quay.io/libpod/fedora_podman is multiarch and can replace this
+# image in the future.
 .PHONY: validatepr
 validatepr:
-	$(PODMANCMD) run --rm --env HOME=/root \
-		-v $(CURDIR):/var/tmp/go/src/github.com/containers/podman \
+	$(PODMANCMD) run --rm \
+		-v $(CURDIR):/go/src/github.com/containers/podman \
 		--security-opt label=disable \
-		quay.io/libpod/fedora_podman:latest  \
+		-w /go/src/github.com/containers/podman \
+		quay.io/libpod/validatepr:latest  \
 		make .validatepr
 
 .PHONY: .validatepr
