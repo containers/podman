@@ -131,8 +131,6 @@ additional privileges.
 Both tools share image (not container) storage, hence each can use or
 manipulate images (but not containers) created by the other.
 
-%{summary}
-%{repo} Simple management tool for pods, containers and images
 
 %package docker
 Summary: Emulate Docker CLI using %{name}
