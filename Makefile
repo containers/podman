@@ -620,6 +620,8 @@ localunit: test/goecho/goecho test/version/version
 test: localunit localintegration remoteintegration localsystem remotesystem  ## Run unit, integration, and system tests.
 
 .PHONY: ginkgo-run
+# e2e tests need access to podman-registry
+ginkgo-run: PATH := $(PATH):$(CURDIR)/hack
 ginkgo-run: .install.ginkgo
 	$(GINKGO) version
 	$(GINKGO) -vv $(TESTFLAGS) --tags "$(TAGS) remote" $(GINKGOTIMEOUT) --flake-attempts $(GINKGO_FLAKE_ATTEMPTS) \
@@ -636,6 +638,8 @@ ginkgo-remote:
 	$(MAKE) ginkgo-run TAGS="$(REMOTETAGS) remote_testing"
 
 .PHONY: testbindings
+# bindings tests need access to podman-registry
+testbindings: PATH := $(PATH):$(CURDIR)/hack
 testbindings: .install.ginkgo
 	$(GINKGO) -v $(TESTFLAGS) --tags "$(TAGS) remote" $(GINKGOTIMEOUT) --trace --no-color --timeout 30m  -v -r ./pkg/bindings/test
 
