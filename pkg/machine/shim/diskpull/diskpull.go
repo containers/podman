@@ -20,7 +20,7 @@ func GetDisk(userInputPath string, dirs *define.MachineDirs, imagePath *define.V
 	} else {
 		if strings.HasPrefix(userInputPath, "http") {
 			// TODO probably should use tempdir instead of datadir
-			mydisk, err = stdpull.NewDiskFromURL(userInputPath, imagePath, dirs.DataDir, nil)
+			mydisk, err = stdpull.NewDiskFromURL(userInputPath, imagePath, dirs.DataDir, nil, false)
 		} else {
 			mydisk, err = stdpull.NewStdDiskPull(userInputPath, imagePath)
 		}

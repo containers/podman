@@ -15,6 +15,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/shim/diskpull"
 	"github.com/containers/podman/v5/pkg/machine/stdpull"
 	"github.com/containers/podman/v5/pkg/machine/wsl/wutil"
+	"github.com/containers/podman/v5/utils"
 
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v5/pkg/machine"
@@ -303,8 +304,7 @@ func (w WSLStubber) GetDisk(userInputPath string, dirs *define.MachineDirs, mc *
 	// i.e.v39.0.31-rootfs.tar.xz
 	versionedBase := fmt.Sprintf("%s-%s", downloadVersion, filepath.Base(downloadURL.Path))
 
-	// TODO we need a mechanism for "flushing" old cache files
-	cachedFile, err := dirs.DataDir.AppendToNewVMFile(versionedBase, nil)
+	cachedFile, err := dirs.ImageCacheDir.AppendToNewVMFile(versionedBase, nil)
 	if err != nil {
 		return err
 	}
@@ -313,12 +313,30 @@ func (w WSLStubber) GetDisk(userInputPath string, dirs *define.MachineDirs, mc *
 	if _, err = os.Stat(cachedFile.GetPath()); err == nil {
 		logrus.Debugf("%q already exists locally", cachedFile.GetPath())
 		myDisk, err = stdpull.NewStdDiskPull(cachedFile.GetPath(), mc.ImagePath)
+		if err != nil {
+			return err
+		}
 	} else {
-		// no cached file
-		myDisk, err = stdpull.NewDiskFromURL(downloadURL.String(), mc.ImagePath, dirs.DataDir, &versionedBase)
-	}
-	if err != nil {
-		return err
+		files, err := os.ReadDir(dirs.ImageCacheDir.GetPath())
+		if err != nil {
+			logrus.Warn("failed to clean machine image cache: ", err)
+		} else {
+			defer func() {
+				for _, file := range files {
+					path := filepath.Join(dirs.ImageCacheDir.GetPath(), file.Name())
+					logrus.Debugf("cleaning cached image: %s", path)
+					err := utils.GuardedRemoveAll(path)
+					if err != nil && !errors.Is(err, os.ErrNotExist) {
+						logrus.Warn("failed to clean machine image cache: ", err)
+					}
+				}
+			}()
+		}
+
+		myDisk, err = stdpull.NewDiskFromURL(downloadURL.String(), mc.ImagePath, dirs.ImageCacheDir, &versionedBase, true)
+		if err != nil {
+			return err
+		}
 	}
 	// up until now, nothing has really happened
 	// pull if needed and decompress to image location

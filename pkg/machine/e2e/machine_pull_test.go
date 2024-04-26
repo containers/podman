@@ -26,7 +26,7 @@ func pullOCITestDisk(finalDir string, vmType define.VMType) error {
 	if err != nil {
 		return err
 	}
-	err = ociArtPull.GetNoCompress()
+	_, err = ociArtPull.GetNoCompress()
 	if err != nil {
 		return err
 	}
