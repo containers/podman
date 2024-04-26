@@ -274,9 +274,6 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 	}
 
 	cgroupManager := CGROUP_MANAGER
-	if isRootless() {
-		cgroupManager = "cgroupfs"
-	}
 	if os.Getenv("CGROUP_MANAGER") != "" {
 		cgroupManager = os.Getenv("CGROUP_MANAGER")
 	}
