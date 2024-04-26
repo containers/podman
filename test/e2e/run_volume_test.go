@@ -934,4 +934,25 @@ USER testuser`, CITEST_IMAGE)
 		Expect(run).Should(ExitCleanly())
 		Expect(run.OutputToString()).Should(ContainSubstring(strings.TrimLeft("/vol/", f.Name())))
 	})
+
+	It("podman run --mount type=image with subpath", func() {
+		podmanTest.AddImageToRWStore(ALPINE)
+
+		pathToCheck := "/sbin"
+		pathInCtr := "/mnt"
+
+		ctrCommand := []string{"run", "--mount", fmt.Sprintf("type=image,source=%s,dst=%s,subpath=%s", ALPINE, pathInCtr, pathToCheck), ALPINE, "ls"}
+
+		run1Cmd := append(ctrCommand, pathToCheck)
+		run1 := podmanTest.Podman(run1Cmd)
+		run1.WaitWithDefaultTimeout()
+		Expect(run1).Should(ExitCleanly())
+
+		run2Cmd := append(ctrCommand, pathInCtr)
+		run2 := podmanTest.Podman(run2Cmd)
+		run2.WaitWithDefaultTimeout()
+		Expect(run2).Should(ExitCleanly())
+
+		Expect(run1.OutputToString()).Should(Equal(run2.OutputToString()))
+	})
 })

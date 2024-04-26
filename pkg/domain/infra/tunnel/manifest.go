@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/containers/image/v5/types"
@@ -11,7 +12,6 @@ import (
 	"github.com/containers/podman/v5/pkg/bindings/manifests"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	envLib "github.com/containers/podman/v5/pkg/env"
-	"golang.org/x/exp/slices"
 )
 
 // ManifestCreate implements manifest create via ImageEngine

@@ -12,6 +12,7 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -37,7 +38,6 @@ import (
 	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 	"sigs.k8s.io/yaml"
 )
 
@@ -142,6 +142,8 @@ type CtrSpecGenOptions struct {
 	Volumes map[string]*KubeVolume
 	// VolumesFrom for all containers
 	VolumesFrom []string
+	// Image Volumes for this container
+	ImageVolumes []*specgen.ImageVolume
 	// PodID of the parent pod
 	PodID string
 	// PodName of the parent pod
@@ -222,6 +224,8 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	s.LogConfiguration = &specgen.LogConfig{
 		Driver: opts.LogDriver,
 	}
+
+	s.ImageVolumes = opts.ImageVolumes
 
 	s.LogConfiguration.Options = make(map[string]string)
 	for _, o := range opts.LogOptions {

@@ -164,7 +164,7 @@ unit_task:
       - vendor
       - cross_build
 
-    timeout_in: 1h
+    timeout_in: 90m
 
     matrix:
         - env:

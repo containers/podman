@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path"
+	"slices"
 	"strings"
-
-	"errors"
 
 	"github.com/containers/common/libimage"
 	cp "github.com/containers/image/v5/copy"
@@ -26,7 +26,6 @@ import (
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 // ManifestCreate implements logic for creating manifest lists via ImageEngine

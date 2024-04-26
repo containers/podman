@@ -17,7 +17,7 @@ var _ = Describe("podman image scp", func() {
 	It("podman image scp bogus image", func() {
 		scp := podmanTest.Podman([]string{"image", "scp", "FOOBAR"})
 		scp.WaitWithDefaultTimeout()
-		Expect(scp).Should(ExitWithError())
+		Expect(scp).Should(ExitWithError(125, "must specify a destination: invalid argument"))
 	})
 
 	It("podman image scp with proper connection", func() {
@@ -38,12 +38,7 @@ var _ = Describe("podman image scp", func() {
 		// exit with error because we cannot make an actual ssh connection
 		// This tests that the input we are given is validated and prepared correctly
 		// The error given should either be a missing image (due to testing suite complications) or a no such host timeout on ssh
-		Expect(scp).Should(ExitWithError())
-		// podman-remote exits with a different error
-		if !IsRemote() {
-			Expect(scp.ErrorToString()).Should(ContainSubstring("no such host"))
-		}
-
+		Expect(scp).Should(ExitWithError(125, "failed to connect: dial tcp: lookup "))
 	})
 
 })

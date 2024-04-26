@@ -122,8 +122,7 @@ var _ = Describe("Podman login and logout", func() {
 
 		session = podmanTest.Podman([]string{"push", "-q", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring(": authentication required"))
+		Expect(session).To(ExitWithError(125, ": authentication required"))
 	})
 
 	It("podman login and logout without registry parameter", func() {
@@ -167,8 +166,7 @@ var _ = Describe("Podman login and logout", func() {
 		// push should fail with nonexistent authfile
 		session = podmanTest.Podman([]string{"push", "-q", "--authfile", "/tmp/nonexistent", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(Equal("Error: credential file is not accessible: faccessat /tmp/nonexistent: no such file or directory"))
+		Expect(session).To(ExitWithError(125, "credential file is not accessible: faccessat /tmp/nonexistent: no such file or directory"))
 
 		session = podmanTest.Podman([]string{"push", "-q", "--authfile", authFile, ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
@@ -181,8 +179,8 @@ var _ = Describe("Podman login and logout", func() {
 		// logout should fail with nonexistent authfile
 		session = podmanTest.Podman([]string{"logout", "--authfile", "/tmp/nonexistent", server})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(Equal("Error: credential file is not accessible: faccessat /tmp/nonexistent: no such file or directory"))
+		Expect(session).To(ExitWithError(125, "credential file is not accessible: faccessat /tmp/nonexistent: no such file or directory"))
+
 		session = podmanTest.Podman([]string{"logout", "--authfile", authFile, server})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -204,8 +202,7 @@ var _ = Describe("Podman login and logout", func() {
 		// logout should fail with nonexistent authfile
 		session = podmanTest.Podman([]string{"logout", "--compat-auth-file", "/tmp/nonexistent", server})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(Equal("Error: credential file is not accessible: faccessat /tmp/nonexistent: no such file or directory"))
+		Expect(session).To(ExitWithError(125, "credential file is not accessible: faccessat /tmp/nonexistent: no such file or directory"))
 
 		// inconsistent command line flags are rejected
 		// Pre-create the files to make sure we are not hitting the “file not found” path
@@ -218,13 +215,11 @@ var _ = Describe("Podman login and logout", func() {
 		session = podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test",
 			"--authfile", authFile, "--compat-auth-file", compatAuthFile, server})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(Equal("Error: options for paths to the credential file and to the Docker-compatible credential file can not be set simultaneously"))
+		Expect(session).To(ExitWithError(125, "options for paths to the credential file and to the Docker-compatible credential file can not be set simultaneously"))
 
 		session = podmanTest.Podman([]string{"logout", "--authfile", authFile, "--compat-auth-file", compatAuthFile, server})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(Equal("Error: options for paths to the credential file and to the Docker-compatible credential file can not be set simultaneously"))
+		Expect(session).To(ExitWithError(125, "options for paths to the credential file and to the Docker-compatible credential file can not be set simultaneously"))
 	})
 
 	It("podman manifest with --authfile", func() {
@@ -243,8 +238,7 @@ var _ = Describe("Podman login and logout", func() {
 
 		session = podmanTest.Podman([]string{"manifest", "push", "-q", testImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring(": authentication required"))
+		Expect(session).To(ExitWithError(125, ": authentication required"))
 
 		session = podmanTest.Podman([]string{"manifest", "push", "-q", "--authfile", authFile, testImg})
 		session.WaitWithDefaultTimeout()
@@ -257,8 +251,7 @@ var _ = Describe("Podman login and logout", func() {
 
 		session = podmanTest.Podman([]string{"manifest", "inspect", testImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring(": authentication required"))
+		Expect(session).To(ExitWithError(125, ": authentication required"))
 
 		session = podmanTest.Podman([]string{"manifest", "inspect", "--authfile", authFile, testImg})
 		session.WaitWithDefaultTimeout()
@@ -335,8 +328,7 @@ var _ = Describe("Podman login and logout", func() {
 
 		session = podmanTest.Podman([]string{"push", "-q", ALPINE, "localhost:9001/test-alpine"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("/test-alpine: authentication required"))
+		Expect(session).To(ExitWithError(125, "/test-alpine: authentication required"))
 
 		session = podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test", "localhost:9001"})
 		session.WaitWithDefaultTimeout()
@@ -356,8 +348,7 @@ var _ = Describe("Podman login and logout", func() {
 
 		session = podmanTest.Podman([]string{"push", "-q", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("/test-alpine: authentication required"))
+		Expect(session).To(ExitWithError(125, "/test-alpine: authentication required"))
 
 		session = podmanTest.Podman([]string{"push", "-q", ALPINE, "localhost:9001/test-alpine"})
 		session.WaitWithDefaultTimeout()
@@ -373,13 +364,11 @@ var _ = Describe("Podman login and logout", func() {
 
 		session = podmanTest.Podman([]string{"push", "-q", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("/test-alpine: authentication required"))
+		Expect(session).To(ExitWithError(125, "/test-alpine: authentication required"))
 
 		session = podmanTest.Podman([]string{"push", "-q", ALPINE, "localhost:9001/test-alpine"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("/test-alpine: authentication required"))
+		Expect(session).To(ExitWithError(125, "/test-alpine: authentication required"))
 	})
 
 	It("podman login and logout with repository", func() {
@@ -532,8 +521,7 @@ var _ = Describe("Podman login and logout", func() {
 			ALPINE, server + "/podmantest/test-image",
 		})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("/test-image: authentication required"))
+		Expect(session).To(ExitWithError(125, "/test-image: authentication required"))
 
 		session = podmanTest.Podman([]string{
 			"push", "-q",
@@ -580,7 +568,6 @@ var _ = Describe("Podman login and logout", func() {
 			server + "/podmantest/test-alpine",
 		})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("/test-alpine: authentication required"))
+		Expect(session).To(ExitWithError(125, "/test-alpine: authentication required"))
 	})
 })

@@ -11,6 +11,7 @@ import (
 	"net/textproto"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,7 +26,6 @@ import (
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	dockerAPI "github.com/docker/docker/api/types"
 	jsoniter "github.com/json-iterator/go"
-	"golang.org/x/exp/slices"
 )
 
 // Create creates a manifest for the given name.  Optional images to be associated with

@@ -1,21 +1,9 @@
 module github.com/containers/podman/v5
 
-// Minimum required golang version
-go 1.20 // *****  ATTENTION  WARNING  CAUTION  DANGER  ******
+go 1.21
 
-//         Go versions 1.21 and later will AUTO-UPDATE based
-//         on currently running tools and the (new) `toolchain`
-//         value (when also increasing the `go` value above).
-//         ref: https://go.dev/doc/toolchain  Because several
-//         different distros and distro-versions build from
-//         this code, golang version consistency is
-//         desireable.  After manually updating to 1.21, a
-//         `toolchain` specificication should be added to pin
-//         the version and block auto-updates.  This does not
-//         block any future changes to the `go` value.
-//         Ref: Upstream discussion:
-//         https://github.com/golang/go/issues/65847
-//         *****  ATTENTION  WARNING  CAUTION  DANGER  ******
+// Warning: Ensure the "go" and "toolchain" versions match exactly to prevent unwanted auto-updates
+toolchain go1.21.0
 
 require (
 	github.com/BurntSushi/toml v1.3.2
@@ -25,7 +13,7 @@ require (
 	github.com/checkpoint-restore/checkpointctl v1.1.0
 	github.com/checkpoint-restore/go-criu/v7 v7.1.0
 	github.com/containernetworking/plugins v1.4.0
-	github.com/containers/buildah v1.35.1-0.20240412112838-e393e57728f5
+	github.com/containers/buildah v1.35.1-0.20240425012436-fc18157da3a1
 	github.com/containers/common v0.58.1-0.20240419143618-deb3eeef3b74
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.4-0.20240408151405-d744d71db363
@@ -42,7 +30,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.2.4
 	github.com/digitalocean/go-qemu v0.0.0-20230711162256-2e3d0186973e
 	github.com/docker/distribution v2.8.3+incompatible
-	github.com/docker/docker v26.0.2+incompatible
+	github.com/docker/docker v26.1.0+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/docker/go-plugins-helpers v0.0.0-20211224144127-6eecb7beb651
 	github.com/docker/go-units v0.5.0

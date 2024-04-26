@@ -501,6 +501,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 				Dest:      v.Destination,
 				Source:    v.Source,
 				ReadWrite: v.ReadWrite,
+				SubPath:   v.SubPath,
 			})
 		}
 		options = append(options, libpod.WithImageVolumes(vols))

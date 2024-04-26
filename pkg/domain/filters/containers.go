@@ -5,6 +5,7 @@ package filters
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -13,7 +14,6 @@ import (
 	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
-	"golang.org/x/exp/slices"
 )
 
 // GenerateContainerFilterFuncs return ContainerFilter functions based of filter.

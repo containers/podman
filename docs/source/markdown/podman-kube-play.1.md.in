@@ -158,6 +158,17 @@ spec:
 
 and as a result environment variable `FOO` is set to `bar` for container `container-1`.
 
+`Automounting Volumes`
+
+An image can be automatically mounted into a container if the annotation `io.podman.annotations.kube.image.automount/$ctrname` is given. The following rules apply:
+
+- The image must already exist locally.
+- The image must have at least 1 volume directive.
+- The path given by the volume directive will be mounted from the image into the container. For example, an image with a volume at `/test/test_dir` will have `/test/test_dir` in the image mounted to `/test/test_dir` in the container.
+- Multiple images can be specified. If multiple images have a volume at a specific path, the last image specified trumps.
+- The images are always mounted read-only.
+- Images to mount are defined in the annotation "io.podman.annotations.kube.image.automount/$ctrname" as a semicolon-separated list. They are mounted into a single container in the pod, not the whole pod. The annotation can be specified for additional containers if additional mounts are required.
+
 ## OPTIONS
 
 @@option annotation.container
