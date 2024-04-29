@@ -725,10 +725,9 @@ podman_machine_task:
     # Only run for PRs and never [CI:DOCS] or [CI:BUILD]
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: &machine_cron_not_tag_build_docs >-
-        ($CIRRUS_PR != '' &&
-         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
-        ) || $CIRRUS_CRON == "main"
+        $CIRRUS_BRANCH =~ '(pull|main|renovate)' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
     depends_on: *build
     ec2_instance:
         image: "${VM_IMAGE_NAME}"
