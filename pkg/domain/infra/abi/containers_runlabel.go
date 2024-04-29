@@ -173,6 +173,13 @@ func generateRunlabelCommand(runlabel string, img *libimage.Image, inputName str
 				return ""
 			}
 			return d
+		case "HOME":
+			h, err := os.UserHomeDir()
+			if err != nil {
+				logrus.Warnf("Unable to determine user's home directory: %s", err)
+				return ""
+			}
+			return h
 		}
 		return ""
 	}
