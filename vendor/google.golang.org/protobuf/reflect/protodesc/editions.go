@@ -17,11 +17,6 @@ import (
 	gofeaturespb "google.golang.org/protobuf/types/gofeaturespb"
 )
 
-const (
-	SupportedEditionsMinimum = descriptorpb.Edition_EDITION_PROTO2
-	SupportedEditionsMaximum = descriptorpb.Edition_EDITION_2023
-)
-
 var defaults = &descriptorpb.FeatureSetDefaults{}
 var defaultsCacheMu sync.Mutex
 var defaultsCache = make(map[filedesc.Edition]*descriptorpb.FeatureSet)
