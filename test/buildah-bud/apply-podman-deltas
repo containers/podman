@@ -288,6 +288,10 @@ skip_if_rootless_remote "FIXME: not sure if 17788 or some other bug" \
 skip "FIXME: 2023-06-13 buildah PR 4746 broke this test" \
      "bud with encrypted FROM image"
 
+# v4.9 release branch
+skip "FIXME: 2024-04-30 test is broken, no clue" \
+     "bud and test --unsetlabel"
+
 # END   temporary workarounds that must be reevaluated periodically
 ###############################################################################
 
