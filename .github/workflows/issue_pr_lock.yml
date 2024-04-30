@@ -15,6 +15,8 @@ on:
   # Ref: https://docs.github.com/en/actions/using-workflows/reusing-workflows
   workflow_call:
     secrets:
+      STALE_LOCKING_APP_PRIVATE_KEY:
+        required: true
       ACTION_MAIL_SERVER:
         required: true
       ACTION_MAIL_USERNAME:
@@ -48,9 +50,20 @@ jobs:
       issues: write
       pull-requests: write
     steps:
+      # Use dedicated github app to workaround API rate limiting
+      # Ref: https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/making-authenticated-api-requests-with-a-github-app-in-a-github-actions-workflow
+      - name: Obtain Stale Locking App token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          # N/B: These are both defined at the containers-org level
+          app-id: ${{ vars.STALE_LOCKING_APP_ID }}
+          private-key: ${{ secrets.STALE_LOCKING_APP_PRIVATE_KEY }}
+
       # Ref: https://github.com/dessant/lock-threads#usage
       - uses: dessant/lock-threads@v5
         with:
+          github-token: '${{ steps.generate-token.outputs.token }}'
           process-only: 'issues, prs'
           issue-inactive-days: '${{env.CLOSED_DAYS}}'
           pr-inactive-days: '${{env.CLOSED_DAYS}}'
