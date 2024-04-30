@@ -80,11 +80,11 @@ github.com/go-swagger/go-swagger/cmd/swagger/commands/initcmd
 github.com/go-swagger/go-swagger/codescan
 github.com/go-swagger/go-swagger/generator
 github.com/go-swagger/go-swagger/scan
-# github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572
-## explicit; go 1.13
-github.com/go-task/slim-sprig
-# github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38
-## explicit; go 1.14
+# github.com/go-task/slim-sprig/v3 v3.0.0
+## explicit; go 1.20
+github.com/go-task/slim-sprig/v3
+# github.com/google/pprof v0.0.0-20240424215950-a892ee059fd6
+## explicit; go 1.19
 github.com/google/pprof/profile
 # github.com/google/uuid v1.3.0
 ## explicit
@@ -154,7 +154,7 @@ github.com/mitchellh/reflectwalk
 # github.com/oklog/ulid v1.3.1
 ## explicit
 github.com/oklog/ulid
-# github.com/onsi/ginkgo/v2 v2.17.1
+# github.com/onsi/ginkgo/v2 v2.17.2
 ## explicit; go 1.20
 github.com/onsi/ginkgo/v2/config
 github.com/onsi/ginkgo/v2/formatter
