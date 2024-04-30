@@ -419,7 +419,11 @@ func (r *DefaultReporter) emitFailure(indent uint, state types.SpecState, failur
 	highlightColor := r.highlightColorForState(state)
 	r.emitBlock(r.fi(indent, highlightColor+"[%s] %s{{/}}", r.humanReadableState(state), failure.Message))
 	if r.conf.GithubOutput {
-		r.emitBlock(r.fi(indent, "::error file=%s,line=%d::%s %s", failure.Location.FileName, failure.Location.LineNumber, failure.FailureNodeType, failure.TimelineLocation.Time.Format(types.GINKGO_TIME_FORMAT)))
+		level := "error"
+		if state.Is(types.SpecStateSkipped) {
+			level = "notice"
+		}
+		r.emitBlock(r.fi(indent, "::%s file=%s,line=%d::%s %s", level, failure.Location.FileName, failure.Location.LineNumber, failure.FailureNodeType, failure.TimelineLocation.Time.Format(types.GINKGO_TIME_FORMAT)))
 	} else {
 		r.emitBlock(r.fi(indent, highlightColor+"In {{bold}}[%s]{{/}}"+highlightColor+" at: {{bold}}%s{{/}} {{gray}}@ %s{{/}}\n", failure.FailureNodeType, failure.Location, failure.TimelineLocation.Time.Format(types.GINKGO_TIME_FORMAT)))
 	}

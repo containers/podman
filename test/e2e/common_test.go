@@ -1036,6 +1036,7 @@ func (p *PodmanTestIntegration) RestoreArtifactToCache(image string) error {
 		p.Root = p.ImageCacheDir
 		restore := p.PodmanNoEvents([]string{"load", "-q", "-i", tarball})
 		restore.WaitWithDefaultTimeout()
+		Expect(restore).To(ExitCleanly())
 	}
 	return nil
 }
