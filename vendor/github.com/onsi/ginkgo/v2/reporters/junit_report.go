@@ -324,6 +324,7 @@ func MergeAndCleanupJUnitReports(sources []string, dst string) ([]string, error)
 			continue
 		}
 		err = xml.NewDecoder(f).Decode(&report)
+		_ = f.Close()
 		if err != nil {
 			messages = append(messages, fmt.Sprintf("Could not decode %s:\n%s", source, err.Error()))
 			continue
