@@ -11,7 +11,11 @@ var _ = Describe("Podman pod inspect", func() {
 	It("podman inspect bogus pod", func() {
 		session := podmanTest.Podman([]string{"pod", "inspect", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitWithError())
+		expect := "no such pod foobar"
+		if IsRemote() {
+			expect = `no such pod "foobar"`
+		}
+		Expect(session).Should(ExitWithError(125, expect))
 	})
 
 	It("podman inspect a pod", func() {
