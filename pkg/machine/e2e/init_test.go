@@ -207,7 +207,8 @@ var _ = Describe("podman machine init", func() {
 		Expect(err).ToNot(HaveOccurred())
 		_, err = os.CreateTemp(tmpDir, "example")
 		Expect(err).ToNot(HaveOccurred())
-		mount := tmpDir + ":/testmountdir"
+		// Test long target path, see https://github.com/containers/podman/issues/22226
+		mount := tmpDir + ":/very-long-test-mount-dir-path-more-than-thirty-six-bytes"
 		defer func() { _ = utils.GuardedRemoveAll(tmpDir) }()
 
 		name := randomString()
@@ -217,7 +218,7 @@ var _ = Describe("podman machine init", func() {
 		Expect(session).To(Exit(0))
 
 		ssh := sshMachine{}
-		sshSession, err := mb.setName(name).setCmd(ssh.withSSHCommand([]string{"ls /testmountdir"})).run()
+		sshSession, err := mb.setName(name).setCmd(ssh.withSSHCommand([]string{"ls /very-long-test-mount-dir-path-more-than-thirty-six-bytes"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(sshSession).To(Exit(0))
 		Expect(sshSession.outputToString()).To(ContainSubstring("example"))
