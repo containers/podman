@@ -1,3 +1,11 @@
+## 1.33.1
+
+### Fixes
+- fix confusing eventually docs [3a66379]
+
+### Maintenance
+- Bump github.com/onsi/ginkgo/v2 from 2.17.1 to 2.17.2 [e9bc35a]
+
 ## 1.33.0
 
 ### Features
