@@ -616,69 +616,6 @@ rootless_integration_test_task:
     always: *int_logs_artifacts
 
 
-podman_machine_task:
-    name: *std_name_fmt
-    alias: podman_machine
-    # Don't create task for tags, or if using [CI:DOCS], [CI:BUILD], multiarch
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: &not_tag_build_docs_multiarch >-
-        $CIRRUS_TAG == '' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
-        $CIRRUS_CRON != 'multiarch'
-    depends_on:
-        - build
-        - local_integration_test
-        - remote_integration_test
-        - container_integration_test
-        - rootless_integration_test
-    ec2_instance:
-        image: "${VM_IMAGE_NAME}"
-        type: "${EC2_INST_TYPE}"
-        region: us-east-1
-    env:
-      EC2_INST_TYPE: "m5zn.metal"  # Bare-metal instance is required
-      TEST_FLAVOR: "machine"
-      PRIV_NAME: "rootless"  # intended use-case
-      DISTRO_NV: "${FEDORA_NAME}"
-      VM_IMAGE_NAME: "${FEDORA_AMI}"
-      CI_DESIRED_NETWORK: netavark
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always: &machine_logs_benchmarks
-      <<: *int_logs_artifacts
-      benchmark_artifacts:
-          path: ./data/*
-
-
-podman_machine_aarch64_task:
-    name: *std_name_fmt
-    alias: podman_machine_aarch64
-    only_if: *not_tag_build_docs_multiarch
-    depends_on:
-        - build_aarch64
-        - validate_aarch64
-        - local_integration_test
-        - remote_integration_test
-        - container_integration_test
-        - rootless_integration_test
-    ec2_instance:
-        <<: *standard_build_ec2_aarch64
-    env:
-        TEST_FLAVOR: "machine"
-        EC2_INST_TYPE: c6g.metal
-        PRIV_NAME: "rootless"  # intended use-case
-        DISTRO_NV: "${FEDORA_AARCH64_NAME}"
-        VM_IMAGE_NAME: "${FEDORA_AARCH64_AMI}"
-        CI_DESIRED_NETWORK: netavark
-    clone_script: *get_gosrc_aarch64
-    setup_script: *setup
-    main_script: *main
-    always: *machine_logs_benchmarks
-
-
 # Always run subsequent to integration tests.  While parallelism is lost
 # with runtime, debugging system-test failures can be more challenging
 # for some golang developers.  Otherwise the following tasks run across
@@ -686,7 +623,11 @@ podman_machine_aarch64_task:
 local_system_test_task: &local_system_test_task
     name: *std_name_fmt
     alias: local_system_test
-    only_if: *not_tag_build_docs_multiarch
+    only_if: &not_tag_build_docs_multiarch >-
+        $CIRRUS_TAG == '' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
+        $CIRRUS_CRON != 'multiarch'
     depends_on:
         - build
         - local_integration_test
@@ -828,34 +769,6 @@ buildah_bud_test_task:
     always: *int_logs_artifacts
 
 
-#rootless_gitlab_test_task:
-#    name: *std_name_fmt
-#    alias: rootless_gitlab_test
-#    # Docs: ./contrib/cirrus/CIModes.md
-#    only_if: &cirrus_cron "${CIRRUS_CRON} == 'main'"
-#    # Community-maintained downstream test may fail unexpectedly.
-#    # Ref. repository: https://gitlab.com/gitlab-org/gitlab-runner
-#    # If necessary, uncomment the next line and file issue(s) with details.
-#    # allow_failures: $CI == $CI
-#    depends_on:
-#        - build
-#        - rootless_integration_test
-#    gce_instance: *standardvm
-#    env:
-#        <<: *ubuntu_envvars
-#        TEST_FLAVOR: 'gitlab'
-#        PRIV_NAME: rootless
-#    clone_script: *get_gosrc
-#    setup_script: *setup
-#    main_script: *main
-#    always:
-#        <<: *logs_artifacts
-#        junit_artifacts:
-#            path: gitlab-runner-podman.xml
-#            type: text/xml
-#            format: junit
-
-
 upgrade_test_task:
     name: "Upgrade test: from $PODMAN_UPGRADE_FROM"
     alias: upgrade_test
@@ -988,8 +901,6 @@ success_task:
         - remote_integration_test
         - container_integration_test
         - rootless_integration_test
-        - podman_machine
-        - podman_machine_aarch64
         - local_system_test
         - local_system_test_aarch64
         - remote_system_test
