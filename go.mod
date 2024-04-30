@@ -7,7 +7,7 @@ toolchain go1.21.0
 
 require (
 	github.com/BurntSushi/toml v1.3.2
-	github.com/Microsoft/go-winio v0.6.1
+	github.com/Microsoft/go-winio v0.6.2
 	github.com/blang/semver/v4 v4.0.0
 	github.com/buger/goterm v1.0.4
 	github.com/checkpoint-restore/checkpointctl v1.1.0
@@ -25,7 +25,7 @@ require (
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/coreos/stream-metadata-go v0.4.4
-	github.com/crc-org/crc/v2 v2.34.1
+	github.com/crc-org/crc/v2 v2.35.0
 	github.com/crc-org/vfkit v0.5.1
 	github.com/cyphar/filepath-securejoin v0.2.4
 	github.com/digitalocean/go-qemu v0.0.0-20230711162256-2e3d0186973e
