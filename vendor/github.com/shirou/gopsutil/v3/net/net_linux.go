@@ -471,7 +471,7 @@ func connectionsPidMaxWithoutUidsWithContext(ctx context.Context, kind string, p
 		}
 	}
 	if err != nil {
-		return nil, fmt.Errorf("cound not get pid(s), %d: %w", pid, err)
+		return nil, fmt.Errorf("could not get pid(s), %d: %w", pid, err)
 	}
 	return statsFromInodesWithContext(ctx, root, pid, tmap, inodes, skipUids)
 }

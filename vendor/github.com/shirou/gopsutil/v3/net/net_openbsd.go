@@ -23,9 +23,9 @@ func ParseNetstat(output string, mode string,
 
 	exists := make([]string, 0, len(lines)-1)
 
-	columns := 6
-	if mode == "ind" {
-		columns = 10
+	columns := 9
+	if mode == "inb" {
+		columns = 6
 	}
 	for _, line := range lines {
 		values := strings.Fields(line)
@@ -48,18 +48,23 @@ func ParseNetstat(output string, mode string,
 
 		parsed := make([]uint64, 0, 8)
 		var vv []string
-		if mode == "inb" {
+		switch mode {
+		case "inb":
 			vv = []string{
 				values[base+3], // BytesRecv
 				values[base+4], // BytesSent
 			}
-		} else {
+		case "ind":
 			vv = []string{
 				values[base+3], // Ipkts
-				values[base+4], // Ierrs
+				values[base+4], // Idrop
 				values[base+5], // Opkts
+				values[base+6], // Odrops
+			}
+		case "ine":
+			vv = []string{
+				values[base+4], // Ierrs
 				values[base+6], // Oerrs
-				values[base+8], // Drops
 			}
 		}
 		for _, target := range vv {
@@ -80,16 +85,19 @@ func ParseNetstat(output string, mode string,
 		if !present {
 			n = IOCountersStat{Name: values[0]}
 		}
-		if mode == "inb" {
+
+		switch mode {
+		case "inb":
 			n.BytesRecv = parsed[0]
 			n.BytesSent = parsed[1]
-		} else {
+		case "ind":
 			n.PacketsRecv = parsed[0]
-			n.Errin = parsed[1]
+			n.Dropin = parsed[1]
 			n.PacketsSent = parsed[2]
-			n.Errout = parsed[3]
-			n.Dropin = parsed[4]
-			n.Dropout = parsed[4]
+			n.Dropout = parsed[3]
+		case "ine":
+		        n.Errin = parsed[0]
+			n.Errout = parsed[1]
 		}
 
 		iocs[n.Name] = n
@@ -114,6 +122,10 @@ func IOCountersWithContext(ctx context.Context, pernic bool) ([]IOCountersStat, 
 	if err != nil {
 		return nil, err
 	}
+	out3, err := invoke.CommandWithContext(ctx, netstat, "-ine")
+	if err != nil {
+		return nil, err
+	}
 	iocs := make(map[string]IOCountersStat)
 
 	lines := strings.Split(string(out), "\n")
@@ -124,6 +136,10 @@ func IOCountersWithContext(ctx context.Context, pernic bool) ([]IOCountersStat, 
 		return nil, err
 	}
 	err = ParseNetstat(string(out2), "ind", iocs)
+	if err != nil {
+		return nil, err
+	}
+	err = ParseNetstat(string(out3), "ine", iocs)
 	if err != nil {
 		return nil, err
 	}
