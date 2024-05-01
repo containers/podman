@@ -233,7 +233,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 			podmanConfig.ContainersConf.Engine.HooksDir.Set(podmanConfig.HooksDir)
 		}
 		if cmd.Flag("cdi-spec-dir").Changed {
-			podmanConfig.ContainersConf.Engine.CdiSpecDir.Set(podmanConfig.CdiSpecDir)
+			podmanConfig.ContainersConf.Engine.CdiSpecDirs.Set(podmanConfig.CdiSpecDirs)
 		}
 
 		// Currently it is only possible to restore a container with the same runtime
@@ -552,7 +552,7 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 		_ = cmd.RegisterFlagCompletionFunc(hooksDirFlagName, completion.AutocompleteDefault)
 
 		cdiSpecDirFlagName := "cdi-spec-dir"
-		pFlags.StringArrayVar(&podmanConfig.CdiSpecDir, cdiSpecDirFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.CdiSpecDir.Get(), "Set the CDI spec directory path (may be set multiple times)")
+		pFlags.StringArrayVar(&podmanConfig.CdiSpecDirs, cdiSpecDirFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.CdiSpecDirs.Get(), "Set the CDI spec directory path (may be set multiple times)")
 		_ = cmd.RegisterFlagCompletionFunc(cdiSpecDirFlagName, completion.AutocompleteDefault)
 
 		pFlags.IntVar(&podmanConfig.MaxWorks, "max-workers", (runtime.NumCPU()*3)+1, "The maximum number of workers for parallel operations")
