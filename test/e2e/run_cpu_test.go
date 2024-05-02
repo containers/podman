@@ -109,13 +109,13 @@ var _ = Describe("Podman run cpu", func() {
 	It("podman run cpus and cpu-period", func() {
 		result := podmanTest.Podman([]string{"run", "--rm", "--cpu-period=5000", "--cpus=0.5", ALPINE, "ls"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).To(ExitWithError())
+		Expect(result).To(ExitWithError(125, "--cpu-period and --cpus cannot be set together"))
 	})
 
 	It("podman run cpus and cpu-quota", func() {
 		result := podmanTest.Podman([]string{"run", "--rm", "--cpu-quota=5000", "--cpus=0.5", ALPINE, "ls"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).To(ExitWithError())
+		Expect(result).To(ExitWithError(125, "--cpu-quota and --cpus cannot be set together"))
 	})
 
 	It("podman run invalid cpu-rt-period with cgroupsv2", func() {
