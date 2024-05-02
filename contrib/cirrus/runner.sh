@@ -144,6 +144,7 @@ exec_container() {
     # shellcheck disable=SC2154
     exec bin/podman run --rm --privileged --net=host --cgroupns=host \
         -v `mktemp -d -p /var/tmp`:/var/tmp:Z \
+        --tmpfs /tmp:mode=1777 \
         -v /dev/fuse:/dev/fuse \
         -v "$GOPATH:$GOPATH:Z" \
         --workdir "$GOSRC" \
@@ -407,8 +408,24 @@ dotest() {
         die "Found fallback podman '$fallback_podman' in \$PATH; tests require none, as a guarantee that we're testing the right binary."
     fi
 
+    # Catch invalid "TMPDIR == /tmp" assumptions; PR #19281
+    TMPDIR=$(mktemp --tmpdir -d CI_XXXX)
+    # tmp dir is commonly 1777 to allow all user to read/write
+    chmod 1777 $TMPDIR
+    export TMPDIR
+    fstype=$(findmnt -n -o FSTYPE --target $TMPDIR)
+    if [[ "$fstype" != "tmpfs" ]]; then
+        die "The CI test TMPDIR is not on a tmpfs mount, we need tmpfs to make the tests faster"
+    fi
+
     showrun make ${localremote}${testsuite} PODMAN_SERVER_LOG=$PODMAN_SERVER_LOG \
         |& logformatter
+
+    # FIXME: https://github.com/containers/podman/issues/22642
+    # Cannot delete this due cleanup errors, as the VM is basically
+    # done after this anyway let's not block on this for now.
+    # rm -rf $TMPDIR
+    # unset TMPDIR
 }
 
 _run_machine-linux() {
