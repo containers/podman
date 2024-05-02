@@ -28,6 +28,7 @@ import (
 	"github.com/containers/storage/pkg/fsutils"
 	"github.com/containers/storage/pkg/idmap"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/parsers"
 	"github.com/containers/storage/pkg/system"
@@ -126,6 +127,8 @@ type Driver struct {
 	supportsVolatile *bool
 	usingMetacopy    bool
 	usingComposefs   bool
+
+	stagingDirsLocks map[string]*lockfile.LockFile
 
 	supportsIDMappedMounts *bool
 }
@@ -460,6 +463,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		supportsVolatile: supportsVolatile,
 		usingComposefs:   opts.useComposefs,
 		options:          *opts,
+		stagingDirsLocks: make(map[string]*lockfile.LockFile),
 	}
 
 	d.naiveDiff = graphdriver.NewNaiveDiffDriver(d, graphdriver.NewNaiveLayerIDMapUpdater(d))
@@ -877,11 +881,44 @@ func (d *Driver) Metadata(id string) (map[string]string, error) {
 }
 
 // Cleanup any state created by overlay which should be cleaned when daemon
-// is being shutdown. For now, we just have to unmount the bind mounted
+// is being shutdown. For now, we just have to unmount the bind mount
 // we had created.
 func (d *Driver) Cleanup() error {
-	_ = os.RemoveAll(filepath.Join(d.home, stagingDir))
+	anyPresent := d.pruneStagingDirectories()
+	if anyPresent {
+		return nil
+	}
 	return mount.Unmount(d.home)
+}
+
+// pruneStagingDirectories cleans up any staging directory that was leaked.
+// It returns whether any staging directory is still present.
+func (d *Driver) pruneStagingDirectories() bool {
+	for _, lock := range d.stagingDirsLocks {
+		lock.Unlock()
+	}
+	d.stagingDirsLocks = make(map[string]*lockfile.LockFile)
+
+	anyPresent := false
+
+	dirs, err := os.ReadDir(filepath.Join(d.home, stagingDir))
+	if err == nil {
+		for _, dir := range dirs {
+			stagingDirToRemove := filepath.Join(d.home, stagingDir, dir.Name())
+			lock, err := lockfile.GetLockFile(filepath.Join(stagingDirToRemove, "staging.lock"))
+			if err != nil {
+				anyPresent = true
+				continue
+			}
+			if err := lock.TryLock(); err != nil {
+				anyPresent = true
+				continue
+			}
+			_ = os.RemoveAll(stagingDirToRemove)
+			lock.Unlock()
+		}
+	}
+	return anyPresent
 }
 
 // LookupAdditionalLayer looks up additional layer store by the specified
@@ -2029,7 +2066,14 @@ func (d *Driver) DiffGetter(id string) (graphdriver.FileGetCloser, error) {
 
 // CleanupStagingDirectory cleanups the staging directory.
 func (d *Driver) CleanupStagingDirectory(stagingDirectory string) error {
-	return os.RemoveAll(stagingDirectory)
+	parentStagingDir := filepath.Dir(stagingDirectory)
+
+	if lock, ok := d.stagingDirsLocks[parentStagingDir]; ok {
+		delete(d.stagingDirsLocks, parentStagingDir)
+		lock.Unlock()
+	}
+
+	return os.RemoveAll(parentStagingDir)
 }
 
 func supportsDataOnlyLayersCached(home, runhome string) (bool, error) {
@@ -2068,7 +2112,7 @@ func (d *Driver) ApplyDiffWithDiffer(id, parent string, options *graphdriver.App
 		if err != nil && !os.IsExist(err) {
 			return graphdriver.DriverWithDifferOutput{}, err
 		}
-		applyDir, err = os.MkdirTemp(stagingDir, "")
+		layerDir, err := os.MkdirTemp(stagingDir, "")
 		if err != nil {
 			return graphdriver.DriverWithDifferOutput{}, err
 		}
@@ -2076,9 +2120,17 @@ func (d *Driver) ApplyDiffWithDiffer(id, parent string, options *graphdriver.App
 		if d.options.forceMask != nil {
 			perms = *d.options.forceMask
 		}
-		if err := os.Chmod(applyDir, perms); err != nil {
+		applyDir = filepath.Join(layerDir, "dir")
+		if err := os.Mkdir(applyDir, perms); err != nil {
 			return graphdriver.DriverWithDifferOutput{}, err
 		}
+
+		lock, err := lockfile.GetLockFile(filepath.Join(layerDir, "staging.lock"))
+		if err != nil {
+			return graphdriver.DriverWithDifferOutput{}, err
+		}
+		d.stagingDirsLocks[layerDir] = lock
+		lock.Lock()
 	} else {
 		var err error
 		applyDir, err = d.getDiffPath(id)
@@ -2112,9 +2164,18 @@ func (d *Driver) ApplyDiffWithDiffer(id, parent string, options *graphdriver.App
 // ApplyDiffFromStagingDirectory applies the changes using the specified staging directory.
 func (d *Driver) ApplyDiffFromStagingDirectory(id, parent string, diffOutput *graphdriver.DriverWithDifferOutput, options *graphdriver.ApplyDiffWithDifferOpts) error {
 	stagingDirectory := diffOutput.Target
-	if filepath.Dir(stagingDirectory) != d.getStagingDir(id) {
+	parentStagingDir := filepath.Dir(stagingDirectory)
+	if filepath.Dir(parentStagingDir) != d.getStagingDir(id) {
 		return fmt.Errorf("%q is not a staging directory", stagingDirectory)
 	}
+
+	defer func() {
+		if lock, ok := d.stagingDirsLocks[parentStagingDir]; ok {
+			delete(d.stagingDirsLocks, parentStagingDir)
+			lock.Unlock()
+		}
+	}()
+
 	diffPath, err := d.getDiffPath(id)
 	if err != nil {
 		return err

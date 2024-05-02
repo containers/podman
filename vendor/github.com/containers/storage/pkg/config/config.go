@@ -5,72 +5,6 @@ import (
 	"os"
 )
 
-// ThinpoolOptionsConfig represents the "storage.options.thinpool"
-// TOML config table.
-type ThinpoolOptionsConfig struct {
-	// AutoExtendPercent determines the amount by which pool needs to be
-	// grown. This is specified in terms of % of pool size. So a value of
-	// 20 means that when threshold is hit, pool will be grown by 20% of
-	// existing pool size.
-	AutoExtendPercent string `toml:"autoextend_percent,omitempty"`
-
-	// AutoExtendThreshold determines the pool extension threshold in terms
-	// of percentage of pool size. For example, if threshold is 60, that
-	// means when pool is 60% full, threshold has been hit.
-	AutoExtendThreshold string `toml:"autoextend_threshold,omitempty"`
-
-	// BaseSize specifies the size to use when creating the base device,
-	// which limits the size of images and containers.
-	BaseSize string `toml:"basesize,omitempty"`
-
-	// BlockSize specifies a custom blocksize to use for the thin pool.
-	BlockSize string `toml:"blocksize,omitempty"`
-
-	// DirectLvmDevice specifies a custom block storage device to use for
-	// the thin pool.
-	DirectLvmDevice string `toml:"directlvm_device,omitempty"`
-
-	// DirectLvmDeviceForcewipes device even if device already has a
-	// filesystem
-	DirectLvmDeviceForce string `toml:"directlvm_device_force,omitempty"`
-
-	// Fs specifies the filesystem type to use for the base device.
-	Fs string `toml:"fs,omitempty"`
-
-	// log_level sets the log level of devicemapper.
-	LogLevel string `toml:"log_level,omitempty"`
-
-	// MetadataSize specifies the size of the metadata for the thinpool
-	// It will be used with the `pvcreate --metadata` option.
-	MetadataSize string `toml:"metadatasize,omitempty"`
-
-	// MinFreeSpace specifies the min free space percent in a thin pool
-	// require for new device creation to
-	MinFreeSpace string `toml:"min_free_space,omitempty"`
-
-	// MkfsArg specifies extra mkfs arguments to be used when creating the
-	// basedevice.
-	MkfsArg string `toml:"mkfsarg,omitempty"`
-
-	// MountOpt specifies extra mount options used when mounting the thin
-	// devices.
-	MountOpt string `toml:"mountopt,omitempty"`
-
-	// Size
-	Size string `toml:"size,omitempty"`
-
-	// UseDeferredDeletion marks device for deferred deletion
-	UseDeferredDeletion string `toml:"use_deferred_deletion,omitempty"`
-
-	// UseDeferredRemoval marks device for deferred removal
-	UseDeferredRemoval string `toml:"use_deferred_removal,omitempty"`
-
-	// XfsNoSpaceMaxRetriesFreeSpace specifies the maximum number of
-	// retries XFS should attempt to complete IO when ENOSPC (no space)
-	// error is returned by underlying storage device.
-	XfsNoSpaceMaxRetries string `toml:"xfs_nospace_max_retries,omitempty"`
-}
-
 type AufsOptionsConfig struct {
 	// MountOpt specifies extra mount options used when mounting
 	MountOpt string `toml:"mountopt,omitempty"`
@@ -181,9 +115,6 @@ type OptionsConfig struct {
 	// Btrfs container options to be handed to btrfs drivers
 	Btrfs struct{ BtrfsOptionsConfig } `toml:"btrfs,omitempty"`
 
-	// Thinpool container options to be handed to thinpool drivers
-	Thinpool struct{ ThinpoolOptionsConfig } `toml:"thinpool,omitempty"`
-
 	// Overlay container options to be handed to overlay drivers
 	Overlay struct{ OverlayOptionsConfig } `toml:"overlay,omitempty"`
 
@@ -229,62 +160,6 @@ func GetGraphDriverOptions(driverName string, options OptionsConfig) []string {
 			doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Btrfs.Size))
 		} else if options.Size != "" {
 			doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Size))
-		}
-
-	case "devicemapper":
-		if options.Thinpool.AutoExtendPercent != "" {
-			doptions = append(doptions, fmt.Sprintf("dm.thinp_autoextend_percent=%s", options.Thinpool.AutoExtendPercent))
-		}
-		if options.Thinpool.AutoExtendThreshold != "" {
-			doptions = append(doptions, fmt.Sprintf("dm.thinp_autoextend_threshold=%s", options.Thinpool.AutoExtendThreshold))
-		}
-		if options.Thinpool.BaseSize != "" {
-			doptions = append(doptions, fmt.Sprintf("dm.basesize=%s", options.Thinpool.BaseSize))
-		}
-		if options.Thinpool.BlockSize != "" {
-			doptions = append(doptions, fmt.Sprintf("dm.blocksize=%s", options.Thinpool.BlockSize))
-		}
-		if options.Thinpool.DirectLvmDevice != "" {
-			doptions = append(doptions, fmt.Sprintf("dm.directlvm_device=%s", options.Thinpool.DirectLvmDevice))
-		}
-		if options.Thinpool.DirectLvmDeviceForce != "" {
-			doptions = append(doptions, fmt.Sprintf("dm.directlvm_device_force=%s", options.Thinpool.DirectLvmDeviceForce))
-		}
-		if options.Thinpool.Fs != "" {
-			doptions = append(doptions, fmt.Sprintf("dm.fs=%s", options.Thinpool.Fs))
-		}
-		if options.Thinpool.LogLevel != "" {
-			doptions = append(doptions, fmt.Sprintf("dm.libdm_log_level=%s", options.Thinpool.LogLevel))
-		}
-		if options.Thinpool.MetadataSize != "" {
-			doptions = append(doptions, fmt.Sprintf("dm.metadata_size=%s", options.Thinpool.MetadataSize))
-		}
-		if options.Thinpool.MinFreeSpace != "" {
-			doptions = append(doptions, fmt.Sprintf("dm.min_free_space=%s", options.Thinpool.MinFreeSpace))
-		}
-		if options.Thinpool.MkfsArg != "" {
-			doptions = append(doptions, fmt.Sprintf("dm.mkfsarg=%s", options.Thinpool.MkfsArg))
-		}
-		if options.Thinpool.MountOpt != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.mountopt=%s", driverName, options.Thinpool.MountOpt))
-		} else if options.MountOpt != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.mountopt=%s", driverName, options.MountOpt))
-		}
-
-		if options.Thinpool.Size != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Thinpool.Size))
-		} else if options.Size != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Size))
-		}
-
-		if options.Thinpool.UseDeferredDeletion != "" {
-			doptions = append(doptions, fmt.Sprintf("dm.use_deferred_deletion=%s", options.Thinpool.UseDeferredDeletion))
-		}
-		if options.Thinpool.UseDeferredRemoval != "" {
-			doptions = append(doptions, fmt.Sprintf("dm.use_deferred_removal=%s", options.Thinpool.UseDeferredRemoval))
-		}
-		if options.Thinpool.XfsNoSpaceMaxRetries != "" {
-			doptions = append(doptions, fmt.Sprintf("dm.xfs_nospace_max_retries=%s", options.Thinpool.XfsNoSpaceMaxRetries))
 		}
 
 	case "overlay", "overlay2":
