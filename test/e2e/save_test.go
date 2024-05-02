@@ -62,7 +62,7 @@ var _ = Describe("Podman save", func() {
 
 		save := podmanTest.Podman([]string{"save", "-q", "-o", outfile, "FOOBAR"})
 		save.WaitWithDefaultTimeout()
-		Expect(save).To(ExitWithError())
+		Expect(save).To(ExitWithError(125, "repository name must be lowercase"))
 	})
 
 	It("podman save to directory with oci format", func() {
@@ -102,13 +102,11 @@ var _ = Describe("Podman save", func() {
 
 		save := podmanTest.Podman([]string{"save", "-q", "--compress", "--format", "docker-archive", "-o", outdir, ALPINE})
 		save.WaitWithDefaultTimeout()
-		// should not be 0
-		Expect(save).To(ExitWithError())
+		Expect(save).To(ExitWithError(125, "--compress can only be set when --format is 'docker-dir'"))
 
 		save = podmanTest.Podman([]string{"save", "-q", "--compress", "--format", "oci-archive", "-o", outdir, ALPINE})
 		save.WaitWithDefaultTimeout()
-		// should not be 0
-		Expect(save).To(ExitWithError())
+		Expect(save).To(ExitWithError(125, "--compress can only be set when --format is 'docker-dir'"))
 
 	})
 
@@ -117,7 +115,7 @@ var _ = Describe("Podman save", func() {
 
 		save := podmanTest.Podman([]string{"save", "-q", "--compress", "--format", "docker-dir", "-o", outdir, ALPINE})
 		save.WaitWithDefaultTimeout()
-		Expect(save).To(ExitWithError())
+		Expect(save).To(ExitWithError(125, fmt.Sprintf(`invalid filename (should not contain ':') "%s"`, outdir)))
 	})
 
 	It("podman save remove signature", func() {
@@ -199,7 +197,7 @@ default-docker:
 			outfile := filepath.Join(podmanTest.TempDir, "temp.tar")
 			save := podmanTest.Podman([]string{"save", "-q", "remove-signatures=true", "-o", outfile, pushedImage})
 			save.WaitWithDefaultTimeout()
-			Expect(save).To(ExitWithError())
+			Expect(save).To(ExitWithError(125, "invalid reference format"))
 		}
 	})
 

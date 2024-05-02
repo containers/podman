@@ -12,7 +12,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 type endpoint struct {
@@ -314,9 +313,8 @@ registries = []`
 		search := podmanTest.Podman([]string{"search", image, "--tls-verify=true"})
 		search.WaitWithDefaultTimeout()
 
-		Expect(search).Should(Exit(125))
+		Expect(search).Should(ExitWithError(125, fmt.Sprintf(`couldn't search registry "localhost:%d": pinging container registry localhost:%d: Get "https://localhost:%d/v2/": http: server gave HTTP response to HTTPS client`, port, port, port)))
 		Expect(search.OutputToString()).Should(BeEmpty())
-		Expect(search.ErrorToString()).To(ContainSubstring("http: server gave HTTP response to HTTPS client"))
 
 		// cleanup
 		resetRegistriesConfigEnv()
@@ -359,9 +357,8 @@ registries = []`
 		search := podmanTest.Podman([]string{"search", image})
 		search.WaitWithDefaultTimeout()
 
-		Expect(search).Should(Exit(125))
+		Expect(search).Should(ExitWithError(125, fmt.Sprintf(`couldn't search registry "localhost:%d": pinging container registry localhost:%d: Get "https://localhost:%d/v2/": http: server gave HTTP response to HTTPS client`, port, port, port)))
 		Expect(search.OutputToString()).Should(BeEmpty())
-		Expect(search.ErrorToString()).To(ContainSubstring("http: server gave HTTP response to HTTPS client"))
 
 		// cleanup
 		resetRegistriesConfigEnv()
@@ -371,7 +368,7 @@ registries = []`
 	It("podman search fail with nonexistent --authfile", func() {
 		search := podmanTest.Podman([]string{"search", "--authfile", "/tmp/nonexistent", ALPINE})
 		search.WaitWithDefaultTimeout()
-		Expect(search).To(ExitWithError())
+		Expect(search).To(ExitWithError(125, "credential file is not accessible: faccessat /tmp/nonexistent: no such file or directory"))
 	})
 
 	// Registry is unreliable (#18484), this is another super-common flake
@@ -395,22 +392,19 @@ registries = []`
 
 		search = podmanTest.Podman([]string{"search", "--filter=is-official", "--list-tags", "quay.io/podman/stable"})
 		search.WaitWithDefaultTimeout()
-		Expect(search).To(Exit(125))
-		Expect(search.ErrorToString()).To(ContainSubstring("filters are not applicable to list tags result"))
+		Expect(search).To(ExitWithError(125, "filters are not applicable to list tags result"))
 
 		// With trailing slash
 		search = podmanTest.Podman([]string{"search", "--list-tags", "quay.io/podman/"})
 		search.WaitWithDefaultTimeout()
-		Expect(search).To(Exit(125))
+		Expect(search).To(ExitWithError(125, `reference "podman/" must be a docker reference`))
 		Expect(search.OutputToStringArray()).To(BeEmpty())
-		Expect(search.ErrorToString()).To(ContainSubstring("must be a docker reference"))
 
 		// No trailing slash
 		search = podmanTest.Podman([]string{"search", "--list-tags", "quay.io/podman"})
 		search.WaitWithDefaultTimeout()
-		Expect(search).To(Exit(125))
+		Expect(search).To(ExitWithError(125, "getting repository tags: fetching tags list: StatusCode: 404"))
 		Expect(search.OutputToStringArray()).To(BeEmpty())
-		Expect(search.ErrorToString()).To(ContainSubstring("fetching tags list: StatusCode: 404"))
 	})
 
 	It("podman search with limit over 100", func() {
