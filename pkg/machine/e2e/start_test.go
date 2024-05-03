@@ -1,6 +1,9 @@
 package e2e_test
 
 import (
+	"fmt"
+	"net"
+	"net/url"
 	"sync"
 	"time"
 
@@ -86,6 +89,55 @@ var _ = Describe("podman machine start", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(startSession).To(Exit(125))
 		Expect(startSession.errorToString()).To(ContainSubstring("VM already running or starting"))
+	})
+
+	It("start machine with conflict on SSH port", func() {
+		i := new(initMachine)
+		session, err := mb.setCmd(i.withImage(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		inspect := new(inspectMachine)
+		inspectSession, err := mb.setCmd(inspect.withFormat("{{.SSHConfig.Port}}")).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(inspectSession).To(Exit(0))
+		inspectPort := inspectSession.outputToString()
+
+		connections := new(listSystemConnection)
+		connectionsSession, err := mb.setCmd(connections.withFormat("{{.URI}}")).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(connectionsSession).To(Exit(0))
+		connectionURLs := connectionsSession.outputToStringSlice()
+		connectionPorts, err := mapToPort(connectionURLs)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(connectionPorts).To(HaveEach(inspectPort))
+
+		// start a listener on the ssh port
+		listener, err := net.Listen("tcp", "127.0.0.1:"+inspectPort)
+		Expect(err).ToNot(HaveOccurred())
+		defer listener.Close()
+
+		s := new(startMachine)
+		startSession, err := mb.setCmd(s).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(startSession).To(Exit(0))
+		Expect(startSession.errorToString()).To(ContainSubstring("detected port conflict on machine ssh port"))
+
+		inspect2 := new(inspectMachine)
+		inspectSession2, err := mb.setCmd(inspect2.withFormat("{{.SSHConfig.Port}}")).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(inspectSession2).To(Exit(0))
+		inspectPort2 := inspectSession2.outputToString()
+		Expect(inspectPort2).To(Not(Equal(inspectPort)))
+
+		connections2 := new(listSystemConnection)
+		connectionsSession2, err := mb.setCmd(connections2.withFormat("{{.URI}}")).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(connectionsSession2).To(Exit(0))
+		connectionURLs2 := connectionsSession2.outputToStringSlice()
+		connectionPorts2, err := mapToPort(connectionURLs2)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(connectionPorts2).To(HaveEach(inspectPort2))
 	})
 
 	It("start only starts specified machine", func() {
@@ -175,3 +227,22 @@ var _ = Describe("podman machine start", func() {
 		}
 	})
 })
+
+func mapToPort(uris []string) ([]string, error) {
+	ports := []string{}
+
+	for _, uri := range uris {
+		u, err := url.Parse(uri)
+		if err != nil {
+			return nil, err
+		}
+
+		port := u.Port()
+		if port == "" {
+			return nil, fmt.Errorf("no port in URI: %s", uri)
+		}
+
+		ports = append(ports, port)
+	}
+	return ports, nil
+}
