@@ -932,3 +932,9 @@ func (f *UnitFile) GetTemplateParts() (string, string) {
 	}
 	return parts[0] + "@" + ext, parts[1]
 }
+
+func PathEscape(path string) string {
+	var escaped strings.Builder
+	escapeString(&escaped, path, true)
+	return escaped.String()
+}

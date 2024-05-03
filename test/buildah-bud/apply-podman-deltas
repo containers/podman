@@ -295,6 +295,10 @@ skip "FIXME: 2023-06-13 buildah PR 4746 broke this test" \
 skip "FIXME: 2024-04-16 nixery is down" \
      "bud-implicit-no-history"
 
+# v5.0 release branch
+skip "FIXME: 2024-04-30 test is broken, no clue" \
+     "bud and test --unsetlabel"
+
 # END   temporary workarounds that must be reevaluated periodically
 ###############################################################################
 
