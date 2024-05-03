@@ -130,7 +130,7 @@ var _ = Describe("Podman ps", func() {
 	It("podman pod ps mutually exclusive flags", func() {
 		session := podmanTest.Podman([]string{"pod", "ps", "-q", "--format", "{{.ID}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, "quiet and format cannot be used together"))
 
 	})
 

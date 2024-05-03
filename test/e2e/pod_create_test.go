@@ -103,7 +103,7 @@ var _ = Describe("Podman pod create", func() {
 		name := "test"
 		session := podmanTest.Podman([]string{"pod", "create", "--infra=false", "--name", name, "-p", "80:80"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, "you must have an infra container to publish port bindings to the host"))
 	})
 
 	It("podman create pod with --no-hosts", func() {
@@ -126,7 +126,7 @@ var _ = Describe("Podman pod create", func() {
 		name := "test"
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--no-hosts", "--name", name, "--infra=false"})
 		podCreate.WaitWithDefaultTimeout()
-		Expect(podCreate).Should(Exit(125))
+		Expect(podCreate).Should(ExitWithError(125, "cannot specify --no-hosts without an infra container"))
 	})
 
 	It("podman create pod with --add-host", func() {
@@ -145,7 +145,7 @@ var _ = Describe("Podman pod create", func() {
 		name := "test"
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--add-host", "test.example.com:12.34.56.78", "--name", name, "--infra=false"})
 		podCreate.WaitWithDefaultTimeout()
-		Expect(podCreate).Should(Exit(125))
+		Expect(podCreate).Should(ExitWithError(125, "NoInfra and HostAdd are mutually exclusive pod options: invalid pod spec"))
 	})
 
 	It("podman create pod with DNS server set", func() {
@@ -166,7 +166,7 @@ var _ = Describe("Podman pod create", func() {
 		server := "12.34.56.78"
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--dns", server, "--name", name, "--infra=false"})
 		podCreate.WaitWithDefaultTimeout()
-		Expect(podCreate).Should(Exit(125))
+		Expect(podCreate).Should(ExitWithError(125, "NoInfra and DNSServer are mutually exclusive pod options: invalid pod spec"))
 	})
 
 	It("podman create pod with DNS option set", func() {
@@ -187,7 +187,7 @@ var _ = Describe("Podman pod create", func() {
 		option := "attempts:5"
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--dns-opt", option, "--name", name, "--infra=false"})
 		podCreate.WaitWithDefaultTimeout()
-		Expect(podCreate).Should(Exit(125))
+		Expect(podCreate).Should(ExitWithError(125, "NoInfra and DNSOption are mutually exclusive pod options: invalid pod spec"))
 	})
 
 	It("podman create pod with DNS search domain set", func() {
@@ -208,7 +208,7 @@ var _ = Describe("Podman pod create", func() {
 		search := "example.com"
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--dns-search", search, "--name", name, "--infra=false"})
 		podCreate.WaitWithDefaultTimeout()
-		Expect(podCreate).Should(Exit(125))
+		Expect(podCreate).Should(ExitWithError(125, "NoInfo and DNSSearch are mutually exclusive pod options: invalid pod spec"))
 	})
 
 	It("podman create pod with IP address", func() {
@@ -218,7 +218,7 @@ var _ = Describe("Podman pod create", func() {
 		podCreate.WaitWithDefaultTimeout()
 		// Rootless should error without network
 		if isRootless() {
-			Expect(podCreate).Should(Exit(125))
+			Expect(podCreate).Should(ExitWithError(125, "invalid config provided: networks and static ip/mac address can only be used with Bridge mode networking"))
 		} else {
 			Expect(podCreate).Should(ExitCleanly())
 			podResolvConf := podmanTest.Podman([]string{"run", "--pod", name, "--rm", ALPINE, "ip", "addr"})
@@ -251,7 +251,7 @@ var _ = Describe("Podman pod create", func() {
 		ip := GetSafeIPAddress()
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--ip", ip, "--name", name, "--infra=false"})
 		podCreate.WaitWithDefaultTimeout()
-		Expect(podCreate).Should(Exit(125))
+		Expect(podCreate).Should(ExitWithError(125, "cannot set --ip without infra container: invalid argument"))
 	})
 
 	It("podman create pod with MAC address", func() {
@@ -261,7 +261,7 @@ var _ = Describe("Podman pod create", func() {
 		podCreate.WaitWithDefaultTimeout()
 		// Rootless should error
 		if isRootless() {
-			Expect(podCreate).Should(Exit(125))
+			Expect(podCreate).Should(ExitWithError(125, "invalid config provided: networks and static ip/mac address can only be used with Bridge mode networking"))
 		} else {
 			Expect(podCreate).Should(ExitCleanly())
 			podResolvConf := podmanTest.Podman([]string{"run", "--pod", name, "--rm", ALPINE, "ip", "addr"})
@@ -276,7 +276,7 @@ var _ = Describe("Podman pod create", func() {
 		mac := "92:d0:c6:0a:29:35"
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--mac-address", mac, "--name", name, "--infra=false"})
 		podCreate.WaitWithDefaultTimeout()
-		Expect(podCreate).Should(Exit(125))
+		Expect(podCreate).Should(ExitWithError(125, "cannot set --mac without infra container: invalid argument"))
 	})
 
 	It("podman create pod and print id to external file", func() {
@@ -302,9 +302,9 @@ var _ = Describe("Podman pod create", func() {
 
 	It("podman pod create --replace", func() {
 		// Make sure we error out with --name.
-		session := podmanTest.Podman([]string{"pod", "create", "--replace", ALPINE, "/bin/sh"})
+		session := podmanTest.Podman([]string{"pod", "create", "--replace"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, "cannot replace pod without --name being set"))
 
 		// Create and replace 5 times in a row the "same" pod.
 		podName := "testCtr"
@@ -460,7 +460,7 @@ entrypoint ["/fromimage"]
 	It("podman create with unsupported network options", func() {
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--network", "container:doesnotmatter"})
 		podCreate.WaitWithDefaultTimeout()
-		Expect(podCreate).Should(Exit(125))
+		Expect(podCreate).Should(ExitWithError(125, "pods presently do not support network mode container"))
 		Expect(podCreate.ErrorToString()).To(ContainSubstring("pods presently do not support network mode container"))
 	})
 
@@ -586,7 +586,7 @@ ENTRYPOINT ["sleep","99999"]
 
 		podCreate = podmanTest.Podman([]string{"pod", "create", "--pid", ns, "--name", podName, "--share", "pid"})
 		podCreate.WaitWithDefaultTimeout()
-		Expect(podCreate).Should(ExitWithError())
+		Expect(podCreate).Should(ExitWithError(125, "cannot use pod namespace as container is not joining a pod or pod has no infra container: invalid argument"))
 
 		podName = "pidPod3"
 		ns = "host"
@@ -619,7 +619,13 @@ ENTRYPOINT ["sleep","99999"]
 
 		podCreate = podmanTest.Podman([]string{"pod", "create", "--pid", ns, "--name", podName, "--share", "pid"})
 		podCreate.WaitWithDefaultTimeout()
-		Expect(podCreate).Should(ExitWithError())
+		// This can fail in two ways, depending on intricate SELinux specifics:
+		// There are actually two different failure messages:
+		//   container "randomfakeid" not found: no container with name ...
+		//   looking up container to share pid namespace with: no container with name ...
+		// Too complicated to differentiate in test context, so we ignore the first part
+		// and just check for the "no container" substring, which is common to both.
+		Expect(podCreate).Should(ExitWithError(125, `no container with name or ID "randomfakeid" found: no such container`))
 
 	})
 
@@ -656,7 +662,7 @@ ENTRYPOINT ["sleep","99999"]
 		// fail if --pod and --userns set together
 		session = podmanTest.Podman([]string{"run", "--pod", podName, "--userns", "keep-id", ALPINE, "id", "-u"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, "--userns and --pod cannot be set together"))
 	})
 
 	It("podman pod create with --userns=keep-id can add users", func() {

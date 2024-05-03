@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"strconv"
 
 	. "github.com/containers/podman/v5/test/utils"
@@ -101,7 +102,7 @@ var _ = Describe("Podman pod create", func() {
 
 		session = podmanTest.Podman([]string{"run", fedoraMinimal, "curl", "-f", "localhost"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(7, "Failed to connect to localhost port 80 "))
 
 		session = podmanTest.Podman([]string{"pod", "create", "--network", "host"})
 		session.WaitWithDefaultTimeout()
@@ -220,7 +221,7 @@ var _ = Describe("Podman pod create", func() {
 
 		session = podmanTest.Podman([]string{"run", "--pod", podID, "--network", "bridge", NGINX_IMAGE, "curl", "-f", "localhost"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(7, "Failed to connect to localhost port 80 "))
 	})
 
 	It("podman pod container can override pod pid NS", func() {
@@ -311,14 +312,14 @@ var _ = Describe("Podman pod create", func() {
 		Expect(session).Should(ExitCleanly())
 		podID := session.OutputToString()
 
-		session = podmanTest.Podman([]string{"ps", "-aq"})
+		session = podmanTest.Podman([]string{"ps", "-aq", "--no-trunc"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		infraID := session.OutputToString()
 
 		session = podmanTest.Podman([]string{"rm", infraID})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, fmt.Sprintf("container %s is the infra container of pod %s and cannot be removed without removing the pod", infraID, podID)))
 
 		session = podmanTest.Podman([]string{"pod", "rm", podID})
 		session.WaitWithDefaultTimeout()
@@ -384,8 +385,7 @@ var _ = Describe("Podman pod create", func() {
 
 		session = podmanTest.Podman([]string{"create", "--pod", podID, "--add-host", "foobar:127.0.0.1", ALPINE, "ping", "-c", "1", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("extra host entries must be specified on the pod: network cannot be configured when it is shared with a pod"))
+		Expect(session).Should(ExitWithError(125, "extra host entries must be specified on the pod: network cannot be configured when it is shared with a pod"))
 
 		// verify we can see the pods hosts
 		session = podmanTest.Podman([]string{"run", "--cap-add", "net_raw", "--pod", podID, ALPINE, "ping", "-c", "1", "host1"})
