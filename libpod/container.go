@@ -209,6 +209,9 @@ type ContainerState struct {
 	// healthcheck. The container will be restarted if this exceed a set
 	// number in the startup HC config.
 	StartupHCFailureCount int `json:"startupHCFailureCount,omitempty"`
+	// HCUnitName records the name of the healthcheck unit.
+	// Automatically generated when the healthcheck is started.
+	HCUnitName string `json:"hcUnitName,omitempty"`
 
 	// ExtensionStageHooks holds hooks which will be executed by libpod
 	// and not delegated to the OCI runtime.

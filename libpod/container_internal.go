@@ -661,6 +661,7 @@ func resetContainerState(state *ContainerState) {
 	state.StartupHCPassed = false
 	state.StartupHCSuccessCount = 0
 	state.StartupHCFailureCount = 0
+	state.HCUnitName = ""
 	state.NetNS = ""
 	state.NetworkStatus = nil
 }
