@@ -82,6 +82,7 @@ const (
 	KeyGIDMap                = "GIDMap"
 	KeyGlobalArgs            = "GlobalArgs"
 	KeyGroup                 = "Group"
+	KeyGroupAdd              = "GroupAdd"
 	KeyHealthCmd             = "HealthCmd"
 	KeyHealthInterval        = "HealthInterval"
 	KeyHealthOnFailure       = "HealthOnFailure"
@@ -187,6 +188,7 @@ var (
 		KeyGIDMap:                true,
 		KeyGlobalArgs:            true,
 		KeyGroup:                 true,
+		KeyGroupAdd:              true,
 		KeyHealthCmd:             true,
 		KeyHealthInterval:        true,
 		KeyHealthOnFailure:       true,
@@ -670,6 +672,13 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 
 	if err := handleUserMappings(container, ContainerGroup, podman, isUser, true); err != nil {
 		return nil, err
+	}
+
+	groupsAdd := container.LookupAll(ContainerGroup, KeyGroupAdd)
+	for _, groupAdd := range groupsAdd {
+		if len(groupAdd) > 0 {
+			podman.addf("--group-add=%s", groupAdd)
+		}
 	}
 
 	tmpfsValues := container.LookupAll(ContainerGroup, KeyTmpfs)

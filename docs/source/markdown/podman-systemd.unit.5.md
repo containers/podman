@@ -248,6 +248,7 @@ Valid options for `[Container]` are listed below:
 | GIDMap=0:10000:10                    | --gidmap=0:10000:10                                  |
 | GlobalArgs=--log-level=debug         | --log-level=debug                                    |
 | Group=1234                           | --user UID:1234                                      |
+| GroupAdd=keep-groups                 | --group-add=keep-groups                              |
 | HealthCmd=/usr/bin/command           | --health-cmd=/usr/bin/command                        |
 | HealthInterval=2m                    | --health-interval=2m                                 |
 | HealthOnFailure=kill                 | --health-on-failure=kill                             |
@@ -439,6 +440,11 @@ This key can be listed multiple times.
 
 The (numeric) GID to run as inside the container. This does not need to match the GID on the host,
 which can be modified with `UsersNS`, but if that is not specified, this GID is also used on the host.
+
+### `GroupAdd=`
+
+Assign additional groups to the primary user running within the container process. Also supports the `keep-groups` special flag.
+Equivalent to the Podman `--group-add` option.
 
 ### `HealthCmd=`
 
