@@ -418,7 +418,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		createFlags.StringVar(
 			&cf.SdNotifyMode,
 			sdnotifyFlagName, cf.SdNotifyMode,
-			`control sd-notify behavior ("container"|"conmon"|"ignore")`,
+			`control sd-notify behavior ("container"|"conmon"|"healthy"|"ignore")`,
 		)
 		_ = cmd.RegisterFlagCompletionFunc(sdnotifyFlagName, AutocompleteSDNotify)
 
