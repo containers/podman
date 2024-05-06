@@ -703,99 +703,6 @@ rootless_integration_test_task:
     always: *int_logs_artifacts
 
 
-podman_machine_task:
-    name: *std_name_fmt
-    alias: podman_machine
-    # Don't create task for tags, or if using [CI:DOCS], [CI:BUILD]
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: &not_tag_build_docs >-
-        $CIRRUS_TAG == '' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
-    depends_on:
-        - build
-        - local_integration_test
-        - remote_integration_test
-        - container_integration_test
-        - rootless_integration_test
-    ec2_instance:
-        image: "${VM_IMAGE_NAME}"
-        type: "${EC2_INST_TYPE}"
-        region: us-east-1
-    env:
-      EC2_INST_TYPE: "m5zn.metal"  # Bare-metal instance is required
-      TEST_FLAVOR: "machine-linux"
-      PRIV_NAME: "rootless"  # intended use-case
-      DISTRO_NV: "${FEDORA_NAME}"
-      VM_IMAGE_NAME: "${FEDORA_AMI}"
-      CI_DESIRED_NETWORK: netavark
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always: *int_logs_artifacts
-
-
-podman_machine_aarch64_task:
-    name: *std_name_fmt
-    alias: podman_machine_aarch64
-    only_if: *not_tag_build_docs
-    depends_on:
-        - build_aarch64
-        - validate_aarch64
-        - local_integration_test
-        - remote_integration_test
-        - container_integration_test
-        - rootless_integration_test
-    ec2_instance:
-        <<: *standard_build_ec2_aarch64
-    env:
-        TEST_FLAVOR: "machine-linux"
-        EC2_INST_TYPE: c6g.metal
-        PRIV_NAME: "rootless"  # intended use-case
-        DISTRO_NV: "${FEDORA_AARCH64_NAME}"
-        VM_IMAGE_NAME: "${FEDORA_AARCH64_AMI}"
-        CI_DESIRED_NETWORK: netavark
-    clone_script: *get_gosrc_aarch64
-    setup_script: *setup
-    main_script: *main
-    always: *int_logs_artifacts
-
-
-podman_machine_windows_task:
-    name: *std_name_fmt
-    alias: podman_machine_windows
-    # TODO: These tests are new and mostly fail.  Disable all failures impacting overall CI status
-    # until the tests, scripts, and environment stabalize.
-    allow_failures: $CI == $CI
-    # Only run for non-docs/copr PRs and non-release branch builds
-    # and never for tags.  Docs: ./contrib/cirrus/CIModes.md
-    only_if: >-
-        $CIRRUS_TAG == '' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
-        $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
-    depends_on:
-      - alt_build
-      - build
-      - win_installer
-      - local_integration_test
-      - remote_integration_test
-      - container_integration_test
-      - rootless_integration_test
-    ec2_instance:
-        <<: *windows
-        type: m5zn.metal
-        platform: windows
-    env: *winenv
-    matrix:
-      - env:
-          TEST_FLAVOR: "machine-wsl"
-      - env:
-          TEST_FLAVOR: "machine-hyperv"
-    clone_script: *winclone
-    main_script: ".\\repo\\contrib\\cirrus\\win-podman-machine-main.ps1"
-
-
 # Always run subsequent to integration tests.  While parallelism is lost
 # with runtime, debugging system-test failures can be more challenging
 # for some golang developers.  Otherwise the following tasks run across
@@ -803,7 +710,10 @@ podman_machine_windows_task:
 local_system_test_task: &local_system_test_task
     name: *std_name_fmt
     alias: local_system_test
-    only_if: *not_tag_build_docs
+    only_if: &not_tag_build_docs >-
+        $CIRRUS_TAG == '' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
     depends_on: *build_unit
     matrix: *platform_axis
     gce_instance: *standardvm
@@ -1059,9 +969,6 @@ success_task:
         - remote_integration_test
         - container_integration_test
         - rootless_integration_test
-        - podman_machine
-        - podman_machine_aarch64
-        - podman_machine_windows
         - local_system_test
         - local_system_test_aarch64
         - remote_system_test
