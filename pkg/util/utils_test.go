@@ -764,3 +764,9 @@ func TestProcessOptions(t *testing.T) {
 		})
 	}
 }
+
+func TestGetRootlessPauseProcessPidPath(t *testing.T) {
+	dir, err := GetRootlessPauseProcessPidPath()
+	assert.NoError(t, err)
+	assert.NotEqual(t, dir, "libpod/tmp/pause.pid")
+}
