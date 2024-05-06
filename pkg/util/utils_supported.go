@@ -28,7 +28,7 @@ func GetRootlessConfigHomeDir() (string, error) {
 // GetRootlessPauseProcessPidPath returns the path to the file that holds the pid for
 // the pause process.
 func GetRootlessPauseProcessPidPath() (string, error) {
-	runtimeDir, err := GetRootlessRuntimeDir()
+	runtimeDir, err := homedir.GetRuntimeDir()
 	if err != nil {
 		return "", err
 	}
