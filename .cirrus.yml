@@ -707,7 +707,25 @@ rootless_integration_test_task:
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs_machine
     depends_on: *build
-    matrix: *platform_axis
+    # FIXME: Fails on Debian rootless ref: #22625
+    # matrix: *platform_axis
+    # FIXME: Fails on Debian rootless ref: #22625
+    matrix:  # The following is just like *platform_axis minus Debian
+        - env: *stdenvars
+        - env:
+              DISTRO_NV: ${PRIOR_FEDORA_NAME}
+              VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
+              CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
+              CI_DESIRED_RUNTIME: crun
+              CI_DESIRED_DATABASE: boltdb
+              CI_DESIRED_STORAGE: vfs
+              # Catch invalid "TMPDIR == /tmp" assumptions; PR #19281
+              TMPDIR: /var/tmp
+        - env:
+              <<: *stdenvars
+              DISTRO_NV: ${RAWHIDE_NAME}
+              VM_IMAGE_NAME: ${RAWHIDE_CACHE_IMAGE_NAME}
+              CTR_FQIN: ""
     gce_instance: *standardvm
     timeout_in: 50m
     env:
