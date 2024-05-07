@@ -27,13 +27,13 @@ var _ = Describe("Podman volume plugins", func() {
 	It("volume create with nonexistent plugin errors", func() {
 		session := podmanTest.Podman([]string{"volume", "create", "--driver", "notexist", "test_volume_name"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, "volume test_volume_name uses volume plugin notexist but it could not be retrieved: no volume plugin with name notexist available: required plugin missing"))
 	})
 
 	It("volume create with not-running plugin does not error", func() {
 		session := podmanTest.Podman([]string{"volume", "create", "--driver", "testvol0", "test_volume_name"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, `Error: volume test_volume_name uses volume plugin testvol0 but it could not be retrieved: cannot access plugin testvol0 socket "/run/docker/plugins/testvol0.sock": stat /run/docker/plugins/testvol0.sock: no such file or directory`))
 	})
 
 	It("volume create and remove with running plugin succeeds", func() {
@@ -145,7 +145,7 @@ var _ = Describe("Podman volume plugins", func() {
 		// Remove should exit non-zero because missing plugin
 		remove := podmanTest.Podman([]string{"volume", "rm", volName})
 		remove.WaitWithDefaultTimeout()
-		Expect(remove).To(ExitWithError())
+		Expect(remove).To(ExitWithError(125, "cannot remove volume testVolume1 from plugin testvol3, but it has been removed from Podman: required plugin missing"))
 
 		// But the volume should still be gone
 		ls2 := podmanTest.Podman([]string{"volume", "ls", "-q"})

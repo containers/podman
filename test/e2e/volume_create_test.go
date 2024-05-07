@@ -47,7 +47,7 @@ var _ = Describe("Podman volume create", func() {
 
 		session = podmanTest.Podman([]string{"volume", "create", "myvol"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, "volume with name myvol already exists: volume already exists"))
 	})
 
 	It("podman create volume --ignore", func() {
@@ -133,24 +133,21 @@ var _ = Describe("Podman volume create", func() {
 
 		session := podmanTest.Podman([]string{"volume", "import", "notfound", "notfound.tar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("open notfound.tar: no such file or directory"))
+		Expect(session).To(ExitWithError(125, "open notfound.tar: no such file or directory"))
 
 		session = podmanTest.Podman([]string{"volume", "import", "notfound", "-"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("no such volume notfound"))
+		Expect(session).To(ExitWithError(125, "no such volume notfound"))
 
 		session = podmanTest.Podman([]string{"volume", "export", "notfound"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("no such volume notfound"))
+		Expect(session).To(ExitWithError(125, "no such volume notfound"))
 	})
 
 	It("podman create volume with bad volume option", func() {
 		session := podmanTest.Podman([]string{"volume", "create", "--opt", "badOpt=bad"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, "invalid mount option badOpt for driver 'local': invalid argument"))
 	})
 
 	It("podman create volume with o=uid,gid", func() {

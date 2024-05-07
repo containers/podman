@@ -1,10 +1,11 @@
 package integration
 
 import (
+	"fmt"
+
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman volume rm", func() {
@@ -30,14 +31,13 @@ var _ = Describe("Podman volume rm", func() {
 
 	It("podman volume rm with --force flag", func() {
 		session := podmanTest.Podman([]string{"create", "-v", "myvol:/myvol", ALPINE, "ls"})
-		cid := session.OutputToString()
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
+		cid := session.OutputToString()
 
 		session = podmanTest.Podman([]string{"volume", "rm", "myvol"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(2))
-		Expect(session.ErrorToString()).To(ContainSubstring(cid))
+		Expect(session).Should(ExitWithError(2, fmt.Sprintf("volume myvol is being used by the following container(s): %s: volume is being used", cid)))
 
 		session = podmanTest.Podman([]string{"volume", "rm", "-t", "0", "-f", "myvol"})
 		session.WaitWithDefaultTimeout()
@@ -52,7 +52,7 @@ var _ = Describe("Podman volume rm", func() {
 	It("podman volume remove bogus", func() {
 		session := podmanTest.Podman([]string{"volume", "rm", "bogus"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(1))
+		Expect(session).Should(ExitWithError(1, `no volume with name "bogus" found: no such volume`))
 	})
 
 	It("podman rm with --all flag", func() {
@@ -100,7 +100,16 @@ var _ = Describe("Podman volume rm", func() {
 
 		session = podmanTest.Podman([]string{"volume", "rm", "myv"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		expect := "more than one result for volume name myv: volume already exists"
+		if podmanTest.DatabaseBackend == "boltdb" {
+			// boltdb issues volume name in quotes
+			expect = `more than one result for volume name "myv": volume already exists`
+		}
+		if IsRemote() {
+			// FIXME: #22616
+			expect = `unmarshalling error into &errorhandling.ErrorModel`
+		}
+		Expect(session).To(ExitWithError(125, expect))
 
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()
