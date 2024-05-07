@@ -2140,8 +2140,14 @@ var _ = Describe("Podman kube play", func() {
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).To(ExitWithError())
-
+		expect := "YAML document does not contain any supported kube kind"
+		// On anything kube-related, podman-remote emits a magic prefix
+		// that regular podman doesn't. Test for it here, but let's not
+		// do so in every single test.
+		if IsRemote() {
+			expect = "playing YAML file: " + expect
+		}
+		Expect(kube).To(ExitWithError(125, expect))
 	})
 
 	It("fail with custom selinux label", func() {
@@ -2192,8 +2198,7 @@ var _ = Describe("Podman kube play", func() {
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(125))
-		Expect(kube.ErrorToString()).To(ContainSubstring("failed to create volume \"mycm\": no such ConfigMap \"mycm\""))
+		Expect(kube).Should(ExitWithError(125, `failed to create volume "mycm": no such ConfigMap "mycm"`))
 	})
 
 	It("test HostAliases with --no-hosts", func() {
@@ -2211,8 +2216,7 @@ var _ = Describe("Podman kube play", func() {
 
 		kube := podmanTest.Podman([]string{"kube", "play", "--no-hosts", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(125))
-		Expect(kube.ErrorToString()).To(ContainSubstring("HostAliases in yaml file will not work with --no-hosts"))
+		Expect(kube).Should(ExitWithError(125, "HostAliases in yaml file will not work with --no-hosts"))
 	})
 
 	It("should use customized infra_image", func() {
@@ -2311,14 +2315,13 @@ var _ = Describe("Podman kube play", func() {
 		Expect(containerNames).To(ContainElement("podnameEqualsContainerNameYaml-podnameEqualsContainerNameYaml"))
 	})
 
-	It("should error if pod dont have a name", func() {
+	It("should error if pod doesn't have a name", func() {
 		err := writeYaml(podWithoutAName, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(125))
-
+		Expect(kube).Should(ExitWithError(125, "pod does not have a name"))
 	})
 
 	It("support container liveness probe", func() {
@@ -2366,7 +2369,7 @@ var _ = Describe("Podman kube play", func() {
 
 		hc := podmanTest.Podman([]string{"healthcheck", "run", ctrName})
 		hc.WaitWithDefaultTimeout()
-		Expect(hc).Should(Exit(1))
+		Expect(hc).Should(ExitWithError(1))
 
 		exec := podmanTest.Podman([]string{"exec", ctrName, "sh", "-c", "echo 'startup probe success' > /testfile"})
 		exec.WaitWithDefaultTimeout()
@@ -2386,8 +2389,7 @@ var _ = Describe("Podman kube play", func() {
 
 		kube := podmanTest.Podman([]string{"kube", "play", "--authfile", "/tmp/nonexistent", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).To(ExitWithError())
-
+		Expect(kube).To(ExitWithError(125, "credential file is not accessible: faccessat /tmp/nonexistent: no such file or directory"))
 	})
 
 	It("test correct command", func() {
@@ -2716,7 +2718,7 @@ var _ = Describe("Podman kube play", func() {
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml, "--configmap", cmYamlPathname})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).To(ExitWithError())
+		Expect(kube).To(ExitWithError(125, "cannot set env FOO: key MISSING_KEY not found in configmap foo"))
 	})
 
 	It("test required env value from missing configmap", func() {
@@ -2726,7 +2728,7 @@ var _ = Describe("Podman kube play", func() {
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).To(ExitWithError())
+		Expect(kube).To(ExitWithError(125, "cannot set env FOO: configmap missing_cm not found"))
 	})
 
 	It("test optional env value from configmap with missing key", func() {
@@ -2792,7 +2794,7 @@ var _ = Describe("Podman kube play", func() {
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).To(ExitWithError())
+		Expect(kube).To(ExitWithError(125, "configmap missing_cm not found"))
 	})
 
 	It("test get all key-value pairs from optional configmap as envs", func() {
@@ -2828,7 +2830,7 @@ var _ = Describe("Podman kube play", func() {
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).To(ExitWithError())
+		Expect(kube).To(ExitWithError(125, `cannot set env FOO: no secret with name or id "foo": no such secret`))
 	})
 
 	It("test required env value from secret with missing key", func() {
@@ -2839,7 +2841,7 @@ var _ = Describe("Podman kube play", func() {
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).To(ExitWithError())
+		Expect(kube).To(ExitWithError(125, "cannot set env FOO: secret foo has not MISSING key"))
 	})
 
 	It("test optional env value from missing secret", func() {
@@ -2897,7 +2899,7 @@ var _ = Describe("Podman kube play", func() {
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).To(ExitWithError())
+		Expect(kube).To(ExitWithError(125, `no secret with name or id "missing_secret": no such secret`))
 	})
 
 	It("test get all key-value pairs from optional secret as envs", func() {
@@ -2918,7 +2920,7 @@ var _ = Describe("Podman kube play", func() {
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).To(ExitWithError())
+		Expect(kube).To(ExitWithError(125, `the pod "testPod" is invalid; duplicate container name "testctr" detected`))
 
 		p = getPod(withPodInitCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"echo", "hello"}), withInitCtr(), withName("initctr"))), withCtr(getCtr(withImage(CITEST_IMAGE), withName("initctr"), withCmd([]string{"top"}))))
 
@@ -2927,7 +2929,7 @@ var _ = Describe("Podman kube play", func() {
 
 		kube = podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).To(ExitWithError())
+		Expect(kube).To(ExitWithError(125, `adding pod to state: name "testPod" is in use: pod already exists`))
 	})
 
 	It("test hostname", func() {
@@ -3112,8 +3114,7 @@ var _ = Describe("Podman kube play", func() {
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(125))
-		Expect(kube.ErrorToString()).To(ContainSubstring(BB_GLIBC + ": image not known"))
+		Expect(kube).Should(ExitWithError(125, BB_GLIBC+": image not known"))
 	})
 
 	It("with pull policy of missing", func() {
@@ -3439,7 +3440,7 @@ spec:
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).To(ExitWithError())
+		Expect(kube).To(ExitWithError(125, fmt.Sprintf(`failed to create volume "testVol": in parsing HostPath in YAML: faccessat %s: no such file or directory`, hostPathLocation)))
 		Expect(kube.ErrorToString()).To(ContainSubstring(defaultVolName))
 	})
 
@@ -3467,7 +3468,7 @@ spec:
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).To(ExitWithError())
+		Expect(kube).To(ExitWithError(125, fmt.Sprintf(`failed to create volume "testVol": in parsing HostPath in YAML: faccessat %s: no such file or directory`, hostPathLocation)))
 	})
 
 	It("test with File HostPath type volume", func() {
@@ -3560,7 +3561,7 @@ spec:
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).To(ExitWithError())
+		Expect(kube).To(ExitWithError(125, fmt.Sprintf(`failed to create volume "testVol": checking HostPathSocket: path %s is not a socket`, hostPathLocation)))
 	})
 
 	It("test with read-only HostPath volume", func() {
@@ -3979,8 +3980,7 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(125))
-		Expect(kube.ErrorToString()).To(ContainSubstring("invalid reference format"))
+		Expect(kube).Should(ExitWithError(125, "invalid reference format"))
 	})
 
 	It("applies log driver to containers", func() {
@@ -4107,8 +4107,7 @@ o: {{ .Options.o }}`})
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		if IsRemote() {
-			Expect(kube).Should(Exit(125))
-			Expect(kube.ErrorToString()).To(ContainSubstring("importing volumes is not supported for remote requests"))
+			Expect(kube).Should(ExitWithError(125, "importing volumes is not supported for remote requests"))
 			return
 		}
 		Expect(kube).Should(ExitCleanly())
@@ -4323,7 +4322,7 @@ invalid kube kind
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).To(ExitWithError())
+		Expect(kube).To(ExitWithError(125, "multi doc yaml could not be split: yaml: line 12: found character that cannot start any token"))
 	})
 
 	It("with auto update annotations for all containers", func() {
@@ -4749,7 +4748,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 			kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 			kube.WaitWithDefaultTimeout()
-			Expect(kube).To(ExitWithError())
+			Expect(kube).To(ExitWithError(125, "cannot set env FOO: key MISSING_KEY not found in configmap foo"))
 		})
 
 		It("succeeds for optional env value with missing key", func() {
@@ -4973,8 +4972,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 			kube := podmanTest.Podman([]string{"kube", "play", kubeYaml, "--configmap", fsCmYamlPathname})
 			kube.WaitWithDefaultTimeout()
-			Expect(kube).Should(Exit(125))
-			Expect(kube.ErrorToString()).To(ContainSubstring("ambiguous configuration: the same config map foo is present in YAML and in --configmaps"))
+			Expect(kube).Should(ExitWithError(125, "ambiguous configuration: the same config map foo is present in YAML and in --configmaps"))
 		})
 	})
 
@@ -5179,7 +5177,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(125))
+		Expect(kube).Should(ExitWithError(125, fmt.Sprintf(`failed to create volume "testVol": checking HostPathBlockDevice: stat %s: no such file or directory`, devicePath)))
 	})
 
 	It("reports error when we try to expose char device as block device", func() {
@@ -5205,7 +5203,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(125))
+		Expect(kube).Should(ExitWithError(125, fmt.Sprintf(`failed to create volume "testVol": checking HostPathDevice: path %s is not a block device`, devicePath)))
 	})
 
 	It("reports error when we try to expose block device as char device", func() {
@@ -5230,7 +5228,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(125))
+		Expect(kube).Should(ExitWithError(125, fmt.Sprintf(`failed to create volume "testVol": checking HostPathCharDevice: path %s is not a character device`, devicePath)))
 	})
 
 	It("secret as volume support - simple", func() {
@@ -5484,7 +5482,7 @@ spec:
 
 		kube := podmanTest.Podman([]string{"kube", "play", "--quiet", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).To(ExitWithError())
+		Expect(kube).To(ExitWithError(125, "rootlessport cannot expose privileged port 80,"))
 		// The ugly format-error exited once in Podman. The test makes
 		// sure it's not coming back.
 		Expect(kube.ErrorToString()).To(Not(ContainSubstring("Error: %!s(<nil>)")))
@@ -5508,10 +5506,13 @@ spec:
 	name: vol-test-3
 `
 
+		err = writeYaml(podTemplate, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
 		// the image is incorrect so the kube play will fail, but it will clean up the pod that was created for it before the failure happened
-		kube := podmanTest.Podman([]string{"kube", "play", podTemplate})
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).To(ExitWithError())
+		Expect(kube).To(ExitWithError(125, "multi doc yaml could not be split: yaml: line 5: found character that cannot start any token"))
 
 		ps := podmanTest.Podman([]string{"pod", "ps", "-q"})
 		ps.WaitWithDefaultTimeout()
@@ -5625,14 +5626,10 @@ spec:
 
 		playKube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		playKube.WaitWithDefaultTimeout()
-		Expect(playKube).Should(Exit(125))
-		Expect(playKube.OutputToString()).Should(ContainSubstring("is outside"))
+		Expect(playKube).Should(ExitWithError(125, fmt.Sprintf(`subpath "testing/onlythis" is outside of the volume "%s/root/volumes/testvol/_data`, podmanTest.TempDir)))
 	})
 
 	It("with unsafe hostPath subpaths", func() {
-		if !Containerized() {
-			Skip("something is wrong with file permissions in CI or in the yaml creation. cannot ls or cat the fs unless in a container")
-		}
 		hostPathLocation := podmanTest.TempDir
 
 		Expect(os.MkdirAll(filepath.Join(hostPathLocation, "testing"), 0755)).To(Succeed())
@@ -5645,8 +5642,7 @@ spec:
 
 		playKube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		playKube.WaitWithDefaultTimeout()
-		Expect(playKube).Should(Exit(125))
-		Expect(playKube.OutputToString()).Should(ContainSubstring("is outside"))
+		Expect(playKube).Should(ExitWithError(125, fmt.Sprintf(`subpath "testing/symlink" is outside of the volume "%s"`, hostPathLocation)))
 	})
 
 	It("with configMap subpaths", func() {
@@ -5692,7 +5688,7 @@ spec:
 
 		curlTest := podmanTest.Podman([]string{"run", "--network", "host", NGINX_IMAGE, "curl", "-s", "localhost:19000"})
 		curlTest.WaitWithDefaultTimeout()
-		Expect(curlTest).Should(Exit(7))
+		Expect(curlTest).Should(ExitWithError(7))
 	})
 
 	It("without Ports, publish in command line - curl should succeed", func() {
@@ -5713,11 +5709,7 @@ spec:
 
 		kube := podmanTest.Podman([]string{"kube", "play", "--publish-all=true", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(125))
-		// The error message is printed only on local call
-		if !IsRemote() {
-			Expect(kube.OutputToString()).Should(ContainSubstring("rootlessport cannot expose privileged port 80"))
-		}
+		Expect(kube).Should(ExitWithError(125, "rootlessport cannot expose privileged port 80"))
 	})
 
 	It("podman play kube should not publish containerPort by default", func() {
@@ -5933,8 +5925,7 @@ spec:
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(125))
-		Expect(kube.ErrorToString()).To(ContainSubstring("since Network Namespace set to host: invalid argument"))
+		Expect(kube).Should(ExitWithError(125, "since Network Namespace set to host: invalid argument"))
 	})
 
 	It("test with annotation size beyond limits", func() {
@@ -5946,8 +5937,7 @@ spec:
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(125))
-		Expect(kube.ErrorToString()).To(ContainSubstring("annotations size " + strconv.Itoa(len(key+val)) + " is larger than limit " + strconv.Itoa(define.TotalAnnotationSizeLimitB)))
+		Expect(kube).Should(ExitWithError(125, "annotations size "+strconv.Itoa(len(key+val))+" is larger than limit "+strconv.Itoa(define.TotalAnnotationSizeLimitB)))
 	})
 
 	It("test with annotation size within limits", func() {
@@ -6109,8 +6099,7 @@ spec:
 
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(125))
-		Expect(kube.ErrorToString()).To(ContainSubstring("annotation " + define.VolumesFromAnnotation + " without target volume is reserved for internal use"))
+		Expect(kube).Should(ExitWithError(125, "annotation "+define.VolumesFromAnnotation+" without target volume is reserved for internal use"))
 	})
 
 	It("test with reserved autoremove annotation in yaml", func() {
