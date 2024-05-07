@@ -21,7 +21,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"unsafe"
 
 	"golang.org/x/tools/go/types/objectpath"
 	"golang.org/x/tools/internal/aliases"
@@ -529,7 +528,7 @@ func (p *iexporter) doDecl(obj types.Object) {
 			if alias, ok := t.(*aliases.Alias); ok {
 				// Preserve materialized aliases,
 				// even of non-exported types.
-				t = aliasRHS(alias)
+				t = aliases.Rhs(alias)
 			}
 			w.typ(t, obj.Pkg())
 			break
@@ -1330,20 +1329,4 @@ func (e internalError) Error() string { return "gcimporter: " + string(e) }
 // situations like bad input, whose cause is external.
 func internalErrorf(format string, args ...interface{}) error {
 	return internalError(fmt.Sprintf(format, args...))
-}
-
-// aliasRHS removes exactly one Alias constructor.
-func aliasRHS(alias *aliases.Alias) types.Type {
-	// TODO(adonovan): if proposal #66559 is accepted, this will
-	// become Alias.RHS(alias). In the meantime, we must punch
-	// through the drywall.
-	type go123Alias struct {
-		_   *types.TypeName
-		_   *types.TypeParamList
-		RHS types.Type
-		_   types.Type
-	}
-	var raw *go123Alias
-	*(**aliases.Alias)(unsafe.Pointer(&raw)) = alias
-	return raw.RHS
 }
