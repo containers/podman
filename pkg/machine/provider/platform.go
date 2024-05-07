@@ -3,7 +3,9 @@
 package provider
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 
 	"github.com/containers/common/pkg/config"
@@ -34,4 +36,32 @@ func Get() (vmconfigs.VMProvider, error) {
 	default:
 		return nil, fmt.Errorf("unsupported virtualization provider: `%s`", resolvedVMType.String())
 	}
+}
+
+// SupportedProviders returns the providers that are supported on the host operating system
+func SupportedProviders() []define.VMType {
+	return []define.VMType{define.QemuVirt}
+}
+
+// InstalledProviders returns the supported providers that are installed on the host
+func InstalledProviders() ([]define.VMType, error) {
+	cfg, err := config.Default()
+	if err != nil {
+		return nil, err
+	}
+	_, err = cfg.FindHelperBinary(qemu.QemuCommand, true)
+	if errors.Is(err, fs.ErrNotExist) {
+		return []define.VMType{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return []define.VMType{define.QemuVirt}, nil
+}
+
+// HasPermsForProvider returns whether the host operating system has the proper permissions to use the given provider
+func HasPermsForProvider(provider define.VMType) bool {
+	// there are no permissions required for QEMU
+	return provider == define.QemuVirt
 }
