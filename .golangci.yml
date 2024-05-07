@@ -1,7 +1,7 @@
 ---
 run:
   concurrency: 6
-  deadline: 5m
+  timeout: 5m
   modules-download-mode: readonly
 linters:
   enable-all: true
@@ -72,9 +72,7 @@ linters:
 linters-settings:
   errcheck:
     check-blank: false
-    ignore: fmt:.*
   nolintlint:
-    allow-leading-space: false
     allow-unused: true
     require-specific: true
   revive:
