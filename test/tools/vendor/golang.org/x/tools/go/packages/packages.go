@@ -129,9 +129,8 @@ type Config struct {
 	Mode LoadMode
 
 	// Context specifies the context for the load operation.
-	// If the context is cancelled, the loader may stop early
-	// and return an ErrCancelled error.
-	// If Context is nil, the load cannot be cancelled.
+	// Cancelling the context may cause [Load] to abort and
+	// return an error.
 	Context context.Context
 
 	// Logf is the logger for the config.
@@ -214,8 +213,8 @@ type Config struct {
 // Config specifies loading options;
 // nil behaves the same as an empty Config.
 //
-// Load returns an error if any of the patterns was invalid
-// as defined by the underlying build system.
+// If any of the patterns was invalid as defined by the
+// underlying build system, Load returns an error.
 // It may return an empty list of packages without an error,
 // for instance for an empty expansion of a valid wildcard.
 // Errors associated with a particular package are recorded in the
@@ -428,6 +427,10 @@ type Package struct {
 	// The NeedTypes LoadMode bit sets this field for packages matching the
 	// patterns; type information for dependencies may be missing or incomplete,
 	// unless NeedDeps and NeedImports are also set.
+	//
+	// Each call to [Load] returns a consistent set of type
+	// symbols, as defined by the comment at [types.Identical].
+	// Avoid mixing type information from two or more calls to [Load].
 	Types *types.Package
 
 	// Fset provides position information for Types, TypesInfo, and Syntax.
@@ -854,6 +857,12 @@ func (ld *loader) refine(response *DriverResponse) ([]*Package, error) {
 		wg.Wait()
 	}
 
+	// If the context is done, return its error and
+	// throw out [likely] incomplete packages.
+	if err := ld.Context.Err(); err != nil {
+		return nil, err
+	}
+
 	result := make([]*Package, len(initial))
 	for i, lpkg := range initial {
 		result[i] = lpkg.Package
@@ -948,6 +957,14 @@ func (ld *loader) loadPackage(lpkg *loaderPackage) {
 	// package declarations are inconsistent.
 	lpkg.Types = types.NewPackage(lpkg.PkgPath, lpkg.Name)
 	lpkg.Fset = ld.Fset
+
+	// Start shutting down if the context is done and do not load
+	// source or export data files.
+	// Packages that import this one will have ld.Context.Err() != nil.
+	// ld.Context.Err() will be returned later by refine.
+	if ld.Context.Err() != nil {
+		return
+	}
 
 	// Subtle: we populate all Types fields with an empty Package
 	// before loading export data so that export data processing
@@ -1065,6 +1082,13 @@ func (ld *loader) loadPackage(lpkg *loaderPackage) {
 
 	lpkg.Syntax = files
 	if ld.Config.Mode&NeedTypes == 0 {
+		return
+	}
+
+	// Start shutting down if the context is done and do not type check.
+	// Packages that import this one will have ld.Context.Err() != nil.
+	// ld.Context.Err() will be returned later by refine.
+	if ld.Context.Err() != nil {
 		return
 	}
 
@@ -1245,11 +1269,6 @@ func (ld *loader) parseFiles(filenames []string) ([]*ast.File, []error) {
 	parsed := make([]*ast.File, n)
 	errors := make([]error, n)
 	for i, file := range filenames {
-		if ld.Config.Context.Err() != nil {
-			parsed[i] = nil
-			errors[i] = ld.Config.Context.Err()
-			continue
-		}
 		wg.Add(1)
 		go func(i int, filename string) {
 			parsed[i], errors[i] = ld.parseFile(filename)

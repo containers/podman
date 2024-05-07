@@ -301,6 +301,20 @@ func (p *pass) loadPackageNames(imports []*ImportInfo) error {
 	return nil
 }
 
+// if there is a trailing major version, remove it
+func withoutVersion(nm string) string {
+	if v := path.Base(nm); len(v) > 0 && v[0] == 'v' {
+		if _, err := strconv.Atoi(v[1:]); err == nil {
+			// this is, for instance, called with rand/v2 and returns rand
+			if len(v) < len(nm) {
+				xnm := nm[:len(nm)-len(v)-1]
+				return path.Base(xnm)
+			}
+		}
+	}
+	return nm
+}
+
 // importIdentifier returns the identifier that imp will introduce. It will
 // guess if the package name has not been loaded, e.g. because the source
 // is not available.
@@ -310,7 +324,7 @@ func (p *pass) importIdentifier(imp *ImportInfo) string {
 	}
 	known := p.knownPackages[imp.ImportPath]
 	if known != nil && known.name != "" {
-		return known.name
+		return withoutVersion(known.name)
 	}
 	return ImportPathToAssumedName(imp.ImportPath)
 }
@@ -1059,6 +1073,18 @@ func addStdlibCandidates(pass *pass, refs references) error {
 	if err != nil {
 		return err
 	}
+	localbase := func(nm string) string {
+		ans := path.Base(nm)
+		if ans[0] == 'v' {
+			// this is called, for instance, with math/rand/v2 and returns rand/v2
+			if _, err := strconv.Atoi(ans[1:]); err == nil {
+				ix := strings.LastIndex(nm, ans)
+				more := path.Base(nm[:ix])
+				ans = path.Join(more, ans)
+			}
+		}
+		return ans
+	}
 	add := func(pkg string) {
 		// Prevent self-imports.
 		if path.Base(pkg) == pass.f.Name.Name && filepath.Join(goenv["GOROOT"], "src", pkg) == pass.srcDir {
@@ -1067,13 +1093,17 @@ func addStdlibCandidates(pass *pass, refs references) error {
 		exports := symbolNameSet(stdlib.PackageSymbols[pkg])
 		pass.addCandidate(
 			&ImportInfo{ImportPath: pkg},
-			&packageInfo{name: path.Base(pkg), exports: exports})
+			&packageInfo{name: localbase(pkg), exports: exports})
 	}
 	for left := range refs {
 		if left == "rand" {
-			// Make sure we try crypto/rand before math/rand.
+			// Make sure we try crypto/rand before any version of math/rand as both have Int()
+			// and our policy is to recommend crypto
 			add("crypto/rand")
-			add("math/rand")
+			// if the user's no later than go1.21, this should be "math/rand"
+			// but we have no way of figuring out what the user is using
+			// TODO: investigate using the toolchain version to disambiguate in the stdlib
+			add("math/rand/v2")
 			continue
 		}
 		for importPath := range stdlib.PackageSymbols {
