@@ -143,7 +143,9 @@ pages and %{name}.
 Summary: Tests for %{name}
 
 Requires: %{name} = %{epoch}:%{version}-%{release}
+%if %{defined fedora}
 Requires: bats
+%endif
 Requires: jq
 Requires: skopeo
 Requires: nmap-ncat
