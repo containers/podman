@@ -2,13 +2,13 @@ package provider
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
-	"strconv"
+	"runtime"
 	"strings"
 
+	"github.com/blang/semver/v4"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/pkg/machine/applehv"
 	"github.com/containers/podman/v5/pkg/machine/define"
@@ -44,42 +44,78 @@ func Get() (vmconfigs.VMProvider, error) {
 
 // SupportedProviders returns the providers that are supported on the host operating system
 func SupportedProviders() []define.VMType {
-	return []define.VMType{define.AppleHvVirt}
+	supported := []define.VMType{define.AppleHvVirt}
+	if runtime.GOARCH == "arm64" {
+		return append(supported, define.LibKrun)
+	}
+	return supported
 }
 
 // InstalledProviders returns the supported providers that are installed on the host
 func InstalledProviders() ([]define.VMType, error) {
+	installed := []define.VMType{}
+
+	appleHvInstalled, err := appleHvInstalled()
+	if err != nil {
+		return nil, err
+	}
+	if appleHvInstalled {
+		installed = append(installed, define.AppleHvVirt)
+	}
+
+	libKrunInstalled, err := libKrunInstalled()
+	if err != nil {
+		return nil, err
+	}
+	if libKrunInstalled {
+		installed = append(installed, define.LibKrun)
+	}
+
+	return installed, nil
+}
+
+func appleHvInstalled() (bool, error) {
 	var outBuf bytes.Buffer
-	// Apple's Virtualization.Framework is only supported on MacOS 11.0+
-	const SupportedMacOSVersion = 11
+	// Apple's Virtualization.Framework is only supported on MacOS 11.0+,
+	// but to use EFI MacOS 13.0+ is required
+	expectedVer, err := semver.Make("13.0.0")
+	if err != nil {
+		return false, err
+	}
 
 	cmd := exec.Command("sw_vers", "--productVersion")
 	cmd.Stdout = &outBuf
 	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("unable to check current macOS version using `sw_vers --productVersion`: %s", err)
+		return false, fmt.Errorf("unable to check current macOS version using `sw_vers --productVersion`: %s", err)
 	}
 
 	// the output will be in the format of MAJOR.MINOR.PATCH
-	output := outBuf.String()
-	idx := strings.Index(output, ".")
-	if idx < 0 {
-		return nil, errors.New("invalid output provided by sw_vers --productVersion")
-	}
-	majorString := output[:idx]
-	majorInt, err := strconv.Atoi(majorString)
+	output := strings.TrimSuffix(outBuf.String(), "\n")
+	currentVer, err := semver.Make(output)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
-	if majorInt >= SupportedMacOSVersion {
-		return []define.VMType{define.AppleHvVirt}, nil
+	return currentVer.GTE(expectedVer), nil
+}
+
+func libKrunInstalled() (bool, error) {
+	if runtime.GOARCH != "arm64" {
+		return false, nil
 	}
 
-	return []define.VMType{}, nil
+	// need to verify that krunkit, virglrenderer, and libkrun-efi are installed
+	cfg, err := config.Default()
+	if err != nil {
+		return false, err
+	}
+
+	_, err = cfg.FindHelperBinary("krunkit", false)
+	return err == nil, nil
 }
 
 // HasPermsForProvider returns whether the host operating system has the proper permissions to use the given provider
 func HasPermsForProvider(provider define.VMType) bool {
-	// there are no permissions required for AppleHV
-	return provider == define.AppleHvVirt
+	// there are no permissions required for AppleHV or LibKrun
+	return provider == define.AppleHvVirt || provider == define.LibKrun
 }
