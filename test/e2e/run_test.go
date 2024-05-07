@@ -14,6 +14,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/libpod/define"
 	. "github.com/containers/podman/v5/test/utils"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -455,8 +456,8 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run powercap is masked", func() {
-		if os.Getenv("CI") != "" {
-			Skip("CI VMs do not have access to powercap")
+		if err := fileutils.Exists("/sys/devices/virtual/powercap"); err != nil {
+			Skip("/sys/devices/virtual/powercap is not present")
 		}
 
 		testCtr1 := "testctr"
